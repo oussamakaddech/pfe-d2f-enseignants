@@ -1,0 +1,41 @@
+# nginx.conf
+user  nginx;
+worker_processes  auto;
+error_log  /var/log/nginx/error.log warn;
+pid        /var/run/nginx.pid;
+
+events {
+  worker_connections  1024;
+}
+
+http {
+  include       /etc/nginx/mime.types;
+  default_type  application/octet-stream;
+
+  sendfile        on;
+  keepalive_timeout  65;
+
+  # Compression gzip (optionnel)
+  gzip on;
+  gzip_types text/plain application/javascript application/json text/css text/xml application/xml application/xml+rss text/javascript;
+
+  server {
+    listen       80;
+    server_name  _;
+
+    # Répertoire racine (où Vite produit dist/)
+    root   /usr/share/nginx/html;
+    index  index.html;
+
+    # SPA fallback : redirige tout vers index.html
+    location / {
+      try_files $uri $uri/ /index.html;
+    }
+
+    # Cache des assets statiques (optionnel)
+    location ~* \.(js|css|png|jpg|jpeg|gif|svg|ico)$ {
+      expires 7d;
+      add_header Cache-Control "public";
+    }
+  }
+}

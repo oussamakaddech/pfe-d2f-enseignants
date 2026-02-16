@@ -1,0 +1,19 @@
+@keyframes blink {
+    50% {
+      background-color: #f44336; /* rouge vif pendant le blink */
+    }
+  }
+  
+  .blink-animateur {
+    animation: blink 1s infinite;
+  }
+  /* Menu dark : hover des items en fond blanc + texte/icone rouge */
+/* Clignotement de la date dans le header */
+@keyframes blink {
+  0%, 100% { opacity: 0.8; }
+  50% { opacity: 1; }
+}
+.blink-date {
+  animation: blink 1s infinite;
+}
+

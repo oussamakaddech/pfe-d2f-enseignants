@@ -1,0 +1,45 @@
+FROM python:3.13-slim
+
+WORKDIR /app
+
+COPY requirements.txt .
+
+# Variables pour pip
+ENV PIP_DEFAULT_TIMEOUT=600
+ENV PIP_RETRIES=10
+ENV PIP_NO_CACHE_DIR=off
+
+# Installer les dépendances système requises (sans recommandations pour alléger)
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends \
+      build-essential \
+      cmake \
+      pkg-config \
+      libopenblas-dev \
+      libssl-dev \
+ && rm -rf /var/lib/apt/lists/*
+
+# Mettre à jour pip
+RUN pip install --no-cache-dir --upgrade pip
+
+# Installer Torch+TorchVision CPU (versions alignées et disponibles)
+RUN pip install --no-cache-dir \
+    --index-url https://download.pytorch.org/whl/cpu \
+    torch==2.7.0+cpu \
+    torchvision==0.22.0+cpu
+
+# Installer les autres dépendances Python
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copier le code de l’application
+COPY . .
+
+# Préparer le dossier de cache
+RUN mkdir -p /app/cache
+VOLUME ["/app/cache"]
+
+# Exposer le port de votre API
+EXPOSE 8000
+
+# Lancer Uvicorn
+CMD ["uvicorn", "ai_reco:app", "--host", "0.0.0.0", "--port", "8000"]

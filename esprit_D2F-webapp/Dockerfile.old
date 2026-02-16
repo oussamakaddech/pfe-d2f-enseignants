@@ -1,0 +1,24 @@
+# Étape 1 : build avec Node
+FROM node:18-alpine AS build
+WORKDIR /app
+COPY package.json package-lock.json ./
+ENV npm_config_legacy_peer_deps=true
+RUN npm ci
+COPY . .
+RUN npm run build
+
+# Étape 2 : image Nginx
+FROM nginx:stable-alpine
+
+# 1) Votre config nginx
+COPY nginx.conf /etc/nginx/nginx.conf
+
+# 2) Le build Vite
+COPY --from=build /app/dist /usr/share/nginx/html
+
+# 3) Vos assets “à la Windows” restés dans src/styles
+#    pour que index.html (dans dist) qui référence ./src/styles/... trouve bien les fichiers
+COPY --from=build /app/src/styles /usr/share/nginx/html/src/styles
+
+EXPOSE 80
+CMD ["nginx", "-g", "daemon off;"]
