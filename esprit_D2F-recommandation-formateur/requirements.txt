@@ -1,0 +1,12 @@
+fastapi
+uvicorn[standard]
+psycopg2-binary
+angle-emb
+transformers>=4.41
+faiss-cpu
+scikit-learn
+joblib
+apscheduler
+sentencepiece  # Ajout crucial
+protobuf==3.20.3  # Version compatible
+python-dotenv

@@ -1,0 +1,145 @@
+kind: pipeline
+type: docker
+name: esprit-d2f production ci
+
+trigger:
+  branch:
+  - main
+  - master
+  tag:
+  - v*
+  event:
+  - push
+  - tag
+
+volumes:
+  - name: dockersock
+    host:
+      path: /var/run/docker.sock
+
+steps:
+  - name: build and publish
+    image: plugins/docker
+    environment:
+      DOCKER_BUILDKIT: 1
+    volumes:
+    - name: dockersock
+      path: /var/run/docker.sock
+    settings:
+      build_args:
+      - BUILD_ENV=prod
+      username:
+        from_secret: harbor_username
+      password:
+        from_secret: harbor_password
+      dockerfile: Dockerfile
+      experimental: true
+      repo: 192.168.0.128:5000/d2f.esprit.tn/besoin-formation
+      registry: 192.168.0.128:5000
+      insecure: true
+      tags:
+        - ${DRONE_COMMIT:0:7}-prod
+        - latest
+        - ${DRONE_TAG}
+
+  # - name: git-ops (patch & push)
+  #   image: alpine/git
+  #   environment:
+  #     GIT_OPS_SSH_KEY:
+  #       from_secret: ssh_key_github_dsi-application
+  #   commands:
+  #     - mkdir -p ~/.ssh && echo "$GIT_OPS_SSH_KEY" > ~/.ssh/id_ed25519 && chmod 600 ~/.ssh/id_ed25519
+  #     - ssh-keyscan github.com >> ~/.ssh/known_hosts
+  #     - git clone git@github.com:ESPRIT-DSI-OPS/esprit-dsi_gitops.git
+  #     - cd esprit-dsi_gitops/esprit_website/prod
+  #     - sed -E -i "s|192.168.0.128:5000/d2f.esprit.tn/besoin-formation:[^ ]+|192.168.0.128:5000/d2f.esprit.tn/besoin-formation:${DRONE_COMMIT:0:7}-prod|g" besoin-formation.yaml
+  #     - git config --global user.name "drone-ci"
+  #     - git config --global user.email "drone-ci.prod@esprit.tn"
+  #     - git add .
+  #     - git commit -m "update esprit-d2f_besoin-formation commit ${DRONE_COMMIT:0:7}-prod"
+  #     - git push -f origin master
+
+  - name: compose deploy
+    image: appleboy/drone-ssh
+    settings:
+      host:
+        - 192.168.3.12
+      username: esprit
+      password:
+        from_secret: ssh-3.12_password
+      port: 22
+      command_timeout: 5m
+      script:
+        - cd /home/esprit/espritD2F
+        - sed -E -i "s|d2f.esprit.tn/besoin-formation:[^ ]+|d2f.esprit.tn/besoin-formation:${DRONE_COMMIT:0:7}-prod|g" docker-compose.yml
+        - docker compose up -d
+    when:
+      branch:
+        - main
+        - master
+      tag:
+        - v*
+
+  - name:  success notification
+    image: drillster/drone-email
+    settings:
+      from: Drone-CI PROD <notification-ops-prod@esprit.tn>
+      host: smtp.office365.com
+      port: 587
+      username:
+        from_secret: email_username_outlook
+      password:
+        from_secret: email_password_outlook
+      recipients_only: true
+      recipients:
+        - seddik.bouzayani@esprit.tn
+      subject: SUCCESS - ${DRONE_STAGE_NAME} pipeline [${DRONE_COMMIT:0:7}-prod]
+      body: |
+        The Pipeline ${DRONE_STAGE_NAME} has completed successfully.
+        <br>
+        Git Commit : ${DRONE_COMMIT:0:7}-prod | Git Event : ${DRONE_BUILD_EVENT}
+        <br>
+        Git Branch : ${DRONE_BRANCH} | Git REF : ${DRONE_COMMIT_REF}
+        <br>
+        Git Branch Source : ${DRONE_SOURCE_BRANCH} | Git Branch Target : ${DRONE_TARGET_BRANCH}
+        <br>
+        Git Author : ${DRONE_COMMIT_AUTHOR}
+        <br>
+        Git Tag : ${DRONE_TAG}
+        <br>
+        Link: ${DRONE_BUILD_LINK}
+    when:
+      status:
+        - success
+
+  - name:  failure notification
+    image: drillster/drone-email
+    settings:
+      from: Drone-CI PROD <notification-ops-prod@esprit.tn>
+      host: smtp.office365.com
+      port: 587
+      username:
+        from_secret: email_username_outlook
+      password:
+        from_secret: email_password_outlook
+      recipients_only: true
+      recipients:
+        - seddik.bouzayani@esprit.tn
+      subject: FAILURE ${DRONE_STAGE_NAME} pipeline [${DRONE_COMMIT:0:7}-prod]
+      body: |
+        The Pipeline ${DRONE_STAGE_NAME} has failed.
+        <br>
+        Git Commit : ${DRONE_COMMIT:0:7}-prod | Git Event : ${DRONE_BUILD_EVENT}
+        <br>
+        Git Branch : ${DRONE_BRANCH} | Git REF : ${DRONE_COMMIT_REF}
+        <br>
+        Git Branch Source : ${DRONE_SOURCE_BRANCH} | Git Branch Target : ${DRONE_TARGET_BRANCH}
+        <br>
+        Git Author : ${DRONE_COMMIT_AUTHOR}
+        <br>
+        Git Tag : ${DRONE_TAG}
+        <br>
+        Link: ${DRONE_BUILD_LINK}
+    when:
+      status:
+        - failure

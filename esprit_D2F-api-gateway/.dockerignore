@@ -1,0 +1,42 @@
+# .dockerignore - Exclude unnecessary files from Docker build context
+
+# Git
+.git
+.gitignore
+.gitattributes
+
+# IDE
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Documentation
+README.md
+docs/
+
+# Other
+.env
+.env.local
+.env.*.local
+node_modules/
+
+# Keep these for Docker build
+# DO NOT EXCLUDE:
+# .mvn/
+# mvnw
+# mvnw.cmd
+# pom.xml
+# target/ (exclude but keep .jar files)
