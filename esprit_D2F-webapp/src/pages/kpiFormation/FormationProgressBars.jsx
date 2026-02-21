@@ -18,7 +18,6 @@ import FormationWorkflowService from "../../services/FormationWorkflowService";
 import ParticipantKPIService    from "../../services/ParticipantKPIService";
 import UpService                from "../../services/upService";
 import DeptService              from "../../services/DeptService";
-import CompetenceService        from "../../services/CompetenceService";
 import "../../Style/ChartScroll.css";
 
 const { Text } = Typography;
@@ -41,7 +40,6 @@ export default function FormationProgressCards() {
   // Options selects
   const [ups, setUps]           = useState([]);
   const [depts, setDepts]       = useState([]);
-  const [comps, setComps]       = useState([]);
   const [, setDomaines] = useState([]);
 
   // Filtres UI
@@ -49,14 +47,12 @@ export default function FormationProgressCards() {
   const [searchDomaine, setSearchDomaine]       = useState("");
   const [selectedUp, setSelectedUp]             = useState(undefined);
   const [selectedDept, setSelectedDept]         = useState(undefined);
-  const [selectedCompetence, setSelectedCompetence] = useState(undefined);
   const [sortAsc, setSortAsc]                   = useState(false);
 
-  // 1) Charger UP, Dept, Compétences
+  // 1) Charger UP, Dept
   useEffect(() => {
     UpService.getAllUps().then(setUps).catch(console.error);
     DeptService.getAllDepts().then(setDepts).catch(console.error);
-    CompetenceService.getAllCompetences().then(setComps).catch(console.error);
   }, []);
 
   // 2) Charger toutes les formations et extraire domaines
@@ -119,10 +115,6 @@ export default function FormationProgressCards() {
     .filter(f =>
       !selectedDept ||
       f.departement1?.id === selectedDept
-    )
-    .filter(f =>
-      !selectedCompetence ||
-      f.competance?.id === selectedCompetence
     );
 
   // 5) Fusionner avec KPI
@@ -187,17 +179,6 @@ export default function FormationProgressCards() {
           style={{ width: 140 }}
         >
           {depts.map(d => <Option key={d.id} value={d.id}>{d.libelle}</Option>)}
-        </Select>
-        <Select
-          placeholder="Compétence"
-          allowClear
-          value={selectedCompetence}               // ← valeur contrôlée
-          onChange={setSelectedCompetence}         // ← met à jour correctement
-          style={{ width: 160 }}
-        >
-          {comps.map(c =>
-            <Option key={c.id} value={c.id}>{c.nomCompetence}</Option>
-          )}
         </Select>
         <span>
           Tri asc&nbsp;

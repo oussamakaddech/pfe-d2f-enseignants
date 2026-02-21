@@ -38,6 +38,11 @@ const SideBar = () => {
                       <i className="fa fa-user" /> Mon Profil
                     </Link>
                   </li>
+                  <li>
+                    <Link to="/home/mes-competences">
+                      <i className="fa fa-star" /> Mes Compétences
+                    </Link>
+                  </li>
 
                   {/* 🔹 Liens visibles uniquement pour les administrateurs */}
                   {user?.role === "admin" && (
@@ -72,6 +77,11 @@ const SideBar = () => {
                       <li>
                         <Link to="/home/Enseignants">
                           <i className="fa fa-cog" /> Enseignants
+                        </Link>
+                      </li>
+                      <li>
+                        <Link to="/home/competences">
+                          <i className="fa fa-graduation-cap" /> Compétences
                         </Link>
                       </li>
                       <li>

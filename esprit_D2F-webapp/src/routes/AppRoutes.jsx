@@ -44,8 +44,8 @@ import Profile from "../pages/auth/Profile";
 import EditProfile from "../pages/auth/EditProfile";
 import UpdatePassword from "../pages/gererComptes/UpdatePassword";
 import CombinedFormationOneDriveTree from "../pages/documentFormation/CombinedFormationOneDriveTree";
-
-
+import CompetencePage from "../pages/competence/CompetencePage";
+import EnseignantCompetencePage from "../pages/competence/EnseignantCompetencePage";
 
 
 
@@ -70,8 +70,12 @@ export default function AppRoutes() {
               <Route path="home/ListeFormation"   element={<FormationCards />} />
               <Route path="home/ListeFormation/:id" element={<FicheFormation />} />
               <Route path="home/MyCertificate"          element={<CertificatesByEmailPage />} />
-              {/* Admin only */}
+              {/* Compétences – accessible à tous les utilisateurs connectés */}
+              <Route path="home/mes-competences" element={<EnseignantCompetencePage />} />
+
               <Route element={<RoleGuard allowedRoles={["admin","D2F","CUP"]} />}>
+                <Route path="home/competences" element={<CompetencePage />} />
+                <Route path="home/competences/enseignant/:enseignantId" element={<EnseignantCompetencePage />} />
                 <Route path="home/File"                   element={<CombinedFormationOneDriveTree />} />
                 <Route path="home/KPI"                    element={<KPIChart />} />
                 <Route path="home/UpDept"                    element={<UpDeptDataGrid />} />

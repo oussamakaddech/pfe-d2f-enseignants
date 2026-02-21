@@ -17,7 +17,6 @@ import {
 } from "antd";
 import { FilterOutlined } from "@ant-design/icons";
 import KPIService from "../../services/KPIService";
-import CompetenceService from "../../services/CompetenceService";
 import DeptService from "../../services/DeptService";
 import UpService from "../../services/upService";
 
@@ -28,7 +27,6 @@ const { Option } = Select;
 export default function FormationsByTypeFiltered() {
   // 1) État des filtres initialisés à null
   const [filters, setFilters] = useState({
-    competence: null,
     domaine:    null,
     upId:       null,
     deptId:     null,
@@ -42,7 +40,6 @@ export default function FormationsByTypeFiltered() {
   const [dataByType, setDataByType] = useState(null);
 
   // 3) Options pour les selects (chargées dynamiquement)
-  const [competencesOptions, setCompetencesOptions] = useState([]);
   const [deptsOptions, setDeptsOptions] = useState([]);
   const [upsOptions, setUpsOptions] = useState([]);
   const [loadingOptions, setLoadingOptions] = useState(true);
@@ -57,12 +54,10 @@ export default function FormationsByTypeFiltered() {
   useEffect(() => {
     const fetchAllOptions = async () => {
       try {
-        const [comps, depts, ups] = await Promise.all([
-          CompetenceService.getAllCompetences(),
+        const [depts, ups] = await Promise.all([
           DeptService.getAllDepts(),
           UpService.getAllUps(),
         ]);
-        setCompetencesOptions(comps || []);
         setDeptsOptions(depts || []);
         setUpsOptions(ups || []);
       } catch (err) {
@@ -99,7 +94,6 @@ export default function FormationsByTypeFiltered() {
   // ─── Dès qu’on modifie un champ du formulaire, on met à jour l’objet filters
   const onFormChange = (changedValues, allValues) => {
     const newFilters = {
-      competence: allValues.competence || null,
       domaine:    allValues.domaine    || null,
       upId:       allValues.upId       || null,
       deptId:     allValues.deptId     || null,
@@ -158,27 +152,6 @@ export default function FormationsByTypeFiltered() {
           onValuesChange={onFormChange}
           onFinish={onFinish}
         >
-          <Form.Item label="Compétence" name="competence">
-            <Select
-              showSearch
-              placeholder="Choisir une compétence"
-              allowClear
-              optionFilterProp="children"
-              filterOption={(input, option) =>
-                option.children.toLowerCase().includes(input.toLowerCase())
-              }
-            >
-              {competencesOptions.map((c) => (
-                <Option
-                  key={c.idCompetence}
-                  value={c.nomCompetence}
-                >
-                  {c.nomCompetence}
-                </Option>
-              ))}
-            </Select>
-          </Form.Item>
-
           <Form.Item label="Domaine" name="domaine">
             <Input placeholder="Ex : Informatique" allowClear />
           </Form.Item>

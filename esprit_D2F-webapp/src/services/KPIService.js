@@ -147,7 +147,6 @@ const KPIService = {
 
   // Récupère le count et les heures totales avec filtres
   async getCountAndHeures({
-    competence = null,
     domaine = null,
     upId = null,
     deptId = null,
@@ -158,7 +157,6 @@ const KPIService = {
   } = {}) {
     try {
       const params = {};
-      if (competence !== null) params.competence = competence;
       if (domaine !== null) params.domaine = domaine;
       if (upId !== null) params.upId = upId;
       if (deptId !== null) params.deptId = deptId;
@@ -184,7 +182,6 @@ const KPIService = {
 
   // Récupère les formations par type avec filtres
   async getFormationsByTypeFiltered({
-    competence = null,
     domaine = null,
     upId = null,
     deptId = null,
@@ -195,7 +192,6 @@ const KPIService = {
   } = {}) {
     try {
       const params = {};
-      if (competence !== null) params.competence = competence;
       if (domaine !== null) params.domaine = domaine;
       if (upId !== null) params.upId = upId;
       if (deptId !== null) params.deptId = deptId;
