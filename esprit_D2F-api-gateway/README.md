@@ -48,7 +48,6 @@ Gateway centralisée Spring Cloud pour l'écosystème ESPRIT, servant de point d
 | Formations | `/formation/**` | `FORMATION-SERVICE` | 8080 |
 | IA Recommandation | `/ai/**` | `AI-RECO-SERVICE` | 8000 |
 | Besoins Formation | `/besoinsformation/**` | `BESOINSFORMATION-SERVICE` | 8085 |
-| Compétences | `/competence/**` | `COMPETENCE-SERVICE` | 8084 |
 
 ## ⚙️ Configuration
 

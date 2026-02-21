@@ -20,7 +20,6 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import * as XLSX from "xlsx";
 
 import FormationWorkflowService from "../services/FormationWorkflowService";
-import CompetenceService from "../services/CompetenceService";
 import DeptService from "../services/DeptService";
 import EnseignantService from "../services/EnseignantService";
 import { RadioGroup, FormControlLabel, Radio } from "@mui/material";
@@ -72,10 +71,6 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
   const [coutHebergement, setCoutHebergement] = useState(0);
   const [coutRepas, setCoutRepas] = useState(0);
 
-  /* COMPÉTENCES */
-  const [competences, setCompetences] = useState([]);
-  const [selectedCompetence, setSelectedCompetence] = useState(null);
-
   /* séances */
   const [seances, setSeances] = useState([]);
   const [ouverte, setOuverte] = useState(false);
@@ -117,13 +112,6 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
     setSelectedUp(formation.up1 || null);
     setSelectedDept(formation.departement1 || null);
 
-    if (formation.competance) {
-      // Si le backend ne renvoie que la chaîne du nom, on initialise avec { nomCompetence: "...", idCompetence: null }
-      setSelectedCompetence({ idCompetence: null, nomCompetence: formation.competance });
-    } else {
-      setSelectedCompetence(null);
-    }
-
     /* séances complètes (avec animateurs) */
     setSeances(
       (formation.seances || []).map((s) => ({
@@ -157,16 +145,14 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
   useEffect(() => {
     (async () => {
       try {
-        const [u, d, e, c] = await Promise.all([
+        const [u, d, e] = await Promise.all([
           UpService.getAllUps(),
           DeptService.getAllDepts(),
           EnseignantService.getAllEnseignants(),
-          CompetenceService.getAllCompetences(), // ← Récupérer la liste des compétences
         ]);
         setUps(u);
         setDepts(d);
         setEns(e);
-        setCompetences(c);
       } catch {
         setSnack({ open: true, severity: "error", message: "Échec du chargement des données externes" });
       }
@@ -268,7 +254,6 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
       departementId: !ouverte ? selectedDept?.id : null,
       participantsIds: partSel.map((p) => p.id),
       domaine,
-      competance: selectedCompetence?.nomCompetence || null, // ← on envoie uniquement le nom de la compétence
       populationCible,
       objectifs,
       objectifsPedago,
@@ -491,20 +476,6 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
             onChange={(_, v) => setSelectedDept(v)}
             disabled={ouverte}
             renderInput={(params) => <TextField {...params} label="Département" required />}
-          />
-        </Grid>
-
-        {/* ----------- NOUVEAU : Sélecteur de compétence ----------- */}
-        <Grid item xs={12} sm={6}>
-          <Autocomplete
-            options={competences}
-            getOptionLabel={(c) => c.nomCompetence}              
-            isOptionEqualToValue={(opt, val) => opt.idCompetence === val?.idCompetence} 
-            value={selectedCompetence}
-            onChange={(_, v) => setSelectedCompetence(v)}
-            renderInput={(params) => (
-              <TextField {...params} label="Compétence" placeholder="Choisir une compétence" />
-            )}
           />
         </Grid>
 

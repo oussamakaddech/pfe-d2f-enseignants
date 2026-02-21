@@ -33,7 +33,6 @@ import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from "recha
 
 import KPIService from "../../services/KPIService";
 import FormationWorkflowService from "../../services/FormationWorkflowService";
-import CompetenceService from "../../services/CompetenceService";
 import DeptService from "../../services/DeptService";
 import UpService from "../../services/upService";
 
@@ -50,7 +49,6 @@ const STORAGE_KEY = "trainerFilters";
 export default function DonutByTrainerTypeWithFilters() {
   // ─── 1) État “filters”, initialisé depuis localStorage si possible ──────────────────────
   const [filters, setFilters] = useState({
-    competence: null,
     domaine: null,
     upId: null,
     deptId: null,
@@ -67,7 +65,6 @@ export default function DonutByTrainerTypeWithFilters() {
       if (saved) {
         const parsed = JSON.parse(saved);
         setFilters({
-          competence: parsed.competence ?? null,
           domaine: parsed.domaine ?? null,
           upId: parsed.upId ?? null,
           deptId: parsed.deptId ?? null,
@@ -95,7 +92,6 @@ export default function DonutByTrainerTypeWithFilters() {
   const [drawerVisible, setDrawerVisible] = useState(false);
 
   // ─── 3) Options pour remplir les Select dans le Drawer (Compétences, Dépts, UPs) ───────
-  const [competencesOptions, setCompetencesOptions] = useState([]);
   const [deptsOptions, setDeptsOptions] = useState([]);
   const [upsOptions, setUpsOptions] = useState([]);
   const [loadingOptions, setLoadingOptions] = useState(true);
@@ -118,12 +114,10 @@ export default function DonutByTrainerTypeWithFilters() {
   useEffect(() => {
     const fetchAllOptions = async () => {
       try {
-        const [comps, depts, ups] = await Promise.all([
-          CompetenceService.getAllCompetences(),
+        const [depts, ups] = await Promise.all([
           DeptService.getAllDepts(),
           UpService.getAllUps(),
         ]);
-        setCompetencesOptions(comps || []);
         setDeptsOptions(depts || []);
         setUpsOptions(ups || []);
       } catch (err) {
@@ -616,7 +610,6 @@ export default function DonutByTrainerTypeWithFilters() {
         <Form
           layout="vertical"
           initialValues={{
-            competence: filters.competence,
             domaine: filters.domaine,
             upId: filters.upId,
             deptId: filters.deptId,
@@ -632,7 +625,6 @@ export default function DonutByTrainerTypeWithFilters() {
           }}
           onValuesChange={(changedValues, allValues) => {
             setFilters({
-              competence: allValues.competence || null,
               domaine: allValues.domaine || null,
               upId: allValues.upId || null,
               deptId: allValues.deptId || null,
@@ -652,25 +644,6 @@ export default function DonutByTrainerTypeWithFilters() {
             setDrawerVisible(false);
           }}
         >
-          {/* Compétence */}
-          <Form.Item label="Compétence" name="competence">
-            <Select
-              showSearch
-              placeholder="Choisir une compétence"
-              allowClear
-              optionFilterProp="children"
-              filterOption={(input, option) =>
-                option.children.toLowerCase().includes(input.toLowerCase())
-              }
-            >
-              {competencesOptions.map((c) => (
-                <Option key={c.idCompetence} value={c.nomCompetence}>
-                  {c.nomCompetence}
-                </Option>
-              ))}
-            </Select>
-          </Form.Item>
-
           {/* Domaine */}
           <Form.Item label="Domaine" name="domaine">
             <Input placeholder="Ex : Informatique" allowClear />

@@ -23,7 +23,7 @@ import FormationWorkflowService from "../services/FormationWorkflowService";
 import UpService from "../services/upService";
 import DeptService from "../services/DeptService";
 import EnseignantService from "../services/EnseignantService";
-import CompetenceService from "../services/CompetenceService"; // ← Ajout de l’import
+
 import DocumentUploadForm from "./documentFormation/DocumentUploadForm";
 import { RadioGroup, FormControlLabel, Radio } from "@mui/material";
 
@@ -91,10 +91,6 @@ export default function FormationWorkflowForm({ initialDate, onFormationCreated 
   const [coutHebergement, setCoutHebergement] = useState(0);
   const [coutRepas, setCoutRepas] = useState(0);
 
-  // COMPÉTENCES
-  const [competences, setCompetences] = useState([]);
-  const [selectedCompetence, setSelectedCompetence] = useState(null);
-
   // Séances (expanded: false par défaut pour cacher les champs optionnels)
   const [seances, setSeances] = useState([
     {
@@ -124,16 +120,14 @@ export default function FormationWorkflowForm({ initialDate, onFormationCreated 
   useEffect(() => {
     (async () => {
       try {
-        const [u, d, e, c] = await Promise.all([
+        const [u, d, e] = await Promise.all([
           UpService.getAllUps(),
           DeptService.getAllDepts(),
           EnseignantService.getAllEnseignants(),
-          CompetenceService.getAllCompetences(), // ← Récupération des compétences
         ]);
         setUps(u);
         setDepts(d);
         setEnseignants(e);
-        setCompetences(c);
       } catch {
         setSnack({ open: true, severity: "error", message: "Échec chargement externes" });
       }
@@ -259,7 +253,6 @@ export default function FormationWorkflowForm({ initialDate, onFormationCreated 
         coutTransport,
         coutHebergement,
         coutRepas,
-        competance: selectedCompetence?.nomCompetence || null, // ← Ajout du champ compétence
         seances: seances.map((s) => ({
           dateSeance: s.dateSeance,
           heureDebut: s.heureDebut,
@@ -480,20 +473,6 @@ export default function FormationWorkflowForm({ initialDate, onFormationCreated 
           />
         </Grid>
 
-        {/* Sélecteur de compétence (nouveau) */}
-        <Grid item xs={12} sm={6}>
-          <Autocomplete
-            options={competences}
-            getOptionLabel={(c) => c.nomCompetence}                              
-            
-            isOptionEqualToValue={(opt, val) => opt.idCompetence === val?.idCompetence}
-            value={selectedCompetence}
-            onChange={(_, v) => setSelectedCompetence(v)}
-            renderInput={(params) => (
-              <TextField {...params} label="Compétence" placeholder="Choisir une compétence" />
-            )}
-          />
-        </Grid>
 
         {/* Plus d’infos global */}
         <Grid item xs={12}>

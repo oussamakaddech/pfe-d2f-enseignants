@@ -20,7 +20,6 @@ import { SettingOutlined, PlusOutlined, CloseOutlined } from "@ant-design/icons"
 import dayjs from "dayjs";
 
 import KPIService from "../../services/KPIService";
-import CompetenceService from "../../services/CompetenceService";
 import DeptService from "../../services/DeptService";
 import UpService from "../../services/upService";
 
@@ -38,7 +37,7 @@ const MetricCards = () => {
   // {
   //   id: <number>,
   //   visible: <bool>,
-  //   filters: { competence, domaine, upId, deptId, ouverte, start, end, etat },
+  //   filters: { domaine, upId, deptId, ouverte, start, end, etat },
   //   count: Number|null,       // nombre de formations
   //   totalHeures: Number|null, // somme des heures
   //   title: String
@@ -47,7 +46,6 @@ const MetricCards = () => {
   const [cards, setCards] = useState([]);
 
   // Listes pour remplir les filtres
-  const [competencesOptions, setCompetencesOptions] = useState([]);
   const [deptsOptions, setDeptsOptions] = useState([]);
   const [upsOptions, setUpsOptions] = useState([]);
   const [loadingOptions, setLoadingOptions] = useState(true);
@@ -125,12 +123,10 @@ const MetricCards = () => {
   useEffect(() => {
     const fetchAllOptions = async () => {
       try {
-        const [comps, depts, ups] = await Promise.all([
-          CompetenceService.getAllCompetences(),
+        const [depts, ups] = await Promise.all([
           DeptService.getAllDepts(),
           UpService.getAllUps(),
         ]);
-        setCompetencesOptions(comps || []);
         setDeptsOptions(depts || []);
         setUpsOptions(ups || []);
       } catch (error) {
@@ -168,7 +164,6 @@ const MetricCards = () => {
       id: Date.now(),
       visible: false,
       filters: {
-        competence: null,
         domaine: null,
         upId: null,
         deptId: null,
@@ -195,12 +190,11 @@ const MetricCards = () => {
    *   - Si aucun filtre → “Toutes formations (PLANIFIE + ACHEVE)”
    */
   const buildTitle = (filters) => {
-    const { competence, domaine, upId, deptId, ouverte, start, end, etat } = filters;
+    const { domaine, upId, deptId, ouverte, start, end, etat } = filters;
 
     // 1) Si seul filtre = ouverte true
     const onlyOuverte =
       ouverte === true &&
-      !competence &&
       !domaine &&
       upId == null &&
       deptId == null &&
@@ -215,7 +209,6 @@ const MetricCards = () => {
     const onlyPeriod =
       start &&
       end &&
-      !competence &&
       !domaine &&
       upId == null &&
       deptId == null &&
@@ -228,7 +221,6 @@ const MetricCards = () => {
     // 3) Si seul filtre = upId
     if (
       upId != null &&
-      !competence &&
       !domaine &&
       deptId == null &&
       ouverte == null &&
@@ -244,7 +236,6 @@ const MetricCards = () => {
     // 4) Si seul filtre = deptId
     if (
       deptId != null &&
-      !competence &&
       !domaine &&
       upId == null &&
       ouverte == null &&
@@ -259,7 +250,6 @@ const MetricCards = () => {
 
     // 5) Cas générique : concaténer chaque critère
     const parts = [];
-    if (competence) parts.push(`Compétence=${competence}`);
     if (domaine) parts.push(`Domaine=${domaine}`);
     if (upId != null) {
       const upItem = upsOptions.find((u) => u.id === upId);
@@ -291,7 +281,6 @@ const MetricCards = () => {
   const handleFormSubmit = async (cardId, values) => {
     // 1) Construire l’objet filters
     const filters = {
-      competence: values.competence || null,
       domaine:    values.domaine    || null,
       upId:       values.upId       !== undefined ? values.upId : null,
       deptId:     values.deptId     !== undefined ? values.deptId : null,
@@ -483,7 +472,6 @@ const MetricCards = () => {
                 layout="vertical"
                 onFinish={(values) => handleFormSubmit(card.id, values)}
                 initialValues={{
-                  competence: card.filters.competence,
                   domaine:    card.filters.domaine,
                   upId:       card.filters.upId,
                   deptId:     card.filters.deptId,
@@ -498,24 +486,6 @@ const MetricCards = () => {
                       : null,
                 }}
               >
-                {/* Champ “Compétence” */}
-                <Form.Item label="Compétence" name="competence">
-                  <Select
-                    showSearch
-                    placeholder="Sélectionner une compétence"
-                    allowClear
-                    optionFilterProp="children"
-                    filterOption={(input, option) =>
-                      option.children.toLowerCase().includes(input.toLowerCase())
-                    }
-                  >
-                    {competencesOptions.map((c) => (
-                      <Option key={c.idCompetence} value={c.nomCompetence}>
-                        {c.nomCompetence}
-                      </Option>
-                    ))}
-                  </Select>
-                </Form.Item>
 
                 {/* Champ “Domaine” */}
                 <Form.Item label="Domaine" name="domaine">
