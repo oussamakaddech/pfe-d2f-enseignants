@@ -10,3 +10,6 @@ apscheduler
 sentencepiece  # Ajout crucial
 protobuf==3.20.3  # Version compatible
 python-dotenv
+pdfplumber
+python-docx
+python-multipart

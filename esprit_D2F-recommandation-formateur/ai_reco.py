@@ -5,8 +5,11 @@ from pydantic import BaseModel
 from typing import List
 from utils import recommend_semantic, _load_or_build_embeddings
 from apscheduler.schedulers.background import BackgroundScheduler
+from rice_analyzer import rice_router
 
-app = FastAPI(title="Reco IA sémantique")
+app = FastAPI(title="Reco IA sémantique + RICE")
+# Register RICE routes
+app.include_router(rice_router)
 # === 1) Liste des origines autorisées par votre front React ===
 origins = [
     "http://esprit-d2f.esprit.tn/*",   # si votre React tourne sur ce port (Vite)

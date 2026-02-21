@@ -17,6 +17,8 @@ public interface EnseignantCompetenceRepository extends JpaRepository<Enseignant
 
     Optional<EnseignantCompetence> findByEnseignantIdAndSavoirId(String enseignantId, Long savoirId);
 
+    boolean existsByEnseignantIdAndSavoirId(String enseignantId, Long savoirId);
+
     List<EnseignantCompetence> findByEnseignantIdAndNiveau(String enseignantId, NiveauMaitrise niveau);
 
     @Query("SELECT ec FROM EnseignantCompetence ec WHERE ec.savoir.sousCompetence.competence.domaine.id = :domaineId AND ec.enseignantId = :enseignantId")
@@ -27,6 +29,4 @@ public interface EnseignantCompetenceRepository extends JpaRepository<Enseignant
 
     @Query("SELECT COUNT(ec) FROM EnseignantCompetence ec WHERE ec.enseignantId = :enseignantId")
     long countByEnseignantId(@Param("enseignantId") String enseignantId);
-
-    boolean existsByEnseignantIdAndSavoirId(String enseignantId, Long savoirId);
 }

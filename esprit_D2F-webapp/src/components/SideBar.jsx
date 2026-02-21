@@ -85,6 +85,11 @@ const SideBar = () => {
                         </Link>
                       </li>
                       <li>
+                        <Link to="/home/rice">
+                          <i className="fa fa-robot" /> RICE – IA Compétences
+                        </Link>
+                      </li>
+                      <li>
                         <Link to="/home/certificate">
                           <i className="fa fa-certificate" /> Certificate
                         </Link>
