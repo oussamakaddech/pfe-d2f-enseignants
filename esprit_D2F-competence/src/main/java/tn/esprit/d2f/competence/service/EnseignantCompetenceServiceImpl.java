@@ -1,7 +1,7 @@
 package tn.esprit.d2f.competence.service;
 
 import jakarta.persistence.EntityNotFoundException;
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -27,6 +27,7 @@ public class EnseignantCompetenceServiceImpl implements IEnseignantCompetenceSer
     private SavoirRepository savoirRepository;
 
     @Override
+    @Transactional(readOnly = true)
     public List<EnseignantCompetenceDTO> getCompetencesByEnseignant(String enseignantId) {
         return enseignantCompetenceRepository.findByEnseignantId(enseignantId).stream()
                 .map(CompetenceMapper::toDTO)
@@ -34,6 +35,7 @@ public class EnseignantCompetenceServiceImpl implements IEnseignantCompetenceSer
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<EnseignantCompetenceDTO> getCompetencesByEnseignantAndDomaine(String enseignantId, Long domaineId) {
         return enseignantCompetenceRepository.findByEnseignantIdAndDomaineId(enseignantId, domaineId).stream()
                 .map(CompetenceMapper::toDTO)
@@ -41,6 +43,7 @@ public class EnseignantCompetenceServiceImpl implements IEnseignantCompetenceSer
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<EnseignantCompetenceDTO> getCompetencesByEnseignantAndCompetence(String enseignantId, Long competenceId) {
         return enseignantCompetenceRepository.findByEnseignantIdAndCompetenceId(enseignantId, competenceId).stream()
                 .map(CompetenceMapper::toDTO)
@@ -48,6 +51,7 @@ public class EnseignantCompetenceServiceImpl implements IEnseignantCompetenceSer
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<EnseignantCompetenceDTO> getCompetencesByEnseignantAndNiveau(String enseignantId, NiveauMaitrise niveau) {
         return enseignantCompetenceRepository.findByEnseignantIdAndNiveau(enseignantId, niveau).stream()
                 .map(CompetenceMapper::toDTO)
@@ -102,6 +106,7 @@ public class EnseignantCompetenceServiceImpl implements IEnseignantCompetenceSer
     }
 
     @Override
+    @Transactional(readOnly = true)
     public long countCompetences(String enseignantId) {
         return enseignantCompetenceRepository.countByEnseignantId(enseignantId);
     }

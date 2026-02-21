@@ -8,6 +8,8 @@ import tn.esprit.d2f.competence.entity.enumerations.TypeSavoir;
 @Entity
 @Table(name = "savoirs")
 @Data
+@EqualsAndHashCode(of = "id")
+@ToString(exclude = "sousCompetence")
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder

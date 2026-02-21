@@ -10,6 +10,8 @@ import java.util.List;
 @Entity
 @Table(name = "domaines")
 @Data
+@EqualsAndHashCode(of = "id")
+@ToString(exclude = "competences")
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder

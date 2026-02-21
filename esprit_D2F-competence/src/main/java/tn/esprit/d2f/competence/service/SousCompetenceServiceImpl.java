@@ -1,7 +1,7 @@
 package tn.esprit.d2f.competence.service;
 
 import jakarta.persistence.EntityNotFoundException;
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -25,6 +25,7 @@ public class SousCompetenceServiceImpl implements ISousCompetenceService {
     private CompetenceRepository competenceRepository;
 
     @Override
+    @Transactional(readOnly = true)
     public List<SousCompetenceDTO> getAllSousCompetences() {
         return sousCompetenceRepository.findAll().stream()
                 .map(CompetenceMapper::toDTO)
@@ -32,6 +33,7 @@ public class SousCompetenceServiceImpl implements ISousCompetenceService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<SousCompetenceDTO> getSousCompetencesByCompetence(Long competenceId) {
         return sousCompetenceRepository.findByCompetenceId(competenceId).stream()
                 .map(CompetenceMapper::toDTO)
@@ -39,6 +41,7 @@ public class SousCompetenceServiceImpl implements ISousCompetenceService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public SousCompetenceDTO getSousCompetenceById(Long id) {
         SousCompetence sc = sousCompetenceRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Sous-compétence non trouvée avec l'id: " + id));

@@ -11,6 +11,8 @@ import java.util.List;
 @Entity
 @Table(name = "competences")
 @Data
+@EqualsAndHashCode(of = "id")
+@ToString(exclude = {"domaine", "sousCompetences"})
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
