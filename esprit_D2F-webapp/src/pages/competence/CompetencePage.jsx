@@ -205,6 +205,7 @@ export default function CompetencePage() {
       setDomaineModal(false);
       loadDomaines();
     } catch (err) {
+      if (err?.errorFields) return;
       const msg = err.response?.data?.message || "Erreur lors de la sauvegarde";
       msgApi.error(msg);
     }
@@ -281,6 +282,7 @@ export default function CompetencePage() {
       setCompModal(false);
       loadCompetences();
     } catch (err) {
+      if (err?.errorFields) return;
       const msg = err.response?.data?.message || "Erreur lors de la sauvegarde";
       msgApi.error(msg);
     }
@@ -332,6 +334,7 @@ export default function CompetencePage() {
       setScModal(false);
       loadSousCompetences();
     } catch (err) {
+      if (err?.errorFields) return;
       const msg = err.response?.data?.message || "Erreur lors de la sauvegarde";
       msgApi.error(msg);
     }
@@ -392,8 +395,7 @@ export default function CompetencePage() {
       await CompetenceService.savoir.delete(id);
       msgApi.success("Savoir supprimé");
       loadSavoirs();
-    } catch (err) {
-      const msg = err.response?.data?.message || "Erreur lors de la suppression";
+    } catch (err) {      if (err?.errorFields) return;      const msg = err.response?.data?.message || "Erreur lors de la suppression";
       msgApi.error(msg);
     }
   };

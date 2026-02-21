@@ -160,6 +160,7 @@ export default function EnseignantCompetencePage() {
       loadCompetences();
       loadCount();
     } catch (err) {
+      if (err?.errorFields) return;
       const msg = err.response?.data?.message || "Erreur lors de l'ajout";
       msgApi.error(msg);
     }
@@ -180,6 +181,7 @@ export default function EnseignantCompetencePage() {
       setNiveauModal(false);
       loadCompetences();
     } catch (err) {
+      if (err?.errorFields) return;
       const msg = err.response?.data?.message || "Erreur lors de la mise à jour";
       msgApi.error(msg);
     }

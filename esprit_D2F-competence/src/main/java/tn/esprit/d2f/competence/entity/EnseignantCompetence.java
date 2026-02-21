@@ -10,6 +10,8 @@ import java.time.LocalDate;
 @Table(name = "enseignant_competences",
        uniqueConstraints = @UniqueConstraint(columnNames = {"enseignant_id", "savoir_id"}))
 @Data
+@EqualsAndHashCode(of = "id")
+@ToString(exclude = "savoir")
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder

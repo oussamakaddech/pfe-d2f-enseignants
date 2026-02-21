@@ -1,7 +1,7 @@
 package tn.esprit.d2f.competence.service;
 
 import jakarta.persistence.EntityNotFoundException;
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -26,6 +26,7 @@ public class SavoirServiceImpl implements ISavoirService {
     private SousCompetenceRepository sousCompetenceRepository;
 
     @Override
+    @Transactional(readOnly = true)
     public List<SavoirDTO> getAllSavoirs() {
         return savoirRepository.findAll().stream()
                 .map(CompetenceMapper::toDTO)
@@ -33,6 +34,7 @@ public class SavoirServiceImpl implements ISavoirService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<SavoirDTO> getSavoirsBySousCompetence(Long sousCompetenceId) {
         return savoirRepository.findBySousCompetenceId(sousCompetenceId).stream()
                 .map(CompetenceMapper::toDTO)
@@ -40,6 +42,7 @@ public class SavoirServiceImpl implements ISavoirService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<SavoirDTO> getSavoirsByType(TypeSavoir type) {
         return savoirRepository.findByType(type).stream()
                 .map(CompetenceMapper::toDTO)
@@ -47,6 +50,7 @@ public class SavoirServiceImpl implements ISavoirService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public SavoirDTO getSavoirById(Long id) {
         Savoir s = savoirRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Savoir non trouvé avec l'id: " + id));

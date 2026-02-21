@@ -1,7 +1,7 @@
 package tn.esprit.d2f.competence.service;
 
 import jakarta.persistence.EntityNotFoundException;
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -20,6 +20,7 @@ public class DomaineServiceImpl implements IDomaineService {
     private DomaineRepository domaineRepository;
 
     @Override
+    @Transactional(readOnly = true)
     public List<DomaineDTO> getAllDomaines() {
         return domaineRepository.findAll().stream()
                 .map(CompetenceMapper::toDTO)
@@ -27,6 +28,7 @@ public class DomaineServiceImpl implements IDomaineService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<DomaineDTO> getDomainesActifs() {
         return domaineRepository.findByActifTrue().stream()
                 .map(CompetenceMapper::toDTO)
@@ -34,6 +36,7 @@ public class DomaineServiceImpl implements IDomaineService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public DomaineDTO getDomaineById(Long id) {
         Domaine domaine = domaineRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Domaine non trouvé avec l'id: " + id));
@@ -41,6 +44,7 @@ public class DomaineServiceImpl implements IDomaineService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public DomaineDTO getDomaineByCode(String code) {
         Domaine domaine = domaineRepository.findByCode(code)
                 .orElseThrow(() -> new EntityNotFoundException("Domaine non trouvé avec le code: " + code));

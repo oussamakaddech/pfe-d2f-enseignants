@@ -1,7 +1,7 @@
 package tn.esprit.d2f.competence.service;
 
 import jakarta.persistence.EntityNotFoundException;
-import jakarta.transaction.Transactional;
+import org.springframework.transaction.annotation.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -25,6 +25,7 @@ public class CompetenceServiceImpl implements ICompetenceService {
     private DomaineRepository domaineRepository;
 
     @Override
+    @Transactional(readOnly = true)
     public List<CompetenceDTO> getAllCompetences() {
         return competenceRepository.findAll().stream()
                 .map(CompetenceMapper::toDTO)
@@ -32,6 +33,7 @@ public class CompetenceServiceImpl implements ICompetenceService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<CompetenceDTO> getCompetencesByDomaine(Long domaineId) {
         return competenceRepository.findByDomaineId(domaineId).stream()
                 .map(CompetenceMapper::toDTO)
@@ -39,6 +41,7 @@ public class CompetenceServiceImpl implements ICompetenceService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public CompetenceDTO getCompetenceById(Long id) {
         Competence c = competenceRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Compétence non trouvée avec l'id: " + id));
