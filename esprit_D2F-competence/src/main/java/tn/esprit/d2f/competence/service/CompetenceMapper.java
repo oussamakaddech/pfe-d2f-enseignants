@@ -53,6 +53,9 @@ public final class CompetenceMapper {
                 .sousCompetences(c.getSousCompetences() != null
                         ? c.getSousCompetences().stream().map(CompetenceMapper::toDTO).collect(Collectors.toList())
                         : Collections.emptyList())
+                .savoirs(c.getSavoirs() != null
+                        ? c.getSavoirs().stream().map(CompetenceMapper::toDTO).collect(Collectors.toList())
+                        : Collections.emptyList())
                 .build();
     }
 
@@ -81,8 +84,11 @@ public final class CompetenceMapper {
                 .nom(s.getNom())
                 .description(s.getDescription())
                 .type(s.getType())
+                .niveau(s.getNiveau())
                 .sousCompetenceId(s.getSousCompetence() != null ? s.getSousCompetence().getId() : null)
                 .sousCompetenceNom(s.getSousCompetence() != null ? s.getSousCompetence().getNom() : null)
+                .competenceId(s.getCompetence() != null ? s.getCompetence().getId() : null)
+                .competenceNom(s.getCompetence() != null ? s.getCompetence().getNom() : null)
                 .build();
     }
 
@@ -91,7 +97,7 @@ public final class CompetenceMapper {
         if (ec == null) return null;
         Savoir s = ec.getSavoir();
         SousCompetence sc = s != null ? s.getSousCompetence() : null;
-        Competence c = sc != null ? sc.getCompetence() : null;
+        Competence c = sc != null ? sc.getCompetence() : (s != null ? s.getCompetence() : null);
         Domaine d = c != null ? c.getDomaine() : null;
 
         return EnseignantCompetenceDTO.builder()

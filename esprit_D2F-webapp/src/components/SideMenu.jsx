@@ -10,6 +10,8 @@ import {
   ReadOutlined,
   SolutionOutlined,
   LogoutOutlined,
+  ApartmentOutlined,
+  RobotOutlined,
 } from "@ant-design/icons";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
@@ -34,13 +36,14 @@ export default function SideMenu() {
 
     // Menu admin
     const admin = [
-
       { label: "KPI", key: "/home/KPI", icon: DashboardOutlined },
       { label: "Comptes", key: "/home/accounts", icon: TeamOutlined },
       { label: "Formations", key: "/home/Formation", icon: FileTextOutlined },
       { label: "Documents", key: "/home/File", icon: FileTextOutlined },
       { label: "Enseignants", key: "/home/Enseignants", icon: TeamOutlined },
-
+      { label: "Compétences", key: "/home/competences", icon: ApartmentOutlined },
+      { label: "Structure Compétences", key: "/home/structure-competences", icon: ApartmentOutlined },
+      { label: "RICE", key: "/home/rice", icon: RobotOutlined },
     ];
     // Menu admin
     const D2F = [
@@ -55,6 +58,9 @@ export default function SideMenu() {
       { label: "Certificates", key: "/home/certificate", icon: ReadOutlined },
       { label: "Up & Departement", key: "/home/UpDept", icon: ReadOutlined },
       { label: "Presence & Evaluation", key: "/home/animateur-formations", icon: ReadOutlined },
+      { label: "Compétences", key: "/home/competences", icon: ApartmentOutlined },
+      { label: "Structure Compétences", key: "/home/structure-competences", icon: ApartmentOutlined },
+      { label: "RICE", key: "/home/rice", icon: RobotOutlined },
     ];
         // Menu admin
     const CUP = [
@@ -64,6 +70,9 @@ export default function SideMenu() {
       { label: "Enseignants", key: "/home/Enseignants", icon: TeamOutlined },
       { label: "Certificates", key: "/home/certificate", icon: ReadOutlined },
       { label: "Mes Certificates", key: "/home/MyCertificate", icon: ReadOutlined },
+      { label: "Compétences", key: "/home/competences", icon: ApartmentOutlined },
+      { label: "Structure Compétences", key: "/home/structure-competences", icon: ApartmentOutlined },
+      { label: "RICE", key: "/home/rice", icon: RobotOutlined },
     ];
     // Menu formateur (role = "Formateur")
     const formateur = [

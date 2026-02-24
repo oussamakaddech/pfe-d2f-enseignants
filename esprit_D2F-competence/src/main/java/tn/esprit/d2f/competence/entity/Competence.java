@@ -12,7 +12,7 @@ import java.util.List;
 @Table(name = "competences")
 @Data
 @EqualsAndHashCode(of = "id")
-@ToString(exclude = {"domaine", "sousCompetences"})
+@ToString(exclude = {"domaine", "sousCompetences", "savoirs"})
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -41,4 +41,10 @@ public class Competence {
     @JsonManagedReference("competence-souscompetence")
     @Builder.Default
     private List<SousCompetence> sousCompetences = new ArrayList<>();
+
+    /** Savoirs directement rattachés à la compétence (sans sous-compétence) */
+    @OneToMany(mappedBy = "competence", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonManagedReference("competence-savoir")
+    @Builder.Default
+    private List<Savoir> savoirs = new ArrayList<>();
 }

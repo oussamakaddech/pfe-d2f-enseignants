@@ -28,9 +28,19 @@ public class SavoirController {
         return ResponseEntity.ok(savoirService.getSavoirsBySousCompetence(sousCompetenceId));
     }
 
+    @GetMapping("/competence/{competenceId}")
+    public ResponseEntity<List<SavoirDTO>> getSavoirsByCompetence(@PathVariable Long competenceId) {
+        return ResponseEntity.ok(savoirService.getSavoirsByCompetence(competenceId));
+    }
+
     @GetMapping("/type/{type}")
     public ResponseEntity<List<SavoirDTO>> getSavoirsByType(@PathVariable TypeSavoir type) {
         return ResponseEntity.ok(savoirService.getSavoirsByType(type));
+    }
+
+    @GetMapping("/search")
+    public ResponseEntity<List<SavoirDTO>> searchSavoirs(@RequestParam String keyword) {
+        return ResponseEntity.ok(savoirService.searchSavoirs(keyword));
     }
 
     @GetMapping("/{id}")
@@ -41,6 +51,11 @@ public class SavoirController {
     @PostMapping("/sous-competence/{sousCompetenceId}")
     public ResponseEntity<SavoirDTO> createSavoir(@PathVariable Long sousCompetenceId, @RequestBody Savoir savoir) {
         return new ResponseEntity<>(savoirService.createSavoir(sousCompetenceId, savoir), HttpStatus.CREATED);
+    }
+
+    @PostMapping("/competence/{competenceId}")
+    public ResponseEntity<SavoirDTO> createSavoirForCompetence(@PathVariable Long competenceId, @RequestBody Savoir savoir) {
+        return new ResponseEntity<>(savoirService.createSavoirForCompetence(competenceId, savoir), HttpStatus.CREATED);
     }
 
     @PutMapping("/{id}")

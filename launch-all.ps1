@@ -33,18 +33,23 @@ $services = @(
 $step = 2
 foreach ($svc in $services) {
     Write-Host "`n[$step/9] Lancement $($svc.Name) (port $($svc.Port))..." -ForegroundColor Yellow
-    Start-Process powershell -ArgumentList "-NoExit", "-Command", "Set-Location '$ROOT\$($svc.Dir)'; Write-Host 'Démarrage $($svc.Name) sur port $($svc.Port)...' -ForegroundColor Cyan; .\mvnw.cmd spring-boot:run"
+Start-Process powershell -ArgumentList "-NoExit", "-Command", "Set-Location '$ROOT\$($svc.Dir)'; Write-Host 'Démarrage $($svc.Name) sur port $($svc.Port)...' -ForegroundColor Cyan; .\mvnw.cmd spring-boot:run"
     Start-Sleep -Seconds 2
     $step++
 }
 
 # API Gateway
-Write-Host "`n[8/9] Lancement API Gateway (port 8222)..." -ForegroundColor Yellow
+Write-Host "`n[8/10] Lancement API Gateway (port 8222)..." -ForegroundColor Yellow
 Start-Process powershell -ArgumentList "-NoExit", "-Command", "Set-Location '$ROOT\esprit_D2F-api-gateway'; Write-Host 'Démarrage API Gateway sur port 8222...' -ForegroundColor Cyan; .\mvnw.cmd spring-boot:run"
 Start-Sleep -Seconds 2
 
+# Python AI Service
+Write-Host "`n[9/10] Lancement AI Service (port 8000)..." -ForegroundColor Yellow
+Start-Process powershell -ArgumentList "-NoExit", "-Command", "Set-Location '$ROOT\esprit_D2F-recommandation-formateur'; Write-Host 'Démarrage AI Service sur port 8000...' -ForegroundColor Cyan; ..\.venv\Scripts\python.exe -m uvicorn ai_reco:app --host 0.0.0.0 --port 8000"
+Start-Sleep -Seconds 2
+
 # Frontend
-Write-Host "`n[9/9] Lancement Frontend (port 5173)..." -ForegroundColor Yellow
+Write-Host "`n[10/10] Lancement Frontend (port 5173)..." -ForegroundColor Yellow
 Start-Process powershell -ArgumentList "-NoExit", "-Command", "Set-Location '$ROOT\esprit_D2F-webapp'; Write-Host 'Démarrage Frontend...' -ForegroundColor Cyan; npm install --legacy-peer-deps; npm run dev"
 
 Write-Host "`n========================================" -ForegroundColor Green
@@ -59,5 +64,6 @@ Write-Host "  Evaluation:       http://localhost:8087"
 Write-Host "  Besoin-Formation: http://localhost:8004"
 Write-Host "  Competence:       http://localhost:8005"
 Write-Host "  API Gateway:      http://localhost:8222"
+Write-Host "  AI Service:       http://localhost:8000"
 Write-Host "  Frontend:         http://localhost:5173"
 Write-Host "  Artemis Console:  http://localhost:8161"

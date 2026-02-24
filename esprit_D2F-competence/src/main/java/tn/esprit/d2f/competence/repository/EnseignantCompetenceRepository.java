@@ -29,4 +29,33 @@ public interface EnseignantCompetenceRepository extends JpaRepository<Enseignant
 
     @Query("SELECT COUNT(ec) FROM EnseignantCompetence ec WHERE ec.enseignantId = :enseignantId")
     long countByEnseignantId(@Param("enseignantId") String enseignantId);
+
+    @org.springframework.data.jpa.repository.Modifying
+    @Query("DELETE FROM EnseignantCompetence ec WHERE ec.savoir.id = :savoirId")
+    void deleteBySavoirId(@Param("savoirId") Long savoirId);
+
+    @Query("DELETE FROM EnseignantCompetence ec WHERE ec.savoir.id IN :savoirIds")
+    @org.springframework.data.jpa.repository.Modifying
+    void deleteBySavoirIdIn(@Param("savoirIds") List<Long> savoirIds);
+
+    @Query("SELECT ec.savoir.id FROM EnseignantCompetence ec WHERE ec.savoir.sousCompetence.id = :sousCompetenceId")
+    List<Long> findSavoirIdsBySousCompetenceId(@Param("sousCompetenceId") Long sousCompetenceId);
+
+    @Query("SELECT ec.savoir.id FROM EnseignantCompetence ec WHERE ec.savoir.sousCompetence.competence.id = :competenceId")
+    List<Long> findSavoirIdsByCompetenceId(@Param("competenceId") Long competenceId);
+
+    @Query("SELECT ec.savoir.id FROM EnseignantCompetence ec WHERE ec.savoir.sousCompetence.competence.domaine.id = :domaineId")
+    List<Long> findSavoirIdsByDomaineId(@Param("domaineId") Long domaineId);
+
+    /** Nombre d'enseignants distincts par domaine */
+    @Query("SELECT COUNT(DISTINCT ec.enseignantId) FROM EnseignantCompetence ec WHERE ec.savoir.sousCompetence.competence.domaine.id = :domaineId")
+    long countDistinctEnseignantsByDomaineId(@Param("domaineId") Long domaineId);
+
+    /** Nombre d'enseignants distincts par compétence */
+    @Query("SELECT COUNT(DISTINCT ec.enseignantId) FROM EnseignantCompetence ec WHERE ec.savoir.sousCompetence.competence.id = :competenceId")
+    long countDistinctEnseignantsByCompetenceId(@Param("competenceId") Long competenceId);
+
+    /** Nombre d'enseignants distincts par sous-compétence */
+    @Query("SELECT COUNT(DISTINCT ec.enseignantId) FROM EnseignantCompetence ec WHERE ec.savoir.sousCompetence.id = :sousCompetenceId")
+    long countDistinctEnseignantsBySousCompetenceId(@Param("sousCompetenceId") Long sousCompetenceId);
 }

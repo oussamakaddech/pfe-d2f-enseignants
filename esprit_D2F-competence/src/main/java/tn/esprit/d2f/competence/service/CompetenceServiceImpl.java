@@ -10,6 +10,7 @@ import tn.esprit.d2f.competence.entity.Competence;
 import tn.esprit.d2f.competence.entity.Domaine;
 import tn.esprit.d2f.competence.repository.CompetenceRepository;
 import tn.esprit.d2f.competence.repository.DomaineRepository;
+import tn.esprit.d2f.competence.repository.EnseignantCompetenceRepository;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -23,6 +24,9 @@ public class CompetenceServiceImpl implements ICompetenceService {
 
     @Autowired
     private DomaineRepository domaineRepository;
+
+    @Autowired
+    private EnseignantCompetenceRepository enseignantCompetenceRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -81,6 +85,11 @@ public class CompetenceServiceImpl implements ICompetenceService {
     public void deleteCompetence(Long id) {
         if (!competenceRepository.existsById(id)) {
             throw new EntityNotFoundException("Compétence non trouvée avec l'id: " + id);
+        }
+        // Supprimer les affectations enseignant-compétence liées aux savoirs de cette compétence
+        List<Long> savoirIds = enseignantCompetenceRepository.findSavoirIdsByCompetenceId(id);
+        if (!savoirIds.isEmpty()) {
+            enseignantCompetenceRepository.deleteBySavoirIdIn(savoirIds);
         }
         competenceRepository.deleteById(id);
         log.info("Compétence supprimée: {}", id);

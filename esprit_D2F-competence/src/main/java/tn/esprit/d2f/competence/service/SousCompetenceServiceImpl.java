@@ -9,6 +9,7 @@ import tn.esprit.d2f.competence.dto.SousCompetenceDTO;
 import tn.esprit.d2f.competence.entity.Competence;
 import tn.esprit.d2f.competence.entity.SousCompetence;
 import tn.esprit.d2f.competence.repository.CompetenceRepository;
+import tn.esprit.d2f.competence.repository.EnseignantCompetenceRepository;
 import tn.esprit.d2f.competence.repository.SousCompetenceRepository;
 
 import java.util.List;
@@ -23,6 +24,9 @@ public class SousCompetenceServiceImpl implements ISousCompetenceService {
 
     @Autowired
     private CompetenceRepository competenceRepository;
+
+    @Autowired
+    private EnseignantCompetenceRepository enseignantCompetenceRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -80,6 +84,11 @@ public class SousCompetenceServiceImpl implements ISousCompetenceService {
     public void deleteSousCompetence(Long id) {
         if (!sousCompetenceRepository.existsById(id)) {
             throw new EntityNotFoundException("Sous-compétence non trouvée avec l'id: " + id);
+        }
+        // Supprimer les affectations enseignant-compétence liées aux savoirs de cette sous-compétence
+        List<Long> savoirIds = enseignantCompetenceRepository.findSavoirIdsBySousCompetenceId(id);
+        if (!savoirIds.isEmpty()) {
+            enseignantCompetenceRepository.deleteBySavoirIdIn(savoirIds);
         }
         sousCompetenceRepository.deleteById(id);
         log.info("Sous-compétence supprimée: {}", id);
