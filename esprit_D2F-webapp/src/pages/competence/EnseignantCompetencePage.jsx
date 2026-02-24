@@ -355,9 +355,9 @@ export default function EnseignantCompetencePage() {
           open={assignModal}
           onOk={handleAssign}
           onCancel={() => setAssignModal(false)}
+          afterClose={() => assignForm.resetFields()}
           okText="Ajouter"
           cancelText="Annuler"
-          destroyOnClose
         >
           <Form form={assignForm} layout="vertical">
             <Form.Item
@@ -411,9 +411,9 @@ export default function EnseignantCompetencePage() {
           open={niveauModal}
           onOk={handleUpdateNiveau}
           onCancel={() => setNiveauModal(false)}
+          afterClose={() => niveauForm.resetFields()}
           okText="Mettre à jour"
           cancelText="Annuler"
-          destroyOnClose
         >
           <Form form={niveauForm} layout="vertical">
             <Form.Item

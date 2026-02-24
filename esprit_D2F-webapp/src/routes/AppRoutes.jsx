@@ -47,6 +47,7 @@ import CombinedFormationOneDriveTree from "../pages/documentFormation/CombinedFo
 import CompetencePage from "../pages/competence/CompetencePage";
 import EnseignantCompetencePage from "../pages/competence/EnseignantCompetencePage";
 import RicePage from "../pages/competence/RicePage";
+import StructureArbrePage from "../pages/competence/StructureArbrePage";
 
 
 
@@ -71,12 +72,10 @@ export default function AppRoutes() {
               <Route path="home/ListeFormation"   element={<FormationCards />} />
               <Route path="home/ListeFormation/:id" element={<FicheFormation />} />
               <Route path="home/MyCertificate"          element={<CertificatesByEmailPage />} />
-              {/* Compétences – accessible à tous les utilisateurs connectés */}
-              <Route path="home/mes-competences" element={<EnseignantCompetencePage />} />
-
               <Route element={<RoleGuard allowedRoles={["admin","D2F","CUP"]} />}>
                 <Route path="home/competences" element={<CompetencePage />} />
                 <Route path="home/competences/enseignant/:enseignantId" element={<EnseignantCompetencePage />} />
+                <Route path="home/structure-competences" element={<StructureArbrePage />} />
                 <Route path="home/rice" element={<RicePage />} />
                 <Route path="home/File"                   element={<CombinedFormationOneDriveTree />} />
                 <Route path="home/KPI"                    element={<KPIChart />} />

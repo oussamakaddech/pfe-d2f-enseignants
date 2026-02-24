@@ -16,12 +16,15 @@ import {
   Popconfirm,
   message,
   Tooltip,
+  Alert,
 } from "antd";
 import {
   PlusOutlined,
   EditOutlined,
   DeleteOutlined,
   ApartmentOutlined,
+  CheckSquareOutlined,
+  CloseOutlined,
 } from "@ant-design/icons";
 import CompetenceService from "../../services/CompetenceService";
 
@@ -31,18 +34,111 @@ const { Option } = Select;
 // ─── Types & niveaux ───────────────────────────────────────────────────────
 const TYPE_SAVOIR_OPTIONS = ["THEORIQUE", "PRATIQUE"];
 
+const NIVEAU_SAVOIR_OPTIONS = [
+  { value: "N1_DEBUTANT",      label: "N1 – Débutant",      color: "default" },
+  { value: "N2_ELEMENTAIRE",   label: "N2 – Élémentaire",   color: "blue" },
+  { value: "N3_INTERMEDIAIRE", label: "N3 – Intermédiaire", color: "cyan" },
+  { value: "N4_AVANCE",        label: "N4 – Avancé",        color: "green" },
+  { value: "N5_EXPERT",        label: "N5 – Expert",        color: "gold" },
+];
+
 // ─── Generic CRUD Tab component ────────────────────────────────────────────
-function CrudTab({ columns, data, loading, onAdd, onEdit, onDelete, addLabel }) {
+function CrudTab({ columns, data, loading, onAdd, onEdit, onDelete, onBulkDelete, addLabel }) {
+  const [selectedRowKeys, setSelectedRowKeys] = useState([]);
+  const [selectionMode, setSelectionMode] = useState(false);
+
+  const selectedRows = data.filter((r) => selectedRowKeys.includes(r.id));
+  const hasSelection = selectedRowKeys.length > 0;
+
+  const toggleSelectionMode = () => {
+    if (selectionMode) {
+      setSelectedRowKeys([]);
+    }
+    setSelectionMode((prev) => !prev);
+  };
+
+  const handleBulkDelete = async () => {
+    if (onBulkDelete) {
+      await onBulkDelete(selectedRowKeys);
+    } else {
+      for (const id of selectedRowKeys) {
+        await onDelete(id);
+      }
+    }
+    setSelectedRowKeys([]);
+    setSelectionMode(false);
+  };
+
+  const handleBulkEdit = () => {
+    if (selectedRows.length === 1) {
+      onEdit(selectedRows[0]);
+      setSelectedRowKeys([]);
+      setSelectionMode(false);
+    }
+  };
+
+  const rowSelection = selectionMode
+    ? {
+        selectedRowKeys,
+        onChange: (keys) => setSelectedRowKeys(keys),
+        selections: [
+          Table.SELECTION_ALL,
+          Table.SELECTION_INVERT,
+          Table.SELECTION_NONE,
+        ],
+      }
+    : undefined;
+
   return (
     <div>
-      <Button
-        type="primary"
-        icon={<PlusOutlined />}
-        onClick={onAdd}
-        style={{ marginBottom: 16 }}
-      >
-        {addLabel}
-      </Button>
+      <Space style={{ marginBottom: 16 }} wrap>
+        <Button type="primary" icon={<PlusOutlined />} onClick={onAdd}>
+          {addLabel}
+        </Button>
+        <Button
+          icon={selectionMode ? <CloseOutlined /> : <CheckSquareOutlined />}
+          onClick={toggleSelectionMode}
+          type={selectionMode ? "default" : "dashed"}
+        >
+          {selectionMode ? "Annuler la sélection" : "Sélectionner"}
+        </Button>
+        {selectionMode && hasSelection && (
+          <>
+            {selectedRowKeys.length === 1 && (
+              <Button
+                icon={<EditOutlined />}
+                onClick={handleBulkEdit}
+              >
+                Modifier
+              </Button>
+            )}
+            <Popconfirm
+              title={`Supprimer ${selectedRowKeys.length} élément(s) ?`}
+              description="Cette action est irréversible."
+              okText="Oui, supprimer"
+              cancelText="Non"
+              okButtonProps={{ danger: true }}
+              onConfirm={handleBulkDelete}
+            >
+              <Button danger icon={<DeleteOutlined />}>
+                Supprimer ({selectedRowKeys.length})
+              </Button>
+            </Popconfirm>
+          </>
+        )}
+      </Space>
+
+      {selectionMode && hasSelection && (
+        <Alert
+          message={`${selectedRowKeys.length} élément(s) sélectionné(s)`}
+          type="info"
+          showIcon
+          closable
+          onClose={() => setSelectedRowKeys([])}
+          style={{ marginBottom: 12 }}
+        />
+      )}
+
       <Table
         dataSource={data}
         columns={[
@@ -75,6 +171,7 @@ function CrudTab({ columns, data, loading, onAdd, onEdit, onDelete, addLabel }) 
           },
         ]}
         rowKey="id"
+        rowSelection={rowSelection}
         loading={loading}
         pagination={{ pageSize: 10 }}
         size="small"
@@ -90,11 +187,13 @@ CrudTab.propTypes = {
   onAdd: PropTypes.func.isRequired,
   onEdit: PropTypes.func.isRequired,
   onDelete: PropTypes.func.isRequired,
+  onBulkDelete: PropTypes.func,
   addLabel: PropTypes.string.isRequired,
 };
 
 CrudTab.defaultProps = {
   loading: false,
+  onBulkDelete: null,
 };
 
 // ─── Main Page ─────────────────────────────────────────────────────────────
@@ -135,8 +234,9 @@ export default function CompetencePage() {
     try {
       const data = await CompetenceService.domaine.getAll();
       setDomaines(data);
-    } catch {
-      msgApi.error("Erreur lors du chargement des domaines");
+    } catch (err) {
+      console.error("[CompetencePage] loadDomaines error:", err?.response?.status, err?.message);
+      msgApi.error(err?.response?.data?.message || "Erreur lors du chargement des domaines");
     } finally {
       setDomainesLoading(false);
     }
@@ -147,8 +247,9 @@ export default function CompetencePage() {
     try {
       const data = await CompetenceService.competence.getAll();
       setCompetences(data);
-    } catch {
-      msgApi.error("Erreur lors du chargement des compétences");
+    } catch (err) {
+      console.error("[CompetencePage] loadCompetences error:", err?.response?.status, err?.message);
+      msgApi.error(err?.response?.data?.message || "Erreur lors du chargement des compétences");
     } finally {
       setCompLoading(false);
     }
@@ -159,8 +260,9 @@ export default function CompetencePage() {
     try {
       const data = await CompetenceService.sousCompetence.getAll();
       setSousComps(data);
-    } catch {
-      msgApi.error("Erreur lors du chargement des sous-compétences");
+    } catch (err) {
+      console.error("[CompetencePage] loadSousCompetences error:", err?.response?.status, err?.message);
+      msgApi.error(err?.response?.data?.message || "Erreur lors du chargement des sous-compétences");
     } finally {
       setScLoading(false);
     }
@@ -171,8 +273,9 @@ export default function CompetencePage() {
     try {
       const data = await CompetenceService.savoir.getAll();
       setSavoirs(data);
-    } catch {
-      msgApi.error("Erreur lors du chargement des savoirs");
+    } catch (err) {
+      console.error("[CompetencePage] loadSavoirs error:", err?.response?.status, err?.message);
+      msgApi.error(err?.response?.data?.message || "Erreur lors du chargement des savoirs");
     } finally {
       setSavoirsLoading(false);
     }
@@ -188,13 +291,25 @@ export default function CompetencePage() {
   // ─── DOMAINES CRUD ───────────────────────────────────────────────────────
   const openDomaineModal = (record = null) => {
     setEditingDomaine(record);
-    domaineForm.setFieldsValue(record || { code: "", nom: "", description: "", actif: true });
+    domaineForm.setFieldsValue(record || { nom: "", description: "", actif: true });
     setDomaineModal(true);
   };
 
   const handleDomaineSubmit = async () => {
     try {
       const values = await domaineForm.validateFields();
+      // Auto-generate code from nom (backend requires it)
+      if (!editingDomaine) {
+        values.code = values.nom
+          .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+          .toUpperCase()
+          .replace(/[^A-Z0-9]+/g, "_")
+          .replace(/^_|_$/g, "")
+          .substring(0, 30);
+      } else {
+        // Keep existing code on update
+        values.code = editingDomaine.code;
+      }
       if (editingDomaine) {
         await CompetenceService.domaine.update(editingDomaine.id, values);
         msgApi.success("Domaine mis à jour");
@@ -224,7 +339,7 @@ export default function CompetencePage() {
   };
 
   const domaineColumns = [
-    { title: "Code", dataIndex: "code", key: "code", width: 100, sorter: (a, b) => a.code.localeCompare(b.code) },
+    { title: "Nom", dataIndex: "nom", key: "nom", sorter: (a, b) => a.nom.localeCompare(b.nom) },
     { title: "Nom", dataIndex: "nom", key: "nom", sorter: (a, b) => a.nom.localeCompare(b.nom) },
     { title: "Description", dataIndex: "description", key: "description", ellipsis: true },
     {
@@ -365,8 +480,8 @@ export default function CompetencePage() {
     setEditingSavoir(record);
     savoirForm.setFieldsValue(
       record
-        ? { code: record.code, nom: record.nom, description: record.description, type: record.type, sousCompetenceId: record.sousCompetenceId }
-        : { code: "", nom: "", description: "", type: null, sousCompetenceId: null }
+        ? { code: record.code, nom: record.nom, description: record.description, type: record.type, niveau: record.niveau, sousCompetenceId: record.sousCompetenceId }
+        : { code: "", nom: "", description: "", type: null, niveau: "N2_ELEMENTAIRE", sousCompetenceId: null }
     );
     setSavoirModal(true);
   };
@@ -414,6 +529,18 @@ export default function CompetencePage() {
       ),
       filters: TYPE_SAVOIR_OPTIONS.map((t) => ({ text: t, value: t })),
       onFilter: (v, r) => r.type === v,
+    },
+    {
+      title: "Niveau",
+      dataIndex: "niveau",
+      key: "niveau",
+      width: 140,
+      render: (niveau) => {
+        const opt = NIVEAU_SAVOIR_OPTIONS.find((n) => n.value === niveau);
+        return opt ? <Tag color={opt.color}>{opt.label}</Tag> : <Tag>{niveau ?? "—"}</Tag>;
+      },
+      filters: NIVEAU_SAVOIR_OPTIONS.map((n) => ({ text: n.label, value: n.value })),
+      onFilter: (v, r) => r.niveau === v,
     },
     { title: "Sous-Compétence", dataIndex: "sousCompetenceNom", key: "sousCompetenceNom" },
   ];
@@ -498,14 +625,11 @@ export default function CompetencePage() {
           open={domaineModal}
           onOk={handleDomaineSubmit}
           onCancel={() => setDomaineModal(false)}
+          afterClose={() => { domaineForm.resetFields(); setEditingDomaine(null); }}
           okText="Enregistrer"
           cancelText="Annuler"
-          destroyOnClose
         >
           <Form form={domaineForm} layout="vertical">
-            <Form.Item name="code" label="Code" rules={[{ required: true, message: "Code obligatoire" }]}>
-              <Input placeholder="ex: INF" />
-            </Form.Item>
             <Form.Item name="nom" label="Nom" rules={[{ required: true, message: "Nom obligatoire" }]}>
               <Input placeholder="ex: Informatique" />
             </Form.Item>
@@ -524,9 +648,9 @@ export default function CompetencePage() {
           open={compModal}
           onOk={handleCompSubmit}
           onCancel={() => setCompModal(false)}
+          afterClose={() => { compForm.resetFields(); setEditingComp(null); }}
           okText="Enregistrer"
           cancelText="Annuler"
-          destroyOnClose
         >
           <Form form={compForm} layout="vertical">
             <Form.Item name="domaineId" label="Domaine" rules={[{ required: !editingComp, message: "Domaine obligatoire" }]}>
@@ -557,9 +681,9 @@ export default function CompetencePage() {
           open={scModal}
           onOk={handleScSubmit}
           onCancel={() => setScModal(false)}
+          afterClose={() => { scForm.resetFields(); setEditingSc(null); }}
           okText="Enregistrer"
           cancelText="Annuler"
-          destroyOnClose
         >
           <Form form={scForm} layout="vertical">
             <Form.Item name="competenceId" label="Compétence" rules={[{ required: !editingSc, message: "Compétence obligatoire" }]}>
@@ -587,9 +711,9 @@ export default function CompetencePage() {
           open={savoirModal}
           onOk={handleSavoirSubmit}
           onCancel={() => setSavoirModal(false)}
+          afterClose={() => { savoirForm.resetFields(); setEditingSavoir(null); }}
           okText="Enregistrer"
           cancelText="Annuler"
-          destroyOnClose
         >
           <Form form={savoirForm} layout="vertical">
             <Form.Item name="sousCompetenceId" label="Sous-Compétence" rules={[{ required: !editingSavoir, message: "Sous-compétence obligatoire" }]}>
@@ -612,6 +736,13 @@ export default function CompetencePage() {
               <Select placeholder="Type de savoir">
                 {TYPE_SAVOIR_OPTIONS.map((t) => (
                   <Option key={t} value={t}>{t}</Option>
+                ))}
+              </Select>
+            </Form.Item>
+            <Form.Item name="niveau" label="Niveau" rules={[{ required: true, message: "Niveau obligatoire" }]}>
+              <Select placeholder="Niveau de complexité">
+                {NIVEAU_SAVOIR_OPTIONS.map((n) => (
+                  <Option key={n.value} value={n.value}>{n.label}</Option>
                 ))}
               </Select>
             </Form.Item>

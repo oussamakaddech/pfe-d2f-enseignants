@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 import tn.esprit.d2f.competence.dto.DomaineDTO;
 import tn.esprit.d2f.competence.entity.Domaine;
 import tn.esprit.d2f.competence.repository.DomaineRepository;
+import tn.esprit.d2f.competence.repository.EnseignantCompetenceRepository;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -18,6 +19,9 @@ public class DomaineServiceImpl implements IDomaineService {
 
     @Autowired
     private DomaineRepository domaineRepository;
+
+    @Autowired
+    private EnseignantCompetenceRepository enseignantCompetenceRepository;
 
     @Override
     @Transactional(readOnly = true)
@@ -83,6 +87,11 @@ public class DomaineServiceImpl implements IDomaineService {
     public void deleteDomaine(Long id) {
         if (!domaineRepository.existsById(id)) {
             throw new EntityNotFoundException("Domaine non trouvé avec l'id: " + id);
+        }
+        // Supprimer les affectations enseignant-compétence liées aux savoirs de ce domaine
+        List<Long> savoirIds = enseignantCompetenceRepository.findSavoirIdsByDomaineId(id);
+        if (!savoirIds.isEmpty()) {
+            enseignantCompetenceRepository.deleteBySavoirIdIn(savoirIds);
         }
         domaineRepository.deleteById(id);
         log.info("Domaine supprimé: {}", id);

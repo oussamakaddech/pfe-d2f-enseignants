@@ -99,8 +99,16 @@ const SavoirAPI = {
       .get(`${BASE}/savoirs/sous-competence/${sousCompetenceId}`, { headers: authHeader() })
       .then((r) => r.data),
 
+  getByCompetence: (competenceId) =>
+    axios
+      .get(`${BASE}/savoirs/competence/${competenceId}`, { headers: authHeader() })
+      .then((r) => r.data),
+
   getByType: (type) =>
     axios.get(`${BASE}/savoirs/type/${type}`, { headers: authHeader() }).then((r) => r.data),
+
+  search: (keyword) =>
+    axios.get(`${BASE}/savoirs/search?keyword=${encodeURIComponent(keyword)}`, { headers: authHeader() }).then((r) => r.data),
 
   getById: (id) =>
     axios.get(`${BASE}/savoirs/${id}`, { headers: authHeader() }).then((r) => r.data),
@@ -108,6 +116,13 @@ const SavoirAPI = {
   create: (sousCompetenceId, savoir) =>
     axios
       .post(`${BASE}/savoirs/sous-competence/${sousCompetenceId}`, savoir, {
+        headers: authHeader(),
+      })
+      .then((r) => r.data),
+
+  createForCompetence: (competenceId, savoir) =>
+    axios
+      .post(`${BASE}/savoirs/competence/${competenceId}`, savoir, {
         headers: authHeader(),
       })
       .then((r) => r.data),
@@ -164,12 +179,65 @@ const EnseignantCompetenceAPI = {
     axios.delete(`${BASE}/enseignant-competences/${id}`, { headers: authHeader() }),
 };
 
+// ─── Niveaux de Compétence ─────────────────────────────────────────────────
+
+const NiveauDefinitionAPI = {
+  getAll: () =>
+    axios.get(`${BASE}/niveaux`, { headers: authHeader() }).then((r) => r.data),
+
+  getByCompetence: (competenceId) =>
+    axios.get(`${BASE}/niveaux/competence/${competenceId}`, { headers: authHeader() }).then((r) => r.data),
+
+  getBySousCompetence: (sousCompetenceId) =>
+    axios.get(`${BASE}/niveaux/sous-competence/${sousCompetenceId}`, { headers: authHeader() }).then((r) => r.data),
+
+  getByCompetenceAndNiveau: (competenceId, niveau) =>
+    axios
+      .get(`${BASE}/niveaux/competence/${competenceId}/niveau/${niveau}`, { headers: authHeader() })
+      .then((r) => r.data),
+
+  getBySousCompetenceAndNiveau: (sousCompetenceId, niveau) =>
+    axios
+      .get(`${BASE}/niveaux/sous-competence/${sousCompetenceId}/niveau/${niveau}`, { headers: authHeader() })
+      .then((r) => r.data),
+
+  add: (request) =>
+    axios.post(`${BASE}/niveaux`, request, { headers: authHeader() }).then((r) => r.data),
+
+  remove: (id) =>
+    axios.delete(`${BASE}/niveaux/${id}`, { headers: authHeader() }),
+};
+
+// ─── Structure & Recherche ─────────────────────────────────────────────────
+
+const StructureAPI = {
+  getArbreComplet: () =>
+    axios.get(`${BASE}/structure/arbre`, { headers: authHeader() }).then((r) => r.data),
+
+  getArbreDomaine: (domaineId) =>
+    axios.get(`${BASE}/structure/arbre/domaine/${domaineId}`, { headers: authHeader() }).then((r) => r.data),
+
+  rechercheGlobale: (keyword) =>
+    axios
+      .get(`${BASE}/structure/recherche?keyword=${encodeURIComponent(keyword)}`, { headers: authHeader() })
+      .then((r) => r.data),
+
+  rechercheParDomaine: (domaineId, keyword) =>
+    axios
+      .get(`${BASE}/structure/recherche/domaine/${domaineId}?keyword=${encodeURIComponent(keyword)}`, {
+        headers: authHeader(),
+      })
+      .then((r) => r.data),
+};
+
 const CompetenceService = {
   domaine: DomaineAPI,
   competence: CompetenceAPI,
   sousCompetence: SousCompetenceAPI,
   savoir: SavoirAPI,
   enseignantCompetence: EnseignantCompetenceAPI,
+  niveauDefinition: NiveauDefinitionAPI,
+  structure: StructureAPI,
 };
 
 export default CompetenceService;

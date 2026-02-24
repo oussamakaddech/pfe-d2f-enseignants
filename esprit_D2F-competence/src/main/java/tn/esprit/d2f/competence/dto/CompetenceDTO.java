@@ -17,4 +17,5 @@ public class CompetenceDTO {
     private Long domaineId;
     private String domaineNom;
     private List<SousCompetenceDTO> sousCompetences;
+    private List<SavoirDTO> savoirs;
 }

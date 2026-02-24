@@ -106,6 +106,7 @@ public class RiceImportServiceImpl implements IRiceImportService {
                                             .nom(savReq.getNom())
                                             .description(savReq.getDescription())
                                             .type(parseTypeSavoir(savReq.getType()))
+                                            .niveau(parseNiveau(savReq.getNiveau()))
                                             .sousCompetence(finalSc)
                                             .build();
                                     return savoirRepository.save(sv);
