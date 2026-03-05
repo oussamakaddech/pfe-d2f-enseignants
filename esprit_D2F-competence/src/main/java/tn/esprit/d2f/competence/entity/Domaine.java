@@ -8,14 +8,17 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "domaines")
-@Data
-@EqualsAndHashCode(of = "id")
+@Table(name = "domaines", indexes = {
+        @Index(name = "idx_domaine_code", columnList = "code")
+})
+@Getter
+@Setter
+@EqualsAndHashCode(of = "id", callSuper = false)
 @ToString(exclude = "competences")
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Domaine {
+public class Domaine extends BaseAuditEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

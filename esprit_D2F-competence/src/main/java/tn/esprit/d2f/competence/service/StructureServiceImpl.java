@@ -1,12 +1,15 @@
 package tn.esprit.d2f.competence.service;
 
 import jakarta.persistence.EntityNotFoundException;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import tn.esprit.d2f.competence.dto.*;
-import tn.esprit.d2f.competence.entity.*;
+import tn.esprit.d2f.competence.entity.Competence;
+import tn.esprit.d2f.competence.entity.Domaine;
+import tn.esprit.d2f.competence.entity.Savoir;
+import tn.esprit.d2f.competence.entity.SousCompetence;
 import tn.esprit.d2f.competence.entity.enumerations.TypeSavoir;
 import tn.esprit.d2f.competence.repository.*;
 
@@ -15,22 +18,15 @@ import java.util.stream.Collectors;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class StructureServiceImpl implements IStructureService {
 
-    @Autowired
-    private DomaineRepository domaineRepository;
-
-    @Autowired
-    private CompetenceRepository competenceRepository;
-
-    @Autowired
-    private SousCompetenceRepository sousCompetenceRepository;
-
-    @Autowired
-    private SavoirRepository savoirRepository;
-
-    @Autowired
-    private EnseignantCompetenceRepository enseignantCompetenceRepository;
+    private final DomaineRepository domaineRepository;
+    private final CompetenceRepository competenceRepository;
+    private final SousCompetenceRepository sousCompetenceRepository;
+    private final SavoirRepository savoirRepository;
+    private final EnseignantCompetenceRepository enseignantCompetenceRepository;
+    private final CompetenceMapper competenceMapper;
 
     @Override
     @Transactional(readOnly = true)
@@ -70,59 +66,42 @@ public class StructureServiceImpl implements IStructureService {
 
     @Override
     @Transactional(readOnly = true)
-    public Map<String, Object> rechercheGlobale(String keyword) {
-        Map<String, Object> results = new LinkedHashMap<>();
-        results.put("domaines", domaineRepository.searchByKeyword(keyword).stream()
-                .map(CompetenceMapper::toDTOLight).collect(Collectors.toList()));
-        results.put("competences", competenceRepository.searchByKeyword(keyword).stream()
-                .map(CompetenceMapper::toDTO).collect(Collectors.toList()));
-        results.put("sousCompetences", sousCompetenceRepository.searchByKeyword(keyword).stream()
-                .map(CompetenceMapper::toDTO).collect(Collectors.toList()));
-        results.put("savoirs", savoirRepository.searchByKeyword(keyword).stream()
-                .map(CompetenceMapper::toDTO).collect(Collectors.toList()));
-        return results;
+    public SearchResultDTO rechercheGlobale(String keyword) {
+        List<DomaineDTO> domaines = domaineRepository.searchByKeyword(keyword).stream()
+                .map(competenceMapper::toDTOLight).collect(Collectors.toList());
+        List<CompetenceDTO> competences = competenceRepository.searchByKeyword(keyword).stream()
+                .map(competenceMapper::toDTO).collect(Collectors.toList());
+        List<SousCompetenceDTO> sousCompetences = sousCompetenceRepository.searchByKeyword(keyword).stream()
+                .map(competenceMapper::toDTO).collect(Collectors.toList());
+        List<SavoirDTO> savoirs = savoirRepository.searchByKeyword(keyword).stream()
+                .map(competenceMapper::toDTO).collect(Collectors.toList());
+        return SearchResultDTO.builder()
+                .keyword(keyword)
+                .domaines(domaines)
+                .competences(competences)
+                .sousCompetences(sousCompetences)
+                .savoirs(savoirs)
+                .totalResults(domaines.size() + competences.size() + sousCompetences.size() + savoirs.size())
+                .build();
     }
 
     @Override
     @Transactional(readOnly = true)
-    public Map<String, Object> rechercheParDomaine(Long domaineId, String keyword) {
-        Map<String, Object> results = new LinkedHashMap<>();
-
-        List<Competence> competences = competenceRepository.findByDomaineId(domaineId);
-        List<CompetenceDTO> matchingCompetences = competences.stream()
-                .filter(c -> matchesKeyword(c.getNom(), c.getDescription(), c.getCode(), keyword))
-                .map(CompetenceMapper::toDTO)
-                .collect(Collectors.toList());
-
-        List<SousCompetenceDTO> matchingSousCompetences = new ArrayList<>();
-        List<SavoirDTO> matchingSavoirs = new ArrayList<>();
-
-        for (Competence comp : competences) {
-            // Savoirs directement rattachés à la compétence (sans sous-compétence)
-            if (comp.getSavoirs() != null) {
-                for (Savoir s : comp.getSavoirs()) {
-                    if (matchesKeyword(s.getNom(), s.getDescription(), s.getCode(), keyword)) {
-                        matchingSavoirs.add(CompetenceMapper.toDTO(s));
-                    }
-                }
-            }
-            // Sous-compétences et leurs savoirs
-            for (SousCompetence sc : comp.getSousCompetences()) {
-                if (matchesKeyword(sc.getNom(), sc.getDescription(), sc.getCode(), keyword)) {
-                    matchingSousCompetences.add(CompetenceMapper.toDTO(sc));
-                }
-                for (Savoir s : sc.getSavoirs()) {
-                    if (matchesKeyword(s.getNom(), s.getDescription(), s.getCode(), keyword)) {
-                        matchingSavoirs.add(CompetenceMapper.toDTO(s));
-                    }
-                }
-            }
-        }
-
-        results.put("competences", matchingCompetences);
-        results.put("sousCompetences", matchingSousCompetences);
-        results.put("savoirs", matchingSavoirs);
-        return results;
+    public SearchResultDTO rechercheParDomaine(Long domaineId, String keyword) {
+        List<CompetenceDTO> competences = competenceRepository.searchByDomaineIdAndKeyword(domaineId, keyword).stream()
+                .map(competenceMapper::toDTO).collect(Collectors.toList());
+        List<SousCompetenceDTO> sousCompetences = sousCompetenceRepository.searchByDomaineIdAndKeyword(domaineId, keyword).stream()
+                .map(competenceMapper::toDTO).collect(Collectors.toList());
+        List<SavoirDTO> savoirs = savoirRepository.searchByDomaineIdAndKeyword(domaineId, keyword).stream()
+                .map(competenceMapper::toDTO).collect(Collectors.toList());
+        return SearchResultDTO.builder()
+                .keyword(keyword)
+                .domaines(java.util.Collections.emptyList())
+                .competences(competences)
+                .sousCompetences(sousCompetences)
+                .savoirs(savoirs)
+                .totalResults(competences.size() + sousCompetences.size() + savoirs.size())
+                .build();
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────────
@@ -161,7 +140,7 @@ public class StructureServiceImpl implements IStructureService {
                 .collect(Collectors.toList());
 
         List<SavoirDTO> savoirsDirect = competence.getSavoirs() != null
-                ? competence.getSavoirs().stream().map(CompetenceMapper::toDTO).collect(Collectors.toList())
+                ? competence.getSavoirs().stream().map(competenceMapper::toDTO).collect(Collectors.toList())
                 : Collections.emptyList();
 
         int totalSavoirs = sousCompetences.stream().mapToInt(sc -> sc.getSavoirs().size()).sum()
@@ -203,14 +182,8 @@ public class StructureServiceImpl implements IStructureService {
                 .description(sc.getDescription())
                 .nombreSavoirs(sc.getSavoirs().size())
                 .nombreEnseignants(nbEnseignants)
-                .savoirs(sc.getSavoirs().stream().map(CompetenceMapper::toDTO).collect(Collectors.toList()))
+                .savoirs(sc.getSavoirs().stream().map(competenceMapper::toDTO).collect(Collectors.toList()))
                 .build();
     }
 
-    private boolean matchesKeyword(String nom, String description, String code, String keyword) {
-        String kw = keyword.toLowerCase();
-        return (nom != null && nom.toLowerCase().contains(kw))
-                || (description != null && description.toLowerCase().contains(kw))
-                || (code != null && code.toLowerCase().contains(kw));
-    }
 }

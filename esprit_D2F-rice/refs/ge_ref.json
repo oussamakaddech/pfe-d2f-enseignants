@@ -1,0 +1,58 @@
+{
+  "domaines": {
+    "GE-ELEC":  "Électrotechnique & Énergie",
+    "GE-AUTO":  "Automatique & Commande",
+    "GE-ETRO":  "Électronique",
+    "GE-PERS":  "Compétences Personnelles & Relationnelles"
+  },
+  "competences": {
+    "GE-ELEC-CONV": {
+      "nom": "Conversion d'énergie électrique",
+      "keywords": ["convertisseur", "onduleur", "redresseur", "hacheur", "machine electrique", "moteur", "transformateur", "energie renouvelable"]
+    },
+    "GE-ELEC-RES": {
+      "nom": "Réseaux électriques",
+      "keywords": ["reseau electrique", "distribution", "transport", "protection", "poste electrique", "smart grid", "compteur intelligent"]
+    },
+    "GE-AUTO-REG": {
+      "nom": "Régulation & Automatisme industriel",
+      "keywords": ["automate programmable", "plc", "scada", "regulation", "pid", "commande", "asservissement", "boucle fermee"]
+    },
+    "GE-AUTO-ROB": {
+      "nom": "Robotique & Mécatronique",
+      "keywords": ["robot", "mecatronique", "capteur", "actionneur", "commande robot", "vision industrielle"]
+    },
+    "GE-ETRO-CIR": {
+      "nom": "Circuits & Systèmes Électroniques",
+      "keywords": ["circuit electronique", "amplificateur", "filtre", "signal", "analogique", "numerique", "fpga", "microcontroleur"]
+    }
+  },
+  "savoirs": {
+    "GE-A1":  ["circuit electrique", "loi ohm", "kirchhoff", "thevenin", "norton"],
+    "GE-A2":  ["machine electrique", "moteur asynchrone", "moteur synchrone", "transformateur"],
+    "GE-A3":  ["electronique puissance", "convertisseur", "onduleur", "redresseur", "hacheur"],
+    "GE-A4":  ["energie renouvelable", "photovoltaique", "eolien", "stockage energie"],
+    "GE-B1":  ["automate programmable", "plc", "ladder", "grafcet", "programmation automate"],
+    "GE-B2":  ["regulation", "pid", "asservissement", "boucle fermee", "correcteur"],
+    "GE-B3":  ["capteur", "actionneur", "instrumentation", "chaine acquisition"],
+    "GE-B4":  ["robot industriel", "cinematique robot", "commande robot"],
+    "GE-C1":  ["electronique analogique", "amplificateur operationnel", "filtre analogique", "transistor"],
+    "GE-C2":  ["electronique numerique", "logique combinatoire", "logique sequentielle", "fpga", "vhdl"],
+    "GE-C3":  ["microcontroleur", "systeme embarque", "arduino", "stm32", "programmation embarquee"],
+    "GE-C4":  ["traitement signal", "transformee fourier", "filtre numerique", "echantillonnage"]
+  },
+  "niveaux": {
+    "GE-A1": "N2_ELEMENTAIRE",
+    "GE-A2": "N3_INTERMEDIAIRE",
+    "GE-A3": "N4_AVANCE",
+    "GE-A4": "N4_AVANCE",
+    "GE-B1": "N3_INTERMEDIAIRE",
+    "GE-B2": "N3_INTERMEDIAIRE",
+    "GE-B3": "N2_ELEMENTAIRE",
+    "GE-B4": "N4_AVANCE",
+    "GE-C1": "N2_ELEMENTAIRE",
+    "GE-C2": "N3_INTERMEDIAIRE",
+    "GE-C3": "N3_INTERMEDIAIRE",
+    "GE-C4": "N4_AVANCE"
+  }
+}

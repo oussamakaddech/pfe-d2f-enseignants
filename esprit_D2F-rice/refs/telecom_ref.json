@@ -1,0 +1,66 @@
+{
+  "domaines": {
+    "TEL-RES":   "Réseaux & Protocoles",
+    "TEL-SIG":   "Traitement du Signal & Communications",
+    "TEL-SEC":   "Cybersécurité & IoT",
+    "TEL-PERS":  "Compétences Personnelles & Relationnelles"
+  },
+  "competences": {
+    "TEL-RES-MOB": {
+      "nom": "Réseaux Mobiles & Sans Fil",
+      "keywords": ["reseau mobile", "gsm", "lte", "5g", "wifi", "bluetooth", "sans fil", "antenne", "propagation"]
+    },
+    "TEL-RES-FIX": {
+      "nom": "Réseaux Fixes & Protocoles",
+      "keywords": ["reseau fixe", "fibre optique", "ethernet", "routage", "switching", "tcp ip", "mpls", "sdn"]
+    },
+    "TEL-SIG-NUM": {
+      "nom": "Traitement Numérique du Signal",
+      "keywords": ["traitement signal", "dsp", "filtre numerique", "transformee fourier", "modulation", "demodulation", "codage"]
+    },
+    "TEL-SIG-COM": {
+      "nom": "Systèmes de Communication",
+      "keywords": ["communication numerique", "canal", "bruit", "snr", "ofdm", "mimo", "turbo code"]
+    },
+    "TEL-SEC-IOT": {
+      "nom": "IoT & Systèmes Embarqués Connectés",
+      "keywords": ["iot", "internet des objets", "capteur connecte", "lorawan", "sigfox", "mqtt", "edge computing"]
+    },
+    "TEL-SEC-CYB": {
+      "nom": "Cybersécurité des Réseaux",
+      "keywords": ["securite reseau", "firewall", "ids", "vpn", "chiffrement", "protocole securite", "pentest"]
+    }
+  },
+  "savoirs": {
+    "TEL-A1":  ["reseau informatique", "modele osi", "tcp ip", "adressage ip", "sous reseau"],
+    "TEL-A2":  ["routage", "ospf", "bgp", "rip", "table routage"],
+    "TEL-A3":  ["switching", "vlan", "stp", "commutateur", "trame ethernet"],
+    "TEL-A4":  ["fibre optique", "transmission optique", "wdm", "amplificateur optique"],
+    "TEL-B1":  ["reseau mobile", "gsm", "umts", "lte", "5g nr", "handover"],
+    "TEL-B2":  ["antenne", "propagation", "bilan liaison", "diagramme rayonnement"],
+    "TEL-B3":  ["wifi", "bluetooth", "zigbee", "nfc", "protocole sans fil"],
+    "TEL-C1":  ["traitement signal", "echantillonnage", "quantification", "transformee fourier", "fft"],
+    "TEL-C2":  ["modulation numerique", "qam", "psk", "ofdm", "constellation"],
+    "TEL-C3":  ["codage canal", "code correcteur", "turbo code", "ldpc", "viterbi"],
+    "TEL-C4":  ["compression donnees", "codage source", "huffman", "jpeg", "mpeg"],
+    "TEL-D1":  ["iot", "capteur connecte", "lorawan", "mqtt", "protocole iot"],
+    "TEL-D2":  ["securite reseau", "chiffrement", "certificat", "tls", "vpn", "firewall"],
+    "TEL-D3":  ["sdn", "nfv", "orchestration reseau", "cloud networking"]
+  },
+  "niveaux": {
+    "TEL-A1": "N2_ELEMENTAIRE",
+    "TEL-A2": "N3_INTERMEDIAIRE",
+    "TEL-A3": "N3_INTERMEDIAIRE",
+    "TEL-A4": "N4_AVANCE",
+    "TEL-B1": "N3_INTERMEDIAIRE",
+    "TEL-B2": "N4_AVANCE",
+    "TEL-B3": "N3_INTERMEDIAIRE",
+    "TEL-C1": "N2_ELEMENTAIRE",
+    "TEL-C2": "N3_INTERMEDIAIRE",
+    "TEL-C3": "N4_AVANCE",
+    "TEL-C4": "N3_INTERMEDIAIRE",
+    "TEL-D1": "N3_INTERMEDIAIRE",
+    "TEL-D2": "N4_AVANCE",
+    "TEL-D3": "N5_EXPERT"
+  }
+}

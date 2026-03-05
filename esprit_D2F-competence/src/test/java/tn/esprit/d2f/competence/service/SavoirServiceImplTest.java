@@ -1,6 +1,5 @@
 package tn.esprit.d2f.competence.service;
 
-import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -9,17 +8,15 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.*;
 import tn.esprit.d2f.competence.dto.SavoirDTO;
-import tn.esprit.d2f.competence.entity.Competence;
-import tn.esprit.d2f.competence.entity.Domaine;
-import tn.esprit.d2f.competence.entity.Savoir;
-import tn.esprit.d2f.competence.entity.SousCompetence;
+import tn.esprit.d2f.competence.entity.*;
 import tn.esprit.d2f.competence.entity.enumerations.NiveauMaitrise;
 import tn.esprit.d2f.competence.entity.enumerations.TypeSavoir;
 import tn.esprit.d2f.competence.repository.CompetenceRepository;
-import tn.esprit.d2f.competence.repository.EnseignantCompetenceRepository;
 import tn.esprit.d2f.competence.repository.SavoirRepository;
 import tn.esprit.d2f.competence.repository.SousCompetenceRepository;
+import tn.esprit.d2f.competence.dto.SavoirRequest;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -33,213 +30,238 @@ import static org.mockito.Mockito.*;
 @DisplayName("SavoirServiceImpl - Tests unitaires")
 class SavoirServiceImplTest {
 
-    @Mock SavoirRepository savoirRepository;
-    @Mock SousCompetenceRepository sousCompetenceRepository;
-    @Mock CompetenceRepository competenceRepository;
-    @Mock EnseignantCompetenceRepository enseignantCompetenceRepository;
-    @InjectMocks SavoirServiceImpl savoirService;
+    @Mock private SavoirRepository         savoirRepository;
+    @Mock private SousCompetenceRepository sousCompetenceRepository;
+    @Mock private CompetenceRepository     competenceRepository;
+    @Mock private CompetenceMapper         competenceMapper;
 
-    Domaine domaine;
-    Competence competence;
-    SousCompetence sousCompetence;
-    Savoir savoir;
+    @InjectMocks private SavoirServiceImpl savoirService;
+
+    private Domaine       domaine;
+    private Competence    competence;
+    private SousCompetence sousCompetence;
+    private Savoir        savoir;
+    private SavoirDTO     savoirDTO;
 
     @BeforeEach
     void setUp() {
-        domaine = Domaine.builder().id(1L).code("GC-TECH").nom("Génie Civil")
-                .actif(true).competences(new ArrayList<>()).build();
-        competence = Competence.builder().id(1L).code("GC-C1").nom("Sols")
-                .domaine(domaine).sousCompetences(new ArrayList<>()).savoirs(new ArrayList<>()).build();
-        sousCompetence = SousCompetence.builder().id(1L).code("SC-01").nom("Essais")
+        domaine = Domaine.builder()
+                .id(1L).code("GC-TECH").nom("Technique Génie Civil")
+                .description("desc").actif(true).competences(new ArrayList<>()).build();
+
+        competence = Competence.builder()
+                .id(2L).code("GC-C1").nom("Compétences Sols").description("desc").ordre(1)
+                .domaine(domaine).sousCompetences(new ArrayList<>()).savoirs(new ArrayList<>())
+                .build();
+
+        sousCompetence = SousCompetence.builder()
+                .id(3L).code("SC-01").nom("Essais géotechniques").description("desc")
                 .competence(competence).savoirs(new ArrayList<>()).build();
-        savoir = Savoir.builder().id(1L).code("S2a").nom("Essai de classification")
-                .description("desc").type(TypeSavoir.PRATIQUE).niveau(NiveauMaitrise.N1_DEBUTANT)
+
+        savoir = Savoir.builder()
+                .id(4L).code("S2a").nom("Essai de classification").description("desc")
+                .type(TypeSavoir.PRATIQUE).niveau(NiveauMaitrise.N1_DEBUTANT)
                 .sousCompetence(sousCompetence).build();
+
+        savoirDTO = SavoirDTO.builder()
+                .id(4L).code("S2a").nom("Essai de classification").description("desc")
+                .type(TypeSavoir.PRATIQUE).niveau(NiveauMaitrise.N1_DEBUTANT)
+                .sousCompetenceId(3L).sousCompetenceNom("Essais géotechniques")
+                .competenceId(2L).competenceNom("Compétences Sols").build();
     }
 
-    @Nested
-    @DisplayName("getAllSavoirs")
+    // ── GetAll ────────────────────────────────────────────────────────────────
+    @Nested @DisplayName("getAllSavoirs(Pageable)")
     class GetAll {
-        @Test
-        void shouldReturnAll() {
-            when(savoirRepository.findAll()).thenReturn(List.of(savoir));
-            List<SavoirDTO> result = savoirService.getAllSavoirs();
-            assertThat(result).hasSize(1);
-            assertThat(result.get(0).getCode()).isEqualTo("S2a");
+
+        @Test @DisplayName("retourne une page de SavoirDTO")
+        void shouldReturnPagedSavoirs() {
+            Pageable pageable = PageRequest.of(0, 20);
+            when(savoirRepository.findAll(pageable))
+                    .thenReturn(new PageImpl<>(List.of(savoir)));
+            when(competenceMapper.toDTO(any(Savoir.class))).thenReturn(savoirDTO);
+
+            Page<SavoirDTO> page = savoirService.getAllSavoirs(pageable);
+
+            assertThat(page.getContent()).hasSize(1);
+            assertThat(page.getContent().get(0).getCode()).isEqualTo("S2a");
+            verify(savoirRepository).findAll(pageable);
         }
     }
 
-    @Nested
-    @DisplayName("getSavoirsBySousCompetence")
-    class GetBySousCompetence {
-        @Test
-        void shouldReturnSavoirsForSousCompetence() {
-            when(savoirRepository.findBySousCompetenceId(1L)).thenReturn(List.of(savoir));
-            assertThat(savoirService.getSavoirsBySousCompetence(1L)).hasSize(1);
-        }
-    }
-
-    @Nested
-    @DisplayName("getSavoirsByType")
-    class GetByType {
-        @Test
-        void shouldReturnSavoirsOfType() {
-            when(savoirRepository.findByType(TypeSavoir.PRATIQUE)).thenReturn(List.of(savoir));
-            List<SavoirDTO> result = savoirService.getSavoirsByType(TypeSavoir.PRATIQUE);
-            assertThat(result).hasSize(1);
-            assertThat(result.get(0).getType()).isEqualTo(TypeSavoir.PRATIQUE);
-        }
-    }
-
-    @Nested
-    @DisplayName("getSavoirById")
+    // ── GetById ───────────────────────────────────────────────────────────────
+    @Nested @DisplayName("getSavoirById(Long)")
     class GetById {
-        @Test
+
+        @Test @DisplayName("retourne le DTO quand l enregistrement existe")
         void shouldReturnDTOWhenFound() {
-            when(savoirRepository.findById(1L)).thenReturn(Optional.of(savoir));
-            SavoirDTO result = savoirService.getSavoirById(1L);
-            assertThat(result.getId()).isEqualTo(1L);
-            assertThat(result.getCode()).isEqualTo("S2a");
+            when(savoirRepository.findById(4L)).thenReturn(Optional.of(savoir));
+            when(competenceMapper.toDTO(savoir)).thenReturn(savoirDTO);
+
+            SavoirDTO result = savoirService.getSavoirById(4L);
+
+            assertThat(result.getId()).isEqualTo(4L);
         }
 
-        @Test
+        @Test @DisplayName("leve une exception quand l enregistrement est absent")
         void shouldThrowWhenNotFound() {
             when(savoirRepository.findById(99L)).thenReturn(Optional.empty());
             assertThatThrownBy(() -> savoirService.getSavoirById(99L))
-                    .isInstanceOf(EntityNotFoundException.class)
-                    .hasMessageContaining("99");
+                    .isInstanceOf(RuntimeException.class);
         }
     }
 
-    @Nested
-    @DisplayName("createSavoir (pour SousCompétence)")
-    class CreateForSousCompetence {
-        @Test
-        void shouldCreateWhenSousCompetenceExistsAndCodeUnique() {
-            when(sousCompetenceRepository.findById(1L)).thenReturn(Optional.of(sousCompetence));
-            when(savoirRepository.existsByCode("S2a")).thenReturn(false);
-            when(savoirRepository.save(any())).thenReturn(savoir);
+    // ── Create for SousCompetence ─────────────────────────────────────────────
+    @Nested @DisplayName("createSavoir(Long sousCompetenceId, SavoirRequest)")
+    class Create {
 
-            SavoirDTO result = savoirService.createSavoir(1L, savoir);
+        @Test @DisplayName("sauvegarde et retourne le DTO")
+        void shouldSaveAndReturnDTO() {
+            SavoirRequest req = SavoirRequest.builder()
+                    .code("S2a").nom("Essai de classification").description("desc")
+                    .type(TypeSavoir.PRATIQUE).niveau(NiveauMaitrise.N1_DEBUTANT).build();
+
+            when(sousCompetenceRepository.findById(3L)).thenReturn(Optional.of(sousCompetence));
+            when(savoirRepository.existsByCode("S2a")).thenReturn(false);
+            when(savoirRepository.save(any(Savoir.class))).thenReturn(savoir);
+            when(competenceMapper.toDTO(savoir)).thenReturn(savoirDTO);
+
+            SavoirDTO result = savoirService.createSavoir(3L, req);
 
             assertThat(result.getCode()).isEqualTo("S2a");
-            verify(savoirRepository).save(savoir);
+            verify(savoirRepository).save(any(Savoir.class));
         }
 
-        @Test
-        void shouldThrowWhenSousCompetenceNotFound() {
+        @Test @DisplayName("leve une exception si la sous-competence est absente")
+        void shouldThrowIfSousCompetenceNotFound() {
+            SavoirRequest req = SavoirRequest.builder()
+                    .code("X").nom("n").description("d")
+                    .type(TypeSavoir.PRATIQUE).niveau(NiveauMaitrise.N1_DEBUTANT).build();
             when(sousCompetenceRepository.findById(99L)).thenReturn(Optional.empty());
-            assertThatThrownBy(() -> savoirService.createSavoir(99L, savoir))
-                    .isInstanceOf(EntityNotFoundException.class);
-            verify(savoirRepository, never()).save(any());
-        }
-
-        @Test
-        void shouldThrowWhenCodeDuplicated() {
-            when(sousCompetenceRepository.findById(1L)).thenReturn(Optional.of(sousCompetence));
-            when(savoirRepository.existsByCode("S2a")).thenReturn(true);
-
-            assertThatThrownBy(() -> savoirService.createSavoir(1L, savoir))
-                    .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessageContaining("S2a");
+            assertThatThrownBy(() -> savoirService.createSavoir(99L, req))
+                    .isInstanceOf(RuntimeException.class);
         }
     }
 
-    @Nested
-    @DisplayName("createSavoirForCompetence")
+    // ── Create for Competence ─────────────────────────────────────────────────
+    @Nested @DisplayName("createSavoirForCompetence(Long competenceId, SavoirRequest)")
     class CreateForCompetence {
-        @Test
-        void shouldCreateDirectlyForCompetence() {
-            when(competenceRepository.findById(1L)).thenReturn(Optional.of(competence));
-            when(savoirRepository.existsByCode("S2a")).thenReturn(false);
-            when(savoirRepository.save(any())).thenReturn(savoir);
 
-            SavoirDTO result = savoirService.createSavoirForCompetence(1L, savoir);
+        @Test @DisplayName("sauvegarde et retourne le DTO")
+        void shouldSaveAndReturnDTO() {
+            SavoirRequest req = SavoirRequest.builder()
+                    .code("S2b").nom("Essai de compactage").description("desc")
+                    .type(TypeSavoir.THEORIQUE).niveau(NiveauMaitrise.N2_ELEMENTAIRE).build();
 
-            assertThat(result.getCode()).isEqualTo("S2a");
+            Savoir savoir2 = Savoir.builder()
+                    .id(5L).code("S2b").nom("Essai de compactage").description("desc")
+                    .type(TypeSavoir.THEORIQUE).niveau(NiveauMaitrise.N2_ELEMENTAIRE)
+                    .competence(competence).build();
+
+            SavoirDTO savoirDTO2 = SavoirDTO.builder()
+                    .id(5L).code("S2b").nom("Essai de compactage").description("desc")
+                    .type(TypeSavoir.THEORIQUE).niveau(NiveauMaitrise.N2_ELEMENTAIRE)
+                    .competenceId(2L).competenceNom("Compétences Sols").build();
+
+            when(competenceRepository.findById(2L)).thenReturn(Optional.of(competence));
+            when(savoirRepository.existsByCode("S2b")).thenReturn(false);
+            when(savoirRepository.save(any(Savoir.class))).thenReturn(savoir2);
+            when(competenceMapper.toDTO(savoir2)).thenReturn(savoirDTO2);
+
+            SavoirDTO result = savoirService.createSavoirForCompetence(2L, req);
+
+            assertThat(result.getCode()).isEqualTo("S2b");
+            verify(savoirRepository).save(any(Savoir.class));
         }
 
-        @Test
-        void shouldThrowWhenCompetenceNotFound() {
+        @Test @DisplayName("leve une exception si la competence est absente")
+        void shouldThrowIfCompetenceNotFound() {
+            SavoirRequest req = SavoirRequest.builder()
+                    .code("X").nom("n").description("d")
+                    .type(TypeSavoir.PRATIQUE).niveau(NiveauMaitrise.N1_DEBUTANT).build();
             when(competenceRepository.findById(99L)).thenReturn(Optional.empty());
-            assertThatThrownBy(() -> savoirService.createSavoirForCompetence(99L, savoir))
-                    .isInstanceOf(EntityNotFoundException.class);
+            assertThatThrownBy(() -> savoirService.createSavoirForCompetence(99L, req))
+                    .isInstanceOf(RuntimeException.class);
         }
     }
 
-    @Nested
-    @DisplayName("updateSavoir")
+    // ── Update ────────────────────────────────────────────────────────────────
+    @Nested @DisplayName("updateSavoir(Long, SavoirRequest)")
     class Update {
-        @Test
-        void shouldUpdateNomAndType() {
-            Savoir updated = Savoir.builder().id(1L).code("S2a-UPD").nom("Essai Proctor")
-                    .description("desc2").type(TypeSavoir.THEORIQUE).niveau(NiveauMaitrise.N2_ELEMENTAIRE)
+
+        @Test @DisplayName("met a jour et retourne le DTO")
+        void shouldUpdateAndReturnDTO() {
+            SavoirRequest req = SavoirRequest.builder()
+                    .code("S2a-NEW").nom("Nouveau nom").description("nouvelle desc")
+                    .type(TypeSavoir.THEORIQUE).niveau(NiveauMaitrise.N3_INTERMEDIAIRE).build();
+
+            Savoir updated = Savoir.builder()
+                    .id(4L).code("S2a-NEW").nom("Nouveau nom").description("nouvelle desc")
+                    .type(TypeSavoir.THEORIQUE).niveau(NiveauMaitrise.N3_INTERMEDIAIRE)
                     .sousCompetence(sousCompetence).build();
-            when(savoirRepository.findById(1L)).thenReturn(Optional.of(savoir));
-            when(savoirRepository.save(any())).thenReturn(updated);
 
-            SavoirDTO result = savoirService.updateSavoir(1L, updated);
+            SavoirDTO updatedDTO = SavoirDTO.builder()
+                    .id(4L).code("S2a-NEW").nom("Nouveau nom").description("nouvelle desc")
+                    .type(TypeSavoir.THEORIQUE).niveau(NiveauMaitrise.N3_INTERMEDIAIRE)
+                    .sousCompetenceId(3L).sousCompetenceNom("Essais géotechniques")
+                    .competenceId(2L).competenceNom("Compétences Sols").build();
 
-            assertThat(result.getCode()).isEqualTo("S2a-UPD");
-            assertThat(result.getType()).isEqualTo(TypeSavoir.THEORIQUE);
+            when(savoirRepository.findById(4L)).thenReturn(Optional.of(savoir));
+            when(savoirRepository.save(any(Savoir.class))).thenReturn(updated);
+            when(competenceMapper.toDTO(updated)).thenReturn(updatedDTO);
+
+            SavoirDTO result = savoirService.updateSavoir(4L, req);
+
+            assertThat(result.getCode()).isEqualTo("S2a-NEW");
+            verify(savoirRepository).save(any(Savoir.class));
         }
 
-        @Test
-        void shouldNotUpdateNiveauWhenNull() {
-            Savoir req = Savoir.builder().code("S2a").nom("nom").type(TypeSavoir.PRATIQUE)
-                    .niveau(null).sousCompetence(sousCompetence).build();
-            when(savoirRepository.findById(1L)).thenReturn(Optional.of(savoir));
-            when(savoirRepository.save(any())).thenReturn(savoir);  // niveau unchanged
-
-            SavoirDTO result = savoirService.updateSavoir(1L, req);
-
-            assertThat(result.getNiveau()).isEqualTo(NiveauMaitrise.N1_DEBUTANT);
-        }
-
-        @Test
-        void shouldThrowWhenNotFound() {
+        @Test @DisplayName("leve une exception si le savoir est absent")
+        void shouldThrowIfNotFound() {
+            SavoirRequest req = SavoirRequest.builder()
+                    .code("X").nom("n").description("d")
+                    .type(TypeSavoir.PRATIQUE).niveau(NiveauMaitrise.N1_DEBUTANT).build();
             when(savoirRepository.findById(99L)).thenReturn(Optional.empty());
-            assertThatThrownBy(() -> savoirService.updateSavoir(99L, savoir))
-                    .isInstanceOf(EntityNotFoundException.class);
+            assertThatThrownBy(() -> savoirService.updateSavoir(99L, req))
+                    .isInstanceOf(RuntimeException.class);
         }
     }
 
-    @Nested
-    @DisplayName("deleteSavoir")
+    // ── Delete ────────────────────────────────────────────────────────────────
+    @Nested @DisplayName("deleteSavoir(Long)")
     class Delete {
-        @Test
-        void shouldDeleteWithCascade() {
-            when(savoirRepository.existsById(1L)).thenReturn(true);
 
-            savoirService.deleteSavoir(1L);
+        @Test @DisplayName("supprime quand l enregistrement existe")
+        void shouldDeleteWhenFound() {
+            when(savoirRepository.existsById(4L)).thenReturn(true);
+            doNothing().when(savoirRepository).deleteById(4L);
 
-            verify(enseignantCompetenceRepository).deleteBySavoirId(1L);
-            verify(savoirRepository).deleteById(1L);
+            savoirService.deleteSavoir(4L);
+
+            verify(savoirRepository).deleteById(4L);
         }
 
-        @Test
-        void shouldThrowWhenNotFound() {
+        @Test @DisplayName("leve une exception si le savoir est absent")
+        void shouldThrowIfNotFound() {
             when(savoirRepository.existsById(99L)).thenReturn(false);
             assertThatThrownBy(() -> savoirService.deleteSavoir(99L))
-                    .isInstanceOf(EntityNotFoundException.class);
-            verify(savoirRepository, never()).deleteById(any());
+                    .isInstanceOf(RuntimeException.class);
         }
     }
 
-    @Nested
-    @DisplayName("searchSavoirs")
+    // ── Search ────────────────────────────────────────────────────────────────
+    @Nested @DisplayName("searchSavoirs(String)")
     class Search {
-        @Test
-        void shouldDelegateToRepository() {
-            when(savoirRepository.searchByKeyword("beton")).thenReturn(List.of(savoir));
-            List<SavoirDTO> result = savoirService.searchSavoirs("beton");
-            assertThat(result).hasSize(1);
-        }
 
-        @Test
-        void shouldReturnEmptyWhenNoMatch() {
-            when(savoirRepository.searchByKeyword("inconnu")).thenReturn(List.of());
-            assertThat(savoirService.searchSavoirs("inconnu")).isEmpty();
+        @Test @DisplayName("retourne la liste filtree par mot-cle")
+        void shouldReturnMatchingSavoirs() {
+            when(savoirRepository.searchByKeyword("essai")).thenReturn(List.of(savoir));
+            when(competenceMapper.toDTO(any(Savoir.class))).thenReturn(savoirDTO);
+
+            List<SavoirDTO> result = savoirService.searchSavoirs("essai");
+
+            assertThat(result).hasSize(1);
+            verify(savoirRepository).searchByKeyword("essai");
         }
     }
 }

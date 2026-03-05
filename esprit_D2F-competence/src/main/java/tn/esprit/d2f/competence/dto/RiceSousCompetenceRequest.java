@@ -1,5 +1,6 @@
 package tn.esprit.d2f.competence.dto;
 
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import lombok.*;
 
@@ -19,5 +20,6 @@ public class RiceSousCompetenceRequest {
 
     private String description;
 
+    @Valid
     private List<RiceSavoirRequest> savoirs;
 }

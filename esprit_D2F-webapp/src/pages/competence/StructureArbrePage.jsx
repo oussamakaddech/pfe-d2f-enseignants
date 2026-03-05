@@ -15,7 +15,6 @@ import CompetenceService from "../../services/CompetenceService";
 const { Title, Text } = Typography;
 const { Search } = Input;
 const { Option } = Select;
-const { Panel } = Collapse;
 
 const NIVEAU_LABELS = {
   N1_DEBUTANT: { label: "N1 – Débutant", color: "#ff4d4f" },
@@ -475,56 +474,55 @@ export default function StructureArbrePage() {
         onCancel={() => setNiveauModalVisible(false)}
         footer={null}
         width={800}
+        forceRender
       >
         {niveauLoading ? (
           <Spin />
         ) : (
           <div>
-            <Collapse defaultActiveKey={Object.keys(NIVEAU_LABELS)}>
-              {Object.entries(NIVEAU_LABELS).map(([key, val]) => {
-                const items = niveauData[key] || [];
-                return (
-                  <Panel
-                    key={key}
-                    header={
-                      <Space>
-                        <Badge color={val.color} />
-                        <Text strong>{val.label}</Text>
-                        <Tag>{items.length} savoir(s) requis</Tag>
-                      </Space>
-                    }
-                  >
-                    {items.length > 0 ? (
-                      <Table
-                        size="small"
-                        dataSource={items}
-                        rowKey="id"
-                        pagination={false}
-                        columns={[
-                          { title: "Code", dataIndex: "savoirCode", width: 100 },
-                          { title: "Savoir", dataIndex: "savoirNom" },
-                          { title: "Description", dataIndex: "description", ellipsis: true },
-                          {
-                            title: "",
-                            width: 50,
-                            render: (_, record) => (
-                              <Popconfirm
-                                title="Supprimer ce savoir requis ?"
-                                onConfirm={() => handleRemoveNiveauSavoir(record.id)}
-                              >
-                                <Button size="small" danger icon={<DeleteOutlined />} />
-                              </Popconfirm>
-                            ),
-                          },
-                        ]}
-                      />
-                    ) : (
-                      <Text type="secondary">Aucun savoir requis défini pour ce niveau</Text>
-                    )}
-                  </Panel>
-                );
+            <Collapse
+              defaultActiveKey={Object.keys(NIVEAU_LABELS)}
+              items={Object.entries(NIVEAU_LABELS).map(([key, val]) => {
+                const niveauItems = niveauData[key] || [];
+                return {
+                  key,
+                  label: (
+                    <Space>
+                      <Badge color={val.color} />
+                      <Text strong>{val.label}</Text>
+                      <Tag>{niveauItems.length} savoir(s) requis</Tag>
+                    </Space>
+                  ),
+                  children: niveauItems.length > 0 ? (
+                    <Table
+                      size="small"
+                      dataSource={niveauItems}
+                      rowKey="id"
+                      pagination={false}
+                      columns={[
+                        { title: "Code", dataIndex: "savoirCode", width: 100 },
+                        { title: "Savoir", dataIndex: "savoirNom" },
+                        { title: "Description", dataIndex: "description", ellipsis: true },
+                        {
+                          title: "",
+                          width: 50,
+                          render: (_, record) => (
+                            <Popconfirm
+                              title="Supprimer ce savoir requis ?"
+                              onConfirm={() => handleRemoveNiveauSavoir(record.id)}
+                            >
+                              <Button size="small" danger icon={<DeleteOutlined />} />
+                            </Popconfirm>
+                          ),
+                        },
+                      ]}
+                    />
+                  ) : (
+                    <Text type="secondary">Aucun savoir requis défini pour ce niveau</Text>
+                  ),
+                };
               })}
-            </Collapse>
+            />
 
             <Card size="small" title="Ajouter un savoir requis" style={{ marginTop: 16 }}>
               <Form form={addNiveauForm} layout="inline" onFinish={handleAddNiveauSavoir}>

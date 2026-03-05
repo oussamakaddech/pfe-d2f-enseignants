@@ -5,3 +5,9 @@ pdfplumber
 python-docx
 python-multipart
 python-dotenv
+# Optional – improved name matching (Point 5)
+rapidfuzz
+# Optional – semantic GC matching (Point 2); pulls ~80 MB model on first use
+sentence-transformers
+# Optional – LLM-powered extraction (Ollama local model)
+ollama

@@ -358,6 +358,7 @@ export default function EnseignantCompetencePage() {
           afterClose={() => assignForm.resetFields()}
           okText="Ajouter"
           cancelText="Annuler"
+          forceRender
         >
           <Form form={assignForm} layout="vertical">
             <Form.Item
@@ -414,6 +415,7 @@ export default function EnseignantCompetencePage() {
           afterClose={() => niveauForm.resetFields()}
           okText="Mettre à jour"
           cancelText="Annuler"
+          forceRender
         >
           <Form form={niveauForm} layout="vertical">
             <Form.Item

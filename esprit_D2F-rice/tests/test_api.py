@@ -19,10 +19,36 @@ os.environ.setdefault("DB_PORT", "5432")
 from fastapi.testclient import TestClient
 
 # ── Patch DB functions before importing the app ──────────────────────────────
-import rice_analyzer
+# After the rice/ package refactoring, functions are called via their sub-module
+# references, NOT through the shim.  We must patch both the canonical module
+# (rice.db) and the route module (rice.routes) so the endpoints get the stub.
+import rice_analyzer          # noqa: F401  – triggers rice/__init__.py
+import rice.db as _rice_db
+import rice.routes as _rice_routes
+import rice.referential as _rice_ref
+import rice.analyzer as _rice_analyzer
 
-rice_analyzer._fetch_enseignant_affectations = lambda: {}
-rice_analyzer._fetch_all_enseignants_info = lambda: {}
+_noop_aff = lambda: {}  # noqa: E731
+_noop_ens = lambda: {}  # noqa: E731
+
+# Patch at the source module — prevent ANY real DB access
+_rice_db._fetch_enseignant_affectations = _noop_aff
+_rice_db._fetch_all_enseignants_info    = _noop_ens
+
+# Patch at the routes module (it imported the name at load time)
+_rice_routes._fetch_enseignant_affectations = _noop_aff
+
+# Prevent _load_ref_from_db from touching the DB (returns None → fallback ref)
+_rice_ref._load_ref_from_db = lambda dept="gc": None
+# Patch _fetch_enseignant_affectations in referential too (used by _suggest_gc_enseignants)
+_rice_ref._fetch_enseignant_affectations = _noop_aff
+
+# Patch in analyzer too (it imported _fetch_all_enseignants_info at load time)
+_rice_analyzer._fetch_all_enseignants_info = _noop_ens
+
+# Keep the shim patched too (for lifespan & any direct imports)
+rice_analyzer._fetch_enseignant_affectations = _noop_aff
+rice_analyzer._fetch_all_enseignants_info    = _noop_ens
 
 
 from main import app  # noqa: E402
@@ -92,7 +118,7 @@ class TestGcMatch:
         assert r.status_code == 200
         data = r.json()
         assert "matched_competence" in data
-        assert data["matched_competence"] == "GC-GC-Tech-TechC1"
+        assert data["matched_competence"] == "GC-TECH-S"
 
     def test_match_returns_suggested_enseignants(self):
         r = client.post("/rice/gc-match", data={"text": "dimensionner fondation"})
