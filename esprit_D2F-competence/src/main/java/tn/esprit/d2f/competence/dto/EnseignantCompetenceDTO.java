@@ -1,14 +1,18 @@
 package tn.esprit.d2f.competence.dto;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.*;
 import tn.esprit.d2f.competence.entity.enumerations.NiveauMaitrise;
 
 import java.time.LocalDate;
 
-@Data
+@Getter
+@Setter
+@EqualsAndHashCode(of = "id")
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class EnseignantCompetenceDTO {
     private Long id;
     private String enseignantId;

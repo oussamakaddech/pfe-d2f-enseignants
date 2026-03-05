@@ -12,8 +12,9 @@ const authHeader = () => {
 // ─── Domaines ──────────────────────────────────────────────────────────────
 
 const DomaineAPI = {
+  // Backend returns Page<DomaineDTO>; extract .content for full list
   getAll: () =>
-    axios.get(`${BASE}/domaines`, { headers: authHeader() }).then((r) => r.data),
+    axios.get(`${BASE}/domaines?size=1000&page=0`, { headers: authHeader() }).then((r) => r.data?.content ?? r.data),
 
   getActifs: () =>
     axios.get(`${BASE}/domaines/actifs`, { headers: authHeader() }).then((r) => r.data),
@@ -37,8 +38,9 @@ const DomaineAPI = {
 // ─── Compétences ───────────────────────────────────────────────────────────
 
 const CompetenceAPI = {
+  // Backend returns Page<CompetenceDTO>; extract .content for full list
   getAll: () =>
-    axios.get(`${BASE}/competences`, { headers: authHeader() }).then((r) => r.data),
+    axios.get(`${BASE}/competences?size=1000&page=0`, { headers: authHeader() }).then((r) => r.data?.content ?? r.data),
 
   getByDomaine: (domaineId) =>
     axios.get(`${BASE}/competences/domaine/${domaineId}`, { headers: authHeader() }).then((r) => r.data),
@@ -61,8 +63,9 @@ const CompetenceAPI = {
 // ─── Sous-Compétences ──────────────────────────────────────────────────────
 
 const SousCompetenceAPI = {
+  // Backend returns Page<SousCompetenceDTO>; extract .content for full list
   getAll: () =>
-    axios.get(`${BASE}/sous-competences`, { headers: authHeader() }).then((r) => r.data),
+    axios.get(`${BASE}/sous-competences?size=1000&page=0`, { headers: authHeader() }).then((r) => r.data?.content ?? r.data),
 
   getByCompetence: (competenceId) =>
     axios
@@ -91,8 +94,9 @@ const SousCompetenceAPI = {
 // ─── Savoirs ───────────────────────────────────────────────────────────────
 
 const SavoirAPI = {
+  // Backend returns Page<SavoirDTO>; extract .content for full list
   getAll: () =>
-    axios.get(`${BASE}/savoirs`, { headers: authHeader() }).then((r) => r.data),
+    axios.get(`${BASE}/savoirs?size=1000&page=0`, { headers: authHeader() }).then((r) => r.data?.content ?? r.data),
 
   getBySousCompetence: (sousCompetenceId) =>
     axios
@@ -137,6 +141,12 @@ const SavoirAPI = {
 // ─── EnseignantCompétences ─────────────────────────────────────────────────
 
 const EnseignantCompetenceAPI = {
+  // Backend returns Page<EnseignantCompetenceDTO>; extract .content for full list
+  getAll: () =>
+    axios
+      .get(`${BASE}/enseignant-competences?size=1000&page=0`, { headers: authHeader() })
+      .then((r) => r.data?.content ?? r.data),
+
   getByEnseignant: (enseignantId) =>
     axios
       .get(`${BASE}/enseignant-competences/enseignant/${enseignantId}`, { headers: authHeader() })

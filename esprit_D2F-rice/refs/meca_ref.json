@@ -1,0 +1,62 @@
+{
+  "domaines": {
+    "MECA-CONC":  "Conception Mécanique",
+    "MECA-FAB":   "Fabrication & Production",
+    "MECA-MAT":   "Matériaux & Structures",
+    "MECA-PERS":  "Compétences Personnelles & Relationnelles"
+  },
+  "competences": {
+    "MECA-CONC-CAO": {
+      "nom": "CAO & Modélisation 3D",
+      "keywords": ["catia", "solidworks", "cao", "modelisation 3d", "conception assistee", "dessin technique", "assemblage"]
+    },
+    "MECA-CONC-DIM": {
+      "nom": "Dimensionnement & Calcul de Structures",
+      "keywords": ["rdm", "resistance materiaux", "elements finis", "ansys", "dimensionnement", "contrainte", "deformation"]
+    },
+    "MECA-FAB-PROC": {
+      "nom": "Procédés de Fabrication",
+      "keywords": ["usinage", "fraisage", "tournage", "soudage", "moulage", "impression 3d", "fabrication additive", "cnc"]
+    },
+    "MECA-FAB-PROD": {
+      "nom": "Gestion de Production",
+      "keywords": ["gestion production", "lean", "kanban", "supply chain", "logistique", "ordonnancement", "maintenance"]
+    },
+    "MECA-MAT-SCI": {
+      "nom": "Science des Matériaux",
+      "keywords": ["metallurgie", "materiaux composites", "ceramique", "polymere", "traitement thermique", "corrosion"]
+    }
+  },
+  "savoirs": {
+    "MECA-A1": ["dessin technique", "projection orthogonale", "cotation", "tolerancement"],
+    "MECA-A2": ["cao", "modelisation 3d", "catia", "solidworks", "assemblage mecanique"],
+    "MECA-A3": ["rdm", "resistance materiaux", "contrainte", "deformation", "flexion", "torsion"],
+    "MECA-A4": ["elements finis", "ansys", "maillage", "simulation numerique", "post traitement"],
+    "MECA-B1": ["usinage", "fraisage", "tournage", "perçage", "parametres coupe"],
+    "MECA-B2": ["soudage", "brasage", "procede assemblage", "controle soudure"],
+    "MECA-B3": ["fabrication additive", "impression 3d", "prototypage rapide"],
+    "MECA-B4": ["gestion production", "lean manufacturing", "kanban", "5s", "tpm"],
+    "MECA-B5": ["maintenance industrielle", "maintenance preventive", "amdec", "fiabilite"],
+    "MECA-C1": ["metallurgie", "diagramme phase", "traitement thermique", "microstructure"],
+    "MECA-C2": ["materiaux composites", "fibre carbone", "fibre verre", "matrice"],
+    "MECA-C3": ["corrosion", "protection surface", "revetement", "degradation"],
+    "MECA-D1": ["mecanique fluide", "hydrodynamique", "ecoulement", "bernoulli", "navier stokes"],
+    "MECA-D2": ["thermodynamique", "transfert chaleur", "conduction", "convection", "rayonnement"]
+  },
+  "niveaux": {
+    "MECA-A1": "N2_ELEMENTAIRE",
+    "MECA-A2": "N3_INTERMEDIAIRE",
+    "MECA-A3": "N3_INTERMEDIAIRE",
+    "MECA-A4": "N4_AVANCE",
+    "MECA-B1": "N3_INTERMEDIAIRE",
+    "MECA-B2": "N3_INTERMEDIAIRE",
+    "MECA-B3": "N4_AVANCE",
+    "MECA-B4": "N4_AVANCE",
+    "MECA-B5": "N3_INTERMEDIAIRE",
+    "MECA-C1": "N3_INTERMEDIAIRE",
+    "MECA-C2": "N4_AVANCE",
+    "MECA-C3": "N3_INTERMEDIAIRE",
+    "MECA-D1": "N3_INTERMEDIAIRE",
+    "MECA-D2": "N3_INTERMEDIAIRE"
+  }
+}

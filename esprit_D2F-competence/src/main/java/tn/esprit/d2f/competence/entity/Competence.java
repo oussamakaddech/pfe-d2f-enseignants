@@ -9,14 +9,18 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "competences")
-@Data
-@EqualsAndHashCode(of = "id")
+@Table(name = "competences", indexes = {
+        @Index(name = "idx_competence_code", columnList = "code"),
+        @Index(name = "idx_competence_domaine", columnList = "domaine_id")
+})
+@Getter
+@Setter
+@EqualsAndHashCode(of = "id", callSuper = false)
 @ToString(exclude = {"domaine", "sousCompetences", "savoirs"})
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Competence {
+public class Competence extends BaseAuditEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

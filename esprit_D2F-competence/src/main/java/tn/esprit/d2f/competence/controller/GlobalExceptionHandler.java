@@ -1,6 +1,7 @@
 package tn.esprit.d2f.competence.controller;
 
 import jakarta.persistence.EntityNotFoundException;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -31,6 +32,20 @@ public class GlobalExceptionHandler {
                 .reduce((a, b) -> a + "; " + b)
                 .orElse("Erreur de validation");
         return buildResponse(HttpStatus.BAD_REQUEST, message);
+    }
+
+    /**
+     * Contrainte d’unicité ou clé étrangère violée – réponse 409 Conflict.
+     * Permet au client de distinguer un doublon d’une erreur générique.
+     */
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<Map<String, Object>> handleDataIntegrityViolation(
+            DataIntegrityViolationException ex) {
+        String rootCause = ex.getMostSpecificCause().getMessage();
+        String message = (rootCause != null && rootCause.toLowerCase().contains("unique"))
+                ? "Conflit de données : une ressource avec ces informations existe déjà."
+                : "Conflit de données : contrainte d’intégrité violée. " + rootCause;
+        return buildResponse(HttpStatus.CONFLICT, message);
     }
 
     @ExceptionHandler(Exception.class)

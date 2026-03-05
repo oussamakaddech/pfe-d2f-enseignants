@@ -1,13 +1,17 @@
 package tn.esprit.d2f.competence.dto;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.*;
 
 import java.util.List;
 
-@Data
+@Getter
+@Setter
+@EqualsAndHashCode(of = "id")
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class SousCompetenceDTO {
     private Long id;
     private String code;

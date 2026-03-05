@@ -8,5 +8,6 @@ export const config = {
   CERTF_URL: import.meta.env.VITE_MAP,
   EVALUATION_URL: import.meta.env.VITE_MAP,
   COMPETENCE_URL: import.meta.env.VITE_MAP,
-  GATEWAY_URL: import.meta.env.VITE_MAP
+  GATEWAY_URL: import.meta.env.VITE_MAP,
+  RICE_URL: import.meta.env.VITE_RICE_URL ?? "http://localhost:8001",
 };

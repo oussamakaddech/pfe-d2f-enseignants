@@ -193,10 +193,12 @@ export default function TeachersDataGrid() {
         ?.toString()
         .toLowerCase()
         .includes(value.toLowerCase()),
-    onFilterDropdownVisibleChange: (visible) => {
-      if (visible) {
-        setTimeout(() => searchInput.current?.select(), 100);
-      }
+    filterDropdownProps: {
+      onOpenChange: (visible) => {
+        if (visible) {
+          setTimeout(() => searchInput.current?.select(), 100);
+        }
+      },
     },
     render: (text) =>
       searchedColumn === dataIndex ? (
@@ -379,7 +381,7 @@ export default function TeachersDataGrid() {
           width={400}
           onClose={() => setDrawerVisible(false)}
           open={drawerVisible}
-          destroyOnClose
+          destroyOnHidden
         >
           <EnseignantRegister
             initialValues={{
@@ -409,7 +411,7 @@ export default function TeachersDataGrid() {
           confirmLoading={editLoading}
           okText="Enregistrer"
           cancelText="Annuler"
-          destroyOnClose
+          destroyOnHidden
           width={520}
         >
           <Form form={editForm} layout="vertical" style={{ marginTop: 16 }}>

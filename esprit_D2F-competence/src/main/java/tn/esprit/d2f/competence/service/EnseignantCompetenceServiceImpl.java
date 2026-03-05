@@ -1,9 +1,13 @@
 package tn.esprit.d2f.competence.service;
 
 import jakarta.persistence.EntityNotFoundException;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.transaction.annotation.Transactional;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import tn.esprit.d2f.competence.dto.EnseignantCompetenceDTO;
 import tn.esprit.d2f.competence.dto.EnseignantCompetenceRequest;
@@ -18,19 +22,27 @@ import java.util.stream.Collectors;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class EnseignantCompetenceServiceImpl implements IEnseignantCompetenceService {
 
-    @Autowired
-    private EnseignantCompetenceRepository enseignantCompetenceRepository;
+    private final EnseignantCompetenceRepository enseignantCompetenceRepository;
+    private final SavoirRepository savoirRepository;
+    private final CompetenceMapper competenceMapper;
 
-    @Autowired
-    private SavoirRepository savoirRepository;
+    @Override
+    @Transactional(readOnly = true)
+    public Page<EnseignantCompetenceDTO> getAll(Pageable pageable) {
+        // findAllFetched uses JOIN FETCH to load the full savoir→sousCompetence→competence→domaine
+        // graph in a single query, eliminating the N+1 problem.
+        return enseignantCompetenceRepository.findAllFetched(pageable)
+                .map(competenceMapper::toDTO);
+    }
 
     @Override
     @Transactional(readOnly = true)
     public List<EnseignantCompetenceDTO> getCompetencesByEnseignant(String enseignantId) {
         return enseignantCompetenceRepository.findByEnseignantId(enseignantId).stream()
-                .map(CompetenceMapper::toDTO)
+                .map(competenceMapper::toDTO)
                 .collect(Collectors.toList());
     }
 
@@ -38,7 +50,7 @@ public class EnseignantCompetenceServiceImpl implements IEnseignantCompetenceSer
     @Transactional(readOnly = true)
     public List<EnseignantCompetenceDTO> getCompetencesByEnseignantAndDomaine(String enseignantId, Long domaineId) {
         return enseignantCompetenceRepository.findByEnseignantIdAndDomaineId(enseignantId, domaineId).stream()
-                .map(CompetenceMapper::toDTO)
+                .map(competenceMapper::toDTO)
                 .collect(Collectors.toList());
     }
 
@@ -46,7 +58,7 @@ public class EnseignantCompetenceServiceImpl implements IEnseignantCompetenceSer
     @Transactional(readOnly = true)
     public List<EnseignantCompetenceDTO> getCompetencesByEnseignantAndCompetence(String enseignantId, Long competenceId) {
         return enseignantCompetenceRepository.findByEnseignantIdAndCompetenceId(enseignantId, competenceId).stream()
-                .map(CompetenceMapper::toDTO)
+                .map(competenceMapper::toDTO)
                 .collect(Collectors.toList());
     }
 
@@ -54,12 +66,13 @@ public class EnseignantCompetenceServiceImpl implements IEnseignantCompetenceSer
     @Transactional(readOnly = true)
     public List<EnseignantCompetenceDTO> getCompetencesByEnseignantAndNiveau(String enseignantId, NiveauMaitrise niveau) {
         return enseignantCompetenceRepository.findByEnseignantIdAndNiveau(enseignantId, niveau).stream()
-                .map(CompetenceMapper::toDTO)
+                .map(competenceMapper::toDTO)
                 .collect(Collectors.toList());
     }
 
     @Override
     @Transactional
+    @CacheEvict(value = "ec-count", allEntries = true)
     public EnseignantCompetenceDTO assignCompetence(EnseignantCompetenceRequest request) {
         // Vérifier que le savoir existe
         Savoir savoir = savoirRepository.findById(request.getSavoirId())
@@ -81,22 +94,24 @@ public class EnseignantCompetenceServiceImpl implements IEnseignantCompetenceSer
         EnseignantCompetence saved = enseignantCompetenceRepository.save(ec);
         log.info("Compétence assignée: enseignant={}, savoir={}, niveau={}", 
                 saved.getEnseignantId(), savoir.getNom(), saved.getNiveau());
-        return CompetenceMapper.toDTO(saved);
+        return competenceMapper.toDTO(saved);
     }
 
     @Override
     @Transactional
+    @CacheEvict(value = "ec-count", allEntries = true)
     public EnseignantCompetenceDTO updateNiveau(Long id, NiveauMaitrise niveau) {
         EnseignantCompetence ec = enseignantCompetenceRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("EnseignantCompetence non trouvée avec l'id: " + id));
         ec.setNiveau(niveau);
         EnseignantCompetence saved = enseignantCompetenceRepository.save(ec);
         log.info("Niveau mis à jour: id={}, nouveau niveau={}", id, niveau);
-        return CompetenceMapper.toDTO(saved);
+        return competenceMapper.toDTO(saved);
     }
 
     @Override
     @Transactional
+    @CacheEvict(value = "ec-count", allEntries = true)
     public void removeCompetence(Long id) {
         if (!enseignantCompetenceRepository.existsById(id)) {
             throw new EntityNotFoundException("EnseignantCompetence non trouvée avec l'id: " + id);
@@ -107,7 +122,16 @@ public class EnseignantCompetenceServiceImpl implements IEnseignantCompetenceSer
 
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(value = "ec-count", key = "#enseignantId")
     public long countCompetences(String enseignantId) {
         return enseignantCompetenceRepository.countByEnseignantId(enseignantId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<EnseignantCompetenceDTO> getByCompetenceId(Long competenceId) {
+        return enseignantCompetenceRepository.findByCompetenceId(competenceId).stream()
+                .map(competenceMapper::toDTO)
+                .collect(Collectors.toList());
     }
 }

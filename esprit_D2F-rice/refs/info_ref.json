@@ -1,0 +1,73 @@
+{
+  "domaines": {
+    "INFO-DEV":  "Développement Logiciel",
+    "INFO-IA":   "Intelligence Artificielle & Data Science",
+    "INFO-RES":  "Réseaux & Systèmes",
+    "INFO-SEC":  "Cybersécurité",
+    "INFO-PERS": "Compétences Personnelles & Relationnelles"
+  },
+  "competences": {
+    "INFO-DEV-WEB": {
+      "nom": "Développement Web & Mobile",
+      "keywords": ["web", "frontend", "backend", "react", "angular", "api rest", "mobile", "android", "ios", "flutter", "responsive"]
+    },
+    "INFO-DEV-LOG": {
+      "nom": "Génie Logiciel & Architecture",
+      "keywords": ["design pattern", "architecture logicielle", "microservice", "uml", "agile", "scrum", "devops", "ci cd", "test logiciel"]
+    },
+    "INFO-IA-ML": {
+      "nom": "Machine Learning & Deep Learning",
+      "keywords": ["machine learning", "deep learning", "reseau neurone", "classification", "regression", "clustering", "nlp", "computer vision"]
+    },
+    "INFO-IA-DATA": {
+      "nom": "Data Science & Big Data",
+      "keywords": ["big data", "hadoop", "spark", "data science", "analyse donnees", "visualisation", "tableau", "power bi", "etl"]
+    },
+    "INFO-RES-ADM": {
+      "nom": "Administration Réseaux & Cloud",
+      "keywords": ["reseau informatique", "routage", "switching", "cloud", "aws", "azure", "docker", "kubernetes", "virtualisation"]
+    },
+    "INFO-SEC-CYB": {
+      "nom": "Sécurité Informatique",
+      "keywords": ["securite", "cryptographie", "pentest", "firewall", "ids", "siem", "forensic", "audit securite"]
+    }
+  },
+  "savoirs": {
+    "INFO-A1":  ["algorithmique", "structure donnees", "complexite", "tri", "recherche"],
+    "INFO-A2":  ["programmation orientee objet", "heritage", "polymorphisme", "encapsulation", "java", "csharp"],
+    "INFO-A3":  ["base de donnees", "sql", "modele relationnel", "normalisation", "nosql", "mongodb"],
+    "INFO-A4":  ["developpement web", "html", "css", "javascript", "react", "angular", "vue"],
+    "INFO-A5":  ["api rest", "microservice", "spring boot", "express", "graphql"],
+    "INFO-A6":  ["devops", "ci cd", "jenkins", "docker", "kubernetes", "git"],
+    "INFO-B1":  ["machine learning", "regression", "classification", "arbre decision", "svm", "random forest"],
+    "INFO-B2":  ["deep learning", "reseau neurone", "cnn", "rnn", "tensorflow", "pytorch"],
+    "INFO-B3":  ["traitement langage naturel", "nlp", "tokenisation", "transformer", "bert"],
+    "INFO-B4":  ["big data", "hadoop", "spark", "mapreduce", "data pipeline"],
+    "INFO-C1":  ["reseau informatique", "modele osi", "tcp ip", "routage", "switching"],
+    "INFO-C2":  ["cloud computing", "aws", "azure", "iaas", "paas", "saas"],
+    "INFO-C3":  ["securite informatique", "cryptographie", "authentification", "firewall", "vpn"],
+    "INFO-C4":  ["systeme exploitation", "linux", "processus", "memoire", "systeme fichier"],
+    "INFO-D1":  ["genie logiciel", "cycle vie", "agile", "scrum", "uml", "design pattern"],
+    "INFO-D2":  ["test logiciel", "test unitaire", "test integration", "tdd", "qualite logicielle"],
+    "INFO-D3":  ["architecture logicielle", "mvc", "microservice", "api gateway", "monolithe"]
+  },
+  "niveaux": {
+    "INFO-A1": "N2_ELEMENTAIRE",
+    "INFO-A2": "N2_ELEMENTAIRE",
+    "INFO-A3": "N3_INTERMEDIAIRE",
+    "INFO-A4": "N3_INTERMEDIAIRE",
+    "INFO-A5": "N4_AVANCE",
+    "INFO-A6": "N4_AVANCE",
+    "INFO-B1": "N3_INTERMEDIAIRE",
+    "INFO-B2": "N4_AVANCE",
+    "INFO-B3": "N4_AVANCE",
+    "INFO-B4": "N4_AVANCE",
+    "INFO-C1": "N2_ELEMENTAIRE",
+    "INFO-C2": "N3_INTERMEDIAIRE",
+    "INFO-C3": "N3_INTERMEDIAIRE",
+    "INFO-C4": "N2_ELEMENTAIRE",
+    "INFO-D1": "N3_INTERMEDIAIRE",
+    "INFO-D2": "N3_INTERMEDIAIRE",
+    "INFO-D3": "N4_AVANCE"
+  }
+}

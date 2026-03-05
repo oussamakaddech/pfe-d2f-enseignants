@@ -1,5 +1,6 @@
 package tn.esprit.d2f.competence.dto;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.*;
 
 import java.util.List;
@@ -13,6 +14,7 @@ import java.util.Map;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class StructureArbreDTO {
 
     private List<DomaineArbreDTO> domaines;
@@ -22,6 +24,7 @@ public class StructureArbreDTO {
     @NoArgsConstructor
     @AllArgsConstructor
     @Builder
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     public static class DomaineArbreDTO {
         private Long id;
         private String code;
@@ -37,6 +40,7 @@ public class StructureArbreDTO {
     @NoArgsConstructor
     @AllArgsConstructor
     @Builder
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     public static class CompetenceArbreDTO {
         private Long id;
         private String code;
@@ -54,6 +58,7 @@ public class StructureArbreDTO {
     @NoArgsConstructor
     @AllArgsConstructor
     @Builder
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     public static class SousCompetenceArbreDTO {
         private Long id;
         private String code;
@@ -68,6 +73,7 @@ public class StructureArbreDTO {
     @NoArgsConstructor
     @AllArgsConstructor
     @Builder
+    @JsonInclude(JsonInclude.Include.NON_NULL)
     public static class StatistiquesDTO {
         private int totalDomaines;
         private int totalCompetences;

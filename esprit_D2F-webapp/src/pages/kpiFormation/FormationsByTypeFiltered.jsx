@@ -145,7 +145,7 @@ export default function FormationsByTypeFiltered() {
         onClose={() => setDrawerVisible(false)}
         visible={drawerVisible}
         width={360}
-        destroyOnClose
+        destroyOnHidden
       >
         <Form
           layout="vertical"

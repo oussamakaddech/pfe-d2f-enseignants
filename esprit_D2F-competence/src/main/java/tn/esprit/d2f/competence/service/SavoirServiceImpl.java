@@ -1,14 +1,18 @@
 package tn.esprit.d2f.competence.service;
 
 import jakarta.persistence.EntityNotFoundException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.transaction.annotation.Transactional;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import tn.esprit.d2f.competence.dto.SavoirDTO;
+import tn.esprit.d2f.competence.dto.SavoirRequest;
 import tn.esprit.d2f.competence.entity.Savoir;
 import tn.esprit.d2f.competence.entity.SousCompetence;
 import tn.esprit.d2f.competence.entity.Competence;
+import tn.esprit.d2f.competence.entity.enumerations.NiveauMaitrise;
 import tn.esprit.d2f.competence.entity.enumerations.TypeSavoir;
 import tn.esprit.d2f.competence.repository.CompetenceRepository;
 import tn.esprit.d2f.competence.repository.EnseignantCompetenceRepository;
@@ -20,33 +24,27 @@ import java.util.stream.Collectors;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class SavoirServiceImpl implements ISavoirService {
 
-    @Autowired
-    private SavoirRepository savoirRepository;
-
-    @Autowired
-    private SousCompetenceRepository sousCompetenceRepository;
-
-    @Autowired
-    private CompetenceRepository competenceRepository;
-
-    @Autowired
-    private EnseignantCompetenceRepository enseignantCompetenceRepository;
+    private final SavoirRepository savoirRepository;
+    private final SousCompetenceRepository sousCompetenceRepository;
+    private final CompetenceRepository competenceRepository;
+    private final EnseignantCompetenceRepository enseignantCompetenceRepository;
+    private final CompetenceMapper competenceMapper;
 
     @Override
     @Transactional(readOnly = true)
-    public List<SavoirDTO> getAllSavoirs() {
-        return savoirRepository.findAll().stream()
-                .map(CompetenceMapper::toDTO)
-                .collect(Collectors.toList());
+    public Page<SavoirDTO> getAllSavoirs(Pageable pageable) {
+        return savoirRepository.findAll(pageable)
+                .map(competenceMapper::toDTO);
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<SavoirDTO> getSavoirsBySousCompetence(Long sousCompetenceId) {
         return savoirRepository.findBySousCompetenceId(sousCompetenceId).stream()
-                .map(CompetenceMapper::toDTO)
+                .map(competenceMapper::toDTO)
                 .collect(Collectors.toList());
     }
 
@@ -54,7 +52,7 @@ public class SavoirServiceImpl implements ISavoirService {
     @Transactional(readOnly = true)
     public List<SavoirDTO> getSavoirsByCompetence(Long competenceId) {
         return savoirRepository.findByCompetenceId(competenceId).stream()
-                .map(CompetenceMapper::toDTO)
+                .map(competenceMapper::toDTO)
                 .collect(Collectors.toList());
     }
 
@@ -62,7 +60,7 @@ public class SavoirServiceImpl implements ISavoirService {
     @Transactional(readOnly = true)
     public List<SavoirDTO> getSavoirsByType(TypeSavoir type) {
         return savoirRepository.findByType(type).stream()
-                .map(CompetenceMapper::toDTO)
+                .map(competenceMapper::toDTO)
                 .collect(Collectors.toList());
     }
 
@@ -71,52 +69,66 @@ public class SavoirServiceImpl implements ISavoirService {
     public SavoirDTO getSavoirById(Long id) {
         Savoir s = savoirRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Savoir non trouvé avec l'id: " + id));
-        return CompetenceMapper.toDTO(s);
+        return competenceMapper.toDTO(s);
     }
 
     @Override
     @Transactional
-    public SavoirDTO createSavoir(Long sousCompetenceId, Savoir savoir) {
+    public SavoirDTO createSavoir(Long sousCompetenceId, SavoirRequest request) {
         SousCompetence sc = sousCompetenceRepository.findById(sousCompetenceId)
                 .orElseThrow(() -> new EntityNotFoundException("Sous-compétence non trouvée avec l'id: " + sousCompetenceId));
-        if (savoirRepository.existsByCode(savoir.getCode())) {
-            throw new IllegalArgumentException("Un savoir avec le code '" + savoir.getCode() + "' existe déjà");
+        if (savoirRepository.existsByCode(request.getCode())) {
+            throw new IllegalArgumentException("Un savoir avec le code '" + request.getCode() + "' existe déjà");
         }
-        savoir.setSousCompetence(sc);
+        Savoir savoir = Savoir.builder()
+                .code(request.getCode())
+                .nom(request.getNom())
+                .description(request.getDescription())
+                .type(request.getType())
+                .niveau(request.getNiveau() != null ? request.getNiveau() : NiveauMaitrise.N2_ELEMENTAIRE)
+                .sousCompetence(sc)
+                .build();
         Savoir saved = savoirRepository.save(savoir);
         log.info("Savoir créé: {} ({})", saved.getNom(), saved.getType());
-        return CompetenceMapper.toDTO(saved);
+        return competenceMapper.toDTO(saved);
     }
 
     @Override
     @Transactional
-    public SavoirDTO createSavoirForCompetence(Long competenceId, Savoir savoir) {
+    public SavoirDTO createSavoirForCompetence(Long competenceId, SavoirRequest request) {
         Competence competence = competenceRepository.findById(competenceId)
                 .orElseThrow(() -> new EntityNotFoundException("Compétence non trouvée avec l'id: " + competenceId));
-        if (savoirRepository.existsByCode(savoir.getCode())) {
-            throw new IllegalArgumentException("Un savoir avec le code '" + savoir.getCode() + "' existe déjà");
+        if (savoirRepository.existsByCode(request.getCode())) {
+            throw new IllegalArgumentException("Un savoir avec le code '" + request.getCode() + "' existe déjà");
         }
-        savoir.setCompetence(competence);
+        Savoir savoir = Savoir.builder()
+                .code(request.getCode())
+                .nom(request.getNom())
+                .description(request.getDescription())
+                .type(request.getType())
+                .niveau(request.getNiveau() != null ? request.getNiveau() : NiveauMaitrise.N2_ELEMENTAIRE)
+                .competence(competence)
+                .build();
         Savoir saved = savoirRepository.save(savoir);
         log.info("Savoir créé pour compétence: {} ({})", saved.getNom(), saved.getType());
-        return CompetenceMapper.toDTO(saved);
+        return competenceMapper.toDTO(saved);
     }
 
     @Override
     @Transactional
-    public SavoirDTO updateSavoir(Long id, Savoir savoir) {
+    public SavoirDTO updateSavoir(Long id, SavoirRequest request) {
         Savoir existing = savoirRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Savoir non trouvé avec l'id: " + id));
-        existing.setCode(savoir.getCode());
-        existing.setNom(savoir.getNom());
-        existing.setDescription(savoir.getDescription());
-        existing.setType(savoir.getType());
-        if (savoir.getNiveau() != null) {
-            existing.setNiveau(savoir.getNiveau());
+        existing.setCode(request.getCode());
+        existing.setNom(request.getNom());
+        existing.setDescription(request.getDescription());
+        existing.setType(request.getType());
+        if (request.getNiveau() != null) {
+            existing.setNiveau(request.getNiveau());
         }
         Savoir saved = savoirRepository.save(existing);
         log.info("Savoir mis à jour: {}", saved.getId());
-        return CompetenceMapper.toDTO(saved);
+        return competenceMapper.toDTO(saved);
     }
 
     @Override
@@ -135,7 +147,14 @@ public class SavoirServiceImpl implements ISavoirService {
     @Transactional(readOnly = true)
     public List<SavoirDTO> searchSavoirs(String keyword) {
         return savoirRepository.searchByKeyword(keyword).stream()
-                .map(CompetenceMapper::toDTO)
+                .map(competenceMapper::toDTO)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<SavoirDTO> searchSavoirs(String keyword, Pageable pageable) {
+        return savoirRepository.searchByKeyword(keyword, pageable)
+                .map(competenceMapper::toDTO);
     }
 }

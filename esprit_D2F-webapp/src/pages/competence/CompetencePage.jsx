@@ -1,5 +1,6 @@
-// src/pages/competence/CompetencePage.jsx
-import { useEffect, useState, useCallback } from "react";
+﻿// src/pages/competence/CompetencePage.jsx
+import { useEffect, useState, useCallback, useMemo, useRef } from "react";
+import { useSearchParams } from "react-router-dom";
 import PropTypes from "prop-types";
 import {
   Tabs,
@@ -17,6 +18,16 @@ import {
   message,
   Tooltip,
   Alert,
+  Statistic,
+  Row,
+  Col,
+  Card,
+  Tree,
+  Badge,
+  Collapse,
+  Empty,
+  Descriptions,
+  Spin,
 } from "antd";
 import {
   PlusOutlined,
@@ -25,11 +36,19 @@ import {
   ApartmentOutlined,
   CheckSquareOutlined,
   CloseOutlined,
+  TeamOutlined,
+  SearchOutlined,
+  BookOutlined,
+  BulbOutlined,
+  ExperimentOutlined,
+  FolderOpenOutlined,
+  InfoCircleOutlined,
 } from "@ant-design/icons";
 import CompetenceService from "../../services/CompetenceService";
 
-const { Title } = Typography;
+const { Title, Text } = Typography;
 const { Option } = Select;
+const { Search } = Input;
 
 // ─── Types & niveaux ───────────────────────────────────────────────────────
 const TYPE_SAVOIR_OPTIONS = ["THEORIQUE", "PRATIQUE"];
@@ -41,6 +60,19 @@ const NIVEAU_SAVOIR_OPTIONS = [
   { value: "N4_AVANCE",        label: "N4 – Avancé",        color: "green" },
   { value: "N5_EXPERT",        label: "N5 – Expert",        color: "gold" },
 ];
+
+const NIVEAU_LABELS = {
+  N1_DEBUTANT:      { label: "N1 – Débutant",      color: "#ff4d4f" },
+  N2_ELEMENTAIRE:   { label: "N2 – Élémentaire",   color: "#fa8c16" },
+  N3_INTERMEDIAIRE: { label: "N3 – Intermédiaire", color: "#fadb14" },
+  N4_AVANCE:        { label: "N4 – Avancé",        color: "#52c41a" },
+  N5_EXPERT:        { label: "N5 – Expert",        color: "#1890ff" },
+};
+
+const NIVEAU_OPTIONS = Object.entries(NIVEAU_LABELS).map(([key, val]) => ({
+  value: key,
+  label: val.label,
+}));
 
 // ─── Generic CRUD Tab component ────────────────────────────────────────────
 function CrudTab({ columns, data, loading, onAdd, onEdit, onDelete, onBulkDelete, addLabel }) {
@@ -228,6 +260,26 @@ export default function CompetencePage() {
   const [editingSavoir, setEditingSavoir] = useState(null);
   const [savoirForm] = Form.useForm();
 
+  // ─ Hiérarchie / Structure ─
+  const [structure, setStructure] = useState(null);
+  const [structureLoading, setStructureLoading] = useState(false);
+  const [structureLoaded, setStructureLoaded] = useState(false);
+
+  // ─ Recherche dans la structure ─
+  const [searchResults, setSearchResults] = useState(null);
+  const [searchKeyword, setSearchKeyword] = useState("");
+  const [selectedDomaine, setSelectedDomaine] = useState(null);
+  const [searchLoading, setSearchLoading] = useState(false);
+  const [structureActiveTab, setStructureActiveTab] = useState("tree");
+
+  // ─ Niveaux de définition (modal) ─
+  const [niveauModalVisible, setNiveauModalVisible] = useState(false);
+  const [niveauTarget, setNiveauTarget] = useState(null);
+  const [niveauData, setNiveauData] = useState({});
+  const [niveauLoading, setNiveauLoading] = useState(false);
+  const [addNiveauForm] = Form.useForm();
+  const [allSavoirsHierarchie, setAllSavoirsHierarchie] = useState([]);
+
   // ─── Data loading ────────────────────────────────────────────────────────
   const loadDomaines = useCallback(async () => {
     setDomainesLoading(true);
@@ -288,6 +340,241 @@ export default function CompetencePage() {
     loadSavoirs();
   }, [loadDomaines, loadCompetences, loadSousCompetences, loadSavoirs]);
 
+  // ─── HIÉRARCHIE / STRUCTURE ───────────────────────────────────────────────
+  const loadStructure = useCallback(async () => {
+    if (structureLoaded) return;
+    setStructureLoading(true);
+    try {
+      const data = await CompetenceService.structure.getArbreComplet();
+      setStructure(data);
+      setStructureLoaded(true);
+    } catch (err) {
+      message.error("Erreur lors du chargement de la structure");
+      console.error(err);
+    } finally {
+      setStructureLoading(false);
+    }
+  }, [structureLoaded]);
+
+  // ─── RECHERCHE dans la structure ─────────────────────────────────────────
+  const debounceRef = useRef(null);
+
+  const doSearch = useCallback(
+    async (keyword, domaine) => {
+      if (!keyword || keyword.trim().length < 2) {
+        setSearchResults(null);
+        return;
+      }
+      setSearchLoading(true);
+      try {
+        let data;
+        if (domaine) {
+          data = await CompetenceService.structure.rechercheParDomaine(domaine, keyword.trim());
+        } else {
+          data = await CompetenceService.structure.rechercheGlobale(keyword.trim());
+        }
+        setSearchResults(data);
+        setStructureActiveTab("search");
+      } catch (err) {
+        message.error("Erreur de recherche");
+        console.error(err);
+      } finally {
+        setSearchLoading(false);
+      }
+    },
+    []
+  );
+
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (!searchKeyword || searchKeyword.trim().length < 2) {
+      setSearchResults(null);
+      return;
+    }
+    debounceRef.current = setTimeout(() => {
+      doSearch(searchKeyword, selectedDomaine);
+    }, 400);
+    return () => clearTimeout(debounceRef.current);
+  }, [searchKeyword]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const prevDomaineRef = useRef(undefined);
+  useEffect(() => {
+    if (prevDomaineRef.current === undefined) {
+      prevDomaineRef.current = selectedDomaine;
+      return;
+    }
+    prevDomaineRef.current = selectedDomaine;
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (searchKeyword && searchKeyword.trim().length >= 2) {
+      doSearch(searchKeyword, selectedDomaine);
+    }
+  }, [selectedDomaine]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  const handleSearch = useCallback(
+    (value) => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+      doSearch(value, selectedDomaine);
+    },
+    [selectedDomaine, doSearch]
+  );
+
+  const handleClearSearch = useCallback(() => {
+    setSearchKeyword("");
+    setSearchResults(null);
+  }, []);
+
+  // ─── NIVEAUX DÉFINITION (Modal) ───────────────────────────────────────────
+  const openNiveauModal = useCallback(async (type, id, nom) => {
+    setNiveauTarget({ type, id, nom });
+    setNiveauModalVisible(true);
+    setNiveauLoading(true);
+    try {
+      let data;
+      if (type === "competence") {
+        data = await CompetenceService.niveauDefinition.getByCompetence(id);
+      } else {
+        data = await CompetenceService.niveauDefinition.getBySousCompetence(id);
+      }
+      setNiveauData(data);
+    } catch (err) {
+      message.error("Erreur lors du chargement des niveaux");
+      console.error(err);
+    } finally {
+      setNiveauLoading(false);
+    }
+  }, []);
+
+  const handleAddNiveauSavoir = useCallback(async (values) => {
+    try {
+      const request = {
+        niveau: values.niveau,
+        savoirId: values.savoirId,
+        description: values.description,
+      };
+      if (niveauTarget.type === "competence") {
+        request.competenceId = niveauTarget.id;
+      } else {
+        request.sousCompetenceId = niveauTarget.id;
+      }
+      await CompetenceService.niveauDefinition.add(request);
+      message.success("Savoir requis ajouté au niveau");
+      addNiveauForm.resetFields();
+      openNiveauModal(niveauTarget.type, niveauTarget.id, niveauTarget.nom);
+    } catch (err) {
+      message.error(err.response?.data?.message || "Erreur lors de l'ajout");
+      console.error(err);
+    }
+  }, [niveauTarget, addNiveauForm, openNiveauModal]);
+
+  const handleRemoveNiveauSavoir = useCallback(async (id) => {
+    try {
+      await CompetenceService.niveauDefinition.remove(id);
+      message.success("Savoir requis supprimé du niveau");
+      openNiveauModal(niveauTarget.type, niveauTarget.id, niveauTarget.nom);
+    } catch (err) {
+      message.error("Erreur lors de la suppression");
+      console.error(err);
+    }
+  }, [niveauTarget, openNiveauModal]);
+
+  // ─── Tree data for hierarchy tab ──────────────────────────────────────────
+  const treeData = useMemo(() => {
+    if (!structure?.domaines) return [];
+    return structure.domaines.map((domaine) => ({
+      key: `dom-${domaine.id}`,
+      title: (
+        <Space>
+          <FolderOpenOutlined style={{ color: "#1890ff" }} />
+          <Text strong>{domaine.nom}</Text>
+          <Tag color="blue">{domaine.code}</Tag>
+          <Badge count={domaine.nombreCompetences} showZero style={{ backgroundColor: "#52c41a" }}
+            overflowCount={99} title="Compétences" />
+          <Tooltip title={`${domaine.nombreEnseignants} enseignant(s)`}>
+            <Tag icon={<TeamOutlined />} color="purple">{domaine.nombreEnseignants}</Tag>
+          </Tooltip>
+          {!domaine.actif && <Tag color="red">Inactif</Tag>}
+        </Space>
+      ),
+      children: domaine.competences?.map((comp) => ({
+        key: `comp-${comp.id}`,
+        title: (
+          <Space>
+            <ApartmentOutlined style={{ color: "#52c41a" }} />
+            <Text>{comp.nom}</Text>
+            <Tag color="green">{comp.code}</Tag>
+            <Tooltip title={`${comp.nombreSousCompetences} sous-compétences, ${comp.nombreSavoirs} savoirs`}>
+              <Tag>{comp.nombreSousCompetences} SC / {comp.nombreSavoirs} S</Tag>
+            </Tooltip>
+            <Tooltip title={`${comp.nombreEnseignants} enseignant(s)`}>
+              <Tag icon={<TeamOutlined />} color="purple">{comp.nombreEnseignants}</Tag>
+            </Tooltip>
+            <Tooltip title="Voir les niveaux">
+              <Button size="small" type="link" icon={<InfoCircleOutlined />}
+                onClick={(e) => { e.stopPropagation(); openNiveauModal("competence", comp.id, comp.nom); }}
+              />
+            </Tooltip>
+          </Space>
+        ),
+        children: [
+          ...(comp.sousCompetences?.map((sc) => ({
+            key: `sc-${sc.id}`,
+            title: (
+              <Space>
+                <BulbOutlined style={{ color: "#fa8c16" }} />
+                <Text>{sc.nom}</Text>
+                <Tag color="orange">{sc.code}</Tag>
+                <Tooltip title={`${sc.nombreSavoirs} savoir(s)`}>
+                  <Tag icon={<BookOutlined />}>{sc.nombreSavoirs}</Tag>
+                </Tooltip>
+                <Tooltip title={`${sc.nombreEnseignants} enseignant(s)`}>
+                  <Tag icon={<TeamOutlined />} color="purple">{sc.nombreEnseignants}</Tag>
+                </Tooltip>
+                <Tooltip title="Voir les niveaux">
+                  <Button size="small" type="link" icon={<InfoCircleOutlined />}
+                    onClick={(e) => { e.stopPropagation(); openNiveauModal("sousCompetence", sc.id, sc.nom); }}
+                  />
+                </Tooltip>
+              </Space>
+            ),
+            children: sc.savoirs?.map((s) => ({
+              key: `sav-${s.id}`,
+              title: (
+                <Space>
+                  {s.type === "THEORIQUE" ? <BookOutlined style={{ color: "#722ed1" }} /> : <ExperimentOutlined style={{ color: "#13c2c2" }} />}
+                  <Text type="secondary">{s.nom}</Text>
+                  <Tag color={s.type === "THEORIQUE" ? "purple" : "cyan"}>
+                    {s.type === "THEORIQUE" ? "Théorique" : "Pratique"}
+                  </Tag>
+                  <Tag>{s.code}</Tag>
+                </Space>
+              ),
+              isLeaf: true,
+            })),
+          })) || []),
+          ...(comp.savoirsDirect?.map((s) => ({
+            key: `sav-direct-${s.id}`,
+            title: (
+              <Space>
+                {s.type === "THEORIQUE" ? <BookOutlined style={{ color: "#722ed1" }} /> : <ExperimentOutlined style={{ color: "#13c2c2" }} />}
+                <Text type="secondary">{s.nom}</Text>
+                <Tag color={s.type === "THEORIQUE" ? "purple" : "cyan"}>
+                  {s.type === "THEORIQUE" ? "Théorique" : "Pratique"}
+                </Tag>
+                <Tag>{s.code}</Tag>
+                <Tag color="gold">Direct</Tag>
+              </Space>
+            ),
+            isLeaf: true,
+          })) || []),
+        ],
+      })) || [],
+    }));
+  }, [structure, openNiveauModal]);
+
+  useEffect(() => {
+    CompetenceService.savoir.getAll().then(setAllSavoirsHierarchie).catch(() => {});
+  }, []);
+
   // ─── DOMAINES CRUD ───────────────────────────────────────────────────────
   const openDomaineModal = (record = null) => {
     setEditingDomaine(record);
@@ -340,7 +627,6 @@ export default function CompetencePage() {
 
   const domaineColumns = [
     { title: "Nom", dataIndex: "nom", key: "nom", sorter: (a, b) => a.nom.localeCompare(b.nom) },
-    { title: "Nom", dataIndex: "nom", key: "nom", sorter: (a, b) => a.nom.localeCompare(b.nom) },
     { title: "Description", dataIndex: "description", key: "description", ellipsis: true },
     {
       title: "Actif",
@@ -377,8 +663,8 @@ export default function CompetencePage() {
     setEditingComp(record);
     compForm.setFieldsValue(
       record
-        ? { code: record.code, nom: record.nom, description: record.description, ordre: record.ordre, domaineId: record.domaineId }
-        : { code: "", nom: "", description: "", ordre: null, domaineId: null }
+        ? { code: record.code, nom: record.nom, description: record.description, domaineId: record.domaineId }
+        : { code: "", nom: "", description: "", domaineId: null }
     );
     setCompModal(true);
   };
@@ -409,6 +695,7 @@ export default function CompetencePage() {
       msgApi.success("Compétence supprimée");
       loadCompetences();
       loadSousCompetences();
+      loadDomaines();
     } catch (err) {
       const msg = err.response?.data?.message || "Erreur lors de la suppression";
       msgApi.error(msg);
@@ -419,7 +706,6 @@ export default function CompetencePage() {
     { title: "Code", dataIndex: "code", key: "code", width: 100 },
     { title: "Nom", dataIndex: "nom", key: "nom", sorter: (a, b) => a.nom.localeCompare(b.nom) },
     { title: "Description", dataIndex: "description", key: "description", ellipsis: true },
-    { title: "Ordre", dataIndex: "ordre", key: "ordre", width: 70 },
     { title: "Domaine", dataIndex: "domaineNom", key: "domaineNom", filters: domaines.map((d) => ({ text: d.nom, value: d.nom })), onFilter: (v, r) => r.domaineNom === v },
     { title: "Sous-Comp.", key: "nbSc", width: 110, render: (_, r) => <Tag color="geekblue">{r.sousCompetences?.length ?? 0}</Tag> },
   ];
@@ -461,6 +747,7 @@ export default function CompetencePage() {
       msgApi.success("Sous-compétence supprimée");
       loadSousCompetences();
       loadSavoirs();
+      loadCompetences();
     } catch (err) {
       const msg = err.response?.data?.message || "Erreur lors de la suppression";
       msgApi.error(msg);
@@ -510,6 +797,7 @@ export default function CompetencePage() {
       await CompetenceService.savoir.delete(id);
       msgApi.success("Savoir supprimé");
       loadSavoirs();
+      loadSousCompetences();
     } catch (err) {      if (err?.errorFields) return;      const msg = err.response?.data?.message || "Erreur lors de la suppression";
       msgApi.error(msg);
     }
@@ -544,6 +832,16 @@ export default function CompetencePage() {
     },
     { title: "Sous-Compétence", dataIndex: "sousCompetenceNom", key: "sousCompetenceNom" },
   ];
+
+  // ─── URL-driven tab activation (from RICE import redirect) ───────────────
+  const [searchParams] = useSearchParams();
+  const [activeTab, setActiveTab] = useState(
+    () => searchParams.get("tab") ?? "domaines",
+  );
+  useEffect(() => {
+    const t = searchParams.get("tab");
+    if (t) setActiveTab(t);
+  }, [searchParams]);
 
   // ─── Tabs ─────────────────────────────────────────────────────────────────
   const tabs = [
@@ -607,6 +905,107 @@ export default function CompetencePage() {
         />
       ),
     },
+    {
+      key: "hierarchie",
+      label: (
+        <span><ApartmentOutlined /> Hiérarchie</span>
+      ),
+      children: (
+        <div>
+          {structureLoading ? (
+            <div style={{ textAlign: "center", padding: 60 }}>
+              <Spin size="large" tip="Chargement de la structure..." />
+            </div>
+          ) : (
+            <>
+              {/* Stats */}
+              {structure?.statistiques && (
+                <Row gutter={16} style={{ marginBottom: 16 }}>
+                  <Col span={4}><Card size="small"><Statistic title="Domaines" value={structure.statistiques.totalDomaines} prefix={<FolderOpenOutlined />} valueStyle={{ color: "#1890ff" }} /></Card></Col>
+                  <Col span={4}><Card size="small"><Statistic title="Compétences" value={structure.statistiques.totalCompetences} prefix={<ApartmentOutlined />} valueStyle={{ color: "#52c41a" }} /></Card></Col>
+                  <Col span={4}><Card size="small"><Statistic title="Sous-Compétences" value={structure.statistiques.totalSousCompetences} prefix={<BulbOutlined />} valueStyle={{ color: "#fa8c16" }} /></Card></Col>
+                  <Col span={4}><Card size="small"><Statistic title="Savoirs" value={structure.statistiques.totalSavoirs} prefix={<BookOutlined />} valueStyle={{ color: "#722ed1" }} /></Card></Col>
+                  <Col span={4}><Card size="small"><Statistic title="Théoriques" value={structure.statistiques.totalSavoirsTheoriques} prefix={<BookOutlined />} valueStyle={{ color: "#722ed1" }} /></Card></Col>
+                  <Col span={4}><Card size="small"><Statistic title="Pratiques" value={structure.statistiques.totalSavoirsPratiques} prefix={<ExperimentOutlined />} valueStyle={{ color: "#13c2c2" }} /></Card></Col>
+                </Row>
+              )}
+              {/* Tree */}
+              <Card>
+                {treeData.length > 0 ? (
+                  <Tree
+                    treeData={treeData}
+                    defaultExpandedKeys={treeData.map((d) => d.key)}
+                    showLine={{ showLeafIcon: false }}
+                    blockNode
+                    style={{ fontSize: 14 }}
+                  />
+                ) : (
+                  <Empty description="Aucune donnée dans la structure" />
+                )}
+              </Card>
+            </>
+          )}
+        </div>
+      ),
+    },
+    {
+      key: "recherche",
+      label: (
+        <span><SearchOutlined /> Recherche</span>
+      ),
+      children: (
+        <Card>
+          <Space style={{ marginBottom: 16, width: "100%" }} direction="vertical">
+            <Row gutter={16}>
+              <Col span={6}>
+                <Select
+                  allowClear
+                  placeholder="Filtrer par domaine"
+                  style={{ width: "100%" }}
+                  value={selectedDomaine}
+                  onChange={(val) => setSelectedDomaine(val)}
+                >
+                  {structure?.domaines?.map((d) => (
+                    <Option key={d.id} value={d.id}>{d.nom} ({d.code})</Option>
+                  ))}
+                </Select>
+              </Col>
+              <Col span={18}>
+                <Search
+                  placeholder="Rechercher par mot-clé, code, description..."
+                  enterButton={searchLoading ? "Recherche..." : "Rechercher"}
+                  loading={searchLoading}
+                  value={searchKeyword}
+                  onChange={(e) => setSearchKeyword(e.target.value)}
+                  onSearch={handleSearch}
+                  allowClear
+                  onClear={handleClearSearch}
+                />
+              </Col>
+            </Row>
+            {searchKeyword.trim().length > 0 && searchKeyword.trim().length < 2 && (
+              <Text type="secondary" style={{ fontSize: 12 }}>Saisissez au moins 2 caractères</Text>
+            )}
+            {selectedDomaine && (
+              <Space size={4}>
+                <SearchOutlined style={{ color: "#1890ff" }} />
+                <Text type="secondary" style={{ fontSize: 12 }}>Filtrage dans le domaine :</Text>
+                <Tag color="blue" closable onClose={() => setSelectedDomaine(null)}>
+                  {structure?.domaines?.find((d) => d.id === selectedDomaine)?.nom}
+                </Tag>
+              </Space>
+            )}
+          </Space>
+          {searchLoading ? (
+            <Spin />
+          ) : searchResults ? (
+            <StructureSearchResultsView results={searchResults} />
+          ) : (
+            <Empty description="Saisissez un mot-clé (min. 2 caractères) pour lancer la recherche" />
+          )}
+        </Card>
+      ),
+    },
   ];
 
   return (
@@ -617,10 +1016,20 @@ export default function CompetencePage() {
           <ApartmentOutlined /> Gestion des Compétences
         </Title>
 
-        <Tabs items={tabs} />
+        <Tabs
+          items={tabs}
+          activeKey={activeTab}
+          onChange={(key) => {
+            setActiveTab(key);
+            if (key === "hierarchie" || key === "recherche") {
+              loadStructure();
+            }
+          }}
+        />
 
         {/* ─ Domaine Modal ─ */}
         <Modal
+          forceRender
           title={editingDomaine ? "Modifier le domaine" : "Nouveau domaine"}
           open={domaineModal}
           onOk={handleDomaineSubmit}
@@ -644,6 +1053,7 @@ export default function CompetencePage() {
 
         {/* ─ Compétence Modal ─ */}
         <Modal
+          forceRender
           title={editingComp ? "Modifier la compétence" : "Nouvelle compétence"}
           open={compModal}
           onOk={handleCompSubmit}
@@ -669,14 +1079,12 @@ export default function CompetencePage() {
             <Form.Item name="description" label="Description">
               <Input.TextArea rows={2} />
             </Form.Item>
-            <Form.Item name="ordre" label="Ordre">
-              <Input type="number" min={1} />
-            </Form.Item>
           </Form>
         </Modal>
 
         {/* ─ Sous-Compétence Modal ─ */}
         <Modal
+          forceRender
           title={editingSc ? "Modifier la sous-compétence" : "Nouvelle sous-compétence"}
           open={scModal}
           onOk={handleScSubmit}
@@ -707,6 +1115,7 @@ export default function CompetencePage() {
 
         {/* ─ Savoir Modal ─ */}
         <Modal
+          forceRender
           title={editingSavoir ? "Modifier le savoir" : "Nouveau savoir"}
           open={savoirModal}
           onOk={handleSavoirSubmit}
@@ -748,7 +1157,165 @@ export default function CompetencePage() {
             </Form.Item>
           </Form>
         </Modal>
+
+        {/* ─ Niveau Définition Modal ─ */}
+        <Modal
+          forceRender
+          title={`Niveaux de compétence — ${niveauTarget?.nom || ""}`}
+          open={niveauModalVisible}
+          onCancel={() => setNiveauModalVisible(false)}
+          footer={null}
+          width={800}
+        >
+          {niveauLoading ? (
+            <Spin />
+          ) : (
+            <div>
+              <Collapse
+                defaultActiveKey={Object.keys(NIVEAU_LABELS)}
+                items={Object.entries(NIVEAU_LABELS).map(([key, val]) => {
+                  const levelItems = niveauData[key] || [];
+                  return {
+                    key,
+                    label: (
+                      <Space>
+                        <Badge color={val.color} />
+                        <Text strong>{val.label}</Text>
+                        <Tag>{levelItems.length} savoir(s) requis</Tag>
+                      </Space>
+                    ),
+                    children: levelItems.length > 0 ? (
+                      <Table
+                        size="small"
+                        dataSource={levelItems}
+                        rowKey="id"
+                        pagination={false}
+                        columns={[
+                          { title: "Code", dataIndex: "savoirCode", width: 100 },
+                          { title: "Savoir", dataIndex: "savoirNom" },
+                          { title: "Description", dataIndex: "description", ellipsis: true },
+                          {
+                            title: "",
+                            width: 50,
+                            render: (_, record) => (
+                              <Popconfirm
+                                title="Supprimer ce savoir requis ?"
+                                onConfirm={() => handleRemoveNiveauSavoir(record.id)}
+                              >
+                                <Button size="small" danger icon={<DeleteOutlined />} />
+                              </Popconfirm>
+                            ),
+                          },
+                        ]}
+                      />
+                    ) : (
+                      <Text type="secondary">Aucun savoir requis défini pour ce niveau</Text>
+                    ),
+                  };
+                })}
+              />
+              <Card size="small" title="Ajouter un savoir requis" style={{ marginTop: 16 }}>
+                <Form form={addNiveauForm} layout="inline" onFinish={handleAddNiveauSavoir}>
+                  <Form.Item name="niveau" rules={[{ required: true, message: "Requis" }]}>
+                    <Select placeholder="Niveau" style={{ width: 180 }}>
+                      {NIVEAU_OPTIONS.map((opt) => (
+                        <Option key={opt.value} value={opt.value}>{opt.label}</Option>
+                      ))}
+                    </Select>
+                  </Form.Item>
+                  <Form.Item name="savoirId" rules={[{ required: true, message: "Requis" }]}>
+                    <Select placeholder="Savoir" showSearch optionFilterProp="children" style={{ width: 250 }}>
+                      {allSavoirsHierarchie.map((s) => (
+                        <Option key={s.id} value={s.id}>{s.code} — {s.nom}</Option>
+                      ))}
+                    </Select>
+                  </Form.Item>
+                  <Form.Item name="description">
+                    <Input placeholder="Description (optionnel)" style={{ width: 200 }} />
+                  </Form.Item>
+                  <Form.Item>
+                    <Button type="primary" htmlType="submit" icon={<PlusOutlined />}>Ajouter</Button>
+                  </Form.Item>
+                </Form>
+              </Card>
+            </div>
+          )}
+        </Modal>
       </div>
     </>
+  );
+}
+
+// ─── Sub-component: Search Results for Hierarchy tab ────────────────────────
+function StructureSearchResultsView({ results }) {
+  const { domaines = [], competences = [], sousCompetences = [], savoirs = [] } = results;
+  const hasResults = domaines.length || competences.length || sousCompetences.length || savoirs.length;
+
+  if (!hasResults) {
+    return <Empty description="Aucun résultat trouvé" />;
+  }
+
+  return (
+    <Space direction="vertical" style={{ width: "100%" }} size="middle">
+      {domaines.length > 0 && (
+        <Card size="small" title={<><FolderOpenOutlined /> Domaines ({domaines.length})</>}>
+          {domaines.map((d) => (
+            <Tag key={d.id} color="blue" style={{ margin: 4, padding: "4px 8px" }}>
+              <strong>{d.code}</strong> — {d.nom}
+            </Tag>
+          ))}
+        </Card>
+      )}
+      {competences.length > 0 && (
+        <Card size="small" title={<><ApartmentOutlined /> Compétences ({competences.length})</>}>
+          <Descriptions column={1} size="small" bordered>
+            {competences.map((c) => (
+              <Descriptions.Item key={c.id} label={<Tag color="green">{c.code}</Tag>}>
+                <strong>{c.nom}</strong>
+                {c.domaineNom && <Typography.Text type="secondary"> — {c.domaineNom}</Typography.Text>}
+                {c.description && <div><Typography.Text type="secondary">{c.description}</Typography.Text></div>}
+              </Descriptions.Item>
+            ))}
+          </Descriptions>
+        </Card>
+      )}
+      {sousCompetences.length > 0 && (
+        <Card size="small" title={<><BulbOutlined /> Sous-Compétences ({sousCompetences.length})</>}>
+          <Descriptions column={1} size="small" bordered>
+            {sousCompetences.map((sc) => (
+              <Descriptions.Item key={sc.id} label={<Tag color="orange">{sc.code}</Tag>}>
+                <strong>{sc.nom}</strong>
+                {sc.competenceNom && <Typography.Text type="secondary"> — {sc.competenceNom}</Typography.Text>}
+                {sc.description && <div><Typography.Text type="secondary">{sc.description}</Typography.Text></div>}
+              </Descriptions.Item>
+            ))}
+          </Descriptions>
+        </Card>
+      )}
+      {savoirs.length > 0 && (
+        <Card size="small" title={<><BookOutlined /> Savoirs ({savoirs.length})</>}>
+          <Descriptions column={1} size="small" bordered>
+            {savoirs.map((s) => (
+              <Descriptions.Item
+                key={s.id}
+                label={
+                  <Space>
+                    <Tag>{s.code}</Tag>
+                    <Tag color={s.type === "THEORIQUE" ? "purple" : "cyan"}>
+                      {s.type === "THEORIQUE" ? "Th." : "Pr."}
+                    </Tag>
+                  </Space>
+                }
+              >
+                <strong>{s.nom}</strong>
+                {s.sousCompetenceNom && <Typography.Text type="secondary"> — {s.sousCompetenceNom}</Typography.Text>}
+                {s.competenceNom && <Typography.Text type="secondary"> — {s.competenceNom}</Typography.Text>}
+                {s.description && <div><Typography.Text type="secondary">{s.description}</Typography.Text></div>}
+              </Descriptions.Item>
+            ))}
+          </Descriptions>
+        </Card>
+      )}
+    </Space>
   );
 }

@@ -1,0 +1,105 @@
+Module : Test et validation de logiciel
+Dernière mise à jour : 05/09/2025
+Code HE HNE ECTS
+TV-01 21h 104h 5
+Responsable Module Akram Ben Gamra
+Enseignants –
+Intervenants
+Wiem BAAZOUZI, Wissal OUESLATI, Hiba JOUINI, Marouene SALHI, Houda
+FEKI, Maha ADDAD
+Unité pédagogique UP-IL
+Unité
+d'enseignement
+INFDEV4010
+Prérequis Génie logiciel - Langage de modélisation UML
+Niveaux et Options 5 SAE, 5 INFINI, 5 SLEAM, 5 SIM
+Objectif du module :
+A la fin de ce module, l'étudiant sera capable d'être familiarisé avec les types, les méthodes et les
+techniques de test et de validation logicielle et de leur utilisation.
+Mode d'évaluation :
+La moyenne de ce module est calculée comme suit :
+● Soutenance orale et rendus (40%) : note de groupe
+● Questions individuelles (60%) : note par étudiant
+Acquis d'apprentissage :
+A la validation de ce module l'étudiant sera capable de :
+Acquis d'apprentissage
+Niveau
+d'approfondissement (*)
+AA1 Identifier et définir le vocabulaire des normes et standards
+relatifs à l'activité de Tests
+1 et 2
+AA2 Différencier l'ensemble des activités d'un processus de test 4
+AA3 Organiser les différents niveaux et types de tests 6
+AA4 Expliquer et appliquer les techniques et méthodes de tests 2 et 3
+AA5 Déduire le métier du testeur 4
+AA6 Enumérer et identifier les aspects de gestion de test 1 et 2
+AA7 Identifier et classer les outils de test et de validation 1 et 2
+* : (1 : Mémoriser, 2 : Comprendre, 3 : Appliquer, 4 : Analyser, 5 : évaluer, 6 : Créer).
+Contenu détaillé
+Chapitre1
+Chapitre 1 : Introduction : Les fondamentaux des tests
+AA1 AA2
+- Expliquer l'intérêt des tests
+- Expliquer la différence entre les termes erreur, défaut et défaillance.
+- Enumérer les principes généraux des tests
+- Identifier et différencier les différentes activités du processus de test
+- Décrire la psychologie du développeur et du testeur
+Situation d'apprentissage Cours intégré
+Durée 3h
+Rendu Atelier 1
+Chapitre 2
+Chapitre 2 : Tester pendant le cycle de vie de logiciel
+AA3 AA4
+- Identifier la relation entre l'activité de développement, l'activité de test et les livrables dans le cycle de vie du logiciel
+- Expliquer que les modèles de développement logiciel doivent être adaptés au contexte du projet et aux
+caractéristiques du produit
+- Définir et appliquer les différents niveaux de tests
+- Définir et appliquer les différents types de tests
+- Organiser les niveaux et les types de tests
+Situation d'apprentissage Cours intégré
+Durée 3h
+Rendu Atelier 2
+Chapitre 3
+Chapitre 3 : Les techniques statiques
+AA4 AA6
+- Définir le processus d'une revue (activités, rôles, livrables)
+- Expliquer les différences entre les types de revue
+- Analyser statiquement un produit d'activité avec une analyse manuelle ou outillée
+- Décrire les avantages de l'analyse statique
+Situation d'apprentissage Cours intégré
+Durée 3h
+Rendu Atelier 3
+Chapitre 4
+Chapitre 4 : les techniques de conception des tests
+AA4 AA5
+- Identifier les données de test qui sont relatifs à des cas de test
+- Différencier les techniques de tests : tests basés sur la spécification et les tests boite blanche
+- Expliquer et appliquer les concepts et les objectifs des principaux techniques de test de type boite noire
+- Expliquer et appliquer les concepts et les objectifs des principaux techniques de test de type boite blanche
+- Expliquer le concept et l'objectif des techniques basées sur l'expérience
+- Sélectionner la technique appropriée à son contexte
+Situation d'apprentissage Cours intégré
+Durée 6H
+Rendu Série de travaux dirigés
+Chapitre 5
+Chapitre 5 : La gestion des tests
+AA6
+- Enumérer les avantages et les inconvénients du test indépendant pour une organisation
+- Décrire les éléments nécessaires à la rédaction d'un plan de test
+- Définir les différentes techniques d'estimation de la charge
+- Décrire les éléments nécessaires à la rédaction d'un rapport de test
+- Expliquer la manière dont la gestion de configuration assiste le test
+- Distinguer entre les risques liés au projet et ceux liés au produit
+- Connaitre les éléments nécessaires à la rédaction d'un rapport d'incident
+Situation d'apprentissage Cours intégré
+Durée 3h
+Rendu Atelier 4
+Chapitre 6
+Chapitre 6 : Les outils de support aux tests
+AA7
+- Classer les différents types d'outils de test selon les activités du processus de test
+- Déterminer les bénéfices et les risques potentiels d'automatisation et d'utilisation d'outils pour les tests
+- Définir une approche structurée d'introduction d'un outil dans une organisation
+Situation d'apprentissage Cours intégré
+Durée 3H
+Rendu Atelier 5

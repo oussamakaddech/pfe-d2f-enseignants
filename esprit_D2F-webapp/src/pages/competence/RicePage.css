@@ -5,27 +5,52 @@
   padding: 28px 24px 80px;
   max-width: 1600px;
   margin: 0 auto;
+  background: #f4f7fb;
+  min-height: 100vh;
 }
 
 /*  Hero banner  */
 .rice-hero {
-  background: linear-gradient(135deg, #0a1628 0%, #1a3a6e 50%, #1677ff 100%);
-  border-radius: 16px;
-  padding: 32px 36px;
-  margin-bottom: 28px;
+  background: linear-gradient(130deg, #060e1f 0%, #0d2447 40%, #1445a3 75%, #1677ff 100%);
+  border-radius: 20px;
+  padding: 32px 40px;
+  margin-bottom: 24px;
   position: relative;
   overflow: hidden;
-  box-shadow: 0 8px 32px rgba(22, 119, 255, 0.22);
+  box-shadow:
+    0 12px 40px rgba(22, 119, 255, 0.30),
+    0 2px 0 rgba(255,255,255,0.06) inset;
 }
 
+/* Animated grid overlay */
 .rice-hero::before {
   content: "";
   position: absolute;
   inset: 0;
-  background:
-    radial-gradient(circle at 80% 20%, rgba(99, 179, 237, 0.15) 0%, transparent 55%),
-    radial-gradient(circle at 20% 80%, rgba(22, 119, 255, 0.12) 0%, transparent 50%);
+  background-image:
+    linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
+  background-size: 40px 40px;
   pointer-events: none;
+}
+
+/* Glowing orb right side */
+.rice-hero::after {
+  content: "";
+  position: absolute;
+  top: -60px;
+  right: -60px;
+  width: 300px;
+  height: 300px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(22,119,255,0.35) 0%, rgba(99,179,237,0.15) 50%, transparent 70%);
+  pointer-events: none;
+  animation: heroGlow 5s ease-in-out infinite;
+}
+
+@keyframes heroGlow {
+  0%, 100% { opacity: 0.8; transform: scale(1); }
+  50%       { opacity: 1;   transform: scale(1.15); }
 }
 
 .rice-hero-content {
@@ -37,60 +62,413 @@
 }
 
 .rice-hero-icon-wrap {
-  width: 64px;
-  height: 64px;
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.12);
-  backdrop-filter: blur(8px);
-  border: 1px solid rgba(255, 255, 255, 0.18);
+  width: 70px;
+  height: 70px;
+  border-radius: 20px;
+  background: linear-gradient(135deg, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0.06) 100%);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.22);
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  font-size: 30px;
+  font-size: 32px;
   color: #fff;
+  box-shadow: 0 4px 20px rgba(22,119,255,0.4), 0 1px 0 rgba(255,255,255,0.15) inset;
 }
 
 .rice-hero-text { flex: 1; }
 
 .rice-hero-title {
   color: #ffffff !important;
-  margin-bottom: 4px !important;
-  font-size: 22px !important;
-  font-weight: 700 !important;
-  letter-spacing: -0.3px;
-  text-shadow: 0 1px 4px rgba(0,0,0,0.25);
+  margin-bottom: 6px !important;
+  font-size: 24px !important;
+  font-weight: 800 !important;
+  letter-spacing: -0.5px;
+  text-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  background: linear-gradient(90deg, #fff 0%, #93c5fd 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .rice-hero-subtitle {
-  color: rgba(255, 255, 255, 0.72) !important;
+  color: rgba(255, 255, 255, 0.65) !important;
   font-size: 13px !important;
   margin-bottom: 0 !important;
-  line-height: 1.55;
+  line-height: 1.6;
 }
 
 .rice-hero-badge {
-  background: rgba(255, 255, 255, 0.14);
-  border: 1px solid rgba(255, 255, 255, 0.22);
-  border-radius: 20px;
-  padding: 4px 14px;
-  color: rgba(255, 255, 255, 0.85);
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 24px;
+  padding: 6px 16px;
+  color: rgba(255, 255, 255, 0.9);
   font-size: 12px;
-  font-weight: 500;
+  font-weight: 600;
   white-space: nowrap;
   flex-shrink: 0;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 2px 12px rgba(0,0,0,0.2);
+  letter-spacing: 0.5px;
 }
 
 /*  Steps wrapper  */
 .rice-steps-wrapper {
   background: #fff;
-  border-radius: 12px;
-  padding: 16px 24px;
-  margin-bottom: 28px;
-  box-shadow: 0 1px 8px rgba(0, 0, 0, 0.07), 0 0 0 1px rgba(0, 0, 0, 0.04);
+  border-radius: 14px;
+  padding: 18px 28px;
+  margin-bottom: 24px;
+  box-shadow: 0 1px 0 rgba(0,0,0,0.04), 0 2px 12px rgba(0,0,0,0.06);
+  border: 1px solid rgba(22,119,255,0.07);
 }
 
-/*  Step 0: Upload  */
+.rice-steps-wrapper .ant-steps-item-process .ant-steps-item-icon {
+  background: var(--rice-accent, #1677ff) !important;
+  border-color: var(--rice-accent, #1677ff) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--rice-accent, #1677ff) 20%, transparent);
+}
+
+.rice-steps-wrapper .ant-steps-item-finish .ant-steps-item-icon {
+  border-color: var(--rice-accent, #1677ff) !important;
+}
+
+.rice-steps-wrapper .ant-steps-item-finish .ant-steps-item-icon .anticon {
+  color: var(--rice-accent, #1677ff) !important;
+}
+
+.rice-steps-wrapper .ant-steps-item-finish .ant-steps-item-tail::after {
+  background: var(--rice-accent, #1677ff) !important;
+}
+
+/*  Step 0: Upload — redesign  */
+
+.upload-step-root {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.rice-restore-alert {
+  margin-bottom: 20px;
+  border-radius: 10px !important;
+  border-color: #91caff !important;
+  background: linear-gradient(135deg, #e6f4ff 0%, #eff8ff 100%) !important;
+}
+
+/* ── Section labels ────────────────────────────────────────────────────────── */
+.rice-section-label {
+  display: block;
+  font-size: 12px !important;
+  font-weight: 700 !important;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: #8c8c8c !important;
+  margin-bottom: 12px;
+}
+
+/* ── Department card grid ─────────────────────────────────────────────────── */
+.rice-dept-section {
+  margin-bottom: 24px;
+}
+
+.rice-dept-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+@media (max-width: 580px) {
+  .rice-dept-grid { grid-template-columns: repeat(3, 1fr); }
+}
+
+.rice-dept-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  padding: 12px 8px 10px;
+  border-radius: 12px;
+  border: 2px solid transparent;
+  background: var(--dept-bg, #f5f5f5);
+  cursor: pointer;
+  user-select: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.rice-dept-card:hover {
+  border-color: var(--dept-accent, #1677ff);
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--dept-accent, #1677ff) 25%, transparent);
+}
+
+.rice-dept-card.active {
+  border-color: var(--dept-accent, #1677ff);
+  box-shadow: 0 4px 20px color-mix(in srgb, var(--dept-accent, #1677ff) 30%, transparent);
+}
+
+.rice-dept-emoji {
+  font-size: 22px;
+  line-height: 1;
+}
+
+.rice-dept-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-align: center;
+  color: #262626;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.rice-dept-check {
+  position: absolute;
+  top: 4px;
+  right: 6px;
+  font-size: 11px;
+  color: #52c41a;
+  font-weight: 700;
+}
+
+.rice-dept-active-badge {
+  display: flex;
+  align-items: center;
+  margin-top: 4px;
+  padding: 5px 10px;
+  background: #f0f9ff;
+  border-radius: 8px;
+  border: 1px solid #bae0ff;
+  width: fit-content;
+}
+
+/* ── Dragger ──────────────────────────────────────────────────────────────── */
+.rice-upload-section {
+  margin-bottom: 20px;
+}
+
+.rice-dragger.ant-upload-drag {
+  border: 2px dashed #c8d8f8 !important;
+  border-radius: 14px !important;
+  background: linear-gradient(145deg, #f8fbff 0%, #f0f5ff 100%) !important;
+  transition: border-color 0.25s, background 0.25s, box-shadow 0.25s !important;
+  cursor: pointer;
+}
+
+.rice-dragger.ant-upload-drag:hover {
+  border-color: var(--rice-accent, #4096ff) !important;
+  background: linear-gradient(145deg, #eef5ff 0%, #e6f0ff 100%) !important;
+  box-shadow: 0 6px 28px color-mix(in srgb, var(--rice-accent, #1677ff) 15%, transparent) !important;
+}
+
+.rice-dragger-inner {
+  padding: 28px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.rice-dragger-icon-wrap {
+  width: 64px;
+  height: 64px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, var(--rice-accent, #1677ff) 0%, color-mix(in srgb, var(--rice-accent, #1677ff) 70%, white) 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--rice-accent, #1677ff) 35%, transparent);
+  margin-bottom: 4px;
+}
+
+.rice-dragger-icon {
+  font-size: 30px;
+  color: #fff;
+}
+
+.rice-dragger-title {
+  margin: 0 !important;
+  font-size: 15px !important;
+  font-weight: 700 !important;
+  color: #1a1a2e !important;
+}
+
+.rice-dragger-sub {
+  margin: 0 !important;
+  font-size: 13px !important;
+  color: #8c8c8c !important;
+}
+
+.rice-dragger-link {
+  color: var(--rice-accent, #1677ff);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.rice-format-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-top: 4px;
+}
+
+.rice-fmt-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 600;
+  border: 1px solid;
+}
+
+.rice-fmt-tag.pdf  { background: #fff1f0; border-color: #ffa39e; color: #cf1322; }
+.rice-fmt-tag.docx { background: #e6f4ff; border-color: #91caff; color: #0958d9; }
+.rice-fmt-tag.txt  { background: #f6ffed; border-color: #b7eb8f; color: #389e0d; }
+
+/* ── File list ────────────────────────────────────────────────────────────── */
+.rice-file-list {
+  margin-top: 12px;
+  background: #fafcff;
+  border: 1px solid #d6e8ff;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.rice-file-list-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: #f0f7ff;
+  border-bottom: 1px solid #d6e8ff;
+  font-size: 13px;
+}
+
+.rice-file-items {
+  max-height: 200px;
+  overflow-y: auto;
+  padding: 6px 0;
+}
+
+.rice-file-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 14px;
+  transition: background 0.15s;
+}
+
+.rice-file-item:hover {
+  background: #f0f7ff;
+}
+
+.rice-file-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── CTA block ────────────────────────────────────────────────────────────── */
+.rice-cta-block {
+  margin-top: 4px;
+}
+
+.rice-cta-block .rice-launch-btn {
+  height: 52px !important;
+  font-size: 16px !important;
+  border-radius: 14px !important;
+}
+
+/* ── Features panel (right column) ───────────────────────────────────────── */
+.rice-features-panel {
+  background: linear-gradient(160deg, #0a1628 0%, #1a3a6e 55%, #1e4a90 100%);
+  border-radius: 18px;
+  overflow: hidden;
+  height: 100%;
+  min-height: 380px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 8px 32px rgba(10, 22, 40, 0.35);
+}
+
+.rice-features-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 22px 22px 16px;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+.rice-features-robot {
+  font-size: 28px;
+  color: #69b1ff;
+  background: rgba(255,255,255,0.08);
+  border-radius: 12px;
+  padding: 8px;
+}
+
+.rice-feature-list {
+  flex: 1;
+  padding: 12px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.rice-feature-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.rice-feature-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--fi-color, #1677ff) 15%, transparent);
+  border: 1px solid color-mix(in srgb, var(--fi-color, #1677ff) 30%, transparent);
+  color: var(--fi-color, #1677ff);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.rice-feature-item .ant-typography {
+  color: rgba(255,255,255,0.9) !important;
+}
+
+.rice-feature-item .ant-typography.ant-typography-secondary {
+  color: rgba(255,255,255,0.5) !important;
+}
+
+.rice-tip-box {
+  margin: 12px 22px 20px;
+  padding: 12px 14px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 10px;
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+
+.rice-tip-icon {
+  font-size: 16px;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+/* ── Keep old .rice-upload-card for any legacy refs ───────────────────────── */
 .rice-upload-card {
   background: #fff;
   border-radius: 14px !important;
@@ -98,76 +476,17 @@
   border: none !important;
 }
 
-.rice-upload-card .ant-card-head {
-  border-bottom: 1px solid #f0f5ff;
-  padding: 14px 20px;
-}
-
-.rice-upload-card .ant-card-head-title {
-  font-weight: 600;
-  font-size: 15px;
-  color: #1a1a2e;
-}
-
-.rice-upload-card .ant-upload-drag {
-  border-radius: 12px !important;
-  border: 2px dashed #c8d8f8 !important;
-  background: #f8fbff !important;
-  transition: border-color 0.25s, background 0.25s, box-shadow 0.25s;
-}
-
-.rice-upload-card .ant-upload-drag:hover {
-  border-color: #4096ff !important;
-  background: #eef5ff !important;
-  box-shadow: 0 4px 20px rgba(22, 119, 255, 0.1);
-}
-
-.rice-upload-card .ant-upload-text {
-  font-size: 15px !important;
-  font-weight: 600 !important;
-  color: #1a1a2e !important;
-}
-
-.rice-upload-card .ant-upload-hint {
-  color: #8c8c8c !important;
-  font-size: 12px !important;
-}
-
-.rice-format-chips {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-  justify-content: center;
-  margin-top: 14px;
-}
-
-.rice-format-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 4px 12px;
-  border-radius: 20px;
-  font-size: 12px;
-  font-weight: 500;
-  border: 1px solid;
-}
-
+.rice-format-chips { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; margin-top: 14px; }
+.rice-format-chip { display: inline-flex; align-items: center; gap: 5px; padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 500; border: 1px solid; }
 .rice-format-chip.pdf  { background: #fff1f0; border-color: #ffa39e; color: #cf1322; }
 .rice-format-chip.docx { background: #e6f4ff; border-color: #91caff; color: #0958d9; }
 .rice-format-chip.txt  { background: #f6ffed; border-color: #b7eb8f; color: #389e0d; }
 
 .rice-file-count {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 13px;
-  color: #52c41a;
-  font-weight: 500;
-  margin-top: 12px;
-  padding: 8px 12px;
-  background: #f6ffed;
-  border-radius: 8px;
-  border: 1px solid #b7eb8f;
+  display: flex; align-items: center; gap: 6px;
+  font-size: 13px; color: #52c41a; font-weight: 500;
+  margin-top: 12px; padding: 8px 12px;
+  background: #f6ffed; border-radius: 8px; border: 1px solid #b7eb8f;
 }
 
 /* Launch button */
@@ -177,10 +496,10 @@
   font-size: 15px !important;
   font-weight: 600 !important;
   border-radius: 12px !important;
-  background: linear-gradient(135deg, #1677ff 0%, #4096ff 100%) !important;
+  background: linear-gradient(135deg, var(--rice-accent, #1677ff) 0%, color-mix(in srgb, var(--rice-accent, #1677ff) 75%, white) 100%) !important;
   border: none !important;
-  box-shadow: 0 4px 16px rgba(22, 119, 255, 0.35) !important;
-  transition: box-shadow 0.2s, transform 0.15s !important;
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--rice-accent, #1677ff) 40%, transparent) !important;
+  transition: box-shadow 0.2s, transform 0.15s, background 0.4s !important;
 }
 
 .rice-launch-btn:not(:disabled):hover {
@@ -242,7 +561,8 @@
 .rice-stats-banner .rice-stat-value {
   font-weight: 700;
   font-size: 16px;
-  color: #1677ff;
+  color: var(--rice-accent, #1677ff);
+  transition: color 0.4s;
 }
 
 /* DnD tip */
@@ -623,4 +943,101 @@
   .rice-hero-badge { display: none; }
   .rice-savoir-card .rice-savoir-controls { flex-direction: column; align-items: flex-start; }
   .rice-preview-card, .rice-success-card  { flex-direction: column; text-align: center; }
+}
+
+/* ── Print / rapport récapitulatif ──────────────────────────────────────────── */
+@media print {
+  /* Hide navigation, wizard header, action buttons, drag controls */
+  .rice-hero,
+  .ant-steps,
+  .rice-step3-actions,
+  .rice-savoir-controls,
+  .rice-drag-handle,
+  button,
+  .ant-btn,
+  .ant-collapse-header,
+  nav,
+  header,
+  aside {
+    display: none !important;
+  }
+
+  /* Reset page layout */
+  body, .rice-page {
+    padding: 0 !important;
+    margin: 0 !important;
+    background: #fff !important;
+    box-shadow: none !important;
+  }
+
+  /* Show Step 3 report full-width */
+  .rice-report-stats .ant-col {
+    page-break-inside: avoid;
+  }
+
+  .rice-report-coverage,
+  .rice-table-card,
+  .rice-success-card {
+    box-shadow: none !important;
+    border: 1px solid #ddd !important;
+    page-break-inside: avoid;
+  }
+
+  .rice-success-card {
+    border-radius: 0 !important;
+  }
+}
+
+/* ── High-End additions: SavoirCard meta row & dept accent ─────────────────── */
+
+/* Bottom meta bar inside each SavoirCard */
+.rice-savoir-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  padding-top: 5px;
+  border-top: 1px solid rgba(0, 0, 0, 0.04);
+  font-size: 11px;
+  color: #8c8c8c;
+  flex-wrap: wrap;
+}
+
+.rice-savoir-niveau-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: inline-block;
+}
+
+/* Borderless niveau select tweak */
+.rice-niveau-select .ant-select-selector {
+  padding-inline-start: 0 !important;
+  background: transparent !important;
+}
+
+/* Department accent: Steps indicator active dot */
+.ant-steps-item-active .ant-steps-item-icon {
+  background: var(--rice-accent, #1677ff) !important;
+  border-color: var(--rice-accent, #1677ff) !important;
+  transition: background 0.4s, border-color 0.4s;
+}
+
+/* Department accent: ens panel active ring */
+.rice-ens-panel.rice-dnd-active {
+  box-shadow: 0 0 0 2px var(--rice-accent, #4096ff), 0 4px 20px color-mix(in srgb, var(--rice-accent, #1677ff) 20%, transparent) !important;
+}
+
+/* Smooth accent transition on page root */
+.rice-page {
+  transition: --rice-accent 0.4s;
+}
+
+/* Context menu keyboard hint */
+.rice-ctx-hint {
+  font-size: 10px;
+  color: #bfbfbf;
+  margin-left: auto;
+  white-space: nowrap;
 }

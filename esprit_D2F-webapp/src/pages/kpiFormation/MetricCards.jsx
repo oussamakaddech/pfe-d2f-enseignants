@@ -466,7 +466,7 @@ const MetricCards = () => {
               onClose={() => closeSettings(card.id)}
               visible={card.visible}
               width={350}
-              destroyOnClose
+              destroyOnHidden
             >
               <Form
                 layout="vertical"

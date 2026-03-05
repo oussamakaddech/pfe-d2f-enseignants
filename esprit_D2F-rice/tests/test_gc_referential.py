@@ -105,27 +105,27 @@ class TestGcRefNiveau:
 class TestMatchGcCompetence:
     def test_match_sols(self):
         comp = _match_gc_competence("fondation geotechnique sol stabilite pente")
-        assert comp == "GC-GC-Tech-TechC1"
+        assert comp == "GC-TECH-S"
 
     def test_match_construction(self):
         comp = _match_gc_competence("beton arme pont route chaussee ouvrage art")
-        assert comp == "GC-GC-Tech-TechC2"
+        assert comp == "GC-TECH-C"
 
     def test_match_physique_batiment(self):
         comp = _match_gc_competence("thermique acoustique isolation cvc ventilation")
-        assert comp == "GC-GC-Tech-TechC3"
+        assert comp == "GC-TECH-P"
 
     def test_match_eau(self):
         comp = _match_gc_competence("hydraulique hydrologie bassin versant assainissement")
-        assert comp == "GC-GC-Tech-TechC4"
+        assert comp == "GC-TECH-E"
 
     def test_match_urbanisme(self):
         comp = _match_gc_competence("urbanisme amenagement urbain diagnostic ville territoire")
-        assert comp == "GC-GC-Tech-TechC5"
+        assert comp == "GC-TECH-U"
 
     def test_match_transversal(self):
         comp = _match_gc_competence("organisation chantier securite developpement durable construction")
-        assert comp == "GC-GC-Tech-TechC6"
+        assert comp == "GC-TECH-T"
 
     def test_no_match_returns_none(self):
         comp = _match_gc_competence("random words with no gc meaning")
@@ -141,7 +141,7 @@ class TestMatchGcCompetence:
 class TestSuggestGcEnseignants:
     def test_returns_list(self, monkeypatch):
         monkeypatch.setattr(
-            "rice_analyzer._fetch_enseignant_affectations",
+            "rice.referential._fetch_enseignant_affectations",
             lambda: {"E001": ["S2a", "C1b"], "E002": ["T1", "S6b"]},
         )
         result = _suggest_gc_enseignants(["S2a"])
@@ -149,7 +149,7 @@ class TestSuggestGcEnseignants:
 
     def test_no_match_returns_empty(self, monkeypatch):
         monkeypatch.setattr(
-            "rice_analyzer._fetch_enseignant_affectations",
+            "rice.referential._fetch_enseignant_affectations",
             lambda: {"E001": ["S2a"], "E002": ["C1b"]},
         )
         result = _suggest_gc_enseignants(["ZZZZ"])
@@ -157,7 +157,7 @@ class TestSuggestGcEnseignants:
 
     def test_multiple_teachers_matched(self, monkeypatch):
         monkeypatch.setattr(
-            "rice_analyzer._fetch_enseignant_affectations",
+            "rice.referential._fetch_enseignant_affectations",
             lambda: {
                 "E001": ["S6b", "C1b"],
                 "E002": ["S6b", "T1"],
@@ -169,7 +169,7 @@ class TestSuggestGcEnseignants:
 
     def test_empty_codes_returns_empty(self, monkeypatch):
         monkeypatch.setattr(
-            "rice_analyzer._fetch_enseignant_affectations",
+            "rice.referential._fetch_enseignant_affectations",
             lambda: {"E001": ["S2a"]},
         )
         result = _suggest_gc_enseignants([])
@@ -179,7 +179,7 @@ class TestSuggestGcEnseignants:
         def raise_exc():
             raise Exception("DB unreachable")
         monkeypatch.setattr(
-            "rice_analyzer._fetch_enseignant_affectations", raise_exc
+            "rice.referential._fetch_enseignant_affectations", raise_exc
         )
         with pytest.raises(Exception):
             _suggest_gc_enseignants(["S2a"])

@@ -1,9 +1,7 @@
 package tn.esprit.d2f.competence.service;
 
+import tn.esprit.d2f.competence.dto.SearchResultDTO;
 import tn.esprit.d2f.competence.dto.StructureArbreDTO;
-
-import java.util.List;
-import java.util.Map;
 
 public interface IStructureService {
 
@@ -14,8 +12,8 @@ public interface IStructureService {
     StructureArbreDTO.DomaineArbreDTO getStructureDomaine(Long domaineId);
 
     /** Recherche globale par mot-clé (retourne domaines, compétences, sous-compétences, savoirs correspondants) */
-    Map<String, Object> rechercheGlobale(String keyword);
+    SearchResultDTO rechercheGlobale(String keyword);
 
     /** Recherche par domaine */
-    Map<String, Object> rechercheParDomaine(Long domaineId, String keyword);
+    SearchResultDTO rechercheParDomaine(Long domaineId, String keyword);
 }

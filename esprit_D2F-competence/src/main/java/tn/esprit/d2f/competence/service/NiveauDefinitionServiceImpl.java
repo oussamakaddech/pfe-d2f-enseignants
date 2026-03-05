@@ -1,12 +1,13 @@
 package tn.esprit.d2f.competence.service;
 
 import jakarta.persistence.EntityNotFoundException;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import tn.esprit.d2f.competence.dto.NiveauSavoirRequisDTO;
 import tn.esprit.d2f.competence.dto.NiveauSavoirRequisRequest;
+import tn.esprit.d2f.competence.dto.NiveauxGroupesDTO;
 import tn.esprit.d2f.competence.entity.*;
 import tn.esprit.d2f.competence.entity.enumerations.NiveauMaitrise;
 import tn.esprit.d2f.competence.repository.CompetenceRepository;
@@ -21,32 +22,38 @@ import java.util.stream.Collectors;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class NiveauDefinitionServiceImpl implements INiveauDefinitionService {
 
-    @Autowired
-    private NiveauSavoirRequisRepository niveauRepo;
-
-    @Autowired
-    private CompetenceRepository competenceRepository;
-
-    @Autowired
-    private SousCompetenceRepository sousCompetenceRepository;
-
-    @Autowired
-    private SavoirRepository savoirRepository;
+    private final NiveauSavoirRequisRepository niveauRepo;
+    private final CompetenceRepository competenceRepository;
+    private final SousCompetenceRepository sousCompetenceRepository;
+    private final SavoirRepository savoirRepository;
 
     @Override
     @Transactional(readOnly = true)
-    public Map<String, List<NiveauSavoirRequisDTO>> getNiveauxByCompetence(Long competenceId) {
+    public NiveauxGroupesDTO getNiveauxByCompetence(Long competenceId) {
+        Competence competence = competenceRepository.findById(competenceId)
+                .orElseThrow(() -> new EntityNotFoundException("Compétence non trouvée avec l'id: " + competenceId));
         List<NiveauSavoirRequis> all = niveauRepo.findByCompetenceId(competenceId);
-        return groupByNiveau(all);
+        return NiveauxGroupesDTO.builder()
+                .parentId(competenceId)
+                .parentNom(competence.getNom())
+                .niveaux(groupByNiveau(all))
+                .build();
     }
 
     @Override
     @Transactional(readOnly = true)
-    public Map<String, List<NiveauSavoirRequisDTO>> getNiveauxBySousCompetence(Long sousCompetenceId) {
+    public NiveauxGroupesDTO getNiveauxBySousCompetence(Long sousCompetenceId) {
+        SousCompetence sc = sousCompetenceRepository.findById(sousCompetenceId)
+                .orElseThrow(() -> new EntityNotFoundException("Sous-compétence non trouvée avec l'id: " + sousCompetenceId));
         List<NiveauSavoirRequis> all = niveauRepo.findBySousCompetenceId(sousCompetenceId);
-        return groupByNiveau(all);
+        return NiveauxGroupesDTO.builder()
+                .parentId(sousCompetenceId)
+                .parentNom(sc.getNom())
+                .niveaux(groupByNiveau(all))
+                .build();
     }
 
     @Override
@@ -70,6 +77,9 @@ public class NiveauDefinitionServiceImpl implements INiveauDefinitionService {
     public NiveauSavoirRequisDTO addSavoirRequis(NiveauSavoirRequisRequest request) {
         if (request.getCompetenceId() == null && request.getSousCompetenceId() == null) {
             throw new IllegalArgumentException("Il faut spécifier soit une compétence, soit une sous-compétence");
+        }
+        if (request.getCompetenceId() != null && request.getSousCompetenceId() != null) {
+            throw new IllegalArgumentException("Préciser uniquement une compétence OU une sous-compétence, pas les deux");
         }
 
         Savoir savoir = savoirRepository.findById(request.getSavoirId())
@@ -115,6 +125,25 @@ public class NiveauDefinitionServiceImpl implements INiveauDefinitionService {
     }
 
     @Override
+    @Transactional
+    public NiveauSavoirRequisDTO updateSavoirRequis(Long id, NiveauSavoirRequisRequest request) {
+        NiveauSavoirRequis nsr = niveauRepo.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("NiveauSavoirRequis non trouvé avec l'id: " + id));
+        nsr.setNiveau(request.getNiveau());
+        if (request.getDescription() != null) {
+            nsr.setDescription(request.getDescription());
+        }
+        if (request.getSavoirId() != null) {
+            Savoir savoir = savoirRepository.findById(request.getSavoirId())
+                    .orElseThrow(() -> new EntityNotFoundException("Savoir non trouvé avec l'id: " + request.getSavoirId()));
+            nsr.setSavoir(savoir);
+        }
+        NiveauSavoirRequis saved = niveauRepo.save(nsr);
+        log.info("Savoir requis mis à jour: id={}, niveau={}", id, saved.getNiveau());
+        return toDTO(saved);
+    }
+
+    @Override
     @Transactional(readOnly = true)
     public List<NiveauSavoirRequisDTO> getAll() {
         return niveauRepo.findAll().stream()
@@ -131,7 +160,9 @@ public class NiveauDefinitionServiceImpl implements INiveauDefinitionService {
                     .filter(n -> n.getNiveau() == niveau)
                     .map(this::toDTO)
                     .collect(Collectors.toList());
-            result.put(niveau.name(), dtos);
+            if (!dtos.isEmpty()) {
+                result.put(niveau.name(), dtos);
+            }
         }
         return result;
     }

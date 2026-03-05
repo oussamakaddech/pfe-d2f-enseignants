@@ -46,8 +46,8 @@ import UpdatePassword from "../pages/gererComptes/UpdatePassword";
 import CombinedFormationOneDriveTree from "../pages/documentFormation/CombinedFormationOneDriveTree";
 import CompetencePage from "../pages/competence/CompetencePage";
 import EnseignantCompetencePage from "../pages/competence/EnseignantCompetencePage";
+import AffectationEnseignantPage from "../pages/competence/AffectationEnseignantPage";
 import RicePage from "../pages/competence/RicePage";
-import StructureArbrePage from "../pages/competence/StructureArbrePage";
 
 
 
@@ -75,7 +75,7 @@ export default function AppRoutes() {
               <Route element={<RoleGuard allowedRoles={["admin","D2F","CUP"]} />}>
                 <Route path="home/competences" element={<CompetencePage />} />
                 <Route path="home/competences/enseignant/:enseignantId" element={<EnseignantCompetencePage />} />
-                <Route path="home/structure-competences" element={<StructureArbrePage />} />
+                <Route path="home/affectations" element={<AffectationEnseignantPage />} />
                 <Route path="home/rice" element={<RicePage />} />
                 <Route path="home/File"                   element={<CombinedFormationOneDriveTree />} />
                 <Route path="home/KPI"                    element={<KPIChart />} />

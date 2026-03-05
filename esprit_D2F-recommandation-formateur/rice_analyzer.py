@@ -112,6 +112,49 @@ def _fetch_all_enseignants_info() -> Dict[str, EnseignantInfo]:
         logger.error(f"Failed to fetch enseignants info: {e}")
         return _ENS_INFO_CACHE or {}
 
+
+def _create_enseignant_if_new(nom_complet: str) -> Tuple[str, str]:
+    """Auto-create a new enseignant row from a name extracted in a fiche module.
+
+    If the name was not fuzzy-matched against any existing DB teacher, this
+    function inserts a new row into ``enseignants`` so the extracted professor
+    gets a real DB ID that will survive the import filter.
+
+    Returns (new_id, display_name).
+    """
+    parts = nom_complet.strip().split()
+    nom    = parts[0].upper()                             if parts      else "INCONNU"
+    prenom = " ".join(parts[1:]).title()                  if len(parts) > 1 else ""
+
+    slug_raw  = re.sub(r"[^A-Z0-9]", "-", f"{nom}-{prenom}".upper())
+    slug_base = re.sub(r"-+", "-", slug_raw).strip("-")[:20]
+    new_id    = f"EX-{slug_base}"
+    mail      = f"{slug_base.lower()[:30]}@esprit.tn"
+    display   = f"{prenom} {nom}".strip() if prenom else nom
+
+    try:
+        conn = _get_db_connection()
+        cur  = conn.cursor()
+        cur.execute("""
+            INSERT INTO enseignants
+                (id, nom, prenom, mail, type, etat, cup, chefdepartement, up_id, dept_id)
+            VALUES (%s, %s, %s, %s, 'P', 'A', 'N', 'N', 1, 1)
+            ON CONFLICT (id) DO NOTHING
+        """, (new_id, nom, prenom, mail))
+        conn.commit()
+        cur.close()
+        conn.close()
+        # Invalidate cache so next load picks up the new row
+        global _ENS_INFO_CACHE, _ENS_INFO_TS
+        _ENS_INFO_CACHE = {}
+        _ENS_INFO_TS    = 0.0
+        logger.info(f"  Auto-created enseignant from fiche: {new_id} ({display})")
+    except Exception as exc:
+        logger.warning(f"  Cannot auto-create enseignant '{nom_complet}': {exc}")
+
+    return new_id, display
+
+
 # ── optional imports (graceful degradation if libs missing) ──────────────────
 try:
     import pdfplumber
@@ -917,17 +960,22 @@ def _analyze_single_fiche(
     matched_by_name, name_match_map = _match_enseignants_by_name(fiche_ens_names, enseignants)
     matched_by_module = _match_enseignants_by_module(text, enseignants)
 
-    # Build extracted enseignant list
+    # Build extracted enseignant list – every name gets a real DB ID
     extracted_ens: List[FicheEnseignantExtrait] = []
     for name in fiche_ens_names:
         role = roles_map.get(name, "enseignant")
         match_info = name_match_map.get(name)
+        if match_info:
+            mid, mnom = match_info
+        else:
+            # Name not found in DB → create a new enseignant row automatically
+            mid, mnom = _create_enseignant_if_new(name)
         extracted_ens.append(FicheEnseignantExtrait(
             fichier=filename,
             nom_complet=name,
             role=role,
-            matched_id=match_info[0] if match_info else None,
-            matched_nom=match_info[1] if match_info else None,
+            matched_id=mid,
+            matched_nom=mnom,
         ))
     logger.info(f"  Extracted professor names: {[e.nom_complet for e in extracted_ens]}")
 
@@ -1015,7 +1063,7 @@ def _analyze_single_fiche(
                     tmpId=str(uuid.uuid4()),
                     code=sav_code,
                     nom=aa["text"][:120],
-                    description=f"AA{aa['id']} \u2013 Niveau Bloom: {aa['bloom_level']}",
+                    description=aa["text"][:200],
                     type=_detect_type(aa["text"]),
                     niveau=_gc_ref_niveau(gc_codes) or _bloom_to_niveau(aa["bloom_level"]),
                     enseignantsSuggeres=all_matched,
@@ -1209,7 +1257,7 @@ def analyze_files(
         "totalCompetences": total_comp,
         "totalSousCompetences": total_sc,
         "totalSavoirs": total_sav,
-        "enseignantsCoverts": len(assigned_ens),
+        "enseignantsCovered": len(assigned_ens),
         "tauxCouverture": round(len(assigned_ens) / max(len(enseignants), 1) * 100, 1),
     }
 
@@ -1251,7 +1299,7 @@ _GC_REFERENTIAL = {
 
     # ── Compétences (6 compétences techniques) ──────────────────────────────
     "competences": {
-        "GC-GC-Tech-TechC1": {
+        "GC-TECH-S": {
             "nom": "Compétences dans le domaine des sols (S)",
             "keywords": [
                 "sol", "geologie", "geotechnique", "coupe geologique",
@@ -1259,7 +1307,7 @@ _GC_REFERENTIAL = {
                 "instabilite hydraulique", "renard", "boulance",
             ],
         },
-        "GC-GC-Tech-TechC2": {
+        "GC-TECH-C": {
             "nom": "Compétences dans le domaine de la construction (C)",
             "keywords": [
                 "beton arme", "ouvrage art", "pont", "viaduc",
@@ -1267,7 +1315,7 @@ _GC_REFERENTIAL = {
                 "rehabilitation", "mode constructif", "prefabrique",
             ],
         },
-        "GC-GC-Tech-TechC3": {
+        "GC-TECH-P": {
             "nom": "Compétences en physique du bâtiment (P)",
             "keywords": [
                 "thermique", "acoustique", "aeraulique", "isolation",
@@ -1275,21 +1323,21 @@ _GC_REFERENTIAL = {
                 "equipement technique", "cvc", "ventilation",
             ],
         },
-        "GC-GC-Tech-TechC4": {
+        "GC-TECH-E": {
             "nom": "Compétences dans le domaine de l'eau (E)",
             "keywords": [
                 "hydraulique", "hydrologie", "bassin versant", "debit",
                 "crue", "assainissement", "reseau eau", "diagnostic eau",
             ],
         },
-        "GC-GC-Tech-TechC5": {
+        "GC-TECH-U": {
             "nom": "Compétences en urbanisme (U)",
             "keywords": [
                 "urbanisme", "amenagement urbain", "diagnostic urbain",
                 "situation urbaine", "ville", "territoire", "paysage",
             ],
         },
-        "GC-GC-Tech-TechC6": {
+        "GC-TECH-T": {
             "nom": "Compétences transversales en génie civil (T)",
             "keywords": [
                 "pluridisciplinaire", "organisation chantier", "securite chantier",

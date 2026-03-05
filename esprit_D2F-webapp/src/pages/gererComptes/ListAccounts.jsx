@@ -223,8 +223,8 @@ export default function ListAccounts() {
           title="Créer un compte"
           width={480}
           onClose={() => setDrawerVisible(false)}
-          visible={drawerVisible}
-          bodyStyle={{ padding: 0 }}
+          open={drawerVisible}
+          styles={{ body: { padding: 0 } }}
         >
           <Register />
         </Drawer>

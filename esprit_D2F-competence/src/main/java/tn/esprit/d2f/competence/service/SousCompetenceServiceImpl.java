@@ -1,11 +1,14 @@
 package tn.esprit.d2f.competence.service;
 
 import jakarta.persistence.EntityNotFoundException;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.transaction.annotation.Transactional;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import tn.esprit.d2f.competence.dto.SousCompetenceDTO;
+import tn.esprit.d2f.competence.dto.SousCompetenceRequest;
 import tn.esprit.d2f.competence.entity.Competence;
 import tn.esprit.d2f.competence.entity.SousCompetence;
 import tn.esprit.d2f.competence.repository.CompetenceRepository;
@@ -17,30 +20,26 @@ import java.util.stream.Collectors;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class SousCompetenceServiceImpl implements ISousCompetenceService {
 
-    @Autowired
-    private SousCompetenceRepository sousCompetenceRepository;
-
-    @Autowired
-    private CompetenceRepository competenceRepository;
-
-    @Autowired
-    private EnseignantCompetenceRepository enseignantCompetenceRepository;
+    private final SousCompetenceRepository sousCompetenceRepository;
+    private final CompetenceRepository competenceRepository;
+    private final EnseignantCompetenceRepository enseignantCompetenceRepository;
+    private final CompetenceMapper competenceMapper;
 
     @Override
     @Transactional(readOnly = true)
-    public List<SousCompetenceDTO> getAllSousCompetences() {
-        return sousCompetenceRepository.findAll().stream()
-                .map(CompetenceMapper::toDTO)
-                .collect(Collectors.toList());
+    public Page<SousCompetenceDTO> getAllSousCompetences(Pageable pageable) {
+        return sousCompetenceRepository.findAll(pageable)
+                .map(competenceMapper::toDTO);
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<SousCompetenceDTO> getSousCompetencesByCompetence(Long competenceId) {
         return sousCompetenceRepository.findByCompetenceId(competenceId).stream()
-                .map(CompetenceMapper::toDTO)
+                .map(competenceMapper::toDTO)
                 .collect(Collectors.toList());
     }
 
@@ -49,34 +48,54 @@ public class SousCompetenceServiceImpl implements ISousCompetenceService {
     public SousCompetenceDTO getSousCompetenceById(Long id) {
         SousCompetence sc = sousCompetenceRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Sous-compétence non trouvée avec l'id: " + id));
-        return CompetenceMapper.toDTO(sc);
+        return competenceMapper.toDTO(sc);
     }
 
     @Override
     @Transactional
-    public SousCompetenceDTO createSousCompetence(Long competenceId, SousCompetence sousCompetence) {
+    public SousCompetenceDTO createSousCompetence(Long competenceId, SousCompetenceRequest request) {
         Competence competence = competenceRepository.findById(competenceId)
                 .orElseThrow(() -> new EntityNotFoundException("Compétence non trouvée avec l'id: " + competenceId));
-        if (sousCompetenceRepository.existsByCode(sousCompetence.getCode())) {
-            throw new IllegalArgumentException("Une sous-compétence avec le code '" + sousCompetence.getCode() + "' existe déjà");
+        if (sousCompetenceRepository.existsByCode(request.getCode())) {
+            throw new IllegalArgumentException("Une sous-compétence avec le code '" + request.getCode() + "' existe déjà");
         }
-        sousCompetence.setCompetence(competence);
+        SousCompetence sousCompetence = SousCompetence.builder()
+                .code(request.getCode())
+                .nom(request.getNom())
+                .description(request.getDescription())
+                .competence(competence)
+                .build();
         SousCompetence saved = sousCompetenceRepository.save(sousCompetence);
         log.info("Sous-compétence créée: {} dans compétence {}", saved.getNom(), competence.getNom());
-        return CompetenceMapper.toDTO(saved);
+        return competenceMapper.toDTO(saved);
     }
 
     @Override
     @Transactional
-    public SousCompetenceDTO updateSousCompetence(Long id, SousCompetence sousCompetence) {
+    public SousCompetenceDTO updateSousCompetence(Long id, SousCompetenceRequest request) {
         SousCompetence existing = sousCompetenceRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Sous-compétence non trouvée avec l'id: " + id));
-        existing.setCode(sousCompetence.getCode());
-        existing.setNom(sousCompetence.getNom());
-        existing.setDescription(sousCompetence.getDescription());
+        existing.setCode(request.getCode());
+        existing.setNom(request.getNom());
+        existing.setDescription(request.getDescription());
         SousCompetence saved = sousCompetenceRepository.save(existing);
         log.info("Sous-compétence mise à jour: {}", saved.getId());
-        return CompetenceMapper.toDTO(saved);
+        return competenceMapper.toDTO(saved);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<SousCompetenceDTO> searchSousCompetences(String keyword) {
+        return sousCompetenceRepository.searchByKeyword(keyword).stream()
+                .map(competenceMapper::toDTO)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<SousCompetenceDTO> searchSousCompetences(String keyword, Pageable pageable) {
+        return sousCompetenceRepository.searchByKeyword(keyword, pageable)
+                .map(competenceMapper::toDTO);
     }
 
     @Override

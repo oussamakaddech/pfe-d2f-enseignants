@@ -1,0 +1,7 @@
+node_modules/
+.vscode/
+__pycache__/
+*.pyc
+_semantic_cache/
+*.log
+diag_out.txt

@@ -42,7 +42,7 @@ export default function SideMenu() {
       { label: "Documents", key: "/home/File", icon: FileTextOutlined },
       { label: "Enseignants", key: "/home/Enseignants", icon: TeamOutlined },
       { label: "Compétences", key: "/home/competences", icon: ApartmentOutlined },
-      { label: "Structure Compétences", key: "/home/structure-competences", icon: ApartmentOutlined },
+      { label: "Affectations", key: "/home/affectations", icon: SolutionOutlined },
       { label: "RICE", key: "/home/rice", icon: RobotOutlined },
     ];
     // Menu admin
@@ -59,7 +59,7 @@ export default function SideMenu() {
       { label: "Up & Departement", key: "/home/UpDept", icon: ReadOutlined },
       { label: "Presence & Evaluation", key: "/home/animateur-formations", icon: ReadOutlined },
       { label: "Compétences", key: "/home/competences", icon: ApartmentOutlined },
-      { label: "Structure Compétences", key: "/home/structure-competences", icon: ApartmentOutlined },
+      { label: "Affectations", key: "/home/affectations", icon: SolutionOutlined },
       { label: "RICE", key: "/home/rice", icon: RobotOutlined },
     ];
         // Menu admin
@@ -71,7 +71,7 @@ export default function SideMenu() {
       { label: "Certificates", key: "/home/certificate", icon: ReadOutlined },
       { label: "Mes Certificates", key: "/home/MyCertificate", icon: ReadOutlined },
       { label: "Compétences", key: "/home/competences", icon: ApartmentOutlined },
-      { label: "Structure Compétences", key: "/home/structure-competences", icon: ApartmentOutlined },
+      { label: "Affectations", key: "/home/affectations", icon: SolutionOutlined },
       { label: "RICE", key: "/home/rice", icon: RobotOutlined },
     ];
     // Menu formateur (role = "Formateur")

@@ -1,105 +1,62 @@
 package tn.esprit.d2f.competence.service;
 
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
+import org.mapstruct.NullValuePropertyMappingStrategy;
 import tn.esprit.d2f.competence.dto.*;
 import tn.esprit.d2f.competence.entity.*;
 
-import java.util.Collections;
-import java.util.stream.Collectors;
-
 /**
- * Utilitaire de mapping Entity <-> DTO
+ * MapStruct mapper – Entity <-> DTO.
+ * Spring bean injected via @RequiredArgsConstructor in every service.
  */
-public final class CompetenceMapper {
+@Mapper(componentModel = "spring",
+        nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
+public interface CompetenceMapper {
 
-    private CompetenceMapper() {}
+    // ─── Domaine ─────────────────────────────────────────────────────────────
 
-    // ─── Domaine ───
-    public static DomaineDTO toDTO(Domaine d) {
-        if (d == null) return null;
-        return DomaineDTO.builder()
-                .id(d.getId())
-                .code(d.getCode())
-                .nom(d.getNom())
-                .description(d.getDescription())
-                .actif(d.getActif())
-                .competences(d.getCompetences() != null
-                        ? d.getCompetences().stream().map(CompetenceMapper::toDTO).collect(Collectors.toList())
-                        : Collections.emptyList())
-                .build();
-    }
+    /** Full mapping including the competences list. */
+    DomaineDTO toDTO(Domaine d);
 
-    public static DomaineDTO toDTOLight(Domaine d) {
-        if (d == null) return null;
-        return DomaineDTO.builder()
-                .id(d.getId())
-                .code(d.getCode())
-                .nom(d.getNom())
-                .description(d.getDescription())
-                .actif(d.getActif())
-                .build();
-    }
+    /** Light mapping WITHOUT the competences list (avoids N+1 in toggle/list). */
+    @Mapping(target = "competences", ignore = true)
+    DomaineDTO toDTOLight(Domaine d);
 
-    // ─── Competence ───
-    public static CompetenceDTO toDTO(Competence c) {
-        if (c == null) return null;
-        return CompetenceDTO.builder()
-                .id(c.getId())
-                .code(c.getCode())
-                .nom(c.getNom())
-                .description(c.getDescription())
-                .ordre(c.getOrdre())
-                .domaineId(c.getDomaine() != null ? c.getDomaine().getId() : null)
-                .domaineNom(c.getDomaine() != null ? c.getDomaine().getNom() : null)
-                .sousCompetences(c.getSousCompetences() != null
-                        ? c.getSousCompetences().stream().map(CompetenceMapper::toDTO).collect(Collectors.toList())
-                        : Collections.emptyList())
-                .savoirs(c.getSavoirs() != null
-                        ? c.getSavoirs().stream().map(CompetenceMapper::toDTO).collect(Collectors.toList())
-                        : Collections.emptyList())
-                .build();
-    }
+    // ─── Competence ──────────────────────────────────────────────────────────
 
-    // ─── SousCompetence ───
-    public static SousCompetenceDTO toDTO(SousCompetence sc) {
-        if (sc == null) return null;
-        return SousCompetenceDTO.builder()
-                .id(sc.getId())
-                .code(sc.getCode())
-                .nom(sc.getNom())
-                .description(sc.getDescription())
-                .competenceId(sc.getCompetence() != null ? sc.getCompetence().getId() : null)
-                .competenceNom(sc.getCompetence() != null ? sc.getCompetence().getNom() : null)
-                .savoirs(sc.getSavoirs() != null
-                        ? sc.getSavoirs().stream().map(CompetenceMapper::toDTO).collect(Collectors.toList())
-                        : Collections.emptyList())
-                .build();
-    }
+    @Mapping(target = "domaineId",    source = "domaine.id")
+    @Mapping(target = "domaineNom",   source = "domaine.nom")
+    @Mapping(target = "nbEnseignants", ignore = true)
+    CompetenceDTO toDTO(Competence c);
 
-    // ─── Savoir ───
-    public static SavoirDTO toDTO(Savoir s) {
-        if (s == null) return null;
-        return SavoirDTO.builder()
-                .id(s.getId())
-                .code(s.getCode())
-                .nom(s.getNom())
-                .description(s.getDescription())
-                .type(s.getType())
-                .niveau(s.getNiveau())
-                .sousCompetenceId(s.getSousCompetence() != null ? s.getSousCompetence().getId() : null)
-                .sousCompetenceNom(s.getSousCompetence() != null ? s.getSousCompetence().getNom() : null)
-                .competenceId(s.getCompetence() != null ? s.getCompetence().getId() : null)
-                .competenceNom(s.getCompetence() != null ? s.getCompetence().getNom() : null)
-                .build();
-    }
+    // ─── SousCompetence ──────────────────────────────────────────────────────
 
-    // ─── EnseignantCompetence ───
-    public static EnseignantCompetenceDTO toDTO(EnseignantCompetence ec) {
+    @Mapping(target = "competenceId",  source = "competence.id")
+    @Mapping(target = "competenceNom", source = "competence.nom")
+    SousCompetenceDTO toDTO(SousCompetence sc);
+
+    // ─── Savoir ──────────────────────────────────────────────────────────────
+
+    @Mapping(target = "sousCompetenceId",  source = "sousCompetence.id")
+    @Mapping(target = "sousCompetenceNom", source = "sousCompetence.nom")
+    @Mapping(target = "competenceId",      source = "competence.id")
+    @Mapping(target = "competenceNom",     source = "competence.nom")
+    SavoirDTO toDTO(Savoir s);
+
+    // ─── EnseignantCompetence ────────────────────────────────────────────────
+
+    /**
+     * Complex mapping: Savoir can be attached via SousCompetence OR directly
+     * to a Competence.  We keep this as a default method to handle both paths
+     * with null-safe navigation.
+     */
+    default EnseignantCompetenceDTO toDTO(EnseignantCompetence ec) {
         if (ec == null) return null;
         Savoir s = ec.getSavoir();
         SousCompetence sc = s != null ? s.getSousCompetence() : null;
         Competence c = sc != null ? sc.getCompetence() : (s != null ? s.getCompetence() : null);
         Domaine d = c != null ? c.getDomaine() : null;
-
         return EnseignantCompetenceDTO.builder()
                 .id(ec.getId())
                 .enseignantId(ec.getEnseignantId())

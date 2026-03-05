@@ -339,7 +339,7 @@ export default function UpDeptDataGrid() {
               width={360}
               onClose={() => setDrawerUpVisible(false)}
               visible={drawerUpVisible}
-              destroyOnClose
+              destroyOnHidden
             >
               <Form layout="vertical" form={formUp} onFinish={handleSubmitUp}>
                 <Form.Item
@@ -409,7 +409,7 @@ export default function UpDeptDataGrid() {
               width={360}
               onClose={() => setDrawerDeptVisible(false)}
               visible={drawerDeptVisible}
-              destroyOnClose
+              destroyOnHidden
             >
               <Form
                 layout="vertical"
