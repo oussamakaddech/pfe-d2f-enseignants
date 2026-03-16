@@ -6,7 +6,9 @@ import jakarta.persistence.MappedSuperclass;
 import jakarta.persistence.Version;
 import lombok.Getter;
 import lombok.Setter;
+import org.springframework.data.annotation.CreatedBy;
 import org.springframework.data.annotation.CreatedDate;
+import org.springframework.data.annotation.LastModifiedBy;
 import org.springframework.data.annotation.LastModifiedDate;
 import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
@@ -39,6 +41,16 @@ public abstract class BaseAuditEntity {
     @LastModifiedDate
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+    /** Utilisateur (subject JWT) qui a créé l'enregistrement. */
+    @CreatedBy
+    @Column(name = "created_by", updatable = false, length = 150)
+    private String createdBy;
+
+    /** Utilisateur (subject JWT) qui a effectué la dernière modification. */
+    @LastModifiedBy
+    @Column(name = "updated_by", length = 150)
+    private String updatedBy;
 
     /**
      * Compteur de version pour le verrou optimiste.

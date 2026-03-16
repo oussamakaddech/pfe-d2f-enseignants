@@ -1,5 +1,6 @@
 import axios from "axios";
 import { config } from "../config/env"; 
+import { optionalAuthHeader } from "./authHeaders";
 const API_URL = `${config.FORMATION_URL}/formation/inscription`;
 
 // Si certains endpoints sont sécurisés, décommentez et utilisez cette fonction :
@@ -17,8 +18,7 @@ const InscriptionService = {
       const response = await axios.get(`${API_URL}/formations/accessibles`, {
         
         params: { enseignantId },
-        
-        // headers: { Authorization: `Bearer ${getToken()}` }
+        headers: optionalAuthHeader(),
       });
       return response.data; // Liste de Formation
      
@@ -36,7 +36,7 @@ const InscriptionService = {
     try {
       const response = await axios.post(`${API_URL}/inscriptions`, null, {
         params: { formationId, enseignantId },
-        // headers: { Authorization: `Bearer ${getToken()}` }
+        headers: optionalAuthHeader(),
       });
       return response.data; // Objet Inscription créé
     } catch (error) {
@@ -52,7 +52,8 @@ const InscriptionService = {
  async getInscriptionsByFormation(formationId) {
     try {
       const response = await axios.get(
-        `${API_URL}/formations/${formationId}/inscriptions`
+        `${API_URL}/formations/${formationId}/inscriptions`,
+        { headers: optionalAuthHeader() }
       );
       return response.data; // Liste de Inscription
     } catch (error) {
@@ -76,7 +77,7 @@ const InscriptionService = {
         null,
         {
           params: { approuver },
-          // headers: { Authorization: `Bearer ${getToken()}` }
+          headers: optionalAuthHeader(),
         }
       );
       return response.data; // Objet Inscription mis à jour

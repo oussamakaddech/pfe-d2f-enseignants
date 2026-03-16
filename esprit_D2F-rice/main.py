@@ -2,7 +2,6 @@
 # RICE – Référentiel Intelligent de Compétences Enseignants
 # Standalone FastAPI app exposing the RICE analysis endpoints
 
-import asyncio
 import logging
 import os
 import sys
@@ -16,22 +15,15 @@ logging.basicConfig(
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
     datefmt="%Y-%m-%d %H:%M:%S",
 )
-# Ensure rice_analyzer logger matches the configured level
 logging.getLogger("rice_analyzer").setLevel(getattr(logging, _LOG_LEVEL, logging.INFO))
-
-# Fix Windows ProactorEventLoop bug: ConnectionResetError WinError 10054
-# The ProactorEventLoop crashes when a subprocess (Ollama llama runner) terminates
-# abruptly. SelectorEventLoop avoids this entirely on Windows.
-if sys.platform == "win32":
-    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.concurrency import run_in_threadpool
 from fastapi.middleware.cors import CORSMiddleware
-from rice_analyzer import rice_router, _LLM_OK, _LLM_MODEL, _OLLAMA_HOST
 from rice.ratelimit import RateLimitMiddleware
+from rice_analyzer import rice_router
 
 
 # ── Startup lifespan: pre-warm optional heavy components ─────────────────────
@@ -45,21 +37,19 @@ async def lifespan(app: FastAPI):
     """
     try:
         from rice_analyzer import (
-            _build_semantic_corpus,
-            _get_semantic_model,
             _SEMANTIC_OK,
+            _build_semantic_corpus,
             _fetch_enseignant_affectations,
+            _get_semantic_model,
         )
+
         if _SEMANTIC_OK:
-            await run_in_threadpool(_get_semantic_model)        # load model weights
-            await run_in_threadpool(_build_semantic_corpus, "gc")  # encode GC corpus
-        # Pre-fill the affectations cache so the first request is fast
+            await run_in_threadpool(_get_semantic_model)
+            await run_in_threadpool(_build_semantic_corpus, "gc")
         await run_in_threadpool(_fetch_enseignant_affectations)
     except Exception as exc:
-        import logging
         logging.getLogger("rice_startup").warning(f"Pre-warm skipped: {exc}")
-    yield   # application running
-    # (shutdown hook can go here if needed)
+    yield
 
 
 app = FastAPI(
@@ -69,7 +59,7 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# === CORS ===
+# ── CORS ──────────────────────────────────────────────────────────────────────
 origins = [
     "http://esprit-d2f.esprit.tn/*",
     "http://localhost:3000",
@@ -84,28 +74,20 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# === Rate limiting (applied after CORS) ===
+# ── Rate limiting ─────────────────────────────────────────────────────────────
 app.add_middleware(RateLimitMiddleware)
 
-# === Register RICE router ===
+# ── RICE router ───────────────────────────────────────────────────────────────
 app.include_router(rice_router)
 
 
+# ── Health endpoint ───────────────────────────────────────────────────────────
 @app.get("/health")
 def health():
-    llm_status = "unavailable"
-    if _LLM_OK:
-        try:
-            import ollama
-            client = ollama.Client(host=_OLLAMA_HOST)
-            client.list()  # lightweight ping
-            llm_status = f"ok ({_LLM_MODEL})"
-        except Exception as e:
-            llm_status = f"unreachable – {e}"
+    """Healthcheck endpoint — retourne le statut du service RICE."""
     return {
         "status": "ok",
         "service": "rice",
-        "llm": llm_status,
-        "llm_model": _LLM_MODEL,
-        "ollama_host": _OLLAMA_HOST,
+        "llm": "disabled",
+        "extraction_mode": "regex + table NER",
     }

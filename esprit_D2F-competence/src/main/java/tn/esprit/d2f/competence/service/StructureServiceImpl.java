@@ -133,7 +133,11 @@ public class StructureServiceImpl implements IStructureService {
     }
 
     private StructureArbreDTO.CompetenceArbreDTO buildCompetenceArbre(Competence competence) {
-        List<SousCompetence> sousCompetences = competence.getSousCompetences();
+        List<SousCompetence> sousCompetences = competence.getSousCompetences() == null
+                ? Collections.emptyList()
+                : competence.getSousCompetences().stream()
+                .filter(sc -> sc.getParent() == null)
+                .collect(Collectors.toList());
 
         List<StructureArbreDTO.SousCompetenceArbreDTO> scArbreDTOs = sousCompetences.stream()
                 .map(this::buildSousCompetenceArbre)
@@ -143,7 +147,7 @@ public class StructureServiceImpl implements IStructureService {
                 ? competence.getSavoirs().stream().map(competenceMapper::toDTO).collect(Collectors.toList())
                 : Collections.emptyList();
 
-        int totalSavoirs = sousCompetences.stream().mapToInt(sc -> sc.getSavoirs().size()).sum()
+        int totalSavoirs = sousCompetences.stream().mapToInt(this::countSavoirsRecursive).sum()
                 + savoirsDirect.size();
 
         long nbEnseignants;
@@ -175,15 +179,35 @@ public class StructureServiceImpl implements IStructureService {
             nbEnseignants = 0;
         }
 
+                List<StructureArbreDTO.SousCompetenceArbreDTO> enfants = sc.getEnfants() == null
+                                ? Collections.emptyList()
+                                : sc.getEnfants().stream()
+                                .map(this::buildSousCompetenceArbre)
+                                .collect(Collectors.toList());
+
+                List<SavoirDTO> savoirs = sc.getSavoirs() == null
+                                ? Collections.emptyList()
+                                : sc.getSavoirs().stream().map(competenceMapper::toDTO).collect(Collectors.toList());
+
         return StructureArbreDTO.SousCompetenceArbreDTO.builder()
                 .id(sc.getId())
                 .code(sc.getCode())
                 .nom(sc.getNom())
                 .description(sc.getDescription())
-                .nombreSavoirs(sc.getSavoirs().size())
+                                .niveau(sc.getNiveau())
+                                .nombreSavoirs(countSavoirsRecursive(sc))
                 .nombreEnseignants(nbEnseignants)
-                .savoirs(sc.getSavoirs().stream().map(competenceMapper::toDTO).collect(Collectors.toList()))
+                                .savoirs(savoirs)
+                                .enfants(enfants)
                 .build();
     }
+
+        private int countSavoirsRecursive(SousCompetence sc) {
+                int current = sc.getSavoirs() == null ? 0 : sc.getSavoirs().size();
+                if (sc.getEnfants() == null || sc.getEnfants().isEmpty()) {
+                        return current;
+                }
+                return current + sc.getEnfants().stream().mapToInt(this::countSavoirsRecursive).sum();
+        }
 
 }

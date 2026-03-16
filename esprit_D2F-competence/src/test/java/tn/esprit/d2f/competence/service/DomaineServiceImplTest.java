@@ -12,6 +12,9 @@ import org.springframework.data.domain.*;
 import tn.esprit.d2f.competence.dto.DomaineDTO;
 import tn.esprit.d2f.competence.entity.Domaine;
 import tn.esprit.d2f.competence.repository.DomaineRepository;
+import tn.esprit.d2f.competence.repository.EnseignantCompetenceRepository;
+import tn.esprit.d2f.competence.repository.NiveauSavoirRequisRepository;
+import tn.esprit.d2f.competence.repository.SavoirRepository;
 import tn.esprit.d2f.competence.dto.DomaineRequest;
 
 import java.util.ArrayList;
@@ -27,6 +30,9 @@ import static org.mockito.Mockito.*;
 class DomaineServiceImplTest {
 
     @Mock private DomaineRepository domaineRepository;
+    @Mock private EnseignantCompetenceRepository enseignantCompetenceRepository;
+    @Mock private NiveauSavoirRequisRepository niveauRepo;
+    @Mock private SavoirRepository savoirRepository;
     @Mock private CompetenceMapper  competenceMapper;
 
     @InjectMocks private DomaineServiceImpl domaineService;
@@ -168,10 +174,13 @@ class DomaineServiceImplTest {
         @Test @DisplayName("supprime quand l enregistrement existe")
         void shouldDeleteWhenFound() {
             when(domaineRepository.existsById(1L)).thenReturn(true);
+            when(savoirRepository.findIdsByDomaineId(1L)).thenReturn(List.of());
             doNothing().when(domaineRepository).deleteById(1L);
 
             domaineService.deleteDomaine(1L);
 
+            verify(niveauRepo).deleteByCompetence_DomaineId(1L);
+            verify(niveauRepo).deleteBySousCompetence_Competence_DomaineId(1L);
             verify(domaineRepository).deleteById(1L);
         }
 

@@ -12,6 +12,7 @@ public interface ISousCompetenceService {
     List<SousCompetenceDTO> getSousCompetencesByCompetence(Long competenceId);
     SousCompetenceDTO getSousCompetenceById(Long id);
     SousCompetenceDTO createSousCompetence(Long competenceId, SousCompetenceRequest request);
+    SousCompetenceDTO createSousCompetenceEnfant(Long parentId, SousCompetenceRequest request);
     SousCompetenceDTO updateSousCompetence(Long id, SousCompetenceRequest request);
     void deleteSousCompetence(Long id);
     /** Recherche non-paginée (usage interne StructureService). */

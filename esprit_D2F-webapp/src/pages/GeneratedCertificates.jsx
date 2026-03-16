@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Box, List, ListItem, Typography, Link, Button } from "@mui/material";
 import CertificateService from "../services/CertificateService";
+import { config } from "../config/env";
 
 function GeneratedCertificates() {
   const { formationId } = useParams();
@@ -34,7 +35,7 @@ function GeneratedCertificates() {
       <List>
         {pdfFiles.map((pdfFile, index) => (
           <ListItem key={index}>
-            <Link href={`http://localhost:8086/${pdfFile}`} target="_blank" rel="noopener">
+            <Link href={`${config.CERTF_URL}/certificat/${pdfFile}`} target="_blank" rel="noopener">
               {pdfFile}
             </Link>
           </ListItem>

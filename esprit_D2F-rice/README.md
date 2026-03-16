@@ -79,9 +79,9 @@ The cache is rebuilt automatically on first call or when `/rice/refresh-cache` i
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `DATABASE_URL` | — | PostgreSQL connection string |
-| `OLLAMA_HOST` | `http://localhost:11434` | Ollama LLM endpoint |
 | `RICE_AUTH_ENABLED` | `false` | Enable JWT Bearer authentication on modifying routes |
 | `RICE_AUTH_SECRET` | `change-me` | Secret key used to verify JWT tokens |
+| `RICE_LOG_LEVEL` | `INFO` | Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL) |
 
 ---
 

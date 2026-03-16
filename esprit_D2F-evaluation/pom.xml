@@ -83,6 +83,12 @@
 			<scope>runtime</scope>
 		</dependency>
 
+		<!-- Migration base de données — conformité DSI §3.2 migrations obligatoires -->
+		<dependency>
+			<groupId>org.flywaydb</groupId>
+			<artifactId>flyway-database-postgresql</artifactId>
+		</dependency>
+
 		<!-- WebSocket -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>

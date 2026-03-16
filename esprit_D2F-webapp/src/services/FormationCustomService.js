@@ -1,12 +1,8 @@
 import axios from "axios";
 import { config } from "../config/env"; 
+import { requireAuthHeader } from "./authHeaders";
 // URL de votre back-end
 const API_URL_CUSTOM =`${config.FORMATION_URL}/formation/formations-custom`;
-
-// Récupération du token depuis le localStorage
-function getToken() {
-  return localStorage.getItem("authToken");
-}
 
 const FormationCustomService = {
   /**
@@ -16,17 +12,12 @@ const FormationCustomService = {
    */
   async generateCertificates(formationId, typeCertif = "CERTIF") {
     try {
-      const token = getToken();
-      console.log("Appel génération certificats, token =", token);
-
       const response = await axios.put(
         `${API_URL_CUSTOM}/${formationId}/generate-certificates`,
         null,
         {
           params: { typeCertif },
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          headers: requireAuthHeader(),
         }
       );
 

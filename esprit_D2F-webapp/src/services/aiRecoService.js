@@ -1,8 +1,6 @@
 // src/services/aiRecoService.js
 import axios from "axios";
 import { config } from "../config/env"; 
-// ATTENTION : si votre front React est lancé en local (npm start ou yarn start),
-// alors "http://localhost:8000" pointe bien vers le conteneur FastAPI exposé sur le port 8000.
 const API_URL = `${config.AI_URL}/ai`;
 
 

@@ -14,8 +14,30 @@ volumes:
       path: /var/run/docker.sock
 
 steps:
+  - name: typecheck
+    image: node:20-alpine
+    commands:
+      - npm ci --legacy-peer-deps
+      - npm run typecheck
+      - npm run typecheck:services-strict
+
+  - name: sonar-scan
+    image: sonarsource/sonar-scanner-cli:latest
+    depends_on:
+      - typecheck
+    environment:
+      SONAR_HOST_URL:
+        from_secret: sonar_host_url
+      SONAR_TOKEN:
+        from_secret: sonar_token
+    commands:
+      - sonar-scanner -Dsonar.host.url=$SONAR_HOST_URL -Dsonar.login=$SONAR_TOKEN -Dsonar.qualitygate.wait=true -Dsonar.qualitygate.timeout=300
+
   - name: build and publish
     image: plugins/docker
+    depends_on:
+      - typecheck
+      - sonar-scan
     environment:
       DOCKER_BUILDKIT: 1
     volumes:

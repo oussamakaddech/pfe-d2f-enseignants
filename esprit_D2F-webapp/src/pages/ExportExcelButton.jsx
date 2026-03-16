@@ -1,12 +1,13 @@
 
 import axios from "axios";
 import { Button } from "@mui/material";
+import { config } from "../config/env";
 
 function ExportExcelButton() {
   const handleExportExcel = async () => {
     try {
       const response = await axios.get(
-        "http://localhost:8088/formations-workflow/export/excel",
+        `${config.FORMATION_URL}/formation/formations-workflow/export/excel`,
         {
           responseType: "blob", // Pour récupérer le fichier binaire
         }

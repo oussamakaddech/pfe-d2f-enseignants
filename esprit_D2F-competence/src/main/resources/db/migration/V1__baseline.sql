@@ -1,0 +1,26 @@
+-- =============================================================================
+-- V1 Baseline Migration — competence-service
+-- =============================================================================
+-- Ce script constitue la baseline Flyway pour le schéma existant.
+-- Le schéma a été créé initialement via spring.jpa.hibernate.ddl-auto=update.
+-- À partir de V2, toutes les modifications de schéma doivent être versionnées
+-- sous forme de scripts SQL dans ce répertoire (V2__*.sql, V3__*.sql, etc.).
+--
+-- Conformité DSI §3.2 : "Migrations obligatoires — aucune création manuelle
+-- non traçable."
+--
+-- Généré le  : 2025-01-01
+-- Service    : competence-service
+-- Base       : d2f (PostgreSQL)
+-- =============================================================================
+
+-- Aucune instruction SQL dans cette version baseline.
+-- Le schéma existant (tables : domaines, competences, sous_competences,
+-- savoirs, enseignant_competences, niveau_savoir_requis, rice_import_logs)
+-- est pris en charge par spring.flyway.baseline-on-migrate=true (dev/QA)
+-- ou supposé déjà présent avant le premier déploiement avec Flyway (prod).
+--
+-- Prochaines migrations :
+--   V2__add_index_xyz.sql
+--   V3__alter_table_xyz.sql
+--   ...

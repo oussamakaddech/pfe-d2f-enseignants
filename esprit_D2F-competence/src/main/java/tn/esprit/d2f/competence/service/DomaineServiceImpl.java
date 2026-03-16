@@ -15,6 +15,8 @@ import tn.esprit.d2f.competence.dto.DomaineRequest;
 import tn.esprit.d2f.competence.entity.Domaine;
 import tn.esprit.d2f.competence.repository.DomaineRepository;
 import tn.esprit.d2f.competence.repository.EnseignantCompetenceRepository;
+import tn.esprit.d2f.competence.repository.NiveauSavoirRequisRepository;
+import tn.esprit.d2f.competence.repository.SavoirRepository;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -26,6 +28,8 @@ public class DomaineServiceImpl implements IDomaineService {
 
     private final DomaineRepository domaineRepository;
     private final EnseignantCompetenceRepository enseignantCompetenceRepository;
+    private final NiveauSavoirRequisRepository niveauRepo;
+    private final SavoirRepository savoirRepository;
     private final CompetenceMapper competenceMapper;
 
     @Override
@@ -126,10 +130,16 @@ public class DomaineServiceImpl implements IDomaineService {
         if (!domaineRepository.existsById(id)) {
             throw new EntityNotFoundException("Domaine non trouvé avec l'id: " + id);
         }
-        // Supprimer les affectations enseignant-compétence liées aux savoirs de ce domaine
-        List<Long> savoirIds = enseignantCompetenceRepository.findSavoirIdsByDomaineId(id);
-        if (!savoirIds.isEmpty()) {
-            enseignantCompetenceRepository.deleteBySavoirIdIn(savoirIds);
+        // 1. Supprimer les niveau_savoir_requis liés directement aux compétences du domaine
+        niveauRepo.deleteByCompetence_DomaineId(id);
+        // 2. Supprimer les niveau_savoir_requis liés via les sous-compétences du domaine
+        niveauRepo.deleteBySousCompetence_Competence_DomaineId(id);
+        // 3. Supprimer les niveau_savoir_requis référençant les savoirs du domaine (sécurité)
+        List<Long> allSavoirIds = savoirRepository.findIdsByDomaineId(id);
+        if (!allSavoirIds.isEmpty()) {
+            niveauRepo.deleteBySavoirIdIn(allSavoirIds);
+            // 4. Supprimer les affectations enseignant-compétence
+            enseignantCompetenceRepository.deleteBySavoirIdIn(allSavoirIds);
         }
         domaineRepository.deleteById(id);
         log.info("Domaine supprimé: {}", id);
