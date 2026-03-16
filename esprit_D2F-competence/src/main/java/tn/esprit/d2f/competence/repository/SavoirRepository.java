@@ -24,6 +24,16 @@ public interface SavoirRepository extends JpaRepository<Savoir, Long> {
     @Query("SELECT s.id FROM Savoir s WHERE s.competence.id = :competenceId")
     List<Long> findIdsByCompetenceId(@Param("competenceId") Long competenceId);
 
+    /** IDs des savoirs rattachés à une sous-compétence */
+    @Query("SELECT s.id FROM Savoir s WHERE s.sousCompetence.id = :sousCompetenceId")
+    List<Long> findIdsBySousCompetenceId(@Param("sousCompetenceId") Long sousCompetenceId);
+
+    /** IDs de tous les savoirs appartenant à un domaine (via sous-compétence ou compétence directe) */
+    @Query("SELECT s.id FROM Savoir s WHERE " +
+           "s.sousCompetence.competence.domaine.id = :domaineId OR " +
+           "s.competence.domaine.id = :domaineId")
+    List<Long> findIdsByDomaineId(@Param("domaineId") Long domaineId);
+
     @Query("SELECT s FROM Savoir s WHERE LOWER(s.nom) LIKE LOWER(CONCAT('%', :keyword, '%')) OR LOWER(s.description) LIKE LOWER(CONCAT('%', :keyword, '%')) OR LOWER(s.code) LIKE LOWER(CONCAT('%', :keyword, '%'))")
     List<Savoir> searchByKeyword(@Param("keyword") String keyword);
 

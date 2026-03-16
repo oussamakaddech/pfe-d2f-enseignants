@@ -64,9 +64,11 @@ public class StructureArbreDTO {
         private String code;
         private String nom;
         private String description;
+        private Integer niveau;
         private int nombreSavoirs;
         private long nombreEnseignants;
         private List<SavoirDTO> savoirs;
+        private List<SousCompetenceArbreDTO> enfants;
     }
 
     @Data

@@ -11,12 +11,14 @@ import java.util.List;
 @Entity
 @Table(name = "sous_competences", indexes = {
         @Index(name = "idx_sc_code", columnList = "code"),
-        @Index(name = "idx_sc_competence", columnList = "competence_id")
+    @Index(name = "idx_sc_competence", columnList = "competence_id"),
+    @Index(name = "idx_sc_parent", columnList = "parent_id"),
+    @Index(name = "idx_sc_niveau", columnList = "niveau")
 })
 @Getter
 @Setter
 @EqualsAndHashCode(of = "id", callSuper = false)
-@ToString(exclude = {"competence", "savoirs"})
+@ToString(exclude = {"competence", "parent", "enfants", "savoirs"})
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -38,6 +40,20 @@ public class SousCompetence extends BaseAuditEntity {
     @JoinColumn(name = "competence_id", nullable = false)
     @JsonBackReference("competence-souscompetence")
     private Competence competence;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "parent_id")
+    @JsonBackReference("souscompetence-parent")
+    private SousCompetence parent;
+
+    @OneToMany(mappedBy = "parent", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonManagedReference("souscompetence-parent")
+    @Builder.Default
+    private List<SousCompetence> enfants = new ArrayList<>();
+
+    @Column(nullable = false)
+    @Builder.Default
+    private Integer niveau = 1;
 
     @OneToMany(mappedBy = "sousCompetence", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonManagedReference("souscompetence-savoir")

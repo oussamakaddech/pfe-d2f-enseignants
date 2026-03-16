@@ -6,6 +6,9 @@ import org.mapstruct.NullValuePropertyMappingStrategy;
 import tn.esprit.d2f.competence.dto.*;
 import tn.esprit.d2f.competence.entity.*;
 
+import java.util.Collections;
+import java.util.stream.Collectors;
+
 /**
  * MapStruct mapper – Entity <-> DTO.
  * Spring bean injected via @RequiredArgsConstructor in every service.
@@ -32,9 +35,26 @@ public interface CompetenceMapper {
 
     // ─── SousCompetence ──────────────────────────────────────────────────────
 
-    @Mapping(target = "competenceId",  source = "competence.id")
-    @Mapping(target = "competenceNom", source = "competence.nom")
-    SousCompetenceDTO toDTO(SousCompetence sc);
+        default SousCompetenceDTO toDTO(SousCompetence sc) {
+        if (sc == null) return null;
+
+        return SousCompetenceDTO.builder()
+            .id(sc.getId())
+            .code(sc.getCode())
+            .nom(sc.getNom())
+            .description(sc.getDescription())
+            .competenceId(sc.getCompetence() != null ? sc.getCompetence().getId() : null)
+            .competenceNom(sc.getCompetence() != null ? sc.getCompetence().getNom() : null)
+            .parentId(sc.getParent() != null ? sc.getParent().getId() : null)
+            .niveau(sc.getNiveau())
+            .savoirs(sc.getSavoirs() == null
+                ? Collections.emptyList()
+                : sc.getSavoirs().stream().map(this::toDTO).collect(Collectors.toList()))
+            .enfants(sc.getEnfants() == null
+                ? Collections.emptyList()
+                : sc.getEnfants().stream().map(this::toDTO).collect(Collectors.toList()))
+            .build();
+        }
 
     // ─── Savoir ──────────────────────────────────────────────────────────────
 

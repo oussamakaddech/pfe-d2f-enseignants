@@ -1,0 +1,21 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "strict": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "allowJs": false,
+    "checkJs": false,
+    "exactOptionalPropertyTypes": true,
+    "noUncheckedIndexedAccess": true
+  },
+  "include": [],
+  "files": [
+    "src/services/authService.ts",
+    "src/services/accountService.ts",
+    "src/services/FormationWorkflowService.ts",
+    "src/services/CompetenceService.ts",
+    "src/services/CertificateService.ts",
+    "src/services/BesoinFormationService.ts"
+  ]
+}

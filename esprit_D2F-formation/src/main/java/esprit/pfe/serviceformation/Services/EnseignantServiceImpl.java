@@ -5,6 +5,7 @@ import esprit.pfe.serviceformation.Entities.Enseignant;
 import esprit.pfe.serviceformation.Repositories.EnseignantRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.Optional;
 
@@ -15,7 +16,31 @@ public class EnseignantServiceImpl implements EnseignantService {
     private EnseignantRepository enseignantRepository;
 
     @Override
+    @Transactional
     public Enseignant createEnseignant(Enseignant enseignant) {
+        // Auto-generate ID in format E00001, E00002, … if not provided
+        if (enseignant.getId() == null || enseignant.getId().isBlank()) {
+            String nextId = enseignantRepository.findTopByOrderByIdDesc()
+                    .map(last -> {
+                        String lastId = last.getId(); // e.g. "E00042"
+                        try {
+                            // Strip leading non-digits and parse
+                            int num = Integer.parseInt(lastId.replaceAll("\\D", ""));
+                            return String.format("E%05d", num + 1);
+                        } catch (NumberFormatException e) {
+                            return "E00001";
+                        }
+                    })
+                    .orElse("E00001");
+            enseignant.setId(nextId);
+        }
+        // Default mandatory fields not provided from the creation form
+        if (enseignant.getCup() == null || enseignant.getCup().isBlank()) {
+            enseignant.setCup("N");
+        }
+        if (enseignant.getChefDepartement() == null || enseignant.getChefDepartement().isBlank()) {
+            enseignant.setChefDepartement("N");
+        }
         return enseignantRepository.save(enseignant);
     }
 

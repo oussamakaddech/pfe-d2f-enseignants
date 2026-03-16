@@ -3,6 +3,10 @@ import { config } from "../config/env";
 
 const API_URL = `${config.FORMATION_URL}/formation/kpi`;
 
+function isNotFoundError(error) {
+  return axios.isAxiosError(error) && error.response?.status === 404;
+}
+
 const KPIService = {
   // Récupère le nombre total de formations sur une période donnée
   async getTotalFormations(start, end) {
@@ -12,7 +16,7 @@ const KPIService = {
       });
       return response.data || 0;
     } catch (error) {
-      if (error.response?.status === 404) {
+      if (isNotFoundError(error)) {
         console.warn("Aucune formation trouvée");
         return 0;
       }
@@ -29,7 +33,7 @@ const KPIService = {
       });
       return response.data || 0;
     } catch (error) {
-      if (error.response?.status === 404) {
+      if (isNotFoundError(error)) {
         console.warn("Aucune heure trouvée");
         return 0;
       }
@@ -46,7 +50,7 @@ const KPIService = {
       });
       return response.data || 0;
     } catch (error) {
-      if (error.response?.status === 404) {
+      if (isNotFoundError(error)) {
         console.warn("Aucun participant trouvé");
         return 0;
       }
@@ -70,7 +74,7 @@ const KPIService = {
         total: 0,
       };
     } catch (error) {
-      if (error.response?.status === 404) {
+      if (isNotFoundError(error)) {
         console.warn("Aucune formation par état trouvée");
         return {
           enregistre: 0,
@@ -98,7 +102,7 @@ const KPIService = {
       });
       return response.data || [];
     } catch (error) {
-      if (error.response?.status === 404) {
+      if (isNotFoundError(error)) {
         console.warn("Aucun top participant trouvé");
         return [];
       }
@@ -119,7 +123,7 @@ const KPIService = {
       });
       return response.data || [];
     } catch (error) {
-      if (error.response?.status === 404) {
+      if (isNotFoundError(error)) {
         console.warn("Aucun top absentee trouvé");
         return [];
       }
@@ -136,7 +140,7 @@ const KPIService = {
       });
       return response.data || [];
     } catch (error) {
-      if (error.response?.status === 404) {
+      if (isNotFoundError(error)) {
         console.warn("Aucun enseignant non affecté trouvé");
         return [];
       }
@@ -168,7 +172,7 @@ const KPIService = {
       const response = await axios.get(`${API_URL}/count-heures`, { params });
       return response.data || { count: 0, totalHeures: 0 };
     } catch (error) {
-      if (error.response?.status === 404) {
+      if (isNotFoundError(error)) {
         console.warn("Aucune formation filtrée trouvée");
         return { count: 0, totalHeures: 0 };
       }
@@ -206,7 +210,7 @@ const KPIService = {
       );
       return response.data || { interne: 0, externe: 0, enLigne: 0 };
     } catch (error) {
-      if (error.response?.status === 404) {
+      if (isNotFoundError(error)) {
         console.warn("Aucune formation par type filtrée trouvée");
         return { interne: 0, externe: 0, enLigne: 0 };
       }
@@ -227,7 +231,7 @@ const KPIService = {
       );
       return response.data || [];
     } catch (error) {
-      if (error.response?.status === 404) {
+      if (isNotFoundError(error)) {
         console.warn("Aucune donnée count-by-trainer-type trouvée");
         return [];
       }

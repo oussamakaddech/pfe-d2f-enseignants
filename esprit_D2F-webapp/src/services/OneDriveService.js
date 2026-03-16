@@ -1,6 +1,7 @@
 // OneDriveService.js
 import axios from "axios";
 import { config } from "../config/env"; 
+import { optionalAuthHeader } from "./authHeaders";
 // URL de base pour les opérations OneDrive sur votre back-end
 const API_URL = `${config.FORMATION_URL}/formation/onedrive`;
 
@@ -9,7 +10,9 @@ const OneDriveService = {
   // Récupère l'arborescence complète des dossiers et fichiers depuis OneDrive
   async getDriveHierarchy() {
     try {
-      const response = await axios.get(`${API_URL}/hierarchy`);
+      const response = await axios.get(`${API_URL}/hierarchy`, {
+        headers: optionalAuthHeader(),
+      });
       return response.data;
     } catch (error) {
       console.error("Erreur lors de la récupération de l'arborescence OneDrive :", error);
@@ -24,6 +27,7 @@ const OneDriveService = {
       const response = await axios.get(`${API_URL}/download`, {
         params: { nomFormation, nomDocument, originalFileName },
         responseType: "blob", // Pour récupérer le fichier sous forme de blob
+        headers: optionalAuthHeader(),
       });
       return response.data;
     } catch (error) {
@@ -37,6 +41,7 @@ const OneDriveService = {
     try {
       const response = await axios.delete(`${API_URL}/delete`, {
         params: { nomFormation, nomDocument, originalFileName },
+        headers: optionalAuthHeader(),
       });
       return response.data;
     } catch (error) {
@@ -48,6 +53,7 @@ const OneDriveService = {
     try {
       const response = await axios.get(`${API_URL}/embed-link`, {
         params: { formation: nomFormation, document: nomDocument },
+        headers: optionalAuthHeader(),
       });
       return response.data;
     } catch (error) {
@@ -59,14 +65,15 @@ const OneDriveService = {
     try {
       //  GET /onedrive/formations/{id}/hierarchy
       const { data } = await axios.get(
-        `${API_URL}/formations/${idFormation}/hierarchy`
+        `${API_URL}/formations/${idFormation}/hierarchy`,
+        { headers: optionalAuthHeader() }
       );
       return data;                            //   →  List<OneDriveItemDTO>
-    } catch (err) {
+    } catch (error) {
       console.error(
-        "Erreur lors de la récupération de l’arborescence OneDrive :", err
+        "Erreur lors de la récupération de l’arborescence OneDrive :", error
       );
-      throw err;
+      throw error;
     }
   },
   

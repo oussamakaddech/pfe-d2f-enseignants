@@ -5,8 +5,9 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.MediaType;
@@ -21,7 +22,6 @@ import java.time.LocalDate;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -37,7 +37,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  *   <li>@WithMockUser – contourne le filtre JWT sans avoir un token réel</li>
  * </ul>
  */
-@WebMvcTest(EnseignantCompetenceController.class)
+@SpringBootTest
+@AutoConfigureMockMvc
 @DisplayName("EnseignantCompetenceController – Tests MockMvc")
 class EnseignantCompetenceControllerTest {
 
@@ -71,7 +72,7 @@ class EnseignantCompetenceControllerTest {
     class GetAll {
 
         @Test
-        @WithMockUser(roles = "USER")
+        @WithMockUser(roles = "admin")
         @DisplayName("200 – renvoie une page d'affectations")
         void shouldReturn200WithPage() throws Exception {
             var page = new PageImpl<>(List.of(sampleDTO()), PageRequest.of(0, 20), 1);
@@ -98,7 +99,7 @@ class EnseignantCompetenceControllerTest {
     class CountByEnseignant {
 
         @Test
-        @WithMockUser(roles = "USER")
+        @WithMockUser(roles = "admin")
         @DisplayName("200 – renvoie le compteur correct")
         void shouldReturnCount() throws Exception {
             when(service.countCompetences("ens-001")).thenReturn(5L);
@@ -116,7 +117,7 @@ class EnseignantCompetenceControllerTest {
     class AssignCompetence {
 
         @Test
-        @WithMockUser(roles = "MANAGER")
+        @WithMockUser(roles = "admin")
         @DisplayName("201 – assigne un savoir à un enseignant")
         void shouldReturn201OnCreate() throws Exception {
             var request = EnseignantCompetenceRequest.builder()
@@ -136,7 +137,7 @@ class EnseignantCompetenceControllerTest {
         }
 
         @Test
-        @WithMockUser(roles = "USER")
+        @WithMockUser(roles = "manager")
         @DisplayName("403 – rôle USER ne peut pas créer")
         void shouldReturn403ForUser() throws Exception {
             var request = EnseignantCompetenceRequest.builder()
@@ -156,7 +157,7 @@ class EnseignantCompetenceControllerTest {
     class RemoveCompetence {
 
         @Test
-        @WithMockUser(roles = "ADMIN")
+        @WithMockUser(roles = "admin")
         @DisplayName("204 – suppression réussie")
         void shouldReturn204OnDelete() throws Exception {
             doNothing().when(service).removeCompetence(1L);
@@ -168,7 +169,7 @@ class EnseignantCompetenceControllerTest {
         }
 
         @Test
-        @WithMockUser(roles = "MANAGER")
+        @WithMockUser(roles = "manager")
         @DisplayName("403 – MANAGER ne peut pas supprimer")
         void shouldReturn403ForManager() throws Exception {
             mockMvc.perform(delete(BASE_URL + "/1").with(csrf()))

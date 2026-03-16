@@ -1,15 +1,11 @@
 // src/services/RiceService.js
 import axios from "axios";
 import { config } from "../config/env";
+import { requireAuthHeader } from "./authHeaders";
 
 const RICE_BASE       = `${config.RICE_URL}/rice`;     // direct to Python :8001 (no gateway – avoids codec size limit for file uploads)
 const AI_BASE         = `${config.AI_URL}/ai`;          // gateway /api/ai/**  → Python :8000 (recommandation)
 const COMPETENCE_BASE = `${config.COMPETENCE_URL}/competence`;
-
-const authHeader = () => {
-  const token = localStorage.getItem("authToken");
-  return token ? { Authorization: `Bearer ${token}` } : {};
-};
 
 const RiceService = {
   /**
@@ -24,7 +20,7 @@ const RiceService = {
     form.append("enseignants", JSON.stringify(enseignants));
     form.append("departement", departement);
     const res = await axios.post(`${RICE_BASE}/analyze`, form, {
-      headers: { ...authHeader() },   // Content-Type set automatically for FormData
+      headers: { ...requireAuthHeader() },   // Content-Type set automatically for FormData
       timeout: 300000,                // 5 min – AI analysis can be slow
     });
     return res.data;
@@ -38,7 +34,12 @@ const RiceService = {
     const res = await axios.post(
       `${COMPETENCE_BASE}/rice/import`,
       payload,
-      { headers: { ...authHeader(), "Content-Type": "application/json" } },
+      {
+        headers: {
+          ...requireAuthHeader(),
+          "Content-Type": "application/json",
+        },
+      },
     );
     return res.data;
   },
@@ -49,7 +50,7 @@ const RiceService = {
   getImportHistory: async () => {
     const res = await axios.get(
       `${COMPETENCE_BASE}/rice/imports`,
-      { headers: authHeader() },
+      { headers: requireAuthHeader() },
     );
     return res.data;
   },

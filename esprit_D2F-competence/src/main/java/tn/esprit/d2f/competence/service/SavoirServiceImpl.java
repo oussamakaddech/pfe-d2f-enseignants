@@ -16,6 +16,7 @@ import tn.esprit.d2f.competence.entity.enumerations.NiveauMaitrise;
 import tn.esprit.d2f.competence.entity.enumerations.TypeSavoir;
 import tn.esprit.d2f.competence.repository.CompetenceRepository;
 import tn.esprit.d2f.competence.repository.EnseignantCompetenceRepository;
+import tn.esprit.d2f.competence.repository.NiveauSavoirRequisRepository;
 import tn.esprit.d2f.competence.repository.SavoirRepository;
 import tn.esprit.d2f.competence.repository.SousCompetenceRepository;
 
@@ -28,6 +29,7 @@ import java.util.stream.Collectors;
 public class SavoirServiceImpl implements ISavoirService {
 
     private final SavoirRepository savoirRepository;
+    private final NiveauSavoirRequisRepository niveauRepo;
     private final SousCompetenceRepository sousCompetenceRepository;
     private final CompetenceRepository competenceRepository;
     private final EnseignantCompetenceRepository enseignantCompetenceRepository;
@@ -77,6 +79,11 @@ public class SavoirServiceImpl implements ISavoirService {
     public SavoirDTO createSavoir(Long sousCompetenceId, SavoirRequest request) {
         SousCompetence sc = sousCompetenceRepository.findById(sousCompetenceId)
                 .orElseThrow(() -> new EntityNotFoundException("Sous-compétence non trouvée avec l'id: " + sousCompetenceId));
+
+        if (sousCompetenceRepository.existsByParentId(sousCompetenceId)) {
+            throw new IllegalArgumentException("Impossible d'ajouter un savoir sur une sous-compétence non feuille.");
+        }
+
         if (savoirRepository.existsByCode(request.getCode())) {
             throw new IllegalArgumentException("Un savoir avec le code '" + request.getCode() + "' existe déjà");
         }
@@ -98,6 +105,11 @@ public class SavoirServiceImpl implements ISavoirService {
     public SavoirDTO createSavoirForCompetence(Long competenceId, SavoirRequest request) {
         Competence competence = competenceRepository.findById(competenceId)
                 .orElseThrow(() -> new EntityNotFoundException("Compétence non trouvée avec l'id: " + competenceId));
+
+        if (!sousCompetenceRepository.findByCompetenceIdAndParentIsNull(competenceId).isEmpty()) {
+            throw new IllegalArgumentException("Impossible d'ajouter un savoir direct: cette compétence possède déjà des sous-compétences.");
+        }
+
         if (savoirRepository.existsByCode(request.getCode())) {
             throw new IllegalArgumentException("Un savoir avec le code '" + request.getCode() + "' existe déjà");
         }
@@ -137,6 +149,8 @@ public class SavoirServiceImpl implements ISavoirService {
         if (!savoirRepository.existsById(id)) {
             throw new EntityNotFoundException("Savoir non trouvé avec l'id: " + id);
         }
+        // Supprimer d'abord les lignes niveau_savoir_requis qui référencent ce savoir
+        niveauRepo.deleteBySavoirId(id);
         // Supprimer les affectations enseignant-compétence liées à ce savoir
         enseignantCompetenceRepository.deleteBySavoirId(id);
         savoirRepository.deleteById(id);

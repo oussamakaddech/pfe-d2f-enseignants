@@ -17,10 +17,18 @@ import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import UploadStep from "../UploadStep.jsx";
 
-// Minimal Ant Design mock to avoid heavy rendering overhead in tests
+// Strip Framer Motion animation props so React doesn't warn about unknown DOM attributes
 vi.mock("framer-motion", () => ({
   motion: {
-    div: ({ children, ...props }) => <div {...props}>{children}</div>,
+    div: ({
+      children,
+      whileHover, whileTap, whileFocus, whileDrag, whileInView,
+      animate, initial, exit, transition, variants,
+      drag, dragConstraints, dragElastic, dragMomentum,
+      layout, layoutId,
+      onAnimationStart, onAnimationComplete,
+      ...props
+    }) => <div {...props}>{children}</div>,
   },
   AnimatePresence: ({ children }) => <>{children}</>,
 }));

@@ -50,7 +50,7 @@ logger = logging.getLogger("rice_analyzer")
 # Authentication / Authorization
 # ─────────────────────────────────────────────────────────────────────────────
 
-_AUTH_ENABLED = os.getenv("RICE_AUTH_ENABLED", "false").lower() in ("true", "1", "yes")
+_AUTH_ENABLED = os.getenv("RICE_AUTH_ENABLED", "true").lower() in ("true", "1", "yes")
 _AUTH_SECRET  = os.getenv("RICE_AUTH_SECRET", "change-me-in-production")
 
 _oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token", auto_error=False)

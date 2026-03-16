@@ -1,13 +1,9 @@
 // src/services/MailService.js
 import axios from "axios";
 import { config } from "../config/env"; 
+import { optionalAuthHeader } from "./authHeaders";
 // URL de base de votre API (même port que pour vos formations)
 const MAIL_API_URL = `${config.FORMATION_URL}/formation/mail`;
-
-// Si votre endpoint est protégé, récupérez le token depuis le localStorage
-function getToken() {
-  return localStorage.getItem("authToken");
-}
 
 const MailService = {
   /**
@@ -19,16 +15,12 @@ const MailService = {
    */
   async sendEmail(to, subject, content) {
     try {
-      const token = getToken(); // si nécessaire
-
       const response = await axios.post(
         `${MAIL_API_URL}/send`,
         null,
         {
           params: { to, subject, content },
-          headers: token
-            ? { Authorization: `Bearer ${token}` }
-            : {}
+          headers: optionalAuthHeader(),
         }
       );
 

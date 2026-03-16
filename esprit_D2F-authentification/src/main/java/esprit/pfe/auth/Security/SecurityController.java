@@ -20,6 +20,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
@@ -150,8 +151,10 @@ public class SecurityController {
             String jwt = jwtEncoder.encode(jwtEncoderParameters).getTokenValue();
 
             return Map.of("accessToken", jwt, "role", scope);
-        } catch (Exception e) {
+        } catch (AuthenticationException e) {
             throw new LoginException("Invalid username or password.");
+        } catch (Exception e) {
+            throw new LoginException("Authentication failed due to server configuration.");
         }
     }
 

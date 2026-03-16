@@ -19,7 +19,7 @@ import {
 } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 
-import { signup } from "../../services/authService.js";
+import { signup } from "../../services/authService";
 
 const { Title } = Typography;
 const { Option } = Select;

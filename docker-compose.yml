@@ -1,0 +1,286 @@
+# =============================================================================
+# docker-compose.yml — D2F Platform (développement local / QA)
+# =============================================================================
+# Conformité DSI :
+#   §2.1  Architecture Microservices + Docker obligatoire
+#   §2.4  ActiveMQ (Artemis) message broker
+#   §2    Contraintes transversales : PostgreSQL, services DSI
+#   §1.1  Aucune valeur sensible en dur — utiliser le fichier .env
+#
+# Usage :
+#   cp .env.example .env          # Remplir les variables sensibles
+#   docker compose up -d          # Démarrer toute la stack
+#   docker compose logs -f        # Suivre les logs
+#   docker compose down -v        # Arrêter et supprimer les volumes
+#
+# Variables requises dans .env (voir .env.example) :
+#   JWT_SECRET, DB_PASSWORD, ARTEMIS_PASSWORD, MAIL_USERNAME, MAIL_PASSWORD
+# =============================================================================
+
+version: "3.9"
+
+# =============================================================================
+# RÉSEAUX
+# =============================================================================
+networks:
+  d2f-network:
+    driver: bridge
+    name: d2f-network
+
+# =============================================================================
+# VOLUMES PERSISTANTS
+# =============================================================================
+volumes:
+  d2f_postgres_data:
+    name: d2f_postgres_data
+  d2f_artemis_data:
+    name: d2f_artemis_data
+
+# =============================================================================
+# SERVICES
+# =============================================================================
+services:
+
+  # ── Infrastructure ──────────────────────────────────────────────────────────
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: d2f-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: d2f
+      POSTGRES_USER: d2f
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-d2fpasswd}
+    ports:
+      - "7432:5432"
+    volumes:
+      - d2f_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U d2f -d d2f"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - d2f-network
+
+  artemis:
+    image: apache/activemq-artemis:2.31.2
+    container_name: d2f-artemis
+    restart: unless-stopped
+    environment:
+      ARTEMIS_USER: ${ARTEMIS_USER:-admin}
+      ARTEMIS_PASSWORD: ${ARTEMIS_PASSWORD:-admin}
+    ports:
+      - "61616:61616"   # JMS / CORE / AMQP
+      - "8161:8161"     # Console web Artemis
+    volumes:
+      - d2f_artemis_data:/var/lib/artemis-instance
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8161/console/ || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 20s
+    networks:
+      - d2f-network
+
+  # ── Microservices ────────────────────────────────────────────────────────────
+
+  auth-service:
+    build:
+      context: ./esprit_D2F-authentification
+      dockerfile: Dockerfile
+    container_name: d2f-auth
+    restart: unless-stopped
+    ports:
+      - "8085:8085"
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      DB_URL: jdbc:postgresql://postgres:5432/d2f
+      DB_USER: ${DB_USER_AUTH:-app_user_auth}
+      DB_PASSWORD: ${DB_PASSWORD:-d2fpasswd}
+      JWT_SECRET: ${JWT_SECRET}
+      MAIL_HOST: ${MAIL_HOST:-smtp.gmail.com}
+      MAIL_PORT: ${MAIL_PORT:-587}
+      MAIL_USERNAME: ${MAIL_USERNAME:-}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:8085/actuator/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - d2f-network
+
+  competence-service:
+    build:
+      context: ./esprit_D2F-competence
+      dockerfile: Dockerfile
+    container_name: d2f-competence
+    restart: unless-stopped
+    ports:
+      - "8005:8005"
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      DB_URL: jdbc:postgresql://postgres:5432/d2f
+      DB_USER: ${DB_USER_COMPETENCE:-app_user_competence}
+      DB_PASSWORD: ${DB_PASSWORD:-d2fpasswd}
+      JWT_SECRET: ${JWT_SECRET}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:8005/actuator/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - d2f-network
+
+  besoin-formation-service:
+    build:
+      context: ./esprit_D2F-besoin-formation
+      dockerfile: Dockerfile
+    container_name: d2f-besoin-formation
+    restart: unless-stopped
+    ports:
+      - "8004:8004"
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      DB_URL: jdbc:postgresql://postgres:5432/d2f
+      DB_USER: ${DB_USER_BESOIN:-app_user_besoinsformation}
+      DB_PASSWORD: ${DB_PASSWORD:-d2fpasswd}
+      JWT_SECRET: ${JWT_SECRET}
+      ARTEMIS_URL: tcp://artemis:61616
+      ARTEMIS_USER: ${ARTEMIS_USER:-admin}
+      ARTEMIS_PASSWORD: ${ARTEMIS_PASSWORD:-admin}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      artemis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:8004/actuator/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - d2f-network
+
+  certificat-service:
+    build:
+      context: ./esprit_D2F-certificat
+      dockerfile: Dockerfile
+    container_name: d2f-certificat
+    restart: unless-stopped
+    ports:
+      - "8086:8086"
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      DB_URL: jdbc:postgresql://postgres:5432/d2f
+      DB_USER: ${DB_USER_CERTIFICAT:-app_user_certificat}
+      DB_PASSWORD: ${DB_PASSWORD:-d2fpasswd}
+      JWT_SECRET: ${JWT_SECRET}
+      ARTEMIS_URL: tcp://artemis:61616
+      ARTEMIS_USER: ${ARTEMIS_USER:-admin}
+      ARTEMIS_PASSWORD: ${ARTEMIS_PASSWORD:-admin}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      artemis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:8086/actuator/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - d2f-network
+
+  evaluation-service:
+    build:
+      context: ./esprit_D2F-evaluation
+      dockerfile: Dockerfile
+    container_name: d2f-evaluation
+    restart: unless-stopped
+    ports:
+      - "8087:8087"
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      DB_URL: jdbc:postgresql://postgres:5432/d2f
+      DB_USER: ${DB_USER_EVALUATION:-app_user_evaluation}
+      DB_PASSWORD: ${DB_PASSWORD:-d2fpasswd}
+      JWT_SECRET: ${JWT_SECRET}
+      ARTEMIS_URL: tcp://artemis:61616
+      ARTEMIS_USER: ${ARTEMIS_USER:-admin}
+      ARTEMIS_PASSWORD: ${ARTEMIS_PASSWORD:-admin}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      artemis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:8087/actuator/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - d2f-network
+
+  api-gateway:
+    build:
+      context: ./esprit_D2F-api-gateway
+      dockerfile: Dockerfile
+    container_name: d2f-gateway
+    restart: unless-stopped
+    ports:
+      - "8222:8222"
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      JWT_SECRET: ${JWT_SECRET}
+    depends_on:
+      auth-service:
+        condition: service_healthy
+      competence-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:8222/actuator/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - d2f-network
+
+  # ── Frontend ─────────────────────────────────────────────────────────────────
+
+  webapp:
+    build:
+      context: ./esprit_D2F-webapp
+      dockerfile: Dockerfile
+      args:
+        BUILD_ENV: prod
+    container_name: d2f-webapp
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    depends_on:
+      api-gateway:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:80/ || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - d2f-network

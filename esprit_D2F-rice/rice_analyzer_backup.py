@@ -6,27 +6,25 @@
 from __future__ import annotations
 
 import io
-import re
-import uuid
-import unicodedata
 import logging
-from pathlib import Path
-from typing import List, Optional, Dict, Any, Tuple
-
 import os
+import re
+import unicodedata
+import uuid
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple
 
-from fastapi import APIRouter, File, UploadFile, Form, HTTPException
+from dotenv import load_dotenv
+from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 from fastapi.concurrency import run_in_threadpool
 from pydantic import BaseModel
-from dotenv import load_dotenv
 
 load_dotenv()  # charge .env (DB_NAME, DB_USER, …)
 
 logger = logging.getLogger("rice_analyzer")
 
-import time as _time
 import threading as _threading
-
+import time as _time
 
 # ── Startup env-var validation ──────────────────────────────────────────────
 _REQUIRED_ENV_VARS: Dict[str, str] = {
@@ -41,7 +39,9 @@ def _validate_env() -> None:
     for var, desc in _REQUIRED_ENV_VARS.items():
         val = os.getenv(var)
         if not val:
-            logger.warning("Environment variable %s (%s) is not set – using default", var, desc)
+            logger.warning(
+                "Environment variable %s (%s) is not set – using default", var, desc
+            )
 
 
 _validate_env()
@@ -110,8 +110,10 @@ def _get_db_pool():
         with _DB_POOL_LOCK:
             if _DB_POOL is None:
                 import psycopg2.pool as _pg_pool
+
                 _DB_POOL = _pg_pool.ThreadedConnectionPool(
-                    1, 10,
+                    1,
+                    10,
                     dbname=os.getenv("DB_NAME", "d2f"),
                     user=os.getenv("DB_USER", "d2f"),
                     password=os.getenv("DB_PASS", "d2fpasswd"),
@@ -174,12 +176,15 @@ def _fetch_enseignant_affectations() -> Dict[str, List[str]]:
         cur.close()
         _put_db_connection(conn)
         _AFFECTATIONS_CACHE.set("all", result)
-        logger.info("Loaded enseignant_affectations from DB: %d enseignants", len(result))
+        logger.info(
+            "Loaded enseignant_affectations from DB: %d enseignants", len(result)
+        )
         return result
     except Exception as exc:
         logger.warning("Cannot fetch enseignant_affectations from DB: %s", exc)
         stale = _AFFECTATIONS_CACHE.get("all")  # return stale cache if available
         return stale if stale is not None else {}
+
 
 _ENS_INFO_CACHE = _ThreadSafeCache()
 _ENS_INFO_TTL: float = 300.0
@@ -229,7 +234,9 @@ def _fetch_all_enseignants_info() -> Dict[str, "EnseignantInfo"]:
         info_map: Dict[str, "EnseignantInfo"] = {}
         for eid, d in res.items():
             info_map[eid] = EnseignantInfo(
-                id=d["id"], nom=d["nom"], prenom=d["prenom"],
+                id=d["id"],
+                nom=d["nom"],
+                prenom=d["prenom"],
                 modules=list(set(d["modules"])),  # dedupe
             )
         _ENS_INFO_CACHE.set("all", info_map)
@@ -246,16 +253,25 @@ def _dept_to_numeric_id(departement: str) -> int:
     Falls back to 1 (GC) for unknown codes.
     """
     _MAP = {
-        "gc": 1, "genie_civil": 1, "genie-civil": 1,
-        "info": 2, "informatique": 2,
-        "ge": 3, "genie_electrique": 3, "genie-electrique": 3,
-        "meca": 4, "genie_mecanique": 4,
-        "telecom": 5, "telecommunications": 5,
+        "gc": 1,
+        "genie_civil": 1,
+        "genie-civil": 1,
+        "info": 2,
+        "informatique": 2,
+        "ge": 3,
+        "genie_electrique": 3,
+        "genie-electrique": 3,
+        "meca": 4,
+        "genie_mecanique": 4,
+        "telecom": 5,
+        "telecommunications": 5,
     }
     return _MAP.get(departement.lower().strip(), 1)
 
 
-def _create_enseignant_if_new(nom_complet: str, departement: str = "gc") -> Tuple[str, str]:
+def _create_enseignant_if_new(
+    nom_complet: str, departement: str = "gc"
+) -> Tuple[str, str]:
     """Auto-create a new enseignant row from a name extracted in a fiche module.
 
     If the name was not fuzzy-matched against any existing DB teacher, this
@@ -265,24 +281,27 @@ def _create_enseignant_if_new(nom_complet: str, departement: str = "gc") -> Tupl
     Returns (new_id, display_name).
     """
     parts = nom_complet.strip().split()
-    nom    = parts[0].upper()                             if parts      else "INCONNU"
-    prenom = " ".join(parts[1:]).title()                  if len(parts) > 1 else ""
+    nom = parts[0].upper() if parts else "INCONNU"
+    prenom = " ".join(parts[1:]).title() if len(parts) > 1 else ""
 
-    slug_raw  = re.sub(r"[^A-Z0-9]", "-", f"{nom}-{prenom}".upper())
+    slug_raw = re.sub(r"[^A-Z0-9]", "-", f"{nom}-{prenom}".upper())
     slug_base = re.sub(r"-+", "-", slug_raw).strip("-")[:20]
-    new_id    = f"EX-{slug_base}"
-    mail      = f"{slug_base.lower()[:30]}@esprit.tn"
-    display   = f"{prenom} {nom}".strip() if prenom else nom
+    new_id = f"EX-{slug_base}"
+    mail = f"{slug_base.lower()[:30]}@esprit.tn"
+    display = f"{prenom} {nom}".strip() if prenom else nom
 
     try:
         conn = _get_db_connection()
-        cur  = conn.cursor()
-        cur.execute("""
+        cur = conn.cursor()
+        cur.execute(
+            """
             INSERT INTO enseignants
                 (id, nom, prenom, mail, type, etat, cup, chefdepartement, up_id, dept_id)
             VALUES (%s, %s, %s, %s, 'P', 'A', 'N', 'N', 1, %s)
             ON CONFLICT (id) DO NOTHING
-        """, (new_id, nom, prenom, mail, _dept_to_numeric_id(departement)))
+        """,
+            (new_id, nom, prenom, mail, _dept_to_numeric_id(departement)),
+        )
         conn.commit()
         cur.close()
         _put_db_connection(conn)
@@ -298,45 +317,46 @@ def _create_enseignant_if_new(nom_complet: str, departement: str = "gc") -> Tupl
 # ── optional imports (graceful degradation if libs missing) ──────────────────
 try:
     import pdfplumber
+
     _PDF_OK = True
 except ImportError:
     _PDF_OK = False
 
 try:
     from docx import Document as DocxDocument
+
     _DOCX_OK = True
 except ImportError:
     _DOCX_OK = False
 
 try:
-    from rapidfuzz import fuzz as _rfuzz, process as _rprocess
+    from rapidfuzz import fuzz as _rfuzz
+    from rapidfuzz import process as _rprocess
+
     _FUZZY_OK = True
 except ImportError:
     _FUZZY_OK = False
 
 try:
-    from sentence_transformers import SentenceTransformer as _SentenceTransformer
     import numpy as _np
+    from sentence_transformers import SentenceTransformer as _SentenceTransformer
+
     _SEMANTIC_OK = True
 except ImportError:
     _SEMANTIC_OK = False
 
-try:
-    import ollama as _ollama
-    _LLM_OK = True
-except ImportError:
-    _LLM_OK = False
-
-# ── LLM configuration (Ollama) ────────────────────────────────────────────
-_LLM_MODEL  = os.getenv("OLLAMA_MODEL", "mistral")
-_OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://localhost:11434")
+# ── LLM disabled (Ollama removed) ────────────────────────────────────────────
+_LLM_OK = False
+_LLM_MODEL = "none"
+_OLLAMA_HOST = "disabled"
+_LLM_TIMEOUT = 0
 
 # ── Authentication / Authorization ────────────────────────────────────────
 from fastapi import Depends
 from fastapi.security import OAuth2PasswordBearer
 
 _AUTH_ENABLED = os.getenv("RICE_AUTH_ENABLED", "false").lower() in ("true", "1", "yes")
-_AUTH_SECRET  = os.getenv("RICE_AUTH_SECRET", "change-me-in-production")
+_AUTH_SECRET = os.getenv("RICE_AUTH_SECRET", "change-me-in-production")
 
 _oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token", auto_error=False)
 
@@ -350,16 +370,21 @@ def _get_current_user(token: Optional[str] = Depends(_oauth2_scheme)) -> Optiona
     if not _AUTH_ENABLED:
         return None  # auth disabled – allow all
     if not token:
-        raise HTTPException(status_code=401, detail="Authentication required (bearer token missing)")
+        raise HTTPException(
+            status_code=401, detail="Authentication required (bearer token missing)"
+        )
     try:
         import jwt as _pyjwt
+
         payload = _pyjwt.decode(token, _AUTH_SECRET, algorithms=["HS256"])
         user_id = payload.get("sub")
         if user_id is None:
             raise HTTPException(status_code=401, detail="Invalid token: missing 'sub'")
         return {"id": user_id, "username": payload.get("name", user_id)}
     except ImportError:
-        logger.warning("PyJWT not installed – auth check skipped (install PyJWT to enable)")
+        logger.warning(
+            "PyJWT not installed – auth check skipped (install PyJWT to enable)"
+        )
         return None
     except Exception as exc:
         raise HTTPException(status_code=401, detail=f"Invalid token: {exc}")
@@ -371,29 +396,33 @@ rice_router = APIRouter(prefix="/rice", tags=["RICE"])
 # Pydantic models
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 class EnseignantInfo(BaseModel):
     id: str
     nom: str
     prenom: str
-    modules: List[str] = []   # list of module names the teacher handles
+    modules: List[str] = []  # list of module names the teacher handles
+
 
 class SavoirProposition(BaseModel):
     tmpId: str
     code: str
     nom: str
     description: Optional[str] = None
-    type: str                  # THEORIQUE | PRATIQUE
-    niveau: str                # N1_DEBUTANT … N5_EXPERT
-    enseignantsSuggeres: List[str] = []   # list of enseignant IDs
-    refCodes: List[str] = []             # matched referential codes (e.g. S1a, C2b, INFO-A1)
+    type: str  # THEORIQUE | PRATIQUE
+    niveau: str  # N1_DEBUTANT … N5_EXPERT
+    enseignantsSuggeres: List[str] = []  # list of enseignant IDs
+    refCodes: List[str] = []  # matched referential codes (e.g. S1a, C2b, INFO-A1)
+
 
 class SousCompetenceProposition(BaseModel):
     tmpId: str
     code: str
     nom: str
     description: Optional[str] = None
-    refCodes: List[str] = []         # aggregated from savoirs
+    refCodes: List[str] = []  # aggregated from savoirs
     savoirs: List[SavoirProposition] = []
+
 
 class CompetenceProposition(BaseModel):
     tmpId: str
@@ -401,36 +430,44 @@ class CompetenceProposition(BaseModel):
     nom: str
     description: Optional[str] = None
     ordre: int = 1
-    refCodes: List[str] = []         # aggregated from sous-compétences
-    refDomaine: Optional[str] = None # best domain match (e.g. GC-TECH-S, INFO-A)
+    refCodes: List[str] = []  # aggregated from sous-compétences
+    refDomaine: Optional[str] = None  # best domain match (e.g. GC-TECH-S, INFO-A)
     sousCompetences: List[SousCompetenceProposition] = []
+
 
 class DomaineProposition(BaseModel):
     tmpId: str
     code: str
     nom: str
     description: Optional[str] = None
-    refCodes: List[str] = []         # all referential codes found in this domaine
-    refDomaine: Optional[str] = None # best domain match (e.g. GC-TECH-S, INFO-A)
+    refCodes: List[str] = []  # all referential codes found in this domaine
+    refDomaine: Optional[str] = None  # best domain match (e.g. GC-TECH-S, INFO-A)
     competences: List[CompetenceProposition] = []
+
 
 class FicheEnseignantExtrait(BaseModel):
     """Professor name extracted from a fiche module."""
-    fichier: str                              # source filename
-    nom_complet: str                          # raw name as found in fiche
-    role: str = "enseignant"                   # responsable | coordinateur | enseignant | intervenant
-    matched_id: Optional[str] = None          # matched enseignant ID (if fuzzy-matched)
-    matched_nom: Optional[str] = None         # matched full name for display
+
+    fichier: str  # source filename
+    nom_complet: str  # raw name as found in fiche
+    role: str = "enseignant"  # responsable | coordinateur | enseignant | intervenant
+    matched_id: Optional[str] = None  # matched enseignant ID (if fuzzy-matched)
+    matched_nom: Optional[str] = None  # matched full name for display
+
 
 class RiceAnalysisResult(BaseModel):
     propositions: List[DomaineProposition]
     stats: Dict[str, Any]
-    extractedEnseignants: List[FicheEnseignantExtrait] = []  # professors found in fiches
+    extractedEnseignants: List[
+        FicheEnseignantExtrait
+    ] = []  # professors found in fiches
     foundEnseignants: List[EnseignantInfo] = []  # Added this field
+
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Text extraction
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 def _serialize_pdf_tables(tables: list) -> str:
     """
@@ -493,7 +530,7 @@ def _extract_pdf(data: bytes) -> Tuple[str, List]:
             # Extract structured table data
             try:
                 tables = page.extract_tables() or []
-                all_raw_tables.extend(tables)          # keep raw for NER
+                all_raw_tables.extend(tables)  # keep raw for NER
                 table_text = _serialize_pdf_tables(tables)
                 if table_text:
                     text = f"{text}\n{table_text}" if text else table_text
@@ -532,23 +569,27 @@ def _secure_filename(filename: str) -> str:
     Returns a safe basename suitable for logging and extension checks.
     """
     # Remove null bytes and control chars
-    name = re.sub(r'[\x00-\x1f]', '', filename)
+    name = re.sub(r"[\x00-\x1f]", "", filename)
     # Take only the base name (strip any directory components)
     name = os.path.basename(name.replace("..", ""))
     # Remove remaining problematic characters
-    name = re.sub(r'[<>:"|?*]', '_', name)
+    name = re.sub(r'[<>:"|?*]', "_", name)
     return name.strip() or "unnamed_file"
+
 
 # ─────────────────────────────────────────────────────────────────────────────
 # NLP – Text normalization & utilities
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 def _normalize(text: str) -> str:
     """Strip accents and lowercase for fuzzy matching."""
     return "".join(
-        c for c in unicodedata.normalize("NFD", text.lower())
+        c
+        for c in unicodedata.normalize("NFD", text.lower())
         if unicodedata.category(c) != "Mn"
     )
+
 
 def _slug(text: str, max_len: int = 30) -> str:
     """Create a short uppercase code from text."""
@@ -590,54 +631,84 @@ def _codes_match(db_code: str, search_code: str) -> bool:
 
 # Bloom level → RICE niveau mapping
 _BLOOM_TO_NIVEAU = {
-    1: "N1_DEBUTANT",       # Mémoriser / Reconnaître
-    2: "N2_ELEMENTAIRE",    # Comprendre
+    1: "N1_DEBUTANT",  # Mémoriser / Reconnaître
+    2: "N2_ELEMENTAIRE",  # Comprendre
     3: "N3_INTERMEDIAIRE",  # Appliquer
-    4: "N4_AVANCE",         # Analyser
-    5: "N4_AVANCE",         # Évaluer
-    6: "N5_EXPERT",         # Créer
+    4: "N4_AVANCE",  # Analyser
+    5: "N4_AVANCE",  # Évaluer
+    6: "N5_EXPERT",  # Créer
 }
 
 # Verb-based Bloom classification (NLP keyword extraction)
 # Includes Génie Civil (GC) domain-specific verbs
 _BLOOM_VERBS: List[Tuple[re.Pattern, int]] = [
     # Level 6 – Créer (design, build, synthesize)
-    (re.compile(
-        r"\b(creer|concevoir|developper|produire|construire|elaborer|"
-        r"proposer|innover|composer|planifier|mettre\s+en\s+place|realiser|"
-        r"dimensionner|rehabiliter|amenager|piloter|optimiser|"
-        r"architecturer|programmer|deployer|integrer\s+un\s+systeme|"
-        r"usiner|assembler|fabriquer|prototyper|syntheti[sz]er)\b",
-        re.I), 6),
+    (
+        re.compile(
+            r"\b(creer|concevoir|developper|produire|construire|elaborer|"
+            r"proposer|innover|composer|planifier|mettre\s+en\s+place|realiser|"
+            r"dimensionner|rehabiliter|amenager|piloter|optimiser|"
+            r"architecturer|programmer|deployer|integrer\s+un\s+systeme|"
+            r"usiner|assembler|fabriquer|prototyper|syntheti[sz]er)\b",
+            re.I,
+        ),
+        6,
+    ),
     # Level 5 – Évaluer (judge, validate, audit)
-    (re.compile(
-        r"\b(evaluer|juger|critiquer|justifier|argumenter|"
-        r"defendre|recommander|selectionner|"
-        r"diagnostiquer|verifier|controler|auditer|expertiser|valider|"
-        r"tester|benchmarker|qualifier|certifier)\b", re.I), 5),
+    (
+        re.compile(
+            r"\b(evaluer|juger|critiquer|justifier|argumenter|"
+            r"defendre|recommander|selectionner|"
+            r"diagnostiquer|verifier|controler|auditer|expertiser|valider|"
+            r"tester|benchmarker|qualifier|certifier)\b",
+            re.I,
+        ),
+        5,
+    ),
     # Level 4 – Analyser (compare, decompose, model)
-    (re.compile(
-        r"\b(analyser|comparer|distinguer|examiner|"
-        r"differencier|decomposer|organiser|categoriser|"
-        r"modeliser|interpreter|superviser|instrumenter|calculer|"
-        r"debugger?|profiler|tracer|simuler)\b", re.I), 4),
+    (
+        re.compile(
+            r"\b(analyser|comparer|distinguer|examiner|"
+            r"differencier|decomposer|organiser|categoriser|"
+            r"modeliser|interpreter|superviser|instrumenter|calculer|"
+            r"debugger?|profiler|tracer|simuler)\b",
+            re.I,
+        ),
+        4,
+    ),
     # Level 3 – Appliquer (execute, configure, use)
-    (re.compile(
-        r"\b(appliquer|utiliser|manipuler|implementer|"
-        r"executer|resoudre|employer|configurer|installer|"
-        r"gerer|integrer|regrouper|"
-        r"effectuer|rediger|maitriser|tracer|relever|mesurer|"
-        r"programmer?|coder|deployer|monter|brancher|connecter)\b", re.I), 3),
+    (
+        re.compile(
+            r"\b(appliquer|utiliser|manipuler|implementer|"
+            r"executer|resoudre|employer|configurer|installer|"
+            r"gerer|integrer|regrouper|"
+            r"effectuer|rediger|maitriser|tracer|relever|mesurer|"
+            r"programmer?|coder|deployer|monter|brancher|connecter)\b",
+            re.I,
+        ),
+        3,
+    ),
     # Level 2 – Comprendre (explain, describe)
-    (re.compile(
-        r"\b(comprendre|expliquer|decrire|illustrer|"
-        r"interpreter|resumer|classifier|discuter|"
-        r"se\s+familiariser|reconnaitre\s+les)\b", re.I), 2),
+    (
+        re.compile(
+            r"\b(comprendre|expliquer|decrire|illustrer|"
+            r"interpreter|resumer|classifier|discuter|"
+            r"se\s+familiariser|reconnaitre\s+les)\b",
+            re.I,
+        ),
+        2,
+    ),
     # Level 1 – Mémoriser (recall, list, name)
-    (re.compile(
-        r"\b(reconnaitre|identifier|lister|nommer|"
-        r"definir|memoriser|citer|rappeler|introduire)\b", re.I), 1),
+    (
+        re.compile(
+            r"\b(reconnaitre|identifier|lister|nommer|"
+            r"definir|memoriser|citer|rappeler|introduire)\b",
+            re.I,
+        ),
+        1,
+    ),
 ]
+
 
 def _detect_bloom_level(text: str) -> int:
     """Detect Bloom's taxonomy level from verb patterns. Returns 1-6."""
@@ -648,9 +719,11 @@ def _detect_bloom_level(text: str) -> int:
             best = max(best, level)
     return best if best > 0 else 2  # default: Comprendre
 
+
 def _bloom_to_niveau(bloom: int) -> str:
     """Convert Bloom level (1-6) to RICE niveau string."""
     return _BLOOM_TO_NIVEAU.get(bloom, "N2_ELEMENTAIRE")
+
 
 # ─────────────────────────────────────────────────────────────────────────────
 # NLP – Savoir type detection (THEORIQUE / PRATIQUE)
@@ -704,6 +777,7 @@ _THEORIQUE_PATTERNS = re.compile(
     re.IGNORECASE,
 )
 
+
 class _UniversalPatterns:
     """Department-aware NLP pattern extensions for PRATIQUE/THEORIQUE classification.
 
@@ -716,21 +790,25 @@ class _UniversalPatterns:
     _EXTRA_PRATIQUE: Dict[str, re.Pattern] = {
         "info": re.compile(
             r"\b(entrainer\s+mod[eè]le|fine[\s\-]tuning|notebook\s+jupyter|"
-            r"pipeline\s+ci|deployer\s+image|build\s+docker|"  
-            r"commit\s+git|merge\s+request|pull\s+request)\b", re.IGNORECASE,
+            r"pipeline\s+ci|deployer\s+image|build\s+docker|"
+            r"commit\s+git|merge\s+request|pull\s+request)\b",
+            re.IGNORECASE,
         ),
         "telecom": re.compile(
             r"\b(simulation\s+ns3|simulation\s+opnet|banc\s+rf|"
             r"analyseur\s+spectre|anritsu|configurer\s+routeur|"
-            r"wireshark\s+capture|vlsi\s+implementation)\b", re.IGNORECASE,
+            r"wireshark\s+capture|vlsi\s+implementation)\b",
+            re.IGNORECASE,
         ),
         "ge": re.compile(
             r"\b(montage\s+circuit|banc\s+moteur|pupitre\s+electrique|"
-            r"tp\s+fpga|tp\s+automate|maquette\s+electrique)\b", re.IGNORECASE,
+            r"tp\s+fpga|tp\s+automate|maquette\s+electrique)\b",
+            re.IGNORECASE,
         ),
         "meca": re.compile(
             r"\b(atelier\s+usinage|atelier\s+fraisage|banc\s+mecatronique|"
-            r"tp\s+catia|tp\s+solidworks|maquette\s+robot)\b", re.IGNORECASE,
+            r"tp\s+catia|tp\s+solidworks|maquette\s+robot)\b",
+            re.IGNORECASE,
         ),
     }
 
@@ -739,20 +817,24 @@ class _UniversalPatterns:
         "info": re.compile(
             r"\b(algorithmique\s+avancee|theorie\s+des\s+graphes|"
             r"automate\s+fini|complexite\s+algorithmique|"
-            r"paradigme\s+programmation|theorie\s+des\s+langages)\b", re.IGNORECASE,
+            r"paradigme\s+programmation|theorie\s+des\s+langages)\b",
+            re.IGNORECASE,
         ),
         "telecom": re.compile(
             r"\b(theorie\s+(de\s+l[a'])?information|theorie\s+shannon|"
             r"electromagn[eé]tisme\s+th[eé]orique|propagation\s+th[eé]orie|"
-            r"calcul\s+bilan\s+liaison)\b", re.IGNORECASE,
+            r"calcul\s+bilan\s+liaison)\b",
+            re.IGNORECASE,
         ),
         "ge": re.compile(
             r"\b(theorie\s+(des\s+)?circuits|theorie\s+(de\s+la\s+)?commande|"
-            r"electromagnetisme\s+cours|analyse\s+harmonique)\b", re.IGNORECASE,
+            r"electromagnetisme\s+cours|analyse\s+harmonique)\b",
+            re.IGNORECASE,
         ),
         "meca": re.compile(
             r"\b(theorie\s+mecanique|mecanique\s+th[eé]orique|"
-            r"cours\s+thermodynamique|cinématique\s+th[eé]orique)\b", re.IGNORECASE,
+            r"cours\s+thermodynamique|cinématique\s+th[eé]orique)\b",
+            re.IGNORECASE,
         ),
     }
 
@@ -765,7 +847,7 @@ class _UniversalPatterns:
             department: ESPRIT department code (e.g. 'gc', 'info', 'ge', 'meca', 'telecom')
         Returns:
             (prat_score, theo_score): higher score determines the type
-        """        
+        """
         norm = _normalize(text)
         prat = len(_PRATIQUE_PATTERNS.findall(norm))
         theo = len(_THEORIQUE_PATTERNS.findall(norm))
@@ -788,6 +870,7 @@ def _detect_type(text: str, departement: str = "gc") -> str:
     prat_score, theo_score = _UniversalPatterns.score(text, departement)
     return "PRATIQUE" if prat_score > theo_score else "THEORIQUE"
 
+
 # ─────────────────────────────────────────────────────────────────────────────
 # LLM Layer – Ollama-powered extraction (augments & replaces regex NLP)
 # ─────────────────────────────────────────────────────────────────────────────
@@ -798,38 +881,19 @@ _LLM_TIMEOUT = int(os.getenv("RICE_LLM_TIMEOUT", "90"))  # seconds
 def _escape_prompt(text: str) -> str:
     """Strip characters that could confuse or inject into LLM prompts."""
     # Remove potential JSON-breaking chars and control sequences
-    text = re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f]', '', text)
+    text = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f]", "", text)
     # Collapse excessive whitespace
-    text = re.sub(r'\n{4,}', '\n\n\n', text)
+    text = re.sub(r"\n{4,}", "\n\n\n", text)
     return text
 
 
 def _llm_chat(messages: List[Dict], temperature: float = 0.05) -> Optional[str]:
-    """Send a chat request to the local Ollama server.
+    """LLM stub — always returns None (Ollama removed).
 
-    Returns the raw response string (expected to be JSON) or ``None`` on failure.
-    A very low temperature (0.05) is used to get deterministic JSON output.
-    Guarded by a configurable timeout (``RICE_LLM_TIMEOUT`` env var, default 90s).
+    The NLP pipeline falls back to table-based and regex-based NER
+    automatically when this function returns None.
     """
-    if not _LLM_OK:
-        return None
-    # Sanitise message content
-    safe_messages = [
-        {**m, "content": _escape_prompt(m.get("content", ""))} for m in messages
-    ]
-    try:
-        client = _ollama.Client(host=_OLLAMA_HOST)
-        response = client.chat(
-            model=_LLM_MODEL,
-            messages=safe_messages,
-            format="json",
-            options={"temperature": temperature, "num_predict": 2048, "num_gpu": 0},
-            timeout=_LLM_TIMEOUT,
-        )
-        return response["message"]["content"]
-    except Exception as exc:
-        logger.warning("LLM call failed (%s@%s): %s", _LLM_MODEL, _OLLAMA_HOST, exc)
-        return None
+    return None
 
 
 def _llm_extract_metadata(text: str) -> Dict[str, Any]:
@@ -839,6 +903,7 @@ def _llm_extract_metadata(text: str) -> Dict[str, Any]:
     The caller merges this with the table/regex NER results.
     """
     import json as _json_local
+
     truncated = text[:3500]
     prompt = (
         "Tu es un expert en extraction d'information de fiches modules universitaires françaises.\n"
@@ -870,7 +935,9 @@ def _llm_extract_metadata(text: str) -> Dict[str, Any]:
             nom = result["nom_module"].strip()
             if len(nom) > 3:
                 out["nom_module"] = nom
-        if result.get("unite_pedagogique") and isinstance(result["unite_pedagogique"], str):
+        if result.get("unite_pedagogique") and isinstance(
+            result["unite_pedagogique"], str
+        ):
             up = result["unite_pedagogique"].strip()
             if len(up) > 3:
                 out["unite_pedagogique"] = up
@@ -878,12 +945,16 @@ def _llm_extract_metadata(text: str) -> Dict[str, Any]:
             resp = _clean_name(result["responsable"])
             if resp:
                 out["responsable"] = resp
-        if result.get("enseignants_noms") and isinstance(result["enseignants_noms"], list):
+        if result.get("enseignants_noms") and isinstance(
+            result["enseignants_noms"], list
+        ):
             names = [_clean_name(str(n)) for n in result["enseignants_noms"] if n]
             names = [n for n in names if n]
             if names:
                 out["enseignants_noms"] = names
-        if result.get("enseignants_roles") and isinstance(result["enseignants_roles"], dict):
+        if result.get("enseignants_roles") and isinstance(
+            result["enseignants_roles"], dict
+        ):
             valid_roles = {"responsable", "coordinateur", "enseignant", "intervenant"}
             roles: Dict[str, str] = {}
             for k, v in result["enseignants_roles"].items():
@@ -914,9 +985,11 @@ def _llm_extract_acquis(text: str) -> List[Dict[str, Any]]:
     Empty list on failure (caller falls back to regex parser).
     """
     import json as _json_local
+
     aa_match = re.search(
         r"(Acquis\s+d['\u2019\u2018]apprentissage.*?)(?=Contenu\s+d[eé]taill[eé]|Plan\s+du\s+cours|$)",
-        text, re.I | re.DOTALL,
+        text,
+        re.I | re.DOTALL,
     )
     section = (aa_match.group(1) if aa_match else text)[:2800]
     prompt = (
@@ -939,11 +1012,13 @@ def _llm_extract_acquis(text: str) -> List[Dict[str, Any]]:
             t = str(aa.get("text", "")).strip()
             bl = int(aa.get("bloom_level", 2))
             if len(t) > 5:
-                validated.append({
-                    "id": int(aa.get("id", len(validated) + 1)),
-                    "text": t,
-                    "bloom_level": min(max(bl, 1), 6),
-                })
+                validated.append(
+                    {
+                        "id": int(aa.get("id", len(validated) + 1)),
+                        "text": t,
+                        "bloom_level": min(max(bl, 1), 6),
+                    }
+                )
         logger.info(f"LLM acquis extracted: {len(validated)}")
         return validated
     except Exception as exc:
@@ -958,9 +1033,11 @@ def _llm_extract_seances(text: str) -> List[Dict[str, Any]]:
     Empty list on failure.
     """
     import json as _json_local
+
     seance_match = re.search(
         r"(Contenu\s+d[eé]taill[eé].*?)(?=Mode\s+d['\u2019]|[EÉ]valuation|R[eé]f[eé]rences|Bibliographie|$)",
-        text, re.I | re.DOTALL,
+        text,
+        re.I | re.DOTALL,
     )
     section = (seance_match.group(1) if seance_match else text)[:3000]
     prompt = (
@@ -974,7 +1051,7 @@ def _llm_extract_seances(text: str) -> List[Dict[str, Any]]:
         '  "items": ["Sous-point A", "Sous-point B"],\n'
         '  "type_apprentissage": "Cours|TP|TD|Projet|null",\n'
         '  "duree": "3h|null"\n'
-        '}]}\n\n'
+        "}]}\n\n"
         f"SECTION :\n{section}"
     )
     raw = _llm_chat([{"role": "user", "content": prompt}])
@@ -987,13 +1064,17 @@ def _llm_extract_seances(text: str) -> List[Dict[str, Any]]:
             titre = str(s.get("titre", "")).strip()
             if not titre:
                 continue
-            validated.append({
-                "numero": str(s.get("numero", len(validated) + 1)),
-                "titre": titre,
-                "items": [str(i).strip() for i in s.get("items", []) if str(i).strip()],
-                "type_apprentissage": s.get("type_apprentissage") or None,
-                "duree": s.get("duree") or None,
-            })
+            validated.append(
+                {
+                    "numero": str(s.get("numero", len(validated) + 1)),
+                    "titre": titre,
+                    "items": [
+                        str(i).strip() for i in s.get("items", []) if str(i).strip()
+                    ],
+                    "type_apprentissage": s.get("type_apprentissage") or None,
+                    "duree": s.get("duree") or None,
+                }
+            )
         logger.info(f"LLM séances extracted: {len(validated)}")
         return validated
     except Exception as exc:
@@ -1007,6 +1088,7 @@ def _llm_fallback_items(text: str, module_name: str) -> List[str]:
     Returns a list of action-verb phrases suitable as savoir names.
     """
     import json as _json_local
+
     prompt = (
         "Tu es un expert en ingénierie pédagogique. "
         "Extrais les compétences et savoirs à acquérir de ce texte de fiche module.\n"
@@ -1021,7 +1103,9 @@ def _llm_fallback_items(text: str, module_name: str) -> List[str]:
         return []
     try:
         result = _json_local.loads(raw)
-        items = [str(i).strip() for i in result.get("items", []) if len(str(i).strip()) > 5]
+        items = [
+            str(i).strip() for i in result.get("items", []) if len(str(i).strip()) > 5
+        ]
         logger.info(f"LLM fallback items extracted: {len(items)}")
         return items[:25]
     except Exception as exc:
@@ -1043,9 +1127,7 @@ _RE_SUBCOMP_TITLE_1 = re.compile(
 _RE_SUBCOMP_TITLE_2 = re.compile(
     r"^Sous[-\s]?comp[ée]tence\s*[:\-–]\s*([^\n\r]+)", re.I | re.M
 )
-_RE_SUBCOMP_TITLE_3 = re.compile(
-    r"^S[\-‑]C\s*(\d+)\s*[.\-–]\s*([^\n\r]+)", re.I | re.M
-)
+_RE_SUBCOMP_TITLE_3 = re.compile(r"^S[\-‑]C\s*(\d+)\s*[.\-–]\s*([^\n\r]+)", re.I | re.M)
 
 
 def _extract_subcompetences(text: str) -> List[Tuple[int, str]]:
@@ -1091,11 +1173,17 @@ def _llm_extract_subcompetences(text: str, module_name: str) -> List[str]:
     # LLM may return JSON or plain lines; handle both
     try:
         import json as _jl
+
         parsed = _jl.loads(raw)
         if isinstance(parsed, list):
             return [str(t).strip() for t in parsed if str(t).strip()]
         if isinstance(parsed, dict):
-            items = parsed.get("items") or parsed.get("titres") or parsed.get("sous_competences") or []
+            items = (
+                parsed.get("items")
+                or parsed.get("titres")
+                or parsed.get("sous_competences")
+                or []
+            )
             return [str(t).strip() for t in items if str(t).strip()]
     except Exception:
         pass
@@ -1107,9 +1195,7 @@ def _llm_extract_subcompetences(text: str, module_name: str) -> List[str]:
 # ─────────────────────────────────────────────────────────────────────────────
 
 # ── Standard format: label : value on the SAME line ─────────────────────────
-_RE_MODULE_CODE = re.compile(
-    r"(?:Code|code)\s*[:\-]?\s*([A-Z][A-Z0-9\-_]{2,15})", re.I
-)
+_RE_MODULE_CODE = re.compile(r"(?:Code|code)\s*[:\-]?\s*([A-Z][A-Z0-9\-_]{2,15})", re.I)
 # ── Table/reversed format: value on previous line, label on next line ────────
 # Captures code like "MT-34" that appears as a standalone token on its own line
 _RE_MODULE_CODE_TABLE = re.compile(
@@ -1176,22 +1262,87 @@ _RE_OBJECTIF = re.compile(
 
 # Words that are NOT person names (false positive filters)
 _STOP_WORDS = {
-    "module", "cours", "matiere", "matière", "ue", "tp", "td", "prerequis",
-    "objectif", "objectifs", "contenu", "evaluation", "mode", "duree", "durée",
-    "semestre", "niveau", "credits", "coefficient", "code", "reference",
-    "département", "departement", "informatique", "genie", "civil", "esprit",
-    "fiche", "pedagogique", "pédagogique", "unite", "unité", "formation",
-    "description", "compétence", "competence", "savoir", "acquis",
-    "apprentissage", "séance", "seance", "chapitre",
-    "responsable", "coordinateur", "coordinatrice", "enseignant", "enseignants",
-    "intervenant", "intervenants", "web", "semantique", "sémantique",
-    "nouvelles", "applications", "options", "niveaux",
+    "module",
+    "cours",
+    "matiere",
+    "matière",
+    "ue",
+    "tp",
+    "td",
+    "prerequis",
+    "objectif",
+    "objectifs",
+    "contenu",
+    "evaluation",
+    "mode",
+    "duree",
+    "durée",
+    "semestre",
+    "niveau",
+    "credits",
+    "coefficient",
+    "code",
+    "reference",
+    "département",
+    "departement",
+    "informatique",
+    "genie",
+    "civil",
+    "esprit",
+    "fiche",
+    "pedagogique",
+    "pédagogique",
+    "unite",
+    "unité",
+    "formation",
+    "description",
+    "compétence",
+    "competence",
+    "savoir",
+    "acquis",
+    "apprentissage",
+    "séance",
+    "seance",
+    "chapitre",
+    "responsable",
+    "coordinateur",
+    "coordinatrice",
+    "enseignant",
+    "enseignants",
+    "intervenant",
+    "intervenants",
+    "web",
+    "semantique",
+    "sémantique",
+    "nouvelles",
+    "applications",
+    "options",
+    "niveaux",
     # Fiche module table headers & labels
-    "he", "hne", "ects", "integre", "intégré", "detaille", "détaillé",
-    "situation", "rendu", "rendus", "atelier", "projet",
-    "derniere", "dernière", "mise", "jour", "date",
-    "moyenne", "calculee", "calculée", "suivant", "suit",
+    "he",
+    "hne",
+    "ects",
+    "integre",
+    "intégré",
+    "detaille",
+    "détaillé",
+    "situation",
+    "rendu",
+    "rendus",
+    "atelier",
+    "projet",
+    "derniere",
+    "dernière",
+    "mise",
+    "jour",
+    "date",
+    "moyenne",
+    "calculee",
+    "calculée",
+    "suivant",
+    "suit",
 }
+
 
 def _clean_name(raw: str) -> Optional[str]:
     """Clean a potential person name: remove noise, validate it looks like a name."""
@@ -1206,8 +1357,8 @@ def _clean_name(raw: str) -> Optional[str]:
     name = name.split("\n")[0].strip()
     # Strip embedded enseignant/module codes (e.g. "GC05", "E001") before digit check
     # so a string like "GC05 Abidi Mounir" is not thrown away entirely
-    name_no_codes = re.sub(r'\b[A-Z]{1,5}\d{1,4}\b\s*', '', name).strip()
-    if name_no_codes:   # only use stripped version if something remains
+    name_no_codes = re.sub(r"\b[A-Z]{1,5}\d{1,4}\b\s*", "", name).strip()
+    if name_no_codes:  # only use stripped version if something remains
         name = name_no_codes.strip(".,;:- –")
     # Must have at least 2 words (first + last name)
     words = name.split()
@@ -1224,6 +1375,7 @@ def _clean_name(raw: str) -> Optional[str]:
     if all(w.isupper() and len(w) <= 4 for w in words):
         return None
     return name.strip()
+
 
 def _split_names(raw: str) -> List[str]:
     """Split a raw string of professor names separated by , ; / – - or newlines."""
@@ -1246,34 +1398,35 @@ def _split_names(raw: str) -> List[str]:
             names.append(cleaned)
     return names
 
+
 # ── Labels used for table-based NER (normalised) ─────────────────────────────
 _TABLE_NER_LABELS: Dict[str, str] = {
     # normalised label text → meta key
-    "responsable":             "responsable",
-    "responsable du module":   "responsable",
-    "responsable module":      "responsable",
-    "coordinateur":            "coordinateur",
-    "coordinatrice":           "coordinateur",
-    "coordinateur du module":  "coordinateur",
-    "enseignant":              "enseignant_raw",
-    "enseignants":             "enseignant_raw",
-    "intervenants":            "enseignant_raw",
-    "equipe pedagogique":      "enseignant_raw",
-    "nom et prenom":           "enseignant_raw",
-    "nom prenom":              "enseignant_raw",
-    "intitule":                "nom_module",
-    "intitule du module":      "nom_module",
-    "module":                  "nom_module",
-    "code":                    "code_module",
-    "code module":             "code_module",
-    "code ue":                 "code_module",
-    "unite pedagogique":       "unite_pedagogique",
-    "up":                      "unite_pedagogique",
-    "prerequis":               "prerequis",
-    "pre-requis":              "prerequis",
-    "objectif":                "objectif",
-    "objectifs":               "objectif",
-    "objectifs du module":     "objectif",
+    "responsable": "responsable",
+    "responsable du module": "responsable",
+    "responsable module": "responsable",
+    "coordinateur": "coordinateur",
+    "coordinatrice": "coordinateur",
+    "coordinateur du module": "coordinateur",
+    "enseignant": "enseignant_raw",
+    "enseignants": "enseignant_raw",
+    "intervenants": "enseignant_raw",
+    "equipe pedagogique": "enseignant_raw",
+    "nom et prenom": "enseignant_raw",
+    "nom prenom": "enseignant_raw",
+    "intitule": "nom_module",
+    "intitule du module": "nom_module",
+    "module": "nom_module",
+    "code": "code_module",
+    "code module": "code_module",
+    "code ue": "code_module",
+    "unite pedagogique": "unite_pedagogique",
+    "up": "unite_pedagogique",
+    "prerequis": "prerequis",
+    "pre-requis": "prerequis",
+    "objectif": "objectif",
+    "objectifs": "objectif",
+    "objectifs du module": "objectif",
 }
 
 
@@ -1316,7 +1469,9 @@ def _scan_tables_for_meta(raw_tables: List, meta: Dict[str, Any]) -> None:
                     if cleaned:
                         meta["coordinateur"] = cleaned
                         meta.setdefault("enseignants_noms", []).append(cleaned)
-                        meta.setdefault("enseignants_roles", {})[cleaned] = "coordinateur"
+                        meta.setdefault("enseignants_roles", {})[cleaned] = (
+                            "coordinateur"
+                        )
 
                 elif meta_key == "enseignant_raw":
                     names = _split_names(value)
@@ -1326,8 +1481,12 @@ def _scan_tables_for_meta(raw_tables: List, meta: Dict[str, Any]) -> None:
 
                 elif meta_key == "nom_module" and "nom_module" not in meta:
                     raw = value.strip().rstrip(".")
-                    raw = re.sub(r"\s*(Pr\u00e9requis|Niveaux|Objectif|Derni[\u00e8e]re).*$",
-                                 "", raw, flags=re.I)
+                    raw = re.sub(
+                        r"\s*(Pr\u00e9requis|Niveaux|Objectif|Derni[\u00e8e]re).*$",
+                        "",
+                        raw,
+                        flags=re.I,
+                    )
                     if len(raw) > 2:
                         meta["nom_module"] = raw
 
@@ -1336,7 +1495,9 @@ def _scan_tables_for_meta(raw_tables: List, meta: Dict[str, Any]) -> None:
                     if re.search(r"\d", code):
                         meta["code_module"] = code
 
-                elif meta_key == "unite_pedagogique" and "unite_pedagogique" not in meta:
+                elif (
+                    meta_key == "unite_pedagogique" and "unite_pedagogique" not in meta
+                ):
                     if len(value) > 2:
                         meta["unite_pedagogique"] = value.strip()
 
@@ -1362,8 +1523,14 @@ def _extract_metadata(text: str, raw_tables: Optional[List] = None) -> Dict[str,
     if _LLM_OK:
         llm_meta = _llm_extract_metadata(text)
         # Seed meta with LLM findings – only authoritative non-empty values
-        for key in ("code_module", "nom_module", "unite_pedagogique",
-                    "responsable", "prerequis", "objectif"):
+        for key in (
+            "code_module",
+            "nom_module",
+            "unite_pedagogique",
+            "responsable",
+            "prerequis",
+            "objectif",
+        ):
             if llm_meta.get(key):
                 meta[key] = llm_meta[key]
         if llm_meta.get("enseignants_noms"):
@@ -1387,7 +1554,7 @@ def _extract_metadata(text: str, raw_tables: Optional[List] = None) -> Dict[str,
         m = _RE_MODULE_CODE.search(text)
         if m:
             code = m.group(1).strip().upper()
-            if re.search(r'\d', code):
+            if re.search(r"\d", code):
                 meta["code_module"] = code
 
     # ── Module name ──────────────────────────────────────────────────────
@@ -1395,7 +1562,12 @@ def _extract_metadata(text: str, raw_tables: Optional[List] = None) -> Dict[str,
         m = _RE_MODULE_NAME.search(text)
         if m:
             name = m.group(1).strip().rstrip(".")
-            name = re.sub(r"\s*(Pr\u00e9requis|Niveaux|Objectif|Derni[eè]re).*$", "", name, flags=re.I)
+            name = re.sub(
+                r"\s*(Pr\u00e9requis|Niveaux|Objectif|Derni[eè]re).*$",
+                "",
+                name,
+                flags=re.I,
+            )
             meta["nom_module"] = name
 
     # ── Unité pédagogique ────────────────────────────────────────────────
@@ -1409,7 +1581,8 @@ def _extract_metadata(text: str, raw_tables: Optional[List] = None) -> Dict[str,
     if "unite_pedagogique" not in meta:
         m_rev = re.search(
             r"^(.{3,60})\n\s*(?:Unit[eé]\s+p[eé]dagogique|UP)\s*$",
-            text, re.I | re.MULTILINE
+            text,
+            re.I | re.MULTILINE,
         )
         if m_rev:
             meta["unite_pedagogique"] = m_rev.group(1).strip()
@@ -1516,19 +1689,16 @@ def _extract_metadata(text: str, raw_tables: Optional[List] = None) -> Dict[str,
 
     return meta
 
+
 # ─────────────────────────────────────────────────────────────────────────────
 # NLP – Acquis d'Apprentissage extraction (AA)
 # ─────────────────────────────────────────────────────────────────────────────
 
 # ── AA extraction patterns ───────────────────────────────────────────────────
 # Standard: AA1 <text> <bloom_level>  (all on one line)
-_RE_AA_LINE = re.compile(
-    r"(?:AA\s*(\d+))\s+(.+?)\s+(\d)\s*$", re.MULTILINE
-)
+_RE_AA_LINE = re.compile(r"(?:AA\s*(\d+))\s+(.+?)\s+(\d)\s*$", re.MULTILINE)
 # Alternative: AA lines without explicit level
-_RE_AA_ALT = re.compile(
-    r"(?:AA\s*(\d+))\s+(.+)", re.MULTILINE
-)
+_RE_AA_ALT = re.compile(r"(?:AA\s*(\d+))\s+(.+)", re.MULTILINE)
 
 
 def _extract_acquis_apprentissage(text: str) -> List[Dict[str, Any]]:
@@ -1552,13 +1722,14 @@ def _extract_acquis_apprentissage(text: str) -> List[Dict[str, Any]]:
     # ── Find the AA block section ─────────────────────────────────────────
     aa_block_match = re.search(
         r"Acquis\s+d['’]apprentissage\s*:?\s*.*?\n(.+?)(?=Contenu\s+d[eé]taill[eé]|Plan\s+du\s+cours|$)",
-        text, re.I | re.DOTALL
+        text,
+        re.I | re.DOTALL,
     )
     if not aa_block_match:
         return []
 
     block = aa_block_match.group(1)
-    lines = block.split('\n')
+    lines = block.split("\n")
 
     # ── Step 1: Parse lines into markers and text segments ────────────────
     parsed = []
@@ -1567,57 +1738,61 @@ def _extract_acquis_apprentissage(text: str) -> List[Dict[str, Any]]:
         if not stripped:
             continue
         # Skip header, footer, and legend lines
-        if re.match(r'^AA\s+Acquis|^Niveau|^\*\s*:|^\(1\s*:', stripped, re.I):
+        if re.match(r"^AA\s+Acquis|^Niveau|^\*\s*:|^\(1\s*:", stripped, re.I):
             continue
-        if stripped.startswith('*') or stripped.startswith('(1'):
+        if stripped.startswith("*") or stripped.startswith("(1"):
             continue
         # Skip legend continuation (e.g. ": Créer)")
-        if re.match(r'^:\s', stripped):
+        if re.match(r"^:\s", stripped):
             continue
 
-        m = re.match(r'^AA\s*(\d+)\s*(.*)', stripped)
+        m = re.match(r"^AA\s*(\d+)\s*(.*)", stripped)
         if m:
-            parsed.append({'type': 'marker', 'aa': int(m.group(1)), 'rest': m.group(2).strip()})
+            parsed.append(
+                {"type": "marker", "aa": int(m.group(1)), "rest": m.group(2).strip()}
+            )
         else:
-            parsed.append({'type': 'text', 'content': stripped})
+            parsed.append({"type": "text", "content": stripped})
 
     # ── Step 2: Build AA segments ─────────────────────────────────────────
     # Between consecutive AA markers, text lines are split into:
     # - post-text (continuation of previous AA): starts with lowercase
     # - pre-text (start of next AA): starts with uppercase verb/noun
-    marker_indices = [i for i, p in enumerate(parsed) if p['type'] == 'marker']
+    marker_indices = [i for i, p in enumerate(parsed) if p["type"] == "marker"]
 
     if not marker_indices:
         # Fallback: try simple single-line regex
         for m in _RE_AA_LINE.finditer(text):
-            acquis.append({
-                "id": int(m.group(1)),
-                "text": m.group(2).strip(),
-                "bloom_level": min(max(int(m.group(3)), 1), 6),
-            })
+            acquis.append(
+                {
+                    "id": int(m.group(1)),
+                    "text": m.group(2).strip(),
+                    "bloom_level": min(max(int(m.group(3)), 1), 6),
+                }
+            )
         return acquis
 
     segments = []
     for idx, mi in enumerate(marker_indices):
-        aa_num = parsed[mi]['aa']
-        rest = parsed[mi]['rest']
+        aa_num = parsed[mi]["aa"]
+        rest = parsed[mi]["rest"]
 
         # Extract bloom level from end of inline text
         bloom = 0
-        bm = re.search(r'\s+(\d)\s*$', rest)
+        bm = re.search(r"\s+(\d)\s*$", rest)
         if bm:
             bloom = int(bm.group(1))
-            rest = rest[:bm.start()].strip()
-        elif re.match(r'^(\d)\s*$', rest):
+            rest = rest[: bm.start()].strip()
+        elif re.match(r"^(\d)\s*$", rest):
             bloom = int(rest)
-            rest = ''
+            rest = ""
 
         # Collect text lines between previous marker and this marker
         prev_mi = marker_indices[idx - 1] if idx > 0 else -1
         text_between = []
         for j in range(prev_mi + 1, mi):
-            if parsed[j]['type'] == 'text':
-                text_between.append(parsed[j]['content'])
+            if parsed[j]["type"] == "text":
+                text_between.append(parsed[j]["content"])
 
         # Split text_between into post-text (prev AA) and pre-text (this AA)
         # Heuristic: first line starting with uppercase (new sentence) marks the split
@@ -1628,7 +1803,9 @@ def _extract_acquis_apprentissage(text: str) -> List[Dict[str, Any]]:
             first_char = t[0]
             if first_char.isupper():
                 # Exclude common continuation words
-                if not re.match(r'^(sur|de|du|des|le|la|les|un|une|et|ou|au|aux)\s', t, re.I):
+                if not re.match(
+                    r"^(sur|de|du|des|le|la|les|un|une|et|ou|au|aux)\s", t, re.I
+                ):
                     split_point = k
                     break
 
@@ -1637,46 +1814,53 @@ def _extract_acquis_apprentissage(text: str) -> List[Dict[str, Any]]:
 
         # Assign post-text to previous segment
         if post_text_prev and segments:
-            segments[-1]['post'].extend(post_text_prev)
+            segments[-1]["post"].extend(post_text_prev)
 
         # Collect trailing text for the last marker
         trailing = []
         if idx == len(marker_indices) - 1:
             for j in range(mi + 1, len(parsed)):
-                if parsed[j]['type'] == 'text':
-                    trailing.append(parsed[j]['content'])
+                if parsed[j]["type"] == "text":
+                    trailing.append(parsed[j]["content"])
 
-        segments.append({
-            'aa': aa_num,
-            'bloom': bloom,
-            'pre': list(pre_text_this),
-            'inline': rest,
-            'post': trailing,
-        })
+        segments.append(
+            {
+                "aa": aa_num,
+                "bloom": bloom,
+                "pre": list(pre_text_this),
+                "inline": rest,
+                "post": trailing,
+            }
+        )
 
     # ── Step 3: Build final result ────────────────────────────────────────
     for seg in segments:
-        parts = seg['pre'] + ([seg['inline']] if seg['inline'] else []) + seg['post']
-        aa_text = ' '.join(parts).strip()
-        bloom = seg['bloom']
+        parts = seg["pre"] + ([seg["inline"]] if seg["inline"] else []) + seg["post"]
+        aa_text = " ".join(parts).strip()
+        bloom = seg["bloom"]
 
         # Clean trailing noise (table labels)
         aa_text = re.sub(
             r"\s*(?:Situation|Dur[eé]e|Rendu|d['’]apprentissage).*$",
-            "", aa_text, flags=re.I
+            "",
+            aa_text,
+            flags=re.I,
         ).strip()
 
         if not bloom and aa_text:
             bloom = _detect_bloom_level(aa_text)
 
         if aa_text and len(aa_text) > 5:
-            acquis.append({
-                "id": seg['aa'],
-                "text": aa_text,
-                "bloom_level": min(max(bloom, 1), 6),
-            })
+            acquis.append(
+                {
+                    "id": seg["aa"],
+                    "text": aa_text,
+                    "bloom_level": min(max(bloom, 1), 6),
+                }
+            )
 
     return acquis
+
 
 # ─────────────────────────────────────────────────────────────────────────────
 # NLP – Séance / Session extraction (Contenu détaillé)
@@ -1687,8 +1871,9 @@ _RE_SEANCE = re.compile(
     re.IGNORECASE,
 )
 _RE_CHECKMARK = re.compile(r"^[\u2714\u2713\u2611\u2610]\s*(.+)$", re.MULTILINE)
-_RE_BULLET    = re.compile(r"^[\-\u2022\*\u203A\u25E6\u25AA]\s+(.+)$", re.MULTILINE)
-_RE_NUMBERED  = re.compile(r"^\d+[\.\)]\s+(.+)$", re.MULTILINE)
+_RE_BULLET = re.compile(r"^[\-\u2022\*\u203A\u25E6\u25AA]\s+(.+)$", re.MULTILINE)
+_RE_NUMBERED = re.compile(r"^\d+[\.\)]\s+(.+)$", re.MULTILINE)
+
 
 def _extract_seances(text: str) -> List[Dict[str, Any]]:
     """
@@ -1724,22 +1909,28 @@ def _extract_seances(text: str) -> List[Dict[str, Any]]:
 
         type_match = re.search(
             r"(?:Situation\s*(?:\(s\))?\s*|Type\s*)[:\-]?\s*(cours\s+int[e\u00e9]gr[e\u00e9]|TP|TD|APP|Projet|Labo)",
-            block, re.IGNORECASE,
+            block,
+            re.IGNORECASE,
         )
         type_apprentissage = type_match.group(1).strip() if type_match else None
 
-        duree_match = re.search(r"(?:Dur\u00e9e|Duree)\s*[:\-]?\s*(\d+\s*h)", block, re.I)
+        duree_match = re.search(
+            r"(?:Dur\u00e9e|Duree)\s*[:\-]?\s*(\d+\s*h)", block, re.I
+        )
         duree = duree_match.group(1).strip() if duree_match else None
 
-        seances.append({
-            "numero": numero,
-            "titre": titre,
-            "items": items,
-            "type_apprentissage": type_apprentissage,
-            "duree": duree,
-        })
+        seances.append(
+            {
+                "numero": numero,
+                "titre": titre,
+                "items": items,
+                "type_apprentissage": type_apprentissage,
+                "duree": duree,
+            }
+        )
 
     return seances
+
 
 # ─────────────────────────────────────────────────────────────────────────────
 # NLP – Enseignant matching (fuzzy name matching)
@@ -1792,13 +1983,18 @@ def _match_enseignants_by_name(
                 eid, display, _ = ens_lookup[idx]
                 matched_ids.append(eid)
                 name_to_match[fiche_name] = (eid, display)
-                logger.debug(f"  Fuzzy match '{fiche_name}' → '{display}' (score={score})")
+                logger.debug(
+                    f"  Fuzzy match '{fiche_name}' → '{display}' (score={score})"
+                )
             continue
 
         # ── substring fallback ────────────────────────────────────────────
         for eid, display, ens_norm in ens_lookup:
             ens_nom_norm = _normalize(eid.split("-")[-1]) if "-" in eid else ""
-            if ens_norm in fn_norm or _normalize("".join(reversed(ens_norm.split()))) in fn_norm:
+            if (
+                ens_norm in fn_norm
+                or _normalize("".join(reversed(ens_norm.split()))) in fn_norm
+            ):
                 matched_ids.append(eid)
                 name_to_match[fiche_name] = (eid, display)
                 break
@@ -1810,6 +2006,7 @@ def _match_enseignants_by_name(
                 break
 
     return matched_ids, name_to_match
+
 
 def _match_enseignants_by_module(
     text: str,
@@ -1825,9 +2022,11 @@ def _match_enseignants_by_module(
                 break
     return matched
 
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Core NLP analyzer – builds the competence tree from extracted data
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 def _analyze_single_fiche(
     filename: str,
@@ -1856,9 +2055,15 @@ def _analyze_single_fiche(
 
     if not domain_name:
         stem = Path(filename).stem
-        clean = re.sub(r"^(fiche[_\s]?)?(ue[_\s]?|module[_\s]?|cours[_\s]?)?",
-                       "", stem, flags=re.IGNORECASE)
-        domain_name = re.sub(r"[_\-]+", " ", clean).strip().title() or "Domaine G\u00e9n\u00e9ral"
+        clean = re.sub(
+            r"^(fiche[_\s]?)?(ue[_\s]?|module[_\s]?|cours[_\s]?)?",
+            "",
+            stem,
+            flags=re.IGNORECASE,
+        )
+        domain_name = (
+            re.sub(r"[_\-]+", " ", clean).strip().title() or "Domaine G\u00e9n\u00e9ral"
+        )
 
     if not module_name:
         module_name = domain_name
@@ -1876,7 +2081,9 @@ def _analyze_single_fiche(
         roles_map.setdefault(meta["responsable"], "responsable")
     fiche_ens_names = list(dict.fromkeys(fiche_ens_names))  # dedupe preserving order
 
-    matched_by_name, name_match_map = _match_enseignants_by_name(fiche_ens_names, enseignants)
+    matched_by_name, name_match_map = _match_enseignants_by_name(
+        fiche_ens_names, enseignants
+    )
     matched_by_module = _match_enseignants_by_module(text, enseignants)
 
     # Build extracted enseignant list – every name gets a real DB ID
@@ -1889,14 +2096,18 @@ def _analyze_single_fiche(
         else:
             # Name not found in DB → left unmatched for manual linking in the UI
             mid, mnom = None, None
-        extracted_ens.append(FicheEnseignantExtrait(
-            fichier=filename,
-            nom_complet=name,
-            role=role,
-            matched_id=mid,
-            matched_nom=mnom,
-        ))
-    logger.info(f"  Extracted professor names: {[e.nom_complet for e in extracted_ens]}")
+        extracted_ens.append(
+            FicheEnseignantExtrait(
+                fichier=filename,
+                nom_complet=name,
+                role=role,
+                matched_id=mid,
+                matched_nom=mnom,
+            )
+        )
+    logger.info(
+        f"  Extracted professor names: {[e.nom_complet for e in extracted_ens]}"
+    )
 
     # ── Add referential & module-matched teachers (by ID) to extractedEnseignants ──
     # Build a name-lookup map: id → EnseignantInfo from passed list + DB cache
@@ -1922,20 +2133,26 @@ def _analyze_single_fiche(
             # Cannot resolve a real name – skip rather than showing a raw code
             continue
         full_name = f"{ens_obj.prenom} {ens_obj.nom}".strip() or eid_str
-        extracted_ens.append(FicheEnseignantExtrait(
-            fichier=filename,
-            nom_complet=full_name,
-            role="enseignant",
-            matched_id=eid_str,
-            matched_nom=full_name,
-        ))
+        extracted_ens.append(
+            FicheEnseignantExtrait(
+                fichier=filename,
+                nom_complet=full_name,
+                role="enseignant",
+                matched_id=eid_str,
+                matched_nom=full_name,
+            )
+        )
         already_extracted_ids.add(eid_str)
 
-    logger.info(f"  Matched enseignants: {len(all_matched)} "
-                f"(by name: {len(matched_by_name)}, by module: {len(matched_by_module)}, "
-                f"by ref [{departement}]: {len(matched_by_ref)})")
+    logger.info(
+        f"  Matched enseignants: {len(all_matched)} "
+        f"(by name: {len(matched_by_name)}, by module: {len(matched_by_module)}, "
+        f"by ref [{departement}]: {len(matched_by_ref)})"
+    )
     if ref_savoir_matches:
-        logger.info(f"  Referential savoir matches [{departement}]: {ref_savoir_matches[:5]}")
+        logger.info(
+            f"  Referential savoir matches [{departement}]: {ref_savoir_matches[:5]}"
+        )
 
     # IDs of professors extracted directly from this fiche (last-resort fallback)
     extracted_ids: List[str] = [e.matched_id for e in extracted_ens if e.matched_id]
@@ -1959,8 +2176,10 @@ def _analyze_single_fiche(
         if llm_titles:
             subcomp_titles = [(i + 1, t) for i, t in enumerate(llm_titles)]
     if subcomp_titles:
-        logger.info(f"  Sous-compétences explicites trouvées: {len(subcomp_titles)} — "
-                     f"{[t for _, t in subcomp_titles[:5]]}")
+        logger.info(
+            f"  Sous-compétences explicites trouvées: {len(subcomp_titles)} — "
+            f"{[t for _, t in subcomp_titles[:5]]}"
+        )
 
     # === Compétence 1: from Acquis d'Apprentissage ===
     if acquis:
@@ -1975,7 +2194,11 @@ def _analyze_single_fiche(
                 sc_code = f"{comp_code}-SC{sc_idx + 1}"
                 # Determine text range for this sub-competence
                 start = line_no - 1  # 0-based
-                end = (subcomp_titles[idx_sc + 1][0] - 1) if (idx_sc + 1 < len(subcomp_titles)) else len(text_lines)
+                end = (
+                    (subcomp_titles[idx_sc + 1][0] - 1)
+                    if (idx_sc + 1 < len(subcomp_titles))
+                    else len(text_lines)
+                )
                 sc_block_text = "\n".join(text_lines[start:end])
 
                 # Find AAs whose text appears in this block
@@ -1987,29 +2210,44 @@ def _analyze_single_fiche(
                 for j, aa in enumerate(aa_block):
                     sav_code = f"{sc_code}-S{j + 1}"
                     gc_codes = _match_gc_savoir(aa["text"], departement=departement)
-                    savoir_ens = list(
-                        set(matched_by_name + matched_by_module + _suggest_gc_enseignants(gc_codes))
-                    ) if gc_codes else list(set(matched_by_name + matched_by_module))
-                    savoirs.append(SavoirProposition(
-                        tmpId=str(uuid.uuid4()),
-                        code=sav_code,
-                        nom=aa["text"][:120],
-                        description=aa["text"][:200],
-                        type=_detect_type(aa["text"], departement),
-                        niveau=_gc_ref_niveau(gc_codes, departement=departement) or _bloom_to_niveau(aa["bloom_level"]),
-                        enseignantsSuggeres=savoir_ens or all_matched or extracted_ids,
-                        refCodes=gc_codes,
-                    ))
+                    savoir_ens = (
+                        list(
+                            set(
+                                matched_by_name
+                                + matched_by_module
+                                + _suggest_gc_enseignants(gc_codes)
+                            )
+                        )
+                        if gc_codes
+                        else list(set(matched_by_name + matched_by_module))
+                    )
+                    savoirs.append(
+                        SavoirProposition(
+                            tmpId=str(uuid.uuid4()),
+                            code=sav_code,
+                            nom=aa["text"][:120],
+                            description=aa["text"][:200],
+                            type=_detect_type(aa["text"], departement),
+                            niveau=_gc_ref_niveau(gc_codes, departement=departement)
+                            or _bloom_to_niveau(aa["bloom_level"]),
+                            enseignantsSuggeres=savoir_ens
+                            or all_matched
+                            or extracted_ids,
+                            refCodes=gc_codes,
+                        )
+                    )
 
                 sc_gc = list({c for s in savoirs for c in s.refCodes})
-                sous_comps.append(SousCompetenceProposition(
-                    tmpId=str(uuid.uuid4()),
-                    code=sc_code,
-                    nom=title,
-                    description=None,
-                    refCodes=sc_gc,
-                    savoirs=savoirs,
-                ))
+                sous_comps.append(
+                    SousCompetenceProposition(
+                        tmpId=str(uuid.uuid4()),
+                        code=sc_code,
+                        nom=title,
+                        description=None,
+                        refCodes=sc_gc,
+                        savoirs=savoirs,
+                    )
+                )
                 sc_idx += 1
         else:
             # ── Fallback: group AAs by Bloom level (existing behaviour) ──
@@ -2035,43 +2273,64 @@ def _analyze_single_fiche(
                 for j, aa in enumerate(aa_list):
                     sav_code = f"{sc_code}-S{j + 1}"
                     gc_codes = _match_gc_savoir(aa["text"], departement=departement)
-                    savoir_ens = list(
-                        set(matched_by_name + matched_by_module + _suggest_gc_enseignants(gc_codes))
-                    ) if gc_codes else list(set(matched_by_name + matched_by_module))
-                    savoirs.append(SavoirProposition(
-                        tmpId=str(uuid.uuid4()),
-                        code=sav_code,
-                        nom=aa["text"][:120],
-                        description=aa["text"][:200],
-                        type=_detect_type(aa["text"], departement),
-                        niveau=_gc_ref_niveau(gc_codes, departement=departement) or _bloom_to_niveau(aa["bloom_level"]),
-                        enseignantsSuggeres=savoir_ens or all_matched or extracted_ids,
-                        refCodes=gc_codes,
-                    ))
+                    savoir_ens = (
+                        list(
+                            set(
+                                matched_by_name
+                                + matched_by_module
+                                + _suggest_gc_enseignants(gc_codes)
+                            )
+                        )
+                        if gc_codes
+                        else list(set(matched_by_name + matched_by_module))
+                    )
+                    savoirs.append(
+                        SavoirProposition(
+                            tmpId=str(uuid.uuid4()),
+                            code=sav_code,
+                            nom=aa["text"][:120],
+                            description=aa["text"][:200],
+                            type=_detect_type(aa["text"], departement),
+                            niveau=_gc_ref_niveau(gc_codes, departement=departement)
+                            or _bloom_to_niveau(aa["bloom_level"]),
+                            enseignantsSuggeres=savoir_ens
+                            or all_matched
+                            or extracted_ids,
+                            refCodes=gc_codes,
+                        )
+                    )
                 sc_gc = list({c for s in savoirs for c in s.refCodes})
-                sous_comps.append(SousCompetenceProposition(
-                    tmpId=str(uuid.uuid4()),
-                    code=sc_code,
-                    nom=sc_name,
-                    description=None,
-                    refCodes=sc_gc,
-                    savoirs=savoirs,
-                ))
+                sous_comps.append(
+                    SousCompetenceProposition(
+                        tmpId=str(uuid.uuid4()),
+                        code=sc_code,
+                        nom=sc_name,
+                        description=None,
+                        refCodes=sc_gc,
+                        savoirs=savoirs,
+                    )
+                )
                 sc_idx += 1
 
         # Aggregate GC codes from sous-compétences and classify at competence level
         comp_gc = list({c for sc2 in sous_comps for c in sc2.refCodes})
-        comp_gc_domaine = _match_gc_competence(" ".join(comp_gc), departement=departement) if comp_gc else None
-        competences.append(CompetenceProposition(
-            tmpId=str(uuid.uuid4()),
-            code=comp_code,
-            nom=f"Acquis d'apprentissage \u2013 {module_name}",
-            description=meta.get("objectif"),
-            ordre=comp_idx + 1,
-            refCodes=comp_gc,
-            refDomaine=comp_gc_domaine,
-            sousCompetences=sous_comps,
-        ))
+        comp_gc_domaine = (
+            _match_gc_competence(" ".join(comp_gc), departement=departement)
+            if comp_gc
+            else None
+        )
+        competences.append(
+            CompetenceProposition(
+                tmpId=str(uuid.uuid4()),
+                code=comp_code,
+                nom=f"Acquis d'apprentissage \u2013 {module_name}",
+                description=meta.get("objectif"),
+                ordre=comp_idx + 1,
+                refCodes=comp_gc,
+                refDomaine=comp_gc_domaine,
+                sousCompetences=sous_comps,
+            )
+        )
         comp_idx += 1
 
     # === Compétence(s) from Séances (contenu détaillé) ===
@@ -2089,76 +2348,106 @@ def _analyze_single_fiche(
             for j, item in enumerate(items):
                 sav_code = f"{sc_code}-S{j + 1}"
                 bloom = _detect_bloom_level(item)
-                item_type = _detect_type(item + " " + (seance.get("type_apprentissage") or ""), departement)
+                item_type = _detect_type(
+                    item + " " + (seance.get("type_apprentissage") or ""), departement
+                )
                 gc_codes = _match_gc_savoir(item, departement=departement)
                 # Per-savoir teacher suggestions: name/module matches + ref-code-specific matches
-                savoir_ens = list(
-                    set(matched_by_name + matched_by_module + _suggest_gc_enseignants(gc_codes))
-                ) if gc_codes else list(set(matched_by_name + matched_by_module))
-                savoirs.append(SavoirProposition(
-                    tmpId=str(uuid.uuid4()),
-                    code=sav_code,
-                    nom=item[:120],
-                    description=None,
-                    type=item_type,
-                    niveau=_gc_ref_niveau(gc_codes, departement=departement) or _bloom_to_niveau(bloom),
-                    enseignantsSuggeres=savoir_ens or all_matched or extracted_ids,
-                    refCodes=gc_codes,
-                ))
+                savoir_ens = (
+                    list(
+                        set(
+                            matched_by_name
+                            + matched_by_module
+                            + _suggest_gc_enseignants(gc_codes)
+                        )
+                    )
+                    if gc_codes
+                    else list(set(matched_by_name + matched_by_module))
+                )
+                savoirs.append(
+                    SavoirProposition(
+                        tmpId=str(uuid.uuid4()),
+                        code=sav_code,
+                        nom=item[:120],
+                        description=None,
+                        type=item_type,
+                        niveau=_gc_ref_niveau(gc_codes, departement=departement)
+                        or _bloom_to_niveau(bloom),
+                        enseignantsSuggeres=savoir_ens or all_matched or extracted_ids,
+                        refCodes=gc_codes,
+                    )
+                )
 
             sc_titre = f"S\u00e9ance {seance['numero']} : {seance['titre']}"
             if seance.get("duree"):
                 sc_titre += f" ({seance['duree']})"
 
             sc_gc = list({c for s in savoirs for c in s.refCodes})
-            sous_comps_seances.append(SousCompetenceProposition(
-                tmpId=str(uuid.uuid4()),
-                code=sc_code,
-                nom=sc_titre[:100],
-                description=seance.get("type_apprentissage"),
-                refCodes=sc_gc,
-                savoirs=savoirs,
-            ))
+            sous_comps_seances.append(
+                SousCompetenceProposition(
+                    tmpId=str(uuid.uuid4()),
+                    code=sc_code,
+                    nom=sc_titre[:100],
+                    description=seance.get("type_apprentissage"),
+                    refCodes=sc_gc,
+                    savoirs=savoirs,
+                )
+            )
 
         seance_gc = list({c for sc2 in sous_comps_seances for c in sc2.refCodes})
-        seance_gc_domaine = _match_gc_competence(" ".join(seance_gc), departement=departement) if seance_gc else None
-        competences.append(CompetenceProposition(
-            tmpId=str(uuid.uuid4()),
-            code=comp_code,
-            nom=f"Contenu d\u00e9taill\u00e9 \u2013 {module_name}",
-            description=None,
-            ordre=comp_idx + 1,
-            refCodes=seance_gc,
-            refDomaine=seance_gc_domaine,
-            sousCompetences=sous_comps_seances,
-        ))
+        seance_gc_domaine = (
+            _match_gc_competence(" ".join(seance_gc), departement=departement)
+            if seance_gc
+            else None
+        )
+        competences.append(
+            CompetenceProposition(
+                tmpId=str(uuid.uuid4()),
+                code=comp_code,
+                nom=f"Contenu d\u00e9taill\u00e9 \u2013 {module_name}",
+                description=None,
+                ordre=comp_idx + 1,
+                refCodes=seance_gc,
+                refDomaine=seance_gc_domaine,
+                sousCompetences=sous_comps_seances,
+            )
+        )
         comp_idx += 1
 
     # === Fallback: generic extraction if no AA and no séances found ===
     if not competences:
-        competences = _fallback_extraction(text, module_code, module_name,
-                                           all_matched or extracted_ids,
-                                           departement=departement)
+        competences = _fallback_extraction(
+            text,
+            module_code,
+            module_name,
+            all_matched or extracted_ids,
+            departement=departement,
+        )
 
     # Aggregate all referential codes from the full competence tree
-    all_ref_fiche = list({
-        c
-        for comp in competences
-        for sc2 in comp.sousCompetences
-        for s in sc2.savoirs
-        for c in s.refCodes
-    })
-    domaine_ref_domaine = _match_gc_competence(text, departement=departement)  # classify whole fiche
+    all_ref_fiche = list(
+        {
+            c
+            for comp in competences
+            for sc2 in comp.sousCompetences
+            for s in sc2.savoirs
+            for c in s.refCodes
+        }
+    )
+    domaine_ref_domaine = _match_gc_competence(
+        text, departement=departement
+    )  # classify whole fiche
     if domaine_ref_domaine:
-        logger.info(f"  Domain match [{departement}]: {domaine_ref_domaine} ({len(all_ref_fiche)} ref codes)")
+        logger.info(
+            f"  Domain match [{departement}]: {domaine_ref_domaine} ({len(all_ref_fiche)} ref codes)"
+        )
 
     domaine = DomaineProposition(
         tmpId=str(uuid.uuid4()),
         code=domain_code,
         nom=domain_name,
-        description=f"Domaine extrait de : {filename}" + (
-            f" | Pr\u00e9requis: {meta['prerequis']}" if meta.get("prerequis") else ""
-        ),
+        description=f"Domaine extrait de : {filename}"
+        + (f" | Pr\u00e9requis: {meta['prerequis']}" if meta.get("prerequis") else ""),
         refCodes=all_ref_fiche,
         refDomaine=domaine_ref_domaine,
         competences=competences,
@@ -2204,9 +2493,12 @@ def _fallback_extraction(
         if not items:
             sentences = re.split(r"[.\n]+", text)
             items = [
-                s.strip() for s in sentences
+                s.strip()
+                for s in sentences
                 if 10 < len(s.strip()) < 200
-                and not re.match(r"^(Code|Mode|Evaluation|R\u00e9f\u00e9rence)", s.strip())
+                and not re.match(
+                    r"^(Code|Mode|Evaluation|R\u00e9f\u00e9rence)", s.strip()
+                )
                 and not _FALLBACK_NOISE.match(s.strip())
                 # Require at least a level-2 Bloom verb (action word) to be a competence
                 and _detect_bloom_level(s.strip()) >= 2
@@ -2224,17 +2516,24 @@ def _fallback_extraction(
         sav_code = f"{sc_code}-S{j + 1}"
         bloom = _detect_bloom_level(item)
         gc_codes = _match_gc_savoir(item, departement=departement)
-        savoir_ens = list(set(matched_ens + _suggest_gc_enseignants(gc_codes))) if gc_codes else matched_ens
-        savoirs.append(SavoirProposition(
-            tmpId=str(uuid.uuid4()),
-            code=sav_code,
-            nom=item[:120],
-            description=None,
-            type=_detect_type(item, departement),
-            niveau=_gc_ref_niveau(gc_codes, departement=departement) or _bloom_to_niveau(bloom),
-            enseignantsSuggeres=savoir_ens,
-            refCodes=gc_codes,
-        ))
+        savoir_ens = (
+            list(set(matched_ens + _suggest_gc_enseignants(gc_codes)))
+            if gc_codes
+            else matched_ens
+        )
+        savoirs.append(
+            SavoirProposition(
+                tmpId=str(uuid.uuid4()),
+                code=sav_code,
+                nom=item[:120],
+                description=None,
+                type=_detect_type(item, departement),
+                niveau=_gc_ref_niveau(gc_codes, departement=departement)
+                or _bloom_to_niveau(bloom),
+                enseignantsSuggeres=savoir_ens,
+                refCodes=gc_codes,
+            )
+        )
 
     sc_gc = list({c for s in savoirs for c in s.refCodes})
     sc = SousCompetenceProposition(
@@ -2246,16 +2545,22 @@ def _fallback_extraction(
     )
 
     comp_gc = list({c for s in savoirs for c in s.refCodes})
-    comp_gc_domaine = _match_gc_competence(" ".join(comp_gc), departement=departement) if comp_gc else None
-    return [CompetenceProposition(
-        tmpId=str(uuid.uuid4()),
-        code=comp_code,
-        nom=module_name,
-        ordre=1,
-        refCodes=comp_gc,
-        refDomaine=comp_gc_domaine,
-        sousCompetences=[sc],
-    )]
+    comp_gc_domaine = (
+        _match_gc_competence(" ".join(comp_gc), departement=departement)
+        if comp_gc
+        else None
+    )
+    return [
+        CompetenceProposition(
+            tmpId=str(uuid.uuid4()),
+            code=comp_code,
+            nom=module_name,
+            ordre=1,
+            refCodes=comp_gc,
+            refDomaine=comp_gc_domaine,
+            sousCompetences=[sc],
+        )
+    ]
 
 
 def analyze_files(
@@ -2281,7 +2586,9 @@ def analyze_files(
     for filename, data in zip(filenames, file_contents):
         text, raw_tables = _extract_text(filename, data)
         domaine, extracted_ens = _analyze_single_fiche(
-            filename, text, enseignants,
+            filename,
+            text,
+            enseignants,
             departement=departement,
             raw_tables=raw_tables,
         )
@@ -2298,26 +2605,32 @@ def analyze_files(
 
     # Build summary stats
     total_comp = sum(len(d.competences) for d in domaines)
-    total_sc   = sum(len(c.sousCompetences)
-                     for d in domaines for c in d.competences)
-    total_sav  = sum(len(sc.savoirs)
-                     for d in domaines for c in d.competences
-                     for sc in c.sousCompetences)
+    total_sc = sum(len(c.sousCompetences) for d in domaines for c in d.competences)
+    total_sav = sum(
+        len(sc.savoirs)
+        for d in domaines
+        for c in d.competences
+        for sc in c.sousCompetences
+    )
     assigned_ens = {
         eid
-        for d in domaines for c in d.competences
-        for sc in c.sousCompetences for s in sc.savoirs
+        for d in domaines
+        for c in d.competences
+        for sc in c.sousCompetences
+        for s in sc.savoirs
         for eid in s.enseignantsSuggeres
     }
 
-    all_ref_codes_covered = sorted({
-        c
-        for d in domaines
-        for comp in d.competences
-        for sc in comp.sousCompetences
-        for s in sc.savoirs
-        for c in s.refCodes
-    })
+    all_ref_codes_covered = sorted(
+        {
+            c
+            for d in domaines
+            for comp in d.competences
+            for sc in comp.sousCompetences
+            for s in sc.savoirs
+            for c in s.refCodes
+        }
+    )
     stats = {
         "departement": departement,
         "totalDomaines": len(domaines),
@@ -2364,159 +2677,368 @@ import json as _json
 _GC_FALLBACK_REF = {
     # ── Domaines ────────────────────────────────────────────────────────────
     "domaines": {
-        "GC-RDI":  "RDI – Recherche, Développement et Innovation",
+        "GC-RDI": "RDI – Recherche, Développement et Innovation",
         "GC-PERS": "Personnel et Relationnel",
-        "GC-COM":  "Communication et Culture",
-        "GC-PED":  "Pédagogie",
+        "GC-COM": "Communication et Culture",
+        "GC-PED": "Pédagogie",
         "GC-TECH": "Technique / Métier Génie Civil",
     },
-
     # ── Compétences (6 compétences techniques) ──────────────────────────────
     "competences": {
         "GC-TECH-S": {
             "nom": "Compétences dans le domaine des sols (S)",
             "keywords": [
-                "sol", "geologie", "geotechnique", "coupe geologique",
-                "fondation", "soutenement", "pente", "sismique",
-                "instabilite hydraulique", "renard", "boulance",
+                "sol",
+                "geologie",
+                "geotechnique",
+                "coupe geologique",
+                "fondation",
+                "soutenement",
+                "pente",
+                "sismique",
+                "instabilite hydraulique",
+                "renard",
+                "boulance",
             ],
         },
         "GC-TECH-C": {
             "nom": "Compétences dans le domaine de la construction (C)",
             "keywords": [
-                "beton arme", "ouvrage art", "pont", "viaduc",
-                "infrastructure routiere", "route", "chaussee",
-                "rehabilitation", "mode constructif", "prefabrique",
+                "beton arme",
+                "ouvrage art",
+                "pont",
+                "viaduc",
+                "infrastructure routiere",
+                "route",
+                "chaussee",
+                "rehabilitation",
+                "mode constructif",
+                "prefabrique",
             ],
         },
         "GC-TECH-P": {
             "nom": "Compétences en physique du bâtiment (P)",
             "keywords": [
-                "thermique", "acoustique", "aeraulique", "isolation",
-                "physique batiment", "performance energetique",
-                "equipement technique", "cvc", "ventilation",
+                "thermique",
+                "acoustique",
+                "aeraulique",
+                "isolation",
+                "physique batiment",
+                "performance energetique",
+                "equipement technique",
+                "cvc",
+                "ventilation",
             ],
         },
         "GC-TECH-E": {
             "nom": "Compétences dans le domaine de l'eau (E)",
             "keywords": [
-                "hydraulique", "hydrologie", "bassin versant", "debit",
-                "crue", "assainissement", "reseau eau", "diagnostic eau",
+                "hydraulique",
+                "hydrologie",
+                "bassin versant",
+                "debit",
+                "crue",
+                "assainissement",
+                "reseau eau",
+                "diagnostic eau",
             ],
         },
         "GC-TECH-U": {
             "nom": "Compétences en urbanisme (U)",
             "keywords": [
-                "urbanisme", "amenagement urbain", "diagnostic urbain",
-                "situation urbaine", "ville", "territoire", "paysage",
+                "urbanisme",
+                "amenagement urbain",
+                "diagnostic urbain",
+                "situation urbaine",
+                "ville",
+                "territoire",
+                "paysage",
             ],
         },
         "GC-TECH-T": {
             "nom": "Compétences transversales en génie civil (T)",
             "keywords": [
-                "pluridisciplinaire", "organisation chantier", "securite chantier",
-                "construction durable", "developpement durable",
-                "maintenance ouvrage", "assurance qualite", "plan qualite",
+                "pluridisciplinaire",
+                "organisation chantier",
+                "securite chantier",
+                "construction durable",
+                "developpement durable",
+                "maintenance ouvrage",
+                "assurance qualite",
+                "plan qualite",
             ],
         },
     },
-
     # ── Savoirs : code → [mots-clés de matching] ───────────────────────────
     # Chaque entrée reflète exactement l'intitulé officiel du référentiel GC
     "savoirs": {
         # ── S – Sols ──────────────────────────────────────────────────────
         "S1a": ["coupe geologique", "effectuer coupe", "coupe lithologique"],
-        "S1b": ["interpreter coupe geologique", "coupe geologique interpreter",
-                "interpretation geologique"],
-        "S1c": ["teledetection", "carte geologique", "interpreter carte",
-                "resultat teledetection"],
+        "S1b": [
+            "interpreter coupe geologique",
+            "coupe geologique interpreter",
+            "interpretation geologique",
+        ],
+        "S1c": [
+            "teledetection",
+            "carte geologique",
+            "interpreter carte",
+            "resultat teledetection",
+        ],
         "S1d": ["horizon geologique", "identifier horizon", "identification couche"],
-        "S2a": ["essai geotechnique laboratoire", "essai classification",
-                "comportement sol laboratoire", "realiser essai geotechnique"],
-        "S2b": ["interpreter essai geotechnique", "resultat essai geotechnique",
-                "interpretation laboratoire"],
-        "S3":  ["rupture pente", "stabilite pente", "glissement terrain",
-                "risque pente", "sollicitation pente"],
-        "S4":  ["instabilite hydraulique sol", "risque hydraulique sol",
-                "renard", "boulance", "soulevement hydraulique"],
-        "S5":  ["risque geotechnique sismique", "sollicitation sismique",
-                "risque sismique geotechnique", "seisme sol"],
-        "S6a": ["concevoir fondation", "concevoir soutenement",
-                "systeme fondation conception", "paroi soutenement conception"],
-        "S6b": ["dimensionner fondation", "dimensionner soutenement",
-                "calcul fondation", "pieu calcul", "semelle dimensionner"],
-        "S6c": ["controler fondation", "controler soutenement",
-                "verification fondation", "reception fondation"],
+        "S2a": [
+            "essai geotechnique laboratoire",
+            "essai classification",
+            "comportement sol laboratoire",
+            "realiser essai geotechnique",
+        ],
+        "S2b": [
+            "interpreter essai geotechnique",
+            "resultat essai geotechnique",
+            "interpretation laboratoire",
+        ],
+        "S3": [
+            "rupture pente",
+            "stabilite pente",
+            "glissement terrain",
+            "risque pente",
+            "sollicitation pente",
+        ],
+        "S4": [
+            "instabilite hydraulique sol",
+            "risque hydraulique sol",
+            "renard",
+            "boulance",
+            "soulevement hydraulique",
+        ],
+        "S5": [
+            "risque geotechnique sismique",
+            "sollicitation sismique",
+            "risque sismique geotechnique",
+            "seisme sol",
+        ],
+        "S6a": [
+            "concevoir fondation",
+            "concevoir soutenement",
+            "systeme fondation conception",
+            "paroi soutenement conception",
+        ],
+        "S6b": [
+            "dimensionner fondation",
+            "dimensionner soutenement",
+            "calcul fondation",
+            "pieu calcul",
+            "semelle dimensionner",
+        ],
+        "S6c": [
+            "controler fondation",
+            "controler soutenement",
+            "verification fondation",
+            "reception fondation",
+        ],
         # ── C – Construction ──────────────────────────────────────────────
-        "C1a": ["concevoir structure beton", "beton arme concevoir",
-                "structure batiment conception", "conception batiment beton"],
-        "C1b": ["dimensionner beton arme", "calcul structure beton",
-                "bael", "eurocode 2", "dimensionnement beton"],
-        "C1c": ["controler beton arme", "verification beton arme",
-                "conformite structurale", "inspection beton"],
-        "C2a": ["concevoir ouvrage art", "pont conception", "viaduc conception",
-                "ouvrage art concevoir"],
-        "C2b": ["dimensionner ouvrage art", "calcul pont", "dimensionner pont",
-                "calcul viaduc"],
-        "C2c": ["controler ouvrage art", "verification pont", "reception pont",
-                "inspection ouvrage art"],
-        "C3a": ["concevoir infrastructure routiere", "trace routier",
-                "route conception", "conception route"],
-        "C3b": ["dimensionner infrastructure routiere", "chaussee dimensionner",
-                "terrassement", "dimensionner route"],
-        "C3c": ["controler infrastructure routiere", "chantier routier",
-                "reception chaussee", "supervision route"],
-        "C4":  ["gestion projet infrastructure", "management projet infrastructure",
-                "pilotage projet", "chef projet infrastructure"],
-        "C5":  ["etude impact infrastructure", "impact environnement infrastructure",
-                "etude impact"],
-        "C6":  ["mode constructif", "methode construction", "prefabrique",
-                "coffrage", "choisir mode constructif"],
-        "C7":  ["etat sante structurel", "sante structurel", "diagnostic structure",
-                "pathologie batiment", "actions necessaires structure"],
-        "C8":  ["rehabilitation ouvrage art", "actions rehabilitation",
-                "reparation ouvrage art", "refection ouvrage"],
+        "C1a": [
+            "concevoir structure beton",
+            "beton arme concevoir",
+            "structure batiment conception",
+            "conception batiment beton",
+        ],
+        "C1b": [
+            "dimensionner beton arme",
+            "calcul structure beton",
+            "bael",
+            "eurocode 2",
+            "dimensionnement beton",
+        ],
+        "C1c": [
+            "controler beton arme",
+            "verification beton arme",
+            "conformite structurale",
+            "inspection beton",
+        ],
+        "C2a": [
+            "concevoir ouvrage art",
+            "pont conception",
+            "viaduc conception",
+            "ouvrage art concevoir",
+        ],
+        "C2b": [
+            "dimensionner ouvrage art",
+            "calcul pont",
+            "dimensionner pont",
+            "calcul viaduc",
+        ],
+        "C2c": [
+            "controler ouvrage art",
+            "verification pont",
+            "reception pont",
+            "inspection ouvrage art",
+        ],
+        "C3a": [
+            "concevoir infrastructure routiere",
+            "trace routier",
+            "route conception",
+            "conception route",
+        ],
+        "C3b": [
+            "dimensionner infrastructure routiere",
+            "chaussee dimensionner",
+            "terrassement",
+            "dimensionner route",
+        ],
+        "C3c": [
+            "controler infrastructure routiere",
+            "chantier routier",
+            "reception chaussee",
+            "supervision route",
+        ],
+        "C4": [
+            "gestion projet infrastructure",
+            "management projet infrastructure",
+            "pilotage projet",
+            "chef projet infrastructure",
+        ],
+        "C5": [
+            "etude impact infrastructure",
+            "impact environnement infrastructure",
+            "etude impact",
+        ],
+        "C6": [
+            "mode constructif",
+            "methode construction",
+            "prefabrique",
+            "coffrage",
+            "choisir mode constructif",
+        ],
+        "C7": [
+            "etat sante structurel",
+            "sante structurel",
+            "diagnostic structure",
+            "pathologie batiment",
+            "actions necessaires structure",
+        ],
+        "C8": [
+            "rehabilitation ouvrage art",
+            "actions rehabilitation",
+            "reparation ouvrage art",
+            "refection ouvrage",
+        ],
         # ── P – Physique du bâtiment ──────────────────────────────────────
-        "P1a": ["concevoir solution thermique", "concevoir solution acoustique",
-                "aeraulique conception", "physique batiment conception"],
-        "P1b": ["dimensionner solution thermique", "dimensionner solution acoustique",
-                "calcul thermique batiment", "aeraulique dimensionner"],
-        "P1c": ["controler solution thermique", "controler solution acoustique",
-                "performance thermique verification", "verification acoustique"],
-        "P2":  ["diagnostic thermique batiment", "performance thermique evaluation",
-                "acoustique evaluation", "bilan thermique batiment", "etat sante thermique"],
-        "P3":  ["dimensionner equipement technique", "choisir equipement technique",
-                "cvc", "plomberie", "ventilation dimensionner"],
+        "P1a": [
+            "concevoir solution thermique",
+            "concevoir solution acoustique",
+            "aeraulique conception",
+            "physique batiment conception",
+        ],
+        "P1b": [
+            "dimensionner solution thermique",
+            "dimensionner solution acoustique",
+            "calcul thermique batiment",
+            "aeraulique dimensionner",
+        ],
+        "P1c": [
+            "controler solution thermique",
+            "controler solution acoustique",
+            "performance thermique verification",
+            "verification acoustique",
+        ],
+        "P2": [
+            "diagnostic thermique batiment",
+            "performance thermique evaluation",
+            "acoustique evaluation",
+            "bilan thermique batiment",
+            "etat sante thermique",
+        ],
+        "P3": [
+            "dimensionner equipement technique",
+            "choisir equipement technique",
+            "cvc",
+            "plomberie",
+            "ventilation dimensionner",
+        ],
         # ── E – Eau ───────────────────────────────────────────────────────
-        "E1a": ["concevoir reseau hydraulique", "concevoir ouvrage hydraulique",
-                "hydraulique urbain conception", "hydrologie reseau conception"],
-        "E1b": ["dimensionner reseau hydraulique", "dimensionner ouvrage hydraulique",
-                "calcul hydraulique", "dimensionner reseau assainissement"],
-        "E2":  ["diagnostic hydrologie quantitative", "gestion reseau hydraulique",
-                "diagnostic reseau hydraulique", "hydrologie gestion"],
-        "E3":  ["diagnostic environnemental eau", "systeme gestion eaux",
-                "traitement eaux", "gestion dechets eau", "assainissement diagnostic"],
+        "E1a": [
+            "concevoir reseau hydraulique",
+            "concevoir ouvrage hydraulique",
+            "hydraulique urbain conception",
+            "hydrologie reseau conception",
+        ],
+        "E1b": [
+            "dimensionner reseau hydraulique",
+            "dimensionner ouvrage hydraulique",
+            "calcul hydraulique",
+            "dimensionner reseau assainissement",
+        ],
+        "E2": [
+            "diagnostic hydrologie quantitative",
+            "gestion reseau hydraulique",
+            "diagnostic reseau hydraulique",
+            "hydrologie gestion",
+        ],
+        "E3": [
+            "diagnostic environnemental eau",
+            "systeme gestion eaux",
+            "traitement eaux",
+            "gestion dechets eau",
+            "assainissement diagnostic",
+        ],
         # ── U – Urbanisme ─────────────────────────────────────────────────
-        "U1":  ["analyser situation urbaine", "analyse urbaine", "diagnostic urbain",
-                "situation technique urbaine", "echelle urbaine"],
-        "U2":  ["realiser diagnostic urbain", "etude urbaine", "diagnostic urbain"],
-        "U3a": ["concevoir amenagement urbain", "projet amenagement urbain",
-                "plan amenagement", "design urbain"],
-        "U3b": ["conduire projet amenagement urbain", "piloter amenagement",
-                "mise en oeuvre amenagement", "gestion projet urbain"],
+        "U1": [
+            "analyser situation urbaine",
+            "analyse urbaine",
+            "diagnostic urbain",
+            "situation technique urbaine",
+            "echelle urbaine",
+        ],
+        "U2": ["realiser diagnostic urbain", "etude urbaine", "diagnostic urbain"],
+        "U3a": [
+            "concevoir amenagement urbain",
+            "projet amenagement urbain",
+            "plan amenagement",
+            "design urbain",
+        ],
+        "U3b": [
+            "conduire projet amenagement urbain",
+            "piloter amenagement",
+            "mise en oeuvre amenagement",
+            "gestion projet urbain",
+        ],
         # ── T – Transversales ─────────────────────────────────────────────
-        "T1":  ["conception pluridisciplinaire", "pluridisciplinaire batiment",
-                "interaction architecture sol", "integration disciplines"],
-        "T2":  ["organisation chantier", "procedes construction",
-                "securite chantier", "maitrise delais", "chef chantier"],
-        "T3":  ["construction durable", "amenagement durable",
-                "developpement durable construction", "hqe", "eco construction"],
-        "T4":  ["gestion ouvrage existant", "maintenance ouvrage",
-                "evaluer ouvrage", "maintenir ouvrage", "patrimoine ouvrage"],
-        "T5":  ["assurance qualite", "plan qualite", "aqp",
-                "management qualite", "normes qualite"],
+        "T1": [
+            "conception pluridisciplinaire",
+            "pluridisciplinaire batiment",
+            "interaction architecture sol",
+            "integration disciplines",
+        ],
+        "T2": [
+            "organisation chantier",
+            "procedes construction",
+            "securite chantier",
+            "maitrise delais",
+            "chef chantier",
+        ],
+        "T3": [
+            "construction durable",
+            "amenagement durable",
+            "developpement durable construction",
+            "hqe",
+            "eco construction",
+        ],
+        "T4": [
+            "gestion ouvrage existant",
+            "maintenance ouvrage",
+            "evaluer ouvrage",
+            "maintenir ouvrage",
+            "patrimoine ouvrage",
+        ],
+        "T5": [
+            "assurance qualite",
+            "plan qualite",
+            "aqp",
+            "management qualite",
+            "normes qualite",
+        ],
     },
-
     # ── Niveaux officiels par savoir (N1=débutant … N5=expert) ────────────
     # Source : tableau "Affectation des savoirs par compétence et par niveaux"
     "niveaux": {
@@ -2529,47 +3051,47 @@ _GC_FALLBACK_REF = {
         "S6b": "N3_INTERMEDIAIRE",
         "S1d": "N4_AVANCE",
         "S6a": "N4_AVANCE",
-        "S3":  "N5_EXPERT",
-        "S4":  "N5_EXPERT",
-        "S5":  "N5_EXPERT",
+        "S3": "N5_EXPERT",
+        "S4": "N5_EXPERT",
+        "S5": "N5_EXPERT",
         "S6c": "N5_EXPERT",
         # Construction
         "C1b": "N3_INTERMEDIAIRE",
         "C2b": "N3_INTERMEDIAIRE",
         "C3b": "N3_INTERMEDIAIRE",
-        "C4":  "N4_AVANCE",
+        "C4": "N4_AVANCE",
         "C1c": "N4_AVANCE",
         "C1a": "N4_AVANCE",
         "C2c": "N4_AVANCE",
         "C3a": "N4_AVANCE",
         "C3c": "N4_AVANCE",
         "C2a": "N4_AVANCE",
-        "C5":  "N5_EXPERT",
-        "C6":  "N5_EXPERT",
-        "C7":  "N5_EXPERT",
-        "C8":  "N5_EXPERT",
+        "C5": "N5_EXPERT",
+        "C6": "N5_EXPERT",
+        "C7": "N5_EXPERT",
+        "C8": "N5_EXPERT",
         # Physique du bâtiment
         "P1b": "N3_INTERMEDIAIRE",
-        "P2":  "N3_INTERMEDIAIRE",
-        "P3":  "N4_AVANCE",
+        "P2": "N3_INTERMEDIAIRE",
+        "P3": "N4_AVANCE",
         "P1c": "N4_AVANCE",
         "P1a": "N5_EXPERT",
         # Eau
         "E1b": "N4_AVANCE",
         "E1a": "N5_EXPERT",
-        "E2":  "N5_EXPERT",
-        "E3":  "N5_EXPERT",
+        "E2": "N5_EXPERT",
+        "E3": "N5_EXPERT",
         # Urbanisme
-        "U1":  "N3_INTERMEDIAIRE",
-        "U2":  "N3_INTERMEDIAIRE",
+        "U1": "N3_INTERMEDIAIRE",
+        "U2": "N3_INTERMEDIAIRE",
         "U3a": "N5_EXPERT",
         "U3b": "N5_EXPERT",
         # Transversales
-        "T2":  "N4_AVANCE",
-        "T1":  "N5_EXPERT",
-        "T3":  "N5_EXPERT",
-        "T4":  "N5_EXPERT",
-        "T5":  "N5_EXPERT",
+        "T2": "N4_AVANCE",
+        "T1": "N5_EXPERT",
+        "T3": "N5_EXPERT",
+        "T4": "N5_EXPERT",
+        "T5": "N5_EXPERT",
     },
 }
 
@@ -2667,20 +3189,25 @@ _REF_DB_CACHE = _ThreadSafeCache()
 _REF_DB_TTL: float = 600.0  # 10 minutes
 
 # Empty baseline returned for unknown departments with no DB entries
-_EMPTY_REFERENTIAL: Dict = {"domaines": {}, "competences": {}, "savoirs": {}, "niveaux": {}}
+_EMPTY_REFERENTIAL: Dict = {
+    "domaines": {},
+    "competences": {},
+    "savoirs": {},
+    "niveaux": {},
+}
 
 # Minimal generic referential for non-GC departments that have no DB data yet.
 # Provides the structural skeleton so the competence tree is never fully empty.
 _GENERIC_FALLBACK_REF: Dict = {
-    "domaines":    {"GEN": "Compétences Générales"},
+    "domaines": {"GEN": "Compétences Générales"},
     "competences": {},
-    "savoirs":     {},
+    "savoirs": {},
     "niveaux": {
-        "N1_DEBUTANT":      {"label": "Débutant",      "score": 1},
-        "N2_ELEMENTAIRE":   {"label": "Élémentaire",   "score": 2},
+        "N1_DEBUTANT": {"label": "Débutant", "score": 1},
+        "N2_ELEMENTAIRE": {"label": "Élémentaire", "score": 2},
         "N3_INTERMEDIAIRE": {"label": "Intermédiaire", "score": 3},
-        "N4_AVANCE":        {"label": "Avancé",        "score": 4},
-        "N5_EXPERT":        {"label": "Expert",        "score": 5},
+        "N4_AVANCE": {"label": "Avancé", "score": 4},
+        "N5_EXPERT": {"label": "Expert", "score": 5},
     },
 }
 
@@ -2719,7 +3246,8 @@ def _load_ref_from_db(departement: str = "gc") -> Optional[Dict]:
             )
         """)
         if not cur.fetchone()[0]:
-            cur.close(); _put_db_connection(conn)
+            cur.close()
+            _put_db_connection(conn)
             return None
 
         # ── 2. Load savoirs (filter by departement column when present) ────
@@ -2730,8 +3258,10 @@ def _load_ref_from_db(departement: str = "gc") -> Optional[Dict]:
         """)
         has_dept_col = cur.fetchone() is not None
         if has_dept_col:
-            cur.execute("SELECT code, nom, keywords FROM ref_savoirs WHERE departement = %s",
-                        (dept_key,))
+            cur.execute(
+                "SELECT code, nom, keywords FROM ref_savoirs WHERE departement = %s",
+                (dept_key,),
+            )
         else:
             cur.execute("SELECT code, nom, keywords FROM ref_savoirs")
         override: Dict[str, List] = {}
@@ -2739,7 +3269,7 @@ def _load_ref_from_db(departement: str = "gc") -> Optional[Dict]:
             if isinstance(keywords, list):
                 kws = list(keywords)
             elif isinstance(keywords, str):
-                kws = [k.strip().lower() for k in keywords.split(',') if k.strip()]
+                kws = [k.strip().lower() for k in keywords.split(",") if k.strip()]
             else:
                 kws = []
             if nom:
@@ -2759,14 +3289,25 @@ def _load_ref_from_db(departement: str = "gc") -> Optional[Dict]:
                 )
             """)
             if cur.fetchone()[0]:
-                cur.execute("""
+                cur.execute(
+                    """
                     SELECT code, nom, keywords
                     FROM ref_competences
                     WHERE departement = %s
-                """, (dept_key,))
+                """,
+                    (dept_key,),
+                )
                 for comp_code, comp_nom, comp_kws in cur.fetchall():
-                    kws = comp_kws if isinstance(comp_kws, list) else (
-                        [k.strip().lower() for k in (comp_kws or "").split(",") if k.strip()]
+                    kws = (
+                        comp_kws
+                        if isinstance(comp_kws, list)
+                        else (
+                            [
+                                k.strip().lower()
+                                for k in (comp_kws or "").split(",")
+                                if k.strip()
+                            ]
+                        )
                     )
                     db_competences[comp_code] = {
                         "nom": comp_nom or comp_code,
@@ -2785,15 +3326,19 @@ def _load_ref_from_db(departement: str = "gc") -> Optional[Dict]:
                 )
             """)
             if cur.fetchone()[0]:
-                cur.execute("""
+                cur.execute(
+                    """
                     SELECT code, nom FROM ref_domaines WHERE departement = %s
-                """, (dept_key,))
+                """,
+                    (dept_key,),
+                )
                 for dom_code, dom_nom in cur.fetchall():
                     db_domaines[dom_code] = dom_nom or dom_code
         except Exception as dom_exc:
             logger.debug(f"Cannot load ref_domaines for [{dept_key}]: {dom_exc}")
 
-        cur.close(); _put_db_connection(conn)
+        cur.close()
+        _put_db_connection(conn)
 
         if override or db_competences or db_domaines:
             # For GC: merge DB data on top of in-memory fallback (safety net)
@@ -2801,18 +3346,22 @@ def _load_ref_from_db(departement: str = "gc") -> Optional[Dict]:
                 base = _GC_FALLBACK_REF
                 merged: Dict = {
                     **base,
-                    "savoirs":     {**base["savoirs"],    **override},
-                    "competences": {**base["competences"], **db_competences} if db_competences else base["competences"],
-                    "domaines":    {**base["domaines"],    **db_domaines}    if db_domaines    else base["domaines"],
+                    "savoirs": {**base["savoirs"], **override},
+                    "competences": {**base["competences"], **db_competences}
+                    if db_competences
+                    else base["competences"],
+                    "domaines": {**base["domaines"], **db_domaines}
+                    if db_domaines
+                    else base["domaines"],
                 }
             else:
                 # Non-GC departments: DB is the sole source of truth
                 merged = {
                     **_EMPTY_REFERENTIAL,
-                    "savoirs":     override,
+                    "savoirs": override,
                     "competences": db_competences,
-                    "domaines":    db_domaines,
-                    "niveaux":     {},
+                    "domaines": db_domaines,
+                    "niveaux": {},
                 }
                 # Also try loading niveaux from ref_savoirs.niveau column
                 try:
@@ -2824,13 +3373,17 @@ def _load_ref_from_db(departement: str = "gc") -> Optional[Dict]:
                           AND column_name = 'niveau'
                     """)
                     if cur2.fetchone():
-                        cur2.execute("""
+                        cur2.execute(
+                            """
                             SELECT code, niveau FROM ref_savoirs
                             WHERE departement = %s AND niveau IS NOT NULL
-                        """, (dept_key,))
+                        """,
+                            (dept_key,),
+                        )
                         for sav_code, sav_niveau in cur2.fetchall():
                             merged["niveaux"][sav_code] = sav_niveau
-                    cur2.close(); _put_db_connection(conn2)
+                    cur2.close()
+                    _put_db_connection(conn2)
                 except Exception:
                     pass
 
@@ -2843,7 +3396,9 @@ def _load_ref_from_db(departement: str = "gc") -> Optional[Dict]:
             _SEMANTIC_CORPUS_BUILT = False  # force re-encoding on dept change
             return merged
     except Exception as exc:
-        logger.debug(f"Cannot load referential from DB for [{dept_key}] (ok if absent): {exc}")
+        logger.debug(
+            f"Cannot load referential from DB for [{dept_key}] (ok if absent): {exc}"
+        )
     return None
 
 
@@ -2860,7 +3415,9 @@ def _load_generic_ref(departement: str) -> Dict:
     Falls back to ``_GENERIC_FALLBACK_REF`` if the file is missing or corrupt.
     """
     try:
-        mapping = _json_local.loads(_GENERIC_REF_MAPPING_PATH.read_text(encoding="utf-8"))
+        mapping = _json_local.loads(
+            _GENERIC_REF_MAPPING_PATH.read_text(encoding="utf-8")
+        )
         rel_path = mapping.get(departement.lower().strip())
         if not rel_path:
             logger.info(f"No generic ref mapping entry for '{departement}'")
@@ -2877,11 +3434,15 @@ def _load_generic_ref(departement: str) -> Dict:
         for key in ("domaines", "competences", "savoirs", "niveaux"):
             if key not in data:
                 data[key] = {}
-        logger.info(f"Generic ref loaded from JSON for '{departement}': "
-                    f"{len(data.get('savoirs', {}))} savoirs")
+        logger.info(
+            f"Generic ref loaded from JSON for '{departement}': "
+            f"{len(data.get('savoirs', {}))} savoirs"
+        )
         return data
     except Exception as exc:
-        logger.warning(f"Impossible de charger le référentiel générique pour '{departement}': {exc}")
+        logger.warning(
+            f"Impossible de charger le référentiel générique pour '{departement}': {exc}"
+        )
         return _GENERIC_FALLBACK_REF
 
 
@@ -2909,6 +3470,7 @@ def _get_effective_referential(departement: str = "gc") -> Dict:
 def _get_effective_gc_referential() -> Dict:
     return _get_effective_referential("gc")
 
+
 # Legacy name alias: tests and external code may still import _GC_REFERENTIAL
 _GC_REFERENTIAL = _GC_FALLBACK_REF
 
@@ -2916,6 +3478,7 @@ _GC_REFERENTIAL = _GC_FALLBACK_REF
 # ─────────────────────────────────────────────────────────────────────────────
 # _DepartmentReferentialManager – OOP facade for multi-department referentials
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 class _DepartmentReferentialManager:
     """High-level façade for accessing per-department referentials.
@@ -2990,10 +3553,10 @@ class _DepartmentReferentialManager:
         """Return referential size stats for *department*."""
         ref = self.get_referential(department)
         return {
-            "savoirs":     len(ref.get("savoirs", {})),
+            "savoirs": len(ref.get("savoirs", {})),
             "competences": len(ref.get("competences", {})),
-            "domaines":    len(ref.get("domaines", {})),
-            "niveaux":     len(ref.get("niveaux", {})),
+            "domaines": len(ref.get("domaines", {})),
+            "niveaux": len(ref.get("niveaux", {})),
         }
 
 
@@ -3006,7 +3569,7 @@ _dept_ref_manager = _DepartmentReferentialManager()
 # ─────────────────────────────────────────────────────────────────────────────
 
 _SEMANTIC_MODEL = None
-_SEMANTIC_CORPUS: List[Tuple[str, Any]] = []   # (code, numpy_embedding)
+_SEMANTIC_CORPUS: List[Tuple[str, Any]] = []  # (code, numpy_embedding)
 _SEMANTIC_CORPUS_BUILT: bool = False
 _SEMANTIC_CORPUS_DEPT: str = ""  # tracks which department the corpus was built for
 # Lock for thread-safe corpus building (concurrent analysis requests)
@@ -3018,7 +3581,7 @@ def _get_semantic_model():
     global _SEMANTIC_MODEL
     if _SEMANTIC_MODEL is None and _SEMANTIC_OK:
         try:
-            _SEMANTIC_MODEL = _SentenceTransformer('all-MiniLM-L6-v2')
+            _SEMANTIC_MODEL = _SentenceTransformer("all-MiniLM-L6-v2")
             logger.info("Semantic model loaded: all-MiniLM-L6-v2")
         except Exception as exc:
             logger.warning(f"Cannot load semantic model: {exc}")
@@ -3062,11 +3625,15 @@ def _build_semantic_corpus(departement: str = "gc") -> None:
                     _SEMANTIC_CORPUS = list(zip(codes, cached_embeddings))
                     _SEMANTIC_CORPUS_BUILT = True
                     _SEMANTIC_CORPUS_DEPT = dept_key
-                    logger.info(f"Embeddings sémantiques chargés depuis le disque pour [{dept_key}] "
-                                f"({len(codes)} vecteurs)")
+                    logger.info(
+                        f"Embeddings sémantiques chargés depuis le disque pour [{dept_key}] "
+                        f"({len(codes)} vecteurs)"
+                    )
                     return
                 else:
-                    logger.info(f"Cache embeddings size mismatch for [{dept_key}], rebuilding")
+                    logger.info(
+                        f"Cache embeddings size mismatch for [{dept_key}], rebuilding"
+                    )
             except Exception as exc:
                 logger.warning(f"Erreur lecture cache embeddings [{dept_key}]: {exc}")
 
@@ -3076,20 +3643,27 @@ def _build_semantic_corpus(departement: str = "gc") -> None:
             _SEMANTIC_CORPUS = list(zip(codes, embeddings))
             _SEMANTIC_CORPUS_BUILT = True
             _SEMANTIC_CORPUS_DEPT = dept_key
-            logger.info(f"Semantic corpus built [{departement}]: {len(_SEMANTIC_CORPUS)} savoir embeddings")
+            logger.info(
+                f"Semantic corpus built [{departement}]: {len(_SEMANTIC_CORPUS)} savoir embeddings"
+            )
             # Persist to disk
             try:
                 _SEMANTIC_CACHE_DIR.mkdir(parents=True, exist_ok=True)
                 _np.save(str(cache_file), embeddings)
-                logger.info(f"Embeddings sémantiques persistés sur disque ({len(embeddings)} vecteurs) [{dept_key}]")
+                logger.info(
+                    f"Embeddings sémantiques persistés sur disque ({len(embeddings)} vecteurs) [{dept_key}]"
+                )
             except Exception as save_exc:
-                logger.warning(f"Impossible de persister le corpus sémantique [{dept_key}]: {save_exc}")
+                logger.warning(
+                    f"Impossible de persister le corpus sémantique [{dept_key}]: {save_exc}"
+                )
         except Exception as exc:
             logger.warning(f"Cannot build semantic corpus: {exc}")
 
 
-def _match_gc_savoir_semantic(text: str, threshold: float = 0.35, top_k: int = 5,
-                               departement: str = "gc") -> List[str]:
+def _match_gc_savoir_semantic(
+    text: str, threshold: float = 0.35, top_k: int = 5, departement: str = "gc"
+) -> List[str]:
     """Semantic referential matching via cosine similarity.
 
     Returns up to `top_k` savoir codes whose description embedding is ≥
@@ -3099,7 +3673,10 @@ def _match_gc_savoir_semantic(text: str, threshold: float = 0.35, top_k: int = 5
     if not _SEMANTIC_OK:
         return []
     # Rebuild corpus if department changed or not yet built (lock inside _build)
-    if not _SEMANTIC_CORPUS_BUILT or _SEMANTIC_CORPUS_DEPT != departement.lower().strip():
+    if (
+        not _SEMANTIC_CORPUS_BUILT
+        or _SEMANTIC_CORPUS_DEPT != departement.lower().strip()
+    ):
         _build_semantic_corpus(departement)
     if not _SEMANTIC_CORPUS:
         return []
@@ -3136,16 +3713,55 @@ def _detect_departement(filenames: List[str], contents: List[bytes]) -> str:
             pass
 
     _DEPT_SIGNALS = [
-        ("gc",     ["genie civil", "beton", "fondation", "structure portante",
-                    "hydraulique", "topographie", "geotechnique", "ouvrage"]),
-        ("info",   ["informatique", "algorithmique", "programmation", "logiciel",
-                    "base de donnee", "reseau informatique", "developpement web"]),
-        ("ge",     ["genie electrique", "electronique", "electrotechnique",
-                    "automatique", "energie electrique"]),
-        ("meca",   ["genie mecanique", "mecanique", "thermodynamique",
-                    "fabrication", "usinage"]),
-        ("telecom", ["telecom", "telecommunication", "signal numerique",
-                     "radiocommunication"]),
+        (
+            "gc",
+            [
+                "genie civil",
+                "beton",
+                "fondation",
+                "structure portante",
+                "hydraulique",
+                "topographie",
+                "geotechnique",
+                "ouvrage",
+            ],
+        ),
+        (
+            "info",
+            [
+                "informatique",
+                "algorithmique",
+                "programmation",
+                "logiciel",
+                "base de donnee",
+                "reseau informatique",
+                "developpement web",
+            ],
+        ),
+        (
+            "ge",
+            [
+                "genie electrique",
+                "electronique",
+                "electrotechnique",
+                "automatique",
+                "energie electrique",
+            ],
+        ),
+        (
+            "meca",
+            [
+                "genie mecanique",
+                "mecanique",
+                "thermodynamique",
+                "fabrication",
+                "usinage",
+            ],
+        ),
+        (
+            "telecom",
+            ["telecom", "telecommunication", "signal numerique", "radiocommunication"],
+        ),
     ]
     best_dept, best_score = "gc", 0
     for dept_code, keywords in _DEPT_SIGNALS:
@@ -3157,13 +3773,16 @@ def _detect_departement(filenames: List[str], contents: List[bytes]) -> str:
     return best_dept
 
 
-@rice_router.post("/analyze", response_model=RiceAnalysisResult,
-                  summary="Analyser les fiches UE/modules et générer le référentiel RICE")
+@rice_router.post(
+    "/analyze",
+    response_model=RiceAnalysisResult,
+    summary="Analyser les fiches UE/modules et générer le référentiel RICE",
+)
 async def rice_analyze(
     files: List[UploadFile] = File(..., description="Fiches UE et modules (PDF/DOCX)"),
     enseignants: str = Form(
         default="[]",
-        description='JSON array: [{id, nom, prenom, modules:[...]}]',
+        description="JSON array: [{id, nom, prenom, modules:[...]}]",
     ),
     departement: str = Form(
         default="auto",
@@ -3190,7 +3809,7 @@ async def rice_analyze(
         os.path.basename((f.filename or "").replace("..", "")) or f"file_{i}"
         for i, f in enumerate(files)
     ]
-    contents  = [await f.read() for f in files]
+    contents = [await f.read() for f in files]
 
     # Department resolution: "auto" → heuristic detection from filenames & content
     dept_key = departement.lower().strip()
@@ -3199,14 +3818,20 @@ async def rice_analyze(
         departement = dept_key
 
     # Run CPU-bound analysis in a thread pool to avoid blocking the event loop
-    result = await run_in_threadpool(analyze_files, filenames, contents, ens_list, departement)
+    result = await run_in_threadpool(
+        analyze_files, filenames, contents, ens_list, departement
+    )
     return result
 
 
-@rice_router.get("/referential",
-                 summary="Obtenir le référentiel du département pour matching")
-@rice_router.get("/gc-referential",   # backward-compat alias
-                 summary="Alias déprécié – utiliser /referential", include_in_schema=False)
+@rice_router.get(
+    "/referential", summary="Obtenir le référentiel du département pour matching"
+)
+@rice_router.get(
+    "/gc-referential",  # backward-compat alias
+    summary="Alias déprécié – utiliser /referential",
+    include_in_schema=False,
+)
 def get_referential(
     departement: str = "gc",
 ):
@@ -3223,10 +3848,15 @@ def get_referential(
     }
 
 
-@rice_router.post("/refresh-cache",
-                  summary="Forcer le rafraîchissement du cache du référentiel et des affectations")
-@rice_router.post("/gc-refresh-cache",  # backward-compat alias
-                  summary="Alias déprécié – utiliser /refresh-cache", include_in_schema=False)
+@rice_router.post(
+    "/refresh-cache",
+    summary="Forcer le rafraîchissement du cache du référentiel et des affectations",
+)
+@rice_router.post(
+    "/gc-refresh-cache",  # backward-compat alias
+    summary="Alias déprécié – utiliser /refresh-cache",
+    include_in_schema=False,
+)
 def refresh_cache(_user: Optional[Dict] = Depends(_get_current_user)):
     """Invalidate the affectations cache AND all department referential DB caches
     so the next call reads fresh data from DB."""
@@ -3238,13 +3868,19 @@ def refresh_cache(_user: Optional[Dict] = Depends(_get_current_user)):
     return {"status": "ok", "enseignants_count": len(fresh)}
 
 
-@rice_router.post("/match",
-                  summary="Matcher un texte libre contre le référentiel d'un département")
-@rice_router.post("/gc-match",  # backward-compat alias
-                  summary="Alias déprécié – utiliser /match", include_in_schema=False)
+@rice_router.post(
+    "/match", summary="Matcher un texte libre contre le référentiel d'un département"
+)
+@rice_router.post(
+    "/gc-match",  # backward-compat alias
+    summary="Alias déprécié – utiliser /match",
+    include_in_schema=False,
+)
 async def match_text(
     text: str = Form(..., description="Texte à matcher (objectif, contenu de fiche…)"),
-    departement: str = Form(default="gc", description="Code département (gc, info, ge, telecom, meca, …)"),
+    departement: str = Form(
+        default="gc", description="Code département (gc, info, ge, telecom, meca, …)"
+    ),
     _user: Optional[Dict] = Depends(_get_current_user),
 ):
     """
@@ -3267,8 +3903,10 @@ async def match_text(
 # Point 6 – /validate  (human review → persist to DB)
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 class ValidateRequest(BaseModel):
     """Body sent by the frontend after drag-&-drop review of the analysis result."""
+
     propositions: List[DomaineProposition]
     # When True, existing rows with the same id are deleted before re-insert
     overwrite: bool = False
@@ -3290,7 +3928,9 @@ class ValidateSummary(BaseModel):
     response_model=ValidateSummary,
     summary="Valider et persister le référentiel RICE validé par l'humain en BDD",
 )
-async def rice_validate(request: ValidateRequest, _user: Optional[Dict] = Depends(_get_current_user)):
+async def rice_validate(
+    request: ValidateRequest, _user: Optional[Dict] = Depends(_get_current_user)
+):
     """
     Persist the human-validated competence tree to PostgreSQL.
 
@@ -3329,17 +3969,20 @@ async def rice_validate(request: ValidateRequest, _user: Optional[Dict] = Depend
         for domaine in request.propositions:
             # ── Upsert domaine ────────────────────────────────────────────────
             try:
-                cur.execute("""
+                cur.execute(
+                    """
                     INSERT INTO domaines (code, nom, description, actif)
                     VALUES (%s, %s, %s, true)
                     ON CONFLICT (code) DO UPDATE SET
                         nom         = EXCLUDED.nom,
                         description = EXCLUDED.description
-                """, (
-                    domaine.code[:50],
-                    domaine.nom[:255],
-                    (domaine.description or "")[:500],
-                ))
+                """,
+                    (
+                        domaine.code[:50],
+                        domaine.nom[:255],
+                        (domaine.description or "")[:500],
+                    ),
+                )
                 upserted_domaines += 1
             except Exception as dom_err:
                 conn.rollback()
@@ -3349,7 +3992,8 @@ async def rice_validate(request: ValidateRequest, _user: Optional[Dict] = Depend
             for competence in domaine.competences:
                 # ── Upsert competence ─────────────────────────────────────────
                 try:
-                    cur.execute("""
+                    cur.execute(
+                        """
                         INSERT INTO competences
                             (code, nom, description, ordre, domaine_id)
                         VALUES (
@@ -3361,13 +4005,15 @@ async def rice_validate(request: ValidateRequest, _user: Optional[Dict] = Depend
                             description = EXCLUDED.description,
                             ordre      = EXCLUDED.ordre,
                             domaine_id = EXCLUDED.domaine_id
-                    """, (
-                        competence.code[:50],
-                        competence.nom[:255],
-                        (competence.description or "")[:500],
-                        competence.ordre,
-                        domaine.code[:50],
-                    ))
+                    """,
+                        (
+                            competence.code[:50],
+                            competence.nom[:255],
+                            (competence.description or "")[:500],
+                            competence.ordre,
+                            domaine.code[:50],
+                        ),
+                    )
                     upserted_competences += 1
                 except Exception as comp_err:
                     conn.rollback()
@@ -3377,7 +4023,8 @@ async def rice_validate(request: ValidateRequest, _user: Optional[Dict] = Depend
                 for sc in competence.sousCompetences:
                     # ── Upsert sous_competence ────────────────────────────────
                     try:
-                        cur.execute("""
+                        cur.execute(
+                            """
                             INSERT INTO sous_competences
                                 (code, nom, description, competence_id)
                             VALUES (
@@ -3388,12 +4035,14 @@ async def rice_validate(request: ValidateRequest, _user: Optional[Dict] = Depend
                                 nom          = EXCLUDED.nom,
                                 description  = EXCLUDED.description,
                                 competence_id = EXCLUDED.competence_id
-                        """, (
-                            sc.code[:50],
-                            sc.nom[:255],
-                            (sc.description or "")[:500],
-                            competence.code[:50],
-                        ))
+                        """,
+                            (
+                                sc.code[:50],
+                                sc.nom[:255],
+                                (sc.description or "")[:500],
+                                competence.code[:50],
+                            ),
+                        )
                         upserted_sous_competences += 1
                     except Exception as sc_err:
                         conn.rollback()
@@ -3404,7 +4053,8 @@ async def rice_validate(request: ValidateRequest, _user: Optional[Dict] = Depend
                         sav_id = savoir.tmpId
                         # ── Upsert savoir (with sous_competence FK) ───────────
                         try:
-                            cur.execute("""
+                            cur.execute(
+                                """
                                 INSERT INTO savoirs
                                     (id, code, nom, description, type, niveau,
                                      sous_competence_id)
@@ -3420,15 +4070,17 @@ async def rice_validate(request: ValidateRequest, _user: Optional[Dict] = Depend
                                     niveau             = EXCLUDED.niveau,
                                     sous_competence_id = EXCLUDED.sous_competence_id
                                 RETURNING (xmax = 0) AS inserted
-                            """, (
-                                sav_id,
-                                savoir.code[:50],
-                                savoir.nom[:255],
-                                (savoir.description or "")[:500],
-                                savoir.type,
-                                savoir.niveau,
-                                sc.code[:50],
-                            ))
+                            """,
+                                (
+                                    sav_id,
+                                    savoir.code[:50],
+                                    savoir.nom[:255],
+                                    (savoir.description or "")[:500],
+                                    savoir.type,
+                                    savoir.niveau,
+                                    sc.code[:50],
+                                ),
+                            )
                             row = cur.fetchone()
                             if row and row[0]:
                                 inserted_savoirs += 1
@@ -3451,16 +4103,21 @@ async def rice_validate(request: ValidateRequest, _user: Optional[Dict] = Depend
 
                         for ens_id in savoir.enseignantsSuggeres:
                             try:
-                                cur.execute("""
+                                cur.execute(
+                                    """
                                     INSERT INTO enseignant_competences
                                         (enseignant_id, savoir_id, niveau, date_acquisition)
                                     VALUES (%s, %s, %s, CURRENT_DATE)
                                     ON CONFLICT DO NOTHING
-                                """, (ens_id, sav_id, savoir.niveau))
+                                """,
+                                    (ens_id, sav_id, savoir.niveau),
+                                )
                                 inserted_links += 1
                             except Exception as link_err:
                                 conn.rollback()
-                                errors.append(f"link {ens_id}->{savoir.code}: {link_err}")
+                                errors.append(
+                                    f"link {ens_id}->{savoir.code}: {link_err}"
+                                )
 
         conn.commit()
     except Exception as exc:

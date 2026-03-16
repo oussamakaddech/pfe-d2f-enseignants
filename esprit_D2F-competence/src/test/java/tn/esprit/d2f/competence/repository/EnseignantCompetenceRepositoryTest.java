@@ -48,16 +48,20 @@ class EnseignantCompetenceRepositoryTest {
 
     private Savoir savoirViaSc;   // savoir rattaché via SousCompetence
     private Savoir savoirDirect;  // savoir directement rattaché à une Compétence
+    private Long domaineId;
+    private Long competenceId;
 
     @BeforeEach
     void setUp() {
         // Domaine
         Domaine domaine = em.persist(Domaine.builder()
                 .code("DOM-TEST").nom("Domaine Test").actif(true).build());
+        domaineId = domaine.getId();
 
         // Compétence
         Competence competence = em.persist(Competence.builder()
                 .code("COMP-T1").nom("Compétence T1").domaine(domaine).ordre(1).build());
+        competenceId = competence.getId();
 
         // SousCompétence
         SousCompetence sc = em.persist(SousCompetence.builder()
@@ -131,10 +135,11 @@ class EnseignantCompetenceRepositoryTest {
         @Test
         @DisplayName("pas de doublons malgré les deux chemins de JOIN")
         void shouldNoDuplicates() {
-            List<EnseignantCompetence> result = ecRepo.findByEnseignantIdAndDomaineId(ENS_ID, 1L);
+            List<EnseignantCompetence> result = ecRepo.findByEnseignantIdAndDomaineId(ENS_ID, domaineId);
             // Sans DISTINCT, on pourrait avoir des doublons
             long distinctIds = result.stream().map(EnseignantCompetence::getId).distinct().count();
             assertThat((long) result.size()).isEqualTo(distinctIds);
+            assertThat(result).isNotEmpty();
         }
     }
 
@@ -170,8 +175,8 @@ class EnseignantCompetenceRepositoryTest {
         @Test
         @DisplayName("compte DISTINCT les enseignants pour les deux chemins de savoir")
         void shouldCountDistinctOverBothPaths() {
-            // Les deux savoirs (via SC et direct) pointent vers la même compétence id=1
-            long count = ecRepo.countDistinctEnseignantsByCompetenceId(1L);
+            // Les deux savoirs (via SC et direct) pointent vers la même compétence
+            long count = ecRepo.countDistinctEnseignantsByCompetenceId(competenceId);
             // ENS_ID + "autre-ens" = 2 enseignants distincts
             assertThat(count).isEqualTo(2L);
         }

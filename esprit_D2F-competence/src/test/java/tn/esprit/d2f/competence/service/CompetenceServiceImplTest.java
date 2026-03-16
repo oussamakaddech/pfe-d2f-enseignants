@@ -14,6 +14,9 @@ import tn.esprit.d2f.competence.entity.Competence;
 import tn.esprit.d2f.competence.entity.Domaine;
 import tn.esprit.d2f.competence.repository.CompetenceRepository;
 import tn.esprit.d2f.competence.repository.DomaineRepository;
+import tn.esprit.d2f.competence.repository.EnseignantCompetenceRepository;
+import tn.esprit.d2f.competence.repository.NiveauSavoirRequisRepository;
+import tn.esprit.d2f.competence.repository.SavoirRepository;
 import tn.esprit.d2f.competence.dto.CompetenceRequest;
 
 import java.util.ArrayList;
@@ -30,6 +33,9 @@ class CompetenceServiceImplTest {
 
     @Mock private CompetenceRepository competenceRepository;
     @Mock private DomaineRepository    domaineRepository;
+    @Mock private EnseignantCompetenceRepository enseignantCompetenceRepository;
+    @Mock private NiveauSavoirRequisRepository niveauRepo;
+    @Mock private SavoirRepository savoirRepository;
     @Mock private CompetenceMapper     competenceMapper;
 
     @InjectMocks private CompetenceServiceImpl competenceService;
@@ -99,6 +105,7 @@ class CompetenceServiceImplTest {
         void shouldReturnDTOWhenFound() {
             when(competenceRepository.findById(2L)).thenReturn(Optional.of(competence));
             when(competenceMapper.toDTO(competence)).thenReturn(competenceDTO);
+            when(enseignantCompetenceRepository.countDistinctEnseignantsByCompetenceId(2L)).thenReturn(0L);
 
             CompetenceDTO result = competenceService.getCompetenceById(2L);
 
@@ -193,10 +200,14 @@ class CompetenceServiceImplTest {
         @Test @DisplayName("supprime quand l enregistrement existe")
         void shouldDeleteWhenFound() {
             when(competenceRepository.existsById(2L)).thenReturn(true);
+            when(enseignantCompetenceRepository.findSavoirIdsByCompetenceId(2L)).thenReturn(List.of());
+            when(savoirRepository.findIdsByCompetenceId(2L)).thenReturn(List.of());
             doNothing().when(competenceRepository).deleteById(2L);
 
             competenceService.deleteCompetence(2L);
 
+            verify(niveauRepo).deleteByCompetenceId(2L);
+            verify(niveauRepo).deleteBySousCompetence_CompetenceId(2L);
             verify(competenceRepository).deleteById(2L);
         }
 

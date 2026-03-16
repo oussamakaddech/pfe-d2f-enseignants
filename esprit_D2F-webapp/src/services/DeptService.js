@@ -2,13 +2,20 @@
 
 import axios from "axios";
 import { config } from "../config/env";
+import { optionalAuthHeader } from "./authHeaders";
 
 const API_URL = `${config.FORMATION_URL}/formation/departements`;
+
+function isNotFoundError(error) {
+  return axios.isAxiosError(error) && error.response?.status === 404;
+}
 
 const DeptService = {
   async createDept(deptData) {
     try {
-      const response = await axios.post(API_URL, deptData);
+      const response = await axios.post(API_URL, deptData, {
+        headers: optionalAuthHeader(),
+      });
       return response.data;
     } catch (error) {
       console.error("Erreur lors de la création du département :", error);
@@ -18,22 +25,26 @@ const DeptService = {
 
   async getAllDepts() {
     try {
-      const response = await axios.get(API_URL);
+      const response = await axios.get(API_URL, {
+        headers: optionalAuthHeader(),
+      });
       // Retourner un array, même s'il est vide
       return Array.isArray(response.data) ? response.data : [];
     } catch (error) {
-      if (error.response?.status === 404) {
+      if (isNotFoundError(error)) {
         console.warn("Aucun département trouvé");
         return [];
       }
       console.error("Erreur lors de la récupération des départements :", error);
-      return []; // Retourner array vide en cas d'erreur
+      throw error;
     }
   },
 
   async getDeptById(id) {
     try {
-      const response = await axios.get(`${API_URL}/${id}`);
+      const response = await axios.get(`${API_URL}/${id}`, {
+        headers: optionalAuthHeader(),
+      });
       return response.data;
     } catch (error) {
       console.error(
@@ -46,7 +57,9 @@ const DeptService = {
 
   async updateDept(id, deptData) {
     try {
-      const response = await axios.put(`${API_URL}/${id}`, deptData);
+      const response = await axios.put(`${API_URL}/${id}`, deptData, {
+        headers: optionalAuthHeader(),
+      });
       return response.data;
     } catch (error) {
       console.error(
@@ -59,7 +72,9 @@ const DeptService = {
 
   async deleteDept(id) {
     try {
-      await axios.delete(`${API_URL}/${id}`);
+      await axios.delete(`${API_URL}/${id}`, {
+        headers: optionalAuthHeader(),
+      });
     } catch (error) {
       console.error(
         `Erreur lors de la suppression du département ${id} :`,
@@ -74,7 +89,10 @@ const DeptService = {
       const formData = new FormData();
       formData.append("file", file);
       const response = await axios.post(`${API_URL}/import-excel`, formData, {
-        headers: { "Content-Type": "multipart/form-data" },
+        headers: {
+          ...optionalAuthHeader(),
+          "Content-Type": "multipart/form-data",
+        },
       });
       return response.data;
     } catch (error) {

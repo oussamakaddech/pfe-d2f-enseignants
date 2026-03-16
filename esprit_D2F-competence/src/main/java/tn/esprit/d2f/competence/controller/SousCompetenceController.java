@@ -70,6 +70,19 @@ public class SousCompetenceController {
         return new ResponseEntity<>(sousCompetenceService.createSousCompetence(competenceId, request), HttpStatus.CREATED);
     }
 
+    @Operation(summary = "Créer une sous-compétence enfant sous une sous-compétence")
+    @ApiResponses({
+        @ApiResponse(responseCode = "201", description = "Sous-compétence enfant créée"),
+        @ApiResponse(responseCode = "400", description = "Données invalides ou règles métier violées"),
+        @ApiResponse(responseCode = "404", description = "Sous-compétence parente introuvable")
+    })
+    @PostMapping("/{parentId}/enfants")
+    public ResponseEntity<SousCompetenceDTO> createSousCompetenceEnfant(
+            @PathVariable Long parentId,
+            @Valid @RequestBody SousCompetenceRequest request) {
+        return new ResponseEntity<>(sousCompetenceService.createSousCompetenceEnfant(parentId, request), HttpStatus.CREATED);
+    }
+
     @Operation(summary = "Mettre à jour une sous-compétence")
     @PutMapping("/{id}")
     public ResponseEntity<SousCompetenceDTO> updateSousCompetence(

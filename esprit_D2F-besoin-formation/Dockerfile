@@ -14,11 +14,11 @@ COPY .mvn/ .mvn
 # Copy Maven Wrapper script && pom.xml
 COPY mvnw pom.xml ./
 
-# Fix mvnw & 
+# Fix mvnw &
 RUN dos2unix mvnw && \
     chmod u+x mvnw
 
-# Resolves all project dependencies offline and keep cache   
+# Resolves all project dependencies offline and keep cache
 RUN --mount=type=cache,target=/root/.m2 ./mvnw dependency:go-offline
 
 # Copy source code application
@@ -50,6 +50,13 @@ ARG DEPENDENCY=/opt/app/target/dependency
 COPY --from=builder ${DEPENDENCY}/BOOT-INF/lib /opt/app/lib
 COPY --from=builder ${DEPENDENCY}/META-INF /opt/app/META-INF
 COPY --from=builder ${DEPENDENCY}/BOOT-INF/classes /opt/app
+
+# Expose port
+EXPOSE 8004
+
+# Healthcheck — vérifie que Spring Boot Actuator répond (conformité DSI §2.1)
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+  CMD wget -q --spider http://localhost:8004/actuator/health || exit 1
 
 # Run app when container starts
 ENTRYPOINT ["java","-cp","opt/app:opt/app/lib/*","tn.esprit.d2f.BesoinsFormationApplication"]

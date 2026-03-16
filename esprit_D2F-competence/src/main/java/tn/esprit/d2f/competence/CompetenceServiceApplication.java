@@ -10,7 +10,7 @@ import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 @SpringBootApplication
 @EntityScan(basePackages = "tn.esprit.d2f.competence.entity")
 @EnableJpaRepositories(basePackages = "tn.esprit.d2f.competence.repository")
-@EnableJpaAuditing   // active @CreatedDate / @LastModifiedDate dans BaseAuditEntity
+@EnableJpaAuditing(auditorAwareRef = "auditorProvider")   // active @CreatedDate / @LastModifiedDate / @CreatedBy / @LastModifiedBy
 @EnableCaching       // active @Cacheable / @CacheEvict dans les services
 public class CompetenceServiceApplication {
     public static void main(String[] args) {

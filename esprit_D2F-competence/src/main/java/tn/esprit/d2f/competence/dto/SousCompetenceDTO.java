@@ -19,5 +19,8 @@ public class SousCompetenceDTO {
     private String description;
     private Long competenceId;
     private String competenceNom;
+    private Long parentId;
+    private Integer niveau;
     private List<SavoirDTO> savoirs;
+    private List<SousCompetenceDTO> enfants;
 }

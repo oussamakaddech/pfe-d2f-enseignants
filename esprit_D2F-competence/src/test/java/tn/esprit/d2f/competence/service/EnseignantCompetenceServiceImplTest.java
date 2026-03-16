@@ -36,6 +36,7 @@ class EnseignantCompetenceServiceImplTest {
 
     @Mock EnseignantCompetenceRepository enseignantCompetenceRepository;
     @Mock SavoirRepository savoirRepository;
+    @Mock CompetenceMapper competenceMapper;
     @InjectMocks EnseignantCompetenceServiceImpl ecService;
 
     static final String ENS_ID = "ens-uuid-001";
@@ -59,6 +60,18 @@ class EnseignantCompetenceServiceImplTest {
                 .dateAcquisition(LocalDate.of(2025, 1, 15))
                 .commentaire("Bon niveau")
                 .build();
+
+        lenient().when(competenceMapper.toDTO(any(EnseignantCompetence.class))).thenAnswer(invocation -> {
+            EnseignantCompetence value = invocation.getArgument(0);
+            return EnseignantCompetenceDTO.builder()
+                .id(value.getId())
+                .enseignantId(value.getEnseignantId())
+                .savoirId(value.getSavoir() != null ? value.getSavoir().getId() : null)
+                .niveau(value.getNiveau())
+                .dateAcquisition(value.getDateAcquisition())
+                .commentaire(value.getCommentaire())
+                .build();
+        });
     }
 
     // ─── getCompetencesByEnseignant ────────────────────────────────────────────

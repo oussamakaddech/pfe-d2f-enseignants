@@ -16,6 +16,7 @@ import tn.esprit.d2f.competence.entity.Domaine;
 import tn.esprit.d2f.competence.repository.CompetenceRepository;
 import tn.esprit.d2f.competence.repository.DomaineRepository;
 import tn.esprit.d2f.competence.repository.EnseignantCompetenceRepository;
+import tn.esprit.d2f.competence.repository.NiveauSavoirRequisRepository;
 import tn.esprit.d2f.competence.repository.SavoirRepository;
 
 import java.util.List;
@@ -30,6 +31,7 @@ public class CompetenceServiceImpl implements ICompetenceService {
     private final CompetenceRepository competenceRepository;
     private final DomaineRepository domaineRepository;
     private final EnseignantCompetenceRepository enseignantCompetenceRepository;
+    private final NiveauSavoirRequisRepository niveauRepo;
     private final SavoirRepository savoirRepository;
     private final CompetenceMapper competenceMapper;
 
@@ -119,6 +121,11 @@ public class CompetenceServiceImpl implements ICompetenceService {
         if (!competenceRepository.existsById(id)) {
             throw new EntityNotFoundException("Compétence non trouvée avec l'id: " + id);
         }
+        // 1. Supprimer les niveau_savoir_requis directement liés à cette compétence
+        niveauRepo.deleteByCompetenceId(id);
+        // 2. Supprimer les niveau_savoir_requis liés aux sous-compétences de cette compétence
+        niveauRepo.deleteBySousCompetence_CompetenceId(id);
+        // 2. Supprimer les niveau_savoir_requis liés aux savoirs de cette compétence
         // Savoirs via sous-compétences + savoirs directement rattachés à la compétence
         List<Long> savoirIdsViaSousComp = enseignantCompetenceRepository.findSavoirIdsByCompetenceId(id);
         List<Long> savoirIdsDirect = savoirRepository.findIdsByCompetenceId(id);
@@ -126,6 +133,7 @@ public class CompetenceServiceImpl implements ICompetenceService {
                 .distinct()
                 .collect(Collectors.toList());
         if (!allSavoirIds.isEmpty()) {
+            niveauRepo.deleteBySavoirIdIn(allSavoirIds);
             enseignantCompetenceRepository.deleteBySavoirIdIn(allSavoirIds);
         }
         competenceRepository.deleteById(id);
