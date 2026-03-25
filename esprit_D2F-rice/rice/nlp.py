@@ -12,6 +12,7 @@ import logging
 import os
 import re
 import unicodedata
+from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 from fastapi import HTTPException
@@ -73,46 +74,88 @@ __all_flags__ = {"_PDF_OK", "_DOCX_OK", "_FUZZY_OK", "_OCR_OK"}
 # ─────────────────────────────────────────────────────────────────────────────
 
 
+def _clean_cell(raw) -> str:
+    """Normalise a PDF table cell: None → '', collapse internal newlines, strip."""
+    if raw is None:
+        return ""
+    s = str(raw).replace("\n", " ").replace("\r", " ")
+    s = " ".join(s.split())  # collapse multiple spaces too
+    merged_hits = re.findall(r"(?:^|\s)([A-ZÀ-Ü][^:]{3,40}):\s*", s)
+    if len(merged_hits) > 1:
+        logger.debug("Potential merged table cell detected: %s", s[:140])
+    return s
+
+
+# Column headers that represent hours/ECTS — treated as numeric meta, not labels
+_HOUR_HEADERS = {"he", "hne", "ects", "cours integre", "cours integré",
+                 "heures", "credits", "coeff", "coefficient"}
+
+
 def _serialize_pdf_tables(tables: list) -> str:
     """
     Convert pdfplumber table data (list-of-rows-of-cells) to 'label: value' text
     so that existing regex patterns (_RE_RESPONSABLE, etc.) can match them.
-    Handles both key-value 2-column tables and multi-column header tables.
+    Handles multi-column header tables, reversed key-value tables (label in col 0),
+    and the ESPRIT Code/HE/HNE/ECTS 4-column layout.
     """
     lines: List[str] = []
     for table in tables:
         if not table:
             continue
+
+        # Clean every cell first (handle None + internal newlines)
+        cleaned_table = [[_clean_cell(c) for c in row] for row in table]
+
         # Detect header row: first non-empty row with multiple non-empty cells
         header: List[str] = []
         data_rows: List[List[str]] = []
-        for i, row in enumerate(table):
-            cells = [str(c).strip() if c else "" for c in row]
-            if not any(cells):
+        for i, row in enumerate(cleaned_table):
+            if not any(row):
                 continue
-            if i == 0 and sum(bool(c) for c in cells) > 1:
-                header = cells
+            if i == 0 and sum(bool(c) for c in row) > 1:
+                header = row
             else:
-                data_rows.append(cells)
+                data_rows.append(row)
 
         if header and data_rows:
-            # Table with header: emit as "header_col: cell" pairs
+            # Emit "Code: MT-34", "HE: 24h", etc. for each header/value pair
             for row in data_rows:
+                # Deduplicate adjacent identical cells (merged PDF cells)
+                seen_vals: set = set()
                 for col_idx, cell in enumerate(row):
-                    if cell and col_idx < len(header) and header[col_idx]:
+                    if not cell or col_idx >= len(header) or not header[col_idx]:
+                        continue
+                    # Normalise header for comparison (strip accents/spaces)
+                    hdr_norm = _normalize(header[col_idx])
+                    # Avoid emitting pure hour/ECTS columns as metadata labels
+                    if hdr_norm in _HOUR_HEADERS:
+                        # Still emit for _scan_tables_for_meta hour detection
                         lines.append(f"{header[col_idx]}: {cell}")
+                        continue
+                    cell_key = (hdr_norm, cell)
+                    if cell_key in seen_vals:
+                        continue
+                    seen_vals.add(cell_key)
+                    lines.append(f"{header[col_idx]}: {cell}")
         else:
             # Two-column key-value table (label | value)
-            for row in table:
+            for row in cleaned_table:
                 if not row:
                     continue
-                cells = [str(c).strip() if c else "" for c in row]
-                non_empty = [c for c in cells if c]
+                non_empty = [c for c in row if c]
                 if len(non_empty) == 2:
                     lines.append(f"{non_empty[0]}: {non_empty[1]}")
                 elif len(non_empty) > 2:
-                    # Flatten multi-column row with pipe separator
-                    lines.append(" | ".join(non_empty[:4]))
+                    # Could be a label in col 0, value spanning col 1+
+                    # Heuristic: if col 0 looks like a field label (short, ends in nothing
+                    # numeric), emit "col0: rest-joined"
+                    col0_norm = _normalize(non_empty[0])
+                    if col0_norm in _TABLE_NER_LABELS or len(non_empty[0]) < 40:
+                        joined = " ".join(non_empty[1:])
+                        lines.append(f"{non_empty[0]}: {joined}")
+                    else:
+                        # Flatten multi-column row with pipe separator
+                        lines.append(" | ".join(non_empty[:4]))
     return "\n".join(lines)
 
 
@@ -270,9 +313,28 @@ def _normalize(text: str) -> str:
 
 def _slug(text: str, max_len: int = 30) -> str:
     """Create a short uppercase code from text."""
-    words = re.findall(r"[a-zA-Z\u00C0-\u00FF]{3,}", _normalize(text))[:4]
+    stop_words = {
+        "les", "des", "du", "de", "la", "le", "un", "une",
+        "et", "ou", "en", "au", "aux", "par", "pour", "sur",
+    }
+    words = re.findall(r"[a-zA-Z\u00C0-\u00FF]{3,}", _normalize(text))
+    words = [w for w in words if w.lower() not in stop_words]
     raw = "-".join(w[:5].upper() for w in words) if words else "ITEM"
     return raw[:max_len]
+
+
+def _build_domain_name_from_file(filename: str) -> str:
+    """Infer a readable module/domain name from the filename stem."""
+    stem = Path(filename).stem
+    clean = re.sub(
+        r"^(fiche[_\s]?module[_\s]?|fiche[_\s]?|module[_\s]?|ue[_\s]?|cours[_\s]?)",
+        "",
+        stem,
+        flags=re.IGNORECASE,
+    )
+    clean = re.sub(r"[_\-]+", " ", clean).strip()
+    clean = re.sub(r"([a-z])([A-ZÀ-Ü])", r"\1 \2", clean)
+    return clean.strip().title() or "Module"
 
 
 def _normalize_ref_code(code: str) -> str:
@@ -863,6 +925,10 @@ _RE_MODULE_NAME = re.compile(
     r"(?:Module|Mati\u00e8re|Unit\u00e9\s+d['\u2019]enseignement)\s*[:\-]?\s*(.{5,80})",
     re.IGNORECASE,
 )
+_RE_MODULE_TITLE_ESPRIT = re.compile(
+    r"^(?:Module\s*[:\-]\s*|Fiche\s+[Mm]odule\s*[:\-]?\s*)(.{3,100})$",
+    re.MULTILINE,
+)
 _RE_UNITE_PEDAGOGIQUE = re.compile(
     r"(?:Unit\u00e9\s+p\u00e9dagogique|UP)\s*[:\-]?\s*(.{3,60})",
     re.IGNORECASE,
@@ -1015,6 +1081,19 @@ def _clean_name(raw: str) -> Optional[str]:
     name = re.sub(r"\b(Intervenants?|Enseignants?|Responsable)\b", "", name, flags=re.I)
     name = re.sub(r"\s{2,}", " ", name).strip()
     name = name.strip().strip(".,;:-–")
+
+    norm_name = _normalize(name)
+    # Reject merged metadata strings that are not person names.
+    if ":" in name and len(name) > 15:
+        return None
+    if re.match(
+        r"^(module|code|unite|responsable|enseignants?|intervenants?|prerequis|objectif)\b",
+        norm_name,
+    ):
+        return None
+    if "module" in norm_name and "unite" in norm_name:
+        return None
+
     # Take only first line if multiline
     name = name.split("\n")[0].strip()
     # Strip embedded enseignant/module codes (e.g. "GC05", "E001") before digit check
@@ -1041,13 +1120,16 @@ def _clean_name(raw: str) -> Optional[str]:
 
 def _split_names(raw: str) -> List[str]:
     """Split a raw string of professor names separated by , ; / – - or newlines."""
-    # First split by common separators (including dash/en-dash which ESPRIT uses)
-    parts = re.split(r"[,;/\n]+", raw)
-    # Also try " – " (en-dash with spaces) and " - " as separators
-    expanded = []
-    for p in parts:
-        sub = re.split(r"\s+[–\-]\s+", p)
-        expanded.extend(sub)
+    if not raw:
+        return []
+    parts = re.split(
+        r"[,;/\n]"
+        r"|\s+[–\-]\s+"
+        r"|\s*\u2013\s*"
+        r"|\s*\u2014\s*",
+        raw,
+    )
+    expanded = list(parts)
     # Also try " et " as separator
     final = []
     for p in expanded:
@@ -1089,7 +1171,77 @@ _TABLE_NER_LABELS: Dict[str, str] = {
     "objectif": "objectif",
     "objectifs": "objectif",
     "objectifs du module": "objectif",
+    # Additional ESPRIT fiche layouts
+    "enseignants intervenants": "enseignant_raw",
+    "enseignants – intervenants": "enseignant_raw",
+    "enseignants - intervenants": "enseignant_raw",
+    "enseignants \u2013 intervenants": "enseignant_raw",
+    "enseignants–intervenants": "enseignant_raw",
+    "enseignants-intervenants": "enseignant_raw",
+    "enseignants\nintervenants": "enseignant_raw",
+    "cours integre": None,           # hours column – skip
+    "cours integr\u00e9": None,       # accented variant
+    "niveaux et options": None,       # ignore
+    "unite d enseignement": "unite_enseignement",
+    "unit\u00e9 d enseignement": "unite_enseignement",
+    "ue": "unite_enseignement",
 }
+
+
+def _find_meta_key_for_cell(cell: str) -> Optional[str]:
+    """Resolve a raw table label cell to a metadata key across PDF variants."""
+    if not cell:
+        return None
+
+    norm1 = _normalize(cell.strip())
+    norm2 = re.sub(r"\s+", " ", norm1).strip()
+    norm3 = re.sub(r"[\-–\u2013\u2014]", " ", norm2)
+    norm3 = re.sub(r"\s+", " ", norm3).strip()
+
+    for norm in (norm1, norm2, norm3):
+        key = _TABLE_NER_LABELS.get(norm)
+        if key is not None:
+            return key
+
+    if norm3.startswith("enseignant") and ("intervenant" in norm3 or len(norm3) < 45):
+        return "enseignant_raw"
+
+    for label, mk in sorted(_TABLE_NER_LABELS.items(), key=lambda x: -len(x[0])):
+        if mk is None:
+            continue
+        if len(label) >= 5 and label in norm3:
+            return mk
+
+    return None
+
+
+def _is_valid_enseignant_value(value: str) -> bool:
+    """Return True only when *value* looks like a teacher-name list."""
+    if not value or len(value.strip()) < 3:
+        return False
+
+    v = value.strip()
+    if v.count(":") >= 2:
+        return False
+
+    label_starts = re.compile(
+        r"^(module|code|unite|responsable|prerequis|niveaux|objectif|"
+        r"mode\s+d|evaluation|contenu|acquis|derniere)\b",
+        re.IGNORECASE,
+    )
+    if label_starts.match(_normalize(v)):
+        return False
+
+    if len(v) > 150 and ":" in v:
+        return False
+
+    if re.search(r"\b(responsable|module)\b", _normalize(v)) and ":" not in v:
+        return False
+
+    if not re.search(r"[A-ZÀ-Ü]", v):
+        return False
+
+    return True
 
 
 def _scan_tables_for_meta(raw_tables: List, meta: Dict[str, Any]) -> None:
@@ -1104,29 +1256,35 @@ def _scan_tables_for_meta(raw_tables: List, meta: Dict[str, Any]) -> None:
     """
     for table in raw_tables:
         for row_idx, row in enumerate(table):
-            cells = [str(c).strip() if c else "" for c in row]
+            cells = [_clean_cell(c) for c in row]
             for col_idx, cell in enumerate(cells):
-                norm_cell = _normalize(cell)
-                meta_key = _TABLE_NER_LABELS.get(norm_cell)
+                meta_key = _find_meta_key_for_cell(cell)
                 if meta_key is None:
                     continue
-                # Try to get a value: right neighbour first, then cell below
-                value = ""
+
+                # Gather all adjacent candidate values (right + below) and process all valid ones.
+                candidates: List[str] = []
                 if col_idx + 1 < len(cells) and cells[col_idx + 1].strip():
-                    value = cells[col_idx + 1].strip()
-                elif row_idx + 1 < len(table):
+                    candidates.append(cells[col_idx + 1].strip())
+                if row_idx + 1 < len(table):
                     next_row = [str(c).strip() if c else "" for c in table[row_idx + 1]]
                     if col_idx < len(next_row) and next_row[col_idx].strip():
-                        value = next_row[col_idx].strip()
-                if not value:
+                        candidates.append(next_row[col_idx].strip())
+                if not candidates:
                     continue
 
                 if meta_key == "responsable" and "responsable" not in meta:
+                    value = candidates[0]
+                    if not _is_valid_enseignant_value(value):
+                        continue
                     cleaned = _clean_name(value)
                     if cleaned:
                         meta["responsable"] = cleaned
 
                 elif meta_key == "coordinateur" and "coordinateur" not in meta:
+                    value = candidates[0]
+                    if not _is_valid_enseignant_value(value):
+                        continue
                     cleaned = _clean_name(value)
                     if cleaned:
                         meta["coordinateur"] = cleaned
@@ -1136,12 +1294,18 @@ def _scan_tables_for_meta(raw_tables: List, meta: Dict[str, Any]) -> None:
                         )
 
                 elif meta_key == "enseignant_raw":
-                    names = _split_names(value)
-                    for n in names:
-                        meta.setdefault("enseignants_noms", []).append(n)
-                        meta.setdefault("enseignants_roles", {})[n] = "enseignant"
+                    for candidate in candidates:
+                        value_clean = _clean_cell(candidate)
+                        if not _is_valid_enseignant_value(value_clean):
+                            continue
+                        names = _split_names(value_clean)
+                        for n in names:
+                            if n not in meta.get("enseignants_noms", []):
+                                meta.setdefault("enseignants_noms", []).append(n)
+                                meta.setdefault("enseignants_roles", {})[n] = "enseignant"
 
                 elif meta_key == "nom_module" and "nom_module" not in meta:
+                    value = candidates[0]
                     raw_val = value.strip().rstrip(".")
                     raw_val = re.sub(
                         r"\s*(Pr\u00e9requis|Niveaux|Objectif|Derni[\u00e8e]re).*$",
@@ -1153,20 +1317,40 @@ def _scan_tables_for_meta(raw_tables: List, meta: Dict[str, Any]) -> None:
                         meta["nom_module"] = raw_val
 
                 elif meta_key == "code_module" and "code_module" not in meta:
+                    value = candidates[0]
                     code = value.strip().upper()
-                    if re.search(r"\d", code):
+                    # Must have at least one letter AND one digit, length >= 3
+                    # Reject pure counts like "3", "24H", "30H"
+                    if (
+                        re.search(r"[A-Z]", code)
+                        and re.search(r"\d", code)
+                        and len(code) >= 3
+                        and not re.match(r"^\d+H?$", code)
+                    ):
                         meta["code_module"] = code
 
                 elif (
                     meta_key == "unite_pedagogique" and "unite_pedagogique" not in meta
                 ):
+                    value = candidates[0]
                     if len(value) > 2:
                         meta["unite_pedagogique"] = value.strip()
 
                 elif meta_key == "prerequis" and "prerequis" not in meta:
+                    value = candidates[0]
                     meta["prerequis"] = value.strip()
 
+                elif meta_key == "unite_enseignement" and "unite_enseignement" not in meta:
+                    value = candidates[0]
+                    ue_val = value.strip()
+                    if ue_val:
+                        meta["unite_enseignement"] = ue_val
+                        # If it looks like a code (e.g. "UE12"), also set code_ue
+                        if re.match(r"^[A-Z]{2,6}\d{2,6}$", ue_val.upper()):
+                            meta.setdefault("code_ue", ue_val.upper())
+
                 elif meta_key == "objectif" and "objectif" not in meta:
+                    value = candidates[0]
                     meta["objectif"] = re.sub(r"\s*\n\s*", " ", value).strip()
 
 
@@ -1208,6 +1392,18 @@ def _extract_metadata(text: str, raw_tables: Optional[List] = None) -> Dict[str,
 
     # ── 2. Regex-based NER (fallback for any field not yet populated) ─────
 
+    # ── Module title ESPRIT (preferred for "Module : ...") ─────────────
+    if "nom_module" not in meta:
+        m_title = _RE_MODULE_TITLE_ESPRIT.search(text[:500])
+        if m_title:
+            titre = m_title.group(1).strip().rstrip(".")
+            titre = titre.split("\n")[0].strip()
+            titre = re.sub(r"\s*Derni[eè]re\s+mise.*$", "", titre, flags=re.I).strip()
+            titre = re.sub(r"\s*\d{2}/\d{2}/\d{4}.*$", "", titre).strip()
+            if len(titre) > 2:
+                meta["nom_module"] = titre
+                logger.info("Module title extracted: '%s'", titre)
+
     # ── Code module ──────────────────────────────────────────────────────
     # Table format first (more specific): "MT-34 24h 30h 3" line
     m = _RE_MODULE_CODE_TABLE.search(text)
@@ -1220,6 +1416,40 @@ def _extract_metadata(text: str, raw_tables: Optional[List] = None) -> Dict[str,
             code = m.group(1).strip().upper()
             if re.search(r"\d", code):
                 meta["code_module"] = code
+
+    # ── Document title (referential / non-standard fiche) ───────────────
+    # Look only in the first chars and stop once competence rows start.
+    if "nom_module" not in meta:
+        head = text[:500]
+        for raw_line in head.splitlines():
+            line = raw_line.strip(" \t-•\u2022")
+            if len(line) < 5:
+                continue
+            # Skip classic metadata labels often present in fiche headers.
+            if re.match(
+                r"^(?:Unit[eé]\s+p[eé]dagogique|UP|Code\s+module|Code\s+UE|"
+                r"Responsable|Enseignants?|Pr[eé]requis|Objectifs?)\b",
+                line,
+                re.I,
+            ):
+                continue
+            # If we already reached competence-item lines, stop title search.
+            if re.match(r"^[A-Z][a-z0-9]{0,3}\d*\s*[-\u2013]\s+", line):
+                break
+            # Ignore section labels like: "Compétences dans le domaine..."
+            if re.match(r"^Comp[eé]tences?\s+dans\s+le\s+domaine", line, re.I):
+                continue
+
+            if re.search(r"Ing[eé]nieur\s+en|G[eé]nie\s+Civil|Formation|Comp[eé]tences", line, re.I):
+                mt = re.search(
+                    r"(?:Ing[eé]nieur\s+en\s+|Formation\s+|Sp[eé]cialit[eé]\s+)(.{5,80})",
+                    line,
+                    re.I,
+                )
+                candidate = (mt.group(1) if mt else line).strip(" :;-\t")
+                if len(candidate) >= 5:
+                    meta["nom_module"] = candidate
+                    break
 
     # ── Module name ──────────────────────────────────────────────────────
     if "nom_module" not in meta:
@@ -1248,6 +1478,22 @@ def _extract_metadata(text: str, raw_tables: Optional[List] = None) -> Dict[str,
         )
         if m_rev:
             meta["unite_pedagogique"] = m_rev.group(1).strip()
+
+    # ── Unité d'enseignement (NLP-6) ──────────────────────────────────────
+    # Regex fallback for "Unité d'enseignement : XYZ" in text (complement to
+    # table-based detection in _scan_tables_for_meta)
+    if "unite_enseignement" not in meta:
+        m_ue = re.search(
+            r"Unit[e\u00e9]\s+d[\u0027\u2019]\s*enseignement\s*[:\-]\s*(.+?)(?:\n|$)",
+            text,
+            re.I,
+        )
+        if m_ue:
+            ue_val = m_ue.group(1).strip()
+            if ue_val:
+                meta["unite_enseignement"] = ue_val
+                if re.match(r"^[A-Z]{2,6}\d{2,6}$", ue_val.upper()):
+                    meta.setdefault("code_ue", ue_val.upper())
 
     # ── Responsable ──────────────────────────────────────────────────────
     # Try reversed format first (value line BEFORE label)
@@ -1297,14 +1543,20 @@ def _extract_metadata(text: str, raw_tables: Optional[List] = None) -> Dict[str,
     m = _RE_ENSEIGNANTS.search(text)
     if m:
         raw_val = _grab_continuation(m, text)
-        ens_names = _split_names(raw_val)
+        if _is_valid_enseignant_value(raw_val):
+            ens_names = _split_names(raw_val)
+        else:
+            clean_val = raw_val.split(":", 1)[0].strip() if ":" in raw_val else raw_val
+            if _is_valid_enseignant_value(clean_val):
+                ens_names = _split_names(clean_val)
     # Fallback: reversed format (value line BEFORE label)
     if not ens_names:
         m_rev = _RE_ENSEIGNANTS_REV.search(text)
         if m_rev:
             raw_val = m_rev.group(1).strip()
             # Skip if captured text is clearly a "Responsable" line
-            if not re.match(r"^Responsable\b", raw_val, re.I):
+            if (not re.match(r"^Responsable\b", raw_val, re.I)
+                    and _is_valid_enseignant_value(raw_val)):
                 ens_names = _split_names(raw_val)
     if ens_names:
         meta["enseignants_noms"] = ens_names
@@ -1341,16 +1593,45 @@ def _extract_metadata(text: str, raw_tables: Optional[List] = None) -> Dict[str,
     if "responsable" in meta and "enseignants_noms" not in meta:
         meta["enseignants_noms"] = [meta["responsable"]]
 
-    # Deduplicate names
-    if "enseignants_noms" in meta:
-        seen: set = set()
-        unique: List[str] = []
-        for n in meta["enseignants_noms"]:
-            norm = _normalize(n)
-            if norm not in seen and len(n.strip()) > 3:
-                seen.add(norm)
-                unique.append(n)
+    # Final defensive cleanup: keep only valid person-like names and sync roles.
+    raw_names: List[str] = list(meta.get("enseignants_noms", []))
+    raw_roles: Dict[str, str] = dict(meta.get("enseignants_roles", {}))
+    if meta.get("responsable"):
+        raw_names.append(meta["responsable"])
+
+    valid_role_values = {"responsable", "coordinateur", "enseignant", "intervenant"}
+    clean_roles: Dict[str, str] = {}
+    for raw_name, role in raw_roles.items():
+        cleaned = _clean_name(str(raw_name))
+        if not cleaned:
+            continue
+        if not _is_valid_enseignant_value(cleaned):
+            continue
+        clean_roles[cleaned] = role if role in valid_role_values else "enseignant"
+        raw_names.append(cleaned)
+
+    seen: set = set()
+    unique: List[str] = []
+    for raw_name in raw_names:
+        cleaned = _clean_name(str(raw_name))
+        if not cleaned:
+            continue
+        if not _is_valid_enseignant_value(cleaned):
+            continue
+        key = _normalize(cleaned).strip()
+        if key in seen:
+            continue
+        seen.add(key)
+        unique.append(cleaned)
+        clean_roles.setdefault(cleaned, "enseignant")
+
+    if unique:
         meta["enseignants_noms"] = unique
+        # Keep only roles for names that survived cleanup.
+        meta["enseignants_roles"] = {n: clean_roles.get(n, "enseignant") for n in unique}
+    else:
+        meta.pop("enseignants_noms", None)
+        meta.pop("enseignants_roles", None)
 
     # ── Prérequis ────────────────────────────────────────────────────────
     m_rev = _RE_PREREQUIS_REV.search(text)
@@ -1382,14 +1663,22 @@ _RE_AA_LINE = re.compile(r"(?:AA\s*(\d+))\s+(.+?)\s+(\d)\s*$", re.MULTILINE)
 _RE_AA_ALT = re.compile(r"(?:AA\s*(\d+))\s+(.+)", re.MULTILINE)
 
 
-def _extract_acquis_apprentissage(text: str) -> List[Dict[str, Any]]:
+def _extract_acquis_apprentissage(
+    text: str, raw_tables=None
+) -> List[Dict[str, Any]]:
     """
     NLP extraction of Acquis d'Apprentissage with Bloom levels.
 
     Strategy:
-    1. **LLM** (primary) — understands any AA format, assigns Bloom levels semantically.
-    2. **Regex block-parser** (fallback) — line-by-line AA marker detection.
+    1. **LLM** (primary) — understands any AA format.
+    2. **Table scanner** — detects 3-column AA tables from pdfplumber raw_tables.
+    3. **Regex block-parser** (fallback) — line-by-line AA marker detection.
+
     Returns list of {id, text, bloom_level}.
+
+    Args:
+        text: full extracted text of the fiche.
+        raw_tables: optional pdfplumber raw_tables – primary for 3-col AA format.
     """
     # ── 0. LLM extraction (primary) ──────────────────────────────────────
     if _LLM_OK:
@@ -1397,12 +1686,67 @@ def _extract_acquis_apprentissage(text: str) -> List[Dict[str, Any]]:
         if llm_acquis:
             return llm_acquis
 
+    # ── 0b. Table-based AA scanner ────────────────────────────────────────
+    # Handles fiches where AAs are in a 3-column table: [AA id | description | Bloom]
+    # Also handles 2-column tables: [AA id | description] with Bloom in description tail
+    if raw_tables:
+        table_acquis: List[Dict[str, Any]] = []
+        for table in raw_tables:
+            if not table or len(table) < 2:
+                continue
+            for row in table:
+                cells = [_clean_cell(c) for c in row]
+                non_empty = [c for c in cells if c]
+                if len(non_empty) < 2:
+                    continue
+                # Detect if first column is an AA identifier like "AA1", "AA 1", "1"
+                aa_id_match = re.match(r"^AA\s*(\d+)$", non_empty[0].strip(), re.I)
+                if not aa_id_match:
+                    # Also accept bare integers in first column (some fiches use "1", "2"…)
+                    aa_id_match = re.match(r"^(\d+)$", non_empty[0].strip())
+                if not aa_id_match:
+                    continue
+                aa_num = int(aa_id_match.group(1))
+                # Second column = text of the AA (possibly multi-line, already cleaned)
+                aa_text = non_empty[1].strip()
+                if len(aa_text) < 5:
+                    continue
+                # Third column (optional) = Bloom level (digit 1-6 or label)
+                bloom = 1
+                if len(non_empty) >= 3:
+                    bloom_raw = non_empty[2].strip()
+                    # Direct digit
+                    bd = re.match(r"^(\d)$", bloom_raw)
+                    if bd:
+                        bloom = min(max(int(bd.group(1)), 1), 6)
+                    # "1 et 2" → take first digit
+                    bm = re.search(r"(\d)", bloom_raw)
+                    if bm:
+                        bloom = min(max(int(bm.group(1)), 1), 6)
+                else:
+                    bloom = _detect_bloom_level(aa_text)
+                table_acquis.append(
+                    {"id": aa_num, "text": aa_text, "bloom_level": bloom}
+                )
+        # If we found structured AA rows, prefer that result
+        if table_acquis:
+            # Deduplicate by id (keep first occurrence)
+            seen_ids: set = set()
+            deduped = []
+            for item in table_acquis:
+                if item["id"] not in seen_ids:
+                    seen_ids.add(item["id"])
+                    deduped.append(item)
+            return deduped
+
     # ── 1. Regex block parser (fallback) ─────────────────────────────────
     acquis: List[Dict[str, Any]] = []
 
     # Apostrophe variants: U+0027 ASCII, U+2018 left curly, U+2019 right curly (Word/PDF), U+2032 prime
     aa_block_match = re.search(
-        r"Acquis\s+d[\u0027\u2018\u2019\u2032]apprentissage\s*:?\s*[^\n]*\n(.+?)(?=Contenu\s+d[e\u00e9]taill[e\u00e9]|Plan\s+du\s+cours|\Z)",
+        r"Acquis\s+d[\u0027\u2018\u2019\u2032]apprentissage\s*:?\s*[^\n]*\n(.+?)"
+        r"(?=Contenu\s+d[e\u00e9]taill[e\u00e9]|Plan\s+du\s+cours"
+        r"|Plan\s+du\s+module|Contenu\s+p[e\u00e9]dagogique|\Z)",
         text,
         re.I | re.DOTALL,
     )
@@ -1600,9 +1944,11 @@ def _extract_acquis_apprentissage(text: str) -> List[Dict[str, Any]]:
 # NLP – Séance / Session extraction (Contenu détaillé)
 # ─────────────────────────────────────────────────────────────────────────────
 
+# Title group is optional – handles both "Chapitre1" (bare) and "Chapitre 1 : Titre"
 _RE_SEANCE = re.compile(
-    r"(?:S[eé]ance|Seance|Session|Chapitre|Semaine)\s*(\d+(?:\s*[-\u2013]\s*\d+)?)\s*[:\-]?\s*(.+?)(?=\n)",
-    re.IGNORECASE,
+    r"(?:S[eé]ance|Seance|Session|Chapitre|Semaine)\s*(\d+(?:\s*[-\u2013]\s*\d+)?)"
+    r"(?:\s*[:\-]\s*(.+?))?(?=\n|$)",
+    re.IGNORECASE | re.MULTILINE,
 )
 _RE_CHECKMARK = re.compile(r"^[\u2714\u2713\u2611\u2610]\s*(.+)$", re.MULTILINE)
 _RE_BULLET = re.compile(r"^[\-\u2022\*\u203A\u25E6\u25AA]\s+(.+)$", re.MULTILINE)
@@ -1631,7 +1977,7 @@ def _extract_seances(text: str) -> List[Dict[str, Any]]:
 
     for i, match in enumerate(matches):
         numero = match.group(1).strip()
-        titre = match.group(2).strip()
+        titre = (match.group(2) or "").strip()  # group(2) is optional → may be None
         start = match.end()
         end = matches[i + 1].start() if i + 1 < len(matches) else len(text)
         block = text[start:end]
@@ -1640,6 +1986,19 @@ def _extract_seances(text: str) -> List[Dict[str, Any]]:
         for pattern in [_RE_CHECKMARK, _RE_BULLET, _RE_NUMBERED]:
             items.extend(pattern.findall(block))
         items = [it.strip() for it in items if len(it.strip()) > 5]
+        # Remove pure AA-reference lines like "AA1", "AA1 AA2", "AA 3" etc.
+        items = [
+            it for it in items
+            if not re.match(r'^(?:AA\s*\d+\s*)+$', it.strip(), re.I)
+        ]
+        # If titre is empty (bare "Chapitre1" line) try to pull title from
+        # first non-empty, non-AA item in block
+        if not titre:
+            for candidate in items:
+                if not re.match(r'^(?:AA\s*\d+\s*)+$', candidate.strip(), re.I):
+                    titre = candidate
+                    items = items[1:] if items and items[0] == candidate else items
+                    break
 
         type_match = re.search(
             r"(?:Situation\s*(?:\(s\))?\s*|Type\s*)[:\-]?\s*(cours\s+int[e\u00e9]gr[e\u00e9]|TP|TD|APP|Projet|Labo)",
@@ -1664,3 +2023,92 @@ def _extract_seances(text: str) -> List[Dict[str, Any]]:
         )
 
     return seances
+
+
+def _extract_referentiel_competences(text: str) -> List[Dict[str, Any]]:
+    """
+    Detect and extract ESPRIT referential competencies formatted like:
+      "S1 - Effectuer...", "C4 - Gérer...", "T2 - Contribuer..."
+
+    Returns a list of dicts: {code, text, domaine_code, domaine_nom, bloom_level}
+    only if this looks like a referential document (>= 3 items), else [].
+    """
+    re_comp = re.compile(
+        r"^([A-Z][a-z]?(?:ech)?)\s*(\d+[a-z]?)\s*[-\u2013]\s*(.{10,300})$",
+        re.MULTILINE,
+    )
+    re_section = re.compile(
+        r"Comp[eé]tences?\s+(?:dans\s+le\s+domaine\s+(?:de[sl]?\s+)?|en\s+|transversales?\s+)"
+        r"(.{3,60})\s*\(\s*([A-Z][a-z]*)\s*\)",
+        re.IGNORECASE,
+    )
+
+    section_map: Dict[str, str] = {}
+    for m in re_section.finditer(text):
+        domaine_nom = re.sub(r"\s+", " ", m.group(1)).strip(" .:-")
+        lettre = m.group(2).strip().upper()
+        if domaine_nom:
+            section_map[lettre] = domaine_nom
+
+    lines = text.splitlines()
+    items: List[Dict[str, Any]] = []
+    i = 0
+    while i < len(lines):
+        line = lines[i].strip()
+        m = re.match(
+            r"^([A-Z][a-z]?(?:ech)?)\s*(\d+[a-z]?)\s*[-\u2013]\s*(.{10,300})$",
+            line,
+        )
+        if not m:
+            i += 1
+            continue
+
+        lettre = m.group(1).strip().upper()
+        numero = m.group(2).strip()
+        comp_text = m.group(3).strip()
+
+        # Join continuation lines until next item/section/header noise.
+        j = i + 1
+        tail: List[str] = []
+        while j < len(lines):
+            nxt = lines[j].strip()
+            if not nxt:
+                break
+            if re.match(r"^[A-Z][a-z]?(?:ech)?\s*\d+[a-z]?\s*[-\u2013]\s+", nxt):
+                break
+            if re.match(r"^Comp[eé]tences?\s+", nxt, re.I):
+                break
+            if re.match(r"^(?:Axes?\s+forts|Objectifs?|Dimension\s+sp[eé]cifique)", nxt, re.I):
+                break
+            tail.append(nxt)
+            j += 1
+
+        if tail:
+            comp_text = f"{comp_text} {' '.join(tail)}"
+
+        comp_text = re.sub(r"\s*\n\s*", " ", comp_text)
+        comp_text = re.sub(r"\s+", " ", comp_text).strip()
+        # Some PDFs append next section title on same visual line (e.g. "• Compétences...").
+        comp_text = re.split(
+            r"\s+[•·]\s*Comp[eé]tences?\s+|\s+Comp[eé]tences?\s+dans\s+le\s+domaine\s+",
+            comp_text,
+            maxsplit=1,
+            flags=re.IGNORECASE,
+        )[0].strip()
+        domaine_nom = section_map.get(lettre, lettre)
+
+        items.append(
+            {
+                "code": f"{lettre}{numero}",
+                "text": comp_text,
+                "domaine_code": lettre,
+                "domaine_nom": domaine_nom,
+                "bloom_level": _detect_bloom_level(comp_text),
+            }
+        )
+        i = j
+
+    if len(items) < 3:
+        return []
+
+    return items

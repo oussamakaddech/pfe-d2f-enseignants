@@ -38,6 +38,25 @@ describe('consultationUtils', () => {
     ]);
   });
 
+  it('attaches direct competence savoirs as children of competence nodes', () => {
+    const domaines = [{ id: 1, nom: 'Genie Civil', code: 'GC' }];
+    const competences = [{ id: 10, domaineId: 1, nom: 'Sols', code: 'S' }];
+    const sousComps = [];
+    const savoirs = [
+      { id: 300, competenceId: 10, sousCompetenceId: null, nom: 'S1', code: 'S1', type: 'THEORIQUE' },
+      { id: 301, competenceId: 10, sousCompetenceId: null, nom: 'S2', code: 'S2', type: 'PRATIQUE' },
+    ];
+
+    const tree = buildD3TreeData(domaines, competences, sousComps, savoirs);
+    const compNode = tree.children[0].children[0];
+
+    expect(compNode.name).toBe('Sols');
+    expect(compNode.children).toEqual([
+      { name: 'S1', attributes: { code: 'S1', type: 'THEORIQUE' } },
+      { name: 'S2', attributes: { code: 'S2', type: 'PRATIQUE' } },
+    ]);
+  });
+
   it('builds matrix rows by aligning savoir codes per level', () => {
     const rows = buildMatrixRows({
       N1_DEBUTANT: [{ savoirCode: 'A1' }, { savoirCode: 'A2' }],

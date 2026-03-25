@@ -9,6 +9,7 @@ import {
 } from "antd";
 import {
   SearchOutlined, ReloadOutlined, RobotOutlined, DeleteOutlined,
+  DownloadOutlined,
 } from "@ant-design/icons";
 import CompetenceService from "../../services/CompetenceService";
 import EnseignantService from "../../services/EnseignantService";
@@ -115,6 +116,53 @@ export default function AffectationEnseignantPage() {
         r.savoirs.some((s) => s.code.toLowerCase().includes(q) || s.nom.toLowerCase().includes(q))
     );
   }, [rows, search]);
+
+  const exportAffectationsCsv = useCallback(() => {
+    const filteredIds = new Set(filtered.map((r) => String(r.enseignantId)));
+    const selected = affectations.filter((a) => filteredIds.has(String(a.enseignantId)));
+
+    const header = [
+      "affectation_id",
+      "enseignant_id",
+      "enseignant_nom",
+      "savoir_code",
+      "savoir_nom",
+      "niveau_code",
+      "niveau_label",
+    ];
+
+    const niveauToLabel = (niv) => NIVEAU_LABEL[niv] ?? (niv || "—");
+    const resolveName = (eid) => {
+      const e = ensMap.get(String(eid));
+      if (!e) return String(eid).replace(/^EX-/i, "");
+      return `${e.prenom ?? ""} ${e.nom ?? ""}`.trim();
+    };
+
+    const rowsCsv = selected.map((a) => {
+      const niveau = a.niveau ?? "";
+      return [
+        a.id ?? "",
+        String(a.enseignantId ?? ""),
+        resolveName(a.enseignantId),
+        a.savoirCode ?? "",
+        a.savoirNom ?? "",
+        niveau,
+        niveauToLabel(niveau),
+      ];
+    });
+
+    const esc = (v) => `"${String(v ?? "").replaceAll('"', '""')}"`;
+    const csv = [header, ...rowsCsv].map((r) => r.map(esc).join(";")).join("\n");
+
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "affectations_enseignants_rice.csv";
+    a.click();
+    URL.revokeObjectURL(url);
+    msgApi.success(`CSV exporté (${rowsCsv.length} affectation(s))`);
+  }, [affectations, ensMap, filtered, msgApi]);
 
   // ── Columns ───────────────────────────────────────────────────────────────
   const columns = [
@@ -252,6 +300,9 @@ export default function AffectationEnseignantPage() {
         />
         <Button icon={<ReloadOutlined />} onClick={loadAll} loading={loading}>
           Actualiser
+        </Button>
+        <Button icon={<DownloadOutlined />} onClick={exportAffectationsCsv} disabled={loading || filtered.length === 0}>
+          Export CSV
         </Button>
         
       </Space>

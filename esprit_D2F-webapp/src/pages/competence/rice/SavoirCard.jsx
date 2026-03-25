@@ -1,34 +1,74 @@
-// src/pages/competence/rice/SavoirCard.jsx
-// Memoized card representing a single Savoir in the review tree.
-// Context-menu replaces noisy inline buttons.
-// framer-motion provides a smooth lift during HTML5 drag.
-
-import { memo, useState } from "react";
-import { Dropdown, Input, Select, Tag, Tooltip, Typography } from "antd";
-import {
-  DeleteOutlined, EditOutlined, MergeCellsOutlined, HolderOutlined,
-} from "@ant-design/icons";
-import { motion } from "framer-motion";
+import { memo, useMemo, useState } from "react";
+import { Avatar, Dropdown, Input, Select, Space, Tag, Tooltip, Typography } from "antd";
+import { DeleteOutlined, EditOutlined, HolderOutlined, MergeCellsOutlined, MoreOutlined } from "@ant-design/icons";
 import PropTypes from "prop-types";
-import { NIVEAU_OPTIONS, TYPE_COLOR, TYPE_ICON, TYPE_LABEL } from "./constants.jsx";
+import { NIVEAU_OPTIONS, TYPE_LABEL, avatarColor, getInitials } from "./constants.jsx";
 
 const { Text } = Typography;
-const { Option } = Select;
 
-// â”€â”€ Context-menu items builder â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-function buildMenuItems({ onRename, onMerge, onDelete }) {
-  return [
+const NIVEAU_DOT = {
+  N1_DEBUTANT: "#94a3b8",
+  N2_ELEMENTAIRE: "#3b82f6",
+  N3_INTERMEDIAIRE: "#16a34a",
+  N4_AVANCE: "#f59e0b",
+  N5_EXPERT: "#ef4444",
+};
+
+const NIVEAU_SIMPLE = {
+  N1_DEBUTANT: "Niveau 1",
+  N2_ELEMENTAIRE: "Niveau 2",
+  N3_INTERMEDIAIRE: "Niveau 3",
+  N4_AVANCE: "Niveau 4",
+  N5_EXPERT: "Niveau 5",
+};
+
+const SavoirCard = memo(function SavoirCard({
+  savoir,
+  di,
+  ci,
+  sci,
+  si,
+  editingNom,
+  setEditingNom,
+  commitRename,
+  startRename,
+  toggleType,
+  setNiveau,
+  setEnseignants,
+  deleteSavoir,
+  openMerge,
+  setMergeModal,
+  onSavoirDragStart,
+  onSavoirDragEnd,
+  isBeingDragged,
+  allEnseignants,
+  inlineHint,
+}) {
+  const [hovered, setHovered] = useState(false);
+  const isEditing = editingNom?.path?.join("-") === `${di}-${ci}-${sci}-${si}`;
+  const niveau = NIVEAU_OPTIONS.find((n) => n.value === savoir.niveau) || NIVEAU_OPTIONS[0];
+
+  const assigned = useMemo(() => {
+    const ids = (savoir.enseignantsSuggeres ?? []).map((id) => String(id));
+    const map = new Map((allEnseignants ?? []).map((e) => [String(e.id ?? e.enseignantId), e]));
+    return ids.map((id) => ({ id, ens: map.get(id) })).filter((x) => x.ens);
+  }, [savoir.enseignantsSuggeres, allEnseignants]);
+
+  const menuItems = [
     {
       key: "rename",
       icon: <EditOutlined />,
       label: "Renommer",
-      onClick: onRename,
+      onClick: () => startRename([di, ci, sci, si], savoir.nom),
     },
     {
       key: "merge",
       icon: <MergeCellsOutlined />,
-      label: "Fusionner avec…",
-      onClick: onMerge,
+      label: "Fusionner avec...",
+      onClick: () => {
+        openMerge(di, ci, sci, si);
+        setMergeModal(true);
+      },
     },
     { type: "divider" },
     {
@@ -36,189 +76,96 @@ function buildMenuItems({ onRename, onMerge, onDelete }) {
       icon: <DeleteOutlined />,
       label: "Supprimer",
       danger: true,
-      onClick: onDelete,
+      onClick: () => deleteSavoir(di, ci, sci, si),
     },
   ];
-}
 
-// â”€â”€ Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-const SavoirCard = memo(function SavoirCard({
-  savoir,
-  di, ci, sci, si,
-  editingNom, setEditingNom,
-  commitRename, startRename,
-  toggleType, setNiveau, setEnseignants,
-  deleteSavoir, openMerge, setMergeModal,
-  onSavoirDragStart, onSavoirDragEnd,
-  isBeingDragged,
-  allEnseignants,
-}) {
-  const [dragging, setDragging] = useState(false);
-
-  const isEditing =
-    editingNom?.path[0] === di &&
-    editingNom?.path[1] === ci &&
-    editingNom?.path[2] === sci &&
-    editingNom?.path[3] === si;
-
-  const niveauOpt = NIVEAU_OPTIONS.find((n) => n.value === savoir.niveau);
-
-  const menuItems = buildMenuItems({
-    onRename: () => startRename([di, ci, sci, si], savoir.nom),
-    onMerge: () => { openMerge(di, ci, sci, si); setMergeModal(true); },
-    onDelete: () => deleteSavoir(di, ci, sci, si),
-  });
+  const removeTeacher = (id) => {
+    const next = (savoir.enseignantsSuggeres ?? []).filter((x) => String(x) !== String(id));
+    setEnseignants(di, ci, sci, si, next);
+  };
 
   return (
-    <Dropdown menu={{ items: menuItems }} trigger={["contextMenu"]}>
-      <motion.div
-        layout
-        initial={{ opacity: 0, y: -6 }}
-        animate={{
-          opacity: isBeingDragged ? 0.4 : 1,
-          y: 0,
-          scale: dragging ? 1.03 : 1,
-          rotate: dragging ? 1.5 : 0,
-          boxShadow: dragging
-            ? "0 12px 28px rgba(22,119,255,0.28)"
-            : isBeingDragged
-              ? "none"
-              : "0 1px 4px rgba(0,0,0,0.07)",
-        }}
-        exit={{ opacity: 0, scale: 0.95 }}
-        transition={{ type: "spring", stiffness: 400, damping: 30, duration: 0.2 }}
-        draggable
-        onDragStart={(e) => {
-          setDragging(true);
-          onSavoirDragStart(e, di, ci, sci, si);
-        }}
-        onDragEnd={(e) => {
-          setDragging(false);
-          onSavoirDragEnd(e);
-        }}
-        className={`rice-savoir-card${isBeingDragged ? " rice-savoir-dragging" : ""}`}
-        style={{
-          borderLeft: `4px solid ${savoir.type === "THEORIQUE" ? "#722ed1" : "#fa541c"}`,
-          cursor: dragging ? "grabbing" : "grab",
-        }}
-        title="Clic droit pour renommer / fusionner / supprimer"
-      >
-        {/* â”€â”€ Header row â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
-        <div className="rice-savoir-header">
-          <div style={{ flex: 1, minWidth: 0 }}>
-            {isEditing ? (
-              <Input
-                size="small"
-                value={editingNom.value}
-                onChange={(e) =>
-                  setEditingNom((prev) => ({ ...prev, value: e.target.value }))
-                }
-                onPressEnter={commitRename}
-                onBlur={commitRename}
-                onKeyDown={(e) => e.key === "Escape" && setEditingNom(null)}
-                autoFocus
-                style={{ maxWidth: 320 }}
-                placeholder="Nom du savoir"
-              />
-            ) : (
-              <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 0 }}>
-                <Tooltip title="Glisser pour assigner à un enseignant">
-                  <span className="rice-drag-handle">
-                    <HolderOutlined />
-                  </span>
-                </Tooltip>
-                <Text strong className="rice-savoir-name" ellipsis={{ tooltip: savoir.nom }}>
-                  {savoir.nom}
-                </Text>
-                <Text className="rice-savoir-code">[{savoir.code}]</Text>
-              </div>
-            )}
-          </div>
+    <div
+      className={`savoir-card${isBeingDragged ? " is-dragging" : ""}`}
+      draggable
+      onDragStart={(e) => onSavoirDragStart(e, di, ci, sci, si)}
+      onDragEnd={onSavoirDragEnd}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
+      <span className="savoir-drag-handle"><HolderOutlined /></span>
 
-          {/* Subtle right-click hint */}
-          {!isEditing && (
-            <Text type="secondary" style={{ fontSize: 10, whiteSpace: "nowrap", flexShrink: 0 }}>
-              ⋮⋮
-            </Text>
-          )}
-        </div>
-
-        {/* â”€â”€ Type / Niveau / Enseignants â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
-        <div className="rice-savoir-controls">
-          <Tooltip title={`Type : ${TYPE_LABEL[savoir.type]} — cliquer pour basculer`}>
-            <Tag
-              icon={TYPE_ICON[savoir.type]}
-              color={TYPE_COLOR[savoir.type]}
-              className="rice-type-badge"
-              onClick={() => toggleType(di, ci, sci, si)}
-            >
-              {TYPE_LABEL[savoir.type]}
-            </Tag>
-          </Tooltip>
-
-          <Select
+      <div style={{ minWidth: 0, flex: 1 }}>
+        {isEditing ? (
+          <Input
             size="small"
-            value={savoir.niveau}
-            onChange={(v) => setNiveau(di, ci, sci, si, v)}
-            style={{ width: 170 }}
-            popupMatchSelectWidth={false}
-            variant="borderless"
-            className="rice-niveau-select"
-          >
-            {NIVEAU_OPTIONS.map((n) => (
-              <Option key={n.value} value={n.value}>
-                <span>{n.emoji}</span>{" "}
-                <Tag color={n.color} style={{ margin: 0, fontSize: 11 }}>
-                  {n.label}
-                </Tag>
-              </Option>
-            ))}
-          </Select>
-
-          <Select
-            mode="multiple"
-            size="small"
-            placeholder="+ Assigner"
-            value={savoir.enseignantsSuggeres ?? []}
-            onChange={(ids) => setEnseignants(di, ci, sci, si, ids)}
-            style={{ flex: 1, minWidth: 160 }}
-            maxTagCount="responsive"
-            optionFilterProp="label"
-            showSearch
-            allowClear
-            variant="borderless"
-            options={allEnseignants.map((e) => {
-              const id = String(e.id ?? e.enseignantId);
-              const label = e.prenom ? `${e.prenom} ${e.nom}` : e.nom;
-              return { key: id, value: id, label };
-            })}
+            value={editingNom.value}
+            onChange={(e) => setEditingNom((p) => ({ ...p, value: e.target.value }))}
+            onPressEnter={commitRename}
+            onBlur={commitRename}
+            onKeyDown={(e) => e.key === "Escape" && setEditingNom(null)}
+            autoFocus
           />
-        </div>
-
-        {/* â”€â”€ Bottom meta â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
-        {niveauOpt && (
-          <div className="rice-savoir-meta">
-            <span className="rice-savoir-niveau-dot" style={{
-              background: savoir.type === "THEORIQUE" ? "#722ed1" : "#fa541c",
-            }} />
-            <Text type="secondary" style={{ fontSize: 11 }}>
-              {niveauOpt.emoji} {niveauOpt.label}
+        ) : (
+          <Tooltip title={savoir.nom}>
+            <Text strong>
+              <Tag style={{ marginRight: 6, fontFamily: "monospace", fontWeight: 700 }}>{savoir.code}</Tag>
+              {savoir.nom.length > 60 ? `${savoir.nom.slice(0, 60)}...` : savoir.nom}
             </Text>
-            {(savoir.enseignantsSuggeres?.length ?? 0) > 0 && (
-              <Tag
-                color="green"
-                style={{ marginLeft: 6, fontSize: 10, padding: "0 5px", lineHeight: "16px" }}
-              >
-                {savoir.enseignantsSuggeres.length} ens.
-              </Tag>
-            )}
-            <Text type="secondary" style={{ fontSize: 10, marginLeft: "auto" }}>
-              Clic droit ▶ actions
-            </Text>
-          </div>
+          </Tooltip>
         )}
-      </motion.div>
-    </Dropdown>
+
+        <Space size={6} style={{ marginTop: 6 }} wrap>
+          <Tag
+            style={{
+              background: savoir.type === "THEORIQUE" ? "#f3e8ff" : "#fff7ed",
+              color: savoir.type === "THEORIQUE" ? "#7c3aed" : "#c2410c",
+              border: "none",
+              margin: 0,
+            }}
+            onClick={() => toggleType(di, ci, sci, si)}
+          >
+            {TYPE_LABEL[savoir.type]}
+          </Tag>
+
+          <Space size={4}>
+            <span className="niveau-dot" style={{ background: NIVEAU_DOT[savoir.niveau] || "#94a3b8" }} />
+            <Select
+              size="small"
+              value={savoir.niveau}
+              onChange={(v) => setNiveau(di, ci, sci, si, v)}
+              options={NIVEAU_OPTIONS.map((n) => ({ value: n.value, label: NIVEAU_SIMPLE[n.value] ?? n.label }))}
+              style={{ width: 130 }}
+              variant="borderless"
+            />
+          </Space>
+        </Space>
+      </div>
+
+      {assigned.length > 0 ? (
+        <Space size={6}>
+          <Avatar size="small" style={{ background: avatarColor(assigned[0].id) }}>
+            {getInitials(assigned[0].ens.nom, assigned[0].ens.prenom)}
+          </Avatar>
+          <Text style={{ fontSize: 12 }}>
+            {(assigned[0].ens.prenom ? `${assigned[0].ens.prenom} ${assigned[0].ens.nom}` : assigned[0].ens.nom).slice(0, 16)}
+          </Text>
+          <a onClick={() => removeTeacher(assigned[0].id)}>×</a>
+          {assigned.length > 1 && <Text type="secondary">+{assigned.length - 1}</Text>}
+        </Space>
+      ) : (
+        <span className="savoir-unassigned-hint">
+          {inlineHint ? "← Glissez vers un enseignant pour affecter" : "Glisser un enseignant →"}
+        </span>
+      )}
+
+      {hovered && (
+        <Dropdown menu={{ items: menuItems }} trigger={["click"]}>
+          <MoreOutlined style={{ color: "#64748b", cursor: "pointer" }} />
+        </Dropdown>
+      )}
+    </div>
   );
 });
 
@@ -248,6 +195,8 @@ SavoirCard.propTypes = {
   onSavoirDragEnd: PropTypes.func.isRequired,
   isBeingDragged: PropTypes.bool,
   allEnseignants: PropTypes.array.isRequired,
+  loadByTeacher: PropTypes.object,
+  inlineHint: PropTypes.bool,
 };
 
 export default SavoirCard;

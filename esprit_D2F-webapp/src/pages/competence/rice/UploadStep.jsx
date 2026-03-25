@@ -2,16 +2,21 @@
 // Step 0 – File upload and department/referential selection.
 // Includes session restore alert (tree only – files cannot be serialized).
 
-import { Badge, Button, Col, Row, Select, Space, Tag, Typography, Upload } from "antd";
 import {
-  ApartmentOutlined, BookOutlined,
+  Alert, Badge, Button, Col, Drawer, Input, Row, Select, Skeleton, Space, Table, Tag, Tooltip, Typography, Upload,
+} from "antd";
+import {
+  ApartmentOutlined,
   CheckCircleOutlined, CloudUploadOutlined,
   FileTextOutlined, FilePdfOutlined, FileWordOutlined,
-  RobotOutlined, ThunderboltOutlined,
+  RobotOutlined, TeamOutlined, ThunderboltOutlined, NumberOutlined,
 } from "@ant-design/icons";
 import { motion, AnimatePresence } from "framer-motion";
+import { useMemo, useState } from "react";
 import PropTypes from "prop-types";
-import { formatFileSize, DEPARTMENT_OPTIONS, useDepartmentConfig } from "./constants.jsx";
+import {
+  DepartmentBadge, DEPARTMENT_OPTIONS, formatFileSize, useDepartmentConfig,
+} from "./constants.jsx";
 
 const { Text, Title, Paragraph } = Typography;
 const { Dragger } = Upload;
@@ -26,13 +31,6 @@ function FileIcon({ name }) {
 }
 FileIcon.propTypes = { name: PropTypes.string };
 
-const FEATURES = [
-  { icon: <RobotOutlined />, color: "#1677ff", title: "IA Extraction", desc: "NLP Bloom + analyses sémantiques des objectifs pédagogiques" },
-  { icon: <ApartmentOutlined />, color: "#722ed1", title: "Arbre Compétences", desc: "Domaines → Compétences → Sous-compétences → Savoirs" },
-  { icon: <BookOutlined />, color: "#52c41a", title: "Niveaux Bloom", desc: "Classification automatique : Connaissance → Évaluation" },
-  { icon: <ThunderboltOutlined />, color: "#fa8c16", title: "Affectation DnD", desc: "Assignez vos enseignants par glisser-déposer sur les savoirs" },
-];
-
 export default function UploadStep({
   files,
   analyzing,
@@ -41,8 +39,32 @@ export default function UploadStep({
   setCurrentStep,
   departement,
   setDepartement,
+  allEnseignants,
+  enseignantsLoading,
+  enseignantsError,
+  enseignantsLoadSlow,
+  onRetryEnseignants,
+  onContinueWithoutEnseignants,
 }) {
+  const [showEnseignantsPreview, setShowEnseignantsPreview] = useState(false);
+  const [ensPreviewSearch, setEnsPreviewSearch] = useState("");
   const deptCfg = useDepartmentConfig(departement === "auto" ? "gc" : departement);
+  const etaSeconds = Math.max(20, files.length * 20);
+  const visibleFiles = files.slice(0, 5);
+  const hiddenCount = Math.max(0, files.length - visibleFiles.length);
+  const filteredPreviewRows = useMemo(() => {
+    const q = ensPreviewSearch.trim().toLowerCase();
+    if (!q) return allEnseignants;
+    return (allEnseignants ?? []).filter((e) => {
+      const full = `${e.prenom ?? ""} ${e.nom ?? ""}`.toLowerCase();
+      return (
+        full.includes(q)
+        || String(e.departement ?? "").toLowerCase().includes(q)
+        || String(e.grade ?? "").toLowerCase().includes(q)
+      );
+    });
+  }, [allEnseignants, ensPreviewSearch]);
+
   return (
     <div className="upload-step-root">
       <Row gutter={[28, 28]}>
@@ -164,18 +186,20 @@ export default function UploadStep({
               whileHover={files.length > 0 ? { scale: 1.03 } : {}}
               whileTap={files.length > 0 ? { scale: 0.97 } : {}}
             >
-              <Button
-                type="primary"
-                size="large"
-                icon={<ThunderboltOutlined />}
-                onClick={handleAnalyze}
-                disabled={files.length === 0}
-                loading={analyzing}
-                className="rice-launch-btn"
-                block
-              >
-                {analyzing ? "Analyse en cours…" : "Lancer l'analyse IA"}
-              </Button>
+              <Tooltip title="Ctrl+Enter">
+                <Button
+                  type="primary"
+                  size="large"
+                  icon={<ThunderboltOutlined />}
+                  onClick={handleAnalyze}
+                  disabled={files.length === 0}
+                  loading={analyzing}
+                  className="rice-launch-btn"
+                  block
+                >
+                  {analyzing ? "Analyse en cours…" : "Lancer l'analyse IA"}
+                </Button>
+              </Tooltip>
             </motion.div>
             {files.length === 0 ? (
               <Text type="secondary" style={{ fontSize: 12, marginTop: 8, display: "block", textAlign: "center" }}>
@@ -191,54 +215,247 @@ export default function UploadStep({
           </div>
         </Col>
 
-        {/* ── RIGHT: Features panel ──────────────────────────────────────── */}
+        {/* ── RIGHT: Guide panel (contextual) ─────────────────────────────── */}
         <Col xs={24} lg={10}>
           <div className="rice-features-panel">
             <div className="rice-features-header">
               <RobotOutlined className="rice-features-robot" />
               <div>
                 <Title level={5} style={{ margin: 0, color: "#fff" }}>
-                  Moteur RICE
+                  Guide rapide
                 </Title>
                 <Text style={{ color: "rgba(255,255,255,0.65)", fontSize: 12 }}>
-                  Intelligence artificielle pédagogique
+                  Étapes recommandées pour l&apos;analyse
                 </Text>
               </div>
             </div>
 
             <div className="rice-feature-list">
-              {FEATURES.map((f, i) => (
-                <motion.div
-                  key={f.title}
-                  initial={{ opacity: 0, x: 20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.1 + i * 0.08 }}
-                  className="rice-feature-item"
-                >
-                  <div className="rice-feature-icon" style={{ "--fi-color": f.color }}>
-                    {f.icon}
-                  </div>
-                  <div>
-                    <Text strong style={{ fontSize: 13, display: "block" }}>
-                      {f.title}
-                    </Text>
-                    <Text type="secondary" style={{ fontSize: 11, lineHeight: 1.4 }}>
-                      {f.desc}
-                    </Text>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
+              <div className="ens-availability">
+                <Text strong style={{ color: "#fff" }}>Enseignants disponibles</Text>
 
-            <div className="rice-tip-box">
-              <span className="rice-tip-icon">💡</span>
-              <Text style={{ fontSize: 12, color: "rgba(255,255,255,0.7)", lineHeight: 1.5 }}>
-                Meilleures performances avec des fiches UE structurées incluant objectifs, compétences et volumes horaires.
-              </Text>
+                {enseignantsLoading && (
+                  <div style={{ marginTop: 8 }}>
+                    <Skeleton.Input active size="small" style={{ width: 200 }} />
+                    <Text style={{ color: "rgba(255,255,255,0.75)", fontSize: 12, display: "block", marginTop: 6 }}>
+                      Chargement des enseignants...
+                    </Text>
+                  </div>
+                )}
+
+                {enseignantsLoadSlow && enseignantsLoading && (
+                  <Alert
+                    type="warning"
+                    showIcon
+                    message="Chargement long — vérifiez la disponibilité du service"
+                    action={(
+                      <Space>
+                        <Button size="small" onClick={onRetryEnseignants}>Réessayer</Button>
+                        <Button size="small" type="text" onClick={onContinueWithoutEnseignants}>Continuer sans enseignants</Button>
+                      </Space>
+                    )}
+                    style={{ marginTop: 8 }}
+                  />
+                )}
+
+                {!enseignantsLoading && enseignantsError && (
+                  <Alert type="warning" message={enseignantsError} showIcon style={{ marginTop: 8 }} />
+                )}
+
+                {!enseignantsLoading && !enseignantsError && allEnseignants.length > 0 && (
+                  <div style={{ marginTop: 8 }}>
+                    <Space align="start">
+                      <TeamOutlined style={{ color: "#52c41a", marginTop: 2 }} />
+                      <div>
+                        <Text style={{ color: "rgba(255,255,255,0.9)" }}>
+                          <strong style={{ color: "#52c41a" }}>{allEnseignants.length}</strong>
+                          {" "}enseignants disponibles pour le matching IA
+                        </Text>
+                        {departement !== "auto" && (
+                          <div>
+                            <Text type="secondary" style={{ fontSize: 11, color: "rgba(255,255,255,0.65)" }}>
+                              Filtrés par département <DepartmentBadge deptCode={departement} />
+                            </Text>
+                          </div>
+                        )}
+                        <Button
+                          type="link"
+                          size="small"
+                          style={{ padding: 0, height: 20, color: "#91caff" }}
+                          onClick={() => setShowEnseignantsPreview(true)}
+                        >
+                          Voir la liste →
+                        </Button>
+                      </div>
+                    </Space>
+                  </div>
+                )}
+
+                {!enseignantsLoading && !enseignantsError && allEnseignants.length === 0 && (
+                  <Alert
+                    type="info"
+                    showIcon
+                    message="Aucun enseignant en base de données"
+                    description="Demandez à l'administrateur d'ajouter les enseignants dans le module de gestion."
+                    style={{ marginTop: 8 }}
+                  />
+                )}
+              </div>
+
+              {files.length === 0 ? (
+                <>
+                  {[
+                    "Déposez vos fiches modules PDF/DOCX",
+                    "Sélectionnez le département ou laissez la détection auto",
+                    "Lancez l'analyse — résultats en 1-2 minutes",
+                  ].map((step, i) => (
+                    <motion.div
+                      key={step}
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.1 + i * 0.08 }}
+                      className="rice-feature-item"
+                    >
+                      <div className="rice-feature-icon" style={{ "--fi-color": "#69b1ff" }}>
+                        <NumberOutlined />
+                      </div>
+                      <div>
+                        <Text strong style={{ fontSize: 13, display: "block", color: "#fff" }}>
+                          {`${i + 1}️⃣ ${step}`}
+                        </Text>
+                      </div>
+                    </motion.div>
+                  ))}
+
+                  <div className="rice-tip-box" style={{ marginTop: 2 }}>
+                    <span className="rice-tip-icon">💡</span>
+                    <Text style={{ fontSize: 12, color: "rgba(255,255,255,0.7)", lineHeight: 1.5 }}>
+                      Conseil : les fiches avec tableaux structurés donnent de meilleurs résultats.
+                    </Text>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <motion.div
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    className="rice-feature-item"
+                  >
+                    <div className="rice-feature-icon" style={{ "--fi-color": "#40a9ff" }}>
+                      <FileTextOutlined />
+                    </div>
+                    <div style={{ minWidth: 0, width: "100%" }}>
+                      <Text strong style={{ fontSize: 13, display: "block" }}>Fichiers sélectionnés</Text>
+                      {visibleFiles.map((f) => (
+                        <div key={f.uid ?? f.name} style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4 }}>
+                          <FileIcon name={f.name} />
+                          <Text style={{ color: "rgba(255,255,255,0.82)", fontSize: 12 }} ellipsis>
+                            {f.name}
+                          </Text>
+                        </div>
+                      ))}
+                      {hiddenCount > 0 && (
+                        <Text style={{ color: "rgba(255,255,255,0.65)", fontSize: 12, marginTop: 4, display: "block" }}>
+                          + {hiddenCount} autre{hiddenCount > 1 ? "s" : ""}
+                        </Text>
+                      )}
+                    </div>
+                  </motion.div>
+
+                  <motion.div
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.07 }}
+                    className="rice-feature-item"
+                  >
+                    <div className="rice-feature-icon" style={{ "--fi-color": deptCfg.color }}>
+                      <ApartmentOutlined />
+                    </div>
+                    <div>
+                      <Text strong style={{ fontSize: 13, display: "block" }}>Département</Text>
+                      <Tag color={deptCfg.tagColor} style={{ marginTop: 4 }}>{departement === "auto" ? "Auto" : deptCfg.nom}</Tag>
+                    </div>
+                  </motion.div>
+
+                  <motion.div
+                    initial={{ opacity: 0, x: 20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.14 }}
+                    className="rice-tip-box"
+                  >
+                    <span className="rice-tip-icon">⏱️</span>
+                    <Text style={{ fontSize: 12, color: "rgba(255,255,255,0.8)", lineHeight: 1.5 }}>
+                      ~{etaSeconds}s estimés
+                    </Text>
+                  </motion.div>
+
+                  <Tooltip title="Ctrl+Enter">
+                    <Button
+                      type="primary"
+                      icon={<ThunderboltOutlined />}
+                      onClick={handleAnalyze}
+                      disabled={files.length === 0}
+                      loading={analyzing}
+                      style={{
+                        margin: "8px 22px 20px",
+                        height: 42,
+                        borderRadius: 10,
+                        background: "#52c41a",
+                        borderColor: "#52c41a",
+                        fontWeight: 600,
+                      }}
+                      block
+                    >
+                      {analyzing ? "Analyse en cours…" : "Lancer"}
+                    </Button>
+                  </Tooltip>
+                </>
+              )}
             </div>
           </div>
         </Col>
       </Row>
+
+      <Drawer
+        title="Enseignants disponibles"
+        width={400}
+        placement="right"
+        open={showEnseignantsPreview}
+        onClose={() => setShowEnseignantsPreview(false)}
+      >
+        <Input.Search
+          placeholder="Rechercher..."
+          value={ensPreviewSearch}
+          onChange={(e) => setEnsPreviewSearch(e.target.value)}
+          allowClear
+          style={{ marginBottom: 12 }}
+        />
+        <Table
+          size="small"
+          rowKey={(r) => String(r.id ?? r.enseignantId)}
+          pagination={{ pageSize: 8, size: "small" }}
+          dataSource={filteredPreviewRows}
+          columns={[
+            { title: "Nom", dataIndex: "nom", width: 95 },
+            { title: "Prénom", dataIndex: "prenom", width: 95 },
+            {
+              title: "Département",
+              dataIndex: "departement",
+              width: 110,
+              render: (d) => (d ? String(d).toUpperCase() : "-"),
+            },
+            { title: "Grade", dataIndex: "grade", width: 90, render: (g) => g || "-" },
+            {
+              title: "Modules",
+              render: (_, row) => (row.modules ?? []).length,
+              width: 70,
+            },
+          ]}
+        />
+        <Text type="secondary" style={{ fontSize: 12 }}>
+          Ces enseignants seront automatiquement matchés avec les noms trouvés dans vos fiches modules.
+        </Text>
+      </Drawer>
     </div>
   );
 }
@@ -251,4 +468,10 @@ UploadStep.propTypes = {
   setCurrentStep: PropTypes.func.isRequired,
   departement: PropTypes.string,
   setDepartement: PropTypes.func,
+  allEnseignants: PropTypes.array,
+  enseignantsLoading: PropTypes.bool,
+  enseignantsError: PropTypes.string,
+  enseignantsLoadSlow: PropTypes.bool,
+  onRetryEnseignants: PropTypes.func,
+  onContinueWithoutEnseignants: PropTypes.func,
 };

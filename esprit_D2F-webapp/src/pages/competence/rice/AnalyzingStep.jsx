@@ -1,10 +1,11 @@
 // src/pages/competence/rice/AnalyzingStep.jsx
 // Step 1 – animated progress screen shown while the RICE AI analysis is running.
 
-import { Progress, Steps, Button } from "antd";
+import { Progress, Steps, Button, Space } from "antd";
 import { Typography } from "antd";
 import { CheckCircleOutlined, LoadingOutlined, RobotOutlined } from "@ant-design/icons";
 import PropTypes from "prop-types";
+import { useEffect, useState } from "react";
 
 const { Title, Paragraph } = Typography;
 
@@ -17,6 +18,20 @@ export default function AnalyzingStep({
   setCurrentStep,
   setAnalysisProgress,
 }) {
+  const [elapsedSec, setElapsedSec] = useState(0);
+
+  useEffect(() => {
+    const t = setInterval(() => setElapsedSec((v) => v + 1), 1000);
+    return () => clearInterval(t);
+  }, []);
+
+  const dynamicText =
+    analysisProgress < 30 ? "Lecture et extraction du texte en cours..."
+    : analysisProgress < 60 ? "Analyse NLP et taxonomie de Bloom..."
+    : analysisProgress < 80 ? "Construction de l'arbre de compétences..."
+    : analysisProgress < 95 ? "Matching avec le référentiel du département..."
+    : "Finalisation... presque prêt !";
+
   const handleCancel = () => {
     analyzeIsCanceledRef.current = true;
     if (progressTimerRef.current) clearInterval(progressTimerRef.current);
@@ -57,10 +72,22 @@ export default function AnalyzingStep({
         status={analysisProgress >= 100 ? "success" : "active"}
       />
 
+      <Paragraph type="secondary" style={{ marginBottom: 4 }}>{dynamicText}</Paragraph>
+      <Paragraph type="secondary" style={{ fontSize: 12, marginBottom: 20 }}>
+        Temps écoulé : {elapsedSec}s
+      </Paragraph>
+
       <div style={{ marginBottom: 24 }}>
-        <Button danger onClick={handleCancel}>
-          Annuler l&apos;analyse
-        </Button>
+        <Space>
+          <Button danger onClick={handleCancel}>
+            Annuler l&apos;analyse
+          </Button>
+          {analysisProgress >= 95 && (
+            <Button type="primary" style={{ background: "#52c41a", borderColor: "#52c41a" }} onClick={() => setCurrentStep(2)}>
+              ✓ Voir les résultats
+            </Button>
+          )}
+        </Space>
       </div>
 
       <div className="rice-loading-steps">

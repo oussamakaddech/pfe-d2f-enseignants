@@ -511,7 +511,13 @@ def _match_gc_savoir(text: str, departement: str = "gc") -> List[str]:
 
     matches = []
     for code, keywords in ref["savoirs"].items():
-        score = sum(1 for kw in keywords if kw in norm)
+        # Normalize each keyword (strip accents, lowercase) before comparing
+        # Weight each hit by the number of words in the keyword (longer = more specific)
+        score = sum(
+            len(kw.split())
+            for kw in keywords
+            if _normalize(kw) in norm
+        )
         if score > 0:
             matches.append((code, score))
     matches.sort(key=lambda x: x[1], reverse=True)
@@ -537,7 +543,12 @@ def _match_gc_competence(text: str, departement: str = "gc") -> Optional[str]:
     best_code = None
     best_score = 0
     for code, info in ref["competences"].items():
-        score = sum(1 for kw in info["keywords"] if kw in norm)
+        # Normalize keywords and weight by word-count (longer keywords are more specific)
+        score = sum(
+            len(kw.split())
+            for kw in info["keywords"]
+            if _normalize(kw) in norm
+        )
         if score > best_score:
             best_score = score
             best_code = code
@@ -707,7 +718,41 @@ def _match_gc_savoir_semantic(text: str, threshold: float = 0.35, top_k: int = 5
 
 
 def _detect_departement(filenames: List[str], contents: List[bytes]) -> str:
-    """Heuristically infer the ESPRIT department code from filenames and file text."""
+    """Heuristically infer the ESPRIT department code from filenames and file text.
+
+    Priority order:
+      1. Filename pattern matching (word-boundary sigils like ``GC``, ``_INFO_``)
+      2. UP / UE code extraction from combined text
+      3. Keyword scoring over combined text
+    """
+    # ── 1. Filename-first heuristics (REF-2) ─────────────────────────────
+    fname_upper = " ".join(filenames).upper()
+    # GC: explicit word-boundary \bGC\b or hyphenated/underscore variants
+    if re.search(r"\bGC\b|_GC_|[-_]GC[-_]|GENIE.?CIVIL", fname_upper):
+        logger.info("Auto-detected department from filename: 'gc'")
+        return "gc"
+    # INFO / GL / SIM / TWIN / PIDEV
+    if re.search(
+        r"\bINFO\b|_INFO_|[-_]INFO[-_]|INFORMATIQ|_GL_|[-_]GL[-_]"
+        r"|_SIM_|[-_]SIM[-_]|_TWIN_|PIDEV|DEVOPS|[-_]WEB[-_]|_WEB_",
+        fname_upper,
+    ):
+        logger.info("Auto-detected department from filename: 'info'")
+        return "info"
+    # GE / électrique
+    if re.search(r"\bGE\b|_GE_|[-_]GE[-_]|ELECTR", fname_upper):
+        logger.info("Auto-detected department from filename: 'ge'")
+        return "ge"
+    # MECA
+    if re.search(r"\bMECA\b|_MECA_|[-_]MECA[-_]|MECANIQUE", fname_upper):
+        logger.info("Auto-detected department from filename: 'meca'")
+        return "meca"
+    # TELECOM
+    if re.search(r"\bTELECOM\b|TELECOMMUN", fname_upper):
+        logger.info("Auto-detected department from filename: 'telecom'")
+        return "telecom"
+
+    # ── 2. Build combined text from filenames + first 4 KB of each file ──
     combined = " ".join(filenames).lower()
     for data in contents:
         try:
@@ -715,27 +760,41 @@ def _detect_departement(filenames: List[str], contents: List[bytes]) -> str:
         except Exception:
             pass
 
-    _DEPT_SIGNALS = [
-        ("gc",     ["genie civil", "beton", "fondation", "structure portante",
-                    "hydraulique", "topographie", "geotechnique", "ouvrage"]),
-        ("info",   ["informatique", "algorithmique", "programmation", "logiciel",
-                    "base de donnee", "reseau informatique", "developpement web",
-                    "test logiciel", "validation logiciel", "genie logiciel",
-                    "up-il", "up_il", "pidev", "devops", "architecture logiciel",
-                    "integration continue", "qualite logiciel", "framework",
-                    "java", "python", "javascript", "angular", "spring",
-                    "microservice", "api rest", "cloud", "intelligence artificielle",
-                    "machine learning", "deep learning", "big data",
-                    "infdev", "infsec", "infweb"]),
-        ("ge",     ["genie electrique", "electronique", "electrotechnique",
-                    "automatique", "energie electrique"]),
-        ("meca",   ["genie mecanique", "mecanique", "thermodynamique",
-                    "fabrication", "usinage"]),
-        ("telecom", ["telecom", "telecommunication", "signal numerique",
-                     "radiocommunication"]),
+    _DEPT_SIGNALS_WEIGHTED = [
+        (
+            "info",
+            [
+                ("web semantique", 5), ("semantic web", 5), ("ontologie", 4),
+                ("rdf", 4), ("owl", 3), ("sparql", 5), ("rdflib", 4),
+                ("owlready", 4), ("protege", 4), ("linked data", 4),
+                ("knowledge graph", 4), ("framework python", 3),
+                ("django", 3), ("flask", 3), ("fastapi", 3),
+                ("twin", 3), ("5twin", 3), ("up-web", 3), ("up-il", 3),
+                ("up-gl", 3), ("infdev", 3), ("infsec", 3), ("infweb", 3),
+                ("pidev", 3), ("base de donnees", 3), ("base de donnee", 3),
+                ("sql", 2), ("nosql", 2), ("mongodb", 2),
+                ("react", 2), ("angular", 2), ("vue", 2), ("spring", 2),
+                ("microservice", 3), ("algorithmique", 3), ("programmation", 2),
+                ("logiciel", 2), ("java", 3), ("python", 2),
+                ("javascript", 3), ("framework", 2), ("informatique", 3),
+                ("machine learning", 4), ("intelligence artificielle", 4),
+            ],
+        ),
+        (
+            "gc",
+            [
+                ("beton", 5), ("fondation", 4), ("geotechnique", 5),
+                ("structure portante", 5), ("hydraulique", 3),
+                ("ouvrage", 3), ("chaussee", 4), ("genie civil", 5),
+                ("topographie", 4),
+            ],
+        ),
+        ("ge", [("genie electrique", 5), ("electrotechnique", 4), ("automatique", 3), ("electronique", 4)]),
+        ("meca", [("genie mecanique", 5), ("thermodynamique", 4), ("usinage", 4), ("fabrication", 3)]),
+        ("telecom", [("telecom", 5), ("telecommunication", 5), ("signal numerique", 4), ("radiocommunication", 4)]),
     ]
 
-    # Also detect department from UP (Unité Pédagogique) or UE codes
+    # ── 3. UP / UE code extraction ─────────────────────────────────────────
     up_match = re.search(r'(?:unit[eé]\s+p[eé]dagogique|UP)\s*[:\-]?\s*(UP[\-_]?[A-Z]{2,6})', combined, re.IGNORECASE)
     if up_match:
         up_code = up_match.group(1).upper().replace('-', '').replace('_', '')
@@ -760,9 +819,40 @@ def _detect_departement(filenames: List[str], contents: List[bytes]) -> str:
         elif ue_code.startswith('GE'):
             logger.info(f"Auto-detected department from UE code '{ue_code}': 'ge'")
             return 'ge'
+
+    # ── 3b. Module code detection (Code: MT-34 / INFxx / GCxx...) ───────
+    meta_code_match = re.search(
+        r"(?:code(?:\s+module|\s+ue)?|module)\s*[:\-]?\s*([A-Z]{1,5}[\-_]?\d{1,4}[A-Z]?)",
+        combined,
+        re.IGNORECASE,
+    )
+    if meta_code_match:
+        meta_code = meta_code_match.group(1).upper().replace("_", "-")
+        if any(meta_code.startswith(p) for p in ["INF", "DEV", "WEB", "SIM", "TV"]):
+            logger.info("Auto-detected department from module code '%s': 'info'", meta_code)
+            return "info"
+        if any(meta_code.startswith(p) for p in ["GC", "BTP", "CIV"]):
+            logger.info("Auto-detected department from module code '%s': 'gc'", meta_code)
+            return "gc"
+        if any(meta_code.startswith(p) for p in ["GE", "ELC", "AUT"]):
+            logger.info("Auto-detected department from module code '%s': 'ge'", meta_code)
+            return "ge"
+        if any(meta_code.startswith(p) for p in ["ME", "MEC", "ROB"]):
+            logger.info("Auto-detected department from module code '%s': 'meca'", meta_code)
+            return "meca"
+        if any(meta_code.startswith(p) for p in ["TEL", "COM", "RES"]):
+            logger.info("Auto-detected department from module code '%s': 'telecom'", meta_code)
+            return "telecom"
+
+    # ── 4. Weighted keyword scoring ───────────────────────────────────────
     best_dept, best_score = "gc", 0
-    for dept_code, keywords in _DEPT_SIGNALS:
-        score = sum(1 for kw in keywords if kw in combined)
+    for dept_code, weighted_keywords in _DEPT_SIGNALS_WEIGHTED:
+        score = sum(weight for kw, weight in weighted_keywords if kw in combined)
+        # MT-* is ambiguous in isolation, but often INFO in web/software contexts.
+        if dept_code == "info" and "mt-" in combined and any(
+            kw in combined for kw in ["web", "sparql", "rdf", "owl", "ontologie", "informatique"]
+        ):
+            score += 3
         if score > best_score:
             best_score = score
             best_dept = dept_code

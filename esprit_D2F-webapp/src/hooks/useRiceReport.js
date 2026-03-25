@@ -20,6 +20,13 @@ export function useRiceReport({ tree, departement, msgApi, onImportSuccess }) {
       let total = 0;
       let covered = 0;
       for (const c of d.competences ?? []) {
+        for (const s of c.savoirs ?? []) {
+          total++;
+          const realIds = (s.enseignantsSuggeres ?? []).filter(
+            (id) => !String(id).startsWith("ext_") && !String(id).startsWith("manual_"),
+          );
+          if (realIds.length > 0) covered++;
+        }
         for (const sc of c.sousCompetences ?? []) {
           for (const s of sc.savoirs ?? []) {
             total++;
@@ -49,6 +56,16 @@ export function useRiceReport({ tree, departement, msgApi, onImportSuccess }) {
             nom: c.nom,
             description: c.description ?? null,
             ordre: c.ordre ?? 1,
+            savoirs: (c.savoirs ?? []).map((s) => ({
+              code: s.code,
+              nom: s.nom,
+              description: s.description ?? null,
+              type: s.type,
+              niveau: s.niveau,
+              enseignantIds: (s.enseignantsSuggeres ?? []).filter(
+                (id) => !String(id).startsWith("ext_") && !String(id).startsWith("manual_"),
+              ),
+            })),
             sousCompetences: (c.sousCompetences ?? []).map((sc) => ({
               code: sc.code,
               nom: sc.nom,

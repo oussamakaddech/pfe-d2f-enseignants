@@ -8,6 +8,7 @@ const competenceFeatureApi = {
   niveauDefinition: CompetenceService.niveauDefinition,
   structure: CompetenceService.structure,
   enseignantCompetence: CompetenceService.enseignantCompetence,
+  prerequisite: CompetenceService.prerequisite,
 };
 
 export default competenceFeatureApi;

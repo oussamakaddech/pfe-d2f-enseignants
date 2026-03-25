@@ -81,6 +81,61 @@ public class RiceImportServiceImpl implements IRiceImportService {
                         });
                 if (isNewComp[0]) competencesCreated++;
 
+                if (compReq.getSavoirs() != null) {
+                    for (RiceSavoirRequest savReq : compReq.getSavoirs()) {
+                        boolean[] isNewSav = {false};
+                        final Competence finalCompForSav = competence;
+                        Savoir savoir = savoirRepository.findByCode(savReq.getCode())
+                                .orElseGet(() -> {
+                                    isNewSav[0] = true;
+                                    return savoirRepository.save(Savoir.builder()
+                                            .code(savReq.getCode())
+                                            .nom(savReq.getNom())
+                                            .description(savReq.getDescription())
+                                            .type(parseTypeSavoir(savReq.getType()))
+                                            .niveau(parseNiveau(savReq.getNiveau()))
+                                            .competence(finalCompForSav)
+                                            .sousCompetence(null)
+                                            .build());
+                                });
+                        if (isNewSav[0]) savoirsCreated++;
+
+                        savoirStats[1]++;
+
+                        List<String> ensIds = savReq.getEnseignantIds();
+                        if (ensIds != null && !ensIds.isEmpty()) {
+                            final Savoir finalSavoir = savoir;
+                            final NiveauMaitrise niveau = parseNiveau(savReq.getNiveau());
+                            int linksCreated = 0;
+                            for (String ensId : ensIds) {
+                                if (ensId == null || ensId.isBlank()
+                                        || ensId.startsWith("ext_")
+                                        || ensId.startsWith("manual_")) {
+                                    continue;
+                                }
+                                try {
+                                    if (!enseignantCompetenceRepository
+                                            .existsByEnseignantIdAndSavoirId(ensId, finalSavoir.getId())) {
+                                        enseignantCompetenceRepository.save(
+                                                EnseignantCompetence.builder()
+                                                        .enseignantId(ensId)
+                                                        .savoir(finalSavoir)
+                                                        .niveau(niveau)
+                                                        .dateAcquisition(LocalDate.now())
+                                                        .build());
+                                        linksCreated++;
+                                        affectationsCreated++;
+                                    }
+                                    enseignantsCoveredSet.add(ensId);
+                                } catch (Exception e) {
+                                    log.warn("Link {}->{} skipped: {}", ensId, savReq.getCode(), e.getMessage());
+                                }
+                            }
+                            if (linksCreated > 0) savoirStats[0]++;
+                        }
+                    }
+                }
+
                 if (compReq.getSousCompetences() == null) continue;
 
                 for (RiceSousCompetenceRequest scReq : compReq.getSousCompetences()) {

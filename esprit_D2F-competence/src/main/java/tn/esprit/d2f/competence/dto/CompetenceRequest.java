@@ -22,6 +22,9 @@ public class CompetenceRequest {
     @Size(max = 500, message = "La description ne doit pas dépasser 500 caractères")
     private String description;
 
+    @Size(max = 2000, message = "Les prérequis manuels ne doivent pas dépasser 2000 caractères")
+    private String prerequisiteManual;
+
     @Positive(message = "L'ordre doit être un entier positif")
     private Integer ordre;
 }

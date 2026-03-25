@@ -1,9 +1,17 @@
-import { useCallback, useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
+  Button,
   Form,
+  Input,
   Modal,
+  Popconfirm,
+  Select,
+  Space,
+  Table,
   Tabs,
+  Tag,
   Typography,
+  message,
 } from "antd";
 import { ApartmentOutlined } from "@ant-design/icons";
 import * as XLSX from "xlsx";
@@ -15,12 +23,30 @@ import useCompetenceCrud from "./hooks/useCompetenceCrud";
 import useCompetencePageState from "./hooks/useCompetencePageState";
 import useStructureData from "./hooks/useStructureData";
 import {
-  buildD3TreeData,
   buildExportFileName,
   buildMatrixRows,
 } from "./utils/consultationUtils";
 
 const { Title } = Typography;
+
+const NIVEAU_OPTIONS = [
+  { value: "N1_DEBUTANT", label: "N1 - Debutant", color: "default" },
+  { value: "N2_ELEMENTAIRE", label: "N2 - Elementaire", color: "blue" },
+  { value: "N3_INTERMEDIAIRE", label: "N3 - Intermediaire", color: "cyan" },
+  { value: "N4_AVANCE", label: "N4 - Avance", color: "green" },
+  { value: "N5_EXPERT", label: "N5 - Expert", color: "gold" },
+];
+
+const niveauMeta = (niveau) =>
+  NIVEAU_OPTIONS.find((n) => n.value === niveau) ?? { label: niveau ?? "-", color: "default" };
+
+const extractLegacyPrerequisiteManual = (description) => {
+  const marker = "Prerequis (manuel):";
+  const raw = description || "";
+  const idx = raw.indexOf(marker);
+  if (idx === -1) return "";
+  return raw.slice(idx + marker.length).trim();
+};
 
 export default function CompetencePage() {
   const [domaineForm] = Form.useForm();
@@ -28,6 +54,12 @@ export default function CompetencePage() {
   const [scForm] = Form.useForm();
   const [savoirForm] = Form.useForm();
   const [addNiveauForm] = Form.useForm();
+  const [addPrerequisiteForm] = Form.useForm();
+
+  const [prerequisiteModal, setPrerequisiteModal] = useState(false);
+  const [prerequisiteTarget, setPrerequisiteTarget] = useState(null);
+  const [prerequisites, setPrerequisites] = useState([]);
+  const [prerequisiteLoading, setPrerequisiteLoading] = useState(false);
 
   const structure = useStructureData();
   const loadStructure = structure.loadStructure;
@@ -36,95 +68,19 @@ export default function CompetencePage() {
     onSavoirMutated: structure.refreshMatrixIfNeeded,
     onSavoirsChanged: structure.setAllSavoirsHierarchie,
   });
+  const prerequisiteApi = crud.prerequisite;
+  const loadCompetences = crud.loadCompetences;
   const {
     activeTab,
     handleTabChange,
-    viewMode,
-    setViewMode,
-    consultNiveau,
-    setConsultNiveau,
-    consultDomaine,
-    setConsultDomaine,
-    consultCompetence,
-    setConsultCompetence,
-    consultScStack,
-    setConsultScStack,
-    drawerSavoirs,
-    setDrawerSavoirs,
-    drawerVisible,
-    setDrawerVisible,
-    graphContainerRef,
-    graphContainerWidth,
-    buildCardTrigger,
   } = useCompetencePageState({ crud, loadStructure });
 
-  const countSousCompForCompetence = (competenceId) =>
-    crud.sousComps.filter(
-      (sc) => String(sc.competenceId) === String(competenceId),
-    ).length;
-
-  const countSavoirsForSc = (scId) =>
-    crud.savoirs.filter((s) => String(s.sousCompetenceId) === String(scId))
-      .length;
-
-  const getScChildren = useCallback(
-    (competenceId, parentId = null) =>
-      crud.sousComps.filter(
-        (sc) =>
-          String(sc.competenceId) === String(competenceId) &&
-          (parentId === null
-            ? sc.parentId == null
-            : String(sc.parentId) === String(parentId)),
-      ),
-    [crud.sousComps],
-  );
-
-  const levelColorMap = {
-    1: "#fa8c16",
-    2: "#722ed1",
-    3: "#13c2c2",
-    4: "#f5222d",
-    5: "#eb2f96",
-  };
-
-  const getScButtonColor = (sc) => {
-    const level = Number(sc?.niveau ?? 1);
-    return levelColorMap[level] || "#1890ff";
-  };
-
-  const buttonGridStyle = {
-    display: "flex",
-    flexWrap: "wrap",
-    gap: 12,
-  };
-
-  const tileButtonStyle = {
-    minWidth: 200,
-    minHeight: 64,
-    borderRadius: 12,
-    fontWeight: 700,
-    margin: 8,
-  };
-
-  const currentConsultScList = useMemo(() => {
-    if (!consultCompetence) return [];
-    if (consultScStack.length === 0) {
-      return getScChildren(consultCompetence.id, null);
-    }
-    const currentParent = consultScStack[consultScStack.length - 1];
-    return getScChildren(consultCompetence.id, currentParent.id);
-  }, [consultCompetence, consultScStack, getScChildren]);
-
-  const d3TreeData = useMemo(
-    () =>
-      buildD3TreeData(
-        crud.domaines,
-        crud.competences,
-        crud.sousComps,
-        crud.savoirs,
-      ),
-    [crud.domaines, crud.competences, crud.sousComps, crud.savoirs],
-  );
+  const consultationCrud = useMemo(() => ({
+    domaines: crud.domaines || [],
+    competences: crud.competences || [],
+    sousComps: crud.sousComps || [],
+    savoirs: crud.savoirs || [],
+  }), [crud.domaines, crud.competences, crud.sousComps, crud.savoirs]);
 
   const handleExportExcel = () => {
     if (!structure.matrixCompId || !structure.matrixData) {
@@ -160,6 +116,179 @@ export default function CompetencePage() {
     XLSX.writeFile(workbook, buildExportFileName(competence?.code));
   };
 
+  const loadPrerequisites = useCallback(async (competenceId) => {
+    setPrerequisiteLoading(true);
+    try {
+      const data = await prerequisiteApi.getByCompetence(competenceId);
+      setPrerequisites(Array.isArray(data) ? data : []);
+    } catch (err) {
+      message.error(err?.response?.data?.message || "Erreur lors du chargement des prerequis");
+      setPrerequisites([]);
+    } finally {
+      setPrerequisiteLoading(false);
+    }
+  }, [prerequisiteApi]);
+
+  const handleAddPrerequisite = useCallback(async () => {
+    if (!prerequisiteTarget?.id) return;
+    try {
+      const values = await addPrerequisiteForm.validateFields();
+      
+      // Validation supplémentaire pour éviter l'envoi de null
+      if (!values.prerequisiteId || values.prerequisiteId === "") {
+        message.error("Veuillez sélectionner une compétence prérequise valide");
+        return;
+      }
+      
+      // S'assurer que l'ID est bien un nombre
+      const prerequisiteId = typeof values.prerequisiteId === 'string' 
+        ? parseInt(values.prerequisiteId, 10) 
+        : values.prerequisiteId;
+      
+      if (isNaN(prerequisiteId)) {
+        message.error("ID de compétence prérequise invalide");
+        return;
+      }
+      
+      // Préparer les données avec l'ID validé
+      const payload = {
+        ...values,
+        prerequisiteId: prerequisiteId,
+        niveauMinimum: values.niveauMinimum,
+        description: values.description || null
+      };
+      
+      await prerequisiteApi.add(prerequisiteTarget.id, payload);
+      message.success("Prerequis ajoute");
+      addPrerequisiteForm.resetFields();
+      await Promise.all([
+        loadPrerequisites(prerequisiteTarget.id),
+        loadCompetences(),
+      ]);
+    } catch (err) {
+      if (err?.errorFields) return;
+      message.error(err?.response?.data?.message || "Erreur lors de l'ajout du prerequis");
+    }
+  }, [addPrerequisiteForm, prerequisiteTarget, prerequisiteApi, loadPrerequisites, loadCompetences]);
+
+  const handleUpdatePrerequisiteNiveau = useCallback(async (id, niveauMinimum) => {
+    if (!prerequisiteTarget?.id) return;
+    try {
+      await prerequisiteApi.updateNiveau(prerequisiteTarget.id, id, niveauMinimum);
+      message.success("Niveau minimum mis a jour");
+      await loadPrerequisites(prerequisiteTarget.id);
+    } catch (err) {
+      message.error(err?.response?.data?.message || "Erreur lors de la mise a jour du niveau");
+    }
+  }, [prerequisiteApi, loadPrerequisites, prerequisiteTarget]);
+
+  const handleRemovePrerequisite = useCallback(async (id) => {
+    if (!prerequisiteTarget?.id) return;
+    try {
+      await prerequisiteApi.remove(prerequisiteTarget.id, id);
+      message.success("Prerequis supprime");
+      await Promise.all([
+        loadPrerequisites(prerequisiteTarget.id),
+        loadCompetences(),
+      ]);
+    } catch (err) {
+      message.error(err?.response?.data?.message || "Erreur lors de la suppression du prerequis");
+    }
+  }, [prerequisiteApi, loadPrerequisites, prerequisiteTarget, loadCompetences]);
+
+  const prerequisiteColumns = useMemo(() => [
+    {
+      title: "Competence prerequise",
+      key: "prerequisite",
+      render: (_, record) => (
+        <Space direction="vertical" size={0}>
+          <span>{record.prerequisiteNom}</span>
+          <Tag color="geekblue">{record.prerequisiteCode}</Tag>
+        </Space>
+      ),
+    },
+    {
+      title: "Niveau minimum",
+      dataIndex: "niveauMinimum",
+      key: "niveauMinimum",
+      width: 170,
+      render: (value) => {
+        const meta = niveauMeta(value);
+        return <Tag color={meta.color}>{meta.label}</Tag>;
+      },
+    },
+    {
+      title: "Description",
+      dataIndex: "description",
+      key: "description",
+      ellipsis: true,
+      render: (value) => value || "-",
+    },
+    {
+      title: "Actions",
+      key: "actions",
+      width: 280,
+      render: (_, record) => (
+        <Space>
+          <Select
+            size="small"
+            value={record.niveauMinimum}
+            style={{ width: 170 }}
+            options={NIVEAU_OPTIONS}
+            onChange={(niveauMinimum) =>
+              handleUpdatePrerequisiteNiveau(record.id, niveauMinimum)
+            }
+          />
+          <Popconfirm
+            title="Supprimer ce prerequis ?"
+            okText="Supprimer"
+            cancelText="Annuler"
+            onConfirm={() => handleRemovePrerequisite(record.id)}
+          >
+            <Button size="small" danger>Supprimer</Button>
+          </Popconfirm>
+        </Space>
+      ),
+    },
+  ], [handleRemovePrerequisite, handleUpdatePrerequisiteNiveau]);
+
+  const compColumnsWithPrerequisite = useMemo(() => [
+    ...crud.compColumns,
+    {
+      title: "Prerequis",
+      key: "prerequisite",
+      width: 260,
+      render: (_, record) => {
+        const names = record.prerequisiteNames ?? [];
+        const manual = (record.prerequisiteManual || "").trim() || extractLegacyPrerequisiteManual(record.description);
+
+        if (!names.length && !manual) return "-";
+        return (
+          <Space size={4} wrap>
+            {names.map((name) => (
+              <Tag key={`${record.id}-${name}`} color="orange">
+                {name}
+              </Tag>
+            ))}
+            {!names.length && !!manual && (
+              <Tag color="orange">{manual}</Tag>
+            )}
+          </Space>
+        );
+      },
+    },
+  ], [crud.compColumns]);
+
+  const prerequisiteCompetenceOptions = useMemo(() => (
+    crud.competences
+      .filter((c) => String(c.id) !== String(prerequisiteTarget?.id))
+      .map((c) => ({
+        value: c.id,
+        label: `${c.nom} (${c.code})`,
+        searchText: `${c.nom || ""} ${c.code || ""}`.toLowerCase(),
+      }))
+  ), [crud.competences, prerequisiteTarget]);
+
   /* ════════════════════════════════════════════════════════════════════════
      DÉFINITION DES ONGLETS
   ════════════════════════════════════════════════════════════════════════ */
@@ -188,7 +317,7 @@ export default function CompetencePage() {
       label: "Compétences",
       children: (
         <CrudTab
-          columns={crud.compColumns}
+          columns={compColumnsWithPrerequisite}
           data={crud.competences}
           loading={crud.compLoading}
           onAdd={() => crud.openCompModal(compForm)}
@@ -271,33 +400,8 @@ export default function CompetencePage() {
       children: (
         <ConsultationTab
           structure={structure}
-          crud={crud}
-          buildCardTrigger={buildCardTrigger}
-          viewMode={viewMode}
-          setViewMode={setViewMode}
+          crud={consultationCrud}
           handleExportExcel={handleExportExcel}
-          consultNiveau={consultNiveau}
-          setConsultNiveau={setConsultNiveau}
-          consultDomaine={consultDomaine}
-          setConsultDomaine={setConsultDomaine}
-          consultCompetence={consultCompetence}
-          setConsultCompetence={setConsultCompetence}
-          consultScStack={consultScStack}
-          setConsultScStack={setConsultScStack}
-          currentConsultScList={currentConsultScList}
-          getScChildren={getScChildren}
-          getScButtonColor={getScButtonColor}
-          countSousCompForCompetence={countSousCompForCompetence}
-          countSavoirsForSc={countSavoirsForSc}
-          buttonGridStyle={buttonGridStyle}
-          tileButtonStyle={tileButtonStyle}
-          drawerSavoirs={drawerSavoirs}
-          setDrawerSavoirs={setDrawerSavoirs}
-          drawerVisible={drawerVisible}
-          setDrawerVisible={setDrawerVisible}
-          graphContainerRef={graphContainerRef}
-          graphContainerWidth={graphContainerWidth}
-          d3TreeData={d3TreeData}
         />
       ),
     },
@@ -328,6 +432,73 @@ export default function CompetencePage() {
           savoirForm={savoirForm}
           addNiveauForm={addNiveauForm}
         />
+
+        <Modal
+          title={`Prerequis - ${prerequisiteTarget?.nom || ""}`}
+          open={prerequisiteModal}
+          width={700}
+          destroyOnClose
+          onCancel={() => {
+            setPrerequisiteModal(false);
+            setPrerequisiteTarget(null);
+            setPrerequisites([]);
+            addPrerequisiteForm.resetFields();
+          }}
+          footer={null}
+        >
+          <Table
+            rowKey="id"
+            size="small"
+            loading={prerequisiteLoading}
+            columns={prerequisiteColumns}
+            dataSource={prerequisites}
+            pagination={false}
+            locale={{ emptyText: "Aucun prerequis pour cette competence" }}
+            style={{ marginBottom: 16 }}
+          />
+
+          <Form
+            form={addPrerequisiteForm}
+            layout="inline"
+            onFinish={handleAddPrerequisite}
+          >
+            <Form.Item
+              name="prerequisiteId"
+              rules={[{ required: true, message: "Selectionnez une competence" }]}
+            >
+              <Select
+                style={{ width: 250 }}
+                placeholder="Competence prerequise"
+                showSearch
+                options={prerequisiteCompetenceOptions}
+                filterOption={(input, option) =>
+                  option?.searchText?.includes(input.toLowerCase()) ?? false
+                }
+              />
+            </Form.Item>
+
+            <Form.Item
+              name="niveauMinimum"
+              rules={[{ required: true, message: "Selectionnez un niveau" }]}
+            >
+              <Select
+                style={{ width: 180 }}
+                placeholder="Niveau minimum"
+                options={NIVEAU_OPTIONS}
+              />
+            </Form.Item>
+
+            <Form.Item name="description">
+              <Input style={{ width: 180 }} placeholder="Description (optionnel)" />
+            </Form.Item>
+
+            <Form.Item>
+              <Button type="primary" htmlType="submit" loading={prerequisiteLoading}>
+                Ajouter
+              </Button>
+            </Form.Item>
+          </Form>
+        </Modal>
       </div>
     </>
   );

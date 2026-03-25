@@ -22,5 +22,8 @@ public class RiceCompetenceRequest {
     private Integer ordre;
 
     @Valid
+    private List<RiceSavoirRequest> savoirs;
+
+    @Valid
     private List<RiceSousCompetenceRequest> sousCompetences;
 }

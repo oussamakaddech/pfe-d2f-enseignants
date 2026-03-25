@@ -16,7 +16,7 @@ import java.util.List;
 @Getter
 @Setter
 @EqualsAndHashCode(of = "id", callSuper = false)
-@ToString(exclude = {"domaine", "sousCompetences", "savoirs"})
+@ToString(exclude = {"domaine", "sousCompetences", "savoirs", "prerequisite"})
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -33,6 +33,9 @@ public class Competence extends BaseAuditEntity {
     private String nom;
 
     private String description;
+
+    @Column(name = "prerequisite_manual", columnDefinition = "TEXT")
+    private String prerequisiteManual;
 
     private Integer ordre;
 
@@ -51,4 +54,8 @@ public class Competence extends BaseAuditEntity {
     @JsonManagedReference("competence-savoir")
     @Builder.Default
     private List<Savoir> savoirs = new ArrayList<>();
+
+    @OneToMany(mappedBy = "competence", cascade = CascadeType.ALL, orphanRemoval = true)
+    @Builder.Default
+    private List<CompetencePrerequisite> prerequisite = new ArrayList<>();
 }

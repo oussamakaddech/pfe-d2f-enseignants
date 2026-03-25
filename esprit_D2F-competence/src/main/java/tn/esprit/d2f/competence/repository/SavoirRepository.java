@@ -17,6 +17,7 @@ public interface SavoirRepository extends JpaRepository<Savoir, Long> {
     Optional<Savoir> findByCode(String code);
     List<Savoir> findBySousCompetenceId(Long sousCompetenceId);
     List<Savoir> findByCompetenceId(Long competenceId);
+    boolean existsByCompetenceId(Long competenceId);
     List<Savoir> findByType(TypeSavoir type);
     boolean existsByCode(String code);
 

@@ -17,10 +17,13 @@ public class CompetenceDTO {
     private String code;
     private String nom;
     private String description;
+    private String prerequisiteManual;
     private Integer ordre;
     private Long domaineId;
     private String domaineNom;
     private Long nbEnseignants;
+    private Long prerequisiteCount;
+    private List<String> prerequisiteNames;
     private List<SousCompetenceDTO> sousCompetences;
     private List<SavoirDTO> savoirs;
 }

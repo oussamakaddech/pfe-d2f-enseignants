@@ -167,14 +167,33 @@ async def export_csv(
     ])
 
     for domaine in result.propositions:
+        domaine_code = domaine.code or ""
+        domaine_nom = domaine.nom or ""
         for comp in domaine.competences:
+            comp_code = comp.code or ""
+            comp_nom = comp.nom or ""
+            for sav in (comp.savoirs or []):
+                writer.writerow([
+                    domaine_code,
+                    domaine_nom,
+                    comp_code,
+                    comp_nom,
+                    "",
+                    "",
+                    sav.code,
+                    sav.nom,
+                    sav.type,
+                    sav.niveau,
+                    "; ".join(sav.enseignantsSuggeres),
+                    "; ".join(sav.refCodes),
+                ])
             for sc in comp.sousCompetences:
                 for sav in sc.savoirs:
                     writer.writerow([
-                        domaine.code,
-                        domaine.nom,
-                        comp.code,
-                        comp.nom,
+                        domaine_code,
+                        domaine_nom,
+                        comp_code,
+                        comp_nom,
                         sc.code,
                         sc.nom,
                         sav.code,
@@ -336,6 +355,68 @@ async def rice_validate(request: ValidateRequest, _user: Optional[Dict] = Depend
                     errors.append(f"competence {competence.code}: {comp_err}")
                     continue
 
+                for savoir in (competence.savoirs or []):
+                    sav_id = savoir.tmpId
+                    try:
+                        cur.execute("""
+                            INSERT INTO savoirs
+                                (id, code, nom, description, type, niveau,
+                                 sous_competence_id, competence_id)
+                            VALUES (
+                                %s, %s, %s, %s, %s, %s,
+                                NULL,
+                                (SELECT id FROM competences WHERE code = %s)
+                            )
+                            ON CONFLICT (id) DO UPDATE SET
+                                code               = EXCLUDED.code,
+                                nom                = EXCLUDED.nom,
+                                description        = EXCLUDED.description,
+                                type               = EXCLUDED.type,
+                                niveau             = EXCLUDED.niveau,
+                                sous_competence_id = NULL,
+                                competence_id      = EXCLUDED.competence_id
+                            RETURNING (xmax = 0) AS inserted
+                        """, (
+                            sav_id,
+                            savoir.code[:50],
+                            savoir.nom[:255],
+                            (savoir.description or "")[:500],
+                            savoir.type,
+                            savoir.niveau,
+                            competence.code[:50],
+                        ))
+                        row = cur.fetchone()
+                        if row and row[0]:
+                            inserted_savoirs += 1
+                        else:
+                            updated_savoirs += 1
+                    except Exception as sav_err:
+                        conn.rollback()
+                        errors.append(f"savoir {savoir.code}: {sav_err}")
+                        continue
+
+                    if request.overwrite:
+                        try:
+                            cur.execute(
+                                "DELETE FROM enseignant_competences WHERE savoir_id = %s",
+                                (sav_id,),
+                            )
+                        except Exception:
+                            conn.rollback()
+
+                    for ens_id in savoir.enseignantsSuggeres:
+                        try:
+                            cur.execute("""
+                                INSERT INTO enseignant_competences
+                                    (enseignant_id, savoir_id, niveau, date_acquisition)
+                                VALUES (%s, %s, %s, CURRENT_DATE)
+                                ON CONFLICT DO NOTHING
+                            """, (ens_id, sav_id, savoir.niveau))
+                            inserted_links += 1
+                        except Exception as link_err:
+                            conn.rollback()
+                            errors.append(f"link {ens_id}->{savoir.code}: {link_err}")
+
                 for sc in competence.sousCompetences:
                     # ── Upsert sous_competence ────────────────────────────
                     try:
@@ -368,11 +449,12 @@ async def rice_validate(request: ValidateRequest, _user: Optional[Dict] = Depend
                         try:
                             cur.execute("""
                                 INSERT INTO savoirs
-                                    (id, code, nom, description, type, niveau,
-                                     sous_competence_id)
+                                        (id, code, nom, description, type, niveau,
+                                         sous_competence_id, competence_id)
                                 VALUES (
                                     %s, %s, %s, %s, %s, %s,
-                                    (SELECT id FROM sous_competences WHERE code = %s)
+                                        (SELECT id FROM sous_competences WHERE code = %s),
+                                        NULL
                                 )
                                 ON CONFLICT (id) DO UPDATE SET
                                     code               = EXCLUDED.code,
@@ -380,7 +462,8 @@ async def rice_validate(request: ValidateRequest, _user: Optional[Dict] = Depend
                                     description        = EXCLUDED.description,
                                     type               = EXCLUDED.type,
                                     niveau             = EXCLUDED.niveau,
-                                    sous_competence_id = EXCLUDED.sous_competence_id
+                                        sous_competence_id = EXCLUDED.sous_competence_id,
+                                        competence_id      = NULL
                                 RETURNING (xmax = 0) AS inserted
                             """, (
                                 sav_id,

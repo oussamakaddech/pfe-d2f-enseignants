@@ -567,3 +567,61 @@ AA2 Dimensionner profile I en acier 4
         )
         assert result is not None
         assert len(result.propositions) > 0
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Regressions – direct savoir links + referential niveau variants
+# ═══════════════════════════════════════════════════════════════════════════════
+
+class TestReferentialNiveauxAndDirectLinks:
+    def test_get_niveau_from_referentiel_uses_min_strict_variants(self, monkeypatch):
+        from rice.analyzer import _get_niveau_from_referentiel
+
+        monkeypatch.setattr(
+            "rice.referential._get_effective_referential",
+            lambda _dept: {
+                "niveaux": {
+                    "S6a": "N4_AVANCE",
+                    "S6b": "N3_INTERMEDIAIRE",
+                    "S6c": "N5_EXPERT",
+                    "P1a": "N5_EXPERT",
+                    "P1b": "N3_INTERMEDIAIRE",
+                    "P1c": "N4_AVANCE",
+                    "P10a": "N5_EXPERT",
+                }
+            },
+        )
+
+        assert _get_niveau_from_referentiel("S6", "gc", "") == "N3_INTERMEDIAIRE"
+        assert _get_niveau_from_referentiel("P1", "gc", "") == "N3_INTERMEDIAIRE"
+
+    def test_referential_direct_savoirs_have_parent_codes(self, monkeypatch):
+        monkeypatch.setattr("rice.referential._fetch_enseignant_affectations", lambda: {})
+        monkeypatch.setattr("rice.analyzer._fetch_all_enseignants_info", lambda: {})
+        monkeypatch.setattr(
+            "rice.db._create_enseignant_if_new",
+            lambda name, dept="gc": (f"EX-{name[:5].upper()}", name),
+        )
+
+        content = b"""
+Competences dans le domaine de sols (S)
+S1 - Effectuer une etude de sol
+S2 - Realiser un essai de compactage
+S3 - Interpreter un rapport geotechnique
+"""
+
+        result = analyze_files(
+            ["referentiel_gc.txt"],
+            [content],
+            enseignants=[],
+            departement="gc",
+        )
+
+        assert result.propositions
+        domaine = result.propositions[0]
+        assert domaine.competences
+        comp = domaine.competences[0]
+        assert comp.savoirs
+        for sav in comp.savoirs:
+            assert sav.competence_code == comp.code
+            assert sav.domaine_code == domaine.code

@@ -13,15 +13,16 @@ import tn.esprit.d2f.competence.dto.CompetenceDTO;
 import tn.esprit.d2f.competence.dto.CompetenceRequest;
 import tn.esprit.d2f.competence.entity.Competence;
 import tn.esprit.d2f.competence.entity.Domaine;
+import tn.esprit.d2f.competence.exception.BusinessException;
 import tn.esprit.d2f.competence.repository.CompetenceRepository;
+import tn.esprit.d2f.competence.repository.CompetencePrerequisiteRepository;
 import tn.esprit.d2f.competence.repository.DomaineRepository;
 import tn.esprit.d2f.competence.repository.EnseignantCompetenceRepository;
-import tn.esprit.d2f.competence.repository.NiveauSavoirRequisRepository;
 import tn.esprit.d2f.competence.repository.SavoirRepository;
+import tn.esprit.d2f.competence.repository.SousCompetenceRepository;
 
 import java.util.List;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 @Slf4j
 @Service
@@ -30,16 +31,22 @@ public class CompetenceServiceImpl implements ICompetenceService {
 
     private final CompetenceRepository competenceRepository;
     private final DomaineRepository domaineRepository;
+    private final CompetencePrerequisiteRepository prerequisiteRepository;
     private final EnseignantCompetenceRepository enseignantCompetenceRepository;
-    private final NiveauSavoirRequisRepository niveauRepo;
     private final SavoirRepository savoirRepository;
+    private final SousCompetenceRepository sousCompetenceRepository;
     private final CompetenceMapper competenceMapper;
 
     @Override
     @Transactional(readOnly = true)
     public Page<CompetenceDTO> getAllCompetences(Pageable pageable) {
         return competenceRepository.findAllWithDomaine(pageable)
-                .map(competenceMapper::toDTO);
+                .map(c -> {
+                    CompetenceDTO dto = competenceMapper.toDTO(c);
+                    dto.setPrerequisiteCount(prerequisiteRepository.countByCompetenceId(c.getId()));
+                    dto.setPrerequisiteNames(prerequisiteRepository.findPrerequisiteNamesByCompetenceId(c.getId()));
+                    return dto;
+                });
     }
 
     @Override
@@ -47,7 +54,12 @@ public class CompetenceServiceImpl implements ICompetenceService {
     @Cacheable(value = "competences-by-domaine", key = "#domaineId")
     public List<CompetenceDTO> getCompetencesByDomaine(Long domaineId) {
         return competenceRepository.findByDomaineIdWithDomaine(domaineId).stream()
-                .map(competenceMapper::toDTO)
+                .map(c -> {
+                    CompetenceDTO dto = competenceMapper.toDTO(c);
+                    dto.setPrerequisiteCount(prerequisiteRepository.countByCompetenceId(c.getId()));
+                    dto.setPrerequisiteNames(prerequisiteRepository.findPrerequisiteNamesByCompetenceId(c.getId()));
+                    return dto;
+                })
                 .collect(Collectors.toList());
     }
 
@@ -58,6 +70,8 @@ public class CompetenceServiceImpl implements ICompetenceService {
                 .orElseThrow(() -> new EntityNotFoundException("Compétence non trouvée avec l'id: " + id));
         CompetenceDTO dto = competenceMapper.toDTO(c);
         dto.setNbEnseignants(enseignantCompetenceRepository.countDistinctEnseignantsByCompetenceId(id));
+        dto.setPrerequisiteCount(prerequisiteRepository.countByCompetenceId(id));
+        dto.setPrerequisiteNames(prerequisiteRepository.findPrerequisiteNamesByCompetenceId(id));
         return dto;
     }
 
@@ -74,6 +88,7 @@ public class CompetenceServiceImpl implements ICompetenceService {
                 .code(request.getCode())
                 .nom(request.getNom())
                 .description(request.getDescription())
+            .prerequisiteManual(request.getPrerequisiteManual())
                 .ordre(request.getOrdre() != null ? request.getOrdre() : 1)
                 .domaine(domaine)
                 .build();
@@ -91,6 +106,7 @@ public class CompetenceServiceImpl implements ICompetenceService {
         existing.setCode(request.getCode());
         existing.setNom(request.getNom());
         existing.setDescription(request.getDescription());
+        existing.setPrerequisiteManual(request.getPrerequisiteManual());
         if (request.getOrdre() != null) {
             existing.setOrdre(request.getOrdre());
         }
@@ -118,25 +134,20 @@ public class CompetenceServiceImpl implements ICompetenceService {
     @Transactional
     @CacheEvict(value = "competences-by-domaine", allEntries = true)
     public void deleteCompetence(Long id) {
-        if (!competenceRepository.existsById(id)) {
-            throw new EntityNotFoundException("Compétence non trouvée avec l'id: " + id);
+        Competence competence = competenceRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Compétence non trouvée avec l'id: " + id));
+
+        boolean hasSousCompetences = !sousCompetenceRepository.findByCompetenceId(id).isEmpty();
+        boolean hasDirectSavoirs = savoirRepository.existsByCompetenceId(id);
+
+        if (hasSousCompetences || hasDirectSavoirs) {
+            throw new BusinessException(
+                    "Suppression refusée: cette compétence contient des sous-compétences ou des savoirs. " +
+                    "Supprimez d'abord ces éléments. Seules les lignes de prérequis liées seront supprimées automatiquement."
+            );
         }
-        // 1. Supprimer les niveau_savoir_requis directement liés à cette compétence
-        niveauRepo.deleteByCompetenceId(id);
-        // 2. Supprimer les niveau_savoir_requis liés aux sous-compétences de cette compétence
-        niveauRepo.deleteBySousCompetence_CompetenceId(id);
-        // 2. Supprimer les niveau_savoir_requis liés aux savoirs de cette compétence
-        // Savoirs via sous-compétences + savoirs directement rattachés à la compétence
-        List<Long> savoirIdsViaSousComp = enseignantCompetenceRepository.findSavoirIdsByCompetenceId(id);
-        List<Long> savoirIdsDirect = savoirRepository.findIdsByCompetenceId(id);
-        List<Long> allSavoirIds = Stream.concat(savoirIdsViaSousComp.stream(), savoirIdsDirect.stream())
-                .distinct()
-                .collect(Collectors.toList());
-        if (!allSavoirIds.isEmpty()) {
-            niveauRepo.deleteBySavoirIdIn(allSavoirIds);
-            enseignantCompetenceRepository.deleteBySavoirIdIn(allSavoirIds);
-        }
-        competenceRepository.deleteById(id);
+
+        competenceRepository.delete(competence);
         log.info("Compétence supprimée: {}", id);
     }
 }
