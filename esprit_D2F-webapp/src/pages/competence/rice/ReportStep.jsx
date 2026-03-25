@@ -5,13 +5,13 @@
 
 import {
   Alert, Badge, Button, Card, Col, Collapse, Empty, Progress,
-  Row, Space, Spin, Statistic, Table, Tag, Typography,
+  Row, Space, Spin, Statistic, Table, Tag, Tooltip, Typography,
 } from "antd";
 import {
   ApartmentOutlined, ArrowLeftOutlined, BarChartOutlined, BookOutlined,
   DownloadOutlined, EditOutlined, ExperimentOutlined, EyeOutlined,
   PrinterOutlined, ReloadOutlined, SafetyCertificateOutlined, SaveOutlined,
-  UserOutlined,
+  UserOutlined, WarningOutlined,
 } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import PropTypes from "prop-types";
@@ -36,6 +36,14 @@ export default function ReportStep({
   resetAll,
 }) {
   const navigate = useNavigate();
+  const importStats = report?.importStats ?? {
+    upserted_domaines: report?.domainesCreated ?? 0,
+    upserted_competences: report?.competencesCreated ?? 0,
+    inserted_savoirs: report?.savoirsCreated ?? 0,
+    updated_savoirs: report?.updatedSavoirs ?? 0,
+    inserted_enseignant_links: report?.affectationsCreated ?? 0,
+    errors: report?.errors ?? [],
+  };
 
   return (
     <>
@@ -80,17 +88,56 @@ export default function ReportStep({
             <h4>Mode prévisualisation</h4>
             <p>Les données ne sont pas encore enregistrées. Vérifiez le récapitulatif ci-dessous, puis cliquez sur « Enregistrer » lorsque vous êtes prêt.</p>
           </div>
-          <Button
-            type="primary"
-            icon={<SaveOutlined />}
-            loading={importing}
-            onClick={handleImport}
-            size="large"
-            style={{ borderRadius: 10, flexShrink: 0 }}
-          >
-            Enregistrer
-          </Button>
+          <Tooltip title="Ctrl+Enter">
+            <Button
+              type="primary"
+              icon={<SaveOutlined />}
+              loading={importing}
+              onClick={handleImport}
+              size="large"
+              style={{ borderRadius: 10, flexShrink: 0 }}
+            >
+              Valider et importer
+            </Button>
+          </Tooltip>
         </div>
+      )}
+
+      <Card
+        title="Résumé de l'import"
+        size="small"
+        style={{ marginBottom: 16 }}
+      >
+        <Row gutter={[12, 12]}>
+          <Col xs={12} md={8} lg={4}><Card size="small">✅ Domaines importés : <Text strong>{importStats.upserted_domaines}</Text></Card></Col>
+          <Col xs={12} md={8} lg={4}><Card size="small">✅ Compétences : <Text strong>{importStats.upserted_competences}</Text></Card></Col>
+          <Col xs={12} md={8} lg={4}><Card size="small">✅ Savoirs insérés : <Text strong>{importStats.inserted_savoirs}</Text></Card></Col>
+          <Col xs={12} md={8} lg={4}><Card size="small">🔄 Savoirs mis à jour : <Text strong>{importStats.updated_savoirs}</Text></Card></Col>
+          <Col xs={12} md={8} lg={4}><Card size="small">👨‍🏫 Liens enseignants : <Text strong>{importStats.inserted_enseignant_links}</Text></Card></Col>
+          <Col xs={12} md={8} lg={4}>
+            <Card size="small" style={{ borderColor: (importStats.errors?.length ?? 0) > 0 ? "#ff4d4f" : undefined }}>
+              ⚠️ Erreurs : <Text strong style={{ color: (importStats.errors?.length ?? 0) > 0 ? "#ff4d4f" : undefined }}>{importStats.errors?.length ?? 0}</Text>
+            </Card>
+          </Col>
+        </Row>
+
+      </Card>
+
+      {(importStats.errors?.length ?? 0) > 0 && (
+        <Collapse
+          style={{ marginBottom: 16 }}
+          items={[{
+            key: "errs",
+            label: `Voir les erreurs (${importStats.errors.length})`,
+            children: (
+              <Space direction="vertical" style={{ width: "100%" }}>
+                {importStats.errors.map((err, idx) => (
+                  <Alert key={`${idx}-${err}`} type="warning" showIcon icon={<WarningOutlined />} message={String(err)} />
+                ))}
+              </Space>
+            ),
+          }]}
+        />
       )}
 
       {/* ── Stat cards ────────────────────────────────────────────────────── */}
@@ -301,27 +348,6 @@ export default function ReportStep({
             size="small"
             className="rice-table-card"
             style={{ marginBottom: 16 }}
-            extra={
-              <Button
-                size="small"
-                type="text"
-                icon={<SaveOutlined />}
-                onClick={() => {
-                  const csv =
-                    "Enseignant;Compétences techniques associées\n" +
-                    rows.map((r) => `"${r.name}";"${r.allGcCodes.join("; ")}"`).join("\n");
-                  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-                  const url = URL.createObjectURL(blob);
-                  const a = document.createElement("a");
-                  a.href = url;
-                  a.download = `enseignants_competences_${departement}.csv`;
-                  a.click();
-                  URL.revokeObjectURL(url);
-                }}
-              >
-                Exporter CSV
-              </Button>
-            }
           >
             <Table dataSource={rows} columns={columns} size="small" pagination={false} bordered={false} />
           </Card>
@@ -340,10 +366,10 @@ export default function ReportStep({
             type="primary"
             size="large"
             icon={<ApartmentOutlined />}
-            onClick={() => navigate("/home/competences?tab=affectations")}
+            onClick={() => navigate("/home/affectations")}
             className="rice-action-btn rice-action-btn-primary"
           >
-            Consulter le référentiel
+            Voir les affectations
           </Button>
         )}
         <Button size="large" icon={<ReloadOutlined />} onClick={resetAll} className="rice-action-btn">

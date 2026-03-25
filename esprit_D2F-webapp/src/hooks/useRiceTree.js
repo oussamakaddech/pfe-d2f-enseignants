@@ -8,8 +8,10 @@ import { useImmer } from "use-immer";
 import { cloneDeep } from "../pages/competence/rice/constants.jsx";
 
 // ── low-level accessor ────────────────────────────────────────────────────────
-const getSavoir = (t, di, ci, sci, si) =>
-  t[di].competences[ci].sousCompetences[sci].savoirs[si];
+const getSavoir = (t, di, ci, sci, si) => {
+  if (sci === -1) return t[di].competences[ci].savoirs[si];
+  return t[di].competences[ci].sousCompetences[sci].savoirs[si];
+};
 
 export function useRiceTree(msgApi) {
   // ── core tree state ───────────────────────────────────────────────────────
@@ -51,7 +53,10 @@ export function useRiceTree(msgApi) {
   // ── delete ────────────────────────────────────────────────────────────────
   const deleteSavoir = useCallback(
     (di, ci, sci, si) =>
-      updateTree((t) => t[di].competences[ci].sousCompetences[sci].savoirs.splice(si, 1)),
+      updateTree((t) => {
+        if (sci === -1) t[di].competences[ci].savoirs.splice(si, 1);
+        else t[di].competences[ci].sousCompetences[sci].savoirs.splice(si, 1);
+      }),
     [updateTree],
   );
   const deleteSC = useCallback(
@@ -109,6 +114,10 @@ export function useRiceTree(msgApi) {
     updateTree((t) => {
       for (const d of t)
         for (const c of d.competences ?? [])
+          for (const s of c.savoirs ?? [])
+            s.enseignantsSuggeres = [];
+      for (const d of t)
+        for (const c of d.competences ?? [])
           for (const sc of c.sousCompetences ?? [])
             for (const s of sc.savoirs ?? [])
               s.enseignantsSuggeres = [];
@@ -120,6 +129,13 @@ export function useRiceTree(msgApi) {
   const remapInTree = useCallback(
     (extId, realId) => {
       updateTree((t) => {
+        for (const d of t)
+          for (const c of d.competences ?? [])
+            for (const s of c.savoirs ?? []) {
+              if (!s.enseignantsSuggeres) continue;
+              const idx = s.enseignantsSuggeres.indexOf(extId);
+              if (idx !== -1) s.enseignantsSuggeres[idx] = realId;
+            }
         for (const d of t)
           for (const c of d.competences ?? [])
             for (const sc of c.sousCompetences ?? [])
@@ -150,7 +166,8 @@ export function useRiceTree(msgApi) {
         new Set([...(src.enseignantsSuggeres ?? []), ...(dst.enseignantsSuggeres ?? [])]),
       );
       dst.nom = `${dst.nom} / ${src.nom}`;
-      t[di].competences[ci].sousCompetences[sci].savoirs.splice(si, 1);
+      if (sci === -1) t[di].competences[ci].savoirs.splice(si, 1);
+      else t[di].competences[ci].sousCompetences[sci].savoirs.splice(si, 1);
     });
     setMergeModal(false);
     setMergeSrc(null);
@@ -161,19 +178,39 @@ export function useRiceTree(msgApi) {
   // ── derived: flat savoir list ──────────────────────────────────────────────
   const allSavoirsFlat = useMemo(() => {
     const list = [];
-    tree.forEach((d, di) =>
-      d.competences?.forEach((c, ci) =>
-        c.sousCompetences?.forEach((sc, sci) =>
-          sc.savoirs?.forEach((s, si) =>
+    tree.forEach((d, di) => {
+      (d.competences ?? []).forEach((c, ci) => {
+        (c.savoirs ?? []).forEach((s, si) => {
+          list.push({
+            ...s,
+            di, ci, sci: -1, si,
+            domaineCode: d.code,
+            domaineNom: d.nom,
+            competenceCode: c.code,
+            competenceNom: c.nom,
+            sousCompetenceCode: null,
+            sousCompetenceNom: null,
+            label: `${d.nom} › ${c.nom} › ${s.nom}`,
+          });
+        });
+
+        (c.sousCompetences ?? []).forEach((sc, sci) => {
+          (sc.savoirs ?? []).forEach((s, si) => {
             list.push({
               ...s,
               di, ci, sci, si,
+              domaineCode: d.code,
+              domaineNom: d.nom,
+              competenceCode: c.code,
+              competenceNom: c.nom,
+              sousCompetenceCode: sc.code,
+              sousCompetenceNom: sc.nom,
               label: `${d.nom} › ${c.nom} › ${sc.nom} › ${s.nom}`,
-            }),
-          ),
-        ),
-      ),
-    );
+            });
+          });
+        });
+      });
+    });
     return list;
   }, [tree]);
 
@@ -203,18 +240,21 @@ export function useRiceTree(msgApi) {
       const mD = d.nom.toLowerCase().includes(q) || (d.code ?? "").toLowerCase().includes(q);
       (d.competences ?? []).forEach((c, ci) => {
         const mC = c.nom.toLowerCase().includes(q) || (c.code ?? "").toLowerCase().includes(q);
+        const hasDirectSav = (c.savoirs ?? []).some(
+          (s) => s.nom.toLowerCase().includes(q) || s.code.toLowerCase().includes(q),
+        );
         (c.sousCompetences ?? []).forEach((sc, sci) => {
           const mSc = sc.nom.toLowerCase().includes(q) || (sc.code ?? "").toLowerCase().includes(q);
           const hasSav = (sc.savoirs ?? []).some(
             (s) => s.nom.toLowerCase().includes(q) || s.code.toLowerCase().includes(q),
           );
-          if (mD || mC || mSc || hasSav) {
+          if (mD || mC || mSc || hasSav || hasDirectSav) {
             visibleDi.add(di);
             visibleCi.add(`${di}-${ci}`);
             visibleSci.add(`${di}-${ci}-${sci}`);
           }
         });
-        if (mD || mC) { visibleDi.add(di); visibleCi.add(`${di}-${ci}`); }
+        if (mD || mC || hasDirectSav) { visibleDi.add(di); visibleCi.add(`${di}-${ci}`); }
       });
       if (mD) visibleDi.add(di);
     });

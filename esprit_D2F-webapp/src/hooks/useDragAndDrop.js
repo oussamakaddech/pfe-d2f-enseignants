@@ -15,13 +15,17 @@ export function useDragAndDrop({ tree, toggleEnsAssign, updateTree, effectiveEns
   const [draggedSavoirInfo, setDraggedSavoirInfo] = useState(null); // { nom, type, … }
 
   // ── low-level accessor (duplicated here to avoid circular deps) ────────────
-  const getSavoir = (t, di, ci, sci, si) =>
-    t[di].competences[ci].sousCompetences[sci].savoirs[si];
+  const getSavoir = (t, di, ci, sci, si) => {
+    if (sci === -1) return t[di].competences[ci].savoirs[si];
+    return t[di].competences[ci].sousCompetences[sci].savoirs[si];
+  };
 
   // ── drag START from a SavoirCard (assign scenario) ────────────────────────
   const onSavoirDragStart = useCallback(
     (e, di, ci, sci, si) => {
-      const savoir = tree[di]?.competences[ci]?.sousCompetences[sci]?.savoirs[si];
+      const savoir = sci === -1
+        ? tree[di]?.competences?.[ci]?.savoirs?.[si]
+        : tree[di]?.competences?.[ci]?.sousCompetences?.[sci]?.savoirs?.[si];
       const info = {
         di, ci, sci, si,
         nom: savoir?.nom ?? "",

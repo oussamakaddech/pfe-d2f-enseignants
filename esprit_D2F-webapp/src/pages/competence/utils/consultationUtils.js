@@ -7,6 +7,20 @@ export const NIVEAUX_MATRIX = [
 ];
 
 export function buildD3TreeData(domaines = [], competences = [], sousComps = [], savoirs = []) {
+  const toSavoirNode = (s) => ({
+    name: s.nom,
+    attributes: { code: s.code, type: s.type },
+  });
+
+  const getDirectSavoirs = (competenceId) =>
+    savoirs
+      .filter(
+        (s) =>
+          String(s.competenceId) === String(competenceId)
+          && (s.sousCompetenceId == null || s.sousCompetenceId === ""),
+      )
+      .map(toSavoirNode);
+
   const buildScChildren = (competenceId, parentScId = null) => {
     const nodes = sousComps.filter(
       (sc) =>
@@ -22,10 +36,7 @@ export function buildD3TreeData(domaines = [], competences = [], sousComps = [],
         childSc.length === 0
           ? savoirs
               .filter((s) => String(s.sousCompetenceId) === String(sc.id))
-              .map((s) => ({
-                name: s.nom,
-                attributes: { code: s.code, type: s.type },
-              }))
+              .map(toSavoirNode)
           : [];
 
       return {
@@ -43,11 +54,15 @@ export function buildD3TreeData(domaines = [], competences = [], sousComps = [],
       attributes: { code: d.code },
       children: (competences || [])
         .filter((c) => String(c.domaineId) === String(d.id))
-        .map((c) => ({
-          name: c.nom,
-          attributes: { code: c.code },
-          children: buildScChildren(c.id, null),
-        })),
+        .map((c) => {
+          const scChildren = buildScChildren(c.id, null);
+          const directSavoirs = getDirectSavoirs(c.id);
+          return {
+            name: c.nom,
+            attributes: { code: c.code },
+            children: [...scChildren, ...directSavoirs],
+          };
+        }),
     })),
   };
 }

@@ -36,7 +36,7 @@ import UploadStep    from "./rice/UploadStep.jsx";
 import AnalyzingStep from "./rice/AnalyzingStep.jsx";
 import ReviewStep    from "./rice/ReviewStep.jsx";
 import ReportStep    from "./rice/ReportStep.jsx";
-import { cloneDeep } from "./rice/constants.jsx";
+import { cloneDeep, STORAGE_KEY } from "./rice/constants.jsx";
 
 import "./RicePage.css";
 
@@ -59,6 +59,18 @@ const STEP_VARIANTS = {
   exit:    { opacity: 0, y: -12, scale: 0.97, transition: { duration: 0.18 } },
 };
 
+const isLikelyValidExtractedName = (value) => {
+  const name = String(value ?? "").trim();
+  if (name.length < 5) return false;
+  if (name.includes(":")) return false;
+  const low = name.toLowerCase();
+  if (/^(module|code|unite|unit[eé]|responsable|pr[ée]requis|niveaux|objectif)\b/i.test(name)) {
+    return false;
+  }
+  if (low.includes("module") && low.includes("unite")) return false;
+  return /[a-zà-ÿ]{2,}\s+[a-zà-ÿ]{2,}/i.test(name);
+};
+
 // ---------------------------------------------------------------------------
 export default function RicePage() {
   const [msgApi, msgCtx] = message.useMessage();
@@ -72,8 +84,12 @@ export default function RicePage() {
   const [files, setFiles] = useState([]);
   const [departement, setDepartement] = useState("auto");
   const [allEnseignants, setAllEnseignants] = useState([]);
-  const [ficheMatchedEnseignants, setFicheMatchedEnseignants] = useState([]);
-  const [loadingEns, setLoadingEns] = useState(false);
+  const [enseignantsLoading, setEnseignantsLoading] = useState(false);
+  const [enseignantsError, setEnseignantsError] = useState(null);
+  const [enseignantsLoadSlow, setEnseignantsLoadSlow] = useState(false);
+  const [ignoreEnseignants, setIgnoreEnseignants] = useState(false);
+  const [enseignantsReloadKey, setEnseignantsReloadKey] = useState(0);
+  const [analysisResult, setAnalysisResult] = useState(null);
 
   // -- Step 1 state -----------------------------------------------------------
   const [analyzing, setAnalyzing] = useState(false);
@@ -83,14 +99,19 @@ export default function RicePage() {
 
   // -- Step 2 teacher state ---------------------------------------------------
   const [extractedEnseignants, setExtractedEnseignants] = useState([]);
-  const [manuallyAddedExtracts, setManuallyAddedExtracts] = useState([]);
   const [ensSearchStep2, setEnsSearchStep2] = useState("");
+  const [treeHistory, setTreeHistory] = useState([]);
+  const [showAutosave, setShowAutosave] = useState(false);
 
   // -- Create-teacher modal state ---------------------------------------------
   const [createEnsModal, setCreateEnsModal] = useState(false);
   const [createEnsTarget, setCreateEnsTarget] = useState(null);
   const [createEnsData, setCreateEnsData] = useState({ nom: "", prenom: "", mail: "" });
   const [savingNewEns, setSavingNewEns] = useState(false);
+  const autosaveDebounceRef = useRef(null);
+  const autosaveHideRef = useRef(null);
+  const prevTreeRef = useRef([]);
+  const skipHistoryRef = useRef(false);
 
   // -- Custom hooks -----------------------------------------------------------
   const treeHook = useRiceTree(msgApi);
@@ -112,60 +133,17 @@ export default function RicePage() {
   // -- effectiveEnseignants: teachers shown in the Step-2 right panel ---------
   // Combines DB-matched enseignants from the fiche with ext_ synthetic IDs.
   const effectiveEnseignants = useMemo(() => {
-    const knownIds = new Set(
-      ficheMatchedEnseignants.map((e) => String(e.id ?? e.enseignantId)),
+    const dbMap = new Map(
+      (allEnseignants ?? []).map((e) => [String(e.id ?? e.enseignantId), e]),
     );
-    const extractedNameMap = {};
-    const seenExtracted = new Set();
-    const extractedExtras = [];
 
-    extractedEnseignants.forEach((ext, idx) => {
-      if (ext.matched_id) {
-        const sid = String(ext.matched_id);
-        if (ext.nom_complet) extractedNameMap[sid] = ext.nom_complet;
-        if (!knownIds.has(sid) && !seenExtracted.has(sid)) {
-          seenExtracted.add(sid);
-          extractedExtras.push({
-            id: sid, enseignantId: sid,
-            nom: ext.nom_complet ?? ext.matched_nom ?? sid,
-            prenom: "", _fromExtraction: true, _matched: true,
-          });
-        }
-      } else if (ext.nom_complet) {
-        const syntheticId = `ext_${idx}`;
-        const nameKey = ext.nom_complet.toLowerCase();
-        if (!seenExtracted.has(nameKey) && !seenExtracted.has(syntheticId)) {
-          seenExtracted.add(nameKey);
-          seenExtracted.add(syntheticId);
-          const isManuallyAdded = manuallyAddedExtracts.includes(ext.nom_complet);
-          extractedExtras.push({
-            id: syntheticId, enseignantId: syntheticId,
-            nom: ext.nom_complet, prenom: "",
-            _fromExtraction: true, _matched: isManuallyAdded, _manuallyAdded: isManuallyAdded,
-          });
-        }
-      }
+    (analysisResult?.foundEnseignants ?? []).forEach((e) => {
+      const id = String(e.id ?? e.enseignantId);
+      if (!dbMap.has(id)) dbMap.set(id, { ...e, id, enseignantId: id });
     });
 
-    // Orphans: IDs referenced in the tree but not covered by either list above
-    const coveredIds = new Set([
-      ...ficheMatchedEnseignants.map((e) => String(e.id ?? e.enseignantId)),
-      ...extractedExtras.map((e) => e.id),
-    ]);
-    const orphanIds = new Set();
-    allSavoirsFlat.forEach((s) =>
-      (s.enseignantsSuggeres ?? []).forEach((id) => {
-        if (!coveredIds.has(String(id))) orphanIds.add(String(id));
-      }),
-    );
-    const orphans = Array.from(orphanIds).map((id) => ({
-      id, enseignantId: id,
-      nom: extractedNameMap[id] ?? id,
-      prenom: "",
-    }));
-
-    return [...ficheMatchedEnseignants, ...extractedExtras, ...orphans];
-  }, [ficheMatchedEnseignants, allSavoirsFlat, extractedEnseignants, manuallyAddedExtracts]);
+    return Array.from(dbMap.values());
+  }, [allEnseignants, analysisResult]);
 
   const filteredEffectiveEns = useMemo(() => {
     if (!ensSearchStep2.trim()) return effectiveEnseignants;
@@ -196,21 +174,91 @@ export default function RicePage() {
     historyLoading, handleImport, loadImportHistory, exportReportJson,
   } = reportHook;
 
-  // -- Load enseignants -------------------------------------------------------
+  // -- Load enseignants from DB (mount + department change) ------------------
   const loadEnseignants = useCallback(() => {
-    setLoadingEns(true);
-    EnseignantService.getAllEnseignants()
-      .then((data) => setAllEnseignants(Array.isArray(data) ? data : []))
-      .catch(() => msgApi.warning("Impossible de charger la liste des enseignants"))
-      .finally(() => setLoadingEns(false));
-  }, [msgApi]);
+    setIgnoreEnseignants(false);
+    setEnseignantsReloadKey((k) => k + 1);
+  }, []);
 
-  useEffect(() => { loadEnseignants(); }, [loadEnseignants]);
+  const continueWithoutEnseignants = useCallback(() => {
+    setIgnoreEnseignants(true);
+    setEnseignantsLoadSlow(false);
+    setEnseignantsError(null);
+    setEnseignantsLoading(false);
+    setAllEnseignants([]);
+  }, []);
+
+  useEffect(() => {
+    if (ignoreEnseignants) return;
+    let cancelled = false;
+    let slowTimer;
+
+    const load = async () => {
+      setEnseignantsLoading(true);
+      setEnseignantsError(null);
+      setEnseignantsLoadSlow(false);
+      slowTimer = setTimeout(() => {
+        if (!cancelled) setEnseignantsLoadSlow(true);
+      }, 5000);
+
+      try {
+        const dept = departement === "auto" ? null : departement;
+        const data = await RiceService.getEnseignants(dept);
+        if (!cancelled) setAllEnseignants(Array.isArray(data) ? data : []);
+      } catch (err) {
+        if (!cancelled) {
+          const status = err?.response?.status;
+          if (status === 401 || status === 403) {
+            setEnseignantsError("Session expirée. Veuillez vous reconnecter pour charger les enseignants.");
+            msgApi.warning("Session expirée — reconnectez-vous");
+          } else {
+            setEnseignantsError(
+              "Impossible de charger les enseignants. Vérifiez votre connexion ou contactez l'admin.",
+            );
+            msgApi.warning("Enseignants non chargés — affectation manuelle uniquement");
+          }
+          setAllEnseignants([]);
+        }
+      } finally {
+        clearTimeout(slowTimer);
+        if (!cancelled) {
+          setEnseignantsLoading(false);
+          setEnseignantsLoadSlow(false);
+        }
+      }
+    };
+
+    load();
+    return () => {
+      cancelled = true;
+      clearTimeout(slowTimer);
+    };
+  }, [departement, enseignantsReloadKey, ignoreEnseignants, msgApi]);
 
   // -- Upload change handler --------------------------------------------------
   const handleUploadChange = useCallback(({ fileList }) => {
-    setFiles(fileList.map((f) => f.originFileObj ?? f));
-  }, []);
+    const allowed = new Set(["pdf", "docx", "doc", "txt"]);
+    const maxSize = 20 * 1024 * 1024;
+    const accepted = [];
+
+    for (const f of fileList) {
+      const raw = f.originFileObj ?? f;
+      const name = raw?.name ?? "fichier";
+      const ext = (name.split(".").pop() || "").toLowerCase();
+
+      if (!allowed.has(ext)) {
+        msgApi.warning(`'${name}' n'est pas supporté — seuls PDF, DOCX et TXT sont acceptés`);
+        continue;
+      }
+      if ((raw?.size ?? 0) > maxSize) {
+        msgApi.warning(`'${name}' dépasse 20 Mo`);
+        continue;
+      }
+      accepted.push(raw);
+    }
+
+    setFiles(accepted);
+  }, [msgApi]);
 
   // -- Step 1: Launch AI analysis --------------------------------------------
   const handleAnalyze = async () => {
@@ -218,7 +266,7 @@ export default function RicePage() {
       msgApi.warning("Veuillez charger au moins un fichier.");
       return;
     }
-    const enseignants = allEnseignants.map((e) => ({
+    const enseignants = (ignoreEnseignants ? [] : allEnseignants).map((e) => ({
       id: String(e.id ?? e.enseignantId),
       nom: e.nom ?? "",
       prenom: e.prenom ?? "",
@@ -242,31 +290,53 @@ export default function RicePage() {
       if (analyzeIsCanceledRef.current) return;
       setAnalysisProgress(100);
 
-      // Clear auto-assignments so the user assigns manually via DnD
       const cleaned = cloneDeep(result.propositions);
       for (const d of cleaned)
-        for (const c of d.competences ?? [])
+        for (const c of d.competences ?? []) {
+          for (const s of c.savoirs ?? []) {
+            const suggested = (s.enseignantsSuggeres ?? []).map((id) => String(id));
+            s.aiSuggestedIds = suggested;
+            s.enseignantsSuggeres = suggested;
+          }
           for (const sc of c.sousCompetences ?? [])
-            for (const s of sc.savoirs ?? [])
-              s.enseignantsSuggeres = [];
+            for (const s of sc.savoirs ?? []) {
+              const suggested = (s.enseignantsSuggeres ?? []).map((id) => String(id));
+              s.aiSuggestedIds = suggested;
+              s.enseignantsSuggeres = suggested;
+            }
+        }
 
       setTree(cleaned);
-      setExtractedEnseignants(result.extractedEnseignants ?? []);
-      setManuallyAddedExtracts([]);
-      setFicheMatchedEnseignants(
-        (result.foundEnseignants ?? []).map((e) => ({ ...e, enseignantId: String(e.id) })),
+      setAnalysisResult(result);
+      skipHistoryRef.current = true;
+      prevTreeRef.current = cloneDeep(cleaned);
+      setTreeHistory([]);
+      const extractedClean = (result.extractedEnseignants ?? []).filter(
+        (ex) => isLikelyValidExtractedName(ex?.nom_complet),
       );
+      const dedupMap = new Map();
+      extractedClean.forEach((ex) => {
+        const key = String(ex?.nom_complet ?? "").trim().toLowerCase();
+        if (!key || dedupMap.has(key)) return;
+        dedupMap.set(key, ex);
+      });
+      setExtractedEnseignants(Array.from(dedupMap.values()));
 
-      if (result.foundEnseignants?.length > 0) {
-        setAllEnseignants((prev) => {
-          const map = new Map();
-          prev.forEach((e) => map.set(String(e.id ?? e.enseignantId), e));
-          result.foundEnseignants.forEach((e) => {
-            const eid = String(e.id);
-            if (!map.has(eid)) map.set(eid, { ...e, enseignantId: e.id });
-          });
-          return Array.from(map.values());
-        });
+      const detectedDept = String(
+        result?.detectedDepartement
+          ?? result?.detectedDepartment
+          ?? result?.departementDetecte
+          ?? result?.departement_detecte
+          ?? result?.stats?.departement
+          ?? "",
+      ).toLowerCase();
+      if (
+        departement !== "auto"
+        && detectedDept
+        && detectedDept !== departement.toLowerCase()
+      ) {
+        msgApi.warning(`Département détecté : ${detectedDept.toUpperCase()}. Rechargement des enseignants...`);
+        setDepartement(detectedDept);
       }
 
       setTimeout(() => setCurrentStep(2), 400);
@@ -330,13 +400,158 @@ export default function RicePage() {
     setTree([]);
     setReport(null);
     setImportHistory(null);
+    setAnalysisResult(null);
     setEnsSearchStep2("");
     setAnalysisProgress(0);
-    setManuallyAddedExtracts([]);
     setExtractedEnseignants([]);
-    setFicheMatchedEnseignants([]);
+    setIgnoreEnseignants(false);
+    setTreeHistory([]);
+    prevTreeRef.current = [];
+    skipHistoryRef.current = true;
     analyzeIsCanceledRef.current = false;
+    try { localStorage.removeItem(STORAGE_KEY); } catch { /* ignore */ }
   }, [setTree, setReport, setImportHistory]);
+
+  // -- Undo history for Step-2 tree mutations (max 10 snapshots) ------------
+  useEffect(() => {
+    const prevTree = prevTreeRef.current;
+    const prevStr = JSON.stringify(prevTree ?? []);
+    const currStr = JSON.stringify(tree ?? []);
+    if (prevStr === currStr) return;
+
+    if (skipHistoryRef.current) {
+      skipHistoryRef.current = false;
+      prevTreeRef.current = cloneDeep(tree);
+      return;
+    }
+
+    if (currentStep === 2 && Array.isArray(prevTree) && prevTree.length >= 0) {
+      setTreeHistory((hist) => {
+        const next = [...hist, cloneDeep(prevTree)];
+        return next.slice(-10);
+      });
+    }
+
+    prevTreeRef.current = cloneDeep(tree);
+  }, [tree, currentStep]);
+
+  // -- Auto-save + visual indicator -----------------------------------------
+  useEffect(() => {
+    if (currentStep !== 2) return;
+    try {
+      localStorage.setItem(
+        STORAGE_KEY,
+        JSON.stringify({
+          departement,
+          tree,
+          currentStep,
+          savedAt: Date.now(),
+        }),
+      );
+    } catch {
+      // ignore quota/security failures
+    }
+
+    if (autosaveDebounceRef.current) clearTimeout(autosaveDebounceRef.current);
+    if (autosaveHideRef.current) clearTimeout(autosaveHideRef.current);
+    autosaveDebounceRef.current = setTimeout(() => {
+      setShowAutosave(true);
+      autosaveHideRef.current = setTimeout(() => setShowAutosave(false), 3000);
+    }, 2000);
+
+    return () => {
+      if (autosaveDebounceRef.current) clearTimeout(autosaveDebounceRef.current);
+      if (autosaveHideRef.current) clearTimeout(autosaveHideRef.current);
+    };
+  }, [tree, currentStep, departement]);
+
+  // -- Keyboard shortcuts ----------------------------------------------------
+  useEffect(() => {
+    const onKeyDown = (e) => {
+      const isCmdOrCtrl = e.ctrlKey || e.metaKey;
+
+      if (isCmdOrCtrl && e.key === "Enter") {
+        e.preventDefault();
+        if (currentStep === 0 && files.length > 0 && !analyzing) {
+          handleAnalyze();
+          return;
+        }
+        if (currentStep === 2 && !importing) {
+          handleImport();
+        }
+      }
+
+      if (e.key === "Escape") {
+        if (editingNom) setEditingNom(null);
+        if (mergeModal) {
+          setMergeModal(false);
+          setMergeSrc(null);
+          setMergeDst(null);
+        }
+      }
+
+      if (isCmdOrCtrl && e.key.toLowerCase() === "z" && currentStep === 2) {
+        if (treeHistory.length === 0) return;
+        e.preventDefault();
+        const previous = treeHistory[treeHistory.length - 1];
+        skipHistoryRef.current = true;
+        setTree(cloneDeep(previous));
+        setTreeHistory((hist) => hist.slice(0, -1));
+        msgApi.info("Modification annulée (Ctrl+Z)");
+      }
+    };
+
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [
+    currentStep,
+    files.length,
+    analyzing,
+    importing,
+    handleAnalyze,
+    handleImport,
+    editingNom,
+    mergeModal,
+    treeHistory,
+    msgApi,
+    setTree,
+    setEditingNom,
+    setMergeModal,
+    setMergeSrc,
+    setMergeDst,
+  ]);
+
+  // -- Confetti on successful import (no errors) -----------------------------
+  useEffect(() => {
+    if (currentStep !== 3 || !report) return;
+    const errorsCount = (report.errors?.length ?? report.importStats?.errors?.length ?? 0);
+    if (errorsCount > 0) return;
+
+    document.body.classList.add("confetti-active");
+    const colors = ["#ff4d4f", "#faad14", "#52c41a", "#1677ff", "#722ed1"];
+    const pieces = [];
+    for (let i = 0; i < 26; i += 1) {
+      const el = document.createElement("div");
+      el.className = "confetti-piece";
+      el.style.left = `${Math.random() * 100}vw`;
+      el.style.background = colors[i % colors.length];
+      el.style.animationDelay = `${Math.random() * 0.8}s`;
+      el.style.opacity = String(0.8 + Math.random() * 0.2);
+      document.body.appendChild(el);
+      pieces.push(el);
+    }
+
+    const timer = setTimeout(() => {
+      pieces.forEach((p) => p.remove());
+      document.body.classList.remove("confetti-active");
+    }, 3000);
+
+    return () => {
+      clearTimeout(timer);
+      pieces.forEach((p) => p.remove());
+      document.body.classList.remove("confetti-active");
+    };
+  }, [currentStep, report]);
 
   // -- Steps config -----------------------------------------------------------
   const steps = [
@@ -404,6 +619,12 @@ export default function RicePage() {
                 setCurrentStep={setCurrentStep}
                 departement={departement}
                 setDepartement={setDepartement}
+                allEnseignants={allEnseignants}
+                enseignantsLoading={enseignantsLoading}
+                enseignantsError={enseignantsError}
+                enseignantsLoadSlow={enseignantsLoadSlow}
+                onRetryEnseignants={loadEnseignants}
+                onContinueWithoutEnseignants={continueWithoutEnseignants}
               />
             </motion.div>
           )}
@@ -428,6 +649,7 @@ export default function RicePage() {
             <motion.div key="step2" variants={STEP_VARIANTS} initial="initial" animate="animate" exit="exit">
               <ReviewStep
                 tree={tree}
+                setTree={setTree}
                 treeSearch={treeSearch}
                 setTreeSearch={setTreeSearch}
                 editingNom={editingNom}
@@ -448,12 +670,14 @@ export default function RicePage() {
                 departement={departement}
                 extractedEnseignants={extractedEnseignants}
                 allEnseignants={allEnseignants}
+                dbEnseignants={allEnseignants}
                 effectiveEnseignants={effectiveEnseignants}
                 filteredEffectiveEns={filteredEffectiveEns}
                 ensSearchStep2={ensSearchStep2}
                 setEnsSearchStep2={setEnsSearchStep2}
-                loadingEns={loadingEns}
+                loadingEns={enseignantsLoading}
                 loadEnseignants={loadEnseignants}
+                result={analysisResult}
                 clearAllAssignments={clearAllAssignments}
                 remapEnseignant={remapEnseignant}
                 allSavoirsFlat={allSavoirsFlat}
@@ -580,7 +804,7 @@ export default function RicePage() {
               placeholder="Rechercher et selectionner le savoir cible..."
               style={{ width: "100%", marginTop: 8 }}
               onChange={(key) => {
-                const [di, ci, sci, si] = key.split("-").map(Number);
+                const [di, ci, sci, si] = key.split("|").map(Number);
                 setMergeDst({ di, ci, sci, si });
               }}
             >
@@ -593,8 +817,8 @@ export default function RicePage() {
                 )
                 .map((s) => (
                   <Option
-                    key={`${s.di}-${s.ci}-${s.sci}-${s.si}`}
-                    value={`${s.di}-${s.ci}-${s.sci}-${s.si}`}
+                    key={`${s.di}|${s.ci}|${s.sci}|${s.si}`}
+                    value={`${s.di}|${s.ci}|${s.sci}|${s.si}`}
                   >
                     {s.label}
                   </Option>
@@ -602,6 +826,10 @@ export default function RicePage() {
             </Select>
           </div>
         </Modal>
+
+        {currentStep === 2 && showAutosave && (
+          <div className="rice-autosave-badge">💾 Sauvegardé automatiquement</div>
+        )}
 
       </div>
     </>

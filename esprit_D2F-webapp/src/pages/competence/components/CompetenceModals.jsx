@@ -1,4 +1,5 @@
 /* eslint-disable react/prop-types */
+import { useEffect } from "react";
 import {
   DeleteOutlined,
   PlusOutlined,
@@ -40,6 +41,46 @@ export default function CompetenceModals({
   savoirForm,
   addNiveauForm,
 }) {
+  // Mettre à jour le prefix des savoirs quand le parent ou le mode change
+  useEffect(() => {
+    if (!crud.savoirModal || crud.editingSavoir) return;
+
+    const updateSavoirCodePrefix = async () => {
+      try {
+        const scId = savoirForm.getFieldValue("sousCompetenceId");
+        const compId = savoirForm.getFieldValue("competenceId");
+
+        let newPrefix = "";
+        if (crud.savoirMode === "sc" && scId) {
+          const sousComp = crud.leafSousComps.find((sc) => sc.id === scId);
+          if (sousComp?.code) {
+            newPrefix = `${sousComp.code}-`;
+          }
+        } else if (crud.savoirMode === "direct" && compId) {
+          const comp = crud.competences.find((c) => c.id === compId);
+          if (comp?.code) {
+            newPrefix = `${comp.code}-`;
+          }
+        }
+
+        const currentPrefix = savoirForm.getFieldValue("codePrefix") || "";
+        if (currentPrefix !== newPrefix) {
+          savoirForm.setFieldValue("codePrefix", newPrefix);
+        }
+      } catch (err) {
+        console.error("Error updating savoir code prefix:", err);
+      }
+    };
+
+    updateSavoirCodePrefix();
+  }, [
+    crud.savoirModal,
+    crud.editingSavoir,
+    crud.leafSousComps,
+    crud.competences,
+    crud.savoirMode,
+    savoirForm,
+  ]);
   return (
     <>
       <Modal
@@ -122,6 +163,14 @@ export default function CompetenceModals({
           </Form.Item>
           <Form.Item name="description" label="Description">
             <Input.TextArea rows={2} />
+          </Form.Item>
+
+          <Form.Item
+            name="prerequisiteManual"
+            label="Prerequis"
+            extra="Optionnel: saisie manuelle libre (ex: Java avance, Maven, SQL)."
+          >
+            <Input.TextArea rows={3} placeholder="Ecrire les prerequis manuellement" />
           </Form.Item>
         </Form>
       </Modal>
@@ -246,7 +295,40 @@ export default function CompetenceModals({
         okText="Enregistrer"
         cancelText="Annuler"
       >
-        <Form form={savoirForm} layout="vertical">
+        <Form
+          form={savoirForm}
+          layout="vertical"
+          onValuesChange={(changedValues) => {
+            // Mettre à jour le prefix quand la sous-compétence ou compétence change
+            if (crud.editingSavoir) return;
+            
+            if (
+              changedValues.sousCompetenceId !== undefined ||
+              changedValues.competenceId !== undefined
+            ) {
+              const scId = savoirForm.getFieldValue("sousCompetenceId");
+              const compId = savoirForm.getFieldValue("competenceId");
+              
+              let newPrefix = "";
+              if (crud.savoirMode === "sc" && scId) {
+                const sousComp = crud.leafSousComps?.find((sc) => sc.id === scId);
+                if (sousComp?.code) {
+                  newPrefix = `${sousComp.code}-`;
+                }
+              } else if (crud.savoirMode === "direct" && compId) {
+                const comp = crud.competences?.find((c) => c.id === compId);
+                if (comp?.code) {
+                  newPrefix = `${comp.code}-`;
+                }
+              }
+              
+              const currentPrefix = savoirForm.getFieldValue("codePrefix") || "";
+              if (currentPrefix !== newPrefix) {
+                savoirForm.setFieldValue("codePrefix", newPrefix);
+              }
+            }
+          }}
+        >
           <Form.Item label="Mode de rattachement">
             <Radio.Group
               value={crud.savoirMode}
@@ -307,12 +389,55 @@ export default function CompetenceModals({
             </Form.Item>
           )}
 
-          <Form.Item
-            name="code"
-            label="Code"
-            rules={[{ required: true, message: "Code obligatoire" }]}
-          >
-            <Input />
+          <Form.Item label="Code" required>
+            <Input.Group compact>
+              <Form.Item name="codePrefix" noStyle>
+                <Input
+                  readOnly
+                  style={{
+                    width: "60%",
+                    backgroundColor: "#f5f5f5",
+                    color: "#888",
+                    cursor: "not-allowed",
+                    borderRight: "none",
+                  }}
+                />
+              </Form.Item>
+              <Form.Item
+                name="codeSuffix"
+                style={{ display: "inline-block", width: "40%", marginBottom: 0 }}
+                rules={[
+                  { required: true, message: "Completez le code" },
+                  {
+                    pattern: /^[A-Z0-9_]+$/,
+                    message: "Majuscules, chiffres et _ uniquement",
+                  },
+                  {
+                    validator: (_, value) => {
+                      const prefix = savoirForm.getFieldValue("codePrefix") || "";
+                      const suffix = value || "";
+                      if (`${prefix}${suffix}`.length > 100) {
+                        return Promise.reject(
+                          new Error("Le code ne doit pas depasser 100 caracteres"),
+                        );
+                      }
+                      return Promise.resolve();
+                    },
+                  },
+                ]}
+              >
+                <Input
+                  placeholder="ex: S1"
+                  maxLength={100}
+                  onChange={(e) => {
+                    const sanitized = (e.target.value || "")
+                      .toUpperCase()
+                      .replace(/[^A-Z0-9_]/g, "");
+                    savoirForm.setFieldValue("codeSuffix", sanitized);
+                  }}
+                />
+              </Form.Item>
+            </Input.Group>
           </Form.Item>
           <Form.Item
             name="nom"

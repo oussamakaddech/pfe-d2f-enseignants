@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import List, Optional, Dict, Any
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class EnseignantInfo(BaseModel):
@@ -23,6 +23,9 @@ class SavoirProposition(BaseModel):
     niveau: str                # N1_DEBUTANT … N5_EXPERT
     enseignantsSuggeres: List[str] = []   # list of enseignant IDs
     refCodes: List[str] = []             # matched referential codes (e.g. S1a, C2b, INFO-A1)
+    competence_code: Optional[str] = None
+    domaine_code: Optional[str] = None
+    directToCompetence: bool = Field(default=False, repr=False)  # internal routing flag
 
 
 class SousCompetenceProposition(BaseModel):
@@ -42,6 +45,7 @@ class CompetenceProposition(BaseModel):
     ordre: int = 1
     refCodes: List[str] = []         # aggregated from sous-compétences
     refDomaine: Optional[str] = None # best domain match (e.g. GC-TECH-S, INFO-A)
+    savoirs: List[SavoirProposition] = []
     sousCompetences: List[SousCompetenceProposition] = []
 
 

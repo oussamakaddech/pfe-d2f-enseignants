@@ -22,6 +22,7 @@ type TreeNode = Record<string, unknown>;
 type NiveauDefinition = Record<string, unknown>;
 type EnseignantCompetence = Record<string, unknown>;
 type AssignRequest = Record<string, unknown>;
+type PrerequisiteRequest = Record<string, unknown>;
 
 const DomaineAPI = {
   getAll: async (): Promise<Domaine[]> => {
@@ -419,6 +420,56 @@ const StructureAPI = {
   },
 };
 
+const PrerequisiteAPI = {
+  getByCompetence: async (competenceId: Id): Promise<Record<string, unknown>[]> => {
+    const res = await axios.get<Record<string, unknown>[]>(
+      `${BASE}/competences/${competenceId}/prerequisite`,
+      { headers: authHeader() }
+    );
+    return res.data;
+  },
+
+  check: async (competenceId: Id, enseignantId: Id): Promise<Record<string, unknown>> => {
+    const res = await axios.get<Record<string, unknown>>(
+      `${BASE}/competences/${competenceId}/prerequisite/check/${enseignantId}`,
+      { headers: authHeader() }
+    );
+    return res.data;
+  },
+
+  add: async (competenceId: Id, data: PrerequisiteRequest): Promise<Record<string, unknown>> => {
+    // Validation pour s'assurer que prerequisiteId n'est pas null
+    if (!data.prerequisiteId) {
+      throw new Error("prerequisiteId est requis et ne peut pas être null");
+    }
+    
+    const res = await axios.post<Record<string, unknown>>(
+      `${BASE}/competences/${competenceId}/prerequisite`,
+      data,
+      { headers: authHeader() }
+    );
+    return res.data;
+  },
+
+  updateNiveau: async (
+    competenceId: Id,
+    id: Id,
+    niveauMinimum: string
+  ): Promise<Record<string, unknown>> => {
+    const res = await axios.patch<Record<string, unknown>>(
+      `${BASE}/competences/${competenceId}/prerequisite/${id}/niveau`,
+      null,
+      { params: { niveauMinimum }, headers: authHeader() }
+    );
+    return res.data;
+  },
+
+  remove: (competenceId: Id, id: Id): Promise<AxiosResponse<unknown>> =>
+    axios.delete(`${BASE}/competences/${competenceId}/prerequisite/${id}`, {
+      headers: authHeader(),
+    }),
+};
+
 const CompetenceService = {
   domaine: DomaineAPI,
   competence: CompetenceAPI,
@@ -427,6 +478,7 @@ const CompetenceService = {
   enseignantCompetence: EnseignantCompetenceAPI,
   niveauDefinition: NiveauDefinitionAPI,
   structure: StructureAPI,
+  prerequisite: PrerequisiteAPI,
 };
 
 export default CompetenceService;

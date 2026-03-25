@@ -19,33 +19,30 @@ function flattenSousCompList(items = []) {
   return acc;
 }
 
-function SousCompNode({ node, depth, onAddChild, onAddSavoir, onEdit, onDelete }) {
+function SousCompNode({ node, depth, onAddChild, onEdit, onDelete }) {
   const enfants = node.enfants ?? [];
   const isLeaf = enfants.length === 0;
+  const hasSavoirs = (node.savoirs?.length ?? 0) > 0;
 
   return (
     <div style={{ marginLeft: depth * 20, marginTop: 8 }}>
       <Space wrap>
-        <Tag color="orange">N{node.niveau ?? depth + 1}</Tag>
         <Text strong>{node.nom}</Text>
         <Tag>{node.code}</Tag>
         <Tag color="cyan">{node.savoirs?.length ?? 0} savoir(s)</Tag>
         {isLeaf ? <Tag color="green">Feuille</Tag> : <Tag color="geekblue">{enfants.length} enfant(s)</Tag>}
 
+        <Tooltip title={hasSavoirs ? "Impossible d'ajouter un enfant: ce noeud contient des savoirs" : "Ajouter une sous-compétence"}>
+          <Button
+            size="small"
+            icon={<PlusOutlined />}
+            disabled={hasSavoirs}
+            onClick={() => onAddChild(node)}
+          />
+        </Tooltip>
+
         <Tooltip title="Modifier">
           <Button size="small" icon={<EditOutlined />} onClick={() => onEdit(node)} />
-        </Tooltip>
-
-        <Tooltip title="Ajouter une sous-compétence enfant">
-          <Button size="small" icon={<PlusOutlined />} onClick={() => onAddChild(node)}>
-            Enfant
-          </Button>
-        </Tooltip>
-
-        <Tooltip title={isLeaf ? "Ajouter un savoir" : "Réservé aux sous-compétences feuilles"}>
-          <Button size="small" disabled={!isLeaf} onClick={() => onAddSavoir(node)}>
-            + Savoir
-          </Button>
         </Tooltip>
 
         <Tooltip title="Supprimer">
@@ -66,7 +63,6 @@ function SousCompNode({ node, depth, onAddChild, onAddSavoir, onEdit, onDelete }
           node={child}
           depth={depth + 1}
           onAddChild={onAddChild}
-          onAddSavoir={onAddSavoir}
           onEdit={onEdit}
           onDelete={onDelete}
         />
@@ -79,7 +75,6 @@ SousCompNode.propTypes = {
   node: PropTypes.object.isRequired,
   depth: PropTypes.number.isRequired,
   onAddChild: PropTypes.func.isRequired,
-  onAddSavoir: PropTypes.func.isRequired,
   onEdit: PropTypes.func.isRequired,
   onDelete: PropTypes.func.isRequired,
 };
@@ -90,7 +85,6 @@ export default function CompetenceExpandedRow({
   loading = false,
   onAddRoot,
   onAddChild,
-  onAddSavoir,
   onEdit,
   onDelete,
 }) {
@@ -115,9 +109,9 @@ export default function CompetenceExpandedRow({
   return (
     <Card size="small" style={{ margin: 8 }}>
       <Space style={{ marginBottom: 12 }} wrap>
-        <Text strong>Compétences filles de {competence.nom}</Text>
+        <Text strong>Sous-compétences de {competence.nom}</Text>
         <Button size="small" type="primary" icon={<PlusOutlined />} onClick={() => onAddRoot(competence)}>
-          Ajouter une compétence fille
+          Ajouter une sous-compétence
         </Button>
       </Space>
 
@@ -127,10 +121,10 @@ export default function CompetenceExpandedRow({
             type="info"
             showIcon
             message="Savoirs directs"
-            description="Cette compétence ne contient pas de compétence fille. Vous pouvez y rattacher des savoirs directs."
+            description="Cette compétence ne contient pas de sous-compétence. Vous pouvez y rattacher des savoirs directs."
             style={{ marginBottom: 8 }}
           />
-          <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Aucune compétence fille" />
+          <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Aucune sous-compétence" />
         </>
       ) : (
         <div style={{ opacity: loading ? 0.6 : 1 }}>
@@ -140,7 +134,6 @@ export default function CompetenceExpandedRow({
               node={root}
               depth={0}
               onAddChild={onAddChild}
-              onAddSavoir={onAddSavoir}
               onEdit={onEdit}
               onDelete={onDelete}
             />
@@ -157,7 +150,6 @@ CompetenceExpandedRow.propTypes = {
   loading: PropTypes.bool,
   onAddRoot: PropTypes.func.isRequired,
   onAddChild: PropTypes.func.isRequired,
-  onAddSavoir: PropTypes.func.isRequired,
   onEdit: PropTypes.func.isRequired,
   onDelete: PropTypes.func.isRequired,
 };
