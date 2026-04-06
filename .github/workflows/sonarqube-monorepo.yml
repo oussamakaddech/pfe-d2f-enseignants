@@ -29,7 +29,7 @@ env:
 jobs:
   java-modules:
     name: Sonar Java • ${{ matrix.module }}
-    runs-on: [self-hosted, sonar]
+    runs-on: self-hosted
     strategy:
       fail-fast: false
       matrix:
@@ -100,7 +100,7 @@ jobs:
 
   webapp:
     name: Sonar Webapp • esprit_D2F-webapp
-    runs-on: [self-hosted, sonar]
+    runs-on: self-hosted
 
     steps:
       - name: Checkout
