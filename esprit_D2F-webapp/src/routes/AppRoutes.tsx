@@ -37,6 +37,8 @@ import CompetencePage from "../pages/competence/CompetencePage";
 import EnseignantCompetencePage from "../pages/competence/EnseignantCompetencePage";
 import AffectationEnseignantPage from "../pages/competence/AffectationEnseignantPage";
 import RicePage from "../pages/competence/RicePage";
+import CompetenceMatchingPage from "../pages/competence/CompetenceMatchingPage";
+import MatchmakingPage from "../pages/competence/rice/MatchmakingPage";
 
 export default function AppRoutes() {
   return (
@@ -64,6 +66,8 @@ export default function AppRoutes() {
                 />
                 <Route path="home/affectations" element={<AffectationEnseignantPage />} />
                 <Route path="home/rice" element={<RicePage />} />
+                <Route path="home/rice/matchmaking" element={<CompetenceMatchingPage />} />
+                <Route path="home/rice/competence-matching" element={<CompetenceMatchingPage />} />
                 <Route path="home/File" element={<CombinedFormationOneDriveTree />} />
                 <Route path="home/KPI" element={<KPIChart />} />
                 <Route path="home/UpDept" element={<UpDeptDataGrid />} />

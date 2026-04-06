@@ -98,6 +98,13 @@ export default function CompetenceModals({
       >
         <Form form={domaineForm} layout="vertical">
           <Form.Item
+            name="code"
+            label="Code"
+            rules={[{ required: true, message: "Code obligatoire" }]}
+          >
+            <Input placeholder="ex: INF" />
+          </Form.Item>
+          <Form.Item
             name="nom"
             label="Nom"
             rules={[{ required: true, message: "Nom obligatoire" }]}
@@ -126,7 +133,18 @@ export default function CompetenceModals({
         okText="Enregistrer"
         cancelText="Annuler"
       >
-        <Form form={compForm} layout="vertical">
+        <Form 
+          form={compForm} 
+          layout="vertical"
+          onValuesChange={(changedValues) => {
+            if (!crud.editingComp && changedValues.domaineId) {
+              const domaine = crud.domaines.find(d => d.id === changedValues.domaineId);
+              if (domaine?.code) {
+                compForm.setFieldsValue({ code: `${domaine.code}-` });
+              }
+            }
+          }}
+        >
           <Form.Item
             name="domaineId"
             label="Domaine"

@@ -17,7 +17,17 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from fastapi import HTTPException
 
-from rice.llm import _LLM_OK, _llm_chat
+# LLM symbols (import from package stub). If unavailable, provide safe defaults.
+try:
+    from .llm import _LLM_OK, _LLM_MODEL, _LLM_TIMEOUT, _escape_prompt, _llm_chat  # type: ignore
+except Exception:
+    _LLM_OK = False
+    _LLM_MODEL = ""
+    _LLM_TIMEOUT = 5
+    def _escape_prompt(p: str) -> str:  # type: ignore
+        return p
+    def _llm_chat(*args, **kwargs):  # type: ignore
+        raise RuntimeError("LLM integration is disabled in this environment")
 
 logger = logging.getLogger("rice_analyzer")
 

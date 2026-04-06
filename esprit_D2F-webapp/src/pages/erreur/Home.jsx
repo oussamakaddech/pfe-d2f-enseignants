@@ -1,6 +1,6 @@
 import { Outlet } from "react-router-dom";
 import TopBar from "../../components/TopBar";
-import SideBar from "../../components/SideBar";
+import SideMenu from "../../components/SideMenu";
 
 function Home() {
   return (
@@ -11,7 +11,7 @@ function Home() {
 
       <div style={{ display: "flex", flex: 1 }}>
         {/* Barre latérale à gauche */}
-        <SideBar />
+        <SideMenu />
 
         {/* Contenu dynamique à droite */}
         <div style={{ flex: 1, padding: "20px"  , paddingTop: "65px"}}>

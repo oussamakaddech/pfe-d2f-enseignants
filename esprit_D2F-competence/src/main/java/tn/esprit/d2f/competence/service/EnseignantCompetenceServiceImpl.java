@@ -86,7 +86,7 @@ public class EnseignantCompetenceServiceImpl implements IEnseignantCompetenceSer
         EnseignantCompetence ec = EnseignantCompetence.builder()
                 .enseignantId(request.getEnseignantId())
                 .savoir(savoir)
-                .niveau(request.getNiveau())
+                .niveau(request.getNiveau() != null ? request.getNiveau() : NiveauMaitrise.N1_DEBUTANT)
                 .dateAcquisition(request.getDateAcquisition())
                 .commentaire(request.getCommentaire())
                 .build();

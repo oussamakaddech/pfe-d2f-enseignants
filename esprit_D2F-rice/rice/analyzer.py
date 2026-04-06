@@ -17,7 +17,8 @@ from rice.models import (
     SousCompetenceProposition,
 )
 from rice.db import _fetch_all_enseignants_info
-from rice.llm import _LLM_OK
+# LLM removed
+_LLM_OK = False
 from rice.nlp import (
     _bloom_to_niveau,
     _detect_bloom_level,
@@ -268,10 +269,8 @@ def _analyze_single_fiche(
 
     # ── Step 5a: Extract explicit sub-competence titles ──────────────────
     subcomp_titles = _extract_subcompetences(text)
-    if not subcomp_titles:
-        llm_titles = _llm_extract_subcompetences(text, module_name)
-        if llm_titles:
-            subcomp_titles = [(i + 1, t) for i, t in enumerate(llm_titles)]
+    # LLM subcomp extraction removed - use explicit titles only
+    subcomp_titles = []
     if subcomp_titles:
         logger.info(f"  Sous-compétences explicites trouvées: {len(subcomp_titles)} — "
                      f"{[t for _, t in subcomp_titles[:5]]}")
@@ -297,7 +296,7 @@ def _analyze_single_fiche(
                 savoirs = []
                 for j, aa in enumerate(aa_block):
                     aa_num = aa.get("id", j + 1)
-                    sav_code = f"{module_code}-AA{aa_num}" if use_module_prefix else f"AA{aa_num}"
+                    sav_code = f"{comp_code}-AA{aa_num}"
                     gc_codes = _match_gc_savoir(aa["text"], departement=departement)
                     savoir_ens = list(
                         set(matched_by_name + matched_by_module + _suggest_gc_enseignants(gc_codes))
@@ -330,7 +329,7 @@ def _analyze_single_fiche(
             savoirs_directs: List[SavoirProposition] = []
             for j, aa in enumerate(acquis):
                 aa_num = aa.get("id", j + 1)
-                sav_code = f"{module_code}-AA{aa_num}" if use_module_prefix else f"AA{aa_num}"
+                sav_code = f"{comp_code}-AA{aa_num}"
                 gc_codes = _match_gc_savoir(aa["text"], departement=departement)
                 savoir_ens = list(
                     set(matched_by_name + matched_by_module + _suggest_gc_enseignants(gc_codes))
@@ -481,8 +480,8 @@ def _fallback_extraction(
     items: List[str] = []
 
     # ── 0. LLM extraction (primary) ──────────────────────────────────────
-    if _LLM_OK:
-        items = _llm_fallback_items(text, module_name)
+    # LLM fallback removed - use regex bullets
+    items = []
 
     # ── 1. Regex + Bloom filter (fallback when LLM unavailable/empty) ─────
     if not items:

@@ -84,11 +84,20 @@ def _get_current_user(token: Optional[str] = Depends(_oauth2_scheme)) -> Optiona
 # Router
 # ─────────────────────────────────────────────────────────────────────────────
 
-rice_router = APIRouter(prefix="/rice", tags=["RICE"])
+rice_router = APIRouter(
+    prefix="/rice",
+    tags=["RICE - Référentiel Intelligent de Compétences Enseignants"],
+    responses={404: {"description": "Not found"}}
+)
 
 
 @rice_router.post("/analyze", response_model=RiceAnalysisResult,
-                  summary="Analyser les fiches UE/modules et générer le référentiel RICE")
+                  summary="🎯 Analyser fiches PDF/DOCX → Arbre de compétences RICE",
+                  description="Upload fiches UE/modules ESPRIT. Auto-détecte département (GC/INFO/GE/MECA/TELECOM). Retourne hiérarchie Domaine→Compétence→Savoir avec niveaux Bloom + matching enseignants.",
+                  responses={
+                      200: {"description": "RiceAnalysisResult JSON (arbre validé)"},
+                      400: {"description": "Fichier manquant ou JSON enseignants invalide"}
+                  })
 async def rice_analyze(
     files: List[UploadFile] = File(..., description="Fiches UE et modules (PDF/DOCX)"),
     enseignants: str = Form(
@@ -97,13 +106,7 @@ async def rice_analyze(
     ),
     departement: str = Form(
         default="auto",
-        description=(
-            "Code du département ESPRIT : 'auto' (détection automatique depuis la fiche), "
-            "'gc' (Génie Civil, référentiel intégré), "
-            "'info' (Informatique), 'ge' (Génie Électrique), "
-            "'meca' (Génie Mécanique), 'telecom' (Télécommunications), "
-            "ou tout autre code défini dans la table ref_savoirs."
-        ),
+        description="**auto** (détecte GC/INFO/GE/MECA/TELECOM) | **gc** (Génie Civil - fallback JSON) | **info/ge/meca/telecom** (DB refs)"
     ),
     _user: Optional[Dict] = Depends(_get_current_user),
 ):
@@ -139,8 +142,9 @@ async def rice_analyze(
 
 @rice_router.post(
     "/export-csv",
-    summary="Exporter le résultat d'analyse RICE au format CSV",
-    responses={200: {"content": {"text/csv": {}}, "description": "CSV file"}},
+    summary="📊 Export CSV (1 ligne/savoir)",
+    description="Flatten arbre RICE → CSV Excel-ready (UTF-8 BOM). Colonnes: domaine/comp/savoir + enseignants/ref_codes.",
+    responses={200: {"description": "rice_export.csv (UTF-8 Excel-ready)"}}
 )
 async def export_csv(
     result: RiceAnalysisResult,
@@ -213,10 +217,9 @@ async def export_csv(
     )
 
 
-@rice_router.get("/referential",
-                 summary="Obtenir le référentiel du département pour matching")
-@rice_router.get("/gc-referential",   # backward-compat alias
-                 summary="Alias déprécié – utiliser /referential", include_in_schema=False)
+@rice_router.get("/referential/{departement}",
+                 summary="📚 Référentiel département (Savoirs + Affectations)",
+                 description="GC/INFO/GE/MECA/TELECOM refs + enseignants par module. Cache 1h, refresh via /refresh-cache")
 def get_referential(
     departement: str = "gc",
 ):

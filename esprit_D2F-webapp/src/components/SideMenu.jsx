@@ -12,6 +12,7 @@ import {
   LogoutOutlined,
   ApartmentOutlined,
   RobotOutlined,
+  SearchOutlined,
 } from "@ant-design/icons";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
@@ -40,9 +41,17 @@ export default function SideMenu() {
       { label: "Comptes", key: "/home/accounts", icon: TeamOutlined },
       { label: "Formations", key: "/home/Formation", icon: FileTextOutlined },
       { label: "Documents", key: "/home/File", icon: FileTextOutlined },
-      { label: "Enseignants", key: "/home/Enseignants", icon: TeamOutlined },
-      { label: "Compétences", key: "/home/competences", icon: ApartmentOutlined },
-      { label: "Affectations", key: "/home/affectations", icon: SolutionOutlined },
+      { label: "Gestion Enseignant", key: "/home/Enseignants", icon: TeamOutlined },
+      { label: "Gestion Competence", key: "/home/competences", icon: ApartmentOutlined },
+      {
+        label: "Gestion d'affectation",
+        key: "gestion_affectation",
+        icon: SolutionOutlined,
+        children: [
+          { label: "Consultation Affectation", key: "/home/affectations" },
+          { label: "Affectation via Matchmaking", key: "/home/rice/matchmaking" },
+        ],
+      },
       { label: "RICE", key: "/home/rice", icon: RobotOutlined },
     ];
     // Menu admin
@@ -58,8 +67,16 @@ export default function SideMenu() {
       { label: "Certificates", key: "/home/certificate", icon: ReadOutlined },
       { label: "Up & Departement", key: "/home/UpDept", icon: ReadOutlined },
       { label: "Presence & Evaluation", key: "/home/animateur-formations", icon: ReadOutlined },
-      { label: "Compétences", key: "/home/competences", icon: ApartmentOutlined },
-      { label: "Affectations", key: "/home/affectations", icon: SolutionOutlined },
+      { label: "Gestion Competence", key: "/home/competences", icon: ApartmentOutlined },
+      {
+        label: "Gestion d'affectation",
+        key: "gestion_affectation",
+        icon: SolutionOutlined,
+        children: [
+          { label: "Consultation Affectation", key: "/home/affectations" },
+          { label: "Affectation via Matchmaking", key: "/home/rice/matchmaking" },
+        ],
+      },
       { label: "RICE", key: "/home/rice", icon: RobotOutlined },
     ];
         // Menu admin
@@ -71,7 +88,15 @@ export default function SideMenu() {
       { label: "Certificates", key: "/home/certificate", icon: ReadOutlined },
       { label: "Mes Certificates", key: "/home/MyCertificate", icon: ReadOutlined },
       { label: "Compétences", key: "/home/competences", icon: ApartmentOutlined },
-      { label: "Affectations", key: "/home/affectations", icon: SolutionOutlined },
+      {
+        label: "Gestion d'affectation",
+        key: "gestion_affectation",
+        icon: SolutionOutlined,
+        children: [
+          { label: "Consultation Affectation", key: "/home/affectations" },
+          { label: "Affectation via Matchmaking", key: "/home/rice/matchmaking" },
+        ],
+      },
       { label: "RICE", key: "/home/rice", icon: RobotOutlined },
     ];
     // Menu formateur (role = "Formateur")
@@ -137,10 +162,21 @@ export default function SideMenu() {
         mode="inline"
         selectedKeys={[pathname]}
         onClick={onClick}
-        items={items.map(({ icon: Icon, ...rest }) => ({
-          icon: <Icon style={{ fontSize: 18, color: "#B51200" }} />,
-          ...rest,
-        }))}
+        items={items.map((item) => {
+          if (item.key === "logout") {
+            const { icon: Icon, ...rest } = item;
+            return {
+              icon: Icon ? <Icon style={{ fontSize: 18, color: "#B51200" }} /> : null,
+              ...rest,
+            };
+          }
+          const { icon: Icon, children, ...rest } = item;
+          return {
+            icon: Icon ? <Icon style={{ fontSize: 18, color: "#B51200" }} /> : null,
+            children,
+            ...rest,
+          };
+        })}
       />
     </>
   );

@@ -91,23 +91,13 @@ export default function useCompetenceCrud({ onInvalidateStructure, onSavoirMutat
 
   const openDomaineModal = useCallback((form, record = null) => {
     setEditingDomaine(record);
-    form.setFieldsValue(record || { nom: "", description: "", actif: true });
+    form.setFieldsValue(record || { code: "", nom: "", description: "", actif: true });
     setDomaineModal(true);
   }, []);
 
   const handleDomaineSubmit = useCallback(async (form) => {
     try {
       const values = await form.validateFields();
-      if (!editingDomaine) {
-        values.code = values.nom
-          .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
-          .toUpperCase()
-          .replace(/[^A-Z0-9]+/g, "_")
-          .replace(/^_|_$/g, "")
-          .substring(0, 30);
-      } else {
-        values.code = editingDomaine.code;
-      }
       if (editingDomaine) {
         await CompetenceService.domaine.update(editingDomaine.id, values);
         msgApi.success("Domaine mis à jour");
