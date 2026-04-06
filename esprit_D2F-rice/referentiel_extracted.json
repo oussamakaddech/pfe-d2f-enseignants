@@ -1,0 +1,243 @@
+{
+    "propositions": [
+        {
+            "tmpId": "dom_TECH-Info-Web",
+            "code": "TECH-Info-Web",
+            "nom": "Technique",
+            "competences": [
+                {
+                    "tmpId": "comp_TECH-Info-Web-C0",
+                    "code": "TECH-Info-Web-C0",
+                    "nom": "Dev Frontend avec Angular",
+                    "description": "",
+                    "savoirs": [
+                        {
+                            "tmpId": "sav_TECH-Info-Web-C0-A1",
+                            "code": "TECH-Info-Web-C0-A1",
+                            "nom": "Identifier les elements de base d'une app Angular (modules, composants, templates)",
+                            "type": "THEORIQUE",
+                            "niveau": "N1_DEBUTANT"
+                        },
+                        {
+                            "tmpId": "sav_TECH-Info-Web-C0-A2",
+                            "code": "TECH-Info-Web-C0-A2",
+                            "nom": "Expliquer l'architecture d'une application Angular et ses differents elements",
+                            "type": "THEORIQUE",
+                            "niveau": "N2_INTERMEDIAIRE"
+                        },
+                        {
+                            "tmpId": "sav_TECH-Info-Web-C0-A3",
+                            "code": "TECH-Info-Web-C0-A3",
+                            "nom": "Pratiquer les types de liaison de donnees (data-binding)",
+                            "type": "PRATIQUE",
+                            "niveau": "N2_INTERMEDIAIRE"
+                        },
+                        {
+                            "tmpId": "sav_TECH-Info-Web-C0-A4",
+                            "code": "TECH-Info-Web-C0-A4",
+                            "nom": "Manipuler les directives de structure et d'attribut",
+                            "type": "PRATIQUE",
+                            "niveau": "N2_INTERMEDIAIRE"
+                        },
+                        {
+                            "tmpId": "sav_TECH-Info-Web-C0-A5",
+                            "code": "TECH-Info-Web-C0-A5",
+                            "nom": "Manipuler les pipes predefinies et personnalisees",
+                            "type": "PRATIQUE",
+                            "niveau": "N2_INTERMEDIAIRE"
+                        },
+                        {
+                            "tmpId": "sav_TECH-Info-Web-C0-A6",
+                            "code": "TECH-Info-Web-C0-A6",
+                            "nom": "Construire des routes statiques, dynamiques et parametrees",
+                            "type": "PRATIQUE",
+                            "niveau": "N3_INTERMEDIAIRE"
+                        },
+                        {
+                            "tmpId": "sav_TECH-Info-Web-C0-A7",
+                            "code": "TECH-Info-Web-C0-A7",
+                            "nom": "Appliquer le lazy loading des modules",
+                            "type": "PRATIQUE",
+                            "niveau": "N3_INTERMEDIAIRE"
+                        },
+                        {
+                            "tmpId": "sav_TECH-Info-Web-C0-A8",
+                            "code": "TECH-Info-Web-C0-A8",
+                            "nom": "Construire des formulaires avec validation (template-driven et reactive)",
+                            "type": "PRATIQUE",
+                            "niveau": "N3_INTERMEDIAIRE"
+                        },
+                        {
+                            "tmpId": "sav_TECH-Info-Web-C0-A9",
+                            "code": "TECH-Info-Web-C0-A9",
+                            "nom": "Produire des interactions entre composants (@Input / @Output)",
+                            "type": "PRATIQUE",
+                            "niveau": "N3_INTERMEDIAIRE"
+                        },
+                        {
+                            "tmpId": "sav_TECH-Info-Web-C0-A10",
+                            "code": "TECH-Info-Web-C0-A10",
+                            "nom": "Definir et appliquer des services Angular avec injection de dependances",
+                            "type": "THEORIQUE",
+                            "niveau": "N3_INTERMEDIAIRE"
+                        },
+                        {
+                            "tmpId": "sav_TECH-Info-Web-C0-A11",
+                            "code": "TECH-Info-Web-C0-A11",
+                            "nom": "Manipuler des Observables et la gestion de flux asynchrones",
+                            "type": "PRATIQUE",
+                            "niveau": "N4_AVANCE"
+                        },
+                        {
+                            "tmpId": "sav_TECH-Info-Web-C0-A12",
+                            "code": "TECH-Info-Web-C0-A12",
+                            "nom": "Consommer un web service REST via HttpClient",
+                            "type": "PRATIQUE",
+                            "niveau": "N4_AVANCE"
+                        },
+                        {
+                            "tmpId": "sav_TECH-Info-Web-C0-A13",
+                            "code": "TECH-Info-Web-C0-A13",
+                            "nom": "Manipuler JSON Web Token (JWT) pour l'authentification cote client",
+                            "type": "PRATIQUE",
+                            "niveau": "N4_AVANCE"
+                        },
+                        {
+                            "tmpId": "sav_TECH-Info-Web-C0-A14",
+                            "code": "TECH-Info-Web-C0-A14",
+                            "nom": "Organiser les elements de l'application en modules fonctionnels",
+                            "type": "PRATIQUE",
+                            "niveau": "N4_AVANCE"
+                        }
+                    ],
+                    "sousCompetences": []
+                },
+                {
+                    "tmpId": "comp_TECH-Info-Web-C1",
+                    "code": "TECH-Info-Web-C1",
+                    "nom": "Dev Front-End avec React",
+                    "description": "",
+                    "savoirs": [
+                        {
+                            "tmpId": "sav_TECH-Info-Web-C1-A1",
+                            "code": "TECH-Info-Web-C1-A1",
+                            "nom": "Creer une page HTML semantique integrable dans une application React",
+                            "type": "THEORIQUE",
+                            "niveau": "N1_DEBUTANT"
+                        },
+                        {
+                            "tmpId": "sav_TECH-Info-Web-C1-A2",
+                            "code": "TECH-Info-Web-C1-A2",
+                            "nom": "Appliquer un style CSS propre et maintenable",
+                            "type": "PRATIQUE",
+                            "niveau": "N1_DEBUTANT"
+                        },
+                        {
+                            "tmpId": "sav_TECH-Info-Web-C1-A3",
+                            "code": "TECH-Info-Web-C1-A3",
+                            "nom": "Manipuler les tableaux, objets et fonctions JavaScript",
+                            "type": "PRATIQUE",
+                            "niveau": "N2_INTERMEDIAIRE"
+                        },
+                        {
+                            "tmpId": "sav_TECH-Info-Web-C1-A4",
+                            "code": "TECH-Info-Web-C1-A4",
+                            "nom": "Creer et reutiliser des composants React",
+                            "type": "PRATIQUE",
+                            "niveau": "N2_INTERMEDIAIRE"
+                        },
+                        {
+                            "tmpId": "sav_TECH-Info-Web-C1-A5",
+                            "code": "TECH-Info-Web-C1-A5",
+                            "nom": "Passer des donnees via props",
+                            "type": "THEORIQUE",
+                            "niveau": "N2_INTERMEDIAIRE"
+                        },
+                        {
+                            "tmpId": "sav_TECH-Info-Web-C1-A6",
+                            "code": "TECH-Info-Web-C1-A6",
+                            "nom": "Utiliser useState pour gerer l'etat local",
+                            "type": "PRATIQUE",
+                            "niveau": "N3_INTERMEDIAIRE"
+                        },
+                        {
+                            "tmpId": "sav_TECH-Info-Web-C1-A7",
+                            "code": "TECH-Info-Web-C1-A7",
+                            "nom": "Utiliser useEffect pour gerer les effets de bord",
+                            "type": "PRATIQUE",
+                            "niveau": "N3_INTERMEDIAIRE"
+                        },
+                        {
+                            "tmpId": "sav_TECH-Info-Web-C1-A8",
+                            "code": "TECH-Info-Web-C1-A8",
+                            "nom": "Mettre en place le routage avec React Router",
+                            "type": "PRATIQUE",
+                            "niveau": "N4_AVANCE"
+                        },
+                        {
+                            "tmpId": "sav_TECH-Info-Web-C1-A9",
+                            "code": "TECH-Info-Web-C1-A9",
+                            "nom": "Consommer une API REST avec fetch ou axios",
+                            "type": "PRATIQUE",
+                            "niveau": "N4_AVANCE"
+                        },
+                        {
+                            "tmpId": "sav_TECH-Info-Web-C1-A10",
+                            "code": "TECH-Info-Web-C1-A10",
+                            "nom": "Gerer la validation de formulaires cote front",
+                            "type": "PRATIQUE",
+                            "niveau": "N5_INTERMEDIAIRE"
+                        },
+                        {
+                            "tmpId": "sav_TECH-Info-Web-C1-A11",
+                            "code": "TECH-Info-Web-C1-A11",
+                            "nom": "Concevoir une interface responsive",
+                            "type": "PRATIQUE",
+                            "niveau": "N5_INTERMEDIAIRE"
+                        },
+                        {
+                            "tmpId": "sav_TECH-Info-Web-C1-A12",
+                            "code": "TECH-Info-Web-C1-A12",
+                            "nom": "Structurer un projet React en composants, pages et services",
+                            "type": "THEORIQUE",
+                            "niveau": "N5_INTERMEDIAIRE"
+                        }
+                    ],
+                    "sousCompetences": []
+                },
+                {
+                    "tmpId": "comp_TECH-Info-Web-C2",
+                    "code": "TECH-Info-Web-C2",
+                    "nom": "Dev Back-End avec Java",
+                    "description": "",
+                    "savoirs": [],
+                    "sousCompetences": []
+                },
+                {
+                    "tmpId": "comp_TECH-Info-Web-C3",
+                    "code": "TECH-Info-Web-C3",
+                    "nom": "Integration Full-Stack React/Java",
+                    "description": "",
+                    "savoirs": [],
+                    "sousCompetences": []
+                },
+                {
+                    "tmpId": "comp_TECH-Info-Web-C4",
+                    "code": "TECH-Info-Web-C4",
+                    "nom": "Qualite, securite et deploiement",
+                    "description": "",
+                    "savoirs": [],
+                    "sousCompetences": []
+                },
+                {
+                    "tmpId": "comp_TECH-Info-Web-C1-A11",
+                    "code": "TECH-Info-Web-C1-A11",
+                    "nom": "Concevoir une interface responsive P N5",
+                    "description": "",
+                    "savoirs": [],
+                    "sousCompetences": []
+                }
+            ]
+        }
+    ]
+}

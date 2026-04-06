@@ -123,6 +123,8 @@ export default function RicePage() {
     mergeSrc, setMergeSrc, mergeDst, setMergeDst,
     updateTree,
     startRename, commitRename,
+    // create helpers
+    addDomaine, addCompetence, addSousCompetence, addSavoir,
     deleteSavoir, deleteSC, deleteComp, deleteDomaine,
     toggleType, setNiveau, toggleEnsAssign, setEnseignants,
     clearAllAssignments, remapInTree,
@@ -296,13 +298,13 @@ export default function RicePage() {
           for (const s of c.savoirs ?? []) {
             const suggested = (s.enseignantsSuggeres ?? []).map((id) => String(id));
             s.aiSuggestedIds = suggested;
-            s.enseignantsSuggeres = suggested;
+            s.enseignantsSuggeres = []; // Clear auto-assignments – use Matchmaking page instead
           }
           for (const sc of c.sousCompetences ?? [])
             for (const s of sc.savoirs ?? []) {
               const suggested = (s.enseignantsSuggeres ?? []).map((id) => String(id));
               s.aiSuggestedIds = suggested;
-              s.enseignantsSuggeres = suggested;
+              s.enseignantsSuggeres = []; // Clear auto-assignments – use Matchmaking page instead
             }
         }
 
@@ -314,13 +316,38 @@ export default function RicePage() {
       const extractedClean = (result.extractedEnseignants ?? []).filter(
         (ex) => isLikelyValidExtractedName(ex?.nom_complet),
       );
+      // Build sets of DB enseignant identifiers for fast lookup (both nom+prenom and prenom+nom)
+      const dbNameSets = new Set();
+      (allEnseignants ?? []).forEach((e) => {
+        const nom = String(e.nom ?? "").trim().toLowerCase();
+        const prenom = String(e.prenom ?? "").trim().toLowerCase();
+        if (nom && prenom) {
+          dbNameSets.add(`${nom} ${prenom}`);
+          dbNameSets.add(`${prenom} ${nom}`);
+        }
+      });
       const dedupMap = new Map();
       extractedClean.forEach((ex) => {
         const key = String(ex?.nom_complet ?? "").trim().toLowerCase();
         if (!key || dedupMap.has(key)) return;
+        // Check if this extracted name matches any DB enseignant (handles both "nom prenom" and "prenom nom")
+        const nameParts = key.split(/\s+/).filter(Boolean);
+        let matchesDB = dbNameSets.has(key);
+        if (!matchesDB && nameParts.length >= 2) {
+          // Try first two parts as "prenom nom" or "nom prenom"
+          const combo1 = `${nameParts[0]} ${nameParts[1]}`;
+          const combo2 = `${nameParts[1]} ${nameParts[0]}`;
+          matchesDB = dbNameSets.has(combo1) || dbNameSets.has(combo2);
+        }
+        if (matchesDB) return; // Skip – already exists in DB
         dedupMap.set(key, ex);
       });
       setExtractedEnseignants(Array.from(dedupMap.values()));
+      try {
+        localStorage.setItem("rice_extracted_enseignants", JSON.stringify(Array.from(dedupMap.values())));
+      } catch (err) {
+        // ignore
+      }
 
       const detectedDept = String(
         result?.detectedDepartement
@@ -355,10 +382,12 @@ export default function RicePage() {
     (extId, realId) => {
       remapInTree(extId, realId);
       const extIdx = parseInt(extId.replace("ext_", ""), 10);
-      setExtractedEnseignants((prev) =>
-        prev.map((ex, i) => (i === extIdx ? { ...ex, matched_id: realId } : ex)),
-      );
-      msgApi.success("Enseignant identifie et affecte sur tous les savoirs lies");
+      setExtractedEnseignants((prev) => {
+        const next = prev.map((ex, i) => (i === extIdx ? { ...ex, matched_id: realId } : ex));
+        try { localStorage.setItem("rice_extracted_enseignants", JSON.stringify(next)); } catch (e) {}
+        return next;
+      });
+      msgApi.success("Enseignant identifie");
     },
     [remapInTree, msgApi],
   );
@@ -381,8 +410,23 @@ export default function RicePage() {
       });
       const realId = String(created.id ?? created.enseignantId);
       setAllEnseignants((prev) => [...prev, { ...created, enseignantId: realId }]);
-      remapEnseignant(createEnsTarget.eid, realId);
-      msgApi.success(`Enseignant ${prenom} ${nomUp} cree et lie`);
+      if (Array.isArray(createEnsTarget.path) && createEnsTarget.path.length >= 3) {
+        const [di, ci, sci, si] = createEnsTarget.path;
+        const current = sci === -1
+          ? tree?.[di]?.competences?.[ci]?.savoirs?.[si]
+          : tree?.[di]?.competences?.[ci]?.sousCompetences?.[sci]?.savoirs?.[si];
+        if (current) {
+          const ids = new Set((current.enseignantsSuggeres ?? []).map(String));
+          ids.add(realId);
+          setEnseignants(di, ci, sci, si, Array.from(ids));
+        }
+        msgApi.success(`Enseignant ${prenom} ${nomUp} crée et lié au savoir sélectionné`);
+      } else if (createEnsTarget.eid) {
+        remapEnseignant(createEnsTarget.eid, realId);
+        msgApi.success(`Enseignant ${prenom} ${nomUp} créé et lié`);
+      } else {
+        msgApi.success(`Enseignant ${prenom} ${nomUp} créé`);
+      }
       setCreateEnsModal(false);
       setCreateEnsTarget(null);
     } catch (err) {
@@ -390,7 +434,7 @@ export default function RicePage() {
     } finally {
       setSavingNewEns(false);
     }
-  }, [createEnsTarget, createEnsData, remapEnseignant, msgApi]);
+  }, [createEnsTarget, createEnsData, remapEnseignant, msgApi, setEnseignants, tree]);
 
   // -- Reset all -------------------------------------------------------------
   const resetAll = useCallback(() => {
@@ -404,6 +448,7 @@ export default function RicePage() {
     setEnsSearchStep2("");
     setAnalysisProgress(0);
     setExtractedEnseignants([]);
+    try { localStorage.removeItem("rice_extracted_enseignants"); } catch {}
     setIgnoreEnseignants(false);
     setTreeHistory([]);
     prevTreeRef.current = [];
@@ -476,7 +521,8 @@ export default function RicePage() {
           handleAnalyze();
           return;
         }
-        if (currentStep === 2 && !importing) {
+        // trigger import from the Enseignants page (page-level step 3)
+        if (currentStep === 3 && !importing) {
           handleImport();
         }
       }
@@ -566,7 +612,7 @@ export default function RicePage() {
       description: analyzing ? "En cours..." : "",
     },
     {
-      title: "Revision",
+      title: "Revision (Structure)",
       icon: <EditOutlined />,
       description: currentStep >= 2 ? `${liveStats.totalSavoirs} savoirs` : "",
     },
@@ -644,7 +690,7 @@ export default function RicePage() {
             </motion.div>
           )}
 
-          {/* Step 2: Review */}
+          {/* Step 2: Review (Structure) */}
           {currentStep === 2 && (
             <motion.div key="step2" variants={STEP_VARIANTS} initial="initial" animate="animate" exit="exit">
               <ReviewStep
@@ -660,6 +706,10 @@ export default function RicePage() {
                 deleteSC={deleteSC}
                 deleteComp={deleteComp}
                 deleteDomaine={deleteDomaine}
+                addDomaine={addDomaine}
+                addCompetence={addCompetence}
+                addSousCompetence={addSousCompetence}
+                addSavoir={addSavoir}
                 toggleType={toggleType}
                 setNiveau={setNiveau}
                 setEnseignants={setEnseignants}
@@ -695,10 +745,12 @@ export default function RicePage() {
                 onEnsDrop={dndHook.onEnsDrop}
                 toggleEnsAssign={toggleEnsAssign}
                 setCurrentStep={setCurrentStep}
+                initialPanel="structure"
               />
             </motion.div>
           )}
 
+          
           {/* Step 3: Report */}
           {currentStep === 3 && (
             <motion.div key="step3" variants={STEP_VARIANTS} initial="initial" animate="animate" exit="exit">

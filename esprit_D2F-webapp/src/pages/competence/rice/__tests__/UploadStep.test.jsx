@@ -42,6 +42,12 @@ describe("UploadStep", () => {
     setCurrentStep: vi.fn(),
     departement: "auto",
     setDepartement: vi.fn(),
+    allEnseignants: [],
+    enseignantsLoading: false,
+    enseignantsError: null,
+    enseignantsLoadSlow: false,
+    onRetryEnseignants: vi.fn(),
+    onContinueWithoutEnseignants: vi.fn(),
   };
 
   it("renders the department selector", () => {

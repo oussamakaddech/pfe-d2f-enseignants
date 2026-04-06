@@ -1,33 +1,44 @@
-"""LLM communication layer — Ollama removed, fallback regex always active."""
+"""LLM shim for RICE — provides disabled/default behavior.
 
+This module intentionally implements lightweight stubs so the rest of the
+package can import LLM-related symbols even when no LLM implementation is
+present. The stubs reflect the repository's behavior where LLM assistance is
+disabled and the code falls back to regex/table NER.
+"""
 from __future__ import annotations
 
-import logging
-import re
-from typing import Dict, List, Optional
+import os
+from typing import Any, Dict, List
 
-logger = logging.getLogger("rice_analyzer")
+# Environment-driven configuration (safe defaults)
+_LLM_MODEL: str = os.environ.get("LLM_MODEL", "")
+try:
+    _LLM_TIMEOUT: int = int(os.environ.get("LLM_TIMEOUT", "5"))
+except Exception:
+    _LLM_TIMEOUT = 5
 
-# ── LLM désactivé (Ollama supprimé) ─────────────────────────────────────────
-# Le service fonctionne en mode fallback regex/table NER uniquement.
-# Pour réactiver un LLM local, implémenter un nouveau provider ici.
-_LLM_OK = False
-_LLM_MODEL = "none"
-_OLLAMA_HOST = "disabled"
-_LLM_TIMEOUT = 0
-
-
-def _escape_prompt(text: str) -> str:
-    """Strip characters that could confuse LLM prompts (kept for API compatibility)."""
-    text = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f]", "", text)
-    text = re.sub(r"\n{4,}", "\n\n\n", text)
-    return text
+# Flag indicating whether an actual LLM integration is available.
+# Keep False to force fallback behavior in the rest of the codebase.
+_LLM_OK: bool = False
 
 
-def _llm_chat(messages: List[Dict], temperature: float = 0.05) -> Optional[str]:
-    """LLM stub — always returns None (Ollama removed).
+def _escape_prompt(prompt: str) -> str:
+    """Return an escaped prompt (no-op for stub)."""
+    return prompt
 
-    The NLP pipeline falls back to table-based and regex-based NER
-    automatically when this function returns None.
+
+def _llm_chat(messages: List[Dict[str, Any]], * , model: str | None = None, timeout: int | None = None) -> Any:
+    """Synchronous stub chat call.
+
+    Always raises to indicate LLM is unavailable; callers should catch and
+    fallback to regex/table NER.
     """
-    return None
+    raise RuntimeError("LLM integration is disabled in this environment")
+
+
+def _llm_sync_chat(*args, **kwargs):
+    """Alias for sync callers (keeps original API surface)."""
+    return _llm_chat(*args, **kwargs)
+
+
+__all__ = ["_LLM_OK", "_LLM_MODEL", "_LLM_TIMEOUT", "_escape_prompt", "_llm_chat", "_llm_sync_chat"]

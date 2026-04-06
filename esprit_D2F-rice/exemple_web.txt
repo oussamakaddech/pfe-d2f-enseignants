@@ -1,0 +1,48 @@
+Referentiel de Competences — Developpement Web
+
+1. Informations generales
+Element Valeur
+Domaine Technique
+Code domaine TECH-Info-Web
+Referentiel Developpement Web
+
+2. Tableau des competences
+Code Competence Description Prerequis
+TECH-Info-Web-C0 Dev Frontend avec Angular Concevoir des applications web cote client avec Angular (composants, routage, services, formulaires) Algorithmique 1, Technologie web 1.0
+TECH-Info-Web-C1 Dev Front-End avec React Concevoir des interfaces web dynamiques, responsives et connectees a des API HTML, CSS, JavaScript de base
+TECH-Info-Web-C2 Dev Back-End avec Java Concevoir des services metier, des API REST et la gestion des donnees Algorithmique, POO, notions SQL
+TECH-Info-Web-C3 Integration Full-Stack React/Java Connecter le front React avec le back Java dans une application complete TECH-Info-Web-C1 + TECH-Info-Web-C2
+TECH-Info-Web-C4 Qualite, securite et deploiement Tester, securiser, versionner et deployer l'application Git, structure projet, notions d'environnement
+
+3. TECH-Info-Web-C0 — Developpement Frontend avec Angular
+Source : Fiche module Application Cote Client 1 — ESPRIT 2024/2025
+Code Savoir Savoir Type Niveau
+TECH-Info-Web-C0-A1 Identifier les elements de base d'une app Angular (modules, composants, templates) T N1
+TECH-Info-Web-C0-A2 Expliquer l'architecture d'une application Angular et ses differents elements T N2
+TECH-Info-Web-C0-A3 Pratiquer les types de liaison de donnees (data-binding) P N2
+TECH-Info-Web-C0-A4 Manipuler les directives de structure et d'attribut P N2
+TECH-Info-Web-C0-A5 Manipuler les pipes predefinies et personnalisees P N2
+TECH-Info-Web-C0-A6 Construire des routes statiques, dynamiques et parametrees P N3
+TECH-Info-Web-C0-A7 Appliquer le lazy loading des modules P N3
+TECH-Info-Web-C0-A8 Construire des formulaires avec validation (template-driven et reactive) P N3
+TECH-Info-Web-C0-A9 Produire des interactions entre composants (@Input / @Output) P N3
+TECH-Info-Web-C0-A10 Definir et appliquer des services Angular avec injection de dependances T N3
+TECH-Info-Web-C0-A11 Manipuler des Observables et la gestion de flux asynchrones P N4
+TECH-Info-Web-C0-A12 Consommer un web service REST via HttpClient P N4
+TECH-Info-Web-C0-A13 Manipuler JSON Web Token (JWT) pour l'authentification cote client P N4
+TECH-Info-Web-C0-A14 Organiser les elements de l'application en modules fonctionnels P N4
+
+4. TECH-Info-Web-C1 — Developpement Front-End avec React
+Code Savoir Savoir Type Niveau
+TECH-Info-Web-C1-A1 Creer une page HTML semantique integrable dans une application React T N1
+TECH-Info-Web-C1-A2 Appliquer un style CSS propre et maintenable P N1
+TECH-Info-Web-C1-A3 Manipuler les tableaux, objets et fonctions JavaScript P N2
+TECH-Info-Web-C1-A4 Creer et reutiliser des composants React P N2
+TECH-Info-Web-C1-A5 Passer des donnees via props T N2
+TECH-Info-Web-C1-A6 Utiliser useState pour gerer l'etat local P N3
+TECH-Info-Web-C1-A7 Utiliser useEffect pour gerer les effets de bord P N3
+TECH-Info-Web-C1-A8 Mettre en place le routage avec React Router P N4
+TECH-Info-Web-C1-A9 Consommer une API REST avec fetch ou axios P N4
+TECH-Info-Web-C1-A10 Gerer la validation de formulaires cote front P N5
+TECH-Info-Web-C1-A11 Concevoir une interface responsive P N5
+TECH-Info-Web-C1-A12 Structurer un projet React en composants, pages et services T N5

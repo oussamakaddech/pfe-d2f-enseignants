@@ -73,6 +73,41 @@ export function useRiceTree(msgApi) {
     [updateTree],
   );
 
+  // ── create (add) ──────────────────────────────────────────────────────────
+  const addDomaine = useCallback((domaine = { code: "NEW", nom: "Nouvel Domaine" }) => {
+    updateTree((t) => {
+      const idx = t.push({ ...domaine, competences: [] }) - 1;
+      setEditingNom({ path: [idx], value: domaine.nom });
+    });
+  }, [updateTree, setEditingNom]);
+
+  const addCompetence = useCallback((di, competence = { code: "NEW_C", nom: "Nouvelle compétence" }) => {
+    updateTree((t) => {
+      const comps = t[di].competences ?? (t[di].competences = []);
+      const ci = comps.push({ ...competence, sousCompetences: [], savoirs: [] }) - 1;
+      setEditingNom({ path: [di, ci], value: competence.nom });
+    });
+  }, [updateTree, setEditingNom]);
+
+  const addSousCompetence = useCallback((di, ci, sousComp = { code: "NEW_SC", nom: "Nouvelle sous-comp" }) => {
+    updateTree((t) => {
+      const comp = t[di].competences[ci];
+      const scs = comp.sousCompetences ?? (comp.sousCompetences = []);
+      const sci = scs.push({ ...sousComp, savoirs: [] }) - 1;
+      setEditingNom({ path: [di, ci, sci], value: sousComp.nom });
+    });
+  }, [updateTree, setEditingNom]);
+
+  const addSavoir = useCallback((di, ci, sci = -1, savoir = { code: null, nom: "Nouveau savoir", type: "THEORIQUE", niveau: null, enseignantsSuggeres: [] }) => {
+    updateTree((t) => {
+      const target = sci === -1 ? t[di].competences[ci] : t[di].competences[ci].sousCompetences[sci];
+      const list = target.savoirs ?? (target.savoirs = []);
+      const tmpId = `tmp-${Date.now()}-${Math.random().toString(36).slice(2,8)}`;
+      const si = list.push({ ...savoir, tmpId }) - 1;
+      setEditingNom({ path: [di, ci, sci, si], value: savoir.nom });
+    });
+  }, [updateTree, setEditingNom]);
+
   // ── type / niveau ─────────────────────────────────────────────────────────
   const toggleType = useCallback(
     (di, ci, sci, si) =>
@@ -270,6 +305,8 @@ export function useRiceTree(msgApi) {
     mergeDst, setMergeDst,
     // tree utilities
     updateTree,
+    // create
+    addDomaine, addCompetence, addSousCompetence, addSavoir,
     // rename
     startRename, commitRename,
     // delete

@@ -37,6 +37,8 @@ export default function TeachersDataGrid() {
   const navigate = useNavigate();
   const [msgApi, msgCtx] = message.useMessage();
   const [data, setData] = useState([]);
+  const [extracted, setExtracted] = useState([]);
+  const [activeExtractIndex, setActiveExtractIndex] = useState(null);
   const [file, setFile] = useState(null);
   const [selectedTeacher, setSelectedTeacher] = useState(null);
   const [drawerVisible, setDrawerVisible] = useState(false);
@@ -50,6 +52,13 @@ export default function TeachersDataGrid() {
   const [editLoading, setEditLoading] = useState(false);
   const [editForm] = Form.useForm();
 
+  // ── Create extracted teacher modal ───────────────────────────────────────
+  const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [creatingExtractIndex, setCreatingExtractIndex] = useState(null);
+  const [creatingExtract, setCreatingExtract] = useState(null);
+  const [createLoading, setCreateLoading] = useState(false);
+  const [createForm] = Form.useForm();
+
   // ── Reference data for dropdowns ──────────────────────────────────────────
   const [ups, setUps] = useState([]);
   const [depts, setDepts] = useState([]);
@@ -58,6 +67,12 @@ export default function TeachersDataGrid() {
     fetchData();
     UpService.getAllUps().then(setUps).catch(() => {});
     DeptService.getAllDepts().then(setDepts).catch(() => {});
+    try {
+      const raw = localStorage.getItem("rice_extracted_enseignants");
+      if (raw) setExtracted(JSON.parse(raw));
+    } catch (e) {
+      // ignore
+    }
   }, []);
 
   const fetchData = async (filters = {}) => {
@@ -98,6 +113,91 @@ export default function TeachersDataGrid() {
       deptId: record.deptId || undefined,
     });
     setEditModalOpen(true);
+  };
+
+  const splitExtractedName = (value) => {
+    const name = String(value ?? "").trim();
+    if (!name) return { prenom: "", nom: "" };
+    const parts = name.split(/\s+/).filter(Boolean);
+    if (parts.length === 1) return { prenom: parts[0], nom: "" };
+    const nom = parts.pop();
+    const prenom = parts.join(" ");
+    return { prenom, nom };
+  };
+
+  const openCreateExtractModal = (ex, idx) => {
+    const { prenom, nom } = splitExtractedName(ex?.nom_complet);
+    const nomUp = String(nom || "").trim().toUpperCase();
+    const prenomClean = String(prenom || "").trim();
+    const generatedMail = nomUp && prenomClean
+      ? `${nomUp.toLowerCase()}.${prenomClean.toLowerCase().replace(/\s+/g, ".")}@esprit.tn`
+      : "";
+    const draft = {
+      prenom: prenomClean,
+      nom: nomUp,
+      mail: ex?.mail ?? generatedMail,
+      type: "P",
+      etat: "A",
+      cup: "N",
+      chefDepartement: "N",
+      upId: undefined,
+      deptId: undefined,
+    };
+
+    setCreatingExtractIndex(idx);
+    setCreatingExtract(ex);
+    createForm.setFieldsValue(draft);
+    setCreateModalOpen(true);
+  };
+
+  const handleCreateExtractSave = async () => {
+    try {
+      const values = await createForm.validateFields();
+      setCreateLoading(true);
+
+      const nomUp = String(values.nom ?? "").trim().toUpperCase();
+      const prenom = String(values.prenom ?? "").trim();
+      const mail = String(values.mail ?? "").trim() || (nomUp && prenom ? `${nomUp.toLowerCase()}.${prenom.toLowerCase().replace(/\s+/g, ".")}@esprit.tn` : "");
+
+      const payload = {
+        nom: nomUp,
+        prenom,
+        mail,
+        type: values.type,
+        etat: values.etat,
+        cup: values.cup,
+        chefDepartement: values.chefDepartement,
+        up: values.upId ? { id: values.upId } : null,
+        dept: values.deptId ? { id: values.deptId } : null,
+      };
+
+      if (!payload.nom || !payload.prenom || !payload.mail) {
+        throw new Error("Nom, prénom et email sont requis pour créer un enseignant");
+      }
+
+      await EnseignantService.createEnseignant(payload);
+      msgApi.success("Enseignant créé avec succès !");
+
+      if (creatingExtractIndex !== null) {
+        const next = extracted.filter((_, i) => i !== creatingExtractIndex);
+        setExtracted(next);
+        try {
+          localStorage.setItem("rice_extracted_enseignants", JSON.stringify(next));
+        } catch {}
+      }
+
+      setCreateModalOpen(false);
+      setCreatingExtractIndex(null);
+      setCreatingExtract(null);
+      createForm.resetFields();
+      fetchData();
+    } catch (err) {
+      if (err.errorFields) return;
+      const msg = err.response?.data?.message || err.message || "Erreur lors de la création";
+      msgApi.error(msg);
+    } finally {
+      setCreateLoading(false);
+    }
   };
 
   const handleEditSave = async () => {
@@ -328,6 +428,48 @@ export default function TeachersDataGrid() {
           Créer Compte
         </Button>
 
+        {extracted?.length > 0 && (
+          <div style={{ marginBottom: 12, padding: 12, border: "1px dashed #d9d9d9", borderRadius: 6 }}>
+            <Title level={5} style={{ margin: 0 }}>
+              Enseignants extraits (IA) — {extracted.length}
+            </Title>
+            <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap" }}>
+              {extracted.map((ex, idx) => (
+                <div
+                  key={`${String(ex?.nom_complet ?? "unnamed").slice(0, 40)}_${idx}`}
+                  style={{ padding: 8, border: "1px solid #f0f0f0", borderRadius: 6, minWidth: 220 }}
+                >
+                  <div style={{ fontWeight: 600 }}>{ex?.nom_complet ?? "—"}</div>
+                  {ex?.fichier && (
+                    <div style={{ fontSize: 12, color: "#666" }}>{ex.fichier}</div>
+                  )}
+                  <Space style={{ marginTop: 8 }}>
+                    <Button
+                      size="small"
+                      onClick={() => {
+                        openCreateExtractModal(ex, idx);
+                      }}
+                    >
+                      Créer
+                    </Button>
+                    <Button
+                      size="small"
+                      onClick={() => {
+                        const next = extracted.filter((_, i) => i !== idx);
+                        setExtracted(next);
+                        try { localStorage.setItem("rice_extracted_enseignants", JSON.stringify(next)); } catch {}
+                        msgApi.info("Extrait ignoré");
+                      }}
+                    >
+                      Ignorer
+                    </Button>
+                  </Space>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div
           style={{
             marginBottom: 16,
@@ -379,7 +521,7 @@ export default function TeachersDataGrid() {
         <Drawer
           title="Créer un compte à partir de cet enseignant"
           width={400}
-          onClose={() => setDrawerVisible(false)}
+          onClose={() => { setDrawerVisible(false); setActiveExtractIndex(null); }}
           open={drawerVisible}
           destroyOnHidden
         >
@@ -397,6 +539,12 @@ export default function TeachersDataGrid() {
               setDrawerVisible(false);
               setSelectedTeacher(null);
               fetchData();
+              if (activeExtractIndex !== null) {
+                const next = extracted.filter((_, i) => i !== activeExtractIndex);
+                setExtracted(next);
+                try { localStorage.setItem("rice_extracted_enseignants", JSON.stringify(next)); } catch {}
+                setActiveExtractIndex(null);
+              }
             }}
             onError={(msg) => msgApi.error(msg)}
           />
@@ -489,6 +637,97 @@ export default function TeachersDataGrid() {
           </Form>
         </Modal>
       </div>
+
+      <Modal
+        title={`Créer enseignant extrait${creatingExtract?.nom_complet ? ` — ${creatingExtract.nom_complet}` : ""}`}
+        open={createModalOpen}
+        onCancel={() => {
+          setCreateModalOpen(false);
+          setCreatingExtractIndex(null);
+          setCreatingExtract(null);
+          createForm.resetFields();
+        }}
+        onOk={handleCreateExtractSave}
+        confirmLoading={createLoading}
+        okText="Créer"
+        cancelText="Annuler"
+        destroyOnHidden
+        width={560}
+      >
+        <Form form={createForm} layout="vertical" initialValues={{ type: "P", etat: "A", cup: "N", chefDepartement: "N" }}>
+          <Form.Item
+            name="prenom"
+            label="Prénom"
+            rules={[{ required: true, message: "Le prénom est requis" }]}
+          >
+            <Input />
+          </Form.Item>
+          <Form.Item
+            name="nom"
+            label="Nom"
+            rules={[{ required: true, message: "Le nom est requis" }]}
+          >
+            <Input />
+          </Form.Item>
+          <Form.Item
+            name="mail"
+            label="Email"
+            rules={[
+              { required: true, message: "L'email est requis" },
+              { type: "email", message: "Email invalide" },
+            ]}
+          >
+            <Input />
+          </Form.Item>
+          <Form.Item
+            name="type"
+            label="Type"
+            rules={[{ required: true, message: "Le type est requis" }]}
+          >
+            <Select>
+              <Option value="P">Permanent (P)</Option>
+              <Option value="V">Vacataire (V)</Option>
+              <Option value="C">Contractuel (C)</Option>
+            </Select>
+          </Form.Item>
+          <Form.Item name="etat" label="État">
+            <Select>
+              <Option value="A">Actif (A)</Option>
+              <Option value="I">Inactif (I)</Option>
+            </Select>
+          </Form.Item>
+          <Form.Item name="cup" label="CUP">
+            <Select>
+              <Option value="O">Oui</Option>
+              <Option value="N">Non</Option>
+            </Select>
+          </Form.Item>
+          <Form.Item name="chefDepartement" label="Chef de département">
+            <Select>
+              <Option value="O">Oui</Option>
+              <Option value="N">Non</Option>
+            </Select>
+          </Form.Item>
+          <Form.Item name="upId" label="UP">
+            <Select allowClear placeholder="Sélectionner une UP">
+              {ups.map((u) => (
+                <Option key={u.id} value={u.id}>
+                  {u.libelle}
+                </Option>
+              ))}
+            </Select>
+          </Form.Item>
+          <Form.Item name="deptId" label="Département">
+            <Select allowClear placeholder="Sélectionner un département">
+              {depts.map((d) => (
+                <Option key={d.id} value={d.id}>
+                  {d.libelle}
+                </Option>
+              ))}
+            </Select>
+          </Form.Item>
+        </Form>
+      </Modal>
     </>
   );
 }

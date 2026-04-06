@@ -96,11 +96,7 @@ __all__ = [
     "_escape_prompt",
     "_llm_chat",
     # nlp – LLM-assisted
-    "_llm_extract_metadata",
-    "_llm_extract_acquis",
-    "_llm_extract_seances",
-    "_llm_fallback_items",
-    "_llm_extract_subcompetences",
+    # LLM functions removed
     # referential
     "_SEMANTIC_OK",
     "_GC_FALLBACK_REF",

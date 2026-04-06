@@ -68,7 +68,7 @@ if (-not (Test-Path $PYTHON)) {
     Write-Host "  ERREUR: virtualenv Python introuvable à $PYTHON" -ForegroundColor Red
 } else {
     Start-Process powershell -ArgumentList "-NoExit", "-Command", `
-        "Set-Location '$ROOT\esprit_D2F-recommandation-formateur'; Write-Host 'Démarrage AI Reco Service sur port 8000...' -ForegroundColor Cyan; & '$PYTHON' -m uvicorn ai_reco:app --host 0.0.0.0 --port 8000"
+        "Set-Location '$ROOT\esprit_D2F-recommandation-formateur'; Write-Host 'Démarrage AI Reco Service sur port 8000 (hot-reload activé)...' -ForegroundColor Cyan; & '$PYTHON' -m uvicorn ai_reco:app --host 0.0.0.0 --port 8000 --reload"
     Start-Sleep -Seconds 2
 }
 
@@ -88,7 +88,7 @@ if (-not (Test-Path $PYTHON)) {
     } else {
         Write-Host "  AVERTISSEMENT: Tesseract non trouvé – PDFs scannés non supportés" -ForegroundColor DarkYellow
     }
-    $riceCmd = "Set-Location '$ROOT\esprit_D2F-rice'; `$env:TESSERACT_CMD='$tessExe'; `$env:TESSDATA_PREFIX='$tessData'; Write-Host 'Démarrage RICE Service sur port 8001 (mode regex/table NER)...' -ForegroundColor Cyan; & '$PYTHON' -m uvicorn main:app --host 0.0.0.0 --port 8001"
+    $riceCmd = "Set-Location '$ROOT\esprit_D2F-rice'; `$env:TESSERACT_CMD='$tessExe'; `$env:TESSDATA_PREFIX='$tessData'; Write-Host 'Démarrage RICE Service sur port 8001 (mode regex/table NER, hot-reload activé)...' -ForegroundColor Cyan; & '$PYTHON' -m uvicorn main:app --host 0.0.0.0 --port 8001 --reload"
     Start-Process powershell -ArgumentList "-NoExit", "-Command", $riceCmd
     Start-Sleep -Seconds 2
 }

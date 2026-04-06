@@ -53,6 +53,7 @@ const SavoirCard = memo(function SavoirCard({
     const map = new Map((allEnseignants ?? []).map((e) => [String(e.id ?? e.enseignantId), e]));
     return ids.map((id) => ({ id, ens: map.get(id) })).filter((x) => x.ens);
   }, [savoir.enseignantsSuggeres, allEnseignants]);
+  const aiSuggestionCount = (savoir.aiSuggestedIds ?? []).length;
 
   const menuItems = [
     {
@@ -155,9 +156,10 @@ const SavoirCard = memo(function SavoirCard({
           {assigned.length > 1 && <Text type="secondary">+{assigned.length - 1}</Text>}
         </Space>
       ) : (
-        <span className="savoir-unassigned-hint">
-          {inlineHint ? "← Glissez vers un enseignant pour affecter" : "Glisser un enseignant →"}
-        </span>
+        <Space size={6} className="savoir-unassigned-hint" wrap>
+          <span>{inlineHint ? "← Glissez vers un enseignant pour affecter" : "Glisser un enseignant →"}</span>
+          {aiSuggestionCount > 0 && <Tag color="gold">{aiSuggestionCount} suggestion(s) IA</Tag>}
+        </Space>
       )}
 
       {hovered && (
@@ -176,6 +178,7 @@ SavoirCard.propTypes = {
     type: PropTypes.string.isRequired,
     niveau: PropTypes.string,
     enseignantsSuggeres: PropTypes.arrayOf(PropTypes.string),
+    aiSuggestedIds: PropTypes.arrayOf(PropTypes.string),
   }).isRequired,
   di: PropTypes.number.isRequired,
   ci: PropTypes.number.isRequired,

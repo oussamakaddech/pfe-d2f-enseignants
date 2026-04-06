@@ -15,6 +15,50 @@ const normalizeEnseignantsPayload = (payload) => {
   return [];
 };
 
+const normalizeSavoirsPayload = (payload) => {
+  if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload?.content)) return payload.content;
+  if (Array.isArray(payload?.data)) return payload.data;
+  if (Array.isArray(payload?.savoirs)) return payload.savoirs;
+  if (payload?.savoirs && typeof payload.savoirs === "object") {
+    return Object.values(payload.savoirs);
+  }
+  return [];
+};
+
+const normalizeAssignmentsPayload = (payload) => {
+  if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload?.content)) return payload.content;
+  if (Array.isArray(payload?.data)) return payload.data;
+  return [];
+};
+
+const fetchAllPages = async (url, headers, baseParams = "") => {
+  const first = await axios.get(`${url}${baseParams}`, { headers });
+  const data = first?.data;
+
+  if (!Array.isArray(data?.content) || !Number.isInteger(data?.totalPages) || data.totalPages <= 1) {
+    return data;
+  }
+
+  const pageJoiner = baseParams.includes("?") ? "&" : "?";
+  const requests = [];
+  for (let page = 1; page < data.totalPages; page++) {
+    requests.push(axios.get(`${url}${baseParams}${pageJoiner}page=${page}`, { headers }));
+  }
+
+  const rest = await Promise.all(requests);
+  const mergedContent = [
+    ...(data.content ?? []),
+    ...rest.flatMap((r) => (Array.isArray(r?.data?.content) ? r.data.content : [])),
+  ];
+
+  return {
+    ...data,
+    content: mergedContent,
+  };
+};
+
 const RiceService = {
   /**
    * Send uploaded files + enseignants JSON to the Python AI service.
@@ -72,23 +116,20 @@ const RiceService = {
     const headers = requireAuthHeader();
 
     try {
-      const res = await axios.get(
-        `${COMPETENCE_BASE}/enseignants${params}`,
-        { headers },
-      );
-      return normalizeEnseignantsPayload(res.data);
+      const res = await axios.get(FORMATION_ENS_BASE, { headers });
+      const list = normalizeEnseignantsPayload(res.data);
+      if (!departement) return list;
+      const deptNorm = String(departement).toLowerCase();
+      return list.filter((e) => String(e?.departement ?? e?.department ?? "").toLowerCase() === deptNorm);
     } catch (err) {
       const status = err?.response?.status;
       if (status === 401 || status === 403) {
         throw err;
       }
 
-      // Compatibility fallback: some deployments still expose teachers via formation service.
-      const resFallback = await axios.get(FORMATION_ENS_BASE, { headers });
-      const list = normalizeEnseignantsPayload(resFallback.data);
-      if (!departement) return list;
-      const deptNorm = String(departement).toLowerCase();
-      return list.filter((e) => String(e?.departement ?? e?.department ?? "").toLowerCase() === deptNorm);
+      // Compatibility fallback: some deployments expose teachers via competence service.
+      const data = await fetchAllPages(`${COMPETENCE_BASE}/enseignants`, headers, params);
+      return normalizeEnseignantsPayload(data);
     }
   },
 
@@ -98,6 +139,103 @@ const RiceService = {
   getEnseignantAffectations: async () => {
     const res = await axios.get(
       `${COMPETENCE_BASE}/enseignant-competences`,
+      { headers: requireAuthHeader() },
+    );
+    return res.data;
+  },
+
+  /**
+   * Charger tous les savoirs (avec hiérarchie) depuis le service competence
+   * @param {string|null} departement
+   */
+  getSavoirs: async (departement = null) => {
+    const params = departement ? `?departement=${departement}` : "";
+    const headers = requireAuthHeader();
+    try {
+      const data = await fetchAllPages(`${COMPETENCE_BASE}/savoirs`, headers, params);
+      return normalizeSavoirsPayload(data);
+    } catch (err) {
+      // Fallback to rice referential endpoint if present
+      try {
+        const res2 = await axios.get(`${RICE_BASE}/referential${params}`, { headers });
+        // expected shape: { savoirs: {...}|[], enseignant_affectations: {...} }
+        const savoirs = normalizeSavoirsPayload(res2.data);
+        if (savoirs.length > 0) return savoirs;
+      } catch (e) {
+        // ignore
+      }
+      throw err;
+    }
+  },
+
+  /**
+   * Save batch assignments (add/remove pairs)
+   * @param {{add: Array, remove: Array}} payload
+   */
+  saveAssignments: async (payload) => {
+    const headers = { ...requireAuthHeader(), "Content-Type": "application/json" };
+
+    const add = Array.isArray(payload?.add) ? payload.add : [];
+    const remove = Array.isArray(payload?.remove) ? payload.remove : [];
+
+    if (add.length === 0 && remove.length === 0) {
+      return { added: 0, removed: 0 };
+    }
+
+    let removed = 0;
+    if (remove.length > 0) {
+      const existingRes = await axios.get(
+        `${COMPETENCE_BASE}/enseignant-competences`,
+        { headers: requireAuthHeader() },
+      );
+      const existing = normalizeAssignmentsPayload(existingRes.data);
+      const idByPair = new Map(
+        existing.map((ec) => [
+          `${String(ec?.savoirId)}|${String(ec?.enseignantId)}`,
+          ec?.id,
+        ]),
+      );
+
+      for (const item of remove) {
+        const key = `${String(item?.savoirId)}|${String(item?.enseignantId)}`;
+        const ecId = idByPair.get(key);
+        if (ecId == null) continue;
+        await axios.delete(`${COMPETENCE_BASE}/enseignant-competences/${ecId}`, {
+          headers: requireAuthHeader(),
+        });
+        removed += 1;
+      }
+    }
+
+    let added = 0;
+    for (const item of add) {
+      await axios.post(
+        `${COMPETENCE_BASE}/enseignant-competences`,
+        {
+          enseignantId: String(item?.enseignantId),
+          savoirId: Number(item?.savoirId),
+          niveau: item?.niveau ?? "N1_DEBUTANT",
+        },
+        { headers },
+      );
+      added += 1;
+    }
+
+    return { added, removed };
+  },
+
+  assignCompetence: async (payload) => {
+    const res = await axios.post(
+      `${COMPETENCE_BASE}/enseignant-competences`,
+      payload,
+      { headers: { ...requireAuthHeader(), "Content-Type": "application/json" } },
+    );
+    return res.data;
+  },
+
+  removeAssignment: async (id) => {
+    const res = await axios.delete(
+      `${COMPETENCE_BASE}/enseignant-competences/${id}`,
       { headers: requireAuthHeader() },
     );
     return res.data;
@@ -113,6 +251,28 @@ const RiceService = {
           "Content-Type": "application/json",
         },
       },
+    );
+    return res.data;
+  },
+  updateEnseignant: async (id, data) => {
+    const res = await axios.put(
+      `${COMPETENCE_BASE}/enseignants/${id}`,
+      data,
+      {
+        headers: {
+          ...requireAuthHeader(),
+          "Content-Type": "application/json",
+        },
+      },
+    );
+    return res.data;
+  },
+
+  deactivateEnseignant: async (id) => {
+    const res = await axios.patch(
+      `${COMPETENCE_BASE}/enseignants/${id}`,
+      { etat: "I" },
+      { headers: { ...requireAuthHeader(), "Content-Type": "application/json" } },
     );
     return res.data;
   },

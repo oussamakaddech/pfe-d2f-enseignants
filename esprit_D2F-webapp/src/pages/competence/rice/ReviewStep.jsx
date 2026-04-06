@@ -3,30 +3,30 @@ import {
   Alert,
   Badge,
   Button,
-  Collapse,
   Divider,
   Empty,
   Input,
-  Skeleton,
   Space,
   Tag,
   Typography,
   message,
+  Form,
+  Select,
+  Popconfirm,
+  Segmented,
 } from "antd";
 import {
   ApartmentOutlined,
   ArrowLeftOutlined,
   CopyOutlined,
   EyeOutlined,
-  FileTextOutlined,
-  ReloadOutlined,
   SearchOutlined,
+  EditOutlined,
+  DeleteOutlined,
+  UserOutlined,
 } from "@ant-design/icons";
 import PropTypes from "prop-types";
-import RiceService from "../../../services/RiceService";
 import SavoirCard from "./SavoirCard.jsx";
-import EnseignantDropCard from "./EnseignantDropCard.jsx";
-import EnseignantCreateForm from "./EnseignantCreateForm.jsx";
 import { cloneDeep, DepartmentBadge } from "./constants.jsx";
 import "./ReviewStep.css";
 
@@ -66,54 +66,38 @@ export default function ReviewStep({
   liveStats,
   treeFilteredIndices,
   departement,
-  extractedEnseignants,
   dbEnseignants,
-  result,
-  ensSearchStep2,
-  setEnsSearchStep2,
-  loadingEns,
-  loadEnseignants,
-  remapEnseignant,
   allSavoirsFlat,
-  isDragging,
-  draggedSavoirInfo,
   onSavoirDragStart,
   onSavoirDragEnd,
-  onTagDragStart,
-  onEnsDragOver,
-  onEnsDragLeave,
-  onEnsDrop,
-  dragOverEns,
-  toggleEnsAssign,
   setCurrentStep,
+  updateNodeField,
+  moveSavoirToSC,
+  setCreateEnsTarget,
+  setCreateEnsData,
+  setCreateEnsModal,
 }) {
   const [expandedDomainKeys, setExpandedDomainKeys] = useState([]);
   const [expandedCompKeys, setExpandedCompKeys] = useState([]);
   const [showSearch, setShowSearch] = useState(false);
   const [showInlineHint, setShowInlineHint] = useState(true);
-  const [creatingFrom, setCreatingFrom] = useState(null);
-  const [creating, setCreating] = useState(false);
+  // Removed: `creatingFrom` and `creating` + extracted-names UI and handlers.
+  // New: `localTeachers` holds user-created local teachers and any edited DB teachers.
   const [localTeachers, setLocalTeachers] = useState([]);
+  // Selected node for the properties panel
+  const [selectedNode, setSelectedNode] = useState(null);
+  const [propsForm] = Form.useForm();
 
   const mergedEnseignants = useMemo(() => {
     const dbMap = new Map((dbEnseignants ?? []).map((e) => [String(e.id ?? e.enseignantId), e]));
-    (result?.foundEnseignants ?? []).forEach((e) => {
-      const id = String(e.id ?? e.enseignantId);
-      if (!dbMap.has(id)) dbMap.set(id, { ...e, id, enseignantId: id });
-    });
+    // localTeachers overrides DB entries when ids collide (edits or local-created)
     localTeachers.forEach((e) => dbMap.set(String(e.id), e));
     return Array.from(dbMap.values());
-  }, [dbEnseignants, result, localTeachers]);
+  }, [dbEnseignants, localTeachers]);
 
-  const filteredTeachers = useMemo(() => {
-    const q = ensSearchStep2.trim().toLowerCase();
-    if (!q) return mergedEnseignants;
-    return mergedEnseignants.filter((e) => {
-      const full = `${e.prenom ?? ""} ${e.nom ?? ""}`.toLowerCase();
-      return full.includes(q);
-    });
-  }, [ensSearchStep2, mergedEnseignants]);
+  const filteredTeachers = useMemo(() => mergedEnseignants, [mergedEnseignants]);
 
+  
   const orphanIds = useMemo(() => {
     const validIds = new Set(mergedEnseignants.map((e) => String(e.id ?? e.enseignantId)));
     const orphans = new Set();
@@ -134,14 +118,7 @@ export default function ReviewStep({
     return orphans;
   }, [tree, mergedEnseignants]);
 
-  const matchedExtracted = useMemo(
-    () => (extractedEnseignants ?? []).filter((e) => e.matched_id),
-    [extractedEnseignants],
-  );
-  const unmatchedExtracted = useMemo(
-    () => (extractedEnseignants ?? []).filter((e) => !e.matched_id),
-    [extractedEnseignants],
-  );
+  // Removed: extractedEnseignants matching logic and the "noms extraits des fiches" UI.
 
   const allExpanded = useMemo(() => {
     const dk = (tree ?? []).length;
@@ -171,6 +148,8 @@ export default function ReviewStep({
     });
     return map;
   }, [tree]);
+
+  
 
   useEffect(() => {
     const hasAnyAssigned = allSavoirsFlat.some((s) => (s.enseignantsSuggeres ?? []).length > 0);
@@ -226,49 +205,7 @@ export default function ReviewStep({
     message.success("IDs orphelins nettoyés");
   };
 
-  const handleCreateTeacher = async (ex, values) => {
-    setCreating(true);
-    const payload = {
-      nom: values.nom,
-      prenom: values.prenom,
-      email: values.email,
-      mail: values.email,
-      departement: values.departement,
-      type: "P",
-      etat: "A",
-      grade: "",
-      modules: [],
-    };
-
-    try {
-      const created = await RiceService.createEnseignant(payload);
-      const realId = String(created.id ?? created.enseignantId);
-      remapEnseignant(`ext_${(extractedEnseignants ?? []).indexOf(ex)}`, realId);
-      message.success("Enseignant créé et ajouté au panel");
-      setCreatingFrom(null);
-      loadEnseignants();
-    } catch {
-      const localId = `local-${Date.now()}`;
-      setLocalTeachers((prev) => [
-        ...prev,
-        {
-          id: localId,
-          enseignantId: localId,
-          nom: values.nom,
-          prenom: values.prenom,
-          email: values.email,
-          departement: values.departement,
-          modules: [],
-          grade: "Local",
-        },
-      ]);
-      remapEnseignant(`ext_${(extractedEnseignants ?? []).indexOf(ex)}`, localId);
-      message.warning("API indisponible : enseignant ajouté localement (mode dégradé)");
-      setCreatingFrom(null);
-    } finally {
-      setCreating(false);
-    }
-  };
+  
 
   const exportCsv = () => {
     const header = ["savoir_code", "savoir_nom", "enseignants_ids"];
@@ -355,6 +292,60 @@ export default function ReviewStep({
     }
   };
 
+    const scOptions = useMemo(() => {
+      const opts = [];
+      (tree ?? []).forEach((d, di) => (d.competences ?? []).forEach((c, ci) => {
+        opts.push({ label: `${d.code ?? ""} · ${c.code ?? ""}`, value: JSON.stringify([di, ci, -1]) });
+        (c.sousCompetences ?? []).forEach((sc, sci) => opts.push({ label: `${d.code ?? ""} · ${c.code ?? ""} · ${sc.code ?? ""}`, value: JSON.stringify([di, ci, sci]) }));
+      }));
+      if (!selectedNode || selectedNode.type !== "savoir") return opts;
+      const srcDi = selectedNode.path[0];
+      const srcCi = selectedNode.path[1];
+      const srcSci = selectedNode.path[2];
+      return opts.filter((o) => {
+        try {
+          const arr = JSON.parse(o.value);
+          return !(arr[0] === srcDi && arr[1] === srcCi && arr[2] === srcSci);
+        } catch {
+          return true;
+        }
+      });
+    }, [tree, selectedNode]);
+
+    const handleUpdateField = (field, value) => {
+      if (!selectedNode) return;
+      updateNodeField(selectedNode.path, field, value);
+      setSelectedNode((p) => ({ ...p, data: { ...p.data, [field]: value } }));
+    };
+
+    const handleRemoveEnseignant = (id) => {
+      if (!selectedNode) return;
+      const cur = selectedNode.data?.enseignantsSuggeres ?? [];
+      const next = cur.filter((x) => String(x) !== String(id));
+      handleUpdateField("enseignantsSuggeres", next);
+    };
+
+    const handleMoveSavoir = (targetPath) => {
+      if (!selectedNode) return;
+      moveSavoirToSC(selectedNode.path, targetPath);
+      setSelectedNode(null);
+    };
+
+    const deleteNode = (node) => {
+      if (!node) return;
+      const { type, path } = node;
+      if (type === "domaine") deleteDomaine(path[0]);
+      else if (type === "competence") deleteComp(path[0], path[1]);
+      else if (type === "sousComp") deleteSC(path[0], path[1], path[2]);
+      else if (type === "savoir") deleteSavoir(path[0], path[1], path[2], path[3]);
+    };
+
+    useEffect(() => {
+      const onKey = (e) => { if (e.key === "Escape") setSelectedNode(null); };
+      window.addEventListener("keydown", onKey);
+      return () => window.removeEventListener("keydown", onKey);
+    }, []);
+
   return (
     <div className="review-layout">
       <div className="review-header">
@@ -428,7 +419,11 @@ export default function ReviewStep({
           const dOpen = expandedDomainKeys.includes(dKey);
           return (
             <div key={dKey} className="tree-domaine">
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+              <div
+                className={`tree-node-row ${selectedNode?.type === "domaine" && selectedNode.path?.[0] === di ? "selected" : ""}`}
+                onClick={() => setSelectedNode({ type: "domaine", path: [di], data: cloneDeep(domaine) })}
+                style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}
+              >
                 <Space>
                   <Tag color="blue">{domaine.code}</Tag>
                   {isEditingPath([di]) ? (
@@ -448,10 +443,8 @@ export default function ReviewStep({
                 </Space>
                 <Space>
                   <Tag>{(domaine.competences ?? []).length} comp</Tag>
-                  <Button size="small" type="text" onClick={() => setExpandedDomainKeys((prev) =>
-                    prev.includes(dKey) ? prev.filter((k) => k !== dKey) : [...prev, dKey])}>{dOpen ? "▾" : "▸"}</Button>
-                  <Button size="small" type="text" onClick={() => startRename([di], domaine.nom)}>✎</Button>
-                  <Button size="small" type="text" danger onClick={() => deleteDomaine(di)}>🗑</Button>
+                  <Button size="small" type="text" onClick={(e) => { e.stopPropagation(); setExpandedDomainKeys((prev) => prev.includes(dKey) ? prev.filter((k) => k !== dKey) : [...prev, dKey]); }}>{dOpen ? "▾" : "▸"}</Button>
+                  <Button size="small" type="text" onClick={(e) => { e.stopPropagation(); setSelectedNode({ type: "domaine", path: [di], data: cloneDeep(domaine) }); }} icon={<EditOutlined />} />
                 </Space>
               </div>
 
@@ -480,12 +473,10 @@ export default function ReviewStep({
                         )}
                       </Space>
                       <Space>
-                        <Tag>{(comp.sousCompetences ?? []).length} SC</Tag>
-                        <Tag color="geekblue">{(comp.savoirs ?? []).length} savoirs</Tag>
-                        <Button size="small" type="text" onClick={() => setExpandedCompKeys((prev) =>
-                          prev.includes(cKey) ? prev.filter((k) => k !== cKey) : [...prev, cKey])}>{cOpen ? "▾" : "▸"}</Button>
-                        <Button size="small" type="text" onClick={() => startRename([di, ci], comp.nom)}>✎</Button>
-                        <Button size="small" type="text" danger onClick={() => deleteComp(di, ci)}>🗑</Button>
+                              <Tag>{(comp.sousCompetences ?? []).length} SC</Tag>
+                              <Tag color="geekblue">{(comp.savoirs ?? []).length} savoirs</Tag>
+                              <Button size="small" type="text" onClick={(e) => { e.stopPropagation(); setExpandedCompKeys((prev) => prev.includes(cKey) ? prev.filter((k) => k !== cKey) : [...prev, cKey]); }}>{cOpen ? "▾" : "▸"}</Button>
+                              <Button size="small" type="text" onClick={(e) => { e.stopPropagation(); setSelectedNode({ type: "competence", path: [di, ci], data: cloneDeep(comp) }); }} icon={<EditOutlined />} />
                       </Space>
                     </div>
 
@@ -499,34 +490,34 @@ export default function ReviewStep({
                         </div>
                         <div className="tree-savoirs">
                           {(comp.savoirs ?? []).map((savoir, si) => (
-                            <SavoirCard
+                            <div
                               key={savoir.tmpId ?? `${di}-${ci}--1-${si}`}
-                              savoir={savoir}
-                              di={di}
-                              ci={ci}
-                              sci={-1}
-                              si={si}
-                              editingNom={editingNom}
-                              setEditingNom={setEditingNom}
-                              commitRename={commitRename}
-                              startRename={startRename}
-                              toggleType={toggleType}
-                              setNiveau={setNiveau}
-                              setEnseignants={setEnseignants}
-                              deleteSavoir={deleteSavoir}
-                              openMerge={openMerge}
-                              setMergeModal={setMergeModal}
-                              onSavoirDragStart={onSavoirDragStart}
-                              onSavoirDragEnd={onSavoirDragEnd}
-                              isBeingDragged={
-                                draggedSavoirInfo?.di === di
-                                && draggedSavoirInfo?.ci === ci
-                                && draggedSavoirInfo?.sci === -1
-                                && draggedSavoirInfo?.si === si
-                              }
-                              allEnseignants={mergedEnseignants}
-                              inlineHint={showInlineHint && (savoir.enseignantsSuggeres ?? []).length === 0}
-                            />
+                              className={`tree-node-row ${selectedNode?.type === "savoir" && selectedNode.path?.[0] === di && selectedNode.path?.[1] === ci && selectedNode.path?.[2] === -1 && selectedNode.path?.[3] === si ? "selected" : ""}`}
+                              onClick={() => setSelectedNode({ type: "savoir", path: [di, ci, -1, si], data: cloneDeep(savoir) })}
+                            >
+                              <SavoirCard
+                                savoir={savoir}
+                                di={di}
+                                ci={ci}
+                                sci={-1}
+                                si={si}
+                                editingNom={editingNom}
+                                setEditingNom={setEditingNom}
+                                commitRename={commitRename}
+                                startRename={startRename}
+                                toggleType={toggleType}
+                                setNiveau={setNiveau}
+                                setEnseignants={setEnseignants}
+                                deleteSavoir={deleteSavoir}
+                                openMerge={openMerge}
+                                setMergeModal={setMergeModal}
+                                onSavoirDragStart={onSavoirDragStart}
+                                onSavoirDragEnd={onSavoirDragEnd}
+                                isBeingDragged={false}
+                                allEnseignants={mergedEnseignants}
+                                inlineHint={showInlineHint && (savoir.enseignantsSuggeres ?? []).length === 0}
+                              />
+                            </div>
                           ))}
                         </div>
                       </div>
@@ -536,7 +527,11 @@ export default function ReviewStep({
                       if (treeFilteredIndices && !treeFilteredIndices.visibleSci.has(`${di}-${ci}-${sci}`)) return null;
                       return (
                         <div className="tree-sous-comp" key={`sc-${di}-${ci}-${sci}`}>
-                          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+                          <div
+                            className={`tree-node-row ${selectedNode?.type === "sousComp" && selectedNode.path?.[0] === di && selectedNode.path?.[1] === ci && selectedNode.path?.[2] === sci ? "selected" : ""}`}
+                            onClick={() => setSelectedNode({ type: "sousComp", path: [di, ci, sci], data: cloneDeep(sc) })}
+                            style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}
+                          >
                             <Space>
                               <Tag color="cyan">{sc.code}</Tag>
                               {isEditingPath([di, ci, sci]) ? (
@@ -554,43 +549,42 @@ export default function ReviewStep({
                                 <Text>{markMatch(sc.nom)}</Text>
                               )}
                               <Tag>{(sc.savoirs ?? []).length} savoirs</Tag>
-                            </Space>
-                            <Space>
-                              <Button size="small" type="text" onClick={() => startRename([di, ci, sci], sc.nom)}>✎</Button>
-                              <Button size="small" type="text" danger onClick={() => deleteSC(di, ci, sci)}>🗑</Button>
-                            </Space>
-                          </div>
+                                  </Space>
+                                  <Space>
+                                    <Button size="small" type="text" onClick={(e) => { e.stopPropagation(); setSelectedNode({ type: "sousComp", path: [di, ci, sci], data: cloneDeep(sc) }); }} icon={<EditOutlined />} />
+                                  </Space>
+                                </div>
 
                           <div className="tree-savoirs">
                             {(sc.savoirs ?? []).map((savoir, si) => (
-                              <SavoirCard
+                              <div
                                 key={savoir.tmpId ?? `${di}-${ci}-${sci}-${si}`}
-                                savoir={savoir}
-                                di={di}
-                                ci={ci}
-                                sci={sci}
-                                si={si}
-                                editingNom={editingNom}
-                                setEditingNom={setEditingNom}
-                                commitRename={commitRename}
-                                startRename={startRename}
-                                toggleType={toggleType}
-                                setNiveau={setNiveau}
-                                setEnseignants={setEnseignants}
-                                deleteSavoir={deleteSavoir}
-                                openMerge={openMerge}
-                                setMergeModal={setMergeModal}
-                                onSavoirDragStart={onSavoirDragStart}
-                                onSavoirDragEnd={onSavoirDragEnd}
-                                isBeingDragged={
-                                  draggedSavoirInfo?.di === di
-                                  && draggedSavoirInfo?.ci === ci
-                                  && draggedSavoirInfo?.sci === sci
-                                  && draggedSavoirInfo?.si === si
-                                }
-                                allEnseignants={mergedEnseignants}
-                                inlineHint={showInlineHint && (savoir.enseignantsSuggeres ?? []).length === 0}
-                              />
+                                className={`tree-node-row ${selectedNode?.type === "savoir" && selectedNode.path?.[0] === di && selectedNode.path?.[1] === ci && selectedNode.path?.[2] === sci && selectedNode.path?.[3] === si ? "selected" : ""}`}
+                                onClick={() => setSelectedNode({ type: "savoir", path: [di, ci, sci, si], data: cloneDeep(savoir) })}
+                              >
+                                <SavoirCard
+                                  savoir={savoir}
+                                  di={di}
+                                  ci={ci}
+                                  sci={sci}
+                                  si={si}
+                                  editingNom={editingNom}
+                                  setEditingNom={setEditingNom}
+                                  commitRename={commitRename}
+                                  startRename={startRename}
+                                  toggleType={toggleType}
+                                  setNiveau={setNiveau}
+                                  setEnseignants={setEnseignants}
+                                  deleteSavoir={deleteSavoir}
+                                  openMerge={openMerge}
+                                  setMergeModal={setMergeModal}
+                                  onSavoirDragStart={onSavoirDragStart}
+                                  onSavoirDragEnd={onSavoirDragEnd}
+                                  isBeingDragged={false}
+                                  allEnseignants={mergedEnseignants}
+                                  inlineHint={showInlineHint && (savoir.enseignantsSuggeres ?? []).length === 0}
+                                />
+                              </div>
                             ))}
                           </div>
                         </div>
@@ -604,104 +598,105 @@ export default function ReviewStep({
         })}
       </div>
 
-      <div className="review-ens-col">
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
-          <Space>
-            <Text strong>Enseignants</Text>
-            <Badge count={filteredTeachers.length} style={{ background: "#4f46e5" }} />
-            <Tag color="green"><FileTextOutlined /> {matchedExtracted.length} extraits</Tag>
-          </Space>
-          <Button size="small" icon={<ReloadOutlined />} onClick={loadEnseignants} loading={loadingEns}>Recharger</Button>
-        </div>
+      
 
-        <Input
-          placeholder="Rechercher un enseignant..."
-          value={ensSearchStep2}
-          onChange={(e) => setEnsSearchStep2(e.target.value)}
-          allowClear
-          style={{ marginBottom: 12 }}
-        />
+      <div className="review-props-panel">
+        {!selectedNode ? (
+          <div className="props-panel-empty">
+            <ApartmentOutlined style={{ fontSize: 64, color: "var(--color-text-tertiary)" }} />
+            <div style={{ marginTop: 12, textAlign: "center" }}>
+              <Text style={{ opacity: 0.85 }}>Sélectionnez un élément dans l'arbre pour modifier ses propriétés</Text>
+            </div>
+          </div>
+        ) : (
+          <div className="props-panel-inner">
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+              <div style={{ display: "flex", gap: 8, alignItems: "center", minWidth: 0 }}>
+                <div>
+                  <Badge count={0} style={{ background: "transparent" }} />
+                </div>
+                <div style={{ minWidth: 0 }}>
+                  <Text strong style={{ display: "block", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{`${selectedNode.data?.code ?? ""} · ${selectedNode.data?.nom ?? ""}`}</Text>
+                  <Text type="secondary">{selectedNode.type}</Text>
+                </div>
+              </div>
+            </div>
 
-        {loadingEns && (
-          <>
-            <Skeleton active paragraph={{ rows: 2 }} style={{ marginBottom: 10 }} />
-            <Skeleton active paragraph={{ rows: 2 }} style={{ marginBottom: 10 }} />
-            <Skeleton active paragraph={{ rows: 2 }} style={{ marginBottom: 10 }} />
-            <Text type="secondary">Chargement depuis la base de données...</Text>
-          </>
+            <Form form={propsForm} layout="vertical">
+              <Form.Item label="Code" rules={[{ required: true, min: 2, pattern: /^[A-Za-z0-9-]+$/, message: 'Code : min 2 caractères, lettres/chiffres/tirets' }]}>
+                <Input value={selectedNode.data?.code ?? ""} onChange={(e) => handleUpdateField("code", e.target.value)} />
+              </Form.Item>
+
+              <Form.Item label="Nom" rules={[{ required: true, message: "Nom requis" }]}>
+                <Input value={selectedNode.data?.nom ?? ""} onChange={(e) => handleUpdateField("nom", e.target.value)} />
+              </Form.Item>
+
+              <Form.Item label="Description">
+                <Input.TextArea rows={3} value={selectedNode.data?.description ?? ""} onChange={(e) => handleUpdateField("description", e.target.value)} />
+              </Form.Item>
+
+              {selectedNode.type === "savoir" && (
+                <>
+                  <Button
+                    block
+                    type="primary"
+                    icon={<UserOutlined />}
+                    style={{ marginBottom: 12 }}
+                    onClick={() => {
+                      setCreateEnsTarget({ path: selectedNode.path });
+                      setCreateEnsData({ nom: "", prenom: "", mail: "" });
+                      setCreateEnsModal(true);
+                    }}
+                  >
+                    Créer et lier à ce savoir
+                  </Button>
+
+                  <Form.Item label="Type">
+                    <Segmented options={[{ label: "THEORIQUE", value: "THEORIQUE" }, { label: "PRATIQUE", value: "PRATIQUE" }]} value={selectedNode.data?.type ?? "THEORIQUE"} onChange={(v) => handleUpdateField("type", v)} />
+                  </Form.Item>
+
+                  <Form.Item label="Niveau">
+                    <Select value={selectedNode.data?.niveau} onChange={(v) => handleUpdateField("niveau", v)} options={[{ value: "N1_DEBUTANT", label: "Niveau 1" }, { value: "N2_ELEMENTAIRE", label: "Niveau 2" }, { value: "N3_INTERMEDIAIRE", label: "Niveau 3" }, { value: "N4_AVANCE", label: "Niveau 4" }, { value: "N5_EXPERT", label: "Niveau 5" }]} />
+                  </Form.Item>
+
+                  <Form.Item label="Enseignants affectés">
+                    <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 8 }}>
+                      {(selectedNode.data?.enseignantsSuggeres ?? []).map((id) => {
+                        const e = (mergedEnseignants ?? []).find((m) => String(m.id ?? m.enseignantId) === String(id));
+                        const label = e ? `${e.prenom ?? ""} ${e.nom ?? ""}`.trim() : String(id);
+                        return <Tag key={id} closable onClose={() => handleRemoveEnseignant(id)}>{label}</Tag>;
+                      })}
+                    </div>
+                    <Select mode="multiple" placeholder="Ajouter un enseignant" value={(selectedNode.data?.enseignantsSuggeres ?? [])} onChange={(val) => handleUpdateField("enseignantsSuggeres", val)} options={(mergedEnseignants ?? []).map((m) => ({ value: String(m.id ?? m.enseignantId), label: `${m.prenom ?? ""} ${m.nom ?? ""}` }))} />
+                  </Form.Item>
+
+                  <Form.Item label="Déplacer vers">
+                    <Select placeholder="Déplacer ce savoir vers une autre sous-compétence" onChange={(v) => handleMoveSavoir(JSON.parse(v))} options={scOptions} />
+                  </Form.Item>
+                </>
+              )}
+
+              {(selectedNode.type === "competence" || selectedNode.type === "sousComp") && (
+                <Form.Item label="Codes référentiels (refCodes)">
+                  <Select mode="tags" tokenSeparators={[",", " "]} value={selectedNode.data?.refCodes ?? []} onChange={(v) => handleUpdateField("refCodes", v)} />
+                </Form.Item>
+              )}
+            </Form>
+
+            <div style={{ marginTop: 12, position: "sticky", bottom: 8 }}>
+              <Popconfirm
+                title="Supprimer ce nœud ?"
+                description="Cette action supprimera aussi tous ses enfants."
+                okText="Supprimer"
+                cancelText="Annuler"
+                okButtonProps={{ danger: true }}
+                onConfirm={() => { deleteNode(selectedNode); setSelectedNode(null); }}
+              >
+                <Button danger block icon={<DeleteOutlined />}>Supprimer {selectedNode.type}</Button>
+              </Popconfirm>
+            </div>
+          </div>
         )}
-
-        {!loadingEns && filteredTeachers.length === 0 && (
-          <Empty
-            description={
-              <Space direction="vertical" size={4}>
-                <Text>Aucun enseignant trouvé pour ce département</Text>
-                <Button size="small" onClick={loadEnseignants}>Recharger</Button>
-                <a href="/enseignants">Gérer les enseignants →</a>
-              </Space>
-            }
-          />
-        )}
-
-        {!loadingEns && filteredTeachers.map((ens) => {
-          const eid = String(ens.id ?? ens.enseignantId);
-          const assigned = assignedByTeacher.get(eid) ?? [];
-          const isOver = dragOverEns === eid;
-          return (
-            <EnseignantDropCard
-              key={eid}
-              enseignant={ens}
-              assignedSavoirs={assigned}
-              totalSavoirs={Math.max(totalSavoirs, 1)}
-              isDragging={isDragging}
-              isOver={isOver}
-              onDragOver={onEnsDragOver}
-              onDragLeave={onEnsDragLeave}
-              onDrop={onEnsDrop}
-              onTagDragStart={onTagDragStart}
-              onTagDragEnd={onSavoirDragEnd}
-              onRemoveChip={(s, id) => toggleEnsAssign(s.di, s.ci, s.sci, s.si, id)}
-            />
-          );
-        })}
-
-        <Divider />
-        <Collapse
-          defaultActiveKey={[]}
-          items={[{
-            key: "extracted",
-            label: `📄 ${unmatchedExtracted.length} noms extraits des fiches`,
-            children: (
-              <Space direction="vertical" style={{ width: "100%" }}>
-                {unmatchedExtracted.length === 0 && <Text type="secondary">Aucun nom non matché.</Text>}
-                {unmatchedExtracted.map((ex, idx) => (
-                  <div key={`unm-${idx}`} className="ens-unmatched-card">
-                    <Text strong>⚠️ {ex.nom_complet}</Text>
-                    <div><Text type="secondary">Extrait de : {ex.fichier}</Text></div>
-                    <div><Text type="secondary">Non trouvé en base de données</Text></div>
-
-                    {creatingFrom === idx ? (
-                      <EnseignantCreateForm
-                        defaultPrenom={(ex.nom_complet || "").split(" ").slice(0, -1).join(" ")}
-                        defaultNom={(ex.nom_complet || "").split(" ").slice(-1).join(" ")}
-                        defaultDepartement={departement === "auto" ? "gc" : departement}
-                        loading={creating}
-                        onSubmit={(values) => handleCreateTeacher(ex, values)}
-                      />
-                    ) : (
-                      <Space style={{ marginTop: 8 }}>
-                        <Button size="small" onClick={() => message.info("Nom ignoré")}>Ignorer</Button>
-                        <Button size="small" type="primary" onClick={() => setCreatingFrom(idx)}>
-                          Créer et affecter →
-                        </Button>
-                      </Space>
-                    )}
-                  </div>
-                ))}
-              </Space>
-            ),
-          }]}
-        />
       </div>
 
       <div className="review-footer">
@@ -746,25 +741,14 @@ ReviewStep.propTypes = {
   liveStats: PropTypes.object.isRequired,
   treeFilteredIndices: PropTypes.object,
   departement: PropTypes.string.isRequired,
-  extractedEnseignants: PropTypes.array.isRequired,
   dbEnseignants: PropTypes.array.isRequired,
-  result: PropTypes.object,
-  ensSearchStep2: PropTypes.string.isRequired,
-  setEnsSearchStep2: PropTypes.func.isRequired,
-  loadingEns: PropTypes.bool,
-  loadEnseignants: PropTypes.func.isRequired,
-  clearAllAssignments: PropTypes.func,
-  remapEnseignant: PropTypes.func.isRequired,
   allSavoirsFlat: PropTypes.array.isRequired,
-  isDragging: PropTypes.bool,
-  draggedSavoirInfo: PropTypes.object,
   onSavoirDragStart: PropTypes.func.isRequired,
   onSavoirDragEnd: PropTypes.func.isRequired,
-  onTagDragStart: PropTypes.func.isRequired,
-  onEnsDragOver: PropTypes.func.isRequired,
-  onEnsDragLeave: PropTypes.func.isRequired,
-  onEnsDrop: PropTypes.func.isRequired,
-  dragOverEns: PropTypes.string,
-  toggleEnsAssign: PropTypes.func.isRequired,
   setCurrentStep: PropTypes.func.isRequired,
+  updateNodeField: PropTypes.func.isRequired,
+  moveSavoirToSC: PropTypes.func.isRequired,
+  setCreateEnsTarget: PropTypes.func,
+  setCreateEnsData: PropTypes.func,
+  setCreateEnsModal: PropTypes.func,
 };

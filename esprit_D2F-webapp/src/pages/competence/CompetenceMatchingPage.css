@@ -1,0 +1,513 @@
+/* ─── Design Tokens - Light Theme ────────────────────────────────────────── */
+:root {
+  --bg-page: #f5f5f5;
+  --bg-card: #ffffff;
+  --bg-card-hover: #fafafa;
+  --border-color: #e8e8e8;
+  --border-strong: #d9d9d9;
+  --text-primary: #262626;
+  --text-secondary: #8c8c8c;
+  --accent-red: #cf1322;
+  --accent-red-light: #fff1f0;
+  --accent-green: #389e0d;
+  --accent-green-light: #f6ffed;
+  --accent-blue: #1890ff;
+  --accent-blue-light: #e6f7ff;
+  --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.08);
+  --shadow-hover: 0 4px 16px rgba(0, 0, 0, 0.12);
+  --radius: 8px;
+  --transition: 0.2s ease;
+}
+
+/* ─── Page Shell ─────────────────────────────────────────────────────────── */
+.competence-matching-page {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--bg-page);
+  color: var(--text-primary);
+}
+
+.competence-matching-page.is-dragging,
+.competence-matching-page.is-dragging * {
+  cursor: grabbing !important;
+}
+
+/* ─── Page Header ────────────────────────────────────────────────────────── */
+.matching-page-header {
+  background: var(--bg-card);
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.header-left-section {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.header-left-section h4 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.header-subtitle {
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+.header-right-section {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.header-filters {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.header-actions-group {
+  display: flex;
+  gap: 8px;
+}
+
+/* ─── Main Content ───────────────────────────────────────────────────────── */
+.matching-main-content {
+  flex: 1;
+  display: flex;
+  min-height: 0;
+  overflow: hidden;
+  padding: 16px 24px;
+  gap: 20px;
+}
+
+.matching-panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--bg-card);
+  border-radius: var(--radius);
+  border: 1px solid var(--border-color);
+  overflow: hidden;
+}
+
+.savoirs-list-panel {
+  flex: 1.3;
+}
+
+.enseignants-list-panel {
+  flex: 0.9;
+}
+
+.panel-header-section {
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-card);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.panel-title-section {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.panel-controls-section {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.panel-body-scrollable {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.panel-body-scrollable::-webkit-scrollbar {
+  width: 6px;
+}
+
+.panel-body-scrollable::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 3px;
+}
+
+/* ─── Savoir Card ────────────────────────────────────────────────────────── */
+.savoir-assignment-card {
+  position: relative;
+  padding: 16px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  cursor: grab;
+  user-select: none;
+  transition: all var(--transition);
+}
+
+.savoir-assignment-card:hover {
+  border-color: var(--accent-blue);
+  box-shadow: var(--shadow-hover);
+}
+
+.savoir-assignment-card.dragging {
+  opacity: 0.5;
+  transform: scale(0.98);
+}
+
+.savoir-card-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.savoir-drag-handle {
+  color: var(--text-secondary);
+  opacity: 0.4;
+  cursor: grab;
+  margin-top: 2px;
+}
+
+.savoir-assignment-card:hover .savoir-drag-handle {
+  opacity: 1;
+}
+
+.savoir-code-label {
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--text-primary);
+  flex: 1;
+}
+
+.savoir-name-description {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-primary);
+  margin-bottom: 12px;
+  padding-left: 26px;
+}
+
+.savoir-tags-row {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 12px;
+  padding-left: 26px;
+}
+
+.savoir-type-tag {
+  background: var(--accent-blue-light);
+  color: var(--accent-blue);
+  border: 1px solid #91d5ff;
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.savoir-niveau-tag {
+  background: #f5f5f5;
+  color: var(--text-secondary);
+  border: 1px solid var(--border-color);
+  font-size: 11px;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.savoir-assigned-teachers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding-left: 26px;
+}
+
+.teacher-assignment-tag {
+  margin: 0 !important;
+  background: var(--accent-green-light);
+  border: 1px solid #b7eb8f;
+  color: var(--accent-green);
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 4px;
+  cursor: default;
+}
+
+.teacher-assignment-tag .ant-tag-close-icon {
+  color: var(--accent-green);
+  margin-left: 4px;
+}
+
+.teacher-assignment-tag .ant-tag-close-icon:hover {
+  color: var(--accent-red);
+}
+
+.savoir-card-actions {
+  margin-top: 12px;
+  padding-left: 26px;
+}
+
+.quick-assign-button {
+  height: 30px;
+  font-size: 12px;
+}
+
+/* ─── Enseignant Card ────────────────────────────────────────────────────── */
+.enseignant-assignment-card {
+  position: relative;
+  padding: 14px 16px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  transition: all var(--transition);
+}
+
+.enseignant-assignment-card:hover {
+  border-color: var(--accent-blue);
+  box-shadow: var(--shadow-hover);
+}
+
+.enseignant-assignment-card.drag-mode-active {
+  border-style: dashed;
+  border-color: var(--accent-blue);
+  background: var(--accent-blue-light);
+}
+
+.enseignant-assignment-card.drag-over-target {
+  border-color: var(--accent-green);
+  background: var(--accent-green-light);
+  box-shadow: 0 0 0 2px rgba(56, 158, 13, 0.2);
+}
+
+.enseignant-drop-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(56, 158, 13, 0.1);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  z-index: 5;
+  pointer-events: none;
+  border-radius: var(--radius);
+}
+
+.enseignant-card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.enseignant-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 14px;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.enseignant-info-section {
+  flex: 1;
+  min-width: 0;
+}
+
+.enseignant-full-name {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.enseignant-details-text {
+  display: block;
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+
+.enseignant-action-buttons {
+  display: flex;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity var(--transition);
+}
+
+.enseignant-assignment-card:hover .enseignant-action-buttons {
+  opacity: 1;
+}
+
+.enseignant-statistics-section {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 12px;
+}
+
+.enseignant-stat-box {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  background: var(--accent-blue-light);
+  border-radius: 4px;
+}
+
+.enseignant-stat-number {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--accent-blue);
+}
+
+.enseignant-stat-label {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.enseignant-progress-section {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.enseignant-progress-section .ant-progress {
+  flex: 1;
+}
+
+.enseignant-load-info {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+.enseignant-assigned-savoirs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.savoir-chip-tag {
+  margin: 0 !important;
+  font-size: 11px;
+  padding: 2px 8px;
+}
+
+.enseignant-drop-zone {
+  margin-top: 10px;
+  padding: 10px;
+  border: 1px dashed var(--border-color);
+  border-radius: 6px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: all var(--transition);
+}
+
+.enseignant-drop-zone.drag-mode-active {
+  border-color: var(--accent-blue);
+  color: var(--accent-blue);
+  background: var(--accent-blue-light);
+}
+
+.enseignant-drop-zone.drag-over-active {
+  border-color: var(--accent-green);
+  color: var(--accent-green);
+  background: var(--accent-green-light);
+}
+
+/* ─── Footer ─────────────────────────────────────────────────────────────── */
+.matching-page-footer {
+  background: var(--bg-card);
+  padding: 14px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px solid var(--border-color);
+}
+
+.footer-left-section,
+.footer-right-section {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.footer-save-button {
+  background: var(--accent-red);
+  border-color: var(--accent-red);
+  color: #fff;
+  height: 36px;
+  padding: 0 20px;
+  font-weight: 600;
+}
+
+.footer-save-button:hover {
+  background: #a8071a;
+  border-color: #a8071a;
+  color: #fff;
+}
+
+.footer-save-button:disabled {
+  background: #d9d9d9;
+  border-color: #d9d9d9;
+  color: rgba(0, 0, 0, 0.25);
+}
+
+.footer-status-text {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+/* ─── Skeleton ───────────────────────────────────────────────────────────── */
+.skeleton-loading-card {
+  padding: 16px;
+  background: var(--bg-card);
+  border-radius: var(--radius);
+  border: 1px solid var(--border-color);
+}
+
+/* ─── Create Teacher Button ──────────────────────────────────────────────── */
+.create-teacher-button {
+  background: var(--accent-red);
+  border-color: var(--accent-red);
+  color: #fff;
+  height: 34px;
+  font-weight: 600;
+}
+
+.create-teacher-button:hover {
+  background: #a8071a;
+  border-color: #a8071a;
+  color: #fff;
+}
