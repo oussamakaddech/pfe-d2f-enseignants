@@ -117,7 +117,7 @@ jobs:
 
       - name: Install dependencies
         working-directory: esprit_D2F-webapp
-        run: npm ci
+        run: npm ci --legacy-peer-deps
 
       - name: Run tests with coverage
         working-directory: esprit_D2F-webapp
