@@ -1,0 +1,152 @@
+name: SonarQube Monorepo
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+      - oussama
+      - "feature/**"
+      - "hotfix/**"
+  pull_request:
+    branches:
+      - main
+      - develop
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: read
+
+concurrency:
+  group: sonarqube-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+  SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+jobs:
+  java-modules:
+    name: Sonar Java • ${{ matrix.module }}
+    runs-on: [self-hosted, sonar]
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - module: esprit_D2F-api-gateway
+            projectKey: d2f_api_gateway
+            projectName: d2f_api_gateway
+          - module: esprit_D2F-authentification
+            projectKey: d2f_authentification
+            projectName: d2f_authentification
+          - module: esprit_D2F-besoin-formation
+            projectKey: d2f_besoin_formation
+            projectName: d2f_besoin_formation
+          - module: esprit_D2F-certificat
+            projectKey: d2f_certificat
+            projectName: d2f_certificat
+          - module: esprit_D2F-competence
+            projectKey: d2f_competence
+            projectName: d2f_competence
+          - module: esprit_D2F-evaluation
+            projectKey: d2f_evaluation
+            projectName: d2f_evaluation
+          - module: esprit_D2F-formation
+            projectKey: d2f_formation
+            projectName: d2f_formation
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: maven
+
+      - name: Ensure Maven wrapper executable
+        run: chmod +x "${{ matrix.module }}/mvnw"
+
+      - name: Build and analyze branch
+        if: github.event_name != 'pull_request'
+        working-directory: ${{ matrix.module }}
+        run: |
+          ./mvnw -B -ntp clean verify sonar:sonar \
+            -Dsonar.host.url="${SONAR_HOST_URL}" \
+            -Dsonar.token="${SONAR_TOKEN}" \
+            -Dsonar.projectKey="${{ matrix.projectKey }}" \
+            -Dsonar.projectName="${{ matrix.projectName }}" \
+            -Dsonar.branch.name="${{ github.ref_name }}" \
+            -Dsonar.qualitygate.wait=true
+
+      - name: Build and analyze pull request
+        if: github.event_name == 'pull_request'
+        working-directory: ${{ matrix.module }}
+        run: |
+          ./mvnw -B -ntp clean verify sonar:sonar \
+            -Dsonar.host.url="${SONAR_HOST_URL}" \
+            -Dsonar.token="${SONAR_TOKEN}" \
+            -Dsonar.projectKey="${{ matrix.projectKey }}" \
+            -Dsonar.projectName="${{ matrix.projectName }}" \
+            -Dsonar.pullrequest.key="${{ github.event.pull_request.number }}" \
+            -Dsonar.pullrequest.branch="${{ github.head_ref }}" \
+            -Dsonar.pullrequest.base="${{ github.base_ref }}" \
+            -Dsonar.qualitygate.wait=true
+
+  webapp:
+    name: Sonar Webapp • esprit_D2F-webapp
+    runs-on: [self-hosted, sonar]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: esprit_D2F-webapp/package-lock.json
+
+      - name: Install dependencies
+        working-directory: esprit_D2F-webapp
+        run: npm ci
+
+      - name: Run tests with coverage
+        working-directory: esprit_D2F-webapp
+        run: npm run test:coverage
+
+      - name: Sonar scan (branch)
+        if: github.event_name != 'pull_request'
+        uses: SonarSource/sonarqube-scan-action@v5
+        with:
+          projectBaseDir: esprit_D2F-webapp
+          args: >-
+            -Dsonar.host.url=${{ secrets.SONAR_HOST_URL }}
+            -Dsonar.token=${{ secrets.SONAR_TOKEN }}
+            -Dsonar.projectKey=d2f_webapp
+            -Dsonar.projectName=d2f_webapp
+            -Dsonar.branch.name=${{ github.ref_name }}
+            -Dsonar.qualitygate.wait=true
+
+      - name: Sonar scan (pull request)
+        if: github.event_name == 'pull_request'
+        uses: SonarSource/sonarqube-scan-action@v5
+        with:
+          projectBaseDir: esprit_D2F-webapp
+          args: >-
+            -Dsonar.host.url=${{ secrets.SONAR_HOST_URL }}
+            -Dsonar.token=${{ secrets.SONAR_TOKEN }}
+            -Dsonar.projectKey=d2f_webapp
+            -Dsonar.projectName=d2f_webapp
+            -Dsonar.pullrequest.key=${{ github.event.pull_request.number }}
+            -Dsonar.pullrequest.branch=${{ github.head_ref }}
+            -Dsonar.pullrequest.base=${{ github.base_ref }}
+            -Dsonar.qualitygate.wait=true
