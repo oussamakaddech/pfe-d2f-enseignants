@@ -1,4 +1,4 @@
-import axios from "axios";
+import { defaultApi as axios } from "../utils/httpClient";
 import { config } from "../config/env"; 
 import { optionalAuthHeader } from "./authHeaders";
 const API_URL = `${config.FORMATION_URL}/formation/inscription`;

@@ -1,4 +1,4 @@
-import axios from "axios";
+import { defaultApi as axios } from "../utils/httpClient";
 import { config } from "../config/env"; 
 import { requireAuthHeader } from "./authHeaders";
 // URL de votre back-end

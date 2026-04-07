@@ -38,7 +38,7 @@ export default function EnseignantRegister({ initialValues = {}, onSuccess, onEr
   };
 
   return (
-    <Card bordered={false} style={{ width: '100%' }}>
+    <Card variant="borderless" style={{ width: '100%' }}>
       <Title level={4}>Inscription Enseignant</Title>
       <Form form={form} layout="vertical" onFinish={onFinish}>
         <Form.Item name="id" hidden>

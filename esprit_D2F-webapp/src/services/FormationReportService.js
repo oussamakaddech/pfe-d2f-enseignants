@@ -1,4 +1,4 @@
-import axios from "axios";
+import { defaultApi as axios } from "../utils/httpClient";
 import { config } from "../config/env"; 
 // URL de votre API Spring Boot
 const API_URL = `${config.FORMATION_URL}/formation/formation-report`;

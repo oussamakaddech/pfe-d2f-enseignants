@@ -142,7 +142,7 @@ export default function NonAffectedGrid() {
                 <Card
                   hoverable
                   style={{ borderRadius: 8, boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}
-                  bodyStyle={{ padding: 16 }}
+                  styles={{ body: { padding: 16 } }}
                 >
                   <Space direction="vertical" size={12} style={{ width: '100%' }}>
                     <Space align="center" style={{ marginBottom: 8 }}>

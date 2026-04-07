@@ -1,13 +1,13 @@
 // src/services/DeptService.js
 
-import axios from "axios";
+import { defaultApi as axios } from "../utils/httpClient";
 import { config } from "../config/env";
 import { optionalAuthHeader } from "./authHeaders";
 
 const API_URL = `${config.FORMATION_URL}/formation/departements`;
 
 function isNotFoundError(error) {
-  return axios.isAxiosError(error) && error.response?.status === 404;
+  return error?.isAxiosError === true && error.response?.status === 404;
 }
 
 const DeptService = {

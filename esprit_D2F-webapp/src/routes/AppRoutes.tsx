@@ -1,6 +1,8 @@
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from "react-router-dom";
+import { useEffect } from "react";
 
 import AuthProvider from "../context/AuthProvider";
+import { setNavigate } from "../utils/navigation";
 import PrivateRoute from "../components/PrivateRoute";
 import RoleGuard from "../components/RoleGuard";
 import AppLayout from "../components/AppLayout";
@@ -44,67 +46,81 @@ export default function AppRoutes() {
   return (
     <AuthProvider>
       <Router>
+        {/* Ensure non-component code can perform SPA navigation */}
+        <NavigationSetter />
         <Routes>
           <Route path="/" element={<Login />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/auth" element={<Navigate to="/login" replace />} />
+          <Route path="/auth/login" element={<Navigate to="/login" replace />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/profile" element={<Navigate to="/home/profile" replace />} />
 
           <Route element={<PrivateRoute />}>
             <Route element={<AppLayout />}>
               <Route path="/home" element={<Home />} />
 
-              <Route path="home/profile" element={<Profile />} />
-              <Route path="home/edit-profile" element={<EditProfile />} />
-              <Route path="home/update-password" element={<UpdatePassword />} />
-              <Route path="home/ListeFormation" element={<FormationCards />} />
-              <Route path="home/ListeFormation/:id" element={<FicheFormation />} />
-              <Route path="home/MyCertificate" element={<CertificatesByEmailPage />} />
+              <Route path="/home/profile" element={<Profile />} />
+              <Route path="/home/edit-profile" element={<EditProfile />} />
+              <Route path="/home/update-password" element={<UpdatePassword />} />
+              <Route path="/home/ListeFormation" element={<FormationCards />} />
+              <Route path="/home/ListeFormation/:id" element={<FicheFormation />} />
+              <Route path="/home/MyCertificate" element={<CertificatesByEmailPage />} />
+
               <Route element={<RoleGuard allowedRoles={["admin", "D2F", "CUP"]} />}>
-                <Route path="home/competences" element={<CompetencePage />} />
+                <Route path="/home/competences" element={<CompetencePage />} />
+                <Route path="/home/competence" element={<CompetencePage />} />
                 <Route
-                  path="home/competences/enseignant/:enseignantId"
+                  path="/home/competences/enseignant/:enseignantId"
                   element={<EnseignantCompetencePage />}
                 />
-                <Route path="home/affectations" element={<AffectationEnseignantPage />} />
-                <Route path="home/rice" element={<RicePage />} />
-                <Route path="home/rice/matchmaking" element={<CompetenceMatchingPage />} />
-                <Route path="home/rice/competence-matching" element={<CompetenceMatchingPage />} />
-                <Route path="home/File" element={<CombinedFormationOneDriveTree />} />
-                <Route path="home/KPI" element={<KPIChart />} />
-                <Route path="home/UpDept" element={<UpDeptDataGrid />} />
-                <Route path="home/Calendrier" element={<CalendrierPage />} />
-                <Route path="home/Formation" element={<FormationTable />} />
                 <Route
-                  path="home/BesoinApprouver"
+                  path="/home/competence/enseignant/:enseignantId"
+                  element={<EnseignantCompetencePage />}
+                />
+                <Route path="/home/affectations" element={<AffectationEnseignantPage />} />
+                <Route path="/home/rice" element={<RicePage />} />
+                <Route path="/home/rice/matchmaking" element={<CompetenceMatchingPage />} />
+                <Route path="/home/rice/competence-matching" element={<CompetenceMatchingPage />} />
+                <Route path="/home/File" element={<CombinedFormationOneDriveTree />} />
+                <Route path="/home/KPI" element={<KPIChart />} />
+                <Route path="/home/UpDept" element={<UpDeptDataGrid />} />
+                <Route path="/home/Calendrier" element={<CalendrierPage />} />
+                <Route path="/home/Formation" element={<FormationTable />} />
+                <Route
+                  path="/home/BesoinApprouver"
                   element={<BesoinFormationApproval />}
                 />
                 <Route
-                  path="home/ListeFormation/:id/demandes"
+                  path="/home/ListeFormation/:id/demandes"
                   element={<DemandesList />}
                 />
 
-                <Route path="home/test" element={<Tests />} />
+                <Route path="/home/test" element={<Tests />} />
 
-                <Route path="home/calendar" element={<Calendrier />} />
-                <Route path="home/accounts" element={<ListAccounts />} />
-                <Route path="home/Enseignants" element={<TeachersDataGrid />} />
+                <Route path="/home/calendar" element={<Calendrier />} />
+                <Route path="/home/accounts" element={<ListAccounts />} />
+                <Route path="/home/Enseignants" element={<TeachersDataGrid />} />
+                <Route path="/home/enseignants" element={<TeachersDataGrid />} />
+                <Route path="/home/enseignant" element={<TeachersDataGrid />} />
                 <Route
-                  path="home/calendar/:enseignantId"
+                  path="/home/calendar/:enseignantId"
                   element={<CalendarEnseignant />}
                 />
-                <Route path="home/certificate" element={<CompletedFormations />} />
+                <Route path="/home/certificate" element={<CompletedFormations />} />
                 <Route
-                  path="home/certificate/:formationId"
+                  path="/home/certificate/:formationId"
                   element={<CertificatePage />}
                 />
               </Route>
 
               <Route element={<RoleGuard allowedRoles={["Formateur", "D2F"]} />}>
                 <Route
-                  path="home/animateur-formations"
+                  path="/home/animateur-formations"
                   element={<FormationList />}
                 />
                 <Route
-                  path="home/animateur-formations/:id"
+                  path="/home/animateur-formations/:id"
                   element={<FormationDetail />}
                 />
               </Route>
@@ -116,4 +132,12 @@ export default function AppRoutes() {
       </Router>
     </AuthProvider>
   );
+}
+
+function NavigationSetter() {
+  const nav = useNavigate();
+  useEffect(() => {
+    setNavigate((to, opts) => nav(to, { replace: !!opts?.replace }));
+  }, [nav]);
+  return null;
 }

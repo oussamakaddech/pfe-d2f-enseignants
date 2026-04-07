@@ -90,7 +90,7 @@ export default function CertificatePage() {
   ];
 
   return (
-    <Card style={{ margin: 24 }} bordered={false}>
+    <Card style={{ margin: 24 }} variant="borderless">
       <Title level={2}>Certificats pour la formation {formationId}</Title>
 
       <Space

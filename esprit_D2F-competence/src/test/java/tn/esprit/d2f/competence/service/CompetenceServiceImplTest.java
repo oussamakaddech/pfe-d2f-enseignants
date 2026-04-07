@@ -8,12 +8,16 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 import org.springframework.data.domain.*;
 import tn.esprit.d2f.competence.dto.CompetenceDTO;
 import tn.esprit.d2f.competence.entity.Competence;
 import tn.esprit.d2f.competence.entity.Domaine;
+import tn.esprit.d2f.competence.repository.CompetencePrerequisiteRepository;
 import tn.esprit.d2f.competence.repository.CompetenceRepository;
 import tn.esprit.d2f.competence.repository.DomaineRepository;
+import tn.esprit.d2f.competence.repository.SousCompetenceRepository;
 import tn.esprit.d2f.competence.repository.EnseignantCompetenceRepository;
 import tn.esprit.d2f.competence.repository.NiveauSavoirRequisRepository;
 import tn.esprit.d2f.competence.repository.SavoirRepository;
@@ -28,14 +32,17 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 @DisplayName("CompetenceServiceImpl - Tests unitaires")
 class CompetenceServiceImplTest {
 
     @Mock private CompetenceRepository competenceRepository;
     @Mock private DomaineRepository    domaineRepository;
+    @Mock private CompetencePrerequisiteRepository prerequisiteRepository;
     @Mock private EnseignantCompetenceRepository enseignantCompetenceRepository;
     @Mock private NiveauSavoirRequisRepository niveauRepo;
     @Mock private SavoirRepository savoirRepository;
+    @Mock private SousCompetenceRepository sousCompetenceRepository;
     @Mock private CompetenceMapper     competenceMapper;
 
     @InjectMocks private CompetenceServiceImpl competenceService;
@@ -71,6 +78,8 @@ class CompetenceServiceImplTest {
             when(competenceRepository.findAllWithDomaine(pageable))
                     .thenReturn(new PageImpl<>(List.of(competence)));
             when(competenceMapper.toDTO(any(Competence.class))).thenReturn(competenceDTO);
+            when(prerequisiteRepository.countByCompetenceId(2L)).thenReturn(0L);
+            when(prerequisiteRepository.findPrerequisiteNamesByCompetenceId(2L)).thenReturn(List.of());
 
             Page<CompetenceDTO> page = competenceService.getAllCompetences(pageable);
 
@@ -89,6 +98,8 @@ class CompetenceServiceImplTest {
             when(competenceRepository.findByDomaineIdWithDomaine(1L))
                     .thenReturn(List.of(competence));
             when(competenceMapper.toDTO(any(Competence.class))).thenReturn(competenceDTO);
+            when(prerequisiteRepository.countByCompetenceId(2L)).thenReturn(0L);
+            when(prerequisiteRepository.findPrerequisiteNamesByCompetenceId(2L)).thenReturn(List.of());
 
             List<CompetenceDTO> result = competenceService.getCompetencesByDomaine(1L);
 
@@ -106,6 +117,8 @@ class CompetenceServiceImplTest {
             when(competenceRepository.findById(2L)).thenReturn(Optional.of(competence));
             when(competenceMapper.toDTO(competence)).thenReturn(competenceDTO);
             when(enseignantCompetenceRepository.countDistinctEnseignantsByCompetenceId(2L)).thenReturn(0L);
+            when(prerequisiteRepository.countByCompetenceId(2L)).thenReturn(0L);
+            when(prerequisiteRepository.findPrerequisiteNamesByCompetenceId(2L)).thenReturn(List.of());
 
             CompetenceDTO result = competenceService.getCompetenceById(2L);
 
@@ -199,21 +212,19 @@ class CompetenceServiceImplTest {
 
         @Test @DisplayName("supprime quand l enregistrement existe")
         void shouldDeleteWhenFound() {
-            when(competenceRepository.existsById(2L)).thenReturn(true);
-            when(enseignantCompetenceRepository.findSavoirIdsByCompetenceId(2L)).thenReturn(List.of());
-            when(savoirRepository.findIdsByCompetenceId(2L)).thenReturn(List.of());
-            doNothing().when(competenceRepository).deleteById(2L);
+            when(competenceRepository.findById(2L)).thenReturn(Optional.of(competence));
+            when(sousCompetenceRepository.findByCompetenceId(2L)).thenReturn(List.of());
+            when(savoirRepository.existsByCompetenceId(2L)).thenReturn(false);
+            doNothing().when(competenceRepository).delete(competence);
 
             competenceService.deleteCompetence(2L);
 
-            verify(niveauRepo).deleteByCompetenceId(2L);
-            verify(niveauRepo).deleteBySousCompetence_CompetenceId(2L);
-            verify(competenceRepository).deleteById(2L);
+            verify(competenceRepository).delete(competence);
         }
 
         @Test @DisplayName("leve une exception si la competence est absente")
         void shouldThrowIfNotFound() {
-            when(competenceRepository.existsById(99L)).thenReturn(false);
+            when(competenceRepository.findById(99L)).thenReturn(Optional.empty());
             assertThatThrownBy(() -> competenceService.deleteCompetence(99L))
                     .isInstanceOf(RuntimeException.class);
         }

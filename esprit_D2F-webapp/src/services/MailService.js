@@ -1,5 +1,5 @@
 // src/services/MailService.js
-import axios from "axios";
+import { defaultApi as axios } from "../utils/httpClient";
 import { config } from "../config/env"; 
 import { optionalAuthHeader } from "./authHeaders";
 // URL de base de votre API (même port que pour vos formations)

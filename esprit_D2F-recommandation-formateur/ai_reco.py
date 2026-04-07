@@ -37,10 +37,20 @@ class RecoItem(BaseModel):
     dept_id: str       # Changé en string
     score: float
 
-@app.post("/api/recommend", response_model=List[RecoItem])
-def recommend(req: RecoRequest):
+def _recommend_impl(req: RecoRequest):
     context = f"{req.domaine or ''}. {req.objectif}. {req.objectifPedagogique}"
     return recommend_semantic(context, req.topN)
+
+
+# Keep backward compatibility while also matching gateway StripPrefix=2
+@app.post("/recommend", response_model=List[RecoItem])
+def recommend(req: RecoRequest):
+    return _recommend_impl(req)
+
+
+@app.post("/api/recommend", response_model=List[RecoItem])
+def recommend_api(req: RecoRequest):
+    return _recommend_impl(req)
 
 # ---------- tâche planifiée interne (hebdo) ----------
 def weekly_refresh():

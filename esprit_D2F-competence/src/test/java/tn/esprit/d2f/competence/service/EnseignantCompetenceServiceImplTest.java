@@ -49,7 +49,7 @@ class EnseignantCompetenceServiceImplTest {
                 .actif(true).competences(new ArrayList<>()).build();
         Competence competence = Competence.builder().id(1L).code("C1").nom("Sols")
                 .domaine(domaine).sousCompetences(new ArrayList<>()).savoirs(new ArrayList<>()).build();
-        SousCompetence sc = SousCompetence.builder().id(1L).code("SC-01").nom("Essais")
+        SousCompetence sc = SousCompetence.builder().id(1L).code("GC-C1.SC01").nom("Essais")
                 .competence(competence).savoirs(new ArrayList<>()).build();
         savoir = Savoir.builder().id(1L).code("S2a").nom("Essai labo")
                 .type(TypeSavoir.PRATIQUE).niveau(NiveauMaitrise.N1_DEBUTANT)

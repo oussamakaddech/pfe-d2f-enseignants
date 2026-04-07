@@ -1,5 +1,5 @@
 // src/services/RiceService.js
-import axios from "axios";
+import { defaultApi as axios } from "../utils/httpClient";
 import { config } from "../config/env";
 import { requireAuthHeader } from "./authHeaders";
 
@@ -122,14 +122,15 @@ const RiceService = {
       const deptNorm = String(departement).toLowerCase();
       return list.filter((e) => String(e?.departement ?? e?.department ?? "").toLowerCase() === deptNorm);
     } catch (err) {
-      const status = err?.response?.status;
-      if (status === 401 || status === 403) {
-        throw err;
+      // Compatibility fallback: some deployments expose teachers via competence service,
+      // and some secured deployments reject the formation endpoint while still allowing
+      // the competence endpoint with the same token.
+      try {
+        const data = await fetchAllPages(`${COMPETENCE_BASE}/enseignants`, headers, params);
+        return normalizeEnseignantsPayload(data);
+      } catch (fallbackErr) {
+        throw fallbackErr?.response?.status ? fallbackErr : err;
       }
-
-      // Compatibility fallback: some deployments expose teachers via competence service.
-      const data = await fetchAllPages(`${COMPETENCE_BASE}/enseignants`, headers, params);
-      return normalizeEnseignantsPayload(data);
     }
   },
 

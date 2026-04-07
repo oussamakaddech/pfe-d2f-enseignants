@@ -266,7 +266,7 @@ export default function DonutByTrainerTypeWithFilters() {
         <Col xs={24} md={12}>
           <Card
             style={{ borderRadius: 8, boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}
-            bodyStyle={{ padding: 16 }}
+            styles={{ body: { padding: 16 } }}
           >
             <ResponsiveContainer width="100%" height={300}>
               <PieChart>
@@ -320,7 +320,7 @@ export default function DonutByTrainerTypeWithFilters() {
                   borderRadius: 8,
                   boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
                 }}
-                bodyStyle={{ padding: 16 }}
+                styles={{ body: { padding: 16 } }}
                 onClick={() => {
                   setSelectedCategory("Externe uniquement");
                   setModalVisible(true);
@@ -351,7 +351,7 @@ export default function DonutByTrainerTypeWithFilters() {
                   borderRadius: 8,
                   boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
                 }}
-                bodyStyle={{ padding: 16 }}
+                styles={{ body: { padding: 16 } }}
                 onClick={() => {
                   setSelectedCategory("Interne uniquement");
                   setModalVisible(true);
@@ -382,7 +382,7 @@ export default function DonutByTrainerTypeWithFilters() {
                   borderRadius: 8,
                   boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
                 }}
-                bodyStyle={{ padding: 16 }}
+                styles={{ body: { padding: 16 } }}
                 onClick={() => {
                   setSelectedCategory("Mixtes");
                   setModalVisible(true);

@@ -62,7 +62,7 @@ export default function Register() {
   return (
     <Card
       style={{ maxWidth: 600, margin: "40px auto", padding: "24px" }}
-      bordered={false}
+      variant="borderless"
     >
       <Title level={2} style={{ textAlign: "center", marginBottom: 24 }}>
         Création de compte

@@ -250,7 +250,7 @@ def _analyze_single_fiche(
     extracted_ids: List[str] = [e.matched_id for e in extracted_ens if e.matched_id]
 
     # ── Step 3: Extract Acquis d'Apprentissage ───────────────────────────
-    acquis = _extract_acquis_apprentissage(text, raw_tables=raw_tables)
+    acquis = _extract_acquis_apprentissage(text)
     logger.info(f"  Acquis d'apprentissage found: {len(acquis)}")
 
     # ── Step 4: Extract Séances ──────────────────────────────────────────

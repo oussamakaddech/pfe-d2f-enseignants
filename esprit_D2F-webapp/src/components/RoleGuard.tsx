@@ -15,7 +15,7 @@ export default function RoleGuard({ allowedRoles }: RoleGuardProps) {
   const { user } = auth;
   const role = typeof user?.role === "string" ? user.role : "";
   if (!user || !allowedRoles.includes(role)) {
-    return <Navigate to="/profile" replace />;
+    return <Navigate to="/home/profile" replace />;
   }
 
   return <Outlet />;

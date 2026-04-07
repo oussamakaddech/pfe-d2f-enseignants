@@ -227,7 +227,7 @@ export default function FormationsByTypeFiltered() {
             <Card
               className="type-card"
               title="INTERNE"
-              bordered={false}
+              variant="borderless"
               style={{ textAlign: "center" }}
             >
               <span style={{ fontSize: "2rem", fontWeight: "bold", color: "#f5222d" }}>
@@ -239,7 +239,7 @@ export default function FormationsByTypeFiltered() {
             <Card
               className="type-card"
               title="EXTERNE"
-              bordered={false}
+              variant="borderless"
               style={{ textAlign: "center" }}
             >
               <span style={{ fontSize: "2rem", fontWeight: "bold", color: "#f5222d" }}>
@@ -251,7 +251,7 @@ export default function FormationsByTypeFiltered() {
             <Card
               className="type-card"
               title="EN_LIGNE"
-              bordered={false}
+              variant="borderless"
               style={{ textAlign: "center" }}
             >
               <span style={{ fontSize: "2rem", fontWeight: "bold", color: "#f5222d" }}>

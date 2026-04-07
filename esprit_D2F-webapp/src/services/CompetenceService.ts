@@ -1,4 +1,5 @@
-import axios, { type AxiosResponse } from "axios";
+import { defaultApi as axios } from "../utils/httpClient";
+import type { AxiosResponse } from "axios";
 import { config } from "../config/env";
 import type { ApiListOrPage, Id } from "../models/common";
 import type {

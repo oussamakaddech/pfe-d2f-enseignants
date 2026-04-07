@@ -61,7 +61,7 @@ export default function SideMenu() {
       { label: "Comptes", key: "/home/accounts", icon: TeamOutlined },
       { label: "Calendrier", key: "/home/Calendrier", icon: CalendarOutlined },
       { label: "Formations", key: "/home/Formation", icon: FileTextOutlined },
-       { label: "Besoin Approuver", key: "home/BesoinApprouver", icon: ReadOutlined },
+        { label: "Besoin Approuver", key: "/home/BesoinApprouver", icon: ReadOutlined },
       { label: "Documents", key: "/home/File", icon: FileTextOutlined },
       { label: "Enseignants", key: "/home/Enseignants", icon: TeamOutlined },
       { label: "Certificates", key: "/home/certificate", icon: ReadOutlined },
@@ -141,7 +141,7 @@ export default function SideMenu() {
     if (key === "logout") {
       logout();
       navigate("/");
-    } else {
+    } else if (typeof key === "string" && key.startsWith("/")) {
       navigate(key);
     }
   };

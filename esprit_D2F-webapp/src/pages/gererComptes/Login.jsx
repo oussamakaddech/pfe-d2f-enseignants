@@ -58,7 +58,7 @@ export default function Login() {
         background: "#f0f2f5",
       }}
     >
-      <Card style={{ width: 360 }} bordered={false} bodyStyle={{ padding: "32px 24px" }}>
+      <Card style={{ width: 360 }} variant="borderless" styles={{ body: { padding: "32px 24px" } }}>
         <Title level={3} style={{ textAlign: "center", marginBottom: 24 }}>
           Se connecter
         </Title>

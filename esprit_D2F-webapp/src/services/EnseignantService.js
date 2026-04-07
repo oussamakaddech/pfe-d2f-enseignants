@@ -1,4 +1,4 @@
-import axios from "axios";
+import { defaultApi as axios } from "../utils/httpClient";
 import { config } from "../config/env"; 
 import { requireAuthHeader } from "./authHeaders";
 const API_URL =  `${config.FORMATION_URL}/formation/enseignants`;
@@ -18,7 +18,15 @@ const EnseignantService = {
 
   async getAllEnseignants() {
     try {
-      const response = await axios.get(API_URL, { headers: requireAuthHeader() });
+      let headers = {};
+      try {
+        headers = requireAuthHeader();
+      } catch (e) {
+        console.debug("[EnseignantService] no auth token available for getAllEnseignants");
+        throw e;
+      }
+      console.debug("[EnseignantService] getAllEnseignants - sending request with auth?", { hasAuth: !!headers.Authorization });
+      const response = await axios.get(API_URL, { headers });
       return response.data;
     } catch (error) {
       console.error("Erreur lors de la récupération des enseignants :", error);

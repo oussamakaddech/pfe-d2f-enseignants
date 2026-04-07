@@ -1,6 +1,6 @@
 // src/services/UpService.js
 
-import axios from "axios";
+import { defaultApi as axios } from "../utils/httpClient";
 import { config } from "../config/env";
 
 const API_URL = `${config.FORMATION_URL}/formation/ups`;
