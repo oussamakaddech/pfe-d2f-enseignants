@@ -82,14 +82,13 @@ jobs:
             -Dsonar.token="${{ env.SONAR_TOKEN }}" \
             -Dsonar.projectKey="${{ matrix.projectKey }}" \
             -Dsonar.projectName="${{ matrix.projectName }}" \
-            -Dsonar.branch.name="${{ github.ref_name }}" \
             -Dsonar.qualitygate.wait=true
 
       - name: Build and analyze branch (Windows)
         if: github.event_name != 'pull_request' && runner.os == 'Windows'
         working-directory: ${{ matrix.module }}
         shell: cmd
-        run: .\mvnw.cmd -B -ntp clean verify sonar:sonar -Dsonar.host.url="http://localhost:9000" -Dsonar.token="%SONAR_TOKEN%" -Dsonar.projectKey="${{ matrix.projectKey }}" -Dsonar.projectName="${{ matrix.projectName }}" -Dsonar.branch.name="${{ github.ref_name }}" -Dsonar.qualitygate.wait=true
+        run: .\mvnw.cmd -B -ntp clean verify sonar:sonar -Dsonar.host.url="http://localhost:9000" -Dsonar.token="%SONAR_TOKEN%" -Dsonar.projectKey="${{ matrix.projectKey }}" -Dsonar.projectName="${{ matrix.projectName }}" -Dsonar.qualitygate.wait=true
 
       - name: Build and analyze pull request (Unix)
         if: github.event_name == 'pull_request' && runner.os != 'Windows'
@@ -100,16 +99,13 @@ jobs:
             -Dsonar.token="${{ env.SONAR_TOKEN }}" \
             -Dsonar.projectKey="${{ matrix.projectKey }}" \
             -Dsonar.projectName="${{ matrix.projectName }}" \
-            -Dsonar.pullrequest.key="${{ github.event.pull_request.number }}" \
-            -Dsonar.pullrequest.branch="${{ github.head_ref }}" \
-            -Dsonar.pullrequest.base="${{ github.base_ref }}" \
             -Dsonar.qualitygate.wait=true
 
       - name: Build and analyze pull request (Windows)
         if: github.event_name == 'pull_request' && runner.os == 'Windows'
         working-directory: ${{ matrix.module }}
         shell: cmd
-        run: .\mvnw.cmd -B -ntp clean verify sonar:sonar -Dsonar.host.url="http://localhost:9000" -Dsonar.token="%SONAR_TOKEN%" -Dsonar.projectKey="${{ matrix.projectKey }}" -Dsonar.projectName="${{ matrix.projectName }}" -Dsonar.pullrequest.key="${{ github.event.pull_request.number }}" -Dsonar.pullrequest.branch="${{ github.head_ref }}" -Dsonar.pullrequest.base="${{ github.base_ref }}" -Dsonar.qualitygate.wait=true
+        run: .\mvnw.cmd -B -ntp clean verify sonar:sonar -Dsonar.host.url="http://localhost:9000" -Dsonar.token="%SONAR_TOKEN%" -Dsonar.projectKey="${{ matrix.projectKey }}" -Dsonar.projectName="${{ matrix.projectName }}" -Dsonar.qualitygate.wait=true
 
   webapp:
     name: Sonar Webapp • esprit_D2F-webapp
@@ -144,4 +140,4 @@ jobs:
       - name: Sonar scan (pull request via Docker)
         if: github.event_name == 'pull_request'
         shell: cmd
-        run: docker run --rm -v "${{ github.workspace }}:/usr/src" -e SONAR_HOST_URL="http://host.docker.internal:9000" -e SONAR_LOGIN="%SONAR_TOKEN%" sonarsource/sonar-scanner-cli -Dsonar.projectBaseDir=/usr/src/esprit_D2F-webapp -Dsonar.projectKey=d2f_webapp -Dsonar.projectName=d2f_webapp -Dsonar.pullrequest.key=${{ github.event.pull_request.number }} -Dsonar.pullrequest.branch=${{ github.head_ref }} -Dsonar.pullrequest.base=${{ github.base_ref }} -Dsonar.host.url="http://host.docker.internal:9000" -Dsonar.login="%SONAR_TOKEN%"
+        run: docker run --rm -v "${{ github.workspace }}:/usr/src" -e SONAR_HOST_URL="http://host.docker.internal:9000" -e SONAR_LOGIN="%SONAR_TOKEN%" sonarsource/sonar-scanner-cli -Dsonar.projectBaseDir=/usr/src/esprit_D2F-webapp -Dsonar.projectKey=d2f_webapp -Dsonar.projectName=d2f_webapp -Dsonar.host.url="http://host.docker.internal:9000" -Dsonar.login="%SONAR_TOKEN%"
