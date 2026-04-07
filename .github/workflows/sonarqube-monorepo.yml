@@ -69,33 +69,62 @@ jobs:
           java-version: "17"
           cache: maven
 
-      - name: Ensure Maven wrapper executable
+      - name: Ensure Maven wrapper executable (Unix)
+        if: runner.os != 'Windows'
         run: chmod +x "${{ matrix.module }}/mvnw"
 
-      - name: Build and analyze branch
-        if: github.event_name != 'pull_request'
+      - name: Build and analyze branch (Unix)
+        if: github.event_name != 'pull_request' && runner.os != 'Windows'
         working-directory: ${{ matrix.module }}
         run: |
           ./mvnw -B -ntp clean verify sonar:sonar \
-            -Dsonar.host.url="${SONAR_HOST_URL}" \
-            -Dsonar.token="${SONAR_TOKEN}" \
+            -Dsonar.host.url="${{ env.SONAR_HOST_URL }}" \
+            -Dsonar.token="${{ env.SONAR_TOKEN }}" \
             -Dsonar.projectKey="${{ matrix.projectKey }}" \
             -Dsonar.projectName="${{ matrix.projectName }}" \
             -Dsonar.branch.name="${{ github.ref_name }}" \
             -Dsonar.qualitygate.wait=true
 
-      - name: Build and analyze pull request
-        if: github.event_name == 'pull_request'
+      - name: Build and analyze branch (Windows)
+        if: github.event_name != 'pull_request' && runner.os == 'Windows'
+        working-directory: ${{ matrix.module }}
+        shell: pwsh
+        run: |
+          .\mvnw.cmd -B -ntp clean verify sonar:sonar `
+            -Dsonar.host.url="${{ env.SONAR_HOST_URL }}" `
+            -Dsonar.token="${{ env.SONAR_TOKEN }}" `
+            -Dsonar.projectKey="${{ matrix.projectKey }}" `
+            -Dsonar.projectName="${{ matrix.projectName }}" `
+            -Dsonar.branch.name="${{ github.ref_name }}" `
+            -Dsonar.qualitygate.wait=true
+
+      - name: Build and analyze pull request (Unix)
+        if: github.event_name == 'pull_request' && runner.os != 'Windows'
         working-directory: ${{ matrix.module }}
         run: |
           ./mvnw -B -ntp clean verify sonar:sonar \
-            -Dsonar.host.url="${SONAR_HOST_URL}" \
-            -Dsonar.token="${SONAR_TOKEN}" \
+            -Dsonar.host.url="${{ env.SONAR_HOST_URL }}" \
+            -Dsonar.token="${{ env.SONAR_TOKEN }}" \
             -Dsonar.projectKey="${{ matrix.projectKey }}" \
             -Dsonar.projectName="${{ matrix.projectName }}" \
             -Dsonar.pullrequest.key="${{ github.event.pull_request.number }}" \
             -Dsonar.pullrequest.branch="${{ github.head_ref }}" \
             -Dsonar.pullrequest.base="${{ github.base_ref }}" \
+            -Dsonar.qualitygate.wait=true
+
+      - name: Build and analyze pull request (Windows)
+        if: github.event_name == 'pull_request' && runner.os == 'Windows'
+        working-directory: ${{ matrix.module }}
+        shell: pwsh
+        run: |
+          .\mvnw.cmd -B -ntp clean verify sonar:sonar `
+            -Dsonar.host.url="${{ env.SONAR_HOST_URL }}" `
+            -Dsonar.token="${{ env.SONAR_TOKEN }}" `
+            -Dsonar.projectKey="${{ matrix.projectKey }}" `
+            -Dsonar.projectName="${{ matrix.projectName }}" `
+            -Dsonar.pullrequest.key="${{ github.event.pull_request.number }}" `
+            -Dsonar.pullrequest.branch="${{ github.head_ref }}" `
+            -Dsonar.pullrequest.base="${{ github.base_ref }}" `
             -Dsonar.qualitygate.wait=true
 
   webapp:
