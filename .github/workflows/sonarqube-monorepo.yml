@@ -88,7 +88,7 @@ jobs:
       - name: Build and analyze branch (Windows)
         if: github.event_name != 'pull_request' && runner.os == 'Windows'
         working-directory: ${{ matrix.module }}
-        shell: pwsh
+        shell: powershell
         run: |
           .\mvnw.cmd -B -ntp clean verify sonar:sonar `
             -Dsonar.host.url="${{ env.SONAR_HOST_URL }}" `
@@ -115,7 +115,7 @@ jobs:
       - name: Build and analyze pull request (Windows)
         if: github.event_name == 'pull_request' && runner.os == 'Windows'
         working-directory: ${{ matrix.module }}
-        shell: pwsh
+        shell: powershell
         run: |
           .\mvnw.cmd -B -ntp clean verify sonar:sonar `
             -Dsonar.host.url="${{ env.SONAR_HOST_URL }}" `
@@ -152,30 +152,32 @@ jobs:
         working-directory: esprit_D2F-webapp
         run: npm run test:coverage
 
-      - name: Sonar scan (branch)
+      - name: Sonar scan (branch via Docker)
         if: github.event_name != 'pull_request'
-        uses: SonarSource/sonarqube-scan-action@v5
-        with:
-          projectBaseDir: esprit_D2F-webapp
-          args: >-
-            -Dsonar.host.url=${{ secrets.SONAR_HOST_URL }}
-            -Dsonar.token=${{ secrets.SONAR_TOKEN }}
-            -Dsonar.projectKey=d2f_webapp
-            -Dsonar.projectName=d2f_webapp
-            -Dsonar.branch.name=${{ github.ref_name }}
-            -Dsonar.qualitygate.wait=true
+        run: |
+          docker run --rm -v "${{ github.workspace }}:/usr/src" \
+            -e SONAR_HOST_URL="${{ replace(secrets.SONAR_HOST_URL, 'localhost', 'host.docker.internal') }}" \
+            -e SONAR_LOGIN="${{ secrets.SONAR_TOKEN }}" \
+            sonarsource/sonar-scanner-cli \
+            -Dsonar.projectBaseDir=/usr/src/esprit_D2F-webapp \
+            -Dsonar.projectKey=d2f_webapp \
+            -Dsonar.projectName=d2f_webapp \
+            -Dsonar.host.url="${{ replace(secrets.SONAR_HOST_URL, 'localhost', 'host.docker.internal') }}" \
+            -Dsonar.login="${{ secrets.SONAR_TOKEN }}" \
+            -Dsonar.javascript.lcov.reportPaths=/usr/src/esprit_D2F-webapp/coverage/lcov.info
 
-      - name: Sonar scan (pull request)
+      - name: Sonar scan (pull request via Docker)
         if: github.event_name == 'pull_request'
-        uses: SonarSource/sonarqube-scan-action@v5
-        with:
-          projectBaseDir: esprit_D2F-webapp
-          args: >-
-            -Dsonar.host.url=${{ secrets.SONAR_HOST_URL }}
-            -Dsonar.token=${{ secrets.SONAR_TOKEN }}
-            -Dsonar.projectKey=d2f_webapp
-            -Dsonar.projectName=d2f_webapp
-            -Dsonar.pullrequest.key=${{ github.event.pull_request.number }}
-            -Dsonar.pullrequest.branch=${{ github.head_ref }}
-            -Dsonar.pullrequest.base=${{ github.base_ref }}
-            -Dsonar.qualitygate.wait=true
+        run: |
+          docker run --rm -v "${{ github.workspace }}:/usr/src" \
+            -e SONAR_HOST_URL="${{ replace(secrets.SONAR_HOST_URL, 'localhost', 'host.docker.internal') }}" \
+            -e SONAR_LOGIN="${{ secrets.SONAR_TOKEN }}" \
+            sonarsource/sonar-scanner-cli \
+            -Dsonar.projectBaseDir=/usr/src/esprit_D2F-webapp \
+            -Dsonar.projectKey=d2f_webapp \
+            -Dsonar.projectName=d2f_webapp \
+            -Dsonar.pullrequest.key=${{ github.event.pull_request.number }} \
+            -Dsonar.pullrequest.branch=${{ github.head_ref }} \
+            -Dsonar.pullrequest.base=${{ github.base_ref }} \
+            -Dsonar.host.url="${{ replace(secrets.SONAR_HOST_URL, 'localhost', 'host.docker.internal') }}" \
+            -Dsonar.login="${{ secrets.SONAR_TOKEN }}"
