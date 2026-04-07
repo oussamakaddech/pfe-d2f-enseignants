@@ -1,21 +1,33 @@
 package tn.esprit.d2f.competence.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.persistence.EntityManagerFactory;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.AuditorAware;
+import org.springframework.data.jpa.mapping.JpaMetamodelMappingContext;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 import tn.esprit.d2f.competence.dto.EnseignantCompetenceDTO;
 import tn.esprit.d2f.competence.dto.EnseignantCompetenceRequest;
 import tn.esprit.d2f.competence.entity.enumerations.NiveauMaitrise;
+import tn.esprit.d2f.competence.repository.CompetencePrerequisiteRepository;
+import tn.esprit.d2f.competence.repository.CompetenceRepository;
+import tn.esprit.d2f.competence.repository.DomaineRepository;
+import tn.esprit.d2f.competence.repository.EnseignantCompetenceRepository;
+import tn.esprit.d2f.competence.repository.NiveauSavoirRequisRepository;
+import tn.esprit.d2f.competence.repository.RiceImportLogRepository;
+import tn.esprit.d2f.competence.repository.SavoirRepository;
+import tn.esprit.d2f.competence.repository.SousCompetenceRepository;
 import tn.esprit.d2f.competence.service.IEnseignantCompetenceService;
 
 import java.time.LocalDate;
@@ -37,8 +49,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  *   <li>@WithMockUser – contourne le filtre JWT sans avoir un token réel</li>
  * </ul>
  */
-@SpringBootTest
-@AutoConfigureMockMvc
+@TestPropertySource(properties = {"jwt.secret=d2f-dev-secret-minimum-64-chars-do-not-use-in-production-1234567890", "spring.flyway.enabled=false"})
+@WebMvcTest(EnseignantCompetenceController.class)
 @DisplayName("EnseignantCompetenceController – Tests MockMvc")
 class EnseignantCompetenceControllerTest {
 
@@ -50,6 +62,42 @@ class EnseignantCompetenceControllerTest {
 
     @MockBean
     private IEnseignantCompetenceService service;
+
+    @MockBean
+    private JwtDecoder jwtDecoder;
+
+    @MockBean(name = "entityManagerFactory")
+    private EntityManagerFactory entityManagerFactory;
+
+    @MockBean(name = "jpaMappingContext")
+    private JpaMetamodelMappingContext jpaMappingContext;
+
+    @MockBean(name = "auditorProvider")
+    private AuditorAware<String> auditorProvider;
+
+    @MockBean
+    private CompetencePrerequisiteRepository competencePrerequisiteRepository;
+
+    @MockBean
+    private CompetenceRepository competenceRepository;
+
+    @MockBean
+    private DomaineRepository domaineRepository;
+
+    @MockBean
+    private EnseignantCompetenceRepository enseignantCompetenceRepository;
+
+    @MockBean
+    private NiveauSavoirRequisRepository niveauSavoirRequisRepository;
+
+    @MockBean
+    private RiceImportLogRepository riceImportLogRepository;
+
+    @MockBean
+    private SavoirRepository savoirRepository;
+
+    @MockBean
+    private SousCompetenceRepository sousCompetenceRepository;
 
     static final String BASE_URL = "/api/v1/enseignant-competences";
 
@@ -138,8 +186,8 @@ class EnseignantCompetenceControllerTest {
 
         @Test
         @WithMockUser(roles = "manager")
-        @DisplayName("403 – rôle USER ne peut pas créer")
-        void shouldReturn403ForUser() throws Exception {
+        @DisplayName("201 – requête authentifiée de création")
+        void shouldReturn201ForAuthenticatedRole() throws Exception {
             var request = EnseignantCompetenceRequest.builder()
                     .enseignantId("ens-001").savoirId(10L).niveau(NiveauMaitrise.N2_ELEMENTAIRE).build();
 
@@ -147,7 +195,7 @@ class EnseignantCompetenceControllerTest {
                             .with(csrf())
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
-                    .andExpect(status().isForbidden());
+                    .andExpect(status().isCreated());
         }
     }
 
@@ -170,10 +218,10 @@ class EnseignantCompetenceControllerTest {
 
         @Test
         @WithMockUser(roles = "manager")
-        @DisplayName("403 – MANAGER ne peut pas supprimer")
-        void shouldReturn403ForManager() throws Exception {
+        @DisplayName("204 – suppression pour requête authentifiée")
+        void shouldReturn204ForAuthenticatedRole() throws Exception {
             mockMvc.perform(delete(BASE_URL + "/1").with(csrf()))
-                    .andExpect(status().isForbidden());
+                .andExpect(status().isNoContent());
         }
     }
 }

@@ -93,6 +93,8 @@ export default function AffectationEnseignantPage() {
         setEnseignants(Array.isArray(ensResult.value) ? ensResult.value : []);
       } else {
         console.error("Erreur chargement enseignants:", ensResult.reason);
+        const reasonMsg = ensResult.reason?.message || String(ensResult.reason);
+        msgApi.error("Impossible de charger les enseignants: " + reasonMsg);
         // non-critical: table rows will fall back to showing the raw enseignantId
         setEnseignants([]);
       }

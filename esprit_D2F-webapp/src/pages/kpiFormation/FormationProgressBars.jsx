@@ -193,7 +193,7 @@ export default function FormationProgressCards() {
             const pct = Math.round(f.tauxParticipation);
             return (
               <Col span={24} key={f.idFormation}>
-                <Card hoverable style={styles.card} bodyStyle={{ padding: 16 }}>
+                <Card hoverable style={styles.card} styles={{ body: { padding: 16 } }}>
                   <Text strong style={styles.title}>
                     {f.titreFormation}
                   </Text>

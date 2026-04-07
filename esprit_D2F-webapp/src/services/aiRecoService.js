@@ -1,10 +1,7 @@
 // src/services/aiRecoService.js
-import axios from "axios";
+import { defaultApi as axios } from "../utils/httpClient";
 import { config } from "../config/env"; 
 const API_URL = `${config.AI_URL}/ai`;
-
-
-console.log("→ FastAPI URL utilisée :", API_URL);
 
 const AIRecoService = {
   async recommend(data) {
@@ -18,8 +15,6 @@ const AIRecoService = {
 
       // Construction de l’URL complète
       const url = `${API_URL}/recommend`;
-      console.log("  • Axios POST vers :", url);
-      console.log("  • Payload envoyé :", payload);
 
       const response = await axios.post(url, payload, {
         headers: { "Content-Type": "application/json" },

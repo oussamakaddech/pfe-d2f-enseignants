@@ -18,7 +18,7 @@ export default function DocumentViewer({ url, ext }) {
   // Docs / PPT / XLS / PDF
   if (["pdf", "doc", "docx", "ppt", "pptx", "xls", "xlsx"].includes(e)) {
     return (
-      <Card bodyStyle={{ padding: 0 }} style={{ borderRadius: 4 }}>
+      <Card styles={{ body: { padding: 0 } }} style={{ borderRadius: 4 }}>
         <iframe title="document" src={url} style={baseStyle} />
       </Card>
     );
@@ -27,7 +27,7 @@ export default function DocumentViewer({ url, ext }) {
   // Images
   if (["png", "jpg", "jpeg", "gif", "bmp", "webp", "svg"].includes(e)) {
     return (
-      <Card bodyStyle={{ padding: 0, textAlign: "center" }} style={{ borderRadius: 4 }}>
+      <Card styles={{ body: { padding: 0, textAlign: "center" } }} style={{ borderRadius: 4 }}>
         <Image
           src={url}
           alt="preview"
@@ -40,7 +40,7 @@ export default function DocumentViewer({ url, ext }) {
   // Vidéo
   if (["mp4", "webm", "ogg"].includes(e)) {
     return (
-      <Card bodyStyle={{ padding: 0 }} style={{ borderRadius: 4 }}>
+      <Card styles={{ body: { padding: 0 } }} style={{ borderRadius: 4 }}>
         <video controls style={baseStyle}>
           <source src={url} type={`video/${e}`} />
           <Text>Votre navigateur ne supporte pas la lecture vidéo.</Text>
@@ -52,7 +52,7 @@ export default function DocumentViewer({ url, ext }) {
   // Audio
   if (["mp3", "wav", "oga"].includes(e)) {
     return (
-      <Card bodyStyle={{ padding: 16, textAlign: "center" }} style={{ borderRadius: 4 }}>
+      <Card styles={{ body: { padding: 16, textAlign: "center" } }} style={{ borderRadius: 4 }}>
         <audio controls style={{ width: "100%" }}>
           <source src={url} type={`audio/${e}`} />
           <Text>Votre navigateur ne supporte pas la lecture audio.</Text>

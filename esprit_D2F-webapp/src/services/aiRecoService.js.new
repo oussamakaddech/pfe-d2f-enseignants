@@ -1,0 +1,52 @@
+// src/services/aiRecoService.js
+import axios from "axios";
+import { config } from "../config/env";
+import { requireAuthHeader } from "./authHeaders";
+
+const API_URL = `${config.AI_URL}/ai`;
+
+const AIRecoService = {
+  async recommend(data) {
+    try {
+      // Validation des données d'entrée
+      if (!data.objectif || !data.objectifPedagogique) {
+        throw new Error("Les champs objectif et objectifPedagogique sont requis");
+      }
+
+      const payload = {
+        domaine: data.domaine === "" ? null : data.domaine,
+        objectif: data.objectif,
+        objectifPedagogique: data.objectifPedagogique,
+        topN: Number(data.topN) || 5, // Valeur par défaut si topN n'est pas fourni
+      };
+
+      // Construction de l'URL complète
+      const url = `${API_URL}/recommend`;
+      console.log("URL de l'API AI:", url);
+
+      const response = await axios.post(url, payload, {
+        headers: {
+          "Content-Type": "application/json",
+          ...requireAuthHeader(), // Ajout du header d'authentification
+        },
+      });
+      return response.data;
+    } catch (error) {
+      if (error.response) {
+        // Erreur de réponse du serveur
+        console.error("Erreur API /recommend:", error.response.status, error.response.data);
+        throw new Error(error.response.data.message || "Erreur lors de la récupération des recommandations");
+      } else if (error.request) {
+        // Erreur de réseau
+        console.error("Erreur réseau /recommend:", error.message);
+        throw new Error("Impossible de contacter le serveur de recommandations. Vérifiez que le service est démarré.");
+      } else {
+        // Erreur de configuration ou autre
+        console.error("Erreur /recommend:", error.message);
+        throw error;
+      }
+    }
+  },
+};
+
+export default AIRecoService;

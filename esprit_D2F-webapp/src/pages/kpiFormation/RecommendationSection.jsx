@@ -50,7 +50,7 @@ export default function RecommendationSection() {
 
   return (
     <Card
-      bordered={false}
+      variant="borderless"
       style={{ marginTop: 40, borderRadius: 12, boxShadow: "0 2px 8px rgba(0,0,0,0.05)" }}
     >
       <Title level={3} style={{ textAlign: "center", marginBottom: 24 }}>

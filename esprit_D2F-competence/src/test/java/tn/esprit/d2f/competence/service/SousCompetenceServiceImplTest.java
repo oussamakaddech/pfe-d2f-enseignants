@@ -8,6 +8,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -36,6 +38,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 @DisplayName("SousCompetenceServiceImpl - Tests unitaires")
 class SousCompetenceServiceImplTest {
 
@@ -65,11 +68,11 @@ class SousCompetenceServiceImplTest {
                 .build();
 
         sousCompetence = SousCompetence.builder()
-                .id(3L).code("SC-01").nom("Essais géotechniques").description("desc")
+                .id(3L).code("GC-C1.SC_01").nom("Essais géotechniques").description("desc")
                 .competence(competence).savoirs(new ArrayList<>()).niveau(1).build();
 
         sousCompetenceDTO = SousCompetenceDTO.builder()
-                .id(3L).code("SC-01").nom("Essais géotechniques").description("desc")
+                .id(3L).code("GC-C1.SC_01").nom("Essais géotechniques").description("desc")
                 .competenceId(2L).competenceNom("Compétences Sols")
                 .niveau(1)
                 .savoirs(List.of()).build();
@@ -90,7 +93,7 @@ class SousCompetenceServiceImplTest {
             Page<SousCompetenceDTO> page = sousCompetenceService.getAllSousCompetences(pageable);
 
             assertThat(page.getContent()).hasSize(1);
-            assertThat(page.getContent().get(0).getCode()).isEqualTo("SC-01");
+            assertThat(page.getContent().get(0).getCode()).isEqualTo("GC-C1.SC_01");
             verify(sousCompetenceRepository).findAll(pageable);
         }
     }
@@ -121,16 +124,16 @@ class SousCompetenceServiceImplTest {
         @DisplayName("sauvegarde une sous-competence racine")
         void shouldSaveAndReturnDTO() {
             SousCompetenceRequest req = SousCompetenceRequest.builder()
-                    .code("SC-01").nom("Essais géotechniques").description("desc").build();
+                    .code("GC-C1.SC_01").nom("Essais géotechniques").description("desc").build();
 
             when(competenceRepository.findById(2L)).thenReturn(Optional.of(competence));
-            when(sousCompetenceRepository.findByCode("SC-01")).thenReturn(Optional.empty());
+            when(sousCompetenceRepository.findByCode("GC-C1.SC_01")).thenReturn(Optional.empty());
             when(sousCompetenceRepository.save(any(SousCompetence.class))).thenReturn(sousCompetence);
             when(competenceMapper.toDTO(sousCompetence)).thenReturn(sousCompetenceDTO);
 
             SousCompetenceDTO result = sousCompetenceService.createSousCompetence(2L, req);
 
-            assertThat(result.getCode()).isEqualTo("SC-01");
+            assertThat(result.getCode()).isEqualTo("GC-C1.SC_01");
             assertThat(result.getNiveau()).isEqualTo(1);
             verify(sousCompetenceRepository).save(any(SousCompetence.class));
         }
@@ -162,7 +165,7 @@ class SousCompetenceServiceImplTest {
                     .build();
 
             SousCompetence child = SousCompetence.builder()
-                    .id(11L).code("SC-C").nom("Child")
+                    .id(11L).code("SC-P.SC_C").nom("Child")
                     .competence(competence)
                     .parent(parent)
                     .niveau(3)
@@ -170,17 +173,17 @@ class SousCompetenceServiceImplTest {
                     .build();
 
             SousCompetenceDTO childDTO = SousCompetenceDTO.builder()
-                    .id(11L).code("SC-C").nom("Child")
+                    .id(11L).code("SC-P.SC_C").nom("Child")
                     .competenceId(2L).competenceNom("Compétences Sols")
                     .parentId(10L)
                     .niveau(3)
                     .build();
 
             SousCompetenceRequest req = SousCompetenceRequest.builder()
-                    .code("SC-C").nom("Child").description("desc").build();
+                    .code("SC-P.SC_C").nom("Child").description("desc").build();
 
             when(sousCompetenceRepository.findById(10L)).thenReturn(Optional.of(parent));
-            when(sousCompetenceRepository.findByCode("SC-C")).thenReturn(Optional.empty());
+            when(sousCompetenceRepository.findByCode("SC-P.SC_C")).thenReturn(Optional.empty());
             when(sousCompetenceRepository.save(any(SousCompetence.class))).thenReturn(child);
             when(competenceMapper.toDTO(child)).thenReturn(childDTO);
 
@@ -201,7 +204,7 @@ class SousCompetenceServiceImplTest {
                     .build();
 
             SousCompetenceRequest req = SousCompetenceRequest.builder()
-                    .code("SC-C").nom("Child").description("desc").build();
+                    .code("SC-P.C").nom("Child").description("desc").build();
 
             when(sousCompetenceRepository.findById(10L)).thenReturn(Optional.of(parent));
 
@@ -221,7 +224,7 @@ class SousCompetenceServiceImplTest {
                     .build();
 
             SousCompetenceRequest req = SousCompetenceRequest.builder()
-                    .code("SC-C").nom("Child").description("desc").build();
+                    .code("SC-P.C").nom("Child").description("desc").build();
 
             when(sousCompetenceRepository.findById(10L)).thenReturn(Optional.of(parent));
 

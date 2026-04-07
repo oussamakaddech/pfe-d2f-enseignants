@@ -14,7 +14,7 @@ import {
   Skeleton,
   Empty,
   Progress,
-  App,
+  message,
 } from "antd";
 import {
   ReloadOutlined,
@@ -152,7 +152,6 @@ function reducer(state, action) {
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 export default function CompetenceMatchingPage() {
-  const { message } = App.useApp();
   const [state, dispatch] = useReducer(reducer, initialState);
   const [draggingId, setDraggingId] = useState(null);
   const [dragOverEns, setDragOverEns] = useState(null);

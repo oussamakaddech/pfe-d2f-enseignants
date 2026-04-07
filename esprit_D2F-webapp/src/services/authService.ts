@@ -1,8 +1,5 @@
-import axios, {
-  type InternalAxiosRequestConfig,
-  type AxiosResponse,
-} from "axios";
-import { jwtDecode } from "jwt-decode";
+import type { AxiosResponse } from "axios";
+import { createApiClient } from "../utils/httpClient";
 
 import { config } from "../config/env";
 import type {
@@ -14,30 +11,7 @@ import type {
   AuthUser,
 } from "../models/auth";
 
-const api = axios.create({
-  baseURL: `${config.URL_ACCOUNT}/auth`,
-});
-
-api.interceptors.request.use((requestConfig: InternalAxiosRequestConfig) => {
-  const token = localStorage.getItem("authToken");
-  if (!token) {
-    return requestConfig;
-  }
-
-  try {
-    const decodedToken = jwtDecode<AuthTokenPayload>(token);
-    const currentTime = Date.now() / 1000;
-    if (decodedToken.exp < currentTime) {
-      localStorage.removeItem("authToken");
-      return Promise.reject(new Error("Token expire"));
-    }
-    requestConfig.headers.Authorization = `Bearer ${token}`;
-    return requestConfig;
-  } catch {
-    localStorage.removeItem("authToken");
-    return requestConfig;
-  }
-});
+const api = createApiClient(`${config.URL_ACCOUNT}/auth`);
 
 export async function login({
   username,

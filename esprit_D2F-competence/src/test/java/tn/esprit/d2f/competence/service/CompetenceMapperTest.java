@@ -40,7 +40,7 @@ class CompetenceMapperTest {
 
     static SousCompetence buildSousCompetence(Competence c) {
         return SousCompetence.builder()
-                .id(3L).code("SC-01").nom("Essais géotechniques").description("desc")
+            .id(3L).code("GC-C1.SC01").nom("Essais géotechniques").description("desc")
                 .competence(c).savoirs(new ArrayList<>()).build();
     }
 
@@ -127,7 +127,7 @@ class CompetenceMapperTest {
             Competence c = buildCompetence(domaine);
             SousCompetenceDTO dto = mapper.toDTO(buildSousCompetence(c));
             assertThat(dto.getId()).isEqualTo(3L);
-            assertThat(dto.getCode()).isEqualTo("SC-01");
+            assertThat(dto.getCode()).isEqualTo("GC-C1.SC01");
             assertThat(dto.getCompetenceId()).isEqualTo(2L);
             assertThat(dto.getCompetenceNom()).isEqualTo("Compétences Sols");
         }

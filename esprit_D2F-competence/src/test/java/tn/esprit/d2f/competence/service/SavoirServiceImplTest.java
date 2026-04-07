@@ -68,7 +68,7 @@ class SavoirServiceImplTest {
                 .build();
 
         sousCompetence = SousCompetence.builder()
-                .id(3L).code("SC-01").nom("Essais géotechniques").description("desc")
+                .id(3L).code("GC-C1.SC01").nom("Essais géotechniques").description("desc")
                 .competence(competence).savoirs(new ArrayList<>()).niveau(1).build();
 
         savoir = Savoir.builder()

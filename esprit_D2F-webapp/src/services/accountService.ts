@@ -1,7 +1,5 @@
-import axios, {
-  type AxiosError,
-  type InternalAxiosRequestConfig,
-} from "axios";
+import axios, { type AxiosError } from "axios";
+import { createApiClient } from "../utils/httpClient";
 import { config } from "../config/env";
 import type {
   AuthUser,
@@ -11,17 +9,7 @@ import type {
 
 const API_URL = `${config.URL_ACCOUNT}/auth/user/account`;
 
-const api = axios.create({
-  baseURL: API_URL,
-});
-
-api.interceptors.request.use((requestConfig: InternalAxiosRequestConfig) => {
-  const token = localStorage.getItem("authToken");
-  if (token) {
-    requestConfig.headers.Authorization = `Bearer ${token}`;
-  }
-  return requestConfig;
-});
+const api = createApiClient(API_URL);
 
 export async function getAllAccounts(): Promise<AuthUser[]> {
   const response = await api.get<AuthUser[]>("/list-accounts");

@@ -64,15 +64,14 @@ export default function FicheFormation() {
     <Layout style={{ background: "#f0f2f5", padding: "24px 0" }}>
       <Content>
         <Card
-          bordered={false}
+          variant="borderless"
           style={{
             maxWidth: 1000,
             margin: "auto",
             borderRadius: 8,
             boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
           }}
-          headStyle={{ borderBottom: "none", paddingBottom: 0 }}
-          bodyStyle={{ padding: "24px 32px" }}
+          styles={{ head: { borderBottom: "none", paddingBottom: 0 }, body: { padding: "24px 32px" } }}
           title={
   <div
     style={{

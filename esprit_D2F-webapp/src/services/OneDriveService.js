@@ -1,5 +1,5 @@
 // OneDriveService.js
-import axios from "axios";
+import { defaultApi as axios } from "../utils/httpClient";
 import { config } from "../config/env"; 
 import { optionalAuthHeader } from "./authHeaders";
 // URL de base pour les opérations OneDrive sur votre back-end

@@ -47,6 +47,26 @@ export default function AppLayout() {
       };
     });
 
+  const getBackTarget = (currentPath) => {
+    if (currentPath.startsWith("/home/competences/enseignant/")) {
+      return "/home/competences";
+    }
+
+    if (currentPath.startsWith("/home/rice/matchmaking") || currentPath.startsWith("/home/rice/competence-matching")) {
+      return "/home/rice";
+    }
+
+    if (currentPath.startsWith("/home/affectations")) {
+      return "/home/competences";
+    }
+
+    if (currentPath === "/home/profile" || currentPath === "/home/edit-profile" || currentPath === "/home/update-password") {
+      return "/home";
+    }
+
+    return "/home";
+  };
+
   const avatarMenu = [
     { key: "profile", label: "Mon profil", onClick: () => navigate("/home/profile") },
     {
@@ -172,7 +192,7 @@ export default function AppLayout() {
               <Button
                 type="text"
                 icon={<ArrowLeftOutlined />}
-                onClick={() => navigate(-1)}
+                onClick={() => navigate(getBackTarget(pathname), { replace: true })}
                 style={{ marginRight: 16 }}
               >
                 Retour

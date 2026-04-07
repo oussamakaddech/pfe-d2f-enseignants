@@ -20,8 +20,8 @@ function NotFound() {
                 <div className="col-md-6 col-md-6 col-sm-6 col-xs-12">
                   <div className="content-error">
                     <h1>ERROR <span className="counter"> 404</span></h1>
-                    <p>Sorry, but the page you are looking for has note been found. Try checking the URL for error, then hit the refresh button on your browser or try found something else in our app.</p>
-                    <a href="#">Report Problem</a>
+                    <p>Sorry, but the page you are looking for could not be found. Check the URL for errors, refresh your browser, or try something else in the app.</p>
+                    <button onClick={() => navigate("/")} className="btn btn-primary">Retour a la connexion</button>
                   </div>
                 </div>
                 <div className="col-lg-3 col-md-3 col-sm-3 col-xs-12" />
