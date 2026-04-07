@@ -78,7 +78,7 @@ jobs:
         working-directory: ${{ matrix.module }}
         run: |
           ./mvnw -B -ntp clean verify sonar:sonar \
-            -Dsonar.host.url="${{ env.SONAR_HOST_URL }}" \
+            -Dsonar.host.url="http://localhost:9000" \
             -Dsonar.token="${{ env.SONAR_TOKEN }}" \
             -Dsonar.projectKey="${{ matrix.projectKey }}" \
             -Dsonar.projectName="${{ matrix.projectName }}" \
@@ -91,7 +91,7 @@ jobs:
         shell: powershell
         run: |
           .\mvnw.cmd -B -ntp clean verify sonar:sonar `
-            -Dsonar.host.url="${{ env.SONAR_HOST_URL }}" `
+            -Dsonar.host.url="http://localhost:9000" `
             -Dsonar.token="${{ env.SONAR_TOKEN }}" `
             -Dsonar.projectKey="${{ matrix.projectKey }}" `
             -Dsonar.projectName="${{ matrix.projectName }}" `
@@ -103,7 +103,7 @@ jobs:
         working-directory: ${{ matrix.module }}
         run: |
           ./mvnw -B -ntp clean verify sonar:sonar \
-            -Dsonar.host.url="${{ env.SONAR_HOST_URL }}" \
+            -Dsonar.host.url="http://localhost:9000" \
             -Dsonar.token="${{ env.SONAR_TOKEN }}" \
             -Dsonar.projectKey="${{ matrix.projectKey }}" \
             -Dsonar.projectName="${{ matrix.projectName }}" \
@@ -118,7 +118,7 @@ jobs:
         shell: powershell
         run: |
           .\mvnw.cmd -B -ntp clean verify sonar:sonar `
-            -Dsonar.host.url="${{ env.SONAR_HOST_URL }}" `
+            -Dsonar.host.url="http://localhost:9000" `
             -Dsonar.token="${{ env.SONAR_TOKEN }}" `
             -Dsonar.projectKey="${{ matrix.projectKey }}" `
             -Dsonar.projectName="${{ matrix.projectName }}" `
@@ -155,7 +155,7 @@ jobs:
       - name: Sonar scan (branch via Docker)
         if: github.event_name != 'pull_request'
         shell: cmd
-        run: docker run --rm -v "${{ github.workspace }}:/usr/src" -e SONAR_HOST_URL="%SONAR_HOST_URL%" -e SONAR_LOGIN="%SONAR_TOKEN%" sonarsource/sonar-scanner-cli -Dsonar.projectBaseDir=/usr/src/esprit_D2F-webapp -Dsonar.projectKey=d2f_webapp -Dsonar.projectName=d2f_webapp -Dsonar.host.url="%SONAR_HOST_URL%" -Dsonar.login="%SONAR_TOKEN%" -Dsonar.javascript.lcov.reportPaths=/usr/src/esprit_D2F-webapp/coverage/lcov.info
+        run: docker run --rm -v "${{ github.workspace }}:/usr/src" -e SONAR_HOST_URL="http://host.docker.internal:9000" -e SONAR_LOGIN="%SONAR_TOKEN%" sonarsource/sonar-scanner-cli -Dsonar.projectBaseDir=/usr/src/esprit_D2F-webapp -Dsonar.projectKey=d2f_webapp -Dsonar.projectName=d2f_webapp -Dsonar.host.url="http://host.docker.internal:9000" -Dsonar.login="%SONAR_TOKEN%" -Dsonar.javascript.lcov.reportPaths=/usr/src/esprit_D2F-webapp/coverage/lcov.info
 
       - name: Sonar scan (pull request via Docker)
         if: github.event_name == 'pull_request'
