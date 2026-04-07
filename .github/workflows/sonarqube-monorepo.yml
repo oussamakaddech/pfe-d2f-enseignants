@@ -154,8 +154,8 @@ jobs:
 
       - name: Sonar scan (branch via Docker)
         if: github.event_name != 'pull_request'
-        shell: powershell
-        run: docker run --rm -v "${{ github.workspace }}:/usr/src" -e SONAR_HOST_URL="${{ secrets.SONAR_HOST_URL }}" -e SONAR_LOGIN="${{ secrets.SONAR_TOKEN }}" sonarsource/sonar-scanner-cli -Dsonar.projectBaseDir=/usr/src/esprit_D2F-webapp -Dsonar.projectKey=d2f_webapp -Dsonar.projectName=d2f_webapp -Dsonar.host.url="${{ secrets.SONAR_HOST_URL }}" -Dsonar.login="${{ secrets.SONAR_TOKEN }}" -Dsonar.javascript.lcov.reportPaths=/usr/src/esprit_D2F-webapp/coverage/lcov.info
+        shell: cmd
+        run: docker run --rm -v "${{ github.workspace }}:/usr/src" -e SONAR_HOST_URL="%SONAR_HOST_URL%" -e SONAR_LOGIN="%SONAR_TOKEN%" sonarsource/sonar-scanner-cli -Dsonar.projectBaseDir=/usr/src/esprit_D2F-webapp -Dsonar.projectKey=d2f_webapp -Dsonar.projectName=d2f_webapp -Dsonar.host.url="%SONAR_HOST_URL%" -Dsonar.login="%SONAR_TOKEN%" -Dsonar.javascript.lcov.reportPaths=/usr/src/esprit_D2F-webapp/coverage/lcov.info
 
       - name: Sonar scan (pull request via Docker)
         if: github.event_name == 'pull_request'
