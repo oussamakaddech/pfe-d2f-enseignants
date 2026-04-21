@@ -8,16 +8,35 @@ import {
   message,
   Typography,
   Drawer,
+  Modal,
+  Form,
+  Select,
+  Popconfirm,
+  Tag,
+  Tooltip,
 } from 'antd';
-import { SearchOutlined, PlusOutlined } from '@ant-design/icons';
+import {
+  SearchOutlined,
+  PlusOutlined,
+  EditOutlined,
+  DeleteOutlined,
+  UserOutlined,
+  MailOutlined,
+  PhoneOutlined,
+} from '@ant-design/icons';
 import {
   getAllAccounts,
   banAccount,
   enableAccount,
+  deleteAccount,
+  updateAccount,
 } from '../../services/accountService';
-import Register from '../auth/Register'; // Ajustez le chemin si besoin
+import Register from '../auth/Register';
 
 const { Title } = Typography;
+const { Option } = Select;
+
+const ROLES = ['admin', 'D2F', 'CUP', 'Enseignant', 'Formateur'];
 
 export default function ListAccounts() {
   const [msgApi, msgCtx] = message.useMessage();
@@ -26,6 +45,10 @@ export default function ListAccounts() {
   const [searchedColumn, setSearchedColumn] = useState('');
   const searchInput = useRef(null);
   const [drawerVisible, setDrawerVisible] = useState(false);
+  const [editModalVisible, setEditModalVisible] = useState(false);
+  const [editingRecord, setEditingRecord] = useState(null);
+  const [editForm] = Form.useForm();
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     fetchAccounts();
@@ -34,7 +57,6 @@ export default function ListAccounts() {
   const fetchAccounts = async () => {
     try {
       const data = await getAllAccounts();
-      // Normalisation du statut : false = ACTIF, true = BLOQUÉ
       const normalized = data.map(acc => {
         let statusValue;
         if (typeof acc.status === 'boolean') {
@@ -52,6 +74,61 @@ export default function ListAccounts() {
     }
   };
 
+  // ─── CREATE ──────────────────────────────────────────────
+  const handleCreateSuccess = () => {
+    setDrawerVisible(false);
+    fetchAccounts();
+  };
+
+  // ─── UPDATE ──────────────────────────────────────────────
+  const handleEdit = record => {
+    setEditingRecord(record);
+    editForm.setFieldsValue({
+      firstName: record.firsName || record.firstName,
+      lastName: record.lastName,
+      email: record.email,
+      phoneNumber: record.phoneNumber,
+      role: record.role,
+    });
+    setEditModalVisible(true);
+  };
+
+  const handleEditSubmit = async () => {
+    try {
+      const values = await editForm.validateFields();
+      setLoading(true);
+      await updateAccount(editingRecord.id, {
+        firstName: values.firstName,
+        lastName: values.lastName,
+        email: values.email,
+        phoneNumber: values.phoneNumber,
+      }, values.role);
+      msgApi.success('Compte modifié avec succès !');
+      setEditModalVisible(false);
+      editForm.resetFields();
+      setEditingRecord(null);
+      fetchAccounts();
+    } catch (err) {
+      if (err.response) {
+        msgApi.error(err.response?.data?.message || 'Erreur de modification');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ─── DELETE ──────────────────────────────────────────────
+  const handleDelete = async userId => {
+    try {
+      await deleteAccount(userId);
+      msgApi.success('Compte supprimé avec succès !');
+      fetchAccounts();
+    } catch (err) {
+      msgApi.error(err.response?.data?.message || 'Erreur de suppression');
+    }
+  };
+
+  // ─── TOGGLE STATUS ──────────────────────────────────────
   const handleToggleStatus = async record => {
     const nextStatus = record.status === 'ACTIF' ? 'BLOQUÉ' : 'ACTIF';
     try {
@@ -75,6 +152,7 @@ export default function ListAccounts() {
     }
   };
 
+  // ─── SEARCH ──────────────────────────────────────────────
   const handleSearch = (selectedKeys, confirm, dataIndex) => {
     confirm();
     setSearchText(selectedKeys[0] || '');
@@ -117,10 +195,12 @@ export default function ListAccounts() {
     ),
     onFilter: (value, record) =>
       record[dataIndex]?.toString().toLowerCase().includes(value.toLowerCase()),
-    onFilterDropdownVisibleChange: visible => {
-      if (visible) {
-        setTimeout(() => searchInput.current.select(), 100);
-      }
+    filterDropdownProps: {
+      onOpenChange: visible => {
+        if (visible) {
+          setTimeout(() => searchInput.current.select(), 100);
+        }
+      },
     },
     render: text =>
       searchedColumn === dataIndex ? (
@@ -132,11 +212,25 @@ export default function ListAccounts() {
 
   const columns = [
     {
-      title: 'Nom',
+      title: 'Nom d\'utilisateur',
       dataIndex: 'userName',
       key: 'userName',
       sorter: (a, b) => a.userName.localeCompare(b.userName),
       ...getColumnSearchProps('userName'),
+    },
+    {
+      title: 'Prénom',
+      dataIndex: 'firsName',
+      key: 'firsName',
+      sorter: (a, b) => (a.firsName || '').localeCompare(b.firsName || ''),
+      ...getColumnSearchProps('firsName'),
+    },
+    {
+      title: 'Nom',
+      dataIndex: 'lastName',
+      key: 'lastName',
+      sorter: (a, b) => (a.lastName || '').localeCompare(b.lastName || ''),
+      ...getColumnSearchProps('lastName'),
     },
     {
       title: 'Email',
@@ -146,11 +240,27 @@ export default function ListAccounts() {
       ...getColumnSearchProps('email'),
     },
     {
+      title: 'Téléphone',
+      dataIndex: 'phoneNumber',
+      key: 'phoneNumber',
+    },
+    {
       title: 'Rôle',
       dataIndex: 'role',
       key: 'role',
       sorter: (a, b) => a.role.localeCompare(b.role),
-      ...getColumnSearchProps('role'),
+      filters: ROLES.map(r => ({ text: r, value: r })),
+      onFilter: (value, record) => record.role === value,
+      render: role => {
+        const colorMap = {
+          admin: 'red',
+          D2F: 'blue',
+          CUP: 'green',
+          Enseignant: 'orange',
+          Formateur: 'default',
+        };
+        return <Tag color={colorMap[role] || 'default'}>{role}</Tag>;
+      },
     },
     {
       title: 'Statut',
@@ -163,26 +273,54 @@ export default function ListAccounts() {
       ],
       onFilter: (value, record) => record.status === value,
       render: status => (
-        <strong style={{ color: status === 'ACTIF' ? 'green' : 'red' }}>
+        <Tag color={status === 'ACTIF' ? 'green' : 'red'} style={{ fontWeight: 'bold' }}>
           {status}
-        </strong>
+        </Tag>
       ),
     },
     {
-      title: 'Action',
-      key: 'action',
+      title: 'Actions',
+      key: 'actions',
+      fixed: 'right',
+      width: 220,
       render: (_, record) => (
-        <Button
-          type="primary"
-          size="small"
-          style={{
-            backgroundColor: record.status === 'ACTIF' ? '#ff4d4f' : '#52c41a',
-            borderColor: record.status === 'ACTIF' ? '#ff4d4f' : '#52c41a',
-          }}
-          onClick={() => handleToggleStatus(record)}
-        >
-          {record.status === 'ACTIF' ? 'BLOQUER' : 'DÉBLOQUER'}
-        </Button>
+        <Space size="small">
+          <Tooltip title="Modifier">
+            <Button
+              type="primary"
+              size="small"
+              icon={<EditOutlined />}
+              onClick={() => handleEdit(record)}
+            />
+          </Tooltip>
+          <Button
+            size="small"
+            style={{
+              backgroundColor: record.status === 'ACTIF' ? '#ff4d4f' : '#52c41a',
+              borderColor: record.status === 'ACTIF' ? '#ff4d4f' : '#52c41a',
+              color: '#fff',
+            }}
+            onClick={() => handleToggleStatus(record)}
+          >
+            {record.status === 'ACTIF' ? 'Bloquer' : 'Débloquer'}
+          </Button>
+          <Popconfirm
+            title="Supprimer ce compte"
+            description="Êtes-vous sûr de vouloir supprimer ce compte ? Cette action est irréversible."
+            onConfirm={() => handleDelete(record.id)}
+            okText="Oui, supprimer"
+            cancelText="Annuler"
+            okButtonProps={{ danger: true }}
+          >
+            <Tooltip title="Supprimer">
+              <Button
+                danger
+                size="small"
+                icon={<DeleteOutlined />}
+              />
+            </Tooltip>
+          </Popconfirm>
+        </Space>
       ),
     },
   ];
@@ -191,7 +329,6 @@ export default function ListAccounts() {
     <>
       {msgCtx}
       <div style={{ padding: 16 }}>
-        {/* Flex container pour aligner titre et bouton */}
         <div
           style={{
             display: 'flex',
@@ -201,7 +338,7 @@ export default function ListAccounts() {
           }}
         >
           <Title level={4} style={{ margin: 0 }}>
-            Liste des Comptes
+            Gestion des Comptes
           </Title>
           <Button
             type="primary"
@@ -216,9 +353,11 @@ export default function ListAccounts() {
           rowKey="id"
           columns={columns}
           dataSource={accounts}
-          pagination={{ pageSize: 5, showSizeChanger: true }}
+          pagination={{ pageSize: 8, showSizeChanger: true, showTotal: (total) => `${total} comptes` }}
+          scroll={{ x: 1000 }}
         />
 
+        {/* Drawer pour Créer un compte */}
         <Drawer
           title="Créer un compte"
           width={480}
@@ -226,8 +365,76 @@ export default function ListAccounts() {
           open={drawerVisible}
           styles={{ body: { padding: 0 } }}
         >
-          <Register />
+          <Register onSuccess={handleCreateSuccess} />
         </Drawer>
+
+        {/* Modal pour Modifier un compte */}
+        <Modal
+          title="Modifier le compte"
+          open={editModalVisible}
+          onOk={handleEditSubmit}
+          onCancel={() => {
+            setEditModalVisible(false);
+            editForm.resetFields();
+            setEditingRecord(null);
+          }}
+          confirmLoading={loading}
+          okText="Enregistrer"
+          cancelText="Annuler"
+          width={500}
+        >
+          <Form
+            form={editForm}
+            layout="vertical"
+          >
+            <Form.Item
+              name="firstName"
+              label="Prénom"
+              rules={[{ required: true, message: 'Entrez le prénom' }]}
+            >
+              <Input prefix={<UserOutlined />} placeholder="Prénom" />
+            </Form.Item>
+
+            <Form.Item
+              name="lastName"
+              label="Nom"
+              rules={[{ required: true, message: 'Entrez le nom' }]}
+            >
+              <Input placeholder="Nom" />
+            </Form.Item>
+
+            <Form.Item
+              name="email"
+              label="Email"
+              rules={[
+                { required: true, message: 'Entrez l\'email' },
+                { type: 'email', message: 'Email invalide' },
+              ]}
+            >
+              <Input prefix={<MailOutlined />} placeholder="exemple@mail.com" />
+            </Form.Item>
+
+            <Form.Item
+              name="phoneNumber"
+              label="Téléphone"
+              rules={[{ required: true, message: 'Entrez le numéro de téléphone' }]}
+            >
+              <Input prefix={<PhoneOutlined />} placeholder="06XXXXXXXX" />
+            </Form.Item>
+
+            <Form.Item
+              name="role"
+              label="Rôle"
+              rules={[{ required: true, message: 'Sélectionnez un rôle' }]}
+            >
+              <Select>
+                {ROLES.map(r => (
+                  <Option key={r} value={r}>{r}</Option>
+                ))}
+              </Select>
+            </Form.Item>
+          </Form>
+        </Modal>
       </div>
     </>
   );

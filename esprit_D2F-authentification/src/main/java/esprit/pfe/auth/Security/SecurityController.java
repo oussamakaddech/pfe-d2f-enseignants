@@ -16,7 +16,6 @@ import esprit.pfe.auth.payload.request.SignupRequest;
 import esprit.pfe.auth.payload.response.MessageResponse;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -44,38 +43,43 @@ import java.util.stream.Collectors;
 @RequestMapping("/user/auth")
 @Slf4j
 public class SecurityController {
-    /////autheeentication
+    private final EmailService emailService;
+    private final UserRepository userRepository;
+    private final RoleRepository roleRepository;
+    private final AuthenticationManager authenticationManager;
+    private final JwtEncoder jwtEncoder;
+    private final ConfirmationKeyRepo confirmationKeyRepo;
+    private final PasswordEncoder encoder;
 
-    @Autowired
-    EmailService emailService;
-    @Autowired
-    UserRepository userRepository;
-
-    @Autowired
-    RoleRepository roleRepository;
-    @Autowired
-    private AuthenticationManager authenticationManager;
-    @Autowired
-    private JwtEncoder jwtEncoder;
-    @Autowired
-    private ConfirmationKeyRepo confirmationKeyRepo;
-
-
-    @Autowired
-    private PasswordEncoder encoder;
+    public SecurityController(
+            EmailService emailService,
+            UserRepository userRepository,
+            RoleRepository roleRepository,
+            AuthenticationManager authenticationManager,
+            JwtEncoder jwtEncoder,
+            ConfirmationKeyRepo confirmationKeyRepo,
+            PasswordEncoder encoder) {
+        this.emailService = emailService;
+        this.userRepository = userRepository;
+        this.roleRepository = roleRepository;
+        this.authenticationManager = authenticationManager;
+        this.jwtEncoder = jwtEncoder;
+        this.confirmationKeyRepo = confirmationKeyRepo;
+        this.encoder = encoder;
+    }
 
     @PostMapping("/reset-password")
-    private String resetPassword(@RequestParam String confirmationKey, @RequestParam String newPassword) {
+    public String resetPassword(@RequestParam String confirmationKey, @RequestParam String newPassword) {
         this.checkIfConfirmationKeyIsValid(confirmationKey);
         return this.resetPasswordAndDeleteConfirmationKey(confirmationKey, newPassword);
     }
 
-    private void checkIfConfirmationKeyIsValid(String confirmationKey) {
+    public void checkIfConfirmationKeyIsValid(String confirmationKey) {
         if (!this.confirmationKeyRepo.existsByConfirmationKey(confirmationKey))
             throw new BadRequestException("ConfirmationKey invalid");
     }
 
-    private String resetPasswordAndDeleteConfirmationKey(String confirmationKey, String newPassword) {
+    public String resetPasswordAndDeleteConfirmationKey(String confirmationKey, String newPassword) {
         ConfirmationKey confirmationKey1 = this.confirmationKeyRepo.findByConfirmationKey(confirmationKey).get();
         User user = this.userRepository.findByEmail(confirmationKey1.getEmailAddress()).get();
         user.setPassword(this.encoder.encode(newPassword));
@@ -85,7 +89,7 @@ public class SecurityController {
     }
 
     @PostMapping("/forgot-password")
-    private String forgotPassword(@RequestParam String emailAddress) {
+    public String forgotPassword(@RequestParam String emailAddress) {
         if (!userRepository.existsByEmail(emailAddress)) {
             throw new BadRequestException("Email address invalid");
         }
@@ -102,7 +106,7 @@ public class SecurityController {
         return this.generateAndPersistConfirmationKey(emailAddress, key);
     }
 
-    private String generateAndPersistConfirmationKey(String emailAddress, String key) {
+    public String generateAndPersistConfirmationKey(String emailAddress, String key) {
         User user = this.userRepository.findByEmail(emailAddress).get();
         ConfirmationKey confirmationKey = new ConfirmationKey();
         confirmationKey.setEmailAddress(emailAddress);
@@ -250,6 +254,12 @@ public class SecurityController {
                         Role scouterRole = roleRepository.findByName(ERole.D2F)
                                 .orElseThrow(() -> new RuntimeException("Error: Role is not found."));
                         roles.add(scouterRole);
+                        break;
+
+                    case "Enseignant":
+                        Role enseignantRole = roleRepository.findByName(ERole.Enseignant)
+                                .orElseThrow(() -> new RuntimeException("Error: Role is not found."));
+                        roles.add(enseignantRole);
                         break;
 
                     default:

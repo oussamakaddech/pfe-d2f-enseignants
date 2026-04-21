@@ -1,6 +1,9 @@
 package esprit.pfe.auth.Services;
 
+import esprit.pfe.auth.Entities.ERole;
+import esprit.pfe.auth.Entities.Role;
 import esprit.pfe.auth.Entities.User;
+import esprit.pfe.auth.Repositories.RoleRepository;
 import esprit.pfe.auth.Repositories.UserRepository;
 
 
@@ -11,14 +14,18 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 
 @Service
 public class AccountServiceImpl implements AccountService {
 
     @Autowired
     UserRepository userRepository;
+    @Autowired
+    RoleRepository roleRepository;
     @Autowired
     private PasswordEncoder encoder;
     @Override
@@ -83,6 +90,47 @@ public class AccountServiceImpl implements AccountService {
                 .orElseThrow(() -> new BadRequestException("User not found"));
     }
 
+    @Override
+    public void deleteAccount(String userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BadRequestException("User not found"));
+        userRepository.delete(user);
+    }
 
+    @Override
+    public User updateAccount(String userId, EditProfileRequest editProfileRequest, String roleName) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BadRequestException("User not found"));
+
+        // Update profile fields
+        if (editProfileRequest.getFirstName() != null) {
+            user.setFirstName(editProfileRequest.getFirstName());
+        }
+        if (editProfileRequest.getLastName() != null) {
+            user.setLastName(editProfileRequest.getLastName());
+        }
+        if (editProfileRequest.getEmail() != null) {
+            Optional<User> byEmail = userRepository.findByEmail(editProfileRequest.getEmail());
+            if (byEmail.isPresent() && !byEmail.get().getId().equals(userId)) {
+                throw new BadRequestException("Email address already in use");
+            }
+            user.setEmail(editProfileRequest.getEmail());
+        }
+        if (editProfileRequest.getPhoneNumber() != null) {
+            user.setPhoneNumber(editProfileRequest.getPhoneNumber());
+        }
+
+        // Update role if provided
+        if (roleName != null && !roleName.isBlank()) {
+            ERole eRole = ERole.valueOf(roleName);
+            Role newRole = roleRepository.findByName(eRole)
+                    .orElseThrow(() -> new BadRequestException("Role not found: " + roleName));
+            Set<Role> roles = new HashSet<>();
+            roles.add(newRole);
+            user.setRoles(roles);
+        }
+
+        return userRepository.save(user);
+    }
 
 }

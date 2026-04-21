@@ -35,7 +35,7 @@ import javax.crypto.spec.SecretKeySpec;
  * Si le token ne contient pas le préfixe {@code ROLE_}, le converter l'ajoute automatiquement.
  */
 @Configuration
-@EnableMethodSecurity
+@EnableMethodSecurity(prePostEnabled = true, securedEnabled = true)
 public class SecurityConfig {
 
     @Value("${jwt.secret}")

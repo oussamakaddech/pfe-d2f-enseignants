@@ -23,12 +23,13 @@ import FormationWorkflowService from "../services/FormationWorkflowService";
 import UpService from "../services/upService";
 import DeptService from "../services/DeptService";
 import EnseignantService from "../services/EnseignantService";
+import FormationCompetenceService from "../services/FormationCompetenceService";
+import { config } from "../config/env";
 
 import DocumentUploadForm from "./documentFormation/DocumentUploadForm";
 import { RadioGroup, FormControlLabel, Radio } from "@mui/material";
 
 export default function FormationWorkflowForm({ initialDate, onFormationCreated }) {
-  // États principaux
   const [titre, setTitre] = useState("");
   const [dateDebut, setDateDebut] = useState(
     initialDate ? moment(initialDate).format("YYYY-MM-DD") : ""
@@ -42,19 +43,20 @@ export default function FormationWorkflowForm({ initialDate, onFormationCreated 
   const [organisme, setOrganisme] = useState("");
   const [chargeH, setChargeH] = useState(40);
 
-  // Formateur externe
   const [formNom, setFormNom] = useState("");
   const [formPrenom, setFormPrenom] = useState("");
   const [formEmail, setFormEmail] = useState("");
 
-  // UP & Dept
   const [ups, setUps] = useState([]);
   const [depts, setDepts] = useState([]);
   const [selectedUp, setSelectedUp] = useState(null);
   const [selectedDept, setSelectedDept] = useState(null);
 
-  // Enseignants + filtre animateurs
   const [enseignants, setEnseignants] = useState([]);
+  const [existingFormations, setExistingFormations] = useState([]);
+
+  // Animateurs (formation-level)
+  const [animSel, setAnimSel] = useState([]);
   const [animFilterUp, setAnimFilterUp] = useState(null);
   const [animFilterDept, setAnimFilterDept] = useState(null);
 
@@ -64,6 +66,8 @@ export default function FormationWorkflowForm({ initialDate, onFormationCreated 
       (!animFilterDept || x.deptLibelle === animFilterDept.libelle)
   );
 
+  // Participants
+  const [partSel, setPartSel] = useState([]);
   const [partFilterUp, setPartFilterUp] = useState(null);
   const [partFilterDept, setPartFilterDept] = useState(null);
 
@@ -73,12 +77,83 @@ export default function FormationWorkflowForm({ initialDate, onFormationCreated 
       (!partFilterDept || x.deptLibelle === partFilterDept.libelle)
   );
 
-  // Participants
-  const [partSel, setPartSel] = useState([]);
+  // Overlap warnings
+  const [overlapWarnings, setOverlapWarnings] = useState([]);
 
-  // Champs “plus d’infos”
   const [domaine, setDomaine] = useState("");
   const [populationCible, setPopulationCible] = useState("");
+
+  // Competence liaison states
+  const [compDomaines, setCompDomaines] = useState([]);
+  const [compCompetences, setCompCompetences] = useState([]);
+  const [selectedCompLinks, setSelectedCompLinks] = useState([]);
+  const [showCompSection, setShowCompSection] = useState(false);
+
+  // Per-row dynamic data for sous-compétences and savoirs
+  const [rowSousComps, setRowSousComps] = useState({}); // { [idx]: [...] }
+  const [rowSavoirs, setRowSavoirs] = useState({});     // { [idx]: [...] }
+
+  // Load sous-compétences when a competence is selected in a row
+  const handleCompetenceChange = async (idx, competence) => {
+    const updated = [...selectedCompLinks];
+    updated[idx] = {
+      ...updated[idx],
+      competenceId: competence?.id || null,
+      competenceNom: competence?.nom || "",
+      domaineId: competence?.domaineId || updated[idx].domaineId,
+      sousCompetenceId: null,
+      sousCompetenceNom: "",
+      savoirId: null,
+      savoirNom: "",
+    };
+    setSelectedCompLinks(updated);
+    // Load sous-compétences
+    if (competence?.id) {
+      try {
+        const res = await fetch(`${config.COMPETENCE_URL}/competence/competences/${competence.id}/sous-competences`);
+        if (res.ok) { const data = await res.json(); setRowSousComps((p) => ({ ...p, [idx]: Array.isArray(data) ? data : [] })); }
+      } catch { /* ignore */ }
+      // Also load savoirs for this competence
+      try {
+        const res = await fetch(`${config.COMPETENCE_URL}/competence/savoirs?competenceId=${competence.id}`);
+        if (res.ok) { const data = await res.json(); setRowSavoirs((p) => ({ ...p, [idx]: Array.isArray(data) ? data : [] })); }
+      } catch { /* ignore */ }
+    } else {
+      setRowSousComps((p) => ({ ...p, [idx]: [] }));
+      setRowSavoirs((p) => ({ ...p, [idx]: [] }));
+    }
+  };
+
+  // Load savoirs when sous-compétence changes
+  const handleSousCompChange = async (idx, sousComp) => {
+    const updated = [...selectedCompLinks];
+    updated[idx] = {
+      ...updated[idx],
+      sousCompetenceId: sousComp?.id || null,
+      sousCompetenceNom: sousComp?.nom || "",
+      savoirId: null,
+      savoirNom: "",
+    };
+    setSelectedCompLinks(updated);
+    if (sousComp?.id) {
+      try {
+        const res = await fetch(`${config.COMPETENCE_URL}/competence/savoirs?sousCompetenceId=${sousComp.id}`);
+        if (res.ok) { const data = await res.json(); setRowSavoirs((p) => ({ ...p, [idx]: Array.isArray(data) ? data : [] })); }
+      } catch { /* ignore */ }
+    } else if (updated[idx].competenceId) {
+      // Reload savoirs for the competence only
+      try {
+        const res = await fetch(`${config.COMPETENCE_URL}/competence/savoirs?competenceId=${updated[idx].competenceId}`);
+        if (res.ok) { const data = await res.json(); setRowSavoirs((p) => ({ ...p, [idx]: Array.isArray(data) ? data : [] })); }
+      } catch { /* ignore */ }
+    }
+  };
+
+  // Get competences filtered by domaine for a given row
+  const getCompetencesForRow = (domaineId) => {
+    if (!domaineId) return compCompetences;
+    return compCompetences.filter((c) => c.domaineId === domaineId);
+  };
   const [objectifs, setObjectifs] = useState("");
   const [objectifsPedago, setObjectifsPedago] = useState("");
   const [evalMethods, setEvalMethods] = useState("");
@@ -86,12 +161,10 @@ export default function FormationWorkflowForm({ initialDate, onFormationCreated 
   const [acquis, setAcquis] = useState("");
   const [indicateurs, setIndicateurs] = useState("");
 
-  // Coûts hors collapse pour EXTERNE
   const [coutTransport, setCoutTransport] = useState(0);
   const [coutHebergement, setCoutHebergement] = useState(0);
   const [coutRepas, setCoutRepas] = useState(0);
 
-  // Séances (expanded: false par défaut pour cacher les champs optionnels)
   const [seances, setSeances] = useState([
     {
       id: Date.now(),
@@ -99,7 +172,6 @@ export default function FormationWorkflowForm({ initialDate, onFormationCreated 
       heureDebut: "08:00:00",
       heureFin: "10:00:00",
       salle: "",
-      animateurs: [],
       typeSeance: "THEORIQUE",
       contenus: "",
       methodes: "",
@@ -110,31 +182,69 @@ export default function FormationWorkflowForm({ initialDate, onFormationCreated 
   ]);
   const [ouverte, setOuverte] = useState(false);
 
-  // UI
   const [snack, setSnack] = useState({ open: false, severity: "info", message: "" });
   const [showUpload, setShowUpload] = useState(false);
   const [newFormationId, setNewFormationId] = useState(null);
   const [showMore, setShowMore] = useState(false);
 
-  // Chargement UP/Dept/Enseignants/Compétences
+  // Overlap check
+  const checkOverlaps = (selectedUsers, role) => {
+    if (!dateDebut || !dateFin || !selectedUsers.length) {
+      setOverlapWarnings([]);
+      return;
+    }
+    const dStart = moment(dateDebut);
+    const dEnd = moment(dateFin);
+    const warnings = [];
+    selectedUsers.forEach((user) => {
+      existingFormations.forEach((f) => {
+        if (!f.dateDebut || !f.dateFin) return;
+        const fStart = moment(f.dateDebut);
+        const fEnd = moment(f.dateFin);
+        if (dStart.isSameOrBefore(fEnd) && dEnd.isSameOrAfter(fStart)) {
+          const isAnim = (f.seances || []).some((s) =>
+            (s.animateurs || []).some((a) => a.id === user.id)
+          );
+          const isPart = (f.participants || []).some((p) => p.id === user.id);
+          if (isAnim || isPart) {
+            warnings.push({
+              userId: user.id,
+              userName: `${user.nom} ${user.prenom}`,
+              role,
+              formationTitre: f.titreFormation,
+              formationId: f.idFormation,
+              existingRole: isAnim ? "animateur" : "participant",
+            });
+          }
+        }
+      });
+    });
+    setOverlapWarnings(warnings);
+  };
+
   useEffect(() => {
     (async () => {
       try {
-        const [u, d, e] = await Promise.all([
+        const [u, d, e, formations, domainesData, competencesData] = await Promise.all([
           UpService.getAllUps(),
           DeptService.getAllDepts(),
           EnseignantService.getAllEnseignants(),
+          FormationWorkflowService.getAllFormationWorkflows(),
+          fetch(config.COMPETENCE_URL + "/competence/domaines").then(r => r.ok ? r.json() : []).catch(() => []),
+          fetch(config.COMPETENCE_URL + "/competence/competences").then(r => r.ok ? r.json() : []).catch(() => []),
         ]);
         setUps(u);
         setDepts(d);
         setEnseignants(e);
+        setExistingFormations(formations);
+        setCompDomaines(Array.isArray(domainesData) ? domainesData : []);
+        setCompCompetences(Array.isArray(competencesData) ? competencesData : []);
       } catch {
         setSnack({ open: true, severity: "error", message: "Échec chargement externes" });
       }
     })();
   }, [initialDate]);
 
-  // Séance handlers
   const addSeance = () =>
     setSeances((s) => [
       ...s,
@@ -144,7 +254,6 @@ export default function FormationWorkflowForm({ initialDate, onFormationCreated 
         heureDebut: "08:00:00",
         heureFin: "10:00:00",
         salle: "",
-        animateurs: [],
         typeSeance: "THEORIQUE",
         contenus: "",
         methodes: "",
@@ -170,7 +279,6 @@ export default function FormationWorkflowForm({ initialDate, onFormationCreated 
       )
     );
 
-  // Import Excel participants
   const handleParticipantsFile = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -180,51 +288,66 @@ export default function FormationWorkflowForm({ initialDate, onFormationCreated 
       const ws = wb.Sheets[wb.SheetNames[0]];
       const rows = XLSX.utils.sheet_to_json(ws, { header: 1 });
       if (rows.length < 2)
-        return setSnack({
-          open: true,
-          severity: "warning",
-          message: "Excel vide ou mal formaté",
-        });
+        return setSnack({ open: true, severity: "warning", message: "Excel vide ou mal formaté" });
       const hdr = rows[0].map((h) => String(h).toLowerCase().trim());
       const idx = hdr.findIndex((h) => h === "email" || h === "mail");
       if (idx < 0)
-        return setSnack({
-          open: true,
-          severity: "warning",
-          message: "Colonne Email introuvable",
-        });
+        return setSnack({ open: true, severity: "warning", message: "Colonne Email introuvable" });
       const mails = rows.slice(1).map((r) => r[idx]).filter(Boolean);
       const matched = enseignants.filter((x) => mails.includes(x.mail));
       setPartSel(matched);
-      setSnack({
-        open: true,
-        severity: "success",
-        message: `${matched.length} participants importés`,
-      });
+      setSnack({ open: true, severity: "success", message: `${matched.length} participants importés` });
     };
     reader.readAsBinaryString(file);
   };
 
-
   const handleTypeFormationChange = (newType) => {
     setTypeFormation(newType);
     if (newType === "EXTERNE") {
-      const clearedSeances = seances.map((s) => ({ ...s, animateurs: [] }));
-      setSeances(clearedSeances);
+      setAnimSel([]);
     }
   };
 
-  // Soumission
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (seances.length === 0) {
+      setSnack({ open: true, severity: "warning", message: "Veuillez ajouter au moins une séance." });
+      return;
+    }
+
+    // Check overlaps before submit
+    const allWarnings = [];
+    if (dateDebut && dateFin) {
+      const dStart = moment(dateDebut);
+      const dEnd = moment(dateFin);
+      [...animSel, ...partSel].forEach((user) => {
+        existingFormations.forEach((f) => {
+          if (!f.dateDebut || !f.dateFin) return;
+          const fStart = moment(f.dateDebut);
+          const fEnd = moment(f.dateFin);
+          if (dStart.isSameOrBefore(fEnd) && dEnd.isSameOrAfter(fStart)) {
+            const isAnimInF = (f.seances || []).some((s) =>
+              (s.animateurs || []).some((a) => a.id === user.id)
+            );
+            const isPartInF = (f.participants || []).some((p) => p.id === user.id);
+            if (isAnimInF || isPartInF) {
+              allWarnings.push(
+                `${user.nom} ${user.prenom} est déjà dans "${f.titreFormation}" (${isAnimInF ? "animateur" : "participant"}) qui chevauche cette période.`
+              );
+            }
+          }
+        });
+      });
+    }
+    if (allWarnings.length > 0) {
       setSnack({
         open: true,
         severity: "warning",
-        message: "Veuillez ajouter au moins une séance.",
+        message: `Chevauchement détecté : ${allWarnings[0]}${allWarnings.length > 1 ? ` et ${allWarnings.length - 1} autre(s)` : ""}`,
       });
       return;
     }
+
     try {
       const payload = {
         titreFormation: titre,
@@ -241,6 +364,7 @@ export default function FormationWorkflowForm({ initialDate, onFormationCreated 
         chargeHoraireGlobal: parseInt(chargeH, 10),
         upId: selectedUp?.id,
         departementId: selectedDept?.id,
+        animateursIds: animSel.map((a) => a.id),
         participantsIds: partSel.map((p) => p.id),
         domaine,
         populationCible,
@@ -258,7 +382,7 @@ export default function FormationWorkflowForm({ initialDate, onFormationCreated 
           heureDebut: s.heureDebut,
           heureFin: s.heureFin,
           salle: s.salle,
-          animateursIds: s.animateurs.map((a) => a.id),
+          animateursIds: [],
           typeSeance: s.typeSeance,
           contenus: s.contenus,
           methodes: s.methodes,
@@ -268,7 +392,34 @@ export default function FormationWorkflowForm({ initialDate, onFormationCreated 
       };
 
       const newF = await FormationWorkflowService.createFormationWorkflow(payload);
-      setNewFormationId(newF.idFormation || newF.id);
+      const fId = newF.idFormation || newF.id;
+      setNewFormationId(fId);
+
+      // Save competence links if any
+      if (selectedCompLinks.length > 0 && fId) {
+        try {
+          const compLinks = selectedCompLinks
+            .filter((l) => l.competenceId)
+            .map((l) => ({
+              domaineId: l.domaineId,
+              competenceId: l.competenceId,
+              competenceNom: l.competenceNom,
+              sousCompetenceId: l.sousCompetenceId || null,
+              sousCompetenceNom: l.sousCompetenceNom || "",
+              savoirId: l.savoirId || null,
+              savoirNom: l.savoirNom || "",
+              savoirType: l.savoirType || null,
+              niveauPrerequis: l.niveauPrerequis,
+              niveauVise: l.niveauVise,
+            }));
+          if (compLinks.length > 0) {
+            await FormationCompetenceService.replaceAllForFormation(fId, compLinks);
+          }
+        } catch (err) {
+          console.error("Failed to save competence links:", err);
+        }
+      }
+
       setShowUpload(true);
       onFormationCreated(newF);
     } catch (err) {
@@ -283,65 +434,24 @@ export default function FormationWorkflowForm({ initialDate, onFormationCreated 
         Créer une Formation (Workflow)
       </Typography>
       <Grid container spacing={2}>
-        {/* Titre */}
         <Grid item xs={12}>
-          <TextField
-            label="Titre Formation"
-            fullWidth
-            value={titre}
-            onChange={(e) => setTitre(e.target.value)}
-            required
-          />
-        </Grid>
-
-        {/* Dates */}
-        <Grid item xs={6}>
-          <TextField
-            label="Date Début"
-            type="date"
-            InputLabelProps={{ shrink: true }}
-            fullWidth
-            value={dateDebut}
-            onChange={(e) => setDateDebut(e.target.value)}
-            required
-          />
+          <TextField label="Titre Formation" fullWidth value={titre} onChange={(e) => setTitre(e.target.value)} required />
         </Grid>
         <Grid item xs={6}>
-          <TextField
-            label="Date Fin"
-            type="date"
-            InputLabelProps={{ shrink: true }}
-            fullWidth
-            value={dateFin}
-            onChange={(e) => setDateFin(e.target.value)}
-            required
-          />
+          <TextField label="Date Début" type="date" InputLabelProps={{ shrink: true }} fullWidth value={dateDebut} onChange={(e) => setDateDebut(e.target.value)} required />
         </Grid>
-
-        {/* Type / État */}
         <Grid item xs={6}>
-          <TextField
-            select
-            label="Type Formation"
-            SelectProps={{ native: true }}
-            fullWidth
-            value={typeFormation}
-            onChange={(e) => handleTypeFormationChange(e.target.value)}
-          >
+          <TextField label="Date Fin" type="date" InputLabelProps={{ shrink: true }} fullWidth value={dateFin} onChange={(e) => setDateFin(e.target.value)} required />
+        </Grid>
+        <Grid item xs={6}>
+          <TextField select label="Type Formation" SelectProps={{ native: true }} fullWidth value={typeFormation} onChange={(e) => handleTypeFormationChange(e.target.value)}>
             <option value="INTERNE">INTERNE</option>
             <option value="EXTERNE">EXTERNE</option>
             <option value="EN_LIGNE">EN_LIGNE</option>
           </TextField>
         </Grid>
         <Grid item xs={6}>
-          <TextField
-            select
-            label="État Formation"
-            SelectProps={{ native: true }}
-            fullWidth
-            value={etatFormation}
-            onChange={(e) => setEtatFormation(e.target.value)}
-          >
+          <TextField select label="État Formation" SelectProps={{ native: true }} fullWidth value={etatFormation} onChange={(e) => setEtatFormation(e.target.value)}>
             <option value="ENREGISTRE">ENREGISTRE</option>
             <option value="PLANIFIE">PLANIFIE</option>
             <option value="EN_COURS">EN_COURS</option>
@@ -350,378 +460,135 @@ export default function FormationWorkflowForm({ initialDate, onFormationCreated 
           </TextField>
         </Grid>
 
-        {/* Formateur Externe + Coût + Organisme */}
         {typeFormation === "EXTERNE" && (
           <>
-            <Grid item xs={4}>
-              <TextField
-                label="Nom Formateur Externe"
-                fullWidth
-                value={formNom}
-                onChange={(e) => setFormNom(e.target.value)}
-              />
-            </Grid>
-            <Grid item xs={4}>
-              <TextField
-                label="Prénom Formateur Externe"
-                fullWidth
-                value={formPrenom}
-                onChange={(e) => setFormPrenom(e.target.value)}
-              />
-            </Grid>
-            <Grid item xs={4}>
-              <TextField
-                label="Email Formateur Externe"
-                type="email"
-                fullWidth
-                value={formEmail}
-                onChange={(e) => setFormEmail(e.target.value)}
-              />
-            </Grid>
-            <Grid item xs={4}>
-              <TextField
-                label="Coût Formation"
-                type="number"
-                fullWidth
-                value={cout}
-                onChange={(e) => setCout(e.target.value)}
-              />
-            </Grid>
-            <Grid item xs={4}>
-              <TextField
-                label="Organisme Externe"
-                fullWidth
-                value={organisme}
-                onChange={(e) => setOrganisme(e.target.value)}
-              />
-            </Grid>
-            {/* Coûts transport / hébergement / repas */}
-            <Grid item xs={4}>
-              <TextField
-                label="Coût Transport"
-                type="number"
-                fullWidth
-                value={coutTransport}
-                onChange={(e) => setCoutTransport(e.target.value)}
-              />
-            </Grid>
-            <Grid item xs={4}>
-              <TextField
-                label="Coût Hébergement"
-                type="number"
-                fullWidth
-                value={coutHebergement}
-                onChange={(e) => setCoutHebergement(e.target.value)}
-              />
-            </Grid>
-            <Grid item xs={4}>
-              <TextField
-                label="Coût Repas"
-                type="number"
-                fullWidth
-                value={coutRepas}
-                onChange={(e) => setCoutRepas(e.target.value)}
-              />
-            </Grid>
+            <Grid item xs={4}><TextField label="Nom Formateur Externe" fullWidth value={formNom} onChange={(e) => setFormNom(e.target.value)} /></Grid>
+            <Grid item xs={4}><TextField label="Prénom Formateur Externe" fullWidth value={formPrenom} onChange={(e) => setFormPrenom(e.target.value)} /></Grid>
+            <Grid item xs={4}><TextField label="Email Formateur Externe" type="email" fullWidth value={formEmail} onChange={(e) => setFormEmail(e.target.value)} /></Grid>
+            <Grid item xs={4}><TextField label="Coût Formation" type="number" fullWidth value={cout} onChange={(e) => setCout(e.target.value)} /></Grid>
+            <Grid item xs={4}><TextField label="Organisme Externe" fullWidth value={organisme} onChange={(e) => setOrganisme(e.target.value)} /></Grid>
+            <Grid item xs={4}><TextField label="Coût Transport" type="number" fullWidth value={coutTransport} onChange={(e) => setCoutTransport(e.target.value)} /></Grid>
+            <Grid item xs={4}><TextField label="Coût Hébergement" type="number" fullWidth value={coutHebergement} onChange={(e) => setCoutHebergement(e.target.value)} /></Grid>
+            <Grid item xs={4}><TextField label="Coût Repas" type="number" fullWidth value={coutRepas} onChange={(e) => setCoutRepas(e.target.value)} /></Grid>
           </>
         )}
 
-        {/* Ouverte ? */}
         <Grid item xs={6} sm={3}>
           <Typography>Formation ouverte ?</Typography>
-          <RadioGroup
-            row
-            sx={{ flexDirection: "column" }}
-            value={ouverte ? "oui" : "non"}
-            onChange={(e) => setOuverte(e.target.value === "oui")}
-          >
+          <RadioGroup row sx={{ flexDirection: "column" }} value={ouverte ? "oui" : "non"} onChange={(e) => setOuverte(e.target.value === "oui")}>
             <FormControlLabel value="oui" control={<Radio />} label="Oui" />
             <FormControlLabel value="non" control={<Radio />} label="Non" />
           </RadioGroup>
         </Grid>
 
-        {/* Charge / UP / Dept */}
         <Grid item xs={6} sm={4}>
-          <Autocomplete
-            options={ups}
-            getOptionLabel={(u) => u.libelle}
-            value={selectedUp}
-            onChange={(_, v) => setSelectedUp(v)}
-            disabled={ouverte}
-            renderInput={(params) => <TextField {...params} label="UP" required={!ouverte} />}
-          />
+          <Autocomplete options={ups} getOptionLabel={(u) => u.libelle} value={selectedUp} onChange={(_, v) => setSelectedUp(v)} renderInput={(params) => <TextField {...params} label="UP" required />} />
         </Grid>
         <Grid item xs={6} sm={4}>
-          <Autocomplete
-            options={depts}
-            getOptionLabel={(d) => d.libelle}
-            value={selectedDept}
-            onChange={(_, v) => setSelectedDept(v)}
-            disabled={ouverte}
-            renderInput={(params) => (
-              <TextField {...params} label="Département" required={!ouverte} />
-            )}
-          />
+          <Autocomplete options={depts} getOptionLabel={(d) => d.libelle} value={selectedDept} onChange={(_, v) => setSelectedDept(v)} renderInput={(params) => <TextField {...params} label="Département" required />} />
         </Grid>
         <Grid item xs={4}>
-          <TextField
-            label="Charge Horaire"
-            type="number"
-            fullWidth
-            value={chargeH}
-            onChange={(e) => setChargeH(e.target.value)}
-          />
+          <TextField label="Charge Horaire" type="number" fullWidth value={chargeH} onChange={(e) => setChargeH(e.target.value)} />
         </Grid>
 
-
-        {/* Plus d’infos global */}
         <Grid item xs={12}>
-          <Button
-            startIcon={showMore ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-            onClick={() => setShowMore((m) => !m)}
-          >
-            {showMore ? "Moins d’infos" : "Plus d’infos"}
+          <Button startIcon={showMore ? <ExpandLessIcon /> : <ExpandMoreIcon />} onClick={() => setShowMore((m) => !m)}>
+            {showMore ? "Moins d'infos" : "Plus d'infos"}
           </Button>
           <Collapse in={showMore}>
             <Grid container spacing={2} sx={{ mt: 1 }}>
-              {[
-                ["Domaine", domaine, setDomaine],
-                ["Pop. Cible", populationCible, setPopulationCible],
-                ["Objectifs", objectifs, setObjectifs],
-                ["Obj. Pédago", objectifsPedago, setObjectifsPedago],
-                ["Eval Methods", evalMethods, setEvalMethods],
-                ["Prérequis", prerequis, setPrerequis],
-                ["Acquis", acquis, setAcquis],
-                ["Indicateurs", indicateurs, setIndicateurs],
-              ].map(([lbl, val, setVal]) => (
-                <Grid item xs={12} sm={6} key={lbl}>
-                  <TextField
-                    label={lbl}
-                    fullWidth
-                    value={val}
-                    onChange={(e) => setVal(e.target.value)}
-                  />
-                </Grid>
+              {[["Domaine", domaine, setDomaine], ["Pop. Cible", populationCible, setPopulationCible], ["Objectifs", objectifs, setObjectifs], ["Obj. Pédago", objectifsPedago, setObjectifsPedago], ["Eval Methods", evalMethods, setEvalMethods], ["Prérequis", prerequis, setPrerequis], ["Acquis", acquis, setAcquis], ["Indicateurs", indicateurs, setIndicateurs]].map(([lbl, val, setVal]) => (
+                <Grid item xs={12} sm={6} key={lbl}><TextField label={lbl} fullWidth value={val} onChange={(e) => setVal(e.target.value)} /></Grid>
               ))}
             </Grid>
           </Collapse>
         </Grid>
 
-        {/* Séances */}
+        {/* Séances (sans animateurs) */}
         {seances.map((s, i) => (
           <Grid item xs={12} key={s.id}>
-            <Box
-              sx={{
-                mb: 2,
-                p: 2,
-                border: "1px solid #ff0000",
-                borderRadius: 1,
-                position: "relative",
-              }}
-            >
-              <IconButton
-                size="small"
-                onClick={() => removeSeance(i)}
-                sx={{ position: "absolute", top: 4, right: 4 }}
-              >
-                <DeleteIcon fontSize="small" />
-              </IconButton>
+            <Box sx={{ mb: 2, p: 2, border: "1px solid #ff0000", borderRadius: 1, position: "relative" }}>
+              <IconButton size="small" onClick={() => removeSeance(i)} sx={{ position: "absolute", top: 4, right: 4 }}><DeleteIcon fontSize="small" /></IconButton>
               <Box display="flex" alignItems="center" mb={1}>
-                <Typography variant="subtitle1" sx={{ flexGrow: 1 }}>
-                  Séance #{i + 1}
-                </Typography>
-                <IconButton size="small" onClick={() => toggleSeance(i)}>
-                  {s.expanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-                </IconButton>
+                <Typography variant="subtitle1" sx={{ flexGrow: 1 }}>Séance #{i + 1}</Typography>
+                <IconButton size="small" onClick={() => toggleSeance(i)}>{s.expanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}</IconButton>
               </Box>
               <Grid container spacing={2}>
-                <Grid item xs={3}>
-                  <TextField
-                    label="Date"
-                    type="date"
-                    fullWidth
-                    InputLabelProps={{ shrink: true }}
-                    value={s.dateSeance}
-                    onChange={(e) => updateSeance(i, "dateSeance", e.target.value)}
-                  />
-                </Grid>
-                <Grid item xs={3}>
-                  <TextField
-                    label="Heure Début"
-                    type="time"
-                    fullWidth
-                    InputLabelProps={{ shrink: true }}
-                    value={s.heureDebut}
-                    onChange={(e) => updateSeance(i, "heureDebut", e.target.value)}
-                  />
-                </Grid>
-                <Grid item xs={3}>
-                  <TextField
-                    label="Heure Fin"
-                    type="time"
-                    fullWidth
-                    InputLabelProps={{ shrink: true }}
-                    value={s.heureFin}
-                    onChange={(e) => updateSeance(i, "heureFin", e.target.value)}
-                  />
-                </Grid>
-                <Grid item xs={3}>
-                  <TextField
-                    label="Salle"
-                    fullWidth
-                    value={s.salle}
-                    onChange={(e) => updateSeance(i, "salle", e.target.value)}
-                  />
-                </Grid>
-
-                {/* Animateurs */}
-                <Grid item xs={12} sx={{ mt: 3 }}>
-                  <Typography variant="subtitle1" sx={{ flexGrow: 1 }}>
-                    🧑🏻‍🏫 Animateurs
-                  </Typography>
-                  <Grid container spacing={2} sx={{ mb: 1 }}>
-                    <Grid item xs={6}>
-                      <Autocomplete
-                        options={ups}
-                        getOptionLabel={(u) => u.libelle}
-                        value={animFilterUp}
-                        isOptionEqualToValue={(o, v) => o.id === v?.id}
-                        onChange={(_, v) => setAnimFilterUp(v)}
-                        renderInput={(params) => (
-                          <TextField {...params} label="Filtrer UP" placeholder="Toutes" />
-                        )}
-                      />
-                    </Grid>
-                    <Grid item xs={6}>
-                      <Autocomplete
-                        options={depts}
-                        getOptionLabel={(d) => d.libelle}
-                        value={animFilterDept}
-                        isOptionEqualToValue={(o, v) => o.id === v?.id}
-                        onChange={(_, v) => setAnimFilterDept(v)}
-                        renderInput={(params) => (
-                          <TextField {...params} label="Filtrer Département" placeholder="Tous" />
-                        )}
-                      />
-                    </Grid>
-                  </Grid>
-                  <Autocomplete
-                    multiple
-                    disabled={typeFormation === "EXTERNE"}
-                    options={optionsAnim}
-                    getOptionLabel={(opt) => `${opt.nom} ${opt.prenom} (${opt.mail})`}
-                    value={s.animateurs}
-                    onChange={(_, v) => updateSeance(i, "animateurs", v)}
-                    renderInput={(params) => (
-                      <TextField {...params} label="Sélectionner Animateurs" />
-                    )}
-                  />
-                </Grid>
+                <Grid item xs={3}><TextField label="Date" type="date" fullWidth InputLabelProps={{ shrink: true }} value={s.dateSeance} onChange={(e) => updateSeance(i, "dateSeance", e.target.value)} /></Grid>
+                <Grid item xs={3}><TextField label="Heure Début" type="time" fullWidth InputLabelProps={{ shrink: true }} value={s.heureDebut} onChange={(e) => updateSeance(i, "heureDebut", e.target.value)} /></Grid>
+                <Grid item xs={3}><TextField label="Heure Fin" type="time" fullWidth InputLabelProps={{ shrink: true }} value={s.heureFin} onChange={(e) => updateSeance(i, "heureFin", e.target.value)} /></Grid>
+                <Grid item xs={3}><TextField label="Salle" fullWidth value={s.salle} onChange={(e) => updateSeance(i, "salle", e.target.value)} /></Grid>
               </Grid>
-
               <Collapse in={s.expanded}>
                 <Grid container spacing={2} sx={{ mt: 1 }}>
-                  <Grid item xs={3}>
-                    <TextField
-                      select
-                      label="Type"
-                      fullWidth
-                      SelectProps={{ native: true }}
-                      value={s.typeSeance}
-                      onChange={(e) => updateSeance(i, "typeSeance", e.target.value)}
-                    >
-                      <option value="THEORIQUE">THEORIQUE</option>
-                      <option value="PRATIQUE">PRATIQUE</option>
-                    </TextField>
-                  </Grid>
-                  <Grid item xs={3}>
-                    <TextField
-                      label="Durée théo (h)"
-                      type="number"
-                      fullWidth
-                      value={s.dureeTheorique}
-                      onChange={(e) => updateSeance(i, "dureeTheorique", e.target.value)}
-                    />
-                  </Grid>
-                  <Grid item xs={3}>
-                    <TextField
-                      label="Durée prat (h)"
-                      type="number"
-                      fullWidth
-                      value={s.dureePratique}
-                      onChange={(e) => updateSeance(i, "dureePratique", e.target.value)}
-                    />
-                  </Grid>
-                  <Grid item xs={3}>
-                    <TextField
-                      label="Contenus"
-                      fullWidth
-                      value={s.contenus}
-                      onChange={(e) => updateSeance(i, "contenus", e.target.value)}
-                    />
-                  </Grid>
-                  <Grid item xs={12}>
-                    <TextField
-                      label="Méthodes"
-                      fullWidth
-                      value={s.methodes}
-                      onChange={(e) => updateSeance(i, "methodes", e.target.value)}
-                    />
-                  </Grid>
+                  <Grid item xs={3}><TextField select label="Type" fullWidth SelectProps={{ native: true }} value={s.typeSeance} onChange={(e) => updateSeance(i, "typeSeance", e.target.value)}><option value="THEORIQUE">THEORIQUE</option><option value="PRATIQUE">PRATIQUE</option></TextField></Grid>
+                  <Grid item xs={3}><TextField label="Durée théo (h)" type="number" fullWidth value={s.dureeTheorique} onChange={(e) => updateSeance(i, "dureeTheorique", e.target.value)} /></Grid>
+                  <Grid item xs={3}><TextField label="Durée prat (h)" type="number" fullWidth value={s.dureePratique} onChange={(e) => updateSeance(i, "dureePratique", e.target.value)} /></Grid>
+                  <Grid item xs={3}><TextField label="Contenus" fullWidth value={s.contenus} onChange={(e) => updateSeance(i, "contenus", e.target.value)} /></Grid>
+                  <Grid item xs={12}><TextField label="Méthodes" fullWidth value={s.methodes} onChange={(e) => updateSeance(i, "methodes", e.target.value)} /></Grid>
                 </Grid>
               </Collapse>
             </Box>
           </Grid>
         ))}
 
-        {/* Ajouter séance */}
         <Grid item xs={12}>
-          <Button variant="outlined" color="error" onClick={addSeance}>
-            + Ajouter Séance
-          </Button>
+          <Button variant="outlined" color="error" onClick={addSeance}>+ Ajouter Séance</Button>
         </Grid>
+
+        {/* Animateurs (formation-level) */}
+        <Grid item xs={12} sx={{ mt: 3 }}>
+          <Typography variant="subtitle1">🧑🏻‍🏫 Animateurs de la formation</Typography>
+          <Grid container spacing={2} sx={{ mb: 1 }}>
+            <Grid item xs={6}>
+              <Autocomplete options={ups} getOptionLabel={(u) => u.libelle} value={animFilterUp} isOptionEqualToValue={(o, v) => o.id === v?.id} onChange={(_, v) => setAnimFilterUp(v)} renderInput={(params) => <TextField {...params} label="Filtrer UP" placeholder="Toutes" />} />
+            </Grid>
+            <Grid item xs={6}>
+              <Autocomplete options={depts} getOptionLabel={(d) => d.libelle} value={animFilterDept} isOptionEqualToValue={(o, v) => o.id === v?.id} onChange={(_, v) => setAnimFilterDept(v)} renderInput={(params) => <TextField {...params} label="Filtrer Département" placeholder="Tous" />} />
+            </Grid>
+          </Grid>
+          <Autocomplete
+            multiple
+            disabled={typeFormation === "EXTERNE"}
+            options={optionsAnim}
+            getOptionLabel={(opt) => `${opt.nom} ${opt.prenom} (${opt.mail})`}
+            value={animSel}
+            onChange={(_, v) => { setAnimSel(v); checkOverlaps(v, "animateur"); }}
+            renderInput={(params) => <TextField {...params} label="Sélectionner Animateurs" />}
+          />
+        </Grid>
+
+        {/* Overlap warnings */}
+        {overlapWarnings.length > 0 && (
+          <Grid item xs={12}>
+            <Alert severity="warning">
+              <Typography variant="subtitle2">⚠️ Chevauchements détectés :</Typography>
+              <ul style={{ margin: 0, paddingLeft: 20 }}>
+                {overlapWarnings.map((w, idx) => (
+                  <li key={idx}>{w.userName} ({w.role}) &rarr; déjà {w.existingRole} dans &ldquo;{w.formationTitre}&rdquo;</li>
+                ))}
+              </ul>
+            </Alert>
+          </Grid>
+        )}
 
         {/* Import Excel Participants */}
         <Grid item xs={12}>
-          <input
-            accept=".xls,.xlsx"
-            style={{ display: "none" }}
-            id="upload-participants"
-            type="file"
-            onChange={handleParticipantsFile}
-          />
+          <input accept=".xls,.xlsx" style={{ display: "none" }} id="upload-participants" type="file" onChange={handleParticipantsFile} />
           <label htmlFor="upload-participants">
-            <Button component="span" startIcon={<UploadFileIcon />} color="error" variant="contained">
-              Importer Participants (Excel)
-            </Button>
+            <Button component="span" startIcon={<UploadFileIcon />} color="error" variant="contained">Importer Participants (Excel)</Button>
           </label>
         </Grid>
 
         {/* Participants */}
         <Grid item xs={12} sx={{ mt: 3 }}>
-          <Typography variant="subtitle1" sx={{ flexGrow: 1 }}>
-            🧑🏻‍💻 Participants
-          </Typography>
+          <Typography variant="subtitle1">🧑🏻‍💻 Participants</Typography>
           <Grid container spacing={2} sx={{ mb: 1 }}>
             <Grid item xs={6}>
-              <Autocomplete
-                options={ups}
-                getOptionLabel={(u) => u.libelle}
-                value={partFilterUp}
-                isOptionEqualToValue={(o, v) => o.id === v?.id}
-                onChange={(_, v) => setPartFilterUp(v)}
-                renderInput={(params) => <TextField {...params} label="Filtrer UP" placeholder="Toutes" />}
-              />
+              <Autocomplete options={ups} getOptionLabel={(u) => u.libelle} value={partFilterUp} isOptionEqualToValue={(o, v) => o.id === v?.id} onChange={(_, v) => setPartFilterUp(v)} renderInput={(params) => <TextField {...params} label="Filtrer UP" placeholder="Toutes" />} />
             </Grid>
             <Grid item xs={6}>
-              <Autocomplete
-                options={depts}
-                getOptionLabel={(d) => d.libelle}
-                value={partFilterDept}
-                isOptionEqualToValue={(o, v) => o.id === v?.id}
-                onChange={(_, v) => setPartFilterDept(v)}
-                renderInput={(params) => <TextField {...params} label="Filtrer Département" placeholder="Tous" />}
-              />
+              <Autocomplete options={depts} getOptionLabel={(d) => d.libelle} value={partFilterDept} isOptionEqualToValue={(o, v) => o.id === v?.id} onChange={(_, v) => setPartFilterDept(v)} renderInput={(params) => <TextField {...params} label="Filtrer Département" placeholder="Tous" />} />
             </Grid>
           </Grid>
           <Autocomplete
@@ -729,36 +596,131 @@ export default function FormationWorkflowForm({ initialDate, onFormationCreated 
             options={optionsPart}
             getOptionLabel={(opt) => `${opt.nom} ${opt.prenom} (${opt.mail})`}
             value={partSel}
-            onChange={(_, v) => setPartSel(v)}
+            onChange={(_, v) => { setPartSel(v); checkOverlaps(v, "participant"); }}
             renderInput={(params) => <TextField {...params} label="Sélectionner Participants" />}
           />
         </Grid>
 
-        {/* Submit */}
-        <Grid item xs={12} sx={{ textAlign: "right" }}>
-          <Button type="submit" variant="contained" color="error">
-            ✔️ Créer Formation
+        {/* Compétences / Savoirs visés (hiérarchie complète) */}
+        <Grid item xs={12} sx={{ mt: 3 }}>
+          <Button
+            startIcon={showCompSection ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+            onClick={() => setShowCompSection((v) => !v)}
+          >
+            {showCompSection ? "Masquer Compétences visées" : "Compétences / Savoirs visés"}
           </Button>
+          <Collapse in={showCompSection}>
+            <Box sx={{ mt: 1, p: 2, border: "1px dashed #c62828", borderRadius: 1 }}>
+              <Typography variant="caption" color="text.secondary" sx={{ mb: 1, display: "block" }}>
+                Domaine → Compétence → Sous-compétence → Savoir (théorique/pratique) + Niveaux prérequis/visé
+              </Typography>
+              {selectedCompLinks.map((link, idx) => (
+                <Grid container spacing={1} key={idx} alignItems="center" sx={{ mb: 1 }}>
+                  {/* Domaine */}
+                  <Grid item xs={2}>
+                    <Autocomplete
+                      size="small"
+                      options={compDomaines}
+                      getOptionLabel={(d) => d.nom || ""}
+                      value={compDomaines.find((d) => d.id === link.domaineId) || null}
+                      onChange={(_, v) => {
+                        const updated = [...selectedCompLinks];
+                        updated[idx] = { ...updated[idx], domaineId: v?.id || null, competenceId: null, competenceNom: "", sousCompetenceId: null, sousCompetenceNom: "", savoirId: null, savoirNom: "" };
+                        setSelectedCompLinks(updated);
+                      }}
+                      renderInput={(params) => <TextField {...params} label="Domaine" size="small" />}
+                    />
+                  </Grid>
+                  {/* Compétence (filtered by domaine) */}
+                  <Grid item xs={2}>
+                    <Autocomplete
+                      size="small"
+                      options={getCompetencesForRow(link.domaineId)}
+                      getOptionLabel={(c) => c.nom || ""}
+                      value={getCompetencesForRow(link.domaineId).find((c) => c.id === link.competenceId) || null}
+                      onChange={(_, v) => handleCompetenceChange(idx, v)}
+                      renderInput={(params) => <TextField {...params} label="Compétence" size="small" />}
+                    />
+                  </Grid>
+                  {/* Sous-compétence */}
+                  <Grid item xs={2}>
+                    <Autocomplete
+                      size="small"
+                      options={rowSousComps[idx] || []}
+                      getOptionLabel={(sc) => sc.nom || ""}
+                      value={(rowSousComps[idx] || []).find((sc) => sc.id === link.sousCompetenceId) || null}
+                      onChange={(_, v) => handleSousCompChange(idx, v)}
+                      renderInput={(params) => <TextField {...params} label="Sous-comp." size="small" />}
+                    />
+                  </Grid>
+                  {/* Savoir + Type */}
+                  <Grid item xs={2}>
+                    <Autocomplete
+                      size="small"
+                      options={rowSavoirs[idx] || []}
+                      getOptionLabel={(s) => `${s.nom || ""}${s.type ? " (" + s.type + ")" : ""}`}
+                      value={(rowSavoirs[idx] || []).find((s) => s.id === link.savoirId) || null}
+                      onChange={(_, v) => {
+                        const updated = [...selectedCompLinks];
+                        updated[idx] = { ...updated[idx], savoirId: v?.id || null, savoirNom: v?.nom || "", savoirType: v?.type || null };
+                        setSelectedCompLinks(updated);
+                      }}
+                      renderInput={(params) => <TextField {...params} label="Savoir" size="small" />}
+                    />
+                  </Grid>
+                  {/* Niveau Prérequis */}
+                  <Grid item xs={1}>
+                    <TextField label="Prér." type="number" size="small" fullWidth
+                      inputProps={{ min: 1, max: 5 }}
+                      value={link.niveauPrerequis || ""}
+                      onChange={(e) => {
+                        const updated = [...selectedCompLinks];
+                        updated[idx] = { ...updated[idx], niveauPrerequis: parseInt(e.target.value) || null };
+                        setSelectedCompLinks(updated);
+                      }}
+                    />
+                  </Grid>
+                  {/* Niveau Visé */}
+                  <Grid item xs={1}>
+                    <TextField label="Visé" type="number" size="small" fullWidth
+                      inputProps={{ min: 1, max: 5 }}
+                      value={link.niveauVise || ""}
+                      onChange={(e) => {
+                        const updated = [...selectedCompLinks];
+                        updated[idx] = { ...updated[idx], niveauVise: parseInt(e.target.value) || null };
+                        setSelectedCompLinks(updated);
+                      }}
+                    />
+                  </Grid>
+                  {/* Delete */}
+                  <Grid item xs={0.5}>
+                    <IconButton size="small" color="error" onClick={() => setSelectedCompLinks((l) => l.filter((_, i) => i !== idx))}>
+                      <DeleteIcon fontSize="small" />
+                    </IconButton>
+                  </Grid>
+                </Grid>
+              ))}
+              <Button
+                variant="outlined"
+                size="small"
+                onClick={() => setSelectedCompLinks((l) => [...l, { domaineId: null, competenceId: null, competenceNom: "", sousCompetenceId: null, sousCompetenceNom: "", savoirId: null, savoirNom: "", savoirType: null, niveauPrerequis: null, niveauVise: null }])}
+              >
+                + Ajouter Compétence visée
+              </Button>
+            </Box>
+          </Collapse>
+        </Grid>
+
+        <Grid item xs={12} sx={{ textAlign: "right" }}>
+          <Button type="submit" variant="contained" color="error">✔️ Créer Formation</Button>
         </Grid>
       </Grid>
 
-      <Snackbar
-        open={snack.open}
-        autoHideDuration={4000}
-        onClose={() => setSnack((s) => ({ ...s, open: false }))}
-        anchorOrigin={{ vertical: "top", horizontal: "center" }}
-      >
-        <Alert
-          severity={snack.severity}
-          onClose={() => setSnack((s) => ({ ...s, open: false }))}
-        >
-          {snack.message}
-        </Alert>
+      <Snackbar open={snack.open} autoHideDuration={4000} onClose={() => setSnack((s) => ({ ...s, open: false }))} anchorOrigin={{ vertical: "top", horizontal: "center" }}>
+        <Alert severity={snack.severity} onClose={() => setSnack((s) => ({ ...s, open: false }))}>{snack.message}</Alert>
       </Snackbar>
 
-      {showUpload && (
-        <DocumentUploadForm formationId={newFormationId} onClose={() => setShowUpload(false)} />
-      )}
+      {showUpload && <DocumentUploadForm formationId={newFormationId} onClose={() => setShowUpload(false)} />}
     </form>
   );
 }

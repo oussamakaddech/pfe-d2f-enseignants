@@ -8,6 +8,7 @@ interface AppConfig {
   COMPETENCE_URL: string;
   GATEWAY_URL: string;
   RICE_URL: string;
+  ANALYSE_URL: string;
 }
 
 const API_BASE_URL = (
@@ -24,4 +25,5 @@ export const config: AppConfig = {
   COMPETENCE_URL: API_BASE_URL,
   GATEWAY_URL: API_BASE_URL,
   RICE_URL: import.meta.env.VITE_RICE_URL || "",
+  ANALYSE_URL: API_BASE_URL,
 };

@@ -10,6 +10,9 @@ import AppLayout from "../components/AppLayout";
 import KPIChart from "../pages/kpiFormation/KPIChart";
 import CalendrierPage from "../pages/CalendrierPage";
 import FormationTable from "../pages/FormationTable";
+import FormationPage from "../pages/formation/FormationPage";
+import FormationCreationPage from "../pages/formation/FormationCreationPage";
+import FormationConsultationPage from "../pages/formation/FormationConsultationPage";
 import ListAccounts from "../pages/gererComptes/ListAccounts";
 import Calendrier from "../pages/Calendrier";
 import TeachersDataGrid from "../pages/enseignant/TeachersDataGrid";
@@ -41,6 +44,8 @@ import AffectationEnseignantPage from "../pages/competence/AffectationEnseignant
 import RicePage from "../pages/competence/RicePage";
 import CompetenceMatchingPage from "../pages/competence/CompetenceMatchingPage";
 import MatchmakingPage from "../pages/competence/rice/MatchmakingPage";
+import EvaluationGlobalePage from "../pages/evaluation/EvaluationGlobalePage";
+import AnalysePredictivePage from "../pages/analyse/AnalysePredictivePage";
 
 export default function AppRoutes() {
   return (
@@ -67,7 +72,7 @@ export default function AppRoutes() {
               <Route path="/home/ListeFormation/:id" element={<FicheFormation />} />
               <Route path="/home/MyCertificate" element={<CertificatesByEmailPage />} />
 
-              <Route element={<RoleGuard allowedRoles={["admin", "D2F", "CUP"]} />}>
+              <Route element={<RoleGuard allowedRoles={["admin", "D2F", "CUP", "Enseignant"]} />}>
                 <Route path="/home/competences" element={<CompetencePage />} />
                 <Route path="/home/competence" element={<CompetencePage />} />
                 <Route
@@ -86,7 +91,11 @@ export default function AppRoutes() {
                 <Route path="/home/KPI" element={<KPIChart />} />
                 <Route path="/home/UpDept" element={<UpDeptDataGrid />} />
                 <Route path="/home/Calendrier" element={<CalendrierPage />} />
-                <Route path="/home/Formation" element={<FormationTable />} />
+                <Route path="/home/Formation" element={<FormationPage />} />
+                <Route path="/home/Formation/Creer" element={<FormationCreationPage />} />
+                <Route path="/home/Formation/Consulter" element={<FormationConsultationPage />} />
+                <Route path="/home/Evaluations" element={<EvaluationGlobalePage />} />
+                <Route path="/home/AnalysePredictive" element={<AnalysePredictivePage />} />
                 <Route
                   path="/home/BesoinApprouver"
                   element={<BesoinFormationApproval />}
@@ -114,7 +123,7 @@ export default function AppRoutes() {
                 />
               </Route>
 
-              <Route element={<RoleGuard allowedRoles={["Formateur", "D2F"]} />}>
+              <Route element={<RoleGuard allowedRoles={["Formateur", "D2F", "Enseignant"]} />}>
                 <Route
                   path="/home/animateur-formations"
                   element={<FormationList />}

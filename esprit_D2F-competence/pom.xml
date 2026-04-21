@@ -113,6 +113,13 @@
 			<scope>test</scope>
 		</dependency>
 
+		<!-- Shared Authentication Module -->
+		<dependency>
+			<groupId>esprit.pfe</groupId>
+			<artifactId>service-authentification</artifactId>
+			<version>0.0.1-SNAPSHOT</version>
+		</dependency>
+
 		<!-- Tests -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>

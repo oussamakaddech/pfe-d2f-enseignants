@@ -21,5 +21,7 @@ public interface AccountService {
 
     String updatePassword(String userName, UpdatePasswordRequest updatePasswordRequest);
     User getPrincipalByUsername(String username);
+    void deleteAccount(String userId);
+    User updateAccount(String userId, EditProfileRequest editProfileRequest, String roleName);
 
 }

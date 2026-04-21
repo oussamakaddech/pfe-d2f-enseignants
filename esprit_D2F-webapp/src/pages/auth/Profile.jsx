@@ -122,226 +122,220 @@ export default function Profile() {
     }
   };
 
-  if (loading) {
-    return <Spin size="large" style={{ display: "block", marginTop: 100 }} />;
-  }
-
-  if (error) {
-    return (
-      <Card style={{ maxWidth: 800, margin: "24px auto" }}>
-        <Alert
-          message="Erreur"
-          description={error}
-          type="error"
-          showIcon
-          icon={<ExclamationCircleOutlined />}
-          action={
-            <Button size="small" onClick={loadProfile}>
-              Réessayer
-            </Button>
-          }
-        />
-      </Card>
-    );
-  }
-
-  if (!profile) {
-    return (
-      <Card style={{ maxWidth: 800, margin: "24px auto" }}>
-        <Alert
-          message="Aucune donnée"
-          description="Impossible de charger les données du profil"
-          type="warning"
-          showIcon
-        />
-      </Card>
-    );
-  }
-
-  const initial = (
-    profile.firstName ||
-    profile.firsName ||
-    profile.userName ||
-    "U"
-  )[0].toUpperCase();
+  const initial = profile
+    ? (
+        profile.firstName ||
+        profile.firsName ||
+        profile.userName ||
+        "U"
+      )[0].toUpperCase()
+    : "U";
 
   return (
     <>
       {contextHolder}
-      <Card style={{ maxWidth: 800, margin: "24px auto" }}>
-        <div style={{ display: "flex", alignItems: "center", marginBottom: 16 }}>
-          <Button
-            type="text"
-            icon={<ArrowLeftOutlined />}
-            onClick={() => navigate(-1)}
-            style={{ marginRight: 8 }}
+      {loading ? (
+        <Spin size="large" style={{ display: "block", marginTop: 100 }} />
+      ) : error ? (
+        <Card style={{ maxWidth: 800, margin: "24px auto" }}>
+          <Alert
+            message="Erreur"
+            description={error}
+            type="error"
+            showIcon
+            icon={<ExclamationCircleOutlined />}
+            action={
+              <Button size="small" onClick={loadProfile}>
+                Réessayer
+              </Button>
+            }
+          />
+        </Card>
+      ) : !profile ? (
+        <Card style={{ maxWidth: 800, margin: "24px auto" }}>
+          <Alert
+            message="Aucune donnée"
+            description="Impossible de charger les données du profil"
+            type="warning"
+            showIcon
+          />
+        </Card>
+      ) : (
+        <>
+          <Card style={{ maxWidth: 800, margin: "24px auto" }}>
+            <div style={{ display: "flex", alignItems: "center", marginBottom: 16 }}>
+              <Button
+                type="text"
+                icon={<ArrowLeftOutlined />}
+                onClick={() => navigate(-1)}
+                style={{ marginRight: 8 }}
+              >
+                Retour
+              </Button>
+              <h2 style={{ margin: 0 }}>Mon Profil</h2>
+            </div>
+
+            <div style={{ textAlign: "center", marginBottom: 24 }}>
+              <Avatar size={100} style={{ backgroundColor: "#f56a00" }}>
+                {initial}
+              </Avatar>
+            </div>
+
+            <Descriptions column={1} bordered>
+              <Descriptions.Item label={<><UserOutlined /> Username</>}>
+                {profile.userName || "-"}
+              </Descriptions.Item>
+              <Descriptions.Item label={<><MailOutlined /> Email</>}>
+                {profile.email || "-"}
+              </Descriptions.Item>
+              <Descriptions.Item label={<><UserOutlined /> Prénom</>}>
+                {profile.firstName || profile.firsName || "-"}
+              </Descriptions.Item>
+              <Descriptions.Item label={<><UserOutlined /> Nom</>}>
+                {profile.lastName || "-"}
+              </Descriptions.Item>
+              <Descriptions.Item label={<><PhoneOutlined /> Téléphone</>}>
+                {profile.phoneNumber || "-"}
+              </Descriptions.Item>
+              <Descriptions.Item label={<><TeamOutlined /> Rôle</>}>
+                {profile.role || "-"}
+              </Descriptions.Item>
+              <Descriptions.Item label="Newsletter">
+                <Checkbox checked={profile.newsletter || false} disabled>
+                  Abonné
+                </Checkbox>
+              </Descriptions.Item>
+            </Descriptions>
+
+            <div style={{ marginTop: 24, textAlign: "right" }}>
+              <Button
+                icon={<EditOutlined />}
+                type="primary"
+                onClick={() => setIsInfoDrawerOpen(true)}
+                style={{ marginRight: 8 }}
+              >
+                Modifier profil
+              </Button>
+              <Button
+                icon={<LockOutlined />}
+                onClick={() => setIsPwdDrawerOpen(true)}
+              >
+                Changer mot de passe
+              </Button>
+            </div>
+          </Card>
+
+          <Drawer
+            title="Modifier mon profil"
+            width={480}
+            onClose={() => setIsInfoDrawerOpen(false)}
+            open={isInfoDrawerOpen}
+            styles={{ body: { paddingBottom: 80 } }}
           >
-            Retour
-          </Button>
-          <h2 style={{ margin: 0 }}>Mon Profil</h2>
-        </div>
+            <Form form={infoForm} layout="vertical" onFinish={onFinishInfo}>
+              <Form.Item
+                name="email"
+                label="Email"
+                rules={[
+                  { required: true, message: "Entrez votre adresse email" },
+                  { type: "email", message: "Format d'email invalide" },
+                ]}
+              >
+                <Input prefix={<MailOutlined />} />
+              </Form.Item>
 
-        <div style={{ textAlign: "center", marginBottom: 24 }}>
-          <Avatar size={100} style={{ backgroundColor: "#f56a00" }}>
-            {initial}
-          </Avatar>
-        </div>
+              <Form.Item
+                name="phoneNumber"
+                label="Téléphone"
+                rules={[{ required: true, message: "Entrez votre numéro" }]}
+              >
+                <Input prefix={<PhoneOutlined />} />
+              </Form.Item>
 
-        <Descriptions column={1} bordered>
-          <Descriptions.Item label={<><UserOutlined /> Username</>}>
-            {profile.userName || "-"}
-          </Descriptions.Item>
-          <Descriptions.Item label={<><MailOutlined /> Email</>}>
-            {profile.email || "-"}
-          </Descriptions.Item>
-          <Descriptions.Item label={<><UserOutlined /> Prénom</>}>
-            {profile.firstName || profile.firsName || "-"}
-          </Descriptions.Item>
-          <Descriptions.Item label={<><UserOutlined /> Nom</>}>
-            {profile.lastName || "-"}
-          </Descriptions.Item>
-          <Descriptions.Item label={<><PhoneOutlined /> Téléphone</>}>
-            {profile.phoneNumber || "-"}
-          </Descriptions.Item>
-          <Descriptions.Item label={<><TeamOutlined /> Rôle</>}>
-            {profile.role || "-"}
-          </Descriptions.Item>
-          <Descriptions.Item label="Newsletter">
-            <Checkbox checked={profile.newsletter || false} disabled>
-              Abonné
-            </Checkbox>
-          </Descriptions.Item>
-        </Descriptions>
+              <Form.Item
+                name="firstName"
+                label="Prénom"
+                rules={[{ required: true, message: "Entrez votre prénom" }]}
+              >
+                <Input />
+              </Form.Item>
 
-        <div style={{ marginTop: 24, textAlign: "right" }}>
-          <Button
-            icon={<EditOutlined />}
-            type="primary"
-            onClick={() => setIsInfoDrawerOpen(true)}
-            style={{ marginRight: 8 }}
+              <Form.Item
+                name="lastName"
+                label="Nom"
+                rules={[{ required: true, message: "Entrez votre nom" }]}
+              >
+                <Input />
+              </Form.Item>
+
+              <Form.Item>
+                <Button
+                  onClick={() => setIsInfoDrawerOpen(false)}
+                  style={{ marginRight: 8 }}
+                >
+                  Annuler
+                </Button>
+                <Button type="primary" htmlType="submit" loading={saving}>
+                  Enregistrer
+                </Button>
+              </Form.Item>
+            </Form>
+          </Drawer>
+
+          <Drawer
+            title="Changer mon mot de passe"
+            width={480}
+            onClose={() => setIsPwdDrawerOpen(false)}
+            open={isPwdDrawerOpen}
+            styles={{ body: { paddingBottom: 80 } }}
           >
-            Modifier profil
-          </Button>
-          <Button
-            icon={<LockOutlined />}
-            onClick={() => setIsPwdDrawerOpen(true)}
-          >
-            Changer mot de passe
-          </Button>
-        </div>
-      </Card>
+            <Form form={pwdForm} layout="vertical" onFinish={onFinishPwd}>
+              <Form.Item
+                name="newPassword"
+                label="Nouveau mot de passe"
+                rules={[
+                  { required: true, message: "Entrez un nouveau mot de passe" },
+                ]}
+              >
+                <Input.Password prefix={<LockOutlined />} />
+              </Form.Item>
 
-      {/* ✅ CORRIGÉ: Ajouter form={infoForm} */}
-      <Drawer
-        title="Modifier mon profil"
-        width={480}
-        onClose={() => setIsInfoDrawerOpen(false)}
-        open={isInfoDrawerOpen}
-        styles={{ body: { paddingBottom: 80 } }}
-      >
-        <Form form={infoForm} layout="vertical" onFinish={onFinishInfo}>
-          <Form.Item
-            name="email"
-            label="Email"
-            rules={[
-              { required: true, message: "Entrez votre adresse email" },
-              { type: "email", message: "Format d'email invalide" },
-            ]}
-          >
-            <Input prefix={<MailOutlined />} />
-          </Form.Item>
+              <Form.Item
+                name="confirmation"
+                label="Confirmer mot de passe"
+                dependencies={["newPassword"]}
+                rules={[
+                  { required: true, message: "Confirmez le mot de passe" },
+                  ({ getFieldValue }) => ({
+                    validator(_, value) {
+                      if (!value || getFieldValue("newPassword") === value) {
+                        return Promise.resolve();
+                      }
+                      return Promise.reject(
+                        new Error("Les mots de passe ne correspondent pas")
+                      );
+                    },
+                  }),
+                ]}
+              >
+                <Input.Password prefix={<LockOutlined />} />
+              </Form.Item>
 
-          <Form.Item
-            name="phoneNumber"
-            label="Téléphone"
-            rules={[{ required: true, message: "Entrez votre numéro" }]}
-          >
-            <Input prefix={<PhoneOutlined />} />
-          </Form.Item>
-
-          <Form.Item
-            name="firstName"
-            label="Prénom"
-            rules={[{ required: true, message: "Entrez votre prénom" }]}
-          >
-            <Input />
-          </Form.Item>
-
-          <Form.Item
-            name="lastName"
-            label="Nom"
-            rules={[{ required: true, message: "Entrez votre nom" }]}
-          >
-            <Input />
-          </Form.Item>
-
-          <Form.Item>
-            <Button
-              onClick={() => setIsInfoDrawerOpen(false)}
-              style={{ marginRight: 8 }}
-            >
-              Annuler
-            </Button>
-            <Button type="primary" htmlType="submit" loading={saving}>
-              Enregistrer
-            </Button>
-          </Form.Item>
-        </Form>
-      </Drawer>
-
-      {/* ✅ CORRIGÉ: Ajouter form={pwdForm} */}
-      <Drawer
-        title="Changer mon mot de passe"
-        width={480}
-        onClose={() => setIsPwdDrawerOpen(false)}
-        open={isPwdDrawerOpen}
-        styles={{ body: { paddingBottom: 80 } }}
-      >
-        <Form form={pwdForm} layout="vertical" onFinish={onFinishPwd}>
-          <Form.Item
-            name="newPassword"
-            label="Nouveau mot de passe"
-            rules={[
-              { required: true, message: "Entrez un nouveau mot de passe" },
-            ]}
-          >
-            <Input.Password prefix={<LockOutlined />} />
-          </Form.Item>
-
-          <Form.Item
-            name="confirmation"
-            label="Confirmer mot de passe"
-            dependencies={["newPassword"]}
-            rules={[
-              { required: true, message: "Confirmez le mot de passe" },
-              ({ getFieldValue }) => ({
-                validator(_, value) {
-                  if (!value || getFieldValue("newPassword") === value) {
-                    return Promise.resolve();
-                  }
-                  return Promise.reject(
-                    new Error("Les mots de passe ne correspondent pas")
-                  );
-                },
-              }),
-            ]}
-          >
-            <Input.Password prefix={<LockOutlined />} />
-          </Form.Item>
-
-          <Form.Item>
-            <Button
-              onClick={() => setIsPwdDrawerOpen(false)}
-              style={{ marginRight: 8 }}
-            >
-              Annuler
-            </Button>
-            <Button type="primary" htmlType="submit" loading={passwordSaving}>
-              Mettre à jour
-            </Button>
-          </Form.Item>
-        </Form>
-      </Drawer>
+              <Form.Item>
+                <Button
+                  onClick={() => setIsPwdDrawerOpen(false)}
+                  style={{ marginRight: 8 }}
+                >
+                  Annuler
+                </Button>
+                <Button type="primary" htmlType="submit" loading={passwordSaving}>
+                  Mettre à jour
+                </Button>
+              </Form.Item>
+            </Form>
+          </Drawer>
+        </>
+      )}
     </>
   );
 }

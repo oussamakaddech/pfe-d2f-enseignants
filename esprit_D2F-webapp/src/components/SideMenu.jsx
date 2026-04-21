@@ -13,6 +13,10 @@ import {
   ApartmentOutlined,
   RobotOutlined,
   SearchOutlined,
+  PlusCircleOutlined,
+  FormOutlined,
+  BarChartOutlined,
+  TrophyOutlined,
 } from "@ant-design/icons";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
@@ -37,9 +41,19 @@ export default function SideMenu() {
 
     // Menu admin
     const admin = [
-      { label: "KPI", key: "/home/KPI", icon: DashboardOutlined },
+      { label: "KPI", key: "/home/KPI", icon: BarChartOutlined },
       { label: "Comptes", key: "/home/accounts", icon: TeamOutlined },
-      { label: "Formations", key: "/home/Formation", icon: FileTextOutlined },
+      {
+        label: "Formations",
+        key: "formations_menu",
+        icon: FormOutlined,
+        children: [
+          { label: "Créer une Formation", key: "/home/Formation/Creer", icon: PlusCircleOutlined },
+          { label: "Consulter les Formations", key: "/home/Formation/Consulter", icon: SearchOutlined },
+        ],
+      },
+      { label: "Évaluations", key: "/home/Evaluations", icon: TrophyOutlined },
+      { label: "Analyse Prédictive", key: "/home/AnalysePredictive", icon: RobotOutlined },
       { label: "Documents", key: "/home/File", icon: FileTextOutlined },
       { label: "Gestion Enseignant", key: "/home/Enseignants", icon: TeamOutlined },
       { label: "Gestion Competence", key: "/home/competences", icon: ApartmentOutlined },
@@ -54,14 +68,57 @@ export default function SideMenu() {
       },
       { label: "RICE", key: "/home/rice", icon: RobotOutlined },
     ];
-    // Menu admin
+    // Menu D2F
     const D2F = [
-     // { label: "Tableau de bord", key: "/home/profile", icon: HomeOutlined },
+      { label: "KPI", key: "/home/KPI", icon: BarChartOutlined },
+      { label: "Comptes", key: "/home/accounts", icon: TeamOutlined },
+      { label: "Calendrier", key: "/home/Calendrier", icon: CalendarOutlined },
+      {
+        label: "Formations",
+        key: "formations_menu",
+        icon: FormOutlined,
+        children: [
+          { label: "Créer une Formation", key: "/home/Formation/Creer", icon: PlusCircleOutlined },
+          { label: "Consulter les Formations", key: "/home/Formation/Consulter", icon: SearchOutlined },
+        ],
+      },
+      { label: "Évaluations", key: "/home/Evaluations", icon: TrophyOutlined },
+      { label: "Analyse Prédictive", key: "/home/AnalysePredictive", icon: RobotOutlined },
+      { label: "Besoin Approuver", key: "/home/BesoinApprouver", icon: ReadOutlined },
+      { label: "Documents", key: "/home/File", icon: FileTextOutlined },
+      { label: "Enseignants", key: "/home/Enseignants", icon: TeamOutlined },
+      { label: "Certificates", key: "/home/certificate", icon: ReadOutlined },
+      { label: "Up & Departement", key: "/home/UpDept", icon: ReadOutlined },
+      { label: "Presence & Evaluation", key: "/home/animateur-formations", icon: ReadOutlined },
+      { label: "Gestion Competence", key: "/home/competences", icon: ApartmentOutlined },
+      {
+        label: "Gestion d'affectation",
+        key: "gestion_affectation",
+        icon: SolutionOutlined,
+        children: [
+          { label: "Consultation Affectation", key: "/home/affectations" },
+          { label: "Affectation via Matchmaking", key: "/home/rice/matchmaking" },
+        ],
+      },
+      { label: "RICE", key: "/home/rice", icon: RobotOutlined },
+    ];
+    // Menu Enseignant (même accès que D2F)
+    const Enseignant = [
       { label: "KPI", key: "/home/KPI", icon: DashboardOutlined },
       { label: "Comptes", key: "/home/accounts", icon: TeamOutlined },
       { label: "Calendrier", key: "/home/Calendrier", icon: CalendarOutlined },
-      { label: "Formations", key: "/home/Formation", icon: FileTextOutlined },
-        { label: "Besoin Approuver", key: "/home/BesoinApprouver", icon: ReadOutlined },
+      {
+        label: "Formations",
+        key: "formations_menu",
+        icon: FormOutlined,
+        children: [
+          { label: "Créer une Formation", key: "/home/Formation/Creer", icon: PlusCircleOutlined },
+          { label: "Consulter les Formations", key: "/home/Formation/Consulter", icon: SearchOutlined },
+        ],
+      },
+      { label: "Évaluations", key: "/home/Evaluations", icon: TrophyOutlined },
+      { label: "Analyse Prédictive", key: "/home/AnalysePredictive", icon: RobotOutlined },
+      { label: "Besoin Approuver", key: "/home/BesoinApprouver", icon: ReadOutlined },
       { label: "Documents", key: "/home/File", icon: FileTextOutlined },
       { label: "Enseignants", key: "/home/Enseignants", icon: TeamOutlined },
       { label: "Certificates", key: "/home/certificate", icon: ReadOutlined },
@@ -119,6 +176,10 @@ export default function SideMenu() {
         // Pour le D2F, pareil : il voit la liste Formations générale
         roleItems = D2F;
         break;
+      case "Enseignant":
+        // L'Enseignant a les mêmes accès que le D2F
+        roleItems = Enseignant;
+        break;
       case "Formateur":
         roleItems = formateur;
         break;
@@ -163,17 +224,28 @@ export default function SideMenu() {
         selectedKeys={[pathname]}
         onClick={onClick}
         items={items.map((item) => {
+          const renderIcon = (icon) =>
+            icon
+              ? (() => {
+                  const Icon = icon;
+                  return <Icon style={{ fontSize: 18, color: "#B51200" }} />;
+                })()
+              : null;
+
           if (item.key === "logout") {
-            const { icon: Icon, ...rest } = item;
-            return {
-              icon: Icon ? <Icon style={{ fontSize: 18, color: "#B51200" }} /> : null,
-              ...rest,
-            };
+            const { icon, ...rest } = item;
+            return { icon: renderIcon(icon), ...rest };
           }
-          const { icon: Icon, children, ...rest } = item;
+
+          const { icon, children, ...rest } = item;
           return {
-            icon: Icon ? <Icon style={{ fontSize: 18, color: "#B51200" }} /> : null,
-            children,
+            icon: renderIcon(icon),
+            children: children
+              ? children.map((child) => {
+                  const { icon: childIcon, ...childRest } = child;
+                  return { icon: renderIcon(childIcon), ...childRest };
+                })
+              : undefined,
             ...rest,
           };
         })}

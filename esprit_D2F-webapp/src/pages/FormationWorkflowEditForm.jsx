@@ -49,10 +49,10 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
 
   /* enseignants + filtres */
   const [ens, setEns] = useState([]);
-  const [animSel, setAnimSel] = useState([]);
+  const [, setAnimSel] = useState([]);
   const [partSel, setPartSel] = useState([]);
-  const [animFilterUp, setAnimFilterUp] = useState(null);
-  const [animFilterDept, setAnimFilterDept] = useState(null);
+  const [animFilterUp] = useState(null);
+  const [animFilterDept] = useState(null);
   const [partFilterUp, setPartFilterUp] = useState(null);
   const [partFilterDept, setPartFilterDept] = useState(null);
 
@@ -250,8 +250,8 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
       externeFormateurEmail: formEmail,
       organismeRefExterne: organisme,
       chargeHoraireGlobal: parseInt(chargeH, 10),
-      upId: !ouverte ? selectedUp?.id : null,
-      departementId: !ouverte ? selectedDept?.id : null,
+      upId: selectedUp?.id,
+      departementId: selectedDept?.id,
       participantsIds: partSel.map((p) => p.id),
       domaine,
       populationCible,
@@ -438,19 +438,13 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
           </>
         )}
 
+        {/* ----------- ouverte ? ----------- */}
         <Grid item xs={12} sm={3}>
           <Typography>Formation ouverte ?</Typography>
           <RadioGroup
             row
             value={ouverte ? "oui" : "non"}
-            onChange={(e) => {
-              const isOpen = e.target.value === "oui";
-              setOuverte(isOpen);
-              if (isOpen) {
-                setSelectedUp(null);
-                setSelectedDept(null);
-              }
-            }}
+            onChange={(e) => setOuverte(e.target.value === "oui")}
           >
             <FormControlLabel value="oui" control={<Radio />} label="Oui" />
             <FormControlLabel value="non" control={<Radio />} label="Non" />
@@ -464,7 +458,6 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
             getOptionLabel={(u) => u.libelle}
             value={selectedUp}
             onChange={(_, v) => setSelectedUp(v)}
-            disabled={ouverte}
             renderInput={(params) => <TextField {...params} label="UP" required />}
           />
         </Grid>
@@ -474,7 +467,6 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
             getOptionLabel={(d) => d.libelle}
             value={selectedDept}
             onChange={(_, v) => setSelectedDept(v)}
-            disabled={ouverte}
             renderInput={(params) => <TextField {...params} label="Département" required />}
           />
         </Grid>

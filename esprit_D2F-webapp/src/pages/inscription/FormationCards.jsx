@@ -57,8 +57,7 @@ export default function FormationCards() {
         messageApi.error("Impossible de récupérer le profil utilisateur");
       }
     })();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [messageApi]);
 
   // 2️⃣ Chargement des formations une fois que currentUser est défini
   useEffect(() => {
