@@ -136,4 +136,15 @@ public interface SeanceFormationRepository extends JpaRepository<SeanceFormation
             @Param("heureFin")   Time   heureFin,
             @Param("idSeance")   Long   idSeance
     );
+
+    // Pour le reminder scheduler : séances à une date donnée
+    List<SeanceFormation> findByDateSeance(Date dateSeance);
+
+    // Pour l'export .ics : séances d'un animateur
+    @Query("SELECT s FROM SeanceFormation s JOIN s.animateurs a WHERE a.id = :ensId")
+    List<SeanceFormation> findByAnimateurs_Id(@Param("ensId") String ensId);
+
+    // Pour l'export .ics : séances d'un participant
+    @Query("SELECT s FROM SeanceFormation s JOIN s.participants p WHERE p.id = :ensId")
+    List<SeanceFormation> findByParticipants_Id(@Param("ensId") String ensId);
 }

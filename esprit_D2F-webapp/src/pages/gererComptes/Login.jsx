@@ -1,6 +1,6 @@
 // src/pages/Auth/Login.jsx
 import { useState, useContext } from "react";
-import { Card, Form, Input, Button, Typography, message } from "antd";
+import { App, Card, Form, Input, Button, Typography } from "antd";
 import { UserOutlined, LockOutlined } from "@ant-design/icons";
 import { v4 as uuidv4 } from "uuid";
 import { useNavigate } from "react-router-dom";
@@ -13,6 +13,7 @@ export default function Login() {
   const [form] = Form.useForm();
   const navigate = useNavigate();
   const { login } = useContext(AuthContext);
+  const { message } = App.useApp();
   const [loading, setLoading] = useState(false);
   const [deviceId] = useState(uuidv4());
 

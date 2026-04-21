@@ -61,6 +61,25 @@ export async function enableAccount(userName: string): Promise<unknown> {
   return response.data;
 }
 
+export async function deleteAccount(userId: string): Promise<unknown> {
+  const response = await api.delete(`/delete/${userId}`);
+  return response.data;
+}
+
+export async function updateAccount(
+  userId: string,
+  editProfileRequest: EditProfileRequest,
+  role?: string
+): Promise<AuthUser> {
+  const params = role ? { role } : {};
+  const response = await api.put<AuthUser>(
+    `/update/${userId}`,
+    editProfileRequest,
+    { params }
+  );
+  return response.data;
+}
+
 export default {
   getAllAccounts,
   getProfile,
@@ -68,4 +87,6 @@ export default {
   updatePassword,
   banAccount,
   enableAccount,
+  deleteAccount,
+  updateAccount,
 };

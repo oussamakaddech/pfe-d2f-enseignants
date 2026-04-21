@@ -129,6 +129,9 @@ public class Formation {
     )
     private List<Inscription> inscriptions = new ArrayList<>();
 
+    @OneToMany(mappedBy = "formation", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
+    private List<FormationCompetence> formationCompetences = new ArrayList<>();
+
     @Column(name = "inscriptions_ouvertes", nullable = false)
     private boolean inscriptionsOuvertes = false;
 

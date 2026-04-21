@@ -109,6 +109,19 @@
 			<scope>provided</scope>
 		</dependency>
 
+		<!-- Spring Security -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-security</artifactId>
+		</dependency>
+
+		<!-- Shared Authentication Module -->
+		<dependency>
+			<groupId>esprit.pfe</groupId>
+			<artifactId>service-authentification</artifactId>
+			<version>0.0.1-SNAPSHOT</version>
+		</dependency>
+
 		<!-- Tests -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>

@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diagramme de cas d'usage - Plateforme D2F</title>
+    <script src="https://cdn.jsdelivr.net/npm/plantuml-encoder@1.4.0/dist/plantuml-encoder.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            max-width: 1400px;
+            width: 100%;
+            padding: 30px;
+        }
+        
+        h1 {
+            color: #2C3E50;
+            margin-bottom: 10px;
+            text-align: center;
+            font-size: 28px;
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #7F8C8D;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+        
+        .diagram-wrapper {
+            display: flex;
+            justify-content: center;
+            background: #f8f9fa;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            padding: 20px;
+            overflow-x: auto;
+            min-height: 600px;
+        }
+        
+        .diagram-wrapper img {
+            max-width: 100%;
+            height: auto;
+        }
+        
+
+        
+        .loading {
+            text-align: center;
+            color: #7F8C8D;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎓 Plateforme D2F - Diagramme de Cas d'Utilisation</h1>
+        <p class="subtitle">Gestion des Domaines de Formation pour les Enseignants</p>
+        
+        <div class="diagram-wrapper" id="diagramContainer">
+            <div class="loading">⏳ Chargement du diagramme...</div>
+        </div>
+    </div>
+
+    <script>
+        const plantUMLCode = `left to right direction
+skinparam shadowing false
+skinparam backgroundColor white
+skinparam packageStyle rectangle
+skinparam actorStyle awesome
+skinparam linetype ortho
+skinparam nodesep 40
+skinparam ranksep 60
+
+skinparam usecase {
+  BackgroundColor White
+  BorderColor #2C3E50
+  ArrowColor #7F8C8D
+  FontName sans-serif
+}
+skinparam actor {
+  BorderColor #2980B9
+  BackgroundColor #ECF0F1
+}
+skinparam package {
+  FontColor #2C3E50
+  BorderColor #BDC3C7
+}
+
+actor "Administrateur" as Admin
+actor "CUP\\n(Coordinateur UP)" as CUP
+actor Enseignant
+actor Formateur
+
+rectangle "Plateforme D2F" {
+  
+  package "Authentification" #EAF4FF {
+    usecase "S'authentifier" as UC1
+    usecase "Gérer rôles &\\npermissions" as UC2
+  }
+
+  package "RICE (IA)" #FFF0F0 {
+    usecase "Upload fiches" as UC33
+    usecase "Générer structure IA" as UC34
+    usecase "Proposer affectations" as UC35
+    usecase "Valider/corriger" as UC36
+    usecase "Générer rapport" as UC37
+  }
+
+  package "Structure compétences" #FFF8EA {
+    usecase "Gérer domaines" as UC3
+    usecase "Gérer compétences" as UC4
+    usecase "Gérer sous-compétences" as UC5
+    usecase "Gérer savoirs" as UC6
+    usecase "Gérer niveaux" as UC7
+    usecase "Consulter structure\\nen arbre" as UC8
+    usecase "Rechercher" as UC9
+  }
+
+  package "Profils enseignants" #EEFCEF {
+    usecase "Consulter profil" as UC10
+    usecase "Ajouter/modifier\\ncompétence" as UC11
+    usecase "Supprimer" as UC12
+  }
+
+  package "Gestion formations" #EFFFF8 {
+    usecase "Créer/modifier\\nformation" as UC18
+    usecase "Lier formation" as UC19
+    usecase "Définir prérequis" as UC20
+    usecase "Planifier" as UC21
+    usecase "Affecter formateur" as UC22
+    usecase "Consulter calendrier" as UC23
+    usecase "Exporter .ics" as UC24
+  }
+
+  package "Besoins formation" #F8F3FF {
+    usecase "Exprimer besoin\\nindividuel" as UC13
+    usecase "Exprimer besoin\\ncollectif" as UC14
+    usecase "Gérer besoins" as UC15
+    usecase "Consulter besoins\\npar UP" as UC16
+    usecase "Prioriser besoins" as UC17
+  }
+
+  package "Analyse prédictive" #F3F0FF {
+    usecase "Prédire gaps" as UC29
+    usecase "Recommander" as UC30
+    usecase "Détecter besoins" as UC31
+    usecase "Tableaux prédictifs" as UC32
+  }
+
+  package "Suivi & feedback" #FFF4EC {
+    usecase "Envoyer rappels" as UC25
+    usecase "Saisir feedback" as UC26
+    usecase "Consulter statistiques" as UC27
+    usecase "Exporter Excel" as UC28
+  }
+}
+
+UC2 ..> UC1 : <<include>>
+
+UC9 ..> UC8 : <<extend>>
+UC3 ..> UC8 : <<include>>
+UC4 ..> UC8 : <<include>>
+UC5 ..> UC8 : <<include>>
+UC6 ..> UC8 : <<include>>
+UC7 ..> UC8 : <<include>>
+
+UC11 ..> UC10 : <<include>>
+UC12 ..> UC11 : <<extend>>
+
+UC13 ..> UC15 : <<extend>>
+UC14 ..> UC15 : <<extend>>
+UC17 ..> UC16 : <<include>>
+
+UC18 ..> UC19 : <<include>>
+UC18 ..> UC20 : <<include>>
+UC18 ..> UC21 : <<include>>
+UC25 ..> UC21 : <<extend>>
+
+UC28 ..> UC27 : <<include>>
+
+UC33 ..> UC34 : <<include>>
+UC34 ..> UC35 : <<include>>
+UC36 ..> UC35 : <<extend>>
+UC37 ..> UC36 : <<include>>
+
+UC29 ..> UC30 : <<include>>
+UC31 ..> UC15 : <<extend>>
+
+Admin --> UC1
+Admin --> UC2
+Admin --> UC3
+Admin --> UC4
+Admin --> UC5
+Admin --> UC6
+Admin --> UC7
+Admin --> UC11
+Admin --> UC12
+Admin --> UC18
+Admin --> UC19
+Admin --> UC20
+Admin --> UC21
+Admin --> UC22
+Admin --> UC24
+Admin --> UC33
+Admin --> UC34
+Admin --> UC35
+Admin --> UC36
+Admin --> UC37
+
+CUP --> UC1
+CUP --> UC8
+CUP --> UC9
+CUP --> UC10
+CUP --> UC14
+CUP --> UC15
+CUP --> UC16
+CUP --> UC17
+CUP --> UC23
+CUP --> UC27
+CUP --> UC28
+CUP --> UC29
+CUP --> UC30
+CUP --> UC31
+CUP --> UC32
+
+Enseignant --> UC1
+Enseignant --> UC10
+Enseignant --> UC13
+Enseignant --> UC23
+Enseignant --> UC26
+Enseignant --> UC30
+
+Formateur --> UC1
+Formateur --> UC23
+Formateur --> UC26`;
+
+        // Utiliser l'API PlantUML via Kroki.io
+        const encodedDiagram = plantumlEncoder.encode(plantUMLCode);
+        const imageUrl = `https://kroki.io/plantuml/svg/${encodedDiagram}`;
+        
+        const container = document.getElementById('diagramContainer');
+        
+        fetch(imageUrl)
+            .then(response => {
+                if (response.ok) {
+                    container.innerHTML = `<img src="${imageUrl}" alt="Diagramme D2F" style="max-width: 100%; height: auto;">`;
+                } else {
+                    throw new Error('Erreur lors du chargement');
+                }
+            })
+            .catch(error => {
+                container.innerHTML = `
+                    <div style="padding: 40px; text-align: center; color: #e74c3c;">
+                        <p>❌ Erreur lors du chargement du diagramme</p>
+                        <p style="font-size: 12px; margin-top: 10px;">${error.message}</p>
+                        <p style="font-size: 12px; margin-top: 10px;">Veuillez actualisez la page ou utilisez un autre navigateur.</p>
+                    </div>
+                `;
+            });
+    </script>
+</body>
+</html>

@@ -1,6 +1,7 @@
 // src/Pages/Auth/Register.jsx
 import { useState } from "react";
 import {
+  App,
   Card,
   Form,
   Input,
@@ -8,7 +9,6 @@ import {
   Checkbox,
   Button,
   Typography,
-  message,
 } from "antd";
 import {
   UserOutlined,
@@ -24,9 +24,10 @@ import { signup } from "../../services/authService";
 const { Title } = Typography;
 const { Option } = Select;
 
-export default function Register() {
+export default function Register({ onSuccess } = {}) {
   const [form] = Form.useForm();
   const navigate = useNavigate();
+  const { message } = App.useApp();
   const [loading, setLoading] = useState(false);
 
   const onFinish = async (values) => {
@@ -45,10 +46,16 @@ export default function Register() {
       message.success(
         "Inscription réussie ! Un email de confirmation vous a été envoyé."
       );
-      // Redirection vers la page de connexion après 2 secondes
-      setTimeout(() => {
-        navigate("/");
-      }, 2000);
+      form.resetFields();
+      // Si utilisé dans le Drawer de gestion des comptes, callback onSuccess
+      if (onSuccess) {
+        onSuccess();
+      } else {
+        // Sinon, redirection vers la page de connexion après 2 secondes
+        setTimeout(() => {
+          navigate("/");
+        }, 2000);
+      }
     } catch (err) {
       message.error(
         err.response?.data?.message ||
@@ -225,6 +232,7 @@ export default function Register() {
             <Option value="admin">Admin</Option>
             <Option value="D2F">D2F</Option>
             <Option value="CUP">CUP</Option>
+            <Option value="Enseignant">Enseignant</Option>
             <Option value="Formateur">Formateur</Option>
           </Select>
         </Form.Item>

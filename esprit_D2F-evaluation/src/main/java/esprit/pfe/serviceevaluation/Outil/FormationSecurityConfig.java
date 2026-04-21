@@ -12,8 +12,10 @@ import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.web.SecurityFilterChain;
 
 import javax.crypto.spec.SecretKeySpec;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 
 @Configuration
+@EnableMethodSecurity(prePostEnabled = true, securedEnabled = true)
 public class FormationSecurityConfig {
 
     @Value("${jwt.secret}")

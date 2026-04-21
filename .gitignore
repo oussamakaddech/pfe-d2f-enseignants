@@ -5,3 +5,6 @@ __pycache__/
 _semantic_cache/
 *.log
 diag_out.txt
+actions-runner/
+**/target/
+*.zip

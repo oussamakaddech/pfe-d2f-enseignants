@@ -236,6 +236,32 @@ services:
     networks:
       - d2f-network
 
+  analyse-service:
+    build:
+      context: ./esprit_D2F-analyse
+      dockerfile: Dockerfile
+    container_name: d2f-analyse
+    restart: unless-stopped
+    ports:
+      - "8089:8089"
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      SERVICES_EVALUATION_URL: http://evaluation-service:8087
+      SERVICES_FORMATION_URL: http://formation-service:8082
+      SERVICES_COMPETENCE_URL: http://competence-service:8005
+      SERVICES_BESOIN_FORMATION_URL: http://besoin-formation-service:8004
+    depends_on:
+      evaluation-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:8089/actuator/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - d2f-network
+
   api-gateway:
     build:
       context: ./esprit_D2F-api-gateway
