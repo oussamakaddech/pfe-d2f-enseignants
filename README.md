@@ -94,6 +94,4 @@ cd esprit_D2F-webapp && npm run test:coverage
 
 Pipeline CI exécute SonarQube avec Quality Gate bloquant sur chaque push/PR.
 
-## 👥 Mainteneur
 
-- **Seddik Bouzayani** — seddik.bouzayani@esprit.tn
