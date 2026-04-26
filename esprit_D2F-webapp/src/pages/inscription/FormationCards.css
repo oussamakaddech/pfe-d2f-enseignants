@@ -1,0 +1,94 @@
+/* FormationCards.css — design moderne */
+
+.formation-card {
+  border-radius: 12px;
+  overflow: hidden;
+  transition: all 0.25s ease;
+  border: 1px solid #f0f0f0;
+}
+
+.formation-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.12);
+}
+
+.formation-card .card-header {
+  padding: 12px 16px;
+  color: #fff;
+  font-weight: 600;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.formation-card .card-body {
+  padding: 16px;
+}
+
+.formation-card .card-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1f1f1f;
+  margin-bottom: 8px;
+  line-height: 1.3;
+  min-height: 42px;
+}
+
+.formation-card .card-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.formation-card .card-meta-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #595959;
+}
+
+.formation-card .card-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.formation-card .card-actions {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  border-top: 1px solid #f0f0f0;
+  padding-top: 10px;
+}
+
+.formation-card .card-actions .anticon {
+  font-size: 18px;
+  transition: transform 0.15s ease;
+  cursor: pointer;
+}
+
+.formation-card .card-actions .anticon:hover {
+  transform: scale(1.15);
+}
+
+/* Type colors */
+.type-INTERNE   { background: linear-gradient(135deg, #1890ff, #36cfc9); }
+.type-EXTERNE   { background: linear-gradient(135deg, #722ed1, #eb2f96); }
+.type-INTERNE_  { background: linear-gradient(135deg, #1890ff, #36cfc9); }
+.type-EXTERNE_  { background: linear-gradient(135deg, #722ed1, #eb2f96); }
+.type-default   { background: linear-gradient(135deg, #595959, #8c8c8c); }
+
+/* Badge blink animation for open status */
+@keyframes softPulse {
+  0%   { opacity: 1; }
+  50%  { opacity: 0.7; }
+  100% { opacity: 1; }
+}
+
+.blink-open {
+  animation: softPulse 2s infinite;
+}

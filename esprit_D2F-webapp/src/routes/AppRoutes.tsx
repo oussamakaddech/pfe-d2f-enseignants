@@ -28,6 +28,8 @@ import FormationCards from "../pages/inscription/FormationCards";
 import FicheFormation from "../pages/inscription/FicheFormation";
 import DemandesList from "../pages/inscription/DemandesList";
 import BesoinFormationApproval from "../pages/besoinApprouve/BesoinFormationApproval";
+import BesoinForm from "../pages/besoin/BesoinForm";
+import BesoinList from "../pages/besoin/BesoinList";
 import CertificatesByEmailPage from "../pages/CertificatesByEmailPage";
 import UpDeptDataGrid from "../pages/enseignant/UpDeptDataGrid";
 
@@ -99,6 +101,14 @@ export default function AppRoutes() {
                 <Route
                   path="/home/BesoinApprouver"
                   element={<BesoinFormationApproval />}
+                />
+                <Route
+                  path="/home/besoins"
+                  element={<BesoinList />}
+                />
+                <Route
+                  path="/home/besoins/ajouter"
+                  element={<BesoinForm />}
                 />
                 <Route
                   path="/home/ListeFormation/:id/demandes"

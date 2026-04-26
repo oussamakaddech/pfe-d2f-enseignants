@@ -20,8 +20,9 @@ public class AnalysePredictiveController {
      */
     @GetMapping("/enseignant/{enseignantId}")
     public ResponseEntity<Map<String, Object>> analyserEnseignant(
-            @PathVariable String enseignantId) {
-        Map<String, Object> result = analysePredictiveService.analyserEnseignant(enseignantId);
+            @PathVariable String enseignantId,
+            @RequestParam(required = false) Long competenceCible) {
+        Map<String, Object> result = analysePredictiveService.analyserEnseignant(enseignantId, competenceCible);
         return ResponseEntity.ok(result);
     }
 

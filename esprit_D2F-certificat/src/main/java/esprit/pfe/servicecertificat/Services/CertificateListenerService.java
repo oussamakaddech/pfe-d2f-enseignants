@@ -7,7 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
-import org.springframework.jms.annotation.JmsListener;
+import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,7 +25,7 @@ public class CertificateListenerService {
     private Resource backgroundImageResource;
 
     @Transactional
-    @JmsListener(destination = "certificateQueue")
+    @RabbitListener(queues = "certificateQueue")
     public void onCertificateBatchMessage(CertificateBatchMessage message) {
         log.info("🤝 Reçu message JMS: formationId={}, titre='{}', #Enseignants={}",
                 message.getFormationId(),

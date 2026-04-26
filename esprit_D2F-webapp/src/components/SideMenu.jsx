@@ -58,6 +58,16 @@ export default function SideMenu() {
       { label: "Gestion Enseignant", key: "/home/Enseignants", icon: TeamOutlined },
       { label: "Gestion Competence", key: "/home/competences", icon: ApartmentOutlined },
       {
+        label: "Besoin Formation",
+        key: "besoin_formation_menu",
+        icon: ReadOutlined,
+        children: [
+          { label: "Liste des Besoins", key: "/home/besoins", icon: SearchOutlined },
+          { label: "Ajouter Besoin", key: "/home/besoins/ajouter", icon: PlusCircleOutlined },
+          { label: "Besoin Approuver", key: "/home/BesoinApprouver", icon: ReadOutlined },
+        ],
+      },
+      {
         label: "Gestion d'affectation",
         key: "gestion_affectation",
         icon: SolutionOutlined,
@@ -84,7 +94,16 @@ export default function SideMenu() {
       },
       { label: "Évaluations", key: "/home/Evaluations", icon: TrophyOutlined },
       { label: "Analyse Prédictive", key: "/home/AnalysePredictive", icon: RobotOutlined },
-      { label: "Besoin Approuver", key: "/home/BesoinApprouver", icon: ReadOutlined },
+      {
+        label: "Besoin Formation",
+        key: "besoin_formation_menu",
+        icon: ReadOutlined,
+        children: [
+          { label: "Liste des Besoins", key: "/home/besoins", icon: SearchOutlined },
+          { label: "Ajouter Besoin", key: "/home/besoins/ajouter", icon: PlusCircleOutlined },
+          { label: "Besoin Approuver", key: "/home/BesoinApprouver", icon: ReadOutlined },
+        ],
+      },
       { label: "Documents", key: "/home/File", icon: FileTextOutlined },
       { label: "Enseignants", key: "/home/Enseignants", icon: TeamOutlined },
       { label: "Certificates", key: "/home/certificate", icon: ReadOutlined },
@@ -118,7 +137,16 @@ export default function SideMenu() {
       },
       { label: "Évaluations", key: "/home/Evaluations", icon: TrophyOutlined },
       { label: "Analyse Prédictive", key: "/home/AnalysePredictive", icon: RobotOutlined },
-      { label: "Besoin Approuver", key: "/home/BesoinApprouver", icon: ReadOutlined },
+      {
+        label: "Besoin Formation",
+        key: "besoin_formation_menu",
+        icon: ReadOutlined,
+        children: [
+          { label: "Liste des Besoins", key: "/home/besoins", icon: SearchOutlined },
+          { label: "Ajouter Besoin", key: "/home/besoins/ajouter", icon: PlusCircleOutlined },
+          { label: "Besoin Approuver", key: "/home/BesoinApprouver", icon: ReadOutlined },
+        ],
+      },
       { label: "Documents", key: "/home/File", icon: FileTextOutlined },
       { label: "Enseignants", key: "/home/Enseignants", icon: TeamOutlined },
       { label: "Certificates", key: "/home/certificate", icon: ReadOutlined },
@@ -136,10 +164,19 @@ export default function SideMenu() {
       },
       { label: "RICE", key: "/home/rice", icon: RobotOutlined },
     ];
-        // Menu admin
+        // Menu CUP
     const CUP = [
       { label: "Tableau de bord", key: "/home/profile", icon: HomeOutlined },
       { label: "KPI", key: "/home/KPI", icon: DashboardOutlined },
+      {
+        label: "Besoin Formation",
+        key: "besoin_formation_menu",
+        icon: ReadOutlined,
+        children: [
+          { label: "Liste des Besoins", key: "/home/besoins", icon: SearchOutlined },
+          { label: "Ajouter Besoin", key: "/home/besoins/ajouter", icon: PlusCircleOutlined },
+        ],
+      },
       { label: "Mes Formations", key: "/home/animateur-formations", icon: ReadOutlined },
       { label: "Enseignants", key: "/home/Enseignants", icon: TeamOutlined },
       { label: "Certificates", key: "/home/certificate", icon: ReadOutlined },

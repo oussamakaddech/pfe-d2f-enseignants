@@ -28,8 +28,8 @@ function Free-Port([int]$port) {
     }
 }
 
-# ── [1/13] Vérifier Docker ───────────────────────────────────────────────
-Write-Host "`n[1/13] Vérification Docker..." -ForegroundColor Yellow
+# ── [1/14] Vérifier Docker ───────────────────────────────────────────────
+Write-Host "`n[1/14] Vérification Docker..." -ForegroundColor Yellow
 try {
     $pg = docker ps --filter name=d2f-postgres --format "{{.Status}}" 2>$null
     $mq = docker ps --filter name=d2f-artemis  --format "{{.Status}}" 2>$null
@@ -47,8 +47,8 @@ try {
     Write-Host "  AVERTISSEMENT: Docker non disponible - vérifiez que Docker est installé et en cours" -ForegroundColor DarkYellow
 }
 
-# ── [2/13] Vérifier / démarrer Ollama ───────────────────────────────────
-Write-Host "`n[2/13] Vérification Ollama (LLM local)..." -ForegroundColor Yellow
+# ── [2/14] Vérifier / démarrer Ollama ───────────────────────────────────
+Write-Host "`n[2/14] Vérification Ollama (LLM local)..." -ForegroundColor Yellow
 $ollamaRunning = Get-NetTCPConnection -LocalPort 11434 -ErrorAction SilentlyContinue
 if ($ollamaRunning) {
     Write-Host "  Ollama déjà actif sur le port 11434" -ForegroundColor Green
@@ -67,34 +67,33 @@ if ($ollamaRunning) {
     }
 }
 
-# ── [3-9/13] Microservices Java ──────────────────────────────────────────
+# ── [3-9/14] Microservices Java ──────────────────────────────────────────
 $services = @(
     @{ Name = "Auth";             Dir = "esprit_D2F-authentification";  Port = 8085 },
     @{ Name = "Formation";        Dir = "esprit_D2F-formation";         Port = 8088 },
     @{ Name = "Certificat";       Dir = "esprit_D2F-certificat";        Port = 8086 },
     @{ Name = "Evaluation";       Dir = "esprit_D2F-evaluation";        Port = 8087 },
     @{ Name = "Besoin-Formation"; Dir = "esprit_D2F-besoin-formation";  Port = 8004 },
-    @{ Name = "Competence";       Dir = "esprit_D2F-competence";        Port = 8005 },
-    @{ Name = "Analyse";          Dir = "esprit_D2F-analyse";            Port = 8089 }
+    @{ Name = "Competence";       Dir = "esprit_D2F-competence";        Port = 8005 }
 )
 
 $step = 3
 foreach ($svc in $services) {
     $svcPath = "$ROOT\$($svc.Dir)"
     if (Test-Path $svcPath) {
-        Write-Host "`n[$step/13] Lancement $($svc.Name) (port $($svc.Port))..." -ForegroundColor Yellow
+        Write-Host "`n[$step/14] Lancement $($svc.Name) (port $($svc.Port))..." -ForegroundColor Yellow
         Free-Port $svc.Port
         Start-Process powershell -ArgumentList "-NoExit", "-Command", `
             "Set-Location '$svcPath'; Write-Host 'Démarrage $($svc.Name) sur port $($svc.Port)...' -ForegroundColor Cyan; .\mvnw.cmd spring-boot:run -DskipTests"
         Start-Sleep -Seconds 1
     } else {
-        Write-Host "`n[$step/13] ERREUR: Répertoire $($svc.Name) introuvable à $svcPath" -ForegroundColor Red
+        Write-Host "`n[$step/14] ERREUR: Répertoire $($svc.Name) introuvable à $svcPath" -ForegroundColor Red
     }
     $step++
 }
 
-# ── [10/13] API Gateway ──────────────────────────────────────────────────
-Write-Host "`n[10/13] Lancement API Gateway (port 8222)..." -ForegroundColor Yellow
+# ── [10/14] API Gateway ──────────────────────────────────────────────────
+Write-Host "`n[10/14] Lancement API Gateway (port 8222)..." -ForegroundColor Yellow
 $apigwPath = "$ROOT\esprit_D2F-api-gateway"
 if (Test-Path $apigwPath) {
     Free-Port 8222
@@ -105,8 +104,8 @@ if (Test-Path $apigwPath) {
     Write-Host "  ERREUR: Répertoire esprit_D2F-api-gateway introuvable" -ForegroundColor Red
 }
 
-# ── [11/13] AI Reco Service (Python) ────────────────────────────────────
-Write-Host "`n[11/13] Lancement AI Reco Service (port 8000)..." -ForegroundColor Yellow
+# ── [11/14] AI Reco Service (Python) ────────────────────────────────────
+Write-Host "`n[11/14] Lancement AI Reco Service (port 8000)..." -ForegroundColor Yellow
 $aiRecoPath = "$ROOT\esprit_D2F-recommandation-formateur"
 if (Test-Path $aiRecoPath) {
     if (-not (Test-Path $PYTHON)) {
@@ -121,8 +120,8 @@ if (Test-Path $aiRecoPath) {
     Write-Host "  ERREUR: Répertoire esprit_D2F-recommandation-formateur introuvable" -ForegroundColor Red
 }
 
-# ── [12/13] RICE Service (Python + Ollama LLM) ───────────────────────────
-Write-Host "`n[12/13] Lancement RICE Service (port 8001)..." -ForegroundColor Yellow
+# ── [12/14] RICE Service (Python + Ollama LLM) ───────────────────────────
+Write-Host "`n[12/14] Lancement RICE Service (port 8001)..." -ForegroundColor Yellow
 $ricePath = "$ROOT\esprit_D2F-rice"
 if (Test-Path $ricePath) {
     if (-not (Test-Path $PYTHON)) {
@@ -147,8 +146,24 @@ if (Test-Path $ricePath) {
     Write-Host "  ERREUR: Répertoire esprit_D2F-rice introuvable" -ForegroundColor Red
 }
 
-# ── [13/13] Frontend React ───────────────────────────────────────────────
-Write-Host "`n[13/13] Lancement Frontend (port 5173)..." -ForegroundColor Yellow
+# ── [13/14] Predictive Analytics Service (Python/FastAPI) ────────────────
+Write-Host "`n[13/14] Lancement Predictive Analytics Service (port 8090)..." -ForegroundColor Yellow
+$predictivePath = "$ROOT\esprit_D2F-predictive-analytics"
+if (Test-Path $predictivePath) {
+    if (-not (Test-Path $PYTHON)) {
+        Write-Host "  ERREUR: virtualenv Python introuvable à $PYTHON" -ForegroundColor Red
+    } else {
+        Free-Port 8090
+        Start-Process powershell -ArgumentList "-NoExit", "-Command", `
+            "Set-Location '$predictivePath'; Write-Host 'Démarrage Predictive Analytics Service sur port 8090...' -ForegroundColor Cyan; & '$PYTHON' -m uvicorn app.main:app --host 0.0.0.0 --port 8090 --reload"
+        Start-Sleep -Seconds 1
+    }
+} else {
+    Write-Host "  ERREUR: Répertoire esprit_D2F-predictive-analytics introuvable" -ForegroundColor Red
+}
+
+# ── [14/14] Frontend React ───────────────────────────────────────────────
+Write-Host "`n[14/14] Lancement Frontend (port 5173)..." -ForegroundColor Yellow
 $webappPath = "$ROOT\esprit_D2F-webapp"
 if (Test-Path $webappPath) {
     Free-Port 5173
@@ -170,9 +185,9 @@ Write-Host "  Certificat:       http://localhost:8086"
 Write-Host "  Evaluation:       http://localhost:8087"
 Write-Host "  Besoin-Formation: http://localhost:8004"
 Write-Host "  Competence:       http://localhost:8005"
-Write-Host "  Analyse:          http://localhost:8089"
 Write-Host "  API Gateway:      http://localhost:8222"
 Write-Host "  AI Reco:          http://localhost:8000"
 Write-Host "  RICE Service:     http://localhost:8001  (Ollama mistral)"
+Write-Host "  Predictive-Analytics: http://localhost:8090  (scikit-learn FastAPI)"
 Write-Host "  Frontend:         http://localhost:5173"
 Write-Host "  Artemis Console:  http://localhost:8161"

@@ -7,7 +7,7 @@ import esprit.pfe.serviceevaluation.Entities.EvaluationFormateur;
 import esprit.pfe.serviceevaluation.Repositories.EvaluationFormateurRepository;
 import esprit.pfe.serviceevaluation.Services.EvaluationFormateurService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.jms.annotation.JmsListener;
+import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -21,7 +21,7 @@ public class EvaluationConsumer {
     /**
      * Pour la création en masse (« bulk create »)
      */
-    @JmsListener(destination = "evaluation.create.queue")
+    @RabbitListener(queues = "evaluation.create.queue")
     public void onCreateBatch(EvaluationBatchMessage msg) {
 
         List<EvaluationFormateurDTO> dtos = msg.getEvaluations().stream()
@@ -43,7 +43,7 @@ public class EvaluationConsumer {
     /**
      * Pour la mise à jour en masse (« bulk update »)
      */
-    @JmsListener(destination = "evaluation.update.queue")
+    @RabbitListener(queues = "evaluation.update.queue")
     public void onUpdateBatch(EvaluationBatchMessage msg) {
 
         List<EvaluationFormateurDTO> dtos = msg.getEvaluations().stream()

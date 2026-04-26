@@ -60,11 +60,8 @@ app = FastAPI(
 )
 
 # ── CORS ──────────────────────────────────────────────────────────────────────
-origins = [
-    "http://esprit-d2f.esprit.tn/*",
-    "http://localhost:3000",
-    "http://localhost:5173",
-]
+_cors_raw = os.getenv("CORS_ORIGINS", "http://localhost:3000,http://localhost:5173,http://esprit-d2f.esprit.tn")
+origins = [o.strip() for o in _cors_raw.split(",") if o.strip()]
 
 app.add_middleware(
     CORSMiddleware,

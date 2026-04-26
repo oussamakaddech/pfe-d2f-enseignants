@@ -4,26 +4,21 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import esprit.pfe.serviceformation.messaging.BesoinFormationApprovedEvent;
 import esprit.pfe.serviceformation.messaging.CertificateBatchMessage;
 import esprit.pfe.serviceformation.messaging.EvaluationBatchMessage;
+import org.springframework.amqp.support.converter.DefaultJackson2JavaTypeMapper;
+import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
+import org.springframework.amqp.support.converter.MessageConverter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.jms.annotation.EnableJms;
-import org.springframework.jms.support.converter.MappingJackson2MessageConverter;
-import org.springframework.jms.support.converter.MessageConverter;
-import org.springframework.jms.support.converter.MessageType;
 
 import java.util.HashMap;
 import java.util.Map;
 
 @Configuration
-@EnableJms
 public class JmsConfig {
 
      @Bean
      public MessageConverter jacksonJmsMessageConverter(ObjectMapper objectMapper) {
-          MappingJackson2MessageConverter converter = new MappingJackson2MessageConverter();
-          converter.setObjectMapper(objectMapper);
-          converter.setTargetType(MessageType.TEXT);
-          converter.setTypeIdPropertyName("_type");
+                Jackson2JsonMessageConverter converter = new Jackson2JsonMessageConverter(objectMapper);
 
           Map<String, Class<?>> typeIdMappings = new HashMap<>();
           // votre mapping existant
@@ -47,7 +42,11 @@ public class JmsConfig {
                   "esprit.pfe.serviceformation.messaging.EvaluationBatchMessage",
                   EvaluationBatchMessage.class
           );
-          converter.setTypeIdMappings(typeIdMappings);
+
+          DefaultJackson2JavaTypeMapper javaTypeMapper = new DefaultJackson2JavaTypeMapper();
+          javaTypeMapper.setTrustedPackages("*");
+          javaTypeMapper.setIdClassMapping(typeIdMappings);
+          converter.setJavaTypeMapper(javaTypeMapper);
           return converter;
      }
 }

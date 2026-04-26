@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import PropTypes from "prop-types";
 import moment from "moment";
+import { useNavigate } from "react-router-dom";
 import {
   Grid,
   TextField,
@@ -30,6 +31,7 @@ import DocumentUploadForm from "./documentFormation/DocumentUploadForm";
 import { RadioGroup, FormControlLabel, Radio } from "@mui/material";
 
 export default function FormationWorkflowForm({ initialDate, onFormationCreated }) {
+  const navigate = useNavigate();
   const [titre, setTitre] = useState("");
   const [dateDebut, setDateDebut] = useState(
     initialDate ? moment(initialDate).format("YYYY-MM-DD") : ""
@@ -422,6 +424,11 @@ export default function FormationWorkflowForm({ initialDate, onFormationCreated 
 
       setShowUpload(true);
       onFormationCreated(newF);
+      
+      // Rediriger vers la page ListeFormation après 2 secondes
+      setTimeout(() => {
+        navigate("/home/ListeFormation");
+      }, 2000);
     } catch (err) {
       const msg = err.response?.data?.message || err.response?.data?.error || err.message;
       setSnack({ open: true, severity: "error", message: msg });
@@ -429,11 +436,13 @@ export default function FormationWorkflowForm({ initialDate, onFormationCreated 
   };
 
   return (
-    <form onSubmit={handleSubmit} style={{ maxWidth: 900, margin: "0 auto" }}>
-      <Typography variant="h5" gutterBottom>
-        Créer une Formation (Workflow)
-      </Typography>
-      <Grid container spacing={2}>
+    <div style={{ maxWidth: 900, margin: "0 auto" }}>
+      <Grid container spacing={2} component="form" onSubmit={handleSubmit}>
+        <Grid item xs={12}>
+          <Typography variant="h5" gutterBottom>
+            Créer une Formation (Workflow)
+          </Typography>
+        </Grid>
         <Grid item xs={12}>
           <TextField label="Titre Formation" fullWidth value={titre} onChange={(e) => setTitre(e.target.value)} required />
         </Grid>
@@ -721,7 +730,7 @@ export default function FormationWorkflowForm({ initialDate, onFormationCreated 
       </Snackbar>
 
       {showUpload && <DocumentUploadForm formationId={newFormationId} onClose={() => setShowUpload(false)} />}
-    </form>
+    </div>
   );
 }
 

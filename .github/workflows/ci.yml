@@ -1,0 +1,197 @@
+# =============================================================================
+# GitHub Actions - Pipeline CI (Continuous Integration)
+# =============================================================================
+# Ce pipeline exécute les tests, l'analyse de code et construit les images Docker
+# =============================================================================
+
+name: D2F CI Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+env:
+  JAVA_VERSION: '17'
+  NODE_VERSION: '20'
+  MAVEN_OPTS: '-Xmx3072m'
+
+jobs:
+  # =============================================================================
+  # Tests Backend - Services Java
+  # =============================================================================
+  test-backend:
+    name: Tests Backend - ${{ matrix.service }}
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        service:
+          - esprit_D2F-authentification
+          - esprit_D2F-competence
+          - esprit_D2F-besoin-formation
+          - esprit_D2F-formation
+          - esprit_D2F-evaluation
+          - esprit_D2F-certificat
+          - esprit_D2F-analyse
+          - esprit_D2F-api-gateway
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Nécessaire pour SonarQube
+
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Build with Maven
+        working-directory: ${{ matrix.service }}
+        run: mvn clean compile -DskipTests
+
+      - name: Run tests
+        working-directory: ${{ matrix.service }}
+        run: mvn test
+
+      - name: Generate test report
+        if: always()
+        uses: dorny/test-reporter@v1
+        with:
+          name: Test Results - ${{ matrix.service }}
+          path: ${{ matrix.service }}/target/surefire-reports/*.xml
+          reporter: java-junit
+          fail-on-error: true
+
+      - name: Upload coverage to SonarQube
+        if: matrix.service == 'esprit_D2F-competence' || matrix.service == 'esprit_D2F-formation'
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+        working-directory: ${{ matrix.service }}
+        run: |
+          mvn sonar:sonar             -Dsonar.projectKey=d2f-${{ matrix.service }}             -Dsonar.host.url=${{ secrets.SONAR_HOST_URL }}             -Dsonar.login=${{ secrets.SONAR_TOKEN }}
+
+  # =============================================================================
+  # Tests Backend - Services Python
+  # =============================================================================
+  test-python:
+    name: Tests Python - ${{ matrix.service }}
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        service:
+          - esprit_D2F-rice
+          - esprit_D2F-predictive-analytics
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: ${{ matrix.service }}/requirements*.txt
+
+      - name: Install dependencies
+        working-directory: ${{ matrix.service }}
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          if [ -f requirements-dev.txt ]; then pip install -r requirements-dev.txt; fi
+
+      - name: Run tests
+        working-directory: ${{ matrix.service }}
+        run: |
+          if [ -d tests ]; then
+            pytest tests/ -v --cov=. --cov-report=xml --cov-report=term
+          else
+            echo "No tests directory found, skipping tests"
+          fi
+
+  # =============================================================================
+  # Tests Frontend
+  # =============================================================================
+  test-frontend:
+    name: Tests Frontend
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: esprit_D2F-webapp/package-lock.json
+
+      - name: Install dependencies
+        working-directory: esprit_D2F-webapp
+        run: npm ci
+
+      - name: Run linter
+        working-directory: esprit_D2F-webapp
+        run: npm run lint
+
+      - name: Run type check
+        working-directory: esprit_D2F-webapp
+        run: npm run typecheck
+
+      - name: Run tests
+        working-directory: esprit_D2F-webapp
+        run: npm run test:coverage
+
+      - name: Upload coverage to SonarQube
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+        working-directory: esprit_D2F-webapp
+        run: |
+          sonar-scanner             -Dsonar.projectKey=d2f-webapp             -Dsonar.host.url=${{ secrets.SONAR_HOST_URL }}             -Dsonar.login=${{ secrets.SONAR_TOKEN }}
+
+  # =============================================================================
+  # Build Docker Images
+  # =============================================================================
+  build-docker:
+    name: Build Docker Images
+    runs-on: ubuntu-latest
+    needs: [test-backend, test-python, test-frontend]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Build and push images
+        run: |
+          # Conformité DSI §6 : tagger les images avec le SHA du commit et push
+          export IMAGE_TAG=${GITHUB_SHA::7}
+          # Ex: REGISTRY=registry.interne.entreprise.com
+          export REGISTRY=${{ secrets.REGISTRY_URL }}
+          
+          # Construction
+          docker compose build
+          
+          # Renommage et Push (exemple pour le gateway)
+          docker tag d2f-gateway:latest $REGISTRY/d2f-gateway:$IMAGE_TAG
+          docker push $REGISTRY/d2f-gateway:$IMAGE_TAG
+          
+          # TODO: Répéter pour chaque service ou utiliser un script dédié
+          # docker compose push (si les images sont configurées avec le bon tag)

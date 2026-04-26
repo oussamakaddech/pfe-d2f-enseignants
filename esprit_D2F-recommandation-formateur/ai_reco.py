@@ -6,13 +6,12 @@ from typing import List
 from utils import recommend_semantic, _load_or_build_embeddings
 from apscheduler.schedulers.background import BackgroundScheduler
 
+import os
+
 app = FastAPI(title="Reco IA sémantique")
-# === 1) Liste des origines autorisées par votre front React ===
-origins = [
-    "http://esprit-d2f.esprit.tn/*",   # si votre React tourne sur ce port (Vite)
-    "http://localhost:3000",   # ou si vous avez un front CRA sur 3000
-    # vous pouvez ajouter d'autres URL (dev/prod) si besoin...
-]
+# === 1) Origines CORS externalisées via variable d'environnement ===
+_cors_raw = os.getenv("CORS_ORIGINS", "http://localhost:3000,http://localhost:5173,http://esprit-d2f.esprit.tn")
+origins = [o.strip() for o in _cors_raw.split(",") if o.strip()]
 
 # === 2) Ajout du middleware CORS ===
 app.add_middleware(

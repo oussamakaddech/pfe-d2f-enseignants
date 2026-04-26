@@ -44,6 +44,7 @@ const prioriteColors = {
 
 export default function AnalysePredictivePage() {
   const [enseignantId, setEnseignantId] = useState("");
+  const [competenceCible, setCompetenceCible] = useState("");
   const [analyseData, setAnalyseData] = useState(null);
   const [tendancesData, setTendancesData] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -56,7 +57,10 @@ export default function AnalysePredictivePage() {
     setError(null);
     setAnalyseData(null);
     try {
-      const data = await AnalysePredictiveService.analyserEnseignant(enseignantId.trim());
+      const data = await AnalysePredictiveService.analyserEnseignant(
+        enseignantId.trim(),
+        competenceCible.trim() || undefined
+      );
       setAnalyseData(data);
     } catch {
       setError("Impossible de récupérer l'analyse prédictive. Vérifiez l'ID et réessayez.");
@@ -143,12 +147,24 @@ export default function AnalysePredictivePage() {
       width: 50,
     },
     {
-      title: "Formation",
-      dataIndex: "titre",
-      key: "titre",
-    },
-    {
-      title: "Durée",
+            title: "Formation",
+            dataIndex: "titre",
+            key: "titre",
+          },
+          {
+            title: "Compétences ciblées",
+            dataIndex: "competencesCiblees",
+            key: "competencesCiblees",
+            width: 180,
+            render: (val) =>
+              val && val.length > 0 ? (
+                val.map((c, i) => <Tag key={i} color="blue">{c}</Tag>)
+              ) : (
+                <Tag color="default">Non spécifié</Tag>
+              ),
+          },
+          {
+            title: "Durée",
       dataIndex: "dureeEstimee",
       key: "duree",
       width: 100,
@@ -252,7 +268,7 @@ export default function AnalysePredictivePage() {
 
       <Card style={{ marginBottom: 24 }}>
         <Row gutter={16} align="middle">
-          <Col xs={24} md={12}>
+          <Col xs={24} md={8}>
             <Space.Compact style={{ width: "100%" }}>
               <Input
                 size="large"
@@ -262,16 +278,27 @@ export default function AnalysePredictivePage() {
                 onPressEnter={handleAnalyserEnseignant}
                 prefix={<SearchOutlined />}
               />
-              <Button
-                type="primary"
-                size="large"
-                onClick={handleAnalyserEnseignant}
-                loading={loading}
-                style={{ backgroundColor: "#B51200", borderColor: "#B51200" }}
-              >
-                Analyser
-              </Button>
             </Space.Compact>
+          </Col>
+          <Col xs={24} md={6}>
+            <Input
+              size="large"
+              placeholder="Compétence cible (ID, optionnel)"
+              value={competenceCible}
+              onChange={(e) => setCompetenceCible(e.target.value)}
+              onPressEnter={handleAnalyserEnseignant}
+            />
+          </Col>
+          <Col xs={24} md={4}>
+            <Button
+              type="primary"
+              size="large"
+              onClick={handleAnalyserEnseignant}
+              loading={loading}
+              style={{ backgroundColor: "#B51200", borderColor: "#B51200", width: "100%" }}
+            >
+              Analyser
+            </Button>
           </Col>
           <Col xs={24} md={6}>
             <Button

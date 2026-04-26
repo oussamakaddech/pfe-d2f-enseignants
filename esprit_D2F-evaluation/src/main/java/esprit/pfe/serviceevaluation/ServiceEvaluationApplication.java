@@ -2,12 +2,11 @@ package esprit.pfe.serviceevaluation;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-
-import org.springframework.jms.annotation.EnableJms;
+import org.springframework.amqp.rabbit.annotation.EnableRabbit;
 
 @SpringBootApplication
 //@EnableDiscoveryClient
-@EnableJms
+@EnableRabbit
 public class ServiceEvaluationApplication {
 
 	public static void main(String[] args) {
