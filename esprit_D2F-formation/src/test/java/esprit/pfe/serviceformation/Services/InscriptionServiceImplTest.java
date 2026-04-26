@@ -29,7 +29,7 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 @MockitoSettings(strictness = Strictness.LENIENT)
 @DisplayName("InscriptionService - Tests unitaires")
-class InscriptionServiceImplTest {
+class InscriptionServiceTest {
 
     @Mock
     private InscriptionRepository inscriptionRepository;
@@ -41,7 +41,7 @@ class InscriptionServiceImplTest {
     private EnseignantRepository enseignantRepository;
 
     @InjectMocks
-    private InscriptionServiceImpl inscriptionService;
+    private InscriptionService inscriptionService;
 
     private Inscription inscription;
     private Formation formation;
