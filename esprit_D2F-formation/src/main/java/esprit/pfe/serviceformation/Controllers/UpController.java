@@ -13,7 +13,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
 
 @RestController
-@RequestMapping("/ups")
+@RequestMapping("/api/v1/ups")
 
 public class UpController {
 
@@ -73,3 +73,4 @@ public class UpController {
         return ResponseEntity.noContent().build();
     }
 }
+

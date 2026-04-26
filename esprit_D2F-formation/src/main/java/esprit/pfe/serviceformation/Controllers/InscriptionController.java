@@ -12,7 +12,7 @@ import org.springframework.web.server.ResponseStatusException;
 import java.util.List;
 
 @RestController
-@RequestMapping("/inscription")
+@RequestMapping("/api/v1/inscription")
 public class InscriptionController {
 
     private final InscriptionService service;
@@ -72,3 +72,4 @@ public class InscriptionController {
         return service.traiterDemande(id, approuver);
     }
 }
+

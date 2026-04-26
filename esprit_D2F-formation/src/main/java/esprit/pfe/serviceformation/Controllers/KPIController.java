@@ -15,7 +15,7 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/kpi")
+@RequestMapping("/api/v1/kpi")
 @RequiredArgsConstructor
 public class KPIController {
 @Autowired
@@ -177,3 +177,4 @@ public class KPIController {
     }
 
 }
+

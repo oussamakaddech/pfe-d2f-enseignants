@@ -10,7 +10,7 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/seances")
+@RequestMapping("/api/v1/seances")
 public class SeanceController {
 
     @Autowired
@@ -89,3 +89,4 @@ public class SeanceController {
         }
     }
 }
+

@@ -13,7 +13,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.List;
 
 @RestController
-@RequestMapping("/enseignants")
+@RequestMapping("/api/v1/enseignants")
 // Autorise les requêtes depuis le front React (si nécessaire)
 public class EnseignantController {
     @Autowired
@@ -65,3 +65,4 @@ public class EnseignantController {
         }
     }
 }
+

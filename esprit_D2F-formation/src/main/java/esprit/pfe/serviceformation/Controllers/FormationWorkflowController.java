@@ -20,7 +20,7 @@ import java.util.List;
 import java.util.Map;
 @Slf4j
 @RestController
-@RequestMapping("/formations-workflow")
+@RequestMapping("/api/v1/formations-workflow")
 public class FormationWorkflowController {
 
     @Autowired
@@ -241,4 +241,5 @@ public class FormationWorkflowController {
         return formationWorkflowService.getFormationsParUp(upId);
     }
 }
+
 

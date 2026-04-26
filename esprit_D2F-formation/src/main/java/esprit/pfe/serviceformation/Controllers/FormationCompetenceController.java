@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/formation-competences")
+@RequestMapping("/api/v1/formation-competences")
 public class FormationCompetenceController {
 
     @Autowired

@@ -40,7 +40,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 @RestController
-@RequestMapping("/user/auth")
+@RequestMapping("/api/v1/auth")
 @Slf4j
 public class SecurityController {
     private final EmailService emailService;
@@ -279,4 +279,5 @@ public class SecurityController {
     }
 
 }
+
 

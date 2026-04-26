@@ -18,7 +18,7 @@ import java.util.List;
 @Slf4j
 @RestController
 @AllArgsConstructor
-@RequestMapping("/besoinsFormations")
+@RequestMapping("/api/v1/besoinsFormations")
 public class BesoinFormationController {
 
     @Autowired
@@ -83,3 +83,4 @@ public class BesoinFormationController {
     }
 
 }
+

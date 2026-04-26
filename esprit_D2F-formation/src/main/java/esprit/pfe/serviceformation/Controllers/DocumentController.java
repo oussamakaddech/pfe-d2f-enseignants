@@ -16,7 +16,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 @Slf4j
 @RestController
-@RequestMapping("/documents")
+@RequestMapping("/api/v1/documents")
 public class DocumentController {
 
     @Autowired
@@ -95,3 +95,4 @@ public class DocumentController {
                 .body(data);
     }
 }
+

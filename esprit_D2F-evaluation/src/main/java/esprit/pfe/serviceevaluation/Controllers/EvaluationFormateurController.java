@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/evaluations")
+@RequestMapping("/api/v1/evaluations")
 
 public class EvaluationFormateurController {
 
@@ -75,3 +75,4 @@ public class EvaluationFormateurController {
     }
 
 }
+
