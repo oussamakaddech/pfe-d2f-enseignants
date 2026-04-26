@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/certificates")
+@RequestMapping("/api/v1/certificates")
 public class CertificateController {
 
     @Autowired
@@ -71,3 +71,4 @@ public class CertificateController {
     }
 
 }
+

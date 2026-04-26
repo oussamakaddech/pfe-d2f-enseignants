@@ -15,7 +15,7 @@ import java.util.List;
  * Contrôleur d'export : .ics (iCalendar) et Excel des besoins par séance.
  */
 @RestController
-@RequestMapping("/exports")
+@RequestMapping("/api/v1/exports")
 public class FormationExportController {
 
     @Autowired

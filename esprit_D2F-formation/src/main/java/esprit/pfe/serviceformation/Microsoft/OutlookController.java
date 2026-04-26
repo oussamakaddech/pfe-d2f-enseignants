@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.time.OffsetDateTime;
 
 @RestController
-@RequestMapping("/outlook")
+@RequestMapping("/api/v1/outlook")
 public class OutlookController {
 
     @Autowired
@@ -34,3 +34,4 @@ public class OutlookController {
         return ResponseEntity.ok("Événement ajouté !");
     }*/
 }
+

@@ -15,7 +15,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/onedrive")
+@RequestMapping("/api/v1/onedrive")
 public class OneDriveController {
 
     @Autowired
@@ -42,3 +42,4 @@ public class OneDriveController {
     }
 
 }
+

@@ -16,7 +16,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @RestController
-@RequestMapping("/certificate-pdfs")
+@RequestMapping("/api/v1/certificate-pdfs")
 public class CertificatePdfController {
 
     @Autowired
@@ -97,3 +97,4 @@ public class CertificatePdfController {
         }
     }
 }
+

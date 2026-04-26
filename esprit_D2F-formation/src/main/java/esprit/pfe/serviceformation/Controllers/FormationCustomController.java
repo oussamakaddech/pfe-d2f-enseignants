@@ -8,7 +8,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
-@RequestMapping("/formations-custom")
+@RequestMapping("/api/v1/formations-custom")
 public class FormationCustomController {
 
     @Autowired
@@ -38,3 +38,4 @@ public class FormationCustomController {
         }
     }
 }
+

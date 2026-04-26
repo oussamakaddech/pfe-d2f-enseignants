@@ -12,7 +12,7 @@ import java.util.Date;
 import java.util.List;
 
 @RestController
-@RequestMapping("/formation-report")
+@RequestMapping("/api/v1/formation-report")
 public class FormationReportController {
 
     @Autowired
@@ -39,3 +39,4 @@ public class FormationReportController {
         return ResponseEntity.ok(dtoList);
     }
 }
+

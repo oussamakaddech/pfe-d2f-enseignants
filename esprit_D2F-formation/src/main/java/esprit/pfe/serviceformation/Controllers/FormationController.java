@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/formations")
+@RequestMapping("/api/v1/formations")
 public class FormationController {
 
     @Autowired
@@ -56,3 +56,4 @@ public class FormationController {
     }
 
 }
+

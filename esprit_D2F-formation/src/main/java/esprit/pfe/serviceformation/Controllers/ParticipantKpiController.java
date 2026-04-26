@@ -14,7 +14,7 @@ import java.util.Date;
 import java.util.List;
 
 @RestController
-@RequestMapping("/kpi/participants")
+@RequestMapping("/api/v1/kpi/participants")
 @RequiredArgsConstructor
 public class ParticipantKpiController {
 
@@ -36,3 +36,4 @@ public class ParticipantKpiController {
         return participantKpiService.getGlobalParticipantKpi(startDate, endDate);
     }
 }
+

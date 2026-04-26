@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/evaluations-globales")
+@RequestMapping("/api/v1/evaluations-globales")
 public class EvaluationGlobaleController {
 
     @Autowired

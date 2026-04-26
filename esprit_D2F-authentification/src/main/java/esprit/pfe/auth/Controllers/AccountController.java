@@ -13,7 +13,7 @@ import java.security.Principal;
 import java.util.List;
 
 @RestController
-@RequestMapping("/user/account")
+@RequestMapping("/api/v1/account")
 public class AccountController {
     private final AccountService accountService;
 
@@ -81,3 +81,4 @@ public class AccountController {
     }
 
 }
+
