@@ -1,28 +1,64 @@
-// src/components/BesoinFormationApproval.jsx
-
 import { useEffect, useState } from "react";
-import { Table, Select, Button, Space, message, Typography } from "antd";
+import {
+  Table,
+  Select,
+  Button,
+  Space,
+  message,
+  Typography,
+  Card,
+  Row,
+  Col,
+  Tag,
+  Empty,
+  Tooltip,
+  Skeleton,
+} from "antd";
+import {
+  CheckCircleOutlined,
+  ReloadOutlined,
+  FilterOutlined,
+  ReadOutlined,
+  TrophyOutlined,
+  TeamOutlined,
+  ApartmentOutlined,
+  FileTextOutlined,
+  CalendarOutlined,
+  PlusOutlined,
+} from "@ant-design/icons";
+import { motion } from "framer-motion";
+import { useNavigate } from "react-router-dom";
 import BesoinFormationService from "../../services/BesoinFormationService";
 import DeptService from "../../services/DeptService";
 import UpService from "../../services/upService";
+import "./BesoinFormationApproval.css";
 
 const { Option } = Select;
-const { Title }  = Typography;
+const { Title, Text } = Typography;
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: { opacity: 1, transition: { staggerChildren: 0.08 } },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: "easeOut" } },
+};
 
 export default function BesoinFormationApproval() {
+  const navigate = useNavigate();
   const [msgApi, msgCtx] = message.useMessage();
-  const [besoins, setBesoins]         = useState([]);
-  const [filtered, setFiltered]       = useState([]);
+  const [besoins, setBesoins] = useState([]);
+  const [filtered, setFiltered] = useState([]);
   const [departements, setDepartements] = useState([]);
-  const [ups, setUps]                 = useState([]);
-  const [types, setTypes]             = useState([]);
-  const [filters, setFilters]         = useState({ deptId: null, upId: null, type: null });
-  const [loading, setLoading]         = useState(false);
+  const [ups, setUps] = useState([]);
+  const [types, setTypes] = useState([]);
+  const [filters, setFilters] = useState({ deptId: null, upId: null, type: null });
+  const [loading, setLoading] = useState(false);
   const [approvingId, setApprovingId] = useState(null);
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { fetchData(); }, []);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { applyFilters(); }, [besoins, filters]);
 
   const fetchData = async () => {
@@ -37,7 +73,7 @@ export default function BesoinFormationApproval() {
       setFiltered(approvedBesoins);
       setDepartements(depts);
       setUps(upsData);
-      setTypes([...new Set(approvedBesoins.map((b) => b.typeBesoin))]);
+      setTypes([...new Set(approvedBesoins.map((b) => b.typeBesoin).filter(Boolean))]);
     } catch {
       msgApi.error("Erreur lors du chargement des données");
     } finally {
@@ -47,9 +83,9 @@ export default function BesoinFormationApproval() {
 
   const applyFilters = () => {
     let res = [...besoins];
-    if (filters.deptId) res   = res.filter((b) => Number(b.departement) === filters.deptId);
-    if (filters.upId)   res   = res.filter((b) => Number(b.up)         === filters.upId);
-    if (filters.type)   res   = res.filter((b) => b.typeBesoin        === filters.type);
+    if (filters.deptId) res = res.filter((b) => Number(b.departement) === filters.deptId);
+    if (filters.upId)   res = res.filter((b) => Number(b.up) === filters.upId);
+    if (filters.type)   res = res.filter((b) => b.typeBesoin === filters.type);
     setFiltered(res);
   };
 
@@ -57,147 +93,313 @@ export default function BesoinFormationApproval() {
     setApprovingId(id);
     try {
       await BesoinFormationService.approveBesoin(id);
-      msgApi.success("Besoin approuvé avec succès");
+      msgApi.success("Formation créée avec succès !");
       setBesoins((prev) =>
-        prev.map((b) =>
-          b.idBesoinFormation === id ? { ...b, eventPublished: true } : b
-        )
+        prev.map((b) => (b.idBesoinFormation === id ? { ...b, eventPublished: true } : b))
       );
       setFiltered((prev) =>
-        prev.map((b) =>
-          b.idBesoinFormation === id ? { ...b, eventPublished: true } : b
-        )
+        prev.map((b) => (b.idBesoinFormation === id ? { ...b, eventPublished: true } : b))
       );
     } catch {
-      msgApi.error("Erreur lors de l'approbation");
+      msgApi.error("Erreur lors de la création de la formation");
     } finally {
       setApprovingId(null);
     }
   };
 
-  const columns = [
+  // Stats
+  const total = besoins.length;
+  const createdCount = besoins.filter((b) => b.eventPublished).length;
+  const pendingCount = total - createdCount;
 
+  const columns = [
     {
-      title: "Objectif",
-      dataIndex: "objectifFormation",
-      sorter: (a, b) => a.objectifFormation.localeCompare(b.objectifFormation),
-      sortDirections: ["ascend", "descend"],
+      title: "Formation",
+      key: "formation",
+      render: (_, r) => (
+        <div>
+          <div className="formation-cell-title">
+            <FileTextOutlined style={{ marginRight: 6, color: "#B51200" }} />
+            {r.titre || r.objectifFormation || "—"}
+          </div>
+          {r.objectifFormation && r.titre && (
+            <div className="formation-cell-desc">{r.objectifFormation}</div>
+          )}
+        </div>
+      ),
+      sorter: (a, b) => (a.titre || a.objectifFormation || "").localeCompare(b.titre || b.objectifFormation || ""),
     },
     {
       title: "Type",
       dataIndex: "typeBesoin",
-      width: 140,
-      sorter: (a, b) => a.typeBesoin.localeCompare(b.typeBesoin),
-      sortDirections: ["ascend", "descend"],
+      width: 150,
+      render: (t) => <span className={`type-tag ${t}`}>{t?.replace(/_/g, " ")}</span>,
+      sorter: (a, b) => (a.typeBesoin || "").localeCompare(b.typeBesoin || ""),
     },
     {
       title: "UP",
       width: 160,
       render: (_, r) => {
         const upObj = ups.find((u) => u.id === Number(r.up));
-        return upObj ? upObj.name : r.up;
+        return (
+          <Tag icon={<TeamOutlined />} style={{ borderRadius: 8, fontWeight: 500 }}>
+            {upObj ? upObj.name || upObj.libelle : r.up}
+          </Tag>
+        );
       },
-      sorter: (a, b) => {
-        const nameA = ups.find((u) => u.id === Number(a.up))?.name || "";
-        const nameB = ups.find((u) => u.id === Number(b.up))?.name || "";
-        return nameA.localeCompare(nameB);
-      },
-      sortDirections: ["ascend", "descend"],
     },
     {
       title: "Département",
       width: 160,
       render: (_, r) => {
         const depObj = departements.find((d) => d.id === Number(r.departement));
-        return depObj ? depObj.name : r.departement;
+        return (
+          <Tag icon={<ApartmentOutlined />} color="processing" style={{ borderRadius: 8, fontWeight: 500 }}>
+            {depObj ? depObj.name || depObj.libelle : r.departement}
+          </Tag>
+        );
       },
-      sorter: (a, b) => {
-        const nameA = departements.find((d) => d.id === Number(a.departement))?.name || "";
-        const nameB = departements.find((d) => d.id === Number(b.departement))?.name || "";
-        return nameA.localeCompare(nameB);
-      },
-      sortDirections: ["ascend", "descend"],
+    },
+    {
+      title: "Formateur proposé",
+      dataIndex: "propositionAnimateur",
+      render: (v) => v || <Text type="secondary">—</Text>,
     },
     {
       title: "Date création",
       dataIndex: "dateCreation",
-      width: 160,
-      render: (d) => new Date(d).toLocaleDateString(),
-      sorter: (a, b) => new Date(a.dateCreation) - new Date(b.dateCreation),
-      sortDirections: ["ascend", "descend"],
+      width: 130,
+      render: (d) =>
+        d ? (
+          <span style={{ fontSize: 12, color: "#8c8c8c", fontWeight: 500 }}>
+            <CalendarOutlined style={{ marginRight: 4 }} />
+            {new Date(d).toLocaleDateString("fr-FR")}
+          </span>
+        ) : (
+          "—"
+        ),
+      sorter: (a, b) => new Date(a.dateCreation || 0) - new Date(b.dateCreation || 0),
+    },
+    {
+      title: "Statut",
+      key: "statut",
+      width: 140,
+      align: "center",
+      render: (_, r) =>
+        r.eventPublished ? (
+          <span className="status-created">
+            <span className="status-dot" />
+            Créé
+          </span>
+        ) : (
+          <span className="status-pending">
+            <span className="status-dot" />
+            En attente
+          </span>
+        ),
     },
     {
       title: "Action",
       key: "action",
-      width: 140,
+      width: 160,
+      fixed: "right",
       render: (_, record) => (
-        <Button
-          type={record.eventPublished ? "default" : "primary"}
-          disabled={record.eventPublished}
-          loading={approvingId === record.idBesoinFormation}
-          onClick={() => handleApprove(record.idBesoinFormation)}
-        >
-          {record.eventPublished ? "Déjà créé" : "Créer formation"}
-        </Button>
+        <Tooltip title={record.eventPublished ? "Formation déjà créée" : "Créer la formation"}>
+          <Button
+            type={record.eventPublished ? "default" : "primary"}
+            disabled={record.eventPublished}
+            loading={approvingId === record.idBesoinFormation}
+            onClick={() => handleApprove(record.idBesoinFormation)}
+            icon={record.eventPublished ? <CheckCircleOutlined /> : <TrophyOutlined />}
+            size="small"
+            className={record.eventPublished ? "btn-created" : "btn-create"}
+          >
+            {record.eventPublished ? "Déjà créé" : "Créer formation"}
+          </Button>
+        </Tooltip>
       ),
     },
   ];
 
+  if (loading && besoins.length === 0) {
+    return (
+      <div className="approval-container">
+        <Skeleton active paragraph={{ rows: 4 }} className="besoin-skeleton" />
+        <Skeleton active paragraph={{ rows: 8 }} className="besoin-skeleton" />
+      </div>
+    );
+  }
+
+  if (!besoins.length) {
+    return (
+      <div className="approval-container">
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+          <Empty
+            description="Aucun besoin approuvé"
+            image={Empty.PRESENTED_IMAGE_SIMPLE}
+            style={{ marginTop: 80 }}
+          >
+            <Button type="primary" className="btn-brand" icon={<PlusOutlined />} onClick={() => navigate("/home/besoins")}>
+              Voir les besoins
+            </Button>
+          </Empty>
+        </motion.div>
+      </div>
+    );
+  }
+
   return (
     <>
       {msgCtx}
+      <motion.div
+        className="approval-container"
+        variants={containerVariants}
+        initial="hidden"
+        animate="visible"
+      >
+        {/* Header */}
+        <motion.div variants={itemVariants} className="approval-header">
+          <Row justify="space-between" align="middle">
+            <Col>
+              <div className="approval-header-title">
+                <ReadOutlined style={{ fontSize: 32, color: "#B51200" }} />
+                <div>
+                  <Title level={2} style={{ margin: 0, fontWeight: 700 }}>
+                    Besoins de Formation Approuvés
+                  </Title>
+                  <Text type="secondary" style={{ fontSize: 14 }}>
+                    {filtered.length} résultat{filtered.length > 1 ? "s" : ""} sur {total}
+                  </Text>
+                </div>
+              </div>
+            </Col>
+            <Col>
+              <Space>
+                <Button icon={<ReloadOutlined />} onClick={fetchData} loading={loading} size="large">
+                  Actualiser
+                </Button>
+                <Button
+                  type="primary"
+                  icon={<PlusOutlined />}
+                  onClick={() => navigate("/home/besoins")}
+                  size="large"
+                  className="btn-brand"
+                >
+                  Voir les besoins
+                </Button>
+              </Space>
+            </Col>
+          </Row>
+        </motion.div>
 
-      <div style={{ padding: 16 }}>
-        <Title level={4}>Besoins de Formation Approuvés</Title>
+        {/* Stats */}
+        <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
+          <Col xs={12} md={8}>
+            <motion.div variants={itemVariants}>
+              <Card className="approval-stat-card total" size="small">
+                <div className="approval-stat-icon total">
+                  <TrophyOutlined />
+                </div>
+                <div className="approval-stat-value" style={{ color: "#1890ff" }}>{total}</div>
+                <div className="approval-stat-label">Total approuvés</div>
+              </Card>
+            </motion.div>
+          </Col>
+          <Col xs={12} md={8}>
+            <motion.div variants={itemVariants}>
+              <Card className="approval-stat-card created" size="small">
+                <div className="approval-stat-icon created">
+                  <CheckCircleOutlined />
+                </div>
+                <div className="approval-stat-value" style={{ color: "#52c41a" }}>{createdCount}</div>
+                <div className="approval-stat-label">Formations créées</div>
+              </Card>
+            </motion.div>
+          </Col>
+          <Col xs={12} md={8}>
+            <motion.div variants={itemVariants}>
+              <Card className="approval-stat-card pending" size="small">
+                <div className="approval-stat-icon pending">
+                  <TrophyOutlined />
+                </div>
+                <div className="approval-stat-value" style={{ color: "#fa8c16" }}>{pendingCount}</div>
+                <div className="approval-stat-label">En attente de création</div>
+              </Card>
+            </motion.div>
+          </Col>
+        </Row>
 
-        <Space style={{ marginBottom: 16, flexWrap: "wrap" }}>
-          <Select
-            allowClear
-            placeholder="Filtrer par département"
-            style={{ width: 200 }}
-            onChange={(v) => setFilters((f) => ({ ...f, deptId: v }))}
-          >
-            {departements.map((d) => (
-              <Option key={d.id} value={d.id}>{d.name}</Option>
-            ))}
-          </Select>
+        {/* Filtres */}
+        <motion.div variants={itemVariants}>
+          <Card className="approval-filter-card" size="small">
+            <Space wrap size="middle" align="center">
+              <div className="approval-filter-icon">
+                <FilterOutlined />
+              </div>
+              <Select
+                allowClear
+                placeholder="Filtrer par département"
+                style={{ width: 200 }}
+                value={filters.deptId}
+                onChange={(v) => setFilters((f) => ({ ...f, deptId: v }))}
+                size="middle"
+              >
+                {departements.map((d) => (
+                  <Option key={d.id} value={d.id}>{d.name || d.libelle}</Option>
+                ))}
+              </Select>
+              <Select
+                allowClear
+                placeholder="Filtrer par UP"
+                style={{ width: 200 }}
+                value={filters.upId}
+                onChange={(v) => setFilters((f) => ({ ...f, upId: v }))}
+                size="middle"
+              >
+                {ups.map((u) => (
+                  <Option key={u.id} value={u.id}>{u.name || u.libelle}</Option>
+                ))}
+              </Select>
+              <Select
+                allowClear
+                placeholder="Filtrer par type"
+                style={{ width: 200 }}
+                value={filters.type}
+                onChange={(v) => setFilters((f) => ({ ...f, type: v }))}
+                size="middle"
+              >
+                {types.map((t) => (
+                  <Option key={t} value={t}>{t?.replace(/_/g, " ")}</Option>
+                ))}
+              </Select>
+              <Button icon={<ReloadOutlined />} onClick={() => setFilters({ deptId: null, upId: null, type: null })} size="middle">
+                Réinitialiser
+              </Button>
+            </Space>
+          </Card>
+        </motion.div>
 
-          <Select
-            allowClear
-            placeholder="Filtrer par UP"
-            style={{ width: 200 }}
-            onChange={(v) => setFilters((f) => ({ ...f, upId: v }))}
-          >
-            {ups.map((u) => (
-              <Option key={u.id} value={u.id}>{u.name}</Option>
-            ))}
-          </Select>
-
-          <Select
-            allowClear
-            placeholder="Filtrer par type"
-            style={{ width: 200 }}
-            onChange={(v) => setFilters((f) => ({ ...f, type: v }))}
-          >
-            {types.map((t) => (
-              <Option key={t} value={t}>{t}</Option>
-            ))}
-          </Select>
-
-          <Button onClick={() => setFilters({ deptId: null, upId: null, type: null })}>
-            Réinitialiser
-          </Button>
-        </Space>
-
-        <Table
-          dataSource={filtered}
-          columns={columns}
-          rowKey="idBesoinFormation"
-          loading={loading}
-          pagination={{ pageSize: 10 }}
-          style={{ cursor: "pointer" }}
-        />
-      </div>
+        {/* Table */}
+        <motion.div variants={itemVariants}>
+          <Card className="approval-table-card">
+            <Table
+              dataSource={filtered}
+              columns={columns}
+              rowKey="idBesoinFormation"
+              loading={loading}
+              pagination={{
+                pageSize: 10,
+                showSizeChanger: true,
+                showTotal: (t, range) => `${range[0]}-${range[1]} sur ${t} besoins`,
+                style: { marginTop: 16 },
+              }}
+              scroll={{ x: 1200 }}
+              size="middle"
+              rowClassName={() => "animate-slide-in"}
+            />
+          </Card>
+        </motion.div>
+      </motion.div>
     </>
   );
 }

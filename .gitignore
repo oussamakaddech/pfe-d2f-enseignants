@@ -8,3 +8,24 @@ diag_out.txt
 actions-runner/
 **/target/
 *.zip
+
+# ── Secrets & environment files (DSI §1.1 — jamais committer) ─────────────────
+.env
+.env.local
+.env.prod
+.env.qa
+!.env.example
+
+# ── Fichiers de build / compilation ───────────────────────────────────────────
+**/dist/
+**/.pytest_cache/
+
+# ── Fichiers temporaires / backup ─────────────────────────────────────────────
+*.old
+*.bak
+*.new
+rice_analyzer_backup.py
+run.log
+diag_out.txt
+debug_ens.py
+diag_tv.py

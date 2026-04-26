@@ -49,6 +49,9 @@ public class BesoinFormation implements Serializable {
     @JsonProperty("dureeFormation")
     int dureeFormation   ;
 
+    @JsonProperty("titre")
+    String titre  ;
+
     @JsonProperty("theme")
     String theme  ;
 
@@ -69,6 +72,9 @@ public class BesoinFormation implements Serializable {
 
     @JsonProperty("profilFormateur")
     String profilFormateur  ;
+
+    @JsonProperty("horaireSouhaite")
+    String horaireSouhaite  ;
 
     @JsonProperty("up")
     String up  ;
@@ -174,6 +180,14 @@ public class BesoinFormation implements Serializable {
         this.dureeFormation = dureeFormation;
     }
 
+    public String getTitre() {
+        return titre;
+    }
+
+    public void setTitre(String titre) {
+        this.titre = titre;
+    }
+
     public String getTheme() {
         return theme;
     }
@@ -268,6 +282,14 @@ public class BesoinFormation implements Serializable {
 
     public void setApprouveAdmin(Boolean approuveAdmin) {
         this.approuveAdmin = approuveAdmin;
+    }
+
+    public String getHoraireSouhaite() {
+        return horaireSouhaite;
+    }
+
+    public void setHoraireSouhaite(String horaireSouhaite) {
+        this.horaireSouhaite = horaireSouhaite;
     }
 
     public String getNotificationMessage() {

@@ -29,12 +29,12 @@ public class AnalysePredictiveService {
     /**
      * Analyse complète d'un enseignant : gaps, recommandations, besoins, dashboard.
      */
-    public Map<String, Object> analyserEnseignant(String enseignantId) {
+    public Map<String, Object> analyserEnseignant(String enseignantId, Long competenceCible) {
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("enseignantId", enseignantId);
-        result.put("competenceAnalysee", "Analyse globale du profil");
+        result.put("competenceAnalysee", competenceCible != null ? "Analyse ciblée compétence " + competenceCible : "Analyse globale du profil");
         result.put("gaps", identifierGaps(enseignantId));
-        result.put("recommandationsFormations", recommanderFormations(enseignantId));
+        result.put("recommandationsFormations", recommanderFormations(enseignantId, competenceCible));
         result.put("besoinsDetectes", detecterBesoins(enseignantId));
         result.put("dashboard", genererDashboardEnseignant(enseignantId));
         return result;
@@ -145,15 +145,20 @@ public class AnalysePredictiveService {
      * Utilise les liaisons formation-competences du service formation.
      */
     @SuppressWarnings("unchecked")
-    private List<Map<String, Object>> recommanderFormations(String enseignantId) {
+    private List<Map<String, Object>> recommanderFormations(String enseignantId, Long competenceCible) {
         List<Map<String, Object>> recommandations = new ArrayList<>();
         try {
             // Récupérer les gaps de l'enseignant
             List<Map<String, Object>> gaps = identifierGaps(enseignantId);
-            Set<Long> competenceIdsAvecGap = gaps.stream()
-                .filter(g -> g.get("competenceId") != null)
-                .map(g -> ((Number) g.get("competenceId")).longValue())
-                .collect(Collectors.toSet());
+            Set<Long> competenceIdsAvecGap = new HashSet<>();
+            if (competenceCible != null) {
+                competenceIdsAvecGap.add(competenceCible);
+            } else {
+                competenceIdsAvecGap = gaps.stream()
+                    .filter(g -> g.get("competenceId") != null)
+                    .map(g -> ((Number) g.get("competenceId")).longValue())
+                    .collect(Collectors.toSet());
+            }
 
             // Récupérer toutes les formations
             String formUrl = formationServiceUrl + "/formations";
@@ -231,7 +236,7 @@ public class AnalysePredictiveService {
     private List<Map<String, Object>> detecterBesoins(String enseignantId) {
         List<Map<String, Object>> besoins = new ArrayList<>();
         try {
-            String besoinUrl = besoinFormationServiceUrl + "/api/besoins/approuves";
+            String besoinUrl = besoinFormationServiceUrl + "/besoinsFormations/retrieve-approved-BesoinFormations";
             List<Map<String, Object>> besoinsApprouves = restTemplate.getForObject(besoinUrl, List.class);
             if (besoinsApprouves != null) {
                 Map<String, Long> countByCompetence = besoinsApprouves.stream()

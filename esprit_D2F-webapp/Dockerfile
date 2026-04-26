@@ -27,4 +27,11 @@ RUN rm -rf ./*
 # ✅ Copy everything from build (includes /assets/img/logo/esprit.png)
 COPY --from=builder /usr/app/dist ./
 
+# Sécurité : exécuter nginx en tant qu'utilisateur non-root (conformité DSI §6)
+RUN chown -R nginx:nginx /usr/share/nginx/html && \
+    chown -R nginx:nginx /var/cache/nginx && \
+    chown -R nginx:nginx /var/log/nginx && \
+    touch /var/run/nginx.pid && chown nginx:nginx /var/run/nginx.pid
+USER nginx
+
 ENTRYPOINT ["nginx", "-g", "daemon off;"]

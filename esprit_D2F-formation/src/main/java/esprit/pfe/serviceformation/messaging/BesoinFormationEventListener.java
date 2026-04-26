@@ -7,7 +7,7 @@ import esprit.pfe.serviceformation.Repositories.FormationRepository;
 import esprit.pfe.serviceformation.Repositories.UpRepository;
 import esprit.pfe.serviceformation.Repositories.DeptRepository;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.jms.annotation.JmsListener;
+import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Component;
 
 import java.util.Date;
@@ -24,14 +24,14 @@ public class BesoinFormationEventListener {
 
 
 
-    @JmsListener(destination = QUEUE, containerFactory = "jmsListenerContainerFactory")
+    @RabbitListener(queues = QUEUE)
     public void onBesoinApproved(BesoinFormationApprovedEvent evt) {
         // 1) Instanciation
         Formation f = new Formation();
 
         // 2) Mapping manuel DTO → Entité (attention aux noms de champs)
         f.setIdBesoinFormation(       evt.getIdBesoinFormation());
-        f.setTitreFormation(          evt.getProgrammeFormation());            // titreFormation ← programmeFormation
+        f.setTitreFormation(          evt.getTitre() != null ? evt.getTitre() : evt.getProgrammeFormation()); // titreFormation ← titre (fallback programmeFormation)
         f.setDomaine(                 evt.getTheme());                        // domaine ← theme
         f.setPopulationCible(         evt.getPublicCible());                  // populationCible ← publicCible
         f.setObjectifs(               evt.getObjectifFormation());             // objectifs ← objectifFormation

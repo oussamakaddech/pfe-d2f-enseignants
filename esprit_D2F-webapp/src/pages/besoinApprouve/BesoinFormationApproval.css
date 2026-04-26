@@ -1,0 +1,209 @@
+/* BesoinFormationApproval - Modern Design */
+
+.approval-container {
+  padding: 24px;
+  max-width: 1480px;
+  margin: 0 auto;
+}
+
+.approval-header {
+  margin-bottom: 24px;
+}
+
+.approval-header-title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 4px;
+}
+
+/* Stats cards */
+.approval-stat-card {
+  border-radius: 16px !important;
+  border: none !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06) !important;
+  transition: all 0.3s ease;
+  overflow: hidden;
+  position: relative;
+}
+
+.approval-stat-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+}
+
+.approval-stat-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.1) !important;
+}
+
+.approval-stat-card.total::before {
+  background: linear-gradient(90deg, #1890ff, #36cfc9);
+}
+
+.approval-stat-card.created::before {
+  background: linear-gradient(90deg, #52c41a, #95de64);
+}
+
+.approval-stat-card.pending::before {
+  background: linear-gradient(90deg, #fa8c16, #ffc53d);
+}
+
+.approval-stat-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  margin-bottom: 12px;
+}
+
+.approval-stat-icon.total {
+  background: linear-gradient(135deg, #e6f7ff 0%, #bae7ff 100%);
+  color: #1890ff;
+}
+
+.approval-stat-icon.created {
+  background: linear-gradient(135deg, #f6ffed 0%, #d9f7be 100%);
+  color: #52c41a;
+}
+
+.approval-stat-icon.pending {
+  background: linear-gradient(135deg, #fff7e6 0%, #ffe7ba 100%);
+  color: #fa8c16;
+}
+
+.approval-stat-value {
+  font-size: 32px;
+  font-weight: 800;
+  line-height: 1.2;
+  margin-bottom: 4px;
+}
+
+.approval-stat-label {
+  font-size: 14px;
+  color: #8c8c8c;
+  font-weight: 500;
+}
+
+/* Filter */
+.approval-filter-card {
+  border-radius: 14px !important;
+  border: 1px solid #f0f0f0 !important;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04) !important;
+  margin-bottom: 24px;
+}
+
+.approval-filter-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, #fff1f0 0%, #ffccc7 100%);
+  color: #B51200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+}
+
+/* Table */
+.approval-table-card {
+  border-radius: 16px !important;
+  border: none !important;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06) !important;
+  overflow: hidden;
+}
+
+.approval-table-card .ant-table-thead > tr > th {
+  background: #fafafa;
+  font-weight: 600;
+  color: #262626;
+  border-bottom: 2px solid #f0f0f0;
+  padding: 14px 16px;
+}
+
+.approval-table-card .ant-table-tbody > tr {
+  transition: all 0.2s ease;
+}
+
+.approval-table-card .ant-table-tbody > tr:hover {
+  background: #e6f7ff !important;
+  transform: scale(1.002);
+}
+
+.approval-table-card .ant-table-tbody > tr:hover td {
+  background: transparent !important;
+}
+
+/* Status */
+.status-created {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  background: #f6ffed;
+  color: #52c41a;
+  border: 1px solid #b7eb8f;
+}
+
+.status-pending {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  background: #e6f7ff;
+  color: #1890ff;
+  border: 1px solid #91d5ff;
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.status-created .status-dot {
+  background: #52c41a;
+}
+
+.status-pending .status-dot {
+  background: #1890ff;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* Action button */
+.btn-create {
+  background: linear-gradient(135deg, #1890ff 0%, #36cfc9 100%) !important;
+  border: none !important;
+  box-shadow: 0 4px 14px rgba(24, 144, 255, 0.3) !important;
+  border-radius: 8px !important;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.btn-create:hover {
+  box-shadow: 0 6px 20px rgba(24, 144, 255, 0.4) !important;
+  transform: translateY(-1px);
+}
+
+.btn-created {
+  border-radius: 8px !important;
+  font-weight: 500;
+}

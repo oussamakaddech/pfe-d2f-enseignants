@@ -6,7 +6,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.RequiredArgsConstructor;
-import org.springframework.jms.core.JmsTemplate;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.stereotype.Service;
 
 @RequiredArgsConstructor
@@ -15,15 +15,15 @@ import org.springframework.stereotype.Service;
 
 
 public class EvaluationPublisher {
-    private final JmsTemplate jmsTemplate;
+    private final RabbitTemplate rabbitTemplate;
 
     public void sendCreate(EvaluationBatchMessage msg) {
-        jmsTemplate.convertAndSend("evaluation.create.queue", msg);
+        rabbitTemplate.convertAndSend("evaluation.create.queue", msg);
     }
 
     // nouveau :
     public void sendUpdate(EvaluationBatchMessage msg) {
-        jmsTemplate.convertAndSend("evaluation.update.queue", msg);
+        rabbitTemplate.convertAndSend("evaluation.update.queue", msg);
     }
 }
 

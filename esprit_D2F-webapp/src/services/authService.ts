@@ -17,8 +17,11 @@ export async function login({
   username,
   password,
 }: LoginRequest): Promise<LoginResponse> {
-  const url = `/user/auth/login?username=${username}&password=${password}`;
-  const response: AxiosResponse<LoginResponse> = await api.post(url);
+  // SÉCURITÉ : credentials envoyés dans le corps POST, jamais dans l'URL
+  const response: AxiosResponse<LoginResponse> = await api.post(
+    `/user/auth/login`,
+    { username, password }
+  );
 
   if (response.data.accessToken) {
     localStorage.setItem("authToken", response.data.accessToken);
@@ -44,8 +47,11 @@ export async function resetPassword({
   confirmationKey,
   newPassword,
 }: ResetPasswordRequest): Promise<unknown> {
-  const url = `/user/auth/reset-password?confirmationKey=${confirmationKey}&newPassword=${newPassword}`;
-  const response = await api.post(url);
+  // SÉCURITÉ : credentials envoyés dans le corps POST, jamais dans l'URL
+  const response = await api.post(`/user/auth/reset-password`, {
+    confirmationKey,
+    newPassword,
+  });
   return response.data;
 }
 

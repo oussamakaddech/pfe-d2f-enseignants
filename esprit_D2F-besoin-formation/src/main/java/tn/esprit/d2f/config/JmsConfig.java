@@ -2,18 +2,15 @@ package tn.esprit.d2f.config;
 
 
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.amqp.support.converter.Jackson2JsonMessageConverter;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.jms.support.converter.MappingJackson2MessageConverter;
-import org.springframework.jms.support.converter.MessageType;
 
 @Configuration
 public class JmsConfig {
     @Bean
-    public MappingJackson2MessageConverter jacksonJmsMessageConverter() {
-        MappingJackson2MessageConverter conv = new MappingJackson2MessageConverter();
-        conv.setTargetType(MessageType.TEXT);
-        conv.setTypeIdPropertyName("_type");
-        return conv;
+    public Jackson2JsonMessageConverter jacksonJmsMessageConverter(ObjectMapper objectMapper) {
+        return new Jackson2JsonMessageConverter(objectMapper);
     }
 }

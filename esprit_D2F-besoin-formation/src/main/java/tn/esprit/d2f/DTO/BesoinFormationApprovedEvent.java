@@ -23,6 +23,8 @@ public class BesoinFormationApprovedEvent implements Serializable {
     private String moyensPedagogiques;
     private String methodesEvaluationAcquis;
     private String profilFormateur;
+    private String titre;
+    private String horaireSouhaite;
     private String up;
     private String departement;
     private Boolean approuveCUP;

@@ -1,0 +1,192 @@
+# =============================================================================
+# GitHub Actions - Pipeline CD (Continuous Deployment)
+# =============================================================================
+# Ce pipeline déploie automatiquement l'application sur l'environnement de test
+# =============================================================================
+
+name: D2F CD Pipeline
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+env:
+  JAVA_VERSION: '17'
+  NODE_VERSION: '20'
+
+jobs:
+  # =============================================================================
+  # Deploy to Test Environment
+  # =============================================================================
+  deploy-test:
+    name: Deploy to Test Environment
+    runs-on: ubuntu-latest
+    environment:
+      name: test
+      url: http://test.d2f.esprit.tn
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.TEST_SERVER_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Deploy application
+        run: |
+          ssh ${{ secrets.TEST_SERVER_USER }}@${{ secrets.TEST_SERVER_HOST }} << 'ENDSSH'
+            cd /opt/d2f
+            git pull origin main
+            docker compose pull
+            docker compose up -d
+            echo "Waiting for services to be healthy..."
+            sleep 60
+            docker compose ps
+          ENDSSH
+
+      - name: Health check
+        run: |
+          ssh ${{ secrets.TEST_SERVER_USER }}@${{ secrets.TEST_SERVER_HOST }} << 'ENDSSH'
+            cd /opt/d2f
+            docker compose ps
+            if ! docker compose ps | grep -q "healthy"; then
+              echo "❌ Health check failed - some services are not healthy"
+              docker compose logs --tail=50
+              exit 1
+            fi
+            echo "✅ All services are healthy"
+          ENDSSH
+
+      - name: Run smoke tests
+        run: |
+          # Test API Gateway
+          curl -f http://${{ secrets.TEST_SERVER_HOST }}:8222/actuator/health || exit 1
+          # Test Auth Service
+          curl -f http://${{ secrets.TEST_SERVER_HOST }}:8085/actuator/health || exit 1
+          # Test Competence Service
+          curl -f http://${{ secrets.TEST_SERVER_HOST }}:8005/actuator/health || exit 1
+          # Test Frontend
+          curl -f http://${{ secrets.TEST_SERVER_HOST }}:3000/ || exit 1
+          echo "✅ Smoke tests passed"
+
+      - name: Notify on success
+        if: success()
+        run: |
+          echo "✅ Deployment successful to test environment"
+          # Ajouter ici la notification (Slack, email, etc.)
+
+      - name: Rollback on failure
+        if: failure()
+        run: |
+          ssh ${{ secrets.TEST_SERVER_USER }}@${{ secrets.TEST_SERVER_HOST }} << 'ENDSSH'
+            cd /opt/d2f
+            echo "🔄 Rolling back to previous version..."
+            git checkout HEAD~1
+            docker compose up -d
+            echo "✅ Rollback completed"
+          ENDSSH
+
+      - name: Notify on failure
+        if: failure()
+        run: |
+          echo "❌ Deployment failed, rollback initiated"
+          # Ajouter ici la notification (Slack, email, etc.)
+
+  # =============================================================================
+  # Deploy to Production (Manual Approval)
+  # =============================================================================
+  deploy-prod:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    environment:
+      name: production
+      url: https://d2f.esprit.tn
+    needs: deploy-test
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.PROD_SERVER_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Create backup
+        run: |
+          ssh ${{ secrets.PROD_SERVER_USER }}@${{ secrets.PROD_SERVER_HOST }} << 'ENDSSH'
+            cd /opt/d2f
+            BACKUP_DIR="/backups/d2f/$(date +%Y%m%d_%H%M%S)"
+            mkdir -p $BACKUP_DIR
+            docker compose exec -T postgres pg_dump -U d2f d2f > $BACKUP_DIR/d2f_backup.sql
+            echo "✅ Backup created at $BACKUP_DIR"
+          ENDSSH
+
+      - name: Deploy application
+        run: |
+          ssh ${{ secrets.PROD_SERVER_USER }}@${{ secrets.PROD_SERVER_HOST }} << 'ENDSSH'
+            cd /opt/d2f
+            git pull origin main
+            docker compose pull
+            docker compose up -d
+            echo "Waiting for services to be healthy..."
+            sleep 60
+            docker compose ps
+          ENDSSH
+
+      - name: Health check
+        run: |
+          ssh ${{ secrets.PROD_SERVER_USER }}@${{ secrets.PROD_SERVER_HOST }} << 'ENDSSH'
+            cd /opt/d2f
+            docker compose ps
+            if ! docker compose ps | grep -q "healthy"; then
+              echo "❌ Health check failed - some services are not healthy"
+              docker compose logs --tail=50
+              exit 1
+            fi
+            echo "✅ All services are healthy"
+          ENDSSH
+
+      - name: Run smoke tests
+        run: |
+          # Test API Gateway
+          curl -f https://d2f.esprit.tn/actuator/health || exit 1
+          # Test Auth Service
+          curl -f https://d2f.esprit.tn/auth/actuator/health || exit 1
+          # Test Competence Service
+          curl -f https://d2f.esprit.tn/competence/actuator/health || exit 1
+          # Test Frontend
+          curl -f https://d2f.esprit.tn/ || exit 1
+          echo "✅ Smoke tests passed"
+
+      - name: Notify on success
+        if: success()
+        run: |
+          echo "✅ Deployment successful to production"
+          # Ajouter ici la notification (Slack, email, etc.)
+
+      - name: Rollback on failure
+        if: failure()
+        run: |
+          ssh ${{ secrets.PROD_SERVER_USER }}@${{ secrets.PROD_SERVER_HOST }} << 'ENDSSH'
+            cd /opt/d2f
+            echo "🔄 Rolling back to previous version..."
+            git checkout HEAD~1
+            docker compose up -d
+            # Restaurer la base de données si nécessaire
+            # psql -U d2f -d d2f < /backups/d2f/latest/d2f_backup.sql
+            echo "✅ Rollback completed"
+          ENDSSH
+
+      - name: Notify on failure
+        if: failure()
+        run: |
+          echo "❌ Deployment failed, rollback initiated"
+          # Ajouter ici la notification (Slack, email, etc.)

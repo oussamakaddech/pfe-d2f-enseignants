@@ -1,0 +1,395 @@
+/* Styles pour la page de connexion avec animation */
+
+.login-container {
+  position: relative;
+  display: flex;
+  height: 100vh;
+  width: 100%;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #1a365d 0%, #2c5282 50%, #2b6cb0 100%);
+  overflow: hidden;
+}
+
+/* Animation de fond avec des formes flottantes - thème éducatif */
+.login-container::before,
+.login-container::after {
+  content: "";
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.05);
+  animation: float 25s infinite ease-in-out;
+}
+
+.login-container::before {
+  width: 400px;
+  height: 400px;
+  top: -100px;
+  left: -100px;
+  animation-delay: 0s;
+  background: radial-gradient(circle, rgba(66, 153, 225, 0.15) 0%, transparent 70%);
+}
+
+.login-container::after {
+  width: 300px;
+  height: 300px;
+  bottom: -100px;
+  right: -100px;
+  animation-delay: -12s;
+  background: radial-gradient(circle, rgba(56, 178, 172, 0.15) 0%, transparent 70%);
+}
+
+/* Ajout d'éléments éducatifs flottants */
+.login-container .edu-icon {
+  position: absolute;
+  font-size: 32px;
+  color: rgba(255, 255, 255, 0.15);
+  animation: floatIcon 25s infinite ease-in-out;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+  transition: all 0.3s ease;
+}
+
+.login-container .edu-icon:hover {
+  transform: scale(1.2);
+  color: rgba(255, 255, 255, 0.25);
+  text-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
+}
+
+.login-container .edu-icon:nth-child(3) {
+  top: 12%;
+  left: 8%;
+  animation-delay: 0s;
+}
+
+.login-container .edu-icon:nth-child(4) {
+  top: 20%;
+  right: 12%;
+  animation-delay: -6s;
+}
+
+.login-container .edu-icon:nth-child(5) {
+  bottom: 18%;
+  left: 15%;
+  animation-delay: -12s;
+}
+
+.login-container .edu-icon:nth-child(6) {
+  bottom: 25%;
+  right: 8%;
+  animation-delay: -18s;
+}
+
+/* Ajout de cercles décoratifs autour des icônes */
+.login-container .edu-icon::before {
+  content: "";
+  position: absolute;
+  width: 60px;
+  height: 60px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 50%;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  animation: pulseCircle 3s infinite ease-in-out;
+}
+
+@keyframes pulseCircle {
+  0%, 100% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 0.3;
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(1.2);
+    opacity: 0.1;
+  }
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
+  }
+  25% {
+    transform: translate(30px, 50px) scale(1.1);
+  }
+  50% {
+    transform: translate(-20px, 20px) scale(0.9);
+  }
+  75% {
+    transform: translate(50px, -30px) scale(1.05);
+  }
+}
+
+@keyframes floatIcon {
+  0%, 100% {
+    transform: translateY(0) rotate(0deg);
+    opacity: 0.15;
+  }
+  25% {
+    transform: translateY(-25px) rotate(5deg);
+    opacity: 0.2;
+  }
+  50% {
+    transform: translateY(0) rotate(0deg);
+    opacity: 0.15;
+  }
+  75% {
+    transform: translateY(25px) rotate(-5deg);
+    opacity: 0.2;
+  }
+}
+
+/* Carte de connexion */
+.login-card {
+  position: relative;
+  width: 420px;
+  padding: 40px;
+  background: rgba(255, 255, 255, 0.97);
+  border-radius: 16px;
+  box-shadow: 0 15px 35px rgba(26, 54, 93, 0.15);
+  backdrop-filter: blur(10px);
+  z-index: 1;
+  animation: fadeInUp 0.6s ease-out;
+  border-top: 4px solid #2c5282;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Logo et titre */
+.login-header {
+  text-align: center;
+  margin-bottom: 30px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #e2e8f0;
+  position: relative;
+}
+
+.login-logo-container {
+  position: relative;
+  display: inline-block;
+  margin-bottom: 15px;
+}
+
+.login-logo {
+  width: 100px;
+  height: 100px;
+  margin-bottom: 15px;
+  animation: pulse 2.5s infinite ease-in-out;
+  filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.15));
+  border-radius: 50%;
+  padding: 10px;
+  background: linear-gradient(135deg, #f7fafc 0%, #edf2f7 100%);
+  transition: all 0.3s ease;
+}
+
+.login-logo:hover {
+  transform: scale(1.1);
+  filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.2));
+}
+
+/* Cercle décoratif autour du logo */
+.login-logo-container::before {
+  content: "";
+  position: absolute;
+  top: -10px;
+  left: -10px;
+  right: -10px;
+  bottom: -10px;
+  border: 2px solid rgba(44, 82, 130, 0.1);
+  border-radius: 50%;
+  animation: rotateLogo 20s linear infinite;
+}
+
+@keyframes rotateLogo {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+
+.login-title {
+  font-size: 28px;
+  font-weight: 800;
+  color: #1a365d;
+  margin: 0;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  position: relative;
+  display: inline-block;
+}
+
+/* Ligne décorative sous le titre */
+.login-title::after {
+  content: "";
+  position: absolute;
+  bottom: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 60px;
+  height: 3px;
+  background: linear-gradient(90deg, #2c5282 0%, #3182ce 100%);
+  border-radius: 2px;
+}
+
+.login-subtitle {
+  font-size: 14px;
+  color: #4a5568;
+  margin-top: 20px;
+  font-weight: 500;
+  letter-spacing: 0.3px;
+}
+
+/* Formulaire */
+.login-form {
+  margin-top: 20px;
+}
+
+.login-form .ant-form-item-label > label {
+  font-weight: 600;
+  color: #2d3748;
+  font-size: 14px;
+}
+
+.login-input {
+  height: 45px;
+  border-radius: 8px;
+  border: 1px solid #cbd5e0;
+  transition: all 0.3s;
+  background-color: #f7fafc;
+}
+
+.login-input:focus,
+.login-input:hover {
+  border-color: #2c5282;
+  box-shadow: 0 0 0 3px rgba(44, 82, 130, 0.1);
+  background-color: #fff;
+}
+
+/* Bouton de connexion */
+.login-button {
+  height: 45px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 16px;
+  background: linear-gradient(135deg, #2c5282 0%, #2b6cb0 100%);
+  border: none;
+  margin-top: 10px;
+  transition: all 0.3s;
+  letter-spacing: 0.5px;
+}
+
+.login-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(44, 82, 130, 0.3);
+  background: linear-gradient(135deg, #2b6cb0 0%, #3182ce 100%);
+}
+
+.login-button:active {
+  transform: translateY(0);
+}
+
+/* Animation des champs du formulaire */
+.ant-form-item {
+  animation: fadeIn 0.5s ease-out;
+  animation-fill-mode: both;
+}
+
+.ant-form-item:nth-child(1) {
+  animation-delay: 0.1s;
+}
+
+.ant-form-item:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.ant-form-item:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Particules de fond - thème éducatif */
+.particles {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  z-index: 0;
+}
+
+.particle {
+  position: absolute;
+  width: 8px;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 50%;
+  animation: floatParticle 18s infinite linear;
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
+}
+
+/* Ajout de particules carrées pour rappeler des symboles éducatifs */
+.particle.square {
+  width: 6px;
+  height: 6px;
+  border-radius: 1px;
+  background: rgba(66, 153, 225, 0.2);
+}
+
+/* Ajout de particules triangulaires pour rappeler des symboles éducatifs */
+.particle.triangle {
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-bottom: 8px solid rgba(56, 178, 172, 0.2);
+  background: transparent;
+  box-shadow: none;
+}
+
+@keyframes floatParticle {
+  0% {
+    transform: translateY(100vh) rotate(0deg);
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    transform: translateY(-100vh) rotate(360deg);
+    opacity: 0;
+  }
+}

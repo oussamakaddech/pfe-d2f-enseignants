@@ -97,6 +97,8 @@ public class BesoinFormationServiceImpl implements IBesoinFormationService{
                 .moyensPedagogiques(b.getMoyensPedagogiques())
                 .methodesEvaluationAcquis(b.getMethodesEvaluationAcquis())
                 .profilFormateur(b.getProfilFormateur())
+                .titre(b.getTitre())
+                .horaireSouhaite(b.getHoraireSouhaite())
                 .up(b.getUp())
                 .departement(b.getDepartement())
                 .approuveCUP(b.getApprouveCUP())

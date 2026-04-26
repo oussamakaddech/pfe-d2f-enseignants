@@ -35,6 +35,8 @@ volumes:
     name: d2f_postgres_data
   d2f_artemis_data:
     name: d2f_artemis_data
+  d2f_models_data:
+    name: d2f_models_data
 
 # =============================================================================
 # SERVICES
@@ -101,7 +103,7 @@ services:
       DB_USER: ${DB_USER_AUTH:-app_user_auth}
       DB_PASSWORD: ${DB_PASSWORD:-d2fpasswd}
       JWT_SECRET: ${JWT_SECRET}
-      MAIL_HOST: ${MAIL_HOST:-smtp.gmail.com}
+      MAIL_HOST: ${MAIL_HOST:-smtp.internal.dsi.local}
       MAIL_PORT: ${MAIL_PORT:-587}
       MAIL_USERNAME: ${MAIL_USERNAME:-}
       MAIL_PASSWORD: ${MAIL_PASSWORD:-}
@@ -236,32 +238,6 @@ services:
     networks:
       - d2f-network
 
-  analyse-service:
-    build:
-      context: ./esprit_D2F-analyse
-      dockerfile: Dockerfile
-    container_name: d2f-analyse
-    restart: unless-stopped
-    ports:
-      - "8089:8089"
-    environment:
-      SPRING_PROFILES_ACTIVE: prod
-      SERVICES_EVALUATION_URL: http://evaluation-service:8087
-      SERVICES_FORMATION_URL: http://formation-service:8082
-      SERVICES_COMPETENCE_URL: http://competence-service:8005
-      SERVICES_BESOIN_FORMATION_URL: http://besoin-formation-service:8004
-    depends_on:
-      evaluation-service:
-        condition: service_healthy
-    healthcheck:
-      test: ["CMD-SHELL", "wget -q --spider http://localhost:8089/actuator/health || exit 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 60s
-    networks:
-      - d2f-network
-
   api-gateway:
     build:
       context: ./esprit_D2F-api-gateway
@@ -284,6 +260,103 @@ services:
       timeout: 10s
       retries: 3
       start_period: 60s
+    networks:
+      - d2f-network
+
+  # ── Formation Service ───────────────────────────────────────────────────────
+
+  formation-service:
+    build:
+      context: ./esprit_D2F-formation
+      dockerfile: Dockerfile
+    container_name: d2f-formation
+    restart: unless-stopped
+    ports:
+      - "8088:8088"
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      DB_URL: jdbc:postgresql://postgres:5432/d2f
+      DB_USER: ${DB_USER_FORMATION:-app_user_formation}
+      DB_PASSWORD: ${DB_PASSWORD:-d2fpasswd}
+      JWT_SECRET: ${JWT_SECRET}
+      ARTEMIS_URL: tcp://artemis:61616
+      ARTEMIS_USER: ${ARTEMIS_USER:-admin}
+      ARTEMIS_PASSWORD: ${ARTEMIS_PASSWORD:-admin}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      artemis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:8088/actuator/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - d2f-network
+
+  # ── AI Reco Service (Python/FastAPI) ────────────────────────────────────────
+  # SÉCURITÉ : aucun port exposé — accessible uniquement via l'API Gateway
+  ai-reco-service:
+    build:
+      context: ./esprit_D2F-recommandation-formateur
+      dockerfile: Dockerfile
+    container_name: d2f-ai-reco
+    restart: unless-stopped
+    environment:
+      APP_ENV: production
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/health')\" || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    networks:
+      - d2f-network
+
+  # ── RICE Service (Python/FastAPI) ───────────────────────────────────────────
+  # SÉCURITÉ : aucun port exposé — accessible uniquement via l'API Gateway
+  rice-service:
+    build:
+      context: ./esprit_D2F-rice
+      dockerfile: Dockerfile
+    container_name: d2f-rice
+    restart: unless-stopped
+    environment:
+      APP_ENV: production
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8001/health')\" || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    networks:
+      - d2f-network
+
+  # ── Predictive Analytics (Python/FastAPI) ───────────────────────────────────
+  # SÉCURITÉ : aucun port exposé — accessible uniquement via l'API Gateway
+  predictive-analytics-service:
+    build:
+      context: ./esprit_D2F-predictive-analytics
+      dockerfile: Dockerfile
+    container_name: d2f-predictive-analytics
+    restart: unless-stopped
+    environment:
+      APP_ENV: production
+      DATABASE_URL: postgresql://${DB_USER_ANALYSE:-app_user_analyse}:${DB_PASSWORD:-d2fpasswd}@postgres:5432/d2f
+      MODELS_DIR: /app/data/models
+    volumes:
+      - d2f_models_data:/app/data/models
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8080/api/health')\" || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
     networks:
       - d2f-network
 

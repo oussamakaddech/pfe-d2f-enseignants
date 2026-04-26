@@ -21,13 +21,11 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
-import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
-import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.AccessDeniedHandler;
@@ -36,6 +34,7 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import javax.crypto.spec.SecretKeySpec;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Collection;
 
@@ -45,6 +44,10 @@ import java.util.Collection;
 public class SecurityConfig {
     @Value("${jwt.secret}")
     private String secretKey;
+
+    /** Origines autorisées — lues depuis application.properties (conformité DSI §2.3 CORS) */
+    @Value("${cors.allowed-origins:http://localhost:5173,http://localhost:3000}")
+    private String allowedOriginsRaw;
 
     /*@Bean
     public InMemoryUserDetailsManager inMemoryUserDetailsManager(){
@@ -68,7 +71,17 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .cors(Customizer.withDefaults())
                 .authorizeHttpRequests(ar -> ar
-                        .requestMatchers("/**").permitAll()
+                        // Endpoints publics — auth seulement
+                        .requestMatchers(
+                            "/user/auth/login",
+                            "/user/auth/signup",
+                            "/user/auth/forgot-password",
+                            "/user/auth/reset-password",
+                            "/user/auth/confirm",
+                            "/actuator/health",
+                            "/actuator/info"
+                        ).permitAll()
+                        // Tout le reste requiert une authentification
                         .anyRequest().authenticated()
                 )
                 .exceptionHandling(ex -> ex
@@ -84,7 +97,12 @@ public class SecurityConfig {
         return (request, response, authException) -> {
             response.setContentType("application/json");
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
-            response.getWriter().write("{\"message\": \"Unauthorized or session expired.\"}");
+            String traceId = java.util.UUID.randomUUID().toString();
+            String timestamp = java.time.LocalDateTime.now().toString();
+            String path = request.getRequestURI();
+            response.getWriter().write(
+                String.format("{\"timestamp\":\"%s\",\"status\":401,\"errorCode\":\"AUTH-401\",\"message\":\"Unauthorized or session expired.\",\"path\":\"%s\",\"traceId\":\"%s\"}",
+                    timestamp, path, traceId));
         };
     }
 
@@ -93,7 +111,12 @@ public class SecurityConfig {
         return (request, response, accessDeniedException) -> {
             response.setContentType("application/json");
             response.setStatus(HttpServletResponse.SC_FORBIDDEN);
-            response.getWriter().write("{\"message\": \"Access denied.\"}");
+            String traceId = java.util.UUID.randomUUID().toString();
+            String timestamp = java.time.LocalDateTime.now().toString();
+            String path = request.getRequestURI();
+            response.getWriter().write(
+                String.format("{\"timestamp\":\"%s\",\"status\":403,\"errorCode\":\"AUTH-403\",\"message\":\"Access denied.\",\"path\":\"%s\",\"traceId\":\"%s\"}",
+                    timestamp, path, traceId));
         };
     }
 
@@ -134,5 +157,24 @@ public class SecurityConfig {
             return authorities;
         });
         return converter;
+    }
+
+    /**
+     * CORS — conformité DSI §2.3 : restreint aux origines internes uniquement.
+     * Les origines autorisées sont lues depuis la propriété cors.allowed-origins
+     * (définie dans application.properties ou variable d'environnement CORS_ALLOWED_ORIGINS).
+     */
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuration = new CorsConfiguration();
+        List<String> origins = Arrays.asList(allowedOriginsRaw.split(","));
+        configuration.setAllowedOrigins(origins);
+        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
+        configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept"));
+        configuration.setAllowCredentials(true);
+        configuration.setMaxAge(3600L);
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", configuration);
+        return source;
     }
 }
