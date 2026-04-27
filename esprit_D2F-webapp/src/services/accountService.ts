@@ -7,7 +7,7 @@ import type {
   UpdatePasswordRequest,
 } from "../models/auth";
 
-const API_URL = `${config.URL_ACCOUNT}/auth/account`;
+const API_URL = `${config.URL_ACCOUNT}/account`;
 
 const api = createApiClient(API_URL);
 

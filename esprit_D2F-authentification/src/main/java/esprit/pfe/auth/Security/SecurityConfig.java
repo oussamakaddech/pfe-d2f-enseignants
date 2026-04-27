@@ -49,16 +49,6 @@ public class SecurityConfig {
     @Value("${cors.allowed-origins:http://localhost:5173,http://localhost:3000}")
     private String allowedOriginsRaw;
 
-    /*@Bean
-    public InMemoryUserDetailsManager inMemoryUserDetailsManager(){
-        PasswordEncoder passwordEncoder =passwordEncoder();
-        return new InMemoryUserDetailsManager(
-                User.withUsername("user1").password(passwordEncoder.encode("1234")).authorities("USER").build(),
-                User.withUsername("admin").password(passwordEncoder.encode("1234")).authorities("USER","ADMIN").build()
-
-        );
-    }*/
-
     @Bean
     public PasswordEncoder passwordEncoder(){
         return new BCryptPasswordEncoder();
@@ -73,11 +63,11 @@ public class SecurityConfig {
                 .authorizeHttpRequests(ar -> ar
                         // Endpoints publics — auth seulement
                         .requestMatchers(
-                            "/user/auth/login",
-                            "/user/auth/signup",
-                            "/user/auth/forgot-password",
-                            "/user/auth/reset-password",
-                            "/user/auth/confirm",
+                            "/api/v1/auth/login",
+                            "/api/v1/auth/signup",
+                            "/api/v1/auth/forgot-password",
+                            "/api/v1/auth/reset-password",
+                            "/api/v1/auth/confirm",
                             "/actuator/health",
                             "/actuator/info"
                         ).permitAll()
@@ -123,7 +113,6 @@ public class SecurityConfig {
 
     @Bean
     JwtEncoder jwtEncoder(){
-        //String secretKey="9faa95dfrgaddf55gg5s555qe55fq54rr9ezassaleehlaad4556777hhzaazaze";
         return new NimbusJwtEncoder(new ImmutableSecret<>(secretKey.getBytes()));
     }
 

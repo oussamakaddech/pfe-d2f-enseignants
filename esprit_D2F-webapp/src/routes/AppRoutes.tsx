@@ -65,8 +65,10 @@ export default function AppRoutes() {
 
           <Route element={<PrivateRoute />}>
             <Route element={<AppLayout />}>
+              {/* ════════════════════════════════════════════════════════════
+                  Routes communes — tous les rôles authentifiés
+                  ════════════════════════════════════════════════════════════ */}
               <Route path="/home" element={<Home />} />
-
               <Route path="/home/profile" element={<Profile />} />
               <Route path="/home/edit-profile" element={<EditProfile />} />
               <Route path="/home/update-password" element={<UpdatePassword />} />
@@ -74,6 +76,47 @@ export default function AppRoutes() {
               <Route path="/home/ListeFormation/:id" element={<FicheFormation />} />
               <Route path="/home/MyCertificate" element={<CertificatesByEmailPage />} />
 
+              {/* ════════════════════════════════════════════════════════════
+                  Admin uniquement — gestion des comptes, RICE, test
+                  ════════════════════════════════════════════════════════════ */}
+              <Route element={<RoleGuard allowedRoles={["admin"]} />}>
+                <Route path="/home/accounts" element={<ListAccounts />} />
+                <Route path="/home/rice" element={<RicePage />} />
+                <Route path="/home/test" element={<Tests />} />
+              </Route>
+
+              {/* ════════════════════════════════════════════════════════════
+                  Admin + D2F — KPI complet, Analyse prédictive,
+                  gestion formations (créer), Documents
+                  ════════════════════════════════════════════════════════════ */}
+              <Route element={<RoleGuard allowedRoles={["admin", "D2F"]} />}>
+                <Route path="/home/KPI" element={<KPIChart />} />
+                <Route path="/home/AnalysePredictive" element={<AnalysePredictivePage />} />
+                <Route path="/home/Formation" element={<FormationPage />} />
+                <Route path="/home/Formation/Creer" element={<FormationCreationPage />} />
+                <Route path="/home/Formation/Consulter" element={<FormationConsultationPage />} />
+                <Route path="/home/File" element={<CombinedFormationOneDriveTree />} />
+                <Route path="/home/Calendrier" element={<CalendrierPage />} />
+                <Route path="/home/calendar" element={<Calendrier />} />
+                <Route path="/home/calendar/:enseignantId" element={<CalendarEnseignant />} />
+                <Route path="/home/Enseignants" element={<TeachersDataGrid />} />
+                <Route path="/home/enseignants" element={<TeachersDataGrid />} />
+                <Route path="/home/enseignant" element={<TeachersDataGrid />} />
+                <Route path="/home/UpDept" element={<UpDeptDataGrid />} />
+                <Route path="/home/certificate" element={<CompletedFormations />} />
+                <Route path="/home/certificate/:formationId" element={<CertificatePage />} />
+              </Route>
+
+              {/* ════════════════════════════════════════════════════════════
+                  Admin + D2F + CUP — évaluations globales
+                  ════════════════════════════════════════════════════════════ */}
+              <Route element={<RoleGuard allowedRoles={["admin", "D2F", "CUP"]} />}>
+                <Route path="/home/Evaluations" element={<EvaluationGlobalePage />} />
+              </Route>
+
+              {/* ════════════════════════════════════════════════════════════
+                  Compétences — Admin, D2F, CUP, Enseignant
+                  ════════════════════════════════════════════════════════════ */}
               <Route element={<RoleGuard allowedRoles={["admin", "D2F", "CUP", "Enseignant"]} />}>
                 <Route path="/home/competences" element={<CompetencePage />} />
                 <Route path="/home/competence" element={<CompetencePage />} />
@@ -85,55 +128,37 @@ export default function AppRoutes() {
                   path="/home/competence/enseignant/:enseignantId"
                   element={<EnseignantCompetencePage />}
                 />
+              </Route>
+
+              {/* ════════════════════════════════════════════════════════════
+                  Affectations & Matchmaking — Admin, D2F, CUP
+                  ════════════════════════════════════════════════════════════ */}
+              <Route element={<RoleGuard allowedRoles={["admin", "D2F", "CUP"]} />}>
                 <Route path="/home/affectations" element={<AffectationEnseignantPage />} />
-                <Route path="/home/rice" element={<RicePage />} />
                 <Route path="/home/rice/matchmaking" element={<CompetenceMatchingPage />} />
                 <Route path="/home/rice/competence-matching" element={<CompetenceMatchingPage />} />
-                <Route path="/home/File" element={<CombinedFormationOneDriveTree />} />
-                <Route path="/home/KPI" element={<KPIChart />} />
-                <Route path="/home/UpDept" element={<UpDeptDataGrid />} />
-                <Route path="/home/Calendrier" element={<CalendrierPage />} />
-                <Route path="/home/Formation" element={<FormationPage />} />
-                <Route path="/home/Formation/Creer" element={<FormationCreationPage />} />
-                <Route path="/home/Formation/Consulter" element={<FormationConsultationPage />} />
-                <Route path="/home/Evaluations" element={<EvaluationGlobalePage />} />
-                <Route path="/home/AnalysePredictive" element={<AnalysePredictivePage />} />
-                <Route
-                  path="/home/BesoinApprouver"
-                  element={<BesoinFormationApproval />}
-                />
-                <Route
-                  path="/home/besoins"
-                  element={<BesoinList />}
-                />
-                <Route
-                  path="/home/besoins/ajouter"
-                  element={<BesoinForm />}
-                />
+              </Route>
+
+              {/* ════════════════════════════════════════════════════════════
+                  Besoin Formation — lecture : tous, approbation : Admin+CUP
+                  ════════════════════════════════════════════════════════════ */}
+              <Route element={<RoleGuard allowedRoles={["admin", "D2F", "CUP", "Enseignant"]} />}>
+                <Route path="/home/besoins" element={<BesoinList />} />
+                <Route path="/home/besoins/ajouter" element={<BesoinForm />} />
+              </Route>
+
+              <Route element={<RoleGuard allowedRoles={["admin", "D2F", "CUP"]} />}>
+                <Route path="/home/BesoinApprouver" element={<BesoinFormationApproval />} />
                 <Route
                   path="/home/ListeFormation/:id/demandes"
                   element={<DemandesList />}
                 />
-
-                <Route path="/home/test" element={<Tests />} />
-
-                <Route path="/home/calendar" element={<Calendrier />} />
-                <Route path="/home/accounts" element={<ListAccounts />} />
-                <Route path="/home/Enseignants" element={<TeachersDataGrid />} />
-                <Route path="/home/enseignants" element={<TeachersDataGrid />} />
-                <Route path="/home/enseignant" element={<TeachersDataGrid />} />
-                <Route
-                  path="/home/calendar/:enseignantId"
-                  element={<CalendarEnseignant />}
-                />
-                <Route path="/home/certificate" element={<CompletedFormations />} />
-                <Route
-                  path="/home/certificate/:formationId"
-                  element={<CertificatePage />}
-                />
               </Route>
 
-              <Route element={<RoleGuard allowedRoles={["Formateur", "D2F", "Enseignant"]} />}>
+              {/* ════════════════════════════════════════════════════════════
+                  Présence & Évaluation Formateur — Formateur, D2F, Enseignant
+                  ════════════════════════════════════════════════════════════ */}
+              <Route element={<RoleGuard allowedRoles={["Formateur", "D2F", "Enseignant", "admin"]} />}>
                 <Route
                   path="/home/animateur-formations"
                   element={<FormationList />}

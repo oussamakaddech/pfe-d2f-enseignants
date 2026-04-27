@@ -17,6 +17,8 @@ import {
   FormOutlined,
   BarChartOutlined,
   TrophyOutlined,
+  SafetyCertificateOutlined,
+  UserOutlined,
 } from "@ant-design/icons";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
@@ -29,17 +31,22 @@ export default function SideMenu() {
   const items = useMemo(() => {
     if (!user) return [];
 
-    // Entrées communes à tous les utilisateurs
+    // ──────────────────────────────────────────────
+    // Entrées communes à TOUS les utilisateurs
+    // ──────────────────────────────────────────────
     const common = [
-      { label: "Profil", key: "/home/profile", icon: SolutionOutlined },
+      { label: "Profil", key: "/home/profile", icon: UserOutlined },
       {
         label: "Inscriptions",
         key: "/home/ListeFormation",
         icon: FileTextOutlined,
       },
+      { label: "Mes Certificats", key: "/home/MyCertificate", icon: SafetyCertificateOutlined },
     ];
 
-    // Menu admin
+    // ──────────────────────────────────────────────
+    // Menu ADMIN — accès complet
+    // ──────────────────────────────────────────────
     const admin = [
       { label: "KPI", key: "/home/KPI", icon: BarChartOutlined },
       { label: "Comptes", key: "/home/accounts", icon: TeamOutlined },
@@ -55,8 +62,11 @@ export default function SideMenu() {
       { label: "Évaluations", key: "/home/Evaluations", icon: TrophyOutlined },
       { label: "Analyse Prédictive", key: "/home/AnalysePredictive", icon: RobotOutlined },
       { label: "Documents", key: "/home/File", icon: FileTextOutlined },
+      { label: "Calendrier", key: "/home/Calendrier", icon: CalendarOutlined },
       { label: "Gestion Enseignant", key: "/home/Enseignants", icon: TeamOutlined },
-      { label: "Gestion Competence", key: "/home/competences", icon: ApartmentOutlined },
+      { label: "Up & Département", key: "/home/UpDept", icon: ReadOutlined },
+      { label: "Certificats Formations", key: "/home/certificate", icon: SafetyCertificateOutlined },
+      { label: "Gestion Compétence", key: "/home/competences", icon: ApartmentOutlined },
       {
         label: "Besoin Formation",
         key: "besoin_formation_menu",
@@ -64,7 +74,7 @@ export default function SideMenu() {
         children: [
           { label: "Liste des Besoins", key: "/home/besoins", icon: SearchOutlined },
           { label: "Ajouter Besoin", key: "/home/besoins/ajouter", icon: PlusCircleOutlined },
-          { label: "Besoin Approuver", key: "/home/BesoinApprouver", icon: ReadOutlined },
+          { label: "Approuver Besoins", key: "/home/BesoinApprouver", icon: ReadOutlined },
         ],
       },
       {
@@ -77,12 +87,14 @@ export default function SideMenu() {
         ],
       },
       { label: "RICE", key: "/home/rice", icon: RobotOutlined },
+      { label: "Présence & Évaluation", key: "/home/animateur-formations", icon: ReadOutlined },
     ];
-    // Menu D2F
+
+    // ──────────────────────────────────────────────
+    // Menu D2F — Direction de la Formation
+    // ──────────────────────────────────────────────
     const D2F = [
       { label: "KPI", key: "/home/KPI", icon: BarChartOutlined },
-      { label: "Comptes", key: "/home/accounts", icon: TeamOutlined },
-      { label: "Calendrier", key: "/home/Calendrier", icon: CalendarOutlined },
       {
         label: "Formations",
         key: "formations_menu",
@@ -94,49 +106,12 @@ export default function SideMenu() {
       },
       { label: "Évaluations", key: "/home/Evaluations", icon: TrophyOutlined },
       { label: "Analyse Prédictive", key: "/home/AnalysePredictive", icon: RobotOutlined },
-      {
-        label: "Besoin Formation",
-        key: "besoin_formation_menu",
-        icon: ReadOutlined,
-        children: [
-          { label: "Liste des Besoins", key: "/home/besoins", icon: SearchOutlined },
-          { label: "Ajouter Besoin", key: "/home/besoins/ajouter", icon: PlusCircleOutlined },
-          { label: "Besoin Approuver", key: "/home/BesoinApprouver", icon: ReadOutlined },
-        ],
-      },
-      { label: "Documents", key: "/home/File", icon: FileTextOutlined },
-      { label: "Enseignants", key: "/home/Enseignants", icon: TeamOutlined },
-      { label: "Certificates", key: "/home/certificate", icon: ReadOutlined },
-      { label: "Up & Departement", key: "/home/UpDept", icon: ReadOutlined },
-      { label: "Presence & Evaluation", key: "/home/animateur-formations", icon: ReadOutlined },
-      { label: "Gestion Competence", key: "/home/competences", icon: ApartmentOutlined },
-      {
-        label: "Gestion d'affectation",
-        key: "gestion_affectation",
-        icon: SolutionOutlined,
-        children: [
-          { label: "Consultation Affectation", key: "/home/affectations" },
-          { label: "Affectation via Matchmaking", key: "/home/rice/matchmaking" },
-        ],
-      },
-      { label: "RICE", key: "/home/rice", icon: RobotOutlined },
-    ];
-    // Menu Enseignant (même accès que D2F)
-    const Enseignant = [
-      { label: "KPI", key: "/home/KPI", icon: DashboardOutlined },
-      { label: "Comptes", key: "/home/accounts", icon: TeamOutlined },
       { label: "Calendrier", key: "/home/Calendrier", icon: CalendarOutlined },
-      {
-        label: "Formations",
-        key: "formations_menu",
-        icon: FormOutlined,
-        children: [
-          { label: "Créer une Formation", key: "/home/Formation/Creer", icon: PlusCircleOutlined },
-          { label: "Consulter les Formations", key: "/home/Formation/Consulter", icon: SearchOutlined },
-        ],
-      },
-      { label: "Évaluations", key: "/home/Evaluations", icon: TrophyOutlined },
-      { label: "Analyse Prédictive", key: "/home/AnalysePredictive", icon: RobotOutlined },
+      { label: "Enseignants", key: "/home/Enseignants", icon: TeamOutlined },
+      { label: "Up & Département", key: "/home/UpDept", icon: ReadOutlined },
+      { label: "Documents", key: "/home/File", icon: FileTextOutlined },
+      { label: "Certificats Formations", key: "/home/certificate", icon: SafetyCertificateOutlined },
+      { label: "Gestion Compétence", key: "/home/competences", icon: ApartmentOutlined },
       {
         label: "Besoin Formation",
         key: "besoin_formation_menu",
@@ -144,15 +119,9 @@ export default function SideMenu() {
         children: [
           { label: "Liste des Besoins", key: "/home/besoins", icon: SearchOutlined },
           { label: "Ajouter Besoin", key: "/home/besoins/ajouter", icon: PlusCircleOutlined },
-          { label: "Besoin Approuver", key: "/home/BesoinApprouver", icon: ReadOutlined },
+          { label: "Approuver Besoins", key: "/home/BesoinApprouver", icon: ReadOutlined },
         ],
       },
-      { label: "Documents", key: "/home/File", icon: FileTextOutlined },
-      { label: "Enseignants", key: "/home/Enseignants", icon: TeamOutlined },
-      { label: "Certificates", key: "/home/certificate", icon: ReadOutlined },
-      { label: "Up & Departement", key: "/home/UpDept", icon: ReadOutlined },
-      { label: "Presence & Evaluation", key: "/home/animateur-formations", icon: ReadOutlined },
-      { label: "Gestion Competence", key: "/home/competences", icon: ApartmentOutlined },
       {
         label: "Gestion d'affectation",
         key: "gestion_affectation",
@@ -162,27 +131,26 @@ export default function SideMenu() {
           { label: "Affectation via Matchmaking", key: "/home/rice/matchmaking" },
         ],
       },
-      { label: "RICE", key: "/home/rice", icon: RobotOutlined },
+      { label: "Présence & Évaluation", key: "/home/animateur-formations", icon: ReadOutlined },
     ];
-        // Menu CUP
+
+    // ──────────────────────────────────────────────
+    // Menu CUP — Chef d'Unité Pédagogique
+    // ──────────────────────────────────────────────
     const CUP = [
-      { label: "Tableau de bord", key: "/home/profile", icon: HomeOutlined },
-      { label: "KPI", key: "/home/KPI", icon: DashboardOutlined },
-      {
-        label: "Besoin Formation",
-        key: "besoin_formation_menu",
-        icon: ReadOutlined,
-        children: [
-          { label: "Liste des Besoins", key: "/home/besoins", icon: SearchOutlined },
-          { label: "Ajouter Besoin", key: "/home/besoins/ajouter", icon: PlusCircleOutlined },
-        ],
-      },
-      { label: "Mes Formations", key: "/home/animateur-formations", icon: ReadOutlined },
-      { label: "Enseignants", key: "/home/Enseignants", icon: TeamOutlined },
-      { label: "Certificates", key: "/home/certificate", icon: ReadOutlined },
-      { label: "Mes Certificates", key: "/home/MyCertificate", icon: ReadOutlined },
+      { label: "Évaluations", key: "/home/Evaluations", icon: TrophyOutlined },
       { label: "Compétences", key: "/home/competences", icon: ApartmentOutlined },
       {
+        label: "Besoin Formation",
+        key: "besoin_formation_menu",
+        icon: ReadOutlined,
+        children: [
+          { label: "Liste des Besoins", key: "/home/besoins", icon: SearchOutlined },
+          { label: "Ajouter Besoin", key: "/home/besoins/ajouter", icon: PlusCircleOutlined },
+          { label: "Approuver Besoins", key: "/home/BesoinApprouver", icon: ReadOutlined },
+        ],
+      },
+      {
         label: "Gestion d'affectation",
         key: "gestion_affectation",
         icon: SolutionOutlined,
@@ -191,12 +159,31 @@ export default function SideMenu() {
           { label: "Affectation via Matchmaking", key: "/home/rice/matchmaking" },
         ],
       },
-      { label: "RICE", key: "/home/rice", icon: RobotOutlined },
+      { label: "Présence & Évaluation", key: "/home/animateur-formations", icon: ReadOutlined },
     ];
-    // Menu formateur (role = "Formateur")
+
+    // ──────────────────────────────────────────────
+    // Menu Enseignant — accès limité
+    // ──────────────────────────────────────────────
+    const Enseignant = [
+      { label: "Compétences", key: "/home/competences", icon: ApartmentOutlined },
+      {
+        label: "Besoin Formation",
+        key: "besoin_formation_menu",
+        icon: ReadOutlined,
+        children: [
+          { label: "Liste des Besoins", key: "/home/besoins", icon: SearchOutlined },
+          { label: "Ajouter Besoin", key: "/home/besoins/ajouter", icon: PlusCircleOutlined },
+        ],
+      },
+      { label: "Présence & Évaluation", key: "/home/animateur-formations", icon: ReadOutlined },
+    ];
+
+    // ──────────────────────────────────────────────
+    // Menu Formateur — animateur de sessions
+    // ──────────────────────────────────────────────
     const formateur = [
       { label: "Mes Formations", key: "/home/animateur-formations", icon: ReadOutlined },
-      { label: "Mes Certificates", key: "/home/MyCertificate", icon: ReadOutlined },
     ];
 
     // Les items selon rôle
@@ -206,15 +193,12 @@ export default function SideMenu() {
         roleItems = admin;
         break;
       case "CUP":
-        // Pour le CUP, on ne rajoute rien de plus (seulement Formations + Profil)
         roleItems = CUP;
         break;
       case "D2F":
-        // Pour le D2F, pareil : il voit la liste Formations générale
         roleItems = D2F;
         break;
       case "Enseignant":
-        // L'Enseignant a les mêmes accès que le D2F
         roleItems = Enseignant;
         break;
       case "Formateur":

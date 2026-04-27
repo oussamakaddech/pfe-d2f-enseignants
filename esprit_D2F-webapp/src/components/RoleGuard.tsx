@@ -4,7 +4,10 @@ import { AuthContext } from "../context/AuthContext";
 
 /**
  * Frontend Authorization Matrix
- * Mirrors backend permissions to prevent UI rendering of unauthorized features
+ * Mirrors backend permissions to prevent UI rendering of unauthorized features.
+ * Must stay in sync with:
+ *   - AuthorizationMatrix.java (auth service)
+ *   - AuthorizationFilter.java (gateway)
  */
 export const FRONTEND_PERMISSIONS = {
   // Competence Management
@@ -27,30 +30,26 @@ export const FRONTEND_PERMISSIONS = {
 
   // Besoins en Formation
   BESOIN_FORMATION: {
-    READ_ALL: ['admin'],
-    READ_CUP: ['admin', 'CUP'],
-    READ_ENSEIGNANT: ['admin', 'Enseignant'],
+    READ_ALL: ['admin', 'CUP', 'D2F', 'Enseignant'],
     CREATE: ['admin', 'CUP', 'Enseignant'],
     UPDATE: ['admin'],
     DELETE: ['admin'],
-    APPROVE: ['admin', 'CUP'],
+    APPROVE: ['admin', 'CUP', 'D2F'],
   },
 
   // Planification Formations
   FORMATION: {
-    READ: ['admin', 'CUP', 'Enseignant', 'Formateur'],
-    CREATE: ['admin', 'CUP'],
-    UPDATE: ['admin', 'CUP'],
+    READ: ['admin', 'CUP', 'D2F', 'Enseignant', 'Formateur'],
+    CREATE: ['admin', 'D2F'],
+    UPDATE: ['admin', 'D2F'],
     DELETE: ['admin'],
-    APPROVE: ['admin', 'CUP'],
+    APPROVE: ['admin', 'D2F'],
     READ_OWN: ['Formateur'],
   },
 
   // Evaluations & Certificats
   EVALUATION: {
-    READ_ALL: ['admin'],
-    READ_CUP: ['CUP'],
-    READ_ENSEIGNANT: ['Enseignant'],
+    READ_ALL: ['admin', 'D2F', 'CUP'],
     READ_FORMATEUR: ['Formateur'],
     CREATE: ['admin', 'Formateur'],
     UPDATE: ['admin', 'Formateur'],
@@ -59,7 +58,7 @@ export const FRONTEND_PERMISSIONS = {
   },
 
   CERTIFICAT: {
-    READ: ['admin', 'CUP', 'Enseignant', 'Formateur'],
+    READ: ['admin', 'CUP', 'D2F', 'Enseignant', 'Formateur'],
     CREATE: ['admin'],
     UPDATE: ['admin'],
     DELETE: ['admin'],
@@ -73,9 +72,9 @@ export const FRONTEND_PERMISSIONS = {
     DELETE: ['admin'],
   },
 
-  // Dashboard
+  // Dashboard / KPI
   DASHBOARD: {
-    ADMIN_FULL: ['admin'],
+    ADMIN_FULL: ['admin', 'D2F'],
     ADMIN_LIMITED: ['CUP'],
   },
 
@@ -90,6 +89,7 @@ export const FRONTEND_PERMISSIONS = {
     EDIT_OWN: ['admin', 'CUP', 'D2F', 'Enseignant', 'Formateur'],
   },
 };
+
 
 interface RoleGuardProps {
   allowedRoles: string[];

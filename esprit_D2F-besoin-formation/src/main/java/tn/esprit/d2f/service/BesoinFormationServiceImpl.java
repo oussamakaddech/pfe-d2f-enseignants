@@ -9,6 +9,7 @@ import tn.esprit.d2f.DTO.BesoinFormationApprovedEvent;
 import tn.esprit.d2f.DTO.BesoinFormationEventPublisher;
 import tn.esprit.d2f.entity.BesoinFormation;
 import tn.esprit.d2f.entity.Notification;
+import tn.esprit.d2f.entity.enumerations.Priorite;
 import tn.esprit.d2f.repository.BesoinFormationRepository;
 import tn.esprit.d2f.repository.NotificationRepository;
 
@@ -30,7 +31,9 @@ public class BesoinFormationServiceImpl implements IBesoinFormationService{
     }
 
     public BesoinFormation retrieveBesoinFormation(long idBesoinFormation) {
-        return besoinFormationRepository.findById(idBesoinFormation).get() ;
+        return besoinFormationRepository.findById(idBesoinFormation)
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Besoin de formation introuvable avec l'ID : " + idBesoinFormation));
     }
 
     public BesoinFormation addBesoinFormation(BesoinFormation b) {
@@ -74,7 +77,7 @@ public class BesoinFormationServiceImpl implements IBesoinFormationService{
             return b;
         }
 
-        // 2) Sinon on approuve et on publie l’événement
+        // 2) Sinon on approuve et on publie l'événement
 
         b.setEventPublished(true);            // on marque comme publié
         besoinFormationRepository.save(b);
@@ -113,6 +116,28 @@ public class BesoinFormationServiceImpl implements IBesoinFormationService{
     @Override
     public List<BesoinFormation> retrieveApprovedBesoinFormations() {
         return besoinFormationRepository.findByApprouveAdminTrue();
+    }
+
+    // ── Nouveaux endpoints §2.2.2 ──
+
+    @Override
+    public List<BesoinFormation> retrieveByUp(String up) {
+        return besoinFormationRepository.findByUp(up);
+    }
+
+    @Override
+    public List<BesoinFormation> retrieveByDepartement(String departement) {
+        return besoinFormationRepository.findByDepartement(departement);
+    }
+
+    @Override
+    public List<BesoinFormation> retrieveAllByPriorite() {
+        return besoinFormationRepository.findAllByOrderByPrioriteDesc();
+    }
+
+    @Override
+    public List<BesoinFormation> retrieveByPriorite(Priorite priorite) {
+        return besoinFormationRepository.findByPriorite(priorite);
     }
 
 }
