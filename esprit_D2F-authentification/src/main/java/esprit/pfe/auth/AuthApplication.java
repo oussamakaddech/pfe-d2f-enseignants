@@ -31,8 +31,8 @@ public class AuthApplication {
                     .orElseGet(() -> roleRepository.save(new Role(ERole.admin)));
             roleRepository.findByName(ERole.CUP)
                     .orElseGet(() -> roleRepository.save(new Role(ERole.CUP)));
-            roleRepository.findByName(ERole.D2F)
-                    .orElseGet(() -> roleRepository.save(new Role(ERole.D2F)));
+            roleRepository.findByName(ERole.Enseignant)
+                    .orElseGet(() -> roleRepository.save(new Role(ERole.Enseignant)));
             roleRepository.findByName(ERole.Formateur)
                     .orElseGet(() -> roleRepository.save(new Role(ERole.Formateur)));
 

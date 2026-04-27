@@ -250,12 +250,6 @@ public class SecurityController {
                         roles.add(coachRole);
                         break;
 
-                    case "D2F":
-                        Role scouterRole = roleRepository.findByName(ERole.D2F)
-                                .orElseThrow(() -> new RuntimeException("Error: Role is not found."));
-                        roles.add(scouterRole);
-                        break;
-
                     case "Enseignant":
                         Role enseignantRole = roleRepository.findByName(ERole.Enseignant)
                                 .orElseThrow(() -> new RuntimeException("Error: Role is not found."));
