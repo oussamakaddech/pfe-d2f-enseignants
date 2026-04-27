@@ -18,9 +18,12 @@ export async function login({
   password,
 }: LoginRequest): Promise<LoginResponse> {
   // SÉCURITÉ : credentials envoyés dans le corps POST, jamais dans l'URL
+  const params = new URLSearchParams();
+  params.append("username", username);
+  params.append("password", password);
   const response: AxiosResponse<LoginResponse> = await api.post(
-    `/auth/login`,
-    { username, password }
+    `/login`,
+    params
   );
 
   if (response.data.accessToken) {
@@ -31,12 +34,12 @@ export async function login({
 }
 
 export async function signup(payload: SignupRequest): Promise<unknown> {
-  const response = await api.post("/auth/signup", payload);
+  const response = await api.post("/signup", payload);
   return response.data;
 }
 
 export async function forgotPassword(emailAddress: string): Promise<unknown> {
-  const url = `/auth/forgot-password?emailAddress=${encodeURIComponent(
+  const url = `/forgot-password?emailAddress=${encodeURIComponent(
     emailAddress
   )}`;
   const response = await api.post(url);
@@ -48,7 +51,7 @@ export async function resetPassword({
   newPassword,
 }: ResetPasswordRequest): Promise<unknown> {
   // SÉCURITÉ : credentials envoyés dans le corps POST, jamais dans l'URL
-  const response = await api.post(`/auth/reset-password`, {
+  const response = await api.post(`/reset-password`, {
     confirmationKey,
     newPassword,
   });
@@ -56,6 +59,6 @@ export async function resetPassword({
 }
 
 export async function getProfile(): Promise<AuthUser> {
-  const response = await api.get("/auth/profile");
+  const response = await api.get("/profile");
   return response.data;
 }

@@ -9,6 +9,7 @@ import org.springframework.web.bind.annotation.*;
 import tn.esprit.d2f.entity.BesoinFormation;
 import tn.esprit.d2f.entity.BesoinFormationRequest;
 import tn.esprit.d2f.entity.Notification;
+import tn.esprit.d2f.entity.enumerations.Priorite;
 import tn.esprit.d2f.repository.NotificationRepository;
 import tn.esprit.d2f.service.IBesoinFormationService;
 import esprit.pfe.auth.Security.AuthorizationMatrix;
@@ -82,5 +83,34 @@ public class BesoinFormationController {
         return besoinFormationService.retrieveApprovedBesoinFormations();
     }
 
-}
+    // ── Nouveaux endpoints §2.2.2 — Consultation et priorisation ──
 
+    /** Consulter les besoins par UP */
+    @GetMapping("/by-up/{up}")
+    @PreAuthorize(AuthorizationMatrix.BESOIN_FORMATION_READ_ALL)
+    public List<BesoinFormation> getBesoinsByUp(@PathVariable String up) {
+        return besoinFormationService.retrieveByUp(up);
+    }
+
+    /** Consulter les besoins par département */
+    @GetMapping("/by-departement/{departement}")
+    @PreAuthorize(AuthorizationMatrix.BESOIN_FORMATION_READ_ALL)
+    public List<BesoinFormation> getBesoinsByDepartement(@PathVariable String departement) {
+        return besoinFormationService.retrieveByDepartement(departement);
+    }
+
+    /** Récupérer tous les besoins triés par priorité (décroissant) */
+    @GetMapping("/by-priorite")
+    @PreAuthorize(AuthorizationMatrix.BESOIN_FORMATION_READ_ALL)
+    public List<BesoinFormation> getBesoinsByPriorite() {
+        return besoinFormationService.retrieveAllByPriorite();
+    }
+
+    /** Filtrer les besoins par niveau de priorité */
+    @GetMapping("/by-priorite/{priorite}")
+    @PreAuthorize(AuthorizationMatrix.BESOIN_FORMATION_READ_ALL)
+    public List<BesoinFormation> getBesoinsByPrioriteLevel(@PathVariable Priorite priorite) {
+        return besoinFormationService.retrieveByPriorite(priorite);
+    }
+
+}

@@ -71,6 +71,32 @@ const BesoinFormationService = {
     const response = await axios.get<string[]>(`${API_URL}/notifications/${username}`);
     return response.data;
   },
+
+  // ── Nouveaux endpoints §2.2.2 — Consultation et priorisation ──
+
+  async getBesoinsByUp(up: string): Promise<BesoinFormation[]> {
+    const response = await axios.get<BesoinFormation[]>(`${API_URL}/by-up/${up}`);
+    return response.data;
+  },
+
+  async getBesoinsByDepartement(departement: string): Promise<BesoinFormation[]> {
+    const response = await axios.get<BesoinFormation[]>(
+      `${API_URL}/by-departement/${departement}`
+    );
+    return response.data;
+  },
+
+  async getBesoinsByPriorite(): Promise<BesoinFormation[]> {
+    const response = await axios.get<BesoinFormation[]>(`${API_URL}/by-priorite`);
+    return response.data;
+  },
+
+  async getBesoinsByPrioriteLevel(priorite: string): Promise<BesoinFormation[]> {
+    const response = await axios.get<BesoinFormation[]>(
+      `${API_URL}/by-priorite/${priorite}`
+    );
+    return response.data;
+  },
 };
 
 export default BesoinFormationService;

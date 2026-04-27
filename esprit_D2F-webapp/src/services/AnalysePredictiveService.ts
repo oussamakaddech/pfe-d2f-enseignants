@@ -1,10 +1,10 @@
-import axios from "axios";
+import { defaultApi as axios } from "../utils/httpClient";
 import { config } from "../config/env";
 
 const PREDICTIVE_API = `${config.ANALYSE_URL}/analyse`;
 
 const AnalysePredictiveService = {
-  async analyserEnseignant(enseignantId, competenceCible) {
+  async analyserEnseignant(enseignantId: string, competenceCible?: string) {
     try {
       const response = await axios.post(
         `${PREDICTIVE_API}/predict/gaps/${enseignantId}`,

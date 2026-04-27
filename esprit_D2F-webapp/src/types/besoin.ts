@@ -1,5 +1,7 @@
 import type { Id } from "./common";
 
+export type Priorite = "BASSE" | "MOYENNE" | "HAUTE" | "CRITIQUE";
+
 export interface BesoinFormation {
   idBesoinFormation?: Id;
   username?: string;
@@ -28,4 +30,9 @@ export interface BesoinFormation {
   notificationMessage?: string;
   eventPublished?: boolean;
   dateCreation?: string;
+  /** §2.2.2 — Priorité du besoin (urgence) */
+  priorite?: Priorite;
+  /** §2.2.2 — Impact stratégique du besoin */
+  impactStrategique?: string;
 }
+
