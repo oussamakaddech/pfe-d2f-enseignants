@@ -4,19 +4,19 @@ package esprit.pfe.auth.Security;
  * Authorization Matrix - Defines permission rules for each role across all modules
  * Maps the business requirements to Spring Security SpEL expressions
  * 
- * Format: "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_D2F','ROLE_ENSEIGNANT','ROLE_FORMATEUR')"
+ * Rôles: ROLE_ADMIN, ROLE_CUP, ROLE_ENSEIGNANT, ROLE_FORMATEUR
  */
 public class AuthorizationMatrix {
 
     // ============ COMPETENCE & DOMAIN MANAGEMENT ============
-    public static final String COMPETENCE_READ = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_D2F','ROLE_ENSEIGNANT')";
+    public static final String COMPETENCE_READ = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_ENSEIGNANT')";
     public static final String COMPETENCE_CREATE = "hasAnyRole('ROLE_ADMIN')";
     public static final String COMPETENCE_UPDATE = "hasAnyRole('ROLE_ADMIN')";
     public static final String COMPETENCE_DELETE = "hasAnyRole('ROLE_ADMIN')";
     public static final String COMPETENCE_ASSIGN = "hasAnyRole('ROLE_ADMIN')";
 
     // ============ AFFECTATION ENSEIGNANTS ============
-    public static final String AFFECTATION_READ = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_D2F')";
+    public static final String AFFECTATION_READ = "hasAnyRole('ROLE_ADMIN','ROLE_CUP')";
     public static final String AFFECTATION_CREATE = "hasAnyRole('ROLE_ADMIN')";
     public static final String AFFECTATION_UPDATE_SELF = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_ENSEIGNANT')"; // CUP edits own profile, Enseignant edits own profile
     public static final String AFFECTATION_UPDATE_ALL = "hasAnyRole('ROLE_ADMIN')";
@@ -74,7 +74,7 @@ public class AuthorizationMatrix {
     public static final String ACCOUNT_EDIT_OWN = "isAuthenticated()"; // Everyone can edit own profile
 
     // ============ API GATEWAY ============
-    public static final String GATEWAY_ACCESS = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_D2F','ROLE_ENSEIGNANT','ROLE_FORMATEUR')";
+    public static final String GATEWAY_ACCESS = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_ENSEIGNANT','ROLE_FORMATEUR')";
 
     // ============ PUBLIC ENDPOINTS ============
     public static final String PUBLIC_ACCESS = "permitAll()";
