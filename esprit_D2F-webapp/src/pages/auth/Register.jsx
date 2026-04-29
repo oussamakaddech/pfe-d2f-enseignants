@@ -230,7 +230,6 @@ export default function Register({ onSuccess } = {}) {
         >
           <Select>
             <Option value="admin">Admin</Option>
-            <Option value="D2F">D2F</Option>
             <Option value="CUP">CUP</Option>
             <Option value="Enseignant">Enseignant</Option>
             <Option value="Formateur">Formateur</Option>

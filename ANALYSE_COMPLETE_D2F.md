@@ -106,6 +106,30 @@ La plateforme **D2F** (Développement Des Formateurs) est une application **micr
 - **SonarQube** : Fichiers `sonar-project.properties` présents mais pas de pipeline CI/CD active
 - **Conventions** : Packages inconsistants (`tn.esprit.d2f` vs `esprit.pfe`)
 
+### 2.5 Gestion des besoins en formation
+
+Le service `besoin-formation` couvre déjà la logique fonctionnelle attendue pour la section §2.2.2, avec une séparation claire entre la couche métier, l’exposition REST et l’UI de consultation.
+
+#### Fonctionnalités couvertes
+
+- **Besoins individuels** : création d’une demande par enseignant pour développer une compétence ou un savoir précis.
+- **Besoins collectifs** : création d’une demande portée par un CUP pour une équipe ou une unité pédagogique.
+- **CRUD complet** : ajout, modification, suppression et consultation des besoins.
+- **Consultation ciblée** : filtrage des besoins par **UP** ou par **département**.
+- **Priorisation** : tri et filtrage des besoins selon la **priorité** et l’**impact stratégique**.
+
+#### Exposition technique
+
+- **Backend** : `BesoinFormationController` expose `/add-BesoinFormation`, `/modify-BesoinFormation`, `/remove-BesoinFormation/{id}`, `/by-up/{up}`, `/by-departement/{departement}` et `/by-priorite`.
+- **Repository** : requêtes Spring Data dédiées au filtrage par UP, département et priorité.
+- **Frontend** : `BesoinList` et `BesoinForm` permettent de créer, modifier, supprimer, approuver et filtrer les besoins.
+
+#### Lecture fonctionnelle
+
+- La **priorité** reste le critère principal de tri opérationnel, avec une visibilité distincte pour `BASSE`, `MOYENNE`, `HAUTE` et `CRITIQUE`.
+- L’**impact stratégique** sert à qualifier les besoins qui ont un effet direct sur la feuille de route D2F ou sur les compétences critiques.
+- Les besoins approuvés alimentent ensuite le workflow de création de formation via l’événement `BesoinFormationApprovedEvent`.
+
 ---
 
 ## 3. Frontend — React 19 + Vite

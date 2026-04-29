@@ -37,6 +37,8 @@ volumes:
     name: d2f_artemis_data
   d2f_models_data:
     name: d2f_models_data
+  d2f_pgadmin_data:
+    name: d2f_pgadmin_data
 
 # =============================================================================
 # SERVICES
@@ -84,6 +86,29 @@ services:
       timeout: 10s
       retries: 5
       start_period: 20s
+    networks:
+      - d2f-network
+
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: d2f-pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@d2f.tn
+      PGADMIN_DEFAULT_PASSWORD: admin123
+      SCRIPT_NAME: /pgadmin4
+      PGADMIN_CONFIG_ENHANCED_COOKIE_PROTECTION: 'False'
+      PGADMIN_CONFIG_COOKIE_DEFAULT: 'True'
+      PGADMIN_CONFIG_COOKIE_SAMESITE: 'Lax'
+      PGADMIN_CONFIG_PROXY_X_FOR_COUNT: 1
+      PGADMIN_CONFIG_PROXY_X_PROTO_COUNT: 1
+    ports:
+      - "5050:80"
+    volumes:
+      - d2f_pgadmin_data:/var/lib/pgadmin
+    depends_on:
+      postgres:
+        condition: service_healthy
     networks:
       - d2f-network
 
@@ -147,8 +172,8 @@ services:
 
   besoin-formation-service:
     build:
-      context: ./esprit_D2F-besoin-formation
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: esprit_D2F-besoin-formation/Dockerfile
     container_name: d2f-besoin-formation
     restart: unless-stopped
     ports:

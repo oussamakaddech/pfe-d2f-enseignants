@@ -1,7 +1,5 @@
 package esprit.pfe.serviceformation.Entities;
 
-
-
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -11,8 +9,7 @@ import java.time.OffsetDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "inscriptions",
-        uniqueConstraints = @UniqueConstraint(columnNames = {"formation_id", "enseignant_id"}))
+@Table(name = "inscriptions", uniqueConstraints = @UniqueConstraint(columnNames = { "formation_id", "enseignant_id" }))
 public class Inscription {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

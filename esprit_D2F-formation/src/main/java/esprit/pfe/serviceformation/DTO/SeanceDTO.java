@@ -22,6 +22,7 @@ public class SeanceDTO {
     private String methodes;
     private Float dureeTheorique;
     private Float dureePratique;
+    private String onlineMeetingUrl;  // URL de réunion Teams
     private List<EnseignantDTO> animateurs;
     private List<EnseignantDTO> participants;
 

@@ -78,6 +78,18 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
   /* UI */
   const [showMore, setShowMore] = useState(false);
   const [snack, setSnack] = useState({ open: false, severity: "info", message: "" });
+  
+  const getEnseignantLabel = (opt) => {
+    if (!opt) return "";
+    let roles = [];
+    if (opt.type === "P") roles.push("Perm.");
+    if (opt.type === "V") roles.push("Vac.");
+    if (opt.cup === "O" || opt.cup === "Y" || opt.cup === "1") roles.push("CUP");
+    if (opt.chefDepartement === "O" || opt.chefDepartement === "Y" || opt.chefDepartement === "1") roles.push("ChefDep");
+    
+    const roleStr = roles.length > 0 ? ` [${roles.join(", ")}]` : "";
+    return `${opt.nom} ${opt.prenom} (${opt.mail})${roleStr}`;
+  };
 
   /* ---------- chargement de la formation à éditer ---------- */
   useEffect(() => {
@@ -590,7 +602,7 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
                     multiple
                     disabled={typeFormation === "EXTERNE"}
                     options={optionsAnim}
-                    getOptionLabel={(o) => `${o.nom} ${o.prenom} (${o.mail})`}
+                    getOptionLabel={getEnseignantLabel}
                     isOptionEqualToValue={(o, v) => o.id === v?.id}
                     value={s.animateurs}
                     onChange={(_, v) => updateSeance(i, "animateurs", v)}
@@ -702,7 +714,7 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
           <Autocomplete
             multiple
             options={optionsPart}
-            getOptionLabel={(o) => `${o.nom} ${o.prenom} (${o.mail})`}
+            getOptionLabel={getEnseignantLabel}
             isOptionEqualToValue={(o, v) => o.id === v?.id}
             value={partSel}
             onChange={(_, v) => setPartSel(v)}

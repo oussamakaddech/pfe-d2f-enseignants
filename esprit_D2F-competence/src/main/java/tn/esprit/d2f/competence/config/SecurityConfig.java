@@ -57,17 +57,17 @@ public class SecurityConfig {
                         ).permitAll()
                         // Lecture : tous les rôles
                         .requestMatchers(HttpMethod.GET, "/api/**")
-                            .hasAnyRole("admin", "CUP", "D2F", "Formateur")
-                        // Création / modification : admin, CUP, D2F
+                            .hasAnyRole("admin", "CUP", "Enseignant", "Formateur")
+                        // Création / modification : admin, CUP, Enseignant
                         .requestMatchers(HttpMethod.POST, "/api/**")
-                            .hasAnyRole("admin", "CUP", "D2F", "Formateur")
+                            .hasAnyRole("admin", "CUP", "Enseignant", "Formateur")
                         .requestMatchers(HttpMethod.PUT, "/api/**")
-                            .hasAnyRole("admin", "CUP", "D2F", "Formateur")
+                            .hasAnyRole("admin", "CUP", "Enseignant", "Formateur")
                         .requestMatchers(HttpMethod.PATCH, "/api/**")
-                            .hasAnyRole("admin", "CUP", "D2F", "Formateur")
+                            .hasAnyRole("admin", "CUP", "Enseignant", "Formateur")
                         // Suppression : admin uniquement
                         .requestMatchers(HttpMethod.DELETE, "/api/**")
-                            .hasAnyRole("admin", "CUP", "D2F")
+                            .hasAnyRole("admin", "CUP", "Enseignant")
                         .anyRequest().authenticated()
                 )
                 .oauth2ResourceServer(oauth2 ->

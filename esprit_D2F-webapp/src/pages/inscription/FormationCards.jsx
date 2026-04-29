@@ -90,16 +90,20 @@ export default function FormationCards() {
     setLoading(true);
     try {
       let data = [];
-      if (currentUser.role === "D2F") {
-        data = await FormationWorkflowService.getFormationsVisibles();
-        if (!data || data.length === 0) {
-          data = await FormationWorkflowService.getAllFormationWorkflows();
-        }
-      } else if (currentUser.role === "CUP") {
-        const enseignant = await EnseignantService.getEnseignantById(currentUser.id);
+      if (currentUser.role === "CUP") {
+        const identifier = currentUser.emailAddress || currentUser.email || currentUser.id;
+        const enseignant = await EnseignantService.getEnseignantById(identifier);
         data = await FormationWorkflowService.getFormationsParUp(enseignant.up?.id);
       } else if (currentUser.role === "Formateur") {
-        data = await InscriptionService.getFormationsAccessibles(currentUser.id);
+        const identifier = currentUser.emailAddress || currentUser.email || currentUser.id;
+        data = await InscriptionService.getFormationsAccessibles(identifier);
+      } else {
+        // admin, D2F, Enseignant, etc.
+        data = await FormationWorkflowService.getFormationsVisibles();
+        // Fallback for admin-like roles to see everything if nothing is marked visible
+        if ((currentUser.role === "D2F" || currentUser.role === "admin") && (!data || data.length === 0)) {
+          data = await FormationWorkflowService.getAllFormationWorkflows();
+        }
       }
       setFormations(data || []);
     } catch (err) {
@@ -129,7 +133,8 @@ export default function FormationCards() {
 
   const handleDemande = async (idFormation) => {
     try {
-      await InscriptionService.demanderInscription(idFormation, currentUser.id);
+      const identifier = currentUser.emailAddress || currentUser.email || currentUser.id;
+      await InscriptionService.demanderInscription(idFormation, identifier);
       messageApi.success("Demande d'inscription envoyée !");
       setRequested((prev) => [...prev, idFormation]);
     } catch (err) {
@@ -313,7 +318,8 @@ export default function FormationCards() {
                       </Tooltip>
                     )}
 
-                    {currentUser.role === "Formateur" &&
+                    {(currentUser.role === "Formateur" || currentUser.role === "Enseignant") &&
+                      f.inscriptionsOuvertes &&
                       (requested.includes(f.idFormation) ? (
                         <Tooltip title="Demande déjà envoyée">
                           <CheckCircleOutlined style={{ color: "#8c8c8c" }} />

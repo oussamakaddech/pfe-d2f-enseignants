@@ -8,21 +8,32 @@ LABEL maintainer="seddik bouzayani <seddik.bouzayani@esprit.tn>"
 # Workdir
 WORKDIR /opt/app
 
-# Copy Maven Wrapper
-COPY .mvn/ .mvn
+# Copy both modules so the shared auth artifact can be installed first
+COPY esprit_D2F-authentification/ esprit_D2F-authentification/
+COPY esprit_D2F-besoin-formation/ esprit_D2F-besoin-formation/
 
-# Copy Maven Wrapper script && pom.xml
-COPY mvnw pom.xml ./
+# Install the shared auth module into the local Maven repo
+RUN cd esprit_D2F-authentification && dos2unix mvnw && \
+  chmod u+x mvnw && \
+  ./mvnw clean install -DskipTests
+
+# Build the besoin-formation service from its own directory
+WORKDIR /opt/app/esprit_D2F-besoin-formation
+
+# Copy Maven Wrapper
+COPY esprit_D2F-besoin-formation/.mvn/ .mvn/
+COPY esprit_D2F-besoin-formation/mvnw ./
+COPY esprit_D2F-besoin-formation/pom.xml ./
 
 # Fix mvnw &
 RUN dos2unix mvnw && \
-    chmod u+x mvnw
+  chmod u+x mvnw
 
 # Resolves all project dependencies offline and keep cache
 RUN --mount=type=cache,target=/root/.m2 ./mvnw dependency:go-offline
 
 # Copy source code application
-COPY ./src ./src
+COPY esprit_D2F-besoin-formation/src ./src
 
 # Install the package to a local repository and keep cache
 RUN --mount=type=cache,target=/root/.m2 ./mvnw clean install -DskipTests
@@ -44,7 +55,7 @@ RUN addgroup -g 2003 esprit ; adduser  --ingroup esprit --disabled-password --ui
 USER esprit
 
 # Path to unpacked jar from builder image
-ARG DEPENDENCY=/opt/app/target/dependency
+ARG DEPENDENCY=/opt/app/esprit_D2F-besoin-formation/target/dependency
 
 # Copy unpacked jar from builder image
 COPY --from=builder ${DEPENDENCY}/BOOT-INF/lib /opt/app/lib

@@ -16,12 +16,24 @@ public class OutlookCalendarService {
     @Autowired
     private MicrosoftGraphClientProvider graphProvider;
 
-    // Création d'un événement avec des participants et récupération de son ID
-    public String addEventToCalendarAndReturnId(String organizerEmail, String subject, String htmlContent, OffsetDateTime start, OffsetDateTime end, String salle, List<String> attendeeEmails) {
+    // Classe wrapper pour retourner ID d'événement + URL de réunion Teams
+    public static class EventCreationResult {
+        public String eventId;
+        public String joinUrl;
+        public EventCreationResult(String eventId, String joinUrl) {
+            this.eventId = eventId;
+            this.joinUrl = joinUrl;
+        }
+    }
+
+    // Création d'un événement avec des participants et récupération de son ID + joinUrl Teams
+    public EventCreationResult addEventToCalendarAndReturnIdWithTeamsUrl(String organizerEmail, String subject, String htmlContent, OffsetDateTime start, OffsetDateTime end, String salle, List<String> attendeeEmails) {
         GraphServiceClient<Request> graphClient = graphProvider.getGraphClient();
 
         Event event = new Event();
         event.subject = subject;
+        event.isOnlineMeeting = true;  // ✅ Créer une réunion Teams
+        event.onlineMeetingProvider = OnlineMeetingProviderType.TEAMS_FOR_BUSINESS;  // ✅ Type: Teams
 
         ItemBody body = new ItemBody();
         body.contentType = BodyType.HTML; // Utiliser HTML
@@ -58,15 +70,23 @@ public class OutlookCalendarService {
                 .events()
                 .buildRequest()
                 .post(event);
-        return createdEvent.id;
+        
+        // ✅ Récupérer le joinUrl de la réunion Teams créée
+        String joinUrl = null;
+        if (createdEvent.onlineMeeting != null && createdEvent.onlineMeeting.joinUrl != null) {
+            joinUrl = createdEvent.onlineMeeting.joinUrl;
+        }
+        return new EventCreationResult(createdEvent.id, joinUrl);
     }
 
-    // Mise à jour d'un événement existant avec des participants
-    public void updateEventInCalendar(String organizerEmail, String eventId, String subject, String htmlContent, OffsetDateTime start, OffsetDateTime end, String salle, List<String> attendeeEmails) {
+    // Mise à jour d'un événement existant avec des participants + mode online meeting
+    public EventCreationResult updateEventInCalendarWithTeamsUrl(String organizerEmail, String eventId, String subject, String htmlContent, OffsetDateTime start, OffsetDateTime end, String salle, List<String> attendeeEmails) {
         GraphServiceClient<Request> graphClient = graphProvider.getGraphClient();
 
         Event updatedEvent = new Event();
         updatedEvent.subject = subject;
+        updatedEvent.isOnlineMeeting = true;  // ✅ Mettre à jour en réunion Teams
+        updatedEvent.onlineMeetingProvider = OnlineMeetingProviderType.TEAMS_FOR_BUSINESS;  // ✅ Type: Teams
 
         ItemBody body = new ItemBody();
         body.contentType = BodyType.HTML; // Utiliser HTML
@@ -99,10 +119,17 @@ public class OutlookCalendarService {
         }
 
         // Requête de mise à jour (PATCH) dans le calendrier de l'organisateur
-        graphClient.users(organizerEmail)
+        Event patchedEvent = graphClient.users(organizerEmail)
                 .events(eventId)
                 .buildRequest()
                 .patch(updatedEvent);
+        
+        // ✅ Récupérer le joinUrl après mise à jour
+        String joinUrl = null;
+        if (patchedEvent.onlineMeeting != null && patchedEvent.onlineMeeting.joinUrl != null) {
+            joinUrl = patchedEvent.onlineMeeting.joinUrl;
+        }
+        return new EventCreationResult(eventId, joinUrl);
     }
 
     // La suppression se fait toujours depuis le calendrier de l'organisateur
@@ -112,6 +139,11 @@ public class OutlookCalendarService {
                 .events(eventId)
                 .buildRequest()
                 .delete();
+    }
+
+    // ✅ ANCIENNE MÉTHODE - garder pour compatibilité backward
+    public String addEventToCalendarAndReturnId(String organizerEmail, String subject, String htmlContent, OffsetDateTime start, OffsetDateTime end, String salle, List<String> attendeeEmails) {
+        return addEventToCalendarAndReturnIdWithTeamsUrl(organizerEmail, subject, htmlContent, start, end, salle, attendeeEmails).eventId;
     }
 
     // Méthode d'ajout sans retour d'ID, si besoin (simple appel de la méthode ci-dessus)

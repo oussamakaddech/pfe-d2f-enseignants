@@ -1,6 +1,5 @@
 package esprit.pfe.serviceformation.Controllers;
 
-
 import esprit.pfe.serviceformation.DTO.FormationDTO;
 import esprit.pfe.serviceformation.DTO.InscriptionDTO;
 import esprit.pfe.serviceformation.Entities.*;
@@ -37,12 +36,16 @@ public class InscriptionController {
     }
 
     // 3. Lister les demandes en attente
-    /*@GetMapping("/inscriptions/demandes")
-    public List<Inscription> getDemandes(
-            @RequestParam String userId,
-            @RequestParam boolean isD2F) {
-        return service.listerDemandes(userId, isD2F);
-    }*/
+    /*
+     * @GetMapping("/inscriptions/demandes")
+     * public List<Inscription> getDemandes(
+     * 
+     * @RequestParam String userId,
+     * 
+     * @RequestParam boolean isD2F) {
+     * return service.listerDemandes(userId, isD2F);
+     * }
+     */
     @GetMapping("/formations/{formationId}/inscriptions")
     public List<InscriptionDTO> getInscriptionsByFormation(@PathVariable Long formationId) {
         try {
@@ -52,15 +55,13 @@ public class InscriptionController {
             throw new ResponseStatusException(
                     HttpStatus.NOT_FOUND,
                     ex.getMessage(),
-                    ex
-            );
+                    ex);
         } catch (Exception ex) {
             // toute autre erreur inattendue
             throw new ResponseStatusException(
                     HttpStatus.INTERNAL_SERVER_ERROR,
                     "Erreur interne lors de la récupération des inscriptions",
-                    ex
-            );
+                    ex);
         }
     }
 
@@ -72,4 +73,3 @@ public class InscriptionController {
         return service.traiterDemande(id, approuver);
     }
 }
-

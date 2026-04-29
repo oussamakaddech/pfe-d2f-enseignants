@@ -4,7 +4,7 @@
  *   - request interceptor: injects `Authorization: Bearer <token>` and checks expiry
  *   - response interceptor: clears token on 401 and redirects to login
  */
-import axios, { isAxiosError as axiosIsAxiosError, type InternalAxiosRequestConfig } from "axios";
+import axios, { isAxiosError as axiosIsAxiosError, type InternalAxiosRequestConfig, AxiosHeaders } from "axios";
 import { navigate } from "./navigation";
 import { config } from "../config/env";
 
@@ -43,7 +43,7 @@ export function createApiClient(baseURL?: string) {
 
   api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
     const token = localStorage.getItem("authToken");
-    if (!token) return config;
+    if (!token || token === "undefined" || token === "null") return config;
     try {
       const payload = parseJwt(token);
       const currentTime = Date.now() / 1000;
@@ -54,8 +54,13 @@ export function createApiClient(baseURL?: string) {
     } catch {
       localStorage.removeItem("authToken");
     }
-    if (!config.headers) config.headers = {};
-    (config.headers as Record<string, string>).Authorization = `Bearer ${token}`;
+    if (config.headers && typeof (config.headers as any).set === "function") {
+      (config.headers as any).set("Authorization", `Bearer ${token}`);
+    } else {
+      config.headers = AxiosHeaders.from(config.headers);
+      config.headers.set("Authorization", `Bearer ${token}`);
+    }
+    console.debug(`[httpClient] Request to ${config.url} - Auth header set:`, (config.headers as any).get("Authorization")?.substring(0, 15) + "...");
     return config;
   });
 

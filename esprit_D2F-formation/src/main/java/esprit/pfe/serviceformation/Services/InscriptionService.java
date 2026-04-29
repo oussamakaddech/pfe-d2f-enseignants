@@ -20,7 +20,6 @@ public class InscriptionService {
     @Autowired
     InscriptionRepository inscriptionRepo;
 
-
     /**
      * 1. Lister les formations accessibles pour un formateur
      * - doit être visible (inscriptionsOuvertes == true)
@@ -29,16 +28,16 @@ public class InscriptionService {
     @Transactional
     public List<FormationDTO> listerFormationsAccessibles(String enseignantId) {
         Enseignant ens = enseignantRepo.findById(enseignantId)
+                .or(() -> enseignantRepo.findByMail(enseignantId))
                 .orElseThrow(() -> new IllegalArgumentException("Enseignant introuvable"));
         String upEns = ens.getUp() != null ? ens.getUp().getId() : null;
 
         return formationRepo.findAll().stream()
                 .filter(Formation::isInscriptionsOuvertes) // visibles
-                .filter(f ->
-                        f.isOuverte()                            // ouvertes à tous
-                                || (f.getUp() != null && f.getUp().getId().equals(upEns)) // ou UP correspond
+                .filter(f -> f.isOuverte() // ouvertes à tous
+                        || (f.getUp() != null && f.getUp().getId().equals(upEns)) // ou UP correspond
                 )
-                .map(this::mapFormationToDTO)               // conversion en DTO
+                .map(this::mapFormationToDTO) // conversion en DTO
                 .collect(Collectors.toList());
     }
 
@@ -58,6 +57,7 @@ public class InscriptionService {
         }
 
         Enseignant e = enseignantRepo.findById(enseignantId)
+                .or(() -> enseignantRepo.findByMail(enseignantId))
                 .orElseThrow(() -> new IllegalArgumentException("Enseignant introuvable"));
 
         String upForm = f.getUp() != null ? f.getUp().getId() : null;
@@ -67,12 +67,29 @@ public class InscriptionService {
             throw new IllegalStateException("Vous n’êtes pas autorisé à vous inscrire à cette formation");
         }
 
-        // 2. Création de l'entité
+        // 2. Vérification du chevauchement de dates
+        List<Inscription> existingInscriptions = inscriptionRepo.findByEnseignant_Id(enseignantId);
+        for (Inscription existing : existingInscriptions) {
+            if (existing.getEtat() != EtatInscription.REJECTED) {
+                Formation existingF = existing.getFormation();
+                if (existingF.getDateDebut() != null && existingF.getDateFin() != null && f.getDateDebut() != null
+                        && f.getDateFin() != null) {
+                    boolean overlap = existingF.getDateDebut().compareTo(f.getDateFin()) <= 0
+                            && existingF.getDateFin().compareTo(f.getDateDebut()) >= 0;
+                    if (overlap) {
+                        throw new IllegalStateException(
+                                "Chevauchement détecté avec la formation: " + existingF.getTitreFormation());
+                    }
+                }
+            }
+        }
+
+        // 3. Création de l'entité
         Inscription ins = new Inscription();
         ins.setFormation(f);
         ins.setEnseignant(e);
 
-        // 3. Tentative de sauvegarde avec gestion de doublon
+        // 4. Tentative de sauvegarde avec gestion de doublon
         try {
             return inscriptionRepo.save(ins);
         } catch (Exception ex) {
@@ -81,25 +98,26 @@ public class InscriptionService {
         }
     }
 
-
     /**
      * 3. Lister les demandes PENDING pour D2F ou CUP
      */
-    /*public List<Inscription> listerDemandes(String userId, boolean isD2F) {
-        if (isD2F) {
-            return inscriptionRepo.findByEtat(EtatInscription.PENDING);
-        } else {
-            Enseignant cup = enseignantRepo.findById(userId)
-                    .orElseThrow(() -> new IllegalArgumentException("Utilisateur introuvable"));
-            String upId = cup.getUp() != null ? cup.getUp().getId() : "";
-            return inscriptionRepo.findByEtat(EtatInscription.PENDING).stream()
-                    .filter(i -> {
-                        var f = i.getFormation();
-                        return f.getUp() != null && f.getUp().getId().equals(upId);
-                    })
-                    .toList();
-        }
-    }*/
+    /*
+     * public List<Inscription> listerDemandes(String userId, boolean isD2F) {
+     * if (isD2F) {
+     * return inscriptionRepo.findByEtat(EtatInscription.PENDING);
+     * } else {
+     * Enseignant cup = enseignantRepo.findById(userId)
+     * .orElseThrow(() -> new IllegalArgumentException("Utilisateur introuvable"));
+     * String upId = cup.getUp() != null ? cup.getUp().getId() : "";
+     * return inscriptionRepo.findByEtat(EtatInscription.PENDING).stream()
+     * .filter(i -> {
+     * var f = i.getFormation();
+     * return f.getUp() != null && f.getUp().getId().equals(upId);
+     * })
+     * .toList();
+     * }
+     * }
+     */
     public List<InscriptionDTO> listerInscriptionsParFormation(Long formationId) {
         formationRepo.findById(formationId)
                 .orElseThrow(() -> new IllegalArgumentException("Formation introuvable"));
@@ -109,6 +127,7 @@ public class InscriptionService {
                 .map(this::mapInscriptionToDTO)
                 .collect(Collectors.toList());
     }
+
     /**
      * 4. Approuver ou rejeter une demande
      */
@@ -129,12 +148,12 @@ public class InscriptionService {
         dto.setHeureDebut(seance.getHeureDebut());
         dto.setHeureFin(seance.getHeureFin());
         dto.setSalle(seance.getSalle());
+        dto.setOnlineMeetingUrl(seance.getOnlineMeetingUrl());
         dto.setContenus(seance.getContenus());
         dto.setMethodes(seance.getMethodes());
         dto.setTypeSeance(seance.getTypeSeance());
         dto.setDureePratique(seance.getDureePratique());
         dto.setDureeTheorique(seance.getDureeTheorique());
-
 
         if (seance.getAnimateurs() != null) {
             dto.setAnimateurs(seance.getAnimateurs().stream().map(this::mapEnseignantToDTO).toList());
@@ -144,6 +163,7 @@ public class InscriptionService {
         }
         return dto;
     }
+
     public EnseignantDTO mapEnseignantToDTO(Enseignant ens) {
         EnseignantDTO dto = new EnseignantDTO();
         dto.setId(ens.getId());
@@ -155,14 +175,17 @@ public class InscriptionService {
         dto.setUpLibelle(ens.getUp().getLibelle());
         return dto;
     }
+
     public FormationDTO mapFormationToDTO(Formation formation) {
         FormationDTO dto = new FormationDTO();
         dto.setIdFormation(formation.getIdFormation());
         dto.setTitreFormation(formation.getTitreFormation());
-        dto.setTypeFormation(formation.getTypeFormation().toString());
+        dto.setTypeFormation(
+                formation.getTypeFormation() != null ? formation.getTypeFormation().toString() : "INTERNE");
         dto.setDateDebut(formation.getDateDebut());
         dto.setDateFin(formation.getDateFin());
-        dto.setEtatFormation(formation.getEtatFormation().toString());
+        dto.setEtatFormation(
+                formation.getEtatFormation() != null ? formation.getEtatFormation().toString() : "PLANIFIE");
         dto.setCoutFormation(formation.getCoutFormation());
         dto.setOrganismeRefExterne(formation.getOrganismeRefExterne());
         dto.setCoutHebergement(formation.getCoutHebergement());
@@ -202,6 +225,7 @@ public class InscriptionService {
         }
         return dto;
     }
+
     // dans InscriptionService.java
     public InscriptionDTO mapInscriptionToDTO(Inscription ins) {
         InscriptionDTO dto = new InscriptionDTO();
@@ -212,6 +236,5 @@ public class InscriptionService {
         dto.setDateDemande(ins.getDateDemande());
         return dto;
     }
-
 
 }

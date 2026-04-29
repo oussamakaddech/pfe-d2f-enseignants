@@ -73,7 +73,8 @@ public class EnseignantServiceImpl implements EnseignantService {
     @Override
     public Enseignant getEnseignantById(String id) {
         return enseignantRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Enseignant introuvable avec l'id : " + id));
+                .or(() -> enseignantRepository.findByMail(id))
+                .orElseThrow(() -> new IllegalArgumentException("Enseignant introuvable avec l'id ou l'email : " + id));
     }
 
 
@@ -99,6 +100,8 @@ public class EnseignantServiceImpl implements EnseignantService {
         if (e.getDept() != null) {
             dto.setDeptLibelle(e.getDept().getLibelle());
         }
+        dto.setCup(e.getCup());
+        dto.setChefDepartement(e.getChefDepartement());
         return dto;
     }
 }

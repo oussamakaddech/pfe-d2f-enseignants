@@ -14,6 +14,12 @@ import {
   Popconfirm,
   Tag,
   Tooltip,
+  Card,
+  Row,
+  Col,
+  Statistic,
+  Divider,
+  Avatar,
 } from 'antd';
 import {
   SearchOutlined,
@@ -23,6 +29,10 @@ import {
   UserOutlined,
   MailOutlined,
   PhoneOutlined,
+  TeamOutlined,
+  CheckCircleOutlined,
+  StopOutlined,
+  SolutionOutlined,
 } from '@ant-design/icons';
 import {
   getAllAccounts,
@@ -33,10 +43,10 @@ import {
 } from '../../services/accountService';
 import Register from '../auth/Register';
 
-const { Title } = Typography;
+const { Title, Text } = Typography;
 const { Option } = Select;
 
-const ROLES = ['admin', 'D2F', 'CUP', 'Enseignant', 'Formateur'];
+const ROLES = ['admin', 'CUP', 'Enseignant', 'Formateur'];
 
 export default function ListAccounts() {
   const [msgApi, msgCtx] = message.useMessage();
@@ -74,6 +84,13 @@ export default function ListAccounts() {
     }
   };
 
+  const stats = {
+    total: accounts.length,
+    active: accounts.filter(a => a.status === 'ACTIF').length,
+    blocked: accounts.filter(a => a.status === 'BLOQUÉ').length,
+    admins: accounts.filter(a => a.role === 'admin').length,
+  };
+
   // ─── CREATE ──────────────────────────────────────────────
   const handleCreateSuccess = () => {
     setDrawerVisible(false);
@@ -109,15 +126,12 @@ export default function ListAccounts() {
       setEditingRecord(null);
       fetchAccounts();
     } catch (err) {
-      if (err.response) {
-        msgApi.error(err.response?.data?.message || 'Erreur de modification');
-      }
+      msgApi.error(err.response?.data?.message || 'Erreur de modification');
     } finally {
       setLoading(false);
     }
   };
 
-  // ─── DELETE ──────────────────────────────────────────────
   const handleDelete = async userId => {
     try {
       await deleteAccount(userId);
@@ -128,7 +142,6 @@ export default function ListAccounts() {
     }
   };
 
-  // ─── TOGGLE STATUS ──────────────────────────────────────
   const handleToggleStatus = async record => {
     const nextStatus = record.status === 'ACTIF' ? 'BLOQUÉ' : 'ACTIF';
     try {
@@ -137,22 +150,13 @@ export default function ListAccounts() {
       } else {
         await enableAccount(record.userName);
       }
-      setAccounts(prev =>
-        prev.map(acc =>
-          acc.userName === record.userName
-            ? { ...acc, status: nextStatus }
-            : acc
-        )
-      );
-      msgApi.success(
-        nextStatus === 'ACTIF' ? 'Compte débloqué !' : 'Compte bloqué !'
-      );
+      msgApi.success(nextStatus === 'ACTIF' ? 'Compte débloqué !' : 'Compte bloqué !');
+      fetchAccounts();
     } catch (err) {
       msgApi.error(err.response?.data?.message || 'Erreur de mise à jour');
     }
   };
 
-  // ─── SEARCH ──────────────────────────────────────────────
   const handleSearch = (selectedKeys, confirm, dataIndex) => {
     confirm();
     setSearchText(selectedKeys[0] || '');
@@ -176,149 +180,78 @@ export default function ListAccounts() {
           style={{ marginBottom: 8, display: 'block' }}
         />
         <Space>
-          <Button
-            type="primary"
-            onClick={() => handleSearch(selectedKeys, confirm, dataIndex)}
-            icon={<SearchOutlined />}
-            size="small"
-          >
-            OK
-          </Button>
-          <Button onClick={() => handleReset(clearFilters)} size="small">
-            Réinitialiser
-          </Button>
+          <Button type="primary" onClick={() => handleSearch(selectedKeys, confirm, dataIndex)} icon={<SearchOutlined />} size="small">OK</Button>
+          <Button onClick={() => handleReset(clearFilters)} size="small">Reset</Button>
         </Space>
       </div>
     ),
-    filterIcon: filtered => (
-      <SearchOutlined style={{ color: filtered ? '#1890ff' : undefined }} />
-    ),
-    onFilter: (value, record) =>
-      record[dataIndex]?.toString().toLowerCase().includes(value.toLowerCase()),
-    filterDropdownProps: {
-      onOpenChange: visible => {
-        if (visible) {
-          setTimeout(() => searchInput.current.select(), 100);
-        }
-      },
-    },
-    render: text =>
-      searchedColumn === dataIndex ? (
-        <span style={{ backgroundColor: '#ffc069', padding: 0 }}>{text}</span>
-      ) : (
-        text
-      ),
+    filterIcon: filtered => <SearchOutlined style={{ color: filtered ? '#1890ff' : undefined }} />,
+    onFilter: (value, record) => record[dataIndex]?.toString().toLowerCase().includes(value.toLowerCase()),
   });
 
   const columns = [
     {
-      title: 'Nom d\'utilisateur',
+      title: 'Utilisateur',
       dataIndex: 'userName',
       key: 'userName',
-      sorter: (a, b) => a.userName.localeCompare(b.userName),
+      render: (text, record) => (
+        <Space>
+          <Avatar icon={<UserOutlined />} style={{ backgroundColor: record.status === 'ACTIF' ? '#1890ff' : '#ccc' }} />
+          <Box>
+            <Text strong>{record.firsName} {record.lastName}</Text>
+            <br />
+            <Text type="secondary" style={{ fontSize: '12px' }}>@{text}</Text>
+          </Box>
+        </Space>
+      ),
       ...getColumnSearchProps('userName'),
-    },
-    {
-      title: 'Prénom',
-      dataIndex: 'firsName',
-      key: 'firsName',
-      sorter: (a, b) => (a.firsName || '').localeCompare(b.firsName || ''),
-      ...getColumnSearchProps('firsName'),
-    },
-    {
-      title: 'Nom',
-      dataIndex: 'lastName',
-      key: 'lastName',
-      sorter: (a, b) => (a.lastName || '').localeCompare(b.lastName || ''),
-      ...getColumnSearchProps('lastName'),
     },
     {
       title: 'Email',
       dataIndex: 'email',
       key: 'email',
-      sorter: (a, b) => a.email.localeCompare(b.email),
+      render: (text) => <Text><MailOutlined /> {text}</Text>,
       ...getColumnSearchProps('email'),
-    },
-    {
-      title: 'Téléphone',
-      dataIndex: 'phoneNumber',
-      key: 'phoneNumber',
     },
     {
       title: 'Rôle',
       dataIndex: 'role',
       key: 'role',
-      sorter: (a, b) => a.role.localeCompare(b.role),
       filters: ROLES.map(r => ({ text: r, value: r })),
       onFilter: (value, record) => record.role === value,
       render: role => {
-        const colorMap = {
-          admin: 'red',
-          D2F: 'blue',
-          CUP: 'green',
-          Enseignant: 'orange',
-          Formateur: 'default',
-        };
-        return <Tag color={colorMap[role] || 'default'}>{role}</Tag>;
+        const colorMap = { admin: 'red', CUP: 'green', Enseignant: 'orange', Formateur: 'default' };
+        return <Tag color={colorMap[role] || 'default'} style={{ borderRadius: '12px', padding: '0 10px' }}>{role.toUpperCase()}</Tag>;
       },
     },
     {
       title: 'Statut',
       dataIndex: 'status',
       key: 'status',
-      sorter: (a, b) => a.status.localeCompare(b.status),
-      filters: [
-        { text: 'ACTIF', value: 'ACTIF' },
-        { text: 'BLOQUÉ', value: 'BLOQUÉ' },
-      ],
-      onFilter: (value, record) => record.status === value,
       render: status => (
-        <Tag color={status === 'ACTIF' ? 'green' : 'red'} style={{ fontWeight: 'bold' }}>
-          {status}
-        </Tag>
+        <Badge status={status === 'ACTIF' ? 'success' : 'error'} text={status} style={{ fontWeight: '600' }} />
       ),
     },
     {
       title: 'Actions',
       key: 'actions',
       fixed: 'right',
-      width: 220,
+      width: 150,
       render: (_, record) => (
-        <Space size="small">
+        <Space>
           <Tooltip title="Modifier">
-            <Button
-              type="primary"
-              size="small"
-              icon={<EditOutlined />}
-              onClick={() => handleEdit(record)}
+            <Button shape="circle" icon={<EditOutlined />} onClick={() => handleEdit(record)} />
+          </Tooltip>
+          <Tooltip title={record.status === 'ACTIF' ? 'Bloquer' : 'Débloquer'}>
+            <Button 
+              shape="circle" 
+              danger={record.status === 'ACTIF'} 
+              icon={record.status === 'ACTIF' ? <StopOutlined /> : <CheckCircleOutlined />} 
+              onClick={() => handleToggleStatus(record)} 
             />
           </Tooltip>
-          <Button
-            size="small"
-            style={{
-              backgroundColor: record.status === 'ACTIF' ? '#ff4d4f' : '#52c41a',
-              borderColor: record.status === 'ACTIF' ? '#ff4d4f' : '#52c41a',
-              color: '#fff',
-            }}
-            onClick={() => handleToggleStatus(record)}
-          >
-            {record.status === 'ACTIF' ? 'Bloquer' : 'Débloquer'}
-          </Button>
-          <Popconfirm
-            title="Supprimer ce compte"
-            description="Êtes-vous sûr de vouloir supprimer ce compte ? Cette action est irréversible."
-            onConfirm={() => handleDelete(record.id)}
-            okText="Oui, supprimer"
-            cancelText="Annuler"
-            okButtonProps={{ danger: true }}
-          >
-            <Tooltip title="Supprimer">
-              <Button
-                danger
-                size="small"
-                icon={<DeleteOutlined />}
-              />
-            </Tooltip>
+          <Popconfirm title="Supprimer?" onConfirm={() => handleDelete(record.id)} okButtonProps={{ danger: true }}>
+            <Button shape="circle" danger icon={<DeleteOutlined />} />
           </Popconfirm>
         </Space>
       ),
@@ -326,116 +259,92 @@ export default function ListAccounts() {
   ];
 
   return (
-    <>
+    <div style={{ padding: '24px', background: '#f5f7fa', minHeight: '100vh' }}>
       {msgCtx}
-      <div style={{ padding: 16 }}>
-        <div
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginBottom: 16,
-          }}
-        >
-          <Title level={4} style={{ margin: 0 }}>
-            Gestion des Comptes
-          </Title>
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={() => setDrawerVisible(true)}
-          >
-            Créer un compte
-          </Button>
-        </div>
+      <Row gutter={[16, 16]} style={{ marginBottom: '24px' }}>
+        <Col xs={24} sm={12} lg={6}>
+          <Card variant="borderless" hoverable>
+            <Statistic title="Total Comptes" value={stats.total} prefix={<TeamOutlined />} valueStyle={{ color: '#3f51b5' }} />
+          </Card>
+        </Col>
+        <Col xs={24} sm={12} lg={6}>
+          <Card variant="borderless" hoverable>
+            <Statistic title="Comptes Actifs" value={stats.active} prefix={<CheckCircleOutlined />} valueStyle={{ color: '#4caf50' }} />
+          </Card>
+        </Col>
+        <Col xs={24} sm={12} lg={6}>
+          <Card variant="borderless" hoverable>
+            <Statistic title="Comptes Bloqués" value={stats.blocked} prefix={<StopOutlined />} valueStyle={{ color: '#f44336' }} />
+          </Card>
+        </Col>
+        <Col xs={24} sm={12} lg={6}>
+          <Card variant="borderless" hoverable>
+            <Statistic title="Administrateurs" value={stats.admins} prefix={<SolutionOutlined />} valueStyle={{ color: '#ff9800' }} />
+          </Card>
+        </Col>
+      </Row>
 
+      <Card variant="borderless" style={{ borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
+        <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+          <Title level={3} style={{ margin: 0 }}>👥 Gestion des Utilisateurs</Title>
+          <Button type="primary" size="large" icon={<PlusOutlined />} onClick={() => setDrawerVisible(true)} style={{ borderRadius: '8px', background: '#d32f2f', borderColor: '#d32f2f' }}>
+            Nouveau Compte
+          </Button>
+        </Box>
+        <Divider />
         <Table
           rowKey="id"
           columns={columns}
           dataSource={accounts}
-          pagination={{ pageSize: 8, showSizeChanger: true, showTotal: (total) => `${total} comptes` }}
+          pagination={{ pageSize: 10, showSizeChanger: true }}
           scroll={{ x: 1000 }}
+          style={{ background: '#fff' }}
         />
+      </Card>
 
-        {/* Drawer pour Créer un compte */}
-        <Drawer
-          title="Créer un compte"
-          width={480}
-          onClose={() => setDrawerVisible(false)}
-          open={drawerVisible}
-          styles={{ body: { padding: 0 } }}
-        >
-          <Register onSuccess={handleCreateSuccess} />
-        </Drawer>
+      <Drawer title="Créer un compte" width={520} onClose={() => setDrawerVisible(false)} open={drawerVisible} styles={{ body: { padding: '24px' } }}>
+        <Register onSuccess={handleCreateSuccess} />
+      </Drawer>
 
-        {/* Modal pour Modifier un compte */}
-        <Modal
-          title="Modifier le compte"
-          open={editModalVisible}
-          onOk={handleEditSubmit}
-          onCancel={() => {
-            setEditModalVisible(false);
-            editForm.resetFields();
-            setEditingRecord(null);
-          }}
-          confirmLoading={loading}
-          okText="Enregistrer"
-          cancelText="Annuler"
-          width={500}
-        >
-          <Form
-            form={editForm}
-            layout="vertical"
-          >
-            <Form.Item
-              name="firstName"
-              label="Prénom"
-              rules={[{ required: true, message: 'Entrez le prénom' }]}
-            >
-              <Input prefix={<UserOutlined />} placeholder="Prénom" />
-            </Form.Item>
+      <Modal title="Modifier le compte" open={editModalVisible} onOk={handleEditSubmit} onCancel={() => setEditModalVisible(false)} confirmLoading={loading} okText="Enregistrer" cancelText="Annuler" width={500}>
+        <Form form={editForm} layout="vertical">
+          <Row gutter={16}>
+            <Col span={12}>
+              <Form.Item name="firstName" label="Prénom" rules={[{ required: true }]}><Input prefix={<UserOutlined />} /></Form.Item>
+            </Col>
+            <Col span={12}>
+              <Form.Item name="lastName" label="Nom" rules={[{ required: true }]}><Input /></Form.Item>
+            </Col>
+          </Row>
+          <Form.Item name="email" label="Email" rules={[{ required: true, type: 'email' }]}><Input prefix={<MailOutlined />} /></Form.Item>
+          <Form.Item name="phoneNumber" label="Téléphone" rules={[{ required: true }]}><Input prefix={<PhoneOutlined />} /></Form.Item>
+          <Form.Item name="role" label="Rôle" rules={[{ required: true }]}>
+            <Select>
+              {ROLES.map(r => <Option key={r} value={r}>{r}</Option>)}
+            </Select>
+          </Form.Item>
+        </Form>
+      </Modal>
+    </div>
+  );
+}
 
-            <Form.Item
-              name="lastName"
-              label="Nom"
-              rules={[{ required: true, message: 'Entrez le nom' }]}
-            >
-              <Input placeholder="Nom" />
-            </Form.Item>
+// Simple Box component mock since we are using antd
+function Box({ children, display, justifyContent, alignItems, mb }) {
+  return (
+    <div style={{ display, justifyContent, alignItems, marginBottom: mb ? `${mb * 8}px` : 0 }}>
+      {children}
+    </div>
+  );
+}
 
-            <Form.Item
-              name="email"
-              label="Email"
-              rules={[
-                { required: true, message: 'Entrez l\'email' },
-                { type: 'email', message: 'Email invalide' },
-              ]}
-            >
-              <Input prefix={<MailOutlined />} placeholder="exemple@mail.com" />
-            </Form.Item>
-
-            <Form.Item
-              name="phoneNumber"
-              label="Téléphone"
-              rules={[{ required: true, message: 'Entrez le numéro de téléphone' }]}
-            >
-              <Input prefix={<PhoneOutlined />} placeholder="06XXXXXXXX" />
-            </Form.Item>
-
-            <Form.Item
-              name="role"
-              label="Rôle"
-              rules={[{ required: true, message: 'Sélectionnez un rôle' }]}
-            >
-              <Select>
-                {ROLES.map(r => (
-                  <Option key={r} value={r}>{r}</Option>
-                ))}
-              </Select>
-            </Form.Item>
-          </Form>
-        </Modal>
-      </div>
-    </>
+// Simple Badge mock if not imported
+function Badge({ status, text, style }) {
+  const colors = { success: '#52c41a', error: '#f5222d', default: '#d9d9d9' };
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', ...style }}>
+      <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: colors[status] || colors.default, marginRight: '8px' }} />
+      {text}
+    </div>
   );
 }

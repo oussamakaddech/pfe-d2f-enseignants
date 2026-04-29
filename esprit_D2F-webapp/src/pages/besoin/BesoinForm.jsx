@@ -77,9 +77,10 @@ export default function BesoinForm() {
     })();
   }, [msgApi]);
 
-  const handleSubmit = async (values) => {
+  const handleSubmit = async () => {
     setSubmitting(true);
     try {
+      const values = form.getFieldsValue(true);
       const payload = {
         username: user?.username || user?.userName,
         typeBesoin: values.typeBesoin,
@@ -89,6 +90,8 @@ export default function BesoinForm() {
         objectifFormation: values.objectifFormation,
         propositionAnimateur: values.propositionAnimateur,
         horaireSouhaite: values.horaireSouhaite,
+        priorite: values.priorite,
+        impactStrategique: values.impactStrategique,
       };
 
       await BesoinFormationService.addBesoinFormation(payload);
@@ -107,7 +110,7 @@ export default function BesoinForm() {
   const getStepFields = (step) => {
     switch (step) {
       case 0: return ["up", "departement", "typeBesoin"];
-      case 1: return ["titre", "objectifFormation"];
+      case 1: return ["titre", "objectifFormation", "priorite", "impactStrategique"];
       case 2: return ["propositionAnimateur", "horaireSouhaite"];
       default: return [];
     }
@@ -227,7 +230,7 @@ export default function BesoinForm() {
               rules={[{ required: true, message: "Veuillez saisir le nom de la formation" }]}
               className="besoin-form-input"
             >
-              <Input placeholder="Ex : Formation Angular avancé" size="large" />
+        <Input placeholder="Ex : Formation Angular avancé" size="large" autoComplete="off" />
             </Form.Item>
           </Col>
           <Col xs={24}>
@@ -250,6 +253,40 @@ export default function BesoinForm() {
               />
             </Form.Item>
           </Col>
+          <Col xs={24} md={12}>
+            <Form.Item
+              label={
+                <span className="besoin-step-label">
+                  <AimOutlined className="besoin-step-label-icon" style={{color: '#faad14'}} />
+                  Priorité (Urgence)
+                </span>
+              }
+              name="priorite"
+              rules={[{ required: true, message: "Veuillez sélectionner la priorité" }]}
+              className="besoin-form-input"
+            >
+              <Select placeholder="Sélectionner la priorité" size="large">
+                <Option value="BASSE">Basse</Option>
+                <Option value="MOYENNE">Moyenne</Option>
+                <Option value="HAUTE">Haute</Option>
+                <Option value="CRITIQUE">Critique</Option>
+              </Select>
+            </Form.Item>
+          </Col>
+          <Col xs={24} md={12}>
+            <Form.Item
+              label={
+                <span className="besoin-step-label">
+                  <AimOutlined className="besoin-step-label-icon" style={{color: '#faad14'}} />
+                  Impact Stratégique
+                </span>
+              }
+              name="impactStrategique"
+              className="besoin-form-input"
+            >
+              <Input placeholder="Ex : Alignement avec la stratégie D2F..." size="large" autoComplete="off" />
+            </Form.Item>
+          </Col>
         </Row>
       ),
     },
@@ -270,7 +307,7 @@ export default function BesoinForm() {
               name="propositionAnimateur"
               className="besoin-form-input"
             >
-              <Input placeholder="Nom du formateur proposé (optionnel)" size="large" />
+              <Input placeholder="Nom du formateur proposé (optionnel)" size="large" autoComplete="off" />
             </Form.Item>
           </Col>
           <Col xs={24} md={12}>
@@ -302,7 +339,9 @@ export default function BesoinForm() {
       { label: "Département", value: depObj?.name || depObj?.libelle || values.departement, icon: <ApartmentOutlined /> },
       { label: "Type", value: typeLabel || values.typeBesoin, icon: <BookOutlined /> },
       { label: "Formation", value: values.titre, icon: <BookOutlined /> },
+      { label: "Priorité", value: values.priorite, icon: <AimOutlined /> },
       { label: "Objectif", value: values.objectifFormation, icon: <AimOutlined /> },
+      { label: "Impact", value: values.impactStrategique || "—", icon: <AimOutlined /> },
       { label: "Formateur proposé", value: values.propositionAnimateur || "—", icon: <UserOutlined /> },
       { label: "Horaire souhaité", value: values.horaireSouhaite || "—", icon: <ClockCircleOutlined /> },
     ];
@@ -311,7 +350,9 @@ export default function BesoinForm() {
   if (loading) {
     return (
       <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "60vh" }}>
-        <Spin size="large" tip="Chargement..." />
+        <Spin size="large">
+          <div style={{ marginTop: 16 }}>Chargement...</div>
+        </Spin>
       </div>
     );
   }
@@ -387,7 +428,7 @@ export default function BesoinForm() {
             </Steps>
 
             {/* Form */}
-            <Form form={form} layout="vertical" onFinish={handleSubmit} autoComplete="off">
+            <Form form={form} layout="vertical" onFinish={handleSubmit} autoComplete="off" preserve={true}>
               <AnimatePresence mode="wait" custom={direction}>
                 {currentStep < steps.length ? (
                   <motion.div
