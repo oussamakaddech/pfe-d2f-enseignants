@@ -12,7 +12,7 @@ import { AuthContext } from "../context/AuthContext";
 export const FRONTEND_PERMISSIONS = {
   // Competence Management
   COMPETENCE: {
-    READ: ['admin', 'CUP', 'D2F', 'Enseignant'],
+    READ: ['admin', 'CUP', 'Enseignant'],
     CREATE: ['admin'],
     UPDATE: ['admin'],
     DELETE: ['admin'],
@@ -21,7 +21,7 @@ export const FRONTEND_PERMISSIONS = {
 
   // Affectation Management
   AFFECTATION: {
-    READ: ['admin', 'CUP', 'D2F'],
+    READ: ['admin', 'CUP'],
     CREATE: ['admin'],
     UPDATE_SELF: ['admin', 'CUP', 'Enseignant'],
     UPDATE_ALL: ['admin'],
@@ -30,26 +30,26 @@ export const FRONTEND_PERMISSIONS = {
 
   // Besoins en Formation
   BESOIN_FORMATION: {
-    READ_ALL: ['admin', 'CUP', 'D2F', 'Enseignant'],
+    READ_ALL: ['admin', 'CUP', 'Enseignant'],
     CREATE: ['admin', 'CUP', 'Enseignant'],
     UPDATE: ['admin'],
     DELETE: ['admin'],
-    APPROVE: ['admin', 'CUP', 'D2F'],
+    APPROVE: ['admin', 'CUP'],
   },
 
   // Planification Formations
   FORMATION: {
-    READ: ['admin', 'CUP', 'D2F', 'Enseignant', 'Formateur'],
-    CREATE: ['admin', 'D2F'],
-    UPDATE: ['admin', 'D2F'],
+    READ: ['admin', 'CUP', 'Enseignant', 'Formateur'],
+    CREATE: ['admin'],
+    UPDATE: ['admin'],
     DELETE: ['admin'],
-    APPROVE: ['admin', 'D2F'],
+    APPROVE: ['admin'],
     READ_OWN: ['Formateur'],
   },
 
   // Evaluations & Certificats
   EVALUATION: {
-    READ_ALL: ['admin', 'D2F', 'CUP'],
+    READ_ALL: ['admin', 'CUP'],
     READ_FORMATEUR: ['Formateur'],
     CREATE: ['admin', 'Formateur'],
     UPDATE: ['admin', 'Formateur'],
@@ -58,7 +58,7 @@ export const FRONTEND_PERMISSIONS = {
   },
 
   CERTIFICAT: {
-    READ: ['admin', 'CUP', 'D2F', 'Enseignant', 'Formateur'],
+    READ: ['admin', 'CUP', 'Enseignant', 'Formateur'],
     CREATE: ['admin'],
     UPDATE: ['admin'],
     DELETE: ['admin'],
@@ -74,7 +74,7 @@ export const FRONTEND_PERMISSIONS = {
 
   // Dashboard / KPI
   DASHBOARD: {
-    ADMIN_FULL: ['admin', 'D2F'],
+    ADMIN_FULL: ['admin'],
     ADMIN_LIMITED: ['CUP'],
   },
 
@@ -85,8 +85,8 @@ export const FRONTEND_PERMISSIONS = {
     UPDATE: ['admin'],
     DELETE: ['admin'],
     BAN: ['admin'],
-    VIEW_PROFILE: ['admin', 'CUP', 'D2F', 'Enseignant', 'Formateur'],
-    EDIT_OWN: ['admin', 'CUP', 'D2F', 'Enseignant', 'Formateur'],
+    VIEW_PROFILE: ['admin', 'CUP', 'Enseignant', 'Formateur'],
+    EDIT_OWN: ['admin', 'CUP', 'Enseignant', 'Formateur'],
   },
 };
 

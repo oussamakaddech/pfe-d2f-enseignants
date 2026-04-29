@@ -67,7 +67,7 @@ export default function BesoinList() {
   const [departements, setDepartements] = useState([]);
   const [ups, setUps] = useState([]);
   const [types, setTypes] = useState([]);
-  const [filters, setFilters] = useState({ deptId: null, upId: null, type: null, statut: null });
+  const [filters, setFilters] = useState({ deptId: null, upId: null, type: null, statut: null, priorite: null });
   const [loading, setLoading] = useState(false);
   const [searchText, setSearchText] = useState("");
 
@@ -75,6 +75,11 @@ export default function BesoinList() {
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editForm] = Form.useForm();
   const [saving, setSaving] = useState(false);
+  const [approvingId, setApprovingId] = useState(null);
+
+  const getBesoinId = (record) => record?.idBesoinFormation ?? record?.idBesionFormation ?? record?.id;
+  const findById = (items, id) => items.find((item) => String(item.id) === String(id));
+  const getLabel = (item, fallback = "—") => item?.libelle || item?.name || item?.label || item?.nom || fallback;
 
   const fetchData = async () => {
     setLoading(true);
@@ -108,9 +113,10 @@ export default function BesoinList() {
 
   const applyFilters = () => {
     let res = [...besoins];
-    if (filters.deptId) res = res.filter((b) => Number(b.departement) === filters.deptId);
-    if (filters.upId)   res = res.filter((b) => Number(b.up) === filters.upId);
+    if (filters.deptId) res = res.filter((b) => String(b.departement) === String(filters.deptId));
+    if (filters.upId)   res = res.filter((b) => String(b.up) === String(filters.upId));
     if (filters.type)   res = res.filter((b) => b.typeBesoin === filters.type);
+    if (filters.priorite) res = res.filter((b) => b.priorite === filters.priorite);
     if (filters.statut) {
       if (filters.statut === "approuve") res = res.filter((b) => b.approuveAdmin);
       if (filters.statut === "en_attente") res = res.filter((b) => !b.approuveAdmin);
@@ -128,6 +134,10 @@ export default function BesoinList() {
   };
 
   const handleDelete = async (id) => {
+    if (id == null) {
+      msgApi.error("Identifiant du besoin introuvable");
+      return;
+    }
     try {
       await BesoinFormationService.removeBesoinFormation(id);
       msgApi.success("Besoin supprimé avec succès");
@@ -137,26 +147,37 @@ export default function BesoinList() {
     }
   };
 
-  const handleApprove = async (id) => {
+  const handleApprove = async (record) => {
+    const id = getBesoinId(record);
+    if (id == null) {
+      msgApi.error("Identifiant du besoin introuvable");
+      return;
+    }
+
+    setApprovingId(id);
     try {
       await BesoinFormationService.approveBesoin(id);
       msgApi.success("Besoin approuvé — formation créée !");
-      setBesoins((prev) =>
-        prev.map((b) => (b.idBesoinFormation === id ? { ...b, approuveAdmin: true, eventPublished: true } : b))
-      );
+      await fetchData(); // Refetch to get updated status and potentially new formation links
     } catch {
       msgApi.error("Erreur lors de l'approbation");
+    } finally {
+      setApprovingId(null);
     }
   };
 
   const openEdit = (record) => {
+    const recordId = getBesoinId(record);
     setEditingRecord(record);
     editForm.setFieldsValue({
+      idBesoinFormation: recordId,
       titre: record.titre || "",
       objectifFormation: record.objectifFormation || "",
       propositionAnimateur: record.propositionAnimateur || "",
       horaireSouhaite: record.horaireSouhaite || "",
       typeBesoin: record.typeBesoin || undefined,
+      priorite: record.priorite || undefined,
+      impactStrategique: record.impactStrategique || "",
       up: record.up || undefined,
       departement: record.departement || undefined,
     });
@@ -168,7 +189,7 @@ export default function BesoinList() {
       const values = await editForm.validateFields();
       setSaving(true);
       const payload = {
-        idBesoinFormation: editingRecord.idBesoinFormation,
+        idBesoinFormation: getBesoinId(editingRecord),
         ...values,
       };
       await BesoinFormationService.modifyBesoinFormation(payload, "Modification depuis l'interface");
@@ -191,8 +212,9 @@ export default function BesoinList() {
     {
       title: "Formation",
       key: "formation",
+      width: 280,
       render: (_, r) => (
-        <div>
+        <div className="formation-cell">
           <div className="formation-cell-title">
             <FileTextOutlined style={{ marginRight: 6, color: "#B51200" }} />
             {r.titre || r.objectifFormation || "—"}
@@ -224,29 +246,24 @@ export default function BesoinList() {
       sorter: (a, b) => (a.typeBesoin || "").localeCompare(b.typeBesoin || ""),
     },
     {
-      title: "UP",
-      width: 160,
-      render: (_, r) => {
-        const upObj = ups.find((u) => u.id === Number(r.up));
-        return (
-          <Tag icon={<TeamOutlined />} style={{ borderRadius: 8, fontWeight: 500 }}>
-            {upObj ? upObj.name || upObj.libelle : r.up}
-          </Tag>
-        );
+      title: "Priorité",
+      dataIndex: "priorite",
+      width: 120,
+      render: (p) => {
+        if (!p) return "—";
+        let color = "default";
+        if (p === "CRITIQUE") color = "magenta";
+        else if (p === "HAUTE") color = "red";
+        else if (p === "MOYENNE") color = "orange";
+        else if (p === "BASSE") color = "green";
+        return <Tag color={color}>{p}</Tag>;
+      },
+      sorter: (a, b) => {
+        const order = { CRITIQUE: 4, HAUTE: 3, MOYENNE: 2, BASSE: 1 };
+        return (order[a.priorite] || 0) - (order[b.priorite] || 0);
       },
     },
-    {
-      title: "Département",
-      width: 160,
-      render: (_, r) => {
-        const depObj = departements.find((d) => d.id === Number(r.departement));
-        return (
-          <Tag icon={<ApartmentOutlined />} color="processing" style={{ borderRadius: 8, fontWeight: 500 }}>
-            {depObj ? depObj.name || depObj.libelle : r.departement}
-          </Tag>
-        );
-      },
-    },
+
     {
       title: "Formateur proposé",
       dataIndex: "propositionAnimateur",
@@ -254,31 +271,26 @@ export default function BesoinList() {
       render: (v) => v || <Text type="secondary">—</Text>,
     },
     {
-      title: "Horaire",
-      dataIndex: "horaireSouhaite",
-      width: 130,
-      render: (v) =>
-        v ? (
-          <span style={{ fontSize: 12, color: "#595959" }}>
-            <CalendarOutlined style={{ marginRight: 4 }} />
-            {v}
-          </span>
-        ) : (
-          <Text type="secondary">—</Text>
-        ),
-    },
-    {
-      title: "Date",
-      dataIndex: "dateCreation",
-      width: 120,
-      render: (d) =>
-        d ? (
-          <span style={{ fontSize: 12, color: "#8c8c8c", fontWeight: 500 }}>
-            {new Date(d).toLocaleDateString("fr-FR")}
-          </span>
-        ) : (
-          "—"
-        ),
+      title: "Date & Horaire",
+      key: "dateHoraire",
+      width: 180,
+      render: (_, r) => (
+        <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+          {r.dateCreation ? (
+            <span style={{ fontSize: 12, color: "#8c8c8c", fontWeight: 500 }}>
+              {new Date(r.dateCreation).toLocaleDateString("fr-FR")}
+            </span>
+          ) : (
+            <Text type="secondary">—</Text>
+          )}
+          {r.horaireSouhaite && (
+            <span style={{ fontSize: 12, color: "#595959" }}>
+              <ClockCircleOutlined style={{ marginRight: 4 }} />
+              {r.horaireSouhaite}
+            </span>
+          )}
+        </div>
+      ),
       sorter: (a, b) => new Date(a.dateCreation || 0) - new Date(b.dateCreation || 0),
     },
     {
@@ -317,22 +329,31 @@ export default function BesoinList() {
             </Button>
           </Tooltip>
           {!r.approuveAdmin && (
-            <Tooltip title="Approuver et créer la formation">
-              <Button
-                type="primary"
-                size="small"
-                icon={<CheckCircleOutlined />}
-                onClick={() => handleApprove(r.idBesoinFormation)}
-                className="action-btn btn-success"
-              >
-                Approuver
-              </Button>
-            </Tooltip>
+            <Popconfirm
+              title="Approuver ce besoin ?"
+              description="Cette action lance la création de la formation associée."
+              onConfirm={() => handleApprove(r)}
+              okText="Oui, approuver"
+              cancelText="Annuler"
+              okButtonProps={{ className: "btn-brand" }}
+            >
+              <Tooltip title="Approuver et créer la formation">
+                <Button
+                  type="primary"
+                  size="small"
+                  icon={<CheckCircleOutlined />}
+                  loading={approvingId === getBesoinId(r)}
+                  className="action-btn btn-success"
+                >
+                  Approuver
+                </Button>
+              </Tooltip>
+            </Popconfirm>
           )}
           <Popconfirm
             title="Supprimer ce besoin ?"
             description="Cette action est irréversible."
-            onConfirm={() => handleDelete(r.idBesoinFormation)}
+            onConfirm={() => handleDelete(getBesoinId(r))}
             okText="Oui"
             cancelText="Non"
             okButtonProps={{ danger: true }}
@@ -366,7 +387,8 @@ export default function BesoinList() {
       >
         {/* Header */}
         <motion.div variants={itemVariants} className="besoin-header">
-          <Row justify="space-between" align="middle">
+          <Card variant="borderless" className="besoin-hero-card">
+          <Row justify="space-between" align="middle" gutter={[24, 16]}>
             <Col>
               <div className="besoin-header-title">
                 <ReadOutlined style={{ fontSize: 32, color: "#B51200" }} />
@@ -377,6 +399,11 @@ export default function BesoinList() {
                   <Text type="secondary" style={{ fontSize: 14 }}>
                     {filtered.length} résultat{filtered.length > 1 ? "s" : ""} sur {total}
                   </Text>
+                  <div className="besoin-header-tags">
+                    <Tag color="blue">Besoins individuels</Tag>
+                    <Tag color="purple">Besoins collectifs</Tag>
+                    <Tag color="gold">Priorité & impact stratégique</Tag>
+                  </div>
                 </div>
               </div>
             </Col>
@@ -397,13 +424,14 @@ export default function BesoinList() {
               </Space>
             </Col>
           </Row>
+          </Card>
         </motion.div>
 
         {/* Stats */}
         <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
           <Col xs={12} md={8}>
             <motion.div variants={itemVariants}>
-              <Card className="besoin-stat-card total" size="small">
+              <Card variant="borderless" className="besoin-stat-card total" size="small">
                 <div className="besoin-stat-icon total">
                   <TrophyOutlined />
                 </div>
@@ -414,7 +442,7 @@ export default function BesoinList() {
           </Col>
           <Col xs={12} md={8}>
             <motion.div variants={itemVariants}>
-              <Card className="besoin-stat-card approved" size="small">
+              <Card variant="borderless" className="besoin-stat-card approved" size="small">
                 <div className="besoin-stat-icon approved">
                   <CheckCircleOutlined />
                 </div>
@@ -425,7 +453,7 @@ export default function BesoinList() {
           </Col>
           <Col xs={12} md={8}>
             <motion.div variants={itemVariants}>
-              <Card className="besoin-stat-card pending" size="small">
+              <Card variant="borderless" className="besoin-stat-card pending" size="small">
                 <div className="besoin-stat-icon pending">
                   <ClockCircleOutlined />
                 </div>
@@ -438,10 +466,14 @@ export default function BesoinList() {
 
         {/* Filtres */}
         <motion.div variants={itemVariants}>
-          <Card className="besoin-filter-card" size="small">
+          <Card variant="borderless" className="besoin-filter-card" size="small">
             <Space wrap size="middle" align="center">
               <div className="besoin-filter-icon">
                 <FilterOutlined />
+              </div>
+              <div className="besoin-filter-text">
+                <Text strong>Affiner la liste</Text>
+                <Text type="secondary">UP, département, statut ou priorité</Text>
               </div>
               <Input
                 placeholder="Rechercher..."
@@ -451,6 +483,7 @@ export default function BesoinList() {
                 style={{ width: 240 }}
                 prefix={<SearchOutlined style={{ color: "#bfbfbf" }} />}
                 size="middle"
+                autoComplete="off"
               />
               <Select
                 allowClear
@@ -467,13 +500,26 @@ export default function BesoinList() {
               <Select
                 allowClear
                 placeholder="Statut"
-                style={{ width: 160 }}
+                style={{ width: 140 }}
                 value={filters.statut}
                 onChange={(v) => setFilters((f) => ({ ...f, statut: v }))}
                 size="middle"
               >
                 <Option value="approuve">Approuvé</Option>
                 <Option value="en_attente">En attente</Option>
+              </Select>
+              <Select
+                allowClear
+                placeholder="Priorité"
+                style={{ width: 140 }}
+                value={filters.priorite}
+                onChange={(v) => setFilters((f) => ({ ...f, priorite: v }))}
+                size="middle"
+              >
+                <Option value="CRITIQUE">Critique</Option>
+                <Option value="HAUTE">Haute</Option>
+                <Option value="MOYENNE">Moyenne</Option>
+                <Option value="BASSE">Basse</Option>
               </Select>
               <Select
                 allowClear
@@ -501,7 +547,7 @@ export default function BesoinList() {
               </Select>
               <Button
                 icon={<ReloadOutlined />}
-                onClick={() => { setFilters({ deptId: null, upId: null, type: null, statut: null }); setSearchText(""); }}
+                onClick={() => { setFilters({ deptId: null, upId: null, type: null, statut: null, priorite: null }); setSearchText(""); }}
                 size="middle"
               >
                 Réinitialiser
@@ -512,7 +558,7 @@ export default function BesoinList() {
 
         {/* Table */}
         <motion.div variants={itemVariants}>
-          <Card className="besoin-table-card">
+          <Card variant="borderless" className="besoin-table-card">
             <AnimatePresence>
               {filtered.length === 0 && !loading ? (
                 <motion.div
@@ -530,7 +576,7 @@ export default function BesoinList() {
                 <Table
                   dataSource={filtered}
                   columns={columns}
-                  rowKey="idBesoinFormation"
+                  rowKey={(record) => getBesoinId(record)}
                   loading={loading}
                   pagination={{
                     pageSize: 10,
@@ -580,6 +626,21 @@ export default function BesoinList() {
             <Col xs={24}>
               <Form.Item label="Objectif" name="objectifFormation" rules={[{ required: true }]}>
                 <TextArea rows={3} placeholder="Décrire l'objectif de la formation" />
+              </Form.Item>
+            </Col>
+            <Col xs={24} md={12}>
+              <Form.Item label="Priorité" name="priorite" rules={[{ required: true }]}>
+                <Select placeholder="Sélectionner la priorité" size="large">
+                  <Option value="BASSE">Basse</Option>
+                  <Option value="MOYENNE">Moyenne</Option>
+                  <Option value="HAUTE">Haute</Option>
+                  <Option value="CRITIQUE">Critique</Option>
+                </Select>
+              </Form.Item>
+            </Col>
+            <Col xs={24} md={12}>
+              <Form.Item label="Impact Stratégique" name="impactStrategique">
+                <Input placeholder="Ex: Alignement stratégie..." size="large" />
               </Form.Item>
             </Col>
             <Col xs={24} md={12}>

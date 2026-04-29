@@ -16,6 +16,8 @@ public class EnseignantDTO {
     private String deptLibelle;
     private String   upId;
     private String upLibelle;
+    private String cup;
+    private String chefDepartement;
 
 }
 

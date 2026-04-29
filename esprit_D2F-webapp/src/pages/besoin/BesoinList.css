@@ -4,11 +4,30 @@
   padding: 24px;
   max-width: 1480px;
   margin: 0 auto;
+  min-height: 100%;
+  position: relative;
+  background:
+    radial-gradient(circle at top left, rgba(181, 18, 0, 0.07), transparent 34%),
+    radial-gradient(circle at top right, rgba(24, 144, 255, 0.08), transparent 28%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.95) 0%, rgba(250, 250, 252, 1) 100%);
+}
+
+.besoin-hero-card {
+  border-radius: 24px !important;
+  border: 1px solid rgba(181, 18, 0, 0.08) !important;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.92) 0%, rgba(255, 249, 248, 0.96) 100%) !important;
+  box-shadow: 0 16px 45px rgba(16, 24, 40, 0.08) !important;
+  backdrop-filter: blur(12px);
+  overflow: hidden;
+}
+
+.besoin-hero-card .ant-card-body {
+  padding: 24px 26px;
 }
 
 /* Header section */
 .besoin-header {
-  margin-bottom: 24px;
+  margin-bottom: 28px;
 }
 
 .besoin-header-title {
@@ -25,12 +44,28 @@
   background-clip: text;
 }
 
+.besoin-header-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.besoin-filter-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-right: 4px;
+}
+
 /* Stats cards */
 .besoin-stat-card {
-  border-radius: 16px !important;
-  border: none !important;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06) !important;
-  transition: all 0.3s ease;
+  border-radius: 20px !important;
+  border: 1px solid rgba(255, 255, 255, 0.3) !important;
+  background: rgba(255, 255, 255, 0.8) !important;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.05) !important;
+  transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
   overflow: hidden;
   position: relative;
 }
@@ -41,12 +76,14 @@
   top: 0;
   left: 0;
   right: 0;
-  height: 4px;
+  height: 6px;
+  opacity: 0.8;
 }
 
 .besoin-stat-card:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.1) !important;
+  transform: translateY(-6px);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08) !important;
+  background: #fff !important;
 }
 
 .besoin-stat-card.total::before {
@@ -62,95 +99,125 @@
 }
 
 .besoin-stat-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
+  width: 54px;
+  height: 54px;
+  border-radius: 14px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 24px;
-  margin-bottom: 12px;
+  font-size: 28px;
+  margin-bottom: 16px;
+  transition: transform 0.3s ease;
+}
+
+.besoin-stat-card:hover .besoin-stat-icon {
+  transform: scale(1.1) rotate(5deg);
 }
 
 .besoin-stat-icon.total {
   background: linear-gradient(135deg, #e6f7ff 0%, #bae7ff 100%);
   color: #1890ff;
+  box-shadow: 0 4px 12px rgba(24, 144, 255, 0.2);
 }
 
 .besoin-stat-icon.approved {
   background: linear-gradient(135deg, #f6ffed 0%, #d9f7be 100%);
   color: #52c41a;
+  box-shadow: 0 4px 12px rgba(82, 196, 26, 0.2);
 }
 
 .besoin-stat-icon.pending {
   background: linear-gradient(135deg, #fffbe6 0%, #fff1b8 100%);
   color: #faad14;
+  box-shadow: 0 4px 12px rgba(250, 173, 20, 0.2);
 }
 
 .besoin-stat-value {
-  font-size: 32px;
-  font-weight: 800;
-  line-height: 1.2;
-  margin-bottom: 4px;
+  font-size: 36px;
+  font-weight: 900;
+  line-height: 1;
+  margin-bottom: 6px;
+  letter-spacing: -1px;
 }
 
 .besoin-stat-label {
-  font-size: 14px;
+  font-size: 13px;
   color: #8c8c8c;
-  font-weight: 500;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 /* Filter card */
 .besoin-filter-card {
-  border-radius: 14px !important;
-  border: 1px solid #f0f0f0 !important;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.04) !important;
+  border-radius: 18px !important;
+  border: 1px solid rgba(0, 0, 0, 0.05) !important;
+  background: rgba(255, 255, 255, 0.7) !important;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.03) !important;
   margin-bottom: 24px;
+  padding: 10px;
 }
 
 .besoin-filter-icon {
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
   background: linear-gradient(135deg, #fff1f0 0%, #ffccc7 100%);
   color: #B51200;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 16px;
+  font-size: 18px;
+  box-shadow: 0 4px 10px rgba(181, 18, 0, 0.15);
 }
 
 /* Table card */
 .besoin-table-card {
-  border-radius: 16px !important;
-  border: none !important;
-  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.06) !important;
+  border-radius: 20px !important;
+  border: 1px solid rgba(0, 0, 0, 0.05) !important;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.06) !important;
   overflow: hidden;
+  background: #fff;
 }
 
 .besoin-table-card .ant-table {
-  font-size: 13px;
+  font-size: 14px;
 }
 
 .besoin-table-card .ant-table-thead > tr > th {
-  background: #fafafa;
-  font-weight: 600;
-  color: #262626;
-  border-bottom: 2px solid #f0f0f0;
-  padding: 14px 16px;
+  background: #fdfdfd;
+  font-weight: 700;
+  color: #434343;
+  border-bottom: 2px solid #f5f5f5;
+  padding: 18px 16px;
+  text-transform: uppercase;
+  font-size: 12px;
+  letter-spacing: 0.3px;
 }
 
 .besoin-table-card .ant-table-tbody > tr {
-  transition: all 0.2s ease;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .besoin-table-card .ant-table-tbody > tr:hover {
-  background: #f6ffed !important;
-  transform: scale(1.002);
+  background: rgba(181, 18, 0, 0.02) !important;
+  cursor: pointer;
 }
 
 .besoin-table-card .ant-table-tbody > tr:hover td {
   background: transparent !important;
+}
+
+.action-btn.btn-success {
+  background: linear-gradient(135deg, #52c41a 0%, #389e0d 100%) !important;
+  border-color: #389e0d !important;
+}
+
+.action-btn.btn-success:hover,
+.action-btn.btn-success:focus {
+  background: linear-gradient(135deg, #5ecf26 0%, #40a311 100%) !important;
+  border-color: #40a311 !important;
 }
 
 /* Formation cell */
@@ -322,6 +389,15 @@
 @media (max-width: 768px) {
   .besoin-list-container {
     padding: 12px;
+  }
+
+  .besoin-hero-card .ant-card-body {
+    padding: 18px;
+  }
+
+  .besoin-filter-text {
+    width: 100%;
+    margin-bottom: 4px;
   }
   
   .besoin-stat-value {

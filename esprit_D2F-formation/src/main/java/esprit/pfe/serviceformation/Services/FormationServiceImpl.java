@@ -60,7 +60,14 @@ public class FormationServiceImpl implements FormationService {
         return formation;
     }
     @Override
+    @Transactional(readOnly = true)
     public List<Formation> getAllFormations() {
-        return formationRepository.findAll();
+        List<Formation> formations = formationRepository.findAll();
+        formations.forEach(f -> {
+            if (f.getSeances() != null) f.getSeances().size();
+            if (f.getFormationCompetences() != null) f.getFormationCompetences().size();
+            if (f.getInscriptions() != null) f.getInscriptions().size();
+        });
+        return formations;
     }
 }

@@ -45,9 +45,22 @@ public class BesoinFormationServiceImpl implements IBesoinFormationService{
 
     public BesoinFormation modifyBesoinFormation(BesoinFormation b, String commentaire) {
         BesoinFormation existing = besoinFormationRepository.findById(b.getIdBesionFormation()).orElseThrow();
+        
+        // Mettre à jour les champs de données
+        if (b.getTitre() != null) existing.setTitre(b.getTitre());
+        if (b.getObjectifFormation() != null) existing.setObjectifFormation(b.getObjectifFormation());
+        if (b.getTypeBesoin() != null) existing.setTypeBesoin(b.getTypeBesoin());
+        if (b.getPriorite() != null) existing.setPriorite(b.getPriorite());
+        if (b.getImpactStrategique() != null) existing.setImpactStrategique(b.getImpactStrategique());
+        if (b.getPropositionAnimateur() != null) existing.setPropositionAnimateur(b.getPropositionAnimateur());
+        if (b.getHoraireSouhaite() != null) existing.setHoraireSouhaite(b.getHoraireSouhaite());
+        if (b.getUp() != null) existing.setUp(b.getUp());
+        if (b.getDepartement() != null) existing.setDepartement(b.getDepartement());
+
         existing.setApprouveCUP(b.isApprouveCUP());
         existing.setApprouveChefDep(b.isApprouveChefDep());
         existing.setApprouveAdmin(b.isApprouveAdmin());
+        
         if (Boolean.FALSE.equals(b.isApprouveCUP())) {
             Notification notif = new Notification();
             notif.setUsername(existing.getUsername());
@@ -63,7 +76,6 @@ public class BesoinFormationServiceImpl implements IBesoinFormationService{
             notificationRepository.save(notif);
         }
 
-
         return besoinFormationRepository.save(existing);
     }
     // src/main/java/com/example/besoin/service/BesoinFormationServiceImpl.java
@@ -72,20 +84,22 @@ public class BesoinFormationServiceImpl implements IBesoinFormationService{
         BesoinFormation b = besoinFormationRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Introuvable"));
 
+        b.setApprouveAdmin(true);
+        besoinFormationRepository.save(b);
+
         // 1) Si déjà publié, on ne republie pas
         if (Boolean.TRUE.equals(b.getEventPublished())) {
             return b;
         }
 
-        // 2) Sinon on approuve et on publie l'événement
-
+        // 2) Sinon on publie l'événement
         b.setEventPublished(true);            // on marque comme publié
         besoinFormationRepository.save(b);
 
         BesoinFormationApprovedEvent evt = BesoinFormationApprovedEvent.builder()
                 .idBesoinFormation(b.getIdBesionFormation())
                 .username(b.getUsername())
-                .typeBesoin(b.getTypeBesoin().name())
+                .typeBesoin(b.getTypeBesoin() != null ? b.getTypeBesoin().name() : null)
                 .objectifFormation(b.getObjectifFormation())
                 .propositionAnimateur(b.getPropositionAnimateur())
                 .prerequis(b.getPrerequis())
@@ -110,7 +124,11 @@ public class BesoinFormationServiceImpl implements IBesoinFormationService{
                 .notificationMessage(b.getNotificationMessage())
                 .build();
 
-        eventPublisher.publish(evt);
+        try {
+            eventPublisher.publish(evt);
+        } catch (Exception e) {
+            log.error("Failed to publish BesoinFormationApprovedEvent for id " + b.getIdBesionFormation() + ": " + e.getMessage());
+        }
         return b;
     }
     @Override

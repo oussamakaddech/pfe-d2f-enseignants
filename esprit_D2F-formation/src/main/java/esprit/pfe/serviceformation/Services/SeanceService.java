@@ -310,6 +310,7 @@ public class SeanceService {
         dto.setHeureDebut(entity.getHeureDebut());
         dto.setHeureFin(entity.getHeureFin());
         dto.setSalle(entity.getSalle());
+        dto.setOnlineMeetingUrl(entity.getOnlineMeetingUrl());
 
         // Convertir animateurs
         List<EnseignantDTO> animDtos = new ArrayList<>();

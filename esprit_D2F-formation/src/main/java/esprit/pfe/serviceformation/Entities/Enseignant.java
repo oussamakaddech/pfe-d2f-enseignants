@@ -27,7 +27,7 @@ public class Enseignant {
     @Column(length = 30, nullable = false)
     private String prenom;
 
-    @Column( nullable = false)
+    @Column(nullable = false)
     private String mail;
 
     @Column(length = 1, nullable = false)
@@ -56,12 +56,7 @@ public class Enseignant {
     @OneToMany(mappedBy = "enseignant", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Presence> presences;
 
-
-    @OneToMany(
-            mappedBy = "enseignant",
-            cascade = CascadeType.ALL,
-            orphanRemoval = true
-    )
+    @OneToMany(mappedBy = "enseignant", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Inscription> inscriptions = new ArrayList<>();
 
 }

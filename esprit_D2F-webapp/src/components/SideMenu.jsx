@@ -36,6 +36,9 @@ export default function SideMenu() {
     // ──────────────────────────────────────────────
     const common = [
       { label: "Profil", key: "/home/profile", icon: UserOutlined },
+    ];
+
+    const personalItems = [
       {
         label: "Inscriptions",
         key: "/home/ListeFormation",
@@ -50,6 +53,7 @@ export default function SideMenu() {
     const admin = [
       { label: "KPI", key: "/home/KPI", icon: BarChartOutlined },
       { label: "Comptes", key: "/home/accounts", icon: TeamOutlined },
+      { label: "Inscription", key: "/home/ListeFormation", icon: FileTextOutlined },
       {
         label: "Formations",
         key: "formations_menu",
@@ -64,7 +68,6 @@ export default function SideMenu() {
       { label: "Documents", key: "/home/File", icon: FileTextOutlined },
       { label: "Calendrier", key: "/home/Calendrier", icon: CalendarOutlined },
       { label: "Gestion Enseignant", key: "/home/Enseignants", icon: TeamOutlined },
-      { label: "Up & Département", key: "/home/UpDept", icon: ReadOutlined },
       { label: "Certificats Formations", key: "/home/certificate", icon: SafetyCertificateOutlined },
       { label: "Gestion Compétence", key: "/home/competences", icon: ApartmentOutlined },
       {
@@ -73,8 +76,6 @@ export default function SideMenu() {
         icon: ReadOutlined,
         children: [
           { label: "Liste des Besoins", key: "/home/besoins", icon: SearchOutlined },
-          { label: "Ajouter Besoin", key: "/home/besoins/ajouter", icon: PlusCircleOutlined },
-          { label: "Approuver Besoins", key: "/home/BesoinApprouver", icon: ReadOutlined },
         ],
       },
       {
@@ -87,51 +88,6 @@ export default function SideMenu() {
         ],
       },
       { label: "RICE", key: "/home/rice", icon: RobotOutlined },
-      { label: "Présence & Évaluation", key: "/home/animateur-formations", icon: ReadOutlined },
-    ];
-
-    // ──────────────────────────────────────────────
-    // Menu D2F — Direction de la Formation
-    // ──────────────────────────────────────────────
-    const D2F = [
-      { label: "KPI", key: "/home/KPI", icon: BarChartOutlined },
-      {
-        label: "Formations",
-        key: "formations_menu",
-        icon: FormOutlined,
-        children: [
-          { label: "Créer une Formation", key: "/home/Formation/Creer", icon: PlusCircleOutlined },
-          { label: "Consulter les Formations", key: "/home/Formation/Consulter", icon: SearchOutlined },
-        ],
-      },
-      { label: "Évaluations", key: "/home/Evaluations", icon: TrophyOutlined },
-      { label: "Analyse Prédictive", key: "/home/AnalysePredictive", icon: RobotOutlined },
-      { label: "Calendrier", key: "/home/Calendrier", icon: CalendarOutlined },
-      { label: "Enseignants", key: "/home/Enseignants", icon: TeamOutlined },
-      { label: "Up & Département", key: "/home/UpDept", icon: ReadOutlined },
-      { label: "Documents", key: "/home/File", icon: FileTextOutlined },
-      { label: "Certificats Formations", key: "/home/certificate", icon: SafetyCertificateOutlined },
-      { label: "Gestion Compétence", key: "/home/competences", icon: ApartmentOutlined },
-      {
-        label: "Besoin Formation",
-        key: "besoin_formation_menu",
-        icon: ReadOutlined,
-        children: [
-          { label: "Liste des Besoins", key: "/home/besoins", icon: SearchOutlined },
-          { label: "Ajouter Besoin", key: "/home/besoins/ajouter", icon: PlusCircleOutlined },
-          { label: "Approuver Besoins", key: "/home/BesoinApprouver", icon: ReadOutlined },
-        ],
-      },
-      {
-        label: "Gestion d'affectation",
-        key: "gestion_affectation",
-        icon: SolutionOutlined,
-        children: [
-          { label: "Consultation Affectation", key: "/home/affectations" },
-          { label: "Affectation via Matchmaking", key: "/home/rice/matchmaking" },
-        ],
-      },
-      { label: "Présence & Évaluation", key: "/home/animateur-formations", icon: ReadOutlined },
     ];
 
     // ──────────────────────────────────────────────
@@ -147,7 +103,6 @@ export default function SideMenu() {
         children: [
           { label: "Liste des Besoins", key: "/home/besoins", icon: SearchOutlined },
           { label: "Ajouter Besoin", key: "/home/besoins/ajouter", icon: PlusCircleOutlined },
-          { label: "Approuver Besoins", key: "/home/BesoinApprouver", icon: ReadOutlined },
         ],
       },
       {
@@ -160,6 +115,7 @@ export default function SideMenu() {
         ],
       },
       { label: "Présence & Évaluation", key: "/home/animateur-formations", icon: ReadOutlined },
+      ...personalItems,
     ];
 
     // ──────────────────────────────────────────────
@@ -177,6 +133,7 @@ export default function SideMenu() {
         ],
       },
       { label: "Présence & Évaluation", key: "/home/animateur-formations", icon: ReadOutlined },
+      ...personalItems,
     ];
 
     // ──────────────────────────────────────────────
@@ -194,9 +151,6 @@ export default function SideMenu() {
         break;
       case "CUP":
         roleItems = CUP;
-        break;
-      case "D2F":
-        roleItems = D2F;
         break;
       case "Enseignant":
         roleItems = Enseignant;
@@ -248,9 +202,9 @@ export default function SideMenu() {
           const renderIcon = (icon) =>
             icon
               ? (() => {
-                  const Icon = icon;
-                  return <Icon style={{ fontSize: 18, color: "#B51200" }} />;
-                })()
+                const Icon = icon;
+                return <Icon style={{ fontSize: 18, color: "#B51200" }} />;
+              })()
               : null;
 
           if (item.key === "logout") {
@@ -263,9 +217,9 @@ export default function SideMenu() {
             icon: renderIcon(icon),
             children: children
               ? children.map((child) => {
-                  const { icon: childIcon, ...childRest } = child;
-                  return { icon: renderIcon(childIcon), ...childRest };
-                })
+                const { icon: childIcon, ...childRest } = child;
+                return { icon: renderIcon(childIcon), ...childRest };
+              })
               : undefined,
             ...rest,
           };

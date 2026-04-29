@@ -27,7 +27,6 @@ import NotFound from "../pages/erreur/NotFound";
 import FormationCards from "../pages/inscription/FormationCards";
 import FicheFormation from "../pages/inscription/FicheFormation";
 import DemandesList from "../pages/inscription/DemandesList";
-import BesoinFormationApproval from "../pages/besoinApprouve/BesoinFormationApproval";
 import BesoinForm from "../pages/besoin/BesoinForm";
 import BesoinList from "../pages/besoin/BesoinList";
 import CertificatesByEmailPage from "../pages/CertificatesByEmailPage";
@@ -89,7 +88,7 @@ export default function AppRoutes() {
                   Admin + D2F — KPI complet, Analyse prédictive,
                   gestion formations (créer), Documents
                   ════════════════════════════════════════════════════════════ */}
-              <Route element={<RoleGuard allowedRoles={["admin", "D2F"]} />}>
+              <Route element={<RoleGuard allowedRoles={["admin"]} />}>
                 <Route path="/home/KPI" element={<KPIChart />} />
                 <Route path="/home/AnalysePredictive" element={<AnalysePredictivePage />} />
                 <Route path="/home/Formation" element={<FormationPage />} />
@@ -108,16 +107,16 @@ export default function AppRoutes() {
               </Route>
 
               {/* ════════════════════════════════════════════════════════════
-                  Admin + D2F + CUP — évaluations globales
+                  Admin + CUP — évaluations globales
                   ════════════════════════════════════════════════════════════ */}
-              <Route element={<RoleGuard allowedRoles={["admin", "D2F", "CUP"]} />}>
+              <Route element={<RoleGuard allowedRoles={["admin", "CUP"]} />}>
                 <Route path="/home/Evaluations" element={<EvaluationGlobalePage />} />
               </Route>
 
               {/* ════════════════════════════════════════════════════════════
-                  Compétences — Admin, D2F, CUP, Enseignant
+                  Compétences — Admin, CUP, Enseignant
                   ════════════════════════════════════════════════════════════ */}
-              <Route element={<RoleGuard allowedRoles={["admin", "D2F", "CUP", "Enseignant"]} />}>
+              <Route element={<RoleGuard allowedRoles={["admin", "CUP", "Enseignant"]} />}>
                 <Route path="/home/competences" element={<CompetencePage />} />
                 <Route path="/home/competence" element={<CompetencePage />} />
                 <Route
@@ -131,9 +130,9 @@ export default function AppRoutes() {
               </Route>
 
               {/* ════════════════════════════════════════════════════════════
-                  Affectations & Matchmaking — Admin, D2F, CUP
+                  Affectations & Matchmaking — Admin, CUP
                   ════════════════════════════════════════════════════════════ */}
-              <Route element={<RoleGuard allowedRoles={["admin", "D2F", "CUP"]} />}>
+              <Route element={<RoleGuard allowedRoles={["admin", "CUP"]} />}>
                 <Route path="/home/affectations" element={<AffectationEnseignantPage />} />
                 <Route path="/home/rice/matchmaking" element={<CompetenceMatchingPage />} />
                 <Route path="/home/rice/competence-matching" element={<CompetenceMatchingPage />} />
@@ -142,13 +141,12 @@ export default function AppRoutes() {
               {/* ════════════════════════════════════════════════════════════
                   Besoin Formation — lecture : tous, approbation : Admin+CUP
                   ════════════════════════════════════════════════════════════ */}
-              <Route element={<RoleGuard allowedRoles={["admin", "D2F", "CUP", "Enseignant"]} />}>
+              <Route element={<RoleGuard allowedRoles={["admin", "CUP", "Enseignant"]} />}>
                 <Route path="/home/besoins" element={<BesoinList />} />
                 <Route path="/home/besoins/ajouter" element={<BesoinForm />} />
               </Route>
 
-              <Route element={<RoleGuard allowedRoles={["admin", "D2F", "CUP"]} />}>
-                <Route path="/home/BesoinApprouver" element={<BesoinFormationApproval />} />
+              <Route element={<RoleGuard allowedRoles={["admin", "CUP"]} />}>
                 <Route
                   path="/home/ListeFormation/:id/demandes"
                   element={<DemandesList />}
@@ -158,7 +156,7 @@ export default function AppRoutes() {
               {/* ════════════════════════════════════════════════════════════
                   Présence & Évaluation Formateur — Formateur, D2F, Enseignant
                   ════════════════════════════════════════════════════════════ */}
-              <Route element={<RoleGuard allowedRoles={["Formateur", "D2F", "Enseignant", "admin"]} />}>
+              <Route element={<RoleGuard allowedRoles={["Formateur", "Enseignant", "admin"]} />}>
                 <Route
                   path="/home/animateur-formations"
                   element={<FormationList />}

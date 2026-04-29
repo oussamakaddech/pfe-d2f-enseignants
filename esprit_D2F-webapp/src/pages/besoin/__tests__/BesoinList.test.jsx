@@ -134,6 +134,14 @@ describe("BesoinList", { timeout: 15000 }, () => {
     fireEvent.click(btn);
 
     await waitFor(() => {
+      const confirmBtn = document.querySelector('.ant-popconfirm .ant-popconfirm-buttons .ant-btn-primary');
+      expect(confirmBtn).toBeTruthy();
+    });
+
+    const confirmBtn = document.querySelector('.ant-popconfirm .ant-popconfirm-buttons .ant-btn-primary');
+    fireEvent.click(confirmBtn);
+
+    await waitFor(() => {
       expect(BesoinFormationService.approveBesoin).toHaveBeenCalledWith(2);
     });
   });

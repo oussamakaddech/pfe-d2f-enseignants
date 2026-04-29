@@ -27,6 +27,7 @@ export async function login({
   );
 
   if (response.data.accessToken) {
+    console.debug("[AuthService] Saving token to localStorage:", response.data.accessToken.substring(0, 10) + "...");
     localStorage.setItem("authToken", response.data.accessToken);
   }
 

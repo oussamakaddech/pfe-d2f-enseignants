@@ -213,7 +213,7 @@ export default function EvaluationGlobalePage() {
           style={{ marginBottom: 16 }}
         />
 
-        <Card>
+        <Card variant="outlined">
           <Button
             type="primary"
             icon={<PlusOutlined />}

@@ -36,11 +36,8 @@ public class AuthorizationFilter extends AbstractGatewayFilterFactory<Authorizat
     /** Admin only */
     private static final List<String> ADMIN_ONLY = List.of("admin");
 
-    /** Admin + CUP */
-    private static final List<String> ADMIN_CUP = List.of("admin", "CUP");
-
     /** Admin + CUP + D2F */
-    private static final List<String> ADMIN_CUP_D2F = List.of("admin", "CUP", "D2F");
+    private static final List<String> ADMIN_CUP = List.of("admin", "CUP", "D2F");
 
     /** Admin + CUP + D2F + Enseignant */
     private static final List<String> NO_FORMATEUR = List.of("admin", "CUP", "D2F", "Enseignant");
@@ -48,8 +45,8 @@ public class AuthorizationFilter extends AbstractGatewayFilterFactory<Authorizat
     /** Admin + Formateur */
     private static final List<String> ADMIN_FORMATEUR = List.of("admin", "Formateur");
 
-    /** Formateur + D2F + Enseignant */
-    private static final List<String> PRESENCE_ROLES = List.of("Formateur", "D2F", "Enseignant");
+    /** Formateur + Enseignant */
+    private static final List<String> PRESENCE_ROLES = List.of("Formateur", "Enseignant");
 
     public AuthorizationFilter(JwtTokenProvider tokenProvider) {
         super(Config.class);
@@ -59,11 +56,17 @@ public class AuthorizationFilter extends AbstractGatewayFilterFactory<Authorizat
     @Override
     public GatewayFilter apply(Config config) {
         return (exchange, chain) -> {
+            // Use the original request path, before any RewritePath or StripPrefix filters were applied
             String path = exchange.getRequest().getPath().value();
+            java.util.LinkedHashSet<java.net.URI> uris = exchange.getAttribute(
+                    org.springframework.cloud.gateway.support.ServerWebExchangeUtils.GATEWAY_ORIGINAL_REQUEST_URL_ATTR);
+            if (uris != null && !uris.isEmpty()) {
+                path = uris.iterator().next().getPath();
+            }
             HttpMethod method = exchange.getRequest().getMethod();
 
-            // ── Public endpoints (no token required) ──
-            if (isPublicEndpoint(path)) {
+            // ── Public endpoints and OPTIONS requests (no token required) ──
+            if (HttpMethod.OPTIONS.equals(method) || isPublicEndpoint(path)) {
                 return chain.filter(exchange);
             }
 
@@ -171,8 +174,11 @@ public class AuthorizationFilter extends AbstractGatewayFilterFactory<Authorizat
             if (method == HttpMethod.DELETE) {
                 return ADMIN_ONLY;
             }
+            if (path.contains("/inscription/inscriptions") && method == HttpMethod.POST) {
+                return ALL_ROLES;
+            }
             if (method == HttpMethod.POST || method == HttpMethod.PUT || method == HttpMethod.PATCH) {
-                return ADMIN_CUP_D2F;
+                return ADMIN_CUP;
             }
             // GET — all roles can read formations
             return ALL_ROLES;
