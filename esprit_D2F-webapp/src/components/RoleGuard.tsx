@@ -2,6 +2,11 @@ import { useContext, ReactNode } from "react";
 import { Navigate, Outlet } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
 
+const normalizeRole = (value: unknown): string =>
+  String(value ?? "")
+    .toLowerCase()
+    .replace(/[\s_-]+/g, "");
+
 /**
  * Frontend Authorization Matrix
  * Mirrors backend permissions to prevent UI rendering of unauthorized features.
@@ -39,7 +44,7 @@ export const FRONTEND_PERMISSIONS = {
 
   // Planification Formations
   FORMATION: {
-    READ: ['admin', 'CUP', 'Enseignant', 'Formateur'],
+    READ: ['admin', 'CUP', 'Enseignant', 'Formateur', 'ResponsableDossier'],
     CREATE: ['admin'],
     UPDATE: ['admin'],
     DELETE: ['admin'],
@@ -62,6 +67,17 @@ export const FRONTEND_PERMISSIONS = {
     CREATE: ['admin'],
     UPDATE: ['admin'],
     DELETE: ['admin'],
+  },
+
+  // Dossiers / documents formation
+  DOSSIER: {
+    READ: ['admin', 'ResponsableDossier'],
+    CREATE: ['admin', 'ResponsableDossier'],
+    UPDATE: ['admin', 'ResponsableDossier'],
+    DELETE: ['admin', 'ResponsableDossier'],
+    SCAN: ['admin', 'ResponsableDossier'],
+    IMPORT: ['admin', 'ResponsableDossier'],
+    EXPORT: ['admin', 'ResponsableDossier'],
   },
 
   // RICE Module
@@ -102,8 +118,9 @@ export default function RoleGuard({ allowedRoles }: RoleGuardProps) {
   }
 
   const { user } = auth;
-  const role = typeof user?.role === "string" ? user.role : "";
-  if (!user || !allowedRoles.includes(role)) {
+  const role = normalizeRole(user?.role);
+  const normalizedAllowedRoles = allowedRoles.map(normalizeRole);
+  if (!user || !normalizedAllowedRoles.includes(role)) {
     return <Navigate to="/home/profile" replace />;
   }
 
@@ -117,8 +134,8 @@ export const useHasRole = (requiredRoles: string[]): boolean => {
   const auth = useContext(AuthContext);
   if (!auth || !auth.user) return false;
   
-  const role = typeof auth.user.role === "string" ? auth.user.role : "";
-  return requiredRoles.includes(role);
+  const role = normalizeRole(auth.user.role);
+  return requiredRoles.map(normalizeRole).includes(role);
 };
 
 /**
@@ -137,8 +154,8 @@ export const useHasPermission = (
   const allowedRoles = permissions[action as keyof typeof permissions];
   if (!allowedRoles) return false;
 
-  const role = typeof auth.user.role === "string" ? auth.user.role : "";
-  return allowedRoles.includes(role);
+  const role = normalizeRole(auth.user.role);
+  return allowedRoles.map(normalizeRole).includes(role);
 };
 
 /**

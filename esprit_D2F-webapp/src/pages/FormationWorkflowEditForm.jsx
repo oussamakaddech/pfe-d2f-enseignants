@@ -51,6 +51,8 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
   const [ens, setEns] = useState([]);
   const [, setAnimSel] = useState([]);
   const [partSel, setPartSel] = useState([]);
+  const [existingFormations, setExistingFormations] = useState([]);
+  const [overlapWarnings, setOverlapWarnings] = useState([]);
   const [animFilterUp] = useState(null);
   const [animFilterDept] = useState(null);
   const [partFilterUp, setPartFilterUp] = useState(null);
@@ -157,14 +159,16 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
   useEffect(() => {
     (async () => {
       try {
-        const [u, d, e] = await Promise.all([
+        const [u, d, e, formations] = await Promise.all([
           UpService.getAllUps(),
           DeptService.getAllDepts(),
           EnseignantService.getAllEnseignants(),
+          FormationWorkflowService.getAllFormationWorkflows(),
         ]);
         setUps(u);
         setDepts(d);
         setEns(e);
+        setExistingFormations(Array.isArray(formations) ? formations : []);
       } catch {
         setSnack({ open: true, severity: "error", message: "Échec du chargement des données externes" });
       }
@@ -182,6 +186,106 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
       (!partFilterUp || x.upLibelle === partFilterUp.libelle) &&
       (!partFilterDept || x.deptLibelle === partFilterDept.libelle)
   );
+
+  const toMinutes = (timeValue) => {
+    if (!timeValue) return null;
+    const parts = String(timeValue).split(":");
+    if (parts.length < 2) return null;
+    const h = parseInt(parts[0], 10);
+    const m = parseInt(parts[1], 10);
+    if (Number.isNaN(h) || Number.isNaN(m)) return null;
+    return (h * 60) + m;
+  };
+
+  const sameTimeWindow = (a, b) => {
+    if (!a?.dateSeance || !b?.dateSeance || a.dateSeance !== b.dateSeance) return false;
+    const aStart = toMinutes(a.heureDebut);
+    const aEnd = toMinutes(a.heureFin);
+    const bStart = toMinutes(b.heureDebut);
+    const bEnd = toMinutes(b.heureFin);
+    if (aStart === null || aEnd === null || bStart === null || bEnd === null) return false;
+    return aStart < bEnd && bStart < aEnd;
+  };
+
+  const intersects = (left, right) => left.some((id) => right.includes(id));
+  const normalizedSalle = (value) => String(value || "").trim().toLowerCase();
+
+  const buildConflictMessages = () => {
+    const messages = [];
+    const participantIds = partSel.map((p) => p.id).filter(Boolean);
+    const localSeances = seances.map((s) => ({
+      dateSeance: s.dateSeance,
+      heureDebut: s.heureDebut,
+      heureFin: s.heureFin,
+      salle: s.salle,
+      animateurIds: (Array.isArray(s.animateurs) ? s.animateurs : []).map((a) => a?.id).filter(Boolean),
+    }));
+
+    localSeances.forEach((s, idx) => {
+      const start = toMinutes(s.heureDebut);
+      const end = toMinutes(s.heureFin);
+      if (start !== null && end !== null && start >= end) {
+        messages.push(`Séance #${idx + 1}: heure de fin doit être après l'heure de début.`);
+      }
+    });
+
+    for (let i = 0; i < localSeances.length; i += 1) {
+      for (let j = i + 1; j < localSeances.length; j += 1) {
+        const left = localSeances[i];
+        const right = localSeances[j];
+        if (!sameTimeWindow(left, right)) continue;
+
+        const leftSalle = normalizedSalle(left.salle);
+        const rightSalle = normalizedSalle(right.salle);
+        if (leftSalle && rightSalle && leftSalle === rightSalle) {
+          messages.push(`Conflit interne: les séances #${i + 1} et #${j + 1} utilisent la même salle au même horaire.`);
+        }
+        if (participantIds.length > 0) {
+          messages.push(`Conflit interne: les séances #${i + 1} et #${j + 1} se chevauchent pour les mêmes participants.`);
+        }
+        if (left.animateurIds.length > 0 && right.animateurIds.length > 0 && intersects(left.animateurIds, right.animateurIds)) {
+          messages.push(`Conflit interne: les séances #${i + 1} et #${j + 1} se chevauchent pour un ou plusieurs animateurs.`);
+        }
+      }
+    }
+
+    existingFormations
+      .filter((f) => (f.idFormation || f.id) !== formation.idFormation)
+      .forEach((f) => {
+        const existingSeances = Array.isArray(f.seances) ? f.seances : [];
+        const existingParticipants = [
+          ...(Array.isArray(f.participants) ? f.participants : []),
+          ...existingSeances.flatMap((s) => Array.isArray(s.participants) ? s.participants : []),
+        ].map((p) => p?.id).filter(Boolean);
+
+        localSeances.forEach((localSeance, idx) => {
+          existingSeances.forEach((existingSeance) => {
+            if (!sameTimeWindow(localSeance, existingSeance)) return;
+
+            const formationName = f.titreFormation || `#${f.idFormation || f.id || "?"}`;
+            const localSalle = normalizedSalle(localSeance.salle);
+            const existingSalle = normalizedSalle(existingSeance.salle);
+            if (localSalle && existingSalle && localSalle === existingSalle) {
+              messages.push(`Conflit salle: séance #${idx + 1} chevauche la formation ${formationName} dans la salle ${localSeance.salle}.`);
+            }
+
+            const existingAnimIds = (Array.isArray(existingSeance.animateurs) ? existingSeance.animateurs : []).map((a) => a?.id).filter(Boolean);
+            if (participantIds.length > 0 && existingParticipants.length > 0 && intersects(participantIds, existingParticipants)) {
+              messages.push(`Conflit participants: séance #${idx + 1} chevauche la formation ${formationName}.`);
+            }
+            if (localSeance.animateurIds.length > 0 && existingAnimIds.length > 0 && intersects(localSeance.animateurIds, existingAnimIds)) {
+              messages.push(`Conflit animateurs: séance #${idx + 1} chevauche la formation ${formationName}.`);
+            }
+          });
+        });
+      });
+
+    return [...new Set(messages)];
+  };
+
+  useEffect(() => {
+    setOverlapWarnings(buildConflictMessages());
+  }, [seances, partSel, existingFormations]);
 
   /* ---------- helpers séances ---------- */
   const addSeance = () =>
@@ -249,6 +353,18 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
       });
       return;
     }
+
+    const blockingConflicts = buildConflictMessages();
+    if (blockingConflicts.length > 0) {
+      setOverlapWarnings(blockingConflicts);
+      setSnack({
+        open: true,
+        severity: "error",
+        message: "Conflits détectés: corrigez les dates/salles/personnes avant mise à jour.",
+      });
+      return;
+    }
+
     const payload = {
       titreFormation: titre,
       dateDebut,
@@ -671,6 +787,19 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
             + Ajouter Séance
           </Button>
         </Grid>
+
+        {overlapWarnings.length > 0 && (
+          <Grid item xs={12}>
+            <Alert severity="warning">
+              <strong>Chevauchements détectés:</strong>
+              <ul style={{ margin: "8px 0 0 16px", padding: 0 }}>
+                {overlapWarnings.map((msg) => (
+                  <li key={msg}>{msg}</li>
+                ))}
+              </ul>
+            </Alert>
+          </Grid>
+        )}
 
         {/* ----------- import Excel participants ----------- */}
         <input

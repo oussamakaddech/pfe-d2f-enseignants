@@ -205,12 +205,35 @@ async def teacher_risk_indicators(db: Session = Depends(get_db)) -> list[dict[st
     """Per-teacher risk indicators for attrition and disengagement."""
     data = DataService(db)
     teachers = data.get_teacher_profile()
-    return [{"teacher_id": t["enseignant_id"], "teacher_name": f"{t['prenom']} {t['nom']}",
-             "attrition_risk_score": min(1.0, t["days_since_last_training"] / 365.0),
-             "disengagement_signals": ["No recent training"] if t["days_since_last_training"] > 180 else [],
-             "competency_stagnation_rate": 0.0, "training_velocity": t["nb_formations_completed"],
-             "recommendation": "Schedule training" if t["days_since_last_training"] > 180 else "OK"}
-            for t in teachers]
+    risk_results = []
+    for t in teachers:
+        # Facteur Temps (plus c'est long, plus le risque est élevé)
+        time_factor = min(1.0, (t["days_since_last_training"] or 365) / 365.0)
+        
+        # Facteur Engagement (assiduité faible = risque élevé)
+        engagement_factor = 1.0 - (t["taux_assiduite"] or 1.0)
+        
+        # Facteur Progression (peu de formations terminées = risque de stagnation)
+        stagnation_factor = 1.0 / (1.0 + (t["nb_formations_completed"] or 0))
+        
+        # Score final pondéré
+        risk_score = (0.5 * time_factor) + (0.2 * engagement_factor) + (0.3 * stagnation_factor)
+        
+        signals = []
+        if time_factor > 0.8: signals.append("Absence prolongée de formation")
+        if engagement_factor > 0.3: signals.append("Baisse d'assiduité")
+        if stagnation_factor > 0.5: signals.append("Stagnation des compétences")
+        
+        risk_results.append({
+            "teacher_id": t["enseignant_id"],
+            "teacher_name": f"{t['prenom']} {t['nom']}",
+            "attrition_risk_score": round(risk_score, 2),
+            "disengagement_signals": signals,
+            "competency_stagnation_rate": round(stagnation_factor, 2),
+            "training_velocity": t["nb_formations_completed"],
+            "recommendation": "Planifier entretien" if risk_score > 0.7 else "Proposer formation" if risk_score > 0.4 else "OK"
+        })
+    return risk_results
 
 
 @router.get("/dashboard/summary", response_model=DashboardResponse, tags=["Dashboard"])

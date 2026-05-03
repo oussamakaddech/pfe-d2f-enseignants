@@ -8,7 +8,7 @@ Architecture **microservices** (Spring Boot 3.x / JDK 17 + FastAPI Python) :
 
 ```
 pfe-d2f-enseignants/
-├── esprit_D2F-api-gateway/           # API Gateway (Spring Cloud Gateway, port 8222)
+├── esprit_D2F-api-gateway/           # API Gateway (Spring Cloud Gateway, port 8080)
 ├── esprit_D2F-authentification/      # Auth & Users (JWT HS512, port 8085)
 ├── esprit_D2F-competence/            # Gestion compétences & RICE (port 8005)
 ├── esprit_D2F-formation/             # Formations & OneDrive (port 8088)
@@ -66,7 +66,7 @@ cd esprit_D2F-webapp && npm install && npm run dev
 |---|---|---|
 | `JWT_SECRET` | Clé HS512 (min 64 chars) | `<générer via openssl rand -base64 64>` |
 | `DB_PASSWORD` | Mot de passe PostgreSQL | `<mot de passe fort>` |
-| `VITE_API_URL` | URL API Gateway (frontend) | `http://localhost:8222/api` |
+| `VITE_API_URL` | URL API Gateway (frontend) | `http://localhost:8080/api` |
 | `MAIL_USERNAME` | SMTP utilisateur | — |
 | `MAIL_PASSWORD` | SMTP mot de passe | — |
 

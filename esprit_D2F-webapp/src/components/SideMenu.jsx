@@ -1,6 +1,6 @@
 // src/components/SideMenu.jsx
 import { useContext, useMemo } from "react";
-import { Menu } from "antd";
+import { Menu, Avatar, Badge, Typography, Divider } from "antd";
 import {
   HomeOutlined,
   DashboardOutlined,
@@ -19,9 +19,19 @@ import {
   TrophyOutlined,
   SafetyCertificateOutlined,
   UserOutlined,
+  SettingOutlined,
+  BellOutlined,
 } from "@ant-design/icons";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
+import "./SideMenu.css";
+
+const { Text } = Typography;
+
+const normalizeRole = (value) =>
+  String(value || "")
+    .toLowerCase()
+    .replace(/[\s_-]+/g, "");
 
 export default function SideMenu() {
   const { user, logout } = useContext(AuthContext);
@@ -31,138 +41,124 @@ export default function SideMenu() {
   const items = useMemo(() => {
     if (!user) return [];
 
-    // ──────────────────────────────────────────────
-    // Entrées communes à TOUS les utilisateurs
-    // ──────────────────────────────────────────────
-    const common = [
-      { label: "Profil", key: "/home/profile", icon: UserOutlined },
-    ];
-
     const personalItems = [
       {
-        label: "Inscriptions",
+        label: "Mes Inscriptions",
         key: "/home/ListeFormation",
         icon: FileTextOutlined,
       },
       { label: "Mes Certificats", key: "/home/MyCertificate", icon: SafetyCertificateOutlined },
     ];
 
-    // ──────────────────────────────────────────────
-    // Menu ADMIN — accès complet
-    // ──────────────────────────────────────────────
     const admin = [
-      { label: "KPI", key: "/home/KPI", icon: BarChartOutlined },
-      { label: "Comptes", key: "/home/accounts", icon: TeamOutlined },
-      { label: "Inscription", key: "/home/ListeFormation", icon: FileTextOutlined },
+      { label: "Tableau de Bord KPI", key: "/home/KPI", icon: BarChartOutlined },
       {
-        label: "Formations",
+        label: "Administration",
+        key: "admin_management",
+        icon: TeamOutlined,
+        children: [
+          { label: "Gestion des Comptes", key: "/home/accounts", icon: UserOutlined },
+          { label: "Annuaire Enseignants", key: "/home/Enseignants", icon: SolutionOutlined },
+          { label: "Structures (UP/Dept)", key: "/home/UpDept", icon: ApartmentOutlined },
+        ],
+      },
+      { label: "Inscriptions", key: "/home/ListeFormation", icon: FileTextOutlined },
+      {
+        label: "Gestion Formations",
         key: "formations_menu",
         icon: FormOutlined,
         children: [
-          { label: "Créer une Formation", key: "/home/Formation/Creer", icon: PlusCircleOutlined },
-          { label: "Consulter les Formations", key: "/home/Formation/Consulter", icon: SearchOutlined },
+          { label: "Nouvelle Formation", key: "/home/Formation/Creer", icon: PlusCircleOutlined },
+          { label: "Consulter le Catalogue", key: "/home/Formation/Consulter", icon: SearchOutlined },
         ],
       },
       { label: "Évaluations", key: "/home/Evaluations", icon: TrophyOutlined },
       { label: "Analyse Prédictive", key: "/home/AnalysePredictive", icon: RobotOutlined },
-      { label: "Documents", key: "/home/File", icon: FileTextOutlined },
-      { label: "Calendrier", key: "/home/Calendrier", icon: CalendarOutlined },
-      { label: "Gestion Enseignant", key: "/home/Enseignants", icon: TeamOutlined },
-      { label: "Certificats Formations", key: "/home/certificate", icon: SafetyCertificateOutlined },
-      { label: "Gestion Compétence", key: "/home/competences", icon: ApartmentOutlined },
+      { label: "Gestion Documentaire", key: "/home/File", icon: FileTextOutlined },
+      { label: "Calendrier Global", key: "/home/Calendrier", icon: CalendarOutlined },
+      { label: "Certifications", key: "/home/certificate", icon: SafetyCertificateOutlined },
+      { label: "Référentiel Compétences", key: "/home/competences", icon: ApartmentOutlined },
       {
-        label: "Besoin Formation",
+        label: "Besoins en Formation",
         key: "besoin_formation_menu",
         icon: ReadOutlined,
         children: [
-          { label: "Liste des Besoins", key: "/home/besoins", icon: SearchOutlined },
+          { label: "Liste des Demandes", key: "/home/besoins", icon: SearchOutlined },
         ],
       },
       {
-        label: "Gestion d'affectation",
+        label: "Gestion Affectation",
         key: "gestion_affectation",
         icon: SolutionOutlined,
         children: [
-          { label: "Consultation Affectation", key: "/home/affectations" },
-          { label: "Affectation via Matchmaking", key: "/home/rice/matchmaking" },
+          { label: "Suivi des Affectations", key: "/home/affectations" },
+          { label: "Matchmaking IA", key: "/home/rice/matchmaking" },
         ],
       },
-      { label: "RICE", key: "/home/rice", icon: RobotOutlined },
+      { label: "Service RICE", key: "/home/rice", icon: RobotOutlined },
     ];
 
-    // ──────────────────────────────────────────────
-    // Menu CUP — Chef d'Unité Pédagogique
-    // ──────────────────────────────────────────────
     const CUP = [
       { label: "Évaluations", key: "/home/Evaluations", icon: TrophyOutlined },
-      { label: "Compétences", key: "/home/competences", icon: ApartmentOutlined },
+      { label: "Référentiel Compétences", key: "/home/competences", icon: ApartmentOutlined },
       {
-        label: "Besoin Formation",
+        label: "Besoins en Formation",
         key: "besoin_formation_menu",
         icon: ReadOutlined,
         children: [
-          { label: "Liste des Besoins", key: "/home/besoins", icon: SearchOutlined },
-          { label: "Ajouter Besoin", key: "/home/besoins/ajouter", icon: PlusCircleOutlined },
+          { label: "Liste des Demandes", key: "/home/besoins", icon: SearchOutlined },
+          { label: "Déposer un Besoin", key: "/home/besoins/ajouter", icon: PlusCircleOutlined },
         ],
       },
       {
-        label: "Gestion d'affectation",
+        label: "Gestion Affectation",
         key: "gestion_affectation",
         icon: SolutionOutlined,
         children: [
-          { label: "Consultation Affectation", key: "/home/affectations" },
-          { label: "Affectation via Matchmaking", key: "/home/rice/matchmaking" },
+          { label: "Suivi des Affectations", key: "/home/affectations" },
+          { label: "Matchmaking IA", key: "/home/rice/matchmaking" },
         ],
       },
       { label: "Présence & Évaluation", key: "/home/animateur-formations", icon: ReadOutlined },
       ...personalItems,
     ];
 
-    // ──────────────────────────────────────────────
-    // Menu Enseignant — accès limité
-    // ──────────────────────────────────────────────
     const Enseignant = [
-      { label: "Compétences", key: "/home/competences", icon: ApartmentOutlined },
+      { label: "Référentiel Compétences", key: "/home/competences", icon: ApartmentOutlined },
       {
-        label: "Besoin Formation",
+        label: "Besoins en Formation",
         key: "besoin_formation_menu",
         icon: ReadOutlined,
         children: [
-          { label: "Liste des Besoins", key: "/home/besoins", icon: SearchOutlined },
-          { label: "Ajouter Besoin", key: "/home/besoins/ajouter", icon: PlusCircleOutlined },
+          { label: "Liste des Demandes", key: "/home/besoins", icon: SearchOutlined },
+          { label: "Déposer un Besoin", key: "/home/besoins/ajouter", icon: PlusCircleOutlined },
         ],
       },
       { label: "Présence & Évaluation", key: "/home/animateur-formations", icon: ReadOutlined },
       ...personalItems,
     ];
 
-    // ──────────────────────────────────────────────
-    // Menu Formateur — animateur de sessions
-    // ──────────────────────────────────────────────
     const formateur = [
-      { label: "Mes Formations", key: "/home/animateur-formations", icon: ReadOutlined },
+      { label: "Sessions d'Animation", key: "/home/animateur-formations", icon: ReadOutlined },
     ];
 
-    // Les items selon rôle
+    const responsableDossier = [
+      { label: "Gestion Formations", key: "/home/Formation/Consulter", icon: SearchOutlined },
+      { label: "Dossiers de Formation", key: "/home/File", icon: FileTextOutlined },
+    ];
+
     let roleItems = [];
-    switch (user.role) {
-      case "admin":
-        roleItems = admin;
-        break;
-      case "CUP":
-        roleItems = CUP;
-        break;
-      case "Enseignant":
-        roleItems = Enseignant;
-        break;
-      case "Formateur":
-        roleItems = formateur;
-        break;
-      default:
-        roleItems = [];
+    switch (normalizeRole(user.role)) {
+      case "admin": roleItems = admin; break;
+      case "cup": roleItems = CUP; break;
+      case "enseignant": roleItems = Enseignant; break;
+      case "formateur": roleItems = formateur; break;
+      case "responsabledossier": roleItems = responsableDossier; break;
+      default: roleItems = [];
     }
 
-    // Ajout du bouton Déconnexion
+    const common = [{ label: "Mon Profil", key: "/home/profile", icon: UserOutlined }];
+
     const logoutItem = {
       label: "Déconnexion",
       key: "logout",
@@ -182,49 +178,62 @@ export default function SideMenu() {
     }
   };
 
+  const menuItems = items.map((item) => {
+    const Icon = item.icon;
+    const children = item.children?.map(child => {
+      const ChildIcon = child.icon;
+      return {
+        ...child,
+        icon: ChildIcon ? <ChildIcon /> : null
+      };
+    });
+
+    return {
+      ...item,
+      icon: Icon ? <Icon /> : null,
+      children
+    };
+  });
+
   return (
-    <>
-      <div style={{ padding: 16, textAlign: "center" }}>
+    <div className="sidemenu-container">
+      <div className="sidemenu-logo-section">
         <Link to="/home/profile">
           <img
             src="/assets/img/logo/esprit.png"
             alt="Esprit"
-            style={{ height: 80, objectFit: "contain" }}
           />
         </Link>
       </div>
-      <Menu
-        theme="light"
-        mode="inline"
-        selectedKeys={[pathname]}
-        onClick={onClick}
-        items={items.map((item) => {
-          const renderIcon = (icon) =>
-            icon
-              ? (() => {
-                const Icon = icon;
-                return <Icon style={{ fontSize: 18, color: "#B51200" }} />;
-              })()
-              : null;
 
-          if (item.key === "logout") {
-            const { icon, ...rest } = item;
-            return { icon: renderIcon(icon), ...rest };
-          }
+      <div className="sidemenu-user-card">
+        <div className="user-card-content">
+          <Badge dot color="#52c41a" offset={[-5, 35]}>
+            <Avatar 
+              size={48} 
+              icon={<UserOutlined />} 
+              src={user?.avatar}
+              className="user-avatar"
+            />
+          </Badge>
+          <div className="user-info">
+            <Text className="user-name">{user?.username}</Text>
+            <Text className="user-role">{user?.role}</Text>
+          </div>
+        </div>
+      </div>
 
-          const { icon, children, ...rest } = item;
-          return {
-            icon: renderIcon(icon),
-            children: children
-              ? children.map((child) => {
-                const { icon: childIcon, ...childRest } = child;
-                return { icon: renderIcon(childIcon), ...childRest };
-              })
-              : undefined,
-            ...rest,
-          };
-        })}
-      />
-    </>
+      <Divider style={{ margin: "8px 0", opacity: 0.5 }} />
+
+      <div className="sidemenu-nav-section">
+        <Menu
+          mode="inline"
+          selectedKeys={[pathname]}
+          onClick={onClick}
+          items={menuItems}
+          className="custom-sidemenu"
+        />
+      </div>
+    </div>
   );
 }

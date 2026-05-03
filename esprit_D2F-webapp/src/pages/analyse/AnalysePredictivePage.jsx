@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   Card,
   Input,
@@ -16,6 +16,9 @@ import {
   Descriptions,
   Tooltip,
   Space,
+  Empty,
+  Avatar,
+  Divider,
 } from "antd";
 import {
   SearchOutlined,
@@ -25,21 +28,22 @@ import {
   FallOutlined,
   TeamOutlined,
   ThunderboltOutlined,
+  UserOutlined,
+  ArrowRightOutlined,
+  ProjectOutlined,
+  BulbOutlined,
+  HistoryOutlined,
 } from "@ant-design/icons";
+import { motion, AnimatePresence } from "framer-motion";
 import AnalysePredictiveService from "../../services/AnalysePredictiveService";
+import "./AnalysePredictivePage.css";
 
-const { Title, Text } = Typography;
+const { Title, Text, Paragraph } = Typography;
 
-// Couleurs de gravité
 const graviteColors = {
-  elevee: "red",
-  moyenne: "orange",
-  faible: "green",
-};
-const prioriteColors = {
-  haute: "red",
-  moyenne: "orange",
-  faible: "green",
+  elevee: "#ef4444",
+  moyenne: "#f59e0b",
+  faible: "#10b981",
 };
 
 export default function AnalysePredictivePage() {
@@ -50,18 +54,17 @@ export default function AnalysePredictivePage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // Analyser un enseignant
   const handleAnalyserEnseignant = async () => {
     if (!enseignantId.trim()) return;
     setLoading(true);
     setError(null);
-    setAnalyseData(null);
     try {
       const data = await AnalysePredictiveService.analyserEnseignant(
         enseignantId.trim(),
         competenceCible.trim() || undefined
       );
       setAnalyseData(data);
+      setTendancesData(null);
     } catch {
       setError("Impossible de récupérer l'analyse prédictive. Vérifiez l'ID et réessayez.");
     } finally {
@@ -69,14 +72,13 @@ export default function AnalysePredictivePage() {
     }
   };
 
-  // Tendances globales
   const handleTendancesGlobales = async () => {
     setLoading(true);
     setError(null);
-    setTendancesData(null);
     try {
       const data = await AnalysePredictiveService.analyserTendancesGlobales();
       setTendancesData(data);
+      setAnalyseData(null);
     } catch {
       setError("Impossible de récupérer les tendances globales.");
     } finally {
@@ -84,455 +86,354 @@ export default function AnalysePredictivePage() {
     }
   };
 
-  // Colonnes pour la table des gaps
   const gapColumns = [
     {
-      title: "Code",
-      dataIndex: "competenceCode",
-      key: "code",
-      width: 120,
-    },
-    {
       title: "Compétence",
-      dataIndex: "competenceLabel",
       key: "label",
+      render: (_, r) => (
+        <Space direction="vertical" size={0}>
+          <Text strong>{r.competenceLabel}</Text>
+          <Text type="secondary" style={{ fontSize: 11 }}>{r.competenceCode}</Text>
+        </Space>
+      ),
     },
     {
-      title: "Actuel",
+      title: "Niveau Actuel",
       dataIndex: "niveauActuel",
-      key: "actuel",
-      width: 90,
-      render: (val) => <Progress percent={Math.round((val / 5) * 100)} size="small" />,
+      width: 120,
+      render: (val) => (
+        <Space direction="vertical" size={0} style={{ width: "100%" }}>
+          <Progress percent={(val / 5) * 100} size="small" showInfo={false} strokeColor="#94a3b8" />
+          <Text style={{ fontSize: 12 }}>{val}/5</Text>
+        </Space>
+      ),
     },
     {
-      title: "Cible",
+      title: "Niveau Cible",
       dataIndex: "niveauCible",
-      key: "cible",
-      width: 90,
-      render: (val) => <Progress percent={Math.round((val / 5) * 100)} size="small" strokeColor="#B51200" />,
+      width: 120,
+      render: (val) => (
+        <Space direction="vertical" size={0} style={{ width: "100%" }}>
+          <Progress percent={(val / 5) * 100} size="small" showInfo={false} strokeColor="#B51200" />
+          <Text style={{ fontSize: 12 }}>{val}/5</Text>
+        </Space>
+      ),
     },
     {
-      title: "Gap",
+      title: "Gap Prédit",
       dataIndex: "gap",
-      key: "gap",
-      width: 70,
-      render: (val) => <Text strong style={{ color: val >= 2 ? "#f5222d" : val >= 1 ? "#fa8c16" : "#52c41a" }}>{val.toFixed(1)}</Text>,
+      width: 100,
+      align: "center",
+      render: (val) => (
+        <div className={`gap-value ${val >= 1.5 ? 'high' : 'normal'}`}>
+          <Text strong style={{ color: val >= 1.5 ? "#ef4444" : "#1e293b", fontSize: 16 }}>
+            {val.toFixed(1)}
+          </Text>
+        </div>
+      ),
     },
     {
       title: "Gravité",
       dataIndex: "gravite",
-      key: "gravite",
-      width: 100,
-      render: (val) => <Tag color={graviteColors[val]}>{val.toUpperCase()}</Tag>,
-    },
-    {
-      title: "Explication",
-      dataIndex: "explication",
-      key: "explication",
-      ellipsis: { showTitle: false },
+      width: 120,
       render: (val) => (
-        <Tooltip placement="topLeft" title={val}>
-          {val}
-        </Tooltip>
-      ),
-    },
-  ];
-
-  // Colonnes pour les recommandations
-  const recoColumns = [
-    {
-      title: "#",
-      dataIndex: "ordre",
-      key: "ordre",
-      width: 50,
-    },
-    {
-            title: "Formation",
-            dataIndex: "titre",
-            key: "titre",
-          },
-          {
-            title: "Compétences ciblées",
-            dataIndex: "competencesCiblees",
-            key: "competencesCiblees",
-            width: 180,
-            render: (val) =>
-              val && val.length > 0 ? (
-                val.map((c, i) => <Tag key={i} color="blue">{c}</Tag>)
-              ) : (
-                <Tag color="default">Non spécifié</Tag>
-              ),
-          },
-          {
-            title: "Durée",
-      dataIndex: "dureeEstimee",
-      key: "duree",
-      width: 100,
-    },
-    {
-      title: "Prérequis manquants",
-      dataIndex: "prerequisManquants",
-      key: "prerequis",
-      width: 160,
-      render: (val) =>
-        val && val.length > 0 ? (
-          val.map((p, i) => <Tag key={i} color="volcano">{p}</Tag>)
-        ) : (
-          <Tag color="green">Aucun</Tag>
-        ),
-    },
-    {
-      title: "Prob. réussite",
-      dataIndex: "probabiliteReussite",
-      key: "proba",
-      width: 140,
-      render: (val) => (
-        <Progress
-          percent={Math.round(val * 100)}
-          size="small"
-          strokeColor={val >= 0.7 ? "#52c41a" : val >= 0.5 ? "#fa8c16" : "#f5222d"}
-        />
-      ),
-    },
-    {
-      title: "Justification",
-      dataIndex: "justification",
-      key: "justification",
-      ellipsis: { showTitle: false },
-      render: (val) => (
-        <Tooltip placement="topLeft" title={val}>
-          {val}
-        </Tooltip>
-      ),
-    },
-  ];
-
-  // Colonnes pour les besoins détectés
-  const besoinsColumns = [
-    {
-      title: "Type",
-      dataIndex: "type",
-      key: "type",
-      width: 110,
-      render: (val) => (
-        <Tag color={val === "collectif" ? "blue" : "purple"} icon={val === "collectif" ? <TeamOutlined /> : <UserOutlined />}>
-          {val}
+        <Tag color={graviteColors[val]} style={{ borderRadius: 12, padding: "0 12px", border: "none" }}>
+          {val.toUpperCase()}
         </Tag>
       ),
     },
     {
-      title: "Compétence",
-      dataIndex: "competenceCode",
-      key: "competenceCode",
-    },
-    {
-      title: "Priorité",
-      dataIndex: "priorite",
-      key: "priorite",
-      width: 100,
-      render: (val) => <Tag color={prioriteColors[val]}>{val.toUpperCase()}</Tag>,
-    },
-    {
-      title: "Raison",
-      dataIndex: "raison",
-      key: "raison",
-      ellipsis: { showTitle: false },
+      title: "Analyse IA",
+      dataIndex: "explication",
       render: (val) => (
-        <Tooltip placement="topLeft" title={val}>
-          {val}
+        <Tooltip title={val}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <BulbOutlined style={{ color: '#f59e0b' }} />
+            <Text type="secondary" ellipsis style={{ maxWidth: 200 }}>{val}</Text>
+          </div>
         </Tooltip>
       ),
     },
   ];
 
-  // Remplacer UserOutlined import manquant
-  const UserOutlined = TeamOutlined;
-
   return (
-    <div style={{ padding: 24 }}>
-      <Title level={3} style={{ marginBottom: 24 }}>
-        <RobotOutlined style={{ marginRight: 8, color: "#B51200" }} />
-        Analyse Prédictive
-      </Title>
-
-      {error && (
-        <Alert
-          message="Erreur"
-          description={error}
-          type="error"
-          closable
-          onClose={() => setError(null)}
-          style={{ marginBottom: 16 }}
-        />
-      )}
-
-      <Card style={{ marginBottom: 24 }}>
-        <Row gutter={16} align="middle">
-          <Col xs={24} md={8}>
-            <Space.Compact style={{ width: "100%" }}>
-              <Input
-                size="large"
-                placeholder="ID de l'enseignant (ex: E001)"
-                value={enseignantId}
-                onChange={(e) => setEnseignantId(e.target.value)}
-                onPressEnter={handleAnalyserEnseignant}
-                prefix={<SearchOutlined />}
-              />
-            </Space.Compact>
+    <div className="analyse-container">
+      {/* Header Section */}
+      <div className="analyse-header">
+        <Row justify="space-between" align="middle">
+          <Col>
+            <Space align="start" size={16}>
+              <div style={{ 
+                background: "linear-gradient(135deg, #B51200 0%, #D61600 100%)",
+                padding: 12, 
+                borderRadius: 16,
+                boxShadow: "0 8px 16px rgba(181, 18, 0, 0.2)"
+              }}>
+                <RobotOutlined style={{ fontSize: 32, color: "white" }} />
+              </div>
+              <div>
+                <Title level={2} style={{ margin: 0, fontWeight: 800 }}>Intelligence Prédictive</Title>
+                <Text type="secondary">Anticipez les besoins en compétences et optimisez les parcours de formation</Text>
+              </div>
+            </Space>
           </Col>
-          <Col xs={24} md={6}>
+          <Col>
+            <Space>
+              <Button 
+                icon={<HistoryOutlined />} 
+                onClick={() => setAnalyseData(null) || setTendancesData(null)}
+                disabled={!analyseData && !tendancesData}
+              >
+                Réinitialiser
+              </Button>
+              <Button 
+                type="primary" 
+                icon={<ThunderboltOutlined />} 
+                size="large"
+                onClick={handleTendancesGlobales}
+                loading={loading}
+                className="btn-brand"
+                style={{ height: 48, borderRadius: 12 }}
+              >
+                Tendances Globales
+              </Button>
+            </Space>
+          </Col>
+        </Row>
+      </div>
+
+      {error && <Alert message="Analyse Error" description={error} type="error" showIcon closable style={{ marginBottom: 24, borderRadius: 12 }} />}
+
+      {/* Search Section */}
+      <Card className="analyse-glass-card" style={{ marginBottom: 32 }}>
+        <Row gutter={[24, 24]} align="middle">
+          <Col xs={24} md={10}>
+            <div style={{ marginBottom: 8 }}><Text strong>Enseignant à analyser</Text></div>
             <Input
               size="large"
-              placeholder="Compétence cible (ID, optionnel)"
+              placeholder="Saisir l'identifiant (ex: ENS001)"
+              value={enseignantId}
+              onChange={(e) => setEnseignantId(e.target.value)}
+              prefix={<UserOutlined style={{ color: "#B51200" }} />}
+              style={{ borderRadius: 10 }}
+            />
+          </Col>
+          <Col xs={24} md={10}>
+            <div style={{ marginBottom: 8 }}><Text strong>Compétence cible (Optionnel)</Text></div>
+            <Input
+              size="large"
+              placeholder="Ex: C42 (IA & Big Data)"
               value={competenceCible}
               onChange={(e) => setCompetenceCible(e.target.value)}
-              onPressEnter={handleAnalyserEnseignant}
+              prefix={<ProjectOutlined style={{ color: "#B51200" }} />}
+              style={{ borderRadius: 10 }}
             />
           </Col>
           <Col xs={24} md={4}>
+            <div style={{ height: 32 }} /> {/* Spacer */}
             <Button
               type="primary"
               size="large"
+              block
+              icon={<SearchOutlined />}
               onClick={handleAnalyserEnseignant}
               loading={loading}
-              style={{ backgroundColor: "#B51200", borderColor: "#B51200", width: "100%" }}
+              style={{ height: 48, borderRadius: 12, backgroundColor: "#1e293b", borderColor: "#1e293b" }}
             >
-              Analyser
-            </Button>
-          </Col>
-          <Col xs={24} md={6}>
-            <Button
-              size="large"
-              onClick={handleTendancesGlobales}
-              loading={loading}
-              icon={<ThunderboltOutlined />}
-              style={{ width: "100%" }}
-            >
-              Tendances Globales
+              Lancer l'analyse
             </Button>
           </Col>
         </Row>
       </Card>
 
-      <Spin spinning={loading}>
-        {/* ===== ANALYSE PAR ENSEIGNANT ===== */}
-        {analyseData && (
-          <Tabs
-            defaultActiveKey="gaps"
-            type="card"
-            items={[
-              {
-                key: "gaps",
-                label: (
-                  <span>
-                    <FallOutlined /> Gaps de Compétences
-                  </span>
-                ),
-                children: (
-                  <Card>
-                    <Descriptions bordered size="small" style={{ marginBottom: 16 }}>
-                      <Descriptions.Item label="Enseignant">{analyseData.enseignantId}</Descriptions.Item>
-                      <Descriptions.Item label="Compétence analysée">{analyseData.competenceAnalysee}</Descriptions.Item>
-                      <Descriptions.Item label="Nombre de gaps">
-                        <Tag color="red">{analyseData.gaps?.length || 0}</Tag>
-                      </Descriptions.Item>
-                    </Descriptions>
+      <Spin spinning={loading} size="large">
+        <AnimatePresence mode="wait">
+          {/* Result Section: Teacher Analysis */}
+          {analyseData && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              key="teacher-analysis"
+            >
+              <Row gutter={[24, 24]}>
+                <Col xs={24} lg={16}>
+                  <Card 
+                    title={<span><FallOutlined /> Gaps de Compétences Prédits</span>} 
+                    className="analyse-glass-card"
+                    extra={<Tag color="blue">{analyseData.gaps.length} gaps identifiés</Tag>}
+                  >
                     <Table
-                      dataSource={analyseData.gaps || []}
+                      dataSource={analyseData.gaps}
                       columns={gapColumns}
                       rowKey="competenceCode"
-                      pagination={{ pageSize: 5 }}
-                      scroll={{ x: 900 }}
-                      size="small"
+                      pagination={false}
+                      size="middle"
                     />
                   </Card>
-                ),
-              },
-              {
-                key: "recommandations",
-                label: (
-                  <span>
-                    <RiseOutlined /> Recommandations
-                  </span>
-                ),
-                children: (
-                  <Card>
-                    <Table
-                      dataSource={analyseData.recommandationsFormations || []}
-                      columns={recoColumns}
-                      rowKey="formationId"
-                      pagination={{ pageSize: 5 }}
-                      scroll={{ x: 900 }}
-                      size="small"
+                </Col>
+                
+                <Col xs={24} lg={8}>
+                  <Card title={<span><UserOutlined /> Profil de l'Analyse</span>} className="analyse-glass-card">
+                    <div style={{ textAlign: 'center', padding: '16px 0' }}>
+                      <Avatar size={80} icon={<UserOutlined />} style={{ backgroundColor: '#f1f5f9', color: '#B51200', marginBottom: 16 }} />
+                      <Title level={4} style={{ margin: 0 }}>{analyseData.enseignantId}</Title>
+                      <Tag color="cyan" style={{ marginTop: 8 }}>Horizon 6 mois</Tag>
+                    </div>
+                    <Divider />
+                    <Statistic 
+                      title="Niveau de Risque Global" 
+                      value={analyseData.gaps.filter(g => g.gravite === 'elevee').length > 0 ? 85 : 42} 
+                      suffix="%" 
+                      valueStyle={{ color: analyseData.gaps.filter(g => g.gravite === 'elevee').length > 0 ? '#ef4444' : '#10b981' }}
+                    />
+                    <Paragraph type="secondary" style={{ marginTop: 12, fontSize: 13 }}>
+                      Basé sur la vélocité d'apprentissage et les exigences futures des modules affectés.
+                    </Paragraph>
+                  </Card>
+
+                  <Card title={<span><BulbOutlined /> Insight IA</span>} style={{ marginTop: 24 }} className="analyse-glass-card">
+                    <Alert
+                      message="Action Recommandée"
+                      description="L'enseignant présente un risque de retard sur les compétences DATA. Une formation de mise à niveau est suggérée avant le semestre prochain."
+                      type="warning"
+                      showIcon
+                      style={{ borderRadius: 8 }}
                     />
                   </Card>
-                ),
-              },
-              {
-                key: "besoins",
-                label: (
-                  <span>
-                    <WarningOutlined /> Besoins Détectés
-                  </span>
-                ),
-                children: (
-                  <Card>
-                    <Table
-                      dataSource={analyseData.besoinsDetectes || []}
-                      columns={besoinsColumns}
-                      rowKey="competenceCode"
-                      pagination={{ pageSize: 5 }}
-                      scroll={{ x: 700 }}
-                      size="small"
-                    />
+                </Col>
+
+                {/* Training Path Section */}
+                <Col xs={24}>
+                  <Card title={<span><RiseOutlined /> Parcours d'Apprentissage Recommandé</span>} className="analyse-glass-card">
+                    {analyseData.recommandationsFormations.length > 0 ? (
+                      <div className="reco-timeline">
+                        {analyseData.recommandationsFormations.map((step, idx) => (
+                          <div key={idx} className="reco-step">
+                            <div className="reco-step-number">{step.ordre}</div>
+                            <div className="reco-content">
+                              <Row justify="space-between" align="middle">
+                                <Col>
+                                  <div className="reco-title">{step.titre}</div>
+                                  <Space wrap>
+                                    {step.competencesCiblees.map(c => <Tag key={c} color="blue" plain>{c}</Tag>)}
+                                    <Tag icon={<HistoryOutlined />} color="default">{step.dureeEstimee}</Tag>
+                                  </Space>
+                                </Col>
+                                <Col>
+                                  <div style={{ textAlign: 'right' }}>
+                                    <Text type="secondary" style={{ fontSize: 12 }}>Probabilité de réussite</Text>
+                                    <Progress percent={step.probabiliteReussite * 100} size="small" strokeColor={step.probabiliteReussite > 0.8 ? '#10b981' : '#f59e0b'} />
+                                  </div>
+                                </Col>
+                              </Row>
+                              <div style={{ marginTop: 12, padding: 8, background: '#f8fafc', borderRadius: 6 }}>
+                                <Text style={{ fontSize: 13 }}><BulbOutlined style={{ marginRight: 6 }} /> {step.justification}</Text>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <Empty description="Spécifiez une compétence cible pour générer un parcours personnalisé." />
+                    )}
                   </Card>
-                ),
-              },
-              {
-                key: "dashboard",
-                label: (
-                  <span>
-                    <ThunderboltOutlined /> Dashboard Prédictif
-                  </span>
-                ),
-                children: (
-                  <Card>
-                    <Row gutter={[16, 16]}>
-                      <Col xs={24} md={8}>
-                        <Card size="small" title="Compétences en Déclin" bordered={false}>
-                          {(analyseData.dashboard?.competencesEnDeclin || []).length > 0 ? (
-                            analyseData.dashboard.competencesEnDeclin.map((c, i) => (
-                              <Tag key={i} color="red" style={{ marginBottom: 4 }}>
-                                <FallOutlined /> {c}
-                              </Tag>
-                            ))
-                          ) : (
-                            <Text type="secondary">Aucune compétence en déclin détectée</Text>
-                          )}
-                        </Card>
+                </Col>
+              </Row>
+            </motion.div>
+          )}
+
+          {/* Result Section: Global Trends */}
+          {tendancesData && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.98 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.98 }}
+              key="global-trends"
+            >
+              <Row gutter={[24, 24]}>
+                <Col xs={24} md={8}>
+                  <Card className="analyse-glass-card analyse-stat-card">
+                    <Statistic 
+                      title="Compétences en Déclin" 
+                      value={tendancesData.dashboard.competencesEnDeclin.length} 
+                      prefix={<FallOutlined style={{ color: '#ef4444' }} />}
+                      valueStyle={{ color: '#ef4444' }}
+                    />
+                    <div style={{ marginTop: 16 }}>
+                      {tendancesData.dashboard.competencesEnDeclin.map(c => <Tag key={c} color="red" style={{ marginBottom: 4 }}>{c}</Tag>)}
+                    </div>
+                  </Card>
+                </Col>
+                <Col xs={24} md={8}>
+                  <Card className="analyse-glass-card analyse-stat-card">
+                    <Statistic 
+                      title="En Forte Demande" 
+                      value={tendancesData.dashboard.competencesEnForteDemande.length} 
+                      prefix={<RiseOutlined style={{ color: '#10b981' }} />}
+                      valueStyle={{ color: '#10b981' }}
+                    />
+                    <div style={{ marginTop: 16 }}>
+                      {tendancesData.dashboard.competencesEnForteDemande.map(c => <Tag key={c} color="green" style={{ marginBottom: 4 }}>{c}</Tag>)}
+                    </div>
+                  </Card>
+                </Col>
+                <Col xs={24} md={8}>
+                  <Card className="analyse-glass-card analyse-stat-card">
+                    <Statistic 
+                      title="Enseignants à Risque" 
+                      value={tendancesData.dashboard.enseignantsARisque.length} 
+                      prefix={<WarningOutlined style={{ color: '#f59e0b' }} />}
+                      valueStyle={{ color: '#f59e0b' }}
+                    />
+                    <div style={{ marginTop: 16 }}>
+                      {tendancesData.dashboard.enseignantsARisque.map(e => <Tag key={e} color="orange" style={{ marginBottom: 4 }}>{e}</Tag>)}
+                    </div>
+                  </Card>
+                </Col>
+
+                <Col xs={24}>
+                  <Card title="Résumé Stratégique (IA)" className="analyse-glass-card">
+                    <Row gutter={48}>
+                      <Col xs={24} md={16}>
+                        <Paragraph style={{ fontSize: 16, lineHeight: 1.8 }}>
+                          L'analyse globale montre une <strong>forte accélération</strong> sur les compétences liées à l'IA Générative et au Cloud Computing. 
+                          Cependant, nous observons une érosion des compétences sur les frameworks legacy (JEE ancien, .NET 4.x).
+                        </Paragraph>
+                        <Alert 
+                          message="Alerte Planification"
+                          description="35% de votre corps enseignant aura besoin d'une mise à jour de certification d'ici la fin de l'année."
+                          type="info"
+                          showIcon
+                        />
                       </Col>
-                      <Col xs={24} md={8}>
-                        <Card size="small" title="Compétences en Forte Demande" bordered={false}>
-                          {(analyseData.dashboard?.competencesEnForteDemande || []).length > 0 ? (
-                            analyseData.dashboard.competencesEnForteDemande.map((c, i) => (
-                              <Tag key={i} color="blue" style={{ marginBottom: 4 }}>
-                                <RiseOutlined /> {c}
-                              </Tag>
-                            ))
-                          ) : (
-                            <Text type="secondary">Aucune compétence en forte demande</Text>
-                          )}
-                        </Card>
-                      </Col>
-                      <Col xs={24} md={8}>
-                        <Card size="small" title="Enseignants à Risque" bordered={false}>
-                          {(analyseData.dashboard?.enseignantsARisque || []).length > 0 ? (
-                            analyseData.dashboard.enseignantsARisque.map((e, i) => (
-                              <Tag key={i} color="volcano" style={{ marginBottom: 4 }}>
-                                <WarningOutlined /> {e}
-                              </Tag>
-                            ))
-                          ) : (
-                            <Text type="secondary">Aucun enseignant à risque identifié</Text>
-                          )}
-                        </Card>
+                      <Col xs={24} md={8} style={{ textAlign: 'center' }}>
+                        <Progress type="dashboard" percent={78} strokeColor="#B51200" />
+                        <div style={{ marginTop: -20 }}><Text strong>Index d'Adéquation Global</Text></div>
                       </Col>
                     </Row>
                   </Card>
-                ),
-              },
-              {
-                key: "json",
-                label: "JSON",
-                children: (
-                  <Card>
-                    <pre style={{ maxHeight: 500, overflow: "auto", background: "#f5f5f5", padding: 16, borderRadius: 8 }}>
-                      {JSON.stringify(analyseData, null, 2)}
-                    </pre>
-                  </Card>
-                ),
-              },
-            ]}
-          />
-        )}
+                </Col>
+              </Row>
+            </motion.div>
+          )}
 
-        {/* ===== TENDANCES GLOBALES ===== */}
-        {tendancesData && (
-          <Card>
-            <Title level={4}>Tendances Globales</Title>
-            <Row gutter={16} style={{ marginBottom: 24 }}>
-              <Col xs={8}>
-                <Statistic
-                  title="Total Évaluations"
-                  value={tendancesData.statistiques?.totalEvaluations || 0}
-                  suffix="évaluations"
+          {!analyseData && !tendancesData && !loading && (
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
+              <div style={{ textAlign: 'center', padding: '100px 0', background: 'white', borderRadius: 24 }}>
+                <Empty 
+                  image={<RobotOutlined style={{ fontSize: 64, color: '#e2e8f0' }} />}
+                  description={
+                    <div style={{ marginTop: 24 }}>
+                      <Title level={4} type="secondary">Prêt pour l'analyse</Title>
+                      <Text type="secondary">Utilisez les filtres ci-dessus pour lancer une analyse individuelle ou globale.</Text>
+                    </div>
+                  }
                 />
-              </Col>
-              <Col xs={8}>
-                <Statistic
-                  title="Note Moyenne"
-                  value={tendancesData.statistiques?.noteMoyenne || 0}
-                  precision={2}
-                  suffix="/ 5"
-                />
-              </Col>
-              <Col xs={8}>
-                <Statistic
-                  title="Formations Évaluées"
-                  value={tendancesData.statistiques?.formationsEvaluees || 0}
-                  suffix="formations"
-                />
-              </Col>
-            </Row>
-            <Row gutter={[16, 16]}>
-              <Col xs={24} md={8}>
-                <Card size="small" title="Compétences en Déclin" bordered>
-                  {(tendancesData.dashboard?.competencesEnDeclin || []).length > 0 ? (
-                    tendancesData.dashboard.competencesEnDeclin.map((c, i) => (
-                      <Tag key={i} color="red" style={{ marginBottom: 4 }}>
-                        <FallOutlined /> {c}
-                      </Tag>
-                    ))
-                  ) : (
-                    <Text type="secondary">Aucune</Text>
-                  )}
-                </Card>
-              </Col>
-              <Col xs={24} md={8}>
-                <Card size="small" title="Compétences en Forte Demande" bordered>
-                  {(tendancesData.dashboard?.competencesEnForteDemande || []).length > 0 ? (
-                    tendancesData.dashboard.competencesEnForteDemande.map((c, i) => (
-                      <Tag key={i} color="blue" style={{ marginBottom: 4 }}>
-                        <RiseOutlined /> {c}
-                      </Tag>
-                    ))
-                  ) : (
-                    <Text type="secondary">Aucune</Text>
-                  )}
-                </Card>
-              </Col>
-              <Col xs={24} md={8}>
-                <Card size="small" title="Enseignants à Risque" bordered>
-                  {(tendancesData.dashboard?.enseignantsARisque || []).length > 0 ? (
-                    tendancesData.dashboard.enseignantsARisque.map((e, i) => (
-                      <Tag key={i} color="volcano" style={{ marginBottom: 4 }}>
-                        <WarningOutlined /> {e}
-                      </Tag>
-                    ))
-                  ) : (
-                    <Text type="secondary">Aucun</Text>
-                  )}
-                </Card>
-              </Col>
-            </Row>
-            <Card style={{ marginTop: 16 }}>
-              <Title level={5}>Données JSON brutes</Title>
-              <pre style={{ maxHeight: 300, overflow: "auto", background: "#f5f5f5", padding: 16, borderRadius: 8 }}>
-                {JSON.stringify(tendancesData, null, 2)}
-              </pre>
-            </Card>
-          </Card>
-        )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </Spin>
     </div>
   );

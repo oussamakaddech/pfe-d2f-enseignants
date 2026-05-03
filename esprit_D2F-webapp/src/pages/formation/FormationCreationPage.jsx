@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Button, Typography, Breadcrumb, message } from "antd";
 import { HomeOutlined, ArrowLeftOutlined } from "@ant-design/icons";
 import FormationWorkflowForm from "../FormationWorkflowForm";
@@ -7,6 +7,8 @@ const { Title } = Typography;
 
 export default function FormationCreationPage() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const besoinInfo = location.state?.besoinInfo || null;
   const [msgApi, msgCtx] = message.useMessage();
 
   const handleCreated = () => {
@@ -67,7 +69,7 @@ export default function FormationCreationPage() {
             boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
           }}
         >
-          <FormationWorkflowForm onFormationCreated={handleCreated} />
+          <FormationWorkflowForm onFormationCreated={handleCreated} besoinInfo={besoinInfo} />
         </div>
       </div>
     </>

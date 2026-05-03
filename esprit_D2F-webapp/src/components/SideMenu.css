@@ -1,0 +1,203 @@
+/* src/components/SideMenu.css */
+
+.sidemenu-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--bg-sidebar);
+  border-right: 1px solid var(--border-color);
+  transition: var(--transition-base);
+}
+
+.sidemenu-logo-section {
+  padding: 24px 16px;
+  text-align: center;
+  transition: var(--transition-base);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.03);
+  margin-bottom: 8px;
+}
+
+.sidemenu-logo-section img {
+  height: 60px;
+  object-fit: contain;
+  transition: var(--transition-base);
+  filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.05));
+}
+
+.sidemenu-logo-section:hover img {
+  transform: scale(1.05);
+}
+
+/* Ant Design Menu Overrides */
+.custom-sidemenu.ant-menu-inline,
+.custom-sidemenu.ant-menu-vertical {
+  border-inline-end: none !important;
+  background: transparent;
+}
+
+.custom-sidemenu .ant-menu-item,
+.custom-sidemenu .ant-menu-submenu-title {
+  height: 48px !important;
+  line-height: 48px !important;
+  margin-block: 4px !important;
+  margin-inline: 12px !important;
+  width: calc(100% - 24px) !important;
+  border-radius: 12px !important;
+  color: var(--text-main) !important;
+  transition: var(--transition-base) !important;
+}
+
+.custom-sidemenu .ant-menu-item:hover,
+.custom-sidemenu .ant-menu-submenu-title:hover {
+  background-color: var(--primary-bg) !important;
+  color: var(--primary-color) !important;
+}
+
+.custom-sidemenu .ant-menu-item-selected {
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-hover) 100%) !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 12px rgba(181, 18, 0, 0.25) !important;
+}
+
+.custom-sidemenu .ant-menu-item-selected .anticon {
+  color: #ffffff !important;
+}
+
+.custom-sidemenu .ant-menu-item .anticon,
+.custom-sidemenu .ant-menu-submenu-title .anticon {
+  font-size: 18px !important;
+  color: var(--text-muted);
+  transition: color 0.2s ease;
+}
+
+.custom-sidemenu .ant-menu-item:hover .anticon,
+.custom-sidemenu .ant-menu-submenu-title:hover .anticon {
+  color: var(--primary-color) !important;
+}
+
+/* Submenu specific */
+.custom-sidemenu .ant-menu-submenu-arrow {
+  color: var(--text-muted) !important;
+}
+
+.custom-sidemenu .ant-menu-submenu-open > .ant-menu-submenu-title {
+  color: var(--primary-color) !important;
+  font-weight: 600;
+}
+
+.custom-sidemenu .ant-menu-sub.ant-menu-inline {
+  background: rgba(0, 0, 0, 0.02) !important;
+  border-radius: 12px;
+  margin: 4px 12px !important;
+  width: calc(100% - 24px) !important;
+}
+
+.custom-sidemenu .ant-menu-sub .ant-menu-item {
+  margin-inline: 8px !important;
+  width: calc(100% - 16px) !important;
+}
+
+/* Danger item (Logout) */
+.custom-sidemenu .ant-menu-item-danger {
+  margin-top: 20px !important;
+  color: #e53e3e !important;
+}
+
+.custom-sidemenu .ant-menu-item-danger:hover {
+  background-color: #fff5f5 !important;
+}
+
+.custom-sidemenu .ant-menu-item-danger.ant-menu-item-selected {
+  background: #e53e3e !important;
+  color: #fff !important;
+}
+
+/* User Card Section */
+.sidemenu-user-card {
+  padding: 16px;
+  margin: 8px 12px;
+  background: rgba(255, 255, 255, 0.6);
+  backdrop-filter: blur(10px);
+  border-radius: 16px;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  transition: var(--transition-base);
+}
+
+.sidemenu-user-card:hover {
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.user-card-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.user-avatar {
+  border: 2px solid #ffffff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.user-info {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.user-name {
+  font-weight: 700;
+  color: var(--text-main);
+  font-size: 14px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+
+.user-role {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+}
+
+/* Collapsed state for user card */
+.ant-layout-sider-collapsed .sidemenu-user-card {
+  padding: 8px;
+  margin: 8px 4px;
+}
+
+.ant-layout-sider-collapsed .user-info,
+.ant-layout-sider-collapsed .ant-divider {
+  display: none;
+}
+
+.ant-layout-sider-collapsed .user-card-content {
+  justify-content: center;
+}
+
+/* Scrollbar and rest */
+.sidemenu-nav-section {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-bottom: 24px;
+}
+
+.sidemenu-nav-section::-webkit-scrollbar {
+  width: 4px;
+}
+
+.sidemenu-nav-section::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sidemenu-nav-section::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 10px;
+}
+
+.sidemenu-nav-section::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.2);
+}

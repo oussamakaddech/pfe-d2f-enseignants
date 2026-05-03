@@ -20,6 +20,7 @@ import {
 import { useNavigate } from "react-router-dom";
 
 import { signup } from "../../services/authService";
+import EnseignantService from "../../services/EnseignantService";
 
 const { Title } = Typography;
 const { Option } = Select;
@@ -33,6 +34,7 @@ export default function Register({ onSuccess } = {}) {
   const onFinish = async (values) => {
     setLoading(true);
     try {
+      // 1. Création du compte utilisateur (Auth)
       await signup({
         username: values.username,
         password: values.password,
@@ -43,6 +45,29 @@ export default function Register({ onSuccess } = {}) {
         role: values.role,
         newsletter: values.newsletter,
       });
+
+      // 2. Si le rôle est Enseignant, Formateur ou CUP, on l'ajoute à l'annuaire des enseignants
+      if (values.role === "Enseignant" || values.role === "Formateur" || values.role === "CUP") {
+        try {
+          await EnseignantService.createEnseignant({
+            nom: values.lastName.toUpperCase(),
+            prenom: values.firstName,
+            mail: values.email,
+            type: "P", // Valeur par défaut : Permanent
+            etat: "A", // Valeur par défaut : Actif
+            cup: values.role === "CUP" ? "O" : "N",
+            chefDepartement: "N",
+            up: null,
+            dept: null,
+          });
+          console.debug("[Register] Enseignant record created successfully");
+        } catch (ensErr) {
+          console.error("[Register] Failed to create teacher record:", ensErr);
+          // On ne bloque pas l'inscription si seul l'ajout à l'annuaire échoue
+          message.warning("Compte créé, mais l'ajout à l'annuaire des enseignants a échoué.");
+        }
+      }
+
       message.success(
         "Inscription réussie ! Un email de confirmation vous a été envoyé."
       );

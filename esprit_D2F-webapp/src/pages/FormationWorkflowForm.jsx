@@ -49,22 +49,22 @@ import DocumentUploadForm from "./documentFormation/DocumentUploadForm";
 
 const STEPS = ["Général", "Pédagogie", "Planning & Acteurs", "Compétences RICE", "Coûts"];
 
-export default function FormationWorkflowForm({ initialDate, onFormationCreated }) {
+export default function FormationWorkflowForm({ initialDate, onFormationCreated, besoinInfo }) {
   const navigate = useNavigate();
   const auth = useContext(AuthContext);
   const isAdmin = auth?.user?.role === "admin" || auth?.user?.role === "ADMIN";
   const [activeStep, setActiveStep] = useState(0);
 
   // States
-  const [titre, setTitre] = useState("");
+  const [titre, setTitre] = useState(besoinInfo?.titre || besoinInfo?.objectifFormation || "");
   const [dateDebut, setDateDebut] = useState(initialDate ? moment(initialDate).format("YYYY-MM-DD") : "");
   const [dateFin, setDateFin] = useState(initialDate ? moment(initialDate).format("YYYY-MM-DD") : "");
   const [typeFormation, setTypeFormation] = useState("INTERNE");
   const [etatFormation, setEtatFormation] = useState("ENREGISTRE");
   const [cout, setCout] = useState(0);
   const [organisme, setOrganisme] = useState("");
-  const [chargeH, setChargeH] = useState(40);
-  const [ouverte, setOuverte] = useState(false);
+  const [chargeH, setChargeH] = useState(besoinInfo?.dureeFormation || 40);
+  const [ouverte, setOuverte] = useState(besoinInfo?.estOuverte || false);
 
   const [formNom, setFormNom] = useState("");
   const [formPrenom, setFormPrenom] = useState("");
@@ -87,14 +87,11 @@ export default function FormationWorkflowForm({ initialDate, onFormationCreated 
   const [partFilterDept, setPartFilterDept] = useState(null);
 
   const [overlapWarnings, setOverlapWarnings] = useState([]);
-  const [domaine, setDomaine] = useState("");
-  const [populationCible, setPopulationCible] = useState("");
-  const [objectifs, setObjectifs] = useState("");
-  const [objectifsPedago, setObjectifsPedago] = useState("");
-  const [evalMethods, setEvalMethods] = useState("");
-  const [prerequis, setPrerequis] = useState("");
-  const [acquis, setAcquis] = useState("");
-  const [indicateurs, setIndicateurs] = useState("");
+  const [domaine, setDomaine] = useState(besoinInfo?.theme || "");
+  const [populationCible, setPopulationCible] = useState(besoinInfo?.publicCible || "");
+  const [objectifs, setObjectifs] = useState(besoinInfo?.objectifFormation || "");
+  const [objectifsPedago, setObjectifsPedago] = useState(besoinInfo?.objectifsPedagogiques || "");
+  const [evalMethods, setEvalMethods] = useState(besoinInfo?.methodesEvaluationAcquis || "");
 
   const [coutTransport, setCoutTransport] = useState(0);
   const [coutHebergement, setCoutHebergement] = useState(0);
@@ -173,6 +170,19 @@ export default function FormationWorkflowForm({ initialDate, onFormationCreated 
         setUps(u);
         setDepts(d);
         setEnseignants(e);
+        
+        // Préréglage de l'UP et du département à partir du besoin
+        if (besoinInfo) {
+          if (besoinInfo.up) {
+            const foundUp = u.find(up => String(up.id) === String(besoinInfo.up));
+            if (foundUp) setSelectedUp(foundUp);
+          }
+          if (besoinInfo.departement) {
+            const foundDept = d.find(dept => String(dept.id) === String(besoinInfo.departement));
+            if (foundDept) setSelectedDept(foundDept);
+          }
+        }
+        
         setExistingFormations(formations);
         setCompDomaines(Array.isArray(domainesData) ? domainesData : []);
         setCompCompetences(Array.isArray(competencesData) ? competencesData : []);
@@ -229,35 +239,110 @@ export default function FormationWorkflowForm({ initialDate, onFormationCreated 
   const handleNext = () => setActiveStep((prev) => prev + 1);
   const handleBack = () => setActiveStep((prev) => prev - 1);
 
-  const checkOverlaps = (selectedUsers, role) => {
-    if (!dateDebut || !dateFin || !selectedUsers.length) {
-      setOverlapWarnings([]);
-      return;
-    }
-    const dStart = moment(dateDebut);
-    const dEnd = moment(dateFin);
-    const warnings = [];
-    selectedUsers.forEach((user) => {
-      existingFormations.forEach((f) => {
-        if (!f.dateDebut || !f.dateFin) return;
-        const fStart = moment(f.dateDebut);
-        const fEnd = moment(f.dateFin);
-        if (dStart.isSameOrBefore(fEnd) && dEnd.isSameOrAfter(fStart)) {
-          const isAnim = (f.seances || []).some((s) => (s.animateurs || []).some((a) => a.id === user.id));
-          const isPart = (f.participants || []).some((p) => p.id === user.id);
-          if (isAnim || isPart) {
-            warnings.push({
-              userName: `${user.nom} ${user.prenom}`,
-              role,
-              formationTitre: f.titreFormation,
-              existingRole: isAnim ? "animateur" : "participant",
-            });
-          }
+  const toMinutes = (timeValue) => {
+    if (!timeValue) return null;
+    const parts = String(timeValue).split(":");
+    if (parts.length < 2) return null;
+    const h = parseInt(parts[0], 10);
+    const m = parseInt(parts[1], 10);
+    if (Number.isNaN(h) || Number.isNaN(m)) return null;
+    return (h * 60) + m;
+  };
+
+  const intersects = (left, right) => left.some((id) => right.includes(id));
+
+  const sameTimeWindow = (a, b) => {
+    if (!a?.dateSeance || !b?.dateSeance || a.dateSeance !== b.dateSeance) return false;
+    const aStart = toMinutes(a.heureDebut);
+    const aEnd = toMinutes(a.heureFin);
+    const bStart = toMinutes(b.heureDebut);
+    const bEnd = toMinutes(b.heureFin);
+    if (aStart === null || aEnd === null || bStart === null || bEnd === null) return false;
+    return aStart < bEnd && bStart < aEnd;
+  };
+
+  const normalizedSalle = (value) => String(value || "").trim().toLowerCase();
+
+  const getAnimateurStableId = (anim) => (
+    anim?.isAuthUser
+      ? String(anim.userName || anim.nom || "").substring(0, 10).toUpperCase()
+      : anim?.id
+  );
+
+  const buildConflictMessages = ({ localSeances, participantIds, animateurIds }) => {
+    const messages = [];
+
+    localSeances.forEach((s, idx) => {
+      const start = toMinutes(s.heureDebut);
+      const end = toMinutes(s.heureFin);
+      if (start !== null && end !== null && start >= end) {
+        messages.push(`Séance #${idx + 1}: heure de fin doit être après l'heure de début.`);
+      }
+    });
+
+    for (let i = 0; i < localSeances.length; i += 1) {
+      for (let j = i + 1; j < localSeances.length; j += 1) {
+        const left = localSeances[i];
+        const right = localSeances[j];
+        if (!sameTimeWindow(left, right)) continue;
+
+        const leftSalle = normalizedSalle(left.salle);
+        const rightSalle = normalizedSalle(right.salle);
+        if (leftSalle && rightSalle && leftSalle === rightSalle) {
+          messages.push(`Conflit interne: les séances #${i + 1} et #${j + 1} utilisent la même salle au même horaire.`);
         }
+        if (participantIds.length > 0) {
+          messages.push(`Conflit interne: les séances #${i + 1} et #${j + 1} se chevauchent pour les mêmes participants.`);
+        }
+        if (animateurIds.length > 0) {
+          messages.push(`Conflit interne: les séances #${i + 1} et #${j + 1} se chevauchent pour les mêmes animateurs.`);
+        }
+      }
+    }
+
+    localSeances.forEach((localSeance, idx) => {
+      existingFormations.forEach((f) => {
+        const existingSeances = Array.isArray(f.seances) ? f.seances : [];
+        const existingParticipants = [
+          ...(Array.isArray(f.participants) ? f.participants : []),
+          ...existingSeances.flatMap((s) => Array.isArray(s.participants) ? s.participants : []),
+        ].map((p) => p?.id).filter(Boolean);
+
+        existingSeances.forEach((existingSeance) => {
+          if (!sameTimeWindow(localSeance, existingSeance)) return;
+
+          const formationName = f.titreFormation || `#${f.idFormation || f.id || "?"}`;
+          const localSalle = normalizedSalle(localSeance.salle);
+          const existingSalle = normalizedSalle(existingSeance.salle);
+
+          if (localSalle && existingSalle && localSalle === existingSalle) {
+            messages.push(`Conflit salle: séance #${idx + 1} chevauche la formation ${formationName} dans la salle ${localSeance.salle}.`);
+          }
+
+          const existingAnimIds = (Array.isArray(existingSeance.animateurs) ? existingSeance.animateurs : []).map((a) => a?.id).filter(Boolean);
+          if (participantIds.length > 0 && existingParticipants.length > 0 && intersects(participantIds, existingParticipants)) {
+            messages.push(`Conflit participants: séance #${idx + 1} chevauche la formation ${formationName}.`);
+          }
+          if (animateurIds.length > 0 && existingAnimIds.length > 0 && intersects(animateurIds, existingAnimIds)) {
+            messages.push(`Conflit animateurs: séance #${idx + 1} chevauche la formation ${formationName}.`);
+          }
+        });
       });
     });
-    setOverlapWarnings(warnings);
+
+    return [...new Set(messages)];
   };
+
+  useEffect(() => {
+    const localAnimIds = animSel.map(getAnimateurStableId).filter(Boolean);
+    const localParticipantIds = partSel.map((p) => p.id).filter(Boolean);
+    const messages = buildConflictMessages({
+      localSeances: seances,
+      participantIds: localParticipantIds,
+      animateurIds: localAnimIds,
+    });
+    setOverlapWarnings(messages);
+  }, [seances, partSel, animSel, existingFormations]);
 
   const handleCompetenceChange = async (idx, competence) => {
     const updated = [...selectedCompLinks];
@@ -285,10 +370,23 @@ export default function FormationWorkflowForm({ initialDate, onFormationCreated 
     }
     try {
       // Synchronize auth users to enseignants table if needed
-      const finalAnimIds = [];
+      const finalAnimIds = animSel.map(getAnimateurStableId).filter(Boolean);
+
+      const blockingConflicts = buildConflictMessages({
+        localSeances: seances,
+        participantIds: partSel.map((p) => p.id).filter(Boolean),
+        animateurIds: finalAnimIds,
+      });
+
+      if (blockingConflicts.length > 0) {
+        setOverlapWarnings(blockingConflicts);
+        setSnack({ open: true, severity: "error", message: "Conflits détectés: corrigez les dates/salles/personnes." });
+        return;
+      }
+
       for (const anim of animSel) {
         if (anim.isAuthUser) {
-          const newId = (anim.userName || anim.nom).substring(0, 10).toUpperCase();
+          const newId = getAnimateurStableId(anim);
           try {
             await EnseignantService.createEnseignant({
               id: newId,
@@ -304,19 +402,18 @@ export default function FormationWorkflowForm({ initialDate, onFormationCreated 
             // Might already exist or fail, we still try to use the ID
             console.log("Enseignant sync info:", e.message);
           }
-          finalAnimIds.push(newId);
-        } else {
-          finalAnimIds.push(anim.id);
         }
       }
 
       const payload = {
+        idBesoinFormation: besoinInfo?.idBesoinFormation || besoinInfo?.idBesionFormation || null,
+        typeBesoin: besoinInfo?.typeBesoin || null,
         titreFormation: titre, dateDebut, dateFin, typeFormation, etatFormation, ouverte,
         coutFormation: parseFloat(cout), externeFormateurNom: formNom, externeFormateurPrenom: formPrenom, externeFormateurEmail: formEmail,
         organismeRefExterne: organisme, chargeHoraireGlobal: parseInt(chargeH, 10),
         upId: selectedUp?.id, departementId: selectedDept?.id,
         animateursIds: finalAnimIds, participantsIds: partSel.map(p => p.id),
-        domaine, populationCible, objectifs, objectifsPedago, evalMethods, prerequis, acquis, indicateurs,
+        domaine, populationCible, objectifs, objectifsPedago, evalMethods,
         coutTransport, coutHebergement, coutRepas,
         seances: seances.map(s => ({
           dateSeance: s.dateSeance, heureDebut: s.heureDebut, heureFin: s.heureFin,
@@ -395,9 +492,6 @@ export default function FormationWorkflowForm({ initialDate, onFormationCreated 
               { label: "Objectifs Généraux", val: objectifs, set: setObjectifs, multiline: true },
               { label: "Objectifs Pédagogiques", val: objectifsPedago, set: setObjectifsPedago, multiline: true },
               { label: "Méthodes d'Évaluation", val: evalMethods, set: setEvalMethods },
-              { label: "Prérequis", val: prerequis, set: setPrerequis },
-              { label: "Acquis", val: acquis, set: setAcquis },
-              { label: "Indicateurs de Performance", val: indicateurs, set: setIndicateurs },
             ].map((f) => (
               <Grid item xs={12} sm={f.multiline ? 12 : 6} key={f.label}>
                 <TextField label={f.label} fullWidth multiline={f.multiline} rows={f.multiline ? 3 : 1} value={f.val} onChange={(e) => f.set(e.target.value)} />
@@ -461,7 +555,7 @@ export default function FormationWorkflowForm({ initialDate, onFormationCreated 
             <Grid container spacing={3}>
               <Grid item xs={12}>
                 <Typography variant="subtitle2" gutterBottom>🧑🏻‍🏫 Animateurs (Internes)</Typography>
-                <Autocomplete multiple disabled={typeFormation === "EXTERNE"} options={optionsAnim} getOptionLabel={getAnimateurLabel} value={animSel} onChange={(_, v) => { setAnimSel(v); checkOverlaps(v, "animateur"); }} renderInput={(params) => <TextField {...params} label="Sélectionner Animateurs" />} />
+                <Autocomplete multiple disabled={typeFormation === "EXTERNE"} options={optionsAnim} getOptionLabel={getAnimateurLabel} value={animSel} onChange={(_, v) => { setAnimSel(v); }} renderInput={(params) => <TextField {...params} label="Sélectionner Animateurs" />} />
               </Grid>
               {(isAdmin || typeFormation === "EXTERNE") && (
                 <Grid item xs={12}>
@@ -503,7 +597,12 @@ export default function FormationWorkflowForm({ initialDate, onFormationCreated 
             </Grid>
             {overlapWarnings.length > 0 && (
               <Alert severity="warning" sx={{ mt: 2 }}>
-                Chevauchements : {overlapWarnings.map(w => `${w.userName} (${w.formationTitre})`).join(", ")}
+                <strong>Chevauchements détectés:</strong>
+                <ul style={{ margin: "8px 0 0 16px", padding: 0 }}>
+                  {overlapWarnings.map((msg) => (
+                    <li key={msg}>{msg}</li>
+                  ))}
+                </ul>
               </Alert>
             )}
           </Box>
@@ -532,8 +631,6 @@ export default function FormationWorkflowForm({ initialDate, onFormationCreated 
                       onChange={(_, v) => { const u = [...selectedCompLinks]; u[idx] = { ...u[idx], savoirId: v?.id || null, savoirNom: v?.nom || "" }; setSelectedCompLinks(u); }}
                       renderInput={(p) => <TextField {...p} label="Savoir" />} />
                   </Grid>
-                  <Grid item xs={4} sm={1}><TextField size="small" label="Prér." type="number" value={link.niveauPrerequis || ""} onChange={(e) => { const u = [...selectedCompLinks]; u[idx] = { ...u[idx], niveauPrerequis: e.target.value }; setSelectedCompLinks(u); }} /></Grid>
-                  <Grid item xs={4} sm={1}><TextField size="small" label="Visé" type="number" value={link.niveauVise || ""} onChange={(e) => { const u = [...selectedCompLinks]; u[idx] = { ...u[idx], niveauVise: e.target.value }; setSelectedCompLinks(u); }} /></Grid>
                   <Grid item xs={4} sm={1}><IconButton onClick={() => setSelectedCompLinks(selectedCompLinks.filter((_, i) => i !== idx))} color="error"><DeleteIcon /></IconButton></Grid>
                 </Grid>
               ))}

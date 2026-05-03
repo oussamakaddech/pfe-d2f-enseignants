@@ -25,7 +25,7 @@ app = FastAPI(
 
 # CORS (allow gateway and webapp — externalisé via CORS_ORIGINS)
 import os
-_cors_raw = os.getenv("CORS_ORIGINS", "http://localhost:3000,http://localhost:8222")
+_cors_raw = os.getenv("CORS_ORIGINS", "http://localhost:3000,http://localhost:8080")
 _cors_origins = [o.strip() for o in _cors_raw.split(",") if o.strip()]
 app.add_middleware(
     CORSMiddleware,

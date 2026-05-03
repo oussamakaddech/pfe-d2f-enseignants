@@ -7,7 +7,9 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import esprit.pfe.auth.Security.AuthorizationMatrix;
 import tn.esprit.d2f.competence.dto.RiceImportRequest;
 import tn.esprit.d2f.competence.dto.RiceImportResult;
 import tn.esprit.d2f.competence.service.IRiceImportService;
@@ -29,6 +31,7 @@ public class RiceController {
         @ApiResponse(responseCode = "400", description = "Données RICE invalides")
     })
     @PostMapping("/import")
+    @PreAuthorize(AuthorizationMatrix.RICE_CREATE)
     public ResponseEntity<RiceImportResult> importRice(
             @Valid @RequestBody RiceImportRequest request) {
         return ResponseEntity.ok(riceImportService.importRice(request));
@@ -36,6 +39,7 @@ public class RiceController {
 
     @Operation(summary = "Historique des imports RICE")
     @GetMapping("/imports")
+    @PreAuthorize(AuthorizationMatrix.RICE_READ)
     public ResponseEntity<List<RiceImportResult>> getImportHistory() {
         return ResponseEntity.ok(riceImportService.getImportHistory());
     }

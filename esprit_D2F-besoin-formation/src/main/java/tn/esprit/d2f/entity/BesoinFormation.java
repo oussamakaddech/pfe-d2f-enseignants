@@ -113,6 +113,16 @@ public class BesoinFormation implements Serializable {
     @JsonProperty("impactStrategique")
     String impactStrategique ;
 
+    // ── Nouveaux champs : type ouvert/fermé et autres informations (§2.2.3) ──
+
+    @Column(nullable = true)
+    @JsonProperty("estOuverte")
+    Boolean estOuverte = false;
+
+    @Column(columnDefinition = "TEXT", nullable = true)
+    @JsonProperty("autresInformations")
+    String autresInformations ;
+
     // ── Accesseurs explicites pour les champs Boolean (is* pattern) ──
     // Nécessaire car Lombok génère getApprouveCUP() mais le code existant
     // appelle isApprouveCUP(), isApprouveChefDep(), isApprouveAdmin().

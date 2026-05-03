@@ -93,8 +93,6 @@ export default function AppRoutes() {
                 <Route path="/home/AnalysePredictive" element={<AnalysePredictivePage />} />
                 <Route path="/home/Formation" element={<FormationPage />} />
                 <Route path="/home/Formation/Creer" element={<FormationCreationPage />} />
-                <Route path="/home/Formation/Consulter" element={<FormationConsultationPage />} />
-                <Route path="/home/File" element={<CombinedFormationOneDriveTree />} />
                 <Route path="/home/Calendrier" element={<CalendrierPage />} />
                 <Route path="/home/calendar" element={<Calendrier />} />
                 <Route path="/home/calendar/:enseignantId" element={<CalendarEnseignant />} />
@@ -104,6 +102,14 @@ export default function AppRoutes() {
                 <Route path="/home/UpDept" element={<UpDeptDataGrid />} />
                 <Route path="/home/certificate" element={<CompletedFormations />} />
                 <Route path="/home/certificate/:formationId" element={<CertificatePage />} />
+              </Route>
+
+              {/* ════════════════════════════════════════════════════════════
+                  Responsable Dossier — consultation formations + dossiers
+                  ════════════════════════════════════════════════════════════ */}
+              <Route element={<RoleGuard allowedRoles={["admin", "ResponsableDossier"]} />}>
+                <Route path="/home/Formation/Consulter" element={<FormationConsultationPage />} />
+                <Route path="/home/File" element={<CombinedFormationOneDriveTree />} />
               </Route>
 
               {/* ════════════════════════════════════════════════════════════

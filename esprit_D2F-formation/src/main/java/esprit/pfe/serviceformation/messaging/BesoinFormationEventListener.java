@@ -57,7 +57,7 @@ public class BesoinFormationEventListener {
         f.setDateDebut(new Date());
         f.setDateFin(  new Date()); // ou une date calculée
 
-        // 5) Sauvegarde
-        repo.save(f);
+        // 5) Sauvegarde (DESACTIVE: la creation se fait via l'interface web suite a la redirection)
+        // repo.save(f);
     }
 }
