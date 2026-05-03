@@ -270,7 +270,7 @@ services:
     container_name: d2f-gateway
     restart: unless-stopped
     ports:
-      - "8222:8222"
+      - "8080:8080"
     environment:
       SPRING_PROFILES_ACTIVE: prod
       JWT_SECRET: ${JWT_SECRET}
@@ -280,7 +280,7 @@ services:
       competence-service:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "wget -q --spider http://localhost:8222/actuator/health || exit 1"]
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:8080/actuator/health || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3

@@ -157,8 +157,10 @@ export default function BesoinList() {
     setApprovingId(id);
     try {
       await BesoinFormationService.approveBesoin(id);
-      msgApi.success("Besoin approuvé — formation créée !");
-      await fetchData(); // Refetch to get updated status and potentially new formation links
+      msgApi.success("Besoin approuvé — redirection vers la création de formation...");
+      setTimeout(() => {
+        navigate("/home/Formation/Creer", { state: { besoinInfo: record } });
+      }, 1000);
     } catch {
       msgApi.error("Erreur lors de l'approbation");
     } finally {

@@ -47,7 +47,7 @@ public class EnseignantServiceImpl implements EnseignantService {
     @Override
     public Enseignant updateEnseignant(String id, Enseignant enseignant) {
         Optional<Enseignant> existingEnseignant = enseignantRepository.findById(id);
-        if(existingEnseignant.isPresent()){
+        if (existingEnseignant.isPresent()) {
             Enseignant e = existingEnseignant.get();
             // Mise à jour des attributs de l'enseignant
             e.setNom(enseignant.getNom());
@@ -77,7 +77,6 @@ public class EnseignantServiceImpl implements EnseignantService {
                 .orElseThrow(() -> new IllegalArgumentException("Enseignant introuvable avec l'id ou l'email : " + id));
     }
 
-
     public List<EnseignantDTO> getAllEnseignantsDTO() {
         // 1) Récupérer tous les enseignants en JOIN FETCH
         List<Enseignant> enseignants = enseignantRepository.findAll();
@@ -105,4 +104,3 @@ public class EnseignantServiceImpl implements EnseignantService {
         return dto;
     }
 }
-

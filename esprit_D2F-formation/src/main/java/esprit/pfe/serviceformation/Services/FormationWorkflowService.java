@@ -136,6 +136,8 @@ public class FormationWorkflowService {
                 .orElse(Collections.emptyList());
 
         Formation formation = new Formation();
+        formation.setIdBesoinFormation(request.getIdBesoinFormation());
+        formation.setTypeBesoin(request.getTypeBesoin());
         formation.setTitreFormation(request.getTitreFormation());
         formation.setDateDebut(request.getDateDebut());
         formation.setDateFin(request.getDateFin());
@@ -291,6 +293,30 @@ public class FormationWorkflowService {
                                     .toList()));
         } catch (Exception ex) {
             log.warn("⚠️ Impossible d'envoyer le message d'évaluation au broker (non bloquant) : {}", ex.getMessage());
+        }
+
+        // 🔔 Notification par e-mail à l'administrateur (ORGANIZER_EMAIL)
+        try {
+            String subject = "[D2F] Nouvelle Formation Créée : " + formation.getTitreFormation();
+            String htmlContent = String.format(
+                "<h3>Nouvelle Formation Enregistrée</h3>" +
+                "<p>Une nouvelle formation a été créée dans la plateforme D2F.</p>" +
+                "<ul>" +
+                "<li><strong>Titre :</strong> %s</li>" +
+                "<li><strong>Date Début :</strong> %s</li>" +
+                "<li><strong>Type :</strong> %s</li>" +
+                "<li><strong>Domaine :</strong> %s</li>" +
+                "</ul>" +
+                "<p>Vous pouvez consulter les détails et planifier les séances depuis le menu Administration.</p>",
+                formation.getTitreFormation(),
+                formation.getDateDebut(),
+                formation.getTypeFormation(),
+                formation.getDomaine()
+            );
+            outlookMailService.sendMail(ORGANIZER_EMAIL, subject, htmlContent);
+            log.info("📧 Notification de création envoyée à {}", ORGANIZER_EMAIL);
+        } catch (Exception ex) {
+            log.warn("⚠️ Échec de l'envoi de la notification de création : {}", ex.getMessage());
         }
 
         formation.setSeances(seances);
@@ -754,32 +780,36 @@ public class FormationWorkflowService {
 
     @Transactional
     public void removeSeanceFromCalendar(SeanceFormation seance) {
+        // 1. Suppression du calendrier (si l'événement existe)
         if (seance.getCalendarEventId() != null) {
             try {
                 outlookCalendarService.deleteEventInCalendar(ORGANIZER_EMAIL, seance.getCalendarEventId());
                 log.info("Événement {} supprimé du calendrier de l'organisateur", seance.getCalendarEventId());
-
-                String mailSubject = String.format("[D2F] Annulation : %s", seance.getFormation().getTitreFormation());
-                String htmlContent = buildCancellationEmailContent(seance.getFormation().getTitreFormation(), seance);
-
-                Set<String> emails = new HashSet<>();
-                seance.getAnimateurs().forEach(a -> emails.add(a.getMail()));
-                seance.getParticipants().forEach(p -> emails.add(p.getMail()));
-                if (seance.getFormation().getExterneFormateurEmail() != null
-                        && !seance.getFormation().getExterneFormateurEmail().isBlank()) {
-                    emails.add(seance.getFormation().getExterneFormateurEmail());
-                }
-                emails.add(ORGANIZER_EMAIL); // Ajout de l'organisateur pour la traçabilité
-
-                for (String email : emails) {
-                    outlookMailService.sendMail(email, mailSubject, htmlContent);
-                }
-                log.info("E-mails d'annulation envoyés pour la séance {}", seance.getIdSeance());
-
             } catch (Exception ex) {
-                log.error("Erreur lors de la suppression de l'événement {} : {}", seance.getCalendarEventId(),
-                        ex.getMessage());
+                log.error("Erreur lors de la suppression de l'événement {} : {}", seance.getCalendarEventId(), ex.getMessage());
             }
+        }
+
+        // 2. Notification par E-mail aux participants et animateurs (toujours envoyée)
+        try {
+            String mailSubject = String.format("[D2F] Annulation de Séance : %s", seance.getFormation().getTitreFormation());
+            String htmlContent = buildCancellationEmailContent(seance.getFormation().getTitreFormation(), seance);
+
+            Set<String> emails = new HashSet<>();
+            if (seance.getAnimateurs() != null) seance.getAnimateurs().forEach(a -> emails.add(a.getMail()));
+            if (seance.getParticipants() != null) seance.getParticipants().forEach(p -> emails.add(p.getMail()));
+            
+            if (seance.getFormation().getExterneFormateurEmail() != null && !seance.getFormation().getExterneFormateurEmail().isBlank()) {
+                emails.add(seance.getFormation().getExterneFormateurEmail());
+            }
+            emails.add(ORGANIZER_EMAIL);
+
+            for (String email : emails) {
+                outlookMailService.sendMail(email, mailSubject, htmlContent);
+            }
+            log.info("E-mails d'annulation envoyés pour la séance {} à {} destinataires", seance.getIdSeance(), emails.size());
+        } catch (Exception ex) {
+            log.error("Erreur lors de l'envoi des mails d'annulation pour la séance {} : {}", seance.getIdSeance(), ex.getMessage());
         }
     }
 
@@ -787,6 +817,26 @@ public class FormationWorkflowService {
     public void removeFormationCalendar(Formation formation) {
         Formation freshFormation = formationRepository.findById(formation.getIdFormation())
                 .orElseThrow(() -> new IllegalStateException("La formation a été supprimée."));
+
+        // 🔔 Notification Admin pour l'annulation de la formation complète
+        try {
+            String subject = "[D2F] Annulation Globale : " + freshFormation.getTitreFormation();
+            String htmlContent = String.format(
+                "<h3>Notification d'Annulation</h3>" +
+                "<p>La formation suivante a été annulée dans son intégralité :</p>" +
+                "<ul>" +
+                "<li><strong>Titre :</strong> %s</li>" +
+                "<li><strong>Période :</strong> du %s au %s</li>" +
+                "</ul>" +
+                "<p>Toutes les séances associées ont été annulées et les participants notifiés.</p>",
+                freshFormation.getTitreFormation(),
+                freshFormation.getDateDebut(),
+                freshFormation.getDateFin()
+            );
+            outlookMailService.sendMail(ORGANIZER_EMAIL, subject, htmlContent);
+        } catch (Exception ex) {
+            log.warn("⚠️ Impossible d'envoyer la notification d'annulation à l'admin : {}", ex.getMessage());
+        }
 
         for (SeanceFormation seance : freshFormation.getSeances()) {
             removeSeanceFromCalendar(seance);

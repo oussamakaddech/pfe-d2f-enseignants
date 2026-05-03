@@ -52,11 +52,11 @@ COPY --from=builder ${DEPENDENCY}/META-INF /opt/app/META-INF
 COPY --from=builder ${DEPENDENCY}/BOOT-INF/classes /opt/app
 
 # Expose port
-EXPOSE 8222
+EXPOSE 8080
 
 # Healthcheck — vérifie que Spring Boot Actuator répond (conformité DSI §2.1)
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-  CMD wget -q --spider http://localhost:8222/actuator/health || exit 1
+  CMD wget -q --spider http://localhost:8080/actuator/health || exit 1
 
 # Run app when container starts
 ENTRYPOINT ["java","-cp","opt/app:opt/app/lib/*","com.example.servicegateway.ServiceGatewayApplication"]

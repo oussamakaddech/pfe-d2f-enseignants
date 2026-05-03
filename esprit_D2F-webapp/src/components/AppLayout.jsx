@@ -23,7 +23,7 @@ export default function AppLayout() {
 
   const headerHeight = 64;
   const footerHeight = 48;
-  const siderWidth = collapsed ? 80 : 200;
+  const siderWidth = collapsed ? 80 : 260;
 
   const today = new Date().toLocaleDateString("fr-FR", {
     weekday: "long",
@@ -152,14 +152,17 @@ export default function AppLayout() {
           collapsible
           collapsed={collapsed}
           onCollapse={setCollapsed}
-          theme="light"
           width={siderWidth}
+          trigger={null} // We use the toggle in the header
           style={{
             position: "fixed",
             top: headerHeight,
             bottom: 0,
             left: 0,
-            overflow: "auto",
+            overflow: "hidden",
+            background: "#fff",
+            boxShadow: "2px 0 8px rgba(0,0,0,0.05)",
+            zIndex: 10,
           }}
         >
           <SideMenu />

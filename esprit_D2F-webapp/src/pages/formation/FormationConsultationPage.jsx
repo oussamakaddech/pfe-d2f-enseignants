@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Table,
@@ -25,9 +25,15 @@ import {
 } from "@ant-design/icons";
 import moment from "moment";
 
+import { AuthContext } from "../../context/AuthContext";
 import FormationWorkflowService from "../../services/FormationWorkflowService";
 import FormationWorkflowEditForm from "../FormationWorkflowEditForm";
 import MailForm from "../MailForm";
+
+const normalizeRole = (value) =>
+  String(value || "")
+    .toLowerCase()
+    .replace(/[\s_-]+/g, "");
 
 const { Title } = Typography;
 const { RangePicker } = DatePicker;
@@ -35,6 +41,8 @@ const { Option } = Select;
 
 export default function FormationConsultationPage() {
   const navigate = useNavigate();
+  const { user } = useContext(AuthContext);
+  const canManageFormations = normalizeRole(user?.role) === "admin";
   const [formations, setFormations] = useState([]);
   const [filtered, setFiltered] = useState([]);
 
@@ -139,6 +147,8 @@ export default function FormationConsultationPage() {
   }
 
   async function handleDelete(id) {
+    if (!canManageFormations) return;
+
     try {
       await FormationWorkflowService.deleteFormationWorkflow(id);
       msgApi.success("Formation supprimée");
@@ -275,21 +285,25 @@ export default function FormationConsultationPage() {
       key: "actions",
       width: 160,
       render: (_, r) => (
-        <Space>
-          <Button
-            icon={<EditOutlined />}
-            onClick={() => {
-              setSelectedFormation(r);
-              setOpenEdit(true);
-            }}
-          />
-          <Popconfirm
-            title="Supprimer ?"
-            onConfirm={() => handleDelete(r.idFormation)}
-          >
-            <Button icon={<DeleteOutlined />} danger />
-          </Popconfirm>
-        </Space>
+        canManageFormations ? (
+          <Space>
+            <Button
+              icon={<EditOutlined />}
+              onClick={() => {
+                setSelectedFormation(r);
+                setOpenEdit(true);
+              }}
+            />
+            <Popconfirm
+              title="Supprimer ?"
+              onConfirm={() => handleDelete(r.idFormation)}
+            >
+              <Button icon={<DeleteOutlined />} danger />
+            </Popconfirm>
+          </Space>
+        ) : (
+          <Tag color="blue">Consultation</Tag>
+        )
       ),
     },
   ];
@@ -405,18 +419,20 @@ export default function FormationConsultationPage() {
           <Button icon={<DownloadOutlined />} onClick={() => setOpenExport(true)}>
             Exporter
           </Button>
-          <Button
-            icon={<MailOutlined />}
-            disabled={!selectedFormation}
-            onClick={() => setOpenMail(true)}
-          >
-            Envoyer Email
-          </Button>
+          {canManageFormations && (
+            <Button
+              icon={<MailOutlined />}
+              disabled={!selectedFormation}
+              onClick={() => setOpenMail(true)}
+            >
+              Envoyer Email
+            </Button>
+          )}
         </Space>
 
         {/* Table */}
         <Table
-          rowSelection={rowSelection}
+          rowSelection={canManageFormations ? rowSelection : undefined}
           dataSource={filtered}
           columns={columns}
           rowKey="idFormation"
@@ -438,42 +454,45 @@ export default function FormationConsultationPage() {
         />
 
         {/* Drawer E-mail */}
-        <Drawer
-          title="Envoyer un e-mail"
-          placement="right"
-          width={720}
-          onClose={() => setOpenMail(false)}
-          open={openMail}
-        >
-          {selectedFormation && (
-            <MailForm
-              formation={selectedFormation}
-              onSendSuccess={() => {
-                msgApi.success("E-mail envoyé !");
-                setOpenMail(false);
-              }}
-            />
-          )}
-        </Drawer>
+        {canManageFormations && (
+          <Drawer
+            title="Envoyer un e-mail"
+            placement="right"
+            width={720}
+            onClose={() => setOpenMail(false)}
+            open={openMail}
+          >
+            {selectedFormation && (
+              <MailForm
+                formation={selectedFormation}
+                onSendSuccess={() => {
+                  msgApi.success("E-mail envoyé !");
+                  setOpenMail(false);
+                }}
+              />
+            )}
+          </Drawer>
+        )}
 
-        {/* Drawer Modifier */}
-        <Drawer
-          title="Modifier Formation"
-          placement="right"
-          width={720}
-          onClose={() => setOpenEdit(false)}
-          open={openEdit}
-        >
-          {selectedFormation && (
-            <FormationWorkflowEditForm
-              formation={selectedFormation}
-              onFormationUpdated={() => {
-                setOpenEdit(false);
-                loadFormations();
-              }}
-            />
-          )}
-        </Drawer>
+        {canManageFormations && (
+          <Drawer
+            title="Modifier Formation"
+            placement="right"
+            width={720}
+            onClose={() => setOpenEdit(false)}
+            open={openEdit}
+          >
+            {selectedFormation && (
+              <FormationWorkflowEditForm
+                formation={selectedFormation}
+                onFormationUpdated={() => {
+                  setOpenEdit(false);
+                  loadFormations();
+                }}
+              />
+            )}
+          </Drawer>
+        )}
 
         {/* Modal Export */}
         <Modal

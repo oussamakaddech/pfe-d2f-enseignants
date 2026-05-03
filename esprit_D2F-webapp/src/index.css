@@ -1,19 +1,41 @@
+:root {
+  --primary-color: #B51200;
+  --primary-hover: #8b0000;
+  --primary-bg: rgba(181, 18, 0, 0.05);
+  --text-main: #2d3748;
+  --text-muted: #718096;
+  --bg-sidebar: #ffffff;
+  --bg-main: #f7fafc;
+  --border-color: rgba(0, 0, 0, 0.06);
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --transition-base: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+body {
+  margin: 0;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  background-color: var(--bg-main);
+  color: var(--text-main);
+}
+
 @keyframes blink {
     50% {
-      background-color: #f44336; /* rouge vif pendant le blink */
+      background-color: #f44336; 
     }
-  }
+}
   
-  .blink-animateur {
-    animation: blink 1s infinite;
-  }
-  /* Menu dark : hover des items en fond blanc + texte/icone rouge */
-/* Clignotement de la date dans le header */
-@keyframes blink {
+.blink-animateur {
+  animation: blink 1s infinite;
+}
+
+@keyframes blink-opacity {
   0%, 100% { opacity: 0.8; }
   50% { opacity: 1; }
 }
+
 .blink-date {
-  animation: blink 1s infinite;
+  animation: blink-opacity 1.5s ease-in-out infinite;
 }
 

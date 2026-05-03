@@ -56,6 +56,8 @@ public class BesoinFormationServiceImpl implements IBesoinFormationService{
         if (b.getHoraireSouhaite() != null) existing.setHoraireSouhaite(b.getHoraireSouhaite());
         if (b.getUp() != null) existing.setUp(b.getUp());
         if (b.getDepartement() != null) existing.setDepartement(b.getDepartement());
+        if (b.getEstOuverte() != null) existing.setEstOuverte(b.getEstOuverte());
+        if (b.getAutresInformations() != null) existing.setAutresInformations(b.getAutresInformations());
 
         existing.setApprouveCUP(b.isApprouveCUP());
         existing.setApprouveChefDep(b.isApprouveChefDep());

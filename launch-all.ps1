@@ -8,6 +8,38 @@
 $ROOT   = $PSScriptRoot
 $PYTHON = "$ROOT\.venv\Scripts\python.exe"
 
+# Charger les variables sensibles depuis .env si elles ne sont pas déjà définies.
+function Import-EnvFile([string]$envFilePath) {
+    if (-not (Test-Path $envFilePath)) {
+        return
+    }
+
+    foreach ($line in Get-Content $envFilePath) {
+        $trimmed = $line.Trim()
+        if (-not $trimmed -or $trimmed.StartsWith('#')) {
+            continue
+        }
+
+        $parts = $line.Split('=', 2)
+        if ($parts.Count -ne 2) {
+            continue
+        }
+
+        $name = $parts[0].Trim()
+        $value = $parts[1].Trim()
+
+        if ($name -and -not (Test-Path "Env:$name")) {
+            Set-Item -Path "Env:$name" -Value $value
+        }
+    }
+}
+
+Import-EnvFile (Join-Path $ROOT '.env')
+
+if (-not $env:JWT_SECRET) {
+    Write-Host "AVERTISSEMENT: JWT_SECRET absent. Exécutez .\scripts\generate-jwt-secret.ps1 ou renseignez .env avant de lancer les services." -ForegroundColor DarkYellow
+}
+
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host "  PFE D2F - Lancement des services" -ForegroundColor Cyan
 Write-Host "========================================" -ForegroundColor Cyan
@@ -93,12 +125,12 @@ foreach ($svc in $services) {
 }
 
 # ── [10/14] API Gateway ──────────────────────────────────────────────────
-Write-Host "`n[10/14] Lancement API Gateway (port 8222)..." -ForegroundColor Yellow
+Write-Host "`n[10/14] Lancement API Gateway (port 8080)..." -ForegroundColor Yellow
 $apigwPath = "$ROOT\esprit_D2F-api-gateway"
 if (Test-Path $apigwPath) {
-    Free-Port 8222
+    Free-Port 8080
     Start-Process powershell -ArgumentList "-NoExit", "-Command", `
-        "Set-Location '$apigwPath'; Write-Host 'Démarrage API Gateway sur port 8222...' -ForegroundColor Cyan; .\mvnw.cmd spring-boot:run -DskipTests"
+        "Set-Location '$apigwPath'; Write-Host 'Démarrage API Gateway sur port 8080...' -ForegroundColor Cyan; .\mvnw.cmd spring-boot:run -DskipTests"
     Start-Sleep -Seconds 1
 } else {
     Write-Host "  ERREUR: Répertoire esprit_D2F-api-gateway introuvable" -ForegroundColor Red
@@ -185,7 +217,7 @@ Write-Host "  Certificat:       http://localhost:8086"
 Write-Host "  Evaluation:       http://localhost:8087"
 Write-Host "  Besoin-Formation: http://localhost:8004"
 Write-Host "  Competence:       http://localhost:8005"
-Write-Host "  API Gateway:      http://localhost:8222"
+Write-Host "  API Gateway:      http://localhost:8080"
 Write-Host "  AI Reco:          http://localhost:8000"
 Write-Host "  RICE Service:     http://localhost:8001  (Ollama mistral)"
 Write-Host "  Predictive-Analytics: http://localhost:8090  (scikit-learn FastAPI)"

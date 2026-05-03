@@ -65,7 +65,7 @@ jobs:
       - name: Run smoke tests
         run: |
           # Test API Gateway
-          curl -f http://${{ secrets.TEST_SERVER_HOST }}:8222/actuator/health || exit 1
+          curl -f http://${{ secrets.TEST_SERVER_HOST }}:8080/actuator/health || exit 1
           # Test Auth Service
           curl -f http://${{ secrets.TEST_SERVER_HOST }}:8085/actuator/health || exit 1
           # Test Competence Service

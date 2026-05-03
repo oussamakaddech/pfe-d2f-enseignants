@@ -1,3 +1,4 @@
+// src/pages/competence/CompetenceMatchingPage.jsx
 import React, { useEffect, useReducer, useState, useMemo, useCallback, useRef } from "react";
 import {
   Select,
@@ -29,11 +30,13 @@ import {
   EditOutlined,
   DeleteOutlined,
   TeamOutlined,
+  SolutionOutlined,
+  ThunderboltOutlined,
 } from "@ant-design/icons";
 import RiceService from "../../services/RiceService";
 import "./CompetenceMatchingPage.css";
 
-const { Text } = Typography;
+const { Title, Text } = Typography;
 
 // ─── Initial State ────────────────────────────────────────────────────────────
 const initialState = {
@@ -361,18 +364,35 @@ export default function CompetenceMatchingPage() {
       {/* Header */}
       <header className="matching-page-header">
         <div className="header-left-section">
-          <h4>🎓 Affectation des Savoirs</h4>
-          <Text className="header-subtitle">Glissez un savoir et déposez-le sur l'enseignant cible</Text>
+          <Title level={3} style={{ margin: 0 }}>
+            <ThunderboltOutlined style={{ color: "#B51200", marginRight: 10 }} />
+            Matchmaking & Affectations
+          </Title>
+          <Text className="header-subtitle">Assignez intelligemment les savoirs aux enseignants</Text>
         </div>
         <div className="header-right-section">
-          <div className="header-filters">
-            <Select value={state.filters.departement} onChange={(v) => { dispatch({ type: "SET_FILTER", payload: { key: "departement", value: v } }); reloadData(v); }} style={{ width: 160 }} options={[{ value: "all", label: "Tous les départements" }]} placeholder="Département" />
-            <Select value={state.filters.domaine ?? "all"} onChange={(v) => dispatch({ type: "SET_FILTER", payload: { key: "domaine", value: v } })} style={{ width: 160 }} options={domainOptions} placeholder="Domaine" />
-            <Input.Search placeholder="Rechercher savoir par code / nom" value={state.filters.search} onChange={(e) => dispatch({ type: "SET_FILTER", payload: { key: "search", value: e.target.value } })} style={{ width: 280 }} allowClear />
-          </div>
-          <div className="header-actions-group">
-            <Button icon={<ReloadOutlined />} onClick={() => reloadData()} loading={state.loading.data}>Recharger</Button>
-          </div>
+          <Space size="large">
+            <Select 
+              value={state.filters.departement} 
+              onChange={(v) => { dispatch({ type: "SET_FILTER", payload: { key: "departement", value: v } }); reloadData(v); }} 
+              style={{ width: 180 }} 
+              options={[{ value: "all", label: "Tous les départements" }]} 
+            />
+            <Select 
+              value={state.filters.domaine ?? "all"} 
+              onChange={(v) => dispatch({ type: "SET_FILTER", payload: { key: "domaine", value: v } })} 
+              style={{ width: 180 }} 
+              options={domainOptions} 
+            />
+            <Input.Search 
+              placeholder="Rechercher..." 
+              value={state.filters.search} 
+              onChange={(e) => dispatch({ type: "SET_FILTER", payload: { key: "search", value: e.target.value } })} 
+              style={{ width: 220 }} 
+              allowClear 
+            />
+            <Button icon={<ReloadOutlined />} onClick={() => reloadData()} loading={state.loading.data} />
+          </Space>
         </div>
       </header>
 
@@ -382,16 +402,20 @@ export default function CompetenceMatchingPage() {
         <section className="matching-panel savoirs-list-panel">
           <div className="panel-header-section">
             <div className="panel-title-section">
-              <BookOutlined /> Savoirs <Badge count={filteredSavoirs.length} style={{ backgroundColor: "#1890ff" }} />
+              <BookOutlined style={{ color: "#1890ff" }} /> Savoirs Disponibles
             </div>
             <div className="panel-controls-section">
-              <Switch checked={state.filters.showUnassignedOnly} onChange={(v) => dispatch({ type: "SET_FILTER", payload: { key: "showUnassignedOnly", value: v } })} size="small" />
-              <Text style={{ fontSize: 12 }}>Non affectés seulement</Text>
+              <Switch 
+                checked={state.filters.showUnassignedOnly} 
+                onChange={(v) => dispatch({ type: "SET_FILTER", payload: { key: "showUnassignedOnly", value: v } })} 
+                size="small" 
+              />
+              <Text style={{ fontSize: 12 }}>Non affectés</Text>
             </div>
           </div>
           <div className="panel-body-scrollable">
             {state.loading.data ? (
-              Array.from({ length: 4 }).map((_, i) => (<div key={i} className="skeleton-loading-card"><Skeleton active paragraph={{ rows: 2 }} /></div>))
+              <Skeleton active paragraph={{ rows: 10 }} />
             ) : filteredSavoirs.length === 0 ? (
               <Empty description="Aucun savoir trouvé" />
             ) : (
@@ -405,8 +429,6 @@ export default function CompetenceMatchingPage() {
                       <span className="savoir-drag-handle"><HolderOutlined /></span>
                       <span className="savoir-code-label">{s.code}</span>
                       <span className="savoir-name-inline">{s.nom}</span>
-                      {s.type && <Tag className="savoir-type-tag">{s.type}</Tag>}
-                      {s.niveau && <Tag className="savoir-niveau-tag">{s.niveau}</Tag>}
                     </div>
                     {assigned.length > 0 && (
                       <div className="savoir-assigned-teachers">
@@ -417,11 +439,6 @@ export default function CompetenceMatchingPage() {
                         ))}
                       </div>
                     )}
-                    <div className="savoir-card-actions">
-                      <Button type="primary" size="small" icon={<PlusOutlined />} onClick={(e) => { e.stopPropagation(); setQuickAssignModal({ savoir: s, open: true }); }} className="quick-assign-button">
-                        + Affecter
-                      </Button>
-                    </div>
                   </div>
                 );
               })
@@ -433,25 +450,24 @@ export default function CompetenceMatchingPage() {
         <section className="matching-panel enseignants-list-panel">
           <div className="panel-header-section">
             <div className="panel-title-section">
-              <TeamOutlined /> Enseignants <Badge count={state.enseignants.length} style={{ backgroundColor: "#52c41a" }} />
+              <TeamOutlined style={{ color: "#52c41a" }} /> Corps Enseignant
             </div>
             <div className="panel-controls-section">
-              <Input prefix={<SearchOutlined />} placeholder="Rechercher..." value={ensSearch} onChange={(e) => setEnsSearch(e.target.value)} style={{ width: 180 }} allowClear size="small" />
-              <Select value={ensSort} onChange={setEnsSort} options={[{ value: "name", label: "Par nom" }, { value: "load_desc", label: "Charge ↓" }, { value: "load_asc", label: "Charge ↑" }]} style={{ width: 120 }} size="small" />
+              <Input prefix={<SearchOutlined />} placeholder="Filtrer..." value={ensSearch} onChange={(e) => setEnsSearch(e.target.value)} style={{ width: 150 }} allowClear size="small" />
+              <Select value={ensSort} onChange={setEnsSort} options={[{ value: "name", label: "A-Z" }, { value: "load_desc", label: "Charge ↓" }]} style={{ width: 100 }} size="small" />
             </div>
           </div>
           <div className="panel-body-scrollable">
             {state.loading.data ? (
-              Array.from({ length: 3 }).map((_, i) => (<div key={i} className="skeleton-loading-card"><Skeleton active avatar paragraph={{ rows: 2 }} /></div>))
+              <Skeleton active avatar paragraph={{ rows: 10 }} />
             ) : sortedEnseignants.length === 0 ? (
-              <Empty description="Aucun enseignant trouvé" />
+              <Empty description="Aucun enseignant" />
             ) : (
               sortedEnseignants.map((ens) => {
                 const ensId = String(ens.id);
                 const count = assignmentCountByEns[ensId] ?? 0;
                 const loadPct = Math.round((count / Math.max(maxLoad, 1)) * 100);
                 const assigned = assignedSavoirsByEns.get(ensId) ?? [];
-                const loadColor = loadPct < 40 ? "#52c41a" : loadPct < 70 ? "#faad14" : "#ff4d4f";
                 const initials = `${ens.prenom?.[0] ?? ""}${ens.nom?.[0] ?? ""}`.toUpperCase() || "?";
                 const avatarColor = getAvatarColor(ensId);
                 return (
@@ -459,43 +475,42 @@ export default function CompetenceMatchingPage() {
                     onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "copy"; setDragOverEns(ensId); }}
                     onDragLeave={(e) => { const related = e.relatedTarget; if (related && e.currentTarget.contains(related)) return; setDragOverEns(null); }}
                     onDrop={(e) => handleEnsDrop(e, ensId)}>
+                    
                     {dragOverEns === ensId && (
-                      <div className="enseignant-drop-overlay"><CheckCircleOutlined style={{ fontSize: 32, color: "#52c41a" }} /><Text strong style={{ color: "#52c41a" }}>Déposer ici</Text></div>
+                      <div className="enseignant-drop-overlay">
+                        <CheckCircleOutlined style={{ fontSize: 32, color: "#52c41a" }} />
+                        <Text strong style={{ color: "#52c41a", marginTop: 8 }}>Relâcher pour assigner</Text>
+                      </div>
                     )}
+
                     <div className="enseignant-card-header">
                       <div className="enseignant-avatar" style={{ backgroundColor: avatarColor }}>{initials}</div>
                       <div className="enseignant-info-section">
                         <span className="enseignant-full-name">{ens.prenom} {ens.nom}</span>
-                        <span className="enseignant-details-text">{ens.departement ?? "-"}</span>
+                        <span className="enseignant-details-text">{ens.departement || "Département N/A"}</span>
                       </div>
                       <div className="enseignant-action-buttons">
                         <Button type="text" size="small" icon={<EditOutlined />} onClick={() => handleEditTeacher(ens)} />
                         <Button type="text" size="small" danger icon={<DeleteOutlined />} onClick={() => handleDeleteTeacher(ens)} />
                       </div>
                     </div>
+
                     <div className="enseignant-statistics-section">
-                      <div className="enseignant-stat-box">
-                        <span className="enseignant-stat-number">{count}</span>
-                        <span className="enseignant-stat-label">savoir{count !== 1 ? "s" : ""}</span>
-                      </div>
                       <div className="enseignant-progress-section">
-                        <Progress percent={loadPct} size="small" showInfo={false} strokeColor={loadColor} trailColor="#f0f0f0" />
-                        <div className="enseignant-load-info">
-                          <Text style={{ fontSize: 12, color: loadColor }}>{loadPct}%</Text>
-                          {loadPct >= 70 && <WarningOutlined style={{ color: "#ff4d4f", fontSize: 14 }} />}
-                        </div>
+                        <Progress percent={loadPct} size="small" strokeColor={loadPct > 80 ? "#ff4d4f" : "#52c41a"} />
                       </div>
+                      <Badge count={count} style={{ backgroundColor: count > 0 ? '#1890ff' : '#d9d9d9' }} />
                     </div>
+
                     {assigned.length > 0 && (
-                      <div className="enseignant-assigned-savoirs">
+                      <div className="enseignant-assigned-savoirs" style={{ marginTop: 12 }}>
                         {assigned.map((sv) => (
-                          <Tag key={sv.id} className="savoir-chip-tag" color="blue" closable onClose={() => handleUnassign(String(sv.id), ensId)}>{sv.code}</Tag>
+                          <Tag key={sv.id} color="blue" closable onClose={() => handleUnassign(String(sv.id), ensId)} style={{ marginBottom: 4 }}>
+                            {sv.code}
+                          </Tag>
                         ))}
                       </div>
                     )}
-                    <div className={`enseignant-drop-zone ${!!draggingId ? "drag-mode-active" : ""} ${dragOverEns === ensId ? "drag-over-active" : ""}`}>
-                      {dragOverEns === ensId ? (<><CheckCircleOutlined /> Relâcher pour affecter</>) : !!draggingId ? (<><PlusOutlined /> Déposer le savoir ici</>) : (<><TeamOutlined /> {count === 0 ? "Aucun savoir" : `${count} savoir${count > 1 ? "s" : ""}`}</>)}
-                    </div>
                   </div>
                 );
               })
@@ -508,32 +523,17 @@ export default function CompetenceMatchingPage() {
       <footer className="matching-page-footer">
         <div className="footer-left-section">
           <Button className="footer-save-button" icon={<SaveOutlined />} disabled={pendingTotal === 0} loading={state.loading.saving} onClick={handleSave}>
-            Sauvegarder les affectations
-            {pendingTotal > 0 && <Badge count={pendingTotal} style={{ marginLeft: 8, backgroundColor: "#fff", color: "#cf1322" }} />}
+            Enregistrer les modifications
+            {pendingTotal > 0 && <Badge count={pendingTotal} style={{ marginLeft: 12, backgroundColor: "#fff", color: "#B51200" }} />}
           </Button>
         </div>
         <div className="footer-right-section">
-          <Text className="footer-status-text">{pendingTotal === 0 ? "✓ Aucune modification en attente" : `${pendingTotal} modification(s) en attente`}</Text>
-          {pendingTotal > 0 && <Button icon={<UndoOutlined />} onClick={handleReset} size="small">Annuler</Button>}
+          <Space>
+             <Text type="secondary">{pendingTotal === 0 ? "Tout est à jour" : `${pendingTotal} modification(s) non sauvegardée(s)`}</Text>
+             {pendingTotal > 0 && <Button icon={<UndoOutlined />} onClick={handleReset} type="link">Annuler tout</Button>}
+          </Space>
         </div>
       </footer>
-
-      {/* Quick Assign Modal */}
-      <Modal title={`Affecter ${quickAssignModal.savoir?.code ?? ""}`} open={quickAssignModal.open} onCancel={() => setQuickAssignModal({ savoir: null, open: false })} footer={null} width={340}>
-        <Select showSearch autoFocus style={{ width: "100%" }} placeholder="Sélectionner un enseignant" optionFilterProp="label"
-          options={(state.enseignants || []).map((ens) => ({ value: String(ens.id), label: `${ens.prenom ?? ""} ${ens.nom ?? ""}`.trim() }))}
-          onChange={(value) => { handleQuickAssign(String(quickAssignModal.savoir?.id), String(value)); setQuickAssignModal({ savoir: null, open: false }); }} />
-      </Modal>
-
-      {/* Help Modal */}
-      <Modal title="Comment utiliser" open={showHelp} onCancel={() => setShowHelp(false)} footer={<Button type="primary" onClick={() => setShowHelp(false)}>Compris</Button>}>
-        <ol style={{ paddingLeft: 20 }}>
-          <li>Glissez un <strong>savoir</strong> depuis le panneau gauche</li>
-          <li>Déposez-le sur un <strong>enseignant</strong> à droite</li>
-          <li>Les modifications sont en attente jusqu'à sauvegarde</li>
-          <li>Cliquez sur <strong>Sauvegarder</strong> pour valider</li>
-        </ol>
-      </Modal>
 
       {/* Teacher Modal */}
       <Modal title={editingEns ? "Modifier l'enseignant" : "Créer un enseignant"} open={showCreateModal} onCancel={() => { setShowCreateModal(false); form.resetFields(); }} footer={null}>
@@ -547,7 +547,7 @@ export default function CompetenceMatchingPage() {
           <Form.Item style={{ marginBottom: 0, textAlign: "right" }}>
             <Space>
               <Button onClick={() => { setShowCreateModal(false); form.resetFields(); }}>Annuler</Button>
-              <Button htmlType="submit" type="primary">Enregistrer</Button>
+              <Button htmlType="submit" type="primary" className="footer-save-button">Enregistrer</Button>
             </Space>
           </Form.Item>
         </Form>
