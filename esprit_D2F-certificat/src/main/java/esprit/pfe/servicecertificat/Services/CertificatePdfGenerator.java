@@ -13,11 +13,15 @@ import com.itextpdf.layout.element.Image;
 import com.itextpdf.layout.element.Paragraph;
 import com.itextpdf.layout.properties.TextAlignment;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 
 public class CertificatePdfGenerator {
+
+    private CertificatePdfGenerator() {
+        // Utility class — not instantiable
+    }
 
     /**
      * Génère un certificat PDF pour un enseignant.
@@ -33,62 +37,61 @@ public class CertificatePdfGenerator {
                                                      CertificateBatchMessage.EnseignantPresenceInfo teacher,
                                                      byte[] backgroundBytes) throws Exception {
 
-        PdfWriter writer = new PdfWriter(outputPath);
-        PdfDocument pdf = new PdfDocument(writer);
-        Document document = new Document(pdf);
+        try (PdfWriter writer = new PdfWriter(outputPath);
+             PdfDocument pdf = new PdfDocument(writer);
+             Document document = new Document(pdf)) {
 
-        // Si on a des bytes pour l’image, on la charge
-        if (backgroundBytes != null && backgroundBytes.length > 0) {
-            ImageData bgData = ImageDataFactory.create(backgroundBytes);
-            Image background = new Image(bgData);
-            background.scaleToFit(pdf.getDefaultPageSize().getWidth(), pdf.getDefaultPageSize().getHeight());
-            background.setFixedPosition(0, 0);
-            document.add(background);
+            // Si on a des bytes pour l'image, on la charge
+            if (backgroundBytes != null && backgroundBytes.length > 0) {
+                ImageData bgData = ImageDataFactory.create(backgroundBytes);
+                Image background = new Image(bgData);
+                background.scaleToFit(pdf.getDefaultPageSize().getWidth(), pdf.getDefaultPageSize().getHeight());
+                background.setFixedPosition(0, 0);
+                document.add(background);
+            }
+
+            PdfFont font = PdfFontFactory.createFont();
+
+            // Titre du certificat
+            Paragraph title = new Paragraph("Attestation de Formation")
+                    .setFont(font)
+                    .setFontSize(24)
+                    .setFontColor(ColorConstants.BLACK)
+                    .setTextAlignment(TextAlignment.CENTER);
+            document.add(title);
+
+            // Détails de la formation
+            Paragraph formationDetails = new Paragraph()
+                    .setFont(font)
+                    .setFontSize(16)
+                    .setFontColor(ColorConstants.BLACK)
+                    .setTextAlignment(TextAlignment.CENTER);
+            formationDetails.add("Formation : " + msg.getTitreFormation() + "\n");
+            formationDetails.add("Type : " + msg.getTypeCertif() + "\n");
+            formationDetails.add("Du : " + msg.getDateDebutFormation() + " au " + msg.getDateFinFormation() + "\n");
+            formationDetails.add("Charge Horaire : " + msg.getChargeHoraireGlobal() + " h\n");
+            document.add(formationDetails);
+
+            // Détails de l'enseignant
+            Paragraph teacherDetails = new Paragraph()
+                    .setFont(font)
+                    .setFontSize(14)
+                    .setFontColor(ColorConstants.BLACK)
+                    .setTextAlignment(TextAlignment.CENTER);
+            teacherDetails.add("Animateur : " + teacher.getNom() + " " + teacher.getPrenom() + "\n");
+            teacherDetails.add("Email : " + teacher.getMail() + "\n");
+            teacherDetails.add("Département : " + teacher.getDeptEnseignantLibelle() + "\n");
+            teacherDetails.add("Rôle : " + teacher.getRole() + "\n");
+            document.add(teacherDetails);
+
+            // Date d'émission (using LocalDate — thread-safe & not deprecated)
+            Paragraph issuedDate = new Paragraph("Émis le : " + LocalDate.now())
+                    .setFont(font)
+                    .setFontSize(12)
+                    .setFontColor(ColorConstants.DARK_GRAY)
+                    .setTextAlignment(TextAlignment.RIGHT);
+            document.add(issuedDate);
         }
-
-        PdfFont font = PdfFontFactory.createFont();
-
-        // Titre du certificat
-        Paragraph title = new Paragraph("Attestation de Formation")
-                .setFont(font)
-                .setFontSize(24)
-                .setFontColor(ColorConstants.BLACK)
-                .setTextAlignment(TextAlignment.CENTER);
-        document.add(title);
-
-        // Détails de la formation
-        Paragraph formationDetails = new Paragraph()
-                .setFont(font)
-                .setFontSize(16)
-                .setFontColor(ColorConstants.BLACK)
-                .setTextAlignment(TextAlignment.CENTER);
-        formationDetails.add("Formation : " + msg.getTitreFormation() + "\n");
-        formationDetails.add("Type : " + msg.getTypeCertif() + "\n");
-        formationDetails.add("Du : " + msg.getDateDebutFormation() + " au " + msg.getDateFinFormation() + "\n");
-        formationDetails.add("Charge Horaire : " + msg.getChargeHoraireGlobal() + " h\n");
-        document.add(formationDetails);
-
-        // Détails de l'enseignant
-        Paragraph teacherDetails = new Paragraph()
-                .setFont(font)
-                .setFontSize(14)
-                .setFontColor(ColorConstants.BLACK)
-                .setTextAlignment(TextAlignment.CENTER);
-        teacherDetails.add("Animateur : " + teacher.getNom() + " " + teacher.getPrenom() + "\n");
-        teacherDetails.add("Email : " + teacher.getMail() + "\n");
-        teacherDetails.add("Département : " + teacher.getDeptEnseignantLibelle() + "\n");
-        teacherDetails.add("Rôle : " + teacher.getRole() + "\n");
-        document.add(teacherDetails);
-
-        // Date d'émission
-        Paragraph issuedDate = new Paragraph("Émis le : " + new Date())
-                .setFont(font)
-                .setFontSize(12)
-                .setFontColor(ColorConstants.DARK_GRAY)
-                .setTextAlignment(TextAlignment.RIGHT);
-        document.add(issuedDate);
-
-        document.close();
     }
 
     /**
