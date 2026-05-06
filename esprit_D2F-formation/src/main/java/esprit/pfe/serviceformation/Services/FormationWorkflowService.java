@@ -14,12 +14,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.sql.Time;
-import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.OffsetDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -162,6 +162,14 @@ public class FormationWorkflowService {
         formation.setCoutHebergement(request.getCoutHebergement());
         formation.setCoutRepas(request.getCoutRepas());
         formation.setOuverte(request.isOuverte());
+        if (request.getPeriodCode() != null) {
+            try {
+                formation.setPeriodCode(PeriodCode.valueOf(request.getPeriodCode()));
+            } catch (Exception e) {
+                formation.setPeriodCode(PeriodCode.OTHER);
+            }
+        }
+        formation.setCustomPeriodLabel(request.getCustomPeriodLabel());
 
         if (request.getUpId() != null && !request.getUpId().isBlank()) {
             Up up = upRepository.findById(request.getUpId())
@@ -315,8 +323,32 @@ public class FormationWorkflowService {
             );
             outlookMailService.sendMail(ORGANIZER_EMAIL, subject, htmlContent);
             log.info("📧 Notification de création envoyée à {}", ORGANIZER_EMAIL);
+
+            // 🔔 Notification au CUP de l'UP concernée
+            if (formation.getUp() != null) {
+                List<Enseignant> cups = enseignantRepository.findByUpAndCup(formation.getUp(), "O");
+                for (Enseignant cup : cups) {
+                    String cupSubject = "[D2F] Formation à planifier : " + formation.getTitreFormation();
+                    String cupHtml = String.format(
+                        "<h3>Action Requise : Planification de Formation</h3>" +
+                        "<p>Bonjour %s %s,</p>" +
+                        "<p>Une nouvelle formation concernant votre Unité Pédagogique (<strong>%s</strong>) a été enregistrée et doit être planifiée.</p>" +
+                        "<ul>" +
+                        "<li><strong>Titre :</strong> %s</li>" +
+                        "<li><strong>Domaine :</strong> %s</li>" +
+                        "</ul>" +
+                        "<p>Veuillez vous connecter à la plateforme D2F pour organiser les séances et affecter les formateurs.</p>",
+                        cup.getPrenom(), cup.getNom(),
+                        formation.getUp().getLibelle(),
+                        formation.getTitreFormation(),
+                        formation.getDomaine()
+                    );
+                    outlookMailService.sendMail(cup.getMail(), cupSubject, cupHtml);
+                    log.info("📧 Notification envoyée au CUP : {}", cup.getMail());
+                }
+            }
         } catch (Exception ex) {
-            log.warn("⚠️ Échec de l'envoi de la notification de création : {}", ex.getMessage());
+            log.warn("⚠️ Échec de l'envoi des notifications de création : {}", ex.getMessage());
         }
 
         formation.setSeances(seances);
@@ -327,6 +359,8 @@ public class FormationWorkflowService {
     public Formation updateFormationWorkflow(Long formationId, FormationWorkflowRequest request) {
         Formation formation = formationRepository.findById(formationId)
                 .orElseThrow(() -> new IllegalArgumentException("Formation introuvable"));
+
+        EtatFormation oldEtat = formation.getEtatFormation();
 
         formation.setTitreFormation(request.getTitreFormation());
         formation.setDateDebut(request.getDateDebut());
@@ -352,6 +386,14 @@ public class FormationWorkflowService {
         formation.setCoutHebergement(request.getCoutHebergement());
         formation.setCoutRepas(request.getCoutRepas());
         formation.setOuverte(request.isOuverte());
+        if (request.getPeriodCode() != null) {
+            try {
+                formation.setPeriodCode(PeriodCode.valueOf(request.getPeriodCode()));
+            } catch (Exception e) {
+                formation.setPeriodCode(PeriodCode.OTHER);
+            }
+        }
+        formation.setCustomPeriodLabel(request.getCustomPeriodLabel());
 
         if (request.getUpId() != null && !request.getUpId().isBlank()) {
             Up up = upRepository.findById(request.getUpId())
@@ -487,6 +529,9 @@ public class FormationWorkflowService {
 
         if (formation.getEtatFormation() == EtatFormation.PLANIFIE) {
             synchronizeFormationCalendar(formation);
+        } else if (formation.getEtatFormation() == EtatFormation.VISIBLE && oldEtat != EtatFormation.VISIBLE) {
+            notifyTeachersOfApprovedFormation(formation);
+            notifyCUPOfApprovedFormation(formation);
         } else if (formation.getEtatFormation() == EtatFormation.ANNULE) {
             removeFormationCalendar(formation);
         }
@@ -565,10 +610,18 @@ public class FormationWorkflowService {
         formationRepository.delete(formation);
     }
 
-    private String buildCalendarEventContent(Formation formation, SeanceFormation seance, String animateursStr) {
-        SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy");
-        SimpleDateFormat timeFormat = new SimpleDateFormat("HH:mm");
+    private static final DateTimeFormatter DATE_FMT = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+    private static final DateTimeFormatter TIME_FMT = DateTimeFormatter.ofPattern("HH:mm");
 
+    private String formatDate(java.util.Date date) {
+        return date.toInstant().atZone(ZoneId.of("Africa/Tunis")).toLocalDate().format(DATE_FMT);
+    }
+
+    private String formatTime(java.sql.Time time) {
+        return time.toLocalTime().format(TIME_FMT);
+    }
+
+    private String buildCalendarEventContent(Formation formation, SeanceFormation seance, String animateursStr) {
         return "<!DOCTYPE html><html><head><style>" +
                 "body {font-family: 'Segoe UI', sans-serif; color: #333;}" +
                 "h3 {color: #c62828; border-bottom: 2px solid #c62828; padding-bottom: 5px;}" +
@@ -576,9 +629,9 @@ public class FormationWorkflowService {
                 "strong {color: #c62828;}" +
                 "</style></head><body>" +
                 "<h3>" + formation.getTitreFormation() + "</h3>" +
-                "<p><strong>Date:</strong> " + dateFormat.format(seance.getDateSeance()) + "</p>" +
-                "<p><strong>Heure:</strong> " + timeFormat.format(seance.getHeureDebut()) + " - "
-                + timeFormat.format(seance.getHeureFin()) + "</p>" +
+                "<p><strong>Date:</strong> " + formatDate(seance.getDateSeance()) + "</p>" +
+                "<p><strong>Heure:</strong> " + formatTime(seance.getHeureDebut()) + " - "
+                + formatTime(seance.getHeureFin()) + "</p>" +
                 "<p><strong>Salle:</strong> " + seance.getSalle() + "</p>" +
                 "<p><strong>Animateurs:</strong> " + animateursStr + "</p>" +
                 "<hr><p><em>Ceci est une invitation à une séance de formation planifiée via l'application D2F.</em></p>"
@@ -587,9 +640,6 @@ public class FormationWorkflowService {
     }
 
     private String buildEmailContent(Formation formation, SeanceFormation currentSeance) {
-        SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy");
-        SimpleDateFormat timeFormat = new SimpleDateFormat("HH:mm");
-
         String animateursStr = formation.getSeances().stream()
                 .flatMap(s -> s.getAnimateurs().stream())
                 .map(e -> e.getNom() + " " + e.getPrenom())
@@ -609,10 +659,10 @@ public class FormationWorkflowService {
                             "<strong>Le %s</strong> de <strong>%s</strong> à <strong>%s</strong> en salle <strong>%s</strong>"
                             +
                             "</div>",
-                    isCurrent ? "background-color: #ffebee;" : "", // Rouge très clair pour surligner
-                    dateFormat.format(seance.getDateSeance()),
-                    timeFormat.format(seance.getHeureDebut()),
-                    timeFormat.format(seance.getHeureFin()),
+                    isCurrent ? "background-color: #ffebee;" : "",
+                    formatDate(seance.getDateSeance()),
+                    formatTime(seance.getHeureDebut()),
+                    formatTime(seance.getHeureFin()),
                     seance.getSalle()));
         }
 
@@ -638,8 +688,8 @@ public class FormationWorkflowService {
                 "<h1>" + formation.getTitreFormation() + "</h1>" +
                 "<p>Bonjour,</p>" +
                 "<p>Vous êtes invité(e) à participer à la formation <strong>\"" + formation.getTitreFormation()
-                + "\"</strong> qui se déroulera du <strong>" + dateFormat.format(formation.getDateDebut())
-                + "</strong> au <strong>" + dateFormat.format(formation.getDateFin()) + "</strong>.</p>" +
+                + "\"</strong> qui se déroulera du <strong>" + formatDate(formation.getDateDebut())
+                + "</strong> au <strong>" + formatDate(formation.getDateFin()) + "</strong>.</p>" +
                 "<p><strong>Animée par :</strong> " + animateursStr + "</p>" +
                 "<h3>Détail des séances :</h3>" +
                 seancesHtml.toString() +
@@ -656,13 +706,11 @@ public class FormationWorkflowService {
     }
 
     private String buildCancellationEmailContent(String formationTitle, SeanceFormation seance) {
-        SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy");
-        SimpleDateFormat timeFormat = new SimpleDateFormat("HH:mm");
         String seanceDetails = (seance != null)
                 ? String.format("La séance du <strong>%s</strong> de <strong>%s</strong> à <strong>%s</strong>",
-                        dateFormat.format(seance.getDateSeance()),
-                        timeFormat.format(seance.getHeureDebut()),
-                        timeFormat.format(seance.getHeureFin()))
+                        formatDate(seance.getDateSeance()),
+                        formatTime(seance.getHeureDebut()),
+                        formatTime(seance.getHeureFin()))
                 : "";
 
         return "<!DOCTYPE html>" +
@@ -699,6 +747,68 @@ public class FormationWorkflowService {
                 "</div>" +
                 "</body>" +
                 "</html>";
+    }
+
+    @Transactional
+    public void notifyTeachersOfApprovedFormation(Formation formation) {
+        log.info("📢 Notification des enseignants pour la formation approuvée (VISIBLE) : {}", formation.getTitreFormation());
+        List<Enseignant> allEnseignants = enseignantRepository.findAll();
+        
+        String subject = "[D2F] Nouvelle Formation Disponible : " + formation.getTitreFormation();
+        String htmlContent = String.format(
+            "<div style='font-family: Arial, sans-serif; max-width: 600px; margin: auto; border: 1px solid #eee; padding: 20px; border-radius: 10px;'>" +
+            "<h2 style='color: #c62828;'>Formation Approuvée & Disponible</h2>" +
+            "<p>Bonjour,</p>" +
+            "<p>Nous avons le plaisir de vous informer qu'une nouvelle formation a été approuvée et est désormais disponible sur la plateforme D2F.</p>" +
+            "<div style='background-color: #f9f9f9; padding: 15px; border-left: 5px solid #c62828; margin: 20px 0;'>" +
+            "<strong>Formation :</strong> %s<br/>" +
+            "<strong>Domaine :</strong> %s<br/>" +
+            "<strong>Date prévue :</strong> Du %s au %s" +
+            "</div>" +
+            "<p>Vous pouvez consulter les détails complets et vous inscrire (si applicable) en vous connectant à votre espace enseignant.</p>" +
+            "<p style='text-align: center; margin-top: 30px;'>" +
+            "<a href='https://d2f.esprit.tn' style='background-color: #c62828; color: white; padding: 12px 25px; text-decoration: none; border-radius: 5px; font-weight: bold;'>Accéder à D2F</a>" +
+            "</p>" +
+            "<hr style='border: 0; border-top: 1px solid #eee; margin: 30px 0;'/>" +
+            "<p style='font-size: 12px; color: #777;'>Ceci est un message automatique, merci de ne pas y répondre.</p>" +
+            "</div>",
+            formation.getTitreFormation(),
+            formation.getDomaine(),
+            new SimpleDateFormat("dd/MM/yyyy").format(formation.getDateDebut()),
+            new SimpleDateFormat("dd/MM/yyyy").format(formation.getDateFin())
+        );
+
+        for (Enseignant e : allEnseignants) {
+            try {
+                outlookMailService.sendMail(e.getMail(), subject, htmlContent);
+            } catch (Exception ex) {
+                log.warn("⚠️ Échec de notification pour l'enseignant {} : {}", e.getMail(), ex.getMessage());
+            }
+        }
+    }
+
+    @Transactional
+    public void notifyCUPOfApprovedFormation(Formation formation) {
+        if (formation.getUp() == null) return;
+        List<Enseignant> cups = enseignantRepository.findByUpAndCup(formation.getUp(), "O");
+        String subject = "[D2F] Formation Approuvée : " + formation.getTitreFormation();
+        for (Enseignant cup : cups) {
+            try {
+                String html = String.format(
+                    "<h3>Formation Approuvée</h3>" +
+                    "<p>Bonjour %s %s,</p>" +
+                    "<p>Nous avons le plaisir de vous informer que la formation <strong>\"%s\"</strong>, liée à votre unité (<strong>%s</strong>), a été officiellement approuvée et est désormais visible par tous les enseignants.</p>" +
+                    "<p>Merci pour votre contribution à la planification de cette session.</p>",
+                    cup.getPrenom(), cup.getNom(),
+                    formation.getTitreFormation(),
+                    formation.getUp().getLibelle()
+                );
+                outlookMailService.sendMail(cup.getMail(), subject, html);
+                log.info("📧 Notification d'approbation envoyée au CUP : {}", cup.getMail());
+            } catch (Exception ex) {
+                log.warn("⚠️ Échec de notification CUP (Approbation) : {}", ex.getMessage());
+            }
+        }
     }
 
     @Transactional
@@ -952,6 +1062,8 @@ public class FormationWorkflowService {
         dto.setOuverte(formation.isOuverte());
         dto.setInscriptionsOuvertes(formation.isInscriptionsOuvertes());
         dto.setCertifGenerated(formation.isCertifGenerated());
+        dto.setPeriodCode(formation.getPeriodCode() != null ? formation.getPeriodCode().name() : null);
+        dto.setCustomPeriodLabel(formation.getCustomPeriodLabel());
 
         if (formation.getSeances() != null) {
             dto.setSeances(formation.getSeances().stream().map(this::mapSeanceToDTO).toList());
@@ -1017,10 +1129,11 @@ public class FormationWorkflowService {
     public List<PresenceDTO> getPresencesBySeance(Long seanceId) {
         SeanceFormation seance = seanceFormationRepository.findById(seanceId)
                 .orElseThrow(() -> new IllegalArgumentException("Séance introuvable pour id " + seanceId));
-        if (seance.getPresences() != null) {
-            seance.getPresences().size();
+        List<Presence> presences = seance.getPresences();
+        if (presences == null) {
+            return Collections.emptyList();
         }
-        return seance.getPresences().stream().map(this::mapPresenceToDTO).toList();
+        return presences.stream().map(this::mapPresenceToDTO).toList();
     }
 
     // Méthode de mapping pour convertir une entité Presence en PresenceDTO
@@ -1054,6 +1167,8 @@ public class FormationWorkflowService {
             dto.setCoutFormation(formation.getCoutFormation());
             dto.setOrganismeRefExterne(formation.getOrganismeRefExterne());
             dto.setChargeHoraireGlobal(formation.getChargeHoraireGlobal());
+            dto.setPeriodCode(formation.getPeriodCode() != null ? formation.getPeriodCode().name() : null);
+        dto.setCustomPeriodLabel(formation.getCustomPeriodLabel());
 
             // Transformation du département associé
             if (formation.getDepartement() != null) {
@@ -1125,6 +1240,13 @@ public class FormationWorkflowService {
                         || f.getEtatFormation() == EtatFormation.PLANIFIE
                         || f.getEtatFormation() == EtatFormation.EN_COURS
                         || f.isInscriptionsOuvertes())
+                .map(this::mapFormationToDTO)
+                .toList();
+    }
+
+    public List<FormationDTO> getFormationsParDepartement(String deptId) {
+        return formationRepository.findByDepartement_Id(deptId)
+                .stream()
                 .map(this::mapFormationToDTO)
                 .toList();
     }

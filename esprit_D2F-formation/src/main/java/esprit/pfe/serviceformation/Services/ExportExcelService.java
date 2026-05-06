@@ -231,8 +231,9 @@ public class ExportExcelService {
 
         // Écriture finale
         ByteArrayOutputStream out = new ByteArrayOutputStream();
-        workbook.write(out);
-        workbook.close();
+        try (Workbook wb = workbook) {
+            wb.write(out);
+        }
         return out;
     }
 

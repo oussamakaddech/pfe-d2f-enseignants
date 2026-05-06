@@ -45,7 +45,7 @@ public class KPIService {
         int total = 0;
         for (Object[] row : results) {
             // La première colonne contient l'enum et la deuxième le compte
-            Enum etat = (Enum) row[0];
+            Enum<?> etat = (Enum<?>) row[0];
             Long count = (Long) row[1];
             total += count.intValue();
 

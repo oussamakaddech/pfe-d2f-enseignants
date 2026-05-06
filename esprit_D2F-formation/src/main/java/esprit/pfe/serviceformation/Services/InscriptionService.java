@@ -171,8 +171,13 @@ public class InscriptionService {
         dto.setPrenom(ens.getPrenom());
         dto.setMail(ens.getMail());
         dto.setType(ens.getType());
-        dto.setDeptLibelle(ens.getDept().getLibelle());
-        dto.setUpLibelle(ens.getUp().getLibelle());
+        // Null-safe access to avoid NPE when Dept or UP is not assigned
+        if (ens.getDept() != null) {
+            dto.setDeptLibelle(ens.getDept().getLibelle());
+        }
+        if (ens.getUp() != null) {
+            dto.setUpLibelle(ens.getUp().getLibelle());
+        }
         return dto;
     }
 

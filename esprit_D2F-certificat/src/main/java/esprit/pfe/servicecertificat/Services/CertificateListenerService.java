@@ -59,9 +59,9 @@ public class CertificateListenerService {
         }
 
         // Générer les certificats PDF sans mettre à jour la base avec le chemin
-        try {
+        try (var bgStream = backgroundImageResource.getInputStream()) {
             // Charger l'image d'arrière-plan en tant que tableau de bytes
-            byte[] bgBytes = backgroundImageResource.getInputStream().readAllBytes();
+            byte[] bgBytes = bgStream.readAllBytes();
             List<String> generatedPdfs = CertificatePdfGenerator.generateCertificatesForAllTeachers(message, bgBytes);
             log.info("Certificats PDF générés : {}", generatedPdfs);
         } catch (Exception e) {

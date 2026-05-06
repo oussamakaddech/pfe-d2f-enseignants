@@ -8,6 +8,7 @@ import esprit.pfe.serviceformation.Repositories.SeanceFormationRepository;
 import esprit.pfe.serviceformation.Repositories.PresenceRepository;
 import esprit.pfe.serviceformation.messaging.CertificateBatchMessage;
 import esprit.pfe.serviceformation.messaging.CertificateEventPublisher;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,6 +18,7 @@ import java.util.List;
 import java.util.Map;
 
 @Service
+@Slf4j
 public class FormationClosureService {
 
     @Autowired
@@ -117,9 +119,6 @@ public class FormationClosureService {
         formation.setCertifGenerated(true);
         formationRepository.save(formation);
 
-        System.out.println(
-                "✅ " + typeCertif + " générés pour formation " + formationId
-                        + " => " + batchInfos.size() + " enseignants."
-        );
+        log.info("✅ {} générés pour formation {} => {} enseignants.", typeCertif, formationId, batchInfos.size());
     }
 }
