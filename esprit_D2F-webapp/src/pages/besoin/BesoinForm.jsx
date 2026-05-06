@@ -15,7 +15,11 @@ import {
   Tag,
   Result,
   Divider,
+  DatePicker,
+  ConfigProvider,
 } from "antd";
+import locale from "antd/es/date-picker/locale/fr_FR";
+import moment from "moment";
 import {
   SaveOutlined,
   ApartmentOutlined,
@@ -29,6 +33,7 @@ import {
   ArrowRightOutlined,
   UploadOutlined,
   DeleteOutlined,
+  CalendarOutlined,
 } from "@ant-design/icons";
 import { motion, AnimatePresence } from "framer-motion";
 import * as XLSX from "xlsx";
@@ -43,6 +48,16 @@ const { Title, Text } = Typography;
 const { TextArea } = Input;
 const { Option } = Select;
 const { Step } = Steps;
+
+const PERIOD_OPTIONS = [
+  { value: "P1", label: "Période 1" },
+  { value: "P2", label: "Période 2" },
+  { value: "P3", label: "Période 3" },
+  { value: "P4", label: "Période 4" },
+  { value: "SUMMER", label: "Session d'Été" },
+  { value: "WINTER", label: "Session d'Hiver" },
+  { value: "OTHER", label: "Autre" },
+];
 
 const slideVariants = {
   enter: (direction) => ({ x: direction > 0 ? 60 : -60, opacity: 0 }),
@@ -104,12 +119,18 @@ export default function BesoinForm() {
         titre: values.titre,
         objectifFormation: values.objectifFormation,
         propositionAnimateur: values.propositionAnimateur,
-        horaireSouhaite: values.horaireSouhaite,
+        horaireSouhaite: values.horaireSouhaite ? values.horaireSouhaite.format("YYYY-MM-DD HH:mm") : undefined,
         priorite: values.priorite,
         impactStrategique: values.impactStrategique,
         publicCible: canManageParticipants ? values.publicCible : undefined,
         estOuverte: values.estOuverte || false,
         autresInformations: values.autresInformations,
+        theme: values.theme,
+        dureeFormation: values.dureeFormation ? Number(values.dureeFormation) : undefined,
+        periodCode: values.periodCode,
+        customPeriodLabel: values.customPeriodLabel,
+        objectifsPedagogiques: values.objectifsPedagogiques,
+        methodesEvaluationAcquis: values.methodesEvaluationAcquis,
       };
 
       await BesoinFormationService.addBesoinFormation(payload);
@@ -129,9 +150,9 @@ export default function BesoinForm() {
   const getStepFields = (step) => {
     switch (step) {
       case 0: return ["up", "departement", "typeBesoin"];
-      case 1: return ["titre", "objectifFormation", "priorite", "impactStrategique"];
-      case 2: return ["propositionAnimateur", "horaireSouhaite"];
-      case 3: return ["estOuverte", "autresInformations"];
+      case 1: return ["titre", "theme", "objectifFormation", "objectifsPedagogiques", "priorite", "impactStrategique"];
+      case 2: return ["propositionAnimateur", "horaireSouhaite", "dureeFormation", "periodCode", "customPeriodLabel"];
+      case 3: return ["estOuverte", "methodesEvaluationAcquis", "autresInformations"];
       default: return [];
     }
   };
@@ -292,7 +313,7 @@ export default function BesoinForm() {
                 name="publicCible"
                 className="besoin-form-input"
               >
-                <>
+                <div className="participants-import-box">
                   <Space wrap style={{ marginBottom: 12 }}>
                     <Button icon={<UploadOutlined />} onClick={() => participantsFileInputRef.current?.click()}>
                       Importer Excel
@@ -332,7 +353,7 @@ export default function BesoinForm() {
                       </Text>
                     </>
                   )}
-                </>
+                </div>
               </Form.Item>
             )}
           </Col>
@@ -368,7 +389,7 @@ export default function BesoinForm() {
       icon: <AimOutlined />,
       content: (
         <Row gutter={[24, 16]}>
-          <Col xs={24}>
+          <Col xs={24} md={12}>
             <Form.Item
               label={
                 <span className="besoin-step-label">
@@ -380,7 +401,21 @@ export default function BesoinForm() {
               rules={[{ required: true, message: "Veuillez saisir le nom de la formation" }]}
               className="besoin-form-input"
             >
-        <Input placeholder="Ex : Formation Angular avancé" size="large" autoComplete="off" />
+              <Input placeholder="Ex : Formation Angular avancé" size="large" autoComplete="off" />
+            </Form.Item>
+          </Col>
+          <Col xs={24} md={12}>
+            <Form.Item
+              label={
+                <span className="besoin-step-label">
+                  <BookOutlined className="besoin-step-label-icon" />
+                  Domaine / Thème
+                </span>
+              }
+              name="theme"
+              className="besoin-form-input"
+            >
+              <Input placeholder="Ex : Informatique, Management..." size="large" />
             </Form.Item>
           </Col>
           <Col xs={24}>
@@ -396,10 +431,29 @@ export default function BesoinForm() {
               className="besoin-form-input"
             >
               <TextArea
-                rows={4}
-                placeholder="Décrire l'objectif de la formation en détail..."
+                rows={2}
+                placeholder="Décrire l'objectif général..."
                 showCount
                 maxLength={500}
+              />
+            </Form.Item>
+          </Col>
+          <Col xs={24}>
+            <Form.Item
+              label={
+                <span className="besoin-step-label">
+                  <AimOutlined className="besoin-step-label-icon" />
+                  Objectifs Pédagogiques
+                </span>
+              }
+              name="objectifsPedagogiques"
+              className="besoin-form-input"
+            >
+              <TextArea
+                rows={3}
+                placeholder="Détails des compétences à acquérir..."
+                showCount
+                maxLength={1000}
               />
             </Form.Item>
           </Col>
@@ -469,11 +523,65 @@ export default function BesoinForm() {
                 </span>
               }
               name="horaireSouhaite"
-              className="besoin-form-input"
+              className="besoin-form-input besoin-modern-calendar"
             >
-              <Input placeholder="Ex : Lundi 9h-12h" size="large" />
+              <DatePicker
+                showTime
+                format="YYYY-MM-DD HH:mm"
+                placeholder="Sélectionner la date et l'heure souhaitées"
+                size="large"
+                style={{ width: "100%" }}
+              />
             </Form.Item>
           </Col>
+          <Col xs={24} md={12}>
+            <Form.Item
+              label={
+                <span className="besoin-step-label">
+                  <ClockCircleOutlined className="besoin-step-label-icon" />
+                  Durée prévue (heures)
+                </span>
+              }
+              name="dureeFormation"
+              className="besoin-form-input"
+            >
+              <Input type="number" placeholder="Ex : 40" size="large" />
+            </Form.Item>
+          </Col>
+          <Col xs={24} md={12}>
+            <Form.Item
+              label={
+                <span className="besoin-step-label">
+                  <CalendarOutlined className="besoin-step-label-icon" />
+                  Période de formation
+                </span>
+              }
+              name="periodCode"
+              className="besoin-form-input"
+              rules={[{ required: true, message: "Veuillez choisir une période" }]}
+              initialValue="OTHER"
+            >
+              <Select placeholder="Choisir la période" size="large">
+                {PERIOD_OPTIONS.map(opt => (
+                  <Option key={opt.value} value={opt.value}>{opt.label}</Option>
+                ))}
+              </Select>
+            </Form.Item>
+          </Col>
+          <Form.Item noStyle shouldUpdate={(prev, curr) => prev.periodCode !== curr.periodCode}>
+            {({ getFieldValue }) => getFieldValue("periodCode") === "OTHER" ? (
+              <Col xs={24}>
+                <Form.Item
+                  label="Précisez la période"
+                  name="customPeriodLabel"
+                  className="besoin-form-input"
+                  rules={[{ required: true, message: "Veuillez préciser la période" }]}
+                >
+                  <Input placeholder="Ex : Mai - Juin 2024" size="large" />
+                </Form.Item>
+              </Col>
+            ) : null}
+          </Form.Item>
         </Row>
       ),
     },
@@ -492,17 +600,30 @@ export default function BesoinForm() {
                 </span>
               }
               name="estOuverte"
-              valuePropName="checked"
               className="besoin-form-input"
             >
               <Select placeholder="Ouverte ou fermée ?" size="large">
                 <Option value={false}>
-                  <Tag color="default">Fermée (pour les participants de l'UP uniquement)</Tag>
+                  <Tag color="default">Fermée (pour les participants de l&apos;UP uniquement)</Tag>
                 </Option>
                 <Option value={true}>
-                  <Tag color="green">Ouverte (accessible à d'autres UPs)</Tag>
+                  <Tag color="green">Ouverte (accessible à d&apos;autres UPs)</Tag>
                 </Option>
               </Select>
+            </Form.Item>
+          </Col>
+          <Col xs={24} md={12}>
+            <Form.Item
+              label={
+                <span className="besoin-step-label">
+                  <CheckCircleOutlined className="besoin-step-label-icon" />
+                  Méthodes d&apos;évaluation
+                </span>
+              }
+              name="methodesEvaluationAcquis"
+              className="besoin-form-input"
+            >
+              <Input placeholder="Ex : Quiz, Projet, QCM..." size="large" />
             </Form.Item>
           </Col>
           <Col xs={24}>
@@ -540,12 +661,17 @@ export default function BesoinForm() {
       { label: "Département", value: depObj?.name || depObj?.libelle || values.departement, icon: <ApartmentOutlined /> },
       { label: "Type", value: typeLabel || values.typeBesoin, icon: <BookOutlined /> },
       { label: "Formation", value: values.titre, icon: <BookOutlined /> },
+      { label: "Domaine", value: values.theme || "—", icon: <BookOutlined /> },
       { label: "Priorité", value: values.priorite, icon: <AimOutlined /> },
       { label: "Objectif", value: values.objectifFormation, icon: <AimOutlined /> },
+      { label: "Objectifs Pédago", value: values.objectifsPedagogiques || "—", icon: <AimOutlined /> },
       { label: "Impact", value: values.impactStrategique || "—", icon: <AimOutlined /> },
       { label: "Formateur proposé", value: values.propositionAnimateur || "—", icon: <UserOutlined /> },
-      { label: "Horaire souhaité", value: values.horaireSouhaite || "—", icon: <ClockCircleOutlined /> },
+      { label: "Horaire souhaité", value: values.horaireSouhaite ? values.horaireSouhaite.format("DD/MM/YYYY HH:mm") : "—", icon: <ClockCircleOutlined /> },
+      { label: "Durée", value: values.dureeFormation ? `${values.dureeFormation}h` : "—", icon: <ClockCircleOutlined /> },
+      { label: "Période", value: values.periodCode === "OTHER" ? (values.customPeriodLabel || "Autre") : (PERIOD_OPTIONS.find(o => o.value === values.periodCode)?.label || "—"), icon: <CalendarOutlined /> },
       { label: "Type de formation", value: typeFormation, icon: <CheckCircleOutlined /> },
+      { label: "Évaluation", value: values.methodesEvaluationAcquis || "—", icon: <CheckCircleOutlined /> },
       ...(canManageParticipants ? [{ label: "Liste des participants", value: formatParticipantsSummary(values.publicCible), icon: <TeamOutlined /> }] : []),
       { label: "Autres informations", value: values.autresInformations || "—", icon: <BookOutlined /> },
     ];
@@ -566,11 +692,11 @@ export default function BesoinForm() {
       <div className="besoin-form-container">
         <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.4 }}>
           <Card className="besoin-form-card">
-            <Result
-              status="success"
-              icon={<CheckCircleOutlined className="success-icon" style={{ color: "#52c41a", fontSize: 72 }} />}
-              title="Besoin enregistré avec succès !"
-              subTitle="Votre demande de formation a été transmise et sera examinée prochainement."
+              <Result
+                status="success"
+                icon={<div className="besoin-form-icon success-icon" style={{ background: '#f6ffed' }}><CheckCircleOutlined style={{ color: '#52c41a' }} /></div>}
+                title={<Title level={2}>Besoin enregistré avec succès !</Title>}
+                subTitle="Votre demande de formation a été transmise et sera examinée prochainement."
               extra={[
                 <Button
                   type="primary"
@@ -597,7 +723,16 @@ export default function BesoinForm() {
   }
 
   return (
-    <>
+    <ConfigProvider
+      locale={locale}
+      theme={{
+        token: {
+          colorPrimary: "#B51200",
+          borderRadius: 14,
+          fontFamily: "'Inter', sans-serif",
+        },
+      }}
+    >
       {msgCtx}
       <div className="besoin-form-container">
         <motion.div
@@ -729,6 +864,6 @@ export default function BesoinForm() {
           </Card>
         </motion.div>
       </div>
-    </>
+    </ConfigProvider>
   );
 }

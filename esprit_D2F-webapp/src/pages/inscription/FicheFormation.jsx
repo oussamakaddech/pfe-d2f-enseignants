@@ -30,6 +30,16 @@ import {
 import moment from "moment";
 import FormationWorkflowService from "../../services/FormationWorkflowService";
 
+const PERIOD_OPTIONS = [
+  { value: "P1", label: "Période 1" },
+  { value: "P2", label: "Période 2" },
+  { value: "P3", label: "Période 3" },
+  { value: "P4", label: "Période 4" },
+  { value: "SUMMER", label: "Session d'Été" },
+  { value: "WINTER", label: "Session d'Hiver" },
+  { value: "OTHER", label: "Autre" },
+];
+
 const { Title, Paragraph, Text } = Typography;
 
 export default function FicheFormation() {
@@ -79,6 +89,9 @@ export default function FicheFormation() {
     evalMethods,
     domaine,
     populationCible,
+    periodeFormation,
+    periodCode,
+    customPeriodLabel,
   } = formation;
 
   const typeColor = {
@@ -133,6 +146,9 @@ export default function FicheFormation() {
                 <Text strong>
                   {moment(dateDebut).format("DD/MM/YYYY")} → {moment(dateFin).format("DD/MM/YYYY")}
                 </Text>
+              </Descriptions.Item>
+              <Descriptions.Item label={<Space><CalendarOutlined /> Période</Space>}>
+                {periodCode === "OTHER" ? (customPeriodLabel || "Autre") : (PERIOD_OPTIONS.find(o => o.value === periodCode)?.label || periodeFormation || "—")}
               </Descriptions.Item>
               <Descriptions.Item label={<Space><ClockCircleOutlined /> Durée</Space>}>
                 <Tag color="processing">{chargeHoraireGlobal} heures</Tag>

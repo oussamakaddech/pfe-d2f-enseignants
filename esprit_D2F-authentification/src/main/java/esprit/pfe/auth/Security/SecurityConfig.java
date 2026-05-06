@@ -36,7 +36,6 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import javax.crypto.spec.SecretKeySpec;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Collection;
 
 @Configuration
 @EnableWebSecurity

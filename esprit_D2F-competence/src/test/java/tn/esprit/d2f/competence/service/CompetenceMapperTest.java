@@ -3,10 +3,19 @@ package tn.esprit.d2f.competence.service;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import tn.esprit.d2f.competence.dto.*;
-import tn.esprit.d2f.competence.entity.*;
+import org.mapstruct.factory.Mappers;
 import tn.esprit.d2f.competence.entity.enumerations.NiveauMaitrise;
 import tn.esprit.d2f.competence.entity.enumerations.TypeSavoir;
+import tn.esprit.d2f.competence.dto.DomaineDTO;
+import tn.esprit.d2f.competence.dto.CompetenceDTO;
+import tn.esprit.d2f.competence.dto.SousCompetenceDTO;
+import tn.esprit.d2f.competence.dto.SavoirDTO;
+import tn.esprit.d2f.competence.dto.EnseignantCompetenceDTO;
+import tn.esprit.d2f.competence.entity.Domaine;
+import tn.esprit.d2f.competence.entity.Competence;
+import tn.esprit.d2f.competence.entity.SousCompetence;
+import tn.esprit.d2f.competence.entity.Savoir;
+import tn.esprit.d2f.competence.entity.EnseignantCompetence;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -18,9 +27,8 @@ import static org.assertj.core.api.Assertions.*;
 class CompetenceMapperTest {
 
     // CompetenceMapper is a MapStruct @Mapper(componentModel="spring").
-    // The generated CompetenceMapperImpl is a plain class that can be
-    // instantiated directly in unit tests without a Spring context.
-    private final CompetenceMapper mapper = new CompetenceMapperImpl();
+    // We use Mappers.getMapper to obtain the instance in unit tests.
+    private final CompetenceMapper mapper = Mappers.getMapper(CompetenceMapper.class);
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 

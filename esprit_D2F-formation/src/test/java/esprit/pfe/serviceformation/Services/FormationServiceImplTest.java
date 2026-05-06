@@ -1,5 +1,6 @@
 package esprit.pfe.serviceformation.Services;
 
+import esprit.pfe.serviceformation.Entities.EtatFormation;
 import esprit.pfe.serviceformation.Entities.Formation;
 import esprit.pfe.serviceformation.Repositories.FormationRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -10,11 +11,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.mockito.junit.jupiter.MockitoSettings;
-import org.mockito.quality.Strictness;
 
-import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
@@ -23,11 +22,9 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-@MockitoSettings(strictness = Strictness.LENIENT)
-@DisplayName("FormationService - Tests unitaires")
-@org.junit.jupiter.api.Disabled("Tests désactivés car ils ne correspondent plus au modèle de données actuel")
+@DisplayName("FormationServiceImpl - Tests unitaires")
 class FormationServiceImplTest {
-/*
+
     @Mock
     private FormationRepository formationRepository;
 
@@ -35,33 +32,20 @@ class FormationServiceImplTest {
     private FormationServiceImpl formationService;
 
     private Formation formation;
-    private Formation formation2;
 
     @BeforeEach
     void setUp() {
-        formation = Formation.builder()
-                .id(1L)
-                .titre("Formation Java Avancé")
-                .description("Formation sur les patterns Java")
-                .dateDebut(LocalDate.of(2026, 5, 1))
-                .dateFin(LocalDate.of(2026, 5, 31))
-                .lieu("Salle A1")
-                .nombrePlaces(30)
-                .nombreInscrits(0)
-                .statut("PLANIFIEE")
-                .build();
-
-        formation2 = Formation.builder()
-                .id(2L)
-                .titre("Formation Spring Boot")
-                .description("Formation sur Spring Boot")
-                .dateDebut(LocalDate.of(2026, 6, 1))
-                .dateFin(LocalDate.of(2026, 6, 30))
-                .lieu("Salle B2")
-                .nombrePlaces(25)
-                .nombreInscrits(0)
-                .statut("PLANIFIEE")
-                .build();
+        formation = new Formation();
+        formation.setIdFormation(1L);
+        formation.setTitreFormation("Spring Boot Avancé");
+        formation.setDateDebut(new Date());
+        formation.setDateFin(new Date());
+        formation.setEtatFormation(EtatFormation.PLANIFIE);
+        formation.setCoutFormation(500.0f);
+        formation.setChargeHoraireGlobal(40);
+        formation.setSeances(new ArrayList<>());
+        formation.setFormationCompetences(new ArrayList<>());
+        formation.setInscriptions(new ArrayList<>());
     }
 
     @Nested
@@ -69,34 +53,16 @@ class FormationServiceImplTest {
     class CreateFormation {
 
         @Test
-        @DisplayName("crée une formation et la retourne")
+        @DisplayName("sauvegarde et retourne la formation")
         void shouldCreateFormation() {
             when(formationRepository.save(any(Formation.class))).thenReturn(formation);
 
             Formation result = formationService.createFormation(formation);
 
             assertThat(result).isNotNull();
-            assertThat(result.getId()).isEqualTo(1L);
-            assertThat(result.getTitre()).isEqualTo("Formation Java Avancé");
-            assertThat(result.getStatut()).isEqualTo("PLANIFIEE");
-            verify(formationRepository, times(1)).save(any(Formation.class));
-        }
-
-        @Test
-        @DisplayName("lève une exception si titre est null")
-        void shouldThrowExceptionWhenTitreIsNull() {
-            Formation invalidFormation = Formation.builder()
-                    .titre(null)
-                    .dateDebut(LocalDate.now())
-                    .dateFin(LocalDate.now().plusDays(1))
-                    .build();
-
-            when(formationRepository.save(any(Formation.class)))
-                    .thenThrow(new IllegalArgumentException("Le titre ne peut pas être null"));
-
-            assertThatThrownBy(() -> formationService.createFormation(invalidFormation))
-                    .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessageContaining("titre");
+            assertThat(result.getIdFormation()).isEqualTo(1L);
+            assertThat(result.getTitreFormation()).isEqualTo("Spring Boot Avancé");
+            verify(formationRepository, times(1)).save(any());
         }
     }
 
@@ -107,38 +73,34 @@ class FormationServiceImplTest {
         @Test
         @DisplayName("met à jour une formation existante")
         void shouldUpdateFormation() {
-            Formation updated = Formation.builder()
-                    .id(1L)
-                    .titre("Formation Java Avancé - Updated")
-                    .description("Description mise à jour")
-                    .dateDebut(LocalDate.of(2026, 5, 1))
-                    .dateFin(LocalDate.of(2026, 5, 31))
-                    .lieu("Salle A1")
-                    .nombrePlaces(35)
-                    .nombreInscrits(0)
-                    .statut("PLANIFIEE")
-                    .build();
+            Formation updated = new Formation();
+            updated.setTitreFormation("Spring Boot Avancé - V2");
+            updated.setEtatFormation(EtatFormation.EN_COURS);
+            updated.setCoutFormation(750.0f);
+            updated.setChargeHoraireGlobal(60);
+            updated.setDateDebut(new Date());
+            updated.setDateFin(new Date());
 
             when(formationRepository.findById(1L)).thenReturn(Optional.of(formation));
-            when(formationRepository.save(any(Formation.class))).thenReturn(updated);
+            when(formationRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
             Formation result = formationService.updateFormation(1L, updated);
 
-            assertThat(result).isNotNull();
-            assertThat(result.getTitre()).isEqualTo("Formation Java Avancé - Updated");
-            assertThat(result.getNombrePlaces()).isEqualTo(35);
-            verify(formationRepository, times(1)).findById(1L);
-            verify(formationRepository, times(1)).save(any(Formation.class));
+            assertThat(result.getTitreFormation()).isEqualTo("Spring Boot Avancé - V2");
+            assertThat(result.getEtatFormation()).isEqualTo(EtatFormation.EN_COURS);
+            assertThat(result.getCoutFormation()).isEqualTo(750.0f);
+            verify(formationRepository).findById(1L);
+            verify(formationRepository).save(any());
         }
 
         @Test
-        @DisplayName("lève une exception si la formation n'existe pas")
-        void shouldThrowExceptionWhenFormationNotFound() {
+        @DisplayName("lève IllegalArgumentException si formation introuvable")
+        void shouldThrowWhenNotFound() {
             when(formationRepository.findById(999L)).thenReturn(Optional.empty());
 
             assertThatThrownBy(() -> formationService.updateFormation(999L, formation))
-                    .isInstanceOf(RuntimeException.class)
-                    .hasMessageContaining("non trouvée");
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("introuvable");
         }
     }
 
@@ -147,83 +109,83 @@ class FormationServiceImplTest {
     class DeleteFormation {
 
         @Test
-        @DisplayName("supprime une formation par id")
-        void shouldDeleteFormation() {
+        @DisplayName("supprime par id")
+        void shouldDeleteById() {
+            when(formationRepository.existsById(1L)).thenReturn(true);
             doNothing().when(formationRepository).deleteById(1L);
 
             formationService.deleteFormation(1L);
 
-            verify(formationRepository, times(1)).deleteById(1L);
+            verify(formationRepository).deleteById(1L);
         }
 
         @Test
-        @DisplayName("gère l'erreur si la formation n'existe pas")
-        void shouldHandleDeleteNonExistent() {
-            doThrow(new RuntimeException("Formation non trouvée"))
-                    .when(formationRepository).deleteById(999L);
+        @DisplayName("lève IllegalArgumentException si introuvable")
+        void shouldThrowWhenDeleteNotFound() {
+            when(formationRepository.existsById(999L)).thenReturn(false);
 
             assertThatThrownBy(() -> formationService.deleteFormation(999L))
-                    .isInstanceOf(RuntimeException.class);
+                    .isInstanceOf(IllegalArgumentException.class);
         }
     }
 
     @Nested
     @DisplayName("getFormationById()")
-    class GetFormationById {
+    class GetById {
 
         @Test
-        @DisplayName("retourne une formation par id")
-        void shouldGetFormationById() {
+        @DisplayName("retourne la formation")
+        void shouldReturnFormation() {
             when(formationRepository.findById(1L)).thenReturn(Optional.of(formation));
 
             Formation result = formationService.getFormationById(1L);
 
             assertThat(result).isNotNull();
-            assertThat(result.getId()).isEqualTo(1L);
-            assertThat(result.getTitre()).isEqualTo("Formation Java Avancé");
-            verify(formationRepository, times(1)).findById(1L);
+            assertThat(result.getTitreFormation()).isEqualTo("Spring Boot Avancé");
+            verify(formationRepository).findById(1L);
         }
 
         @Test
-        @DisplayName("lève une exception si la formation n'existe pas")
-        void shouldThrowExceptionWhenNotFound() {
+        @DisplayName("lève IllegalArgumentException si introuvable")
+        void shouldThrowWhenNotFound() {
             when(formationRepository.findById(999L)).thenReturn(Optional.empty());
 
             assertThatThrownBy(() -> formationService.getFormationById(999L))
-                    .isInstanceOf(RuntimeException.class)
-                    .hasMessageContaining("non trouvée");
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("introuvable");
         }
     }
 
     @Nested
     @DisplayName("getAllFormations()")
-    class GetAllFormations {
+    class GetAll {
 
         @Test
         @DisplayName("retourne toutes les formations")
-        void shouldGetAllFormations() {
-            List<Formation> formations = List.of(formation, formation2);
-            when(formationRepository.findAll()).thenReturn(formations);
+        void shouldReturnAll() {
+            Formation f2 = new Formation();
+            f2.setIdFormation(2L);
+            f2.setTitreFormation("Docker Masterclass");
+            f2.setSeances(new ArrayList<>());
+            f2.setFormationCompetences(new ArrayList<>());
+            f2.setInscriptions(new ArrayList<>());
+
+            when(formationRepository.findAll()).thenReturn(List.of(formation, f2));
 
             List<Formation> result = formationService.getAllFormations();
 
-            assertThat(result).isNotNull();
             assertThat(result).hasSize(2);
-            assertThat(result).contains(formation, formation2);
-            verify(formationRepository, times(1)).findAll();
+            verify(formationRepository).findAll();
         }
 
         @Test
-        @DisplayName("retourne une liste vide s'il n'y a pas de formations")
-        void shouldReturnEmptyListWhenNoFormations() {
+        @DisplayName("retourne une liste vide")
+        void shouldReturnEmptyList() {
             when(formationRepository.findAll()).thenReturn(new ArrayList<>());
 
             List<Formation> result = formationService.getAllFormations();
 
-            assertThat(result).isNotNull();
             assertThat(result).isEmpty();
-            verify(formationRepository, times(1)).findAll();
         }
     }
-*/
 }

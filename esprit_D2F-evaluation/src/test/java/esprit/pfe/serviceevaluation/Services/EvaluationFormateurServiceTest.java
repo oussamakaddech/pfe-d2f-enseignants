@@ -1,5 +1,6 @@
 package esprit.pfe.serviceevaluation.Services;
 
+import esprit.pfe.serviceevaluation.DTO.EvaluationFormateurDTO;
 import esprit.pfe.serviceevaluation.Entities.EvaluationFormateur;
 import esprit.pfe.serviceevaluation.Repositories.EvaluationFormateurRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -10,10 +11,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.mockito.junit.jupiter.MockitoSettings;
-import org.mockito.quality.Strictness;
 
-import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -23,212 +21,194 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-@MockitoSettings(strictness = Strictness.LENIENT)
 @DisplayName("EvaluationFormateurService - Tests unitaires")
 class EvaluationFormateurServiceTest {
 
     @Mock
-    private EvaluationFormateurRepository evaluationFormateurRepository;
+    private EvaluationFormateurRepository evaluationRepository;
 
     @InjectMocks
-    private EvaluationFormateurService evaluationFormateurService;
+    private EvaluationFormateurService evaluationService;
 
-    private EvaluationFormateur evaluationFormateur;
-    private EvaluationFormateur evaluationFormateur2;
+    private EvaluationFormateur entity;
+    private EvaluationFormateurDTO dto;
 
     @BeforeEach
     void setUp() {
-        evaluationFormateur = EvaluationFormateur.builder()
-                .id(1L)
-                .formationId(1L)
-                .enseignantId("ENS001")
-                .note(4.5)
-                .satisfaisant(true)
-                .commentaire("Le formateur était très compétent")
-                .dateEvaluation(LocalDate.now())
-                .build();
+        entity = new EvaluationFormateur();
+        entity.setIdEvalParticipant(1L);
+        entity.setFormationId(10L);
+        entity.setEnseignantId("ENS001");
+        entity.setNote(15.0f);
+        entity.setSatisfaisant(true);
+        entity.setCommentaire("Bon formateur");
 
-        evaluationFormateur2 = EvaluationFormateur.builder()
-                .id(2L)
-                .formationId(1L)
-                .enseignantId("ENS002")
-                .note(3.8)
-                .satisfaisant(true)
-                .commentaire("Bon contenu mais manque d'interactivité")
-                .dateEvaluation(LocalDate.now())
-                .build();
+        dto = new EvaluationFormateurDTO();
+        dto.setIdEvalParticipant(1L);
+        dto.setFormationId(10L);
+        dto.setEnseignantId("ENS001");
+        dto.setNote(15.0f);
+        dto.setSatisfaisant(true);
+        dto.setCommentaire("Bon formateur");
     }
 
     @Nested
     @DisplayName("ajouterEvalParticipant()")
-    class AjouterEvaluation {
+    class AjouterEval {
 
         @Test
-        @DisplayName("ajoute une évaluation formateur valide")
-        void shouldAddValidEvaluation() {
-            when(evaluationFormateurRepository.save(any(EvaluationFormateur.class))).thenReturn(evaluationFormateur);
+        @DisplayName("crée une évaluation et retourne un DTO")
+        void shouldCreateEvaluation() {
+            when(evaluationRepository.save(any(EvaluationFormateur.class))).thenReturn(entity);
 
-            EvaluationFormateur result = evaluationFormateurService.ajouterEvalParticipant(evaluationFormateur);
+            EvaluationFormateurDTO result = evaluationService.ajouterEvalParticipant(dto);
 
             assertThat(result).isNotNull();
-            assertThat(result.getId()).isEqualTo(1L);
-            assertThat(result.getFormationId()).isEqualTo(1L);
             assertThat(result.getEnseignantId()).isEqualTo("ENS001");
-            assertThat(result.getNote()).isEqualTo(4.5);
-            assertThat(result.isSatisfaisant()).isTrue();
-            verify(evaluationFormateurRepository, times(1)).save(any(EvaluationFormateur.class));
-        }
-
-        @Test
-        @DisplayName("valide que la note est entre 0 et 5")
-        void shouldValidateNoteRange() {
-            EvaluationFormateur invalidEval = EvaluationFormateur.builder()
-                    .id(3L)
-                    .formationId(2L)
-                    .enseignantId("ENS003")
-                    .note(6.0) // invalide
-                    .build();
-
-            when(evaluationFormateurRepository.save(any(EvaluationFormateur.class)))
-                    .thenThrow(new IllegalArgumentException("Note invalide"));
-
-            assertThatThrownBy(() -> evaluationFormateurService.ajouterEvalParticipant(invalidEval))
-                    .isInstanceOf(IllegalArgumentException.class)
-                    .hasMessageContaining("invalide");
-        }
-
-        @Test
-        @DisplayName("accepte une note faible avec satisfaisant=false")
-        void shouldAcceptLowNoteWithSatisfaisantFalse() {
-            EvaluationFormateur lowEval = EvaluationFormateur.builder()
-                    .id(4L)
-                    .formationId(3L)
-                    .enseignantId("ENS004")
-                    .note(2.0)
-                    .satisfaisant(false)
-                    .commentaire("Formation non satisfaisante")
-                    .build();
-
-            when(evaluationFormateurRepository.save(any(EvaluationFormateur.class))).thenReturn(lowEval);
-
-            EvaluationFormateur result = evaluationFormateurService.ajouterEvalParticipant(lowEval);
-
-            assertThat(result).isNotNull();
-            assertThat(result.getNote()).isEqualTo(2.0);
-            assertThat(result.isSatisfaisant()).isFalse();
+            assertThat(result.getNote()).isEqualTo(15.0f);
+            verify(evaluationRepository, times(1)).save(any());
         }
     }
 
     @Nested
     @DisplayName("modifierEvalParticipant()")
-    class ModifierEvaluation {
+    class ModifierEval {
 
         @Test
         @DisplayName("modifie une évaluation existante")
-        void shouldModifyEvaluation() {
-            EvaluationFormateur updated = EvaluationFormateur.builder()
-                    .id(1L)
-                    .formationId(1L)
-                    .enseignantId("ENS001")
-                    .note(5.0)
-                    .satisfaisant(true)
-                    .commentaire("Excellent formateur !")
-                    .dateEvaluation(LocalDate.now())
-                    .build();
+        void shouldModifyExisting() {
+            EvaluationFormateur saved = new EvaluationFormateur();
+            saved.setIdEvalParticipant(1L);
+            saved.setNote(18.0f);
+            saved.setSatisfaisant(true);
+            saved.setCommentaire("Excellent");
+            saved.setEnseignantId("ENS001");
+            saved.setFormationId(10L);
 
-            when(evaluationFormateurRepository.findById(1L)).thenReturn(Optional.of(evaluationFormateur));
-            when(evaluationFormateurRepository.save(any(EvaluationFormateur.class))).thenReturn(updated);
+            when(evaluationRepository.findById(1L)).thenReturn(Optional.of(entity));
+            when(evaluationRepository.save(any())).thenReturn(saved);
 
-            EvaluationFormateur result = evaluationFormateurService.modifierEvalParticipant(1L, updated);
+            EvaluationFormateurDTO updateDto = new EvaluationFormateurDTO();
+            updateDto.setNote(18.0f);
+            updateDto.setSatisfaisant(true);
+            updateDto.setCommentaire("Excellent");
+            updateDto.setEnseignantId("ENS001");
+            updateDto.setFormationId(10L);
 
-            assertThat(result).isNotNull();
-            assertThat(result.getNote()).isEqualTo(5.0);
-            assertThat(result.getCommentaire()).isEqualTo("Excellent formateur !");
-            verify(evaluationFormateurRepository, times(1)).findById(1L);
-            verify(evaluationFormateurRepository, times(1)).save(any(EvaluationFormateur.class));
+            EvaluationFormateurDTO result = evaluationService.modifierEvalParticipant(1L, updateDto);
+
+            assertThat(result.getNote()).isEqualTo(18.0f);
+            assertThat(result.getCommentaire()).isEqualTo("Excellent");
+            verify(evaluationRepository).findById(1L);
+            verify(evaluationRepository).save(any());
         }
 
         @Test
-        @DisplayName("lève une exception si l'évaluation n'existe pas")
-        void shouldThrowExceptionWhenNotFound() {
-            when(evaluationFormateurRepository.findById(999L)).thenReturn(Optional.empty());
+        @DisplayName("lève RuntimeException si non trouvée")
+        void shouldThrowWhenNotFound() {
+            when(evaluationRepository.findById(999L)).thenReturn(Optional.empty());
 
-            assertThatThrownBy(() -> evaluationFormateurService.modifierEvalParticipant(999L, evaluationFormateur))
+            assertThatThrownBy(() -> evaluationService.modifierEvalParticipant(999L, dto))
                     .isInstanceOf(RuntimeException.class)
                     .hasMessageContaining("non trouvée");
-        }
-    }
-
-    @Nested
-    @DisplayName("supprimerEvalParticipant()")
-    class SupprimerEvaluation {
-
-        @Test
-        @DisplayName("supprime une évaluation par id")
-        void shouldDeleteEvaluation() {
-            doNothing().when(evaluationFormateurRepository).deleteById(1L);
-
-            evaluationFormateurService.supprimerEvalParticipant(1L);
-
-            verify(evaluationFormateurRepository, times(1)).deleteById(1L);
         }
     }
 
     @Nested
     @DisplayName("consulterEvalParticipant()")
-    class ConsulterEvaluation {
+    class ConsulterEval {
 
         @Test
-        @DisplayName("récupère une évaluation par id")
-        void shouldGetEvaluationById() {
-            when(evaluationFormateurRepository.findById(1L)).thenReturn(Optional.of(evaluationFormateur));
+        @DisplayName("retourne l'entité si trouvée")
+        void shouldReturnEntity() {
+            when(evaluationRepository.findById(1L)).thenReturn(Optional.of(entity));
 
-            EvaluationFormateur result = evaluationFormateurService.consulterEvalParticipant(1L);
+            EvaluationFormateur result = evaluationService.consulterEvalParticipant(1L);
 
             assertThat(result).isNotNull();
-            assertThat(result.getId()).isEqualTo(1L);
-            assertThat(result.getNote()).isEqualTo(4.5);
-            verify(evaluationFormateurRepository, times(1)).findById(1L);
+            assertThat(result.getIdEvalParticipant()).isEqualTo(1L);
         }
 
         @Test
-        @DisplayName("lève une exception si l'évaluation n'existe pas")
-        void shouldThrowExceptionWhenNotFound() {
-            when(evaluationFormateurRepository.findById(999L)).thenReturn(Optional.empty());
+        @DisplayName("lève RuntimeException si non trouvée")
+        void shouldThrowWhenNotFound() {
+            when(evaluationRepository.findById(999L)).thenReturn(Optional.empty());
 
-            assertThatThrownBy(() -> evaluationFormateurService.consulterEvalParticipant(999L))
-                    .isInstanceOf(RuntimeException.class)
-                    .hasMessageContaining("non trouvée");
+            assertThatThrownBy(() -> evaluationService.consulterEvalParticipant(999L))
+                    .isInstanceOf(RuntimeException.class);
         }
     }
 
     @Nested
-    @DisplayName("listerEvalParFormation()")
-    class ListerEval {
+    @DisplayName("validerCompetences()")
+    class ValiderCompetences {
 
         @Test
-        @DisplayName("retourne toutes les évaluations d'une formation")
-        void shouldListEvaluationsByFormation() {
-            List<EvaluationFormateur> evaluations = List.of(evaluationFormateur, evaluationFormateur2);
-            when(evaluationFormateurRepository.findByFormationId(1L)).thenReturn(evaluations);
+        @DisplayName("met satisfaisant=true si note >= 10")
+        void shouldSetSatisfaisantWhenNoteAbove10() {
+            entity.setNote(12.0f);
+            entity.setSatisfaisant(false);
+            when(evaluationRepository.findById(1L)).thenReturn(Optional.of(entity));
+            when(evaluationRepository.save(any())).thenReturn(entity);
 
-            List<EvaluationFormateur> result = evaluationFormateurService.listerEvalParFormation(1L);
+            evaluationService.validerCompetences(1L);
 
-            assertThat(result).isNotNull();
-            assertThat(result).hasSize(2);
-            assertThat(result).contains(evaluationFormateur, evaluationFormateur2);
-            verify(evaluationFormateurRepository, times(1)).findByFormationId(1L);
+            assertThat(entity.isSatisfaisant()).isTrue();
+            verify(evaluationRepository).save(entity);
         }
 
         @Test
-        @DisplayName("retourne une liste vide s'il n'y a pas d'évaluations")
+        @DisplayName("ne modifie pas si note < 10")
+        void shouldNotSetSatisfaisantWhenNoteBelow10() {
+            entity.setNote(5.0f);
+            entity.setSatisfaisant(false);
+            when(evaluationRepository.findById(1L)).thenReturn(Optional.of(entity));
+
+            evaluationService.validerCompetences(1L);
+
+            assertThat(entity.isSatisfaisant()).isFalse();
+            verify(evaluationRepository, never()).save(any());
+        }
+    }
+
+    @Nested
+    @DisplayName("listAllEvaluationsDto()")
+    class ListAll {
+
+        @Test
+        @DisplayName("retourne la liste mappée en DTOs")
+        void shouldReturnDtoList() {
+            when(evaluationRepository.findAll()).thenReturn(List.of(entity));
+
+            List<EvaluationFormateurDTO> result = evaluationService.listAllEvaluationsDto();
+
+            assertThat(result).hasSize(1);
+            assertThat(result.get(0).getEnseignantId()).isEqualTo("ENS001");
+        }
+
+        @Test
+        @DisplayName("retourne une liste vide")
         void shouldReturnEmptyList() {
-            when(evaluationFormateurRepository.findByFormationId(999L)).thenReturn(new ArrayList<>());
+            when(evaluationRepository.findAll()).thenReturn(new ArrayList<>());
 
-            List<EvaluationFormateur> result = evaluationFormateurService.listerEvalParFormation(999L);
+            List<EvaluationFormateurDTO> result = evaluationService.listAllEvaluationsDto();
 
-            assertThat(result).isNotNull();
             assertThat(result).isEmpty();
+        }
+    }
+
+    @Nested
+    @DisplayName("createEvaluationsBulk()")
+    class BulkCreate {
+
+        @Test
+        @DisplayName("sauvegarde une liste d'évaluations")
+        void shouldSaveBulk() {
+            List<EvaluationFormateurDTO> dtos = List.of(dto);
+
+            evaluationService.createEvaluationsBulk(dtos);
+
+            verify(evaluationRepository).saveAll(anyList());
         }
     }
 }

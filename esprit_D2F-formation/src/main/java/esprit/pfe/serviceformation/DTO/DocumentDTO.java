@@ -1,7 +1,6 @@
 package esprit.pfe.serviceformation.DTO;
 
 
-import esprit.pfe.serviceformation.Entities.DriveSubPath;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;

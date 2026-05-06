@@ -30,5 +30,7 @@ public class BesoinFormationApprovedEvent {
     private Boolean approuveChefDep;
     private Boolean approuveAdmin;
     private String notificationMessage;
+    private String periodCode;
+    private String customPeriodLabel;
 }
 

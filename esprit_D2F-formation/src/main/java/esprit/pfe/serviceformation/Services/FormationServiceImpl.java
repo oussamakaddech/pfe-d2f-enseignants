@@ -36,28 +36,28 @@ public class FormationServiceImpl implements FormationService {
             f.setCoutFormation(formation.getCoutFormation());
             f.setOrganismeRefExterne(formation.getOrganismeRefExterne());
             f.setChargeHoraireGlobal(formation.getChargeHoraireGlobal());
+            f.setPeriodCode(formation.getPeriodCode());
+            f.setCustomPeriodLabel(formation.getCustomPeriodLabel());
             // Mettez à jour les associations si nécessaire
             return formationRepository.save(f);
         } else {
-            throw new RuntimeException("Formation introuvable avec l'id : " + id);
+            throw new IllegalArgumentException("Formation introuvable avec l'id : " + id);
         }
     }
 
     @Override
     public void deleteFormation(Long id) {
+        if (!formationRepository.existsById(id)) {
+            throw new IllegalArgumentException("Impossible de supprimer : Formation introuvable avec l'id : " + id);
+        }
         formationRepository.deleteById(id);
     }
 
     @Override
     @Transactional
     public Formation getFormationById(Long id) {
-        Formation formation = formationRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Formation introuvable avec l'id : " + id));
-
-        // Forcer le chargement des collections
-        formation.getSeances().size();
-
-        return formation;
+        return formationRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Formation introuvable avec l'id : " + id));
     }
     @Override
     @Transactional(readOnly = true)

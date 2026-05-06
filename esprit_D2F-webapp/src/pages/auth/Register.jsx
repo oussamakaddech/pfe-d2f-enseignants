@@ -47,7 +47,8 @@ export default function Register({ onSuccess } = {}) {
       });
 
       // 2. Si le rôle est Enseignant, Formateur ou CUP, on l'ajoute à l'annuaire des enseignants
-      if (values.role === "Enseignant" || values.role === "Formateur" || values.role === "CUP") {
+      // 2. Si le rôle est Enseignant, Formateur, CUP ou Chef Département, on l'ajoute à l'annuaire des enseignants
+      if (values.role === "Enseignant" || values.role === "Formateur" || values.role === "CUP" || values.role === "CHEF_DEPARTEMENT") {
         try {
           await EnseignantService.createEnseignant({
             nom: values.lastName.toUpperCase(),
@@ -56,7 +57,7 @@ export default function Register({ onSuccess } = {}) {
             type: "P", // Valeur par défaut : Permanent
             etat: "A", // Valeur par défaut : Actif
             cup: values.role === "CUP" ? "O" : "N",
-            chefDepartement: "N",
+            chefDepartement: values.role === "CHEF_DEPARTEMENT" ? "O" : "N",
             up: null,
             dept: null,
           });
@@ -258,6 +259,8 @@ export default function Register({ onSuccess } = {}) {
             <Option value="CUP">CUP</Option>
             <Option value="Enseignant">Enseignant</Option>
             <Option value="Formateur">Formateur</Option>
+            <Option value="CHEF_DEPARTEMENT">Chef Département</Option>
+            <Option value="RESPONSABLE_DOSSIER">Responsable Dossier</Option>
           </Select>
         </Form.Item>
 

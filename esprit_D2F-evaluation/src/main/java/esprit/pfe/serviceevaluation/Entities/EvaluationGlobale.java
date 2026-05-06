@@ -2,14 +2,16 @@ package esprit.pfe.serviceevaluation.Entities;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.util.Date;
+import java.time.LocalDate;
 
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
+@Builder
 @Entity
 @Table(name = "evaluation_globale",
         uniqueConstraints = @UniqueConstraint(columnNames = {"formationId"}))
@@ -25,9 +27,8 @@ public class EvaluationGlobale {
     @Column(length = 3000, nullable = true)
     private String commentaireGeneral;
 
-    @Temporal(TemporalType.DATE)
     @Column(nullable = true)
-    private Date dateEvaluation;
+    private LocalDate dateEvaluation;
 
     @Column(nullable = true)
     private Float noteGlobale;

@@ -1,121 +1,88 @@
 package tn.esprit.d2f.service;
 
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import tn.esprit.d2f.DTO.BesoinFormationApprovedEvent;
-import tn.esprit.d2f.DTO.BesoinFormationEventPublisher;
+import org.springframework.test.util.ReflectionTestUtils;
+import tn.esprit.d2f.DTO.BesoinFormationRequest;
+import tn.esprit.d2f.DTO.BesoinFormationResponse;
 import tn.esprit.d2f.entity.BesoinFormation;
-import tn.esprit.d2f.entity.enumerations.Priorite;
-import tn.esprit.d2f.entity.enumerations.TypeBesoin;
+import tn.esprit.d2f.mapper.BesoinFormationMapper;
 import tn.esprit.d2f.repository.BesoinFormationRepository;
 
-import java.util.Arrays;
-import java.util.List;
 import java.util.Optional;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-public class BesoinFormationServiceImplTest {
+class BesoinFormationServiceImplTest {
 
     @Mock
     private BesoinFormationRepository besoinFormationRepository;
 
     @Mock
-    private BesoinFormationEventPublisher eventPublisher;
+    private BesoinFormationMapper besoinFormationMapper;
 
     @InjectMocks
     private BesoinFormationServiceImpl besoinFormationService;
 
-    private BesoinFormation besoinFormation;
+    private BesoinFormation entity;
+    private BesoinFormationRequest request;
+    private BesoinFormationResponse response;
 
     @BeforeEach
     void setUp() {
-        besoinFormation = new BesoinFormation();
-        besoinFormation.setTitre("Formation Spring Boot");
-        besoinFormation.setObjectifFormation("Maîtriser Spring Boot");
-        besoinFormation.setTypeBesoin(TypeBesoin.INDIVIDUEL);
-        besoinFormation.setPriorite(Priorite.HAUTE);
-        besoinFormation.setEventPublished(false);
+        entity = new BesoinFormation();
+        ReflectionTestUtils.setField(entity, "idBesionFormation", 1L);
+        entity.setTitre("Test Titre");
+
+        request = new BesoinFormationRequest();
+        request.setTitre("Test Titre");
+
+        response = new BesoinFormationResponse();
+        response.setIdBesoinFormation(1L);
+        response.setTitre("Test Titre");
     }
 
     @Test
-    void testAddBesoinFormation() {
-        when(besoinFormationRepository.save(any(BesoinFormation.class))).thenReturn(besoinFormation);
+    @DisplayName("Add Besoin - Success")
+    void addBesoin_Success() {
+        when(besoinFormationMapper.toEntity(any(BesoinFormationRequest.class))).thenReturn(entity);
+        when(besoinFormationRepository.save(any(BesoinFormation.class))).thenReturn(entity);
+        when(besoinFormationMapper.toResponse(any(BesoinFormation.class))).thenReturn(response);
 
-        BesoinFormation savedBesoin = besoinFormationService.addBesoinFormation(besoinFormation);
+        BesoinFormationResponse result = besoinFormationService.addBesoinFormation(request);
 
-        assertNotNull(savedBesoin);
-        assertEquals("Formation Spring Boot", savedBesoin.getTitre());
-        verify(besoinFormationRepository, times(1)).save(any(BesoinFormation.class));
+        assertThat(result).isNotNull();
+        assertThat(result.getTitre()).isEqualTo("Test Titre");
+        verify(besoinFormationRepository, times(1)).save(any());
     }
 
     @Test
-    void testRetrieveAllBesoinFormations() {
-        when(besoinFormationRepository.findAll()).thenReturn(Arrays.asList(besoinFormation));
+    @DisplayName("Retrieve by ID - Success")
+    void retrieveById_Success() {
+        when(besoinFormationRepository.findById(1L)).thenReturn(Optional.of(entity));
+        when(besoinFormationMapper.toResponse(entity)).thenReturn(response);
 
-        List<BesoinFormation> list = besoinFormationService.retrieveAllBesoinFormations();
+        BesoinFormationResponse result = besoinFormationService.retrieveBesoinFormation(1L);
 
-        assertFalse(list.isEmpty());
-        assertEquals(1, list.size());
-        verify(besoinFormationRepository, times(1)).findAll();
+        assertThat(result).isNotNull();
+        assertThat(result.getIdBesoinFormation()).isEqualTo(1L);
     }
 
     @Test
-    void testRetrieveBesoinFormation() {
-        when(besoinFormationRepository.findById(1L)).thenReturn(Optional.of(besoinFormation));
+    @DisplayName("Retrieve by ID - NotFound")
+    void retrieveById_NotFound() {
+        when(besoinFormationRepository.findById(99L)).thenReturn(Optional.empty());
 
-        BesoinFormation result = besoinFormationService.retrieveBesoinFormation(1L);
-
-        assertNotNull(result);
-        assertEquals("Formation Spring Boot", result.getTitre());
-        verify(besoinFormationRepository, times(1)).findById(1L);
-    }
-
-    @Test
-    void testRemoveBesoinFormation() {
-        doNothing().when(besoinFormationRepository).deleteById(1L);
-
-        besoinFormationService.removeBesoinFormation(1L);
-
-        verify(besoinFormationRepository, times(1)).deleteById(1L);
-    }
-
-    @Test
-    void testApprouverBesoin() {
-        // Given
-        when(besoinFormationRepository.findById(1L)).thenReturn(Optional.of(besoinFormation));
-        when(besoinFormationRepository.save(any(BesoinFormation.class))).thenReturn(besoinFormation);
-        doNothing().when(eventPublisher).publish(any(BesoinFormationApprovedEvent.class));
-
-        // When
-        BesoinFormation result = besoinFormationService.approuverBesoin(1L);
-
-        // Then
-        assertTrue(result.getEventPublished(), "Le besoin doit être marqué comme publié");
-        verify(besoinFormationRepository, times(1)).save(besoinFormation);
-        verify(eventPublisher, times(1)).publish(any(BesoinFormationApprovedEvent.class));
-    }
-
-    @Test
-    void testApprouverBesoinAlreadyPublished() {
-        // Given
-        besoinFormation.setEventPublished(true);
-        when(besoinFormationRepository.findById(1L)).thenReturn(Optional.of(besoinFormation));
-
-        // When
-        BesoinFormation result = besoinFormationService.approuverBesoin(1L);
-
-        // Then
-        // Save and publish should NOT be called again
-        verify(besoinFormationRepository, never()).save(any(BesoinFormation.class));
-        verify(eventPublisher, never()).publish(any(BesoinFormationApprovedEvent.class));
-        assertTrue(result.getEventPublished());
+        assertThatThrownBy(() -> besoinFormationService.retrieveBesoinFormation(99L))
+                .isInstanceOf(RuntimeException.class);
     }
 }

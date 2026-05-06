@@ -1,0 +1,110 @@
+name: D2F Docker Delivery
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'esprit_D2F-**'
+  workflow_dispatch:
+
+env:
+  REGISTRY: ${{ secrets.REGISTRY_URL || 'docker.io' }}
+  IMAGE_PREFIX: d2f
+
+jobs:
+  # 1. Détection des changements par service
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      services: ${{ steps.filter.outputs.changes }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            auth: 'esprit_D2F-authentification/**'
+            competence: 'esprit_D2F-competence/**'
+            besoin: 'esprit_D2F-besoin-formation/**'
+            formation: 'esprit_D2F-formation/**'
+            evaluation: 'esprit_D2F-evaluation/**'
+            certificat: 'esprit_D2F-certificat/**'
+            gateway: 'esprit_D2F-api-gateway/**'
+            webapp: 'esprit_D2F-webapp/**'
+            rice: 'esprit_D2F-rice/**'
+            predictive: 'esprit_D2F-predictive-analytics/**'
+
+  # 2. Build et Push des images Docker
+  build-and-push:
+    needs: detect-changes
+    if: ${{ needs.detect-changes.outputs.services != '[]' && needs.detect-changes.outputs.services != '' }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service: ${{ fromJson(needs.detect-changes.outputs.services) }}
+        include:
+          - service: auth
+            context: ./esprit_D2F-authentification
+            image: authentification
+          - service: competence
+            context: ./esprit_D2F-competence
+            image: competence
+          - service: besoin
+            context: ./esprit_D2F-besoin-formation
+            image: besoin-formation
+          - service: formation
+            context: ./esprit_D2F-formation
+            image: formation
+          - service: evaluation
+            context: ./esprit_D2F-evaluation
+            image: evaluation
+          - service: certificat
+            context: ./esprit_D2F-certificat
+            image: certificat
+          - service: gateway
+            context: ./esprit_D2F-api-gateway
+            image: api-gateway
+          - service: webapp
+            context: ./esprit_D2F-webapp
+            image: webapp
+          - service: rice
+            context: ./esprit_D2F-rice
+            image: rice
+          - service: predictive
+            context: ./esprit_D2F-predictive-analytics
+            image: predictive-analytics
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}-${{ matrix.image }}
+          tags: |
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+            type=sha,format=short
+            type=ref,event=branch
+
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: ${{ matrix.context }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

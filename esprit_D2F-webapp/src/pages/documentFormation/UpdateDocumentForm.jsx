@@ -95,9 +95,28 @@ export default function UpdateDocumentForm({ documentData, onUpdated }) {
         </Upload>
       </Form.Item>
 
-      <Form.Item>
+      <Form.Item style={{ display: 'flex', gap: '8px' }}>
         <Button type="primary" htmlType="submit" loading={loading}>
           {loading ? "Mise à jour…" : "Sauvegarder"}
+        </Button>
+        <Button 
+          danger 
+          onClick={async () => {
+            if (window.confirm("Voulez-vous vraiment supprimer ce document ?")) {
+              setLoading(true);
+              try {
+                await DocumentService.deleteDocument(documentData.idDocument);
+                message.success("Document supprimé");
+                onUpdated(null); // signal deletion
+              } catch (err) {
+                message.error("Erreur suppression");
+              } finally {
+                setLoading(false);
+              }
+            }
+          }}
+        >
+          Supprimer
         </Button>
       </Form.Item>
     </Form>

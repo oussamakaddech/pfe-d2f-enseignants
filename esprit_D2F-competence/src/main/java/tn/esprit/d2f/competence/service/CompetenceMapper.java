@@ -3,8 +3,16 @@ package tn.esprit.d2f.competence.service;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.NullValuePropertyMappingStrategy;
-import tn.esprit.d2f.competence.dto.*;
-import tn.esprit.d2f.competence.entity.*;
+import tn.esprit.d2f.competence.dto.DomaineDTO;
+import tn.esprit.d2f.competence.dto.CompetenceDTO;
+import tn.esprit.d2f.competence.dto.SousCompetenceDTO;
+import tn.esprit.d2f.competence.dto.SavoirDTO;
+import tn.esprit.d2f.competence.dto.EnseignantCompetenceDTO;
+import tn.esprit.d2f.competence.entity.Domaine;
+import tn.esprit.d2f.competence.entity.Competence;
+import tn.esprit.d2f.competence.entity.SousCompetence;
+import tn.esprit.d2f.competence.entity.Savoir;
+import tn.esprit.d2f.competence.entity.EnseignantCompetence;
 
 import java.util.Collections;
 import java.util.stream.Collectors;
@@ -31,6 +39,8 @@ public interface CompetenceMapper {
     @Mapping(target = "domaineId",    source = "domaine.id")
     @Mapping(target = "domaineNom",   source = "domaine.nom")
     @Mapping(target = "nbEnseignants", ignore = true)
+    @Mapping(target = "prerequisiteCount", ignore = true)
+    @Mapping(target = "prerequisiteNames", ignore = true)
     CompetenceDTO toDTO(Competence c);
 
     // ─── SousCompetence ──────────────────────────────────────────────────────

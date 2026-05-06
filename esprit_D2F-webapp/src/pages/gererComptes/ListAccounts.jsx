@@ -46,7 +46,7 @@ import Register from '../auth/Register';
 const { Title, Text } = Typography;
 const { Option } = Select;
 
-const ROLES = ['admin', 'CUP', 'Enseignant', 'Formateur'];
+const ROLES = ['admin', 'CUP', 'Enseignant', 'Formateur', 'CHEF_DEPARTEMENT', 'RESPONSABLE_DOSSIER'];
 
 export default function ListAccounts() {
   const [msgApi, msgCtx] = message.useMessage();
@@ -220,7 +220,7 @@ export default function ListAccounts() {
       filters: ROLES.map(r => ({ text: r, value: r })),
       onFilter: (value, record) => record.role === value,
       render: role => {
-        const colorMap = { admin: 'red', CUP: 'green', Enseignant: 'orange', Formateur: 'default' };
+        const colorMap = { admin: 'red', CUP: 'green', Enseignant: 'orange', Formateur: 'default', CHEF_DEPARTEMENT: 'blue', RESPONSABLE_DOSSIER: 'cyan' };
         return <Tag color={colorMap[role] || 'default'} style={{ borderRadius: '12px', padding: '0 10px' }}>{role.toUpperCase()}</Tag>;
       },
     },

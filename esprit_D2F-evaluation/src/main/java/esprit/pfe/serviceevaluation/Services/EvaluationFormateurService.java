@@ -1,10 +1,8 @@
 package esprit.pfe.serviceevaluation.Services;
 
 
-import esprit.pfe.serviceevaluation.DTO.EnseignantDTO;
 import esprit.pfe.serviceevaluation.DTO.EvaluationEnseignantDTO;
 import esprit.pfe.serviceevaluation.DTO.EvaluationFormateurDTO;
-import esprit.pfe.serviceevaluation.DTO.FormationDTO;
 import esprit.pfe.serviceevaluation.Entities.EvaluationFormateur;
 import esprit.pfe.serviceevaluation.Repositories.EvaluationFormateurRepository;
 
@@ -24,30 +22,47 @@ public class EvaluationFormateurService {
 
 
 
-    // CREATE
-    public EvaluationFormateur ajouterEvalParticipant(EvaluationFormateur evaluation) {
-        // Vérifier l’enseignant
+    // Mapper helper
+    private EvaluationFormateurDTO mapToDto(EvaluationFormateur entity) {
+        EvaluationFormateurDTO dto = new EvaluationFormateurDTO();
+        dto.setIdEvalParticipant(entity.getIdEvalParticipant());
+        dto.setEnseignantId(entity.getEnseignantId());
+        dto.setFormationId(entity.getFormationId());
+        dto.setNote(entity.getNote());
+        dto.setSatisfaisant(entity.isSatisfaisant());
+        dto.setCommentaire(entity.getCommentaire());
+        return dto;
+    }
 
-        return evaluationRepository.save(evaluation);
+    private EvaluationFormateur mapToEntity(EvaluationFormateurDTO dto) {
+        EvaluationFormateur entity = new EvaluationFormateur();
+        entity.setIdEvalParticipant(dto.getIdEvalParticipant());
+        entity.setEnseignantId(dto.getEnseignantId());
+        entity.setFormationId(dto.getFormationId());
+        entity.setNote(dto.getNote());
+        entity.setSatisfaisant(dto.isSatisfaisant());
+        entity.setCommentaire(dto.getCommentaire());
+        return entity;
+    }
+
+    // CREATE
+    public EvaluationFormateurDTO ajouterEvalParticipant(EvaluationFormateurDTO dto) {
+        EvaluationFormateur evaluation = mapToEntity(dto);
+        return mapToDto(evaluationRepository.save(evaluation));
     }
 
     // UPDATE
-    public EvaluationFormateur modifierEvalParticipant(Long id, EvaluationFormateur updatedEval) {
-        Optional<EvaluationFormateur> optionalEval = evaluationRepository.findById(id);
-        if(optionalEval.isEmpty()){
-            throw new RuntimeException("Evaluation non trouvée avec l'id : " + id);
-        }
+    public EvaluationFormateurDTO modifierEvalParticipant(Long id, EvaluationFormateurDTO updatedDto) {
+        EvaluationFormateur existingEval = evaluationRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Evaluation non trouvée avec l'id : " + id));
 
+        existingEval.setNote(updatedDto.getNote());
+        existingEval.setSatisfaisant(updatedDto.isSatisfaisant());
+        existingEval.setCommentaire(updatedDto.getCommentaire());
+        existingEval.setEnseignantId(updatedDto.getEnseignantId());
+        existingEval.setFormationId(updatedDto.getFormationId());
 
-
-        EvaluationFormateur existingEval = optionalEval.get();
-        existingEval.setNote(updatedEval.getNote());
-        existingEval.setSatisfaisant(updatedEval.isSatisfaisant());
-        existingEval.setCommentaire(updatedEval.getCommentaire());
-        existingEval.setEnseignantId(updatedEval.getEnseignantId());
-        existingEval.setFormationId(updatedEval.getFormationId());
-
-        return evaluationRepository.save(existingEval);
+        return mapToDto(evaluationRepository.save(existingEval));
     }
 
     // DELETE
@@ -61,10 +76,17 @@ public class EvaluationFormateurService {
                 .orElseThrow(() -> new RuntimeException("Evaluation non trouvée avec l'id : " + id));
     }
 
-    // LIST
-    public List<EvaluationFormateur> listAllEvaluations() {
-        return evaluationRepository.findAll();
+    public EvaluationFormateurDTO getEvaluationDto(Long id) {
+        return mapToDto(consulterEvalParticipant(id));
     }
+
+    // LIST
+    public List<EvaluationFormateurDTO> listAllEvaluationsDto() {
+        return evaluationRepository.findAll().stream()
+                .map(this::mapToDto)
+                .collect(Collectors.toList());
+    }
+
 
     // Exemple de logique "validerCompetences"
     public void validerCompetences(Long evalId) {
@@ -97,7 +119,7 @@ public class EvaluationFormateurService {
         // 2) Pour chaque évaluation
         for (EvaluationFormateur eval : evaluations) {
             // Appel Feign pour récupérer l'enseignant
-            EnseignantDTO ensDTO = null;
+            // EnseignantDTO ensDTO = null;
 
 
             // Construire le DTO enrichi
@@ -109,6 +131,7 @@ public class EvaluationFormateurService {
             dto.setFormationId(eval.getFormationId());
             dto.setEnseignantId(eval.getEnseignantId());
 
+            /*
             // Si l’enseignant a été trouvé, remplir les champs
             if (ensDTO != null) {
                 dto.setNom(ensDTO.getNom());
@@ -118,6 +141,7 @@ public class EvaluationFormateurService {
                 dto.setDeptLibelle(ensDTO.getDeptLibelle());
                 dto.setUpLibelle(ensDTO.getUpLibelle());
             }
+            */
             results.add(dto);
         }
 

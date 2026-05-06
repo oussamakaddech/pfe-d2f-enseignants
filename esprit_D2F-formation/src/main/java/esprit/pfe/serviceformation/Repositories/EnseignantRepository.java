@@ -41,4 +41,6 @@ public interface EnseignantRepository extends JpaRepository<Enseignant, String> 
             @Param("start") Date start,
             @Param("end")   Date end
     );
+    List<Enseignant> findByUpAndCup(esprit.pfe.serviceformation.Entities.Up up, String cup);
+    List<Enseignant> findByCup(String cup);
 }

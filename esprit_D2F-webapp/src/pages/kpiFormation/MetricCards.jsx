@@ -196,8 +196,8 @@ const MetricCards = () => {
     const onlyOuverte =
       ouverte === true &&
       !domaine &&
-      upId == null &&
-      deptId == null &&
+      upId === null &&
+      deptId === null &&
       !start &&
       !end &&
       !etat;
@@ -210,9 +210,9 @@ const MetricCards = () => {
       start &&
       end &&
       !domaine &&
-      upId == null &&
-      deptId == null &&
-      ouverte == null &&
+      upId === null &&
+      deptId === null &&
+      ouverte === null &&
       !etat;
     if (onlyPeriod) {
       return `Formations du ${start} au ${end}`;
@@ -220,10 +220,10 @@ const MetricCards = () => {
 
     // 3) Si seul filtre = upId
     if (
-      upId != null &&
+      upId !== null &&
       !domaine &&
-      deptId == null &&
-      ouverte == null &&
+      deptId === null &&
+      ouverte === null &&
       !start &&
       !end &&
       !etat
@@ -235,10 +235,10 @@ const MetricCards = () => {
 
     // 4) Si seul filtre = deptId
     if (
-      deptId != null &&
+      deptId !== null &&
       !domaine &&
-      upId == null &&
-      ouverte == null &&
+      upId === null &&
+      ouverte === null &&
       !start &&
       !end &&
       !etat
@@ -251,12 +251,12 @@ const MetricCards = () => {
     // 5) Cas générique : concaténer chaque critère
     const parts = [];
     if (domaine) parts.push(`Domaine=${domaine}`);
-    if (upId != null) {
+    if (upId !== null) {
       const upItem = upsOptions.find((u) => u.id === upId);
       const label = upItem ? upItem.libelle : upId;
       parts.push(`UP=${label}`);
     }
-    if (deptId != null) {
+    if (deptId !== null) {
       const deptItem = deptsOptions.find((d) => d.id === deptId);
       const label = deptItem ? deptItem.libelle : deptId;
       parts.push(`Dépt=${label}`);
@@ -464,9 +464,9 @@ const MetricCards = () => {
               title="Configurer l’indicateur"
               placement="right"
               onClose={() => closeSettings(card.id)}
-              visible={card.visible}
+              open={card.visible}
               width={350}
-              destroyOnHidden
+              destroyOnClose
             >
               <Form
                 layout="vertical"

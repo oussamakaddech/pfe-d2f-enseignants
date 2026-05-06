@@ -122,9 +122,9 @@ export default function FormationTableAntd() {
       );
     }
     if (needFilter === "withNeed") {
-      res = res.filter((f) => f.idBesoinFormation != null);
+      res = res.filter((f) => f.idBesoinFormation !== null);
     } else if (needFilter === "withoutNeed") {
-      res = res.filter((f) => f.idBesoinFormation == null);
+      res = res.filter((f) => f.idBesoinFormation === null);
     }
     if (typeFilter) res = res.filter((f) => f.typeBesoin === typeFilter);
     if (etatFilter) res = res.filter((f) => f.etatFormation === etatFilter);
@@ -231,9 +231,9 @@ export default function FormationTableAntd() {
       ],
       onFilter: (val, rec) =>
         val === "withNeed"
-          ? rec.idBesoinFormation != null
+          ? rec.idBesoinFormation !== null
           : val === "withoutNeed"
-          ? rec.idBesoinFormation == null
+          ? rec.idBesoinFormation === null
           : true,
     },
     {

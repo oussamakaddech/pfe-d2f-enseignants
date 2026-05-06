@@ -26,6 +26,7 @@ import {
 import moment from "moment";
 
 import { AuthContext } from "../../context/AuthContext";
+import { getProfile } from "../../services/accountService";
 import FormationWorkflowService from "../../services/FormationWorkflowService";
 import FormationWorkflowEditForm from "../FormationWorkflowEditForm";
 import MailForm from "../MailForm";
@@ -38,6 +39,16 @@ const normalizeRole = (value) =>
 const { Title } = Typography;
 const { RangePicker } = DatePicker;
 const { Option } = Select;
+
+const PERIOD_OPTIONS = [
+  { value: "P1", label: "Période 1" },
+  { value: "P2", label: "Période 2" },
+  { value: "P3", label: "Période 3" },
+  { value: "P4", label: "Période 4" },
+  { value: "SUMMER", label: "Session d'Été" },
+  { value: "WINTER", label: "Session d'Hiver" },
+  { value: "OTHER", label: "Autre" },
+];
 
 export default function FormationConsultationPage() {
   const navigate = useNavigate();
@@ -86,7 +97,27 @@ export default function FormationConsultationPage() {
   async function loadFormations() {
     setLoading(true);
     try {
-      const data = await FormationWorkflowService.getAllFormationWorkflows();
+      let data;
+      const role = normalizeRole(user?.role);
+      
+      if (role === "chefdepartement") {
+        // We need the deptId. If not in user object, we might need to fetch profile
+        // For now, let's assume we can get it from the user object or we fetch it
+        let deptId = user?.deptId;
+        if (!deptId) {
+          const profile = await getProfile();
+          deptId = profile.deptId || profile.departementId;
+        }
+        
+        if (deptId) {
+          data = await FormationWorkflowService.getFormationsParDepartement(deptId);
+        } else {
+          data = await FormationWorkflowService.getAllFormationWorkflows();
+        }
+      } else {
+        data = await FormationWorkflowService.getAllFormationWorkflows();
+      }
+      
       const arr = Array.isArray(data) ? data : data ? [data] : [];
       setFormations(arr);
 
@@ -259,6 +290,17 @@ export default function FormationConsultationPage() {
         ),
     },
     {
+      title: "Période",
+      key: "periode",
+      render: (_, r) => {
+        if (r.periodCode === "OTHER") return r.customPeriodLabel || "Autre";
+        const opt = PERIOD_OPTIONS.find(o => o.value === r.periodCode);
+        return opt ? opt.label : (r.periodeFormation || "_");
+      },
+      sorter: (a, b) =>
+        (a.periodCode || "").localeCompare(b.periodCode || ""),
+    },
+    {
       title: "Début",
       dataIndex: "dateDebut",
       key: "dateDebut",
@@ -284,27 +326,35 @@ export default function FormationConsultationPage() {
       title: "Actions",
       key: "actions",
       width: 160,
-      render: (_, r) => (
-        canManageFormations ? (
+      render: (_, r) => {
+        const role = normalizeRole(user?.role);
+        const isResponsableDossier = role === "responsabledossier";
+        
+        return canManageFormations || isResponsableDossier ? (
           <Space>
-            <Button
-              icon={<EditOutlined />}
-              onClick={() => {
-                setSelectedFormation(r);
-                setOpenEdit(true);
-              }}
-            />
-            <Popconfirm
-              title="Supprimer ?"
-              onConfirm={() => handleDelete(r.idFormation)}
-            >
-              <Button icon={<DeleteOutlined />} danger />
-            </Popconfirm>
+            {(canManageFormations || isResponsableDossier) && (
+              <Button
+                icon={<EditOutlined />}
+                onClick={() => {
+                  setSelectedFormation(r);
+                  setOpenEdit(true);
+                }}
+                title={isResponsableDossier ? "Gérer Dossier" : "Modifier"}
+              />
+            )}
+            {canManageFormations && (
+              <Popconfirm
+                title="Supprimer ?"
+                onConfirm={() => handleDelete(r.idFormation)}
+              >
+                <Button icon={<DeleteOutlined />} danger />
+              </Popconfirm>
+            )}
           </Space>
         ) : (
           <Tag color="blue">Consultation</Tag>
-        )
-      ),
+        );
+      },
     },
   ];
 

@@ -16,6 +16,7 @@ public interface FormationRepository extends JpaRepository<Formation, Long> {
 
     List<Formation> findDistinctBySeancesAnimateursMail(String email);
     List<Formation> findByEtatFormation(EtatFormation etatFormation);
+    List<Formation> findByDepartement_Id(String deptId);
 
     // Récupère les formations dont la dateDebut est comprise entre 'start' et 'end'
     List<Formation> findByDateDebutBetween(Date start, Date end);

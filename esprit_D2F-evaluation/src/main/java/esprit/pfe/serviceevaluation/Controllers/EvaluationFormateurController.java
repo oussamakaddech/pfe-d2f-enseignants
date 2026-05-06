@@ -4,16 +4,17 @@ package esprit.pfe.serviceevaluation.Controllers;
 
 import esprit.pfe.serviceevaluation.DTO.EvaluationEnseignantDTO;
 import esprit.pfe.serviceevaluation.DTO.EvaluationFormateurDTO;
-import esprit.pfe.serviceevaluation.Entities.EvaluationFormateur;
 import esprit.pfe.serviceevaluation.Services.EvaluationFormateurService;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/evaluations")
-
 public class EvaluationFormateurController {
 
     @Autowired
@@ -21,58 +22,60 @@ public class EvaluationFormateurController {
 
     // CREATE
     @PostMapping
-    public EvaluationFormateur ajouterEvalParticipant(@RequestBody EvaluationFormateur evaluation) {
-        return evaluationService.ajouterEvalParticipant(evaluation);
+    public ResponseEntity<EvaluationFormateurDTO> ajouterEvalParticipant(@Valid @RequestBody EvaluationFormateurDTO evaluation) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(evaluationService.ajouterEvalParticipant(evaluation));
     }
 
     // UPDATE
     @PutMapping("/{id}")
-    public EvaluationFormateur modifierEvalParticipant(@PathVariable Long id,
-                                                       @RequestBody EvaluationFormateur updatedEval) {
-        return evaluationService.modifierEvalParticipant(id, updatedEval);
+    public ResponseEntity<EvaluationFormateurDTO> modifierEvalParticipant(@PathVariable Long id,
+                                                                         @Valid @RequestBody EvaluationFormateurDTO updatedEval) {
+        return ResponseEntity.ok(evaluationService.modifierEvalParticipant(id, updatedEval));
     }
 
     // DELETE
     @DeleteMapping("/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
     public void supprimerEvalParticipant(@PathVariable Long id) {
         evaluationService.supprimerEvalParticipant(id);
     }
 
     // READ (un seul)
     @GetMapping("/{id}")
-    public EvaluationFormateur consulterEvalParticipant(@PathVariable Long id) {
-        return evaluationService.consulterEvalParticipant(id);
+    public ResponseEntity<EvaluationFormateurDTO> consulterEvalParticipant(@PathVariable Long id) {
+        return ResponseEntity.ok(evaluationService.getEvaluationDto(id));
     }
 
     // READ (tous)
     @GetMapping
-    public List<EvaluationFormateur> listAllEvaluations() {
-        return evaluationService.listAllEvaluations();
+    public ResponseEntity<List<EvaluationFormateurDTO>> listAllEvaluations() {
+        return ResponseEntity.ok(evaluationService.listAllEvaluationsDto());
     }
 
     // Logique personnalisée
     @PostMapping("/{id}/valider-competences")
-    public void validerCompetences(@PathVariable Long id) {
+    public ResponseEntity<Void> validerCompetences(@PathVariable Long id) {
         evaluationService.validerCompetences(id);
+        return ResponseEntity.ok().build();
     }
-
 
     @PostMapping("/bulk")
-    public void createEvaluationsBulk(@RequestBody List<EvaluationFormateurDTO> dtos) {
+    public ResponseEntity<Void> createEvaluationsBulk(@Valid @RequestBody List<EvaluationFormateurDTO> dtos) {
         evaluationService.createEvaluationsBulk(dtos);
+        return ResponseEntity.status(HttpStatus.CREATED).build();
     }
-    // GET /evaluations/formation/{formationId}/enriched
+
     @GetMapping("/formation/{formationId}/enriched")
     public List<EvaluationEnseignantDTO> listEvaluationsEnrichedByFormation(@PathVariable Long formationId) {
         return evaluationService.listEvaluationsEnrichedByFormation(formationId);
     }
 
-    // POST /evaluations/formation/{formationId}/bulk/update
     @PostMapping("/formation/{formationId}/bulk/update")
-    public void updateEvaluationsBulkByFormation(@PathVariable Long formationId,
-                                                 @RequestBody List<EvaluationFormateurDTO> dtos) {
+    public ResponseEntity<Void> updateEvaluationsBulkByFormation(@PathVariable Long formationId,
+                                                                @Valid @RequestBody List<EvaluationFormateurDTO> dtos) {
         evaluationService.updateEvaluationsBulkByFormation(formationId, dtos);
+        return ResponseEntity.ok().build();
     }
-
 }
+
 

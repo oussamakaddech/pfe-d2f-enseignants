@@ -107,7 +107,6 @@ public class SecurityController {
     }
 
     public String generateAndPersistConfirmationKey(String emailAddress, String key) {
-        User user = this.userRepository.findByEmail(emailAddress).get();
         ConfirmationKey confirmationKey = new ConfirmationKey();
         confirmationKey.setEmailAddress(emailAddress);
         confirmationKey.setConfirmationKey(key);
@@ -136,7 +135,6 @@ public class SecurityController {
                     new UsernamePasswordAuthenticationToken(username, password)
             );
 
-            Instant instant = Instant.now();
             String scope = authentication.getAuthorities().stream()
                     .map(GrantedAuthority::getAuthority).collect(Collectors.joining(" "));
             JwtClaimsSet jwtClaimsSet = JwtClaimsSet.builder()
@@ -164,9 +162,6 @@ public class SecurityController {
 
     @PostMapping("/request-reset")
     public ResponseEntity<?> requestDeviceReset(@RequestParam String username) {
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found."));
-
         // Envoyer un email à l'administrateur ou déclencher une action pour réinitialiser les appareils
         SimpleMailMessage simpleMailMessage = new SimpleMailMessage();
         simpleMailMessage.setTo("ibtihel.benmustapha@esprit.tn");

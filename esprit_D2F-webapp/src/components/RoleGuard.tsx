@@ -17,7 +17,7 @@ const normalizeRole = (value: unknown): string =>
 export const FRONTEND_PERMISSIONS = {
   // Competence Management
   COMPETENCE: {
-    READ: ['admin', 'CUP', 'Enseignant'],
+    READ: ['admin', 'CUP', 'Enseignant', 'CHEF_DEPARTEMENT'],
     CREATE: ['admin'],
     UPDATE: ['admin'],
     DELETE: ['admin'],
@@ -35,16 +35,16 @@ export const FRONTEND_PERMISSIONS = {
 
   // Besoins en Formation
   BESOIN_FORMATION: {
-    READ_ALL: ['admin', 'CUP', 'Enseignant'],
+    READ_ALL: ['admin', 'CUP', 'Enseignant', 'CHEF_DEPARTEMENT'],
     CREATE: ['admin', 'CUP', 'Enseignant'],
     UPDATE: ['admin'],
     DELETE: ['admin'],
-    APPROVE: ['admin', 'CUP'],
+    APPROVE: ['admin', 'CUP', 'CHEF_DEPARTEMENT'],
   },
 
   // Planification Formations
   FORMATION: {
-    READ: ['admin', 'CUP', 'Enseignant', 'Formateur', 'ResponsableDossier'],
+    READ: ['admin', 'CUP', 'Enseignant', 'Formateur', 'ResponsableDossier', 'CHEF_DEPARTEMENT'],
     CREATE: ['admin'],
     UPDATE: ['admin'],
     DELETE: ['admin'],
@@ -54,7 +54,7 @@ export const FRONTEND_PERMISSIONS = {
 
   // Evaluations & Certificats
   EVALUATION: {
-    READ_ALL: ['admin', 'CUP'],
+    READ_ALL: ['admin', 'CUP', 'CHEF_DEPARTEMENT'],
     READ_FORMATEUR: ['Formateur'],
     CREATE: ['admin', 'Formateur'],
     UPDATE: ['admin', 'Formateur'],
@@ -91,7 +91,7 @@ export const FRONTEND_PERMISSIONS = {
   // Dashboard / KPI
   DASHBOARD: {
     ADMIN_FULL: ['admin'],
-    ADMIN_LIMITED: ['CUP'],
+    ADMIN_LIMITED: ['CUP', 'CHEF_DEPARTEMENT'],
   },
 
   // User Management

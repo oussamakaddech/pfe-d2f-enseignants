@@ -9,7 +9,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.text.SimpleDateFormat;
+import java.time.format.DateTimeFormatter;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.*;
@@ -60,8 +60,13 @@ public class FormationReminderScheduler {
     }
 
     private void sendReminderForSeance(Formation formation, SeanceFormation seance, int daysBefore) {
-        SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy");
-        SimpleDateFormat timeFormat = new SimpleDateFormat("HH:mm");
+        DateTimeFormatter dateFormat = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+        DateTimeFormatter timeFormat = DateTimeFormatter.ofPattern("HH:mm");
+        
+        LocalDate lDate = ((java.sql.Date)seance.getDateSeance()).toLocalDate();
+        String formattedDate = lDate.format(dateFormat);
+        String formattedStart = seance.getHeureDebut().toLocalTime().format(timeFormat);
+        String formattedEnd = seance.getHeureFin().toLocalTime().format(timeFormat);
 
         Set<String> emails = new HashSet<>();
         if (seance.getAnimateurs() != null) {
@@ -91,9 +96,9 @@ public class FormationReminderScheduler {
                 "<div class='content'>" +
                 "<p>Bonjour,</p>" +
                 "<p>Ceci est un rappel : la formation <strong>\"" + formation.getTitreFormation() + "\"</strong> aura lieu le <strong>" +
-                dateFormat.format(seance.getDateSeance()) + "</strong> de <strong>" +
-                timeFormat.format(seance.getHeureDebut()) + "</strong> à <strong>" +
-                timeFormat.format(seance.getHeureFin()) + "</strong>" +
+                formattedDate + "</strong> de <strong>" +
+                formattedStart + "</strong> à <strong>" +
+                formattedEnd + "</strong>" +
                 (seance.getSalle() != null ? " en salle <strong>" + seance.getSalle() + "</strong>" : "") +
                 ".</p>" +
                 "<p>Merci de confirmer votre présence.</p>" +

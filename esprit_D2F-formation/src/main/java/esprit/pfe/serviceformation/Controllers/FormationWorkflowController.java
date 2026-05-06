@@ -8,16 +8,15 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.*;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import jakarta.validation.Valid;
 @Slf4j
 @RestController
 @RequestMapping("/api/v1/formations-workflow")
@@ -30,46 +29,22 @@ public class FormationWorkflowController {
     private FormationWorkflowService formationWorkflowService;
 
     @PostMapping
-    public ResponseEntity<?> createFormation(@RequestBody FormationWorkflowRequest request) {
-        try {
-            Formation formation = formationWorkflowService.createFormationWorkflow(request);
-            FormationDTO dto = formationWorkflowService.mapFormationToDTO(formation);
-            return ResponseEntity.status(HttpStatus.CREATED).body(dto);
-
-        } catch (IllegalArgumentException e) {
-            // Erreur de validation ou paramètre invalide => 400
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("error", e.getMessage()));
-
-        } catch (Exception e) {
-            // Autres erreurs => 500
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("error", "Erreur interne", "message", e.getMessage()));
-        }
+    public ResponseEntity<FormationDTO> createFormation(@Valid @RequestBody FormationWorkflowRequest request) {
+        Formation formation = formationWorkflowService.createFormationWorkflow(request);
+        FormationDTO dto = formationWorkflowService.mapFormationToDTO(formation);
+        return ResponseEntity.status(HttpStatus.CREATED).body(dto);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<?> updateFormation(@PathVariable Long id, @RequestBody FormationWorkflowRequest request) {
-        try {
-            Formation formation = formationWorkflowService.updateFormationWorkflow(id, request);
-            if (formation == null) {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                        .body(Map.of("error", "Formation non trouvée après mise à jour."));
-            }
-            FormationDTO dto = formationWorkflowService.mapFormationToDTO(formation);
-            return ResponseEntity.ok(dto);
-
-        } catch (IllegalArgumentException e) {
-            // Erreur de validation => 400
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("error", e.getMessage()));
-
-        } catch (Exception e) {
-            // Autres erreurs => 500
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("error", "Erreur interne", "message", e.getMessage()));
+    public ResponseEntity<FormationDTO> updateFormation(@PathVariable Long id, @Valid @RequestBody FormationWorkflowRequest request) {
+        Formation formation = formationWorkflowService.updateFormationWorkflow(id, request);
+        if (formation == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
         }
+        FormationDTO dto = formationWorkflowService.mapFormationToDTO(formation);
+        return ResponseEntity.ok(dto);
     }
+
 
     @DeleteMapping("/{id}")
     public ResponseEntity<?> deleteFormation(@PathVariable Long id) {
@@ -236,9 +211,13 @@ public class FormationWorkflowController {
 
 
     @GetMapping("/par-up")
-
     public List<FormationDTO> getFormationsParUp(@RequestParam String upId) {
         return formationWorkflowService.getFormationsParUp(upId);
+    }
+
+    @GetMapping("/par-departement")
+    public List<FormationDTO> getFormationsParDepartement(@RequestParam String deptId) {
+        return formationWorkflowService.getFormationsParDepartement(deptId);
     }
 }
 

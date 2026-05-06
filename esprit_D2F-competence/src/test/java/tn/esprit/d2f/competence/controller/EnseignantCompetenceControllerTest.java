@@ -8,7 +8,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.test.context.TestPropertySource;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -45,7 +45,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * <p>Stratégie :
  * <ul>
  *   <li>@WebMvcTest – charge uniquement la couche Web (pas de contexte JPA)</li>
- *   <li>@MockBean – isole le service de l'implémentation réelle</li>
+ *   <li>@MockitoBean – isole le service de l'implémentation réelle</li>
  *   <li>@WithMockUser – contourne le filtre JWT sans avoir un token réel</li>
  * </ul>
  */
@@ -60,43 +60,43 @@ class EnseignantCompetenceControllerTest {
     @Autowired
     private ObjectMapper objectMapper;
 
-    @MockBean
+    @MockitoBean
     private IEnseignantCompetenceService service;
 
-    @MockBean
+    @MockitoBean
     private JwtDecoder jwtDecoder;
 
-    @MockBean(name = "entityManagerFactory")
+    @MockitoBean(name = "entityManagerFactory")
     private EntityManagerFactory entityManagerFactory;
 
-    @MockBean(name = "jpaMappingContext")
+    @MockitoBean(name = "jpaMappingContext")
     private JpaMetamodelMappingContext jpaMappingContext;
 
-    @MockBean(name = "auditorProvider")
+    @MockitoBean(name = "auditorProvider")
     private AuditorAware<String> auditorProvider;
 
-    @MockBean
+    @MockitoBean
     private CompetencePrerequisiteRepository competencePrerequisiteRepository;
 
-    @MockBean
+    @MockitoBean
     private CompetenceRepository competenceRepository;
 
-    @MockBean
+    @MockitoBean
     private DomaineRepository domaineRepository;
 
-    @MockBean
+    @MockitoBean
     private EnseignantCompetenceRepository enseignantCompetenceRepository;
 
-    @MockBean
+    @MockitoBean
     private NiveauSavoirRequisRepository niveauSavoirRequisRepository;
 
-    @MockBean
+    @MockitoBean
     private RiceImportLogRepository riceImportLogRepository;
 
-    @MockBean
+    @MockitoBean
     private SavoirRepository savoirRepository;
 
-    @MockBean
+    @MockitoBean
     private SousCompetenceRepository sousCompetenceRepository;
 
     static final String BASE_URL = "/api/v1/enseignant-competences";

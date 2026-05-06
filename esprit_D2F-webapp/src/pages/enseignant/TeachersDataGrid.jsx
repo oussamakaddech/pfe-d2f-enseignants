@@ -523,7 +523,7 @@ export default function TeachersDataGrid() {
           width={400}
           onClose={() => { setDrawerVisible(false); setActiveExtractIndex(null); }}
           open={drawerVisible}
-          destroyOnHidden
+          destroyOnClose
         >
           <EnseignantRegister
             initialValues={{
@@ -559,7 +559,7 @@ export default function TeachersDataGrid() {
           confirmLoading={editLoading}
           okText="Enregistrer"
           cancelText="Annuler"
-          destroyOnHidden
+          destroyOnClose
           width={520}
         >
           <Form form={editForm} layout="vertical" style={{ marginTop: 16 }}>
@@ -651,7 +651,7 @@ export default function TeachersDataGrid() {
         confirmLoading={createLoading}
         okText="Créer"
         cancelText="Annuler"
-        destroyOnHidden
+        destroyOnClose
         width={560}
       >
         <Form form={createForm} layout="vertical" initialValues={{ type: "P", etat: "A", cup: "N", chefDepartement: "N" }}>

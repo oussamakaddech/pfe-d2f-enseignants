@@ -2,7 +2,6 @@ package esprit.pfe.serviceformation.DTO;
 
 import esprit.pfe.serviceformation.Entities.Dept;
 import esprit.pfe.serviceformation.Entities.Up;
-import jdk.jfr.SettingDefinition;
 import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;
@@ -47,6 +46,8 @@ public class FormationDTO {
     private boolean ouverte ;
     private boolean inscriptionsOuvertes ;
     private boolean certifGenerated ;
+    private String periodCode;
+    private String customPeriodLabel;
 
 }
 

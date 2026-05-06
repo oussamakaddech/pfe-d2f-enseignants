@@ -5,7 +5,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.util.Date;
+import java.time.LocalDate;
 
 @Entity
 @Data
@@ -22,10 +22,8 @@ public class Certificate {
     private Long formationId;
     private String titreFormation;
     private String typeCertif; // "CERTIF", "BADGE", "ATTESTATION", etc.
-    @Temporal(TemporalType.DATE)
-    private Date dateDebutFormation;
-    @Temporal(TemporalType.DATE)
-    private Date dateFinFormation;
+    private LocalDate dateDebutFormation;
+    private LocalDate dateFinFormation;
     private Integer chargeHoraireGlobal;
 
     // Informations sur l’enseignant (ici animateur ou participant)

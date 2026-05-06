@@ -54,6 +54,12 @@ const FormationDetail = () => {
             {new Date(formation.dateDebut).toLocaleDateString()} au{" "}
             {new Date(formation.dateFin).toLocaleDateString()}
           </Text>
+          {formation.periodeFormation && (
+            <Text type="secondary" style={{ display: 'block' }}>
+              <CalendarOutlined style={{ marginRight: 8 }} />
+              Période : {formation.periodeFormation}
+            </Text>
+          )}
         </Space>
       </Card>
 

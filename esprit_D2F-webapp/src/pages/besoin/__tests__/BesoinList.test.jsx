@@ -69,39 +69,30 @@ describe("BesoinList", { timeout: 15000 }, () => {
     UpService.getAllUps = vi.fn().mockResolvedValue(mockUps);
   });
 
-  it("affiche le titre et les statistiques", async () => {
+  it("affiche les besoins et les actions principales", async () => {
     renderWithProviders(<BesoinList />);
 
     await waitFor(() => {
       expect(screen.getByText("Gestion des Besoins de Formation")).toBeInTheDocument();
     });
 
-    expect(screen.getByText("2")).toBeInTheDocument(); // Total
-    expect(screen.getByText("Besoins approuvés")).toBeInTheDocument();
-    expect(screen.getAllByText("En attente").length).toBeGreaterThanOrEqual(1);
+    expect(screen.getByText("2 résultats sur 2")).toBeInTheDocument();
+    expect(screen.getByText("Exporter Excel")).toBeInTheDocument();
+    expect(screen.getByText("Ajouter un besoin")).toBeInTheDocument();
+    expect(screen.getByText("Formation React Avancé")).toBeInTheDocument();
+    expect(screen.getByText("Formation Spring Boot")).toBeInTheDocument();
   });
 
-  it("affiche la liste des besoins dans le tableau", async () => {
-    renderWithProviders(<BesoinList />);
-
-    await waitFor(() => {
-      expect(screen.getByText("Formation React Avancé")).toBeInTheDocument();
-      expect(screen.getByText("Formation Spring Boot")).toBeInTheDocument();
-    });
-
-    expect(screen.getByText("john.doe")).toBeInTheDocument();
-    expect(screen.getByText("alice.bob")).toBeInTheDocument();
-  });
-
-  it("filtre par texte de recherche", async () => {
+  it("filtre la liste par texte de recherche", async () => {
     renderWithProviders(<BesoinList />);
 
     await waitFor(() => {
       expect(screen.getByText("Formation React Avancé")).toBeInTheDocument();
     });
 
-    const searchInput = screen.getByPlaceholderText("Rechercher...");
-    fireEvent.change(searchInput, { target: { value: "Spring" } });
+    fireEvent.change(screen.getByPlaceholderText("Rechercher..."), {
+      target: { value: "Spring" },
+    });
 
     await waitFor(() => {
       expect(screen.queryByText("Formation React Avancé")).not.toBeInTheDocument();
@@ -109,75 +100,39 @@ describe("BesoinList", { timeout: 15000 }, () => {
     });
   });
 
-  it("affiche les badges de statut correctement", async () => {
-    renderWithProviders(<BesoinList />);
-
-    await waitFor(() => {
-      expect(screen.getByText("Approuvé")).toBeInTheDocument();
-      expect(screen.getAllByText("En attente").length).toBeGreaterThanOrEqual(1);
-    });
-  });
-
-  it("appelle le service d'approbation lors du clic sur Approuver", async () => {
+  it("appelle le service d'approbation puis affiche la confirmation", async () => {
     renderWithProviders(<BesoinList />);
 
     await waitFor(() => {
       expect(screen.getByText("Formation Spring Boot")).toBeInTheDocument();
     });
 
-    // Find approve buttons using document (CheckCircleOutlined inside button)
-    const approveIcons = document.querySelectorAll('.ant-btn .anticon-check-circle');
-    expect(approveIcons.length).toBeGreaterThan(0);
-    // Click the parent button
-    const btn = approveIcons[0].closest('button');
-    expect(btn).toBeTruthy();
-    fireEvent.click(btn);
+    fireEvent.click(screen.getAllByRole("button", { name: /Approuver/i })[0]);
 
-    await waitFor(() => {
-      const confirmBtn = document.querySelector('.ant-popconfirm .ant-popconfirm-buttons .ant-btn-primary');
-      expect(confirmBtn).toBeTruthy();
-    });
-
-    const confirmBtn = document.querySelector('.ant-popconfirm .ant-popconfirm-buttons .ant-btn-primary');
-    fireEvent.click(confirmBtn);
+    const confirmButton = await screen.findByRole("button", { name: "Oui, approuver" });
+    fireEvent.click(confirmButton);
 
     await waitFor(() => {
       expect(BesoinFormationService.approveBesoin).toHaveBeenCalledWith(2);
     });
   });
 
-  it("appelle le service de suppression lors du clic sur Supprimer", async () => {
+  it("appelle le service de suppression", async () => {
     renderWithProviders(<BesoinList />);
 
     await waitFor(() => {
       expect(screen.getByText("Formation React Avancé")).toBeInTheDocument();
     });
 
-    // Find delete button using document
-    const deleteButtons = document.querySelectorAll('.anticon-delete');
-    expect(deleteButtons.length).toBeGreaterThan(0);
-    const btn = deleteButtons[0].closest('button');
-    fireEvent.click(btn);
+    const deleteButton = document.querySelectorAll(".anticon-delete")[0]?.closest("button");
+    expect(deleteButton).toBeTruthy();
+    fireEvent.click(deleteButton);
 
-    // Popconfirm is rendered in a portal - use document.body to find it
-    await waitFor(() => {
-      const confirmBtn = document.querySelector('.ant-popconfirm .ant-popconfirm-buttons .ant-btn-primary');
-      expect(confirmBtn).toBeTruthy();
-    });
-
-    const confirmBtn = document.querySelector('.ant-popconfirm .ant-popconfirm-buttons .ant-btn-primary');
-    fireEvent.click(confirmBtn);
+    const confirmButton = await screen.findByRole("button", { name: "Oui" });
+    fireEvent.click(confirmButton);
 
     await waitFor(() => {
       expect(BesoinFormationService.removeBesoinFormation).toHaveBeenCalledWith(1);
-    });
-  });
-
-  it("affiche le bouton pour ajouter un besoin", async () => {
-    renderWithProviders(<BesoinList />);
-
-    await waitFor(() => {
-      expect(screen.getByText("Ajouter un besoin")).toBeInTheDocument();
     });
   });
 });

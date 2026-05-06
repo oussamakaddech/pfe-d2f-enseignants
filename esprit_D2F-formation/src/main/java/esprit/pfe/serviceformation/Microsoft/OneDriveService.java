@@ -6,6 +6,7 @@ import com.microsoft.graph.models.Folder;
 import com.microsoft.graph.models.Permission;
 import com.microsoft.graph.requests.GraphServiceClient;
 import esprit.pfe.serviceformation.DTO.OneDriveItemDTO;
+import lombok.extern.slf4j.Slf4j;
 import okhttp3.Request;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -17,6 +18,7 @@ import java.util.List;
 import java.util.Optional;
 
 @Service
+@Slf4j
 public class OneDriveService {
 
     @Autowired
@@ -122,7 +124,7 @@ public class OneDriveService {
                     .buildRequest()
                     .delete();
         } catch (Exception e) {
-            System.err.println("Erreur delete OneDrive: " + e.getMessage());
+            log.error("Erreur delete OneDrive: {}", e.getMessage());
         }
     }
 
@@ -225,14 +227,15 @@ public class OneDriveService {
             String currentFolderName
     ) {
         GraphServiceClient<Request> client = graphProvider.getGraphClient();
-        List<DriveItem> items = client.users(userEmail)
+        List<DriveItem> itemsRaw = client.users(userEmail)
                 .drive()
                 .items(folderId)
                 .children()
                 .buildRequest()
                 .get()
                 .getCurrentPage();
-
+        
+        List<DriveItem> items = Optional.ofNullable(itemsRaw).orElse(new ArrayList<>());
         List<OneDriveItemDTO> list = new ArrayList<>();
         for (DriveItem item : items) {
             OneDriveItemDTO dto = new OneDriveItemDTO();
@@ -267,7 +270,7 @@ public class OneDriveService {
                 pathType,
                 nomDocument
         );
-        List<DriveItem> files = client.users(USER_EMAIL)
+        List<DriveItem> filesRaw = client.users(USER_EMAIL)
                 .drive()
                 .root()
                 .itemWithPath(folderPath)
@@ -275,7 +278,8 @@ public class OneDriveService {
                 .buildRequest()
                 .get()
                 .getCurrentPage();
-
+        
+        List<DriveItem> files = Optional.ofNullable(filesRaw).orElse(new ArrayList<>());
         if (files.isEmpty()) {
             throw new RuntimeException("Aucun fichier dans " + folderPath);
         }
