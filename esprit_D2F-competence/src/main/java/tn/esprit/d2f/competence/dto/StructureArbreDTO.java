@@ -4,7 +4,6 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.*;
 
 import java.util.List;
-import java.util.Map;
 
 /**
  * DTO pour la structure arborescente complète :

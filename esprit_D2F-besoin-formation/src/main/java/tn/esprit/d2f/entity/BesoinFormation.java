@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
+import tn.esprit.d2f.entity.enumerations.PeriodCode;
 import tn.esprit.d2f.entity.enumerations.Priorite;
 import tn.esprit.d2f.entity.enumerations.TypeBesoin;
 
@@ -21,7 +22,7 @@ public class BesoinFormation implements Serializable {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Setter(AccessLevel.NONE)
     @JsonProperty("idBesoinFormation")
-    long idBesionFormation ;
+    long idBesoinFormation ;
 
     @JsonProperty("username")
     String username ;
@@ -122,6 +123,15 @@ public class BesoinFormation implements Serializable {
     @Column(columnDefinition = "TEXT", nullable = true)
     @JsonProperty("autresInformations")
     String autresInformations ;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = true)
+    @JsonProperty("periodCode")
+    PeriodCode periodCode ;
+
+    @Column(nullable = true)
+    @JsonProperty("customPeriodLabel")
+    String customPeriodLabel ;
 
     // ── Accesseurs explicites pour les champs Boolean (is* pattern) ──
     // Nécessaire car Lombok génère getApprouveCUP() mais le code existant

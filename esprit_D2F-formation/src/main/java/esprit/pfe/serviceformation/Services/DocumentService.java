@@ -1,11 +1,11 @@
 package esprit.pfe.serviceformation.Services;
 
 import esprit.pfe.serviceformation.Entities.Document;
-import esprit.pfe.serviceformation.Entities.DriveSubPath;
 import esprit.pfe.serviceformation.Entities.Formation;
 import esprit.pfe.serviceformation.Microsoft.OneDriveService;
 import esprit.pfe.serviceformation.Repositories.DocumentRepository;
 import esprit.pfe.serviceformation.Repositories.FormationRepository;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -15,6 +15,7 @@ import java.util.Date;
 import java.util.List;
 
 @Service
+@Slf4j
 public class DocumentService {
 
     @Autowired
@@ -38,7 +39,7 @@ public class DocumentService {
             MultipartFile file
     ) throws IOException {
         Formation f = formationRepo.findById(formationId)
-                .orElseThrow(() -> new RuntimeException("Formation non trouvée"));
+                .orElseThrow(() -> new IllegalArgumentException("Formation non trouvée avec l'ID: " + formationId));
 
         String url = oneDriveService.uploadDocumentToFormationFolder(
                 f.getTitreFormation(), pathType, nomDocument,
@@ -58,7 +59,7 @@ public class DocumentService {
 
     public Document getById(Long id) {
         return documentRepo.findById(id)
-                .orElseThrow(() -> new RuntimeException("Document introuvable"));
+                .orElseThrow(() -> new IllegalArgumentException("Document introuvable avec l'ID: " + id));
     }
 
     public List<Document> getAll() {
@@ -124,8 +125,7 @@ public class DocumentService {
                     fileName
             );
         } catch (Exception e) {
-            // log éventuellement
-            System.err.println("Erreur OneDrive delete: " + e.getMessage());
+            log.error("Erreur OneDrive delete pour le document {}: {}", id, e.getMessage());
         }
 
         // 2) on supprime en base

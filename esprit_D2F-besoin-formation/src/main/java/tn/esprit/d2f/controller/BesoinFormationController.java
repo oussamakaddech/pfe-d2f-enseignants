@@ -1,25 +1,32 @@
 package tn.esprit.d2f.controller;
 
-import lombok.AllArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-import tn.esprit.d2f.entity.BesoinFormation;
-import tn.esprit.d2f.entity.BesoinFormationRequest;
+import tn.esprit.d2f.DTO.BesoinFormationRequest;
+import tn.esprit.d2f.DTO.BesoinFormationResponse;
 import tn.esprit.d2f.entity.Notification;
 import tn.esprit.d2f.entity.enumerations.Priorite;
 import tn.esprit.d2f.repository.NotificationRepository;
 import tn.esprit.d2f.service.IBesoinFormationService;
 import esprit.pfe.auth.Security.AuthorizationMatrix;
 
-import java.util.List;
-
+import lombok.AllArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 @Slf4j
 @RestController
 @AllArgsConstructor
 @RequestMapping("/api/v1/besoinsFormations")
+@Tag(name = "Besoin de Formation", description = "Gestion des besoins de formation avec DTO et Validation")
 public class BesoinFormationController {
 
     @Autowired
@@ -28,89 +35,122 @@ public class BesoinFormationController {
     @Autowired
     private NotificationRepository notificationRepository;
 
+    @Operation(summary = "Récupérer tous les besoins de formation (Paginé)")
     @GetMapping("/retrieve-all-BesoinFormations")
     @PreAuthorize(AuthorizationMatrix.BESOIN_FORMATION_READ_ALL)
-    public List<BesoinFormation> getBesoinFormations() {
-        List<BesoinFormation> listBesoinFormations = besoinFormationService.retrieveAllBesoinFormations() ;
-        return listBesoinFormations ;
+    public ResponseEntity<Page<BesoinFormationResponse>> getBesoinFormations(
+            @Parameter(description = "Index de la page") @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "Taille de la page") @RequestParam(defaultValue = "10") int size,
+            @Parameter(description = "Tri (ex: idBesoinFormation,asc)") @RequestParam(defaultValue = "idBesoinFormation,desc") String[] sort) {
+        
+        Pageable pageable = PageRequest.of(page, size, getSortOrder(sort));
+        return ResponseEntity.ok(besoinFormationService.retrieveAllBesoinFormations(pageable));
     }
 
     @GetMapping("/retrieve-BesoinFormation/{idBesoinFormation}")
     @PreAuthorize(AuthorizationMatrix.BESOIN_FORMATION_READ_ALL)
-    public BesoinFormation retrieveBesoinFormation(@PathVariable("idBesoinFormation") long idBesoinFormation) {
-        BesoinFormation  BesoinFormation=besoinFormationService.retrieveBesoinFormation(idBesoinFormation) ;
-        return BesoinFormation ;
+    public ResponseEntity<BesoinFormationResponse> retrieveBesoinFormation(@PathVariable("idBesoinFormation") long idBesoinFormation) {
+        return ResponseEntity.ok(besoinFormationService.retrieveBesoinFormation(idBesoinFormation));
     }
 
+    @Operation(summary = "Ajouter un besoin de formation")
     @PostMapping("/add-BesoinFormation")
     @PreAuthorize(AuthorizationMatrix.BESOIN_FORMATION_CREATE)
-    public BesoinFormation addBesoinFormation(@RequestBody BesoinFormation b) {
-        BesoinFormation BesoinFormation=besoinFormationService.addBesoinFormation(b) ;
-        return BesoinFormation ;
+    public ResponseEntity<BesoinFormationResponse> addBesoinFormation(@Valid @RequestBody BesoinFormationRequest b) {
+        return ResponseEntity.ok(besoinFormationService.addBesoinFormation(b));
     }
 
     @DeleteMapping("/remove-BesoinFormation/{idBesoinFormation}")
     @PreAuthorize(AuthorizationMatrix.BESOIN_FORMATION_DELETE)
-    public void removeBesoinFormation(@PathVariable("idBesoinFormation") long idBesoinFormation) {
+    public ResponseEntity<Void> removeBesoinFormation(@PathVariable("idBesoinFormation") long idBesoinFormation) {
         besoinFormationService.removeBesoinFormation(idBesoinFormation);
+        return ResponseEntity.noContent().build();
     }
 
+    @Operation(summary = "Modifier un besoin de formation")
     @PutMapping("/modify-BesoinFormation")
     @PreAuthorize(AuthorizationMatrix.BESOIN_FORMATION_UPDATE)
-    public BesoinFormation modifyBesoinFormation(@RequestBody BesoinFormationRequest request) {
-        return besoinFormationService.modifyBesoinFormation(
-                request.getBesoinFormation(),
-                request.getCommentaire()
-        );
+    public ResponseEntity<BesoinFormationResponse> modifyBesoinFormation(@Valid @RequestBody BesoinFormationRequest request) {
+        return ResponseEntity.ok(besoinFormationService.modifyBesoinFormation(request));
     }
 
+    @Operation(summary = "Récupérer les notifications d'un utilisateur (Paginé)")
     @GetMapping("/notifications/{username}")
     @PreAuthorize("isAuthenticated()")
-    public List<Notification> getUserNotifications(@PathVariable String username) {
-        return notificationRepository.findByUsername(username);
+    public ResponseEntity<Page<Notification>> getUserNotifications(
+            @PathVariable String username,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("id").descending());
+        return ResponseEntity.ok(notificationRepository.findByUsername(username, pageable));
     }
 
     @PutMapping("/{id}/approve")
     @PreAuthorize(AuthorizationMatrix.BESOIN_FORMATION_APPROVE)
-    public ResponseEntity<BesoinFormation> approveBesoin(@PathVariable Long id) {
-        BesoinFormation b = besoinFormationService.approuverBesoin(id);
-        return ResponseEntity.ok(b);
+    public ResponseEntity<BesoinFormationResponse> approveBesoin(@PathVariable Long id) {
+        return ResponseEntity.ok(besoinFormationService.approuverBesoin(id));
     }
 
+    @Operation(summary = "Récupérer les besoins approuvés (Paginé)")
     @GetMapping("/retrieve-approved-BesoinFormations")
     @PreAuthorize(AuthorizationMatrix.BESOIN_FORMATION_READ_ALL)
-    public List<BesoinFormation> getApprovedBesoinFormations() {
-        return besoinFormationService.retrieveApprovedBesoinFormations();
+    public ResponseEntity<Page<BesoinFormationResponse>> getApprovedBesoinFormations(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("idBesoinFormation").descending());
+        return ResponseEntity.ok(besoinFormationService.retrieveApprovedBesoinFormations(pageable));
     }
 
-    // ── Nouveaux endpoints §2.2.2 — Consultation et priorisation ──
-
-    /** Consulter les besoins par UP */
+    @Operation(summary = "Consulter les besoins par UP (Paginé)")
     @GetMapping("/by-up/{up}")
     @PreAuthorize(AuthorizationMatrix.BESOIN_FORMATION_READ_ALL)
-    public List<BesoinFormation> getBesoinsByUp(@PathVariable String up) {
-        return besoinFormationService.retrieveByUp(up);
+    public ResponseEntity<Page<BesoinFormationResponse>> getBesoinsByUp(
+            @PathVariable String up,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("idBesoinFormation").descending());
+        return ResponseEntity.ok(besoinFormationService.retrieveByUp(up, pageable));
     }
 
-    /** Consulter les besoins par département */
+    @Operation(summary = "Consulter les besoins par département (Paginé)")
     @GetMapping("/by-departement/{departement}")
     @PreAuthorize(AuthorizationMatrix.BESOIN_FORMATION_READ_ALL)
-    public List<BesoinFormation> getBesoinsByDepartement(@PathVariable String departement) {
-        return besoinFormationService.retrieveByDepartement(departement);
+    public ResponseEntity<Page<BesoinFormationResponse>> getBesoinsByDepartement(
+            @PathVariable String departement,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("idBesoinFormation").descending());
+        return ResponseEntity.ok(besoinFormationService.retrieveByDepartement(departement, pageable));
     }
 
-    /** Récupérer tous les besoins triés par priorité (décroissant) */
+    @Operation(summary = "Récupérer tous les besoins triés par priorité (Paginé)")
     @GetMapping("/by-priorite")
     @PreAuthorize(AuthorizationMatrix.BESOIN_FORMATION_READ_ALL)
-    public List<BesoinFormation> getBesoinsByPriorite() {
-        return besoinFormationService.retrieveAllByPriorite();
+    public ResponseEntity<Page<BesoinFormationResponse>> getBesoinsByPriorite(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        return ResponseEntity.ok(besoinFormationService.retrieveAllByPriorite(pageable));
     }
 
-    /** Filtrer les besoins par niveau de priorité */
+    @Operation(summary = "Filtrer les besoins par niveau de priorité (Paginé)")
     @GetMapping("/by-priorite/{priorite}")
     @PreAuthorize(AuthorizationMatrix.BESOIN_FORMATION_READ_ALL)
-    public List<BesoinFormation> getBesoinsByPrioriteLevel(@PathVariable Priorite priorite) {
-        return besoinFormationService.retrieveByPriorite(priorite);
+    public ResponseEntity<Page<BesoinFormationResponse>> getBesoinsByPrioriteLevel(
+            @PathVariable Priorite priorite,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("idBesoinFormation").descending());
+        return ResponseEntity.ok(besoinFormationService.retrieveByPriorite(priorite, pageable));
+    }
+
+    private Sort getSortOrder(String[] sort) {
+        if (sort.length >= 2) {
+            return Sort.by(sort[1].equalsIgnoreCase("asc") ? Sort.Direction.ASC : Sort.Direction.DESC, sort[0]);
+        }
+        return Sort.by(Sort.Direction.DESC, "idBesoinFormation");
     }
 
 }
+
+

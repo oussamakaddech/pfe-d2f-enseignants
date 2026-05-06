@@ -4,24 +4,74 @@ import { config } from "../config/env";
 const PREDICTIVE_API = `${config.ANALYSE_URL}/analyse`;
 
 const AnalysePredictiveService = {
+  // ── Prediction ─────────────────────────────────
+  async predictGaps(enseignantId: string, horizonMonths = 6, topN = 10) {
+    const res = await axios.post(
+      `${PREDICTIVE_API}/predict/gaps/${enseignantId}`,
+      { teacher_id: enseignantId, horizon_months: horizonMonths, top_n: topN }
+    );
+    return res.data;
+  },
+
+  async trainModel() {
+    const res = await axios.post(`${PREDICTIVE_API}/predict/train`);
+    return res.data;
+  },
+
+  // ── Recommendation ─────────────────────────────
+  async recommendPath(teacherId: string, targetCompetencyId: number, targetLevel = 4, maxDurationHours?: number) {
+    const res = await axios.post(`${PREDICTIVE_API}/recommend/path`, {
+      teacher_id: teacherId,
+      target_competency_id: targetCompetencyId,
+      target_level: targetLevel,
+      max_duration_hours: maxDurationHours ?? null,
+    });
+    return res.data;
+  },
+
+  // ── Detection ──────────────────────────────────
+  async getAtRiskTeachers(threshold = 0.7) {
+    const res = await axios.get(`${PREDICTIVE_API}/detect/at-risk-teachers`, {
+      params: { threshold },
+    });
+    return res.data;
+  },
+
+  // ── Dashboard ──────────────────────────────────
+  async getDashboardSummary() {
+    const res = await axios.get(`${PREDICTIVE_API}/dashboard/summary`);
+    return res.data;
+  },
+
+  async getDecliningCompetencies() {
+    const res = await axios.get(`${PREDICTIVE_API}/dashboard/declining-competencies`);
+    return res.data;
+  },
+
+  async getInDemandCompetencies() {
+    const res = await axios.get(`${PREDICTIVE_API}/dashboard/in-demand-competencies`);
+    return res.data;
+  },
+
+  async getTeacherRiskIndicators() {
+    const res = await axios.get(`${PREDICTIVE_API}/dashboard/teacher-risk-indicators`);
+    return res.data;
+  },
+
+  // ── Legacy adapters (used by existing page) ────
   async analyserEnseignant(enseignantId: string, competenceCible?: string) {
     try {
-      // 1. Gaps de compétences
-      const gapsRes = await axios.post(
-        `${PREDICTIVE_API}/predict/gaps/${enseignantId}`,
-        { horizon_months: 6, top_n: 10 }
-      );
+      const gapsRes = await this.predictGaps(enseignantId, 6, 10);
 
-      // 2. Recommandations de parcours (si compétence cible spécifiée)
-      let recommendations = [];
+      let recommendations: any[] = [];
       if (competenceCible) {
         try {
-          const recoRes = await axios.post(`${PREDICTIVE_API}/recommend/path`, {
-            teacherId: enseignantId,
-            targetCompetencyId: parseInt(competenceCible.replace(/\D/g, "") || "0"),
-            targetLevel: 4, // Défaut
-          });
-          recommendations = (recoRes.data.path || []).map((step: any) => ({
+          const recoRes = await this.recommendPath(
+            enseignantId,
+            parseInt(competenceCible.replace(/\D/g, "") || "0"),
+            4
+          );
+          recommendations = (recoRes.path || []).map((step: any) => ({
             ordre: step.step_number,
             formationId: step.formation_id,
             titre: step.formation_title,
@@ -39,7 +89,7 @@ const AnalysePredictiveService = {
       return {
         enseignantId,
         competenceAnalysee: competenceCible || "Toutes",
-        gaps: (gapsRes.data.gaps || []).map((g: any) => ({
+        gaps: (gapsRes.gaps || []).map((g: any) => ({
           competenceCode: `C${g.competency_id}`,
           competenceLabel: g.competency_name,
           niveauActuel: g.current_level,
@@ -48,13 +98,8 @@ const AnalysePredictiveService = {
           gravite: g.predicted_gap >= 2 ? "elevee" : g.predicted_gap >= 1 ? "moyenne" : "faible",
           explication: `Gap prédit: ${g.predicted_gap.toFixed(1)} (confiance: ${(g.confidence * 100).toFixed(0)}%)`,
         })),
+        overallRiskScore: gapsRes.overall_risk_score || 0,
         recommandationsFormations: recommendations,
-        besoinsDetectes: [], // À mapper si besoin
-        dashboard: {
-          competencesEnDeclin: [],
-          competencesEnForteDemande: [],
-          enseignantsARisque: [],
-        },
       };
     } catch (error) {
       console.error("Erreur lors de l'analyse prédictive de l'enseignant :", error);
@@ -64,15 +109,8 @@ const AnalysePredictiveService = {
 
   async analyserTendancesGlobales() {
     try {
-      const response = await axios.get(`${PREDICTIVE_API}/dashboard/summary`);
-      const data = response.data;
-      
+      const data = await this.getDashboardSummary();
       return {
-        statistiques: { 
-          totalEvaluations: data.in_demand_competencies?.length * 15 || 120, // Dummy fallback
-          noteMoyenne: 3.8, 
-          formationsEvaluees: 24 
-        },
         dashboard: {
           competencesEnDeclin: (data.declining_competencies || []).map((c: any) => c.competency_name).filter(Boolean),
           competencesEnForteDemande: (data.in_demand_competencies || []).map((c: any) => c.competency_name).filter(Boolean),
@@ -80,6 +118,9 @@ const AnalysePredictiveService = {
             .filter((r: any) => r.attrition_risk_score > 0.5)
             .map((r: any) => r.teacher_name),
         },
+        rawDeclining: data.declining_competencies || [],
+        rawInDemand: data.in_demand_competencies || [],
+        rawRiskIndicators: data.teacher_risk_indicators || [],
       };
     } catch (error) {
       console.error("Erreur lors de l'analyse des tendances globales :", error);

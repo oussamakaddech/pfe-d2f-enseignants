@@ -2,6 +2,7 @@ package esprit.pfe.serviceformation.messaging;
 
 import esprit.pfe.serviceformation.Entities.Formation;
 import esprit.pfe.serviceformation.Entities.EtatFormation;
+import esprit.pfe.serviceformation.Entities.PeriodCode;
 import esprit.pfe.serviceformation.Entities.TypeFormation;
 import esprit.pfe.serviceformation.Repositories.FormationRepository;
 import esprit.pfe.serviceformation.Repositories.UpRepository;
@@ -40,6 +41,15 @@ public class BesoinFormationEventListener {
         f.setPrerequis(               evt.getPrerequis());                    // prerequis ← prerequis
         f.setIndicateurs(             evt.getMoyensPedagogiques());           // indicateurs ← moyensPedagogiques
         f.setChargeHoraireGlobal(     evt.getDureeFormation());               // chargeHoraireGlobal ← dureeFormation
+        
+        if (evt.getPeriodCode() != null) {
+            try {
+                f.setPeriodCode(PeriodCode.valueOf(evt.getPeriodCode()));
+            } catch (Exception e) {
+                f.setPeriodCode(PeriodCode.OTHER);
+            }
+        }
+        f.setCustomPeriodLabel(evt.getCustomPeriodLabel());
 
         // Si vous avez un enum TypeFormation qui correspond à typeBesoin
         f.setTypeBesoin(evt.getTypeBesoin());

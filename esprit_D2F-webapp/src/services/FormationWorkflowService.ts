@@ -136,6 +136,12 @@ const FormationWorkflowService = {
       params: { start, end },
     });
   },
+  async getFormationsParDepartement(deptId: Id): Promise<Formation[]> {
+    const response = await axios.get<Formation[]>(`${API_URL}/par-departement`, {
+      params: { deptId },
+    });
+    return response.data;
+  },
 };
 
 export default FormationWorkflowService;

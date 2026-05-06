@@ -10,7 +10,8 @@ import org.springframework.stereotype.Service;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.text.SimpleDateFormat;
+import java.time.format.DateTimeFormatter;
+import java.time.ZoneId;
 import java.sql.Time;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -105,9 +106,11 @@ public class ExportExcelService {
         spacingStyle.setFillPattern(FillPatternType.SOLID_FOREGROUND);
 
         // Titre
-        SimpleDateFormat df = new SimpleDateFormat("dd/MM/yyyy");
+        DateTimeFormatter df = DateTimeFormatter.ofPattern("dd/MM/yyyy");
         String titrePeriode = "Calendrier des formations du "
-                + df.format(startDate) + " au " + df.format(endDate);
+                + startDate.toInstant().atZone(ZoneId.systemDefault()).toLocalDate().format(df)
+                + " au " 
+                + endDate.toInstant().atZone(ZoneId.systemDefault()).toLocalDate().format(df);
         Row titleRow = sheetCalendar.createRow(0);
         Cell titleCell = titleRow.createCell(0);
         titleCell.setCellValue(titrePeriode);
@@ -161,12 +164,12 @@ public class ExportExcelService {
                 sheetCalendar.addMergedRegion(new CellRangeAddress(groupStart, groupEnd, 0, 0));
                 Row first = sheetCalendar.getRow(groupStart);
                 Cell dc = first.createCell(0);
-                dc.setCellValue(df.format(date));
+                dc.setCellValue(date.toInstant().atZone(ZoneId.systemDefault()).toLocalDate().format(df));
                 dc.setCellStyle(dateCellStyle);
             } else {
                 Row only = sheetCalendar.getRow(groupStart);
                 Cell dc = only.createCell(0);
-                dc.setCellValue(df.format(date));
+                dc.setCellValue(date.toInstant().atZone(ZoneId.systemDefault()).toLocalDate().format(df));
                 dc.setCellStyle(dateCellStyle);
             }
         }

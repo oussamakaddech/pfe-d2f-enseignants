@@ -1,9 +1,5 @@
 package esprit.pfe.serviceformation.Entities;
 
-import com.fasterxml.jackson.annotation.JsonIdentityInfo;
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonManagedReference;
-import com.fasterxml.jackson.annotation.ObjectIdGenerators;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -139,8 +135,10 @@ public class Formation {
     @Column(name = "ouverte", nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
     private boolean ouverte = false;
 
+    @Column(nullable = true)
+    @Enumerated(EnumType.STRING)
+    private PeriodCode periodCode;
 
-
-
+    private String customPeriodLabel;
 
 }

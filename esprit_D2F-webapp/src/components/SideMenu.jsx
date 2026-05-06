@@ -120,6 +120,7 @@ export default function SideMenu() {
         ],
       },
       { label: "Présence & Évaluation", key: "/home/animateur-formations", icon: ReadOutlined },
+      { label: "Analyse Prédictive", key: "/home/AnalysePredictive", icon: RobotOutlined },
       ...personalItems,
     ];
 
@@ -147,6 +148,13 @@ export default function SideMenu() {
       { label: "Dossiers de Formation", key: "/home/File", icon: FileTextOutlined },
     ];
 
+    const chefDepartement = [
+      { label: "Gestion Formations", key: "/home/Formation/Consulter", icon: SearchOutlined },
+      { label: "Dossiers de Formation", key: "/home/File", icon: FileTextOutlined },
+      { label: "Calendrier Global", key: "/home/Calendrier", icon: CalendarOutlined },
+      { label: "Analyse Prédictive", key: "/home/AnalysePredictive", icon: RobotOutlined },
+    ];
+
     let roleItems = [];
     switch (normalizeRole(user.role)) {
       case "admin": roleItems = admin; break;
@@ -154,6 +162,7 @@ export default function SideMenu() {
       case "enseignant": roleItems = Enseignant; break;
       case "formateur": roleItems = formateur; break;
       case "responsabledossier": roleItems = responsableDossier; break;
+      case "chefdepartement": roleItems = chefDepartement; break;
       default: roleItems = [];
     }
 

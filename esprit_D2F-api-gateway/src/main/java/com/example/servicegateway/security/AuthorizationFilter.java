@@ -11,7 +11,6 @@ import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
 import java.util.List;
-import java.util.Map;
 
 /**
  * Gateway Authorization Filter
@@ -31,22 +30,19 @@ public class AuthorizationFilter extends AbstractGatewayFilterFactory<Authorizat
     // The gateway checks these BEFORE forwarding to the downstream service.
 
     /** All authenticated users */
-    private static final List<String> ALL_ROLES = List.of("admin", "CUP", "D2F", "Enseignant", "Formateur");
+    private static final List<String> ALL_ROLES = List.of("admin", "CUP", "D2F", "Enseignant", "Formateur", "CHEF_DEPARTEMENT", "RESPONSABLE_DOSSIER");
 
     /** Admin only */
     private static final List<String> ADMIN_ONLY = List.of("admin");
 
     /** Admin + CUP + D2F */
-    private static final List<String> ADMIN_CUP = List.of("admin", "CUP", "D2F");
+    private static final List<String> ADMIN_CUP = List.of("admin", "CUP", "D2F", "CHEF_DEPARTEMENT");
 
     /** Admin + CUP + D2F + Enseignant */
-    private static final List<String> NO_FORMATEUR = List.of("admin", "CUP", "D2F", "Enseignant");
+    private static final List<String> NO_FORMATEUR = List.of("admin", "CUP", "D2F", "Enseignant", "CHEF_DEPARTEMENT");
 
     /** Admin + Formateur */
     private static final List<String> ADMIN_FORMATEUR = List.of("admin", "Formateur");
-
-    /** Formateur + Enseignant */
-    private static final List<String> PRESENCE_ROLES = List.of("Formateur", "Enseignant");
 
     public AuthorizationFilter(JwtTokenProvider tokenProvider) {
         super(Config.class);
@@ -261,7 +257,16 @@ public class AuthorizationFilter extends AbstractGatewayFilterFactory<Authorizat
 
         // ── Analyse Predictive: /api/analyse/** ──
         if (path.startsWith("/api/analyse/")) {
-            return ALL_ROLES;
+            // Model training — admin only
+            if (path.contains("/predict/train")) {
+                return ADMIN_ONLY;
+            }
+            // Dashboard and detection — admin, CUP, Chef Département
+            if (path.contains("/dashboard/") || path.contains("/detect/")) {
+                return List.of("admin", "CUP", "D2F", "CHEF_DEPARTEMENT");
+            }
+            // Prediction and recommendation — admin, CUP, Chef Dept, Enseignant
+            return List.of("admin", "CUP", "D2F", "Enseignant", "CHEF_DEPARTEMENT");
         }
 
         // Default: require authentication (any role)

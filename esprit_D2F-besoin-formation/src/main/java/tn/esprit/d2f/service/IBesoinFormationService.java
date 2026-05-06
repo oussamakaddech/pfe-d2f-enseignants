@@ -1,28 +1,31 @@
 package tn.esprit.d2f.service;
 
-import tn.esprit.d2f.entity.BesoinFormation;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import tn.esprit.d2f.DTO.BesoinFormationRequest;
+import tn.esprit.d2f.DTO.BesoinFormationResponse;
 import tn.esprit.d2f.entity.enumerations.Priorite;
 
-import java.util.List;
-
 public interface IBesoinFormationService {
-    public List<BesoinFormation> retrieveAllBesoinFormations() ;
-    public BesoinFormation retrieveBesoinFormation(long idBesoinFormation) ;
-    public BesoinFormation addBesoinFormation(BesoinFormation b) ;
+    public Page<BesoinFormationResponse> retrieveAllBesoinFormations(Pageable pageable) ;
+    public BesoinFormationResponse retrieveBesoinFormation(long idBesoinFormation) ;
+    public BesoinFormationResponse addBesoinFormation(BesoinFormationRequest b) ;
     public void removeBesoinFormation(long idBesoinFormation) ;
-    public BesoinFormation modifyBesoinFormation(BesoinFormation besoinFormation , String c) ;
-    public BesoinFormation approuverBesoin(Long id);
-    List<BesoinFormation> retrieveApprovedBesoinFormations();
+    public BesoinFormationResponse modifyBesoinFormation(BesoinFormationRequest request) ;
+    public BesoinFormationResponse approuverBesoin(Long id);
+    Page<BesoinFormationResponse> retrieveApprovedBesoinFormations(Pageable pageable);
 
     /** §2.2.2 — Consulter les besoins par UP */
-    List<BesoinFormation> retrieveByUp(String up);
+    Page<BesoinFormationResponse> retrieveByUp(String up, Pageable pageable);
 
     /** §2.2.2 — Consulter les besoins par département */
-    List<BesoinFormation> retrieveByDepartement(String departement);
+    Page<BesoinFormationResponse> retrieveByDepartement(String departement, Pageable pageable);
 
     /** §2.2.2 — Prioriser les besoins en fonction de l'urgence */
-    List<BesoinFormation> retrieveAllByPriorite();
+    Page<BesoinFormationResponse> retrieveAllByPriorite(Pageable pageable);
 
     /** §2.2.2 — Filtrage par priorité */
-    List<BesoinFormation> retrieveByPriorite(Priorite priorite);
+    Page<BesoinFormationResponse> retrieveByPriorite(Priorite priorite, Pageable pageable);
 }
+
+

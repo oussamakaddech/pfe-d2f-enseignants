@@ -415,7 +415,7 @@ export default function DonutByTrainerTypeWithFilters() {
             ? `Détail des formations “${selectedCategory}” (${dataToShowInModal.length})`
             : ""
         }
-        visible={modalVisible}
+        open={modalVisible}
         onCancel={() => setModalVisible(false)}
         footer={[
           <Button key="close" type="primary" danger onClick={() => setModalVisible(false)}>
@@ -603,9 +603,9 @@ export default function DonutByTrainerTypeWithFilters() {
         title="Filtres de recherche"
         placement="right"
         onClose={() => setDrawerVisible(false)}
-        visible={drawerVisible}
+        open={drawerVisible}
         width={360}
-        destroyOnHidden
+        destroyOnClose
       >
         <Form
           layout="vertical"

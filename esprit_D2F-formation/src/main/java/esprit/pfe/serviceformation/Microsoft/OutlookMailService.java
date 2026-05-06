@@ -8,12 +8,13 @@ import com.microsoft.graph.models.Recipient;
 import com.microsoft.graph.models.UserSendMailParameterSet;
 import com.microsoft.graph.requests.GraphServiceClient;
 import okhttp3.Request;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-
 import java.util.Collections;
 
 @Service
+@Slf4j
 public class OutlookMailService {
 
     @Autowired
@@ -40,12 +41,17 @@ public class OutlookMailService {
         message.toRecipients = Collections.singletonList(recipient);
 
         // Envoi du mail à partir de la boîte "Application.Formationdesformateurs@Esprit.tn"
-        graphClient.users("Application.Formationdesformateurs@Esprit.tn")
-                .sendMail(UserSendMailParameterSet.newBuilder()
-                        .withMessage(message)
-                        .withSaveToSentItems(true)
-                        .build())
-                .buildRequest()
-                .post();
+        try {
+            graphClient.users("Application.Formationdesformateurs@Esprit.tn")
+                    .sendMail(UserSendMailParameterSet.newBuilder()
+                            .withMessage(message)
+                            .withSaveToSentItems(true)
+                            .build())
+                    .buildRequest()
+                    .post();
+            log.info("Email envoyé avec succès à {}", to);
+        } catch (Exception e) {
+            log.error("Échec de l'envoi d'email à {} : {}", to, e.getMessage());
+        }
     }
 }

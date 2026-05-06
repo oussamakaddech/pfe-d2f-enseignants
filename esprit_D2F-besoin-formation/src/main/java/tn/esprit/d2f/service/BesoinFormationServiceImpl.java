@@ -5,6 +5,11 @@ import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import tn.esprit.d2f.DTO.BesoinFormationRequest;
+import tn.esprit.d2f.DTO.BesoinFormationResponse;
+import tn.esprit.d2f.mapper.BesoinFormationMapper;
 import tn.esprit.d2f.DTO.BesoinFormationApprovedEvent;
 import tn.esprit.d2f.DTO.BesoinFormationEventPublisher;
 import tn.esprit.d2f.entity.BesoinFormation;
@@ -13,8 +18,6 @@ import tn.esprit.d2f.entity.enumerations.Priorite;
 import tn.esprit.d2f.repository.BesoinFormationRepository;
 import tn.esprit.d2f.repository.NotificationRepository;
 
-import java.util.List;
-
 @Slf4j
 @Service
 @AllArgsConstructor
@@ -22,29 +25,37 @@ public class BesoinFormationServiceImpl implements IBesoinFormationService{
 
     @Autowired
     BesoinFormationRepository besoinFormationRepository;
+    
     private final BesoinFormationEventPublisher eventPublisher;
 
     @Autowired
     private NotificationRepository notificationRepository;
-    public List<BesoinFormation> retrieveAllBesoinFormations() {
-        return besoinFormationRepository.findAll();
+
+    @Autowired
+    private BesoinFormationMapper besoinFormationMapper;
+
+    public Page<BesoinFormationResponse> retrieveAllBesoinFormations(Pageable pageable) {
+        return besoinFormationRepository.findAll(pageable).map(besoinFormationMapper::toResponse);
     }
 
-    public BesoinFormation retrieveBesoinFormation(long idBesoinFormation) {
-        return besoinFormationRepository.findById(idBesoinFormation)
+    public BesoinFormationResponse retrieveBesoinFormation(long idBesoinFormation) {
+        BesoinFormation b = besoinFormationRepository.findById(idBesoinFormation)
                 .orElseThrow(() -> new IllegalArgumentException(
                         "Besoin de formation introuvable avec l'ID : " + idBesoinFormation));
+        return besoinFormationMapper.toResponse(b);
     }
 
-    public BesoinFormation addBesoinFormation(BesoinFormation b) {
-        return besoinFormationRepository.save(b);    }
+    public BesoinFormationResponse addBesoinFormation(BesoinFormationRequest request) {
+        BesoinFormation b = besoinFormationMapper.toEntity(request);
+        return besoinFormationMapper.toResponse(besoinFormationRepository.save(b));
+    }
 
     public void removeBesoinFormation(long idBesoinFormation) {
         besoinFormationRepository.deleteById(idBesoinFormation);
     }
 
-    public BesoinFormation modifyBesoinFormation(BesoinFormation b, String commentaire) {
-        BesoinFormation existing = besoinFormationRepository.findById(b.getIdBesionFormation()).orElseThrow();
+    public BesoinFormationResponse modifyBesoinFormation(BesoinFormationRequest b) {
+        BesoinFormation existing = besoinFormationRepository.findById(b.getIdBesoinFormation()).orElseThrow();
         
         // Mettre à jour les champs de données
         if (b.getTitre() != null) existing.setTitre(b.getTitre());
@@ -58,48 +69,49 @@ public class BesoinFormationServiceImpl implements IBesoinFormationService{
         if (b.getDepartement() != null) existing.setDepartement(b.getDepartement());
         if (b.getEstOuverte() != null) existing.setEstOuverte(b.getEstOuverte());
         if (b.getAutresInformations() != null) existing.setAutresInformations(b.getAutresInformations());
+        if (b.getPeriodCode() != null) existing.setPeriodCode(b.getPeriodCode());
+        if (b.getCustomPeriodLabel() != null) existing.setCustomPeriodLabel(b.getCustomPeriodLabel());
 
-        existing.setApprouveCUP(b.isApprouveCUP());
-        existing.setApprouveChefDep(b.isApprouveChefDep());
-        existing.setApprouveAdmin(b.isApprouveAdmin());
+        // Logique de notification (conservée)
+        if (b.getApprouveCUP() != null) existing.setApprouveCUP(b.getApprouveCUP());
+        if (b.getApprouveChefDep() != null) existing.setApprouveChefDep(b.getApprouveChefDep());
+        if (b.getApprouveAdmin() != null) existing.setApprouveAdmin(b.getApprouveAdmin());
         
-        if (Boolean.FALSE.equals(b.isApprouveCUP())) {
+        if (Boolean.FALSE.equals(existing.isApprouveCUP())) {
             Notification notif = new Notification();
             notif.setUsername(existing.getUsername());
             notif.setMessage("Malheureusement, nous regrettons que votre demande de formation soit refusée.");
-            notif.setCommentaire(commentaire);
+            notif.setCommentaire(b.getCommentaire());
             notificationRepository.save(notif);
         }
-        if (Boolean.TRUE.equals(b.isApprouveAdmin())) {
+        if (Boolean.TRUE.equals(existing.isApprouveAdmin())) {
             Notification notif = new Notification();
             notif.setUsername(existing.getUsername());
             notif.setMessage("Demande de Formation acceptée , Mettez vous en contact avec les formateurs");
-            notif.setCommentaire(commentaire);
+            notif.setCommentaire(b.getCommentaire());
             notificationRepository.save(notif);
         }
 
-        return besoinFormationRepository.save(existing);
+        return besoinFormationMapper.toResponse(besoinFormationRepository.save(existing));
     }
-    // src/main/java/com/example/besoin/service/BesoinFormationServiceImpl.java
+
     @Override
-    public BesoinFormation approuverBesoin(Long id) {
+    public BesoinFormationResponse approuverBesoin(Long id) {
         BesoinFormation b = besoinFormationRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Introuvable"));
 
         b.setApprouveAdmin(true);
         besoinFormationRepository.save(b);
 
-        // 1) Si déjà publié, on ne republie pas
         if (Boolean.TRUE.equals(b.getEventPublished())) {
-            return b;
+            return besoinFormationMapper.toResponse(b);
         }
 
-        // 2) Sinon on publie l'événement
-        b.setEventPublished(true);            // on marque comme publié
+        b.setEventPublished(true);
         besoinFormationRepository.save(b);
 
         BesoinFormationApprovedEvent evt = BesoinFormationApprovedEvent.builder()
-                .idBesoinFormation(b.getIdBesionFormation())
+                .idBesoinFormation(b.getIdBesoinFormation())
                 .username(b.getUsername())
                 .typeBesoin(b.getTypeBesoin() != null ? b.getTypeBesoin().name() : null)
                 .objectifFormation(b.getObjectifFormation())
@@ -124,40 +136,41 @@ public class BesoinFormationServiceImpl implements IBesoinFormationService{
                 .approuveChefDep(b.getApprouveChefDep())
                 .approuveAdmin(b.getApprouveAdmin())
                 .notificationMessage(b.getNotificationMessage())
+                .periodCode(b.getPeriodCode() != null ? b.getPeriodCode().name() : null)
+                .customPeriodLabel(b.getCustomPeriodLabel())
                 .build();
 
         try {
             eventPublisher.publish(evt);
         } catch (Exception e) {
-            log.error("Failed to publish BesoinFormationApprovedEvent for id " + b.getIdBesionFormation() + ": " + e.getMessage());
+            log.error("Failed to publish BesoinFormationApprovedEvent for id " + b.getIdBesoinFormation() + ": " + e.getMessage());
         }
-        return b;
-    }
-    @Override
-    public List<BesoinFormation> retrieveApprovedBesoinFormations() {
-        return besoinFormationRepository.findByApprouveAdminTrue();
-    }
-
-    // ── Nouveaux endpoints §2.2.2 ──
-
-    @Override
-    public List<BesoinFormation> retrieveByUp(String up) {
-        return besoinFormationRepository.findByUp(up);
+        return besoinFormationMapper.toResponse(b);
     }
 
     @Override
-    public List<BesoinFormation> retrieveByDepartement(String departement) {
-        return besoinFormationRepository.findByDepartement(departement);
+    public Page<BesoinFormationResponse> retrieveApprovedBesoinFormations(Pageable pageable) {
+        return besoinFormationRepository.findByApprouveAdminTrue(pageable).map(besoinFormationMapper::toResponse);
     }
 
     @Override
-    public List<BesoinFormation> retrieveAllByPriorite() {
-        return besoinFormationRepository.findAllByOrderByPrioriteDesc();
+    public Page<BesoinFormationResponse> retrieveByUp(String up, Pageable pageable) {
+        return besoinFormationRepository.findByUp(up, pageable).map(besoinFormationMapper::toResponse);
     }
 
     @Override
-    public List<BesoinFormation> retrieveByPriorite(Priorite priorite) {
-        return besoinFormationRepository.findByPriorite(priorite);
+    public Page<BesoinFormationResponse> retrieveByDepartement(String departement, Pageable pageable) {
+        return besoinFormationRepository.findByDepartement(departement, pageable).map(besoinFormationMapper::toResponse);
     }
 
+    @Override
+    public Page<BesoinFormationResponse> retrieveAllByPriorite(Pageable pageable) {
+        return besoinFormationRepository.findAllByOrderByPrioriteDesc(pageable).map(besoinFormationMapper::toResponse);
+    }
+
+    @Override
+    public Page<BesoinFormationResponse> retrieveByPriorite(Priorite priorite, Pageable pageable) {
+        return besoinFormationRepository.findByPriorite(priorite, pageable).map(besoinFormationMapper::toResponse);
+    }
 }
+

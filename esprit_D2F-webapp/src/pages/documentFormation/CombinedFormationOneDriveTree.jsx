@@ -493,7 +493,7 @@ export default function CombinedFormationOneDriveTree() {
         onCancel={() => setUploadModalVisible(false)}
         footer={null}
         width={720}
-        destroyOnHidden
+        destroyOnClose
       >
         {selectedFormation && (
           <DocumentUploadPanel

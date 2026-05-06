@@ -17,7 +17,11 @@ import {
   Empty,
   Tooltip,
   Skeleton,
+  ConfigProvider,
+  DatePicker,
 } from "antd";
+import locale from "antd/es/date-picker/locale/fr_FR";
+import moment from "moment";
 import {
   ReloadOutlined,
   FilterOutlined,
@@ -37,6 +41,7 @@ import {
 } from "@ant-design/icons";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
+import * as XLSX from "xlsx";
 import BesoinFormationService from "../../services/BesoinFormationService";
 import DeptService from "../../services/DeptService";
 import UpService from "../../services/upService";
@@ -45,6 +50,17 @@ import "./BesoinList.css";
 const { Option } = Select;
 const { Title, Text } = Typography;
 const { TextArea } = Input;
+const { RangePicker } = DatePicker;
+
+const PERIOD_OPTIONS = [
+  { value: "P1", label: "Période 1" },
+  { value: "P2", label: "Période 2" },
+  { value: "P3", label: "Période 3" },
+  { value: "P4", label: "Période 4" },
+  { value: "SUMMER", label: "Session d'Été" },
+  { value: "WINTER", label: "Session d'Hiver" },
+  { value: "OTHER", label: "Autre" },
+];
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -67,7 +83,7 @@ export default function BesoinList() {
   const [departements, setDepartements] = useState([]);
   const [ups, setUps] = useState([]);
   const [types, setTypes] = useState([]);
-  const [filters, setFilters] = useState({ deptId: null, upId: null, type: null, statut: null, priorite: null });
+  const [filters, setFilters] = useState({ deptId: null, upId: null, type: null, statut: null, priorite: null, dateRange: null });
   const [loading, setLoading] = useState(false);
   const [searchText, setSearchText] = useState("");
 
@@ -130,11 +146,19 @@ export default function BesoinList() {
           (b.username || "").toLowerCase().includes(s)
       );
     }
+    if (filters.dateRange && filters.dateRange[0] && filters.dateRange[1]) {
+      const start = filters.dateRange[0].startOf("day");
+      const end = filters.dateRange[1].endOf("day");
+      res = res.filter((b) => {
+        const date = moment(b.dateCreation || b.horaireSouhaite);
+        return date.isValid() && date.isBetween(start, end, null, "[]");
+      });
+    }
     setFiltered(res);
   };
 
   const handleDelete = async (id) => {
-    if (id == null) {
+    if (id === null || id === undefined) {
       msgApi.error("Identifiant du besoin introuvable");
       return;
     }
@@ -149,7 +173,7 @@ export default function BesoinList() {
 
   const handleApprove = async (record) => {
     const id = getBesoinId(record);
-    if (id == null) {
+    if (id === null || id === undefined) {
       msgApi.error("Identifiant du besoin introuvable");
       return;
     }
@@ -176,12 +200,23 @@ export default function BesoinList() {
       titre: record.titre || "",
       objectifFormation: record.objectifFormation || "",
       propositionAnimateur: record.propositionAnimateur || "",
-      horaireSouhaite: record.horaireSouhaite || "",
+
       typeBesoin: record.typeBesoin || undefined,
       priorite: record.priorite || undefined,
       impactStrategique: record.impactStrategique || "",
       up: record.up || undefined,
       departement: record.departement || undefined,
+      estOuverte: record.estOuverte ?? false,
+      autresInformations: record.autresInformations || "",
+      publicCible: record.publicCible || "",
+      theme: record.theme || "",
+      dureeFormation: record.dureeFormation || undefined,
+      objectifsPedagogiques: record.objectifsPedagogiques || "",
+      methodesEvaluationAcquis: record.methodesEvaluationAcquis || "",
+      periodeFormation: record.periodeFormation || "",
+      periodCode: record.periodCode || "OTHER",
+      customPeriodLabel: record.customPeriodLabel || record.periodeFormation || "",
+      horaireSouhaite: record.horaireSouhaite ? moment(record.horaireSouhaite) : null,
     });
     setEditModalOpen(true);
   };
@@ -193,6 +228,7 @@ export default function BesoinList() {
       const payload = {
         idBesoinFormation: getBesoinId(editingRecord),
         ...values,
+        horaireSouhaite: values.horaireSouhaite ? values.horaireSouhaite.format("YYYY-MM-DD HH:mm") : undefined,
       };
       await BesoinFormationService.modifyBesoinFormation(payload, "Modification depuis l'interface");
       msgApi.success("Besoin modifié avec succès");
@@ -202,6 +238,46 @@ export default function BesoinList() {
       msgApi.error("Erreur lors de la modification");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const exportToExcel = () => {
+    try {
+      const dataToExport = filtered.map((b) => ({
+        "Titre / Objectif": b.titre || b.objectifFormation || "—",
+        "Demandeur": b.username || "—",
+        "Type": b.typeBesoin || "—",
+        "Thème": b.theme || "—",
+        "Priorité": b.priorite || "—",
+        "UP": getLabel(findById(ups, b.up)),
+        "Département": getLabel(findById(departements, b.departement)),
+        "Statut": b.approuveAdmin ? "Approuvé" : "En attente",
+        "Date Création": b.dateCreation ? moment(b.dateCreation).format("DD/MM/YYYY") : "—",
+        "Période Formation": b.periodeFormation || "—",
+        "Horaire Souhaité": b.horaireSouhaite ? moment(b.horaireSouhaite).format("DD/MM/YYYY HH:mm") : "—",
+        "Impact Stratégique": b.impactStrategique || "—",
+        "Public Cible": b.publicCible || "—",
+      }));
+
+      const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+      const workbook = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Besoins de Formation");
+
+      // Auto-size columns
+      const maxWidths = {};
+      dataToExport.forEach((row) => {
+        Object.keys(row).forEach((key) => {
+          const val = String(row[key]);
+          maxWidths[key] = Math.max(maxWidths[key] || 10, val.length + 2);
+        });
+      });
+      worksheet["!cols"] = Object.keys(maxWidths).map((key) => ({ wch: maxWidths[key] }));
+
+      XLSX.writeFile(workbook, `Liste_Besoins_Formation_${moment().format("YYYY-MM-DD")}.xlsx`);
+      msgApi.success("Export Excel réussi");
+    } catch (error) {
+      console.error("Export error:", error);
+      msgApi.error("Erreur lors de l'exportation Excel");
     }
   };
 
@@ -239,6 +315,24 @@ export default function BesoinList() {
         </Tag>
       ),
       sorter: (a, b) => (a.username || "").localeCompare(b.username || ""),
+    },
+    {
+      title: "Domaine",
+      dataIndex: "theme",
+      key: "theme",
+      width: 150,
+      render: (v) => v || <Text type="secondary">—</Text>,
+      sorter: (a, b) => (a.theme || "").localeCompare(b.theme || ""),
+    },
+    {
+      title: "Période",
+      key: "periode",
+      width: 140,
+      render: (_, r) => {
+        if (r.periodCode === "OTHER") return r.customPeriodLabel || "Autre";
+        const opt = PERIOD_OPTIONS.find(o => o.value === r.periodCode);
+        return opt ? opt.label : (r.periodeFormation || <Text type="secondary">—</Text>);
+      },
     },
     {
       title: "Type",
@@ -286,9 +380,9 @@ export default function BesoinList() {
             <Text type="secondary">—</Text>
           )}
           {r.horaireSouhaite && (
-            <span style={{ fontSize: 12, color: "#595959" }}>
-              <ClockCircleOutlined style={{ marginRight: 4 }} />
-              {r.horaireSouhaite}
+            <span style={{ fontSize: 12, color: "#595959", fontWeight: 600 }}>
+              <ClockCircleOutlined style={{ marginRight: 4, color: "#B51200" }} />
+              {moment(r.horaireSouhaite).isValid() ? moment(r.horaireSouhaite).format("DD/MM/YYYY HH:mm") : r.horaireSouhaite}
             </span>
           )}
         </div>
@@ -379,7 +473,16 @@ export default function BesoinList() {
   }
 
   return (
-    <>
+    <ConfigProvider
+      locale={locale}
+      theme={{
+        token: {
+          colorPrimary: "#B51200",
+          borderRadius: 14,
+          fontFamily: "'Inter', sans-serif",
+        },
+      }}
+    >
       {msgCtx}
       <motion.div
         className="besoin-list-container"
@@ -411,6 +514,15 @@ export default function BesoinList() {
             </Col>
             <Col>
               <Space>
+                <Button
+                  icon={<FileTextOutlined />}
+                  onClick={exportToExcel}
+                  disabled={filtered.length === 0}
+                  className="btn-export-excel"
+                  style={{ backgroundColor: "#1D6F42", color: "white", borderColor: "#1D6F42" }}
+                >
+                  Exporter Excel
+                </Button>
                 <Button icon={<ReloadOutlined />} onClick={fetchData} loading={loading} size="large">
                   Actualiser
                 </Button>
@@ -487,6 +599,13 @@ export default function BesoinList() {
                 size="middle"
                 autoComplete="off"
               />
+              <RangePicker
+                placeholder={["Début", "Fin"]}
+                value={filters.dateRange}
+                onChange={(dates) => setFilters((f) => ({ ...f, dateRange: dates }))}
+                style={{ width: 280 }}
+                size="middle"
+              />
               <Select
                 allowClear
                 placeholder="Type"
@@ -549,7 +668,7 @@ export default function BesoinList() {
               </Select>
               <Button
                 icon={<ReloadOutlined />}
-                onClick={() => { setFilters({ deptId: null, upId: null, type: null, statut: null, priorite: null }); setSearchText(""); }}
+                onClick={() => { setFilters({ deptId: null, upId: null, type: null, statut: null, priorite: null, dateRange: null }); setSearchText(""); }}
                 size="middle"
               >
                 Réinitialiser
@@ -625,9 +744,37 @@ export default function BesoinList() {
                 </Select>
               </Form.Item>
             </Col>
+            <Col xs={24} md={12}>
+              <Form.Item label="Domaine / Thème" name="theme">
+                <Input placeholder="Ex: Informatique..." size="large" />
+              </Form.Item>
+            </Col>
+            <Col xs={24} md={12}>
+              <Form.Item label="Période de formation" name="periodCode" rules={[{ required: true }]}>
+                <Select placeholder="Choisir la période" size="large">
+                  {PERIOD_OPTIONS.map(opt => (
+                    <Option key={opt.value} value={opt.value}>{opt.label}</Option>
+                  ))}
+                </Select>
+              </Form.Item>
+            </Col>
+            <Form.Item noStyle shouldUpdate={(prev, curr) => prev.periodCode !== curr.periodCode}>
+              {({ getFieldValue }) => getFieldValue("periodCode") === "OTHER" ? (
+                <Col xs={24}>
+                  <Form.Item label="Précisez la période" name="customPeriodLabel" rules={[{ required: true }]}>
+                    <Input placeholder="Ex: Mai - Juin 2024" size="large" />
+                  </Form.Item>
+                </Col>
+              ) : null}
+            </Form.Item>
             <Col xs={24}>
               <Form.Item label="Objectif" name="objectifFormation" rules={[{ required: true }]}>
-                <TextArea rows={3} placeholder="Décrire l'objectif de la formation" />
+                <TextArea rows={2} placeholder="Décrire l'objectif général" />
+              </Form.Item>
+            </Col>
+            <Col xs={24}>
+              <Form.Item label="Objectifs Pédagogiques" name="objectifsPedagogiques">
+                <TextArea rows={2} placeholder="Détails des compétences" />
               </Form.Item>
             </Col>
             <Col xs={24} md={12}>
@@ -670,12 +817,40 @@ export default function BesoinList() {
             </Col>
             <Col xs={24} md={12}>
               <Form.Item label="Horaire souhaité" name="horaireSouhaite">
-                <Input placeholder="Ex: Lundi 9h-12h" size="large" prefix={<CalendarOutlined style={{ color: "#B51200" }} />} />
+                <DatePicker showTime format="YYYY-MM-DD HH:mm" style={{ width: "100%" }} />
+              </Form.Item>
+            </Col>
+            <Col xs={24} md={12}>
+              <Form.Item label="Durée (h)" name="dureeFormation">
+                <Input type="number" placeholder="Ex: 40" size="large" />
+              </Form.Item>
+            </Col>
+            <Col xs={24} md={12}>
+              <Form.Item label="Méthodes d'évaluation" name="methodesEvaluationAcquis">
+                <Input placeholder="Ex: Quiz..." size="large" />
+              </Form.Item>
+            </Col>
+            <Col xs={24} md={12}>
+              <Form.Item label="Type de formation" name="estOuverte">
+                <Select placeholder="Ouverte ou fermée ?" size="large">
+                  <Option value={false}>Fermée (UP uniquement)</Option>
+                  <Option value={true}>Ouverte (Toutes UPs)</Option>
+                </Select>
+              </Form.Item>
+            </Col>
+            <Col xs={24}>
+              <Form.Item label="Liste des participants" name="publicCible">
+                <TextArea rows={3} placeholder="Liste des participants (un par ligne)" />
+              </Form.Item>
+            </Col>
+            <Col xs={24}>
+              <Form.Item label="Autres informations" name="autresInformations">
+                <TextArea rows={3} placeholder="Remarques additionnelles..." />
               </Form.Item>
             </Col>
           </Row>
         </Form>
       </Modal>
-    </>
+    </ConfigProvider>
   );
 }

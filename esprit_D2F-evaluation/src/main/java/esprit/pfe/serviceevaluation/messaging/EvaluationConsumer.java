@@ -3,8 +3,6 @@ package esprit.pfe.serviceevaluation.messaging;
 
 
 import esprit.pfe.serviceevaluation.DTO.EvaluationFormateurDTO;
-import esprit.pfe.serviceevaluation.Entities.EvaluationFormateur;
-import esprit.pfe.serviceevaluation.Repositories.EvaluationFormateurRepository;
 import esprit.pfe.serviceevaluation.Services.EvaluationFormateurService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;

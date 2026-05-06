@@ -89,6 +89,8 @@ export default function EnseignantRegister({ initialValues = {}, onSuccess, onEr
             <Option value="D2F">D2F</Option>
             <Option value="CUP">CUP</Option>
             <Option value="Formateur">Formateur</Option>
+            <Option value="CHEF_DEPARTEMENT">Chef Département</Option>
+            <Option value="RESPONSABLE_DOSSIER">Responsable Dossier</Option>
           </Select>
         </Form.Item>
 

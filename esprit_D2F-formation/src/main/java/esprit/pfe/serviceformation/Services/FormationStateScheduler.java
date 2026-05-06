@@ -3,6 +3,7 @@ package esprit.pfe.serviceformation.Services;
 import esprit.pfe.serviceformation.Entities.EtatFormation;
 import esprit.pfe.serviceformation.Entities.Formation;
 import esprit.pfe.serviceformation.Repositories.FormationRepository;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
@@ -10,6 +11,7 @@ import java.util.Date;
 import java.util.List;
 
 @Component
+@Slf4j
 public class FormationStateScheduler {
 
     @Autowired
@@ -23,7 +25,7 @@ public class FormationStateScheduler {
      */
     @Scheduled(cron = "0 * * * * ?")
     public void updateFormationStates() {
-        System.out.println("Le planificateur de mise à jour des formations s'exécute à " + new Date());
+        log.info("Le planificateur de mise à jour des formations s'exécute à {}", new Date());
         List<Formation> formations = formationRepository.findAll();
         Date now = new Date();
         for (Formation f : formations) {
@@ -37,7 +39,7 @@ public class FormationStateScheduler {
             if (newState != oldState) {
                 f.setEtatFormation(newState);
                 formationRepository.save(f);
-                System.out.println("Formation " + f.getIdFormation() + " passe de " + oldState + " à " + newState);
+                log.info("Formation {} passe de {} à {}", f.getIdFormation(), oldState, newState);
                 // Selon le nouvel état, synchroniser le calendrier
                 if (newState == EtatFormation.PLANIFIE || newState == EtatFormation.EN_COURS) {
                     // Créer ou mettre à jour les événements

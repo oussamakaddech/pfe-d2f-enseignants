@@ -22,5 +22,7 @@ public class FormationWithDocumentsDTO {
     private DeptDTO departement1;
     private UpDTO up1;
     private List<DocumentDTO> documents;
+    private String periodCode;
+    private String customPeriodLabel;
 }
 

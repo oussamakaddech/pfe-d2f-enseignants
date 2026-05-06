@@ -143,9 +143,9 @@ export default function FormationsByTypeFiltered() {
         title="Filtres de recherche"
         placement="right"
         onClose={() => setDrawerVisible(false)}
-        visible={drawerVisible}
+        open={drawerVisible}
         width={360}
-        destroyOnHidden
+        destroyOnClose
       >
         <Form
           layout="vertical"

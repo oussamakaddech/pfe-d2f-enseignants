@@ -2,7 +2,6 @@ package esprit.pfe.serviceformation.Controllers;
 
 import esprit.pfe.serviceformation.DTO.DocumentDTO;
 import esprit.pfe.serviceformation.Entities.Document;
-import esprit.pfe.serviceformation.Entities.DriveSubPath;
 import esprit.pfe.serviceformation.Services.DocumentMapper;
 import esprit.pfe.serviceformation.Services.DocumentService;
 import lombok.extern.slf4j.Slf4j;

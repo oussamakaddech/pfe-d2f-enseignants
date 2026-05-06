@@ -1,11 +1,7 @@
 package esprit.pfe.serviceformation.Services;
 
-import esprit.pfe.serviceformation.Entities.Inscription;
-import esprit.pfe.serviceformation.Entities.Formation;
-import esprit.pfe.serviceformation.Entities.Enseignant;
-import esprit.pfe.serviceformation.Repositories.InscriptionRepository;
-import esprit.pfe.serviceformation.Repositories.FormationRepository;
-import esprit.pfe.serviceformation.Repositories.EnseignantRepository;
+import esprit.pfe.serviceformation.Entities.*;
+import esprit.pfe.serviceformation.Repositories.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -14,12 +10,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.mockito.junit.jupiter.MockitoSettings;
-import org.mockito.quality.Strictness;
 
-import java.time.LocalDate;
 import java.util.ArrayList;
-import java.util.List;
+import java.util.Date;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.*;
@@ -27,171 +20,159 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-@MockitoSettings(strictness = Strictness.LENIENT)
 @DisplayName("InscriptionService - Tests unitaires")
-@org.junit.jupiter.api.Disabled("Tests désactivés car ils ne correspondent plus au modèle de données actuel")
-class InscriptionServiceTest {
-/*
-    @Mock
-    private InscriptionRepository inscriptionRepository;
+class InscriptionServiceImplTest {
 
     @Mock
-    private FormationRepository formationRepository;
+    private InscriptionRepository inscriptionRepo;
 
     @Mock
-    private EnseignantRepository enseignantRepository;
+    private FormationRepository formationRepo;
+
+    @Mock
+    private EnseignantRepository enseignantRepo;
 
     @InjectMocks
     private InscriptionService inscriptionService;
 
-    private Inscription inscription;
     private Formation formation;
     private Enseignant enseignant;
+    private Up up;
 
     @BeforeEach
     void setUp() {
-        enseignant = Enseignant.builder()
-                .id("ENS001")
-                .nom("Dupont")
-                .prenom("Jean")
-                .email("jean.dupont@esprit.tn")
-                .specialite("Informatique")
-                .build();
+        up = new Up();
+        up.setId("UP001");
+        up.setLibelle("Informatique");
 
-        formation = Formation.builder()
-                .id(1L)
-                .titre("Formation Java")
-                .description("Formation avancée Java")
-                .dateDebut(LocalDate.of(2026, 5, 1))
-                .dateFin(LocalDate.of(2026, 5, 31))
-                .lieu("Salle A1")
-                .nombrePlaces(30)
-                .nombreInscrits(5)
-                .inscriptionsOuvertes(true)
-                .statut("PLANIFIEE")
-                .build();
+        Dept dept = new Dept();
+        dept.setId("DEPT001");
+        dept.setLibelle("Ingénierie");
 
-        inscription = Inscription.builder()
-                .id(1L)
-                .formation(formation)
-                .enseignant(enseignant)
-                .dateInscription(LocalDate.now())
-                .statut("CONFIRMEE")
-                .build();
+        enseignant = new Enseignant();
+        enseignant.setId("ENS001");
+        enseignant.setNom("Dupont");
+        enseignant.setPrenom("Jean");
+        enseignant.setMail("jean@esprit.tn");
+        enseignant.setUp(up);
+        enseignant.setDept(dept);
+
+        formation = new Formation();
+        formation.setIdFormation(1L);
+        formation.setTitreFormation("Spring Boot");
+        formation.setInscriptionsOuvertes(true);
+        formation.setOuverte(true);
+        formation.setUp(up);
+        formation.setDateDebut(new Date());
+        formation.setDateFin(new Date(System.currentTimeMillis() + 86400000));
+        formation.setSeances(new ArrayList<>());
     }
 
     @Nested
-    @DisplayName("createInscription()")
-    class CreateInscription {
+    @DisplayName("demanderInscription()")
+    class DemanderInscription {
 
         @Test
-        @DisplayName("crée une inscription valide")
-        void shouldCreateValidInscription() {
-            when(inscriptionRepository.save(any(Inscription.class))).thenReturn(inscription);
+        @DisplayName("crée une inscription pour une formation ouverte")
+        void shouldCreateInscription() {
+            Inscription saved = new Inscription();
+            saved.setId(1L);
+            saved.setFormation(formation);
+            saved.setEnseignant(enseignant);
+            saved.setEtat(EtatInscription.PENDING);
 
-            Inscription result = inscriptionService.createInscription(inscription);
+            when(formationRepo.findById(1L)).thenReturn(Optional.of(formation));
+            when(enseignantRepo.findById("ENS001")).thenReturn(Optional.of(enseignant));
+            when(inscriptionRepo.findByEnseignant_Id("ENS001")).thenReturn(new ArrayList<>());
+            when(inscriptionRepo.save(any())).thenReturn(saved);
+
+            Inscription result = inscriptionService.demanderInscription(1L, "ENS001");
 
             assertThat(result).isNotNull();
-            assertThat(result.getId()).isEqualTo(1L);
-            assertThat(result.getStatut()).isEqualTo("CONFIRMEE");
-            assertThat(result.getEnseignant().getId()).isEqualTo("ENS001");
-            verify(inscriptionRepository, times(1)).save(any(Inscription.class));
+            assertThat(result.getFormation().getTitreFormation()).isEqualTo("Spring Boot");
+            verify(inscriptionRepo).save(any());
         }
 
         @Test
-        @DisplayName("lève une exception si les places sont complètes")
-        void shouldThrowExceptionWhenNoPlacesAvailable() {
-            Formation fullFormation = Formation.builder()
-                    .id(2L)
-                    .titre("Formation Complète")
-                    .nombrePlaces(30)
-                    .nombreInscrits(30)
-                    .inscriptionsOuvertes(true)
-                    .build();
+        @DisplayName("refuse si inscriptions fermées")
+        void shouldRejectWhenClosed() {
+            formation.setInscriptionsOuvertes(false);
+            when(formationRepo.findById(1L)).thenReturn(Optional.of(formation));
 
-            Inscription invalidInscription = Inscription.builder()
-                    .formation(fullFormation)
-                    .enseignant(enseignant)
-                    .build();
-
-            when(inscriptionRepository.save(any(Inscription.class)))
-                    .thenThrow(new IllegalStateException("Aucune place disponible"));
-
-            assertThatThrownBy(() -> inscriptionService.createInscription(invalidInscription))
+            assertThatThrownBy(() -> inscriptionService.demanderInscription(1L, "ENS001"))
                     .isInstanceOf(IllegalStateException.class)
-                    .hasMessageContaining("place");
+                    .hasMessageContaining("pas visible");
+        }
+
+        @Test
+        @DisplayName("refuse si formation introuvable")
+        void shouldRejectWhenFormationNotFound() {
+            when(formationRepo.findById(999L)).thenReturn(Optional.empty());
+
+            assertThatThrownBy(() -> inscriptionService.demanderInscription(999L, "ENS001"))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("introuvable");
+        }
+
+        @Test
+        @DisplayName("refuse si UP ne correspond pas (formation non ouverte)")
+        void shouldRejectWhenUpMismatch() {
+            formation.setOuverte(false);
+            Up otherUp = new Up();
+            otherUp.setId("UP_OTHER");
+            enseignant.setUp(otherUp);
+
+            when(formationRepo.findById(1L)).thenReturn(Optional.of(formation));
+            when(enseignantRepo.findById("ENS001")).thenReturn(Optional.of(enseignant));
+
+            assertThatThrownBy(() -> inscriptionService.demanderInscription(1L, "ENS001"))
+                    .isInstanceOf(IllegalStateException.class)
+                    .hasMessageContaining("pas autorisé");
         }
     }
 
     @Nested
-    @DisplayName("updateInscriptionStatus()")
-    class UpdateInscriptionStatus {
+    @DisplayName("traiterDemande()")
+    class TraiterDemande {
 
         @Test
-        @DisplayName("met à jour le statut d'une inscription")
-        void shouldUpdateInscriptionStatus() {
-            Inscription updated = Inscription.builder()
-                    .id(1L)
-                    .formation(formation)
-                    .enseignant(enseignant)
-                    .dateInscription(LocalDate.now())
-                    .statut("VALIDEE")
-                    .build();
+        @DisplayName("approuve une demande")
+        void shouldApprove() {
+            Inscription ins = new Inscription();
+            ins.setId(1L);
+            ins.setEtat(EtatInscription.PENDING);
 
-            when(inscriptionRepository.findById(1L)).thenReturn(Optional.of(inscription));
-            when(inscriptionRepository.save(any(Inscription.class))).thenReturn(updated);
+            when(inscriptionRepo.findById(1L)).thenReturn(Optional.of(ins));
+            when(inscriptionRepo.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
-            Inscription result = inscriptionService.updateInscriptionStatus(1L, "VALIDEE");
+            Inscription result = inscriptionService.traiterDemande(1L, true);
 
-            assertThat(result).isNotNull();
-            assertThat(result.getStatut()).isEqualTo("VALIDEE");
-            verify(inscriptionRepository, times(1)).findById(1L);
+            assertThat(result.getEtat()).isEqualTo(EtatInscription.APPROVED);
         }
 
         @Test
-        @DisplayName("lève une exception si l'inscription n'existe pas")
-        void shouldThrowExceptionWhenInscriptionNotFound() {
-            when(inscriptionRepository.findById(999L)).thenReturn(Optional.empty());
+        @DisplayName("rejette une demande")
+        void shouldReject() {
+            Inscription ins = new Inscription();
+            ins.setId(1L);
+            ins.setEtat(EtatInscription.PENDING);
 
-            assertThatThrownBy(() -> inscriptionService.updateInscriptionStatus(999L, "VALIDEE"))
-                    .isInstanceOf(RuntimeException.class)
-                    .hasMessageContaining("non trouvée");
+            when(inscriptionRepo.findById(1L)).thenReturn(Optional.of(ins));
+            when(inscriptionRepo.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+            Inscription result = inscriptionService.traiterDemande(1L, false);
+
+            assertThat(result.getEtat()).isEqualTo(EtatInscription.REJECTED);
         }
-    }
-
-    @Nested
-    @DisplayName("cancelInscription()")
-    class CancelInscription {
 
         @Test
-        @DisplayName("annule une inscription")
-        void shouldCancelInscription() {
-            when(inscriptionRepository.findById(1L)).thenReturn(Optional.of(inscription));
-            when(inscriptionRepository.save(any(Inscription.class))).thenReturn(inscription);
+        @DisplayName("lève une exception si demande introuvable")
+        void shouldThrowWhenNotFound() {
+            when(inscriptionRepo.findById(999L)).thenReturn(Optional.empty());
 
-            inscriptionService.cancelInscription(1L);
-
-            verify(inscriptionRepository, times(1)).findById(1L);
+            assertThatThrownBy(() -> inscriptionService.traiterDemande(999L, true))
+                    .isInstanceOf(IllegalArgumentException.class)
+                    .hasMessageContaining("introuvable");
         }
     }
-
-    @Nested
-    @DisplayName("getInscriptionsByFormation()")
-    class GetInscriptionsByFormation {
-
-        @Test
-        @DisplayName("retourne toutes les inscriptions d'une formation")
-        void shouldGetInscriptionsByFormation() {
-            List<Inscription> inscriptions = List.of(inscription);
-            when(inscriptionRepository.findByFormationId(1L)).thenReturn(inscriptions);
-
-            List<Inscription> result = inscriptionService.getInscriptionsByFormation(1L);
-
-            assertThat(result).isNotNull();
-            assertThat(result).hasSize(1);
-            assertThat(result.get(0).getId()).isEqualTo(1L);
-            verify(inscriptionService, times(1)).getInscriptionsByFormation(1L);
-        }
-    }
-*/
 }

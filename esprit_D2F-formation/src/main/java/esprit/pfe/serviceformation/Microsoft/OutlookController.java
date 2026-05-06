@@ -1,22 +1,11 @@
 package esprit.pfe.serviceformation.Microsoft;
 
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-
-import java.time.OffsetDateTime;
 
 @RestController
 @RequestMapping("/api/v1/outlook")
 public class OutlookController {
-
-    @Autowired
-    private OutlookMailService mailService;
-
-    @Autowired
-    private OutlookCalendarService calendarService;
 
   /*  @GetMapping("/send-mail")
     public ResponseEntity<String> sendMail() {

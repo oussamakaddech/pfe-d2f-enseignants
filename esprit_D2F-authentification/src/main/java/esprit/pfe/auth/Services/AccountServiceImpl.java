@@ -80,10 +80,6 @@ public class AccountServiceImpl implements AccountService {
         return "Password updated";
     }
 
-    private void checkIfEmailAddressExist(String emailAddress) {
-        if (this.userRepository.existsByEmail(emailAddress))
-            throw new BadRequestException("Email address already in use");
-    }
     @Override
     public User getPrincipalByUsername(String username) {
         return this.userRepository.findByUsername(username)

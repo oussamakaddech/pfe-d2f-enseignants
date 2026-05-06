@@ -31,5 +31,7 @@ public class BesoinFormationApprovedEvent implements Serializable {
     private Boolean approuveChefDep;
     private Boolean approuveAdmin;
     private String notificationMessage;
+    private String periodCode;
+    private String customPeriodLabel;
 }
 

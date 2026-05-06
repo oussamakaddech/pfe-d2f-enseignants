@@ -32,7 +32,7 @@ public class AuthorizationMatrix {
     public static final String BESOIN_FORMATION_APPROVE = "hasAnyRole('ROLE_admin','ROLE_ADMIN','ROLE_CUP','ROLE_D2F')";
 
     // ============ PLANIFICATION FORMATIONS ============
-    public static final String FORMATION_READ = "hasAnyRole('ROLE_admin','ROLE_ADMIN','ROLE_CUP','ROLE_D2F','ROLE_Enseignant','ROLE_Formateur')";
+    public static final String FORMATION_READ = "hasAnyRole('ROLE_admin','ROLE_ADMIN','ROLE_CUP','ROLE_D2F','ROLE_Enseignant','ROLE_Formateur','ROLE_CHEF_DEPARTEMENT','ROLE_RESPONSABLE_DOSSIER')";
     public static final String FORMATION_CREATE = "hasAnyRole('ROLE_admin','ROLE_ADMIN','ROLE_CUP','ROLE_D2F')";
     public static final String FORMATION_UPDATE = "hasAnyRole('ROLE_admin','ROLE_ADMIN','ROLE_CUP','ROLE_D2F')";
     public static final String FORMATION_DELETE = "hasAnyRole('ROLE_admin','ROLE_ADMIN')";
@@ -74,7 +74,7 @@ public class AuthorizationMatrix {
     public static final String ACCOUNT_EDIT_OWN = "isAuthenticated()"; 
 
     // ============ API GATEWAY ============
-    public static final String GATEWAY_ACCESS = "hasAnyRole('ROLE_admin','ROLE_ADMIN','ROLE_CUP','ROLE_D2F','ROLE_Enseignant','ROLE_Formateur')";
+    public static final String GATEWAY_ACCESS = "hasAnyRole('ROLE_admin','ROLE_ADMIN','ROLE_CUP','ROLE_D2F','ROLE_Enseignant','ROLE_Formateur','ROLE_CHEF_DEPARTEMENT','ROLE_RESPONSABLE_DOSSIER')";
 
     // ============ PUBLIC ENDPOINTS ============
     public static final String PUBLIC_ACCESS = "permitAll()";

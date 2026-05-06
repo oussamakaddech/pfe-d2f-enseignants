@@ -3,6 +3,7 @@ package esprit.pfe.serviceformation.Microsoft;
 import com.microsoft.graph.models.*;
 import com.microsoft.graph.requests.GraphServiceClient;
 import okhttp3.Request;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -11,6 +12,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
+@Slf4j
 public class OutlookCalendarService {
 
     @Autowired
@@ -66,10 +68,15 @@ public class OutlookCalendarService {
         }
 
         // L'événement est créé dans le calendrier de l'organisateur
-        Event createdEvent = graphClient.users(organizerEmail)
-                .events()
-                .buildRequest()
-                .post(event);
+        Event createdEvent;
+        try {
+            createdEvent = graphClient.users(organizerEmail)
+                    .events()
+                    .buildRequest()
+                    .post(event);
+        } catch (Exception e) {
+            throw new RuntimeException("Erreur lors de la création de l'événement Outlook pour " + organizerEmail + ": " + e.getMessage(), e);
+        }
         
         // ✅ Récupérer le joinUrl de la réunion Teams créée
         String joinUrl = null;
@@ -119,10 +126,15 @@ public class OutlookCalendarService {
         }
 
         // Requête de mise à jour (PATCH) dans le calendrier de l'organisateur
-        Event patchedEvent = graphClient.users(organizerEmail)
-                .events(eventId)
-                .buildRequest()
-                .patch(updatedEvent);
+        Event patchedEvent;
+        try {
+            patchedEvent = graphClient.users(organizerEmail)
+                    .events(eventId)
+                    .buildRequest()
+                    .patch(updatedEvent);
+        } catch (Exception e) {
+            throw new RuntimeException("Erreur lors de la mise à jour de l'événement Outlook " + eventId + ": " + e.getMessage(), e);
+        }
         
         // ✅ Récupérer le joinUrl après mise à jour
         String joinUrl = null;
@@ -135,10 +147,15 @@ public class OutlookCalendarService {
     // La suppression se fait toujours depuis le calendrier de l'organisateur
     public void deleteEventInCalendar(String organizerEmail, String eventId) {
         GraphServiceClient<Request> graphClient = graphProvider.getGraphClient();
-        graphClient.users(organizerEmail)
-                .events(eventId)
-                .buildRequest()
-                .delete();
+        try {
+            graphClient.users(organizerEmail)
+                    .events(eventId)
+                    .buildRequest()
+                    .delete();
+            log.info("Événement Outlook {} supprimé avec succès pour {}", eventId, organizerEmail);
+        } catch (Exception e) {
+            log.warn("Erreur lors de la suppression de l'événement Outlook {} : {}", eventId, e.getMessage());
+        }
     }
 
     // ✅ ANCIENNE MÉTHODE - garder pour compatibilité backward

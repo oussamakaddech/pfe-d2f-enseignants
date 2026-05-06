@@ -3,7 +3,6 @@ package esprit.pfe.serviceformation.Services;
 import esprit.pfe.serviceformation.DTO.*;
 import esprit.pfe.serviceformation.Entities.*;
 import esprit.pfe.serviceformation.Repositories.*;
-import esprit.pfe.serviceformation.feign.EvaluationClient;
 import esprit.pfe.serviceformation.Microsoft.OutlookCalendarService;
 import esprit.pfe.serviceformation.Microsoft.OutlookMailService;
 import esprit.pfe.serviceformation.messaging.EvaluationBatchMessage;
@@ -774,8 +773,8 @@ public class FormationWorkflowService {
             "</div>",
             formation.getTitreFormation(),
             formation.getDomaine(),
-            new SimpleDateFormat("dd/MM/yyyy").format(formation.getDateDebut()),
-            new SimpleDateFormat("dd/MM/yyyy").format(formation.getDateFin())
+            formatDate(formation.getDateDebut()),
+            formatDate(formation.getDateFin())
         );
 
         for (Enseignant e : allEnseignants) {

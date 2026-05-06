@@ -3,8 +3,6 @@ package esprit.pfe.serviceformation.Services;
 import esprit.pfe.serviceformation.DTO.AnimateurFormationDTO;
 import esprit.pfe.serviceformation.DTO.FormateurNameDTO;
 import esprit.pfe.serviceformation.DTO.ParticipantFormationDTO;
-import esprit.pfe.serviceformation.Entities.Enseignant;
-import esprit.pfe.serviceformation.Entities.Formation;
 import esprit.pfe.serviceformation.Repositories.PresenceRepository;
 import esprit.pfe.serviceformation.Repositories.SeanceFormationRepository;
 import org.springframework.beans.factory.annotation.Autowired;

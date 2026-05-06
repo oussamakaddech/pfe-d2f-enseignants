@@ -22,14 +22,12 @@ import {
   Switch,
   FormControlLabel,
   Paper,
-  Tooltip,
   InputAdornment,
 } from "@mui/material";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
 import DeleteIcon from "@mui/icons-material/Delete";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import InfoIcon from "@mui/icons-material/Info";
 import GroupsIcon from "@mui/icons-material/Groups";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import SchoolIcon from "@mui/icons-material/School";
@@ -49,6 +47,16 @@ import DocumentUploadForm from "./documentFormation/DocumentUploadForm";
 
 const STEPS = ["Général", "Pédagogie", "Planning & Acteurs", "Compétences RICE", "Coûts"];
 
+const PERIOD_OPTIONS = [
+  { value: "P1", label: "Période 1" },
+  { value: "P2", label: "Période 2" },
+  { value: "P3", label: "Période 3" },
+  { value: "P4", label: "Période 4" },
+  { value: "SUMMER", label: "Session d'Été" },
+  { value: "WINTER", label: "Session d'Hiver" },
+  { value: "OTHER", label: "Autre" },
+];
+
 export default function FormationWorkflowForm({ initialDate, onFormationCreated, besoinInfo }) {
   const navigate = useNavigate();
   const auth = useContext(AuthContext);
@@ -65,6 +73,10 @@ export default function FormationWorkflowForm({ initialDate, onFormationCreated,
   const [organisme, setOrganisme] = useState("");
   const [chargeH, setChargeH] = useState(besoinInfo?.dureeFormation || 40);
   const [ouverte, setOuverte] = useState(besoinInfo?.estOuverte || false);
+  
+  // Structured Period State
+  const [periodCode, setPeriodCode] = useState(besoinInfo?.periodCode || "OTHER");
+  const [customPeriodLabel, setCustomPeriodLabel] = useState(besoinInfo?.customPeriodLabel || besoinInfo?.periodeFormation || "");
 
   const [formNom, setFormNom] = useState("");
   const [formPrenom, setFormPrenom] = useState("");
@@ -155,6 +167,21 @@ export default function FormationWorkflowForm({ initialDate, onFormationCreated,
     (!partFilterDept || x.deptLibelle === partFilterDept.libelle)
   );
 
+  // Pre-fill participants from publicCible if possible
+  useEffect(() => {
+    if (besoinInfo?.publicCible && enseignants.length > 0 && partSel.length === 0) {
+      const emails = (besoinInfo.publicCible.match(/<([^>]+)>/g) || [])
+        .map(m => m.slice(1, -1).trim().toLowerCase());
+      
+      if (emails.length > 0) {
+        const matched = enseignants.filter(e => e.mail && emails.includes(e.mail.toLowerCase()));
+        if (matched.length > 0) {
+          setPartSel(matched);
+        }
+      }
+    }
+  }, [besoinInfo, enseignants, partSel.length]);
+
   useEffect(() => {
     (async () => {
       try {
@@ -171,7 +198,7 @@ export default function FormationWorkflowForm({ initialDate, onFormationCreated,
         setDepts(d);
         setEnseignants(e);
         
-        // Préréglage de l'UP et du département à partir du besoin
+        // Préréglage de l&apos;UP et du département à partir du besoin
         if (besoinInfo) {
           if (besoinInfo.up) {
             const foundUp = u.find(up => String(up.id) === String(besoinInfo.up));
@@ -242,7 +269,7 @@ export default function FormationWorkflowForm({ initialDate, onFormationCreated,
   const toMinutes = (timeValue) => {
     if (!timeValue) return null;
     const parts = String(timeValue).split(":");
-    if (parts.length < 2) return null;
+    if (parts.length <2) return null;
     const h = parseInt(parts[0], 10);
     const m = parseInt(parts[1], 10);
     if (Number.isNaN(h) || Number.isNaN(m)) return null;
@@ -276,11 +303,11 @@ export default function FormationWorkflowForm({ initialDate, onFormationCreated,
       const start = toMinutes(s.heureDebut);
       const end = toMinutes(s.heureFin);
       if (start !== null && end !== null && start >= end) {
-        messages.push(`Séance #${idx + 1}: heure de fin doit être après l'heure de début.`);
+        messages.push(`Séance #${idx + 1}: heure de fin doit être après l&apos;heure de début.`);
       }
     });
 
-    for (let i = 0; i < localSeances.length; i += 1) {
+    for (let i = 0; i <localSeances.length; i += 1) {
       for (let j = i + 1; j < localSeances.length; j += 1) {
         const left = localSeances[i];
         const right = localSeances[j];
@@ -414,7 +441,7 @@ export default function FormationWorkflowForm({ initialDate, onFormationCreated,
         upId: selectedUp?.id, departementId: selectedDept?.id,
         animateursIds: finalAnimIds, participantsIds: partSel.map(p => p.id),
         domaine, populationCible, objectifs, objectifsPedago, evalMethods,
-        coutTransport, coutHebergement, coutRepas,
+        coutTransport, coutHebergement, coutRepas, periodCode, customPeriodLabel,
         seances: seances.map(s => ({
           dateSeance: s.dateSeance, heureDebut: s.heureDebut, heureFin: s.heureFin,
           salle: s.salle, onlineMeetingUrl: s.onlineMeetingUrl,
@@ -445,6 +472,20 @@ export default function FormationWorkflowForm({ initialDate, onFormationCreated,
       case 0: // Général
         return (
           <Grid container spacing={3}>
+            {besoinInfo && (
+              <Grid item xs={12}>
+                <Alert severity="info" sx={{ mb: 2, borderRadius: 2 }}>
+                  <Typography variant="subtitle2" fontWeight="bold">Contexte du Besoin :</Typography>
+                  <Box sx={{ mt: 1, fontSize: "0.875rem" }}>
+                    {besoinInfo.propositionAnimateur && <div>• <strong>Animateur proposé :</strong> {besoinInfo.propositionAnimateur}</div>}
+                    {besoinInfo.horaireSouhaite && <div>• <strong>Horaire souhaité :</strong> {besoinInfo.horaireSouhaite}</div>}
+                    {besoinInfo.periodeFormation && <div>• <strong>Période souhaitée :</strong> {besoinInfo.periodeFormation}</div>}
+                    {besoinInfo.priorite && <div>• <strong>Priorité :</strong> {besoinInfo.priorite}</div>}
+                    {besoinInfo.autresInformations && <div>• <strong>Notes :</strong> {besoinInfo.autresInformations}</div>}
+                  </Box>
+                </Alert>
+              </Grid>
+            )}
             <Grid item xs={12}>
               <TextField label="Titre de la Formation" fullWidth value={titre} onChange={(e) => setTitre(e.target.value)} required variant="outlined" />
             </Grid>
@@ -480,6 +521,31 @@ export default function FormationWorkflowForm({ initialDate, onFormationCreated,
             </Grid>
             <Grid item xs={6}>
               <FormControlLabel control={<Switch checked={ouverte} onChange={(e) => setOuverte(e.target.checked)} color="error" />} label="Inscriptions Ouvertes" />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField
+                label="Période de Formation"
+                select
+                fullWidth
+                SelectProps={{ native: true }}
+                value={periodCode}
+                onChange={(e) => setPeriodCode(e.target.value)}
+              >
+                {PERIOD_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </TextField>
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              {periodCode === "OTHER" && (
+                <TextField
+                  label="Précisez la période"
+                  fullWidth
+                  value={customPeriodLabel}
+                  onChange={(e) => setCustomPeriodLabel(e.target.value)}
+                  placeholder="Ex : Mai - Juin 2024"
+                />
+              )}
             </Grid>
           </Grid>
         );
@@ -592,7 +658,7 @@ export default function FormationWorkflowForm({ initialDate, onFormationCreated,
                     }} />
                   </Button>
                 </Box>
-                <Autocomplete multiple options={optionsPart} getOptionLabel={getEnseignantLabel} value={partSel} onChange={(_, v) => { setPartSel(v); checkOverlaps(v, "participant"); }} renderInput={(params) => <TextField {...params} label="Sélectionner Participants" />} />
+                <Autocomplete multiple options={optionsPart} getOptionLabel={getEnseignantLabel} value={partSel} onChange={(_, v) => { setPartSel(v); }} renderInput={(params) => <TextField {...params} label="Sélectionner Participants" />} />
               </Grid>
             </Grid>
             {overlapWarnings.length > 0 && (
@@ -710,4 +776,5 @@ export default function FormationWorkflowForm({ initialDate, onFormationCreated,
 FormationWorkflowForm.propTypes = {
   initialDate: PropTypes.instanceOf(Date),
   onFormationCreated: PropTypes.func.isRequired,
+  besoinInfo: PropTypes.object,
 };

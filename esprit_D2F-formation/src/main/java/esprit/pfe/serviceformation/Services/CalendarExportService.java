@@ -6,8 +6,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.text.SimpleDateFormat;
+import java.time.format.DateTimeFormatter;
 import java.time.ZoneId;
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.Date;
 import java.util.List;
 
@@ -117,9 +119,13 @@ public class CalendarExportService {
     }
 
     private String formatIcsDateTime(Date date, java.sql.Time time) {
-        SimpleDateFormat dateFmt = new SimpleDateFormat("yyyyMMdd");
-        SimpleDateFormat timeFmt = new SimpleDateFormat("HHmmss");
-        return dateFmt.format(date) + "T" + timeFmt.format(time);
+        if (date == null || time == null) return "";
+        LocalDate lDate = date.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
+        LocalTime lTime = time.toLocalTime();
+        
+        DateTimeFormatter dateFmt = DateTimeFormatter.ofPattern("yyyyMMdd");
+        DateTimeFormatter timeFmt = DateTimeFormatter.ofPattern("HHmmss");
+        return lDate.format(dateFmt) + "T" + lTime.format(timeFmt);
     }
 
     private String escapeIcsText(String text) {

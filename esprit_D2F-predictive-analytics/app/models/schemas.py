@@ -89,21 +89,17 @@ class DecliningCompetency(BaseModel):
     competency_id: int
     competency_name: str
     domaine_name: str
-    avg_level_previous: float
-    avg_level_current: float
-    decline_rate: float
-    affected_teachers_count: int
-    urgency: str
+    demand_3m: int
+    demand_12m: int
 
 
 class InDemandCompetency(BaseModel):
     competency_id: int
     competency_name: str
     domaine_name: str
-    demand_count_3m: int
-    demand_count_12m: int
+    demand_3m: int
+    demand_12m: int
     trend: str  # increasing, stable, decreasing
-    avg_gap: float
 
 
 class TeacherRiskIndicator(BaseModel):

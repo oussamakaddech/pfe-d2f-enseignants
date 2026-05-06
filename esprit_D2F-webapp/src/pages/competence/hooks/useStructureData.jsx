@@ -104,7 +104,7 @@ export default function useStructureData() {
         : await CompetenceService.niveauDefinition.getBySousCompetence(niveauTarget.id);
       setNiveauData(refresh);
     } catch (err) {
-      message.error(err.response?.data?.message || "Erreur lors de l'ajout");
+      message.error(err.response?.data?.message || "Erreur lors de l&apos;ajout");
       console.error(err);
     }
   }, [niveauTarget]);
@@ -146,7 +146,7 @@ export default function useStructureData() {
   }, [loadMatrixData, matrixCompId]);
 
   const doSearch = useCallback(async (keyword, domaine) => {
-    if (!keyword || keyword.trim().length < 2) {
+    if (!keyword || keyword.trim().length <2) {
       setSearchResults(null);
       return;
     }

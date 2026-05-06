@@ -4,7 +4,6 @@ import esprit.pfe.serviceformation.DTO.EnseignantDTO;
 import esprit.pfe.serviceformation.DTO.SeanceDTO;
 import esprit.pfe.serviceformation.Entities.Enseignant;
 import esprit.pfe.serviceformation.Entities.SeanceFormation;
-import esprit.pfe.serviceformation.Repositories.EnseignantRepository;
 import esprit.pfe.serviceformation.Repositories.SeanceFormationRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -17,9 +16,6 @@ public class SeanceService {
 
     @Autowired
     private SeanceFormationRepository seanceRepo;
-
-    @Autowired
-    private EnseignantRepository enseignantRepo;
 
     private boolean canSchedule(
             String userId,

@@ -215,7 +215,7 @@ export default function RicePage() {
             msgApi.warning("Session expirée — reconnectez-vous");
           } else {
             setEnseignantsError(
-              "Impossible de charger les enseignants. Vérifiez votre connexion ou contactez l'admin.",
+              "Impossible de charger les enseignants. Vérifiez votre connexion ou contactez l&apos;admin.",
             );
             msgApi.warning("Enseignants non chargés — affectation manuelle uniquement");
           }
@@ -249,11 +249,11 @@ export default function RicePage() {
       const ext = (name.split(".").pop() || "").toLowerCase();
 
       if (!allowed.has(ext)) {
-        msgApi.warning(`'${name}' n'est pas supporté — seuls PDF, DOCX et TXT sont acceptés`);
+        msgApi.warning(`&apos;${name}&apos; n&apos;est pas supporté — seuls PDF, DOCX et TXT sont acceptés`);
         continue;
       }
       if ((raw?.size ?? 0) > maxSize) {
-        msgApi.warning(`'${name}' dépasse 20 Mo`);
+        msgApi.warning(`&apos;${name}&apos; dépasse 20 Mo`);
         continue;
       }
       accepted.push(raw);
@@ -281,7 +281,7 @@ export default function RicePage() {
     setCurrentStep(1);
 
     progressTimerRef.current = setInterval(() => {
-      setAnalysisProgress((p) => (p < 90 ? p + Math.random() * 15 : p));
+      setAnalysisProgress((p) => (p <90 ? p + Math.random() * 15 : p));
     }, 800);
 
     try {
@@ -370,7 +370,7 @@ export default function RicePage() {
     } catch (err) {
       clearInterval(progressTimerRef.current);
       if (analyzeIsCanceledRef.current) return;
-      msgApi.error(err.response?.data?.detail ?? err.message ?? "Erreur d'analyse IA");
+      msgApi.error(err.response?.data?.detail ?? err.message ?? "Erreur d&apos;analyse IA");
       setCurrentStep(0);
     } finally {
       setAnalyzing(false);
@@ -576,7 +576,7 @@ export default function RicePage() {
     document.body.classList.add("confetti-active");
     const colors = ["#ff4d4f", "#faad14", "#52c41a", "#1677ff", "#722ed1"];
     const pieces = [];
-    for (let i = 0; i < 26; i += 1) {
+    for (let i = 0; i <26; i += 1) {
       const el = document.createElement("div");
       el.className = "confetti-piece";
       el.style.left = `${Math.random() * 100}vw`;
@@ -782,7 +782,7 @@ export default function RicePage() {
           okText="Creer et lier"
           cancelText="Annuler"
           confirmLoading={savingNewEns}
-          destroyOnHidden
+          destroyOnClose
         >
           <Space direction="vertical" style={{ width: "100%" }} size="middle">
             <div>
@@ -828,7 +828,7 @@ export default function RicePage() {
           okText="Fusionner"
           cancelText="Annuler"
           okButtonProps={{ disabled: !mergeDst }}
-          destroyOnHidden
+          destroyOnClose
         >
           <Alert
             type="warning"

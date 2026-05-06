@@ -12,6 +12,7 @@ import {
   Box,
   IconButton,
   Collapse,
+  Modal,
 } from "@mui/material";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
 import DeleteIcon from "@mui/icons-material/Delete";
@@ -24,8 +25,30 @@ import DeptService from "../services/DeptService";
 import EnseignantService from "../services/EnseignantService";
 import { RadioGroup, FormControlLabel, Radio } from "@mui/material";
 import UpService from "../services/upService";
+import { AuthContext } from "../context/AuthContext";
+import { useContext } from "react";
+import DocumentListModal from "./documentFormation/DocumentListModal";
+import DocumentUploadPanel from "./documentFormation/DocumentUploadPanel";
+import { Divider } from "@mui/material";
+
+const PERIOD_OPTIONS = [
+  { value: "P1", label: "Période 1" },
+  { value: "P2", label: "Période 2" },
+  { value: "P3", label: "Période 3" },
+  { value: "P4", label: "Période 4" },
+  { value: "SUMMER", label: "Session d'Été" },
+  { value: "WINTER", label: "Session d'Hiver" },
+  { value: "OTHER", label: "Autre" },
+];
 
 export default function FormationWorkflowEditForm({ formation, onFormationUpdated }) {
+  const { user } = useContext(AuthContext);
+  const role = String(user?.role || "").toLowerCase().replace(/[\s_-]+/g, "");
+  const isResponsableDossier = role === "responsabledossier";
+  
+  // Can only edit everything if admin
+  // Responsable dossier can only view info but manage documents
+  
   /* -------------------- états principaux -------------------- */
   const [titre, setTitre] = useState("");
   const [dateDebut, setDateDebut] = useState("");
@@ -76,10 +99,16 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
   /* séances */
   const [seances, setSeances] = useState([]);
   const [ouverte, setOuverte] = useState(false);
+  
+  // Structured Period State
+  const [periodCode, setPeriodCode] = useState("OTHER");
+  const [customPeriodLabel, setCustomPeriodLabel] = useState("");
 
   /* UI */
   const [showMore, setShowMore] = useState(false);
   const [snack, setSnack] = useState({ open: false, severity: "info", message: "" });
+  const [openDocModal, setOpenDocModal] = useState(false);
+  const [openUploadPanel, setOpenUploadPanel] = useState(false);
   
   const getEnseignantLabel = (opt) => {
     if (!opt) return "";
@@ -125,6 +154,10 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
 
     setSelectedUp(formation.up1 || null);
     setSelectedDept(formation.departement1 || null);
+    
+    // Mapping back period
+    setPeriodCode(formation.periodCode || "OTHER");
+    setCustomPeriodLabel(formation.customPeriodLabel || formation.periodeFormation || "");
 
     /* séances complètes (avec animateurs) */
     setSeances(
@@ -225,11 +258,11 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
       const start = toMinutes(s.heureDebut);
       const end = toMinutes(s.heureFin);
       if (start !== null && end !== null && start >= end) {
-        messages.push(`Séance #${idx + 1}: heure de fin doit être après l'heure de début.`);
+        messages.push(`Séance #${idx + 1}: heure de fin doit être après l&apos;heure de début.`);
       }
     });
 
-    for (let i = 0; i < localSeances.length; i += 1) {
+    for (let i = 0; i <localSeances.length; i += 1) {
       for (let j = i + 1; j < localSeances.length; j += 1) {
         const left = localSeances[i];
         const right = localSeances[j];
@@ -392,6 +425,8 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
       coutTransport,
       coutHebergement,
       coutRepas,
+      periodCode,
+      customPeriodLabel,
       seances: seances.map((s) => ({
         idSeance: s.idSeance,
         dateSeance: s.dateSeance,
@@ -435,6 +470,7 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
             value={titre}
             onChange={(e) => setTitre(e.target.value)}
             required
+            disabled={isResponsableDossier}
           />
         </Grid>
         <Grid item xs={6}>
@@ -446,6 +482,7 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
             value={dateDebut}
             onChange={(e) => setDateDebut(e.target.value)}
             required
+            disabled={isResponsableDossier}
           />
         </Grid>
         <Grid item xs={6}>
@@ -457,6 +494,7 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
             value={dateFin}
             onChange={(e) => setDateFin(e.target.value)}
             required
+            disabled={isResponsableDossier}
           />
         </Grid>
         <Grid item xs={6}>
@@ -467,6 +505,7 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
             fullWidth
             value={typeFormation}
             onChange={(e) => setTypeFormation(e.target.value)}
+            disabled={isResponsableDossier}
           >
             <option value="INTERNE">INTERNE</option>
             <option value="EXTERNE">EXTERNE</option>
@@ -481,6 +520,7 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
             fullWidth
             value={etatFormation}
             onChange={(e) => setEtatFormation(e.target.value)}
+            disabled={isResponsableDossier}
           >
             <option value="ENREGISTRE">ENREGISTRE</option>
             <option value="PLANIFIE">PLANIFIE</option>
@@ -573,6 +613,7 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
             row
             value={ouverte ? "oui" : "non"}
             onChange={(e) => setOuverte(e.target.value === "oui")}
+            disabled={isResponsableDossier}
           >
             <FormControlLabel value="oui" control={<Radio />} label="Oui" />
             <FormControlLabel value="non" control={<Radio />} label="Non" />
@@ -587,6 +628,7 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
             value={selectedUp}
             onChange={(_, v) => setSelectedUp(v)}
             renderInput={(params) => <TextField {...params} label="UP" required />}
+            disabled={isResponsableDossier}
           />
         </Grid>
         <Grid item xs={4}>
@@ -596,6 +638,7 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
             value={selectedDept}
             onChange={(_, v) => setSelectedDept(v)}
             renderInput={(params) => <TextField {...params} label="Département" required />}
+            disabled={isResponsableDossier}
           />
         </Grid>
 
@@ -606,7 +649,36 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
             fullWidth
             value={chargeH}
             onChange={(e) => setChargeH(e.target.value)}
+            disabled={isResponsableDossier}
           />
+        </Grid>
+
+        <Grid item xs={12} sm={6}>
+          <TextField
+            label="Période de Formation"
+            select
+            fullWidth
+            SelectProps={{ native: true }}
+            value={periodCode}
+            onChange={(e) => setPeriodCode(e.target.value)}
+            disabled={isResponsableDossier}
+          >
+            {PERIOD_OPTIONS.map((opt) => (
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
+            ))}
+          </TextField>
+        </Grid>
+        <Grid item xs={12} sm={6}>
+          {periodCode === "OTHER" && (
+            <TextField
+              label="Précisez la période"
+              fullWidth
+              value={customPeriodLabel}
+              onChange={(e) => setCustomPeriodLabel(e.target.value)}
+              disabled={isResponsableDossier}
+              placeholder="Ex : Mai - Juin 2024"
+            />
+          )}
         </Grid>
 
         {/* ----------- bouton collapse “plus d’infos” ----------- */}
@@ -851,13 +923,63 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
           />
         </Grid>
 
-        {/* ----------- submit ----------- */}
-        <Grid item xs={12} sx={{ textAlign: "right", mt: 4 }}>
-          <Button type="submit" variant="contained" color="error">
-            ✔️ Mettre à jour
-          </Button>
+        {/* ----------- Dossier Section (Specific for ResponsableDossier) ----------- */}
+        <Grid item xs={12} sx={{ mt: 2 }}>
+          <Divider sx={{ my: 2 }}>Gestion du Dossier</Divider>
+          <Box sx={{ display: "flex", gap: 2, justifyContent: "center" }}>
+            <Button 
+              variant="outlined" 
+              startIcon={<UploadFileIcon />}
+              onClick={() => setOpenUploadPanel(true)}
+            >
+              Scanner / Ajouter Document
+            </Button>
+            <Button 
+              variant="outlined"
+              onClick={() => setOpenDocModal(true)}
+            >
+              Consulter Dossier (CRUD)
+            </Button>
+          </Box>
         </Grid>
+
+        {/* ----------- submit ----------- */}
+        {!isResponsableDossier && (
+          <Grid item xs={12} sx={{ textAlign: "right", mt: 4 }}>
+            <Button type="submit" variant="contained" color="error">
+              ✔️ Mettre à jour
+            </Button>
+          </Grid>
+        )}
       </Grid>
+
+      {/* Modals for Documents */}
+      <Modal
+        open={openUploadPanel}
+        onClose={() => setOpenUploadPanel(false)}
+        sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+      >
+        <Box sx={{ bgcolor: 'background.paper', p: 4, borderRadius: 2, width: 600, maxWidth: '90%' }}>
+          <Typography variant="h6" gutterBottom>Ajouter au dossier</Typography>
+          <DocumentUploadPanel 
+            formationId={formation.idFormation} 
+            onDocumentAdded={() => {
+              setSnack({ open: true, severity: "success", message: "Document ajouté !" });
+              setOpenUploadPanel(false);
+            }}
+            onClose={() => setOpenUploadPanel(false)}
+          />
+        </Box>
+      </Modal>
+
+      <DocumentListModal
+        open={openDocModal}
+        formation={formation}
+        onClose={() => setOpenDocModal(false)}
+        onDocumentsUpdated={() => {
+          setSnack({ open: true, severity: "info", message: "Dossier mis à jour" });
+        }}
+      />
 
       {/* snackbar */}
       <Snackbar
