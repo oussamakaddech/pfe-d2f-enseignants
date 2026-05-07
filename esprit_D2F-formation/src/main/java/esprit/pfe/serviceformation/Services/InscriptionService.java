@@ -4,6 +4,8 @@ package esprit.pfe.serviceformation.Services;
 import esprit.pfe.serviceformation.DTO.*;
 import esprit.pfe.serviceformation.Entities.*;
 import esprit.pfe.serviceformation.Repositories.*;
+import esprit.pfe.serviceformation.Utils.ValidationUtils;
+import esprit.pfe.serviceformation.Utils.ExceptionUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -12,6 +14,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
+@Transactional
 public class InscriptionService {
     @Autowired
     FormationRepository formationRepo;
@@ -19,6 +22,9 @@ public class InscriptionService {
     EnseignantRepository enseignantRepo;
     @Autowired
     InscriptionRepository inscriptionRepo;
+
+    @Autowired
+    private ValidationUtils validation;
 
     /**
      * 1. Lister les formations accessibles pour un formateur
@@ -101,23 +107,7 @@ public class InscriptionService {
     /**
      * 3. Lister les demandes PENDING pour D2F ou CUP
      */
-    /*
-     * public List<Inscription> listerDemandes(String userId, boolean isD2F) {
-     * if (isD2F) {
-     * return inscriptionRepo.findByEtat(EtatInscription.PENDING);
-     * } else {
-     * Enseignant cup = enseignantRepo.findById(userId)
-     * .orElseThrow(() -> new IllegalArgumentException("Utilisateur introuvable"));
-     * String upId = cup.getUp() != null ? cup.getUp().getId() : "";
-     * return inscriptionRepo.findByEtat(EtatInscription.PENDING).stream()
-     * .filter(i -> {
-     * var f = i.getFormation();
-     * return f.getUp() != null && f.getUp().getId().equals(upId);
-     * })
-     * .toList();
-     * }
-     * }
-     */
+    @Transactional(readOnly = true)
     public List<InscriptionDTO> listerInscriptionsParFormation(Long formationId) {
         formationRepo.findById(formationId)
                 .orElseThrow(() -> new IllegalArgumentException("Formation introuvable"));
