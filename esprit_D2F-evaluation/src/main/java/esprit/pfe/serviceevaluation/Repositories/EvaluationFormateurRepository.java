@@ -1,9 +1,9 @@
-package esprit.pfe.serviceevaluation.Repositories;
+package esprit.pfe.serviceevaluation.repositories;
 
 
 
 
-import esprit.pfe.serviceevaluation.Entities.EvaluationFormateur;
+import esprit.pfe.serviceevaluation.entities.EvaluationFormateur;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

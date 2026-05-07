@@ -126,151 +126,72 @@ public class AuthorizationFilter extends AbstractGatewayFilterFactory<Authorizat
      * or null to allow any authenticated user.
      */
     private List<String> determineAllowedRoles(String path, HttpMethod method) {
+        if (path.startsWith("/api/auth/")) return getAuthRoles(path);
+        if (path.startsWith("/api/account/")) return getAccountRoles(path);
+        if (path.startsWith("/api/formation/")) return getFormationRoles(path, method);
+        if (path.startsWith("/api/besoinsformation/")) return getBesoinRoles(path, method);
+        if (path.startsWith("/api/competence/")) return getCompetenceRoles(path, method);
+        if (path.startsWith("/api/evaluation/")) return getEvaluationRoles(method);
+        if (path.startsWith("/api/certificat/")) return getCertificatRoles(method);
+        if (path.startsWith("/api/rice/")) return ADMIN_ONLY;
+        if (path.startsWith("/api/ai/")) return ALL_ROLES;
+        if (path.startsWith("/api/analyse/")) return getAnalyseRoles(path);
 
-        // ── Auth service: /api/auth/** ──
-        if (path.startsWith("/api/auth/")) {
-            // Public auth endpoints are handled in isPublicEndpoint()
-            // Profile & password update — all authenticated users
-            if (path.contains("/profile") || path.contains("/edit-profile")
-                    || path.contains("/update-password")) {
-                return ALL_ROLES;
-            }
-            // Account management — admin only
-            if (path.contains("/list-accounts") || path.contains("/ban-account")
-                    || path.contains("/enable-account") || path.contains("/delete/")
-                    || path.contains("/update/")) {
-                return ADMIN_ONLY;
-            }
+        return ALL_ROLES;
+    }
+
+    private List<String> getAuthRoles(String path) {
+        if (path.contains("/profile") || path.contains("/edit-profile") || path.contains("/update-password")) {
             return ALL_ROLES;
         }
-
-        // ── Account service: /api/account/** ──
-        if (path.startsWith("/api/account/")) {
-            // Profile & password update — all authenticated users
-            if (path.contains("/profile") || path.contains("/edit-profile")
-                    || path.contains("/update-password")) {
-                return ALL_ROLES;
-            }
-            // Account management — admin only
-            if (path.contains("/list-accounts") || path.contains("/ban-account")
-                    || path.contains("/enable-account") || path.contains("/delete/")
-                    || path.contains("/update/")) {
-                return ADMIN_ONLY;
-            }
-            return ALL_ROLES;
-        }
-
-        // ── Formation service: /api/formation/** ──
-        if (path.startsWith("/api/formation/")) {
-            // KPI endpoints — admin, CUP, D2F, Enseignant
-            if (path.contains("/kpi")) {
-                return NO_FORMATEUR;
-            }
-            // Formation CRUD
-            if (method == HttpMethod.DELETE) {
-                return ADMIN_ONLY;
-            }
-            if (path.contains("/inscription/inscriptions") && method == HttpMethod.POST) {
-                return ALL_ROLES;
-            }
-            if (method == HttpMethod.POST || method == HttpMethod.PUT || method == HttpMethod.PATCH) {
-                return ADMIN_CUP;
-            }
-            // GET — all roles can read formations
-            return ALL_ROLES;
-        }
-
-        // ── Besoin Formation service: /api/besoinsformation/** ──
-        if (path.startsWith("/api/besoinsformation/")) {
-            // Approval — admin, CUP
-            if (path.contains("/approve")) {
-                return ADMIN_CUP;
-            }
-            // Delete — admin only
-            if (method == HttpMethod.DELETE) {
-                return ADMIN_ONLY;
-            }
-            // Update — admin only
-            if (path.contains("/modify") && method == HttpMethod.PUT) {
-                return ADMIN_ONLY;
-            }
-            // Create — admin, CUP, Enseignant
-            if (method == HttpMethod.POST) {
-                return List.of("admin", "CUP", "Enseignant");
-            }
-            // Read — all roles
-            return ALL_ROLES;
-        }
-
-        // ── Competence service: /api/competence/** ──
-        if (path.startsWith("/api/competence/")) {
-            // RICE endpoints — admin only
-            if (path.contains("/rice")) {
-                return ADMIN_ONLY;
-            }
-            // Delete — admin only
-            if (method == HttpMethod.DELETE) {
-                return ADMIN_ONLY;
-            }
-            // Create/Update — admin only
-            if (method == HttpMethod.POST || method == HttpMethod.PUT || method == HttpMethod.PATCH) {
-                return ADMIN_ONLY;
-            }
-            // Read — admin, CUP, D2F, Enseignant
-            return NO_FORMATEUR;
-        }
-
-        // ── Evaluation service: /api/evaluation/** ──
-        if (path.startsWith("/api/evaluation/")) {
-            // Delete — admin only
-            if (method == HttpMethod.DELETE) {
-                return ADMIN_ONLY;
-            }
-            // Create/Update (mark entry) — admin, Formateur
-            if (method == HttpMethod.POST || method == HttpMethod.PUT || method == HttpMethod.PATCH) {
-                return ADMIN_FORMATEUR;
-            }
-            // Read — all roles
-            return ALL_ROLES;
-        }
-
-        // ── Certificat service: /api/certificat/** ──
-        if (path.startsWith("/api/certificat/")) {
-            // Create/Update/Delete — admin only
-            if (method == HttpMethod.DELETE || method == HttpMethod.POST
-                    || method == HttpMethod.PUT || method == HttpMethod.PATCH) {
-                return ADMIN_ONLY;
-            }
-            // Read — all roles except pure Formateur
-            return ALL_ROLES;
-        }
-
-        // ── RICE service: /api/rice/** ──
-        if (path.startsWith("/api/rice/")) {
+        if (path.contains("/list-accounts") || path.contains("/ban-account") || path.contains("/enable-account") 
+                || path.contains("/delete/") || path.contains("/update/")) {
             return ADMIN_ONLY;
         }
-
-        // ── AI Recommendation: /api/ai/** ──
-        if (path.startsWith("/api/ai/")) {
-            return ALL_ROLES;
-        }
-
-        // ── Analyse Predictive: /api/analyse/** ──
-        if (path.startsWith("/api/analyse/")) {
-            // Model training — admin only
-            if (path.contains("/predict/train")) {
-                return ADMIN_ONLY;
-            }
-            // Dashboard and detection — admin, CUP, Chef Département
-            if (path.contains("/dashboard/") || path.contains("/detect/")) {
-                return List.of("admin", "CUP", "D2F", "CHEF_DEPARTEMENT");
-            }
-            // Prediction and recommendation — admin, CUP, Chef Dept, Enseignant
-            return List.of("admin", "CUP", "D2F", "Enseignant", "CHEF_DEPARTEMENT");
-        }
-
-        // Default: require authentication (any role)
         return ALL_ROLES;
+    }
+
+    private List<String> getAccountRoles(String path) {
+        return getAuthRoles(path); // Same logic for account
+    }
+
+    private List<String> getFormationRoles(String path, HttpMethod method) {
+        if (path.contains("/kpi")) return NO_FORMATEUR;
+        if (method == HttpMethod.DELETE) return ADMIN_ONLY;
+        if (path.contains("/inscription/inscriptions") && method == HttpMethod.POST) return ALL_ROLES;
+        if (method == HttpMethod.POST || method == HttpMethod.PUT || method == HttpMethod.PATCH) return ADMIN_CUP;
+        return ALL_ROLES;
+    }
+
+    private List<String> getBesoinRoles(String path, HttpMethod method) {
+        if (path.contains("/approve")) return ADMIN_CUP;
+        if (method == HttpMethod.DELETE) return ADMIN_ONLY;
+        if (path.contains("/modify") && method == HttpMethod.PUT) return ADMIN_ONLY;
+        if (method == HttpMethod.POST) return List.of("admin", "CUP", "Enseignant");
+        return ALL_ROLES;
+    }
+
+    private List<String> getCompetenceRoles(String path, HttpMethod method) {
+        if (path.contains("/rice") || method == HttpMethod.DELETE || method == HttpMethod.POST 
+                || method == HttpMethod.PUT || method == HttpMethod.PATCH) return ADMIN_ONLY;
+        return NO_FORMATEUR;
+    }
+
+    private List<String> getEvaluationRoles(HttpMethod method) {
+        if (method == HttpMethod.DELETE) return ADMIN_ONLY;
+        if (method == HttpMethod.POST || method == HttpMethod.PUT || method == HttpMethod.PATCH) return ADMIN_FORMATEUR;
+        return ALL_ROLES;
+    }
+
+    private List<String> getCertificatRoles(HttpMethod method) {
+        if (method == HttpMethod.DELETE || method == HttpMethod.POST || method == HttpMethod.PUT || method == HttpMethod.PATCH) return ADMIN_ONLY;
+        return ALL_ROLES;
+    }
+
+    private List<String> getAnalyseRoles(String path) {
+        if (path.contains("/predict/train")) return ADMIN_ONLY;
+        if (path.contains("/dashboard/") || path.contains("/detect/")) return List.of("admin", "CUP", "D2F", "CHEF_DEPARTEMENT");
+        return List.of("admin", "CUP", "D2F", "Enseignant", "CHEF_DEPARTEMENT");
     }
 
     /**

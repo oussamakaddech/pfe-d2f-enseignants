@@ -1,4 +1,4 @@
-package esprit.pfe.auth.WebSocketConfig;
+package esprit.pfe.auth.websocketconfig;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;

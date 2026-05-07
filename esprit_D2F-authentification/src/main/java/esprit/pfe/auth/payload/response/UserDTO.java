@@ -1,6 +1,6 @@
 package esprit.pfe.auth.payload.response;
 
-import esprit.pfe.auth.Entities.User;
+import esprit.pfe.auth.entities.User;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

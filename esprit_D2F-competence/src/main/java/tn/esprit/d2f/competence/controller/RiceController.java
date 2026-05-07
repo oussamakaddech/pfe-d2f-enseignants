@@ -9,7 +9,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-import esprit.pfe.auth.Security.AuthorizationMatrix;
+import esprit.pfe.auth.security.AuthorizationMatrix;
 import tn.esprit.d2f.competence.dto.RiceImportRequest;
 import tn.esprit.d2f.competence.dto.RiceImportResult;
 import tn.esprit.d2f.competence.service.IRiceImportService;

@@ -1,4 +1,4 @@
-package esprit.pfe.serviceevaluation.DTO;
+package esprit.pfe.serviceevaluation.dto;
 
 
 import jakarta.validation.constraints.*;

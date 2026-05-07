@@ -1,6 +1,6 @@
-package esprit.pfe.auth.Services;
+package esprit.pfe.auth.services;
 
-import esprit.pfe.auth.Entities.User;
+import esprit.pfe.auth.entities.User;
 import esprit.pfe.auth.payload.request.EditProfileRequest;
 import esprit.pfe.auth.payload.request.UpdatePasswordRequest;
 

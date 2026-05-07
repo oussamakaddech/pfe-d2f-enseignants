@@ -1,7 +1,7 @@
-package esprit.pfe.auth.Services;
+package esprit.pfe.auth.services;
 
-import esprit.pfe.auth.Entities.AuditLog;
-import esprit.pfe.auth.Repositories.AuditLogRepository;
+import esprit.pfe.auth.entities.AuditLog;
+import esprit.pfe.auth.repositories.AuditLogRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;

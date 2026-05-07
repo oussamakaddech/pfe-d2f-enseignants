@@ -12,8 +12,10 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
-import tn.esprit.d2f.DTO.BesoinFormationRequest;
-import tn.esprit.d2f.DTO.BesoinFormationResponse;
+import tn.esprit.d2f.dto.BesoinFormationRequest;
+import tn.esprit.d2f.dto.BesoinFormationResponse;
+import tn.esprit.d2f.entity.enumerations.Priorite;
+import tn.esprit.d2f.entity.enumerations.TypeBesoin;
 import tn.esprit.d2f.service.IBesoinFormationService;
 
 import java.util.Collections;
@@ -38,7 +40,7 @@ class BesoinFormationControllerTest {
 
     @Test
     @DisplayName("GET /retrieve-all - Success with Pagination")
-    @WithMockUser(authorities = "ROLE_USER")
+    @WithMockUser(roles = "ADMIN")
     void getAll_Success() throws Exception {
         BesoinFormationResponse response = new BesoinFormationResponse();
         response.setIdBesoinFormation(1L);
@@ -58,7 +60,7 @@ class BesoinFormationControllerTest {
 
     @Test
     @DisplayName("POST /add - Validation Failure (Missing Title)")
-    @WithMockUser(authorities = "ROLE_ADMIN")
+    @WithMockUser(roles = "ADMIN")
     void add_ValidationFailure() throws Exception {
         BesoinFormationRequest request = new BesoinFormationRequest();
         // Titre est null => Doit échouer
@@ -72,10 +74,18 @@ class BesoinFormationControllerTest {
 
     @Test
     @DisplayName("POST /add - Security Failure (Unauthorized Role)")
-    @WithMockUser(authorities = "ROLE_GUEST")
+    @WithMockUser(roles = "GUEST")
     void add_SecurityFailure() throws Exception {
         BesoinFormationRequest request = new BesoinFormationRequest();
-        request.setTitre("New Training");
+        request.setUsername("testuser");
+        request.setTypeBesoin(TypeBesoin.INDIVIDUEL);
+        request.setTitre("New Training Long Enough");
+        request.setObjectifFormation("To learn something");
+        request.setNbMaxParticipants(10);
+        request.setDureeFormation(8);
+        request.setUp("UP_JAVA");
+        request.setDepartement("DEPARTEMENT_IT");
+        request.setPriorite(Priorite.MOYENNE);
 
         mockMvc.perform(post("/api/v1/besoinsFormations/add-BesoinFormation")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -85,7 +95,7 @@ class BesoinFormationControllerTest {
 
     @Test
     @DisplayName("GET /retrieve/{id} - Success")
-    @WithMockUser(authorities = "ROLE_USER")
+    @WithMockUser(roles = "ADMIN")
     void getById_Success() throws Exception {
         BesoinFormationResponse response = new BesoinFormationResponse();
         response.setIdBesoinFormation(1L);

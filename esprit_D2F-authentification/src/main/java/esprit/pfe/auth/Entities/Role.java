@@ -1,4 +1,4 @@
-package esprit.pfe.auth.Entities;
+package esprit.pfe.auth.entities;
 
 
 import jakarta.persistence.*;

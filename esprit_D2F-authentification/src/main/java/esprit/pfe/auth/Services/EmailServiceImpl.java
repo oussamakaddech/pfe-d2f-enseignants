@@ -1,4 +1,4 @@
-package esprit.pfe.auth.Services;
+package esprit.pfe.auth.services;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mail.SimpleMailMessage;

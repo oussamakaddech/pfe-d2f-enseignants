@@ -1,4 +1,4 @@
-package esprit.pfe.serviceevaluation.Entities;
+package esprit.pfe.serviceevaluation.entities;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;

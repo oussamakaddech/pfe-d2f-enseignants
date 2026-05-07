@@ -1,10 +1,10 @@
-package esprit.pfe.serviceevaluation.Services;
+package esprit.pfe.serviceevaluation.services;
 
 
-import esprit.pfe.serviceevaluation.DTO.EvaluationEnseignantDTO;
-import esprit.pfe.serviceevaluation.DTO.EvaluationFormateurDTO;
-import esprit.pfe.serviceevaluation.Entities.EvaluationFormateur;
-import esprit.pfe.serviceevaluation.Repositories.EvaluationFormateurRepository;
+import esprit.pfe.serviceevaluation.dto.EvaluationEnseignantDTO;
+import esprit.pfe.serviceevaluation.dto.EvaluationFormateurDTO;
+import esprit.pfe.serviceevaluation.entities.EvaluationFormateur;
+import esprit.pfe.serviceevaluation.repositories.EvaluationFormateurRepository;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;

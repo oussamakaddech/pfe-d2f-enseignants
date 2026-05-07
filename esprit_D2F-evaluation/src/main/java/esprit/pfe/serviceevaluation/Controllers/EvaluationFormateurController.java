@@ -1,10 +1,10 @@
-package esprit.pfe.serviceevaluation.Controllers;
+package esprit.pfe.serviceevaluation.controllers;
 
 
 
-import esprit.pfe.serviceevaluation.DTO.EvaluationEnseignantDTO;
-import esprit.pfe.serviceevaluation.DTO.EvaluationFormateurDTO;
-import esprit.pfe.serviceevaluation.Services.EvaluationFormateurService;
+import esprit.pfe.serviceevaluation.dto.EvaluationEnseignantDTO;
+import esprit.pfe.serviceevaluation.dto.EvaluationFormateurDTO;
+import esprit.pfe.serviceevaluation.services.EvaluationFormateurService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;

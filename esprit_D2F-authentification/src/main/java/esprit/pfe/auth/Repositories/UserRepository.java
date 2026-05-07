@@ -1,8 +1,8 @@
-package esprit.pfe.auth.Repositories;
+package esprit.pfe.auth.repositories;
 
 ////import com.bezkoder.springjwt.models.User;
 
-import esprit.pfe.auth.Entities.User;
+import esprit.pfe.auth.entities.User;
 
 
 import org.springframework.data.jpa.repository.JpaRepository;

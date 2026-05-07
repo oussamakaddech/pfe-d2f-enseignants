@@ -11,29 +11,31 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-import tn.esprit.d2f.DTO.BesoinFormationRequest;
-import tn.esprit.d2f.DTO.BesoinFormationResponse;
+import tn.esprit.d2f.dto.BesoinFormationRequest;
+import tn.esprit.d2f.dto.BesoinFormationResponse;
 import tn.esprit.d2f.entity.Notification;
 import tn.esprit.d2f.entity.enumerations.Priorite;
 import tn.esprit.d2f.repository.NotificationRepository;
 import tn.esprit.d2f.service.IBesoinFormationService;
-import esprit.pfe.auth.Security.AuthorizationMatrix;
+import esprit.pfe.auth.security.AuthorizationMatrix;
 
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 @Slf4j
 @RestController
-@AllArgsConstructor
 @RequestMapping("/api/v1/besoinsFormations")
 @Tag(name = "Besoin de Formation", description = "Gestion des besoins de formation avec DTO et Validation")
 public class BesoinFormationController {
 
-    @Autowired
-    IBesoinFormationService besoinFormationService ;
+    private final IBesoinFormationService besoinFormationService;
+    private final NotificationRepository notificationRepository;
 
-    @Autowired
-    private NotificationRepository notificationRepository;
+    public BesoinFormationController(IBesoinFormationService besoinFormationService, 
+                                    NotificationRepository notificationRepository) {
+        this.besoinFormationService = besoinFormationService;
+        this.notificationRepository = notificationRepository;
+    }
 
     @Operation(summary = "Récupérer tous les besoins de formation (Paginé)")
     @GetMapping("/retrieve-all-BesoinFormations")

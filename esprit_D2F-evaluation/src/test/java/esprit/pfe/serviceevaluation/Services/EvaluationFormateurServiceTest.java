@@ -1,8 +1,8 @@
-package esprit.pfe.serviceevaluation.Services;
+package esprit.pfe.serviceevaluation.services;
 
-import esprit.pfe.serviceevaluation.DTO.EvaluationFormateurDTO;
-import esprit.pfe.serviceevaluation.Entities.EvaluationFormateur;
-import esprit.pfe.serviceevaluation.Repositories.EvaluationFormateurRepository;
+import esprit.pfe.serviceevaluation.dto.EvaluationFormateurDTO;
+import esprit.pfe.serviceevaluation.entities.EvaluationFormateur;
+import esprit.pfe.serviceevaluation.repositories.EvaluationFormateurRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;

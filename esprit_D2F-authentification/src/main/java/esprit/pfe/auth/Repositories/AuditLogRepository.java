@@ -1,6 +1,6 @@
-package esprit.pfe.auth.Repositories;
+package esprit.pfe.auth.repositories;
 
-import esprit.pfe.auth.Entities.AuditLog;
+import esprit.pfe.auth.entities.AuditLog;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

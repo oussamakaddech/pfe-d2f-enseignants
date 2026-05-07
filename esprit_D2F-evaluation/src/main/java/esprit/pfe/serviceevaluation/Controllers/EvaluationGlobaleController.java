@@ -1,7 +1,7 @@
-package esprit.pfe.serviceevaluation.Controllers;
+package esprit.pfe.serviceevaluation.controllers;
 
-import esprit.pfe.serviceevaluation.DTO.EvaluationGlobaleDTO;
-import esprit.pfe.serviceevaluation.Services.EvaluationGlobaleService;
+import esprit.pfe.serviceevaluation.dto.EvaluationGlobaleDTO;
+import esprit.pfe.serviceevaluation.services.EvaluationGlobaleService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;

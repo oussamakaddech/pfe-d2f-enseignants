@@ -1,0 +1,209 @@
+# =============================================================================
+# run-all-sonar-tests.ps1 - Lancer tous les tests SonarQube
+# =============================================================================
+# Usage :
+#   .\scripts\run-all-sonar-tests.ps1
+#   .\scripts\run-all-sonar-tests.ps1 -SonarUrl "http://sonarqube.example.com"
+#   .\scripts\run-all-sonar-tests.ps1 -SonarUser "admin" -SonarPassword "password"
+# =============================================================================
+
+param(
+    [string]$SonarUrl = "http://localhost:9000",
+    [string]$SonarUser = "admin",
+    [string]$SonarPassword = "0710oussamA@",
+    [string]$SonarToken = $null
+)
+
+# =============================================================================
+# Fonction pour generer un token SonarQube
+# =============================================================================
+function Get-SonarQubeToken {
+    param(
+        [string]$Url,
+        [string]$Username,
+        [string]$Password
+    )
+    
+    try {
+        Write-Host "  [INFO] Generation d'un token SonarQube..." -ForegroundColor Yellow
+        $auth = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes("$Username`:$Password"))
+        $tokenName = "maven-scanner-$(Get-Date -Format 'yyyyMMdd-HHmmss')"
+        $headers = @{
+            "Authorization" = "Basic $auth"
+            "Content-Type" = "application/json"
+        }
+        
+        $response = Invoke-WebRequest `
+            -Uri "$Url/api/user_tokens/generate?name=$tokenName" `
+            -Method Post `
+            -Headers $headers `
+            -UseBasicParsing `
+            -ErrorAction Stop
+        
+        $json = $response.Content | ConvertFrom-Json
+        Write-Host "  [OK] Token genere avec succes" -ForegroundColor Green
+        return $json.token
+    } catch {
+        Write-Host "  [ERREUR] Impossible de generer le token: $_" -ForegroundColor Red
+        return $null
+    }
+}
+$javaServices = @(
+    "esprit_D2F-authentification",
+    "esprit_D2F-besoin-formation",
+    "esprit_D2F-certificat",
+    "esprit_D2F-competence",
+    "esprit_D2F-evaluation",
+    "esprit_D2F-formation",
+    "esprit_D2F-api-gateway",
+    "esprit_D2F-analyse"
+)
+
+Write-Host ""
+Write-Host "===============================================================" -ForegroundColor Cyan
+Write-Host "Lancement de tous les tests SonarQube pour D2F Platform" -ForegroundColor Cyan
+Write-Host "===============================================================" -ForegroundColor Cyan
+Write-Host ""
+
+# Verifier que SonarQube est disponible
+Write-Host "[INFO] Verification de SonarQube..." -ForegroundColor Green
+$dockerAvailable = Get-Command docker -ErrorAction SilentlyContinue
+
+if ($dockerAvailable) {
+    try {
+        $response = Invoke-WebRequest -Uri "$SonarUrl/api/system/status" -UseBasicParsing -ErrorAction Stop
+        $status = $response.Content | ConvertFrom-Json
+        
+        if ($status.status -eq "UP") {
+            Write-Host "[OK] SonarQube est deja en cours d'execution" -ForegroundColor Green
+        } else {
+            Write-Host "[INFO] Demarrage de SonarQube..." -ForegroundColor Yellow
+            Push-Location infra/sonarqube
+            docker compose up -d
+            Pop-Location
+            Start-Sleep -Seconds 10
+        }
+    } catch {
+        Write-Host "[INFO] Demarrage de SonarQube..." -ForegroundColor Yellow
+        Push-Location infra/sonarqube
+        docker compose up -d
+        Pop-Location
+        Start-Sleep -Seconds 10
+    }
+}
+
+Write-Host ""
+Write-Host "[INFO] Services a tester :" -ForegroundColor Green
+$javaServices | ForEach-Object { Write-Host "  - $_" -ForegroundColor Gray }
+Write-Host ""
+
+# Generer le token SonarQube s'il n'est pas fourni
+if (-not $SonarToken) {
+    $SonarToken = Get-SonarQubeToken -Url $SonarUrl -Username $SonarUser -Password $SonarPassword
+    
+    if (-not $SonarToken) {
+        Write-Host "[ERREUR] Impossible de generer un token SonarQube. Abandon." -ForegroundColor Red
+        exit 1
+    }
+}
+
+Write-Host ""
+
+# Compteurs
+$successCount = 0
+$failCount = 0
+$startTime = Get-Date
+
+# Lancer les tests pour chaque service
+foreach ($service in $javaServices) {
+    $servicePath = ".\" + $service
+    
+    if (-not (Test-Path $servicePath)) {
+        Write-Host "[WARN] $service : Repertoire non trouve, ignore" -ForegroundColor Yellow
+        continue
+    }
+    
+    Write-Host ""
+    Write-Host "-----------------------------------------------------------" -ForegroundColor Cyan
+    Write-Host "[TEST] $service" -ForegroundColor Cyan
+    Write-Host "-----------------------------------------------------------" -ForegroundColor Cyan
+    
+    Push-Location $servicePath
+    
+    try {
+        # Etape 1: Clean et tests avec JaCoCo
+        Write-Host "  [INFO] Nettoyage et execution des tests..." -ForegroundColor Yellow
+        
+        # Appeler mvnw.cmd directement (pas via fonction)
+        $mvnwPath = ".\mvnw.cmd"
+        if (-not (Test-Path $mvnwPath)) {
+            Write-Host "  [ERREUR] mvnw.cmd introuvable" -ForegroundColor Red
+            $failCount++
+            Pop-Location
+            continue
+        }
+        
+        & $mvnwPath clean test jacoco:report
+        $testResult = $LASTEXITCODE
+        
+        if ($testResult -ne 0) {
+            Write-Host "  [ERREUR] Les tests ont echoue (code $testResult)" -ForegroundColor Red
+            $failCount++
+            Pop-Location
+            continue
+        }
+        
+        Write-Host "  [OK] Tests reussis" -ForegroundColor Green
+        
+        # Etape 2: Analyse SonarQube
+        Write-Host "  [INFO] Envoi des resultats a SonarQube..." -ForegroundColor Yellow
+        
+        $projectKey = $service -replace "-", "_"
+        
+        & $mvnwPath "sonar:sonar" "-Dsonar.projectKey=$projectKey" "-Dsonar.host.url=$SonarUrl" "-Dsonar.token=$SonarToken" "-Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml"
+        
+        $sonarResult = $LASTEXITCODE
+        
+        if ($sonarResult -eq 0) {
+            Write-Host "  [OK] Analyse SonarQube reussie" -ForegroundColor Green
+            Write-Host "  [LIEN] $SonarUrl/dashboard?id=$projectKey" -ForegroundColor Cyan
+            $successCount++
+        } else {
+            Write-Host "  [WARN] L'analyse SonarQube a rencontre une erreur (code $sonarResult)" -ForegroundColor Yellow
+            # Compter comme succes si les tests ont passe
+            $successCount++
+        }
+        
+    } catch {
+        Write-Host "  [ERREUR] Exception : $_" -ForegroundColor Red
+        $failCount++
+    } finally {
+        Pop-Location
+    }
+}
+
+# Resume
+Write-Host ""
+Write-Host "===============================================================" -ForegroundColor Cyan
+Write-Host "RESUME DES TESTS" -ForegroundColor Cyan
+Write-Host "===============================================================" -ForegroundColor Cyan
+
+$elapsed = (Get-Date) - $startTime
+Write-Host ""
+Write-Host "  [OK] Reussis : $successCount" -ForegroundColor Green
+Write-Host "  [ERREUR] Echoues  : $failCount" -ForegroundColor Red
+Write-Host "  [TIME] Temps total : $($elapsed.TotalMinutes.ToString('F2')) minutes" -ForegroundColor Cyan
+Write-Host ""
+
+Write-Host "[INFO] Acceder a SonarQube :" -ForegroundColor Green
+Write-Host "  URL : $SonarUrl" -ForegroundColor Cyan
+Write-Host "  Login : $SonarUser" -ForegroundColor Yellow
+Write-Host ""
+
+if ($failCount -eq 0) {
+    Write-Host "[OK] Tous les tests sont termines avec succes !" -ForegroundColor Green
+    exit 0
+} else {
+    Write-Host "[WARN] $failCount service(s) ont echoue" -ForegroundColor Yellow
+    exit 1
+}

@@ -31,7 +31,7 @@ public class JmsConfig {
 
           // **FQCN tel qu’il est envoyé par votre BesoinFormation-service**
           typeIdMappings.put(
-                  "tn.esprit.d2f.DTO.BesoinFormationApprovedEvent",
+                  "tn.esprit.d2f.dto.BesoinFormationApprovedEvent",
                   BesoinFormationApprovedEvent.class
           );
 

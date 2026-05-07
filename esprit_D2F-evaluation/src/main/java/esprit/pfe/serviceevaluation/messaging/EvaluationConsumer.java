@@ -2,8 +2,8 @@ package esprit.pfe.serviceevaluation.messaging;
 
 
 
-import esprit.pfe.serviceevaluation.DTO.EvaluationFormateurDTO;
-import esprit.pfe.serviceevaluation.Services.EvaluationFormateurService;
+import esprit.pfe.serviceevaluation.dto.EvaluationFormateurDTO;
+import esprit.pfe.serviceevaluation.services.EvaluationFormateurService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Service;

@@ -1,4 +1,4 @@
-package esprit.pfe.auth.Security;
+package esprit.pfe.auth.security;
 
 /**
  * Authorization Matrix - Defines permission rules for each role across all modules

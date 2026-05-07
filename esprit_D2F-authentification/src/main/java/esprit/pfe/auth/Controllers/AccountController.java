@@ -1,8 +1,8 @@
-package esprit.pfe.auth.Controllers;
+package esprit.pfe.auth.controllers;
 
-import esprit.pfe.auth.Entities.User;
-import esprit.pfe.auth.Security.AuthorizationMatrix;
-import esprit.pfe.auth.Services.AccountService;
+import esprit.pfe.auth.entities.User;
+import esprit.pfe.auth.security.AuthorizationMatrix;
+import esprit.pfe.auth.services.AccountService;
 import esprit.pfe.auth.payload.request.EditProfileRequest;
 import esprit.pfe.auth.payload.request.UpdatePasswordRequest;
 import esprit.pfe.auth.payload.response.UserDTO;

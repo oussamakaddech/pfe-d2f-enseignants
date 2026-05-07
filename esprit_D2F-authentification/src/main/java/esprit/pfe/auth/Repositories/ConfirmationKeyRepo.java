@@ -1,8 +1,8 @@
-package esprit.pfe.auth.Repositories;
+package esprit.pfe.auth.repositories;
 
 
 
-import esprit.pfe.auth.Entities.ConfirmationKey;
+import esprit.pfe.auth.entities.ConfirmationKey;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;
