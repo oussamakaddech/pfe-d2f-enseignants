@@ -1,10 +1,10 @@
-package esprit.pfe.auth.Services;
+package esprit.pfe.auth.services;
 
-import esprit.pfe.auth.Entities.ERole;
-import esprit.pfe.auth.Entities.Role;
-import esprit.pfe.auth.Entities.User;
-import esprit.pfe.auth.Repositories.RoleRepository;
-import esprit.pfe.auth.Repositories.UserRepository;
+import esprit.pfe.auth.entities.ERole;
+import esprit.pfe.auth.entities.Role;
+import esprit.pfe.auth.entities.User;
+import esprit.pfe.auth.repositories.RoleRepository;
+import esprit.pfe.auth.repositories.UserRepository;
 
 
 import esprit.pfe.auth.error.BadRequestException;

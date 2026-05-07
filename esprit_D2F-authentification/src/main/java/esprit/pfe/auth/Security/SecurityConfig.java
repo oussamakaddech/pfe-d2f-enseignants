@@ -1,4 +1,4 @@
-package esprit.pfe.auth.Security;
+package esprit.pfe.auth.security;
 
 
 import com.nimbusds.jose.jwk.source.ImmutableSecret;

@@ -8,8 +8,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
-import tn.esprit.d2f.DTO.BesoinFormationRequest;
-import tn.esprit.d2f.DTO.BesoinFormationResponse;
+import tn.esprit.d2f.dto.BesoinFormationRequest;
+import tn.esprit.d2f.dto.BesoinFormationResponse;
 import tn.esprit.d2f.entity.BesoinFormation;
 import tn.esprit.d2f.mapper.BesoinFormationMapper;
 import tn.esprit.d2f.repository.BesoinFormationRepository;
@@ -40,7 +40,7 @@ class BesoinFormationServiceImplTest {
     @BeforeEach
     void setUp() {
         entity = new BesoinFormation();
-        ReflectionTestUtils.setField(entity, "idBesionFormation", 1L);
+        ReflectionTestUtils.setField(entity, "idBesoinFormation", 1L);
         entity.setTitre("Test Titre");
 
         request = new BesoinFormationRequest();

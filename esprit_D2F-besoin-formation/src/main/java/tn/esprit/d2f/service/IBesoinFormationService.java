@@ -2,8 +2,8 @@ package tn.esprit.d2f.service;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import tn.esprit.d2f.DTO.BesoinFormationRequest;
-import tn.esprit.d2f.DTO.BesoinFormationResponse;
+import tn.esprit.d2f.dto.BesoinFormationRequest;
+import tn.esprit.d2f.dto.BesoinFormationResponse;
 import tn.esprit.d2f.entity.enumerations.Priorite;
 
 public interface IBesoinFormationService {

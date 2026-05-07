@@ -1,8 +1,8 @@
 package tn.esprit.d2f.mapper;
 
 import org.springframework.stereotype.Component;
-import tn.esprit.d2f.DTO.BesoinFormationRequest;
-import tn.esprit.d2f.DTO.BesoinFormationResponse;
+import tn.esprit.d2f.dto.BesoinFormationRequest;
+import tn.esprit.d2f.dto.BesoinFormationResponse;
 import tn.esprit.d2f.entity.BesoinFormation;
 
 @Component

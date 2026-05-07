@@ -1,4 +1,4 @@
-package esprit.pfe.serviceevaluation.DTO;
+package esprit.pfe.serviceevaluation.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;

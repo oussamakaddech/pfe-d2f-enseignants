@@ -1,4 +1,4 @@
-package tn.esprit.d2f.DTO;
+package tn.esprit.d2f.dto;
 
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.stereotype.Component;

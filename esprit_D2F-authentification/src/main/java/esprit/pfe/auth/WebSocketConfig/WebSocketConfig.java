@@ -1,4 +1,4 @@
-package esprit.pfe.auth.WebSocketConfig;
+package esprit.pfe.auth.websocketconfig;
 
 import org.springframework.context.annotation.Configuration;
 import org.springframework.messaging.simp.config.MessageBrokerRegistry;

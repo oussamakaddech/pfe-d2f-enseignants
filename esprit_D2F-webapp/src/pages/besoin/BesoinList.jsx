@@ -105,13 +105,16 @@ export default function BesoinList() {
         DeptService.getAllDepts(),
         UpService.getAllUps(),
       ]);
-      setBesoins(allBesoins);
-      setFiltered(allBesoins);
+      // Ensure allBesoins is an array (handle both response.data and wrapped responses)
+      const besoinArray = Array.isArray(allBesoins) ? allBesoins : (allBesoins?.data ? (Array.isArray(allBesoins.data) ? allBesoins.data : []) : []);
+      setBesoins(besoinArray);
+      setFiltered(besoinArray);
       setDepartements(depts);
       setUps(upsData);
-      setTypes([...new Set(allBesoins.map((b) => b.typeBesoin).filter(Boolean))]);
-    } catch {
+      setTypes([...new Set(besoinArray.map((b) => b.typeBesoin).filter(Boolean))]);
+    } catch (error) {
       msgApi.error("Erreur lors du chargement des besoins");
+      setBesoins([]); // Fallback to empty array on error
     } finally {
       setLoading(false);
     }
@@ -128,7 +131,7 @@ export default function BesoinList() {
   }, [besoins, filters, searchText]);
 
   const applyFilters = () => {
-    let res = [...besoins];
+    let res = Array.isArray(besoins) ? [...besoins] : [];
     if (filters.deptId) res = res.filter((b) => String(b.departement) === String(filters.deptId));
     if (filters.upId)   res = res.filter((b) => String(b.up) === String(filters.upId));
     if (filters.type)   res = res.filter((b) => b.typeBesoin === filters.type);
@@ -165,7 +168,7 @@ export default function BesoinList() {
     try {
       await BesoinFormationService.removeBesoinFormation(id);
       msgApi.success("Besoin supprimé avec succès");
-      setBesoins((prev) => prev.filter((b) => b.idBesoinFormation !== id));
+      setBesoins((prev) => (Array.isArray(prev) ? prev.filter((b) => getBesoinId(b) !== id) : []));
     } catch {
       msgApi.error("Erreur lors de la suppression");
     }
@@ -243,7 +246,7 @@ export default function BesoinList() {
 
   const exportToExcel = () => {
     try {
-      const dataToExport = filtered.map((b) => ({
+      const dataToExport = (Array.isArray(filtered) ? filtered : []).map((b) => ({
         "Titre / Objectif": b.titre || b.objectifFormation || "—",
         "Demandeur": b.username || "—",
         "Type": b.typeBesoin || "—",
@@ -282,8 +285,8 @@ export default function BesoinList() {
   };
 
   // Stats
-  const total = besoins.length;
-  const approvedCount = besoins.filter((b) => b.approuveAdmin).length;
+  const total = Array.isArray(besoins) ? besoins.length : 0;
+  const approvedCount = Array.isArray(besoins) ? besoins.filter((b) => b.approuveAdmin).length : 0;
   const pendingCount = total - approvedCount;
 
   const columns = [

@@ -1,4 +1,4 @@
-package esprit.pfe.auth.Services;
+package esprit.pfe.auth.services;
 
 import org.springframework.mail.SimpleMailMessage;
 

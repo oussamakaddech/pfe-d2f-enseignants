@@ -135,6 +135,6 @@ Write-Host "1. Ajoutez le token généré aux secrets GitHub (SONAR_TOKEN)" -For
 Write-Host "2. Ajoutez l'URL SonarQube aux secrets GitHub (SONAR_HOST_URL = $SonarUrl)" -ForegroundColor White
 Write-Host "3. Configurez les Quality Gates dans l'interface SonarQube" -ForegroundColor White
 Write-Host "4. Lancez les tests avec : docker compose -f infra/sonarqube/docker-compose.yml up -d" -ForegroundColor White
-Write-Host "`n🌐 Interface SonarQube : $SonarUrl" -ForegroundColor Cyan
-Write-Host "👤 Login : $AdminUser" -ForegroundColor Cyan
-Write-Host "🔑 Password : $NewPassword" -ForegroundColor Cyan
+Write-Host "Interface SonarQube : $SonarUrl" -ForegroundColor Cyan
+Write-Host "Login : $AdminUser" -ForegroundColor Cyan
+Write-Host "Password : $NewPassword" -ForegroundColor Cyan

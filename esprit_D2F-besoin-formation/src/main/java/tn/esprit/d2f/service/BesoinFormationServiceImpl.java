@@ -7,11 +7,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
-import tn.esprit.d2f.DTO.BesoinFormationRequest;
-import tn.esprit.d2f.DTO.BesoinFormationResponse;
+import tn.esprit.d2f.dto.BesoinFormationRequest;
+import tn.esprit.d2f.dto.BesoinFormationResponse;
 import tn.esprit.d2f.mapper.BesoinFormationMapper;
-import tn.esprit.d2f.DTO.BesoinFormationApprovedEvent;
-import tn.esprit.d2f.DTO.BesoinFormationEventPublisher;
+import tn.esprit.d2f.dto.BesoinFormationApprovedEvent;
+import tn.esprit.d2f.dto.BesoinFormationEventPublisher;
 import tn.esprit.d2f.entity.BesoinFormation;
 import tn.esprit.d2f.entity.Notification;
 import tn.esprit.d2f.entity.enumerations.Priorite;
@@ -20,19 +20,22 @@ import tn.esprit.d2f.repository.NotificationRepository;
 
 @Slf4j
 @Service
-@AllArgsConstructor
 public class BesoinFormationServiceImpl implements IBesoinFormationService{
 
-    @Autowired
-    BesoinFormationRepository besoinFormationRepository;
-    
+    private final BesoinFormationRepository besoinFormationRepository;
     private final BesoinFormationEventPublisher eventPublisher;
+    private final NotificationRepository notificationRepository;
+    private final BesoinFormationMapper besoinFormationMapper;
 
-    @Autowired
-    private NotificationRepository notificationRepository;
-
-    @Autowired
-    private BesoinFormationMapper besoinFormationMapper;
+    public BesoinFormationServiceImpl(BesoinFormationRepository besoinFormationRepository,
+                                      BesoinFormationEventPublisher eventPublisher,
+                                      NotificationRepository notificationRepository,
+                                      BesoinFormationMapper besoinFormationMapper) {
+        this.besoinFormationRepository = besoinFormationRepository;
+        this.eventPublisher = eventPublisher;
+        this.notificationRepository = notificationRepository;
+        this.besoinFormationMapper = besoinFormationMapper;
+    }
 
     public Page<BesoinFormationResponse> retrieveAllBesoinFormations(Pageable pageable) {
         return besoinFormationRepository.findAll(pageable).map(besoinFormationMapper::toResponse);

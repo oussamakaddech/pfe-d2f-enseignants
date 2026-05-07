@@ -1,4 +1,4 @@
-package esprit.pfe.auth.Security;
+package esprit.pfe.auth.security;
 
 
 import jakarta.servlet.FilterChain;

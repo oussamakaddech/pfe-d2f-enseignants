@@ -3,7 +3,7 @@ package esprit.pfe.serviceformation.Controllers;
 
 import esprit.pfe.serviceformation.Entities.Formation;
 import esprit.pfe.serviceformation.Services.FormationService;
-import esprit.pfe.auth.Security.AuthorizationMatrix;
+import esprit.pfe.auth.security.AuthorizationMatrix;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;

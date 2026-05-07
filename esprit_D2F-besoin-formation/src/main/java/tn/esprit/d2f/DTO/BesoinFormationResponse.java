@@ -1,4 +1,4 @@
-package tn.esprit.d2f.DTO;
+package tn.esprit.d2f.dto;
 
 import lombok.*;
 import tn.esprit.d2f.entity.enumerations.PeriodCode;

@@ -1,8 +1,8 @@
-package esprit.pfe.serviceevaluation.Services;
+package esprit.pfe.serviceevaluation.services;
 
-import esprit.pfe.serviceevaluation.DTO.EvaluationGlobaleDTO;
-import esprit.pfe.serviceevaluation.Entities.EvaluationGlobale;
-import esprit.pfe.serviceevaluation.Repositories.EvaluationGlobaleRepository;
+import esprit.pfe.serviceevaluation.dto.EvaluationGlobaleDTO;
+import esprit.pfe.serviceevaluation.entities.EvaluationGlobale;
+import esprit.pfe.serviceevaluation.repositories.EvaluationGlobaleRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 

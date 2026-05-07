@@ -22,7 +22,7 @@ public class BesoinFormation implements Serializable {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Setter(AccessLevel.NONE)
     @JsonProperty("idBesoinFormation")
-    long idBesoinFormation ;
+    Long idBesoinFormation ;
 
     @JsonProperty("username")
     String username ;
@@ -84,22 +84,22 @@ public class BesoinFormation implements Serializable {
     @JsonProperty("departement")
     String departement  ;
 
-    @Column(nullable = true)
+    @Column(name = "approuve_cup", nullable = true)
     @JsonProperty("approuveCUP")
     Boolean approuveCUP  ;
-
-    @Column(nullable = true)
+    
+    @Column(name = "approuve_chef_dep", nullable = true)
     @JsonProperty("approuveChefDep")
     Boolean approuveChefDep  ;
-
-    @Column(nullable = true)
+    
+    @Column(name = "approuve_admin", nullable = true)
     @JsonProperty("approuveAdmin")
     Boolean approuveAdmin  ;
 
     @JsonProperty("notificationMessage")
     String notificationMessage  ;
 
-    @Column(nullable = false)
+    @Column(name = "event_published", nullable = false)
     @JsonProperty("eventPublished")
     Boolean eventPublished = false;
 
