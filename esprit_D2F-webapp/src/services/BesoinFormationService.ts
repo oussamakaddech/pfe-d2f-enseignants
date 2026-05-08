@@ -12,10 +12,11 @@ interface ModifyBesoinPayload {
 
 const BesoinFormationService = {
   async getAllBesoinFormations(): Promise<BesoinFormation[]> {
-    const response = await axios.get<BesoinFormation[]>(
+    const response = await axios.get<any>(
       `${API_URL}/retrieve-all-BesoinFormations`
     );
-    return response.data;
+    // Le backend renvoie une Page Spring Data, les données sont dans 'content'
+    return response.data?.content || response.data || [];
   },
 
   async getBesoinFormation(id: Id): Promise<BesoinFormation> {
@@ -56,10 +57,10 @@ const BesoinFormationService = {
   },
 
   async getApprovedBesoinFormations(): Promise<BesoinFormation[]> {
-    const response = await axios.get<BesoinFormation[]>(
+    const response = await axios.get<any>(
       `${API_URL}/retrieve-approved-BesoinFormations`
     );
-    return response.data;
+    return response.data?.content || response.data || [];
   },
 
   async approveBesoin(id: Id): Promise<BesoinFormation> {
@@ -67,35 +68,35 @@ const BesoinFormationService = {
     return response.data;
   },
 
-  async getUserNotifications(username: string): Promise<string[]> {
-    const response = await axios.get<string[]>(`${API_URL}/notifications/${username}`);
-    return response.data;
+  async getUserNotifications(username: string): Promise<any[]> {
+    const response = await axios.get<any>(`${API_URL}/notifications/${username}`);
+    return response.data?.content || response.data || [];
   },
 
   // ── Nouveaux endpoints §2.2.2 — Consultation et priorisation ──
 
   async getBesoinsByUp(up: string): Promise<BesoinFormation[]> {
-    const response = await axios.get<BesoinFormation[]>(`${API_URL}/by-up/${up}`);
-    return response.data;
+    const response = await axios.get<any>(`${API_URL}/by-up/${up}`);
+    return response.data?.content || response.data || [];
   },
 
   async getBesoinsByDepartement(departement: string): Promise<BesoinFormation[]> {
-    const response = await axios.get<BesoinFormation[]>(
+    const response = await axios.get<any>(
       `${API_URL}/by-departement/${departement}`
     );
-    return response.data;
+    return response.data?.content || response.data || [];
   },
 
   async getBesoinsByPriorite(): Promise<BesoinFormation[]> {
-    const response = await axios.get<BesoinFormation[]>(`${API_URL}/by-priorite`);
-    return response.data;
+    const response = await axios.get<any>(`${API_URL}/by-priorite`);
+    return response.data?.content || response.data || [];
   },
 
   async getBesoinsByPrioriteLevel(priorite: string): Promise<BesoinFormation[]> {
-    const response = await axios.get<BesoinFormation[]>(
+    const response = await axios.get<any>(
       `${API_URL}/by-priorite/${priorite}`
     );
-    return response.data;
+    return response.data?.content || response.data || [];
   },
 };
 

@@ -1,5 +1,7 @@
 package tn.esprit.d2f.competence.controller;
 
+
+// Force IDE re-index after build success
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;

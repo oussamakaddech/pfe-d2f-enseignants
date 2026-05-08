@@ -105,8 +105,11 @@ export default function BesoinList() {
         DeptService.getAllDepts(),
         UpService.getAllUps(),
       ]);
-      // Ensure allBesoins is an array (handle both response.data and wrapped responses)
-      const besoinArray = Array.isArray(allBesoins) ? allBesoins : (allBesoins?.data ? (Array.isArray(allBesoins.data) ? allBesoins.data : []) : []);
+      // Handle Spring Data Page format (content field)
+      const besoinArray = Array.isArray(allBesoins) 
+        ? allBesoins 
+        : (allBesoins?.content || []);
+      
       setBesoins(besoinArray);
       setFiltered(besoinArray);
       setDepartements(depts);

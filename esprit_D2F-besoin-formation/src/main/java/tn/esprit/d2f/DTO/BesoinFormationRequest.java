@@ -1,6 +1,5 @@
 package tn.esprit.d2f.dto;
 
-import jakarta.validation.constraints.*;
 import lombok.*;
 import tn.esprit.d2f.entity.enumerations.PeriodCode;
 import tn.esprit.d2f.entity.enumerations.Priorite;

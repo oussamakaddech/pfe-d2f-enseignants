@@ -405,6 +405,11 @@ export default function FormationWorkflowForm({ initialDate, onFormationCreated,
         animateurIds: finalAnimIds,
       });
 
+      if (titre.trim().length < 5) {
+        setSnack({ open: true, severity: "warning", message: "Le titre doit contenir au moins 5 caractères." });
+        return;
+      }
+
       if (blockingConflicts.length > 0) {
         setOverlapWarnings(blockingConflicts);
         setSnack({ open: true, severity: "error", message: "Conflits détectés: corrigez les dates/salles/personnes." });
@@ -435,18 +440,43 @@ export default function FormationWorkflowForm({ initialDate, onFormationCreated,
       const payload = {
         idBesoinFormation: besoinInfo?.idBesoinFormation || besoinInfo?.idBesionFormation || null,
         typeBesoin: besoinInfo?.typeBesoin || null,
-        titreFormation: titre, dateDebut, dateFin, typeFormation, etatFormation, ouverte,
-        coutFormation: parseFloat(cout), externeFormateurNom: formNom, externeFormateurPrenom: formPrenom, externeFormateurEmail: formEmail,
-        organismeRefExterne: organisme, chargeHoraireGlobal: parseInt(chargeH, 10),
-        upId: selectedUp?.id, departementId: selectedDept?.id,
-        animateursIds: finalAnimIds, participantsIds: partSel.map(p => p.id),
-        domaine, populationCible, objectifs, objectifsPedago, evalMethods,
-        coutTransport, coutHebergement, coutRepas, periodCode, customPeriodLabel,
+        titreFormation: titre, 
+        dateDebut: dateDebut || null, 
+        dateFin: dateFin || null, 
+        typeFormation, 
+        etatFormation, 
+        ouverte,
+        coutFormation: parseFloat(cout) || 0, 
+        externeFormateurNom: formNom, 
+        externeFormateurPrenom: formPrenom, 
+        externeFormateurEmail: formEmail || null,
+        organismeRefExterne: organisme, 
+        chargeHoraireGlobal: parseInt(chargeH, 10) || 0,
+        upId: selectedUp?.id, 
+        departementId: selectedDept?.id,
+        animateursIds: finalAnimIds, 
+        participantsIds: partSel.map(p => p.id),
+        domaine, 
+        populationCible, 
+        objectifs, 
+        objectifsPedago, 
+        evalMethods,
+        coutTransport: parseFloat(coutTransport) || 0, 
+        coutHebergement: parseFloat(coutHebergement) || 0, 
+        coutRepas: parseFloat(coutRepas) || 0, 
+        periodCode, 
+        customPeriodLabel,
         seances: seances.map(s => ({
-          dateSeance: s.dateSeance, heureDebut: s.heureDebut, heureFin: s.heureFin,
-          salle: s.salle, onlineMeetingUrl: s.onlineMeetingUrl,
-          typeSeance: s.typeSeance, contenus: s.contenus, methodes: s.methodes,
-          dureeTheorique: s.dureeTheorique, dureePratique: s.dureePratique
+          dateSeance: s.dateSeance || null, 
+          heureDebut: s.heureDebut, 
+          heureFin: s.heureFin,
+          salle: s.salle, 
+          onlineMeetingUrl: s.onlineMeetingUrl,
+          typeSeance: s.typeSeance, 
+          contenus: s.contenus, 
+          methodes: s.methodes,
+          dureeTheorique: parseFloat(s.dureeTheorique) || 0, 
+          dureePratique: parseFloat(s.dureePratique) || 0
         })),
       };
       const newF = await FormationWorkflowService.createFormationWorkflow(payload);
@@ -463,7 +493,20 @@ export default function FormationWorkflowForm({ initialDate, onFormationCreated,
       onFormationCreated(newF);
       setTimeout(() => navigate("/home/ListeFormation"), 2000);
     } catch (err) {
-      setSnack({ open: true, severity: "error", message: err.message });
+      console.error("Submission error details:", err.response?.data);
+      const backendErrors = err.response?.data;
+      let errorMsg = "Échec de la création de la formation.";
+
+      if (Array.isArray(backendErrors)) {
+        // Affiche le message de chaque erreur de validation
+        errorMsg = backendErrors.map(e => e.defaultMessage || e.message || "Erreur de validation").join(" | ");
+      } else if (backendErrors?.message) {
+        errorMsg = backendErrors.message;
+      } else if (err.message) {
+        errorMsg = err.message;
+      }
+      
+      setSnack({ open: true, severity: "error", message: errorMsg });
     }
   };
 

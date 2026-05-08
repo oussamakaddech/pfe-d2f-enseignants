@@ -7,6 +7,7 @@ import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 
 @Configuration
 @EnableWebSecurity
@@ -49,9 +50,9 @@ public class SecurityConfig {
     @Bean
     public org.springframework.security.oauth2.jwt.JwtDecoder jwtDecoder() {
         javax.crypto.spec.SecretKeySpec secretKeySpec = new javax.crypto.spec.SecretKeySpec(jwtSecret.getBytes(), "HmacSHA512");
-        return org.springframework.security.oauth2.jwt.NimbusJwtDecoder
+        return NimbusJwtDecoder
                 .withSecretKey(secretKeySpec)
-                .macAlgorithm(org.springframework.security.oauth2.jwt.MacAlgorithm.HS512)
+                .macAlgorithm(org.springframework.security.oauth2.jose.jws.MacAlgorithm.HS512)
                 .build();
     }
 }

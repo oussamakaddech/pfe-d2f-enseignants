@@ -163,7 +163,7 @@ public class SecurityController {
     }
 
     @PostMapping("/request-reset")
-    public ResponseEntity<?> requestDeviceReset(@RequestParam String username) {
+    public ResponseEntity<MessageResponse> requestDeviceReset(@RequestParam String username) {
         // Envoyer un email à l'administrateur ou déclencher une action pour réinitialiser les appareils
         SimpleMailMessage simpleMailMessage = new SimpleMailMessage();
         simpleMailMessage.setTo("ibtihel.benmustapha@esprit.tn");
@@ -175,7 +175,7 @@ public class SecurityController {
     }
 
     @PostMapping("/reset-devices")
-    public ResponseEntity<?> resetDevices(@RequestParam String username) {
+    public ResponseEntity<MessageResponse> resetDevices(@RequestParam String username) {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("User not found."));
 
@@ -187,14 +187,12 @@ public class SecurityController {
 
 
     @PostMapping("/signup")
-    public ResponseEntity<?> registerUser(@Valid @RequestBody SignupRequest signUpRequest) {
-        // 0) Gestion de l’ID : si fourni, on l’accepte (et on vérifie qu’il n'existe pas déjà)
-        if (signUpRequest.getId() != null && !signUpRequest.getId().isBlank()) {
-            if (userRepository.existsById(signUpRequest.getId())) {
-                return ResponseEntity
-                        .badRequest()
-                        .body(new MessageResponse("Error: ID is already taken!"));
-            }
+    public ResponseEntity<MessageResponse> registerUser(@Valid @RequestBody SignupRequest signUpRequest) {
+        // 0) Gestion de l'ID : si fourni, on l'accepte (et on vérifie qu'il n'existe pas déjà)
+        if (signUpRequest.getId() != null && !signUpRequest.getId().isBlank() && userRepository.existsById(signUpRequest.getId())) {
+            return ResponseEntity
+                    .badRequest()
+                    .body(new MessageResponse("Error: ID is already taken!"));
         }
 
         // 1) Vérifier que le username n’est pas déjà pris

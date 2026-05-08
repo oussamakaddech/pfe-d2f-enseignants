@@ -19,7 +19,6 @@ import tn.esprit.d2f.mapper.BesoinFormationMapper;
 import tn.esprit.d2f.repository.BesoinFormationRepository;
 import tn.esprit.d2f.repository.NotificationRepository;
 import tn.esprit.d2f.entity.enumerations.TypeBesoin;
-import tn.esprit.d2f.entity.enumerations.Priorite;
 import java.util.Collections;
 import java.util.Optional;
 
@@ -56,6 +55,8 @@ class BesoinFormationServiceImplTest {
         Pageable pageable = PageRequest.of(0, 10);
         BesoinFormation besoin = new BesoinFormation();
         besoin.setIdBesoinFormation(1L);
+        besoin.setNbMaxParticipants(20);
+        besoin.setDureeFormation(10);
         Page<BesoinFormation> page = new PageImpl<>(Collections.singletonList(besoin));
 
         when(besoinFormationRepository.findAll(pageable)).thenReturn(page);
@@ -72,6 +73,8 @@ class BesoinFormationServiceImplTest {
         long id = 1L;
         BesoinFormation besoin = new BesoinFormation();
         besoin.setIdBesoinFormation(id);
+        besoin.setNbMaxParticipants(20);
+        besoin.setDureeFormation(10);
 
         when(besoinFormationRepository.findById(id)).thenReturn(Optional.of(besoin));
 
@@ -96,6 +99,8 @@ class BesoinFormationServiceImplTest {
         BesoinFormation savedBesoin = new BesoinFormation();
         savedBesoin.setIdBesoinFormation(1L);
         savedBesoin.setTitre("New Formation");
+        savedBesoin.setNbMaxParticipants(20);
+        savedBesoin.setDureeFormation(10);
 
         when(besoinFormationRepository.save(any(BesoinFormation.class))).thenReturn(savedBesoin);
 
@@ -124,6 +129,8 @@ class BesoinFormationServiceImplTest {
         BesoinFormation existing = new BesoinFormation();
         existing.setIdBesoinFormation(1L);
         existing.setUsername("testuser");
+        existing.setNbMaxParticipants(20);
+        existing.setDureeFormation(10);
 
         when(besoinFormationRepository.findById(1L)).thenReturn(Optional.of(existing));
         when(besoinFormationRepository.save(any(BesoinFormation.class))).thenReturn(existing);
@@ -142,6 +149,8 @@ class BesoinFormationServiceImplTest {
         BesoinFormation besoin = new BesoinFormation();
         besoin.setIdBesoinFormation(id);
         besoin.setEventPublished(false);
+        besoin.setNbMaxParticipants(20);
+        besoin.setDureeFormation(10);
 
         when(besoinFormationRepository.findById(id)).thenReturn(Optional.of(besoin));
         when(besoinFormationRepository.save(any(BesoinFormation.class))).thenReturn(besoin);
@@ -199,6 +208,8 @@ class BesoinFormationServiceImplTest {
         besoin.setIdBesoinFormation(id);
         besoin.setApprouveAdmin(true);
         besoin.setEventPublished(true);
+        besoin.setNbMaxParticipants(20);
+        besoin.setDureeFormation(10);
 
         when(besoinFormationRepository.findById(id)).thenReturn(Optional.of(besoin));
 
@@ -213,6 +224,8 @@ class BesoinFormationServiceImplTest {
         BesoinFormation besoin = new BesoinFormation();
         besoin.setIdBesoinFormation(id);
         besoin.setEventPublished(false);
+        besoin.setNbMaxParticipants(20);
+        besoin.setDureeFormation(10);
 
         when(besoinFormationRepository.findById(id)).thenReturn(Optional.of(besoin));
         when(besoinFormationRepository.save(any(BesoinFormation.class))).thenReturn(besoin);
