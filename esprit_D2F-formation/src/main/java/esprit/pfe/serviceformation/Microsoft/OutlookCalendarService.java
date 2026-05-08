@@ -1,4 +1,4 @@
-package esprit.pfe.serviceformation.Microsoft;
+package esprit.pfe.serviceformation.microsoft;
 
 import com.microsoft.graph.models.*;
 import com.microsoft.graph.requests.GraphServiceClient;

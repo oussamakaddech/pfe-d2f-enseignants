@@ -1,10 +1,10 @@
-package esprit.pfe.serviceformation.Services;
+package esprit.pfe.serviceformation.services;
 
-import esprit.pfe.serviceformation.Entities.Document;
-import esprit.pfe.serviceformation.Entities.Formation;
-import esprit.pfe.serviceformation.Microsoft.OneDriveService;
-import esprit.pfe.serviceformation.Repositories.DocumentRepository;
-import esprit.pfe.serviceformation.Repositories.FormationRepository;
+import esprit.pfe.serviceformation.entities.Document;
+import esprit.pfe.serviceformation.entities.Formation;
+import esprit.pfe.serviceformation.microsoft.OneDriveService;
+import esprit.pfe.serviceformation.repositories.DocumentRepository;
+import esprit.pfe.serviceformation.repositories.FormationRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

@@ -1,9 +1,9 @@
-package esprit.pfe.servicecertificat.Repositories;
+package esprit.pfe.servicecertificat.repositories;
 
 
 
 
-import esprit.pfe.servicecertificat.Entities.Certificate;
+import esprit.pfe.servicecertificat.entities.Certificate;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;

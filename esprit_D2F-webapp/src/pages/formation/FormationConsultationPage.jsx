@@ -34,6 +34,7 @@ import MailForm from "../MailForm";
 const normalizeRole = (value) =>
   String(value || "")
     .toLowerCase()
+    .replace(/^role_?/, "")
     .replace(/[\s_-]+/g, "");
 
 const { Title } = Typography;

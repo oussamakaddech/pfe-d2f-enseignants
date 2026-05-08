@@ -1,10 +1,10 @@
-package esprit.pfe.serviceformation.Services;
+package esprit.pfe.serviceformation.services;
 
-import esprit.pfe.serviceformation.DTO.AnimateurFormationDTO;
-import esprit.pfe.serviceformation.DTO.FormateurNameDTO;
-import esprit.pfe.serviceformation.DTO.ParticipantFormationDTO;
-import esprit.pfe.serviceformation.Repositories.PresenceRepository;
-import esprit.pfe.serviceformation.Repositories.SeanceFormationRepository;
+import esprit.pfe.serviceformation.dto.AnimateurFormationDTO;
+import esprit.pfe.serviceformation.dto.FormateurNameDTO;
+import esprit.pfe.serviceformation.dto.ParticipantFormationDTO;
+import esprit.pfe.serviceformation.repositories.PresenceRepository;
+import esprit.pfe.serviceformation.repositories.SeanceFormationRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 

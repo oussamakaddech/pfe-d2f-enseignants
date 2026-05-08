@@ -1,7 +1,7 @@
-package esprit.pfe.serviceformation.Services;
+package esprit.pfe.serviceformation.services;
 
-import esprit.pfe.serviceformation.DTO.EnseignantDTO;
-import esprit.pfe.serviceformation.Entities.Enseignant;
+import esprit.pfe.serviceformation.dto.EnseignantDTO;
+import esprit.pfe.serviceformation.entities.Enseignant;
 import java.util.List;
 
 public interface EnseignantService {

@@ -1,9 +1,9 @@
-package esprit.pfe.serviceformation.Controllers;
+package esprit.pfe.serviceformation.controllers;
 
-import esprit.pfe.serviceformation.DTO.*;
-import esprit.pfe.serviceformation.Entities.Formation;
-import esprit.pfe.serviceformation.Services.ExportExcelService;
-import esprit.pfe.serviceformation.Services.FormationWorkflowService;
+import esprit.pfe.serviceformation.dto.*;
+import esprit.pfe.serviceformation.entities.Formation;
+import esprit.pfe.serviceformation.services.ExportExcelService;
+import esprit.pfe.serviceformation.services.FormationWorkflowService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -33,14 +33,22 @@ public class FormationWorkflowController {
     private FormationWorkflowService formationWorkflowService;
 
     @PostMapping
-    public ResponseEntity<FormationDTO> createFormation(@Valid @RequestBody FormationWorkflowRequest request) {
+    public ResponseEntity<?> createFormation(@Valid @RequestBody FormationWorkflowRequest request, org.springframework.validation.BindingResult result) {
+        if (result.hasErrors()) {
+            log.error("Validation errors: {}", result.getAllErrors());
+            return ResponseEntity.badRequest().body(result.getAllErrors());
+        }
         Formation formation = formationWorkflowService.createFormationWorkflow(request);
         FormationDTO dto = formationWorkflowService.mapFormationToDTO(formation);
         return ResponseEntity.status(HttpStatus.CREATED).body(dto);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<FormationDTO> updateFormation(@PathVariable Long id, @Valid @RequestBody FormationWorkflowRequest request) {
+    public ResponseEntity<?> updateFormation(@PathVariable Long id, @Valid @RequestBody FormationWorkflowRequest request, org.springframework.validation.BindingResult result) {
+        if (result.hasErrors()) {
+            log.error("Validation errors for update: {}", result.getAllErrors());
+            return ResponseEntity.badRequest().body(result.getAllErrors());
+        }
         Formation formation = formationWorkflowService.updateFormationWorkflow(id, request);
         if (formation == null) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();

@@ -1,7 +1,7 @@
-package esprit.pfe.serviceformation.DTO;
+package esprit.pfe.serviceformation.dto;
 
-import esprit.pfe.serviceformation.Entities.Dept;
-import esprit.pfe.serviceformation.Entities.Up;
+import esprit.pfe.serviceformation.entities.Dept;
+import esprit.pfe.serviceformation.entities.Up;
 import lombok.Data;
 import lombok.Getter;
 import lombok.Setter;

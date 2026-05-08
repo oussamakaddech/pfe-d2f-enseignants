@@ -8,8 +8,7 @@ import java.util.List;
 @Setter
 @Data
 @NoArgsConstructor
-@AllArgsConstructor
-public class EvaluationBatchMessage {
+@AllArgsConstructor public class EvaluationBatchMessage {
     private Long formationId;
     private List<EvaluationItem> evaluations;
 

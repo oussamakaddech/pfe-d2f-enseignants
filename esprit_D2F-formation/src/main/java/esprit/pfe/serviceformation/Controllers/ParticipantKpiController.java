@@ -1,9 +1,9 @@
-package esprit.pfe.serviceformation.Controllers;
+package esprit.pfe.serviceformation.controllers;
 
 
 
-import esprit.pfe.serviceformation.DTO.ParticipantKpiDTO;
-import esprit.pfe.serviceformation.Services.ParticipantKpiService;
+import esprit.pfe.serviceformation.dto.ParticipantKpiDTO;
+import esprit.pfe.serviceformation.services.ParticipantKpiService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.GetMapping;

@@ -1,8 +1,8 @@
-package esprit.pfe.serviceformation.Controllers;
+package esprit.pfe.serviceformation.controllers;
 
-import esprit.pfe.serviceformation.DTO.FormationDTO;
-import esprit.pfe.serviceformation.Services.CalendarExportService;
-import esprit.pfe.serviceformation.Services.FormationWorkflowService;
+import esprit.pfe.serviceformation.dto.FormationDTO;
+import esprit.pfe.serviceformation.services.CalendarExportService;
+import esprit.pfe.serviceformation.services.FormationWorkflowService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;

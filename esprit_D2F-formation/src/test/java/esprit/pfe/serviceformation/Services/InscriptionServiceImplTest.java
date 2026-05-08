@@ -1,7 +1,7 @@
-package esprit.pfe.serviceformation.Services;
+package esprit.pfe.serviceformation.services;
 
-import esprit.pfe.serviceformation.Entities.*;
-import esprit.pfe.serviceformation.Repositories.*;
+import esprit.pfe.serviceformation.entities.*;
+import esprit.pfe.serviceformation.repositories.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;

@@ -1,9 +1,9 @@
-package esprit.pfe.serviceformation.Controllers;
+package esprit.pfe.serviceformation.controllers;
 
-import esprit.pfe.serviceformation.DTO.EnseignantDTO;
-import esprit.pfe.serviceformation.Entities.Enseignant;
-import esprit.pfe.serviceformation.Services.EnseignantExcelService;
-import esprit.pfe.serviceformation.Services.EnseignantService;
+import esprit.pfe.serviceformation.dto.EnseignantDTO;
+import esprit.pfe.serviceformation.entities.Enseignant;
+import esprit.pfe.serviceformation.services.EnseignantExcelService;
+import esprit.pfe.serviceformation.services.EnseignantService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

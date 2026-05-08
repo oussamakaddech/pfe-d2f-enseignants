@@ -1,7 +1,7 @@
-package esprit.pfe.serviceformation.Controllers;
+package esprit.pfe.serviceformation.controllers;
 
-import esprit.pfe.serviceformation.DTO.SeanceDTO;
-import esprit.pfe.serviceformation.Services.SeanceService;
+import esprit.pfe.serviceformation.dto.SeanceDTO;
+import esprit.pfe.serviceformation.services.SeanceService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

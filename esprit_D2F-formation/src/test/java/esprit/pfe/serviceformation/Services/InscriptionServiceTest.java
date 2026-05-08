@@ -1,11 +1,11 @@
-package esprit.pfe.serviceformation.Services;
+package esprit.pfe.serviceformation.services;
 
-import esprit.pfe.serviceformation.DTO.FormationDTO;
-import esprit.pfe.serviceformation.DTO.InscriptionDTO;
-import esprit.pfe.serviceformation.Entities.*;
-import esprit.pfe.serviceformation.Repositories.EnseignantRepository;
-import esprit.pfe.serviceformation.Repositories.FormationRepository;
-import esprit.pfe.serviceformation.Repositories.InscriptionRepository;
+import esprit.pfe.serviceformation.dto.FormationDTO;
+import esprit.pfe.serviceformation.dto.InscriptionDTO;
+import esprit.pfe.serviceformation.entities.*;
+import esprit.pfe.serviceformation.repositories.EnseignantRepository;
+import esprit.pfe.serviceformation.repositories.FormationRepository;
+import esprit.pfe.serviceformation.repositories.InscriptionRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

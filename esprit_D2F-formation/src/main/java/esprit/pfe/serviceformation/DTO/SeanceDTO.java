@@ -1,8 +1,8 @@
-package esprit.pfe.serviceformation.DTO;
+package esprit.pfe.serviceformation.dto;
 
 
 
-import esprit.pfe.serviceformation.Entities.TypeSeanceEnum;
+import esprit.pfe.serviceformation.entities.TypeSeanceEnum;
 import lombok.Getter;
 import lombok.Setter;
 

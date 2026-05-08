@@ -1,4 +1,4 @@
-package esprit.pfe.serviceformation.Utils; // NOSONAR - project-wide convention
+package esprit.pfe.serviceformation.utils; // NOSONAR - project-wide convention
 
 import org.springframework.stereotype.Component;
 import java.util.*;

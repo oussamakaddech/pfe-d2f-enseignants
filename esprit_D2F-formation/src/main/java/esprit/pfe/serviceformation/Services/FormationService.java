@@ -1,7 +1,7 @@
-package esprit.pfe.serviceformation.Services;
+package esprit.pfe.serviceformation.services;
 
 
-import esprit.pfe.serviceformation.Entities.Formation;
+import esprit.pfe.serviceformation.entities.Formation;
 import java.util.List;
 
 public interface FormationService {

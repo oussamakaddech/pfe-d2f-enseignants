@@ -1,8 +1,8 @@
-package esprit.pfe.serviceformation.Controllers;
+package esprit.pfe.serviceformation.controllers;
 
 
 
-import esprit.pfe.serviceformation.Services.FormationReportService;
+import esprit.pfe.serviceformation.services.FormationReportService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;

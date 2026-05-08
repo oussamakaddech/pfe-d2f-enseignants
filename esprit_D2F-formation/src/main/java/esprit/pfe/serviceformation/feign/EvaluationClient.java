@@ -1,7 +1,7 @@
 package esprit.pfe.serviceformation.feign;
 
 
-import esprit.pfe.serviceformation.DTO.EvaluationFormateurDTO;
+import esprit.pfe.serviceformation.dto.EvaluationFormateurDTO;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;

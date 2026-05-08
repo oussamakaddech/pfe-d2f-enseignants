@@ -1,9 +1,9 @@
-package esprit.pfe.serviceformation.Services;
+package esprit.pfe.serviceformation.services;
 
-import esprit.pfe.serviceformation.DTO.SeanceDTO;
-import esprit.pfe.serviceformation.Entities.SeanceFormation;
-import esprit.pfe.serviceformation.Repositories.SeanceFormationRepository;
-import esprit.pfe.serviceformation.Utils.ValidationUtils;
+import esprit.pfe.serviceformation.dto.SeanceDTO;
+import esprit.pfe.serviceformation.entities.SeanceFormation;
+import esprit.pfe.serviceformation.repositories.SeanceFormationRepository;
+import esprit.pfe.serviceformation.utils.ValidationUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

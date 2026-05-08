@@ -1,11 +1,11 @@
-package esprit.pfe.serviceformation.Controllers;
+package esprit.pfe.serviceformation.controllers;
 
 
 
-import esprit.pfe.serviceformation.DTO.FormationDTO;
-import esprit.pfe.serviceformation.DTO.OneDriveItemDTO;
-import esprit.pfe.serviceformation.Microsoft.OneDriveService;
-import esprit.pfe.serviceformation.Services.FormationWorkflowService;
+import esprit.pfe.serviceformation.dto.FormationDTO;
+import esprit.pfe.serviceformation.dto.OneDriveItemDTO;
+import esprit.pfe.serviceformation.microsoft.OneDriveService;
+import esprit.pfe.serviceformation.services.FormationWorkflowService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;

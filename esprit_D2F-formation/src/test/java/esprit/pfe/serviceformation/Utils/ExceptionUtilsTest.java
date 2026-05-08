@@ -1,4 +1,4 @@
-package esprit.pfe.serviceformation.Utils;
+package esprit.pfe.serviceformation.utils;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.DisplayName;

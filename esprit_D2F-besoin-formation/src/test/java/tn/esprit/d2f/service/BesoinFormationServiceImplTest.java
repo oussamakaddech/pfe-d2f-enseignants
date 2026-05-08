@@ -1,93 +1,267 @@
 package tn.esprit.d2f.service;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import tn.esprit.d2f.dto.BesoinFormationApprovedEvent;
+import tn.esprit.d2f.dto.BesoinFormationEventPublisher;
 import tn.esprit.d2f.dto.BesoinFormationRequest;
 import tn.esprit.d2f.dto.BesoinFormationResponse;
 import tn.esprit.d2f.entity.BesoinFormation;
-import tn.esprit.d2f.entity.enumerations.Priorite;
+import tn.esprit.d2f.entity.Notification;
+import tn.esprit.d2f.mapper.BesoinFormationMapper;
+import tn.esprit.d2f.repository.BesoinFormationRepository;
+import tn.esprit.d2f.repository.NotificationRepository;
 import tn.esprit.d2f.entity.enumerations.TypeBesoin;
+import tn.esprit.d2f.entity.enumerations.Priorite;
+import java.util.Collections;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
 
-/**
- * Lightweight unit tests for DTOs and entities used in BesoinFormationService.
- * Avoids Spring context loading to run fast.
- */
+@ExtendWith(MockitoExtension.class)
 class BesoinFormationServiceImplTest {
 
-    @Test
-    void besoinFormationRequest_shouldSetAndGetAllFields() {
-        BesoinFormationRequest request = new BesoinFormationRequest();
-        request.setTitre("Formation Java");
-        request.setObjectifFormation("Apprendre Java");
-        request.setTypeBesoin(TypeBesoin.INDIVIDUEL);
-        request.setPriorite(Priorite.HAUTE);
-        request.setUsername("user1");
-        request.setUp("UP1");
-        request.setDepartement("INFO");
+    @Mock
+    private BesoinFormationRepository besoinFormationRepository;
+    @Mock
+    private BesoinFormationEventPublisher eventPublisher;
+    @Mock
+    private NotificationRepository notificationRepository;
+    
+    private BesoinFormationMapper besoinFormationMapper = new BesoinFormationMapper();
 
-        assertEquals("Formation Java", request.getTitre());
-        assertEquals("Apprendre Java", request.getObjectifFormation());
-        assertEquals(TypeBesoin.INDIVIDUEL, request.getTypeBesoin());
-        assertEquals(Priorite.HAUTE, request.getPriorite());
-        assertEquals("user1", request.getUsername());
-        assertEquals("UP1", request.getUp());
-        assertEquals("INFO", request.getDepartement());
+    private BesoinFormationServiceImpl service;
+
+    @BeforeEach
+    void setUp() {
+        service = new BesoinFormationServiceImpl(
+                besoinFormationRepository,
+                eventPublisher,
+                notificationRepository,
+                besoinFormationMapper
+        );
     }
 
     @Test
-    void besoinFormationResponse_shouldSetAndGetAllFields() {
-        BesoinFormationResponse response = new BesoinFormationResponse();
-        response.setIdBesoinFormation(1L);
-        response.setTitre("Formation Spring");
-        response.setObjectifFormation("Learn Spring");
-
-        assertEquals(1L, response.getIdBesoinFormation());
-        assertEquals("Formation Spring", response.getTitre());
-        assertEquals("Learn Spring", response.getObjectifFormation());
-    }
-
-    @Test
-    void besoinFormation_entity_shouldSetApprovalFlags() {
+    void retrieveAllBesoinFormations_shouldReturnPage() {
+        Pageable pageable = PageRequest.of(0, 10);
         BesoinFormation besoin = new BesoinFormation();
-        besoin.setTitre("Test Formation");
-        besoin.setApprouveCUP(true);
-        besoin.setApprouveChefDep(false);
-        besoin.setApprouveAdmin(true);
+        besoin.setIdBesoinFormation(1L);
+        Page<BesoinFormation> page = new PageImpl<>(Collections.singletonList(besoin));
+
+        when(besoinFormationRepository.findAll(pageable)).thenReturn(page);
+
+        Page<BesoinFormationResponse> result = service.retrieveAllBesoinFormations(pageable);
+
+        assertNotNull(result);
+        assertEquals(1, result.getTotalElements());
+        verify(besoinFormationRepository).findAll(pageable);
+    }
+
+    @Test
+    void retrieveBesoinFormation_whenExists_shouldReturnResponse() {
+        long id = 1L;
+        BesoinFormation besoin = new BesoinFormation();
+        besoin.setIdBesoinFormation(id);
+
+        when(besoinFormationRepository.findById(id)).thenReturn(Optional.of(besoin));
+
+        BesoinFormationResponse result = service.retrieveBesoinFormation(id);
+
+        assertNotNull(result);
+        assertEquals(id, result.getIdBesoinFormation());
+    }
+
+    @Test
+    void retrieveBesoinFormation_whenNotExists_shouldThrowException() {
+        long id = 1L;
+        when(besoinFormationRepository.findById(id)).thenReturn(Optional.empty());
+
+        assertThrows(IllegalArgumentException.class, () -> service.retrieveBesoinFormation(id));
+    }
+
+    @Test
+    void addBesoinFormation_shouldSaveAndReturnResponse() {
+        BesoinFormationRequest request = new BesoinFormationRequest();
+        request.setTitre("New Formation");
+        BesoinFormation savedBesoin = new BesoinFormation();
+        savedBesoin.setIdBesoinFormation(1L);
+        savedBesoin.setTitre("New Formation");
+
+        when(besoinFormationRepository.save(any(BesoinFormation.class))).thenReturn(savedBesoin);
+
+        BesoinFormationResponse result = service.addBesoinFormation(request);
+
+        assertNotNull(result);
+        assertEquals("New Formation", result.getTitre());
+        verify(besoinFormationRepository).save(any(BesoinFormation.class));
+    }
+
+    @Test
+    void removeBesoinFormation_shouldDelete() {
+        long id = 1L;
+        service.removeBesoinFormation(id);
+        verify(besoinFormationRepository).deleteById(id);
+    }
+
+    @Test
+    void modifyBesoinFormation_shouldUpdateAndSave() {
+        BesoinFormationRequest request = new BesoinFormationRequest();
+        request.setIdBesoinFormation(1L);
+        request.setTitre("Updated Titre");
+        request.setApprouveCUP(false);
+        request.setCommentaire("Refusal comment");
+
+        BesoinFormation existing = new BesoinFormation();
+        existing.setIdBesoinFormation(1L);
+        existing.setUsername("testuser");
+
+        when(besoinFormationRepository.findById(1L)).thenReturn(Optional.of(existing));
+        when(besoinFormationRepository.save(any(BesoinFormation.class))).thenReturn(existing);
+
+        BesoinFormationResponse result = service.modifyBesoinFormation(request);
+
+        assertNotNull(result);
+        assertEquals("Updated Titre", existing.getTitre());
+        verify(notificationRepository).save(any(Notification.class));
+        verify(besoinFormationRepository).save(existing);
+    }
+
+    @Test
+    void approuverBesoin_shouldSetAdminApprovedAndPublishEvent() {
+        long id = 1L;
+        BesoinFormation besoin = new BesoinFormation();
+        besoin.setIdBesoinFormation(id);
         besoin.setEventPublished(false);
 
-        assertTrue(besoin.isApprouveCUP());
-        assertFalse(besoin.isApprouveChefDep());
-        assertTrue(besoin.getApprouveAdmin());
-        assertFalse(besoin.getEventPublished());
+        when(besoinFormationRepository.findById(id)).thenReturn(Optional.of(besoin));
+        when(besoinFormationRepository.save(any(BesoinFormation.class))).thenReturn(besoin);
+
+        BesoinFormationResponse result = service.approuverBesoin(id);
+
+        assertTrue(result.getApprouveAdmin());
+        verify(eventPublisher).publish(any(BesoinFormationApprovedEvent.class));
+        verify(besoinFormationRepository, times(2)).save(any(BesoinFormation.class));
     }
 
     @Test
-    void priorite_enum_shouldHaveExpectedValues() {
-        assertNotNull(Priorite.HAUTE);
-        assertNotNull(Priorite.MOYENNE);
-        assertNotNull(Priorite.BASSE);
-        assertNotNull(Priorite.CRITIQUE);
-        assertEquals(4, Priorite.values().length);
+    void approuverBesoin_shouldPopulateAllFieldsInEvent() {
+        long id = 1L;
+        BesoinFormation b = new BesoinFormation();
+        b.setIdBesoinFormation(id);
+        b.setUsername("test-user");
+        b.setTypeBesoin(TypeBesoin.ANIMER_UNE_FORMATION);
+        b.setObjectifFormation("Obj");
+        b.setPropositionAnimateur("Prop");
+        b.setPrerequis("Pre");
+        b.setPublicCible("Public");
+        b.setNbMaxParticipants(20);
+        b.setProgrammeFormation("Prog");
+        b.setDureeFormation(10);
+        b.setTheme("Theme");
+        b.setObjectifsOperationnels("Op");
+        b.setObjectifsPedagogiques("Ped");
+        b.setMethodesPedagogiques("Met");
+        b.setMoyensPedagogiques("Moy");
+        b.setMethodesEvaluationAcquis("Eval");
+        b.setProfilFormateur("Prof");
+        b.setTitre("Titre");
+        b.setHoraireSouhaite("Horaire");
+        b.setUp("UP");
+        b.setDepartement("DEP");
+        b.setApprouveCUP(true);
+        b.setApprouveChefDep(true);
+        b.setApprouveAdmin(false);
+        b.setEventPublished(false);
+
+        when(besoinFormationRepository.findById(id)).thenReturn(Optional.of(b));
+        when(besoinFormationRepository.save(any(BesoinFormation.class))).thenReturn(b);
+
+        service.approuverBesoin(id);
+
+        verify(eventPublisher).publish(any(BesoinFormationApprovedEvent.class));
+        verify(besoinFormationRepository, times(2)).save(b);
     }
 
     @Test
-    void typeBesoin_enum_shouldHaveExpectedValues() {
-        assertNotNull(TypeBesoin.INDIVIDUEL);
-        assertNotNull(TypeBesoin.COLLECTIF);
-    }
-
-    @Test
-    void besoinFormation_entity_defaultValues() {
+    void approuverBesoin_whenAlreadyPublished_shouldNotPublishAgain() {
+        long id = 1L;
         BesoinFormation besoin = new BesoinFormation();
-        assertNull(besoin.getApprouveAdmin());
-        assertFalse(besoin.getEventPublished());
+        besoin.setIdBesoinFormation(id);
+        besoin.setApprouveAdmin(true);
+        besoin.setEventPublished(true);
+
+        when(besoinFormationRepository.findById(id)).thenReturn(Optional.of(besoin));
+
+        BesoinFormationResponse result = service.approuverBesoin(id);
+
+        assertTrue(result.getApprouveAdmin());
+        verify(eventPublisher, never()).publish(any());
+    }
+    @Test
+    void approuverBesoin_whenPublisherFails_shouldStillReturnResponse() {
+        long id = 1L;
+        BesoinFormation besoin = new BesoinFormation();
+        besoin.setIdBesoinFormation(id);
+        besoin.setEventPublished(false);
+
+        when(besoinFormationRepository.findById(id)).thenReturn(Optional.of(besoin));
+        when(besoinFormationRepository.save(any(BesoinFormation.class))).thenReturn(besoin);
+        doThrow(new RuntimeException("MQ Error")).when(eventPublisher).publish(any());
+
+        BesoinFormationResponse result = service.approuverBesoin(id);
+
+        assertNotNull(result);
+        assertTrue(result.getApprouveAdmin());
+        verify(eventPublisher).publish(any());
     }
 
     @Test
-    void besoinFormation_setUsername_shouldStore() {
-        BesoinFormation besoin = new BesoinFormation();
-        besoin.setUsername("testuser@esprit.tn");
-        assertEquals("testuser@esprit.tn", besoin.getUsername());
+    void retrieveApprovedBesoinFormations_shouldReturnPage() {
+        Pageable pageable = PageRequest.of(0, 10);
+        when(besoinFormationRepository.findByApprouveAdminTrue(pageable)).thenReturn(Page.empty());
+        service.retrieveApprovedBesoinFormations(pageable);
+        verify(besoinFormationRepository).findByApprouveAdminTrue(pageable);
+    }
+
+    @Test
+    void retrieveByUp_shouldReturnPage() {
+        Pageable pageable = PageRequest.of(0, 10);
+        when(besoinFormationRepository.findByUp("UP1", pageable)).thenReturn(Page.empty());
+        service.retrieveByUp("UP1", pageable);
+        verify(besoinFormationRepository).findByUp("UP1", pageable);
+    }
+
+    @Test
+    void retrieveByDepartement_shouldReturnPage() {
+        Pageable pageable = PageRequest.of(0, 10);
+        when(besoinFormationRepository.findByDepartement("DEP", pageable)).thenReturn(Page.empty());
+        service.retrieveByDepartement("DEP", pageable);
+        verify(besoinFormationRepository).findByDepartement("DEP", pageable);
+    }
+
+    @Test
+    void retrieveAllByPriorite_shouldReturnPage() {
+        Pageable pageable = PageRequest.of(0, 10);
+        when(besoinFormationRepository.findAllByOrderByPrioriteDesc(pageable)).thenReturn(Page.empty());
+        service.retrieveAllByPriorite(pageable);
+        verify(besoinFormationRepository).findAllByOrderByPrioriteDesc(pageable);
+    }
+
+    @Test
+    void retrieveByPriorite_shouldReturnPage() {
+        Pageable pageable = PageRequest.of(0, 10);
+        when(besoinFormationRepository.findByPriorite(any(), eq(pageable))).thenReturn(Page.empty());
+        service.retrieveByPriorite(null, pageable);
+        verify(besoinFormationRepository).findByPriorite(null, pageable);
     }
 }

@@ -1,7 +1,7 @@
-package esprit.pfe.serviceformation.Services;
+package esprit.pfe.serviceformation.services;
 
-import esprit.pfe.serviceformation.Entities.Up;
-import esprit.pfe.serviceformation.Repositories.UpRepository;
+import esprit.pfe.serviceformation.entities.Up;
+import esprit.pfe.serviceformation.repositories.UpRepository;
 import org.apache.poi.ss.usermodel.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;

@@ -5,6 +5,7 @@ import { AuthContext } from "../context/AuthContext";
 const normalizeRole = (value: unknown): string =>
   String(value ?? "")
     .toLowerCase()
+    .replace(/^role_?/, "")
     .replace(/[\s_-]+/g, "");
 
 /**
@@ -151,8 +152,8 @@ export const useHasPermission = (
   const permissions = FRONTEND_PERMISSIONS[module];
   if (!permissions) return false;
 
-  const allowedRoles = permissions[action as keyof typeof permissions];
-  if (!allowedRoles) return false;
+  const allowedRoles = (permissions as any)[action];
+  if (!allowedRoles || !Array.isArray(allowedRoles)) return false;
 
   const role = normalizeRole(auth.user.role);
   return allowedRoles.map(normalizeRole).includes(role);

@@ -8,8 +8,7 @@ import lombok.NoArgsConstructor;
 @Data
 @Builder
 @AllArgsConstructor
-@NoArgsConstructor
-public class ErrorResponse {
+@NoArgsConstructor public class ErrorResponse {
     private String timestamp;
     private int status;
     private String errorCode;

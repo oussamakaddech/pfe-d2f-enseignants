@@ -10,7 +10,6 @@ import esprit.pfe.auth.repositories.UserRepository;
 import esprit.pfe.auth.error.BadRequestException;
 import esprit.pfe.auth.payload.request.EditProfileRequest;
 import esprit.pfe.auth.payload.request.UpdatePasswordRequest;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -22,12 +21,15 @@ import java.util.Set;
 @Service
 public class AccountServiceImpl implements AccountService {
 
-    @Autowired
-    UserRepository userRepository;
-    @Autowired
-    RoleRepository roleRepository;
-    @Autowired
-    private PasswordEncoder encoder;
+    private final UserRepository userRepository;
+    private final RoleRepository roleRepository;
+    private final PasswordEncoder encoder;
+
+    public AccountServiceImpl(UserRepository userRepository, RoleRepository roleRepository, PasswordEncoder encoder) {
+        this.userRepository = userRepository;
+        this.roleRepository = roleRepository;
+        this.encoder = encoder;
+    }
     @Override
     public List<User> listAccounts() {
         return this.userRepository.findAll();
@@ -35,21 +37,24 @@ public class AccountServiceImpl implements AccountService {
 
     @Override
     public void banAccount(String userName) {
-        User user = this.userRepository.findByUsername(userName).get();
+        User user = this.userRepository.findByUsername(userName)
+                .orElseThrow(() -> new BadRequestException("User not found"));
         user.setDisabled(true);
         this.userRepository.save(user);
     }
 
     @Override
     public void enableAccount(String userName) {
-        User user = this.userRepository.findByUsername(userName).get();
+        User user = this.userRepository.findByUsername(userName)
+                .orElseThrow(() -> new BadRequestException("User not found"));
         user.setDisabled(false);
         this.userRepository.save(user);
     }
 
     @Override
     public User getPrincipal(String userName) {
-        return this.userRepository.findByUsername(userName).get();
+        return this.userRepository.findByUsername(userName)
+                .orElseThrow(() -> new BadRequestException("User not found"));
     }
 
     @Override
@@ -74,7 +79,8 @@ public class AccountServiceImpl implements AccountService {
     public String updatePassword(String userName, UpdatePasswordRequest updatePasswordRequest) {
         if(!updatePasswordRequest.getNewPassword().equals(updatePasswordRequest.getConfirmation()))
             throw new BadRequestException("Confirm your password again");
-        User user = this.userRepository.findByUsername(userName).get();
+        User user = this.userRepository.findByUsername(userName)
+                .orElseThrow(() -> new BadRequestException("User not found"));
         user.setPassword(encoder.encode(updatePasswordRequest.getNewPassword()));
         this.userRepository.save(user);
         return "Password updated";

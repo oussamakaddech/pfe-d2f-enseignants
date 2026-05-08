@@ -1,6 +1,6 @@
-package esprit.pfe.servicecertificat.Repositories;
+package esprit.pfe.servicecertificat.repositories;
 
-import esprit.pfe.servicecertificat.Entities.Certificate;
+import esprit.pfe.servicecertificat.entities.Certificate;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

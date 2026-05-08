@@ -1,4 +1,4 @@
-package esprit.pfe.serviceformation.Microsoft;
+package esprit.pfe.serviceformation.microsoft;
 
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;

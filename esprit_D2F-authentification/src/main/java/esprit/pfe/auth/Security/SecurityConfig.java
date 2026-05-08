@@ -139,7 +139,11 @@ public class SecurityConfig {
             java.util.ArrayList<GrantedAuthority> authorities = new java.util.ArrayList<>();
             if (scope != null && !scope.isBlank()) {
                 for (String role : scope.split(" ")) {
-                    authorities.add(new SimpleGrantedAuthority("ROLE_" + role.toUpperCase()));
+                    String authority = role.toUpperCase();
+                    if (!authority.startsWith("ROLE_")) {
+                        authority = "ROLE_" + authority;
+                    }
+                    authorities.add(new SimpleGrantedAuthority(authority));
                 }
             }
             return authorities;

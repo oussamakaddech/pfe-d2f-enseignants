@@ -58,7 +58,11 @@ public class BesoinFormationController {
     @Operation(summary = "Ajouter un besoin de formation")
     @PostMapping("/add-BesoinFormation")
     @PreAuthorize(AuthorizationMatrix.BESOIN_FORMATION_CREATE)
-    public ResponseEntity<BesoinFormationResponse> addBesoinFormation(@Valid @RequestBody BesoinFormationRequest b) {
+    public ResponseEntity<?> addBesoinFormation(@Valid @RequestBody BesoinFormationRequest b, org.springframework.validation.BindingResult result) {
+        if (result.hasErrors()) {
+            log.error("Validation errors in add-BesoinFormation: {}", result.getAllErrors());
+            return ResponseEntity.badRequest().body(result.getAllErrors());
+        }
         return ResponseEntity.ok(besoinFormationService.addBesoinFormation(b));
     }
 

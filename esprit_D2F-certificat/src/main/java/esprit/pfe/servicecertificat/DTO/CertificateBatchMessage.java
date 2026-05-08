@@ -1,4 +1,4 @@
-package esprit.pfe.servicecertificat.DTO;
+package esprit.pfe.servicecertificat.dto;
 
 
 import lombok.Data;

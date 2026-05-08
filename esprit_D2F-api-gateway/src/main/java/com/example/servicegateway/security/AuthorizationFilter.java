@@ -30,11 +30,11 @@ public class AuthorizationFilter extends AbstractGatewayFilterFactory<Authorizat
     // The gateway checks these BEFORE forwarding to the downstream service.
 
     // Role constants
-    private static final String ROLE_ADMIN = "admin";
+    private static final String ROLE_ADMIN = "ADMIN";
     private static final String ROLE_CUP = "CUP";
     private static final String ROLE_D2F = "D2F";
-    private static final String ROLE_ENSEIGNANT = "Enseignant";
-    private static final String ROLE_FORMATEUR = "Formateur";
+    private static final String ROLE_ENSEIGNANT = "ENSEIGNANT";
+    private static final String ROLE_FORMATEUR = "FORMATEUR";
     private static final String ROLE_CHEF_DEPARTEMENT = "CHEF_DEPARTEMENT";
     private static final String ROLE_RESPONSABLE_DOSSIER = "RESPONSABLE_DOSSIER";
 
@@ -114,8 +114,10 @@ public class AuthorizationFilter extends AbstractGatewayFilterFactory<Authorizat
             String userRole = tokenProvider.getUserRole(token);
             List<String> allowedRoles = determineAllowedRoles(path, method);
 
+            log.info("AUTH DEBUG: path={}, method={}, userRole={}, allowedRoles={}", path, method, userRole, allowedRoles);
+
             if (allowedRoles != null && !isRoleAllowed(userRole, allowedRoles)) {
-                log.warn("User with role {} attempted unauthorized access to {} {}", userRole, method, path);
+                log.warn("AUTH DENIED: userRole={} not in allowedRoles={} for {} {}", userRole, allowedRoles, method, path);
                 return onError(exchange, "Insufficient permissions", HttpStatus.FORBIDDEN);
             }
 
@@ -231,14 +233,23 @@ public class AuthorizationFilter extends AbstractGatewayFilterFactory<Authorizat
      */
     private boolean isRoleAllowed(String userRole, List<String> allowedRoles) {
         if (userRole == null || userRole.isBlank()) {
+            log.debug("isRoleAllowed: userRole is null or blank");
             return false;
         }
-        // The JWT scope might be a single role like "admin" or "D2F"
+
+        // Admin has access to everything (Superuser)
+        if (userRole.contains(ROLE_ADMIN)) {
+            log.debug("isRoleAllowed: userRole contains ROLE_ADMIN ({})", ROLE_ADMIN);
+            return true;
+        }
+
         for (String allowed : allowedRoles) {
             if (userRole.contains(allowed)) {
+                log.debug("isRoleAllowed: userRole contains allowed role ({})", allowed);
                 return true;
             }
         }
+        log.debug("isRoleAllowed: NO MATCH found for userRole={} in allowedRoles={}", userRole, allowedRoles);
         return false;
     }
 

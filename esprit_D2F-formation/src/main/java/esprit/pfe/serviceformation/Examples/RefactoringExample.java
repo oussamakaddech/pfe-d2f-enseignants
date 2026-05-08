@@ -1,6 +1,6 @@
-package esprit.pfe.serviceformation.Examples; // NOSONAR - project-wide convention
+package esprit.pfe.serviceformation.examples; // NOSONAR - project-wide convention
 
-import esprit.pfe.serviceformation.Utils.ValidationUtils;
+import esprit.pfe.serviceformation.utils.ValidationUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
