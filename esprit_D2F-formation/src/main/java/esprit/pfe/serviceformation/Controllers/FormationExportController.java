@@ -52,28 +52,7 @@ public class FormationExportController {
             @RequestParam(required = false) String deptId,
             @RequestParam(required = false) String upId
     ) {
-        List<FormationDTO> formations = formationWorkflowService.getAllFormationWorkflows();
-
-        // Filter by date range if provided
-        if (start != null && end != null) {
-            formations = formations.stream().filter(f -> {
-                try {
-                    return f.getDateDebut() != null && f.getDateFin() != null;
-                } catch (Exception e) { return false; }
-            }).toList();
-        }
-
-        // Filter by dept/up if provided
-        if (deptId != null && !deptId.isBlank()) {
-            formations = formations.stream()
-                    .filter(f -> f.getDepartement1() != null && deptId.equals(f.getDepartement1().getId()))
-                    .toList();
-        }
-        if (upId != null && !upId.isBlank()) {
-            formations = formations.stream()
-                    .filter(f -> f.getUp1() != null && upId.equals(f.getUp1().getId()))
-                    .toList();
-        }
+        List<FormationDTO> formations = filterFormations(start, end, deptId, upId);
 
         // Generate CSV-like content (simple Excel export)
         StringBuilder sb = new StringBuilder();
@@ -96,5 +75,26 @@ public class FormationExportController {
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=formations-export.csv")
                 .contentType(MediaType.parseMediaType("text/csv"))
                 .body(bytes);
+    }
+
+    private List<FormationDTO> filterFormations(String start, String end, String deptId, String upId) {
+        List<FormationDTO> formations = formationWorkflowService.getAllFormationWorkflows();
+
+        if (start != null && end != null) {
+            formations = formations.stream()
+                    .filter(f -> f.getDateDebut() != null && f.getDateFin() != null)
+                    .toList();
+        }
+        if (deptId != null && !deptId.isBlank()) {
+            formations = formations.stream()
+                    .filter(f -> f.getDepartement1() != null && deptId.equals(f.getDepartement1().getId()))
+                    .toList();
+        }
+        if (upId != null && !upId.isBlank()) {
+            formations = formations.stream()
+                    .filter(f -> f.getUp1() != null && upId.equals(f.getUp1().getId()))
+                    .toList();
+        }
+        return formations;
     }
 }

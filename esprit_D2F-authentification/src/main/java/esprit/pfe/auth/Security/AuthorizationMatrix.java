@@ -8,6 +8,11 @@ package esprit.pfe.auth.security;
  */
 public class AuthorizationMatrix {
 
+    // Private constructor to prevent instantiation
+    private AuthorizationMatrix() {
+        throw new UnsupportedOperationException("Utility class");
+    }
+
     // ============ COMPETENCE & DOMAIN MANAGEMENT ============
     public static final String COMPETENCE_READ = "hasAnyRole('ROLE_admin','ROLE_ADMIN','ROLE_CUP','ROLE_Enseignant')";
     public static final String COMPETENCE_CREATE = "hasAnyRole('ROLE_admin','ROLE_ADMIN')";

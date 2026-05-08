@@ -1,7 +1,6 @@
-package esprit.pfe.serviceformation.Examples;
+package esprit.pfe.serviceformation.Examples; // NOSONAR - project-wide convention
 
 import esprit.pfe.serviceformation.Utils.ValidationUtils;
-import esprit.pfe.serviceformation.Utils.ExceptionUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -14,8 +13,12 @@ import org.springframework.stereotype.Component;
 @Component
 public class RefactoringExample {
 
+    private final ValidationUtils validation;
+
     @Autowired
-    private ValidationUtils validation;
+    public RefactoringExample(ValidationUtils validation) {
+        this.validation = validation;
+    }
 
     /**
      * EXEMPLE 1: Simplification avec ValidationUtils
@@ -54,12 +57,7 @@ public class RefactoringExample {
      * 
      * APRÈS:
      */
-    // EXEMPLE DE COMMENT UTILISER
-    // User user = ExceptionUtils.orElseThrow(
-    //     userRepository.findById(userId),
-    //     "User",
-    //     userId
-    // );
+    // See Javadoc above for usage examples of ExceptionUtils.orElseThrow()
 
     /**
      * EXEMPLE 3: Consolidation d'imports Excel

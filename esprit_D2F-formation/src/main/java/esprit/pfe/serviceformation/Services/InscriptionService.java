@@ -4,8 +4,6 @@ package esprit.pfe.serviceformation.Services;
 import esprit.pfe.serviceformation.DTO.*;
 import esprit.pfe.serviceformation.Entities.*;
 import esprit.pfe.serviceformation.Repositories.*;
-import esprit.pfe.serviceformation.Utils.ValidationUtils;
-import esprit.pfe.serviceformation.Utils.ExceptionUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,15 +14,18 @@ import java.util.stream.Collectors;
 @Service
 @Transactional
 public class InscriptionService {
-    @Autowired
-    FormationRepository formationRepo;
-    @Autowired
-    EnseignantRepository enseignantRepo;
-    @Autowired
-    InscriptionRepository inscriptionRepo;
+    private final FormationRepository formationRepo;
+    private final EnseignantRepository enseignantRepo;
+    private final InscriptionRepository inscriptionRepo;
 
     @Autowired
-    private ValidationUtils validation;
+    public InscriptionService(FormationRepository formationRepo,
+                              EnseignantRepository enseignantRepo,
+                              InscriptionRepository inscriptionRepo) {
+        this.formationRepo = formationRepo;
+        this.enseignantRepo = enseignantRepo;
+        this.inscriptionRepo = inscriptionRepo;
+    }
 
     /**
      * 1. Lister les formations accessibles pour un formateur

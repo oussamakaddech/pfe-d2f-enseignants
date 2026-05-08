@@ -133,6 +133,7 @@ public class CompetencePrerequisiteServiceImpl implements ICompetencePrerequisit
 
     @Override
     @Transactional(readOnly = true)
+    @SuppressWarnings("java:S6809") // Read-only self-calls within transactional context – no proxy bypass impact
     public boolean checkEnseignantMeetsPrerequisites(Long competenceId, String enseignantId) {
         List<CompetencePrerequisiteDTO> prerequisites = getPrerequisitesByCompetence(competenceId);
         return prerequisites.stream().allMatch(pr -> {
@@ -143,6 +144,7 @@ public class CompetencePrerequisiteServiceImpl implements ICompetencePrerequisit
 
     @Override
     @Transactional(readOnly = true)
+    @SuppressWarnings("java:S6809") // Read-only self-calls within transactional context – no proxy bypass impact
     public Map<String, Object> checkEnseignantEligibilityDetails(Long competenceId, String enseignantId) {
         List<CompetencePrerequisiteDTO> prerequisites = getPrerequisitesByCompetence(competenceId);
 

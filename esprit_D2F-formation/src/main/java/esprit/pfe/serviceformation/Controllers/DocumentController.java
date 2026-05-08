@@ -22,7 +22,7 @@ public class DocumentController {
     private DocumentService service;
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<?> createDocument(
+    public ResponseEntity<Object> createDocument(
             @RequestParam Long formationId,
             @RequestParam String pathType,
             @RequestParam String nomDocument,

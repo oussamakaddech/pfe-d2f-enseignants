@@ -5,6 +5,7 @@ import esprit.pfe.auth.entities.Role;
 import esprit.pfe.auth.entities.User;
 import esprit.pfe.auth.repositories.RoleRepository;
 import esprit.pfe.auth.repositories.UserRepository;
+import esprit.pfe.auth.security.DefaultCredentialsManager;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -25,48 +26,73 @@ public class AuthApplication {
     @Bean
     CommandLineRunner seedDefaultAdmin(UserRepository userRepository,
                                        RoleRepository roleRepository,
-                                       PasswordEncoder passwordEncoder) {
+                                       PasswordEncoder passwordEncoder,
+                                       DefaultCredentialsManager credentialsManager) {
         return args -> {
-            Role adminRole = roleRepository.findByName(ERole.admin)
-                    .orElseGet(() -> roleRepository.save(new Role(ERole.admin)));
-            roleRepository.findByName(ERole.CUP)
-                    .orElseGet(() -> roleRepository.save(new Role(ERole.CUP)));
-            roleRepository.findByName(ERole.Enseignant)
-                    .orElseGet(() -> roleRepository.save(new Role(ERole.Enseignant)));
-            roleRepository.findByName(ERole.Formateur)
-                    .orElseGet(() -> roleRepository.save(new Role(ERole.Formateur)));
+            Role adminRole = initializeRoles(roleRepository);
+            String defaultUsername = credentialsManager.getDefaultAdminUsername();
+            String defaultPassword = credentialsManager.getDefaultAdminPassword();
 
-            userRepository.findByUsername("admin").ifPresentOrElse(existing -> {
-                if (!passwordEncoder.matches("admin123", existing.getPassword())) {
-                    existing.setPassword(passwordEncoder.encode("admin123"));
-                    existing.setRoles(Set.of(adminRole));
-                    if (existing.getFirstName() == null || existing.getFirstName().isBlank()) {
-                        existing.setFirstName("System");
-                    }
-                    if (existing.getLastName() == null || existing.getLastName().isBlank()) {
-                        existing.setLastName("Admin");
-                    }
-                    if (existing.getPhoneNumber() == null || existing.getPhoneNumber().isBlank()) {
-                        existing.setPhoneNumber("00000000");
-                    }
-                    if (existing.getEmail() == null || existing.getEmail().isBlank()) {
-                        existing.setEmail("admin@d2f.local");
-                    }
-                    userRepository.save(existing);
-                }
-            }, () -> {
-                User admin = new User(
-                        "admin",
-                        "System",
-                        "Admin",
-                        "00000000",
-                        "admin@d2f.local",
-                        passwordEncoder.encode("admin123")
-                );
-                admin.setRoles(Set.of(adminRole));
-                userRepository.save(admin);
-            });
+            userRepository.findByUsername(defaultUsername).ifPresentOrElse(
+                existing -> updateExistingAdmin(userRepository, existing, adminRole, defaultPassword, passwordEncoder, credentialsManager),
+                () -> createNewAdmin(userRepository, adminRole, defaultUsername, defaultPassword, passwordEncoder, credentialsManager)
+            );
         };
+    }
+
+    private Role initializeRoles(RoleRepository roleRepository) {
+        Role adminRole = roleRepository.findByName(ERole.ADMIN)
+                .orElseGet(() -> roleRepository.save(new Role(ERole.ADMIN)));
+        ensureRoleExists(roleRepository, ERole.CUP);
+        ensureRoleExists(roleRepository, ERole.ENSEIGNANT);
+        ensureRoleExists(roleRepository, ERole.FORMATEUR);
+        return adminRole;
+    }
+
+    private void ensureRoleExists(RoleRepository roleRepository, ERole roleName) {
+        if (roleRepository.findByName(roleName).isEmpty()) {
+            roleRepository.save(new Role(roleName));
+        }
+    }
+
+    private void updateExistingAdmin(UserRepository userRepository, User existing, Role adminRole, String defaultPassword,
+                                   PasswordEncoder passwordEncoder, DefaultCredentialsManager credentialsManager) {
+        if (!passwordEncoder.matches(defaultPassword, existing.getPassword())) {
+            existing.setPassword(passwordEncoder.encode(defaultPassword));
+            existing.setRoles(Set.of(adminRole));
+            updateAdminProfile(existing, credentialsManager);
+            userRepository.save(existing);
+        }
+    }
+
+    private void updateAdminProfile(User admin, DefaultCredentialsManager credentialsManager) {
+        if (admin.getFirstName() == null || admin.getFirstName().isBlank()) {
+            admin.setFirstName(credentialsManager.getDefaultAdminFirstName());
+        }
+        if (admin.getLastName() == null || admin.getLastName().isBlank()) {
+            admin.setLastName(credentialsManager.getDefaultAdminLastName());
+        }
+        if (admin.getPhoneNumber() == null || admin.getPhoneNumber().isBlank()) {
+            admin.setPhoneNumber(credentialsManager.getDefaultAdminPhone());
+        }
+        if (admin.getEmail() == null || admin.getEmail().isBlank()) {
+            admin.setEmail(credentialsManager.getDefaultAdminEmail());
+        }
+    }
+
+    private void createNewAdmin(UserRepository userRepository, Role adminRole, String defaultUsername,
+                               String defaultPassword, PasswordEncoder passwordEncoder,
+                               DefaultCredentialsManager credentialsManager) {
+        User admin = new User(
+                defaultUsername,
+                credentialsManager.getDefaultAdminFirstName(),
+                credentialsManager.getDefaultAdminLastName(),
+                credentialsManager.getDefaultAdminPhone(),
+                credentialsManager.getDefaultAdminEmail(),
+                passwordEncoder.encode(defaultPassword)
+        );
+        admin.setRoles(Set.of(adminRole));
+        userRepository.save(admin);
     }
 
 }

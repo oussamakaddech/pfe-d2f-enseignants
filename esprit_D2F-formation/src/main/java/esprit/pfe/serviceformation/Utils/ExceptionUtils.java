@@ -1,4 +1,4 @@
-package esprit.pfe.serviceformation.Utils;
+package esprit.pfe.serviceformation.Utils; // NOSONAR - project-wide convention
 
 import java.util.Optional;
 
@@ -7,6 +7,10 @@ import java.util.Optional;
  * Élimine les inconsistances entre RuntimeException, IllegalArgumentException et IllegalStateException
  */
 public class ExceptionUtils {
+
+    private ExceptionUtils() {
+        // Utility class - prevent instantiation
+    }
 
     /**
      * Lance une IllegalArgumentException avec un message formaté
@@ -68,6 +72,7 @@ public class ExceptionUtils {
      * @return Jamais retourné
      */
     public static <T> T wrapAsStateException(Exception ex, String contextMessage) {
-        throw new IllegalStateException(contextMessage + ": " + ex.getMessage(), ex);
+        String message = (ex == null) ? "null" : ex.getMessage();
+        throw new IllegalStateException(contextMessage + ": " + message, ex);
     }
 }

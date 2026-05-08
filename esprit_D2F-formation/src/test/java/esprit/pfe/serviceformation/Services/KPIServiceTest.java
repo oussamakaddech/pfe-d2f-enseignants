@@ -3,124 +3,216 @@ package esprit.pfe.serviceformation.Services;
 import esprit.pfe.serviceformation.DTO.*;
 import esprit.pfe.serviceformation.Entities.*;
 import esprit.pfe.serviceformation.Repositories.*;
+import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.*;
+import java.util.Date;
+import java.util.List;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-@DisplayName("KPIService - Tests unitaires")
 class KPIServiceTest {
 
-    @Mock
-    private FormationRepository formationRepository;
-
-    @Mock
-    private PresenceRepository presenceRepository;
-
-    @Mock
-    private UpRepository upRepository;
-
-    @Mock
-    private DeptRepository deptRepository;
-
-    @Mock
-    private EnseignantRepository enseignantRepository;
-
-    @InjectMocks
-    private KPIService kpiService;
+    @Mock private FormationRepository formationRepository;
+    @Mock private PresenceRepository presenceRepository;
+    @Mock private UpRepository upRepository;
+    @Mock private DeptRepository deptRepository;
+    @Mock private EnseignantRepository enseignantRepository;
+    @InjectMocks private KPIService service;
 
     private Date start;
     private Date end;
 
     @BeforeEach
     void setUp() {
-        start = new Date(System.currentTimeMillis() - 86400000L * 10); // 10 jours avant
-        end = new Date(System.currentTimeMillis() + 86400000L * 10); // 10 jours après
+        start = new Date(System.currentTimeMillis() - 86400000L);
+        end = new Date();
     }
 
     @Test
-    @DisplayName("Compte total des formations")
-    void shouldCountTotalFormations() {
-        when(formationRepository.countTotalFormations(start, end)).thenReturn(5);
-
-        int result = kpiService.countTotalFormations(start, end);
-
-        assertThat(result).isEqualTo(5);
-        verify(formationRepository).countTotalFormations(start, end);
+    void countTotalFormations_shouldDelegate() {
+        when(formationRepository.countTotalFormations(any(), any())).thenReturn(5);
+        assertEquals(5, service.countTotalFormations(start, end));
     }
 
     @Test
-    @DisplayName("Calcule total des heures de formation")
-    void shouldCalculateTotalHeures() {
-        when(formationRepository.sumTotalHeures(start, end)).thenReturn(100);
-
-        int result = kpiService.calculateTotalHeures(start, end);
-
-        assertThat(result).isEqualTo(100);
-        verify(formationRepository).sumTotalHeures(start, end);
+    void calculateTotalHeures_shouldDelegate() {
+        when(formationRepository.sumTotalHeures(any(), any())).thenReturn(120);
+        assertEquals(120, service.calculateTotalHeures(start, end));
     }
 
     @Test
-    @DisplayName("Compte participants uniques")
-    void shouldCountUniqueParticipants() {
-        when(formationRepository.countUniqueParticipants(start, end)).thenReturn(20);
-
-        int result = kpiService.countUniqueParticipants(start, end);
-
-        assertThat(result).isEqualTo(20);
-        verify(formationRepository).countUniqueParticipants(start, end);
+    void countUniqueParticipants_shouldDelegate() {
+        when(formationRepository.countUniqueParticipants(any(), any())).thenReturn(45);
+        assertEquals(45, service.countUniqueParticipants(start, end));
     }
 
     @Test
-    @DisplayName("Retourne les formations par état")
-    void shouldGetFormationsByEtat() {
-        List<Object[]> mockResults = new ArrayList<>();
-        mockResults.add(new Object[]{EtatFormation.ENREGISTRE, 2L});
-        mockResults.add(new Object[]{EtatFormation.PLANIFIE, 3L});
+    void getFormationsByEtat_shouldMapResults() {
+        Object[] row1 = new Object[]{EtatFormation.ACHEVE, 3L};
+        Object[] row2 = new Object[]{EtatFormation.PLANIFIE, 2L};
+        when(formationRepository.countFormationsByEtat(any(), any())).thenReturn(List.of(row1, row2));
 
-        when(formationRepository.countFormationsByEtat(start, end)).thenReturn(mockResults);
+        FormationsByEtatDTO result = service.getFormationsByEtat(start, end);
 
-        FormationsByEtatDTO result = kpiService.getFormationsByEtat(start, end);
-
-        assertThat(result.getEnregistre()).isEqualTo(2);
-        assertThat(result.getPlanifie()).isEqualTo(3);
-        assertThat(result.getEnCours()).isEqualTo(0);
-        assertThat(result.getTotal()).isEqualTo(5);
+        assertEquals(5, result.getTotal());
+        assertEquals(3, result.getAcheve());
+        assertEquals(2, result.getPlanifie());
     }
 
     @Test
-    @DisplayName("Retourne le top des participants")
-    void shouldGetTopParticipants() {
-        List<EnseignantStatsDTO> mockList = List.of(new EnseignantStatsDTO("E1", "Nom", "Prenom", 5L));
-        when(presenceRepository.findTopParticipants(null, null, start, end, EtatFormation.ACHEVE)).thenReturn(mockList);
+    void getFormationsByEtat_allStates_shouldMapAll() {
+        Object[] row1 = new Object[]{EtatFormation.ENREGISTRE, 1L};
+        Object[] row2 = new Object[]{EtatFormation.EN_COURS, 2L};
+        Object[] row3 = new Object[]{EtatFormation.ANNULE, 1L};
+        when(formationRepository.countFormationsByEtat(any(), any())).thenReturn(List.of(row1, row2, row3));
 
-        List<EnseignantStatsDTO> result = kpiService.getTopParticipants(null, null, start, end);
+        FormationsByEtatDTO result = service.getFormationsByEtat(start, end);
 
-        assertThat(result).hasSize(1);
-        assertThat(result.get(0).getEnseignantId()).isEqualTo("E1");
-        assertThat(result.get(0).getTotalPresences()).isEqualTo(5L);
+        assertEquals(4, result.getTotal());
+        assertEquals(1, result.getEnregistre());
+        assertEquals(2, result.getEnCours());
+        assertEquals(1, result.getAnnule());
     }
 
     @Test
-    @DisplayName("Retourne le top des absents")
-    void shouldGetTopAbsentees() {
-        List<EnseignantStatsDTO> mockList = List.of(new EnseignantStatsDTO("E2", "Nom2", "Prenom2", 3L));
-        when(presenceRepository.findTopAbsentees(null, null, start, end, EtatFormation.ACHEVE)).thenReturn(mockList);
+    void getTopParticipants_validFilters_shouldReturn() {
+        when(upRepository.existsById("up1")).thenReturn(true);
+        when(deptRepository.existsById("dept1")).thenReturn(true);
+        when(presenceRepository.findTopParticipants(any(), any(), any(), any(), any())).thenReturn(List.of());
 
-        List<EnseignantStatsDTO> result = kpiService.getTopAbsentees(null, null, start, end);
+        List<EnseignantStatsDTO> result = service.getTopParticipants("up1", "dept1", start, end);
 
-        assertThat(result).hasSize(1);
-        assertThat(result.get(0).getEnseignantId()).isEqualTo("E2");
+        assertNotNull(result);
+    }
+
+    @Test
+    void getTopParticipants_invalidDates_shouldThrow() {
+        Date futureStart = new Date(System.currentTimeMillis() + 86400000L);
+        Date pastEnd = new Date(System.currentTimeMillis() - 86400000L);
+
+        assertThrows(IllegalArgumentException.class, () ->
+                service.getTopParticipants(null, null, futureStart, pastEnd));
+    }
+
+    @Test
+    void getTopParticipants_invalidUp_shouldThrow() {
+        when(upRepository.existsById("invalid")).thenReturn(false);
+
+        assertThrows(EntityNotFoundException.class, () ->
+                service.getTopParticipants("invalid", null, start, end));
+    }
+
+    @Test
+    void getTopAbsentees_invalidDept_shouldThrow() {
+        when(deptRepository.existsById("invalid")).thenReturn(false);
+
+        assertThrows(EntityNotFoundException.class, () ->
+                service.getTopAbsentees(null, "invalid", start, end));
+    }
+
+    @Test
+    void getTopAbsentees_validFilters_shouldReturn() {
+        when(presenceRepository.findTopAbsentees(any(), any(), any(), any(), any())).thenReturn(List.of());
+
+        List<EnseignantStatsDTO> result = service.getTopAbsentees(null, null, start, end);
+
+        assertNotNull(result);
+    }
+
+    @Test
+    void getEnseignantsNonAffectes_shouldReturnMappedList() {
+        Enseignant ens = new Enseignant();
+        ens.setId("ens-1");
+        ens.setNom("Dupont");
+        ens.setPrenom("Jean");
+        ens.setMail("jean@esprit.tn");
+        ens.setType("Permanent");
+
+        Dept dept = new Dept();
+        dept.setId("dept1");
+        dept.setLibelle("Informatique");
+        ens.setDept(dept);
+
+        Up up = new Up();
+        up.setId("up1");
+        up.setLibelle("UP Java");
+        ens.setUp(up);
+
+        when(enseignantRepository.findEnseignantsNonAffectesSurPeriode(any(), any())).thenReturn(List.of(ens));
+
+        List<EnseignantDTO> result = service.getEnseignantsNonAffectes(start, end);
+
+        assertEquals(1, result.size());
+        assertEquals("Dupont", result.get(0).getNom());
+        assertEquals("dept1", result.get(0).getDeptId());
+        assertEquals("up1", result.get(0).getUpId());
+    }
+
+    @Test
+    void getEnseignantsNonAffectes_noDeptNoUp_shouldStillMap() {
+        Enseignant ens = new Enseignant();
+        ens.setId("ens-2");
+        ens.setNom("Test");
+
+        when(enseignantRepository.findEnseignantsNonAffectesSurPeriode(any(), any())).thenReturn(List.of(ens));
+
+        List<EnseignantDTO> result = service.getEnseignantsNonAffectes(start, end);
+
+        assertEquals(1, result.size());
+        assertNull(result.get(0).getDeptId());
+        assertNull(result.get(0).getUpId());
+    }
+
+    @Test
+    void getFormationsByTypeWithFilters_shouldMapResults() {
+        Object[] row1 = new Object[]{TypeFormation.INTERNE, 3L};
+        Object[] row2 = new Object[]{TypeFormation.EXTERNE, 2L};
+        Object[] row3 = new Object[]{TypeFormation.EN_LIGNE, 1L};
+        when(formationRepository.countFormationsByTypeWithFilters(any(), any(), any(), any(), any(), any(), any(), any()))
+                .thenReturn(List.of(row1, row2, row3));
+
+        FormationsByTypeDTO result = service.getFormationsByTypeWithFilters(null, null, null, null, null, start, end, null);
+
+        assertEquals(3L, result.getInterne());
+        assertEquals(2L, result.getExterne());
+        assertEquals(1L, result.getEnLigne());
+    }
+
+    @Test
+    void getCountAndSumHeures_shouldDelegate() {
+        CountHeuresDTO expected = new CountHeuresDTO(5L, 100L);
+        when(formationRepository.countAndSumHeuresWithFilters(any(), any(), any(), any(), any(), any(), any(), any()))
+                .thenReturn(expected);
+
+        CountHeuresDTO result = service.getCountAndSumHeures(null, null, null, null, null, start, end, null);
+
+        assertEquals(5L, result.getCount());
+        assertEquals(100L, result.getTotalHeures());
+    }
+
+    @Test
+    void getCountByTrainerTypeWithIds_shouldDelegate() {
+        when(formationRepository.findExterneOnlyIdsWithFilters(any(), any(), any(), any(), any(), any(), any(), any()))
+                .thenReturn(List.of(1L, 2L));
+        when(formationRepository.findInterneOnlyIdsWithFilters(any(), any(), any(), any(), any(), any(), any(), any()))
+                .thenReturn(List.of(3L));
+        when(formationRepository.findMixteIdsWithFilters(any(), any(), any(), any(), any(), any(), any(), any()))
+                .thenReturn(List.of());
+
+        CountByTrainerTypeWithIdsDTO result = service.getCountByTrainerTypeWithIds(null, null, null, null, null, start, end, null);
+
+        assertEquals(2L, result.getExterneOnlyCount());
+        assertEquals(1L, result.getInterneOnlyCount());
+        assertEquals(0L, result.getMixteCount());
     }
 }

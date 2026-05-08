@@ -29,20 +29,51 @@ public class AuthorizationFilter extends AbstractGatewayFilterFactory<Authorizat
     // Each entry maps a path prefix + HTTP method pattern to the list of roles that are allowed.
     // The gateway checks these BEFORE forwarding to the downstream service.
 
+    // Role constants
+    private static final String ROLE_ADMIN = "admin";
+    private static final String ROLE_CUP = "CUP";
+    private static final String ROLE_D2F = "D2F";
+    private static final String ROLE_ENSEIGNANT = "Enseignant";
+    private static final String ROLE_FORMATEUR = "Formateur";
+    private static final String ROLE_CHEF_DEPARTEMENT = "CHEF_DEPARTEMENT";
+    private static final String ROLE_RESPONSABLE_DOSSIER = "RESPONSABLE_DOSSIER";
+
     /** All authenticated users */
-    private static final List<String> ALL_ROLES = List.of("admin", "CUP", "D2F", "Enseignant", "Formateur", "CHEF_DEPARTEMENT", "RESPONSABLE_DOSSIER");
+    private static final List<String> ALL_ROLES = List.of(
+        ROLE_ADMIN, ROLE_CUP, ROLE_D2F, ROLE_ENSEIGNANT, ROLE_FORMATEUR, 
+        ROLE_CHEF_DEPARTEMENT, ROLE_RESPONSABLE_DOSSIER
+    );
 
     /** Admin only */
-    private static final List<String> ADMIN_ONLY = List.of("admin");
+    private static final List<String> ADMIN_ONLY = List.of(ROLE_ADMIN);
 
-    /** Admin + CUP + D2F */
-    private static final List<String> ADMIN_CUP = List.of("admin", "CUP", "D2F", "CHEF_DEPARTEMENT");
+    /** Admin + CUP + D2F + Chef de département */
+    private static final List<String> ADMIN_CUP = List.of(
+        ROLE_ADMIN, ROLE_CUP, ROLE_D2F, ROLE_CHEF_DEPARTEMENT
+    );
 
-    /** Admin + CUP + D2F + Enseignant */
-    private static final List<String> NO_FORMATEUR = List.of("admin", "CUP", "D2F", "Enseignant", "CHEF_DEPARTEMENT");
+    /** Admin + CUP + D2F + Enseignant + Chef de département */
+    private static final List<String> NO_FORMATEUR = List.of(
+        ROLE_ADMIN, ROLE_CUP, ROLE_D2F, ROLE_ENSEIGNANT, ROLE_CHEF_DEPARTEMENT
+    );
 
     /** Admin + Formateur */
-    private static final List<String> ADMIN_FORMATEUR = List.of("admin", "Formateur");
+    private static final List<String> ADMIN_FORMATEUR = List.of(ROLE_ADMIN, ROLE_FORMATEUR);
+
+    /** Admin + CUP + D2F + Chef de département */
+    private static final List<String> ADMIN_CUP_D2F_CHEF = List.of(
+        ROLE_ADMIN, ROLE_CUP, ROLE_D2F, ROLE_CHEF_DEPARTEMENT
+    );
+
+    /** Admin + CUP + D2F + Enseignant + Chef de département */
+    private static final List<String> ADMIN_CUP_D2F_ENSEIGNANT_CHEF = List.of(
+        ROLE_ADMIN, ROLE_CUP, ROLE_D2F, ROLE_ENSEIGNANT, ROLE_CHEF_DEPARTEMENT
+    );
+
+    /** Admin + CUP + Enseignant */
+    private static final List<String> ADMIN_CUP_ENSEIGNANT = List.of(
+        ROLE_ADMIN, ROLE_CUP, ROLE_ENSEIGNANT
+    );
 
     public AuthorizationFilter(JwtTokenProvider tokenProvider) {
         super(Config.class);
@@ -167,7 +198,7 @@ public class AuthorizationFilter extends AbstractGatewayFilterFactory<Authorizat
         if (path.contains("/approve")) return ADMIN_CUP;
         if (method == HttpMethod.DELETE) return ADMIN_ONLY;
         if (path.contains("/modify") && method == HttpMethod.PUT) return ADMIN_ONLY;
-        if (method == HttpMethod.POST) return List.of("admin", "CUP", "Enseignant");
+        if (method == HttpMethod.POST) return ADMIN_CUP_ENSEIGNANT;
         return ALL_ROLES;
     }
 
@@ -190,8 +221,8 @@ public class AuthorizationFilter extends AbstractGatewayFilterFactory<Authorizat
 
     private List<String> getAnalyseRoles(String path) {
         if (path.contains("/predict/train")) return ADMIN_ONLY;
-        if (path.contains("/dashboard/") || path.contains("/detect/")) return List.of("admin", "CUP", "D2F", "CHEF_DEPARTEMENT");
-        return List.of("admin", "CUP", "D2F", "Enseignant", "CHEF_DEPARTEMENT");
+        if (path.contains("/dashboard/") || path.contains("/detect/")) return ADMIN_CUP_D2F_CHEF;
+        return ADMIN_CUP_D2F_ENSEIGNANT_CHEF;
     }
 
     /**
@@ -241,7 +272,7 @@ public class AuthorizationFilter extends AbstractGatewayFilterFactory<Authorizat
         DataBufferFactory bufferFactory = response.bufferFactory();
         return response.writeWith(Mono.just(bufferFactory.wrap(errorBody.getBytes())));
     }
-
     public static class Config {
+        // Configuration properties can be added here if needed
     }
 }

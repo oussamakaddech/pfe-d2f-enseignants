@@ -16,11 +16,14 @@ import java.util.*;
 @Service
 public class SeanceService {
 
-    @Autowired
-    private SeanceFormationRepository seanceRepo;
+    private final SeanceFormationRepository seanceRepo;
+    private final ValidationUtils validation;
 
     @Autowired
-    private ValidationUtils validation;
+    public SeanceService(SeanceFormationRepository seanceRepo, ValidationUtils validation) {
+        this.seanceRepo = seanceRepo;
+        this.validation = validation;
+    }
 
     /**
      * Valide qu'il n'y a pas de conflit horaire pour un utilisateur
