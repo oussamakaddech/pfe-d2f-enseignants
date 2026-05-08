@@ -11,6 +11,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
+/** DTO for Competence */
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class CompetenceDTO {
     private Long id;

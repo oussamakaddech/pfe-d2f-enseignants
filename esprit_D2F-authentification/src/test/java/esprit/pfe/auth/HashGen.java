@@ -1,3 +1,5 @@
+package esprit.pfe.auth;
+
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
 public class HashGen {

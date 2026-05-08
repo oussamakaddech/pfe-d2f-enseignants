@@ -48,6 +48,8 @@ class BesoinFormationMapperTest {
         entity.setUsername("user1");
         entity.setTitre("Titre");
         entity.setApprouveAdmin(true);
+        entity.setNbMaxParticipants(20);
+        entity.setDureeFormation(10);
 
         BesoinFormationResponse response = mapper.toResponse(entity);
 

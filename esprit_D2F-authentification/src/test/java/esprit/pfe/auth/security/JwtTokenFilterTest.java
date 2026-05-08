@@ -4,8 +4,10 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.NullAndEmptySource;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.io.IOException;
@@ -17,39 +19,15 @@ class JwtTokenFilterTest {
 
     private final JwtTokenFilter filter = new JwtTokenFilter();
 
-    @Test
-    void doFilterInternal_withBearerToken_shouldContinueChain() throws ServletException, IOException {
+    @ParameterizedTest
+    @ValueSource(strings = {"Bearer some.jwt.token", "Basic abc123"})
+    @NullAndEmptySource
+    void doFilterInternal_withVariousAuthorizationHeaders_shouldContinueChain(String authHeader) throws ServletException, IOException {
         HttpServletRequest request = mock(HttpServletRequest.class);
         HttpServletResponse response = mock(HttpServletResponse.class);
         FilterChain chain = mock(FilterChain.class);
 
-        when(request.getHeader("Authorization")).thenReturn("Bearer some.jwt.token");
-
-        filter.doFilterInternal(request, response, chain);
-
-        verify(chain).doFilter(request, response);
-    }
-
-    @Test
-    void doFilterInternal_withoutToken_shouldContinueChain() throws ServletException, IOException {
-        HttpServletRequest request = mock(HttpServletRequest.class);
-        HttpServletResponse response = mock(HttpServletResponse.class);
-        FilterChain chain = mock(FilterChain.class);
-
-        when(request.getHeader("Authorization")).thenReturn(null);
-
-        filter.doFilterInternal(request, response, chain);
-
-        verify(chain).doFilter(request, response);
-    }
-
-    @Test
-    void doFilterInternal_withNonBearerToken_shouldContinueChain() throws ServletException, IOException {
-        HttpServletRequest request = mock(HttpServletRequest.class);
-        HttpServletResponse response = mock(HttpServletResponse.class);
-        FilterChain chain = mock(FilterChain.class);
-
-        when(request.getHeader("Authorization")).thenReturn("Basic abc123");
+        when(request.getHeader("Authorization")).thenReturn(authHeader);
 
         filter.doFilterInternal(request, response, chain);
 

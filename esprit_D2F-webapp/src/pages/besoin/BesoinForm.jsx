@@ -112,7 +112,7 @@ export default function BesoinForm() {
     try {
       const values = form.getFieldsValue(true);
       const payload = {
-        username: user?.username || user?.userName,
+        username: user?.username || user?.userName || "anonymous",
         typeBesoin: values.typeBesoin,
         up: values.up,
         departement: values.departement,
@@ -127,11 +127,14 @@ export default function BesoinForm() {
         autresInformations: values.autresInformations,
         theme: values.theme,
         dureeFormation: values.dureeFormation ? Number(values.dureeFormation) : undefined,
+        nbMaxParticipants: values.nbMaxParticipants ? Number(values.nbMaxParticipants) : 0,
         periodCode: values.periodCode,
         customPeriodLabel: values.customPeriodLabel,
         objectifsPedagogiques: values.objectifsPedagogiques,
         methodesEvaluationAcquis: values.methodesEvaluationAcquis,
       };
+
+      console.log("Payload envoyé au backend:", payload);
 
       await BesoinFormationService.addBesoinFormation(payload);
       msgApi.success("Besoin de formation ajouté avec succès !");
@@ -140,8 +143,9 @@ export default function BesoinForm() {
       setLastImportCount(0);
       setCurrentStep(0);
     } catch (err) {
-      console.error(err);
-      msgApi.error("Erreur lors de l'ajout du besoin");
+      console.error("Détails de l'erreur de soumission:", err.response?.data);
+      const errorMsg = err.response?.data?.message || "Erreur lors de l'ajout du besoin";
+      msgApi.error(errorMsg);
     } finally {
       setSubmitting(false);
     }
@@ -546,6 +550,21 @@ export default function BesoinForm() {
               className="besoin-form-input"
             >
               <Input type="number" placeholder="Ex : 40" size="large" />
+            </Form.Item>
+          </Col>
+          <Col xs={24} md={12}>
+            <Form.Item
+              label={
+                <span className="besoin-step-label">
+                  <TeamOutlined className="besoin-step-label-icon" />
+                  Nb. max participants
+                </span>
+              }
+              name="nbMaxParticipants"
+              className="besoin-form-input"
+              rules={[{ required: true, message: "Veuillez saisir le nombre max de participants" }]}
+            >
+              <Input type="number" placeholder="Ex : 20" size="large" />
             </Form.Item>
           </Col>
           <Col xs={24} md={12}>

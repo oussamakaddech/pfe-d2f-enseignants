@@ -59,7 +59,8 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<ErrorResponse> handleDataIntegrity(DataIntegrityViolationException ex, HttpServletRequest request) {
         log.error("Data integrity violation: {}", ex.getMessage());
-        String message = "Conflit de données : la ressource existe déjà ou une contrainte d'intégrité a été violée.";
+        String rootMsg = ex.getRootCause() != null ? ex.getRootCause().getMessage() : ex.getMessage();
+        String message = "Conflit de données : " + rootMsg;
         return buildResponse(HttpStatus.CONFLICT, message, MODULE_PREFIX + "-409", request);
     }
 

@@ -1,6 +1,5 @@
 package esprit.pfe.auth.websocketconfig;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.SendTo;
@@ -13,8 +12,12 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @Controller
 public class NotificationController {
-    @Autowired
-    private SimpMessagingTemplate messagingTemplate;
+
+    private final SimpMessagingTemplate messagingTemplate;
+
+    public NotificationController(SimpMessagingTemplate messagingTemplate) {
+        this.messagingTemplate = messagingTemplate;
+    }
 
     @MessageMapping("/notify")
     @SendTo("/topic/notifications")

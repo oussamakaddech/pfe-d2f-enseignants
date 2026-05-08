@@ -60,6 +60,8 @@ class InscriptionServiceTest {
         formation.setUp(up);
         formation.setDateDebut(new Date());
         formation.setDateFin(new Date(System.currentTimeMillis() + 86400000L));
+        formation.setCoutFormation(100.0f);
+        formation.setChargeHoraireGlobal(40);
     }
 
     @Test
