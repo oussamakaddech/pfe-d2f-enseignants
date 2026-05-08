@@ -1,10 +1,10 @@
-package esprit.pfe.serviceformation.Repositories;
+package esprit.pfe.serviceformation.repositories;
 
-import esprit.pfe.serviceformation.DTO.EnseignantStatsDTO;
-import esprit.pfe.serviceformation.Entities.Enseignant;
-import esprit.pfe.serviceformation.Entities.EtatFormation;
-import esprit.pfe.serviceformation.Entities.Formation;
-import esprit.pfe.serviceformation.Entities.Presence;
+import esprit.pfe.serviceformation.dto.EnseignantStatsDTO;
+import esprit.pfe.serviceformation.entities.Enseignant;
+import esprit.pfe.serviceformation.entities.EtatFormation;
+import esprit.pfe.serviceformation.entities.Formation;
+import esprit.pfe.serviceformation.entities.Presence;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -65,7 +65,7 @@ public interface PresenceRepository extends JpaRepository<Presence, Long> {
 
 
    /* @Query("""
-      SELECT new esprit.pfe.serviceformation.DTO.EnseignantStatsDTO(
+      SELECT new esprit.pfe.serviceformation.dto.EnseignantStatsDTO(
         e.id,
         e.nom,
         e.prenom,
@@ -89,7 +89,7 @@ public interface PresenceRepository extends JpaRepository<Presence, Long> {
 
 
    @Query("""
-      SELECT new esprit.pfe.serviceformation.DTO.EnseignantStatsDTO(
+      SELECT new esprit.pfe.serviceformation.dto.EnseignantStatsDTO(
         e.id,
         e.nom,
         e.prenom,
@@ -115,7 +115,7 @@ public interface PresenceRepository extends JpaRepository<Presence, Long> {
 
     // ——— Top absentees (plus absents) pour FORMATIONS ACHEVEES ———
     @Query("""
-      SELECT new esprit.pfe.serviceformation.DTO.EnseignantStatsDTO(
+      SELECT new esprit.pfe.serviceformation.dto.EnseignantStatsDTO(
         e.id,
         e.nom,
         e.prenom,

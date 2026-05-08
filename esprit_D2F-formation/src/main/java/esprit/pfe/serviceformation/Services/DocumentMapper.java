@@ -1,8 +1,8 @@
-package esprit.pfe.serviceformation.Services;
+package esprit.pfe.serviceformation.services;
 
 
-import esprit.pfe.serviceformation.DTO.DocumentDTO;
-import esprit.pfe.serviceformation.Entities.Document;
+import esprit.pfe.serviceformation.dto.DocumentDTO;
+import esprit.pfe.serviceformation.entities.Document;
 
 public class DocumentMapper {
 

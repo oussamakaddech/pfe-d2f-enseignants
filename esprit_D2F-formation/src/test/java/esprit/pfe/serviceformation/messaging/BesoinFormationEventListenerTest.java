@@ -1,7 +1,7 @@
 package esprit.pfe.serviceformation.messaging;
 
-import esprit.pfe.serviceformation.Entities.*;
-import esprit.pfe.serviceformation.Repositories.*;
+import esprit.pfe.serviceformation.entities.*;
+import esprit.pfe.serviceformation.repositories.*;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;

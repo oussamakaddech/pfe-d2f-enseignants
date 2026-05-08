@@ -1,9 +1,9 @@
-package esprit.pfe.servicecertificat.Controllers;
+package esprit.pfe.servicecertificat.controllers;
 
-import esprit.pfe.servicecertificat.DTO.CertificateBatchMessage;
-import esprit.pfe.servicecertificat.Entities.Certificate;
-import esprit.pfe.servicecertificat.Repositories.CertificateRepository;
-import esprit.pfe.servicecertificat.Services.CertificatePdfGenerator;
+import esprit.pfe.servicecertificat.dto.CertificateBatchMessage;
+import esprit.pfe.servicecertificat.entities.Certificate;
+import esprit.pfe.servicecertificat.repositories.CertificateRepository;
+import esprit.pfe.servicecertificat.services.CertificatePdfGenerator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;

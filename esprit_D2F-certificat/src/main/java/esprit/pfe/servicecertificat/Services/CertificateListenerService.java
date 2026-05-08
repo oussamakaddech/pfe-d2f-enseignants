@@ -1,8 +1,8 @@
-package esprit.pfe.servicecertificat.Services;
+package esprit.pfe.servicecertificat.services;
 
-import esprit.pfe.servicecertificat.DTO.CertificateBatchMessage;
-import esprit.pfe.servicecertificat.Entities.Certificate;
-import esprit.pfe.servicecertificat.Repositories.CertificateRepository;
+import esprit.pfe.servicecertificat.dto.CertificateBatchMessage;
+import esprit.pfe.servicecertificat.entities.Certificate;
+import esprit.pfe.servicecertificat.repositories.CertificateRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;

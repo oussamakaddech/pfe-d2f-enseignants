@@ -1,11 +1,11 @@
-package esprit.pfe.serviceformation.Controllers;
+package esprit.pfe.serviceformation.controllers;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import esprit.pfe.serviceformation.DTO.*;
-import esprit.pfe.serviceformation.Entities.Formation;
-import esprit.pfe.serviceformation.Entities.TypeFormation;
-import esprit.pfe.serviceformation.Services.ExportExcelService;
-import esprit.pfe.serviceformation.Services.FormationWorkflowService;
+import esprit.pfe.serviceformation.dto.*;
+import esprit.pfe.serviceformation.entities.Formation;
+import esprit.pfe.serviceformation.entities.TypeFormation;
+import esprit.pfe.serviceformation.services.ExportExcelService;
+import esprit.pfe.serviceformation.services.FormationWorkflowService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

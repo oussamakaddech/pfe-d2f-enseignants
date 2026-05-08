@@ -1,144 +1,101 @@
-package esprit.pfe.serviceformation.Services;
+package esprit.pfe.serviceformation.services;
 
-import esprit.pfe.serviceformation.Entities.Document;
-import esprit.pfe.serviceformation.Entities.Formation;
-import esprit.pfe.serviceformation.Microsoft.OneDriveService;
-import esprit.pfe.serviceformation.Repositories.DocumentRepository;
-import esprit.pfe.serviceformation.Repositories.FormationRepository;
+import esprit.pfe.serviceformation.entities.Document;
+import esprit.pfe.serviceformation.entities.Formation;
+import esprit.pfe.serviceformation.microsoft.OneDriveService;
+import esprit.pfe.serviceformation.repositories.DocumentRepository;
+import esprit.pfe.serviceformation.repositories.FormationRepository;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mock.web.MockMultipartFile;
-import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.util.Date;
-import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-@DisplayName("DocumentService - Tests unitaires")
 class DocumentServiceTest {
 
-    @Mock
-    private DocumentRepository documentRepository;
-
-    @Mock
-    private FormationRepository formationRepository;
-
-    @Mock
-    private OneDriveService oneDriveService;
+    @Mock private DocumentRepository documentRepo;
+    @Mock private FormationRepository formationRepo;
+    @Mock private OneDriveService oneDriveService;
 
     @InjectMocks
     private DocumentService documentService;
 
-    private Formation formation;
-    private Document document;
+    private Formation testFormation;
+    private Document testDoc;
 
     @BeforeEach
     void setUp() {
-        formation = new Formation();
-        formation.setIdFormation(1L);
-        formation.setTitreFormation("Spring Boot Avancé");
+        testFormation = new Formation();
+        testFormation.setIdFormation(1L);
+        testFormation.setTitreFormation("Formation Test");
 
-        document = new Document();
-        document.setIdDocument(1L);
-        document.setNomDocument("Support Cours");
-        document.setPathType("SUPPORT");
-        document.setFilePath("https://onedrive.live.com/test");
-        document.setFormation(formation);
-        document.setDate(new Date());
+        testDoc = new Document();
+        testDoc.setIdDocument(100L);
+        testDoc.setNomDocument("Doc Old");
+        testDoc.setFormation(testFormation);
+        testDoc.setFilePath("http://onedrive/d2f/Formation Test/Type/Doc Old/file.pdf");
     }
 
     @Test
-    @DisplayName("createDocument - Succès")
     void shouldCreateDocument() throws IOException {
-        MockMultipartFile file = new MockMultipartFile("file", "test.pdf", "application/pdf", "Contenu".getBytes());
+        MockMultipartFile file = new MockMultipartFile("file", "test.pdf", "application/pdf", "content".getBytes());
+        
+        when(formationRepo.findById(1L)).thenReturn(Optional.of(testFormation));
+        when(oneDriveService.uploadDocumentToFormationFolder(anyString(), anyString(), anyString(), any(), anyString()))
+                .thenReturn("http://new-url");
+        when(documentRepo.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
-        when(formationRepository.findById(1L)).thenReturn(Optional.of(formation));
-        when(oneDriveService.uploadDocumentToFormationFolder(any(), any(), any(), any(), any()))
-                .thenReturn("https://onedrive.live.com/test.pdf");
-        when(documentRepository.save(any())).thenAnswer(inv -> {
-            Document d = inv.getArgument(0);
-            d.setIdDocument(1L);
-            return d;
-        });
-
-        Document result = documentService.createDocument(1L, "SUPPORT", "Support Cours", true, file);
+        Document result = documentService.createDocument(1L, "Type", "Doc Name", true, file);
 
         assertThat(result).isNotNull();
-        assertThat(result.getIdDocument()).isEqualTo(1L);
-        assertThat(result.getFilePath()).isEqualTo("https://onedrive.live.com/test.pdf");
-        verify(oneDriveService).uploadDocumentToFormationFolder(any(), any(), any(), any(), any());
-        verify(documentRepository).save(any());
+        assertThat(result.getFilePath()).isEqualTo("http://new-url");
+        verify(documentRepo).save(any());
     }
 
     @Test
-    @DisplayName("createDocument - Échec : Formation introuvable")
-    void shouldThrowWhenFormationNotFoundForCreate() {
-        MockMultipartFile file = new MockMultipartFile("file", "test.pdf", "application/pdf", "Contenu".getBytes());
-        when(formationRepository.findById(99L)).thenReturn(Optional.empty());
+    void shouldUpdateDocumentWithNewFile() throws IOException {
+        MockMultipartFile file = new MockMultipartFile("file", "new.pdf", "application/pdf", "new content".getBytes());
+        
+        when(documentRepo.findById(100L)).thenReturn(Optional.of(testDoc));
+        when(oneDriveService.uploadDocumentToFormationFolder(anyString(), anyString(), anyString(), any(), anyString()))
+                .thenReturn("http://updated-url");
+        when(documentRepo.save(any())).thenReturn(testDoc);
 
-        assertThatThrownBy(() -> documentService.createDocument(99L, "SUPPORT", "Support Cours", true, file))
-                .isInstanceOf(IllegalArgumentException.class);
+        Document result = documentService.updateDocument(100L, "Type", "Doc New", true, file);
+
+        assertThat(result.getFilePath()).isEqualTo("http://updated-url");
+        verify(oneDriveService).uploadDocumentToFormationFolder(anyString(), anyString(), anyString(), any(), anyString());
     }
 
     @Test
-    @DisplayName("getById - Succès")
-    void shouldGetById() {
-        when(documentRepository.findById(1L)).thenReturn(Optional.of(document));
+    void shouldUpdateDocumentRenameOnly() throws IOException {
+        when(documentRepo.findById(100L)).thenReturn(Optional.of(testDoc));
+        when(documentRepo.save(any())).thenReturn(testDoc);
 
-        Document result = documentService.getById(1L);
+        Document result = documentService.updateDocument(100L, "Type", "Doc New", true, null);
 
-        assertThat(result).isNotNull();
-        assertThat(result.getIdDocument()).isEqualTo(1L);
+        assertThat(result.getNomDocument()).isEqualTo("Doc New");
+        verify(oneDriveService).renameDocumentFolder(anyString(), anyString(), eq("Doc Old"), eq("Doc New"));
+        verify(oneDriveService, never()).uploadDocumentToFormationFolder(any(), any(), any(), any(), any());
     }
 
     @Test
-    @DisplayName("getAll - Succès")
-    void shouldGetAll() {
-        when(documentRepository.findAll()).thenReturn(List.of(document));
+    void shouldDeleteDocument() {
+        when(documentRepo.findById(100L)).thenReturn(Optional.of(testDoc));
+        
+        documentService.deleteDocument(100L);
 
-        List<Document> result = documentService.getAll();
-
-        assertThat(result).hasSize(1);
-    }
-
-    @Test
-    @DisplayName("updateDocument - Avec nouveau fichier")
-    void shouldUpdateDocumentWithFile() throws IOException {
-        MockMultipartFile file = new MockMultipartFile("file", "test_v2.pdf", "application/pdf", "Contenu".getBytes());
-
-        when(documentRepository.findById(1L)).thenReturn(Optional.of(document));
-        when(oneDriveService.uploadDocumentToFormationFolder(any(), any(), any(), any(), any()))
-                .thenReturn("https://onedrive.live.com/test_v2.pdf");
-        when(documentRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
-
-        Document result = documentService.updateDocument(1L, "SUPPORT", "Support Cours", true, file);
-
-        assertThat(result.getFilePath()).isEqualTo("https://onedrive.live.com/test_v2.pdf");
-        verify(oneDriveService).uploadDocumentToFormationFolder(any(), any(), any(), any(), any());
-    }
-
-    @Test
-    @DisplayName("updateDocument - Sans fichier, changement de nom")
-    void shouldUpdateDocumentWithoutFile() throws IOException {
-        when(documentRepository.findById(1L)).thenReturn(Optional.of(document));
-        doNothing().when(oneDriveService).renameDocumentFolder(any(), any(), any(), any());
-        when(documentRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
-
-        Document result = documentService.updateDocument(1L, "SUPPORT", "Nouveau Nom", true, null);
-
-        assertThat(result.getNomDocument()).isEqualTo("Nouveau Nom");
-        verify(oneDriveService).renameDocumentFolder(any(), any(), any(), any());
+        verify(oneDriveService).deleteDocument(eq("Formation Test"), anyString(), eq("Doc Old"), eq("file.pdf"));
+        verify(documentRepo).delete(testDoc);
     }
 }

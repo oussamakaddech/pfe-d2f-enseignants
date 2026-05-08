@@ -1,11 +1,11 @@
-package esprit.pfe.serviceformation.Services;
+package esprit.pfe.serviceformation.services;
 
-import esprit.pfe.serviceformation.Entities.Formation;
-import esprit.pfe.serviceformation.Entities.SeanceFormation;
-import esprit.pfe.serviceformation.Entities.Enseignant;
-import esprit.pfe.serviceformation.Repositories.FormationRepository;
-import esprit.pfe.serviceformation.Repositories.SeanceFormationRepository;
-import esprit.pfe.serviceformation.Repositories.PresenceRepository;
+import esprit.pfe.serviceformation.entities.Formation;
+import esprit.pfe.serviceformation.entities.SeanceFormation;
+import esprit.pfe.serviceformation.entities.Enseignant;
+import esprit.pfe.serviceformation.repositories.FormationRepository;
+import esprit.pfe.serviceformation.repositories.SeanceFormationRepository;
+import esprit.pfe.serviceformation.repositories.PresenceRepository;
 import esprit.pfe.serviceformation.messaging.CertificateBatchMessage;
 import esprit.pfe.serviceformation.messaging.CertificateEventPublisher;
 import lombok.extern.slf4j.Slf4j;

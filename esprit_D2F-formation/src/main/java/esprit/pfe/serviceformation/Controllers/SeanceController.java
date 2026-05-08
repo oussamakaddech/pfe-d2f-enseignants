@@ -1,7 +1,7 @@
-package esprit.pfe.serviceformation.Controllers;
+package esprit.pfe.serviceformation.controllers;
 
-import esprit.pfe.serviceformation.DTO.SeanceDTO;
-import esprit.pfe.serviceformation.Services.SeanceService;
+import esprit.pfe.serviceformation.dto.SeanceDTO;
+import esprit.pfe.serviceformation.services.SeanceService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;

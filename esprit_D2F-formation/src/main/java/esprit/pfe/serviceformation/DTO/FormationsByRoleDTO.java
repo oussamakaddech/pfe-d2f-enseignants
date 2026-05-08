@@ -1,4 +1,4 @@
-package esprit.pfe.serviceformation.DTO;
+package esprit.pfe.serviceformation.dto;
 
 
 

@@ -2,7 +2,6 @@ package esprit.pfe.auth.services;
 
 import esprit.pfe.auth.entities.User;
 import org.junit.jupiter.api.Test;
-import org.springframework.security.core.GrantedAuthority;
 
 import java.util.Collections;
 

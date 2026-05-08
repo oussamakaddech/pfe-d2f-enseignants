@@ -1,7 +1,7 @@
-package esprit.pfe.serviceformation.Controllers;
+package esprit.pfe.serviceformation.controllers;
 
-import esprit.pfe.serviceformation.DTO.*;
-import esprit.pfe.serviceformation.Services.KPIService;
+import esprit.pfe.serviceformation.dto.*;
+import esprit.pfe.serviceformation.services.KPIService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

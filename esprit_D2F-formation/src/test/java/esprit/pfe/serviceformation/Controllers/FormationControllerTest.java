@@ -1,10 +1,10 @@
-package esprit.pfe.serviceformation.Controllers;
+package esprit.pfe.serviceformation.controllers;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import esprit.pfe.serviceformation.Entities.EtatFormation;
-import esprit.pfe.serviceformation.Entities.Formation;
-import esprit.pfe.serviceformation.Entities.TypeFormation;
-import esprit.pfe.serviceformation.Services.FormationService;
+import esprit.pfe.serviceformation.entities.EtatFormation;
+import esprit.pfe.serviceformation.entities.Formation;
+import esprit.pfe.serviceformation.entities.TypeFormation;
+import esprit.pfe.serviceformation.services.FormationService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;

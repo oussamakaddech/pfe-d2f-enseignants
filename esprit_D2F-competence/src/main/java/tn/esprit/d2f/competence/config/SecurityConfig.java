@@ -39,10 +39,10 @@ import javax.crypto.spec.SecretKeySpec;
 public class SecurityConfig {
 
     private static final String API_PATTERN = "/api/**";
-    private static final String ROLE_ADMIN = "admin";
+    private static final String ROLE_ADMIN = "ADMIN";
     private static final String ROLE_CUP = "CUP";
-    private static final String ROLE_ENSEIGNANT = "Enseignant";
-    private static final String ROLE_FORMATEUR = "Formateur";
+    private static final String ROLE_ENSEIGNANT = "ENSEIGNANT";
+    private static final String ROLE_FORMATEUR = "FORMATEUR";
 
     @Value("${jwt.secret}")
     private String jwtSecret;
@@ -93,7 +93,7 @@ public class SecurityConfig {
     public JwtAuthenticationConverter jwtAuthenticationConverter() {
         JwtGrantedAuthoritiesConverter authoritiesConverter = new JwtGrantedAuthoritiesConverter();
         authoritiesConverter.setAuthoritiesClaimName("scope");   // nom du claim dans le JWT (auth service utilise "scope")
-        authoritiesConverter.setAuthorityPrefix("ROLE_");        // Spring Security convention
+        authoritiesConverter.setAuthorityPrefix("");        // The auth service already provides ROLE_ prefix
 
         JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
         converter.setJwtGrantedAuthoritiesConverter(authoritiesConverter);

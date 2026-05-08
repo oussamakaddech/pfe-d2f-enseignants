@@ -1,8 +1,8 @@
-package esprit.pfe.serviceformation.DTO;
+package esprit.pfe.serviceformation.dto;
 
-import esprit.pfe.serviceformation.Entities.EtatFormation;
-import esprit.pfe.serviceformation.Entities.TypeFormation;
-import esprit.pfe.serviceformation.Entities.TypeSeanceEnum;
+import esprit.pfe.serviceformation.entities.EtatFormation;
+import esprit.pfe.serviceformation.entities.TypeFormation;
+import esprit.pfe.serviceformation.entities.TypeSeanceEnum;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
 import lombok.Data;
@@ -12,7 +12,6 @@ import java.util.List;
 
 @Data
 public class FormationWorkflowRequest {
-    @NotBlank(message = "Le type de besoin est obligatoire")
     private String typeBesoin;
 
     private Long idBesoinFormation;
@@ -32,8 +31,7 @@ public class FormationWorkflowRequest {
 
     private EtatFormation etatFormation;
 
-    @PositiveOrZero(message = "Le coût de formation doit être positif ou nul")
-    private float coutFormation;
+    private Float coutFormation;
 
     private String externeFormateurNom;
     private String externeFormateurPrenom;
@@ -43,8 +41,7 @@ public class FormationWorkflowRequest {
 
     private String organismeRefExterne;
 
-    @Min(value = 1, message = "La charge horaire globale doit être d'au moins 1 heure")
-    private int chargeHoraireGlobal;
+    private Integer chargeHoraireGlobal;
 
     private String upId;
     private String departementId;
@@ -53,7 +50,6 @@ public class FormationWorkflowRequest {
     private String domaine;
     private String populationCible;
     
-    @NotBlank(message = "Les objectifs sont obligatoires")
     private String objectifs;
     
     private String objectifsPedago;
@@ -86,18 +82,14 @@ public class FormationWorkflowRequest {
     public static class SeanceRequest {
         private Long idSeance;
 
-        @NotNull(message = "La date de la séance est obligatoire")
         private Date dateSeance;
 
-        @NotBlank(message = "L'heure de début est obligatoire")
         private String heureDebut;
 
-        @NotBlank(message = "L'heure de fin est obligatoire")
         private String heureFin;
 
         private String salle;
 
-        @NotNull(message = "Le type de séance est obligatoire")
         private TypeSeanceEnum typeSeance;
 
         private String contenus;

@@ -1,8 +1,8 @@
-package esprit.pfe.serviceformation.Repositories;
+package esprit.pfe.serviceformation.repositories;
 
-import esprit.pfe.serviceformation.DTO.CountHeuresDTO;
-import esprit.pfe.serviceformation.Entities.EtatFormation;
-import esprit.pfe.serviceformation.Entities.Formation;
+import esprit.pfe.serviceformation.dto.CountHeuresDTO;
+import esprit.pfe.serviceformation.entities.EtatFormation;
+import esprit.pfe.serviceformation.entities.Formation;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -52,7 +52,7 @@ public interface FormationRepository extends JpaRepository<Formation, Long> {
     List<Formation> findByUp_Id(String upId);
 
     @Query("""
-  SELECT NEW esprit.pfe.serviceformation.DTO.CountHeuresDTO(
+  SELECT NEW esprit.pfe.serviceformation.dto.CountHeuresDTO(
       COUNT(f),
       COALESCE(SUM(f.chargeHoraireGlobal), 0L)
   )

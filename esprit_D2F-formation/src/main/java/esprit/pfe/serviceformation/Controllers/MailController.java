@@ -1,6 +1,6 @@
-package esprit.pfe.serviceformation.Controllers;
+package esprit.pfe.serviceformation.controllers;
 
-import esprit.pfe.serviceformation.Microsoft.OutlookMailService;
+import esprit.pfe.serviceformation.microsoft.OutlookMailService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;

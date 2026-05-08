@@ -1,4 +1,4 @@
-package esprit.pfe.serviceformation.Services;
+package esprit.pfe.serviceformation.services;
 
 import org.springframework.stereotype.Service;
 

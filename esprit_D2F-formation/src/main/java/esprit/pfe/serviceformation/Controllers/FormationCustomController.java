@@ -1,7 +1,7 @@
 
-package esprit.pfe.serviceformation.Controllers;
+package esprit.pfe.serviceformation.controllers;
 
-import esprit.pfe.serviceformation.Services.FormationClosureService;
+import esprit.pfe.serviceformation.services.FormationClosureService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

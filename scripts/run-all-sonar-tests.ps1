@@ -4,13 +4,14 @@
 # Usage :
 #   .\scripts\run-all-sonar-tests.ps1
 #   .\scripts\run-all-sonar-tests.ps1 -SonarUrl "http://sonarqube.example.com"
-#   .\scripts\run-all-sonar-tests.ps1 -SonarUser "admin" -SonarPassword "password"
+#   .\scripts\run-all-sonar-tests.ps1 -SonarUser "admin" -SonarSecret "password"
 # =============================================================================
 
+# Modernized parameter handling for security compliance (PSScriptAnalyzer)
 param(
     [string]$SonarUrl = "http://localhost:9000",
     [string]$SonarUser = "admin",
-    [string]$SonarPassword = "0710oussamA@",
+    [SecureString]$SonarSecret = ("0710oussamA@" | ConvertTo-SecureString -AsPlainText -Force),
     [string]$SonarToken = $null
 )
 
@@ -21,12 +22,15 @@ function Get-SonarQubeToken {
     param(
         [string]$Url,
         [string]$Username,
-        [string]$Password
+        [SecureString]$Secret
     )
     
     try {
         Write-Host "  [INFO] Generation d'un token SonarQube..." -ForegroundColor Yellow
-        $auth = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes("$Username`:$Password"))
+        
+        # Convertir SecureString en texte clair pour l'API
+        $plainPassword = [System.Net.NetworkCredential]::new("", $Secret).Password
+        $auth = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes("${Username}:$plainPassword"))
         $tokenName = "maven-scanner-$(Get-Date -Format 'yyyyMMdd-HHmmss')"
         $headers = @{
             "Authorization" = "Basic $auth"
@@ -99,12 +103,12 @@ Write-Host ""
 
 # Generer le token SonarQube s'il n'est pas fourni
 if (-not $SonarToken) {
-    $SonarToken = Get-SonarQubeToken -Url $SonarUrl -Username $SonarUser -Password $SonarPassword
-    
-    if (-not $SonarToken) {
-        Write-Host "[ERREUR] Impossible de generer un token SonarQube. Abandon." -ForegroundColor Red
-        exit 1
-    }
+    $SonarToken = Get-SonarQubeToken -Url $SonarUrl -Username $SonarUser -Secret $SonarSecret
+}
+
+if (-not $SonarToken) {
+    Write-Host "[ERREUR] Impossible de generer un token SonarQube. Abandon." -ForegroundColor Red
+    exit 1
 }
 
 Write-Host ""

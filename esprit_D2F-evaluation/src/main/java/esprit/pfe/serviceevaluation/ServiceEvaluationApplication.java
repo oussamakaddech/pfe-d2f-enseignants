@@ -5,7 +5,6 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.amqp.rabbit.annotation.EnableRabbit;
 
 @SpringBootApplication
-//@EnableDiscoveryClient
 @EnableRabbit
 public class ServiceEvaluationApplication {
 

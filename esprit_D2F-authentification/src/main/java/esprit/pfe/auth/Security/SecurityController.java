@@ -80,8 +80,10 @@ public class SecurityController {
     }
 
     public String resetPasswordAndDeleteConfirmationKey(String confirmationKey, String newPassword) {
-        ConfirmationKey confirmationKey1 = this.confirmationKeyRepo.findByConfirmationKey(confirmationKey).get();
-        User user = this.userRepository.findByEmail(confirmationKey1.getEmailAddress()).get();
+        ConfirmationKey confirmationKey1 = this.confirmationKeyRepo.findByConfirmationKey(confirmationKey)
+                .orElseThrow(() -> new BadRequestException("Confirmation Key not found"));
+        User user = this.userRepository.findByEmail(confirmationKey1.getEmailAddress())
+                .orElseThrow(() -> new BadRequestException("User associated with this key not found"));
         user.setPassword(this.encoder.encode(newPassword));
         this.userRepository.save(user);
         this.confirmationKeyRepo.delete(confirmationKey1);
@@ -228,32 +230,32 @@ public class SecurityController {
 
         if (strRoles == null) {
             Role userRole = roleRepository.findByName(ERole.ADMIN)
-                    .orElseThrow(() -> new RuntimeException("Error: Role is not found."));
+                    .orElseThrow(() -> new BadRequestException("Error: Role 'ADMIN' is not found."));
             roles.add(userRole);
         } else {
             strRoles.forEach(role -> {
                 switch (role) {
                     case "admin":
                         Role adminRole = roleRepository.findByName(ERole.ADMIN)
-                                .orElseThrow(() -> new RuntimeException("Error: Role is not found."));
+                                .orElseThrow(() -> new BadRequestException("Error: Role 'admin' is not found."));
                         roles.add(adminRole);
                         break;
 
                     case "CUP":
                         Role coachRole = roleRepository.findByName(ERole.CUP)
-                                .orElseThrow(() -> new RuntimeException("Error: Role is not found."));
+                                .orElseThrow(() -> new BadRequestException("Error: Role 'CUP' is not found."));
                         roles.add(coachRole);
                         break;
 
                     case "Enseignant":
                         Role enseignantRole = roleRepository.findByName(ERole.ENSEIGNANT)
-                                .orElseThrow(() -> new RuntimeException("Error: Role is not found."));
+                                .orElseThrow(() -> new BadRequestException("Error: Role 'Enseignant' is not found."));
                         roles.add(enseignantRole);
                         break;
 
                     default:
                         Role userRoleDefault = roleRepository.findByName(ERole.FORMATEUR)
-                                .orElseThrow(() -> new RuntimeException("Error: Role is not found."));
+                                .orElseThrow(() -> new BadRequestException("Error: Role 'Formateur' is not found."));
                         roles.add(userRoleDefault);
                 }
             });

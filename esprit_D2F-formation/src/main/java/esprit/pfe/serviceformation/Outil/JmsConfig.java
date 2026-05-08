@@ -1,4 +1,4 @@
-package esprit.pfe.serviceformation.Outil;
+package esprit.pfe.serviceformation.outil;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import esprit.pfe.serviceformation.messaging.BesoinFormationApprovedEvent;

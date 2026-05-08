@@ -1,8 +1,8 @@
-package esprit.pfe.serviceformation.Services;
+package esprit.pfe.serviceformation.services;
 
-import esprit.pfe.serviceformation.Entities.*;
-import esprit.pfe.serviceformation.Repositories.*;
-import esprit.pfe.serviceformation.Microsoft.OutlookMailService;
+import esprit.pfe.serviceformation.entities.*;
+import esprit.pfe.serviceformation.repositories.*;
+import esprit.pfe.serviceformation.microsoft.OutlookMailService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;

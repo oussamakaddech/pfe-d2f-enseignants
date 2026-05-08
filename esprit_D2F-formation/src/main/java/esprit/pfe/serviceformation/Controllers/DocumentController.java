@@ -1,9 +1,9 @@
-package esprit.pfe.serviceformation.Controllers;
+package esprit.pfe.serviceformation.controllers;
 
-import esprit.pfe.serviceformation.DTO.DocumentDTO;
-import esprit.pfe.serviceformation.Entities.Document;
-import esprit.pfe.serviceformation.Services.DocumentMapper;
-import esprit.pfe.serviceformation.Services.DocumentService;
+import esprit.pfe.serviceformation.dto.DocumentDTO;
+import esprit.pfe.serviceformation.entities.Document;
+import esprit.pfe.serviceformation.services.DocumentMapper;
+import esprit.pfe.serviceformation.services.DocumentService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.*;

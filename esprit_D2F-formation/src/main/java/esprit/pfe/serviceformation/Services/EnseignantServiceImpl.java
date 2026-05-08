@@ -1,8 +1,8 @@
-package esprit.pfe.serviceformation.Services;
+package esprit.pfe.serviceformation.services;
 
-import esprit.pfe.serviceformation.DTO.EnseignantDTO;
-import esprit.pfe.serviceformation.Entities.Enseignant;
-import esprit.pfe.serviceformation.Repositories.EnseignantRepository;
+import esprit.pfe.serviceformation.dto.EnseignantDTO;
+import esprit.pfe.serviceformation.entities.Enseignant;
+import esprit.pfe.serviceformation.repositories.EnseignantRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

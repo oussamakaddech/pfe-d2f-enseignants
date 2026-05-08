@@ -1,8 +1,8 @@
-package esprit.pfe.serviceformation.Services;
+package esprit.pfe.serviceformation.services;
 
-import esprit.pfe.serviceformation.Entities.EtatFormation;
-import esprit.pfe.serviceformation.Entities.Formation;
-import esprit.pfe.serviceformation.Repositories.FormationRepository;
+import esprit.pfe.serviceformation.entities.EtatFormation;
+import esprit.pfe.serviceformation.entities.Formation;
+import esprit.pfe.serviceformation.repositories.FormationRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;

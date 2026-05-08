@@ -1,4 +1,4 @@
-package esprit.pfe.serviceformation.Outil;
+package esprit.pfe.serviceformation.outil;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
@@ -51,7 +51,7 @@ public class FormationSecurityConfig {
     public JwtAuthenticationConverter jwtAuthenticationConverter() {
         JwtGrantedAuthoritiesConverter authoritiesConverter = new JwtGrantedAuthoritiesConverter();
         authoritiesConverter.setAuthoritiesClaimName("scope");
-        authoritiesConverter.setAuthorityPrefix("ROLE_");
+        authoritiesConverter.setAuthorityPrefix("");
 
         JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
         converter.setJwtGrantedAuthoritiesConverter(authoritiesConverter);

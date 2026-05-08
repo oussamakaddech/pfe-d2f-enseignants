@@ -1,11 +1,11 @@
-package esprit.pfe.serviceformation.Microsoft;
+package esprit.pfe.serviceformation.microsoft;
 
 import com.microsoft.graph.models.DriveItem;
 import com.microsoft.graph.models.DriveItemCreateLinkParameterSet;
 import com.microsoft.graph.models.Folder;
 import com.microsoft.graph.models.Permission;
 import com.microsoft.graph.requests.GraphServiceClient;
-import esprit.pfe.serviceformation.DTO.OneDriveItemDTO;
+import esprit.pfe.serviceformation.dto.OneDriveItemDTO;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.Request;
 import org.springframework.beans.factory.annotation.Autowired;

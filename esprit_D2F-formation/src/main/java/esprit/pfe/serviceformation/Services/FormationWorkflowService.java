@@ -1,10 +1,10 @@
-package esprit.pfe.serviceformation.Services;
+package esprit.pfe.serviceformation.services;
 
-import esprit.pfe.serviceformation.DTO.*;
-import esprit.pfe.serviceformation.Entities.*;
-import esprit.pfe.serviceformation.Repositories.*;
-import esprit.pfe.serviceformation.Microsoft.OutlookCalendarService;
-import esprit.pfe.serviceformation.Microsoft.OutlookMailService;
+import esprit.pfe.serviceformation.dto.*;
+import esprit.pfe.serviceformation.entities.*;
+import esprit.pfe.serviceformation.repositories.*;
+import esprit.pfe.serviceformation.microsoft.OutlookCalendarService;
+import esprit.pfe.serviceformation.microsoft.OutlookMailService;
 import esprit.pfe.serviceformation.messaging.EvaluationBatchMessage;
 import esprit.pfe.serviceformation.messaging.EvaluationPublisher;
 import lombok.extern.slf4j.Slf4j;

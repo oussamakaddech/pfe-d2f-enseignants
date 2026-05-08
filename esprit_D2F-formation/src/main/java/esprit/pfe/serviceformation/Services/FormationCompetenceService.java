@@ -1,9 +1,9 @@
-package esprit.pfe.serviceformation.Services;
+package esprit.pfe.serviceformation.services;
 
-import esprit.pfe.serviceformation.Entities.Formation;
-import esprit.pfe.serviceformation.Entities.FormationCompetence;
-import esprit.pfe.serviceformation.Repositories.FormationCompetenceRepository;
-import esprit.pfe.serviceformation.Repositories.FormationRepository;
+import esprit.pfe.serviceformation.entities.Formation;
+import esprit.pfe.serviceformation.entities.FormationCompetence;
+import esprit.pfe.serviceformation.repositories.FormationCompetenceRepository;
+import esprit.pfe.serviceformation.repositories.FormationRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;

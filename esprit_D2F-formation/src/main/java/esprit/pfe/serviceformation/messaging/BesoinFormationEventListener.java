@@ -1,12 +1,12 @@
 package esprit.pfe.serviceformation.messaging;
 
-import esprit.pfe.serviceformation.Entities.Formation;
-import esprit.pfe.serviceformation.Entities.EtatFormation;
-import esprit.pfe.serviceformation.Entities.PeriodCode;
-import esprit.pfe.serviceformation.Entities.TypeFormation;
-import esprit.pfe.serviceformation.Repositories.FormationRepository;
-import esprit.pfe.serviceformation.Repositories.UpRepository;
-import esprit.pfe.serviceformation.Repositories.DeptRepository;
+import esprit.pfe.serviceformation.entities.Formation;
+import esprit.pfe.serviceformation.entities.EtatFormation;
+import esprit.pfe.serviceformation.entities.PeriodCode;
+import esprit.pfe.serviceformation.entities.TypeFormation;
+import esprit.pfe.serviceformation.repositories.FormationRepository;
+import esprit.pfe.serviceformation.repositories.UpRepository;
+import esprit.pfe.serviceformation.repositories.DeptRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Component;

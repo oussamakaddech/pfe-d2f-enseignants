@@ -1,8 +1,8 @@
-package esprit.pfe.serviceformation.Repositories;
+package esprit.pfe.serviceformation.repositories;
 
-import esprit.pfe.serviceformation.Entities.Enseignant;
-import esprit.pfe.serviceformation.Entities.Formation;
-import esprit.pfe.serviceformation.Entities.SeanceFormation;
+import esprit.pfe.serviceformation.entities.Enseignant;
+import esprit.pfe.serviceformation.entities.Formation;
+import esprit.pfe.serviceformation.entities.SeanceFormation;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;

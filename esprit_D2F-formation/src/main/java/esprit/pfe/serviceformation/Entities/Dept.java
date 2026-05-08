@@ -1,4 +1,4 @@
-package esprit.pfe.serviceformation.Entities;
+package esprit.pfe.serviceformation.entities;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;

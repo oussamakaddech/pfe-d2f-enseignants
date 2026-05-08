@@ -1,7 +1,7 @@
-package esprit.pfe.serviceformation.Controllers;
+package esprit.pfe.serviceformation.controllers;
 
-import esprit.pfe.serviceformation.Entities.FormationCompetence;
-import esprit.pfe.serviceformation.Services.FormationCompetenceService;
+import esprit.pfe.serviceformation.entities.FormationCompetence;
+import esprit.pfe.serviceformation.services.FormationCompetenceService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;

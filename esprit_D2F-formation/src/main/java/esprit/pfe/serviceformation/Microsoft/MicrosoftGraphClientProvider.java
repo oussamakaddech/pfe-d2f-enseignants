@@ -1,4 +1,4 @@
-package esprit.pfe.serviceformation.Microsoft;
+package esprit.pfe.serviceformation.microsoft;
 
 import com.azure.identity.ClientSecretCredential;
 import com.azure.identity.ClientSecretCredentialBuilder;

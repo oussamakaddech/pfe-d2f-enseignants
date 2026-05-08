@@ -20,7 +20,6 @@ import java.io.Serializable;
 public class BesoinFormation implements Serializable {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Setter(AccessLevel.NONE)
     @JsonProperty("idBesoinFormation")
     Long idBesoinFormation ;
 
@@ -43,13 +42,13 @@ public class BesoinFormation implements Serializable {
     String publicCible  ;
 
     @JsonProperty("nbMaxParticipants")
-    int nbMaxParticipants  ;
+    Integer nbMaxParticipants  ;
 
     @JsonProperty("programmeFormation")
     String programmeFormation  ;
 
     @JsonProperty("dureeFormation")
-    int dureeFormation   ;
+    Integer dureeFormation   ;
 
     @JsonProperty("titre")
     String titre  ;
@@ -163,5 +162,9 @@ public class BesoinFormation implements Serializable {
 
     public Boolean getEventPublished() {
         return eventPublished;
+    }
+
+    public void setIdBesoinFormation(Long idBesoinFormation) {
+        this.idBesoinFormation = idBesoinFormation;
     }
 }

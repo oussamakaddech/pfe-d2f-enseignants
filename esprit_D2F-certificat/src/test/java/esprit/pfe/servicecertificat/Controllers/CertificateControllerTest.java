@@ -1,9 +1,9 @@
-package esprit.pfe.servicecertificat.Controllers;
+package esprit.pfe.servicecertificat.controllers;
 
-import esprit.pfe.servicecertificat.DTO.CertificateRequest;
-import esprit.pfe.servicecertificat.DTO.CertificateResponse;
-import esprit.pfe.servicecertificat.Entities.Certificate;
-import esprit.pfe.servicecertificat.Repositories.CertificateRepository;
+import esprit.pfe.servicecertificat.dto.CertificateRequest;
+import esprit.pfe.servicecertificat.dto.CertificateResponse;
+import esprit.pfe.servicecertificat.entities.Certificate;
+import esprit.pfe.servicecertificat.repositories.CertificateRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

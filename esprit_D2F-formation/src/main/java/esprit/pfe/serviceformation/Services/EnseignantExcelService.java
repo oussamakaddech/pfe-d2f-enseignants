@@ -1,9 +1,9 @@
-package esprit.pfe.serviceformation.Services;
+package esprit.pfe.serviceformation.services;
 
-import esprit.pfe.serviceformation.Entities.Enseignant;
-import esprit.pfe.serviceformation.Repositories.DeptRepository;
-import esprit.pfe.serviceformation.Repositories.EnseignantRepository;
-import esprit.pfe.serviceformation.Repositories.UpRepository;
+import esprit.pfe.serviceformation.entities.Enseignant;
+import esprit.pfe.serviceformation.repositories.DeptRepository;
+import esprit.pfe.serviceformation.repositories.EnseignantRepository;
+import esprit.pfe.serviceformation.repositories.UpRepository;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.beans.factory.annotation.Autowired;

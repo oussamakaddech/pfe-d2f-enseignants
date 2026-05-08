@@ -1,12 +1,12 @@
-package esprit.pfe.serviceformation.Services;
+package esprit.pfe.serviceformation.services;
 
-import esprit.pfe.serviceformation.DTO.EnseignantDTO;
-import esprit.pfe.serviceformation.DTO.SeanceDTO;
-import esprit.pfe.serviceformation.Entities.Enseignant;
-import esprit.pfe.serviceformation.Entities.SeanceFormation;
-import esprit.pfe.serviceformation.Repositories.SeanceFormationRepository;
-import esprit.pfe.serviceformation.Utils.ValidationUtils;
-import esprit.pfe.serviceformation.Utils.ExceptionUtils;
+import esprit.pfe.serviceformation.dto.EnseignantDTO;
+import esprit.pfe.serviceformation.dto.SeanceDTO;
+import esprit.pfe.serviceformation.entities.Enseignant;
+import esprit.pfe.serviceformation.entities.SeanceFormation;
+import esprit.pfe.serviceformation.repositories.SeanceFormationRepository;
+import esprit.pfe.serviceformation.utils.ValidationUtils;
+import esprit.pfe.serviceformation.utils.ExceptionUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 

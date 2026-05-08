@@ -9,11 +9,6 @@ import org.springframework.context.annotation.EnableAspectJAutoProxy;
 import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
 
 @SpringBootApplication(scanBasePackages = {"tn.esprit.d2f", "esprit.pfe.auth.security"})
-@EntityScan(basePackages = {"tn.esprit.d2f.entity"})
-@EnableJpaRepositories(basePackages = "tn.esprit.d2f.repository")
-@EnableAspectJAutoProxy
-//@EnableDiscoveryClient
-@EnableRabbit
 public class BesoinsFormationApplication {
 
 	public static void main(String[] args) {

@@ -31,6 +31,7 @@ const { Text } = Typography;
 const normalizeRole = (value) =>
   String(value || "")
     .toLowerCase()
+    .replace(/^role_?/, "")
     .replace(/[\s_-]+/g, "");
 
 export default function SideMenu() {

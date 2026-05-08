@@ -1,4 +1,4 @@
-package esprit.pfe.servicecertificat.Entities;
+package esprit.pfe.servicecertificat.entities;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;

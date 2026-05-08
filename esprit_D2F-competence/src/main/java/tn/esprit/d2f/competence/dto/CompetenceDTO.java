@@ -1,4 +1,4 @@
-package tn.esprit.d2f.competence.dto;
+package tn.esprit.d2f.competence.dto; // IDE refresh comment
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.*;

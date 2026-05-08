@@ -19,7 +19,7 @@ const { Option } = Select;
 
 const graviteColors = { elevee: "#ef4444", moyenne: "#f59e0b", faible: "#10b981" };
 const riskColor = (s) => s >= 0.7 ? "#ef4444" : s >= 0.4 ? "#f59e0b" : "#10b981";
-const normalizeRole = (v) => String(v || "").toLowerCase().replace(/[\s_-]+/g, "");
+const normalizeRole = (v) => String(v || "").toLowerCase().replace(/^role_?/, "").replace(/[\s_-]+/g, "");
 
 export default function AnalysePredictivePage() {
   const { user } = useContext(AuthContext);

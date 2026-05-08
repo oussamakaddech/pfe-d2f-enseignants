@@ -1,8 +1,7 @@
-package esprit.pfe.servicecertificat.Services;
+package esprit.pfe.servicecertificat.services;
 
-import esprit.pfe.servicecertificat.DTO.CertificateBatchMessage;
-import esprit.pfe.servicecertificat.Entities.Certificate;
-import esprit.pfe.servicecertificat.Repositories.CertificateRepository;
+import esprit.pfe.servicecertificat.dto.CertificateBatchMessage;
+import esprit.pfe.servicecertificat.repositories.CertificateRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;

@@ -1,4 +1,4 @@
-package esprit.pfe.serviceformation.Entities;
+package esprit.pfe.serviceformation.entities;
 
 public enum DriveSubPath {
     DOCUMENT,   // libre : nomDocument sera utilisé

@@ -11,7 +11,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.test.context.TestPropertySource;
-import tn.esprit.d2f.competence.config.TestAuditConfig;
+import tn.esprit.d2f.competence.config.TestAuditConfig; // Refresh import
 import tn.esprit.d2f.competence.entity.Competence;
 import tn.esprit.d2f.competence.entity.Domaine;
 

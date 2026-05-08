@@ -1,9 +1,9 @@
-package esprit.pfe.servicecertificat.Controllers;
+package esprit.pfe.servicecertificat.controllers;
 
-import esprit.pfe.servicecertificat.DTO.CertificateRequest;
-import esprit.pfe.servicecertificat.DTO.CertificateResponse;
-import esprit.pfe.servicecertificat.Entities.Certificate;
-import esprit.pfe.servicecertificat.Repositories.CertificateRepository;
+import esprit.pfe.servicecertificat.dto.CertificateRequest;
+import esprit.pfe.servicecertificat.dto.CertificateResponse;
+import esprit.pfe.servicecertificat.entities.Certificate;
+import esprit.pfe.servicecertificat.repositories.CertificateRepository;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;

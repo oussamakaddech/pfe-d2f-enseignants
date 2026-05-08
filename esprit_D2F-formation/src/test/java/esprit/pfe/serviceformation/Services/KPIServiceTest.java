@@ -1,8 +1,8 @@
-package esprit.pfe.serviceformation.Services;
+package esprit.pfe.serviceformation.services;
 
-import esprit.pfe.serviceformation.DTO.*;
-import esprit.pfe.serviceformation.Entities.*;
-import esprit.pfe.serviceformation.Repositories.*;
+import esprit.pfe.serviceformation.dto.*;
+import esprit.pfe.serviceformation.entities.*;
+import esprit.pfe.serviceformation.repositories.*;
 import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -16,7 +16,6 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)

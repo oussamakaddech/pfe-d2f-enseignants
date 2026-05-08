@@ -1,4 +1,4 @@
-package tn.esprit.d2f.competence.config;
+package tn.esprit.d2f.competence.config; // Refresh
 
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.context.annotation.Bean;

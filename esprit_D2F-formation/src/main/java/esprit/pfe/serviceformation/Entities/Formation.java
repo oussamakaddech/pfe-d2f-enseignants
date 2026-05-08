@@ -1,4 +1,4 @@
-package esprit.pfe.serviceformation.Entities;
+package esprit.pfe.serviceformation.entities;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -81,7 +81,7 @@ public class Formation {
     @Column(nullable = true)
     private Float coutRepas;
     @Column(nullable = true)
-    private float coutFormation;
+    private Float coutFormation;
 
 
     // — pré-requis / acquis / indicateurs —
@@ -96,7 +96,7 @@ public class Formation {
 
 
     @Column(nullable = true)
-    private int chargeHoraireGlobal;
+    private Integer chargeHoraireGlobal;
 
     @Column(name="certif_generated", nullable=false)
     private boolean certifGenerated = false;

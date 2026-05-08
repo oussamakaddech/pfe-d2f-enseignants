@@ -1,9 +1,9 @@
-package esprit.pfe.serviceformation.Controllers;
+package esprit.pfe.serviceformation.controllers;
 
 
-import esprit.pfe.serviceformation.Entities.Up;
-import esprit.pfe.serviceformation.Repositories.UpRepository;
-import esprit.pfe.serviceformation.Services.UpService;
+import esprit.pfe.serviceformation.entities.Up;
+import esprit.pfe.serviceformation.repositories.UpRepository;
+import esprit.pfe.serviceformation.services.UpService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

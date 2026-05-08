@@ -1,9 +1,9 @@
-package esprit.pfe.serviceformation.Controllers;
+package esprit.pfe.serviceformation.controllers;
 
-import esprit.pfe.serviceformation.DTO.FormationDTO;
-import esprit.pfe.serviceformation.DTO.InscriptionDTO;
-import esprit.pfe.serviceformation.Entities.*;
-import esprit.pfe.serviceformation.Services.InscriptionService;
+import esprit.pfe.serviceformation.dto.FormationDTO;
+import esprit.pfe.serviceformation.dto.InscriptionDTO;
+import esprit.pfe.serviceformation.entities.*;
+import esprit.pfe.serviceformation.services.InscriptionService;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;

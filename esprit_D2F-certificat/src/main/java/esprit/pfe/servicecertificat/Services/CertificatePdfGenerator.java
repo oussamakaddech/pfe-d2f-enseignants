@@ -1,6 +1,6 @@
-package esprit.pfe.servicecertificat.Services;
+package esprit.pfe.servicecertificat.services;
 
-import esprit.pfe.servicecertificat.DTO.CertificateBatchMessage;
+import esprit.pfe.servicecertificat.dto.CertificateBatchMessage;
 import com.itextpdf.io.image.ImageData;
 import com.itextpdf.io.image.ImageDataFactory;
 import com.itextpdf.kernel.colors.ColorConstants;
