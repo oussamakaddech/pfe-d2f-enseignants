@@ -38,6 +38,12 @@ import javax.crypto.spec.SecretKeySpec;
 @EnableMethodSecurity(prePostEnabled = true, securedEnabled = true)
 public class SecurityConfig {
 
+    private static final String API_PATTERN = "/api/**";
+    private static final String ROLE_ADMIN = "admin";
+    private static final String ROLE_CUP = "CUP";
+    private static final String ROLE_ENSEIGNANT = "Enseignant";
+    private static final String ROLE_FORMATEUR = "Formateur";
+
     @Value("${jwt.secret}")
     private String jwtSecret;
 
@@ -56,18 +62,18 @@ public class SecurityConfig {
                                 "/actuator/**"
                         ).permitAll()
                         // Lecture : tous les rôles
-                        .requestMatchers(HttpMethod.GET, "/api/**")
-                            .hasAnyRole("admin", "CUP", "Enseignant", "Formateur")
+                        .requestMatchers(HttpMethod.GET, API_PATTERN)
+                            .hasAnyRole(ROLE_ADMIN, ROLE_CUP, ROLE_ENSEIGNANT, ROLE_FORMATEUR)
                         // Création / modification : admin, CUP, Enseignant
-                        .requestMatchers(HttpMethod.POST, "/api/**")
-                            .hasAnyRole("admin", "CUP", "Enseignant", "Formateur")
-                        .requestMatchers(HttpMethod.PUT, "/api/**")
-                            .hasAnyRole("admin", "CUP", "Enseignant", "Formateur")
-                        .requestMatchers(HttpMethod.PATCH, "/api/**")
-                            .hasAnyRole("admin", "CUP", "Enseignant", "Formateur")
+                        .requestMatchers(HttpMethod.POST, API_PATTERN)
+                            .hasAnyRole(ROLE_ADMIN, ROLE_CUP, ROLE_ENSEIGNANT, ROLE_FORMATEUR)
+                        .requestMatchers(HttpMethod.PUT, API_PATTERN)
+                            .hasAnyRole(ROLE_ADMIN, ROLE_CUP, ROLE_ENSEIGNANT, ROLE_FORMATEUR)
+                        .requestMatchers(HttpMethod.PATCH, API_PATTERN)
+                            .hasAnyRole(ROLE_ADMIN, ROLE_CUP, ROLE_ENSEIGNANT, ROLE_FORMATEUR)
                         // Suppression : admin uniquement
-                        .requestMatchers(HttpMethod.DELETE, "/api/**")
-                            .hasAnyRole("admin", "CUP", "Enseignant")
+                        .requestMatchers(HttpMethod.DELETE, API_PATTERN)
+                            .hasAnyRole(ROLE_ADMIN, ROLE_CUP, ROLE_ENSEIGNANT)
                         .anyRequest().authenticated()
                 )
                 .oauth2ResourceServer(oauth2 ->

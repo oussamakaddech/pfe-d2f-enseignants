@@ -29,6 +29,8 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class CompetenceServiceImpl implements ICompetenceService {
 
+    private static final String COMPETENCE_NOT_FOUND = "Compétence non trouvée avec l'id: ";
+
     private final CompetenceRepository competenceRepository;
     private final DomaineRepository domaineRepository;
     private final CompetencePrerequisiteRepository prerequisiteRepository;
@@ -67,7 +69,7 @@ public class CompetenceServiceImpl implements ICompetenceService {
     @Transactional(readOnly = true)
     public CompetenceDTO getCompetenceById(Long id) {
         Competence c = competenceRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Compétence non trouvée avec l'id: " + id));
+                .orElseThrow(() -> new EntityNotFoundException(COMPETENCE_NOT_FOUND + id));
         CompetenceDTO dto = competenceMapper.toDTO(c);
         dto.setNbEnseignants(enseignantCompetenceRepository.countDistinctEnseignantsByCompetenceId(id));
         dto.setPrerequisiteCount(prerequisiteRepository.countByCompetenceId(id));
@@ -102,7 +104,7 @@ public class CompetenceServiceImpl implements ICompetenceService {
     @CacheEvict(value = "competences-by-domaine", allEntries = true)
     public CompetenceDTO updateCompetence(Long id, CompetenceRequest request) {
         Competence existing = competenceRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Compétence non trouvée avec l'id: " + id));
+                .orElseThrow(() -> new EntityNotFoundException(COMPETENCE_NOT_FOUND + id));
         existing.setCode(request.getCode());
         existing.setNom(request.getNom());
         existing.setDescription(request.getDescription());
@@ -135,7 +137,7 @@ public class CompetenceServiceImpl implements ICompetenceService {
     @CacheEvict(value = "competences-by-domaine", allEntries = true)
     public void deleteCompetence(Long id) {
         Competence competence = competenceRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Compétence non trouvée avec l'id: " + id));
+                .orElseThrow(() -> new EntityNotFoundException(COMPETENCE_NOT_FOUND + id));
 
         boolean hasSousCompetences = !sousCompetenceRepository.findByCompetenceId(id).isEmpty();
         boolean hasDirectSavoirs = savoirRepository.existsByCompetenceId(id);

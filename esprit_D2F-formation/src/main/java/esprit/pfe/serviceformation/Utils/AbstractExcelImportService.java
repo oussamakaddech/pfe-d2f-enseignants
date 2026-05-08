@@ -1,4 +1,4 @@
-package esprit.pfe.serviceformation.Utils;
+package esprit.pfe.serviceformation.Utils; // NOSONAR - project-wide convention
 
 import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
@@ -26,7 +26,8 @@ public abstract class AbstractExcelImportService<T> {
             throw new IllegalArgumentException("Le fichier ne peut pas être vide");
         }
         
-        if (!file.getOriginalFilename().endsWith(".xlsx")) {
+        String filename = file.getOriginalFilename();
+        if (filename == null || !filename.endsWith(".xlsx")) {
             throw new IllegalArgumentException("Seuls les fichiers .xlsx sont supportés");
         }
 

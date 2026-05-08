@@ -3,11 +3,15 @@ package esprit.pfe.auth;
 import org.junit.jupiter.api.Test;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
-public class HashGenTest {
+import static org.junit.jupiter.api.Assertions.*;
+
+class HashGenTest {
     @Test
-    public void generateHash() {
+    void generateHash_shouldProduceValidBCryptHash() {
         BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
         String hash = encoder.encode("admin");
-        System.out.println("==HASH_START==" + hash + "==HASH_END==");
+        assertNotNull(hash, "Hash should not be null");
+        assertTrue(hash.startsWith("$2a$") || hash.startsWith("$2b$"), "Hash should be a valid BCrypt hash");
+        assertTrue(encoder.matches("admin", hash), "Hash should match the original password");
     }
 }

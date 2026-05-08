@@ -1,10 +1,16 @@
 package esprit.pfe.auth;
+
 import org.junit.jupiter.api.Test;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
-public class HashTest {
+import static org.junit.jupiter.api.Assertions.*;
+
+class HashTest {
     @Test
-    public void printHash() {
-        System.out.println("HASH_START=" + new BCryptPasswordEncoder().encode("admin") + "=HASH_END");
+    void printHash_shouldProduceMatchingBCryptHash() {
+        BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
+        String hash = encoder.encode("admin");
+        assertNotNull(hash);
+        assertTrue(encoder.matches("admin", hash), "Encoded hash should match the original password");
     }
 }

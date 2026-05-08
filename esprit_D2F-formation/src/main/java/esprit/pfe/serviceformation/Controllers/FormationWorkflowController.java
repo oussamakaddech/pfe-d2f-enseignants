@@ -22,6 +22,10 @@ import jakarta.validation.Valid;
 @RequestMapping("/api/v1/formations-workflow")
 public class FormationWorkflowController {
 
+    private static final String KEY_ERROR = "error";
+    private static final String KEY_MESSAGE = "message";
+    private static final String MSG_ERREUR_INTERNE = "Erreur interne";
+
     @Autowired
     private ExportExcelService exportExcelService;
 
@@ -47,7 +51,7 @@ public class FormationWorkflowController {
 
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<?> deleteFormation(@PathVariable Long id) {
+    public ResponseEntity<Object> deleteFormation(@PathVariable Long id) {
         try {
             formationWorkflowService.deleteFormationWorkflow(id);
             return ResponseEntity.ok("Formation supprimée avec succès !");
@@ -55,16 +59,16 @@ public class FormationWorkflowController {
         } catch (IllegalArgumentException e) {
             // Par exemple, si l'id n'existe pas => 400
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("error", e.getMessage()));
+                    .body(Map.of(KEY_ERROR, e.getMessage()));
 
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("error", "Erreur interne", "message", e.getMessage()));
+                    .body(Map.of(KEY_ERROR, MSG_ERREUR_INTERNE, KEY_MESSAGE, e.getMessage()));
         }
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<?> getFormationById(@PathVariable Long id) {
+    public ResponseEntity<Object> getFormationById(@PathVariable Long id) {
         try {
             FormationDTO dto = formationWorkflowService.getFormationWorkflowById(id);
             return ResponseEntity.ok(dto);
@@ -72,28 +76,28 @@ public class FormationWorkflowController {
         } catch (IllegalArgumentException e) {
             // Formation non trouvée => 400 ou 404
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(Map.of("error", e.getMessage()));
+                    .body(Map.of(KEY_ERROR, e.getMessage()));
 
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("error", "Erreur interne", "message", e.getMessage()));
+                    .body(Map.of(KEY_ERROR, MSG_ERREUR_INTERNE, KEY_MESSAGE, e.getMessage()));
         }
     }
 
     @GetMapping
-    public ResponseEntity<?> getAllFormations() {
+    public ResponseEntity<Object> getAllFormations() {
         try {
             List<FormationDTO> dtos = formationWorkflowService.getAllFormationWorkflows();
             return ResponseEntity.ok(dtos);
 
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("error", "Erreur interne", "message", e.getMessage()));
+                    .body(Map.of(KEY_ERROR, MSG_ERREUR_INTERNE, KEY_MESSAGE, e.getMessage()));
         }
     }
 
     @PutMapping("/presence/{id}")
-    public ResponseEntity<?> updatePresence(@PathVariable Long id,
+    public ResponseEntity<Object> updatePresence(@PathVariable Long id,
                                             @RequestParam boolean present,
                                             @RequestParam String commentaire) {
         try {
@@ -101,15 +105,15 @@ public class FormationWorkflowController {
             return ResponseEntity.ok("Présence mise à jour avec succès !");
 
         } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+            return ResponseEntity.badRequest().body(Map.of(KEY_ERROR, e.getMessage()));
 
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+            return ResponseEntity.badRequest().body(Map.of(KEY_ERROR, e.getMessage()));
         }
     }
 
     @GetMapping("/export/excel")
-    public ResponseEntity<?> exportExcel(
+    public ResponseEntity<Object> exportExcel(
             @RequestParam("start") @DateTimeFormat(pattern = "yyyy-MM-dd") Date startDate,
             @RequestParam("end") @DateTimeFormat(pattern = "yyyy-MM-dd") Date endDate
     ) {
@@ -140,8 +144,8 @@ public class FormationWorkflowController {
 
             // On renvoie un JSON avec erreur + message
             Map<String, String> body = Map.of(
-                    "error", "Erreur interne",
-                    "message", e.getMessage()
+                    KEY_ERROR, MSG_ERREUR_INTERNE,
+                    KEY_MESSAGE, e.getMessage()
             );
             return ResponseEntity
                     .status(HttpStatus.INTERNAL_SERVER_ERROR)
@@ -169,13 +173,13 @@ public class FormationWorkflowController {
 
 
     @GetMapping("/achevees")
-    public ResponseEntity<?> getFormationsAchevees() {
+    public ResponseEntity<Object> getFormationsAchevees() {
         try {
             List<FormationDTO> achevees = formationWorkflowService.getFormationsAchevees();
             return ResponseEntity.ok(achevees);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("error", "Erreur interne", "message", e.getMessage()));
+                    .body(Map.of(KEY_ERROR, MSG_ERREUR_INTERNE, KEY_MESSAGE, e.getMessage()));
         }
     }
 
@@ -220,5 +224,3 @@ public class FormationWorkflowController {
         return formationWorkflowService.getFormationsParDepartement(deptId);
     }
 }
-
-

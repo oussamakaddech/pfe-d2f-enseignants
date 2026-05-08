@@ -227,14 +227,14 @@ public class SecurityController {
         Set<Role> roles = new HashSet<>();
 
         if (strRoles == null) {
-            Role userRole = roleRepository.findByName(ERole.admin)
+            Role userRole = roleRepository.findByName(ERole.ADMIN)
                     .orElseThrow(() -> new RuntimeException("Error: Role is not found."));
             roles.add(userRole);
         } else {
             strRoles.forEach(role -> {
                 switch (role) {
                     case "admin":
-                        Role adminRole = roleRepository.findByName(ERole.admin)
+                        Role adminRole = roleRepository.findByName(ERole.ADMIN)
                                 .orElseThrow(() -> new RuntimeException("Error: Role is not found."));
                         roles.add(adminRole);
                         break;
@@ -246,13 +246,13 @@ public class SecurityController {
                         break;
 
                     case "Enseignant":
-                        Role enseignantRole = roleRepository.findByName(ERole.Enseignant)
+                        Role enseignantRole = roleRepository.findByName(ERole.ENSEIGNANT)
                                 .orElseThrow(() -> new RuntimeException("Error: Role is not found."));
                         roles.add(enseignantRole);
                         break;
 
                     default:
-                        Role userRoleDefault = roleRepository.findByName(ERole.Formateur)
+                        Role userRoleDefault = roleRepository.findByName(ERole.FORMATEUR)
                                 .orElseThrow(() -> new RuntimeException("Error: Role is not found."));
                         roles.add(userRoleDefault);
                 }

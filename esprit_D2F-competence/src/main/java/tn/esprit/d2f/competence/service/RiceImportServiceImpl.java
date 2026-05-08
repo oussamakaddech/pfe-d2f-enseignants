@@ -30,239 +30,253 @@ public class RiceImportServiceImpl implements IRiceImportService {
     private final RiceImportLogRepository          riceImportLogRepository;
     private final ObjectMapper                     objectMapper;
 
+    /** Mutable counters passed through the import pipeline. */
+    private static class ImportCounters {
+        int domainesCreated;
+        int competencesCreated;
+        int sousCompetencesCreated;
+        int savoirsCreated;
+        int affectationsCreated;
+        final Set<String> enseignantsCoveredSet = new LinkedHashSet<>();
+        final Map<String, int[]> domainSavoirStats = new LinkedHashMap<>();
+    }
+
     @Override
     @Transactional
     public RiceImportResult importRice(RiceImportRequest request) {
-        int domainesCreated      = 0;
-        int competencesCreated   = 0;
-        int sousCompetencesCreated = 0;
-        int savoirsCreated       = 0;
-        int affectationsCreated  = 0;
-        Set<String> enseignantsCoveredSet = new LinkedHashSet<>();
-
-        // domain â†’ [savoirIds with â‰¥1 teacher, total savoir count]
-        Map<String, int[]> domainSavoirStats = new LinkedHashMap<>();
+        ImportCounters counters = new ImportCounters();
 
         for (RiceDomaineRequest domReq : request.getDomaines()) {
-            // â”€â”€ Domaine â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-            boolean[] isNewDomaine = {false};
-            Domaine domaine = domaineRepository.findByCode(domReq.getCode())
-                    .orElseGet(() -> {
-                        isNewDomaine[0] = true;
-                        return domaineRepository.save(Domaine.builder()
-                                .code(domReq.getCode())
-                                .nom(domReq.getNom())
-                                .description(domReq.getDescription())
-                                .actif(true)
-                                .build());
-                    });
-            if (isNewDomaine[0]) domainesCreated++;
+            processDomaine(domReq, counters);
+        }
 
-            // [0] = savoirs with â‰¥1 teacher, [1] = total savoirs
-            int[] savoirStats = {0, 0};
-            domainSavoirStats.put(domReq.getNom(), savoirStats);
+        return buildResult(counters);
+    }
 
-            if (domReq.getCompetences() == null) continue;
+    // ── Domaine level ────────────────────────────────────────────────────────
 
-            for (RiceCompetenceRequest compReq : domReq.getCompetences()) {
-                // â”€â”€ CompÃ©tence â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-                boolean[] isNewComp = {false};
-                final Domaine finalDomaine = domaine;
-                Competence competence = competenceRepository.findByCode(compReq.getCode())
-                        .orElseGet(() -> {
-                            isNewComp[0] = true;
-                            return competenceRepository.save(Competence.builder()
-                                    .code(compReq.getCode())
-                                    .nom(compReq.getNom())
-                                    .description(compReq.getDescription())
-                                    .ordre(compReq.getOrdre() != null ? compReq.getOrdre() : 1)
-                                    .domaine(finalDomaine)
-                                    .build());
-                        });
-                if (isNewComp[0]) competencesCreated++;
+    private void processDomaine(RiceDomaineRequest domReq, ImportCounters c) {
+        boolean[] isNew = {false};
+        Domaine domaine = domaineRepository.findByCode(domReq.getCode())
+                .orElseGet(() -> {
+                    isNew[0] = true;
+                    return domaineRepository.save(Domaine.builder()
+                            .code(domReq.getCode())
+                            .nom(domReq.getNom())
+                            .description(domReq.getDescription())
+                            .actif(true)
+                            .build());
+                });
+        if (isNew[0]) c.domainesCreated++;
 
-                if (compReq.getSavoirs() != null) {
-                    for (RiceSavoirRequest savReq : compReq.getSavoirs()) {
-                        boolean[] isNewSav = {false};
-                        final Competence finalCompForSav = competence;
-                        Savoir savoir = savoirRepository.findByCode(savReq.getCode())
-                                .orElseGet(() -> {
-                                    isNewSav[0] = true;
-                                    return savoirRepository.save(Savoir.builder()
-                                            .code(savReq.getCode())
-                                            .nom(savReq.getNom())
-                                            .description(savReq.getDescription())
-                                            .type(parseTypeSavoir(savReq.getType()))
-                                            .niveau(parseNiveau(savReq.getNiveau()))
-                                            .competence(finalCompForSav)
-                                            .sousCompetence(null)
-                                            .build());
-                                });
-                        if (isNewSav[0]) savoirsCreated++;
+        int[] savoirStats = {0, 0};
+        c.domainSavoirStats.put(domReq.getNom(), savoirStats);
 
-                        savoirStats[1]++;
+        if (domReq.getCompetences() == null) return;
 
-                        List<String> ensIds = savReq.getEnseignantIds();
-                        if (ensIds != null && !ensIds.isEmpty()) {
-                            final Savoir finalSavoir = savoir;
-                            final NiveauMaitrise niveau = parseNiveau(savReq.getNiveau());
-                            int linksCreated = 0;
-                            for (String ensId : ensIds) {
-                                if (ensId == null || ensId.isBlank()
-                                        || ensId.startsWith("ext_")
-                                        || ensId.startsWith("manual_")) {
-                                    continue;
-                                }
-                                try {
-                                    if (!enseignantCompetenceRepository
-                                            .existsByEnseignantIdAndSavoirId(ensId, finalSavoir.getId())) {
-                                        enseignantCompetenceRepository.save(
-                                                EnseignantCompetence.builder()
-                                                        .enseignantId(ensId)
-                                                        .savoir(finalSavoir)
-                                                        .niveau(niveau)
-                                                        .dateAcquisition(LocalDate.now())
-                                                        .build());
-                                        linksCreated++;
-                                        affectationsCreated++;
-                                    }
-                                    enseignantsCoveredSet.add(ensId);
-                                } catch (Exception e) {
-                                    log.warn("Link {}->{} skipped: {}", ensId, savReq.getCode(), e.getMessage());
-                                }
-                            }
-                            if (linksCreated > 0) savoirStats[0]++;
-                        }
-                    }
-                }
+        for (RiceCompetenceRequest compReq : domReq.getCompetences()) {
+            processCompetence(compReq, domaine, savoirStats, c);
+        }
+    }
 
-                if (compReq.getSousCompetences() == null) continue;
+    // ── Competence level ─────────────────────────────────────────────────────
 
-                for (RiceSousCompetenceRequest scReq : compReq.getSousCompetences()) {
-                    // â”€â”€ Sous-compÃ©tence â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-                    boolean[] isNewSc = {false};
-                    final Competence finalComp = competence;
-                    SousCompetence sc = sousCompetenceRepository.findByCode(scReq.getCode())
-                            .orElseGet(() -> {
-                                isNewSc[0] = true;
-                                return sousCompetenceRepository.save(SousCompetence.builder()
-                                        .code(scReq.getCode())
-                                        .nom(scReq.getNom())
-                                        .description(scReq.getDescription())
-                                        .competence(finalComp)
-                                        .build());
-                            });
-                    if (isNewSc[0]) sousCompetencesCreated++;
+    private void processCompetence(RiceCompetenceRequest compReq, Domaine domaine,
+                                   int[] savoirStats, ImportCounters c) {
+        boolean[] isNew = {false};
+        final Domaine finalDomaine = domaine;
+        Competence competence = competenceRepository.findByCode(compReq.getCode())
+                .orElseGet(() -> {
+                    isNew[0] = true;
+                    return competenceRepository.save(Competence.builder()
+                            .code(compReq.getCode())
+                            .nom(compReq.getNom())
+                            .description(compReq.getDescription())
+                            .ordre(compReq.getOrdre() != null ? compReq.getOrdre() : 1)
+                            .domaine(finalDomaine)
+                            .build());
+                });
+        if (isNew[0]) c.competencesCreated++;
 
-                    if (scReq.getSavoirs() == null) continue;
-
-                    for (RiceSavoirRequest savReq : scReq.getSavoirs()) {
-                        // â”€â”€ Savoir â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-                        boolean[] isNewSav = {false};
-                        final SousCompetence finalSc = sc;
-                        Savoir savoir = savoirRepository.findByCode(savReq.getCode())
-                                .orElseGet(() -> {
-                                    isNewSav[0] = true;
-                                    return savoirRepository.save(Savoir.builder()
-                                            .code(savReq.getCode())
-                                            .nom(savReq.getNom())
-                                            .description(savReq.getDescription())
-                                            .type(parseTypeSavoir(savReq.getType()))
-                                            .niveau(parseNiveau(savReq.getNiveau()))
-                                            .sousCompetence(finalSc)
-                                            .build());
-                                });
-                        if (isNewSav[0]) savoirsCreated++;
-
-                        savoirStats[1]++;  // total savoirs in this domain
-
-                        // â”€â”€ Enseignant assignments â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-                        List<String> ensIds = savReq.getEnseignantIds();
-                        if (ensIds != null && !ensIds.isEmpty()) {
-                            final Savoir finalSavoir = savoir;
-                            final NiveauMaitrise niveau = parseNiveau(savReq.getNiveau());
-                            int linksCreated = 0;
-                            for (String ensId : ensIds) {
-                                if (ensId == null || ensId.isBlank()
-                                        || ensId.startsWith("ext_")
-                                        || ensId.startsWith("manual_")) {
-                                    continue;  // skip synthetic IDs
-                                }
-                                try {
-                                    if (!enseignantCompetenceRepository
-                                            .existsByEnseignantIdAndSavoirId(ensId, finalSavoir.getId())) {
-                                        enseignantCompetenceRepository.save(
-                                                EnseignantCompetence.builder()
-                                                        .enseignantId(ensId)
-                                                        .savoir(finalSavoir)
-                                                        .niveau(niveau)
-                                                        .dateAcquisition(LocalDate.now())
-                                                        .build());
-                                        linksCreated++;
-                                        affectationsCreated++;
-                                    }
-                                    enseignantsCoveredSet.add(ensId);
-                                } catch (Exception e) {
-                                    log.warn("Link {}->{} skipped: {}", ensId, savReq.getCode(), e.getMessage());
-                                }
-                            }
-                            if (linksCreated > 0) savoirStats[0]++;  // savoir has â‰¥1 teacher
-                        }
-                    }
-                }
+        // Direct savoirs on competence
+        if (compReq.getSavoirs() != null) {
+            for (RiceSavoirRequest savReq : compReq.getSavoirs()) {
+                processSavoirOnCompetence(savReq, competence, savoirStats, c);
             }
         }
 
-        // â”€â”€ Taux de couverture par domaine â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+        // Sous-competences
+        if (compReq.getSousCompetences() != null) {
+            for (RiceSousCompetenceRequest scReq : compReq.getSousCompetences()) {
+                processSousCompetence(scReq, competence, savoirStats, c);
+            }
+        }
+    }
+
+    // ── Sous-Competence level ────────────────────────────────────────────────
+
+    private void processSousCompetence(RiceSousCompetenceRequest scReq, Competence competence,
+                                       int[] savoirStats, ImportCounters c) {
+        boolean[] isNew = {false};
+        final Competence finalComp = competence;
+        SousCompetence sc = sousCompetenceRepository.findByCode(scReq.getCode())
+                .orElseGet(() -> {
+                    isNew[0] = true;
+                    return sousCompetenceRepository.save(SousCompetence.builder()
+                            .code(scReq.getCode())
+                            .nom(scReq.getNom())
+                            .description(scReq.getDescription())
+                            .competence(finalComp)
+                            .build());
+                });
+        if (isNew[0]) c.sousCompetencesCreated++;
+
+        if (scReq.getSavoirs() == null) return;
+
+        for (RiceSavoirRequest savReq : scReq.getSavoirs()) {
+            processSavoirOnSousCompetence(savReq, sc, savoirStats, c);
+        }
+    }
+
+    // ── Savoir level ─────────────────────────────────────────────────────────
+
+    private void processSavoirOnCompetence(RiceSavoirRequest savReq, Competence competence,
+                                           int[] savoirStats, ImportCounters c) {
+        boolean[] isNew = {false};
+        final Competence finalComp = competence;
+        Savoir savoir = savoirRepository.findByCode(savReq.getCode())
+                .orElseGet(() -> {
+                    isNew[0] = true;
+                    return savoirRepository.save(Savoir.builder()
+                            .code(savReq.getCode())
+                            .nom(savReq.getNom())
+                            .description(savReq.getDescription())
+                            .type(parseTypeSavoir(savReq.getType()))
+                            .niveau(parseNiveau(savReq.getNiveau()))
+                            .competence(finalComp)
+                            .sousCompetence(null)
+                            .build());
+                });
+        if (isNew[0]) c.savoirsCreated++;
+        savoirStats[1]++;
+        processEnseignantAssignments(savReq, savoir, savoirStats, c);
+    }
+
+    private void processSavoirOnSousCompetence(RiceSavoirRequest savReq, SousCompetence sc,
+                                                int[] savoirStats, ImportCounters c) {
+        boolean[] isNew = {false};
+        final SousCompetence finalSc = sc;
+        Savoir savoir = savoirRepository.findByCode(savReq.getCode())
+                .orElseGet(() -> {
+                    isNew[0] = true;
+                    return savoirRepository.save(Savoir.builder()
+                            .code(savReq.getCode())
+                            .nom(savReq.getNom())
+                            .description(savReq.getDescription())
+                            .type(parseTypeSavoir(savReq.getType()))
+                            .niveau(parseNiveau(savReq.getNiveau()))
+                            .sousCompetence(finalSc)
+                            .build());
+                });
+        if (isNew[0]) c.savoirsCreated++;
+        savoirStats[1]++;
+        processEnseignantAssignments(savReq, savoir, savoirStats, c);
+    }
+
+    // ── Enseignant assignments ────────────────────────────────────────────────
+
+    private void processEnseignantAssignments(RiceSavoirRequest savReq, Savoir savoir,
+                                              int[] savoirStats, ImportCounters c) {
+        List<String> ensIds = savReq.getEnseignantIds();
+        if (ensIds == null || ensIds.isEmpty()) return;
+
+        NiveauMaitrise niveau = parseNiveau(savReq.getNiveau());
+        int linksCreated = 0;
+        for (String ensId : ensIds) {
+            if (isSyntheticId(ensId)) continue;
+            linksCreated += tryCreateLink(ensId, savoir, niveau, c);
+        }
+        if (linksCreated > 0) savoirStats[0]++;
+    }
+
+    private boolean isSyntheticId(String ensId) {
+        return ensId == null || ensId.isBlank()
+                || ensId.startsWith("ext_")
+                || ensId.startsWith("manual_");
+    }
+
+    private int tryCreateLink(String ensId, Savoir savoir, NiveauMaitrise niveau, ImportCounters c) {
+        try {
+            if (!enseignantCompetenceRepository.existsByEnseignantIdAndSavoirId(ensId, savoir.getId())) {
+                enseignantCompetenceRepository.save(
+                        EnseignantCompetence.builder()
+                                .enseignantId(ensId)
+                                .savoir(savoir)
+                                .niveau(niveau)
+                                .dateAcquisition(LocalDate.now())
+                                .build());
+                c.affectationsCreated++;
+                c.enseignantsCoveredSet.add(ensId);
+                return 1;
+            }
+            c.enseignantsCoveredSet.add(ensId);
+        } catch (Exception e) {
+            log.warn("Link {}->{} skipped: {}", ensId, savoir.getCode(), e.getMessage());
+        }
+        return 0;
+    }
+
+    // ── Result building ──────────────────────────────────────────────────────
+
+    private RiceImportResult buildResult(ImportCounters c) {
         Map<String, Double> tauxParDomaine = new LinkedHashMap<>();
-        domainSavoirStats.forEach((nomDomaine, stats) -> {
+        c.domainSavoirStats.forEach((nomDomaine, stats) -> {
             int covered = stats[0];
             int total   = stats[1];
             double taux = (total > 0) ? Math.round((covered * 100.0 / total) * 10.0) / 10.0 : 0.0;
             tauxParDomaine.put(nomDomaine, taux);
         });
 
-        int enseignantsCovered = enseignantsCoveredSet.size();
+        int enseignantsCovered = c.enseignantsCoveredSet.size();
 
-        log.info("RICE import: {} domaines, {} compÃ©tences, {} sous-comps, {} savoirs crÃ©Ã©s, "
+        log.info("RICE import: {} domaines, {} compétences, {} sous-comps, {} savoirs créés, "
                 + "{} affectations, {} enseignants couverts",
-                domainesCreated, competencesCreated, sousCompetencesCreated, savoirsCreated,
-                affectationsCreated, enseignantsCovered);
+                c.domainesCreated, c.competencesCreated, c.sousCompetencesCreated, c.savoirsCreated,
+                c.affectationsCreated, enseignantsCovered);
 
         String message = String.format(
-                "Import RICE rÃ©ussi : %d domaines, %d compÃ©tences, %d sous-compÃ©tences, %d savoirs crÃ©Ã©s,"
+                "Import RICE réussi : %d domaines, %d compétences, %d sous-compétences, %d savoirs créés,"
                 + " %d affectation(s), %d enseignant(s) couvert(s).",
-                domainesCreated, competencesCreated, sousCompetencesCreated, savoirsCreated,
-                affectationsCreated, enseignantsCovered);
+                c.domainesCreated, c.competencesCreated, c.sousCompetencesCreated, c.savoirsCreated,
+                c.affectationsCreated, enseignantsCovered);
 
-        // â”€â”€ Persist import log â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-        RiceImportLog log_ = RiceImportLog.builder()
+        RiceImportLog importLog = RiceImportLog.builder()
                 .generatedAt(LocalDateTime.now())
-                .domainesCreated(domainesCreated)
-                .competencesCreated(competencesCreated)
-                .sousCompetencesCreated(sousCompetencesCreated)
-                .savoirsCreated(savoirsCreated)
-                .affectationsCreated(affectationsCreated)
+                .domainesCreated(c.domainesCreated)
+                .competencesCreated(c.competencesCreated)
+                .sousCompetencesCreated(c.sousCompetencesCreated)
+                .savoirsCreated(c.savoirsCreated)
+                .affectationsCreated(c.affectationsCreated)
                 .enseignantsCovered(enseignantsCovered)
                 .message(message)
                 .tauxJson(serializeTaux(tauxParDomaine))
                 .build();
-        riceImportLogRepository.save(log_);
+        riceImportLogRepository.save(importLog);
 
         return RiceImportResult.builder()
-                .generatedAt(log_.getGeneratedAt())
-                .domainesCreated(domainesCreated)
-                .competencesCreated(competencesCreated)
-                .sousCompetencesCreated(sousCompetencesCreated)
-                .savoirsCreated(savoirsCreated)
-                .affectationsCreated(affectationsCreated)
+                .generatedAt(importLog.getGeneratedAt())
+                .domainesCreated(c.domainesCreated)
+                .competencesCreated(c.competencesCreated)
+                .sousCompetencesCreated(c.sousCompetencesCreated)
+                .savoirsCreated(c.savoirsCreated)
+                .affectationsCreated(c.affectationsCreated)
                 .enseignantsCovered(enseignantsCovered)
                 .tauxCouvertureParDomaine(tauxParDomaine)
                 .message(message)
                 .build();
     }
 
-    // â”€â”€ helpers & history â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // ── helpers & history ─────────────────────────────────────────────────────
 
     @Override
     @Transactional(readOnly = true)
@@ -272,17 +286,17 @@ public class RiceImportServiceImpl implements IRiceImportService {
                 .collect(Collectors.toList());
     }
 
-    private RiceImportResult toResult(RiceImportLog log) {
+    private RiceImportResult toResult(RiceImportLog logEntry) {
         return RiceImportResult.builder()
-                .generatedAt(log.getGeneratedAt())
-                .domainesCreated(log.getDomainesCreated())
-                .competencesCreated(log.getCompetencesCreated())
-                .sousCompetencesCreated(log.getSousCompetencesCreated())
-                .savoirsCreated(log.getSavoirsCreated())
-                .affectationsCreated(log.getAffectationsCreated())
-                .enseignantsCovered(log.getEnseignantsCovered())
-                .message(log.getMessage())
-                .tauxCouvertureParDomaine(deserializeTaux(log.getTauxJson()))
+                .generatedAt(logEntry.getGeneratedAt())
+                .domainesCreated(logEntry.getDomainesCreated())
+                .competencesCreated(logEntry.getCompetencesCreated())
+                .sousCompetencesCreated(logEntry.getSousCompetencesCreated())
+                .savoirsCreated(logEntry.getSavoirsCreated())
+                .affectationsCreated(logEntry.getAffectationsCreated())
+                .enseignantsCovered(logEntry.getEnseignantsCovered())
+                .message(logEntry.getMessage())
+                .tauxCouvertureParDomaine(deserializeTaux(logEntry.getTauxJson()))
                 .build();
     }
 

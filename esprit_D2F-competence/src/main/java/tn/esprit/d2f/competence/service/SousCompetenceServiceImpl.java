@@ -30,6 +30,7 @@ import java.util.stream.Collectors;
 public class SousCompetenceServiceImpl implements ISousCompetenceService {
 
     private static final int MAX_NIVEAU = 5;
+    private static final String SOUS_COMPETENCE_NOT_FOUND = "Sous-compétence non trouvée avec l'id: ";
 
     private final SousCompetenceRepository sousCompetenceRepository;
     private final CompetenceRepository competenceRepository;
@@ -57,7 +58,7 @@ public class SousCompetenceServiceImpl implements ISousCompetenceService {
     @Transactional(readOnly = true)
     public SousCompetenceDTO getSousCompetenceById(Long id) {
         SousCompetence sc = sousCompetenceRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Sous-compétence non trouvée avec l'id: " + id));
+                .orElseThrow(() -> new EntityNotFoundException(SOUS_COMPETENCE_NOT_FOUND + id));
         return competenceMapper.toDTO(sc);
     }
 
@@ -121,7 +122,7 @@ public class SousCompetenceServiceImpl implements ISousCompetenceService {
     @Transactional
     public SousCompetenceDTO updateSousCompetence(Long id, SousCompetenceRequest request) {
         SousCompetence existing = sousCompetenceRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Sous-compétence non trouvée avec l'id: " + id));
+                .orElseThrow(() -> new EntityNotFoundException(SOUS_COMPETENCE_NOT_FOUND + id));
 
         validateUniqueCode(request.getCode(), id);
 
@@ -153,7 +154,7 @@ public class SousCompetenceServiceImpl implements ISousCompetenceService {
     @Transactional
     public void deleteSousCompetence(Long id) {
         SousCompetence existing = sousCompetenceRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Sous-compétence non trouvée avec l'id: " + id));
+                .orElseThrow(() -> new EntityNotFoundException(SOUS_COMPETENCE_NOT_FOUND + id));
 
         List<Long> subtreeIds = collectSubtreeIds(id);
 

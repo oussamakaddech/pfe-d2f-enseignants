@@ -19,14 +19,14 @@ import tn.esprit.d2f.repository.NotificationRepository;
 import tn.esprit.d2f.service.IBesoinFormationService;
 import esprit.pfe.auth.security.AuthorizationMatrix;
 
-import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 @Slf4j
 @RestController
 @RequestMapping("/api/v1/besoinsFormations")
 @Tag(name = "Besoin de Formation", description = "Gestion des besoins de formation avec DTO et Validation")
 public class BesoinFormationController {
+
+    private static final String ID_BESOIN_FORMATION = "idBesoinFormation";
 
     private final IBesoinFormationService besoinFormationService;
     private final NotificationRepository notificationRepository;
@@ -99,7 +99,7 @@ public class BesoinFormationController {
     public ResponseEntity<Page<BesoinFormationResponse>> getApprovedBesoinFormations(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by("idBesoinFormation").descending());
+        Pageable pageable = PageRequest.of(page, size, Sort.by(ID_BESOIN_FORMATION).descending());
         return ResponseEntity.ok(besoinFormationService.retrieveApprovedBesoinFormations(pageable));
     }
 
@@ -110,7 +110,7 @@ public class BesoinFormationController {
             @PathVariable String up,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by("idBesoinFormation").descending());
+        Pageable pageable = PageRequest.of(page, size, Sort.by(ID_BESOIN_FORMATION).descending());
         return ResponseEntity.ok(besoinFormationService.retrieveByUp(up, pageable));
     }
 
@@ -142,7 +142,7 @@ public class BesoinFormationController {
             @PathVariable Priorite priorite,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by("idBesoinFormation").descending());
+        Pageable pageable = PageRequest.of(page, size, Sort.by(ID_BESOIN_FORMATION).descending());
         return ResponseEntity.ok(besoinFormationService.retrieveByPriorite(priorite, pageable));
     }
 
@@ -150,7 +150,7 @@ public class BesoinFormationController {
         if (sort.length >= 2) {
             return Sort.by(sort[1].equalsIgnoreCase("asc") ? Sort.Direction.ASC : Sort.Direction.DESC, sort[0]);
         }
-        return Sort.by(Sort.Direction.DESC, "idBesoinFormation");
+        return Sort.by(Sort.Direction.DESC, ID_BESOIN_FORMATION);
     }
 
 }

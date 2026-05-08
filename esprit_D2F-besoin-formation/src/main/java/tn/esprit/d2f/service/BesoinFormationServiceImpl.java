@@ -59,43 +59,51 @@ public class BesoinFormationServiceImpl implements IBesoinFormationService{
 
     public BesoinFormationResponse modifyBesoinFormation(BesoinFormationRequest b) {
         BesoinFormation existing = besoinFormationRepository.findById(b.getIdBesoinFormation()).orElseThrow();
-        
-        // Mettre à jour les champs de données
-        if (b.getTitre() != null) existing.setTitre(b.getTitre());
-        if (b.getObjectifFormation() != null) existing.setObjectifFormation(b.getObjectifFormation());
-        if (b.getTypeBesoin() != null) existing.setTypeBesoin(b.getTypeBesoin());
-        if (b.getPriorite() != null) existing.setPriorite(b.getPriorite());
-        if (b.getImpactStrategique() != null) existing.setImpactStrategique(b.getImpactStrategique());
-        if (b.getPropositionAnimateur() != null) existing.setPropositionAnimateur(b.getPropositionAnimateur());
-        if (b.getHoraireSouhaite() != null) existing.setHoraireSouhaite(b.getHoraireSouhaite());
-        if (b.getUp() != null) existing.setUp(b.getUp());
-        if (b.getDepartement() != null) existing.setDepartement(b.getDepartement());
-        if (b.getEstOuverte() != null) existing.setEstOuverte(b.getEstOuverte());
-        if (b.getAutresInformations() != null) existing.setAutresInformations(b.getAutresInformations());
-        if (b.getPeriodCode() != null) existing.setPeriodCode(b.getPeriodCode());
-        if (b.getCustomPeriodLabel() != null) existing.setCustomPeriodLabel(b.getCustomPeriodLabel());
+        updateDataFields(b, existing);
+        updateApprovalFields(b, existing);
+        handleNotifications(existing, b.getCommentaire());
+        return besoinFormationMapper.toResponse(besoinFormationRepository.save(existing));
+    }
 
-        // Logique de notification (conservée)
-        if (b.getApprouveCUP() != null) existing.setApprouveCUP(b.getApprouveCUP());
-        if (b.getApprouveChefDep() != null) existing.setApprouveChefDep(b.getApprouveChefDep());
-        if (b.getApprouveAdmin() != null) existing.setApprouveAdmin(b.getApprouveAdmin());
-        
+    private void updateDataFields(BesoinFormationRequest src, BesoinFormation dest) {
+        if (src.getTitre() != null) dest.setTitre(src.getTitre());
+        if (src.getObjectifFormation() != null) dest.setObjectifFormation(src.getObjectifFormation());
+        if (src.getTypeBesoin() != null) dest.setTypeBesoin(src.getTypeBesoin());
+        if (src.getPriorite() != null) dest.setPriorite(src.getPriorite());
+        if (src.getImpactStrategique() != null) dest.setImpactStrategique(src.getImpactStrategique());
+        if (src.getPropositionAnimateur() != null) dest.setPropositionAnimateur(src.getPropositionAnimateur());
+        if (src.getHoraireSouhaite() != null) dest.setHoraireSouhaite(src.getHoraireSouhaite());
+        if (src.getUp() != null) dest.setUp(src.getUp());
+        if (src.getDepartement() != null) dest.setDepartement(src.getDepartement());
+        if (src.getEstOuverte() != null) dest.setEstOuverte(src.getEstOuverte());
+        if (src.getAutresInformations() != null) dest.setAutresInformations(src.getAutresInformations());
+        if (src.getPeriodCode() != null) dest.setPeriodCode(src.getPeriodCode());
+        if (src.getCustomPeriodLabel() != null) dest.setCustomPeriodLabel(src.getCustomPeriodLabel());
+    }
+
+    private void updateApprovalFields(BesoinFormationRequest src, BesoinFormation dest) {
+        if (src.getApprouveCUP() != null) dest.setApprouveCUP(src.getApprouveCUP());
+        if (src.getApprouveChefDep() != null) dest.setApprouveChefDep(src.getApprouveChefDep());
+        if (src.getApprouveAdmin() != null) dest.setApprouveAdmin(src.getApprouveAdmin());
+    }
+
+    private void handleNotifications(BesoinFormation existing, String commentaire) {
         if (Boolean.FALSE.equals(existing.isApprouveCUP())) {
-            Notification notif = new Notification();
-            notif.setUsername(existing.getUsername());
-            notif.setMessage("Malheureusement, nous regrettons que votre demande de formation soit refusée.");
-            notif.setCommentaire(b.getCommentaire());
-            notificationRepository.save(notif);
+            createNotification(existing.getUsername(),
+                    "Malheureusement, nous regrettons que votre demande de formation soit refusée.", commentaire);
         }
         if (Boolean.TRUE.equals(existing.isApprouveAdmin())) {
-            Notification notif = new Notification();
-            notif.setUsername(existing.getUsername());
-            notif.setMessage("Demande de Formation acceptée , Mettez vous en contact avec les formateurs");
-            notif.setCommentaire(b.getCommentaire());
-            notificationRepository.save(notif);
+            createNotification(existing.getUsername(),
+                    "Demande de Formation acceptée , Mettez vous en contact avec les formateurs", commentaire);
         }
+    }
 
-        return besoinFormationMapper.toResponse(besoinFormationRepository.save(existing));
+    private void createNotification(String username, String message, String commentaire) {
+        Notification notif = new Notification();
+        notif.setUsername(username);
+        notif.setMessage(message);
+        notif.setCommentaire(commentaire);
+        notificationRepository.save(notif);
     }
 
     @Override

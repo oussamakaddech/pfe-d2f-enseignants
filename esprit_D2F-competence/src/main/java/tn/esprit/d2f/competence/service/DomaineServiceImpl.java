@@ -26,6 +26,8 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class DomaineServiceImpl implements IDomaineService {
 
+    private static final String DOMAINE_NOT_FOUND = "Domaine non trouvé avec l'id: ";
+
     private final DomaineRepository domaineRepository;
     private final EnseignantCompetenceRepository enseignantCompetenceRepository;
     private final NiveauSavoirRequisRepository niveauRepo;
@@ -52,7 +54,7 @@ public class DomaineServiceImpl implements IDomaineService {
     @Transactional(readOnly = true)
     public DomaineDTO getDomaineById(Long id) {
         Domaine domaine = domaineRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Domaine non trouvé avec l'id: " + id));
+                .orElseThrow(() -> new EntityNotFoundException(DOMAINE_NOT_FOUND + id));
         return competenceMapper.toDTO(domaine);
     }
 
@@ -93,7 +95,7 @@ public class DomaineServiceImpl implements IDomaineService {
     })
     public DomaineDTO updateDomaine(Long id, DomaineRequest request) {
         Domaine existing = domaineRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Domaine non trouvé avec l'id: " + id));
+                .orElseThrow(() -> new EntityNotFoundException(DOMAINE_NOT_FOUND + id));
         existing.setCode(request.getCode());
         existing.setNom(request.getNom());
         existing.setDescription(request.getDescription());
@@ -128,7 +130,7 @@ public class DomaineServiceImpl implements IDomaineService {
     })
     public void deleteDomaine(Long id) {
         if (!domaineRepository.existsById(id)) {
-            throw new EntityNotFoundException("Domaine non trouvé avec l'id: " + id);
+            throw new EntityNotFoundException(DOMAINE_NOT_FOUND + id);
         }
         // 1. Supprimer les niveau_savoir_requis liés directement aux compétences du domaine
         niveauRepo.deleteByCompetence_DomaineId(id);
@@ -150,7 +152,7 @@ public class DomaineServiceImpl implements IDomaineService {
     @CacheEvict(value = "domaines-actifs", allEntries = true)
     public DomaineDTO toggleActif(Long id) {
         Domaine domaine = domaineRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Domaine non trouvé avec l'id: " + id));
+                .orElseThrow(() -> new EntityNotFoundException(DOMAINE_NOT_FOUND + id));
         domaine.setActif(!domaine.getActif());
         Domaine saved = domaineRepository.save(domaine);
         log.info("Domaine {} -> actif={}", saved.getId(), saved.getActif());

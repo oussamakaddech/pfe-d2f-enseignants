@@ -8,6 +8,7 @@ import esprit.pfe.serviceformation.Microsoft.OutlookMailService;
 import esprit.pfe.serviceformation.messaging.EvaluationBatchMessage;
 import esprit.pfe.serviceformation.messaging.EvaluationPublisher;
 import lombok.extern.slf4j.Slf4j;
+import org.hibernate.Hibernate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -431,7 +432,7 @@ public class FormationWorkflowService {
             formation.setSeances(managedList);
         }
 
-        managedList.size();
+        Hibernate.initialize(managedList);
 
         if (managedList.isEmpty()) {
             List<SeanceFormation> dbSeances = seanceFormationRepository.findByFormation_IdFormation(formationId);
@@ -959,9 +960,9 @@ public class FormationWorkflowService {
         if (formation.getSeances() != null) {
             formation.getSeances().forEach(seance -> {
                 if (seance.getAnimateurs() != null)
-                    seance.getAnimateurs().size();
+                    Hibernate.initialize(seance.getAnimateurs());
                 if (seance.getParticipants() != null)
-                    seance.getParticipants().size();
+                    Hibernate.initialize(seance.getParticipants());
             });
         }
         return mapFormationToDTO(formation);
@@ -975,15 +976,15 @@ public class FormationWorkflowService {
             if (f.getSeances() != null) {
                 f.getSeances().forEach(seance -> {
                     if (seance.getAnimateurs() != null)
-                        seance.getAnimateurs().size();
+                        Hibernate.initialize(seance.getAnimateurs());
                     if (seance.getParticipants() != null)
-                        seance.getParticipants().size();
+                        Hibernate.initialize(seance.getParticipants());
                 });
             }
             if (f.getFormationCompetences() != null)
-                f.getFormationCompetences().size();
+                Hibernate.initialize(f.getFormationCompetences());
             if (f.getInscriptions() != null)
-                f.getInscriptions().size();
+                Hibernate.initialize(f.getInscriptions());
         });
         return formations.stream().map(this::mapFormationToDTO).toList();
     }
@@ -1105,13 +1106,15 @@ public class FormationWorkflowService {
         enCours.forEach(f -> {
             if (f.getSeances() != null) {
                 f.getSeances().forEach(s -> {
-                    s.getAnimateurs().size();
-                    s.getParticipants().size();
+                    Hibernate.initialize(s.getAnimateurs());
+                    Hibernate.initialize(s.getParticipants());
+                    int animCount = s.getAnimateurs().size();
+                    int partCount = s.getParticipants().size();
                     log.debug("  • Séance ID={}, Date={}, #Anim={}, #Part={}",
                             s.getIdSeance(),
                             s.getDateSeance(),
-                            s.getAnimateurs().size(),
-                            s.getParticipants().size());
+                            animCount,
+                            partCount);
                 });
             }
         });
