@@ -108,7 +108,7 @@ class FormationWorkflowControllerTest {
                         .param("present", "true")
                         .param("commentaire", "OK"))
                 .andExpect(status().isOk())
-                .andExpect(content().string("Présence mise à jour avec succès !"));
+                .andExpect(content().string("Presence mise a jour avec succes !"));
     }
 
     @Test
