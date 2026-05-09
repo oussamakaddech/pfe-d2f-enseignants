@@ -52,6 +52,61 @@ function Get-SonarQubeToken {
         return $null
     }
 }
+
+# =============================================================================
+# Fonction pour attendre et recuperer le statut du Quality Gate
+# =============================================================================
+function Wait-SonarQubeQualityGate {
+    param(
+        [string]$ServicePath,
+        [string]$SonarToken
+    )
+    
+    $reportFile = Join-Path $ServicePath "target\sonar\report-task.txt"
+    if (-not (Test-Path $reportFile)) { return $null }
+    
+    # Charger le fichier report-task.txt
+    $content = Get-Content $reportFile | Out-String | ConvertFrom-StringData
+    $ceTaskId = $content.ceTaskId
+    $projectKey = $content.projectKey
+    $serverUrl = $content.serverUrl
+    
+    $auth = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes("${SonarToken}:"))
+    $headers = @{ "Authorization" = "Basic $auth" }
+    
+    Write-Host "  [INFO] Attente du resultat Quality Gate..." -ForegroundColor Yellow -NoNewline
+    
+    $status = "PENDING"
+    $maxRetries = 15
+    $retryCount = 0
+    
+    while (($status -eq "PENDING" -or $status -eq "IN_PROGRESS") -and ($retryCount -lt $maxRetries)) {
+        Write-Host "." -ForegroundColor Yellow -NoNewline
+        Start-Sleep -Seconds 2
+        try {
+            $taskResponse = Invoke-WebRequest -Uri "$serverUrl/api/ce/task?id=$ceTaskId" -Headers $headers -UseBasicParsing -ErrorAction SilentlyContinue
+            if ($taskResponse.StatusCode -eq 200) {
+                $taskJson = $taskResponse.Content | ConvertFrom-Json
+                $status = $taskJson.task.status
+            }
+        } catch {
+            # On ignore les erreurs temporaires
+        }
+        $retryCount++
+    }
+    Write-Host ""
+    
+    if ($status -eq "SUCCESS") {
+        try {
+            $gateResponse = Invoke-WebRequest -Uri "$serverUrl/api/qualitygates/project_status?projectKey=$projectKey" -Headers $headers -UseBasicParsing
+            $gateJson = $gateResponse.Content | ConvertFrom-Json
+            return $gateJson.projectStatus
+        } catch {
+            return $null
+        }
+    }
+    return $null
+}
 $javaServices = @(
     "esprit_D2F-authentification",
     "esprit_D2F-besoin-formation",
@@ -170,6 +225,20 @@ foreach ($service in $javaServices) {
         
         if ($sonarResult -eq 0) {
             Write-Host "  [OK] Analyse SonarQube reussie" -ForegroundColor Green
+            
+            # Attendre le Quality Gate
+            $gate = Wait-SonarQubeQualityGate -ServicePath "." -SonarToken $SonarToken
+            if ($gate) {
+                $color = if ($gate.status -eq "OK") { "Green" } else { "Red" }
+                Write-Host "  [GATE] Status : $($gate.status)" -ForegroundColor $color
+                
+                # Afficher la couverture si disponible
+                $coverage = $gate.conditions | Where-Object { $_.metricKey -eq "coverage" }
+                if ($coverage) {
+                    Write-Host "  [INFO] Couverture : $($coverage.actualValue)%" -ForegroundColor Cyan
+                }
+            }
+            
             Write-Host "  [LIEN] $SonarUrl/dashboard?id=$projectKey" -ForegroundColor Cyan
             $successCount++
         } else {
@@ -206,6 +275,11 @@ Write-Host ""
 
 if ($failCount -eq 0) {
     Write-Host "[OK] Tous les tests sont termines avec succes !" -ForegroundColor Green
+    
+    # Ouvrir automatiquement le dashboard
+    Write-Host "[INFO] Ouverture du dashboard SonarQube..." -ForegroundColor Yellow
+    Start-Process $SonarUrl
+    
     exit 0
 } else {
     Write-Host "[WARN] $failCount service(s) ont echoue" -ForegroundColor Yellow
