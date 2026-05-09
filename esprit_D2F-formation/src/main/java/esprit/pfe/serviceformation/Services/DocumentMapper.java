@@ -4,7 +4,11 @@ package esprit.pfe.serviceformation.services;
 import esprit.pfe.serviceformation.dto.DocumentDTO;
 import esprit.pfe.serviceformation.entities.Document;
 
-public class DocumentMapper {
+public final class DocumentMapper {
+
+    private DocumentMapper() {
+        // Utility class
+    }
 
     public static DocumentDTO mapToDTO(Document doc) {
         DocumentDTO dto = new DocumentDTO();

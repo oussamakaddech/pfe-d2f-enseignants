@@ -61,7 +61,7 @@ class KPIControllerTest {
     @WithMockUser(roles = "ADMIN")
     void shouldCountAndHeuresWithFilters() throws Exception {
         CountHeuresDTO dto = new CountHeuresDTO(5L, 100L);
-        when(kpiService.getCountAndSumHeures(any(), any(), any(), any(), any(), any(), any(), any()))
+        when(kpiService.getCountAndSumHeures(any(FormationFilter.class), any()))
                 .thenReturn(dto);
 
         mockMvc.perform(get("/api/v1/kpi/count-heures")

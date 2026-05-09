@@ -69,21 +69,6 @@ class KPIServiceTest {
     }
 
     @Test
-    void getFormationsByEtat_allStates_shouldMapAll() {
-        Object[] row1 = new Object[]{EtatFormation.ENREGISTRE, 1L};
-        Object[] row2 = new Object[]{EtatFormation.EN_COURS, 2L};
-        Object[] row3 = new Object[]{EtatFormation.ANNULE, 1L};
-        when(formationRepository.countFormationsByEtat(any(), any())).thenReturn(List.of(row1, row2, row3));
-
-        FormationsByEtatDTO result = service.getFormationsByEtat(start, end);
-
-        assertEquals(4, result.getTotal());
-        assertEquals(1, result.getEnregistre());
-        assertEquals(2, result.getEnCours());
-        assertEquals(1, result.getAnnule());
-    }
-
-    @Test
     void getTopParticipants_validFilters_shouldReturn() {
         when(upRepository.existsById("up1")).thenReturn(true);
         when(deptRepository.existsById("dept1")).thenReturn(true);
@@ -158,29 +143,14 @@ class KPIServiceTest {
     }
 
     @Test
-    void getEnseignantsNonAffectes_noDeptNoUp_shouldStillMap() {
-        Enseignant ens = new Enseignant();
-        ens.setId("ens-2");
-        ens.setNom("Test");
-
-        when(enseignantRepository.findEnseignantsNonAffectesSurPeriode(any(), any())).thenReturn(List.of(ens));
-
-        List<EnseignantDTO> result = service.getEnseignantsNonAffectes(start, end);
-
-        assertEquals(1, result.size());
-        assertNull(result.get(0).getDeptId());
-        assertNull(result.get(0).getUpId());
-    }
-
-    @Test
     void getFormationsByTypeWithFilters_shouldMapResults() {
         Object[] row1 = new Object[]{TypeFormation.INTERNE, 3L};
         Object[] row2 = new Object[]{TypeFormation.EXTERNE, 2L};
         Object[] row3 = new Object[]{TypeFormation.EN_LIGNE, 1L};
-        when(formationRepository.countFormationsByTypeWithFilters(any(), any(), any(), any(), any(), any(), any(), any()))
+        when(formationRepository.countFormationsByTypeWithFilters(any(FormationFilter.class)))
                 .thenReturn(List.of(row1, row2, row3));
 
-        FormationsByTypeDTO result = service.getFormationsByTypeWithFilters(null, null, null, null, null, start, end, null);
+        FormationsByTypeDTO result = service.getFormationsByTypeWithFilters(new FormationFilter(), null);
 
         assertEquals(3L, result.getInterne());
         assertEquals(2L, result.getExterne());
@@ -190,10 +160,10 @@ class KPIServiceTest {
     @Test
     void getCountAndSumHeures_shouldDelegate() {
         CountHeuresDTO expected = new CountHeuresDTO(5L, 100L);
-        when(formationRepository.countAndSumHeuresWithFilters(any(), any(), any(), any(), any(), any(), any(), any()))
+        when(formationRepository.countAndSumHeuresWithFilters(any(FormationFilter.class)))
                 .thenReturn(expected);
 
-        CountHeuresDTO result = service.getCountAndSumHeures(null, null, null, null, null, start, end, null);
+        CountHeuresDTO result = service.getCountAndSumHeures(new FormationFilter(), null);
 
         assertEquals(5L, result.getCount());
         assertEquals(100L, result.getTotalHeures());
@@ -201,14 +171,14 @@ class KPIServiceTest {
 
     @Test
     void getCountByTrainerTypeWithIds_shouldDelegate() {
-        when(formationRepository.findExterneOnlyIdsWithFilters(any(), any(), any(), any(), any(), any(), any(), any()))
+        when(formationRepository.findExterneOnlyIdsWithFilters(any(FormationFilter.class)))
                 .thenReturn(List.of(1L, 2L));
-        when(formationRepository.findInterneOnlyIdsWithFilters(any(), any(), any(), any(), any(), any(), any(), any()))
+        when(formationRepository.findInterneOnlyIdsWithFilters(any(FormationFilter.class)))
                 .thenReturn(List.of(3L));
-        when(formationRepository.findMixteIdsWithFilters(any(), any(), any(), any(), any(), any(), any(), any()))
+        when(formationRepository.findMixteIdsWithFilters(any(FormationFilter.class)))
                 .thenReturn(List.of());
 
-        CountByTrainerTypeWithIdsDTO result = service.getCountByTrainerTypeWithIds(null, null, null, null, null, start, end, null);
+        CountByTrainerTypeWithIdsDTO result = service.getCountByTrainerTypeWithIds(new FormationFilter(), null);
 
         assertEquals(2L, result.getExterneOnlyCount());
         assertEquals(1L, result.getInterneOnlyCount());

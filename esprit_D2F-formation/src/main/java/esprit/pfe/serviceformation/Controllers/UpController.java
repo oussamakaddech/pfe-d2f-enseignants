@@ -4,23 +4,21 @@ package esprit.pfe.serviceformation.controllers;
 import esprit.pfe.serviceformation.entities.Up;
 import esprit.pfe.serviceformation.repositories.UpRepository;
 import esprit.pfe.serviceformation.services.UpService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import lombok.RequiredArgsConstructor;
 
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/ups")
 
+@RequiredArgsConstructor
 public class UpController {
-
-    @Autowired
-    private UpRepository upRepository;
-    @Autowired
-    private  UpService upService;
+    private final UpRepository upRepository;
+    private final  UpService upService;
     @PostMapping("/import-excel")
     public ResponseEntity<String> importExcel(@RequestParam("file") MultipartFile file) {
         if (file.isEmpty()) {

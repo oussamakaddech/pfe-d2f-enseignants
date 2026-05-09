@@ -3,11 +3,11 @@ package esprit.pfe.serviceformation.controllers;
 import esprit.pfe.serviceformation.dto.FormationDTO;
 import esprit.pfe.serviceformation.services.CalendarExportService;
 import esprit.pfe.serviceformation.services.FormationWorkflowService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import lombok.RequiredArgsConstructor;
 
 import java.util.List;
 
@@ -16,13 +16,10 @@ import java.util.List;
  */
 @RestController
 @RequestMapping("/api/v1/exports")
+@RequiredArgsConstructor
 public class FormationExportController {
-
-    @Autowired
-    private CalendarExportService calendarExportService;
-
-    @Autowired
-    private FormationWorkflowService formationWorkflowService;
+    private final CalendarExportService calendarExportService;
+    private final FormationWorkflowService formationWorkflowService;
 
     /** Export .ics pour une formation */
     @GetMapping(value = "/formation/{formationId}/ics", produces = "text/calendar")

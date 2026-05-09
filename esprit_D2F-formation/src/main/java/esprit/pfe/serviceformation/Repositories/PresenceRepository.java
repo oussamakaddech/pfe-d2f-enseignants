@@ -30,7 +30,7 @@ public interface PresenceRepository extends JpaRepository<Presence, Long> {
     @Query("""
       SELECT p.enseignant
       FROM Presence p
-      WHERE p.presence = true
+      WHERE p.present = true
         AND p.seanceFormation.formation.idFormation = :formationId
       GROUP BY p.enseignant
       HAVING COUNT(p) = (
@@ -43,11 +43,6 @@ public interface PresenceRepository extends JpaRepository<Presence, Long> {
             @Param("formationId") Long formationId
     );
 
-   /* @Query("SELECT DISTINCT p FROM Presence p " +
-            "WHERE p.presence = true " +
-            "  AND p.seanceFormation.formation.idFormation = :formationId")
-    List<Presence> findAllPresentByFormationId(@Param("formationId") Long formationId);
-*/
 
     @Query("SELECT COUNT(p) FROM Presence p WHERE p.seanceFormation.formation.idFormation = :formationId " +
             "AND p.seanceFormation.dateSeance BETWEEN :startDate AND :endDate")
@@ -57,35 +52,13 @@ public interface PresenceRepository extends JpaRepository<Presence, Long> {
 
     @Query("SELECT COUNT(p) FROM Presence p WHERE p.seanceFormation.formation.idFormation = :formationId " +
             "AND p.seanceFormation.dateSeance BETWEEN :startDate AND :endDate " +
-            "AND p.presence = true")
+            "AND p.present = true")
     long countPresentByFormationIdAndPeriod(@Param("formationId") Long formationId,
                                             @Param("startDate") Date startDate,
                                             @Param("endDate") Date endDate);
 
 
 
-   /* @Query("""
-      SELECT new esprit.pfe.serviceformation.dto.EnseignantStatsDTO(
-        e.id,
-        e.nom,
-        e.prenom,
-        COALESCE(COUNT(p), 0)
-      )
-      FROM Enseignant e
-      LEFT JOIN e.presences p
-        ON p.presence = true
-       AND p.seanceFormation.dateSeance BETWEEN :start AND :end
-       AND ( :upId   IS NULL OR p.seanceFormation.formation.up.id         = :upId   )
-       AND ( :deptId IS NULL OR p.seanceFormation.formation.departement.id = :deptId )
-      GROUP BY e.id, e.nom, e.prenom
-      ORDER BY COALESCE(COUNT(p), 0) DESC
-    """)
-    List<EnseignantStatsDTO> findTopParticipants(
-            @Param("upId")   String upId,    // null pour ignorer le filtre UP
-            @Param("deptId") String deptId,  // null pour ignorer le filtre Département
-            @Param("start")  Date   start,
-            @Param("end")    Date   end
-    );*/
 
 
    @Query("""
@@ -97,7 +70,7 @@ public interface PresenceRepository extends JpaRepository<Presence, Long> {
       )
       FROM Presence p
       JOIN p.enseignant e
-      WHERE p.presence = true
+      WHERE p.present = true
         AND p.seanceFormation.dateSeance BETWEEN :start AND :end
         AND p.seanceFormation.formation.etatFormation = :etat
         AND (:upId   IS NULL OR p.seanceFormation.formation.up.id         = :upId)
@@ -123,7 +96,7 @@ public interface PresenceRepository extends JpaRepository<Presence, Long> {
       )
       FROM Presence p
       JOIN p.enseignant e
-      WHERE p.presence = false
+      WHERE p.present = false
         AND p.seanceFormation.dateSeance BETWEEN :start AND :end
         AND p.seanceFormation.formation.etatFormation = :etat
         AND (:upId   IS NULL OR p.seanceFormation.formation.up.id         = :upId)

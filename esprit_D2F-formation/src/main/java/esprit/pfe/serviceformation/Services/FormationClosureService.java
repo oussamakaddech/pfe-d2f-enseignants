@@ -9,7 +9,6 @@ import esprit.pfe.serviceformation.repositories.PresenceRepository;
 import esprit.pfe.serviceformation.messaging.CertificateBatchMessage;
 import esprit.pfe.serviceformation.messaging.CertificateEventPublisher;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,46 +21,32 @@ import java.util.Map;
 public class FormationClosureService {
 
     private static final String ROLE_PARTICIPANT = "PARTICIPANT";
+    private final FormationRepository formationRepository;
+    private final SeanceFormationRepository seanceFormationRepository;
+    private final PresenceRepository presenceRepository;
+    private final CertificateEventPublisher certificateEventPublisher;
 
-    @Autowired
-    private FormationRepository formationRepository;
+    public FormationClosureService(FormationRepository formationRepository, 
+                                 SeanceFormationRepository seanceFormationRepository, 
+                                 PresenceRepository presenceRepository, 
+                                 CertificateEventPublisher certificateEventPublisher) {
+        this.formationRepository = formationRepository;
+        this.seanceFormationRepository = seanceFormationRepository;
+        this.presenceRepository = presenceRepository;
+        this.certificateEventPublisher = certificateEventPublisher;
+    }
 
-    @Autowired
-    private SeanceFormationRepository seanceFormationRepository;
-
-    @Autowired
-    private PresenceRepository presenceRepository;
-
-    @Autowired
-    private CertificateEventPublisher certificateEventPublisher; // JMS Publisher
-
-    /**
-     * Génère les certificats (ou attestations, badges...) pour la formation,
-     * en distinguant animateurs et participants,
-     * et choisissant typeCertif = "CERTIF", "BADGE", "ATTESTATION", etc.
-     * N'envoie qu'une seule fois (si certifGenerated=false).
-     *
-     * @param formationId l'ID de la formation
-     * @param typeCertif  le type de certificat à générer
-     */
     @Transactional
     public void generateCertificates(Long formationId, String typeCertif) {
-        // 1) Récupérer la formation
         Formation formation = formationRepository.findById(formationId)
-                .orElseThrow(() -> new RuntimeException(
-                        "Formation introuvable: " + formationId));
+                .orElseThrow(() -> new IllegalStateException("Formation introuvable: " + formationId));
 
-        // 2) Vérifier si déjà généré
         if (formation.isCertifGenerated()) {
-            throw new RuntimeException(
-                    "❌ Les certificats ont déjà été générés pour cette formation !");
+            throw new IllegalStateException("Les certificats ont deja ete generes pour cette formation !");
         }
 
-        // 3) Récupérer toutes les séances de la formation
-        List<SeanceFormation> seances =
-                seanceFormationRepository.findByFormationId(formationId);
+        List<SeanceFormation> seances = seanceFormationRepository.findByFormationId(formationId);
 
-        // 4) Construire la map des rôles (ANIMATEUR > PARTICIPANT)
         Map<String, String> rolesByEnseignant = new HashMap<>();
         for (SeanceFormation sf : seances) {
             if (sf.getAnimateurs() != null) {
@@ -74,38 +59,25 @@ public class FormationClosureService {
             }
             if (sf.getParticipants() != null) {
                 sf.getParticipants().forEach(part -> {
-                    rolesByEnseignant
-                            .putIfAbsent(part.getId(), ROLE_PARTICIPANT);
+                    rolesByEnseignant.putIfAbsent(part.getId(), ROLE_PARTICIPANT);
                 });
             }
         }
 
-        // 5) Récupérer les enseignants présents sur TOUTES les séances
-        List<Enseignant> enseignantsPleinPrésence =
-                presenceRepository
-                        .findEnseignantsPresentSurToutesLesSeances(formationId);
+        List<Enseignant> enseignantsPleinPresence = presenceRepository.findEnseignantsPresentSurToutesLesSeances(formationId);
 
-        // 6) Construire la liste d'EnseignantPresenceInfo
-        List<CertificateBatchMessage.EnseignantPresenceInfo> batchInfos =
-                enseignantsPleinPrésence.stream().map(e -> {
-                    CertificateBatchMessage.EnseignantPresenceInfo info =
-                            new CertificateBatchMessage.EnseignantPresenceInfo();
-                    info.setEnseignantId(e.getId());
-                    info.setNom(e.getNom());
-                    info.setPrenom(e.getPrenom());
-                    info.setMail(e.getMail());
-                    // rôle calculé précédemment
-                    info.setRole(
-                            rolesByEnseignant.getOrDefault(e.getId(), ROLE_PARTICIPANT)
-                    );
-                    info.setPresent(true);
-                    info.setDeptEnseignantLibelle(
-                            e.getDept() != null ? e.getDept().getLibelle() : null
-                    );
-                    return info;
-                }).toList();
+        List<CertificateBatchMessage.EnseignantPresenceInfo> batchInfos = enseignantsPleinPresence.stream().map(enseignant -> {
+            CertificateBatchMessage.EnseignantPresenceInfo info = new CertificateBatchMessage.EnseignantPresenceInfo();
+            info.setEnseignantId(enseignant.getId());
+            info.setNom(enseignant.getNom());
+            info.setPrenom(enseignant.getPrenom());
+            info.setMail(enseignant.getMail());
+            info.setRole(rolesByEnseignant.getOrDefault(enseignant.getId(), ROLE_PARTICIPANT));
+            info.setPresent(true);
+            info.setDeptEnseignantLibelle(enseignant.getDept() != null ? enseignant.getDept().getLibelle() : null);
+            return info;
+        }).toList();
 
-        // 7) Construire et envoyer le message JMS
         CertificateBatchMessage msg = new CertificateBatchMessage();
         msg.setFormationId(formationId);
         msg.setTitreFormation(formation.getTitreFormation());
@@ -117,10 +89,9 @@ public class FormationClosureService {
 
         certificateEventPublisher.sendCertificateBatchMessage(msg);
 
-        // 8) Marquer la formation comme générée
         formation.setCertifGenerated(true);
         formationRepository.save(formation);
 
-        log.info("✅ {} générés pour formation {} => {} enseignants.", typeCertif, formationId, batchInfos.size());
+        log.info("Certificats {} generes pour formation {} => {} enseignants.", typeCertif, formationId, batchInfos.size());
     }
 }

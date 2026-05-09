@@ -2,9 +2,9 @@ package esprit.pfe.serviceformation.services;
 
 import esprit.pfe.serviceformation.entities.*;
 import esprit.pfe.serviceformation.repositories.*;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import lombok.RequiredArgsConstructor;
 
 import java.time.format.DateTimeFormatter;
 import java.time.ZoneId;
@@ -17,13 +17,10 @@ import java.util.List;
  * Service d'export de calendrier au format .ics (iCalendar)
  */
 @Service
+@RequiredArgsConstructor
 public class CalendarExportService {
-
-    @Autowired
-    private SeanceFormationRepository seanceFormationRepository;
-
-    @Autowired
-    private FormationRepository formationRepository;
+    private final SeanceFormationRepository seanceFormationRepository;
+    private final FormationRepository formationRepository;
 
     /** Génère un fichier .ics pour toutes les séances d'une formation */
     @Transactional(readOnly = true)

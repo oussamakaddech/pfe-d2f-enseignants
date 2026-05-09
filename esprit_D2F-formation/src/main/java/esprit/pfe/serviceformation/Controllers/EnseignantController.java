@@ -4,22 +4,21 @@ import esprit.pfe.serviceformation.dto.EnseignantDTO;
 import esprit.pfe.serviceformation.entities.Enseignant;
 import esprit.pfe.serviceformation.services.EnseignantExcelService;
 import esprit.pfe.serviceformation.services.EnseignantService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import lombok.RequiredArgsConstructor;
 
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/enseignants")
 // Autorise les requêtes depuis le front React (si nécessaire)
+@RequiredArgsConstructor
 public class EnseignantController {
-    @Autowired
-    private EnseignantExcelService excelService;
-    @Autowired
-    private EnseignantService enseignantService;
+    private final EnseignantExcelService excelService;
+    private final EnseignantService enseignantService;
 
     // Récupérer la liste de tous les enseignants
     @GetMapping

@@ -4,18 +4,17 @@ package esprit.pfe.serviceformation.services;
 
 import esprit.pfe.serviceformation.entities.Formation;
 import esprit.pfe.serviceformation.repositories.FormationRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import lombok.RequiredArgsConstructor;
 
 import java.util.List;
 import java.util.Optional;
 
 @Service
+@RequiredArgsConstructor
 public class FormationServiceImpl implements FormationService {
-
-    @Autowired
-    private FormationRepository formationRepository;
+    private final FormationRepository formationRepository;
 
     @Override
     public Formation createFormation(Formation formation) {

@@ -35,17 +35,7 @@ public class InscriptionController {
         return service.demanderInscription(formationId, enseignantId);
     }
 
-    // 3. Lister les demandes en attente
-    /*
-     * @GetMapping("/inscriptions/demandes")
-     * public List<Inscription> getDemandes(
-     * 
-     * @RequestParam String userId,
-     * 
-     * @RequestParam boolean isD2F) {
-     * return service.listerDemandes(userId, isD2F);
-     * }
-     */
+    // 3. Lister les inscriptions par formation
     @GetMapping("/formations/{formationId}/inscriptions")
     public List<InscriptionDTO> getInscriptionsByFormation(@PathVariable Long formationId) {
         try {

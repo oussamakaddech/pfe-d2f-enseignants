@@ -3,20 +3,19 @@ package esprit.pfe.serviceformation.controllers;
 
 
 import esprit.pfe.serviceformation.services.FormationReportService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import lombok.RequiredArgsConstructor;
 
 import java.util.Date;
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/formation-report")
+@RequiredArgsConstructor
 public class FormationReportController {
-
-    @Autowired
-    private FormationReportService reportService;
+    private final FormationReportService reportService;
 
     /**
      * GET  /api/formation-report

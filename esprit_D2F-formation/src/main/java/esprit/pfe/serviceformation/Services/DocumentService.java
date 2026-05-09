@@ -6,9 +6,9 @@ import esprit.pfe.serviceformation.microsoft.OneDriveService;
 import esprit.pfe.serviceformation.repositories.DocumentRepository;
 import esprit.pfe.serviceformation.repositories.FormationRepository;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+import lombok.RequiredArgsConstructor;
 
 import java.io.IOException;
 import java.util.Date;
@@ -16,16 +16,11 @@ import java.util.List;
 
 @Service
 @Slf4j
+@RequiredArgsConstructor
 public class DocumentService {
-
-    @Autowired
-    private DocumentRepository       documentRepo;
-
-    @Autowired
-    private FormationRepository      formationRepo;
-
-    @Autowired
-    private OneDriveService          oneDriveService;
+    private final DocumentRepository       documentRepo;
+    private final FormationRepository      formationRepo;
+    private final OneDriveService          oneDriveService;
 
     /**
      * Crée + upload :

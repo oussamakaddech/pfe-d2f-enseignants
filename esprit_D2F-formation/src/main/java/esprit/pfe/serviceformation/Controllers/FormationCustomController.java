@@ -2,17 +2,16 @@
 package esprit.pfe.serviceformation.controllers;
 
 import esprit.pfe.serviceformation.services.FormationClosureService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequestMapping("/api/v1/formations-custom")
+@RequiredArgsConstructor
 public class FormationCustomController {
-
-    @Autowired
-    private FormationClosureService formationClosureService;
+    private final FormationClosureService formationClosureService;
 
     @PutMapping("/{formationId}/generate-certificates")
     public ResponseEntity<String> generateCertificates(

@@ -9,16 +9,15 @@ import com.microsoft.graph.models.UserSendMailParameterSet;
 import com.microsoft.graph.requests.GraphServiceClient;
 import okhttp3.Request;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import java.util.Collections;
+import lombok.RequiredArgsConstructor;
 
 @Service
 @Slf4j
+@RequiredArgsConstructor
 public class OutlookMailService {
-
-    @Autowired
-    private MicrosoftGraphClientProvider graphProvider;
+    private final MicrosoftGraphClientProvider graphProvider;
 
     public void sendMail(String to, String subject, String htmlContent) {
         GraphServiceClient<Request> graphClient = graphProvider.getGraphClient();

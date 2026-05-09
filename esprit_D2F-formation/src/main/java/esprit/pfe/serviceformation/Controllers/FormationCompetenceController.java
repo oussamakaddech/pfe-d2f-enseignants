@@ -2,18 +2,17 @@ package esprit.pfe.serviceformation.controllers;
 
 import esprit.pfe.serviceformation.entities.FormationCompetence;
 import esprit.pfe.serviceformation.services.FormationCompetenceService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import lombok.RequiredArgsConstructor;
 
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/formation-competences")
+@RequiredArgsConstructor
 public class FormationCompetenceController {
-
-    @Autowired
-    private FormationCompetenceService formationCompetenceService;
+    private final FormationCompetenceService formationCompetenceService;
 
     /** GET les liaisons pour une formation */
     @GetMapping("/formation/{formationId}")
