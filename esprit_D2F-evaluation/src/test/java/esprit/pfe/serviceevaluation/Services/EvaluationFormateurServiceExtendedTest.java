@@ -178,6 +178,26 @@ class EvaluationFormateurServiceExtendedTest {
     }
 
     @Test
+    void updateEvaluationsBulkByFormation_withDelete_shouldDeleteAndReturn() {
+        EvaluationFormateur entityToDelete = new EvaluationFormateur();
+        entityToDelete.setIdEvalParticipant(2L);
+        entityToDelete.setEnseignantId("ens-to-delete");
+        entityToDelete.setFormationId(100L);
+
+        when(evaluationRepository.findByFormationId(100L)).thenReturn(Arrays.asList(entity, entityToDelete));
+
+        // DTOs without "ens-to-delete"
+        EvaluationFormateurDTO updateDto = new EvaluationFormateurDTO();
+        updateDto.setEnseignantId("ens-001");
+        updateDto.setNote(15.0f);
+
+        service.updateEvaluationsBulkByFormation(100L, List.of(updateDto));
+
+        verify(evaluationRepository).delete(entityToDelete);
+        verify(evaluationRepository).save(any());
+    }
+
+    @Test
     void updateEvaluationsBulkByFormation_withExistingAndNew_shouldUpdateAndCreate() {
         when(evaluationRepository.findByFormationId(100L)).thenReturn(List.of(entity));
         when(evaluationRepository.save(any())).thenReturn(entity);
