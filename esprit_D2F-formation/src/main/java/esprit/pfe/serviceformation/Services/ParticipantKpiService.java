@@ -26,7 +26,7 @@ public class ParticipantKpiService {
         List<Formation> formationsAchevees = formationRepository.findByEtatFormation(EtatFormation.ACHEVE)
                 .stream()
                 .filter(f -> !f.getDateDebut().before(startDate) && !f.getDateDebut().after(endDate))
-                .collect(Collectors.toList());
+                .toList();
 
         List<ParticipantKpiDTO> kpis = new ArrayList<>();
 
@@ -55,7 +55,7 @@ public class ParticipantKpiService {
         List<Formation> formationsAchevees = formationRepository.findByEtatFormation(EtatFormation.ACHEVE)
                 .stream()
                 .filter(f -> !f.getDateDebut().before(startDate) && !f.getDateDebut().after(endDate))
-                .collect(Collectors.toList());
+                .toList();
 
         long totalParticipantsGlobal = 0;
         long presentParticipantsGlobal = 0;

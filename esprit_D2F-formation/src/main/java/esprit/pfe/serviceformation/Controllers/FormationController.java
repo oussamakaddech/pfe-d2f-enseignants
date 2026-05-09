@@ -4,18 +4,17 @@ package esprit.pfe.serviceformation.controllers;
 import esprit.pfe.serviceformation.entities.Formation;
 import esprit.pfe.serviceformation.services.FormationService;
 import esprit.pfe.auth.security.AuthorizationMatrix;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import java.util.List;
+import lombok.RequiredArgsConstructor;
 
 @RestController
 @RequestMapping("/api/v1/formations")
+@RequiredArgsConstructor
 public class FormationController {
-
-    @Autowired
-    private FormationService formationService;
+    private final FormationService formationService;
 
     // Création d'une formation - ADMIN, CUP only
     @PostMapping

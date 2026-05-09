@@ -5,7 +5,6 @@ import esprit.pfe.serviceformation.entities.Formation;
 import esprit.pfe.serviceformation.services.ExportExcelService;
 import esprit.pfe.serviceformation.services.FormationWorkflowService;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.*;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -17,6 +16,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import jakarta.validation.Valid;
+
 @Slf4j
 @RestController
 @RequestMapping("/api/v1/formations-workflow")
@@ -26,11 +26,13 @@ public class FormationWorkflowController {
     private static final String KEY_MESSAGE = "message";
     private static final String MSG_ERREUR_INTERNE = "Erreur interne";
 
-    @Autowired
-    private ExportExcelService exportExcelService;
+    private final ExportExcelService exportExcelService;
+    private final FormationWorkflowService formationWorkflowService;
 
-    @Autowired
-    private FormationWorkflowService formationWorkflowService;
+    public FormationWorkflowController(ExportExcelService exportExcelService, FormationWorkflowService formationWorkflowService) {
+        this.exportExcelService = exportExcelService;
+        this.formationWorkflowService = formationWorkflowService;
+    }
 
     @PostMapping
     public ResponseEntity<Object> createFormation(@Valid @RequestBody FormationWorkflowRequest request, org.springframework.validation.BindingResult result) {
@@ -57,21 +59,15 @@ public class FormationWorkflowController {
         return ResponseEntity.ok(dto);
     }
 
-
     @DeleteMapping("/{id}")
     public ResponseEntity<Object> deleteFormation(@PathVariable Long id) {
         try {
             formationWorkflowService.deleteFormationWorkflow(id);
-            return ResponseEntity.ok("Formation supprimée avec succès !");
-
+            return ResponseEntity.ok("Formation supprimee avec succes !");
         } catch (IllegalArgumentException e) {
-            // Par exemple, si l'id n'existe pas => 400
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of(KEY_ERROR, e.getMessage()));
-
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(KEY_ERROR, e.getMessage()));
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of(KEY_ERROR, MSG_ERREUR_INTERNE, KEY_MESSAGE, e.getMessage()));
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(KEY_ERROR, MSG_ERREUR_INTERNE, KEY_MESSAGE, e.getMessage()));
         }
     }
 
@@ -80,15 +76,10 @@ public class FormationWorkflowController {
         try {
             FormationDTO dto = formationWorkflowService.getFormationWorkflowById(id);
             return ResponseEntity.ok(dto);
-
         } catch (IllegalArgumentException e) {
-            // Formation non trouvée => 400 ou 404
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(Map.of(KEY_ERROR, e.getMessage()));
-
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(KEY_ERROR, e.getMessage()));
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of(KEY_ERROR, MSG_ERREUR_INTERNE, KEY_MESSAGE, e.getMessage()));
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(KEY_ERROR, MSG_ERREUR_INTERNE, KEY_MESSAGE, e.getMessage()));
         }
     }
 
@@ -97,24 +88,16 @@ public class FormationWorkflowController {
         try {
             List<FormationDTO> dtos = formationWorkflowService.getAllFormationWorkflows();
             return ResponseEntity.ok(dtos);
-
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of(KEY_ERROR, MSG_ERREUR_INTERNE, KEY_MESSAGE, e.getMessage()));
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(KEY_ERROR, MSG_ERREUR_INTERNE, KEY_MESSAGE, e.getMessage()));
         }
     }
 
     @PutMapping("/presence/{id}")
-    public ResponseEntity<Object> updatePresence(@PathVariable Long id,
-                                            @RequestParam boolean present,
-                                            @RequestParam String commentaire) {
+    public ResponseEntity<Object> updatePresence(@PathVariable Long id, @RequestParam boolean present, @RequestParam String commentaire) {
         try {
             formationWorkflowService.updatePresence(id, present, commentaire);
-            return ResponseEntity.ok("Présence mise à jour avec succès !");
-
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(Map.of(KEY_ERROR, e.getMessage()));
-
+            return ResponseEntity.ok("Presence mise a jour avec succes !");
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(Map.of(KEY_ERROR, e.getMessage()));
         }
@@ -126,59 +109,32 @@ public class FormationWorkflowController {
             @RequestParam("end") @DateTimeFormat(pattern = "yyyy-MM-dd") Date endDate
     ) {
         try {
-            // Génère le fichier
             ByteArrayOutputStream out = exportExcelService.exportFormationsAvance(startDate, endDate);
             byte[] content = out.toByteArray();
 
-            // Prépare les headers pour un téléchargement Excel
             HttpHeaders headers = new HttpHeaders();
-            headers.setContentDisposition(
-                    ContentDisposition
-                            .attachment()
-                            .filename(String.format("formations_%tF_%tF.xlsx", startDate, endDate))
-                            .build()
-            );
-            headers.setContentType(MediaType
-                    .parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
+            headers.setContentDisposition(ContentDisposition.attachment().filename(String.format("formations_%tF_%tF.xlsx", startDate, endDate)).build());
+            headers.setContentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"));
 
-            return ResponseEntity
-                    .ok()
-                    .headers(headers)
-                    .body(content);
-
+            return ResponseEntity.ok().headers(headers).body(content);
         } catch (Exception e) {
-            // Log côté serveur
-            log.error("❌ Erreur lors de l'export Excel", e);
-
-            // On renvoie un JSON avec erreur + message
-            Map<String, String> body = Map.of(
-                    KEY_ERROR, MSG_ERREUR_INTERNE,
-                    KEY_MESSAGE, e.getMessage()
-            );
-            return ResponseEntity
-                    .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(body);
+            log.error("Erreur lors de l'export Excel", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(KEY_ERROR, MSG_ERREUR_INTERNE, KEY_MESSAGE, e.getMessage()));
         }
     }
 
-
-    // Endpoint pour récupérer les formations où l'utilisateur connecté est animateur
     @GetMapping("/animateur")
     public ResponseEntity<List<FormationDTO>> getFormationsByAnimateurEmail(@AuthenticationPrincipal Jwt jwt) {
-        // Extraction de l'email du token
         String email = jwt.getClaim("email");
-        // Appel du service
         List<FormationDTO> formations = formationWorkflowService.getFormationsByAnimateurEmail(email);
         return ResponseEntity.ok(formations);
     }
 
-    // Endpoint pour récupérer la liste des présences d'une séance
     @GetMapping("/seances/{seanceId}/presences")
     public ResponseEntity<List<PresenceDTO>> getPresencesBySeance(@PathVariable("seanceId") Long seanceId) {
         List<PresenceDTO> presences = formationWorkflowService.getPresencesBySeance(seanceId);
         return ResponseEntity.ok(presences);
     }
-
 
     @GetMapping("/achevees")
     public ResponseEntity<Object> getFormationsAchevees() {
@@ -186,8 +142,7 @@ public class FormationWorkflowController {
             List<FormationDTO> achevees = formationWorkflowService.getFormationsAchevees();
             return ResponseEntity.ok(achevees);
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of(KEY_ERROR, MSG_ERREUR_INTERNE, KEY_MESSAGE, e.getMessage()));
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(KEY_ERROR, MSG_ERREUR_INTERNE, KEY_MESSAGE, e.getMessage()));
         }
     }
 
@@ -198,29 +153,20 @@ public class FormationWorkflowController {
     }
 
     @GetMapping("/enseignants/{id}/calendar")
-    public ResponseEntity<FormationsByRoleDTO> getCalendarFormations(
-            @PathVariable("id") String enseignantId
-    ) {
+    public ResponseEntity<FormationsByRoleDTO> getCalendarFormations(@PathVariable("id") String enseignantId) {
         FormationsByRoleDTO dto = formationWorkflowService.getFormationsForCalendar(enseignantId);
         return ResponseEntity.ok(dto);
     }
 
     @PutMapping("/{id}/inscriptionsOuvertes")
-
-    public FormationDTO updateInscriptionsOuvertes(
-            @PathVariable Long id,
-            @RequestParam boolean ouvert) {
+    public FormationDTO updateInscriptionsOuvertes(@PathVariable Long id, @RequestParam boolean ouvert) {
         return formationWorkflowService.setInscriptionsOuvertes(id, ouvert);
     }
 
-
-
     @GetMapping("/visibles")
-
     public List<FormationDTO> getFormationsVisibles() {
         return formationWorkflowService.getFormationsVisibles();
     }
-
 
     @GetMapping("/par-up")
     public List<FormationDTO> getFormationsParUp(@RequestParam String upId) {

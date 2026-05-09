@@ -3,19 +3,19 @@ package esprit.pfe.serviceformation.services;
 import esprit.pfe.serviceformation.entities.Up;
 import esprit.pfe.serviceformation.repositories.UpRepository;
 import org.apache.poi.ss.usermodel.*;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import lombok.RequiredArgsConstructor;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
 @Service
+@RequiredArgsConstructor
 public class UpService {
-@Autowired
-    private  UpRepository upRepository;
+    private final  UpRepository upRepository;
 
     @Transactional
     public void importUpsFromExcel(MultipartFile file) throws IOException {

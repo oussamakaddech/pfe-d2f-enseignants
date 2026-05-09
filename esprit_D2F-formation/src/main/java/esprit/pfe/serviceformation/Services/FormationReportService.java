@@ -5,20 +5,17 @@ import esprit.pfe.serviceformation.dto.FormateurNameDTO;
 import esprit.pfe.serviceformation.dto.ParticipantFormationDTO;
 import esprit.pfe.serviceformation.repositories.PresenceRepository;
 import esprit.pfe.serviceformation.repositories.SeanceFormationRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import lombok.RequiredArgsConstructor;
 
 import java.util.Date;
 import java.util.List;
 
 @Service
+@RequiredArgsConstructor
 public class FormationReportService {
-
-    @Autowired
-    private SeanceFormationRepository seanceRepo;
-
-    @Autowired
-    private PresenceRepository presenceRepo;
+    private final SeanceFormationRepository seanceRepo;
+    private final PresenceRepository presenceRepo;
 
     /**
      * Récupère selon le rôle ("animateur" ou "participant")

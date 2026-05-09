@@ -4,20 +4,17 @@ import esprit.pfe.serviceformation.entities.Formation;
 import esprit.pfe.serviceformation.entities.FormationCompetence;
 import esprit.pfe.serviceformation.repositories.FormationCompetenceRepository;
 import esprit.pfe.serviceformation.repositories.FormationRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import lombok.RequiredArgsConstructor;
 
 import java.util.List;
 
 @Service
+@RequiredArgsConstructor
 public class FormationCompetenceService {
-
-    @Autowired
-    private FormationCompetenceRepository formationCompetenceRepository;
-
-    @Autowired
-    private FormationRepository formationRepository;
+    private final FormationCompetenceRepository formationCompetenceRepository;
+    private final FormationRepository formationRepository;
 
     /** Récupérer les liaisons formation-compétence pour une formation */
     public List<FormationCompetence> getByFormationId(Long formationId) {

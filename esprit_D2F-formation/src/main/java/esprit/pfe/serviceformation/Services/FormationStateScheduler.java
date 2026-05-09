@@ -4,21 +4,18 @@ import esprit.pfe.serviceformation.entities.EtatFormation;
 import esprit.pfe.serviceformation.entities.Formation;
 import esprit.pfe.serviceformation.repositories.FormationRepository;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import java.util.Date;
 import java.util.List;
+import lombok.RequiredArgsConstructor;
 
 @Component
 @Slf4j
+@RequiredArgsConstructor
 public class FormationStateScheduler {
-
-    @Autowired
-    private FormationRepository formationRepository;
-
-    @Autowired
-    private FormationWorkflowService formationWorkflowService;
+    private final FormationRepository formationRepository;
+    private final FormationWorkflowService formationWorkflowService;
 
     /**
      * Exécute chaque minute.

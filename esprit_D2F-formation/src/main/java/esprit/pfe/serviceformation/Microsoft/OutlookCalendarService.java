@@ -4,8 +4,8 @@ import com.microsoft.graph.models.*;
 import com.microsoft.graph.requests.GraphServiceClient;
 import okhttp3.Request;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import lombok.RequiredArgsConstructor;
 
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -13,12 +13,11 @@ import java.util.stream.Collectors;
 
 @Service
 @Slf4j
+@RequiredArgsConstructor
 public class OutlookCalendarService {
 
     private static final String TIMEZONE = "Africa/Tunis";
-
-    @Autowired
-    private MicrosoftGraphClientProvider graphProvider;
+    private final MicrosoftGraphClientProvider graphProvider;
 
     // Classe wrapper pour retourner ID d'événement + URL de réunion Teams
     public static class EventCreationResult {
@@ -66,7 +65,7 @@ public class OutlookCalendarService {
                 emailAddress.address = email;
                 attendee.emailAddress = emailAddress;
                 return attendee;
-            }).collect(Collectors.toList());
+            }).toList();
         }
 
         // L'événement est créé dans le calendrier de l'organisateur
@@ -77,7 +76,7 @@ public class OutlookCalendarService {
                     .buildRequest()
                     .post(event);
         } catch (Exception e) {
-            throw new RuntimeException("Erreur lors de la création de l'événement Outlook pour " + organizerEmail + ": " + e.getMessage(), e);
+            throw new IllegalStateException("Erreur lors de la création de l'événement Outlook pour " + organizerEmail + ": " + e.getMessage(), e);
         }
         
         // ✅ Récupérer le joinUrl de la réunion Teams créée
@@ -124,7 +123,7 @@ public class OutlookCalendarService {
                 emailAddress.address = email;
                 attendee.emailAddress = emailAddress;
                 return attendee;
-            }).collect(Collectors.toList());
+            }).toList();
         }
 
         // Requête de mise à jour (PATCH) dans le calendrier de l'organisateur
@@ -135,7 +134,7 @@ public class OutlookCalendarService {
                     .buildRequest()
                     .patch(updatedEvent);
         } catch (Exception e) {
-            throw new RuntimeException("Erreur lors de la mise à jour de l'événement Outlook " + eventId + ": " + e.getMessage(), e);
+            throw new IllegalStateException("Erreur lors de la mise à jour de l'événement Outlook " + eventId + ": " + e.getMessage(), e);
         }
         
         // ✅ Récupérer le joinUrl après mise à jour

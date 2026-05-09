@@ -9,7 +9,6 @@ import java.util.List;
 @Repository
 public interface InscriptionRepository extends JpaRepository<Inscription, Long> {
 
-    //List<Inscription> findByEtat(EtatInscription etat);
     List<Inscription> findByFormation_IdFormation(Long formationId);
     List<Inscription> findByEnseignant_Id(String enseignantId);
 }

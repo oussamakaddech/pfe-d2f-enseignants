@@ -6,20 +6,18 @@ import esprit.pfe.serviceformation.dto.FormationDTO;
 import esprit.pfe.serviceformation.dto.OneDriveItemDTO;
 import esprit.pfe.serviceformation.microsoft.OneDriveService;
 import esprit.pfe.serviceformation.services.FormationWorkflowService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import lombok.RequiredArgsConstructor;
 
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/onedrive")
+@RequiredArgsConstructor
 public class OneDriveController {
-
-    @Autowired
-    private OneDriveService oneDriveService;
-    @Autowired
-    private FormationWorkflowService formationService;
+    private final OneDriveService oneDriveService;
+    private final FormationWorkflowService formationService;
     @GetMapping("/hierarchy")
     public ResponseEntity<List<OneDriveItemDTO>> getDriveHierarchy() {
         List<OneDriveItemDTO> hierarchy = oneDriveService.getDriveHierarchy();

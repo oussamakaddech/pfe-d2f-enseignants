@@ -8,8 +8,8 @@ import com.microsoft.graph.requests.GraphServiceClient;
 import esprit.pfe.serviceformation.dto.OneDriveItemDTO;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.Request;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import lombok.RequiredArgsConstructor;
 
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
@@ -19,10 +19,9 @@ import java.util.Optional;
 
 @Service
 @Slf4j
+@RequiredArgsConstructor
 public class OneDriveService {
-
-    @Autowired
-    private MicrosoftGraphClientProvider graphProvider;
+    private final MicrosoftGraphClientProvider graphProvider;
 
     private static final String ROOT_FOLDER_NAME = "d2F";
     private static final String USER_EMAIL       = "Application.Formationdesformateurs@Esprit.tn";
@@ -95,7 +94,7 @@ public class OneDriveService {
             in.transferTo(buf);
             return buf.toByteArray();
         } catch (Exception e) {
-            throw new RuntimeException("Erreur download OneDrive", e);
+            throw new IllegalStateException("Erreur download OneDrive", e);
         }
     }
 
@@ -281,7 +280,7 @@ public class OneDriveService {
         
         List<DriveItem> files = Optional.ofNullable(filesRaw).orElse(new ArrayList<>());
         if (files.isEmpty()) {
-            throw new RuntimeException("Aucun fichier dans " + folderPath);
+            throw new IllegalStateException("Aucun fichier dans " + folderPath);
         }
 
         DriveItem fichier = files.get(0);

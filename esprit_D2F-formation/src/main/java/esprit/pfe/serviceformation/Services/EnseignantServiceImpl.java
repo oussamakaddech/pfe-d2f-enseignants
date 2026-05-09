@@ -3,17 +3,16 @@ package esprit.pfe.serviceformation.services;
 import esprit.pfe.serviceformation.dto.EnseignantDTO;
 import esprit.pfe.serviceformation.entities.Enseignant;
 import esprit.pfe.serviceformation.repositories.EnseignantRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.Optional;
+import lombok.RequiredArgsConstructor;
 
 @Service
+@RequiredArgsConstructor
 public class EnseignantServiceImpl implements EnseignantService {
-
-    @Autowired
-    private EnseignantRepository enseignantRepository;
+    private final EnseignantRepository enseignantRepository;
 
     @Override
     @Transactional
@@ -61,7 +60,7 @@ public class EnseignantServiceImpl implements EnseignantService {
             // Vous pouvez ajouter la mise à jour des associations si nécessaire
             return enseignantRepository.save(e);
         } else {
-            throw new RuntimeException("Enseignant introuvable avec l'id : " + id);
+            throw new IllegalStateException("Enseignant introuvable avec l'id : " + id);
         }
     }
 

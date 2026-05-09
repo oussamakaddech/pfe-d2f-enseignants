@@ -1,0 +1,198 @@
+    @Transactional
+    public Formation updateFormationWorkflow(Long formationId, FormationWorkflowRequest request) {
+        Formation formation = formationRepository.findById(formationId)
+                .orElseThrow(() -> new IllegalStateException("Formation introuvable"));
+
+        EtatFormation oldEtat = formation.getEtatFormation();
+        updateFormationBasicFields(formation, request);
+        updateFormationRelations(formation, request);
+
+        Map<String, Enseignant> enseignantMap = loadEnseignantsMap(request);
+        List<SeanceFormation> managedList = prepareManagedSeancesList(formation);
+
+        processSeanceRequests(formation, request, enseignantMap, managedList);
+        handleEtatTransitions(formation, oldEtat);
+        syncPresencesForSeances(managedList, request.getParticipantsIds());
+        publishEvaluationUpdatesIfPossible(formationId, request.getParticipantsIds());
+
+        return formationRepository.save(formation);
+    }
+
+    private void updateFormationBasicFields(Formation formation, FormationWorkflowRequest request) {
+        formation.setTitreFormation(request.getTitreFormation());
+        formation.setDateDebut(request.getDateDebut());
+        formation.setDateFin(request.getDateFin());
+        formation.setTypeFormation(request.getTypeFormation());
+        formation.setExterneFormateurNom(request.getExterneFormateurNom());
+        formation.setExterneFormateurPrenom(request.getExterneFormateurPrenom());
+        formation.setExterneFormateurEmail(request.getExterneFormateurEmail());
+        formation.setEtatFormation(request.getEtatFormation());
+        formation.setCoutFormation(request.getCoutFormation());
+        formation.setOrganismeRefExterne(request.getOrganismeRefExterne());
+        formation.setChargeHoraireGlobal(request.getChargeHoraireGlobal());
+        formation.setDomaine(request.getDomaine());
+        formation.setCompetance(request.getCompetance());
+        formation.setPopulationCible(request.getPopulationCible());
+        formation.setObjectifs(request.getObjectifs());
+        formation.setObjectifsPedago(request.getObjectifsPedago());
+        formation.setEvalMethods(request.getEvalMethods());
+        formation.setPrerequis(request.getPrerequis());
+        formation.setAcquis(request.getAcquis());
+        formation.setIndicateurs(request.getIndicateurs());
+        formation.setCoutTransport(request.getCoutTransport());
+        formation.setCoutHebergement(request.getCoutHebergement());
+        formation.setCoutRepas(request.getCoutRepas());
+        formation.setOuverte(request.isOuverte());
+        
+        if (request.getPeriodCode() != null) {
+            try {
+                formation.setPeriodCode(PeriodCode.valueOf(request.getPeriodCode()));
+            } catch (Exception e) {
+                formation.setPeriodCode(PeriodCode.OTHER);
+            }
+        }
+        formation.setCustomPeriodLabel(request.getCustomPeriodLabel());
+    }
+
+    private void updateFormationRelations(Formation formation, FormationWorkflowRequest request) {
+        if (request.getUpId() != null && !request.getUpId().isBlank()) {
+            Up up = upRepository.findById(request.getUpId())
+                    .orElseThrow(() -> new IllegalStateException("UP introuvable"));
+            formation.setUp(up);
+        } else {
+            formation.setUp(null);
+        }
+
+        if (request.getDepartementId() != null && !request.getDepartementId().isBlank()) {
+            Dept dept = departementRepository.findById(request.getDepartementId())
+                    .orElseThrow(() -> new IllegalStateException("Département introuvable"));
+            formation.setDepartement(dept);
+        } else {
+            formation.setDepartement(null);
+        }
+    }
+
+    private Map<String, Enseignant> loadEnseignantsMap(FormationWorkflowRequest request) {
+        List<String> partIds = Optional.ofNullable(request.getParticipantsIds()).orElse(Collections.emptyList());
+        List<FormationWorkflowRequest.SeanceRequest> seanceReqs = Optional.ofNullable(request.getSeances())
+                .orElse(Collections.emptyList());
+
+        Set<String> allIds = new HashSet<>(partIds);
+        for (FormationWorkflowRequest.SeanceRequest sr : seanceReqs) {
+            if (sr.getAnimateursIds() != null) {
+                allIds.addAll(sr.getAnimateursIds());
+            }
+        }
+
+        return enseignantRepository.findAllById(allIds)
+                .stream()
+                .collect(Collectors.toMap(Enseignant::getId, Function.identity()));
+    }
+
+    private List<SeanceFormation> prepareManagedSeancesList(Formation formation) {
+        List<SeanceFormation> managedList = formation.getSeances();
+        if (managedList == null) {
+            managedList = new ArrayList<>();
+            formation.setSeances(managedList);
+        }
+        Hibernate.initialize(managedList);
+        if (managedList.isEmpty()) {
+            List<SeanceFormation> dbSeances = seanceFormationRepository.findByFormation_IdFormation(formation.getIdFormation());
+            if (dbSeances != null && !dbSeances.isEmpty()) {
+                managedList.addAll(dbSeances);
+            }
+        }
+        return managedList;
+    }
+
+    private void processSeanceRequests(Formation formation, FormationWorkflowRequest request, Map<String, Enseignant> enseignantMap, List<SeanceFormation> managedList) {
+        List<FormationWorkflowRequest.SeanceRequest> seanceReqs = Optional.ofNullable(request.getSeances()).orElse(Collections.emptyList());
+        Map<Long, SeanceFormation> existingMap = new HashMap<>();
+        for (SeanceFormation sf : new ArrayList<>(managedList)) {
+            existingMap.put(sf.getIdSeance(), sf);
+        }
+
+        for (FormationWorkflowRequest.SeanceRequest sr : seanceReqs) {
+            boolean isNew = sr.getIdSeance() == null;
+            SeanceFormation sf = isNew ? new SeanceFormation() : existingMap.remove(sr.getIdSeance());
+            if (sf == null) throw new IllegalStateException("Séance inconnue : " + sr.getIdSeance());
+            if (isNew) sf.setFormation(formation);
+
+            updateSeanceDetails(sf, sr, isNew, formation.getIdFormation());
+            assignParticipantsToSeance(sf, sr, request.getParticipantsIds(), enseignantMap, isNew, formation.getIdFormation());
+
+            if (isNew) managedList.add(sf);
+        }
+
+        for (SeanceFormation orphan : existingMap.values()) {
+            removeSeanceFromCalendar(orphan);
+            managedList.remove(orphan);
+        }
+    }
+
+    private void updateSeanceDetails(SeanceFormation sf, FormationWorkflowRequest.SeanceRequest sr, boolean isNew, Long formationId) {
+        sf.setDateSeance(sr.getDateSeance());
+        Time hd = parseTime(sr.getHeureDebut());
+        Time hf = parseTime(sr.getHeureFin());
+        sf.setHeureDebut(hd);
+        sf.setHeureFin(hf);
+        sf.setSalle(sr.getSalle());
+
+        if (sr.getSalle() != null && !sr.getSalle().isBlank()) {
+            boolean conflict = isNew ? seanceFormationRepository.existsSalleConflict(sr.getSalle(), sr.getDateSeance(), hd, hf)
+                    : seanceFormationRepository.existsSalleConflictIgnoringSelf(sr.getSalle(), sr.getDateSeance(), hd, hf, sr.getIdSeance());
+            if (conflict) {
+                throw new IllegalStateException("⚠️ Conflit de salle pour la séance " + (isNew ? "" : "[id=" + sr.getIdSeance() + "] ") 
+                    + "salle « " + sr.getSalle() + " » le " + sr.getDateSeance() + " de " + sr.getHeureDebut() + " à " + sr.getHeureFin());
+            }
+        }
+        sf.setTypeSeance(sr.getTypeSeance());
+        sf.setContenus(sr.getContenus());
+        sf.setMethodes(sr.getMethodes());
+        sf.setDureeTheorique(sr.getDureeTheorique());
+        sf.setDureePratique(sr.getDureePratique());
+    }
+
+    private void assignParticipantsToSeance(SeanceFormation sf, FormationWorkflowRequest.SeanceRequest sr, List<String> partIds, Map<String, Enseignant> enseignantMap, boolean isNew, Long formationId) {
+        List<String> seanceAnimIds = Optional.ofNullable(sr.getAnimateursIds()).orElse(Collections.emptyList());
+        Time hd = sf.getHeureDebut();
+        Time hf = sf.getHeureFin();
+        Long ignoreId = isNew ? null : sr.getIdSeance();
+
+        for (String aid : seanceAnimIds) ensureNoConflict(aid, sr.getDateSeance(), hd, hf, true, ignoreId, formationId);
+        for (String pid : partIds) ensureNoConflict(pid, sr.getDateSeance(), hd, hf, false, ignoreId, formationId);
+
+        sf.setAnimateurs(seanceAnimIds.stream().map(enseignantMap::get).filter(Objects::nonNull).toList());
+        sf.setParticipants(partIds.stream().map(enseignantMap::get).filter(Objects::nonNull).toList());
+    }
+
+    private void handleEtatTransitions(Formation formation, EtatFormation oldEtat) {
+        if (formation.getEtatFormation() == EtatFormation.PLANIFIE) {
+            synchronizeFormationCalendar(formation);
+        } else if (formation.getEtatFormation() == EtatFormation.VISIBLE && oldEtat != EtatFormation.VISIBLE) {
+            notifyTeachersOfApprovedFormation(formation);
+            notifyCUPOfApprovedFormation(formation);
+        } else if (formation.getEtatFormation() == EtatFormation.ANNULE) {
+            removeFormationCalendar(formation);
+        }
+    }
+
+    private void syncPresencesForSeances(List<SeanceFormation> seances, List<String> partIds) {
+        for (SeanceFormation sf : seances) {
+            if (sf.getIdSeance() != null) {
+                syncPresencesForSeance(sf, partIds);
+            }
+        }
+    }
+
+    private void publishEvaluationUpdatesIfPossible(Long formationId, List<String> partIds) {
+        if (partIds == null || partIds.isEmpty()) return;
+        List<EvaluationBatchMessage.EvaluationItem> items = partIds.stream()
+                .map(id -> new EvaluationBatchMessage.EvaluationItem(id, 0f, false, "N/A"))
+                .toList();
+        try {
+            evaluationPublisher.sendUpdate(new EvaluationBatchMessage(formationId, items));
+        } catch (Exception ex) {
+            log.warn("⚠️ Impossible d'envoyer le message de mise à jour d'évaluation : {}", ex.getMessage());
+        }
+    }

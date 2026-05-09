@@ -45,7 +45,7 @@ public class InscriptionService {
                         || (f.getUp() != null && f.getUp().getId().equals(upEns)) // ou UP correspond
                 )
                 .map(this::mapFormationToDTO) // conversion en DTO
-                .collect(Collectors.toList());
+                .toList();
     }
 
     /**
@@ -116,7 +116,7 @@ public class InscriptionService {
                 .findByFormation_IdFormation(formationId)
                 .stream()
                 .map(this::mapInscriptionToDTO)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     /**

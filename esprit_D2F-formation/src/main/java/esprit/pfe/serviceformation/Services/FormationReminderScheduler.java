@@ -4,10 +4,10 @@ import esprit.pfe.serviceformation.entities.*;
 import esprit.pfe.serviceformation.repositories.*;
 import esprit.pfe.serviceformation.microsoft.OutlookMailService;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import lombok.RequiredArgsConstructor;
 
 import java.time.format.DateTimeFormatter;
 import java.time.LocalDate;
@@ -21,13 +21,10 @@ import java.util.stream.Collectors;
  */
 @Service
 @Slf4j
+@RequiredArgsConstructor
 public class FormationReminderScheduler {
-
-    @Autowired
-    private SeanceFormationRepository seanceFormationRepository;
-
-    @Autowired
-    private OutlookMailService outlookMailService;
+    private final SeanceFormationRepository seanceFormationRepository;
+    private final OutlookMailService outlookMailService;
 
     /**
      * Exécuté chaque jour à 08h00 pour vérifier les séances à venir
@@ -130,7 +127,7 @@ public class FormationReminderScheduler {
                     LocalDate seanceDate = ((java.sql.Date) s.getDateSeance()).toLocalDate();
                     return seanceDate.equals(targetDate);
                 })
-                .collect(Collectors.toList());
+                .toList();
 
         for (SeanceFormation seance : matching) {
             Formation formation = seance.getFormation();

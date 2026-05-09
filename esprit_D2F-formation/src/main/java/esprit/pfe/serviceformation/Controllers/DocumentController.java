@@ -5,21 +5,20 @@ import esprit.pfe.serviceformation.entities.Document;
 import esprit.pfe.serviceformation.services.DocumentMapper;
 import esprit.pfe.serviceformation.services.DocumentService;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import lombok.RequiredArgsConstructor;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.stream.Collectors;
+
 @Slf4j
 @RestController
 @RequestMapping("/api/v1/documents")
+@RequiredArgsConstructor
 public class DocumentController {
-
-    @Autowired
-    private DocumentService service;
+    private final DocumentService service;
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<Object> createDocument(
@@ -37,14 +36,13 @@ public class DocumentController {
                     .status(HttpStatus.CREATED)
                     .body(DocumentMapper.mapToDTO(doc));
         } catch (Exception ex) {
-            // log pour le back-office
             log.error("Erreur création document", ex);
-            // réponse lisible pour le front
             return ResponseEntity
                     .status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(ex.getMessage());
         }
     }
+
     @GetMapping("/{id}")
     public ResponseEntity<DocumentDTO> getById(@PathVariable Long id) {
         Document doc = service.getById(id);
@@ -56,7 +54,7 @@ public class DocumentController {
         List<DocumentDTO> dtos = service.getAll()
                 .stream()
                 .map(DocumentMapper::mapToDTO)
-                .collect(Collectors.toList());
+                .toList();
         return ResponseEntity.ok(dtos);
     }
 
@@ -84,8 +82,8 @@ public class DocumentController {
     public ResponseEntity<byte[]> downloadDocument(@PathVariable Long id) {
         byte[] data = service.downloadDocumentFile(id);
         Document doc = service.getById(id);
-        String fn = doc.getFilePath()
-                .substring(doc.getFilePath().lastIndexOf("/") + 1);
+        String filePath = doc.getFilePath();
+        String fn = filePath.substring(filePath.lastIndexOf("/") + 1);
 
         return ResponseEntity.ok()
                 .contentType(MediaType.APPLICATION_OCTET_STREAM)
@@ -94,4 +92,3 @@ public class DocumentController {
                 .body(data);
     }
 }
-

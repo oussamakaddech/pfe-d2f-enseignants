@@ -16,7 +16,8 @@ public class Presence {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long idParticipation;
 
-    private boolean presence;
+    @Column(name = "presence")
+    private boolean present;
     private String commentaire;
 
     // Relation vers la séance à laquelle la présence est associée

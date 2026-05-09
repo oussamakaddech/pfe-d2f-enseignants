@@ -4,23 +4,21 @@ package esprit.pfe.serviceformation.controllers;
 import esprit.pfe.serviceformation.entities.Dept;
 import esprit.pfe.serviceformation.repositories.DeptRepository;
 import esprit.pfe.serviceformation.services.DeptService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import lombok.RequiredArgsConstructor;
 
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/departements")
 
+@RequiredArgsConstructor
 public class DeptController {
-
-    @Autowired
-    private DeptRepository deptRepository;
-    @Autowired
-    private DeptService deptService;
+    private final DeptRepository deptRepository;
+    private final DeptService deptService;
     // Récupérer tous les départements
     @PostMapping("/import-excel")
     public ResponseEntity<String> importExcel(@RequestParam("file") MultipartFile file) {
