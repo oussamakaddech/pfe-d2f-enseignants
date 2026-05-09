@@ -2,7 +2,7 @@ package esprit.pfe.serviceevaluation.controllers;
 
 import esprit.pfe.serviceevaluation.dto.EvaluationGlobaleDTO;
 import esprit.pfe.serviceevaluation.services.EvaluationGlobaleService;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -10,10 +10,10 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/evaluations-globales")
+@RequiredArgsConstructor
 public class EvaluationGlobaleController {
 
-    @Autowired
-    private EvaluationGlobaleService evaluationGlobaleService;
+    private final EvaluationGlobaleService evaluationGlobaleService;
 
     @PostMapping
     public ResponseEntity<EvaluationGlobaleDTO> createEvaluationGlobale(@RequestBody EvaluationGlobaleDTO evaluation) {
