@@ -69,10 +69,13 @@ class EvaluationGlobaleServiceTest {
 
             EvaluationGlobaleDTO result = evaluationGlobaleService.createEvaluationGlobale(evaluationGlobaleDTO);
 
-            assertThat(result).isNotNull();
-            assertThat(result.getIdEvalGlobale()).isEqualTo(1L);
-            assertThat(result.getFormationId()).isEqualTo(1L);
-            assertThat(result.getNoteGlobale()).isEqualTo(4.5f);
+            assertThat(result)
+                    .isNotNull()
+                    .satisfies(r -> {
+                        assertThat(r.getIdEvalGlobale()).isEqualTo(1L);
+                        assertThat(r.getFormationId()).isEqualTo(1L);
+                        assertThat(r.getNoteGlobale()).isEqualTo(4.5f);
+                    });
             verify(evaluationGlobaleRepository, times(1)).save(any(EvaluationGlobale.class));
         }
 
@@ -82,7 +85,7 @@ class EvaluationGlobaleServiceTest {
             when(evaluationGlobaleRepository.existsByFormationId(1L)).thenReturn(true);
 
             assertThatThrownBy(() -> evaluationGlobaleService.createEvaluationGlobale(evaluationGlobaleDTO))
-                    .isInstanceOf(RuntimeException.class)
+                    .isInstanceOf(IllegalStateException.class)
                     .hasMessageContaining("évaluation globale existe déjà");
         }
     }
@@ -115,9 +118,12 @@ class EvaluationGlobaleServiceTest {
 
             EvaluationGlobaleDTO result = evaluationGlobaleService.updateEvaluationGlobale(1L, updateRequest);
 
-            assertThat(result).isNotNull();
-            assertThat(result.getNoteGlobale()).isEqualTo(5.0f);
-            assertThat(result.getCommentaireGeneral()).isEqualTo("Excellent !");
+            assertThat(result)
+                    .isNotNull()
+                    .satisfies(r -> {
+                        assertThat(r.getNoteGlobale()).isEqualTo(5.0f);
+                        assertThat(r.getCommentaireGeneral()).isEqualTo("Excellent !");
+                    });
             verify(evaluationGlobaleRepository, times(1)).findById(1L);
             verify(evaluationGlobaleRepository, times(1)).save(any(EvaluationGlobale.class));
         }
@@ -149,9 +155,12 @@ class EvaluationGlobaleServiceTest {
 
             EvaluationGlobaleDTO result = evaluationGlobaleService.getEvaluationGlobaleByFormationId(1L);
 
-            assertThat(result).isNotNull();
-            assertThat(result.getFormationId()).isEqualTo(1L);
-            assertThat(result.getNoteGlobale()).isEqualTo(4.5f);
+            assertThat(result)
+                    .isNotNull()
+                    .satisfies(r -> {
+                        assertThat(r.getFormationId()).isEqualTo(1L);
+                        assertThat(r.getNoteGlobale()).isEqualTo(4.5f);
+                    });
             verify(evaluationGlobaleRepository, times(1)).findByFormationId(1L);
         }
     }
@@ -168,8 +177,9 @@ class EvaluationGlobaleServiceTest {
 
             List<EvaluationGlobaleDTO> result = evaluationGlobaleService.getAllEvaluationGlobales();
 
-            assertThat(result).isNotNull();
-            assertThat(result).hasSize(1);
+            assertThat(result)
+                    .isNotNull()
+                    .hasSize(1);
             verify(evaluationGlobaleRepository, times(1)).findAll();
         }
     }

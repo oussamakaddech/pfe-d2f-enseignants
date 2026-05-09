@@ -6,7 +6,7 @@ import esprit.pfe.serviceevaluation.dto.EvaluationFormateurDTO;
 import esprit.pfe.serviceevaluation.entities.EvaluationFormateur;
 import esprit.pfe.serviceevaluation.repositories.EvaluationFormateurRepository;
 
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,10 +15,10 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class EvaluationFormateurService {
 
-    @Autowired
-    private EvaluationFormateurRepository evaluationRepository;
+    private final EvaluationFormateurRepository evaluationRepository;
 
 
 
@@ -84,7 +84,7 @@ public class EvaluationFormateurService {
     public List<EvaluationFormateurDTO> listAllEvaluationsDto() {
         return evaluationRepository.findAll().stream()
                 .map(this::mapToDto)
-                .collect(Collectors.toList());
+                .toList();
     }
 
 
@@ -118,11 +118,6 @@ public class EvaluationFormateurService {
 
         // 2) Pour chaque évaluation
         for (EvaluationFormateur eval : evaluations) {
-            // Appel Feign pour récupérer l'enseignant
-            // EnseignantDTO ensDTO = null;
-
-
-            // Construire le DTO enrichi
             EvaluationEnseignantDTO dto = new EvaluationEnseignantDTO();
             dto.setIdEvalParticipant(eval.getIdEvalParticipant());
             dto.setNote(eval.getNote());
@@ -130,18 +125,6 @@ public class EvaluationFormateurService {
             dto.setCommentaire(eval.getCommentaire());
             dto.setFormationId(eval.getFormationId());
             dto.setEnseignantId(eval.getEnseignantId());
-
-            /*
-            // Si l’enseignant a été trouvé, remplir les champs
-            if (ensDTO != null) {
-                dto.setNom(ensDTO.getNom());
-                dto.setPrenom(ensDTO.getPrenom());
-                dto.setMail(ensDTO.getMail());
-                dto.setType(ensDTO.getType());
-                dto.setDeptLibelle(ensDTO.getDeptLibelle());
-                dto.setUpLibelle(ensDTO.getUpLibelle());
-            }
-            */
             results.add(dto);
         }
 

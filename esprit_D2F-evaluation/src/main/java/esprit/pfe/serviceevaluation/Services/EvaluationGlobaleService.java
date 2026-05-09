@@ -3,17 +3,17 @@ package esprit.pfe.serviceevaluation.services;
 import esprit.pfe.serviceevaluation.dto.EvaluationGlobaleDTO;
 import esprit.pfe.serviceevaluation.entities.EvaluationGlobale;
 import esprit.pfe.serviceevaluation.repositories.EvaluationGlobaleRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import jakarta.persistence.EntityNotFoundException;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class EvaluationGlobaleService {
 
-    @Autowired
-    private EvaluationGlobaleRepository evaluationGlobaleRepository;
+    private final EvaluationGlobaleRepository evaluationGlobaleRepository;
 
     private EvaluationGlobaleDTO mapToDto(EvaluationGlobale entity) {
         EvaluationGlobaleDTO dto = new EvaluationGlobaleDTO();
@@ -39,7 +39,7 @@ public class EvaluationGlobaleService {
 
     public EvaluationGlobaleDTO createEvaluationGlobale(EvaluationGlobaleDTO dto) {
         if (evaluationGlobaleRepository.existsByFormationId(dto.getFormationId())) {
-            throw new RuntimeException("Une évaluation globale existe déjà pour la formation " + dto.getFormationId());
+            throw new IllegalStateException("Une évaluation globale existe déjà pour la formation " + dto.getFormationId());
         }
         EvaluationGlobale entity = mapToEntity(dto);
         return mapToDto(evaluationGlobaleRepository.save(entity));
@@ -47,7 +47,7 @@ public class EvaluationGlobaleService {
 
     public EvaluationGlobaleDTO updateEvaluationGlobale(Long id, EvaluationGlobaleDTO dto) {
         EvaluationGlobale existing = evaluationGlobaleRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Évaluation globale non trouvée avec l'id : " + id));
+                .orElseThrow(() -> new EntityNotFoundException("Évaluation globale non trouvée avec l'id : " + id));
         existing.setCommentaireGeneral(dto.getCommentaireGeneral());
         existing.setDateEvaluation(dto.getDateEvaluation());
         existing.setNoteGlobale(dto.getNoteGlobale());
@@ -62,18 +62,18 @@ public class EvaluationGlobaleService {
     public EvaluationGlobaleDTO getEvaluationGlobaleById(Long id) {
         return evaluationGlobaleRepository.findById(id)
                 .map(this::mapToDto)
-                .orElseThrow(() -> new RuntimeException("Évaluation globale non trouvée avec l'id : " + id));
+                .orElseThrow(() -> new EntityNotFoundException("Évaluation globale non trouvée avec l'id : " + id));
     }
 
     public EvaluationGlobaleDTO getEvaluationGlobaleByFormationId(Long formationId) {
         return evaluationGlobaleRepository.findByFormationId(formationId)
                 .map(this::mapToDto)
-                .orElseThrow(() -> new RuntimeException("Évaluation globale non trouvée pour la formation : " + formationId));
+                .orElseThrow(() -> new EntityNotFoundException("Évaluation globale non trouvée pour la formation : " + formationId));
     }
 
     public List<EvaluationGlobaleDTO> getAllEvaluationGlobales() {
         return evaluationGlobaleRepository.findAll().stream()
                 .map(this::mapToDto)
-                .collect(Collectors.toList());
+                .toList();
     }
 }

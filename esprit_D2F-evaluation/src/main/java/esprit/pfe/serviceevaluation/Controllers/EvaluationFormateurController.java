@@ -6,7 +6,7 @@ import esprit.pfe.serviceevaluation.dto.EvaluationEnseignantDTO;
 import esprit.pfe.serviceevaluation.dto.EvaluationFormateurDTO;
 import esprit.pfe.serviceevaluation.services.EvaluationFormateurService;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -15,10 +15,10 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/evaluations")
+@RequiredArgsConstructor
 public class EvaluationFormateurController {
 
-    @Autowired
-    private EvaluationFormateurService evaluationService;
+    private final EvaluationFormateurService evaluationService;
 
     // CREATE
     @PostMapping
