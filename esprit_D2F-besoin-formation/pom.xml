@@ -21,9 +21,8 @@
 	<properties>
 		<java.version>17</java.version>
 		<spring-cloud.version>2024.0.0</spring-cloud.version>
-		<!-- Indique à Maven et aux plugins que tout est en UTF-8 -->
-
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+		<db.password>d2fpasswd</db.password>
 	</properties>
 
 	<dependencyManagement>
@@ -51,8 +50,6 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-data-jpa</artifactId>
 		</dependency>
-
-
 
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -137,12 +134,9 @@
 			<artifactId>spring-security-test</artifactId>
 			<scope>test</scope>
 		</dependency>
-
-
 	</dependencies>
 
 	<build>
-		<!-- Copie brute de tout src/main/resources sans filtering -->
 		<resources>
 			<resource>
 				<directory>src/main/resources</directory>
@@ -151,7 +145,6 @@
 		</resources>
 
 		<plugins>
-			<!-- Assure l’encodage UTF-8 pour toute manipulation de ressources -->
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-resources-plugin</artifactId>
@@ -161,7 +154,6 @@
 				</configuration>
 			</plugin>
 
-			<!-- Compilation & annotation processors -->
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
@@ -176,7 +168,6 @@
 				</configuration>
 			</plugin>
 
-			<!-- Spring Boot packaging -->
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
@@ -190,7 +181,6 @@
 				</configuration>
 			</plugin>
 
-			<!-- Tests -->
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-surefire-plugin</artifactId>
@@ -206,7 +196,7 @@
 				<configuration>
 					<url>jdbc:postgresql://localhost:7432/d2f</url>
 					<user>d2f</user>
-					<password>d2fpasswd</password>
+					<password>${db.password}</password>
 					<locations>classpath:db/migration</locations>
 				</configuration>
 				<dependencies>
@@ -217,7 +207,7 @@
 					</dependency>
 				</dependencies>
 			</plugin>
-					<plugin>
+			<plugin>
 				<groupId>org.jacoco</groupId>
 				<artifactId>jacoco-maven-plugin</artifactId>
 				<version>0.8.12</version>
@@ -233,6 +223,14 @@
 						<goals>
 							<goal>report</goal>
 						</goals>
+						<configuration>
+							<excludes>
+								<exclude>tn/esprit/d2f/entity/**</exclude>
+								<exclude>tn/esprit/d2f/dto/BesoinFormationRequest.class</exclude>
+								<exclude>tn/esprit/d2f/dto/BesoinFormationResponse.class</exclude>
+								<exclude>tn/esprit/d2f/dto/BesoinFormationApprovedEvent.class</exclude>
+							</excludes>
+						</configuration>
 					</execution>
 				</executions>
 			</plugin>

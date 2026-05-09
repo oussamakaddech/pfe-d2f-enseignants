@@ -3,7 +3,6 @@ package esprit.pfe.auth.services;
 import esprit.pfe.auth.entities.AuditLog;
 import esprit.pfe.auth.repositories.AuditLogRepository;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,8 +18,14 @@ import java.util.List;
 @Transactional
 public class AuditService {
 
-    @Autowired
-    private AuditLogRepository auditLogRepository;
+    private static final String RESOURCE_AUTH = "Authentication";
+    private static final String STATUS_SUCCESS = "SUCCESS";
+
+    private final AuditLogRepository auditLogRepository;
+
+    public AuditService(AuditLogRepository auditLogRepository) {
+        this.auditLogRepository = auditLogRepository;
+    }
 
     /**
      * Log user login
@@ -29,8 +34,8 @@ public class AuditService {
         AuditLog auditLog = AuditLog.builder()
                 .username(username)
                 .action("LOGIN")
-                .resource("Authentication")
-                .status("SUCCESS")
+                .resource(RESOURCE_AUTH)
+                .status(STATUS_SUCCESS)
                 .ipAddress(ipAddress)
                 .timestamp(LocalDateTime.now())
                 .build();
@@ -45,7 +50,7 @@ public class AuditService {
         AuditLog auditLog = AuditLog.builder()
                 .username(username)
                 .action("LOGIN_FAILED")
-                .resource("Authentication")
+                .resource(RESOURCE_AUTH)
                 .status("FAILED")
                 .details(reason)
                 .ipAddress(ipAddress)
@@ -62,8 +67,8 @@ public class AuditService {
         AuditLog auditLog = AuditLog.builder()
                 .username(username)
                 .action("LOGOUT")
-                .resource("Authentication")
-                .status("SUCCESS")
+                .resource(RESOURCE_AUTH)
+                .status(STATUS_SUCCESS)
                 .ipAddress(ipAddress)
                 .timestamp(LocalDateTime.now())
                 .build();
@@ -79,7 +84,7 @@ public class AuditService {
                 .username(actor)
                 .action(action)
                 .resource("User: " + targetUser)
-                .status("SUCCESS")
+                .status(STATUS_SUCCESS)
                 .details(details)
                 .timestamp(LocalDateTime.now())
                 .build();
@@ -111,7 +116,7 @@ public class AuditService {
                 .username(username)
                 .action(operation.toUpperCase())
                 .resource(resource + " (ID: " + resourceId + ")")
-                .status("SUCCESS")
+                .status(STATUS_SUCCESS)
                 .details(details)
                 .timestamp(LocalDateTime.now())
                 .build();

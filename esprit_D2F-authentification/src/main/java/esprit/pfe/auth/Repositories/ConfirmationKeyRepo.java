@@ -11,7 +11,7 @@ public interface ConfirmationKeyRepo extends JpaRepository<ConfirmationKey, Long
 
     boolean existsByEmailAddress(String emailAddress);
 
-    boolean existsByConfirmationKey(String confirmationKey);
+    boolean existsByToken(String token);
 
-    Optional<ConfirmationKey> findByConfirmationKey(String confirmationKey);
+    Optional<ConfirmationKey> findByToken(String token);
 }

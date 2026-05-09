@@ -87,4 +87,35 @@ class UserDetailsImplTest {
 
         assertNotEquals(d1, d2);
     }
+
+    @Test
+    void isEnabled_whenUserDisabled_shouldReturnFalse() {
+        User user = new User();
+        user.setId("id");
+        user.setUsername("u");
+        user.setEmail("e");
+        user.setPassword("p");
+        user.setRoles(Collections.emptySet());
+        user.setDisabled(true);
+
+        UserDetailsImpl details = UserDetailsImpl.build(user);
+
+        assertFalse(details.isEnabled());
+    }
+
+    @Test
+    void equals_nullOrOtherType_shouldReturnFalse() {
+        UserDetailsImpl details = new UserDetailsImpl("1", "u", "e", "p", true, Collections.emptyList());
+        
+        assertNotEquals(null, details);
+        assertNotEquals("not a userdetails", details);
+    }
+
+    @Test
+    void hashCode_sameId_shouldBeSame() {
+        UserDetailsImpl d1 = new UserDetailsImpl("1", "u1", "e1", "p1", true, Collections.emptyList());
+        UserDetailsImpl d2 = new UserDetailsImpl("1", "u2", "e2", "p2", true, Collections.emptyList());
+        
+        assertEquals(d1.hashCode(), d2.hashCode());
+    }
 }

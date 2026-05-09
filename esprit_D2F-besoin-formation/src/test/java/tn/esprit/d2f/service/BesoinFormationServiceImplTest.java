@@ -119,12 +119,27 @@ class BesoinFormationServiceImplTest {
     }
 
     @Test
-    void modifyBesoinFormation_shouldUpdateAndSave() {
+    void modifyBesoinFormation_shouldUpdateAllFieldsAndSave() {
         BesoinFormationRequest request = new BesoinFormationRequest();
         request.setIdBesoinFormation(1L);
         request.setTitre("Updated Titre");
+        request.setObjectifFormation("Updated Obj");
+        request.setTypeBesoin(TypeBesoin.ANIMER_UNE_FORMATION);
+        request.setPriorite(tn.esprit.d2f.entity.enumerations.Priorite.HAUTE);
+        request.setImpactStrategique("Impact");
+        request.setPropositionAnimateur("Anim");
+        request.setHoraireSouhaite("Horaire");
+        request.setUp("UP");
+        request.setDepartement("DEP");
+        request.setEstOuverte(true);
+        request.setAutresInformations("Infos");
+        request.setPeriodCode(tn.esprit.d2f.entity.enumerations.PeriodCode.P1);
+        request.setCustomPeriodLabel("Label");
+        
         request.setApprouveCUP(false);
-        request.setCommentaire("Refusal comment");
+        request.setApprouveChefDep(true);
+        request.setApprouveAdmin(true);
+        request.setCommentaire("Test comment");
 
         BesoinFormation existing = new BesoinFormation();
         existing.setIdBesoinFormation(1L);
@@ -139,7 +154,10 @@ class BesoinFormationServiceImplTest {
 
         assertNotNull(result);
         assertEquals("Updated Titre", existing.getTitre());
-        verify(notificationRepository).save(any(Notification.class));
+        assertEquals("Updated Obj", existing.getObjectifFormation());
+        assertEquals("UP", existing.getUp());
+        // Verify both CUP refusal and Admin approval notifications are triggered
+        verify(notificationRepository, times(2)).save(any(Notification.class));
         verify(besoinFormationRepository).save(existing);
     }
 

@@ -31,6 +31,7 @@ public class SecurityConfig {
     private String jwtSecret;
 
     @Bean
+    @SuppressWarnings("java:S4502") // Safe: API stateless (JWT)
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .cors(Customizer.withDefaults())

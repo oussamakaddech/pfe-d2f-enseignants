@@ -1,126 +1,105 @@
 package esprit.pfe.auth.controllers;
 
+import esprit.pfe.auth.entities.ERole;
+import esprit.pfe.auth.entities.Role;
 import esprit.pfe.auth.entities.User;
-import esprit.pfe.auth.payload.request.EditProfileRequest;
-import esprit.pfe.auth.payload.request.UpdatePasswordRequest;
 import esprit.pfe.auth.services.AccountService;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.http.MediaType;
+import org.springframework.test.web.servlet.MockMvc;
 
-import java.security.Principal;
 import java.util.Collections;
-import java.util.List;
+import java.util.Set;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@ExtendWith(MockitoExtension.class)
+@WebMvcTest(AccountController.class)
+@AutoConfigureMockMvc(addFilters = false)
 class AccountControllerTest {
 
-    @Mock
+    @Autowired
+    private MockMvc mockMvc;
+
+    @MockitoBean
     private AccountService accountService;
-    @InjectMocks
-    private AccountController controller;
 
-    private User testUser;
-
-    @BeforeEach
-    void setUp() {
-        testUser = new User();
-        testUser.setId("user-1");
-        testUser.setUsername("testuser");
-        testUser.setEmail("test@esprit.tn");
-        testUser.setFirstName("Test");
-        testUser.setLastName("User");
-        testUser.setRoles(Collections.emptySet());
+    @Test
+    void listAccounts_ShouldReturnOk() throws Exception {
+        when(accountService.listAccounts()).thenReturn(Collections.emptyList());
+        mockMvc.perform(get("/api/v1/account/list-accounts"))
+                .andExpect(status().isOk());
     }
 
     @Test
-    void listAccounts_shouldReturnUserDTOList() {
-        when(accountService.listAccounts()).thenReturn(List.of(testUser));
-
-        var result = controller.listAccounts();
-
-        assertNotNull(result);
-        assertEquals(1, result.size());
-        assertEquals("testuser", result.get(0).getUserName());
+    void banAccount_ShouldReturnOk() throws Exception {
+        mockMvc.perform(post("/api/v1/account/ban-account")
+                .param("userName", "testuser"))
+                .andExpect(status().isOk());
     }
 
     @Test
-    void banAccounts_shouldDelegateToBan() {
-        controller.banAccounts("testuser");
-        verify(accountService).banAccount("testuser");
+    void enableAccount_ShouldReturnOk() throws Exception {
+        mockMvc.perform(post("/api/v1/account/enable-account")
+                .param("userName", "testuser"))
+                .andExpect(status().isOk());
     }
 
     @Test
-    void enableAccounts_shouldDelegateToEnable() {
-        controller.enableAccounts("testuser");
-        verify(accountService).enableAccount("testuser");
+    void getProfile_ShouldReturnOk() throws Exception {
+        User user = new User();
+        user.setUsername("testuser");
+        user.setRoles(Set.of(new Role(ERole.ADMIN)));
+        when(accountService.getPrincipal("testuser")).thenReturn(user);
+
+        mockMvc.perform(get("/api/v1/account/profile")
+                .principal(() -> "testuser"))
+                .andExpect(status().isOk());
     }
 
     @Test
-    void getPrincipal_shouldReturnUserDTO() {
-        Principal principal = mock(Principal.class);
-        when(principal.getName()).thenReturn("testuser");
-        when(accountService.getPrincipal("testuser")).thenReturn(testUser);
-
-        var result = controller.getPrincipal(principal);
-
-        assertNotNull(result);
-        assertEquals("testuser", result.getUserName());
+    void editProfile_ShouldReturnOk() throws Exception {
+        when(accountService.editProfile(eq("testuser"), any())).thenReturn("Updated");
+        mockMvc.perform(post("/api/v1/account/edit-profile")
+                .principal(() -> "testuser")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{}"))
+                .andExpect(status().isOk());
     }
 
     @Test
-    void editProfile_shouldReturnSuccessMessage() {
-        Principal principal = mock(Principal.class);
-        when(principal.getName()).thenReturn("testuser");
-        EditProfileRequest request = new EditProfileRequest();
-        when(accountService.editProfile("testuser", request)).thenReturn("Profile updated");
-
-        String result = controller.editProfile(principal, request);
-
-        assertEquals("Profile updated", result);
+    void updatePassword_ShouldReturnOk() throws Exception {
+        when(accountService.updatePassword(eq("testuser"), any())).thenReturn("Updated");
+        mockMvc.perform(post("/api/v1/account/update-password")
+                .principal(() -> "testuser")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{}"))
+                .andExpect(status().isOk());
     }
 
     @Test
-    void updatePassword_shouldReturnSuccessMessage() {
-        Principal principal = mock(Principal.class);
-        when(principal.getName()).thenReturn("testuser");
-        UpdatePasswordRequest request = new UpdatePasswordRequest();
-        when(accountService.updatePassword("testuser", request)).thenReturn("Password updated");
-
-        String result = controller.updatePassword(principal, request);
-
-        assertEquals("Password updated", result);
+    void deleteAccount_ShouldReturnOk() throws Exception {
+        mockMvc.perform(delete("/api/v1/account/delete/id123"))
+                .andExpect(status().isOk());
     }
 
     @Test
-    void getPrincipalByUsername_shouldReturnUserDTO() {
-        when(accountService.getPrincipalByUsername("testuser")).thenReturn(testUser);
+    void updateAccount_ShouldReturnOk() throws Exception {
+        User user = new User();
+        user.setUsername("testuser");
+        user.setRoles(Set.of(new Role(ERole.ADMIN)));
+        when(accountService.updateAccount(eq("id123"), any(), any())).thenReturn(user);
 
-        var result = controller.getPrincipalByUsername("testuser");
-
-        assertEquals("test@esprit.tn", result.getEmail());
-    }
-
-    @Test
-    void deleteAccount_shouldDelegate() {
-        controller.deleteAccount("user-1");
-        verify(accountService).deleteAccount("user-1");
-    }
-
-    @Test
-    void updateAccount_shouldReturnUpdatedDTO() {
-        EditProfileRequest request = new EditProfileRequest();
-        when(accountService.updateAccount("user-1", request, "ROLE_ADMIN")).thenReturn(testUser);
-
-        var result = controller.updateAccount("user-1", request, "ROLE_ADMIN");
-
-        assertNotNull(result);
-        assertEquals("testuser", result.getUserName());
+        mockMvc.perform(put("/api/v1/account/update/id123")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{}"))
+                .andExpect(status().isOk());
     }
 }

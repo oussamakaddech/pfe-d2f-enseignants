@@ -69,24 +69,24 @@ public class SecurityController {
     }
 
     @PostMapping("/reset-password")
-    public String resetPassword(@RequestParam String confirmationKey, @RequestParam String newPassword) {
-        this.checkIfConfirmationKeyIsValid(confirmationKey);
-        return this.resetPasswordAndDeleteConfirmationKey(confirmationKey, newPassword);
+    public String resetPassword(@RequestParam String token, @RequestParam String newPassword) {
+        this.checkIfTokenIsValid(token);
+        return this.resetPasswordAndDeleteToken(token, newPassword);
     }
 
-    public void checkIfConfirmationKeyIsValid(String confirmationKey) {
-        if (!this.confirmationKeyRepo.existsByConfirmationKey(confirmationKey))
-            throw new BadRequestException("ConfirmationKey invalid");
+    public void checkIfTokenIsValid(String token) {
+        if (!this.confirmationKeyRepo.existsByToken(token))
+            throw new BadRequestException("Confirmation token invalid");
     }
 
-    public String resetPasswordAndDeleteConfirmationKey(String confirmationKey, String newPassword) {
-        ConfirmationKey confirmationKey1 = this.confirmationKeyRepo.findByConfirmationKey(confirmationKey)
-                .orElseThrow(() -> new BadRequestException("Confirmation Key not found"));
-        User user = this.userRepository.findByEmail(confirmationKey1.getEmailAddress())
-                .orElseThrow(() -> new BadRequestException("User associated with this key not found"));
+    public String resetPasswordAndDeleteToken(String token, String newPassword) {
+        ConfirmationKey confirmationKey = this.confirmationKeyRepo.findByToken(token)
+                .orElseThrow(() -> new BadRequestException("Confirmation token not found"));
+        User user = this.userRepository.findByEmail(confirmationKey.getEmailAddress())
+                .orElseThrow(() -> new BadRequestException("User associated with this token not found"));
         user.setPassword(this.encoder.encode(newPassword));
         this.userRepository.save(user);
-        this.confirmationKeyRepo.delete(confirmationKey1);
+        this.confirmationKeyRepo.delete(confirmationKey);
         return "Password changed";
     }
 
@@ -103,15 +103,15 @@ public class SecurityController {
         simpleMailMessage.setTo(emailAddress);
         simpleMailMessage.setSubject("Password reset");
         simpleMailMessage.setFrom("clasherwin59@gmail.com");
-        simpleMailMessage.setText("To change your password add this confirmation Key : " + key);
+        simpleMailMessage.setText("To change your password add this confirmation token: " + key);
         emailService.send(simpleMailMessage);
-        return this.generateAndPersistConfirmationKey(emailAddress, key);
+        return this.generateAndPersistToken(emailAddress, key);
     }
 
-    public String generateAndPersistConfirmationKey(String emailAddress, String key) {
+    public String generateAndPersistToken(String emailAddress, String key) {
         ConfirmationKey confirmationKey = new ConfirmationKey();
         confirmationKey.setEmailAddress(emailAddress);
-        confirmationKey.setConfirmationKey(key);
+        confirmationKey.setToken(key);
         this.confirmationKeyRepo.save(confirmationKey);
         return "We have sent an email to reset your password";
     }

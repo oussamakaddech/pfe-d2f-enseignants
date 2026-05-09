@@ -43,7 +43,7 @@ public class BesoinFormationController {
     public ResponseEntity<Page<BesoinFormationResponse>> getBesoinFormations(
             @Parameter(description = "Index de la page") @RequestParam(defaultValue = "0") int page,
             @Parameter(description = "Taille de la page") @RequestParam(defaultValue = "10") int size,
-            @Parameter(description = "Tri (ex: idBesoinFormation,asc)") @RequestParam(defaultValue = "idBesoinFormation,desc") String[] sort) {
+            @Parameter(description = "Tri (ex: idBesoinFormation,asc)") @RequestParam(defaultValue = ID_BESOIN_FORMATION + ",desc") String[] sort) {
         
         Pageable pageable = PageRequest.of(page, size, getSortOrder(sort));
         return ResponseEntity.ok(besoinFormationService.retrieveAllBesoinFormations(pageable));
@@ -58,7 +58,7 @@ public class BesoinFormationController {
     @Operation(summary = "Ajouter un besoin de formation")
     @PostMapping("/add-BesoinFormation")
     @PreAuthorize(AuthorizationMatrix.BESOIN_FORMATION_CREATE)
-    public ResponseEntity<?> addBesoinFormation(@Valid @RequestBody BesoinFormationRequest b, org.springframework.validation.BindingResult result) {
+    public ResponseEntity<Object> addBesoinFormation(@Valid @RequestBody BesoinFormationRequest b, org.springframework.validation.BindingResult result) {
         if (result.hasErrors()) {
             log.error("Validation errors in add-BesoinFormation: {}", result.getAllErrors());
             return ResponseEntity.badRequest().body(result.getAllErrors());
@@ -125,7 +125,7 @@ public class BesoinFormationController {
             @PathVariable String departement,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
-        Pageable pageable = PageRequest.of(page, size, Sort.by("idBesoinFormation").descending());
+        Pageable pageable = PageRequest.of(page, size, Sort.by(ID_BESOIN_FORMATION).descending());
         return ResponseEntity.ok(besoinFormationService.retrieveByDepartement(departement, pageable));
     }
 
