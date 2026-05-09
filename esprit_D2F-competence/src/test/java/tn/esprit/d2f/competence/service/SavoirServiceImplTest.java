@@ -100,6 +100,59 @@ class SavoirServiceImplTest {
             assertThat(page.getContent().get(0).getCode()).isEqualTo("S2a");
             verify(savoirRepository).findAll(pageable);
         }
+
+        @Test
+        @DisplayName("recherche les savoirs par mot-clé (paginé)")
+        void shouldSearchSavoirsPaged() {
+            Pageable pageable = PageRequest.of(0, 20);
+            when(savoirRepository.searchByKeyword("test", pageable)).thenReturn(new PageImpl<>(List.of(savoir)));
+            when(competenceMapper.toDTO(any(Savoir.class))).thenReturn(savoirDTO);
+
+            Page<SavoirDTO> page = savoirService.searchSavoirs("test", pageable);
+
+            assertThat(page.getContent()).hasSize(1);
+            verify(savoirRepository).searchByKeyword("test", pageable);
+        }
+
+        @Test
+        @DisplayName("recherche les savoirs par mot-clé (liste)")
+        void shouldSearchSavoirsList() {
+            when(savoirRepository.searchByKeyword("test")).thenReturn(List.of(savoir));
+            when(competenceMapper.toDTO(any(Savoir.class))).thenReturn(savoirDTO);
+
+            List<SavoirDTO> list = savoirService.searchSavoirs("test");
+
+            assertThat(list).hasSize(1);
+            verify(savoirRepository).searchByKeyword("test");
+        }
+    }
+
+    @Nested
+    @DisplayName("By Criteria")
+    class ByCriteria {
+        @Test
+        void shouldGetBySousCompetence() {
+            when(savoirRepository.findBySousCompetenceId(3L)).thenReturn(List.of(savoir));
+            when(competenceMapper.toDTO(any(Savoir.class))).thenReturn(savoirDTO);
+            List<SavoirDTO> result = savoirService.getSavoirsBySousCompetence(3L);
+            assertThat(result).hasSize(1);
+        }
+
+        @Test
+        void shouldGetByCompetence() {
+            when(savoirRepository.findByCompetenceId(2L)).thenReturn(List.of(savoir));
+            when(competenceMapper.toDTO(any(Savoir.class))).thenReturn(savoirDTO);
+            List<SavoirDTO> result = savoirService.getSavoirsByCompetence(2L);
+            assertThat(result).hasSize(1);
+        }
+
+        @Test
+        void shouldGetByType() {
+            when(savoirRepository.findByType(TypeSavoir.PRATIQUE)).thenReturn(List.of(savoir));
+            when(competenceMapper.toDTO(any(Savoir.class))).thenReturn(savoirDTO);
+            List<SavoirDTO> result = savoirService.getSavoirsByType(TypeSavoir.PRATIQUE);
+            assertThat(result).hasSize(1);
+        }
     }
 
     @Nested
@@ -138,6 +191,27 @@ class SavoirServiceImplTest {
             assertThatThrownBy(() -> savoirService.createSavoir(3L, req))
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessageContaining("non feuille");
+        }
+    }
+
+    @Nested
+    @DisplayName("updateSavoir(Long, SavoirRequest)")
+    class Update {
+        @Test
+        @DisplayName("met à jour correctement un savoir existant")
+        void shouldUpdateSuccessfully() {
+            SavoirRequest req = SavoirRequest.builder()
+                    .code("S2a-UPD").nom("Essai mis à jour").description("desc")
+                    .type(TypeSavoir.THEORIQUE).niveau(NiveauMaitrise.N3_INTERMEDIAIRE).build();
+
+            when(savoirRepository.findById(4L)).thenReturn(Optional.of(savoir));
+            when(savoirRepository.save(any(Savoir.class))).thenReturn(savoir);
+            when(competenceMapper.toDTO(any(Savoir.class))).thenReturn(savoirDTO);
+
+            SavoirDTO result = savoirService.updateSavoir(4L, req);
+
+            assertThat(result).isNotNull();
+            verify(savoirRepository).save(any(Savoir.class));
         }
     }
 
@@ -215,5 +289,35 @@ class SavoirServiceImplTest {
             assertThatThrownBy(() -> savoirService.deleteSavoir(99L))
                     .isInstanceOf(RuntimeException.class);
         }
+    }
+
+    @Test
+    @DisplayName("getSavoirById: lève une exception si absent")
+    void getSavoirById_NotFound() {
+        when(savoirRepository.findById(99L)).thenReturn(Optional.empty());
+        assertThatThrownBy(() -> savoirService.getSavoirById(99L))
+                .isInstanceOf(jakarta.persistence.EntityNotFoundException.class);
+    }
+
+    @Test
+    @DisplayName("createSavoir: refuse code dupliqué")
+    void createSavoir_DuplicateCode() {
+        SavoirRequest req = SavoirRequest.builder().code("EXIST").build();
+        when(sousCompetenceRepository.findById(3L)).thenReturn(Optional.of(sousCompetence));
+        when(sousCompetenceRepository.existsByParentId(3L)).thenReturn(false);
+        when(savoirRepository.existsByCode("EXIST")).thenReturn(true);
+        assertThatThrownBy(() -> savoirService.createSavoir(3L, req))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    @DisplayName("createSavoirForCompetence: refuse code dupliqué")
+    void createSavoirForCompetence_DuplicateCode() {
+        SavoirRequest req = SavoirRequest.builder().code("EXIST").build();
+        when(competenceRepository.findById(2L)).thenReturn(Optional.of(competence));
+        when(sousCompetenceRepository.findByCompetenceIdAndParentIsNull(2L)).thenReturn(List.of());
+        when(savoirRepository.existsByCode("EXIST")).thenReturn(true);
+        assertThatThrownBy(() -> savoirService.createSavoirForCompetence(2L, req))
+                .isInstanceOf(IllegalArgumentException.class);
     }
 }

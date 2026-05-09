@@ -21,7 +21,6 @@ import tn.esprit.d2f.competence.repository.SavoirRepository;
 import tn.esprit.d2f.competence.repository.SousCompetenceRepository;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -47,7 +46,7 @@ public class SavoirServiceImpl implements ISavoirService {
     public List<SavoirDTO> getSavoirsBySousCompetence(Long sousCompetenceId) {
         return savoirRepository.findBySousCompetenceId(sousCompetenceId).stream()
                 .map(competenceMapper::toDTO)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
@@ -55,7 +54,7 @@ public class SavoirServiceImpl implements ISavoirService {
     public List<SavoirDTO> getSavoirsByCompetence(Long competenceId) {
         return savoirRepository.findByCompetenceId(competenceId).stream()
                 .map(competenceMapper::toDTO)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
@@ -63,7 +62,7 @@ public class SavoirServiceImpl implements ISavoirService {
     public List<SavoirDTO> getSavoirsByType(TypeSavoir type) {
         return savoirRepository.findByType(type).stream()
                 .map(competenceMapper::toDTO)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
@@ -162,7 +161,7 @@ public class SavoirServiceImpl implements ISavoirService {
     public List<SavoirDTO> searchSavoirs(String keyword) {
         return savoirRepository.searchByKeyword(keyword).stream()
                 .map(competenceMapper::toDTO)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override

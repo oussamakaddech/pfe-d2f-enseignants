@@ -75,9 +75,10 @@ class CompetenceRepositoryTest {
         @DisplayName("charge le domaine en JOIN FETCH – pas de LazyInitializationException")
         void shouldFetchDomaineEagerly() {
             List<Competence> result = compRepo.findAllWithDomaine();
-            assertThat(result).hasSize(3);
-            // Le domaine doit être chargé sans déclencher de lazy loading supplémentaire
-            assertThat(result).allSatisfy(c -> assertThat(c.getDomaine().getNom()).isNotNull());
+            assertThat(result)
+                    .hasSize(3)
+                    // Le domaine doit être chargé sans déclencher de lazy loading supplémentaire
+                    .allSatisfy(c -> assertThat(c.getDomaine().getNom()).isNotNull());
         }
 
         @Test
@@ -138,8 +139,9 @@ class CompetenceRepositoryTest {
         @DisplayName("filtre correctement par domaine")
         void shouldFilterByDomaine() {
             List<Competence> result = compRepo.searchByDomaineIdAndKeyword(domaineA.getId(), "");
-            assertThat(result).hasSize(2);
-            assertThat(result).allSatisfy(c -> assertThat(c.getDomaine().getId()).isEqualTo(domaineA.getId()));
+            assertThat(result)
+                    .hasSize(2)
+                    .allSatisfy(c -> assertThat(c.getDomaine().getId()).isEqualTo(domaineA.getId()));
         }
 
         @Test

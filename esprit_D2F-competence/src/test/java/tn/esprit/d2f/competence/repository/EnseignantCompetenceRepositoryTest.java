@@ -98,8 +98,10 @@ class EnseignantCompetenceRepositoryTest {
         @DisplayName("renvoie uniquement les affectations de l'enseignant cible")
         void shouldReturnOnlyTargetEnseignant() {
             List<EnseignantCompetence> result = ecRepo.findByEnseignantId(ENS_ID);
-            assertThat(result).hasSize(2);
-            assertThat(result).allMatch(ec -> ENS_ID.equals(ec.getEnseignantId()));
+            assertThat(result)
+                    .isNotEmpty()
+                    .hasSize(2)
+                    .allMatch(ec -> ENS_ID.equals(ec.getEnseignantId()));
         }
 
         @Test
@@ -138,8 +140,9 @@ class EnseignantCompetenceRepositoryTest {
             List<EnseignantCompetence> result = ecRepo.findByEnseignantIdAndDomaineId(ENS_ID, domaineId);
             // Sans DISTINCT, on pourrait avoir des doublons
             long distinctIds = result.stream().map(EnseignantCompetence::getId).distinct().count();
-            assertThat((long) result.size()).isEqualTo(distinctIds);
-            assertThat(result).isNotEmpty();
+            assertThat(result)
+                    .isNotEmpty()
+                    .hasSize((int) distinctIds);
         }
     }
 
@@ -163,6 +166,7 @@ class EnseignantCompetenceRepositoryTest {
             Pageable pageable = PageRequest.of(0, 10);
             Page<EnseignantCompetence> page = ecRepo.findAllFetched(pageable);
             assertThat(page.getContent())
+                    .isNotEmpty()
                     .allSatisfy(ec -> assertThat(ec.getSavoir()).isNotNull());
         }
     }

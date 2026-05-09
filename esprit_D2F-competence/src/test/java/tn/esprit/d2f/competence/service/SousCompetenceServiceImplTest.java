@@ -4,6 +4,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
@@ -32,7 +34,7 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -275,6 +277,51 @@ class SousCompetenceServiceImplTest {
         }
     }
 
+    // ── Search ────────────────────────────────────────────────────────────────
+    @Nested
+    @DisplayName("searchSousCompetences")
+    class Search {
+        @Test
+        @DisplayName("recherche par mot-clé (liste)")
+        void shouldSearchList() {
+            when(sousCompetenceRepository.searchByKeyword("test")).thenReturn(List.of(sousCompetence));
+            when(competenceMapper.toDTO(any(SousCompetence.class))).thenReturn(sousCompetenceDTO);
+            List<SousCompetenceDTO> result = sousCompetenceService.searchSousCompetences("test");
+            assertThat(result).hasSize(1);
+        }
+
+        @Test
+        @DisplayName("recherche par mot-clé (page)")
+        void shouldSearchPage() {
+            Pageable pageable = PageRequest.of(0, 10);
+            when(sousCompetenceRepository.searchByKeyword("test", pageable)).thenReturn(new PageImpl<>(List.of(sousCompetence)));
+            when(competenceMapper.toDTO(any(SousCompetence.class))).thenReturn(sousCompetenceDTO);
+            Page<SousCompetenceDTO> result = sousCompetenceService.searchSousCompetences("test", pageable);
+            assertThat(result.getContent()).hasSize(1);
+        }
+    }
+
+    // ── Validation Branches ───────────────────────────────────────────────────
+    @Nested
+    @DisplayName("validateCodePrefix")
+    class Validation {
+        @ParameterizedTest
+        @CsvSource({
+            "WRONG.X, commencer par 'GC-C1.'",
+            "GC-C1., terminer par un point",
+            "GC-C1.sc01, majuscules, chiffres"
+        })
+        @DisplayName("refuse les codes invalides selon la regle métier")
+        void validateCodePrefix_ShouldThrowException(String invalidCode, String expectedMessagePart) {
+            SousCompetenceRequest req = SousCompetenceRequest.builder().code(invalidCode).build();
+            when(competenceRepository.findById(2L)).thenReturn(Optional.of(competence));
+            
+            assertThatThrownBy(() -> sousCompetenceService.createSousCompetence(2L, req))
+                    .isInstanceOf(RuntimeException.class)
+                    .hasMessageContaining(expectedMessagePart);
+        }
+    }
+
     @Nested
     @DisplayName("deleteSousCompetence(Long)")
     class Delete {
@@ -284,11 +331,13 @@ class SousCompetenceServiceImplTest {
         void shouldDeleteWhenFound() {
             when(sousCompetenceRepository.findById(3L)).thenReturn(Optional.of(sousCompetence));
             when(sousCompetenceRepository.findByParentId(3L)).thenReturn(List.of());
-            when(savoirRepository.findIdsBySousCompetenceId(3L)).thenReturn(List.of());
+            when(savoirRepository.findIdsBySousCompetenceId(3L)).thenReturn(List.of(100L));
             doNothing().when(sousCompetenceRepository).deleteById(3L);
 
             sousCompetenceService.deleteSousCompetence(3L);
 
+            verify(niveauRepo).deleteBySousCompetenceId(3L);
+            verify(niveauRepo).deleteBySavoirIdIn(anyList());
             verify(sousCompetenceRepository).deleteById(3L);
         }
 

@@ -15,7 +15,7 @@ import tn.esprit.d2f.competence.repository.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
-import java.util.stream.Collectors;
+
 
 @Slf4j
 @Service
@@ -283,7 +283,7 @@ public class RiceImportServiceImpl implements IRiceImportService {
     public List<RiceImportResult> getImportHistory() {
         return riceImportLogRepository.findAllByOrderByGeneratedAtDesc().stream()
                 .map(this::toResult)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private RiceImportResult toResult(RiceImportLog logEntry) {

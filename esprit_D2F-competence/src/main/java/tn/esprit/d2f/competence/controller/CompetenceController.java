@@ -4,7 +4,7 @@ package tn.esprit.d2f.competence.controller;
 // Force IDE re-index after build success
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
+
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -49,10 +49,8 @@ public class CompetenceController {
     }
 
     @Operation(summary = "Obtenir une compétence par ID")
-    @ApiResponses({
-        @ApiResponse(responseCode = "200", description = "Compétence trouvée"),
-        @ApiResponse(responseCode = "404", description = "Compétence introuvable")
-    })
+    @ApiResponse(responseCode = "200", description = "Compétence trouvée")
+    @ApiResponse(responseCode = "404", description = "Compétence introuvable")
     @GetMapping("/{id}")
     @PreAuthorize(AuthorizationMatrix.COMPETENCE_READ)
     public ResponseEntity<CompetenceDTO> getCompetenceById(@PathVariable Long id) {
@@ -69,11 +67,9 @@ public class CompetenceController {
     }
 
     @Operation(summary = "Créer une compétence dans un domaine")
-    @ApiResponses({
-        @ApiResponse(responseCode = "201", description = "Compétence créée"),
-        @ApiResponse(responseCode = "400", description = "Données invalides"),
-        @ApiResponse(responseCode = "404", description = "Domaine introuvable")
-    })
+    @ApiResponse(responseCode = "201", description = "Compétence créée")
+    @ApiResponse(responseCode = "400", description = "Données invalides")
+    @ApiResponse(responseCode = "404", description = "Domaine introuvable")
     @PostMapping("/domaine/{domaineId}")
     @PreAuthorize(AuthorizationMatrix.COMPETENCE_CREATE)
     public ResponseEntity<CompetenceDTO> createCompetence(

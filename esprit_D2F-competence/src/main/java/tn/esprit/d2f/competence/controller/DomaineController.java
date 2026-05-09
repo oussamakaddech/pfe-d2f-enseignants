@@ -2,7 +2,7 @@ package tn.esprit.d2f.competence.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
+
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -40,10 +40,8 @@ public class DomaineController {
     }
 
     @Operation(summary = "Obtenir un domaine par ID")
-    @ApiResponses({
-        @ApiResponse(responseCode = "200", description = "Domaine trouvé"),
-        @ApiResponse(responseCode = "404", description = "Domaine introuvable")
-    })
+    @ApiResponse(responseCode = "200", description = "Domaine trouvé")
+    @ApiResponse(responseCode = "404", description = "Domaine introuvable")
     @GetMapping("/{id}")
     public ResponseEntity<DomaineDTO> getDomaineById(@PathVariable Long id) {
         return ResponseEntity.ok(domaineService.getDomaineById(id));
@@ -64,21 +62,17 @@ public class DomaineController {
     }
 
     @Operation(summary = "Créer un nouveau domaine")
-    @ApiResponses({
-        @ApiResponse(responseCode = "201", description = "Domaine créé"),
-        @ApiResponse(responseCode = "400", description = "Données invalides ou code déjà existant")
-    })
+    @ApiResponse(responseCode = "201", description = "Domaine créé")
+    @ApiResponse(responseCode = "400", description = "Données invalides ou code déjà existant")
     @PostMapping
     public ResponseEntity<DomaineDTO> createDomaine(@Valid @RequestBody DomaineRequest request) {
         return new ResponseEntity<>(domaineService.createDomaine(request), HttpStatus.CREATED);
     }
 
     @Operation(summary = "Mettre à jour un domaine")
-    @ApiResponses({
-        @ApiResponse(responseCode = "200", description = "Domaine mis à jour"),
-        @ApiResponse(responseCode = "404", description = "Introuvable"),
-        @ApiResponse(responseCode = "400", description = "Données invalides")
-    })
+    @ApiResponse(responseCode = "200", description = "Domaine mis à jour")
+    @ApiResponse(responseCode = "404", description = "Introuvable")
+    @ApiResponse(responseCode = "400", description = "Données invalides")
     @PutMapping("/{id}")
     public ResponseEntity<DomaineDTO> updateDomaine(
             @PathVariable Long id,
