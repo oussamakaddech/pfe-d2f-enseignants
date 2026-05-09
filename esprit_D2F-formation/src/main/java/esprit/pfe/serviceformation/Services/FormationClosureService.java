@@ -21,6 +21,8 @@ import java.util.Map;
 @Slf4j
 public class FormationClosureService {
 
+    private static final String ROLE_PARTICIPANT = "PARTICIPANT";
+
     @Autowired
     private FormationRepository formationRepository;
 
@@ -65,7 +67,7 @@ public class FormationClosureService {
             if (sf.getAnimateurs() != null) {
                 sf.getAnimateurs().forEach(anim -> {
                     String old = rolesByEnseignant.get(anim.getId());
-                    if (old == null || "PARTICIPANT".equals(old)) {
+                    if (old == null || ROLE_PARTICIPANT.equals(old)) {
                         rolesByEnseignant.put(anim.getId(), "ANIMATEUR");
                     }
                 });
@@ -73,7 +75,7 @@ public class FormationClosureService {
             if (sf.getParticipants() != null) {
                 sf.getParticipants().forEach(part -> {
                     rolesByEnseignant
-                            .putIfAbsent(part.getId(), "PARTICIPANT");
+                            .putIfAbsent(part.getId(), ROLE_PARTICIPANT);
                 });
             }
         }
@@ -94,7 +96,7 @@ public class FormationClosureService {
                     info.setMail(e.getMail());
                     // rôle calculé précédemment
                     info.setRole(
-                            rolesByEnseignant.getOrDefault(e.getId(), "PARTICIPANT")
+                            rolesByEnseignant.getOrDefault(e.getId(), ROLE_PARTICIPANT)
                     );
                     info.setPresent(true);
                     info.setDeptEnseignantLibelle(

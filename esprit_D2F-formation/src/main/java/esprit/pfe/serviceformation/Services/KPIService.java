@@ -65,6 +65,9 @@ public class KPIService {
                 case "ANNULE":
                     dto.setAnnule(count.intValue());
                     break;
+                default:
+                    // Valeurs non attendues (ex: VISIBLE) - ignorées
+                    break;
             }
         }
         dto.setTotal(total);

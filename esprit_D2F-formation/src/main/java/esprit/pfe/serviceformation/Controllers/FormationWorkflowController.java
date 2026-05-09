@@ -33,7 +33,7 @@ public class FormationWorkflowController {
     private FormationWorkflowService formationWorkflowService;
 
     @PostMapping
-    public ResponseEntity<?> createFormation(@Valid @RequestBody FormationWorkflowRequest request, org.springframework.validation.BindingResult result) {
+    public ResponseEntity<Object> createFormation(@Valid @RequestBody FormationWorkflowRequest request, org.springframework.validation.BindingResult result) {
         if (result.hasErrors()) {
             log.error("Validation errors: {}", result.getAllErrors());
             return ResponseEntity.badRequest().body(result.getAllErrors());
@@ -44,7 +44,7 @@ public class FormationWorkflowController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<?> updateFormation(@PathVariable Long id, @Valid @RequestBody FormationWorkflowRequest request, org.springframework.validation.BindingResult result) {
+    public ResponseEntity<Object> updateFormation(@PathVariable Long id, @Valid @RequestBody FormationWorkflowRequest request, org.springframework.validation.BindingResult result) {
         if (result.hasErrors()) {
             log.error("Validation errors for update: {}", result.getAllErrors());
             return ResponseEntity.badRequest().body(result.getAllErrors());
