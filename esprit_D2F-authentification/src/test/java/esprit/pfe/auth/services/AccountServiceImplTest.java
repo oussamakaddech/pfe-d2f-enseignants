@@ -361,4 +361,65 @@ class AccountServiceImplTest {
         assertEquals("1234567890", testUser.getPhoneNumber());
         verify(userRepository, times(1)).save(testUser);
     }
+
+    @Test
+    void testUpdateAccount_InvalidRole() {
+        // Arrange
+        when(userRepository.findById("test123")).thenReturn(Optional.of(testUser));
+
+        // Act & Assert
+        assertThrows(
+            IllegalArgumentException.class,
+            () -> accountService.updateAccount("test123", editProfileRequest, "INVALID_ROLE")
+        );
+    }
+
+    @Test
+    void testEditProfile_SameEmail() {
+        // Arrange
+        editProfileRequest.setEmail("test@example.com"); // Same as current
+        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(testUser));
+        when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
+        when(userRepository.save(any(User.class))).thenReturn(testUser);
+
+        // Act
+        String result = accountService.editProfile("testuser", editProfileRequest);
+
+        // Assert
+        assertEquals("Profile updated", result);
+        verify(userRepository).save(testUser);
+    }
+
+    @Test
+    void testUpdateAccount_SameEmail() {
+        // Arrange
+        editProfileRequest.setEmail("test@example.com");
+        when(userRepository.findById("test123")).thenReturn(Optional.of(testUser));
+        when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(testUser));
+        when(userRepository.save(any(User.class))).thenReturn(testUser);
+
+        // Act
+        User result = accountService.updateAccount("test123", editProfileRequest, null);
+
+        // Assert
+        assertNotNull(result);
+        assertEquals("test@example.com", testUser.getEmail());
+        verify(userRepository).save(testUser);
+    }
+
+    @Test
+    void testUpdateAccount_EmptyRole() {
+        // Arrange
+        when(userRepository.findById("test123")).thenReturn(Optional.of(testUser));
+        when(userRepository.findByEmail("updated@example.com")).thenReturn(Optional.empty());
+        when(userRepository.save(any(User.class))).thenReturn(testUser);
+
+        // Act
+        User result = accountService.updateAccount("test123", editProfileRequest, "  ");
+
+        // Assert
+        assertNotNull(result);
+        verify(roleRepository, never()).findByName(any());
+        verify(userRepository).save(testUser);
+    }
 }

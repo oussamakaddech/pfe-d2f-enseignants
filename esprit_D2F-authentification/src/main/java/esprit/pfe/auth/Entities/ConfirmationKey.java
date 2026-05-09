@@ -18,7 +18,7 @@ public class ConfirmationKey {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String confirmationKey;
+    private String token;
 
     private String emailAddress;
 }

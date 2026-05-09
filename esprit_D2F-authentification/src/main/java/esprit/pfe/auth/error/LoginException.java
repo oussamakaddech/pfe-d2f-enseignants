@@ -8,6 +8,7 @@ public class LoginException extends RuntimeException {
     private final String errorMessage;
 
     public LoginException(String errorMessage) {
+        super(errorMessage);
         this.errorMessage = errorMessage;
     }
 

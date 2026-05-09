@@ -21,6 +21,8 @@ import java.util.Set;
 @Service
 public class AccountServiceImpl implements AccountService {
 
+    private static final String USER_NOT_FOUND = "User not found";
+
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
     private final PasswordEncoder encoder;
@@ -38,7 +40,7 @@ public class AccountServiceImpl implements AccountService {
     @Override
     public void banAccount(String userName) {
         User user = this.userRepository.findByUsername(userName)
-                .orElseThrow(() -> new BadRequestException("User not found"));
+                .orElseThrow(() -> new BadRequestException(USER_NOT_FOUND));
         user.setDisabled(true);
         this.userRepository.save(user);
     }
@@ -46,7 +48,7 @@ public class AccountServiceImpl implements AccountService {
     @Override
     public void enableAccount(String userName) {
         User user = this.userRepository.findByUsername(userName)
-                .orElseThrow(() -> new BadRequestException("User not found"));
+                .orElseThrow(() -> new BadRequestException(USER_NOT_FOUND));
         user.setDisabled(false);
         this.userRepository.save(user);
     }
@@ -54,13 +56,13 @@ public class AccountServiceImpl implements AccountService {
     @Override
     public User getPrincipal(String userName) {
         return this.userRepository.findByUsername(userName)
-                .orElseThrow(() -> new BadRequestException("User not found"));
+                .orElseThrow(() -> new BadRequestException(USER_NOT_FOUND));
     }
 
     @Override
     public String editProfile(String userName, EditProfileRequest editProfileRequest) {
         User user = userRepository.findByUsername(userName)
-                .orElseThrow(() -> new BadRequestException("User not found"));
+                .orElseThrow(() -> new BadRequestException(USER_NOT_FOUND));
         String newEmail = editProfileRequest.getEmail();
         // Vérifier l'unicité de l'email seulement si modifié et appartenant à un autre utilisateur
         Optional<User> byEmail = userRepository.findByEmail(newEmail);
@@ -80,7 +82,7 @@ public class AccountServiceImpl implements AccountService {
         if(!updatePasswordRequest.getNewPassword().equals(updatePasswordRequest.getConfirmation()))
             throw new BadRequestException("Confirm your password again");
         User user = this.userRepository.findByUsername(userName)
-                .orElseThrow(() -> new BadRequestException("User not found"));
+                .orElseThrow(() -> new BadRequestException(USER_NOT_FOUND));
         user.setPassword(encoder.encode(updatePasswordRequest.getNewPassword()));
         this.userRepository.save(user);
         return "Password updated";
@@ -89,20 +91,20 @@ public class AccountServiceImpl implements AccountService {
     @Override
     public User getPrincipalByUsername(String username) {
         return this.userRepository.findByUsername(username)
-                .orElseThrow(() -> new BadRequestException("User not found"));
+                .orElseThrow(() -> new BadRequestException(USER_NOT_FOUND));
     }
 
     @Override
     public void deleteAccount(String userId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new BadRequestException("User not found"));
+                .orElseThrow(() -> new BadRequestException(USER_NOT_FOUND));
         userRepository.delete(user);
     }
 
     @Override
     public User updateAccount(String userId, EditProfileRequest editProfileRequest, String roleName) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new BadRequestException("User not found"));
+                .orElseThrow(() -> new BadRequestException(USER_NOT_FOUND));
 
         // Update profile fields
         if (editProfileRequest.getFirstName() != null) {

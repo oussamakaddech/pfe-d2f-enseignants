@@ -19,15 +19,16 @@ import org.springframework.http.MediaType;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
+import org.springframework.security.core.Authentication;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(SecurityController.class)
 @AutoConfigureMockMvc(addFilters = false) // Disable security filters for unit testing controller
@@ -116,13 +117,184 @@ class SecurityControllerTest {
     }
 
     @Test
-    void forgotPassword_WhenEmailInvalid_ShouldReturnError() throws Exception {
-        when(userRepository.existsByEmail("invalid@example.com")).thenReturn(false);
+    void resetPassword_WhenTokenValid_ShouldReturnSuccess() throws Exception {
+        when(confirmationKeyRepo.existsByToken("valid-token")).thenReturn(true);
+        esprit.pfe.auth.entities.ConfirmationKey key = new esprit.pfe.auth.entities.ConfirmationKey();
+        key.setEmailAddress("test@example.com");
+        key.setToken("valid-token");
+        when(confirmationKeyRepo.findByToken("valid-token")).thenReturn(Optional.of(key));
+        
+        User user = new User();
+        user.setEmail("test@example.com");
+        when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(user));
+        when(passwordEncoder.encode(anyString())).thenReturn("new-encoded-password");
+
+        mockMvc.perform(post("/api/v1/auth/reset-password")
+                .param("token", "valid-token")
+                .param("newPassword", "newpass123"))
+                .andExpect(status().isOk())
+                .andExpect(content().string("Password changed"));
+    }
+
+    @Test
+    void login_WhenValidCredentials_ShouldReturnJwt() throws Exception {
+        User user = new User();
+        user.setUsername("testuser");
+        user.setEmail("test@example.com");
+        when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(user));
+        
+        Authentication auth = mock(Authentication.class);
+        when(authenticationManager.authenticate(any())).thenReturn(auth);
+        
+        org.springframework.security.oauth2.jwt.Jwt jwt = mock(org.springframework.security.oauth2.jwt.Jwt.class);
+        when(jwt.getTokenValue()).thenReturn("mock-jwt-token");
+        when(jwtEncoder.encode(any())).thenReturn(jwt);
+
+        mockMvc.perform(post("/api/v1/auth/login")
+                .param("username", "testuser")
+                .param("password", "password123"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.accessToken").value("mock-jwt-token"));
+    }
+
+    @Test
+    void login_WhenInvalidCredentials_ShouldReturnUnauthorized() throws Exception {
+        when(userRepository.findByUsername("any")).thenReturn(Optional.of(new User()));
+        when(authenticationManager.authenticate(any())).thenThrow(new org.springframework.security.authentication.BadCredentialsException("Invalid"));
+
+        mockMvc.perform(post("/api/v1/auth/login")
+                .param("username", "any")
+                .param("password", "any"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void resetPassword_WhenTokenInvalid_ShouldReturnBadRequest() throws Exception {
+        when(confirmationKeyRepo.existsByToken("invalid-token")).thenReturn(false);
+
+        mockMvc.perform(post("/api/v1/auth/reset-password")
+                .param("token", "invalid-token")
+                .param("newPassword", "newpass123"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void forgotPassword_WhenAlreadySent_ShouldReturnBadRequest() throws Exception {
+        when(userRepository.existsByEmail("test@example.com")).thenReturn(true);
+        when(confirmationKeyRepo.existsByEmailAddress("test@example.com")).thenReturn(true);
 
         mockMvc.perform(post("/api/v1/auth/forgot-password")
-                .param("emailAddress", "invalid@example.com"))
+                .param("emailAddress", "test@example.com"))
                 .andExpect(status().isBadRequest());
+    }
 
-        verify(emailService, never()).send(any());
+    @Test
+    void requestDeviceReset_ShouldSendEmail() throws Exception {
+        mockMvc.perform(post("/api/v1/auth/request-reset")
+                .param("username", "testuser"))
+                .andExpect(status().isOk());
+
+        verify(emailService).send(any());
+    }
+
+    @Test
+    void registerUser_WhenEmailExists_ShouldReturnBadRequest() throws Exception {
+        when(userRepository.existsByUsername(anyString())).thenReturn(false);
+        when(userRepository.existsByEmail("newuser@example.com")).thenReturn(true);
+
+        mockMvc.perform(post("/api/v1/auth/signup")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(signupRequest)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Error: Email is already in use!"));
+    }
+
+    @Test
+    void registerUser_WhenIdExists_ShouldReturnBadRequest() throws Exception {
+        signupRequest.setId("existing-id");
+        when(userRepository.existsById("existing-id")).thenReturn(true);
+
+        mockMvc.perform(post("/api/v1/auth/signup")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(signupRequest)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Error: ID is already taken!"));
+    }
+
+    @Test
+    void registerUser_WithRoleCUP_ShouldAssignRoleCUP() throws Exception {
+        signupRequest.setRole("CUP");
+        when(userRepository.existsByUsername(anyString())).thenReturn(false);
+        when(userRepository.existsByEmail(anyString())).thenReturn(false);
+        when(roleRepository.findByName(ERole.CUP)).thenReturn(Optional.of(new Role(ERole.CUP)));
+
+        mockMvc.perform(post("/api/v1/auth/signup")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(signupRequest)))
+                .andExpect(status().isOk());
+
+        verify(userRepository).save(any(User.class));
+    }
+
+    @Test
+    void registerUser_WithRoleEnseignant_ShouldAssignRoleEnseignant() throws Exception {
+        signupRequest.setRole("Enseignant");
+        when(userRepository.existsByUsername(anyString())).thenReturn(false);
+        when(userRepository.existsByEmail(anyString())).thenReturn(false);
+        when(roleRepository.findByName(ERole.ENSEIGNANT)).thenReturn(Optional.of(new Role(ERole.ENSEIGNANT)));
+
+        mockMvc.perform(post("/api/v1/auth/signup")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(signupRequest)))
+                .andExpect(status().isOk());
+
+        verify(userRepository).save(any(User.class));
+    }
+
+    @Test
+    void registerUser_WithUnknownRole_ShouldAssignDefaultRole() throws Exception {
+        signupRequest.setRole("unknown");
+        when(userRepository.existsByUsername(anyString())).thenReturn(false);
+        when(userRepository.existsByEmail(anyString())).thenReturn(false);
+        when(roleRepository.findByName(ERole.FORMATEUR)).thenReturn(Optional.of(new Role(ERole.FORMATEUR)));
+
+        mockMvc.perform(post("/api/v1/auth/signup")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(signupRequest)))
+                .andExpect(status().isOk());
+
+        verify(userRepository).save(any(User.class));
+    }
+
+    @Test
+    void login_WhenUserNotFound_ShouldReturnUnauthorized() throws Exception {
+        when(userRepository.findByUsername("unknown")).thenReturn(Optional.empty());
+
+        mockMvc.perform(post("/api/v1/auth/login")
+                .param("username", "unknown")
+                .param("password", "pass"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void login_WhenUnexpectedException_ShouldReturnUnauthorized() throws Exception {
+        when(userRepository.findByUsername("user")).thenReturn(Optional.of(new User()));
+        when(authenticationManager.authenticate(any())).thenThrow(new RuntimeException("Crash"));
+
+        mockMvc.perform(post("/api/v1/auth/login")
+                .param("username", "user")
+                .param("password", "pass"))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.message").value("Authentication failed due to server configuration."));
+    }
+
+    @Test
+    void forgotPassword_WhenEmailInvalid_ShouldReturnBadRequest() throws Exception {
+        when(userRepository.existsByEmail("invalid@test.com")).thenReturn(false);
+
+        mockMvc.perform(post("/api/v1/auth/forgot-password")
+                .param("emailAddress", "invalid@test.com"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Email address invalid"));
     }
 }

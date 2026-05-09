@@ -17,6 +17,7 @@ import tn.esprit.d2f.service.IBesoinFormationService;
 
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -73,9 +74,97 @@ class BesoinFormationControllerTest {
     }
 
     @Test
+    void addBesoinFormation_withValidationErrors_shouldReturnBadRequest() {
+        BesoinFormationController controller = new BesoinFormationController(service, notificationRepository);
+        org.springframework.validation.BindingResult bindingResult = mock(org.springframework.validation.BindingResult.class);
+        when(bindingResult.hasErrors()).thenReturn(true);
+        when(bindingResult.getAllErrors()).thenReturn(java.util.Collections.emptyList());
+
+        org.springframework.http.ResponseEntity<?> response = controller.addBesoinFormation(new BesoinFormationRequest(), bindingResult);
+        
+        org.junit.jupiter.api.Assertions.assertEquals(org.springframework.http.HttpStatus.BAD_REQUEST, response.getStatusCode());
+    }
+
+    @Test
+    void retrieveBesoinFormation_shouldReturnOk() throws Exception {
+        when(service.retrieveBesoinFormation(1L)).thenReturn(new BesoinFormationResponse());
+        mockMvc.perform(get("/api/v1/besoinsFormations/retrieve-BesoinFormation/1"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void modifyBesoinFormation_shouldReturnOk() throws Exception {
+        BesoinFormationRequest request = new BesoinFormationRequest();
+        request.setTitre("Modif");
+        request.setUsername("user");
+        request.setTypeBesoin(tn.esprit.d2f.entity.enumerations.TypeBesoin.INDIVIDUEL);
+        request.setObjectifFormation("Obj");
+        request.setUp("UP");
+        request.setDepartement("Dep");
+        request.setPriorite(tn.esprit.d2f.entity.enumerations.Priorite.BASSE);
+        request.setNbMaxParticipants(5);
+        request.setDureeFormation(10);
+
+        when(service.modifyBesoinFormation(any())).thenReturn(new BesoinFormationResponse());
+        mockMvc.perform(put("/api/v1/besoinsFormations/modify-BesoinFormation")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void getUserNotifications_shouldReturnOk() throws Exception {
+        when(notificationRepository.findByUsername(any(), any(Pageable.class))).thenReturn(Page.empty());
+        mockMvc.perform(get("/api/v1/besoinsFormations/notifications/testuser"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
     void approveBesoin_shouldReturnOk() throws Exception {
         when(service.approuverBesoin(1L)).thenReturn(new BesoinFormationResponse());
         mockMvc.perform(put("/api/v1/besoinsFormations/1/approve"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void getApprovedBesoinFormations_shouldReturnOk() throws Exception {
+        when(service.retrieveApprovedBesoinFormations(any(Pageable.class))).thenReturn(Page.empty());
+        mockMvc.perform(get("/api/v1/besoinsFormations/retrieve-approved-BesoinFormations"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void getBesoinsByUp_shouldReturnOk() throws Exception {
+        when(service.retrieveByUp(any(), any(Pageable.class))).thenReturn(Page.empty());
+        mockMvc.perform(get("/api/v1/besoinsFormations/by-up/Info"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void getBesoinsByDepartement_shouldReturnOk() throws Exception {
+        when(service.retrieveByDepartement(any(), any(Pageable.class))).thenReturn(Page.empty());
+        mockMvc.perform(get("/api/v1/besoinsFormations/by-departement/GL"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void getBesoinsByPriorite_shouldReturnOk() throws Exception {
+        when(service.retrieveAllByPriorite(any(Pageable.class))).thenReturn(Page.empty());
+        mockMvc.perform(get("/api/v1/besoinsFormations/by-priorite"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void getBesoinsByPrioriteLevel_shouldReturnOk() throws Exception {
+        when(service.retrieveByPriorite(any(), any(Pageable.class))).thenReturn(Page.empty());
+        mockMvc.perform(get("/api/v1/besoinsFormations/by-priorite/HAUTE"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
+    void getBesoinFormations_withSortOrderAsc_shouldReturnOk() throws Exception {
+        when(service.retrieveAllBesoinFormations(any(Pageable.class))).thenReturn(Page.empty());
+        mockMvc.perform(get("/api/v1/besoinsFormations/retrieve-all-BesoinFormations?sort=titre,asc"))
                 .andExpect(status().isOk());
     }
 }

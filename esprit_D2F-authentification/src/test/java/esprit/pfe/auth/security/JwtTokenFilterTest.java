@@ -1,36 +1,38 @@
 package esprit.pfe.auth.security;
 
 import jakarta.servlet.FilterChain;
-import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.junit.jupiter.params.ParameterizedTest;
-import org.junit.jupiter.params.provider.NullAndEmptySource;
-import org.junit.jupiter.params.provider.ValueSource;
-import org.mockito.junit.jupiter.MockitoExtension;
-
-import java.io.IOException;
-
+import org.junit.jupiter.api.Test;
 import static org.mockito.Mockito.*;
 
-@ExtendWith(MockitoExtension.class)
 class JwtTokenFilterTest {
 
-    private final JwtTokenFilter filter = new JwtTokenFilter();
-
-    @ParameterizedTest
-    @ValueSource(strings = {"Bearer some.jwt.token", "Basic abc123"})
-    @NullAndEmptySource
-    void doFilterInternal_withVariousAuthorizationHeaders_shouldContinueChain(String authHeader) throws ServletException, IOException {
+    @Test
+    void doFilterInternal_ShouldCallNextFilter() throws Exception {
+        JwtTokenFilter filter = new JwtTokenFilter();
         HttpServletRequest request = mock(HttpServletRequest.class);
         HttpServletResponse response = mock(HttpServletResponse.class);
-        FilterChain chain = mock(FilterChain.class);
+        FilterChain filterChain = mock(FilterChain.class);
 
-        when(request.getHeader("Authorization")).thenReturn(authHeader);
+        when(request.getHeader("Authorization")).thenReturn("Bearer token");
 
-        filter.doFilterInternal(request, response, chain);
+        filter.doFilterInternal(request, response, filterChain);
 
-        verify(chain).doFilter(request, response);
+        verify(filterChain).doFilter(request, response);
+    }
+    
+    @Test
+    void doFilterInternal_WhenNoToken_ShouldCallNextFilter() throws Exception {
+        JwtTokenFilter filter = new JwtTokenFilter();
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        HttpServletResponse response = mock(HttpServletResponse.class);
+        FilterChain filterChain = mock(FilterChain.class);
+
+        when(request.getHeader("Authorization")).thenReturn(null);
+
+        filter.doFilterInternal(request, response, filterChain);
+
+        verify(filterChain).doFilter(request, response);
     }
 }

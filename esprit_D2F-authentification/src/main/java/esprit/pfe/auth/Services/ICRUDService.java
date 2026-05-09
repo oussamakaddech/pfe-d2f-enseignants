@@ -2,14 +2,14 @@ package esprit.pfe.auth.services;
 
 import java.util.List;
 
-public interface ICRUDService<T, ID> {
+public interface ICRUDService<T, K> {
     List<T> findAll();
 
-    T retrieveItem(ID idItem);
+    T retrieveItem(K idItem);
 
     T add(T item);
 
-    void delete(ID id);
+    void delete(K id);
 
-    T update(ID id, T item);
+    T update(K id, T item);
 }

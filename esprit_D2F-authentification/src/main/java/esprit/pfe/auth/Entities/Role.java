@@ -1,9 +1,13 @@
 package esprit.pfe.auth.entities;
 
-
 import jakarta.persistence.*;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
+import lombok.Setter;
 
-
+@Getter
+@Setter
+@EqualsAndHashCode
 @Entity
 @Table(name = "roles")
 public class Role {
@@ -16,7 +20,6 @@ public class Role {
     private ERole name;
 
     public Role() {
-
     }
 
     public Role(ERole name) {
