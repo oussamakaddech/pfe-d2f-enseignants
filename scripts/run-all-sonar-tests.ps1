@@ -229,13 +229,25 @@ foreach ($service in $javaServices) {
             # Attendre le Quality Gate
             $gate = Wait-SonarQubeQualityGate -ServicePath "." -SonarToken $SonarToken
             if ($gate) {
-                $color = if ($gate.status -eq "OK") { "Green" } else { "Red" }
-                Write-Host "  [GATE] Status : $($gate.status)" -ForegroundColor $color
+                $statusColor = if ($gate.status -eq "OK") { "Green" } else { "Red" }
+                Write-Host "  [GATE] Status Global : $($gate.status)" -ForegroundColor $statusColor
                 
-                # Afficher la couverture si disponible
-                $coverage = $gate.conditions | Where-Object { $_.metricKey -eq "coverage" }
-                if ($coverage) {
-                    Write-Host "  [INFO] Couverture : $($coverage.actualValue)%" -ForegroundColor Cyan
+                # Metrics "Fresh" (New Code)
+                $newCoverage = $gate.conditions | Where-Object { $_.metricKey -eq "new_coverage" }
+                $overallCoverage = $gate.conditions | Where-Object { $_.metricKey -eq "coverage" }
+                
+                if ($newCoverage) {
+                    Write-Host "  [NEW] Couverture sur le nouveau code : $($newCoverage.actualValue)%" -ForegroundColor Magenta
+                }
+                
+                if ($overallCoverage) {
+                    Write-Host "  [INFO] Couverture totale : $($overallCoverage.actualValue)%" -ForegroundColor Cyan
+                }
+
+                # Afficher les nouveaux problemes (Fresh)
+                $newBugs = $gate.conditions | Where-Object { $_.metricKey -eq "new_bugs" }
+                if ($newBugs -and [float]$newBugs.actualValue -gt 0) {
+                    Write-Host "  [WARN] Nouveaux Bugs detectes : $($newBugs.actualValue)" -ForegroundColor Red
                 }
             }
             
