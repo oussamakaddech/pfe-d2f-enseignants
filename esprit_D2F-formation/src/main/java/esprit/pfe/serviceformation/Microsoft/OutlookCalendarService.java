@@ -15,6 +15,8 @@ import java.util.stream.Collectors;
 @Slf4j
 public class OutlookCalendarService {
 
+    private static final String TIMEZONE = "Africa/Tunis";
+
     @Autowired
     private MicrosoftGraphClientProvider graphProvider;
 
@@ -44,12 +46,12 @@ public class OutlookCalendarService {
 
         DateTimeTimeZone startTime = new DateTimeTimeZone();
         startTime.dateTime = start.toString();
-        startTime.timeZone = "Africa/Tunis";
+        startTime.timeZone = TIMEZONE;
         event.start = startTime;
 
         DateTimeTimeZone endTime = new DateTimeTimeZone();
         endTime.dateTime = end.toString();
-        endTime.timeZone = "Africa/Tunis";
+        endTime.timeZone = TIMEZONE;
         event.end = endTime;
 
         Location location = new Location();
@@ -102,12 +104,12 @@ public class OutlookCalendarService {
 
         DateTimeTimeZone startTime = new DateTimeTimeZone();
         startTime.dateTime = start.toString();
-        startTime.timeZone = "Africa/Tunis";
+        startTime.timeZone = TIMEZONE;
         updatedEvent.start = startTime;
 
         DateTimeTimeZone endTime = new DateTimeTimeZone();
         endTime.dateTime = end.toString();
-        endTime.timeZone = "Africa/Tunis";
+        endTime.timeZone = TIMEZONE;
         updatedEvent.end = endTime;
 
         Location location = new Location();

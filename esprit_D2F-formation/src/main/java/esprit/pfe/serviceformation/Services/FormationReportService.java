@@ -24,7 +24,7 @@ public class FormationReportService {
      * Récupère selon le rôle ("animateur" ou "participant")
      * la liste des formations pour un enseignant et une période données.
      */
-    public List<?> getFormationsParRoleEtPeriode(
+    public List<Object> getFormationsParRoleEtPeriode(
             String role,
             String enseignantId,
             Date debutPeriode,
@@ -34,7 +34,7 @@ public class FormationReportService {
             return seanceRepo.findFormationsByAnimateurAndPeriod(
                             enseignantId, debutPeriode, finPeriode
                     ).stream()
-                    .map(f -> new AnimateurFormationDTO(
+                    .<Object>map(f -> new AnimateurFormationDTO(
                             f.getTitreFormation(),
                             f.getPopulationCible(),
                             f.getObjectifs(),
@@ -48,7 +48,7 @@ public class FormationReportService {
             return presenceRepo.findFormationsByParticipantAndPeriod(
                             enseignantId, debutPeriode, finPeriode
                     ).stream()
-                    .map(f -> {
+                    .<Object>map(f -> {
                         List<FormateurNameDTO> formateurs = seanceRepo
                                 .findAnimateursByFormation(f.getIdFormation())
                                 .stream()

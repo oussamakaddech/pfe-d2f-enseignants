@@ -4,7 +4,7 @@ import esprit.pfe.serviceformation.dto.*;
 import esprit.pfe.serviceformation.services.KPIService;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
+
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -18,8 +18,10 @@ import java.util.Map;
 @RequestMapping("/api/v1/kpi")
 @RequiredArgsConstructor
 public class KPIController {
-@Autowired
-   KPIService kpiService;
+
+    private final KPIService kpiService;
+
+    private static final String KEY_ERROR = "error";
 
     // Endpoint pour obtenir le nombre total de formations
     @GetMapping("/formations")
@@ -53,7 +55,7 @@ public class KPIController {
         return kpiService.getFormationsByEtat(start, end);
     }
     @GetMapping("/top-participants")
-    public ResponseEntity<?> topParticipants(
+    public ResponseEntity<Object> topParticipants(
             @RequestParam(required = false) String upId,
             @RequestParam(required = false) String deptId,
             @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") Date start,
@@ -71,23 +73,23 @@ public class KPIController {
         } catch (IllegalArgumentException ex) {
             return ResponseEntity
                     .badRequest()
-                    .body(Map.of("error", ex.getMessage()));
+                    .body(Map.of(KEY_ERROR, ex.getMessage()));
 
         } catch (EntityNotFoundException ex) {
             return ResponseEntity
                     .status(HttpStatus.NOT_FOUND)
-                    .body(Map.of("error", ex.getMessage()));
+                    .body(Map.of(KEY_ERROR, ex.getMessage()));
 
         } catch (Exception ex) {
             return ResponseEntity
                     .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("error", "Erreur serveur interne"));
+                    .body(Map.of(KEY_ERROR, "Erreur serveur interne"));
         }
     }
 
     /** Top des enseignants les plus absents sur les formations achevées */
     @GetMapping("/top-absentees")
-    public ResponseEntity<?> topAbsentees(
+    public ResponseEntity<Object> topAbsentees(
             @RequestParam(required = false) String upId,
             @RequestParam(required = false) String deptId,
             @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") Date start,
@@ -105,17 +107,17 @@ public class KPIController {
         } catch (IllegalArgumentException ex) {
             return ResponseEntity
                     .badRequest()
-                    .body(Map.of("error", ex.getMessage()));
+                    .body(Map.of(KEY_ERROR, ex.getMessage()));
 
         } catch (EntityNotFoundException ex) {
             return ResponseEntity
                     .status(HttpStatus.NOT_FOUND)
-                    .body(Map.of("error", ex.getMessage()));
+                    .body(Map.of(KEY_ERROR, ex.getMessage()));
 
         } catch (Exception ex) {
             return ResponseEntity
                     .status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body(Map.of("error", "Erreur serveur interne"));
+                    .body(Map.of(KEY_ERROR, "Erreur serveur interne"));
         }
     }
     @GetMapping("/enseignants-non-affectes")

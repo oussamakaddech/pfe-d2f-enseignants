@@ -50,6 +50,7 @@ public class FormationWorkflowService {
     private OutlookMailService outlookMailService;
 
     private static final String ORGANIZER_EMAIL = "Application.Formationdesformateurs@Esprit.tn";
+    private static final String TIMEZONE_TUNIS = "Africa/Tunis";
 
     private Time parseTime(String heure) {
         if (heure == null || heure.isBlank()) {
@@ -67,10 +68,10 @@ public class FormationWorkflowService {
 
     private OffsetDateTime convertToOffsetDateTime(java.util.Date dateUtil, java.sql.Time time) {
         LocalDate localDate = dateUtil.toInstant()
-                .atZone(ZoneId.of("Africa/Tunis"))
+                .atZone(ZoneId.of(TIMEZONE_TUNIS))
                 .toLocalDate();
         LocalTime localTime = time.toLocalTime();
-        ZonedDateTime zonedDateTime = ZonedDateTime.of(localDate, localTime, ZoneId.of("Africa/Tunis"));
+        ZonedDateTime zonedDateTime = ZonedDateTime.of(localDate, localTime, ZoneId.of(TIMEZONE_TUNIS));
         return zonedDateTime.toOffsetDateTime();
     }
 
@@ -614,7 +615,7 @@ public class FormationWorkflowService {
     private static final DateTimeFormatter TIME_FMT = DateTimeFormatter.ofPattern("HH:mm");
 
     private String formatDate(java.util.Date date) {
-        return date.toInstant().atZone(ZoneId.of("Africa/Tunis")).toLocalDate().format(DATE_FMT);
+        return date.toInstant().atZone(ZoneId.of(TIMEZONE_TUNIS)).toLocalDate().format(DATE_FMT);
     }
 
     private String formatTime(java.sql.Time time) {
@@ -749,7 +750,7 @@ public class FormationWorkflowService {
                 "</html>";
     }
 
-    @Transactional
+
     public void notifyTeachersOfApprovedFormation(Formation formation) {
         log.info("📢 Notification des enseignants pour la formation approuvée (VISIBLE) : {}", formation.getTitreFormation());
         List<Enseignant> allEnseignants = enseignantRepository.findAll();
@@ -787,7 +788,7 @@ public class FormationWorkflowService {
         }
     }
 
-    @Transactional
+
     public void notifyCUPOfApprovedFormation(Formation formation) {
         if (formation.getUp() == null) return;
         List<Enseignant> cups = enseignantRepository.findByUpAndCup(formation.getUp(), "O");
@@ -811,7 +812,7 @@ public class FormationWorkflowService {
         }
     }
 
-    @Transactional
+
     public void synchronizeFormationCalendar(Formation formation) {
         Formation freshFormation = formationRepository.findById(formation.getIdFormation())
                 .orElseThrow(() -> new IllegalStateException("La formation a été supprimée."));
@@ -888,7 +889,7 @@ public class FormationWorkflowService {
         }
     }
 
-    @Transactional
+
     public void removeSeanceFromCalendar(SeanceFormation seance) {
         // 1. Suppression du calendrier (si l'événement existe)
         if (seance.getCalendarEventId() != null) {
@@ -923,7 +924,7 @@ public class FormationWorkflowService {
         }
     }
 
-    @Transactional
+
     public void removeFormationCalendar(Formation formation) {
         Formation freshFormation = formationRepository.findById(formation.getIdFormation())
                 .orElseThrow(() -> new IllegalStateException("La formation a été supprimée."));
