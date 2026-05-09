@@ -2,7 +2,6 @@ package tn.esprit.d2f.competence.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -61,21 +60,17 @@ public class SavoirController {
     }
 
     @Operation(summary = "Obtenir un savoir par ID")
-    @ApiResponses({
-        @ApiResponse(responseCode = "200", description = "Savoir trouvé"),
-        @ApiResponse(responseCode = "404", description = "Introuvable")
-    })
+    @ApiResponse(responseCode = "200", description = "Savoir trouvé")
+    @ApiResponse(responseCode = "404", description = "Introuvable")
     @GetMapping("/{id}")
     public ResponseEntity<SavoirDTO> getSavoirById(@PathVariable Long id) {
         return ResponseEntity.ok(savoirService.getSavoirById(id));
     }
 
     @Operation(summary = "Créer un savoir pour une sous-compétence")
-    @ApiResponses({
-        @ApiResponse(responseCode = "201", description = "Savoir créé"),
-        @ApiResponse(responseCode = "400", description = "Données invalides"),
-        @ApiResponse(responseCode = "404", description = "Sous-compétence introuvable")
-    })
+    @ApiResponse(responseCode = "201", description = "Savoir créé")
+    @ApiResponse(responseCode = "400", description = "Données invalides")
+    @ApiResponse(responseCode = "404", description = "Sous-compétence introuvable")
     @PostMapping("/sous-competence/{sousCompetenceId}")
     public ResponseEntity<SavoirDTO> createSavoir(
             @PathVariable Long sousCompetenceId,

@@ -167,6 +167,62 @@ class DomaineServiceImplTest {
         }
     }
 
+    // ── Getters ───────────────────────────────────────────────────────────────
+    @Test
+    @DisplayName("getDomainesActifs: retourne la liste des domaines actifs")
+    void shouldReturnActifs() {
+        when(domaineRepository.findByActifTrue()).thenReturn(List.of(domaine));
+        when(competenceMapper.toDTO(any(Domaine.class))).thenReturn(domaineDTO);
+        List<DomaineDTO> result = domaineService.getDomainesActifs();
+        assertThat(result).hasSize(1);
+    }
+
+    @Test
+    @DisplayName("getDomaineByCode: retourne le DTO")
+    void shouldReturnByCode() {
+        when(domaineRepository.findByCode("GC-TECH")).thenReturn(Optional.of(domaine));
+        when(competenceMapper.toDTO(domaine)).thenReturn(domaineDTO);
+        DomaineDTO result = domaineService.getDomaineByCode("GC-TECH");
+        assertThat(result).isNotNull();
+    }
+
+    // ── Search ────────────────────────────────────────────────────────────────
+    @Nested
+    @DisplayName("searchDomaines")
+    class Search {
+        @Test
+        @DisplayName("recherche par mot-clé (liste)")
+        void shouldSearchList() {
+            when(domaineRepository.searchByKeyword("test")).thenReturn(List.of(domaine));
+            when(competenceMapper.toDTOLight(any(Domaine.class))).thenReturn(domaineDTO);
+            List<DomaineDTO> result = domaineService.searchDomaines("test");
+            assertThat(result).hasSize(1);
+        }
+
+        @Test
+        @DisplayName("recherche par mot-clé (page)")
+        void shouldSearchPage() {
+            Pageable pageable = PageRequest.of(0, 10);
+            when(domaineRepository.searchByKeyword("test", pageable)).thenReturn(new PageImpl<>(List.of(domaine)));
+            when(competenceMapper.toDTOLight(any(Domaine.class))).thenReturn(domaineDTO);
+            Page<DomaineDTO> result = domaineService.searchDomaines("test", pageable);
+            assertThat(result.getContent()).hasSize(1);
+        }
+    }
+
+    // ── Toggle ────────────────────────────────────────────────────────────────
+    @Test
+    @DisplayName("toggleActif: change l'état actif")
+    void shouldToggleActif() {
+        when(domaineRepository.findById(1L)).thenReturn(Optional.of(domaine));
+        when(domaineRepository.save(any(Domaine.class))).thenReturn(domaine);
+        when(competenceMapper.toDTOLight(any(Domaine.class))).thenReturn(domaineDTO);
+
+        DomaineDTO result = domaineService.toggleActif(1L);
+        assertThat(result).isNotNull();
+        verify(domaineRepository).save(any(Domaine.class));
+    }
+
     // ── Delete ────────────────────────────────────────────────────────────────
     @Nested @DisplayName("deleteDomaine(Long)")
     class Delete {
@@ -174,13 +230,15 @@ class DomaineServiceImplTest {
         @Test @DisplayName("supprime quand l enregistrement existe")
         void shouldDeleteWhenFound() {
             when(domaineRepository.existsById(1L)).thenReturn(true);
-            when(savoirRepository.findIdsByDomaineId(1L)).thenReturn(List.of());
+            when(savoirRepository.findIdsByDomaineId(1L)).thenReturn(List.of(10L));
             doNothing().when(domaineRepository).deleteById(1L);
 
             domaineService.deleteDomaine(1L);
 
             verify(niveauRepo).deleteByCompetence_DomaineId(1L);
             verify(niveauRepo).deleteBySousCompetence_Competence_DomaineId(1L);
+            verify(niveauRepo).deleteBySavoirIdIn(List.of(10L));
+            verify(enseignantCompetenceRepository).deleteBySavoirIdIn(List.of(10L));
             verify(domaineRepository).deleteById(1L);
         }
 

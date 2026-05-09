@@ -22,6 +22,7 @@ public class CompetencePrerequisiteDTO {
     private String description;
     private LocalDateTime createdAt;
 
+    @SuppressWarnings("java:S107") // Requis par JPA (projection JPQL)
     public CompetencePrerequisiteDTO(Long id,
                                      Long competenceId,
                                      String competenceNom,

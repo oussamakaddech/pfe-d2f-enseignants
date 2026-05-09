@@ -10,6 +10,7 @@ import tn.esprit.d2f.competence.dto.CompetencePrerequisiteDTO;
 import tn.esprit.d2f.competence.dto.CompetencePrerequisiteRequest;
 import tn.esprit.d2f.competence.entity.Competence;
 import tn.esprit.d2f.competence.entity.CompetencePrerequisite;
+import tn.esprit.d2f.competence.entity.EnseignantCompetence;
 import tn.esprit.d2f.competence.entity.enumerations.NiveauMaitrise;
 import tn.esprit.d2f.competence.exception.BusinessException;
 import tn.esprit.d2f.competence.repository.CompetencePrerequisiteRepository;
@@ -17,14 +18,13 @@ import tn.esprit.d2f.competence.repository.CompetenceRepository;
 import tn.esprit.d2f.competence.repository.EnseignantCompetenceRepository;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("CompetencePrerequisiteServiceImpl - Validation")
@@ -117,5 +117,122 @@ class CompetencePrerequisiteServiceImplTest {
         assertThat(dto.getId()).isEqualTo(1L);
         assertThat(dto.getPrerequisiteId()).isEqualTo(prerequisiteId);
         verify(prerequisiteRepository).save(any(CompetencePrerequisite.class));
+    }
+
+    @Test
+    @DisplayName("getPrerequisitesByCompetence: returns list with labels")
+    void shouldReturnPrerequisites() {
+        Long compId = 1L;
+        CompetencePrerequisiteDTO cpDTO = CompetencePrerequisiteDTO.builder()
+                .id(1L)
+                .competenceId(compId)
+                .competenceNom("C1")
+                .prerequisiteId(2L)
+                .prerequisiteNom("P1")
+                .prerequisiteCode("P1")
+                .niveauMinimum(NiveauMaitrise.N2_ELEMENTAIRE)
+                .build();
+        
+        when(competenceRepository.existsById(compId)).thenReturn(true);
+        when(prerequisiteRepository.findByCompetenceId(compId)).thenReturn(List.of(cpDTO));
+
+        List<CompetencePrerequisiteDTO> result = service.getPrerequisitesByCompetence(compId);
+        
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).getNiveauMinimumLabel()).isEqualTo("N2 - Elementaire");
+    }
+
+    @Test
+    @DisplayName("checkEnseignantEligibilityDetails: returns details of satisfaction")
+    void shouldCheckEligibilityDetails() {
+        Long compId = 1L;
+        String ensId = "ens1";
+        
+        CompetencePrerequisiteDTO cpDTO = CompetencePrerequisiteDTO.builder()
+                .id(1L)
+                .competenceId(compId)
+                .competenceNom("C1")
+                .prerequisiteId(2L)
+                .prerequisiteNom("P1")
+                .prerequisiteCode("P1")
+                .niveauMinimum(NiveauMaitrise.N3_INTERMEDIAIRE)
+                .build();
+        
+        when(competenceRepository.existsById(compId)).thenReturn(true);
+        when(prerequisiteRepository.findByCompetenceId(compId)).thenReturn(List.of(cpDTO));
+        
+        EnseignantCompetence ec = mock(EnseignantCompetence.class);
+        when(ec.getNiveau()).thenReturn(NiveauMaitrise.N2_ELEMENTAIRE); // Under minimum
+        when(enseignantCompetenceRepository.findByEnseignantIdAndCompetenceId(ensId, 2L)).thenReturn(List.of(ec));
+
+        Map<String, Object> result = service.checkEnseignantEligibilityDetails(compId, ensId);
+        
+        assertThat(result).containsEntry("eligible", false);
+        assertThat((List<?>)result.get("prerequisitesManquants")).hasSize(1);
+    }
+
+    @Test
+    @DisplayName("updateNiveauMinimum: updates correctly")
+    void shouldUpdateNiveau() {
+        CompetencePrerequisite cp = mock(CompetencePrerequisite.class);
+        Competence c = Competence.builder().id(1L).nom("C1").build();
+        Competence p = Competence.builder().id(2L).nom("P1").build();
+        when(cp.getCompetence()).thenReturn(c);
+        when(cp.getPrerequisite()).thenReturn(p);
+        when(cp.getNiveauMinimum()).thenReturn(NiveauMaitrise.N1_DEBUTANT);
+        
+        when(prerequisiteRepository.findById(1L)).thenReturn(Optional.of(cp));
+        when(prerequisiteRepository.save(any(CompetencePrerequisite.class))).thenReturn(cp);
+
+        CompetencePrerequisiteDTO result = service.updateNiveauMinimum(1L, NiveauMaitrise.N4_AVANCE);
+        
+        verify(cp).setNiveauMinimum(NiveauMaitrise.N4_AVANCE);
+        assertThat(result).isNotNull();
+    }
+
+    @Test
+    @DisplayName("removePrerequisite: deletes when exists")
+    void shouldRemove() {
+        when(prerequisiteRepository.existsById(1L)).thenReturn(true);
+        service.removePrerequisite(1L);
+        verify(prerequisiteRepository).deleteById(1L);
+    }
+
+    @Test
+    @DisplayName("detects circular dependency")
+    void shouldDetectCycle() {
+        when(prerequisiteRepository.findPrerequisiteIdsByCompetenceId(2L)).thenReturn(List.of(1L));
+        
+        CompetencePrerequisiteRequest request = CompetencePrerequisiteRequest.builder()
+                .prerequisiteId(2L)
+                .niveauMinimum(NiveauMaitrise.N1_DEBUTANT)
+                .build();
+
+        assertThatThrownBy(() -> service.addPrerequisite(1L, request))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("cycle");
+    }
+    @Test
+    @DisplayName("addPrerequisite: refuse corps nul")
+    void shouldRejectNullRequest() {
+        assertThatThrownBy(() -> service.addPrerequisite(1L, null))
+                .isInstanceOf(BusinessException.class);
+    }
+
+    @Test
+    @DisplayName("addPrerequisite: refuse auto-prérequis")
+    void shouldRejectSelfPrerequisite() {
+        CompetencePrerequisiteRequest req = CompetencePrerequisiteRequest.builder()
+                .prerequisiteId(1L).niveauMinimum(NiveauMaitrise.N1_DEBUTANT).build();
+        assertThatThrownBy(() -> service.addPrerequisite(1L, req))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("son propre prerequis");
+    }
+
+    @Test
+    @DisplayName("countByCompetenceId: retourne le compte")
+    void shouldCount() {
+        when(prerequisiteRepository.countByCompetenceId(1L)).thenReturn(5L);
+        assertThat(service.countByCompetenceId(1L)).isEqualTo(5L);
     }
 }

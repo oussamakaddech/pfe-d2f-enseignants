@@ -18,7 +18,7 @@ import tn.esprit.d2f.competence.repository.SousCompetenceRepository;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
+
 
 @Slf4j
 @Service
@@ -61,7 +61,7 @@ public class NiveauDefinitionServiceImpl implements INiveauDefinitionService {
     public List<NiveauSavoirRequisDTO> getSavoirsRequisByCompetenceAndNiveau(Long competenceId, NiveauMaitrise niveau) {
         return niveauRepo.findByCompetenceIdAndNiveau(competenceId, niveau).stream()
                 .map(this::toDTO)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
@@ -69,7 +69,7 @@ public class NiveauDefinitionServiceImpl implements INiveauDefinitionService {
     public List<NiveauSavoirRequisDTO> getSavoirsRequisBySousCompetenceAndNiveau(Long sousCompetenceId, NiveauMaitrise niveau) {
         return niveauRepo.findBySousCompetenceIdAndNiveau(sousCompetenceId, niveau).stream()
                 .map(this::toDTO)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
@@ -148,7 +148,7 @@ public class NiveauDefinitionServiceImpl implements INiveauDefinitionService {
     public List<NiveauSavoirRequisDTO> getAll() {
         return niveauRepo.findAll().stream()
                 .map(this::toDTO)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     // ── Helpers ──────────────────────────────────────────────────────────────
@@ -159,7 +159,7 @@ public class NiveauDefinitionServiceImpl implements INiveauDefinitionService {
             List<NiveauSavoirRequisDTO> dtos = list.stream()
                     .filter(n -> n.getNiveau() == niveau)
                     .map(this::toDTO)
-                    .collect(Collectors.toList());
+                    .toList();
             if (!dtos.isEmpty()) {
                 result.put(niveau.name(), dtos);
             }

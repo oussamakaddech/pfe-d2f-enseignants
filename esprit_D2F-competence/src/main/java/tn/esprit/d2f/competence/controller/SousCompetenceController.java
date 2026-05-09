@@ -2,7 +2,6 @@ package tn.esprit.d2f.competence.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -40,10 +39,8 @@ public class SousCompetenceController {
     }
 
     @Operation(summary = "Obtenir une sous-compétence par ID")
-    @ApiResponses({
-        @ApiResponse(responseCode = "200", description = "Sous-compétence trouvée"),
-        @ApiResponse(responseCode = "404", description = "Introuvable")
-    })
+    @ApiResponse(responseCode = "200", description = "Sous-compétence trouvée")
+    @ApiResponse(responseCode = "404", description = "Introuvable")
     @GetMapping("/{id}")
     public ResponseEntity<SousCompetenceDTO> getSousCompetenceById(@PathVariable Long id) {
         return ResponseEntity.ok(sousCompetenceService.getSousCompetenceById(id));
@@ -58,11 +55,9 @@ public class SousCompetenceController {
     }
 
     @Operation(summary = "Créer une sous-compétence dans une compétence")
-    @ApiResponses({
-        @ApiResponse(responseCode = "201", description = "Sous-compétence créée"),
-        @ApiResponse(responseCode = "400", description = "Données invalides"),
-        @ApiResponse(responseCode = "404", description = "Compétence introuvable")
-    })
+    @ApiResponse(responseCode = "201", description = "Sous-compétence créée")
+    @ApiResponse(responseCode = "400", description = "Données invalides")
+    @ApiResponse(responseCode = "404", description = "Compétence introuvable")
     @PostMapping("/competence/{competenceId}")
     public ResponseEntity<SousCompetenceDTO> createSousCompetence(
             @PathVariable Long competenceId,
@@ -71,11 +66,9 @@ public class SousCompetenceController {
     }
 
     @Operation(summary = "Créer une sous-compétence enfant sous une sous-compétence")
-    @ApiResponses({
-        @ApiResponse(responseCode = "201", description = "Sous-compétence enfant créée"),
-        @ApiResponse(responseCode = "400", description = "Données invalides ou règles métier violées"),
-        @ApiResponse(responseCode = "404", description = "Sous-compétence parente introuvable")
-    })
+    @ApiResponse(responseCode = "201", description = "Sous-compétence enfant créée")
+    @ApiResponse(responseCode = "400", description = "Données invalides ou règles métier violées")
+    @ApiResponse(responseCode = "404", description = "Sous-compétence parente introuvable")
     @PostMapping("/{parentId}/enfants")
     public ResponseEntity<SousCompetenceDTO> createSousCompetenceEnfant(
             @PathVariable Long parentId,

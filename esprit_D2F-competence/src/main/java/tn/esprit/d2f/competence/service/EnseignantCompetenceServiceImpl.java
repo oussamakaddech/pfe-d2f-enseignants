@@ -18,7 +18,6 @@ import tn.esprit.d2f.competence.repository.EnseignantCompetenceRepository;
 import tn.esprit.d2f.competence.repository.SavoirRepository;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -43,7 +42,7 @@ public class EnseignantCompetenceServiceImpl implements IEnseignantCompetenceSer
     public List<EnseignantCompetenceDTO> getCompetencesByEnseignant(String enseignantId) {
         return enseignantCompetenceRepository.findByEnseignantId(enseignantId).stream()
                 .map(competenceMapper::toDTO)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
@@ -51,7 +50,7 @@ public class EnseignantCompetenceServiceImpl implements IEnseignantCompetenceSer
     public List<EnseignantCompetenceDTO> getCompetencesByEnseignantAndDomaine(String enseignantId, Long domaineId) {
         return enseignantCompetenceRepository.findByEnseignantIdAndDomaineId(enseignantId, domaineId).stream()
                 .map(competenceMapper::toDTO)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
@@ -59,7 +58,7 @@ public class EnseignantCompetenceServiceImpl implements IEnseignantCompetenceSer
     public List<EnseignantCompetenceDTO> getCompetencesByEnseignantAndCompetence(String enseignantId, Long competenceId) {
         return enseignantCompetenceRepository.findByEnseignantIdAndCompetenceId(enseignantId, competenceId).stream()
                 .map(competenceMapper::toDTO)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
@@ -67,7 +66,7 @@ public class EnseignantCompetenceServiceImpl implements IEnseignantCompetenceSer
     public List<EnseignantCompetenceDTO> getCompetencesByEnseignantAndNiveau(String enseignantId, NiveauMaitrise niveau) {
         return enseignantCompetenceRepository.findByEnseignantIdAndNiveau(enseignantId, niveau).stream()
                 .map(competenceMapper::toDTO)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
@@ -132,6 +131,6 @@ public class EnseignantCompetenceServiceImpl implements IEnseignantCompetenceSer
     public List<EnseignantCompetenceDTO> getByCompetenceId(Long competenceId) {
         return enseignantCompetenceRepository.findByCompetenceId(competenceId).stream()
                 .map(competenceMapper::toDTO)
-                .collect(Collectors.toList());
+                .toList();
     }
 }

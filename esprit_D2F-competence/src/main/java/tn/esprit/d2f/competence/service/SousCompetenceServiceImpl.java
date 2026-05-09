@@ -22,7 +22,6 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -51,7 +50,7 @@ public class SousCompetenceServiceImpl implements ISousCompetenceService {
     public List<SousCompetenceDTO> getSousCompetencesByCompetence(Long competenceId) {
         return sousCompetenceRepository.findByCompetenceIdAndParentIsNull(competenceId).stream()
                 .map(competenceMapper::toDTO)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
@@ -140,7 +139,7 @@ public class SousCompetenceServiceImpl implements ISousCompetenceService {
     public List<SousCompetenceDTO> searchSousCompetences(String keyword) {
         return sousCompetenceRepository.searchByKeyword(keyword).stream()
                 .map(competenceMapper::toDTO)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override

@@ -15,7 +15,6 @@ import tn.esprit.d2f.competence.entity.Savoir;
 import tn.esprit.d2f.competence.entity.EnseignantCompetence;
 
 import java.util.Collections;
-import java.util.stream.Collectors;
 
 /**
  * MapStruct mapper – Entity <-> DTO.
@@ -59,10 +58,10 @@ public interface CompetenceMapper {
             .niveau(sc.getNiveau())
             .savoirs(sc.getSavoirs() == null
                 ? Collections.emptyList()
-                : sc.getSavoirs().stream().map(this::toDTO).collect(Collectors.toList()))
+                : sc.getSavoirs().stream().map(this::toDTO).toList())
             .enfants(sc.getEnfants() == null
                 ? Collections.emptyList()
-                : sc.getEnfants().stream().map(this::toDTO).collect(Collectors.toList()))
+                : sc.getEnfants().stream().map(this::toDTO).toList())
             .build();
         }
 
@@ -84,8 +83,14 @@ public interface CompetenceMapper {
     default EnseignantCompetenceDTO toDTO(EnseignantCompetence ec) {
         if (ec == null) return null;
         Savoir s = ec.getSavoir();
-        SousCompetence sc = s != null ? s.getSousCompetence() : null;
-        Competence c = sc != null ? sc.getCompetence() : (s != null ? s.getCompetence() : null);
+        SousCompetence sc = null;
+        Competence c = null;
+
+        if (s != null) {
+            sc = s.getSousCompetence();
+            c = (sc != null) ? sc.getCompetence() : s.getCompetence();
+        }
+
         Domaine d = c != null ? c.getDomaine() : null;
         return EnseignantCompetenceDTO.builder()
                 .id(ec.getId())

@@ -19,7 +19,6 @@ import tn.esprit.d2f.competence.repository.NiveauSavoirRequisRepository;
 import tn.esprit.d2f.competence.repository.SavoirRepository;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -47,7 +46,7 @@ public class DomaineServiceImpl implements IDomaineService {
     public List<DomaineDTO> getDomainesActifs() {
         return domaineRepository.findByActifTrue().stream()
                 .map(competenceMapper::toDTO)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
@@ -80,7 +79,7 @@ public class DomaineServiceImpl implements IDomaineService {
                 .code(request.getCode())
                 .nom(request.getNom())
                 .description(request.getDescription())
-                .actif(request.getActif() != null ? request.getActif() : true)
+                .actif(request.getActif() != Boolean.FALSE)
                 .build();
         Domaine saved = domaineRepository.save(domaine);
         log.info("Domaine créé: {} ({})", saved.getNom(), saved.getCode());
@@ -112,7 +111,7 @@ public class DomaineServiceImpl implements IDomaineService {
     public List<DomaineDTO> searchDomaines(String keyword) {
         return domaineRepository.searchByKeyword(keyword).stream()
                 .map(competenceMapper::toDTOLight)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override

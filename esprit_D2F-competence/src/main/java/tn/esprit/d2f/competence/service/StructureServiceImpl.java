@@ -14,8 +14,6 @@ import tn.esprit.d2f.competence.entity.enumerations.TypeSavoir;
 import tn.esprit.d2f.competence.repository.*;
 
 import java.util.*;
-import java.util.stream.Collectors;
-
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -36,7 +34,7 @@ public class StructureServiceImpl implements IStructureService {
 
         List<StructureArbreDTO.DomaineArbreDTO> domaineArbreDTOs = domaines.stream()
                 .map(this::buildDomaineArbre)
-                .collect(Collectors.toList());
+                .toList();
 
         long savoirsTheoriques = allSavoirs.stream().filter(s -> s.getType() == TypeSavoir.THEORIQUE).count();
         long savoirsPratiques = allSavoirs.stream().filter(s -> s.getType() == TypeSavoir.PRATIQUE).count();
@@ -68,13 +66,13 @@ public class StructureServiceImpl implements IStructureService {
     @Transactional(readOnly = true)
     public SearchResultDTO rechercheGlobale(String keyword) {
         List<DomaineDTO> domaines = domaineRepository.searchByKeyword(keyword).stream()
-                .map(competenceMapper::toDTOLight).collect(Collectors.toList());
+                .map(competenceMapper::toDTOLight).toList();
         List<CompetenceDTO> competences = competenceRepository.searchByKeyword(keyword).stream()
-                .map(competenceMapper::toDTO).collect(Collectors.toList());
+                .map(competenceMapper::toDTO).toList();
         List<SousCompetenceDTO> sousCompetences = sousCompetenceRepository.searchByKeyword(keyword).stream()
-                .map(competenceMapper::toDTO).collect(Collectors.toList());
+                .map(competenceMapper::toDTO).toList();
         List<SavoirDTO> savoirs = savoirRepository.searchByKeyword(keyword).stream()
-                .map(competenceMapper::toDTO).collect(Collectors.toList());
+                .map(competenceMapper::toDTO).toList();
         return SearchResultDTO.builder()
                 .keyword(keyword)
                 .domaines(domaines)
@@ -89,11 +87,11 @@ public class StructureServiceImpl implements IStructureService {
     @Transactional(readOnly = true)
     public SearchResultDTO rechercheParDomaine(Long domaineId, String keyword) {
         List<CompetenceDTO> competences = competenceRepository.searchByDomaineIdAndKeyword(domaineId, keyword).stream()
-                .map(competenceMapper::toDTO).collect(Collectors.toList());
+                .map(competenceMapper::toDTO).toList();
         List<SousCompetenceDTO> sousCompetences = sousCompetenceRepository.searchByDomaineIdAndKeyword(domaineId, keyword).stream()
-                .map(competenceMapper::toDTO).collect(Collectors.toList());
+                .map(competenceMapper::toDTO).toList();
         List<SavoirDTO> savoirs = savoirRepository.searchByDomaineIdAndKeyword(domaineId, keyword).stream()
-                .map(competenceMapper::toDTO).collect(Collectors.toList());
+                .map(competenceMapper::toDTO).toList();
         return SearchResultDTO.builder()
                 .keyword(keyword)
                 .domaines(java.util.Collections.emptyList())
@@ -111,7 +109,7 @@ public class StructureServiceImpl implements IStructureService {
 
         List<StructureArbreDTO.CompetenceArbreDTO> compArbreDTOs = competences.stream()
                 .map(this::buildCompetenceArbre)
-                .collect(Collectors.toList());
+                .toList();
 
         long nbEnseignants;
         try {
@@ -137,14 +135,14 @@ public class StructureServiceImpl implements IStructureService {
                 ? Collections.emptyList()
                 : competence.getSousCompetences().stream()
                 .filter(sc -> sc.getParent() == null)
-                .collect(Collectors.toList());
+                .toList();
 
         List<StructureArbreDTO.SousCompetenceArbreDTO> scArbreDTOs = sousCompetences.stream()
                 .map(this::buildSousCompetenceArbre)
-                .collect(Collectors.toList());
+                .toList();
 
         List<SavoirDTO> savoirsDirect = competence.getSavoirs() != null
-                ? competence.getSavoirs().stream().map(competenceMapper::toDTO).collect(Collectors.toList())
+                ? competence.getSavoirs().stream().map(competenceMapper::toDTO).toList()
                 : Collections.emptyList();
 
         int totalSavoirs = sousCompetences.stream().mapToInt(this::countSavoirsRecursive).sum()
@@ -183,11 +181,11 @@ public class StructureServiceImpl implements IStructureService {
                                 ? Collections.emptyList()
                                 : sc.getEnfants().stream()
                                 .map(this::buildSousCompetenceArbre)
-                                .collect(Collectors.toList());
+                                .toList();
 
                 List<SavoirDTO> savoirs = sc.getSavoirs() == null
                                 ? Collections.emptyList()
-                                : sc.getSavoirs().stream().map(competenceMapper::toDTO).collect(Collectors.toList());
+                                : sc.getSavoirs().stream().map(competenceMapper::toDTO).toList();
 
         return StructureArbreDTO.SousCompetenceArbreDTO.builder()
                 .id(sc.getId())

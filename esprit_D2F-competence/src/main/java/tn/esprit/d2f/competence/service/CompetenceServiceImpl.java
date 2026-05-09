@@ -22,7 +22,6 @@ import tn.esprit.d2f.competence.repository.SavoirRepository;
 import tn.esprit.d2f.competence.repository.SousCompetenceRepository;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -62,7 +61,7 @@ public class CompetenceServiceImpl implements ICompetenceService {
                     dto.setPrerequisiteNames(prerequisiteRepository.findPrerequisiteNamesByCompetenceId(c.getId()));
                     return dto;
                 })
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
@@ -122,7 +121,7 @@ public class CompetenceServiceImpl implements ICompetenceService {
     public List<CompetenceDTO> searchCompetences(String keyword) {
         return competenceRepository.searchByKeyword(keyword).stream()
                 .map(competenceMapper::toDTO)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override

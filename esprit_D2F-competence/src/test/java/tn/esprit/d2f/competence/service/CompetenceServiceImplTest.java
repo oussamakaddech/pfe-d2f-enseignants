@@ -228,5 +228,13 @@ class CompetenceServiceImplTest {
             assertThatThrownBy(() -> competenceService.deleteCompetence(99L))
                     .isInstanceOf(RuntimeException.class);
         }
+
+        @Test @DisplayName("refuse suppression si contient des sous-competences")
+        void shouldRejectDeleteIfNotEmpty() {
+            when(competenceRepository.findById(2L)).thenReturn(Optional.of(competence));
+            when(sousCompetenceRepository.findByCompetenceId(2L)).thenReturn(List.of(mock(tn.esprit.d2f.competence.entity.SousCompetence.class)));
+            assertThatThrownBy(() -> competenceService.deleteCompetence(2L))
+                    .isInstanceOf(tn.esprit.d2f.competence.exception.BusinessException.class);
+        }
     }
 }

@@ -47,6 +47,7 @@ public class SecurityConfig {
     @Value("${jwt.secret}")
     private String jwtSecret;
 
+    @SuppressWarnings("java:S4502") // CSRF désactivé de manière sécurisée car l'API est Stateless (JWT)
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http

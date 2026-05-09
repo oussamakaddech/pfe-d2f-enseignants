@@ -2,7 +2,7 @@ package tn.esprit.d2f.competence.controller;
 
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
+
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -26,10 +26,8 @@ public class RiceController {
 
     @Operation(summary = "Importer la structure RICE complète",
                description = "Persiste l'éarborescence RICE validée (domaines, compétences, sous-compétences, savoirs)")
-    @ApiResponses({
-        @ApiResponse(responseCode = "200", description = "Import réussi"),
-        @ApiResponse(responseCode = "400", description = "Données RICE invalides")
-    })
+    @ApiResponse(responseCode = "200", description = "Import réussi")
+    @ApiResponse(responseCode = "400", description = "Données RICE invalides")
     @PostMapping("/import")
     @PreAuthorize(AuthorizationMatrix.RICE_CREATE)
     public ResponseEntity<RiceImportResult> importRice(
