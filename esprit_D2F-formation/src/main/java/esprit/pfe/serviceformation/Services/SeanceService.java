@@ -63,15 +63,10 @@ public class SeanceService {
 
         // 3) Test « voisin du bas »
         Map.Entry<Time, Time> prev = calendar.floorEntry(debut);
-        if (prev != null && prev.getValue().after(debut)) {
-            return false;
-        }
-        // 4) Test « voisin du haut »
         Map.Entry<Time, Time> next = calendar.ceilingEntry(debut);
-        if (next != null && next.getKey().before(fin)) {
-            return false;
-        }
-        return true;
+
+        return (prev == null || !prev.getValue().after(debut)) 
+            && (next == null || !next.getKey().before(fin));
     }
 
     /**
@@ -104,33 +99,6 @@ public class SeanceService {
         SeanceFormation saved = seanceRepo.save(entity);
         return mapEntityToDto(saved);
     }
-
-    /* public SeanceDTO createSeance(SeanceDTO dto) {
-        // Convertir DTO -> Entity
-        SeanceFormation entity = mapDtoToEntity(dto);
-
-        // Vérifier conflit pour chaque animateur
-        if (entity.getAnimateurs() != null) {
-            for (Enseignant e : entity.getAnimateurs()) {
-                if (seanceRepo.existsSeanceConflict(e.getId(),
-                        entity.getDateSeance(), entity.getHeureDebut(), entity.getHeureFin())) {
-                    throw new IllegalArgumentException("Conflit horaire pour l'enseignant (animateur) " + e.getId());
-                }
-            }
-        }
-        // Vérifier conflit pour chaque participant
-        if (entity.getParticipants() != null) {
-            for (Enseignant e : entity.getParticipants()) {
-                if (seanceRepo.existsSeanceConflict(e.getId(),
-                        entity.getDateSeance(), entity.getHeureDebut(), entity.getHeureFin())) {
-                    throw new IllegalArgumentException("Conflit horaire pour l'enseignant (participant) " + e.getId());
-                }
-            }
-        }
-
-        SeanceFormation saved = seanceRepo.save(entity);
-        return mapEntityToDto(saved);
-    }*/
 
     /**
      * READ ALL - Récupère toutes les séances
@@ -209,69 +177,6 @@ public class SeanceService {
         SeanceFormation saved = seanceRepo.save(existing);
         return mapEntityToDto(saved);
     }
-
-   /* public SeanceDTO updateSeance(Long id, SeanceDTO dto) {
-        SeanceFormation existing = seanceRepo.findById(id)
-                .orElseThrow(() -> new RuntimeException("Séance introuvable avec l'id : " + id));
-
-        // Mettre à jour la date, heure, salle
-        existing.setDateSeance(dto.getDateSeance());
-        existing.setHeureDebut(dto.getHeureDebut());
-        existing.setHeureFin(dto.getHeureFin());
-        existing.setSalle(dto.getSalle());
-
-        // Reconstruire animateurs et participants
-        List<Enseignant> animateurs = new ArrayList<>();
-        if (dto.getAnimateurs() != null) {
-            for (EnseignantDTO eDto : dto.getAnimateurs()) {
-                Enseignant e = mapDtoToEnseignant(eDto);
-                animateurs.add(e);
-            }
-        }
-        existing.getAnimateurs().clear();
-        existing.getAnimateurs().addAll(animateurs);
-
-        List<Enseignant> participants = new ArrayList<>();
-        if (dto.getParticipants() != null) {
-            for (EnseignantDTO eDto : dto.getParticipants()) {
-                Enseignant e = mapDtoToEnseignant(eDto);
-                participants.add(e);
-            }
-        }
-        existing.getParticipants().clear();
-        existing.getParticipants().addAll(participants);
-
-        // Vérifier conflits en ignorant la séance actuelle
-        // Animateurs
-        for (Enseignant e : existing.getAnimateurs()) {
-            boolean conflict = seanceRepo.existsSeanceConflictIgnoringSelf(
-                    e.getId(),
-                    existing.getDateSeance(),
-                    existing.getHeureDebut(),
-                    existing.getHeureFin(),
-                    existing.getIdSeance()
-            );
-            if (conflict) {
-                throw new IllegalArgumentException("Conflit horaire pour l'enseignant (animateur) " + e.getId());
-            }
-        }
-        // Participants
-        for (Enseignant e : existing.getParticipants()) {
-            boolean conflict = seanceRepo.existsSeanceConflictIgnoringSelf(
-                    e.getId(),
-                    existing.getDateSeance(),
-                    existing.getHeureDebut(),
-                    existing.getHeureFin(),
-                    existing.getIdSeance()
-            );
-            if (conflict) {
-                throw new IllegalArgumentException("Conflit horaire pour l'enseignant (participant) " + e.getId());
-            }
-        }
-
-        SeanceFormation saved = seanceRepo.save(existing);
-        return mapEntityToDto(saved);
-    }*/
 
     /**
      * DELETE - Supprime une séance

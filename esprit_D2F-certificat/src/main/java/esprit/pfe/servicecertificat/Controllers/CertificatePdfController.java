@@ -4,46 +4,39 @@ import esprit.pfe.servicecertificat.dto.CertificateBatchMessage;
 import esprit.pfe.servicecertificat.entities.Certificate;
 import esprit.pfe.servicecertificat.repositories.CertificateRepository;
 import esprit.pfe.servicecertificat.services.CertificatePdfGenerator;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.lang.NonNull;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/v1/certificate-pdfs")
 public class CertificatePdfController {
 
-    @Autowired
-    private CertificateRepository certificateRepository;
+    private final CertificateRepository certificateRepository;
+    private final Resource backgroundImageResource;
 
-    // Injection de l'image d'arrière-plan depuis le classpath (assurez-vous que background.jpg se trouve dans src/main/resources/templates/)
-    @Value("classpath:templates/background.jpg")
-    private Resource backgroundImageResource;
+    public CertificatePdfController(CertificateRepository certificateRepository,
+                                  @Value("classpath:templates/background.jpg") Resource backgroundImageResource) {
+        this.certificateRepository = certificateRepository;
+        this.backgroundImageResource = backgroundImageResource;
+    }
 
-    /**
-     * Génère les certificats PDF pour une formation donnée et renvoie les noms des fichiers générés.
-     * Cette méthode ne met pas à jour la base.
-     * Exemple d’URL : GET /certificate-pdfs/generate/1
-     */
     @GetMapping("/generate/{formationId}")
-    public ResponseEntity<?> generatePdfForFormation(@PathVariable Long formationId) {
+    public ResponseEntity<Object> generatePdfForFormation(@PathVariable @NonNull Long formationId) {
         try {
-            // Récupérer tous les certificats de la formation
             List<Certificate> certs = certificateRepository.findByFormationId(formationId);
             if (certs.isEmpty()) {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND)
                         .body("Aucun certificat trouvé pour la formation avec id " + formationId);
             }
 
-            // Construire un objet CertificateBatchMessage à partir des certificats récupérés
             CertificateBatchMessage message = new CertificateBatchMessage();
-            // On se base sur le premier certificat pour récupérer les infos de formation
             Certificate ref = certs.get(0);
             message.setFormationId(ref.getFormationId());
             message.setTitreFormation(ref.getTitreFormation());
@@ -61,40 +54,32 @@ public class CertificatePdfController {
                 info.setMail(cert.getMailEnseignant());
                 info.setDeptEnseignantLibelle(cert.getDeptEnseignant());
                 info.setRole(cert.getRoleEnFormation());
-                // On considère que tous les enseignants doivent recevoir leur certificat
                 info.setPresent(true);
                 enseignants.add(info);
             }
             message.setEnseignants(enseignants);
 
-            // Charger l'image d'arrière-plan depuis le classpath sous forme de bytes
             byte[] bgBytes = backgroundImageResource.getInputStream().readAllBytes();
-
-            // Appel à la méthode de génération qui crée les PDF et renvoie la liste des noms de fichiers
             List<String> generatedPdfs = CertificatePdfGenerator.generateCertificatesForAllTeachers(message, bgBytes);
-            return ResponseEntity.ok(generatedPdfs);
+            return ResponseEntity.ok((Object) generatedPdfs);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Erreur lors de la génération des certificats PDF : " + e.getMessage());
         }
     }
 
-    /**
-     * Ancien endpoint pour récupérer les chemins PDF enregistrés (non utilisé si vous ne stockez pas le path)
-     */
     @GetMapping("/formation/{formationId}")
-    public ResponseEntity<?> getPdfPathsByFormation(@PathVariable Long formationId) {
+    public ResponseEntity<Object> getPdfPathsByFormation(@PathVariable @NonNull Long formationId) {
         try {
             List<Certificate> certs = certificateRepository.findByFormationId(formationId);
             List<String> paths = certs.stream()
                     .map(Certificate::getPdfFilePath)
                     .filter(path -> path != null && !path.isEmpty())
-                    .collect(Collectors.toList());
-            return ResponseEntity.ok(paths);
+                    .toList();
+            return ResponseEntity.ok((Object) paths);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("Erreur lors de la récupération des chemins PDF : " + e.getMessage());
         }
     }
 }
-

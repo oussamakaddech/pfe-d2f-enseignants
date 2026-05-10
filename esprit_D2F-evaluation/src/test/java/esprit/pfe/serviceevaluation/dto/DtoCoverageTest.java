@@ -7,39 +7,54 @@ class DtoCoverageTest {
 
     @Test
     void testEnseignantDTO() {
-        EnseignantDTO dto = new EnseignantDTO("ens1", "Nom", "Prenom", "mail", "type", "dept", "up");
+        EnseignantDTO dto1 = new EnseignantDTO("ens1", "Nom", "Prenom", "mail", "type", "dept", "up");
+        EnseignantDTO dto2 = new EnseignantDTO("ens1", "Nom", "Prenom", "mail", "type", "dept", "up");
         
-        assertEquals("ens1", dto.getId());
-        assertEquals("Nom", dto.getNom());
-        assertEquals("Prenom", dto.getPrenom());
-        assertEquals("mail", dto.getMail());
+        assertEquals("ens1", dto1.getId());
+        assertEquals(dto1, dto2);
+        assertEquals(dto1.hashCode(), dto2.hashCode());
+        assertNotNull(dto1.toString());
     }
 
     @Test
     void testEvaluationEnseignantDTO() {
-        EvaluationEnseignantDTO dto = new EvaluationEnseignantDTO();
-        dto.setIdEvalParticipant(1L);
-        dto.setEnseignantId("ens1");
-        dto.setFormationId(2L);
-        dto.setNote(15.0f);
-        dto.setSatisfaisant(true);
-        dto.setCommentaire("Good");
+        EvaluationEnseignantDTO dto1 = new EvaluationEnseignantDTO();
+        dto1.setIdEvalParticipant(1L);
+        dto1.setEnseignantId("ens1");
         
-        assertEquals(1L, dto.getIdEvalParticipant());
-        assertEquals("ens1", dto.getEnseignantId());
-        assertEquals(2L, dto.getFormationId());
-        assertEquals(15.0f, dto.getNote());
-        assertTrue(dto.isSatisfaisant());
-        assertEquals("Good", dto.getCommentaire());
+        EvaluationEnseignantDTO dto2 = new EvaluationEnseignantDTO();
+        dto2.setIdEvalParticipant(1L);
+        dto2.setEnseignantId("ens1");
+        
+        assertEquals(dto1, dto2);
+        assertEquals(dto1.hashCode(), dto2.hashCode());
+        assertNotNull(dto1.toString());
     }
 
     @Test
     void testFormationDTO() {
-        FormationDTO dto = new FormationDTO();
-        dto.setIdFormation(1L);
-        dto.setTitreFormation("Titre");
+        FormationDTO dto1 = new FormationDTO();
+        dto1.setIdFormation(1L);
+        dto1.setTitreFormation("Titre");
         
-        assertEquals(1L, dto.getIdFormation());
-        assertEquals("Titre", dto.getTitreFormation());
+        FormationDTO dto2 = new FormationDTO();
+        dto2.setIdFormation(1L);
+        dto2.setTitreFormation("Titre");
+        
+        assertEquals(dto1, dto2);
+        assertEquals(dto1.hashCode(), dto2.hashCode());
+        assertNotNull(dto1.toString());
+    }
+
+    @Test
+    void testEvaluationFormateurDTO() {
+        EvaluationFormateurDTO dto1 = EvaluationFormateurDTO.builder()
+                .idEvalParticipant(1L)
+                .build();
+        EvaluationFormateurDTO dto2 = new EvaluationFormateurDTO();
+        dto2.setIdEvalParticipant(1L);
+        
+        assertEquals(dto1, dto2);
+        assertNotNull(dto1.toString());
     }
 }

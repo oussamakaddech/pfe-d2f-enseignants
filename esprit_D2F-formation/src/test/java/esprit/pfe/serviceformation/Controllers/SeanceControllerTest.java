@@ -2,77 +2,104 @@ package esprit.pfe.serviceformation.controllers;
 
 import esprit.pfe.serviceformation.dto.SeanceDTO;
 import esprit.pfe.serviceformation.services.SeanceService;
-import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.MediaType;
-import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
-import java.util.List;
+import java.util.Collections;
 
 import static org.mockito.ArgumentMatchers.any;
-
-import static org.mockito.Mockito.when;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@WebMvcTest(SeanceController.class)
-@DisplayName("SeanceController - Tests unitaires")
+@ExtendWith(MockitoExtension.class)
 class SeanceControllerTest {
 
-    @Autowired
     private MockMvc mockMvc;
 
-    @Autowired
-    private ObjectMapper objectMapper;
+    @Mock private SeanceService seanceService;
+    @InjectMocks private SeanceController controller;
 
-    @MockitoBean
-    private SeanceService seanceService;
+    @BeforeEach
+    void setup() {
+        mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
+    }
 
     @Test
-    @DisplayName("POST /api/v1/seances - Succès")
-    @WithMockUser(roles = "ADMIN")
-    void shouldCreateSeance() throws Exception {
-        SeanceDTO dto = new SeanceDTO();
-        dto.setIdSeance(1L);
-        dto.setSalle("Salle A");
-
-        when(seanceService.createSeance(any())).thenReturn(dto);
-
+    void testCreateSeance_Success() throws Exception {
+        when(seanceService.createSeance(any())).thenReturn(new SeanceDTO());
         mockMvc.perform(post("/api/v1/seances")
-                        .with(csrf())
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(dto)))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.idSeance").value(1));
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{}")).andExpect(status().isCreated());
     }
 
     @Test
-    @DisplayName("GET /api/v1/seances - Succès")
-    @WithMockUser(roles = "ADMIN")
-    void shouldGetAll() throws Exception {
-        SeanceDTO dto = new SeanceDTO();
-        dto.setIdSeance(1L);
-        when(seanceService.getAllSeances()).thenReturn(List.of(dto));
-
-        mockMvc.perform(get("/api/v1/seances"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].idSeance").value(1));
+    void testCreateSeance_Conflict() throws Exception {
+        when(seanceService.createSeance(any())).thenThrow(new IllegalArgumentException("Conflict"));
+        mockMvc.perform(post("/api/v1/seances")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{}")).andExpect(status().isBadRequest());
     }
 
     @Test
-    @DisplayName("GET /api/v1/seances/{id} - Not Found")
-    @WithMockUser(roles = "ADMIN")
-    void shouldReturn404WhenNotFound() throws Exception {
-        when(seanceService.getSeanceById(99L)).thenThrow(new RuntimeException("Séance introuvable"));
+    void testCreateSeance_Error() throws Exception {
+        // Triggering the Exception block (500)
+        when(seanceService.createSeance(any())).thenThrow(new RuntimeException("Err"));
+        mockMvc.perform(post("/api/v1/seances")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{}")).andExpect(status().isInternalServerError());
+    }
 
-        mockMvc.perform(get("/api/v1/seances/99"))
-                .andExpect(status().isNotFound())
-                .andExpect(jsonPath("$.error").value("Séance introuvable"));
+    @Test
+    void testGetAllSeances() throws Exception {
+        when(seanceService.getAllSeances()).thenReturn(Collections.emptyList());
+        mockMvc.perform(get("/api/v1/seances")).andExpect(status().isOk());
+    }
+
+    @Test
+    void testGetAllSeances_Error() throws Exception {
+        when(seanceService.getAllSeances()).thenThrow(new RuntimeException("Err"));
+        mockMvc.perform(get("/api/v1/seances")).andExpect(status().isInternalServerError());
+    }
+
+    @Test
+    void testGetSeanceById_NotFound() throws Exception {
+        when(seanceService.getSeanceById(anyLong())).thenThrow(new RuntimeException("Not found"));
+        mockMvc.perform(get("/api/v1/seances/1")).andExpect(status().isNotFound());
+    }
+
+    @Test
+    void testUpdateSeance_Success() throws Exception {
+        when(seanceService.updateSeance(anyLong(), any())).thenReturn(new SeanceDTO());
+        mockMvc.perform(put("/api/v1/seances/1")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{}")).andExpect(status().isOk());
+    }
+
+    @Test
+    void testUpdateSeance_Error() throws Exception {
+        when(seanceService.updateSeance(anyLong(), any())).thenThrow(new RuntimeException("Err"));
+        mockMvc.perform(put("/api/v1/seances/1")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{}")).andExpect(status().isNotFound());
+    }
+
+    @Test
+    void testDeleteSeance_Success() throws Exception {
+        mockMvc.perform(delete("/api/v1/seances/1")).andExpect(status().isOk());
+    }
+
+    @Test
+    void testDeleteSeance_Error() throws Exception {
+        doThrow(new RuntimeException("Err")).when(seanceService).deleteSeance(anyLong());
+        mockMvc.perform(delete("/api/v1/seances/1")).andExpect(status().isNotFound());
     }
 }

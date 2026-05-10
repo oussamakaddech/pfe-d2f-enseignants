@@ -70,6 +70,16 @@ public class SeanceController {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body(Map.of(KEY_ERROR, e.getMessage()));
         } catch (RuntimeException e) {
+            // Vérifier si c'est une erreur interne personnalisée
+            try {
+                Class<?> internalErrorException = Class.forName("esprit.pfe.serviceformation.controllers.InternalErrorException");
+                if (internalErrorException.isInstance(e)) {
+                    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                            .body(Map.of(KEY_ERROR, e.getMessage()));
+                }
+            } catch (ClassNotFoundException ex) {
+                // Si la classe n'existe pas, continuer avec le traitement normal
+            }
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body(Map.of(KEY_ERROR, e.getMessage()));
         } catch (Exception e) {
@@ -85,6 +95,16 @@ public class SeanceController {
             seanceService.deleteSeance(id);
             return ResponseEntity.ok("Séance supprimée avec succès !");
         } catch (RuntimeException e) {
+            // Vérifier si c'est une erreur interne personnalisée
+            try {
+                Class<?> internalErrorException = Class.forName("esprit.pfe.serviceformation.controllers.InternalErrorException");
+                if (internalErrorException.isInstance(e)) {
+                    return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                            .body(Map.of(KEY_ERROR, e.getMessage()));
+                }
+            } catch (ClassNotFoundException ex) {
+                // Si la classe n'existe pas, continuer avec le traitement normal
+            }
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body(Map.of(KEY_ERROR, e.getMessage()));
         } catch (Exception e) {

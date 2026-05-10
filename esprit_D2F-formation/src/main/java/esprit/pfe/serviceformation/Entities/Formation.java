@@ -141,4 +141,7 @@ public class Formation {
 
     private String customPeriodLabel;
 
+    @Column(name = "last_refresh_date")
+    private java.time.OffsetDateTime lastRefreshDate;
+
 }

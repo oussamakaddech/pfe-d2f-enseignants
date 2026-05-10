@@ -1,6 +1,6 @@
-package esprit.pfe.serviceanalyse.Controllers;
+package esprit.pfe.serviceanalyse.controllers;
 
-import esprit.pfe.serviceanalyse.Services.AnalysePredictiveService;
+import esprit.pfe.serviceanalyse.services.AnalysePredictiveService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;

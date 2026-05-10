@@ -1,0 +1,6 @@
+- [x] Set up project structure
+- [x] Install dependencies
+- [x] Implement main functionality
+- [x] Handle edge cases
+- [x] Test the implementation
+- [x] Verify results

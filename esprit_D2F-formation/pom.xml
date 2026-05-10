@@ -23,6 +23,8 @@
 		<msal4j.version>1.12.0</msal4j.version>
 		<microsoft.graph.version>5.77.0</microsoft.graph.version>
 		<microsoft.graph.core.version>2.0.21</microsoft.graph.core.version>
+		<sonar.projectKey>d2f_formation</sonar.projectKey>
+		<sonar.projectName>service-formation</sonar.projectName>
 	</properties>
 
 	<!-- Dependency Management : Importation des BOM pour Spring Cloud et Azure SDK -->

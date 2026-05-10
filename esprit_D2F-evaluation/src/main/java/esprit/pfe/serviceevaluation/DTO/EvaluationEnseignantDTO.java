@@ -1,13 +1,12 @@
 package esprit.pfe.serviceevaluation.dto;
 
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
-
-import lombok.Getter;
-import lombok.Setter;
-
-// DTO qui contient les infos de l'évaluation + les infos enseignant
-@Getter
-@Setter
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class EvaluationEnseignantDTO {
     // Champs relatifs à l'évaluation
     private Long idEvalParticipant;
@@ -16,15 +15,13 @@ public class EvaluationEnseignantDTO {
     private String commentaire;
 
     // Infos de l'enseignant
-    // Selon votre microservice formation-service,
-    // vous pouvez y inclure nom, prenom, email, dept, up, etc.
     private String enseignantId;
     private String nom;
     private String prenom;
     private String mail;
     private String type;
-    private String deptLibelle;  // si dispo
-    private String upLibelle;    // si dispo
+    private String deptLibelle;
+    private String upLibelle;
 
     // Éventuellement, on peut mettre la formationId ou d'autres infos
     private Long formationId;

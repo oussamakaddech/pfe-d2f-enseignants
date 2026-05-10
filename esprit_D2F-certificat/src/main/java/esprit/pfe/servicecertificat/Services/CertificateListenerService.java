@@ -2,12 +2,12 @@ package esprit.pfe.servicecertificat.services;
 
 import esprit.pfe.servicecertificat.dto.CertificateBatchMessage;
 import esprit.pfe.servicecertificat.entities.Certificate;
+import esprit.pfe.servicecertificat.exception.PdfGenerationException;
 import esprit.pfe.servicecertificat.repositories.CertificateRepository;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
-import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,12 +17,14 @@ import java.util.List;
 @Slf4j
 public class CertificateListenerService {
 
-    @Autowired
-    private CertificateRepository certificateRepository;
+    private final CertificateRepository certificateRepository;
+    private final Resource backgroundImageResource;
 
-    // Injection de l'image d'arrière-plan depuis le classpath (assurez-vous que le fichier est placé dans src/main/resources/templates/)
-    @Value("classpath:templates/background.jpg")
-    private Resource backgroundImageResource;
+    public CertificateListenerService(CertificateRepository certificateRepository,
+                                      @Value("classpath:templates/background.jpg") Resource backgroundImageResource) {
+        this.certificateRepository = certificateRepository;
+        this.backgroundImageResource = backgroundImageResource;
+    }
 
     @Transactional
     @RabbitListener(queues = "certificateQueue")
@@ -66,7 +68,7 @@ public class CertificateListenerService {
             log.info("Certificats PDF générés : {}", generatedPdfs);
         } catch (Exception e) {
             log.error("Erreur lors de la génération des PDF de certificats", e);
-            throw new RuntimeException("Erreur lors de la génération des PDF de certificats", e);
+            throw new PdfGenerationException("Erreur lors de la génération des PDF de certificats", e);
         }
 
         log.info("✅ Fin traitement: {} certificats créés pour la formationId={}.",

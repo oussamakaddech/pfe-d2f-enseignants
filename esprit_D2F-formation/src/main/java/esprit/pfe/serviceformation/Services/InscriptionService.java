@@ -75,21 +75,7 @@ public class InscriptionService {
         }
 
         // 2. Vérification du chevauchement de dates
-        List<Inscription> existingInscriptions = inscriptionRepo.findByEnseignant_Id(enseignantId);
-        for (Inscription existing : existingInscriptions) {
-            if (existing.getEtat() != EtatInscription.REJECTED) {
-                Formation existingF = existing.getFormation();
-                if (existingF.getDateDebut() != null && existingF.getDateFin() != null && f.getDateDebut() != null
-                        && f.getDateFin() != null) {
-                    boolean overlap = existingF.getDateDebut().compareTo(f.getDateFin()) <= 0
-                            && existingF.getDateFin().compareTo(f.getDateDebut()) >= 0;
-                    if (overlap) {
-                        throw new IllegalStateException(
-                                "Chevauchement détecté avec la formation: " + existingF.getTitreFormation());
-                    }
-                }
-            }
-        }
+        validateNoOverlap(enseignantId, f);
 
         // 3. Création de l'entité
         Inscription ins = new Inscription();
@@ -103,6 +89,27 @@ public class InscriptionService {
             // Simple catch pour intercepter toute violation de contrainte
             throw new IllegalStateException("Vous avez déjà fait une demande pour cette formation.");
         }
+    }
+
+    private void validateNoOverlap(String enseignantId, Formation f) {
+        List<Inscription> existingInscriptions = inscriptionRepo.findByEnseignant_Id(enseignantId);
+        for (Inscription existing : existingInscriptions) {
+            if (existing.getEtat() != EtatInscription.REJECTED) {
+                Formation existingF = existing.getFormation();
+                if (isOverlapping(existingF, f)) {
+                    throw new IllegalStateException(
+                            "Chevauchement détecté avec la formation: " + existingF.getTitreFormation());
+                }
+            }
+        }
+    }
+
+    private boolean isOverlapping(Formation f1, Formation f2) {
+        if (f1.getDateDebut() == null || f1.getDateFin() == null || f2.getDateDebut() == null || f2.getDateFin() == null) {
+            return false;
+        }
+        return f1.getDateDebut().compareTo(f2.getDateFin()) <= 0
+                && f1.getDateFin().compareTo(f2.getDateDebut()) >= 0;
     }
 
     /**

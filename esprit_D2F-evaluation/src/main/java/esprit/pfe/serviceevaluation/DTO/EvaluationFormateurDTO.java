@@ -1,12 +1,15 @@
 package esprit.pfe.serviceevaluation.dto;
 
-
 import jakarta.validation.constraints.*;
-import lombok.Getter;
-import lombok.Setter;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
-@Getter
-@Setter
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class EvaluationFormateurDTO {
     private Long idEvalParticipant;
 
@@ -25,4 +28,3 @@ public class EvaluationFormateurDTO {
     @Size(max = 500, message = "Le commentaire ne doit pas dépasser 500 caractères")
     private String commentaire;
 }
-

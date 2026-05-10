@@ -48,7 +48,7 @@ public class KPIService {
                 case "EN_COURS" -> dto.setEnCours(count.intValue());
                 case "ACHEVE" -> dto.setAcheve(count.intValue());
                 case "ANNULE" -> dto.setAnnule(count.intValue());
-                default -> {}
+                default -> { /* Ignore unknown states to prevent processing errors */ }
             }
         }
         dto.setTotal(total);
@@ -91,7 +91,7 @@ public class KPIService {
                 case INTERNE -> dto.setInterne(count);
                 case EXTERNE -> dto.setExterne(count);
                 case EN_LIGNE -> dto.setEnLigne(count);
-                default -> {}
+                default -> { /* Ignore unknown types to maintain stability */ }
             }
         }
         return dto;

@@ -25,20 +25,22 @@ public class UpService {
 
         List<Up> list = new ArrayList<>();
         for (Row row : sheet) {
-            if (row.getRowNum() == 0) continue;  // en-tête
+            if (row.getRowNum() > 0) {
+                Cell idCell = row.getCell(0);
+                Cell libCell = row.getCell(1);
 
-            Cell idCell  = row.getCell(0);
-            Cell libCell = row.getCell(1);
-            if (idCell == null || libCell == null) continue;
+                if (idCell != null && libCell != null) {
+                    String id = formatter.formatCellValue(idCell).trim();
+                    String libelle = libCell.getStringCellValue().trim();
 
-            String id       = formatter.formatCellValue(idCell).trim();
-            String libelle  = libCell.getStringCellValue().trim();
-            if (id.isEmpty() || libelle.isEmpty()) continue;
-
-            Up up = new Up();
-            up.setId(id);          // maintenant String
-            up.setLibelle(libelle);
-            list.add(up);
+                    if (!id.isEmpty() && !libelle.isEmpty()) {
+                        Up up = new Up();
+                        up.setId(id);
+                        up.setLibelle(libelle);
+                        list.add(up);
+                    }
+                }
+            }
         }
         wb.close();
 

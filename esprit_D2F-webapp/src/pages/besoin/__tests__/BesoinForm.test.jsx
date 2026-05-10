@@ -128,15 +128,27 @@ describe("BesoinForm", { timeout: 15000 }, () => {
     fireEvent.change(screen.getByPlaceholderText("Ex : 40"), {
       target: { value: "40" },
     });
-    await chooseOptionByRole("Période de formation", "Période 1");
+    fireEvent.change(screen.getByPlaceholderText("Ex : 20"), {
+      target: { value: "20" },
+    });
+    await chooseSelect("Période de formation", "Période 1");
+
+    fireEvent.click(screen.getByRole("button", { name: /Suivant/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/Autres informations/i)).toBeInTheDocument();
+    });
 
     fireEvent.click(screen.getByRole("button", { name: /Voir le récapitulatif/i }));
 
     await waitFor(() => {
       expect(screen.getByText("Récapitulatif de votre demande")).toBeInTheDocument();
-      expect(screen.getByText("Formation Test")).toBeInTheDocument();
-      expect(screen.getByText("Période 1")).toBeInTheDocument();
     });
+    
+    screen.debug(screen.getByText("Récapitulatif de votre demande").parentElement);
+
+    expect(screen.getByText(/Formation Test/i)).toBeInTheDocument();
+    expect(screen.getByText(/Période 1/i)).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole("button", { name: /Enregistrer le besoin/i }));
 

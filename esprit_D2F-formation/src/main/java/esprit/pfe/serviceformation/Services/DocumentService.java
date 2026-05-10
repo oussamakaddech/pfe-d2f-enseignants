@@ -106,7 +106,6 @@ public class DocumentService {
 
         // extraction des segments du path
         String[] parts = doc.getFilePath().split("/");
-        // …/d2F/{formation}/{pathType}/{nomDocument}/{fileName}
         String pathType    = parts[parts.length - 3];
         String nomDocument = parts[parts.length - 2];
         String fileName    = parts[parts.length - 1];

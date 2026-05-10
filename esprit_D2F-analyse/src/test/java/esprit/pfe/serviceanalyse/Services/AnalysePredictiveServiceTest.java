@@ -1,104 +1,93 @@
-package esprit.pfe.serviceanalyse.Services;
+package esprit.pfe.serviceanalyse.services;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
+import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.web.client.RestTemplate;
 
-import java.util.Map;
+import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class AnalysePredictiveServiceTest {
 
+    @Mock
+    private RestTemplate restTemplate;
+
     @InjectMocks
     private AnalysePredictiveService analysePredictiveService;
 
-    private final String testEnseignantId = "ens1";
-
     @BeforeEach
     void setUp() {
-        // Injecter les valeurs de configuration pour les tests
-        ReflectionTestUtils.setField(analysePredictiveService, "evaluationServiceUrl", "http://localhost:8083");
-        ReflectionTestUtils.setField(analysePredictiveService, "formationServiceUrl", "http://localhost:8084");
-        ReflectionTestUtils.setField(analysePredictiveService, "competenceServiceUrl", "http://localhost:8085");
-        ReflectionTestUtils.setField(analysePredictiveService, "besoinFormationServiceUrl", "http://localhost:8082");
+        ReflectionTestUtils.setField(analysePredictiveService, "evaluationServiceUrl", "http://eval");
+        ReflectionTestUtils.setField(analysePredictiveService, "formationServiceUrl", "http://form");
+        ReflectionTestUtils.setField(analysePredictiveService, "competenceServiceUrl", "http://comp");
+        ReflectionTestUtils.setField(analysePredictiveService, "besoinFormationServiceUrl", "http://besoin");
     }
 
     @Test
-    void testAnalyserEnseignant_WithCompetenceCible() {
-        // Arrange
-        Long competenceCible = 1L;
+    void testAnalyserEnseignant_FullSuccess() {
+        // Mock competence data
+        Map<String, Object> comp = new HashMap<>();
+        comp.put("id", 1L);
+        comp.put("nom", "Java");
+        Map<String, Object> aff = new HashMap<>();
+        aff.put("competence", comp);
+        aff.put("niveauMaitrise", 2);
+        
+        Map<String, Object> formation = new HashMap<>();
+        formation.put("idFormation", 100);
+        formation.put("titreFormation", "Java Advanced");
 
-        // Act
-        Map<String, Object> result = analysePredictiveService.analyserEnseignant(testEnseignantId, competenceCible);
+        Map<String, Object> fc = new HashMap<>();
+        fc.put("competenceId", 1L);
+        fc.put("competenceNom", "Java");
 
-        // Assert
+        when(restTemplate.getForObject(anyString(), eq(List.class)))
+            .thenReturn(List.of(aff)) // identifierGaps
+            .thenReturn(List.of(formation)) // formations
+            .thenReturn(List.of(fc)) // checkFormationCibleGaps
+            .thenReturn(Collections.emptyList()) // detectBesoins
+            .thenReturn(Collections.emptyList()); // genererDashboardEnseignant (identifierGaps again)
+
+        Map<String, Object> result = analysePredictiveService.analyserEnseignant("ens1", 1L);
+
         assertNotNull(result);
-        assertEquals(testEnseignantId, result.get("enseignantId"));
-        assertTrue(result.containsKey("gaps"));
-        assertTrue(result.containsKey("recommandationsFormations"));
-        assertTrue(result.containsKey("besoinsDetectes"));
-        assertTrue(result.containsKey("dashboard"));
-        assertEquals("Analyse ciblée compétence " + competenceCible, result.get("competenceAnalysee"));
+        List<Map<String, Object>> gaps = (List<Map<String, Object>>) result.get("gaps");
+        assertEquals(2.0, gaps.get(0).get("gap"));
     }
 
     @Test
-    void testAnalyserEnseignant_WithoutCompetenceCible() {
-        // Act
-        Map<String, Object> result = analysePredictiveService.analyserEnseignant(testEnseignantId, null);
+    void testAnalyserTendancesGlobales_FullSuccess() {
+        Map<String, Object> eval = new HashMap<>();
+        eval.put("note", 4.5);
+        eval.put("evaluateurId", "admin");
+        when(restTemplate.getForObject(anyString(), eq(List.class))).thenReturn(List.of(eval));
 
-        // Assert
+        Map<String, Object> result = analysePredictiveService.analyserTendancesGlobales();
+
         assertNotNull(result);
-        assertEquals(testEnseignantId, result.get("enseignantId"));
-        assertTrue(result.containsKey("gaps"));
-        assertTrue(result.containsKey("recommandationsFormations"));
-        assertTrue(result.containsKey("besoinsDetectes"));
-        assertTrue(result.containsKey("dashboard"));
-        assertEquals("Analyse globale du profil", result.get("competenceAnalysee"));
+        Map<String, Object> stats = (Map<String, Object>) result.get("statistiques");
+        assertEquals(1, stats.get("totalEvaluations"));
+        assertEquals(4.5, stats.get("noteMoyenne"));
     }
 
     @Test
-    void testParseNiveau_ValidNumber() {
-        // Cette méthode est privée, mais nous testons indirectement via analyserEnseignant
-        // Le test réel nécessiterait un mock du RestTemplate
-        assertNotNull(analysePredictiveService);
-    }
+    void testAnalyserEnseignant_ServiceFailureFallbacks() {
+        // Simulate failures for all services
+        when(restTemplate.getForObject(anyString(), eq(List.class))).thenThrow(new RuntimeException("Service down"));
 
-    @Test
-    void testAnalyserEnseignant_StructureResult() {
-        // Act
-        Map<String, Object> result = analysePredictiveService.analyserEnseignant(testEnseignantId, null);
+        Map<String, Object> result = analysePredictiveService.analyserEnseignant("ens1", null);
 
-        // Assert - Vérifier la structure du résultat
         assertNotNull(result);
-        assertTrue(result.containsKey("enseignantId"));
-        assertTrue(result.containsKey("competenceAnalysee"));
-        assertTrue(result.containsKey("gaps"));
-        assertTrue(result.containsKey("recommandationsFormations"));
-        assertTrue(result.containsKey("besoinsDetectes"));
-        assertTrue(result.containsKey("dashboard"));
-    }
-
-    @Test
-    void testAnalyserEnseignant_EnseignantIdNotNull() {
-        // Act
-        Map<String, Object> result = analysePredictiveService.analyserEnseignant(testEnseignantId, null);
-
-        // Assert
-        assertNotNull(result.get("enseignantId"));
-        assertEquals(testEnseignantId, result.get("enseignantId"));
-    }
-
-    @Test
-    void testAnalyserEnseignant_ReturnsLinkedHashMap() {
-        // Act
-        Map<String, Object> result = analysePredictiveService.analyserEnseignant(testEnseignantId, null);
-
-        // Assert - Vérifier que le résultat est une LinkedHashMap (préserve l'ordre)
-        assertTrue(result instanceof java.util.LinkedHashMap);
+        // Should have empty gaps if all fallbacks fail
+        assertTrue(((List)result.get("gaps")).isEmpty());
     }
 }

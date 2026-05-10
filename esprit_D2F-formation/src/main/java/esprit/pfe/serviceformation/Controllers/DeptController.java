@@ -41,10 +41,9 @@ public class DeptController {
     // Récupérer un département par ID
     @GetMapping("/{id}")
     public ResponseEntity<Dept> getDeptById(@PathVariable String id){
-        return ResponseEntity.ok(
-                deptRepository.findById(id)
-                        .orElseThrow(() -> new RuntimeException("Département introuvable : " + id))
-        );
+        return deptRepository.findById(id)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
     }
 
     // Ajouter un département
@@ -57,11 +56,12 @@ public class DeptController {
     // Mettre à jour un département
     @PutMapping("/{id}")
     public ResponseEntity<Dept> updateDept(@PathVariable String id, @RequestBody Dept dept){
-        Dept existing = deptRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Département introuvable : " + id));
-        existing.setLibelle(dept.getLibelle());
-        Dept updated = deptRepository.save(existing);
-        return ResponseEntity.ok(updated);
+        return deptRepository.findById(id)
+                .map(existing -> {
+                    existing.setLibelle(dept.getLibelle());
+                    return ResponseEntity.ok(deptRepository.save(existing));
+                })
+                .orElse(ResponseEntity.notFound().build());
     }
 
     // Supprimer un département

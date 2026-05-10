@@ -5,7 +5,6 @@ import esprit.pfe.servicecertificat.dto.CertificateResponse;
 import esprit.pfe.servicecertificat.entities.Certificate;
 import esprit.pfe.servicecertificat.repositories.CertificateRepository;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -19,14 +18,16 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/v1/certificates")
 public class CertificateController {
 
-    @Autowired
-    private CertificateRepository certificateRepository;
+    private final CertificateRepository certificateRepository;
+
+    public CertificateController(CertificateRepository certificateRepository) {
+        this.certificateRepository = certificateRepository;
+    }
 
     @PostMapping
     public ResponseEntity<CertificateResponse> createCertificate(@Valid @RequestBody CertificateRequest request) {
@@ -40,14 +41,14 @@ public class CertificateController {
     public List<CertificateResponse> getAll() {
         return certificateRepository.findAll().stream()
                 .map(this::mapToResponse)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @GetMapping("/formation/{formationId}")
     public List<CertificateResponse> getByFormation(@PathVariable Long formationId) {
         return certificateRepository.findByFormationId(formationId).stream()
                 .map(this::mapToResponse)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @PutMapping("/{id}/deliver")
@@ -63,26 +64,16 @@ public class CertificateController {
         String email = jwt.getClaim("email");
         return certificateRepository.findByMailEnseignant(email).stream()
                 .map(this::mapToResponse)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<CertificateResponse> updateCertificate(@PathVariable Long id, @Valid @RequestBody CertificateRequest request) {
+    public ResponseEntity<CertificateResponse> updateCertificate(@PathVariable Long id,
+            @Valid @RequestBody CertificateRequest request) {
         Certificate cert = certificateRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Certificat introuvable"));
-        
-        cert.setTitreFormation(request.getTitreFormation());
-        cert.setTypeCertif(request.getTypeCertif());
-        cert.setDateDebutFormation(request.getDateDebutFormation());
-        cert.setDateFinFormation(request.getDateFinFormation());
-        cert.setChargeHoraireGlobal(request.getChargeHoraireGlobal());
-        cert.setNomEnseignant(request.getNomEnseignant());
-        cert.setPrenomEnseignant(request.getPrenomEnseignant());
-        cert.setMailEnseignant(request.getMailEnseignant());
-        cert.setDeptEnseignant(request.getDeptEnseignant());
-        cert.setRoleEnFormation(request.getRoleEnFormation());
-        cert.setEnseignantId(request.getEnseignantId());
-        cert.setFormationId(request.getFormationId());
+
+        updateEntityFromRequest(cert, request);
 
         return ResponseEntity.ok(mapToResponse(certificateRepository.save(cert)));
     }
@@ -108,6 +99,11 @@ public class CertificateController {
 
     private Certificate mapToEntity(CertificateRequest req) {
         Certificate cert = new Certificate();
+        updateEntityFromRequest(cert, req);
+        return cert;
+    }
+
+    private void updateEntityFromRequest(Certificate cert, CertificateRequest req) {
         cert.setFormationId(req.getFormationId());
         cert.setTitreFormation(req.getTitreFormation());
         cert.setTypeCertif(req.getTypeCertif());
@@ -120,8 +116,5 @@ public class CertificateController {
         cert.setMailEnseignant(req.getMailEnseignant());
         cert.setDeptEnseignant(req.getDeptEnseignant());
         cert.setRoleEnFormation(req.getRoleEnFormation());
-        return cert;
     }
 }
-
-

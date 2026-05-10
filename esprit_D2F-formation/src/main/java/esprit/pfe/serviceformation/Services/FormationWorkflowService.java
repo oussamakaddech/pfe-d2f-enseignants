@@ -4,6 +4,7 @@ import esprit.pfe.serviceformation.dto.*;
 import esprit.pfe.serviceformation.entities.*;
 import esprit.pfe.serviceformation.repositories.*;
 import esprit.pfe.serviceformation.microsoft.OutlookCalendarService;
+import esprit.pfe.serviceformation.microsoft.OutlookEventParameters;
 import esprit.pfe.serviceformation.microsoft.OutlookMailService;
 import esprit.pfe.serviceformation.messaging.EvaluationBatchMessage;
 import esprit.pfe.serviceformation.messaging.EvaluationPublisher;
@@ -36,17 +37,19 @@ public class FormationWorkflowService {
     private final EvaluationPublisher evaluationPublisher;
     private final OutlookCalendarService outlookCalendarService;
     private final OutlookMailService outlookMailService;
+    private final FormationWorkflowServiceHelper helper;
 
     public FormationWorkflowService(DocumentRepository documentRepository,
-                                  FormationRepository formationRepository,
-                                  SeanceFormationRepository seanceFormationRepository,
-                                  EnseignantRepository enseignantRepository,
-                                  PresenceRepository presenceRepository,
-                                  DeptRepository departementRepository,
-                                  UpRepository upRepository,
-                                  EvaluationPublisher evaluationPublisher,
-                                  OutlookCalendarService outlookCalendarService,
-                                  OutlookMailService outlookMailService) {
+            FormationRepository formationRepository,
+            SeanceFormationRepository seanceFormationRepository,
+            EnseignantRepository enseignantRepository,
+            PresenceRepository presenceRepository,
+            DeptRepository departementRepository,
+            UpRepository upRepository,
+            EvaluationPublisher evaluationPublisher,
+            OutlookCalendarService outlookCalendarService,
+            OutlookMailService outlookMailService,
+            FormationWorkflowServiceHelper helper) {
         this.documentRepository = documentRepository;
         this.formationRepository = formationRepository;
         this.seanceFormationRepository = seanceFormationRepository;
@@ -57,32 +60,17 @@ public class FormationWorkflowService {
         this.evaluationPublisher = evaluationPublisher;
         this.outlookCalendarService = outlookCalendarService;
         this.outlookMailService = outlookMailService;
+        this.helper = helper;
     }
 
     private static final String ORGANIZER_EMAIL = "Application.Formationdesformateurs@Esprit.tn";
-    private static final String TIMEZONE_TUNIS = "Africa/Tunis";
 
     private Time parseTime(String heure) {
-        if (heure == null || heure.isBlank()) {
-            throw new IllegalArgumentException("Heure invalide (vide). Format attendu: HH:mm ou HH:mm:ss");
-        }
-        if (heure.matches("^\\d{2}:\\d{2}$")) {
-            heure += ":00";
-        }
-        try {
-            return Time.valueOf(heure);
-        } catch (Exception e) {
-            throw new IllegalArgumentException("Heure invalide (" + heure + "). Format attendu: HH:mm ou HH:mm:ss");
-        }
+        return helper.parseTime(heure);
     }
 
     private OffsetDateTime convertToOffsetDateTime(java.util.Date dateUtil, java.sql.Time time) {
-        LocalDate localDate = dateUtil.toInstant()
-                .atZone(ZoneId.of(TIMEZONE_TUNIS))
-                .toLocalDate();
-        LocalTime localTime = time.toLocalTime();
-        ZonedDateTime zonedDateTime = ZonedDateTime.of(localDate, localTime, ZoneId.of(TIMEZONE_TUNIS));
-        return zonedDateTime.toOffsetDateTime();
+        return helper.convertToOffsetDateTime(dateUtil, time);
     }
 
     private void ensureNoConflict(
@@ -92,42 +80,8 @@ public class FormationWorkflowService {
             Time fin,
             boolean isAnimateur,
             Long ignoreSeanceId,
-            Long ignoreFormationId
-    ) {
-        boolean existsConflict = (ignoreSeanceId == null)
-                ? seanceFormationRepository.existsSeanceConflict(userId, date, debut, fin)
-                : seanceFormationRepository.existsSeanceConflictIgnoringSelf(userId, date, debut, fin, ignoreSeanceId);
-
-        if (!existsConflict) {
-            return;
-        }
-
-        List<SeanceFormation> existantes = isAnimateur
-                ? seanceFormationRepository.findByAnimateurAndDate(userId, date)
-                : seanceFormationRepository.findByParticipantAndDate(userId, date);
-
-        SeanceFormation conflit = existantes.stream()
-                .filter(s -> ignoreSeanceId == null || !s.getIdSeance().equals(ignoreSeanceId))
-                .filter(s -> ignoreFormationId == null || !s.getFormation().getIdFormation().equals(ignoreFormationId))
-                .filter(s -> s.getHeureDebut().before(fin) && s.getHeureFin().after(debut))
-                .findFirst()
-                .orElse(null);
-
-        if (conflit == null) {
-            return;
-        }
-
-        Enseignant user = enseignantRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("Enseignant introuvable : " + userId));
-
-        String role = isAnimateur ? "animateur" : "participant";
-        String userInfo = user.getNom() + " " + user.getPrenom() + " (" + user.getMail() + ")";
-        String formationTitre = conflit.getFormation().getTitreFormation();
-
-        throw new IllegalStateException(
-                String.format("Conflit %s %s : seance le %tF de %tR a %tR pour la formation %s",
-                        role, userInfo, conflit.getDateSeance(),
-                        conflit.getHeureDebut(), conflit.getHeureFin(), formationTitre));
+            Long ignoreFormationId) {
+        helper.ensureNoConflict(userId, date, debut, fin, isAnimateur, ignoreSeanceId, ignoreFormationId);
     }
 
     @Transactional
@@ -137,187 +91,57 @@ public class FormationWorkflowService {
                 .orElse(Collections.emptyList());
 
         Formation formation = new Formation();
-        formation.setIdBesoinFormation(request.getIdBesoinFormation());
-        formation.setTypeBesoin(request.getTypeBesoin());
-        formation.setTitreFormation(request.getTitreFormation());
-        formation.setDateDebut(request.getDateDebut());
-        formation.setDateFin(request.getDateFin());
-        formation.setTypeFormation(request.getTypeFormation());
-        formation.setExterneFormateurNom(request.getExterneFormateurNom());
-        formation.setExterneFormateurPrenom(request.getExterneFormateurPrenom());
-        formation.setExterneFormateurEmail(request.getExterneFormateurEmail());
-        formation.setEtatFormation(EtatFormation.ENREGISTRE);
-        formation.setCoutFormation(request.getCoutFormation());
-        formation.setOrganismeRefExterne(request.getOrganismeRefExterne());
-        formation.setChargeHoraireGlobal(request.getChargeHoraireGlobal());
-        formation.setDomaine(request.getDomaine());
-        formation.setCompetance(request.getCompetance());
-        formation.setPopulationCible(request.getPopulationCible());
-        formation.setObjectifs(request.getObjectifs());
-        formation.setObjectifsPedago(request.getObjectifsPedago());
-        formation.setEvalMethods(request.getEvalMethods());
-        formation.setPrerequis(request.getPrerequis());
-        formation.setAcquis(request.getAcquis());
-        formation.setIndicateurs(request.getIndicateurs());
-        formation.setCoutTransport(request.getCoutTransport());
-        formation.setCoutHebergement(request.getCoutHebergement());
-        formation.setCoutRepas(request.getCoutRepas());
-        formation.setOuverte(request.isOuverte());
-        if (request.getPeriodCode() != null) {
-            try {
-                formation.setPeriodCode(PeriodCode.valueOf(request.getPeriodCode()));
-            } catch (Exception e) {
-                formation.setPeriodCode(PeriodCode.OTHER);
-            }
-        }
-        formation.setCustomPeriodLabel(request.getCustomPeriodLabel());
-
-        if (request.getUpId() != null && !request.getUpId().isBlank()) {
-            Up up = upRepository.findById(request.getUpId())
-                    .orElseThrow(() -> new IllegalArgumentException("UP introuvable pour l'id " + request.getUpId()));
-            formation.setUp(up);
-        }
-
-        if (request.getDepartementId() != null && !request.getDepartementId().isBlank()) {
-            Dept dept = departementRepository.findById(request.getDepartementId())
-                    .orElseThrow(() -> new IllegalArgumentException(
-                            "Departement introuvable pour l'id " + request.getDepartementId()));
-            formation.setDepartement(dept);
-        }
-
+        helper.initFormationFromRequest(formation, request);
         formation = formationRepository.save(formation);
 
-        List<Enseignant> participants = partIds.isEmpty() ? List.of() : enseignantRepository.findAllById(partIds);
-
-        List<SeanceFormation> seances = new ArrayList<>();
-        for (FormationWorkflowRequest.SeanceRequest sr : seanceReqs) {
-            if (sr.getDateSeance().before(request.getDateDebut()) ||
-                    sr.getDateSeance().after(request.getDateFin())) {
-                throw new IllegalStateException("Seance hors plage : " + sr.getDateSeance());
-            }
-
-            Time hd = parseTime(sr.getHeureDebut());
-            Time hf = parseTime(sr.getHeureFin());
-
-            List<String> seanceAnimIds = Optional.ofNullable(sr.getAnimateursIds())
-                    .orElse(Collections.emptyList());
-
-            for (String aid : seanceAnimIds) {
-                ensureNoConflict(aid, sr.getDateSeance(), hd, hf, true, null, null);
-            }
-            for (String pid : partIds) {
-                ensureNoConflict(pid, sr.getDateSeance(), hd, hf, false, null, null);
-            }
-
-            SeanceFormation sf = new SeanceFormation();
-            sf.setFormation(formation);
-            sf.setDateSeance(sr.getDateSeance());
-            sf.setHeureDebut(hd);
-            sf.setHeureFin(hf);
-            sf.setTypeSeance(sr.getTypeSeance());
-            sf.setContenus(sr.getContenus());
-            sf.setMethodes(sr.getMethodes());
-            sf.setDureeTheorique(sr.getDureeTheorique());
-            sf.setDureePratique(sr.getDureePratique());
-            sf.setSalle(sr.getSalle());
-
-            if (sr.getSalle() != null && !sr.getSalle().isBlank()) {
-                if (seanceFormationRepository.existsSalleConflict(sr.getSalle(), sr.getDateSeance(), hd, hf)) {
-                    throw new IllegalStateException(
-                            "Conflit de salle : " + sr.getSalle() + " est deja reservee le "
-                                    + sr.getDateSeance() + " de " + sr.getHeureDebut() + " a " + sr.getHeureFin());
-                }
-            }
-
-            List<Enseignant> animateursSeance = seanceAnimIds.isEmpty()
-                    ? new ArrayList<>()
-                    : new ArrayList<>(enseignantRepository.findAllById(seanceAnimIds));
-
-            sf.setAnimateurs(animateursSeance);
-            sf.setParticipants(participants);
-
-            seances.add(sf);
-        }
-
+        List<SeanceFormation> seances = helper.createSeancesForFormation(formation, seanceReqs, partIds);
         seanceFormationRepository.saveAll(seances);
 
-        List<Presence> allPresences = new ArrayList<>();
-        for (SeanceFormation sf : seances) {
-            if (sf.getParticipants() != null) {
-                for (Enseignant pt : sf.getParticipants()) {
-                    Presence p = new Presence();
-                    p.setSeanceFormation(sf);
-                    p.setEnseignant(pt);
-                    p.setPresent(false);
-                    p.setCommentaire("Presence a valider");
-                    allPresences.add(p);
-                }
-            }
-        }
+        List<Presence> allPresences = helper.createPresencesForSeances(seances);
         presenceRepository.saveAll(allPresences);
 
-        Set<String> seen = new HashSet<>();
-        List<EvaluationFormateurDTO> evaluationDTOs = new ArrayList<>();
-        for (SeanceFormation sf : seances) {
-            for (Enseignant pt : sf.getParticipants()) {
-                String key = pt.getId() + "-" + formation.getIdFormation();
-                if (!seen.contains(key)) {
-                    seen.add(key);
-                    EvaluationFormateurDTO dto = new EvaluationFormateurDTO();
-                    dto.setEnseignantId(pt.getId());
-                    dto.setFormationId(formation.getIdFormation());
-                    dto.setNote(0f);
-                    dto.setSatisfaisant(false);
-                    dto.setCommentaire("N/A");
-                    evaluationDTOs.add(dto);
-                }
-            }
-            for (Enseignant anim : sf.getAnimateurs()) {
-                String key = anim.getId() + "-" + formation.getIdFormation();
-                if (!seen.contains(key)) {
-                    seen.add(key);
-                    EvaluationFormateurDTO dto = new EvaluationFormateurDTO();
-                    dto.setEnseignantId(anim.getId());
-                    dto.setFormationId(formation.getIdFormation());
-                    dto.setNote(0f);
-                    dto.setSatisfaisant(false);
-                    dto.setCommentaire("N/A");
-                    evaluationDTOs.add(dto);
-                }
-            }
-        }
+        List<EvaluationFormateurDTO> evaluationDTOs = helper.createEvaluationDTOs(seances, formation);
+        publishEvaluationBatch(formation.getIdFormation(), evaluationDTOs);
 
+        sendCreationNotifications(formation);
+
+        formation.setSeances(seances);
+        return formationRepository.save(formation);
+    }
+
+    private void publishEvaluationBatch(Long formationId, List<EvaluationFormateurDTO> dtos) {
         try {
             evaluationPublisher.sendCreate(
                     new EvaluationBatchMessage(
-                            formation.getIdFormation(),
-                            evaluationDTOs.stream()
+                            formationId,
+                            dtos.stream()
                                     .map(dto -> new EvaluationBatchMessage.EvaluationItem(
-                                             dto.getEnseignantId(),
-                                             dto.getNote(),
-                                             dto.isSatisfaisant(),
-                                             dto.getCommentaire()))
+                                            dto.getEnseignantId(),
+                                            dto.getNote(),
+                                            dto.isSatisfaisant(),
+                                            dto.getCommentaire()))
                                     .toList()));
         } catch (Exception ex) {
             log.warn("Impossible d'envoyer le message d'evaluation au broker: {}", ex.getMessage());
         }
+    }
 
+    private void sendCreationNotifications(Formation formation) {
         try {
             String subject = "[D2F] Nouvelle Formation Creee : " + formation.getTitreFormation();
             String htmlContent = String.format(
-                "<h3>Nouvelle Formation Enregistree</h3>" +
-                "<p>Une nouvelle formation a ete creee.</p>" +
-                "<ul>" +
-                "<li><strong>Titre :</strong> %s</li>" +
-                "<li><strong>Date Debut :</strong> %s</li>" +
-                "<li><strong>Type :</strong> %s</li>" +
-                "<li><strong>Domaine :</strong> %s</li>" +
-                "</ul>",
-                formation.getTitreFormation(),
-                formation.getDateDebut(),
-                formation.getTypeFormation(),
-                formation.getDomaine()
-            );
+                    "<h3>Nouvelle Formation Enregistree</h3>" +
+                            "<p>Une nouvelle formation a ete creee.</p>" +
+                            "<ul>" +
+                            "<li><strong>Titre :</strong> %s</li>" +
+                            "<li><strong>Date Debut :</strong> %s</li>" +
+                            "<li><strong>Type :</strong> %s</li>" +
+                            "<li><strong>Domaine :</strong> %s</li>" +
+                            "</ul>",
+                    formation.getTitreFormation(),
+                    formation.getDateDebut(),
+                    formation.getTypeFormation(),
+                    formation.getDomaine());
             outlookMailService.sendMail(ORGANIZER_EMAIL, subject, htmlContent);
 
             if (formation.getUp() != null) {
@@ -325,21 +149,17 @@ public class FormationWorkflowService {
                 for (Enseignant cup : cups) {
                     String cupSubject = "[D2F] Formation a planifier : " + formation.getTitreFormation();
                     String cupHtml = String.format(
-                        "<h3>Action Requise : Planification</h3>" +
-                        "<p>Bonjour %s %s,</p>" +
-                        "<p>Une nouvelle formation UP %s a ete enregistree.</p>",
-                        cup.getPrenom(), cup.getNom(),
-                        formation.getUp().getLibelle()
-                    );
+                            "<h3>Action Requise : Planification</h3>" +
+                                    "<p>Bonjour %s %s,</p>" +
+                                    "<p>Une nouvelle formation UP %s a ete enregistree.</p>",
+                            cup.getPrenom(), cup.getNom(),
+                            formation.getUp().getLibelle());
                     outlookMailService.sendMail(cup.getMail(), cupSubject, cupHtml);
                 }
             }
         } catch (Exception ex) {
             log.warn("Echec de l'envoi des notifications de creation : {}", ex.getMessage());
         }
-
-        formation.setSeances(seances);
-        return formationRepository.save(formation);
     }
 
     @Transactional
@@ -387,7 +207,7 @@ public class FormationWorkflowService {
         formation.setCoutHebergement(request.getCoutHebergement());
         formation.setCoutRepas(request.getCoutRepas());
         formation.setOuverte(request.isOuverte());
-        
+
         if (request.getPeriodCode() != null) {
             try {
                 formation.setPeriodCode(PeriodCode.valueOf(request.getPeriodCode()));
@@ -441,7 +261,8 @@ public class FormationWorkflowService {
         }
         Hibernate.initialize(managedList);
         if (managedList.isEmpty()) {
-            List<SeanceFormation> dbSeances = seanceFormationRepository.findByFormation_IdFormation(formation.getIdFormation());
+            List<SeanceFormation> dbSeances = seanceFormationRepository
+                    .findByFormation_IdFormation(formation.getIdFormation());
             if (dbSeances != null && !dbSeances.isEmpty()) {
                 managedList.addAll(dbSeances);
             }
@@ -449,8 +270,10 @@ public class FormationWorkflowService {
         return managedList;
     }
 
-    private void processSeanceRequests(Formation formation, FormationWorkflowRequest request, Map<String, Enseignant> enseignantMap, List<SeanceFormation> managedList) {
-        List<FormationWorkflowRequest.SeanceRequest> seanceReqs = Optional.ofNullable(request.getSeances()).orElse(Collections.emptyList());
+    private void processSeanceRequests(Formation formation, FormationWorkflowRequest request,
+            Map<String, Enseignant> enseignantMap, List<SeanceFormation> managedList) {
+        List<FormationWorkflowRequest.SeanceRequest> seanceReqs = Optional.ofNullable(request.getSeances())
+                .orElse(Collections.emptyList());
         Map<Long, SeanceFormation> existingMap = new HashMap<>();
         for (SeanceFormation sf : new ArrayList<>(managedList)) {
             existingMap.put(sf.getIdSeance(), sf);
@@ -459,13 +282,17 @@ public class FormationWorkflowService {
         for (FormationWorkflowRequest.SeanceRequest sr : seanceReqs) {
             boolean isNew = sr.getIdSeance() == null;
             SeanceFormation sf = isNew ? new SeanceFormation() : existingMap.remove(sr.getIdSeance());
-            if (sf == null) throw new IllegalStateException("Seance inconnue : " + sr.getIdSeance());
-            if (isNew) sf.setFormation(formation);
+            if (sf == null)
+                throw new IllegalStateException("Seance inconnue : " + sr.getIdSeance());
+            if (isNew)
+                sf.setFormation(formation);
 
-            updateSeanceDetails(sf, sr, isNew, formation.getIdFormation());
-            assignParticipantsToSeance(sf, sr, request.getParticipantsIds(), enseignantMap, isNew, formation.getIdFormation());
+            updateSeanceDetails(sf, sr, isNew);
+            assignParticipantsToSeance(sf, sr, request.getParticipantsIds(), enseignantMap, isNew,
+                    formation.getIdFormation());
 
-            if (isNew) managedList.add(sf);
+            if (isNew)
+                managedList.add(sf);
         }
 
         for (SeanceFormation orphan : existingMap.values()) {
@@ -474,7 +301,7 @@ public class FormationWorkflowService {
         }
     }
 
-    private void updateSeanceDetails(SeanceFormation sf, FormationWorkflowRequest.SeanceRequest sr, boolean isNew, Long formationId) {
+    private void updateSeanceDetails(SeanceFormation sf, FormationWorkflowRequest.SeanceRequest sr, boolean isNew) {
         sf.setDateSeance(sr.getDateSeance());
         Time hd = parseTime(sr.getHeureDebut());
         Time hf = parseTime(sr.getHeureFin());
@@ -483,10 +310,13 @@ public class FormationWorkflowService {
         sf.setSalle(sr.getSalle());
 
         if (sr.getSalle() != null && !sr.getSalle().isBlank()) {
-            boolean conflict = isNew ? seanceFormationRepository.existsSalleConflict(sr.getSalle(), sr.getDateSeance(), hd, hf)
-                    : seanceFormationRepository.existsSalleConflictIgnoringSelf(sr.getSalle(), sr.getDateSeance(), hd, hf, sr.getIdSeance());
+            boolean conflict = isNew
+                    ? seanceFormationRepository.existsSalleConflict(sr.getSalle(), sr.getDateSeance(), hd, hf)
+                    : seanceFormationRepository.existsSalleConflictIgnoringSelf(sr.getSalle(), sr.getDateSeance(), hd,
+                            hf, sr.getIdSeance());
             if (conflict) {
-                throw new IllegalStateException("Conflit de salle pour la seance salle " + sr.getSalle() + " le " + sr.getDateSeance());
+                throw new IllegalStateException(
+                        "Conflit de salle pour la seance salle " + sr.getSalle() + " le " + sr.getDateSeance());
             }
         }
         sf.setTypeSeance(sr.getTypeSeance());
@@ -496,14 +326,19 @@ public class FormationWorkflowService {
         sf.setDureePratique(sr.getDureePratique());
     }
 
-    private void assignParticipantsToSeance(SeanceFormation sf, FormationWorkflowRequest.SeanceRequest sr, List<String> partIds, Map<String, Enseignant> enseignantMap, boolean isNew, Long formationId) {
+    private void assignParticipantsToSeance(SeanceFormation sf, FormationWorkflowRequest.SeanceRequest sr,
+            List<String> partIds, Map<String, Enseignant> enseignantMap, boolean isNew, Long formationId) {
         List<String> seanceAnimIds = Optional.ofNullable(sr.getAnimateursIds()).orElse(Collections.emptyList());
+        if (partIds == null)
+            partIds = Collections.emptyList();
         Time hd = sf.getHeureDebut();
         Time hf = sf.getHeureFin();
         Long ignoreId = isNew ? null : sr.getIdSeance();
 
-        for (String aid : seanceAnimIds) ensureNoConflict(aid, sr.getDateSeance(), hd, hf, true, ignoreId, formationId);
-        for (String pid : partIds) ensureNoConflict(pid, sr.getDateSeance(), hd, hf, false, ignoreId, formationId);
+        for (String aid : seanceAnimIds)
+            ensureNoConflict(aid, sr.getDateSeance(), hd, hf, true, ignoreId, formationId);
+        for (String pid : partIds)
+            ensureNoConflict(pid, sr.getDateSeance(), hd, hf, false, ignoreId, formationId);
 
         sf.setAnimateurs(seanceAnimIds.stream().map(enseignantMap::get).filter(Objects::nonNull).toList());
         sf.setParticipants(partIds.stream().map(enseignantMap::get).filter(Objects::nonNull).toList());
@@ -521,7 +356,8 @@ public class FormationWorkflowService {
     }
 
     private void syncPresencesForSeances(List<SeanceFormation> seances, List<String> partIds) {
-        if (partIds == null) return;
+        if (partIds == null)
+            return;
         for (SeanceFormation sf : seances) {
             if (sf.getIdSeance() != null) {
                 syncPresencesForSeance(sf, partIds);
@@ -530,7 +366,8 @@ public class FormationWorkflowService {
     }
 
     private void publishEvaluationUpdatesIfPossible(Long formationId, List<String> partIds) {
-        if (partIds == null || partIds.isEmpty()) return;
+        if (partIds == null || partIds.isEmpty())
+            return;
         List<EvaluationBatchMessage.EvaluationItem> items = partIds.stream()
                 .map(id -> new EvaluationBatchMessage.EvaluationItem(id, 0f, false, "N/A"))
                 .toList();
@@ -580,7 +417,8 @@ public class FormationWorkflowService {
     private static final DateTimeFormatter TIME_FMT = DateTimeFormatter.ofPattern("HH:mm");
 
     private String formatDate(java.util.Date date) {
-        return date.toInstant().atZone(ZoneId.of(TIMEZONE_TUNIS)).toLocalDate().format(DATE_FMT);
+        return date.toInstant().atZone(ZoneId.of(FormationWorkflowServiceHelper.TIMEZONE_TUNIS)).toLocalDate()
+                .format(DATE_FMT);
     }
 
     private String formatTime(java.sql.Time time) {
@@ -598,7 +436,7 @@ public class FormationWorkflowService {
                 "</body></html>";
     }
 
-    private String buildEmailContent(Formation formation, SeanceFormation currentSeance) {
+    private String buildEmailContent(Formation formation) {
         String animateursStr = formation.getSeances().stream()
                 .flatMap(s -> s.getAnimateurs().stream())
                 .map(e -> e.getNom() + " " + e.getPrenom())
@@ -625,7 +463,7 @@ public class FormationWorkflowService {
                 "<h3>Detail des seances :</h3>" + seancesHtml.toString() + "</body></html>";
     }
 
-    private String buildCancellationEmailContent(String formationTitle, SeanceFormation seance) {
+    private String buildCancellationEmailContent(String formationTitle) {
         return "<html><body><h1>Annulation : " + formationTitle + "</h1></body></html>";
     }
 
@@ -644,12 +482,14 @@ public class FormationWorkflowService {
     }
 
     public void notifyCUPOfApprovedFormation(Formation formation) {
-        if (formation.getUp() == null) return;
+        if (formation.getUp() == null)
+            return;
         List<Enseignant> cups = enseignantRepository.findByUpAndCup(formation.getUp(), "O");
         String subject = "[D2F] Formation Approuvee : " + formation.getTitreFormation();
         for (Enseignant cup : cups) {
             try {
-                outlookMailService.sendMail(cup.getMail(), subject, "Formation approuvee : " + formation.getTitreFormation());
+                outlookMailService.sendMail(cup.getMail(), subject,
+                        "Formation approuvee : " + formation.getTitreFormation());
             } catch (Exception ex) {
                 log.warn("Echec de notification CUP : {}", ex.getMessage());
             }
@@ -661,67 +501,98 @@ public class FormationWorkflowService {
                 .orElseThrow(() -> new IllegalStateException("La formation a ete supprimee."));
 
         for (SeanceFormation seance : freshFormation.getSeances()) {
-            SeanceFormation freshSeance = seanceFormationRepository.findById(seance.getIdSeance())
-                    .orElseThrow(() -> new IllegalStateException("La seance a ete supprimee."));
+            synchronizeSeance(freshFormation, seance);
+        }
+    }
 
-            OffsetDateTime eventStart = convertToOffsetDateTime(freshSeance.getDateSeance(),
-                    freshSeance.getHeureDebut());
-            OffsetDateTime eventEnd = convertToOffsetDateTime(freshSeance.getDateSeance(), freshSeance.getHeureFin());
+    private void synchronizeSeance(Formation freshFormation, SeanceFormation seance) {
+        SeanceFormation freshSeance = seanceFormationRepository.findById(seance.getIdSeance())
+                .orElseThrow(() -> new IllegalStateException("La seance a ete supprimee."));
 
-            String animateursStr = freshSeance.getAnimateurs().stream()
-                    .map(e -> e.getNom() + " " + e.getPrenom())
-                    .collect(Collectors.joining(", "));
-            if (freshFormation.getExterneFormateurNom() != null && !freshFormation.getExterneFormateurNom().isBlank()) {
-                animateursStr += (animateursStr.isEmpty() ? "" : ", ") + freshFormation.getExterneFormateurNom() + " "
-                        + freshFormation.getExterneFormateurPrenom();
-            }
+        OffsetDateTime eventStart = convertToOffsetDateTime(freshSeance.getDateSeance(),
+                freshSeance.getHeureDebut());
+        OffsetDateTime eventEnd = convertToOffsetDateTime(freshSeance.getDateSeance(), freshSeance.getHeureFin());
 
-            String eventSubject = String.format("[D2F] %s : %s", freshFormation.getTitreFormation(), animateursStr);
-            String eventHtmlContent = buildCalendarEventContent(freshFormation, freshSeance, animateursStr);
+        String animateursStr = buildAnimateursString(freshSeance, freshFormation);
+        String eventSubject = String.format("[D2F] %s : %s", freshFormation.getTitreFormation(), animateursStr);
+        String eventHtmlContent = buildCalendarEventContent(freshFormation, freshSeance, animateursStr);
 
-            Set<String> emails = new HashSet<>();
-            if (freshSeance.getAnimateurs() != null) {
-                freshSeance.getAnimateurs().forEach(a -> emails.add(a.getMail()));
-            }
-            if (freshSeance.getParticipants() != null) {
-                freshSeance.getParticipants().forEach(p -> emails.add(p.getMail()));
-            }
-            if (freshFormation.getExterneFormateurEmail() != null
-                    && !freshFormation.getExterneFormateurEmail().isBlank()) {
-                emails.add(freshFormation.getExterneFormateurEmail());
-            }
-            emails.add(ORGANIZER_EMAIL);
+        Set<String> emails = buildEmailsSet(freshSeance, freshFormation);
 
-            try {
-                boolean isNewEvent = freshSeance.getCalendarEventId() == null;
+        try {
+            createOrUpdateCalendarEvent(freshSeance, eventSubject, eventHtmlContent, eventStart, eventEnd, emails,
+                    freshFormation);
+        } catch (Exception ex) {
+            log.error("Erreur lors de la synchronisation de l'evenement : {}", ex.getMessage());
+        }
+    }
 
-                if (!isNewEvent) {
-                    OutlookCalendarService.EventCreationResult res = outlookCalendarService
-                            .updateEventInCalendarWithTeamsUrl(ORGANIZER_EMAIL, freshSeance.getCalendarEventId(),
-                                    eventSubject, eventHtmlContent, eventStart, eventEnd, freshSeance.getSalle(),
-                                    new ArrayList<>(emails));
-                    freshSeance.setOnlineMeetingUrl(res.joinUrl);
-                    seanceFormationRepository.save(freshSeance);
-                } else {
-                    OutlookCalendarService.EventCreationResult res = outlookCalendarService
-                            .addEventToCalendarAndReturnIdWithTeamsUrl(ORGANIZER_EMAIL,
-                                    eventSubject, eventHtmlContent, eventStart, eventEnd, freshSeance.getSalle(),
-                                    new ArrayList<>(emails));
-                    freshSeance.setCalendarEventId(res.eventId);
-                    freshSeance.setOnlineMeetingUrl(res.joinUrl);
-                    seanceFormationRepository.save(freshSeance);
-                }
+    private String buildAnimateursString(SeanceFormation freshSeance, Formation freshFormation) {
+        String animateursStr = freshSeance.getAnimateurs().stream()
+                .map(e -> e.getNom() + " " + e.getPrenom())
+                .collect(Collectors.joining(", "));
+        if (freshFormation.getExterneFormateurNom() != null && !freshFormation.getExterneFormateurNom().isBlank()) {
+            animateursStr += (animateursStr.isEmpty() ? "" : ", ") + freshFormation.getExterneFormateurNom() + " "
+                    + freshFormation.getExterneFormateurPrenom();
+        }
+        return animateursStr;
+    }
 
-                String subjectType = isNewEvent ? "Invitation" : "Mise a jour";
-                String mailSubject = String.format("[D2F] %s : %s", subjectType, freshFormation.getTitreFormation());
-                String htmlContent = buildEmailContent(freshFormation, freshSeance);
+    private Set<String> buildEmailsSet(SeanceFormation freshSeance, Formation freshFormation) {
+        Set<String> emails = new HashSet<>();
+        if (freshSeance.getAnimateurs() != null) {
+            freshSeance.getAnimateurs().forEach(a -> emails.add(a.getMail()));
+        }
+        if (freshSeance.getParticipants() != null) {
+            freshSeance.getParticipants().forEach(p -> emails.add(p.getMail()));
+        }
+        if (freshFormation.getExterneFormateurEmail() != null
+                && !freshFormation.getExterneFormateurEmail().isBlank()) {
+            emails.add(freshFormation.getExterneFormateurEmail());
+        }
+        emails.add(ORGANIZER_EMAIL);
+        return emails;
+    }
 
-                for (String email : emails) {
-                    outlookMailService.sendMail(email, mailSubject, htmlContent);
-                }
-            } catch (Exception ex) {
-                log.error("Erreur lors de la synchronisation de l'evenement : {}", ex.getMessage());
-            }
+    private void createOrUpdateCalendarEvent(SeanceFormation freshSeance, String eventSubject,
+            String eventHtmlContent, OffsetDateTime eventStart, OffsetDateTime eventEnd,
+            Set<String> emails, Formation freshFormation) {
+        boolean isNewEvent = freshSeance.getCalendarEventId() == null;
+
+        OutlookEventParameters eventParams = OutlookEventParameters.builder()
+                .organizerEmail(ORGANIZER_EMAIL)
+                .eventId(freshSeance.getCalendarEventId())
+                .subject(eventSubject)
+                .htmlContent(eventHtmlContent)
+                .start(eventStart)
+                .end(eventEnd)
+                .salle(freshSeance.getSalle())
+                .attendeeEmails(new ArrayList<>(emails))
+                .build();
+
+        if (!isNewEvent) {
+            OutlookCalendarService.EventCreationResult res = outlookCalendarService
+                    .updateEventInCalendarWithTeamsUrl(eventParams);
+            freshSeance.setOnlineMeetingUrl(res.getJoinUrl());
+            seanceFormationRepository.save(freshSeance);
+        } else {
+            OutlookCalendarService.EventCreationResult res = outlookCalendarService
+                    .addEventToCalendarAndReturnIdWithTeamsUrl(eventParams);
+            freshSeance.setCalendarEventId(res.getEventId());
+            freshSeance.setOnlineMeetingUrl(res.getJoinUrl());
+            seanceFormationRepository.save(freshSeance);
+        }
+
+        sendCalendarNotification(emails, isNewEvent, freshFormation);
+    }
+
+    private void sendCalendarNotification(Set<String> emails, boolean isNewEvent, Formation freshFormation) {
+        String subjectType = isNewEvent ? "Invitation" : "Mise a jour";
+        String mailSubject = String.format("[D2F] %s : %s", subjectType, freshFormation.getTitreFormation());
+        String htmlContent = buildEmailContent(freshFormation);
+
+        for (String email : emails) {
+            outlookMailService.sendMail(email, mailSubject, htmlContent);
         }
     }
 
@@ -734,14 +605,18 @@ public class FormationWorkflowService {
             }
         }
         try {
-            String mailSubject = String.format("[D2F] Annulation de Seance : %s", seance.getFormation().getTitreFormation());
-            String htmlContent = buildCancellationEmailContent(seance.getFormation().getTitreFormation(), seance);
+            String mailSubject = String.format("[D2F] Annulation de Seance : %s",
+                    seance.getFormation().getTitreFormation());
+            String htmlContent = buildCancellationEmailContent(seance.getFormation().getTitreFormation());
 
             Set<String> emails = new HashSet<>();
-            if (seance.getAnimateurs() != null) seance.getAnimateurs().forEach(a -> emails.add(a.getMail()));
-            if (seance.getParticipants() != null) seance.getParticipants().forEach(p -> emails.add(p.getMail()));
-            
-            if (seance.getFormation().getExterneFormateurEmail() != null && !seance.getFormation().getExterneFormateurEmail().isBlank()) {
+            if (seance.getAnimateurs() != null)
+                seance.getAnimateurs().forEach(a -> emails.add(a.getMail()));
+            if (seance.getParticipants() != null)
+                seance.getParticipants().forEach(p -> emails.add(p.getMail()));
+
+            if (seance.getFormation().getExterneFormateurEmail() != null
+                    && !seance.getFormation().getExterneFormateurEmail().isBlank()) {
                 emails.add(seance.getFormation().getExterneFormateurEmail());
             }
             emails.add(ORGANIZER_EMAIL);
@@ -760,7 +635,8 @@ public class FormationWorkflowService {
 
         try {
             String subject = "[D2F] Annulation Globale : " + freshFormation.getTitreFormation();
-            outlookMailService.sendMail(ORGANIZER_EMAIL, subject, "Formation annullee : " + freshFormation.getTitreFormation());
+            outlookMailService.sendMail(ORGANIZER_EMAIL, subject,
+                    "Formation annullee : " + freshFormation.getTitreFormation());
         } catch (Exception ex) {
             log.warn("Impossible d'envoyer la notification d'annulation : {}", ex.getMessage());
         }
@@ -855,11 +731,11 @@ public class FormationWorkflowService {
         dto.setDateDebut(formation.getDateDebut());
         dto.setDateFin(formation.getDateFin());
         dto.setEtatFormation(formation.getEtatFormation() != null ? formation.getEtatFormation().toString() : null);
-        dto.setCoutFormation(formation.getCoutFormation());
+        dto.setCoutFormation(formation.getCoutFormation() != null ? formation.getCoutFormation().floatValue() : 0.0f);
         dto.setOrganismeRefExterne(formation.getOrganismeRefExterne());
-        dto.setCoutHebergement(formation.getCoutHebergement());
-        dto.setCoutRepas(formation.getCoutRepas());
-        dto.setCoutTransport(formation.getCoutTransport());
+        dto.setCoutHebergement(formation.getCoutHebergement() != null ? formation.getCoutHebergement().floatValue() : 0.0f);
+        dto.setCoutRepas(formation.getCoutRepas() != null ? formation.getCoutRepas().floatValue() : 0.0f);
+        dto.setCoutTransport(formation.getCoutTransport() != null ? formation.getCoutTransport().floatValue() : 0.0f);
         dto.setAcquis(formation.getAcquis());
         dto.setCompetance(formation.getCompetance());
         dto.setDomaine(formation.getDomaine());
@@ -872,7 +748,7 @@ public class FormationWorkflowService {
         dto.setExterneFormateurNom(formation.getExterneFormateurNom());
         dto.setExterneFormateurPrenom(formation.getExterneFormateurPrenom());
         dto.setPrerequis(formation.getPrerequis());
-        dto.setChargeHoraireGlobal(formation.getChargeHoraireGlobal());
+        dto.setChargeHoraireGlobal(formation.getChargeHoraireGlobal() != null ? formation.getChargeHoraireGlobal().intValue() : 0);
         dto.setOuverte(formation.isOuverte());
         dto.setInscriptionsOuvertes(formation.isInscriptionsOuvertes());
         dto.setCertifGenerated(formation.isCertifGenerated());
@@ -952,7 +828,7 @@ public class FormationWorkflowService {
             dto.setEtatFormation(formation.getEtatFormation().toString());
             dto.setCoutFormation(formation.getCoutFormation());
             dto.setOrganismeRefExterne(formation.getOrganismeRefExterne());
-            dto.setChargeHoraireGlobal(formation.getChargeHoraireGlobal());
+            dto.setChargeHoraireGlobal(formation.getChargeHoraireGlobal() != null ? formation.getChargeHoraireGlobal().intValue() : 0);
             dto.setPeriodCode(formation.getPeriodCode() != null ? formation.getPeriodCode().name() : null);
             dto.setCustomPeriodLabel(formation.getCustomPeriodLabel());
 

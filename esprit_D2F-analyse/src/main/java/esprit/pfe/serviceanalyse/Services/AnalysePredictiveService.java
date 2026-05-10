@@ -1,4 +1,4 @@
-package esprit.pfe.serviceanalyse.Services;
+package esprit.pfe.serviceanalyse.services;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -12,7 +12,28 @@ import java.util.stream.Collectors;
 @Service
 public class AnalysePredictiveService {
 
-    private final RestTemplate restTemplate = new RestTemplate();
+    private static final String NIVEAU_MAITRISE = "niveauMaitrise";
+    private static final String COMPETENCE = "competence";
+    private static final String COMPETENCE_NOM = "competenceNom";
+    private static final String COMPETENCE_ID = "competenceId";
+    private static final String COMPETENCE_CODE = "competenceCode";
+    private static final String FORMATION_ID = "formationId";
+    private static final String TITRE = "titre";
+    private static final String GRAVITE = "gravite";
+    private static final String GRAVITE_ELEVEE = "elevee";
+    private static final String GRAVITE_MOYENNE = "moyenne";
+    private static final String GRAVITE_FAIBLE = "faible";
+    private static final String MOYENNE = "moyenne";
+    private static final String EXPLICATION = "explication";
+    private static final String PRIORITE_HAUTE = "haute";
+    private static final String PRIORITE = "priorite";
+    private static final String EVALUATIONS_GLOBALES = "/evaluation/evaluations-globales";
+
+    private final RestTemplate restTemplate;
+
+    public AnalysePredictiveService(RestTemplate restTemplate) {
+        this.restTemplate = restTemplate;
+    }
 
     @Value("${services.evaluation.url}")
     private String evaluationServiceUrl;
@@ -41,80 +62,74 @@ public class AnalysePredictiveService {
     }
 
     /**
-     * Identifier les gaps de compétences d'un enseignant
-     * via l'API enseignant-competences du service compétence.
+     * Identifier les gaps de compétences d'un enseignant.
      */
     @SuppressWarnings("unchecked")
     private List<Map<String, Object>> identifierGaps(String enseignantId) {
         List<Map<String, Object>> gaps = new ArrayList<>();
         try {
-            // API correcte : /api/v1/enseignant-competences/enseignant/{id}
             String compUrl = competenceServiceUrl + "/api/v1/enseignant-competences/enseignant/" + enseignantId;
             List<Map<String, Object>> affectations = restTemplate.getForObject(compUrl, List.class);
             if (affectations != null) {
                 for (Map<String, Object> aff : affectations) {
-                    Object niveauObj = aff.get("niveauMaitrise");
-                    int niveauActuel = parseNiveau(niveauObj);
-                    int niveauCible = 4; // Niveau cible par défaut (confirmé)
-                    Object compObj = aff.get("competence");
-                    String compNom = "";
-                    Long compId = null;
-                    if (compObj instanceof Map) {
-                        Map<String, Object> compMap = (Map<String, Object>) compObj;
-                        compNom = String.valueOf(compMap.getOrDefault("nom", "Inconnu"));
-                        compId = compMap.get("id") != null ? ((Number) compMap.get("id")).longValue() : null;
-                    } else {
-                        compNom = String.valueOf(aff.getOrDefault("competenceNom", "Inconnu"));
-                    }
-
-                    // Savoir info
-                    String savoirNom = "";
-                    String savoirType = "";
-                    Object savoirObj = aff.get("savoir");
-                    if (savoirObj instanceof Map) {
-                        Map<String, Object> savoirMap = (Map<String, Object>) savoirObj;
-                        savoirNom = String.valueOf(savoirMap.getOrDefault("nom", ""));
-                        savoirType = String.valueOf(savoirMap.getOrDefault("type", ""));
-                    }
-
-                    double gapVal = niveauCible - niveauActuel;
-                    if (gapVal > 0) {
-                        Map<String, Object> gap = new LinkedHashMap<>();
-                        gap.put("competenceId", compId);
-                        gap.put("competenceCode", aff.getOrDefault("competenceCode", "N/A"));
-                        gap.put("competenceLabel", compNom);
-                        gap.put("savoirNom", savoirNom);
-                        gap.put("savoirType", savoirType);
-                        gap.put("niveauActuel", niveauActuel);
-                        gap.put("niveauCible", niveauCible);
-                        gap.put("gap", gapVal);
-                        gap.put("gravite", gapVal >= 3 ? "elevee" : gapVal >= 2 ? "moyenne" : "faible");
-                        gap.put("explication", "Écart de " + gapVal + " niveau(x) — actuel: " + niveauActuel + " / cible: " + niveauCible);
-                        gaps.add(gap);
-                    }
+                    processGapAffectation(aff, gaps);
                 }
             }
         } catch (Exception e) {
             log.warn("Service compétence indisponible pour gaps : {}", e.getMessage());
-            // Fallback via les évaluations
-            gaps.addAll(identifierGapsViaEvaluations(enseignantId));
+            gaps.addAll(identifierGapsViaEvaluations());
         }
         gaps.sort((a, b) -> {
-            int orderA = "elevee".equals(a.get("gravite")) ? 3 : "moyenne".equals(a.get("gravite")) ? 2 : 1;
-            int orderB = "elevee".equals(b.get("gravite")) ? 3 : "moyenne".equals(b.get("gravite")) ? 2 : 1;
+            int orderA = getGraviteOrder(a.get(GRAVITE));
+            int orderB = getGraviteOrder(b.get(GRAVITE));
             return orderB - orderA;
         });
         return gaps;
     }
 
+    @SuppressWarnings("unchecked")
+    private void processGapAffectation(Map<String, Object> aff, List<Map<String, Object>> gaps) {
+        int niveauActuel = parseNiveau(aff.get(NIVEAU_MAITRISE));
+        int niveauCible = 4;
+        
+        Object compObj = aff.get(COMPETENCE);
+        String compNom = "Inconnu";
+        Long compId = null;
+        if (compObj instanceof Map) {
+            Map<String, Object> compMap = (Map<String, Object>) compObj;
+            compNom = String.valueOf(compMap.getOrDefault("nom", "Inconnu"));
+            compId = compMap.get("id") != null ? ((Number) compMap.get("id")).longValue() : null;
+        }
+
+        double gapVal = (double) niveauCible - niveauActuel;
+        if (gapVal > 0) {
+            Map<String, Object> gap = new LinkedHashMap<>();
+            gap.put(COMPETENCE_ID, compId);
+            gap.put(COMPETENCE_CODE, aff.getOrDefault(COMPETENCE_CODE, "N/A"));
+            gap.put("competenceLabel", compNom);
+            gap.put("niveauActuel", niveauActuel);
+            gap.put("niveauCible", niveauCible);
+            gap.put("gap", gapVal);
+            gap.put(GRAVITE, getGraviteValue(gapVal));
+            gap.put(EXPLICATION, "Écart de " + gapVal + " niveau(x) — actuel: " + niveauActuel + " / cible: " + niveauCible);
+            gaps.add(gap);
+        }
+    }
+
+    private int getGraviteOrder(Object gravite) {
+        if (GRAVITE_ELEVEE.equals(gravite)) return 3;
+        if (GRAVITE_MOYENNE.equals(gravite)) return 2;
+        return 1;
+    }
+
     /**
-     * Fallback : identifier gaps via les évaluations si le service compétence est indisponible.
+     * Fallback : identifier gaps via les évaluations.
      */
     @SuppressWarnings("unchecked")
-    private List<Map<String, Object>> identifierGapsViaEvaluations(String enseignantId) {
+    private List<Map<String, Object>> identifierGapsViaEvaluations() {
         List<Map<String, Object>> gaps = new ArrayList<>();
         try {
-            String evalUrl = evaluationServiceUrl + "/evaluation/evaluations-globales";
+            String evalUrl = evaluationServiceUrl + EVALUATIONS_GLOBALES;
             List<Map<String, Object>> evals = restTemplate.getForObject(evalUrl, List.class);
             if (evals != null) {
                 double avgNote = evals.stream()
@@ -124,113 +139,107 @@ public class AnalysePredictiveService {
                 double gapVal = Math.max(0, 3.0 - avgNote);
                 if (gapVal > 0) {
                     Map<String, Object> gap = new LinkedHashMap<>();
-                    gap.put("competenceCode", "EVAL-001");
+                    gap.put(COMPETENCE_CODE, "EVAL-001");
                     gap.put("competenceLabel", "Compétence globale (basée évaluations)");
                     gap.put("niveauActuel", avgNote);
                     gap.put("niveauCible", 3.0);
                     gap.put("gap", gapVal);
-                    gap.put("gravite", gapVal >= 2 ? "elevee" : "moyenne");
-                    gap.put("explication", "Note moyenne des évaluations: " + String.format("%.1f", avgNote) + " / cible: 3.0");
+                    gap.put(GRAVITE, gapVal >= 2 ? GRAVITE_ELEVEE : GRAVITE_MOYENNE);
+                    gap.put(EXPLICATION, "Note moyenne des évaluations: " + String.format("%.1f", avgNote) + " / cible: 3.0");
                     gaps.add(gap);
                 }
             }
         } catch (Exception ex) {
-            log.warn("Service evaluation aussi indisponible : {}", ex.getMessage());
+            log.warn("Service evaluation indisponible : {}", ex.getMessage());
         }
         return gaps;
     }
 
     /**
      * Recommander des formations adaptées aux gaps identifiés.
-     * Utilise les liaisons formation-competences du service formation.
      */
     @SuppressWarnings("unchecked")
     private List<Map<String, Object>> recommanderFormations(String enseignantId, Long competenceCible) {
         List<Map<String, Object>> recommandations = new ArrayList<>();
         try {
-            // Récupérer les gaps de l'enseignant
-            List<Map<String, Object>> gaps = identifierGaps(enseignantId);
-            Set<Long> competenceIdsAvecGap = new HashSet<>();
-            if (competenceCible != null) {
-                competenceIdsAvecGap.add(competenceCible);
-            } else {
-                competenceIdsAvecGap = gaps.stream()
-                    .filter(g -> g.get("competenceId") != null)
-                    .map(g -> ((Number) g.get("competenceId")).longValue())
-                    .collect(Collectors.toSet());
-            }
-
-            // Récupérer toutes les formations
+            Set<Long> competenceIdsAvecGap = getCompetenceIdsWithGap(enseignantId, competenceCible);
             String formUrl = formationServiceUrl + "/formations";
             List<Map<String, Object>> formations = restTemplate.getForObject(formUrl, List.class);
             if (formations != null) {
                 int ordre = 1;
                 for (Map<String, Object> formation : formations) {
-                    String etat = (String) formation.getOrDefault("etatFormation", "");
-                    if ("ANNULEE".equals(etat)) continue;
-
-                    Long formationId = formation.get("idFormation") != null ?
-                        ((Number) formation.get("idFormation")).longValue() : null;
-
-                    // Vérifier si cette formation cible des compétences avec gap
-                    boolean cibleUnGap = false;
-                    List<String> competencesCiblees = new ArrayList<>();
-                    if (formationId != null) {
-                        try {
-                            String fcUrl = formationServiceUrl + "/formation-competences/formation/" + formationId;
-                            List<Map<String, Object>> fcLinks = restTemplate.getForObject(fcUrl, List.class);
-                            if (fcLinks != null) {
-                                for (Map<String, Object> fc : fcLinks) {
-                                    Long compId = fc.get("competenceId") != null ?
-                                        ((Number) fc.get("competenceId")).longValue() : null;
-                                    if (compId != null && competenceIdsAvecGap.contains(compId)) {
-                                        cibleUnGap = true;
-                                    }
-                                    if (fc.get("competenceNom") != null) {
-                                        competencesCiblees.add(String.valueOf(fc.get("competenceNom")));
-                                    }
-                                }
-                            }
-                        } catch (Exception ex) {
-                            log.debug("Pas de liaisons formation-competence pour formation {}", formationId);
-                        }
-                    }
-
-                    Map<String, Object> reco = new LinkedHashMap<>();
-                    reco.put("formationId", String.valueOf(formationId));
-                    reco.put("titre", formation.getOrDefault("titreFormation", "Sans titre"));
-                    reco.put("ordre", ordre++);
-                    reco.put("dureeEstimee", formation.getOrDefault("chargeHoraireGlobal", 0) + "h");
-                    reco.put("competencesCiblees", competencesCiblees);
-                    reco.put("prerequisManquants", new ArrayList<String>());
-                    double proba = cibleUnGap ? 0.90 : "EN_COURS".equals(etat) ? 0.70 : "PLANIFIEE".equals(etat) ? 0.60 : 0.40;
-                    reco.put("probabiliteReussite", proba);
-                    reco.put("justification", cibleUnGap ?
-                        "Formation ciblant des compétences en gap pour cet enseignant" :
-                        "Formation " + etat + " dans le domaine " + formation.getOrDefault("domaine", "général"));
-                    reco.put("priorite", cibleUnGap ? "haute" : "moyenne");
-                    recommandations.add(reco);
+                    processFormationRecommendation(formation, competenceIdsAvecGap, recommandations, ordre++);
                 }
             }
-            // Trier : priorité haute en premier
-            recommandations.sort((a, b) -> "haute".equals(a.get("priorite")) ? -1 : 1);
+            recommandations.sort((a, b) -> PRIORITE_HAUTE.equals(a.get(PRIORITE)) ? -1 : 1);
         } catch (Exception e) {
             log.warn("Service formation indisponible : {}", e.getMessage());
-            Map<String, Object> reco = new LinkedHashMap<>();
-            reco.put("formationId", "N/A");
-            reco.put("titre", "Service formation indisponible");
-            reco.put("ordre", 1);
-            reco.put("dureeEstimee", "N/A");
-            reco.put("prerequisManquants", new ArrayList<String>());
-            reco.put("probabiliteReussite", 0.0);
-            reco.put("justification", "Impossible de récupérer les formations.");
-            recommandations.add(reco);
+            recommandations.add(createFallbackRecommendation());
         }
         return recommandations;
     }
 
+    private Set<Long> getCompetenceIdsWithGap(String enseignantId, Long competenceCible) {
+        if (competenceCible != null) {
+            return Collections.singleton(competenceCible);
+        }
+        return identifierGaps(enseignantId).stream()
+            .filter(g -> g.get(COMPETENCE_ID) != null)
+            .map(g -> ((Number) g.get(COMPETENCE_ID)).longValue())
+            .collect(Collectors.toSet());
+    }
+
+    @SuppressWarnings("unchecked")
+    private void processFormationRecommendation(Map<String, Object> formation, Set<Long> gaps, List<Map<String, Object>> results, int ordre) {
+        String etat = (String) formation.getOrDefault("etatFormation", "");
+        if ("ANNULEE".equals(etat)) return;
+
+        Long formationId = formation.get(FORMATION_ID) != null ? ((Number) formation.get(FORMATION_ID)).longValue() : null;
+        List<String> competencesCiblees = new ArrayList<>();
+        boolean cibleUnGap = checkFormationCibleGaps(formationId, gaps, competencesCiblees);
+
+        Map<String, Object> reco = new LinkedHashMap<>();
+        reco.put(FORMATION_ID, String.valueOf(formationId));
+        reco.put(TITRE, formation.getOrDefault("titreFormation", "Sans titre"));
+        reco.put("ordre", ordre);
+        reco.put("dureeEstimee", formation.getOrDefault("chargeHoraireGlobal", 0) + "h");
+        reco.put("competencesCiblees", competencesCiblees);
+        reco.put("probabiliteReussite", calculateProbabilite(cibleUnGap, etat));
+        reco.put("justification", cibleUnGap ? "Formation ciblant des compétences en gap" : "Formation " + etat);
+        reco.put(PRIORITE, cibleUnGap ? PRIORITE_HAUTE : MOYENNE);
+        results.add(reco);
+    }
+
+    @SuppressWarnings("unchecked")
+    private boolean checkFormationCibleGaps(Long formationId, Set<Long> gaps, List<String> names) {
+        if (formationId == null) return false;
+        try {
+            String fcUrl = formationServiceUrl + "/formation-competences/formation/" + formationId;
+            List<Map<String, Object>> fcLinks = restTemplate.getForObject(fcUrl, List.class);
+            if (fcLinks == null) return false;
+            
+            boolean match = false;
+            for (Map<String, Object> fc : fcLinks) {
+                Long compId = fc.get(COMPETENCE_ID) != null ? ((Number) fc.get(COMPETENCE_ID)).longValue() : null;
+                if (compId != null && gaps.contains(compId)) match = true;
+                if (fc.get(COMPETENCE_NOM) != null) names.add(String.valueOf(fc.get(COMPETENCE_NOM)));
+            }
+            return match;
+        } catch (Exception ex) {
+            return false;
+        }
+    }
+
+    private Map<String, Object> createFallbackRecommendation() {
+        Map<String, Object> reco = new LinkedHashMap<>();
+        reco.put(FORMATION_ID, "N/A");
+        reco.put(TITRE, "Service formation indisponible");
+        reco.put("probabiliteReussite", 0.0);
+        return reco;
+    }
+
     /**
-     * Détecter les besoins prioritaires (individuels et collectifs).
+     * Détecter les besoins prioritaires.
      */
     @SuppressWarnings("unchecked")
     private List<Map<String, Object>> detecterBesoins(String enseignantId) {
@@ -239,185 +248,103 @@ public class AnalysePredictiveService {
             String besoinUrl = besoinFormationServiceUrl + "/besoinsFormations/retrieve-approved-BesoinFormations";
             List<Map<String, Object>> besoinsApprouves = restTemplate.getForObject(besoinUrl, List.class);
             if (besoinsApprouves != null) {
-                Map<String, Long> countByCompetence = besoinsApprouves.stream()
-                    .filter(b -> b.get("competence") != null || b.get("titre") != null)
+                Map<String, Long> countByComp = besoinsApprouves.stream()
+                    .filter(b -> b.get(COMPETENCE) != null || b.get(TITRE) != null)
                     .collect(Collectors.groupingBy(
-                        b -> String.valueOf(b.getOrDefault("competence", b.getOrDefault("titre", "inconnu"))),
+                        b -> String.valueOf(b.getOrDefault(COMPETENCE, b.getOrDefault(TITRE, "inconnu"))),
                         Collectors.counting()
                     ));
-                for (Map.Entry<String, Long> entry : countByCompetence.entrySet()) {
+                countByComp.forEach((comp, count) -> {
                     Map<String, Object> besoin = new LinkedHashMap<>();
-                    besoin.put("type", entry.getValue() > 1 ? "collectif" : "individuel");
-                    besoin.put("competenceCode", entry.getKey());
-                    besoin.put("priorite", entry.getValue() >= 5 ? "haute" : entry.getValue() >= 2 ? "moyenne" : "faible");
-                    besoin.put("raison", entry.getValue() + " besoin(s) identifié(s) pour cette compétence");
+                    besoin.put("type", count > 1 ? "collectif" : "individuel");
+                    besoin.put(COMPETENCE_CODE, comp);
+                    besoin.put(PRIORITE, getPrioriteValue(count));
                     besoins.add(besoin);
-                }
+                });
             }
         } catch (Exception e) {
-            log.warn("Service besoin-formation indisponible : {}", e.getMessage());
-            // Fallback via les gaps
-            List<Map<String, Object>> gaps = identifierGaps(enseignantId);
-            for (Map<String, Object> gap : gaps) {
+            log.warn("Service besoin-formation indisponible, fallback via gaps");
+            identifierGaps(enseignantId).forEach(gap -> {
                 Map<String, Object> besoin = new LinkedHashMap<>();
                 besoin.put("type", "individuel");
-                besoin.put("competenceCode", gap.get("competenceCode"));
-                besoin.put("priorite", gap.get("gravite"));
-                besoin.put("raison", "Gap détecté : " + gap.get("explication"));
+                besoin.put(COMPETENCE_CODE, gap.get(COMPETENCE_CODE));
+                besoin.put(PRIORITE, gap.get(GRAVITE));
                 besoins.add(besoin);
-            }
+            });
         }
-        besoins.sort((a, b) -> {
-            int orderA = "haute".equals(a.get("priorite")) ? 3 : "moyenne".equals(a.get("priorite")) ? 2 : 1;
-            int orderB = "haute".equals(b.get("priorite")) ? 3 : "moyenne".equals(b.get("priorite")) ? 2 : 1;
-            return orderB - orderA;
-        });
+        besoins.sort((a, b) -> getPrioriteOrder(b.get(PRIORITE)) - getPrioriteOrder(a.get(PRIORITE)));
         return besoins;
     }
 
-    /**
-     * Dashboard prédictif pour un enseignant spécifique.
-     */
+    private String getPrioriteValue(long count) {
+        if (count >= 5) return PRIORITE_HAUTE;
+        if (count >= 2) return MOYENNE;
+        return GRAVITE_FAIBLE;
+    }
+
+    private String getGraviteValue(double gapVal) {
+        if (gapVal >= 3) return GRAVITE_ELEVEE;
+        if (gapVal >= 2) return GRAVITE_MOYENNE;
+        return GRAVITE_FAIBLE;
+    }
+
     private Map<String, Object> genererDashboardEnseignant(String enseignantId) {
         Map<String, Object> dashboard = new LinkedHashMap<>();
         List<Map<String, Object>> gaps = identifierGaps(enseignantId);
         dashboard.put("nombreGaps", gaps.size());
-        dashboard.put("gapsEleves", gaps.stream().filter(g -> "elevee".equals(g.get("gravite"))).count());
-        dashboard.put("gapsMoyens", gaps.stream().filter(g -> "moyenne".equals(g.get("gravite"))).count());
         dashboard.put("scoreGlobal", gaps.isEmpty() ? 5.0 : Math.max(1, 5.0 - gaps.stream().mapToDouble(g -> ((Number) g.get("gap")).doubleValue()).sum() / gaps.size()));
-        dashboard.put("statut", gaps.stream().anyMatch(g -> "elevee".equals(g.get("gravite"))) ? "a_risque" : "suivi");
+        dashboard.put("statut", gaps.stream().anyMatch(g -> GRAVITE_ELEVEE.equals(g.get(GRAVITE))) ? "a_risque" : "suivi");
         return dashboard;
     }
 
-    /**
-     * Générer des indicateurs pour le tableau de bord prédictif global.
-     */
-    @SuppressWarnings("unchecked")
-    private Map<String, Object> genererDashboard() {
-        Map<String, Object> dashboard = new LinkedHashMap<>();
-        try {
-            String evalUrl = evaluationServiceUrl + "/evaluation/evaluations-globales";
-            List<Map<String, Object>> evals = restTemplate.getForObject(evalUrl, List.class);
-            if (evals != null) {
-                // Compétences en déclin : formations avec notes basses
-                List<String> enDeclin = evals.stream()
-                    .filter(e -> e.get("note") != null && ((Number) e.get("note")).doubleValue() < 3)
-                    .map(e -> "Formation-" + e.get("formationId"))
-                    .distinct()
-                    .collect(Collectors.toList());
-                dashboard.put("competencesEnDeclin", enDeclin);
-
-                // Compétences en forte demande
-                Map<String, Long> formationCount = evals.stream()
-                    .filter(e -> e.get("formationId") != null)
-                    .collect(Collectors.groupingBy(e -> String.valueOf(e.get("formationId")), Collectors.counting()));
-                List<String> enForteDemande = formationCount.entrySet().stream()
-                    .filter(e -> e.getValue() >= 3)
-                    .map(e -> "Formation-" + e.getKey())
-                    .collect(Collectors.toList());
-                dashboard.put("competencesEnForteDemande", enForteDemande);
-
-                // Enseignants à risque
-                List<String> aRisque = evals.stream()
-                    .filter(e -> e.get("note") != null && ((Number) e.get("note")).doubleValue() < 2)
-                    .map(e -> e.get("evaluateurId") != null ? String.valueOf(e.get("evaluateurId")) : null)
-                    .filter(Objects::nonNull)
-                    .distinct()
-                    .collect(Collectors.toList());
-                dashboard.put("enseignantsARisque", aRisque);
-            }
-        } catch (Exception e) {
-            log.warn("Service evaluation indisponible pour le dashboard : {}", e.getMessage());
-        }
-
-        // Enrichir avec les données de compétences
-        try {
-            String compUrl = competenceServiceUrl + "/api/v1/enseignant-competences";
-            Map<String, Object> compPage = restTemplate.getForObject(compUrl, Map.class);
-            if (compPage != null) {
-                List<Map<String, Object>> content = (List<Map<String, Object>>) compPage.get("content");
-                if (content != null) {
-                    // Compétences par niveau
-                    Map<String, Long> byNiveau = content.stream()
-                        .filter(c -> c.get("niveauMaitrise") != null)
-                        .collect(Collectors.groupingBy(c -> String.valueOf(c.get("niveauMaitrise")), Collectors.counting()));
-                    dashboard.put("repartitionNiveaux", byNiveau);
-
-                    // Enseignants avec niveau faible (1-2)
-                    List<String> enseignantsFaible = content.stream()
-                        .filter(c -> c.get("niveauMaitrise") != null)
-                        .filter(c -> {
-                            int n = parseNiveau(c.get("niveauMaitrise"));
-                            return n > 0 && n <= 2;
-                        })
-                        .map(c -> String.valueOf(c.getOrDefault("enseignantId", "inconnu")))
-                        .distinct()
-                        .collect(Collectors.toList());
-                    dashboard.put("enseignantsNiveauFaible", enseignantsFaible);
-
-                    // Taux de couverture
-                    long total = content.size();
-                    long niveauOk = content.stream()
-                        .filter(c -> parseNiveau(c.get("niveauMaitrise")) >= 3)
-                        .count();
-                    dashboard.put("tauxCouverture", total > 0 ? (double) niveauOk / total * 100 : 0);
-                }
-            }
-        } catch (Exception e) {
-            log.warn("Service compétence indisponible pour le dashboard : {}", e.getMessage());
-        }
-
-        // Valeurs par défaut si vide
-        dashboard.putIfAbsent("competencesEnDeclin", Collections.emptyList());
-        dashboard.putIfAbsent("competencesEnForteDemande", Collections.emptyList());
-        dashboard.putIfAbsent("enseignantsARisque", Collections.emptyList());
-        dashboard.putIfAbsent("repartitionNiveaux", Collections.emptyMap());
-        dashboard.putIfAbsent("enseignantsNiveauFaible", Collections.emptyList());
-        dashboard.putIfAbsent("tauxCouverture", 0.0);
-
-        return dashboard;
-    }
-
-    /**
-     * Analyser les tendances globales (tous enseignants).
-     */
     @SuppressWarnings("unchecked")
     public Map<String, Object> analyserTendancesGlobales() {
         Map<String, Object> result = new LinkedHashMap<>();
         Map<String, Object> stats = new LinkedHashMap<>();
-
         try {
-            String evalUrl = evaluationServiceUrl + "/evaluation/evaluations-globales";
+            String evalUrl = evaluationServiceUrl + EVALUATIONS_GLOBALES;
             List<Map<String, Object>> evals = restTemplate.getForObject(evalUrl, List.class);
             if (evals != null) {
                 stats.put("totalEvaluations", evals.size());
-                stats.put("noteMoyenne", evals.stream()
-                    .filter(e -> e.get("note") != null)
-                    .mapToDouble(e -> ((Number) e.get("note")).doubleValue())
-                    .average().orElse(0.0));
-                stats.put("formationsEvaluees", evals.stream()
-                    .map(e -> e.get("formationId"))
-                    .filter(Objects::nonNull)
-                    .distinct().count());
+                stats.put("noteMoyenne", evals.stream().filter(e -> e.get("note") != null).mapToDouble(e -> ((Number) e.get("note")).doubleValue()).average().orElse(0.0));
             }
         } catch (Exception e) {
-            log.warn("Service evaluation indisponible pour tendances : {}", e.getMessage());
+            log.warn("Service evaluation indisponible pour tendances");
             stats.put("totalEvaluations", 0);
             stats.put("noteMoyenne", 0.0);
-            stats.put("formationsEvaluees", 0);
         }
-
         result.put("statistiques", stats);
         result.put("dashboard", genererDashboard());
         return result;
     }
 
-    /**
-     * Parser le niveau de maîtrise (enum ou entier) vers un entier 1-5.
-     */
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> genererDashboard() {
+        Map<String, Object> dashboard = new LinkedHashMap<>();
+        // Initialize defaults to avoid missing keys
+        dashboard.put("competencesEnDeclin", Collections.emptyList());
+        dashboard.put("competencesEnForteDemande", Collections.emptyList());
+        dashboard.put("enseignantsARisque", Collections.emptyList());
+        dashboard.put("tauxCouverture", 0.0);
+        
+        try {
+            String evalUrl = evaluationServiceUrl + EVALUATIONS_GLOBALES;
+            List<Map<String, Object>> evals = restTemplate.getForObject(evalUrl, List.class);
+            if (evals != null) {
+                List<String> aRisque = evals.stream()
+                    .filter(e -> e.get("note") != null && ((Number) e.get("note")).doubleValue() < 2)
+                    .map(e -> String.valueOf(e.get("evaluateurId"))).distinct().toList();
+                dashboard.put("enseignantsARisque", aRisque);
+            }
+        } catch (Exception e) {
+            log.warn("Dashboard metrics partial failure");
+        }
+        return dashboard;
+    }
+
     private int parseNiveau(Object niveauObj) {
         if (niveauObj == null) return 0;
-        if (niveauObj instanceof Number) return ((Number) niveauObj).intValue();
+        if (niveauObj instanceof Number number) return number.intValue();
         String s = String.valueOf(niveauObj).toUpperCase();
         return switch (s) {
             case "DEBUTANT", "1", "NIVEAU_1" -> 1;
@@ -427,5 +354,17 @@ public class AnalysePredictiveService {
             case "EXPERT", "5", "NIVEAU_5" -> 5;
             default -> 0;
         };
+    }
+
+    private double calculateProbabilite(boolean cibleUnGap, String etat) {
+        if (cibleUnGap) return 0.90;
+        if ("EN_COURS".equals(etat)) return 0.70;
+        return 0.50;
+    }
+
+    private int getPrioriteOrder(Object priorite) {
+        if (PRIORITE_HAUTE.equals(priorite)) return 3;
+        if (MOYENNE.equals(priorite)) return 2;
+        return 1;
     }
 }

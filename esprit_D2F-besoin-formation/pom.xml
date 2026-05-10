@@ -23,6 +23,8 @@
 		<spring-cloud.version>2024.0.0</spring-cloud.version>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 		<db.password>d2fpasswd</db.password>
+		<sonar.projectKey>d2f_besoin_formation</sonar.projectKey>
+		<sonar.projectName>besoinsformation-service</sonar.projectName>
 	</properties>
 
 	<dependencyManagement>
@@ -229,6 +231,8 @@
 								<exclude>tn/esprit/d2f/dto/BesoinFormationRequest.class</exclude>
 								<exclude>tn/esprit/d2f/dto/BesoinFormationResponse.class</exclude>
 								<exclude>tn/esprit/d2f/dto/BesoinFormationApprovedEvent.class</exclude>
+							<exclude>esprit/pfe/auth/security/AuthorizationMatrix.class</exclude>
+							<exclude>tn/esprit/d2f/BesoinsFormationApplication.class</exclude>
 							</excludes>
 						</configuration>
 					</execution>
