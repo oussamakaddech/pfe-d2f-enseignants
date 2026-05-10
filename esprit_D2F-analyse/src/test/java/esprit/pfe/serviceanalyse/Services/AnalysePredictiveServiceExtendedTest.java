@@ -91,7 +91,9 @@ class AnalysePredictiveServiceExtendedTest {
             aff.put("niveauMaitrise", level);
             when(restTemplate.getForObject(anyString(), eq(List.class))).thenReturn(List.of(aff));
             
-            analysePredictiveService.analyserEnseignant("ens1", null);
+            Map<String, Object> result = analysePredictiveService.analyserEnseignant("ens1", null);
+            assertNotNull(result, "Le résultat ne doit pas être null pour le niveau: " + level);
+            assertEquals("ens1", result.get("enseignantId"), "L'ID enseignant doit être correct");
         }
     }
 
@@ -130,6 +132,8 @@ class AnalysePredictiveServiceExtendedTest {
         when(restTemplate.getForObject(contains("/formation-competences/formation/"), eq(List.class)))
             .thenReturn(Collections.emptyList());
             
-        analysePredictiveService.analyserEnseignant("ens1", 999L); // non-existent gap
+        Map<String, Object> result = analysePredictiveService.analyserEnseignant("ens1", 999L); // non-existent gap
+        assertNotNull(result, "Le résultat ne doit pas être null");
+        assertEquals("Analyse ciblée compétence 999", result.get("competenceAnalysee"));
     }
 }
