@@ -153,9 +153,9 @@ export default function BesoinForm() {
 
   const getStepFields = (step) => {
     switch (step) {
-      case 0: return ["up", "departement", "typeBesoin"];
+      case 0: return ["up", "departement", "typeBesoin", "publicCible"];
       case 1: return ["titre", "theme", "objectifFormation", "objectifsPedagogiques", "priorite", "impactStrategique"];
-      case 2: return ["propositionAnimateur", "horaireSouhaite", "dureeFormation", "periodCode", "customPeriodLabel"];
+      case 2: return ["propositionAnimateur", "horaireSouhaite", "dureeFormation", "nbMaxParticipants", "periodCode", "customPeriodLabel"];
       case 3: return ["estOuverte", "methodesEvaluationAcquis", "autresInformations"];
       default: return [];
     }
@@ -594,7 +594,16 @@ export default function BesoinForm() {
                   label="Précisez la période"
                   name="customPeriodLabel"
                   className="besoin-form-input"
-                  rules={[{ required: true, message: "Veuillez préciser la période" }]}
+                  rules={[
+                    ({ getFieldValue }) => ({
+                      validator(_, value) {
+                        if (getFieldValue("periodCode") === "OTHER" && !value) {
+                          return Promise.reject(new Error("Veuillez préciser la période"));
+                        }
+                        return Promise.resolve();
+                      },
+                    }),
+                  ]}
                 >
                   <Input placeholder="Ex : Mai - Juin 2024" size="large" />
                 </Form.Item>
@@ -670,7 +679,7 @@ export default function BesoinForm() {
   ];
 
   const getSummaryData = () => {
-    const values = form.getFieldsValue();
+    const values = form.getFieldsValue(true);
     const upObj = ups.find((u) => u.id === Number(values.up));
     const depObj = departements.find((d) => d.id === Number(values.departement));
     const typeLabel = typeOptions.find((t) => t.value === values.typeBesoin)?.label;

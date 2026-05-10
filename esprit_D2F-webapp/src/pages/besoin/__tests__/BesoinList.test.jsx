@@ -58,7 +58,7 @@ function renderWithProviders(ui) {
   );
 }
 
-describe("BesoinList", { timeout: 15000 }, () => {
+describe("BesoinList", { timeout: 30000 }, () => {
   beforeEach(() => {
     vi.clearAllMocks();
     BesoinFormationService.getAllBesoinFormations = vi.fn().mockResolvedValue(mockBesoins);

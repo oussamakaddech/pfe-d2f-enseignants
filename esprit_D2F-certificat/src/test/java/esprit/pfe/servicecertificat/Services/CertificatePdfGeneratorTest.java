@@ -36,8 +36,12 @@ class CertificatePdfGeneratorTest {
         teacher.setDeptEnseignantLibelle("Informatique");
         teacher.setRole("Formateur");
 
-        // Use a small valid dummy image or null
-        byte[] dummyBg = new byte[0]; 
+        // A valid 1x1 GIF byte array to satisfy ImageDataFactory
+        byte[] dummyBg = new byte[]{ 
+            71, 73, 70, 56, 57, 97, 1, 0, 1, 0, (byte)128, 0, 0, 0, 0, 0, (byte)255, 
+            (byte)255, (byte)255, 33, (byte)249, 4, 1, 0, 0, 0, 0, 44, 0, 0, 0, 0, 1, 
+            0, 1, 0, 0, 2, 2, 68, 1, 0, 59 
+        };
 
         CertificatePdfGenerator.generateCertificateForTeacher(outputPath, msg, teacher, dummyBg);
 

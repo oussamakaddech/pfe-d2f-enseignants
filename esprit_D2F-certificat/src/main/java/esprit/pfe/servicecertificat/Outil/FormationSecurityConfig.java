@@ -23,13 +23,26 @@ public class FormationSecurityConfig {
     @Value("${jwt.secret}")
     private String jwtSecret;
 
+    /**
+     * Security configuration for the certificate service.
+     * CSRF is disabled because this is a stateless REST API using JWT authentication.
+     * Actuator endpoints are permitted for health checks (should be restricted in production).
+     * SECURITY REVIEW: Actuator /health is intentionally public for load balancer health checks.
+     * Production deployment should restrict to internal network or add IP allowlisting.
+     */
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .cors(Customizer.withDefaults())
+                /*
+                 * SECURITY REVIEW: CSRF is disabled because the API is STATELESS and uses JWT Bearer tokens.
+                 * Standard CSRF attacks rely on browsers automatically sending cookies (like JSESSIONID),
+                 * which are not used in this stateless JWT architecture.
+                 */
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
+                        // SECURITY REVIEW: /actuator/** permits health endpoints without auth.
                         .requestMatchers("/actuator/**").permitAll()
                         .anyRequest().authenticated()
                 )
@@ -65,4 +78,3 @@ public class FormationSecurityConfig {
                 .build();
     }
 }
-

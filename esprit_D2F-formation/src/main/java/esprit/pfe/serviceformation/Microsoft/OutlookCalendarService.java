@@ -9,7 +9,6 @@ import lombok.RequiredArgsConstructor;
 
 import java.time.OffsetDateTime;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -19,47 +18,48 @@ public class OutlookCalendarService {
     private static final String TIMEZONE = "Africa/Tunis";
     private final MicrosoftGraphClientProvider graphProvider;
 
-    // Classe wrapper pour retourner ID d'événement + URL de réunion Teams
     public static class EventCreationResult {
-        public String eventId;
-        public String joinUrl;
+        private String eventId;
+        private String joinUrl;
+
         public EventCreationResult(String eventId, String joinUrl) {
             this.eventId = eventId;
             this.joinUrl = joinUrl;
         }
+
+        public String getEventId() { return eventId; }
+        public String getJoinUrl() { return joinUrl; }
     }
 
-    // Création d'un événement avec des participants et récupération de son ID + joinUrl Teams
-    public EventCreationResult addEventToCalendarAndReturnIdWithTeamsUrl(String organizerEmail, String subject, String htmlContent, OffsetDateTime start, OffsetDateTime end, String salle, List<String> attendeeEmails) {
+    public EventCreationResult addEventToCalendarAndReturnIdWithTeamsUrl(OutlookEventParameters params) {
         GraphServiceClient<Request> graphClient = graphProvider.getGraphClient();
 
         Event event = new Event();
-        event.subject = subject;
-        event.isOnlineMeeting = true;  // ✅ Créer une réunion Teams
-        event.onlineMeetingProvider = OnlineMeetingProviderType.TEAMS_FOR_BUSINESS;  // ✅ Type: Teams
+        event.subject = params.getSubject();
+        event.isOnlineMeeting = true;
+        event.onlineMeetingProvider = OnlineMeetingProviderType.TEAMS_FOR_BUSINESS;
 
         ItemBody body = new ItemBody();
-        body.contentType = BodyType.HTML; // Utiliser HTML
-        body.content = htmlContent;
+        body.contentType = BodyType.HTML;
+        body.content = params.getHtmlContent();
         event.body = body;
 
         DateTimeTimeZone startTime = new DateTimeTimeZone();
-        startTime.dateTime = start.toString();
+        startTime.dateTime = params.getStart().toString();
         startTime.timeZone = TIMEZONE;
         event.start = startTime;
 
         DateTimeTimeZone endTime = new DateTimeTimeZone();
-        endTime.dateTime = end.toString();
+        endTime.dateTime = params.getEnd().toString();
         endTime.timeZone = TIMEZONE;
         event.end = endTime;
 
         Location location = new Location();
-        location.displayName = salle;
+        location.displayName = params.getSalle();
         event.location = location;
 
-        // Ajout des participants
-        if (attendeeEmails != null && !attendeeEmails.isEmpty()) {
-            event.attendees = attendeeEmails.stream().map(email -> {
+        if (params.getAttendeeEmails() != null && !params.getAttendeeEmails().isEmpty()) {
+            event.attendees = params.getAttendeeEmails().stream().map(email -> {
                 Attendee attendee = new Attendee();
                 EmailAddress emailAddress = new EmailAddress();
                 emailAddress.address = email;
@@ -68,56 +68,49 @@ public class OutlookCalendarService {
             }).toList();
         }
 
-        // L'événement est créé dans le calendrier de l'organisateur
         Event createdEvent;
         try {
-            createdEvent = graphClient.users(organizerEmail)
+            createdEvent = graphClient.users(params.getOrganizerEmail())
                     .events()
                     .buildRequest()
                     .post(event);
         } catch (Exception e) {
-            throw new IllegalStateException("Erreur lors de la création de l'événement Outlook pour " + organizerEmail + ": " + e.getMessage(), e);
+            throw new IllegalStateException("Erreur creation Outlook pour " + params.getOrganizerEmail() + ": " + e.getMessage(), e);
         }
         
-        // ✅ Récupérer le joinUrl de la réunion Teams créée
-        String joinUrl = null;
-        if (createdEvent.onlineMeeting != null && createdEvent.onlineMeeting.joinUrl != null) {
-            joinUrl = createdEvent.onlineMeeting.joinUrl;
-        }
+        String joinUrl = (createdEvent.onlineMeeting != null) ? createdEvent.onlineMeeting.joinUrl : null;
         return new EventCreationResult(createdEvent.id, joinUrl);
     }
 
-    // Mise à jour d'un événement existant avec des participants + mode online meeting
-    public EventCreationResult updateEventInCalendarWithTeamsUrl(String organizerEmail, String eventId, String subject, String htmlContent, OffsetDateTime start, OffsetDateTime end, String salle, List<String> attendeeEmails) {
+    public EventCreationResult updateEventInCalendarWithTeamsUrl(OutlookEventParameters params) {
         GraphServiceClient<Request> graphClient = graphProvider.getGraphClient();
 
         Event updatedEvent = new Event();
-        updatedEvent.subject = subject;
-        updatedEvent.isOnlineMeeting = true;  // ✅ Mettre à jour en réunion Teams
-        updatedEvent.onlineMeetingProvider = OnlineMeetingProviderType.TEAMS_FOR_BUSINESS;  // ✅ Type: Teams
+        updatedEvent.subject = params.getSubject();
+        updatedEvent.isOnlineMeeting = true;
+        updatedEvent.onlineMeetingProvider = OnlineMeetingProviderType.TEAMS_FOR_BUSINESS;
 
         ItemBody body = new ItemBody();
-        body.contentType = BodyType.HTML; // Utiliser HTML
-        body.content = htmlContent;
+        body.contentType = BodyType.HTML;
+        body.content = params.getHtmlContent();
         updatedEvent.body = body;
 
         DateTimeTimeZone startTime = new DateTimeTimeZone();
-        startTime.dateTime = start.toString();
+        startTime.dateTime = params.getStart().toString();
         startTime.timeZone = TIMEZONE;
         updatedEvent.start = startTime;
 
         DateTimeTimeZone endTime = new DateTimeTimeZone();
-        endTime.dateTime = end.toString();
+        endTime.dateTime = params.getEnd().toString();
         endTime.timeZone = TIMEZONE;
         updatedEvent.end = endTime;
 
         Location location = new Location();
-        location.displayName = salle;
+        location.displayName = params.getSalle();
         updatedEvent.location = location;
 
-        // Mise à jour des participants
-        if (attendeeEmails != null && !attendeeEmails.isEmpty()) {
-            updatedEvent.attendees = attendeeEmails.stream().map(email -> {
+        if (params.getAttendeeEmails() != null && !params.getAttendeeEmails().isEmpty()) {
+            updatedEvent.attendees = params.getAttendeeEmails().stream().map(email -> {
                 Attendee attendee = new Attendee();
                 EmailAddress emailAddress = new EmailAddress();
                 emailAddress.address = email;
@@ -126,26 +119,20 @@ public class OutlookCalendarService {
             }).toList();
         }
 
-        // Requête de mise à jour (PATCH) dans le calendrier de l'organisateur
         Event patchedEvent;
         try {
-            patchedEvent = graphClient.users(organizerEmail)
-                    .events(eventId)
+            patchedEvent = graphClient.users(params.getOrganizerEmail())
+                    .events(params.getEventId())
                     .buildRequest()
                     .patch(updatedEvent);
         } catch (Exception e) {
-            throw new IllegalStateException("Erreur lors de la mise à jour de l'événement Outlook " + eventId + ": " + e.getMessage(), e);
+            throw new IllegalStateException("Erreur mise a jour Outlook " + params.getEventId() + ": " + e.getMessage(), e);
         }
         
-        // ✅ Récupérer le joinUrl après mise à jour
-        String joinUrl = null;
-        if (patchedEvent.onlineMeeting != null && patchedEvent.onlineMeeting.joinUrl != null) {
-            joinUrl = patchedEvent.onlineMeeting.joinUrl;
-        }
-        return new EventCreationResult(eventId, joinUrl);
+        String joinUrl = (patchedEvent.onlineMeeting != null) ? patchedEvent.onlineMeeting.joinUrl : null;
+        return new EventCreationResult(params.getEventId(), joinUrl);
     }
 
-    // La suppression se fait toujours depuis le calendrier de l'organisateur
     public void deleteEventInCalendar(String organizerEmail, String eventId) {
         GraphServiceClient<Request> graphClient = graphProvider.getGraphClient();
         try {
@@ -153,18 +140,26 @@ public class OutlookCalendarService {
                     .events(eventId)
                     .buildRequest()
                     .delete();
-            log.info("Événement Outlook {} supprimé avec succès pour {}", eventId, organizerEmail);
+            log.info("Evenement Outlook {} supprime pour {}", eventId, organizerEmail);
         } catch (Exception e) {
-            log.warn("Erreur lors de la suppression de l'événement Outlook {} : {}", eventId, e.getMessage());
+            log.warn("Erreur suppression Outlook {} : {}", eventId, e.getMessage());
         }
     }
 
-    // ✅ ANCIENNE MÉTHODE - garder pour compatibilité backward
+    // Compatibilité - à refactorer si possible plus tard
     public String addEventToCalendarAndReturnId(String organizerEmail, String subject, String htmlContent, OffsetDateTime start, OffsetDateTime end, String salle, List<String> attendeeEmails) {
-        return addEventToCalendarAndReturnIdWithTeamsUrl(organizerEmail, subject, htmlContent, start, end, salle, attendeeEmails).eventId;
+        OutlookEventParameters params = OutlookEventParameters.builder()
+                .organizerEmail(organizerEmail)
+                .subject(subject)
+                .htmlContent(htmlContent)
+                .start(start)
+                .end(end)
+                .salle(salle)
+                .attendeeEmails(attendeeEmails)
+                .build();
+        return addEventToCalendarAndReturnIdWithTeamsUrl(params).getEventId();
     }
 
-    // Méthode d'ajout sans retour d'ID, si besoin (simple appel de la méthode ci-dessus)
     public void addEventToCalendar(String userEmail, String subject, String content, OffsetDateTime start, OffsetDateTime end, String salle) {
         addEventToCalendarAndReturnId(userEmail, subject, content, start, end, salle, null);
     }

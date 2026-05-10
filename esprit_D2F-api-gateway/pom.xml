@@ -19,6 +19,8 @@
         <spring-cloud.version>2024.0.0</spring-cloud.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+        <sonar.projectKey>d2f_api_gateway</sonar.projectKey>
+        <sonar.projectName>service-gateway</sonar.projectName>
     </properties>
 
     <dependencies>

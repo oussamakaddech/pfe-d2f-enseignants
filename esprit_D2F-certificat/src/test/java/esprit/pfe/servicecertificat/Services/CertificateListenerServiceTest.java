@@ -84,4 +84,22 @@ class CertificateListenerServiceTest {
         String expectedFile = "certificate_10_ens-1.pdf";
         new java.io.File(expectedFile).delete();
     }
+
+    @Test
+    void onMessage_withException_shouldThrowPdfGenerationException() throws Exception {
+        CertificateBatchMessage.EnseignantPresenceInfo info = new CertificateBatchMessage.EnseignantPresenceInfo();
+        info.setEnseignantId("ens-2");
+        info.setPresent(true);
+
+        CertificateBatchMessage msg = new CertificateBatchMessage();
+        msg.setFormationId(20L);
+        msg.setEnseignants(List.of(info));
+
+        when(backgroundImageResource.getInputStream()).thenThrow(new java.io.IOException("Stream error"));
+
+        org.junit.jupiter.api.Assertions.assertThrows(
+                esprit.pfe.servicecertificat.exception.PdfGenerationException.class,
+                () -> service.onCertificateBatchMessage(msg)
+        );
+    }
 }

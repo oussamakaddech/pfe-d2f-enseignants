@@ -22,46 +22,50 @@ public class EnseignantController {
 
     // Récupérer la liste de tous les enseignants
     @GetMapping
-    public ResponseEntity<List<EnseignantDTO>> getAllEnseignants(){
+    public ResponseEntity<List<EnseignantDTO>> getAllEnseignants() {
         return ResponseEntity.ok(enseignantService.getAllEnseignantsDTO());
     }
 
     // Récupérer un enseignant par ID
     @GetMapping("/{id}")
-    public ResponseEntity<Enseignant> getEnseignantById(@PathVariable String id){
+    public ResponseEntity<Enseignant> getEnseignantById(@PathVariable String id) {
         return ResponseEntity.ok(enseignantService.getEnseignantById(id));
     }
 
     // Ajouter un enseignant
     @PostMapping
-    public ResponseEntity<Enseignant> createEnseignant(@RequestBody Enseignant enseignant){
+    public ResponseEntity<Enseignant> createEnseignant(@RequestBody Enseignant enseignant) {
         Enseignant saved = enseignantService.createEnseignant(enseignant);
         return ResponseEntity.ok(saved);
     }
 
     // Mettre à jour un enseignant
     @PutMapping("/{id}")
-    public ResponseEntity<Enseignant> updateEnseignant(@PathVariable String id, @RequestBody Enseignant enseignant){
+    public ResponseEntity<Enseignant> updateEnseignant(@PathVariable String id, @RequestBody Enseignant enseignant) {
         Enseignant updated = enseignantService.updateEnseignant(id, enseignant);
         return ResponseEntity.ok(updated);
     }
 
     // Supprimer un enseignant
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteEnseignant(@PathVariable String id){
+    public ResponseEntity<Void> deleteEnseignant(@PathVariable String id) {
         enseignantService.deleteEnseignant(id);
         return ResponseEntity.noContent().build();
     }
+
     @PostMapping("/upload")
     public ResponseEntity<String> uploadEnseignants(@RequestParam("file") MultipartFile file) {
+        if (file == null || file.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body("Erreur: Le fichier est vide ou n'existe pas !");
+        }
         try {
             excelService.importEnseignantsFromExcel(file);
             return ResponseEntity.ok("Import des enseignants réussi !");
         } catch (Exception e) {
-            // Vous pouvez affiner le code HTTP selon le type d’erreur
+            // Vous pouvez affiner le code HTTP selon le type d'erreur
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body("Erreur lors de l’import : " + e.getMessage());
+                    .body("Erreur lors de l'import : " + e.getMessage());
         }
     }
 }
-

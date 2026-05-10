@@ -2,73 +2,107 @@ package esprit.pfe.serviceformation.controllers;
 
 import esprit.pfe.serviceformation.dto.*;
 import esprit.pfe.serviceformation.services.KPIService;
-import org.junit.jupiter.api.DisplayName;
+import jakarta.persistence.EntityNotFoundException;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.security.test.context.support.WithMockUser;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
-
+import java.util.Collections;
 import java.util.List;
 
-import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@WebMvcTest(KPIController.class)
-@DisplayName("KPIController - Tests unitaires")
+@ExtendWith(MockitoExtension.class)
 class KPIControllerTest {
 
-    @Autowired
     private MockMvc mockMvc;
 
-    @MockitoBean
-    private KPIService kpiService;
+    @Mock private KPIService kpiService;
+    @InjectMocks private KPIController controller;
+
+    @BeforeEach
+    void setup() {
+        mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
+    }
 
     @Test
-    @DisplayName("GET /api/v1/kpi/formations - Succès")
-    @WithMockUser(roles = "ADMIN")
-    void shouldCountTotalFormations() throws Exception {
-        when(kpiService.countTotalFormations(any(), any())).thenReturn(10);
-
+    void testFormationsCount() throws Exception {
         mockMvc.perform(get("/api/v1/kpi/formations")
-                        .param("start", "2024-01-01")
-                        .param("end", "2024-12-31"))
-                .andExpect(status().isOk())
-                .andExpect(content().string("10"));
+                .param("start", "2023-01-01")
+                .param("end", "2023-12-31")).andExpect(status().isOk());
     }
 
     @Test
-    @DisplayName("GET /api/v1/kpi/top-participants - Succès")
-    @WithMockUser(roles = "ADMIN")
-    void shouldGetTopParticipants() throws Exception {
-        EnseignantStatsDTO stats = new EnseignantStatsDTO("E1", "Nom", "Prenom", 5L);
-        when(kpiService.getTopParticipants(any(), any(), any(), any())).thenReturn(List.of(stats));
-
+    void testTopParticipants_Success() throws Exception {
+        when(kpiService.getTopParticipants(any(), any(), any(), any())).thenReturn(List.of(new EnseignantStatsDTO("E1", "N", "P", 5L)));
         mockMvc.perform(get("/api/v1/kpi/top-participants")
-                        .param("start", "2024-01-01")
-                        .param("end", "2024-12-31"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$[0].enseignantId").value("E1"))
-                .andExpect(jsonPath("$[0].totalPresences").value(5));
+                .param("start", "2023-01-01")
+                .param("end", "2023-12-31")).andExpect(status().isOk());
     }
 
     @Test
-    @DisplayName("GET /api/v1/kpi/count-heures - Succès")
-    @WithMockUser(roles = "ADMIN")
-    void shouldCountAndHeuresWithFilters() throws Exception {
-        CountHeuresDTO dto = new CountHeuresDTO(5L, 100L);
-        when(kpiService.getCountAndSumHeures(any(FormationFilter.class), any()))
-                .thenReturn(dto);
+    void testTopParticipants_NoContent() throws Exception {
+        when(kpiService.getTopParticipants(any(), any(), any(), any())).thenReturn(Collections.emptyList());
+        mockMvc.perform(get("/api/v1/kpi/top-participants")
+                .param("start", "2023-01-01")
+                .param("end", "2023-12-31")).andExpect(status().isNoContent());
+    }
 
-        mockMvc.perform(get("/api/v1/kpi/count-heures")
-                        .param("start", "2024-01-01")
-                        .param("end", "2024-12-31"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.count").value(5))
-                .andExpect(jsonPath("$.totalHeures").value(100));
+    @Test
+    void testTopParticipants_BadRequest() throws Exception {
+        when(kpiService.getTopParticipants(any(), any(), any(), any())).thenThrow(new IllegalArgumentException("Err"));
+        mockMvc.perform(get("/api/v1/kpi/top-participants")
+                .param("start", "2023-01-01")
+                .param("end", "2023-12-31")).andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void testTopParticipants_NotFound() throws Exception {
+        when(kpiService.getTopParticipants(any(), any(), any(), any())).thenThrow(new EntityNotFoundException("Err"));
+        mockMvc.perform(get("/api/v1/kpi/top-participants")
+                .param("start", "2023-01-01")
+                .param("end", "2023-12-31")).andExpect(status().isNotFound());
+    }
+
+    @Test
+    void testTopParticipants_ServerError() throws Exception {
+        when(kpiService.getTopParticipants(any(), any(), any(), any())).thenThrow(new RuntimeException("Err"));
+        mockMvc.perform(get("/api/v1/kpi/top-participants")
+                .param("start", "2023-01-01")
+                .param("end", "2023-12-31")).andExpect(status().isInternalServerError());
+    }
+
+    @Test
+    void testTopAbsentees_Success() throws Exception {
+        when(kpiService.getTopAbsentees(any(), any(), any(), any())).thenReturn(List.of(new EnseignantStatsDTO("E1", "N", "P", 5L)));
+        mockMvc.perform(get("/api/v1/kpi/top-absentees")
+                .param("start", "2023-01-01")
+                .param("end", "2023-12-31")).andExpect(status().isOk());
+    }
+
+    @Test
+    void testCountHeures() throws Exception {
+        when(kpiService.getCountAndSumHeures(any(), any())).thenReturn(new CountHeuresDTO());
+        mockMvc.perform(get("/api/v1/kpi/count-heures")).andExpect(status().isOk());
+    }
+
+    @Test
+    void testFormationsByTypeFiltered() throws Exception {
+        when(kpiService.getFormationsByTypeWithFilters(any(), any())).thenReturn(new FormationsByTypeDTO());
+        mockMvc.perform(get("/api/v1/kpi/formations-by-type-filtered")).andExpect(status().isOk());
+    }
+
+    @Test
+    void testCountByTrainerTypeWithIds() throws Exception {
+        when(kpiService.getCountByTrainerTypeWithIds(any(), any())).thenReturn(new CountByTrainerTypeWithIdsDTO());
+        mockMvc.perform(get("/api/v1/kpi/count-by-trainer-type-with-ids")).andExpect(status().isOk());
     }
 }

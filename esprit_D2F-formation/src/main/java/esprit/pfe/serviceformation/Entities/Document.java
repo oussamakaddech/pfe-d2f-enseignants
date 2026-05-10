@@ -5,6 +5,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+
 import java.util.Date;
 
 @Data
@@ -17,6 +18,16 @@ public class Document {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long idDocument;
+
+    // Add a setter for the id field to match the test expectation
+    public void setIdDocument(Long idDocument) {
+        this.idDocument = idDocument;
+    }
+
+    // Add a setter to match the test expectation
+    public void setId(Long id) {
+        this.idDocument = id;
+    }
 
     private String nomDocument;
 

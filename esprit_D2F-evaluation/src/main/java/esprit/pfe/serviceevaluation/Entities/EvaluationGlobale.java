@@ -35,4 +35,7 @@ public class EvaluationGlobale {
 
     @Column(length = 100, nullable = true)
     private String recommandation;
+
+    @Column(name = "last_refresh_date")
+    private java.time.OffsetDateTime lastRefreshDate;
 }

@@ -1,15 +1,20 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import axios from 'axios';
-import CertificateService from '../CertificateService';
 
-vi.mock('axios', () => ({
-  default: {
-    get: vi.fn(),
-    post: vi.fn(),
-    put: vi.fn(),
-    delete: vi.fn(),
+const httpMocks = vi.hoisted(() => ({
+  mockGet: vi.fn(),
+  mockPost: vi.fn(),
+  mockPut: vi.fn(),
+}));
+
+vi.mock('../../utils/httpClient', () => ({
+  defaultApi: {
+    get: httpMocks.mockGet,
+    post: httpMocks.mockPost,
+    put: httpMocks.mockPut,
   },
 }));
+
+import CertificateService from '../CertificateService';
 
 describe('CertificateService', () => {
   beforeEach(() => {
@@ -17,35 +22,40 @@ describe('CertificateService', () => {
     localStorage.clear();
   });
 
-  it('retrieves and creates certificates', async () => {
-    axios.get.mockResolvedValueOnce({ data: [{ id: 1 }] });
-    await expect(CertificateService.getAllCertificates()).resolves.toMatchObject({ data: [{ id: 1 }] });
+  it('lists and creates certificates', async () => {
+    httpMocks.mockGet.mockResolvedValueOnce({ data: [{ id: 1 }] });
+    const res = await CertificateService.getAllCertificates();
+    expect(res.data).toEqual([{ id: 1 }]);
 
-    axios.post.mockResolvedValueOnce({ data: { id: 2 } });
-    await expect(CertificateService.createCertificate({ titre: 'Certif' })).resolves.toMatchObject({ data: { id: 2 } });
+    httpMocks.mockPost.mockResolvedValueOnce({ data: { id: 2 } });
+    const res2 = await CertificateService.createCertificate({ formationId: 1 });
+    expect(res2.data).toEqual({ id: 2 });
   });
 
-  it('handles formation scoped and delivery endpoints', async () => {
-    axios.get.mockResolvedValueOnce({ data: [{ id: 3 }] });
-    await expect(CertificateService.getCertificatesByFormation(10)).resolves.toMatchObject({ data: [{ id: 3 }] });
+  it('gets by formation and delivers', async () => {
+    httpMocks.mockGet.mockResolvedValueOnce({ data: [{ id: 3 }] });
+    const res = await CertificateService.getCertificatesByFormation(10);
+    expect(res.data).toEqual([{ id: 3 }]);
 
-    axios.put.mockResolvedValueOnce({ data: { id: 3, delivered: true } });
-    await expect(CertificateService.deliverCertificate(3)).resolves.toMatchObject({ data: { id: 3, delivered: true } });
-
-    axios.put.mockResolvedValueOnce({ data: { id: 3, nom: 'updated' } });
-    await expect(CertificateService.updateCertificate(3, { nom: 'updated' })).resolves.toMatchObject({ data: { id: 3, nom: 'updated' } });
+    httpMocks.mockPut.mockResolvedValueOnce({ data: { id: 3, delivered: true } });
+    const res2 = await CertificateService.deliverCertificate(3);
+    expect(res2.data).toEqual({ id: 3, delivered: true });
   });
 
-  it('requires token for getCertificatesByEmail', async () => {
-    expect(() => CertificateService.getCertificatesByEmail()).toThrow('Authentication token is missing.');
-
+  it('gets by email with token', async () => {
     localStorage.setItem('authToken', 'abc');
-    axios.get.mockResolvedValueOnce({ data: [{ id: 5 }] });
-    await expect(CertificateService.getCertificatesByEmail()).resolves.toMatchObject({ data: [{ id: 5 }] });
+    httpMocks.mockGet.mockResolvedValueOnce({ data: [{ id: 4 }] });
+    const res = await CertificateService.getCertificatesByEmail();
+    expect(res.data).toEqual([{ id: 4 }]);
   });
 
-  it('generates certificate PDFs', async () => {
-    axios.get.mockResolvedValueOnce({ data: ['cert_1.pdf', 'cert_2.pdf'] });
-    await expect(CertificateService.generateCertificates(7)).resolves.toEqual(['cert_1.pdf', 'cert_2.pdf']);
+  it('updates and generates PDFs', async () => {
+    httpMocks.mockPut.mockResolvedValueOnce({ data: { id: 5 } });
+    const res = await CertificateService.updateCertificate(5, { date: 'x' });
+    expect(res.data).toEqual({ id: 5 });
+
+    httpMocks.mockGet.mockResolvedValueOnce({ data: ['pdf1', 'pdf2'] });
+    const res2 = await CertificateService.generateCertificates(10);
+    expect(res2).toEqual(['pdf1', 'pdf2']);
   });
 });

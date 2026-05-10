@@ -63,6 +63,9 @@ function Wait-SonarQubeQualityGate {
     )
     
     $reportFile = Join-Path $ServicePath "target\sonar\report-task.txt"
+    if (-not (Test-Path $reportFile)) {
+        $reportFile = Join-Path $ServicePath ".scannerwork\report-task.txt"
+    }
     if (-not (Test-Path $reportFile)) { return $null }
     
     # Charger le fichier report-task.txt
@@ -107,7 +110,7 @@ function Wait-SonarQubeQualityGate {
     }
     return $null
 }
-$javaServices = @(
+$allServices = @(
     "esprit_D2F-authentification",
     "esprit_D2F-besoin-formation",
     "esprit_D2F-certificat",
@@ -115,7 +118,8 @@ $javaServices = @(
     "esprit_D2F-evaluation",
     "esprit_D2F-formation",
     "esprit_D2F-api-gateway",
-    "esprit_D2F-analyse"
+    "esprit_D2F-analyse",
+    "esprit_D2F-webapp"
 )
 
 Write-Host ""
@@ -153,7 +157,7 @@ if ($dockerAvailable) {
 
 Write-Host ""
 Write-Host "[INFO] Services a tester :" -ForegroundColor Green
-$javaServices | ForEach-Object { Write-Host "  - $_" -ForegroundColor Gray }
+$allServices | ForEach-Object { Write-Host "  - $_" -ForegroundColor Gray }
 Write-Host ""
 
 # Generer le token SonarQube s'il n'est pas fourni
@@ -173,8 +177,20 @@ $successCount = 0
 $failCount = 0
 $startTime = Get-Date
 
+$projectKeyMap = @{
+    "esprit_D2F-api-gateway" = "d2f_api_gateway"
+    "esprit_D2F-authentification" = "d2f_authentification"
+    "esprit_D2F-besoin-formation" = "d2f_besoin_formation"
+    "esprit_D2F-certificat" = "d2f_certificat"
+    "esprit_D2F-competence" = "d2f_competence"
+    "esprit_D2F-evaluation" = "d2f_evaluation"
+    "esprit_D2F-formation" = "d2f_formation"
+    "esprit_D2F-analyse" = "d2f_analyse"
+    "esprit_D2F-webapp" = "d2f_webapp"
+}
+
 # Lancer les tests pour chaque service
-foreach ($service in $javaServices) {
+foreach ($service in $allServices) {
     $servicePath = ".\" + $service
     
     if (-not (Test-Path $servicePath)) {
@@ -190,38 +206,67 @@ foreach ($service in $javaServices) {
     Push-Location $servicePath
     
     try {
-        # Etape 1: Clean et tests avec JaCoCo
-        Write-Host "  [INFO] Nettoyage et execution des tests..." -ForegroundColor Yellow
-        
-        # Appeler mvnw.cmd directement (pas via fonction)
-        $mvnwPath = ".\mvnw.cmd"
-        if (-not (Test-Path $mvnwPath)) {
-            Write-Host "  [ERREUR] mvnw.cmd introuvable" -ForegroundColor Red
-            $failCount++
-            Pop-Location
-            continue
+        $projectKey = $projectKeyMap[$service]
+        if (-not $projectKey) {
+            $projectKey = $service -replace "-", "_"
         }
+
+        $sonarResult = 0
         
-        & $mvnwPath clean test jacoco:report
-        $testResult = $LASTEXITCODE
-        
-        if ($testResult -ne 0) {
-            Write-Host "  [ERREUR] Les tests ont echoue (code $testResult)" -ForegroundColor Red
-            $failCount++
-            Pop-Location
-            continue
+        if (Test-Path "package.json") {
+            # --- NODEJS PROJECT (FRONTEND) ---
+            Write-Host "  [INFO] Projet NodeJS detecte" -ForegroundColor Yellow
+            
+            if (-not (Test-Path "node_modules")) {
+                Write-Host "  [INFO] Installation des dependances npm..." -ForegroundColor Yellow
+                npm install --quiet
+            }
+            
+            Write-Host "  [INFO] Execution des tests avec couverture..." -ForegroundColor Yellow
+            npm run test:coverage
+            $testResult = $LASTEXITCODE
+            
+            if ($testResult -ne 0) {
+                Write-Host "  [ERREUR] Les tests ont echoue" -ForegroundColor Red
+                $failCount++
+                Pop-Location
+                continue
+            }
+            
+            Write-Host "  [INFO] Envoi a SonarQube via sonar-scanner..." -ForegroundColor Yellow
+            npx sonar-scanner `
+                -Dsonar.projectKey=$projectKey `
+                -Dsonar.host.url=$SonarUrl `
+                -Dsonar.token=$SonarToken `
+                -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
+            
+            $sonarResult = $LASTEXITCODE
+        } else {
+            # --- MAVEN PROJECT (BACKEND) ---
+            Write-Host "  [INFO] Projet Maven detecte" -ForegroundColor Yellow
+            
+            $mvnwPath = ".\mvnw.cmd"
+            if (-not (Test-Path $mvnwPath)) {
+                Write-Host "  [ERREUR] mvnw.cmd introuvable" -ForegroundColor Red
+                $failCount++
+                Pop-Location
+                continue
+            }
+            
+            & $mvnwPath clean test jacoco:report
+            $testResult = $LASTEXITCODE
+            
+            if ($testResult -ne 0) {
+                Write-Host "  [ERREUR] Les tests ont echoue" -ForegroundColor Red
+                $failCount++
+                Pop-Location
+                continue
+            }
+            
+            Write-Host "  [INFO] Envoi a SonarQube via Maven..." -ForegroundColor Yellow
+            & $mvnwPath "sonar:sonar" "-Dsonar.projectKey=$projectKey" "-Dsonar.host.url=$SonarUrl" "-Dsonar.token=$SonarToken" "-Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml"
+            $sonarResult = $LASTEXITCODE
         }
-        
-        Write-Host "  [OK] Tests reussis" -ForegroundColor Green
-        
-        # Etape 2: Analyse SonarQube
-        Write-Host "  [INFO] Envoi des resultats a SonarQube..." -ForegroundColor Yellow
-        
-        $projectKey = $service -replace "-", "_"
-        
-        & $mvnwPath "sonar:sonar" "-Dsonar.projectKey=$projectKey" "-Dsonar.host.url=$SonarUrl" "-Dsonar.token=$SonarToken" "-Dsonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml"
-        
-        $sonarResult = $LASTEXITCODE
         
         if ($sonarResult -eq 0) {
             Write-Host "  [OK] Analyse SonarQube reussie" -ForegroundColor Green

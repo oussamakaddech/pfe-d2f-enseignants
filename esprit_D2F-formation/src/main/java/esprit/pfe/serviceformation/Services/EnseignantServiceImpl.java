@@ -22,9 +22,10 @@ public class EnseignantServiceImpl implements EnseignantService {
             String nextId = enseignantRepository.findTopByOrderByIdDesc()
                     .map(last -> {
                         String lastId = last.getId(); // e.g. "E00042"
+                        // Strip leading non-digits and parse
+                        String numericPart = lastId.replaceAll("\\D", "");
                         try {
-                            // Strip leading non-digits and parse
-                            int num = Integer.parseInt(lastId.replaceAll("\\D", ""));
+                            int num = Integer.parseInt(numericPart);
                             return String.format("E%05d", num + 1);
                         } catch (NumberFormatException e) {
                             return "E00001";

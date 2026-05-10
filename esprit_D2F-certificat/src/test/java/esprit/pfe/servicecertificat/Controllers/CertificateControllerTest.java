@@ -11,7 +11,10 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.oauth2.jwt.Jwt;
 
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Optional;
 
@@ -123,5 +126,86 @@ class CertificateControllerTest {
         when(repository.findById(999L)).thenReturn(Optional.empty());
 
         assertThrows(RuntimeException.class, () -> controller.updateCertificate(999L, request));
+    }
+
+    @Test
+    void getByEmail_shouldReturnCertificatesForTeacher() {
+        Jwt mockJwt = Jwt.withTokenValue("test-token")
+                .header("alg", "RS256")
+                .claim("email", "jean@esprit.tn")
+                .issuedAt(Instant.now())
+                .expiresAt(Instant.now().plus(1, ChronoUnit.HOURS))
+                .build();
+
+        when(repository.findByMailEnseignant("jean@esprit.tn")).thenReturn(List.of(certificate));
+
+        List<CertificateResponse> result = controller.getByEmail(mockJwt);
+
+        assertEquals(1, result.size());
+        assertEquals("Dupont", result.get(0).getNomEnseignant());
+        verify(repository).findByMailEnseignant("jean@esprit.tn");
+    }
+
+    @Test
+    void getByEmail_noCertificates_shouldReturnEmptyList() {
+        Jwt mockJwt = Jwt.withTokenValue("test-token")
+                .header("alg", "RS256")
+                .claim("email", "unknown@esprit.tn")
+                .issuedAt(Instant.now())
+                .expiresAt(Instant.now().plus(1, ChronoUnit.HOURS))
+                .build();
+
+        when(repository.findByMailEnseignant("unknown@esprit.tn")).thenReturn(List.of());
+
+        List<CertificateResponse> result = controller.getByEmail(mockJwt);
+
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
+    void deliver_notFound_shouldThrowRuntimeException() {
+        when(repository.findById(999L)).thenReturn(Optional.empty());
+
+        RuntimeException ex = assertThrows(RuntimeException.class, () -> controller.deliver(999L));
+        assertEquals("Certificat introuvable", ex.getMessage());
+    }
+
+    @Test
+    void updateCertificate_notFound_shouldThrowRuntimeException() {
+        when(repository.findById(999L)).thenReturn(Optional.empty());
+
+        RuntimeException ex = assertThrows(RuntimeException.class, () -> controller.updateCertificate(999L, request));
+        assertEquals("Certificat introuvable", ex.getMessage());
+    }
+
+    @Test
+    void mapToResponse_shouldMapAllFields() {
+        Certificate cert = new Certificate();
+        cert.setIdCertificate(1L);
+        cert.setFormationId(10L);
+        cert.setTitreFormation("Java Avancé");
+        cert.setTypeCertif("Participation");
+        cert.setDateDebutFormation(java.time.LocalDate.of(2025, 1, 1));
+        cert.setDateFinFormation(java.time.LocalDate.of(2025, 1, 31));
+        cert.setChargeHoraireGlobal(40);
+        cert.setEnseignantId("E001");
+        cert.setNomEnseignant("Test");
+        cert.setPrenomEnseignant("User");
+        cert.setMailEnseignant("test@esprit.tn");
+        cert.setDeptEnseignant("INFO");
+        cert.setRoleEnFormation("FORMATEUR");
+        cert.setDelivered(true);
+        cert.setPdfFilePath("/path/to/pdf");
+
+        when(repository.findById(1L)).thenReturn(Optional.of(cert));
+        when(repository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        var response = controller.updateCertificate(1L, request);
+
+        assertNotNull(response.getBody());
+        assertEquals(1L, response.getBody().getId());
+        assertEquals("Java Avancé", response.getBody().getTitreFormation());
+        assertEquals("Participation", response.getBody().getTypeCertif());
+        assertTrue(response.getBody().isDelivered());
     }
 }

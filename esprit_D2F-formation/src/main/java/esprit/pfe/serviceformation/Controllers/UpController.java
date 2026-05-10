@@ -41,10 +41,9 @@ public class UpController {
     // Récupérer une UP par ID
     @GetMapping("/{id}")
     public ResponseEntity<Up> getUpById(@PathVariable String id){
-        return ResponseEntity.ok(
-                upRepository.findById(id)
-                        .orElseThrow(() -> new RuntimeException("UP introuvable : " + id))
-        );
+        return upRepository.findById(id)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
     }
 
     // Ajouter une UP
@@ -57,11 +56,12 @@ public class UpController {
     // Mettre à jour une UP
     @PutMapping("/{id}")
     public ResponseEntity<Up> updateUp(@PathVariable String id, @RequestBody Up up){
-        Up existing = upRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("UP introuvable : " + id));
-        existing.setLibelle(up.getLibelle());
-        Up updated = upRepository.save(existing);
-        return ResponseEntity.ok(updated);
+        return upRepository.findById(id)
+                .map(existing -> {
+                    existing.setLibelle(up.getLibelle());
+                    return ResponseEntity.ok(upRepository.save(existing));
+                })
+                .orElse(ResponseEntity.notFound().build());
     }
 
     // Supprimer une UP

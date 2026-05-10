@@ -167,4 +167,7 @@ public class BesoinFormation implements Serializable {
     public void setIdBesoinFormation(Long idBesoinFormation) {
         this.idBesoinFormation = idBesoinFormation;
     }
+
+    @Column(name = "last_refresh_date")
+    private java.time.LocalDateTime lastRefreshDate;
 }

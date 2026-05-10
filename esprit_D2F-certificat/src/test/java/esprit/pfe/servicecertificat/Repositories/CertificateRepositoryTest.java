@@ -48,8 +48,9 @@ class CertificateRepositoryTest {
 
         List<Certificate> result = certificateRepository.findByFormationId(10L);
 
-        assertThat(result).hasSize(2);
-        assertThat(result).allMatch(c -> c.getFormationId().equals(10L));
+        assertThat(result)
+                .hasSize(2)
+                .allMatch(c -> c.getFormationId().equals(10L));
     }
 
     @Test

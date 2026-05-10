@@ -15,7 +15,6 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @RestControllerAdvice
 @Slf4j
@@ -33,7 +32,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleValidation(MethodArgumentNotValidException ex, HttpServletRequest request) {
         String message = ex.getBindingResult().getFieldErrors().stream()
                 .map(e -> e.getField() + ": " + e.getDefaultMessage())
-                .collect(Collectors.joining("; "));
+                .collect(java.util.stream.Collectors.joining("; "));
         log.error("Validation error: {}", message);
         return buildResponse(HttpStatus.BAD_REQUEST, message, MODULE_PREFIX + "-400", request);
     }
@@ -61,6 +60,12 @@ public class GlobalExceptionHandler {
         log.error("Data integrity violation: {}", ex.getMessage());
         String message = "Conflit de données : la ressource existe déjà ou une contrainte d'intégrité a été violée.";
         return buildResponse(HttpStatus.CONFLICT, message, MODULE_PREFIX + "-409", request);
+    }
+
+    @ExceptionHandler(PdfGenerationException.class)
+    public ResponseEntity<ErrorResponse> handlePdfGeneration(PdfGenerationException ex, HttpServletRequest request) {
+        log.error("PDF generation error: {}", ex.getMessage());
+        return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, ex.getMessage(), MODULE_PREFIX + "-500", request);
     }
 
     @ExceptionHandler(Exception.class)

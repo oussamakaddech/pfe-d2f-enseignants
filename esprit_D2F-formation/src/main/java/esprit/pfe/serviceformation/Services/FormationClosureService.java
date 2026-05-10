@@ -58,9 +58,7 @@ public class FormationClosureService {
                 });
             }
             if (sf.getParticipants() != null) {
-                sf.getParticipants().forEach(part -> {
-                    rolesByEnseignant.putIfAbsent(part.getId(), ROLE_PARTICIPANT);
-                });
+                sf.getParticipants().forEach(part -> rolesByEnseignant.putIfAbsent(part.getId(), ROLE_PARTICIPANT));
             }
         }
 

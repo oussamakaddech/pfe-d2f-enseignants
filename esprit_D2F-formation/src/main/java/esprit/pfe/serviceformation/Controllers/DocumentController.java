@@ -45,8 +45,12 @@ public class DocumentController {
 
     @GetMapping("/{id}")
     public ResponseEntity<DocumentDTO> getById(@PathVariable Long id) {
-        Document doc = service.getById(id);
-        return ResponseEntity.ok(DocumentMapper.mapToDTO(doc));
+        try {
+            Document doc = service.getById(id);
+            return ResponseEntity.ok(DocumentMapper.mapToDTO(doc));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.notFound().build();
+        }
     }
 
     @GetMapping
@@ -58,37 +62,47 @@ public class DocumentController {
         return ResponseEntity.ok(dtos);
     }
 
-    @PutMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PostMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<DocumentDTO> updateDocument(
             @PathVariable Long id,
             @RequestParam String pathType,
             @RequestParam String nomDocument,
             @RequestParam boolean obligation,
-            @RequestParam(required = false) MultipartFile file
-    ) throws IOException {
-        Document doc = service.updateDocument(
-                id, pathType, nomDocument, obligation, file
-        );
-        return ResponseEntity.ok(DocumentMapper.mapToDTO(doc));
+            @RequestParam(required = false) MultipartFile file) throws IOException {
+        try {
+            Document doc = service.updateDocument(
+                    id, pathType, nomDocument, obligation, file);
+            return ResponseEntity.ok(DocumentMapper.mapToDTO(doc));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.notFound().build();
+        }
     }
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteDocument(@PathVariable Long id) {
-        service.deleteDocument(id);
-        return ResponseEntity.noContent().build();
+        try {
+            service.deleteDocument(id);
+            return ResponseEntity.noContent().build();
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.notFound().build();
+        }
     }
 
     @GetMapping("/download/{id}")
     public ResponseEntity<byte[]> downloadDocument(@PathVariable Long id) {
-        byte[] data = service.downloadDocumentFile(id);
-        Document doc = service.getById(id);
-        String filePath = doc.getFilePath();
-        String fn = filePath.substring(filePath.lastIndexOf("/") + 1);
+        try {
+            byte[] data = service.downloadDocumentFile(id);
+            Document doc = service.getById(id);
+            String filePath = doc.getFilePath();
+            String fn = filePath.substring(filePath.lastIndexOf("/") + 1);
 
-        return ResponseEntity.ok()
-                .contentType(MediaType.APPLICATION_OCTET_STREAM)
-                .header(HttpHeaders.CONTENT_DISPOSITION,
-                        "attachment; filename=\"" + fn + "\"")
-                .body(data);
+            return ResponseEntity.ok()
+                    .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                    .header(HttpHeaders.CONTENT_DISPOSITION,
+                            "attachment; filename=\"" + fn + "\"")
+                    .body(data);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.notFound().build();
+        }
     }
 }

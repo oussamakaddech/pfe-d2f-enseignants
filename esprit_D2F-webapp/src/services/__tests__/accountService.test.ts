@@ -1,77 +1,70 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const accountMocks = vi.hoisted(() => ({
+const apiMocks = vi.hoisted(() => ({
   mockGet: vi.fn(),
   mockPost: vi.fn(),
-  requestInterceptorRef: { current: undefined as ((cfg: any) => any) | undefined },
+  mockPut: vi.fn(),
+  mockDelete: vi.fn(),
 }));
 
-vi.mock('axios', () => ({
-  default: {
-    create: vi.fn(() => ({
-      get: accountMocks.mockGet,
-      post: accountMocks.mockPost,
-      interceptors: {
-        request: {
-          use: vi.fn((handler: (cfg: any) => any) => {
-            accountMocks.requestInterceptorRef.current = handler;
-          }),
-        },
-      },
-    })),
-    isAxiosError: vi.fn((error) => Boolean(error && error.isAxiosError)),
-  },
+vi.mock('../../utils/httpClient', () => ({
+  createApiClient: vi.fn(() => ({
+    get: apiMocks.mockGet,
+    post: apiMocks.mockPost,
+    put: apiMocks.mockPut,
+    delete: apiMocks.mockDelete,
+  })),
 }));
 
-import accountService, {
-  banAccount,
-  editProfile,
-  enableAccount,
-  getAllAccounts,
-  getProfile,
-  updatePassword,
-} from '../accountService';
+import accountService from '../accountService';
 
 describe('accountService', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    localStorage.clear();
+  beforeEach(() => { vi.clearAllMocks(); });
+
+  it('lists accounts', async () => {
+    apiMocks.mockGet.mockResolvedValueOnce({ data: [{ username: 'u1' }] });
+    const result = await accountService.getAllAccounts();
+    expect(result).toEqual([{ username: 'u1' }]);
+    expect(apiMocks.mockGet).toHaveBeenCalledWith('/list-accounts');
   });
 
-  it('loads accounts/profile and edits profile', async () => {
-    accountMocks.mockGet.mockResolvedValueOnce({ data: [{ userName: 'u1' }] });
-    await expect(getAllAccounts()).resolves.toEqual([{ userName: 'u1' }]);
-
-    accountMocks.mockGet.mockResolvedValueOnce({ data: { userName: 'u1' } });
-    await expect(getProfile()).resolves.toEqual({ userName: 'u1' });
-
-    accountMocks.mockPost.mockResolvedValueOnce({ data: { userName: 'u1', nom: 'N' } });
-    await expect(editProfile({ nom: 'N' } as never)).resolves.toEqual({ userName: 'u1', nom: 'N' });
+  it('gets profile', async () => {
+    apiMocks.mockGet.mockResolvedValueOnce({ data: { id: '1' } });
+    const result = await accountService.getProfile();
+    expect(result).toEqual({ id: '1' });
+    expect(apiMocks.mockGet).toHaveBeenCalledWith('/profile');
   });
 
-  it('updates password and handles API error', async () => {
-    accountMocks.mockPost.mockResolvedValueOnce({ data: { ok: true } });
-    await expect(updatePassword({ oldPassword: 'a', newPassword: 'b' } as never)).resolves.toEqual({ ok: true });
-
-    const error: any = { isAxiosError: true, response: { status: 400, data: { msg: 'bad' } } };
-    accountMocks.mockPost.mockRejectedValueOnce(error);
-    await expect(updatePassword({ oldPassword: 'a', newPassword: 'b' } as never)).rejects.toEqual(error);
+  it('edits profile', async () => {
+    apiMocks.mockPost.mockResolvedValueOnce({ data: { id: '1', email: 'e' } });
+    const result = await accountService.editProfile({ email: 'e' } as any);
+    expect(result).toEqual({ id: '1', email: 'e' });
+    expect(apiMocks.mockPost).toHaveBeenCalledWith('/edit-profile', { email: 'e' });
   });
 
-  it('ban/enables account and exports default API', async () => {
-    accountMocks.mockPost.mockResolvedValueOnce({ data: { banned: true } });
-    await expect(banAccount('john')).resolves.toEqual({ banned: true });
-
-    accountMocks.mockPost.mockResolvedValueOnce({ data: { enabled: true } });
-    await expect(enableAccount('john')).resolves.toEqual({ enabled: true });
-
-    expect(accountService.getAllAccounts).toBeTypeOf('function');
+  it('updates password', async () => {
+    apiMocks.mockPost.mockResolvedValueOnce({ data: 'ok' });
+    const result = await accountService.updatePassword({ oldPassword: 'p1', newPassword: 'p2' });
+    expect(result).toBe('ok');
   });
 
-  it('request interceptor adds bearer token when available', async () => {
-    localStorage.setItem('authToken', 'abc');
-    const cfg = { headers: {} as Record<string, string> };
-    const out = await accountMocks.requestInterceptorRef.current?.(cfg);
-    expect(out.headers.Authorization).toBe('Bearer abc');
+  it('bans/enables account', async () => {
+    apiMocks.mockPost.mockResolvedValueOnce({ data: 'banned' });
+    await accountService.banAccount('u1');
+    expect(apiMocks.mockPost).toHaveBeenCalledWith('/ban-account', null, { params: { userName: 'u1' } });
+
+    apiMocks.mockPost.mockResolvedValueOnce({ data: 'enabled' });
+    await accountService.enableAccount('u1');
+    expect(apiMocks.mockPost).toHaveBeenCalledWith('/enable-account', null, { params: { userName: 'u1' } });
+  });
+
+  it('deletes/updates account', async () => {
+    apiMocks.mockDelete.mockResolvedValueOnce({ data: 'deleted' });
+    await accountService.deleteAccount('id1');
+    expect(apiMocks.mockDelete).toHaveBeenCalledWith('/delete/id1');
+
+    apiMocks.mockPut.mockResolvedValueOnce({ data: { id: 'id1' } });
+    await accountService.updateAccount('id1', { email: 'e' } as any, 'ROLE_ADMIN');
+    expect(apiMocks.mockPut).toHaveBeenCalledWith('/update/id1', { email: 'e' }, { params: { role: 'ROLE_ADMIN' } });
   });
 });

@@ -6,10 +6,10 @@ import esprit.pfe.serviceformation.repositories.EnseignantRepository;
 import esprit.pfe.serviceformation.repositories.UpRepository;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.security.SecureRandom;
 import java.util.Iterator;
@@ -19,19 +19,25 @@ public class EnseignantExcelService {
 
     private static final SecureRandom RANDOM = new SecureRandom();
 
-    /**
-     * Génère un ID de la forme "E" + 9 chiffres aléatoires (ex : E123456789)
-     */
+    private final EnseignantRepository enseignantRepository;
+    private final DeptRepository deptRepository;
+    private final UpRepository upRepository;
+
+    public EnseignantExcelService(EnseignantRepository enseignantRepository, DeptRepository deptRepository, UpRepository upRepository) {
+        this.enseignantRepository = enseignantRepository;
+        this.deptRepository = deptRepository;
+        this.upRepository = upRepository;
+    }
+
     private String generateRandomId() {
-        int number = RANDOM.nextInt(900_000_000) + 100_000_000;  // entre 100000000 et 999999999
+        int number = RANDOM.nextInt(900_000_000) + 100_000_000;
         return "E" + number;
     }
 
-    @Autowired private EnseignantRepository enseignantRepository;
-    @Autowired private DeptRepository       deptRepository;
-    @Autowired private UpRepository         upRepository;
-
-    public void importEnseignantsFromExcel(MultipartFile file) throws Exception {
+    public void importEnseignantsFromExcel(MultipartFile file) throws IOException {
+        if (file == null || file.isEmpty()) {
+            throw new IllegalArgumentException("Le fichier est vide ou n'existe pas !");
+        }
         try (InputStream is = file.getInputStream();
              Workbook wb = new XSSFWorkbook(is)) {
 

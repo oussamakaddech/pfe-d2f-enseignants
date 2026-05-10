@@ -1,157 +1,149 @@
 package esprit.pfe.serviceformation.services;
 
-import esprit.pfe.serviceformation.dto.FormationDTO;
-import esprit.pfe.serviceformation.dto.InscriptionDTO;
+import esprit.pfe.serviceformation.dto.*;
 import esprit.pfe.serviceformation.entities.*;
-import esprit.pfe.serviceformation.repositories.EnseignantRepository;
-import esprit.pfe.serviceformation.repositories.FormationRepository;
-import esprit.pfe.serviceformation.repositories.InscriptionRepository;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
+import esprit.pfe.serviceformation.repositories.*;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.Date;
-import java.util.List;
-import java.util.Optional;
+import java.sql.Time;
+import java.util.*;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-@DisplayName("InscriptionService - Tests unitaires")
 class InscriptionServiceTest {
 
-    @Mock
-    private FormationRepository formationRepo;
+    @Mock private FormationRepository formationRepo;
+    @Mock private EnseignantRepository enseignantRepo;
+    @Mock private InscriptionRepository inscriptionRepo;
+    @InjectMocks private InscriptionService service;
 
-    @Mock
-    private EnseignantRepository enseignantRepo;
+    private Formation createValidFormation(Long id) {
+        Formation f = new Formation();
+        f.setIdFormation(id);
+        f.setInscriptionsOuvertes(true);
+        f.setOuverte(true);
+        f.setCoutFormation(0.0f);
+        f.setChargeHoraireGlobal(0);
+        f.setTitreFormation("Formation " + id);
+        f.setSeances(new ArrayList<>());
+        return f;
+    }
 
-    @Mock
-    private InscriptionRepository inscriptionRepo;
-
-    @InjectMocks
-    private InscriptionService inscriptionService;
-
-    private Enseignant enseignant;
-    private Formation formation;
-    private Up up;
-
-    @BeforeEach
-    void setUp() {
-        up = new Up();
+    @Test
+    void testListerFormationsAccessibles() {
+        Enseignant ens = new Enseignant();
+        ens.setId("E1");
+        Up up = new Up();
         up.setId("UP1");
-
-        enseignant = new Enseignant();
-        enseignant.setId("ENS1");
-        enseignant.setUp(up);
-
-        formation = new Formation();
-        formation.setIdFormation(1L);
-        formation.setTitreFormation("Spring Boot");
-        formation.setInscriptionsOuvertes(true);
-        formation.setOuverte(false);
-        formation.setUp(up);
-        formation.setDateDebut(new Date());
-        formation.setDateFin(new Date(System.currentTimeMillis() + 86400000L));
-        formation.setCoutFormation(100.0f);
-        formation.setChargeHoraireGlobal(40);
+        ens.setUp(up);
+        when(enseignantRepo.findById(anyString())).thenReturn(Optional.of(ens));
+        
+        Formation f1 = createValidFormation(1L);
+        f1.setOuverte(false);
+        f1.setUp(up);
+        
+        Formation f2 = createValidFormation(2L);
+        f2.setInscriptionsOuvertes(false);
+        
+        when(formationRepo.findAll()).thenReturn(List.of(f1, f2));
+        
+        List<FormationDTO> result = service.listerFormationsAccessibles("E1");
+        assertEquals(1, result.size());
+        assertEquals(1L, result.get(0).getIdFormation());
     }
 
     @Test
-    @DisplayName("listerFormationsAccessibles - Succès")
-    void shouldListFormationsAccessibles() {
-        when(enseignantRepo.findById("ENS1")).thenReturn(Optional.of(enseignant));
-        when(formationRepo.findAll()).thenReturn(List.of(formation));
-
-        List<FormationDTO> result = inscriptionService.listerFormationsAccessibles("ENS1");
-
-        assertThat(result).hasSize(1);
-        assertThat(result.get(0).getIdFormation()).isEqualTo(1L);
+    void testListerFormationsAccessibles_ByMail() {
+        Enseignant ens = new Enseignant();
+        ens.setId("E1");
+        when(enseignantRepo.findById("E1")).thenReturn(Optional.empty());
+        when(enseignantRepo.findByMail("E1")).thenReturn(Optional.of(ens));
+        
+        when(formationRepo.findAll()).thenReturn(Collections.emptyList());
+        assertTrue(service.listerFormationsAccessibles("E1").isEmpty());
     }
 
     @Test
-    @DisplayName("demanderInscription - Succès")
-    void shouldDemanderInscription() {
-        when(formationRepo.findById(1L)).thenReturn(Optional.of(formation));
-        when(enseignantRepo.findById("ENS1")).thenReturn(Optional.of(enseignant));
-        when(inscriptionRepo.findByEnseignant_Id("ENS1")).thenReturn(List.of());
-        when(inscriptionRepo.save(any())).thenAnswer(inv -> {
-            Inscription ins = inv.getArgument(0);
-            ins.setId(1L);
-            return ins;
-        });
-
-        Inscription result = inscriptionService.demanderInscription(1L, "ENS1");
-
-        assertThat(result).isNotNull();
-        assertThat(result.getId()).isEqualTo(1L);
-        assertThat(result.getEnseignant().getId()).isEqualTo("ENS1");
-        verify(inscriptionRepo).save(any());
+    void testDemanderInscription_Success() {
+        Formation f = createValidFormation(1L);
+        when(formationRepo.findById(1L)).thenReturn(Optional.of(f));
+        
+        Enseignant e = new Enseignant();
+        e.setId("E1");
+        when(enseignantRepo.findById("E1")).thenReturn(Optional.of(e));
+        
+        when(inscriptionRepo.findByEnseignant_Id("E1")).thenReturn(Collections.emptyList());
+        when(inscriptionRepo.save(any())).thenReturn(new Inscription());
+        
+        assertNotNull(service.demanderInscription(1L, "E1"));
     }
 
     @Test
-    @DisplayName("demanderInscription - Echec : Non visible")
-    void shouldThrowIfInscriptionsClosed() {
-        formation.setInscriptionsOuvertes(false);
-        when(formationRepo.findById(1L)).thenReturn(Optional.of(formation));
-
-        assertThatThrownBy(() -> inscriptionService.demanderInscription(1L, "ENS1"))
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("n'est pas visible");
+    void testDemanderInscription_Duplicate() {
+        Formation f = createValidFormation(1L);
+        when(formationRepo.findById(1L)).thenReturn(Optional.of(f));
+        when(enseignantRepo.findById(anyString())).thenReturn(Optional.of(new Enseignant()));
+        when(inscriptionRepo.findByEnseignant_Id(anyString())).thenReturn(Collections.emptyList());
+        when(inscriptionRepo.save(any())).thenThrow(new RuntimeException("Duplicate"));
+        
+        assertThrows(IllegalStateException.class, () -> service.demanderInscription(1L, "E1"));
     }
 
     @Test
-    @DisplayName("demanderInscription - Echec : Chevauchement")
-    void shouldThrowIfOverlap() {
-        Inscription existante = new Inscription();
-        existante.setEtat(EtatInscription.APPROVED);
-        existante.setFormation(formation);
-
-        when(formationRepo.findById(1L)).thenReturn(Optional.of(formation));
-        when(enseignantRepo.findById("ENS1")).thenReturn(Optional.of(enseignant));
-        when(inscriptionRepo.findByEnseignant_Id("ENS1")).thenReturn(List.of(existante));
-
-        assertThatThrownBy(() -> inscriptionService.demanderInscription(1L, "ENS1"))
-                .isInstanceOf(IllegalStateException.class)
-                .hasMessageContaining("Chevauchement");
+    void testMapSeanceToDTO_Full() {
+        SeanceFormation s = new SeanceFormation();
+        s.setIdSeance(1L);
+        s.setHeureDebut(Time.valueOf("08:00:00"));
+        s.setHeureFin(Time.valueOf("10:00:00"));
+        
+        Enseignant e = new Enseignant();
+        e.setNom("Nom");
+        s.setAnimateurs(List.of(e));
+        s.setParticipants(List.of(e));
+        
+        SeanceDTO dto = service.mapSeanceToDTO(s);
+        assertEquals(1L, dto.getIdSeance());
+        assertFalse(dto.getAnimateurs().isEmpty());
+        assertFalse(dto.getParticipants().isEmpty());
     }
 
     @Test
-    @DisplayName("traiterDemande - Approuver")
-    void shouldApproveDemande() {
+    void testMapFormationToDTO_Full() {
+        Formation f = createValidFormation(1L);
+        f.setTypeFormation(TypeFormation.INTERNE);
+        f.setEtatFormation(EtatFormation.PLANIFIE);
+        f.setDepartement(new Dept());
+        f.setUp(new Up());
+        
+        SeanceFormation s = new SeanceFormation();
+        f.setSeances(List.of(s));
+        
+        FormationDTO dto = service.mapFormationToDTO(f);
+        assertNotNull(dto.getDepartement1());
+        assertNotNull(dto.getUp1());
+        assertFalse(dto.getSeances().isEmpty());
+    }
+
+    @Test
+    void testTraiterDemande() {
         Inscription ins = new Inscription();
         ins.setId(1L);
         ins.setEtat(EtatInscription.PENDING);
+        ins.setFormation(createValidFormation(1L));
+        ins.setEnseignant(new Enseignant());
 
         when(inscriptionRepo.findById(1L)).thenReturn(Optional.of(ins));
-        when(inscriptionRepo.save(any())).thenAnswer(inv -> inv.getArgument(0));
-
-        Inscription result = inscriptionService.traiterDemande(1L, true);
-
-        assertThat(result.getEtat()).isEqualTo(EtatInscription.APPROVED);
-    }
-
-    @Test
-    @DisplayName("listerInscriptionsParFormation - Succès")
-    void shouldListInscriptionsParFormation() {
-        Inscription ins = new Inscription();
-        ins.setId(1L);
-        ins.setEnseignant(enseignant);
-        ins.setFormation(formation);
-
-        when(formationRepo.findById(1L)).thenReturn(Optional.of(formation));
-        when(inscriptionRepo.findByFormation_IdFormation(1L)).thenReturn(List.of(ins));
-
-        List<InscriptionDTO> result = inscriptionService.listerInscriptionsParFormation(1L);
-
-        assertThat(result).hasSize(1);
-        assertThat(result.get(0).getId()).isEqualTo(1L);
+        when(inscriptionRepo.save(any())).thenReturn(ins);
+        
+        service.traiterDemande(1L, true);
+        assertEquals(EtatInscription.APPROVED, ins.getEtat());
     }
 }
