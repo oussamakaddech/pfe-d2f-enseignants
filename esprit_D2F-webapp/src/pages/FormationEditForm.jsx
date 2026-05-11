@@ -1,7 +1,7 @@
-import  { useState, useEffect } from "react";
-import PropTypes from "prop-types";
-import moment from "moment";
-import { TextField, Button } from "@mui/material";
+import { useState, useEffect } from "react";
+import { format } from "date-fns";
+import { Input, InputNumber, DatePicker, TimePicker, Button, Space, Card, Form, message } from "antd";
+import { PlusOutlined, DeleteOutlined } from "@ant-design/icons";
 import FormationWorkflowService from "../services/FormationWorkflowService";
 
 function FormationEditForm({ formation, onUpdate, onCancel }) {
@@ -21,8 +21,8 @@ function FormationEditForm({ formation, onUpdate, onCancel }) {
   useEffect(() => {
     if (formation) {
       setTitreFormation(formation.titreFormation);
-      setDateDebut(moment(formation.dateDebut).format("YYYY-MM-DD"));
-      setDateFin(moment(formation.dateFin).format("YYYY-MM-DD"));
+      setDateDebut(format(new Date(formation.dateDebut), "yyyy-MM-dd"));
+      setDateFin(format(new Date(formation.dateFin), "yyyy-MM-dd"));
       setTypeFormation(formation.typeFormation);
       setCoutFormation(formation.coutFormation);
       setOrganismeRefExterne(formation.organismeRefExterne);
@@ -31,7 +31,7 @@ function FormationEditForm({ formation, onUpdate, onCancel }) {
       setSeances(
         formation.seances.map((s) => ({
           idSeance: s.idSeance,
-          dateSeance: moment(s.dateSeance).format("YYYY-MM-DD"),
+          dateSeance: format(new Date(s.dateSeance), "yyyy-MM-dd"),
           heureDebut: s.heureDebut, // Format HH:mm:ss
           heureFin: s.heureFin,
         }))
@@ -68,7 +68,7 @@ function FormationEditForm({ formation, onUpdate, onCancel }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (seances.length === 0) {
-      alert("Veuillez ajouter au moins une séance.");
+      message.warning("Veuillez ajouter au moins une séance.");
       return;
     }
     const updatedFormation = {
@@ -96,123 +96,99 @@ function FormationEditForm({ formation, onUpdate, onCancel }) {
   };
 
   return (
-    <form onSubmit={handleSubmit} style={{ maxWidth: "600px", margin: "0 auto" }}>
+    <Form layout="vertical" onFinish={handleSubmit} style={{ maxWidth: 600, margin: "0 auto" }}>
       <h3>Modifier la Formation</h3>
-      <TextField
-        label="Titre Formation"
-        fullWidth
-        margin="normal"
-        value={titreFormation}
-        onChange={(e) => setTitreFormation(e.target.value)}
-        required
-      />
-      <TextField
-        label="Date Début"
-        type="date"
-        fullWidth
-        margin="normal"
-        value={dateDebut}
-        onChange={(e) => setDateDebut(e.target.value)}
-        InputLabelProps={{ shrink: true }}
-        required
-      />
-      <TextField
-        label="Date Fin"
-        type="date"
-        fullWidth
-        margin="normal"
-        value={dateFin}
-        onChange={(e) => setDateFin(e.target.value)}
-        InputLabelProps={{ shrink: true }}
-        required
-      />
-      <TextField
-        label="Type Formation"
-        fullWidth
-        margin="normal"
-        value={typeFormation}
-        onChange={(e) => setTypeFormation(e.target.value)}
-        required
-      />
-      <TextField
-        label="Coût Formation"
-        type="number"
-        fullWidth
-        margin="normal"
-        value={coutFormation}
-        onChange={(e) => setCoutFormation(e.target.value)}
-      />
-      <TextField
-        label="Organisme Réf Externe"
-        fullWidth
-        margin="normal"
-        value={organismeRefExterne}
-        onChange={(e) => setOrganismeRefExterne(e.target.value)}
-      />
-      <TextField
-        label="Charge Horaire Global"
-        type="number"
-        fullWidth
-        margin="normal"
-        value={chargeHoraireGlobal}
-        onChange={(e) => setChargeHoraireGlobal(e.target.value)}
-      />
+      <Form.Item label="Titre Formation" required>
+        <Input
+          value={titreFormation}
+          onChange={(e) => setTitreFormation(e.target.value)}
+        />
+      </Form.Item>
+      <Form.Item label="Date Début" required>
+        <Input
+          type="date"
+          value={dateDebut}
+          onChange={(e) => setDateDebut(e.target.value)}
+        />
+      </Form.Item>
+      <Form.Item label="Date Fin" required>
+        <Input
+          type="date"
+          value={dateFin}
+          onChange={(e) => setDateFin(e.target.value)}
+        />
+      </Form.Item>
+      <Form.Item label="Type Formation" required>
+        <Input
+          value={typeFormation}
+          onChange={(e) => setTypeFormation(e.target.value)}
+        />
+      </Form.Item>
+      <Form.Item label="Coût Formation">
+        <InputNumber
+          value={coutFormation}
+          onChange={(val) => setCoutFormation(val)}
+          style={{ width: "100%" }}
+          min={0}
+        />
+      </Form.Item>
+      <Form.Item label="Organisme Réf Externe">
+        <Input
+          value={organismeRefExterne}
+          onChange={(e) => setOrganismeRefExterne(e.target.value)}
+        />
+      </Form.Item>
+      <Form.Item label="Charge Horaire Global">
+        <InputNumber
+          value={chargeHoraireGlobal}
+          onChange={(val) => setChargeHoraireGlobal(val)}
+          style={{ width: "100%" }}
+          min={0}
+        />
+      </Form.Item>
 
       <h4>Les Séances</h4>
       {seances.map((s, index) => (
-        <div key={index} style={{ border: "1px solid #ccc", padding: "1rem", marginBottom: "1rem" }}>
-          <TextField
-            label="Date de séance"
-            type="date"
-            fullWidth
-            margin="normal"
-            value={s.dateSeance}
-            onChange={(e) => handleSeanceChange(index, "dateSeance", e.target.value)}
-            InputLabelProps={{ shrink: true }}
-            required
-          />
-          <TextField
-            label="Heure début"
-            type="time"
-            fullWidth
-            margin="normal"
-            value={s.heureDebut}
-            onChange={(e) => handleSeanceChange(index, "heureDebut", e.target.value)}
-            required
-          />
-          <TextField
-            label="Heure fin"
-            type="time"
-            fullWidth
-            margin="normal"
-            value={s.heureFin}
-            onChange={(e) => handleSeanceChange(index, "heureFin", e.target.value)}
-            required
-          />
-          <Button variant="outlined" color="secondary" onClick={() => handleDeleteSeance(index)}>
+        <Card key={index} size="small" style={{ marginBottom: 16 }}>
+          <Form.Item label="Date de séance" required>
+            <Input
+              type="date"
+              value={s.dateSeance}
+              onChange={(e) => handleSeanceChange(index, "dateSeance", e.target.value)}
+            />
+          </Form.Item>
+          <Form.Item label="Heure début" required>
+            <Input
+              type="time"
+              value={s.heureDebut}
+              onChange={(e) => handleSeanceChange(index, "heureDebut", e.target.value)}
+            />
+          </Form.Item>
+          <Form.Item label="Heure fin" required>
+            <Input
+              type="time"
+              value={s.heureFin}
+              onChange={(e) => handleSeanceChange(index, "heureFin", e.target.value)}
+            />
+          </Form.Item>
+          <Button danger icon={<DeleteOutlined />} onClick={() => handleDeleteSeance(index)}>
             Supprimer cette séance
           </Button>
-        </div>
+        </Card>
       ))}
-      <Button variant="outlined" onClick={handleAddSeance} style={{ marginBottom: "1rem" }}>
-        + Ajouter une séance
+      <Button type="dashed" icon={<PlusOutlined />} onClick={handleAddSeance} style={{ marginBottom: 16 }}>
+        Ajouter une séance
       </Button>
-      <div style={{ display: "flex", gap: "1rem" }}>
-        <Button variant="contained" color="primary" type="submit">
+      <Space>
+        <Button type="primary" htmlType="submit">
           Enregistrer les modifications
         </Button>
-        <Button variant="outlined" onClick={onCancel}>
+        <Button onClick={onCancel}>
           Annuler
         </Button>
-      </div>
-    </form>
+      </Space>
+    </Form>
   );
 }
-
-FormationEditForm.propTypes = {
-  formation: PropTypes.object.isRequired,
-  onUpdate: PropTypes.func.isRequired,
-  onCancel: PropTypes.func.isRequired,
-};
 
 export default FormationEditForm;

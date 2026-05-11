@@ -4,11 +4,12 @@ package esprit.pfe.serviceformation.services;
 
 import esprit.pfe.serviceformation.entities.Formation;
 import esprit.pfe.serviceformation.repositories.FormationRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 
-import java.util.List;
 import java.util.Optional;
 
 @Service
@@ -60,8 +61,8 @@ public class FormationServiceImpl implements FormationService {
     }
     @Override
     @Transactional(readOnly = true)
-    public List<Formation> getAllFormations() {
-        List<Formation> formations = formationRepository.findAll();
+    public Page<Formation> getAllFormations(Pageable pageable) {
+        Page<Formation> formations = formationRepository.findAll(pageable);
         formations.forEach(f -> {
             if (f.getSeances() != null) f.getSeances().size();
             if (f.getFormationCompetences() != null) f.getFormationCompetences().size();

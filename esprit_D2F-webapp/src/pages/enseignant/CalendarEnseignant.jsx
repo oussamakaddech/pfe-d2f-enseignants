@@ -2,27 +2,33 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Calendar, momentLocalizer } from "react-big-calendar";
-import moment from "moment";
+import { Calendar, dateFnsLocalizer } from "react-big-calendar";
+import { format, parse, startOfWeek, getDay } from "date-fns";
+import { fr } from "date-fns/locale/fr";
 import {
-  Box,
   Button,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
+  Modal,
   Typography,
   Divider,
-  Grid,
-  Stack,
-  TextField,
-} from "@mui/material";
-import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+  Row,
+  Col,
+  Space,
+  Input,
+  Tag,
+} from "antd";
+import { ArrowLeftOutlined, UserOutlined } from "@ant-design/icons";
 import FormationWorkflowService from "../../services/FormationWorkflowService";
 import "react-big-calendar/lib/css/react-big-calendar.css";
-import "../../index.css"; // pour l'animation blink-animateur
+import "../../index.css";
 
-const localizer = momentLocalizer(moment);
+const locales = { fr };
+const localizer = dateFnsLocalizer({
+  format,
+  parse,
+  startOfWeek: () => startOfWeek(new Date(), { weekStartsOn: 1 }),
+  getDay,
+  locales,
+});
 
 export default function CalendarEnseignant() {
   const { enseignantId } = useParams();
@@ -110,40 +116,37 @@ export default function CalendarEnseignant() {
   };
 
   // helper pour format YYYY-MM-DD
-  const formatDateInput = d => moment(d).format("YYYY-MM-DD");
+  const formatDateInput = d => format(d, "yyyy-MM-dd");
 
   return (
     <>
-      <Box sx={{ p: 2 }}>
+      <div style={{ padding: 16 }}>
         {/* bouton retour */}
         <Button
-          startIcon={<ArrowBackIcon />}
+          icon={<ArrowLeftOutlined />}
           onClick={() => navigate(-1)}
-          sx={{ mb: 2 }}
+          style={{ marginBottom: 16 }}
         >
           Retour
         </Button>
 
         {/* titre + datepicker */}
-        <Stack direction="row" alignItems="center" spacing={2} mb={2}>
-          <Typography variant="h4">
+        <Space style={{ marginBottom: 16 }} size="middle" align="center">
+          <Typography.Title level={4} style={{ margin: 0 }}>
             Calendrier de{" "}
-            <Box component="span" color="primary.main">
+            <span style={{ color: "#1677ff" }}>
               {enseignantInfo
                 ? `${enseignantInfo.nom} ${enseignantInfo.prenom}`
                 : enseignantId}
-            </Box>
-          </Typography>
-          {/* sélecteur de date */}
-          <TextField
-            label="Aller à la date"
+            </span>
+          </Typography.Title>
+          <Input
             type="date"
-            size="small"
             value={formatDateInput(date)}
             onChange={e => setDate(new Date(e.target.value))}
-            InputLabelProps={{ shrink: true }}
+            style={{ width: 180 }}
           />
-        </Stack>
+        </Space>
 
         {/* calendrier contrôlé avec toolbar */}
         <Calendar
@@ -162,129 +165,91 @@ export default function CalendarEnseignant() {
           eventPropGetter={eventStyleGetter}
           onSelectEvent={handleSelectEvent}
         />
-      </Box>
+      </div>
 
       {/* popup détaillée */}
       {selectedEvent && (
-        <Dialog open={open} onClose={handleClose} fullWidth maxWidth="md">
-          <DialogTitle>
-            <Typography variant="h6" color="error">
+        <Modal
+          open={open}
+          onCancel={handleClose}
+          title={
+            <Typography.Text type="danger" strong>
               {selectedEvent.resource.role === "animateur"
                 ? "Animateur"
                 : "Participant"}{" "}
               – {selectedEvent.resource.formation.titreFormation}
-            </Typography>
-          </DialogTitle>
-          <DialogContent dividers>
-            <Stack spacing={2}>
-              {/* en‐tête enseignant */}
-              <Typography>
-                <strong>Enseignant :</strong>{" "}
-                <Box component="span" color="secondary.main">
-                  {enseignantInfo.nom} {enseignantInfo.prenom}
-                </Box>{" "}
-                — <em>
-                  {enseignantInfo.deptLibelle || "Dépt. inconnu"} /{" "}
-                  {enseignantInfo.upLibelle || "UP inconnue"}
-                </em>
-              </Typography>
-              <Divider />
+            </Typography.Text>
+          }
+          width={700}
+          footer={
+            <Button onClick={handleClose}>Fermer</Button>
+          }
+        >
+          <Space direction="vertical" style={{ width: "100%" }} size="middle">
+            {/* en-tête enseignant */}
+            <Typography.Text>
+              <strong>Enseignant :</strong>{" "}
+              <span style={{ color: "#eb2f96" }}>
+                {enseignantInfo.nom} {enseignantInfo.prenom}
+              </span>{" "}
+              — <em>
+                {enseignantInfo.deptLibelle || "Dépt. inconnu"} /{" "}
+                {enseignantInfo.upLibelle || "UP inconnue"}
+              </em>
+            </Typography.Text>
+            <Divider />
 
-              {/* détails séance */}
-              <Grid container spacing={2}>
-                <Grid item xs={6}>
-                  <Typography>
-                    <strong>Date :</strong>{" "}
-                    {selectedEvent.resource.seance.dateSeance}
-                  </Typography>
-                </Grid>
-                <Grid item xs={3}>
-                  <Typography>
-                    <strong>Début :</strong>{" "}
-                    {selectedEvent.resource.seance.heureDebut}
-                  </Typography>
-                </Grid>
-                <Grid item xs={3}>
-                  <Typography>
-                    <strong>Fin :</strong>{" "}
-                    {selectedEvent.resource.seance.heureFin}
-                  </Typography>
-                </Grid>
-                <Grid item xs={12}>
-                  <Typography>
-                    <strong>Salle :</strong>{" "}
-                    {selectedEvent.resource.seance.salle || "—"}
-                  </Typography>
-                </Grid>
-                <Grid item xs={6}>
-                  <Typography>
-                    <strong>Type :</strong>{" "}
-                    <Box component="span" color="error">
-                      {selectedEvent.resource.formation.typeFormation}
-                    </Box>
-                  </Typography>
-                </Grid>
-                <Grid item xs={6}>
-                  <Typography>
-                    <strong>État :</strong>{" "}
-                    <Box component="span" color="error">
-                      {selectedEvent.resource.formation.etatFormation}
-                    </Box>
-                  </Typography>
-                </Grid>
-                <Grid item xs={12}>
-                  <Typography>
-                    <strong>Charge horaire :</strong>{" "}
-                    {selectedEvent.resource.formation.chargeHoraireGlobal} h
-                  </Typography>
-                </Grid>
-              </Grid>
+            {/* détails séance */}
+            <Row gutter={[16, 8]}>
+              <Col span={12}>
+                <Typography.Text><strong>Date :</strong> {selectedEvent.resource.seance.dateSeance}</Typography.Text>
+              </Col>
+              <Col span={6}>
+                <Typography.Text><strong>Début :</strong> {selectedEvent.resource.seance.heureDebut}</Typography.Text>
+              </Col>
+              <Col span={6}>
+                <Typography.Text><strong>Fin :</strong> {selectedEvent.resource.seance.heureFin}</Typography.Text>
+              </Col>
+              <Col span={24}>
+                <Typography.Text><strong>Salle :</strong> {selectedEvent.resource.seance.salle || "—"}</Typography.Text>
+              </Col>
+              <Col span={12}>
+                <Typography.Text><strong>Type :</strong> <Tag color="red">{selectedEvent.resource.formation.typeFormation}</Tag></Typography.Text>
+              </Col>
+              <Col span={12}>
+                <Typography.Text><strong>État :</strong> <Tag color="red">{selectedEvent.resource.formation.etatFormation}</Tag></Typography.Text>
+              </Col>
+              <Col span={24}>
+                <Typography.Text><strong>Charge horaire :</strong> {selectedEvent.resource.formation.chargeHoraireGlobal} h</Typography.Text>
+              </Col>
+            </Row>
 
-              <Divider />
+            <Divider />
 
-              {/* liste des participants ou animateurs */}
-              <Box>
-                <Typography variant="subtitle1">
-                  {selectedEvent.resource.role === "animateur"
-                    ? "Participants :"
-                    : "Animateurs :"}
-                </Typography>
-                <Stack direction="row" flexWrap="wrap" gap={1} mt={1}>
-                  {(selectedEvent.resource.role === "animateur"
-                    ? selectedEvent.resource.formation.seances.find(
-                        s =>
-                          s.idSeance ===
-                          selectedEvent.resource.seance.idSeance
-                      ).participants
-                    : selectedEvent.resource.formation.seances.find(
-                        s =>
-                          s.idSeance ===
-                          selectedEvent.resource.seance.idSeance
-                      ).animateurs
-                  ).map(p => (
-                    <Box
-                      key={p.id}
-                      sx={{
-                        px: 1,
-                        py: 0.5,
-                        bgcolor: "#f5f5f5",
-                        borderRadius: 1,
-                        border: "1px solid #ddd",
-                      }}
-                    >
-                      {p.nom} {p.prenom}
-                    </Box>
-                  ))}
-                </Stack>
-              </Box>
-            </Stack>
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={handleClose} variant="outlined" color="secondary">
-              Fermer
-            </Button>
-          </DialogActions>
-        </Dialog>
+            {/* liste des participants ou animateurs */}
+            <div>
+              <Typography.Text strong>
+                {selectedEvent.resource.role === "animateur"
+                  ? "Participants :"
+                  : "Animateurs :"}
+              </Typography.Text>
+              <div style={{ marginTop: 8, display: "flex", flexWrap: "wrap", gap: 8 }}>
+                {(selectedEvent.resource.role === "animateur"
+                  ? selectedEvent.resource.formation.seances.find(
+                      s => s.idSeance === selectedEvent.resource.seance.idSeance
+                    ).participants
+                  : selectedEvent.resource.formation.seances.find(
+                      s => s.idSeance === selectedEvent.resource.seance.idSeance
+                    ).animateurs
+                ).map(p => (
+                  <Tag key={p.id} icon={<UserOutlined />} color="default">
+                    {p.nom} {p.prenom}
+                  </Tag>
+                ))}
+              </div>
+            </div>
+          </Space>
+        </Modal>
       )}
     </>
   );

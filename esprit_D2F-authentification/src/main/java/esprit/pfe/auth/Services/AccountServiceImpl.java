@@ -10,6 +10,8 @@ import esprit.pfe.auth.repositories.UserRepository;
 import esprit.pfe.auth.error.BadRequestException;
 import esprit.pfe.auth.payload.request.EditProfileRequest;
 import esprit.pfe.auth.payload.request.UpdatePasswordRequest;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -33,8 +35,8 @@ public class AccountServiceImpl implements AccountService {
         this.encoder = encoder;
     }
     @Override
-    public List<User> listAccounts() {
-        return this.userRepository.findAll();
+    public Page<User> listAccounts(Pageable pageable) {
+        return this.userRepository.findAll(pageable);
     }
 
     @Override

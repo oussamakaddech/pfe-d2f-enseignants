@@ -4,10 +4,11 @@ package esprit.pfe.serviceformation.controllers;
 import esprit.pfe.serviceformation.entities.Formation;
 import esprit.pfe.serviceformation.services.FormationService;
 import esprit.pfe.auth.security.AuthorizationMatrix;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-import java.util.List;
 import lombok.RequiredArgsConstructor;
 
 @RestController
@@ -24,11 +25,11 @@ public class FormationController {
         return ResponseEntity.ok(savedFormation);
     }
 
-    // Récupération de toutes les formations - All authenticated users
+    // Récupération de toutes les formations - All authenticated users (paginé)
     @GetMapping
     @PreAuthorize(AuthorizationMatrix.FORMATION_READ)
-    public ResponseEntity<List<Formation>> getAllFormations(){
-        return ResponseEntity.ok(formationService.getAllFormations());
+    public ResponseEntity<Page<Formation>> getAllFormations(Pageable pageable){
+        return ResponseEntity.ok(formationService.getAllFormations(pageable));
     }
 
     // Récupération d'une formation par son id

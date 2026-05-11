@@ -7,6 +7,8 @@ import esprit.pfe.serviceevaluation.dto.EvaluationFormateurDTO;
 import esprit.pfe.serviceevaluation.services.EvaluationFormateurService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -46,10 +48,10 @@ public class EvaluationFormateurController {
         return ResponseEntity.ok(evaluationService.getEvaluationDto(id));
     }
 
-    // READ (tous)
+    // READ (tous, paginé)
     @GetMapping
-    public ResponseEntity<List<EvaluationFormateurDTO>> listAllEvaluations() {
-        return ResponseEntity.ok(evaluationService.listAllEvaluationsDto());
+    public ResponseEntity<Page<EvaluationFormateurDTO>> listAllEvaluations(Pageable pageable) {
+        return ResponseEntity.ok(evaluationService.listAllEvaluationsDto(pageable));
     }
 
     // Logique personnalisée

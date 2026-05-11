@@ -1,22 +1,11 @@
 // src/pages/CalendrierPage.jsx
 
 import { useState, useEffect } from "react";
-import { Calendar, momentLocalizer } from "react-big-calendar";
-import moment from "moment";
+import { Calendar, dateFnsLocalizer } from "react-big-calendar";
+import { format, parse, startOfWeek, getDay } from "date-fns";
+import { fr } from "date-fns/locale/fr";
 import "react-big-calendar/lib/css/react-big-calendar.css";
-import {
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  Button,
-  Snackbar,
-  Alert,
-  CircularProgress,
-  Box,
-} from "@mui/material";
-import { Steps } from "antd";
-import "antd/dist/reset.css";
+import { Modal, Button, Steps, Spin, message, Space } from "antd";
 
 import FormationWorkflowForm from "./FormationWorkflowForm";
 import FormationWorkflowService from "../services/FormationWorkflowService";
@@ -25,7 +14,14 @@ import SeanceService from "../services/SeanceService";
 import MailForm from "./MailForm";
 import DocumentCreateForm from "./documentFormation/DocumentCreateForm";
 
-const localizer = momentLocalizer(moment);
+const locales = { fr };
+const localizer = dateFnsLocalizer({
+  format,
+  parse,
+  startOfWeek: () => startOfWeek(new Date(), { weekStartsOn: 1 }),
+  getDay,
+  locales,
+});
 
 export default function CalendrierPage() {
   // données calendrier
@@ -42,10 +38,6 @@ export default function CalendrierPage() {
   // état calendrier
   const [currentDate, setCurrentDate] = useState(new Date());
   const [currentView, setCurrentView] = useState("month");
-  // alert Snackbar
-  const [alertOpen, setAlertOpen] = useState(false);
-  const [alertMessage, setAlertMessage] = useState("");
-  const [alertSeverity, setAlertSeverity] = useState("success");
   // loading
   const [isLoading, setIsLoading] = useState(false);
 
@@ -59,10 +51,10 @@ export default function CalendrierPage() {
     loadFormations();
   }, []);
 
-  const showAlert = (message, severity = "info") => {
-    setAlertMessage(message);
-    setAlertSeverity(severity);
-    setAlertOpen(true);
+  const showAlert = (msg, severity = "info") => {
+    if (severity === "error") message.error(msg);
+    else if (severity === "success") message.success(msg);
+    else message.info(msg);
   };
 
   const loadFormations = async () => {
@@ -189,9 +181,9 @@ export default function CalendrierPage() {
       <h2>📅 Calendrier des Formations</h2>
 
       {isLoading && (
-        <Box sx={{ display: "flex", justifyContent: "center", mb: 2 }}>
-          <CircularProgress />
-        </Box>
+        <div style={{ display: "flex", justifyContent: "center", marginBottom: 16 }}>
+          <Spin size="large" />
+        </div>
       )}
 
       <div style={{ height: 600, marginTop: 20, marginBottom: 20 }}>
@@ -215,93 +207,30 @@ export default function CalendrierPage() {
       </div>
 
       {/* ========== MODAL ========== */}
-      <Dialog open={showModal} onClose={handleClose} fullWidth maxWidth="sm">
-        <DialogTitle>
-          {showWizard
+      <Modal
+        open={showModal}
+        onCancel={handleClose}
+        title={
+          showWizard
             ? steps[wizardStep].title
             : selectedEvent
             ? selectedEvent.details.seance
               ? "📝 Détails de la Séance"
               : "📝 Détails de la Formation"
-            : "➕ Créer une Formation"}
-        </DialogTitle>
-
-        <DialogContent dividers>
-          {showWizard ? (
-            <>
-              <Steps
-                current={wizardStep}
-                items={steps}
-                style={{ marginBottom: 24 }}
-              />
-
-              {wizardStep === 0 && (
-                <FormationWorkflowForm
-                  initialDate={selectedDate}
-                  onFormationCreated={onFormationCreatedWizard}
-                />
-              )}
-
-              {wizardStep === 1 && (
-                <DocumentCreateForm
-                  formationId={createdFormation?.idFormation}
-                  onDocumentCreated={onDocumentCreatedWizard}
-                  onCancel={handleClose}
-                />
-              )}
-
-              {wizardStep === 2 && (
-                <MailForm
-                  formation={createdFormation}
-                  onSendSuccess={onEmailSent}
-                />
-              )}
-            </>
-          ) : selectedEvent ? (
-            <Box position="relative">
-              {isLoading && (
-                <Box
-                  sx={{
-                    position: "absolute",
-                    top: "50%",
-                    left: "50%",
-                    transform: "translate(-50%, -50%)",
-                    zIndex: 1000,
-                  }}
-                >
-                  <CircularProgress />
-                </Box>
-              )}
-
-              <Box sx={{ opacity: isLoading ? 0.5 : 1 }}>
-                {/* ✅ EventDetails en affichage uniquement */}
-                <EventDetails selectedEvent={selectedEvent} />
-              </Box>
-            </Box>
-          ) : (
-            <FormationWorkflowForm
-              initialDate={selectedDate}
-              onFormationCreated={onFormationCreatedWizard}
-            />
-          )}
-        </DialogContent>
-
-        {/* ========== ACTIONS ========== */}
-        <DialogActions sx={{ p: 2, gap: 1 }}>
-          {showWizard ? (
-            <>
+            : "➕ Créer une Formation"
+        }
+        width={600}
+        footer={
+          showWizard ? (
+            <Space>
               {wizardStep > 0 && (
-                <Button
-                  onClick={() => setWizardStep(wizardStep - 1)}
-                  disabled={isLoading}
-                >
+                <Button onClick={() => setWizardStep(wizardStep - 1)} disabled={isLoading}>
                   ⬅️ Précédent
                 </Button>
               )}
               {wizardStep < steps.length - 1 && (
                 <Button
-                  color="primary"
-                  variant="contained"
+                  type="primary"
                   onClick={() => setWizardStep(wizardStep + 1)}
                   disabled={
                     (wizardStep === 0 && !createdFormation) ||
@@ -313,41 +242,67 @@ export default function CalendrierPage() {
                 </Button>
               )}
               {wizardStep === steps.length - 1 && (
-                <Button
-                  color="success"
-                  variant="contained"
-                  onClick={handleClose}
-                  disabled={isLoading}
-                >
+                <Button type="primary" onClick={handleClose} disabled={isLoading}>
                   ✅ Terminer
                 </Button>
               )}
               <Button onClick={handleClose} disabled={isLoading}>
                 Annuler
               </Button>
-            </>
-          ) : selectedEvent ? (
-            <>
-              <Button onClick={handleClose}>Fermer</Button>
-            </>
+            </Space>
           ) : (
             <Button onClick={handleClose}>Fermer</Button>
-          )}
-        </DialogActions>
-      </Dialog>
-
-      {/* ========== SNACKBAR ========== */}
-      <Snackbar
-        open={alertOpen}
-        autoHideDuration={alertSeverity === "error" ? 6000 : 4000}
-        onClose={() => setAlertOpen(false)}
-        anchorOrigin={{ vertical: "top", horizontal: "center" }}
-        sx={{ zIndex: 3000 }}
+          )
+        }
       >
-        <Alert severity={alertSeverity} onClose={() => setAlertOpen(false)}>
-          {alertMessage}
-        </Alert>
-      </Snackbar>
+        {showWizard ? (
+          <>
+            <Steps
+              current={wizardStep}
+              items={steps}
+              style={{ marginBottom: 24 }}
+            />
+
+            {wizardStep === 0 && (
+              <FormationWorkflowForm
+                initialDate={selectedDate}
+                onFormationCreated={onFormationCreatedWizard}
+              />
+            )}
+
+            {wizardStep === 1 && (
+              <DocumentCreateForm
+                formationId={createdFormation?.idFormation}
+                onDocumentCreated={onDocumentCreatedWizard}
+                onCancel={handleClose}
+              />
+            )}
+
+            {wizardStep === 2 && (
+              <MailForm
+                formation={createdFormation}
+                onSendSuccess={onEmailSent}
+              />
+            )}
+          </>
+        ) : selectedEvent ? (
+          <div style={{ position: "relative" }}>
+            {isLoading && (
+              <div style={{ textAlign: "center", padding: 40 }}>
+                <Spin size="large" />
+              </div>
+            )}
+            <div style={{ opacity: isLoading ? 0.5 : 1 }}>
+              <EventDetails selectedEvent={selectedEvent} />
+            </div>
+          </div>
+        ) : (
+          <FormationWorkflowForm
+            initialDate={selectedDate}
+            onFormationCreated={onFormationCreatedWizard}
+          />
+        )}
+      </Modal>
     </div>
   );
 }

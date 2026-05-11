@@ -3,13 +3,12 @@ package esprit.pfe.auth.services;
 import esprit.pfe.auth.entities.User;
 import esprit.pfe.auth.payload.request.EditProfileRequest;
 import esprit.pfe.auth.payload.request.UpdatePasswordRequest;
-
-
-import java.util.List;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 public interface AccountService {
 
-    List<User> listAccounts();
+    Page<User> listAccounts(Pageable pageable);
 
     void banAccount(String userName);
 

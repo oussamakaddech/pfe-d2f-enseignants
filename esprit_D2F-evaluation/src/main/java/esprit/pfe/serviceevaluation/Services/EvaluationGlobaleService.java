@@ -5,9 +5,9 @@ import esprit.pfe.serviceevaluation.entities.EvaluationGlobale;
 import esprit.pfe.serviceevaluation.repositories.EvaluationGlobaleRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
-
-import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -71,9 +71,8 @@ public class EvaluationGlobaleService {
                 .orElseThrow(() -> new EntityNotFoundException("Évaluation globale non trouvée pour la formation : " + formationId));
     }
 
-    public List<EvaluationGlobaleDTO> getAllEvaluationGlobales() {
-        return evaluationGlobaleRepository.findAll().stream()
-                .map(this::mapToDto)
-                .toList();
+    public Page<EvaluationGlobaleDTO> getAllEvaluationGlobales(Pageable pageable) {
+        return evaluationGlobaleRepository.findAll(pageable)
+                .map(this::mapToDto);
     }
 }

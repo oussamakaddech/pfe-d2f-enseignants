@@ -4,7 +4,7 @@ Plateforme de gestion des compétences et de développement professionnel des en
 
 ## 📦 Architecture
 
-Architecture **microservices** (Spring Boot 3.x / JDK 17 + FastAPI Python) :
+Architecture **microservices** (Spring Boot 3.x / JDK 17 + FastAPI Python) avec API Gateway, RabbitMQ, PostgreSQL :
 
 ```
 pfe-d2f-enseignants/
@@ -69,6 +69,9 @@ cd esprit_D2F-webapp && npm install && npm run dev
 | `VITE_API_URL` | URL API Gateway (frontend) | `http://localhost:8080/api` |
 | `MAIL_USERNAME` | SMTP utilisateur | — |
 | `MAIL_PASSWORD` | SMTP mot de passe | — |
+| `RABBITMQ_HOST` | Hôte RabbitMQ | `rabbitmq` |
+| `RABBITMQ_USERNAME` | Utilisateur RabbitMQ | `d2f` |
+| `RABBITMQ_PASSWORD` | Mot de passe RabbitMQ | `<mot de passe fort>` |
 
 Voir `.env.example` pour la liste complète.
 
@@ -79,6 +82,8 @@ Voir `.env.example` pour la liste complète.
 - **CORS** restreint aux origines internes
 - **BCrypt** pour le hachage des mots de passe
 - **Aucun secret dans le code source** — tout via `.env` / variables d'environnement
+- **RabbitMQ** pour la communication asynchrone interservices
+- **Nginx** avec en-têtes de sécurité (CSP, HSTS, X-Frame-Options)
 
 ## 🧪 Tests
 

@@ -5,17 +5,13 @@ import esprit.pfe.servicecertificat.dto.CertificateResponse;
 import esprit.pfe.servicecertificat.entities.Certificate;
 import esprit.pfe.servicecertificat.repositories.CertificateRepository;
 import jakarta.validation.Valid;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -38,10 +34,9 @@ public class CertificateController {
     }
 
     @GetMapping
-    public List<CertificateResponse> getAll() {
-        return certificateRepository.findAll().stream()
-                .map(this::mapToResponse)
-                .toList();
+    public Page<CertificateResponse> getAll(Pageable pageable) {
+        return certificateRepository.findAll(pageable)
+                .map(this::mapToResponse);
     }
 
     @GetMapping("/formation/{formationId}")

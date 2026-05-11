@@ -3,10 +3,10 @@ package esprit.pfe.serviceevaluation.controllers;
 import esprit.pfe.serviceevaluation.dto.EvaluationGlobaleDTO;
 import esprit.pfe.serviceevaluation.services.EvaluationGlobaleService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/evaluations-globales")
@@ -21,8 +21,8 @@ public class EvaluationGlobaleController {
     }
 
     @GetMapping
-    public ResponseEntity<List<EvaluationGlobaleDTO>> getAllEvaluationGlobales() {
-        return ResponseEntity.ok(evaluationGlobaleService.getAllEvaluationGlobales());
+    public ResponseEntity<Page<EvaluationGlobaleDTO>> getAllEvaluationGlobales(Pageable pageable) {
+        return ResponseEntity.ok(evaluationGlobaleService.getAllEvaluationGlobales(pageable));
     }
 
     @GetMapping("/{id}")

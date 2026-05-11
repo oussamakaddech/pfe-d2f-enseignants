@@ -33,8 +33,8 @@ networks:
 volumes:
   d2f_postgres_data:
     name: d2f_postgres_data
-  d2f_artemis_data:
-    name: d2f_artemis_data
+  d2f_rabbitmq_data:
+    name: d2f_rabbitmq_data
   d2f_models_data:
     name: d2f_models_data
   d2f_pgadmin_data:
@@ -68,20 +68,20 @@ services:
     networks:
       - d2f-network
 
-  artemis:
-    image: apache/activemq-artemis:2.31.2
-    container_name: d2f-artemis
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    container_name: d2f-rabbitmq
     restart: unless-stopped
     environment:
-      ARTEMIS_USER: ${ARTEMIS_USER:-admin}
-      ARTEMIS_PASSWORD: ${ARTEMIS_PASSWORD:-admin}
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USERNAME:-d2f}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-d2fpass}
     ports:
-      - "61616:61616"   # JMS / CORE / AMQP
-      - "8161:8161"     # Console web Artemis
+      - "5672:5672"   # AMQP
+      - "15672:15672"  # Console RabbitMQ
     volumes:
-      - d2f_artemis_data:/var/lib/artemis-instance
+      - d2f_rabbitmq_data:/var/lib/rabbitmq
     healthcheck:
-      test: ["CMD-SHELL", "curl -sf http://localhost:8161/console/ || exit 1"]
+      test: ["CMD-SHELL", "rabbitmq-diagnostics -q ping || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -93,15 +93,11 @@ services:
     image: dpage/pgadmin4:latest
     container_name: d2f-pgadmin
     restart: unless-stopped
+    profiles:
+      - debug
     environment:
-      PGADMIN_DEFAULT_EMAIL: admin@d2f.tn
-      PGADMIN_DEFAULT_PASSWORD: admin123
-      SCRIPT_NAME: /pgadmin4
-      PGADMIN_CONFIG_ENHANCED_COOKIE_PROTECTION: 'False'
-      PGADMIN_CONFIG_COOKIE_DEFAULT: 'True'
-      PGADMIN_CONFIG_COOKIE_SAMESITE: 'Lax'
-      PGADMIN_CONFIG_PROXY_X_FOR_COUNT: 1
-      PGADMIN_CONFIG_PROXY_X_PROTO_COUNT: 1
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@d2f.tn}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-CHANGE_ME_IN_PRODUCTION}
     ports:
       - "5050:80"
     volumes:
@@ -184,13 +180,14 @@ services:
       DB_USER: ${DB_USER_BESOIN:-app_user_besoinsformation}
       DB_PASSWORD: ${DB_PASSWORD:-d2fpasswd}
       JWT_SECRET: ${JWT_SECRET}
-      ARTEMIS_URL: tcp://artemis:61616
-      ARTEMIS_USER: ${ARTEMIS_USER:-admin}
-      ARTEMIS_PASSWORD: ${ARTEMIS_PASSWORD:-admin}
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USERNAME:-d2f}
+      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-d2fpass}
     depends_on:
       postgres:
         condition: service_healthy
-      artemis:
+      rabbitmq:
         condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "wget -q --spider http://localhost:8004/actuator/health || exit 1"]
@@ -215,13 +212,14 @@ services:
       DB_USER: ${DB_USER_CERTIFICAT:-app_user_certificat}
       DB_PASSWORD: ${DB_PASSWORD:-d2fpasswd}
       JWT_SECRET: ${JWT_SECRET}
-      ARTEMIS_URL: tcp://artemis:61616
-      ARTEMIS_USER: ${ARTEMIS_USER:-admin}
-      ARTEMIS_PASSWORD: ${ARTEMIS_PASSWORD:-admin}
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USERNAME:-d2f}
+      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-d2fpass}
     depends_on:
       postgres:
         condition: service_healthy
-      artemis:
+      rabbitmq:
         condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "wget -q --spider http://localhost:8086/actuator/health || exit 1"]
@@ -246,13 +244,14 @@ services:
       DB_USER: ${DB_USER_EVALUATION:-app_user_evaluation}
       DB_PASSWORD: ${DB_PASSWORD:-d2fpasswd}
       JWT_SECRET: ${JWT_SECRET}
-      ARTEMIS_URL: tcp://artemis:61616
-      ARTEMIS_USER: ${ARTEMIS_USER:-admin}
-      ARTEMIS_PASSWORD: ${ARTEMIS_PASSWORD:-admin}
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USERNAME:-d2f}
+      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-d2fpass}
     depends_on:
       postgres:
         condition: service_healthy
-      artemis:
+      rabbitmq:
         condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "wget -q --spider http://localhost:8087/actuator/health || exit 1"]
@@ -304,13 +303,14 @@ services:
       DB_USER: ${DB_USER_FORMATION:-app_user_formation}
       DB_PASSWORD: ${DB_PASSWORD:-d2fpasswd}
       JWT_SECRET: ${JWT_SECRET}
-      ARTEMIS_URL: tcp://artemis:61616
-      ARTEMIS_USER: ${ARTEMIS_USER:-admin}
-      ARTEMIS_PASSWORD: ${ARTEMIS_PASSWORD:-admin}
+      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USERNAME:-d2f}
+      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-d2fpass}
     depends_on:
       postgres:
         condition: service_healthy
-      artemis:
+      rabbitmq:
         condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "wget -q --spider http://localhost:8088/actuator/health || exit 1"]

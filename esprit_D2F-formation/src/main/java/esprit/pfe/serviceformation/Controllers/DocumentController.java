@@ -11,7 +11,9 @@ import org.springframework.web.multipart.MultipartFile;
 import lombok.RequiredArgsConstructor;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 
 @Slf4j
 @RestController
@@ -20,6 +22,15 @@ import java.util.List;
 public class DocumentController {
     private final DocumentService service;
 
+    private static final Set<String> ALLOWED_MIME_TYPES = Set.of(
+            "application/pdf", "application/msword",
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            "application/vnd.ms-excel",
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "image/jpeg", "image/png", "image/gif",
+            "text/plain", "text/csv"
+    );
+
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<Object> createDocument(
             @RequestParam Long formationId,
@@ -27,6 +38,13 @@ public class DocumentController {
             @RequestParam String nomDocument,
             @RequestParam boolean obligation,
             @RequestParam MultipartFile file) {
+
+        String contentType = file.getContentType();
+        if (contentType == null || !ALLOWED_MIME_TYPES.contains(contentType)) {
+            return ResponseEntity.badRequest().body(
+                    "Type de fichier non autorisé : " + contentType
+                    + ". Types autorisés : PDF, DOC, DOCX, XLS, XLSX, JPG, PNG, GIF, TXT, CSV");
+        }
 
         try {
             Document doc = service.createDocument(
