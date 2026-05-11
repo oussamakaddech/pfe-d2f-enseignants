@@ -22,7 +22,7 @@ import esprit.pfe.auth.security.AuthorizationMatrix;
 import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @RestController
-@RequestMapping("/api/v1/besoins-formations")
+@RequestMapping({"/api/v1/besoins-formations", "/api/v1/besoins-formations/"})
 @Tag(name = "Besoin de Formation", description = "Gestion des besoins de formation avec DTO et Validation")
 public class BesoinFormationController {
 
