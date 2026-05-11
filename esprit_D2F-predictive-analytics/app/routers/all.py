@@ -309,11 +309,37 @@ async def dashboard_summary(
     dept_id: Optional[str] = Query(default=None, alias="deptId"),
     db: Session = Depends(get_db),
 ) -> DashboardResponse:
-    """Combined dashboard with all KPIs. Optional department filter."""
+    """Combined dashboard with all KPIs. Optional department filter.
+
+    Resilient: if any sub-query fails, returns empty data for that section
+    instead of crashing the entire dashboard.
+    """
+    import logging
+    _log = logging.getLogger(__name__)
+
+    _declining: list[dict[str, Any]] = []
+    _in_demand: list[dict[str, Any]] = []
+    _risk_indicators: list[dict[str, Any]] = []
+
+    try:
+        _declining = await declining_competencies(db)
+    except Exception as e:
+        _log.warning("Failed to load declining_competencies for dashboard: %s", e)
+
+    try:
+        _in_demand = await in_demand_competencies(db)
+    except Exception as e:
+        _log.warning("Failed to load in_demand_competencies for dashboard: %s", e)
+
+    try:
+        _risk_indicators = await teacher_risk_indicators(dept_id=dept_id, db=db)
+    except Exception as e:
+        _log.warning("Failed to load teacher_risk_indicators for dashboard: %s", e)
+
     return DashboardResponse(
-        declining_competencies=await declining_competencies(db),
-        in_demand_competencies=await in_demand_competencies(db),
-        teacher_risk_indicators=await teacher_risk_indicators(dept_id=dept_id, db=db),
+        declining_competencies=_declining,
+        in_demand_competencies=_in_demand,
+        teacher_risk_indicators=_risk_indicators,
         generated_at=date.today(),
     )
 

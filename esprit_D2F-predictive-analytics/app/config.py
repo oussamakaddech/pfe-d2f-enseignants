@@ -22,7 +22,7 @@ class Settings(BaseSettings):
 
     # ── Server ───────────────────────────────────
     host: str = Field(default="0.0.0.0", alias="HOST")
-    port: int = Field(default=8080, alias="PORT")
+    port: int = Field(default=8090, alias="PORT")
 
     # ── Database (read-only access to existing d2f DB) ──
     database_url: PostgresDsn = Field(

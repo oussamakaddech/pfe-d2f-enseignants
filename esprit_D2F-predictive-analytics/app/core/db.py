@@ -45,7 +45,16 @@ def db_session() -> Generator[Session, None, None]:
 
 
 def execute_query(db: Session, query: str, params: dict | None = None) -> list[dict]:
-    """Execute a raw SQL query and return results as list of dicts."""
-    result = db.execute(text(query), params or {})
-    rows = result.mappings().all()
-    return [dict(row) for row in rows]
+    """Execute a raw SQL query and return results as list of dicts.
+
+    Raises DatabaseError if the query fails for any reason.
+    """
+    from app.core.exceptions import DatabaseError
+    try:
+        result = db.execute(text(query), params or {})
+        rows = result.mappings().all()
+        return [dict(row) for row in rows]
+    except Exception as e:
+        logger.error("SQL query failed: %s | Params: %s | Error: %s", query[:200], params, str(e))
+        db.rollback()
+        raise DatabaseError(detail=f"Database query failed: {str(e)[:200]}") from e
