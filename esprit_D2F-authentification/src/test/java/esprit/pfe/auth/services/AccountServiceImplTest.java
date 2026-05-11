@@ -17,6 +17,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.HashSet;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -78,16 +81,17 @@ class AccountServiceImplTest {
     void testListAccounts_Success() {
         // Arrange
         List<User> expectedUsers = List.of(testUser);
-        when(userRepository.findAll()).thenReturn(expectedUsers);
+        Page<User> expectedPage = new PageImpl<>(expectedUsers);
+        when(userRepository.findAll(any(Pageable.class))).thenReturn(expectedPage);
 
         // Act
-        List<User> result = accountService.listAccounts();
+        Page<User> result = accountService.listAccounts(Pageable.unpaged());
 
         // Assert
         assertNotNull(result);
-        assertEquals(1, result.size());
-        assertEquals("testuser", result.get(0).getUsername());
-        verify(userRepository, times(1)).findAll();
+        assertEquals(1, result.getContent().size());
+        assertEquals("testuser", result.getContent().get(0).getUsername());
+        verify(userRepository, times(1)).findAll(any(Pageable.class));
     }
 
     @Test

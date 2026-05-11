@@ -10,7 +10,7 @@ class JmsConfigImprovedTest {
 
     @Test
     void testJacksonJmsMessageConverter() {
-        JmsConfig config = new JmsConfig();
+        RabbitMqConfig config = new RabbitMqConfig();
         ObjectMapper mapper = new ObjectMapper();
         Jackson2JsonMessageConverter converter = config.jacksonJmsMessageConverter(mapper);
 
@@ -19,7 +19,7 @@ class JmsConfigImprovedTest {
 
     @Test
     void testJacksonJmsMessageConverterWithRealMapper() {
-        JmsConfig config = new JmsConfig();
+        RabbitMqConfig config = new RabbitMqConfig();
         ObjectMapper mapper = new ObjectMapper();
         Jackson2JsonMessageConverter converter = config.jacksonJmsMessageConverter(mapper);
 

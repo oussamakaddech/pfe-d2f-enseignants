@@ -12,6 +12,9 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -170,20 +173,20 @@ class FormationServiceImplTest {
             f2.setFormationCompetences(new ArrayList<>());
             f2.setInscriptions(new ArrayList<>());
 
-            when(formationRepository.findAll()).thenReturn(List.of(formation, f2));
+            when(formationRepository.findAll(any(Pageable.class))).thenReturn(new PageImpl<>(List.of(formation, f2)));
 
-            List<Formation> result = formationService.getAllFormations();
+            Page<esprit.pfe.serviceformation.entities.Formation> result = formationService.getAllFormations(Pageable.unpaged());
 
             assertThat(result).hasSize(2);
-            verify(formationRepository).findAll();
+            verify(formationRepository).findAll(any(Pageable.class));
         }
 
         @Test
         @DisplayName("retourne une liste vide")
         void shouldReturnEmptyList() {
-            when(formationRepository.findAll()).thenReturn(new ArrayList<>());
+            when(formationRepository.findAll(any(Pageable.class))).thenReturn(new PageImpl<>(new ArrayList<>()));
 
-            List<Formation> result = formationService.getAllFormations();
+            Page<esprit.pfe.serviceformation.entities.Formation> result = formationService.getAllFormations(Pageable.unpaged());
 
             assertThat(result).isEmpty();
         }

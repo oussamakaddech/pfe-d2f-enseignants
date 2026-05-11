@@ -12,6 +12,9 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import java.util.Collections;
 import java.util.Set;
 
@@ -33,7 +36,7 @@ class AccountControllerTest {
 
     @Test
     void listAccounts_ShouldReturnOk() throws Exception {
-        when(accountService.listAccounts()).thenReturn(Collections.emptyList());
+        when(accountService.listAccounts(any(Pageable.class))).thenReturn(Page.empty());
         mockMvc.perform(get("/api/v1/account/list-accounts"))
                 .andExpect(status().isOk());
     }

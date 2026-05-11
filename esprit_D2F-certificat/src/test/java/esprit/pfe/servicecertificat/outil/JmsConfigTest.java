@@ -17,7 +17,7 @@ import static org.assertj.core.api.Assertions.assertThat;
     "jwt.secret=test-secret-key-for-testing-purposes-only-must-be-at-least-512-bits",
     "spring.rabbitmq.host=localhost"
 })
-@DisplayName("JmsConfig - Tests d'intégration")
+@DisplayName("RabbitMqConfig - Tests d'intégration")
 class JmsConfigTest {
 
     @Autowired
@@ -26,7 +26,7 @@ class JmsConfigTest {
     @Test
     @DisplayName("jacksonJmsMessageConverter doit être un Jackson2JsonMessageConverter")
     void converterIsJacksonType() {
-        JmsConfig jmsConfig = new JmsConfig();
+        RabbitMqConfig jmsConfig = new RabbitMqConfig();
         MessageConverter converter = jmsConfig.jacksonJmsMessageConverter(objectMapper);
 
         assertThat(converter).isInstanceOf(Jackson2JsonMessageConverter.class);

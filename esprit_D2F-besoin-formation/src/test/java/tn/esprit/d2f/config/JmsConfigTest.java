@@ -11,7 +11,7 @@ class JmsConfigTest {
 
     @Test
     void testJacksonJmsMessageConverter() {
-        JmsConfig config = new JmsConfig();
+        RabbitMqConfig config = new RabbitMqConfig();
         ObjectMapper mapper = mock(ObjectMapper.class);
         Jackson2JsonMessageConverter converter = config.jacksonJmsMessageConverter(mapper);
         
