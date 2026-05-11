@@ -25,6 +25,7 @@
 		<microsoft.graph.core.version>2.0.21</microsoft.graph.core.version>
 		<sonar.projectKey>d2f_formation</sonar.projectKey>
 		<sonar.projectName>service-formation</sonar.projectName>
+		<micrometer-tracing.version>1.3.3</micrometer-tracing.version>
 	</properties>
 
 	<!-- Dependency Management : Importation des BOM pour Spring Cloud et Azure SDK -->
@@ -167,6 +168,10 @@
 			<groupId>io.micrometer</groupId>
 			<artifactId>micrometer-registry-prometheus</artifactId>
 		</dependency>
+		<dependency>
+			<groupId>io.micrometer</groupId>
+			<artifactId>micrometer-tracing-bridge-brave</artifactId>
+		</dependency>
 
 		<!-- Resilience4j pour circuit breaker et retry -->
 		<dependency>
@@ -188,14 +193,7 @@
 			<artifactId>flyway-database-postgresql</artifactId>
 		</dependency>
 
-		<!-- Shared Authentication Module -->
-		<dependency>
-			<groupId>esprit.pfe</groupId>
-			<artifactId>service-authentification</artifactId>
-			<version>0.0.1-SNAPSHOT</version>
-		</dependency>
-
-	</dependencies>
+			</dependencies>
 
 	<build>
 		<plugins>
