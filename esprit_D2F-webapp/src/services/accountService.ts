@@ -12,8 +12,8 @@ const API_URL = `${config.URL_ACCOUNT}/account`;
 const api = createApiClient(API_URL);
 
 export async function getAllAccounts(): Promise<AuthUser[]> {
-  const response = await api.get<AuthUser[]>("/list-accounts");
-  return response.data;
+  const response = await api.get<any>("/list-accounts");
+  return response.data?.content || response.data || [];
 }
 
 export async function getProfile(): Promise<AuthUser> {
