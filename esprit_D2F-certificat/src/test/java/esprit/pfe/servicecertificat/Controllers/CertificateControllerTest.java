@@ -10,6 +10,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.oauth2.jwt.Jwt;
 
@@ -17,6 +20,7 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Optional;
+import static org.mockito.ArgumentMatchers.any;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
@@ -74,12 +78,12 @@ class CertificateControllerTest {
 
     @Test
     void getAll_shouldReturnList() {
-        when(repository.findAll()).thenReturn(List.of(certificate));
+        when(repository.findAll(any(Pageable.class))).thenReturn(new PageImpl<>(List.of(certificate)));
 
-        List<CertificateResponse> result = controller.getAll();
+        Page<CertificateResponse> result = controller.getAll(Pageable.unpaged());
 
-        assertEquals(1, result.size());
-        assertEquals("Dupont", result.get(0).getNomEnseignant());
+        assertEquals(1, result.getContent().size());
+        assertEquals("Dupont", result.getContent().get(0).getNomEnseignant());
     }
 
     @Test
