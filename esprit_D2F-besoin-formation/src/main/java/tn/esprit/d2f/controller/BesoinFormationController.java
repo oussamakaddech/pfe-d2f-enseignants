@@ -22,7 +22,7 @@ import esprit.pfe.auth.security.AuthorizationMatrix;
 import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @RestController
-@RequestMapping("/api/v1/besoinsFormations")
+@RequestMapping("/api/v1/besoins-formations")
 @Tag(name = "Besoin de Formation", description = "Gestion des besoins de formation avec DTO et Validation")
 public class BesoinFormationController {
 
@@ -38,7 +38,7 @@ public class BesoinFormationController {
     }
 
     @Operation(summary = "Récupérer tous les besoins de formation (Paginé)")
-    @GetMapping("/retrieve-all-BesoinFormations")
+    @GetMapping
     @PreAuthorize(AuthorizationMatrix.BESOIN_FORMATION_READ_ALL)
     public ResponseEntity<Page<BesoinFormationResponse>> getBesoinFormations(
             @Parameter(description = "Index de la page") @RequestParam(defaultValue = "0") int page,
@@ -49,14 +49,14 @@ public class BesoinFormationController {
         return ResponseEntity.ok(besoinFormationService.retrieveAllBesoinFormations(pageable));
     }
 
-    @GetMapping("/retrieve-BesoinFormation/{idBesoinFormation}")
+    @GetMapping("/{idBesoinFormation}")
     @PreAuthorize(AuthorizationMatrix.BESOIN_FORMATION_READ_ALL)
     public ResponseEntity<BesoinFormationResponse> retrieveBesoinFormation(@PathVariable("idBesoinFormation") long idBesoinFormation) {
         return ResponseEntity.ok(besoinFormationService.retrieveBesoinFormation(idBesoinFormation));
     }
 
     @Operation(summary = "Ajouter un besoin de formation")
-    @PostMapping("/add-BesoinFormation")
+    @PostMapping
     @PreAuthorize(AuthorizationMatrix.BESOIN_FORMATION_CREATE)
     public ResponseEntity<Object> addBesoinFormation(@Valid @RequestBody BesoinFormationRequest b, org.springframework.validation.BindingResult result) {
         if (result.hasErrors()) {
@@ -66,7 +66,7 @@ public class BesoinFormationController {
         return ResponseEntity.ok(besoinFormationService.addBesoinFormation(b));
     }
 
-    @DeleteMapping("/remove-BesoinFormation/{idBesoinFormation}")
+    @DeleteMapping("/{idBesoinFormation}")
     @PreAuthorize(AuthorizationMatrix.BESOIN_FORMATION_DELETE)
     public ResponseEntity<Void> removeBesoinFormation(@PathVariable("idBesoinFormation") long idBesoinFormation) {
         besoinFormationService.removeBesoinFormation(idBesoinFormation);
@@ -74,7 +74,7 @@ public class BesoinFormationController {
     }
 
     @Operation(summary = "Modifier un besoin de formation")
-    @PutMapping("/modify-BesoinFormation")
+    @PutMapping
     @PreAuthorize(AuthorizationMatrix.BESOIN_FORMATION_UPDATE)
     public ResponseEntity<BesoinFormationResponse> modifyBesoinFormation(@Valid @RequestBody BesoinFormationRequest request) {
         return ResponseEntity.ok(besoinFormationService.modifyBesoinFormation(request));
@@ -98,7 +98,7 @@ public class BesoinFormationController {
     }
 
     @Operation(summary = "Récupérer les besoins approuvés (Paginé)")
-    @GetMapping("/retrieve-approved-BesoinFormations")
+    @GetMapping("/approved")
     @PreAuthorize(AuthorizationMatrix.BESOIN_FORMATION_READ_ALL)
     public ResponseEntity<Page<BesoinFormationResponse>> getApprovedBesoinFormations(
             @RequestParam(defaultValue = "0") int page,
@@ -158,5 +158,3 @@ public class BesoinFormationController {
     }
 
 }
-
-

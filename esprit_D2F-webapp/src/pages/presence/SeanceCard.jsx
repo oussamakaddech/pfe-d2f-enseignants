@@ -1,10 +1,7 @@
-import  { useState } from "react";
-import PropTypes from "prop-types";
+import { useState } from "react";
 import PresenceList from "./PresenceList";
-import { Card, CardContent, Typography, Button, Collapse, Box } from "@mui/material";
-import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
-import AccessTimeIcon from '@mui/icons-material/AccessTime';
-import MeetingRoomIcon from '@mui/icons-material/MeetingRoom';
+import { Card, Typography, Button, Space } from "antd";
+import { CalendarOutlined, ClockCircleOutlined, HomeOutlined } from "@ant-design/icons";
 
 const SeanceCard = ({ seance }) => {
   const [showPresences, setShowPresences] = useState(false);
@@ -14,47 +11,37 @@ const SeanceCard = ({ seance }) => {
   };
 
   return (
-    <Card variant="outlined" sx={{ marginBottom: 2 }}>
-      <CardContent>
-        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <Typography variant="h6">
-            <CalendarTodayIcon fontSize="small" sx={{ mr: 1 }} />
-            Séance du {new Date(seance.dateSeance).toLocaleDateString()}
-          </Typography>
-          <Button
-            variant="contained"
-            onClick={togglePresences}
-            sx={{ backgroundColor: "red", "&:hover": { backgroundColor: "darkred" } }}
-          >
-            {showPresences ? "Cacher" : "Voir"} les présences
-          </Button>
-        </Box>
-        <Typography variant="body1" sx={{ mt: 1 }}>
-          <AccessTimeIcon fontSize="small" sx={{ mr: 1 }} />
+    <Card
+      style={{ marginBottom: 16 }}
+      title={
+        <Space>
+          <CalendarOutlined />
+          <span>Séance du {new Date(seance.dateSeance).toLocaleDateString()}</span>
+        </Space>
+      }
+      extra={
+        <Button type="primary" danger onClick={togglePresences}>
+          {showPresences ? "Cacher" : "Voir"} les présences
+        </Button>
+      }
+    >
+      <Space direction="vertical" style={{ width: "100%" }}>
+        <Typography.Text>
+          <ClockCircleOutlined style={{ marginRight: 8 }} />
           De {seance.heureDebut} à {seance.heureFin}
-        </Typography>
-        <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-          <MeetingRoomIcon fontSize="small" sx={{ mr: 1 }} />
+        </Typography.Text>
+        <Typography.Text type="secondary">
+          <HomeOutlined style={{ marginRight: 8 }} />
           Salle : {seance.salle}
-        </Typography>
-        <Collapse in={showPresences}>
-          <Box sx={{ mt: 2 }}>
-            <PresenceList seanceId={seance.idSeance} />
-          </Box>
-        </Collapse>
-      </CardContent>
+        </Typography.Text>
+      </Space>
+      {showPresences && (
+        <div style={{ marginTop: 16 }}>
+          <PresenceList seanceId={seance.idSeance} />
+        </div>
+      )}
     </Card>
   );
-};
-
-SeanceCard.propTypes = {
-  seance: PropTypes.shape({
-    idSeance: PropTypes.number.isRequired,
-    dateSeance: PropTypes.string.isRequired,
-    heureDebut: PropTypes.string.isRequired,
-    heureFin: PropTypes.string.isRequired,
-    salle: PropTypes.string.isRequired,
-  }).isRequired,
 };
 
 export default SeanceCard;

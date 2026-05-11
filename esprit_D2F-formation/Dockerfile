@@ -51,6 +51,10 @@ COPY --from=builder ${DEPENDENCY}/BOOT-INF/lib /opt/app/lib
 COPY --from=builder ${DEPENDENCY}/META-INF /opt/app/META-INF
 COPY --from=builder ${DEPENDENCY}/BOOT-INF/classes /opt/app
 
-# Run formation service when container starts
+EXPOSE 8088
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+  CMD wget -q --spider http://localhost:8088/actuator/health || exit 1
+
 ENTRYPOINT ["java","-cp","opt/app:opt/app/lib/*","esprit.pfe.serviceformation.ServiceFormationApplication"]
 

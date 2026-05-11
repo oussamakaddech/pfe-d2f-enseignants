@@ -1,8 +1,8 @@
 // src/components/CertificateEditorViewerItem.jsx
 import { useEffect, useState } from "react";
-import { Grid, Paper, TextField, Button } from "@mui/material";
+import { Row, Col, Card, Input, Button, Form, message, Spin } from "antd";
+import { SaveOutlined } from "@ant-design/icons";
 import jsPDF from "jspdf";
-import PropTypes from "prop-types";
 import CertificateService from "../services/CertificateService";
 
 export default function CertificateEditorViewerItem({ certificate, onUpdate }) {
@@ -97,129 +97,92 @@ const generatePdfDocument = async (data) => {
         );
       setCertData(updated);
       onUpdate?.(updated);
-      alert("Certificat mis à jour !");
+      message.success("Certificat mis à jour !");
     } catch {
-      alert("Erreur lors de la mise à jour");
+      message.error("Erreur lors de la mise à jour");
     }
   };
 
   return (
-    <Grid container spacing={2} style={{ marginBottom: 20 }}>
+    <Row gutter={16} style={{ marginBottom: 20 }}>
       {/* Aperçu PDF */}
-      <Grid item xs={6}>
-        <Paper style={{ height: "100%", overflow: "hidden" }}>
+      <Col span={12}>
+        <Card style={{ height: "100%", overflow: "hidden" }}>
           {pdfUrl ? (
             <iframe
               src={pdfUrl}
               title="Visualisation du PDF"
               width="100%"
-              height="100%"
+              height="500"
               style={{ border: "none" }}
             />
           ) : (
-            <p>Génération du PDF...</p>
+            <div style={{ textAlign: "center", padding: 40 }}>
+              <Spin tip="Génération du PDF..." />
+            </div>
           )}
-        </Paper>
-      </Grid>
+        </Card>
+      </Col>
 
       {/* Formulaire d’édition */}
-      <Grid item xs={6}>
-        <Paper style={{ padding: 20 }}>
-          <TextField
-            fullWidth
-            label="Titre Formation"
-            value={certData.titreFormation}
-            onChange={(e) =>
-              handleChange("titreFormation", e.target.value)
-            }
-            margin="normal"
-          />
-          <TextField
-            fullWidth
-            label="Type (CERTIF / ATTESTATION)"
-            value={certData.typeCertif}
-            onChange={(e) =>
-              handleChange("typeCertif", e.target.value)
-            }
-            margin="normal"
-          />
-          <TextField
-            fullWidth
-            label="Date Début"
-            type="date"
-            value={certData.dateDebutFormation?.substring(0, 10) || ""}
-            onChange={(e) =>
-              handleChange("dateDebutFormation", e.target.value)
-            }
-            InputLabelProps={{ shrink: true }}
-            margin="normal"
-          />
-          <TextField
-            fullWidth
-            label="Date Fin"
-            type="date"
-            value={certData.dateFinFormation?.substring(0, 10) || ""}
-            onChange={(e) =>
-              handleChange("dateFinFormation", e.target.value)
-            }
-            InputLabelProps={{ shrink: true }}
-            margin="normal"
-          />
-          <TextField
-            fullWidth
-            label="Nom Enseignant"
-            value={certData.nomEnseignant}
-            onChange={(e) =>
-              handleChange("nomEnseignant", e.target.value)
-            }
-            margin="normal"
-          />
-          <TextField
-            fullWidth
-            label="Prénom Enseignant"
-            value={certData.prenomEnseignant}
-            onChange={(e) =>
-              handleChange("prenomEnseignant", e.target.value)
-            }
-            margin="normal"
-          />
-          <TextField
-            fullWidth
-            label="Rôle (participant / formateur)"
-            value={certData.roleEnFormation}
-            onChange={(e) =>
-              handleChange("roleEnFormation", e.target.value)
-            }
-            margin="normal"
-          />
-          <Button
-            variant="contained"
-            onClick={handleUpdate}
-            style={{ marginTop: 16 }}
-          >
-            Mettre à jour
-          </Button>
-        </Paper>
-      </Grid>
-    </Grid>
+      <Col span={12}>
+        <Card style={{ padding: 20 }}>
+          <Form layout="vertical">
+            <Form.Item label="Titre Formation">
+              <Input
+                value={certData.titreFormation}
+                onChange={(e) => handleChange("titreFormation", e.target.value)}
+              />
+            </Form.Item>
+            <Form.Item label="Type (CERTIF / ATTESTATION)">
+              <Input
+                value={certData.typeCertif}
+                onChange={(e) => handleChange("typeCertif", e.target.value)}
+              />
+            </Form.Item>
+            <Form.Item label="Date Début">
+              <Input
+                type="date"
+                value={certData.dateDebutFormation?.substring(0, 10) || ""}
+                onChange={(e) => handleChange("dateDebutFormation", e.target.value)}
+              />
+            </Form.Item>
+            <Form.Item label="Date Fin">
+              <Input
+                type="date"
+                value={certData.dateFinFormation?.substring(0, 10) || ""}
+                onChange={(e) => handleChange("dateFinFormation", e.target.value)}
+              />
+            </Form.Item>
+            <Form.Item label="Nom Enseignant">
+              <Input
+                value={certData.nomEnseignant}
+                onChange={(e) => handleChange("nomEnseignant", e.target.value)}
+              />
+            </Form.Item>
+            <Form.Item label="Prénom Enseignant">
+              <Input
+                value={certData.prenomEnseignant}
+                onChange={(e) => handleChange("prenomEnseignant", e.target.value)}
+              />
+            </Form.Item>
+            <Form.Item label="Rôle (participant / formateur)">
+              <Input
+                value={certData.roleEnFormation}
+                onChange={(e) => handleChange("roleEnFormation", e.target.value)}
+              />
+            </Form.Item>
+            <Button
+              type="primary"
+              icon={<SaveOutlined />}
+              onClick={handleUpdate}
+              style={{ marginTop: 8 }}
+            >
+              Mettre à jour
+            </Button>
+          </Form>
+        </Card>
+      </Col>
+    </Row>
   );
 }
-
-CertificateEditorViewerItem.propTypes = {
-  onUpdate: PropTypes.func,
-  certificate: PropTypes.shape({
-    idCertificate: PropTypes.number,
-    titreFormation: PropTypes.string,
-    typeCertif: PropTypes.string,
-    dateDebutFormation: PropTypes.string,
-    dateFinFormation: PropTypes.string,
-    nomEnseignant: PropTypes.string,
-    prenomEnseignant: PropTypes.string,
-    roleEnFormation: PropTypes.string,
-  }),
-};
-
-CertificateEditorViewerItem.defaultProps = {
-  onUpdate: () => {},
-  certificate: {},
-};

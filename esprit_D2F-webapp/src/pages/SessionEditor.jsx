@@ -1,56 +1,61 @@
 // SessionEditor.jsx
 
-import PropTypes from "prop-types";
-import { Autocomplete, TextField, Box, Typography } from "@mui/material";
+import { Select, Typography, Space } from "antd";
+
+const { Text } = Typography;
 
 function SessionEditor({ session, enseignants, onSessionChange }) {
-  // Met à jour la liste des animateurs pour la séance
-  const handleAnimateursChange = (event, newValue) => {
-    onSessionChange({ ...session, animateurs: newValue });
+  const enseignantOptions = enseignants.map((e) => ({
+    value: e.mail,
+    label: `${e.nom} ${e.prenom} (${e.mail})`,
+    ...e,
+  }));
+
+  const handleAnimateursChange = (values) => {
+    const selected = enseignants.filter((e) => values.includes(e.mail));
+    onSessionChange({ ...session, animateurs: selected });
   };
 
-  // Met à jour la liste des participants pour la séance
-  const handleParticipantsChange = (event, newValue) => {
-    onSessionChange({ ...session, participants: newValue });
+  const handleParticipantsChange = (values) => {
+    const selected = enseignants.filter((e) => values.includes(e.mail));
+    onSessionChange({ ...session, participants: selected });
   };
 
   return (
-    <Box sx={{ border: "1px solid #ccc", borderRadius: 1, p: 2, mb: 2 }}>
-      <Typography variant="subtitle1" gutterBottom>
+    <div style={{ border: "1px solid #d9d9d9", borderRadius: 8, padding: 16, marginBottom: 16 }}>
+      <Text strong style={{ display: "block", marginBottom: 12 }}>
         Séance du {session.dateSeance} de {session.heureDebut} à {session.heureFin} – Salle : {session.salle || "N/D"}
-      </Typography>
-      <Autocomplete
-        multiple
-        options={enseignants}
-        getOptionLabel={(option) => `${option.nom} ${option.prenom} (${option.mail})`}
-        value={session.animateurs || []}
-        onChange={handleAnimateursChange}
-        renderInput={(params) => <TextField {...params} label="Animateurs" variant="outlined" />}
-        sx={{ mb: 2 }}
-      />
-      <Autocomplete
-        multiple
-        options={enseignants}
-        getOptionLabel={(option) => `${option.nom} ${option.prenom} (${option.mail})`}
-        value={session.participants || []}
-        onChange={handleParticipantsChange}
-        renderInput={(params) => <TextField {...params} label="Participants" variant="outlined" />}
-      />
-    </Box>
+      </Text>
+      <Space direction="vertical" style={{ width: "100%" }}>
+        <div>
+          <Text type="secondary" style={{ display: "block", marginBottom: 4 }}>Animateurs</Text>
+          <Select
+            mode="multiple"
+            placeholder="Sélectionner les animateurs"
+            options={enseignantOptions}
+            value={(session.animateurs || []).map((a) => a.mail)}
+            onChange={handleAnimateursChange}
+            style={{ width: "100%" }}
+            optionFilterProp="label"
+            showSearch
+          />
+        </div>
+        <div>
+          <Text type="secondary" style={{ display: "block", marginBottom: 4 }}>Participants</Text>
+          <Select
+            mode="multiple"
+            placeholder="Sélectionner les participants"
+            options={enseignantOptions}
+            value={(session.participants || []).map((p) => p.mail)}
+            onChange={handleParticipantsChange}
+            style={{ width: "100%" }}
+            optionFilterProp="label"
+            showSearch
+          />
+        </div>
+      </Space>
+    </div>
   );
 }
-
-SessionEditor.propTypes = {
-  session: PropTypes.shape({
-    dateSeance: PropTypes.string.isRequired,
-    heureDebut: PropTypes.string.isRequired,
-    heureFin: PropTypes.string.isRequired,
-    salle: PropTypes.string,
-    animateurs: PropTypes.array,
-    participants: PropTypes.array,
-  }).isRequired,
-  enseignants: PropTypes.array.isRequired,
-  onSessionChange: PropTypes.func.isRequired,
-};
 
 export default SessionEditor;

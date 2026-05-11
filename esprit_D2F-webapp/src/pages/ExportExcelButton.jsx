@@ -1,6 +1,7 @@
 
 import axios from "axios";
-import { Button } from "@mui/material";
+import { Button, message } from "antd";
+import { DownloadOutlined } from "@ant-design/icons";
 import { config } from "../config/env";
 
 function ExportExcelButton() {
@@ -35,12 +36,12 @@ function ExportExcelButton() {
       window.URL.revokeObjectURL(url);
     } catch (error) {
       console.error("Erreur lors de l'export Excel :", error);
-      alert("Une erreur est survenue lors de l'export.");
+      message.error("Une erreur est survenue lors de l'export.");
     }
   };
 
   return (
-    <Button variant="contained" color="primary" onClick={handleExportExcel}>
+    <Button type="primary" icon={<DownloadOutlined />} onClick={handleExportExcel}>
       Exporter en Excel
     </Button>
   );

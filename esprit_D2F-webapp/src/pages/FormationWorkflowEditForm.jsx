@@ -1,35 +1,41 @@
-import { useState, useEffect } from "react";
-import PropTypes from "prop-types";
-import moment from "moment";
+import { useState, useEffect, useContext } from "react";
+import { format } from "date-fns";
 import {
-  Grid,
-  TextField,
-  Autocomplete,
+  Row,
+  Col,
+  Input,
+  InputNumber,
+  Select,
   Button,
-  Snackbar,
-  Alert,
   Typography,
-  Box,
-  IconButton,
   Collapse,
   Modal,
-} from "@mui/material";
-import UploadFileIcon from "@mui/icons-material/UploadFile";
-import DeleteIcon from "@mui/icons-material/Delete";
-import ExpandLessIcon from "@mui/icons-material/ExpandLess";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+  Radio,
+  Divider,
+  Space,
+  Tag,
+  message,
+  Popconfirm,
+  Upload,
+} from "antd";
+import {
+  UploadOutlined,
+  DeleteOutlined,
+  UpOutlined,
+  DownOutlined,
+} from "@ant-design/icons";
 import * as XLSX from "xlsx";
 
 import FormationWorkflowService from "../services/FormationWorkflowService";
 import DeptService from "../services/DeptService";
 import EnseignantService from "../services/EnseignantService";
-import { RadioGroup, FormControlLabel, Radio } from "@mui/material";
 import UpService from "../services/upService";
 import { AuthContext } from "../context/AuthContext";
-import { useContext } from "react";
 import DocumentListModal from "./documentFormation/DocumentListModal";
 import DocumentUploadPanel from "./documentFormation/DocumentUploadPanel";
-import { Divider } from "@mui/material";
+
+const { Text, Title } = Typography;
+const { TextArea } = Input;
 
 const PERIOD_OPTIONS = [
   { value: "P1", label: "Période 1" },
@@ -106,7 +112,7 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
 
   /* UI */
   const [showMore, setShowMore] = useState(false);
-  const [snack, setSnack] = useState({ open: false, severity: "info", message: "" });
+  const [snack, setSnack] = useState({ open: false, severity: "info", message: "" }); // kept for compatibility, will use message.xxx
   const [openDocModal, setOpenDocModal] = useState(false);
   const [openUploadPanel, setOpenUploadPanel] = useState(false);
   
@@ -127,8 +133,8 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
     if (!formation) return;
 
     setTitre(formation.titreFormation);
-    setDateDebut(moment(formation.dateDebut).format("YYYY-MM-DD"));
-    setDateFin(moment(formation.dateFin).format("YYYY-MM-DD"));
+    setDateDebut(format(new Date(formation.dateDebut), "yyyy-MM-dd"));
+    setDateFin(format(new Date(formation.dateFin), "yyyy-MM-dd"));
     setTypeFormation(formation.typeFormation);
     setEtatFormation(formation.etatFormation);
     setCout(formation.coutFormation || 0);
@@ -163,7 +169,7 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
     setSeances(
       (formation.seances || []).map((s) => ({
         idSeance: s.idSeance,
-        dateSeance: moment(s.dateSeance).format("YYYY-MM-DD"),
+        dateSeance: format(new Date(s.dateSeance), "yyyy-MM-dd"),
         heureDebut: s.heureDebut,
         heureFin: s.heureFin,
         salle: s.salle || "",
@@ -203,7 +209,7 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
         setEns(e);
         setExistingFormations(Array.isArray(formations) ? formations : []);
       } catch {
-        setSnack({ open: true, severity: "error", message: "Échec du chargement des données externes" });
+        message.error("Échec du chargement des données externes");
       }
     })();
   }, []);
@@ -379,22 +385,14 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (seances.length === 0) {
-      setSnack({
-        open: true,
-        severity: "warning",
-        message: "Veuillez ajouter au moins une séance.",
-      });
+      message.warning("Veuillez ajouter au moins une séance.");
       return;
     }
 
     const blockingConflicts = buildConflictMessages();
     if (blockingConflicts.length > 0) {
       setOverlapWarnings(blockingConflicts);
-      setSnack({
-        open: true,
-        severity: "error",
-        message: "Conflits détectés: corrigez les dates/salles/personnes avant mise à jour.",
-      });
+      message.error("Conflits détectés: corrigez les dates/salles/personnes avant mise à jour.");
       return;
     }
 
@@ -446,251 +444,206 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
         formation.idFormation,
         payload
       );
-      setSnack({ open: true, severity: "success", message: "Formation mise à jour !" });
+      message.success("Formation mise à jour !");
       onFormationUpdated(res);
     } catch (err) {
       const msg = err.response?.data?.message || err.response?.data?.error || err.message;
-      setSnack({ open: true, severity: "error", message: msg });
+      message.error(msg);
     }
   };
 
   /* ======================= RENDER ======================= */
   return (
     <form onSubmit={handleSubmit} style={{ maxWidth: 900, margin: "0 auto" }}>
-      <Typography variant="h5" gutterBottom>
-        Modifier Formation (Workflow)
-      </Typography>
+      <Title level={4}>Modifier Formation (Workflow)</Title>
 
-      <Grid container spacing={2}>
+      <Row gutter={[16, 16]}>
         {/* ----------- infos de base ----------- */}
-        <Grid item xs={12}>
-          <TextField
-            label="Titre Formation"
-            fullWidth
+        <Col span={24}>
+          <Text type="secondary">Titre Formation</Text>
+          <Input
             value={titre}
             onChange={(e) => setTitre(e.target.value)}
             required
             disabled={isResponsableDossier}
           />
-        </Grid>
-        <Grid item xs={6}>
-          <TextField
-            label="Date Début"
+        </Col>
+        <Col span={12}>
+          <Text type="secondary">Date Début</Text>
+          <Input
             type="date"
-            InputLabelProps={{ shrink: true }}
-            fullWidth
             value={dateDebut}
             onChange={(e) => setDateDebut(e.target.value)}
             required
             disabled={isResponsableDossier}
           />
-        </Grid>
-        <Grid item xs={6}>
-          <TextField
-            label="Date Fin"
+        </Col>
+        <Col span={12}>
+          <Text type="secondary">Date Fin</Text>
+          <Input
             type="date"
-            InputLabelProps={{ shrink: true }}
-            fullWidth
             value={dateFin}
             onChange={(e) => setDateFin(e.target.value)}
             required
             disabled={isResponsableDossier}
           />
-        </Grid>
-        <Grid item xs={6}>
-          <TextField
-            select
-            label="Type Formation"
-            SelectProps={{ native: true }}
-            fullWidth
+        </Col>
+        <Col span={12}>
+          <Text type="secondary">Type Formation</Text>
+          <Select
             value={typeFormation}
-            onChange={(e) => setTypeFormation(e.target.value)}
+            onChange={(val) => setTypeFormation(val)}
             disabled={isResponsableDossier}
-          >
-            <option value="INTERNE">INTERNE</option>
-            <option value="EXTERNE">EXTERNE</option>
-            <option value="EN_LIGNE">EN_LIGNE</option>
-          </TextField>
-        </Grid>
-        <Grid item xs={6}>
-          <TextField
-            select
-            label="État Formation"
-            SelectProps={{ native: true }}
-            fullWidth
+            style={{ width: "100%" }}
+            options={[
+              { value: "INTERNE", label: "INTERNE" },
+              { value: "EXTERNE", label: "EXTERNE" },
+              { value: "EN_LIGNE", label: "EN_LIGNE" },
+            ]}
+          />
+        </Col>
+        <Col span={12}>
+          <Text type="secondary">État Formation</Text>
+          <Select
             value={etatFormation}
-            onChange={(e) => setEtatFormation(e.target.value)}
+            onChange={(val) => setEtatFormation(val)}
             disabled={isResponsableDossier}
-          >
-            <option value="ENREGISTRE">ENREGISTRE</option>
-            <option value="PLANIFIE">PLANIFIE</option>
-            <option value="EN_COURS">EN_COURS</option>
-            <option value="ACHEVE">ACHEVE</option>
-            <option value="ANNULE">ANNULE</option>
-            <option value="VISIBLE">VISIBLE</option>
-          </TextField>
-        </Grid>
+            style={{ width: "100%" }}
+            options={[
+              { value: "ENREGISTRE", label: "ENREGISTRE" },
+              { value: "PLANIFIE", label: "PLANIFIE" },
+              { value: "EN_COURS", label: "EN_COURS" },
+              { value: "ACHEVE", label: "ACHEVE" },
+              { value: "ANNULE", label: "ANNULE" },
+              { value: "VISIBLE", label: "VISIBLE" },
+            ]}
+          />
+        </Col>
 
         {/* ----------- formateur externe + coûts ----------- */}
         {typeFormation === "EXTERNE" && (
           <>
-            <Grid item xs={4}>
-              <TextField
-                label="Nom Formateur Ext."
-                fullWidth
-                value={formNom}
-                onChange={(e) => setFormNom(e.target.value)}
-              />
-            </Grid>
-            <Grid item xs={4}>
-              <TextField
-                label="Prénom Formateur Ext."
-                fullWidth
-                value={formPrenom}
-                onChange={(e) => setFormPrenom(e.target.value)}
-              />
-            </Grid>
-            <Grid item xs={4}>
-              <TextField
-                label="Email Formateur Ext."
-                type="email"
-                fullWidth
-                value={formEmail}
-                onChange={(e) => setFormEmail(e.target.value)}
-              />
-            </Grid>
-            <Grid item xs={4}>
-              <TextField
-                label="Coût Formation"
-                type="number"
-                fullWidth
-                value={cout}
-                onChange={(e) => setCout(e.target.value)}
-              />
-            </Grid>
-            <Grid item xs={4}>
-              <TextField
-                label="Organisme Externe"
-                fullWidth
-                value={organisme}
-                onChange={(e) => setOrganisme(e.target.value)}
-              />
-            </Grid>
-            <Grid item xs={4}>
-              <TextField
-                label="Coût Transport"
-                type="number"
-                fullWidth
-                value={coutTransport}
-                onChange={(e) => setCoutTransport(e.target.value)}
-              />
-            </Grid>
-            <Grid item xs={4}>
-              <TextField
-                label="Coût Hébergement"
-                type="number"
-                fullWidth
-                value={coutHebergement}
-                onChange={(e) => setCoutHebergement(e.target.value)}
-              />
-            </Grid>
-            <Grid item xs={4}>
-              <TextField
-                label="Coût Repas"
-                type="number"
-                fullWidth
-                value={coutRepas}
-                onChange={(e) => setCoutRepas(e.target.value)}
-              />
-            </Grid>
+            <Col span={8}>
+              <Text type="secondary">Nom Formateur Ext.</Text>
+              <Input value={formNom} onChange={(e) => setFormNom(e.target.value)} />
+            </Col>
+            <Col span={8}>
+              <Text type="secondary">Prénom Formateur Ext.</Text>
+              <Input value={formPrenom} onChange={(e) => setFormPrenom(e.target.value)} />
+            </Col>
+            <Col span={8}>
+              <Text type="secondary">Email Formateur Ext.</Text>
+              <Input type="email" value={formEmail} onChange={(e) => setFormEmail(e.target.value)} />
+            </Col>
+            <Col span={8}>
+              <Text type="secondary">Coût Formation</Text>
+              <InputNumber value={cout} onChange={(val) => setCout(val)} style={{ width: "100%" }} min={0} />
+            </Col>
+            <Col span={8}>
+              <Text type="secondary">Organisme Externe</Text>
+              <Input value={organisme} onChange={(e) => setOrganisme(e.target.value)} />
+            </Col>
+            <Col span={8}>
+              <Text type="secondary">Coût Transport</Text>
+              <InputNumber value={coutTransport} onChange={(val) => setCoutTransport(val)} style={{ width: "100%" }} min={0} />
+            </Col>
+            <Col span={8}>
+              <Text type="secondary">Coût Hébergement</Text>
+              <InputNumber value={coutHebergement} onChange={(val) => setCoutHebergement(val)} style={{ width: "100%" }} min={0} />
+            </Col>
+            <Col span={8}>
+              <Text type="secondary">Coût Repas</Text>
+              <InputNumber value={coutRepas} onChange={(val) => setCoutRepas(val)} style={{ width: "100%" }} min={0} />
+            </Col>
           </>
         )}
 
         {/* ----------- ouverte ? ----------- */}
-        <Grid item xs={12} sm={3}>
-          <Typography>Formation ouverte ?</Typography>
-          <RadioGroup
-            row
+        <Col xs={24} sm={6}>
+          <Text>Formation ouverte ?</Text>
+          <Radio.Group
             value={ouverte ? "oui" : "non"}
             onChange={(e) => setOuverte(e.target.value === "oui")}
             disabled={isResponsableDossier}
           >
-            <FormControlLabel value="oui" control={<Radio />} label="Oui" />
-            <FormControlLabel value="non" control={<Radio />} label="Non" />
-          </RadioGroup>
-        </Grid>
+            <Radio value="oui">Oui</Radio>
+            <Radio value="non">Non</Radio>
+          </Radio.Group>
+        </Col>
 
         {/* ----------- charge & rattachement ----------- */}
-        <Grid item xs={4}>
-          <Autocomplete
-            options={ups}
-            getOptionLabel={(u) => u.libelle}
-            value={selectedUp}
-            onChange={(_, v) => setSelectedUp(v)}
-            renderInput={(params) => <TextField {...params} label="UP" required />}
+        <Col span={8}>
+          <Text type="secondary">UP</Text>
+          <Select
+            showSearch
+            placeholder="Sélectionner UP"
+            value={selectedUp?.id}
+            onChange={(val) => setSelectedUp(ups.find(u => u.id === val) || null)}
             disabled={isResponsableDossier}
+            style={{ width: "100%" }}
+            options={ups.map(u => ({ value: u.id, label: u.libelle }))}
+            optionFilterProp="label"
           />
-        </Grid>
-        <Grid item xs={4}>
-          <Autocomplete
-            options={depts}
-            getOptionLabel={(d) => d.libelle}
-            value={selectedDept}
-            onChange={(_, v) => setSelectedDept(v)}
-            renderInput={(params) => <TextField {...params} label="Département" required />}
+        </Col>
+        <Col span={8}>
+          <Text type="secondary">Département</Text>
+          <Select
+            showSearch
+            placeholder="Sélectionner Département"
+            value={selectedDept?.id}
+            onChange={(val) => setSelectedDept(depts.find(d => d.id === val) || null)}
             disabled={isResponsableDossier}
+            style={{ width: "100%" }}
+            options={depts.map(d => ({ value: d.id, label: d.libelle }))}
+            optionFilterProp="label"
           />
-        </Grid>
+        </Col>
 
-        <Grid item xs={4}>
-          <TextField
-            label="Charge Horaire"
-            type="number"
-            fullWidth
+        <Col span={8}>
+          <Text type="secondary">Charge Horaire</Text>
+          <InputNumber
             value={chargeH}
-            onChange={(e) => setChargeH(e.target.value)}
+            onChange={(val) => setChargeH(val)}
             disabled={isResponsableDossier}
+            style={{ width: "100%" }}
+            min={0}
           />
-        </Grid>
+        </Col>
 
-        <Grid item xs={12} sm={6}>
-          <TextField
-            label="Période de Formation"
-            select
-            fullWidth
-            SelectProps={{ native: true }}
+        <Col xs={24} sm={12}>
+          <Text type="secondary">Période de Formation</Text>
+          <Select
             value={periodCode}
-            onChange={(e) => setPeriodCode(e.target.value)}
+            onChange={(val) => setPeriodCode(val)}
             disabled={isResponsableDossier}
-          >
-            {PERIOD_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>{opt.label}</option>
-            ))}
-          </TextField>
-        </Grid>
-        <Grid item xs={12} sm={6}>
+            style={{ width: "100%" }}
+            options={PERIOD_OPTIONS.map(opt => ({ value: opt.value, label: opt.label }))}
+          />
+        </Col>
+        <Col xs={24} sm={12}>
           {periodCode === "OTHER" && (
-            <TextField
-              label="Précisez la période"
-              fullWidth
-              value={customPeriodLabel}
-              onChange={(e) => setCustomPeriodLabel(e.target.value)}
-              disabled={isResponsableDossier}
-              placeholder="Ex : Mai - Juin 2024"
-            />
+            <>
+              <Text type="secondary">Précisez la période</Text>
+              <Input
+                value={customPeriodLabel}
+                onChange={(e) => setCustomPeriodLabel(e.target.value)}
+                disabled={isResponsableDossier}
+                placeholder="Ex : Mai - Juin 2024"
+              />
+            </>
           )}
-        </Grid>
+        </Col>
 
-        {/* ----------- bouton collapse “plus d’infos” ----------- */}
-        <Grid item xs={12}>
+        {/* ----------- bouton collapse plus d'infos ----------- */}
+        <Col span={24}>
           <Button
-            startIcon={showMore ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+            icon={showMore ? <UpOutlined /> : <DownOutlined />}
             onClick={() => setShowMore((m) => !m)}
           >
-            {showMore ? "Moins d’infos" : "Plus d’infos"}
+            {showMore ? "Moins d'infos" : "Plus d'infos"}
           </Button>
-          <Collapse in={showMore}>
-            <Grid container spacing={2} sx={{ mt: 1 }}>
+          {showMore && (
+            <Row gutter={[16, 16]} style={{ marginTop: 8 }}>
               {[
                 ["Domaine", domaine, setDomaine],
                 ["Pop. Cible", populationCible, setPopulationCible],
@@ -701,176 +654,134 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
                 ["Acquis", acquis, setAcquis],
                 ["Indicateurs", indicateurs, setIndicateurs],
               ].map(([lbl, val, setVal]) => (
-                <Grid item xs={12} sm={6} key={lbl}>
-                  <TextField
-                    label={lbl}
-                    fullWidth
-                    value={val}
-                    onChange={(e) => setVal(e.target.value)}
-                  />
-                </Grid>
+                <Col xs={24} sm={12} key={lbl}>
+                  <Text type="secondary">{lbl}</Text>
+                  <Input value={val} onChange={(e) => setVal(e.target.value)} />
+                </Col>
               ))}
-            </Grid>
-          </Collapse>
-        </Grid>
+            </Row>
+          )}
+        </Col>
 
         {/* ----------- séances complètes ----------- */}
         {seances.map((s, i) => (
-          <Grid item xs={12} key={s.idSeance || s.id}>
-            <Box
-              sx={{
-                mb: 2,
-                p: 2,
+          <Col span={24} key={s.idSeance || s.id}>
+            <div
+              style={{
+                marginBottom: 16,
+                padding: 16,
                 border: "1px solid #ddd",
-                borderRadius: 1,
+                borderRadius: 8,
                 position: "relative",
               }}
             >
-              <IconButton
-                size="small"
-                onClick={() => removeSeance(i)}
-                sx={{ position: "absolute", top: 4, right: 4 }}
-              >
-                <DeleteIcon fontSize="small" />
-              </IconButton>
+              <Popconfirm title="Supprimer cette séance ?" onConfirm={() => removeSeance(i)}>
+                <Button
+                  type="text"
+                  danger
+                  size="small"
+                  icon={<DeleteOutlined />}
+                  style={{ position: "absolute", top: 4, right: 4 }}
+                />
+              </Popconfirm>
 
-              <Box display="flex" alignItems="center" mb={1}>
-                <Typography variant="subtitle1" sx={{ flexGrow: 1 }}>
-                  Séance #{i + 1}
-                </Typography>
-                <IconButton size="small" onClick={() => toggleSeance(i)}>
-                  {s.expanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-                </IconButton>
-              </Box>
+              <div style={{ display: "flex", alignItems: "center", marginBottom: 8 }}>
+                <Text strong style={{ flexGrow: 1 }}>Séance #{i + 1}</Text>
+                <Button type="text" size="small" icon={s.expanded ? <UpOutlined /> : <DownOutlined />} onClick={() => toggleSeance(i)} />
+              </div>
 
               {/* ligne principale */}
-              <Grid container spacing={2}>
-                <Grid item xs={3}>
-                  <TextField
-                    label="Date"
-                    type="date"
-                    fullWidth
-                    InputLabelProps={{ shrink: true }}
-                    value={s.dateSeance}
-                    onChange={(e) => updateSeance(i, "dateSeance", e.target.value)}
-                  />
-                </Grid>
-                <Grid item xs={3}>
-                  <TextField
-                    label="Heure Début"
-                    type="time"
-                    fullWidth
-                    InputLabelProps={{ shrink: true }}
-                    value={s.heureDebut}
-                    onChange={(e) => updateSeance(i, "heureDebut", e.target.value)}
-                  />
-                </Grid>
-                <Grid item xs={3}>
-                  <TextField
-                    label="Heure Fin"
-                    type="time"
-                    fullWidth
-                    InputLabelProps={{ shrink: true }}
-                    value={s.heureFin}
-                    onChange={(e) => updateSeance(i, "heureFin", e.target.value)}
-                  />
-                </Grid>
-                <Grid item xs={3}>
-                  <TextField
-                    label="Salle"
-                    fullWidth
-                    value={s.salle}
-                    onChange={(e) => updateSeance(i, "salle", e.target.value)}
-                  />
-                </Grid>
+              <Row gutter={[16, 16]}>
+                <Col span={6}>
+                  <Text type="secondary">Date</Text>
+                  <Input type="date" value={s.dateSeance} onChange={(e) => updateSeance(i, "dateSeance", e.target.value)} />
+                </Col>
+                <Col span={6}>
+                  <Text type="secondary">Heure Début</Text>
+                  <Input type="time" value={s.heureDebut} onChange={(e) => updateSeance(i, "heureDebut", e.target.value)} />
+                </Col>
+                <Col span={6}>
+                  <Text type="secondary">Heure Fin</Text>
+                  <Input type="time" value={s.heureFin} onChange={(e) => updateSeance(i, "heureFin", e.target.value)} />
+                </Col>
+                <Col span={6}>
+                  <Text type="secondary">Salle</Text>
+                  <Input value={s.salle} onChange={(e) => updateSeance(i, "salle", e.target.value)} />
+                </Col>
 
                 {/* animateurs séance */}
-                <Grid item xs={12} sx={{ mt: 2 }}>
-                  <Autocomplete
-                    multiple
+                <Col span={24} style={{ marginTop: 8 }}>
+                  <Text type="secondary">Animateurs</Text>
+                  <Select
+                    mode="multiple"
                     disabled={typeFormation === "EXTERNE"}
-                    options={optionsAnim}
-                    getOptionLabel={getEnseignantLabel}
-                    isOptionEqualToValue={(o, v) => o.id === v?.id}
-                    value={s.animateurs}
-                    onChange={(_, v) => updateSeance(i, "animateurs", v)}
-                    renderInput={(params) => <TextField {...params} label="Animateurs" />}
+                    options={optionsAnim.map(o => ({ value: o.id, label: getEnseignantLabel(o) }))}
+                    value={s.animateurs.map(a => a.id)}
+                    onChange={(ids) => updateSeance(i, "animateurs", optionsAnim.filter(o => ids.includes(o.id)))}
+                    style={{ width: "100%" }}
+                    optionFilterProp="label"
+                    showSearch
                   />
-                </Grid>
-              </Grid>
+                </Col>
+              </Row>
 
               {/* champs avancés séance */}
-              <Collapse in={s.expanded}>
-                <Grid container spacing={2} sx={{ mt: 1 }}>
-                  <Grid item xs={3}>
-                    <TextField
-                      select
-                      label="Type"
-                      fullWidth
-                      SelectProps={{ native: true }}
+              {s.expanded && (
+                <Row gutter={[16, 16]} style={{ marginTop: 8 }}>
+                  <Col span={6}>
+                    <Text type="secondary">Type</Text>
+                    <Select
                       value={s.typeSeance}
-                      onChange={(e) => updateSeance(i, "typeSeance", e.target.value)}
-                    >
-                      <option value="THEORIQUE">THEORIQUE</option>
-                      <option value="PRATIQUE">PRATIQUE</option>
-                    </TextField>
-                  </Grid>
-                  <Grid item xs={3}>
-                    <TextField
-                      label="Durée théo (h)"
-                      type="number"
-                      fullWidth
-                      value={s.dureeTheorique}
-                      onChange={(e) => updateSeance(i, "dureeTheorique", e.target.value)}
+                      onChange={(val) => updateSeance(i, "typeSeance", val)}
+                      style={{ width: "100%" }}
+                      options={[
+                        { value: "THEORIQUE", label: "THEORIQUE" },
+                        { value: "PRATIQUE", label: "PRATIQUE" },
+                      ]}
                     />
-                  </Grid>
-                  <Grid item xs={3}>
-                    <TextField
-                      label="Durée prat (h)"
-                      type="number"
-                      fullWidth
-                      value={s.dureePratique}
-                      onChange={(e) => updateSeance(i, "dureePratique", e.target.value)}
-                    />
-                  </Grid>
-                  <Grid item xs={3}>
-                    <TextField
-                      label="Contenus"
-                      fullWidth
-                      value={s.contenus}
-                      onChange={(e) => updateSeance(i, "contenus", e.target.value)}
-                    />
-                  </Grid>
-                  <Grid item xs={12}>
-                    <TextField
-                      label="Méthodes"
-                      fullWidth
-                      value={s.methodes}
-                      onChange={(e) => updateSeance(i, "methodes", e.target.value)}
-                    />
-                  </Grid>
-                </Grid>
-              </Collapse>
-            </Box>
-          </Grid>
+                  </Col>
+                  <Col span={6}>
+                    <Text type="secondary">Durée théo (h)</Text>
+                    <InputNumber value={s.dureeTheorique} onChange={(val) => updateSeance(i, "dureeTheorique", val)} style={{ width: "100%" }} min={0} />
+                  </Col>
+                  <Col span={6}>
+                    <Text type="secondary">Durée prat (h)</Text>
+                    <InputNumber value={s.dureePratique} onChange={(val) => updateSeance(i, "dureePratique", val)} style={{ width: "100%" }} min={0} />
+                  </Col>
+                  <Col span={6}>
+                    <Text type="secondary">Contenus</Text>
+                    <Input value={s.contenus} onChange={(e) => updateSeance(i, "contenus", e.target.value)} />
+                  </Col>
+                  <Col span={24}>
+                    <Text type="secondary">Méthodes</Text>
+                    <Input value={s.methodes} onChange={(e) => updateSeance(i, "methodes", e.target.value)} />
+                  </Col>
+                </Row>
+              )}
+            </div>
+          </Col>
         ))}
-        <Grid item xs={12}>
-          <Button variant="outlined" color="error" onClick={addSeance}>
+        <Col span={24}>
+          <Button type="dashed" danger onClick={addSeance}>
             + Ajouter Séance
           </Button>
-        </Grid>
+        </Col>
 
         {overlapWarnings.length > 0 && (
-          <Grid item xs={12}>
-            <Alert severity="warning">
-              <strong>Chevauchements détectés:</strong>
-              <ul style={{ margin: "8px 0 0 16px", padding: 0 }}>
-                {overlapWarnings.map((msg) => (
-                  <li key={msg}>{msg}</li>
-                ))}
-              </ul>
-            </Alert>
-          </Grid>
+          <Col span={24}>
+            <Alert
+              message="Chevauchements détectés"
+              description={
+                <ul style={{ margin: "8px 0 0 16px", padding: 0 }}>
+                  {overlapWarnings.map((msg) => (
+                    <li key={msg}>{msg}</li>
+                  ))}
+                </ul>
+              }
+              type="warning"
+              showIcon
+            />
+          </Col>
         )}
 
         {/* ----------- import Excel participants ----------- */}
@@ -881,95 +792,99 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
           type="file"
           onChange={handleFile}
         />
-        <Grid item xs={12}>
+        <Col span={24}>
           <label htmlFor="upload-participants">
-            <Button component="span" startIcon={<UploadFileIcon />} color="error" variant="contained">
+            <Button icon={<UploadOutlined />} danger type="primary">
               Importer Participants (Excel)
             </Button>
           </label>
-        </Grid>
+        </Col>
 
         {/* ----------- participants filtrables ----------- */}
-        <Grid item xs={12} sx={{ mt: 3 }}>
-          <Typography variant="h6">Participants</Typography>
-          <Grid container spacing={2} sx={{ mb: 1 }}>
-            <Grid item xs={6}>
-              <Autocomplete
-                options={ups}
-                getOptionLabel={(u) => u.libelle}
-                value={partFilterUp}
-                onChange={(_, v) => setPartFilterUp(v)}
-                renderInput={(params) => <TextField {...params} label="Filtrer UP" placeholder="Toutes" />}
+        <Col span={24} style={{ marginTop: 24 }}>
+          <Title level={5}>Participants</Title>
+          <Row gutter={[16, 16]} style={{ marginBottom: 8 }}>
+            <Col span={12}>
+              <Text type="secondary">Filtrer UP</Text>
+              <Select
+                showSearch allowClear placeholder="Toutes"
+                value={partFilterUp?.id}
+                onChange={(val) => setPartFilterUp(ups.find(u => u.id === val) || null)}
+                style={{ width: "100%" }}
+                options={ups.map(u => ({ value: u.id, label: u.libelle }))}
+                optionFilterProp="label"
               />
-            </Grid>
-            <Grid item xs={6}>
-              <Autocomplete
-                options={depts}
-                getOptionLabel={(d) => d.libelle}
-                value={partFilterDept}
-                onChange={(_, v) => setPartFilterDept(v)}
-                renderInput={(params) => <TextField {...params} label="Filtrer Département" placeholder="Tous" />}
+            </Col>
+            <Col span={12}>
+              <Text type="secondary">Filtrer Département</Text>
+              <Select
+                showSearch allowClear placeholder="Tous"
+                value={partFilterDept?.id}
+                onChange={(val) => setPartFilterDept(depts.find(d => d.id === val) || null)}
+                style={{ width: "100%" }}
+                options={depts.map(d => ({ value: d.id, label: d.libelle }))}
+                optionFilterProp="label"
               />
-            </Grid>
-          </Grid>
-          <Autocomplete
-            multiple
-            options={optionsPart}
-            getOptionLabel={getEnseignantLabel}
-            isOptionEqualToValue={(o, v) => o.id === v?.id}
-            value={partSel}
-            onChange={(_, v) => setPartSel(v)}
-            renderInput={(params) => <TextField {...params} label="Sélectionner Participants" />}
+            </Col>
+          </Row>
+          <Text type="secondary">Sélectionner Participants</Text>
+          <Select
+            mode="multiple"
+            options={optionsPart.map(o => ({ value: o.id, label: getEnseignantLabel(o) }))}
+            value={partSel.map(p => p.id)}
+            onChange={(ids) => setPartSel(optionsPart.filter(o => ids.includes(o.id)))}
+            style={{ width: "100%" }}
+            optionFilterProp="label"
+            showSearch
           />
-        </Grid>
+        </Col>
 
         {/* ----------- Dossier Section (Specific for ResponsableDossier) ----------- */}
-        <Grid item xs={12} sx={{ mt: 2 }}>
-          <Divider sx={{ my: 2 }}>Gestion du Dossier</Divider>
-          <Box sx={{ display: "flex", gap: 2, justifyContent: "center" }}>
+        <Col span={24} style={{ marginTop: 16 }}>
+          <Divider>Gestion du Dossier</Divider>
+          <Space style={{ display: "flex", justifyContent: "center" }}>
             <Button 
-              variant="outlined" 
-              startIcon={<UploadFileIcon />}
+               
+              icon={<UploadOutlined />}
               onClick={() => setOpenUploadPanel(true)}
             >
               Scanner / Ajouter Document
             </Button>
             <Button 
-              variant="outlined"
+              
               onClick={() => setOpenDocModal(true)}
             >
               Consulter Dossier (CRUD)
             </Button>
-          </Box>
-        </Grid>
+          </Space>
+        </Col>
 
         {/* ----------- submit ----------- */}
         {!isResponsableDossier && (
-          <Grid item xs={12} sx={{ textAlign: "right", mt: 4 }}>
-            <Button type="submit" variant="contained" color="error">
+          <Col span={24} style={{ textAlign: "right", marginTop: 32 }}>
+            <Button type="primary" danger htmlType="submit">
               ✔️ Mettre à jour
             </Button>
-          </Grid>
+          </Col>
         )}
-      </Grid>
+      </Row>
 
       {/* Modals for Documents */}
       <Modal
         open={openUploadPanel}
-        onClose={() => setOpenUploadPanel(false)}
-        sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+        onCancel={() => setOpenUploadPanel(false)}
+        title="Ajouter au dossier"
+        width={600}
+        footer={null}
       >
-        <Box sx={{ bgcolor: 'background.paper', p: 4, borderRadius: 2, width: 600, maxWidth: '90%' }}>
-          <Typography variant="h6" gutterBottom>Ajouter au dossier</Typography>
-          <DocumentUploadPanel 
+        <DocumentUploadPanel 
             formationId={formation.idFormation} 
             onDocumentAdded={() => {
-              setSnack({ open: true, severity: "success", message: "Document ajouté !" });
+              message.success("Document ajouté !");
               setOpenUploadPanel(false);
             }}
             onClose={() => setOpenUploadPanel(false)}
           />
-        </Box>
       </Modal>
 
       <DocumentListModal
@@ -977,26 +892,12 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
         formation={formation}
         onClose={() => setOpenDocModal(false)}
         onDocumentsUpdated={() => {
-          setSnack({ open: true, severity: "info", message: "Dossier mis à jour" });
+          message.info("Dossier mis à jour");
         }}
       />
 
-      {/* snackbar */}
-      <Snackbar
-        open={snack.open}
-        autoHideDuration={4000}
-        onClose={() => setSnack((s) => ({ ...s, open: false }))}
-        anchorOrigin={{ vertical: "top", horizontal: "center" }}
-      >
-        <Alert severity={snack.severity} onClose={() => setSnack((s) => ({ ...s, open: false }))}>
-          {snack.message}
-        </Alert>
-      </Snackbar>
+
     </form>
   );
 }
 
-FormationWorkflowEditForm.propTypes = {
-  formation: PropTypes.object.isRequired,
-  onFormationUpdated: PropTypes.func.isRequired,
-};

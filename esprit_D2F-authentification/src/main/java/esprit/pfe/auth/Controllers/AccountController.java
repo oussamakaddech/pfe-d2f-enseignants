@@ -6,11 +6,12 @@ import esprit.pfe.auth.services.AccountService;
 import esprit.pfe.auth.payload.request.EditProfileRequest;
 import esprit.pfe.auth.payload.request.UpdatePasswordRequest;
 import esprit.pfe.auth.payload.response.UserDTO;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/account")
@@ -23,8 +24,8 @@ public class AccountController {
 
     @GetMapping("/list-accounts")
     @PreAuthorize(AuthorizationMatrix.ACCOUNT_READ)
-    public List<UserDTO> listAccounts() {
-        return this.accountService.listAccounts().stream().map(UserDTO::new).toList();
+    public Page<UserDTO> listAccounts(Pageable pageable) {
+        return this.accountService.listAccounts(pageable).map(UserDTO::new);
     }
 
     @PostMapping("/ban-account")

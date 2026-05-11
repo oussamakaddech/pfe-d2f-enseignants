@@ -2,22 +2,23 @@ package esprit.pfe.serviceanalyse.controllers;
 
 import esprit.pfe.serviceanalyse.services.AnalysePredictiveService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/analyse-predictive")
+@RequestMapping("/api/v1/analyse-predictive")
 @RequiredArgsConstructor
 public class AnalysePredictiveController {
 
     private final AnalysePredictiveService analysePredictiveService;
 
-    /**
-     * Analyse complète d'un enseignant par son ID.
-     * GET /api/analyse-predictive/enseignant/{enseignantId}
-     */
     @GetMapping("/enseignant/{enseignantId}")
     public ResponseEntity<Map<String, Object>> analyserEnseignant(
             @PathVariable String enseignantId,
@@ -26,13 +27,16 @@ public class AnalysePredictiveController {
         return ResponseEntity.ok(result);
     }
 
-    /**
-     * Tendances globales (tous enseignants).
-     * GET /api/analyse-predictive/tendances
-     */
     @GetMapping("/tendances")
     public ResponseEntity<Map<String, Object>> tendancesGlobales() {
         Map<String, Object> result = analysePredictiveService.analyserTendancesGlobales();
         return ResponseEntity.ok(result);
+    }
+
+    @GetMapping("/enseignants")
+    public ResponseEntity<Page<Map<String, Object>>> listerEnseignants(Pageable pageable) {
+        List<Map<String, Object>> items = new ArrayList<>();
+        Page<Map<String, Object>> page = new PageImpl<>(items, pageable, 0);
+        return ResponseEntity.ok(page);
     }
 }

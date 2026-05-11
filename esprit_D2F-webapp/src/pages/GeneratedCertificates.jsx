@@ -1,7 +1,8 @@
 // GeneratedCertificates.js
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Box, List, ListItem, Typography, Link, Button } from "@mui/material";
+import { List, Typography, Button, Space } from "antd";
+import { ArrowLeftOutlined, FilePdfOutlined } from "@ant-design/icons";
 import CertificateService from "../services/CertificateService";
 import { config } from "../config/env";
 
@@ -25,26 +26,27 @@ function GeneratedCertificates() {
   }, [formationId]);
 
   return (
-    <Box sx={{ p: 2 }}>
-      <Typography variant="h4" gutterBottom>
-        Certificats générés
-      </Typography>
-      <Typography variant="subtitle1" gutterBottom>
-        Formation ID : {formationId}
-      </Typography>
-      <List>
-        {pdfFiles.map((pdfFile, index) => (
-          <ListItem key={index}>
-            <Link href={`${config.CERTF_URL}/certificat/${pdfFile}`} target="_blank" rel="noopener">
-              {pdfFile}
-            </Link>
-          </ListItem>
-        ))}
-      </List>
-      <Button variant="contained" onClick={() => navigate("/home/certificate")}>
+    <div style={{ padding: 16 }}>
+      <Typography.Title level={4}>Certificats générés</Typography.Title>
+      <Typography.Text type="secondary">Formation ID : {formationId}</Typography.Text>
+      <List
+        style={{ marginTop: 16 }}
+        dataSource={pdfFiles}
+        renderItem={(pdfFile) => (
+          <List.Item>
+            <a href={`${config.CERTF_URL}/certificat/${pdfFile}`} target="_blank" rel="noopener noreferrer">
+              <Space>
+                <FilePdfOutlined />
+                {pdfFile}
+              </Space>
+            </a>
+          </List.Item>
+        )}
+      />
+      <Button type="primary" icon={<ArrowLeftOutlined />} onClick={() => navigate("/home/certificate")} style={{ marginTop: 16 }}>
         Retour
       </Button>
-    </Box>
+    </div>
   );
 }
 

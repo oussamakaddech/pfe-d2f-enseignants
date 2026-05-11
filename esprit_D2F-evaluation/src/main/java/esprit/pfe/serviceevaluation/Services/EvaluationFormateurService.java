@@ -7,6 +7,8 @@ import esprit.pfe.serviceevaluation.entities.EvaluationFormateur;
 import esprit.pfe.serviceevaluation.repositories.EvaluationFormateurRepository;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -80,11 +82,10 @@ public class EvaluationFormateurService {
         return mapToDto(consulterEvalParticipant(id));
     }
 
-    // LIST
-    public List<EvaluationFormateurDTO> listAllEvaluationsDto() {
-        return evaluationRepository.findAll().stream()
-                .map(this::mapToDto)
-                .toList();
+    // LIST (paginé)
+    public Page<EvaluationFormateurDTO> listAllEvaluationsDto(Pageable pageable) {
+        return evaluationRepository.findAll(pageable)
+                .map(this::mapToDto);
     }
 
 

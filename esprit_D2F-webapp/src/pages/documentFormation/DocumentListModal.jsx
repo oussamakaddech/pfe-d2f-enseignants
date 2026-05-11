@@ -1,7 +1,7 @@
 // DocumentListModal.jsx
-import  { useState } from "react";
-import PropTypes from "prop-types";
-import { Dialog, DialogTitle, DialogContent, DialogActions, Button, List, ListItem, ListItemText, Typography } from "@mui/material";
+import { useState } from "react";
+import { Modal, Button, List, Typography, Empty, Space } from "antd";
+import { EditOutlined, PlusOutlined, CloseOutlined } from "@ant-design/icons";
 import UpdateDocumentForm from "./UpdateDocumentForm";
 import DocumentCreateForm from "./DocumentCreateForm";
 
@@ -20,73 +20,67 @@ const DocumentListModal = ({ open, onClose, formation, onDocumentsUpdated }) => 
   };
 
   return (
-    <Dialog open={open} onClose={onClose} fullWidth maxWidth="md">
-      <DialogTitle>📝 Documents pour : {formation.titreFormation}</DialogTitle>
-      <DialogContent dividers>
-        {formation.documents && formation.documents.length > 0 ? (
-          <List>
-            {formation.documents.map((doc) => (
-              <ListItem key={doc.idDocument} style={{ display: "block", borderBottom: "1px solid #ddd", marginBottom: "1rem", paddingBottom: "1rem" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <ListItemText primary={doc.nomDocument} secondary={doc.originalFileName || "Fichier non défini"} />
-                  <Button
-                    variant="contained"
-                    onClick={() => setSelectedDocId(selectedDocId === doc.idDocument ? null : doc.idDocument)}
-                    style={{ backgroundColor: "red", color: "white" }}
-                  >
-                    {selectedDocId === doc.idDocument ? "Annuler" : "Modifier"}
-                  </Button>
-                </div>
-                {selectedDocId === doc.idDocument && (
-                  <div style={{ marginTop: "1rem" }}>
-                    <UpdateDocumentForm documentData={doc} onUpdated={handleUpdateComplete} />
-                  </div>
-                )}
-              </ListItem>
-            ))}
-          </List>
-        ) : (
-          <Typography variant="body1">😕 Aucun document associé à cette formation.</Typography>
-        )}
-        <div style={{ marginTop: "1rem", textAlign: "center" }}>
-          {showCreateForm ? (
-            <DocumentCreateForm
-              formationId={formation.idFormation}
-              onDocumentCreated={handleDocumentCreated}
-              onCancel={() => setShowCreateForm(false)}
-            />
-          ) : (
-            <Button variant="outlined" onClick={() => setShowCreateForm(true)} style={{ color: "red", borderColor: "red" }}>
-              ➕ Ajouter un document
-            </Button>
-          )}
-        </div>
-      </DialogContent>
-      <DialogActions>
-        <Button onClick={onClose} variant="outlined" style={{ color: "red", borderColor: "red" }}>
+    <Modal
+      title={`📝 Documents pour : ${formation.titreFormation}`}
+      open={open}
+      onCancel={onClose}
+      footer={
+        <Button onClick={onClose} danger>
           Fermer
         </Button>
-      </DialogActions>
-    </Dialog>
+      }
+      width={720}
+    >
+      {formation.documents && formation.documents.length > 0 ? (
+        <List
+          dataSource={formation.documents}
+          renderItem={(doc) => (
+            <List.Item
+              key={doc.idDocument}
+              actions={[
+                <Button
+                  key="edit"
+                  type={selectedDocId === doc.idDocument ? "default" : "primary"}
+                  danger={selectedDocId !== doc.idDocument}
+                  icon={selectedDocId === doc.idDocument ? <CloseOutlined /> : <EditOutlined />}
+                  onClick={() => setSelectedDocId(selectedDocId === doc.idDocument ? null : doc.idDocument)}
+                >
+                  {selectedDocId === doc.idDocument ? "Annuler" : "Modifier"}
+                </Button>
+              ]}
+            >
+              <List.Item.Meta
+                title={doc.nomDocument}
+                description={doc.originalFileName || "Fichier non défini"}
+              />
+            </List.Item>
+          )}
+        />
+      ) : (
+        <Empty description="😕 Aucun document associé à cette formation." />
+      )}
+      <div style={{ marginTop: "1rem", textAlign: "center" }}>
+        {showCreateForm ? (
+          <DocumentCreateForm
+            formationId={formation.idFormation}
+            onDocumentCreated={handleDocumentCreated}
+            onCancel={() => setShowCreateForm(false)}
+          />
+        ) : (
+          <Button type="dashed" danger icon={<PlusOutlined />} onClick={() => setShowCreateForm(true)}>
+            Ajouter un document
+          </Button>
+        )}
+      </div>
+      {formation.documents && formation.documents.map((doc) => (
+        selectedDocId === doc.idDocument && (
+          <div key={`edit-${doc.idDocument}`} style={{ marginTop: "1rem" }}>
+            <UpdateDocumentForm documentData={doc} onUpdated={handleUpdateComplete} />
+          </div>
+        )
+      ))}
+    </Modal>
   );
-};
-
-DocumentListModal.propTypes = {
-  open: PropTypes.bool.isRequired,
-  onClose: PropTypes.func.isRequired,
-  formation: PropTypes.shape({
-    idFormation: PropTypes.oneOfType([PropTypes.number, PropTypes.string]).isRequired,
-    titreFormation: PropTypes.string.isRequired,
-    documents: PropTypes.arrayOf(
-      PropTypes.shape({
-        idDocument: PropTypes.oneOfType([PropTypes.number, PropTypes.string]).isRequired,
-        nomDocument: PropTypes.string.isRequired,
-        originalFileName: PropTypes.string,
-        obligation: PropTypes.bool,
-      })
-    ),
-  }).isRequired,
-  onDocumentsUpdated: PropTypes.func.isRequired,
 };
 
 export default DocumentListModal;

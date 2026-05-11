@@ -3,7 +3,7 @@ import { config } from "../config/env";
 import type { Id } from "../models/common";
 import type { BesoinFormation } from "../models/besoin";
 
-const API_URL = `${config.Besoin_URL}/besoinsformation/besoinsFormations`;
+const API_URL = `${config.Besoin_URL}/besoins-formation`;
 
 interface ModifyBesoinPayload {
   besoinFormation: Partial<BesoinFormation>;
@@ -12,32 +12,24 @@ interface ModifyBesoinPayload {
 
 const BesoinFormationService = {
   async getAllBesoinFormations(): Promise<BesoinFormation[]> {
-    const response = await axios.get<any>(
-      `${API_URL}/retrieve-all-BesoinFormations`
-    );
-    // Le backend renvoie une Page Spring Data, les données sont dans 'content'
+    const response = await axios.get<any>(`${API_URL}`);
     return response.data?.content || response.data || [];
   },
 
   async getBesoinFormation(id: Id): Promise<BesoinFormation> {
-    const response = await axios.get<BesoinFormation>(
-      `${API_URL}/retrieve-BesoinFormation/${id}`
-    );
+    const response = await axios.get<BesoinFormation>(`${API_URL}/${id}`);
     return response.data;
   },
 
   async addBesoinFormation(
     besoin: Partial<BesoinFormation>
   ): Promise<BesoinFormation> {
-    const response = await axios.post<BesoinFormation>(
-      `${API_URL}/add-BesoinFormation`,
-      besoin
-    );
+    const response = await axios.post<BesoinFormation>(`${API_URL}`, besoin);
     return response.data;
   },
 
   async removeBesoinFormation(id: Id): Promise<unknown> {
-    const response = await axios.delete(`${API_URL}/remove-BesoinFormation/${id}`);
+    const response = await axios.delete(`${API_URL}/${id}`);
     return response.data;
   },
 
@@ -49,17 +41,12 @@ const BesoinFormationService = {
       besoinFormation,
       commentaire,
     };
-    const response = await axios.put<BesoinFormation>(
-      `${API_URL}/modify-BesoinFormation`,
-      payload
-    );
+    const response = await axios.put<BesoinFormation>(`${API_URL}`, payload);
     return response.data;
   },
 
   async getApprovedBesoinFormations(): Promise<BesoinFormation[]> {
-    const response = await axios.get<any>(
-      `${API_URL}/retrieve-approved-BesoinFormations`
-    );
+    const response = await axios.get<any>(`${API_URL}/approved`);
     return response.data?.content || response.data || [];
   },
 
@@ -73,17 +60,13 @@ const BesoinFormationService = {
     return response.data?.content || response.data || [];
   },
 
-  // ── Nouveaux endpoints §2.2.2 — Consultation et priorisation ──
-
   async getBesoinsByUp(up: string): Promise<BesoinFormation[]> {
     const response = await axios.get<any>(`${API_URL}/by-up/${up}`);
     return response.data?.content || response.data || [];
   },
 
   async getBesoinsByDepartement(departement: string): Promise<BesoinFormation[]> {
-    const response = await axios.get<any>(
-      `${API_URL}/by-departement/${departement}`
-    );
+    const response = await axios.get<any>(`${API_URL}/by-departement/${departement}`);
     return response.data?.content || response.data || [];
   },
 
@@ -93,9 +76,7 @@ const BesoinFormationService = {
   },
 
   async getBesoinsByPrioriteLevel(priorite: string): Promise<BesoinFormation[]> {
-    const response = await axios.get<any>(
-      `${API_URL}/by-priorite/${priorite}`
-    );
+    const response = await axios.get<any>(`${API_URL}/by-priorite/${priorite}`);
     return response.data?.content || response.data || [];
   },
 };
