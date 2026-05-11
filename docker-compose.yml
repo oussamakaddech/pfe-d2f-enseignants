@@ -59,6 +59,7 @@ services:
       - "7432:5432"
     volumes:
       - d2f_postgres_data:/var/lib/postgresql/data
+      - ./seed.sql:/docker-entrypoint-initdb.d/001-seed.sql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U d2f -d d2f"]
       interval: 10s

@@ -1,40 +1,31 @@
-## 📝 Description
+## Description
 
 <!-- Décrivez brièvement les changements apportés -->
 
-## 🔗 Issue liée
+## Type de changement
 
-<!-- Lien vers l'issue/ticket correspondant -->
-Closes #
+- [ ] Correction de bug
+- [ ] Nouvelle fonctionnalité
+- [ ] Refactoring
+- [ ] Documentation
+- [ ] Dépendance / Build
 
-## 🏷️ Type de changement
+## Tests effectués
 
-- [ ] 🐛 Correction de bug
-- [ ] ✨ Nouvelle fonctionnalité
-- [ ] 🔧 Refactoring (pas de changement fonctionnel)
-- [ ] 📝 Documentation
-- [ ] 🔒 Sécurité
-- [ ] ⚡ Performance
+- [ ] Tests unitaires backend (`./mvnw test`)
+- [ ] Tests frontend (`npm run test`)
+- [ ] Build Docker (`docker compose build`)
+- [ ] Qualité SonarQube (Quality Gate A)
 
-## ✅ Checklist
+## Services impactés
 
-- [ ] Le code compile sans erreur
-- [ ] Les tests unitaires passent (`mvn test` / `npm run test`)
-- [ ] Pas de secret/mot de passe en dur dans le code
-- [ ] Les configurations utilisent des variables d'environnement (`${...}`)
-- [ ] La documentation Swagger est à jour (si endpoint modifié)
-- [ ] Les migrations Flyway sont versionnées (si schéma modifié)
-- [ ] Le lint passe (`npm run lint` pour le frontend)
-- [ ] SonarQube Quality Gate = A
+<!-- Ex: auth-service, formation-service, webapp -->
 
-## 📸 Captures d'écran (si UI)
+## Checklist
 
-<!-- Ajoutez des captures si pertinent -->
-
-## 🧪 Comment tester
-
-<!-- Décrivez les étapes pour tester vos changements -->
-
-1.
-2.
-3.
+- [ ] Pagination présente sur les endpoints retournant des listes
+- [ ] Pas de secret / credential en dur dans le code
+- [ ] URLs en kebab-case
+- [ ] Messages d'erreur conformes au standard DSI
+- [ ] Migrations Flyway ajoutées si modification schéma
+- [ ] Documentation mise à jour (README, OpenAPI)

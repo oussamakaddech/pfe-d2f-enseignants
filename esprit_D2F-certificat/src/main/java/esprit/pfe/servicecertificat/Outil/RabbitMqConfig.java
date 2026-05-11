@@ -1,7 +1,5 @@
 package esprit.pfe.servicecertificat.outil;
 
-
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 import esprit.pfe.servicecertificat.dto.CertificateBatchMessage;
 import org.springframework.amqp.support.converter.DefaultJackson2JavaTypeMapper;
@@ -14,13 +12,11 @@ import java.util.HashMap;
 import java.util.Map;
 
 @Configuration
-public class JmsConfig {
+public class RabbitMqConfig {
     @Bean
     public MessageConverter jacksonJmsMessageConverter(ObjectMapper objectMapper) {
         Jackson2JsonMessageConverter converter = new Jackson2JsonMessageConverter(objectMapper);
 
-        // On dit: quand on voit "_type=CertificateBatchMessage",
-        // on le mappe sur la classe com.example.servicecertificat.dto.CertificateBatchMessage
         Map<String, Class<?>> typeIdMappings = new HashMap<>();
         typeIdMappings.put("CertificateBatchMessage", CertificateBatchMessage.class);
 
@@ -33,4 +29,3 @@ public class JmsConfig {
     }
 
 }
-

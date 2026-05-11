@@ -14,28 +14,21 @@ import java.util.HashMap;
 import java.util.Map;
 
 @Configuration
-public class JmsConfig {
+public class RabbitMqConfig {
 
      @Bean
      public MessageConverter jacksonJmsMessageConverter(ObjectMapper objectMapper) {
                 Jackson2JsonMessageConverter converter = new Jackson2JsonMessageConverter(objectMapper);
 
           Map<String, Class<?>> typeIdMappings = new HashMap<>();
-          // votre mapping existant
           typeIdMappings.put("CertificateBatchMessage",
                   CertificateBatchMessage.class);
-
-          // simple name
           typeIdMappings.put("BesoinFormationApprovedEvent",
                   BesoinFormationApprovedEvent.class);
-
-          // **FQCN tel qu’il est envoyé par votre BesoinFormation-service**
           typeIdMappings.put(
                   "tn.esprit.d2f.dto.BesoinFormationApprovedEvent",
                   BesoinFormationApprovedEvent.class
           );
-
-          // mapping pour EvaluationBatchMessage
           typeIdMappings.put("EvaluationBatchMessage",
                   EvaluationBatchMessage.class);
           typeIdMappings.put(

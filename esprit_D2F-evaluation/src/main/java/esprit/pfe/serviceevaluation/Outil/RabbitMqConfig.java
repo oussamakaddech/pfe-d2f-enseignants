@@ -1,7 +1,5 @@
 package esprit.pfe.serviceevaluation.outil;
 
-
-
 import com.fasterxml.jackson.databind.ObjectMapper;
 import esprit.pfe.serviceevaluation.messaging.EvaluationBatchMessage;
 import org.springframework.amqp.support.converter.DefaultJackson2JavaTypeMapper;
@@ -14,16 +12,14 @@ import java.util.HashMap;
 import java.util.Map;
 
 @Configuration
-public class JmsConfig {
+public class RabbitMqConfig {
 
     @Bean
     public MessageConverter jacksonJmsMessageConverter(ObjectMapper objectMapper) {
         Jackson2JsonMessageConverter conv = new Jackson2JsonMessageConverter(objectMapper);
 
         Map<String, Class<?>> mappings = new HashMap<>();
-        // Correspond au simple name utilisé dans votre service-formation
         mappings.put("EvaluationBatchMessage", EvaluationBatchMessage.class);
-        // Correspond au FQCN tel qu’il est publié par service-formation
         mappings.put(
                 "esprit.pfe.serviceformation.messaging.EvaluationBatchMessage",
                 EvaluationBatchMessage.class
@@ -36,4 +32,3 @@ public class JmsConfig {
         return conv;
     }
 }
-

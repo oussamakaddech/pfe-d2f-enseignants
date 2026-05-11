@@ -86,12 +86,13 @@
 			<artifactId>spring-security-test</artifactId>
 			<scope>test</scope>
 		</dependency>
-
-		<!-- Shared Authentication Module -->
 		<dependency>
-			<groupId>esprit.pfe</groupId>
-			<artifactId>service-authentification</artifactId>
-			<version>0.0.1-SNAPSHOT</version>
+			<groupId>io.micrometer</groupId>
+			<artifactId>micrometer-registry-prometheus</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>io.micrometer</groupId>
+			<artifactId>micrometer-tracing-bridge-brave</artifactId>
 		</dependency>
 	</dependencies>
 
