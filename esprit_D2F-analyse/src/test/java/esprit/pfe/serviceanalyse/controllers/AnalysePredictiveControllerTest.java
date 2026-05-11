@@ -14,7 +14,6 @@ import java.util.Map;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -44,7 +43,7 @@ class AnalysePredictiveControllerTest {
         mockResult.put("enseignantId", "ens1");
         mockResult.put("competenceAnalysee", "Analyse ciblée compétence 1");
 
-        when(analysePredictiveService.analyserEnseignant(eq("ens1"), eq(1L))).thenReturn(mockResult);
+        when(analysePredictiveService.analyserEnseignant("ens1", 1L)).thenReturn(mockResult);
 
         mockMvc.perform(get("/analyse-predictive/enseignant/ens1")
                 .param("competenceCible", "1"))
@@ -65,7 +64,7 @@ class AnalysePredictiveControllerTest {
 
         mockResult.put("gaps", List.of(gap1));
 
-        when(analysePredictiveService.analyserEnseignant(eq("ens1"), any())).thenReturn(mockResult);
+        when(analysePredictiveService.analyserEnseignant("ens1", any())).thenReturn(mockResult);
 
         mockMvc.perform(get("/analyse-predictive/enseignant/ens1"))
                 .andExpect(status().isOk())
@@ -86,7 +85,7 @@ class AnalysePredictiveControllerTest {
 
         mockResult.put("recommandationsFormations", List.of(reco1));
 
-        when(analysePredictiveService.analyserEnseignant(eq("ens1"), any())).thenReturn(mockResult);
+        when(analysePredictiveService.analyserEnseignant("ens1", any())).thenReturn(mockResult);
 
         mockMvc.perform(get("/analyse-predictive/enseignant/ens1"))
                 .andExpect(status().isOk())

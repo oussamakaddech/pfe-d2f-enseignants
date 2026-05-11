@@ -86,34 +86,42 @@ class AtRiskTeachersResponse(BaseModel):
 
 
 class DecliningCompetency(BaseModel):
-    competency_id: int
-    competency_name: str
-    domaine_name: str
-    demand_3m: int
-    demand_12m: int
+    competency_id: Optional[int] = None
+    competency_name: str = ""
+    domaine_name: str = ""
+    demand_3m: int = 0
+    demand_12m: int = 0
+
+    model_config = {"extra": "ignore"}
 
 
 class InDemandCompetency(BaseModel):
-    competency_id: int
-    competency_name: str
-    domaine_name: str
-    demand_3m: int
-    demand_12m: int
-    trend: str  # increasing, stable, decreasing
+    competency_id: Optional[int] = None
+    competency_name: str = ""
+    domaine_name: str = ""
+    demand_3m: int = 0
+    demand_12m: int = 0
+    trend: str = "stable"  # increasing, stable, decreasing
+
+    model_config = {"extra": "ignore"}
 
 
 class TeacherRiskIndicator(BaseModel):
-    teacher_id: str
-    teacher_name: str
-    attrition_risk_score: float
-    disengagement_signals: list[str]
-    competency_stagnation_rate: float
-    training_velocity: float
-    recommendation: str
+    teacher_id: str = ""
+    teacher_name: str = ""
+    attrition_risk_score: float = 0.0
+    disengagement_signals: list[str] = []
+    competency_stagnation_rate: float = 0.0
+    training_velocity: float = 0.0
+    recommendation: str = "OK"
+    email: Optional[str] = None
+    department: Optional[str] = None
+
+    model_config = {"extra": "ignore"}
 
 
 class DashboardResponse(BaseModel):
-    declining_competencies: list[DecliningCompetency]
-    in_demand_competencies: list[InDemandCompetency]
-    teacher_risk_indicators: list[TeacherRiskIndicator]
-    generated_at: date
+    declining_competencies: list[DecliningCompetency] = []
+    in_demand_competencies: list[InDemandCompetency] = []
+    teacher_risk_indicators: list[TeacherRiskIndicator] = []
+    generated_at: date = date.today()

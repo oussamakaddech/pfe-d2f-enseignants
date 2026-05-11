@@ -103,13 +103,13 @@ class AnalysePredictiveServiceExtendedTest {
         // We mock the first call to fail and the second to succeed
         
         // compUrl contains "/api/v1/enseignant-competences"
-        when(restTemplate.getForObject(contains("/api/v1/enseignant-competences"), eq(List.class)))
+        when(restTemplate.getForObject(contains("/api/v1/enseignant-competences"), List.class))
             .thenThrow(new RuntimeException("Comp service down"));
             
         // evalUrl contains "/evaluation/evaluations-globales"
         Map<String, Object> eval = new HashMap<>();
         eval.put("note", 2.0);
-        when(restTemplate.getForObject(contains("/evaluation/evaluations-globales"), eq(List.class)))
+        when(restTemplate.getForObject(contains("/evaluation/evaluations-globales"), List.class))
             .thenReturn(List.of(eval));
             
         Map<String, Object> result = analysePredictiveService.analyserEnseignant("ens1", null);
@@ -127,9 +127,9 @@ class AnalysePredictiveServiceExtendedTest {
         formation.put("idFormation", 101);
         formation.put("etatFormation", "PLANIFIEE");
         
-        when(restTemplate.getForObject(contains("/formations"), eq(List.class)))
+        when(restTemplate.getForObject(contains("/formations"), List.class))
             .thenReturn(List.of(formation));
-        when(restTemplate.getForObject(contains("/formation-competences/formation/"), eq(List.class)))
+        when(restTemplate.getForObject(contains("/formation-competences/formation/"), List.class))
             .thenReturn(Collections.emptyList());
             
         Map<String, Object> result = analysePredictiveService.analyserEnseignant("ens1", 999L); // non-existent gap
