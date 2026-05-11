@@ -3,7 +3,7 @@ import { config } from "../config/env";
 import type { Id } from "../models/common";
 import type { BesoinFormation } from "../models/besoin";
 
-const API_URL = `${config.Besoin_URL}/besoins-formation`;
+const API_URL = `${config.Besoin_URL}/besoins-formation/besoins-formations`;
 
 interface ModifyBesoinPayload {
   besoinFormation: Partial<BesoinFormation>;
