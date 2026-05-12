@@ -190,112 +190,116 @@ export default function StructureArbrePage() {
     }
   }, [niveauTarget, openNiveauModal]);
 
+  // ─── Tree node helpers ──────────────────────────────────────────────
+
+  const buildSavoirNode = useCallback((s) => ({
+    key: `sav-${s.id}`,
+    title: (
+      <Space>
+        {s.type === "THEORIQUE" ? <BookOutlined style={{ color: "#722ed1" }} /> : <ExperimentOutlined style={{ color: "#13c2c2" }} />}
+        <Text type="secondary">{s.nom}</Text>
+        <Tag color={s.type === "THEORIQUE" ? "purple" : "cyan"}>
+          {s.type === "THEORIQUE" ? "Théorique" : "Pratique"}
+        </Tag>
+        <Tag>{s.code}</Tag>
+      </Space>
+    ),
+    isLeaf: true,
+  }), []);
+
+  const buildDirectSavoirNode = useCallback((s) => ({
+    key: `sav-direct-${s.id}`,
+    title: (
+      <Space>
+        {s.type === "THEORIQUE" ? <BookOutlined style={{ color: "#722ed1" }} /> : <ExperimentOutlined style={{ color: "#13c2c2" }} />}
+        <Text type="secondary">{s.nom}</Text>
+        <Tag color={s.type === "THEORIQUE" ? "purple" : "cyan"}>
+          {s.type === "THEORIQUE" ? "Théorique" : "Pratique"}
+        </Tag>
+        <Tag>{s.code}</Tag>
+        <Tag color="gold">Direct</Tag>
+      </Space>
+    ),
+    isLeaf: true,
+  }), []);
+
+  const buildSousCompNode = useCallback((sc) => ({
+    key: `sc-${sc.id}`,
+    title: (
+      <Space>
+        <BulbOutlined style={{ color: "#fa8c16" }} />
+        <Text>{sc.nom}</Text>
+        <Tag color="orange">{sc.code}</Tag>
+        <Tooltip title={`${sc.nombreSavoirs} savoir(s)`}>
+          <Tag icon={<BookOutlined />}>{sc.nombreSavoirs}</Tag>
+        </Tooltip>
+        <Tooltip title={`${sc.nombreEnseignants} enseignant(s)`}>
+          <Tag icon={<TeamOutlined />} color="purple">{sc.nombreEnseignants}</Tag>
+        </Tooltip>
+        <Tooltip title="Voir les niveaux">
+          <Button
+            size="small" type="link"
+            icon={<InfoCircleOutlined />}
+            onClick={(e) => { e.stopPropagation(); openNiveauModal("sousCompetence", sc.id, sc.nom); }}
+          />
+        </Tooltip>
+      </Space>
+    ),
+    children: sc.savoirs?.map(buildSavoirNode),
+  }), [openNiveauModal, buildSavoirNode]);
+
+  const buildCompetenceNode = useCallback((comp) => ({
+    key: `comp-${comp.id}`,
+    title: (
+      <Space>
+        <ApartmentOutlined style={{ color: "#52c41a" }} />
+        <Text>{comp.nom}</Text>
+        <Tag color="green">{comp.code}</Tag>
+        <Tooltip title={`${comp.nombreSousCompetences} sous-compétences, ${comp.nombreSavoirs} savoirs`}>
+          <Tag>{comp.nombreSousCompetences} SC / {comp.nombreSavoirs} S</Tag>
+        </Tooltip>
+        <Tooltip title={`${comp.nombreEnseignants} enseignant(s)`}>
+          <Tag icon={<TeamOutlined />} color="purple">{comp.nombreEnseignants}</Tag>
+        </Tooltip>
+        <Tooltip title="Voir les niveaux">
+          <Button
+            size="small" type="link"
+            icon={<InfoCircleOutlined />}
+            onClick={(e) => { e.stopPropagation(); openNiveauModal("competence", comp.id, comp.nom); }}
+          />
+        </Tooltip>
+      </Space>
+    ),
+    children: [
+      ...(comp.sousCompetences?.map(buildSousCompNode) || []),
+      ...(comp.savoirsDirect?.map(buildDirectSavoirNode) || []),
+    ],
+  }), [openNiveauModal, buildSousCompNode, buildDirectSavoirNode]);
+
+  const buildDomaineNode = useCallback((domaine) => ({
+    key: `dom-${domaine.id}`,
+    title: (
+      <Space>
+        <FolderOpenOutlined style={{ color: "#1890ff" }} />
+        <Text strong>{domaine.nom}</Text>
+        <Tag color="blue">{domaine.code}</Tag>
+        <Badge count={domaine.nombreCompetences} showZero style={{ backgroundColor: "#52c41a" }}
+          overflowCount={99} title="Compétences" />
+        <Tooltip title={`${domaine.nombreEnseignants} enseignant(s)`}>
+          <Tag icon={<TeamOutlined />} color="purple">{domaine.nombreEnseignants}</Tag>
+        </Tooltip>
+        {!domaine.actif && <Tag color="red">Inactif</Tag>}
+      </Space>
+    ),
+    children: domaine.competences?.map(buildCompetenceNode) || [],
+  }), [buildCompetenceNode]);
+
   // ─── Tree nodes ─────────────────────────────────────────────────────
 
   const treeData = useMemo(() => {
     if (!structure?.domaines) return [];
-    return structure.domaines.map((domaine) => ({
-      key: `dom-${domaine.id}`,
-      title: (
-        <Space>
-          <FolderOpenOutlined style={{ color: "#1890ff" }} />
-          <Text strong>{domaine.nom}</Text>
-          <Tag color="blue">{domaine.code}</Tag>
-          <Badge count={domaine.nombreCompetences} showZero style={{ backgroundColor: "#52c41a" }}
-            overflowCount={99} title="Compétences" />
-          <Tooltip title={`${domaine.nombreEnseignants} enseignant(s)`}>
-            <Tag icon={<TeamOutlined />} color="purple">{domaine.nombreEnseignants}</Tag>
-          </Tooltip>
-          {!domaine.actif && <Tag color="red">Inactif</Tag>}
-        </Space>
-      ),
-      children: domaine.competences?.map((comp) => ({
-        key: `comp-${comp.id}`,
-        title: (
-          <Space>
-            <ApartmentOutlined style={{ color: "#52c41a" }} />
-            <Text>{comp.nom}</Text>
-            <Tag color="green">{comp.code}</Tag>
-            <Tooltip title={`${comp.nombreSousCompetences} sous-compétences, ${comp.nombreSavoirs} savoirs`}>
-              <Tag>{comp.nombreSousCompetences} SC / {comp.nombreSavoirs} S</Tag>
-            </Tooltip>
-            <Tooltip title={`${comp.nombreEnseignants} enseignant(s)`}>
-              <Tag icon={<TeamOutlined />} color="purple">{comp.nombreEnseignants}</Tag>
-            </Tooltip>
-            <Tooltip title="Voir les niveaux">
-              <Button
-                size="small" type="link"
-                icon={<InfoCircleOutlined />}
-                onClick={(e) => { e.stopPropagation(); openNiveauModal("competence", comp.id, comp.nom); }}
-              />
-            </Tooltip>
-          </Space>
-        ),
-        children: [
-          ...(comp.sousCompetences?.map((sc) => ({
-            key: `sc-${sc.id}`,
-            title: (
-              <Space>
-                <BulbOutlined style={{ color: "#fa8c16" }} />
-                <Text>{sc.nom}</Text>
-                <Tag color="orange">{sc.code}</Tag>
-                <Tooltip title={`${sc.nombreSavoirs} savoir(s)`}>
-                  <Tag icon={<BookOutlined />}>{sc.nombreSavoirs}</Tag>
-                </Tooltip>
-                <Tooltip title={`${sc.nombreEnseignants} enseignant(s)`}>
-                  <Tag icon={<TeamOutlined />} color="purple">{sc.nombreEnseignants}</Tag>
-                </Tooltip>
-                <Tooltip title="Voir les niveaux">
-                  <Button
-                    size="small" type="link"
-                    icon={<InfoCircleOutlined />}
-                    onClick={(e) => { e.stopPropagation(); openNiveauModal("sousCompetence", sc.id, sc.nom); }}
-                  />
-                </Tooltip>
-              </Space>
-            ),
-            children: sc.savoirs?.map((s) => ({
-              key: `sav-${s.id}`,
-              title: (
-                <Space>
-                  {s.type === "THEORIQUE" ? (
-                    <BookOutlined style={{ color: "#722ed1" }} />
-                  ) : (
-                    <ExperimentOutlined style={{ color: "#13c2c2" }} />
-                  )}
-                  <Text type="secondary">{s.nom}</Text>
-                  <Tag color={s.type === "THEORIQUE" ? "purple" : "cyan"}>
-                    {s.type === "THEORIQUE" ? "Théorique" : "Pratique"}
-                  </Tag>
-                  <Tag>{s.code}</Tag>
-                </Space>
-              ),
-              isLeaf: true,
-            })),
-          })) || []),
-          ...(comp.savoirsDirect?.map((s) => ({
-            key: `sav-direct-${s.id}`,
-            title: (
-              <Space>
-                {s.type === "THEORIQUE" ? (
-                  <BookOutlined style={{ color: "#722ed1" }} />
-                ) : (
-                  <ExperimentOutlined style={{ color: "#13c2c2" }} />
-                )}
-                <Text type="secondary">{s.nom}</Text>
-                <Tag color={s.type === "THEORIQUE" ? "purple" : "cyan"}>
-                  {s.type === "THEORIQUE" ? "Théorique" : "Pratique"}
-                </Tag>
-                <Tag>{s.code}</Tag>
-                <Tag color="gold">Direct</Tag>
-              </Space>
-            ),
-            isLeaf: true,
-          })) || []),
-        ],
-      })) || [],
-    }));
-  }, [structure, openNiveauModal]);
+    return structure.domaines.map(buildDomaineNode);
+  }, [structure, buildDomaineNode]);
 
   // ─── All savoirs for selection ─────────────────────────────────────
 

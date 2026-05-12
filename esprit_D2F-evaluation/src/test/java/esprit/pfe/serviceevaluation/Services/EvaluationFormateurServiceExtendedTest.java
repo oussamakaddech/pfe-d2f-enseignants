@@ -11,6 +11,10 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
+
 import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
@@ -121,12 +125,12 @@ class EvaluationFormateurServiceExtendedTest {
 
     @Test
     void listAllEvaluationsDto_shouldReturnList() {
-        when(evaluationRepository.findAll()).thenReturn(List.of(entity));
+        when(evaluationRepository.findAll(any(Pageable.class))).thenReturn(new PageImpl<>(List.of(entity)));
 
-        List<EvaluationFormateurDTO> result = service.listAllEvaluationsDto();
+        Page<EvaluationFormateurDTO> result = service.listAllEvaluationsDto(Pageable.ofSize(10));
 
         assertNotNull(result);
-        assertEquals(1, result.size());
+        assertEquals(1, result.getContent().size());
     }
 
     @Test

@@ -7,6 +7,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 
 import java.util.List;
@@ -39,12 +42,13 @@ class EvaluationGlobaleControllerTest {
 
     @Test
     void getAllEvaluationGlobales_shouldReturnList() {
-        when(service.getAllEvaluationGlobales()).thenReturn(List.of(new EvaluationGlobaleDTO()));
+        Page<EvaluationGlobaleDTO> page = new PageImpl<>(List.of(new EvaluationGlobaleDTO()));
+        when(service.getAllEvaluationGlobales(any(Pageable.class))).thenReturn(page);
 
-        var response = controller.getAllEvaluationGlobales();
+        var response = controller.getAllEvaluationGlobales(Pageable.ofSize(10));
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertEquals(1, response.getBody().size());
+        assertEquals(1, response.getBody().getContent().size());
     }
 
     @Test

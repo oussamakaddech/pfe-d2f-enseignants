@@ -50,6 +50,10 @@ jobs:
           distribution: 'temurin'
           cache: 'maven'
 
+      - name: Install shared security module
+        working-directory: esprit_D2F-common-security
+        run: mvn clean install -DskipTests
+
       - name: Build with Maven
         working-directory: ${{ matrix.service }}
         run: mvn clean compile -DskipTests

@@ -3,6 +3,7 @@ package esprit.pfe.servicecertificat.controllers;
 import esprit.pfe.servicecertificat.dto.CertificateRequest;
 import esprit.pfe.servicecertificat.dto.CertificateResponse;
 import esprit.pfe.servicecertificat.entities.Certificate;
+import esprit.pfe.servicecertificat.exception.ResourceNotFoundException;
 import esprit.pfe.servicecertificat.repositories.CertificateRepository;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
@@ -49,7 +50,7 @@ public class CertificateController {
     @PutMapping("/{id}/deliver")
     public ResponseEntity<CertificateResponse> deliver(@PathVariable Long id) {
         Certificate cert = certificateRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Certificat introuvable"));
+                .orElseThrow(() -> new ResourceNotFoundException("Certificat introuvable"));
         cert.setDelivered(true);
         return ResponseEntity.ok(mapToResponse(certificateRepository.save(cert)));
     }
@@ -66,7 +67,7 @@ public class CertificateController {
     public ResponseEntity<CertificateResponse> updateCertificate(@PathVariable Long id,
             @Valid @RequestBody CertificateRequest request) {
         Certificate cert = certificateRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Certificat introuvable"));
+                .orElseThrow(() -> new ResourceNotFoundException("Certificat introuvable"));
 
         updateEntityFromRequest(cert, request);
 

@@ -1,6 +1,9 @@
 package esprit.pfe.serviceformation.controllers;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import esprit.pfe.serviceformation.entities.EtatFormation;
 import esprit.pfe.serviceformation.entities.Formation;
 import esprit.pfe.serviceformation.entities.TypeFormation;
@@ -111,9 +114,9 @@ class FormationControllerTest {
             when(formationService.createFormation(any())).thenReturn(testFormation);
 
             mockMvc.perform(post("/api/v1/formations")
-                            .with(csrf())
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(testFormation)))
+                    .with(csrf())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(testFormation)))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.titreFormation").value("Formation Java 17"));
         }
@@ -131,9 +134,9 @@ class FormationControllerTest {
             when(formationService.updateFormation(eq(1L), any())).thenReturn(testFormation);
 
             mockMvc.perform(put("/api/v1/formations/1")
-                            .with(csrf())
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(testFormation)))
+                    .with(csrf())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(objectMapper.writeValueAsString(testFormation)))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.titreFormation").value("Formation Java 17 - V2"));
         }

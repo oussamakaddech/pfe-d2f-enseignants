@@ -189,6 +189,20 @@ export default function useCompetenceCrud({ onInvalidateStructure, onSavoirMutat
     }
   }, [editingComp, loadCompetences, msgApi, onInvalidateStructure]);
 
+  function buildCompDeleteErrorMessage(sousCompsCount, savoirsDirectsCount) {
+    const pl = (n, w) => `${n} ${w}${n > 1 ? 's' : ''}`;
+    const scLabel = pl(sousCompsCount, 'sous-compétence');
+    const scRef = `${sousCompsCount > 1 ? 'ces' : 'cette'} sous-compétence${sousCompsCount > 1 ? 's' : ''}`;
+
+    if (savoirsDirectsCount === 0) {
+      return `Cette compétence contient ${scLabel}. Veuillez supprimer ${scRef} avant de supprimer la compétence. Les lignes de prérequis liées seront supprimées automatiquement.`;
+    }
+
+    const sdLabel = pl(savoirsDirectsCount, 'savoir') + `${savoirsDirectsCount > 1 ? 's direct' : ' direct'}`;
+    const sdRef = `${savoirsDirectsCount > 1 ? 'ces' : 'ce'} savoir${savoirsDirectsCount > 1 ? 's' : ''} direct${savoirsDirectsCount > 1 ? 's' : ''}`;
+    return `Cette compétence contient ${scLabel} et ${sdLabel}. Veuillez supprimer ${scRef} et ${sdRef} avant de supprimer la compétence. Les lignes de prérequis liées seront supprimées automatiquement.`;
+  }
+
   const handleCompDelete = useCallback(async (id) => {
     // Vérifier si la compétence a des sous-compétences ou savoirs
     const competence = competences.find(c => String(c.id) === String(id));
@@ -196,21 +210,7 @@ export default function useCompetenceCrud({ onInvalidateStructure, onSavoirMutat
     const savoirsDirectsCount = savoirs.filter(s => String(s.competenceId) === String(id) && !s.sousCompetenceId).length;
     
     if (sousCompsCount > 0 || savoirsDirectsCount > 0) {
-      const sousCompsText = `${sousCompsCount} sous-compétence${sousCompsCount > 1 ? 's' : ''}`;
-      const savoirsText = savoirsDirectsCount > 0 
-        ? `${savoirsDirectsCount} savoir${savoirsDirectsCount > 1 ? 's' : ''} direct${savoirsDirectsCount > 1 ? 's' : ''}`
-        : 'aucun savoir direct';
-      
-      let message = `Cette compétence contient ${sousCompsText}`;
-      if (savoirsDirectsCount > 0) {
-        message += ` et ${savoirsText}. Veuillez supprimer ${sousCompsCount > 1 ? 'ces' : 'cette'} sous-compétence${sousCompsCount > 1 ? 's' : ''}`;
-        message += ` et ${savoirsDirectsCount > 1 ? 'ces' : 'ce'} savoir${savoirsDirectsCount > 1 ? 's' : ''} direct${savoirsDirectsCount > 1 ? 's' : ''}`;
-      } else {
-        message += `. Veuillez supprimer ${sousCompsCount > 1 ? 'ces' : 'cette'} sous-compétence${sousCompsCount > 1 ? 's' : ''}`;
-      }
-      message += ` avant de supprimer la compétence. Les lignes de prérequis liées seront supprimées automatiquement.`;
-      
-      msgApi.error(message);
+      msgApi.error(buildCompDeleteErrorMessage(sousCompsCount, savoirsDirectsCount));
       return;
     }
     
@@ -463,6 +463,10 @@ export default function useCompetenceCrud({ onInvalidateStructure, onSavoirMutat
     },
   ], [loadDomaines, msgApi]);
 
+  function countSousComp(nodes) {
+    return (nodes ?? []).reduce((sum, node) => sum + 1 + countSousComp(node.enfants), 0);
+  }
+
   const compColumns = useMemo(() => [
     {
       title: "",
@@ -489,10 +493,6 @@ export default function useCompetenceCrud({ onInvalidateStructure, onSavoirMutat
       key: "structure",
       width: 140,
       render: (_, r) => {
-        const countSousComp = (nodes) => (nodes ?? []).reduce(
-          (sum, node) => sum + 1 + countSousComp(node.enfants),
-          0,
-        );
         const nbSc = countSousComp(r.sousCompetences);
         const nbDirectFromComp = r.savoirs?.length ?? 0;
         const nbDirectFromList = savoirs.filter(

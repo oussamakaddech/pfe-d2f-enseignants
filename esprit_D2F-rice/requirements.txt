@@ -16,3 +16,5 @@ ollama
 # Also install the French language pack (fra.traineddata) for ESPRIT fiches
 pymupdf
 pytesseract
+# JWT authentication (defense-in-depth, DSI requirement)
+PyJWT

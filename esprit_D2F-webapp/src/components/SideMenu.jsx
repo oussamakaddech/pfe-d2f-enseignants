@@ -2,8 +2,6 @@
 import { useContext, useMemo } from "react";
 import { Menu, Avatar, Badge, Typography, Divider } from "antd";
 import {
-  HomeOutlined,
-  DashboardOutlined,
   TeamOutlined,
   CalendarOutlined,
   FileTextOutlined,
@@ -19,8 +17,6 @@ import {
   TrophyOutlined,
   SafetyCertificateOutlined,
   UserOutlined,
-  SettingOutlined,
-  BellOutlined,
 } from "@ant-design/icons";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
@@ -32,7 +28,7 @@ const normalizeRole = (value) =>
   String(value || "")
     .toLowerCase()
     .replace(/^role_?/, "")
-    .replace(/[\s_-]+/g, "");
+    .replaceAll(/[\s_-]+/g, "");
 
 export default function SideMenu() {
   const { user, logout } = useContext(AuthContext);

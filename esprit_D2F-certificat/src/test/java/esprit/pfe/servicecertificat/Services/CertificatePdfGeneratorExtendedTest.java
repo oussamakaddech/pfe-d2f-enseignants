@@ -71,7 +71,7 @@ class CertificatePdfGeneratorExtendedTest {
             0, 1, 0, 0, 2, 2, 68, 1, 0, 59
         };
 
-        java.util.List<String> results = CertificatePdfGenerator.generateCertificatesForAllTeachers(msg, dummyBg);
+        java.util.List<String> results = CertificatePdfGenerator.generateCertificatesForAllTeachers(msg, dummyBg, tempDir.toString() + File.separator);
 
         assertThat(results).hasSize(2)
                 .anyMatch(r -> r.contains("T1"))

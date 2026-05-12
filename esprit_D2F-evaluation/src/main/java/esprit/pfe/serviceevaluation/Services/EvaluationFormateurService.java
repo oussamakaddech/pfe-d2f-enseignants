@@ -149,7 +149,7 @@ public class EvaluationFormateurService {
         // 4) Supprimer celles qui ne sont plus dans newEnsIds
         existing.stream()
                 .filter(ev -> !newEnsIds.contains(ev.getEnseignantId()))
-                .forEach(ev -> evaluationRepository.delete(ev));
+                .forEach(evaluationRepository::delete);
 
         // 5) Parcourir la nouvelle liste pour créer ou mettre à jour
         for (EvaluationFormateurDTO dto : dtos) {

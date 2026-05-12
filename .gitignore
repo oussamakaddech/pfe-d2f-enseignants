@@ -14,6 +14,7 @@ actions-runner/
 .env.local
 .env.prod
 .env.qa
+.env.*
 !.env.example
 
 # ── Fichiers de build / compilation ───────────────────────────────────────────

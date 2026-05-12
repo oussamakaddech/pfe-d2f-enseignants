@@ -36,6 +36,13 @@
     </dependencyManagement>
 
     <dependencies>
+        <!-- D2F Common Security (shared AuthorizationMatrix) -->
+        <dependency>
+            <groupId>esprit.d2f</groupId>
+            <artifactId>d2f-common-security</artifactId>
+            <version>1.0.0</version>
+        </dependency>
+
         <!-- Spring Boot Dependencies -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

@@ -31,7 +31,7 @@ public class CertificateBatchMessage {
         private String enseignantId;         // ex. "E001"
         private String nom;                  // ex. "BEN MUSTAPHA"
         private String prenom;               // ex. "IBTIHEL"
-        private String mail;                 // ex. "ibtihel.benmustapha@esprit.tn"
+        private String mail;                 // Email du destinataire
 
         // Comme vous n’avez plus de participants, vous pouvez mettre "ANIMATEUR"
         // ou laisser un champ pour évoluer plus tard (ex. "ANIMATEUR" / "CO-ANIMATEUR"…)

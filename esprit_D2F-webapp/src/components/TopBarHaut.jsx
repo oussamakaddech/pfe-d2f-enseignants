@@ -13,7 +13,7 @@ function TopBarHaut() {
                       <div className="breadcome-heading">
                         <form role="search" className>
                           <input type="text" placeholder="Search..." className="form-control" />
-                          <a href><i className="fa fa-search" /></a>
+                          <button type="submit" style={{ border: 'none', background: 'none', cursor: 'pointer' }}><i className="fa fa-search" /></button>
                         </form>
                       </div>
                     </div>

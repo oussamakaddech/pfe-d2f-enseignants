@@ -1,9 +1,7 @@
 package esprit.pfe.serviceanalyse.exception;
 
-import jakarta.persistence.EntityNotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
@@ -23,8 +21,8 @@ public class GlobalExceptionHandler {
 
     private static final String MODULE_PREFIX = "ANL";
 
-    @ExceptionHandler({EntityNotFoundException.class, ResourceNotFoundException.class})
-    public ResponseEntity<ErrorResponse> handleNotFound(RuntimeException ex, HttpServletRequest request) {
+    @ExceptionHandler(ResourceNotFoundException.class)
+    public ResponseEntity<ErrorResponse> handleNotFound(ResourceNotFoundException ex, HttpServletRequest request) {
         log.error("Resource not found: {}", ex.getMessage());
         return buildResponse(HttpStatus.NOT_FOUND, ex.getMessage(), MODULE_PREFIX + "-404", request);
     }
@@ -54,12 +52,6 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleIllegalArgument(IllegalArgumentException ex, HttpServletRequest request) {
         log.error("Illegal argument: {}", ex.getMessage());
         return buildResponse(HttpStatus.BAD_REQUEST, ex.getMessage(), MODULE_PREFIX + "-400", request);
-    }
-
-    @ExceptionHandler(DataIntegrityViolationException.class)
-    public ResponseEntity<ErrorResponse> handleDataIntegrity(DataIntegrityViolationException ex, HttpServletRequest request) {
-        log.error("Data integrity violation: {}", ex.getMessage());
-        return buildResponse(HttpStatus.CONFLICT, "Conflit de données : la ressource existe déjà ou une contrainte d'intégrité a été violée.", MODULE_PREFIX + "-409", request);
     }
 
     @ExceptionHandler(Exception.class)

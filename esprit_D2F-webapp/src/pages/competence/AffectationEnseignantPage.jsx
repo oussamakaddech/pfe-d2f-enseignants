@@ -294,8 +294,8 @@ export default function AffectationEnseignantPage() {
       key: "competences",
       width: 260,
       sorter: (a, b) => {
-        const aNames = Array.from(new Set(a.savoirs.map((s) => s.competenceNom).filter(Boolean))).sort().join(" | ");
-        const bNames = Array.from(new Set(b.savoirs.map((s) => s.competenceNom).filter(Boolean))).sort().join(" | ");
+        const aNames = Array.from(new Set(a.savoirs.map((s) => s.competenceNom).filter(Boolean))).sort((x, y) => x.localeCompare(y)).join(" | ");
+        const bNames = Array.from(new Set(b.savoirs.map((s) => s.competenceNom).filter(Boolean))).sort((x, y) => x.localeCompare(y)).join(" | ");
         return aNames.localeCompare(bNames);
       },
       render: (savs) => (

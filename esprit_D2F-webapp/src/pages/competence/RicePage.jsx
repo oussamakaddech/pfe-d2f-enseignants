@@ -263,6 +263,82 @@ export default function RicePage() {
   }, [msgApi]);
 
   // -- Step 1: Launch AI analysis --------------------------------------------
+  const cleanTreePropositions = (propositions) => {
+    const cleaned = cloneDeep(propositions);
+    for (const d of cleaned)
+      for (const c of d.competences ?? []) {
+        for (const s of c.savoirs ?? []) {
+          const suggested = (s.enseignantsSuggeres ?? []).map((id) => String(id));
+          s.aiSuggestedIds = suggested;
+          s.enseignantsSuggeres = []; // Clear auto-assignments – use Matchmaking page instead
+        }
+        for (const sc of c.sousCompetences ?? [])
+          for (const s of sc.savoirs ?? []) {
+            const suggested = (s.enseignantsSuggeres ?? []).map((id) => String(id));
+            s.aiSuggestedIds = suggested;
+            s.enseignantsSuggeres = []; // Clear auto-assignments – use Matchmaking page instead
+          }
+      }
+    return cleaned;
+  };
+
+  const deduplicateExtractedEnseignants = (extracted) => {
+    const extractedClean = (extracted ?? []).filter(
+      (ex) => isLikelyValidExtractedName(ex?.nom_complet),
+    );
+    // Build sets of DB enseignant identifiers for fast lookup (both nom+prenom and prenom+nom)
+    const dbNameSets = new Set();
+    (allEnseignants ?? []).forEach((e) => {
+      const nom = String(e.nom ?? "").trim().toLowerCase();
+      const prenom = String(e.prenom ?? "").trim().toLowerCase();
+      if (nom && prenom) {
+        dbNameSets.add(`${nom} ${prenom}`);
+        dbNameSets.add(`${prenom} ${nom}`);
+      }
+    });
+    const dedupMap = new Map();
+    extractedClean.forEach((ex) => {
+      const key = String(ex?.nom_complet ?? "").trim().toLowerCase();
+      if (!key || dedupMap.has(key)) return;
+      // Check if this extracted name matches any DB enseignant (handles both "nom prenom" and "prenom nom")
+      const nameParts = key.split(/\s+/).filter(Boolean);
+      let matchesDB = dbNameSets.has(key);
+      if (!matchesDB && nameParts.length >= 2) {
+        // Try first two parts as "prenom nom" or "nom prenom"
+        const combo1 = `${nameParts[0]} ${nameParts[1]}`;
+        const combo2 = `${nameParts[1]} ${nameParts[0]}`;
+        matchesDB = dbNameSets.has(combo1) || dbNameSets.has(combo2);
+      }
+      if (matchesDB) return; // Skip – already exists in DB
+      dedupMap.set(key, ex);
+    });
+    setExtractedEnseignants(Array.from(dedupMap.values()));
+    try {
+      localStorage.setItem("rice_extracted_enseignants", JSON.stringify(Array.from(dedupMap.values())));
+    } catch (err) {
+      // ignore
+    }
+  };
+
+  const detectDepartment = (result) => {
+    const detectedDept = String(
+      result?.detectedDepartement
+        ?? result?.detectedDepartment
+        ?? result?.departementDetecte
+        ?? result?.departement_detecte
+        ?? result?.stats?.departement
+        ?? "",
+    ).toLowerCase();
+    if (
+      departement !== "auto"
+      && detectedDept
+      && detectedDept !== departement.toLowerCase()
+    ) {
+      msgApi.warning(`Département détecté : ${detectedDept.toUpperCase()}. Rechargement des enseignants...`);
+      setDepartement(detectedDept);
+    }
+  };
+
   const handleAnalyze = async () => {
     if (files.length === 0) {
       msgApi.warning("Veuillez charger au moins un fichier.");
@@ -292,79 +368,14 @@ export default function RicePage() {
       if (analyzeIsCanceledRef.current) return;
       setAnalysisProgress(100);
 
-      const cleaned = cloneDeep(result.propositions);
-      for (const d of cleaned)
-        for (const c of d.competences ?? []) {
-          for (const s of c.savoirs ?? []) {
-            const suggested = (s.enseignantsSuggeres ?? []).map((id) => String(id));
-            s.aiSuggestedIds = suggested;
-            s.enseignantsSuggeres = []; // Clear auto-assignments – use Matchmaking page instead
-          }
-          for (const sc of c.sousCompetences ?? [])
-            for (const s of sc.savoirs ?? []) {
-              const suggested = (s.enseignantsSuggeres ?? []).map((id) => String(id));
-              s.aiSuggestedIds = suggested;
-              s.enseignantsSuggeres = []; // Clear auto-assignments – use Matchmaking page instead
-            }
-        }
-
+      const cleaned = cleanTreePropositions(result.propositions);
       setTree(cleaned);
       setAnalysisResult(result);
       skipHistoryRef.current = true;
       prevTreeRef.current = cloneDeep(cleaned);
       setTreeHistory([]);
-      const extractedClean = (result.extractedEnseignants ?? []).filter(
-        (ex) => isLikelyValidExtractedName(ex?.nom_complet),
-      );
-      // Build sets of DB enseignant identifiers for fast lookup (both nom+prenom and prenom+nom)
-      const dbNameSets = new Set();
-      (allEnseignants ?? []).forEach((e) => {
-        const nom = String(e.nom ?? "").trim().toLowerCase();
-        const prenom = String(e.prenom ?? "").trim().toLowerCase();
-        if (nom && prenom) {
-          dbNameSets.add(`${nom} ${prenom}`);
-          dbNameSets.add(`${prenom} ${nom}`);
-        }
-      });
-      const dedupMap = new Map();
-      extractedClean.forEach((ex) => {
-        const key = String(ex?.nom_complet ?? "").trim().toLowerCase();
-        if (!key || dedupMap.has(key)) return;
-        // Check if this extracted name matches any DB enseignant (handles both "nom prenom" and "prenom nom")
-        const nameParts = key.split(/\s+/).filter(Boolean);
-        let matchesDB = dbNameSets.has(key);
-        if (!matchesDB && nameParts.length >= 2) {
-          // Try first two parts as "prenom nom" or "nom prenom"
-          const combo1 = `${nameParts[0]} ${nameParts[1]}`;
-          const combo2 = `${nameParts[1]} ${nameParts[0]}`;
-          matchesDB = dbNameSets.has(combo1) || dbNameSets.has(combo2);
-        }
-        if (matchesDB) return; // Skip – already exists in DB
-        dedupMap.set(key, ex);
-      });
-      setExtractedEnseignants(Array.from(dedupMap.values()));
-      try {
-        localStorage.setItem("rice_extracted_enseignants", JSON.stringify(Array.from(dedupMap.values())));
-      } catch (err) {
-        // ignore
-      }
-
-      const detectedDept = String(
-        result?.detectedDepartement
-          ?? result?.detectedDepartment
-          ?? result?.departementDetecte
-          ?? result?.departement_detecte
-          ?? result?.stats?.departement
-          ?? "",
-      ).toLowerCase();
-      if (
-        departement !== "auto"
-        && detectedDept
-        && detectedDept !== departement.toLowerCase()
-      ) {
-        msgApi.warning(`Département détecté : ${detectedDept.toUpperCase()}. Rechargement des enseignants...`);
-        setDepartement(detectedDept);
-      }
+      deduplicateExtractedEnseignants(result.extractedEnseignants);
+      detectDepartment(result);
 
       setTimeout(() => setCurrentStep(2), 400);
     } catch (err) {
@@ -512,39 +523,43 @@ export default function RicePage() {
 
   // -- Keyboard shortcuts ----------------------------------------------------
   useEffect(() => {
+    const handleCtrlEnter = (e) => {
+      if (!(e.ctrlKey || e.metaKey) || e.key !== "Enter") return;
+      e.preventDefault();
+      if (currentStep === 0 && files.length > 0 && !analyzing) {
+        handleAnalyze();
+        return;
+      }
+      if (currentStep === 3 && !importing) {
+        handleImport();
+      }
+    };
+
+    const handleEscape = (e) => {
+      if (e.key !== "Escape") return;
+      if (editingNom) setEditingNom(null);
+      if (mergeModal) {
+        setMergeModal(false);
+        setMergeSrc(null);
+        setMergeDst(null);
+      }
+    };
+
+    const handleCtrlZ = (e) => {
+      if (!(e.ctrlKey || e.metaKey) || e.key.toLowerCase() !== "z") return;
+      if (currentStep !== 2 || treeHistory.length === 0) return;
+      e.preventDefault();
+      const previous = treeHistory[treeHistory.length - 1];
+      skipHistoryRef.current = true;
+      setTree(cloneDeep(previous));
+      setTreeHistory((hist) => hist.slice(0, -1));
+      msgApi.info("Modification annulée (Ctrl+Z)");
+    };
+
     const onKeyDown = (e) => {
-      const isCmdOrCtrl = e.ctrlKey || e.metaKey;
-
-      if (isCmdOrCtrl && e.key === "Enter") {
-        e.preventDefault();
-        if (currentStep === 0 && files.length > 0 && !analyzing) {
-          handleAnalyze();
-          return;
-        }
-        // trigger import from the Enseignants page (page-level step 3)
-        if (currentStep === 3 && !importing) {
-          handleImport();
-        }
-      }
-
-      if (e.key === "Escape") {
-        if (editingNom) setEditingNom(null);
-        if (mergeModal) {
-          setMergeModal(false);
-          setMergeSrc(null);
-          setMergeDst(null);
-        }
-      }
-
-      if (isCmdOrCtrl && e.key.toLowerCase() === "z" && currentStep === 2) {
-        if (treeHistory.length === 0) return;
-        e.preventDefault();
-        const previous = treeHistory[treeHistory.length - 1];
-        skipHistoryRef.current = true;
-        setTree(cloneDeep(previous));
-        setTreeHistory((hist) => hist.slice(0, -1));
-        msgApi.info("Modification annulée (Ctrl+Z)");
-      }
+      handleCtrlEnter(e);
+      handleEscape(e);
+      handleCtrlZ(e);
     };
 
     window.addEventListener("keydown", onKeyDown);

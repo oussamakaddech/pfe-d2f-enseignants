@@ -16,6 +16,7 @@ from app.core.exceptions import (
 )
 from app.core.logging_config import configure_logging
 from app.routers.all import router
+from app.core.jwt_middleware import JWTAuthMiddleware
 
 logger = logging.getLogger(__name__)
 
@@ -46,6 +47,25 @@ app = FastAPI(
     redoc_url="/redoc" if not settings.is_production else None,
     lifespan=lifespan,
 )
+
+import time
+_start_time = time.time()
+
+@app.get("/metrics")
+def metrics():
+    """Metriques techniques IA pour monitoring DSI."""
+    from app.ml.gap_predictor import gap_predictor
+    return {
+        "service": "predictive-analytics",
+        "uptime_seconds": time.time() - _start_time,
+        "model_loaded": gap_predictor.model is not None,
+        "model_n_features": gap_predictor.n_features if gap_predictor.model is not None else 0,
+        "model_feature_importances_available": gap_predictor.feature_importances_ is not None,
+        "last_train_timestamp": str(gap_predictor.last_train_timestamp) if hasattr(gap_predictor, 'last_train_timestamp') and gap_predictor.last_train_timestamp else None,
+    }
+
+# JWT Authentication middleware (defense-in-depth)
+app.add_middleware(JWTAuthMiddleware)
 
 # CORS (allow gateway and webapp — externalisé via CORS_ORIGINS)
 _cors_raw = os.getenv("CORS_ORIGINS", "http://localhost:3000,http://localhost:8080")

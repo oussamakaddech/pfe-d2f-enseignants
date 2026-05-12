@@ -6,6 +6,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -24,6 +25,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  */
 @WebMvcTest(BesoinFormationController.class)
 @AutoConfigureMockMvc(addFilters = false)
+@WithMockUser(roles = "ADMIN")
 class BesoinFormationControllerCoverageTest {
 
     @Autowired
@@ -40,9 +42,9 @@ class BesoinFormationControllerCoverageTest {
 
     @ParameterizedTest
     @ValueSource(strings = {
-            "/api/v1/besoinsFormations/retrieve-all-BesoinFormations?sort=titre",
-            "/api/v1/besoinsFormations/retrieve-all-BesoinFormations?sort=titre,desc",
-            "/api/v1/besoinsFormations/retrieve-all-BesoinFormations?page=2&size=5"
+            "/api/v1/besoins-formations?sort=titre",
+            "/api/v1/besoins-formations?sort=titre,desc",
+            "/api/v1/besoins-formations?page=2&size=5"
     })
     void getBesoinFormations_withVariousParams_shouldReturnOk(String url) throws Exception {
         when(service.retrieveAllBesoinFormations(any(Pageable.class))).thenReturn(Page.empty());
@@ -52,11 +54,11 @@ class BesoinFormationControllerCoverageTest {
 
     @ParameterizedTest
     @ValueSource(strings = {
-            "/api/v1/besoinsFormations/notifications/user1?page=1&size=5",
-            "/api/v1/besoinsFormations/retrieve-approved-BesoinFormations?page=1&size=20",
-            "/api/v1/besoinsFormations/by-priorite/BASSE?page=0&size=5",
-            "/api/v1/besoinsFormations/by-up/UP1?page=0&size=5",
-            "/api/v1/besoinsFormations/by-departement/GL?page=1&size=15"
+            "/api/v1/besoins-formations/notifications/user1?page=1&size=5",
+            "/api/v1/besoins-formations/approved?page=1&size=20",
+            "/api/v1/besoins-formations/by-priorite/BASSE?page=0&size=5",
+            "/api/v1/besoins-formations/by-up/UP1?page=0&size=5",
+            "/api/v1/besoins-formations/by-departement/GL?page=1&size=15"
     })
     void getBesoinsWithPagination_shouldReturnOk(String url) throws Exception {
         when(service.retrieveApprovedBesoinFormations(any(Pageable.class))).thenReturn(Page.empty());

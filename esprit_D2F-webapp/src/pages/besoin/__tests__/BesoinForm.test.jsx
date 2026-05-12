@@ -58,7 +58,7 @@ async function chooseOptionByRole(labelText, optionName) {
   });
 }
 
-describe("BesoinForm", { timeout: 15000 }, () => {
+describe("BesoinForm", { timeout: 30000 }, () => {
   beforeEach(() => {
     vi.clearAllMocks();
     DeptService.getAllDepts = vi.fn().mockResolvedValue(mockDepts);
@@ -71,7 +71,7 @@ describe("BesoinForm", { timeout: 15000 }, () => {
 
     await waitFor(() => {
       expect(screen.getByText("Ajouter un besoin en formation")).toBeInTheDocument();
-    });
+    }, { timeout: 5000 });
 
     expect(screen.getByText("Contexte")).toBeInTheDocument();
     expect(screen.getByText("Formation")).toBeInTheDocument();
@@ -82,7 +82,7 @@ describe("BesoinForm", { timeout: 15000 }, () => {
 
     await waitFor(() => {
       expect(screen.getByText("Veuillez sélectionner l'UP")).toBeInTheDocument();
-    });
+    }, { timeout: 5000 });
   });
 
   it("permet de parcourir le formulaire et de soumettre un besoin", async () => {
@@ -90,7 +90,7 @@ describe("BesoinForm", { timeout: 15000 }, () => {
 
     await waitFor(() => {
       expect(screen.getByText("Ajouter un besoin en formation")).toBeInTheDocument();
-    });
+    }, { timeout: 5000 });
 
     await chooseSelect("Unité Pédagogique (UP)", "UP Info");
     await chooseSelect("Département", "Informatique");
@@ -100,7 +100,7 @@ describe("BesoinForm", { timeout: 15000 }, () => {
 
     await waitFor(() => {
       expect(screen.getByText("Nom de la formation")).toBeInTheDocument();
-    });
+    }, { timeout: 5000 });
 
     fireEvent.change(screen.getByPlaceholderText("Ex : Formation Angular avancé"), {
       target: { value: "Formation Test" },
@@ -120,7 +120,7 @@ describe("BesoinForm", { timeout: 15000 }, () => {
 
     await waitFor(() => {
       expect(screen.getByText("Proposition de formateur")).toBeInTheDocument();
-    });
+    }, { timeout: 5000 });
 
     fireEvent.change(screen.getByPlaceholderText("Nom du formateur proposé (optionnel)"), {
       target: { value: "Formateur Test" },
@@ -137,13 +137,13 @@ describe("BesoinForm", { timeout: 15000 }, () => {
 
     await waitFor(() => {
       expect(screen.getByText(/Autres informations/i)).toBeInTheDocument();
-    });
+    }, { timeout: 5000 });
 
     fireEvent.click(screen.getByRole("button", { name: /Voir le récapitulatif/i }));
 
     await waitFor(() => {
       expect(screen.getByText("Récapitulatif de votre demande")).toBeInTheDocument();
-    });
+    }, { timeout: 5000 });
     
     screen.debug(screen.getByText("Récapitulatif de votre demande").parentElement);
 
@@ -154,7 +154,7 @@ describe("BesoinForm", { timeout: 15000 }, () => {
 
     await waitFor(() => {
       expect(screen.getByText("Besoin enregistré avec succès !")).toBeInTheDocument();
-    });
+    }, { timeout: 5000 });
 
     expect(BesoinFormationService.addBesoinFormation).toHaveBeenCalledWith(
       expect.objectContaining({

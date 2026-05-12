@@ -86,6 +86,36 @@ export function useDragAndDrop({ tree, toggleEnsAssign, updateTree, effectiveEns
   }, []);
 
   // ── DROP on enseignant card ────────────────────────────────────────────────
+  const parseDropInfo = (e) => {
+    let info = dragInfo.current;
+    if (!info) {
+      try { info = JSON.parse(e.dataTransfer.getData("application/json")); }
+      catch { return null; }
+    }
+    return info;
+  };
+
+  const resolveEnsName = useCallback((ensObj, fallback) =>
+    ensObj
+      ? ensObj.prenom ? `${ensObj.prenom} ${ensObj.nom}` : ensObj.nom
+      : fallback,
+  []);
+
+  const handleMove = useCallback((info, di, ci, sci, si, ensId, ensName) => {
+    updateTree((t) => {
+      const s = getSavoir(t, di, ci, sci, si);
+      if (!s.enseignantsSuggeres) s.enseignantsSuggeres = [];
+      const srcIdx = s.enseignantsSuggeres.indexOf(info.fromEnsId);
+      if (srcIdx !== -1) s.enseignantsSuggeres.splice(srcIdx, 1);
+      if (!s.enseignantsSuggeres.includes(ensId)) s.enseignantsSuggeres.push(ensId);
+    });
+    const srcObj = effectiveEnseignants.find(
+      (en) => String(en.id ?? en.enseignantId) === info.fromEnsId,
+    );
+    const srcName = resolveEnsName(srcObj, info.fromEnsId);
+    msgApi.success(`« ${info.nom} » déplacé de ${srcName} → ${ensName}`);
+  }, [updateTree, effectiveEnseignants, msgApi, resolveEnsName]);
+
   const onEnsDrop = useCallback(
     (e, ensId) => {
       e.preventDefault();
@@ -93,22 +123,16 @@ export function useDragAndDrop({ tree, toggleEnsAssign, updateTree, effectiveEns
       setIsDragging(false);
       setDraggedSavoirInfo(null);
 
-      let info = dragInfo.current;
-      if (!info) {
-        try { info = JSON.parse(e.dataTransfer.getData("application/json")); }
-        catch { return; }
-      }
+      const info = parseDropInfo(e);
       if (!info) return;
 
       const { di, ci, sci, si, nom } = info;
       dragInfo.current = null;
 
-      // Resolve teacher object
       const ensObj = effectiveEnseignants.find(
         (en) => String(en.id ?? en.enseignantId) === ensId,
       );
 
-      // Block drop on unmatched extracted teachers (no real DB ID)
       if (ensObj?._fromExtraction && !ensObj?._matched) {
         msgApi.warning(
           `« ${ensObj?.nom ?? ensId} » n'est pas identifié en base — impossible d'assigner un savoir.`,
@@ -116,33 +140,16 @@ export function useDragAndDrop({ tree, toggleEnsAssign, updateTree, effectiveEns
         return;
       }
 
-      const ensName = ensObj
-        ? ensObj.prenom ? `${ensObj.prenom} ${ensObj.nom}` : ensObj.nom
-        : ensId;
+      const ensName = resolveEnsName(ensObj, ensId);
 
       if (info.fromEnsId && info.fromEnsId !== ensId) {
-        // ── MOVE: remove from source, add to target ────────────────────────
-        updateTree((t) => {
-          const s = getSavoir(t, di, ci, sci, si);
-          if (!s.enseignantsSuggeres) s.enseignantsSuggeres = [];
-          const srcIdx = s.enseignantsSuggeres.indexOf(info.fromEnsId);
-          if (srcIdx !== -1) s.enseignantsSuggeres.splice(srcIdx, 1);
-          if (!s.enseignantsSuggeres.includes(ensId)) s.enseignantsSuggeres.push(ensId);
-        });
-        const srcObj = effectiveEnseignants.find(
-          (en) => String(en.id ?? en.enseignantId) === info.fromEnsId,
-        );
-        const srcName = srcObj
-          ? srcObj.prenom ? `${srcObj.prenom} ${srcObj.nom}` : srcObj.nom
-          : info.fromEnsId;
-        msgApi.success(`« ${nom} » déplacé de ${srcName} → ${ensName}`);
+        handleMove(info, di, ci, sci, si, ensId, ensName);
       } else {
-        // ── TOGGLE: add or remove (normal drag from SavoirCard) ───────────
         toggleEnsAssign(di, ci, sci, si, ensId);
         msgApi.success(`« ${nom} » assigné à ${ensName}`);
       }
     },
-    [toggleEnsAssign, updateTree, effectiveEnseignants, msgApi],
+    [toggleEnsAssign, updateTree, effectiveEnseignants, msgApi, handleMove, resolveEnsName],
   );
 
   return {

@@ -10,7 +10,7 @@ export default function TopBar() {
   const navigate = useNavigate();
   const { pathname } = useLocation();
 
-  const pathSnippets = pathname.split("/").filter((i) => i);
+  const pathSnippets = pathname.split("/").filter(Boolean);
   const breadcrumbItems = pathSnippets.map((_, idx) => {
     const url = `/${pathSnippets.slice(0, idx + 1).join("/")}`;
     return { title: pathSnippets[idx], href: url };
@@ -25,7 +25,7 @@ export default function TopBar() {
     {
       key: "logout",
       label: (
-        <span onClick={() => { logout(); navigate("/"); }}>
+        <span role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { logout(); navigate("/"); } }} onClick={() => { logout(); navigate("/"); }}>
           <LogoutOutlined /> Déconnexion
         </span>
       ),

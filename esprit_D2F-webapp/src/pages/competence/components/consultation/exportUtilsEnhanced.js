@@ -318,6 +318,29 @@ export function doExportCompetencesCSV(crud, domaineId) {
   downloadFile("\uFEFF" + buildCSVString(rows, columns), `competences${sfx}_${getExportDateSuffix()}.csv`, "text/csv;charset=utf-8;");
 }
 
+const mapSavoir = (s) => ({ id: s.id, code: s.code, nom: s.nom, type: s.type, niveau: s.niveau });
+
+const buildSousCompetenceNode = (sc, savoirs) => ({
+  id: sc.id,
+  code: sc.code,
+  nom: sc.nom,
+  parentId: sc.parentId || null,
+  savoirs: (savoirs || []).filter((s) => String(s.sousCompetenceId) === String(sc.id)).map(mapSavoir),
+});
+
+const buildCompetenceNode = (c, crud) => {
+  const scs = (crud.sousComps || []).filter((sc) => String(sc.competenceId) === String(c.id));
+  return {
+    id: c.id,
+    code: c.code,
+    nom: c.nom,
+    savoirsDirects: (crud.savoirs || [])
+      .filter((s) => String(s.competenceId) === String(c.id) && !s.sousCompetenceId)
+      .map(mapSavoir),
+    sousCompetences: scs.map((sc) => buildSousCompetenceNode(sc, crud.savoirs)),
+  };
+};
+
 export function doExportStructureJSON(crud) {
   const json = {
     exportedAt: new Date().toISOString(),
@@ -333,26 +356,7 @@ export function doExportStructureJSON(crud) {
       nom: d.nom,
       competences: (crud.competences || [])
         .filter((c) => String(c.domaineId) === String(d.id))
-        .map((c) => {
-          const scs = (crud.sousComps || []).filter((sc) => String(sc.competenceId) === String(c.id));
-          return {
-            id: c.id,
-            code: c.code,
-            nom: c.nom,
-            savoirsDirects: (crud.savoirs || [])
-              .filter((s) => String(s.competenceId) === String(c.id) && !s.sousCompetenceId)
-              .map((s) => ({ id: s.id, code: s.code, nom: s.nom, type: s.type, niveau: s.niveau })),
-            sousCompetences: scs.map((sc) => ({
-              id: sc.id,
-              code: sc.code,
-              nom: sc.nom,
-              parentId: sc.parentId || null,
-              savoirs: (crud.savoirs || [])
-                .filter((s) => String(s.sousCompetenceId) === String(sc.id))
-                .map((s) => ({ id: s.id, code: s.code, nom: s.nom, type: s.type, niveau: s.niveau })),
-            })),
-          };
-        }),
+        .map((c) => buildCompetenceNode(c, crud)),
     })),
   };
 

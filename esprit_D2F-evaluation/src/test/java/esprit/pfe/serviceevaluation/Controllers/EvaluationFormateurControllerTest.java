@@ -7,6 +7,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 
 import java.util.List;
@@ -64,9 +66,9 @@ class EvaluationFormateurControllerTest {
 
     @Test
     void listAllEvaluations_shouldReturnList() {
-        when(service.listAllEvaluationsDto()).thenReturn(List.of());
+        when(service.listAllEvaluationsDto(any(Pageable.class))).thenReturn(Page.empty());
 
-        var response = controller.listAllEvaluations();
+        var response = controller.listAllEvaluations(Pageable.ofSize(10));
 
         assertEquals(HttpStatus.OK, response.getStatusCode());
     }
