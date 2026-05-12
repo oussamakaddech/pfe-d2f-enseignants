@@ -12,6 +12,30 @@ export function useRiceReport({ tree, departement, msgApi, onImportSuccess }) {
   const [importHistory, setImportHistory] = useState(null);
   const [historyLoading, setHistoryLoading] = useState(false);
 
+  const countSavoirsInArray = (savoirs) => {
+    let total = 0;
+    let covered = 0;
+    for (const s of savoirs ?? []) {
+      total++;
+      const realIds = (s.enseignantsSuggeres ?? []).filter(
+        (id) => !String(id).startsWith("ext_") && !String(id).startsWith("manual_"),
+      );
+      if (realIds.length > 0) covered++;
+    }
+    return { total, covered };
+  };
+
+  const buildSavoirPayload = (savoirs) => (savoirs ?? []).map((s) => ({
+    code: s.code,
+    nom: s.nom,
+    description: s.description ?? null,
+    type: s.type,
+    niveau: s.niveau,
+    enseignantIds: (s.enseignantsSuggeres ?? []).filter(
+      (id) => !String(id).startsWith("ext_") && !String(id).startsWith("manual_"),
+    ),
+  }));
+
   // ── client-side coverage fallback ─────────────────────────────────────────
   // Used when the Java service returns empty tauxCouvertureParDomaine (old version).
   const computeClientCoverage = useCallback(() => {
@@ -20,22 +44,13 @@ export function useRiceReport({ tree, departement, msgApi, onImportSuccess }) {
       let total = 0;
       let covered = 0;
       for (const c of d.competences ?? []) {
-        for (const s of c.savoirs ?? []) {
-          total++;
-          const realIds = (s.enseignantsSuggeres ?? []).filter(
-            (id) => !String(id).startsWith("ext_") && !String(id).startsWith("manual_"),
-          );
-          if (realIds.length > 0) covered++;
-        }
-        for (const sc of c.sousCompetences ?? []) {
-          for (const s of sc.savoirs ?? []) {
-            total++;
-            const realIds = (s.enseignantsSuggeres ?? []).filter(
-              (id) => !String(id).startsWith("ext_") && !String(id).startsWith("manual_"),
-            );
-            if (realIds.length > 0) covered++;
-          }
-        }
+        const allSavoirs = [
+          ...(c.savoirs ?? []),
+          ...(c.sousCompetences ?? []).flatMap((sc) => sc.savoirs ?? []),
+        ];
+        const r = countSavoirsInArray(allSavoirs);
+        total += r.total;
+        covered += r.covered;
       }
       if (total > 0) result[d.nom] = Math.round((covered * 1000) / total) / 10;
     }
@@ -56,30 +71,12 @@ export function useRiceReport({ tree, departement, msgApi, onImportSuccess }) {
             nom: c.nom,
             description: c.description ?? null,
             ordre: c.ordre ?? 1,
-            savoirs: (c.savoirs ?? []).map((s) => ({
-              code: s.code,
-              nom: s.nom,
-              description: s.description ?? null,
-              type: s.type,
-              niveau: s.niveau,
-              enseignantIds: (s.enseignantsSuggeres ?? []).filter(
-                (id) => !String(id).startsWith("ext_") && !String(id).startsWith("manual_"),
-              ),
-            })),
+            savoirs: buildSavoirPayload(c.savoirs),
             sousCompetences: (c.sousCompetences ?? []).map((sc) => ({
               code: sc.code,
               nom: sc.nom,
               description: sc.description ?? null,
-              savoirs: (sc.savoirs ?? []).map((s) => ({
-                code: s.code,
-                nom: s.nom,
-                description: s.description ?? null,
-                type: s.type,
-                niveau: s.niveau,
-                enseignantIds: (s.enseignantsSuggeres ?? []).filter(
-                  (id) => !String(id).startsWith("ext_") && !String(id).startsWith("manual_"),
-                ),
-              })),
+              savoirs: buildSavoirPayload(sc.savoirs),
             })),
           })),
         })),

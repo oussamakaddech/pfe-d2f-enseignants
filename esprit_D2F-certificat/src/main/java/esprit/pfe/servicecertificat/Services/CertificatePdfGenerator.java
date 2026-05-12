@@ -103,11 +103,15 @@ public class CertificatePdfGenerator {
      * @throws Exception en cas d'erreur
      */
     public static List<String> generateCertificatesForAllTeachers(CertificateBatchMessage msg, byte[] backgroundBytes) throws Exception {
+        return generateCertificatesForAllTeachers(msg, backgroundBytes, "");
+    }
+
+    public static List<String> generateCertificatesForAllTeachers(CertificateBatchMessage msg, byte[] backgroundBytes, String outputDir) throws Exception {
         List<String> outputPaths = new ArrayList<>();
         if (msg.getEnseignants() != null) {
             for (CertificateBatchMessage.EnseignantPresenceInfo teacher : msg.getEnseignants()) {
                 if (teacher.isPresent()) {
-                    String outputPath = "certificate_" + msg.getFormationId() + "_" + teacher.getEnseignantId() + ".pdf";
+                    String outputPath = outputDir + "certificate_" + msg.getFormationId() + "_" + teacher.getEnseignantId() + ".pdf";
                     generateCertificateForTeacher(outputPath, msg, teacher, backgroundBytes);
                     outputPaths.add(outputPath);
                 }

@@ -25,12 +25,23 @@ export default function AnalyzingStep({
     return () => clearInterval(t);
   }, []);
 
-  const dynamicText =
-    analysisProgress < 30 ? "Lecture et extraction du texte en cours..."
-    : analysisProgress < 60 ? "Analyse NLP et taxonomie de Bloom..."
-    : analysisProgress < 80 ? "Construction de l'arbre de compétences..."
-    : analysisProgress < 95 ? "Matching avec le référentiel du département..."
-    : "Finalisation... presque prêt !";
+  const PROGRESS_TEXTS = [
+    { max: 30, text: "Lecture et extraction du texte en cours..." },
+    { max: 60, text: "Analyse NLP et taxonomie de Bloom..." },
+    { max: 80, text: "Construction de l'arbre de compétences..." },
+    { max: 95, text: "Matching avec le référentiel du département..." },
+  ];
+  const dynamicText = PROGRESS_TEXTS.find(t => analysisProgress < t.max)?.text ?? "Finalisation... presque prêt !";
+
+  const SUB_STEP_BOUNDARIES = [20, 40, 60, 80, 100];
+  const stepIndex = SUB_STEP_BOUNDARIES.findIndex(t => analysisProgress < t);
+  const currentSubStep = stepIndex === -1 ? SUB_STEP_BOUNDARIES.length : stepIndex;
+
+  const stepIcon = (threshold, prev) => {
+    if (analysisProgress >= threshold) return <CheckCircleOutlined style={{ color: "#52c41a" }} />;
+    if (analysisProgress >= prev)      return <LoadingOutlined />;
+    return undefined;
+  };
 
   const handleCancel = () => {
     analyzeIsCanceledRef.current = true;
@@ -38,20 +49,6 @@ export default function AnalyzingStep({
     setAnalyzing(false);
     setCurrentStep(0);
     setAnalysisProgress(0);
-  };
-
-  const currentSubStep =
-    analysisProgress < 20 ? 0
-    : analysisProgress < 40 ? 1
-    : analysisProgress < 60 ? 2
-    : analysisProgress < 80 ? 3
-    : analysisProgress < 100 ? 4
-    : 5;
-
-  const stepIcon = (threshold, prev) => {
-    if (analysisProgress >= threshold) return <CheckCircleOutlined style={{ color: "#52c41a" }} />;
-    if (analysisProgress >= prev)      return <LoadingOutlined />;
-    return undefined;
   };
 
   return (

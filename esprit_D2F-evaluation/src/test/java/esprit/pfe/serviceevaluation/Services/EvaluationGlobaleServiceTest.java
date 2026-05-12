@@ -13,6 +13,9 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -172,15 +175,15 @@ class EvaluationGlobaleServiceTest {
         @Test
         @DisplayName("retourne toutes les évaluations globales")
         void shouldGetAllEvaluations() {
-            List<EvaluationGlobale> evaluations = List.of(evaluationGlobale);
-            when(evaluationGlobaleRepository.findAll()).thenReturn(evaluations);
+            Page<EvaluationGlobale> evaluations = new PageImpl<>(List.of(evaluationGlobale));
+            when(evaluationGlobaleRepository.findAll(any(Pageable.class))).thenReturn(evaluations);
 
-            List<EvaluationGlobaleDTO> result = evaluationGlobaleService.getAllEvaluationGlobales();
+            Page<EvaluationGlobaleDTO> result = evaluationGlobaleService.getAllEvaluationGlobales(Pageable.ofSize(10));
 
             assertThat(result)
                     .isNotNull()
                     .hasSize(1);
-            verify(evaluationGlobaleRepository, times(1)).findAll();
+            verify(evaluationGlobaleRepository, times(1)).findAll(any(Pageable.class));
         }
     }
 }

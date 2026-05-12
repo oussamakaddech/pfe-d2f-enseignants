@@ -13,6 +13,25 @@ const getSavoir = (t, di, ci, sci, si) => {
   return t[di].competences[ci].sousCompetences[sci].savoirs[si];
 };
 
+const pushSavoirFlat = (list, s, si, d, di, c, ci, sc, sci) => {
+  list.push({
+    ...s,
+    di, ci, sci, si,
+    domaineCode: d.code,
+    domaineNom: d.nom,
+    competenceCode: c.code,
+    competenceNom: c.nom,
+    sousCompetenceCode: sc?.code ?? null,
+    sousCompetenceNom: sc?.nom ?? null,
+    label: sc
+      ? `${d.nom} › ${c.nom} › ${sc.nom} › ${s.nom}`
+      : `${d.nom} › ${c.nom} › ${s.nom}`,
+  });
+};
+
+const savoirMatchesQuery = (s, q) =>
+  s.nom.toLowerCase().includes(q) || s.code.toLowerCase().includes(q);
+
 export function useRiceTree(msgApi) {
   // ── core tree state ───────────────────────────────────────────────────────
   const [tree, setTree] = useImmer([]);
@@ -148,14 +167,13 @@ export function useRiceTree(msgApi) {
   const clearAllAssignments = useCallback(() => {
     updateTree((t) => {
       for (const d of t)
-        for (const c of d.competences ?? [])
+        for (const c of d.competences ?? []) {
           for (const s of c.savoirs ?? [])
             s.enseignantsSuggeres = [];
-      for (const d of t)
-        for (const c of d.competences ?? [])
           for (const sc of c.sousCompetences ?? [])
             for (const s of sc.savoirs ?? [])
               s.enseignantsSuggeres = [];
+        }
     });
     msgApi.success("Toutes les affectations ont été supprimées — glissez les savoirs manuellement.");
   }, [updateTree, msgApi]);
@@ -165,20 +183,19 @@ export function useRiceTree(msgApi) {
     (extId, realId) => {
       updateTree((t) => {
         for (const d of t)
-          for (const c of d.competences ?? [])
+          for (const c of d.competences ?? []) {
             for (const s of c.savoirs ?? []) {
               if (!s.enseignantsSuggeres) continue;
               const idx = s.enseignantsSuggeres.indexOf(extId);
               if (idx !== -1) s.enseignantsSuggeres[idx] = realId;
             }
-        for (const d of t)
-          for (const c of d.competences ?? [])
             for (const sc of c.sousCompetences ?? [])
               for (const s of sc.savoirs ?? []) {
                 if (!s.enseignantsSuggeres) continue;
                 const idx = s.enseignantsSuggeres.indexOf(extId);
                 if (idx !== -1) s.enseignantsSuggeres[idx] = realId;
               }
+          }
       });
     },
     [updateTree],
@@ -215,35 +232,11 @@ export function useRiceTree(msgApi) {
     const list = [];
     tree.forEach((d, di) => {
       (d.competences ?? []).forEach((c, ci) => {
-        (c.savoirs ?? []).forEach((s, si) => {
-          list.push({
-            ...s,
-            di, ci, sci: -1, si,
-            domaineCode: d.code,
-            domaineNom: d.nom,
-            competenceCode: c.code,
-            competenceNom: c.nom,
-            sousCompetenceCode: null,
-            sousCompetenceNom: null,
-            label: `${d.nom} › ${c.nom} › ${s.nom}`,
-          });
-        });
-
-        (c.sousCompetences ?? []).forEach((sc, sci) => {
-          (sc.savoirs ?? []).forEach((s, si) => {
-            list.push({
-              ...s,
-              di, ci, sci, si,
-              domaineCode: d.code,
-              domaineNom: d.nom,
-              competenceCode: c.code,
-              competenceNom: c.nom,
-              sousCompetenceCode: sc.code,
-              sousCompetenceNom: sc.nom,
-              label: `${d.nom} › ${c.nom} › ${sc.nom} › ${s.nom}`,
-            });
-          });
-        });
+        for (const [si, s] of (c.savoirs ?? []).entries())
+          pushSavoirFlat(list, s, si, d, di, c, ci, null, -1);
+        for (const [sci, sc] of (c.sousCompetences ?? []).entries())
+          for (const [si, s] of (sc.savoirs ?? []).entries())
+            pushSavoirFlat(list, s, si, d, di, c, ci, sc, sci);
       });
     });
     return list;
@@ -275,20 +268,20 @@ export function useRiceTree(msgApi) {
       const mD = d.nom.toLowerCase().includes(q) || (d.code ?? "").toLowerCase().includes(q);
       (d.competences ?? []).forEach((c, ci) => {
         const mC = c.nom.toLowerCase().includes(q) || (c.code ?? "").toLowerCase().includes(q);
-        const hasDirectSav = (c.savoirs ?? []).some(
-          (s) => s.nom.toLowerCase().includes(q) || s.code.toLowerCase().includes(q),
-        );
-        (c.sousCompetences ?? []).forEach((sc, sci) => {
+        let hasDirectSav = false;
+        for (const s of c.savoirs ?? [])
+          if (savoirMatchesQuery(s, q)) { hasDirectSav = true; break; }
+        for (const [sci, sc] of (c.sousCompetences ?? []).entries()) {
           const mSc = sc.nom.toLowerCase().includes(q) || (sc.code ?? "").toLowerCase().includes(q);
-          const hasSav = (sc.savoirs ?? []).some(
-            (s) => s.nom.toLowerCase().includes(q) || s.code.toLowerCase().includes(q),
-          );
+          let hasSav = false;
+          for (const s of sc.savoirs ?? [])
+            if (savoirMatchesQuery(s, q)) { hasSav = true; break; }
           if (mD || mC || mSc || hasSav || hasDirectSav) {
             visibleDi.add(di);
             visibleCi.add(`${di}-${ci}`);
             visibleSci.add(`${di}-${ci}-${sci}`);
           }
-        });
+        }
         if (mD || mC || hasDirectSav) { visibleDi.add(di); visibleCi.add(`${di}-${ci}`); }
       });
       if (mD) visibleDi.add(di);

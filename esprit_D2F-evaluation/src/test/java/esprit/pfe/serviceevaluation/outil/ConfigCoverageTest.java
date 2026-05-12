@@ -11,7 +11,7 @@ import org.springframework.test.context.TestPropertySource;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 @SpringBootTest
-@TestPropertySource(properties = "jwt.secret=test-secret-key-for-testing-purposes-only-must-be-at-least-512-bits")
+@TestPropertySource(properties = "jwt.secret=test-secret-key-for-testing-purposes-only-must-beat-512-bits")
 class ConfigCoverageTest {
 
     @Autowired
@@ -20,6 +20,9 @@ class ConfigCoverageTest {
     @Autowired
     private ObjectMapper objectMapper;
 
+    @Autowired
+    private MessageConverter messageConverter;
+
     @Test
     void testSecurityConfigLoads() {
         assertNotNull(securityFilterChain);
@@ -27,8 +30,6 @@ class ConfigCoverageTest {
 
     @Test
     void testJmsConfig() {
-        JmsConfig jmsConfig = new JmsConfig();
-        MessageConverter converter = jmsConfig.jacksonJmsMessageConverter(objectMapper);
-        assertNotNull(converter);
+        assertNotNull(messageConverter);
     }
 }

@@ -100,7 +100,7 @@
 /* Danger item (Logout) */
 .custom-sidemenu .ant-menu-item-danger {
   margin-top: 20px !important;
-  color: #e53e3e !important;
+  color: #b71c1c !important;
 }
 
 .custom-sidemenu .ant-menu-item-danger:hover {
@@ -108,7 +108,7 @@
 }
 
 .custom-sidemenu .ant-menu-item-danger.ant-menu-item-selected {
-  background: #e53e3e !important;
+  background: #b71c1c !important;
   color: #fff !important;
 }
 

@@ -1,5 +1,5 @@
 // src/pages/CertificatePage.jsx
-import  { useEffect, useState } from "react";
+import  { useEffect, useState, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import CertificateService from "../services/CertificateService";
 import CertificateEditorViewerItem from "./CertificateEditorViewerItem";
@@ -55,6 +55,14 @@ export default function CertificatePage() {
     cert.mailEnseignant.toLowerCase().includes(search.email.toLowerCase()) &&
     cert.roleEnFormation.toLowerCase().includes(search.role.toLowerCase())
   );
+
+  const handleCertUpdate = useCallback((updatedCert) => {
+    setCertificates((prev) =>
+      prev.map((c) =>
+        c.idCertificate === updatedCert.idCertificate ? updatedCert : c
+      )
+    );
+  }, []);
 
   const columns = [
     {
@@ -133,15 +141,7 @@ export default function CertificatePage() {
           expandedRowRender: (record) => (
             <CertificateEditorViewerItem
               certificate={record}
-              onUpdate={(updatedCert) => {
-                setCertificates((prev) =>
-                  prev.map((c) =>
-                    c.idCertificate === updatedCert.idCertificate
-                      ? updatedCert
-                      : c
-                  )
-                );
-              }}
+              onUpdate={handleCertUpdate}
             />
           ),
           expandRowByClick: true,

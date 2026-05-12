@@ -39,6 +39,8 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.springframework.beans.factory.annotation.Value;
+
 @RestController
 @RequestMapping("/api/v1/auth")
 @Slf4j
@@ -50,6 +52,12 @@ public class SecurityController {
     private final JwtEncoder jwtEncoder;
     private final ConfirmationKeyRepo confirmationKeyRepo;
     private final PasswordEncoder encoder;
+
+    @Value("${app.mail.from:noreply@d2f.local}")
+    private String mailFrom;
+
+    @Value("${app.admin.email:admin@d2f.local}")
+    private String adminEmail;
 
     public SecurityController(
             EmailService emailService,
@@ -102,7 +110,7 @@ public class SecurityController {
         SimpleMailMessage simpleMailMessage = new SimpleMailMessage();
         simpleMailMessage.setTo(emailAddress);
         simpleMailMessage.setSubject("Password reset");
-        simpleMailMessage.setFrom("clasherwin59@gmail.com");
+        simpleMailMessage.setFrom(mailFrom);
         simpleMailMessage.setText("To change your password add this confirmation token: " + key);
         emailService.send(simpleMailMessage);
         return this.generateAndPersistToken(emailAddress, key);
@@ -166,7 +174,7 @@ public class SecurityController {
     public ResponseEntity<MessageResponse> requestDeviceReset(@RequestParam String username) {
         // Envoyer un email à l'administrateur ou déclencher une action pour réinitialiser les appareils
         SimpleMailMessage simpleMailMessage = new SimpleMailMessage();
-        simpleMailMessage.setTo("ibtihel.benmustapha@esprit.tn");
+        simpleMailMessage.setTo(adminEmail);
         simpleMailMessage.setSubject("Device Reset Request");
         simpleMailMessage.setText("User " + username + " has requested to reset their device IDs.");
         emailService.send(simpleMailMessage);

@@ -8,7 +8,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 
 import java.util.List;
 
-@FeignClient(name = "evaluation-service", contextId = "evaluationClient")
+@FeignClient(name = "evaluation-service", url = "${EVALUATION_SERVICE_URL:http://localhost:8087}", contextId = "evaluationClient")
 public interface EvaluationClient {
 
     @PostMapping("/evaluations/bulk")

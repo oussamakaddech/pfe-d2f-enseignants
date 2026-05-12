@@ -249,6 +249,84 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
   const intersects = (left, right) => left.some((id) => right.includes(id));
   const normalizedSalle = (value) => String(value || "").trim().toLowerCase();
 
+  const validateLocalSeances = (localSeances) => {
+    const msgs = [];
+    localSeances.forEach((s, idx) => {
+      const start = toMinutes(s.heureDebut);
+      const end = toMinutes(s.heureFin);
+      if (start !== null && end !== null && start >= end) {
+        msgs.push(`Séance #${idx + 1}: heure de fin doit être après l&apos;heure de début.`);
+      }
+    });
+    return msgs;
+  };
+
+  const checkInternalConflicts = (localSeances, participantIds) => {
+    const msgs = [];
+    for (let i = 0; i < localSeances.length; i += 1) {
+      for (let j = i + 1; j < localSeances.length; j += 1) {
+        const left = localSeances[i];
+        const right = localSeances[j];
+        if (!sameTimeWindow(left, right)) continue;
+
+        const leftSalle = normalizedSalle(left.salle);
+        const rightSalle = normalizedSalle(right.salle);
+        if (leftSalle && rightSalle && leftSalle === rightSalle) {
+          msgs.push(`Conflit interne: les séances #${i + 1} et #${j + 1} utilisent la même salle au même horaire.`);
+        }
+        if (participantIds.length > 0) {
+          msgs.push(`Conflit interne: les séances #${i + 1} et #${j + 1} se chevauchent pour les mêmes participants.`);
+        }
+        if (left.animateurIds.length > 0 && right.animateurIds.length > 0 && intersects(left.animateurIds, right.animateurIds)) {
+          msgs.push(`Conflit interne: les séances #${i + 1} et #${j + 1} se chevauchent pour un ou plusieurs animateurs.`);
+        }
+      }
+    }
+    return msgs;
+  };
+
+  const checkExistingSeanceConflict = (localSeance, idx, existingSeance, formationName, participantIds, existingParticipants) => {
+    const msgs = [];
+    if (!sameTimeWindow(localSeance, existingSeance)) return msgs;
+
+    const localSalle = normalizedSalle(localSeance.salle);
+    const existingSalle = normalizedSalle(existingSeance.salle);
+    if (localSalle && existingSalle && localSalle === existingSalle) {
+      msgs.push(`Conflit salle: séance #${idx + 1} chevauche la formation ${formationName} dans la salle ${localSeance.salle}.`);
+    }
+
+    const existingAnimIds = (Array.isArray(existingSeance.animateurs) ? existingSeance.animateurs : []).map((a) => a?.id).filter(Boolean);
+    if (participantIds.length > 0 && existingParticipants.length > 0 && intersects(participantIds, existingParticipants)) {
+      msgs.push(`Conflit participants: séance #${idx + 1} chevauche la formation ${formationName}.`);
+    }
+    if (localSeance.animateurIds.length > 0 && existingAnimIds.length > 0 && intersects(localSeance.animateurIds, existingAnimIds)) {
+      msgs.push(`Conflit animateurs: séance #${idx + 1} chevauche la formation ${formationName}.`);
+    }
+    return msgs;
+  };
+
+  const checkExternalConflicts = (localSeances, participantIds, existingFormations, formation) => {
+    const msgs = [];
+    existingFormations
+      .filter((f) => (f.idFormation || f.id) !== formation.idFormation)
+      .forEach((f) => {
+        const existingSeances = Array.isArray(f.seances) ? f.seances : [];
+        const existingParticipants = [
+          ...(Array.isArray(f.participants) ? f.participants : []),
+          ...existingSeances.flatMap((s) => Array.isArray(s.participants) ? s.participants : []),
+        ].map((p) => p?.id).filter(Boolean);
+
+        const formationName = f.titreFormation || `#${f.idFormation || f.id || "?"}`;
+
+        localSeances.forEach((localSeance, idx) => {
+          existingSeances.forEach((existingSeance) => {
+            msgs.push(...checkExistingSeanceConflict(localSeance, idx, existingSeance, formationName, participantIds, existingParticipants));
+          });
+        });
+      });
+    return msgs;
+  };
+
   const buildConflictMessages = () => {
     const messages = [];
     const participantIds = partSel.map((p) => p.id).filter(Boolean);
@@ -260,64 +338,9 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
       animateurIds: (Array.isArray(s.animateurs) ? s.animateurs : []).map((a) => a?.id).filter(Boolean),
     }));
 
-    localSeances.forEach((s, idx) => {
-      const start = toMinutes(s.heureDebut);
-      const end = toMinutes(s.heureFin);
-      if (start !== null && end !== null && start >= end) {
-        messages.push(`Séance #${idx + 1}: heure de fin doit être après l&apos;heure de début.`);
-      }
-    });
-
-    for (let i = 0; i <localSeances.length; i += 1) {
-      for (let j = i + 1; j < localSeances.length; j += 1) {
-        const left = localSeances[i];
-        const right = localSeances[j];
-        if (!sameTimeWindow(left, right)) continue;
-
-        const leftSalle = normalizedSalle(left.salle);
-        const rightSalle = normalizedSalle(right.salle);
-        if (leftSalle && rightSalle && leftSalle === rightSalle) {
-          messages.push(`Conflit interne: les séances #${i + 1} et #${j + 1} utilisent la même salle au même horaire.`);
-        }
-        if (participantIds.length > 0) {
-          messages.push(`Conflit interne: les séances #${i + 1} et #${j + 1} se chevauchent pour les mêmes participants.`);
-        }
-        if (left.animateurIds.length > 0 && right.animateurIds.length > 0 && intersects(left.animateurIds, right.animateurIds)) {
-          messages.push(`Conflit interne: les séances #${i + 1} et #${j + 1} se chevauchent pour un ou plusieurs animateurs.`);
-        }
-      }
-    }
-
-    existingFormations
-      .filter((f) => (f.idFormation || f.id) !== formation.idFormation)
-      .forEach((f) => {
-        const existingSeances = Array.isArray(f.seances) ? f.seances : [];
-        const existingParticipants = [
-          ...(Array.isArray(f.participants) ? f.participants : []),
-          ...existingSeances.flatMap((s) => Array.isArray(s.participants) ? s.participants : []),
-        ].map((p) => p?.id).filter(Boolean);
-
-        localSeances.forEach((localSeance, idx) => {
-          existingSeances.forEach((existingSeance) => {
-            if (!sameTimeWindow(localSeance, existingSeance)) return;
-
-            const formationName = f.titreFormation || `#${f.idFormation || f.id || "?"}`;
-            const localSalle = normalizedSalle(localSeance.salle);
-            const existingSalle = normalizedSalle(existingSeance.salle);
-            if (localSalle && existingSalle && localSalle === existingSalle) {
-              messages.push(`Conflit salle: séance #${idx + 1} chevauche la formation ${formationName} dans la salle ${localSeance.salle}.`);
-            }
-
-            const existingAnimIds = (Array.isArray(existingSeance.animateurs) ? existingSeance.animateurs : []).map((a) => a?.id).filter(Boolean);
-            if (participantIds.length > 0 && existingParticipants.length > 0 && intersects(participantIds, existingParticipants)) {
-              messages.push(`Conflit participants: séance #${idx + 1} chevauche la formation ${formationName}.`);
-            }
-            if (localSeance.animateurIds.length > 0 && existingAnimIds.length > 0 && intersects(localSeance.animateurIds, existingAnimIds)) {
-              messages.push(`Conflit animateurs: séance #${idx + 1} chevauche la formation ${formationName}.`);
-            }
-          });
-        });
-      });
+    messages.push(...validateLocalSeances(localSeances));
+    messages.push(...checkInternalConflicts(localSeances, participantIds));
+    messages.push(...checkExternalConflicts(localSeances, participantIds, existingFormations, formation));
 
     return [...new Set(messages)];
   };

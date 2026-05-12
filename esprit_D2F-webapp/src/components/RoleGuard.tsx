@@ -3,10 +3,10 @@ import { Navigate, Outlet } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
 
 const normalizeRole = (value: unknown): string =>
-  String(value ?? "")
+  (typeof value === "string" ? value : "")
     .toLowerCase()
     .replace(/^role_?/, "")
-    .replace(/[\s_-]+/g, "");
+    .replaceAll(/[\s_-]+/g, "");
 
 /**
  * Frontend Authorization Matrix
@@ -112,7 +112,7 @@ interface RoleGuardProps {
   allowedRoles: string[];
 }
 
-export default function RoleGuard({ allowedRoles }: RoleGuardProps) {
+export default function RoleGuard({ allowedRoles }: Readonly<RoleGuardProps>) {
   const auth = useContext(AuthContext);
   if (!auth) {
     return <Navigate to="/" replace />;
@@ -133,7 +133,7 @@ export default function RoleGuard({ allowedRoles }: RoleGuardProps) {
  */
 export const useHasRole = (requiredRoles: string[]): boolean => {
   const auth = useContext(AuthContext);
-  if (!auth || !auth.user) return false;
+  if (!auth?.user) return false;
   
   const role = normalizeRole(auth.user.role);
   return requiredRoles.map(normalizeRole).includes(role);
@@ -147,7 +147,7 @@ export const useHasPermission = (
   action: string
 ): boolean => {
   const auth = useContext(AuthContext);
-  if (!auth || !auth.user) return false;
+  if (!auth?.user) return false;
 
   const permissions = FRONTEND_PERMISSIONS[module];
   if (!permissions) return false;
@@ -164,7 +164,7 @@ export const useHasPermission = (
  */
 export const useUserRole = (): string | null => {
   const auth = useContext(AuthContext);
-  if (!auth || !auth.user) return null;
+  if (!auth?.user) return null;
   
   return typeof auth.user.role === "string" ? auth.user.role : null;
 };

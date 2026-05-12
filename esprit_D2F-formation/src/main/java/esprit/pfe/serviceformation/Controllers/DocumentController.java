@@ -31,6 +31,8 @@ public class DocumentController {
             "text/plain", "text/csv"
     );
 
+    private static final long MAX_FILE_SIZE = 50 * 1024 * 1024; // 50 MB
+
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<Object> createDocument(
             @RequestParam Long formationId,
@@ -38,6 +40,12 @@ public class DocumentController {
             @RequestParam String nomDocument,
             @RequestParam boolean obligation,
             @RequestParam MultipartFile file) {
+
+        if (file.getSize() > MAX_FILE_SIZE) {
+            return ResponseEntity.badRequest().body(
+                    "Fichier trop volumineux : " + file.getSize()
+                    + " octets. Maximum : " + MAX_FILE_SIZE + " octets.");
+        }
 
         String contentType = file.getContentType();
         if (contentType == null || !ALLOWED_MIME_TYPES.contains(contentType)) {

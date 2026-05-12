@@ -23,6 +23,7 @@ from fastapi import FastAPI
 from fastapi.concurrency import run_in_threadpool
 from fastapi.middleware.cors import CORSMiddleware
 from rice.ratelimit import RateLimitMiddleware
+from rice.jwt_middleware import JWTAuthMiddleware
 from rice_analyzer import rice_router
 
 
@@ -71,6 +72,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# ── JWT Authentication ─────────────────────────────────────────────────────────
+app.add_middleware(JWTAuthMiddleware)
+
 # ── Rate limiting ─────────────────────────────────────────────────────────────
 app.add_middleware(RateLimitMiddleware)
 
@@ -88,3 +92,18 @@ def health():
         "llm": "disabled",
         "extraction_mode": "regex + table NER",
     }
+
+@app.get("/metrics")
+def metrics():
+    """Metriques techniques pour monitoring DSI."""
+    import os, time
+    return {
+        "service": "rice",
+        "uptime_seconds": time.time() - _start_time,
+        "memory_mb": 0,
+        "llm_available": False,
+        "semantic_available": True,
+        "cache_entries": 0,
+    }
+
+_start_time = __import__('time').time()

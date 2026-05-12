@@ -2,10 +2,12 @@ package esprit.pfe.servicecertificat.controllers;
 
 import esprit.pfe.servicecertificat.entities.Certificate;
 import esprit.pfe.servicecertificat.repositories.CertificateRepository;
+import esprit.pfe.servicecertificat.services.CertificatePdfGenerator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
+import org.mockito.MockedStatic;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.core.io.Resource;
 import org.springframework.test.web.servlet.MockMvc;
@@ -14,6 +16,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import java.util.Collections;
 import java.util.List;
 
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -62,8 +65,13 @@ class CertificatePdfControllerTest {
 
         when(certificateRepository.findByFormationId(1L)).thenReturn(List.of(cert));
 
-        mockMvc.perform(get("/api/v1/certificate-pdfs/generate/1"))
-                .andExpect(status().isOk());
+        try (MockedStatic<CertificatePdfGenerator> mocked = org.mockito.Mockito.mockStatic(CertificatePdfGenerator.class)) {
+            mocked.when(() -> CertificatePdfGenerator.generateCertificatesForAllTeachers(any(), any()))
+                    .thenReturn(List.of("certificate_1_E001.pdf"));
+
+            mockMvc.perform(get("/api/v1/certificate-pdfs/generate/1"))
+                    .andExpect(status().isOk());
+        }
     }
 
     @Test

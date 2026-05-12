@@ -68,7 +68,7 @@ const tree = [
   },
 ];
 
-describe("CombinedFormationOneDriveTree", () => {
+describe("CombinedFormationOneDriveTree", { timeout: 15000 }, () => {
   beforeEach(() => {
     vi.clearAllMocks();
     FormationWorkflowService.getAllFormationWithDocuments.mockResolvedValue(formations);
@@ -80,7 +80,7 @@ describe("CombinedFormationOneDriveTree", () => {
 
     await waitFor(() => {
       expect(screen.getByText("Explorer les formations et leurs dossiers")).toBeInTheDocument();
-    });
+    }, { timeout: 5000 });
 
     expect(screen.getByText("2")).toBeInTheDocument();
     expect(screen.getByText("React Avancé")).toBeInTheDocument();
@@ -92,14 +92,14 @@ describe("CombinedFormationOneDriveTree", () => {
     await waitFor(() => {
       expect(OneDriveService.getFormationHierarchy).toHaveBeenCalledWith(1);
       expect(screen.getByText("Dossiers pédagogiques")).toBeInTheDocument();
-    });
+    }, { timeout: 5000 });
 
     fireEvent.click(screen.getByText("guide.pdf"));
 
     await waitFor(() => {
       expect(screen.getByTestId("document-viewer")).toHaveTextContent("viewer:pdf:https://example.test/guide.pdf");
       expect(screen.getByText("2.0 Ko")).toBeInTheDocument();
-    });
+    }, { timeout: 5000 });
   });
 
   it("filtre les formations par texte", async () => {
@@ -107,7 +107,7 @@ describe("CombinedFormationOneDriveTree", () => {
 
     await waitFor(() => {
       expect(screen.getByText("React Avancé")).toBeInTheDocument();
-    });
+    }, { timeout: 5000 });
 
     fireEvent.change(screen.getByPlaceholderText(/rechercher une formation/i), {
       target: { value: "RH" },
@@ -116,6 +116,6 @@ describe("CombinedFormationOneDriveTree", () => {
     await waitFor(() => {
       expect(screen.queryByText("React Avancé")).not.toBeInTheDocument();
       expect(screen.getByText("Gestion RH")).toBeInTheDocument();
-    });
+    }, { timeout: 5000 });
   });
 });

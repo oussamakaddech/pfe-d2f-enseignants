@@ -215,49 +215,7 @@ export default function FormationWorkflowForm({ initialDate, onFormationCreated,
         setCompDomaines(Array.isArray(domainesData) ? domainesData : []);
         setCompCompetences(Array.isArray(competencesData) ? competencesData : []);
         
-        if (Array.isArray(accountsData)) {
-          const formateurs = accountsData
-            .filter(a => {
-              const r = (a.role || "").toUpperCase();
-              return r === "FORMATEUR";
-            })
-            .map(a => {
-              // Convert AuthUser to Enseignant-like object for the UI
-              return {
-                id: a.id,
-                isAuthUser: true,
-                userName: a.userName || a.username,
-                nom: a.lastName || a.userName || a.username || "Formateur",
-                prenom: a.firstName || "",
-                mail: a.emailAddress || a.email || "",
-                type: "V", // Default to vacataire to distinguish visually if needed
-                etat: "A",
-                cup: "N",
-                chefDepartement: "N",
-                upLibelle: "",
-                deptLibelle: ""
-              };
-            });
-          
-          // Also include existing enseignants who are formateurs (just in case)
-          const fIds = formateurs.map(f => f.userName);
-          const existingFormateurs = e.filter(ex => {
-             const prefix = ex.mail ? ex.mail.split('@')[0] : "";
-             return fIds.includes(ex.id) || fIds.includes(ex.mail) || fIds.includes(prefix);
-          });
-          
-          // Merge avoiding duplicates by username/mail
-          const merged = [...formateurs];
-          existingFormateurs.forEach(ex => {
-             if (!merged.find(m => m.mail === ex.mail || m.userName === ex.id)) {
-                 merged.push(ex);
-             }
-          });
-          
-          setFormateursList(merged.length > 0 ? merged : e); // Fallback to all enseignants if empty
-        } else {
-          setFormateursList(e);
-        }
+        setFormateursList(mergeFormateursAccounts(accountsData, e));
       } catch {
         message.error("Échec chargement des données");
       }
@@ -297,6 +255,64 @@ export default function FormationWorkflowForm({ initialDate, onFormationCreated,
       : anim?.id
   );
 
+  const mergeFormateursAccounts = (accountsData, enseignants) => {
+    if (!Array.isArray(accountsData)) return enseignants;
+    const formateurs = accountsData
+      .filter(a => (a.role || "").toUpperCase() === "FORMATEUR")
+      .map(a => ({
+        id: a.id,
+        isAuthUser: true,
+        userName: a.userName || a.username,
+        nom: a.lastName || a.userName || a.username || "Formateur",
+        prenom: a.firstName || "",
+        mail: a.emailAddress || a.email || "",
+        type: "V",
+        etat: "A",
+        cup: "N",
+        chefDepartement: "N",
+        upLibelle: "",
+        deptLibelle: ""
+      }));
+    const fIds = formateurs.map(f => f.userName);
+    const existingFormateurs = enseignants.filter(ex => {
+      const prefix = ex.mail ? ex.mail.split('@')[0] : "";
+      return fIds.includes(ex.id) || fIds.includes(ex.mail) || fIds.includes(prefix);
+    });
+    const merged = [...formateurs];
+    existingFormateurs.forEach(ex => {
+      if (!merged.find(m => m.mail === ex.mail || m.userName === ex.id)) {
+        merged.push(ex);
+      }
+    });
+    return merged.length > 0 ? merged : enseignants;
+  };
+
+  const checkExistingFormationConflicts = (localSeance, idx, existingFormations, messages, participantIds, animateurIds) => {
+    existingFormations.forEach((f) => {
+      const existingSeances = Array.isArray(f.seances) ? f.seances : [];
+      const existingParticipants = [
+        ...(Array.isArray(f.participants) ? f.participants : []),
+        ...existingSeances.flatMap((s) => Array.isArray(s.participants) ? s.participants : []),
+      ].map((p) => p?.id).filter(Boolean);
+      existingSeances.forEach((existingSeance) => {
+        if (!sameTimeWindow(localSeance, existingSeance)) return;
+        const formationName = f.titreFormation || `#${f.idFormation || f.id || "?"}`;
+        const localSalle = normalizedSalle(localSeance.salle);
+        const existingSalle = normalizedSalle(existingSeance.salle);
+        if (localSalle && existingSalle && localSalle === existingSalle) {
+          messages.push(`Conflit salle: séance #${idx + 1} chevauche la formation ${formationName} dans la salle ${localSeance.salle}.`);
+        }
+        const existingAnimIds = (Array.isArray(existingSeance.animateurs) ? existingSeance.animateurs : []).map((a) => a?.id).filter(Boolean);
+        if (participantIds.length > 0 && existingParticipants.length > 0 && intersects(participantIds, existingParticipants)) {
+          messages.push(`Conflit participants: séance #${idx + 1} chevauche la formation ${formationName}.`);
+        }
+        if (animateurIds.length > 0 && existingAnimIds.length > 0 && intersects(animateurIds, existingAnimIds)) {
+          messages.push(`Conflit animateurs: séance #${idx + 1} chevauche la formation ${formationName}.`);
+        }
+      });
+    });
+  };
+
   const buildConflictMessages = ({ localSeances, participantIds, animateurIds }) => {
     const messages = [];
 
@@ -329,33 +345,7 @@ export default function FormationWorkflowForm({ initialDate, onFormationCreated,
     }
 
     localSeances.forEach((localSeance, idx) => {
-      existingFormations.forEach((f) => {
-        const existingSeances = Array.isArray(f.seances) ? f.seances : [];
-        const existingParticipants = [
-          ...(Array.isArray(f.participants) ? f.participants : []),
-          ...existingSeances.flatMap((s) => Array.isArray(s.participants) ? s.participants : []),
-        ].map((p) => p?.id).filter(Boolean);
-
-        existingSeances.forEach((existingSeance) => {
-          if (!sameTimeWindow(localSeance, existingSeance)) return;
-
-          const formationName = f.titreFormation || `#${f.idFormation || f.id || "?"}`;
-          const localSalle = normalizedSalle(localSeance.salle);
-          const existingSalle = normalizedSalle(existingSeance.salle);
-
-          if (localSalle && existingSalle && localSalle === existingSalle) {
-            messages.push(`Conflit salle: séance #${idx + 1} chevauche la formation ${formationName} dans la salle ${localSeance.salle}.`);
-          }
-
-          const existingAnimIds = (Array.isArray(existingSeance.animateurs) ? existingSeance.animateurs : []).map((a) => a?.id).filter(Boolean);
-          if (participantIds.length > 0 && existingParticipants.length > 0 && intersects(participantIds, existingParticipants)) {
-            messages.push(`Conflit participants: séance #${idx + 1} chevauche la formation ${formationName}.`);
-          }
-          if (animateurIds.length > 0 && existingAnimIds.length > 0 && intersects(animateurIds, existingAnimIds)) {
-            messages.push(`Conflit animateurs: séance #${idx + 1} chevauche la formation ${formationName}.`);
-          }
-        });
-      });
+      checkExistingFormationConflicts(localSeance, idx, existingFormations, messages, participantIds, animateurIds);
     });
 
     return [...new Set(messages)];
@@ -390,6 +380,22 @@ export default function FormationWorkflowForm({ initialDate, onFormationCreated,
   const updateSeance = (i, f, v) => { const a = [...seances]; a[i] = { ...a[i], [f]: v }; setSeances(a); };
   const removeSeance = (i) => setSeances(seances.filter((_, idx) => idx !== i));
   const toggleSeance = (i) => updateSeance(i, "expanded", !seances[i].expanded);
+
+  const handleSubmitError = (err) => {
+    console.error("Submission error details:", err.response?.data);
+    const backendErrors = err.response?.data;
+    let errorMsg = "Échec de la création de la formation.";
+
+    if (Array.isArray(backendErrors)) {
+      errorMsg = backendErrors.map(e => e.defaultMessage || e.message || "Erreur de validation").join(" | ");
+    } else if (backendErrors?.message) {
+      errorMsg = backendErrors.message;
+    } else if (err.message) {
+      errorMsg = err.message;
+    }
+
+    message.error(errorMsg);
+  };
 
   const handleSubmit = async () => {
     if (seances.length === 0) {
@@ -494,22 +500,38 @@ export default function FormationWorkflowForm({ initialDate, onFormationCreated,
       onFormationCreated(newF);
       setTimeout(() => navigate("/home/ListeFormation"), 2000);
     } catch (err) {
-      console.error("Submission error details:", err.response?.data);
-      const backendErrors = err.response?.data;
-      let errorMsg = "Échec de la création de la formation.";
-
-      if (Array.isArray(backendErrors)) {
-        // Affiche le message de chaque erreur de validation
-        errorMsg = backendErrors.map(e => e.defaultMessage || e.message || "Erreur de validation").join(" | ");
-      } else if (backendErrors?.message) {
-        errorMsg = backendErrors.message;
-      } else if (err.message) {
-        errorMsg = err.message;
-      }
-      
-      message.error(errorMsg);
+      handleSubmitError(err);
     }
   };
+
+  const handleExcelImportFile = (e) => {
+    const file = e.target.files[0];
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const wb = XLSX.read(ev.target.result, { type: "binary" });
+      const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
+      const mails = rows.map(r => r.Email || r.email || r.Mail).filter(Boolean);
+      setPartSel(enseignants.filter(ex => mails.includes(ex.mail)));
+    };
+    reader.readAsBinaryString(file);
+  };
+
+  const handleCompetenceSelect = (idx, val) => {
+    handleCompetenceChange(idx, compCompetences.find(c => c.id === val) || null);
+  };
+
+  const handleSavoirSelect = (idx, val) => {
+    const u = [...selectedCompLinks];
+    u[idx] = { ...u[idx], savoirId: val, savoirNom: (rowSavoirs[idx] || []).find(s => s.id === val)?.nom || "" };
+    setSelectedCompLinks(u);
+  };
+
+  const handleRemoveCompetenceLink = (idx) => {
+    setSelectedCompLinks(selectedCompLinks.filter((_, i) => i !== idx));
+  };
+
+  const getCompetenceOptions = (domaineId) =>
+    compCompetences.filter(c => !domaineId || c.domaineId === domaineId).map(c => ({ value: c.id, label: c.nom }));
 
   const renderStepContent = (step) => {
     switch (step) {
@@ -694,17 +716,7 @@ export default function FormationWorkflowForm({ initialDate, onFormationCreated,
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
                   <Text strong>🧑🏻‍💻 Participants</Text>
                   <Button size="small" icon={<UploadOutlined />} onClick={() => document.getElementById("excel-import").click()}>Excel Import</Button>
-                  <input id="excel-import" hidden accept=".xlsx,.xls" type="file" onChange={(e) => {
-                    const file = e.target.files[0];
-                    const reader = new FileReader();
-                    reader.onload = (ev) => {
-                      const wb = XLSX.read(ev.target.result, { type: "binary" });
-                      const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
-                      const mails = rows.map(r => r.Email || r.email || r.Mail).filter(Boolean);
-                      setPartSel(enseignants.filter(ex => mails.includes(ex.mail)));
-                    };
-                    reader.readAsBinaryString(file);
-                  }} />
+                  <input id="excel-import" hidden accept=".xlsx,.xls" type="file" onChange={handleExcelImportFile} />
                 </div>
                 <Select mode="multiple" style={{ width: "100%" }} value={partSel.map(p => p.id)} onChange={(vals) => { setPartSel(optionsPart.filter(p => vals.includes(p.id))); }} optionFilterProp="label" options={optionsPart.map(p => ({ value: p.id, label: getEnseignantLabel(p) }))} placeholder="Sélectionner Participants" />
               </Col>
@@ -737,15 +749,15 @@ export default function FormationWorkflowForm({ initialDate, onFormationCreated,
                   </Col>
                   <Col xs={24} sm={6}>
                     <Text type="secondary">Compétence</Text>
-                    <Select showSearch style={{ width: "100%" }} value={link.competenceId} onChange={(val) => handleCompetenceChange(idx, compCompetences.find(c => c.id === val) || null)}
-                      options={compCompetences.filter(c => !link.domaineId || c.domaineId === link.domaineId).map(c => ({ value: c.id, label: c.nom }))} placeholder="Compétence" />
+                    <Select showSearch style={{ width: "100%" }} value={link.competenceId} onChange={(val) => handleCompetenceSelect(idx, val)}
+                      options={getCompetenceOptions(link.domaineId)} placeholder="Compétence" />
                   </Col>
                   <Col xs={24} sm={6}>
                     <Text type="secondary">Savoir</Text>
-                    <Select showSearch style={{ width: "100%" }} value={link.savoirId} onChange={(val) => { const u = [...selectedCompLinks]; u[idx] = { ...u[idx], savoirId: val, savoirNom: (rowSavoirs[idx] || []).find(s => s.id === val)?.nom || "" }; setSelectedCompLinks(u); }}
+                    <Select showSearch style={{ width: "100%" }} value={link.savoirId} onChange={(val) => handleSavoirSelect(idx, val)}
                       options={(rowSavoirs[idx] || []).map(s => ({ value: s.id, label: `${s.nom} (${s.type})` }))} placeholder="Savoir" />
                   </Col>
-                  <Col span={4} sm={3}><Button type="text" danger onClick={() => setSelectedCompLinks(selectedCompLinks.filter((_, i) => i !== idx))}><DeleteOutlined /></Button></Col>
+                  <Col span={4} sm={3}><Button type="text" danger onClick={() => handleRemoveCompetenceLink(idx)}><DeleteOutlined /></Button></Col>
                 </Row>
               ))}
               <Button size="small" onClick={() => setSelectedCompLinks([...selectedCompLinks, { domaineId: null, competenceId: null, savoirId: null }])}>+ Ajouter Compétence</Button>

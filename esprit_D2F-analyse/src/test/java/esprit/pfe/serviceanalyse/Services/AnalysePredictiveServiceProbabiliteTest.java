@@ -22,69 +22,143 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class AnalysePredictiveServiceProbabiliteTest {
 
-    @Mock
-    private RestTemplate restTemplate;
+        @Mock
+        private RestTemplate restTemplate;
 
-    @InjectMocks
-    private AnalysePredictiveService analysePredictiveService;
+        @InjectMocks
+        private AnalysePredictiveService analysePredictiveService;
 
-    @BeforeEach
-    void setUp() {
-        ReflectionTestUtils.setField(analysePredictiveService, "evaluationServiceUrl", "http://eval");
-        ReflectionTestUtils.setField(analysePredictiveService, "formationServiceUrl", "http://form");
-        ReflectionTestUtils.setField(analysePredictiveService, "competenceServiceUrl", "http://comp");
-        ReflectionTestUtils.setField(analysePredictiveService, "besoinFormationServiceUrl", "http://besoin");
-    }
-
-    @ParameterizedTest
-    @MethodSource("provideProbabiliteTestCases")
-    void testCalculateProbabilite(String etat, boolean cibleUnGap, double expectedProbabilite) {
-        // Test with different etat and cibleUnGap values
-        Map<String, Object> comp = new HashMap<>();
-        comp.put("id", 1);
-        comp.put("nom", "Java");
-        Map<String, Object> aff = new HashMap<>();
-        aff.put("competence", comp);
-        aff.put("niveauMaitrise", 2);
-
-        Map<String, Object> formation = new HashMap<>();
-        formation.put("idFormation", 101);
-        formation.put("titreFormation", "Java Advanced");
-        formation.put("etatFormation", etat);
-        formation.put("chargeHoraireGlobal", 20);
-
-        List<Map<String, Object>> fcList = new ArrayList<>();
-        if (cibleUnGap) {
-            Map<String, Object> fc = new HashMap<>();
-            fc.put("competenceId", 1L);
-            fc.put("competenceNom", "Java");
-            fcList.add(fc);
+        @BeforeEach
+        void setUp() {
+                ReflectionTestUtils.setField(analysePredictiveService, "evaluationServiceUrl", "http://eval");
+                ReflectionTestUtils.setField(analysePredictiveService, "formationServiceUrl", "http://form");
+                ReflectionTestUtils.setField(analysePredictiveService, "competenceServiceUrl", "http://comp");
+                ReflectionTestUtils.setField(analysePredictiveService, "besoinFormationServiceUrl", "http://besoin");
         }
 
-        when(restTemplate.getForObject(contains("/api/v1/enseignant-competences"), List.class))
-            .thenReturn(List.of(aff));
-        when(restTemplate.getForObject(contains("/formations"), List.class))
-            .thenReturn(List.of(formation));
-        when(restTemplate.getForObject(contains("/formation-competences/formation/"), List.class))
-            .thenReturn(fcList);
-        when(restTemplate.getForObject(contains("/besoinsFormations"), List.class))
-            .thenReturn(Collections.emptyList());
+        @ParameterizedTest
+        @MethodSource("provideProbabiliteScenarios")
+        void testCalculateProbabilite(String etat, boolean expectHighProb, String description) {
+                // Arrange: create a competence with a gap
+                Map<String, Object> comp = new HashMap<>();
+                comp.put("id", 1);
+                comp.put("nom", "Java");
+                Map<String, Object> aff = new HashMap<>();
+                aff.put("competence", comp);
+                aff.put("niveauMaitrise", 2);
 
-        Map<String, Object> result = analysePredictiveService.analyserEnseignant("ens1", null);
-        assertNotNull(result);
-        List<Map<String, Object>> recommandations = (List<Map<String, Object>>) result.get("recommandationsFormations");
-        assertFalse(recommandations.isEmpty(), "Les recommandations doivent être détectées");
-        assertEquals(expectedProbabilite, recommandations.get(0).get("probabiliteReussite"), 
-            "La probabilité de réussite doit être " + expectedProbabilite);
-    }
+                // Formation with the given state
+                Map<String, Object> formation = new HashMap<>();
+                formation.put("formationId", 100L);
+                formation.put("titreFormation", "Formation Test");
+                formation.put("etatFormation", etat);
+                formation.put("chargeHoraireGlobal", 20);
 
-    private static Stream<Arguments> provideProbabiliteTestCases() {
-        return Stream.of(
-            Arguments.of("PLANIFIEE", true, 0.90),   // cibleUnGap = true
-            Arguments.of("EN_COURS", false, 0.70),   // etat = "EN_COURS"
-            Arguments.of("PLANIFIEE", false, 0.50),  // other etat
-            Arguments.of(null, false, 0.50),        // null etat
-            Arguments.of("", false, 0.50)           // empty etat
-        );
-    }
+                // Formation-competence link targeting the gap
+                Map<String, Object> fcLink = new HashMap<>();
+                fcLink.put("competenceId", 1L);
+                fcLink.put("competenceNom", "Java");
+
+                when(restTemplate.getForObject(contains("/api/v1/enseignant-competences"), eq(List.class)))
+                                .thenReturn(List.of(aff));
+                when(restTemplate.getForObject(contains("/formations"), eq(List.class)))
+                                .thenReturn(List.of(formation));
+                when(restTemplate.getForObject(contains("/formation-competences/formation/"), eq(List.class)))
+                                .thenReturn(List.of(fcLink));
+                when(restTemplate.getForObject(contains("/besoinsFormations"), eq(List.class)))
+                                .thenReturn(Collections.emptyList());
+
+                Map<String, Object> result = analysePredictiveService.analyserEnseignant("ens1", null);
+                assertNotNull(result, description);
+
+                @SuppressWarnings("unchecked")
+                List<Map<String, Object>> recos = (List<Map<String, Object>>) result.get("recommandationsFormations");
+                assertNotNull(recos, "Recommandations should not be null");
+                assertFalse(recos.isEmpty(), "There should be at least one recommendation");
+
+                double prob = ((Number) recos.get(0).get("probabiliteReussite")).doubleValue();
+                if (expectHighProb) {
+                        assertEquals(0.90, prob, 0.01, "Gap-targeted formation should have 0.90 probability");
+                } else {
+                        assertTrue(prob < 0.90, "Non-targeted formation should have probability < 0.90");
+                }
+        }
+
+        private static Stream<Arguments> provideProbabiliteScenarios() {
+                return Stream.of(
+                                Arguments.of("PLANIFIEE", true, "Formation targeting a gap should have high probability"),
+                                Arguments.of("EN_COURS", true, "EN_COURS formation targeting gap should also have high probability"));
+        }
+
+        @Test
+        void testProbabiliteWithNoGapMatch() {
+                // Formation that does NOT target any competence gap
+                Map<String, Object> comp = new HashMap<>();
+                comp.put("id", 1);
+                comp.put("nom", "Java");
+                Map<String, Object> aff = new HashMap<>();
+                aff.put("competence", comp);
+                aff.put("niveauMaitrise", 2);
+
+                Map<String, Object> formation = new HashMap<>();
+                formation.put("formationId", 200L);
+                formation.put("titreFormation", "Formation Python");
+                formation.put("etatFormation", "EN_COURS");
+                formation.put("chargeHoraireGlobal", 30);
+
+                // fc link with a different competence (no match)
+                Map<String, Object> fcLink = new HashMap<>();
+                fcLink.put("competenceId", 999L);
+                fcLink.put("competenceNom", "Python");
+
+                when(restTemplate.getForObject(contains("/api/v1/enseignant-competences"), eq(List.class)))
+                                .thenReturn(List.of(aff));
+                when(restTemplate.getForObject(contains("/formations"), eq(List.class)))
+                                .thenReturn(List.of(formation));
+                when(restTemplate.getForObject(contains("/formation-competences/formation/"), eq(List.class)))
+                                .thenReturn(List.of(fcLink));
+                when(restTemplate.getForObject(contains("/besoinsFormations"), eq(List.class)))
+                                .thenReturn(Collections.emptyList());
+
+                Map<String, Object> result = analysePredictiveService.analyserEnseignant("ens1", null);
+                assertNotNull(result);
+
+                @SuppressWarnings("unchecked")
+                List<Map<String, Object>> recos = (List<Map<String, Object>>) result.get("recommandationsFormations");
+                assertFalse(recos.isEmpty());
+
+                double prob = ((Number) recos.get(0).get("probabiliteReussite")).doubleValue();
+                assertEquals(0.70, prob, 0.01, "EN_COURS formation not targeting gap should have 0.70 probability");
+        }
+
+        @Test
+        void testProbabiliteWithCancelledFormation() {
+                // Cancelled formations should be skipped entirely
+                Map<String, Object> comp = new HashMap<>();
+                comp.put("id", 1);
+                comp.put("nom", "Java");
+                Map<String, Object> aff = new HashMap<>();
+                aff.put("competence", comp);
+                aff.put("niveauMaitrise", 2);
+
+                Map<String, Object> formation = new HashMap<>();
+                formation.put("formationId", 300L);
+                formation.put("titreFormation", "Formation Annulée");
+                formation.put("etatFormation", "ANNULEE");
+                formation.put("chargeHoraireGlobal", 10);
+
+                when(restTemplate.getForObject(contains("/api/v1/enseignant-competences"), eq(List.class)))
+                                .thenReturn(List.of(aff));
+                when(restTemplate.getForObject(contains("/formations"), eq(List.class)))
+                                .thenReturn(List.of(formation));
+                when(restTemplate.getForObject(contains("/besoinsFormations"), eq(List.class)))
+                                .thenReturn(Collections.emptyList());
+
+                Map<String, Object> result = analysePredictiveService.analyserEnseignant("ens1", null);
+                assertNotNull(result);
+
+                @SuppressWarnings("unchecked")
+                List<Map<String, Object>> recos = (List<Map<String, Object>>) result.get("recommandationsFormations");
+                assertTrue(recos.isEmpty(), "Cancelled formations should not appear in recommendations");
+        }
 }

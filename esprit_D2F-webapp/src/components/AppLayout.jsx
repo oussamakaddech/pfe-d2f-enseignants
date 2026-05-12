@@ -72,7 +72,7 @@ export default function AppLayout() {
     {
       key: "logout",
       label: (
-        <span onClick={() => { logout(); navigate("/"); }}>
+        <span role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { logout(); navigate("/"); } }} onClick={() => { logout(); navigate("/"); }}>
           <LogoutOutlined /> Déconnexion
         </span>
       ),

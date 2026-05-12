@@ -7,7 +7,7 @@ description: Diagnose and fix a PostgreSQL foreign key constraint violation in t
 
 ## Context
 
-- **Database**: `d2f` on `localhost:7432`, user `d2f`, password `d2fpasswd`
+- **Database**: `d2f` on `localhost:7432`, user `d2f`, password from env `DB_PASSWORD`
 - **Stack**: Python + `psycopg2`
 - **Pattern**: errors of the form `update or delete on table "<parent>" violates foreign key constraint "<fk_name>" on table "<child>"`
 
@@ -42,7 +42,7 @@ Error: <fk_constraint_name>
 """
 import psycopg2, sys
 
-DB = "host=localhost port=7432 dbname=d2f user=d2f password=d2fpasswd"
+DB = "host=localhost port=7432 dbname=d2f user=d2f password=DB_PASSWORD"
 
 def main():
     conn = psycopg2.connect(DB)

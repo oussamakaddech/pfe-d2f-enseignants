@@ -12,8 +12,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
+
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -31,9 +30,9 @@ class AnalysePredictiveControllerTest {
 
     @Test
     void testAnalyserEnseignant() throws Exception {
-        when(analysePredictiveService.analyserEnseignant(anyString(), any())).thenReturn(new HashMap<>());
+        when(analysePredictiveService.analyserEnseignant("ens1", null)).thenReturn(new HashMap<>());
 
-        mockMvc.perform(get("/analyse-predictive/enseignant/ens1"))
+        mockMvc.perform(get("/api/v1/analyse-predictive/enseignant/ens1"))
                 .andExpect(status().isOk());
     }
 
@@ -45,7 +44,7 @@ class AnalysePredictiveControllerTest {
 
         when(analysePredictiveService.analyserEnseignant("ens1", 1L)).thenReturn(mockResult);
 
-        mockMvc.perform(get("/analyse-predictive/enseignant/ens1")
+        mockMvc.perform(get("/api/v1/analyse-predictive/enseignant/ens1")
                 .param("competenceCible", "1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.enseignantId").value("ens1"))
@@ -64,9 +63,9 @@ class AnalysePredictiveControllerTest {
 
         mockResult.put("gaps", List.of(gap1));
 
-        when(analysePredictiveService.analyserEnseignant("ens1", any())).thenReturn(mockResult);
+        when(analysePredictiveService.analyserEnseignant("ens1", null)).thenReturn(mockResult);
 
-        mockMvc.perform(get("/analyse-predictive/enseignant/ens1"))
+        mockMvc.perform(get("/api/v1/analyse-predictive/enseignant/ens1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.enseignantId").value("ens1"))
                 .andExpect(jsonPath("$.gaps[0].competenceLabel").value("Java"))
@@ -85,9 +84,9 @@ class AnalysePredictiveControllerTest {
 
         mockResult.put("recommandationsFormations", List.of(reco1));
 
-        when(analysePredictiveService.analyserEnseignant("ens1", any())).thenReturn(mockResult);
+        when(analysePredictiveService.analyserEnseignant("ens1", null)).thenReturn(mockResult);
 
-        mockMvc.perform(get("/analyse-predictive/enseignant/ens1"))
+        mockMvc.perform(get("/api/v1/analyse-predictive/enseignant/ens1"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.enseignantId").value("ens1"))
                 .andExpect(jsonPath("$.recommandationsFormations[0].titre").value("Java Advanced"))
@@ -98,7 +97,7 @@ class AnalysePredictiveControllerTest {
     void testTendancesGlobales() throws Exception {
         when(analysePredictiveService.analyserTendancesGlobales()).thenReturn(new HashMap<>());
 
-        mockMvc.perform(get("/analyse-predictive/tendances"))
+        mockMvc.perform(get("/api/v1/analyse-predictive/tendances"))
                 .andExpect(status().isOk());
     }
 
@@ -114,7 +113,7 @@ class AnalysePredictiveControllerTest {
 
         when(analysePredictiveService.analyserTendancesGlobales()).thenReturn(mockResult);
 
-        mockMvc.perform(get("/analyse-predictive/tendances"))
+        mockMvc.perform(get("/api/v1/analyse-predictive/tendances"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.statistiques.totalEvaluations").value(10))
                 .andExpect(jsonPath("$.statistiques.noteMoyenne").value(3.5));
@@ -131,9 +130,19 @@ class AnalysePredictiveControllerTest {
 
         when(analysePredictiveService.analyserTendancesGlobales()).thenReturn(mockResult);
 
-        mockMvc.perform(get("/analyse-predictive/tendances"))
+        mockMvc.perform(get("/api/v1/analyse-predictive/tendances"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.dashboard.enseignantsARisque[0]").value("ens1"))
                 .andExpect(jsonPath("$.dashboard.enseignantsARisque[1]").value("ens2"));
+    }
+
+    @Test
+    void testListerEnseignants() throws Exception {
+        mockMvc.perform(get("/api/v1/analyse-predictive/enseignants")
+                .param("page", "0")
+                .param("size", "10"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.content").isArray())
+                .andExpect(jsonPath("$.totalElements").value(0));
     }
 }

@@ -13,3 +13,5 @@ python-dotenv
 pdfplumber
 python-docx
 python-multipart
+# JWT authentication (defense-in-depth, DSI requirement)
+PyJWT

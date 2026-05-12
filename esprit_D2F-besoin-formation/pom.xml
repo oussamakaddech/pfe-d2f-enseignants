@@ -22,7 +22,7 @@
 		<java.version>17</java.version>
 		<spring-cloud.version>2024.0.0</spring-cloud.version>
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-		<db.password>d2fpasswd</db.password>
+		<db.password>${DB_PASSWORD}</db.password>
 		<sonar.projectKey>d2f_besoin_formation</sonar.projectKey>
 		<sonar.projectName>besoinsformation-service</sonar.projectName>
 	</properties>
@@ -40,6 +40,13 @@
 	</dependencyManagement>
 
 	<dependencies>
+		<!-- D2F Common Security (shared AuthorizationMatrix) -->
+		<dependency>
+			<groupId>esprit.d2f</groupId>
+			<artifactId>d2f-common-security</artifactId>
+			<version>1.0.0</version>
+		</dependency>
+
 		<!-- API documentation -->
 		<dependency>
 			<groupId>org.springdoc</groupId>

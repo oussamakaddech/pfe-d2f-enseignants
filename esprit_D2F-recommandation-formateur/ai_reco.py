@@ -4,11 +4,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List
 from utils import recommend_semantic, _load_or_build_embeddings
+from jwt_middleware import JWTAuthMiddleware
 from apscheduler.schedulers.background import BackgroundScheduler
 
 import os
 
 app = FastAPI(title="Reco IA sémantique")
+app.add_middleware(JWTAuthMiddleware)
 # === 1) Origines CORS externalisées via variable d'environnement ===
 _cors_raw = os.getenv("CORS_ORIGINS", "http://localhost:3000,http://localhost:5173,http://esprit-d2f.esprit.tn")
 origins = [o.strip() for o in _cors_raw.split(",") if o.strip()]
@@ -59,3 +61,20 @@ def weekly_refresh():
 scheduler = BackgroundScheduler()
 scheduler.add_job(weekly_refresh, "cron", day_of_week="mon", hour=3, minute=0)
 scheduler.start()
+
+# ── Metriques techniques IA pour monitoring DSI ──
+import time as _time_module
+_start_time = _time_module.time()
+
+@app.get("/metrics")
+def metrics():
+    from utils import _emb_cache
+    cache_entries = len(_emb_cache.get("teacher_ids", [])) if _emb_cache else 0
+    return {
+        "service": "ai-reco",
+        "uptime_seconds": _time_module.time() - _start_time,
+        "model": "WhereIsAI/UAE-Large-V1",
+        "embedding_dim": 1024,
+        "cache_entries": cache_entries,
+        "cache_ttl_hours": 168,
+    }

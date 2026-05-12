@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -24,6 +25,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @WebMvcTest(BesoinFormationController.class)
 @AutoConfigureMockMvc(addFilters = false)
+@WithMockUser(roles = "ADMIN")
 class BesoinFormationControllerTest {
 
     @Autowired
@@ -41,7 +43,7 @@ class BesoinFormationControllerTest {
     @Test
     void getBesoinFormations_shouldReturnOk() throws Exception {
         when(service.retrieveAllBesoinFormations(any(Pageable.class))).thenReturn(Page.empty());
-        mockMvc.perform(get("/api/v1/besoinsFormations/retrieve-all-BesoinFormations"))
+        mockMvc.perform(get("/api/v1/besoins-formations"))
                 .andExpect(status().isOk());
     }
 
@@ -61,7 +63,7 @@ class BesoinFormationControllerTest {
         
         when(service.addBesoinFormation(any())).thenReturn(new BesoinFormationResponse());
 
-        mockMvc.perform(post("/api/v1/besoinsFormations/add-BesoinFormation")
+        mockMvc.perform(post("/api/v1/besoins-formations")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk());
@@ -69,7 +71,7 @@ class BesoinFormationControllerTest {
 
     @Test
     void removeBesoinFormation_shouldReturnNoContent() throws Exception {
-        mockMvc.perform(delete("/api/v1/besoinsFormations/remove-BesoinFormation/1"))
+        mockMvc.perform(delete("/api/v1/besoins-formations/1"))
                 .andExpect(status().isNoContent());
     }
 
@@ -88,7 +90,7 @@ class BesoinFormationControllerTest {
     @Test
     void retrieveBesoinFormation_shouldReturnOk() throws Exception {
         when(service.retrieveBesoinFormation(1L)).thenReturn(new BesoinFormationResponse());
-        mockMvc.perform(get("/api/v1/besoinsFormations/retrieve-BesoinFormation/1"))
+        mockMvc.perform(get("/api/v1/besoins-formations/1"))
                 .andExpect(status().isOk());
     }
 
@@ -106,7 +108,7 @@ class BesoinFormationControllerTest {
         request.setDureeFormation(10);
 
         when(service.modifyBesoinFormation(any())).thenReturn(new BesoinFormationResponse());
-        mockMvc.perform(put("/api/v1/besoinsFormations/modify-BesoinFormation")
+        mockMvc.perform(put("/api/v1/besoins-formations")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk());
@@ -115,56 +117,56 @@ class BesoinFormationControllerTest {
     @Test
     void getUserNotifications_shouldReturnOk() throws Exception {
         when(notificationRepository.findByUsername(any(), any(Pageable.class))).thenReturn(Page.empty());
-        mockMvc.perform(get("/api/v1/besoinsFormations/notifications/testuser"))
+        mockMvc.perform(get("/api/v1/besoins-formations/notifications/testuser"))
                 .andExpect(status().isOk());
     }
 
     @Test
     void approveBesoin_shouldReturnOk() throws Exception {
         when(service.approuverBesoin(1L)).thenReturn(new BesoinFormationResponse());
-        mockMvc.perform(put("/api/v1/besoinsFormations/1/approve"))
+        mockMvc.perform(put("/api/v1/besoins-formations/1/approve"))
                 .andExpect(status().isOk());
     }
 
     @Test
     void getApprovedBesoinFormations_shouldReturnOk() throws Exception {
         when(service.retrieveApprovedBesoinFormations(any(Pageable.class))).thenReturn(Page.empty());
-        mockMvc.perform(get("/api/v1/besoinsFormations/retrieve-approved-BesoinFormations"))
+        mockMvc.perform(get("/api/v1/besoins-formations/approved"))
                 .andExpect(status().isOk());
     }
 
     @Test
     void getBesoinsByUp_shouldReturnOk() throws Exception {
         when(service.retrieveByUp(any(), any(Pageable.class))).thenReturn(Page.empty());
-        mockMvc.perform(get("/api/v1/besoinsFormations/by-up/Info"))
+        mockMvc.perform(get("/api/v1/besoins-formations/by-up/Info"))
                 .andExpect(status().isOk());
     }
 
     @Test
     void getBesoinsByDepartement_shouldReturnOk() throws Exception {
         when(service.retrieveByDepartement(any(), any(Pageable.class))).thenReturn(Page.empty());
-        mockMvc.perform(get("/api/v1/besoinsFormations/by-departement/GL"))
+        mockMvc.perform(get("/api/v1/besoins-formations/by-departement/GL"))
                 .andExpect(status().isOk());
     }
 
     @Test
     void getBesoinsByPriorite_shouldReturnOk() throws Exception {
         when(service.retrieveAllByPriorite(any(Pageable.class))).thenReturn(Page.empty());
-        mockMvc.perform(get("/api/v1/besoinsFormations/by-priorite"))
+        mockMvc.perform(get("/api/v1/besoins-formations/by-priorite"))
                 .andExpect(status().isOk());
     }
 
     @Test
     void getBesoinsByPrioriteLevel_shouldReturnOk() throws Exception {
         when(service.retrieveByPriorite(any(), any(Pageable.class))).thenReturn(Page.empty());
-        mockMvc.perform(get("/api/v1/besoinsFormations/by-priorite/HAUTE"))
+        mockMvc.perform(get("/api/v1/besoins-formations/by-priorite/HAUTE"))
                 .andExpect(status().isOk());
     }
 
     @Test
     void getBesoinFormations_withSortOrderAsc_shouldReturnOk() throws Exception {
         when(service.retrieveAllBesoinFormations(any(Pageable.class))).thenReturn(Page.empty());
-        mockMvc.perform(get("/api/v1/besoinsFormations/retrieve-all-BesoinFormations?sort=titre,asc"))
+        mockMvc.perform(get("/api/v1/besoins-formations?sort=titre,asc"))
                 .andExpect(status().isOk());
     }
 }

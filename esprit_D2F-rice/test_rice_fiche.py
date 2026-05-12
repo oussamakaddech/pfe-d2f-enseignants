@@ -26,7 +26,7 @@ os.environ.setdefault("DB_HOST", "127.0.0.1")
 os.environ.setdefault("DB_PORT", "7432")
 os.environ.setdefault("DB_NAME", "d2f")
 os.environ.setdefault("DB_USER", "d2f")
-os.environ.setdefault("DB_PASS", "d2fpasswd")
+os.environ.setdefault("DB_PASS", "test_password")
 
 # ── Import analyzer internals ────────────────────────────────────────────────
 from rice_analyzer import (

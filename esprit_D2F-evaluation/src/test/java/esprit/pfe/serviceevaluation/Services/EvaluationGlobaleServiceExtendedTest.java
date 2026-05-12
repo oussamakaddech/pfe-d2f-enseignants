@@ -10,6 +10,10 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
+
 import java.util.List;
 import java.util.Optional;
 
@@ -126,10 +130,11 @@ class EvaluationGlobaleServiceExtendedTest {
 
     @Test
     void getAllEvaluationGlobales_shouldReturnList() {
-        when(repository.findAll()).thenReturn(List.of(entity));
+        Page<EvaluationGlobale> page = new PageImpl<>(List.of(entity));
+        when(repository.findAll(any(Pageable.class))).thenReturn(page);
 
-        List<EvaluationGlobaleDTO> result = service.getAllEvaluationGlobales();
+        Page<EvaluationGlobaleDTO> result = service.getAllEvaluationGlobales(Pageable.ofSize(10));
 
-        assertEquals(1, result.size());
+        assertEquals(1, result.getContent().size());
     }
 }

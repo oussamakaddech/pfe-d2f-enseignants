@@ -186,113 +186,116 @@ export default function useStructureData() {
     setSearchResults(null);
   }, []);
 
-  const treeData = useMemo(() => {
-    if (!structure?.domaines) return [];
+  const buildSavoirNode = (s) => ({
+    key: `sav-${s.id}`,
+    title: (
+      <Space>
+        {s.type === "THEORIQUE" ? <BookOutlined style={{ color: "#722ed1" }} /> : <ExperimentOutlined style={{ color: "#13c2c2" }} />}
+        <Text type="secondary">{s.nom}</Text>
+        <Tag color={s.type === "THEORIQUE" ? "purple" : "cyan"}>
+          {s.type === "THEORIQUE" ? "Théorique" : "Pratique"}
+        </Tag>
+        <Tag>{s.code}</Tag>
+      </Space>
+    ),
+    isLeaf: true,
+  });
 
-    const buildSousCompNode = (sc) => {
-      const enfants = sc.enfants ?? [];
-      const isLeaf = enfants.length === 0;
+  const buildSousCompNode = useCallback((sc) => {
+    const enfants = sc.enfants ?? [];
+    const isLeaf = enfants.length === 0;
 
-      return {
-        key: `sc-${sc.id}`,
-        title: (
-          <Space>
-            <BulbOutlined style={{ color: "#fa8c16" }} />
-            <Text>{sc.nom}</Text>
-            <Tag color="orange">{sc.code}</Tag>
-            <Tag color="geekblue">N{sc.niveau ?? "-"}</Tag>
-            <Tag icon={<BookOutlined />}>{sc.nombreSavoirs}</Tag>
-            <Tag icon={<TeamOutlined />} color="purple">{sc.nombreEnseignants}</Tag>
-            <Tag
-              style={{ cursor: "pointer" }}
-              icon={<InfoCircleOutlined />}
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                openNiveauModal("sousCompetence", sc.id, sc.nom);
-              }}
-            >
-              Niveaux
-            </Tag>
-          </Space>
-        ),
-        children: [
-          ...enfants.map(buildSousCompNode),
-          ...(isLeaf
-            ? (sc.savoirs ?? []).map((s) => ({
-              key: `sav-${s.id}`,
-              title: (
-                <Space>
-                  {s.type === "THEORIQUE" ? <BookOutlined style={{ color: "#722ed1" }} /> : <ExperimentOutlined style={{ color: "#13c2c2" }} />}
-                  <Text type="secondary">{s.nom}</Text>
-                  <Tag color={s.type === "THEORIQUE" ? "purple" : "cyan"}>
-                    {s.type === "THEORIQUE" ? "Théorique" : "Pratique"}
-                  </Tag>
-                  <Tag>{s.code}</Tag>
-                </Space>
-              ),
-              isLeaf: true,
-            }))
-            : []),
-        ],
-      };
-    };
-
-    return structure.domaines.map((domaine) => ({
-      key: `dom-${domaine.id}`,
+    return {
+      key: `sc-${sc.id}`,
       title: (
         <Space>
-          <FolderOpenOutlined style={{ color: "#1890ff" }} />
-          <Text strong>{domaine.nom}</Text>
-          <Tag color="blue">{domaine.code}</Tag>
-          <Tag color="green">{domaine.nombreCompetences}</Tag>
-          <Tag icon={<TeamOutlined />} color="purple">{domaine.nombreEnseignants}</Tag>
-          {!domaine.actif && <Tag color="red">Inactif</Tag>}
+          <BulbOutlined style={{ color: "#fa8c16" }} />
+          <Text>{sc.nom}</Text>
+          <Tag color="orange">{sc.code}</Tag>
+          <Tag color="geekblue">N{sc.niveau ?? "-"}</Tag>
+          <Tag icon={<BookOutlined />}>{sc.nombreSavoirs}</Tag>
+          <Tag icon={<TeamOutlined />} color="purple">{sc.nombreEnseignants}</Tag>
+          <Tag
+            style={{ cursor: "pointer" }}
+            icon={<InfoCircleOutlined />}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              openNiveauModal("sousCompetence", sc.id, sc.nom);
+            }}
+          >
+            Niveaux
+          </Tag>
         </Space>
       ),
-      children: domaine.competences?.map((comp) => ({
-        key: `comp-${comp.id}`,
+      children: [
+        ...enfants.map(buildSousCompNode),
+        ...(isLeaf ? (sc.savoirs ?? []).map(buildSavoirNode) : []),
+      ],
+    };
+  }, [openNiveauModal]);
+
+  const buildCompetenceNode = useCallback((comp) => ({
+    key: `comp-${comp.id}`,
+    title: (
+      <Space>
+        <ApartmentOutlined style={{ color: "#52c41a" }} />
+        <Text>{comp.nom}</Text>
+        <Tag color="green">{comp.code}</Tag>
+        <Tag>{comp.nombreSousCompetences} SC / {comp.nombreSavoirs} S</Tag>
+        <Tag icon={<TeamOutlined />} color="purple">{comp.nombreEnseignants}</Tag>
+        <Tag
+          style={{ cursor: "pointer" }}
+          icon={<InfoCircleOutlined />}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            openNiveauModal("competence", comp.id, comp.nom);
+          }}
+        >
+          Niveaux
+        </Tag>
+      </Space>
+    ),
+    children: [
+      ...(comp.sousCompetences?.map(buildSousCompNode) || []),
+      ...(comp.savoirsDirect?.map((s) => ({
+        key: `sav-direct-${s.id}`,
         title: (
           <Space>
-            <ApartmentOutlined style={{ color: "#52c41a" }} />
-            <Text>{comp.nom}</Text>
-            <Tag color="green">{comp.code}</Tag>
-            <Tag>{comp.nombreSousCompetences} SC / {comp.nombreSavoirs} S</Tag>
-            <Tag icon={<TeamOutlined />} color="purple">{comp.nombreEnseignants}</Tag>
-            <Tag
-              style={{ cursor: "pointer" }}
-              icon={<InfoCircleOutlined />}
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                openNiveauModal("competence", comp.id, comp.nom);
-              }}
-            >
-              Niveaux
+            {s.type === "THEORIQUE" ? <BookOutlined style={{ color: "#722ed1" }} /> : <ExperimentOutlined style={{ color: "#13c2c2" }} />}
+            <Text type="secondary">{s.nom}</Text>
+            <Tag color={s.type === "THEORIQUE" ? "purple" : "cyan"}>
+              {s.type === "THEORIQUE" ? "Théorique" : "Pratique"}
             </Tag>
+            <Tag>{s.code}</Tag>
+            <Tag color="gold">Direct</Tag>
           </Space>
         ),
-        children: [
-          ...(comp.sousCompetences?.map(buildSousCompNode) || []),
-          ...(comp.savoirsDirect?.map((s) => ({
-            key: `sav-direct-${s.id}`,
-            title: (
-              <Space>
-                {s.type === "THEORIQUE" ? <BookOutlined style={{ color: "#722ed1" }} /> : <ExperimentOutlined style={{ color: "#13c2c2" }} />}
-                <Text type="secondary">{s.nom}</Text>
-                <Tag color={s.type === "THEORIQUE" ? "purple" : "cyan"}>
-                  {s.type === "THEORIQUE" ? "Théorique" : "Pratique"}
-                </Tag>
-                <Tag>{s.code}</Tag>
-                <Tag color="gold">Direct</Tag>
-              </Space>
-            ),
-            isLeaf: true,
-          })) || []),
-        ],
-      })) || [],
-    }));
-  }, [openNiveauModal, structure]);
+        isLeaf: true,
+      })) || []),
+    ],
+  }), [openNiveauModal, buildSousCompNode]);
+
+  const buildDomaineNode = useCallback((domaine) => ({
+    key: `dom-${domaine.id}`,
+    title: (
+      <Space>
+        <FolderOpenOutlined style={{ color: "#1890ff" }} />
+        <Text strong>{domaine.nom}</Text>
+        <Tag color="blue">{domaine.code}</Tag>
+        <Tag color="green">{domaine.nombreCompetences}</Tag>
+        <Tag icon={<TeamOutlined />} color="purple">{domaine.nombreEnseignants}</Tag>
+        {!domaine.actif && <Tag color="red">Inactif</Tag>}
+      </Space>
+    ),
+    children: domaine.competences?.map(buildCompetenceNode) || [],
+  }), [buildCompetenceNode]);
+
+  const treeData = useMemo(() => {
+    if (!structure?.domaines) return [];
+    return structure.domaines.map(buildDomaineNode);
+  }, [structure, buildDomaineNode]);
 
   return {
     structure,

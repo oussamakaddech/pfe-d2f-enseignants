@@ -3,7 +3,7 @@
 # =============================================================================
 # Conformité DSI :
 #   §2.1  Architecture Microservices + Docker obligatoire
-#   §2.4  ActiveMQ (Artemis) message broker
+#   §2.4  RabbitMQ message broker (standard DSI)
 #   §2    Contraintes transversales : PostgreSQL, services DSI
 #   §1.1  Aucune valeur sensible en dur — utiliser le fichier .env
 #
@@ -14,7 +14,7 @@
 #   docker compose down -v        # Arrêter et supprimer les volumes
 #
 # Variables requises dans .env (voir .env.example) :
-#   JWT_SECRET, DB_PASSWORD, ARTEMIS_PASSWORD, MAIL_USERNAME, MAIL_PASSWORD
+#   JWT_SECRET, DB_PASSWORD, RABBITMQ_PASSWORD, MAIL_USERNAME, MAIL_PASSWORD
 # =============================================================================
 
 version: "3.9"
@@ -54,7 +54,7 @@ services:
     environment:
       POSTGRES_DB: d2f
       POSTGRES_USER: d2f
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-d2fpasswd}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
     ports:
       - "7432:5432"
     volumes:
@@ -75,7 +75,7 @@ services:
     restart: unless-stopped
     environment:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_USERNAME:-d2f}
-      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-d2fpass}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
     ports:
       - "5672:5672"   # AMQP
       - "15672:15672"  # Console RabbitMQ
@@ -98,7 +98,7 @@ services:
       - debug
     environment:
       PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@d2f.tn}
-      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-CHANGE_ME_IN_PRODUCTION}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD}
     ports:
       - "5050:80"
     volumes:
@@ -123,12 +123,12 @@ services:
       SPRING_PROFILES_ACTIVE: prod
       DB_URL: jdbc:postgresql://postgres:5432/d2f
       DB_USER: ${DB_USER_AUTH:-app_user_auth}
-      DB_PASSWORD: ${DB_PASSWORD:-d2fpasswd}
+      DB_PASSWORD: ${DB_PASSWORD}
       JWT_SECRET: ${JWT_SECRET}
       MAIL_HOST: ${MAIL_HOST:-smtp.internal.dsi.local}
       MAIL_PORT: ${MAIL_PORT:-587}
-      MAIL_USERNAME: ${MAIL_USERNAME:-}
-      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      MAIL_USERNAME: ${MAIL_USERNAME}
+      MAIL_PASSWORD: ${MAIL_PASSWORD}
     depends_on:
       postgres:
         condition: service_healthy
@@ -153,7 +153,7 @@ services:
       SPRING_PROFILES_ACTIVE: prod
       DB_URL: jdbc:postgresql://postgres:5432/d2f
       DB_USER: ${DB_USER_COMPETENCE:-app_user_competence}
-      DB_PASSWORD: ${DB_PASSWORD:-d2fpasswd}
+      DB_PASSWORD: ${DB_PASSWORD}
       JWT_SECRET: ${JWT_SECRET}
     depends_on:
       postgres:
@@ -179,12 +179,12 @@ services:
       SPRING_PROFILES_ACTIVE: prod
       DB_URL: jdbc:postgresql://postgres:5432/d2f
       DB_USER: ${DB_USER_BESOIN:-app_user_besoinsformation}
-      DB_PASSWORD: ${DB_PASSWORD:-d2fpasswd}
+      DB_PASSWORD: ${DB_PASSWORD}
       JWT_SECRET: ${JWT_SECRET}
       SPRING_RABBITMQ_HOST: rabbitmq
       SPRING_RABBITMQ_PORT: 5672
       SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USERNAME:-d2f}
-      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-d2fpass}
+      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
     depends_on:
       postgres:
         condition: service_healthy
@@ -211,12 +211,12 @@ services:
       SPRING_PROFILES_ACTIVE: prod
       DB_URL: jdbc:postgresql://postgres:5432/d2f
       DB_USER: ${DB_USER_CERTIFICAT:-app_user_certificat}
-      DB_PASSWORD: ${DB_PASSWORD:-d2fpasswd}
+      DB_PASSWORD: ${DB_PASSWORD}
       JWT_SECRET: ${JWT_SECRET}
       SPRING_RABBITMQ_HOST: rabbitmq
       SPRING_RABBITMQ_PORT: 5672
       SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USERNAME:-d2f}
-      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-d2fpass}
+      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
     depends_on:
       postgres:
         condition: service_healthy
@@ -243,12 +243,12 @@ services:
       SPRING_PROFILES_ACTIVE: prod
       DB_URL: jdbc:postgresql://postgres:5432/d2f
       DB_USER: ${DB_USER_EVALUATION:-app_user_evaluation}
-      DB_PASSWORD: ${DB_PASSWORD:-d2fpasswd}
+      DB_PASSWORD: ${DB_PASSWORD}
       JWT_SECRET: ${JWT_SECRET}
       SPRING_RABBITMQ_HOST: rabbitmq
       SPRING_RABBITMQ_PORT: 5672
       SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USERNAME:-d2f}
-      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-d2fpass}
+      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
     depends_on:
       postgres:
         condition: service_healthy
@@ -302,12 +302,12 @@ services:
       SPRING_PROFILES_ACTIVE: prod
       DB_URL: jdbc:postgresql://postgres:5432/d2f
       DB_USER: ${DB_USER_FORMATION:-app_user_formation}
-      DB_PASSWORD: ${DB_PASSWORD:-d2fpasswd}
+      DB_PASSWORD: ${DB_PASSWORD}
       JWT_SECRET: ${JWT_SECRET}
       SPRING_RABBITMQ_HOST: rabbitmq
       SPRING_RABBITMQ_PORT: 5672
       SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USERNAME:-d2f}
-      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD:-d2fpass}
+      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
     depends_on:
       postgres:
         condition: service_healthy
@@ -370,7 +370,7 @@ services:
     restart: unless-stopped
     environment:
       APP_ENV: production
-      DATABASE_URL: postgresql://${DB_USER_ANALYSE:-app_user_analyse}:${DB_PASSWORD:-d2fpasswd}@postgres:5432/d2f
+      DATABASE_URL: postgresql://${DB_USER_ANALYSE:-app_user_analyse}:${DB_PASSWORD}@postgres:5432/d2f
       MODELS_DIR: /app/data/models
     volumes:
       - d2f_models_data:/app/data/models

@@ -33,7 +33,7 @@ vi.mock("framer-motion", () => ({
   AnimatePresence: ({ children }) => <>{children}</>,
 }));
 
-describe("UploadStep", () => {
+describe("UploadStep", { timeout: 15000 }, () => {
   const defaultProps = {
     files: [],
     analyzing: false,

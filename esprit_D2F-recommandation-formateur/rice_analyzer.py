@@ -32,7 +32,7 @@ def _get_db_connection():
     return psycopg2.connect(
         dbname=os.getenv("DB_NAME", "d2f"),
         user=os.getenv("DB_USER", "d2f"),
-        password=os.getenv("DB_PASS", "d2fpasswd"),
+        password=os.getenv("DB_PASS"),
         host=os.getenv("DB_HOST", "localhost"),
         port=int(os.getenv("DB_PORT", "7432")),
     )

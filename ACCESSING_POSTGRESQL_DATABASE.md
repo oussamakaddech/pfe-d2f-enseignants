@@ -8,7 +8,7 @@ Based on the application configuration, the database connection information can 
 # Datasource
 spring.datasource.url=${DB_URL:jdbc:postgresql://localhost:7432/d2f}
 spring.datasource.username=${DB_USER:d2f}
-spring.datasource.password=${DB_PASSWORD:d2fpasswd}
+spring.datasource.password=${DB_PASSWORD}
 ```
 
 The database name is "d2f" and runs on port 7432.
@@ -31,7 +31,7 @@ You can use tools like:
 - Host: localhost:7432
 - Database: d2f
 - Username: d2f
-- Password: d2fpasswd
+- Password: ${DB_PASSWORD}
 
 ## Fixing the Missing Column Issue
 
