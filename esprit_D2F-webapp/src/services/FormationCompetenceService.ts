@@ -1,62 +1,40 @@
-import axios from "axios";
+import { defaultApi as api } from "../utils/httpClient";
 import { config } from "../config/env";
-import { optionalAuthHeader } from "./authHeaders";
 
 const API_URL = `${config.FORMATION_URL}/formation/formation-competences`;
 
 const FormationCompetenceService = {
-  /** Récupérer les liaisons pour une formation */
   async getByFormation(formationId) {
-    const response = await axios.get(`${API_URL}/formation/${formationId}`, {
-      headers: optionalAuthHeader(),
-    });
+    const response = await api.get(`${API_URL}/formation/${formationId}`);
     return response.data;
   },
 
-  /** Ajouter une liaison formation-compétence */
   async addFormationCompetence(formationId, fc) {
-    const response = await axios.post(`${API_URL}/formation/${formationId}`, fc, {
-      headers: optionalAuthHeader(),
-    });
+    const response = await api.post(`${API_URL}/formation/${formationId}`, fc);
     return response.data;
   },
 
-  /** Mettre à jour une liaison */
   async updateFormationCompetence(id, fc) {
-    const response = await axios.put(`${API_URL}/${id}`, fc, {
-      headers: optionalAuthHeader(),
-    });
+    const response = await api.put(`${API_URL}/${id}`, fc);
     return response.data;
   },
 
-  /** Supprimer une liaison */
   async deleteFormationCompetence(id) {
-    await axios.delete(`${API_URL}/${id}`, {
-      headers: optionalAuthHeader(),
-    });
+    await api.delete(`${API_URL}/${id}`);
   },
 
-  /** Remplacer toutes les liaisons pour une formation */
   async replaceAllForFormation(formationId, newLinks) {
-    const response = await axios.put(`${API_URL}/formation/${formationId}/replace-all`, newLinks, {
-      headers: optionalAuthHeader(),
-    });
+    const response = await api.put(`${API_URL}/formation/${formationId}/replace-all`, newLinks);
     return response.data;
   },
 
-  /** Récupérer les formations liées à une compétence */
   async getByCompetence(competenceId) {
-    const response = await axios.get(`${API_URL}/competence/${competenceId}`, {
-      headers: optionalAuthHeader(),
-    });
+    const response = await api.get(`${API_URL}/competence/${competenceId}`);
     return response.data;
   },
 
-  /** Récupérer les formations liées à un domaine */
   async getByDomaine(domaineId) {
-    const response = await axios.get(`${API_URL}/domaine/${domaineId}`, {
-      headers: optionalAuthHeader(),
-    });
+    const response = await api.get(`${API_URL}/domaine/${domaineId}`);
     return response.data;
   },
 };

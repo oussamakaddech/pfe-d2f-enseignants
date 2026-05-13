@@ -1,11 +1,13 @@
 // src/components/CertificateEditorViewerItem.jsx
 import { useEffect, useState } from "react";
-import { Row, Col, Card, Input, Button, Form, message, Spin } from "antd";
+import { Row, Col, Card, Input, Button, Form, Spin } from "antd";
 import { SaveOutlined } from "@ant-design/icons";
+import useAppNotification from "../hooks/useAppNotification";
 import jsPDF from "jspdf";
 import CertificateService from "../services/CertificateService";
 
 export default function CertificateEditorViewerItem({ certificate, onUpdate }) {
+  const { message } = useAppNotification();
   const [certData, setCertData] = useState(certificate);
   const [pdfUrl, setPdfUrl] = useState("");
 

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { message, Space, Tag, Typography } from "antd";
+import { Space, Tag, Typography } from "antd";
 import {
   ApartmentOutlined,
   BookOutlined,
@@ -9,11 +9,13 @@ import {
   InfoCircleOutlined,
   TeamOutlined,
 } from "@ant-design/icons";
+import useAppNotification from "../../../hooks/useAppNotification";
 import CompetenceService from "../services/competenceFeatureApi";
 
 const { Text } = Typography;
 
 export default function useStructureData() {
+  const { message } = useAppNotification();
   const [structure, setStructure] = useState(null);
   const [structureLoading, setStructureLoading] = useState(false);
   const [structureLoaded, setStructureLoaded] = useState(false);

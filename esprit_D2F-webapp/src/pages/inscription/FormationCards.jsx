@@ -13,7 +13,6 @@ import {
   Space,
   Badge,
   Typography,
-  message,
   Tag,
   Button,
 } from "antd";
@@ -38,6 +37,7 @@ import EnseignantService from "../../services/EnseignantService";
 import { getProfile } from "../../services/accountService";
 
 import "./FormationCards.css";
+import useAppNotification from "../../hooks/useAppNotification";
 
 const { Title, Text } = Typography;
 const { RangePicker } = DatePicker;
@@ -56,7 +56,7 @@ export default function FormationCards() {
   const [requested, setRequested] = useState([]);
   const navigate = useNavigate();
 
-  const [messageApi, contextHolder] = message.useMessage();
+  const { message: messageApi } = useAppNotification();
 
   // filtres
   const [searchText, setSearchText] = useState("");
@@ -188,7 +188,6 @@ export default function FormationCards() {
 
   return (
     <>
-      {contextHolder}
       <div style={{ padding: 24, maxWidth: 1400, margin: "0 auto" }}>
         <Row justify="space-between" align="middle" style={{ marginBottom: 24 }}>
           <Col>

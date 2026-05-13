@@ -1,13 +1,14 @@
 // src/components/EditProfile.jsx
 import { useEffect, useState } from "react";
-import { Form, Input, Button, Typography, message, Card } from "antd";
+import { Form, Input, Button, Typography, Card } from "antd";
+import useAppNotification from "../../hooks/useAppNotification";
 import { getProfile, editProfile } from "../../services/accountService";
 
 const { Title } = Typography;
 
 export default function EditProfile() {
   const [form] = Form.useForm();
-  const [msgApi, contextHolder] = message.useMessage();
+  const { message: msgApi } = useAppNotification();
   const [profile, setProfile] = useState(null);
 
   // Chargement initial
@@ -61,8 +62,6 @@ export default function EditProfile() {
 
   return (
     <Card style={{ maxWidth: 600, margin: "40px auto", padding: 24 }}>
-      {contextHolder}
-
       <Title level={2} style={{ textAlign: "center" }}>
         Modifier mon profil
       </Title>

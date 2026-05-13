@@ -1,7 +1,8 @@
 /* eslint-disable react/prop-types */
 import { useCallback, useMemo, useState } from "react";
 import { CodeOutlined, DownloadOutlined, FileExcelOutlined, FileTextOutlined } from "@ant-design/icons";
-import { Button, Dropdown, Tag, message } from "antd";
+import { Button, Dropdown, Tag } from "antd";
+import useAppNotification from "../../../../hooks/useAppNotification";
 import {
   doExportCompetencesCSV,
   doExportSavoirsCSV,
@@ -14,7 +15,7 @@ import { getFilteredCrud } from "./utils";
 
 export default function ExportMenu({ crud, structure, stats, handleExportExcel }) {
   const [loading, setLoading] = useState(false);
-  const [messageApi, ctxHolder] = message.useMessage();
+  const { message: messageApi } = useAppNotification();
 
   const domaineId = structure.selectedDomaine;
   const domaineName = useMemo(
@@ -95,7 +96,6 @@ export default function ExportMenu({ crud, structure, stats, handleExportExcel }
 
   return (
     <>
-      {ctxHolder}
       <Dropdown
         menu={{ items: menuItems, onClick: ({ key }) => { if (key !== "__stats__") run(key); } }}
         trigger={["click"]}

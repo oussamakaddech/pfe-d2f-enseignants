@@ -6,7 +6,6 @@ import {
   Button,
   Card,
   Typography,
-  message,
   Spin,
   Row,
   Col,
@@ -43,6 +42,7 @@ import BesoinFormationService from "../../services/BesoinFormationService";
 import DeptService from "../../services/DeptService";
 import UpService from "../../services/upService";
 import "./BesoinForm.css";
+import useAppNotification from "../../hooks/useAppNotification";
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
@@ -72,7 +72,7 @@ export default function BesoinForm() {
   const userRole = String(user?.role || "").toUpperCase();
   const canManageParticipants = ["CUP", "ADMIN"].includes(userRole) || ["CUP", "ADMIN"].includes(activeRole);
 
-  const [msgApi, msgCtx] = message.useMessage();
+  const { message: msgApi } = useAppNotification();
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [departements, setDepartements] = useState([]);
@@ -761,7 +761,6 @@ export default function BesoinForm() {
         },
       }}
     >
-      {msgCtx}
       <div className="besoin-form-container">
         <motion.div
           initial={{ opacity: 0, y: 30 }}

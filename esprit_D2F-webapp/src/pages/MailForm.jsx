@@ -1,10 +1,12 @@
 // src/components/MailForm.jsx
 import PropTypes from "prop-types";
-import { Form, Input, Button, message } from "antd";
+import { Form, Input, Button } from "antd";
 import moment from "moment";
+import useAppNotification from "../hooks/useAppNotification";
 import MailService from "../services/MailService";
 
 export default function MailForm({ formation, onSendSuccess }) {
+  const { message } = useAppNotification();
   const [form] = Form.useForm();
 
   // 1) Valeurs par défaut

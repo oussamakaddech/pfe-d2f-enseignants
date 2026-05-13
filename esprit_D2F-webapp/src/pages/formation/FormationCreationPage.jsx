@@ -1,15 +1,16 @@
 import { useNavigate, useLocation } from "react-router-dom";
-import { Button, Typography, Breadcrumb, message } from "antd";
+import { Button, Typography, Breadcrumb } from "antd";
+import useAppNotification from "../../hooks/useAppNotification";
 import { HomeOutlined, ArrowLeftOutlined } from "@ant-design/icons";
 import FormationWorkflowForm from "../FormationWorkflowForm";
 
 const { Title } = Typography;
 
 export default function FormationCreationPage() {
+  const { message: msgApi } = useAppNotification();
   const navigate = useNavigate();
   const location = useLocation();
   const besoinInfo = location.state?.besoinInfo || null;
-  const [msgApi, msgCtx] = message.useMessage();
 
   const handleCreated = () => {
     msgApi.success("Formation créée avec succès !");
@@ -17,7 +18,6 @@ export default function FormationCreationPage() {
 
   return (
     <>
-      {msgCtx}
       <div style={{ padding: "16px 24px", maxWidth: 1000, margin: "0 auto" }}>
         <div
           style={{

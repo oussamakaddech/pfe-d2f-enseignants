@@ -3,7 +3,7 @@ package esprit.pfe.serviceformation.controllers;
 
 import esprit.pfe.serviceformation.entities.Formation;
 import esprit.pfe.serviceformation.services.FormationService;
-import esprit.pfe.auth.security.AuthorizationMatrix;
+import esprit.d2f.common.security.AuthorizationMatrix;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;

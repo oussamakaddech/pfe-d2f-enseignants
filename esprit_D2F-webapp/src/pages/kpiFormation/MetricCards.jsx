@@ -14,9 +14,9 @@ import {
   Switch,
   Spin,
   Tooltip,
-  message,
 } from "antd";
 import { SettingOutlined, PlusOutlined, CloseOutlined } from "@ant-design/icons";
+import useAppNotification from "../../hooks/useAppNotification";
 import dayjs from "dayjs";
 
 import KPIService from "../../services/KPIService";
@@ -33,6 +33,7 @@ const MetricCards = () => {
   //
   // ─── ÉTATS LOCAUX ──────────────────────────────────────────────────────────────
   //
+  const { message } = useAppNotification();
   // Chaque carte est de la forme :
   // {
   //   id: <number>,

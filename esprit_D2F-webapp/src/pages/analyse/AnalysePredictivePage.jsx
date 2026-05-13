@@ -1,7 +1,7 @@
 import { useState, useEffect, useContext } from "react";
 import {
   Card, Input, Button, Table, Tag, Statistic, Row, Col, Alert, Spin, Progress,
-  Typography, Tooltip, Space, Empty, Avatar, Divider, Select, Tabs, Badge, message,
+  Typography, Tooltip, Space, Empty, Avatar, Divider, Select, Tabs, Badge,
 } from "antd";
 import {
   SearchOutlined, RobotOutlined, WarningOutlined, RiseOutlined, FallOutlined,
@@ -9,6 +9,7 @@ import {
   HistoryOutlined, ReloadOutlined, ExperimentOutlined, SafetyCertificateOutlined,
   DashboardOutlined,
 } from "@ant-design/icons";
+import useAppNotification from "../../hooks/useAppNotification";
 import { motion, AnimatePresence } from "framer-motion";
 import { AuthContext } from "../../context/AuthContext";
 import AnalysePredictiveService from "../../services/AnalysePredictiveService";
@@ -22,6 +23,7 @@ const riskColor = (s) => s >= 0.7 ? "#ef4444" : s >= 0.4 ? "#f59e0b" : "#10b981"
 const normalizeRole = (v) => String(v || "").toLowerCase().replace(/^role_?/, "").replace(/[\s_-]+/g, "");
 
 export default function AnalysePredictivePage() {
+  const { message } = useAppNotification();
   const { user } = useContext(AuthContext);
   const role = normalizeRole(user?.role);
   const isAdmin = role === "admin";

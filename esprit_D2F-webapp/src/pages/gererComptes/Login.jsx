@@ -1,7 +1,8 @@
 // src/pages/Auth/Login.jsx
-import { useState, useContext, useEffect } from "react";
-import { App, Form, Input, Button, Typography } from "antd";
+import { useState, useContext } from "react";
+import { Form, Input, Button, Typography } from "antd";
 import { UserOutlined, LockOutlined } from "@ant-design/icons";
+import useAppNotification from "../../hooks/useAppNotification";
 import { v4 as uuidv4 } from "uuid";
 import { useNavigate } from "react-router-dom";
 import { login as loginService } from "../../services/authService";
@@ -10,58 +11,42 @@ import "./Login.css";
 
 const { Title } = Typography;
 
+const FEATURES = [
+  "Gestion des formations continues",
+  "Suivi des compétences et évaluations",
+  "Analyse prédictive par intelligence artificielle",
+];
+
+const PARTICLES = Array.from({ length: 14 }, (_, i) => ({
+  id: i,
+  size: 8 + (i % 4) * 7,
+  left: `${(i * 7.3) % 95}%`,
+  dur: `${16 + (i % 5) * 4}s`,
+  delay: `${(i * 1.9) % 12}s`,
+}));
+
 export default function Login() {
+  const { message } = useAppNotification();
   const [form] = Form.useForm();
   const navigate = useNavigate();
   const { login } = useContext(AuthContext);
-  const { message } = App.useApp();
   const [loading, setLoading] = useState(false);
   const [deviceId] = useState(uuidv4());
-  const [particles, setParticles] = useState([]);
 
-  // Création des particules de fond
-  useEffect(() => {
-    const newParticles = [];
-    for (let i = 0; i < 20; i++) {
-      const type = i % 3 === 0 ? 'square' : i % 3 === 1 ? 'triangle' : '';
-      newParticles.push({
-        id: i,
-        left: Math.random() * 100,
-        size: Math.random() * 10 + 5,
-        delay: Math.random() * 15,
-        duration: Math.random() * 10 + 15,
-        type,
-      });
-    }
-    setParticles(newParticles);
-  }, []);
-
-  /**
-   * Soumission du formulaire
-   */
   const onFinish = async ({ username, password }) => {
     setLoading(true);
-    // Nettoyer l'état d'erreur éventuel du champ password
     form.setFields([{ name: "password", errors: [] }]);
-
     try {
       const { accessToken, role } = await loginService({ username, password, deviceId });
-
-      if (!accessToken || !role) {
-        throw new Error("Réponse de connexion invalide");
-      }
-
-      // Mémorise l'authentification dans le contexte
+      if (!accessToken || !role) throw new Error("Réponse de connexion invalide");
       login(accessToken, { username, role });
-      message.success("Connexion réussie ! Bienvenue ✨", 2);
+      message.success("Connexion réussie !", 2);
       navigate("/home/profile");
     } catch (err) {
       if (err.response?.status === 401) {
-        // Affiche l'erreur directement sous le champ mot de passe
-        form.setFields([{ name: "password", errors: ["Nom d’utilisateur ou mot de passe incorrect"] }]);
+        form.setFields([{ name: "password", errors: ["Nom d'utilisateur ou mot de passe incorrect"] }]);
       } else {
-        const msg = err.response?.data?.message || "Échec de la connexion. Vérifiez vos identifiants.";
-        message.error(msg, 3);
+        message.error(err.response?.data?.message || "Échec de la connexion.", 3);
       }
     } finally {
       setLoading(false);
@@ -69,98 +54,114 @@ export default function Login() {
   };
 
   return (
-    <div className="login-container">
-      {/* Icônes éducatives flottantes */}
-      <div className="edu-icon">📚</div>
-      <div className="edu-icon">🎓</div>
-      <div className="edu-icon">📖</div>
-      <div className="edu-icon">✏️</div>
+    <div className="login-page">
 
-      {/* Particules de fond */}
-      <div className="particles">
-        {particles.map((particle) => (
-          <div
-            key={particle.id}
-            className={`particle ${particle.type}`}
-            style={{
-              left: `${particle.left}%`,
-              width: `${particle.size}px`,
-              height: `${particle.size}px`,
-              animationDelay: `${particle.delay}s`,
-              animationDuration: `${particle.duration}s`,
-            }}
-          />
-        ))}
-      </div>
-
-      {/* Carte de connexion */}
-      <div className="login-card">
-        {/* En-tête avec logo et nom */}
-        <div className="login-header">
-          <div className="login-logo-container">
-            <img
-              src="/assets/img/logo/esprit.png"
-              alt="Esprit Logo"
-              className="login-logo"
+      {/* ── Left: Branding Panel ── */}
+      <div className="login-brand">
+        <div className="login-particles" aria-hidden="true">
+          {PARTICLES.map((p) => (
+            <div
+              key={p.id}
+              className="login-particle"
+              style={{
+                width: p.size,
+                height: p.size,
+                left: p.left,
+                "--dur":   p.dur,
+                "--delay": p.delay,
+              }}
             />
-          </div>
-          <Title level={2} className="login-title">
-            ESPRIT
-          </Title>
-          <p className="login-subtitle">Plateforme de Formation Continue</p>
+          ))}
         </div>
 
-        <Form
-          form={form}
-          name="login"
-          initialValues={{ username: "", password: "" }}
-          onFinish={onFinish}
-          layout="vertical"
-          requiredMark={false}
-          className="login-form"
-        >
-          <Form.Item
-            name="username"
-            label="Nom d'utilisateur"
-            rules={[{ required: true, message: "Veuillez entrer votre nom d'utilisateur" }]}
-          >
-            <Input 
-              prefix={<UserOutlined />} 
-              placeholder="Votre identifiant" 
-              size="large" 
-              className="login-input"
-            />
-          </Form.Item>
+        <div className="login-brand-inner">
+          <img
+            src="/assets/img/logo/esprit.png"
+            alt="Esprit"
+            className="login-brand-logo"
+          />
+          <h1 className="login-brand-title">ESPRIT</h1>
+          <div className="login-brand-divider" />
+          <p className="login-brand-sub">
+            Plateforme de Développement<br />des Formateurs — D2F
+          </p>
+          <div className="login-brand-features">
+            {FEATURES.map((f, i) => (
+              <div key={i} className="login-brand-feature">
+                <span className="login-brand-feature-dot" />
+                {f}
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
 
-          <Form.Item
-            name="password"
-            label="Mot de passe"
-            rules={[{ required: true, message: "Veuillez entrer votre mot de passe" }]}
-          >
-            <Input.Password 
-              prefix={<LockOutlined />} 
-              placeholder="••••••••" 
-              size="large" 
-              className="login-input"
-            />
-          </Form.Item>
+      {/* ── Right: Form Panel ── */}
+      <div className="login-form-panel">
+        <div className="login-card">
+          <Title level={3} className="login-card-title">Connexion</Title>
+          <p className="login-card-subtitle">
+            Entrez vos identifiants pour accéder à la plateforme
+          </p>
 
-          <Form.Item noStyle shouldUpdate>
-            {() => (
-              <Button
-                type="primary"
-                htmlType="submit"
-                block
+          <Form
+            form={form}
+            name="login"
+            initialValues={{ username: "", password: "" }}
+            onFinish={onFinish}
+            layout="vertical"
+            requiredMark={false}
+            className="login-form"
+          >
+            <Form.Item
+              name="username"
+              label="Nom d'utilisateur"
+              rules={[{ required: true, message: "Champ requis" }]}
+            >
+              <Input
+                prefix={<UserOutlined style={{ color: "#bbb" }} />}
+                placeholder="Votre identifiant"
                 size="large"
-                loading={loading}
-                disabled={loading || !form.isFieldsTouched(true) || form.getFieldsError().some(({ errors }) => errors.length)}
-                className="login-button"
-              >
-                Se connecter
-              </Button>
-            )}
-          </Form.Item>
-        </Form>
+                className="login-input"
+              />
+            </Form.Item>
+
+            <Form.Item
+              name="password"
+              label="Mot de passe"
+              rules={[{ required: true, message: "Champ requis" }]}
+            >
+              <Input.Password
+                prefix={<LockOutlined style={{ color: "#bbb" }} />}
+                placeholder="••••••••"
+                size="large"
+                className="login-input"
+              />
+            </Form.Item>
+
+            <Form.Item noStyle shouldUpdate>
+              {() => (
+                <Button
+                  type="primary"
+                  htmlType="submit"
+                  block
+                  size="large"
+                  loading={loading}
+                  disabled={
+                    loading ||
+                    !form.isFieldsTouched(true) ||
+                    form.getFieldsError().some(({ errors }) => errors.length)
+                  }
+                  className="login-button"
+                >
+                  Se connecter
+                </Button>
+              )}
+            </Form.Item>
+          </Form>
+
+          <p className="login-footer">© 2025 ESPRIT — Tous droits réservés</p>
+        </div>
       </div>
     </div>
   );

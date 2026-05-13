@@ -1,37 +1,27 @@
-
-import axios from "axios";
-import { Button, message } from "antd";
+import { Button } from "antd";
 import { DownloadOutlined } from "@ant-design/icons";
-import { config } from "../config/env";
+import useAppNotification from "../hooks/useAppNotification";
+import FormationWorkflowService from "../services/FormationWorkflowService";
 
 function ExportExcelButton() {
+  const { message } = useAppNotification();
   const handleExportExcel = async () => {
     try {
-      const response = await axios.get(
-        `${config.FORMATION_URL}/formation/formations-workflow/export/excel`,
-        {
-          responseType: "blob", // Pour récupérer le fichier binaire
-        }
-      );
+      const response = await FormationWorkflowService.exportFormations("", "");
 
-      // Créer un objet Blob à partir de la réponse
       const blob = new Blob([response.data], {
         type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
       });
 
-      // Créer une URL pour ce Blob
       const url = window.URL.createObjectURL(blob);
 
-      // Créer un lien <a> virtuel pour déclencher le téléchargement
       const link = document.createElement("a");
       link.href = url;
-      link.setAttribute("download", "formations.xlsx"); // Nom du fichier
+      link.setAttribute("download", "formations.xlsx");
       document.body.appendChild(link);
 
-      // Déclencher le téléchargement
       link.click();
 
-      // Nettoyer le DOM et révoquer l'URL
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
     } catch (error) {

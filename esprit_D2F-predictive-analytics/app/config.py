@@ -22,9 +22,9 @@ class Settings(BaseSettings):
 
     # ── Server ───────────────────────────────────
     host: str = Field(default="0.0.0.0", alias="HOST")
-    port: int = Field(default=8090, alias="PORT")
+    port: int = Field(default=8000, alias="PORT")
 
-    # ── Database (read-only access to existing d2f DB) ──
+    # ── Database ─────────────────────────────────
     database_url: PostgresDsn = Field(
         default="postgresql://app_user_analyse:analyse_pass@localhost:7432/d2f",
         alias="DATABASE_URL",
@@ -42,20 +42,37 @@ class Settings(BaseSettings):
     min_training_samples: int = Field(default=50, alias="MIN_TRAINING_SAMPLES")
     cv_folds: int = Field(default=5, alias="CV_FOLDS")
 
-    # ── Risk Detection Thresholds ────────────────
+    # ── Gap Detection Thresholds ─────────────────
+    seuil_gap_critique: float = Field(default=0.75, alias="SEUIL_GAP_CRITIQUE")
+    seuil_gap_haute: float = Field(default=0.50, alias="SEUIL_GAP_HAUTE")
+    seuil_stagnation_mois: int = Field(default=12, alias="SEUIL_STAGNATION_MOIS")
+    seuil_completion_faible: float = Field(default=40.0, alias="SEUIL_COMPLETION_FAIBLE")
+    seuil_dept_pct: float = Field(default=0.30, alias="SEUIL_DEPT_PCT")
+
+    # ── Risk Detection ───────────────────────────
     risk_gap_threshold: float = Field(default=2.0, alias="RISK_GAP_THRESHOLD")
     risk_absence_threshold_days: int = Field(default=365, alias="RISK_ABSENCE_THRESHOLD_DAYS")
     risk_engagement_percentile: float = Field(default=10.0, alias="RISK_ENGAGEMENT_PERCENTILE")
 
-    # ── JWT (for validation if gateway forwards token) ──
+    # ── Scheduler ────────────────────────────────
+    scheduler_enabled: bool = Field(default=True, alias="SCHEDULER_ENABLED")
+    batch_analysis_hour: int = Field(default=2, alias="BATCH_ANALYSIS_HOUR")
+    dashboard_refresh_hour: int = Field(default=3, alias="DASHBOARD_REFRESH_HOUR")
+
+    # ── Messaging ────────────────────────────────
+    messaging_enabled: bool = Field(default=False, alias="MESSAGING_ENABLED")
+    activemq_host: str = Field(default="localhost", alias="ACTIVEMQ_HOST")
+    activemq_stomp_port: int = Field(default=61613, alias="ACTIVEMQ_STOMP_PORT")
+    activemq_user: str = Field(default="admin", alias="ACTIVEMQ_USER")
+    activemq_password: str = Field(default="admin", alias="ACTIVEMQ_PASSWORD")
+
+    # ── JWT ──────────────────────────────────────
     jwt_secret: Optional[str] = Field(default=None, alias="JWT_SECRET")
-    jwt_algorithm: str = Field(default="HS256", alias="JWT_ALGORITHM")
+    jwt_algorithm: str = Field(default="HS512", alias="JWT_ALGORITHM")
 
     @property
     def is_production(self) -> bool:
-        """Return True if running in production mode."""
         return self.app_env.lower() == "production"
 
 
-# Global settings instance (singleton pattern)
 settings = Settings()

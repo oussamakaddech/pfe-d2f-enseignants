@@ -1,7 +1,6 @@
 // src/Pages/Auth/Register.jsx
 import { useState } from "react";
 import {
-  App,
   Card,
   Form,
   Input,
@@ -17,6 +16,7 @@ import {
   PhoneOutlined,
   InfoCircleOutlined,
 } from "@ant-design/icons";
+import useAppNotification from "../../hooks/useAppNotification";
 import { useNavigate } from "react-router-dom";
 
 import { signup } from "../../services/authService";
@@ -26,9 +26,9 @@ const { Title } = Typography;
 const { Option } = Select;
 
 export default function Register({ onSuccess } = {}) {
+  const { message } = useAppNotification();
   const [form] = Form.useForm();
   const navigate = useNavigate();
-  const { message } = App.useApp();
   const [loading, setLoading] = useState(false);
 
   const onFinish = async (values) => {

@@ -1,5 +1,3 @@
-// src/components/KPI/DonutByTrainerTypeWithFilters.jsx
-
 import  { useState, useEffect } from "react";
 import {
   Row,
@@ -12,7 +10,6 @@ import {
   Button,
   Typography,
   Spin,
-  message,
   Drawer,
   Form,
   Select,
@@ -20,6 +17,7 @@ import {
   Switch,
   Input,
 } from "antd";
+import useAppNotification from "../../hooks/useAppNotification";
 import {
   BookOutlined,
   FilterOutlined,
@@ -27,9 +25,8 @@ import {
   MailOutlined,
   HomeOutlined,
 } from "@ant-design/icons";
+import { Doughnut } from "react-chartjs-2";
 import moment from "moment";
-
-import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from "recharts";
 
 import KPIService from "../../services/KPIService";
 import FormationWorkflowService from "../../services/FormationWorkflowService";
@@ -40,7 +37,6 @@ const { Title, Text } = Typography;
 const { Option } = Select;
 const { RangePicker } = DatePicker;
 
-// Couleurs : Externe = rouge, Interne = bleu, Mixte = vert
 const COLORS = ["#FF4D4F", "#1890FF", "#52C41A"];
 
 // Clé utilisée pour stocker/charger les filtres dans localStorage
@@ -48,6 +44,7 @@ const STORAGE_KEY = "trainerFilters";
 
 export default function DonutByTrainerTypeWithFilters() {
   // ─── 1) État “filters”, initialisé depuis localStorage si possible ──────────────────────
+  const { message } = useAppNotification();
   const [filters, setFilters] = useState({
     domaine: null,
     upId: null,
@@ -262,50 +259,46 @@ export default function DonutByTrainerTypeWithFilters() {
 
       {/* Donut Chart + Cards statistiques */}
       <Row gutter={[24, 24]}>
-        {/* ─── Donut Chart */}
+        {/* ─── Donut Chart (chart.js) */}
         <Col xs={24} md={12}>
           <Card
             style={{ borderRadius: 8, boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}
             styles={{ body: { padding: 16 } }}
           >
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={chartData}
-                  dataKey="value"
-                  nameKey="name"
-                  innerRadius="60%"
-                  outerRadius="80%"
-                  paddingAngle={4}
-                  onClick={onPieClick}
-                >
-                  {chartData.map((entry, idx) => (
-                    <Cell
-                      key={`cell-${idx}`}
-                      fill={COLORS[idx]}
-                      cursor="pointer"
-                    />
-                  ))}
-                </Pie>
-                <Tooltip
-                  formatter={(value, name) => [`${value}`, `${name}`]}
-                />
-                <Legend
-                  verticalAlign="bottom"
-                  align="center"
-                  payload={chartData.map((item, idx) => ({
-                    id: idx,
-                    type: "square",
-                    value: `${item.name} (${
-                      total > 0
-                        ? ((item.value / total) * 100).toFixed(1)
-                        : "0.0"
-                    }%)`,
-                    color: COLORS[idx],
-                  }))}
-                />
-              </PieChart>
-            </ResponsiveContainer>
+            <div style={{ cursor: "pointer" }} onClick={() => setModalVisible(true)}>
+              <Doughnut
+                data={{
+                  labels: chartData.map((d) => d.name),
+                  datasets: [{
+                    data: chartData.map((d) => d.value),
+                    backgroundColor: COLORS,
+                    borderWidth: 2,
+                    borderColor: "#fff",
+                  }],
+                }}
+                options={{
+                  cutout: "60%",
+                  plugins: {
+                    legend: {
+                      position: "bottom",
+                      labels: {
+                        padding: 16,
+                        font: { size: 12 },
+                      },
+                    },
+                    tooltip: {
+                      callbacks: {
+                        label: (ctx) => {
+                          const val = ctx.parsed;
+                          const pct = total > 0 ? ((val / total) * 100).toFixed(1) : "0.0";
+                          return `${ctx.label}: ${val} (${pct}%)`;
+                        },
+                      },
+                    },
+                  },
+                }}
+              />
+            </div>
           </Card>
         </Col>
 

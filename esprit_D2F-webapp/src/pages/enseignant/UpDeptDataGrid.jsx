@@ -7,7 +7,6 @@ import {
   Upload,
   Input,
   Typography,
-  message,
   Drawer,
   Form,
   Popconfirm,
@@ -22,12 +21,13 @@ import {
 } from '@ant-design/icons';
 import UpService from '../../services/upService';
 import DeptService from '../../services/DeptService';
+import useAppNotification from "../../hooks/useAppNotification";
 
 const { Title } = Typography;
 const { TabPane } = Tabs;
 
 export default function UpDeptDataGrid() {
-  const [msgApi, msgCtx] = message.useMessage();
+  const { message: msgApi } = useAppNotification();
 
   // UP states
   const [ups, setUps] = useState([]);
@@ -295,7 +295,6 @@ export default function UpDeptDataGrid() {
 
   return (
     <>
-      {msgCtx}
       <div style={{ padding: 16 }}>
         <Title level={4}>Gestion des UP & Départements</Title>
         <Tabs defaultActiveKey="ups">

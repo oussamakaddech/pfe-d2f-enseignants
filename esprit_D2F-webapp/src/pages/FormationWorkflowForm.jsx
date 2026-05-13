@@ -16,7 +16,6 @@ import {
   Switch,
   Space,
   Tag,
-  message,
   Popconfirm,
   Alert as AntAlert,
 } from "antd";
@@ -32,6 +31,7 @@ import {
   LinkOutlined,
 } from "@ant-design/icons";
 import * as XLSX from "xlsx";
+import useAppNotification from "../hooks/useAppNotification";
 
 const { Text, Title } = Typography;
 const { TextArea } = Input;
@@ -61,6 +61,7 @@ const PERIOD_OPTIONS = [
 export default function FormationWorkflowForm({ initialDate, onFormationCreated, besoinInfo }) {
   const navigate = useNavigate();
   const auth = useContext(AuthContext);
+  const { message } = useAppNotification();
   const isAdmin = auth?.user?.role === "admin" || auth?.user?.role === "ADMIN";
   const [activeStep, setActiveStep] = useState(0);
 

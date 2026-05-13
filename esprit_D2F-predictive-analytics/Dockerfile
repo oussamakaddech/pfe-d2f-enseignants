@@ -1,20 +1,19 @@
-# ───────────────────────────────────────────────
+# ─────────────────────────────────────────────────────────────────────────────
 # D2F Predictive Analytics Microservice
-# FastAPI + scikit-learn + PostgreSQL
-# ───────────────────────────────────────────────
+# FastAPI + SQLAlchemy + PostgreSQL — port 8000
+# ─────────────────────────────────────────────────────────────────────────────
 
 FROM python:3.11-slim AS builder
 
 WORKDIR /app
 
-# System deps for compiling Python packages (numpy, pandas, psycopg2)
+# Dépendances système pour compiler psycopg2, numpy, pandas
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
     g++ \
     libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Python deps into a virtual env
 RUN python -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
@@ -22,40 +21,39 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
-# ─── Production stage ──────────────────────────
+# ─── Stage de production ──────────────────────────────────────────────────────
 FROM python:3.11-slim AS production
 
 WORKDIR /app
 
-# Runtime system deps only
+# Runtime uniquement
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq5 \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy venv from builder
 COPY --from=builder /opt/venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
-# Create non-root user for security
+# Utilisateur non-root (sécurité DSI §3)
 RUN groupadd -r appuser && useradd -r -g appuser appuser
 
-# Copy application code
+# Code applicatif
 COPY app/ ./app/
-COPY data/ ./data/
 COPY tests/ ./tests/
+COPY init_db/ ./init_db/
 
-# Ensure data directory is writable for model persistence
-RUN mkdir -p /app/data/models && chown -R appuser:appuser /app/data
+# Répertoire de travail pour les logs en écriture
+RUN mkdir -p /app/logs && chown -R appuser:appuser /app/logs
 
 USER appuser
 
-EXPOSE 8080
+EXPOSE 8000
 
 ENV PYTHONPATH=/app
 ENV APP_ENV=production
 
-# Healthcheck
-HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
-    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8080/health')" || exit 1
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+    CMD curl -sf http://localhost:8000/api/v1/analytics/health || exit 1
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8080", "--workers", "2"]
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "2"]

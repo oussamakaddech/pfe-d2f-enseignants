@@ -4,7 +4,6 @@ import {
   Button,
   Space,
   Input,
-  message,
   Typography,
   Spin,
   Empty,
@@ -32,6 +31,7 @@ import {
 import { useParams, useNavigate } from "react-router-dom";
 import * as XLSX from "xlsx";
 import InscriptionService from "../../services/InscriptionService";
+import useAppNotification from "../../hooks/useAppNotification";
 
 const { Title, Text } = Typography;
 
@@ -43,7 +43,7 @@ export default function DemandesList() {
   const [, setSearchText] = useState("");
   const [searchedColumn, setSearchedColumn] = useState("");
   const searchInput = useRef(null);
-  const [msgApi, msgCtx] = message.useMessage();
+  const { message: msgApi } = useAppNotification();
 
   const fetchData = async () => {
     setLoading(true);
@@ -280,7 +280,6 @@ export default function DemandesList() {
 
   return (
     <>
-      {msgCtx}
       <div style={{ padding: 24, maxWidth: 1200, margin: "0 auto" }}>
         {/* Header */}
         <Row justify="space-between" align="middle" style={{ marginBottom: 24 }}>

@@ -1,16 +1,10 @@
-// src/hooks/useRiceReport.js
-// Custom hook that owns the Step-3 import/report state.
-// Handles payload construction, the RiceService call, coverage fallback,
-// and lazy-loading of import history.
-
 import { useState, useCallback } from "react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import RiceService from "../services/RiceService";
 
 export function useRiceReport({ tree, departement, msgApi, onImportSuccess }) {
-  const [importing, setImporting] = useState(false);
   const [report, setReport] = useState(null);
-  const [importHistory, setImportHistory] = useState(null);
-  const [historyLoading, setHistoryLoading] = useState(false);
+  const queryClient = useQueryClient();
 
   const countSavoirsInArray = (savoirs) => {
     let total = 0;
@@ -36,8 +30,6 @@ export function useRiceReport({ tree, departement, msgApi, onImportSuccess }) {
     ),
   }));
 
-  // ── client-side coverage fallback ─────────────────────────────────────────
-  // Used when the Java service returns empty tauxCouvertureParDomaine (old version).
   const computeClientCoverage = useCallback(() => {
     const result = {};
     for (const d of tree) {
@@ -57,39 +49,49 @@ export function useRiceReport({ tree, departement, msgApi, onImportSuccess }) {
     return result;
   }, [tree]);
 
-  // ── import to DB ──────────────────────────────────────────────────────────
+  const importMutation = useMutation({
+    mutationFn: (payload) => RiceService.importToDb(payload),
+  });
+
+  const historyQuery = useQuery({
+    queryKey: ["rice-import-history"],
+    queryFn: () => RiceService.getImportHistory().then((data) => Array.isArray(data) ? data : []),
+    enabled: false,
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const setImportHistory = useCallback((data) => {
+    queryClient.setQueryData(["rice-import-history"], data);
+  }, [queryClient]);
+
   const handleImport = useCallback(async () => {
-    setImporting(true);
-    try {
-      const payload = {
-        domaines: tree.map((d) => ({
-          code: d.code,
-          nom: d.nom,
-          description: d.description ?? null,
-          competences: (d.competences ?? []).map((c) => ({
-            code: c.code,
-            nom: c.nom,
-            description: c.description ?? null,
-            ordre: c.ordre ?? 1,
-            savoirs: buildSavoirPayload(c.savoirs),
-            sousCompetences: (c.sousCompetences ?? []).map((sc) => ({
-              code: sc.code,
-              nom: sc.nom,
-              description: sc.description ?? null,
-              savoirs: buildSavoirPayload(sc.savoirs),
-            })),
+    const payload = {
+      domaines: tree.map((d) => ({
+        code: d.code,
+        nom: d.nom,
+        description: d.description ?? null,
+        competences: (d.competences ?? []).map((c) => ({
+          code: c.code,
+          nom: c.nom,
+          description: c.description ?? null,
+          ordre: c.ordre ?? 1,
+          savoirs: buildSavoirPayload(c.savoirs),
+          sousCompetences: (c.sousCompetences ?? []).map((sc) => ({
+            code: sc.code,
+            nom: sc.nom,
+            description: sc.description ?? null,
+            savoirs: buildSavoirPayload(sc.savoirs),
           })),
         })),
-      };
+      })),
+    };
 
-      const result = await RiceService.importToDb(payload);
-
-      // Enrich with client-side coverage rate if the server didn't return any
+    try {
+      const result = await importMutation.mutateAsync(payload);
       const serverTaux = result.tauxCouvertureParDomaine;
       if (!serverTaux || Object.keys(serverTaux).length === 0) {
         result.tauxCouvertureParDomaine = computeClientCoverage();
       }
-
       msgApi.success(
         result.affectationsCreated > 0
           ? `Import réussi ! ${result.affectationsCreated} affectation(s) créée(s).`
@@ -97,25 +99,16 @@ export function useRiceReport({ tree, departement, msgApi, onImportSuccess }) {
       );
       setReport(result);
       if (onImportSuccess) onImportSuccess(result);
+      queryClient.invalidateQueries({ queryKey: ["rice-import-history"] });
     } catch (err) {
-      msgApi.error(
-        err.response?.data?.message ?? "Erreur lors de l'import en base",
-      );
-    } finally {
-      setImporting(false);
+      msgApi.error(err.response?.data?.message ?? "Erreur lors de l'import en base");
     }
-  }, [tree, computeClientCoverage, msgApi, onImportSuccess]);
+  }, [tree, computeClientCoverage, msgApi, onImportSuccess, importMutation, queryClient]);
 
-  // ── lazy-load import history ───────────────────────────────────────────────
   const loadImportHistory = useCallback(() => {
-    setHistoryLoading(true);
-    RiceService.getImportHistory()
-      .then((data) => setImportHistory(Array.isArray(data) ? data : []))
-      .catch(() => setImportHistory([]))
-      .finally(() => setHistoryLoading(false));
-  }, []);
+    historyQuery.refetch();
+  }, [historyQuery]);
 
-  // ── expose CSV export helper ───────────────────────────────────────────────
   const exportReportJson = useCallback(() => {
     if (!report) return;
     const summary = {
@@ -139,9 +132,12 @@ export function useRiceReport({ tree, departement, msgApi, onImportSuccess }) {
   }, [report, departement]);
 
   return {
-    importing, report, setReport,
-    importHistory, setImportHistory,
-    historyLoading,
+    importing: importMutation.isPending,
+    report,
+    setReport,
+    importHistory: historyQuery.data ?? null,
+    setImportHistory,
+    historyLoading: historyQuery.isFetching,
     handleImport,
     loadImportHistory,
     computeClientCoverage,

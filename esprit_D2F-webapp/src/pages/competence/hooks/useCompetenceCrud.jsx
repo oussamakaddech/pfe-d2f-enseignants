@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { ApartmentOutlined, BookOutlined } from "@ant-design/icons";
-import { message, Switch, Tag, Tooltip } from "antd";
+import { Switch, Tag, Tooltip } from "antd";
+import useAppNotification from "../../../hooks/useAppNotification";
 import CompetenceService from "../services/competenceFeatureApi";
 import { NIVEAU_SAVOIR_OPTIONS, TYPE_SAVOIR_OPTIONS } from "../constants/competenceOptions";
 
 export default function useCompetenceCrud({ onInvalidateStructure, onSavoirMutated, onSavoirsChanged }) {
-  const [msgApi, msgCtx] = message.useMessage();
+  const { message: msgApi } = useAppNotification();
 
   const [domaines, setDomaines] = useState([]);
   const [domainesLoading, setDomainesLoading] = useState(false);
@@ -543,7 +544,6 @@ export default function useCompetenceCrud({ onInvalidateStructure, onSavoirMutat
   ], []);
 
   return {
-    msgCtx,
     domaines,
     domainesLoading,
     domaineModal,

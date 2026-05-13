@@ -26,13 +26,7 @@
 	</properties>
 
 	<dependencyManagement>
-	<dependencies>
-		<!-- D2F Common Security (shared AuthorizationMatrix) -->
-		<dependency>
-			<groupId>esprit.d2f</groupId>
-			<artifactId>d2f-common-security</artifactId>
-			<version>1.0.0</version>
-		</dependency>
+		<dependencies>
 			<dependency>
 				<groupId>org.springframework.cloud</groupId>
 				<artifactId>spring-cloud-dependencies</artifactId>
@@ -44,6 +38,13 @@
 	</dependencyManagement>
 
 	<dependencies>
+		<!-- D2F Common Security (shared AuthorizationMatrix) -->
+		<dependency>
+			<groupId>esprit.d2f</groupId>
+			<artifactId>d2f-common-security</artifactId>
+			<version>1.0.0</version>
+		</dependency>
+
 		<!-- API documentation -->
 		<dependency>
 			<groupId>org.springdoc</groupId>

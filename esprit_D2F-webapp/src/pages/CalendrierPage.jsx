@@ -5,7 +5,8 @@ import { Calendar, dateFnsLocalizer } from "react-big-calendar";
 import { format, parse, startOfWeek, getDay } from "date-fns";
 import { fr } from "date-fns/locale/fr";
 import "react-big-calendar/lib/css/react-big-calendar.css";
-import { Modal, Button, Steps, Spin, message, Space } from "antd";
+import { Modal, Button, Steps, Spin, Space } from "antd";
+import useAppNotification from "../hooks/useAppNotification";
 
 import FormationWorkflowForm from "./FormationWorkflowForm";
 import FormationWorkflowService from "../services/FormationWorkflowService";
@@ -24,6 +25,7 @@ const localizer = dateFnsLocalizer({
 });
 
 export default function CalendrierPage() {
+  const { message } = useAppNotification();
   // données calendrier
   const [events, setEvents] = useState([]);
   // modal & sélection

@@ -3,7 +3,6 @@ import {
   Table,
   Button,
   Space,
-  message,
   Typography,
   Card,
   Row,
@@ -46,6 +45,7 @@ import BesoinFormationService from "../../services/BesoinFormationService";
 import DeptService from "../../services/DeptService";
 import UpService from "../../services/upService";
 import "./BesoinList.css";
+import useAppNotification from "../../hooks/useAppNotification";
 
 const { Option } = Select;
 const { Title, Text } = Typography;
@@ -77,7 +77,7 @@ const itemVariants = {
 
 export default function BesoinList() {
   const navigate = useNavigate();
-  const [msgApi, msgCtx] = message.useMessage();
+  const { message: msgApi } = useAppNotification();
   const [besoins, setBesoins] = useState([]);
   const [filtered, setFiltered] = useState([]);
   const [departements, setDepartements] = useState([]);
@@ -489,7 +489,6 @@ export default function BesoinList() {
         },
       }}
     >
-      {msgCtx}
       <motion.div
         className="besoin-list-container"
         variants={containerVariants}

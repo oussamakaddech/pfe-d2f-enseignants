@@ -26,7 +26,7 @@ public class RabbitMqConfig {
         );
 
             DefaultJackson2JavaTypeMapper javaTypeMapper = new DefaultJackson2JavaTypeMapper();
-            javaTypeMapper.setTrustedPackages("*");
+            javaTypeMapper.setTrustedPackages("esprit.pfe.serviceevaluation.messaging", "esprit.pfe.serviceformation.messaging");
             javaTypeMapper.setIdClassMapping(mappings);
             conv.setJavaTypeMapper(javaTypeMapper);
         return conv;

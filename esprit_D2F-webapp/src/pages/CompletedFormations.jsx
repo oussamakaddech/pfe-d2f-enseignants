@@ -4,7 +4,6 @@ import {
   Table,
   Button,
   Typography,
-  message,
   Select,
   Space,
   Drawer,
@@ -18,6 +17,7 @@ import {
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { useNavigate } from "react-router-dom";
+import useAppNotification from "../hooks/useAppNotification";
 
 import FormationWorkflowService from "../services/FormationWorkflowService";
 import FormationCustomService from "../services/FormationCustomService";
@@ -33,6 +33,7 @@ const { RangePicker } = DatePicker;
 
 export default function CompletedFormations() {
   // États principaux
+  const { message } = useAppNotification();
   const [formations, setFormations] = useState([]);
   const [loadingTable, setLoadingTable] = useState(false);
   const [loadingButtons, setLoadingButtons] = useState({});

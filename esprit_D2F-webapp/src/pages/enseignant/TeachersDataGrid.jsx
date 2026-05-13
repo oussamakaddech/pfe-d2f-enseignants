@@ -13,7 +13,6 @@ import {
   Popconfirm,
   Space,
   Tooltip,
-  message,
 } from "antd";
 import {
   SearchOutlined,
@@ -29,13 +28,14 @@ import EnseignantService from "../../services/EnseignantService";
 import UpService from "../../services/upService";
 import DeptService from "../../services/DeptService";
 import EnseignantRegister from "./EnseignantRegister";
+import useAppNotification from "../../hooks/useAppNotification";
 
 const { Title } = Typography;
 const { Option } = Select;
 
 export default function TeachersDataGrid() {
   const navigate = useNavigate();
-  const [msgApi, msgCtx] = message.useMessage();
+  const { message: msgApi } = useAppNotification();
   const [data, setData] = useState([]);
   const [extracted, setExtracted] = useState([]);
   const [activeExtractIndex, setActiveExtractIndex] = useState(null);
@@ -414,7 +414,6 @@ export default function TeachersDataGrid() {
 
   return (
     <>
-      {msgCtx}
       <div style={{ padding: 16 }}>
         <Title level={4}>Liste des Enseignants</Title>
 

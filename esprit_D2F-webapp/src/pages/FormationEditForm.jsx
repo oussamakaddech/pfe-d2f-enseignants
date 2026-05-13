@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { format } from "date-fns";
-import { Input, InputNumber, DatePicker, TimePicker, Button, Space, Card, Form, message } from "antd";
+import { Input, InputNumber, DatePicker, TimePicker, Button, Space, Card, Form } from "antd";
+import useAppNotification from "../hooks/useAppNotification";
 import { PlusOutlined, DeleteOutlined } from "@ant-design/icons";
 import FormationWorkflowService from "../services/FormationWorkflowService";
 
