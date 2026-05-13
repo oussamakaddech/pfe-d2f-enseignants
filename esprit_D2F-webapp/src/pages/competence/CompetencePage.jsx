@@ -11,10 +11,10 @@ import {
   Tabs,
   Tag,
   Typography,
-  message,
 } from "antd";
 import { ApartmentOutlined } from "@ant-design/icons";
 import * as XLSX from "xlsx";
+import useAppNotification from "../../hooks/useAppNotification";
 import CompetenceModals from "./components/CompetenceModals";
 import ConsultationTab from "./components/ConsultationTab";
 import CrudTab from "./components/CrudTab";
@@ -49,6 +49,7 @@ const extractLegacyPrerequisiteManual = (description) => {
 };
 
 export default function CompetencePage() {
+  const { message, modal } = useAppNotification();
   const [domaineForm] = Form.useForm();
   const [compForm] = Form.useForm();
   const [scForm] = Form.useForm();
@@ -84,7 +85,7 @@ export default function CompetencePage() {
 
   const handleExportExcel = () => {
     if (!structure.matrixCompId || !structure.matrixData) {
-      Modal.info({
+      modal.info({
         title: "Export Excel",
         content:
           "Sélectionnez d'abord une compétence dans la section \"Affectation des savoirs par niveau de compétence\".",
@@ -412,7 +413,6 @@ export default function CompetencePage() {
   ════════════════════════════════════════════════════════════════════════ */
   return (
     <>
-      {crud.msgCtx}
       <div style={{ padding: 16 }}>
         <Title level={4}>
           <ApartmentOutlined /> Gestion des Compétences

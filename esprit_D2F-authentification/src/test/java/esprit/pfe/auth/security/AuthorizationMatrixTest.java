@@ -1,5 +1,6 @@
 package esprit.pfe.auth.security;
 
+import esprit.d2f.common.security.AuthorizationMatrix;
 import org.junit.jupiter.api.Test;
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;

@@ -2,7 +2,7 @@
 import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import {
   Tree, Card, Input, Select, Tabs, Tag, Space, Typography, Spin, Statistic,
-  Row, Col, Badge, Tooltip, Collapse, Empty, Descriptions, message, Modal,
+  Row, Col, Badge, Tooltip, Collapse, Empty, Descriptions, Modal,
   Form, Button, Popconfirm, Table,
 } from "antd";
 import {
@@ -10,6 +10,7 @@ import {
   BulbOutlined, ExperimentOutlined, FolderOpenOutlined, PlusOutlined,
   DeleteOutlined, InfoCircleOutlined,
 } from "@ant-design/icons";
+import useAppNotification from "../../hooks/useAppNotification";
 import CompetenceService from "../../services/CompetenceService";
 
 const { Title, Text } = Typography;
@@ -32,6 +33,7 @@ const NIVEAU_OPTIONS = Object.entries(NIVEAU_LABELS).map(([key, val]) => ({
 // ─── Structure Tree Page ────────────────────────────────────────────────────
 
 export default function StructureArbrePage() {
+  const { message } = useAppNotification();
   const [loading, setLoading] = useState(true);
   const [structure, setStructure] = useState(null);
   const [searchResults, setSearchResults] = useState(null);

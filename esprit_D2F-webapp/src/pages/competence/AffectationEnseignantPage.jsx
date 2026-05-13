@@ -4,8 +4,7 @@
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  Table, Tag, Space, Typography, Tooltip, Input, Button,
-  message, Empty, Popconfirm, Badge, Modal, Form, Select, Row, Col, Divider
+  Table, Tag, Space, Typography, Tooltip, Input, Button, Empty, Popconfirm, Badge, Modal, Form, Select, Row, Col, Divider
 } from "antd";
 import {
   SearchOutlined, ReloadOutlined, RobotOutlined, DeleteOutlined,
@@ -13,6 +12,7 @@ import {
 } from "@ant-design/icons";
 import CompetenceService from "../../services/CompetenceService";
 import EnseignantService from "../../services/EnseignantService";
+import useAppNotification from "../../hooks/useAppNotification";
 
 const { Text } = Typography;
 const { Option } = Select;
@@ -56,7 +56,7 @@ const toNiveauEnum = (niveau) => {
 };
 
 export default function AffectationEnseignantPage() {
-  const [msgApi, msgCtx] = message.useMessage();
+  const { message: msgApi } = useAppNotification();
   const navigate = useNavigate();
 
   const [affectations, setAffectations] = useState([]);
@@ -426,8 +426,6 @@ export default function AffectationEnseignantPage() {
   // ── Render ────────────────────────────────────────────────────────────────
   return (
     <>
-      {msgCtx}
-
       {/* Header */}
       <div style={{ marginBottom: 20 }}>
         <div style={{ fontSize: 20, fontWeight: 700, marginBottom: 4 }}>

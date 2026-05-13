@@ -11,11 +11,11 @@ import {
   Input,
   Button,
   Spin,
-  message,
   Form,
   Drawer,
 } from "antd";
 import { FilterOutlined } from "@ant-design/icons";
+import useAppNotification from "../../hooks/useAppNotification";
 import KPIService from "../../services/KPIService";
 import DeptService from "../../services/DeptService";
 import UpService from "../../services/upService";
@@ -26,6 +26,7 @@ const { Option } = Select;
 
 export default function FormationsByTypeFiltered() {
   // 1) État des filtres initialisés à null
+  const { message } = useAppNotification();
   const [filters, setFilters] = useState({
     domaine:    null,
     upId:       null,

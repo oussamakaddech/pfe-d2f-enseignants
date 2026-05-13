@@ -11,7 +11,6 @@ import {
   InputNumber,
   Select,
   Popconfirm,
-  message,
   Typography,
   Breadcrumb,
   Tag,
@@ -27,6 +26,7 @@ import {
 import moment from "moment";
 import EvaluationGlobaleService from "../../services/EvaluationGlobaleService";
 import FormationService from "../../services/FormationService";
+import useAppNotification from "../../hooks/useAppNotification";
 
 const { Title } = Typography;
 const { Option } = Select;
@@ -37,7 +37,7 @@ export default function EvaluationGlobalePage() {
   const [evaluations, setEvaluations] = useState([]);
   const [formations, setFormations] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [msgApi, msgCtx] = message.useMessage();
+  const { message: msgApi } = useAppNotification();
   const [openForm, setOpenForm] = useState(false);
   const [editingEval, setEditingEval] = useState(null);
   const [form] = Form.useForm();
@@ -185,7 +185,6 @@ export default function EvaluationGlobalePage() {
 
   return (
     <>
-      {msgCtx}
       <div style={{ padding: "16px 24px" }}>
         <Breadcrumb
           items={[

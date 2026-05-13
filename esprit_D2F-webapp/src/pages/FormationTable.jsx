@@ -10,7 +10,6 @@ import {
   DatePicker,
   Tag,
   Popconfirm,
-  message,
   Typography,
   Select,
   Modal,
@@ -29,6 +28,7 @@ import FormationWorkflowService from "../services/FormationWorkflowService";
 import FormationWorkflowForm from "./FormationWorkflowForm";
 import FormationWorkflowEditForm from "./FormationWorkflowEditForm";
 import MailForm from "./MailForm";
+import useAppNotification from "../hooks/useAppNotification";
 
 const { Title } = Typography;
 const { RangePicker } = DatePicker;
@@ -52,7 +52,7 @@ export default function FormationTableAntd() {
   const [deptsOptions, setDeptsOptions] = useState([]);
 
   const [loading, setLoading] = useState(false);
-  const [msgApi, msgCtx] = message.useMessage();
+  const { message: msgApi } = useAppNotification();
 
   // modals / drawers
   const [openAdd, setOpenAdd] = useState(false);
@@ -302,7 +302,6 @@ export default function FormationTableAntd() {
 
   return (
     <>
-      {msgCtx}
       <div style={{ padding: 16 }}>
         <Title level={4}>Liste des Formations</Title>
 

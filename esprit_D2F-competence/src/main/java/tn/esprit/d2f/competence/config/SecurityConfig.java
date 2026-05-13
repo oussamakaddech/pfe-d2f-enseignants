@@ -47,6 +47,9 @@ public class SecurityConfig {
     @Value("${jwt.secret}")
     private String jwtSecret;
 
+    @Value("${cors.allowed-origins:http://localhost:5173,http://localhost:3000}")
+    private String allowedOriginsRaw;
+
     @SuppressWarnings("java:S4502") // CSRF désactivé de manière sécurisée car l'API est Stateless (JWT)
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
@@ -112,15 +115,12 @@ public class SecurityConfig {
 
     @Bean
     public WebMvcConfigurer corsConfigurer() {
+        String[] origins = allowedOriginsRaw.split(",");
         return new WebMvcConfigurer() {
             @Override
             public void addCorsMappings(CorsRegistry registry) {
                 registry.addMapping("/**")
-                        .allowedOriginPatterns(
-                                "http://localhost:[*]",
-                                "https://esprit-d2f.esprit.tn",
-                                "https://esprit-d2f.esprit.tn:[*]"
-                        )
+                        .allowedOrigins(origins)
                         .allowedMethods("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
                         .allowedHeaders("*")
                         .allowCredentials(true);

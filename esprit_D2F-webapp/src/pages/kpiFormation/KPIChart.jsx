@@ -1,19 +1,6 @@
 // src/components/KPI/KPIChart.js
 
-import { useState, useEffect } from "react";
-import {
-  Chart as ChartJS,
-  ArcElement,
-  RadialLinearScale,
-  PointElement,
-  LineElement,
-  CategoryScale,
-  PolarAreaController,
-  RadarController,
-  Tooltip,
-  Legend,
-  Title,
-} from "chart.js";
+import { useState, useEffect, useRef } from "react";
 import { Doughnut, Radar } from "react-chartjs-2";
 import { DatePicker, Divider, Statistic } from "antd";
 import dayjs from "dayjs";
@@ -30,19 +17,6 @@ import MetricCards from "./MetricCards";
 import FormationsByTypeFiltered from "./FormationsByTypeFiltered";
 import DonutByTrainerType from "./DonutByTrainerType";
 import RecommendationSection from "./RecommendationSection";
-
-ChartJS.register(
-  ArcElement,
-  RadialLinearScale,
-  PointElement,
-  LineElement,
-  CategoryScale,
-  PolarAreaController,
-  RadarController,
-  Tooltip,
-  Legend,
-  Title
-);
 
 const { RangePicker } = DatePicker;
 
@@ -67,39 +41,37 @@ export default function KPIChart() {
   const [selectedTab, setSelectedTab] = useState("dashboard");
   const [kpiData, setKpiData] = useState({ formations: 0, heures: 0, participants: 0 });
   const [globalKpiData, setGlobalKpiData] = useState({ total: 0, presents: 0, taux: 0 });
-  const [, setFormationsKpiData] = useState([]);
-  const [formationsByEtat, setFormationsByEtat] = useState({
-    total: 0, enregistre: 0, planifie: 0, enCours: 0, acheve: 0, annule: 0
-  });
-
+  const [formationsByEtat, setFormationsByEtat] = useState([]);
   const [start, setStart] = useState("2025-01-01");
   const [end, setEnd] = useState("2025-12-31");
+  const fetchId = useRef(0);
 
   useEffect(() => {
     if (selectedTab !== "dashboard") return;
 
+    const id = ++fetchId.current;
+
     const fetchKPIs = async () => {
       try {
-        const [totF, totH, uniqP] = await Promise.all([
+        const [totF, totH, uniqP, byEtatData, global, formsKPI] = await Promise.all([
           KPIService.getTotalFormations(start, end),
           KPIService.getTotalHeures(start, end),
-          KPIService.getUniqueParticipants(start, end)
+          KPIService.getUniqueParticipants(start, end),
+          KPIService.getFormationsByEtat(start, end),
+          ParticipantKPIService.getGlobalParticipantKPI(start, end),
+          ParticipantKPIService.getFormationsParticipantKPIs(start, end),
         ]);
+        if (id !== fetchId.current) return;
+
         setKpiData({ formations: totF, heures: totH, participants: uniqP });
-
-        const byEtatData = await KPIService.getFormationsByEtat(start, end);
         setFormationsByEtat(byEtatData);
-
-        const global = await ParticipantKPIService.getGlobalParticipantKPI(start, end);
-        const formsKPI = await ParticipantKPIService.getFormationsParticipantKPIs(start, end);
         setGlobalKpiData({
           total: global.nombreParticipantsTotal,
           presents: global.nombreParticipantsPresent,
-          taux: global.tauxParticipation
+          taux: global.tauxParticipation,
         });
-        setFormationsKpiData(formsKPI);
       } catch (err) {
-        console.error("Erreur récupération KPI :", err);
+        if (id === fetchId.current) console.error("Erreur KPI :", err);
       }
     };
 

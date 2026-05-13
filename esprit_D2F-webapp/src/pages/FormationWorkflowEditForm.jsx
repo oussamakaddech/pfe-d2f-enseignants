@@ -14,7 +14,6 @@ import {
   Divider,
   Space,
   Tag,
-  message,
   Popconfirm,
   Upload,
 } from "antd";
@@ -25,6 +24,7 @@ import {
   DownOutlined,
 } from "@ant-design/icons";
 import * as XLSX from "xlsx";
+import useAppNotification from "../hooks/useAppNotification";
 
 import FormationWorkflowService from "../services/FormationWorkflowService";
 import DeptService from "../services/DeptService";
@@ -48,6 +48,7 @@ const PERIOD_OPTIONS = [
 ];
 
 export default function FormationWorkflowEditForm({ formation, onFormationUpdated }) {
+  const { message } = useAppNotification();
   const { user } = useContext(AuthContext);
   const role = String(user?.role || "").toLowerCase().replace(/[\s_-]+/g, "");
   const isResponsableDossier = role === "responsabledossier";

@@ -17,7 +17,7 @@ import tn.esprit.d2f.entity.Notification;
 import tn.esprit.d2f.entity.enumerations.Priorite;
 import tn.esprit.d2f.repository.NotificationRepository;
 import tn.esprit.d2f.service.IBesoinFormationService;
-import esprit.pfe.auth.security.AuthorizationMatrix;
+import esprit.d2f.common.security.AuthorizationMatrix;
 
 import lombok.extern.slf4j.Slf4j;
 @Slf4j

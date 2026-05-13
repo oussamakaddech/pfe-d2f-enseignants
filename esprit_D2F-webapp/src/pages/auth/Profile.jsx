@@ -5,7 +5,6 @@ import {
   Avatar,
   Button,
   Spin,
-  message,
   Drawer,
   Form,
   Input,
@@ -31,12 +30,13 @@ import {
   updatePassword,
 } from "../../services/accountService";
 import { useNavigate } from "react-router-dom";
+import useAppNotification from "../../hooks/useAppNotification";
 import "./Profile.css";
 
 const { Title, Text } = Typography;
 
 export default function Profile() {
-  const [msgApi, contextHolder] = message.useMessage();
+  const { message: msgApi } = useAppNotification();
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -112,8 +112,6 @@ export default function Profile() {
 
   return (
     <div className="profile-container">
-      {contextHolder}
-      
       {loading ? (
         <div style={{ textAlign: "center", paddingTop: 100 }}>
           <Spin size="large" tip="Chargement de votre univers..." />

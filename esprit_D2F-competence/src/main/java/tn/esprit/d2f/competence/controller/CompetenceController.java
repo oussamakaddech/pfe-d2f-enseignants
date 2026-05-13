@@ -20,7 +20,7 @@ import tn.esprit.d2f.competence.dto.CompetenceRequest;
 import tn.esprit.d2f.competence.dto.EnseignantCompetenceDTO;
 import tn.esprit.d2f.competence.service.ICompetenceService;
 import tn.esprit.d2f.competence.service.IEnseignantCompetenceService;
-import esprit.pfe.auth.security.AuthorizationMatrix;
+import esprit.d2f.common.security.AuthorizationMatrix;
 
 import java.util.List;
 

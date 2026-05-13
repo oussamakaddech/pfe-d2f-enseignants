@@ -9,7 +9,6 @@ import {
   DatePicker,
   Tag,
   Popconfirm,
-  message,
   Typography,
   Select,
   Modal,
@@ -30,6 +29,7 @@ import { getProfile } from "../../services/accountService";
 import FormationWorkflowService from "../../services/FormationWorkflowService";
 import FormationWorkflowEditForm from "../FormationWorkflowEditForm";
 import MailForm from "../MailForm";
+import useAppNotification from "../../hooks/useAppNotification";
 
 const normalizeRole = (value) =>
   String(value || "")
@@ -70,7 +70,7 @@ export default function FormationConsultationPage() {
   const [deptsOptions, setDeptsOptions] = useState([]);
 
   const [loading, setLoading] = useState(false);
-  const [msgApi, msgCtx] = message.useMessage();
+  const { message: msgApi } = useAppNotification();
 
   const [openEdit, setOpenEdit] = useState(false);
   const [openExport, setOpenExport] = useState(false);
@@ -361,7 +361,6 @@ export default function FormationConsultationPage() {
 
   return (
     <>
-      {msgCtx}
       <div style={{ padding: "16px 24px" }}>
         {/* Header */}
         <div

@@ -1,36 +1,14 @@
 // src/components/TopParticipants.jsx
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Card, Row, Col, Select, DatePicker, Spin, Table, Button } from 'antd';
 import { Line } from 'react-chartjs-2';
 import { DownOutlined, UpOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  Title as ChartTitle,
-  Tooltip,
-  Legend,
-  Filler
-} from 'chart.js';
 import UpService from '../../services/upService';
 import DeptService from '../../services/DeptService';
 import KPIService from '../../services/KPIService';
-import EnseignantService from '../../services/EnseignantService'; // ← import
+import EnseignantService from '../../services/EnseignantService';
 import '../../Style/ChartScroll.css';
-
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  ChartTitle,
-  Tooltip,
-  Legend,
-  Filler
-);
 
 const { Option }      = Select;
 const { RangePicker } = DatePicker;
@@ -48,6 +26,7 @@ export default function TopParticipants() {
     range: [ dayjs().startOf('year'), dayjs().endOf('year') ]
   });
   const chartRef = useRef(null);
+  const enseignantCache = useRef(new Map());
 
   // Charge UPs & départements
   useEffect(() => {
@@ -70,17 +49,17 @@ export default function TopParticipants() {
           filters.deptId
         );
         // 2) Enrichissement via l'API Enseignant
-        const enriched = await Promise.all(
-          raw.map(async entry => {
+      const cache = enseignantCache.current;
+      const enriched = await Promise.all(
+        raw.map(async entry => {
+          if (!cache.has(entry.enseignantId)) {
             const ens = await EnseignantService.getEnseignantById(entry.enseignantId);
-            return {
-              ...entry,
-              mail: ens.mail,
-              deptLibelle: ens.dept.libelle,
-              upLibelle:  ens.up.libelle
-            };
-          })
-        );
+            cache.set(entry.enseignantId, ens);
+          }
+          const ens = cache.get(entry.enseignantId);
+          return { ...entry, mail: ens.mail, deptLibelle: ens.dept.libelle, upLibelle: ens.up.libelle };
+        })
+      );
         if (!alive) return;
         setStats(enriched);
       } catch {

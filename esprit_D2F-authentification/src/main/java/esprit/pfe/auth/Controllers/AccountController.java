@@ -1,7 +1,7 @@
 package esprit.pfe.auth.controllers;
 
 import esprit.pfe.auth.entities.User;
-import esprit.pfe.auth.security.AuthorizationMatrix;
+import esprit.d2f.common.security.AuthorizationMatrix;
 import esprit.pfe.auth.services.AccountService;
 import esprit.pfe.auth.payload.request.EditProfileRequest;
 import esprit.pfe.auth.payload.request.UpdatePasswordRequest;

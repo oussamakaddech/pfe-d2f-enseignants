@@ -9,13 +9,14 @@ import {
   Checkbox,
   Typography,
   Space,
-  message,
 } from "antd";
 import { DownloadOutlined, SaveOutlined } from "@ant-design/icons";
+import useAppNotification from "../../hooks/useAppNotification";
 import * as XLSX from "xlsx";
 import EvaluationFormateurService from "../../services/EvaluationFormateurService";
 
 const EvaluationListEnriched = () => {
+  const { message } = useAppNotification();
   const [evaluations, setEvaluations] = useState([]);
 
   useEffect(() => {

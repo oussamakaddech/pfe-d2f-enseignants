@@ -1,8 +1,9 @@
 // src/components/UpdateDocumentForm.jsx
 import { useState, useEffect } from "react";
 import PropTypes from "prop-types";
-import { Form, Input, Select, Checkbox, Upload, Button, Typography, message } from "antd";
+import { Form, Input, Select, Checkbox, Upload, Button, Typography } from "antd";
 import { UploadOutlined } from "@ant-design/icons";
+import useAppNotification from "../../hooks/useAppNotification";
 import "antd/dist/reset.css";
 import DocumentService from "../../services/DocumentService";
 
@@ -14,6 +15,7 @@ const PATH_OPTIONS = [
 ];
 
 export default function UpdateDocumentForm({ documentData, onUpdated }) {
+  const { message } = useAppNotification();
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const [fileList, setFileList] = useState([]);

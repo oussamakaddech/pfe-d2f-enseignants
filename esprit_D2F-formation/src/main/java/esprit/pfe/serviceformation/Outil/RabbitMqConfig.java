@@ -102,7 +102,7 @@ public class RabbitMqConfig {
           );
 
           DefaultJackson2JavaTypeMapper javaTypeMapper = new DefaultJackson2JavaTypeMapper();
-          javaTypeMapper.setTrustedPackages("*");
+          javaTypeMapper.setTrustedPackages("esprit.pfe.serviceformation.messaging", "tn.esprit.d2f.dto");
           javaTypeMapper.setIdClassMapping(typeIdMappings);
           converter.setJavaTypeMapper(javaTypeMapper);
           return converter;

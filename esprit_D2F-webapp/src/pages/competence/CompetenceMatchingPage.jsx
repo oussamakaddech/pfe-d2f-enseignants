@@ -15,7 +15,6 @@ import {
   Skeleton,
   Empty,
   Progress,
-  message,
 } from "antd";
 import {
   ReloadOutlined,
@@ -33,6 +32,7 @@ import {
   SolutionOutlined,
   ThunderboltOutlined,
 } from "@ant-design/icons";
+import useAppNotification from "../../hooks/useAppNotification";
 import RiceService from "../../services/RiceService";
 import "./CompetenceMatchingPage.css";
 
@@ -155,6 +155,7 @@ function reducer(state, action) {
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 export default function CompetenceMatchingPage() {
+  const { message, modal } = useAppNotification();
   const [state, dispatch] = useReducer(reducer, initialState);
   const [draggingId, setDraggingId] = useState(null);
   const [dragOverEns, setDragOverEns] = useState(null);
@@ -283,7 +284,7 @@ export default function CompetenceMatchingPage() {
   const handleCreateTeacher = useCallback(() => { setEditingEns(null); form.resetFields(); setShowCreateModal(true); }, [form]);
   const handleEditTeacher = useCallback((ens) => { setEditingEns(ens); form.setFieldsValue(ens); setShowCreateModal(true); }, [form]);
   const handleDeleteTeacher = useCallback((ens) => {
-    Modal.confirm({
+    modal.confirm({
       title: "Désactiver cet enseignant ?",
       content: `${ens.prenom} ${ens.nom} sera désactivé(e).`,
       okText: "Désactiver", okType: "danger",

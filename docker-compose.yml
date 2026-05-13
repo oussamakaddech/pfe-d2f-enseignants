@@ -35,8 +35,6 @@ volumes:
     name: d2f_postgres_data
   d2f_rabbitmq_data:
     name: d2f_rabbitmq_data
-  d2f_models_data:
-    name: d2f_models_data
   d2f_pgadmin_data:
     name: d2f_pgadmin_data
 
@@ -274,6 +272,13 @@ services:
     environment:
       SPRING_PROFILES_ACTIVE: prod
       JWT_SECRET: ${JWT_SECRET}
+      ANALYSE_SERVICE_URL: http://d2f-predictive-analytics:8000
+      AUTH_SERVICE_URL: http://d2f-auth:8085
+      COMPETENCE_SERVICE_URL: http://d2f-competence:8005
+      FORMATION_SERVICE_URL: http://d2f-formation:8088
+      EVALUATION_SERVICE_URL: http://d2f-evaluation:8087
+      CERTIFICAT_SERVICE_URL: http://d2f-certificat:8086
+      BESOIN_SERVICE_URL: http://d2f-besoin-formation:8004
     depends_on:
       auth-service:
         condition: service_healthy
@@ -371,18 +376,31 @@ services:
     environment:
       APP_ENV: production
       DATABASE_URL: postgresql://${DB_USER_ANALYSE:-app_user_analyse}:${DB_PASSWORD}@postgres:5432/d2f
-      MODELS_DIR: /app/data/models
-    volumes:
-      - d2f_models_data:/app/data/models
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_ALGORITHM: HS512
+      JWT_AUTH_ENABLED: "true"
+      # Seuils de détection
+      SEUIL_GAP_CRITIQUE: "0.75"
+      SEUIL_GAP_HAUTE: "0.50"
+      SEUIL_STAGNATION_MOIS: "12"
+      SEUIL_COMPLETION_FAIBLE: "40.0"
+      # Scheduler nightly
+      SCHEDULER_ENABLED: "true"
+      BATCH_ANALYSIS_HOUR: "2"
+      DASHBOARD_REFRESH_HOUR: "3"
+      # Messaging désactivé par défaut (pas d'ActiveMQ en dev local)
+      MESSAGING_ENABLED: "false"
+      # CORS
+      CORS_ORIGINS: "http://localhost:5173,http://localhost:3000"
     depends_on:
       postgres:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8080/api/health')\" || exit 1"]
+      test: ["CMD-SHELL", "curl -sf http://localhost:8000/api/v1/analytics/health || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 30s
+      start_period: 40s
     networks:
       - d2f-network
 

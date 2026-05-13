@@ -1,97 +1,51 @@
-// src/pages/PasswordRecovery.jsx
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ToastContainer, toast } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
+import { Form, Input, Button, Typography, Card, Row, Col } from "antd";
+import { MailOutlined, ArrowLeftOutlined } from "@ant-design/icons";
+import useAppNotification from "../../hooks/useAppNotification";
 import { forgotPassword } from "../../services/authService";
 
+const { Title, Text } = Typography;
+
 function PasswordRecovery() {
+  const { message } = useAppNotification();
   const navigate = useNavigate();
-  const [email, setEmail] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
-  /**
-   * Envoie la requête de réinitialisation de mot de passe et affiche
-   * une notification toast avec le résultat (succès / erreur).
-   */
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (submitting) return; // évite les doubles clics
-
+  const handleSubmit = async (values) => {
+    setSubmitting(true);
     try {
-      setSubmitting(true);
-      const response = await forgotPassword(email);
-      toast.success(response || "Nous avons envoyé un e‑mail de réinitialisation");
+      const response = await forgotPassword(values.email);
+      message.success(response || "Email de réinitialisation envoyé");
     } catch (err) {
       const msg = err?.response?.data?.message || "Erreur lors de l'envoi";
-      toast.error(msg);
+      message.error(msg);
     } finally {
       setSubmitting(false);
     }
   };
 
   return (
-    <div>
-      <div className="color-line" />
-      <div className="container-fluid">
-        <div className="row">
-          <div className="col-lg-12 col-md-12 col-sm-12 col-xs-12">
-            <div className="back-link back-backend">
-              <button className="btn btn-primary" onClick={() => navigate("/")}>Back to Dashboard</button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div className="container-fluid">
-        <div className="row">
-          <div className="col-lg-4 col-md-4 col-sm-4 col-xs-12" />
-          <div className="col-md-4 col-md-4 col-sm-4 col-xs-12">
-            <div className="text-center ps-recovered">
-              <h3>PASSWORD RECOVER</h3>
-              <p>Please fill the form to recover your password</p>
-            </div>
-            <div className="hpanel">
-              <div className="panel-body poss-recover">
-                <p>Enter your email address and your password will be reset and emailed to you.</p>
-                <form onSubmit={handleSubmit} id="loginForm">
-                  <div className="form-group">
-                    <label className="control-label" htmlFor="username">Email</label>
-                    <input
-                      type="email"
-                      placeholder="example@gmail.com"
-                      title="Please enter your email adress"
-                      required
-                      name="username"
-                      id="username"
-                      className="form-control"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                    />
-                    <span className="help-block small">Your registered email address</span>
-                  </div>
-                  <button className="btn btn-success btn-block" type="submit" disabled={submitting}>
-                    {submitting ? "Sending…" : "Reset password"}
-                  </button>
-                </form>
-              </div>
-            </div>
-          </div>
-          <div className="col-lg-4 col-md-4 col-sm-4 col-xs-12" />
-        </div>
-        <div className="row">
-          <div className="col-md-12 col-md-12 col-sm-12 col-xs-12 text-center login-footer">
-            <p>
-              Copyright © 2025
-              <a href="https://colorlib.com/wp/templates/"> Colorlib</a>
-              &nbsp;All rights reserved.
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Conteneur global des toasts */}
-      <ToastContainer position="top-right" autoClose={4000} hideProgressBar={false} newestOnTop closeOnClick pauseOnHover />
+    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#f5f5f5" }}>
+      <Card style={{ width: 420, borderRadius: 8, boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
+        <Button type="link" icon={<ArrowLeftOutlined />} onClick={() => navigate("/")} style={{ padding: 0, marginBottom: 16 }}>
+          Retour
+        </Button>
+        <Title level={3} style={{ textAlign: "center" }}>Récupération mot de passe</Title>
+        <Text type="secondary" style={{ display: "block", textAlign: "center", marginBottom: 24 }}>
+          Saisissez votre email pour recevoir un lien de réinitialisation
+        </Text>
+        <Form layout="vertical" onFinish={handleSubmit} requiredMark={false}>
+          <Form.Item name="email" label="Email" rules={[{ required: true, type: "email", message: "Email valide requis" }]}>
+            <Input prefix={<MailOutlined />} placeholder="vous@exemple.fr" size="large" />
+          </Form.Item>
+          <Form.Item>
+            <Button type="primary" danger htmlType="submit" loading={submitting} block size="large">
+              {submitting ? "Envoi…" : "Réinitialiser le mot de passe"}
+            </Button>
+          </Form.Item>
+        </Form>
+      </Card>
     </div>
   );
 }

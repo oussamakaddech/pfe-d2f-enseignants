@@ -7,25 +7,7 @@
   background: var(--bg-sidebar);
   border-right: 1px solid var(--border-color);
   transition: var(--transition-base);
-}
-
-.sidemenu-logo-section {
-  padding: 24px 16px;
-  text-align: center;
-  transition: var(--transition-base);
-  border-bottom: 1px solid rgba(0, 0, 0, 0.03);
-  margin-bottom: 8px;
-}
-
-.sidemenu-logo-section img {
-  height: 60px;
-  object-fit: contain;
-  transition: var(--transition-base);
-  filter: drop-shadow(0 4px 6px rgba(0, 0, 0, 0.05));
-}
-
-.sidemenu-logo-section:hover img {
-  transform: scale(1.05);
+  border-top: 3px solid #B51200;
 }
 
 /* Ant Design Menu Overrides */
@@ -97,6 +79,17 @@
   width: calc(100% - 16px) !important;
 }
 
+/* Group section labels */
+.custom-sidemenu .ant-menu-item-group-title {
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  letter-spacing: 1.2px !important;
+  color: var(--text-subtle) !important;
+  text-transform: uppercase !important;
+  padding: 16px 20px 4px !important;
+  pointer-events: none;
+}
+
 /* Danger item (Logout) */
 .custom-sidemenu .ant-menu-item-danger {
   margin-top: 20px !important;
@@ -114,18 +107,17 @@
 
 /* User Card Section */
 .sidemenu-user-card {
-  padding: 16px;
-  margin: 8px 12px;
-  background: rgba(255, 255, 255, 0.6);
-  backdrop-filter: blur(10px);
-  border-radius: 16px;
-  border: 1px solid rgba(0, 0, 0, 0.05);
+  padding: 14px 16px;
+  margin: 4px 12px 8px;
+  background: linear-gradient(135deg, rgba(181,18,0,0.06) 0%, rgba(181,18,0,0.03) 100%);
+  border-radius: 14px;
+  border: 1px solid rgba(181, 18, 0, 0.1);
   transition: var(--transition-base);
 }
 
 .sidemenu-user-card:hover {
-  background: rgba(255, 255, 255, 0.9);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  background: linear-gradient(135deg, rgba(181,18,0,0.10) 0%, rgba(181,18,0,0.05) 100%);
+  box-shadow: 0 4px 12px rgba(181, 18, 0, 0.08);
 }
 
 .user-card-content {
@@ -155,11 +147,12 @@
 }
 
 .user-role {
-  font-size: 11px;
-  color: var(--text-muted);
+  font-size: 10px;
+  color: #B51200;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
-  font-weight: 600;
+  letter-spacing: 0.8px;
+  font-weight: 700;
+  opacity: 0.8;
 }
 
 /* Collapsed state for user card */

@@ -11,7 +11,6 @@ import {
   Space,
   Typography,
   Popconfirm,
-  message,
   Tooltip,
   Statistic,
   Card,
@@ -27,6 +26,7 @@ import {
 } from "@ant-design/icons";
 import { AuthContext } from "../../context/AuthContext";
 import CompetenceService from "../../services/CompetenceService";
+import useAppNotification from "../../hooks/useAppNotification";
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -55,7 +55,7 @@ export default function EnseignantCompetencePage() {
   // Resolve the enseignant to display: URL param (admin) or current user
   const enseignantId = paramId || user?.username;
 
-  const [msgApi, msgCtx] = message.useMessage();
+  const { message: msgApi } = useAppNotification();
 
   const [competences, setCompetences] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -285,7 +285,6 @@ export default function EnseignantCompetencePage() {
 
   return (
     <>
-      {msgCtx}
       <div style={{ padding: 16 }}>
         <Title level={4}>
           <TrophyOutlined /> Compétences {paramId ? `de l'enseignant ${paramId}` : "– Mon Profil"}

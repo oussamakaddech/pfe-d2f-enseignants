@@ -1,8 +1,9 @@
 // src/components/DocumentUploadForm.jsx
 import { useState } from "react";
 import PropTypes from "prop-types";
-import { Form, Input, Select, Checkbox, Upload, Button, message } from "antd";
+import { Form, Input, Select, Checkbox, Upload, Button } from "antd";
 import { UploadOutlined } from "@ant-design/icons";
+import useAppNotification from "../../hooks/useAppNotification";
 import "antd/dist/reset.css";
 import DocumentService from "../../services/DocumentService";
 
@@ -14,6 +15,7 @@ const PATH_OPTIONS = [
 ];
 
 export default function DocumentUploadForm({ formationId, onClose, onDocumentAdded }) {
+  const { message } = useAppNotification();
   const [form] = Form.useForm();
   const [fileList, setFileList] = useState([]);
   const [loading, setLoading] = useState(false);

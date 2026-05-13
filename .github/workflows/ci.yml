@@ -62,6 +62,11 @@ jobs:
         working-directory: ${{ matrix.service }}
         run: mvn test
 
+      - name: OWASP Dependency Check
+        working-directory: ${{ matrix.service }}
+        run: mvn org.owasp:dependency-check-maven:check -DfailBuildOnCVSS=7 -DassemblyAnalyzerEnabled=false
+        continue-on-error: true
+
       - name: Generate test report
         if: always()
         uses: dorny/test-reporter@v1
@@ -141,6 +146,10 @@ jobs:
       - name: Install dependencies
         working-directory: esprit_D2F-webapp
         run: npm ci
+
+      - name: Security audit
+        working-directory: esprit_D2F-webapp
+        run: npm audit --audit-level=high
 
       - name: Run linter
         working-directory: esprit_D2F-webapp

@@ -8,9 +8,9 @@ import {
   Checkbox,
   Upload,
   Button,
-  message,
 } from "antd";
 import { UploadOutlined } from "@ant-design/icons";
+import useAppNotification from "../../hooks/useAppNotification";
 import DocumentService from "../../services/DocumentService";
 
 const { Option } = Select;
@@ -25,6 +25,7 @@ export default function DocumentUploadPanel({
   onDocumentAdded,
   onClose,
 }) {
+  const { message } = useAppNotification();
   const [form] = Form.useForm();
   const [fileList, setFileList] = useState([]);
   const [loading, setLoading] = useState(false);

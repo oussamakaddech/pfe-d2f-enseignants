@@ -1,4 +1,4 @@
-﻿// src/pages/competence/RicePage.jsx
+// src/pages/competence/RicePage.jsx
 // RICE - Referentiel Intelligent de Competences Enseignants
 // Slim orchestrator: owns cross-cutting state and delegates rendering to step components.
 //
@@ -16,7 +16,7 @@ import {
 } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  Alert, Input, message, Modal, Select, Space, Steps, Typography,
+  Alert, Input, Modal, Select, Space, Steps, Typography,
 } from "antd";
 import {
   BarChartOutlined, EditOutlined, InboxOutlined,
@@ -39,6 +39,7 @@ import ReportStep    from "./rice/ReportStep.jsx";
 import { cloneDeep, STORAGE_KEY } from "./rice/constants.jsx";
 
 import "./RicePage.css";
+import useAppNotification from "../../hooks/useAppNotification";
 
 const { Text, Title, Paragraph } = Typography;
 const { Option } = Select;
@@ -73,7 +74,7 @@ const isLikelyValidExtractedName = (value) => {
 
 // ---------------------------------------------------------------------------
 export default function RicePage() {
-  const [msgApi, msgCtx] = message.useMessage();
+  const { message: msgApi } = useAppNotification();
   // useNavigate kept for potential future programmatic navigation
   const _navigate = useNavigate(); // eslint-disable-line no-unused-vars
 
@@ -637,7 +638,6 @@ export default function RicePage() {
   // --------------------------------------------------------------------------
   return (
     <>
-      {msgCtx}
       <div
         className="rice-page"
         style={{ "--rice-accent": DEPT_ACCENT[departement] ?? "#1677ff" }}

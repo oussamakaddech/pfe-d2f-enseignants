@@ -5,7 +5,6 @@ import {
   Input,
   Button,
   Space,
-  message,
   Typography,
   Drawer,
   Modal,
@@ -42,6 +41,7 @@ import {
   updateAccount,
 } from '../../services/accountService';
 import Register from '../auth/Register';
+import useAppNotification from "../../hooks/useAppNotification";
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -49,7 +49,7 @@ const { Option } = Select;
 const ROLES = ['admin', 'CUP', 'Enseignant', 'Formateur', 'CHEF_DEPARTEMENT', 'RESPONSABLE_DOSSIER'];
 
 export default function ListAccounts() {
-  const [msgApi, msgCtx] = message.useMessage();
+  const { message: msgApi } = useAppNotification();
   const [accounts, setAccounts] = useState([]);
   const [searchText, setSearchText] = useState('');
   const [searchedColumn, setSearchedColumn] = useState('');
@@ -260,7 +260,6 @@ export default function ListAccounts() {
 
   return (
     <div style={{ padding: '24px', background: '#f5f7fa', minHeight: '100vh' }}>
-      {msgCtx}
       <Row gutter={[16, 16]} style={{ marginBottom: '24px' }}>
         <Col xs={24} sm={12} lg={6}>
           <Card variant="borderless" hoverable>
