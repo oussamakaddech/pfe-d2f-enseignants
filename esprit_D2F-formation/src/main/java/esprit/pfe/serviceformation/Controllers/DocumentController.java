@@ -4,6 +4,7 @@ import esprit.pfe.serviceformation.dto.DocumentDTO;
 import esprit.pfe.serviceformation.entities.Document;
 import esprit.pfe.serviceformation.services.DocumentMapper;
 import esprit.pfe.serviceformation.services.DocumentService;
+import esprit.pfe.serviceformation.utils.FileSecurityValidator;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
@@ -31,7 +32,7 @@ public class DocumentController {
             "text/plain", "text/csv"
     );
 
-    private static final long MAX_FILE_SIZE = 50 * 1024 * 1024; // 50 MB
+    private static final long MAX_FILE_SIZE = 50L * 1024 * 1024; // 50 MB
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<Object> createDocument(
@@ -41,17 +42,12 @@ public class DocumentController {
             @RequestParam boolean obligation,
             @RequestParam MultipartFile file) {
 
-        if (file.getSize() > MAX_FILE_SIZE) {
-            return ResponseEntity.badRequest().body(
-                    "Fichier trop volumineux : " + file.getSize()
-                    + " octets. Maximum : " + MAX_FILE_SIZE + " octets.");
-        }
-
-        String contentType = file.getContentType();
-        if (contentType == null || !ALLOWED_MIME_TYPES.contains(contentType)) {
-            return ResponseEntity.badRequest().body(
-                    "Type de fichier non autorisé : " + contentType
-                    + ". Types autorisés : PDF, DOC, DOCX, XLS, XLSX, JPG, PNG, GIF, TXT, CSV");
+        // Validation defense-en-profondeur : taille, MIME, extension, magic bytes,
+        // nom de fichier (path traversal, longueur, caracteres interdits).
+        String validationError = FileSecurityValidator.validate(file, ALLOWED_MIME_TYPES, MAX_FILE_SIZE);
+        if (validationError != null) {
+            log.warn("Upload rejete pour formation {} : {}", formationId, validationError);
+            return ResponseEntity.badRequest().body(validationError);
         }
 
         try {
@@ -89,12 +85,19 @@ public class DocumentController {
     }
 
     @PostMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<DocumentDTO> updateDocument(
+    public ResponseEntity<?> updateDocument(
             @PathVariable Long id,
             @RequestParam String pathType,
             @RequestParam String nomDocument,
             @RequestParam boolean obligation,
             @RequestParam(required = false) MultipartFile file) throws IOException {
+        if (file != null && !file.isEmpty()) {
+            String validationError = FileSecurityValidator.validate(file, ALLOWED_MIME_TYPES, MAX_FILE_SIZE);
+            if (validationError != null) {
+                log.warn("Update document {} rejete : {}", id, validationError);
+                return ResponseEntity.badRequest().body(validationError);
+            }
+        }
         try {
             Document doc = service.updateDocument(
                     id, pathType, nomDocument, obligation, file);

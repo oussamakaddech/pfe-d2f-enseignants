@@ -125,12 +125,17 @@ async def rice_analyze(
     except Exception as exc:
         raise HTTPException(400, f"Format enseignants invalide: {exc}") from exc
 
-    # Sanitize filenames to prevent path-traversal attacks
-    filenames = [
-        os.path.basename((f.filename or "").replace("..", "")) or f"file_{i}"
-        for i, f in enumerate(files)
-    ]
-    contents  = [await f.read() for f in files]
+    # Defense-en-profondeur : sanitize les noms et lit les contenus, puis validation
+    # taille / nombre / magic bytes via upload_security.validate_uploads_batch.
+    from rice.upload_security import sanitize_filename, validate_uploads_batch
+
+    filenames = [sanitize_filename(f.filename, i) for i, f in enumerate(files)]
+    contents = [await f.read() for f in files]
+
+    validation_error = validate_uploads_batch(filenames, contents)
+    if validation_error:
+        logger.warning("Upload rejete: %s", validation_error)
+        raise HTTPException(400, validation_error)
 
     # Department resolution: "auto" → heuristic detection from filenames & content
     dept_key = departement.lower().strip()
