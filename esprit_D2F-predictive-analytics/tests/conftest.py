@@ -11,6 +11,8 @@ os.environ.setdefault("SCHEDULER_ENABLED", "false")
 os.environ.setdefault("MESSAGING_ENABLED", "false")
 os.environ.setdefault("DEBUG", "false")
 os.environ.setdefault("APP_ENV", "test")
+# JWT_SECRET requis par jwt_middleware au moment de l'import — secret de test
+os.environ.setdefault("JWT_SECRET", "test-jwt-secret-for-pytest-only-" + ("x" * 32))
 # DATABASE_URL laissé au défaut — SQLAlchemy ne se connecte pas tant qu'on ne l'appelle pas
 
 import pytest
