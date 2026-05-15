@@ -82,7 +82,8 @@ public class BesoinFormationController {
 
     @Operation(summary = "Récupérer les notifications d'un utilisateur (Paginé)")
     @GetMapping("/notifications/{username}")
-    @PreAuthorize("isAuthenticated()")
+    @PreAuthorize("#username == authentication.name "
+            + "or hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_D2F')")
     public ResponseEntity<Page<Notification>> getUserNotifications(
             @PathVariable String username,
             @RequestParam(defaultValue = "0") int page,
