@@ -14,14 +14,34 @@ import org.springframework.security.oauth2.server.resource.authentication.JwtGra
 import org.springframework.security.web.SecurityFilterChain;
 
 import javax.crypto.spec.SecretKeySpec;
+import jakarta.annotation.PostConstruct;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 
 @Configuration
 @EnableMethodSecurity(prePostEnabled = true, securedEnabled = true)
 public class FormationSecurityConfig {
 
+    private static final int MIN_JWT_SECRET_LENGTH = 64;
+
     @Value("${jwt.secret}")
     private String jwtSecret;
+
+    @PostConstruct
+    void validateJwtSecret() {
+        if (jwtSecret == null || jwtSecret.isBlank()) {
+            throw new IllegalStateException(
+                "JWT_SECRET est obligatoire et doit etre injecte via variable d'environnement.");
+        }
+        if (jwtSecret.length() < MIN_JWT_SECRET_LENGTH) {
+            throw new IllegalStateException(
+                "JWT_SECRET trop court (" + jwtSecret.length() + " chars). Minimum requis : "
+                    + MIN_JWT_SECRET_LENGTH + " caracteres pour HS512.");
+        }
+        if (jwtSecret.contains("CHANGE_ME") || jwtSecret.contains("change-me")) {
+            throw new IllegalStateException(
+                "JWT_SECRET contient un placeholder (CHANGE_ME). Configurer une valeur reelle en environnement.");
+        }
+    }
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
