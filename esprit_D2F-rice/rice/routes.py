@@ -9,7 +9,7 @@ import logging
 import os
 from typing import Dict, List, Optional
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
 from fastapi.concurrency import run_in_threadpool
 from fastapi.responses import StreamingResponse
 from fastapi.security import OAuth2PasswordBearer
@@ -48,36 +48,43 @@ logger = logging.getLogger("rice_analyzer")
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Authentication / Authorization
+#
+# L'authentification globale est assuree par JWTAuthMiddleware (rice/jwt_middleware.py)
+# avec JWT_SECRET HS512 fourni via variable d'environnement.
+#
+# _get_current_user lit le contexte deja injecte par le middleware (request.state),
+# evitant une seconde decode du token et toute logique secret independante.
 # ─────────────────────────────────────────────────────────────────────────────
 
-_AUTH_ENABLED = os.getenv("RICE_AUTH_ENABLED", "true").lower() in ("true", "1", "yes")
-_AUTH_SECRET  = os.getenv("RICE_AUTH_SECRET", "change-me-in-production")
+_APP_ENV = os.getenv("APP_ENV", "development").lower()
+_AUTH_TOGGLE = os.getenv("RICE_AUTH_ENABLED", "true").lower() in ("true", "1", "yes")
+# En production, l'authentification est toujours active : le toggle n'a aucun effet.
+_AUTH_ENABLED = True if _APP_ENV in ("production", "prod") else _AUTH_TOGGLE
 
 _oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token", auto_error=False)
 
 
-def _get_current_user(token: Optional[str] = Depends(_oauth2_scheme)) -> Optional[Dict]:
-    """Validate the JWT bearer token when auth is enabled.
+def _get_current_user(request: Request, token: Optional[str] = Depends(_oauth2_scheme)) -> Optional[Dict]:
+    """Retourne le contexte utilisateur deja valide par JWTAuthMiddleware.
 
-    When ``RICE_AUTH_ENABLED`` env var is ``false`` (default), authentication is
-    skipped and ``None`` is returned (open access – development mode).
+    Le middleware a deja decode le JWT HS512 avec JWT_SECRET et injecte les claims
+    dans request.state. Cette fonction ne fait qu'extraire le contexte.
+
+    En mode dev/test si _AUTH_ENABLED=false, retourne None (open access).
+    En production, _AUTH_ENABLED est force a True : si le middleware a laisse passer
+    sans contexte, c'est un bug de configuration, on rejette.
     """
     if not _AUTH_ENABLED:
-        return None  # auth disabled – allow all
-    if not token:
-        raise HTTPException(status_code=401, detail="Authentication required (bearer token missing)")
-    try:
-        import jwt as _pyjwt
-        payload = _pyjwt.decode(token, _AUTH_SECRET, algorithms=["HS256"])
-        user_id = payload.get("sub")
-        if user_id is None:
-            raise HTTPException(status_code=401, detail="Invalid token: missing 'sub'")
-        return {"id": user_id, "username": payload.get("name", user_id)}
-    except ImportError:
-        logger.warning("PyJWT not installed – auth check skipped (install PyJWT to enable)")
         return None
-    except Exception as exc:
-        raise HTTPException(status_code=401, detail=f"Invalid token: {exc}")
+
+    user_id = getattr(request.state, "user_id", None)
+    if user_id is None:
+        raise HTTPException(status_code=401, detail="Authentication required")
+    return {
+        "id": user_id,
+        "username": getattr(request.state, "user_email", None) or user_id,
+        "role": getattr(request.state, "user_role", ""),
+    }
 
 
 # ─────────────────────────────────────────────────────────────────────────────
