@@ -7,15 +7,22 @@ import esprit.pfe.auth.entities.User;
 import esprit.pfe.auth.repositories.ConfirmationKeyRepo;
 import esprit.pfe.auth.repositories.RoleRepository;
 import esprit.pfe.auth.repositories.UserRepository;
+import esprit.pfe.auth.services.AuditService;
 import esprit.pfe.auth.services.EmailService;
+import esprit.pfe.auth.error.TokenExpiredException;
 
 
 import esprit.pfe.auth.error.BadRequestException;
 import esprit.pfe.auth.error.LoginException;
 import esprit.pfe.auth.payload.request.SignupRequest;
 import esprit.pfe.auth.payload.response.MessageResponse;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.ResponseCookie;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -31,9 +38,15 @@ import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
 import org.springframework.web.bind.annotation.*;
 
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.HexFormat;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -52,12 +65,19 @@ public class SecurityController {
     private final JwtEncoder jwtEncoder;
     private final ConfirmationKeyRepo confirmationKeyRepo;
     private final PasswordEncoder encoder;
+    private final AuditService auditService;
 
     @Value("${app.mail.from:noreply@d2f.local}")
     private String mailFrom;
 
     @Value("${app.admin.email:admin@d2f.local}")
     private String adminEmail;
+
+    @Value("${app.cookie.secure:true}")
+    private boolean cookieSecure;
+
+    private static final String COOKIE_NAME = "d2f_auth_token";
+    private static final int JWT_DURATION_MINUTES = 120;
 
     public SecurityController(
             EmailService emailService,
@@ -66,7 +86,8 @@ public class SecurityController {
             AuthenticationManager authenticationManager,
             JwtEncoder jwtEncoder,
             ConfirmationKeyRepo confirmationKeyRepo,
-            PasswordEncoder encoder) {
+            PasswordEncoder encoder,
+            AuditService auditService) {
         this.emailService = emailService;
         this.userRepository = userRepository;
         this.roleRepository = roleRepository;
@@ -74,21 +95,67 @@ public class SecurityController {
         this.jwtEncoder = jwtEncoder;
         this.confirmationKeyRepo = confirmationKeyRepo;
         this.encoder = encoder;
+        this.auditService = auditService;
     }
 
     @PostMapping("/reset-password")
-    public String resetPassword(@RequestParam String token, @RequestParam String newPassword) {
-        this.checkIfTokenIsValid(token);
-        return this.resetPasswordAndDeleteToken(token, newPassword);
+    public String resetPassword(@RequestParam String token, @RequestParam String newPassword,
+                                HttpServletRequest request) {
+        // SECURITE : on hashe le token (SHA-256) cote serveur avant tout lookup BDD.
+        // Le token clair n'existe que dans l'email envoye a l'utilisateur ;
+        // la base ne stocke jamais le secret en clair.
+        String tokenHash = hashConfirmationToken(token);
+        this.checkIfTokenIsValid(tokenHash);
+        String result = this.resetPasswordAndDeleteToken(tokenHash, newPassword);
+
+        // Audit : PASSWORD_RESET_SUCCESS (recharge via hash pour recuperer l'email)
+        ConfirmationKey key = this.confirmationKeyRepo.findByToken(tokenHash).orElse(null);
+        String email = key != null ? key.getEmailAddress() : "unknown";
+        String ip = extractClientIp(request);
+        auditService.logPasswordResetSuccess(email, ip);
+        PiiSafeLogger.info(SecurityController.class,
+                "Password reset successful for " + email + " from IP " + ip);
+
+        return result;
     }
 
-    public void checkIfTokenIsValid(String token) {
-        if (!this.confirmationKeyRepo.existsByToken(token))
-            throw new BadRequestException("Confirmation token invalid");
+    /**
+     * Hashe un token de confirmation avec SHA-256 (encodage hex minuscule).
+     * Utilise comme cle de recherche en base, en remplacement du token brut.
+     */
+    static String hashConfirmationToken(String rawToken) {
+        if (rawToken == null) {
+            return null;
+        }
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hash = digest.digest(rawToken.getBytes(StandardCharsets.UTF_8));
+            return HexFormat.of().formatHex(hash);
+        } catch (NoSuchAlgorithmException e) {
+            // SHA-256 est garanti par la specification de la JVM.
+            throw new IllegalStateException("SHA-256 indisponible dans la JVM", e);
+        }
     }
 
-    public String resetPasswordAndDeleteToken(String token, String newPassword) {
-        ConfirmationKey confirmationKey = this.confirmationKeyRepo.findByToken(token)
+    /**
+     * Verifie qu'un token (deja hashe) existe en base et n'est pas expire.
+     * IMPORTANT : ce parametre est le HASH du token, jamais le token clair.
+     */
+    public void checkIfTokenIsValid(String tokenHash) {
+        ConfirmationKey key = this.confirmationKeyRepo.findByToken(tokenHash)
+                .orElseThrow(() -> new BadRequestException("Confirmation token invalid"));
+
+        if (key.getExpiresAt().isBefore(LocalDateTime.now())) {
+            this.confirmationKeyRepo.delete(key);
+            throw new TokenExpiredException("Confirmation token has expired");
+        }
+    }
+
+    /**
+     * Reset le mot de passe via un token deja hashe et supprime l'entree de confirmation.
+     */
+    public String resetPasswordAndDeleteToken(String tokenHash, String newPassword) {
+        ConfirmationKey confirmationKey = this.confirmationKeyRepo.findByToken(tokenHash)
                 .orElseThrow(() -> new BadRequestException("Confirmation token not found"));
         User user = this.userRepository.findByEmail(confirmationKey.getEmailAddress())
                 .orElseThrow(() -> new BadRequestException("User associated with this token not found"));
@@ -99,7 +166,7 @@ public class SecurityController {
     }
 
     @PostMapping("/forgot-password")
-    public String forgotPassword(@RequestParam String emailAddress) {
+    public String forgotPassword(@RequestParam String emailAddress, HttpServletRequest request) {
         if (!userRepository.existsByEmail(emailAddress)) {
             throw new BadRequestException("Email address invalid");
         }
@@ -113,13 +180,24 @@ public class SecurityController {
         simpleMailMessage.setFrom(mailFrom);
         simpleMailMessage.setText("To change your password add this confirmation token: " + key);
         emailService.send(simpleMailMessage);
+
+        // Audit : PASSWORD_RESET_REQUEST
+        String ip = extractClientIp(request);
+        auditService.logPasswordResetRequest(emailAddress, ip);
+        PiiSafeLogger.info(SecurityController.class,
+                "Password reset requested for " + emailAddress + " from IP " + ip);
+
         return this.generateAndPersistToken(emailAddress, key);
     }
 
     public String generateAndPersistToken(String emailAddress, String key) {
+        // SECURITE : on stocke uniquement le hash SHA-256 du token en base.
+        // Le token clair (UUID) reste dans l'email envoye a l'utilisateur ;
+        // en cas de fuite BDD, le token n'est pas reutilisable directement.
         ConfirmationKey confirmationKey = new ConfirmationKey();
         confirmationKey.setEmailAddress(emailAddress);
-        confirmationKey.setToken(key);
+        confirmationKey.setToken(hashConfirmationToken(key));
+        confirmationKey.setExpiresAt(LocalDateTime.now().plusMinutes(15));
         this.confirmationKeyRepo.save(confirmationKey);
         return "We have sent an email to reset your password";
     }
@@ -131,14 +209,17 @@ public class SecurityController {
     }
 
     @PostMapping("/login")
-    public Map<String, String> login(@RequestParam String username, @RequestParam String password) {
-        log.info("Attempting to log in with username: " + username + " and deviceId: " );
+    public ResponseEntity<Map<String, Object>> login(@RequestParam String username, @RequestParam String password,
+                                                     HttpServletRequest request, HttpServletResponse response) {
+        String ip = extractClientIp(request);
+        PiiSafeLogger.info(SecurityController.class,
+                "Login attempt for username=" + username + " from IP " + ip);
 
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new LoginException("User not found."));
-
-        // Définir la limite du nombre d'appareils
-
+                .orElseThrow(() -> {
+                    auditService.logFailedLogin(username, ip, "User not found");
+                    return new LoginException("User not found.");
+                });
 
         try {
             Authentication authentication = authenticationManager.authenticate(
@@ -147,27 +228,76 @@ public class SecurityController {
 
             String scope = authentication.getAuthorities().stream()
                     .map(GrantedAuthority::getAuthority).collect(Collectors.joining(" "));
-            JwtClaimsSet jwtClaimsSet = JwtClaimsSet.builder()
-                    .issuedAt(Instant.now())
-                    .expiresAt(Instant.now().plus(120, ChronoUnit.MINUTES))
-                    .subject(username)                       // "sub" = username
-                    .claim("scope", scope)                  // Par exemple "admin"
-                    .claim("email", user.getEmail())        // Ajout du champ email
-                    .build();
 
-            JwtEncoderParameters jwtEncoderParameters =
-                    JwtEncoderParameters.from(
-                            JwsHeader.with(MacAlgorithm.HS512).build(),
-                            jwtClaimsSet
-                    );
-            String jwt = jwtEncoder.encode(jwtEncoderParameters).getTokenValue();
+            String jwt = generateJwt(username, scope, user.getEmail());
 
-            return Map.of("accessToken", jwt, "role", scope);
+            // Audit : LOGIN_SUCCESS
+            auditService.logLogin(username, ip);
+            PiiSafeLogger.info(SecurityController.class,
+                    "Login successful for username=" + username + " from IP " + ip);
+
+            // Set JWT in HttpOnly cookie
+            ResponseCookie cookie = buildJwtCookie(jwt);
+            response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
+
+            // Return metadata only — NO token in body
+            Map<String, Object> body = new HashMap<>();
+            body.put("userId", user.getId());
+            body.put("username", username);
+            body.put("role", scope);
+            body.put("email", user.getEmail());
+            body.put("expiresIn", JWT_DURATION_MINUTES * 60);
+
+            return ResponseEntity.ok(body);
         } catch (AuthenticationException e) {
+            auditService.logFailedLogin(username, ip, "Invalid credentials");
+            PiiSafeLogger.warn(SecurityController.class,
+                    "Login failed for username=" + username + " from IP " + ip + " — Invalid credentials");
             throw new LoginException("Invalid username or password.");
         } catch (Exception e) {
+            auditService.logFailedLogin(username, ip, "Server error: " + e.getMessage());
+            PiiSafeLogger.warn(SecurityController.class,
+                    "Login failed for username=" + username + " from IP " + ip + " — Server error");
             throw new LoginException("Authentication failed due to server configuration.");
         }
+    }
+
+    @GetMapping("/refresh")
+    public ResponseEntity<Map<String, Object>> refreshToken(Authentication authentication,
+                                                            HttpServletResponse response) {
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return ResponseEntity.status(401).build();
+        }
+
+        String username = authentication.getName();
+        String scope = authentication.getAuthorities().stream()
+                .map(GrantedAuthority::getAuthority).collect(Collectors.joining(" "));
+
+        User user = userRepository.findByUsername(username)
+                .orElse(null);
+        String email = user != null ? user.getEmail() : "";
+
+        String jwt = generateJwt(username, scope, email);
+
+        ResponseCookie cookie = buildJwtCookie(jwt);
+        response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
+
+        Map<String, Object> body = new HashMap<>();
+        body.put("userId", user != null ? user.getId() : null);
+        body.put("username", username);
+        body.put("role", scope);
+        body.put("email", email);
+        body.put("expiresIn", JWT_DURATION_MINUTES * 60);
+
+        log.info("Token refreshed for user={}", username);
+        return ResponseEntity.ok(body);
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<MessageResponse> logout(HttpServletResponse response) {
+        ResponseCookie expiredCookie = buildExpiredCookie();
+        response.addHeader(HttpHeaders.SET_COOKIE, expiredCookie.toString());
+        return ResponseEntity.ok(new MessageResponse("Logged out successfully"));
     }
 
     @PostMapping("/request-reset")
@@ -231,40 +361,41 @@ public class SecurityController {
         user.setId(signUpRequest.getId());
 
         // 5) Récupération des rôles
-        Set<String> strRoles = Set.of(signUpRequest.getRole());
+        String strRole = signUpRequest.getRole();
         Set<Role> roles = new HashSet<>();
 
-        if (strRoles == null) {
-            Role userRole = roleRepository.findByName(ERole.ADMIN)
-                    .orElseThrow(() -> new BadRequestException("Error: Role 'ADMIN' is not found."));
-            roles.add(userRole);
+        if (strRole == null || strRole.isBlank() || strRole.isEmpty()) {
+            // Aucun rôle fourni → rôle par défaut ENSEIGNANT
+            Role defaultRole = roleRepository.findByName(ERole.ENSEIGNANT)
+                    .orElseThrow(() -> new BadRequestException("Error: Default role 'ENSEIGNANT' is not found."));
+            roles.add(defaultRole);
+            log.info("Aucun rôle spécifié pour l'utilisateur '{}', attribution du rôle par défaut ENSEIGNANT",
+                    signUpRequest.getUsername());
         } else {
-            strRoles.forEach(role -> {
-                switch (role) {
-                    case "admin":
-                        Role adminRole = roleRepository.findByName(ERole.ADMIN)
-                                .orElseThrow(() -> new BadRequestException("Error: Role 'admin' is not found."));
-                        roles.add(adminRole);
-                        break;
+            switch (strRole) {
+                case "admin":
+                    roles.add(roleRepository.findByName(ERole.ADMIN)
+                            .orElseThrow(() -> new BadRequestException("Error: Role 'admin' is not found.")));
+                    break;
 
-                    case "CUP":
-                        Role coachRole = roleRepository.findByName(ERole.CUP)
-                                .orElseThrow(() -> new BadRequestException("Error: Role 'CUP' is not found."));
-                        roles.add(coachRole);
-                        break;
+                case "CUP":
+                    roles.add(roleRepository.findByName(ERole.CUP)
+                            .orElseThrow(() -> new BadRequestException("Error: Role 'CUP' is not found.")));
+                    break;
 
-                    case "Enseignant":
-                        Role enseignantRole = roleRepository.findByName(ERole.ENSEIGNANT)
-                                .orElseThrow(() -> new BadRequestException("Error: Role 'Enseignant' is not found."));
-                        roles.add(enseignantRole);
-                        break;
+                case "Enseignant":
+                    roles.add(roleRepository.findByName(ERole.ENSEIGNANT)
+                            .orElseThrow(() -> new BadRequestException("Error: Role 'Enseignant' is not found.")));
+                    break;
 
-                    default:
-                        Role userRoleDefault = roleRepository.findByName(ERole.FORMATEUR)
-                                .orElseThrow(() -> new BadRequestException("Error: Role 'Formateur' is not found."));
-                        roles.add(userRoleDefault);
-                }
-            });
+                case "Formateur":
+                    roles.add(roleRepository.findByName(ERole.FORMATEUR)
+                            .orElseThrow(() -> new BadRequestException("Error: Role 'Formateur' is not found.")));
+                    break;
+
+                default:
+                    throw new BadRequestException("Error: Role '" + strRole + "' is not recognized.");
+            }
         }
 
         user.setRoles(roles);
@@ -275,6 +406,63 @@ public class SecurityController {
         return ResponseEntity.ok(new MessageResponse("User registered successfully!"));
     }
 
+    // ════════════════════════════════════════════════════════════════════
+    //  Helpers
+    // ════════════════════════════════════════════════════════════════════
+
+    private String generateJwt(String username, String scope, String email) {
+        JwtClaimsSet jwtClaimsSet = JwtClaimsSet.builder()
+                .issuedAt(Instant.now())
+                .expiresAt(Instant.now().plus(JWT_DURATION_MINUTES, ChronoUnit.MINUTES))
+                .subject(username)
+                .claim("scope", scope)
+                .claim("email", email)
+                .build();
+
+        JwtEncoderParameters jwtEncoderParameters =
+                JwtEncoderParameters.from(
+                        JwsHeader.with(MacAlgorithm.HS512).build(),
+                        jwtClaimsSet
+                );
+        return jwtEncoder.encode(jwtEncoderParameters).getTokenValue();
+    }
+
+    /**
+     * Construit le cookie HttpOnly + Secure + SameSite=Strict contenant le JWT.
+     */
+    private ResponseCookie buildJwtCookie(String jwt) {
+        return ResponseCookie.from(COOKIE_NAME, jwt)
+                .httpOnly(true)
+                .secure(cookieSecure)
+                .sameSite("Strict")
+                .path("/")
+                .maxAge(JWT_DURATION_MINUTES * 60L)
+                .build();
+    }
+
+    /**
+     * Construit un cookie expiré pour invalider le JWT (logout).
+     */
+    private ResponseCookie buildExpiredCookie() {
+        return ResponseCookie.from(COOKIE_NAME, "")
+                .httpOnly(true)
+                .secure(cookieSecure)
+                .sameSite("Strict")
+                .path("/")
+                .maxAge(0)
+                .build();
+    }
+
+    /**
+     * Extrait l'IP du client depuis la requête HTTP.
+     * Prend en compte le header X-Forwarded-For injecté par l'API Gateway.
+     */
+    private String extractClientIp(HttpServletRequest request) {
+        String xForwardedFor = request.getHeader("X-Forwarded-For");
+        if (xForwardedFor != null && !xForwardedFor.isBlank()) {
+            return xForwardedFor.split(",")[0].trim();
+        }
+        return request.getRemoteAddr();
+    }
+
 }
-
-
