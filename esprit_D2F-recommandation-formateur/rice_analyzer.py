@@ -26,16 +26,44 @@ logger = logging.getLogger("rice_analyzer")
 import time as _time
 
 # ── Database helper ──────────────────────────────────────────────────────────
+# NOTE securite : toutes les requetes SQL de ce module utilisent les placeholders
+# parametrises de psycopg2 (%s) : aucune concatenation de chaines. Les valeurs
+# utilisateur sont passees via le tuple/args, jamais via str.format ou f-string.
+
+# Timeouts (millisecondes) pour eviter le DoS par requete bloquante.
+_DB_STATEMENT_TIMEOUT_MS = int(os.getenv("DB_STATEMENT_TIMEOUT_MS", "30000"))
+_DB_CONNECT_TIMEOUT_S = int(os.getenv("DB_CONNECT_TIMEOUT_S", "5"))
+
+
 def _get_db_connection():
     """Create a fresh psycopg2 connection from env vars."""
     import psycopg2
-    return psycopg2.connect(
+    conn = psycopg2.connect(
         dbname=os.getenv("DB_NAME", "d2f"),
         user=os.getenv("DB_USER", "d2f"),
         password=os.getenv("DB_PASS"),
         host=os.getenv("DB_HOST", "localhost"),
         port=int(os.getenv("DB_PORT", "7432")),
+        connect_timeout=_DB_CONNECT_TIMEOUT_S,
     )
+    # Statement-level timeout : annule toute requete depassant N ms (anti-DoS).
+    with conn.cursor() as cur:
+        cur.execute("SET statement_timeout = %s", (_DB_STATEMENT_TIMEOUT_MS,))
+    return conn
+
+
+# Whitelist sanitization pour les valeurs auto-generees depuis les fiches PDF.
+# psycopg2 protege deja l'injection SQL via les placeholders, mais cette
+# verification supplementaire previent les caracteres exotiques en base.
+_NAME_SAFE_RE = re.compile(r"[^A-Za-zA-Za-zA-Za-zA-ZÀ-ſ'\- ]")
+
+
+def _sanitize_name(value: str, max_len: int = 100) -> str:
+    """Strip control chars and clip to max_len; keep latin letters, spaces, '-, '."""
+    if not value:
+        return ""
+    cleaned = _NAME_SAFE_RE.sub("", value)
+    return cleaned.strip()[:max_len]
 
 
 # ── Cached enseignant affectations (TTL = 5 min) ────────────────────────────
@@ -123,8 +151,8 @@ def _create_enseignant_if_new(nom_complet: str) -> Tuple[str, str]:
     Returns (new_id, display_name).
     """
     parts = nom_complet.strip().split()
-    nom    = parts[0].upper()                             if parts      else "INCONNU"
-    prenom = " ".join(parts[1:]).title()                  if len(parts) > 1 else ""
+    nom    = _sanitize_name(parts[0].upper())             if parts      else "INCONNU"
+    prenom = _sanitize_name(" ".join(parts[1:]).title())  if len(parts) > 1 else ""
 
     slug_raw  = re.sub(r"[^A-Z0-9]", "-", f"{nom}-{prenom}".upper())
     slug_base = re.sub(r"-+", "-", slug_raw).strip("-")[:20]
