@@ -24,6 +24,7 @@ from fastapi.concurrency import run_in_threadpool
 from fastapi.middleware.cors import CORSMiddleware
 from rice.ratelimit import RateLimitMiddleware
 from rice.jwt_middleware import JWTAuthMiddleware
+from rice.error_handlers import register_exception_handlers
 from rice_analyzer import rice_router
 
 
@@ -77,6 +78,11 @@ app.add_middleware(JWTAuthMiddleware)
 
 # ── Rate limiting ─────────────────────────────────────────────────────────────
 app.add_middleware(RateLimitMiddleware)
+
+# ── DSI exception handlers ────────────────────────────────────────────────────
+# Enveloppe d'erreur normalisee : { timestamp, status, errorCode, message, path, traceId }
+# Aucune stack trace n'est exposee au client ; toutes sont loggees server-side.
+register_exception_handlers(app, service_prefix="RICE")
 
 # ── RICE router ───────────────────────────────────────────────────────────────
 app.include_router(rice_router)

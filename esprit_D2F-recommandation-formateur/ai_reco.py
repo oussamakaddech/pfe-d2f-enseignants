@@ -5,12 +5,15 @@ from pydantic import BaseModel
 from typing import List
 from utils import recommend_semantic, _load_or_build_embeddings
 from jwt_middleware import JWTAuthMiddleware
+from error_handlers import register_exception_handlers
 from apscheduler.schedulers.background import BackgroundScheduler
 
 import os
 
 app = FastAPI(title="Reco IA sémantique")
 app.add_middleware(JWTAuthMiddleware)
+# Handlers d'erreur format DSI : enveloppe normalisee, traceId, pas de stack trace au client.
+register_exception_handlers(app, service_prefix="RECO")
 # === 1) Origines CORS externalisées via variable d'environnement ===
 _cors_raw = os.getenv("CORS_ORIGINS", "http://localhost:3000,http://localhost:5173,http://esprit-d2f.esprit.tn")
 origins = [o.strip() for o in _cors_raw.split(",") if o.strip()]
