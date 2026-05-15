@@ -33,6 +33,13 @@
 	</dependencyManagement>
 
 	<dependencies>
+		<!-- Module sécurité partagé — matrice RBAC (AuthorizationMatrix) -->
+		<dependency>
+			<groupId>esprit.d2f</groupId>
+			<artifactId>d2f-common-security</artifactId>
+			<version>1.0.0</version>
+		</dependency>
+
 		<!-- Spring Boot Dependencies -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -74,14 +81,14 @@
 		<dependency>
 			<groupId>com.itextpdf</groupId>
 			<artifactId>kernel</artifactId>
-			<version>7.2.5</version>
+			<version>7.2.6</version>
 		</dependency>
 
 		<!-- iText 7 : module layout -->
 		<dependency>
 			<groupId>com.itextpdf</groupId>
 			<artifactId>layout</artifactId>
-			<version>7.2.5</version>
+			<version>7.2.6</version>
 		</dependency>
 
 		<dependency>
