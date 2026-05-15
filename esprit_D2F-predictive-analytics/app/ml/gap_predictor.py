@@ -12,6 +12,11 @@ from sklearn.model_selection import cross_val_score, train_test_split
 
 from app.config import settings
 from app.core.exceptions import InsufficientDataError, ModelNotTrainedError
+from app.ml.artifact_integrity import (
+    ArtifactIntegrityError,
+    load_with_hash_check,
+    save_with_hash,
+)
 from app.ml.feature_engineering import build_gap_labels, build_teacher_features
 
 logger = logging.getLogger(__name__)
@@ -38,18 +43,26 @@ class GapPredictor:
         self._load_model()
 
     def _load_model(self) -> None:
-        """Load persisted model from disk if available."""
-        if os.path.exists(MODEL_PATH):
-            try:
-                self.model = joblib.load(MODEL_PATH)
-                logger.info("Loaded gap predictor model from %s", MODEL_PATH)
-            except Exception as e:
-                logger.warning("Failed to load model: %s", e)
+        """Load persisted model from disk, verifying integrity first.
+
+        Refuse de charger un artefact dont le hash/HMAC sidecar est absent
+        ou ne correspond pas : prevention contre les uploads malveillants
+        de modeles (joblib utilise pickle = code exec arbitraire au load).
+        """
+        if not os.path.exists(MODEL_PATH):
+            return
+        try:
+            self.model = load_with_hash_check(MODEL_PATH)
+            logger.info("Loaded gap predictor model from %s", MODEL_PATH)
+        except ArtifactIntegrityError as e:
+            logger.error("REFUS de charger %s : %s", MODEL_PATH, e)
+        except Exception as e:
+            logger.warning("Failed to load model: %s", e)
 
     def _save_model(self) -> None:
-        """Persist trained model to disk."""
+        """Persist trained model to disk + write SHA-256/HMAC sidecar."""
         os.makedirs(settings.models_dir, exist_ok=True)
-        joblib.dump(self.model, MODEL_PATH)
+        save_with_hash(self.model, MODEL_PATH)
         logger.info("Saved gap predictor model to %s", MODEL_PATH)
 
     def train(
