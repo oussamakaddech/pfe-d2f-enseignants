@@ -22,6 +22,7 @@ import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.core.Authentication;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.time.LocalDateTime;
 import java.util.Optional;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -57,6 +58,9 @@ class SecurityControllerTest {
 
     @MockitoBean
     private PasswordEncoder passwordEncoder;
+
+    @MockitoBean
+    private esprit.pfe.auth.services.AuditService auditService;
 
     @Autowired
     private ObjectMapper objectMapper;
@@ -118,22 +122,44 @@ class SecurityControllerTest {
 
     @Test
     void resetPassword_WhenTokenValid_ShouldReturnSuccess() throws Exception {
-        when(confirmationKeyRepo.existsByToken("valid-token")).thenReturn(true);
+        // SECURITE : depuis V12, le controller hashe le token avec SHA-256 avant le lookup
+        // BDD. Le mock doit donc matcher sur le HASH du token clair, pas sur le token clair.
+        String rawToken = "valid-token";
+        String hashed = SecurityController.hashConfirmationToken(rawToken);
+
         esprit.pfe.auth.entities.ConfirmationKey key = new esprit.pfe.auth.entities.ConfirmationKey();
         key.setEmailAddress("test@example.com");
-        key.setToken("valid-token");
-        when(confirmationKeyRepo.findByToken("valid-token")).thenReturn(Optional.of(key));
-        
+        key.setToken(hashed);
+        key.setExpiresAt(LocalDateTime.now().plusMinutes(10));
+        when(confirmationKeyRepo.findByToken(hashed)).thenReturn(Optional.of(key));
+
         User user = new User();
         user.setEmail("test@example.com");
         when(userRepository.findByEmail("test@example.com")).thenReturn(Optional.of(user));
         when(passwordEncoder.encode(anyString())).thenReturn("new-encoded-password");
 
         mockMvc.perform(post("/api/v1/auth/reset-password")
-                .param("token", "valid-token")
+                .param("token", rawToken)
                 .param("newPassword", "newpass123"))
                 .andExpect(status().isOk())
                 .andExpect(content().string("Password changed"));
+    }
+
+    @Test
+    void resetPassword_WhenTokenExpired_ShouldReturn410() throws Exception {
+        String rawToken = "expired-token";
+        String hashed = SecurityController.hashConfirmationToken(rawToken);
+
+        esprit.pfe.auth.entities.ConfirmationKey key = new esprit.pfe.auth.entities.ConfirmationKey();
+        key.setEmailAddress("test@example.com");
+        key.setToken(hashed);
+        key.setExpiresAt(LocalDateTime.now().minusMinutes(5));
+        when(confirmationKeyRepo.findByToken(hashed)).thenReturn(Optional.of(key));
+
+        mockMvc.perform(post("/api/v1/auth/reset-password")
+                .param("token", rawToken)
+                .param("newPassword", "newpass123"))
+                .andExpect(status().isGone());
     }
 
     @Test
@@ -170,7 +196,7 @@ class SecurityControllerTest {
 
     @Test
     void resetPassword_WhenTokenInvalid_ShouldReturnBadRequest() throws Exception {
-        when(confirmationKeyRepo.existsByToken("invalid-token")).thenReturn(false);
+        when(confirmationKeyRepo.findByToken("invalid-token")).thenReturn(Optional.empty());
 
         mockMvc.perform(post("/api/v1/auth/reset-password")
                 .param("token", "invalid-token")
@@ -252,11 +278,61 @@ class SecurityControllerTest {
     }
 
     @Test
-    void registerUser_WithUnknownRole_ShouldAssignDefaultRole() throws Exception {
+    void registerUser_WithUnknownRole_ShouldReturnBadRequest() throws Exception {
         signupRequest.setRole("unknown");
         when(userRepository.existsByUsername(anyString())).thenReturn(false);
         when(userRepository.existsByEmail(anyString())).thenReturn(false);
+
+        mockMvc.perform(post("/api/v1/auth/signup")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(signupRequest)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Error: Role 'unknown' is not recognized."));
+
+        verify(userRepository, never()).save(any(User.class));
+    }
+
+    @Test
+    void registerUser_WithNullRole_ShouldAssignDefaultEnseignant() throws Exception {
+        signupRequest.setRole(null);
+        when(userRepository.existsByUsername(anyString())).thenReturn(false);
+        when(userRepository.existsByEmail(anyString())).thenReturn(false);
+        when(roleRepository.findByName(ERole.ENSEIGNANT)).thenReturn(Optional.of(new Role(ERole.ENSEIGNANT)));
+        when(passwordEncoder.encode(anyString())).thenReturn("encodedPassword");
+
+        mockMvc.perform(post("/api/v1/auth/signup")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(signupRequest)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value("User registered successfully!"));
+
+        verify(userRepository).save(any(User.class));
+    }
+
+    @Test
+    void registerUser_WithBlankRole_ShouldAssignDefaultEnseignant() throws Exception {
+        signupRequest.setRole("   ");
+        when(userRepository.existsByUsername(anyString())).thenReturn(false);
+        when(userRepository.existsByEmail(anyString())).thenReturn(false);
+        when(roleRepository.findByName(ERole.ENSEIGNANT)).thenReturn(Optional.of(new Role(ERole.ENSEIGNANT)));
+        when(passwordEncoder.encode(anyString())).thenReturn("encodedPassword");
+
+        mockMvc.perform(post("/api/v1/auth/signup")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(signupRequest)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value("User registered successfully!"));
+
+        verify(userRepository).save(any(User.class));
+    }
+
+    @Test
+    void registerUser_WithRoleFormateur_ShouldAssignRoleFormateur() throws Exception {
+        signupRequest.setRole("Formateur");
+        when(userRepository.existsByUsername(anyString())).thenReturn(false);
+        when(userRepository.existsByEmail(anyString())).thenReturn(false);
         when(roleRepository.findByName(ERole.FORMATEUR)).thenReturn(Optional.of(new Role(ERole.FORMATEUR)));
+        when(passwordEncoder.encode(anyString())).thenReturn("encodedPassword");
 
         mockMvc.perform(post("/api/v1/auth/signup")
                 .contentType(MediaType.APPLICATION_JSON)
