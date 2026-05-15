@@ -79,6 +79,14 @@ public class SecurityController {
     private static final String COOKIE_NAME = "d2f_auth_token";
     private static final int JWT_DURATION_MINUTES = 120;
 
+    // Anti brute-force : N tentatives echouees consecutives => compte verrouille X minutes.
+    // Valeurs externalisees pour permettre l'ajustement sans rebuild.
+    @Value("${auth.lockout.max-attempts:5}")
+    private int lockoutMaxAttempts;
+
+    @Value("${auth.lockout.duration-minutes:15}")
+    private int lockoutDurationMinutes;
+
     public SecurityController(
             EmailService emailService,
             UserRepository userRepository,
@@ -221,6 +229,16 @@ public class SecurityController {
                     return new LoginException("User not found.");
                 });
 
+        // Anti brute-force : si le compte est encore dans sa fenetre de verrouillage,
+        // on refuse l'authentification sans meme appeler le AuthenticationManager.
+        if (user.getLockUntil() != null && user.getLockUntil().isAfter(LocalDateTime.now())) {
+            auditService.logFailedLogin(username, ip, "Account locked");
+            PiiSafeLogger.warn(SecurityController.class,
+                    "Login refused for username=" + username + " from IP " + ip
+                            + " - account locked until " + user.getLockUntil());
+            throw new LoginException("Account temporarily locked due to repeated failed login attempts.");
+        }
+
         try {
             Authentication authentication = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(username, password)
@@ -230,6 +248,13 @@ public class SecurityController {
                     .map(GrantedAuthority::getAuthority).collect(Collectors.joining(" "));
 
             String jwt = generateJwt(username, scope, user.getEmail());
+
+            // Reset le compteur d'echecs apres login reussi.
+            if (user.getFailedLoginAttempts() != null && user.getFailedLoginAttempts() > 0) {
+                user.setFailedLoginAttempts(0);
+                user.setLockUntil(null);
+                userRepository.save(user);
+            }
 
             // Audit : LOGIN_SUCCESS
             auditService.logLogin(username, ip);
@@ -250,9 +275,21 @@ public class SecurityController {
 
             return ResponseEntity.ok(body);
         } catch (AuthenticationException e) {
-            auditService.logFailedLogin(username, ip, "Invalid credentials");
+            // Incrementer le compteur ; au-dela du seuil, verrouiller le compte.
+            int attempts = (user.getFailedLoginAttempts() != null ? user.getFailedLoginAttempts() : 0) + 1;
+            user.setFailedLoginAttempts(attempts);
+            if (attempts >= lockoutMaxAttempts) {
+                user.setLockUntil(LocalDateTime.now().plusMinutes(lockoutDurationMinutes));
+                PiiSafeLogger.warn(SecurityController.class,
+                        "Account locked for username=" + username + " after " + attempts
+                                + " failed attempts (lock for " + lockoutDurationMinutes + " minutes)");
+            }
+            userRepository.save(user);
+
+            auditService.logFailedLogin(username, ip, "Invalid credentials (attempt " + attempts + ")");
             PiiSafeLogger.warn(SecurityController.class,
-                    "Login failed for username=" + username + " from IP " + ip + " — Invalid credentials");
+                    "Login failed for username=" + username + " from IP " + ip
+                            + " — Invalid credentials (attempts=" + attempts + ")");
             throw new LoginException("Invalid username or password.");
         } catch (Exception e) {
             auditService.logFailedLogin(username, ip, "Server error: " + e.getMessage());

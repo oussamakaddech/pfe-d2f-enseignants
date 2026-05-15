@@ -8,6 +8,7 @@ import jakarta.validation.constraints.Size;
 import lombok.*;
 
 
+import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
@@ -62,6 +63,13 @@ public class User {
     @CollectionTable(name = "user_devices", joinColumns = @JoinColumn(name = "user_id"))
     @Column(name = "device_id")
     private Set<String> deviceIds = new HashSet<>();
+
+    // ── Anti brute-force : compteur de tentatives echouees et timestamp de verrouillage ──
+    @Column(name = "failed_login_attempts", nullable = false)
+    private Integer failedLoginAttempts = 0;
+
+    @Column(name = "lock_until")
+    private LocalDateTime lockUntil;
 
     @PrePersist
     public void ensureId() {
