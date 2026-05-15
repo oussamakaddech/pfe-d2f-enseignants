@@ -5,18 +5,24 @@ import os
 import time
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import ValidationError
 
 from app.config import settings
+
 from app.core.exceptions import (
     DatabaseError, InsufficientDataError, ModelNotTrainedError, TeacherNotFoundError,
-    database_error_handler, generic_exception_handler, insufficient_data_handler,
-    model_not_trained_handler, teacher_not_found_handler, validation_exception_handler,
+    database_error_handler, generic_exception_handler, http_exception_handler,
+    insufficient_data_handler, model_not_trained_handler,
+    teacher_not_found_handler, validation_exception_handler,
 )
 from app.core.jwt_middleware import JWTAuthMiddleware
 from app.core.logging_config import configure_logging
+from app.core.observability import TraceIDMiddleware, get_metrics_snapshot
+from app.core.auth import require_metrics_auth
+from fastapi import Depends
 
 configure_logging()
 logger = logging.getLogger(__name__)
@@ -98,46 +104,56 @@ app = FastAPI(
 )
 
 
-# ── Métriques techniques ─────────────────────────────────────
-@app.get("/metrics", tags=["Monitoring"])
+# ── Métriques techniques DSI ─────────────────────────────────
+@app.get("/metrics", tags=["Monitoring"], include_in_schema=False, dependencies=[Depends(require_metrics_auth)])
 def metrics():
-    """Métriques techniques pour monitoring DSI."""
-    try:
-        from app.ml.gap_predictor import gap_predictor
-        model_loaded = gap_predictor.model is not None
-        n_features   = gap_predictor.n_features if model_loaded else 0
-    except Exception:
-        model_loaded = False
-        n_features   = 0
-
+    """
+    Métriques techniques pour monitoring DSI (§4 observabilité).
+    Compteurs en mémoire : requêtes totales, 2xx/4xx/5xx, erreurs DB, latence p95.
+    """
+    snap = get_metrics_snapshot()
     return {
-        "service":        "predictive-analytics",
-        "uptime_seconds": round(time.time() - _start_time, 1),
-        "model_loaded":   model_loaded,
-        "model_n_features": n_features,
+        "service":          "d2f-predictive-analytics",
+        "uptime_seconds":   round(time.time() - _start_time, 1),
+        **snap,
     }
 
 
 # ── Middleware ───────────────────────────────────────────────
+# TraceIDMiddleware en premier (externe) pour que le trace_id soit disponible
+# dans tous les middlewares internes.
+app.add_middleware(TraceIDMiddleware)
 app.add_middleware(JWTAuthMiddleware)
 
 _cors_raw = os.getenv("CORS_ORIGINS", "http://localhost:3000,http://localhost:5173,http://localhost:8080")
 _cors_origins = [o.strip() for o in _cors_raw.split(",") if o.strip()]
+# CORS restreint : verbes HTTP et headers explicites (ne pas utiliser "*").
+# Tout besoin supplementaire doit etre ajoute volontairement.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_cors_origins,
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=[
+        "Authorization",
+        "Content-Type",
+        "Accept",
+        "X-Request-Id",
+        "X-Trace-Id",
+    ],
+    expose_headers=["X-Trace-Id"],
+    max_age=3600,
 )
 
 # ── Exception handlers (format DSI standard) ────────────────
-app.add_exception_handler(ModelNotTrainedError, model_not_trained_handler)
-app.add_exception_handler(InsufficientDataError, insufficient_data_handler)
-app.add_exception_handler(TeacherNotFoundError, teacher_not_found_handler)
-app.add_exception_handler(DatabaseError, database_error_handler)
-app.add_exception_handler(ValidationError, validation_exception_handler)
-app.add_exception_handler(Exception, generic_exception_handler)
+app.add_exception_handler(ModelNotTrainedError,   model_not_trained_handler)
+app.add_exception_handler(InsufficientDataError,  insufficient_data_handler)
+app.add_exception_handler(TeacherNotFoundError,   teacher_not_found_handler)
+app.add_exception_handler(DatabaseError,          database_error_handler)
+app.add_exception_handler(HTTPException,          http_exception_handler)
+app.add_exception_handler(RequestValidationError, validation_exception_handler)
+app.add_exception_handler(ValidationError,        validation_exception_handler)
+app.add_exception_handler(Exception,              generic_exception_handler)
 
 # ── Routers ──────────────────────────────────────────────────
 # Ancien router (rétro-compatibilité predict/detect/dashboard)
