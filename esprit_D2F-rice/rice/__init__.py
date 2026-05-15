@@ -138,7 +138,6 @@ __all__ = [
     # routes
     "rice_router",
     "_AUTH_ENABLED",
-    "_AUTH_SECRET",
     "_oauth2_scheme",
     "_get_current_user",
 ]
@@ -261,7 +260,6 @@ from rice.referential import (  # noqa: F401
 )
 from rice.routes import (  # noqa: F401
     _AUTH_ENABLED,
-    _AUTH_SECRET,
     _get_current_user,
     _oauth2_scheme,
     rice_router,
