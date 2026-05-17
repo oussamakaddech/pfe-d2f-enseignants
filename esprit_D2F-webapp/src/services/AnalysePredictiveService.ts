@@ -14,7 +14,7 @@ const AnalysePredictiveService = {
   },
 
   async trainModel() {
-    const res = await axios.post(`${PREDICTIVE_API}/predict/train`);
+    const res = await axios.post(`${PREDICTIVE_API}/predict/train`, {});
     return res.data;
   },
 
@@ -86,6 +86,9 @@ const AnalysePredictiveService = {
         }
       }
 
+      // Check if result comes from heuristic fallback
+      const isHeuristic = gapsRes.explanation?.method === "heuristic" || gapsRes.explanation?.model_trained === false;
+
       return {
         enseignantId,
         competenceAnalysee: competenceCible || "Toutes",
@@ -96,13 +99,46 @@ const AnalysePredictiveService = {
           niveauCible: g.required_level,
           gap: g.predicted_gap,
           gravite: g.predicted_gap >= 2 ? "elevee" : g.predicted_gap >= 1 ? "moyenne" : "faible",
-          explication: `Gap prédit: ${g.predicted_gap.toFixed(1)} (confiance: ${(g.confidence * 100).toFixed(0)}%)`,
+          explication: isHeuristic
+            ? `Gap estimé (heuristique): ${g.predicted_gap.toFixed(1)} — Entraînez le modèle pour des prédictions plus précises`
+            : `Gap prédit: ${g.predicted_gap.toFixed(1)} (confiance: ${(g.confidence * 100).toFixed(0)}%)`,
         })),
         overallRiskScore: gapsRes.overall_risk_score || 0,
         recommandationsFormations: recommendations,
+        isHeuristic,
+        modelNeedsTraining: isHeuristic,
       };
-    } catch (error) {
+    } catch (error: any) {
       console.error("Erreur lors de l'analyse prédictive de l'enseignant :", error);
+      // If 503 (model not trained), try to auto-train and retry once
+      if (error?.response?.status === 503) {
+        console.info("Modèle non entraîné — tentative d'entraînement automatique...");
+        try {
+          await this.trainModel();
+          // Retry after training
+          const gapsRes = await this.predictGaps(enseignantId, 6, 10);
+          return {
+            enseignantId,
+            competenceAnalysee: competenceCible || "Toutes",
+            gaps: (gapsRes.gaps || []).map((g: any) => ({
+              competenceCode: `C${g.competency_id}`,
+              competenceLabel: g.competency_name,
+              niveauActuel: g.current_level,
+              niveauCible: g.required_level,
+              gap: g.predicted_gap,
+              gravite: g.predicted_gap >= 2 ? "elevee" : g.predicted_gap >= 1 ? "moyenne" : "faible",
+              explication: `Gap prédit: ${g.predicted_gap.toFixed(1)} (confiance: ${(g.confidence * 100).toFixed(0)}%)`,
+            })),
+            overallRiskScore: gapsRes.overall_risk_score || 0,
+            recommandationsFormations: [],
+            isHeuristic: false,
+            modelNeedsTraining: false,
+          };
+        } catch (retryError) {
+          console.error("Échec de l'entraînement automatique :", retryError);
+          throw new Error("Le modèle prédictif n'est pas encore entraîné et l'entraînement automatique a échoué. Veuillez contacter l'administrateur.");
+        }
+      }
       throw error;
     }
   },

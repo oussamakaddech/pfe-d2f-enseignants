@@ -208,6 +208,7 @@
 					<user>d2f</user>
 					<password>${db.password}</password>
 					<locations>classpath:db/migration</locations>
+					<table>flyway_schema_history_besoin</table>
 				</configuration>
 				<dependencies>
 					<dependency>

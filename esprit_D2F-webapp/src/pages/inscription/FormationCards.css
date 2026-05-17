@@ -1,17 +1,40 @@
 /* FormationCards.css — design moderne */
 
+.fc-page {
+  padding: 24px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.fc-filter-card {
+  margin-bottom: 24px;
+  border-radius: var(--radius-lg);
+}
+
+.fc-filter-icon {
+  color: var(--primary-500);
+  font-size: 16px;
+}
+
+/* ── Formation card ──────────────────────────────────────────────────────── */
 .formation-card {
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
   overflow: hidden;
   transition: all 0.25s ease;
-  border: 1px solid #f0f0f0;
+  border: 1px solid var(--border-color);
 }
 
 .formation-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.12);
+  box-shadow: var(--shadow-lg);
 }
 
+.formation-card:focus-visible {
+  outline: 2px solid var(--primary-500);
+  outline-offset: 2px;
+}
+
+/* ── Card header (type banner) ───────────────────────────────────────────── */
 .formation-card .card-header {
   padding: 12px 16px;
   color: #fff;
@@ -22,6 +45,18 @@
   justify-content: space-between;
 }
 
+.card-header-tag {
+  color: #fff !important;
+  border-color: rgba(255, 255, 255, 0.4) !important;
+  background: rgba(255, 255, 255, 0.25) !important;
+}
+
+.card-header-badge {
+  color: #fff !important;
+  font-size: 12px;
+}
+
+/* ── Card body ───────────────────────────────────────────────────────────── */
 .formation-card .card-body {
   padding: 16px;
 }
@@ -29,7 +64,7 @@
 .formation-card .card-title {
   font-size: 16px;
   font-weight: 700;
-  color: #1f1f1f;
+  color: var(--text-main);
   margin-bottom: 8px;
   line-height: 1.3;
   min-height: 42px;
@@ -47,7 +82,7 @@
   align-items: center;
   gap: 6px;
   font-size: 13px;
-  color: #595959;
+  color: var(--text-muted);
 }
 
 .formation-card .card-tags {
@@ -57,32 +92,50 @@
   margin-bottom: 12px;
 }
 
+/* ── Card actions ────────────────────────────────────────────────────────── */
 .formation-card .card-actions {
   display: flex;
   justify-content: space-around;
   align-items: center;
-  border-top: 1px solid #f0f0f0;
+  border-top: 1px solid var(--border-color);
   padding-top: 10px;
 }
 
 .formation-card .card-actions .anticon {
   font-size: 18px;
-  transition: transform 0.15s ease;
+  transition: transform 0.15s ease, opacity 0.15s ease;
   cursor: pointer;
+  border-radius: var(--radius-sm);
+  padding: 4px;
 }
 
 .formation-card .card-actions .anticon:hover {
   transform: scale(1.15);
+  opacity: 0.85;
 }
 
-/* Type colors */
-.type-INTERNE   { background: linear-gradient(135deg, #1890ff, #36cfc9); }
-.type-EXTERNE   { background: linear-gradient(135deg, #722ed1, #eb2f96); }
-.type-INTERNE_  { background: linear-gradient(135deg, #1890ff, #36cfc9); }
-.type-EXTERNE_  { background: linear-gradient(135deg, #722ed1, #eb2f96); }
-.type-default   { background: linear-gradient(135deg, #595959, #8c8c8c); }
+.formation-card .card-actions .anticon:focus-visible {
+  outline: 2px solid var(--primary-500);
+  outline-offset: 2px;
+}
 
-/* Badge blink animation for open status */
+/* ── Icon semantic colors ────────────────────────────────────────────────── */
+.icon-primary  { color: var(--primary-500); }
+.icon-muted    { color: var(--text-muted); }
+.icon-disabled { color: var(--neutral-400); }
+.icon-error    { color: var(--color-error); }
+.icon-success  { color: var(--color-success); }
+.icon-info     { color: var(--color-info); }
+
+/* ── Type header gradients ───────────────────────────────────────────────── */
+.type-INTERNE    { background: linear-gradient(135deg, var(--color-info), #36cfc9); }
+.type-EXTERNE    { background: linear-gradient(135deg, #722ed1, #eb2f96); }
+.type-EN_LIGNE   { background: linear-gradient(135deg, #13c2c2, #1890ff); }
+.type-INTERNE_   { background: linear-gradient(135deg, var(--color-info), #36cfc9); }
+.type-EXTERNE_   { background: linear-gradient(135deg, #722ed1, #eb2f96); }
+.type-default    { background: linear-gradient(135deg, var(--neutral-500), var(--neutral-400)); }
+
+/* ── Badge blink animation for open status ───────────────────────────────── */
 @keyframes softPulse {
   0%   { opacity: 1; }
   50%  { opacity: 0.7; }
@@ -91,4 +144,9 @@
 
 .blink-open {
   animation: softPulse 2s infinite;
+}
+
+/* ── Empty state ─────────────────────────────────────────────────────────── */
+.fc-empty {
+  margin-top: 80px;
 }

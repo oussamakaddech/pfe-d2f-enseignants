@@ -120,8 +120,8 @@ class TestPrioriteScoreFormula:
         assert abs(0.45 + 0.35 + 0.20 - 1.0) < 1e-9
 
     def test_typical_critique_scenario(self):
-        # gap_brut=0.8, urgence=0.7, impact=0.6 → 0.8*0.45 + 0.7*0.35 + 0.6*0.20
-        score = 0.8*0.45 + 0.7*0.35 + 0.6*0.20
+        # gap_brut=1.0, urgence=0.8, impact=0.6 → 0.45 + 0.28 + 0.12 = 0.85
+        score = 1.0*0.45 + 0.8*0.35 + 0.6*0.20
         assert score >= 0.75  # doit être CRITIQUE
 
     def test_typical_faible_scenario(self):
@@ -342,24 +342,27 @@ class TestAlertEngineR4CompletionFaible:
         return AlertEngine(mock_db)
 
     def test_r4_fires_when_completion_below_threshold(self, engine):
+        # total = in_progress + completed = 10, taux = 1/10 = 10% < 40%
         profile = {
             "nb_formations_completed": 1,
-            "nb_formations_total": 10,
+            "nb_formations_in_progress": 9,
         }
         alerts = engine._r4_completion_faible("ENS001", profile)
         assert len(alerts) == 1
         assert alerts[0].type_alerte == "COMPLETION_FAIBLE"
 
     def test_r4_no_fire_when_completion_above_threshold(self, engine):
+        # taux = 8/10 = 80% >= 40%
         profile = {
             "nb_formations_completed": 8,
-            "nb_formations_total": 10,
+            "nb_formations_in_progress": 2,
         }
         alerts = engine._r4_completion_faible("ENS001", profile)
         assert alerts == []
 
     def test_r4_no_fire_when_no_formations(self, engine):
-        profile = {"nb_formations_completed": 0, "nb_formations_total": 0}
+        # total = 0 < SEUIL_NB_FORMATIONS_MIN (3)
+        profile = {"nb_formations_completed": 0, "nb_formations_in_progress": 0}
         alerts = engine._r4_completion_faible("ENS001", profile)
         assert alerts == []
 

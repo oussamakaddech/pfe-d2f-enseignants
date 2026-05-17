@@ -72,6 +72,16 @@ public class FormationWorkflowServiceHelper {
         if (request.getDepartementId() != null && !request.getDepartementId().isBlank()) {
             formation.setDepartement(departementRepository.findById(request.getDepartementId()).orElse(null));
         }
+
+        // Animateurs au niveau de la formation
+        if (request.getAnimateursIds() != null && !request.getAnimateursIds().isEmpty()) {
+            formation.setAnimateurs(request.getAnimateursIds().stream()
+                    .map(id -> enseignantRepository.findById(id).orElse(null))
+                    .filter(Objects::nonNull)
+                    .toList());
+        } else {
+            formation.setAnimateurs(Collections.emptyList());
+        }
     }
 
     public List<SeanceFormation> createSeancesForFormation(
@@ -174,16 +184,35 @@ public class FormationWorkflowServiceHelper {
             List<SeanceFormation> seances) {
 
         List<Presence> allPresences = new ArrayList<>();
+        Set<String> alreadyAdded = new HashSet<>();
 
         for (SeanceFormation sf : seances) {
+            // Presences pour les animateurs
+            if (sf.getAnimateurs() != null) {
+                for (Enseignant anim : sf.getAnimateurs()) {
+                    String key = sf.getIdSeance() + "-" + anim.getId();
+                    if (alreadyAdded.add(key)) {
+                        Presence p = new Presence();
+                        p.setSeanceFormation(sf);
+                        p.setEnseignant(anim);
+                        p.setPresent(false);
+                        p.setCommentaire("Presence animateur a valider");
+                        allPresences.add(p);
+                    }
+                }
+            }
+            // Presences pour les participants
             if (sf.getParticipants() != null) {
                 for (Enseignant pt : sf.getParticipants()) {
-                    Presence p = new Presence();
-                    p.setSeanceFormation(sf);
-                    p.setEnseignant(pt);
-                    p.setPresent(false);
-                    p.setCommentaire("Presence a valider");
-                    allPresences.add(p);
+                    String key = sf.getIdSeance() + "-" + pt.getId();
+                    if (alreadyAdded.add(key)) {
+                        Presence p = new Presence();
+                        p.setSeanceFormation(sf);
+                        p.setEnseignant(pt);
+                        p.setPresent(false);
+                        p.setCommentaire("Presence a valider");
+                        allPresences.add(p);
+                    }
                 }
             }
         }

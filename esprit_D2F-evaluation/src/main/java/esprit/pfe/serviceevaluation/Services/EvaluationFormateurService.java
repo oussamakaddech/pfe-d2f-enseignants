@@ -21,8 +21,17 @@ import java.util.stream.Collectors;
 public class EvaluationFormateurService {
 
     private final EvaluationFormateurRepository evaluationRepository;
+    private final esprit.pfe.serviceevaluation.client.FormationClient formationClient;
+    private final esprit.pfe.serviceevaluation.client.AuthClient authClient;
 
-
+    private void verifierExistence(String enseignantId, Long formationId) {
+        if (Boolean.FALSE.equals(formationClient.getFormation(formationId))) {
+            throw new esprit.pfe.serviceevaluation.exception.ResourceNotFoundException("Formation introuvable");
+        }
+        if (Boolean.FALSE.equals(authClient.getEnseignant(enseignantId))) {
+            throw new esprit.pfe.serviceevaluation.exception.ResourceNotFoundException("Enseignant introuvable");
+        }
+    }
 
     // Mapper helper
     private EvaluationFormateurDTO mapToDto(EvaluationFormateur entity) {
@@ -49,12 +58,14 @@ public class EvaluationFormateurService {
 
     // CREATE
     public EvaluationFormateurDTO ajouterEvalParticipant(EvaluationFormateurDTO dto) {
+        verifierExistence(dto.getEnseignantId(), dto.getFormationId());
         EvaluationFormateur evaluation = mapToEntity(dto);
         return mapToDto(evaluationRepository.save(evaluation));
     }
 
     // UPDATE
     public EvaluationFormateurDTO modifierEvalParticipant(Long id, EvaluationFormateurDTO updatedDto) {
+        verifierExistence(updatedDto.getEnseignantId(), updatedDto.getFormationId());
         EvaluationFormateur existingEval = evaluationRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Evaluation non trouvée avec l'id : " + id));
 
@@ -100,6 +111,9 @@ public class EvaluationFormateurService {
 
 
     public void createEvaluationsBulk(List<EvaluationFormateurDTO> dtos) {
+        if (!dtos.isEmpty()) {
+            verifierExistence(dtos.get(0).getEnseignantId(), dtos.get(0).getFormationId());
+        }
         List<EvaluationFormateur> entities = new ArrayList<>();
         for (EvaluationFormateurDTO dto : dtos) {
             EvaluationFormateur entity = new EvaluationFormateur();
@@ -134,6 +148,9 @@ public class EvaluationFormateurService {
 
     @Transactional
     public void updateEvaluationsBulkByFormation(Long formationId, List<EvaluationFormateurDTO> dtos) {
+        if (!dtos.isEmpty()) {
+            verifierExistence(dtos.get(0).getEnseignantId(), formationId);
+        }
         // 1) Charger toutes les évaluations existantes de la formation
         List<EvaluationFormateur> existing = evaluationRepository.findByFormationId(formationId);
 

@@ -482,7 +482,7 @@ export default function RicePage() {
       return;
     }
 
-    if (currentStep === 2 && Array.isArray(prevTree) && prevTree.length >= 0) {
+    if (currentStep === 2 && Array.isArray(prevTree) && prevTree.length > 0) {
       setTreeHistory((hist) => {
         const next = [...hist, cloneDeep(prevTree)];
         return next.slice(-10);

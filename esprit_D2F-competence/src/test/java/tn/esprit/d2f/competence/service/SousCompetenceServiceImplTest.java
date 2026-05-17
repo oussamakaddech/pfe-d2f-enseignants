@@ -277,7 +277,6 @@ class SousCompetenceServiceImplTest {
         }
     }
 
-    // ── Search ────────────────────────────────────────────────────────────────
     @Nested
     @DisplayName("searchSousCompetences")
     class Search {
@@ -298,27 +297,6 @@ class SousCompetenceServiceImplTest {
             when(competenceMapper.toDTO(any(SousCompetence.class))).thenReturn(sousCompetenceDTO);
             Page<SousCompetenceDTO> result = sousCompetenceService.searchSousCompetences("test", pageable);
             assertThat(result.getContent()).hasSize(1);
-        }
-    }
-
-    // ── Validation Branches ───────────────────────────────────────────────────
-    @Nested
-    @DisplayName("validateCodePrefix")
-    class Validation {
-        @ParameterizedTest
-        @CsvSource({
-            "WRONG.X, commencer par 'GC-C1.'",
-            "GC-C1., terminer par un point",
-            "GC-C1.sc01, majuscules, chiffres"
-        })
-        @DisplayName("refuse les codes invalides selon la regle métier")
-        void validateCodePrefix_ShouldThrowException(String invalidCode, String expectedMessagePart) {
-            SousCompetenceRequest req = SousCompetenceRequest.builder().code(invalidCode).build();
-            when(competenceRepository.findById(2L)).thenReturn(Optional.of(competence));
-            
-            assertThatThrownBy(() -> sousCompetenceService.createSousCompetence(2L, req))
-                    .isInstanceOf(RuntimeException.class)
-                    .hasMessageContaining(expectedMessagePart);
         }
     }
 
@@ -348,6 +326,79 @@ class SousCompetenceServiceImplTest {
 
             assertThatThrownBy(() -> sousCompetenceService.deleteSousCompetence(99L))
                     .isInstanceOf(RuntimeException.class);
+        }
+    }
+
+    @Nested
+    @DisplayName("getSousCompetenceById(Long)")
+    class GetById {
+        @Test
+        void shouldReturnDTO() {
+            when(sousCompetenceRepository.findById(3L)).thenReturn(Optional.of(sousCompetence));
+            when(competenceMapper.toDTO(sousCompetence)).thenReturn(sousCompetenceDTO);
+            assertThat(sousCompetenceService.getSousCompetenceById(3L)).isEqualTo(sousCompetenceDTO);
+        }
+    }
+
+    @Nested
+    @DisplayName("Validation Branches")
+    class ValidationBranches {
+        @Test
+        void validateUniqueCode_ShouldThrowIfDifferentId() {
+            SousCompetence other = SousCompetence.builder().id(99L).code("CODE").build();
+            when(sousCompetenceRepository.findById(3L)).thenReturn(Optional.of(sousCompetence));
+            when(sousCompetenceRepository.findByCode("CODE")).thenReturn(Optional.of(other));
+            
+            SousCompetenceRequest req = SousCompetenceRequest.builder().code("CODE").build();
+            assertThatThrownBy(() -> sousCompetenceService.updateSousCompetence(3L, req))
+                    .isInstanceOf(IllegalArgumentException.class);
+        }
+
+        @Test
+        void validateCodePrefix_ShouldThrowIfNullOrTooLong() {
+            SousCompetenceRequest reqNull = SousCompetenceRequest.builder().code(null).build();
+            when(competenceRepository.findById(2L)).thenReturn(Optional.of(competence));
+            assertThatThrownBy(() -> sousCompetenceService.createSousCompetence(2L, reqNull))
+                    .isInstanceOf(RuntimeException.class);
+
+            String longCode = "GC-C1." + "A".repeat(101);
+            SousCompetenceRequest reqLong = SousCompetenceRequest.builder().code(longCode).build();
+            assertThatThrownBy(() -> sousCompetenceService.createSousCompetence(2L, reqLong))
+                    .isInstanceOf(RuntimeException.class);
+        }
+
+        @ParameterizedTest
+        @CsvSource({
+            "WRONG.X, commencer par 'GC-C1.'",
+            "GC-C1., terminer par un point",
+            "GC-C1.sc01, majuscules, chiffres"
+        })
+        @DisplayName("refuse les codes invalides selon la regle métier")
+        void validateCodePrefix_ShouldThrowException(String invalidCode, String expectedMessagePart) {
+            SousCompetenceRequest req = SousCompetenceRequest.builder().code(invalidCode).build();
+            when(competenceRepository.findById(2L)).thenReturn(Optional.of(competence));
+            
+            assertThatThrownBy(() -> sousCompetenceService.createSousCompetence(2L, req))
+                    .isInstanceOf(RuntimeException.class)
+                    .hasMessageContaining(expectedMessagePart);
+        }
+    }
+
+    @Nested
+    @DisplayName("collectSubtreeIds & deletion")
+    class Subtree {
+        @Test
+        void deleteSousCompetence_ShouldHandleEmptySavoirsAndSubtree() {
+            SousCompetence child = SousCompetence.builder().id(4L).build();
+            when(sousCompetenceRepository.findById(3L)).thenReturn(Optional.of(sousCompetence));
+            when(sousCompetenceRepository.findByParentId(3L)).thenReturn(List.of(child));
+            when(sousCompetenceRepository.findByParentId(4L)).thenReturn(List.of());
+            when(savoirRepository.findIdsBySousCompetenceId(3L)).thenReturn(List.of());
+            when(savoirRepository.findIdsBySousCompetenceId(4L)).thenReturn(List.of());
+
+            sousCompetenceService.deleteSousCompetence(3L);
+
+            verify(sousCompetenceRepository).deleteById(3L);
         }
     }
 }

@@ -2,8 +2,7 @@ package esprit.pfe.servicecertificat.controllers;
 
 import esprit.pfe.servicecertificat.dto.CertificateRequest;
 import esprit.pfe.servicecertificat.dto.CertificateResponse;
-import esprit.pfe.servicecertificat.entities.Certificate;
-import esprit.pfe.servicecertificat.repositories.CertificateRepository;
+import esprit.pfe.servicecertificat.services.CertificateService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -17,39 +16,41 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.oauth2.jwt.Jwt;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
-import java.util.Optional;
-import static org.mockito.ArgumentMatchers.any;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class CertificateControllerTest {
 
     @Mock
-    private CertificateRepository repository;
+    private CertificateService certificateService;
+
     @InjectMocks
     private CertificateController controller;
 
-    private Certificate certificate;
+    private CertificateResponse response;
     private CertificateRequest request;
 
     @BeforeEach
     void setUp() {
-        certificate = new Certificate();
-        certificate.setIdCertificate(1L);
-        certificate.setFormationId(10L);
-        certificate.setTitreFormation("Java Avancé");
-        certificate.setTypeCertif("Participation");
-        certificate.setNomEnseignant("Dupont");
-        certificate.setPrenomEnseignant("Jean");
-        certificate.setMailEnseignant("jean@esprit.tn");
-        certificate.setDeptEnseignant("INFO");
-        certificate.setRoleEnFormation("Participant");
-        certificate.setEnseignantId("ens-1");
-        certificate.setDelivered(false);
+        response = new CertificateResponse();
+        response.setId(1L);
+        response.setFormationId(10L);
+        response.setTitreFormation("Java Avancé");
+        response.setTypeCertif("Participation");
+        response.setNomEnseignant("Dupont");
+        response.setPrenomEnseignant("Jean");
+        response.setMailEnseignant("jean@esprit.tn");
+        response.setDeptEnseignant("INFO");
+        response.setRoleEnFormation("Participant");
+        response.setEnseignantId("ens-1");
+        response.setDelivered(false);
 
         request = new CertificateRequest();
         request.setFormationId(10L);
@@ -65,29 +66,30 @@ class CertificateControllerTest {
 
     @Test
     void createCertificate_shouldReturnCreated() {
-        when(repository.save(any())).thenReturn(certificate);
+        when(certificateService.create(any())).thenReturn(response);
 
-        var response = controller.createCertificate(request);
+        var result = controller.createCertificate(request);
 
-        assertEquals(HttpStatus.CREATED, response.getStatusCode());
-        assertNotNull(response.getBody());
-        assertEquals("Java Avancé", response.getBody().getTitreFormation());
-        assertFalse(response.getBody().isDelivered());
+        assertEquals(HttpStatus.CREATED, result.getStatusCode());
+        assertNotNull(result.getBody());
+        assertEquals("Java Avancé", result.getBody().getTitreFormation());
+        assertFalse(result.getBody().isDelivered());
     }
 
     @Test
     void getAll_shouldReturnList() {
-        when(repository.findAll(any(Pageable.class))).thenReturn(new PageImpl<>(List.of(certificate)));
+        when(certificateService.findAll(any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of(response)));
 
-        Page<CertificateResponse> result = controller.getAll(Pageable.unpaged());
+        Page<CertificateResponse> page = controller.getAll(Pageable.unpaged());
 
-        assertEquals(1, result.getContent().size());
-        assertEquals("Dupont", result.getContent().get(0).getNomEnseignant());
+        assertEquals(1, page.getContent().size());
+        assertEquals("Dupont", page.getContent().get(0).getNomEnseignant());
     }
 
     @Test
     void getByFormation_shouldReturnFilteredList() {
-        when(repository.findByFormationId(10L)).thenReturn(List.of(certificate));
+        when(certificateService.findByFormation(10L)).thenReturn(List.of(response));
 
         List<CertificateResponse> result = controller.getByFormation(10L);
 
@@ -96,37 +98,39 @@ class CertificateControllerTest {
 
     @Test
     void deliver_shouldSetDeliveredTrue() {
-        when(repository.findById(1L)).thenReturn(Optional.of(certificate));
-        certificate.setDelivered(true);
-        when(repository.save(any())).thenReturn(certificate);
+        CertificateResponse delivered = new CertificateResponse();
+        delivered.setId(1L);
+        delivered.setDelivered(true);
+        when(certificateService.deliver(1L)).thenReturn(delivered);
 
-        var response = controller.deliver(1L);
+        var result = controller.deliver(1L);
 
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertTrue(response.getBody().isDelivered());
+        assertEquals(HttpStatus.OK, result.getStatusCode());
+        assertTrue(result.getBody().isDelivered());
     }
 
     @Test
     void deliver_notFound_shouldThrow() {
-        when(repository.findById(999L)).thenReturn(Optional.empty());
+        when(certificateService.deliver(999L))
+                .thenThrow(new RuntimeException("Certificat introuvable : 999"));
 
         assertThrows(RuntimeException.class, () -> controller.deliver(999L));
     }
 
     @Test
     void updateCertificate_shouldReturnUpdated() {
-        when(repository.findById(1L)).thenReturn(Optional.of(certificate));
-        when(repository.save(any())).thenReturn(certificate);
+        when(certificateService.update(eq(1L), any())).thenReturn(response);
 
-        var response = controller.updateCertificate(1L, request);
+        var result = controller.updateCertificate(1L, request);
 
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        verify(repository).save(any());
+        assertEquals(HttpStatus.OK, result.getStatusCode());
+        verify(certificateService).update(eq(1L), any());
     }
 
     @Test
     void updateCertificate_notFound_shouldThrow() {
-        when(repository.findById(999L)).thenReturn(Optional.empty());
+        when(certificateService.update(eq(999L), any()))
+                .thenThrow(new RuntimeException("Certificat introuvable : 999"));
 
         assertThrows(RuntimeException.class, () -> controller.updateCertificate(999L, request));
     }
@@ -140,13 +144,12 @@ class CertificateControllerTest {
                 .expiresAt(Instant.now().plus(1, ChronoUnit.HOURS))
                 .build();
 
-        when(repository.findByMailEnseignant("jean@esprit.tn")).thenReturn(List.of(certificate));
+        when(certificateService.findByEmail("jean@esprit.tn")).thenReturn(List.of(response));
 
         List<CertificateResponse> result = controller.getByEmail(mockJwt);
 
         assertEquals(1, result.size());
         assertEquals("Dupont", result.get(0).getNomEnseignant());
-        verify(repository).findByMailEnseignant("jean@esprit.tn");
     }
 
     @Test
@@ -158,57 +161,36 @@ class CertificateControllerTest {
                 .expiresAt(Instant.now().plus(1, ChronoUnit.HOURS))
                 .build();
 
-        when(repository.findByMailEnseignant("unknown@esprit.tn")).thenReturn(List.of());
+        when(certificateService.findByEmail("unknown@esprit.tn")).thenReturn(List.of());
 
-        List<CertificateResponse> result = controller.getByEmail(mockJwt);
-
-        assertTrue(result.isEmpty());
-    }
-
-    @Test
-    void deliver_notFound_shouldThrowRuntimeException() {
-        when(repository.findById(999L)).thenReturn(Optional.empty());
-
-        RuntimeException ex = assertThrows(RuntimeException.class, () -> controller.deliver(999L));
-        assertEquals("Certificat introuvable", ex.getMessage());
-    }
-
-    @Test
-    void updateCertificate_notFound_shouldThrowRuntimeException() {
-        when(repository.findById(999L)).thenReturn(Optional.empty());
-
-        RuntimeException ex = assertThrows(RuntimeException.class, () -> controller.updateCertificate(999L, request));
-        assertEquals("Certificat introuvable", ex.getMessage());
+        assertTrue(controller.getByEmail(mockJwt).isEmpty());
     }
 
     @Test
     void mapToResponse_shouldMapAllFields() {
-        Certificate cert = new Certificate();
-        cert.setIdCertificate(1L);
-        cert.setFormationId(10L);
-        cert.setTitreFormation("Java Avancé");
-        cert.setTypeCertif("Participation");
-        cert.setDateDebutFormation(java.time.LocalDate.of(2025, 1, 1));
-        cert.setDateFinFormation(java.time.LocalDate.of(2025, 1, 31));
-        cert.setChargeHoraireGlobal(40);
-        cert.setEnseignantId("E001");
-        cert.setNomEnseignant("Test");
-        cert.setPrenomEnseignant("User");
-        cert.setMailEnseignant("test@esprit.tn");
-        cert.setDeptEnseignant("INFO");
-        cert.setRoleEnFormation("FORMATEUR");
-        cert.setDelivered(true);
-        cert.setPdfFilePath("/path/to/pdf");
+        CertificateResponse full = new CertificateResponse();
+        full.setId(1L);
+        full.setFormationId(10L);
+        full.setTitreFormation("Java Avancé");
+        full.setTypeCertif("Participation");
+        full.setDateDebutFormation(LocalDate.of(2025, 1, 1));
+        full.setDateFinFormation(LocalDate.of(2025, 1, 31));
+        full.setChargeHoraireGlobal(40);
+        full.setEnseignantId("E001");
+        full.setNomEnseignant("Test");
+        full.setPrenomEnseignant("User");
+        full.setMailEnseignant("test@esprit.tn");
+        full.setDeptEnseignant("INFO");
+        full.setRoleEnFormation("FORMATEUR");
+        full.setDelivered(true);
 
-        when(repository.findById(1L)).thenReturn(Optional.of(cert));
-        when(repository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        when(certificateService.update(eq(1L), any())).thenReturn(full);
 
-        var response = controller.updateCertificate(1L, request);
+        var result = controller.updateCertificate(1L, request);
 
-        assertNotNull(response.getBody());
-        assertEquals(1L, response.getBody().getId());
-        assertEquals("Java Avancé", response.getBody().getTitreFormation());
-        assertEquals("Participation", response.getBody().getTypeCertif());
-        assertTrue(response.getBody().isDelivered());
+        assertNotNull(result.getBody());
+        assertEquals(1L, result.getBody().getId());
+        assertEquals("Java Avancé", result.getBody().getTitreFormation());
+        assertTrue(result.getBody().isDelivered());
     }
 }

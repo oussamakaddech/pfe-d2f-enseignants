@@ -6,7 +6,6 @@ import {
   Button,
   Upload,
   Input,
-  Typography,
   Drawer,
   Form,
   Popconfirm,
@@ -18,12 +17,14 @@ import {
   EditOutlined,
   DeleteOutlined,
   ReloadOutlined,
+  ApartmentOutlined,
 } from '@ant-design/icons';
 import UpService from '../../services/upService';
 import DeptService from '../../services/DeptService';
 import useAppNotification from "../../hooks/useAppNotification";
+import { AppPageHeader } from "../../theme";
+import "./UpDeptDataGrid.css";
 
-const { Title } = Typography;
 const { TabPane } = Tabs;
 
 export default function UpDeptDataGrid() {
@@ -295,15 +296,19 @@ export default function UpDeptDataGrid() {
 
   return (
     <>
-      <div style={{ padding: 16 }}>
-        <Title level={4}>Gestion des UP & Départements</Title>
+      <div>
+        <AppPageHeader
+          icon={<ApartmentOutlined />}
+          title="Gestion des UP & Départements"
+          subtitle="Administrer les unités pédagogiques et les départements"
+        />
         <Tabs defaultActiveKey="ups">
           {/* UP Tab */}
           <TabPane tab="UP" key="ups">
             <div style={{ marginBottom: 16, display: 'flex', gap: 8 }}>
-              <ReloadOutlined
+              <Button type="text" icon={<ReloadOutlined />}
                 onClick={fetchUps}
-                style={{ fontSize: 20, cursor: 'pointer' }}
+                style={{ fontSize: 20 }}
               />
               <Button icon={<PlusOutlined />} onClick={openCreateUp}>
                 Ajouter UP
@@ -367,9 +372,9 @@ export default function UpDeptDataGrid() {
           {/* Département Tab */}
           <TabPane tab="Département" key="depts">
             <div style={{ marginBottom: 16, display: 'flex', gap: 8 }}>
-              <ReloadOutlined
+              <Button type="text" icon={<ReloadOutlined />}
                 onClick={fetchDepts}
-                style={{ fontSize: 20, cursor: 'pointer' }}
+                style={{ fontSize: 20 }}
               />
               <Button icon={<PlusOutlined />} onClick={openCreateDept}>
                 Ajouter Département

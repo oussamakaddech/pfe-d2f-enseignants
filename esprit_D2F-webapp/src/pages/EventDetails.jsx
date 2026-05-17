@@ -1,6 +1,7 @@
-// src/components/EventDetails.jsx
+// src/pages/EventDetails.jsx
 
 import { format } from "date-fns";
+import "./EventDetails.css";
 import {
   Card,
   Row,

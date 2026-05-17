@@ -6,14 +6,23 @@ import CertificateEditorViewerItem from "./CertificateEditorViewerItem";
 import {
   Table,
   Input,
-  Typography,
   Space,
   message,
   Card,
-
+  Tag,
+  Row,
+  Col,
+  Statistic,
 } from "antd";
+import {
+  SafetyCertificateOutlined,
+  UserOutlined,
+  TeamOutlined,
+  FileProtectOutlined,
+} from "@ant-design/icons";
+import { AppPageHeader, brand, neutral } from "../theme";
+import "./CertificatePage.css";
 
-const { Title } = Typography;
 const { Search } = Input;
 
 export default function CertificatePage() {
@@ -86,6 +95,17 @@ export default function CertificatePage() {
       title: "Rôle",
       dataIndex: "roleEnFormation",
       key: "roleEnFormation",
+      render: (role) => {
+        const isAnimateur = role?.toLowerCase().includes("animateur");
+        return (
+          <Tag
+            color={isAnimateur ? "#059669" : "#2563eb"}
+            className="certificate-role-tag"
+          >
+            {role || "—"}
+          </Tag>
+        );
+      },
       filters: [
         { text: "ANIMATEUR", value: "animateur" },
         { text: "PARTICIPANT", value: "participant" },
@@ -97,10 +117,55 @@ export default function CertificatePage() {
     },
   ];
 
-  return (
-    <Card style={{ margin: 24 }} variant="borderless">
-      <Title level={2}>Certificats pour la formation {formationId}</Title>
+  const animateurCount = certificates.filter(c => c.roleEnFormation?.toLowerCase().includes("animateur")).length;
+  const participantCount = certificates.filter(c => c.roleEnFormation?.toLowerCase().includes("participant")).length;
 
+  return (
+    <div>
+      <AppPageHeader
+        icon={<SafetyCertificateOutlined />}
+        title={`Certificats — Formation #${formationId}`}
+        subtitle="Consulter et modifier les certificats des participants"
+      />
+
+      {/* Statistiques */}
+      <Row gutter={[16, 16]} style={{ marginBottom: 20 }}>
+        <Col xs={24} sm={8}>
+          <Card size="small" className="certificate-stat-card">
+            <Statistic
+              title="Total Certificats"
+              value={certificates.length}
+              prefix={<FileProtectOutlined style={{ color: brand[500] }} />}
+              valueStyle={{ color: brand[500], fontWeight: 700 }}
+            />
+          </Card>
+        </Col>
+        <Col xs={24} sm={8}>
+          <Card size="small" className="certificate-stat-card">
+            <Statistic
+              title="Animateurs"
+              value={animateurCount}
+              prefix={<UserOutlined style={{ color: "#059669" }} />}
+              valueStyle={{ color: "#059669", fontWeight: 700 }}
+            />
+          </Card>
+        </Col>
+        <Col xs={24} sm={8}>
+          <Card size="small" className="certificate-stat-card">
+            <Statistic
+              title="Participants"
+              value={participantCount}
+              prefix={<TeamOutlined style={{ color: "#2563eb" }} />}
+              valueStyle={{ color: "#2563eb", fontWeight: 700 }}
+            />
+          </Card>
+        </Col>
+      </Row>
+
+      <Card
+        variant="borderless"
+        className="certificate-main-card"
+      >
       <Space
         wrap
         style={{ marginBottom: 16, display: "flex", gap: "8px" }}
@@ -136,7 +201,7 @@ export default function CertificatePage() {
         dataSource={filteredData}
         columns={columns}
         loading={loading}
-        pagination={{ pageSize: 10, showSizeChanger: true }}
+        pagination={{ pageSize: 10, showSizeChanger: true, showTotal: (total) => `${total} certificat${total !== 1 ? "s" : ""}` }}
         expandable={{
           expandedRowRender: (record) => (
             <CertificateEditorViewerItem
@@ -150,6 +215,7 @@ export default function CertificatePage() {
           emptyText: "Aucun certificat trouvé pour ces critères.",
         }}
       />
-    </Card>
+      </Card>
+    </div>
   );
 }

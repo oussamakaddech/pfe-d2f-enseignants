@@ -1,5 +1,6 @@
-// src/components/MailForm.jsx
+// src/pages/MailForm.jsx
 import PropTypes from "prop-types";
+import "./MailForm.css";
 import { Form, Input, Button } from "antd";
 import moment from "moment";
 import useAppNotification from "../hooks/useAppNotification";
@@ -86,13 +87,15 @@ export default function MailForm({ formation, onSendSuccess }) {
   // 2) Envoi
   const handleFinish = async (values) => {
     try {
-      await MailService.sendEmail(values.to, values.subject, values.content);
-      message.success("📨 E-mail envoyé avec succès !");
+      const result = await MailService.sendEmail(values.to, values.subject, values.content);
+      const successMsg = result?.message || "📨 E-mail envoyé avec succès !";
+      message.success(successMsg);
       form.resetFields(["subject", "content"]);
       if (onSendSuccess) onSendSuccess();
     } catch (err) {
       console.error(err);
-      message.error("❌ Échec de l’envoi de l’e-mail.");
+      const errorMsg = err.response?.data?.error || err.response?.data?.message || err.message || "Échec de l’envoi de l’e-mail.";
+      message.error(`❌ ${errorMsg}`);
     }
   };
 

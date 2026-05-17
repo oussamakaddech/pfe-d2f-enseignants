@@ -83,7 +83,12 @@ def _analyse_un_enseignant(enseignant_id: str) -> bool:
 
 
 def job_batch_analysis_all():
-    """Job principal : analyse tous les enseignants actifs (02h00 chaque nuit)."""
+    """Job principal : analyse tous les enseignants actifs (02h00 chaque nuit).
+
+    Uses ThreadPoolExecutor for parallel processing of teachers.
+    """
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+
     logger.info("=== Démarrage analyse batch nocturne ===")
     t_start = time.time()
 
@@ -92,22 +97,36 @@ def job_batch_analysis_all():
             svc = DataService(db)
             all_ens = svc.get_all_enseignants()
 
+        enseignant_ids = [
+            ens.get("enseignant_id") for ens in all_ens if ens.get("enseignant_id")
+        ]
+
         nb_ok  = 0
         nb_err = 0
-        for ens in all_ens:
-            eid = ens.get("enseignant_id")
-            if not eid:
-                continue
-            ok = _analyse_un_enseignant(eid)
-            if ok:
-                nb_ok += 1
-            else:
-                nb_err += 1
+
+        # Process teachers in parallel (max 4 workers to avoid DB overload)
+        max_workers = min(4, len(enseignant_ids)) if enseignant_ids else 1
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            futures = {
+                executor.submit(_analyse_un_enseignant, eid): eid
+                for eid in enseignant_ids
+            }
+            for future in as_completed(futures):
+                eid = futures[future]
+                try:
+                    ok = future.result()
+                    if ok:
+                        nb_ok += 1
+                    else:
+                        nb_err += 1
+                except Exception as exc:
+                    logger.error("Batch analysis failed for %s: %s", eid, exc)
+                    nb_err += 1
 
         duree = round(time.time() - t_start, 1)
         logger.info(
-            "=== Batch terminé : %d OK / %d erreurs en %ss ===",
-            nb_ok, nb_err, duree
+            "=== Batch terminé : %d OK / %d erreurs en %ss (%d workers) ===",
+            nb_ok, nb_err, duree, max_workers
         )
 
     except Exception as exc:
@@ -193,5 +212,6 @@ def start_scheduler():
 def stop_scheduler():
     global _scheduler
     if _scheduler and _scheduler.running:
-        _scheduler.shutdown(wait=False)
-        logger.info("Scheduler arrêté")
+        logger.info("Scheduler : arrêt en cours (attente fin des jobs en cours)...")
+        _scheduler.shutdown(wait=True)
+        logger.info("Scheduler arrêté proprement")

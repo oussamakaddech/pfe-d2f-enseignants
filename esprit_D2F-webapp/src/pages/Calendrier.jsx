@@ -1,17 +1,15 @@
-// CalendarExample.jsx
-
 import { Calendar, momentLocalizer } from "react-big-calendar";
 import moment from "moment";
 import "react-big-calendar/lib/css/react-big-calendar.css";
+import { CalendarOutlined } from "@ant-design/icons";
+import { AppPageHeader } from "../theme";
 
-// Configurer le localizer avec Moment
 const localizer = momentLocalizer(moment);
 
-// Exemple d’événements
 const myEventsList = [
   {
     title: "Réunion",
-    start: new Date(2025, 1, 20, 10, 0), 
+    start: new Date(2025, 1, 20, 10, 0),
     end: new Date(2025, 1, 20, 12, 0),
   },
   {
@@ -23,16 +21,23 @@ const myEventsList = [
 
 function Calendrier() {
   return (
-    <div style={{ height: "500px", margin: "50px" }}>
-      <Calendar
-        localizer={localizer}
-        events={myEventsList}
-        startAccessor="start"
-        endAccessor="end"
-        defaultView="month"
-        views={["month", "week", "day"]}
-        style={{ height: 500 }}
+    <div>
+      <AppPageHeader
+        icon={<CalendarOutlined />}
+        title="Calendrier"
+        subtitle="Vue calendrier des événements et formations"
       />
+      <div style={{ height: 600 }}>
+        <Calendar
+          localizer={localizer}
+          events={myEventsList}
+          startAccessor="start"
+          endAccessor="end"
+          defaultView="month"
+          views={["month", "week", "day"]}
+          style={{ height: "100%" }}
+        />
+      </div>
     </div>
   );
 }

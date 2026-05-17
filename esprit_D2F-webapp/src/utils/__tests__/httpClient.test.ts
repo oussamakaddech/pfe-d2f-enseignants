@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import axios, { AxiosHeaders, isAxiosError } from 'axios';
+import axios, { isAxiosError } from 'axios';
 import { createApiClient } from '../httpClient';
+import { navigate } from '../navigation';
 
 vi.mock('axios', async () => {
   const actual = await vi.importActual('axios') as any;
@@ -9,7 +10,6 @@ vi.mock('axios', async () => {
     default: {
       create: vi.fn(() => ({
         interceptors: {
-          request: { use: vi.fn() },
           response: { use: vi.fn() },
         },
         get: vi.fn(),
@@ -18,7 +18,6 @@ vi.mock('axios', async () => {
       isAxiosError: vi.fn(),
     },
     isAxiosError: vi.fn(),
-    AxiosHeaders: actual.AxiosHeaders,
   };
 });
 
@@ -29,13 +28,12 @@ vi.mock('../navigation', () => ({
 describe('httpClient', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    localStorage.clear();
+    sessionStorage.clear();
   });
 
-  it('creates an api client with interceptors', () => {
+  it('creates an api client with withCredentials', () => {
     const api = createApiClient('http://base.url');
-    expect(axios.create).toHaveBeenCalledWith({ baseURL: 'http://base.url' });
-    expect(api.interceptors.request.use).toHaveBeenCalled();
+    expect(axios.create).toHaveBeenCalledWith({ baseURL: 'http://base.url', withCredentials: true });
     expect(api.interceptors.response.use).toHaveBeenCalled();
     expect(typeof (api as any).isAxiosError).toBe('function');
   });
@@ -46,41 +44,27 @@ describe('httpClient', () => {
     expect((api as any).isAxiosError({})).toBe(true);
   });
 
-  it('request interceptor attaches token if valid', async () => {
-    const api = createApiClient();
-    const requestHandler = (api.interceptors.request.use as any).mock.calls[0][0];
-    
-    // Valid token (exp in future)
-    const future = Math.floor(Date.now() / 1000) + 3600;
-    const token = `a.${btoa(JSON.stringify({ exp: future }))}.c`;
-    localStorage.setItem('authToken', token);
-
-    const config = { headers: new AxiosHeaders() };
-    const out = await requestHandler(config);
-    expect(out.headers.get('Authorization')).toBe(`Bearer ${token}`);
-  });
-
-  it('request interceptor rejects expired token', async () => {
-    const api = createApiClient();
-    const requestHandler = (api.interceptors.request.use as any).mock.calls[0][0];
-    
-    // Expired token
-    const token = `a.${btoa(JSON.stringify({ exp: 123 }))}.c`;
-    localStorage.setItem('authToken', token);
-
-    const config = { headers: new AxiosHeaders() };
-    await expect(requestHandler(config)).rejects.toThrow('Token expired');
-    expect(localStorage.getItem('authToken')).toBeNull();
-  });
-
-  it('response interceptor handles 401', async () => {
+  it('response interceptor handles 401 by dispatching event', async () => {
     const api = createApiClient();
     const responseErrorHandler = (api.interceptors.response.use as any).mock.calls[0][1];
     
+    // Mock location to not be on login page
+    Object.defineProperty(window, 'location', {
+      value: { pathname: '/home/profile' },
+      writable: true
+    });
+    
     const error = { response: { status: 401 }, config: { url: 'http://other' } };
-    localStorage.setItem('authToken', 'test');
+    
+    const dispatchEventSpy = vi.spyOn(window, 'dispatchEvent');
 
     await expect(responseErrorHandler(error)).rejects.toEqual(error);
-    expect(localStorage.getItem('authToken')).toBeNull();
+    
+    expect(dispatchEventSpy).toHaveBeenCalled();
+    const event = dispatchEventSpy.mock.calls[0][0] as Event;
+    expect(event.type).toBe('auth:loggedOut');
+    
+    // It should also navigate to login if not already on login
+    expect(navigate).toHaveBeenCalledWith('/', { replace: true });
   });
 });

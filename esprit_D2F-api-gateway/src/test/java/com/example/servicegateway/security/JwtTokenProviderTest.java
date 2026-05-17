@@ -82,4 +82,29 @@ class JwtTokenProviderTest {
     void hasRole_ShouldReturnFalseIfRoleDoesNotExist() {
         assertFalse(jwtTokenProvider.hasRole(validToken, "ROLE_ADMIN"));
     }
+
+    @Test
+    void getUserId_ShouldReturnNullForInvalidToken() {
+        assertNull(jwtTokenProvider.getUserId("invalid-token"));
+    }
+
+    @Test
+    void getUserRole_ShouldReturnNullForInvalidToken() {
+        assertNull(jwtTokenProvider.getUserRole("invalid-token"));
+    }
+
+    @Test
+    void getUserEmail_ShouldReturnNullForInvalidToken() {
+        assertNull(jwtTokenProvider.getUserEmail("invalid-token"));
+    }
+
+    @Test
+    void hasRole_ShouldReturnFalseWhenUserRoleIsNull() {
+        assertFalse(jwtTokenProvider.hasRole("invalid-token", "ROLE_USER"));
+    }
+
+    @Test
+    void isValidToken_ShouldReturnFalseForMalformedToken() {
+        assertFalse(jwtTokenProvider.isValidToken("this.is.not-a-valid-jwt"));
+    }
 }

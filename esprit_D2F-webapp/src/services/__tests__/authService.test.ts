@@ -26,11 +26,11 @@ describe('authService', () => {
     localStorage.clear();
   });
 
-  it('stores token on login', async () => {
-    apiMocks.mockPost.mockResolvedValueOnce({ data: { accessToken: 'abc' } });
+  it('returns user metadata on login (cookie is set by server)', async () => {
+    const mockResponse = { userId: 1, role: 'admin', email: 'test@test.com' };
+    apiMocks.mockPost.mockResolvedValueOnce({ data: mockResponse });
     const data = await login({ username: 'john', password: 'pwd' });
-    expect(data).toEqual({ accessToken: 'abc' });
-    expect(localStorage.getItem('authToken')).toBe('abc');
+    expect(data).toEqual(mockResponse);
     expect(apiMocks.mockPost).toHaveBeenCalledWith('/login', expect.any(URLSearchParams));
   });
 

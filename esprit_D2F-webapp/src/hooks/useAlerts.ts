@@ -24,6 +24,8 @@ export function useAlerts(initialFilters: Partial<AlertFilters> = {}) {
   const { data, isLoading, isError } = useQuery<AlertsResponse>({
     queryKey: ["alerts", filters],
     queryFn: () => AnalyticsService.getAlerts(filters),
+    retry: 1,
+    refetchOnWindowFocus: false,
   });
 
   const resolveMutation = useMutation({

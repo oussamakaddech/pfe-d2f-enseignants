@@ -29,11 +29,15 @@ public class RabbitMqConfig {
     public static final String EVAL_CREATE_DLQ = "evaluation.create.queue.dlq";
     public static final String EVAL_UPDATE_DLQ = "evaluation.update.queue.dlq";
 
+    // ── Dead-letter argument keys ──
+    private static final String DLX_ARG = "x-dead-letter-exchange";
+    private static final String DLK_ARG = "x-dead-letter-routing-key";
+
     @Bean
     public Queue besoinQueue() {
         return QueueBuilder.durable(BESOIN_QUEUE)
-                .withArgument("x-dead-letter-exchange", "")
-                .withArgument("x-dead-letter-routing-key", BESOIN_DLQ)
+                .withArgument(DLX_ARG, "")
+                .withArgument(DLK_ARG, BESOIN_DLQ)
                 .build();
     }
 
@@ -45,8 +49,8 @@ public class RabbitMqConfig {
     @Bean
     public Queue certificateQueue() {
         return QueueBuilder.durable(CERTIFICATE_QUEUE)
-                .withArgument("x-dead-letter-exchange", "")
-                .withArgument("x-dead-letter-routing-key", CERTIFICATE_DLQ)
+                .withArgument(DLX_ARG, "")
+                .withArgument(DLK_ARG, CERTIFICATE_DLQ)
                 .build();
     }
 
@@ -58,8 +62,8 @@ public class RabbitMqConfig {
     @Bean
     public Queue evalCreateQueue() {
         return QueueBuilder.durable(EVAL_CREATE_QUEUE)
-                .withArgument("x-dead-letter-exchange", "")
-                .withArgument("x-dead-letter-routing-key", EVAL_CREATE_DLQ)
+                .withArgument(DLX_ARG, "")
+                .withArgument(DLK_ARG, EVAL_CREATE_DLQ)
                 .build();
     }
 
@@ -71,8 +75,8 @@ public class RabbitMqConfig {
     @Bean
     public Queue evalUpdateQueue() {
         return QueueBuilder.durable(EVAL_UPDATE_QUEUE)
-                .withArgument("x-dead-letter-exchange", "")
-                .withArgument("x-dead-letter-routing-key", EVAL_UPDATE_DLQ)
+                .withArgument(DLX_ARG, "")
+                .withArgument(DLK_ARG, EVAL_UPDATE_DLQ)
                 .build();
     }
 

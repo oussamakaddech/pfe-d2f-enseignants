@@ -19,4 +19,6 @@ public class CertificateResponse {
     private String deptEnseignant;
     private String roleEnFormation;
     private boolean delivered;
+    /** Date d'émission du certificat — utilisée par le Skill Passport. Mappée sur dateFinFormation. */
+    private LocalDate createdAt;
 }

@@ -12,6 +12,7 @@ import {
 } from "@ant-design/icons";
 import useAppNotification from "../../hooks/useAppNotification";
 import CompetenceService from "../../services/CompetenceService";
+import "./StructureArbrePage.css";
 
 const { Title, Text } = Typography;
 const { Search } = Input;
@@ -315,7 +316,7 @@ export default function StructureArbrePage() {
   if (loading) {
     return (
       <div style={{ textAlign: "center", padding: 100 }}>
-        <Spin size="large" tip="Chargement de la structure..." />
+        <Spin size="large" tip="Chargement de la structure..."><div /></Spin>
       </div>
     );
   }

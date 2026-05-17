@@ -6,17 +6,7 @@ import type { Formation } from "../models/formation";
 
 const API_URL = `${config.FORMATION_URL}/formation/formations-workflow`;
 
-function getToken(): string | null {
-  return localStorage.getItem("authToken");
-}
-
-function requireToken(): string {
-  const token = getToken();
-  if (!token) {
-    throw new Error("Authentication token is missing.");
-  }
-  return token;
-}
+// Token is now in HttpOnly cookie, sent automatically via withCredentials: true.
 
 type Presence = unknown;
 type FormationWorkflowPayload = Record<string, unknown>;
@@ -69,12 +59,7 @@ const FormationWorkflowService = {
   },
 
   async getFormationsByAnimateur(): Promise<Formation[]> {
-    const token = requireToken();
-    const response = await axios.get<Formation[]>(`${API_URL}/animateur`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
+    const response = await axios.get<Formation[]>(`${API_URL}/animateur`);
     return response.data;
   },
 
@@ -94,14 +79,8 @@ const FormationWorkflowService = {
   },
 
   async getFormationsForCalendar(enseignantId: Id): Promise<Formation[]> {
-    const token = requireToken();
     const response = await axios.get<Formation[]>(
-      `${API_URL}/enseignants/${enseignantId}/calendar`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
+      `${API_URL}/enseignants/${enseignantId}/calendar`
     );
     return response.data;
   },

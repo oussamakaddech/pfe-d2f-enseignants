@@ -27,8 +27,10 @@ import {
 import { AuthContext } from "../../context/AuthContext";
 import CompetenceService from "../../services/CompetenceService";
 import useAppNotification from "../../hooks/useAppNotification";
+import { AppPageHeader } from "../../theme";
+import "./EnseignantCompetencePage.css";
 
-const { Title, Text } = Typography;
+const { Text } = Typography;
 const { Option } = Select;
 
 const NIVEAU_OPTIONS = [
@@ -285,10 +287,12 @@ export default function EnseignantCompetencePage() {
 
   return (
     <>
-      <div style={{ padding: 16 }}>
-        <Title level={4}>
-          <TrophyOutlined /> Compétences {paramId ? `de l'enseignant ${paramId}` : "– Mon Profil"}
-        </Title>
+      <div>
+        <AppPageHeader
+          icon={<TrophyOutlined />}
+          title={paramId ? `Compétences de l'enseignant ${paramId}` : "Mes Compétences"}
+          subtitle="Consulter, ajouter et mettre à jour les compétences maîtrisées"
+        />
 
         {/* Stats */}
         <Row gutter={16} style={{ marginBottom: 16 }}>

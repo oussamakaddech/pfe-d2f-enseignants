@@ -1,7 +1,7 @@
 """GapEngine — calcule les SkillGap pour un enseignant (algorithmes Section 2A)."""
 
 import logging
-from datetime import date
+from datetime import date, datetime
 from typing import Any
 
 from sqlalchemy.orm import Session
@@ -86,7 +86,10 @@ class GapEngine:
             n = niveau_to_int(row.get("current_level"))
             current_index[cid] = max(current_index.get(cid, 0), n)
             acq = row.get("date_acquisition") or row.get("created_at")
-            if acq and isinstance(acq, date):
+            # Normalize datetime → date so all values stored are comparable.
+            if isinstance(acq, datetime):
+                acq = acq.date()
+            if isinstance(acq, date):
                 prev = last_eval_index.get(cid)
                 last_eval_index[cid] = max(prev, acq) if prev else acq
 

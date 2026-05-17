@@ -1,6 +1,8 @@
 package esprit.pfe.serviceformation.utils;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -33,33 +35,18 @@ class FileSecurityValidatorTest {
         assertTrue(result.contains("volumineux"));
     }
 
-    @Test
-    void validate_rejectsUnknownMime() {
+    @ParameterizedTest
+    @CsvSource(value = {
+        "test.pdf; application/x-evil; non autorise",
+        "../../../etc/passwd; application/pdf; interdits",
+        "doc\0.pdf; application/pdf; interdits"
+    }, delimiter = ';')
+    void validate_rejectsInvalidFileMetadata(String filename, String contentType, String expectedError) {
         byte[] data = new byte[]{0x25, 0x50, 0x44, 0x46, 0x20};
-        MultipartFile file = new MockMultipartFile("file", "test.pdf", "application/x-evil", data);
+        MultipartFile file = new MockMultipartFile("file", filename, contentType, data);
         String result = FileSecurityValidator.validate(file, ALLOWED, MAX_SIZE);
         assertNotNull(result);
-        assertTrue(result.contains("non autorise"));
-    }
-
-    @Test
-    void validate_rejectsPathTraversalInFilename() {
-        byte[] data = new byte[]{0x25, 0x50, 0x44, 0x46, 0x20};
-        MultipartFile file = new MockMultipartFile("file", "../../../etc/passwd",
-            "application/pdf", data);
-        String result = FileSecurityValidator.validate(file, ALLOWED, MAX_SIZE);
-        assertNotNull(result);
-        assertTrue(result.contains("interdits"));
-    }
-
-    @Test
-    void validate_rejectsNullByteInFilename() {
-        byte[] data = new byte[]{0x25, 0x50, 0x44, 0x46, 0x20};
-        MultipartFile file = new MockMultipartFile("file", "doc\0.pdf",
-            "application/pdf", data);
-        String result = FileSecurityValidator.validate(file, ALLOWED, MAX_SIZE);
-        assertNotNull(result);
-        assertTrue(result.contains("interdits"));
+        assertTrue(result.contains(expectedError));
     }
 
     @Test

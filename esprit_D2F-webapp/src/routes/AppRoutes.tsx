@@ -33,6 +33,7 @@ const UpDeptDataGrid = lazy(() => import("../pages/enseignant/UpDeptDataGrid"));
 const Register = lazy(() => import("../pages/auth/Register"));
 const Home = lazy(() => import("../pages/erreur/Home"));
 const Login = lazy(() => import("../pages/gererComptes/Login"));
+const PasswordRecovery = lazy(() => import("../pages/gererComptes/PasswordRecovery"));
 const Profile = lazy(() => import("../pages/auth/Profile"));
 const EditProfile = lazy(() => import("../pages/auth/EditProfile"));
 const UpdatePassword = lazy(() => import("../pages/gererComptes/UpdatePassword"));
@@ -47,6 +48,7 @@ const AnalysePredictivePage = lazy(() => import("../pages/analyse/AnalysePredict
 const AnalyticsDashboardPage = lazy(() => import("../pages/analytics/AnalyticsDashboardPage"));
 const TeacherAnalyticsPage = lazy(() => import("../pages/analytics/TeacherAnalyticsPage"));
 const AlertsPage = lazy(() => import("../pages/analytics/AlertsPage"));
+const SkillPassportPage = lazy(() => import("../pages/profile/SkillPassportPage"));
 
 function PageSkeleton() {
   return (
@@ -79,12 +81,15 @@ export default function AppRoutes() {
             <Route path="/auth" element={<Navigate to="/login" replace />} />
             <Route path="/auth/login" element={<Navigate to="/login" replace />} />
             <Route path="/register" element={<Register />} />
+            <Route path="/password-recovery" element={<PasswordRecovery />} />
             <Route path="/profile" element={<Navigate to="/home/profile" replace />} />
 
             <Route element={<PrivateRoute />}>
               <Route element={<AppLayout />}>
                 <Route path="/home" element={<Home />} />
                 <Route path="/home/profile" element={<Profile />} />
+                <Route path="/home/skill-passport" element={<SkillPassportPage />} />
+                <Route path="/home/skill-passport/:username" element={<SkillPassportPage />} />
                 <Route path="/home/edit-profile" element={<EditProfile />} />
                 <Route path="/home/update-password" element={<UpdatePassword />} />
                 <Route path="/home/ListeFormation" element={<FormationCards />} />

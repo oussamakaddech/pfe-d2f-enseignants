@@ -13,13 +13,11 @@ import {
   Input,
   Select,
   Popconfirm,
-  Empty,
   Tooltip,
   Skeleton,
-  ConfigProvider,
   DatePicker,
+  Empty,
 } from "antd";
-import locale from "antd/es/date-picker/locale/fr_FR";
 import moment from "moment";
 import {
   ReloadOutlined,
@@ -40,15 +38,17 @@ import {
 } from "@ant-design/icons";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import * as XLSX from "xlsx";
+import { writeExcel, exportDateLabel, isoDate } from "../../utils/excelExport";
 import BesoinFormationService from "../../services/BesoinFormationService";
 import DeptService from "../../services/DeptService";
 import UpService from "../../services/upService";
 import "./BesoinList.css";
 import useAppNotification from "../../hooks/useAppNotification";
+import AppPageHeader from "../../theme/AppPageHeader";
+import { D2FDataCard, D2FSection } from "../../components/ui";
 
 const { Option } = Select;
-const { Title, Text } = Typography;
+const { Text } = Typography;
 const { TextArea } = Input;
 const { RangePicker } = DatePicker;
 
@@ -249,37 +249,25 @@ export default function BesoinList() {
 
   const exportToExcel = () => {
     try {
-      const dataToExport = (Array.isArray(filtered) ? filtered : []).map((b) => ({
-        "Titre / Objectif": b.titre || b.objectifFormation || "—",
-        "Demandeur": b.username || "—",
-        "Type": b.typeBesoin || "—",
-        "Thème": b.theme || "—",
-        "Priorité": b.priorite || "—",
-        "UP": getLabel(findById(ups, b.up)),
-        "Département": getLabel(findById(departements, b.departement)),
-        "Statut": b.approuveAdmin ? "Approuvé" : "En attente",
-        "Date Création": b.dateCreation ? moment(b.dateCreation).format("DD/MM/YYYY") : "—",
-        "Période Formation": b.periodeFormation || "—",
-        "Horaire Souhaité": b.horaireSouhaite ? moment(b.horaireSouhaite).format("DD/MM/YYYY HH:mm") : "—",
+      const rows = (Array.isArray(filtered) ? filtered : []).map((b) => ({
+        "Titre / Objectif":   b.titre || b.objectifFormation || "—",
+        "Demandeur":          b.username || "—",
+        "Type":               b.typeBesoin || "—",
+        "Thème":              b.theme || "—",
+        "Priorité":           b.priorite || "—",
+        "UP":                 getLabel(findById(ups, b.up)),
+        "Département":        getLabel(findById(departements, b.departement)),
+        "Statut":             b.approuveAdmin ? "Approuvé" : "En attente",
+        "Date Création":      b.dateCreation ? moment(b.dateCreation).format("DD/MM/YYYY") : "—",
+        "Période Formation":  b.periodeFormation || "—",
+        "Horaire Souhaité":   b.horaireSouhaite ? moment(b.horaireSouhaite).format("DD/MM/YYYY HH:mm") : "—",
         "Impact Stratégique": b.impactStrategique || "—",
-        "Public Cible": b.publicCible || "—",
+        "Public Cible":       b.publicCible || "—",
       }));
-
-      const worksheet = XLSX.utils.json_to_sheet(dataToExport);
-      const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, "Besoins de Formation");
-
-      // Auto-size columns
-      const maxWidths = {};
-      dataToExport.forEach((row) => {
-        Object.keys(row).forEach((key) => {
-          const val = String(row[key]);
-          maxWidths[key] = Math.max(maxWidths[key] || 10, val.length + 2);
-        });
-      });
-      worksheet["!cols"] = Object.keys(maxWidths).map((key) => ({ wch: maxWidths[key] }));
-
-      XLSX.writeFile(workbook, `Liste_Besoins_Formation_${moment().format("YYYY-MM-DD")}.xlsx`);
+      writeExcel(
+        [{ name: "Besoins de Formation", rows, title: "Liste des Besoins de Formation — Esprit", subtitle: exportDateLabel() }],
+        `Liste_Besoins_Formation_${isoDate()}.xlsx`
+      );
       msgApi.success("Export Excel réussi");
     } catch (error) {
       console.error("Export error:", error);
@@ -300,7 +288,7 @@ export default function BesoinList() {
       render: (_, r) => (
         <div className="formation-cell">
           <div className="formation-cell-title">
-            <FileTextOutlined style={{ marginRight: 6, color: "#B51200" }} />
+            <FileTextOutlined style={{ marginRight: 6, color: "var(--primary-500)" }} />
             {r.titre || r.objectifFormation || "—"}
           </div>
           {r.titre && r.objectifFormation && (
@@ -316,7 +304,7 @@ export default function BesoinList() {
       key: "username",
       width: 150,
       render: (v) => (
-        <Tag icon={<UserOutlined />} style={{ borderRadius: 8, fontWeight: 500 }}>
+        <Tag icon={<UserOutlined />} className="besoin-demandeur-tag">
           {v}
         </Tag>
       ),
@@ -353,12 +341,7 @@ export default function BesoinList() {
       width: 120,
       render: (p) => {
         if (!p) return "—";
-        let color = "default";
-        if (p === "CRITIQUE") color = "magenta";
-        else if (p === "HAUTE") color = "red";
-        else if (p === "MOYENNE") color = "orange";
-        else if (p === "BASSE") color = "green";
-        return <Tag color={color}>{p}</Tag>;
+        return <span className={`besoin-priorite-badge ${p}`}><span className="besoin-priorite-dot" />{p}</span>;
       },
       sorter: (a, b) => {
         const order = { CRITIQUE: 4, HAUTE: 3, MOYENNE: 2, BASSE: 1 };
@@ -377,17 +360,17 @@ export default function BesoinList() {
       key: "dateHoraire",
       width: 180,
       render: (_, r) => (
-        <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+        <div className="besoin-date-cell">
           {r.dateCreation ? (
-            <span style={{ fontSize: 12, color: "#8c8c8c", fontWeight: 500 }}>
+            <span className="besoin-date-creation">
               {new Date(r.dateCreation).toLocaleDateString("fr-FR")}
             </span>
           ) : (
             <Text type="secondary">—</Text>
           )}
           {r.horaireSouhaite && (
-            <span style={{ fontSize: 12, color: "#595959", fontWeight: 600 }}>
-              <ClockCircleOutlined style={{ marginRight: 4, color: "#B51200" }} />
+            <span className="besoin-date-horaire">
+              <ClockCircleOutlined />
               {moment(r.horaireSouhaite).isValid() ? moment(r.horaireSouhaite).format("DD/MM/YYYY HH:mm") : r.horaireSouhaite}
             </span>
           )}
@@ -479,16 +462,7 @@ export default function BesoinList() {
   }
 
   return (
-    <ConfigProvider
-      locale={locale}
-      theme={{
-        token: {
-          colorPrimary: "#B51200",
-          borderRadius: 14,
-          fontFamily: "'Inter', sans-serif",
-        },
-      }}
-    >
+    <>
       <motion.div
         className="besoin-list-container"
         variants={containerVariants}
@@ -496,89 +470,61 @@ export default function BesoinList() {
         animate="visible"
       >
         {/* Header */}
-        <motion.div variants={itemVariants} className="besoin-header">
-          <Card variant="borderless" className="besoin-hero-card">
-          <Row justify="space-between" align="middle" gutter={[24, 16]}>
-            <Col>
-              <div className="besoin-header-title">
-                <ReadOutlined style={{ fontSize: 32, color: "#B51200" }} />
-                <div>
-                  <Title level={2} style={{ margin: 0, fontWeight: 700 }}>
-                    Gestion des Besoins de Formation
-                  </Title>
-                  <Text type="secondary" style={{ fontSize: 14 }}>
-                    {filtered.length} résultat{filtered.length > 1 ? "s" : ""} sur {total}
-                  </Text>
-                  <div className="besoin-header-tags">
-                    <Tag color="blue">Besoins individuels</Tag>
-                    <Tag color="purple">Besoins collectifs</Tag>
-                    <Tag color="gold">Priorité & impact stratégique</Tag>
-                  </div>
-                </div>
-              </div>
-            </Col>
-            <Col>
-              <Space>
-                <Button
-                  icon={<FileTextOutlined />}
-                  onClick={exportToExcel}
-                  disabled={filtered.length === 0}
-                  className="btn-export-excel"
-                  style={{ backgroundColor: "#1D6F42", color: "white", borderColor: "#1D6F42" }}
-                >
-                  Exporter Excel
-                </Button>
-                <Button icon={<ReloadOutlined />} onClick={fetchData} loading={loading} size="large">
-                  Actualiser
-                </Button>
-                <Button
-                  type="primary"
-                  icon={<PlusOutlined />}
-                  onClick={() => navigate("/home/besoins/ajouter")}
-                  size="large"
-                  className="btn-brand"
-                >
-                  Ajouter un besoin
-                </Button>
-              </Space>
-            </Col>
-          </Row>
-          </Card>
-        </motion.div>
+        <AppPageHeader
+          icon={<ReadOutlined />}
+          title="Besoins de Formation"
+          subtitle={`${filtered.length} résultat${filtered.length > 1 ? "s" : ""} sur ${total}`}
+          actions={
+            <Space>
+              <Button
+                icon={<FileTextOutlined />}
+                onClick={exportToExcel}
+                disabled={filtered.length === 0}
+                className="d2f-btn-success"
+              >
+                Exporter Excel
+              </Button>
+              <Button icon={<ReloadOutlined />} onClick={fetchData} loading={loading}>Actualiser</Button>
+              <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate("/home/besoins/ajouter")}>
+                Ajouter un besoin
+              </Button>
+            </Space>
+          }
+        />
 
         {/* Stats */}
-        <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
+        <Row gutter={[16, 16]} className="besoin-stats-row">
           <Col xs={12} md={8}>
             <motion.div variants={itemVariants}>
-              <Card variant="borderless" className="besoin-stat-card total" size="small">
-                <div className="besoin-stat-icon total">
-                  <TrophyOutlined />
-                </div>
-                <div className="besoin-stat-value" style={{ color: "#1890ff" }}>{total}</div>
-                <div className="besoin-stat-label">Total des besoins</div>
-              </Card>
+              <D2FDataCard
+                icon={<TrophyOutlined />}
+                iconColor="var(--color-info)"
+                label="Total des besoins"
+                value={total}
+                accentColor="var(--color-info)"
+              />
             </motion.div>
           </Col>
           <Col xs={12} md={8}>
             <motion.div variants={itemVariants}>
-              <Card variant="borderless" className="besoin-stat-card approved" size="small">
-                <div className="besoin-stat-icon approved">
-                  <CheckCircleOutlined />
-                </div>
-                <div className="besoin-stat-value" style={{ color: "#52c41a" }}>{approvedCount}</div>
-                <div className="besoin-stat-label">Besoins approuvés</div>
-              </Card>
+              <D2FDataCard
+                icon={<CheckCircleOutlined />}
+                iconColor="var(--color-success)"
+                label="Besoins approuvés"
+                value={approvedCount}
+                accentColor="var(--color-success)"
+              />
             </motion.div>
           </Col>
           <Col xs={12} md={8}>
             <motion.div variants={itemVariants}>
-              <Card variant="borderless" className="besoin-stat-card pending" size="small">
-                <div className="besoin-stat-icon pending">
-                  <ClockCircleOutlined />
-                </div>
-                <div className="besoin-stat-value" style={{ color: "#faad14" }}>{pendingCount}</div>
-                <div className="besoin-stat-label">En attente</div>
-              </Card>
+              <D2FDataCard
+                icon={<ClockCircleOutlined />}
+                iconColor="var(--color-warning)"
+                label="En attente"
+                value={pendingCount}
+                accentColor="var(--color-warning)"
+              />
             </motion.div>
           </Col>
         </Row>
@@ -586,7 +532,7 @@ export default function BesoinList() {
         {/* Filtres */}
         <motion.div variants={itemVariants}>
           <Card variant="borderless" className="besoin-filter-card" size="small">
-            <Space wrap size="middle" align="center">
+            <div className="besoin-filter-header">
               <div className="besoin-filter-icon">
                 <FilterOutlined />
               </div>
@@ -594,27 +540,36 @@ export default function BesoinList() {
                 <Text strong>Affiner la liste</Text>
                 <Text type="secondary">UP, département, statut ou priorité</Text>
               </div>
+              <Button
+                icon={<ReloadOutlined />}
+                onClick={() => { setFilters({ deptId: null, upId: null, type: null, statut: null, priorite: null, dateRange: null }); setSearchText(""); }}
+                size="small"
+                className="besoin-filter-reset-btn"
+              >
+                Réinitialiser
+              </Button>
+            </div>
+            <div className="besoin-filter-grid">
               <Input
                 placeholder="Rechercher..."
                 allowClear
                 value={searchText}
                 onChange={(e) => setSearchText(e.target.value)}
-                style={{ width: 240 }}
-                prefix={<SearchOutlined style={{ color: "#bfbfbf" }} />}
+                prefix={<SearchOutlined style={{ color: "var(--neutral-400)" }} />}
                 size="middle"
                 autoComplete="off"
+                className="besoin-filter-search"
               />
               <RangePicker
                 placeholder={["Début", "Fin"]}
                 value={filters.dateRange}
                 onChange={(dates) => setFilters((f) => ({ ...f, dateRange: dates }))}
-                style={{ width: 280 }}
                 size="middle"
+                className="besoin-filter-range"
               />
               <Select
                 allowClear
                 placeholder="Type"
-                style={{ width: 160 }}
                 value={filters.type}
                 onChange={(v) => setFilters((f) => ({ ...f, type: v }))}
                 size="middle"
@@ -626,7 +581,6 @@ export default function BesoinList() {
               <Select
                 allowClear
                 placeholder="Statut"
-                style={{ width: 140 }}
                 value={filters.statut}
                 onChange={(v) => setFilters((f) => ({ ...f, statut: v }))}
                 size="middle"
@@ -637,7 +591,6 @@ export default function BesoinList() {
               <Select
                 allowClear
                 placeholder="Priorité"
-                style={{ width: 140 }}
                 value={filters.priorite}
                 onChange={(v) => setFilters((f) => ({ ...f, priorite: v }))}
                 size="middle"
@@ -650,7 +603,6 @@ export default function BesoinList() {
               <Select
                 allowClear
                 placeholder="UP"
-                style={{ width: 180 }}
                 value={filters.upId}
                 onChange={(v) => setFilters((f) => ({ ...f, upId: v }))}
                 size="middle"
@@ -662,7 +614,6 @@ export default function BesoinList() {
               <Select
                 allowClear
                 placeholder="Département"
-                style={{ width: 180 }}
                 value={filters.deptId}
                 onChange={(v) => setFilters((f) => ({ ...f, deptId: v }))}
                 size="middle"
@@ -671,14 +622,7 @@ export default function BesoinList() {
                   <Option key={d.id} value={d.id}>{d.name || d.libelle}</Option>
                 ))}
               </Select>
-              <Button
-                icon={<ReloadOutlined />}
-                onClick={() => { setFilters({ deptId: null, upId: null, type: null, statut: null, priorite: null, dateRange: null }); setSearchText(""); }}
-                size="middle"
-              >
-                Réinitialiser
-              </Button>
-            </Space>
+            </div>
           </Card>
         </motion.div>
 
@@ -720,7 +664,7 @@ export default function BesoinList() {
         </motion.div>
       </motion.div>
 
-      {/* Modal d'édition */}
+      {/* Modal d'édition — rendu hors du motion.div pour éviter les conflits d'animation */}
       <Modal
         title="Modifier le besoin"
         open={editModalOpen}
@@ -731,13 +675,13 @@ export default function BesoinList() {
         cancelText="Annuler"
         width={720}
         className="besoin-modal"
-        okButtonProps={{ className: "btn-brand" }}
+        okButtonProps={{ className: "d2f-btn-primary" }}
       >
         <Form form={editForm} layout="vertical">
           <Row gutter={16}>
             <Col xs={24} md={12}>
               <Form.Item label="Nom de la formation" name="titre" rules={[{ required: true }]}>
-                <Input placeholder="Ex: Formation Angular avancé" size="large" prefix={<FileTextOutlined style={{ color: "#B51200" }} />} />
+                <Input placeholder="Ex: Formation Angular avancé" size="large" prefix={<FileTextOutlined style={{ color: "var(--primary-500)" }} />} />
               </Form.Item>
             </Col>
             <Col xs={24} md={12}>
@@ -817,7 +761,7 @@ export default function BesoinList() {
             </Col>
             <Col xs={24} md={12}>
               <Form.Item label="Formateur proposé" name="propositionAnimateur">
-                <Input placeholder="Nom du formateur proposé (optionnel)" size="large" prefix={<UserOutlined style={{ color: "#B51200" }} />} />
+                <Input placeholder="Nom du formateur proposé (optionnel)" size="large" prefix={<UserOutlined style={{ color: "var(--primary-500)" }} />} />
               </Form.Item>
             </Col>
             <Col xs={24} md={12}>
@@ -856,6 +800,6 @@ export default function BesoinList() {
           </Row>
         </Form>
       </Modal>
-    </ConfigProvider>
+    </>
   );
 }

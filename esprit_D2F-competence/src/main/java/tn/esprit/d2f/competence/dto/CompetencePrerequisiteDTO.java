@@ -7,6 +7,8 @@ import java.time.LocalDateTime;
 
 @Getter
 @Setter
+@EqualsAndHashCode(of = "id")
+@ToString
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder

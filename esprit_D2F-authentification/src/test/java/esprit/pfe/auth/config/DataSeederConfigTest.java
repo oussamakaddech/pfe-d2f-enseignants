@@ -16,6 +16,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.Optional;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -118,5 +119,63 @@ class DataSeederConfigTest {
 
         // Assert
         verify(userRepository, never()).save(any());
+    }
+
+    @Test
+    void seedDefaultAdmin_WhenExistingAdminHasBlankFields_ShouldUpdateProfile() throws Exception {
+        User existingAdmin = new User();
+        existingAdmin.setUsername("admin");
+        existingAdmin.setPassword("old-pass");
+        existingAdmin.setFirstName("");
+        existingAdmin.setLastName("  ");
+        existingAdmin.setPhoneNumber(null);
+        existingAdmin.setEmail(null);
+
+        when(roleRepository.findByName(any())).thenReturn(Optional.of(new Role(ERole.ADMIN)));
+        when(credentialsManager.getDefaultAdminUsername()).thenReturn("admin");
+        when(credentialsManager.getDefaultAdminPassword()).thenReturn("new-pass");
+        when(userRepository.findByUsername("admin")).thenReturn(Optional.of(existingAdmin));
+        when(passwordEncoder.matches("new-pass", "old-pass")).thenReturn(false);
+        when(passwordEncoder.encode("new-pass")).thenReturn("encoded");
+        when(credentialsManager.getDefaultAdminFirstName()).thenReturn("Admin");
+        when(credentialsManager.getDefaultAdminLastName()).thenReturn("User");
+        when(credentialsManager.getDefaultAdminPhone()).thenReturn("123");
+        when(credentialsManager.getDefaultAdminEmail()).thenReturn("admin@test.com");
+
+        CommandLineRunner runner = dataSeederConfig.seedDefaultAdmin(userRepository, roleRepository, passwordEncoder, credentialsManager);
+        runner.run();
+
+        verify(userRepository).save(existingAdmin);
+        assertEquals("Admin", existingAdmin.getFirstName());
+        assertEquals("User", existingAdmin.getLastName());
+        assertEquals("123", existingAdmin.getPhoneNumber());
+        assertEquals("admin@test.com", existingAdmin.getEmail());
+    }
+
+    @Test
+    void seedDefaultAdmin_WhenExistingAdminHasNonBlankFields_ShouldKeepExisting() throws Exception {
+        User existingAdmin = new User();
+        existingAdmin.setUsername("admin");
+        existingAdmin.setPassword("old-pass");
+        existingAdmin.setFirstName("Existing");
+        existingAdmin.setLastName("Name");
+        existingAdmin.setPhoneNumber("999");
+        existingAdmin.setEmail("existing@test.com");
+
+        when(roleRepository.findByName(any())).thenReturn(Optional.of(new Role(ERole.ADMIN)));
+        when(credentialsManager.getDefaultAdminUsername()).thenReturn("admin");
+        when(credentialsManager.getDefaultAdminPassword()).thenReturn("new-pass");
+        when(userRepository.findByUsername("admin")).thenReturn(Optional.of(existingAdmin));
+        when(passwordEncoder.matches("new-pass", "old-pass")).thenReturn(false);
+        when(passwordEncoder.encode("new-pass")).thenReturn("encoded");
+
+        CommandLineRunner runner = dataSeederConfig.seedDefaultAdmin(userRepository, roleRepository, passwordEncoder, credentialsManager);
+        runner.run();
+
+        verify(userRepository).save(existingAdmin);
+        assertEquals("Existing", existingAdmin.getFirstName());
+        assertEquals("Name", existingAdmin.getLastName());
+        assertEquals("999", existingAdmin.getPhoneNumber());
+        assertEquals("existing@test.com", existingAdmin.getEmail());
     }
 }

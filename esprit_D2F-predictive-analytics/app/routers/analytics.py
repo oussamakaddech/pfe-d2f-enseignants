@@ -9,6 +9,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy.orm import Session
 
 from app.core.db import get_db
+from app.core.observability import dsi_error_body
 from app.engines.alert_engine import AlertEngine
 from app.engines.dashboard_engine import DashboardEngine
 from app.engines.feature_engine import FeatureEngine
@@ -23,18 +24,14 @@ from app.services.data_service import DataService
 router = APIRouter(prefix="/v1/analytics", tags=["Analytics v1"])
 logger = logging.getLogger(__name__)
 
-_DSI_TRACE = "analytics-svc"
-
 
 def _dsi_error(status_code: int, code: str, message: str, path: str) -> dict:
-    return {
-        "timestamp": datetime.now(timezone.utc).isoformat(),
-        "status":    status_code,
-        "errorCode": code,
-        "message":   message,
-        "path":      path,
-        "traceId":   _DSI_TRACE,
-    }
+    return dsi_error_body(
+        status=status_code,
+        error_code=code,
+        message=message,
+        path=path,
+    )
 
 
 # ── Helper : construire domaine_demand ──────────────────────
@@ -432,23 +429,27 @@ async def get_alerts(
 
 
 # ── PATCH /api/v1/analytics/alerts/{alertId} ─────────────────
+_VALID_ALERT_STATUTS = {"NOUVELLE", "LUE", "TRAITEE", "IGNOREE", "ESCALADEE"}
+
+
 @router.patch("/alerts/{alert_id}", summary="Mettre à jour le statut d'une alerte")
 async def update_alert(
     alert_id: int,
-    statut: str,
-    traite_par: Optional[str] = None,
-    commentaire: Optional[str] = None,
+    statut: str = Query(..., description="NOUVELLE|LUE|TRAITEE|IGNOREE|ESCALADEE"),
+    traite_par: Optional[str] = Query(None),
+    commentaire: Optional[str] = Query(None),
     db: Session = Depends(get_db),
 ) -> dict[str, Any]:
+    # Validate statut BEFORE the lookup so callers receive a deterministic 400.
+    statut_norm = statut.upper()
+    if statut_norm not in _VALID_ALERT_STATUTS:
+        raise HTTPException(status_code=400, detail={"message": f"Statut invalide: {statut}"})
+
     alert = db.query(AlertEvent).filter_by(id=alert_id).first()
     if not alert:
         raise HTTPException(status_code=404, detail={"message": f"Alerte {alert_id} introuvable"})
 
-    valid_statuts = {"NOUVELLE", "LUE", "TRAITEE", "IGNOREE", "ESCALADEE"}
-    if statut.upper() not in valid_statuts:
-        raise HTTPException(status_code=400, detail={"message": f"Statut invalide: {statut}"})
-
-    alert.statut                 = statut.upper()
+    alert.statut                 = statut_norm
     alert.traite_par             = traite_par
     alert.commentaire_traitement = commentaire
     db.commit()
@@ -478,7 +479,11 @@ async def dashboard_teachers_at_risk(
 
 
 # ── POST /api/v1/analytics/trigger-batch-analysis ────────────
-@router.post("/trigger-batch-analysis", summary="Déclencher analyse batch (ADMIN)")
+@router.post(
+    "/trigger-batch-analysis",
+    summary="Déclencher analyse batch (ADMIN)",
+    status_code=status.HTTP_202_ACCEPTED,
+)
 async def trigger_batch(
     request: Request,
     db: Session = Depends(get_db),

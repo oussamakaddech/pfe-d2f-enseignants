@@ -420,8 +420,11 @@ export default function ReviewStep({
           return (
             <div key={dKey} className="tree-domaine">
               <div
+                role="button"
+                tabIndex={0}
                 className={`tree-node-row ${selectedNode?.type === "domaine" && selectedNode.path?.[0] === di ? "selected" : ""}`}
                 onClick={() => setSelectedNode({ type: "domaine", path: [di], data: cloneDeep(domaine) })}
+                onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setSelectedNode({ type: "domaine", path: [di], data: cloneDeep(domaine) }); } }}
                 style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}
               >
                 <Space>
@@ -492,8 +495,11 @@ export default function ReviewStep({
                           {(comp.savoirs ?? []).map((savoir, si) => (
                             <div
                               key={savoir.tmpId ?? `${di}-${ci}--1-${si}`}
+                              role="button"
+                              tabIndex={0}
                               className={`tree-node-row ${selectedNode?.type === "savoir" && selectedNode.path?.[0] === di && selectedNode.path?.[1] === ci && selectedNode.path?.[2] === -1 && selectedNode.path?.[3] === si ? "selected" : ""}`}
                               onClick={() => setSelectedNode({ type: "savoir", path: [di, ci, -1, si], data: cloneDeep(savoir) })}
+                              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setSelectedNode({ type: "savoir", path: [di, ci, -1, si], data: cloneDeep(savoir) }); } }}
                             >
                               <SavoirCard
                                 savoir={savoir}
@@ -528,8 +534,11 @@ export default function ReviewStep({
                       return (
                         <div className="tree-sous-comp" key={`sc-${di}-${ci}-${sci}`}>
                           <div
+                            role="button"
+                            tabIndex={0}
                             className={`tree-node-row ${selectedNode?.type === "sousComp" && selectedNode.path?.[0] === di && selectedNode.path?.[1] === ci && selectedNode.path?.[2] === sci ? "selected" : ""}`}
                             onClick={() => setSelectedNode({ type: "sousComp", path: [di, ci, sci], data: cloneDeep(sc) })}
+                            onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setSelectedNode({ type: "sousComp", path: [di, ci, sci], data: cloneDeep(sc) }); } }}
                             style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}
                           >
                             <Space>
@@ -559,8 +568,11 @@ export default function ReviewStep({
                             {(sc.savoirs ?? []).map((savoir, si) => (
                               <div
                                 key={savoir.tmpId ?? `${di}-${ci}-${sci}-${si}`}
+                                role="button"
+                                tabIndex={0}
                                 className={`tree-node-row ${selectedNode?.type === "savoir" && selectedNode.path?.[0] === di && selectedNode.path?.[1] === ci && selectedNode.path?.[2] === sci && selectedNode.path?.[3] === si ? "selected" : ""}`}
                                 onClick={() => setSelectedNode({ type: "savoir", path: [di, ci, sci, si], data: cloneDeep(savoir) })}
+                                onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setSelectedNode({ type: "savoir", path: [di, ci, sci, si], data: cloneDeep(savoir) }); } }}
                               >
                                 <SavoirCard
                                   savoir={savoir}

@@ -1,3 +1,4 @@
+
 import { useEffect } from "react";
 import {
   Card, Table, Tag, Space, Typography, Button, Select, Input,
@@ -10,15 +11,17 @@ import {
 } from "@ant-design/icons";
 import { useAlerts } from "../../hooks/useAlerts";
 import type { AlertEvent, StatutAlerte } from "../../models/analytics";
+import { AppPageHeader, shadow } from "../../theme";
+import "./AlertsPage.css";
 
-const { Text, Title } = Typography;
+const { Text } = Typography;
 const { Option } = Select;
 
-const glass = {
-  background: "rgba(255,255,255,0.92)",
-  backdropFilter: "blur(8px)",
-  boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
+const cardStyle = {
+  background: "#fff",
+  boxShadow: shadow.sm,
   borderRadius: 12,
+  border: "1px solid rgba(0,0,0,0.07)",
 };
 
 const SEVERITE_COLOR: Record<string, string> = {
@@ -153,39 +156,20 @@ export default function AlertsPage() {
   ];
 
   return (
-    <div style={{ padding: 24 }}>
-      {/* Header */}
-      <div style={{
-        background: "linear-gradient(135deg, #B51200, #8b0000)",
-        borderRadius: 12, padding: "20px 24px", color: "#fff", marginBottom: 24,
-      }}>
-        <Row justify="space-between" align="middle" wrap>
-          <Col>
-            <Space>
-              <BellOutlined style={{ fontSize: 28 }} />
-              <div>
-                <Title level={3} style={{ margin: 0, color: "#fff" }}>Gestion des Alertes</Title>
-                <Text style={{ color: "rgba(255,255,255,0.85)", fontSize: 13 }}>
-                  Surveillance et traitement des alertes prédictives
-                </Text>
-              </div>
-            </Space>
-          </Col>
-          <Col>
-            <Button
-              icon={<ReloadOutlined />}
-              onClick={() => fetchAlerts()}
-              loading={loading}
-              style={{ borderColor: "rgba(255,255,255,0.6)", color: "#fff", background: "transparent" }}
-            >
-              Rafraîchir
-            </Button>
-          </Col>
-        </Row>
-      </div>
+    <div>
+      <AppPageHeader
+        icon={<BellOutlined />}
+        title="Gestion des Alertes"
+        subtitle="Surveillance et traitement des alertes prédictives"
+        actions={
+          <Button icon={<ReloadOutlined />} onClick={() => fetchAlerts()} loading={loading}>
+            Rafraîchir
+          </Button>
+        }
+      />
 
       {/* Filters */}
-      <Card style={{ ...glass, marginBottom: 20 }} size="small">
+      <Card style={{ ...cardStyle, marginBottom: 20 }} size="small">
         <Row gutter={[16, 12]} align="middle">
           <Col xs={24} sm={6}>
             <Text strong style={{ display: "block", marginBottom: 4 }}>Statut</Text>
@@ -251,7 +235,7 @@ export default function AlertsPage() {
         <Alert message={error} type="error" showIcon closable style={{ marginBottom: 16, borderRadius: 8 }} />
       )}
 
-      <Card style={glass} size="small">
+      <Card style={cardStyle} size="small">
         <Spin spinning={loading}>
           {data?.alerts?.length ? (
             <Table

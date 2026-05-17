@@ -63,7 +63,107 @@ class GapPredictor:
         """Persist trained model to disk + write SHA-256/HMAC sidecar."""
         os.makedirs(settings.models_dir, exist_ok=True)
         save_with_hash(self.model, MODEL_PATH)
+        # Also save training metadata for drift monitoring
+        self._save_training_metadata()
         logger.info("Saved gap predictor model to %s", MODEL_PATH)
+
+    def _save_training_metadata(self) -> None:
+        """Save training metadata (feature stats) for drift detection."""
+        import json
+        meta_path = os.path.join(settings.models_dir, "training_metadata.json")
+        try:
+            meta = {
+                "trained_at": pd.Timestamp.now().isoformat(),
+                "n_features": len(FEATURE_COLS),
+                "feature_cols": FEATURE_COLS,
+                "cv_folds": settings.cv_folds,
+                "min_training_samples": settings.min_training_samples,
+            }
+            if self.feature_importances:
+                meta["feature_importances"] = self.feature_importances
+            with open(meta_path, "w", encoding="utf-8") as f:
+                json.dump(meta, f, indent=2, default=str)
+        except Exception as e:
+            logger.warning("Failed to save training metadata: %s", e)
+
+    def check_drift(
+        self,
+        teacher_profiles: list[dict[str, Any]],
+        competency_levels: list[dict[str, Any]],
+        threshold: float = 0.15,
+    ) -> dict[str, Any]:
+        """Check for data drift by comparing feature distributions.
+
+        Compares current feature statistics against training metadata.
+        Returns a drift report with per-feature drift flags.
+        """
+        if self.model is None:
+            return {"drift_detected": False, "message": "No model loaded"}
+
+        df_teacher = build_teacher_features(teacher_profiles, competency_levels)
+        if df_teacher.empty:
+            return {"drift_detected": False, "message": "No data to compare"}
+
+        import json
+        meta_path = os.path.join(settings.models_dir, "training_metadata.json")
+        if not os.path.exists(meta_path):
+            return {"drift_detected": False, "message": "No training metadata found"}
+
+        try:
+            with open(meta_path, "r", encoding="utf-8") as f:
+                meta = json.load(f)
+        except Exception:
+            return {"drift_detected": False, "message": "Could not load training metadata"}
+
+        # Compare feature importances if available
+        drift_report = {
+            "drift_detected": False,
+            "checked_features": [],
+            "recommendation": None,
+        }
+
+        saved_importances = meta.get("feature_importances", {})
+        if saved_importances and self.feature_importances:
+            for feat in FEATURE_COLS:
+                old_val = saved_importances.get(feat, 0.0)
+                new_val = self.feature_importances.get(feat, 0.0)
+                if old_val > 0:
+                    relative_change = abs(new_val - old_val) / old_val
+                else:
+                    relative_change = 0.0
+                drift_report["checked_features"].append({
+                    "feature": feat,
+                    "previous_importance": round(old_val, 4),
+                    "current_importance": round(new_val, 4),
+                    "relative_change": round(relative_change, 4),
+                    "drift_flag": relative_change > threshold,
+                })
+
+            drifted = [f for f in drift_report["checked_features"] if f["drift_flag"]]
+            if drifted:
+                drift_report["drift_detected"] = True
+                drift_report["recommendation"] = (
+                    f"Drift detected on {len(drifted)}/{len(FEATURE_COLS)} features. "
+                    f"Consider retraining the model via POST /api/predict/train"
+                )
+
+        trained_at = meta.get("trained_at")
+        if trained_at:
+            from datetime import datetime
+            try:
+                trained_dt = pd.Timestamp(trained_at)
+                days_since = (pd.Timestamp.now() - trained_dt).days
+                drift_report["days_since_training"] = days_since
+                if days_since > 90:
+                    drift_report["drift_detected"] = True
+                    drift_report["recommendation"] = (
+                        f"Model was trained {days_since} days ago. "
+                        f"Consider retraining the model via POST /api/predict/train"
+                    )
+            except Exception:
+                pass
+
+        return drift_report
 
     def train(
         self,
@@ -80,8 +180,21 @@ class GapPredictor:
         df_teacher = build_teacher_features(teacher_profiles, competency_levels)
         df_gaps = build_gap_labels(competency_levels, required_levels)
 
+        # Diagnostic message that pinpoints the empty input — saves operator
+        # debugging time when the train endpoint returns 422.
         if df_teacher.empty or df_gaps.empty:
-            raise InsufficientDataError("Not enough data to train gap predictor.")
+            missing = []
+            if not teacher_profiles:
+                missing.append("aucun enseignant (table enseignants vide)")
+            if not competency_levels:
+                missing.append("aucun niveau de compétence évalué (table enseignant_competences vide)")
+            if not required_levels:
+                missing.append("aucun niveau requis défini (table niveau_savoir_requis vide)")
+            if not missing:
+                missing.append("croisement teacher↔gap vide (vérifier les FK savoir_id/competence_id)")
+            raise InsufficientDataError(
+                "Données insuffisantes pour entraîner le modèle : " + " ; ".join(missing)
+            )
 
         # Merge teacher features with gap labels per competency
         df_train = df_gaps.merge(df_teacher, on="enseignant_id", how="left")
@@ -89,11 +202,18 @@ class GapPredictor:
 
         if len(df_train) < settings.min_training_samples:
             raise InsufficientDataError(
-                f"Need at least {settings.min_training_samples} samples, got {len(df_train)}."
+                f"Échantillon trop petit : {len(df_train)} lignes après jointure "
+                f"(seuil = {settings.min_training_samples}). "
+                f"Augmentez les données ou abaissez MIN_TRAINING_SAMPLES dans .env."
             )
 
-        X = df_train[FEATURE_COLS].values
+        X_df = df_train[FEATURE_COLS].copy()
         y = df_train["gap"].values.clip(0, 5)  # Gap is between 0 and 5
+
+        # Normalize features for better model convergence
+        from app.ml.feature_engineering import normalize_features
+        X_df = normalize_features(X_df, FEATURE_COLS)
+        X = X_df.values
 
         # Train/test split for validation
         X_train, X_test, y_train, y_test = train_test_split(
@@ -141,9 +261,16 @@ class GapPredictor:
         required_levels: list[dict[str, Any]],
         top_n: int = 10,
     ) -> dict[str, Any]:
-        """Predict competency gaps for given teachers."""
+        """Predict competency gaps for given teachers.
+
+        If the ML model is not trained, falls back to a heuristic
+        computation (deterministic gap = required - current level).
+        """
         if self.model is None:
-            raise ModelNotTrainedError("gap_predictor")
+            logger.warning("Model not trained — using heuristic fallback for gap prediction")
+            return self._heuristic_predict(
+                teacher_profiles, competency_levels, required_levels, top_n
+            )
 
         df_teacher = build_teacher_features(teacher_profiles, competency_levels)
         df_gaps = build_gap_labels(competency_levels, required_levels)
@@ -157,7 +284,11 @@ class GapPredictor:
         if df_pred.empty:
             return {"gaps": [], "overall_risk_score": 0.0, "explanation": {}}
 
-        X = df_pred[FEATURE_COLS].values
+        X_df = df_pred[FEATURE_COLS].copy()
+        # Normalize features consistently with training
+        from app.ml.feature_engineering import normalize_features
+        X_df = normalize_features(X_df, FEATURE_COLS)
+        X = X_df.values
         df_pred["predicted_gap"] = self.model.predict(X).clip(0, 5)
         df_pred["confidence"] = 1.0 - (df_pred["predicted_gap"] - df_pred["gap"]).abs() / 5.0
         df_pred["confidence"] = df_pred["confidence"].clip(0.1, 1.0)
@@ -184,7 +315,7 @@ class GapPredictor:
                     "competency_name": row["competence_nom"],
                     "domaine_name": row["domaine_nom"],
                     "current_level": float(row["current_level"]),
-                    "required_level": float(row["required_level"].fillna(0)),
+                    "required_level": float(row.get("required_level") or 0),
                     "predicted_gap": round(float(row["predicted_gap"]), 2),
                     "confidence": round(float(row["confidence"]), 2),
                     "risk_level": row["risk_level"],
@@ -196,6 +327,73 @@ class GapPredictor:
             "gaps": gaps,
             "overall_risk_score": round(overall_risk, 2),
             "explanation": self.feature_importances or {},
+        }
+
+
+    def _heuristic_predict(
+        self,
+        teacher_profiles: list[dict[str, Any]],
+        competency_levels: list[dict[str, Any]],
+        required_levels: list[dict[str, Any]],
+        top_n: int = 10,
+    ) -> dict[str, Any]:
+        """Heuristic fallback when the ML model is not trained.
+
+        Computes gaps deterministically: gap = required_level - current_level.
+        Uses engagement and stagnation signals to adjust confidence.
+        """
+        df_teacher = build_teacher_features(teacher_profiles, competency_levels)
+        df_gaps = build_gap_labels(competency_levels, required_levels)
+
+        if df_teacher.empty or df_gaps.empty:
+            return {"gaps": [], "overall_risk_score": 0.0, "explanation": {"method": "heuristic", "model_trained": False}}
+
+        df_pred = df_gaps.merge(df_teacher, on="enseignant_id", how="left")
+        df_pred = df_pred.dropna(subset=FEATURE_COLS)
+
+        if df_pred.empty:
+            return {"gaps": [], "overall_risk_score": 0.0, "explanation": {"method": "heuristic", "model_trained": False}}
+
+        # Deterministic gap: required - current (already computed in build_gap_labels)
+        df_pred["predicted_gap"] = df_pred["gap"].clip(0, 5)
+
+        # Confidence is lower for heuristic (no ML validation)
+        df_pred["confidence"] = 0.5  # Fixed moderate confidence for heuristic
+
+        # Risk level categorization
+        def risk_level(gap: float) -> str:
+            if gap >= 3: return "critical"
+            if gap >= 2: return "high"
+            if gap >= 1: return "medium"
+            return "low"
+
+        df_pred["risk_level"] = df_pred["predicted_gap"].apply(risk_level)
+
+        # Sort by predicted gap descending, take top N per teacher
+        df_pred = df_pred.sort_values(["enseignant_id", "predicted_gap"], ascending=[True, False])
+
+        gaps = []
+        for teacher_id, group in df_pred.groupby("enseignant_id"):
+            top = group.head(top_n)
+            for _, row in top.iterrows():
+                gaps.append({
+                    "teacher_id": str(teacher_id),
+                    "competency_id": int(row["competence_id"]),
+                    "competency_name": row["competence_nom"],
+                    "domaine_name": row["domaine_nom"],
+                    "current_level": float(row["current_level"]),
+                    "required_level": float(row.get("required_level") or 0),
+                    "predicted_gap": round(float(row["predicted_gap"]), 2),
+                    "confidence": round(float(row["confidence"]), 2),
+                    "risk_level": row["risk_level"],
+                })
+
+        overall_risk = float(df_pred["predicted_gap"].mean())
+
+        return {
+            "gaps": gaps,
+            "overall_risk_score": round(overall_risk, 2),
+            "explanation": {"method": "heuristic", "model_trained": False},
         }
 
 

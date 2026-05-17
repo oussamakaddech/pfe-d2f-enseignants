@@ -20,7 +20,6 @@ import {
   PhoneOutlined,
   EditOutlined,
   LockOutlined,
-  ArrowLeftOutlined,
   ExclamationCircleOutlined,
   BellOutlined,
 } from "@ant-design/icons";
@@ -29,7 +28,6 @@ import {
   editProfile,
   updatePassword,
 } from "../../services/accountService";
-import { useNavigate } from "react-router-dom";
 import useAppNotification from "../../hooks/useAppNotification";
 import "./Profile.css";
 
@@ -47,7 +45,6 @@ export default function Profile() {
 
   const [infoForm] = Form.useForm();
   const [pwdForm] = Form.useForm();
-  const navigate = useNavigate();
 
   useEffect(() => {
     loadProfile();
@@ -114,7 +111,7 @@ export default function Profile() {
     <div className="profile-container">
       {loading ? (
         <div style={{ textAlign: "center", paddingTop: 100 }}>
-          <Spin size="large" tip="Chargement de votre univers..." />
+          <Spin size="large" tip="Chargement de votre univers..."><div /></Spin>
         </div>
       ) : error ? (
         <Card className="profile-main-card">
@@ -129,19 +126,7 @@ export default function Profile() {
         </Card>
       ) : (
         <>
-          {/* Header Banner */}
-          <div className="profile-header-banner">
-             <Button 
-                type="text" 
-                icon={<ArrowLeftOutlined />} 
-                onClick={() => navigate(-1)}
-                style={{ color: "#fff", margin: 20 }}
-             >
-                Retour
-             </Button>
-          </div>
-
-          <Card className="profile-main-card" bordered={false}>
+          <Card className="profile-main-card" variant="borderless">
             {/* Avatar Section */}
             <div className="profile-avatar-wrapper">
               <Avatar className="profile-avatar" size={120}>
@@ -152,10 +137,10 @@ export default function Profile() {
             {/* Title Section */}
             <div className="profile-title-section">
               <Title level={2} className="profile-name">
-                {profile.firstName || profile.firsName} {profile.lastName}
+                {profile?.firstName || profile?.firsName} {profile?.lastName}
               </Title>
               <div className="profile-role-tag">
-                <TeamOutlined /> {profile.role || "Utilisateur"}
+                <TeamOutlined /> {profile?.role || "Utilisateur"}
               </div>
             </div>
 
@@ -163,20 +148,20 @@ export default function Profile() {
             <div className="profile-info-grid">
               <div className="info-item">
                 <div className="info-label"><UserOutlined /> Identifiant</div>
-                <div className="info-value">{profile.userName || "-"}</div>
+                <div className="info-value">{profile?.userName || "-"}</div>
               </div>
               <div className="info-item">
                 <div className="info-label"><MailOutlined /> Adresse E-mail</div>
-                <div className="info-value">{profile.email || "-"}</div>
+                <div className="info-value">{profile?.email || "-"}</div>
               </div>
               <div className="info-item">
                 <div className="info-label"><PhoneOutlined /> Téléphone</div>
-                <div className="info-value">{profile.phoneNumber || "-"}</div>
+                <div className="info-value">{profile?.phoneNumber || "-"}</div>
               </div>
               <div className="info-item">
                 <div className="info-label"><BellOutlined /> Newsletter</div>
                 <div className="info-value">
-                  <Checkbox checked={profile.newsletter} disabled>Abonné aux actus</Checkbox>
+                  <Checkbox checked={profile?.newsletter} disabled>Abonné aux actus</Checkbox>
                 </div>
               </div>
             </div>
@@ -184,19 +169,19 @@ export default function Profile() {
             {/* Actions */}
             <div className="profile-actions">
               <Button
-                className="btn-premium btn-primary-gradient"
                 type="primary"
                 icon={<EditOutlined />}
                 onClick={() => setIsInfoDrawerOpen(true)}
+                size="large"
               >
-                Modifier le Profil
+                Modifier le profil
               </Button>
               <Button
-                className="btn-premium"
                 icon={<LockOutlined />}
                 onClick={() => setIsPwdDrawerOpen(true)}
+                size="large"
               >
-                Sécurité
+                Changer le mot de passe
               </Button>
             </div>
           </Card>
@@ -225,7 +210,7 @@ export default function Profile() {
                 </Form.Item>
                 <div style={{ textAlign: 'right' }}>
                   <Button onClick={() => setIsInfoDrawerOpen(false)} style={{ marginRight: 8 }}>Annuler</Button>
-                  <Button type="primary" htmlType="submit" loading={saving} className="btn-primary-gradient">Enregistrer</Button>
+                  <Button type="primary" htmlType="submit" loading={saving}>Enregistrer</Button>
                 </div>
               </Space>
             </Form>
@@ -251,7 +236,7 @@ export default function Profile() {
                 })]}>
                 <Input.Password prefix={<LockOutlined />} />
               </Form.Item>
-              <Button type="primary" block htmlType="submit" loading={passwordSaving} className="btn-primary-gradient">Mettre à jour</Button>
+              <Button type="primary" block htmlType="submit" loading={passwordSaving}>Mettre à jour</Button>
             </Form>
           </Drawer>
         </>

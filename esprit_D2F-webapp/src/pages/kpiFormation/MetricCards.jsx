@@ -14,8 +14,14 @@ import {
   Switch,
   Spin,
   Tooltip,
+  Typography,
 } from "antd";
-import { SettingOutlined, PlusOutlined, CloseOutlined } from "@ant-design/icons";
+import {
+  SettingOutlined, PlusOutlined, CloseOutlined,
+  BarChartOutlined, ClockCircleOutlined,
+} from "@ant-design/icons";
+import { EmptyState } from "../../theme";
+import { brand, neutral, shadow, radius } from "../../theme/tokens";
 import useAppNotification from "../../hooks/useAppNotification";
 import dayjs from "dayjs";
 
@@ -23,6 +29,7 @@ import KPIService from "../../services/KPIService";
 import DeptService from "../../services/DeptService";
 import UpService from "../../services/upService";
 
+const { Text } = Typography;
 const { RangePicker } = DatePicker;
 const { Option } = Select;
 
@@ -108,7 +115,7 @@ const MetricCards = () => {
     }
   }, []);
 
-  // 2) Chaque fois que “cards” change, on sauvegarde dans localStorage
+  // 2) Chaque fois que "cards" change, on sauvegarde dans localStorage
   //    (cela inclut les rafraîchissements initiaux ou tout ajout/suppression d’une carte)
   useEffect(() => {
     // On ne sauvegarde pas lors du premier montage (car on vient de lire localStorage),
@@ -187,8 +194,8 @@ const MetricCards = () => {
    *   - Si seul filtre = période start+end → "Formations du X au Y"
    *   - Si seul filtre = upId → "Formations UP : <libellé>"
    *   - Si seul filtre = deptId → "Formations Département : <libellé>"
-   *   - Sinon, concatène toutes les paires “Clé=Valeur” par “ • ”
-   *   - Si aucun filtre → “Toutes formations (PLANIFIE + ACHEVE)”
+   *   - Sinon, concatène toutes les paires "Clé=Valeur" par " • "
+   *   - Si aucun filtre → "Toutes formations (PLANIFIE + ACHEVE)"
    */
   const buildTitle = (filters) => {
     const { domaine, upId, deptId, ouverte, start, end, etat } = filters;
@@ -324,7 +331,7 @@ const MetricCards = () => {
 
   /**
    * handleGlobalPeriodChange(dates):
-   *   - Applique la période globale aux filtres “start” et “end” de toutes les cartes,
+   *   - Applique la période globale aux filtres "start" et "end" de toutes les cartes,
    *   - Appelle KPIService.getCountAndHeures pour chacune,
    *   - Met à jour chaque carte dans le state.
    */
@@ -365,7 +372,7 @@ const MetricCards = () => {
   if (loadingOptions) {
     return (
       <div style={{ textAlign: "center", padding: "50px 0" }}>
-        <Spin size="large" tip="Chargement des filtres …" />
+        <Spin size="large" tip="Chargement des filtres …"><div /></Spin>
       </div>
     );
   }
@@ -377,85 +384,108 @@ const MetricCards = () => {
   //
   return (
     <div>
-      {/* TITRE DE SECTION + TOTAL */}
- 
-      <h4 style={{ margin: 0 }}>📊Nombre et heures des  Formations  </h4>
-      {/* TEXTE EXPLICATIF SUR TOUTE LA LARGEUR */}
-      <p style={{ textAlign: "center", color: "#999", marginBottom: 8 }}>
-        Vous pouvez définir une période globale et ajouter un nouvel indicateur ci-dessous :
-      </p>
+      {/* ── En-tête de section ────────────────────────────────────────────── */}
+      <div style={{
+        display: "flex", alignItems: "center", justifyContent: "space-between",
+        flexWrap: "wrap", gap: 12, marginBottom: 16,
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{
+            width: 32, height: 32, borderRadius: radius.sm,
+            background: `${brand[500]}15`,
+            display: "flex", alignItems: "center", justifyContent: "center",
+          }}>
+            <BarChartOutlined style={{ color: brand[500], fontSize: 16 }} />
+          </div>
+          <div>
+            <Text strong style={{ fontSize: 15, color: neutral[900] }}>
+              Indicateurs personnalisés
+            </Text>
+            <Text style={{ display: "block", fontSize: 12, color: neutral[500] }}>
+              Nombre et heures de formation par filtre
+            </Text>
+          </div>
+        </div>
 
-      {/* CONTENEUR FLEX : RangePicker à gauche, Bouton Ajouter un indicateur à droite */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-          gap: 12,
-          marginBottom: 16,
-        }}
-      >
-        {/* RangePicker pour la période globale */}
-        <RangePicker
-          style={{ maxWidth: 350 }}
-          value={globalPeriod}
-          onChange={handleGlobalPeriodChange}
-          placeholder={["Date de début", "Date de fin"]}
-        />
-
-        {/* Bouton “+ Ajouter un indicateur” */}
-        <Button
-          type="dashed"
-          onClick={addCard}
-          icon={<PlusOutlined />}
-          style={{ flexShrink: 0 }}
-        >
-          Ajouter un indicateur
-        </Button>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <RangePicker
+            style={{ maxWidth: 290 }}
+            value={globalPeriod}
+            onChange={handleGlobalPeriodChange}
+            placeholder={["Date début", "Date fin"]}
+          />
+          <Button type="primary" onClick={addCard} icon={<PlusOutlined />}
+            style={{ background: brand[500], borderColor: brand[500] }}>
+            Ajouter
+          </Button>
+        </div>
       </div>
 
-      {/* GRILLE DE CARTES */}
+      {/* ── État vide ─────────────────────────────────────────────────────── */}
+      {cards.length === 0 && (
+        <EmptyState
+          icon={<BarChartOutlined />}
+          title="Aucun indicateur configuré"
+          description="Cliquez sur « Ajouter » pour créer votre premier indicateur personnalisé."
+          action={{ label: "Ajouter un indicateur", onClick: addCard, icon: <PlusOutlined /> }}
+          compact
+        />
+      )}
+
+      {/* ── Grille de cartes ─────────────────────────────────────────────── */}
       <Row gutter={[16, 16]}>
         {cards.map((card) => (
           <Col key={card.id} xs={24} sm={12} md={8} lg={6}>
             {/* Tooltip pour afficher le titre complet */}
-            <Tooltip title={card.title} placement="top" mouseEnterDelay={0.3}>
+            <Tooltip title={card.title} placement="top" mouseEnterDelay={0.4}>
               <Card
-                className="metric-card"
                 hoverable
-                title={
-                  card.title.length > 20
-                    ? card.title.slice(0, 20) + "…"
-                    : card.title
-                }
-                extra={
-                  <>
-                    {/* Bouton ⚙️ */}
-                    <SettingOutlined
-                      style={{ fontSize: 18 }}
-                      onClick={() => openSettings(card.id)}
-                    />
-                    {/* Bouton ❌ */}
-                    <CloseOutlined
-                      style={{ fontSize: 18, marginLeft: 8, color: "#f5222d" }}
-                      onClick={() => deleteCard(card.id)}
-                    />
-                  </>
-                }
+                style={{
+                  borderRadius: radius.lg,
+                  borderTop: `3px solid ${brand[500]}`,
+                  boxShadow: shadow.sm,
+                  border: "1px solid rgba(0,0,0,0.07)",
+                  overflow: "hidden",
+                }}
+                styles={{ body: { padding: "16px 18px" } }}
               >
-                {/* Affichage du count + totalHeures */}
-                <div style={{ textAlign: "center" }}>
-                  <div style={{ fontSize: "1.8rem", fontWeight: "bold" }}>
-                    {card.count !== null ? card.count : "-"}{" "}
-                    <span style={{ fontSize: "1rem", marginLeft: 4 }}>
-                      formations
-                    </span>
+                {/* Titre + actions */}
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14 }}>
+                  <Text
+                    strong
+                    style={{ fontSize: 12, color: neutral[700], lineHeight: 1.4, maxWidth: "75%" }}
+                  >
+                    {card.title.length > 40 ? card.title.slice(0, 40) + "…" : card.title}
+                  </Text>
+                  <div style={{ display: "flex", gap: 4 }}>
+                    <Tooltip title="Configurer">
+                      <SettingOutlined
+                        style={{ fontSize: 14, color: neutral[400], cursor: "pointer", padding: 4 }}
+                        onClick={() => openSettings(card.id)}
+                      />
+                    </Tooltip>
+                    <Tooltip title="Supprimer">
+                      <CloseOutlined
+                        style={{ fontSize: 14, color: "#ef4444", cursor: "pointer", padding: 4 }}
+                        onClick={() => deleteCard(card.id)}
+                      />
+                    </Tooltip>
                   </div>
-                  <div style={{ fontSize: "1rem", color: "#555", marginTop: 4 }}>
-                    {card.totalHeures !== null
-                      ? `${card.totalHeures} h totales`
-                      : "-"}
-                  </div>
+                </div>
+
+                {/* Valeurs */}
+                <div style={{ display: "flex", alignItems: "baseline", gap: 6, marginBottom: 6 }}>
+                  <span style={{ fontSize: 28, fontWeight: 700, color: neutral[900], lineHeight: 1 }}>
+                    {card.count !== null ? card.count : "—"}
+                  </span>
+                  <Text style={{ fontSize: 12, color: neutral[500] }}>formations</Text>
+                </div>
+
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <ClockCircleOutlined style={{ color: neutral[400], fontSize: 12 }} />
+                  <Text style={{ fontSize: 12, color: neutral[500] }}>
+                    {card.totalHeures !== null ? `${card.totalHeures} h totales` : "—"}
+                  </Text>
                 </div>
               </Card>
             </Tooltip>
@@ -488,12 +518,12 @@ const MetricCards = () => {
                 }}
               >
 
-                {/* Champ “Domaine” */}
+                {/* Champ "Domaine" */}
                 <Form.Item label="Domaine" name="domaine">
                   <Input placeholder="Ex : Informatique" allowClear />
                 </Form.Item>
 
-                {/* Champ “UP” */}
+                {/* Champ "UP" */}
                 <Form.Item label="UP" name="upId">
                   <Select
                     showSearch
@@ -512,7 +542,7 @@ const MetricCards = () => {
                   </Select>
                 </Form.Item>
 
-                {/* Champ “Département” */}
+                {/* Champ "Département" */}
                 <Form.Item label="Département" name="deptId">
                   <Select
                     showSearch
@@ -531,17 +561,17 @@ const MetricCards = () => {
                   </Select>
                 </Form.Item>
 
-                {/* Champ “Ouverte” */}
+                {/* Champ "Ouverte" */}
                 <Form.Item label="Ouverte" name="ouverte" valuePropName="checked">
                   <Switch checkedChildren="Oui" unCheckedChildren="Non" />
                 </Form.Item>
 
-                {/* Champ “Période” */}
+                {/* Champ "Période" */}
                 <Form.Item label="Période" name="dateRange">
                   <RangePicker style={{ width: "100%" }} allowEmpty={[false, false]} />
                 </Form.Item>
 
-                {/* Champ “État” */}
+                {/* Champ "État" */}
                 <Form.Item label="État" name="etat">
                   <Select placeholder="Sélectionner l’état (facultatif)" allowClear>
                     <Option value="PLANIFIE">PLANIFIE</Option>
@@ -550,7 +580,7 @@ const MetricCards = () => {
                   </Select>
                 </Form.Item>
 
-                {/* Bouton “Appliquer” */}
+                {/* Bouton "Appliquer" */}
                 <Form.Item style={{ textAlign: "right" }}>
                   <Button type="primary" htmlType="submit">
                     Appliquer

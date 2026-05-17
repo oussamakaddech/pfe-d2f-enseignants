@@ -1,0 +1,123 @@
+/* ─── FormationPage.css ──────────────────────────────────────────────────── */
+
+.formation-page {
+  max-width: var(--max-page-width);
+  margin: 0 auto;
+}
+
+.formation-cards-row {
+  padding: 0 var(--space-4) var(--space-12);
+}
+
+/* ── Action card ─────────────────────────────────────────────────────────── */
+.formation-action-card {
+  background: var(--bg-card);
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-sm);
+  padding: var(--space-8) var(--space-6) var(--space-6);
+  cursor: pointer;
+  text-align: center;
+  transition: transform 0.3s var(--ease-in-out),
+              box-shadow 0.3s var(--ease-in-out),
+              border-color 0.3s var(--ease-in-out);
+  position: relative;
+  overflow: hidden;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.formation-action-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: var(--card-accent, var(--primary-500));
+  opacity: 0;
+  transition: opacity 0.3s var(--ease-in-out);
+}
+
+.formation-action-card:hover {
+  transform: translateY(-6px);
+  box-shadow: var(--shadow-lg);
+  border-color: var(--card-accent, var(--primary-500));
+}
+
+.formation-action-card:hover::before {
+  opacity: 1;
+}
+
+/* ── Card icon ───────────────────────────────────────────────────────────── */
+.formation-action-card-icon {
+  width: 72px;
+  height: 72px;
+  border-radius: var(--radius-xl);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: var(--space-4);
+  box-shadow: var(--shadow-brand);
+  transition: transform 0.3s var(--ease-in-out), box-shadow 0.3s var(--ease-in-out);
+}
+
+.formation-action-card:hover .formation-action-card-icon {
+  transform: scale(1.08);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.18);
+}
+
+/* ── Badge ────────────────────────────────────────────────────────────────── */
+.formation-action-badge {
+  font-weight: 600 !important;
+  font-size: var(--text-xs) !important;
+  border: 1px solid currentColor !important;
+  border-radius: var(--radius-full) !important;
+}
+
+/* ── Title ────────────────────────────────────────────────────────────────── */
+.formation-action-title {
+  color: var(--text-main) !important;
+  margin-bottom: var(--space-1) !important;
+  margin-top: var(--space-3) !important;
+  font-size: var(--text-xl) !important;
+}
+
+/* ── Description ──────────────────────────────────────────────────────────── */
+.formation-action-desc {
+  color: var(--text-muted) !important;
+  font-size: var(--text-md) !important;
+  line-height: var(--line-relaxed) !important;
+  margin-bottom: var(--space-5) !important;
+}
+
+/* ── CTA button ──────────────────────────────────────────────────────────── */
+.formation-action-card-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: auto;
+  padding: var(--space-2) var(--space-5);
+  border-radius: var(--radius-full);
+  background: var(--neutral-100);
+  transition: all 0.25s var(--ease-in-out);
+}
+
+.formation-action-card:hover .formation-action-card-btn {
+  background: var(--neutral-200);
+  gap: 10px;
+}
+
+/* ── Responsive ──────────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .formation-action-card {
+    padding: var(--space-6) var(--space-5) var(--space-5);
+  }
+  .formation-action-card-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: var(--radius-lg);
+  }
+}

@@ -14,6 +14,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { AuthContext } from "../../context/AuthContext";
 import AnalysePredictiveService from "../../services/AnalysePredictiveService";
 import "./AnalysePredictivePage.css";
+import { AppPageHeader, brand } from "../../theme";
 
 const { Title, Text, Paragraph } = Typography;
 const { Option } = Select;
@@ -77,9 +78,17 @@ export default function AnalysePredictivePage() {
     setLoading(true);
     try {
       const result = await AnalysePredictiveService.trainModel();
-      message.success(`Modèle entraîné ! RMSE: ${result.metrics?.cv_rmse || "N/A"}, R²: ${result.metrics?.test_r2 || "N/A"}`);
-    } catch {
-      message.error("Erreur lors de l'entraînement du modèle");
+      if (result.status === "trained") {
+        message.success(`Modèle entraîné ! RMSE: ${result.metrics?.cv_rmse || "N/A"}, R²: ${result.metrics?.test_r2 || "N/A"}`);
+      } else if (result.status === "no_data") {
+        message.warning(result.message || "Aucune donnée disponible pour entraîner le modèle.");
+      } else if (result.status === "insufficient_data") {
+        message.warning(result.message || "Données insuffisantes. " + (result.hint || ""));
+      } else {
+        message.info("Statut: " + result.status);
+      }
+    } catch (err) {
+      message.error("Erreur lors de l'entraînement du modèle. Vérifiez que le service est accessible.");
     } finally {
       setLoading(false);
     }
@@ -92,8 +101,13 @@ export default function AnalysePredictivePage() {
       const data = await AnalysePredictiveService.analyserEnseignant(enseignantId.trim(), competenceCible.trim() || undefined);
       setAnalyseData(data);
       setActiveTab("individual");
-    } catch {
-      setError("Impossible de récupérer l'analyse. Vérifiez l'ID et réessayez.");
+    } catch (err) {
+      const errMsg = err?.message || String(err);
+      if (errMsg.includes("entraîné") || errMsg.includes("modèle") || errMsg.includes("503")) {
+        setError("Le modèle prédictif n'est pas encore entraîné. Cliquez sur 'Entraîner le modèle' ci-dessous pour l'activer, puis relancez l'analyse.");
+      } else {
+        setError("Impossible de récupérer l'analyse. Vérifiez l'ID et réessayez.");
+      }
     } finally {
       setLoading(false);
     }
@@ -192,7 +206,7 @@ export default function AnalysePredictivePage() {
           {/* KPI Row */}
           <Row gutter={[20, 20]} style={{ marginBottom: 24 }}>
             <Col xs={24} sm={8}>
-              <Card className="analyse-glass-card analyse-stat-card" hoverable>
+              <Card className="analyse-card analyse-stat-card d2f-hover-lift" style={{ borderTop: "3px solid #ef4444" }}>
                 <Statistic title="Compétences en Déclin" value={declining.length} prefix={<FallOutlined style={{ color: "#ef4444" }} />} valueStyle={{ color: "#ef4444" }} />
                 <div style={{ marginTop: 12 }}>
                   {declining.slice(0, 5).map((c, i) => <Tag key={i} color="red" style={{ marginBottom: 4 }}>{c.competency_name}</Tag>)}
@@ -200,7 +214,7 @@ export default function AnalysePredictivePage() {
               </Card>
             </Col>
             <Col xs={24} sm={8}>
-              <Card className="analyse-glass-card analyse-stat-card" hoverable>
+              <Card className="analyse-card analyse-stat-card d2f-hover-lift" style={{ borderTop: "3px solid #10b981" }}>
                 <Statistic title="En Forte Demande" value={inDemand.length} prefix={<RiseOutlined style={{ color: "#10b981" }} />} valueStyle={{ color: "#10b981" }} />
                 <div style={{ marginTop: 12 }}>
                   {inDemand.slice(0, 5).map((c, i) => <Tag key={i} color="green" style={{ marginBottom: 4 }}>{c.competency_name}</Tag>)}
@@ -208,7 +222,7 @@ export default function AnalysePredictivePage() {
               </Card>
             </Col>
             <Col xs={24} sm={8}>
-              <Card className="analyse-glass-card analyse-stat-card" hoverable>
+              <Card className="analyse-card analyse-stat-card d2f-hover-lift" style={{ borderTop: "3px solid #f59e0b" }}>
                 <Statistic title="Enseignants à Risque" value={atRiskCount} prefix={<WarningOutlined style={{ color: "#f59e0b" }} />} valueStyle={{ color: "#f59e0b" }} suffix={`/ ${riskIndicators.length}`} />
                 <Progress percent={riskIndicators.length ? Math.round((atRiskCount / riskIndicators.length) * 100) : 0} strokeColor="#f59e0b" style={{ marginTop: 12 }} />
               </Card>
@@ -216,7 +230,7 @@ export default function AnalysePredictivePage() {
           </Row>
 
           {/* Risk Table */}
-          <Card title={<span><TeamOutlined /> Indicateurs de Risque par Enseignant</span>} className="analyse-glass-card" style={{ marginBottom: 24 }}
+          <Card title={<span><TeamOutlined /> Indicateurs de Risque par Enseignant</span>} className="analyse-card" style={{ marginBottom: 24 }}
             extra={<Space>
               <Select value={riskThreshold} onChange={setRiskThreshold} style={{ width: 140 }} size="small">
                 <Option value={0.5}>Seuil: 50%</Option>
@@ -233,7 +247,7 @@ export default function AnalysePredictivePage() {
           {/* Competency Details */}
           <Row gutter={[20, 20]}>
             <Col xs={24} lg={12}>
-              <Card title={<span><FallOutlined /> Compétences en Déclin</span>} className="analyse-glass-card">
+              <Card title={<span><FallOutlined /> Compétences en Déclin</span>} className="analyse-card">
                 {declining.length > 0 ? (
                   <Table dataSource={declining} rowKey="competency_id" pagination={false} size="small" columns={[
                     { title: "Compétence", dataIndex: "competency_name", render: (v) => <Text strong>{v}</Text> },
@@ -245,7 +259,7 @@ export default function AnalysePredictivePage() {
               </Card>
             </Col>
             <Col xs={24} lg={12}>
-              <Card title={<span><RiseOutlined /> Compétences en Forte Demande</span>} className="analyse-glass-card">
+              <Card title={<span><RiseOutlined /> Compétences en Forte Demande</span>} className="analyse-card">
                 {inDemand.length > 0 ? (
                   <Table dataSource={inDemand} rowKey="competency_id" pagination={false} size="small" columns={[
                     { title: "Compétence", dataIndex: "competency_name", render: (v) => <Text strong>{v}</Text> },
@@ -268,13 +282,13 @@ export default function AnalysePredictivePage() {
             <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} key="result">
               <Row gutter={[24, 24]}>
                 <Col xs={24} lg={16}>
-                  <Card title={<span><FallOutlined /> Gaps de Compétences Prédits</span>} className="analyse-glass-card"
+                  <Card title={<span><FallOutlined /> Gaps de Compétences Prédits</span>} className="analyse-card"
                     extra={<Tag color="blue">{analyseData.gaps.length} gaps</Tag>}>
                     <Table dataSource={analyseData.gaps} columns={gapColumns} rowKey="competenceCode" pagination={false} size="middle" />
                   </Card>
                 </Col>
                 <Col xs={24} lg={8}>
-                  <Card title={<span><UserOutlined /> Profil</span>} className="analyse-glass-card">
+                  <Card title={<span><UserOutlined /> Profil</span>} className="analyse-card">
                     <div style={{ textAlign: "center", padding: "16px 0" }}>
                       <Avatar size={72} icon={<UserOutlined />} style={{ backgroundColor: "#f1f5f9", color: "#B51200", marginBottom: 12 }} />
                       <Title level={4} style={{ margin: 0 }}>{analyseData.enseignantId}</Title>
@@ -288,7 +302,7 @@ export default function AnalysePredictivePage() {
                       valueStyle={{ color: (analyseData.overallRiskScore || 0) > 0.7 ? "#ef4444" : "#10b981" }}
                     />
                   </Card>
-                  <Card title={<span><BulbOutlined /> Insight IA</span>} style={{ marginTop: 20 }} className="analyse-glass-card">
+                  <Card title={<span><BulbOutlined /> Insight IA</span>} style={{ marginTop: 20 }} className="analyse-card">
                     <Alert message="Action Recommandée" type={analyseData.gaps.some(g => g.gravite === "elevee") ? "error" : "info"} showIcon
                       description={analyseData.gaps.some(g => g.gravite === "elevee")
                         ? "Gaps critiques détectés. Une mise à niveau urgente est recommandée."
@@ -296,7 +310,7 @@ export default function AnalysePredictivePage() {
                   </Card>
                 </Col>
                 <Col xs={24}>
-                  <Card title={<span><RiseOutlined /> Parcours Recommandé</span>} className="analyse-glass-card">
+                  <Card title={<span><RiseOutlined /> Parcours Recommandé</span>} className="analyse-card">
                     {analyseData.recommandationsFormations.length > 0 ? (
                       <div className="reco-timeline">
                         {analyseData.recommandationsFormations.map((step, idx) => (
@@ -350,36 +364,26 @@ export default function AnalysePredictivePage() {
 
   return (
     <div className="analyse-container">
-      {/* Header */}
-      <div className="analyse-header">
-        <Row justify="space-between" align="middle" wrap>
-          <Col>
-            <Space align="start" size={16}>
-              <div style={{ background: "linear-gradient(135deg, #B51200 0%, #D61600 100%)", padding: 12, borderRadius: 16,
-                boxShadow: "0 8px 16px rgba(181,18,0,0.2)" }}>
-                <RobotOutlined style={{ fontSize: 32, color: "white" }} />
-              </div>
-              <div>
-                <Title level={2} style={{ margin: 0, fontWeight: 800 }}>Intelligence Prédictive</Title>
-                <Text type="secondary">Anticipez les besoins en compétences et optimisez les parcours de formation</Text>
-              </div>
-            </Space>
-          </Col>
-          <Col>
-            <Space wrap>
-              {isAdmin && (
-                <Button icon={<ExperimentOutlined />} onClick={handleTrainModel} loading={loading}>Ré-entraîner le modèle</Button>
-              )}
-              <Button icon={<ReloadOutlined />} onClick={loadDashboard} loading={dashLoading}>Rafraîchir</Button>
-            </Space>
-          </Col>
-        </Row>
-      </div>
+      <AppPageHeader
+        icon={<RobotOutlined />}
+        title="Intelligence Prédictive"
+        subtitle="Anticipez les besoins en compétences et optimisez les parcours de formation"
+        actions={
+          <Space>
+            {isAdmin && (
+              <Button icon={<ExperimentOutlined />} onClick={handleTrainModel} loading={loading}>
+                Ré-entraîner le modèle
+              </Button>
+            )}
+            <Button icon={<ReloadOutlined />} onClick={loadDashboard} loading={dashLoading}>Rafraîchir</Button>
+          </Space>
+        }
+      />
 
       {error && <Alert message="Erreur" description={error} type="error" showIcon closable style={{ marginBottom: 24, borderRadius: 12 }} onClose={() => setError(null)} />}
 
       {/* Search Bar */}
-      <Card className="analyse-glass-card" style={{ marginBottom: 24 }}>
+      <Card className="analyse-card" style={{ marginBottom: 24 }}>
         <Row gutter={[16, 16]} align="middle">
           <Col xs={24} md={9}>
             <div style={{ marginBottom: 6 }}><Text strong>Enseignant</Text></div>
@@ -396,7 +400,7 @@ export default function AnalysePredictivePage() {
           <Col xs={24} md={6}>
             <div style={{ height: 28 }} />
             <Button type="primary" size="large" block icon={<SearchOutlined />} onClick={handleAnalyserEnseignant}
-              loading={loading} style={{ height: 48, borderRadius: 12, backgroundColor: "#1e293b", borderColor: "#1e293b" }}>
+              loading={loading} style={{ height: 48, borderRadius: 12, backgroundColor: brand[600], borderColor: brand[600] }}>
               Analyser
             </Button>
           </Col>

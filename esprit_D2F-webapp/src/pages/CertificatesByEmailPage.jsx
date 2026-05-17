@@ -1,11 +1,19 @@
 // src/pages/CertificatesByEmailPage.js
 import { useEffect, useState } from "react";
-import { Row, Col, Card, Typography } from "antd";
-import { FilePdfOutlined } from "@ant-design/icons";
+import { Row, Col, Card, Typography, Tag, Empty, Statistic } from "antd";
+import {
+  FilePdfOutlined,
+  SafetyCertificateOutlined,
+  DownloadOutlined,
+  EyeOutlined,
+  FileProtectOutlined,
+} from "@ant-design/icons";
 import CertificateService from "../services/CertificateService";
 import CertificatePdfViewer from "./CertificatePdfViewer";
+import { AppPageHeader, brand } from "../theme";
+import "./CertificatesByEmailPage.css";
 
-const { Title, Text } = Typography;
+const { Text, Title } = Typography;
 
 function CertificatesByEmailPage() {
   const [certificates, setCertificates] = useState([]);
@@ -28,63 +36,98 @@ function CertificatesByEmailPage() {
   };
 
   return (
-    <div style={{ padding: 20 }}>
-      <Title level={4}>Mes Certificats</Title>
+    <div>
+      <AppPageHeader
+        icon={<SafetyCertificateOutlined />}
+        title="Mes Certificats"
+        subtitle="Consulter et télécharger vos certificats de formation"
+      />
 
-      <Row gutter={[16, 16]} style={{ marginBottom: 32 }}>
-        {certificates.map((cert) => {
-          const isSelected =
-            selectedCertificate &&
-            selectedCertificate.idCertificate === cert.idCertificate;
+      {/* Statistique */}
+      {certificates.length > 0 && (
+        <Card size="small" className="certs-email-stat-card">
+          <Statistic
+            title="Certificats obtenus"
+            value={certificates.length}
+            prefix={<FileProtectOutlined style={{ color: brand[500] }} />}
+            valueStyle={{ color: brand[500], fontWeight: 700 }}
+          />
+        </Card>
+      )
 
-          return (
-            <Col xs={24} sm={12} md={6} key={cert.idCertificate}>
-              <Card
-                hoverable
-                onClick={() => handleSelectCertificate(cert)}
-                style={{
-                  height: 200,
-                  display: "flex",
-                  flexDirection: "column",
-                  backgroundColor: isSelected ? "#e0f7fa" : "inherit",
-                  cursor: "pointer",
-                }}
-                bodyStyle={{
-                  flex: "1 0 auto",
-                  display: "flex",
-                  flexDirection: "column",
-                  justifyContent: "center",
-                  alignItems: "center",
-                  padding: 10,
-                }}
-              >
-                <FilePdfOutlined style={{ fontSize: 50, color: "#e53935" }} />
+      {certificates.length === 0 ? (
+        <Empty
+          description="Aucun certificat disponible"
+          image={Empty.PRESENTED_IMAGE_SIMPLE}
+          style={{ marginTop: 60 }}
+        />
+      ) : (
+        <Row gutter={[20, 20]} style={{ marginBottom: 32 }}>
+          {certificates.map((cert) => {
+            const isSelected =
+              selectedCertificate &&
+              selectedCertificate.idCertificate === cert.idCertificate;
+
+            return (
+              <Col xs={24} sm={12} md={8} lg={6} key={cert.idCertificate}>
                 <div
-                  style={{
-                    backgroundColor: "#f5f5f5",
-                    padding: "8px 10px",
-                    textAlign: "center",
-                    width: "100%",
-                    marginTop: 12,
-                    borderRadius: 4,
-                    overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
-                  }}
+                  onClick={() => handleSelectCertificate(cert)}
+                  className={`certs-email-card ${isSelected ? "certs-email-card--selected" : ""}`}
                 >
-                  <Text strong>{cert.titreFormation || "Certificat"}</Text>
+                  <div className={`certs-email-icon ${isSelected ? "certs-email-icon--selected" : ""}`}>
+                    <FilePdfOutlined
+                      style={{
+                        fontSize: 28,
+                        color: isSelected ? "#fff" : "#e53935",
+                      }}
+                    />
+                  </div>
+                  <Text
+                    strong
+                    className={`certs-email-title ${isSelected ? "certs-email-title--selected" : ""}`}
+                  >
+                    {cert.titreFormation || "Certificat"}
+                  </Text>
+                  {cert.roleEnFormation && (
+                    <Tag
+                      color={cert.roleEnFormation.toLowerCase().includes("animateur") ? "#059669" : "#2563eb"}
+                      className="certs-email-role-tag"
+                    >
+                      {cert.roleEnFormation}
+                    </Tag>
+                  )}
+                  {isSelected && (
+                    <div style={{ marginTop: 12 }}>
+                      <Tag
+                        icon={<EyeOutlined />}
+                        color="processing"
+                        className="certs-email-preview-tag"
+                      >
+                        Aperçu actif
+                      </Tag>
+                    </div>
+                  )}
                 </div>
-              </Card>
-            </Col>
-          );
-        })}
-      </Row>
+              </Col>
+            );
+          })}
+        </Row>
+      )}
 
       {selectedCertificate && (
-        <div style={{ marginTop: 30, height: 600 }}>
-          <Title level={5}>Visualisation du Certificat</Title>
-          <CertificatePdfViewer certificate={selectedCertificate} />
-        </div>
+        <Card
+          className="certs-email-viewer-card"
+          title={
+            <span className="certs-email-viewer-title">
+              <EyeOutlined style={{ marginRight: 8, color: brand[500] }} />
+              Visualisation du Certificat
+            </span>
+          }
+        >
+          <div style={{ height: 600 }}>
+            <CertificatePdfViewer certificate={selectedCertificate} />
+          </div>
+        </Card>
       )}
     </div>
   );

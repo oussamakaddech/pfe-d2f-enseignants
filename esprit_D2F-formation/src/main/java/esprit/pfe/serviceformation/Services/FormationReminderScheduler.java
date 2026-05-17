@@ -67,10 +67,16 @@ public class FormationReminderScheduler {
 
         Set<String> emails = new HashSet<>();
         if (seance.getAnimateurs() != null) {
-            seance.getAnimateurs().forEach(a -> emails.add(a.getMail()));
+            seance.getAnimateurs().stream()
+                    .map(Enseignant::getMail)
+                    .filter(m -> m != null && !m.isBlank())
+                    .forEach(emails::add);
         }
         if (seance.getParticipants() != null) {
-            seance.getParticipants().forEach(p -> emails.add(p.getMail()));
+            seance.getParticipants().stream()
+                    .map(Enseignant::getMail)
+                    .filter(m -> m != null && !m.isBlank())
+                    .forEach(emails::add);
         }
         if (formation.getExterneFormateurEmail() != null && !formation.getExterneFormateurEmail().isBlank()) {
             emails.add(formation.getExterneFormateurEmail());

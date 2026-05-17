@@ -10,15 +10,22 @@ import PredictionScoreBar from "../../components/analytics/PredictionScoreBar";
 import type {
   CompetenceDeclin, CompetenceDemande, TeacherRiskProfile, TopFormation, AlerteResumee,
 } from "../../models/analytics";
+import { AppPageHeader, shadow } from "../../theme";
+import "./AnalyticsDashboardPage.css";
 
-const { Text, Title } = Typography;
+const { Text } = Typography;
 
-const glass = {
-  background: "rgba(255,255,255,0.92)",
-  backdropFilter: "blur(8px)",
-  boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
+const cardStyle = {
+  background: "#fff",
+  boxShadow: shadow.sm,
   borderRadius: 12,
+  border: "1px solid rgba(0,0,0,0.07)",
 };
+
+const kpiCardStyle = (accent: string) => ({
+  ...cardStyle,
+  borderTop: `3px solid ${accent}`,
+});
 
 const SEVERITE_COLOR: Record<string, string> = {
   CRITICAL: "red", WARNING: "orange", INFO: "blue",
@@ -93,36 +100,15 @@ export default function AnalyticsDashboardPage() {
   ];
 
   return (
-    <div style={{ padding: 24 }}>
-      {/* Header */}
-      <div style={{
-        background: "linear-gradient(135deg, #B51200, #8b0000)",
-        borderRadius: 12, padding: "20px 24px", color: "#fff", marginBottom: 24,
-      }}>
-        <Row justify="space-between" align="middle" wrap>
-          <Col>
-            <Space>
-              <DashboardOutlined style={{ fontSize: 28 }} />
-              <div>
-                <Title level={3} style={{ margin: 0, color: "#fff" }}>Tableau de Bord Analytique</Title>
-                <Text style={{ color: "rgba(255,255,255,0.85)", fontSize: 13 }}>
-                  Vue d'ensemble prédictive — Dernière mise à jour : {lastUpdate ?? "—"}
-                </Text>
-              </div>
-            </Space>
-          </Col>
-          <Col>
-            <Button
-              icon={<ReloadOutlined />}
-              onClick={refetch}
-              loading={loading}
-              style={{ borderColor: "rgba(255,255,255,0.6)", color: "#fff", background: "transparent" }}
-            >
-              Rafraîchir
-            </Button>
-          </Col>
-        </Row>
-      </div>
+    <div>
+      <AppPageHeader
+        icon={<DashboardOutlined />}
+        title="Tableau de Bord Analytique"
+        subtitle={`Vue d'ensemble prédictive — Dernière mise à jour : ${lastUpdate ?? "—"}`}
+        actions={
+          <Button icon={<ReloadOutlined />} onClick={refetch} loading={loading}>Rafraîchir</Button>
+        }
+      />
 
       {error && (
         <Alert message={error} type="error" showIcon closable style={{ marginBottom: 16, borderRadius: 8 }} />
@@ -132,7 +118,7 @@ export default function AnalyticsDashboardPage() {
         {/* KPI row */}
         <Row gutter={[20, 20]} style={{ marginBottom: 24 }}>
           <Col xs={24} sm={6}>
-            <Card style={glass}>
+            <Card className="d2f-hover-lift" style={kpiCardStyle("#ef4444")}>
               <Statistic
                 title="Compétences en déclin"
                 value={d?.competences_en_declin?.length ?? 0}
@@ -142,7 +128,7 @@ export default function AnalyticsDashboardPage() {
             </Card>
           </Col>
           <Col xs={24} sm={6}>
-            <Card style={glass}>
+            <Card className="d2f-hover-lift" style={kpiCardStyle("#10b981")}>
               <Statistic
                 title="Compétences en demande"
                 value={d?.competences_en_demande?.length ?? 0}
@@ -152,7 +138,7 @@ export default function AnalyticsDashboardPage() {
             </Card>
           </Col>
           <Col xs={24} sm={6}>
-            <Card style={glass}>
+            <Card className="d2f-hover-lift" style={kpiCardStyle("#f59e0b")}>
               <Statistic
                 title="Enseignants à risque"
                 value={atRisk.length}
@@ -162,7 +148,7 @@ export default function AnalyticsDashboardPage() {
             </Card>
           </Col>
           <Col xs={24} sm={6}>
-            <Card style={glass}>
+            <Card className="d2f-hover-lift" style={kpiCardStyle("#8b5cf6")}>
               <Statistic
                 title="Alertes récentes"
                 value={d?.alertes_recentes?.length ?? 0}
@@ -178,7 +164,7 @@ export default function AnalyticsDashboardPage() {
           <Col xs={24} lg={12}>
             <Card
               title={<Space><FallOutlined style={{ color: "#ef4444" }} /><Text strong>Compétences en Déclin</Text></Space>}
-              style={glass}
+              style={cardStyle}
               size="small"
             >
               {d?.competences_en_declin?.length ? (
@@ -197,7 +183,7 @@ export default function AnalyticsDashboardPage() {
           <Col xs={24} lg={12}>
             <Card
               title={<Space><RiseOutlined style={{ color: "#10b981" }} /><Text strong>Compétences en Demande</Text></Space>}
-              style={glass}
+              style={cardStyle}
               size="small"
             >
               {d?.competences_en_demande?.length ? (
@@ -226,7 +212,7 @@ export default function AnalyticsDashboardPage() {
                   <Badge count={atRisk.length} />
                 </Space>
               }
-              style={glass}
+              style={cardStyle}
               size="small"
             >
               {atRisk.length ? (
@@ -245,7 +231,7 @@ export default function AnalyticsDashboardPage() {
           <Col xs={24} lg={10}>
             <Card
               title={<Space><TrophyOutlined style={{ color: "#B51200" }} /><Text strong>Top Formations Recommandées</Text></Space>}
-              style={glass}
+              style={cardStyle}
               size="small"
             >
               {d?.top_formations_recommandees?.length ? (
@@ -266,7 +252,7 @@ export default function AnalyticsDashboardPage() {
         {/* Alertes recentes */}
         <Card
           title={<Space><BellOutlined style={{ color: "#8b5cf6" }} /><Text strong>Alertes Récentes</Text></Space>}
-          style={glass}
+          style={cardStyle}
           size="small"
         >
           {d?.alertes_recentes?.length ? (

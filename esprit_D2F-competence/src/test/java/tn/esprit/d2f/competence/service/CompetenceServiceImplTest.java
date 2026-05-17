@@ -236,5 +236,63 @@ class CompetenceServiceImplTest {
             assertThatThrownBy(() -> competenceService.deleteCompetence(2L))
                     .isInstanceOf(tn.esprit.d2f.competence.exception.BusinessException.class);
         }
+
+        @Test @DisplayName("refuse suppression si contient des savoirs directs")
+        void shouldRejectDeleteIfHasSavoirs() {
+            when(competenceRepository.findById(2L)).thenReturn(Optional.of(competence));
+            when(sousCompetenceRepository.findByCompetenceId(2L)).thenReturn(List.of());
+            when(savoirRepository.existsByCompetenceId(2L)).thenReturn(true);
+            assertThatThrownBy(() -> competenceService.deleteCompetence(2L))
+                    .isInstanceOf(tn.esprit.d2f.competence.exception.BusinessException.class);
+        }
+    }
+
+    // ── Search ────────────────────────────────────────────────────────────────
+    @Test
+    void search_ShouldReturnList() {
+        when(competenceRepository.searchByKeyword("test")).thenReturn(List.of(competence));
+        when(competenceMapper.toDTO(any(Competence.class))).thenReturn(competenceDTO);
+        assertThat(competenceService.searchCompetences("test")).hasSize(1);
+    }
+
+    @Test
+    void searchPaged_ShouldReturnPage() {
+        Pageable p = PageRequest.of(0, 10);
+        when(competenceRepository.searchByKeyword("test", p)).thenReturn(new PageImpl<>(List.of(competence)));
+        when(competenceMapper.toDTO(any(Competence.class))).thenReturn(competenceDTO);
+        assertThat(competenceService.searchCompetences("test", p).getContent()).hasSize(1);
+    }
+
+    // ── Create/Update Branches ────────────────────────────────────────────────
+    @Test
+    void create_ShouldThrowIfCodeExists() {
+        CompetenceRequest req = CompetenceRequest.builder().code("EXIST").build();
+        when(domaineRepository.findById(1L)).thenReturn(Optional.of(domaine));
+        when(competenceRepository.existsByCode("EXIST")).thenReturn(true);
+        assertThatThrownBy(() -> competenceService.createCompetence(1L, req))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    void create_ShouldUseDefaultOrdreWhenNull() {
+        CompetenceRequest req = CompetenceRequest.builder().code("NEW").nom("N").ordre(null).build();
+        when(domaineRepository.findById(1L)).thenReturn(Optional.of(domaine));
+        when(competenceRepository.existsByCode("NEW")).thenReturn(false);
+        when(competenceRepository.save(any(Competence.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(competenceMapper.toDTO(any(Competence.class))).thenReturn(competenceDTO);
+
+        competenceService.createCompetence(1L, req);
+        verify(competenceRepository).save(argThat(c -> c.getOrdre() == 1));
+    }
+
+    @Test
+    void update_ShouldNotUpdateOrdreIfNull() {
+        CompetenceRequest req = CompetenceRequest.builder().code("C").nom("N").ordre(null).build();
+        when(competenceRepository.findById(2L)).thenReturn(Optional.of(competence));
+        when(competenceRepository.save(any(Competence.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(competenceMapper.toDTO(any(Competence.class))).thenReturn(competenceDTO);
+
+        competenceService.updateCompetence(2L, req);
+        verify(competenceRepository).save(argThat(c -> c.getOrdre() == 1)); // Remains 1 from setUp
     }
 }

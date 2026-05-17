@@ -131,7 +131,7 @@ export default function EnseignantLoadView({ tree, setTree, allEnseignants, extr
             e.loadCount > 10 ? "overloaded" : e.loadCount > 5 ? "warning" : "",
           ].filter(Boolean).join(" ");
           return (
-            <div key={e.id} className={cls} onClick={() => setSelectedEnsId(e.id)}>
+            <div key={e.id} className={cls} role="button" tabIndex={0} onClick={() => setSelectedEnsId(e.id)} onKeyDown={(ev) => { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); setSelectedEnsId(e.id); } }}>
               <Space align="start">
                 <Avatar style={{ background: avatarColor(e.id) }}>{getInitials(e.nomComplet, "")}</Avatar>
                 <div>

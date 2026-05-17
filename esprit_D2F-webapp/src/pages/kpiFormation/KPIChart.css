@@ -1,0 +1,123 @@
+/* ─── KPIChart.css ────────────────────────────────────────────────────────── */
+
+.kpi-page {
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+/* ── Barre de sélection de période ──────────────────────────────────────── */
+.kpi-period-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--bg-card);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+  padding: 12px 18px;
+  margin-bottom: 28px;
+  box-shadow: var(--shadow-xs);
+}
+
+.kpi-period-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-body);
+  white-space: nowrap;
+}
+
+/* ── Cartes de graphiques ────────────────────────────────────────────────── */
+.kpi-chart-card {
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-sm);
+  padding: 20px 22px;
+  display: flex;
+  flex-direction: column;
+  min-height: 300px;
+}
+
+.kpi-chart-card-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-main);
+  margin-bottom: 16px;
+}
+
+.kpi-chart-canvas-wrapper {
+  flex: 1;
+  position: relative;
+  min-height: 200px;
+}
+
+.kpi-chart-footer {
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 8px;
+}
+
+/* ── Score centré sur doughnut ───────────────────────────────────────────── */
+.kpi-donut-score {
+  text-align: center;
+  margin-top: 10px;
+}
+
+.kpi-donut-score-value {
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--text-main);
+  line-height: 1;
+}
+
+.kpi-donut-score-label {
+  display: block;
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+/* ── En-têtes de section (SectionHeader) ────────────────────────────────── */
+.kpi-section-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid var(--primary-50);
+}
+
+.kpi-section-header-icon {
+  width: 30px;
+  height: 30px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ── Squelette de chargement ─────────────────────────────────────────────── */
+.kpi-skeleton-card {
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-sm);
+  padding: 20px;
+  height: 280px;
+}
+
+/* ── Responsive ──────────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .kpi-period-bar {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .kpi-chart-card {
+    padding: 16px;
+    min-height: 240px;
+  }
+}

@@ -13,14 +13,16 @@ import SkillGapCard from "../../components/analytics/SkillGapCard";
 import RecommendationCard from "../../components/analytics/RecommendationCard";
 import TrainingPathTimeline from "../../components/analytics/TrainingPathTimeline";
 import type { SkillGap } from "../../models/analytics";
+import { AppPageHeader, brand, shadow } from "../../theme";
+import "./TeacherAnalyticsPage.css";
 
-const { Text, Title } = Typography;
+const { Text } = Typography;
 
-const glass = {
-  background: "rgba(255,255,255,0.92)",
-  backdropFilter: "blur(8px)",
-  boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
+const cardStyle = {
+  background: "#fff",
+  boxShadow: shadow.sm,
   borderRadius: 12,
+  border: "1px solid rgba(0,0,0,0.07)",
 };
 
 export default function TeacherAnalyticsPage() {
@@ -114,25 +116,15 @@ export default function TeacherAnalyticsPage() {
   ];
 
   return (
-    <div style={{ padding: 24 }}>
-      {/* Header */}
-      <div style={{
-        background: "linear-gradient(135deg, #B51200, #8b0000)",
-        borderRadius: 12, padding: "20px 24px", color: "#fff", marginBottom: 24,
-      }}>
-        <Space>
-          <UserOutlined style={{ fontSize: 28 }} />
-          <div>
-            <Title level={3} style={{ margin: 0, color: "#fff" }}>Analyse Individuelle Enseignant</Title>
-            <Text style={{ color: "rgba(255,255,255,0.85)", fontSize: 13 }}>
-              Gaps de compétences, recommandations et parcours de formation personnalisé
-            </Text>
-          </div>
-        </Space>
-      </div>
+    <div>
+      <AppPageHeader
+        icon={<UserOutlined />}
+        title="Analyse Individuelle Enseignant"
+        subtitle="Gaps de compétences, recommandations et parcours de formation personnalisé"
+      />
 
       {/* Search + actions */}
-      <Card style={{ ...glass, marginBottom: 24 }}>
+      <Card style={{ ...cardStyle, marginBottom: 24 }}>
         <Row gutter={[16, 16]} align="middle">
           <Col xs={24} md={12}>
             <Text strong style={{ display: "block", marginBottom: 6 }}>Identifiant enseignant</Text>
@@ -142,7 +134,7 @@ export default function TeacherAnalyticsPage() {
               value={inputId}
               onChange={e => setInputId(e.target.value)}
               onPressEnter={handleSearch}
-              prefix={<UserOutlined style={{ color: "#B51200" }} />}
+              prefix={<UserOutlined style={{ color: brand[500] }} />}
               style={{ borderRadius: 8 }}
             />
           </Col>
@@ -155,7 +147,7 @@ export default function TeacherAnalyticsPage() {
                 icon={<SearchOutlined />}
                 onClick={handleSearch}
                 loading={loading && !analysing}
-                style={{ backgroundColor: "#1e293b", borderColor: "#1e293b", borderRadius: 8 }}
+                style={{ backgroundColor: brand[600], borderColor: brand[600], borderRadius: 8 }}
               >
                 Charger
               </Button>
@@ -182,25 +174,25 @@ export default function TeacherAnalyticsPage() {
       {analyseResult && (
         <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
           <Col xs={12} sm={6}>
-            <Card style={glass} size="small">
+            <Card style={cardStyle} size="small">
               <Statistic title="Gaps détectés" value={analyseResult.nb_gaps_detectes}
                 valueStyle={{ color: "#f59e0b" }} />
             </Card>
           </Col>
           <Col xs={12} sm={6}>
-            <Card style={glass} size="small">
+            <Card style={cardStyle} size="small">
               <Statistic title="Gaps critiques" value={analyseResult.nb_gaps_critiques}
                 valueStyle={{ color: "#ef4444" }} />
             </Card>
           </Col>
           <Col xs={12} sm={6}>
-            <Card style={glass} size="small">
+            <Card style={cardStyle} size="small">
               <Statistic title="Recommandations" value={analyseResult.nb_recommendations}
                 valueStyle={{ color: "#10b981" }} />
             </Card>
           </Col>
           <Col xs={12} sm={6}>
-            <Card style={glass} size="small">
+            <Card style={cardStyle} size="small">
               <Statistic title="Alertes générées" value={analyseResult.nb_alertes_generees}
                 valueStyle={{ color: "#8b5cf6" }} />
             </Card>
@@ -208,7 +200,7 @@ export default function TeacherAnalyticsPage() {
         </Row>
       )}
 
-      <Card style={glass}>
+      <Card style={cardStyle}>
         <Tabs items={tabItems} defaultActiveKey="gaps" />
       </Card>
 
@@ -220,7 +212,7 @@ export default function TeacherAnalyticsPage() {
         width={680}
         title={
           <Space>
-            <RiseOutlined style={{ color: "#B51200" }} />
+            <RiseOutlined style={{ color: brand[500] }} />
             <span>Parcours de formation — {selectedGap?.competence_nom}</span>
           </Space>
         }

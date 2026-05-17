@@ -23,6 +23,14 @@ import java.util.List;
 @Component
 public class AuthorizationFilter extends AbstractGatewayFilterFactory<AuthorizationFilter.Config> {
 
+    /** Configuration for the authorization filter. Must be a concrete class — Spring Cloud Gateway instantiates it via reflection. */
+    public static class Config {
+        private String authHeaderPrefix = "Bearer ";
+
+        public String getAuthHeaderPrefix() { return authHeaderPrefix; }
+        public void setAuthHeaderPrefix(String authHeaderPrefix) { this.authHeaderPrefix = authHeaderPrefix; }
+    }
+
     private final JwtTokenProvider tokenProvider;
 
     // ──────────────── Authorization Matrix (path patterns → allowed roles) ────────────────
@@ -98,7 +106,7 @@ public class AuthorizationFilter extends AbstractGatewayFilterFactory<Authorizat
             }
 
             // ── Extract & validate JWT ──
-            String token = extractToken(exchange);
+            String token = extractToken(exchange, config);
 
             if (token == null) {
                 log.warn("No JWT token found in request: {}", path);
@@ -114,7 +122,7 @@ public class AuthorizationFilter extends AbstractGatewayFilterFactory<Authorizat
             String userRole = tokenProvider.getUserRole(token);
             List<String> allowedRoles = determineAllowedRoles(path, method);
 
-            log.info("AUTH DEBUG: path={}, method={}, userRole={}, allowedRoles={}", path, method, userRole, allowedRoles);
+            log.debug("AUTH CHECK: path={}, method={}, role={}", path, method, userRole);
 
             if (allowedRoles != null && !isRoleAllowed(userRole, allowedRoles)) {
                 log.warn("AUTH DENIED: userRole={} not in allowedRoles={} for {} {}", userRole, allowedRoles, method, path);
@@ -122,10 +130,13 @@ public class AuthorizationFilter extends AbstractGatewayFilterFactory<Authorizat
             }
 
             // ── Forward user info as headers to downstream services ──
+            // Authorization is set (not added) to avoid duplicates when the original
+            // request already carried a Bearer header (mobile clients).
             var mutatedRequest = exchange.getRequest().mutate()
                     .header("X-User-Id", tokenProvider.getUserId(token))
                     .header("X-User-Role", userRole != null ? userRole : "")
                     .header("X-User-Email", tokenProvider.getUserEmail(token))
+                    .headers(h -> h.set("Authorization", "Bearer " + token))
                     .build();
 
             ServerWebExchange mutatedExchange = exchange.mutate().request(mutatedRequest).build();
@@ -147,6 +158,7 @@ public class AuthorizationFilter extends AbstractGatewayFilterFactory<Authorizat
                 || path.startsWith("/api/auth/forgot-password")
                 || path.startsWith("/api/auth/reset-password")
                 || path.startsWith("/api/auth/confirm")
+                || path.startsWith("/api/auth/logout")
                 || path.startsWith("/actuator/");
     }
 
@@ -254,13 +266,25 @@ public class AuthorizationFilter extends AbstractGatewayFilterFactory<Authorizat
     }
 
     /**
-     * Extract JWT token from Authorization header
+     * Extract JWT token from Authorization header or d2f_auth_token cookie.
+     * Priority: 1) Authorization header (mobile compat) 2) HttpOnly cookie (web)
      */
-    private String extractToken(ServerWebExchange exchange) {
+    private String extractToken(ServerWebExchange exchange, Config config) {
+        // 1) Try Authorization header first (mobile / API clients)
+        String prefix = config.getAuthHeaderPrefix();
         String authHeader = exchange.getRequest().getHeaders().getFirst("Authorization");
-        if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            return authHeader.substring(7);
+        if (authHeader != null && authHeader.startsWith(prefix)) {
+            return authHeader.substring(prefix.length());
         }
+
+        // 2) Fallback: try HttpOnly cookie (web browser)
+        org.springframework.http.HttpCookie cookie = exchange.getRequest()
+                .getCookies()
+                .getFirst("d2f_auth_token");
+        if (cookie != null && !cookie.getValue().isBlank()) {
+            return cookie.getValue();
+        }
+
         return null;
     }
 
@@ -283,7 +307,5 @@ public class AuthorizationFilter extends AbstractGatewayFilterFactory<Authorizat
         DataBufferFactory bufferFactory = response.bufferFactory();
         return response.writeWith(Mono.just(bufferFactory.wrap(errorBody.getBytes())));
     }
-    public static class Config {
-        // Configuration properties can be added here if needed
-    }
+
 }

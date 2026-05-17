@@ -1,0 +1,150 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   Home.tsx — Page d'accueil D2F
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.home-page {
+  padding: var(--content-padding);
+  max-width: var(--max-page-width);
+  margin: 0 auto;
+}
+
+/* ── Hero Banner ─────────────────────────────────────────────────────────── */
+.home-hero {
+  background: var(--brand-gradient);
+  border-radius: var(--radius-xl);
+  padding: 32px 40px;
+  margin-bottom: var(--section-gap);
+  color: var(--text-on-dark);
+  position: relative;
+  overflow: hidden;
+}
+
+.home-hero::before {
+  content: "";
+  position: absolute;
+  top: -40px;
+  right: -40px;
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.05);
+  pointer-events: none;
+}
+
+.home-hero::after {
+  content: "";
+  position: absolute;
+  bottom: -60px;
+  right: 80px;
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.04);
+  pointer-events: none;
+}
+
+.home-hero-tag {
+  background: rgba(255, 255, 255, 0.18) !important;
+  border: 1px solid rgba(255, 255, 255, 0.30) !important;
+  color: var(--text-on-dark) !important;
+  border-radius: var(--radius-full) !important;
+  padding: 2px 16px !important;
+  font-weight: 700 !important;
+  font-size: var(--text-xs) !important;
+  letter-spacing: var(--tracking-wider) !important;
+  text-transform: uppercase !important;
+  margin-bottom: 14px !important;
+  display: inline-block !important;
+}
+
+.home-hero-title {
+  color: var(--text-on-dark) !important;
+  margin: 0 0 8px !important;
+  font-weight: 800 !important;
+  font-size: var(--text-4xl) !important;
+}
+
+.home-hero-subtitle {
+  color: rgba(255, 255, 255, 0.80) !important;
+  font-size: var(--text-md) !important;
+}
+
+/* ── Quick Stats Row ─────────────────────────────────────────────────────── */
+.home-stats-row {
+  margin-bottom: var(--section-gap);
+}
+
+/* ── Shortcut Cards ──────────────────────────────────────────────────────── */
+.home-shortcut-card {
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-color);
+  padding: 28px 20px;
+  text-align: center;
+  cursor: pointer;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  transition: box-shadow 0.25s var(--ease-in-out),
+              transform 0.25s var(--ease-in-out),
+              border-color 0.25s var(--ease-in-out);
+  user-select: none;
+  box-shadow: var(--shadow-xs);
+}
+
+.home-shortcut-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg);
+}
+
+.home-shortcut-card:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+
+.home-shortcut-icon-wrap {
+  width: 64px;
+  height: 64px;
+  border-radius: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.home-shortcut-title {
+  font-size: var(--text-base) !important;
+  color: var(--text-body) !important;
+  line-height: 1.4 !important;
+  display: block;
+}
+
+.home-shortcut-link {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  opacity: 0.7;
+}
+
+/* ── Alert ───────────────────────────────────────────────────────────────── */
+.home-alert {
+  margin-bottom: var(--section-gap);
+  border-radius: var(--radius-md) !important;
+}
+
+/* ── Responsive ──────────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .home-hero {
+    padding: 24px 20px;
+    border-radius: var(--radius-lg);
+  }
+
+  .home-hero-title {
+    font-size: var(--text-2xl) !important;
+  }
+}

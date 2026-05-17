@@ -9,10 +9,10 @@ import {
   Col,
 } from "antd";
 import { DownloadOutlined } from "@ant-design/icons";
-import * as XLSX from "xlsx";
+import { writeExcel, exportDateLabel, isoDate } from "../../utils/excelExport";
 import FormationWorkflowService from "../../services/FormationWorkflowService";
 
-const { Title } = Typography;
+const { Text } = Typography;
 
 const PresenceList = ({ seanceId }) => {
   const [presences, setPresences] = useState([]);
@@ -51,18 +51,17 @@ const PresenceList = ({ seanceId }) => {
   };
 
   const exportExcel = () => {
-    // Prépare les données sans les IDs
-    const data = presences.map((p) => ({
-      Nom: p.enseignant?.nom || "",
+    const rows = presences.map((p) => ({
+      Nom:    p.enseignant?.nom    || "",
       Prénom: p.enseignant?.prenom || "",
-      Email: p.enseignant?.mail || "",
-      Type: p.enseignant?.type || "",
+      Email:  p.enseignant?.mail   || "",
+      Type:   p.enseignant?.type === "P" ? "Permanent" : p.enseignant?.type === "V" ? "Vacataire" : (p.enseignant?.type || ""),
       Statut: p.presence ? "Présent" : "Absent",
     }));
-    const ws = XLSX.utils.json_to_sheet(data);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Présences");
-    XLSX.writeFile(wb, `presences_seance_${seanceId}.xlsx`);
+    writeExcel(
+      [{ name: "Présences", rows, title: "Feuille de Présence — Esprit", subtitle: exportDateLabel() }],
+      `presences_seance_${seanceId}_${isoDate()}.xlsx`
+    );
   };
 
   const columns = [
@@ -114,13 +113,10 @@ const PresenceList = ({ seanceId }) => {
     <>
       <Row justify="space-between" align="middle" style={{ marginBottom: 16 }}>
         <Col>
-          <Title level={4}>Liste des présences</Title>
+          <Text strong style={{ fontSize: 15 }}>Liste des présences</Text>
         </Col>
         <Col>
-          <Button
-            icon={<DownloadOutlined />}
-            onClick={exportExcel}
-          >
+          <Button icon={<DownloadOutlined />} onClick={exportExcel}>
             Export Excel
           </Button>
         </Col>

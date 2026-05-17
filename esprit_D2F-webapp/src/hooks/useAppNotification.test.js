@@ -1,10 +1,19 @@
 import { renderHook } from '@testing-library/react';
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { App } from 'antd';
+import React from 'react';
 import useAppNotification from './useAppNotification';
 
 describe('useAppNotification', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  // Mock wrapper that provides App context
+  const wrapper = ({ children }) => React.createElement(App, {}, children);
+
   it('should return message, notification, and modal objects', () => {
-    const { result } = renderHook(() => useAppNotification());
+    const { result } = renderHook(() => useAppNotification(), { wrapper });
 
     expect(result.current).toBeDefined();
     expect(result.current).toHaveProperty('message');
@@ -13,7 +22,7 @@ describe('useAppNotification', () => {
   });
 
   it('should provide message methods', () => {
-    const { result } = renderHook(() => useAppNotification());
+    const { result } = renderHook(() => useAppNotification(), { wrapper });
 
     expect(result.current.message).toBeDefined();
     expect(typeof result.current.message.success).toBe('function');
@@ -23,7 +32,7 @@ describe('useAppNotification', () => {
   });
 
   it('should provide notification methods', () => {
-    const { result } = renderHook(() => useAppNotification());
+    const { result } = renderHook(() => useAppNotification(), { wrapper });
 
     expect(result.current.notification).toBeDefined();
     expect(typeof result.current.notification.success).toBe('function');
@@ -33,7 +42,7 @@ describe('useAppNotification', () => {
   });
 
   it('should provide modal methods', () => {
-    const { result } = renderHook(() => useAppNotification());
+    const { result } = renderHook(() => useAppNotification(), { wrapper });
 
     expect(result.current.modal).toBeDefined();
     expect(typeof result.current.modal.confirm).toBe('function');
@@ -43,7 +52,7 @@ describe('useAppNotification', () => {
   });
 
   it('should handle message calls without errors', () => {
-    const { result } = renderHook(() => useAppNotification());
+    const { result } = renderHook(() => useAppNotification(), { wrapper });
 
     expect(() => {
       result.current.message.success('Test success');
@@ -54,7 +63,7 @@ describe('useAppNotification', () => {
   });
 
   it('should handle notification calls without errors', () => {
-    const { result } = renderHook(() => useAppNotification());
+    const { result } = renderHook(() => useAppNotification(), { wrapper });
 
     expect(() => {
       result.current.notification.success({ message: 'Test' });
@@ -65,7 +74,7 @@ describe('useAppNotification', () => {
   });
 
   it('should handle modal calls without errors', () => {
-    const { result } = renderHook(() => useAppNotification());
+    const { result } = renderHook(() => useAppNotification(), { wrapper });
 
     expect(() => {
       result.current.modal.info({ title: 'Test', content: 'Test' });

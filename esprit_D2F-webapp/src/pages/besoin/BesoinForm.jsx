@@ -465,7 +465,7 @@ export default function BesoinForm() {
             <Form.Item
               label={
                 <span className="besoin-step-label">
-                  <AimOutlined className="besoin-step-label-icon" style={{color: '#faad14'}} />
+                  <AimOutlined className="besoin-step-label-icon" style={{color: 'var(--color-warning)'}} />
                   Priorité (Urgence)
                 </span>
               }
@@ -485,7 +485,7 @@ export default function BesoinForm() {
             <Form.Item
               label={
                 <span className="besoin-step-label">
-                  <AimOutlined className="besoin-step-label-icon" style={{color: '#faad14'}} />
+                  <AimOutlined className="besoin-step-label-icon" style={{color: 'var(--color-warning)'}} />
                   Impact Stratégique
                 </span>
               }
@@ -722,7 +722,7 @@ export default function BesoinForm() {
           <Card className="besoin-form-card">
               <Result
                 status="success"
-                icon={<div className="besoin-form-icon success-icon" style={{ background: '#f6ffed' }}><CheckCircleOutlined style={{ color: '#52c41a' }} /></div>}
+                icon={<div className="besoin-form-icon success-icon" style={{ background: 'var(--color-success-bg)' }}><CheckCircleOutlined style={{ color: 'var(--color-success)' }} /></div>}
                 title={<Title level={2}>Besoin enregistré avec succès !</Title>}
                 subTitle="Votre demande de formation a été transmise et sera examinée prochainement."
               extra={[
@@ -755,7 +755,7 @@ export default function BesoinForm() {
       locale={locale}
       theme={{
         token: {
-          colorPrimary: "#B51200",
+          colorPrimary: "var(--primary-500)",
           borderRadius: 14,
           fontFamily: "'Inter', sans-serif",
         },

@@ -13,47 +13,60 @@ import java.util.UUID;
 @RestControllerAdvice
 public class CustomExceptionHandler {
 
-    @ExceptionHandler(LoginException.class)
-    public ResponseEntity<CustomErrorResponse> handleLoginException(LoginException ex,
-                                                                    HttpServletRequest request) {
-        CustomErrorResponse errorResponse = buildErrorResponse(
-                ex.getStatus(),
-                ex.getErrorMessage(),
-                "AUTH-" + ex.getStatus(),
-                request.getRequestURI()
-        );
-        return ResponseEntity.status(HttpStatus.valueOf(ex.getStatus()))
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(errorResponse);
-    }
+        private static final String ERROR_CODE_PREFIX = "AUTH-";
 
-    @ExceptionHandler(BadRequestException.class)
-    public ResponseEntity<CustomErrorResponse> handleBadRequestException(BadRequestException ex,
-                                                                         HttpServletRequest request) {
-        CustomErrorResponse errorResponse = buildErrorResponse(
-                ex.getStatus(),
-                ex.getErrorMessage(),
-                "AUTH-" + ex.getStatus(),
-                request.getRequestURI()
-        );
-        return ResponseEntity.status(HttpStatus.valueOf(ex.getStatus()))
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(errorResponse);
-    }
+        @ExceptionHandler(LoginException.class)
+        public ResponseEntity<CustomErrorResponse> handleLoginException(LoginException ex,
+                        HttpServletRequest request) {
+                CustomErrorResponse errorResponse = buildErrorResponse(
+                                ex.getStatus(),
+                                ex.getErrorMessage(),
+                                ERROR_CODE_PREFIX + ex.getStatus(),
+                                request.getRequestURI());
+                return ResponseEntity.status(HttpStatus.valueOf(ex.getStatus()))
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .body(errorResponse);
+        }
 
-    private CustomErrorResponse buildErrorResponse(Integer status,
-                                                   String message,
-                                                   String errorCode,
-                                                   String path) {
-        HttpStatus httpStatus = HttpStatus.valueOf(status);
-        CustomErrorResponse errorResponse = new CustomErrorResponse();
-        errorResponse.setStatus(status);
-        errorResponse.setError(httpStatus.getReasonPhrase());
-        errorResponse.setErrorCode(errorCode);
-        errorResponse.setMessage(message);
-        errorResponse.setPath(path);
-        errorResponse.setTraceId(UUID.randomUUID().toString());
-        errorResponse.setTimestamp(LocalDateTime.now().toString());
-        return errorResponse;
-    }
+        @ExceptionHandler(BadRequestException.class)
+        public ResponseEntity<CustomErrorResponse> handleBadRequestException(BadRequestException ex,
+                        HttpServletRequest request) {
+                CustomErrorResponse errorResponse = buildErrorResponse(
+                                ex.getStatus(),
+                                ex.getErrorMessage(),
+                                ERROR_CODE_PREFIX + ex.getStatus(),
+                                request.getRequestURI());
+                return ResponseEntity.status(HttpStatus.valueOf(ex.getStatus()))
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .body(errorResponse);
+        }
+
+        @ExceptionHandler(TokenExpiredException.class)
+        public ResponseEntity<CustomErrorResponse> handleTokenExpiredException(TokenExpiredException ex,
+                        HttpServletRequest request) {
+                CustomErrorResponse errorResponse = buildErrorResponse(
+                                ex.getStatus(),
+                                ex.getErrorMessage(),
+                                ERROR_CODE_PREFIX + ex.getStatus(),
+                                request.getRequestURI());
+                return ResponseEntity.status(HttpStatus.valueOf(ex.getStatus()))
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .body(errorResponse);
+        }
+
+        private CustomErrorResponse buildErrorResponse(Integer status,
+                        String message,
+                        String errorCode,
+                        String path) {
+                HttpStatus httpStatus = HttpStatus.valueOf(status);
+                CustomErrorResponse errorResponse = new CustomErrorResponse();
+                errorResponse.setStatus(status);
+                errorResponse.setError(httpStatus.getReasonPhrase());
+                errorResponse.setErrorCode(errorCode);
+                errorResponse.setMessage(message);
+                errorResponse.setPath(path);
+                errorResponse.setTraceId(UUID.randomUUID().toString());
+                errorResponse.setTimestamp(LocalDateTime.now().toString());
+                return errorResponse;
+        }
 }

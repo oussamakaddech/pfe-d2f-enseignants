@@ -235,10 +235,10 @@ foreach ($service in $allServices) {
             
             Write-Host "  [INFO] Envoi a SonarQube via sonar-scanner..." -ForegroundColor Yellow
             npx sonar-scanner `
-                -Dsonar.projectKey=$projectKey `
-                -Dsonar.host.url=$SonarUrl `
-                -Dsonar.token=$SonarToken `
-                -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
+                "-Dsonar.projectKey=$projectKey" `
+                "-Dsonar.host.url=$SonarUrl" `
+                "-Dsonar.token=$SonarToken" `
+                "-Dsonar.javascript.lcov.reportPaths=coverage/lcov.info"
             
             $sonarResult = $LASTEXITCODE
         } else {

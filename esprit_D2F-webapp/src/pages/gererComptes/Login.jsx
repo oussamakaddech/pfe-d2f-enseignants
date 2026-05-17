@@ -37,9 +37,15 @@ export default function Login() {
     setLoading(true);
     form.setFields([{ name: "password", errors: [] }]);
     try {
-      const { accessToken, role } = await loginService({ username, password, deviceId });
-      if (!accessToken || !role) throw new Error("Réponse de connexion invalide");
-      login(accessToken, { username, role });
+      const data = await loginService({ username, password });
+      if (!data.role) throw new Error("Réponse de connexion invalide");
+      login({
+        userId: data.userId,
+        username,
+        role: data.role,
+        email: data.email,
+        expiresIn: data.expiresIn
+      });
       message.success("Connexion réussie !", 2);
       navigate("/home/profile");
     } catch (err) {

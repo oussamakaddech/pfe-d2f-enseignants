@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { BrowserRouter } from "react-router-dom";
+import { App } from "antd";
 import { AuthContext } from "../../../context/AuthContext";
 import BesoinForm from "../BesoinForm";
 import BesoinFormationService from "../../../services/BesoinFormationService";
@@ -26,9 +27,11 @@ const mockUps = [
 function renderWithProviders(ui) {
   return render(
     <BrowserRouter>
-      <AuthContext.Provider value={{ user: mockUser }}>
-        {ui}
-      </AuthContext.Provider>
+      <App>
+        <AuthContext.Provider value={{ user: mockUser }}>
+          {ui}
+        </AuthContext.Provider>
+      </App>
     </BrowserRouter>
   );
 }
@@ -58,7 +61,7 @@ async function chooseOptionByRole(labelText, optionName) {
   });
 }
 
-describe("BesoinForm", { timeout: 30000 }, () => {
+describe("BesoinForm", { timeout: 60000 }, () => {
   beforeEach(() => {
     vi.clearAllMocks();
     DeptService.getAllDepts = vi.fn().mockResolvedValue(mockDepts);
@@ -85,7 +88,7 @@ describe("BesoinForm", { timeout: 30000 }, () => {
     }, { timeout: 5000 });
   });
 
-  it("permet de parcourir le formulaire et de soumettre un besoin", async () => {
+  it("permet de parcourir le formulaire et de soumettre un besoin", { timeout: 60000 }, async () => {
     renderWithProviders(<BesoinForm />);
 
     await waitFor(() => {

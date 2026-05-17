@@ -42,6 +42,12 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.FORBIDDEN, "Accès refusé : vous n'avez pas les permissions nécessaires.", MODULE_PREFIX + "-403", request);
     }
 
+    @ExceptionHandler(PassportAccessDeniedException.class)
+    public ResponseEntity<ErrorResponse> handlePassportAccessDenied(PassportAccessDeniedException ex, HttpServletRequest request) {
+        log.error("Passport access denied: {}", ex.getMessage());
+        return buildResponse(HttpStatus.FORBIDDEN, ex.getMessage(), MODULE_PREFIX + "-403-PASSPORT", request);
+    }
+
     @ExceptionHandler({AuthenticationException.class, BadCredentialsException.class})
     public ResponseEntity<ErrorResponse> handleAuthentication(Exception ex, HttpServletRequest request) {
         log.error("Authentication error: {}", ex.getMessage());

@@ -1,7 +1,6 @@
-// src/components/FormationDetail.jsx
-import  { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import { Card, Typography, Tabs, Space } from "antd";
+import { Card, Typography, Tabs, Space, Tag, Spin } from "antd";
 import {
   BookOutlined,
   CalendarOutlined,
@@ -12,13 +11,11 @@ import FormationWorkflowService from "../../services/FormationWorkflowService";
 import SeanceCard from "./SeanceCard";
 import FormationEvaluationsTab from "./FormationEvaluationsTab";
 
-const { Title, Text } = Typography;
-const { TabPane } = Tabs;
+const { Text } = Typography;
 
 const FormationDetail = () => {
   const { id } = useParams();
   const [formation, setFormation] = useState(null);
-  const [activeKey, setActiveKey] = useState("1");
 
   useEffect(() => {
     FormationWorkflowService.getFormationWorkflowById(id)
@@ -30,72 +27,65 @@ const FormationDetail = () => {
 
   if (!formation) {
     return (
-      <Text style={{ display: "block", textAlign: "center", marginTop: 24 }}>
-        Chargement...
-      </Text>
+      <div style={{ textAlign: "center", paddingTop: 80 }}>
+        <Spin size="large" />
+      </div>
     );
   }
 
-  return (
-    <Space
-      direction="vertical"
-      style={{ width: "100%", padding: 24 }}
-      size="large"
-    >
-      <Card bordered>
-        <Space direction="vertical">
-          <Title level={2}>
-            <BookOutlined style={{ marginRight: 8 }} />
-            {formation.titreFormation}
-          </Title>
-          <Text type="secondary">
-            <CalendarOutlined style={{ marginRight: 8 }} />
-            Du{" "}
-            {new Date(formation.dateDebut).toLocaleDateString()} au{" "}
-            {new Date(formation.dateFin).toLocaleDateString()}
-          </Text>
-          {formation.periodeFormation && (
-            <Text type="secondary" style={{ display: 'block' }}>
-              <CalendarOutlined style={{ marginRight: 8 }} />
-              Période : {formation.periodeFormation}
-            </Text>
-          )}
-        </Space>
-      </Card>
-
-      <Tabs activeKey={activeKey} onChange={setActiveKey} type="line">
-        <TabPane
-          key="1"
-          tab={
-            <span>
-              <CheckCircleOutlined />
-              Présences
-            </span>
-          }
-        >
-          <Title level={4}>Liste des séances</Title>
+  const tabItems = [
+    {
+      key: "presences",
+      label: (
+        <span>
+          <CheckCircleOutlined style={{ marginRight: 4 }} />
+          Présences
+        </span>
+      ),
+      children: (
+        <div style={{ paddingTop: 8 }}>
           {formation.seances && formation.seances.length > 0 ? (
             formation.seances.map((s) => (
               <SeanceCard key={s.idSeance} seance={s} />
             ))
           ) : (
-            <Text>Aucune séance pour cette formation.</Text>
+            <Text type="secondary">Aucune séance pour cette formation.</Text>
           )}
-        </TabPane>
+        </div>
+      ),
+    },
+    {
+      key: "evaluations",
+      label: (
+        <span>
+          <CommentOutlined style={{ marginRight: 4 }} />
+          Évaluations
+        </span>
+      ),
+      children: <FormationEvaluationsTab formationId={id} />,
+    },
+  ];
 
-        <TabPane
-          key="2"
-          tab={
-            <span>
-              <CommentOutlined />
-              Évaluations
-            </span>
-          }
-        >
-          <Title level={4}>Liste des évaluations</Title>
-          <FormationEvaluationsTab formationId={id} />
-        </TabPane>
-      </Tabs>
+  return (
+    <Space direction="vertical" style={{ width: "100%", padding: 24 }} size="large">
+      <Card variant="borderless" style={{ borderRadius: 12, border: "1px solid rgba(0,0,0,0.07)", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
+        <Space direction="vertical" size={4}>
+          <Text strong style={{ fontSize: 20 }}>
+            <BookOutlined style={{ marginRight: 8, color: "#B51200" }} />
+            {formation.titreFormation}
+          </Text>
+          <Text type="secondary">
+            <CalendarOutlined style={{ marginRight: 6 }} />
+            Du {new Date(formation.dateDebut).toLocaleDateString()} au{" "}
+            {new Date(formation.dateFin).toLocaleDateString()}
+          </Text>
+          {formation.periodeFormation && (
+            <Tag style={{ marginTop: 4 }}>{formation.periodeFormation}</Tag>
+          )}
+        </Space>
+      </Card>
+
+      <Tabs items={tabItems} />
     </Space>
   );
 };

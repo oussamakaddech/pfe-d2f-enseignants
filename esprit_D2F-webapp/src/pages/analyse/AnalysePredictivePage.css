@@ -1,181 +1,117 @@
-/* src/pages/analyse/AnalysePredictivePage.css */
-:root {
-    --primary-red: #B51200;
-    --primary-red-hover: #D61600;
-    --glass-bg: rgba(255, 255, 255, 0.85);
-    --glass-border: rgba(255, 255, 255, 0.5);
-    --card-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
-    --radius-lg: 16px;
-    --radius-md: 12px;
-}
+/* ─── AnalysePredictivePage.css ──────────────────────────────────────────── */
 
 .analyse-container {
-    padding: 32px 24px;
-    background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
-    min-height: 100vh;
+  max-width: 1200px;
+  margin: 0 auto;
 }
 
-.analyse-header {
-    margin-bottom: 32px;
+/* ── Cartes standard ─────────────────────────────────────────────────────── */
+.analyse-card {
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow 0.2s ease;
 }
 
-.analyse-glass-card {
-    background: var(--glass-bg);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    border: 1px solid var(--glass-border);
-    border-radius: var(--radius-lg) !important;
-    box-shadow: var(--card-shadow);
-    transition: box-shadow 0.3s ease;
+.analyse-card:hover {
+  box-shadow: var(--shadow-md);
 }
 
-.analyse-glass-card:hover {
-    box-shadow: 0 12px 40px 0 rgba(31, 38, 135, 0.1);
-}
-
+/* ── Cartes KPI stat ─────────────────────────────────────────────────────── */
 .analyse-stat-card {
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
-    border-radius: var(--radius-md);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .analyse-stat-card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 16px 48px rgba(31, 38, 135, 0.12);
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-md) !important;
 }
 
+/* ── Onglets analyse ─────────────────────────────────────────────────────── */
 .analyse-tabs .ant-tabs-nav {
-    margin-bottom: 24px;
+  margin-bottom: 20px;
 }
 
 .analyse-tabs .ant-tabs-tab {
-    border-radius: 8px 8px 0 0 !important;
-    background: #f1f5f9 !important;
-    border: none !important;
-    margin-right: 4px !important;
-    padding: 8px 20px !important;
-    transition: all 0.2s ease;
-}
-
-.analyse-tabs .ant-tabs-tab:hover {
-    background: #e2e8f0 !important;
-}
-
-.analyse-tabs .ant-tabs-tab-active {
-    background: white !important;
-    box-shadow: 0 -2px 8px rgba(0,0,0,0.04);
+  font-weight: 500;
+  font-size: 14px;
+  padding: 8px 16px;
 }
 
 .analyse-tabs .ant-tabs-tab-active .ant-tabs-tab-btn {
-    color: var(--primary-red) !important;
-    font-weight: 600;
+  color: var(--primary-500) !important;
+  font-weight: 600;
 }
 
-/* Risk Row Highlight */
-.risk-row-high {
-    background: linear-gradient(90deg, rgba(239, 68, 68, 0.04) 0%, transparent 100%) !important;
+.analyse-tabs .ant-tabs-ink-bar {
+  background-color: var(--primary-500);
 }
 
-.risk-row-high td {
-    border-bottom-color: rgba(239, 68, 68, 0.15) !important;
+/* ── Ligne à risque élevé ────────────────────────────────────────────────── */
+.risk-row-high > td {
+  background: rgba(239, 68, 68, 0.04) !important;
+  border-bottom-color: rgba(239, 68, 68, 0.12) !important;
 }
 
-/* Timeline Custom */
+/* ── Timeline des recommandations ───────────────────────────────────────── */
 .reco-timeline {
-    padding: 24px 16px;
+  padding: 16px 8px;
 }
 
 .reco-step {
-    position: relative;
-    padding-left: 48px;
-    padding-bottom: 32px;
-    border-left: 2px dashed #e2e8f0;
+  position: relative;
+  padding-left: 44px;
+  padding-bottom: 28px;
+  border-left: 2px dashed var(--border-color);
 }
 
 .reco-step:last-child {
-    border-left: none;
-    padding-bottom: 0;
+  border-left: none;
+  padding-bottom: 0;
 }
 
 .reco-step-number {
-    position: absolute;
-    left: -17px;
-    top: 0;
-    width: 32px;
-    height: 32px;
-    background: linear-gradient(135deg, var(--primary-red) 0%, var(--primary-red-hover) 100%);
-    color: white;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: bold;
-    font-size: 13px;
-    box-shadow: 0 4px 12px rgba(181, 18, 0, 0.3);
-    z-index: 1;
+  position: absolute;
+  left: -14px;
+  top: 0;
+  width: 28px;
+  height: 28px;
+  background: var(--primary-500);
+  color: #fff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 12px;
+  box-shadow: 0 2px 8px rgba(181, 18, 0, 0.25);
+  z-index: 1;
 }
 
 .reco-content {
-    background: white;
-    padding: 16px;
-    border-radius: var(--radius-md);
-    border: 1px solid #f1f5f9;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.02);
-    transition: box-shadow 0.2s ease;
+  background: var(--bg-card);
+  padding: 14px 16px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-xs);
+  transition: box-shadow 0.2s ease;
 }
 
 .reco-content:hover {
-    box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+  box-shadow: var(--shadow-sm);
 }
 
 .reco-title {
-    font-size: 16px;
-    font-weight: 600;
-    color: #1e293b;
-    margin-bottom: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-main);
+  margin-bottom: 8px;
 }
 
-.trend-tag {
-    font-weight: 500;
-    padding: 4px 12px;
-    border-radius: 20px;
-}
-
-.risk-pulse {
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: #ef4444;
-    display: inline-block;
-    margin-right: 8px;
-    box-shadow: 0 0 0 rgba(239, 68, 68, 0.4);
-    animation: pulse 2s infinite;
-}
-
-@keyframes pulse {
-    0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
-    70% { box-shadow: 0 0 0 10px rgba(239, 68, 68, 0); }
-    100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
-}
-
-/* Brand button */
-.btn-brand {
-    background: linear-gradient(135deg, var(--primary-red), var(--primary-red-hover)) !important;
-    border: none !important;
-    box-shadow: 0 4px 12px rgba(181, 18, 0, 0.25) !important;
-}
-
-.btn-brand:hover {
-    box-shadow: 0 6px 20px rgba(181, 18, 0, 0.35) !important;
-    transform: translateY(-1px);
-}
-
-/* Responsive */
+/* ── Responsive ──────────────────────────────────────────────────────────── */
 @media (max-width: 768px) {
-    .analyse-container {
-        padding: 16px 12px;
-    }
-    .analyse-header .ant-space {
-        flex-direction: column;
-        align-items: flex-start !important;
-    }
+  .analyse-container {
+    padding: 0;
+  }
 }

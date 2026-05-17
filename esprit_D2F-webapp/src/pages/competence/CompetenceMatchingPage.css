@@ -81,7 +81,7 @@
 
 .panel-header-section {
   padding: 18px 20px;
-  background: #fff;
+  background: var(--bg-card);
   border-bottom: 1px solid var(--border-ui);
   display: flex;
   justify-content: space-between;
@@ -108,7 +108,7 @@
 
 /* ─── Savoir Cards ────────────────────────────────────────────────────── */
 .savoir-assignment-card {
-  background: #fff;
+  background: var(--bg-card);
   border: 1px solid var(--border-ui);
   border-radius: var(--radius-md);
   padding: 16px;
@@ -147,7 +147,7 @@
 
 /* ─── Enseignant Cards ───────────────────────────────────────────────────── */
 .enseignant-assignment-card {
-  background: #fff;
+  background: var(--bg-card);
   border: 1px solid var(--border-ui);
   border-radius: var(--radius-md);
   padding: 20px;

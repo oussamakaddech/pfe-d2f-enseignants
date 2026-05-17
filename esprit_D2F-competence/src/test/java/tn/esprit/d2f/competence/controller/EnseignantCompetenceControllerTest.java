@@ -224,4 +224,91 @@ class EnseignantCompetenceControllerTest {
                 .andExpect(status().isNoContent());
         }
     }
+
+    // ─── GET /enseignant/{enseignantId} ───────────────────────────────────────
+    @Nested
+    @DisplayName("GET /enseignant/{enseignantId}")
+    class GetByEnseignant {
+
+        @Test
+        @WithMockUser(roles = "admin")
+        @DisplayName("200 – renvoie la liste des affectations d'un enseignant")
+        void shouldReturn200() throws Exception {
+            when(service.getCompetencesByEnseignant("ens-001")).thenReturn(List.of(sampleDTO()));
+
+            mockMvc.perform(get(BASE_URL + "/enseignant/ens-001"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$[0].enseignantId").value("ens-001"));
+        }
+    }
+
+    // ─── GET /enseignant/{enseignantId}/domaine/{domaineId} ───────────────────
+    @Nested
+    @DisplayName("GET /enseignant/{enseignantId}/domaine/{domaineId}")
+    class GetByEnseignantAndDomaine {
+
+        @Test
+        @WithMockUser(roles = "admin")
+        @DisplayName("200 – renvoie la liste filtrée")
+        void shouldReturn200() throws Exception {
+            when(service.getCompetencesByEnseignantAndDomaine("ens-001", 1L)).thenReturn(List.of(sampleDTO()));
+
+            mockMvc.perform(get(BASE_URL + "/enseignant/ens-001/domaine/1"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$[0].enseignantId").value("ens-001"));
+        }
+    }
+
+    // ─── GET /enseignant/{enseignantId}/competence/{competenceId} ─────────────
+    @Nested
+    @DisplayName("GET /enseignant/{enseignantId}/competence/{competenceId}")
+    class GetByEnseignantAndCompetence {
+
+        @Test
+        @WithMockUser(roles = "admin")
+        @DisplayName("200 – renvoie la liste filtrée")
+        void shouldReturn200() throws Exception {
+            when(service.getCompetencesByEnseignantAndCompetence("ens-001", 2L)).thenReturn(List.of(sampleDTO()));
+
+            mockMvc.perform(get(BASE_URL + "/enseignant/ens-001/competence/2"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$[0].enseignantId").value("ens-001"));
+        }
+    }
+
+    // ─── GET /enseignant/{enseignantId}/niveau/{niveau} ───────────────────────
+    @Nested
+    @DisplayName("GET /enseignant/{enseignantId}/niveau/{niveau}")
+    class GetByEnseignantAndNiveau {
+
+        @Test
+        @WithMockUser(roles = "admin")
+        @DisplayName("200 – renvoie la liste filtrée")
+        void shouldReturn200() throws Exception {
+            when(service.getCompetencesByEnseignantAndNiveau("ens-001", NiveauMaitrise.N2_ELEMENTAIRE)).thenReturn(List.of(sampleDTO()));
+
+            mockMvc.perform(get(BASE_URL + "/enseignant/ens-001/niveau/N2_ELEMENTAIRE"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$[0].enseignantId").value("ens-001"));
+        }
+    }
+
+    // ─── PATCH /{id}/niveau ───────────────────────────────────────────────────
+    @Nested
+    @DisplayName("PATCH /{id}/niveau")
+    class UpdateNiveau {
+
+        @Test
+        @WithMockUser(roles = "admin")
+        @DisplayName("200 – met à jour le niveau")
+        void shouldReturn200() throws Exception {
+            when(service.updateNiveau(1L, NiveauMaitrise.N3_INTERMEDIAIRE)).thenReturn(sampleDTO());
+
+            mockMvc.perform(patch(BASE_URL + "/1/niveau")
+                            .with(csrf())
+                            .param("niveau", "N3_INTERMEDIAIRE"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.enseignantId").value("ens-001"));
+        }
+    }
 }

@@ -54,7 +54,7 @@ WITH tf AS (
 ),
 tp AS (
     SELECT p.enseignant_id,
-           SUM(CASE WHEN p.present THEN 1 ELSE 0 END)::FLOAT
+           SUM(CASE WHEN p.presence THEN 1 ELSE 0 END)::FLOAT
                / NULLIF(COUNT(*), 0) AS taux_assiduite
     FROM presences p
     GROUP BY p.enseignant_id
@@ -207,7 +207,7 @@ WHERE i.enseignant_id = :teacher_id OR :teacher_id IS NULL
 PRESENCES_TEACHER_QUERY = """
 SELECT p.id_participation,
        p.enseignant_id,
-       p.present,
+       p.presence,
        p.seance_id,
        sf.formation_id
 FROM presences p
@@ -276,6 +276,29 @@ WHERE bf.approuve_admin = TRUE
 GROUP BY c.id, c.nom, d.nom
 """
 
+# Optimized version using pg_trgm similarity for better performance and accuracy.
+# Requires: CREATE EXTENSION IF NOT EXISTS pg_trgm; on the database.
+# Falls back to BESOIN_DEMAND_QUERY if pg_trgm is not available.
+BESOIN_DEMAND_QUERY_PGTRGM = """
+SELECT c.id  AS competence_id,
+       c.nom AS competence_nom,
+       d.nom AS domaine_nom,
+       COUNT(*) FILTER (
+           WHERE bf.last_refresh_date >= CURRENT_DATE - INTERVAL '3 months'
+       ) AS demand_3m,
+       COUNT(*) FILTER (
+           WHERE bf.last_refresh_date >= CURRENT_DATE - INTERVAL '12 months'
+       ) AS demand_12m,
+       COUNT(*) AS total_demand
+FROM besoin_formation bf
+LEFT JOIN competences c
+    ON similarity(c.nom, COALESCE(bf.theme, '')) > 0.3
+    OR similarity(c.nom, COALESCE(bf.titre, '')) > 0.3
+LEFT JOIN domaines d ON d.id = c.domaine_id
+WHERE bf.approuve_admin = TRUE
+GROUP BY c.id, c.nom, d.nom
+"""
+
 ALL_ENSEIGNANTS_QUERY = """
 SELECT e.id AS enseignant_id, e.nom, e.prenom, e.mail AS email, e.dept_id AS departement_id
 FROM enseignants e
@@ -284,6 +307,8 @@ FROM enseignants e
 
 class DataService:
     """Service d'accès aux données en lecture sur la base D2F partagée."""
+
+    DEFAULT_PAGE_SIZE = 500
 
     def __init__(self, db: Session):
         self.db = db
@@ -294,17 +319,35 @@ class DataService:
     def get_competency_levels(self, teacher_id: str | None = None) -> list[dict[str, Any]]:
         return execute_query(self.db, COMPETENCY_LEVELS_QUERY, {"teacher_id": teacher_id})
 
-    def get_required_levels(self) -> list[dict[str, Any]]:
-        return execute_query(self.db, REQUIRED_LEVELS_QUERY)
+    def get_required_levels(self, page: int = 0, size: int = 0) -> list[dict[str, Any]]:
+        query = REQUIRED_LEVELS_QUERY
+        params: dict[str, Any] = {}
+        if size > 0:
+            query += " LIMIT :limit OFFSET :offset"
+            params["limit"] = size
+            params["offset"] = page * size
+        return execute_query(self.db, query, params)
 
     def get_prerequisite_graph(self) -> list[dict[str, Any]]:
         return execute_query(self.db, PREREQUISITE_GRAPH_QUERY)
 
-    def get_formation_competencies(self) -> list[dict[str, Any]]:
-        return execute_query(self.db, FORMATION_COMPETENCIES_QUERY)
+    def get_formation_competencies(self, page: int = 0, size: int = 0) -> list[dict[str, Any]]:
+        query = FORMATION_COMPETENCIES_QUERY
+        params: dict[str, Any] = {}
+        if size > 0:
+            query += " LIMIT :limit OFFSET :offset"
+            params["limit"] = size
+            params["offset"] = page * size
+        return execute_query(self.db, query, params)
 
-    def get_all_formations(self) -> list[dict[str, Any]]:
-        return execute_query(self.db, FORMATIONS_ALL_QUERY)
+    def get_all_formations(self, page: int = 0, size: int = 0) -> list[dict[str, Any]]:
+        query = FORMATIONS_ALL_QUERY
+        params: dict[str, Any] = {}
+        if size > 0:
+            query += " LIMIT :limit OFFSET :offset"
+            params["limit"] = size
+            params["offset"] = page * size
+        return execute_query(self.db, query, params)
 
     def get_inscriptions(self, teacher_id: str | None = None) -> list[dict[str, Any]]:
         return execute_query(self.db, INSCRIPTIONS_TEACHER_QUERY, {"teacher_id": teacher_id})
@@ -318,13 +361,29 @@ class DataService:
     def get_evaluations(self, teacher_id: str | None = None) -> list[dict[str, Any]]:
         return execute_query(self.db, EVALUATIONS_TEACHER_QUERY, {"teacher_id": teacher_id})
 
-    def get_evaluations_globales(self) -> list[dict[str, Any]]:
-        return execute_query(self.db, EVALUATIONS_GLOBALES_QUERY)
+    def get_evaluations_globales(self, page: int = 0, size: int = 0) -> list[dict[str, Any]]:
+        query = EVALUATIONS_GLOBALES_QUERY
+        params: dict[str, Any] = {}
+        if size > 0:
+            query += " LIMIT :limit OFFSET :offset"
+            params["limit"] = size
+            params["offset"] = page * size
+        return execute_query(self.db, query, params)
 
     def get_certificats(self, teacher_id: str | None = None) -> list[dict[str, Any]]:
         return execute_query(self.db, CERTIFICATS_TEACHER_QUERY, {"teacher_id": teacher_id})
 
-    def get_besoin_demand(self) -> list[dict[str, Any]]:
+    def get_besoin_demand(self, use_pgtrgm: bool = True) -> list[dict[str, Any]]:
+        """Get besoin demand data, with optional pg_trgm optimization.
+
+        Tries pg_trgm similarity first (better performance + accuracy).
+        Falls back to ILIKE if pg_trgm extension is not available.
+        """
+        if use_pgtrgm:
+            try:
+                return execute_query(self.db, BESOIN_DEMAND_QUERY_PGTRGM)
+            except Exception:
+                logger.info("pg_trgm not available, falling back to ILIKE query")
         return execute_query(self.db, BESOIN_DEMAND_QUERY)
 
     def get_all_enseignants(self) -> list[dict[str, Any]]:

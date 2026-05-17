@@ -1,5 +1,6 @@
 package esprit.pfe.serviceformation.controllers;
 
+import esprit.d2f.common.security.AuthorizationMatrix;
 import esprit.pfe.serviceformation.dto.*;
 import esprit.pfe.serviceformation.services.KPIService;
 import jakarta.persistence.EntityNotFoundException;
@@ -8,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Date;
@@ -17,6 +19,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/v1/kpi")
 @RequiredArgsConstructor
+@PreAuthorize(AuthorizationMatrix.DASHBOARD_ADMIN_LIMITED)
 public class KPIController {
 
     private final KPIService kpiService;

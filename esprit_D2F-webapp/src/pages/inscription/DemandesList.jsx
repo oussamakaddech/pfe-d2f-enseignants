@@ -29,9 +29,11 @@ import {
   ClockCircleOutlined,
 } from "@ant-design/icons";
 import { useParams, useNavigate } from "react-router-dom";
-import * as XLSX from "xlsx";
+import { writeExcel, exportDateLabel, isoDate } from "../../utils/excelExport";
 import InscriptionService from "../../services/InscriptionService";
 import useAppNotification from "../../hooks/useAppNotification";
+import { AppPageHeader, brand } from "../../theme";
+import "./DemandesList.css";
 
 const { Title, Text } = Typography;
 
@@ -127,19 +129,19 @@ export default function DemandesList() {
 
   const exportToExcel = () => {
     const approved = demandes.filter((r) => r.etat === "APPROVED");
-    const exportData = approved.map((r) => ({
-      Email: r.enseignant.mail,
-      Prénom: r.enseignant.prenom,
-      Nom: r.enseignant.nom,
-      Département: r.enseignant.deptLibelle,
-      UP: r.enseignant.upLibelle,
-      État: r.etat,
-      Date: new Date(r.dateDemande).toLocaleString("fr-FR"),
+    const rows = approved.map((r) => ({
+      Nom:         r.enseignant.nom,
+      Prénom:      r.enseignant.prenom,
+      Email:       r.enseignant.mail,
+      Département: r.enseignant.deptLibelle || "—",
+      UP:          r.enseignant.upLibelle || "—",
+      État:        r.etat,
+      Date:        new Date(r.dateDemande).toLocaleString("fr-FR"),
     }));
-    const ws = XLSX.utils.json_to_sheet(exportData);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Inscriptions");
-    XLSX.writeFile(wb, `inscriptions_formation_${formationId}.xlsx`);
+    writeExcel(
+      [{ name: "Inscriptions", rows, title: "Inscriptions approuvées", subtitle: exportDateLabel() }],
+      `inscriptions_formation_${formationId}_${isoDate()}.xlsx`
+    );
   };
 
   // Statistiques
@@ -164,7 +166,7 @@ export default function DemandesList() {
       render: (_, r) => (
         <Space>
           <Avatar
-            style={{ backgroundColor: "#B51200" }}
+            style={{ backgroundColor: brand[500] }}
             icon={<UserOutlined />}
           >
             {r.enseignant.prenom?.[0]}{r.enseignant.nom?.[0]}
@@ -260,7 +262,7 @@ export default function DemandesList() {
             icon={<CheckCircleOutlined />}
             disabled={r.etat === "APPROVED"}
             onClick={() => handleTraitement(r.id, true)}
-            style={r.etat === "APPROVED" ? {} : { backgroundColor: "#52c41a", borderColor: "#52c41a" }}
+            style={r.etat === "APPROVED" ? {} : { backgroundColor: "#1D6F42", borderColor: "#1D6F42" }}
           >
             Approuver
           </Button>
@@ -280,25 +282,16 @@ export default function DemandesList() {
 
   return (
     <>
-      <div style={{ padding: 24, maxWidth: 1200, margin: "0 auto" }}>
-        {/* Header */}
-        <Row justify="space-between" align="middle" style={{ marginBottom: 24 }}>
-          <Col>
-            <Button
-              icon={<ArrowLeftOutlined />}
-              onClick={() => navigate(-1)}
-              style={{ marginBottom: 8 }}
-            >
-              Retour
-            </Button>
-            <Title level={3} style={{ margin: 0 }}>
-              <UserOutlined style={{ marginRight: 10, color: "#B51200" }} />
-              Demandes d&apos;inscription
-            </Title>
-            <Text type="secondary">Formation #{formationId}</Text>
-          </Col>
-          <Col>
+      <div style={{ maxWidth: 1200, margin: "0 auto" }}>
+        <AppPageHeader
+          icon={<UserOutlined />}
+          title={`Demandes d'inscription — Formation #${formationId}`}
+          subtitle="Gérer et traiter les demandes d'inscription des enseignants"
+          actions={
             <Space>
+              <Button icon={<ArrowLeftOutlined />} onClick={() => navigate(-1)}>
+                Retour
+              </Button>
               <Button icon={<ReloadOutlined />} onClick={fetchData} loading={loading}>
                 Actualiser
               </Button>
@@ -306,13 +299,13 @@ export default function DemandesList() {
                 type="primary"
                 icon={<FileExcelOutlined />}
                 onClick={exportToExcel}
-                style={{ backgroundColor: "#B51200", borderColor: "#B51200" }}
+                style={{ backgroundColor: "#1D6F42", borderColor: "#1D6F42" }}
               >
                 Exporter approuvées
               </Button>
             </Space>
-          </Col>
-        </Row>
+          }
+        />
 
         {/* Statistiques */}
         <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>

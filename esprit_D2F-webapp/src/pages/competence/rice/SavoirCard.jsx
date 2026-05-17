@@ -126,6 +126,7 @@ const SavoirCard = memo(function SavoirCard({
               margin: 0,
             }}
             onClick={() => toggleType(di, ci, sci, si)}
+            onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggleType(di, ci, sci, si); } }}
           >
             {TYPE_LABEL[savoir.type]}
           </Tag>
@@ -152,7 +153,7 @@ const SavoirCard = memo(function SavoirCard({
           <Text style={{ fontSize: 12 }}>
             {(assigned[0].ens.prenom ? `${assigned[0].ens.prenom} ${assigned[0].ens.nom}` : assigned[0].ens.nom).slice(0, 16)}
           </Text>
-          <a onClick={() => removeTeacher(assigned[0].id)}>×</a>
+          <a role="button" tabIndex={0} onClick={() => removeTeacher(assigned[0].id)} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); removeTeacher(assigned[0].id); } }}>×</a>
           {assigned.length > 1 && <Text type="secondary">+{assigned.length - 1}</Text>}
         </Space>
       ) : (

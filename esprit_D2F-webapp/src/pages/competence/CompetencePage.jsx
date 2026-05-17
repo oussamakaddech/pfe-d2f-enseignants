@@ -10,11 +10,12 @@ import {
   Table,
   Tabs,
   Tag,
-  Typography,
 } from "antd";
 import { ApartmentOutlined } from "@ant-design/icons";
 import * as XLSX from "xlsx";
 import useAppNotification from "../../hooks/useAppNotification";
+import { AppPageHeader } from "../../theme";
+import "./CompetencePage.css";
 import CompetenceModals from "./components/CompetenceModals";
 import ConsultationTab from "./components/ConsultationTab";
 import CrudTab from "./components/CrudTab";
@@ -27,7 +28,6 @@ import {
   buildMatrixRows,
 } from "./utils/consultationUtils";
 
-const { Title } = Typography;
 
 const NIVEAU_OPTIONS = [
   { value: "N1_DEBUTANT", label: "N1 - Debutant", color: "default" },
@@ -412,94 +412,96 @@ export default function CompetencePage() {
      RENDU
   ════════════════════════════════════════════════════════════════════════ */
   return (
-    <>
-      <div style={{ padding: 16 }}>
-        <Title level={4}>
-          <ApartmentOutlined /> Gestion des Compétences
-        </Title>
+    <div className="competence-page">
+      <AppPageHeader
+        icon={<ApartmentOutlined />}
+        title="Référentiel des Compétences"
+        subtitle="Gérer les domaines, compétences, sous-compétences et savoirs"
+      />
 
-        <Tabs
-          items={tabs}
-          activeKey={activeTab}
-          onChange={handleTabChange}
-        />
-        <CompetenceModals
-          crud={crud}
-          structure={structure}
-          domaineForm={domaineForm}
-          compForm={compForm}
-          scForm={scForm}
-          savoirForm={savoirForm}
-          addNiveauForm={addNiveauForm}
+      <Tabs
+        className="competence-page-tabs"
+        items={tabs}
+        activeKey={activeTab}
+        onChange={handleTabChange}
+      />
+      <CompetenceModals
+        crud={crud}
+        structure={structure}
+        domaineForm={domaineForm}
+        compForm={compForm}
+        scForm={scForm}
+        savoirForm={savoirForm}
+        addNiveauForm={addNiveauForm}
+      />
+
+      <Modal
+        title={`Prérequis — ${prerequisiteTarget?.nom || ""}`}
+        open={prerequisiteModal}
+        width={700}
+        destroyOnClose
+        onCancel={() => {
+          setPrerequisiteModal(false);
+          setPrerequisiteTarget(null);
+          setPrerequisites([]);
+          addPrerequisiteForm.resetFields();
+        }}
+        footer={null}
+        className="competence-prerequisite-modal"
+      >
+        <Table
+          rowKey="id"
+          size="small"
+          loading={prerequisiteLoading}
+          columns={prerequisiteColumns}
+          dataSource={prerequisites}
+          pagination={false}
+          locale={{ emptyText: "Aucun prérequis pour cette compétence" }}
+          style={{ marginBottom: 16 }}
         />
 
-        <Modal
-          title={`Prerequis - ${prerequisiteTarget?.nom || ""}`}
-          open={prerequisiteModal}
-          width={700}
-          destroyOnClose
-          onCancel={() => {
-            setPrerequisiteModal(false);
-            setPrerequisiteTarget(null);
-            setPrerequisites([]);
-            addPrerequisiteForm.resetFields();
-          }}
-          footer={null}
+        <Form
+          form={addPrerequisiteForm}
+          layout="inline"
+          onFinish={handleAddPrerequisite}
         >
-          <Table
-            rowKey="id"
-            size="small"
-            loading={prerequisiteLoading}
-            columns={prerequisiteColumns}
-            dataSource={prerequisites}
-            pagination={false}
-            locale={{ emptyText: "Aucun prerequis pour cette competence" }}
-            style={{ marginBottom: 16 }}
-          />
-
-          <Form
-            form={addPrerequisiteForm}
-            layout="inline"
-            onFinish={handleAddPrerequisite}
+          <Form.Item
+            name="prerequisiteId"
+            rules={[{ required: true, message: "Sélectionnez une compétence" }]}
           >
-            <Form.Item
-              name="prerequisiteId"
-              rules={[{ required: true, message: "Selectionnez une competence" }]}
-            >
-              <Select
-                style={{ width: 250 }}
-                placeholder="Competence prerequise"
-                showSearch
-                options={prerequisiteCompetenceOptions}
-                filterOption={(input, option) =>
-                  option?.searchText?.includes(input.toLowerCase()) ?? false
-                }
-              />
-            </Form.Item>
+            <Select
+              style={{ width: 250 }}
+              placeholder="Compétence prérequise"
+              showSearch
+              options={prerequisiteCompetenceOptions}
+              filterOption={(input, option) =>
+                option?.searchText?.includes(input.toLowerCase()) ?? false
+              }
+            />
+          </Form.Item>
 
-            <Form.Item
-              name="niveauMinimum"
-              rules={[{ required: true, message: "Selectionnez un niveau" }]}
-            >
-              <Select
-                style={{ width: 180 }}
-                placeholder="Niveau minimum"
-                options={NIVEAU_OPTIONS}
-              />
-            </Form.Item>
+          <Form.Item
+            name="niveauMinimum"
+            rules={[{ required: true, message: "Sélectionnez un niveau" }]}
+          >
+            <Select
+              style={{ width: 180 }}
+              placeholder="Niveau minimum"
+              options={NIVEAU_OPTIONS}
+            />
+          </Form.Item>
 
-            <Form.Item name="description">
-              <Input style={{ width: 180 }} placeholder="Description (optionnel)" />
-            </Form.Item>
+          <Form.Item name="description">
+            <Input style={{ width: 180 }} placeholder="Description (optionnel)" />
+          </Form.Item>
 
-            <Form.Item>
-              <Button type="primary" htmlType="submit" loading={prerequisiteLoading}>
-                Ajouter
-              </Button>
-            </Form.Item>
-          </Form>
-        </Modal>
-      </div>
-    </>
+          <Form.Item>
+            <Button type="primary" htmlType="submit" loading={prerequisiteLoading}>
+              Ajouter
+            </Button>
+          </Form.Item>
+        </Form>
+      </Modal>
+    </div>
   );
 }

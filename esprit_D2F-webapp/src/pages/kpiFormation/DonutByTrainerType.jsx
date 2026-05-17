@@ -198,7 +198,7 @@ export default function DonutByTrainerTypeWithFilters() {
   if (!countsData) {
     return (
       <div style={{ textAlign: "center", padding: 80 }}>
-        <Spin size="large" tip="Chargement des données…" />
+        <Spin size="large" tip="Chargement des données…"><div /></Spin>
       </div>
     );
   }
@@ -265,7 +265,7 @@ export default function DonutByTrainerTypeWithFilters() {
             style={{ borderRadius: 8, boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}
             styles={{ body: { padding: 16 } }}
           >
-            <div style={{ cursor: "pointer" }} onClick={() => setModalVisible(true)}>
+            <div role="button" tabIndex={0} style={{ cursor: "pointer" }} onClick={() => setModalVisible(true)} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setModalVisible(true); } }}>
               <Doughnut
                 data={{
                   labels: chartData.map((d) => d.name),
@@ -650,7 +650,7 @@ export default function DonutByTrainerTypeWithFilters() {
               allowClear
               optionFilterProp="children"
               filterOption={(input, option) =>
-                option.children.toLowerCase().includes(input.toLowerCase())
+                String(option?.children ?? "").toLowerCase().includes(input.toLowerCase())
               }
             >
               {upsOptions.map((u) => (
@@ -669,7 +669,7 @@ export default function DonutByTrainerTypeWithFilters() {
               allowClear
               optionFilterProp="children"
               filterOption={(input, option) =>
-                option.children.toLowerCase().includes(input.toLowerCase())
+                String(option?.children ?? "").toLowerCase().includes(input.toLowerCase())
               }
             >
               {deptsOptions.map((d) => (

@@ -1,0 +1,130 @@
+/* ─── CertificatesByEmailPage.css ──────────────────────────────────────── */
+
+.certs-email-page {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* ── Statistique ───────────────────────────────────────────────────────── */
+.certs-email-stat-card {
+  margin-bottom: 20px;
+  border-radius: 14px;
+  border: 1px solid rgba(0, 0, 0, 0.07);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  max-width: 280px;
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.certs-email-stat-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  transform: translateY(-2px);
+}
+
+/* ── Carte certificat ──────────────────────────────────────────────────── */
+.certs-email-card {
+  border-radius: var(--radius-lg);
+  padding: 24px 20px;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+  background: var(--bg-card);
+  border: 1px solid rgba(0, 0, 0, 0.07);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 4px 12px rgba(0, 0, 0, 0.03);
+}
+
+.certs-email-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+  border-color: #ffb3ab;
+}
+
+.certs-email-card--selected {
+  background: linear-gradient(135deg, #fff0ee 0%, #ffddd9 100%);
+  border: 2px solid #B51200;
+  box-shadow: 0 8px 24px rgba(181, 18, 0, 0.13);
+}
+
+.certs-email-card--selected:hover {
+  border-color: #B51200;
+  box-shadow: 0 8px 24px rgba(181, 18, 0, 0.18);
+}
+
+/* ── Icône certificat ──────────────────────────────────────────────────── */
+.certs-email-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: var(--radius-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 16px;
+  background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+  box-shadow: 0 2px 8px rgba(229, 57, 53, 0.1);
+  transition: all 0.3s ease;
+}
+
+.certs-email-card:hover .certs-email-icon {
+  transform: scale(1.05);
+}
+
+.certs-email-icon--selected {
+  background: linear-gradient(135deg, #B51200 0%, #9a0f00 100%);
+  box-shadow: 0 8px 20px rgba(181, 18, 0, 0.25);
+}
+
+/* ── Titre certificat ──────────────────────────────────────────────────── */
+.certs-email-title {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-main);
+  margin-bottom: 8px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.certs-email-title--selected {
+  color: #B51200;
+}
+
+/* ── Tag rôle ──────────────────────────────────────────────────────────── */
+.certs-email-role-tag {
+  border-radius: 12px;
+  font-weight: 500;
+  font-size: 11px;
+}
+
+/* ── Tag aperçu ────────────────────────────────────────────────────────── */
+.certs-email-preview-tag {
+  border-radius: 12px;
+  font-weight: 500;
+  margin-top: 12px;
+}
+
+/* ── Card visualisation ────────────────────────────────────────────────── */
+.certs-email-viewer-card {
+  margin-top: 10px;
+  border-radius: var(--radius-lg);
+  border: 1px solid rgba(0, 0, 0, 0.07);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 4px 12px rgba(0, 0, 0, 0.03);
+}
+
+.certs-email-viewer-title {
+  font-weight: 600;
+}
+
+/* ── Responsive ────────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .certs-email-card {
+    padding: 20px 16px;
+  }
+
+  .certs-email-icon {
+    width: 52px;
+    height: 52px;
+    border-radius: 14px;
+  }
+}

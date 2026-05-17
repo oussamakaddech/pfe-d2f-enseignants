@@ -5,6 +5,13 @@ import os
 import time
 from contextlib import asynccontextmanager
 
+# Load .env file into OS environment so os.getenv() works for JWT_SECRET, etc.
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
+
 from fastapi import FastAPI, HTTPException
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware

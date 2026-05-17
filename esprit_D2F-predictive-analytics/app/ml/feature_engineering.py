@@ -33,11 +33,26 @@ def build_teacher_features(
             .reset_index()
         )
         df_teacher = df_teacher.merge(comp_agg, on="enseignant_id", how="left")
-        df_teacher["competency_coverage_rate"] = df_teacher["nb_savoirs"] / df_teacher["nb_savoirs"].max()
+        max_savoirs = df_teacher["nb_savoirs"].max()
+        if max_savoirs and max_savoirs > 0:
+            df_teacher["competency_coverage_rate"] = df_teacher["nb_savoirs"] / max_savoirs
+        else:
+            df_teacher["competency_coverage_rate"] = 0.0
     else:
         for col in ["avg_level", "min_level", "max_level", "nb_savoirs",
                     "nb_competences", "nb_level_5", "nb_level_1", "competency_coverage_rate"]:
             df_teacher[col] = 0.0
+
+    # Ensure all engagement-source columns exist (training data may lack them)
+    for col, default in (
+        ("nb_formations_completed", 0),
+        ("nb_evaluations", 0),
+        ("nb_besoins_exprimes", 0),
+        ("taux_assiduite", 0.0),
+        ("avg_eval_score", 0.0),
+    ):
+        if col not in df_teacher.columns:
+            df_teacher[col] = default
 
     # Engagement score: composite metric
     df_teacher["engagement_score"] = (

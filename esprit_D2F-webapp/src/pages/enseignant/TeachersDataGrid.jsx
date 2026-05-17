@@ -13,6 +13,10 @@ import {
   Popconfirm,
   Space,
   Tooltip,
+  Card,
+  Row,
+  Col,
+  Statistic,
 } from "antd";
 import {
   SearchOutlined,
@@ -21,16 +25,21 @@ import {
   DownloadOutlined,
   EditOutlined,
   DeleteOutlined,
+  TeamOutlined,
+  SafetyCertificateOutlined,
+  UserOutlined,
 } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
-import * as XLSX from "xlsx";
+import { writeExcel, exportDateLabel, isoDate } from "../../utils/excelExport";
 import EnseignantService from "../../services/EnseignantService";
 import UpService from "../../services/upService";
 import DeptService from "../../services/DeptService";
 import EnseignantRegister from "./EnseignantRegister";
 import useAppNotification from "../../hooks/useAppNotification";
+import { AppPageHeader, brand, shadow, radius } from "../../theme";
+import "./TeachersDataGrid.css";
 
-const { Title } = Typography;
+const { Text } = Typography;
 const { Option } = Select;
 
 export default function TeachersDataGrid() {
@@ -366,7 +375,8 @@ export default function TeachersDataGrid() {
           <Tooltip title="Modifier">
             <Button
               type="text"
-              icon={<EditOutlined style={{ color: "#1890ff" }} />}
+              icon={<EditOutlined />}
+              className="teachers-btn-edit"
               onClick={(e) => {
                 e.stopPropagation();
                 openEditModal(record);
@@ -388,8 +398,8 @@ export default function TeachersDataGrid() {
             <Tooltip title="Supprimer">
               <Button
                 type="text"
-                danger
                 icon={<DeleteOutlined />}
+                className="teachers-btn-delete"
                 onClick={(e) => e.stopPropagation()}
               />
             </Tooltip>
@@ -406,48 +416,101 @@ export default function TeachersDataGrid() {
   };
 
   const exportExcel = () => {
-    const ws = XLSX.utils.json_to_sheet(data);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Enseignants");
-    XLSX.writeFile(wb, `enseignants_export_${Date.now()}.xlsx`);
+    const rows = data.map(e => ({
+      Nom:         e.nom || "",
+      Prénom:      e.prenom || "",
+      Email:       e.mail || "",
+      Type:        e.type === "P" ? "Permanent" : e.type === "V" ? "Vacataire" : (e.type || ""),
+      UP:          e.upLibelle || "",
+      Département: e.deptLibelle || "",
+      CUP:         (e.cup === "O" || e.cup === "Y" || e.cup === "1") ? "Oui" : "Non",
+      "Chef Dépt": (e.chefDepartement === "O" || e.chefDepartement === "Y" || e.chefDepartement === "1") ? "Oui" : "Non",
+    }));
+    writeExcel(
+      [{ name: "Enseignants", rows, title: "Liste des Enseignants — Esprit", subtitle: exportDateLabel() }],
+      `enseignants_${isoDate()}.xlsx`
+    );
   };
+
+  // Stats
+  const permCount = data.filter(d => d.type === "P").length;
+  const vacCount = data.filter(d => d.type === "V").length;
+  const cupCount = data.filter(d => d.cup === "O" || d.cup === "Y" || d.cup === "1").length;
 
   return (
     <>
-      <div style={{ padding: 16 }}>
-        <Title level={4}>Liste des Enseignants</Title>
-
-        <Button
-          type="primary"
+      <div className="teachers-page">
+        <AppPageHeader
           icon={<UserAddOutlined />}
-          disabled={!selectedTeacher}
-          onClick={() => setDrawerVisible(true)}
-          style={{ marginBottom: 16, marginRight: 8 }}
-        >
-          Créer Compte
-        </Button>
+          title="Annuaire des Enseignants"
+          subtitle={`${data.length} enseignant${data.length !== 1 ? "s" : ""} — Gérer, importer et créer les comptes`}
+          actions={
+            <Button
+              type="primary"
+              icon={<UserAddOutlined />}
+              disabled={!selectedTeacher}
+              onClick={() => setDrawerVisible(true)}
+              className="teachers-btn-create"
+            >
+              Créer Compte
+            </Button>
+          }
+        />
+
+        {/* Statistiques */}
+        <Row gutter={[16, 16]} style={{ marginBottom: 20 }}>
+          <Col xs={24} sm={8}>
+            <Card size="small" className="teachers-stat-card">
+              <Statistic
+                title="Total"
+                value={data.length}
+                prefix={<TeamOutlined style={{ color: brand[500] }} />}
+                valueStyle={{ color: brand[500], fontWeight: 700 }}
+              />
+            </Card>
+          </Col>
+          <Col xs={24} sm={8}>
+            <Card size="small" className="teachers-stat-card">
+              <Statistic
+                title="Permanents"
+                value={permCount}
+                prefix={<UserOutlined style={{ color: "#2563eb" }} />}
+                valueStyle={{ color: "#2563eb", fontWeight: 700 }}
+              />
+            </Card>
+          </Col>
+          <Col xs={24} sm={8}>
+            <Card size="small" className="teachers-stat-card">
+              <Statistic
+                title="CUP"
+                value={cupCount}
+                prefix={<SafetyCertificateOutlined style={{ color: "#7c3aed" }} />}
+                valueStyle={{ color: "#7c3aed", fontWeight: 700 }}
+              />
+            </Card>
+          </Col>
+        </Row>
 
         {extracted?.length > 0 && (
-          <div style={{ marginBottom: 12, padding: 12, border: "1px dashed #d9d9d9", borderRadius: 6 }}>
-            <Title level={5} style={{ margin: 0 }}>
+          <div className="teachers-extracted-panel">
+            <Text className="teachers-extracted-title">
               Enseignants extraits (IA) — {extracted.length}
-            </Title>
-            <div style={{ marginTop: 8, display: "flex", gap: 8, flexWrap: "wrap" }}>
+            </Text>
+            <div className="teachers-extracted-grid">
               {extracted.map((ex, idx) => (
                 <div
                   key={`${String(ex?.nom_complet ?? "unnamed").slice(0, 40)}_${idx}`}
-                  style={{ padding: 8, border: "1px solid #f0f0f0", borderRadius: 6, minWidth: 220 }}
+                  className="teachers-extracted-item"
                 >
-                  <div style={{ fontWeight: 600 }}>{ex?.nom_complet ?? "—"}</div>
+                  <div className="teachers-extracted-name">{ex?.nom_complet ?? "—"}</div>
                   {ex?.fichier && (
-                    <div style={{ fontSize: 12, color: "#666" }}>{ex.fichier}</div>
+                    <div className="teachers-extracted-file">{ex.fichier}</div>
                   )}
                   <Space style={{ marginTop: 8 }}>
                     <Button
                       size="small"
-                      onClick={() => {
-                        openCreateExtractModal(ex, idx);
-                      }}
+                      type="primary"
+                      onClick={() => openCreateExtractModal(ex, idx)}
                     >
                       Créer
                     </Button>
@@ -469,14 +532,8 @@ export default function TeachersDataGrid() {
           </div>
         )}
 
-        <div
-          style={{
-            marginBottom: 16,
-            display: "flex",
-            flexWrap: "wrap",
-            gap: 8,
-          }}
-        >
+        {/* Toolbar */}
+        <div className="teachers-toolbar">
           <Upload
             accept=".xlsx,.xls"
             beforeUpload={(f) => {
@@ -485,13 +542,14 @@ export default function TeachersDataGrid() {
             }}
             showUploadList={false}
           >
-            <Button icon={<UploadOutlined />}>Sélectionner fichier</Button>
+            <Button icon={<UploadOutlined />} className="teachers-btn-select">Sélectionner fichier</Button>
           </Upload>
           <Button
             type="primary"
             disabled={!file}
             onClick={handleUpload}
             icon={<UploadOutlined />}
+            className="teachers-btn-import"
           >
             Importer Excel
           </Button>
@@ -499,22 +557,26 @@ export default function TeachersDataGrid() {
             icon={<DownloadOutlined />}
             onClick={exportExcel}
             disabled={!data.length}
+            className="teachers-btn-export"
           >
             Exporter Excel
           </Button>
         </div>
 
-        <Table
-          rowSelection={rowSelection}
-          dataSource={data}
-          columns={columns}
-          rowKey="id"
-          pagination={{ pageSize: 10 }}
-          onRow={(record) => ({
-            onClick: () => navigate(`/home/calendar/${record.id}`),
-          })}
-          style={{ cursor: "pointer" }}
-        />
+        {/* Table */}
+        <Card className="teachers-table-wrapper">
+          <Table
+            rowSelection={rowSelection}
+            dataSource={data}
+            columns={columns}
+            rowKey="id"
+            pagination={{ pageSize: 10, showTotal: (total) => `${total} enseignant${total !== 1 ? "s" : ""}` }}
+            onRow={(record) => ({
+              onClick: () => navigate(`/home/calendar/${record.id}`),
+            })}
+            style={{ cursor: "pointer" }}
+          />
+        </Card>
 
         {/* ── Drawer: Créer compte ──────────────────────────────────────── */}
         <Drawer

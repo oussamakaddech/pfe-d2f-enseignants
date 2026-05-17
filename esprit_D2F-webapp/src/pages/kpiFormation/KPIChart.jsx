@@ -1,224 +1,304 @@
-// src/components/KPI/KPIChart.js
-
 import { useState, useEffect, useRef } from "react";
 import { Doughnut, Radar } from "react-chartjs-2";
-import { DatePicker, Divider, Statistic } from "antd";
+import { DatePicker, Divider, Tabs, Typography, Row, Col, Skeleton } from "antd";
+import {
+  BarChartOutlined,
+  TeamOutlined,
+  RobotOutlined,
+  PieChartOutlined,
+  LineChartOutlined,
+} from "@ant-design/icons";
 import dayjs from "dayjs";
 
 import KPIService from "../../services/KPIService";
 import ParticipantKPIService from "../../services/ParticipantKPIService";
+import { AppPageHeader } from "../../theme";
+import "./KPIChart.css";
+import { neutral, brand, shadow, radius } from "../../theme/tokens";
 
-import FormationProgressBars from "./FormationProgressBars";
-import TopParticipants from "./TopParticipants";
-import TopAbsentees from "./TopAbsentees";
-import NonAffectedList from "./NonAffectedList";
-
-import MetricCards from "./MetricCards";
+import FormationProgressBars  from "./FormationProgressBars";
+import TopParticipants        from "./TopParticipants";
+import TopAbsentees           from "./TopAbsentees";
+import NonAffectedList        from "./NonAffectedList";
+import MetricCards            from "./MetricCards";
 import FormationsByTypeFiltered from "./FormationsByTypeFiltered";
-import DonutByTrainerType from "./DonutByTrainerType";
-import RecommendationSection from "./RecommendationSection";
+import DonutByTrainerType     from "./DonutByTrainerType";
+import RecommendationSection  from "./RecommendationSection";
 
+const { Text, Title } = Typography;
 const { RangePicker } = DatePicker;
 
-// Styles réutilisés
-const cardStyle = {
-  padding: "20px",
-  borderRadius: 16,
-  backgroundColor: "#fefefe",
-  boxShadow: "0 4px 10px rgba(0,0,0,0.1)",
+// ── Styles réutilisables ──────────────────────────────────────────────────────
+const chartCard = {
+  background: "#fff",
+  borderRadius: radius.lg,
+  border: `1px solid rgba(0,0,0,0.07)`,
+  boxShadow: shadow.sm,
+  padding: "20px 22px",
   display: "flex",
   flexDirection: "column",
-  textAlign: "center"
-};
-const metricStyle = {
-  fontSize: "1.5rem",
-  fontWeight: 600,
-  marginTop: 12,
-  textAlign: "center"
 };
 
+const sectionTitle = (iconColor = brand[500]) => ({
+  display: "flex",
+  alignItems: "center",
+  gap: 8,
+  marginBottom: 16,
+  color: neutral[900],
+  fontSize: 15,
+  fontWeight: 600,
+});
+
+// ── Composant ────────────────────────────────────────────────────────────────
 export default function KPIChart() {
-  const [selectedTab, setSelectedTab] = useState("dashboard");
-  const [kpiData, setKpiData] = useState({ formations: 0, heures: 0, participants: 0 });
+  const [activeTab, setActiveTab]         = useState("dashboard");
+  const [kpiData, setKpiData]             = useState({ formations: 0, heures: 0, participants: 0 });
   const [globalKpiData, setGlobalKpiData] = useState({ total: 0, presents: 0, taux: 0 });
   const [formationsByEtat, setFormationsByEtat] = useState([]);
-  const [start, setStart] = useState("2025-01-01");
-  const [end, setEnd] = useState("2025-12-31");
+  const [loading, setLoading]             = useState(false);
+  const [start, setStart]                 = useState("2025-01-01");
+  const [end, setEnd]                     = useState("2025-12-31");
   const fetchId = useRef(0);
 
   useEffect(() => {
-    if (selectedTab !== "dashboard") return;
-
+    if (activeTab !== "dashboard") return;
     const id = ++fetchId.current;
+    setLoading(true);
 
-    const fetchKPIs = async () => {
+    (async () => {
       try {
-        const [totF, totH, uniqP, byEtatData, global, formsKPI] = await Promise.all([
+        const [totF, totH, uniqP, byEtatData, global] = await Promise.all([
           KPIService.getTotalFormations(start, end),
           KPIService.getTotalHeures(start, end),
           KPIService.getUniqueParticipants(start, end),
           KPIService.getFormationsByEtat(start, end),
           ParticipantKPIService.getGlobalParticipantKPI(start, end),
-          ParticipantKPIService.getFormationsParticipantKPIs(start, end),
         ]);
         if (id !== fetchId.current) return;
-
         setKpiData({ formations: totF, heures: totH, participants: uniqP });
         setFormationsByEtat(byEtatData);
         setGlobalKpiData({
-          total: global.nombreParticipantsTotal,
+          total:   global.nombreParticipantsTotal,
           presents: global.nombreParticipantsPresent,
-          taux: global.tauxParticipation,
+          taux:    global.tauxParticipation,
         });
       } catch (err) {
         if (id === fetchId.current) console.error("Erreur KPI :", err);
+      } finally {
+        if (id === fetchId.current) setLoading(false);
       }
-    };
+    })();
+  }, [start, end, activeTab]);
 
-    fetchKPIs();
-  }, [start, end, selectedTab]);
+  const tabItems = [
+    {
+      key: "dashboard",
+      label: (
+        <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <BarChartOutlined /> Tableau de bord
+        </span>
+      ),
+    },
+    {
+      key: "recommandation",
+      label: (
+        <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+          <RobotOutlined /> Recommandations IA
+        </span>
+      ),
+    },
+  ];
 
   return (
-    <div style={{ maxWidth: 1000, margin: "auto", padding: 30 }}>
-      {/* MINI NAVBAR */}
-      <nav style={{
-        display: "flex", gap: 20, justifyContent: "center",
-        marginBottom: 30, borderBottom: "2px solid #eee", paddingBottom: 10
-      }}>
-        <button
-          onClick={() => setSelectedTab("dashboard")}
-          style={{
-            background: "none", border: "none", fontSize: 16, cursor: "pointer",
-            padding: "8px 16px",
-            borderBottom: selectedTab === "dashboard"
-              ? "3px solid #1976d2"
-              : "3px solid transparent",
-            color: selectedTab === "dashboard" ? "#1976d2" : "#444",
-            fontWeight: selectedTab === "dashboard" ? 600 : 500
-          }}
-        >📊 Dashboard</button>
-        <button
-          onClick={() => setSelectedTab("recommandation")}
-          style={{
-            background: "none", border: "none", fontSize: 16, cursor: "pointer",
-            padding: "8px 16px",
-            borderBottom: selectedTab === "recommandation"
-              ? "3px solid #1976d2"
-              : "3px solid transparent",
-            color: selectedTab === "recommandation" ? "#1976d2" : "#444",
-            fontWeight: selectedTab === "recommandation" ? 600 : 500
-          }}
-        >🤖 Recommandations</button>
-      </nav>
+    <div style={{ maxWidth: 1100, margin: "0 auto" }}>
 
-      {selectedTab === "dashboard" ? (
+      {/* ── En-tête ─────────────────────────────────────────────────────── */}
+      <AppPageHeader
+        icon={<BarChartOutlined />}
+        title="KPI & Métriques"
+        subtitle="Indicateurs de performance des formations et des participants"
+      />
+
+      {/* ── Tabs ────────────────────────────────────────────────────────── */}
+      <Tabs
+        activeKey={activeTab}
+        onChange={setActiveTab}
+        items={tabItems}
+        style={{ marginBottom: 24 }}
+        tabBarStyle={{ marginBottom: 0 }}
+      />
+
+      {activeTab === "dashboard" ? (
         <>
-          <h2 style={{ textAlign: "center", marginBottom: 30 }}>
-            📈 Indicateurs de formation
-
-          </h2>
-
-          {/* RangePicker AntD */}
-          <div style={{ display: "flex", justifyContent: "center", marginBottom: 40 }}>
+          {/* ── Sélecteur de période ────────────────────────────────────── */}
+          <div style={{
+            display: "flex", alignItems: "center", gap: 12,
+            marginBottom: 28,
+            background: "#fff",
+            borderRadius: radius.md,
+            border: "1px solid rgba(0,0,0,0.07)",
+            padding: "12px 18px",
+            boxShadow: shadow.xs,
+          }}>
+            <LineChartOutlined style={{ color: brand[500], fontSize: 16 }} />
+            <Text style={{ fontWeight: 500, color: neutral[700], fontSize: 13 }}>Période d'analyse :</Text>
             <RangePicker
               value={[dayjs(start), dayjs(end)]}
-              format="YYYY-MM-DD"
+              format="DD/MM/YYYY"
               onChange={(dates, dateStrings) => {
                 if (!dates) return;
-                setStart(dateStrings[0]);
-                setEnd(dateStrings[1]);
+                setStart(dateStrings[0].split("/").reverse().join("-"));
+                setEnd(dateStrings[1].split("/").reverse().join("-"));
               }}
               allowClear={false}
-              style={{ width: 300 }}
+              style={{ flex: 1, maxWidth: 280 }}
             />
           </div>
 
-          {/* Section : Indicateurs de formation */}
-          <div style={{
-            display: "grid",
-            gridTemplateColumns: "1fr 2fr",
-            gap: 30,
-            marginBottom: 40
-          }}>
-            {/* Participation Globale (1/3) */}
-            <div style={cardStyle}>
-              <h3>👥 Participation Globale</h3>
-              <Doughnut
-                data={{
-                  labels: ["Présents", "Absents"],
-                  datasets: [{
-                    data: [
-                      globalKpiData.presents,
-                      globalKpiData.total - globalKpiData.presents
-                    ],
-                    backgroundColor: ["#36A2EB", "#FF6384"]
-                  }]
-                }}
-                options={{
-                  cutout: "60%",
-                  plugins: { legend: { position: "bottom" } },
-                  maintainAspectRatio: false
-                }}
-                style={{ flex: 1, maxHeight: 200 }}
-              />
-              <p style={metricStyle}>{globalKpiData.taux.toFixed(1)}%</p>
-            </div>
+          {loading ? (
+            <Row gutter={[20, 20]} style={{ marginBottom: 28 }}>
+              {[1, 2].map(i => (
+                <Col xs={24} md={12} key={i}>
+                  <div style={{ ...chartCard, height: 280 }}>
+                    <Skeleton active paragraph={{ rows: 5 }} />
+                  </div>
+                </Col>
+              ))}
+            </Row>
+          ) : (
+            <>
+              {/* ── Indicateurs Formations ────────────────────────────── */}
+              <SectionHeader icon={<PieChartOutlined />} color={brand[500]}>
+                Indicateurs de formation
+              </SectionHeader>
 
-            {/* Formations par état (2/3) */}
-            <div style={{ ...cardStyle, height: 400 }}>
-              <h3>📊 Formations par état</h3>
-              <div style={{ flex: 1, position: "relative" }}>
-                <Radar
-                  data={{
-                    labels: ["ENREGISTRÉ", "PLANIFIÉ", "EN COURS", "ACHÉVÉ", "ANNULÉ"],
-                    datasets: [{
-                      data: [
-                        formationsByEtat.enregistre,
-                        formationsByEtat.planifie,
-                        formationsByEtat.enCours,
-                        formationsByEtat.acheve,
-                        formationsByEtat.annule
-                      ],
-                      backgroundColor: "rgba(153,102,255,0.2)",
-                      borderColor: "rgba(153,102,255,1)"
-                    }]
-                  }}
-                  options={{
-                    scales: { r: { beginAtZero: true } },
-                    plugins: { legend: { display: false } },
-                    maintainAspectRatio: false
-                  }}
-                  style={{
-                    position: "absolute",
-                    top: 0,
-                    left: 0,
-                    width: "100%",
-                    height: "100%"
-                  }}
-                />
-              </div>
-              <p style={{ textAlign: "center", marginTop: 15 }}>
-                Total formations : {formationsByEtat.total}
-              </p>
-            </div>
-          </div>
+              <Row gutter={[20, 20]} style={{ marginBottom: 28 }}>
+                {/* Participation Globale */}
+                <Col xs={24} md={10}>
+                  <div style={{ ...chartCard, minHeight: 300 }}>
+                    <div style={sectionTitle("#3b82f6")}>
+                      <TeamOutlined style={{ color: "#3b82f6" }} aria-hidden="true" />
+                      Participation Globale
+                    </div>
+                    <div style={{ flex: 1, position: "relative", minHeight: 200 }}>
+                      <Doughnut
+                        data={{
+                          labels: ["Présents", "Absents"],
+                          datasets: [{
+                            data: [
+                              globalKpiData.presents,
+                              Math.max(0, globalKpiData.total - globalKpiData.presents),
+                            ],
+                            backgroundColor: ["#10b981", "#e2e8f0"],
+                            borderWidth: 0,
+                          }],
+                        }}
+                        options={{
+                          cutout: "68%",
+                          plugins: { legend: { position: "bottom" } },
+                          maintainAspectRatio: false,
+                        }}
+                        style={{ maxHeight: 210 }}
+                      />
+                    </div>
+                    <div style={{ textAlign: "center", marginTop: 8 }}>
+                      <span style={{ fontSize: 26, fontWeight: 700, color: neutral[900] }}>
+                        {(globalKpiData.taux || 0).toFixed(1)}%
+                      </span>
+                      <Text style={{ display: "block", color: neutral[500], fontSize: 12 }}>
+                        taux de présence
+                      </Text>
+                    </div>
+                  </div>
+                </Col>
 
-          {/* Section : Indicateurs des formateurs */}
-         
-          <FormationsByTypeFiltered /><Divider/>
-          <MetricCards          /><Divider/>
-           <FormationProgressBars /><Divider/>
-          
-          <h2 style={{ textAlign: "center", marginBottom: 30 }}>📈 Indicateurs des formateurs</h2>
+                {/* Formations par état */}
+                <Col xs={24} md={14}>
+                  <div style={{ ...chartCard, minHeight: 300 }}>
+                    <div style={sectionTitle("#7c3aed")}>
+                      <BarChartOutlined style={{ color: "#7c3aed" }} aria-hidden="true" />
+                      Répartition par état
+                    </div>
+                    <div style={{ flex: 1, position: "relative", minHeight: 220 }}>
+                      <Radar
+                        data={{
+                          labels: ["Enregistré", "Planifié", "En cours", "Achevé", "Annulé"],
+                          datasets: [{
+                            data: [
+                              formationsByEtat.enregistre ?? 0,
+                              formationsByEtat.planifie ?? 0,
+                              formationsByEtat.enCours ?? 0,
+                              formationsByEtat.acheve ?? 0,
+                              formationsByEtat.annule ?? 0,
+                            ],
+                            backgroundColor: "rgba(124,58,237,0.12)",
+                            borderColor:     "rgba(124,58,237,0.8)",
+                            borderWidth: 2,
+                            pointBackgroundColor: "rgba(124,58,237,1)",
+                          }],
+                        }}
+                        options={{
+                          scales: { r: { beginAtZero: true, ticks: { font: { size: 11 } } } },
+                          plugins: { legend: { display: false } },
+                          maintainAspectRatio: false,
+                        }}
+                        style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%" }}
+                      />
+                    </div>
+                    <Text style={{ display: "block", textAlign: "center", color: neutral[500], fontSize: 12, marginTop: 8 }}>
+                      Total : {formationsByEtat.total ?? 0} formations ({start} → {end})
+                    </Text>
+                  </div>
+                </Col>
+              </Row>
 
-         <DonutByTrainerType   /><Divider/>
-          <TopParticipants      /><Divider/>
-          <TopAbsentees         /><Divider/>
-          <NonAffectedList      />
+              {/* ── Indicateurs additionnels ──────────────────────────── */}
+              <FormationsByTypeFiltered />
+              <Divider style={{ margin: "24px 0" }} />
+              <MetricCards />
+              <Divider style={{ margin: "24px 0" }} />
+              <FormationProgressBars />
+
+              {/* ── Indicateurs des formateurs ───────────────────────── */}
+              <Divider style={{ margin: "28px 0" }} />
+              <SectionHeader icon={<TeamOutlined />} color="#059669">
+                Indicateurs des formateurs
+              </SectionHeader>
+
+              <DonutByTrainerType />
+              <Divider style={{ margin: "24px 0" }} />
+              <TopParticipants />
+              <Divider style={{ margin: "24px 0" }} />
+              <TopAbsentees />
+              <Divider style={{ margin: "24px 0" }} />
+              <NonAffectedList />
+            </>
+          )}
         </>
       ) : (
         <RecommendationSection />
       )}
+    </div>
+  );
+}
+
+function SectionHeader({ icon, color, children }) {
+  return (
+    <div style={{
+      display: "flex", alignItems: "center", gap: 10,
+      marginBottom: 16,
+      paddingBottom: 10,
+      borderBottom: `2px solid ${color}20`,
+    }}>
+      <div style={{
+        width: 30, height: 30, borderRadius: 8,
+        background: `${color}15`,
+        display: "flex", alignItems: "center", justifyContent: "center",
+        color,
+      }}>
+        {icon}
+      </div>
+      <Title level={5} style={{ margin: 0, color: neutral[800] }}>{children}</Title>
     </div>
   );
 }

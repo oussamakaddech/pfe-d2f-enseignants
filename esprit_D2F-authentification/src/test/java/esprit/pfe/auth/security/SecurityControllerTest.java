@@ -180,7 +180,11 @@ class SecurityControllerTest {
                 .param("username", "testuser")
                 .param("password", "password123"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.accessToken").value("mock-jwt-token"));
+                .andExpect(header().exists("Set-Cookie"))
+                .andExpect(header().string("Set-Cookie", org.hamcrest.Matchers.containsString("d2f_auth_token=mock-jwt-token")))
+                .andExpect(jsonPath("$.username").value("testuser"))
+                .andExpect(jsonPath("$.email").value("test@example.com"))
+                .andExpect(jsonPath("$.accessToken").doesNotExist());
     }
 
     @Test

@@ -69,7 +69,8 @@ public class SecurityConfig {
                             "/api/v1/auth/reset-password",
                             "/api/v1/auth/confirm",
                             "/actuator/health",
-                            "/actuator/info"
+                            "/actuator/info",
+                            "/error"
                         ).permitAll()
                         // Tout le reste requiert une authentification
                         .anyRequest().authenticated()

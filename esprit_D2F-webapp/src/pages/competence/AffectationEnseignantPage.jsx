@@ -4,14 +4,17 @@
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  Table, Tag, Space, Typography, Tooltip, Input, Button, Empty, Popconfirm, Badge, Modal, Form, Select, Row, Col, Divider
+  Table, Tag, Space, Typography, Tooltip, Input, Button, Empty, Popconfirm, Badge, Modal, Form, Select, Row, Col, Divider, Statistic
 } from "antd";
 import {
   SearchOutlined, ReloadOutlined, RobotOutlined, DeleteOutlined,
-  DownloadOutlined, PlusOutlined, EditOutlined
+  DownloadOutlined, PlusOutlined, EditOutlined, TeamOutlined,
+  BookOutlined, SafetyCertificateOutlined
 } from "@ant-design/icons";
 import CompetenceService from "../../services/CompetenceService";
 import EnseignantService from "../../services/EnseignantService";
+import AppPageHeader from "../../theme/AppPageHeader";
+import "./AffectationEnseignantPage.css";
 import useAppNotification from "../../hooks/useAppNotification";
 
 const { Text } = Typography;
@@ -271,19 +274,12 @@ export default function AffectationEnseignantPage() {
       sorter: (a, b) => a.nom.localeCompare(b.nom),
       render: (nom, rec) => (
         <Space size={8}>
-          <div
-            style={{
-              width: 34, height: 34, borderRadius: "50%",
-              background: "#1677ff",
-              display: "flex", alignItems: "center", justifyContent: "center",
-              color: "#fff", fontWeight: 700, fontSize: 14, flexShrink: 0,
-            }}
-          >
+          <div className="affectation-enseignant-avatar">
             {nom?.[0]?.toUpperCase() ?? "?"}
           </div>
           <div>
-            <div style={{ fontWeight: 600 }}>{nom}</div>
-            <Text type="secondary" style={{ fontSize: 11 }}>ID: {rec.enseignantId}</Text>
+            <div className="affectation-enseignant-name">{nom}</div>
+            <div className="affectation-enseignant-id">ID: {rec.enseignantId}</div>
           </div>
         </Space>
       ),
@@ -301,7 +297,7 @@ export default function AffectationEnseignantPage() {
       render: (savs) => (
         <Space size={[4, 4]} wrap>
           {Array.from(new Set(savs.map((s) => s.competenceNom).filter(Boolean))).map((compName) => (
-            <Tag key={compName} color="geekblue" style={{ fontSize: 11 }}>
+            <Tag key={compName} color="geekblue" style={{ fontSize: "var(--text-xs)", borderRadius: "var(--radius-full)" }}>
               {compName}
             </Tag>
           ))}
@@ -318,7 +314,7 @@ export default function AffectationEnseignantPage() {
             <Tooltip key={s.affId} title={s.nom}>
               <Tag
                 color="purple"
-                style={{ fontWeight: 600, letterSpacing: "0.02em", cursor: "default", fontSize: 11 }}
+                style={{ fontWeight: 600, letterSpacing: "0.02em", cursor: "default", fontSize: "var(--text-xs)", borderRadius: "var(--radius-full)" }}
               >
                 {s.code}
               </Tag>
@@ -338,7 +334,7 @@ export default function AffectationEnseignantPage() {
             <Tooltip key={s.affId} title={`${s.code} – ${s.nom}`}>
               <Tag
                 color={NIVEAU_COLOR[s.niveau] ?? "default"}
-                style={{ cursor: "default", fontSize: 11 }}
+                style={{ cursor: "default", fontSize: "var(--text-xs)", borderRadius: "var(--radius-full)" }}
               >
                 {NIVEAU_LABEL[s.niveau] ?? s.niveau ?? "—"}
               </Tag>
@@ -423,21 +419,43 @@ export default function AffectationEnseignantPage() {
     );
   };
 
+  // ── Stats ────────────────────────────────────────────────────────────────
+  const stats = useMemo(() => [
+    { icon: <TeamOutlined />, label: "Enseignants", value: rows.length, color: "var(--color-info)", bg: "var(--color-info-bg)" },
+    { icon: <BookOutlined />, label: "Affectations", value: affectations.length, color: "var(--primary-500)", bg: "var(--primary-50)" },
+    { icon: <SafetyCertificateOutlined />, label: "Savoirs", value: savoirs.length, color: "var(--color-success)", bg: "var(--color-success-bg)" },
+  ], [rows.length, affectations.length, savoirs.length]);
+
   // ── Render ────────────────────────────────────────────────────────────────
   return (
-    <>
-      {/* Header */}
-      <div style={{ marginBottom: 20 }}>
-        <div style={{ fontSize: 20, fontWeight: 700, marginBottom: 4 }}>
-          Affectations Enseignants — RICE
-        </div>
-        <Text type="secondary">
-          Résultat de l&apos;analyse RICE : enseignants et leurs savoirs associés. Vous pouvez également ajouter des affectations manuellement.
-        </Text>
-      </div>
+    <div className="affectation-page">
+      <AppPageHeader
+        icon={<TeamOutlined />}
+        title="Affectations Enseignants"
+        subtitle="Résultat de l'analyse RICE : enseignants et leurs savoirs associés. Ajoutez des affectations manuellement."
+        actions={
+          <Button className="d2f-btn-primary" icon={<PlusOutlined />} onClick={() => setAssignModal(true)}>
+            Nouvelle Affectation
+          </Button>
+        }
+      />
+
+      {/* Stats */}
+      <Row gutter={[16, 16]} className="affectation-stats-row">
+        {stats.map((s, i) => (
+          <Col xs={12} sm={8} key={s.label}>
+            <div className="affectation-stat-card">
+              <div className="affectation-stat-icon" style={{ background: s.bg, color: s.color }}>
+                {s.icon}
+              </div>
+              <Statistic title={s.label} value={s.value} valueStyle={{ color: s.color, fontWeight: 700 }} />
+            </div>
+          </Col>
+        ))}
+      </Row>
 
       {/* Toolbar */}
-      <Space style={{ marginBottom: 14 }} wrap>
+      <div className="affectation-toolbar">
         <Input
           prefix={<SearchOutlined />}
           placeholder="Rechercher enseignant ou code savoir…"
@@ -446,50 +464,51 @@ export default function AffectationEnseignantPage() {
           onChange={(e) => setSearch(e.target.value)}
           style={{ width: 300 }}
         />
+        <div style={{ flex: 1 }} />
         <Button icon={<ReloadOutlined />} onClick={loadAll} loading={loading}>
           Actualiser
         </Button>
         <Button icon={<DownloadOutlined />} onClick={exportAffectationsCsv} disabled={loading || filtered.length === 0}>
           Export CSV
         </Button>
-        <Button type="primary" icon={<PlusOutlined />} onClick={() => setAssignModal(true)}>
-          Nouvelle Affectation
-        </Button>
-      </Space>
+      </div>
 
       {/* Table */}
-      <Table
-        dataSource={filtered}
-        columns={columns}
-        rowKey="enseignantId"
-        expandable={{ expandedRowRender, expandRowByClick: false }}
-        loading={loading}
-        pagination={{
-          pageSize: 20,
-          showSizeChanger: true,
-          pageSizeOptions: ["10", "20", "50"],
-          showTotal: (total) => `${total} enseignant(s)`,
-        }}
-        locale={{
-          emptyText: (
-            <Empty
-              image={Empty.PRESENTED_IMAGE_SIMPLE}
-              description={
-                <span>
-                  Aucune affectation.{" "}
-                  <a onClick={() => navigate("/home/rice")}>
-                    <RobotOutlined /> Analyser une fiche RICE
-                  </a>
-                </span>
-              }
-            />
-          ),
-        }}
-      />
+      <div className="affectation-table-wrapper">
+        <Table
+          dataSource={filtered}
+          columns={columns}
+          rowKey="enseignantId"
+          expandable={{ expandedRowRender, expandRowByClick: false }}
+          loading={loading}
+          pagination={{
+            pageSize: 20,
+            showSizeChanger: true,
+            pageSizeOptions: ["10", "20", "50"],
+            showTotal: (total) => `${total} enseignant(s)`,
+          }}
+          locale={{
+            emptyText: (
+              <Empty
+                image={Empty.PRESENTED_IMAGE_SIMPLE}
+                description={
+                  <span>
+                    Aucune affectation.{" "}
+                    <a role="button" tabIndex={0} onClick={() => navigate("/home/rice")} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); navigate("/home/rice"); } }}>
+                      <RobotOutlined /> Analyser une fiche RICE
+                    </a>
+                  </span>
+                }
+              />
+            ),
+          }}
+        />
+      </div>
 
       {/* Assign modal */}
       <Modal
         title="Nouvelle affectation"
+        className="affectation-modal"
         open={assignModal}
         onOk={handleAssign}
         onCancel={() => setAssignModal(false)}
@@ -548,11 +567,11 @@ export default function AffectationEnseignantPage() {
           </Form.Item>
 
           <Form.Item name="dateAcquisition" label="Date d'acquisition (optionnel)">
-            <input type="date" style={{ width: "100%", padding: "4px 11px", border: "1px solid #d9d9d9", borderRadius: 6, height: "32px" }} />
+            <Input type="date" placeholder="Sélectionner une date" />
           </Form.Item>
 
           <Form.Item name="commentaire" label="Commentaire (optionnel)">
-            <Input style={{ padding: "4px 11px", borderRadius: 6 }} placeholder="Commentaire libre" />
+            <Input placeholder="Commentaire libre" />
           </Form.Item>
         </Form>
       </Modal>
@@ -560,6 +579,7 @@ export default function AffectationEnseignantPage() {
       {/* Edit niveau modal */}
       <Modal
         title="Modifier le niveau de maîtrise"
+        className="affectation-modal"
         open={niveauModal}
         onOk={handleUpdateNiveau}
         onCancel={() => setNiveauModal(false)}
@@ -582,6 +602,6 @@ export default function AffectationEnseignantPage() {
           </Form.Item>
         </Form>
       </Modal>
-    </>
+    </div>
   );
 }

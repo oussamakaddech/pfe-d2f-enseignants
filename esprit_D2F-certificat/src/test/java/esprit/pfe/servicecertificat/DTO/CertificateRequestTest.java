@@ -140,4 +140,31 @@ class CertificateRequestTest {
         Set<ConstraintViolation<CertificateRequest>> violations = validator.validate(request);
         assertThat(violations).isEmpty();
     }
+
+    @Test
+    @DisplayName("ne doit pas valider quand dateFinFormation est avant dateDebutFormation")
+    void invalid_WhenDateFinBeforeDateDebut() {
+        CertificateRequest request = createValidRequest();
+        request.setDateDebutFormation(LocalDate.of(2026, 1, 10));
+        request.setDateFinFormation(LocalDate.of(2026, 1, 5));
+        Set<ConstraintViolation<CertificateRequest>> violations = validator.validate(request);
+        assertThat(violations)
+                .isNotEmpty()
+                .anyMatch(v -> v.getMessage().contains("posterieure ou egale"));
+    }
+
+    @Test
+    @DisplayName("isDateRangeValid doit retourner true si une des dates est null")
+    void validDateRange_WhenDatesAreNull() {
+        CertificateRequest request = new CertificateRequest();
+        // dateDebutFormation = null, dateFinFormation = null
+        assertThat(request.isDateRangeValid()).isTrue();
+        
+        request.setDateDebutFormation(LocalDate.of(2026, 1, 1));
+        assertThat(request.isDateRangeValid()).isTrue();
+        
+        request.setDateDebutFormation(null);
+        request.setDateFinFormation(LocalDate.of(2026, 1, 1));
+        assertThat(request.isDateRangeValid()).isTrue();
+    }
 }

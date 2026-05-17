@@ -237,22 +237,22 @@ export default function CompetenceModals({
             </Select>
           </Form.Item>
           <Form.Item label="Code" required>
-            <Input.Group compact>
-              <Form.Item name="codePrefix" noStyle>
+            <Space.Compact style={{ width: "100%" }}>
+              <Form.Item name="codePrefix" noStyle style={{ flex: "0 0 60%" }}>
                 <Input
                   readOnly
                   style={{
-                    width: "60%",
+                    width: "100%",
                     backgroundColor: "#f5f5f5",
                     color: "#888",
                     cursor: "not-allowed",
-                    borderRight: "none",
                   }}
                 />
               </Form.Item>
               <Form.Item
                 name="codeSuffix"
-                style={{ display: "inline-block", width: "40%", marginBottom: 0 }}
+                noStyle
+                style={{ flex: "0 0 40%" }}
                 rules={[
                   { required: true, message: "Completez le code" },
                   {
@@ -276,6 +276,7 @@ export default function CompetenceModals({
                 <Input
                   placeholder="ex: 01"
                   maxLength={100}
+                  style={{ width: "100%" }}
                   onChange={(e) => {
                     const sanitized = (e.target.value || "")
                       .toUpperCase()
@@ -284,7 +285,7 @@ export default function CompetenceModals({
                   }}
                 />
               </Form.Item>
-            </Input.Group>
+            </Space.Compact>
           </Form.Item>
           <Form.Item
             name="nom"
@@ -408,22 +409,22 @@ export default function CompetenceModals({
           )}
 
           <Form.Item label="Code" required>
-            <Input.Group compact>
-              <Form.Item name="codePrefix" noStyle>
+            <Space.Compact style={{ width: "100%" }}>
+              <Form.Item name="codePrefix" noStyle style={{ flex: "0 0 60%" }}>
                 <Input
                   readOnly
                   style={{
-                    width: "60%",
+                    width: "100%",
                     backgroundColor: "#f5f5f5",
                     color: "#888",
                     cursor: "not-allowed",
-                    borderRight: "none",
                   }}
                 />
               </Form.Item>
               <Form.Item
                 name="codeSuffix"
-                style={{ display: "inline-block", width: "40%", marginBottom: 0 }}
+                noStyle
+                style={{ flex: "0 0 40%" }}
                 rules={[
                   { required: true, message: "Completez le code" },
                   {
@@ -447,6 +448,7 @@ export default function CompetenceModals({
                 <Input
                   placeholder="ex: S1"
                   maxLength={100}
+                  style={{ width: "100%" }}
                   onChange={(e) => {
                     const sanitized = (e.target.value || "")
                       .toUpperCase()
@@ -455,7 +457,7 @@ export default function CompetenceModals({
                   }}
                 />
               </Form.Item>
-            </Input.Group>
+            </Space.Compact>
           </Form.Item>
           <Form.Item
             name="nom"

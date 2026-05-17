@@ -11,5 +11,5 @@ import java.util.List;
 public interface CertificateRepository extends JpaRepository<Certificate, Long> {
     List<Certificate> findByFormationId(Long formationId);
     List<Certificate> findByMailEnseignant(String mailEnseignant);
-
+    List<Certificate> findByEnseignantId(String enseignantId);
 }

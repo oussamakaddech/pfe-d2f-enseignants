@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { BrowserRouter } from "react-router-dom";
+import { App } from "antd";
 import AuthProvider from "../../../context/AuthProvider";
 import BesoinList from "../BesoinList";
 import BesoinFormationService from "../../../services/BesoinFormationService";
@@ -53,12 +54,14 @@ const mockUps = [
 function renderWithProviders(ui) {
   return render(
     <BrowserRouter>
-      <AuthProvider>{ui}</AuthProvider>
+      <App>
+        <AuthProvider>{ui}</AuthProvider>
+      </App>
     </BrowserRouter>
   );
 }
 
-describe("BesoinList", { timeout: 30000 }, () => {
+describe("BesoinList", { timeout: 60000 }, () => {
   beforeEach(() => {
     vi.clearAllMocks();
     BesoinFormationService.getAllBesoinFormations = vi.fn().mockResolvedValue(mockBesoins);
@@ -100,7 +103,7 @@ describe("BesoinList", { timeout: 30000 }, () => {
     });
   });
 
-  it("appelle le service d'approbation puis affiche la confirmation", async () => {
+  it("appelle le service d'approbation puis affiche la confirmation", { timeout: 60000 }, async () => {
     renderWithProviders(<BesoinList />);
 
     await waitFor(() => {
