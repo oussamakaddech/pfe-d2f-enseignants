@@ -4,9 +4,13 @@ import esprit.pfe.serviceformation.entities.Formation;
 import esprit.pfe.serviceformation.entities.EtatFormation;
 import esprit.pfe.serviceformation.entities.PeriodCode;
 import esprit.pfe.serviceformation.entities.TypeFormation;
+import esprit.pfe.serviceformation.repositories.FormationRepository;
 import esprit.pfe.serviceformation.repositories.UpRepository;
 import esprit.pfe.serviceformation.repositories.DeptRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Component;
 
 import java.util.Date;
@@ -14,11 +18,16 @@ import java.util.Date;
 @Component
 public class BesoinFormationEventListener {
     private static final String QUEUE = "BesoinFormationApprovedQueue";
+    private static final Logger log = LoggerFactory.getLogger(BesoinFormationEventListener.class);
 
+    private final FormationRepository formationRepository;
     private final UpRepository upRepo;
     private final DeptRepository deptRepo;
 
-    public BesoinFormationEventListener(UpRepository upRepo, DeptRepository deptRepo) {
+    public BesoinFormationEventListener(FormationRepository formationRepository,
+                                        UpRepository upRepo,
+                                        DeptRepository deptRepo) {
+        this.formationRepository = formationRepository;
         this.upRepo = upRepo;
         this.deptRepo = deptRepo;
     }
@@ -62,8 +71,18 @@ public class BesoinFormationEventListener {
         f.setEtatFormation(EtatFormation.NOUVEAU);
         f.setDateDebut(new Date());
         f.setDateFin(  new Date());
-        
-        // Note: Missing formationRepository.save(f) - adding it would require the field back.
-        // But the task was specifically to remove the unused field.
+
+        // 5) Persistance en base de données
+        try {
+            Formation saved = formationRepository.save(f);
+            log.info("Formation créée avec succès [id={}, besoinId={}, titre={}]",
+                    saved.getIdFormation(), saved.getIdBesoinFormation(), saved.getTitreFormation());
+        } catch (DataIntegrityViolationException ex) {
+            log.error("Doublon détecté lors de la création de la formation [besoinId={}] : {}",
+                    evt.getIdBesoinFormation(), ex.getMessage());
+        } catch (Exception ex) {
+            log.error("Erreur inattendue lors de la sauvegarde de la formation [besoinId={}] : {}",
+                    evt.getIdBesoinFormation(), ex.getMessage(), ex);
+        }
     }
 }

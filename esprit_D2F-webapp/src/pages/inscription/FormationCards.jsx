@@ -38,8 +38,9 @@ import { getProfile } from "../../services/accountService";
 
 import "./FormationCards.css";
 import useAppNotification from "../../hooks/useAppNotification";
+import { AppPageHeader, brand } from "../../theme";
 
-const { Title, Text } = Typography;
+const { Text } = Typography;
 const { RangePicker } = DatePicker;
 
 function getTypeClass(type) {
@@ -188,28 +189,22 @@ export default function FormationCards() {
 
   return (
     <>
-      <div style={{ padding: 24, maxWidth: 1400, margin: "0 auto" }}>
-        <Row justify="space-between" align="middle" style={{ marginBottom: 24 }}>
-          <Col>
-            <Title level={2} style={{ margin: 0 }}>
-              <BookOutlined style={{ marginRight: 12, color: "#B51200" }} />
-              Liste des formations
-            </Title>
-            <Text type="secondary">
-              {filtered.length} formation{filtered.length > 1 ? "s" : ""} sur {formations.length}
-            </Text>
-          </Col>
-          <Col>
+      <div className="fc-page">
+        <AppPageHeader
+          icon={<BookOutlined />}
+          title="Liste des Formations"
+          subtitle={`${filtered.length} formation${filtered.length > 1 ? "s" : ""} sur ${formations.length}`}
+          actions={
             <Button icon={<ReloadOutlined />} onClick={fetchFormations} loading={loading}>
               Actualiser
             </Button>
-          </Col>
-        </Row>
+          }
+        />
 
         {/* Barre de filtres */}
-        <Card size="small" style={{ marginBottom: 24, borderRadius: 10 }}>
+        <Card size="small" className="fc-filter-card">
           <Space wrap size="middle" align="center">
-            <FilterOutlined style={{ color: "#B51200", fontSize: 16 }} />
+            <FilterOutlined className="fc-filter-icon" />
             <Input.Search
               placeholder="Rechercher un titre…"
               allowClear
@@ -251,11 +246,11 @@ export default function FormationCards() {
                   cover={
                     <div className={`card-header ${getTypeClass(f.typeFormation)}`}>
                       <span>
-                        <Tag color="rgba(255,255,255,0.25)" style={{ color: "#fff", borderColor: "rgba(255,255,255,0.4)" }}>
+                        <Tag className="card-header-tag">
                           {f.typeFormation || "—"}
                         </Tag>
                       </span>
-                      <span>{isOpen ? "🟢 Ouvert" : "🔒 Fermé"}</span>
+                      <Badge status={isOpen ? "success" : "error"} text={isOpen ? "Ouvert" : "Fermé"} className="card-header-badge" />
                     </div>
                   }
                 >
@@ -264,18 +259,18 @@ export default function FormationCards() {
 
                     <div className="card-meta">
                       <div className="card-meta-item">
-                        <CalendarOutlined style={{ color: "#B51200" }} />
+                        <CalendarOutlined className="icon-primary" />
                         <Text>
                           {new Date(f.dateDebut).toLocaleDateString("fr-FR")} →{" "}
                           {new Date(f.dateFin).toLocaleDateString("fr-FR")}
                         </Text>
                       </div>
                       <div className="card-meta-item">
-                        <ApartmentOutlined style={{ color: "#B51200" }} />
+                        <ApartmentOutlined className="icon-primary" />
                         <Text>{f.departement1?.libelle || "—"}</Text>
                       </div>
                       <div className="card-meta-item">
-                        <TeamOutlined style={{ color: "#B51200" }} />
+                        <TeamOutlined className="icon-primary" />
                         <Text>{f.up1?.libelle || "—"}</Text>
                       </div>
                     </div>
@@ -296,8 +291,12 @@ export default function FormationCards() {
                   <div className="card-actions">
                     <Tooltip title="Voir la fiche">
                       <EyeOutlined
-                        style={{ color: "#595959" }}
+                        className="icon-muted"
+                        role="button"
+                        tabIndex={0}
+                        aria-label={`Voir la fiche de ${f.titreFormation}`}
                         onClick={() => navigate(`/home/ListeFormation/${f.idFormation}`)}
+                        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") navigate(`/home/ListeFormation/${f.idFormation}`); }}
                       />
                     </Tooltip>
 
@@ -305,13 +304,21 @@ export default function FormationCards() {
                       <Tooltip title={f.inscriptionsOuvertes ? "Fermer les inscriptions" : "Ouvrir les inscriptions"}>
                         {f.inscriptionsOuvertes ? (
                           <LockOutlined
-                            style={{ color: "#ff4d4f" }}
+                            className="icon-error"
+                            role="button"
+                            tabIndex={0}
+                            aria-label="Fermer les inscriptions"
                             onClick={() => handleToggle(f.idFormation)}
+                            onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") handleToggle(f.idFormation); }}
                           />
                         ) : (
                           <UnlockOutlined
-                            style={{ color: "#52c41a" }}
+                            className="icon-success"
+                            role="button"
+                            tabIndex={0}
+                            aria-label="Ouvrir les inscriptions"
                             onClick={() => handleToggle(f.idFormation)}
+                            onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") handleToggle(f.idFormation); }}
                           />
                         )}
                       </Tooltip>
@@ -321,13 +328,17 @@ export default function FormationCards() {
                       f.inscriptionsOuvertes &&
                       (requested.includes(f.idFormation) ? (
                         <Tooltip title="Demande déjà envoyée">
-                          <CheckCircleOutlined style={{ color: "#8c8c8c" }} />
+                          <CheckCircleOutlined className="icon-disabled" aria-label="Demande déjà envoyée" />
                         </Tooltip>
                       ) : (
                         <Tooltip title="Demander inscription">
                           <UserAddOutlined
-                            style={{ color: "#1890ff" }}
+                            className="icon-info"
+                            role="button"
+                            tabIndex={0}
+                            aria-label={`Demander inscription à ${f.titreFormation}`}
                             onClick={() => handleDemande(f.idFormation)}
+                            onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") handleDemande(f.idFormation); }}
                           />
                         </Tooltip>
                       ))}
@@ -335,8 +346,12 @@ export default function FormationCards() {
                     {isAdminLike && (
                       <Tooltip title="Voir les demandes">
                         <TeamOutlined
-                          style={{ color: "#1890ff" }}
+                          className="icon-info"
+                          role="button"
+                          tabIndex={0}
+                          aria-label="Voir les demandes d'inscription"
                           onClick={() => navigate(`/home/ListeFormation/${f.idFormation}/demandes`)}
+                          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") navigate(`/home/ListeFormation/${f.idFormation}/demandes`); }}
                         />
                       </Tooltip>
                     )}
@@ -348,7 +363,7 @@ export default function FormationCards() {
         </Row>
 
         {filtered.length === 0 && (
-          <Empty description="Aucun résultat pour ces filtres" style={{ marginTop: 80 }} />
+          <Empty description="Aucun résultat pour ces filtres" className="fc-empty" />
         )}
       </div>
     </>

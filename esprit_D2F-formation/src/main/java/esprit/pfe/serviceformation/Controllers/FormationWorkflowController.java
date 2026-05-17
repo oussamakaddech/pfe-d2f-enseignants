@@ -1,5 +1,6 @@
 package esprit.pfe.serviceformation.controllers;
 
+import esprit.d2f.common.security.AuthorizationMatrix;
 import esprit.pfe.serviceformation.dto.*;
 import esprit.pfe.serviceformation.entities.Formation;
 import esprit.pfe.serviceformation.services.ExportExcelService;
@@ -7,6 +8,7 @@ import esprit.pfe.serviceformation.services.FormationWorkflowService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.*;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
@@ -35,6 +37,7 @@ public class FormationWorkflowController {
     }
 
     @PostMapping
+    @PreAuthorize(AuthorizationMatrix.FORMATION_CREATE)
     public ResponseEntity<Object> createFormation(@Valid @RequestBody FormationWorkflowRequest request, org.springframework.validation.BindingResult result) {
         if (result.hasErrors()) {
             log.error("Validation errors: {}", result.getAllErrors());
@@ -46,20 +49,33 @@ public class FormationWorkflowController {
     }
 
     @PutMapping("/{id}")
+    @PreAuthorize(AuthorizationMatrix.FORMATION_UPDATE)
     public ResponseEntity<Object> updateFormation(@PathVariable Long id, @Valid @RequestBody FormationWorkflowRequest request, org.springframework.validation.BindingResult result) {
         if (result.hasErrors()) {
             log.error("Validation errors for update: {}", result.getAllErrors());
             return ResponseEntity.badRequest().body(result.getAllErrors());
         }
-        Formation formation = formationWorkflowService.updateFormationWorkflow(id, request);
-        if (formation == null) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        try {
+            Formation formation = formationWorkflowService.updateFormationWorkflow(id, request);
+            if (formation == null) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+            }
+            FormationDTO dto = formationWorkflowService.mapFormationToDTO(formation);
+            return ResponseEntity.ok(dto);
+        } catch (IllegalStateException e) {
+            log.error("Erreur metier lors de la mise a jour de la formation {} : {}", id, e.getMessage());
+            return ResponseEntity.badRequest().body(Map.of(KEY_ERROR, e.getMessage()));
+        } catch (IllegalArgumentException e) {
+            log.error("Argument invalide lors de la mise a jour de la formation {} : {}", id, e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(KEY_ERROR, e.getMessage()));
+        } catch (Exception e) {
+            log.error("Erreur interne lors de la mise a jour de la formation {} : {}", id, e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(KEY_ERROR, MSG_ERREUR_INTERNE, KEY_MESSAGE, e.getMessage()));
         }
-        FormationDTO dto = formationWorkflowService.mapFormationToDTO(formation);
-        return ResponseEntity.ok(dto);
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize(AuthorizationMatrix.FORMATION_DELETE)
     public ResponseEntity<Object> deleteFormation(@PathVariable Long id) {
         try {
             formationWorkflowService.deleteFormationWorkflow(id);
@@ -72,6 +88,7 @@ public class FormationWorkflowController {
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize(AuthorizationMatrix.FORMATION_READ)
     public ResponseEntity<Object> getFormationById(@PathVariable Long id) {
         try {
             FormationDTO dto = formationWorkflowService.getFormationWorkflowById(id);
@@ -84,6 +101,7 @@ public class FormationWorkflowController {
     }
 
     @GetMapping
+    @PreAuthorize(AuthorizationMatrix.FORMATION_READ)
     public ResponseEntity<Object> getAllFormations() {
         try {
             List<FormationDTO> dtos = formationWorkflowService.getAllFormationWorkflows();
@@ -94,6 +112,7 @@ public class FormationWorkflowController {
     }
 
     @PutMapping("/presence/{id}")
+    @PreAuthorize(AuthorizationMatrix.FORMATION_UPDATE)
     public ResponseEntity<Object> updatePresence(@PathVariable Long id, @RequestParam boolean present, @RequestParam String commentaire) {
         try {
             formationWorkflowService.updatePresence(id, present, commentaire);
@@ -104,6 +123,7 @@ public class FormationWorkflowController {
     }
 
     @GetMapping("/export/excel")
+    @PreAuthorize(AuthorizationMatrix.FORMATION_READ)
     public ResponseEntity<Object> exportExcel(
             @RequestParam("start") @DateTimeFormat(pattern = "yyyy-MM-dd") Date startDate,
             @RequestParam("end") @DateTimeFormat(pattern = "yyyy-MM-dd") Date endDate
@@ -124,6 +144,7 @@ public class FormationWorkflowController {
     }
 
     @GetMapping("/animateur")
+    @PreAuthorize(AuthorizationMatrix.FORMATION_READ_OWN)
     public ResponseEntity<List<FormationDTO>> getFormationsByAnimateurEmail(@AuthenticationPrincipal Jwt jwt) {
         String email = jwt.getClaim("email");
         List<FormationDTO> formations = formationWorkflowService.getFormationsByAnimateurEmail(email);
@@ -131,12 +152,14 @@ public class FormationWorkflowController {
     }
 
     @GetMapping("/seances/{seanceId}/presences")
+    @PreAuthorize(AuthorizationMatrix.FORMATION_READ)
     public ResponseEntity<List<PresenceDTO>> getPresencesBySeance(@PathVariable("seanceId") Long seanceId) {
         List<PresenceDTO> presences = formationWorkflowService.getPresencesBySeance(seanceId);
         return ResponseEntity.ok(presences);
     }
 
     @GetMapping("/achevees")
+    @PreAuthorize(AuthorizationMatrix.FORMATION_READ)
     public ResponseEntity<Object> getFormationsAchevees() {
         try {
             List<FormationDTO> achevees = formationWorkflowService.getFormationsAchevees();
@@ -147,33 +170,39 @@ public class FormationWorkflowController {
     }
 
     @GetMapping("/with-documents")
+    @PreAuthorize(AuthorizationMatrix.FORMATION_READ)
     public ResponseEntity<List<FormationWithDocumentsDTO>> getAllFormationsWithDocuments() {
         List<FormationWithDocumentsDTO> dtos = formationWorkflowService.getAllFormationsWithDocuments();
         return ResponseEntity.ok(dtos);
     }
 
     @GetMapping("/enseignants/{id}/calendar")
+    @PreAuthorize(AuthorizationMatrix.FORMATION_READ)
     public ResponseEntity<FormationsByRoleDTO> getCalendarFormations(@PathVariable("id") String enseignantId) {
         FormationsByRoleDTO dto = formationWorkflowService.getFormationsForCalendar(enseignantId);
         return ResponseEntity.ok(dto);
     }
 
     @PutMapping("/{id}/inscriptionsOuvertes")
+    @PreAuthorize(AuthorizationMatrix.FORMATION_UPDATE)
     public FormationDTO updateInscriptionsOuvertes(@PathVariable Long id, @RequestParam boolean ouvert) {
         return formationWorkflowService.setInscriptionsOuvertes(id, ouvert);
     }
 
     @GetMapping("/visibles")
+    @PreAuthorize(AuthorizationMatrix.FORMATION_READ)
     public List<FormationDTO> getFormationsVisibles() {
         return formationWorkflowService.getFormationsVisibles();
     }
 
     @GetMapping("/par-up")
+    @PreAuthorize(AuthorizationMatrix.FORMATION_READ)
     public List<FormationDTO> getFormationsParUp(@RequestParam String upId) {
         return formationWorkflowService.getFormationsParUp(upId);
     }
 
     @GetMapping("/par-departement")
+    @PreAuthorize(AuthorizationMatrix.FORMATION_READ)
     public List<FormationDTO> getFormationsParDepartement(@RequestParam String deptId) {
         return formationWorkflowService.getFormationsParDepartement(deptId);
     }

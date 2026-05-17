@@ -7,17 +7,7 @@ import type { Certificate } from "../models/certificate";
 const API_URL = `${config.CERTF_URL}/certificat/certificates`;
 const PDF_API_URL = `${config.CERTF_URL}/certificat/certificate-pdfs`;
 
-function getToken(): string | null {
-  return localStorage.getItem("authToken");
-}
-
-function requireToken(): string {
-  const token = getToken();
-  if (!token) {
-    throw new Error("Authentication token is missing.");
-  }
-  return token;
-}
+// Token is now in HttpOnly cookie, sent automatically via withCredentials: true.
 
 const CertificateService = {
   getAllCertificates(): Promise<AxiosResponse<Certificate[]>> {
@@ -41,12 +31,7 @@ const CertificateService = {
   },
 
   getCertificatesByEmail(): Promise<AxiosResponse<Certificate[]>> {
-    const token = requireToken();
-    return axios.get<Certificate[]>(`${API_URL}/email`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
+    return axios.get<Certificate[]>(`${API_URL}/email`);
   },
 
   updateCertificate(

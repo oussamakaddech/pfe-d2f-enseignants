@@ -12,7 +12,7 @@ import {
 } from "antd";
 import { DownloadOutlined, SaveOutlined } from "@ant-design/icons";
 import useAppNotification from "../../hooks/useAppNotification";
-import * as XLSX from "xlsx";
+import { writeExcel, exportDateLabel, isoDate } from "../../utils/excelExport";
 import EvaluationFormateurService from "../../services/EvaluationFormateurService";
 
 const EvaluationListEnriched = () => {
@@ -60,18 +60,18 @@ const EvaluationListEnriched = () => {
   };
 
   const exportExcel = () => {
-    const data = evaluations.map((e) => ({
-      Nom: e.nom,
-      Prénom: e.prenom,
-      Email: e.mail,
-      Note: e.note,
+    const rows = evaluations.map((e) => ({
+      Nom:          e.nom,
+      Prénom:       e.prenom,
+      Email:        e.mail,
+      Note:         e.note,
       Satisfaisant: e.satisfaisant ? "Oui" : "Non",
-      Commentaire: e.commentaire || "",
+      Commentaire:  e.commentaire || "",
     }));
-    const ws = XLSX.utils.json_to_sheet(data);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Évaluations");
-    XLSX.writeFile(wb, "evaluations_enriched.xlsx");
+    writeExcel(
+      [{ name: "Évaluations", rows, title: "Évaluations Enrichies — Esprit", subtitle: exportDateLabel() }],
+      `evaluations_enriched_${isoDate()}.xlsx`
+    );
   };
 
   const columns = [

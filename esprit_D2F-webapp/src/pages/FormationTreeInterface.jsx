@@ -54,8 +54,11 @@ const FormationTreeInterface = () => {
               <li key={node.id} style={{ marginBottom: "5px" }}>
                 {isFolder ? (
                   <div
+                    role="button"
+                    tabIndex={0}
                     style={{ cursor: "pointer", display: "flex", alignItems: "center" }}
                     onClick={() => toggleNode(node.id)}
+                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggleNode(node.id); } }}
                   >
                     <span style={{ marginRight: "5px" }}>
                       {isExpanded ? "▼" : "▶"}
@@ -64,8 +67,11 @@ const FormationTreeInterface = () => {
                   </div>
                 ) : (
                   <div
+                    role="button"
+                    tabIndex={0}
                     style={{ cursor: "pointer" }}
                     onClick={() => setSelectedFile(node)}
+                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setSelectedFile(node); } }}
                   >
                     📄 {node.name}
                   </div>
@@ -90,12 +96,15 @@ const FormationTreeInterface = () => {
           {formations.map((formation) => (
             <li
               key={formation.idFormation}
+              role="button"
+              tabIndex={0}
               className="list-group-item list-group-item-action"
               onClick={() => {
                 setSelectedFormation(formation);
                 setSelectedFile(null);
                 setOneDriveTree([]); // Réinitialisez l'arbre lors d'une nouvelle sélection
               }}
+              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setSelectedFormation(formation); setSelectedFile(null); setOneDriveTree([]); } }}
               style={{ cursor: "pointer" }}
             >
               {formation.titreFormation}

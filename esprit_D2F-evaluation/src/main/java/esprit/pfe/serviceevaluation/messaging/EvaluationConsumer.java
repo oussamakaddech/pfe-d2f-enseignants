@@ -25,7 +25,7 @@ public class EvaluationConsumer {
      * Pour la création en masse (« bulk create »)
      */
     @Retryable(
-        value = { esprit.pfe.serviceevaluation.exception.ResourceNotFoundException.class, Exception.class },
+        retryFor = { esprit.pfe.serviceevaluation.exception.ResourceNotFoundException.class, Exception.class },
         maxAttempts = 3,
         backoff = @Backoff(delay = 30000)
     )
@@ -58,7 +58,7 @@ public class EvaluationConsumer {
      * Pour la mise à jour en masse (« bulk update »)
      */
     @Retryable(
-        value = { esprit.pfe.serviceevaluation.exception.ResourceNotFoundException.class, Exception.class },
+        retryFor = { esprit.pfe.serviceevaluation.exception.ResourceNotFoundException.class, Exception.class },
         maxAttempts = 3,
         backoff = @Backoff(delay = 30000)
     )

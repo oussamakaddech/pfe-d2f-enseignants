@@ -235,4 +235,70 @@ class CompetencePrerequisiteServiceImplTest {
         when(prerequisiteRepository.countByCompetenceId(1L)).thenReturn(5L);
         assertThat(service.countByCompetenceId(1L)).isEqualTo(5L);
     }
+
+    @Test
+    @DisplayName("getCompetencesNecessitant: retourne la liste avec labels")
+    void shouldGetCompetencesNecessitant() {
+        Long prereqId = 2L;
+        CompetencePrerequisiteDTO cpDTO = CompetencePrerequisiteDTO.builder()
+                .id(1L).competenceId(1L).prerequisiteId(prereqId).niveauMinimum(NiveauMaitrise.N5_EXPERT).build();
+
+        when(competenceRepository.existsById(prereqId)).thenReturn(true);
+        when(prerequisiteRepository.findByPrerequisiteId(prereqId)).thenReturn(List.of(cpDTO));
+
+        List<CompetencePrerequisiteDTO> result = service.getCompetencesNecessitant(prereqId);
+
+        assertThat(result).hasSize(1);
+        assertThat(result.get(0).getNiveauMinimumLabel()).isEqualTo("N5 - Expert");
+    }
+
+    @Test
+    @DisplayName("addPrerequisite: refuse competenceId nul")
+    void shouldRejectNullCompetenceId() {
+        CompetencePrerequisiteRequest req = CompetencePrerequisiteRequest.builder()
+                .prerequisiteId(1L).niveauMinimum(NiveauMaitrise.N1_DEBUTANT).build();
+        assertThatThrownBy(() -> service.addPrerequisite(null, req))
+                .isInstanceOf(BusinessException.class);
+    }
+
+    @Test
+    @DisplayName("addPrerequisite: refuse prerequis deja existant")
+    void shouldRejectExistingPrerequisite() {
+        CompetencePrerequisiteRequest req = CompetencePrerequisiteRequest.builder()
+                .prerequisiteId(2L).niveauMinimum(NiveauMaitrise.N1_DEBUTANT).build();
+        when(prerequisiteRepository.existsByCompetenceIdAndPrerequisiteId(1L, 2L)).thenReturn(true);
+        
+        assertThatThrownBy(() -> service.addPrerequisite(1L, req))
+                .isInstanceOf(BusinessException.class)
+                .hasMessageContaining("deja enregistre");
+    }
+
+    @Test
+    @DisplayName("prerequisiteBelongsToCompetence: verifie l'appartenance")
+    void shouldCheckBelongsTo() {
+        when(prerequisiteRepository.findByIdAndCompetenceId(10L, 1L)).thenReturn(Optional.of(new CompetencePrerequisite()));
+        assertThat(service.prerequisiteBelongsToCompetence(1L, 10L)).isTrue();
+        
+        when(prerequisiteRepository.findByIdAndCompetenceId(20L, 1L)).thenReturn(Optional.empty());
+        assertThat(service.prerequisiteBelongsToCompetence(1L, 20L)).isFalse();
+    }
+
+    @Test
+    @DisplayName("checkEnseignantMeetsPrerequisites: retourne true si tout est ok")
+    void shouldCheckEnseignantMeets() {
+        Long compId = 1L;
+        String ensId = "ens1";
+
+        CompetencePrerequisiteDTO cpDTO = CompetencePrerequisiteDTO.builder()
+                .id(1L).competenceId(compId).prerequisiteId(2L).niveauMinimum(NiveauMaitrise.N3_INTERMEDIAIRE).build();
+
+        when(competenceRepository.existsById(compId)).thenReturn(true);
+        when(prerequisiteRepository.findByCompetenceId(compId)).thenReturn(List.of(cpDTO));
+
+        EnseignantCompetence ec = mock(EnseignantCompetence.class);
+        when(ec.getNiveau()).thenReturn(NiveauMaitrise.N4_AVANCE); // Over minimum
+        when(enseignantCompetenceRepository.findByEnseignantIdAndCompetenceId(ensId, 2L)).thenReturn(List.of(ec));
+
+        assertThat(service.checkEnseignantMeetsPrerequisites(compId, ensId)).isTrue();
+    }
 }

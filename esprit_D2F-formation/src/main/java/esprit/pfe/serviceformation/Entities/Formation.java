@@ -106,6 +106,13 @@ public class Formation {
 
     private List<SeanceFormation> seances;
 
+    // Animateurs liés à la formation (au niveau formation, pas seulement séance)
+    @ManyToMany
+    @JoinTable(name = "formation_animateur",
+            joinColumns = @JoinColumn(name = "formation_id"),
+            inverseJoinColumns = @JoinColumn(name = "enseignant_id"))
+    private List<Enseignant> animateurs;
+
 
     @ManyToOne
     @JoinColumn(name = "up_id", nullable = true) // Relation obligatoire

@@ -14,11 +14,11 @@ import {
 import {
   DownloadOutlined,
 } from "@ant-design/icons";
-import * as XLSX from "xlsx";
+import { writeExcel, exportDateLabel, isoDate } from "../../utils/excelExport";
 import EvaluationFormateurService from "../../services/EvaluationFormateurService";
 import EnseignantService from "../../services/EnseignantService";
 
-const { Title, Text } = Typography;
+const { Text } = Typography;
 
 const FormationEvaluationsTab = ({ formationId }) => {
   const [evaluations, setEvaluations] = useState([]);
@@ -74,18 +74,18 @@ const FormationEvaluationsTab = ({ formationId }) => {
   };
 
   const exportExcel = () => {
-    const data = evaluations.map(ev => ({
-      Nom: ev.nom,
-      Prénom: ev.prenom,
-      Email: ev.mail,
-      Note: ev.note,
+    const rows = evaluations.map(ev => ({
+      Nom:          ev.nom,
+      Prénom:       ev.prenom,
+      Email:        ev.mail,
+      Note:         ev.note,
       Satisfaisant: ev.satisfaisant ? "Oui" : "Non",
-      Commentaire: ev.commentaire || "",
+      Commentaire:  ev.commentaire || "",
     }));
-    const ws = XLSX.utils.json_to_sheet(data);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Évaluations");
-    XLSX.writeFile(wb, `evaluations_formation_${formationId}.xlsx`);
+    writeExcel(
+      [{ name: "Évaluations", rows, title: "Évaluations de Formation — Esprit", subtitle: exportDateLabel() }],
+      `evaluations_formation_${formationId}_${isoDate()}.xlsx`
+    );
   };
 
   const columns = [
@@ -150,7 +150,7 @@ const FormationEvaluationsTab = ({ formationId }) => {
   ];
 
   if (loading) {
-    return <Title level={4}>Chargement des évaluations…</Title>;
+    return <Text>Chargement des évaluations…</Text>;
   }
   if (!evaluations.length) {
     return (
@@ -164,7 +164,7 @@ const FormationEvaluationsTab = ({ formationId }) => {
   return (
     <Space direction="vertical" style={{ width: "100%" }}>
       <Row justify="space-between" align="middle" style={{ width: "100%", marginBottom: 16 }}>
-        <Title level={4}>Évaluations</Title>
+        <Text strong style={{ fontSize: 15 }}>Évaluations</Text>
         <Button icon={<DownloadOutlined />} onClick={exportExcel}>
           Exporter Excel
         </Button>

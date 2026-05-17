@@ -59,5 +59,7 @@ USER esprit
 # Expose API port
 EXPOSE 8000
 
+HEALTHCHECK CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')" || exit 1
+
 # Default start command (FastAPI via Uvicorn)
 CMD ["uvicorn", "ai_reco:app", "--host", "0.0.0.0", "--port", "8000"]

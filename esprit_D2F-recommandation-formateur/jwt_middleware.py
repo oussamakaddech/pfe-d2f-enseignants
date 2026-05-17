@@ -11,16 +11,19 @@ from starlette.responses import JSONResponse
 logger = logging.getLogger(__name__)
 
 JWT_SECRET = os.getenv("JWT_SECRET", "")
+if not JWT_SECRET:
+    raise RuntimeError(
+        "JWT_SECRET environment variable is required and must not be empty. "
+        "Provide it via the .env file or container environment."
+    )
+
 JWT_ALGORITHM = "HS512"
-JWT_AUTH_ENABLED = os.getenv("JWT_AUTH_ENABLED", "true").lower() == "true"
 
 PUBLIC_PATHS = {"/health", "/docs", "/redoc", "/openapi.json"}
 
 
 class JWTAuthMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
-        if not JWT_AUTH_ENABLED:
-            return await call_next(request)
 
         path = request.url.path
         if any(path.startswith(p) for p in PUBLIC_PATHS):

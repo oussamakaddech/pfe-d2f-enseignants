@@ -1,23 +1,34 @@
-// src/components/CompletedFormations.js
+// src/pages/CompletedFormations.jsx
 import { useEffect, useState } from "react";
 import {
   Table,
   Button,
-  Typography,
   Select,
   Space,
   Drawer,
   DatePicker,
+  Card,
+  Row,
+  Col,
+  Statistic,
+  Tag,
+  Typography,
 } from "antd";
 import {
   EyeOutlined,
   FilePdfOutlined,
   PlusOutlined,
+  SafetyCertificateOutlined,
+  CheckCircleOutlined,
+  FileProtectOutlined,
+  TeamOutlined,
 } from "@ant-design/icons";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import { useNavigate } from "react-router-dom";
 import useAppNotification from "../hooks/useAppNotification";
+import { AppPageHeader, brand } from "../theme";
+import "./CompletedFormations.css";
 
 import FormationWorkflowService from "../services/FormationWorkflowService";
 import FormationCustomService from "../services/FormationCustomService";
@@ -27,9 +38,9 @@ import CertificateService from "../services/CertificateService";
 import UpService from "../services/upService";
 import DeptService from "../services/DeptService";
 
-const { Title } = Typography;
 const { Option } = Select;
 const { RangePicker } = DatePicker;
+const { Text } = Typography;
 
 export default function CompletedFormations() {
   // États principaux
@@ -241,30 +252,32 @@ export default function CompletedFormations() {
       title: "Action",
       key: "action",
       render: (_, rec) => (
-        <Space>
+        <Space size={4}>
           <Button
             type="primary"
             icon={<FilePdfOutlined />}
             loading={loadingButtons[rec.idFormation]}
             disabled={rec.certifGenerated}
             onClick={() => handleGenerateCertificate(rec)}
+            className="completed-btn-generate"
           >
-            Générer certificat
+            Générer
           </Button>
           {rec.certifGenerated && (
             <Button
               icon={<EyeOutlined />}
               onClick={() => navigate(`/home/certificate/${rec.idFormation}`)}
+              className="completed-btn-view"
             >
-              Voir certificats
+              Voir
             </Button>
           )}
-          {/* Nouveau bouton pour créer un certificat manuel */}
           <Button
             icon={<PlusOutlined />}
             onClick={() => openNewCertDrawer(rec.idFormation)}
+            className="completed-btn-add"
           >
-            Ajouter certificat
+            Ajouter
           </Button>
         </Space>
       ),
@@ -279,32 +292,80 @@ export default function CompletedFormations() {
     { title: "Email", dataIndex: "mail", key: "mail" },
   ];
 
-  return (
-    <div style={{ padding: 24 }}>
-      <Title level={2}>Formations Achevées</Title>
+  // Stats
+  const certifCount = formations.filter(f => f.certifGenerated).length;
+  const pendingCount = formations.length - certifCount;
 
-      <Space style={{ marginBottom: 16 }}>
-        <span>Type de certificat :</span>
+  return (
+    <div className="completed-page">
+      <AppPageHeader
+        icon={<SafetyCertificateOutlined />}
+        title="Formations Achevées"
+        subtitle={`${formations.length} formation${formations.length !== 1 ? "s" : ""} terminée${formations.length !== 1 ? "s" : ""} — Générez certificats et attestations`}
+      />
+
+      {/* Statistiques */}
+      <Row gutter={[16, 16]} style={{ marginBottom: 20 }}>
+        <Col xs={24} sm={8}>
+          <Card size="small" className="completed-stat-card">
+            <Statistic
+              title="Total Achevées"
+              value={formations.length}
+              prefix={<CheckCircleOutlined style={{ color: brand[500] }} />}
+              valueStyle={{ color: brand[500], fontWeight: 700 }}
+            />
+          </Card>
+        </Col>
+        <Col xs={24} sm={8}>
+          <Card size="small" className="completed-stat-card">
+            <Statistic
+              title="Certificats Générés"
+              value={certifCount}
+              prefix={<FileProtectOutlined style={{ color: "#059669" }} />}
+              valueStyle={{ color: "#059669", fontWeight: 700 }}
+            />
+          </Card>
+        </Col>
+        <Col xs={24} sm={8}>
+          <Card size="small" className="completed-stat-card">
+            <Statistic
+              title="En Attente"
+              value={pendingCount}
+              prefix={<TeamOutlined style={{ color: "#f59e0b" }} />}
+              valueStyle={{ color: "#f59e0b", fontWeight: 700 }}
+            />
+          </Card>
+        </Col>
+      </Row>
+
+      {/* Toolbar */}
+      <div className="completed-toolbar">
+        <Text className="completed-toolbar-label">Type de certificat :</Text>
         <Select value={typeCertif} onChange={setTypeCertif} style={{ width: 180 }}>
           <Option value="CERTIF">Certificat</Option>
           <Option value="BADGE">Badge</Option>
           <Option value="ATTESTATION">Attestation</Option>
         </Select>
-        <Button onClick={openDrawer}>Générer tableau</Button>
-      </Space>
+        <Button icon={<FilePdfOutlined />} onClick={openDrawer} className="completed-btn-pdf">
+          Générer tableau
+        </Button>
+      </div>
 
-      <Table
-        dataSource={formations}
-        columns={columns}
-        rowKey="idFormation"
-        loading={loadingTable}
-        pagination={{ pageSize: 5, showSizeChanger: true }}
-        locale={{ emptyText: "Aucune formation achevée" }}
-      />
+      {/* Tableau */}
+      <Card className="completed-table-card">
+        <Table
+          dataSource={formations}
+          columns={columns}
+          rowKey="idFormation"
+          loading={loadingTable}
+          pagination={{ pageSize: 8, showSizeChanger: true, showTotal: (total) => `${total} formation${total !== 1 ? "s" : ""}` }}
+          locale={{ emptyText: "Aucune formation achevée" }}
+        />
+      </Card>
 
       {/* Drawer pour PDF */}
       <Drawer
-        title="Tableau PDF"
+        title={<span style={{ fontWeight: 600 }}>Tableau PDF</span>}
         width={pdfUrl ? 800 : 600}
         open={drawerVisible}
         onClose={() => {
@@ -313,13 +374,12 @@ export default function CompletedFormations() {
         }}
         footer={
           !pdfUrl && (
-            <div style={{ textAlign: "right" }}>
+            <div className="completed-drawer-footer">
               <Button
                 onClick={() => {
                   setDrawerVisible(false);
                   setPdfUrl(null);
                 }}
-                style={{ marginRight: 8 }}
               >
                 Annuler
               </Button>
@@ -328,7 +388,7 @@ export default function CompletedFormations() {
                 disabled={!selectedEns || period.length !== 2}
                 onClick={generateTableOnly}
               >
-                Générer PDF tableau
+                Générer PDF
               </Button>
             </div>
           )
@@ -374,16 +434,13 @@ export default function CompletedFormations() {
 
       {/* Drawer pour création de certificat individuel */}
       <Drawer
-        title="Ajouter un Certificat"
+        title={<span style={{ fontWeight: 600 }}>Ajouter un Certificat</span>}
         width={400}
         open={newCertDrawerVisible}
         onClose={() => setNewCertDrawerVisible(false)}
         footer={
-          <div style={{ textAlign: "right" }}>
-            <Button
-              onClick={() => setNewCertDrawerVisible(false)}
-              style={{ marginRight: 8 }}
-            >
+          <div className="completed-drawer-footer">
+            <Button onClick={() => setNewCertDrawerVisible(false)}>
               Annuler
             </Button>
             <Button

@@ -20,7 +20,20 @@ public class OutlookMailService {
     private final MicrosoftGraphClientProvider graphProvider;
 
     public void sendMail(String to, String subject, String htmlContent) {
-        GraphServiceClient<Request> graphClient = graphProvider.getGraphClient();
+        // Validation des paramètres
+        if (to == null || to.isBlank()) {
+            throw new IllegalArgumentException("L'adresse du destinataire est obligatoire");
+        }
+
+        log.info("Tentative d'envoi d'email à {} - Sujet : {}", to, subject);
+
+        GraphServiceClient<Request> graphClient;
+        try {
+            graphClient = graphProvider.getGraphClient();
+        } catch (Exception e) {
+            log.error("Impossible d'initialiser le client Graph : {}", e.getMessage());
+            throw new RuntimeException("Erreur d'authentification Azure AD : " + e.getMessage(), e);
+        }
 
         // Création du message
         Message message = new Message();
@@ -51,6 +64,7 @@ public class OutlookMailService {
             log.info("Email envoyé avec succès à {}", to);
         } catch (Exception e) {
             log.error("Échec de l'envoi d'email à {} : {}", to, e.getMessage());
+            throw new RuntimeException("Échec de l'envoi d'email à " + to + " : " + e.getMessage(), e);
         }
     }
 }

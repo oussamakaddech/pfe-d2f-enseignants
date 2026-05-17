@@ -110,4 +110,38 @@ class SecurityConfigTest {
         assertTrue(authorities.stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN")));
         assertTrue(authorities.stream().anyMatch(a -> a.getAuthority().equals("ROLE_TEST")));
     }
+
+    @Test
+    void testJwtAuthenticationConverter_nullScope() {
+        JwtAuthenticationConverter converter = config.jwtAuthenticationConverter();
+        Jwt jwt = mock(Jwt.class);
+        org.mockito.Mockito.when(jwt.getClaimAsString("scope")).thenReturn(null);
+
+        Collection<GrantedAuthority> authorities = (Collection<GrantedAuthority>) converter.convert(jwt).getAuthorities();
+        assertNotNull(authorities);
+        assertTrue(authorities.isEmpty());
+    }
+
+    @Test
+    void testJwtAuthenticationConverter_blankScope() {
+        JwtAuthenticationConverter converter = config.jwtAuthenticationConverter();
+        Jwt jwt = mock(Jwt.class);
+        org.mockito.Mockito.when(jwt.getClaimAsString("scope")).thenReturn("   ");
+
+        Collection<GrantedAuthority> authorities = (Collection<GrantedAuthority>) converter.convert(jwt).getAuthorities();
+        assertNotNull(authorities);
+        assertTrue(authorities.isEmpty());
+    }
+
+    @Test
+    void testJwtAuthenticationConverter_roleAlreadyWithPrefix() {
+        JwtAuthenticationConverter converter = config.jwtAuthenticationConverter();
+        Jwt jwt = mock(Jwt.class);
+        org.mockito.Mockito.when(jwt.getClaimAsString("scope")).thenReturn("ROLE_ADMIN");
+
+        Collection<GrantedAuthority> authorities = (Collection<GrantedAuthority>) converter.convert(jwt).getAuthorities();
+        assertNotNull(authorities);
+        assertTrue(authorities.stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN")));
+    }
 }
+

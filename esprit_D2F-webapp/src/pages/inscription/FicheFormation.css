@@ -1,0 +1,93 @@
+/* FicheFormation.css */
+
+.fiche-page {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.fiche-header-row {
+  margin-bottom: 24px;
+}
+
+.fiche-back-btn {
+  margin-bottom: 8px;
+}
+
+.fiche-header-title {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--text-main);
+}
+
+.fiche-title-icon {
+  color: var(--primary-500);
+  font-size: 1.1em;
+}
+
+.fiche-type-tag {
+  font-size: 13px;
+  padding: 3px 10px;
+}
+
+.fiche-card-title-text {
+  font-weight: 700;
+}
+
+/* ── Cards ───────────────────────────────────────────────────────────────── */
+.fiche-card {
+  border-radius: var(--radius-xl);
+}
+
+.fiche-card-full {
+  height: 100%;
+}
+
+.fiche-seances-card {
+  margin-top: 24px;
+}
+
+/* ── Section headings inside cards ───────────────────────────────────────── */
+.fiche-section-title {
+  color: var(--primary-500) !important;
+  margin-top: 16px !important;
+}
+
+.fiche-section-title:first-child {
+  margin-top: 0 !important;
+}
+
+.fiche-section-icon {
+  margin-right: 8px;
+}
+
+/* ── Content blocks ──────────────────────────────────────────────────────── */
+.fiche-block {
+  padding: 12px;
+  border-radius: var(--radius-md);
+  margin-bottom: 4px;
+}
+
+.fiche-block-primary  { background: var(--primary-50); }
+.fiche-block-success  { background: var(--color-success-bg); }
+.fiche-block-info     { background: var(--color-info-bg); }
+.fiche-block-warning  { background: var(--color-warning-bg); }
+.fiche-block-purple   { background: #f9f0ff; }
+.fiche-block-teal     { background: #e6fffb; }
+
+/* ── Card header icon ────────────────────────────────────────────────────── */
+.fiche-card-icon {
+  color: var(--primary-500);
+}
+
+/* ── Loading / error ─────────────────────────────────────────────────────── */
+.fiche-spin {
+  display: block;
+  margin: 4rem auto;
+}
+
+.fiche-error {
+  max-width: 600px;
+  margin: 4rem auto;
+}

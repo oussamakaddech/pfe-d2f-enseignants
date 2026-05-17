@@ -42,12 +42,8 @@ public class FormationStateScheduler {
                 f.setEtatFormation(newState);
                 log.info("Formation {} passe de {} à {}", f.getIdFormation(), oldState, newState);
                 
-                // Selon le nouvel état, synchroniser le calendrier
-                if (newState == EtatFormation.PLANIFIE || newState == EtatFormation.EN_COURS) {
-                    formationWorkflowService.synchronizeFormationCalendar(f);
-                } else if (newState == EtatFormation.ACHEVE) {
-                    formationWorkflowService.removeFormationCalendar(f);
-                }
+                // Notification automatique par email + calendrier selon le nouvel etat
+                formationWorkflowService.handleEtatTransitions(f, oldState);
             }
             formationRepository.save(f);
         }

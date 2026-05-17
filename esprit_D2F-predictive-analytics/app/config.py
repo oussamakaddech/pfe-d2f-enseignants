@@ -63,8 +63,8 @@ class Settings(BaseSettings):
     messaging_enabled: bool = Field(default=False, alias="MESSAGING_ENABLED")
     activemq_host: str = Field(default="localhost", alias="ACTIVEMQ_HOST")
     activemq_stomp_port: int = Field(default=61613, alias="ACTIVEMQ_STOMP_PORT")
-    activemq_user: str = Field(default="admin", alias="ACTIVEMQ_USER")
-    activemq_password: str = Field(default="admin", alias="ACTIVEMQ_PASSWORD")
+    activemq_user: Optional[str] = Field(default=None, alias="ACTIVEMQ_USER")
+    activemq_password: Optional[str] = Field(default=None, alias="ACTIVEMQ_PASSWORD")
 
     # ── JWT ──────────────────────────────────────
     jwt_secret: Optional[str] = Field(default=None, alias="JWT_SECRET")

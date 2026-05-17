@@ -35,6 +35,7 @@ class SecurityConfigTest {
     @DisplayName("Vérifie la configuration CORS")
     void testCorsConfigurer() {
         SecurityConfig config = new SecurityConfig();
+        org.springframework.test.util.ReflectionTestUtils.setField(config, "allowedOriginsRaw", "http://localhost:5173,http://localhost:3000");
         WebMvcConfigurer configurer = config.corsConfigurer();
         assertThat(configurer).isNotNull();
         

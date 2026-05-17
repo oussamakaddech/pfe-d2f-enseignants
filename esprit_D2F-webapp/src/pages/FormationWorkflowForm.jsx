@@ -9,14 +9,9 @@ import {
   Select,
   Button,
   Typography,
-  Collapse,
-  Steps,
   Card,
-  Divider,
   Switch,
   Space,
-  Tag,
-  Popconfirm,
   Alert as AntAlert,
 } from "antd";
 import {
@@ -29,8 +24,28 @@ import {
   ReadOutlined,
   DollarOutlined,
   LinkOutlined,
+  InfoCircleOutlined,
+  NodeIndexOutlined,
+  PlusOutlined,
+  UserAddOutlined,
+  BookOutlined,
+  ApartmentOutlined,
+  ClockCircleOutlined,
+  TagOutlined,
+  CheckSquareOutlined,
+  EnvironmentOutlined,
+  CheckOutlined,
+  ArrowLeftOutlined,
+  ArrowRightOutlined,
+  SaveOutlined,
+  GlobalOutlined,
+  LaptopOutlined,
+  BankOutlined,
+  DownloadOutlined,
+  FilterOutlined,
 } from "@ant-design/icons";
 import * as XLSX from "xlsx";
+import { writeExcel, exportDateLabel, isoDate } from "../utils/excelExport";
 import useAppNotification from "../hooks/useAppNotification";
 
 const { Text, Title } = Typography;
@@ -45,8 +60,15 @@ import CompetenceService from "../services/CompetenceService";
 import { AuthContext } from "../context/AuthContext";
 
 import DocumentUploadForm from "./documentFormation/DocumentUploadForm";
+import "./FormationWorkflowForm.css";
 
-const STEPS = ["Général", "Pédagogie", "Planning & Acteurs", "Compétences RICE", "Coûts"];
+const STEPS = [
+  { title: "Général", icon: <InfoCircleOutlined /> },
+  { title: "Pédagogie", icon: <ReadOutlined /> },
+  { title: "Planning & Acteurs", icon: <CalendarOutlined /> },
+  { title: "Compétences RICE", icon: <NodeIndexOutlined /> },
+  { title: "Coûts", icon: <DollarOutlined /> },
+];
 
 const PERIOD_OPTIONS = [
   { value: "P1", label: "Période 1" },
@@ -153,7 +175,9 @@ export default function FormationWorkflowForm({ initialDate, onFormationCreated,
 
   const getAnimateurLabel = (opt) => {
     if (!opt) return "";
-    return `${opt.nom} ${opt.prenom} (${opt.mail})`;
+    const type = opt.type === "P" ? " · Perm." : opt.type === "V" ? " · Vac." : "";
+    const cup = opt.cup === "O" || opt.cup === "Y" || opt.cup === "1" ? " · CUP" : "";
+    return `${opt.nom} ${opt.prenom} (${opt.mail})${type}${cup}`;
   };
 
   const [formateursList, setFormateursList] = useState([]);
@@ -184,23 +208,21 @@ export default function FormationWorkflowForm({ initialDate, onFormationCreated,
     }
   }, [besoinInfo, enseignants, partSel.length]);
 
+  // Chargement initial — données nécessaires dès les étapes 0-2
   useEffect(() => {
     (async () => {
       try {
-        const [u, d, e, formations, domainesData, competencesData, accountsData] = await Promise.all([
+        const [u, d, e, formations, accountsData] = await Promise.all([
           UpService.getAllUps(),
           DeptService.getAllDepts(),
           EnseignantService.getAllEnseignants(),
           FormationWorkflowService.getAllFormationWorkflows(),
-          CompetenceService.domaine.getAll(),
-          CompetenceService.competence.getAll(),
           import("../services/accountService").then(m => m.default.getAllAccounts()).catch(() => []),
         ]);
         setUps(u);
         setDepts(d);
         setEnseignants(e);
-        
-        // Préréglage de l&apos;UP et du département à partir du besoin
+
         if (besoinInfo) {
           if (besoinInfo.up) {
             const foundUp = u.find(up => String(up.id) === String(besoinInfo.up));
@@ -211,11 +233,8 @@ export default function FormationWorkflowForm({ initialDate, onFormationCreated,
             if (foundDept) setSelectedDept(foundDept);
           }
         }
-        
+
         setExistingFormations(formations);
-        setCompDomaines(Array.isArray(domainesData) ? domainesData : []);
-        setCompCompetences(Array.isArray(competencesData) ? competencesData : []);
-        
         setFormateursList(mergeFormateursAccounts(accountsData, e));
       } catch {
         message.error("Échec chargement des données");
@@ -223,7 +242,64 @@ export default function FormationWorkflowForm({ initialDate, onFormationCreated,
     })();
   }, [initialDate]);
 
-  const handleNext = () => setActiveStep((prev) => prev + 1);
+  // Lazy-load référentiel RICE uniquement quand l'utilisateur atteint l'étape 3
+  useEffect(() => {
+    if (activeStep === 3 && compDomaines.length === 0) {
+      Promise.all([
+        CompetenceService.domaine.getAll(),
+        CompetenceService.competence.getAll(),
+      ]).then(([domainesData, competencesData]) => {
+        setCompDomaines(Array.isArray(domainesData) ? domainesData : []);
+        setCompCompetences(Array.isArray(competencesData) ? competencesData : []);
+      }).catch(() => {
+        message.error("Impossible de charger le référentiel de compétences");
+      });
+    }
+  }, [activeStep]);
+
+  const handleNext = () => {
+    // ── Étape 0 : Général ───────────────────────────────────────────────────
+    if (activeStep === 0) {
+      if (!titre || titre.trim().length < 5) {
+        message.error("Le titre doit contenir au moins 5 caractères");
+        return;
+      }
+      if (!typeFormation) {
+        message.error("Sélectionnez un type de formation");
+        return;
+      }
+      if (dateDebut && dateFin && dateDebut > dateFin) {
+        message.error("La date de fin doit être postérieure à la date de début");
+        return;
+      }
+    }
+    // ── Étape 2 : Planning & Acteurs ────────────────────────────────────────
+    if (activeStep === 2) {
+      if (seances.length === 0) {
+        message.error("Ajoutez au moins une séance avant de continuer");
+        return;
+      }
+      const missDate = seances.findIndex(s => !s.dateSeance);
+      if (missDate !== -1) {
+        message.error(`La séance #${missDate + 1} n'a pas de date`);
+        return;
+      }
+      const badTime = seances.findIndex(s => s.heureDebut && s.heureFin && s.heureDebut >= s.heureFin);
+      if (badTime !== -1) {
+        message.error(`La séance #${badTime + 1} : l'heure de fin doit être après l'heure de début`);
+        return;
+      }
+      // Auto-sync charge horaire depuis les séances si non modifiée manuellement
+      const totalMin = seances.reduce((acc, s) => {
+        const start = toMinutes(s.heureDebut) ?? 0;
+        const end   = toMinutes(s.heureFin)   ?? 0;
+        return acc + Math.max(0, end - start);
+      }, 0);
+      if (totalMin > 0) setChargeH(Math.round((totalMin / 60) * 10) / 10);
+    }
+    setActiveStep(prev => prev + 1);
+  };
+
   const handleBack = () => setActiveStep((prev) => prev - 1);
 
   const toMinutes = (timeValue) => {
@@ -256,8 +332,8 @@ export default function FormationWorkflowForm({ initialDate, onFormationCreated,
       : anim?.id
   );
 
-  const mergeFormateursAccounts = (accountsData, enseignants) => {
-    if (!Array.isArray(accountsData)) return enseignants;
+  const mergeFormateursAccounts = (accountsData, enseignantsData) => {
+    if (!Array.isArray(accountsData)) return [];
     const formateurs = accountsData
       .filter(a => (a.role || "").toUpperCase() === "FORMATEUR")
       .map(a => ({
@@ -274,18 +350,16 @@ export default function FormationWorkflowForm({ initialDate, onFormationCreated,
         upLibelle: "",
         deptLibelle: ""
       }));
-    const fIds = formateurs.map(f => f.userName);
-    const existingFormateurs = enseignants.filter(ex => {
-      const prefix = ex.mail ? ex.mail.split('@')[0] : "";
-      return fIds.includes(ex.id) || fIds.includes(ex.mail) || fIds.includes(prefix);
+    // Enrich with enseignant data when the same person exists in both lists
+    const fUserNames = formateurs.map(f => f.userName).filter(Boolean);
+    const enriched = formateurs.map(f => {
+      const prefix = f.mail ? f.mail.split("@")[0] : "";
+      const match = enseignantsData.find(ex =>
+        fUserNames.includes(ex.id) || ex.mail === f.mail || ex.mail?.split("@")[0] === prefix
+      );
+      return match ? { ...f, upLibelle: match.upLibelle || "", deptLibelle: match.deptLibelle || "", type: match.type || f.type } : f;
     });
-    const merged = [...formateurs];
-    existingFormateurs.forEach(ex => {
-      if (!merged.find(m => m.mail === ex.mail || m.userName === ex.id)) {
-        merged.push(ex);
-      }
-    });
-    return merged.length > 0 ? merged : enseignants;
+    return enriched;
   };
 
   const checkExistingFormationConflicts = (localSeance, idx, existingFormations, messages, participantIds, animateurIds) => {
@@ -480,6 +554,7 @@ export default function FormationWorkflowForm({ initialDate, onFormationCreated,
           heureFin: s.heureFin,
           salle: s.salle, 
           onlineMeetingUrl: s.onlineMeetingUrl,
+          animateursIds: (s.animateurs || []).map(a => a.id || a),
           typeSeance: s.typeSeance, 
           contenus: s.contenus, 
           methodes: s.methodes,
@@ -507,14 +582,45 @@ export default function FormationWorkflowForm({ initialDate, onFormationCreated,
 
   const handleExcelImportFile = (e) => {
     const file = e.target.files[0];
+    if (!file) return;
     const reader = new FileReader();
     reader.onload = (ev) => {
-      const wb = XLSX.read(ev.target.result, { type: "binary" });
+      const data = new Uint8Array(ev.target.result);
+      const wb = XLSX.read(data, { type: "array" });
       const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
-      const mails = rows.map(r => r.Email || r.email || r.Mail).filter(Boolean);
-      setPartSel(enseignants.filter(ex => mails.includes(ex.mail)));
+      const mails = rows
+        .map(r => r.Email || r.email || r.Mail || r.mail || r.EMAIL || r.MAIL || r.email_address)
+        .filter(Boolean)
+        .map(m => String(m).trim().toLowerCase());
+      const matched = enseignants.filter(ex => ex.mail && mails.includes(ex.mail.toLowerCase()));
+      setPartSel(matched);
+      e.target.value = "";
+      if (matched.length > 0) {
+        message.success(`${matched.length} participant${matched.length > 1 ? "s" : ""} importé${matched.length > 1 ? "s" : ""}`);
+      } else if (mails.length === 0) {
+        const headers = rows.length > 0 ? Object.keys(rows[0]).join(", ") : "fichier vide";
+        message.warning(`Aucun email trouvé. Colonne attendue : Email ou Mail. Colonnes trouvées : ${headers}`);
+      } else {
+        message.warning(`Aucun participant correspondant pour les ${mails.length} email${mails.length > 1 ? "s" : ""} importés`);
+      }
     };
-    reader.readAsBinaryString(file);
+    reader.readAsArrayBuffer(file);
+  };
+
+  const exportParticipantsExcel = () => {
+    const source = partSel.length > 0 ? partSel : optionsPart;
+    const rows = source.map(p => ({
+      Nom:         p.nom || "",
+      Prénom:      p.prenom || "",
+      Email:       p.mail || "",
+      Type:        p.type === "P" ? "Permanent" : p.type === "V" ? "Vacataire" : p.type || "",
+      UP:          p.upLibelle || "",
+      Département: p.deptLibelle || "",
+    }));
+    writeExcel(
+      [{ name: "Participants", rows, title: "Liste des Participants — Esprit", subtitle: exportDateLabel() }],
+      `participants_${isoDate()}.xlsx`
+    );
   };
 
   const handleCompetenceSelect = (idx, val) => {
@@ -534,259 +640,687 @@ export default function FormationWorkflowForm({ initialDate, onFormationCreated,
   const getCompetenceOptions = (domaineId) =>
     compCompetences.filter(c => !domaineId || c.domaineId === domaineId).map(c => ({ value: c.id, label: c.nom }));
 
+  // Sous-composant : champ Charge Horaire avec indicateur temps réel depuis les séances
+  const ChargeHoraireField = ({ chargeH, setChargeH, seances, toMinutes }) => {
+    const totalMin = seances.reduce((acc, s) => {
+      const start = toMinutes(s.heureDebut) ?? 0;
+      const end   = toMinutes(s.heureFin)   ?? 0;
+      return acc + Math.max(0, end - start);
+    }, 0);
+    const calc = totalMin > 0 ? `${(totalMin / 60).toFixed(1)}h` : null;
+    return (
+      <div className="creation-field">
+        <label className="creation-field-label">
+          <ClockCircleOutlined /> Charge Horaire (h)
+        </label>
+        <InputNumber
+          size="large"
+          style={{ width: "100%" }}
+          value={chargeH}
+          onChange={(val) => setChargeH(val)}
+          min={0}
+          addonAfter="h"
+        />
+        <span className="creation-field-help">
+          {calc
+            ? <>Calculé depuis les séances&nbsp;: <strong>{calc}</strong> — auto-synchronisé à l'étape suivante.</>
+            : "Sera calculée automatiquement depuis les séances (étape 3)."}
+        </span>
+      </div>
+    );
+  };
+
   const renderStepContent = (step) => {
     switch (step) {
       case 0: // Général
         return (
-          <Row gutter={[24, 24]}>
+          <div>
             {besoinInfo && (
-              <Col span={24}>
-                <AntAlert type="info" showIcon style={{ marginBottom: 16, borderRadius: 8 }}>
-                  <Text strong>Contexte du Besoin :</Text>
-                  <div style={{ marginTop: 8, fontSize: "0.875rem" }}>
+              <AntAlert
+                type="info"
+                showIcon
+                className="creation-alert-besoin"
+                style={{ marginBottom: 20, borderRadius: "var(--radius-md)" }}
+                message={<Text strong>Pré-rempli depuis le besoin de formation</Text>}
+                description={
+                  <div style={{ marginTop: 4, fontSize: "0.875rem" }}>
                     {besoinInfo.propositionAnimateur && <div>• <strong>Animateur proposé :</strong> {besoinInfo.propositionAnimateur}</div>}
                     {besoinInfo.horaireSouhaite && <div>• <strong>Horaire souhaité :</strong> {besoinInfo.horaireSouhaite}</div>}
                     {besoinInfo.periodeFormation && <div>• <strong>Période souhaitée :</strong> {besoinInfo.periodeFormation}</div>}
                     {besoinInfo.priorite && <div>• <strong>Priorité :</strong> {besoinInfo.priorite}</div>}
-                    {besoinInfo.autresInformations && <div>• <strong>Notes :</strong> {besoinInfo.autresInformations}</div>}
                   </div>
-                </AntAlert>
-              </Col>
+                }
+              />
             )}
-            <Col span={24}>
-              <Text type="secondary">Titre de la Formation</Text>
-              <Input value={titre} onChange={(e) => setTitre(e.target.value)} required />
-            </Col>
-            <Col xs={24} sm={12}>
-              <Text type="secondary">Type</Text>
-              <Select style={{ width: "100%" }} value={typeFormation} onChange={(val) => setTypeFormation(val)}>
-                <Select.Option value="INTERNE">INTERNE (Esprit)</Select.Option>
-                <Select.Option value="EXTERNE">EXTERNE (Prestataire)</Select.Option>
-                <Select.Option value="EN_LIGNE">EN LIGNE (Teams)</Select.Option>
-              </Select>
-            </Col>
-            <Col xs={24} sm={12}>
-              <Text type="secondary">État</Text>
-              <Select style={{ width: "100%" }} value={etatFormation} onChange={(val) => setEtatFormation(val)}>
-                <Select.Option value="ENREGISTRE">ENREGISTRÉ</Select.Option>
-                <Select.Option value="PLANIFIE">PLANIFIÉ</Select.Option>
-                <Select.Option value="EN_COURS">EN COURS</Select.Option>
-                <Select.Option value="ACHEVE">ACHEVÉ</Select.Option>
-              </Select>
-            </Col>
-            <Col xs={24} sm={12}>
-              <Text type="secondary">Date Début</Text>
-              <Input type="date" value={dateDebut} onChange={(e) => setDateDebut(e.target.value)} required />
-            </Col>
-            <Col xs={24} sm={12}>
-              <Text type="secondary">Date Fin</Text>
-              <Input type="date" value={dateFin} onChange={(e) => setDateFin(e.target.value)} required />
-            </Col>
-            <Col xs={24} sm={12}>
-              <Text type="secondary">UP</Text>
-              <Select showSearch style={{ width: "100%" }} value={selectedUp?.id} onChange={(val) => setSelectedUp(ups.find(u => u.id === val) || null)} optionFilterProp="label" options={ups.map(u => ({ value: u.id, label: u.libelle }))} />
-            </Col>
-            <Col xs={24} sm={12}>
-              <Text type="secondary">Département</Text>
-              <Select showSearch style={{ width: "100%" }} value={selectedDept?.id} onChange={(val) => setSelectedDept(depts.find(d => d.id === val) || null)} optionFilterProp="label" options={depts.map(d => ({ value: d.id, label: d.libelle }))} />
-            </Col>
-            <Col span={12}>
-              <Text type="secondary">Charge Horaire (h)</Text>
-              <InputNumber style={{ width: "100%" }} value={chargeH} onChange={(val) => setChargeH(val)} />
-            </Col>
-            <Col span={12}>
-              <Space><Switch checked={ouverte} onChange={(val) => setOuverte(val)} /> <Text>Inscriptions Ouvertes</Text></Space>
-            </Col>
-            <Col xs={24} sm={12}>
-              <Text type="secondary">Période de Formation</Text>
-              <Select style={{ width: "100%" }} value={periodCode} onChange={(val) => setPeriodCode(val)}>
-                {PERIOD_OPTIONS.map((opt) => (
-                  <Select.Option key={opt.value} value={opt.value}>{opt.label}</Select.Option>
-                ))}
-              </Select>
-            </Col>
-            <Col xs={24} sm={12}>
-              {periodCode === "OTHER" && (
-                <>
-                  <Text type="secondary">Précisez la période</Text>
-                  <Input value={customPeriodLabel} onChange={(e) => setCustomPeriodLabel(e.target.value)} placeholder="Ex : Mai - Juin 2024" />
-                </>
-              )}
-            </Col>
-          </Row>
+
+            {/* Section Identité */}
+            <div className="creation-section-box">
+              <div className="creation-section-box-title">
+                <BookOutlined /> Identité de la Formation
+              </div>
+
+              {/* Titre */}
+              <div className="creation-field" style={{ marginBottom: 20 }}>
+                <label className="creation-field-label" htmlFor="wf-titre">
+                  <BookOutlined /> Titre de la Formation
+                  <span className="creation-field-required" aria-hidden="true">*</span>
+                </label>
+                <Input
+                  id="wf-titre"
+                  size="large"
+                  value={titre}
+                  onChange={(e) => setTitre(e.target.value)}
+                  placeholder="Ex : Formation Angular avancé pour les enseignants..."
+                  aria-required="true"
+                  aria-label="Titre de la formation (obligatoire)"
+                  maxLength={120}
+                  showCount
+                />
+                <span className="creation-field-help">Minimum 5 caractères — sera affiché dans le catalogue et le calendrier</span>
+              </div>
+
+              {/* Type Formation — cartes cliquables */}
+              <div className="creation-field" style={{ marginBottom: 20 }}>
+                <label className="creation-field-label">
+                  <TagOutlined /> Type de Formation
+                </label>
+                <div className="creation-type-grid" role="radiogroup" aria-label="Type de formation">
+                  {[
+                    { value: "INTERNE",  label: "Interne (Esprit)",    desc: "Animée par un enseignant Esprit",      icon: <BankOutlined /> },
+                    { value: "EXTERNE",  label: "Externe",             desc: "Dispensée par un prestataire externe", icon: <GlobalOutlined /> },
+                    { value: "EN_LIGNE", label: "En ligne (Teams)",    desc: "À distance via Microsoft Teams",       icon: <LaptopOutlined /> },
+                  ].map(opt => (
+                    <div
+                      key={opt.value}
+                      className={`creation-type-card ${typeFormation === opt.value ? "selected" : ""}`}
+                      onClick={() => setTypeFormation(opt.value)}
+                      onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setTypeFormation(opt.value); } }}
+                      role="radio"
+                      aria-checked={typeFormation === opt.value}
+                      tabIndex={0}
+                    >
+                      <div className="creation-type-card-check" aria-hidden="true"><CheckOutlined /></div>
+                      <div className="creation-type-card-icon" aria-hidden="true">{opt.icon}</div>
+                      <span className="creation-type-card-label">{opt.label}</span>
+                      <span className="creation-type-card-desc">{opt.desc}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* État — badges radio */}
+              <div className="creation-field">
+                <label className="creation-field-label">
+                  <CheckSquareOutlined /> État de la Formation
+                </label>
+                <div className="creation-etat-grid" role="radiogroup" aria-label="État de la formation">
+                  {[
+                    { value: "ENREGISTRE", label: "Enregistré" },
+                    { value: "PLANIFIE",   label: "Planifié" },
+                    { value: "EN_COURS",   label: "En cours" },
+                    { value: "ACHEVE",     label: "Achevé" },
+                  ].map(opt => (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      className={`creation-etat-badge ${opt.value} ${etatFormation === opt.value ? "selected" : ""}`}
+                      onClick={() => setEtatFormation(opt.value)}
+                      role="radio"
+                      aria-checked={etatFormation === opt.value}
+                    >
+                      <span className="creation-etat-dot" aria-hidden="true" />
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+                <span className="creation-field-help">Peut être mis à jour à tout moment depuis la liste des formations</span>
+              </div>
+            </div>
+
+            {/* Section Dates */}
+            <div className="creation-section-box">
+              <div className="creation-section-box-title">
+                <CalendarOutlined /> Dates &amp; Planning
+              </div>
+              <Row gutter={[20, 16]}>
+                <Col xs={24} sm={12}>
+                  <div className="creation-field">
+                    <label className="creation-field-label">
+                      <CalendarOutlined /> Date Début <span style={{ color: "var(--color-error)" }}>*</span>
+                    </label>
+                    <Input size="large" type="date" value={dateDebut} onChange={(e) => setDateDebut(e.target.value)} />
+                  </div>
+                </Col>
+                <Col xs={24} sm={12}>
+                  <div className="creation-field">
+                    <label className="creation-field-label">
+                      <CalendarOutlined /> Date Fin <span style={{ color: "var(--color-error)" }}>*</span>
+                    </label>
+                    <Input size="large" type="date" value={dateFin} onChange={(e) => setDateFin(e.target.value)} />
+                  </div>
+                </Col>
+                <Col xs={24} sm={12}>
+                  <div className="creation-field">
+                    <label className="creation-field-label">
+                      <TagOutlined /> Période de Formation
+                    </label>
+                    <Select size="large" style={{ width: "100%" }} value={periodCode} onChange={(val) => setPeriodCode(val)}>
+                      {PERIOD_OPTIONS.map((opt) => (
+                        <Select.Option key={opt.value} value={opt.value}>{opt.label}</Select.Option>
+                      ))}
+                    </Select>
+                  </div>
+                </Col>
+                <Col xs={24} sm={12}>
+                  {periodCode === "OTHER" ? (
+                    <div className="creation-field">
+                      <label className="creation-field-label">Précisez la période</label>
+                      <Input size="large" value={customPeriodLabel} onChange={(e) => setCustomPeriodLabel(e.target.value)} placeholder="Ex : Mai - Juin 2024" />
+                    </div>
+                  ) : (
+                    <ChargeHoraireField chargeH={chargeH} setChargeH={setChargeH} seances={seances} toMinutes={toMinutes} />
+                  )}
+                </Col>
+                {periodCode !== "OTHER" ? null : (
+                  <Col xs={24} sm={12}>
+                    <ChargeHoraireField chargeH={chargeH} setChargeH={setChargeH} seances={seances} toMinutes={toMinutes} />
+                  </Col>
+                )}
+              </Row>
+            </div>
+
+            {/* Section Structure */}
+            <div className="creation-section-box">
+              <div className="creation-section-box-title">
+                <ApartmentOutlined /> Structure Organisationnelle
+              </div>
+              <Row gutter={[20, 16]}>
+                <Col xs={24} sm={12}>
+                  <div className="creation-field">
+                    <label className="creation-field-label">
+                      <TeamOutlined /> UP (Unité Pédagogique)
+                    </label>
+                    <Select
+                      size="large"
+                      showSearch
+                      style={{ width: "100%" }}
+                      value={selectedUp?.id}
+                      onChange={(val) => setSelectedUp(ups.find(u => u.id === val) || null)}
+                      optionFilterProp="label"
+                      options={ups.map(u => ({ value: u.id, label: u.libelle }))}
+                      placeholder="Sélectionner l'UP"
+                    />
+                  </div>
+                </Col>
+                <Col xs={24} sm={12}>
+                  <div className="creation-field">
+                    <label className="creation-field-label">
+                      <ApartmentOutlined /> Département
+                    </label>
+                    <Select
+                      size="large"
+                      showSearch
+                      style={{ width: "100%" }}
+                      value={selectedDept?.id}
+                      onChange={(val) => setSelectedDept(depts.find(d => d.id === val) || null)}
+                      optionFilterProp="label"
+                      options={depts.map(d => ({ value: d.id, label: d.libelle }))}
+                      placeholder="Sélectionner le département"
+                    />
+                  </div>
+                </Col>
+                <Col span={24}>
+                  <div className="creation-switch-row">
+                    <Switch checked={ouverte} onChange={(val) => setOuverte(val)} />
+                    <Text style={{ fontWeight: 600, color: "var(--text-body)" }}>
+                      Inscriptions Ouvertes
+                    </Text>
+                    <Text type="secondary" style={{ fontSize: "var(--text-xs)" }}>
+                      {ouverte ? "Accessible à toutes les UPs" : "Réservée aux participants de l'UP uniquement"}
+                    </Text>
+                  </div>
+                </Col>
+              </Row>
+            </div>
+          </div>
         );
       case 1: // Pédagogie
         return (
-          <Row gutter={[24, 24]}>
-            {[
-              { label: "Domaine", val: domaine, set: setDomaine },
-              { label: "Population Cible", val: populationCible, set: setPopulationCible },
-              { label: "Objectifs Généraux", val: objectifs, set: setObjectifs, multiline: true },
-              { label: "Objectifs Pédagogiques", val: objectifsPedago, set: setObjectifsPedago, multiline: true },
-              { label: "Méthodes d'Évaluation", val: evalMethods, set: setEvalMethods },
-            ].map((f) => (
-              <Col xs={24} sm={f.multiline ? 24 : 12} key={f.label}>
-                <Text type="secondary">{f.label}</Text>
-                {f.multiline ? (
-                  <TextArea rows={3} value={f.val} onChange={(e) => f.set(e.target.value)} />
-                ) : (
-                  <Input value={f.val} onChange={(e) => f.set(e.target.value)} />
-                )}
-              </Col>
-            ))}
-          </Row>
+          <div>
+            <div className="creation-section-box">
+              <div className="creation-section-box-title">
+                <ReadOutlined /> Contenu Pédagogique
+              </div>
+              <Row gutter={[20, 16]}>
+                {[
+                  { label: "Domaine / Thème", val: domaine, set: setDomaine, placeholder: "Ex : Informatique, Management..." },
+                  { label: "Population Cible", val: populationCible, set: setPopulationCible, placeholder: "Ex : Enseignants permanents..." },
+                  { label: "Objectifs Généraux", val: objectifs, set: setObjectifs, multiline: true, placeholder: "Décrire les objectifs généraux de la formation..." },
+                  { label: "Objectifs Pédagogiques", val: objectifsPedago, set: setObjectifsPedago, multiline: true, placeholder: "Détails des compétences à acquérir..." },
+                  { label: "Méthodes d'Évaluation", val: evalMethods, set: setEvalMethods, placeholder: "Ex : Quiz, Projet, QCM..." },
+                ].map((f) => (
+                  <Col xs={24} sm={f.multiline ? 24 : 12} key={f.label}>
+                    <div className="creation-field">
+                      <label className="creation-field-label">{f.label}</label>
+                      {f.multiline ? (
+                        <TextArea rows={3} value={f.val} onChange={(e) => f.set(e.target.value)} placeholder={f.placeholder} />
+                      ) : (
+                        <Input size="large" value={f.val} onChange={(e) => f.set(e.target.value)} placeholder={f.placeholder} />
+                      )}
+                    </div>
+                  </Col>
+                ))}
+              </Row>
+            </div>
+          </div>
         );
       case 2: // Planning & Acteurs
         return (
           <div>
-            <Title level={5} style={{ marginBottom: 16, display: "flex", alignItems: "center", gap: 8 }}>
-              <CalendarOutlined style={{ color: "#d32f2f" }} /> Séances de Formation
-            </Title>
-            {seances.map((s, i) => (
-              <Card key={s.id} style={{ marginBottom: 16, borderLeft: "5px solid #d32f2f", boxShadow: "0 2px 8px rgba(0,0,0,0.15)" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                  <Text strong>Séance #{i + 1}</Text>
-                  <Space>
-                    <Button type="text" onClick={() => toggleSeance(i)}>{s.expanded ? <UpOutlined /> : <DownOutlined />}</Button>
-                    <Button type="text" danger onClick={() => removeSeance(i)}><DeleteOutlined /></Button>
-                  </Space>
-                </div>
-                {s.expanded && (
-                  <Row gutter={[16, 16]} style={{ marginTop: 8 }}>
-                    <Col xs={24} sm={8}><Text type="secondary">Date</Text><Input type="date" value={s.dateSeance} onChange={(e) => updateSeance(i, "dateSeance", e.target.value)} /></Col>
-                    <Col span={12} sm={8}><Text type="secondary">Début</Text><Input type="time" value={s.heureDebut} onChange={(e) => updateSeance(i, "heureDebut", e.target.value)} /></Col>
-                    <Col span={12} sm={8}><Text type="secondary">Fin</Text><Input type="time" value={s.heureFin} onChange={(e) => updateSeance(i, "heureFin", e.target.value)} /></Col>
-                    <Col xs={24} sm={12}>
-                      {typeFormation === "EN_LIGNE" ? (
-                        <>
-                          <Text type="secondary">Lien Réunion (Teams)</Text>
-                          <Input prefix={<LinkOutlined />} value={s.onlineMeetingUrl} onChange={(e) => updateSeance(i, "onlineMeetingUrl", e.target.value)} placeholder="https://teams.microsoft.com/..." />
-                        </>
-                      ) : (
-                        <>
-                          <Text type="secondary">Salle / Lieu</Text>
-                          <Input value={s.salle} onChange={(e) => updateSeance(i, "salle", e.target.value)} />
-                        </>
-                      )}
-                    </Col>
-                    <Col xs={24} sm={12}>
-                      <Text type="secondary">Type Séance</Text>
-                      <Select style={{ width: "100%" }} value={s.typeSeance} onChange={(val) => updateSeance(i, "typeSeance", val)}>
-                        <Select.Option value="THEORIQUE">THÉORIQUE</Select.Option>
-                        <Select.Option value="PRATIQUE">PRATIQUE</Select.Option>
-                      </Select>
-                    </Col>
-                  </Row>
-                )}
-              </Card>
-            ))}
-            <Button style={{ marginBottom: 32 }} danger onClick={addSeance}>+ Séance</Button>
-
-            <Divider style={{ margin: "24px 0" }} />
-
-            <Title level={5} style={{ marginBottom: 16, display: "flex", alignItems: "center", gap: 8 }}>
-              <TeamOutlined style={{ color: "#d32f2f" }} /> Animateurs & Participants
-            </Title>
-            <Row gutter={[24, 24]}>
-              <Col span={24}>
-                <Text strong>🧑🏻‍🏫 Animateurs (Internes)</Text>
-                <Select mode="multiple" disabled={typeFormation === "EXTERNE"} style={{ width: "100%" }} value={animSel.map(a => a.id)} onChange={(vals) => { setAnimSel(optionsAnim.filter(a => vals.includes(a.id))); }} optionFilterProp="label" options={optionsAnim.map(a => ({ value: a.id, label: getAnimateurLabel(a) }))} placeholder="Sélectionner Animateurs" />
-              </Col>
-              {(isAdmin || typeFormation === "EXTERNE") && (
-                <Col span={24}>
-                  <div style={{ padding: 16, background: "#f5f5f5", borderRadius: 8, border: "1px dashed #ccc" }}>
-                    <Text strong style={{ color: "#1677ff" }}>🧑🏻‍💼 Animateur (Externe / Ajout Manuel) - Accès Admin</Text>
-                    <Row gutter={[16, 16]} style={{ marginTop: 8 }}>
+            {/* Séances */}
+            <div className="creation-section-box">
+              <div className="creation-section-box-title">
+                <CalendarOutlined /> Séances de Formation
+              </div>
+              {seances.map((s, i) => (
+                <Card key={s.id} className="creation-seance-card">
+                  <div className="creation-seance-header">
+                    <Text className="creation-seance-title">
+                      <CalendarOutlined style={{ marginRight: 6, color: "var(--primary-500)" }} />
+                      Séance #{i + 1}
+                    </Text>
+                    <Space>
+                      <Button type="text" size="small" onClick={() => toggleSeance(i)}>
+                        {s.expanded ? <UpOutlined /> : <DownOutlined />}
+                      </Button>
+                      <Button type="text" danger size="small" onClick={() => removeSeance(i)}>
+                        <DeleteOutlined />
+                      </Button>
+                    </Space>
+                  </div>
+                  {s.expanded && (
+                    <Row gutter={[16, 12]} style={{ marginTop: 12 }}>
                       <Col xs={24} sm={8}>
-                        <Text type="secondary">Nom</Text>
-                        <Input value={formNom} onChange={(e) => setFormNom(e.target.value)} />
+                        <div className="creation-field">
+                          <label className="creation-field-label"><CalendarOutlined /> Date</label>
+                          <Input size="large" type="date" value={s.dateSeance} onChange={(e) => updateSeance(i, "dateSeance", e.target.value)} />
+                        </div>
                       </Col>
-                      <Col xs={24} sm={8}>
-                        <Text type="secondary">Prénom</Text>
-                        <Input value={formPrenom} onChange={(e) => setFormPrenom(e.target.value)} />
+                      <Col xs={12} sm={8}>
+                        <div className="creation-field">
+                          <label className="creation-field-label"><ClockCircleOutlined /> Heure Début</label>
+                          <Input size="large" type="time" value={s.heureDebut} onChange={(e) => updateSeance(i, "heureDebut", e.target.value)} />
+                        </div>
                       </Col>
-                      <Col xs={24} sm={8}>
-                        <Text type="secondary">Email</Text>
-                        <Input type="email" value={formEmail} onChange={(e) => setFormEmail(e.target.value)} />
+                      <Col xs={12} sm={8}>
+                        <div className="creation-field">
+                          <label className="creation-field-label"><ClockCircleOutlined /> Heure Fin</label>
+                          <Input size="large" type="time" value={s.heureFin} onChange={(e) => updateSeance(i, "heureFin", e.target.value)} />
+                        </div>
+                      </Col>
+                      <Col xs={24} sm={12}>
+                        <div className="creation-field">
+                          {typeFormation === "EN_LIGNE" ? (
+                            <>
+                              <label className="creation-field-label"><LinkOutlined /> Lien Réunion (Teams)</label>
+                              <Input size="large" prefix={<LinkOutlined />} value={s.onlineMeetingUrl} onChange={(e) => updateSeance(i, "onlineMeetingUrl", e.target.value)} placeholder="https://teams.microsoft.com/..." />
+                            </>
+                          ) : (
+                            <>
+                              <label className="creation-field-label"><EnvironmentOutlined /> Salle / Lieu</label>
+                              <Input size="large" value={s.salle} onChange={(e) => updateSeance(i, "salle", e.target.value)} placeholder="Ex : Salle A101" />
+                            </>
+                          )}
+                        </div>
+                      </Col>
+                      <Col xs={24} sm={12}>
+                        <div className="creation-field">
+                          <label className="creation-field-label"><TagOutlined /> Type de Séance</label>
+                          <Select size="large" style={{ width: "100%" }} value={s.typeSeance} onChange={(val) => updateSeance(i, "typeSeance", val)}>
+                            <Select.Option value="THEORIQUE">THÉORIQUE</Select.Option>
+                            <Select.Option value="PRATIQUE">PRATIQUE</Select.Option>
+                          </Select>
+                        </div>
                       </Col>
                     </Row>
+                  )}
+                </Card>
+              ))}
+              <Button className="creation-btn-add-seance" type="dashed" onClick={addSeance} icon={<PlusOutlined />}>
+                Ajouter une séance
+              </Button>
+            </div>
+
+            {/* Acteurs */}
+            <div className="creation-section-box">
+              <div className="creation-section-box-title">
+                <TeamOutlined /> Animateurs &amp; Participants
+              </div>
+              <Row gutter={[20, 20]}>
+
+                {/* ── Animateurs ── */}
+                <Col span={24}>
+                  <div className="creation-field">
+                    <div className="creation-acteur-header">
+                      <label className="creation-field-label">
+                        <TeamOutlined />
+                        {typeFormation === "EXTERNE" ? " Animateur Externe" : " Animateurs (Formateurs internes)"}
+                      </label>
+                      {animSel.length > 0 && (
+                        <span className="creation-acteur-count">{animSel.length} sélectionné(s)</span>
+                      )}
+                    </div>
+
+                    {typeFormation !== "EXTERNE" && (
+                      <div className="creation-acteur-filters">
+                        <FilterOutlined className="creation-acteur-filter-icon" />
+                        <Select
+                          size="small"
+                          allowClear
+                          placeholder="UP"
+                          style={{ flex: 1, minWidth: 100 }}
+                          value={animFilterUp?.id ?? null}
+                          onChange={(val) => setAnimFilterUp(ups.find(u => u.id === val) ?? null)}
+                          options={ups.map(u => ({ value: u.id, label: u.libelle }))}
+                        />
+                        <Select
+                          size="small"
+                          allowClear
+                          placeholder="Département"
+                          style={{ flex: 1, minWidth: 120 }}
+                          value={animFilterDept?.id ?? null}
+                          onChange={(val) => setAnimFilterDept(depts.find(d => d.id === val) ?? null)}
+                          options={depts.map(d => ({ value: d.id, label: d.libelle }))}
+                        />
+                      </div>
+                    )}
+
+                    <Select
+                      mode="multiple"
+                      size="large"
+                      disabled={typeFormation === "EXTERNE"}
+                      style={{ width: "100%" }}
+                      value={animSel.map(a => a.id)}
+                      onChange={(vals) => setAnimSel(optionsAnim.filter(a => vals.includes(a.id)))}
+                      optionFilterProp="label"
+                      options={optionsAnim.map(a => ({ value: a.id, label: getAnimateurLabel(a) }))}
+                      placeholder="Sélectionner les animateurs..."
+                    />
+                    <span className="creation-field-help">
+                      {typeFormation === "EXTERNE"
+                        ? "Pour une formation externe, renseignez l'animateur dans le bloc ci-dessous."
+                        : `${optionsAnim.length} formateur(s) disponible(s) — Permanent · Vacataire · CUP`}
+                    </span>
                   </div>
                 </Col>
-              )}
-              <Col span={24}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-                  <Text strong>🧑🏻‍💻 Participants</Text>
-                  <Button size="small" icon={<UploadOutlined />} onClick={() => document.getElementById("excel-import").click()}>Excel Import</Button>
-                  <input id="excel-import" hidden accept=".xlsx,.xls" type="file" onChange={handleExcelImportFile} />
-                </div>
-                <Select mode="multiple" style={{ width: "100%" }} value={partSel.map(p => p.id)} onChange={(vals) => { setPartSel(optionsPart.filter(p => vals.includes(p.id))); }} optionFilterProp="label" options={optionsPart.map(p => ({ value: p.id, label: getEnseignantLabel(p) }))} placeholder="Sélectionner Participants" />
-              </Col>
-            </Row>
+
+                {/* ── Animateur externe (admin ou type EXTERNE) ── */}
+                {(isAdmin || typeFormation === "EXTERNE") && (
+                  <Col span={24}>
+                    <div className="creation-externe-box">
+                      <Text className="creation-externe-title">
+                        <UserAddOutlined style={{ marginRight: 6 }} />Animateur Externe — Accès Admin
+                      </Text>
+                      <Row gutter={[16, 12]} style={{ marginTop: 12 }}>
+                        <Col xs={24} sm={8}>
+                          <div className="creation-field">
+                            <label className="creation-field-label">Nom</label>
+                            <Input size="large" value={formNom} onChange={(e) => setFormNom(e.target.value)} />
+                          </div>
+                        </Col>
+                        <Col xs={24} sm={8}>
+                          <div className="creation-field">
+                            <label className="creation-field-label">Prénom</label>
+                            <Input size="large" value={formPrenom} onChange={(e) => setFormPrenom(e.target.value)} />
+                          </div>
+                        </Col>
+                        <Col xs={24} sm={8}>
+                          <div className="creation-field">
+                            <label className="creation-field-label">Email</label>
+                            <Input size="large" type="email" value={formEmail} onChange={(e) => setFormEmail(e.target.value)} />
+                          </div>
+                        </Col>
+                      </Row>
+                    </div>
+                  </Col>
+                )}
+
+                {/* ── Participants ── */}
+                <Col span={24}>
+                  <div className="creation-field">
+                    <div className="creation-acteur-header">
+                      <label className="creation-field-label">
+                        <TeamOutlined /> Participants (Enseignants)
+                      </label>
+                      <div style={{ display: "flex", gap: 6 }}>
+                        <Button
+                          size="small"
+                          icon={<DownloadOutlined />}
+                          onClick={exportParticipantsExcel}
+                          className="creation-btn-excel"
+                          title={partSel.length > 0 ? "Exporter la sélection" : "Exporter la liste filtrée"}
+                        >
+                          {partSel.length > 0 ? `Export (${partSel.length})` : "Export"}
+                        </Button>
+                        <Button
+                          size="small"
+                          icon={<UploadOutlined />}
+                          onClick={() => document.getElementById("excel-import").click()}
+                          className="creation-btn-excel"
+                        >
+                          Import
+                        </Button>
+                        <input id="excel-import" hidden accept=".xlsx,.xls" type="file" onChange={handleExcelImportFile} />
+                      </div>
+                    </div>
+
+                    <div className="creation-acteur-filters">
+                      <FilterOutlined className="creation-acteur-filter-icon" />
+                      <Select
+                        size="small"
+                        allowClear
+                        placeholder="UP"
+                        style={{ flex: 1, minWidth: 100 }}
+                        value={partFilterUp?.id ?? null}
+                        onChange={(val) => setPartFilterUp(ups.find(u => u.id === val) ?? null)}
+                        options={ups.map(u => ({ value: u.id, label: u.libelle }))}
+                      />
+                      <Select
+                        size="small"
+                        allowClear
+                        placeholder="Département"
+                        style={{ flex: 1, minWidth: 120 }}
+                        value={partFilterDept?.id ?? null}
+                        onChange={(val) => setPartFilterDept(depts.find(d => d.id === val) ?? null)}
+                        options={depts.map(d => ({ value: d.id, label: d.libelle }))}
+                      />
+                    </div>
+
+                    <Select
+                      mode="multiple"
+                      size="large"
+                      style={{ width: "100%" }}
+                      value={partSel.map(p => p.id)}
+                      onChange={(vals) => setPartSel(optionsPart.filter(p => vals.includes(p.id)))}
+                      optionFilterProp="label"
+                      options={optionsPart.map(p => ({ value: p.id, label: getEnseignantLabel(p) }))}
+                      placeholder="Sélectionner les participants..."
+                    />
+                    <span className="creation-field-help">
+                      {optionsPart.length} enseignant(s) disponible(s) — Perm. / Vac. / CUP / ChefDep
+                    </span>
+                  </div>
+                </Col>
+
+              </Row>
+            </div>
+
             {overlapWarnings.length > 0 && (
-              <AntAlert type="warning" showIcon style={{ marginTop: 16 }}>
-                <strong>Chevauchements détectés:</strong>
-                <ul style={{ margin: "8px 0 0 16px", padding: 0 }}>
-                  {overlapWarnings.map((msg) => (
-                    <li key={msg}>{msg}</li>
-                  ))}
-                </ul>
-              </AntAlert>
+              <AntAlert
+                type="warning"
+                showIcon
+                className="creation-alert-overlap"
+                message={<strong>Chevauchements détectés</strong>}
+                description={
+                  <ul style={{ margin: "4px 0 0 16px", padding: 0 }}>
+                    {overlapWarnings.map((msg) => <li key={msg}>{msg}</li>)}
+                  </ul>
+                }
+              />
             )}
           </div>
         );
-      case 3: // Compétences
+      case 3: // Compétences RICE
         return (
           <div>
-            <Title level={5} style={{ marginBottom: 16, display: "flex", alignItems: "center", gap: 8 }}>
-              <ReadOutlined style={{ color: "#d32f2f" }} /> Cartographie des Compétences (RICE)
-            </Title>
-            <Card style={{ padding: 16, background: "#fafafa" }}>
-              {selectedCompLinks.map((link, idx) => (
-                <Row gutter={[16, 16]} key={idx} style={{ marginBottom: 16, alignItems: "center" }}>
-                  <Col xs={24} sm={6}>
-                    <Text type="secondary">Domaine</Text>
-                    <Select showSearch style={{ width: "100%" }} value={link.domaineId} onChange={(val) => { const u = [...selectedCompLinks]; u[idx] = { ...u[idx], domaineId: val }; setSelectedCompLinks(u); }}
-                      options={compDomaines.map(d => ({ value: d.id, label: d.nom }))} placeholder="Domaine" />
-                  </Col>
-                  <Col xs={24} sm={6}>
-                    <Text type="secondary">Compétence</Text>
-                    <Select showSearch style={{ width: "100%" }} value={link.competenceId} onChange={(val) => handleCompetenceSelect(idx, val)}
-                      options={getCompetenceOptions(link.domaineId)} placeholder="Compétence" />
-                  </Col>
-                  <Col xs={24} sm={6}>
-                    <Text type="secondary">Savoir</Text>
-                    <Select showSearch style={{ width: "100%" }} value={link.savoirId} onChange={(val) => handleSavoirSelect(idx, val)}
-                      options={(rowSavoirs[idx] || []).map(s => ({ value: s.id, label: `${s.nom} (${s.type})` }))} placeholder="Savoir" />
-                  </Col>
-                  <Col span={4} sm={3}><Button type="text" danger onClick={() => handleRemoveCompetenceLink(idx)}><DeleteOutlined /></Button></Col>
-                </Row>
-              ))}
-              <Button size="small" onClick={() => setSelectedCompLinks([...selectedCompLinks, { domaineId: null, competenceId: null, savoirId: null }])}>+ Ajouter Compétence</Button>
-            </Card>
+            <div className="creation-section-box">
+              <div className="creation-section-box-title">
+                <ReadOutlined /> Cartographie des Compétences (RICE)
+              </div>
+
+              {compDomaines.length === 0 && compCompetences.length === 0 ? (
+                <div className="creation-comp-loading">
+                  <span className="creation-comp-loading-dot" />
+                  Chargement du référentiel…
+                </div>
+              ) : selectedCompLinks.length === 0 ? (
+                <div className="creation-comp-empty">
+                  <ReadOutlined aria-hidden="true" />
+                  <span>Aucune compétence liée — cliquez sur &laquo;&nbsp;Ajouter&nbsp;&raquo; pour en associer une.</span>
+                </div>
+              ) : (
+                <div className="creation-competence-card">
+                  {selectedCompLinks.map((link, idx) => (
+                    <div key={idx} className="creation-competence-row">
+                      <span className="creation-competence-num" aria-hidden="true">{idx + 1}</span>
+
+                      <div className="creation-field creation-comp-select">
+                        <label className="creation-field-label">Domaine</label>
+                        <Select
+                          showSearch
+                          size="large"
+                          style={{ width: "100%" }}
+                          value={link.domaineId}
+                          onChange={(val) => {
+                            const u = [...selectedCompLinks];
+                            u[idx] = { ...u[idx], domaineId: val, competenceId: null, savoirId: null };
+                            setSelectedCompLinks(u);
+                          }}
+                          options={compDomaines.map(d => ({ value: d.id, label: d.nom }))}
+                          placeholder="Choisir un domaine…"
+                          aria-label={`Domaine — ligne ${idx + 1}`}
+                        />
+                      </div>
+
+                      <div className="creation-field creation-comp-select">
+                        <label className="creation-field-label">Compétence</label>
+                        <Select
+                          showSearch
+                          size="large"
+                          style={{ width: "100%" }}
+                          value={link.competenceId}
+                          onChange={(val) => handleCompetenceSelect(idx, val)}
+                          options={getCompetenceOptions(link.domaineId)}
+                          placeholder="Choisir une compétence…"
+                          disabled={!link.domaineId}
+                          aria-label={`Compétence — ligne ${idx + 1}`}
+                        />
+                      </div>
+
+                      <div className="creation-field creation-comp-select">
+                        <label className="creation-field-label">Savoir</label>
+                        <Select
+                          showSearch
+                          size="large"
+                          style={{ width: "100%" }}
+                          value={link.savoirId}
+                          onChange={(val) => handleSavoirSelect(idx, val)}
+                          options={(rowSavoirs[idx] || []).map(s => ({ value: s.id, label: `${s.nom} (${s.type})` }))}
+                          placeholder="Choisir un savoir…"
+                          disabled={!link.competenceId}
+                          aria-label={`Savoir — ligne ${idx + 1}`}
+                        />
+                      </div>
+
+                      <Button
+                        type="text"
+                        danger
+                        size="small"
+                        icon={<DeleteOutlined />}
+                        onClick={() => handleRemoveCompetenceLink(idx)}
+                        aria-label={`Supprimer la ligne ${idx + 1}`}
+                        className="creation-comp-del-btn"
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <Button
+                type="dashed"
+                onClick={() => setSelectedCompLinks([...selectedCompLinks, { domaineId: null, competenceId: null, savoirId: null }])}
+                icon={<PlusOutlined />}
+                className="creation-btn-add-seance"
+                style={{ marginTop: 12, width: "100%" }}
+              >
+                Ajouter une compétence RICE
+              </Button>
+              <span className="creation-field-help" style={{ display: "block", marginTop: 8 }}>
+                Chaque ligne associe un <strong>Domaine</strong> → <strong>Compétence</strong> → <strong>Savoir</strong> du référentiel RICE Esprit à cette formation.
+              </span>
+            </div>
           </div>
         );
       case 4: // Coûts
         return (
           <div>
-            <Title level={5} style={{ marginBottom: 16, display: "flex", alignItems: "center", gap: 8 }}>
-              <DollarOutlined style={{ color: "#d32f2f" }} /> Budget & Coûts
-            </Title>
-            <Row gutter={[24, 24]}>
-              {typeFormation === "EXTERNE" && (
-                <>
-                  <Col xs={24} sm={12}><Text type="secondary">Organisme Prestataire</Text><Input value={organisme} onChange={(e) => setOrganisme(e.target.value)} /></Col>
-                  <Col xs={24} sm={12}><Text type="secondary">Frais de Formation</Text><InputNumber style={{ width: "100%" }} suffix="DT" value={cout} onChange={(val) => setCout(val)} /></Col>
-                  <Col xs={24} sm={8}><Text type="secondary">Coût Transport</Text><InputNumber style={{ width: "100%" }} value={coutTransport} onChange={(val) => setCoutTransport(val)} /></Col>
-                  <Col xs={24} sm={8}><Text type="secondary">Coût Hébergement</Text><InputNumber style={{ width: "100%" }} value={coutHebergement} onChange={(val) => setCoutHebergement(val)} /></Col>
-                  <Col xs={24} sm={8}><Text type="secondary">Coût Repas</Text><InputNumber style={{ width: "100%" }} value={coutRepas} onChange={(val) => setCoutRepas(val)} /></Col>
-                </>
+            <div className="creation-section-box">
+              <div className="creation-section-box-title">
+                <DollarOutlined /> Budget &amp; Coûts
+              </div>
+              {typeFormation === "EXTERNE" ? (
+                <Row gutter={[20, 16]}>
+                  <Col xs={24} sm={12}>
+                    <div className="creation-field">
+                      <label className="creation-field-label">Organisme Prestataire</label>
+                      <Input size="large" value={organisme} onChange={(e) => setOrganisme(e.target.value)} placeholder="Nom de l'organisme..." />
+                    </div>
+                  </Col>
+                  <Col xs={24} sm={12}>
+                    <div className="creation-field">
+                      <label className="creation-field-label"><DollarOutlined /> Frais de Formation (DT)</label>
+                      <InputNumber size="large" style={{ width: "100%" }} suffix="DT" value={cout} onChange={(val) => setCout(val)} min={0} />
+                    </div>
+                  </Col>
+                  <Col xs={24} sm={8}>
+                    <div className="creation-field">
+                      <label className="creation-field-label">Coût Transport (DT)</label>
+                      <InputNumber size="large" style={{ width: "100%" }} value={coutTransport} onChange={(val) => setCoutTransport(val)} min={0} />
+                    </div>
+                  </Col>
+                  <Col xs={24} sm={8}>
+                    <div className="creation-field">
+                      <label className="creation-field-label">Coût Hébergement (DT)</label>
+                      <InputNumber size="large" style={{ width: "100%" }} value={coutHebergement} onChange={(val) => setCoutHebergement(val)} min={0} />
+                    </div>
+                  </Col>
+                  <Col xs={24} sm={8}>
+                    <div className="creation-field">
+                      <label className="creation-field-label">Coût Repas (DT)</label>
+                      <InputNumber size="large" style={{ width: "100%" }} value={coutRepas} onChange={(val) => setCoutRepas(val)} min={0} />
+                    </div>
+                  </Col>
+                </Row>
+              ) : (
+                <AntAlert
+                  type="info"
+                  showIcon
+                  className="creation-alert-costs"
+                  message="Aucun coût direct pour cette formation"
+                  description="Pour les formations internes ou en ligne, les coûts directs sont généralement nuls. Seule la charge horaire est comptabilisée."
+                />
               )}
-              {typeFormation !== "EXTERNE" && (
-                <Col span={24}>
-                  <AntAlert type="info" showIcon>Pour les formations internes ou en ligne, les coûts directs sont généralement nuls (charge horaire uniquement).</AntAlert>
-                </Col>
-              )}
-            </Row>
+            </div>
           </div>
         );
       default:
@@ -795,27 +1329,90 @@ export default function FormationWorkflowForm({ initialDate, onFormationCreated,
   };
 
   return (
-    <div style={{ width: "100%", padding: "16px 0" }}>
-      <Steps current={activeStep} style={{ marginBottom: 32 }} items={STEPS.map((label) => ({ title: label }))} />
-
-      <Card style={{ borderRadius: 12, boxShadow: "0 8px 24px rgba(0,0,0,0.12)" }}>
-        <div style={{ padding: 32 }}>
-          {renderStepContent(activeStep)}
-
-          <div style={{ display: "flex", justifyContent: "space-between", marginTop: 32 }}>
-            <Button disabled={activeStep === 0} onClick={handleBack}>Retour</Button>
-            <Space>
-              {activeStep === STEPS.length - 1 ? (
-                <Button type="primary" danger size="large" onClick={handleSubmit}>
-                  FINALISER & CRÉER
-                </Button>
-              ) : (
-                <Button type="primary" size="large" onClick={handleNext} style={{ background: "#333" }}>
-                  Suivant
-                </Button>
-              )}
-            </Space>
+    <div className="creation-form">
+      {/* Custom Stepper */}
+      <div className="wf-stepper" role="list" aria-label="Étapes du formulaire">
+        {STEPS.map((s, i) => (
+          <div
+            key={i}
+            className={`wf-step${i === activeStep ? " active" : ""}${i < activeStep ? " done" : ""}`}
+            role="listitem"
+            aria-current={i === activeStep ? "step" : undefined}
+          >
+            <div className="wf-step-circle" aria-hidden="true">
+              {i < activeStep ? <CheckOutlined /> : s.icon}
+            </div>
+            <span className="wf-step-label">{s.title}</span>
           </div>
+        ))}
+      </div>
+
+      {/* Progress bar */}
+      <div
+        className="wf-progress-bar"
+        role="progressbar"
+        aria-valuenow={activeStep + 1}
+        aria-valuemin={1}
+        aria-valuemax={STEPS.length}
+        aria-label={`Étape ${activeStep + 1} sur ${STEPS.length}`}
+      >
+        <div
+          className="wf-progress-fill"
+          style={{ width: `${((activeStep + 1) / STEPS.length) * 100}%` }}
+        />
+      </div>
+
+      <Card className="creation-step-card">
+        {/* Step header */}
+        <div className="wf-step-header">
+          <div className="wf-step-header-icon" aria-hidden="true">
+            {STEPS[activeStep].icon}
+          </div>
+          <div className="wf-step-header-text">
+            <div className="wf-step-header-title">{STEPS[activeStep].title}</div>
+            <div className="wf-step-header-desc">Étape {activeStep + 1} sur {STEPS.length}</div>
+          </div>
+        </div>
+
+        <div className="creation-step-content">
+          {renderStepContent(activeStep)}
+        </div>
+
+        <div className="creation-nav-footer">
+          <Button
+            disabled={activeStep === 0}
+            onClick={handleBack}
+            size="large"
+            icon={<ArrowLeftOutlined />}
+            className="creation-btn-back"
+          >
+            Retour
+          </Button>
+          <span className="creation-step-counter" aria-live="polite">
+            {activeStep + 1} / {STEPS.length}
+          </span>
+          {activeStep === STEPS.length - 1 ? (
+            <Button
+              type="primary"
+              size="large"
+              onClick={handleSubmit}
+              icon={<SaveOutlined />}
+              className="creation-btn-submit"
+            >
+              Finaliser &amp; Créer
+            </Button>
+          ) : (
+            <Button
+              type="primary"
+              size="large"
+              onClick={handleNext}
+              icon={<ArrowRightOutlined />}
+              iconPosition="end"
+              className="creation-btn-next"
+            >
+              Suivant
+            </Button>
+          )}
         </div>
       </Card>
 

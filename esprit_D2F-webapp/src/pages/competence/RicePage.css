@@ -116,7 +116,7 @@
 
 /*  Steps wrapper  */
 .rice-steps-wrapper {
-  background: #fff;
+  background: var(--bg-card);
   border-radius: 14px;
   padding: 18px 28px;
   margin-bottom: 24px;
@@ -477,7 +477,7 @@
 
 /* ── Keep old .rice-upload-card for any legacy refs ───────────────────────── */
 .rice-upload-card {
-  background: #fff;
+  background: var(--bg-card);
   border-radius: 14px !important;
   box-shadow: 0 2px 16px rgba(0, 0, 0, 0.08), 0 0 0 1px rgba(22, 119, 255, 0.06) !important;
   border: none !important;
@@ -524,7 +524,7 @@
 .rice-analyzing {
   text-align: center;
   padding: 60px 20px 80px;
-  background: #fff;
+  background: var(--bg-card);
   border-radius: 16px;
   box-shadow: 0 2px 12px rgba(0,0,0,0.06);
 }
@@ -701,7 +701,7 @@
   border: 1px solid #f0f0f0;
   border-radius: 8px;
   padding: 6px 8px;
-  background: #fff;
+  background: var(--bg-card);
   display: grid;
   grid-template-columns: 24px 1fr auto auto auto;
   align-items: center;
@@ -1122,7 +1122,7 @@
   body, .rice-page {
     padding: 0 !important;
     margin: 0 !important;
-    background: #fff !important;
+    background: var(--bg-card) !important;
     box-shadow: none !important;
   }
 

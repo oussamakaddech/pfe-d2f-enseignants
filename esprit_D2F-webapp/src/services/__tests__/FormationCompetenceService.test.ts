@@ -7,8 +7,8 @@ const httpMocks = vi.hoisted(() => ({
   mockDelete: vi.fn(),
 }));
 
-vi.mock('axios', () => ({
-  default: {
+vi.mock('../../utils/httpClient', () => ({
+  defaultApi: {
     get: httpMocks.mockGet,
     post: httpMocks.mockPost,
     put: httpMocks.mockPut,
@@ -16,8 +16,10 @@ vi.mock('axios', () => ({
   },
 }));
 
-vi.mock('../authHeaders', () => ({
-  optionalAuthHeader: vi.fn(() => ({ Authorization: 'Bearer test' })),
+vi.mock('../../config/env', () => ({
+  config: {
+    FORMATION_URL: 'http://localhost:8080/api',
+  },
 }));
 
 import FormationCompetenceService from '../FormationCompetenceService';

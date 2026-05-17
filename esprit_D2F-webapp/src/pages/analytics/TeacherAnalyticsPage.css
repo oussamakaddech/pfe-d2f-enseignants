@@ -1,0 +1,86 @@
+/* ─── TeacherAnalyticsPage.css ────────────────────────────────────────── */
+
+.teacher-analytics-page {
+  max-width: var(--max-page-width);
+  margin: 0 auto;
+}
+
+/* ── Search card ───────────────────────────────────────────────────────── */
+.teacher-analytics-search-card {
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-sm);
+  margin-bottom: var(--space-6);
+}
+
+/* ── Stat cards ────────────────────────────────────────────────────────── */
+.teacher-analytics-stat-card {
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.teacher-analytics-stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+/* ── Main card ─────────────────────────────────────────────────────────── */
+.teacher-analytics-main-card {
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+}
+
+/* ── Chart section ─────────────────────────────────────────────────────── */
+.teacher-analytics-chart-section {
+  margin-bottom: var(--space-5);
+}
+
+.teacher-analytics-chart-title {
+  font-size: var(--text-md);
+  font-weight: var(--font-semibold);
+  color: var(--text-main);
+  margin-bottom: var(--space-3);
+}
+
+/* ── Info row ──────────────────────────────────────────────────────────── */
+.teacher-analytics-info-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-5);
+  margin-bottom: var(--space-4);
+}
+
+.teacher-analytics-info-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.teacher-analytics-info-label {
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-wide);
+  color: var(--text-muted);
+}
+
+.teacher-analytics-info-value {
+  font-size: var(--text-base);
+  font-weight: var(--font-medium);
+  color: var(--text-main);
+}
+
+/* ── Responsive ────────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .teacher-analytics-info-row {
+    flex-direction: column;
+    gap: var(--space-3);
+  }
+}

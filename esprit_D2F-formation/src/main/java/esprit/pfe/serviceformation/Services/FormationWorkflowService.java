@@ -103,9 +103,11 @@ public class FormationWorkflowService {
         List<EvaluationFormateurDTO> evaluationDTOs = helper.createEvaluationDTOs(seances, formation);
         publishEvaluationBatch(formation.getIdFormation(), evaluationDTOs);
 
-        sendCreationNotifications(formation);
-
         formation.setSeances(seances);
+
+        // Notification automatique selon l'état (ENREGISTRE par défaut)
+        handleEtatTransitions(formation, null);
+
         return formationRepository.save(formation);
     }
 
@@ -123,42 +125,6 @@ public class FormationWorkflowService {
                                     .toList()));
         } catch (Exception ex) {
             log.warn("Impossible d'envoyer le message d'evaluation au broker: {}", ex.getMessage());
-        }
-    }
-
-    private void sendCreationNotifications(Formation formation) {
-        try {
-            String subject = "[D2F] Nouvelle Formation Creee : " + formation.getTitreFormation();
-            String htmlContent = String.format(
-                    "<h3>Nouvelle Formation Enregistree</h3>" +
-                            "<p>Une nouvelle formation a ete creee.</p>" +
-                            "<ul>" +
-                            "<li><strong>Titre :</strong> %s</li>" +
-                            "<li><strong>Date Debut :</strong> %s</li>" +
-                            "<li><strong>Type :</strong> %s</li>" +
-                            "<li><strong>Domaine :</strong> %s</li>" +
-                            "</ul>",
-                    formation.getTitreFormation(),
-                    formation.getDateDebut(),
-                    formation.getTypeFormation(),
-                    formation.getDomaine());
-            outlookMailService.sendMail(ORGANIZER_EMAIL, subject, htmlContent);
-
-            if (formation.getUp() != null) {
-                List<Enseignant> cups = enseignantRepository.findByUpAndCup(formation.getUp(), "O");
-                for (Enseignant cup : cups) {
-                    String cupSubject = "[D2F] Formation a planifier : " + formation.getTitreFormation();
-                    String cupHtml = String.format(
-                            "<h3>Action Requise : Planification</h3>" +
-                                    "<p>Bonjour %s %s,</p>" +
-                                    "<p>Une nouvelle formation UP %s a ete enregistree.</p>",
-                            cup.getPrenom(), cup.getNom(),
-                            formation.getUp().getLibelle());
-                    outlookMailService.sendMail(cup.getMail(), cupSubject, cupHtml);
-                }
-            }
-        } catch (Exception ex) {
-            log.warn("Echec de l'envoi des notifications de creation : {}", ex.getMessage());
         }
     }
 
@@ -216,6 +182,15 @@ public class FormationWorkflowService {
             }
         }
         formation.setCustomPeriodLabel(request.getCustomPeriodLabel());
+
+        // Mise a jour des animateurs au niveau formation
+        if (request.getAnimateursIds() != null) {
+            List<Enseignant> animateurs = request.getAnimateursIds().stream()
+                    .map(id -> enseignantRepository.findById(id).orElse(null))
+                    .filter(Objects::nonNull)
+                    .toList();
+            formation.setAnimateurs(animateurs);
+        }
     }
 
     private void updateFormationRelations(Formation formation, FormationWorkflowRequest request) {
@@ -344,23 +319,302 @@ public class FormationWorkflowService {
         sf.setParticipants(partIds.stream().map(enseignantMap::get).filter(Objects::nonNull).toList());
     }
 
-    private void handleEtatTransitions(Formation formation, EtatFormation oldEtat) {
-        if (formation.getEtatFormation() == EtatFormation.PLANIFIE) {
-            synchronizeFormationCalendar(formation);
-        } else if (formation.getEtatFormation() == EtatFormation.VISIBLE && oldEtat != EtatFormation.VISIBLE) {
-            notifyTeachersOfApprovedFormation(formation);
-            notifyCUPOfApprovedFormation(formation);
-        } else if (formation.getEtatFormation() == EtatFormation.ANNULE) {
-            removeFormationCalendar(formation);
+    public void handleEtatTransitions(Formation formation, EtatFormation oldEtat) {
+        EtatFormation newEtat = formation.getEtatFormation();
+        if (newEtat == oldEtat) return;
+
+        log.info("Transition d'etat de la formation {} : {} -> {}", formation.getIdFormation(), oldEtat, newEtat);
+
+        try {
+            switch (newEtat) {
+                case ENREGISTRE -> notifyEnregistrement(formation);
+                case PLANIFIE -> notifyPlanification(formation);
+                case VISIBLE -> notifyVisibilite(formation);
+                case EN_COURS -> notifyEnCours(formation);
+                case ACHEVE -> notifyAcheve(formation);
+                case ANNULE -> notifyAnnulation(formation);
+                default -> log.debug("Aucune notification configuree pour l'etat {}", newEtat);
+            }
+        } catch (Exception ex) {
+            log.error("Erreur lors de la transition d'etat ({} -> {}) pour la formation {} : {}",
+                    oldEtat, newEtat, formation.getIdFormation(), ex.getMessage());
         }
     }
 
+    // ── ENREGISTRE : Notification admin + CUPs qu'une formation est enregistrée ──
+    private void notifyEnregistrement(Formation formation) {
+        // Notification admin
+        try {
+            String subject = "[D2F] Nouvelle Formation Enregistree : " + formation.getTitreFormation();
+            String html = buildStateNotificationHtml(formation, "Nouvelle Formation Enregistree",
+                    "Une nouvelle formation a ete enregistree et est en attente de planification.",
+                    "#1565c0");
+            outlookMailService.sendMail(ORGANIZER_EMAIL, subject, html);
+        } catch (Exception ex) {
+            log.warn("Echec notification admin enregistrement : {}", ex.getMessage());
+        }
+
+        // Notification CUPs pour planifier
+        notifyCUPOfNewFormation(formation);
+    }
+
+    // ── PLANIFIE : Création événements calendrier + notification participants ──
+    private void notifyPlanification(Formation formation) {
+        // Synchroniser le calendrier Outlook (crée les événements + réunions Teams)
+        synchronizeFormationCalendar(formation);
+
+        // Notification aux animateurs et participants
+        Set<String> recipientEmails = collectAllRecipientEmails(formation);
+        String subject = "[D2F] Formation Planifiee : " + formation.getTitreFormation();
+        String html = buildStateNotificationHtml(formation, "Formation Planifiee",
+                "La formation a ete planifiee. Les evenements ont ete ajoutes a votre calendrier Outlook.",
+                "#e65100");
+        sendEmailsSafely(recipientEmails, subject, html);
+    }
+
+    // ── VISIBLE : Notification que la formation est visible/publiée ──
+    private void notifyVisibilite(Formation formation) {
+        // Notification aux enseignants concernés
+        notifyTeachersOfApprovedFormation(formation);
+        // Notification aux CUPs
+        notifyCUPOfApprovedFormation(formation);
+        // Notification admin
+        try {
+            String subject = "[D2F] Formation Publiee : " + formation.getTitreFormation();
+            String html = buildStateNotificationHtml(formation, "Formation Publiee",
+                    "La formation est maintenant visible et ouverte aux inscriptions.",
+                    "#1b5e20");
+            outlookMailService.sendMail(ORGANIZER_EMAIL, subject, html);
+        } catch (Exception ex) {
+            log.warn("Echec notification admin visibilite : {}", ex.getMessage());
+        }
+    }
+
+    // ── EN_COURS : Notification que la formation a démarré ──
+    private void notifyEnCours(Formation formation) {
+        Set<String> recipientEmails = collectAllRecipientEmails(formation);
+        String subject = "[D2F] Formation En Cours : " + formation.getTitreFormation();
+        String html = buildStateNotificationHtml(formation, "Formation En Cours",
+                "La formation a demarre. Merci de confirmer votre presence a chaque seance.",
+                "#6a1b9a");
+        sendEmailsSafely(recipientEmails, subject, html);
+    }
+
+    // ── ACHEVE : Notification de fin de formation + demande évaluation ──
+    private void notifyAcheve(Formation formation) {
+        Set<String> recipientEmails = collectAllRecipientEmails(formation);
+        String subject = "[D2F] Formation Achevee : " + formation.getTitreFormation();
+        String html = buildStateNotificationHtml(formation, "Formation Achevee",
+                "La formation est terminee. Merci de remplir les evaluations et de confirmer les presences.",
+                "#00695c");
+        sendEmailsSafely(recipientEmails, subject, html);
+    }
+
+    // ── ANNULE : Notification d'annulation + suppression calendrier ──
+    private void notifyAnnulation(Formation formation) {
+        log.info("Notification d'annulation pour la formation {} - envoi emails aux concernes", formation.getIdFormation());
+
+        // 1. Collecter les emails AVANT de recharger depuis la DB
+        Set<String> recipientEmails = collectAllRecipientEmails(formation);
+        log.info("Destinataires email annulation : {}", recipientEmails);
+
+        // 2. Envoyer l'email d'annulation a tous les concernes
+        String subject = "[D2F] Annulation de Formation : " + formation.getTitreFormation();
+        String html = buildStateNotificationHtml(formation, "Annulation de Formation",
+                "La formation suivante a ete <strong>annulee</strong>. Les seances sont supprimees du calendrier.",
+                "#c62828");
+        sendEmailsSafely(recipientEmails, subject, html);
+
+        // 3. Supprimer les evenements Outlook calendar
+        try {
+            removeFormationCalendarEvents(formation);
+        } catch (Exception ex) {
+            log.error("Erreur lors de la suppression des evenements calendrier pour la formation {} : {}",
+                    formation.getIdFormation(), ex.getMessage());
+        }
+    }
+
+    // ── Notification CUP d'une nouvelle formation à planifier ──
+    private void notifyCUPOfNewFormation(Formation formation) {
+        if (formation.getUp() == null) return;
+        List<Enseignant> cups = enseignantRepository.findByUpAndCup(formation.getUp(), "O");
+        String subject = "[D2F] Formation a planifier : " + formation.getTitreFormation();
+        for (Enseignant cup : cups) {
+            if (cup.getMail() == null || cup.getMail().isBlank()) continue;
+            try {
+                String html = String.format(
+                        "<!DOCTYPE html><html><head><style>" +
+                        "body { font-family: 'Segoe UI', sans-serif; color: #333; }" +
+                        ".container { max-width: 600px; margin: 20px auto; padding: 20px; border: 1px solid #ddd; border-radius: 10px; background-color: #f9f9f9; }" +
+                        ".header { background-color: #1565c0; color: white; padding: 10px; text-align: center; border-radius: 10px 10px 0 0; }" +
+                        ".content { padding: 20px; }" +
+                        ".footer { margin-top: 20px; font-size: 0.8em; text-align: center; color: #777; }" +
+                        "strong { color: #1565c0; }" +
+                        "</style></head><body>" +
+                        "<div class='container'>" +
+                        "<div class='header'><h2>Action Requise : Planification</h2></div>" +
+                        "<div class='content'>" +
+                        "<p>Bonjour %s %s,</p>" +
+                        "<p>Une nouvelle formation a ete enregistree pour votre UP <strong>%s</strong>.</p>" +
+                        "<ul>" +
+                        "<li><strong>Titre :</strong> %s</li>" +
+                        "<li><strong>Domaine :</strong> %s</li>" +
+                        "<li><strong>Dates :</strong> %s - %s</li>" +
+                        "</ul>" +
+                        "<p>Merci de proceder a la planification des seances.</p>" +
+                        "</div>" +
+                        "<div class='footer'>" +
+                        "<p>Ceci est un e-mail automatique, merci de ne pas y repondre.</p>" +
+                        "<p>&copy; Esprit - Direction du Developpement et de la Formation</p>" +
+                        "</div></div></body></html>",
+                        cup.getPrenom(), cup.getNom(),
+                        formation.getUp().getLibelle(),
+                        formation.getTitreFormation(),
+                        formation.getDomaine() != null ? formation.getDomaine() : "N/A",
+                        formation.getDateDebut(),
+                        formation.getDateFin());
+                outlookMailService.sendMail(cup.getMail(), subject, html);
+            } catch (Exception ex) {
+                log.warn("Echec notification CUP {} : {}", cup.getMail(), ex.getMessage());
+            }
+        }
+    }
+
+    // ── Collecter tous les emails des personnes concernées par une formation ──
+    private Set<String> collectAllRecipientEmails(Formation formation) {
+        Set<String> emails = new HashSet<>();
+
+        // 1. Animateurs au niveau de la formation
+        if (formation.getAnimateurs() != null) {
+            Hibernate.initialize(formation.getAnimateurs());
+            formation.getAnimateurs().stream()
+                    .map(Enseignant::getMail)
+                    .filter(m -> m != null && !m.isBlank())
+                    .forEach(emails::add);
+            log.debug("Formation {} : {} animateurs", formation.getIdFormation(), formation.getAnimateurs().size());
+        }
+
+        // 2. Animateurs et participants au niveau des seances
+        if (formation.getSeances() != null) {
+            log.debug("collectAllRecipientEmails: {} seances pour la formation {}",
+                    formation.getSeances().size(), formation.getIdFormation());
+            for (SeanceFormation seance : formation.getSeances()) {
+                if (seance.getAnimateurs() != null) Hibernate.initialize(seance.getAnimateurs());
+                if (seance.getParticipants() != null) Hibernate.initialize(seance.getParticipants());
+
+                if (seance.getAnimateurs() != null) {
+                    seance.getAnimateurs().stream()
+                            .map(Enseignant::getMail)
+                            .filter(m -> m != null && !m.isBlank())
+                            .forEach(emails::add);
+                }
+                if (seance.getParticipants() != null) {
+                    seance.getParticipants().stream()
+                            .map(Enseignant::getMail)
+                            .filter(m -> m != null && !m.isBlank())
+                            .forEach(emails::add);
+                }
+            }
+        } else {
+            log.warn("collectAllRecipientEmails: aucune seance pour la formation {}", formation.getIdFormation());
+        }
+        if (formation.getExterneFormateurEmail() != null
+                && !formation.getExterneFormateurEmail().isBlank()) {
+            emails.add(formation.getExterneFormateurEmail());
+        }
+        emails.add(ORGANIZER_EMAIL);
+        log.info("collectAllRecipientEmails: {} destinataires collectes pour la formation {}",
+                emails.size(), formation.getIdFormation());
+        return emails;
+    }
+
+    // ── Envoyer des emails à une liste de destinataires avec gestion d'erreur individuelle ──
+    private void sendEmailsSafely(Set<String> emails, String subject, String html) {
+        log.info("sendEmailsSafely: envoi a {} destinataires, sujet={}", emails.size(), subject);
+        int successCount = 0;
+        int failCount = 0;
+        for (String email : emails) {
+            try {
+                outlookMailService.sendMail(email, subject, html);
+                successCount++;
+                log.info("Email envoye avec succes a {}", email);
+            } catch (Exception ex) {
+                failCount++;
+                log.warn("Echec envoi email a {} : {}", email, ex.getMessage());
+            }
+        }
+        log.info("sendEmailsSafely: termine - {} succes, {} echecs sur {} destinataires",
+                successCount, failCount, emails.size());
+    }
+
+    // ── Template HTML réutilisable pour les notifications de changement d'état ──
+    private String buildStateNotificationHtml(Formation formation, String title, String message, String color) {
+        StringBuilder seancesHtml = new StringBuilder();
+        if (formation.getSeances() != null) {
+            for (SeanceFormation seance : formation.getSeances()) {
+                seancesHtml.append(String.format(
+                        "<li>Le %s de %s a %s en salle %s</li>",
+                        seance.getDateSeance(),
+                        seance.getHeureDebut(),
+                        seance.getHeureFin(),
+                        seance.getSalle() != null ? seance.getSalle() : "A definir"));
+            }
+        }
+
+        // Animateurs
+        String animateursStr = "";
+        if (formation.getSeances() != null) {
+            animateursStr = formation.getSeances().stream()
+                    .flatMap(s -> s.getAnimateurs() != null ? s.getAnimateurs().stream() : java.util.stream.Stream.empty())
+                    .map(a -> a.getNom() + " " + a.getPrenom())
+                    .distinct()
+                    .collect(Collectors.joining(", "));
+        }
+        if (formation.getExterneFormateurNom() != null && !formation.getExterneFormateurNom().isBlank()) {
+            animateursStr += (animateursStr.isEmpty() ? "" : ", ") + formation.getExterneFormateurNom() + " " + formation.getExterneFormateurPrenom();
+        }
+
+        return "<!DOCTYPE html><html><head><style>" +
+                "body { font-family: 'Segoe UI', sans-serif; color: #333; }" +
+                ".container { max-width: 600px; margin: 20px auto; padding: 20px; border: 1px solid #ddd; border-radius: 10px; background-color: #f9f9f9; }" +
+                ".header { background-color: " + color + "; color: white; padding: 15px; text-align: center; border-radius: 10px 10px 0 0; }" +
+                ".content { padding: 20px; }" +
+                ".footer { margin-top: 20px; font-size: 0.8em; text-align: center; color: #777; }" +
+                "strong { color: " + color + "; }" +
+                "ul { padding-left: 20px; } li { margin-bottom: 5px; }" +
+                "</style></head><body>" +
+                "<div class='container'>" +
+                "<div class='header'><h2>" + title + "</h2></div>" +
+                "<div class='content'>" +
+                "<p>Bonjour,</p>" +
+                "<p>" + message + "</p>" +
+                "<ul>" +
+                "<li><strong>Titre :</strong> " + formation.getTitreFormation() + "</li>" +
+                "<li><strong>Domaine :</strong> " + (formation.getDomaine() != null ? formation.getDomaine() : "N/A") + "</li>" +
+                "<li><strong>Type :</strong> " + (formation.getTypeFormation() != null ? formation.getTypeFormation().toString() : "N/A") + "</li>" +
+                "<li><strong>Dates :</strong> " + formation.getDateDebut() + " - " + formation.getDateFin() + "</li>" +
+                (!animateursStr.isEmpty() ? "<li><strong>Animateurs :</strong> " + animateursStr + "</li>" : "") +
+                "</ul>" +
+                (!seancesHtml.isEmpty() ? "<p><strong>Detail des seances :</strong></p><ul>" + seancesHtml.toString() + "</ul>" : "") +
+                "</div>" +
+                "<div class='footer'>" +
+                "<p>Ceci est un e-mail automatique, merci de ne pas y repondre.</p>" +
+                "<p>&copy; Esprit - Direction du Developpement et de la Formation</p>" +
+                "</div></div></body></html>";
+    }
+
     private void syncPresencesForSeances(List<SeanceFormation> seances, List<String> partIds) {
-        if (partIds == null)
-            return;
         for (SeanceFormation sf : seances) {
             if (sf.getIdSeance() != null) {
-                syncPresencesForSeance(sf, partIds);
+                // Collecter tous les IDs : participants + animateurs de cette seance
+                Set<String> allIds = new HashSet<>();
+                if (partIds != null) allIds.addAll(partIds);
+                if (sf.getAnimateurs() != null) {
+                    sf.getAnimateurs().stream()
+                            .map(Enseignant::getId)
+                            .forEach(allIds::add);
+                }
+                syncPresencesForSeance(sf, allIds);
             }
         }
     }
@@ -378,18 +632,19 @@ public class FormationWorkflowService {
         }
     }
 
-    private void syncPresencesForSeance(SeanceFormation sf, List<String> newEnsIds) {
+    private void syncPresencesForSeance(SeanceFormation sf, Set<String> newEnsIds) {
         List<Presence> oldList = presenceRepository.findBySeanceFormation_IdSeance(sf.getIdSeance());
-        Set<String> newSet = new HashSet<>(newEnsIds);
 
+        // Supprimer les presences des enseignants qui ne sont plus concernes
         for (Presence p : oldList) {
             String ensId = p.getEnseignant().getId();
-            if (!newSet.contains(ensId)) {
+            if (!newEnsIds.contains(ensId)) {
                 presenceRepository.delete(p);
             }
         }
 
-        for (String id : newSet) {
+        // Ajouter les presences manquantes pour les nouveaux enseignants
+        for (String id : newEnsIds) {
             boolean exists = oldList.stream()
                     .anyMatch(p -> p.getEnseignant().getId().equals(id));
             if (!exists) {
@@ -463,16 +718,29 @@ public class FormationWorkflowService {
                 "<h3>Detail des seances :</h3>" + seancesHtml.toString() + "</body></html>";
     }
 
-    private String buildCancellationEmailContent(String formationTitle) {
-        return "<html><body><h1>Annulation : " + formationTitle + "</h1></body></html>";
-    }
-
     public void notifyTeachersOfApprovedFormation(Formation formation) {
-        List<Enseignant> allEnseignants = enseignantRepository.findAll();
-        String subject = "[D2F] Nouvelle Formation Disponible : " + formation.getTitreFormation();
-        String htmlContent = "Formation disponible : " + formation.getTitreFormation();
+        // Envoyer uniquement aux enseignants concernés (participants + animateurs), pas à tous
+        Set<String> recipientIds = new HashSet<>();
+        if (formation.getSeances() != null) {
+            for (SeanceFormation seance : formation.getSeances()) {
+                if (seance.getAnimateurs() != null) {
+                    seance.getAnimateurs().forEach(a -> recipientIds.add(a.getId()));
+                }
+                if (seance.getParticipants() != null) {
+                    seance.getParticipants().forEach(p -> recipientIds.add(p.getId()));
+                }
+            }
+        }
+        // Recharger les enseignants concernés depuis la base pour éviter les sessions Hibernate fermées
+        List<Enseignant> recipients = recipientIds.isEmpty()
+                ? Collections.emptyList()
+                : enseignantRepository.findAllById(recipientIds);
 
-        for (Enseignant e : allEnseignants) {
+        String subject = "[D2F] Nouvelle Formation Disponible : " + formation.getTitreFormation();
+        String htmlContent = buildApprovalNotificationHtml(formation);
+
+        for (Enseignant e : recipients) {
+            if (e.getMail() == null || e.getMail().isBlank()) continue;
             try {
                 outlookMailService.sendMail(e.getMail(), subject, htmlContent);
             } catch (Exception ex) {
@@ -481,17 +749,84 @@ public class FormationWorkflowService {
         }
     }
 
+    private String buildApprovalNotificationHtml(Formation formation) {
+        StringBuilder seancesHtml = new StringBuilder();
+        if (formation.getSeances() != null) {
+            for (SeanceFormation seance : formation.getSeances()) {
+                seancesHtml.append(String.format(
+                        "<li>Le %s de %s a %s en salle %s</li>",
+                        seance.getDateSeance(),
+                        seance.getHeureDebut(),
+                        seance.getHeureFin(),
+                        seance.getSalle() != null ? seance.getSalle() : "A definir"));
+            }
+        }
+        return "<!DOCTYPE html><html><head><style>" +
+                "body { font-family: 'Segoe UI', sans-serif; color: #333; }" +
+                ".container { max-width: 600px; margin: 20px auto; padding: 20px; border: 1px solid #ddd; border-radius: 10px; background-color: #f9f9f9; }" +
+                ".header { background-color: #1b5e20; color: white; padding: 10px; text-align: center; border-radius: 10px 10px 0 0; }" +
+                ".content { padding: 20px; }" +
+                ".footer { margin-top: 20px; font-size: 0.8em; text-align: center; color: #777; }" +
+                "strong { color: #1b5e20; }" +
+                "</style></head><body>" +
+                "<div class='container'>" +
+                "<div class='header'><h2>Nouvelle Formation Disponible</h2></div>" +
+                "<div class='content'>" +
+                "<p>Bonjour,</p>" +
+                "<p>Une nouvelle formation a ete approuvee et est maintenant visible :</p>" +
+                "<ul>" +
+                "<li><strong>Titre :</strong> " + formation.getTitreFormation() + "</li>" +
+                "<li><strong>Domaine :</strong> " + (formation.getDomaine() != null ? formation.getDomaine() : "N/A") + "</li>" +
+                "<li><strong>Dates :</strong> " + formation.getDateDebut() + " - " + formation.getDateFin() + "</li>" +
+                "</ul>" +
+                "<p><strong>Seances :</strong></p><ul>" + seancesHtml.toString() + "</ul>" +
+                "</div>" +
+                "<div class='footer'>" +
+                "<p>Ceci est un e-mail automatique, merci de ne pas y répondre.</p>" +
+                "<p>&copy; Esprit - Direction du Développement et de la Formation</p>" +
+                "</div></div></body></html>";
+    }
+
     public void notifyCUPOfApprovedFormation(Formation formation) {
         if (formation.getUp() == null)
             return;
         List<Enseignant> cups = enseignantRepository.findByUpAndCup(formation.getUp(), "O");
         String subject = "[D2F] Formation Approuvee : " + formation.getTitreFormation();
+        String htmlContent = String.format(
+                "<!DOCTYPE html><html><head><style>" +
+                "body { font-family: 'Segoe UI', sans-serif; color: #333; }" +
+                ".container { max-width: 600px; margin: 20px auto; padding: 20px; border: 1px solid #ddd; border-radius: 10px; background-color: #f9f9f9; }" +
+                ".header { background-color: #1565c0; color: white; padding: 10px; text-align: center; border-radius: 10px 10px 0 0; }" +
+                ".content { padding: 20px; }" +
+                ".footer { margin-top: 20px; font-size: 0.8em; text-align: center; color: #777; }" +
+                "strong { color: #1565c0; }" +
+                "</style></head><body>" +
+                "<div class='container'>" +
+                "<div class='header'><h2>Formation Approuvee</h2></div>" +
+                "<div class='content'>" +
+                "<p>Bonjour,</p>" +
+                "<p>La formation <strong>%s</strong> a ete approuvee et est maintenant visible.</p>" +
+                "<ul>" +
+                "<li><strong>Domaine :</strong> %s</li>" +
+                "<li><strong>Dates :</strong> %s - %s</li>" +
+                "<li><strong>UP :</strong> %s</li>" +
+                "</ul>" +
+                "</div>" +
+                "<div class='footer'>" +
+                "<p>Ceci est un e-mail automatique, merci de ne pas y répondre.</p>" +
+                "<p>&copy; Esprit - Direction du Développement et de la Formation</p>" +
+                "</div></div></body></html>",
+                formation.getTitreFormation(),
+                formation.getDomaine() != null ? formation.getDomaine() : "N/A",
+                formation.getDateDebut(),
+                formation.getDateFin(),
+                formation.getUp().getLibelle());
         for (Enseignant cup : cups) {
+            if (cup.getMail() == null || cup.getMail().isBlank()) continue;
             try {
-                outlookMailService.sendMail(cup.getMail(), subject,
-                        "Formation approuvee : " + formation.getTitreFormation());
+                outlookMailService.sendMail(cup.getMail(), subject, htmlContent);
             } catch (Exception ex) {
-                log.warn("Echec de notification CUP : {}", ex.getMessage());
+                log.warn("Echec de notification CUP {} : {}", cup.getMail(), ex.getMessage());
             }
         }
     }
@@ -541,10 +876,16 @@ public class FormationWorkflowService {
     private Set<String> buildEmailsSet(SeanceFormation freshSeance, Formation freshFormation) {
         Set<String> emails = new HashSet<>();
         if (freshSeance.getAnimateurs() != null) {
-            freshSeance.getAnimateurs().forEach(a -> emails.add(a.getMail()));
+            freshSeance.getAnimateurs().stream()
+                    .map(Enseignant::getMail)
+                    .filter(m -> m != null && !m.isBlank())
+                    .forEach(emails::add);
         }
         if (freshSeance.getParticipants() != null) {
-            freshSeance.getParticipants().forEach(p -> emails.add(p.getMail()));
+            freshSeance.getParticipants().stream()
+                    .map(Enseignant::getMail)
+                    .filter(m -> m != null && !m.isBlank())
+                    .forEach(emails::add);
         }
         if (freshFormation.getExterneFormateurEmail() != null
                 && !freshFormation.getExterneFormateurEmail().isBlank()) {
@@ -570,17 +911,22 @@ public class FormationWorkflowService {
                 .attendeeEmails(new ArrayList<>(emails))
                 .build();
 
-        if (!isNewEvent) {
-            OutlookCalendarService.EventCreationResult res = outlookCalendarService
-                    .updateEventInCalendarWithTeamsUrl(eventParams);
-            freshSeance.setOnlineMeetingUrl(res.getJoinUrl());
-            seanceFormationRepository.save(freshSeance);
-        } else {
-            OutlookCalendarService.EventCreationResult res = outlookCalendarService
-                    .addEventToCalendarAndReturnIdWithTeamsUrl(eventParams);
-            freshSeance.setCalendarEventId(res.getEventId());
-            freshSeance.setOnlineMeetingUrl(res.getJoinUrl());
-            seanceFormationRepository.save(freshSeance);
+        try {
+            if (!isNewEvent) {
+                OutlookCalendarService.EventCreationResult res = outlookCalendarService
+                        .updateEventInCalendarWithTeamsUrl(eventParams);
+                freshSeance.setOnlineMeetingUrl(res.getJoinUrl());
+                seanceFormationRepository.save(freshSeance);
+            } else {
+                OutlookCalendarService.EventCreationResult res = outlookCalendarService
+                        .addEventToCalendarAndReturnIdWithTeamsUrl(eventParams);
+                freshSeance.setCalendarEventId(res.getEventId());
+                freshSeance.setOnlineMeetingUrl(res.getJoinUrl());
+                seanceFormationRepository.save(freshSeance);
+            }
+        } catch (Exception ex) {
+            log.error("Erreur lors de la creation/mise a jour de l'evenement Outlook pour la seance {} : {}",
+                    freshSeance.getIdSeance(), ex.getMessage());
         }
 
         sendCalendarNotification(emails, isNewEvent, freshFormation);
@@ -592,11 +938,19 @@ public class FormationWorkflowService {
         String htmlContent = buildEmailContent(freshFormation);
 
         for (String email : emails) {
-            outlookMailService.sendMail(email, mailSubject, htmlContent);
+            try {
+                outlookMailService.sendMail(email, mailSubject, htmlContent);
+            } catch (Exception ex) {
+                log.warn("Echec de l'envoi de la notification calendar a {} : {}", email, ex.getMessage());
+            }
         }
     }
 
     public void removeSeanceFromCalendar(SeanceFormation seance) {
+        // Initialiser les collections lazy
+        if (seance.getAnimateurs() != null) Hibernate.initialize(seance.getAnimateurs());
+        if (seance.getParticipants() != null) Hibernate.initialize(seance.getParticipants());
+
         if (seance.getCalendarEventId() != null) {
             try {
                 outlookCalendarService.deleteEventInCalendar(ORGANIZER_EMAIL, seance.getCalendarEventId());
@@ -607,13 +961,19 @@ public class FormationWorkflowService {
         try {
             String mailSubject = String.format("[D2F] Annulation de Seance : %s",
                     seance.getFormation().getTitreFormation());
-            String htmlContent = buildCancellationEmailContent(seance.getFormation().getTitreFormation());
+            String htmlContent = buildCancellationSeanceHtml(seance);
 
             Set<String> emails = new HashSet<>();
             if (seance.getAnimateurs() != null)
-                seance.getAnimateurs().forEach(a -> emails.add(a.getMail()));
+                seance.getAnimateurs().stream()
+                        .map(Enseignant::getMail)
+                        .filter(m -> m != null && !m.isBlank())
+                        .forEach(emails::add);
             if (seance.getParticipants() != null)
-                seance.getParticipants().forEach(p -> emails.add(p.getMail()));
+                seance.getParticipants().stream()
+                        .map(Enseignant::getMail)
+                        .filter(m -> m != null && !m.isBlank())
+                        .forEach(emails::add);
 
             if (seance.getFormation().getExterneFormateurEmail() != null
                     && !seance.getFormation().getExterneFormateurEmail().isBlank()) {
@@ -622,28 +982,164 @@ public class FormationWorkflowService {
             emails.add(ORGANIZER_EMAIL);
 
             for (String email : emails) {
-                outlookMailService.sendMail(email, mailSubject, htmlContent);
+                if (email == null || email.isBlank()) continue;
+                try {
+                    outlookMailService.sendMail(email, mailSubject, htmlContent);
+                } catch (Exception mailEx) {
+                    log.warn("Echec envoi mail d'annulation a {} : {}", email, mailEx.getMessage());
+                }
             }
         } catch (Exception ex) {
             log.error("Erreur lors de l'envoi des mails d'annulation : {}", ex.getMessage());
         }
     }
 
+    private String buildCancellationSeanceHtml(SeanceFormation seance) {
+        Formation formation = seance.getFormation();
+        return "<!DOCTYPE html><html><head><style>" +
+                "body { font-family: 'Segoe UI', sans-serif; color: #333; }" +
+                ".container { max-width: 600px; margin: 20px auto; padding: 20px; border: 1px solid #ddd; border-radius: 10px; background-color: #f9f9f9; }" +
+                ".header { background-color: #c62828; color: white; padding: 10px; text-align: center; border-radius: 10px 10px 0 0; }" +
+                ".content { padding: 20px; }" +
+                ".footer { margin-top: 20px; font-size: 0.8em; text-align: center; color: #777; }" +
+                "strong { color: #c62828; }" +
+                "</style></head><body>" +
+                "<div class='container'>" +
+                "<div class='header'><h2>Annulation de Seance</h2></div>" +
+                "<div class='content'>" +
+                "<p>Bonjour,</p>" +
+                "<p>Nous vous informons que la seance suivante a ete <strong>annulee</strong> :</p>" +
+                "<ul>" +
+                "<li><strong>Formation :</strong> " + formation.getTitreFormation() + "</li>" +
+                "<li><strong>Date :</strong> " + seance.getDateSeance() + "</li>" +
+                "<li><strong>Heure :</strong> " + seance.getHeureDebut() + " - " + seance.getHeureFin() + "</li>" +
+                "<li><strong>Salle :</strong> " + (seance.getSalle() != null ? seance.getSalle() : "A definir") + "</li>" +
+                "</ul>" +
+                "</div>" +
+                "<div class='footer'>" +
+                "<p>Ceci est un e-mail automatique, merci de ne pas y repondre.</p>" +
+                "<p>&copy; Esprit - Direction du Developpement et de la Formation</p>" +
+                "</div></div></body></html>";
+    }
+
     public void removeFormationCalendar(Formation formation) {
         Formation freshFormation = formationRepository.findById(formation.getIdFormation())
                 .orElseThrow(() -> new IllegalStateException("La formation a ete supprimee."));
 
-        try {
-            String subject = "[D2F] Annulation Globale : " + freshFormation.getTitreFormation();
-            outlookMailService.sendMail(ORGANIZER_EMAIL, subject,
-                    "Formation annullee : " + freshFormation.getTitreFormation());
-        } catch (Exception ex) {
-            log.warn("Impossible d'envoyer la notification d'annulation : {}", ex.getMessage());
+        // Initialiser les collections lazy avant de les utiliser
+        if (freshFormation.getSeances() != null) {
+            Hibernate.initialize(freshFormation.getSeances());
+            for (SeanceFormation seance : freshFormation.getSeances()) {
+                if (seance.getAnimateurs() != null) Hibernate.initialize(seance.getAnimateurs());
+                if (seance.getParticipants() != null) Hibernate.initialize(seance.getParticipants());
+            }
         }
 
-        for (SeanceFormation seance : freshFormation.getSeances()) {
-            removeSeanceFromCalendar(seance);
+        // Collecter tous les emails des personnes concernees
+        Set<String> allRecipientEmails = new HashSet<>();
+        if (freshFormation.getSeances() != null) {
+            for (SeanceFormation seance : freshFormation.getSeances()) {
+                if (seance.getAnimateurs() != null) {
+                    seance.getAnimateurs().stream()
+                            .map(Enseignant::getMail)
+                            .filter(m -> m != null && !m.isBlank())
+                            .forEach(allRecipientEmails::add);
+                }
+                if (seance.getParticipants() != null) {
+                    seance.getParticipants().stream()
+                            .map(Enseignant::getMail)
+                            .filter(m -> m != null && !m.isBlank())
+                            .forEach(allRecipientEmails::add);
+                }
+            }
         }
+        if (freshFormation.getExterneFormateurEmail() != null
+                && !freshFormation.getExterneFormateurEmail().isBlank()) {
+            allRecipientEmails.add(freshFormation.getExterneFormateurEmail());
+        }
+        allRecipientEmails.add(ORGANIZER_EMAIL);
+
+        // Envoyer un email global d'annulation a tous les concernes
+        String subject = "[D2F] Annulation de Formation : " + freshFormation.getTitreFormation();
+        String htmlContent = buildCancellationFormationHtml(freshFormation);
+        for (String email : allRecipientEmails) {
+            try {
+                outlookMailService.sendMail(email, subject, htmlContent);
+            } catch (Exception ex) {
+                log.warn("Echec envoi mail d'annulation formation a {} : {}", email, ex.getMessage());
+            }
+        }
+
+        // Supprimer les evenements Outlook calendar pour chaque seance
+        for (SeanceFormation seance : freshFormation.getSeances()) {
+            if (seance.getCalendarEventId() != null) {
+                try {
+                    outlookCalendarService.deleteEventInCalendar(ORGANIZER_EMAIL, seance.getCalendarEventId());
+                } catch (Exception ex) {
+                    log.error("Erreur lors de la suppression de l'evenement calendar pour seance {} : {}",
+                            seance.getIdSeance(), ex.getMessage());
+                }
+            }
+        }
+    }
+
+    /**
+     * Supprime uniquement les evenements calendrier Outlook d'une formation (sans envoyer d'emails).
+     * Utilise par notifyAnnulation qui gere les emails separement.
+     */
+    private void removeFormationCalendarEvents(Formation formation) {
+        if (formation.getSeances() == null) return;
+        for (SeanceFormation seance : formation.getSeances()) {
+            if (seance.getCalendarEventId() != null) {
+                try {
+                    outlookCalendarService.deleteEventInCalendar(ORGANIZER_EMAIL, seance.getCalendarEventId());
+                    log.info("Evenement calendrier supprime pour la seance {} de la formation {}",
+                            seance.getIdSeance(), formation.getIdFormation());
+                } catch (Exception ex) {
+                    log.error("Erreur lors de la suppression de l'evenement calendar pour seance {} : {}",
+                            seance.getIdSeance(), ex.getMessage());
+                }
+            }
+        }
+    }
+
+    private String buildCancellationFormationHtml(Formation formation) {
+        StringBuilder seancesHtml = new StringBuilder();
+        if (formation.getSeances() != null) {
+            for (SeanceFormation seance : formation.getSeances()) {
+                seancesHtml.append(String.format(
+                        "<li>Le %s de %s a %s en salle %s</li>",
+                        seance.getDateSeance(),
+                        seance.getHeureDebut(),
+                        seance.getHeureFin(),
+                        seance.getSalle() != null ? seance.getSalle() : "A definir"));
+            }
+        }
+        return "<!DOCTYPE html><html><head><style>" +
+                "body { font-family: 'Segoe UI', sans-serif; color: #333; }" +
+                ".container { max-width: 600px; margin: 20px auto; padding: 20px; border: 1px solid #ddd; border-radius: 10px; background-color: #f9f9f9; }" +
+                ".header { background-color: #c62828; color: white; padding: 10px; text-align: center; border-radius: 10px 10px 0 0; }" +
+                ".content { padding: 20px; }" +
+                ".footer { margin-top: 20px; font-size: 0.8em; text-align: center; color: #777; }" +
+                "strong { color: #c62828; }" +
+                "</style></head><body>" +
+                "<div class='container'>" +
+                "<div class='header'><h2>Annulation de Formation</h2></div>" +
+                "<div class='content'>" +
+                "<p>Bonjour,</p>" +
+                "<p>Nous vous informons que la formation suivante a ete <strong>annulee</strong> :</p>" +
+                "<ul>" +
+                "<li><strong>Titre :</strong> " + formation.getTitreFormation() + "</li>" +
+                "<li><strong>Domaine :</strong> " + (formation.getDomaine() != null ? formation.getDomaine() : "N/A") + "</li>" +
+                "<li><strong>Dates prevues :</strong> " + formation.getDateDebut() + " - " + formation.getDateFin() + "</li>" +
+                "</ul>" +
+                "<p><strong>Seances annulees :</strong></p><ul>" + seancesHtml.toString() + "</ul>" +
+                "<p>Veuillez ne pas vous presenter aux seances susmentionnees.</p>" +
+                "</div>" +
+                "<div class='footer'>" +
+                "<p>Ceci est un e-mail automatique, merci de ne pas y repondre.</p>" +
+                "<p>&copy; Esprit - Direction du Developpement et de la Formation</p>" +
+                "</div></div></body></html>";
     }
 
     public FormationDTO getFormationWorkflowById(Long formationId) {
@@ -758,6 +1254,10 @@ public class FormationWorkflowService {
         if (formation.getSeances() != null) {
             dto.setSeances(formation.getSeances().stream().map(this::mapSeanceToDTO).toList());
         }
+        if (formation.getAnimateurs() != null) {
+            Hibernate.initialize(formation.getAnimateurs());
+            dto.setAnimateurs(formation.getAnimateurs().stream().map(this::mapEnseignantToDTO).toList());
+        }
         if (formation.getDepartement() != null) {
             DeptDTO deptDTO = new DeptDTO();
             deptDTO.setId(formation.getDepartement().getId());
@@ -825,8 +1325,10 @@ public class FormationWorkflowService {
                     formation.getTypeFormation() != null ? formation.getTypeFormation().toString() : "INTERNE");
             dto.setDateDebut(formation.getDateDebut());
             dto.setDateFin(formation.getDateFin());
-            dto.setEtatFormation(formation.getEtatFormation().toString());
-            dto.setCoutFormation(formation.getCoutFormation());
+            // DTO uses primitive float/int — guard against null entity fields to
+            // avoid auto-unboxing NPE on legacy/incomplete rows.
+            dto.setEtatFormation(formation.getEtatFormation() != null ? formation.getEtatFormation().toString() : "NOUVEAU");
+            dto.setCoutFormation(formation.getCoutFormation() != null ? formation.getCoutFormation() : 0f);
             dto.setOrganismeRefExterne(formation.getOrganismeRefExterne());
             dto.setChargeHoraireGlobal(formation.getChargeHoraireGlobal() != null ? formation.getChargeHoraireGlobal().intValue() : 0);
             dto.setPeriodCode(formation.getPeriodCode() != null ? formation.getPeriodCode().name() : null);

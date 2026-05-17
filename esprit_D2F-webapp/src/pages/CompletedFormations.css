@@ -1,0 +1,144 @@
+/* ─── CompletedFormations.css ──────────────────────────────────────────── */
+
+.completed-page {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* ── Toolbar ───────────────────────────────────────────────────────────── */
+.completed-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+  padding: 14px 20px;
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  border: 1px solid rgba(0, 0, 0, 0.07);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.completed-toolbar-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #5a6373;
+}
+
+.completed-toolbar .ant-select {
+  border-radius: 8px !important;
+}
+
+/* ── Table wrapper ─────────────────────────────────────────────────────── */
+.completed-table-card {
+  border-radius: var(--radius-lg);
+  border: 1px solid rgba(0, 0, 0, 0.07);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 4px 12px rgba(0, 0, 0, 0.03);
+  overflow: hidden;
+}
+
+/* ── Boutons actions ───────────────────────────────────────────────────── */
+.completed-btn-generate {
+  border-radius: 8px !important;
+  font-weight: 500 !important;
+  transition: all 0.25s ease !important;
+}
+
+.completed-btn-generate:not(:disabled) {
+  background: linear-gradient(135deg, #B51200 0%, #9a0f00 100%) !important;
+  border-color: #B51200 !important;
+  box-shadow: 0 4px 12px rgba(181, 18, 0, 0.3) !important;
+}
+
+.completed-btn-generate:not(:disabled):hover {
+  background: linear-gradient(135deg, #9a0f00 0%, #7a0000 100%) !important;
+  box-shadow: 0 6px 16px rgba(181, 18, 0, 0.4) !important;
+  transform: translateY(-1px);
+}
+
+.completed-btn-view {
+  border-radius: 8px !important;
+  font-weight: 500 !important;
+  border-color: #059669 !important;
+  color: #059669 !important;
+  transition: all 0.25s ease !important;
+}
+
+.completed-btn-view:hover {
+  background: #ecfdf5 !important;
+  border-color: #047857 !important;
+  color: #047857 !important;
+}
+
+.completed-btn-add {
+  border-radius: 8px !important;
+  font-weight: 500 !important;
+  border-color: #2563eb !important;
+  color: #2563eb !important;
+  transition: all 0.25s ease !important;
+}
+
+.completed-btn-add:hover {
+  background: #eff6ff !important;
+  border-color: #1d4ed8 !important;
+  color: #1d4ed8 !important;
+}
+
+.completed-btn-pdf {
+  border-radius: 8px !important;
+  font-weight: 500 !important;
+  border-color: #7c3aed !important;
+  color: #7c3aed !important;
+  transition: all 0.25s ease !important;
+}
+
+.completed-btn-pdf:hover {
+  background: #f5f3ff !important;
+  border-color: #6d28d9 !important;
+  color: #6d28d9 !important;
+}
+
+/* ── Drawer footer ─────────────────────────────────────────────────────── */
+.completed-drawer-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.completed-drawer-footer .ant-btn {
+  border-radius: 8px !important;
+  font-weight: 500 !important;
+}
+
+.completed-drawer-footer .ant-btn-primary {
+  background: linear-gradient(135deg, #B51200 0%, #9a0f00 100%) !important;
+  border-color: #B51200 !important;
+  box-shadow: 0 4px 12px rgba(181, 18, 0, 0.3) !important;
+}
+
+/* ── Stat cards ────────────────────────────────────────────────────────── */
+.completed-stat-card {
+  border-radius: 14px;
+  border: 1px solid rgba(0, 0, 0, 0.07);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.completed-stat-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  transform: translateY(-2px);
+}
+
+/* ── Responsive ────────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .completed-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 12px;
+    border-radius: 12px;
+  }
+
+  .completed-toolbar .ant-select {
+    width: 100% !important;
+  }
+}

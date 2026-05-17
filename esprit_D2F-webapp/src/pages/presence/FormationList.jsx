@@ -12,6 +12,7 @@ import {
   Select,
   DatePicker,
   Button,
+  Empty,
 } from "antd";
 import {
   ReadOutlined,
@@ -20,6 +21,8 @@ import {
 } from "@ant-design/icons";
 import FormationWorkflowService from "../../services/FormationWorkflowService";
 import { AuthContext } from "../../context/AuthContext";
+import { AppPageHeader } from "../../theme";
+import "./FormationList.css";
 
 const { Content } = Layout;
 const { Title, Text } = Typography;
@@ -92,14 +95,15 @@ const FormationList = () => {
   };
 
   return (
-    <Content style={{ padding: 24 }}>
-      <Title level={2} style={{ textAlign: "center" }}>
-        <ReadOutlined style={{ marginRight: 8 }} />
-        {user.role === "D2F" ? "Toutes les Formations" : "Mes Formations"}
-      </Title>
+    <Content className="fl-content">
+      <AppPageHeader
+        icon={<ReadOutlined />}
+        title={user.role === "D2F" ? "Toutes les Formations" : "Mes Formations"}
+        subtitle="Consulter et gérer les formations par session d'animation"
+      />
 
       {/* Filtres */}
-      <Row gutter={[16, 16]} justify="center" style={{ marginBottom: 24 }}>
+      <Row gutter={[16, 16]} justify="center" className="fl-filter-row">
         <Col xs={24} sm={12} md={6}>
           <Input
             placeholder="Titre"
@@ -170,16 +174,21 @@ const FormationList = () => {
         {filtered.map((f) => (
           <Col xs={24} sm={12} md={8} lg={6} key={f.idFormation}>
             <Card
+              className="fl-card"
               hoverable
-              onClick={() =>
-                navigate(`/home/animateur-formations/${f.idFormation}`)
-              }
+              onClick={() => navigate(`/home/animateur-formations/${f.idFormation}`)}
+              tabIndex={0}
+              role="button"
+              aria-label={`Voir la formation : ${f.titreFormation}`}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") navigate(`/home/animateur-formations/${f.idFormation}`);
+              }}
             >
               <Card.Meta
-                title={f.titreFormation}
+                title={<span className="fl-card-title">{f.titreFormation}</span>}
                 description={
-                  <Text type="secondary">
-                    <CalendarOutlined style={{ marginRight: 4 }} />
+                  <Text className="fl-card-meta">
+                    <CalendarOutlined className="fl-card-calendar-icon" />
                     Du {dayjs(f.dateDebut).format("DD/MM/YYYY")} au{" "}
                     {dayjs(f.dateFin).format("DD/MM/YYYY")}
                   </Text>
@@ -189,6 +198,10 @@ const FormationList = () => {
           </Col>
         ))}
       </Row>
+
+      {filtered.length === 0 && (
+        <Empty className="fl-empty" description="Aucun résultat pour ces filtres" />
+      )}
     </Content>
   );
 };

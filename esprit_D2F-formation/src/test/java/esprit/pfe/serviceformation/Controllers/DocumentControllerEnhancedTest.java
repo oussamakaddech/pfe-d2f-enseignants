@@ -106,7 +106,7 @@ class DocumentControllerEnhancedTest {
                 .param("pathType", "T1")
                 .param("nomDocument", "D1")
                 .param("obligation", "true"))
-                .andExpect(status().isInternalServerError());
+                .andExpect(status().isBadRequest());
     }
 
     @Test

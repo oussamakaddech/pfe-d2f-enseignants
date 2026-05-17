@@ -120,7 +120,7 @@ export default function FormationsByTypeFiltered() {
   if (loadingOptions) {
     return (
       <div style={{ textAlign: "center", padding: 50 }}>
-        <Spin tip="Chargement des filtres…" />
+        <Spin tip="Chargement des filtres…"><div /></Spin>
       </div>
     );
   }
@@ -220,7 +220,7 @@ export default function FormationsByTypeFiltered() {
       {/* Si on charge les données, on affiche un spinner */}
       {loadingData ? (
         <div style={{ textAlign: "center", padding: 50 }}>
-          <Spin tip="Chargement des données…" />
+          <Spin tip="Chargement des données…"><div /></Spin>
         </div>
       ) : dataByType ? (
         <Row gutter={[16, 16]}>

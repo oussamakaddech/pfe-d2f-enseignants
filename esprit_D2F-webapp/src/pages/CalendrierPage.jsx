@@ -5,8 +5,17 @@ import { Calendar, dateFnsLocalizer } from "react-big-calendar";
 import { format, parse, startOfWeek, getDay } from "date-fns";
 import { fr } from "date-fns/locale/fr";
 import "react-big-calendar/lib/css/react-big-calendar.css";
-import { Modal, Button, Steps, Spin, Space } from "antd";
+import { Modal, Button, Steps, Spin, Space, Tag, Row, Col, Card } from "antd";
+import {
+  CalendarOutlined,
+  LeftOutlined,
+  RightOutlined,
+  CheckOutlined,
+  PlusCircleOutlined,
+} from "@ant-design/icons";
 import useAppNotification from "../hooks/useAppNotification";
+import { AppPageHeader } from "../theme";
+import "./CalendrierPage.css";
 
 import FormationWorkflowForm from "./FormationWorkflowForm";
 import FormationWorkflowService from "../services/FormationWorkflowService";
@@ -179,8 +188,12 @@ export default function CalendrierPage() {
   };
 
   return (
-    <div style={{ padding: "20px" }}>
-      <h2>📅 Calendrier des Formations</h2>
+    <div>
+      <AppPageHeader
+        icon={<CalendarOutlined />}
+        title="Calendrier des Formations"
+        subtitle="Planification et suivi des sessions de formation"
+      />
 
       {isLoading && (
         <div style={{ display: "flex", justifyContent: "center", marginBottom: 16 }}>
@@ -188,7 +201,19 @@ export default function CalendrierPage() {
         </div>
       )}
 
-      <div style={{ height: 600, marginTop: 20, marginBottom: 20 }}>
+      {/* Légende des états */}
+      <Card size="small" className="calendrier-legend-card">
+        <Space wrap size={12}>
+          <span className="calendrier-legend-label">Légende :</span>
+          <Tag color="#f0ad4e" className="calendrier-legend-tag">Enregistré</Tag>
+          <Tag color="#5bc0de" className="calendrier-legend-tag">Planifié</Tag>
+          <Tag color="#5cb85c" className="calendrier-legend-tag">En cours</Tag>
+          <Tag color="#777" className="calendrier-legend-tag">Achevé</Tag>
+          <Tag color="#d9534f" className="calendrier-legend-tag">Annulé</Tag>
+        </Space>
+      </Card>
+
+      <div className="calendrier-wrapper">
         <Calendar
           localizer={localizer}
           events={events}
@@ -217,17 +242,23 @@ export default function CalendrierPage() {
             ? steps[wizardStep].title
             : selectedEvent
             ? selectedEvent.details.seance
-              ? "📝 Détails de la Séance"
-              : "📝 Détails de la Formation"
-            : "➕ Créer une Formation"
+              ? "Détails de la Séance"
+              : "Détails de la Formation"
+            : "Créer une Formation"
         }
-        width={600}
+        width={680}
+        styles={{ body: { maxHeight: "72vh", overflowY: "auto", padding: "16px 24px" } }}
         footer={
           showWizard ? (
             <Space>
               {wizardStep > 0 && (
-                <Button onClick={() => setWizardStep(wizardStep - 1)} disabled={isLoading}>
-                  ⬅️ Précédent
+                <Button
+                  onClick={() => setWizardStep(wizardStep - 1)}
+                  disabled={isLoading}
+                  icon={<LeftOutlined />}
+                  className="calendrier-btn-prev"
+                >
+                  Précédent
                 </Button>
               )}
               {wizardStep < steps.length - 1 && (
@@ -239,16 +270,25 @@ export default function CalendrierPage() {
                     (wizardStep === 1 && !docsAdded) ||
                     isLoading
                   }
+                  icon={<RightOutlined />}
+                  iconPosition="end"
+                  className="calendrier-btn-next"
                 >
-                  ➡️ Suivant
+                  Suivant
                 </Button>
               )}
               {wizardStep === steps.length - 1 && (
-                <Button type="primary" onClick={handleClose} disabled={isLoading}>
-                  ✅ Terminer
+                <Button
+                  type="primary"
+                  onClick={handleClose}
+                  disabled={isLoading}
+                  icon={<CheckOutlined />}
+                  className="calendrier-btn-finish"
+                >
+                  Terminer
                 </Button>
               )}
-              <Button onClick={handleClose} disabled={isLoading}>
+              <Button onClick={handleClose} disabled={isLoading} className="calendrier-btn-cancel">
                 Annuler
               </Button>
             </Space>

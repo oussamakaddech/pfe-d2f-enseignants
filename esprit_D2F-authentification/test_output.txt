@@ -1,0 +1,199 @@
+﻿[INFO] Scanning for projects...
+[INFO] 
+[INFO] ----------------< esprit.pfe:service-authentification >-----------------
+[INFO] Building auth 0.0.1-SNAPSHOT
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] --- jacoco:0.8.12:prepare-agent (default) @ service-authentification ---
+[INFO] argLine set to -javaagent:C:\\Users\\oussama\\.m2\\repository\\org\\jacoco\\org.jacoco.agent\\0.8.12\\org.jacoco.agent-0.8.12-runtime.jar=destfile=C:\\Users\\oussama\\Desktop\\pfe-d2f-enseignants\\esprit_D2F-authentification\\target\\jacoco.exec
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ service-authentification ---
+[INFO] Copying 4 resources from src\main\resources to target\classes
+[INFO] Copying 6 resources from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.13.0:compile (default-compile) @ service-authentification ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ service-authentification ---
+[INFO] Copying 1 resource from src\test\resources to target\test-classes
+[INFO] 
+[INFO] --- compiler:3.13.0:testCompile (default-testCompile) @ service-authentification ---
+[INFO] Nothing to compile - all classes are up to date.
+[INFO] 
+[INFO] --- surefire:3.5.2:test (default-test) @ service-authentification ---
+[INFO] Using auto detected provider org.apache.maven.surefire.junitplatform.JUnitPlatformProvider
+[INFO] 
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] Running esprit.pfe.auth.AuthApplicationTest
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.097 s -- in esprit.pfe.auth.AuthApplicationTest
+[INFO] Running esprit.pfe.auth.config.DataSeederConfigTest
+./mvnw : Java HotSpot(TM) 64-Bit Server VM warning: Sharing is only supported for boot loader classes because bootstrap classpath has been appended
+Au caractère Ligne:1 : 81
++ ... f-enseignants/esprit_D2F-authentification" ; ./mvnw test 2>&1 | Out-F ...
++                                                  ~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Java HotSpot(TM...s been appended:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 2.849 s -- in esprit.pfe.auth.config.DataSeederConfigTest
+[INFO] Running esprit.pfe.auth.config.OpenApiConfigTest
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.026 s -- in esprit.pfe.auth.config.OpenApiConfigTest
+[INFO] Running esprit.pfe.auth.controllers.AccountControllerTest
+18:39:46.827 [main] INFO org.springframework.test.context.support.AnnotationConfigContextLoaderUtils -- Could not detect default configuration classes for test class [esprit.pfe.auth.controllers.AccountControllerTest]: AccountControllerTest does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+18:39:47.569 [main] INFO org.springframework.boot.test.context.SpringBootTestContextBootstrapper -- Found @SpringBootConfiguration esprit.pfe.auth.AuthApplication for test class esprit.pfe.auth.controllers.AccountControllerTest
+18:39:47.966 [main] INFO org.springframework.boot.devtools.restart.RestartApplicationListener -- Restart disabled due to context in which it is running
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+
+ :: Spring Boot ::                (v3.4.2)
+
+2026-05-13T18:39:49.381+01:00  INFO 16140 --- [           main] e.p.a.controllers.AccountControllerTest  : Starting AccountControllerTest using Java 17.0.12 with PID 16140 (started by oussama in C:\Users\oussama\Desktop\pfe-d2f-enseignants\esprit_D2F-authentification)
+2026-05-13T18:39:49.383+01:00  INFO 16140 --- [           main] e.p.a.controllers.AccountControllerTest  : No active profile set, falling back to 1 default profile: "default"
+2026-05-13T18:39:52.834+01:00  INFO 16140 --- [           main] o.s.b.t.m.w.SpringBootMockServletContext : Initializing Spring TestDispatcherServlet ''
+2026-05-13T18:39:52.834+01:00  INFO 16140 --- [           main] o.s.t.web.servlet.TestDispatcherServlet  : Initializing Servlet ''
+2026-05-13T18:39:52.836+01:00  INFO 16140 --- [           main] o.s.t.web.servlet.TestDispatcherServlet  : Completed initialization in 2 ms
+2026-05-13T18:39:52.890+01:00  INFO 16140 --- [           main] e.p.a.controllers.AccountControllerTest  : Started AccountControllerTest in 4.977 seconds (process running for 11.7)
+2026-05-13T18:39:53.289+01:00  WARN 16140 --- [           main] ration$PageModule$WarningLoggingModifier : Serializing PageImpl instances as-is is not supported, meaning that there is no guarantee about the stability of the resulting JSON structure!
+	For a stable JSON structure, please use Spring Data's PagedModel (globally via @EnableSpringDataWebSupport(pageSerializationMode = VIA_DTO))
+	or Spring HATEOAS and Spring Data's PagedResourcesAssembler as documented in https://docs.spring.io/spring-data/commons/reference/repositories/core-extensions.html#core.web.pageables.
+
+[INFO] Tests run: 8, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 7.377 s -- in esprit.pfe.auth.controllers.AccountControllerTest
+[INFO] Running esprit.pfe.auth.entities.ConfirmationKeyTest
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.011 s -- in esprit.pfe.auth.entities.ConfirmationKeyTest
+[INFO] Running esprit.pfe.auth.entities.EntitiesTest
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.040 s -- in esprit.pfe.auth.entities.EntitiesTest
+[INFO] Running esprit.pfe.auth.error.CustomErrorResponseTest
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.007 s -- in esprit.pfe.auth.error.CustomErrorResponseTest
+[INFO] Running esprit.pfe.auth.error.CustomExceptionHandlerTest
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.175 s -- in esprit.pfe.auth.error.CustomExceptionHandlerTest
+[INFO] Running esprit.pfe.auth.error.ExceptionStatusTest
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.012 s -- in esprit.pfe.auth.error.ExceptionStatusTest
+[INFO] Running esprit.pfe.auth.error.ExceptionsTest
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.005 s -- in esprit.pfe.auth.error.ExceptionsTest
+[INFO] Running esprit.pfe.auth.HashGenTest
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.170 s -- in esprit.pfe.auth.HashGenTest
+[INFO] Running esprit.pfe.auth.HashTest
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.140 s -- in esprit.pfe.auth.HashTest
+[INFO] Running esprit.pfe.auth.payload.request.PayloadsTest
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.019 s -- in esprit.pfe.auth.payload.request.PayloadsTest
+[INFO] Running esprit.pfe.auth.payload.response.ResponsePayloadsTest
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.003 s -- in esprit.pfe.auth.payload.response.ResponsePayloadsTest
+[INFO] Running esprit.pfe.auth.security.AuthorizationMatrixTest
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.010 s -- in esprit.pfe.auth.security.AuthorizationMatrixTest
+[INFO] Running esprit.pfe.auth.security.DefaultCredentialsManagerTest
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.011 s -- in esprit.pfe.auth.security.DefaultCredentialsManagerTest
+[INFO] Running esprit.pfe.auth.security.PiiSafeLoggerTest
+[ERROR] Tests run: 16, Failures: 1, Errors: 0, Skipped: 0, Time elapsed: 0.263 s <<< FAILURE! -- in esprit.pfe.auth.security.PiiSafeLoggerTest
+[ERROR] esprit.pfe.auth.security.PiiSafeLoggerTest.testSanitizeSSN -- Time elapsed: 0.008 s <<< FAILURE!
+org.opentest4j.AssertionFailedError: expected: <My SSN is *** or ***> but was: <My SSN is 123456789 or ***>
+	at org.junit.jupiter.api.AssertionFailureBuilder.build(AssertionFailureBuilder.java:151)
+	at org.junit.jupiter.api.AssertionFailureBuilder.buildAndThrow(AssertionFailureBuilder.java:132)
+	at org.junit.jupiter.api.AssertEquals.failNotEqual(AssertEquals.java:197)
+	at org.junit.jupiter.api.AssertEquals.assertEquals(AssertEquals.java:182)
+	at org.junit.jupiter.api.AssertEquals.assertEquals(AssertEquals.java:177)
+	at org.junit.jupiter.api.Assertions.assertEquals(Assertions.java:1145)
+	at esprit.pfe.auth.security.PiiSafeLoggerTest.testSanitizeSSN(PiiSafeLoggerTest.java:34)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:568)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1511)
+	at java.base/java.util.ArrayList.forEach(ArrayList.java:1511)
+
+[INFO] Running esprit.pfe.auth.security.SecurityComponentsTest
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.004 s -- in esprit.pfe.auth.security.SecurityComponentsTest
+[INFO] Running esprit.pfe.auth.security.SecurityConfigTest
+[INFO] Tests run: 7, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.485 s -- in esprit.pfe.auth.security.SecurityConfigTest
+[INFO] Running esprit.pfe.auth.security.SecurityControllerTest
+2026-05-13T18:39:54.770+01:00  INFO 16140 --- [           main] t.c.s.AnnotationConfigContextLoaderUtils : Could not detect default configuration classes for test class [esprit.pfe.auth.security.SecurityControllerTest]: SecurityControllerTest does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+2026-05-13T18:39:54.822+01:00  INFO 16140 --- [           main] .b.t.c.SpringBootTestContextBootstrapper : Found @SpringBootConfiguration esprit.pfe.auth.AuthApplication for test class esprit.pfe.auth.security.SecurityControllerTest
+2026-05-13T18:39:54.833+01:00  INFO 16140 --- [           main] o.s.b.d.r.RestartApplicationListener     : Restart disabled due to context in which it is running
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+
+ :: Spring Boot ::                (v3.4.2)
+
+2026-05-13T18:39:54.901+01:00  INFO 16140 --- [           main] e.p.a.security.SecurityControllerTest    : Starting SecurityControllerTest using Java 17.0.12 with PID 16140 (started by oussama in C:\Users\oussama\Desktop\pfe-d2f-enseignants\esprit_D2F-authentification)
+2026-05-13T18:39:54.901+01:00  INFO 16140 --- [           main] e.p.a.security.SecurityControllerTest    : No active profile set, falling back to 1 default profile: "default"
+2026-05-13T18:39:55.690+01:00  INFO 16140 --- [           main] o.s.b.t.m.w.SpringBootMockServletContext : Initializing Spring TestDispatcherServlet ''
+2026-05-13T18:39:55.690+01:00  INFO 16140 --- [           main] o.s.t.web.servlet.TestDispatcherServlet  : Initializing Servlet ''
+2026-05-13T18:39:55.691+01:00  INFO 16140 --- [           main] o.s.t.web.servlet.TestDispatcherServlet  : Completed initialization in 1 ms
+2026-05-13T18:39:55.705+01:00  INFO 16140 --- [           main] e.p.a.security.SecurityControllerTest    : Started SecurityControllerTest in 0.871 seconds (process running for 14.515)
+2026-05-13T18:39:56.036+01:00  INFO 16140 --- [           main] e.pfe.auth.security.SecurityController   : Attempting to log in with username: any and deviceId: 
+2026-05-13T18:39:56.072+01:00  INFO 16140 --- [           main] e.pfe.auth.security.SecurityController   : Attempting to log in with username: unknown and deviceId: 
+2026-05-13T18:39:56.089+01:00  INFO 16140 --- [           main] e.pfe.auth.security.SecurityController   : Attempting to log in with username: user and deviceId: 
+2026-05-13T18:39:56.188+01:00  INFO 16140 --- [           main] e.pfe.auth.security.SecurityController   : Attempting to log in with username: testuser and deviceId: 
+[INFO] Tests run: 17, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.444 s -- in esprit.pfe.auth.security.SecurityControllerTest
+[INFO] Running esprit.pfe.auth.services.AccountServiceImplTest
+[INFO] Tests run: 21, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.096 s -- in esprit.pfe.auth.services.AccountServiceImplTest
+[INFO] Running esprit.pfe.auth.services.AuditServiceTest
+2026-05-13T18:39:56.406+01:00  INFO 16140 --- [           main] esprit.pfe.auth.services.AuditService    : User user1 logged out
+2026-05-13T18:39:56.415+01:00  INFO 16140 --- [           main] esprit.pfe.auth.services.AuditService    : User user1 logged in from IP 127.0.0.1
+2026-05-13T18:39:56.424+01:00  INFO 16140 --- [           main] esprit.pfe.auth.services.AuditService    : User admin performed UPDATE on account user1: Change email
+2026-05-13T18:39:56.426+01:00  WARN 16140 --- [           main] esprit.pfe.auth.services.AuditService    : Unauthorized access attempt by user1 to ADMIN_PAGE from IP 127.0.0.1
+2026-05-13T18:39:56.430+01:00  INFO 16140 --- [           main] esprit.pfe.auth.services.AuditService    : User admin performed CREATE on Domain with ID 101: Add domain
+2026-05-13T18:39:56.434+01:00  WARN 16140 --- [           main] esprit.pfe.auth.services.AuditService    : Failed login attempt for user user1 from IP 127.0.0.1 - Reason: Wrong password
+[INFO] Tests run: 10, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.126 s -- in esprit.pfe.auth.services.AuditServiceTest
+[INFO] Running esprit.pfe.auth.services.EmailServiceImplTest
+[INFO] Tests run: 1, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.066 s -- in esprit.pfe.auth.services.EmailServiceImplTest
+[INFO] Running esprit.pfe.auth.services.UserDetailsImplTest
+[INFO] Tests run: 7, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.013 s -- in esprit.pfe.auth.services.UserDetailsImplTest
+[INFO] Running esprit.pfe.auth.services.UserDetailsServiceImplTest
+[INFO] Tests run: 5, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.025 s -- in esprit.pfe.auth.services.UserDetailsServiceImplTest
+[INFO] Running esprit.pfe.auth.websocketconfig.NotificationControllerTest
+2026-05-13T18:39:56.559+01:00  INFO 16140 --- [           main] t.c.s.AnnotationConfigContextLoaderUtils : Could not detect default configuration classes for test class [esprit.pfe.auth.websocketconfig.NotificationControllerTest]: NotificationControllerTest does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+2026-05-13T18:39:56.596+01:00  INFO 16140 --- [           main] .b.t.c.SpringBootTestContextBootstrapper : Found @SpringBootConfiguration esprit.pfe.auth.AuthApplication for test class esprit.pfe.auth.websocketconfig.NotificationControllerTest
+2026-05-13T18:39:56.602+01:00  INFO 16140 --- [           main] o.s.b.d.r.RestartApplicationListener     : Restart disabled due to context in which it is running
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+
+ :: Spring Boot ::                (v3.4.2)
+
+2026-05-13T18:39:56.642+01:00  INFO 16140 --- [           main] e.p.a.w.NotificationControllerTest       : Starting NotificationControllerTest using Java 17.0.12 with PID 16140 (started by oussama in C:\Users\oussama\Desktop\pfe-d2f-enseignants\esprit_D2F-authentification)
+2026-05-13T18:39:56.642+01:00  INFO 16140 --- [           main] e.p.a.w.NotificationControllerTest       : No active profile set, falling back to 1 default profile: "default"
+2026-05-13T18:39:57.216+01:00  INFO 16140 --- [           main] o.s.b.t.m.w.SpringBootMockServletContext : Initializing Spring TestDispatcherServlet ''
+2026-05-13T18:39:57.216+01:00  INFO 16140 --- [           main] o.s.t.web.servlet.TestDispatcherServlet  : Initializing Servlet ''
+2026-05-13T18:39:57.216+01:00  INFO 16140 --- [           main] o.s.t.web.servlet.TestDispatcherServlet  : Completed initialization in 0 ms
+2026-05-13T18:39:57.225+01:00  INFO 16140 --- [           main] e.p.a.w.NotificationControllerTest       : Started NotificationControllerTest in 0.623 seconds (process running for 16.038)
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.687 s -- in esprit.pfe.auth.websocketconfig.NotificationControllerTest
+[INFO] Running esprit.pfe.auth.websocketconfig.WebSocketConfigTest
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.143 s -- in esprit.pfe.auth.websocketconfig.WebSocketConfigTest
+[INFO] 
+[INFO] Results:
+[INFO] 
+[ERROR] Failures: 
+[ERROR]   PiiSafeLoggerTest.testSanitizeSSN:34 expected: <My SSN is *** or ***> but was: <My SSN is 123456789 or ***>
+[INFO] 
+[ERROR] Tests run: 131, Failures: 1, Errors: 0, Skipped: 0
+[INFO] 
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD FAILURE
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  20.734 s
+[INFO] Finished at: 2026-05-13T18:39:57+01:00
+[INFO] ------------------------------------------------------------------------
+[ERROR] Failed to execute goal org.apache.maven.plugins:maven-surefire-plugin:3.5.2:test (default-test) on project service-authentification: There are test failures.
+[ERROR] 
+[ERROR] See C:\Users\oussama\Desktop\pfe-d2f-enseignants\esprit_D2F-authentification\target\surefire-reports for the individual test results.
+[ERROR] See dump files (if any exist) [date].dump, [date]-jvmRun[N].dump and [date].dumpstream.
+[ERROR] -> [Help 1]
+[ERROR] 
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR] 
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException

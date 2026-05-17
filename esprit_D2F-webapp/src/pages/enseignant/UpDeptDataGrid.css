@@ -1,0 +1,90 @@
+/* ─── UpDeptDataGrid.css ──────────────────────────────────────────────── */
+
+.updept-page {
+  max-width: var(--max-page-width);
+  margin: 0 auto;
+}
+
+/* ── Toolbar ───────────────────────────────────────────────────────────── */
+.updept-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+  padding: 14px 20px;
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-sm);
+}
+
+/* ── Table card ─────────────────────────────────────────────────────────── */
+.updept-table-card {
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+  margin-bottom: var(--space-4);
+}
+
+/* ── Stat cards ────────────────────────────────────────────────────────── */
+.updept-stat-card {
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.updept-stat-card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+
+/* ── Action buttons ─────────────────────────────────────────────────────── */
+.updept-btn-add {
+  border-radius: var(--radius-sm) !important;
+  font-weight: 500 !important;
+}
+
+.updept-btn-edit {
+  color: var(--btn-info-color) !important;
+  background: var(--btn-info-bg) !important;
+  border: none !important;
+  transition: all 0.2s ease !important;
+}
+
+.updept-btn-edit:hover {
+  background: var(--btn-info-hover-bg) !important;
+  color: var(--btn-info-hover-color) !important;
+}
+
+.updept-btn-delete {
+  color: var(--btn-danger-color) !important;
+  background: var(--btn-danger-bg) !important;
+  border: none !important;
+  transition: all 0.2s ease !important;
+}
+
+.updept-btn-delete:hover {
+  background: var(--btn-danger-hover-bg) !important;
+  color: var(--btn-danger-hover-color) !important;
+}
+
+/* ── Modal ─────────────────────────────────────────────────────────────── */
+.updept-modal .ant-form-item-label > label {
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  color: var(--text-muted);
+}
+
+/* ── Responsive ────────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .updept-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 12px;
+    border-radius: var(--radius-md);
+  }
+}

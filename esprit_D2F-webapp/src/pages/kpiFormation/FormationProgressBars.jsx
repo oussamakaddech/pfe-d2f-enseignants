@@ -93,7 +93,7 @@ export default function FormationProgressCards() {
   if (loading) {
     return (
       <div style={styles.center}>
-        <Spin size="large" tip="Chargement..." />
+        <Spin size="large" tip="Chargement..."><div /></Spin>
       </div>
     );
   }

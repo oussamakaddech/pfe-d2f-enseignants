@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(./mvnw compile *)",
+      "Bash(./mvnw test *)",
+      "Bash(curl -s http://localhost:8080/actuator/env)",
+      "Bash(wmic process *)"
+    ]
+  }
+}

@@ -1,62 +1,64 @@
-# Base image builder
-FROM eclipse-temurin:17-jdk-alpine as builder
+# ============================================================
+# Stage 1 — Builder : compile le projet Maven
+# ============================================================
+FROM eclipse-temurin:17-jdk-alpine AS builder
 
-# Authors
-LABEL Author="seddik bouzayani <seddik.bouzayani@esprit.tn>"
-LABEL maintainer="seddik bouzayani <seddik.bouzayani@esprit.tn>"
-
-# Workdir
 WORKDIR /opt/app
 
 # Copy Maven Wrapper
 COPY .mvn/ .mvn
-
-# Copy Maven Wrapper script && pom.xml
 COPY mvnw pom.xml ./
 
-# Fix mvnw &
-RUN dos2unix mvnw && \
-    chmod u+x mvnw
+# Fix line endings & permissions
+RUN dos2unix mvnw && chmod u+x mvnw
 
-# Resolves all project dependencies offline and keep cache
+# Resolve dependencies (cached layer)
 RUN --mount=type=cache,target=/root/.m2 ./mvnw dependency:go-offline
 
-# Copy source code application
+# Copy source code
 COPY ./src ./src
 
-# Install the package to a local repository and keep cache
-RUN --mount=type=cache,target=/root/.m2 ./mvnw clean install -DskipTests
+# Build the fat JAR (skip tests — already run in CI)
+RUN --mount=type=cache,target=/root/.m2 ./mvnw clean package -DskipTests
 
-# Unpacking the jar file
-RUN mkdir -p target/dependency && (cd target/dependency; jar -xf ../*.jar)
-
-# Base image
+# ============================================================
+# Stage 2 — Runtime : image légère JRE-only
+# ============================================================
 FROM eclipse-temurin:17-jre-alpine
 
-# Authors
 LABEL Author="seddik bouzayani <seddik.bouzayani@esprit.tn>"
 LABEL maintainer="seddik bouzayani <seddik.bouzayani@esprit.tn>"
 
-# Create user
-RUN addgroup -g 2003 esprit ; adduser  --ingroup esprit --disabled-password --uid 2003 esprit
+# --- Utilisateur non-root (UID 2003) ---
+RUN addgroup -g 2003 esprit && \
+    adduser -G esprit -u 2003 -D esprit
 
-# Use user
+# --- Dépendances runtime (curl pour HEALTHCHECK) ---
+RUN apk add --no-cache curl
+
+# --- Répertoire de l'application ---
+WORKDIR /app
+
+# --- Copie du JAR depuis le builder ---
+# ARG résolu au build : le wildcard fonctionne dans le shell COPY
+ARG JAR_FILE=target/*.jar
+COPY --from=builder /opt/app/${JAR_FILE} /app/app.jar
+
+# --- Propriété du répertoire à l'utilisateur esprit ---
+RUN chown -R esprit:esprit /app
+
+# --- Bascule vers l'utilisateur non-root ---
 USER esprit
 
-# Path to unpacked jar from builder image
-ARG DEPENDENCY=/opt/app/target/dependency
+# --- Variables d'environnement ---
+ENV JAVA_OPTS=""
 
-# Copy unpacked jar from builder image
-COPY --from=builder ${DEPENDENCY}/BOOT-INF/lib /opt/app/lib
-COPY --from=builder ${DEPENDENCY}/META-INF /opt/app/META-INF
-COPY --from=builder ${DEPENDENCY}/BOOT-INF/classes /opt/app
-
-# Expose port
+# --- Port exposé ---
 EXPOSE 8085
 
-# Healthcheck — vérifie que Spring Boot Actuator répond (conformité DSI §2.1)
+# --- Healthcheck via curl sur Actuator ---
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-  CMD wget -q --spider http://localhost:8085/actuator/health || exit 1
+  CMD curl -sf http://localhost:8085/actuator/health || exit 1
 
-# Run app when container starts
-ENTRYPOINT ["java","-cp","opt/app:opt/app/lib/*","esprit.pfe.auth.AuthApplication"]
+# --- Démarrage : JSON array strict, pas de wildcard ---
+ENTRYPOINT ["java", "-jar", "/app/app.jar"]

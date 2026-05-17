@@ -24,6 +24,7 @@ class SecurityConfigTest {
     void setUp() {
         config = new SecurityConfig();
         ReflectionTestUtils.setField(config, "jwtSecret", "une-cle-secrete-tres-longue-pour-hs512-qui-depasse-64-caracteres-sinon-ca-plante!");
+        ReflectionTestUtils.setField(config, "allowedOriginsRaw", "http://localhost:5173,http://localhost:3000");
     }
 
     @Test
@@ -47,8 +48,8 @@ class SecurityConfigTest {
         CorsRegistration registration = mock(CorsRegistration.class);
         
         when(registry.addMapping("/**")).thenReturn(registration);
-        when(registration.allowedOriginPatterns(anyString(), anyString(), anyString())).thenReturn(registration);
-        when(registration.allowedMethods(anyString(), anyString(), anyString(), anyString(), anyString(), anyString())).thenReturn(registration);
+        when(registration.allowedOrigins(any(String[].class))).thenReturn(registration);
+        when(registration.allowedMethods(any(String[].class))).thenReturn(registration);
         when(registration.allowedHeaders(anyString())).thenReturn(registration);
         when(registration.allowCredentials(true)).thenReturn(registration);
 

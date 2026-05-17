@@ -1,0 +1,267 @@
+/* ─── EvaluationGlobalePage.css ──────────────────────────────────────── */
+/* CSS unitaire et exclusif pour la page Evaluation Globale */
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   PAGE WRAPPER
+   ═══════════════════════════════════════════════════════════════════════════ */
+.evaluation-page {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 8px 32px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   STATISTICS CARDS
+   ═══════════════════════════════════════════════════════════════════════════ */
+.evaluation-stats-row {
+  margin-bottom: 20px;
+}
+.evaluation-stat-card {
+  border-radius: 14px !important;
+  border: 1px solid rgba(0, 0, 0, 0.06) !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+.evaluation-stat-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08) !important;
+  transform: translateY(-2px);
+}
+.evaluation-stat-card .ant-statistic-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: #718096;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   FILTER BAR
+   ═══════════════════════════════════════════════════════════════════════════ */
+.evaluation-filter-bar {
+  background: #ffffff;
+  border-radius: 14px;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  padding: 16px 20px;
+  margin-bottom: 16px;
+  transition: box-shadow 0.2s ease;
+}
+.evaluation-filter-bar:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+.evaluation-filter-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+.evaluation-filter-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #718096;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+}
+.evaluation-filter-title .anticon {
+  font-size: 14px;
+  color: #a0aec0;
+}
+.evaluation-filter-active-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  background: #B51200;
+  border-radius: 50%;
+  margin-left: 6px;
+  animation: evalPulse 1.5s ease-in-out infinite;
+}
+@keyframes evalPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.8); }
+}
+.evaluation-filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+.evaluation-filter-row .ant-input-search,
+.evaluation-filter-row .ant-select,
+.evaluation-filter-row .ant-picker {
+  border-radius: 8px !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ALERT INFO
+   ═══════════════════════════════════════════════════════════════════════════ */
+.evaluation-info-alert {
+  border-radius: 10px !important;
+  border: 1px solid #bfdbfe !important;
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%) !important;
+  margin-bottom: 16px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   TABLE WRAPPER
+   ═══════════════════════════════════════════════════════════════════════════ */
+.evaluation-table-wrapper {
+  background: #ffffff;
+  border-radius: 14px;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
+}
+
+/* Table header */
+.evaluation-table-wrapper .ant-table-thead > tr > th {
+  background: #f7fafc !important;
+  color: #4a5568 !important;
+  font-weight: 600 !important;
+  font-size: 12px !important;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  border-bottom: 2px solid rgba(0, 0, 0, 0.06) !important;
+  padding: 12px 14px !important;
+}
+
+/* Table rows */
+.evaluation-table-wrapper .ant-table-tbody > tr {
+  transition: background 0.15s ease;
+}
+.evaluation-table-wrapper .ant-table-tbody > tr:hover > td {
+  background: #fff5f4 !important;
+}
+
+/* Table cells */
+.evaluation-table-wrapper .ant-table-tbody > tr > td {
+  padding: 12px 14px !important;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.04) !important;
+  vertical-align: middle;
+}
+
+/* Pagination */
+.evaluation-table-wrapper .ant-pagination {
+  padding: 12px 16px;
+  margin: 0 !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   FORMATION COLUMN
+   ═══════════════════════════════════════════════════════════════════════════ */
+.evaluation-col-title {
+  font-weight: 700;
+  color: #1a202c;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ACTION BUTTONS
+   ═══════════════════════════════════════════════════════════════════════════ */
+.evaluation-btn-add {
+  background: linear-gradient(135deg, #B51200 0%, #9a0f00 100%) !important;
+  border: none !important;
+  border-radius: 8px !important;
+  font-weight: 600 !important;
+  box-shadow: 0 2px 8px rgba(181, 18, 0, 0.3) !important;
+  transition: all 0.25s ease !important;
+}
+.evaluation-btn-add:hover {
+  background: linear-gradient(135deg, #9a0f00 0%, #7a0000 100%) !important;
+  box-shadow: 0 4px 14px rgba(181, 18, 0, 0.4) !important;
+  transform: translateY(-1px);
+}
+
+.evaluation-btn-edit {
+  color: #3b82f6 !important;
+  background: #eff6ff !important;
+  border: none !important;
+  transition: all 0.2s ease !important;
+}
+.evaluation-btn-edit:hover {
+  background: #dbeafe !important;
+  color: #2563eb !important;
+  transform: scale(1.12);
+}
+
+.evaluation-btn-delete {
+  color: #ef4444 !important;
+  background: #fef2f2 !important;
+  border: none !important;
+  transition: all 0.2s ease !important;
+}
+.evaluation-btn-delete:hover {
+  background: #fecaca !important;
+  color: #dc2626 !important;
+  transform: scale(1.12);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   DRAWER
+   ═══════════════════════════════════════════════════════════════════════════ */
+.evaluation-drawer .ant-drawer-header {
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
+  padding: 16px 24px;
+}
+.evaluation-drawer .ant-drawer-title {
+  font-weight: 700;
+  font-size: 16px;
+  color: #1a202c;
+}
+.evaluation-drawer .ant-drawer-body {
+  padding: 20px 24px;
+  background: #f7fafc;
+}
+
+.evaluation-btn-submit {
+  background: linear-gradient(135deg, #B51200 0%, #9a0f00 100%) !important;
+  border: none !important;
+  border-radius: 8px !important;
+  font-weight: 600 !important;
+  box-shadow: 0 2px 8px rgba(181, 18, 0, 0.3) !important;
+  transition: all 0.25s ease !important;
+}
+.evaluation-btn-submit:hover {
+  background: linear-gradient(135deg, #9a0f00 0%, #7a0000 100%) !important;
+  box-shadow: 0 4px 14px rgba(181, 18, 0, 0.4) !important;
+  transform: translateY(-1px);
+}
+
+/* Form labels */
+.evaluation-drawer-form .ant-form-item-label > label {
+  font-weight: 600;
+  color: #2d3748;
+  font-size: 13px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   RESPONSIVE
+   ═══════════════════════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  .evaluation-page {
+    padding: 0 4px 20px;
+  }
+  .evaluation-stats-row .ant-col {
+    margin-bottom: 12px;
+  }
+  .evaluation-filter-bar {
+    padding: 14px;
+    border-radius: 12px;
+  }
+  .evaluation-filter-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+  .evaluation-filter-row .ant-select,
+  .evaluation-filter-row .ant-input,
+  .evaluation-filter-row .ant-picker {
+    width: 100% !important;
+  }
+}
+

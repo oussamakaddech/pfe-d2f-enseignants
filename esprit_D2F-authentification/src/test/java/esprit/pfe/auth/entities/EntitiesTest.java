@@ -73,6 +73,48 @@ class EntitiesTest {
     }
 
     @Test
+    void testRoleDefaultConstructor() {
+        Role role = new Role();
+        assertNull(role.getId());
+        assertNull(role.getName());
+    }
+
+    @Test
+    void testRoleSetters() {
+        Role role = new Role();
+        role.setId(42);
+        role.setName(ERole.ENSEIGNANT);
+        assertEquals(42, role.getId());
+        assertEquals(ERole.ENSEIGNANT, role.getName());
+    }
+
+    @Test
+    void testRoleEqualsDifferentIds() {
+        Role role1 = new Role(ERole.ADMIN);
+        role1.setId(1);
+        Role role2 = new Role(ERole.ADMIN);
+        role2.setId(2);
+        assertNotEquals(role1, role2);
+    }
+
+    @Test
+    void testRoleEqualsNullAndOtherType() {
+        Role role = new Role(ERole.ADMIN);
+        role.setId(1);
+        assertNotEquals(null, role);
+        assertNotEquals("not a role", role);
+    }
+
+    @Test
+    void testRoleHashCode() {
+        Role role1 = new Role(ERole.ADMIN);
+        role1.setId(1);
+        Role role2 = new Role(ERole.ADMIN);
+        role2.setId(1);
+        assertEquals(role1.hashCode(), role2.hashCode());
+    }
+
+    @Test
     void testAuditLogEntity() {
         LocalDateTime now = LocalDateTime.now();
         AuditLog log = AuditLog.builder()

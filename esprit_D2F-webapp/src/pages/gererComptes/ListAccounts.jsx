@@ -42,8 +42,10 @@ import {
 } from '../../services/accountService';
 import Register from '../auth/Register';
 import useAppNotification from "../../hooks/useAppNotification";
+import { AppPageHeader, brand } from "../../theme";
+import "./ListAccounts.css";
 
-const { Title, Text } = Typography;
+const { Text } = Typography;
 const { Option } = Select;
 
 const ROLES = ['admin', 'CUP', 'Enseignant', 'Formateur', 'CHEF_DEPARTEMENT', 'RESPONSABLE_DOSSIER'];
@@ -197,11 +199,11 @@ export default function ListAccounts() {
       render: (text, record) => (
         <Space>
           <Avatar icon={<UserOutlined />} style={{ backgroundColor: record.status === 'ACTIF' ? '#1890ff' : '#ccc' }} />
-          <Box>
+          <div>
             <Text strong>{record.firsName} {record.lastName}</Text>
             <br />
             <Text type="secondary" style={{ fontSize: '12px' }}>@{text}</Text>
-          </Box>
+          </div>
         </Space>
       ),
       ...getColumnSearchProps('userName'),
@@ -259,38 +261,43 @@ export default function ListAccounts() {
   ];
 
   return (
-    <div style={{ padding: '24px', background: '#f5f7fa', minHeight: '100vh' }}>
-      <Row gutter={[16, 16]} style={{ marginBottom: '24px' }}>
+    <div>
+      <AppPageHeader
+        icon={<TeamOutlined />}
+        title="Gestion des Utilisateurs"
+        subtitle="Administrer les comptes, rôles et accès de l'application"
+        actions={
+          <Button type="primary" icon={<PlusOutlined />} onClick={() => setDrawerVisible(true)}>
+            Nouveau Compte
+          </Button>
+        }
+      />
+
+      <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
         <Col xs={24} sm={12} lg={6}>
-          <Card variant="borderless" hoverable>
-            <Statistic title="Total Comptes" value={stats.total} prefix={<TeamOutlined />} valueStyle={{ color: '#3f51b5' }} />
+          <Card size="small">
+            <Statistic title="Total Comptes" value={stats.total} prefix={<TeamOutlined />} valueStyle={{ color: brand[500] }} />
           </Card>
         </Col>
         <Col xs={24} sm={12} lg={6}>
-          <Card variant="borderless" hoverable>
-            <Statistic title="Comptes Actifs" value={stats.active} prefix={<CheckCircleOutlined />} valueStyle={{ color: '#4caf50' }} />
+          <Card size="small">
+            <Statistic title="Comptes Actifs" value={stats.active} prefix={<CheckCircleOutlined />} valueStyle={{ color: "#27ae60" }} />
           </Card>
         </Col>
         <Col xs={24} sm={12} lg={6}>
-          <Card variant="borderless" hoverable>
-            <Statistic title="Comptes Bloqués" value={stats.blocked} prefix={<StopOutlined />} valueStyle={{ color: '#f44336' }} />
+          <Card size="small">
+            <Statistic title="Comptes Bloqués" value={stats.blocked} prefix={<StopOutlined />} valueStyle={{ color: "#ef4444" }} />
           </Card>
         </Col>
         <Col xs={24} sm={12} lg={6}>
-          <Card variant="borderless" hoverable>
-            <Statistic title="Administrateurs" value={stats.admins} prefix={<SolutionOutlined />} valueStyle={{ color: '#ff9800' }} />
+          <Card size="small">
+            <Statistic title="Administrateurs" value={stats.admins} prefix={<SolutionOutlined />} valueStyle={{ color: "#f59e0b" }} />
           </Card>
         </Col>
       </Row>
 
-      <Card variant="borderless" style={{ borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
-        <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
-          <Title level={3} style={{ margin: 0 }}>👥 Gestion des Utilisateurs</Title>
-          <Button type="primary" size="large" icon={<PlusOutlined />} onClick={() => setDrawerVisible(true)} style={{ borderRadius: '8px', background: '#d32f2f', borderColor: '#d32f2f' }}>
-            Nouveau Compte
-          </Button>
-        </Box>
-        <Divider />
+      <Card style={{ borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
+        <Divider style={{ margin: "0 0 16px" }} />
         <Table
           rowKey="id"
           columns={columns}
@@ -328,14 +335,6 @@ export default function ListAccounts() {
   );
 }
 
-// Simple Box component mock since we are using antd
-function Box({ children, display, justifyContent, alignItems, mb }) {
-  return (
-    <div style={{ display, justifyContent, alignItems, marginBottom: mb ? `${mb * 8}px` : 0 }}>
-      {children}
-    </div>
-  );
-}
 
 // Simple Badge mock if not imported
 function Badge({ status, text, style }) {

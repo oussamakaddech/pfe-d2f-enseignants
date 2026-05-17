@@ -3,7 +3,6 @@ import { createApiClient } from "../utils/httpClient";
 
 import { config } from "../config/env";
 import type {
-  AuthTokenPayload,
   LoginRequest,
   LoginResponse,
   ResetPasswordRequest,
@@ -13,11 +12,14 @@ import type {
 
 const api = createApiClient(`${config.URL_ACCOUNT}/auth`);
 
+/**
+ * Authenticate user. JWT is set as HttpOnly cookie by the server.
+ * Body returns only userId, role, email, expiresIn — NO token.
+ */
 export async function login({
   username,
   password,
 }: LoginRequest): Promise<LoginResponse> {
-  // SÉCURITÉ : credentials envoyés dans le corps POST, jamais dans l'URL
   const params = new URLSearchParams();
   params.append("username", username);
   params.append("password", password);
@@ -26,11 +28,7 @@ export async function login({
     params
   );
 
-  if (response.data.accessToken) {
-    console.debug("[AuthService] Saving token to localStorage:", response.data.accessToken.substring(0, 10) + "...");
-    localStorage.setItem("authToken", response.data.accessToken);
-  }
-
+  // JWT is now in HttpOnly cookie — no localStorage
   return response.data;
 }
 
@@ -51,7 +49,6 @@ export async function resetPassword({
   confirmationKey,
   newPassword,
 }: ResetPasswordRequest): Promise<unknown> {
-  // SÉCURITÉ : credentials envoyés dans le corps POST, jamais dans l'URL
   const response = await api.post(`/reset-password`, {
     confirmationKey,
     newPassword,
@@ -62,4 +59,20 @@ export async function resetPassword({
 export async function getProfile(): Promise<AuthUser> {
   const response = await api.get("/profile");
   return response.data;
+}
+
+/**
+ * Refresh JWT cookie silently. Server validates existing cookie
+ * and returns a new one.
+ */
+export async function refreshToken(): Promise<LoginResponse> {
+  const response: AxiosResponse<LoginResponse> = await api.get("/refresh");
+  return response.data;
+}
+
+/**
+ * Logout — server invalidates the HttpOnly cookie (Max-Age=0).
+ */
+export async function logout(): Promise<void> {
+  await api.post("/logout");
 }

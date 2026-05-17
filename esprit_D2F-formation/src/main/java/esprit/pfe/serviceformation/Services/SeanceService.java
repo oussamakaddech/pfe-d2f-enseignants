@@ -151,7 +151,7 @@ public class SeanceService {
 
         // 2) Reconstruire animateurs depuis DTO
         List<Enseignant> newAnim = dto.getAnimateurs().stream()
-                .map(eDto -> mapDtoToEnseignant(eDto))
+                .map(this::mapDtoToEnseignant)
                 .toList();
         existing.setAnimateurs(newAnim);
 
@@ -168,7 +168,7 @@ public class SeanceService {
 
         // 4) Filtrer participants
         List<Enseignant> newPart = dto.getParticipants().stream()
-                .map(eDto -> mapDtoToEnseignant(eDto))
+                .map(this::mapDtoToEnseignant)
                 .filter(p -> canSchedule(p.getId(), date, debut, fin, false, id))
                 .toList();
         existing.setParticipants(newPart);

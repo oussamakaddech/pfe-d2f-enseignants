@@ -20,8 +20,8 @@ const SeanceCard = ({ seance }) => {
         </Space>
       }
       extra={
-        <Button type="primary" danger onClick={togglePresences}>
-          {showPresences ? "Cacher" : "Voir"} les présences
+        <Button type={showPresences ? "default" : "primary"} onClick={togglePresences}>
+          {showPresences ? "Masquer les présences" : "Voir les présences"}
         </Button>
       }
     >

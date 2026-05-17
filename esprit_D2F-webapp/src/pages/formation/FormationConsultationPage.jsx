@@ -7,26 +7,31 @@ import {
   Space,
   Drawer,
   DatePicker,
-  Tag,
   Popconfirm,
   Typography,
   Select,
   Modal,
-  Breadcrumb,
+  Tag,
 } from "antd";
 import {
   EditOutlined,
   DeleteOutlined,
   DownloadOutlined,
   MailOutlined,
-  HomeOutlined,
-  ArrowLeftOutlined,
+  PlusCircleOutlined,
+  FilterOutlined,
+  ReloadOutlined,
+  AppstoreOutlined,
 } from "@ant-design/icons";
+import { AppPageHeader, StatusBadge, EmptyState } from "../../theme";
+import "./FormationConsultationPage.css";
 import moment from "moment";
 
 import { AuthContext } from "../../context/AuthContext";
 import { getProfile } from "../../services/accountService";
 import FormationWorkflowService from "../../services/FormationWorkflowService";
+import UpService from "../../services/upService";
+import DeptService from "../../services/DeptService";
 import FormationWorkflowEditForm from "../FormationWorkflowEditForm";
 import MailForm from "../MailForm";
 import useAppNotification from "../../hooks/useAppNotification";
@@ -37,7 +42,7 @@ const normalizeRole = (value) =>
     .replace(/^role_?/, "")
     .replace(/[\s_-]+/g, "");
 
-const { Title } = Typography;
+const { Text } = Typography;
 const { RangePicker } = DatePicker;
 const { Option } = Select;
 
@@ -59,11 +64,12 @@ export default function FormationConsultationPage() {
   const [filtered, setFiltered] = useState([]);
 
   const [filterText, setFilterText] = useState("");
-  const [needFilter, setNeedFilter] = useState("all");
+
   const [typeFilter, setTypeFilter] = useState();
   const [etatFilter, setEtatFilter] = useState();
   const [upFilter, setUpFilter] = useState();
   const [deptFilter, setDeptFilter] = useState();
+  const [periodFilter, setPeriodFilter] = useState();
   const [periodRange, setPeriodRange] = useState([]);
 
   const [upsOptions, setUpsOptions] = useState([]);
@@ -79,7 +85,7 @@ export default function FormationConsultationPage() {
   const [selectedFormation, setSelectedFormation] = useState(null);
 
   useEffect(() => {
-    loadFormations();
+    void loadFormations();
   }, []);
 
   useEffect(() => {
@@ -87,11 +93,11 @@ export default function FormationConsultationPage() {
   }, [
     formations,
     filterText,
-    needFilter,
     typeFilter,
     etatFilter,
     upFilter,
     deptFilter,
+    periodFilter,
     periodRange,
   ]);
 
@@ -122,20 +128,13 @@ export default function FormationConsultationPage() {
       const arr = Array.isArray(data) ? data : data ? [data] : [];
       setFormations(arr);
 
-      const ups = Array.from(new Set(arr.map((f) => f.up1?.id))).map((id) => ({
-        id,
-        libelle: arr.find((f) => f.up1?.id === id)?.up1?.libelle || "_",
-      }));
-      const depts = Array.from(
-        new Set(arr.map((f) => f.departement1?.id))
-      ).map((id) => ({
-        id,
-        libelle:
-          arr.find((f) => f.departement1?.id === id)?.departement1?.libelle ||
-          "_",
-      }));
-      setUpsOptions(ups);
-      setDeptsOptions(depts);
+      // Charger TOUS les UPs et Départements depuis les APIs
+      const [allUps, allDepts] = await Promise.all([
+        UpService.getAllUps().catch(() => []),
+        DeptService.getAllDepts().catch(() => []),
+      ]);
+      setUpsOptions(allUps.map((u) => ({ id: u.id, libelle: u.libelle || u.nom || "_" })));
+      setDeptsOptions(allDepts.map((d) => ({ id: d.id, libelle: d.libelle || d.nom || "_" })));
 
       msgApi.success("Formations chargées !");
     } catch (err) {
@@ -155,15 +154,11 @@ export default function FormationConsultationPage() {
           .includes(filterText.toLowerCase())
       );
     }
-    if (needFilter === "withNeed") {
-      res = res.filter((f) => f.idBesoinFormation != null);
-    } else if (needFilter === "withoutNeed") {
-      res = res.filter((f) => f.idBesoinFormation == null);
-    }
-    if (typeFilter) res = res.filter((f) => f.typeBesoin === typeFilter);
+    if (typeFilter) res = res.filter((f) => f.typeFormation === typeFilter);
     if (etatFilter) res = res.filter((f) => f.etatFormation === etatFilter);
     if (upFilter) res = res.filter((f) => f.up1?.id === upFilter);
     if (deptFilter) res = res.filter((f) => f.departement1?.id === deptFilter);
+    if (periodFilter) res = res.filter((f) => f.periodCode === periodFilter);
     if (periodRange.length === 2) {
       const [start, end] = periodRange;
       res = res.filter((f) => {
@@ -184,7 +179,7 @@ export default function FormationConsultationPage() {
     try {
       await FormationWorkflowService.deleteFormationWorkflow(id);
       msgApi.success("Formation supprimée");
-      loadFormations();
+      void loadFormations();
     } catch {
       msgApi.error("Erreur suppression");
     }
@@ -231,277 +226,262 @@ export default function FormationConsultationPage() {
     },
   };
 
-  const statusColors = {
-    VISIBLE: "cyan",
-    ACHEVE: "green",
-    NOUVEAU: "orange",
-    ENREGISTRE: "blue",
-    ANNULE: "red",
+  const TYPE_COLORS = {
+    INTERNE: { color: "#2563eb", bg: "#eff6ff", border: "#bfdbfe" },
+    EXTERNE: { color: "#7c3aed", bg: "#f5f3ff", border: "#ddd6fe" },
   };
 
   const columns = [
     {
-      title: "Titre",
-      dataIndex: "titreFormation",
-      key: "titreFormation",
-      render: (t) => t || "_",
+      title: "Formation",
+      key: "formation",
+      width: 260,
+      render: (_, r) => (
+        <div>
+          <div className="formation-col-title">{r.titreFormation || "\u2014"}</div>
+          <div className="formation-col-subtitle">
+            {r.up1?.libelle || ""}{r.departement1?.libelle ? ` \u00b7 ${r.departement1.libelle}` : ""}
+          </div>
+        </div>
+      ),
       sorter: (a, b) =>
         (a.titreFormation || "").localeCompare(b.titreFormation || ""),
     },
     {
-      title: "Type Formation",
+      title: "Type",
       dataIndex: "typeFormation",
       key: "typeFormation",
-      render: (t) => t || "_",
+      width: 110,
+      render: (t) => {
+        const c = TYPE_COLORS[t] || { color: "#6b7280", bg: "#f9fafb", border: "#e5e7eb" };
+        return <Tag style={{ color: c.color, background: c.bg, borderColor: c.border, borderRadius: 6, fontWeight: 500 }}>{t || "\u2014"}</Tag>;
+      },
       sorter: (a, b) =>
         (a.typeFormation || "").localeCompare(b.typeFormation || ""),
     },
     {
-      title: "Origine",
-      key: "origine",
-      render: (_, r) => (r.idBesoinFormation != null ? r.typeBesoin : "_"),
-      filters: [
-        { text: "Tous", value: "all" },
-        { text: "Avec besoin", value: "withNeed" },
-        { text: "Sans besoin", value: "withoutNeed" },
-      ],
-      onFilter: (val, rec) =>
-        val === "withNeed"
-          ? rec.idBesoinFormation != null
-          : val === "withoutNeed"
-          ? rec.idBesoinFormation == null
-          : true,
-    },
-    {
-      title: "UP",
-      dataIndex: ["up1", "libelle"],
-      key: "up1",
-      render: (u) => u || "_",
-      sorter: (a, b) =>
-        (a.up1?.libelle || "").localeCompare(b.up1?.libelle || ""),
-    },
-    {
-      title: "Département",
-      dataIndex: ["departement1", "libelle"],
-      key: "departement1",
-      render: (d) => d || "_",
-      sorter: (a, b) =>
-        (a.departement1?.libelle || "").localeCompare(
-          b.departement1?.libelle || ""
-        ),
-    },
-    {
       title: "Période",
       key: "periode",
+      width: 130,
       render: (_, r) => {
-        if (r.periodCode === "OTHER") return r.customPeriodLabel || "Autre";
+        if (r.periodCode === "OTHER") return <Tag>{r.customPeriodLabel || "Autre"}</Tag>;
         const opt = PERIOD_OPTIONS.find(o => o.value === r.periodCode);
-        return opt ? opt.label : (r.periodeFormation || "_");
+        return opt ? <Tag>{opt.label}</Tag> : "\u2014";
       },
       sorter: (a, b) =>
         (a.periodCode || "").localeCompare(b.periodCode || ""),
     },
     {
-      title: "Début",
-      dataIndex: "dateDebut",
-      key: "dateDebut",
-      render: (d) => (d ? moment(d).format("L") : "_"),
+      title: "Dates",
+      key: "dates",
+      width: 150,
+      render: (_, r) => (
+        <div className="formation-date-cell">
+          <span className="formation-date-start">{r.dateDebut ? moment(r.dateDebut).format("DD/MM/YYYY") : "\u2014"}</span>
+          <span className="formation-date-end">{r.dateFin ? moment(r.dateFin).format("DD/MM/YYYY") : "\u2014"}</span>
+        </div>
+      ),
       sorter: (a, b) => moment(a.dateDebut) - moment(b.dateDebut),
-    },
-    {
-      title: "Fin",
-      dataIndex: "dateFin",
-      key: "dateFin",
-      render: (d) => (d ? moment(d).format("L") : "_"),
-      sorter: (a, b) => moment(a.dateFin) - moment(b.dateFin),
     },
     {
       title: "État",
       dataIndex: "etatFormation",
       key: "etatFormation",
-      render: (e) => <Tag color={statusColors[e] || "default"}>{e || "_"}</Tag>,
+      width: 120,
+      render: (e) => e ? <StatusBadge status={e} /> : <Tag>\u2014</Tag>,
       sorter: (a, b) =>
         (a.etatFormation || "").localeCompare(b.etatFormation || ""),
     },
     {
       title: "Actions",
       key: "actions",
-      width: 160,
+      width: 100,
+      align: "center",
       render: (_, r) => {
         const role = normalizeRole(user?.role);
         const isResponsableDossier = role === "responsabledossier";
         
         return canManageFormations || isResponsableDossier ? (
-          <Space>
+          <Space size={4}>
             {(canManageFormations || isResponsableDossier) && (
               <Button
+                type="text"
+                shape="circle"
                 icon={<EditOutlined />}
                 onClick={() => {
                   setSelectedFormation(r);
                   setOpenEdit(true);
                 }}
                 title={isResponsableDossier ? "Gérer Dossier" : "Modifier"}
+                className="formation-btn-edit"
               />
             )}
             {canManageFormations && (
               <Popconfirm
-                title="Supprimer ?"
+                title="Supprimer cette formation ?"
                 onConfirm={() => handleDelete(r.idFormation)}
               >
-                <Button icon={<DeleteOutlined />} danger />
+                <Button
+                  type="text"
+                  shape="circle"
+                  icon={<DeleteOutlined />}
+                  danger
+                  className="formation-btn-delete"
+                />
               </Popconfirm>
             )}
           </Space>
         ) : (
-          <Tag color="blue">Consultation</Tag>
+          <Tag color="blue" className="formation-tag-consultation">Consultation</Tag>
         );
       },
     },
   ];
 
+  const resetFilters = () => {
+    setFilterText("");
+    setTypeFilter(undefined);
+    setEtatFilter(undefined);
+    setUpFilter(undefined);
+    setDeptFilter(undefined);
+    setPeriodFilter(undefined);
+    setPeriodRange([]);
+  };
+
+  const hasActiveFilters = filterText || typeFilter || etatFilter || upFilter || deptFilter || periodFilter || periodRange.length > 0;
+
   return (
     <>
-      <div style={{ padding: "16px 24px" }}>
-        {/* Header */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            marginBottom: 16,
-            flexWrap: "wrap",
-            gap: 12,
-          }}
-        >
-          <div>
-            <Breadcrumb
-              items={[
-                {
-                  title: (
-                    <>
-                      <HomeOutlined /> Accueil
-                    </>
-                  ),
-                  onClick: () => navigate("/home"),
-                  style: { cursor: "pointer" },
-                },
-                {
-                  title: "Formations",
-                  onClick: () => navigate("/home/Formation"),
-                  style: { cursor: "pointer" },
-                },
-                { title: "Consulter" },
-              ]}
-            />
-            <Title level={4} style={{ marginTop: 8, marginBottom: 0 }}>
-              📋 Consulter les Formations
-            </Title>
+      <div className="formation-consultation-page">
+
+        {/* ── En-tête ─────────────────────────────────────────────────────── */}
+        <AppPageHeader
+          icon={<AppstoreOutlined />}
+          title="Catalogue des Formations"
+          subtitle={`${filtered.length} formation${filtered.length !== 1 ? "s" : ""}${hasActiveFilters ? " (filtrées)" : ""}`}
+          actions={
+            <Space size={8}>
+              {canManageFormations && (
+                <Button
+                  icon={<MailOutlined />}
+                  disabled={!selectedFormation}
+                  onClick={() => setOpenMail(true)}
+                  className="formation-btn-email"
+                >
+                  Envoyer Email
+                </Button>
+              )}
+              <Button
+                icon={<DownloadOutlined />}
+                onClick={() => setOpenExport(true)}
+                className="formation-btn-export"
+              >
+                Exporter
+              </Button>
+              {canManageFormations && (
+                <Button
+                  type="primary"
+                  icon={<PlusCircleOutlined />}
+                  onClick={() => navigate("/home/Formation/Creer")}
+                  className="formation-btn-create"
+                >
+                  Nouvelle formation
+                </Button>
+              )}
+            </Space>
+          }
+        />
+
+        {/* ── Barre de filtres ─────────────────────────────────────────────── */}
+        <div className="formation-filter-bar">
+          <div className="formation-filter-header">
+            <div className="formation-filter-title">
+              <FilterOutlined />
+              Filtres
+              {hasActiveFilters && <span className="formation-filter-active-dot" />}
+            </div>
+            {hasActiveFilters && (
+              <Button type="link" size="small" icon={<ReloadOutlined />} onClick={resetFilters}
+                style={{ fontSize: 12, padding: "0 4px" }}>
+                Réinitialiser
+              </Button>
+            )}
           </div>
-          <Button
-            icon={<ArrowLeftOutlined />}
-            onClick={() => navigate("/home/Formation")}
-          >
-            Retour
-          </Button>
+
+          <div className="formation-filter-row">
+            <Input.Search
+              placeholder="Rechercher par titre..."
+              allowClear
+              value={filterText}
+              onChange={(e) => setFilterText(e.target.value)}
+              onSearch={setFilterText}
+              style={{ width: 220 }}
+            />
+
+            <Select placeholder="Type" allowClear value={typeFilter} onChange={setTypeFilter} style={{ width: 130 }}>
+              <Option value="INTERNE">Interne</Option>
+              <Option value="EXTERNE">Externe</Option>
+            </Select>
+            <Select placeholder="État" allowClear value={etatFilter} onChange={setEtatFilter} style={{ width: 140 }}>
+              <Option value="ENREGISTRE">Enregistré</Option>
+              <Option value="PLANIFIE">Planifié</Option>
+              <Option value="EN_COURS">En cours</Option>
+              <Option value="ACHEVE">Achevé</Option>
+              <Option value="ANNULE">Annulé</Option>
+            </Select>
+            <Select placeholder="Période" allowClear value={periodFilter} onChange={setPeriodFilter} style={{ width: 150 }}>
+              {PERIOD_OPTIONS.map(o => <Option key={o.value} value={o.value}>{o.label}</Option>)}
+            </Select>
+            <Select placeholder="UP" allowClear value={upFilter} onChange={setUpFilter} style={{ width: 170 }} showSearch optionFilterProp="children">
+              {upsOptions.map((u) => <Option key={u.id} value={u.id}>{u.libelle}</Option>)}
+            </Select>
+            <Select placeholder="Département" allowClear value={deptFilter} onChange={setDeptFilter} style={{ width: 170 }} showSearch optionFilterProp="children">
+              {deptsOptions.map((d) => <Option key={d.id} value={d.id}>{d.libelle}</Option>)}
+            </Select>
+            <RangePicker onChange={setPeriodRange} placeholder={["Début", "Fin"]} style={{ width: 220 }} />
+          </div>
         </div>
 
-        {/* Filters */}
-        <Space wrap style={{ marginBottom: 16 }}>
-          <Input.Search
-            placeholder="Filtrer par titre"
-            allowClear
-            onSearch={setFilterText}
-            style={{ width: 240 }}
-          />
-          <Select value={needFilter} onChange={setNeedFilter} style={{ width: 160 }}>
-            <Option value="all">Tous</Option>
-            <Option value="withNeed">Avec besoin</Option>
-            <Option value="withoutNeed">Sans besoin</Option>
-          </Select>
-          <Select
-            placeholder="Type Besoin"
-            allowClear
-            value={typeFilter}
-            onChange={setTypeFilter}
-            style={{ width: 160 }}
-          >
-            <Option value="INDIVIDUEL">Individuel</Option>
-            <Option value="COLLECTIF">Collectif</Option>
-          </Select>
-          <Select
-            placeholder="État"
-            allowClear
-            value={etatFilter}
-            onChange={setEtatFilter}
-            style={{ width: 160 }}
-          >
-            <Option value="ACHEVE">ACHEVE</Option>
-            <Option value="ENREGISTRE">ENREGISTRÉ</Option>
-            <Option value="ANNULE">ANNULÉ</Option>
-          </Select>
-          <Select
-            placeholder="UP"
-            allowClear
-            value={upFilter}
-            onChange={setUpFilter}
-            style={{ width: 200 }}
-          >
-            {upsOptions.map((u) => (
-              <Option key={u.id} value={u.id}>
-                {u.libelle}
-              </Option>
-            ))}
-          </Select>
-          <Select
-            placeholder="Département"
-            allowClear
-            value={deptFilter}
-            onChange={setDeptFilter}
-            style={{ width: 200 }}
-          >
-            {deptsOptions.map((d) => (
-              <Option key={d.id} value={d.id}>
-                {d.libelle}
-              </Option>
-            ))}
-          </Select>
-          <RangePicker onChange={setPeriodRange} />
-          <Button icon={<DownloadOutlined />} onClick={() => setOpenExport(true)}>
-            Exporter
-          </Button>
-          {canManageFormations && (
-            <Button
-              icon={<MailOutlined />}
-              disabled={!selectedFormation}
-              onClick={() => setOpenMail(true)}
-            >
-              Envoyer Email
-            </Button>
-          )}
-        </Space>
-
-        {/* Table */}
+        {/* ── Table ──────────────────────────────────────────────────────── */}
+        <div className="formation-table-wrapper">
         <Table
           rowSelection={canManageFormations ? rowSelection : undefined}
           dataSource={filtered}
           columns={columns}
           rowKey="idFormation"
           loading={loading}
-          pagination={{ pageSize: 8 }}
+          size="middle"
+          pagination={{ pageSize: 10, showSizeChanger: true, showTotal: (total) => `${total} formation${total !== 1 ? "s" : ""}` }}
+          locale={{
+            emptyText: (
+              <EmptyState
+                icon={<AppstoreOutlined />}
+                title="Aucune formation trouvée"
+                description={hasActiveFilters ? "Aucun résultat ne correspond aux filtres appliqués." : "Aucune formation enregistrée pour le moment."}
+                action={hasActiveFilters ? { label: "Effacer les filtres", onClick: resetFilters } : undefined}
+                compact
+              />
+            ),
+          }}
           expandable={{
             expandedRowRender: (record) => (
-              <div style={{ padding: 16 }}>
-                <Title level={5}>Séances</Title>
-                {(record.seances || []).map((s) => (
-                  <Tag key={s.idSeance}>
-                    {moment(s.dateSeance).format("L")} {s.heureDebut}–{s.heureFin}
-                  </Tag>
-                ))}
+              <div className="formation-expand-content">
+                <span className="formation-expand-title">Séances</span>
+                <div className="formation-seance-list">
+                  {(record.seances || []).map((s) => (
+                    <span key={s.idSeance} className="formation-seance-tag">
+                      <span className="formation-seance-date">{moment(s.dateSeance).format("L")}</span>
+                      <span className="formation-seance-time">{s.heureDebut}–{s.heureFin}</span>
+                      {s.salle && <span className="formation-seance-salle">· {s.salle}</span>}
+                    </span>
+                  ))}
+                </div>
               </div>
             ),
             rowExpandable: (record) => record.seances != null,
           }}
         />
+        </div>
 
         {/* Drawer E-mail */}
         {canManageFormations && (
@@ -511,6 +491,7 @@ export default function FormationConsultationPage() {
             width={720}
             onClose={() => setOpenMail(false)}
             open={openMail}
+            className="formation-drawer"
           >
             {selectedFormation && (
               <MailForm
@@ -531,13 +512,14 @@ export default function FormationConsultationPage() {
             width={720}
             onClose={() => setOpenEdit(false)}
             open={openEdit}
+            className="formation-drawer"
           >
             {selectedFormation && (
               <FormationWorkflowEditForm
                 formation={selectedFormation}
                 onFormationUpdated={() => {
                   setOpenEdit(false);
-                  loadFormations();
+                  void loadFormations();
                 }}
               />
             )}

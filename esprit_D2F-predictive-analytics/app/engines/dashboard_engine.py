@@ -2,25 +2,47 @@
 
 import logging
 from collections import defaultdict
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 from typing import Any
 
-from sqlalchemy import func
+from sqlalchemy import Integer, func
 from sqlalchemy.orm import Session
 
+from app.core.db import db_session as _db_session, execute_query
 from app.models.db_models import (
     AlertEvent, DashboardSnapshot, Recommendation,
     SkillGap, TeacherRiskProfile,
 )
+from app.services.data_service import ALL_ENSEIGNANTS_QUERY
 
 logger = logging.getLogger(__name__)
 
 
 class DashboardEngine:
-    """Calcule les 6 KPIs du tableau de bord prédictif."""
+    """Calcule les 6 KPIs du tableau de bord prédictif.
+
+    Uses DashboardSnapshot table as cache to avoid recomputing
+    KPIs on every request when data hasn't changed.
+    """
 
     def __init__(self, db: Session):
         self.db = db
+
+    def get_cached(self, max_age_hours: int = 6) -> dict[str, Any] | None:
+        """Return cached dashboard if fresh enough, else None."""
+        cutoff = datetime.now(timezone.utc) - timedelta(hours=max_age_hours)
+        snap = (
+            self.db.query(DashboardSnapshot)
+            .filter(
+                DashboardSnapshot.scope == "GLOBAL",
+                DashboardSnapshot.snapshot_date >= cutoff.date(),
+            )
+            .order_by(DashboardSnapshot.snapshot_date.desc())
+            .first()
+        )
+        if snap and snap.kpis_json:
+            return {**snap.kpis_json, "_cached": True}
+        return None
 
     def compute_all(self, formations: list[dict] | None = None) -> dict[str, Any]:
         kpis = {
@@ -113,7 +135,7 @@ class DashboardEngine:
                 SkillGap.domaine_nom,
                 func.count(SkillGap.id).label("nb_gaps"),
                 func.sum(
-                    func.cast(SkillGap.niveau_urgence == "CRITIQUE", type_=None)
+                    func.cast(SkillGap.niveau_urgence == "CRITIQUE", Integer)
                 ).label("nb_critiques"),
                 func.avg(SkillGap.nb_besoins_exprimes).label("nb_besoins_moy"),
             )
@@ -184,14 +206,26 @@ class DashboardEngine:
             .all()
         )
 
-        # dept info not stored in skill_gaps — aggregate at enseignant level
+        # Build enseignant → departement mapping from the shared DB
+        ens_dept_map: dict[str, str] = {}
+        try:
+            with _db_session() as s:
+                all_ens = execute_query(s, ALL_ENSEIGNANTS_QUERY, {})
+            for e in all_ens:
+                ens_dept_map[str(e.get("enseignant_id", ""))] = str(
+                    e.get("departement_id") or "non_affecte"
+                )
+        except Exception as exc:
+            logger.warning("Failed to load enseignant→dept map: %s", exc)
+            ens_dept_map = {}
+
         total     = defaultdict(int)
         couverts  = defaultdict(int)
         for r in rows:
-            key = "global"  # dept info would need join with risk_profiles
-            total[key]    += 1
+            dept = ens_dept_map.get(str(r.enseignant_id), "non_affecte")
+            total[dept]    += 1
             if r.niveau_actuel >= r.niveau_requis:
-                couverts[key] += 1
+                couverts[dept] += 1
 
         return [
             {
@@ -199,7 +233,7 @@ class DashboardEngine:
                 "taux_couverture": round(couverts[k] / max(total[k], 1) * 100, 1),
                 "nb_evalues": total[k],
             }
-            for k in total
+            for k in sorted(total.keys())
         ]
 
     # ── KPI 5 : Top formations recommandées ──────────────────

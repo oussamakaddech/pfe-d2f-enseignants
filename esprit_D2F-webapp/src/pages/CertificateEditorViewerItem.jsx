@@ -120,7 +120,7 @@ const generatePdfDocument = async (data) => {
             />
           ) : (
             <div style={{ textAlign: "center", padding: 40 }}>
-              <Spin tip="Génération du PDF..." />
+              <Spin tip="Génération du PDF..."><div /></Spin>
             </div>
           )}
         </Card>

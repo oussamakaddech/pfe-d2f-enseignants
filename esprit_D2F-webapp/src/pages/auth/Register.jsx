@@ -1,7 +1,6 @@
-// src/Pages/Auth/Register.jsx
+// src/pages/auth/Register.jsx
 import { useState } from "react";
 import {
-  Card,
   Form,
   Input,
   Select,
@@ -18,9 +17,9 @@ import {
 } from "@ant-design/icons";
 import useAppNotification from "../../hooks/useAppNotification";
 import { useNavigate } from "react-router-dom";
-
 import { signup } from "../../services/authService";
 import EnseignantService from "../../services/EnseignantService";
+import "./Register.css";
 
 const { Title } = Typography;
 const { Option } = Select;
@@ -93,20 +92,38 @@ export default function Register({ onSuccess } = {}) {
   };
 
   return (
-    <Card
-      style={{ maxWidth: 600, margin: "40px auto", padding: "24px" }}
-      variant="borderless"
-    >
-      <Title level={2} style={{ textAlign: "center", marginBottom: 24 }}>
-        Création de compte
-      </Title>
+    <div className="register-page">
+      <div className="register-brand">
+        <div className="register-brand-inner">
+          <img
+            src="/assets/img/logo/esprit.png"
+            alt="ESPRIT"
+            className="register-brand-logo"
+          />
+          <div className="register-brand-title">ESPRIT</div>
+          <div className="register-brand-divider" />
+          <p className="register-brand-sub">
+            Direction de la Formation<br />Création de compte
+          </p>
+        </div>
+      </div>
 
-      <Form
-        form={form}
-        layout="vertical"
-        onFinish={onFinish}
-        scrollToFirstError
-      >
+      <div className="register-form-panel">
+        <div className="register-card">
+          <Title level={2} className="register-card-title">
+            Création de compte
+          </Title>
+          <p className="register-card-subtitle">
+            Remplissez le formulaire pour créer votre compte D2F
+          </p>
+
+          <Form
+            form={form}
+            layout="vertical"
+            onFinish={onFinish}
+            scrollToFirstError
+            className="register-form"
+          >
         <Form.Item
           name="username"
           label={
@@ -277,6 +294,7 @@ export default function Register({ onSuccess } = {}) {
             type="primary"
             htmlType="submit"
             loading={loading}
+            className="register-button"
             style={{ width: "100%" }}
           >
             S'inscrire
@@ -284,11 +302,13 @@ export default function Register({ onSuccess } = {}) {
         </Form.Item>
 
         <Form.Item style={{ textAlign: "center" }}>
-          <Button type="link" onClick={() => navigate("/")}>
+          <Button type="link" className="register-link-btn" onClick={() => navigate("/")}>
             Déjà un compte ? Se connecter
           </Button>
         </Form.Item>
       </Form>
-    </Card>
+        </div>
+      </div>
+    </div>
   );
 }

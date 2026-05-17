@@ -20,6 +20,7 @@ public class AuditService {
 
     private static final String RESOURCE_AUTH = "Authentication";
     private static final String STATUS_SUCCESS = "SUCCESS";
+    private static final String USER_KEY = "User: ";
 
     private final AuditLogRepository auditLogRepository;
 
@@ -83,7 +84,7 @@ public class AuditService {
         AuditLog auditLog = AuditLog.builder()
                 .username(actor)
                 .action(action)
-                .resource("User: " + targetUser)
+                .resource(USER_KEY + targetUser)
                 .status(STATUS_SUCCESS)
                 .details(details)
                 .timestamp(LocalDateTime.now())
@@ -111,7 +112,8 @@ public class AuditService {
     /**
      * Log CRUD operations
      */
-    public void logCrudOperation(String username, String operation, String resource, String resourceId, String details) {
+    public void logCrudOperation(String username, String operation, String resource, String resourceId,
+            String details) {
         AuditLog auditLog = AuditLog.builder()
                 .username(username)
                 .action(operation.toUpperCase())
@@ -150,5 +152,73 @@ public class AuditService {
      */
     public List<AuditLog> getAuditLogsBetweenDates(LocalDateTime startDate, LocalDateTime endDate) {
         return auditLogRepository.findByTimestampBetween(startDate, endDate);
+    }
+
+    /**
+     * Log password reset request
+     */
+    public void logPasswordResetRequest(String email, String ipAddress) {
+        AuditLog auditLog = AuditLog.builder()
+                .username(email)
+                .action("PASSWORD_RESET_REQUEST")
+                .resource(RESOURCE_AUTH)
+                .status(STATUS_SUCCESS)
+                .details("Password reset requested")
+                .ipAddress(ipAddress)
+                .timestamp(LocalDateTime.now())
+                .build();
+        auditLogRepository.save(auditLog);
+        log.info("Password reset requested for email={} from IP {}", email, ipAddress);
+    }
+
+    /**
+     * Log successful password reset
+     */
+    public void logPasswordResetSuccess(String username, String ipAddress) {
+        AuditLog auditLog = AuditLog.builder()
+                .username(username)
+                .action("PASSWORD_RESET_SUCCESS")
+                .resource(RESOURCE_AUTH)
+                .status(STATUS_SUCCESS)
+                .details("Password reset completed")
+                .ipAddress(ipAddress)
+                .timestamp(LocalDateTime.now())
+                .build();
+        auditLogRepository.save(auditLog);
+        log.info("Password reset completed for user={}", username);
+    }
+
+    /**
+     * Log account ban
+     */
+    public void logAccountBan(String adminUsername, String targetUsername, String ipAddress) {
+        AuditLog auditLog = AuditLog.builder()
+                .username(adminUsername)
+                .action("ACCOUNT_BAN")
+                .resource(USER_KEY + targetUsername)
+                .status(STATUS_SUCCESS)
+                .details("Account banned by " + adminUsername)
+                .ipAddress(ipAddress)
+                .timestamp(LocalDateTime.now())
+                .build();
+        auditLogRepository.save(auditLog);
+        log.info("Account {} banned by admin {}", targetUsername, adminUsername);
+    }
+
+    /**
+     * Log account enable
+     */
+    public void logAccountEnable(String adminUsername, String targetUsername, String ipAddress) {
+        AuditLog auditLog = AuditLog.builder()
+                .username(adminUsername)
+                .action("ACCOUNT_ENABLE")
+                .resource(USER_KEY + targetUsername)
+                .status(STATUS_SUCCESS)
+                .details("Account enabled by " + adminUsername)
+                .ipAddress(ipAddress)
+                .timestamp(LocalDateTime.now())
+                .build();
+        auditLogRepository.save(auditLog);
+        log.info("Account {} enabled by admin {}", targetUsername, adminUsername);
     }
 }

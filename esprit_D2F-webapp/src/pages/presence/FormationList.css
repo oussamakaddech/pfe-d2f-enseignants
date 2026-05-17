@@ -1,0 +1,46 @@
+/* FormationList.css */
+
+.fl-content {
+  padding: 0;
+}
+
+.fl-filter-row {
+  margin-bottom: 24px;
+}
+
+.fl-card-calendar-icon {
+  margin-right: 4px;
+  color: var(--primary-500);
+}
+
+.fl-card {
+  border-radius: var(--radius-lg);
+  cursor: pointer;
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+  border: 1px solid var(--border-color);
+}
+
+.fl-card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+
+.fl-card:focus-visible {
+  outline: 2px solid var(--primary-500);
+  outline-offset: 2px;
+}
+
+.fl-card-title {
+  font-weight: var(--font-semibold);
+  color: var(--text-main);
+  font-size: var(--text-base);
+}
+
+.fl-card-meta {
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+}
+
+.fl-empty {
+  margin-top: 60px;
+}

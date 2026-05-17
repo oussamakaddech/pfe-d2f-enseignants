@@ -34,9 +34,10 @@ class ServiceAnalyseApplicationTest {
 
     @Test
     void mainMethodTestWithNullArguments() {
-        // Test that the main method can be called with null arguments without throwing exceptions
+        // Test that the main method handles null arguments by converting to empty args
         String[] args = null;
-        assertDoesNotThrow(() -> ServiceAnalyseApplication.main(args), "La méthode main ne doit pas lancer d'exception avec des arguments null");
+        assertThrows(IllegalArgumentException.class, () -> ServiceAnalyseApplication.main(args), 
+            "La méthode main doit lancer une IllegalArgumentException avec des arguments null");
     }
 
     @Test

@@ -45,8 +45,14 @@ class TestGapPredictor:
         with pytest.raises(InsufficientDataError):
             predictor.train([], [], [])
 
-    def test_predict_without_model(self):
+    def test_predict_without_model_falls_back_to_heuristic(self):
+        """When no model is trained, predict() must fall back to a heuristic
+        rather than raising — keeps the API responsive while the model is
+        being trained."""
         predictor = GapPredictor()
         predictor.model = None
-        with pytest.raises(Exception):
-            predictor.predict([], [], [])
+        result = predictor.predict([], [], [])
+        assert result["gaps"] == []
+        assert result["overall_risk_score"] == 0.0
+        # The explanation must indicate the heuristic fallback was used
+        assert result["explanation"].get("method") == "heuristic"

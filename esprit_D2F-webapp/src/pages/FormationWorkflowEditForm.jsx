@@ -8,23 +8,23 @@ import {
   Select,
   Button,
   Typography,
-  Collapse,
+  Alert,
   Modal,
   Radio,
   Divider,
   Space,
-  Tag,
   Popconfirm,
-  Upload,
 } from "antd";
 import {
   UploadOutlined,
   DeleteOutlined,
   UpOutlined,
   DownOutlined,
+  SaveOutlined,
 } from "@ant-design/icons";
 import * as XLSX from "xlsx";
 import useAppNotification from "../hooks/useAppNotification";
+import "./FormationWorkflowEditForm.css";
 
 import FormationWorkflowService from "../services/FormationWorkflowService";
 import DeptService from "../services/DeptService";
@@ -79,7 +79,7 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
 
   /* enseignants + filtres */
   const [ens, setEns] = useState([]);
-  const [, setAnimSel] = useState([]);
+  const [animSel, setAnimSel] = useState([]);
   const [partSel, setPartSel] = useState([]);
   const [existingFormations, setExistingFormations] = useState([]);
   const [overlapWarnings, setOverlapWarnings] = useState([]);
@@ -113,7 +113,6 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
 
   /* UI */
   const [showMore, setShowMore] = useState(false);
-  const [snack, setSnack] = useState({ open: false, severity: "info", message: "" }); // kept for compatibility, will use message.xxx
   const [openDocModal, setOpenDocModal] = useState(false);
   const [openUploadPanel, setOpenUploadPanel] = useState(false);
   
@@ -187,6 +186,9 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
     /* sélection animateurs / participants global */
     const amap = {},
       pmap = {};
+    // Animateurs au niveau de la formation (priorité)
+    (formation.animateurs || []).forEach((a) => (amap[a.id] = a));
+    // Compléter avec les animateurs des séances
     (formation.seances || []).forEach((s) => {
       (s.animateurs || []).forEach((a) => (amap[a.id] = a));
       (s.participants || []).forEach((p) => (pmap[p.id] = p));
@@ -356,7 +358,7 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
       ...s,
       {
         id: Date.now(),
-        dateSeance: dateDebut || moment().format("YYYY-MM-DD"),
+        dateSeance: dateDebut || format(new Date(), "yyyy-MM-dd"),
         heureDebut: "08:00:00",
         heureFin: "10:00:00",
         salle: "",
@@ -388,21 +390,27 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
     if (!f) return;
     const reader = new FileReader();
     reader.onload = (ev) => {
-      const wb = XLSX.read(ev.target.result, { type: "binary" });
+      const wb = XLSX.read(new Uint8Array(ev.target.result), { type: "array" });
       const ws = wb.Sheets[wb.SheetNames[0]];
       const rows = XLSX.utils.sheet_to_json(ws, { header: 1 });
-      if (rows.length < 2)
-        return setSnack({ open: true, severity: "warning", message: "Excel vide ou mal formaté" });
+      if (rows.length < 2) {
+        message.warning("Excel vide ou mal formaté");
+        return;
+      }
       const hdr = rows[0].map((h) => String(h).toLowerCase().trim());
       const idx = hdr.findIndex((h) => h === "email" || h === "mail");
-      if (idx < 0)
-        return setSnack({ open: true, severity: "warning", message: "Colonne Email introuvable" });
+      if (idx < 0) {
+        message.warning(`Colonne Email introuvable. Colonnes attendues : Email, Nom, Prénom. Colonnes trouvées : ${rows[0].join(", ")}`);
+        e.target.value = "";
+        return;
+      }
       const mails = rows.slice(1).map((r) => r[idx]).filter(Boolean);
       const matched = ens.filter((x) => mails.includes(x.mail));
       setPartSel(matched);
-      setSnack({ open: true, severity: "success", message: `${matched.length} participants importés` });
+      message.success(`${matched.length} participant${matched.length > 1 ? "s" : ""} importé${matched.length > 1 ? "s" : ""}`);
+      e.target.value = "";
     };
-    reader.readAsBinaryString(f);
+    reader.readAsArrayBuffer(f);
   };
 
   /* ---------- soumission ---------- */
@@ -436,6 +444,7 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
       upId: selectedUp?.id,
       departementId: selectedDept?.id,
       participantsIds: partSel.map((p) => p.id),
+      animateursIds: animSel.map((a) => a.id),
       domaine,
       populationCible,
       objectifs,
@@ -478,8 +487,9 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
 
   /* ======================= RENDER ======================= */
   return (
-    <form onSubmit={handleSubmit} style={{ maxWidth: 900, margin: "0 auto" }}>
-      <Title level={4}>Modifier Formation (Workflow)</Title>
+    <form onSubmit={handleSubmit} className="workflow-edit-page">
+      <div className="workflow-edit-section">
+        <div className="workflow-edit-section-title">Informations générales</div>
 
       <Row gutter={[16, 16]}>
         {/* ----------- infos de base ----------- */}
@@ -658,6 +668,12 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
           )}
         </Col>
 
+      </Row>
+      </div>
+
+      <div className="workflow-edit-section">
+        <div className="workflow-edit-section-title">Informations complémentaires</div>
+        <Row gutter={[16, 16]}>
         {/* ----------- bouton collapse plus d'infos ----------- */}
         <Col span={24}>
           <Button
@@ -687,32 +703,25 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
           )}
         </Col>
 
-        {/* ----------- séances complètes ----------- */}
+        </Row>
+      </div>
+
+      <div className="workflow-edit-section">
+        <div className="workflow-edit-section-title">Séances</div>
+        <Row gutter={[16, 16]}>
         {seances.map((s, i) => (
           <Col span={24} key={s.idSeance || s.id}>
-            <div
-              style={{
-                marginBottom: 16,
-                padding: 16,
-                border: "1px solid #ddd",
-                borderRadius: 8,
-                position: "relative",
-              }}
-            >
-              <Popconfirm title="Supprimer cette séance ?" onConfirm={() => removeSeance(i)}>
-                <Button
-                  type="text"
-                  danger
-                  size="small"
-                  icon={<DeleteOutlined />}
-                  style={{ position: "absolute", top: 4, right: 4 }}
-                />
-              </Popconfirm>
-
-              <div style={{ display: "flex", alignItems: "center", marginBottom: 8 }}>
-                <Text strong style={{ flexGrow: 1 }}>Séance #{i + 1}</Text>
-                <Button type="text" size="small" icon={s.expanded ? <UpOutlined /> : <DownOutlined />} onClick={() => toggleSeance(i)} />
+            <div className="workflow-edit-session-card">
+              <div className="workflow-edit-session-header">
+                <span className="workflow-edit-session-number">Séance #{i + 1}</span>
+                <div className="workflow-edit-session-actions">
+                  <Button type="text" size="small" icon={s.expanded ? <UpOutlined /> : <DownOutlined />} onClick={() => toggleSeance(i)} />
+                  <Popconfirm title="Supprimer cette séance ?" onConfirm={() => removeSeance(i)}>
+                    <Button type="text" danger size="small" icon={<DeleteOutlined />} />
+                  </Popconfirm>
+                </div>
               </div>
+              <div style={{ padding: "12px 16px" }}>
 
               {/* ligne principale */}
               <Row gutter={[16, 16]}>
@@ -782,6 +791,7 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
                   </Col>
                 </Row>
               )}
+              </div>
             </div>
           </Col>
         ))}
@@ -883,15 +893,20 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
           </Space>
         </Col>
 
-        {/* ----------- submit ----------- */}
-        {!isResponsableDossier && (
-          <Col span={24} style={{ textAlign: "right", marginTop: 32 }}>
-            <Button type="primary" danger htmlType="submit">
-              ✔️ Mettre à jour
+        </Row>
+      </div>
+
+      {/* ----------- submit ----------- */}
+      {!isResponsableDossier && (
+        <div className="workflow-edit-footer">
+          <div />
+          <div className="workflow-edit-footer-right">
+            <Button type="primary" danger htmlType="submit" icon={<SaveOutlined />} size="large">
+              Mettre à jour
             </Button>
-          </Col>
-        )}
-      </Row>
+          </div>
+        </div>
+      )}
 
       {/* Modals for Documents */}
       <Modal

@@ -29,6 +29,7 @@ import {
 } from "@ant-design/icons";
 import moment from "moment";
 import FormationWorkflowService from "../../services/FormationWorkflowService";
+import "./FicheFormation.css";
 
 const PERIOD_OPTIONS = [
   { value: "P1", label: "Période 1" },
@@ -57,7 +58,7 @@ export default function FicheFormation() {
   }, [id]);
 
   if (loading) {
-    return <Spin style={{ display: "block", margin: "4rem auto" }} size="large" />;
+    return <Spin className="fiche-spin" size="large" />;
   }
   if (error) {
     return (
@@ -66,7 +67,7 @@ export default function FicheFormation() {
         message="Erreur"
         description={error}
         showIcon
-        style={{ maxWidth: 600, margin: "4rem auto" }}
+        className="fiche-error"
       />
     );
   }
@@ -100,28 +101,28 @@ export default function FicheFormation() {
   }[String(typeFormation)?.toUpperCase()] || "default";
 
   return (
-    <div style={{ padding: 24, maxWidth: 1200, margin: "0 auto", background: "#f5f7fa", minHeight: "100vh" }}>
+    <div className="fiche-page">
       {/* Header */}
-      <Row justify="space-between" align="middle" style={{ marginBottom: 24 }}>
+      <Row justify="space-between" align="middle" className="fiche-header-row">
         <Col>
-          <Button icon={<ArrowLeftOutlined />} onClick={() => navigate(-1)} style={{ marginBottom: 8 }}>
+          <Button icon={<ArrowLeftOutlined />} onClick={() => navigate(-1)} className="fiche-back-btn">
             Retour
           </Button>
-          <Title level={2} style={{ margin: 0 }}>
-            <BookOutlined style={{ marginRight: 12, color: "#B51200" }} />
+          <Title level={3} className="fiche-header-title">
+            <BookOutlined className="fiche-title-icon" />
             {titreFormation}
           </Title>
         </Col>
         <Col>
           <Space>
-            <Tag color={typeColor} style={{ fontSize: 14, padding: "4px 12px" }}>
+            <Tag color={typeColor} className="fiche-type-tag">
               {typeFormation || "—"}
             </Tag>
             <Badge
               status={inscriptionsOuvertes ? "success" : "error"}
               text={
-                <Tag color={inscriptionsOuvertes ? "success" : "error"} style={{ fontSize: 14 }}>
-                  {inscriptionsOuvertes ? "🟢 Inscriptions ouvertes" : "🔒 Inscriptions fermées"}
+                <Tag color={inscriptionsOuvertes ? "success" : "error"}>
+                  {inscriptionsOuvertes ? "Inscriptions ouvertes" : "Inscriptions fermées"}
                 </Tag>
               }
             />
@@ -135,13 +136,13 @@ export default function FicheFormation() {
           <Card
             title={
               <Space>
-                <InfoCircleOutlined style={{ color: "#B51200" }} />
-                <span style={{ fontWeight: 700 }}>Informations générales</span>
+                <InfoCircleOutlined className="fiche-card-icon" />
+                <span className="fiche-card-title-text">Informations générales</span>
               </Space>
             }
-            style={{ borderRadius: 12, height: "100%" }}
+            className="fiche-card fiche-card-full"
           >
-            <Descriptions column={1} size="middle" layout="horizontal" labelStyle={{ fontWeight: 600, width: 160 }}>
+            <Descriptions column={1} size="middle" layout="horizontal" styles={{ label: { fontWeight: 600, width: 160 } }}>
               <Descriptions.Item label={<Space><CalendarOutlined /> Dates</Space>}>
                 <Text strong>
                   {moment(dateDebut).format("DD/MM/YYYY")} → {moment(dateFin).format("DD/MM/YYYY")}
@@ -174,19 +175,19 @@ export default function FicheFormation() {
           <Card
             title={
               <Space>
-                <FileTextOutlined style={{ color: "#B51200" }} />
-                <span style={{ fontWeight: 700 }}>Présentation de la formation</span>
+                <FileTextOutlined className="fiche-card-icon" />
+                <span className="fiche-card-title-text">Présentation de la formation</span>
               </Space>
             }
-            style={{ borderRadius: 12 }}
+            className="fiche-card"
           >
             {objectifs && (
               <>
-                <Title level={5} style={{ color: "#B51200" }}>
-                  <AimOutlined style={{ marginRight: 8 }} />
+                <Title level={5} className="fiche-section-title">
+                  <AimOutlined className="fiche-section-icon" />
                   Objectifs généraux
                 </Title>
-                <Paragraph style={{ background: "#fff2f0", padding: 12, borderRadius: 8 }}>
+                <Paragraph className="fiche-block fiche-block-primary">
                   {objectifs}
                 </Paragraph>
               </>
@@ -194,11 +195,11 @@ export default function FicheFormation() {
 
             {objectifsPedago && (
               <>
-                <Title level={5} style={{ color: "#B51200" }}>
-                  <CheckCircleOutlined style={{ marginRight: 8 }} />
+                <Title level={5} className="fiche-section-title">
+                  <CheckCircleOutlined className="fiche-section-icon" />
                   Objectifs pédagogiques
                 </Title>
-                <Paragraph style={{ background: "#f6ffed", padding: 12, borderRadius: 8 }}>
+                <Paragraph className="fiche-block fiche-block-success">
                   {objectifsPedago}
                 </Paragraph>
               </>
@@ -206,11 +207,11 @@ export default function FicheFormation() {
 
             {prerequis && (
               <>
-                <Title level={5} style={{ color: "#B51200" }}>
-                  <InfoCircleOutlined style={{ marginRight: 8 }} />
+                <Title level={5} className="fiche-section-title">
+                  <InfoCircleOutlined className="fiche-section-icon" />
                   Prérequis
                 </Title>
-                <Paragraph style={{ background: "#e6f7ff", padding: 12, borderRadius: 8 }}>
+                <Paragraph className="fiche-block fiche-block-info">
                   {prerequis}
                 </Paragraph>
               </>
@@ -218,11 +219,11 @@ export default function FicheFormation() {
 
             {acquis && (
               <>
-                <Title level={5} style={{ color: "#B51200" }}>
-                  <CheckCircleOutlined style={{ marginRight: 8 }} />
+                <Title level={5} className="fiche-section-title">
+                  <CheckCircleOutlined className="fiche-section-icon" />
                   Acquis attendus
                 </Title>
-                <Paragraph style={{ background: "#f9f0ff", padding: 12, borderRadius: 8 }}>
+                <Paragraph className="fiche-block fiche-block-purple">
                   {acquis}
                 </Paragraph>
               </>
@@ -230,11 +231,11 @@ export default function FicheFormation() {
 
             {evalMethods && (
               <>
-                <Title level={5} style={{ color: "#B51200" }}>
-                  <BarChartOutlined style={{ marginRight: 8 }} />
+                <Title level={5} className="fiche-section-title">
+                  <BarChartOutlined className="fiche-section-icon" />
                   Méthodes d&apos;évaluation
                 </Title>
-                <Paragraph style={{ background: "#fffbe6", padding: 12, borderRadius: 8 }}>
+                <Paragraph className="fiche-block fiche-block-warning">
                   {evalMethods}
                 </Paragraph>
               </>
@@ -242,11 +243,11 @@ export default function FicheFormation() {
 
             {indicateurs && (
               <>
-                <Title level={5} style={{ color: "#B51200" }}>
-                  <BarChartOutlined style={{ marginRight: 8 }} />
+                <Title level={5} className="fiche-section-title">
+                  <BarChartOutlined className="fiche-section-icon" />
                   Indicateurs de réussite
                 </Title>
-                <Paragraph style={{ background: "#e6fffb", padding: 12, borderRadius: 8 }}>
+                <Paragraph className="fiche-block fiche-block-teal">
                   {indicateurs}
                 </Paragraph>
               </>
@@ -258,11 +259,11 @@ export default function FicheFormation() {
       {/* Timeline des séances */}
       {seances.length > 0 && (
         <Card
-          style={{ marginTop: 24, borderRadius: 12 }}
+          className="fiche-card fiche-seances-card"
           title={
             <Space>
-              <CalendarOutlined style={{ color: "#B51200" }} />
-              <span style={{ fontWeight: 700 }}>Programme des séances ({seances.length})</span>
+              <CalendarOutlined className="fiche-card-icon" />
+              <span className="fiche-card-title-text">Programme des séances ({seances.length})</span>
             </Space>
           }
         >
@@ -283,7 +284,7 @@ export default function FicheFormation() {
                   {s.salle && <Tag size="small">{s.salle}</Tag>}
                 </div>
               ),
-              color: i === 0 ? "#B51200" : "gray",
+              color: i === 0 ? "var(--primary-500)" : "gray",
             }))}
           />
         </Card>

@@ -1,19 +1,31 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { AuthProvider, useAuth } from '../context/AuthProvider';
+import AuthProvider, { useAuth } from '../context/AuthProvider';
+import type { AuthUser } from '../models/auth';
 
 // Test component that uses AuthContext
 const TestComponent = () => {
-  const { user, isAuthenticated, login, logout } = useAuth();
+  const { user, login, logout } = useAuth();
+
+  const handleLogin = () => {
+    const testUser: AuthUser = {
+      id: 1,
+      userName: 'testuser',
+      username: 'testuser',
+      emailAddress: 'test@example.com',
+      role: 'USER'
+    };
+    login(testUser);
+  };
 
   return (
     <div>
       <div data-testid="auth-status">
-        {isAuthenticated ? 'Authenticated' : 'Not authenticated'}
+        {user ? 'Authenticated' : 'Not authenticated'}
       </div>
       {user && <div data-testid="user-name">{user.username}</div>}
-      <button onClick={() => login({ username: 'testuser', password: 'pass' })}>
+      <button onClick={handleLogin}>
         Login
       </button>
       <button onClick={logout}>Logout</button>
@@ -22,6 +34,11 @@ const TestComponent = () => {
 };
 
 describe('AuthContext', () => {
+  beforeEach(() => {
+    sessionStorage.clear();
+    vi.clearAllMocks();
+  });
+
   it('should provide initial auth state', () => {
     render(
       <AuthProvider>
@@ -74,7 +91,7 @@ describe('AuthContext', () => {
     });
   });
 
-  it('should persist auth state in localStorage', async () => {
+  it('should persist auth state in sessionStorage', async () => {
     const { unmount } = render(
       <AuthProvider>
         <TestComponent />
@@ -88,6 +105,11 @@ describe('AuthContext', () => {
       expect(screen.getByTestId('auth-status')).toHaveTextContent('Authenticated');
     });
 
+    // Verify sessionStorage was set
+    const storedUser = sessionStorage.getItem('d2f_user');
+    expect(storedUser).toBeTruthy();
+    expect(JSON.parse(storedUser!).username).toBe('testuser');
+
     // Simulate app reload
     unmount();
 
@@ -97,11 +119,11 @@ describe('AuthContext', () => {
       </AuthProvider>
     );
 
-    // Should restore auth state from localStorage
+    // Should restore auth state from sessionStorage
     await waitFor(() => {
       const status = screen.getByTestId('auth-status');
-      // If localStorage persistence is implemented, it should be authenticated
-      expect(status).toBeInTheDocument();
+      // If sessionStorage persistence is implemented, it should be authenticated
+      expect(status).toHaveTextContent('Authenticated');
     });
   });
 

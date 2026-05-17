@@ -7,10 +7,12 @@ import com.microsoft.graph.requests.GraphServiceClient;
 import okhttp3.Request;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import lombok.extern.slf4j.Slf4j;
 
 import java.util.Collections;
 
 @Service
+@Slf4j
 public class MicrosoftGraphClientProvider {
 
     @Value("${azure.ad.client-id}")
@@ -22,20 +24,30 @@ public class MicrosoftGraphClientProvider {
     @Value("${azure.ad.tenant-id}")
     private String tenantId;
 
+    private volatile GraphServiceClient<Request> cachedGraphClient;
+
     public GraphServiceClient<Request> getGraphClient() {
-        ClientSecretCredential credential = new ClientSecretCredentialBuilder()
-                .clientId(clientId)
-                .clientSecret(clientSecret)
-                .tenantId(tenantId)
-                .build();
+        if (cachedGraphClient == null) {
+            synchronized (this) {
+                if (cachedGraphClient == null) {
+                    log.info("Initialisation du GraphServiceClient Azure AD (tenant={})", tenantId);
+                    ClientSecretCredential credential = new ClientSecretCredentialBuilder()
+                            .clientId(clientId)
+                            .clientSecret(clientSecret)
+                            .tenantId(tenantId)
+                            .build();
 
-        TokenCredentialAuthProvider authProvider = new TokenCredentialAuthProvider(
-                Collections.singletonList("https://graph.microsoft.com/.default"),
-                credential
-        );
+                    TokenCredentialAuthProvider authProvider = new TokenCredentialAuthProvider(
+                            Collections.singletonList("https://graph.microsoft.com/.default"),
+                            credential
+                    );
 
-        return GraphServiceClient.builder()
-                .authenticationProvider(authProvider)
-                .buildClient();
+                    cachedGraphClient = GraphServiceClient.builder()
+                            .authenticationProvider(authProvider)
+                            .buildClient();
+                }
+            }
+        }
+        return cachedGraphClient;
     }
 }

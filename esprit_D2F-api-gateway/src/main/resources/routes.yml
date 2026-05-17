@@ -183,9 +183,9 @@ spring:
                 name: ai-reco-cb
                 fallbackUri: forward:/fallback
 
-        # ── Analyse Predictive Service (port 8000) ──────────────────────────
+        # ── Analyse Predictive Service (port 8090) ──────────────────────────
         - id: analyse-service
-          uri: ${ANALYSE_SERVICE_URL:http://localhost:8000}
+          uri: ${ANALYSE_SERVICE_URL:http://localhost:8090}
           predicates:
             - Path=/api/analyse/**
           filters:

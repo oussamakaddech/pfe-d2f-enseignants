@@ -41,6 +41,7 @@ public class FormationDTO {
     private Dept departement;
     private Up up;
     private List<SeanceDTO> seances;
+    private List<EnseignantDTO> animateurs;
     private DeptDTO departement1;
     private UpDTO up1;
     private boolean ouverte ;

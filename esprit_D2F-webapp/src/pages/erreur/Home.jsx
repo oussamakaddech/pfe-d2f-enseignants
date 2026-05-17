@@ -102,31 +102,12 @@ export default function Home() {
         transition={{ duration: 0.4, ease: "easeOut" }}
         style={{
           background: "linear-gradient(135deg, #8b0000 0%, #B51200 55%, #c94010 100%)",
-          borderRadius: 20,
-          padding: "32px 40px",
-          marginBottom: 36,
+          borderRadius: 16,
+          padding: "28px 36px",
+          marginBottom: 32,
           color: "#fff",
-          position: "relative",
-          overflow: "hidden",
         }}
       >
-        {/* decorative circles */}
-        <div style={{
-          position: "absolute", right: -70, top: -70,
-          width: 240, height: 240, borderRadius: "50%",
-          background: "rgba(255,255,255,0.06)", pointerEvents: "none",
-        }} />
-        <div style={{
-          position: "absolute", right: 90, bottom: -50,
-          width: 160, height: 160, borderRadius: "50%",
-          background: "rgba(255,255,255,0.04)", pointerEvents: "none",
-        }} />
-        <div style={{
-          position: "absolute", left: -40, bottom: -60,
-          width: 200, height: 200, borderRadius: "50%",
-          background: "rgba(0,0,0,0.08)", pointerEvents: "none",
-        }} />
-
         <Tag
           style={{
             background: "rgba(255,255,255,0.18)",
@@ -170,7 +151,10 @@ export default function Home() {
               <Col xs={24} sm={12} md={8} lg={6} key={card.path}>
                 <motion.div variants={cardVariants} style={{ height: "100%" }}>
                   <div
+                    role="button"
+                    tabIndex={0}
                     onClick={() => navigate(card.path)}
+                    onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); navigate(card.path); } }}
                     style={{
                       background: "#fff",
                       borderRadius: 16,

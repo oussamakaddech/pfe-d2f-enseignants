@@ -26,7 +26,7 @@ public final class FileSecurityValidator {
     public static final int MAX_FILENAME_LENGTH = 255;
     public static final long MIN_FILE_SIZE_BYTES = 1L;
 
-    // Magic bytes par type MIME. Format : { byte[] signature, offset (default 0) }
+    // Signatures (magic bytes) attendues par type MIME.
     private static final Map<String, byte[][]> MAGIC_BYTES = Map.of(
         "application/pdf", new byte[][]{ {0x25, 0x50, 0x44, 0x46} },           // %PDF
         "image/jpeg", new byte[][]{ {(byte)0xFF, (byte)0xD8, (byte)0xFF} },

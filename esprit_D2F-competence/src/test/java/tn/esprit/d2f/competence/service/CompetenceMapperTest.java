@@ -148,6 +148,24 @@ class CompetenceMapperTest {
             sc.setSavoirs(List.of(buildSavoir(sc)));
             assertThat(mapper.toDTO(sc).getSavoirs()).hasSize(1);
         }
+
+        @Test @DisplayName("gère les entités nulles et les collections nulles")
+        void shouldHandleNulls() {
+            assertThat(mapper.toDTO((SousCompetence) null)).isNull();
+            
+            SousCompetence sc = new SousCompetence();
+            sc.setSavoirs(null);
+            sc.setEnfants(null);
+            sc.setCompetence(null);
+            sc.setParent(null);
+            
+            SousCompetenceDTO dto = mapper.toDTO(sc);
+            assertThat(dto).isNotNull();
+            assertThat(dto.getSavoirs()).isEmpty();
+            assertThat(dto.getEnfants()).isEmpty();
+            assertThat(dto.getCompetenceId()).isNull();
+            assertThat(dto.getParentId()).isNull();
+        }
     }
 
     // ── toDTO(Savoir) ─────────────────────────────────────────────────────────
@@ -196,6 +214,31 @@ class CompetenceMapperTest {
             assertThat(dto.getCompetenceNom()).isEqualTo("Compétences Sols");
             assertThat(dto.getDomaineNom()).isEqualTo("Technique Génie Civil");
             assertThat(dto.getNiveau()).isEqualTo(NiveauMaitrise.N2_ELEMENTAIRE);
+        }
+
+        @Test @DisplayName("gère EnseignantCompetence null et ses relations")
+        void shouldHandleNull() {
+            assertThat(mapper.toDTO((EnseignantCompetence) null)).isNull();
+            
+            EnseignantCompetence ec = new EnseignantCompetence();
+            EnseignantCompetenceDTO dto = mapper.toDTO(ec);
+            assertThat(dto).isNotNull();
+            assertThat(dto.getSavoirId()).isNull();
+        }
+
+        @Test @DisplayName("gère le savoir rattaché directement à la compétence")
+        void shouldHandleSavoirDirectlyOnCompetence() {
+            Domaine d = buildDomaine();
+            Competence c = buildCompetence(d);
+            Savoir s = Savoir.builder().id(5L).nom("Savoir Direct").code("SD").competence(c).build();
+
+            EnseignantCompetence ec = new EnseignantCompetence();
+            ec.setSavoir(s);
+
+            EnseignantCompetenceDTO dto = mapper.toDTO(ec);
+            assertThat(dto).isNotNull();
+            assertThat(dto.getCompetenceNom()).isEqualTo("Compétences Sols");
+            assertThat(dto.getSousCompetenceNom()).isNull();
         }
     }
 }

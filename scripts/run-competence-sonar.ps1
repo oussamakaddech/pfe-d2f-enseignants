@@ -13,10 +13,11 @@ function Get-SonarQubeToken {
         $plainPassword = [System.Net.NetworkCredential]::new("", $Secret).Password
         $auth = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes("${Username}:$plainPassword"))
         $tokenName = "competence-scanner-$(Get-Date -Format 'yyyyMMdd-HHmmss')"
-        $headers = @{"Authorization" = "Basic $auth"; "Content-Type" = "application/json"}
+        $headers = @{"Authorization" = "Basic $auth"; "Content-Type" = "application/json" }
         $response = Invoke-WebRequest -Uri "$Url/api/user_tokens/generate?name=$tokenName" -Method Post -Headers $headers -UseBasicParsing -ErrorAction Stop
         return ($response.Content | ConvertFrom-Json).token
-    } catch { return $null }
+    }
+    catch { return $null }
 }
 
 Write-Host "Lancement de l'analyse Sonar pour : competence-service" -ForegroundColor Cyan
@@ -34,6 +35,7 @@ try {
     
     Write-Host "`n[OK] Analyse terminée !" -ForegroundColor Green
     Write-Host "Accedez au rapport : $SonarUrl/dashboard?id=competence-service" -ForegroundColor Cyan
-} finally {
+}
+finally {
     Pop-Location
 }

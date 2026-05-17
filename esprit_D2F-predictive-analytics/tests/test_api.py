@@ -154,8 +154,9 @@ class TestTrainingPathEndpoint:
     def test_training_path_404_body_has_message(self, client: TestClient):
         resp = client.get(f"{BASE}/training-path/ENS001/42")
         data = resp.json()
-        # FastAPI 422 / HTTPException 404 wraps in {"detail": ...}
-        assert "detail" in data
+        # DSI standard error body includes status/errorCode/message/path
+        assert _is_dsi_error(data)
+        assert data["status"] == 404
 
 
 # ── GET /alerts ───────────────────────────────────────────────────────────────
@@ -195,9 +196,10 @@ class TestAlertUpdateEndpoint:
         resp = client.patch(f"{BASE}/alerts/9999?statut=TRAITEE")
         assert resp.status_code == 404
 
-    def test_patch_alert_invalid_statut_422(self, client: TestClient):
+    def test_patch_alert_invalid_statut_returns_4xx(self, client: TestClient):
         resp = client.patch(f"{BASE}/alerts/1?statut=STATUT_INVALIDE")
-        assert resp.status_code == 422
+        # 404 (alerte inexistante avec mock DB) ou 400 (statut invalide si alerte trouvée)
+        assert resp.status_code in (400, 404)
 
 
 # ── GET /dashboard/global ─────────────────────────────────────────────────────

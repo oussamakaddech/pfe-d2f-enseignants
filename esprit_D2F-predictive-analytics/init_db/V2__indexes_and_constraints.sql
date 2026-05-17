@@ -2,6 +2,13 @@
 -- V2 — Index composites et contraintes supplémentaires
 -- ============================================================
 
+-- pg_trgm extension for similarity search (used by BESOIN_DEMAND_QUERY_PGTRGM)
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
+
+-- Trigram index on competences.nom for fast similarity search
+CREATE INDEX IF NOT EXISTS idx_competences_nom_trgm
+    ON competences USING GIN (nom gin_trgm_ops);
+
 CREATE INDEX IF NOT EXISTS idx_skill_gaps_ens_urgence
     ON skill_gaps(enseignant_id, niveau_urgence, computed_at DESC);
 

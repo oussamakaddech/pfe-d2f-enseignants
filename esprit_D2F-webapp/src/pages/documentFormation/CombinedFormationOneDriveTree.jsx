@@ -13,11 +13,9 @@ import {
   Typography,
   Space,
   Card,
-  Empty,
   Spin,
   Tag,
   Statistic,
-  Divider,
 } from "antd";
 import {
   PlusOutlined,
@@ -29,12 +27,26 @@ import {
   ApartmentOutlined,
   FileTextOutlined,
   EyeOutlined,
+  CloudServerOutlined,
+  AppstoreOutlined,
+  PartitionOutlined,
+  FilePdfOutlined,
+  FileWordOutlined,
+  FileExcelOutlined,
+  FilePptOutlined,
+  FileImageOutlined,
+  FileZipOutlined,
+  CalendarOutlined,
+  InboxOutlined,
+  FolderOutlined,
+  PictureOutlined,
 } from "@ant-design/icons";
 import FormationWorkflowService from "../../services/FormationWorkflowService";
 import OneDriveService from "../../services/OneDriveService";
 import DocumentViewer from "./DocumentViewer";
 import DocumentListModal from "./DocumentListModal";
 import DocumentUploadPanel from "./DocumentUploadPanel";
+import "./CombinedFormationOneDriveTree.css";
 
 const { Title, Text, Paragraph } = Typography;
 const { Search } = Input;
@@ -61,6 +73,28 @@ const formatDate = (value) => {
   } catch {
     return String(value).split("T")[0];
   }
+};
+
+function DocEmpty({ variant = "default", icon, title, text }) {
+  const variantClass = variant === "tree" ? " doc-empty-icon--tree" : variant === "preview" ? " doc-empty-icon--preview" : "";
+  return (
+    <div className="doc-empty">
+      <div className={`doc-empty-icon${variantClass}`}>{icon}</div>
+      {title && <div className="doc-empty-title">{title}</div>}
+      <div className="doc-empty-text">{text}</div>
+    </div>
+  );
+}
+
+const getFileIcon = (name) => {
+  const ext = String(name || "").split(".").pop()?.toLowerCase();
+  if (["pdf"].includes(ext)) return <FilePdfOutlined style={{ color: "#dc2626" }} />;
+  if (["doc", "docx"].includes(ext)) return <FileWordOutlined style={{ color: "#1d4ed8" }} />;
+  if (["xls", "xlsx", "csv"].includes(ext)) return <FileExcelOutlined style={{ color: "#047857" }} />;
+  if (["ppt", "pptx"].includes(ext)) return <FilePptOutlined style={{ color: "#c2410c" }} />;
+  if (["png", "jpg", "jpeg", "gif", "webp", "svg"].includes(ext)) return <FileImageOutlined style={{ color: "#7c3aed" }} />;
+  if (["zip", "rar", "7z", "tar", "gz"].includes(ext)) return <FileZipOutlined style={{ color: "#b45309" }} />;
+  return <FileTextOutlined style={{ color: "#475569" }} />;
 };
 
 const toTreeNode = (node) => ({
@@ -215,39 +249,28 @@ export default function CombinedFormationOneDriveTree() {
   };
 
   return (
-    <Layout
-      style={{
-        minHeight: "100%",
-        padding: 24,
-        background: "linear-gradient(180deg, #f8fafc 0%, #eef2ff 100%)",
-      }}
-    >
+    <Layout className="doc-page">
       <Card
-        variant="outlined"
-        style={{
-          marginBottom: 20,
-          borderRadius: 20,
-          boxShadow: "0 10px 30px rgba(15, 23, 42, 0.08)",
-          background: "linear-gradient(135deg, #0f172a 0%, #1e3a8a 100%)",
-          color: "white",
-        }}
-        styles={{ body: { padding: 24 } }}
+        variant="borderless"
+        className="doc-hero"
+        styles={{ body: { padding: 28 } }}
       >
-        <Space direction="vertical" size={8} style={{ width: "100%" }}>
-          <Tag color="geekblue" style={{ width: "fit-content", border: 0 }}>
-            Dossiers & documents de formation
-          </Tag>
-          <Title level={2} style={{ color: "white", margin: 0 }}>
+        <Space direction="vertical" size={10} style={{ width: "100%" }}>
+          <Tag className="doc-hero-tag">Dossiers & documents de formation</Tag>
+          <Title level={2} className="doc-hero-title">
+            <span className="doc-hero-icon">
+              <CloudServerOutlined />
+            </span>
             Explorer les formations et leurs dossiers
           </Title>
-          <Paragraph style={{ color: "rgba(255,255,255,0.82)", marginBottom: 0, maxWidth: 860 }}>
+          <Paragraph className="doc-hero-subtitle">
             Sélectionnez une formation, parcourez son arborescence OneDrive et ouvrez un document en aperçu sans quitter la page.
           </Paragraph>
         </Space>
 
-        <Row gutter={[16, 16]} style={{ marginTop: 20 }}>
+        <Row gutter={[16, 16]} className="doc-stat-strip">
           <Col xs={24} md={8}>
-            <Card variant="outlined" style={{ borderRadius: 16, minHeight: 104 }}>
+            <Card variant="borderless" className="doc-stat-card doc-stat-card--blue">
               <Statistic
                 title="Formations disponibles"
                 value={filteredFormations.length}
@@ -256,7 +279,7 @@ export default function CombinedFormationOneDriveTree() {
             </Card>
           </Col>
           <Col xs={24} md={8}>
-            <Card variant="outlined" style={{ borderRadius: 16, minHeight: 104 }}>
+            <Card variant="borderless" className="doc-stat-card doc-stat-card--indigo">
               <Statistic
                 title="Documents indexés"
                 value={selectedFormationStats.documentCount}
@@ -265,7 +288,7 @@ export default function CombinedFormationOneDriveTree() {
             </Card>
           </Col>
           <Col xs={24} md={8}>
-            <Card variant="outlined" style={{ borderRadius: 16, minHeight: 104 }}>
+            <Card variant="borderless" className="doc-stat-card doc-stat-card--violet">
               <Statistic
                 title="Dossiers affichés"
                 value={selectedFormationStats.treeRoots}
@@ -276,10 +299,7 @@ export default function CombinedFormationOneDriveTree() {
         </Row>
       </Card>
 
-      <Card
-        variant="outlined"
-        style={{ marginBottom: 20, borderRadius: 18, boxShadow: "0 8px 24px rgba(15, 23, 42, 0.06)" }}
-      >
+      <Card variant="outlined" className="doc-toolbar">
         <Space wrap size={12} style={{ width: "100%", justifyContent: "space-between" }}>
           <Space wrap size={12}>
             <Search
@@ -289,20 +309,22 @@ export default function CombinedFormationOneDriveTree() {
               onChange={(event) => setSearchText(event.target.value)}
               onSearch={setSearchText}
               prefix={<SearchOutlined />}
-              style={{ width: 360, maxWidth: "100%" }}
+              style={{ width: 380, maxWidth: "100%" }}
             />
             <RangePicker
               onChange={setDateRange}
+              suffixIcon={<CalendarOutlined />}
               getPopupContainer={(triggerNode) => triggerNode?.parentNode ?? document.body}
             />
           </Space>
 
-          <Space wrap>
+          <Space wrap size={8}>
             <Button
               type="primary"
               icon={<PlusOutlined />}
               disabled={!selectedFormation}
               onClick={() => setUploadModalVisible(true)}
+              className="doc-btn-add"
             >
               Ajouter un document
             </Button>
@@ -310,10 +332,16 @@ export default function CombinedFormationOneDriveTree() {
               icon={<EditOutlined />}
               disabled={!selectedFormation}
               onClick={() => setEditModalVisible(true)}
+              className="doc-btn-manage"
             >
               Gérer les documents
             </Button>
-            <Button icon={<ReloadOutlined />} onClick={loadTree} disabled={!selectedFormation}>
+            <Button
+              icon={<ReloadOutlined />}
+              onClick={loadTree}
+              disabled={!selectedFormation}
+              className="doc-btn-refresh"
+            >
               Rafraîchir
             </Button>
           </Space>
@@ -324,9 +352,14 @@ export default function CombinedFormationOneDriveTree() {
         <Col xs={24} xl={7}>
           <Card
             variant="outlined"
-            title="Formations"
-            style={{ borderRadius: 18, boxShadow: "0 8px 24px rgba(15, 23, 42, 0.06)" }}
-            extra={<Text type="secondary">{filteredFormations.length} résultat(s)</Text>}
+            className="doc-panel"
+            title={
+              <span className="doc-panel-title">
+                <span className="doc-panel-title-icon"><AppstoreOutlined /></span>
+                Formations
+              </span>
+            }
+            extra={<span className="doc-count-chip">{filteredFormations.length} résultat(s)</span>}
           >
             <Spin spinning={formationsLoading}>
               {filteredFormations.length > 0 ? (
@@ -341,24 +374,17 @@ export default function CombinedFormationOneDriveTree() {
                       <List.Item
                         key={formation.idFormation}
                         onClick={() => openFormation(formation)}
-                        style={{
-                          cursor: "pointer",
-                          borderRadius: 14,
-                          marginBottom: 12,
-                          padding: 16,
-                          border: isSelected ? "1px solid #1677ff" : "1px solid #e5e7eb",
-                          background: isSelected ? "#eff6ff" : "white",
-                          boxShadow: isSelected ? "0 8px 18px rgba(22, 119, 255, 0.12)" : "none",
-                        }}
+                        className={`doc-formation-item${isSelected ? " doc-formation-item--selected" : ""}`}
                       >
                         <Space direction="vertical" size={8} style={{ width: "100%" }}>
                           <Space align="start" style={{ width: "100%", justifyContent: "space-between" }}>
                             <div>
-                              <Text strong style={{ fontSize: 15 }}>
+                              <Text strong className="doc-formation-title">
                                 {formation.titreFormation || "Formation sans titre"}
                               </Text>
                               <br />
-                              <Text type="secondary" style={{ fontSize: 12 }}>
+                              <Text className="doc-formation-date">
+                                <CalendarOutlined style={{ marginInlineEnd: 6 }} />
                                 {formatDate(formation.dateDebut)}
                               </Text>
                             </div>
@@ -374,9 +400,10 @@ export default function CombinedFormationOneDriveTree() {
                           </Space>
 
                           <Space wrap size={8}>
-                            <Tag color="blue">{formation.up1?.libelle || "UP inconnue"}</Tag>
-                            <Tag color="green">{formation.departement1?.libelle || "Département inconnu"}</Tag>
-                            <Tag color={docCount > 0 ? "geekblue" : "default"}>
+                            <Tag color="blue" bordered={false}>{formation.up1?.libelle || "UP inconnue"}</Tag>
+                            <Tag color="green" bordered={false}>{formation.departement1?.libelle || "Département inconnu"}</Tag>
+                            <Tag color={docCount > 0 ? "geekblue" : "default"} bordered={false}>
+                              <FileTextOutlined style={{ marginInlineEnd: 4 }} />
                               {docCount} document(s)
                             </Tag>
                           </Space>
@@ -386,9 +413,10 @@ export default function CombinedFormationOneDriveTree() {
                   }}
                 />
               ) : (
-                <Empty
-                  description="Aucune formation ne correspond à votre recherche"
-                  image={Empty.PRESENTED_IMAGE_SIMPLE}
+                <DocEmpty
+                  icon={<InboxOutlined />}
+                  title="Aucune formation"
+                  text="Aucune formation ne correspond à votre recherche"
                 />
               )}
             </Spin>
@@ -398,44 +426,61 @@ export default function CombinedFormationOneDriveTree() {
         <Col xs={24} xl={8}>
           <Card
             variant="outlined"
-            title={selectedFormation ? `Arborescence OneDrive - ${selectedFormation.titreFormation}` : "Arborescence OneDrive"}
-            style={{ borderRadius: 18, boxShadow: "0 8px 24px rgba(15, 23, 42, 0.06)" }}
-            extra={selectedFormation ? <Tag color="processing">Formation sélectionnée</Tag> : null}
+            className="doc-panel"
+            title={
+              <span className="doc-panel-title doc-panel-title--tree">
+                <span className="doc-panel-title-icon"><PartitionOutlined /></span>
+                Arborescence OneDrive
+              </span>
+            }
+            extra={selectedFormation ? <span className="doc-status-chip doc-status-chip--active">Formation sélectionnée</span> : null}
           >
             {selectedFormation ? (
               <>
-                <Space direction="vertical" size={4} style={{ marginBottom: 16 }}>
-                  <Text strong>{selectedFormation.titreFormation}</Text>
-                  <Text type="secondary">
-                    {selectedFormation.up1?.libelle || "UP inconnue"} · {selectedFormation.departement1?.libelle || "Département inconnu"}
-                  </Text>
-                </Space>
-
-                <Divider style={{ margin: "12px 0" }} />
+                <div className="doc-selected-summary">
+                  <span className="doc-selected-summary-avatar">
+                    <FolderOpenOutlined />
+                  </span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 600, color: "#0f172a", fontSize: 14 }}>
+                      {selectedFormation.titreFormation}
+                    </div>
+                    <div style={{ fontSize: 12.5, color: "#64748b", marginTop: 2 }}>
+                      {selectedFormation.up1?.libelle || "UP inconnue"} · {selectedFormation.departement1?.libelle || "Département inconnu"}
+                    </div>
+                  </div>
+                </div>
 
                 {treeLoading ? (
                   <div style={{ minHeight: 240, display: "grid", placeItems: "center" }}>
                     <Spin size="large" />
                   </div>
                 ) : treeData.length > 0 ? (
-                  <Tree
-                    showIcon
-                    treeData={treeData}
-                    expandedKeys={expandedKeys}
-                    onExpand={setExpandedKeys}
-                    onSelect={onSelectTree}
-                  />
+                  <div className="doc-tree-wrapper">
+                    <Tree
+                      showIcon
+                      blockNode
+                      treeData={treeData}
+                      expandedKeys={expandedKeys}
+                      onExpand={setExpandedKeys}
+                      onSelect={onSelectTree}
+                    />
+                  </div>
                 ) : (
-                  <Empty
-                    description="Aucun dossier n'est disponible pour cette formation"
-                    image={Empty.PRESENTED_IMAGE_SIMPLE}
+                  <DocEmpty
+                    variant="tree"
+                    icon={<FolderOutlined />}
+                    title="Aucun dossier"
+                    text="Aucun dossier n'est disponible pour cette formation"
                   />
                 )}
               </>
             ) : (
-              <Empty
-                description="Sélectionnez une formation pour voir ses dossiers"
-                image={Empty.PRESENTED_IMAGE_SIMPLE}
+              <DocEmpty
+                variant="tree"
+                icon={<PartitionOutlined />}
+                title="Aucune formation sélectionnée"
+                text="Sélectionnez une formation pour voir ses dossiers"
               />
             )}
           </Card>
@@ -444,31 +489,40 @@ export default function CombinedFormationOneDriveTree() {
         <Col xs={24} xl={9}>
           <Card
             variant="outlined"
-            title="Prévisualisation"
-            style={{ borderRadius: 18, boxShadow: "0 8px 24px rgba(15, 23, 42, 0.06)" }}
-            extra={selectedFile ? <Tag color="success">Document prêt</Tag> : null}
+            className="doc-panel"
+            title={
+              <span className="doc-panel-title doc-panel-title--preview">
+                <span className="doc-panel-title-icon"><EyeOutlined /></span>
+                Prévisualisation
+              </span>
+            }
+            extra={selectedFile ? <span className="doc-status-chip doc-status-chip--ready">Document prêt</span> : null}
           >
             {selectedFile ? (
               <Space direction="vertical" size={12} style={{ width: "100%" }}>
                 <Card
-                  variant="outlined"
-                  style={{ borderRadius: 14, background: "#f8fafc" }}
+                  variant="borderless"
+                  className="doc-file-card"
                   styles={{ body: { padding: 16 } }}
                 >
-                  <Space direction="vertical" size={6} style={{ width: "100%" }}>
-                    <Text strong style={{ fontSize: 16 }}>
-                      {selectedFile.name}
-                    </Text>
-                    <Text type="secondary">{formatFileSize(selectedFile.fileSize)}</Text>
-                    <Button
-                      type="primary"
-                      href={selectedFile.downloadUrl}
-                      target="_blank"
-                      icon={<EyeOutlined />}
-                      rel="noopener noreferrer"
-                    >
-                      Ouvrir / télécharger
-                    </Button>
+                  <Space align="start" size={14} style={{ width: "100%" }}>
+                    <span className="doc-file-icon">{getFileIcon(selectedFile.name)}</span>
+                    <Space direction="vertical" size={6} style={{ flex: 1, minWidth: 0 }}>
+                      <Text strong className="doc-file-name">
+                        {selectedFile.name}
+                      </Text>
+                      <Text type="secondary">{formatFileSize(selectedFile.fileSize)}</Text>
+                      <Button
+                        type="primary"
+                        href={selectedFile.downloadUrl}
+                        target="_blank"
+                        icon={<EyeOutlined />}
+                        rel="noopener noreferrer"
+                        className="doc-btn-open"
+                      >
+                        Ouvrir / télécharger
+                      </Button>
+                    </Space>
                   </Space>
                 </Card>
 
@@ -478,9 +532,11 @@ export default function CombinedFormationOneDriveTree() {
                 />
               </Space>
             ) : (
-              <Empty
-                description="Sélectionnez un fichier dans l'arborescence pour l'aperçu"
-                image={Empty.PRESENTED_IMAGE_SIMPLE}
+              <DocEmpty
+                variant="preview"
+                icon={<PictureOutlined />}
+                title="Aucun aperçu"
+                text="Sélectionnez un fichier dans l'arborescence pour l'aperçu"
               />
             )}
           </Card>

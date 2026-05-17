@@ -1,0 +1,462 @@
+/* ─── FormationCreationPage.css ──────────────────────────────────────────── */
+/* Page wrapper + Hero header + Info pills + Premium form card + Help footer.   */
+/* Les styles du formulaire lui-même sont dans FormationWorkflowForm.css.       */
+
+/* ═══════════════════════════════════════════════════════════════════════
+   ENTRANCE ANIMATIONS
+   ═══════════════════════════════════════════════════════════════════════ */
+@keyframes creation-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes creation-fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .creation-hero {
+    animation: creation-fade-up 0.45s ease-out both;
+  }
+  .creation-info-strip {
+    animation: creation-fade-up 0.5s ease-out 0.08s both;
+  }
+  .creation-form-card {
+    animation: creation-fade-up 0.55s ease-out 0.16s both;
+  }
+  .creation-help-footer {
+    animation: creation-fade-in 0.6s ease-out 0.28s both;
+  }
+}
+
+/* ── Page wrapper ──────────────────────────────────────────────────────── */
+.creation-page {
+  max-width: var(--max-page-width);
+  margin: 0 auto;
+  padding-bottom: var(--space-8);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   HERO HEADER (full-width gradient + decoration)
+   ═══════════════════════════════════════════════════════════════════════ */
+.creation-hero {
+  position: relative;
+  margin-bottom: var(--space-6);
+  padding: 28px 36px 32px;
+  background:
+    linear-gradient(135deg,
+      var(--primary-700) 0%,
+      var(--primary-500) 50%,
+      var(--primary-600) 100%);
+  border-radius: var(--radius-xl);
+  box-shadow:
+    0 12px 32px -8px rgba(181, 18, 0, 0.35),
+    0 4px 12px -2px rgba(181, 18, 0, 0.18);
+  overflow: hidden;
+  isolation: isolate;
+  color: var(--text-on-dark);
+}
+
+/* Decoration : grands cercles flous en arrière-plan pour donner de la profondeur */
+.creation-hero-decoration {
+  position: absolute;
+  top: -120px;
+  right: -80px;
+  width: 320px;
+  height: 320px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.16) 0%, rgba(255, 255, 255, 0) 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.creation-hero-decoration-2 {
+  top: auto;
+  right: auto;
+  bottom: -140px;
+  left: -100px;
+  width: 280px;
+  height: 280px;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.10) 0%, rgba(255, 255, 255, 0) 70%);
+}
+
+.creation-hero-inner {
+  position: relative;
+  z-index: 1;
+}
+
+/* ── Breadcrumbs (au-dessus du hero) ──────────────────────────────────── */
+.creation-breadcrumb {
+  margin-bottom: 18px;
+  font-size: var(--text-sm);
+}
+
+.creation-breadcrumb .ant-breadcrumb-link,
+.creation-breadcrumb .ant-breadcrumb-separator {
+  color: rgba(255, 255, 255, 0.78) !important;
+}
+
+.creation-breadcrumb a {
+  color: rgba(255, 255, 255, 0.85) !important;
+  transition: color 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.creation-breadcrumb a:hover {
+  color: #ffffff !important;
+}
+
+.creation-breadcrumb-current {
+  color: #ffffff !important;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ── Ligne principale : icon + titre / actions ────────────────────────── */
+.creation-hero-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.creation-hero-left {
+  display: flex;
+  align-items: flex-start;
+  gap: 18px;
+  flex: 1;
+  min-width: 0;
+}
+
+.creation-hero-icon {
+  flex-shrink: 0;
+  width: 64px;
+  height: 64px;
+  border-radius: var(--radius-lg);
+  background: rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28px;
+  color: #ffffff;
+  box-shadow: 0 8px 16px -4px rgba(0, 0, 0, 0.2);
+}
+
+.creation-hero-text {
+  min-width: 0;
+  flex: 1;
+}
+
+.creation-hero-title {
+  margin: 0 0 6px;
+  font-size: 26px;
+  font-weight: 700;
+  color: #ffffff;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+
+.creation-hero-subtitle {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.55;
+  color: rgba(255, 255, 255, 0.88);
+  max-width: 640px;
+}
+
+/* ── Tag besoin (sous le subtitle) ────────────────────────────────────── */
+.creation-tag-besoin {
+  display: inline-block;
+  margin-top: 12px;
+  border-radius: var(--radius-full) !important;
+  font-size: var(--text-xs) !important;
+  font-weight: 600 !important;
+  padding: 3px 14px !important;
+  letter-spacing: var(--tracking-wide);
+  background: rgba(255, 255, 255, 0.95) !important;
+  color: var(--primary-700) !important;
+  border: none !important;
+}
+
+/* ── Actions (bouton Retour) ──────────────────────────────────────────── */
+.creation-hero-actions {
+  flex-shrink: 0;
+}
+
+.creation-hero-back-btn.ant-btn {
+  background: rgba(255, 255, 255, 0.12) !important;
+  border: 1px solid rgba(255, 255, 255, 0.3) !important;
+  color: #ffffff !important;
+  font-weight: 600;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  transition: all 0.2s ease;
+}
+
+.creation-hero-back-btn.ant-btn:hover {
+  background: rgba(255, 255, 255, 0.22) !important;
+  border-color: rgba(255, 255, 255, 0.45) !important;
+  color: #ffffff !important;
+  transform: translateY(-1px);
+}
+
+.creation-hero-back-btn.ant-btn:active {
+  transform: translateY(0);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   INFO PILLS STRIP (entre hero et form)
+   ═══════════════════════════════════════════════════════════════════════ */
+.creation-info-strip {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: var(--space-5);
+}
+
+.creation-info-pill {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-xs);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.creation-info-pill:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm);
+  border-color: var(--primary-200);
+}
+
+.creation-info-pill-icon {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-md);
+  background: var(--primary-50);
+  color: var(--primary-500);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+}
+
+.creation-info-pill-content {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.creation-info-pill-value {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-main);
+  line-height: 1.2;
+  letter-spacing: -0.01em;
+}
+
+.creation-info-pill-label {
+  font-size: 11px;
+  color: var(--text-muted);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   PREMIUM FORM CARD
+   ═══════════════════════════════════════════════════════════════════════ */
+.creation-form-card {
+  position: relative;
+  background:
+    linear-gradient(180deg,
+      var(--bg-card) 0%,
+      var(--bg-card) 100%);
+  border-radius: var(--radius-xl);
+  padding: 36px 40px 32px;
+  box-shadow:
+    0 1px 3px rgba(15, 23, 42, 0.04),
+    0 8px 24px -6px rgba(15, 23, 42, 0.08),
+    0 24px 48px -12px rgba(181, 18, 0, 0.06);
+  border: 1px solid var(--border-color);
+  overflow: hidden;
+}
+
+/* Barre dégradée en haut de la carte */
+.creation-form-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 5px;
+  background: linear-gradient(90deg,
+    var(--primary-700) 0%,
+    var(--primary-500) 50%,
+    var(--primary-400) 100%);
+}
+
+/* Décoration subtile : cercle pastel dans le coin */
+.creation-form-card::after {
+  content: '';
+  position: absolute;
+  top: -100px;
+  right: -100px;
+  width: 280px;
+  height: 280px;
+  border-radius: 50%;
+  background: radial-gradient(circle, var(--primary-50) 0%, transparent 70%);
+  opacity: 0.5;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Le contenu du formulaire doit être au-dessus de la décoration */
+.creation-form-card > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   HELP FOOTER (sous le formulaire)
+   ═══════════════════════════════════════════════════════════════════════ */
+.creation-help-footer {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  margin-top: var(--space-5);
+  padding: 16px 20px;
+  background: linear-gradient(135deg, var(--primary-50) 0%, var(--neutral-50) 100%);
+  border: 1px solid var(--primary-100);
+  border-radius: var(--radius-lg);
+  color: var(--text-body);
+}
+
+.creation-help-icon {
+  flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-md);
+  background: var(--primary-100);
+  color: var(--primary-600);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+}
+
+.creation-help-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.creation-help-text strong {
+  color: var(--text-main);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.creation-help-text span {
+  color: var(--text-muted);
+}
+
+/* ── Responsive ────────────────────────────────────────────────────────── */
+@media (max-width: 960px) {
+  .creation-info-strip {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .creation-hero {
+    padding: 22px 20px 24px;
+    border-radius: var(--radius-lg);
+  }
+
+  .creation-hero-icon {
+    width: 52px;
+    height: 52px;
+    font-size: 22px;
+  }
+
+  .creation-hero-title {
+    font-size: 21px;
+  }
+
+  .creation-hero-subtitle {
+    font-size: 13px;
+  }
+
+  .creation-hero-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+  }
+
+  .creation-hero-actions {
+    align-self: flex-end;
+  }
+
+  .creation-form-card {
+    padding: 24px 18px 20px;
+    border-radius: var(--radius-lg);
+  }
+
+  .creation-form-card::after {
+    width: 200px;
+    height: 200px;
+    top: -80px;
+    right: -80px;
+  }
+
+  .creation-help-footer {
+    padding: 14px 16px;
+  }
+}
+
+@media (max-width: 540px) {
+  .creation-info-strip {
+    grid-template-columns: 1fr;
+  }
+
+  .creation-info-pill {
+    padding: 12px 14px;
+  }
+}
+
+@media (max-width: 480px) {
+  .creation-hero-left {
+    gap: 12px;
+  }
+
+  .creation-hero-actions {
+    align-self: stretch;
+  }
+
+  .creation-hero-back-btn.ant-btn {
+    width: 100%;
+  }
+}

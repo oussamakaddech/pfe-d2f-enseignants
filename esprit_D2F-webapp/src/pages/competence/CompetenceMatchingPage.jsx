@@ -34,6 +34,7 @@ import {
 } from "@ant-design/icons";
 import useAppNotification from "../../hooks/useAppNotification";
 import RiceService from "../../services/RiceService";
+import AppPageHeader from "../../theme/AppPageHeader";
 import "./CompetenceMatchingPage.css";
 
 const { Title, Text } = Typography;
@@ -363,16 +364,12 @@ export default function CompetenceMatchingPage() {
   return (
     <div className={`competence-matching-page ${draggingId ? "is-dragging" : ""}`} onDragEnd={handleDragEnd}>
       {/* Header */}
-      <header className="matching-page-header">
-        <div className="header-left-section">
-          <Title level={3} style={{ margin: 0 }}>
-            <ThunderboltOutlined style={{ color: "#B51200", marginRight: 10 }} />
-            Matchmaking & Affectations
-          </Title>
-          <Text className="header-subtitle">Assignez intelligemment les savoirs aux enseignants</Text>
-        </div>
-        <div className="header-right-section">
-          <Space size="large">
+      <AppPageHeader
+        icon={<ThunderboltOutlined />}
+        title="Matchmaking & Affectations"
+        subtitle="Assignez intelligemment les savoirs aux enseignants"
+        actions={
+          <Space size="middle">
             <Select 
               value={state.filters.departement} 
               onChange={(v) => { dispatch({ type: "SET_FILTER", payload: { key: "departement", value: v } }); reloadData(v); }} 
@@ -394,8 +391,8 @@ export default function CompetenceMatchingPage() {
             />
             <Button icon={<ReloadOutlined />} onClick={() => reloadData()} loading={state.loading.data} />
           </Space>
-        </div>
-      </header>
+        }
+      />
 
       {/* Main Content */}
       <div className="matching-main-content">
@@ -498,9 +495,9 @@ export default function CompetenceMatchingPage() {
 
                     <div className="enseignant-statistics-section">
                       <div className="enseignant-progress-section">
-                        <Progress percent={loadPct} size="small" strokeColor={loadPct > 80 ? "#ff4d4f" : "#52c41a"} />
+                        <Progress percent={loadPct} size="small" strokeColor={loadPct > 80 ? "var(--color-error)" : "var(--color-success)"} />
                       </div>
-                      <Badge count={count} style={{ backgroundColor: count > 0 ? '#1890ff' : '#d9d9d9' }} />
+                      <Badge count={count} style={{ backgroundColor: count > 0 ? 'var(--color-info)' : 'var(--neutral-300)' }} />
                     </div>
 
                     {assigned.length > 0 && (
@@ -525,7 +522,7 @@ export default function CompetenceMatchingPage() {
         <div className="footer-left-section">
           <Button className="footer-save-button" icon={<SaveOutlined />} disabled={pendingTotal === 0} loading={state.loading.saving} onClick={handleSave}>
             Enregistrer les modifications
-            {pendingTotal > 0 && <Badge count={pendingTotal} style={{ marginLeft: 12, backgroundColor: "#fff", color: "#B51200" }} />}
+            {pendingTotal > 0 && <Badge count={pendingTotal} style={{ marginLeft: 12, backgroundColor: "var(--neutral-0)", color: "var(--primary-500)" }} />}
           </Button>
         </div>
         <div className="footer-right-section">

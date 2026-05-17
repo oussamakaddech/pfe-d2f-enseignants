@@ -8,8 +8,20 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
+from app.core import jwt_middleware
 from app.core.jwt_middleware import JWT_ALGORITHM, JWTAuthMiddleware, PUBLIC_PATHS
 from app.config import settings
+
+
+@pytest.fixture(autouse=True)
+def _enable_jwt_for_module():
+    """Force JWT enforcement for these tests, even when JWT_AUTH_ENABLED=false globally."""
+    previous = jwt_middleware.JWT_AUTH_ENABLED
+    jwt_middleware.JWT_AUTH_ENABLED = True
+    try:
+        yield
+    finally:
+        jwt_middleware.JWT_AUTH_ENABLED = previous
 
 
 def _build_app() -> FastAPI:

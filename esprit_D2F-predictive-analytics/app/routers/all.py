@@ -4,8 +4,10 @@ from datetime import date
 from typing import Any, Optional
 
 from fastapi import APIRouter, Depends, Query, status
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 
+from app.config import settings
 from app.core.db import get_db
 from app.core.exceptions import TeacherNotFoundError
 from app.models.schemas import (
@@ -20,9 +22,19 @@ router = APIRouter()
 
 
 @router.get("/health", response_model=HealthResponse, tags=["Health"])
-async def health_check() -> HealthResponse:
-    """Health check endpoint for Docker and monitoring."""
-    return HealthResponse(status="healthy", service="d2f-predictive-analytics")
+async def health_check(db: Session = Depends(get_db)) -> HealthResponse:
+    """Health check endpoint for Docker and monitoring.
+
+    Verifies both the service and the database connectivity.
+    """
+    db_status = "healthy"
+    try:
+        db.execute(text("SELECT 1"))
+    except Exception:
+        db_status = "unhealthy"
+
+    overall = "healthy" if db_status == "healthy" else "degraded"
+    return HealthResponse(status=overall, service="d2f-predictive-analytics")
 
 
 # ── Predict ────────────────────────────────────
@@ -62,29 +74,90 @@ async def predict_gaps(
 
 @router.post("/predict/train", tags=["Prediction"])
 async def train_gap_model(db: Session = Depends(get_db)) -> dict[str, Any]:
-    """Trigger model retraining on current database snapshot."""
+    """Trigger model retraining on current database snapshot.
+
+    Returns training metrics if successful, or a helpful diagnostic message
+    if there is insufficient data (instead of a raw 422 error).
+    """
+    from app.core.exceptions import InsufficientDataError
+
     data = DataService(db)
     teachers = data.get_teacher_profile()
     comp_levels = data.get_competency_levels()
     req_levels = data.get_required_levels()
 
-    metrics = gap_predictor.train(teachers, comp_levels, req_levels)
-    return {"status": "trained", "metrics": metrics}
+    # Surface row counts so the caller can diagnose the root cause without
+    # querying the DB themselves.
+    diagnostic = {
+        "nb_enseignants":           len(teachers),
+        "nb_competency_levels":     len(comp_levels),
+        "nb_required_levels":       len(req_levels),
+        "min_training_samples":     settings.min_training_samples,
+    }
+
+    if not teachers or not comp_levels or not req_levels:
+        return {
+            "status": "no_data",
+            "message": "Données insuffisantes : voir 'diagnostic' pour la table vide.",
+            "diagnostic": diagnostic,
+            "metrics": None,
+            "hint": "Le modèle utilise un fallback heuristique en attendant suffisamment de données.",
+        }
+
+    try:
+        metrics = gap_predictor.train(teachers, comp_levels, req_levels)
+        return {"status": "trained", "metrics": metrics, "diagnostic": diagnostic}
+    except InsufficientDataError as e:
+        return {
+            "status": "insufficient_data",
+            "message": str(e.detail) if hasattr(e, "detail") else str(e),
+            "diagnostic": diagnostic,
+            "metrics": None,
+            "hint": "Le modèle utilise un fallback heuristique en attendant suffisamment de données.",
+        }
+
+
+@router.get("/predict/drift", tags=["Prediction"])
+async def check_model_drift(db: Session = Depends(get_db)) -> dict[str, Any]:
+    """Check for data/model drift by comparing current data against training metadata."""
+    data = DataService(db)
+    teachers = data.get_teacher_profile()
+    comp_levels = data.get_competency_levels()
+
+    drift_report = gap_predictor.check_drift(teachers, comp_levels)
+    return drift_report
 
 
 # ── Recommend ──────────────────────────────────
 
+def _formation_target_level(formation: dict) -> int:
+    """Extract the target competency level reached by a formation.
+
+    Supports both legacy `niveau_cible` and current `niveau_vise` fields.
+    """
+    return int(formation.get("niveau_vise") or formation.get("niveau_cible") or 0)
+
+
+def _formation_duration(formation: dict) -> float:
+    """Extract the formation's duration in hours, supporting both naming conventions."""
+    return float(
+        formation.get("charge_horaire_global")
+        or formation.get("duree_formation")
+        or 20
+    )
+
+
 def _compute_relevance_score(formation: dict, current_level: float, target_level: float) -> float:
     """Compute a relevance score for a formation based on multiple criteria.
 
-    Score = w1*match + w2*progression + w3*prereq_satisfaction + w4*effectiveness
+    Score = w1*progression + w2*level_match + w3*duration_efficiency
     """
-    niveau_cible = formation.get("niveau_cible", 0) or 0
-    duree = formation.get("duree_formation", 20) or 20
+    niveau_cible = _formation_target_level(formation)
+    duree = _formation_duration(formation)
 
     # Progression match: how well this formation bridges the gap
     if target_level > current_level:
-        progression = min(1.0, (niveau_cible - current_level) / (target_level - current_level))
+        progression = min(1.0, max(0.0, (niveau_cible - current_level) / (target_level - current_level)))
     else:
         progression = 0.5
 
@@ -95,7 +168,7 @@ def _compute_relevance_score(formation: dict, current_level: float, target_level
     level_match = 1.0 - abs(niveau_cible - (current_level + 1)) / 5.0
     level_match = max(0.0, min(1.0, level_match))
 
-    score = 0.35 * max(0, progression) + 0.30 * level_match + 0.20 * efficiency + 0.15 * 0.7
+    score = 0.45 * progression + 0.30 * level_match + 0.25 * efficiency
     return round(min(1.0, max(0.0, score)), 3)
 
 
@@ -120,38 +193,41 @@ async def recommend_path(
     target_formations = [
         f for f in formations
         if f.get("competence_id") == request.target_competency_id
-        and (f.get("niveau_cible", 0) or 0) <= request.target_level
+        and _formation_target_level(f) <= request.target_level
     ]
 
     # Score and sort formations
     for f in target_formations:
         f["_score"] = _compute_relevance_score(f, current_level, request.target_level)
 
-    target_formations.sort(key=lambda x: (x.get("niveau_cible", 0) or 0, -x["_score"]))
+    target_formations.sort(key=lambda x: (_formation_target_level(x), -x["_score"]))
 
-    # Deduplicate by formation_id, keep highest scored
-    seen_ids = set()
+    # Deduplicate by formation_id (legacy: id_formation), keep highest scored
+    seen_ids: set = set()
     unique_formations = []
     for f in target_formations:
-        fid = f["formation_id"]
-        if fid not in seen_ids:
-            seen_ids.add(fid)
-            unique_formations.append(f)
+        fid = f.get("formation_id") or f.get("id_formation")
+        if fid is None or fid in seen_ids:
+            continue
+        seen_ids.add(fid)
+        unique_formations.append(f)
 
     # Apply max duration constraint
     max_hours = request.max_duration_hours
     path = []
     cumulative_hours = 0.0
+
+    # Prerequisites for the target competency (once, outside the loop)
+    missing_prereqs = [
+        p["prereq_name"] for p in prereqs
+        if p.get("target_id") == request.target_competency_id
+    ][:3]
+
     for i, f in enumerate(unique_formations):
-        hours = float(f.get("duree_formation", 20) or 20)
+        hours = _formation_duration(f)
         if max_hours and cumulative_hours + hours > max_hours:
             break
         cumulative_hours += hours
-
-        missing = [
-            p["prereq_name"] for p in prereqs
-            if p["target_id"] == request.target_competency_id
-        ][:3]
 
         # Success probability based on position in path and relevance
         base_prob = 0.55 + f["_score"] * 0.3
@@ -160,12 +236,12 @@ async def recommend_path(
 
         path.append({
             "step_number": i + 1,
-            "formation_id": f["formation_id"],
-            "formation_title": f["titre_formation"],
+            "formation_id": int(f.get("formation_id") or f.get("id_formation", 0)),
+            "formation_title": f.get("titre_formation", "Formation"),
             "competency_id": request.target_competency_id,
             "competency_name": f.get("competence_nom") or f"Competence {request.target_competency_id}",
             "estimated_duration_hours": hours,
-            "missing_prerequisites": missing,
+            "missing_prerequisites": missing_prereqs,
             "success_probability": round(prob, 2),
         })
 
@@ -186,8 +262,17 @@ async def recommend_path(
 # ── Detect ─────────────────────────────────────
 
 def _compute_teacher_risk(t: dict) -> dict:
-    """Compute risk score and signals for a single teacher."""
-    time_factor = min(1.0, (t.get("days_since_last_training") or 365) / 365.0)
+    """Compute risk score and signals for a single teacher.
+
+    Uses configurable thresholds from settings instead of hardcoded values.
+    """
+    from app.config import settings
+
+    risk_gap_threshold = settings.risk_gap_threshold / 5.0  # Normalize to 0-1 scale
+    risk_absence_days = settings.risk_absence_threshold_days
+    risk_engagement_pct = settings.risk_engagement_percentile / 100.0
+
+    time_factor = min(1.0, (t.get("days_since_last_training") or risk_absence_days) / float(risk_absence_days))
     engagement_factor = 1.0 - (t.get("taux_assiduite") or 1.0)
     stagnation_factor = 1.0 / (1.0 + (t.get("nb_formations_completed") or 0))
 
@@ -196,16 +281,20 @@ def _compute_teacher_risk(t: dict) -> dict:
     signals = []
     if time_factor > 0.8:
         signals.append("Absence prolongée de formation")
-    if engagement_factor > 0.3:
+    if engagement_factor > risk_engagement_pct:
         signals.append("Baisse d'assiduité")
     if stagnation_factor > 0.5:
         signals.append("Stagnation des compétences")
     if (t.get("nb_besoins_exprimes") or 0) == 0 and (t.get("nb_formations_completed") or 0) == 0:
         signals.append("Aucun engagement détecté")
 
-    if risk_score > 0.7:
+    # Use configurable thresholds from settings
+    critical_threshold = settings.seuil_gap_critique
+    high_threshold = settings.seuil_gap_haute
+
+    if risk_score > critical_threshold:
         recommendation = "Planifier entretien"
-    elif risk_score > 0.4:
+    elif risk_score > high_threshold:
         recommendation = "Proposer formation"
     else:
         recommendation = "OK"

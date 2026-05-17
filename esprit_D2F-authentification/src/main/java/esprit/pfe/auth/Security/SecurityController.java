@@ -11,7 +11,6 @@ import esprit.pfe.auth.services.AuditService;
 import esprit.pfe.auth.services.EmailService;
 import esprit.pfe.auth.error.TokenExpiredException;
 
-
 import esprit.pfe.auth.error.BadRequestException;
 import esprit.pfe.auth.error.LoginException;
 import esprit.pfe.auth.payload.request.SignupRequest;
@@ -58,6 +57,14 @@ import org.springframework.beans.factory.annotation.Value;
 @RequestMapping("/api/v1/auth")
 @Slf4j
 public class SecurityController {
+    private static final String LOG_MESSAGE_FORMAT = "Password reset successful for %s from IP %s";
+    private static final String LOG_MESSAGE_FORMAT_2 = "Password reset requested for %s from IP %s";
+    private static final String LOG_MESSAGE_FORMAT_3 = "Login attempt for username=%s from IP %s";
+    private static final String LOG_MESSAGE_FORMAT_4 = "Login refused for username=%s from IP %s";
+    private static final String LOG_MESSAGE_FORMAT_5 = "Login successful for username=%s from IP %s";
+    private static final String EMAIL_KEY = "email";
+
+    // Security dependencies
     private final EmailService emailService;
     private final UserRepository userRepository;
     private final RoleRepository roleRepository;
@@ -79,8 +86,7 @@ public class SecurityController {
     private static final String COOKIE_NAME = "d2f_auth_token";
     private static final int JWT_DURATION_MINUTES = 120;
 
-    // Anti brute-force : N tentatives echouees consecutives => compte verrouille X minutes.
-    // Valeurs externalisees pour permettre l'ajustement sans rebuild.
+    // Anti brute-force : N tentatives echouees consecutives => compte verrouille X
     @Value("${auth.lockout.max-attempts:5}")
     private int lockoutMaxAttempts;
 
@@ -108,7 +114,7 @@ public class SecurityController {
 
     @PostMapping("/reset-password")
     public String resetPassword(@RequestParam String token, @RequestParam String newPassword,
-                                HttpServletRequest request) {
+            HttpServletRequest request) {
         // SECURITE : on hashe le token (SHA-256) cote serveur avant tout lookup BDD.
         // Le token clair n'existe que dans l'email envoye a l'utilisateur ;
         // la base ne stocke jamais le secret en clair.
@@ -122,7 +128,7 @@ public class SecurityController {
         String ip = extractClientIp(request);
         auditService.logPasswordResetSuccess(email, ip);
         PiiSafeLogger.info(SecurityController.class,
-                "Password reset successful for " + email + " from IP " + ip);
+                String.format(LOG_MESSAGE_FORMAT, email, ip));
 
         return result;
     }
@@ -160,7 +166,8 @@ public class SecurityController {
     }
 
     /**
-     * Reset le mot de passe via un token deja hashe et supprime l'entree de confirmation.
+     * Reset le mot de passe via un token deja hashe et supprime l'entree de
+     * confirmation.
      */
     public String resetPasswordAndDeleteToken(String tokenHash, String newPassword) {
         ConfirmationKey confirmationKey = this.confirmationKeyRepo.findByToken(tokenHash)
@@ -193,7 +200,7 @@ public class SecurityController {
         String ip = extractClientIp(request);
         auditService.logPasswordResetRequest(emailAddress, ip);
         PiiSafeLogger.info(SecurityController.class,
-                "Password reset requested for " + emailAddress + " from IP " + ip);
+                String.format(LOG_MESSAGE_FORMAT_2, emailAddress, ip));
 
         return this.generateAndPersistToken(emailAddress, key);
     }
@@ -210,7 +217,6 @@ public class SecurityController {
         return "We have sent an email to reset your password";
     }
 
-
     @GetMapping("/profile")
     public Authentication authentication(Authentication authentication) {
         return authentication;
@@ -218,10 +224,10 @@ public class SecurityController {
 
     @PostMapping("/login")
     public ResponseEntity<Map<String, Object>> login(@RequestParam String username, @RequestParam String password,
-                                                     HttpServletRequest request, HttpServletResponse response) {
+            HttpServletRequest request, HttpServletResponse response) {
         String ip = extractClientIp(request);
         PiiSafeLogger.info(SecurityController.class,
-                "Login attempt for username=" + username + " from IP " + ip);
+                String.format(LOG_MESSAGE_FORMAT_3, username, ip));
 
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> {
@@ -234,15 +240,14 @@ public class SecurityController {
         if (user.getLockUntil() != null && user.getLockUntil().isAfter(LocalDateTime.now())) {
             auditService.logFailedLogin(username, ip, "Account locked");
             PiiSafeLogger.warn(SecurityController.class,
-                    "Login refused for username=" + username + " from IP " + ip
-                            + " - account locked until " + user.getLockUntil());
+                    String.format(LOG_MESSAGE_FORMAT_4, username, ip) + " - account locked until "
+                            + user.getLockUntil());
             throw new LoginException("Account temporarily locked due to repeated failed login attempts.");
         }
 
         try {
             Authentication authentication = authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(username, password)
-            );
+                    new UsernamePasswordAuthenticationToken(username, password));
 
             String scope = authentication.getAuthorities().stream()
                     .map(GrantedAuthority::getAuthority).collect(Collectors.joining(" "));
@@ -259,7 +264,7 @@ public class SecurityController {
             // Audit : LOGIN_SUCCESS
             auditService.logLogin(username, ip);
             PiiSafeLogger.info(SecurityController.class,
-                    "Login successful for username=" + username + " from IP " + ip);
+                    String.format(LOG_MESSAGE_FORMAT_5, username, ip));
 
             // Set JWT in HttpOnly cookie
             ResponseCookie cookie = buildJwtCookie(jwt);
@@ -270,7 +275,7 @@ public class SecurityController {
             body.put("userId", user.getId());
             body.put("username", username);
             body.put("role", scope);
-            body.put("email", user.getEmail());
+            body.put(EMAIL_KEY, user.getEmail());
             body.put("expiresIn", JWT_DURATION_MINUTES * 60);
 
             return ResponseEntity.ok(body);
@@ -288,20 +293,20 @@ public class SecurityController {
 
             auditService.logFailedLogin(username, ip, "Invalid credentials (attempt " + attempts + ")");
             PiiSafeLogger.warn(SecurityController.class,
-                    "Login failed for username=" + username + " from IP " + ip
-                            + " — Invalid credentials (attempts=" + attempts + ")");
+                    String.format("Login failed for username=%s from IP %s — Invalid credentials (attempts=%d)",
+                            username, ip, attempts));
             throw new LoginException("Invalid username or password.");
         } catch (Exception e) {
             auditService.logFailedLogin(username, ip, "Server error: " + e.getMessage());
             PiiSafeLogger.warn(SecurityController.class,
-                    "Login failed for username=" + username + " from IP " + ip + " — Server error");
+                    String.format("Login failed for username=%s from IP %s - Server error", username, ip));
             throw new LoginException("Authentication failed due to server configuration.");
         }
     }
 
     @GetMapping("/refresh")
     public ResponseEntity<Map<String, Object>> refreshToken(Authentication authentication,
-                                                            HttpServletResponse response) {
+            HttpServletResponse response) {
         if (authentication == null || !authentication.isAuthenticated()) {
             return ResponseEntity.status(401).build();
         }
@@ -323,7 +328,7 @@ public class SecurityController {
         body.put("userId", user != null ? user.getId() : null);
         body.put("username", username);
         body.put("role", scope);
-        body.put("email", email);
+        body.put(EMAIL_KEY, email);
         body.put("expiresIn", JWT_DURATION_MINUTES * 60);
 
         log.info("Token refreshed for user={}", username);
@@ -339,7 +344,8 @@ public class SecurityController {
 
     @PostMapping("/request-reset")
     public ResponseEntity<MessageResponse> requestDeviceReset(@RequestParam String username) {
-        // Envoyer un email à l'administrateur ou déclencher une action pour réinitialiser les appareils
+        // Envoyer un email à l'administrateur ou déclencher une action pour
+        // réinitialiser les appareils
         SimpleMailMessage simpleMailMessage = new SimpleMailMessage();
         simpleMailMessage.setTo(adminEmail);
         simpleMailMessage.setSubject("Device Reset Request");
@@ -360,11 +366,12 @@ public class SecurityController {
         return ResponseEntity.ok(new MessageResponse("Device IDs have been reset."));
     }
 
-
     @PostMapping("/signup")
     public ResponseEntity<MessageResponse> registerUser(@Valid @RequestBody SignupRequest signUpRequest) {
-        // 0) Gestion de l'ID : si fourni, on l'accepte (et on vérifie qu'il n'existe pas déjà)
-        if (signUpRequest.getId() != null && !signUpRequest.getId().isBlank() && userRepository.existsById(signUpRequest.getId())) {
+        // 0) Gestion de l'ID : si fourni, on l'accepte (et on vérifie qu'il n'existe
+        // pas déjà)
+        if (signUpRequest.getId() != null && !signUpRequest.getId().isBlank()
+                && userRepository.existsById(signUpRequest.getId())) {
             return ResponseEntity
                     .badRequest()
                     .body(new MessageResponse("Error: ID is already taken!"));
@@ -391,10 +398,10 @@ public class SecurityController {
                 signUpRequest.getLastName(),
                 signUpRequest.getPhoneNumber(),
                 signUpRequest.getEmail(),
-                encoder.encode(signUpRequest.getPassword())
-        );
+                encoder.encode(signUpRequest.getPassword()));
 
-        // 4) Si un ID a été fourni, on le fixe ; sinon, @PrePersist de User générera un UUID
+        // 4) Si un ID a été fourni, on le fixe ; sinon, @PrePersist de User générera un
+        // UUID
         user.setId(signUpRequest.getId());
 
         // 5) Récupération des rôles
@@ -443,24 +450,18 @@ public class SecurityController {
         return ResponseEntity.ok(new MessageResponse("User registered successfully!"));
     }
 
-    // ════════════════════════════════════════════════════════════════════
-    //  Helpers
-    // ════════════════════════════════════════════════════════════════════
-
     private String generateJwt(String username, String scope, String email) {
         JwtClaimsSet jwtClaimsSet = JwtClaimsSet.builder()
                 .issuedAt(Instant.now())
                 .expiresAt(Instant.now().plus(JWT_DURATION_MINUTES, ChronoUnit.MINUTES))
                 .subject(username)
                 .claim("scope", scope)
-                .claim("email", email)
+                .claim(EMAIL_KEY, email)
                 .build();
 
-        JwtEncoderParameters jwtEncoderParameters =
-                JwtEncoderParameters.from(
-                        JwsHeader.with(MacAlgorithm.HS512).build(),
-                        jwtClaimsSet
-                );
+        JwtEncoderParameters jwtEncoderParameters = JwtEncoderParameters.from(
+                JwsHeader.with(MacAlgorithm.HS512).build(),
+                jwtClaimsSet);
         return jwtEncoder.encode(jwtEncoderParameters).getTokenValue();
     }
 

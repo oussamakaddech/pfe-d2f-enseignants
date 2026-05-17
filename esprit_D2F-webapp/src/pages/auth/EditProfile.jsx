@@ -1,10 +1,10 @@
 // src/components/EditProfile.jsx
 import { useEffect, useState } from "react";
-import { Form, Input, Button, Typography, Card } from "antd";
+import { Form, Input, Button, Card } from "antd";
+import { EditOutlined } from "@ant-design/icons";
 import useAppNotification from "../../hooks/useAppNotification";
 import { getProfile, editProfile } from "../../services/accountService";
-
-const { Title } = Typography;
+import { AppPageHeader, shadow, radius } from "../../theme";
 
 export default function EditProfile() {
   const [form] = Form.useForm();
@@ -61,11 +61,13 @@ export default function EditProfile() {
   };
 
   return (
-    <Card style={{ maxWidth: 600, margin: "40px auto", padding: 24 }}>
-      <Title level={2} style={{ textAlign: "center" }}>
-        Modifier mon profil
-      </Title>
-
+    <div style={{ maxWidth: 600, margin: "0 auto" }}>
+      <AppPageHeader
+        icon={<EditOutlined />}
+        title="Modifier mon profil"
+        subtitle="Mettre à jour vos informations personnelles"
+      />
+      <Card style={{ borderRadius: radius.lg, boxShadow: shadow.sm, border: "1px solid rgba(0,0,0,0.07)" }}>
       <Form form={form} layout="vertical" onFinish={onFinish}>
         <Form.Item name="userName" label="Username">
           <Input readOnly />
@@ -122,6 +124,7 @@ export default function EditProfile() {
           </Button>
         </Form.Item>
       </Form>
-    </Card>
+      </Card>
+    </div>
   );
 }

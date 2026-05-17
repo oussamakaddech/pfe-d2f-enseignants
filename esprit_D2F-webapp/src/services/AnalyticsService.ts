@@ -7,7 +7,7 @@ import type {
 } from "../models/analytics";
 
 // Gateway: /api/analyse/** → /api/v1/** sur le service
-const BASE = `${config.ANALYSE_URL}/analyse/analytics`;
+const BASE = `${config.ANALYSE_URL}/analyse/v1/analytics`;
 
 const AnalyticsService = {
 

@@ -85,7 +85,7 @@ public class DocumentController {
     }
 
     @PostMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<?> updateDocument(
+    public ResponseEntity<Object> updateDocument(
             @PathVariable Long id,
             @RequestParam String pathType,
             @RequestParam String nomDocument,

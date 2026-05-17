@@ -18,6 +18,10 @@ import tn.esprit.d2f.competence.entity.Savoir;
 import tn.esprit.d2f.competence.entity.SousCompetence;
 import tn.esprit.d2f.competence.entity.enumerations.NiveauMaitrise;
 import tn.esprit.d2f.competence.entity.enumerations.TypeSavoir;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import tn.esprit.d2f.competence.repository.EnseignantCompetenceRepository;
 import tn.esprit.d2f.competence.repository.SavoirRepository;
 
@@ -243,5 +247,57 @@ class EnseignantCompetenceServiceImplTest {
             when(enseignantCompetenceRepository.countByEnseignantId("new-ens")).thenReturn(0L);
             assertThat(ecService.countCompetences("new-ens")).isZero();
         }
+    }
+
+    // ─── getAll ───────────────────────────────────────────────────────────────
+    @Test
+    void getAll_ShouldReturnPagedDTOs() {
+        Pageable pageable = PageRequest.of(0, 10);
+        when(enseignantCompetenceRepository.findAllFetched(pageable))
+                .thenReturn(new PageImpl<>(List.of(ec)));
+        
+        Page<EnseignantCompetenceDTO> result = ecService.getAll(pageable);
+        
+        assertThat(result.getContent()).hasSize(1);
+        verify(enseignantCompetenceRepository).findAllFetched(pageable);
+    }
+
+    // ─── getByCompetenceId ────────────────────────────────────────────────────
+    @Test
+    void getByCompetenceId_ShouldReturnList() {
+        when(enseignantCompetenceRepository.findByCompetenceId(1L))
+                .thenReturn(List.of(ec));
+        
+        List<EnseignantCompetenceDTO> result = ecService.getByCompetenceId(1L);
+        
+        assertThat(result).hasSize(1);
+        verify(enseignantCompetenceRepository).findByCompetenceId(1L);
+    }
+
+    // ─── getCompetencesByEnseignantAndCompetence ──────────────────────────────
+    @Test
+    void getCompetencesByEnseignantAndCompetence_ShouldReturnList() {
+        when(enseignantCompetenceRepository.findByEnseignantIdAndCompetenceId(ENS_ID, 1L))
+                .thenReturn(List.of(ec));
+        
+        List<EnseignantCompetenceDTO> result = ecService.getCompetencesByEnseignantAndCompetence(ENS_ID, 1L);
+        
+        assertThat(result).hasSize(1);
+    }
+
+    @Test
+    void assignCompetence_ShouldUseDefaultNiveauWhenNull() {
+        EnseignantCompetenceRequest req = new EnseignantCompetenceRequest();
+        req.setEnseignantId(ENS_ID);
+        req.setSavoirId(1L);
+        req.setNiveau(null); // Should default to N1
+
+        when(savoirRepository.findById(1L)).thenReturn(Optional.of(savoir));
+        when(enseignantCompetenceRepository.existsByEnseignantIdAndSavoirId(ENS_ID, 1L)).thenReturn(false);
+        when(enseignantCompetenceRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        EnseignantCompetenceDTO result = ecService.assignCompetence(req);
+
+        assertThat(result.getNiveau()).isEqualTo(NiveauMaitrise.N1_DEBUTANT);
     }
 }

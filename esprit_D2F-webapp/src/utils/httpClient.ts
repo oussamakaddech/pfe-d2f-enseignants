@@ -1,38 +1,25 @@
 /**
  * httpClient.ts — Central axios client
  * - Factory `createApiClient(baseURL?)` that attaches:
- *   - request interceptor: injects `Authorization: Bearer <token>` and checks expiry
- *   - response interceptor: clears token on 401 and redirects to login
+ *   - withCredentials: true — sends HttpOnly cookies automatically
+ *   - response interceptor: dispatches auth:loggedOut on 401 and redirects to login
+ *
+ * SECURITY: JWT is stored in HttpOnly cookie (not localStorage).
+ * The browser sends the cookie automatically with `withCredentials: true`.
  */
-import axios, { isAxiosError as axiosIsAxiosError, type InternalAxiosRequestConfig, AxiosHeaders } from "axios";
+import axios, { isAxiosError as axiosIsAxiosError } from "axios";
 import { navigate } from "./navigation";
 import { config } from "../config/env";
-
-const parseJwt = (token: string): Record<string, unknown> | null => {
-  try {
-    const parts = token.split(".");
-    if (parts.length < 2) return null;
-    const base64Url = parts[1];
-    const base64 = base64Url.replace(/-/g, "+").replace(/_/g, "/");
-    const jsonPayload = decodeURIComponent(
-      atob(base64)
-        .split("")
-        .map((c) => `%${("00" + c.charCodeAt(0).toString(16)).slice(-2)}`)
-        .join("")
-    );
-    return JSON.parse(jsonPayload);
-  } catch {
-    return null;
-  }
-};
+import { notify } from "./notifications";
 
 export function createApiClient(baseURL?: string) {
-  const api = axios.create({ baseURL });
+  const api = axios.create({
+    baseURL,
+    withCredentials: true, // Send HttpOnly cookies with every request
+  });
 
   // Expose a small helper on the created instance so code that imports the
   // client as `axios` can still call `axios.isAxiosError(...)` safely.
-  // This bridges code that incorrectly treated the created instance as the
-  // axios module and prevents runtime `isAxiosError is not a function` errors.
   (api as any).isAxiosError = (error: unknown) => {
     try {
       return axiosIsAxiosError ? axiosIsAxiosError(error as any) : (error as any)?.isAxiosError === true;
@@ -41,28 +28,7 @@ export function createApiClient(baseURL?: string) {
     }
   };
 
-  api.interceptors.request.use((config: InternalAxiosRequestConfig) => {
-    const token = localStorage.getItem("authToken");
-    if (!token || token === "undefined" || token === "null") return config;
-    try {
-      const payload = parseJwt(token);
-      const currentTime = Date.now() / 1000;
-      if (payload && typeof (payload as any).exp === "number" && (payload as any).exp < currentTime) {
-        localStorage.removeItem("authToken");
-        return Promise.reject(new Error("Token expired"));
-      }
-    } catch {
-      localStorage.removeItem("authToken");
-    }
-    if (config.headers && typeof (config.headers as any).set === "function") {
-      (config.headers as any).set("Authorization", `Bearer ${token}`);
-    } else {
-      config.headers = AxiosHeaders.from(config.headers);
-      config.headers.set("Authorization", `Bearer ${token}`);
-    }
-    console.debug(`[httpClient] Request to ${config.url} - Auth header set:`, (config.headers as any).get("Authorization")?.substring(0, 15) + "...");
-    return config;
-  });
+  // No request interceptor needed — HttpOnly cookie is sent automatically
 
   api.interceptors.response.use(
     (response) => response,
@@ -79,8 +45,6 @@ export function createApiClient(baseURL?: string) {
           return Promise.reject(error);
         }
 
-        localStorage.removeItem("authToken");
-        localStorage.removeItem("user");
         try {
           window.dispatchEvent(new Event("auth:loggedOut"));
         } catch {
@@ -93,6 +57,21 @@ export function createApiClient(baseURL?: string) {
         if (!isAlreadyOnLogin) {
           navigate("/", { replace: true });
         }
+      } else if (error?.config?.meta?.silent !== true) {
+        // Global UX feedback for unexpected errors. Callers can opt out by
+        // passing { meta: { silent: true } } when they handle the error themselves.
+        const serverMsg = error?.response?.data?.message;
+
+        if (!error?.response) {
+          notify.error("Pas de connexion au serveur. Vérifiez votre réseau.");
+        } else if (status >= 500) {
+          notify.error(serverMsg || "Erreur serveur. Réessayez dans un instant.");
+        } else if (status === 403) {
+          notify.warning(serverMsg || "Accès refusé.");
+        } else if (status === 422) {
+          notify.warning(serverMsg || "Données invalides ou insuffisantes.");
+        }
+        // 400/404/409 etc. are left to the caller for context-specific handling.
       }
       return Promise.reject(error);
     }

@@ -1,9 +1,11 @@
 
 package esprit.pfe.serviceformation.controllers;
 
+import esprit.d2f.common.security.AuthorizationMatrix;
 import esprit.pfe.serviceformation.services.FormationClosureService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import lombok.RequiredArgsConstructor;
 
@@ -14,6 +16,7 @@ public class FormationCustomController {
     private final FormationClosureService formationClosureService;
 
     @PutMapping("/{formationId}/generate-certificates")
+    @PreAuthorize(AuthorizationMatrix.FORMATION_APPROVE)
     public ResponseEntity<String> generateCertificates(
             @PathVariable Long formationId,
             @RequestParam(defaultValue = "CERTIF") String typeCertif

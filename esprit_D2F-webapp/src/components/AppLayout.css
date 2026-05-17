@@ -1,0 +1,91 @@
+/* ─── AppLayout — Header micro-interactions ─────────────────────────────── */
+
+.app-header-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 0.18s var(--ease-in-out), transform 0.18s var(--ease-in-out);
+  outline: none;
+}
+
+.app-header-icon-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.app-header-icon-btn:active {
+  transform: scale(0.94);
+}
+
+.app-header-icon-btn:focus-visible {
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.55);
+}
+
+.app-header-user-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  padding: 4px 10px 4px 4px;
+  border-radius: var(--radius-full);
+  transition: background 0.18s var(--ease-in-out);
+  margin-left: 2px;
+}
+
+.app-header-user-trigger:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.app-header-username {
+  color: var(--text-on-dark);
+  font-weight: 600;
+  font-size: var(--text-sm);
+  max-width: 130px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── StickyBar breadcrumb ──────────────────────────────────────────────── */
+.app-stickybar-back-btn {
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  transition: color 0.15s var(--ease-in-out);
+}
+
+.app-stickybar-back-btn:hover {
+  color: var(--primary-500);
+}
+
+.app-stickybar-breadcrumb .ant-breadcrumb-link {
+  font-size: var(--text-sm);
+}
+
+.app-stickybar-breadcrumb .ant-breadcrumb-separator {
+  color: var(--neutral-400);
+  font-size: var(--text-sm);
+}
+
+/* ── Content area ──────────────────────────────────────────────────────── */
+.app-content-scroll {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: var(--content-padding);
+  background: var(--bg-main);
+}
+
+/* ── Responsive ────────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .app-header-username {
+    display: none;
+  }
+
+  .app-content-scroll {
+    padding: var(--space-4);
+  }
+}
