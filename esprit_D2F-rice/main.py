@@ -6,15 +6,15 @@ import logging
 import os
 import sys
 
-# ── Logging configuration (MUST run before any module import) ────────────────
-# Set via env var RICE_LOG_LEVEL (default: INFO).
-# Accepted values: DEBUG, INFO, WARNING, ERROR, CRITICAL.
+# ── DSI §11.7 — Configuration logging avec masquage PII (FIRST import) ───────
+# Charge dictConfig avec PIIRedactingFilter sur tous les handlers (incl. uvicorn).
+from rice.observability.logging_config import configure_logging
+
+configure_logging()
+
+# Ajustement éventuel du niveau via env (DEBUG/INFO/WARNING/ERROR/CRITICAL)
 _LOG_LEVEL = os.getenv("RICE_LOG_LEVEL", "INFO").upper()
-logging.basicConfig(
-    level=getattr(logging, _LOG_LEVEL, logging.INFO),
-    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S",
-)
+logging.getLogger().setLevel(getattr(logging, _LOG_LEVEL, logging.INFO))
 logging.getLogger("rice_analyzer").setLevel(getattr(logging, _LOG_LEVEL, logging.INFO))
 
 from contextlib import asynccontextmanager

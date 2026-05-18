@@ -1,4 +1,8 @@
 #ai_reco.py
+# DSI §11.7 — masquage PII dans les logs : doit s'exécuter avant tout autre import bruyant
+from observability.logging_config import configure_logging
+configure_logging()
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
