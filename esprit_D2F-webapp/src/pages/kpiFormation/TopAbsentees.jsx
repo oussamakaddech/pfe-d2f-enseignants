@@ -19,7 +19,7 @@ import KPIService from '../../services/KPIService';
 import EnseignantService from '../../services/EnseignantService';  // ← import
 import UpService from '../../services/upService';
 import DeptService from '../../services/DeptService';
-import '../../Style/ChartScroll.css';
+import '../../styles/ChartScroll.css';
 
 ChartJS.register(
   CategoryScale,
