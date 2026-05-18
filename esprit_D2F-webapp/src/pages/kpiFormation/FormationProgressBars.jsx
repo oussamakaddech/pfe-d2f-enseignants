@@ -18,7 +18,7 @@ import FormationWorkflowService from "../../services/FormationWorkflowService";
 import ParticipantKPIService    from "../../services/ParticipantKPIService";
 import UpService                from "../../services/upService";
 import DeptService              from "../../services/DeptService";
-import "../../Style/ChartScroll.css";
+import "../../styles/ChartScroll.css";
 
 const { Text } = Typography;
 const { RangePicker } = DatePicker;

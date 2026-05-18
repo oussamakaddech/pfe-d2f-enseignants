@@ -22,7 +22,7 @@ import dayjs from 'dayjs';
 import KPIService from '../../services/KPIService';
 import DeptService from '../../services/DeptService';
 import UpService from '../../services/upService';
-import '../../Style/ChartScroll.css';
+import '../../styles/ChartScroll.css';
 
 const { RangePicker } = DatePicker;
 const { Option } = Select;

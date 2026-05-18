@@ -8,7 +8,7 @@ import UpService from '../../services/upService';
 import DeptService from '../../services/DeptService';
 import KPIService from '../../services/KPIService';
 import EnseignantService from '../../services/EnseignantService';
-import '../../Style/ChartScroll.css';
+import '../../styles/ChartScroll.css';
 
 const { Option }      = Select;
 const { RangePicker } = DatePicker;
