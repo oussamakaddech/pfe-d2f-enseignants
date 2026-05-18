@@ -8,14 +8,14 @@ LABEL maintainer="seddik bouzayani <seddik.bouzayani@esprit.tn>"
 # Workdir
 WORKDIR /opt/app
 
-# Copy both modules so the shared auth artifact can be installed first
-COPY esprit_D2F-authentification/ esprit_D2F-authentification/
+# Install shared d2f-common-security library (not in Maven Central — local module)
+COPY esprit_D2F-common-security/ /tmp/d2f-common-security/
 COPY esprit_D2F-besoin-formation/ esprit_D2F-besoin-formation/
 
-# Install the shared auth module into the local Maven repo
-RUN cd esprit_D2F-authentification && dos2unix mvnw && \
-  chmod u+x mvnw && \
-  ./mvnw clean install -DskipTests
+RUN --mount=type=cache,target=/root/.m2 \
+    cd /tmp/d2f-common-security && \
+    dos2unix mvnw && chmod u+x mvnw && \
+    ./mvnw install -DskipTests
 
 # Build the besoin-formation service from its own directory
 WORKDIR /opt/app/esprit_D2F-besoin-formation

@@ -6,7 +6,6 @@ ARG BUILD_ENV
 WORKDIR /usr/app
 
 COPY package.json package-lock.json ./
-ENV NODE_ENV production
 
 RUN --mount=type=cache,target=/usr/app/.npm \
     npm set cache /usr/app/.npm && \

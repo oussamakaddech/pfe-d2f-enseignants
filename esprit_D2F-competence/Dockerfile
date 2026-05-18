@@ -8,11 +8,18 @@ LABEL maintainer="D2F Team <d2f@esprit.tn>"
 # Workdir
 WORKDIR /opt/app
 
+# Install shared d2f-common-security library (not in Maven Central — local module)
+COPY esprit_D2F-common-security/ /tmp/d2f-common-security/
+RUN --mount=type=cache,target=/root/.m2 \
+    cd /tmp/d2f-common-security && \
+    dos2unix mvnw && chmod u+x mvnw && \
+    ./mvnw install -DskipTests
+
 # Copy Maven Wrapper
-COPY .mvn/ .mvn
+COPY esprit_D2F-competence/.mvn/ .mvn/
 
 # Copy Maven Wrapper script && pom.xml
-COPY mvnw pom.xml ./
+COPY esprit_D2F-competence/mvnw esprit_D2F-competence/pom.xml ./
 
 # Fix mvnw
 RUN dos2unix mvnw && \
@@ -22,7 +29,7 @@ RUN dos2unix mvnw && \
 RUN --mount=type=cache,target=/root/.m2 ./mvnw dependency:go-offline
 
 # Copy source code application
-COPY ./src ./src
+COPY esprit_D2F-competence/src ./src
 
 # Install the package to a local repository and keep cache
 RUN --mount=type=cache,target=/root/.m2 ./mvnw clean install -DskipTests
