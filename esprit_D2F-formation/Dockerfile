@@ -8,21 +8,28 @@ LABEL maintainer="seddik bouzayani <seddik.bouzayani@esprit.tn>"
 # Workdir
 WORKDIR /opt/app
 
+# Install shared d2f-common-security library (not in Maven Central — local module)
+COPY esprit_D2F-common-security/ /tmp/d2f-common-security/
+RUN --mount=type=cache,target=/root/.m2 \
+    cd /tmp/d2f-common-security && \
+    dos2unix mvnw && chmod u+x mvnw && \
+    ./mvnw install -DskipTests
+
 # Copy Maven Wrapper
-COPY .mvn/ .mvn
+COPY esprit_D2F-formation/.mvn/ .mvn/
 
 # Copy Maven Wrapper script && pom.xml
-COPY mvnw pom.xml ./
+COPY esprit_D2F-formation/mvnw esprit_D2F-formation/pom.xml ./
 
-# Fix mvnw & 
+# Fix mvnw &
 RUN dos2unix mvnw && \
     chmod u+x mvnw
 
-# Resolves all project dependencies offline and keep cache   
+# Resolves all project dependencies offline and keep cache
 RUN --mount=type=cache,target=/root/.m2 ./mvnw dependency:go-offline
 
 # Copy source code application
-COPY ./src ./src
+COPY esprit_D2F-formation/src ./src
 
 # Install the package to a local repository and keep cache
 RUN --mount=type=cache,target=/root/.m2 ./mvnw clean install -DskipTests
@@ -57,4 +64,3 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
   CMD wget -q --spider http://localhost:8088/actuator/health || exit 1
 
 ENTRYPOINT ["java","-cp","opt/app:opt/app/lib/*","esprit.pfe.serviceformation.ServiceFormationApplication"]
-
