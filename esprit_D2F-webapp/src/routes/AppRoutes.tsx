@@ -47,7 +47,6 @@ const EvaluationGlobalePage = lazy(() => import("../pages/evaluation/EvaluationG
 const AnalysePredictivePage = lazy(() => import("../pages/analyse/AnalysePredictivePage"));
 const AnalyticsDashboardPage = lazy(() => import("../pages/analytics/AnalyticsDashboardPage"));
 const TeacherAnalyticsPage = lazy(() => import("../pages/analytics/TeacherAnalyticsPage"));
-const AlertsPage = lazy(() => import("../pages/analytics/AlertsPage"));
 const SkillPassportPage = lazy(() => import("../pages/profile/SkillPassportPage"));
 
 function PageSkeleton() {
@@ -118,7 +117,6 @@ export default function AppRoutes() {
                   <Route path="/home/analytics/dashboard" element={<AnalyticsDashboardPage />} />
                   <Route path="/home/analytics/teacher" element={<TeacherAnalyticsPage />} />
                   <Route path="/home/analytics/teacher/:enseignantId" element={<TeacherAnalyticsPage />} />
-                  <Route path="/home/analytics/alerts" element={<AlertsPage />} />
                 </Route>
 
                 {/* ── Calendrier ─────────────────────────────── */}

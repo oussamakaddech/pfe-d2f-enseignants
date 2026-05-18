@@ -22,7 +22,7 @@ import {
   TeamOutlined,
   BookOutlined,
   AppstoreOutlined,
-  BellOutlined,
+  CheckSquareOutlined,
 } from "@ant-design/icons";
 import { useNavigate, useLocation } from "react-router-dom";
 import { AuthContext } from "../context/AuthContext";
@@ -86,7 +86,6 @@ export default function SideMenu() {
       { type: "group", label: "TABLEAU DE BORD", children: [
         { label: "KPI & Métriques",    key: "/home/KPI",                icon: BarChartOutlined  },
         { label: "Analyse Prédictive", key: "/home/AnalysePredictive",  icon: LineChartOutlined },
-        { label: "Alertes",            key: "/home/analytics/alerts",   icon: BellOutlined      },
       ]},
       { type: "group", label: "ADMINISTRATION", children: [
         { label: "Gestion des Comptes",  key: "/home/accounts",       icon: SettingOutlined   },
@@ -95,12 +94,13 @@ export default function SideMenu() {
         { label: "Inscriptions",         key: "/home/ListeFormation", icon: FileTextOutlined  },
       ]},
       { type: "group", label: "FORMATIONS", children: [
-        { label: "Nouvelle Formation",    key: "/home/Formation/Creer",     icon: PlusCircleOutlined     },
-        { label: "Catalogue",             key: "/home/Formation/Consulter", icon: AppstoreOutlined       },
-        { label: "Évaluations",           key: "/home/Evaluations",         icon: TrophyOutlined         },
-        { label: "Gestion Documentaire",  key: "/home/File",                icon: FileTextOutlined       },
-        { label: "Calendrier Global",     key: "/home/Calendrier",          icon: CalendarOutlined       },
-        { label: "Certifications",        key: "/home/certificate",         icon: SafetyCertificateOutlined },
+        { label: "Nouvelle Formation",    key: "/home/Formation/Creer",       icon: PlusCircleOutlined     },
+        { label: "Catalogue",             key: "/home/Formation/Consulter",   icon: AppstoreOutlined       },
+        { label: "Évaluations",           key: "/home/Evaluations",           icon: TrophyOutlined         },
+        { label: "Présences",             key: "/home/animateur-formations",  icon: CheckSquareOutlined    },
+        { label: "Gestion Documentaire",  key: "/home/File",                  icon: FileTextOutlined       },
+        { label: "Calendrier Global",     key: "/home/Calendrier",            icon: CalendarOutlined       },
+        { label: "Certifications",        key: "/home/certificate",           icon: SafetyCertificateOutlined },
       ]},
       { type: "group", label: "COMPÉTENCES & IA", children: [
         { label: "Référentiel Compétences", key: "/home/competences",   icon: BookOutlined     },

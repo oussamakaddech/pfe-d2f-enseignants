@@ -1,21 +1,24 @@
+/* ─────────────────────────────────────────────────────────────────────────
+ * BesoinForm — Page "Ajouter un besoin de formation"
+ * Wizard 4 étapes + récapitulatif groupé.
+ * Design system partagé avec la page liste (.bf-scope + tokens --bf-*).
+ * ─────────────────────────────────────────────────────────────────────── */
 import { useContext, useEffect, useRef, useState } from "react";
 import {
   Form,
   Input,
   Select,
   Button,
-  Card,
   Typography,
   Spin,
   Row,
   Col,
-  Steps,
-  Space,
   Tag,
   Result,
-  Divider,
   DatePicker,
   ConfigProvider,
+  Breadcrumb,
+  Progress,
 } from "antd";
 import locale from "antd/es/date-picker/locale/fr_FR";
 import moment from "moment";
@@ -33,6 +36,8 @@ import {
   UploadOutlined,
   DeleteOutlined,
   CalendarOutlined,
+  HomeOutlined,
+  EditOutlined,
 } from "@ant-design/icons";
 import { motion, AnimatePresence } from "framer-motion";
 import * as XLSX from "xlsx";
@@ -41,30 +46,122 @@ import { AuthContext } from "../../context/AuthContext";
 import BesoinFormationService from "../../services/BesoinFormationService";
 import DeptService from "../../services/DeptService";
 import UpService from "../../services/upService";
-import "./BesoinForm.css";
 import useAppNotification from "../../hooks/useAppNotification";
+import "./besoin-tokens.css";
+import "./BesoinForm.css";
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
 const { Option } = Select;
-const { Step } = Steps;
 
 const PERIOD_OPTIONS = [
-  { value: "P1", label: "Période 1" },
-  { value: "P2", label: "Période 2" },
-  { value: "P3", label: "Période 3" },
-  { value: "P4", label: "Période 4" },
+  { value: "P1",     label: "Période 1" },
+  { value: "P2",     label: "Période 2" },
+  { value: "P3",     label: "Période 3" },
+  { value: "P4",     label: "Période 4" },
   { value: "SUMMER", label: "Session d'Été" },
   { value: "WINTER", label: "Session d'Hiver" },
-  { value: "OTHER", label: "Autre" },
+  { value: "OTHER",  label: "Autre" },
 ];
 
 const slideVariants = {
-  enter: (direction) => ({ x: direction > 0 ? 60 : -60, opacity: 0 }),
+  enter: (direction) => ({ x: direction > 0 ? 40 : -40, opacity: 0 }),
   center: { x: 0, opacity: 1 },
-  exit: (direction) => ({ x: direction < 0 ? 60 : -60, opacity: 0 }),
+  exit: (direction) => ({ x: direction < 0 ? 40 : -40, opacity: 0 }),
 };
 
+const typeOptions = [
+  {
+    value: "INDIVIDUEL",
+    label: "Individuel",
+    description: "Une seule personne concernée par cette formation",
+    icon: <UserOutlined />,
+    accent: "#2563eb",
+    accentBg: "#eff6ff",
+  },
+  {
+    value: "COLLECTIF",
+    label: "Collectif",
+    description: "Plusieurs participants regroupés sur une même session",
+    icon: <TeamOutlined />,
+    accent: "#7c3aed",
+    accentBg: "#f5f3ff",
+  },
+];
+
+const prioriteOptions = [
+  { value: "BASSE",    label: "Basse",    description: "Peut attendre",         accent: "#10b981", accentBg: "#ecfdf5" },
+  { value: "MOYENNE",  label: "Moyenne",  description: "À planifier",           accent: "#f59e0b", accentBg: "#fffbeb" },
+  { value: "HAUTE",    label: "Haute",    description: "Important",             accent: "#ef4444", accentBg: "#fef2f2" },
+  { value: "CRITIQUE", label: "Critique", description: "Urgent — délai serré",  accent: "#b91c1c", accentBg: "#fef2f2" },
+];
+
+const STEPS_META = [
+  { key: "contexte",   title: "Contexte",   subtitle: "UP, département & type",       icon: <ApartmentOutlined /> },
+  { key: "formation",  title: "Formation",  subtitle: "Titre & objectifs",            icon: <AimOutlined /> },
+  { key: "details",    title: "Détails",    subtitle: "Formateur, horaire & période", icon: <ClockCircleOutlined /> },
+  { key: "parametres", title: "Paramètres", subtitle: "Type & évaluation",            icon: <CheckCircleOutlined /> },
+];
+
+/* ─────────────────────────────────────────────────────────────────────── */
+/* Sub-component : SectionLabel (header au-dessus d'un groupe de champs) */
+/* ─────────────────────────────────────────────────────────────────────── */
+function SectionLabel({ icon, title, hint }) {
+  return (
+    <div className="bf-form-section">
+      <div className="bf-form-section__icon">{icon}</div>
+      <div className="bf-form-section__body">
+        <div className="bf-form-section__title">{title}</div>
+        {hint && <div className="bf-form-section__hint">{hint}</div>}
+      </div>
+    </div>
+  );
+}
+
+/* ─────────────────────────────────────────────────────────────────────── */
+/* Sub-component : ChoiceCardGroup (Type / Priorité)                       */
+/* ─────────────────────────────────────────────────────────────────────── */
+function ChoiceCardGroup({ options, value, onChange, variant = "type" }) {
+  return (
+    <div className={`bf-choice-grid bf-choice-grid--${variant}`}>
+      {options.map((opt) => {
+        const active = value === opt.value;
+        return (
+          <button
+            type="button"
+            key={opt.value}
+            className={`bf-choice${active ? " bf-choice--active" : ""}`}
+            style={{
+              "--choice-accent": opt.accent,
+              "--choice-accent-bg": opt.accentBg,
+            }}
+            onClick={() => onChange(opt.value)}
+            aria-pressed={active}
+          >
+            {variant === "type" ? (
+              <span className="bf-choice__icon">{opt.icon}</span>
+            ) : (
+              <span className="bf-choice__dot" aria-hidden="true" />
+            )}
+            <span className="bf-choice__body">
+              <span className="bf-choice__title">{opt.label}</span>
+              <span className="bf-choice__desc">{opt.description}</span>
+            </span>
+            {active && (
+              <span className="bf-choice__check" aria-hidden="true">
+                <CheckCircleOutlined />
+              </span>
+            )}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════ */
+/* MAIN COMPONENT                                                            */
+/* ═══════════════════════════════════════════════════════════════════════ */
 export default function BesoinForm() {
   const { user } = useContext(AuthContext);
   const [form] = Form.useForm();
@@ -83,20 +180,14 @@ export default function BesoinForm() {
   const participantsFileInputRef = useRef(null);
   const [lastImportCount, setLastImportCount] = useState(0);
   const participantsText = Form.useWatch("publicCible", form) || "";
-  const participantsLines = participantsText
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter(Boolean);
+  const participantsLines = participantsText.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
   const participantsCount = participantsLines.length;
 
   useEffect(() => {
     (async () => {
       setLoading(true);
       try {
-        const [deptsData, upsData] = await Promise.all([
-          DeptService.getAllDepts(),
-          UpService.getAllUps(),
-        ]);
+        const [deptsData, upsData] = await Promise.all([DeptService.getAllDepts(), UpService.getAllUps()]);
         setDepartements(deptsData);
         setUps(upsData);
       } catch {
@@ -133,9 +224,6 @@ export default function BesoinForm() {
         objectifsPedagogiques: values.objectifsPedagogiques,
         methodesEvaluationAcquis: values.methodesEvaluationAcquis,
       };
-
-      console.log("Payload envoyé au backend:", payload);
-
       await BesoinFormationService.addBesoinFormation(payload);
       msgApi.success("Besoin de formation ajouté avec succès !");
       setSubmitted(true);
@@ -143,9 +231,7 @@ export default function BesoinForm() {
       setLastImportCount(0);
       setCurrentStep(0);
     } catch (err) {
-      console.error("Détails de l'erreur de soumission:", err.response?.data);
-      const errorMsg = err.response?.data?.message || "Erreur lors de l'ajout du besoin";
-      msgApi.error(errorMsg);
+      msgApi.error(err.response?.data?.message || "Erreur lors de l'ajout du besoin");
     } finally {
       setSubmitting(false);
     }
@@ -165,74 +251,52 @@ export default function BesoinForm() {
     try {
       const file = event.target.files?.[0];
       if (!file) return;
-
       const buffer = await file.arrayBuffer();
       const workbook = XLSX.read(buffer, { type: "array" });
       const firstSheetName = workbook.SheetNames[0];
-      if (!firstSheetName) {
-        msgApi.warning("Fichier Excel vide");
-        return;
-      }
-
+      if (!firstSheetName) { msgApi.warning("Fichier Excel vide"); return; }
       const rows = XLSX.utils.sheet_to_json(workbook.Sheets[firstSheetName], { header: 1 });
-      if (!Array.isArray(rows) || rows.length === 0) {
-        msgApi.warning("Aucune donnée participants trouvée");
-        return;
-      }
-
+      if (!Array.isArray(rows) || rows.length === 0) { msgApi.warning("Aucune donnée participants trouvée"); return; }
       const [headerRow = [], ...dataRows] = rows;
       const header = headerRow.map((cell) => String(cell || "").trim().toLowerCase());
       const idxNom = header.findIndex((h) => ["nom", "name"].includes(h));
       const idxPrenom = header.findIndex((h) => ["prénom", "prenom", "first name", "firstname"].includes(h));
       const idxEmail = header.findIndex((h) => ["email", "mail"].includes(h));
-
-      const participantsLines = dataRows
+      const parsedLines = dataRows
         .map((row) => {
           if (!Array.isArray(row)) return "";
           const nom = idxNom >= 0 ? String(row[idxNom] || "").trim() : "";
           const prenom = idxPrenom >= 0 ? String(row[idxPrenom] || "").trim() : "";
           const email = idxEmail >= 0 ? String(row[idxEmail] || "").trim() : "";
           const fallback = String(row[0] || "").trim();
-
           if (nom || prenom || email) {
             return [nom, prenom].filter(Boolean).join(" ") + (email ? ` <${email}>` : "");
           }
           return fallback;
         })
-        .map((line) => line.trim())
+        .map((l) => l.trim())
         .filter(Boolean);
-
-      const uniqueLines = [...new Set(participantsLines)];
+      const uniqueLines = [...new Set(parsedLines)];
       const currentValue = String(form.getFieldValue("publicCible") || "").trim();
       const merged = [currentValue, ...uniqueLines].filter(Boolean).join("\n");
-
       form.setFieldsValue({ publicCible: merged });
       setLastImportCount(uniqueLines.length);
       msgApi.success(`${uniqueLines.length} participant(s) importé(s) depuis Excel`);
     } catch {
       msgApi.error("Erreur lors de l'import Excel des participants");
     } finally {
-      if (participantsFileInputRef.current) {
-        participantsFileInputRef.current.value = "";
-      }
+      if (participantsFileInputRef.current) participantsFileInputRef.current.value = "";
     }
   };
 
-  const clearParticipants = () => {
-    form.setFieldsValue({ publicCible: "" });
-    setLastImportCount(0);
-  };
+  const clearParticipants = () => { form.setFieldsValue({ publicCible: "" }); setLastImportCount(0); };
 
   const formatParticipantsSummary = (rawValue) => {
-    const lines = String(rawValue || "")
-      .split(/\r?\n/)
-      .map((line) => line.trim())
-      .filter(Boolean);
+    const lines = String(rawValue || "").split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
     if (lines.length === 0) return "—";
-
     const preview = lines.slice(0, 3).join(" | ");
-    if (lines.length <= 3) return `${lines.length} participant(s): ${preview}`;
-    return `${lines.length} participant(s): ${preview} ...`;
+    if (lines.length <= 3) return `${lines.length} participant(s) — ${preview}`;
+    return `${lines.length} participant(s) — ${preview} ...`;
   };
 
   const next = async () => {
@@ -240,497 +304,364 @@ export default function BesoinForm() {
       await form.validateFields(getStepFields(currentStep));
       setDirection(1);
       setCurrentStep(currentStep + 1);
-    } catch {
-      // validation failed
-    }
+    } catch { /* validation failed */ }
   };
+  const prev = () => { setDirection(-1); setCurrentStep(currentStep - 1); };
 
-  const prev = () => {
-    setDirection(-1);
-    setCurrentStep(currentStep - 1);
-  };
+  /* ═══════════════ STEPS CONTENT ═══════════════ */
 
-  const typeOptions = [
-    { value: "INDIVIDUEL", label: "Individuel", color: "blue" },
-    { value: "COLLECTIF", label: "Collectif", color: "purple" },
-    { value: "ANIMER_UNE_FORMATION", label: "Animer une formation", color: "orange" },
-  ];
-
-  const steps = [
-    {
-      title: "Contexte",
-      description: "UP & Département",
-      icon: <ApartmentOutlined />,
-      content: (
-        <Row gutter={[24, 16]}>
-          <Col xs={24} md={12}>
-            <Form.Item
-              label={
-                <span className="besoin-step-label">
-                  <TeamOutlined className="besoin-step-label-icon" />
-                  Unité Pédagogique (UP)
-                </span>
-              }
-              name="up"
-              rules={[{ required: true, message: "Veuillez sélectionner l'UP" }]}
-              className="besoin-form-input"
-            >
-              <Select placeholder="Sélectionner l'UP" size="large">
-                {ups.map((u) => (
-                  <Option key={u.id} value={String(u.id)}>
-                    {u.name || u.libelle}
-                  </Option>
-                ))}
-              </Select>
-            </Form.Item>
-          </Col>
-          <Col xs={24} md={12}>
-            <Form.Item
-              label={
-                <span className="besoin-step-label">
-                  <ApartmentOutlined className="besoin-step-label-icon" />
-                  Département
-                </span>
-              }
-              name="departement"
-              rules={[{ required: true, message: "Veuillez sélectionner le département" }]}
-              className="besoin-form-input"
-            >
-              <Select placeholder="Sélectionner le département" size="large">
-                {departements.map((d) => (
-                  <Option key={d.id} value={String(d.id)}>
-                    {d.name || d.libelle}
-                  </Option>
-                ))}
-              </Select>
-            </Form.Item>
-          </Col>
-          <Col xs={24}>
-            {canManageParticipants && (
-              <Form.Item
-                label={
-                  <span className="besoin-step-label">
-                    <TeamOutlined className="besoin-step-label-icon" />
-                    Liste des participants
-                  </span>
-                }
-                name="publicCible"
-                className="besoin-form-input"
-              >
-                <div className="participants-import-box">
-                  <Space wrap style={{ marginBottom: 12 }}>
-                    <Button icon={<UploadOutlined />} onClick={() => participantsFileInputRef.current?.click()}>
-                      Importer Excel
-                    </Button>
-                    <Button
-                      danger
-                      icon={<DeleteOutlined />}
-                      onClick={clearParticipants}
-                      disabled={participantsCount === 0}
-                    >
-                      Effacer la liste
-                    </Button>
-                  </Space>
-                  <div style={{ marginBottom: 8 }}>
-                    <Tag color="blue">{participantsCount} participant(s)</Tag>
-                    {lastImportCount > 0 && <Tag color="green">+{lastImportCount} importé(s)</Tag>}
-                  </div>
-                  <input
-                    ref={participantsFileInputRef}
-                    type="file"
-                    accept=".xlsx,.xls"
-                    style={{ display: "none" }}
-                    onChange={importParticipantsFromExcel}
-                  />
-                  <TextArea
-                    rows={5}
-                    placeholder="Ajout manuel: un participant par ligne (Nom Prénom <email>)"
-                    showCount
-                    maxLength={2000}
-                  />
-                  {participantsCount > 0 && (
-                    <>
-                      <Divider style={{ margin: "12px 0 8px" }} />
-                      <Text type="secondary">
-                        Aperçu: {participantsLines.slice(0, 3).join(" | ")}
-                        {participantsCount > 3 ? " ..." : ""}
-                      </Text>
-                    </>
-                  )}
-                </div>
-              </Form.Item>
-            )}
-          </Col>
-          <Col xs={24}>
-            <Form.Item
-              label={
-                <span className="besoin-step-label">
-                  <BookOutlined className="besoin-step-label-icon" />
-                  Type de besoin
-                </span>
-              }
-              name="typeBesoin"
-              rules={[{ required: true, message: "Veuillez sélectionner le type" }]}
-              className="besoin-form-input"
-            >
-              <Select placeholder="Sélectionner le type de besoin" size="large">
-                {typeOptions.map((opt) => (
-                  <Option key={opt.value} value={opt.value}>
-                    <span className="type-select-option">
-                      <Tag color={opt.color}>{opt.label}</Tag>
-                    </span>
-                  </Option>
-                ))}
-              </Select>
-            </Form.Item>
-          </Col>
-        </Row>
-      ),
-    },
-    {
-      title: "Formation",
-      description: "Titre & Objectifs",
-      icon: <AimOutlined />,
-      content: (
-        <Row gutter={[24, 16]}>
-          <Col xs={24} md={12}>
-            <Form.Item
-              label={
-                <span className="besoin-step-label">
-                  <BookOutlined className="besoin-step-label-icon" />
-                  Nom de la formation
-                </span>
-              }
-              name="titre"
-              rules={[{ required: true, message: "Veuillez saisir le nom de la formation" }]}
-              className="besoin-form-input"
-            >
-              <Input placeholder="Ex : Formation Angular avancé" size="large" autoComplete="off" />
-            </Form.Item>
-          </Col>
-          <Col xs={24} md={12}>
-            <Form.Item
-              label={
-                <span className="besoin-step-label">
-                  <BookOutlined className="besoin-step-label-icon" />
-                  Domaine / Thème
-                </span>
-              }
-              name="theme"
-              className="besoin-form-input"
-            >
-              <Input placeholder="Ex : Informatique, Management..." size="large" />
-            </Form.Item>
-          </Col>
-          <Col xs={24}>
-            <Form.Item
-              label={
-                <span className="besoin-step-label">
-                  <AimOutlined className="besoin-step-label-icon" />
-                  Objectif de la formation
-                </span>
-              }
-              name="objectifFormation"
-              rules={[{ required: true, message: "Veuillez saisir l'objectif" }]}
-              className="besoin-form-input"
-            >
-              <TextArea
-                rows={2}
-                placeholder="Décrire l'objectif général..."
-                showCount
-                maxLength={500}
-              />
-            </Form.Item>
-          </Col>
-          <Col xs={24}>
-            <Form.Item
-              label={
-                <span className="besoin-step-label">
-                  <AimOutlined className="besoin-step-label-icon" />
-                  Objectifs Pédagogiques
-                </span>
-              }
-              name="objectifsPedagogiques"
-              className="besoin-form-input"
-            >
-              <TextArea
-                rows={3}
-                placeholder="Détails des compétences à acquérir..."
-                showCount
-                maxLength={1000}
-              />
-            </Form.Item>
-          </Col>
-          <Col xs={24} md={12}>
-            <Form.Item
-              label={
-                <span className="besoin-step-label">
-                  <AimOutlined className="besoin-step-label-icon" style={{color: 'var(--color-warning)'}} />
-                  Priorité (Urgence)
-                </span>
-              }
-              name="priorite"
-              rules={[{ required: true, message: "Veuillez sélectionner la priorité" }]}
-              className="besoin-form-input"
-            >
-              <Select placeholder="Sélectionner la priorité" size="large">
-                <Option value="BASSE">Basse</Option>
-                <Option value="MOYENNE">Moyenne</Option>
-                <Option value="HAUTE">Haute</Option>
-                <Option value="CRITIQUE">Critique</Option>
-              </Select>
-            </Form.Item>
-          </Col>
-          <Col xs={24} md={12}>
-            <Form.Item
-              label={
-                <span className="besoin-step-label">
-                  <AimOutlined className="besoin-step-label-icon" style={{color: 'var(--color-warning)'}} />
-                  Impact Stratégique
-                </span>
-              }
-              name="impactStrategique"
-              className="besoin-form-input"
-            >
-              <Input placeholder="Ex : Alignement avec la stratégie D2F..." size="large" autoComplete="off" />
-            </Form.Item>
-          </Col>
-        </Row>
-      ),
-    },
-    {
-      title: "Détails",
-      description: "Formateur & Horaire",
-      icon: <ClockCircleOutlined />,
-      content: (
-        <Row gutter={[24, 16]}>
-          <Col xs={24} md={12}>
-            <Form.Item
-              label={
-                <span className="besoin-step-label">
-                  <UserOutlined className="besoin-step-label-icon" />
-                  Proposition de formateur
-                </span>
-              }
-              name="propositionAnimateur"
-              className="besoin-form-input"
-            >
-              <Input placeholder="Nom du formateur proposé (optionnel)" size="large" autoComplete="off" />
-            </Form.Item>
-          </Col>
-          <Col xs={24} md={12}>
-            <Form.Item
-              label={
-                <span className="besoin-step-label">
-                  <ClockCircleOutlined className="besoin-step-label-icon" />
-                  Horaire souhaité
-                </span>
-              }
-              name="horaireSouhaite"
-              className="besoin-form-input besoin-modern-calendar"
-            >
-              <DatePicker
-                showTime
-                format="YYYY-MM-DD HH:mm"
-                placeholder="Sélectionner la date et l'heure souhaitées"
-                size="large"
-                style={{ width: "100%" }}
-              />
-            </Form.Item>
-          </Col>
-          <Col xs={24} md={12}>
-            <Form.Item
-              label={
-                <span className="besoin-step-label">
-                  <ClockCircleOutlined className="besoin-step-label-icon" />
-                  Durée prévue (heures)
-                </span>
-              }
-              name="dureeFormation"
-              className="besoin-form-input"
-            >
-              <Input type="number" placeholder="Ex : 40" size="large" />
-            </Form.Item>
-          </Col>
-          <Col xs={24} md={12}>
-            <Form.Item
-              label={
-                <span className="besoin-step-label">
-                  <TeamOutlined className="besoin-step-label-icon" />
-                  Nb. max participants
-                </span>
-              }
-              name="nbMaxParticipants"
-              className="besoin-form-input"
-              rules={[{ required: true, message: "Veuillez saisir le nombre max de participants" }]}
-            >
-              <Input type="number" placeholder="Ex : 20" size="large" />
-            </Form.Item>
-          </Col>
-          <Col xs={24} md={12}>
-            <Form.Item
-              label={
-                <span className="besoin-step-label">
-                  <CalendarOutlined className="besoin-step-label-icon" />
-                  Période de formation
-                </span>
-              }
-              name="periodCode"
-              className="besoin-form-input"
-              rules={[{ required: true, message: "Veuillez choisir une période" }]}
-              initialValue="OTHER"
-            >
-              <Select placeholder="Choisir la période" size="large">
-                {PERIOD_OPTIONS.map(opt => (
-                  <Option key={opt.value} value={opt.value}>{opt.label}</Option>
-                ))}
-              </Select>
-            </Form.Item>
-          </Col>
-          <Form.Item noStyle shouldUpdate={(prev, curr) => prev.periodCode !== curr.periodCode}>
-            {({ getFieldValue }) => getFieldValue("periodCode") === "OTHER" ? (
-              <Col xs={24}>
-                <Form.Item
-                  label="Précisez la période"
-                  name="customPeriodLabel"
-                  className="besoin-form-input"
-                  rules={[
-                    ({ getFieldValue }) => ({
-                      validator(_, value) {
-                        if (getFieldValue("periodCode") === "OTHER" && !value) {
-                          return Promise.reject(new Error("Veuillez préciser la période"));
-                        }
-                        return Promise.resolve();
-                      },
-                    }),
-                  ]}
-                >
-                  <Input placeholder="Ex : Mai - Juin 2024" size="large" />
-                </Form.Item>
-              </Col>
-            ) : null}
+  const stepContent = [
+    /* ────── Step 0 : Contexte ────── */
+    <div key="contexte" className="bf-step">
+      <SectionLabel
+        icon={<ApartmentOutlined />}
+        title="Identification de la demande"
+        hint="Précisez l'unité pédagogique et le département concernés"
+      />
+      <Row gutter={[16, 12]}>
+        <Col xs={24} md={12}>
+          <Form.Item label="Unité Pédagogique (UP)" name="up" rules={[{ required: true, message: "Sélectionnez l'UP" }]}>
+            <Select placeholder="Sélectionner l'UP" size="large" showSearch optionFilterProp="children">
+              {ups.map((u) => <Option key={u.id} value={String(u.id)}>{u.name || u.libelle}</Option>)}
+            </Select>
           </Form.Item>
-        </Row>
-      ),
-    },
-    {
-      title: "Paramètres",
-      description: "Type & Informations",
-      icon: <CheckCircleOutlined />,
-      content: (
-        <Row gutter={[24, 16]}>
-          <Col xs={24} md={12}>
-            <Form.Item
-              label={
-                <span className="besoin-step-label">
-                  <ApartmentOutlined className="besoin-step-label-icon" />
-                  Type de formation
-                </span>
-              }
-              name="estOuverte"
-              className="besoin-form-input"
-            >
-              <Select placeholder="Ouverte ou fermée ?" size="large">
-                <Option value={false}>
-                  <Tag color="default">Fermée (pour les participants de l&apos;UP uniquement)</Tag>
-                </Option>
-                <Option value={true}>
-                  <Tag color="green">Ouverte (accessible à d&apos;autres UPs)</Tag>
-                </Option>
-              </Select>
-            </Form.Item>
-          </Col>
-          <Col xs={24} md={12}>
-            <Form.Item
-              label={
-                <span className="besoin-step-label">
-                  <CheckCircleOutlined className="besoin-step-label-icon" />
-                  Méthodes d&apos;évaluation
-                </span>
-              }
-              name="methodesEvaluationAcquis"
-              className="besoin-form-input"
-            >
-              <Input placeholder="Ex : Quiz, Projet, QCM..." size="large" />
-            </Form.Item>
-          </Col>
-          <Col xs={24}>
-            <Form.Item
-              label={
-                <span className="besoin-step-label">
-                  <BookOutlined className="besoin-step-label-icon" />
-                  Autres informations
-                </span>
-              }
-              name="autresInformations"
-              className="besoin-form-input"
-            >
-              <TextArea
-                rows={4}
-                placeholder="Informations additionnelles, spécificités, remarques particulières..."
-                showCount
-                maxLength={1000}
+        </Col>
+        <Col xs={24} md={12}>
+          <Form.Item label="Département" name="departement" rules={[{ required: true, message: "Sélectionnez le département" }]}>
+            <Select placeholder="Sélectionner le département" size="large" showSearch optionFilterProp="children">
+              {departements.map((d) => <Option key={d.id} value={String(d.id)}>{d.name || d.libelle}</Option>)}
+            </Select>
+          </Form.Item>
+        </Col>
+      </Row>
+
+      <SectionLabel
+        icon={<BookOutlined />}
+        title="Nature du besoin"
+        hint="Une formation pour un enseignant ou un groupe ?"
+      />
+      <Form.Item name="typeBesoin" rules={[{ required: true, message: "Sélectionnez le type de besoin" }]}>
+        <Form.Item noStyle shouldUpdate={(p, c) => p.typeBesoin !== c.typeBesoin}>
+          {({ getFieldValue, setFieldsValue }) => (
+            <ChoiceCardGroup
+              variant="type"
+              options={typeOptions}
+              value={getFieldValue("typeBesoin")}
+              onChange={(v) => setFieldsValue({ typeBesoin: v })}
+            />
+          )}
+        </Form.Item>
+      </Form.Item>
+
+      {canManageParticipants && (
+        <>
+          <SectionLabel
+            icon={<TeamOutlined />}
+            title="Liste des participants"
+            hint="Optionnel — vous pouvez importer un fichier Excel ou saisir manuellement"
+          />
+          <Form.Item name="publicCible">
+            <div className="bf-import-box">
+              <div className="bf-import-box__toolbar">
+                <Button
+                  icon={<UploadOutlined />}
+                  onClick={() => participantsFileInputRef.current?.click()}
+                  className="bf-btn bf-btn--ghost"
+                >
+                  Importer Excel
+                </Button>
+                <Button
+                  danger
+                  icon={<DeleteOutlined />}
+                  onClick={clearParticipants}
+                  disabled={participantsCount === 0}
+                  className="bf-btn bf-btn--ghost"
+                >
+                  Vider la liste
+                </Button>
+                <div className="bf-import-box__stats">
+                  <Tag color="blue" className="bf-import-tag">{participantsCount} participant{participantsCount > 1 ? "s" : ""}</Tag>
+                  {lastImportCount > 0 && <Tag color="green" className="bf-import-tag">+{lastImportCount} importé{lastImportCount > 1 ? "s" : ""}</Tag>}
+                </div>
+              </div>
+              <input
+                ref={participantsFileInputRef}
+                type="file"
+                accept=".xlsx,.xls"
+                style={{ display: "none" }}
+                onChange={importParticipantsFromExcel}
               />
-            </Form.Item>
-          </Col>
-        </Row>
-      ),
-    },
+              <TextArea
+                rows={5}
+                placeholder="Un participant par ligne — format : Nom Prénom <email>"
+                showCount
+                maxLength={2000}
+                className="bf-import-textarea"
+              />
+              <div className="bf-import-box__hint">
+                Format attendu : <code>Nom Prénom &lt;email@esprit.tn&gt;</code>
+              </div>
+            </div>
+          </Form.Item>
+        </>
+      )}
+    </div>,
+
+    /* ────── Step 1 : Formation ────── */
+    <div key="formation" className="bf-step">
+      <SectionLabel
+        icon={<BookOutlined />}
+        title="Identité de la formation"
+        hint="Comment cette formation sera-t-elle reconnue ?"
+      />
+      <Row gutter={[16, 12]}>
+        <Col xs={24} md={12}>
+          <Form.Item label="Nom de la formation" name="titre" rules={[{ required: true, message: "Le titre est obligatoire" }]}>
+            <Input placeholder="Ex : Formation Angular avancé" size="large" />
+          </Form.Item>
+        </Col>
+        <Col xs={24} md={12}>
+          <Form.Item label="Domaine / Thème" name="theme">
+            <Input placeholder="Ex : Informatique, Management..." size="large" />
+          </Form.Item>
+        </Col>
+      </Row>
+
+      <SectionLabel
+        icon={<AimOutlined />}
+        title="Objectifs pédagogiques"
+        hint="Décrivez ce que les participants doivent acquérir"
+      />
+      <Row gutter={[16, 12]}>
+        <Col xs={24}>
+          <Form.Item label="Objectif général" name="objectifFormation" rules={[{ required: true, message: "L'objectif est obligatoire" }]}>
+            <TextArea rows={2} placeholder="Décrire l'objectif général..." showCount maxLength={500} />
+          </Form.Item>
+        </Col>
+        <Col xs={24}>
+          <Form.Item label="Objectifs pédagogiques détaillés" name="objectifsPedagogiques">
+            <TextArea rows={3} placeholder="Compétences spécifiques à acquérir..." showCount maxLength={1000} />
+          </Form.Item>
+        </Col>
+      </Row>
+
+      <SectionLabel
+        icon={<AimOutlined />}
+        title="Urgence & impact"
+        hint="Niveau de priorité et alignement stratégique"
+      />
+      <Form.Item name="priorite" rules={[{ required: true, message: "Sélectionnez la priorité" }]}>
+        <Form.Item noStyle shouldUpdate={(p, c) => p.priorite !== c.priorite}>
+          {({ getFieldValue, setFieldsValue }) => (
+            <ChoiceCardGroup
+              variant="priorite"
+              options={prioriteOptions}
+              value={getFieldValue("priorite")}
+              onChange={(v) => setFieldsValue({ priorite: v })}
+            />
+          )}
+        </Form.Item>
+      </Form.Item>
+      <Form.Item label="Impact stratégique" name="impactStrategique">
+        <Input placeholder="Ex : Alignement avec la stratégie D2F..." size="large" />
+      </Form.Item>
+    </div>,
+
+    /* ────── Step 2 : Détails ────── */
+    <div key="details" className="bf-step">
+      <SectionLabel
+        icon={<UserOutlined />}
+        title="Formateur souhaité"
+        hint="Optionnel — vous pouvez proposer un nom"
+      />
+      <Form.Item label="Proposition de formateur" name="propositionAnimateur">
+        <Input placeholder="Nom du formateur proposé (optionnel)" size="large" prefix={<UserOutlined />} />
+      </Form.Item>
+
+      <SectionLabel
+        icon={<CalendarOutlined />}
+        title="Planning souhaité"
+        hint="Quand la formation devrait-elle se tenir ?"
+      />
+      <Row gutter={[16, 12]}>
+        <Col xs={24} md={12}>
+          <Form.Item label="Période de formation" name="periodCode" rules={[{ required: true, message: "Choisissez une période" }]} initialValue="OTHER">
+            <Select placeholder="Choisir la période" size="large">
+              {PERIOD_OPTIONS.map((opt) => <Option key={opt.value} value={opt.value}>{opt.label}</Option>)}
+            </Select>
+          </Form.Item>
+        </Col>
+        <Col xs={24} md={12}>
+          <Form.Item label="Horaire souhaité (optionnel)" name="horaireSouhaite">
+            <DatePicker showTime format="YYYY-MM-DD HH:mm" placeholder="Date et heure" size="large" style={{ width: "100%" }} />
+          </Form.Item>
+        </Col>
+        <Form.Item noStyle shouldUpdate={(p, c) => p.periodCode !== c.periodCode}>
+          {({ getFieldValue }) => getFieldValue("periodCode") === "OTHER" ? (
+            <Col xs={24}>
+              <Form.Item
+                label="Précisez la période"
+                name="customPeriodLabel"
+                rules={[{ required: true, message: "Précisez la période" }]}
+              >
+                <Input placeholder="Ex : Mai - Juin 2024" size="large" />
+              </Form.Item>
+            </Col>
+          ) : null}
+        </Form.Item>
+      </Row>
+
+      <SectionLabel
+        icon={<TeamOutlined />}
+        title="Volume"
+        hint="Durée et taille du groupe"
+      />
+      <Row gutter={[16, 12]}>
+        <Col xs={24} md={12}>
+          <Form.Item label="Durée prévue (heures)" name="dureeFormation">
+            <Input type="number" placeholder="Ex : 40" size="large" suffix="h" />
+          </Form.Item>
+        </Col>
+        <Col xs={24} md={12}>
+          <Form.Item label="Nb. max participants" name="nbMaxParticipants" rules={[{ required: true, message: "Précisez le nombre max" }]}>
+            <Input type="number" placeholder="Ex : 20" size="large" />
+          </Form.Item>
+        </Col>
+      </Row>
+    </div>,
+
+    /* ────── Step 3 : Paramètres ────── */
+    <div key="parametres" className="bf-step">
+      <SectionLabel
+        icon={<ApartmentOutlined />}
+        title="Accessibilité de la formation"
+        hint="Réservée à l'UP ou ouverte à d'autres unités ?"
+      />
+      <Form.Item label="Type de formation" name="estOuverte">
+        <Select placeholder="Ouverte ou fermée ?" size="large">
+          <Option value={false}>Fermée — réservée aux participants de l'UP</Option>
+          <Option value={true}>Ouverte — accessible à d'autres UPs</Option>
+        </Select>
+      </Form.Item>
+
+      <SectionLabel
+        icon={<CheckCircleOutlined />}
+        title="Méthodes d'évaluation"
+        hint="Comment évaluer les acquis ?"
+      />
+      <Form.Item label="Méthodes d'évaluation" name="methodesEvaluationAcquis">
+        <Input placeholder="Ex : Quiz, Projet, QCM, mise en situation..." size="large" />
+      </Form.Item>
+
+      <SectionLabel
+        icon={<BookOutlined />}
+        title="Informations complémentaires"
+        hint="Remarques, contraintes, contexte particulier"
+      />
+      <Form.Item label="Autres informations" name="autresInformations">
+        <TextArea
+          rows={4}
+          placeholder="Informations additionnelles, spécificités, remarques particulières..."
+          showCount
+          maxLength={1000}
+        />
+      </Form.Item>
+    </div>,
   ];
 
-  const getSummaryData = () => {
-    const values = form.getFieldsValue(true);
-    const upObj = ups.find((u) => u.id === Number(values.up));
-    const depObj = departements.find((d) => d.id === Number(values.departement));
-    const typeLabel = typeOptions.find((t) => t.value === values.typeBesoin)?.label;
-    const typeFormation = values.estOuverte ? "Ouverte" : "Fermée";
+  /* ═══════════════ SUMMARY (groupé par section) ═══════════════ */
+
+  const buildSummary = () => {
+    const v = form.getFieldsValue(true);
+    const upObj = ups.find((u) => String(u.id) === String(v.up));
+    const depObj = departements.find((d) => String(d.id) === String(v.departement));
+    const typeLabel = typeOptions.find((t) => t.value === v.typeBesoin)?.label;
+    const prioMeta = prioriteOptions.find((p) => p.value === v.priorite);
+    const periodLabel = v.periodCode === "OTHER"
+      ? (v.customPeriodLabel || "Autre")
+      : (PERIOD_OPTIONS.find((o) => o.value === v.periodCode)?.label || "—");
+
     return [
-      { label: "Unité Pédagogique", value: upObj?.name || upObj?.libelle || values.up, icon: <TeamOutlined /> },
-      { label: "Département", value: depObj?.name || depObj?.libelle || values.departement, icon: <ApartmentOutlined /> },
-      { label: "Type", value: typeLabel || values.typeBesoin, icon: <BookOutlined /> },
-      { label: "Formation", value: values.titre, icon: <BookOutlined /> },
-      { label: "Domaine", value: values.theme || "—", icon: <BookOutlined /> },
-      { label: "Priorité", value: values.priorite, icon: <AimOutlined /> },
-      { label: "Objectif", value: values.objectifFormation, icon: <AimOutlined /> },
-      { label: "Objectifs Pédago", value: values.objectifsPedagogiques || "—", icon: <AimOutlined /> },
-      { label: "Impact", value: values.impactStrategique || "—", icon: <AimOutlined /> },
-      { label: "Formateur proposé", value: values.propositionAnimateur || "—", icon: <UserOutlined /> },
-      { label: "Horaire souhaité", value: values.horaireSouhaite ? values.horaireSouhaite.format("DD/MM/YYYY HH:mm") : "—", icon: <ClockCircleOutlined /> },
-      { label: "Durée", value: values.dureeFormation ? `${values.dureeFormation}h` : "—", icon: <ClockCircleOutlined /> },
-      { label: "Période", value: values.periodCode === "OTHER" ? (values.customPeriodLabel || "Autre") : (PERIOD_OPTIONS.find(o => o.value === values.periodCode)?.label || "—"), icon: <CalendarOutlined /> },
-      { label: "Type de formation", value: typeFormation, icon: <CheckCircleOutlined /> },
-      { label: "Évaluation", value: values.methodesEvaluationAcquis || "—", icon: <CheckCircleOutlined /> },
-      ...(canManageParticipants ? [{ label: "Liste des participants", value: formatParticipantsSummary(values.publicCible), icon: <TeamOutlined /> }] : []),
-      { label: "Autres informations", value: values.autresInformations || "—", icon: <BookOutlined /> },
+      {
+        key: "contexte",
+        title: "Contexte",
+        icon: <ApartmentOutlined />,
+        items: [
+          { label: "Unité Pédagogique", value: upObj?.name || upObj?.libelle || "—" },
+          { label: "Département",       value: depObj?.name || depObj?.libelle || "—" },
+          { label: "Type de besoin",    value: typeLabel || "—" },
+          ...(canManageParticipants ? [{ label: "Participants", value: formatParticipantsSummary(v.publicCible) }] : []),
+        ],
+      },
+      {
+        key: "formation",
+        title: "Formation",
+        icon: <BookOutlined />,
+        items: [
+          { label: "Nom",                 value: v.titre || "—", strong: true },
+          { label: "Domaine",             value: v.theme || "—" },
+          { label: "Objectif",            value: v.objectifFormation || "—" },
+          { label: "Objectifs pédago",    value: v.objectifsPedagogiques || "—" },
+          { label: "Priorité",            value: prioMeta?.label || "—", pillColor: prioMeta?.accent },
+          { label: "Impact stratégique",  value: v.impactStrategique || "—" },
+        ],
+      },
+      {
+        key: "details",
+        title: "Détails & planning",
+        icon: <ClockCircleOutlined />,
+        items: [
+          { label: "Formateur proposé", value: v.propositionAnimateur || "—" },
+          { label: "Horaire souhaité",  value: v.horaireSouhaite ? v.horaireSouhaite.format("DD/MM/YYYY HH:mm") : "—" },
+          { label: "Période",           value: periodLabel },
+          { label: "Durée",             value: v.dureeFormation ? `${v.dureeFormation} h` : "—" },
+          { label: "Participants max",  value: v.nbMaxParticipants ? `${v.nbMaxParticipants}` : "—" },
+        ],
+      },
+      {
+        key: "parametres",
+        title: "Paramètres",
+        icon: <CheckCircleOutlined />,
+        items: [
+          { label: "Type de formation", value: v.estOuverte ? "Ouverte (toutes UPs)" : "Fermée (UP uniquement)" },
+          { label: "Évaluation",        value: v.methodesEvaluationAcquis || "—" },
+          { label: "Autres informations", value: v.autresInformations || "—" },
+        ],
+      },
     ];
   };
 
+  /* ═══════════════ RENDER ═══════════════ */
+
   if (loading) {
     return (
-      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: "60vh" }}>
-        <Spin size="large">
-          <div style={{ marginTop: 16 }}>Chargement...</div>
-        </Spin>
+      <div className="bf-scope bf-form-page bf-form-page--loading">
+        <Spin size="large" />
+        <Text type="secondary" style={{ marginTop: 16 }}>Chargement...</Text>
       </div>
     );
   }
 
   if (submitted) {
     return (
-      <div className="besoin-form-container">
-        <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.4 }}>
-          <Card className="besoin-form-card">
-              <Result
-                status="success"
-                icon={<div className="besoin-form-icon success-icon" style={{ background: 'var(--color-success-bg)' }}><CheckCircleOutlined style={{ color: 'var(--color-success)' }} /></div>}
-                title={<Title level={2}>Besoin enregistré avec succès !</Title>}
-                subTitle="Votre demande de formation a été transmise et sera examinée prochainement."
+      <div className="bf-scope bf-form-page">
+        <motion.div initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.4 }}>
+          <div className="bf-form-shell">
+            <Result
+              status="success"
+              icon={
+                <div className="bf-success-icon">
+                  <CheckCircleOutlined />
+                </div>
+              }
+              title={<Title level={3} style={{ margin: 0 }}>Besoin enregistré avec succès</Title>}
+              subTitle="Votre demande de formation a été transmise et sera examinée prochainement par le CUP."
               extra={[
                 <Button
                   type="primary"
                   key="list"
                   size="large"
-                  className="btn-brand"
+                  className="bf-btn bf-btn--primary"
                   onClick={() => window.location.href = "/home/besoins"}
                 >
                   Voir la liste des besoins
@@ -738,158 +669,221 @@ export default function BesoinForm() {
                 <Button
                   key="again"
                   size="large"
+                  className="bf-btn bf-btn--ghost"
                   onClick={() => { setSubmitted(false); form.resetFields(); setCurrentStep(0); }}
                 >
                   Ajouter un autre besoin
                 </Button>,
               ]}
             />
-          </Card>
+          </div>
         </motion.div>
       </div>
     );
   }
 
+  const isSummary = currentStep >= STEPS_META.length;
+  const progressPercent = isSummary
+    ? 100
+    : Math.round(((currentStep + 1) / (STEPS_META.length + 1)) * 100);
+
   return (
     <ConfigProvider
       locale={locale}
-      theme={{
-        token: {
-          colorPrimary: "var(--primary-500)",
-          borderRadius: 14,
-          fontFamily: "'Inter', sans-serif",
-        },
-      }}
+      theme={{ token: { colorPrimary: "#B51200", borderRadius: 10, fontFamily: "'Inter', sans-serif" } }}
     >
-      <div className="besoin-form-container">
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-        >
-          <Card className="besoin-form-card">
-            {/* Header */}
-            <div className="besoin-form-header">
-              <div className="besoin-form-icon">
-                <BookOutlined />
-              </div>
-              <Title level={3} className="besoin-form-title">
-                Ajouter un besoin en formation
-              </Title>
-              <Text className="besoin-form-subtitle">
-                Parcourez les étapes pour décrire votre besoin de formation
-              </Text>
+      <div className="bf-scope bf-form-page">
+        {/* ═══════════ HEADER ═══════════ */}
+        <header className="bf-form-header">
+          <Breadcrumb
+            className="bf-breadcrumb"
+            items={[
+              { href: "/home", title: <><HomeOutlined /> Accueil</> },
+              { href: "/home/besoins", title: "Besoins de Formation" },
+              { title: <strong>Ajouter un besoin</strong> },
+            ]}
+          />
+          <div className="bf-form-header__row">
+            <div className="bf-form-header__title-block">
+              <h1 className="bf-form-header__title">Nouveau besoin de formation</h1>
+              <p className="bf-form-header__subtitle">
+                Décrivez votre besoin en quelques étapes — il sera transmis au CUP pour instruction.
+              </p>
             </div>
+            <div className="bf-form-header__progress">
+              <Progress
+                type="circle"
+                percent={progressPercent}
+                size={56}
+                strokeColor={{ "0%": "#B51200", "100%": "#9a0f00" }}
+                strokeWidth={8}
+                format={() => (
+                  <span className="bf-form-header__progress-text">
+                    {isSummary ? STEPS_META.length : currentStep + 1}/<small>{STEPS_META.length}</small>
+                  </span>
+                )}
+              />
+            </div>
+          </div>
+        </header>
 
-            {/* Steps */}
-            <Steps
-              current={currentStep}
-              className="besoin-steps"
-              style={{ marginBottom: 40 }}
-              responsive
-            >
-              {steps.map((s) => (
-                <Step key={s.title} title={s.title} description={s.description} icon={s.icon} />
-              ))}
-            </Steps>
+        {/* ═══════════ STEPPER MINIMAL ═══════════ */}
+        <nav className="bf-stepper" aria-label="Étapes du formulaire">
+          {STEPS_META.map((s, idx) => {
+            const state = idx < currentStep ? "done" : idx === currentStep ? "active" : "pending";
+            return (
+              <button
+                key={s.key}
+                type="button"
+                className={`bf-stepper__item bf-stepper__item--${state}`}
+                onClick={() => idx <= currentStep && setCurrentStep(idx)}
+                disabled={idx > currentStep}
+                aria-current={idx === currentStep ? "step" : undefined}
+              >
+                <span className="bf-stepper__bubble">
+                  {state === "done" ? <CheckCircleOutlined /> : <span>{idx + 1}</span>}
+                </span>
+                <span className="bf-stepper__text">
+                  <span className="bf-stepper__title">{s.title}</span>
+                  <span className="bf-stepper__sub">{s.subtitle}</span>
+                </span>
+              </button>
+            );
+          })}
+        </nav>
 
-            {/* Form */}
-            <Form form={form} layout="vertical" onFinish={handleSubmit} autoComplete="off" preserve={true}>
-              <AnimatePresence mode="wait" custom={direction}>
-                {currentStep < steps.length ? (
-                  <motion.div
-                    key={currentStep}
-                    custom={direction}
-                    variants={slideVariants}
-                    initial="enter"
-                    animate="center"
-                    exit="exit"
-                    transition={{ duration: 0.3 }}
-                    className="besoin-step-content"
-                  >
-                    {steps[currentStep].content}
-                  </motion.div>
-                ) : (
-                  <motion.div
-                    key="summary"
-                    custom={direction}
-                    variants={slideVariants}
-                    initial="enter"
-                    animate="center"
-                    exit="exit"
-                    transition={{ duration: 0.3 }}
-                    className="besoin-step-content"
-                  >
-                    <Title level={4} style={{ textAlign: "center", marginBottom: 24 }}>
-                      Récapitulatif de votre demande
-                    </Title>
-                    <div className="besoin-summary">
-                      {getSummaryData().map((item, idx) => (
-                        <div key={idx} className="besoin-summary-item">
-                          <span className="besoin-summary-label">
-                            {item.icon}
-                            {item.label}
-                          </span>
-                          <span className="besoin-summary-value">{item.value}</span>
-                        </div>
+        {/* ═══════════ FORM SHELL ═══════════ */}
+        <div className="bf-form-shell">
+          <Form form={form} layout="vertical" onFinish={handleSubmit} autoComplete="off" preserve={true} className="bf-form">
+            <AnimatePresence mode="wait" custom={direction}>
+              {!isSummary ? (
+                <motion.div
+                  key={`step-${currentStep}`}
+                  custom={direction}
+                  variants={slideVariants}
+                  initial="enter"
+                  animate="center"
+                  exit="exit"
+                  transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+                >
+                  {stepContent[currentStep]}
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="summary"
+                  custom={direction}
+                  variants={slideVariants}
+                  initial="enter"
+                  animate="center"
+                  exit="exit"
+                  transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+                >
+                  <div className="bf-summary">
+                    <header className="bf-summary__header">
+                      <div className="bf-summary__icon"><EditOutlined /></div>
+                      <div>
+                        <h2 className="bf-summary__title">Récapitulatif de votre demande</h2>
+                        <p className="bf-summary__sub">Vérifiez les informations avant de soumettre. Cliquez sur "Modifier" pour revenir à une étape.</p>
+                      </div>
+                    </header>
+
+                    <div className="bf-summary__grid">
+                      {buildSummary().map((section, idx) => (
+                        <article key={section.key} className="bf-summary-card">
+                          <header className="bf-summary-card__head">
+                            <span className="bf-summary-card__icon">{section.icon}</span>
+                            <h3 className="bf-summary-card__title">{section.title}</h3>
+                            <button
+                              type="button"
+                              className="bf-summary-card__edit"
+                              onClick={() => { setDirection(-1); setCurrentStep(idx); }}
+                            >
+                              <EditOutlined /> Modifier
+                            </button>
+                          </header>
+                          <dl className="bf-summary-card__list">
+                            {section.items.map((it) => (
+                              <div key={it.label} className="bf-summary-card__row">
+                                <dt>{it.label}</dt>
+                                <dd className={it.strong ? "is-strong" : ""}>
+                                  {it.pillColor ? (
+                                    <span className="bf-summary-pill" style={{ "--pill": it.pillColor }}>
+                                      {it.value}
+                                    </span>
+                                  ) : (
+                                    it.value
+                                  )}
+                                </dd>
+                              </div>
+                            ))}
+                          </dl>
+                        </article>
                       ))}
                     </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </Form>
+        </div>
 
-              {/* Navigation */}
-              <div className="besoin-form-nav">
-                <Space size="large">
-                  {currentStep > 0 && (
-                    <Button size="large" onClick={prev} icon={<ArrowLeftOutlined />}>
-                      Précédent
-                    </Button>
-                  )}
-                  {currentStep < steps.length - 1 && (
-                    <Button
-                      type="primary"
-                      size="large"
-                      onClick={next}
-                      className="btn-brand"
-                      icon={<ArrowRightOutlined />}
-                    >
-                      Suivant
-                    </Button>
-                  )}
-                  {currentStep === steps.length - 1 && (
-                    <Button
-                      type="primary"
-                      size="large"
-                      onClick={next}
-                      className="btn-brand"
-                      icon={<ArrowRightOutlined />}
-                    >
-                      Voir le récapitulatif
-                    </Button>
-                  )}
-                  {currentStep === steps.length && (
-                    <>
-                      <Button size="large" onClick={prev} icon={<ArrowLeftOutlined />}>
-                        Modifier
-                      </Button>
-                      <Button
-                        type="primary"
-                        htmlType="submit"
-                        icon={<SaveOutlined />}
-                        loading={submitting}
-                        size="large"
-                        className="btn-success"
-                      >
-                        Enregistrer le besoin
-                      </Button>
-                    </>
-                  )}
-                </Space>
-              </div>
-            </Form>
-          </Card>
-        </motion.div>
+        {/* ═══════════ STICKY NAV BAR ═══════════ */}
+        <div className="bf-nav-bar" role="region" aria-label="Navigation du formulaire">
+          <div className="bf-nav-bar__progress">
+            <span className="bf-nav-bar__step-label">
+              Étape {isSummary ? STEPS_META.length : currentStep + 1} sur {STEPS_META.length}
+              {isSummary && <span className="bf-nav-bar__step-tag">Récapitulatif</span>}
+            </span>
+            <div className="bf-nav-bar__progress-track">
+              <div className="bf-nav-bar__progress-fill" style={{ width: `${progressPercent}%` }} />
+            </div>
+          </div>
+          <div className="bf-nav-bar__actions">
+            {currentStep > 0 && (
+              <Button
+                size="large"
+                icon={<ArrowLeftOutlined />}
+                onClick={prev}
+                className="bf-btn bf-btn--ghost"
+              >
+                Précédent
+              </Button>
+            )}
+            {currentStep < STEPS_META.length - 1 && (
+              <Button
+                type="primary"
+                size="large"
+                onClick={next}
+                className="bf-btn bf-btn--primary"
+              >
+                Suivant <ArrowRightOutlined />
+              </Button>
+            )}
+            {currentStep === STEPS_META.length - 1 && (
+              <Button
+                type="primary"
+                size="large"
+                onClick={next}
+                className="bf-btn bf-btn--primary"
+              >
+                Voir le récapitulatif <ArrowRightOutlined />
+              </Button>
+            )}
+            {isSummary && (
+              <Button
+                type="primary"
+                size="large"
+                htmlType="submit"
+                icon={<SaveOutlined />}
+                loading={submitting}
+                onClick={handleSubmit}
+                className="bf-btn bf-btn--success"
+              >
+                Enregistrer le besoin
+              </Button>
+            )}
+          </div>
+        </div>
       </div>
     </ConfigProvider>
   );

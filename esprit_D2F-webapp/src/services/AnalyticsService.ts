@@ -1,7 +1,7 @@
 import { defaultApi as axios } from "../utils/httpClient";
 import { config } from "../config/env";
 import type {
-  AlertEvent, AlertsResponse, AnalyseResult, DashboardData,
+  AnalyseResult, DashboardData,
   GapsResponse, HealthStatus, RecommendationsResponse,
   TeacherRiskProfile, TrainingPath,
 } from "../models/analytics";
@@ -54,33 +54,6 @@ const AnalyticsService = {
     const res = await axios.get<TrainingPath>(
       `${BASE}/training-path/${enseignantId}/${competenceId}`
     );
-    return res.data;
-  },
-
-  // ── Alertes ───────────────────────────────────────────
-
-  async getAlerts(params: {
-    type_alerte?: string;
-    severite?: string;
-    statut?: string;
-    enseignant_id?: string;
-    departement_id?: string;
-    page?: number;
-    size?: number;
-  } = {}): Promise<AlertsResponse> {
-    const res = await axios.get<AlertsResponse>(`${BASE}/alerts`, { params });
-    return res.data;
-  },
-
-  async updateAlertStatus(
-    alertId: number,
-    statut: string,
-    traitePar?: string,
-    commentaire?: string
-  ): Promise<{ id: number; statut: string }> {
-    const res = await axios.patch(`${BASE}/alerts/${alertId}`, null, {
-      params: { statut, traite_par: traitePar, commentaire },
-    });
     return res.data;
   },
 

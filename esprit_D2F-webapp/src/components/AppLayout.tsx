@@ -118,11 +118,6 @@ function AppLayout() {
   const { pathname } = useLocation();
   const siderWidth = collapsed ? 80 : 260;
 
-  const isAdmin = useMemo(() => {
-    const role = String(user?.role || "").toLowerCase().replace(/^role_?/, "");
-    return role === "admin";
-  }, [user]);
-
   useEffect(() => {
     setPageLoading(true);
     const timer = setTimeout(() => setPageLoading(false), 300);
@@ -161,10 +156,6 @@ function AppLayout() {
   const backLabel = useMemo(() => BACK_CONTEXT[backTarget] ?? "Retour", [backTarget]);
   const goBack = useMemo(() => () => navigate(backTarget, { replace: true }), [backTarget, navigate]);
 
-  const onBellClick = () => {
-    if (isAdmin) navigate("/home/analytics/alerts");
-  };
-
   return (
     <Layout style={{ height: "100vh", overflow: "hidden" }}>
       <Header style={headerStyle}>
@@ -188,14 +179,8 @@ function AppLayout() {
 
         <div style={{ width: 1, height: 24, background: "rgba(255,255,255,0.12)", margin: "0 8px" }} />
 
-        <Tooltip title={isAdmin ? "Voir les alertes" : "Notifications"}>
-          <div
-            role="button" tabIndex={0}
-            onClick={onBellClick}
-            onKeyDown={(e) => { if ((e.key === "Enter" || e.key === " ") && isAdmin) onBellClick(); }}
-            className="app-header-icon-btn"
-            aria-label="Notifications"
-          >
+        <Tooltip title="Notifications">
+          <div className="app-header-icon-btn" aria-label="Notifications">
             <Badge dot color="#f59e0b" offset={[-2, 2]}>
               <BellOutlined style={{ fontSize: 17, color: "var(--text-on-dark)" }} />
             </Badge>

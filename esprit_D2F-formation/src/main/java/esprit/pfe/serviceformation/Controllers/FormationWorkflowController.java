@@ -158,6 +158,42 @@ public class FormationWorkflowController {
         return ResponseEntity.ok(presences);
     }
 
+    @PutMapping("/seances/{seanceId}/presences/batch")
+    @PreAuthorize(AuthorizationMatrix.FORMATION_UPDATE)
+    public ResponseEntity<Object> batchUpdatePresences(@PathVariable("seanceId") Long seanceId,
+                                                       @RequestBody BatchPresenceUpdateRequest request) {
+        try {
+            List<PresenceDTO> updated = formationWorkflowService.batchUpdatePresences(seanceId, request);
+            return ResponseEntity.ok(updated);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(KEY_ERROR, e.getMessage()));
+        } catch (Exception e) {
+            log.error("Erreur lors du batch update des presences (seance {}) : {}", seanceId, e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(KEY_ERROR, MSG_ERREUR_INTERNE, KEY_MESSAGE, e.getMessage()));
+        }
+    }
+
+    @PutMapping("/seances/{seanceId}/presences/mark-all")
+    @PreAuthorize(AuthorizationMatrix.FORMATION_UPDATE)
+    public ResponseEntity<Object> markAllPresences(@PathVariable("seanceId") Long seanceId,
+                                                   @RequestParam("present") boolean present) {
+        try {
+            List<PresenceDTO> updated = formationWorkflowService.markAllPresences(seanceId, present);
+            return ResponseEntity.ok(updated);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(KEY_ERROR, e.getMessage()));
+        } catch (Exception e) {
+            log.error("Erreur lors du mark-all des presences (seance {}) : {}", seanceId, e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(KEY_ERROR, MSG_ERREUR_INTERNE, KEY_MESSAGE, e.getMessage()));
+        }
+    }
+
+    @GetMapping("/seances/{seanceId}/presences/stats")
+    @PreAuthorize(AuthorizationMatrix.FORMATION_READ)
+    public ResponseEntity<SeancePresenceStatsDTO> getSeancePresenceStats(@PathVariable("seanceId") Long seanceId) {
+        return ResponseEntity.ok(formationWorkflowService.getSeancePresenceStats(seanceId));
+    }
+
     @GetMapping("/achevees")
     @PreAuthorize(AuthorizationMatrix.FORMATION_READ)
     public ResponseEntity<Object> getFormationsAchevees() {
