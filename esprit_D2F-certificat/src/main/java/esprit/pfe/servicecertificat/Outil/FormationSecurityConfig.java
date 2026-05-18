@@ -41,9 +41,11 @@ public class FormationSecurityConfig {
                  */
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                // DSI §12 — RBAC deny-by-default : whitelist minimale + JWT obligatoire.
+                // Le contrôle fin est porté par @PreAuthorize sur chaque méthode.
                 .authorizeHttpRequests(auth -> auth
-                        // SECURITY REVIEW: /actuator/** permits health endpoints without auth.
-                        .requestMatchers("/actuator/**").permitAll()
+                        .requestMatchers("/actuator/health", "/actuator/info").permitAll()
+                        .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                         .anyRequest().authenticated()
                 )
                 .oauth2ResourceServer(oauth2 ->
