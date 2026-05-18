@@ -55,11 +55,22 @@ services:
       POSTGRES_DB: d2f
       POSTGRES_USER: d2f
       POSTGRES_PASSWORD: ${DB_PASSWORD}
+      # DSI §3.4 — mots de passe par service injectés en GUC custom,
+      # consommés par /docker-entrypoint-initdb.d/01_create_roles.sql.
+      POSTGRES_INITDB_ARGS: >-
+        -c d2f.pwd_auth=${DB_PASSWORD_AUTH:-${DB_PASSWORD}}
+        -c d2f.pwd_formation=${DB_PASSWORD_FORMATION:-${DB_PASSWORD}}
+        -c d2f.pwd_besoin=${DB_PASSWORD_BESOIN:-${DB_PASSWORD}}
+        -c d2f.pwd_evaluation=${DB_PASSWORD_EVALUATION:-${DB_PASSWORD}}
+        -c d2f.pwd_certificat=${DB_PASSWORD_CERTIFICAT:-${DB_PASSWORD}}
+        -c d2f.pwd_competence=${DB_PASSWORD_COMPETENCE:-${DB_PASSWORD}}
+        -c d2f.pwd_analyse=${DB_PASSWORD_ANALYSE:-${DB_PASSWORD}}
     ports:
       - "7432:5432"
     volumes:
       - d2f_postgres_data:/var/lib/postgresql/data
-      - ./seed.sql:/docker-entrypoint-initdb.d/001-seed.sql
+      # DSI §3.4 — scripts d'init exécutés au 1er démarrage (DB vierge)
+      - ./infra/postgres/init:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U d2f -d d2f"]
       interval: 10s
