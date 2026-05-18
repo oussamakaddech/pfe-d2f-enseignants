@@ -45,13 +45,20 @@ public class FormationSecurityConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        // DSI §12 — RBAC deny-by-default :
+        //  1) Whitelist minimale (health/info + openapi en dev).
+        //  2) Tout le reste exige un JWT valide (authenticated()).
+        //  3) Le contrôle fin RBAC est porté par @PreAuthorize(AuthorizationMatrix.*)
+        //     sur CHAQUE méthode de @RestController. Une méthode publique non
+        //     annotée doit être considérée comme un défaut de sécurité et est
+        //     détectée par le test RbacEnforcementTest dans common-security.
         http
                 .cors(Customizer.withDefaults())
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/actuator/**").permitAll()
-                        // Toutes les requêtes API nécessitent une authentification
+                        .requestMatchers("/actuator/health", "/actuator/info").permitAll()
+                        .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                         .anyRequest().authenticated()
                 )
                 .oauth2ResourceServer(oauth2 ->
