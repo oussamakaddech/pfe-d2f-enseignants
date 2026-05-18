@@ -1,25 +1,18 @@
 -- =============================================================================
 -- V1 Baseline Migration — evaluation-service
--- =============================================================================
--- Ce script constitue la baseline Flyway pour le schéma existant.
--- Le schéma a été créé initialement via spring.jpa.hibernate.ddl-auto=update.
--- À partir de V2, toutes les modifications de schéma doivent être versionnées
--- sous forme de scripts SQL dans ce répertoire (V2__*.sql, V3__*.sql, etc.).
---
--- Conformité DSI §3.2 : "Migrations obligatoires — aucune création manuelle
--- non traçable."
---
--- Généré le  : 2025-01-01
--- Service    : evaluation-service
--- Base       : d2f (PostgreSQL)
+-- Schéma initial tel que créé par spring.jpa.hibernate.ddl-auto=update.
+-- Tables/colonnes ajoutées par migrations ultérieures :
+--   V2 : table evaluation_formateur
+--   V4 : contrainte chk_formation_id sur evaluation_formateur
+--   V13 : evaluation_globale.last_refresh_date
+-- Conformité DSI §3.2
 -- =============================================================================
 
--- Aucune instruction SQL dans cette version baseline.
--- Le schéma existant (tables liées aux évaluations de formateurs)
--- est pris en charge par spring.flyway.baseline-on-migrate=true (dev/QA)
--- ou supposé déjà présent avant le premier déploiement avec Flyway (prod).
---
--- Prochaines migrations :
---   V2__add_index_xyz.sql
---   V3__alter_table_xyz.sql
---   ...
+CREATE TABLE IF NOT EXISTS evaluation_globale (
+    id_eval_globale     BIGSERIAL     PRIMARY KEY,
+    formation_id        BIGINT        NOT NULL UNIQUE,
+    commentaire_general VARCHAR(3000),
+    date_evaluation     DATE,
+    note_globale        REAL,
+    recommandation      VARCHAR(100)
+);
