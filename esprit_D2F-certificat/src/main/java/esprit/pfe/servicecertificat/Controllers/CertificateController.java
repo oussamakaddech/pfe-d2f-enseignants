@@ -20,6 +20,11 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/v1/certificates")
 @RequiredArgsConstructor
+@io.swagger.v3.oas.annotations.tags.Tag(
+        name = "Certificats",
+        description = "Génération et consultation des certificats PDF de formation."
+)
+@io.swagger.v3.oas.annotations.security.SecurityRequirement(name = "bearerAuth")
 public class CertificateController {
 
     private final CertificateService certificateService;

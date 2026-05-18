@@ -14,6 +14,11 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/v1/evaluations-globales")
 @RequiredArgsConstructor
+@io.swagger.v3.oas.annotations.tags.Tag(
+        name = "Évaluations globales",
+        description = "Synthèse des évaluations par formation et enseignant."
+)
+@io.swagger.v3.oas.annotations.security.SecurityRequirement(name = "bearerAuth")
 public class EvaluationGlobaleController {
 
     private final EvaluationGlobaleService evaluationGlobaleService;

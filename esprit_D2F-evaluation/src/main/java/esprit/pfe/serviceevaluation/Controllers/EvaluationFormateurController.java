@@ -18,6 +18,11 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/v1/evaluations")
 @RequiredArgsConstructor
+@io.swagger.v3.oas.annotations.tags.Tag(
+        name = "Évaluations formateurs",
+        description = "Évaluations des formateurs par les enseignants et CUP."
+)
+@io.swagger.v3.oas.annotations.security.SecurityRequirement(name = "bearerAuth")
 public class EvaluationFormateurController {
 
     private final EvaluationFormateurService evaluationService;
