@@ -56,6 +56,10 @@ import org.springframework.beans.factory.annotation.Value;
 @RestController
 @RequestMapping("/api/v1/auth")
 @Slf4j
+@io.swagger.v3.oas.annotations.tags.Tag(
+        name = "Authentification",
+        description = "Login, signup, reset password, JWT issuance. Endpoints publics sauf /me."
+)
 public class SecurityController {
     private static final String LOG_MESSAGE_FORMAT = "Password reset successful for %s from IP %s";
     private static final String LOG_MESSAGE_FORMAT_2 = "Password reset requested for %s from IP %s";
