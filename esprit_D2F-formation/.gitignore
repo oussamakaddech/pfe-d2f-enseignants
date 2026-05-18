@@ -13,8 +13,9 @@ target/
 .springBeans
 .sts4-cache
 
-### Secrets — never commit credentials ###
-src/main/resources/application.properties
+### DSI §2.2 — secrets EXCLUSIVEMENT externalisés via env (jamais en clair).
+### application.properties est désormais versionné (aucune valeur sensible en fallback).
+### application-prod.properties reste hors Git (sera dérivé d'env via spring-config).
 src/main/resources/application-prod.properties
 
 ### IntelliJ IDEA ###
