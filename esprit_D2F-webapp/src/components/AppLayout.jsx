@@ -129,11 +129,6 @@ function AppLayout() {
   const { pathname } = useLocation();
   const siderWidth = collapsed ? 80 : 260;
 
-  const isAdmin = useMemo(() => {
-    const role = String(user?.role || "").toLowerCase().replace(/^role_?/, "");
-    return role === "admin";
-  }, [user]);
-
   // Breadcrumb calculé depuis la route
   const crumbs = useMemo(() =>
     pathname.split("/").filter(Boolean).map((seg, i, arr) => {
@@ -170,10 +165,6 @@ function AppLayout() {
   const backLabel  = useMemo(() => BACK_CONTEXT[backTarget] ?? "Retour", [backTarget]);
   const goBack     = useMemo(() => () => navigate(backTarget, { replace: true }), [backTarget, navigate]);
 
-  const onBellClick = () => {
-    if (isAdmin) navigate("/home/analytics/alerts");
-  };
-
   return (
     <Layout style={{ height: "100vh", overflow: "hidden" }}>
       {/* ── Topbar ──────────────────────────────────────────────────────────── */}
@@ -202,14 +193,8 @@ function AppLayout() {
         <div style={dateStyle}>{today}</div>
 
         {/* Notifications */}
-        <Tooltip title={isAdmin ? "Voir les alertes" : "Notifications"}>
-          <div
-            role="button" tabIndex={0}
-            onClick={onBellClick}
-            onKeyDown={(e) => { if ((e.key === "Enter" || e.key === " ") && isAdmin) onBellClick(); }}
-            className="app-header-icon-btn"
-            aria-label="Notifications"
-          >
+        <Tooltip title="Notifications">
+          <div className="app-header-icon-btn" aria-label="Notifications">
             <Badge dot color="#f59e0b" offset={[-2, 2]}>
               <BellOutlined style={{ fontSize: 17, color: "rgba(255,255,255,0.92)" }} />
             </Badge>

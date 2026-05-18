@@ -58,6 +58,43 @@ const FormationWorkflowService = {
     return response.data;
   },
 
+  async batchUpdatePresences(
+    seanceId: Id,
+    updates: Array<{ idParticipation: number | string; present: boolean; commentaire?: string }>
+  ): Promise<Presence[]> {
+    const response = await axios.put<Presence[]>(
+      `${API_URL}/seances/${seanceId}/presences/batch`,
+      { updates }
+    );
+    return response.data;
+  },
+
+  async markAllPresences(seanceId: Id, present: boolean): Promise<Presence[]> {
+    const response = await axios.put<Presence[]>(
+      `${API_URL}/seances/${seanceId}/presences/mark-all`,
+      null,
+      { params: { present } }
+    );
+    return response.data;
+  },
+
+  async getSeancePresenceStats(seanceId: Id): Promise<{
+    seanceId: number;
+    total: number;
+    presents: number;
+    absents: number;
+    tauxPresence: number;
+  }> {
+    const response = await axios.get(`${API_URL}/seances/${seanceId}/presences/stats`);
+    return response.data as {
+      seanceId: number;
+      total: number;
+      presents: number;
+      absents: number;
+      tauxPresence: number;
+    };
+  },
+
   async getFormationsByAnimateur(): Promise<Formation[]> {
     const response = await axios.get<Formation[]>(`${API_URL}/animateur`);
     return response.data;

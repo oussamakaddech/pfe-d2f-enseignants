@@ -1,0 +1,110 @@
+/* ─── Besoin Formation — Design tokens ────────────────────────────────────
+ * Source de vérité unique pour tous les styles du module besoin.
+ * Préfixe `--bf-` pour éviter les collisions avec les tokens globaux.
+ * ─────────────────────────────────────────────────────────────────────── */
+
+.bf-scope {
+  /* ═════════════════════════════ BRAND ═════════════════════════════ */
+  --bf-brand-50:  #fff5f2;
+  --bf-brand-100: #ffe7e1;
+  --bf-brand-200: #ffc7bc;
+  --bf-brand-300: #ff9787;
+  --bf-brand-500: #B51200;
+  --bf-brand-600: #9a0f00;
+  --bf-brand-700: #7a0000;
+  --bf-brand-grad:       linear-gradient(135deg, #B51200 0%, #9a0f00 100%);
+  --bf-brand-grad-hover: linear-gradient(135deg, #9a0f00 0%, #7a0000 100%);
+
+  /* ═════════════════════════ SEMANTIC COLORS ═════════════════════════ */
+  --bf-success:        #10b981;
+  --bf-success-fg:     #047857;
+  --bf-success-bg:     #ecfdf5;
+  --bf-success-border: #a7f3d0;
+
+  --bf-warning:        #f59e0b;
+  --bf-warning-fg:     #b45309;
+  --bf-warning-bg:     #fffbeb;
+  --bf-warning-border: #fde68a;
+
+  --bf-danger:         #ef4444;
+  --bf-danger-fg:      #b91c1c;
+  --bf-danger-bg:      #fef2f2;
+  --bf-danger-border:  #fecaca;
+
+  --bf-info:           #2563eb;
+  --bf-info-fg:        #1d4ed8;
+  --bf-info-bg:        #eff6ff;
+  --bf-info-border:    #bfdbfe;
+
+  --bf-violet:         #7c3aed;
+  --bf-violet-bg:      #f5f3ff;
+  --bf-violet-border:  #ddd6fe;
+
+  /* ═════════════════════════════ NEUTRALS ═════════════════════════════ */
+  --bf-bg:             #f7f8fb;
+  --bf-surface:        #ffffff;
+  --bf-surface-alt:    #fbfcfe;
+  --bf-surface-hover:  #f4f6fa;
+  --bf-border:         #eef0f4;
+  --bf-border-strong:  #dde1e9;
+  --bf-divider:        #f1f3f7;
+
+  --bf-text:           #0f172a;
+  --bf-text-body:      #334155;
+  --bf-text-muted:     #64748b;
+  --bf-text-faint:     #94a3b8;
+  --bf-text-on-brand:  #ffffff;
+
+  /* ═════════════════════════════ RADII ═════════════════════════════ */
+  --bf-r-xs:   6px;
+  --bf-r-sm:   8px;
+  --bf-r-md:   10px;
+  --bf-r-lg:   14px;
+  --bf-r-xl:   18px;
+  --bf-r-full: 9999px;
+
+  /* ═════════════════════════════ SHADOWS ═════════════════════════════ */
+  --bf-shadow-xs:    0 1px 2px rgba(15, 23, 42, 0.04);
+  --bf-shadow-sm:    0 1px 2px rgba(15, 23, 42, 0.04), 0 2px 8px -4px rgba(15, 23, 42, 0.10);
+  --bf-shadow-md:    0 1px 2px rgba(15, 23, 42, 0.04), 0 8px 20px -10px rgba(15, 23, 42, 0.16);
+  --bf-shadow-lg:    0 4px 12px rgba(15, 23, 42, 0.06), 0 18px 36px -18px rgba(15, 23, 42, 0.22);
+  --bf-shadow-brand: 0 6px 16px -6px rgba(181, 18, 0, 0.40);
+  --bf-shadow-focus: 0 0 0 3px rgba(181, 18, 0, 0.18);
+
+  /* ═════════════════════════════ SPACING ═════════════════════════════ */
+  --bf-sp-1:  4px;
+  --bf-sp-2:  8px;
+  --bf-sp-3:  12px;
+  --bf-sp-4:  16px;
+  --bf-sp-5:  20px;
+  --bf-sp-6:  24px;
+  --bf-sp-7:  28px;
+  --bf-sp-8:  32px;
+
+  /* ═════════════════════════════ TYPOGRAPHY ═════════════════════════════ */
+  --bf-font:        "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  --bf-text-xs:    11px;
+  --bf-text-sm:    12.5px;
+  --bf-text-md:    13.5px;
+  --bf-text-lg:    15px;
+  --bf-text-xl:    20px;
+  --bf-text-2xl:   26px;
+  --bf-fw-regular:  400;
+  --bf-fw-medium:   500;
+  --bf-fw-semibold: 600;
+  --bf-fw-bold:     700;
+  --bf-lh-tight:    1.2;
+  --bf-lh-snug:     1.35;
+  --bf-lh-normal:   1.5;
+
+  /* ═════════════════════════════ MOTION ═════════════════════════════ */
+  --bf-ease:      cubic-bezier(0.16, 1, 0.3, 1);
+  --bf-ease-soft: cubic-bezier(0.4, 0, 0.2, 1);
+  --bf-dur-fast:  150ms;
+  --bf-dur:       220ms;
+  --bf-dur-slow:  320ms;
+
+  /* ═════════════════════════════ Z-INDEX ═════════════════════════════ */
+  --bf-z-sticky:  10;
+  --bf-z-overlay: 100;
+}

@@ -1,123 +1,148 @@
-import { useEffect, useState } from "react";
+/* ─────────────────────────────────────────────────────────────────────────
+ * BesoinList — Page principale "Besoins de Formation"
+ *
+ * Responsabilité unique : orchestration, fetch, state global.
+ * Le rendu visuel est délégué aux composants atomiques de ./components/.
+ * ─────────────────────────────────────────────────────────────────────── */
+import { useEffect, useMemo, useState } from "react";
 import {
-  Table,
-  Button,
-  Space,
-  Typography,
-  Card,
   Row,
   Col,
-  Tag,
   Modal,
   Form,
   Input,
   Select,
-  Popconfirm,
-  Tooltip,
-  Skeleton,
+  Table,
+  Tag,
   DatePicker,
   Empty,
+  Pagination,
+  Skeleton,
+  Button,
+  Tooltip,
+  Popconfirm,
+  Space,
+  Typography,
+  Avatar,
 } from "antd";
 import moment from "moment";
 import {
-  ReloadOutlined,
-  FilterOutlined,
-  ReadOutlined,
-  TrophyOutlined,
-  TeamOutlined,
-  ApartmentOutlined,
-  DeleteOutlined,
-  EditOutlined,
-  CheckCircleOutlined,
-  ClockCircleOutlined,
-  PlusOutlined,
-  SearchOutlined,
   FileTextOutlined,
   UserOutlined,
-  CalendarOutlined,
+  MailOutlined,
+  EditOutlined,
+  DeleteOutlined,
+  CheckCircleOutlined,
+  ClockCircleOutlined,
 } from "@ant-design/icons";
-import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
+
 import { writeExcel, exportDateLabel, isoDate } from "../../utils/excelExport";
 import BesoinFormationService from "../../services/BesoinFormationService";
 import DeptService from "../../services/DeptService";
 import UpService from "../../services/upService";
-import "./BesoinList.css";
+import MailService from "../../services/MailService";
+import { getAllAccounts } from "../../services/accountService";
 import useAppNotification from "../../hooks/useAppNotification";
-import AppPageHeader from "../../theme/AppPageHeader";
-import { D2FDataCard, D2FSection } from "../../components/ui";
+
+import BesoinHeader from "./components/BesoinHeader";
+import BesoinStatsRow from "./components/BesoinStatsRow";
+import BesoinFiltersPanel from "./components/BesoinFiltersPanel";
+import ViewModeToggle from "./components/ViewModeToggle";
+import BesoinCard from "./components/BesoinCard";
+import BesoinPriorityBadge from "./components/BesoinPriorityBadge";
+import BesoinStatusBadge from "./components/BesoinStatusBadge";
+
+import "./besoin-tokens.css";
+import "./BesoinList.css";
 
 const { Option } = Select;
-const { Text } = Typography;
 const { TextArea } = Input;
-const { RangePicker } = DatePicker;
+const { Text } = Typography;
 
 const PERIOD_OPTIONS = [
-  { value: "P1", label: "Période 1" },
-  { value: "P2", label: "Période 2" },
-  { value: "P3", label: "Période 3" },
-  { value: "P4", label: "Période 4" },
+  { value: "P1",     label: "Période 1" },
+  { value: "P2",     label: "Période 2" },
+  { value: "P3",     label: "Période 3" },
+  { value: "P4",     label: "Période 4" },
   { value: "SUMMER", label: "Session d'Été" },
   { value: "WINTER", label: "Session d'Hiver" },
-  { value: "OTHER", label: "Autre" },
+  { value: "OTHER",  label: "Autre" },
 ];
 
-const containerVariants = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: { staggerChildren: 0.08 },
-  },
-};
-
-const itemVariants = {
-  hidden: { opacity: 0, y: 20 },
-  visible: { opacity: 1, y: 0, transition: { duration: 0.4, ease: "easeOut" } },
+const INITIAL_FILTERS = {
+  deptId: null,
+  upId: null,
+  type: null,
+  statut: null,
+  priorite: null,
+  dateRange: null,
 };
 
 export default function BesoinList() {
   const navigate = useNavigate();
   const { message: msgApi } = useAppNotification();
+
+  // ───── data ─────
   const [besoins, setBesoins] = useState([]);
-  const [filtered, setFiltered] = useState([]);
   const [departements, setDepartements] = useState([]);
   const [ups, setUps] = useState([]);
   const [types, setTypes] = useState([]);
-  const [filters, setFilters] = useState({ deptId: null, upId: null, type: null, statut: null, priorite: null, dateRange: null });
+  const [cupAccounts, setCupAccounts] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [searchText, setSearchText] = useState("");
 
+  // ───── ui state ─────
+  const [searchText, setSearchText] = useState("");
+  const [filters, setFilters] = useState(INITIAL_FILTERS);
+  const [viewMode, setViewMode] = useState("cards");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(12);
+
+  // ───── modals ─────
   const [editingRecord, setEditingRecord] = useState(null);
   const [editModalOpen, setEditModalOpen] = useState(false);
   const [editForm] = Form.useForm();
   const [saving, setSaving] = useState(false);
   const [approvingId, setApprovingId] = useState(null);
 
-  const getBesoinId = (record) => record?.idBesoinFormation ?? record?.idBesionFormation ?? record?.id;
-  const findById = (items, id) => items.find((item) => String(item.id) === String(id));
-  const getLabel = (item, fallback = "—") => item?.libelle || item?.name || item?.label || item?.nom || fallback;
+  const [mailModalOpen, setMailModalOpen] = useState(false);
+  const [mailRecord, setMailRecord] = useState(null);
+  const [mailForm] = Form.useForm();
+  const [mailSending, setMailSending] = useState(false);
 
+  // ═══════════════ helpers ═══════════════
+  const getBesoinId = (r) => r?.idBesoinFormation ?? r?.idBesionFormation ?? r?.id;
+  const findById = (items, id) => items.find((item) => String(item.id) === String(id));
+  const getLabel = (item, fallback = "—") =>
+    item?.libelle || item?.name || item?.label || item?.nom || fallback;
+  const periodLabelOf = (r) => {
+    if (r.periodCode === "OTHER") return r.customPeriodLabel || "Autre";
+    const opt = PERIOD_OPTIONS.find((o) => o.value === r.periodCode);
+    return opt ? opt.label : r.periodeFormation || null;
+  };
+
+  // ═══════════════ fetch ═══════════════
   const fetchData = async () => {
     setLoading(true);
     try {
-      const [allBesoins, depts, upsData] = await Promise.all([
+      const [allBesoins, depts, upsData, accounts] = await Promise.all([
         BesoinFormationService.getAllBesoinFormations(),
         DeptService.getAllDepts(),
         UpService.getAllUps(),
+        getAllAccounts().catch(() => []),
       ]);
-      // Handle Spring Data Page format (content field)
-      const besoinArray = Array.isArray(allBesoins) 
-        ? allBesoins 
-        : (allBesoins?.content || []);
-      
+      const besoinArray = Array.isArray(allBesoins) ? allBesoins : allBesoins?.content || [];
       setBesoins(besoinArray);
-      setFiltered(besoinArray);
       setDepartements(depts);
       setUps(upsData);
       setTypes([...new Set(besoinArray.map((b) => b.typeBesoin).filter(Boolean))]);
-    } catch (error) {
+      const cups = (Array.isArray(accounts) ? accounts : []).filter(
+        (a) => String(a.role || "").toUpperCase() === "CUP" && (a.email || a.emailAddress)
+      );
+      setCupAccounts(cups);
+    } catch {
       msgApi.error("Erreur lors du chargement des besoins");
-      setBesoins([]); // Fallback to empty array on error
+      setBesoins([]);
     } finally {
       setLoading(false);
     }
@@ -128,21 +153,15 @@ export default function BesoinList() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  useEffect(() => {
-    applyFilters();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [besoins, filters, searchText]);
-
-  const applyFilters = () => {
+  // ═══════════════ filtering ═══════════════
+  const filtered = useMemo(() => {
     let res = Array.isArray(besoins) ? [...besoins] : [];
     if (filters.deptId) res = res.filter((b) => String(b.departement) === String(filters.deptId));
     if (filters.upId)   res = res.filter((b) => String(b.up) === String(filters.upId));
     if (filters.type)   res = res.filter((b) => b.typeBesoin === filters.type);
     if (filters.priorite) res = res.filter((b) => b.priorite === filters.priorite);
-    if (filters.statut) {
-      if (filters.statut === "approuve") res = res.filter((b) => b.approuveAdmin);
-      if (filters.statut === "en_attente") res = res.filter((b) => !b.approuveAdmin);
-    }
+    if (filters.statut === "approuve")   res = res.filter((b) => b.approuveAdmin);
+    if (filters.statut === "en_attente") res = res.filter((b) => !b.approuveAdmin);
     if (searchText) {
       const s = searchText.toLowerCase();
       res = res.filter(
@@ -152,7 +171,7 @@ export default function BesoinList() {
           (b.username || "").toLowerCase().includes(s)
       );
     }
-    if (filters.dateRange && filters.dateRange[0] && filters.dateRange[1]) {
+    if (filters.dateRange?.[0] && filters.dateRange?.[1]) {
       const start = filters.dateRange[0].startOf("day");
       const end = filters.dateRange[1].endOf("day");
       res = res.filter((b) => {
@@ -160,18 +179,36 @@ export default function BesoinList() {
         return date.isValid() && date.isBetween(start, end, null, "[]");
       });
     }
-    setFiltered(res);
-  };
+    return res;
+  }, [besoins, filters, searchText]);
 
+  useEffect(() => {
+    setPage(1);
+  }, [filters, searchText, viewMode]);
+
+  const pagedCards = useMemo(() => {
+    if (viewMode !== "cards") return filtered;
+    const start = (page - 1) * pageSize;
+    return filtered.slice(start, start + pageSize);
+  }, [filtered, page, pageSize, viewMode]);
+
+  // ═══════════════ stats ═══════════════
+  const stats = useMemo(() => {
+    const total = besoins.length;
+    const approved = besoins.filter((b) => b.approuveAdmin).length;
+    return { total, approved, pending: total - approved };
+  }, [besoins]);
+
+  // ═══════════════ actions ═══════════════
   const handleDelete = async (id) => {
-    if (id === null || id === undefined) {
+    if (id == null) {
       msgApi.error("Identifiant du besoin introuvable");
       return;
     }
     try {
       await BesoinFormationService.removeBesoinFormation(id);
       msgApi.success("Besoin supprimé avec succès");
-      setBesoins((prev) => (Array.isArray(prev) ? prev.filter((b) => getBesoinId(b) !== id) : []));
+      setBesoins((prev) => prev.filter((b) => getBesoinId(b) !== id));
     } catch {
       msgApi.error("Erreur lors de la suppression");
     }
@@ -179,18 +216,15 @@ export default function BesoinList() {
 
   const handleApprove = async (record) => {
     const id = getBesoinId(record);
-    if (id === null || id === undefined) {
+    if (id == null) {
       msgApi.error("Identifiant du besoin introuvable");
       return;
     }
-
     setApprovingId(id);
     try {
       await BesoinFormationService.approveBesoin(id);
       msgApi.success("Besoin approuvé — redirection vers la création de formation...");
-      setTimeout(() => {
-        navigate("/home/Formation/Creer", { state: { besoinInfo: record } });
-      }, 1000);
+      setTimeout(() => navigate("/home/Formation/Creer", { state: { besoinInfo: record } }), 800);
     } catch {
       msgApi.error("Erreur lors de l'approbation");
     } finally {
@@ -199,14 +233,12 @@ export default function BesoinList() {
   };
 
   const openEdit = (record) => {
-    const recordId = getBesoinId(record);
     setEditingRecord(record);
     editForm.setFieldsValue({
-      idBesoinFormation: recordId,
+      idBesoinFormation: getBesoinId(record),
       titre: record.titre || "",
       objectifFormation: record.objectifFormation || "",
       propositionAnimateur: record.propositionAnimateur || "",
-
       typeBesoin: record.typeBesoin || undefined,
       priorite: record.priorite || undefined,
       impactStrategique: record.impactStrategique || "",
@@ -247,9 +279,59 @@ export default function BesoinList() {
     }
   };
 
+  const openMailModal = (record) => {
+    setMailRecord(record);
+    const upLabel = getLabel(findById(ups, record.up));
+    const deptLabel = getLabel(findById(departements, record.departement));
+    const periodLabel = periodLabelOf(record) || "—";
+    const subject = `Demande d'informations complémentaires — Besoin de formation "${record.titre || record.objectifFormation || "sans titre"}"`;
+    const content =
+      `Bonjour,\n\n` +
+      `Dans le cadre de l'instruction du besoin de formation ci-dessous, ` +
+      `nous sollicitons votre éclairage en tant que CUP afin de compléter les informations manquantes avant approbation.\n\n` +
+      `— Récapitulatif du besoin —\n` +
+      `• Titre : ${record.titre || "—"}\n` +
+      `• Demandeur : ${record.username || "—"}\n` +
+      `• Type : ${record.typeBesoin || "—"}\n` +
+      `• Priorité : ${record.priorite || "—"}\n` +
+      `• UP : ${upLabel}\n` +
+      `• Département : ${deptLabel}\n` +
+      `• Période : ${periodLabel}\n` +
+      `• Objectif : ${record.objectifFormation || "—"}\n\n` +
+      `Pourriez-vous nous préciser :\n` +
+      `  1. La pertinence stratégique de ce besoin pour votre UP ;\n` +
+      `  2. Le profil et le nombre exact de participants attendus ;\n` +
+      `  3. Toute contrainte de planning ou pré-requis spécifique.\n\n` +
+      `En vous remerciant par avance,\nL'équipe D2F`;
+    const defaultTo = cupAccounts[0]?.email || cupAccounts[0]?.emailAddress || "";
+    mailForm.setFieldsValue({ to: defaultTo, subject, content });
+    setMailModalOpen(true);
+  };
+
+  const handleSendMail = async () => {
+    try {
+      const values = await mailForm.validateFields();
+      setMailSending(true);
+      const result = await MailService.sendEmail(values.to, values.subject, values.content);
+      msgApi.success(result?.message || "E-mail envoyé au CUP avec succès");
+      setMailModalOpen(false);
+      mailForm.resetFields();
+    } catch (err) {
+      if (err?.errorFields) return;
+      msgApi.error(
+        err?.response?.data?.error ||
+          err?.response?.data?.message ||
+          err?.message ||
+          "Échec de l'envoi de l'e-mail"
+      );
+    } finally {
+      setMailSending(false);
+    }
+  };
+
   const exportToExcel = () => {
     try {
-      const rows = (Array.isArray(filtered) ? filtered : []).map((b) => ({
+      const rows = filtered.map((b) => ({
         "Titre / Objectif":   b.titre || b.objectifFormation || "—",
         "Demandeur":          b.username || "—",
         "Type":               b.typeBesoin || "—",
@@ -259,412 +341,220 @@ export default function BesoinList() {
         "Département":        getLabel(findById(departements, b.departement)),
         "Statut":             b.approuveAdmin ? "Approuvé" : "En attente",
         "Date Création":      b.dateCreation ? moment(b.dateCreation).format("DD/MM/YYYY") : "—",
-        "Période Formation":  b.periodeFormation || "—",
+        "Période":            periodLabelOf(b) || "—",
         "Horaire Souhaité":   b.horaireSouhaite ? moment(b.horaireSouhaite).format("DD/MM/YYYY HH:mm") : "—",
-        "Impact Stratégique": b.impactStrategique || "—",
-        "Public Cible":       b.publicCible || "—",
       }));
       writeExcel(
         [{ name: "Besoins de Formation", rows, title: "Liste des Besoins de Formation — Esprit", subtitle: exportDateLabel() }],
         `Liste_Besoins_Formation_${isoDate()}.xlsx`
       );
       msgApi.success("Export Excel réussi");
-    } catch (error) {
-      console.error("Export error:", error);
+    } catch (e) {
+      console.error("Export error:", e);
       msgApi.error("Erreur lors de l'exportation Excel");
     }
   };
 
-  // Stats
-  const total = Array.isArray(besoins) ? besoins.length : 0;
-  const approvedCount = Array.isArray(besoins) ? besoins.filter((b) => b.approuveAdmin).length : 0;
-  const pendingCount = total - approvedCount;
-
-  const columns = [
+  // ═══════════════ table columns (vue tableau) ═══════════════
+  const tableColumns = [
     {
       title: "Formation",
       key: "formation",
-      width: 280,
       render: (_, r) => (
-        <div className="formation-cell">
-          <div className="formation-cell-title">
-            <FileTextOutlined style={{ marginRight: 6, color: "var(--primary-500)" }} />
-            {r.titre || r.objectifFormation || "—"}
-          </div>
-          {r.titre && r.objectifFormation && (
-            <div className="formation-cell-desc">{r.objectifFormation}</div>
-          )}
+        <div>
+          <div className="bf-table__title">{r.titre || r.objectifFormation || "—"}</div>
+          {r.theme && <div className="bf-table__sub">{r.theme}</div>}
         </div>
       ),
-      sorter: (a, b) => (a.titre || a.objectifFormation || "").localeCompare(b.titre || b.objectifFormation || ""),
+      sorter: (a, b) => (a.titre || "").localeCompare(b.titre || ""),
     },
-    {
-      title: "Demandeur",
-      dataIndex: "username",
-      key: "username",
-      width: 150,
-      render: (v) => (
-        <Tag icon={<UserOutlined />} className="besoin-demandeur-tag">
-          {v}
-        </Tag>
-      ),
-      sorter: (a, b) => (a.username || "").localeCompare(b.username || ""),
-    },
-    {
-      title: "Domaine",
-      dataIndex: "theme",
-      key: "theme",
-      width: 150,
-      render: (v) => v || <Text type="secondary">—</Text>,
-      sorter: (a, b) => (a.theme || "").localeCompare(b.theme || ""),
-    },
-    {
-      title: "Période",
-      key: "periode",
-      width: 140,
-      render: (_, r) => {
-        if (r.periodCode === "OTHER") return r.customPeriodLabel || "Autre";
-        const opt = PERIOD_OPTIONS.find(o => o.value === r.periodCode);
-        return opt ? opt.label : (r.periodeFormation || <Text type="secondary">—</Text>);
-      },
-    },
+    { title: "Demandeur", dataIndex: "username", width: 140 },
     {
       title: "Type",
       dataIndex: "typeBesoin",
-      width: 150,
-      render: (t) => <span className={`type-tag ${t}`}>{t?.replace(/_/g, " ")}</span>,
-      sorter: (a, b) => (a.typeBesoin || "").localeCompare(b.typeBesoin || ""),
+      width: 110,
+      render: (t) => (t ? <Tag>{t}</Tag> : "—"),
     },
     {
       title: "Priorité",
       dataIndex: "priorite",
       width: 120,
-      render: (p) => {
-        if (!p) return "—";
-        return <span className={`besoin-priorite-badge ${p}`}><span className="besoin-priorite-dot" />{p}</span>;
-      },
+      render: (p) => <BesoinPriorityBadge value={p} size="sm" />,
       sorter: (a, b) => {
         const order = { CRITIQUE: 4, HAUTE: 3, MOYENNE: 2, BASSE: 1 };
         return (order[a.priorite] || 0) - (order[b.priorite] || 0);
       },
     },
-
     {
-      title: "Formateur proposé",
-      dataIndex: "propositionAnimateur",
-      width: 160,
-      render: (v) => v || <Text type="secondary">—</Text>,
-    },
-    {
-      title: "Date & Horaire",
-      key: "dateHoraire",
-      width: 180,
-      render: (_, r) => (
-        <div className="besoin-date-cell">
-          {r.dateCreation ? (
-            <span className="besoin-date-creation">
-              {new Date(r.dateCreation).toLocaleDateString("fr-FR")}
-            </span>
-          ) : (
-            <Text type="secondary">—</Text>
-          )}
-          {r.horaireSouhaite && (
-            <span className="besoin-date-horaire">
-              <ClockCircleOutlined />
-              {moment(r.horaireSouhaite).isValid() ? moment(r.horaireSouhaite).format("DD/MM/YYYY HH:mm") : r.horaireSouhaite}
-            </span>
-          )}
-        </div>
-      ),
-      sorter: (a, b) => new Date(a.dateCreation || 0) - new Date(b.dateCreation || 0),
+      title: "Date",
+      dataIndex: "dateCreation",
+      width: 120,
+      render: (d) => (d ? new Date(d).toLocaleDateString("fr-FR") : "—"),
     },
     {
       title: "Statut",
       key: "statut",
-      width: 140,
-      align: "center",
-      render: (_, r) =>
-        r.approuveAdmin ? (
-          <span className="status-badge approved">
-            <span className="status-badge-dot" />
-            Approuvé
-          </span>
-        ) : (
-          <span className="status-badge pending">
-            <span className="status-badge-dot" />
-            En attente
-          </span>
-        ),
+      width: 130,
+      render: (_, r) => <BesoinStatusBadge approved={!!r.approuveAdmin} />,
     },
     {
       title: "Actions",
       key: "actions",
-      width: 220,
+      width: 200,
       fixed: "right",
-      render: (_, r) => (
-        <Space>
-          <Tooltip title="Modifier">
-            <Button
-              size="small"
-              icon={<EditOutlined />}
-              onClick={() => openEdit(r)}
-              className="action-btn"
-            >
-              Modifier
-            </Button>
-          </Tooltip>
-          {!r.approuveAdmin && (
+      render: (_, r) => {
+        const id = getBesoinId(r);
+        return (
+          <Space size={4}>
+            {!r.approuveAdmin && (
+              <Popconfirm
+                title="Approuver ce besoin ?"
+                onConfirm={() => handleApprove(r)}
+                okText="Oui"
+                cancelText="Non"
+              >
+                <Tooltip title="Approuver">
+                  <Button
+                    type="primary"
+                    size="small"
+                    icon={<CheckCircleOutlined />}
+                    loading={approvingId === id}
+                    className="bf-btn bf-btn--success"
+                  />
+                </Tooltip>
+              </Popconfirm>
+            )}
+            <Tooltip title="Email CUP">
+              <Button size="small" icon={<MailOutlined />} onClick={() => openMailModal(r)} className="bf-iconbtn bf-iconbtn--mail" />
+            </Tooltip>
+            <Tooltip title="Modifier">
+              <Button size="small" icon={<EditOutlined />} onClick={() => openEdit(r)} className="bf-iconbtn" />
+            </Tooltip>
             <Popconfirm
-              title="Approuver ce besoin ?"
-              description="Cette action lance la création de la formation associée."
-              onConfirm={() => handleApprove(r)}
-              okText="Oui, approuver"
-              cancelText="Annuler"
-              okButtonProps={{ className: "btn-brand" }}
+              title="Supprimer ?"
+              onConfirm={() => handleDelete(id)}
+              okText="Oui"
+              cancelText="Non"
+              okButtonProps={{ danger: true }}
             >
-              <Tooltip title="Approuver et créer la formation">
-                <Button
-                  type="primary"
-                  size="small"
-                  icon={<CheckCircleOutlined />}
-                  loading={approvingId === getBesoinId(r)}
-                  className="action-btn btn-success"
-                >
-                  Approuver
-                </Button>
+              <Tooltip title="Supprimer">
+                <Button danger size="small" icon={<DeleteOutlined />} className="bf-iconbtn bf-iconbtn--danger" />
               </Tooltip>
             </Popconfirm>
-          )}
-          <Popconfirm
-            title="Supprimer ce besoin ?"
-            description="Cette action est irréversible."
-            onConfirm={() => handleDelete(getBesoinId(r))}
-            okText="Oui"
-            cancelText="Non"
-            okButtonProps={{ danger: true }}
-          >
-            <Tooltip title="Supprimer">
-              <Button danger size="small" icon={<DeleteOutlined />} className="action-btn" />
-            </Tooltip>
-          </Popconfirm>
-        </Space>
-      ),
+          </Space>
+        );
+      },
     },
   ];
 
+  // ═══════════════ render ═══════════════
   if (loading && besoins.length === 0) {
     return (
-      <div className="besoin-list-container">
-        <Skeleton active paragraph={{ rows: 4 }} className="besoin-skeleton" />
-        <Skeleton active paragraph={{ rows: 8 }} className="besoin-skeleton" />
+      <div className="bf-scope bf-page">
+        <Skeleton active paragraph={{ rows: 3 }} className="bf-skeleton" />
+        <Skeleton active paragraph={{ rows: 2 }} className="bf-skeleton" />
+        <Skeleton active paragraph={{ rows: 8 }} className="bf-skeleton" />
       </div>
     );
   }
 
   return (
-    <>
-      <motion.div
-        className="besoin-list-container"
-        variants={containerVariants}
-        initial="hidden"
-        animate="visible"
-      >
-        {/* Header */}
-        <AppPageHeader
-          icon={<ReadOutlined />}
-          title="Besoins de Formation"
-          subtitle={`${filtered.length} résultat${filtered.length > 1 ? "s" : ""} sur ${total}`}
-          actions={
-            <Space>
-              <Button
-                icon={<FileTextOutlined />}
-                onClick={exportToExcel}
-                disabled={filtered.length === 0}
-                className="d2f-btn-success"
-              >
-                Exporter Excel
-              </Button>
-              <Button icon={<ReloadOutlined />} onClick={fetchData} loading={loading}>Actualiser</Button>
-              <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate("/home/besoins/ajouter")}>
-                Ajouter un besoin
-              </Button>
-            </Space>
-          }
-        />
+    <div className="bf-scope bf-page">
+      <BesoinHeader
+        total={stats.total}
+        filteredCount={filtered.length}
+        loading={loading}
+        exportDisabled={filtered.length === 0}
+        onRefresh={fetchData}
+        onExport={exportToExcel}
+        onAdd={() => navigate("/home/besoins/ajouter")}
+      />
 
-        {/* Stats */}
-        <Row gutter={[16, 16]} className="besoin-stats-row">
-          <Col xs={12} md={8}>
-            <motion.div variants={itemVariants}>
-              <D2FDataCard
-                icon={<TrophyOutlined />}
-                iconColor="var(--color-info)"
-                label="Total des besoins"
-                value={total}
-                accentColor="var(--color-info)"
-              />
-            </motion.div>
-          </Col>
-          <Col xs={12} md={8}>
-            <motion.div variants={itemVariants}>
-              <D2FDataCard
-                icon={<CheckCircleOutlined />}
-                iconColor="var(--color-success)"
-                label="Besoins approuvés"
-                value={approvedCount}
-                accentColor="var(--color-success)"
-              />
-            </motion.div>
-          </Col>
-          <Col xs={12} md={8}>
-            <motion.div variants={itemVariants}>
-              <D2FDataCard
-                icon={<ClockCircleOutlined />}
-                iconColor="var(--color-warning)"
-                label="En attente"
-                value={pendingCount}
-                accentColor="var(--color-warning)"
-              />
-            </motion.div>
-          </Col>
-        </Row>
+      <BesoinStatsRow
+        total={stats.total}
+        approved={stats.approved}
+        pending={stats.pending}
+      />
 
-        {/* Filtres */}
-        <motion.div variants={itemVariants}>
-          <Card variant="borderless" className="besoin-filter-card" size="small">
-            <div className="besoin-filter-header">
-              <div className="besoin-filter-icon">
-                <FilterOutlined />
-              </div>
-              <div className="besoin-filter-text">
-                <Text strong>Affiner la liste</Text>
-                <Text type="secondary">UP, département, statut ou priorité</Text>
-              </div>
-              <Button
-                icon={<ReloadOutlined />}
-                onClick={() => { setFilters({ deptId: null, upId: null, type: null, statut: null, priorite: null, dateRange: null }); setSearchText(""); }}
-                size="small"
-                className="besoin-filter-reset-btn"
-              >
-                Réinitialiser
-              </Button>
-            </div>
-            <div className="besoin-filter-grid">
-              <Input
-                placeholder="Rechercher..."
-                allowClear
-                value={searchText}
-                onChange={(e) => setSearchText(e.target.value)}
-                prefix={<SearchOutlined style={{ color: "var(--neutral-400)" }} />}
-                size="middle"
-                autoComplete="off"
-                className="besoin-filter-search"
-              />
-              <RangePicker
-                placeholder={["Début", "Fin"]}
-                value={filters.dateRange}
-                onChange={(dates) => setFilters((f) => ({ ...f, dateRange: dates }))}
-                size="middle"
-                className="besoin-filter-range"
-              />
-              <Select
-                allowClear
-                placeholder="Type"
-                value={filters.type}
-                onChange={(v) => setFilters((f) => ({ ...f, type: v }))}
-                size="middle"
-              >
-                {types.map((t) => (
-                  <Option key={t} value={t}>{t?.replace(/_/g, " ")}</Option>
-                ))}
-              </Select>
-              <Select
-                allowClear
-                placeholder="Statut"
-                value={filters.statut}
-                onChange={(v) => setFilters((f) => ({ ...f, statut: v }))}
-                size="middle"
-              >
-                <Option value="approuve">Approuvé</Option>
-                <Option value="en_attente">En attente</Option>
-              </Select>
-              <Select
-                allowClear
-                placeholder="Priorité"
-                value={filters.priorite}
-                onChange={(v) => setFilters((f) => ({ ...f, priorite: v }))}
-                size="middle"
-              >
-                <Option value="CRITIQUE">Critique</Option>
-                <Option value="HAUTE">Haute</Option>
-                <Option value="MOYENNE">Moyenne</Option>
-                <Option value="BASSE">Basse</Option>
-              </Select>
-              <Select
-                allowClear
-                placeholder="UP"
-                value={filters.upId}
-                onChange={(v) => setFilters((f) => ({ ...f, upId: v }))}
-                size="middle"
-              >
-                {ups.map((u) => (
-                  <Option key={u.id} value={u.id}>{u.name || u.libelle}</Option>
-                ))}
-              </Select>
-              <Select
-                allowClear
-                placeholder="Département"
-                value={filters.deptId}
-                onChange={(v) => setFilters((f) => ({ ...f, deptId: v }))}
-                size="middle"
-              >
-                {departements.map((d) => (
-                  <Option key={d.id} value={d.id}>{d.name || d.libelle}</Option>
-                ))}
-              </Select>
-            </div>
-          </Card>
-        </motion.div>
+      <BesoinFiltersPanel
+        searchText={searchText}
+        filters={filters}
+        types={types}
+        ups={ups}
+        departements={departements}
+        onSearchChange={setSearchText}
+        onFiltersChange={setFilters}
+        onReset={() => {
+          setFilters(INITIAL_FILTERS);
+          setSearchText("");
+        }}
+      />
 
-        {/* Table */}
-        <motion.div variants={itemVariants}>
-          <Card variant="borderless" className="besoin-table-card">
-            <AnimatePresence>
-              {filtered.length === 0 && !loading ? (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.95 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                >
-                  <Empty
-                    description="Aucun besoin ne correspond à vos critères"
-                    image={Empty.PRESENTED_IMAGE_SIMPLE}
-                    style={{ padding: "40px 0" }}
+      <ViewModeToggle
+        value={viewMode}
+        onChange={setViewMode}
+        count={filtered.length}
+        total={stats.total}
+      />
+
+      {filtered.length === 0 && !loading && (
+        <div className="bf-empty">
+          <Empty description="Aucun besoin ne correspond à vos critères" />
+        </div>
+      )}
+
+      {viewMode === "cards" && filtered.length > 0 && (
+        <>
+          <Row gutter={[16, 16]} className="bf-grid">
+            {pagedCards.map((b) => {
+              const id = getBesoinId(b);
+              return (
+                <Col xs={24} sm={12} lg={8} xxl={6} key={id}>
+                  <BesoinCard
+                    besoin={b}
+                    upLabel={getLabel(findById(ups, b.up))}
+                    deptLabel={getLabel(findById(departements, b.departement))}
+                    periodLabel={periodLabelOf(b)}
+                    approvingId={approvingId}
+                    onApprove={handleApprove}
+                    onOpenMail={openMailModal}
+                    onEdit={openEdit}
+                    onDelete={handleDelete}
+                    onOpen={() => openEdit(b)}
                   />
-                </motion.div>
-              ) : (
-                <Table
-                  dataSource={filtered}
-                  columns={columns}
-                  rowKey={(record) => getBesoinId(record)}
-                  loading={loading}
-                  pagination={{
-                    pageSize: 10,
-                    showSizeChanger: true,
-                    showTotal: (t, range) => `${range[0]}-${range[1]} sur ${t} besoins`,
-                    style: { marginTop: 16 },
-                  }}
-                  scroll={{ x: 1400 }}
-                  size="middle"
-                  rowClassName={() => "animate-slide-in"}
-                />
-              )}
-            </AnimatePresence>
-          </Card>
-        </motion.div>
-      </motion.div>
+                </Col>
+              );
+            })}
+          </Row>
+          <div className="bf-pagination">
+            <Pagination
+              current={page}
+              pageSize={pageSize}
+              total={filtered.length}
+              onChange={(p, s) => { setPage(p); setPageSize(s); }}
+              showSizeChanger
+              pageSizeOptions={[8, 12, 16, 24, 48]}
+              showTotal={(t, [a, b]) => `${a}-${b} sur ${t} besoins`}
+            />
+          </div>
+        </>
+      )}
 
-      {/* Modal d'édition — rendu hors du motion.div pour éviter les conflits d'animation */}
+      {viewMode === "table" && filtered.length > 0 && (
+        <div className="bf-table-wrap">
+          <Table
+            dataSource={filtered}
+            columns={tableColumns}
+            rowKey={(r) => getBesoinId(r)}
+            pagination={{ pageSize: 10, showSizeChanger: true }}
+            scroll={{ x: 1100 }}
+            size="middle"
+            className="bf-table"
+          />
+        </div>
+      )}
+
+      {/* ═════════════════ EDIT MODAL ═════════════════ */}
       <Modal
         title="Modifier le besoin"
         open={editModalOpen}
@@ -673,62 +563,54 @@ export default function BesoinList() {
         confirmLoading={saving}
         okText="Enregistrer"
         cancelText="Annuler"
-        width={720}
-        className="besoin-modal"
-        okButtonProps={{ className: "d2f-btn-primary" }}
+        width={760}
+        className="bf-modal"
+        okButtonProps={{ className: "bf-btn bf-btn--primary" }}
       >
         <Form form={editForm} layout="vertical">
           <Row gutter={16}>
             <Col xs={24} md={12}>
               <Form.Item label="Nom de la formation" name="titre" rules={[{ required: true }]}>
-                <Input placeholder="Ex: Formation Angular avancé" size="large" prefix={<FileTextOutlined style={{ color: "var(--primary-500)" }} />} />
+                <Input size="large" prefix={<FileTextOutlined />} />
               </Form.Item>
             </Col>
             <Col xs={24} md={12}>
               <Form.Item label="Type" name="typeBesoin" rules={[{ required: true }]}>
-                <Select placeholder="Sélectionner le type" size="large">
+                <Select size="large" placeholder="Sélectionner le type">
                   <Option value="INDIVIDUEL">Individuel</Option>
                   <Option value="COLLECTIF">Collectif</Option>
-                  <Option value="ANIMER_UNE_FORMATION">Animer une formation</Option>
                 </Select>
               </Form.Item>
             </Col>
             <Col xs={24} md={12}>
               <Form.Item label="Domaine / Thème" name="theme">
-                <Input placeholder="Ex: Informatique..." size="large" />
+                <Input size="large" />
               </Form.Item>
             </Col>
             <Col xs={24} md={12}>
-              <Form.Item label="Période de formation" name="periodCode" rules={[{ required: true }]}>
-                <Select placeholder="Choisir la période" size="large">
-                  {PERIOD_OPTIONS.map(opt => (
-                    <Option key={opt.value} value={opt.value}>{opt.label}</Option>
-                  ))}
+              <Form.Item label="Période" name="periodCode" rules={[{ required: true }]}>
+                <Select size="large">
+                  {PERIOD_OPTIONS.map((o) => <Option key={o.value} value={o.value}>{o.label}</Option>)}
                 </Select>
               </Form.Item>
             </Col>
-            <Form.Item noStyle shouldUpdate={(prev, curr) => prev.periodCode !== curr.periodCode}>
-              {({ getFieldValue }) => getFieldValue("periodCode") === "OTHER" ? (
+            <Form.Item noStyle shouldUpdate={(p, c) => p.periodCode !== c.periodCode}>
+              {({ getFieldValue }) => getFieldValue("periodCode") === "OTHER" && (
                 <Col xs={24}>
                   <Form.Item label="Précisez la période" name="customPeriodLabel" rules={[{ required: true }]}>
-                    <Input placeholder="Ex: Mai - Juin 2024" size="large" />
+                    <Input size="large" />
                   </Form.Item>
                 </Col>
-              ) : null}
+              )}
             </Form.Item>
             <Col xs={24}>
               <Form.Item label="Objectif" name="objectifFormation" rules={[{ required: true }]}>
-                <TextArea rows={2} placeholder="Décrire l'objectif général" />
-              </Form.Item>
-            </Col>
-            <Col xs={24}>
-              <Form.Item label="Objectifs Pédagogiques" name="objectifsPedagogiques">
-                <TextArea rows={2} placeholder="Détails des compétences" />
+                <TextArea rows={2} />
               </Form.Item>
             </Col>
             <Col xs={24} md={12}>
               <Form.Item label="Priorité" name="priorite" rules={[{ required: true }]}>
-                <Select placeholder="Sélectionner la priorité" size="large">
+                <Select size="large">
                   <Option value="BASSE">Basse</Option>
                   <Option value="MOYENNE">Moyenne</Option>
                   <Option value="HAUTE">Haute</Option>
@@ -738,30 +620,26 @@ export default function BesoinList() {
             </Col>
             <Col xs={24} md={12}>
               <Form.Item label="Impact Stratégique" name="impactStrategique">
-                <Input placeholder="Ex: Alignement stratégie..." size="large" />
+                <Input size="large" />
               </Form.Item>
             </Col>
             <Col xs={24} md={12}>
               <Form.Item label="UP" name="up" rules={[{ required: true }]}>
-                <Select placeholder="Sélectionner l'UP" size="large">
-                  {ups.map((u) => (
-                    <Option key={u.id} value={String(u.id)}>{u.name || u.libelle}</Option>
-                  ))}
+                <Select size="large">
+                  {ups.map((u) => <Option key={u.id} value={String(u.id)}>{u.name || u.libelle}</Option>)}
                 </Select>
               </Form.Item>
             </Col>
             <Col xs={24} md={12}>
               <Form.Item label="Département" name="departement" rules={[{ required: true }]}>
-                <Select placeholder="Sélectionner le département" size="large">
-                  {departements.map((d) => (
-                    <Option key={d.id} value={String(d.id)}>{d.name || d.libelle}</Option>
-                  ))}
+                <Select size="large">
+                  {departements.map((d) => <Option key={d.id} value={String(d.id)}>{d.name || d.libelle}</Option>)}
                 </Select>
               </Form.Item>
             </Col>
             <Col xs={24} md={12}>
               <Form.Item label="Formateur proposé" name="propositionAnimateur">
-                <Input placeholder="Nom du formateur proposé (optionnel)" size="large" prefix={<UserOutlined style={{ color: "var(--primary-500)" }} />} />
+                <Input size="large" prefix={<UserOutlined />} />
               </Form.Item>
             </Col>
             <Col xs={24} md={12}>
@@ -769,37 +647,77 @@ export default function BesoinList() {
                 <DatePicker showTime format="YYYY-MM-DD HH:mm" style={{ width: "100%" }} />
               </Form.Item>
             </Col>
-            <Col xs={24} md={12}>
-              <Form.Item label="Durée (h)" name="dureeFormation">
-                <Input type="number" placeholder="Ex: 40" size="large" />
-              </Form.Item>
-            </Col>
-            <Col xs={24} md={12}>
-              <Form.Item label="Méthodes d'évaluation" name="methodesEvaluationAcquis">
-                <Input placeholder="Ex: Quiz..." size="large" />
-              </Form.Item>
-            </Col>
-            <Col xs={24} md={12}>
-              <Form.Item label="Type de formation" name="estOuverte">
-                <Select placeholder="Ouverte ou fermée ?" size="large">
-                  <Option value={false}>Fermée (UP uniquement)</Option>
-                  <Option value={true}>Ouverte (Toutes UPs)</Option>
-                </Select>
-              </Form.Item>
-            </Col>
-            <Col xs={24}>
-              <Form.Item label="Liste des participants" name="publicCible">
-                <TextArea rows={3} placeholder="Liste des participants (un par ligne)" />
-              </Form.Item>
-            </Col>
             <Col xs={24}>
               <Form.Item label="Autres informations" name="autresInformations">
-                <TextArea rows={3} placeholder="Remarques additionnelles..." />
+                <TextArea rows={3} />
               </Form.Item>
             </Col>
           </Row>
         </Form>
       </Modal>
-    </>
+
+      {/* ═════════════════ MAIL CUP MODAL ═════════════════ */}
+      <Modal
+        title={
+          <span className="bf-modal__title">
+            <span className="bf-modal__title-icon"><MailOutlined /></span>
+            Demander des informations au CUP
+          </span>
+        }
+        open={mailModalOpen}
+        onOk={handleSendMail}
+        onCancel={() => setMailModalOpen(false)}
+        confirmLoading={mailSending}
+        okText="Envoyer l'e-mail"
+        cancelText="Annuler"
+        width={680}
+        className="bf-modal bf-modal--mail"
+        okButtonProps={{ className: "bf-btn bf-btn--primary", icon: <MailOutlined /> }}
+      >
+        {mailRecord && (
+          <div className="bf-mail-context">
+            <span className="bf-mail-context__icon"><FileTextOutlined /></span>
+            <div>
+              <div className="bf-mail-context__label">Besoin concerné</div>
+              <div className="bf-mail-context__value">
+                {mailRecord.titre || mailRecord.objectifFormation || "—"}
+              </div>
+            </div>
+          </div>
+        )}
+        <Form form={mailForm} layout="vertical">
+          <Form.Item
+            label="Destinataire (CUP)"
+            name="to"
+            rules={[
+              { required: true, message: "Veuillez saisir ou choisir un destinataire" },
+              { type: "email", message: "Adresse e-mail invalide" },
+            ]}
+          >
+            {cupAccounts.length > 0 ? (
+              <Select
+                showSearch
+                placeholder="Sélectionner un CUP ou saisir une adresse"
+                size="large"
+                optionFilterProp="label"
+                options={cupAccounts.map((c) => {
+                  const mail = c.email || c.emailAddress;
+                  const name = c.userName || c.username || mail;
+                  return { value: mail, label: `${name} <${mail}>` };
+                })}
+              />
+            ) : (
+              <Input placeholder="cup@esprit.tn" size="large" prefix={<MailOutlined />} />
+            )}
+          </Form.Item>
+          <Form.Item label="Sujet" name="subject" rules={[{ required: true }]}>
+            <Input size="large" />
+          </Form.Item>
+          <Form.Item label="Contenu" name="content" rules={[{ required: true }]}>
+            <TextArea rows={12} className="bf-mail-textarea" />
+          </Form.Item>
+        </Form>
+      </Modal>
+    </div>
   );
 }

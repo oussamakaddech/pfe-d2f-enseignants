@@ -1,0 +1,390 @@
+/* ─── PresenceList.css — Premium presence management UI ──────────────── */
+
+.presence-container {
+  padding: 4px 2px;
+  position: relative;
+}
+
+/* ── Stats banner ────────────────────────────────────────────────────── */
+.presence-stats-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 16px 20px;
+  margin-bottom: 16px;
+  background: linear-gradient(135deg, #ffffff 0%, #fbfcfe 100%);
+  border: 1px solid var(--border-color-soft);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 8px 24px -18px rgba(15, 23, 42, 0.18);
+  flex-wrap: wrap;
+}
+
+.presence-stats-left {
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+  flex: 1;
+}
+
+.presence-stat-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: #fff;
+  border: 1px solid var(--border-color-soft);
+  min-width: 130px;
+  transition: transform 0.18s var(--ease-in-out), box-shadow 0.18s;
+  position: relative;
+  overflow: hidden;
+}
+
+.presence-stat-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 3px;
+}
+
+.presence-stat-card:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px -8px rgba(15, 23, 42, 0.18);
+}
+
+.presence-stat-total::before    { background: #3b82f6; }
+.presence-stat-present::before  { background: #10b981; }
+.presence-stat-absent::before   { background: #ef4444; }
+
+.presence-stat-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.presence-stat-total .presence-stat-icon {
+  background: var(--color-info-bg);
+  color: var(--color-info);
+}
+
+.presence-stat-present .presence-stat-icon {
+  background: var(--color-success-bg);
+  color: var(--color-success);
+}
+
+.presence-stat-absent .presence-stat-icon {
+  background: var(--color-error-bg);
+  color: var(--color-error);
+}
+
+.presence-stat-value {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text-main);
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+
+.presence-stat-label {
+  font-size: 11.5px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 600;
+  margin-top: 2px;
+}
+
+.presence-stats-right {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding-left: 16px;
+  border-left: 1px solid var(--border-color-soft);
+  min-width: 110px;
+}
+
+.presence-taux-label {
+  font-size: 11.5px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 600;
+}
+
+/* ── Toolbar ─────────────────────────────────────────────────────────── */
+.presence-toolbar {
+  margin-bottom: 12px;
+}
+
+.presence-search .ant-input-affix-wrapper,
+.presence-search.ant-input-affix-wrapper {
+  border-radius: 10px !important;
+  border-color: var(--border-color-strong) !important;
+  height: 36px !important;
+}
+
+.presence-search.ant-input-affix-wrapper:focus-within {
+  border-color: var(--primary-400) !important;
+  box-shadow: 0 0 0 3px rgba(181, 18, 0, 0.10) !important;
+}
+
+.presence-btn {
+  border-radius: 9px !important;
+  height: 36px !important;
+  font-weight: 500 !important;
+  display: inline-flex !important;
+  align-items: center;
+  gap: 6px;
+}
+
+.presence-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px -6px rgba(15, 23, 42, 0.20);
+}
+
+.presence-btn-all-present {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+  border-color: transparent !important;
+  color: #fff !important;
+  box-shadow: 0 4px 10px -4px rgba(16, 185, 129, 0.5) !important;
+}
+
+.presence-btn-all-present:hover {
+  filter: brightness(1.05);
+  box-shadow: 0 6px 14px -4px rgba(16, 185, 129, 0.6) !important;
+}
+
+/* ── Table ───────────────────────────────────────────────────────────── */
+.presence-table .ant-table {
+  background: transparent;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  border: 1px solid var(--border-color-soft);
+}
+
+.presence-table .ant-table-thead > tr > th {
+  background: linear-gradient(180deg, #fbfcfe 0%, #f6f8fb 100%) !important;
+  border-bottom: 1px solid var(--border-color-soft) !important;
+  color: var(--text-muted) !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 12px 14px !important;
+}
+
+.presence-table .ant-table-thead > tr > th::before {
+  display: none;
+}
+
+.presence-table .ant-table-tbody > tr > td {
+  padding: 10px 14px !important;
+  border-bottom: 1px solid var(--border-color-soft) !important;
+  vertical-align: middle;
+}
+
+.presence-table .ant-table-tbody > tr:hover > td {
+  background: linear-gradient(90deg, rgba(181, 18, 0, 0.03) 0%, rgba(181, 18, 0, 0.01) 100%) !important;
+}
+
+/* ── Enseignant cell ─────────────────────────────────────────────────── */
+.presence-enseignant-cell {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.presence-enseignant-name {
+  font-weight: 600;
+  color: var(--text-main);
+  font-size: 13.5px;
+  line-height: 1.2;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.presence-enseignant-mail {
+  font-size: 11.5px;
+  color: var(--text-muted);
+  line-height: 1.3;
+  margin-top: 2px;
+}
+
+.presence-dirty-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #f59e0b;
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.25);
+  animation: presence-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes presence-pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50%      { transform: scale(0.8); opacity: 0.6; }
+}
+
+/* ── Type tag ────────────────────────────────────────────────────────── */
+.presence-type-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  line-height: 1;
+}
+
+.presence-type-tag.p {
+  background: var(--color-info-bg);
+  color: var(--color-info);
+  border: 1px solid var(--color-info-border);
+}
+
+.presence-type-tag.v {
+  background: #f5f3ff;
+  color: #7c3aed;
+  border: 1px solid #ddd6fe;
+}
+
+/* ── Switch présent/absent ───────────────────────────────────────────── */
+.presence-table .ant-switch.presence-switch-on {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+  box-shadow: 0 2px 6px -2px rgba(16, 185, 129, 0.55);
+}
+
+.presence-table .ant-switch.presence-switch-off {
+  background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%) !important;
+  box-shadow: 0 2px 6px -2px rgba(239, 68, 68, 0.50);
+}
+
+.presence-table .ant-switch {
+  min-width: 110px !important;
+  height: 28px !important;
+  border-radius: 14px !important;
+}
+
+.presence-table .ant-switch .ant-switch-handle {
+  width: 22px !important;
+  height: 22px !important;
+  top: 3px !important;
+}
+
+.presence-table .ant-switch.ant-switch-checked .ant-switch-handle {
+  inset-inline-start: calc(100% - 25px) !important;
+}
+
+.presence-table .ant-switch .ant-switch-inner {
+  font-size: 12px !important;
+  font-weight: 600;
+  padding: 0 8px !important;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* ── Commentaire input ───────────────────────────────────────────────── */
+.presence-comment-input.ant-input-affix-wrapper,
+.presence-comment-input {
+  border-radius: 8px !important;
+  border-color: var(--border-color-soft) !important;
+  background: #fbfcfe !important;
+  transition: all 0.15s;
+}
+
+.presence-comment-input:hover,
+.presence-comment-input.ant-input-affix-wrapper:hover {
+  border-color: var(--primary-300) !important;
+  background: #fff !important;
+}
+
+.presence-comment-input:focus-within,
+.presence-comment-input.ant-input-affix-wrapper-focused {
+  border-color: var(--primary-500) !important;
+  box-shadow: 0 0 0 3px rgba(181, 18, 0, 0.10) !important;
+  background: #fff !important;
+}
+
+/* ── Sticky save bar ─────────────────────────────────────────────────── */
+.presence-save-bar {
+  position: sticky;
+  bottom: 16px;
+  margin-top: 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 18px;
+  background: linear-gradient(135deg, #ffffff 0%, #fffaf5 100%);
+  border: 1px solid #fde68a;
+  border-radius: 14px;
+  box-shadow:
+    0 1px 2px rgba(15, 23, 42, 0.04),
+    0 12px 28px -12px rgba(245, 158, 11, 0.35);
+  z-index: 5;
+  animation: slide-up 0.25s ease-out;
+}
+
+@keyframes slide-up {
+  from { transform: translateY(12px); opacity: 0; }
+  to   { transform: translateY(0); opacity: 1; }
+}
+
+.presence-dirty-tag {
+  margin: 0 !important;
+  font-weight: 600 !important;
+  border-radius: 999px !important;
+  padding: 3px 12px !important;
+}
+
+.presence-btn-save {
+  background: linear-gradient(135deg, var(--primary-500) 0%, #9a0f00 100%) !important;
+  border-color: var(--primary-500) !important;
+  border-radius: 9px !important;
+  height: 36px !important;
+  font-weight: 600 !important;
+  box-shadow: 0 6px 14px -4px rgba(181, 18, 0, 0.50) !important;
+}
+
+.presence-btn-save:hover {
+  background: linear-gradient(135deg, #9a0f00 0%, #7a0000 100%) !important;
+  box-shadow: 0 10px 20px -6px rgba(181, 18, 0, 0.60) !important;
+  transform: translateY(-1px);
+}
+
+/* ── Responsive ──────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .presence-stats-banner {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .presence-stats-right {
+    border-left: none;
+    border-top: 1px solid var(--border-color-soft);
+    padding-left: 0;
+    padding-top: 12px;
+    flex-direction: row;
+    justify-content: space-between;
+  }
+  .presence-stat-card {
+    min-width: 0;
+    flex: 1;
+  }
+  .presence-save-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+}

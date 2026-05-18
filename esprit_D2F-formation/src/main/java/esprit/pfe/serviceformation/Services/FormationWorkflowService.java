@@ -1299,6 +1299,52 @@ public class FormationWorkflowService {
         return presences.stream().map(this::mapPresenceToDTO).toList();
     }
 
+    @Transactional
+    public List<PresenceDTO> batchUpdatePresences(Long seanceId, esprit.pfe.serviceformation.dto.BatchPresenceUpdateRequest request) {
+        if (request == null || request.getUpdates() == null || request.getUpdates().isEmpty()) {
+            return getPresencesBySeance(seanceId);
+        }
+        List<Presence> seancePresences = presenceRepository.findBySeanceFormation_IdSeance(seanceId);
+        Map<Long, Presence> indexById = new HashMap<>();
+        for (Presence p : seancePresences) {
+            indexById.put(p.getIdParticipation(), p);
+        }
+        for (esprit.pfe.serviceformation.dto.BatchPresenceUpdateRequest.Item item : request.getUpdates()) {
+            if (item == null || item.getIdParticipation() == null) continue;
+            Presence existing = indexById.get(item.getIdParticipation());
+            if (existing == null) continue; // ignore presences that don't belong to this seance
+            existing.setPresent(item.isPresent());
+            if (item.getCommentaire() != null) {
+                existing.setCommentaire(item.getCommentaire());
+            }
+        }
+        presenceRepository.saveAll(seancePresences);
+        return seancePresences.stream().map(this::mapPresenceToDTO).toList();
+    }
+
+    @Transactional
+    public List<PresenceDTO> markAllPresences(Long seanceId, boolean present) {
+        List<Presence> seancePresences = presenceRepository.findBySeanceFormation_IdSeance(seanceId);
+        for (Presence p : seancePresences) {
+            p.setPresent(present);
+            if (present && (p.getCommentaire() == null || p.getCommentaire().isBlank()
+                    || "Presence a valider".equalsIgnoreCase(p.getCommentaire()))) {
+                p.setCommentaire("Presence confirmee");
+            }
+        }
+        presenceRepository.saveAll(seancePresences);
+        return seancePresences.stream().map(this::mapPresenceToDTO).toList();
+    }
+
+    public esprit.pfe.serviceformation.dto.SeancePresenceStatsDTO getSeancePresenceStats(Long seanceId) {
+        List<Presence> seancePresences = presenceRepository.findBySeanceFormation_IdSeance(seanceId);
+        long total = seancePresences.size();
+        long presents = seancePresences.stream().filter(Presence::isPresent).count();
+        long absents = total - presents;
+        double taux = total == 0 ? 0.0 : (double) presents * 100.0 / total;
+        return new esprit.pfe.serviceformation.dto.SeancePresenceStatsDTO(seanceId, total, presents, absents, taux);
+    }
+
     private PresenceDTO mapPresenceToDTO(Presence presence) {
         PresenceDTO dto = new PresenceDTO();
         dto.setIdParticipation(presence.getIdParticipation());

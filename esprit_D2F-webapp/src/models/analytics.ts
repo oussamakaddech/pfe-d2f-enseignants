@@ -2,7 +2,6 @@
 
 export type NiveauUrgence = "FAIBLE" | "MODEREE" | "HAUTE" | "CRITIQUE";
 export type NiveauRisque  = "FAIBLE" | "MODERE" | "ELEVE" | "CRITIQUE";
-export type StatutAlerte  = "NOUVELLE" | "LUE" | "TRAITEE" | "IGNOREE" | "ESCALADEE";
 export type TypeAlerte    =
   | "GAP_CRITIQUE"
   | "STAGNATION"
@@ -11,7 +10,6 @@ export type TypeAlerte    =
   | "COMPLETION_FAIBLE"
   | "BESOIN_NON_COUVERT";
 export type SeveriteAlerte = "INFO" | "WARNING" | "CRITICAL";
-export type CibleType = "INDIVIDUEL" | "COLLECTIF";
 
 // ── Analyse ───────────────────────────────────────────────
 
@@ -105,29 +103,6 @@ export interface TrainingPath {
   probabilite_reussite_globale:  number;
   statut:                        string;
   etapes:                        TrainingPathItem[];
-}
-
-// ── Alertes ───────────────────────────────────────────────
-
-export interface AlertEvent {
-  id:              number;
-  type_alerte:     TypeAlerte;
-  cible_type:      CibleType;
-  enseignant_id:   string | null;
-  departement_id:  string | null;
-  competence_id:   number | null;
-  severite:        SeveriteAlerte;
-  titre:           string;
-  message:         string;
-  statut:          StatutAlerte;
-  created_at:      string;
-}
-
-export interface AlertsResponse {
-  total:  number;
-  page:   number;
-  size:   number;
-  alerts: AlertEvent[];
 }
 
 // ── Profil risque ─────────────────────────────────────────

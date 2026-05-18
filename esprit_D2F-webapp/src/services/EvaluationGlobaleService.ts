@@ -16,8 +16,13 @@ const EvaluationGlobaleService = {
 
   async getAllEvaluationGlobales() {
     try {
-      const response = await axios.get(API_URL);
-      return response.data;
+      const response = await axios.get(API_URL, { params: { size: 1000 } });
+      // Backend renvoie un Page<EvaluationGlobaleDTO> Spring ({ content, totalElements, ... })
+      // On accepte aussi un tableau plat pour tolérer d'éventuels endpoints non paginés.
+      const body = response.data;
+      if (Array.isArray(body)) return body;
+      if (body && Array.isArray(body.content)) return body.content;
+      return [];
     } catch (error) {
       console.error("Erreur lors de la récupération des évaluations globales :", error);
       throw error;
