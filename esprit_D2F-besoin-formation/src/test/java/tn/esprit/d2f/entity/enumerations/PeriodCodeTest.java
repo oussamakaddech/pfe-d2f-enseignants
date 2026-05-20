@@ -15,38 +15,33 @@ class PeriodCodeTest {
     }
 
     @Test
-    void testPeriodCodeP1() {
-        PeriodCode code = PeriodCode.P1;
-
-        assertEquals("P1", code.name());
+    void testPeriodCodeWinter() {
+        PeriodCode code = PeriodCode.WINTER;
+        assertEquals("WINTER", code.name());
     }
 
     @Test
-    void testPeriodCodeP2() {
-        PeriodCode code = PeriodCode.P2;
-
-        assertEquals("P2", code.name());
+    void testPeriodCodeSummer() {
+        PeriodCode code = PeriodCode.SUMMER;
+        assertEquals("SUMMER", code.name());
     }
 
     @Test
-    void testPeriodCodeP3() {
-        PeriodCode code = PeriodCode.P3;
-
-        assertEquals("P3", code.name());
+    void testPeriodCodeSprint() {
+        PeriodCode code = PeriodCode.SPRINT;
+        assertEquals("SPRINT", code.name());
     }
 
     @Test
-    void testPeriodCodeP4() {
-        PeriodCode code = PeriodCode.P4;
-
-        assertEquals("P4", code.name());
+    void testPeriodCodeWorkshop() {
+        PeriodCode code = PeriodCode.WORKSHOP;
+        assertEquals("WORKSHOP", code.name());
     }
 
     @Test
     void testValueOf() {
-        PeriodCode code = PeriodCode.valueOf("P1");
-
-        assertEquals(PeriodCode.P1, code);
+        PeriodCode code = PeriodCode.valueOf("SPRINT");
+        assertEquals(PeriodCode.SPRINT, code);
     }
 
     @Test

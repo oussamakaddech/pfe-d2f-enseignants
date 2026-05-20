@@ -196,8 +196,9 @@ class EvaluationFormateurServiceCoverageTest {
     @DisplayName("createEvaluationsBulk - formation not found - should throw ResourceNotFoundException")
     void createEvaluationsBulk_FormationNotFound_ShouldThrow() {
         when(formationClient.getFormation(10L)).thenReturn(false);
+        List<EvaluationFormateurDTO> payload = Arrays.asList(dto);
 
-        assertThrows(ResourceNotFoundException.class, () -> service.createEvaluationsBulk(Arrays.asList(dto)));
+        assertThrows(ResourceNotFoundException.class, () -> service.createEvaluationsBulk(payload));
         verify(evaluationRepository, never()).saveAll(anyList());
     }
 
@@ -272,8 +273,9 @@ class EvaluationFormateurServiceCoverageTest {
     @DisplayName("updateEvaluationsBulkByFormation - formation not found - should throw")
     void updateEvaluationsBulkByFormation_FormationNotFound_ShouldThrow() {
         when(formationClient.getFormation(10L)).thenReturn(false);
+        List<EvaluationFormateurDTO> payload = List.of(dto);
 
-        assertThrows(ResourceNotFoundException.class, () -> service.updateEvaluationsBulkByFormation(10L, List.of(dto)));
+        assertThrows(ResourceNotFoundException.class, () -> service.updateEvaluationsBulkByFormation(10L, payload));
         verify(evaluationRepository, never()).findByFormationId(anyLong());
     }
 

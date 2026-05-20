@@ -159,6 +159,9 @@ public class FormationWorkflowService {
         formation.setEtatFormation(request.getEtatFormation());
         formation.setCoutFormation(request.getCoutFormation());
         formation.setOrganismeRefExterne(request.getOrganismeRefExterne());
+        formation.setBureauFormationNom(request.getBureauFormationNom());
+        formation.setBureauFormationMail(request.getBureauFormationMail());
+        formation.setBureauFormationTelephone(request.getBureauFormationTelephone());
         formation.setChargeHoraireGlobal(request.getChargeHoraireGlobal());
         formation.setDomaine(request.getDomaine());
         formation.setCompetance(request.getCompetance());
@@ -443,29 +446,44 @@ public class FormationWorkflowService {
             if (cup.getMail() == null || cup.getMail().isBlank()) continue;
             try {
                 String html = String.format(
-                        "<!DOCTYPE html><html><head><style>" +
-                        "body { font-family: 'Segoe UI', sans-serif; color: #333; }" +
-                        ".container { max-width: 600px; margin: 20px auto; padding: 20px; border: 1px solid #ddd; border-radius: 10px; background-color: #f9f9f9; }" +
-                        ".header { background-color: #1565c0; color: white; padding: 10px; text-align: center; border-radius: 10px 10px 0 0; }" +
-                        ".content { padding: 20px; }" +
-                        ".footer { margin-top: 20px; font-size: 0.8em; text-align: center; color: #777; }" +
-                        "strong { color: #1565c0; }" +
+                        "<!DOCTYPE html><html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'><style>" +
+                        "* { margin: 0; padding: 0; box-sizing: border-box; }" +
+                        "body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; color: #2c3e50; background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); padding: 20px; }" +
+                        ".container { max-width: 650px; margin: 0 auto; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 10px 40px rgba(0,0,0,0.1); }" +
+                        ".header { background: linear-gradient(135deg, #1565c0 0%, #0d47a1 100%); color: white; padding: 40px 30px; text-align: center; }" +
+                        ".header h1 { font-size: 26px; margin: 0; font-weight: 600; }" +
+                        ".header-subtitle { font-size: 14px; margin-top: 10px; opacity: 0.95; }" +
+                        ".header-icon { font-size: 48px; margin-bottom: 15px; }" +
+                        ".content { padding: 40px 30px; }" +
+                        ".greeting { font-size: 16px; margin-bottom: 20px; color: #2c3e50; }" +
+                        ".action-box { background: #fff3cd; border-left: 4px solid #ff9800; padding: 15px 20px; margin-bottom: 30px; border-radius: 4px; color: #856404; font-weight: 500; }" +
+                        ".section-title { font-size: 14px; color: #1565c0; font-weight: 600; margin-top: 25px; margin-bottom: 15px; text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; }" +
+                        ".section-title::before { content: ''; display: inline-block; width: 4px; height: 20px; background: #1565c0; margin-right: 10px; border-radius: 2px; }" +
+                        ".info-box { background: #e3f2fd; border-left: 3px solid #1565c0; padding: 12px 15px; margin-bottom: 10px; border-radius: 6px; }" +
+                        ".info-label { font-weight: 600; color: #1565c0; min-width: 100px; display: inline-block; }" +
+                        ".info-value { color: #2c3e50; }" +
+                        ".up-badge { display: inline-block; background: #1565c0; color: white; padding: 5px 12px; border-radius: 20px; font-size: 12px; margin-top: 10px; }" +
+                        ".action-text { background: #e8f5e9; border-left: 4px solid #4caf50; padding: 15px 20px; margin-top: 20px; border-radius: 4px; color: #2e7d32; line-height: 1.6; }" +
+                        ".footer { background: #f8f9fa; border-top: 1px solid #e0e0e0; padding: 20px 30px; text-align: center; font-size: 12px; color: #7f8c8d; }" +
+                        ".footer p { margin: 5px 0; }" +
+                        ".logo { color: #1565c0; font-weight: 600; }" +
                         "</style></head><body>" +
                         "<div class='container'>" +
-                        "<div class='header'><h2>Action Requise : Planification</h2></div>" +
+                        "<div class='header'><div class='header-icon'>⚙️</div><h1>Action Requise</h1><p class='header-subtitle'>Planification de Formation</p></div>" +
                         "<div class='content'>" +
-                        "<p>Bonjour %s %s,</p>" +
-                        "<p>Une nouvelle formation a ete enregistree pour votre UP <strong>%s</strong>.</p>" +
-                        "<ul>" +
-                        "<li><strong>Titre :</strong> %s</li>" +
-                        "<li><strong>Domaine :</strong> %s</li>" +
-                        "<li><strong>Dates :</strong> %s - %s</li>" +
-                        "</ul>" +
-                        "<p>Merci de proceder a la planification des seances.</p>" +
+                        "<p class='greeting'>Bonjour %s %s,</p>" +
+                        "<div class='action-box'>⚠️ Une nouvelle formation a été enregistrée pour votre UP et requiert votre attention.</div>" +
+                        "<div class='section-title'>Détails de la Formation</div>" +
+                        "<div class='info-box'><span class='info-label'>UP</span><span class='info-value'><strong>%s</strong></span></div>" +
+                        "<div class='info-box'><span class='info-label'>Titre</span><span class='info-value'>%s</span></div>" +
+                        "<div class='info-box'><span class='info-label'>Domaine</span><span class='info-value'>%s</span></div>" +
+                        "<div class='info-box'><span class='info-label'>Période</span><span class='info-value'>%s - %s</span></div>" +
+                        "<div class='action-text'>📌 <strong>Action requise :</strong> Merci de procéder rapidement à la planification des séances pour cette formation.</div>" +
                         "</div>" +
                         "<div class='footer'>" +
-                        "<p>Ceci est un e-mail automatique, merci de ne pas y repondre.</p>" +
-                        "<p>&copy; Esprit - Direction du Developpement et de la Formation</p>" +
+                        "<p>Ceci est un e-mail automatique généré par le système D2F.</p>" +
+                        "<p><span class='logo'>Esprit</span> - Direction du Développement et de la Formation</p>" +
+                        "<p>© 2026 - Tous droits réservés</p>" +
                         "</div></div></body></html>",
                         cup.getPrenom(), cup.getNom(),
                         formation.getUp().getLibelle(),
@@ -481,6 +499,7 @@ public class FormationWorkflowService {
     }
 
     // ── Collecter tous les emails des personnes concernées par une formation ──
+    @SuppressWarnings("java:S3776") // aggregates 5 distinct relation sets (animators, formateurs, participants, CUP, departement heads)
     private Set<String> collectAllRecipientEmails(Formation formation) {
         Set<String> emails = new HashSet<>();
 
@@ -548,16 +567,17 @@ public class FormationWorkflowService {
     }
 
     // ── Template HTML réutilisable pour les notifications de changement d'état ──
+    @SuppressWarnings("java:S3776") // state-driven HTML template rendering — one branch per workflow state
     private String buildStateNotificationHtml(Formation formation, String title, String message, String color) {
         StringBuilder seancesHtml = new StringBuilder();
-        if (formation.getSeances() != null) {
+        if (formation.getSeances() != null && !formation.getSeances().isEmpty()) {
             for (SeanceFormation seance : formation.getSeances()) {
                 seancesHtml.append(String.format(
-                        "<li>Le %s de %s a %s en salle %s</li>",
+                        "<div class='seance-item'><span class='seance-icon'>📅</span> <strong>%s</strong> | %s à %s | Salle: <em>%s</em></div>",
                         seance.getDateSeance(),
                         seance.getHeureDebut(),
                         seance.getHeureFin(),
-                        seance.getSalle() != null ? seance.getSalle() : "A definir"));
+                        seance.getSalle() != null ? seance.getSalle() : "À définir"));
             }
         }
 
@@ -574,32 +594,47 @@ public class FormationWorkflowService {
             animateursStr += (animateursStr.isEmpty() ? "" : ", ") + formation.getExterneFormateurNom() + " " + formation.getExterneFormateurPrenom();
         }
 
-        return "<!DOCTYPE html><html><head><style>" +
-                "body { font-family: 'Segoe UI', sans-serif; color: #333; }" +
-                ".container { max-width: 600px; margin: 20px auto; padding: 20px; border: 1px solid #ddd; border-radius: 10px; background-color: #f9f9f9; }" +
-                ".header { background-color: " + color + "; color: white; padding: 15px; text-align: center; border-radius: 10px 10px 0 0; }" +
-                ".content { padding: 20px; }" +
-                ".footer { margin-top: 20px; font-size: 0.8em; text-align: center; color: #777; }" +
-                "strong { color: " + color + "; }" +
-                "ul { padding-left: 20px; } li { margin-bottom: 5px; }" +
+        return "<!DOCTYPE html><html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'><style>" +
+                "* { margin: 0; padding: 0; box-sizing: border-box; }" +
+                "body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; color: #2c3e50; background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); padding: 20px; }" +
+                ".container { max-width: 650px; margin: 0 auto; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 10px 40px rgba(0,0,0,0.1); }" +
+                ".header { background: linear-gradient(135deg, " + color + " 0%, " + adjustBrightness(color, -20) + " 100%); color: white; padding: 40px 30px; text-align: center; }" +
+                ".header h1 { font-size: 28px; margin: 0; font-weight: 600; }" +
+                ".header p { font-size: 14px; margin-top: 8px; opacity: 0.95; }" +
+                ".content { padding: 40px 30px; }" +
+                ".greeting { font-size: 16px; margin-bottom: 25px; color: #2c3e50; }" +
+                ".message-box { background: #f8f9fa; border-left: 4px solid " + color + "; padding: 15px 20px; margin-bottom: 30px; border-radius: 4px; color: #34495e; line-height: 1.6; }" +
+                ".details-section { margin-bottom: 30px; }" +
+                ".details-section h3 { font-size: 14px; color: " + color + "; font-weight: 600; margin-bottom: 15px; text-transform: uppercase; letter-spacing: 0.5px; }" +
+                ".detail-item { display: flex; margin-bottom: 12px; padding: 10px; background: #f8f9fa; border-radius: 6px; }" +
+                ".detail-label { font-weight: 600; color: " + color + "; min-width: 120px; }" +
+                ".detail-value { color: #2c3e50; flex: 1; }" +
+                ".seance-item { padding: 12px; background: #f0f6ff; border-left: 3px solid " + color + "; margin-bottom: 10px; border-radius: 4px; font-size: 14px; line-height: 1.5; }" +
+                ".seance-icon { margin-right: 8px; }" +
+                ".animateurs-list { padding: 12px; background: #f0f6ff; border-left: 3px solid " + color + "; border-radius: 4px; font-size: 14px; }" +
+                ".footer { background: #f8f9fa; border-top: 1px solid #e0e0e0; padding: 20px 30px; text-align: center; font-size: 12px; color: #7f8c8d; }" +
+                ".footer p { margin: 5px 0; }" +
+                ".logo { color: " + color + "; font-weight: 600; }" +
                 "</style></head><body>" +
                 "<div class='container'>" +
-                "<div class='header'><h2>" + title + "</h2></div>" +
+                "<div class='header'><h1>" + title + "</h1></div>" +
                 "<div class='content'>" +
-                "<p>Bonjour,</p>" +
-                "<p>" + message + "</p>" +
-                "<ul>" +
-                "<li><strong>Titre :</strong> " + formation.getTitreFormation() + "</li>" +
-                "<li><strong>Domaine :</strong> " + (formation.getDomaine() != null ? formation.getDomaine() : "N/A") + "</li>" +
-                "<li><strong>Type :</strong> " + (formation.getTypeFormation() != null ? formation.getTypeFormation().toString() : "N/A") + "</li>" +
-                "<li><strong>Dates :</strong> " + formation.getDateDebut() + " - " + formation.getDateFin() + "</li>" +
-                (!animateursStr.isEmpty() ? "<li><strong>Animateurs :</strong> " + animateursStr + "</li>" : "") +
-                "</ul>" +
-                (!seancesHtml.isEmpty() ? "<p><strong>Detail des seances :</strong></p><ul>" + seancesHtml.toString() + "</ul>" : "") +
+                "<p class='greeting'>Bonjour,</p>" +
+                "<div class='message-box'>" + message + "</div>" +
+                "<div class='details-section'>" +
+                "<h3>📋 Informations de la Formation</h3>" +
+                "<div class='detail-item'><span class='detail-label'>Titre</span><span class='detail-value'>" + formation.getTitreFormation() + "</span></div>" +
+                "<div class='detail-item'><span class='detail-label'>Domaine</span><span class='detail-value'>" + (formation.getDomaine() != null ? formation.getDomaine() : "N/A") + "</span></div>" +
+                "<div class='detail-item'><span class='detail-label'>Type</span><span class='detail-value'>" + (formation.getTypeFormation() != null ? formation.getTypeFormation().toString() : "N/A") + "</span></div>" +
+                "<div class='detail-item'><span class='detail-label'>Période</span><span class='detail-value'>" + formation.getDateDebut() + " au " + formation.getDateFin() + "</span></div>" +
+                "</div>" +
+                (!animateursStr.isEmpty() ? "<div class='details-section'><h3>🏫 Animateurs</h3><div class='animateurs-list'>" + animateursStr + "</div></div>" : "") +
+                (!seancesHtml.isEmpty() ? "<div class='details-section'><h3>⏱️ Détail des Séances</h3>" + seancesHtml.toString() + "</div>" : "") +
                 "</div>" +
                 "<div class='footer'>" +
-                "<p>Ceci est un e-mail automatique, merci de ne pas y repondre.</p>" +
-                "<p>&copy; Esprit - Direction du Developpement et de la Formation</p>" +
+                "<p>Ceci est un e-mail automatique généré par le système D2F.</p>" +
+                "<p><span class='logo'>Esprit</span> - Direction du Développement et de la Formation</p>" +
+                "<p>© 2026 - Tous droits réservés</p>" +
                 "</div></div></body></html>";
     }
 
@@ -680,6 +715,23 @@ public class FormationWorkflowService {
         return time.toLocalTime().format(TIME_FMT);
     }
 
+    private String adjustBrightness(String hexColor, int percent) {
+        try {
+            String hex = hexColor.replace("#", "");
+            int r = Integer.parseInt(hex.substring(0, 2), 16);
+            int g = Integer.parseInt(hex.substring(2, 4), 16);
+            int b = Integer.parseInt(hex.substring(4, 6), 16);
+            
+            r = Math.min(255, Math.max(0, r + (r * percent / 100)));
+            g = Math.min(255, Math.max(0, g + (g * percent / 100)));
+            b = Math.min(255, Math.max(0, b + (b * percent / 100)));
+            
+            return String.format("#%02x%02x%02x", r, g, b);
+        } catch (Exception e) {
+            return hexColor;
+        }
+    }
+
     private String buildCalendarEventContent(Formation formation, SeanceFormation seance, String animateursStr) {
         return "<html><body>" +
                 "<h3>" + formation.getTitreFormation() + "</h3>" +
@@ -718,6 +770,7 @@ public class FormationWorkflowService {
                 "<h3>Detail des seances :</h3>" + seancesHtml.toString() + "</body></html>";
     }
 
+    @SuppressWarnings("java:S3776") // mail-template branching by formation kind + audience
     public void notifyTeachersOfApprovedFormation(Formation formation) {
         // Envoyer uniquement aux enseignants concernés (participants + animateurs), pas à tous
         Set<String> recipientIds = new HashSet<>();
@@ -751,39 +804,54 @@ public class FormationWorkflowService {
 
     private String buildApprovalNotificationHtml(Formation formation) {
         StringBuilder seancesHtml = new StringBuilder();
-        if (formation.getSeances() != null) {
+        if (formation.getSeances() != null && !formation.getSeances().isEmpty()) {
             for (SeanceFormation seance : formation.getSeances()) {
                 seancesHtml.append(String.format(
-                        "<li>Le %s de %s a %s en salle %s</li>",
+                        "<div class='seance-item'><span class='calendar-icon'>📅</span><strong>%s</strong> | %s - %s | Salle: <em>%s</em></div>",
                         seance.getDateSeance(),
                         seance.getHeureDebut(),
                         seance.getHeureFin(),
-                        seance.getSalle() != null ? seance.getSalle() : "A definir"));
+                        seance.getSalle() != null ? seance.getSalle() : "À définir"));
             }
         }
-        return "<!DOCTYPE html><html><head><style>" +
-                "body { font-family: 'Segoe UI', sans-serif; color: #333; }" +
-                ".container { max-width: 600px; margin: 20px auto; padding: 20px; border: 1px solid #ddd; border-radius: 10px; background-color: #f9f9f9; }" +
-                ".header { background-color: #1b5e20; color: white; padding: 10px; text-align: center; border-radius: 10px 10px 0 0; }" +
-                ".content { padding: 20px; }" +
-                ".footer { margin-top: 20px; font-size: 0.8em; text-align: center; color: #777; }" +
-                "strong { color: #1b5e20; }" +
+        return "<!DOCTYPE html><html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'><style>" +
+                "* { margin: 0; padding: 0; box-sizing: border-box; }" +
+                "body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; color: #2c3e50; background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); padding: 20px; }" +
+                ".container { max-width: 650px; margin: 0 auto; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 10px 40px rgba(0,0,0,0.1); }" +
+                ".header { background: linear-gradient(135deg, #1b5e20 0%, #0d3817 100%); color: white; padding: 40px 30px; text-align: center; }" +
+                ".header h1 { font-size: 28px; margin: 0; font-weight: 600; }" +
+                ".header-icon { font-size: 48px; margin-bottom: 15px; }" +
+                ".content { padding: 40px 30px; }" +
+                ".greeting { font-size: 16px; margin-bottom: 20px; color: #2c3e50; }" +
+                ".intro-message { background: #e8f5e9; border-left: 4px solid #1b5e20; padding: 15px 20px; margin-bottom: 30px; border-radius: 4px; color: #1b5e20; font-weight: 500; line-height: 1.6; }" +
+                ".section-title { font-size: 14px; color: #1b5e20; font-weight: 600; margin-top: 30px; margin-bottom: 15px; text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; }" +
+                ".section-title::before { content: ''; display: inline-block; width: 4px; height: 20px; background: #1b5e20; margin-right: 10px; border-radius: 2px; }" +
+                ".info-box { background: #f8f9fa; padding: 12px 15px; margin-bottom: 12px; border-radius: 6px; border-left: 3px solid #1b5e20; }" +
+                ".info-label { font-weight: 600; color: #1b5e20; display: inline-block; min-width: 100px; }" +
+                ".info-value { color: #2c3e50; }" +
+                ".seance-item { background: #f0f6ff; border-left: 3px solid #1b5e20; padding: 12px 15px; margin-bottom: 10px; border-radius: 4px; font-size: 14px; line-height: 1.6; }" +
+                ".calendar-icon { margin-right: 8px; font-size: 16px; }" +
+                ".cta-section { text-align: center; margin-top: 30px; }" +
+                ".footer { background: #f8f9fa; border-top: 1px solid #e0e0e0; padding: 20px 30px; text-align: center; font-size: 12px; color: #7f8c8d; }" +
+                ".footer p { margin: 5px 0; }" +
+                ".logo { color: #1b5e20; font-weight: 600; }" +
                 "</style></head><body>" +
                 "<div class='container'>" +
-                "<div class='header'><h2>Nouvelle Formation Disponible</h2></div>" +
+                "<div class='header'><div class='header-icon'>✅</div><h1>Nouvelle Formation Disponible</h1></div>" +
                 "<div class='content'>" +
-                "<p>Bonjour,</p>" +
-                "<p>Une nouvelle formation a ete approuvee et est maintenant visible :</p>" +
-                "<ul>" +
-                "<li><strong>Titre :</strong> " + formation.getTitreFormation() + "</li>" +
-                "<li><strong>Domaine :</strong> " + (formation.getDomaine() != null ? formation.getDomaine() : "N/A") + "</li>" +
-                "<li><strong>Dates :</strong> " + formation.getDateDebut() + " - " + formation.getDateFin() + "</li>" +
-                "</ul>" +
-                "<p><strong>Seances :</strong></p><ul>" + seancesHtml.toString() + "</ul>" +
+                "<p class='greeting'>Bonjour,</p>" +
+                "<div class='intro-message'>Une nouvelle formation a été approuvée et est maintenant visible. Découvrez tous les détails ci-dessous.</div>" +
+                "<div class='section-title'>Informations de la Formation</div>" +
+                "<div class='info-box'><span class='info-label'>Titre</span><span class='info-value'>" + formation.getTitreFormation() + "</span></div>" +
+                "<div class='info-box'><span class='info-label'>Domaine</span><span class='info-value'>" + (formation.getDomaine() != null ? formation.getDomaine() : "N/A") + "</span></div>" +
+                "<div class='info-box'><span class='info-label'>Période</span><span class='info-value'>" + formation.getDateDebut() + " au " + formation.getDateFin() + "</span></div>" +
+                "<div class='section-title'>Calendrier des Séances</div>" +
+                (!seancesHtml.isEmpty() ? seancesHtml.toString() : "<p style='color: #7f8c8d;'>À définir</p>") +
                 "</div>" +
                 "<div class='footer'>" +
-                "<p>Ceci est un e-mail automatique, merci de ne pas y répondre.</p>" +
-                "<p>&copy; Esprit - Direction du Développement et de la Formation</p>" +
+                "<p>Ceci est un e-mail automatique généré par le système D2F.</p>" +
+                "<p><span class='logo'>Esprit</span> - Direction du Développement et de la Formation</p>" +
+                "<p>© 2026 - Tous droits réservés</p>" +
                 "</div></div></body></html>";
     }
 
@@ -791,30 +859,41 @@ public class FormationWorkflowService {
         if (formation.getUp() == null)
             return;
         List<Enseignant> cups = enseignantRepository.findByUpAndCup(formation.getUp(), "O");
-        String subject = "[D2F] Formation Approuvee : " + formation.getTitreFormation();
+        String subject = "[D2F] Formation Approuvée : " + formation.getTitreFormation();
         String htmlContent = String.format(
-                "<!DOCTYPE html><html><head><style>" +
-                "body { font-family: 'Segoe UI', sans-serif; color: #333; }" +
-                ".container { max-width: 600px; margin: 20px auto; padding: 20px; border: 1px solid #ddd; border-radius: 10px; background-color: #f9f9f9; }" +
-                ".header { background-color: #1565c0; color: white; padding: 10px; text-align: center; border-radius: 10px 10px 0 0; }" +
-                ".content { padding: 20px; }" +
-                ".footer { margin-top: 20px; font-size: 0.8em; text-align: center; color: #777; }" +
-                "strong { color: #1565c0; }" +
+                "<!DOCTYPE html><html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'><style>" +
+                "* { margin: 0; padding: 0; box-sizing: border-box; }" +
+                "body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; color: #2c3e50; background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); padding: 20px; }" +
+                ".container { max-width: 650px; margin: 0 auto; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 10px 40px rgba(0,0,0,0.1); }" +
+                ".header { background: linear-gradient(135deg, #1565c0 0%, #0d47a1 100%); color: white; padding: 40px 30px; text-align: center; }" +
+                ".header h1 { font-size: 28px; margin: 0; font-weight: 600; }" +
+                ".header-icon { font-size: 48px; margin-bottom: 15px; }" +
+                ".content { padding: 40px 30px; }" +
+                ".greeting { font-size: 16px; margin-bottom: 20px; color: #2c3e50; }" +
+                ".approval-message { background: #e3f2fd; border-left: 4px solid #1565c0; padding: 15px 20px; margin-bottom: 30px; border-radius: 4px; color: #1565c0; font-weight: 500; line-height: 1.6; }" +
+                ".section-title { font-size: 14px; color: #1565c0; font-weight: 600; margin-top: 25px; margin-bottom: 15px; text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; }" +
+                ".section-title::before { content: ''; display: inline-block; width: 4px; height: 20px; background: #1565c0; margin-right: 10px; border-radius: 2px; }" +
+                ".info-box { background: #f5f5f5; border-left: 3px solid #1565c0; padding: 12px 15px; margin-bottom: 10px; border-radius: 6px; }" +
+                ".info-label { font-weight: 600; color: #1565c0; min-width: 80px; display: inline-block; }" +
+                ".info-value { color: #2c3e50; }" +
+                ".footer { background: #f8f9fa; border-top: 1px solid #e0e0e0; padding: 20px 30px; text-align: center; font-size: 12px; color: #7f8c8d; }" +
+                ".footer p { margin: 5px 0; }" +
+                ".logo { color: #1565c0; font-weight: 600; }" +
                 "</style></head><body>" +
                 "<div class='container'>" +
-                "<div class='header'><h2>Formation Approuvee</h2></div>" +
+                "<div class='header'><div class='header-icon'>✅</div><h1>Formation Approuvée</h1></div>" +
                 "<div class='content'>" +
-                "<p>Bonjour,</p>" +
-                "<p>La formation <strong>%s</strong> a ete approuvee et est maintenant visible.</p>" +
-                "<ul>" +
-                "<li><strong>Domaine :</strong> %s</li>" +
-                "<li><strong>Dates :</strong> %s - %s</li>" +
-                "<li><strong>UP :</strong> %s</li>" +
-                "</ul>" +
+                "<p class='greeting'>Bonjour,</p>" +
+                "<div class='approval-message'>La formation <strong>%s</strong> a été approuvée et est maintenant visible pour tous les responsables d'unités pédagogiques.</div>" +
+                "<div class='section-title'>Informations Clés</div>" +
+                "<div class='info-box'><span class='info-label'>Domaine</span><span class='info-value'>%s</span></div>" +
+                "<div class='info-box'><span class='info-label'>Période</span><span class='info-value'>%s au %s</span></div>" +
+                "<div class='info-box'><span class='info-label'>UP</span><span class='info-value'>%s</span></div>" +
                 "</div>" +
                 "<div class='footer'>" +
-                "<p>Ceci est un e-mail automatique, merci de ne pas y répondre.</p>" +
-                "<p>&copy; Esprit - Direction du Développement et de la Formation</p>" +
+                "<p>Ceci est un e-mail automatique généré par le système D2F.</p>" +
+                "<p><span class='logo'>Esprit</span> - Direction du Développement et de la Formation</p>" +
+                "<p>© 2026 - Tous droits réservés</p>" +
                 "</div></div></body></html>",
                 formation.getTitreFormation(),
                 formation.getDomaine() != null ? formation.getDomaine() : "N/A",
@@ -946,6 +1025,7 @@ public class FormationWorkflowService {
         }
     }
 
+    @SuppressWarnings("java:S3776") // graph API cleanup with multiple try/catch layers — single transactional unit
     public void removeSeanceFromCalendar(SeanceFormation seance) {
         // Initialiser les collections lazy
         if (seance.getAnimateurs() != null) Hibernate.initialize(seance.getAnimateurs());
@@ -981,16 +1061,20 @@ public class FormationWorkflowService {
             }
             emails.add(ORGANIZER_EMAIL);
 
-            for (String email : emails) {
-                if (email == null || email.isBlank()) continue;
-                try {
-                    outlookMailService.sendMail(email, mailSubject, htmlContent);
-                } catch (Exception mailEx) {
-                    log.warn("Echec envoi mail d'annulation a {} : {}", email, mailEx.getMessage());
-                }
-            }
-        } catch (Exception ex) {
+            sendCancellationEmails(emails, mailSubject, htmlContent);
+        } catch (RuntimeException ex) {
             log.error("Erreur lors de l'envoi des mails d'annulation : {}", ex.getMessage());
+        }
+    }
+
+    private void sendCancellationEmails(Set<String> emails, String mailSubject, String htmlContent) {
+        for (String email : emails) {
+            if (email == null || email.isBlank()) continue;
+            try {
+                outlookMailService.sendMail(email, mailSubject, htmlContent);
+            } catch (RuntimeException mailEx) {
+                log.warn("Echec envoi mail d'annulation a {} : {}", email, mailEx.getMessage());
+            }
         }
     }
 
@@ -1022,6 +1106,7 @@ public class FormationWorkflowService {
                 "</div></div></body></html>";
     }
 
+    @SuppressWarnings("java:S3776") // graph API cleanup for all seances + notifications + repo updates — single transactional unit
     public void removeFormationCalendar(Formation formation) {
         Formation freshFormation = formationRepository.findById(formation.getIdFormation())
                 .orElseThrow(() -> new IllegalStateException("La formation a ete supprimee."));
@@ -1243,6 +1328,9 @@ public class FormationWorkflowService {
         dto.setExterneFormateurEmail(formation.getExterneFormateurEmail());
         dto.setExterneFormateurNom(formation.getExterneFormateurNom());
         dto.setExterneFormateurPrenom(formation.getExterneFormateurPrenom());
+        dto.setBureauFormationNom(formation.getBureauFormationNom());
+        dto.setBureauFormationMail(formation.getBureauFormationMail());
+        dto.setBureauFormationTelephone(formation.getBureauFormationTelephone());
         dto.setPrerequis(formation.getPrerequis());
         dto.setChargeHoraireGlobal(formation.getChargeHoraireGlobal() != null ? formation.getChargeHoraireGlobal().intValue() : 0);
         dto.setOuverte(formation.isOuverte());
@@ -1310,9 +1398,12 @@ public class FormationWorkflowService {
             indexById.put(p.getIdParticipation(), p);
         }
         for (esprit.pfe.serviceformation.dto.BatchPresenceUpdateRequest.Item item : request.getUpdates()) {
-            if (item == null || item.getIdParticipation() == null) continue;
-            Presence existing = indexById.get(item.getIdParticipation());
-            if (existing == null) continue; // ignore presences that don't belong to this seance
+            Presence existing = (item == null || item.getIdParticipation() == null)
+                    ? null
+                    : indexById.get(item.getIdParticipation());
+            if (existing == null) {
+                continue; // skip null items and presences that don't belong to this seance
+            }
             existing.setPresent(item.isPresent());
             if (item.getCommentaire() != null) {
                 existing.setCommentaire(item.getCommentaire());
@@ -1341,7 +1432,7 @@ public class FormationWorkflowService {
         long total = seancePresences.size();
         long presents = seancePresences.stream().filter(Presence::isPresent).count();
         long absents = total - presents;
-        double taux = total == 0 ? 0.0 : (double) presents * 100.0 / total;
+        double taux = total == 0 ? 0.0 : presents * 100.0 / total;
         return new esprit.pfe.serviceformation.dto.SeancePresenceStatsDTO(seanceId, total, presents, absents, taux);
     }
 

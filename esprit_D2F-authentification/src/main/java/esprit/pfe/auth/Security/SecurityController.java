@@ -97,6 +97,11 @@ public class SecurityController {
     @Value("${auth.lockout.duration-minutes:15}")
     private int lockoutDurationMinutes;
 
+    @SuppressWarnings("java:S107") // 8 dependencies are the irreducible domain
+                                   // collaborators (email, user/role repos, JWT
+                                   // encoder, key repo, password encoder, auth
+                                   // manager, audit). Splitting would create a
+                                   // god-helper without reducing real coupling.
     public SecurityController(
             EmailService emailService,
             UserRepository userRepository,
@@ -119,9 +124,8 @@ public class SecurityController {
     @PostMapping("/reset-password")
     public String resetPassword(@RequestParam String token, @RequestParam String newPassword,
             HttpServletRequest request) {
-        // SECURITE : on hashe le token (SHA-256) cote serveur avant tout lookup BDD.
-        // Le token clair n'existe que dans l'email envoye a l'utilisateur ;
-        // la base ne stocke jamais le secret en clair.
+        // Hash the token server-side (SHA-256) before any DB lookup; the plain
+        // token only lives in the user email, never in the database.
         String tokenHash = hashConfirmationToken(token);
         this.checkIfTokenIsValid(tokenHash);
         String result = this.resetPasswordAndDeleteToken(tokenHash, newPassword);
@@ -210,9 +214,8 @@ public class SecurityController {
     }
 
     public String generateAndPersistToken(String emailAddress, String key) {
-        // SECURITE : on stocke uniquement le hash SHA-256 du token en base.
-        // Le token clair (UUID) reste dans l'email envoye a l'utilisateur ;
-        // en cas de fuite BDD, le token n'est pas reutilisable directement.
+        // Store only the SHA-256 hash of the token: the plain token lives in the
+        // email sent to the user, so a DB leak alone cannot reuse it.
         ConfirmationKey confirmationKey = new ConfirmationKey();
         confirmationKey.setEmailAddress(emailAddress);
         confirmationKey.setToken(hashConfirmationToken(key));

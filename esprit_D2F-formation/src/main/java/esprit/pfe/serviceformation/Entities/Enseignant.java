@@ -55,6 +55,7 @@ public class Enseignant {
     @OneToMany(mappedBy = "enseignant", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Presence> presences;
 
+    @JsonIgnore
     @OneToMany(mappedBy = "enseignant", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Inscription> inscriptions = new ArrayList<>();
 

@@ -1,0 +1,395 @@
+/* ═══════════════════════════════════════════════════════════════════════
+ * FormationCards — Modern Page styles
+ * ═══════════════════════════════════════════════════════════════════════ */
+
+/* ─── Page layout ──────────────────────────────────────────────────────── */
+
+.fc-page {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 0 0 32px;
+}
+
+/* ─── Hero banner ─────────────────────────────────────────────────────── */
+
+.fc-hero {
+  position: relative;
+  margin-bottom: 24px;
+  padding: 28px 32px;
+  background:
+    linear-gradient(135deg, #ffffff 0%, #f0fdf4 50%, #dcfce7 100%);
+  border: 1px solid rgba(16, 185, 129, 0.12);
+  border-radius: 20px;
+  box-shadow:
+    0 4px 24px rgba(16, 185, 129, 0.06),
+    0 1px 3px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
+}
+
+.fc-hero::before,
+.fc-hero::after {
+  content: "";
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  filter: blur(50px);
+  opacity: 0.5;
+}
+
+.fc-hero::before {
+  width: 280px;
+  height: 280px;
+  top: -120px;
+  right: -80px;
+  background: radial-gradient(circle, rgba(16, 185, 129, 0.16), transparent 70%);
+}
+
+.fc-hero::after {
+  width: 200px;
+  height: 200px;
+  bottom: -80px;
+  left: 25%;
+  background: radial-gradient(circle, rgba(110, 231, 183, 0.2), transparent 70%);
+}
+
+.fc-hero > * {
+  position: relative;
+  z-index: 1;
+}
+
+.fc-hero-title {
+  font-size: 28px !important;
+  font-weight: 800 !important;
+  background: linear-gradient(135deg, #1f2937 0%, #059669 80%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin: 0 !important;
+  line-height: 1.2 !important;
+  letter-spacing: -0.02em;
+}
+
+.fc-hero-subtitle {
+  color: #64748b;
+  font-size: 14px;
+  margin-top: 4px;
+}
+
+.fc-hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 14px;
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: #fff;
+  border-radius: 9999px;
+  font-size: 13px;
+  font-weight: 700;
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+  letter-spacing: 0.02em;
+}
+
+.fc-hero-badge-total {
+  color: rgba(255, 255, 255, 0.7);
+  font-weight: 400;
+}
+
+/* ─── Stats row ────────────────────────────────────────────────────────── */
+
+.fc-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+@media (max-width: 900px) {
+  .fc-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 500px) {
+  .fc-stats {
+    grid-template-columns: 1fr;
+  }
+}
+
+.fc-stat-card {
+  background: #fff;
+  border-radius: 16px;
+  border: 1px solid rgba(0, 0, 0, 0.07);
+  padding: 18px 20px;
+  transition: all 0.25s ease;
+  cursor: default;
+  position: relative;
+  overflow: hidden;
+}
+
+.fc-stat-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  border-radius: 16px 16px 0 0;
+}
+
+.fc-stat-card--total::before { background: linear-gradient(90deg, #10b981, #6ee7b7); }
+.fc-stat-card--open::before  { background: linear-gradient(90deg, #2563eb, #60a5fa); }
+.fc-stat-card--closed::before { background: linear-gradient(90deg, #ef4444, #f87171); }
+.fc-stat-card--types::before  { background: linear-gradient(90deg, #7c3aed, #a78bfa); }
+
+.fc-stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08), 0 2px 6px rgba(0, 0, 0, 0.04);
+}
+
+.fc-stat-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  margin-bottom: 14px;
+}
+
+.fc-stat-label {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #64748b;
+  margin-bottom: 6px;
+}
+
+.fc-stat-value {
+  font-size: 30px;
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+
+/* ─── Filter bar ───────────────────────────────────────────────────────── */
+
+.fc-filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 24px;
+  padding: 16px 20px;
+  background: #fff;
+  border-radius: 14px;
+  border: 1px solid rgba(0, 0, 0, 0.07);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.fc-filter-icon {
+  color: #10b981;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.fc-filter-divider {
+  width: 1px;
+  height: 28px;
+  background: rgba(0, 0, 0, 0.1);
+  margin: 0 4px;
+}
+
+.fc-btn-refresh {
+  border-radius: 8px !important;
+  font-weight: 500 !important;
+}
+
+.fc-btn-reset {
+  border-radius: 8px !important;
+  font-weight: 500 !important;
+}
+
+/* ─── Formation card ──────────────────────────────────────────────────── */
+
+.formation-card {
+  border-radius: 16px;
+  overflow: hidden;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid rgba(0, 0, 0, 0.07);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.formation-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12), 0 4px 8px rgba(0, 0, 0, 0.06);
+}
+
+.formation-card:focus-visible {
+  outline: 2px solid #10b981;
+  outline-offset: 2px;
+}
+
+/* ── Card header (type banner) ───────────────────────────────────────────── */
+.formation-card .card-header {
+  padding: 14px 18px;
+  color: #fff;
+  font-weight: 600;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.card-header-tag {
+  color: #fff !important;
+  border-color: rgba(255, 255, 255, 0.4) !important;
+  background: rgba(255, 255, 255, 0.2) !important;
+  border-radius: 9999px !important;
+  font-weight: 600 !important;
+  font-size: 11px !important;
+  padding: 2px 10px !important;
+  backdrop-filter: blur(4px);
+}
+
+.card-header-badge {
+  color: #fff !important;
+  font-size: 12px;
+}
+
+.card-header-badge .ant-badge-status-dot {
+  width: 8px;
+  height: 8px;
+}
+
+/* ── Card body ───────────────────────────────────────────────────────────── */
+.formation-card .card-body {
+  padding: 18px;
+}
+
+.formation-card .card-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #1f2937;
+  margin-bottom: 10px;
+  line-height: 1.35;
+  min-height: 42px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.formation-card .card-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin-bottom: 14px;
+}
+
+.formation-card .card-meta-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: #64748b;
+}
+
+.formation-card .card-meta-item .anticon {
+  font-size: 14px;
+  width: 16px;
+  text-align: center;
+}
+
+.formation-card .card-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+/* ── Card actions ────────────────────────────────────────────────────────── */
+.formation-card .card-actions {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  border-top: 1px solid rgba(0, 0, 0, 0.06);
+  padding: 12px 8px;
+  background: #f8fafc;
+}
+
+.formation-card .card-actions .anticon {
+  font-size: 18px;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  border-radius: 8px;
+  padding: 6px;
+}
+
+.formation-card .card-actions .anticon:hover {
+  transform: scale(1.15);
+}
+
+.formation-card .card-actions .anticon:focus-visible {
+  outline: 2px solid #10b981;
+  outline-offset: 2px;
+}
+
+/* ── Icon semantic colors ────────────────────────────────────────────────── */
+.icon-primary  { color: #10b981; }
+.icon-muted    { color: #64748b; }
+.icon-muted:hover { color: #1f2937; }
+.icon-disabled { color: #cbd5e0; cursor: not-allowed; }
+.icon-error    { color: #ef4444; }
+.icon-error:hover { color: #dc2626; background: #fef2f2; }
+.icon-success  { color: #10b981; }
+.icon-success:hover { color: #059669; background: #ecfdf5; }
+.icon-info     { color: #3b82f6; }
+.icon-info:hover { color: #2563eb; background: #eff6ff; }
+
+/* ── Type header gradients ───────────────────────────────────────────────── */
+.type-INTERNE    { background: linear-gradient(135deg, #2563eb, #06b6d4); }
+.type-EXTERNE    { background: linear-gradient(135deg, #7c3aed, #a855f7); }
+.type-EN_LIGNE   { background: linear-gradient(135deg, #0891b2, #2563eb); }
+.type-INTERNE_   { background: linear-gradient(135deg, #2563eb, #06b6d4); }
+.type-EXTERNE_   { background: linear-gradient(135deg, #7c3aed, #a855f7); }
+.type-default    { background: linear-gradient(135deg, #64748b, #94a3b8); }
+
+/* ── Badge blink animation for open status ───────────────────────────────── */
+@keyframes softPulse {
+  0%   { opacity: 1; }
+  50%  { opacity: 0.6; }
+  100% { opacity: 1; }
+}
+
+.blink-open {
+  animation: softPulse 2s infinite;
+}
+
+/* ── Empty state ─────────────────────────────────────────────────────────── */
+.fc-empty {
+  margin-top: 80px;
+}
+
+/* ── Loading state ───────────────────────────────────────────────────────── */
+.fc-loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 80px 0;
+}
+
+/* ── Responsive ──────────────────────────────────────────────────────────── */
+
+@media (max-width: 768px) {
+  .fc-hero {
+    padding: 20px;
+  }
+  .fc-hero-title {
+    font-size: 22px !important;
+  }
+  .fc-filter-bar {
+    padding: 12px;
+  }
+}

@@ -257,6 +257,11 @@ WHERE c.enseignant_id = :teacher_id OR :teacher_id IS NULL
 """
 
 BESOIN_DEMAND_QUERY = """
+-- Matching bidirectionnel et tokenisé : un besoin matche une compétence si
+--   • un mot (>3 chars) du nom de compétence apparaît dans theme/titre, OU
+--   • un mot (>3 chars) de theme/titre apparaît dans le nom de compétence.
+-- Sans cela, des thèmes comme "Cybersécurité Web OWASP" ne matchent jamais
+-- "Sécurité Applicative" en ILIKE substring direct.
 SELECT c.id  AS competence_id,
        c.nom AS competence_nom,
        d.nom AS domaine_nom,
@@ -268,9 +273,24 @@ SELECT c.id  AS competence_id,
        ) AS demand_12m,
        COUNT(*) AS total_demand
 FROM besoin_formation bf
-LEFT JOIN competences c
-    ON c.nom ILIKE '%' || COALESCE(bf.theme, '') || '%'
-    OR c.nom ILIKE '%' || COALESCE(bf.titre, '') || '%'
+LEFT JOIN competences c ON (
+    EXISTS (
+        SELECT 1
+        FROM regexp_split_to_table(LOWER(c.nom), '[^[:alnum:]]+') AS t(token)
+        WHERE LENGTH(t.token) > 3
+          AND (LOWER(COALESCE(bf.theme, '')) LIKE '%' || t.token || '%'
+            OR LOWER(COALESCE(bf.titre, '')) LIKE '%' || t.token || '%')
+    )
+    OR EXISTS (
+        SELECT 1
+        FROM regexp_split_to_table(
+            LOWER(COALESCE(bf.theme, '') || ' ' || COALESCE(bf.titre, '')),
+            '[^[:alnum:]]+'
+        ) AS t(token)
+        WHERE LENGTH(t.token) > 3
+          AND LOWER(c.nom) LIKE '%' || t.token || '%'
+    )
+)
 LEFT JOIN domaines d ON d.id = c.domaine_id
 WHERE bf.approuve_admin = TRUE
 GROUP BY c.id, c.nom, d.nom
@@ -292,8 +312,8 @@ SELECT c.id  AS competence_id,
        COUNT(*) AS total_demand
 FROM besoin_formation bf
 LEFT JOIN competences c
-    ON similarity(c.nom, COALESCE(bf.theme, '')) > 0.3
-    OR similarity(c.nom, COALESCE(bf.titre, '')) > 0.3
+    ON similarity(c.nom, COALESCE(bf.theme, '')) > 0.15
+    OR similarity(c.nom, COALESCE(bf.titre, '')) > 0.15
 LEFT JOIN domaines d ON d.id = c.domaine_id
 WHERE bf.approuve_admin = TRUE
 GROUP BY c.id, c.nom, d.nom

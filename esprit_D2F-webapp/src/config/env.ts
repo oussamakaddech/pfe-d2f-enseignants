@@ -1,4 +1,10 @@
+/**
+ * Centralized frontend configuration (DSI §3.5).
+ * Single source of truth for backend URLs — never hardcode URLs elsewhere.
+ */
+
 interface AppConfig {
+  API_BASE_URL: string;
   FORMATION_URL: string;
   URL_ACCOUNT: string;
   AI_URL: string;
@@ -11,11 +17,26 @@ interface AppConfig {
   ANALYSE_URL: string;
 }
 
-const API_BASE_URL = (
-  import.meta.env.VITE_API_URL || import.meta.env.VITE_MAP || ""
-).replace(/\/$/, "");
+const stripTrailingSlash = (v: string): string => v.replace(/\/$/, "");
+
+const readApiBase = (): string => {
+  const raw = import.meta.env.VITE_API_URL;
+  if (!raw || typeof raw !== "string") {
+    if (import.meta.env.MODE === "production") {
+      throw new Error("VITE_API_URL is required in production");
+    }
+    return "";
+  }
+  return stripTrailingSlash(raw);
+};
+
+const API_BASE_URL = readApiBase();
+const RICE_URL = import.meta.env.VITE_RICE_URL
+  ? stripTrailingSlash(import.meta.env.VITE_RICE_URL)
+  : API_BASE_URL;
 
 export const config: AppConfig = {
+  API_BASE_URL,
   FORMATION_URL: API_BASE_URL,
   URL_ACCOUNT: API_BASE_URL,
   AI_URL: API_BASE_URL,
@@ -24,6 +45,6 @@ export const config: AppConfig = {
   EVALUATION_URL: API_BASE_URL,
   COMPETENCE_URL: API_BASE_URL,
   GATEWAY_URL: API_BASE_URL,
-  RICE_URL: import.meta.env.VITE_RICE_URL || "",
+  RICE_URL,
   ANALYSE_URL: API_BASE_URL,
 };

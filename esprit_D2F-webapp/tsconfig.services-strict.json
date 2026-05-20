@@ -11,11 +11,11 @@
   },
   "include": [],
   "files": [
-    "src/services/authService.ts",
-    "src/services/accountService.ts",
-    "src/services/FormationWorkflowService.ts",
-    "src/services/CompetenceService.ts",
-    "src/services/CertificateService.ts",
-    "src/services/BesoinFormationService.ts"
+    "src/services/auth/AuthService.ts",
+    "src/services/auth/AccountService.ts",
+    "src/services/formation/FormationWorkflowService.ts",
+    "src/services/competence/CompetenceService.ts",
+    "src/services/certificat/CertificateService.ts",
+    "src/services/besoin/BesoinFormationService.ts"
   ]
 }

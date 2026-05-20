@@ -80,6 +80,8 @@ public class DomaineServiceImpl implements IDomaineService {
                 .nom(request.getNom())
                 .description(request.getDescription())
                 .actif(request.getActif() != Boolean.FALSE)
+                .upId(request.getUpId())
+                .departementId(request.getDepartementId())
                 .build();
         Domaine saved = domaineRepository.save(domaine);
         log.info("Domaine créé: {} ({})", saved.getNom(), saved.getCode());
@@ -98,9 +100,9 @@ public class DomaineServiceImpl implements IDomaineService {
         existing.setCode(request.getCode());
         existing.setNom(request.getNom());
         existing.setDescription(request.getDescription());
-        if (request.getActif() != null) {
-            existing.setActif(request.getActif());
-        }
+        if (request.getActif() != null) existing.setActif(request.getActif());
+        existing.setUpId(request.getUpId());
+        existing.setDepartementId(request.getDepartementId());
         Domaine saved = domaineRepository.save(existing);
         log.info("Domaine mis à jour: {}", saved.getId());
         return competenceMapper.toDTO(saved);
@@ -144,6 +146,27 @@ public class DomaineServiceImpl implements IDomaineService {
         }
         domaineRepository.deleteById(id);
         log.info("Domaine supprimé: {}", id);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<DomaineDTO> getDomainesByFilter(Long upId, Long departementId) {
+        return domaineRepository.findByUpIdAndDepartementId(upId, departementId).stream()
+                .map(competenceMapper::toDTO).toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<DomaineDTO> getDomainesByFilter(Long upId, Long departementId, Pageable pageable) {
+        return domaineRepository.findByUpIdAndDepartementId(upId, departementId, pageable)
+                .map(competenceMapper::toDTO);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<DomaineDTO> getDomainesActifsByFilter(Long upId, Long departementId) {
+        return domaineRepository.findActifsByUpIdAndDepartementId(upId, departementId).stream()
+                .map(competenceMapper::toDTO).toList();
     }
 
     @Override

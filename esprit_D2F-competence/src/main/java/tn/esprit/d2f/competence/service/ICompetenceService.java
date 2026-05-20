@@ -18,4 +18,8 @@ public interface ICompetenceService {
     List<CompetenceDTO> searchCompetences(String keyword);
     /** Recherche paginée exposée via l’API REST. */
     Page<CompetenceDTO> searchCompetences(String keyword, Pageable pageable);
+
+    /** Liste filtrée par UP et/ou département (null = pas de filtre). */
+    List<CompetenceDTO> getCompetencesByFilter(Long upId, Long departementId);
+    Page<CompetenceDTO> getCompetencesByFilter(Long upId, Long departementId, Pageable pageable);
 }

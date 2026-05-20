@@ -4,6 +4,8 @@ import jakarta.persistence.EntityNotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.transaction.TransactionSystemException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
@@ -56,6 +58,12 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.BAD_REQUEST, ex.getMessage(), MODULE_PREFIX + "-400", request);
     }
 
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<ErrorResponse> handleIllegalState(IllegalStateException ex, HttpServletRequest request) {
+        log.error("Illegal state: {}", ex.getMessage());
+        return buildResponse(HttpStatus.BAD_REQUEST, ex.getMessage(), MODULE_PREFIX + "-400", request);
+    }
+
     @ExceptionHandler(DataIntegrityViolationException.class)
     public ResponseEntity<ErrorResponse> handleDataIntegrity(DataIntegrityViolationException ex, HttpServletRequest request) {
         log.error("Data integrity violation: {}", ex.getMessage());
@@ -63,10 +71,26 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.CONFLICT, message, MODULE_PREFIX + "-409", request);
     }
 
+    @ExceptionHandler(HttpMessageNotReadableException.class)
+    public ResponseEntity<ErrorResponse> handleHttpMessageNotReadable(HttpMessageNotReadableException ex, HttpServletRequest request) {
+        log.error("Request body not readable: {}", ex.getMessage());
+        String message = "Le format de la requête est invalide. Vérifiez les types de données envoyés (dates, nombres, enums).";
+        return buildResponse(HttpStatus.BAD_REQUEST, message, MODULE_PREFIX + "-400", request);
+    }
+
+    @ExceptionHandler(TransactionSystemException.class)
+    public ResponseEntity<ErrorResponse> handleTransaction(TransactionSystemException ex, HttpServletRequest request) {
+        Throwable rootCause = ex.getRootCause();
+        String rootMessage = rootCause != null ? rootCause.getMessage() : ex.getMessage();
+        log.error("Transaction error (root cause: {}): {}", rootCause != null ? rootCause.getClass().getSimpleName() : "N/A", rootMessage);
+        String message = "Erreur de transaction : " + rootMessage;
+        return buildResponse(HttpStatus.BAD_REQUEST, message, MODULE_PREFIX + "-400", request);
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGeneral(Exception ex, HttpServletRequest request) {
         String traceId = UUID.randomUUID().toString();
-        log.error("Unexpected error [traceId: {}]: ", traceId, ex);
+        log.error("Unexpected error [traceId: {}, type: {}]: ", traceId, ex.getClass().getName(), ex);
         return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, "Une erreur inattendue s'est produite. Veuillez contacter le support technique.", MODULE_PREFIX + "-500", request, traceId);
     }
 

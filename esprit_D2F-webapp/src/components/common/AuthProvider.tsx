@@ -1,0 +1,155 @@
+import { useState, useMemo, useEffect, useCallback, useRef, createContext } from "react";
+import { flushSync } from "react-dom";
+import type { ReactNode } from "react";
+import type { AuthUser, AuthContextValue } from "@/models/auth";
+import { refreshToken as refreshTokenApi, logout as logoutApi } from "@/services/auth/AuthService";
+
+export const AuthContext = createContext<AuthContextValue | undefined>(undefined);
+
+interface AuthProviderProps {
+  children: ReactNode;
+}
+
+/** Silent refresh interval: 100 minutes (JWT lasts 120 min) */
+const REFRESH_INTERVAL_MS = 100 * 60 * 1000;
+
+const AuthProvider = ({ children }: AuthProviderProps) => {
+  const [user, setUser] = useState<AuthUser | null>(() => {
+    const storedUser = sessionStorage.getItem("d2f_user");
+    if (storedUser) {
+      try {
+        return JSON.parse(storedUser) as AuthUser;
+      } catch {
+        sessionStorage.removeItem("d2f_user");
+      }
+    }
+    return null;
+  });
+
+  const refreshTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const stopSilentRefresh = useCallback(() => {
+    if (refreshTimerRef.current) {
+      clearInterval(refreshTimerRef.current);
+      refreshTimerRef.current = null;
+    }
+  }, []);
+
+  const startSilentRefresh = useCallback(() => {
+    if (refreshTimerRef.current) {
+      clearInterval(refreshTimerRef.current);
+    }
+    refreshTimerRef.current = setInterval(async () => {
+      try {
+        const data = await refreshTokenApi();
+        const updatedUser: AuthUser = {
+          userId: data.userId,
+          username: data.username,
+          role: data.role,
+          email: data.email,
+          expiresIn: data.expiresIn,
+        };
+        setUser(updatedUser);
+        try {
+          sessionStorage.setItem("d2f_user", JSON.stringify(updatedUser));
+        } catch {
+          /* ignore */
+        }
+      } catch {
+        stopSilentRefresh();
+        setUser(null);
+        sessionStorage.removeItem("d2f_user");
+        try {
+          window.dispatchEvent(new Event("auth:loggedOut"));
+        } catch {
+          /* ignore */
+        }
+      }
+    }, REFRESH_INTERVAL_MS);
+  }, [stopSilentRefresh]);
+
+  useEffect(() => {
+    if (user) {
+      startSilentRefresh();
+    }
+    return () => stopSilentRefresh();
+  }, [user, startSilentRefresh, stopSilentRefresh]);
+
+  useEffect(() => {
+    if (user) {
+      refreshTokenApi()
+        .then((data) => {
+          const updatedUser: AuthUser = {
+            userId: data.userId,
+            username: data.username,
+            role: data.role,
+            email: data.email,
+            expiresIn: data.expiresIn,
+          };
+          setUser(updatedUser);
+          try {
+            sessionStorage.setItem("d2f_user", JSON.stringify(updatedUser));
+          } catch {
+            /* ignore */
+          }
+        })
+        .catch(() => {
+          setUser(null);
+          sessionStorage.removeItem("d2f_user");
+        });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    const onAuthLoggedOut = () => {
+      stopSilentRefresh();
+      sessionStorage.removeItem("d2f_user");
+      try {
+        flushSync(() => setUser(null));
+      } catch {
+        setUser(null);
+      }
+    };
+    window.addEventListener("auth:loggedOut", onAuthLoggedOut);
+    return () => window.removeEventListener("auth:loggedOut", onAuthLoggedOut);
+  }, [stopSilentRefresh]);
+
+  const login = useCallback((userData: AuthUser) => {
+    try {
+      sessionStorage.setItem("d2f_user", JSON.stringify(userData));
+    } catch {
+      /* ignore */
+    }
+    try {
+      flushSync(() => setUser(userData));
+    } catch {
+      setUser(userData);
+    }
+    startSilentRefresh();
+  }, [startSilentRefresh]);
+
+  const logout = useCallback(async () => {
+    stopSilentRefresh();
+    try {
+      await logoutApi();
+    } catch {
+      /* ignore */
+    }
+    sessionStorage.removeItem("d2f_user");
+    try {
+      flushSync(() => setUser(null));
+    } catch {
+      setUser(null);
+    }
+  }, [stopSilentRefresh]);
+
+  const authValue = useMemo<AuthContextValue>(
+    () => ({ user, login, logout }),
+    [user, login, logout]
+  );
+
+  return <AuthContext.Provider value={authValue}>{children}</AuthContext.Provider>;
+};
+
+export default AuthProvider;

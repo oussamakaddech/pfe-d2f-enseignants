@@ -43,6 +43,8 @@ jobs:
             projectKey: d2f_evaluation
           - module: esprit_D2F-formation
             projectKey: d2f_formation
+          - module: esprit_D2F-analyse
+            projectKey: d2f_analyse
 
     steps:
       - name: Checkout
@@ -115,6 +117,8 @@ jobs:
             projectKey: d2f_rice
           - module: esprit_D2F-predictive-analytics
             projectKey: d2f_predictive_analytics
+          - module: esprit_D2F-recommandation-formateur
+            projectKey: d2f_recommandation_formateur
     
     steps:
       - name: Checkout

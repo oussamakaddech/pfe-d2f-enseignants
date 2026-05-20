@@ -30,9 +30,9 @@ public class OutlookMailService {
         GraphServiceClient<Request> graphClient;
         try {
             graphClient = graphProvider.getGraphClient();
-        } catch (Exception e) {
+        } catch (IllegalStateException e) {
             log.error("Impossible d'initialiser le client Graph : {}", e.getMessage());
-            throw new RuntimeException("Erreur d'authentification Azure AD : " + e.getMessage(), e);
+            throw new MailDeliveryException("Erreur d'authentification Azure AD : " + e.getMessage(), e);
         }
 
         // Création du message
@@ -62,9 +62,9 @@ public class OutlookMailService {
                     .buildRequest()
                     .post();
             log.info("Email envoyé avec succès à {}", to);
-        } catch (Exception e) {
+        } catch (RuntimeException e) {
             log.error("Échec de l'envoi d'email à {} : {}", to, e.getMessage());
-            throw new RuntimeException("Échec de l'envoi d'email à " + to + " : " + e.getMessage(), e);
+            throw new MailDeliveryException("Échec de l'envoi d'email à " + to + " : " + e.getMessage(), e);
         }
     }
 }

@@ -14,10 +14,19 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
 
+import org.springframework.security.access.AccessDeniedException;
+
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
     private static final String MODULE_PREFIX = "COMP";
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<Map<String, Object>> handleAccessDenied(AccessDeniedException ex,
+                                                                   HttpServletRequest request) {
+        return buildResponse(HttpStatus.FORBIDDEN, "Accès refusé : vous n'avez pas les droits nécessaires.",
+                MODULE_PREFIX + "-403", request.getRequestURI());
+    }
 
     @ExceptionHandler(EntityNotFoundException.class)
     public ResponseEntity<Map<String, Object>> handleNotFound(EntityNotFoundException ex,

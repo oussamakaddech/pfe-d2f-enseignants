@@ -38,7 +38,9 @@ public class BesoinFormationMapper {
         entity.setAutresInformations(request.getAutresInformations());
         entity.setPeriodCode(request.getPeriodCode());
         entity.setCustomPeriodLabel(request.getCustomPeriodLabel());
-        
+        entity.setDateDebut(request.getDateDebut());
+        entity.setDateFin(request.getDateFin());
+
         return entity;
     }
 
@@ -77,6 +79,8 @@ public class BesoinFormationMapper {
                 .autresInformations(entity.getAutresInformations())
                 .periodCode(entity.getPeriodCode())
                 .customPeriodLabel(entity.getCustomPeriodLabel())
+                .dateDebut(entity.getDateDebut())
+                .dateFin(entity.getDateFin())
                 .eventPublished(entity.getEventPublished())
                 .build();
     }

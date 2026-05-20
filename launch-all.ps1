@@ -1,7 +1,8 @@
 ﻿# ============================================================
 # Script de lancement - PFE D2F Enseignants
 # ============================================================
-# Prérequis : Docker containers d2f-postgres et d2f-artemis en cours
+# Prérequis : lancer d'abord l'infrastructure Docker :
+#   docker compose up -d postgres rabbitmq redis
 # Usage : .\launch-all.ps1
 # ============================================================
 
@@ -45,7 +46,7 @@ Write-Host "  PFE D2F - Lancement des services" -ForegroundColor Cyan
 Write-Host "========================================" -ForegroundColor Cyan
 
 # ── Helper : libérer un port (tue le processus qui l'occupe) ─────────────
-function Free-Port([int]$port) {
+function Clear-Port([int]$port) {
     try {
         $conns = Get-NetTCPConnection -LocalPort $port -State Listen -ErrorAction SilentlyContinue
         foreach ($c in $conns) {
@@ -60,20 +61,28 @@ function Free-Port([int]$port) {
     }
 }
 
-# ── [1/14] Vérifier Docker ───────────────────────────────────────────────
-Write-Host "`n[1/14] Vérification Docker..." -ForegroundColor Yellow
+# ── [1/14] Vérifier Docker (infrastructure) ─────────────────────────────
+Write-Host "`n[1/14] Vérification Docker (postgres / rabbitmq / redis)..." -ForegroundColor Yellow
 try {
-    $pg = docker ps --filter name=d2f-postgres --format "{{.Status}}" 2>$null
-    $mq = docker ps --filter name=d2f-artemis  --format "{{.Status}}" 2>$null
+    $pg    = docker ps --filter name=d2f-postgres  --format "{{.Status}}" 2>$null
+    $mq    = docker ps --filter name=d2f-rabbitmq  --format "{{.Status}}" 2>$null
+    $redis = docker ps --filter name=d2f-redis     --format "{{.Status}}" 2>$null
     if ($pg) {
-        Write-Host "  PostgreSQL: $pg" -ForegroundColor Green
+        Write-Host "  PostgreSQL : $pg" -ForegroundColor Green
     } else {
-        Write-Host "  AVERTISSEMENT: Container d2f-postgres non trouvé - assurez-vous qu'il soit en cours!" -ForegroundColor DarkYellow
+        Write-Host "  ERREUR: Container d2f-postgres absent — lancez: docker compose up -d postgres" -ForegroundColor Red
     }
     if ($mq) {
-        Write-Host "  ActiveMQ:   $mq" -ForegroundColor Green
+        Write-Host "  RabbitMQ   : $mq" -ForegroundColor Green
     } else {
-        Write-Host "  AVERTISSEMENT: Container d2f-artemis non trouvé - assurez-vous qu'il soit en cours!" -ForegroundColor DarkYellow
+        Write-Host "  AVERTISSEMENT: Container d2f-rabbitmq absent — les services de messagerie échoueront" -ForegroundColor DarkYellow
+        Write-Host "  Lancez: docker compose up -d rabbitmq" -ForegroundColor DarkYellow
+    }
+    if ($redis) {
+        Write-Host "  Redis      : $redis" -ForegroundColor Green
+    } else {
+        Write-Host "  AVERTISSEMENT: Container d2f-redis absent — le rate-limiting de la gateway échouera" -ForegroundColor DarkYellow
+        Write-Host "  Lancez: docker compose up -d redis" -ForegroundColor DarkYellow
     }
 } catch {
     Write-Host "  AVERTISSEMENT: Docker non disponible - vérifiez que Docker est installé et en cours" -ForegroundColor DarkYellow
@@ -114,7 +123,7 @@ foreach ($svc in $services) {
     $svcPath = "$ROOT\$($svc.Dir)"
     if (Test-Path $svcPath) {
         Write-Host "`n[$step/14] Lancement $($svc.Name) (port $($svc.Port))..." -ForegroundColor Yellow
-        Free-Port $svc.Port
+        Clear-Port $svc.Port
         Start-Process powershell -ArgumentList "-NoExit", "-Command", `
             "Set-Location '$svcPath'; Write-Host 'Démarrage $($svc.Name) sur port $($svc.Port)...' -ForegroundColor Cyan; .\mvnw.cmd spring-boot:run -DskipTests"
         Start-Sleep -Seconds 1
@@ -128,7 +137,7 @@ foreach ($svc in $services) {
 Write-Host "`n[10/14] Lancement API Gateway (port 8080)..." -ForegroundColor Yellow
 $apigwPath = "$ROOT\esprit_D2F-api-gateway"
 if (Test-Path $apigwPath) {
-    Free-Port 8080
+    Clear-Port 8080
     Start-Process powershell -ArgumentList "-NoExit", "-Command", `
         "Set-Location '$apigwPath'; Write-Host 'Démarrage API Gateway sur port 8080...' -ForegroundColor Cyan; .\mvnw.cmd spring-boot:run -DskipTests"
     Start-Sleep -Seconds 1
@@ -143,7 +152,7 @@ if (Test-Path $aiRecoPath) {
     if (-not (Test-Path $PYTHON)) {
         Write-Host "  ERREUR: virtualenv Python introuvable à $PYTHON" -ForegroundColor Red
     } else {
-        Free-Port 8000
+        Clear-Port 8000
         Start-Process powershell -ArgumentList "-NoExit", "-Command", `
             "Set-Location '$aiRecoPath'; Write-Host 'Démarrage AI Reco Service sur port 8000...' -ForegroundColor Cyan; & '$PYTHON' -m uvicorn ai_reco:app --host 0.0.0.0 --port 8000"
         Start-Sleep -Seconds 1
@@ -169,7 +178,7 @@ if (Test-Path $ricePath) {
         } else {
             Write-Host "  AVERTISSEMENT: Tesseract non trouvé – PDFs scannés non supportés" -ForegroundColor DarkYellow
         }
-        Free-Port 8001
+        Clear-Port 8001
         Start-Process powershell -ArgumentList "-NoExit", "-Command", `
             "Set-Location '$ricePath'; `$env:TESSERACT_CMD='$tessExe'; `$env:TESSDATA_PREFIX='$tessData'; Write-Host 'Démarrage RICE Service sur port 8001 (LLM: mistral)...' -ForegroundColor Cyan; & '$PYTHON' -m uvicorn main:app --host 0.0.0.0 --port 8001"
         Start-Sleep -Seconds 1
@@ -185,7 +194,7 @@ if (Test-Path $predictivePath) {
     if (-not (Test-Path $PYTHON)) {
         Write-Host "  ERREUR: virtualenv Python introuvable à $PYTHON" -ForegroundColor Red
     } else {
-        Free-Port 8090
+        Clear-Port 8090
         Start-Process powershell -ArgumentList "-NoExit", "-Command", `
             "Set-Location '$predictivePath'; Write-Host 'Démarrage Predictive Analytics Service sur port 8090...' -ForegroundColor Cyan; & '$PYTHON' -m uvicorn app.main:app --host 0.0.0.0 --port 8090 --reload"
         Start-Sleep -Seconds 1
@@ -198,7 +207,7 @@ if (Test-Path $predictivePath) {
 Write-Host "`n[14/14] Lancement Frontend (port 5173)..." -ForegroundColor Yellow
 $webappPath = "$ROOT\esprit_D2F-webapp"
 if (Test-Path $webappPath) {
-    Free-Port 5173
+    Clear-Port 5173
     Start-Process powershell -ArgumentList "-NoExit", "-Command", `
         "Set-Location '$webappPath'; Write-Host 'Vérification des dépendances npm...' -ForegroundColor Cyan; npm install --legacy-peer-deps 2>&1 | Out-Null; Write-Host 'Démarrage Frontend...' -ForegroundColor Cyan; npm run dev"
     Start-Sleep -Seconds 1

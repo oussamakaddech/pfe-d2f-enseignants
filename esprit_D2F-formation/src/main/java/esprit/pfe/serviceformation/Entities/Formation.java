@@ -58,6 +58,15 @@ public class Formation {
     @Column(length = 255 ,nullable = true)
     private String organismeRefExterne;
 
+    @Column(length = 255, nullable = true)
+    private String bureauFormationNom;
+
+    @Column(length = 255, nullable = true)
+    private String bureauFormationMail;
+
+    @Column(length = 50, nullable = true)
+    private String bureauFormationTelephone;
+
 
 
 

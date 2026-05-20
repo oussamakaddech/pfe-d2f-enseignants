@@ -9,8 +9,10 @@ logger = logging.getLogger(__name__)
 
 ACTIVEMQ_HOST     = os.getenv("ACTIVEMQ_HOST", "localhost")
 ACTIVEMQ_PORT     = int(os.getenv("ACTIVEMQ_STOMP_PORT", "61613"))
-ACTIVEMQ_USER     = os.getenv("ACTIVEMQ_USER", "admin")
-ACTIVEMQ_PASSWORD = os.getenv("ACTIVEMQ_PASSWORD", "admin")
+# DSI §11 — no credentials in source. ACTIVEMQ_USER/PASSWORD must be set via env;
+# if missing the broker connection fails fast in _ensure_consumer().
+ACTIVEMQ_USER     = os.getenv("ACTIVEMQ_USER", "")
+ACTIVEMQ_PASSWORD = os.getenv("ACTIVEMQ_PASSWORD", "")
 ANALYTICS_QUEUE   = "/queue/d2f.analytics.trigger"
 MESSAGING_ENABLED = os.getenv("MESSAGING_ENABLED", "false").lower() == "true"
 
@@ -84,6 +86,11 @@ class AnalyticsEventConsumer(_STOMP_BASE):
         t.start()
 
     def connect(self):
+        if not ACTIVEMQ_USER or not ACTIVEMQ_PASSWORD:
+            raise RuntimeError(
+                "ActiveMQ credentials missing. Set ACTIVEMQ_USER and "
+                "ACTIVEMQ_PASSWORD env vars before enabling MESSAGING_ENABLED."
+            )
         try:
             import stomp
             self._conn = stomp.Connection(

@@ -90,6 +90,8 @@ public class ExportExcelService {
         CellStyle headerStyle = createHeaderStyle(workbook);
         CellStyle dateCellStyle = createDateCellStyle(workbook);
         CellStyle spacingStyle = createSpacingStyle(workbook);
+        CellStyle dataCellStyle = createDataCellStyle(workbook);
+        CellStyle altRowStyle = createAlternateRowStyle(workbook);
 
         DateTimeFormatter df = DateTimeFormatter.ofPattern("dd/MM/yyyy");
         String titrePeriode = formatPeriodTitle(startDate, endDate, df);
@@ -99,11 +101,14 @@ public class ExportExcelService {
         int rowIndex = 2;
         writeCalendarHeaders(sheet, rowIndex++, headerStyle);
 
-        fillCalendarData(sheet, mapByDate, rowIndex, spacingStyle, dateCellStyle, df);
+        fillCalendarData(sheet, mapByDate, rowIndex, spacingStyle, dateCellStyle, df, dataCellStyle, altRowStyle);
 
-        for (int col = 0; col < 9; col++) {
-            sheet.setColumnWidth(col, 20 * 256);
-        }
+        // Ajuster les largeurs des colonnes et ajouter des filtres
+        optimizeColumnWidths(sheet, new int[]{18, 25, 20, 20, 15, 15, 12});
+        sheet.setAutoFilter(new CellRangeAddress(2, sheet.getLastRowNum(), 0, 6));
+        
+        // Figer les en-têtes
+        sheet.createFreezePane(0, 3);
     }
 
     private Map<Date, List<SeanceExport>> groupSeancesByDate(List<SeanceExport> allSeances) {
@@ -139,8 +144,10 @@ public class ExportExcelService {
         }
     }
 
-    private void fillCalendarData(Sheet sheet, Map<Date, List<SeanceExport>> mapByDate, int rowIndex, CellStyle spacingStyle, CellStyle dateCellStyle, DateTimeFormatter df) {
+    @SuppressWarnings("java:S107") // 8 Apache POI styling dependencies are intrinsic to the calendar export; bundling them would create an export-only wrapper without reducing real coupling
+    private void fillCalendarData(Sheet sheet, Map<Date, List<SeanceExport>> mapByDate, int rowIndex, CellStyle spacingStyle, CellStyle dateCellStyle, DateTimeFormatter df, CellStyle dataCellStyle, CellStyle altRowStyle) {
         boolean firstGroup = true;
+        boolean alternateRow = false;
         for (Map.Entry<Date, List<SeanceExport>> entry : mapByDate.entrySet()) {
             if (!firstGroup) {
                 Row spacer = sheet.createRow(rowIndex++);
@@ -148,23 +155,27 @@ public class ExportExcelService {
             }
             firstGroup = false;
             int groupStart = rowIndex;
-            rowIndex = writeSeancesForDate(sheet, entry.getValue(), rowIndex, spacingStyle);
+            rowIndex = writeSeancesForDate(sheet, entry.getValue(), rowIndex, spacingStyle, dataCellStyle, altRowStyle);
             int groupEnd = rowIndex - 1;
             applyDateMerging(sheet, entry.getKey(), groupStart, groupEnd, dateCellStyle, df);
+            alternateRow = !alternateRow;
         }
     }
 
-    private int writeSeancesForDate(Sheet sheet, List<SeanceExport> list, int rowIndex, CellStyle spacingStyle) {
+    private int writeSeancesForDate(Sheet sheet, List<SeanceExport> list, int rowIndex, CellStyle spacingStyle, CellStyle dataCellStyle, CellStyle altRowStyle) {
         int total = list.size();
         int idx = 0;
+        boolean alternate = false;
         for (SeanceExport s : list) {
             idx++;
             Row r = sheet.createRow(rowIndex++);
-            writeSeanceRow(r, s, idx, total);
+            CellStyle rowStyle = alternate ? altRowStyle : dataCellStyle;
+            writeSeanceRow(r, s, idx, total, rowStyle);
             if (isAfternoonSeance(s)) {
                 Row blank = sheet.createRow(rowIndex++);
                 blank.createCell(0).setCellStyle(spacingStyle);
             }
+            alternate = !alternate;
         }
         return rowIndex;
     }
@@ -173,15 +184,32 @@ public class ExportExcelService {
         return s.heureDebut != null && s.heureDebut.after(Time.valueOf("12:30:00"));
     }
 
-    private void writeSeanceRow(Row r, SeanceExport s, int idx, int total) {
-        r.createCell(1).setCellValue(s.titreFormation);
-        r.createCell(2).setCellValue(s.formateurs);
-        r.createCell(3).setCellValue(s.equipe);
+    private void writeSeanceRow(Row r, SeanceExport s, int idx, int total, CellStyle style) {
+        Cell c1 = r.createCell(1);
+        c1.setCellValue(s.titreFormation);
+        c1.setCellStyle(style);
+        
+        Cell c2 = r.createCell(2);
+        c2.setCellValue(s.formateurs);
+        c2.setCellStyle(style);
+        
+        Cell c3 = r.createCell(3);
+        c3.setCellValue(s.equipe);
+        c3.setCellStyle(style);
+        
         String hd = s.heureDebut != null ? s.heureDebut.toString() : "";
         String hf = s.heureFin != null ? s.heureFin.toString() : "";
-        r.createCell(4).setCellValue(hd + " - " + hf);
-        r.createCell(5).setCellValue(Optional.ofNullable(s.salle).orElse(""));
-        r.createCell(6).setCellValue(idx + "/" + total);
+        Cell c4 = r.createCell(4);
+        c4.setCellValue(hd + " - " + hf);
+        c4.setCellStyle(style);
+        
+        Cell c5 = r.createCell(5);
+        c5.setCellValue(Optional.ofNullable(s.salle).orElse("À définir"));
+        c5.setCellStyle(style);
+        
+        Cell c6 = r.createCell(6);
+        c6.setCellValue(idx + "/" + total);
+        c6.setCellStyle(style);
     }
 
     private void applyDateMerging(Sheet sheet, Date date, int groupStart, int groupEnd, CellStyle dateCellStyle, DateTimeFormatter df) {
@@ -235,22 +263,56 @@ public class ExportExcelService {
     private void createParticipantSheet(Workbook workbook, String sheetName, Set<ParticipantDTO> participants, CellStyle headStyle) {
         String safeName = WorkbookUtil.createSafeSheetName(sheetName);
         Sheet sh = workbook.createSheet(safeName);
+        
+        // Créer le style pour les données
+        CellStyle dataCellStyle = createDataCellStyle(workbook);
+        CellStyle altRowStyle = createAlternateRowStyle(workbook);
+        
         Row h = sh.createRow(0);
-        String[] cols = {"Nom", "Prénom", "Email"};
+        String[] cols = {"N°", "Nom", "Prénom", "Email"};
         for (int i = 0; i < cols.length; i++) {
             Cell c = h.createCell(i);
             c.setCellValue(cols[i]);
             c.setCellStyle(headStyle);
         }
+        
         int rIdx = 1;
+        int num = 1;
+        boolean alternate = false;
         for (ParticipantDTO p : participants) {
-            Row row = sh.createRow(rIdx++);
-            row.createCell(0).setCellValue(p.getNom());
-            row.createCell(1).setCellValue(p.getPrenom());
-            row.createCell(2).setCellValue(p.getMail());
+            Row row = sh.createRow(rIdx);
+            CellStyle rowStyle = alternate ? altRowStyle : dataCellStyle;
+            
+            Cell c0 = row.createCell(0);
+            c0.setCellValue(num);
+            c0.setCellStyle(rowStyle);
+            
+            Cell c1 = row.createCell(1);
+            c1.setCellValue(p.getNom());
+            c1.setCellStyle(rowStyle);
+            
+            Cell c2 = row.createCell(2);
+            c2.setCellValue(p.getPrenom());
+            c2.setCellStyle(rowStyle);
+            
+            Cell c3 = row.createCell(3);
+            c3.setCellValue(p.getMail());
+            c3.setCellStyle(rowStyle);
+            
+            rIdx++;
+            num++;
+            alternate = !alternate;
         }
-        for (int col = 0; col < 3; col++) {
-            sh.setColumnWidth(col, 20 * 256);
+        
+        // Optimiser les largeurs et ajouter le filtre
+        optimizeColumnWidths(sh, new int[]{8, 20, 20, 30});
+        sh.setAutoFilter(new CellRangeAddress(0, sh.getLastRowNum(), 0, 3));
+        sh.createFreezePane(0, 1);
+    }
+
+    private void optimizeColumnWidths(Sheet sheet, int[] widths) {
+        for (int i = 0; i < widths.length; i++) {
+            sheet.setColumnWidth(i, widths[i] * 256);
         }
     }
 
@@ -258,12 +320,16 @@ public class ExportExcelService {
         CellStyle style = workbook.createCellStyle();
         Font font = workbook.createFont();
         font.setBold(true);
-        font.setFontHeightInPoints((short) 16);
+        font.setFontHeightInPoints((short) 18);
         font.setColor(IndexedColors.WHITE.getIndex());
+        
         style.setFont(font);
         style.setAlignment(HorizontalAlignment.CENTER);
-        style.setFillForegroundColor(IndexedColors.BLUE.getIndex());
+        style.setVerticalAlignment(VerticalAlignment.CENTER);
+        style.setFillForegroundColor(IndexedColors.DARK_BLUE.getIndex());
         style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+        style.setWrapText(true);
+        addBordersToStyle(style, BorderStyle.THIN, IndexedColors.BLACK.getIndex());
         return style;
     }
 
@@ -272,26 +338,74 @@ public class ExportExcelService {
         Font font = workbook.createFont();
         font.setBold(true);
         font.setColor(IndexedColors.WHITE.getIndex());
+        font.setFontHeightInPoints((short) 11);
         style.setFont(font);
-        style.setFillForegroundColor(IndexedColors.GREY_50_PERCENT.getIndex());
+        style.setFillForegroundColor(IndexedColors.DARK_TEAL.getIndex());
         style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
         style.setAlignment(HorizontalAlignment.CENTER);
+        style.setVerticalAlignment(VerticalAlignment.CENTER);
+        style.setWrapText(true);
+        addBordersToStyle(style, BorderStyle.MEDIUM, IndexedColors.BLACK.getIndex());
         return style;
     }
 
     private CellStyle createDateCellStyle(Workbook workbook) {
         CellStyle style = workbook.createCellStyle();
-        style.setFillForegroundColor(IndexedColors.LIGHT_CORNFLOWER_BLUE.getIndex());
+        Font font = workbook.createFont();
+        font.setBold(true);
+        font.setFontHeightInPoints((short) 11);
+        font.setColor(IndexedColors.DARK_TEAL.getIndex());
+        style.setFont(font);
+        style.setFillForegroundColor(IndexedColors.PALE_BLUE.getIndex());
         style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
         style.setAlignment(HorizontalAlignment.CENTER);
+        style.setVerticalAlignment(VerticalAlignment.CENTER);
+        addBordersToStyle(style, BorderStyle.THIN, IndexedColors.GREY_40_PERCENT.getIndex());
         return style;
     }
 
     private CellStyle createSpacingStyle(Workbook workbook) {
         CellStyle style = workbook.createCellStyle();
-        style.setFillForegroundColor(IndexedColors.GREY_25_PERCENT.getIndex());
+        style.setFillForegroundColor(IndexedColors.WHITE.getIndex());
         style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+        addBordersToStyle(style, BorderStyle.NONE, IndexedColors.WHITE.getIndex());
         return style;
+    }
+
+    private CellStyle createDataCellStyle(Workbook workbook) {
+        CellStyle style = workbook.createCellStyle();
+        Font font = workbook.createFont();
+        font.setFontHeightInPoints((short) 10);
+        style.setFont(font);
+        style.setAlignment(HorizontalAlignment.LEFT);
+        style.setVerticalAlignment(VerticalAlignment.CENTER);
+        style.setWrapText(false);
+        addBordersToStyle(style, BorderStyle.THIN, IndexedColors.GREY_25_PERCENT.getIndex());
+        return style;
+    }
+
+    private CellStyle createAlternateRowStyle(Workbook workbook) {
+        CellStyle style = workbook.createCellStyle();
+        Font font = workbook.createFont();
+        font.setFontHeightInPoints((short) 10);
+        style.setFont(font);
+        style.setFillForegroundColor(IndexedColors.LIGHT_CORNFLOWER_BLUE.getIndex());
+        style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
+        style.setAlignment(HorizontalAlignment.LEFT);
+        style.setVerticalAlignment(VerticalAlignment.CENTER);
+        addBordersToStyle(style, BorderStyle.THIN, IndexedColors.GREY_25_PERCENT.getIndex());
+        return style;
+    }
+
+    private void addBordersToStyle(CellStyle style, BorderStyle borderStyle, short borderColor) {
+        style.setBorderTop(borderStyle);
+        style.setBorderBottom(borderStyle);
+        style.setBorderLeft(borderStyle);
+        style.setBorderRight(borderStyle);
+        style.setTopBorderColor(borderColor);
+        style.setBottomBorderColor(borderColor);
+        style.setLeftBorderColor(borderColor);
+        style.setRightBorderColor(borderColor);
     }
 
     static class SeanceExport {

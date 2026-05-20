@@ -25,6 +25,9 @@ public class FormationDTO {
     private String externeFormateurNom;
     private String externeFormateurPrenom;
     private String externeFormateurEmail;
+    private String bureauFormationNom;
+    private String bureauFormationMail;
+    private String bureauFormationTelephone;
     private int chargeHoraireGlobal;
     private String domaine;
     private String competance;

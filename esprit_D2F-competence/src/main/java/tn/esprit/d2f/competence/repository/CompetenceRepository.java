@@ -43,4 +43,13 @@ public interface CompetenceRepository extends JpaRepository<Competence, Long> {
     /** Recherche par domaine + mot-clé (JPQL – remplace la boucle Java) */
     @Query("SELECT c FROM Competence c WHERE c.domaine.id = :domaineId AND (LOWER(c.nom) LIKE LOWER(CONCAT('%', :keyword, '%')) OR LOWER(c.description) LIKE LOWER(CONCAT('%', :keyword, '%')) OR LOWER(c.code) LIKE LOWER(CONCAT('%', :keyword, '%')))")
     List<Competence> searchByDomaineIdAndKeyword(@Param("domaineId") Long domaineId, @Param("keyword") String keyword);
+
+    // ─── Filtres UP / Département (via Domaine) ───────────────────────────────
+
+    @Query("SELECT c FROM Competence c JOIN FETCH c.domaine d WHERE (:upId IS NULL OR d.upId = :upId) AND (:departementId IS NULL OR d.departementId = :departementId)")
+    List<Competence> findByDomaine_UpIdAndDomaine_DepartementId(@Param("upId") Long upId, @Param("departementId") Long departementId);
+
+    @Query(value = "SELECT c FROM Competence c JOIN FETCH c.domaine d WHERE (:upId IS NULL OR d.upId = :upId) AND (:departementId IS NULL OR d.departementId = :departementId)",
+           countQuery = "SELECT COUNT(c) FROM Competence c JOIN c.domaine d WHERE (:upId IS NULL OR d.upId = :upId) AND (:departementId IS NULL OR d.departementId = :departementId)")
+    Page<Competence> findByDomaine_UpIdAndDomaine_DepartementId(@Param("upId") Long upId, @Param("departementId") Long departementId, Pageable pageable);
 }

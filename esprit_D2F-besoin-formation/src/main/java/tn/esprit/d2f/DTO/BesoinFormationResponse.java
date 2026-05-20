@@ -41,5 +41,7 @@ public class BesoinFormationResponse {
     private String autresInformations;
     private PeriodCode periodCode;
     private String customPeriodLabel;
+    private String dateDebut;
+    private String dateFin;
     private Boolean eventPublished;
 }

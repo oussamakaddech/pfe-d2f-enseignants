@@ -20,4 +20,9 @@ public interface IDomaineService {
     List<DomaineDTO> searchDomaines(String keyword);
     /** Recherche paginée exposée via l’API REST. */
     Page<DomaineDTO> searchDomaines(String keyword, Pageable pageable);
+
+    /** Liste filtrée par UP et/ou département (null = pas de filtre). */
+    List<DomaineDTO> getDomainesByFilter(Long upId, Long departementId);
+    Page<DomaineDTO> getDomainesByFilter(Long upId, Long departementId, Pageable pageable);
+    List<DomaineDTO> getDomainesActifsByFilter(Long upId, Long departementId);
 }

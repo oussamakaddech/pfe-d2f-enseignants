@@ -128,7 +128,9 @@ public class AccountServiceImpl implements AccountService {
 
         // Update role if provided
         if (roleName != null && !roleName.isBlank()) {
-            ERole eRole = ERole.valueOf(roleName);
+            // Parse roleName: handle "Enseignant:1" format or plain "Enseignant"
+            String roleNamePart = roleName.split(":")[0].trim().toUpperCase();
+            ERole eRole = ERole.valueOf(roleNamePart);
             Role newRole = roleRepository.findByName(eRole)
                     .orElseThrow(() -> new BadRequestException("Role not found: " + roleName));
             Set<Role> roles = new HashSet<>();

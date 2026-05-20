@@ -2,14 +2,15 @@ import "@ant-design/v5-patch-for-react-19";
 import { createRoot } from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { App as AntdApp, ConfigProvider, theme } from "antd";
+import frFR from "antd/locale/fr_FR";
 import axios from "axios";
-import { navigate } from "./utils/navigation";
-import AppComponent from "./App";
-import NotificationBridge from "./components/NotificationBridge";
-import { antdThemeToken, antdComponentTokens } from "./theme/tokens";
+import { navigate } from "@/utils/helpers/navigation";
+import AppComponent from "@/App";
+import NotificationBridge from "@/components/feedback/NotificationBridge";
+import { antdThemeToken, antdComponentTokens } from "@/styles/themes/tokens";
 
-import "./index.css";
-import "./utils/chartSetup";
+import "@/styles/globals.css";
+import "@/utils/helpers/chartSetup";
 
 const { defaultAlgorithm } = theme;
 
@@ -41,6 +42,7 @@ axios.interceptors.response.use(
 createRoot(document.getElementById("root") as HTMLElement).render(
   <QueryClientProvider client={queryClient}>
     <ConfigProvider
+      locale={frFR}
       theme={{
         algorithm: defaultAlgorithm,
         token: antdThemeToken,
@@ -54,3 +56,7 @@ createRoot(document.getElementById("root") as HTMLElement).render(
     </ConfigProvider>
   </QueryClientProvider>
 );
+
+
+
+

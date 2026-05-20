@@ -96,8 +96,18 @@ Write-Host "===============================================================" -Fo
 Write-Host "Rafraîchissement total du dashboard SonarQube" -ForegroundColor Cyan
 Write-Host "===============================================================" -ForegroundColor Cyan
 Write-Host ""
+Write-Host "WORKFLOW:" -ForegroundColor Yellow
+Write-Host "  [ÉTAPE 1/3] Nettoyage des projets en double/obsolètes" -ForegroundColor Gray
+Write-Host "  [ÉTAPE 2/3] Exécution des tests SonarQube (coverage + quality)" -ForegroundColor Gray
+Write-Host "  [ÉTAPE 3/3] Ouverture du dashboard" -ForegroundColor Gray
+Write-Host ""
 
 # Générer le token SonarQube
+Write-Host "===============================================================" -ForegroundColor Cyan
+Write-Host "[ÉTAPE 1/3] Nettoyage des projets" -ForegroundColor Cyan
+Write-Host "===============================================================" -ForegroundColor Cyan
+Write-Host ""
+
 $SonarToken = Get-SonarQubeToken -Url $SonarUrl -Username $SonarUser -Secret $SonarSecret
 
 if (-not $SonarToken) {
@@ -129,21 +139,68 @@ foreach ($project in $existingProjects) {
     }
 }
 
+Write-Host "[OK] Nettoyage des projets terminé" -ForegroundColor Green
+
+Write-Host ""
+Write-Host "===============================================================" -ForegroundColor Cyan
+Write-Host "[ÉTAPE 2/3] Exécution des tests SonarQube" -ForegroundColor Cyan
+Write-Host "===============================================================" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "[INFO] Lancement de l'analyse complète de tous les services..." -ForegroundColor Green
+Write-Host "[INFO] Modules à analyser:" -ForegroundColor Green
+Write-Host "  • Services Java: api-gateway, authentification, besoin-formation, certificat, competence, evaluation, formation, analyse" -ForegroundColor Gray
+Write-Host "  • Application Web: webapp (Vite + Vitest)" -ForegroundColor Gray
+Write-Host "  • Services Python: rice, predictive-analytics, recommandation-formateur" -ForegroundColor Gray
+Write-Host ""
+Write-Host "[INFO] Chaque module exécutera:" -ForegroundColor Green
+Write-Host "  1. Tests unitaires et génération de couverture" -ForegroundColor Gray
+Write-Host "  2. Sonar Scanner pour analyse de qualité" -ForegroundColor Gray
+Write-Host "  3. Qualité Gate verification" -ForegroundColor Gray
+Write-Host ""
+
+$startTime = Get-Date
+Write-Host "[INFO] Heure de début : $startTime" -ForegroundColor Yellow
 Write-Host ""
 
 # Lancer l'analyse complète de tous les services
-& ".\scripts\run-all-sonar-tests.ps1" -SonarUrl $SonarUrl -SonarUser $SonarUser -SonarSecret $SonarSecret
+try {
+    & ".\scripts\run-all-sonar-tests.ps1" -SonarUrl $SonarUrl -SonarUser $SonarUser -SonarSecret $SonarSecret
+    $testStatus = "SUCCÈS"
+    $testColor = "Green"
+} catch {
+    Write-Host "[ERREUR] Échec lors de l'exécution des tests : $_" -ForegroundColor Red
+    $testStatus = "ÉCHEC"
+    $testColor = "Red"
+}
 
+$endTime = Get-Date
+$duration = $endTime - $startTime
 Write-Host ""
-Write-Host "===============================================================" -ForegroundColor Green
-Write-Host "[OK] Rafraîchissement du dashboard terminé !" -ForegroundColor Green
-Write-Host "===============================================================" -ForegroundColor Green
+Write-Host "===============================================================" -ForegroundColor $testColor
+Write-Host "[ÉTAPE 3/3] Résumé du rafraîchissement" -ForegroundColor $testColor
+Write-Host "===============================================================" -ForegroundColor $testColor
+Write-Host ""
+Write-Host "[RÉSUMÉ]" -ForegroundColor Cyan
+Write-Host "  Statut des tests       : $testStatus" -ForegroundColor $testColor
+Write-Host "  Durée totale          : $($duration.TotalSeconds -as [int]) secondes" -ForegroundColor Yellow
+Write-Host "  Heure de fin          : $endTime" -ForegroundColor Yellow
+Write-Host ""
+
+if ($testStatus -eq "SUCCÈS") {
+    Write-Host "[OK] Rafraîchissement du dashboard SonarQube terminé avec succès !" -ForegroundColor Green
+} else {
+    Write-Host "[ATTENTION] Rafraîchissement du dashboard terminé avec des erreurs." -ForegroundColor Yellow
+}
+
 Write-Host ""
 Write-Host "[INFO] Accédez au dashboard SonarQube : $SonarUrl" -ForegroundColor Cyan
 Write-Host ""
 
 # Ouvrir automatiquement le dashboard
-Write-Host "[INFO] Ouverture du dashboard SonarQube..." -ForegroundColor Yellow
+Write-Host "[INFO] Ouverture automatique du dashboard SonarQube..." -ForegroundColor Yellow
 Start-Process $SonarUrl
+
+Write-Host ""
+Write-Host "===============================================================" -ForegroundColor Green
+Write-Host "[MISSION] Dashboard refresh + Tests SonarQube TERMINÉS" -ForegroundColor Green
+Write-Host "===============================================================" -ForegroundColor Green

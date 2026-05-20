@@ -75,8 +75,7 @@ class SkillPassportPdfGeneratorTest {
         TeacherSkillPassportDTO passport = buildSamplePassport();
         byte[] pdf = generator.generate(passport);
 
-        assertThat(pdf).isNotNull();
-        assertThat(pdf).hasSizeGreaterThan(1000); // PDF minimum bytes
+        assertThat(pdf).isNotNull().hasSizeGreaterThan(1000); // PDF minimum bytes
     }
 
     @Test

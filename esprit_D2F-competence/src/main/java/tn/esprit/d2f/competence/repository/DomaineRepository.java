@@ -23,4 +23,15 @@ public interface DomaineRepository extends JpaRepository<Domaine, Long> {
     /** Version paginée – protège contre le sur-chargement réseau. */
     @Query("SELECT d FROM Domaine d WHERE LOWER(d.nom) LIKE LOWER(CONCAT('%', :keyword, '%')) OR LOWER(d.description) LIKE LOWER(CONCAT('%', :keyword, '%')) OR LOWER(d.code) LIKE LOWER(CONCAT('%', :keyword, '%'))")
     Page<Domaine> searchByKeyword(@Param("keyword") String keyword, Pageable pageable);
+
+    // ─── Filtres UP / Département ────────────────────────────────────────────
+
+    @Query("SELECT d FROM Domaine d WHERE (:upId IS NULL OR d.upId = :upId) AND (:departementId IS NULL OR d.departementId = :departementId)")
+    List<Domaine> findByUpIdAndDepartementId(@Param("upId") Long upId, @Param("departementId") Long departementId);
+
+    @Query("SELECT d FROM Domaine d WHERE (:upId IS NULL OR d.upId = :upId) AND (:departementId IS NULL OR d.departementId = :departementId)")
+    Page<Domaine> findByUpIdAndDepartementId(@Param("upId") Long upId, @Param("departementId") Long departementId, Pageable pageable);
+
+    @Query("SELECT d FROM Domaine d WHERE d.actif = true AND (:upId IS NULL OR d.upId = :upId) AND (:departementId IS NULL OR d.departementId = :departementId)")
+    List<Domaine> findActifsByUpIdAndDepartementId(@Param("upId") Long upId, @Param("departementId") Long departementId);
 }

@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import axios, { isAxiosError } from 'axios';
-import { createApiClient } from '../httpClient';
-import { navigate } from '../navigation';
+import { createApiClient } from "@/utils/helpers/httpClient";
+import { navigate } from "@/utils/helpers/navigation";
 
 vi.mock('axios', async () => {
   const actual = await vi.importActual('axios') as any;
@@ -21,7 +21,7 @@ vi.mock('axios', async () => {
   };
 });
 
-vi.mock('../navigation', () => ({
+vi.mock('@/utils/helpers/navigation', () => ({
   navigate: vi.fn(),
 }));
 
@@ -50,8 +50,9 @@ describe('httpClient', () => {
     
     // Mock location to not be on login page
     Object.defineProperty(window, 'location', {
-      value: { pathname: '/home/profile' },
-      writable: true
+      value: { pathname: '/home/profile', replace: vi.fn(), href: '' },
+      writable: true,
+      configurable: true,
     });
     
     const error = { response: { status: 401 }, config: { url: 'http://other' } };
@@ -68,3 +69,7 @@ describe('httpClient', () => {
     expect(navigate).toHaveBeenCalledWith('/', { replace: true });
   });
 });
+
+
+
+

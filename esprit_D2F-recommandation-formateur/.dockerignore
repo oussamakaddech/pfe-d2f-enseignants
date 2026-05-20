@@ -1,11 +1,54 @@
-.git
-.gitignore
-__pycache__
+# Python artifacts
+__pycache__/
 *.pyc
 *.pyo
 *.pyd
-.DS_Store
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Secrets & credentials (DSI §11)
 .env
+.env.*
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+secrets/
+
+# Git & VCS
+.git/
+.gitignore
+.gitattributes
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Tests & coverage
+tests/
+test_*.py
+*_test.py
+coverage.xml
+.coverage
+junit-results.xml
+htmlcov/
+
+# Misc
 *.log
 *.tmp
 *.bak
+*.md
+docs/
+observability/
+Dockerfile.old

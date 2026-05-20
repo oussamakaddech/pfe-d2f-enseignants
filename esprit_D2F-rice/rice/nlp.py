@@ -783,7 +783,7 @@ def _llm_extract_subcompetences(text: str, module_name: str) -> List[str]:
 
 # ── Standard format: label : value on the SAME line ─────────────────────────
 _RE_MODULE_CODE = re.compile(
-    r"(?:Code|code)\s*[:\-]?\s*([A-Z][A-Z0-9\-_]{2,15})", re.I
+    r"code\s*[:\-]?\s*([A-Z][A-Z0-9\-_]{2,15})", re.I
 )
 # ── Table/reversed format: value on previous line, label on next line ────────
 # Captures code like "MT-34" that appears as a standalone token on its own line
@@ -838,12 +838,12 @@ _RE_COORDINATEUR = re.compile(
 )
 # Standard prerequis
 _RE_PREREQUIS = re.compile(
-    r"(?:Pr\u00e9requis|Pr\u00e9[\-\s]?requis)\s*[:\-]?\s*(.{3,200})",
+    r"Pr\u00e9[\-\s]?requis\s*[:\-]?\s*(.{3,200})",
     re.IGNORECASE,
 )
 # Reversed format: capture line BEFORE "Prérequis" label
 _RE_PREREQUIS_REV = re.compile(
-    r"^(.{3,200})\n\s*(?:Pr[eé]requis|Pr[eé][\-\s]?requis)\s*$",
+    r"^(.{3,200})\n\s*Pr[eé][\-\s]?requis\s*$",
     re.IGNORECASE | re.MULTILINE,
 )
 _RE_OBJECTIF = re.compile(
@@ -1479,7 +1479,7 @@ def _extract_acquis_apprentissage(text: str) -> List[Dict[str, Any]]:
 # ─────────────────────────────────────────────────────────────────────────────
 
 _RE_SEANCE = re.compile(
-    r"(?:S[eé]ance|Seance|Session|Chapitre|Semaine)\s*(\d+(?:\s*[-\u2013]\s*\d+)?)\s*[:\-]?\s*(.+?)(?=\n)",
+    r"(?:S[eé]ance|Session|Chapitre|Semaine)\s*(\d+(?:\s*[-\u2013]\s*\d+)?)\s*[:\-]?\s*(.+?)(?=\n)",
     re.IGNORECASE,
 )
 _RE_CHECKMARK = re.compile(r"^[\u2714\u2713\u2611\u2610]\s*(.+)$", re.MULTILINE)

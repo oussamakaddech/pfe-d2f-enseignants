@@ -1,0 +1,9 @@
+export * as FormationService from './FormationService';
+export * as FormationWorkflowService from './FormationWorkflowService';
+export * as FormationCustomService from './FormationCustomService';
+export * as FormationReportService from './FormationReportService';
+export * as SeanceService from './SeanceService';
+export * as InscriptionService from './InscriptionService';
+export * as DocumentService from './DocumentService';
+export * as EnseignantService from './EnseignantService';
+export * as DeptService from './DeptService';

@@ -62,9 +62,20 @@ app = FastAPI(
 )
 
 # ── CORS ──────────────────────────────────────────────────────────────────────
-_cors_raw = os.getenv("CORS_ORIGINS", "http://localhost:3000,http://localhost:5173,http://esprit-d2f.esprit.tn")
+# DSI §11.4 — Production CORS origins MUST be set via CORS_ORIGINS env var (HTTPS only).
+# The defaults below are dev-only localhost fallbacks; the prod URL must be HTTPS.
+_DEFAULT_DEV_ORIGINS = "http://localhost:3000,http://localhost:5173"
+_cors_raw = os.getenv("CORS_ORIGINS", _DEFAULT_DEV_ORIGINS)
 origins = [o.strip() for o in _cors_raw.split(",") if o.strip()]
 
+# ── JWT Authentication ─────────────────────────────────────────────────────────
+app.add_middleware(JWTAuthMiddleware)
+
+# ── Rate limiting ─────────────────────────────────────────────────────────────
+app.add_middleware(RateLimitMiddleware)
+
+# ── CORS (must be added LAST so it wraps the whole stack and runs FIRST on the
+#    request path — DSI §11.4, Starlette S8414).
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
@@ -72,12 +83,6 @@ app.add_middleware(
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
-
-# ── JWT Authentication ─────────────────────────────────────────────────────────
-app.add_middleware(JWTAuthMiddleware)
-
-# ── Rate limiting ─────────────────────────────────────────────────────────────
-app.add_middleware(RateLimitMiddleware)
 
 # ── DSI exception handlers ────────────────────────────────────────────────────
 # Enveloppe d'erreur normalisee : { timestamp, status, errorCode, message, path, traceId }

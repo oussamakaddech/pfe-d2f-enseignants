@@ -1,0 +1,266 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   D2F Design System — CSS Variables & Tokens
+   All values from index.css consolidated here
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* ── Brand ──────────────────────────────────────────────────────────────── */
+  --primary-50:    #fff0ee;
+  --primary-100:   #ffddd9;
+  --primary-200:   #ffb3ab;
+  --primary-300:   #ff8278;
+  --primary-400:   #e54a3d;
+  --primary-500:   #B51200;
+  --primary-600:   #9a0f00;
+  --primary-700:   #7a0000;
+  --primary-800:   #5c0000;
+  --primary-900:   #3d0000;
+
+  --primary-color:    var(--primary-500);
+  --primary-hover:    var(--primary-600);
+  --primary-dark:     var(--primary-700);
+  --primary-bg:       var(--primary-50);
+  --primary-bg-hover: rgba(181, 18, 0, 0.10);
+
+  /* ── Neutrals ────────────────────────────────────────────────────────────── */
+  --neutral-0:   #ffffff;
+  --neutral-50:  #f7fafc;
+  --neutral-100: #f0f4f8;
+  --neutral-200: #e2e8f0;
+  --neutral-300: #cbd5e0;
+  --neutral-400: #a0aec0;
+  --neutral-500: #718096;
+  --neutral-600: #5a6373;
+  --neutral-700: #4a5568;
+  --neutral-800: #2d3748;
+  --neutral-900: #1a202c;
+
+  /* ── Semantic ────────────────────────────────────────────────────────────── */
+  --color-success:    #10b981;
+  --color-success-bg: #ecfdf5;
+  --color-success-border: #a7f3d0;
+
+  --color-warning:    #f59e0b;
+  --color-warning-bg: #fffbeb;
+  --color-warning-border: #fde68a;
+
+  --color-error:      #ef4444;
+  --color-error-bg:   #fef2f2;
+  --color-error-border: #fecaca;
+
+  --color-info:       #3b82f6;
+  --color-info-bg:    #eff6ff;
+  --color-info-border: #bfdbfe;
+
+  /* ── Text ────────────────────────────────────────────────────────────────── */
+  --text-main:    var(--neutral-900);
+  --text-body:    var(--neutral-800);
+  --text-muted:   var(--neutral-600);
+  --text-subtle:  #64748b;
+  --text-disabled: var(--neutral-400);
+  --text-on-dark: rgba(255, 255, 255, 0.95);
+
+  /* ── Surfaces ────────────────────────────────────────────────────────────── */
+  --bg-main:      var(--neutral-50);
+  --bg-card:      var(--neutral-0);
+  --bg-sidebar:   var(--neutral-0);
+  --bg-elevated:  var(--neutral-0);
+  --bg-subtle:    var(--neutral-100);
+  --bg-overlay:   rgba(15, 23, 42, 0.55);
+
+  /* ── Borders ─────────────────────────────────────────────────────────────── */
+  --border-color:        rgba(0, 0, 0, 0.07);
+  --border-color-strong: rgba(0, 0, 0, 0.13);
+  --border-color-soft:   rgba(0, 0, 0, 0.04);
+
+  /* ── Shadows ─────────────────────────────────────────────────────────────── */
+  --shadow-xs: 0 1px 2px rgba(15, 23, 42, 0.04);
+  --shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.06), 0 1px 2px rgba(15, 23, 42, 0.04);
+  --shadow-md: 0 4px 12px rgba(15, 23, 42, 0.07), 0 1px 3px rgba(15, 23, 42, 0.04);
+  --shadow-lg: 0 8px 24px rgba(15, 23, 42, 0.09), 0 2px 6px rgba(15, 23, 42, 0.04);
+  --shadow-xl: 0 20px 44px rgba(15, 23, 42, 0.12), 0 8px 14px rgba(15, 23, 42, 0.06);
+  --shadow-brand: 0 4px 12px rgba(181, 18, 0, 0.18);
+
+  /* ── Border radius ───────────────────────────────────────────────────────── */
+  --radius-xs: 4px;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-2xl: 24px;
+  --radius-full: 9999px;
+
+  /* ── Spacing ─────────────────────────────────────────────────────────────── */
+  --space-1:  4px;
+  --space-2:  8px;
+  --space-3:  12px;
+  --space-4:  16px;
+  --space-5:  20px;
+  --space-6:  24px;
+  --space-8:  32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  /* ── Typography ──────────────────────────────────────────────────────────── */
+  --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  --text-xs:   12px;
+  --text-sm:   13px;
+  --text-base: 14px;
+  --text-md:   15px;
+  --text-lg:   16px;
+  --text-xl:   18px;
+  --text-2xl:  20px;
+  --text-3xl:  24px;
+  --text-4xl:  28px;
+  --text-5xl:  32px;
+  --text-6xl:  40px;
+
+  --font-regular:  400;
+  --font-medium:   500;
+  --font-semibold: 600;
+  --font-bold:     700;
+
+  --line-tight:   1.25;
+  --line-snug:    1.4;
+  --line-normal:  1.5;
+  --line-relaxed: 1.75;
+
+  --tracking-tight:  -0.02em;
+  --tracking-normal: 0;
+  --tracking-wide:   0.04em;
+  --tracking-wider:  0.08em;
+
+  /* ── Motion ──────────────────────────────────────────────────────────────── */
+  --ease-out:      cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out:   cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-spring:   cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  --transition-fast:  all 0.15s var(--ease-in-out);
+  --transition-base:  all 0.22s var(--ease-in-out);
+  --transition-slow:  all 0.35s var(--ease-in-out);
+
+  /* ── Focus ring ──────────────────────────────────────────────────────────── */
+  --focus-ring:       0 0 0 3px rgba(181, 18, 0, 0.30);
+  --focus-ring-inset: inset 0 0 0 2px rgba(181, 18, 0, 0.70);
+
+  /* ── Z-index ─────────────────────────────────────────────────────────────── */
+  --z-dropdown:    1000;
+  --z-sticky:      1020;
+  --z-fixed:       1030;
+  --z-modal-backdrop: 1040;
+  --z-modal:       1050;
+  --z-popover:     1060;
+  --z-tooltip:     1070;
+  --z-toast:       1080;
+
+  /* ── Layout ──────────────────────────────────────────────────────────────── */
+  --header-height: 64px;
+  --sidebar-width: 260px;
+  --sidebar-width-collapsed: 80px;
+  --max-page-width: 1400px;
+  --content-padding: 28px;
+
+  --page-header-gap: 24px;
+  --section-gap: 24px;
+  --card-gap: 20px;
+  --stat-card-gap: 16px;
+
+  /* ── Elevation ───────────────────────────────────────────────────────────── */
+  --elev-card: var(--shadow-sm);
+  --elev-card-hover: var(--shadow-md);
+  --elev-modal: var(--shadow-xl);
+  --elev-dropdown: var(--shadow-md);
+  --elev-popover: var(--shadow-sm);
+
+  /* ── Brand gradients ─────────────────────────────────────────────────────── */
+  --brand-gradient: linear-gradient(135deg, #8b0000 0%, #B51200 55%, #c94010 100%);
+  --brand-gradient-subtle: linear-gradient(135deg, #fff0ee 0%, #ffddd9 100%);
+  --brand-gradient-header: linear-gradient(180deg, #9a0f00 0%, #7a0000 100%);
+
+  /* ── Roles ───────────────────────────────────────────────────────────────── */
+  --role-admin-color:  #7c3aed;
+  --role-admin-bg:     #f5f3ff;
+  --role-cup-color:    var(--primary-500);
+  --role-cup-bg:       var(--primary-50);
+  --role-enseignant-color: #2563eb;
+  --role-enseignant-bg:    #eff6ff;
+  --role-animateur-color:  #059669;
+  --role-animateur-bg:     #ecfdf5;
+  --role-formateur-color:  #d97706;
+  --role-formateur-bg:     #fffbeb;
+  --role-chefdept-color:   #0891b2;
+  --role-chefdept-bg:      #ecfeff;
+
+  /* ── Statuses ────────────────────────────────────────────────────────────── */
+  --status-enregistre-color:  #6b7280;
+  --status-enregistre-bg:     #f9fafb;
+  --status-planifie-color:    var(--color-info);
+  --status-planifie-bg:       var(--color-info-bg);
+  --status-encours-color:     var(--color-warning);
+  --status-encours-bg:        var(--color-warning-bg);
+  --status-acheve-color:      var(--color-success);
+  --status-acheve-bg:         var(--color-success-bg);
+  --status-annule-color:      var(--color-error);
+  --status-annule-bg:         var(--color-error-bg);
+
+  /* ── Buttons ─────────────────────────────────────────────────────────────── */
+  --btn-primary-gradient:     linear-gradient(135deg, #B51200 0%, #9a0f00 100%);
+  --btn-primary-gradient-hover: linear-gradient(135deg, #9a0f00 0%, #7a0000 100%);
+  --btn-primary-shadow:       0 4px 12px rgba(181, 18, 0, 0.30);
+  --btn-primary-shadow-hover: 0 6px 16px rgba(181, 18, 0, 0.40);
+
+  --btn-success-gradient:     linear-gradient(135deg, #059669 0%, #047857 100%);
+  --btn-success-gradient-hover: linear-gradient(135deg, #047857 0%, #065f46 100%);
+  --btn-success-shadow:       0 4px 12px rgba(5, 150, 105, 0.30);
+
+  --btn-info-color:           #2563eb;
+  --btn-info-bg:              #eff6ff;
+  --btn-info-border:          #2563eb;
+  --btn-info-hover-bg:        #dbeafe;
+  --btn-info-hover-color:     #1d4ed8;
+
+  --btn-danger-color:         #ef4444;
+  --btn-danger-bg:            #fef2f2;
+  --btn-danger-border:        #ef4444;
+  --btn-danger-hover-bg:      #fee2e2;
+  --btn-danger-hover-color:   #dc2626;
+
+  --btn-success-outlined-color:   #059669;
+  --btn-success-outlined-bg:      #ecfdf5;
+  --btn-success-outlined-border:  #059669;
+  --btn-success-outlined-hover-color: #047857;
+  --btn-success-outlined-hover-bg:    #d1fae5;
+
+  --btn-purple-color:         #7c3aed;
+  --btn-purple-bg:            #f5f3ff;
+  --btn-purple-border:        #7c3aed;
+  --btn-purple-hover-bg:      #ede9fe;
+  --btn-purple-hover-color:   #6d28d9;
+
+  /* ── Header ──────────────────────────────────────────────────────────────── */
+  --header-gradient:       linear-gradient(180deg, #9a0f00 0%, #7a0000 100%);
+  --header-shadow:         0 1px 4px rgba(0, 0, 0, 0.10);
+  --header-avatar-bg:      rgba(255, 255, 255, 0.15);
+  --header-avatar-border:  1.5px solid rgba(255, 255, 255, 0.20);
+
+  /* ── Sidebar ─────────────────────────────────────────────────────────────── */
+  --sidebar-shadow:        1px 0 3px rgba(0, 0, 0, 0.03);
+  --sidebar-item-hover-bg: rgba(181, 18, 0, 0.06);
+  --sidebar-item-active-bg: var(--primary-500);
+
+  /* ── StickyBar ───────────────────────────────────────────────────────────── */
+  --stickybar-bg:          rgba(255, 255, 255, 0.92);
+  --stickybar-border:      var(--border-color);
+  --stickybar-blur:        blur(8px);
+
+  /* ── Breadcrumb ──────────────────────────────────────────────────────────── */
+  --breadcrumb-active:     var(--text-main);
+  --breadcrumb-link:       var(--text-muted);
+
+  /* ── PageHeader ──────────────────────────────────────────────────────────── */
+  --page-header-icon-shadow: 0 4px 10px rgba(181, 18, 0, 0.22);
+  --page-header-border:      var(--border-color);
+}

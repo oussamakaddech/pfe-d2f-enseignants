@@ -41,8 +41,10 @@ public class SecurityConfig {
     private static final String API_PATTERN = "/api/**";
     private static final String ROLE_ADMIN = "ADMIN";
     private static final String ROLE_CUP = "CUP";
+    private static final String ROLE_D2F = "D2F";
     private static final String ROLE_ENSEIGNANT = "ENSEIGNANT";
     private static final String ROLE_FORMATEUR = "FORMATEUR";
+    private static final String ROLE_CHEF_DEPARTEMENT = "CHEF_DEPARTEMENT";
 
     @Value("${jwt.secret}")
     private String jwtSecret;
@@ -68,7 +70,7 @@ public class SecurityConfig {
                         ).permitAll()
                         // Lecture : tous les rôles
                         .requestMatchers(HttpMethod.GET, API_PATTERN)
-                            .hasAnyRole(ROLE_ADMIN, ROLE_CUP, ROLE_ENSEIGNANT, ROLE_FORMATEUR)
+                            .hasAnyRole(ROLE_ADMIN, ROLE_CUP, ROLE_D2F, ROLE_ENSEIGNANT, ROLE_FORMATEUR, ROLE_CHEF_DEPARTEMENT)
                         // Création / modification : admin, CUP, Enseignant
                         .requestMatchers(HttpMethod.POST, API_PATTERN)
                             .hasAnyRole(ROLE_ADMIN, ROLE_CUP, ROLE_ENSEIGNANT, ROLE_FORMATEUR)
