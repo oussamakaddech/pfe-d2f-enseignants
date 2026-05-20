@@ -27,11 +27,18 @@ def _escape_prompt(prompt: str) -> str:
     return prompt
 
 
-def _llm_chat(messages: List[Dict[str, Any]], * , model: str | None = None, timeout: int | None = None) -> Any:
+def _llm_chat(
+    messages: List[Dict[str, Any]],
+    *,
+    model: str | None = None,
+    timeout: int | None = None,
+    temperature: float | None = None,
+) -> Any:
     """Synchronous stub chat call.
 
     Always raises to indicate LLM is unavailable; callers should catch and
-    fallback to regex/table NER.
+    fallback to regex/table NER. The ``temperature`` parameter mirrors the
+    real LLM client API and is accepted to keep callers signature-stable.
     """
     raise RuntimeError("LLM integration is disabled in this environment")
 

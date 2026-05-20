@@ -13,6 +13,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 @Slf4j
 public class MailController {
+    private static final String ERROR_KEY = "error";
     private final OutlookMailService mailService;
 
     /**
@@ -27,13 +28,13 @@ public class MailController {
         String content = payload.get("content");
 
         if (to == null || to.isBlank()) {
-            return ResponseEntity.badRequest().body(Map.of("error", "Le destinataire (to) est obligatoire"));
+            return ResponseEntity.badRequest().body(Map.of(ERROR_KEY, "Le destinataire (to) est obligatoire"));
         }
         if (subject == null || subject.isBlank()) {
-            return ResponseEntity.badRequest().body(Map.of("error", "Le sujet (subject) est obligatoire"));
+            return ResponseEntity.badRequest().body(Map.of(ERROR_KEY, "Le sujet (subject) est obligatoire"));
         }
         if (content == null || content.isBlank()) {
-            return ResponseEntity.badRequest().body(Map.of("error", "Le contenu (content) est obligatoire"));
+            return ResponseEntity.badRequest().body(Map.of(ERROR_KEY, "Le contenu (content) est obligatoire"));
         }
 
         try {
@@ -41,13 +42,13 @@ public class MailController {
             return ResponseEntity.ok(Map.of("message", "E-mail envoyé à " + to));
         } catch (IllegalArgumentException e) {
             log.warn("Paramètre invalide pour l'envoi d'email : {}", e.getMessage());
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+            return ResponseEntity.badRequest().body(Map.of(ERROR_KEY, e.getMessage()));
         } catch (RuntimeException e) {
             log.error("Erreur lors de l'envoi de l'e-mail : {}", e.getMessage());
-            return ResponseEntity.status(500).body(Map.of("error", e.getMessage()));
+            return ResponseEntity.status(500).body(Map.of(ERROR_KEY, e.getMessage()));
         } catch (Exception e) {
             log.error("Erreur inattendue lors de l'envoi de l'e-mail : {}", e.getMessage());
-            return ResponseEntity.status(500).body(Map.of("error", "Erreur inattendue : " + e.getMessage()));
+            return ResponseEntity.status(500).body(Map.of(ERROR_KEY, "Erreur inattendue : " + e.getMessage()));
         }
     }
 }

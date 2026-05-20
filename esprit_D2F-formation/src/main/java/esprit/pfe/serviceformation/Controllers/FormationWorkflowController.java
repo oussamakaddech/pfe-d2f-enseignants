@@ -43,9 +43,25 @@ public class FormationWorkflowController {
             log.error("Validation errors: {}", result.getAllErrors());
             return ResponseEntity.badRequest().body(result.getAllErrors());
         }
-        Formation formation = formationWorkflowService.createFormationWorkflow(request);
-        FormationDTO dto = formationWorkflowService.mapFormationToDTO(formation);
-        return ResponseEntity.status(HttpStatus.CREATED).body(dto);
+        try {
+            log.info("Creating formation workflow: titre={}, dateDebut={}, dateFin={}, seances={}, animateurs={}, participants={}",
+                    request.getTitreFormation(), request.getDateDebut(), request.getDateFin(),
+                    request.getSeances() != null ? request.getSeances().size() : 0,
+                    request.getAnimateursIds() != null ? request.getAnimateursIds().size() : 0,
+                    request.getParticipantsIds() != null ? request.getParticipantsIds().size() : 0);
+            Formation formation = formationWorkflowService.createFormationWorkflow(request);
+            FormationDTO dto = formationWorkflowService.mapFormationToDTO(formation);
+            return ResponseEntity.status(HttpStatus.CREATED).body(dto);
+        } catch (IllegalStateException e) {
+            log.error("Erreur metier lors de la creation de la formation : {}", e.getMessage());
+            return ResponseEntity.badRequest().body(Map.of(KEY_ERROR, e.getMessage()));
+        } catch (IllegalArgumentException e) {
+            log.error("Argument invalide lors de la creation de la formation : {}", e.getMessage());
+            return ResponseEntity.badRequest().body(Map.of(KEY_ERROR, e.getMessage()));
+        } catch (Exception e) {
+            log.error("Erreur interne lors de la creation de la formation : ", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(KEY_ERROR, MSG_ERREUR_INTERNE, KEY_MESSAGE, e.getMessage()));
+        }
     }
 
     @PutMapping("/{id}")

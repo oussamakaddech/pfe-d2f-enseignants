@@ -31,9 +31,9 @@ import SkillPassportService, {
   TrainingHistoryDTO,
   CertificationSummaryDTO,
   RecommendationSummaryDTO,
-} from "../../services/SkillPassportService";
-import { AppPageHeader, brand, neutral, shadow, radius } from "../../theme";
-import "./SkillPassportPage.css";
+} from "@/services/certificat/SkillPassportService";
+import { AppPageHeader, brand, neutral, shadow, radius } from "@/components/common";
+import "@/styles/pages/skill-passport-page.css";
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -405,3 +405,7 @@ export default function SkillPassportPage({ targetUsername, downloadLabel }: Pro
     </div>
   );
 }
+
+
+
+

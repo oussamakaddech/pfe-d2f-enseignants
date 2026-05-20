@@ -7,7 +7,7 @@ import io as _io
 import json as _json
 import logging
 import os
-from typing import Dict, List, Optional
+from typing import Annotated, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
 from fastapi.concurrency import run_in_threadpool
@@ -64,7 +64,10 @@ _AUTH_ENABLED = True if _APP_ENV in ("production", "prod") else _AUTH_TOGGLE
 _oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token", auto_error=False)
 
 
-def _get_current_user(request: Request, token: Optional[str] = Depends(_oauth2_scheme)) -> Optional[Dict]:
+def _get_current_user(
+    request: Request,
+    token: Annotated[Optional[str], Depends(_oauth2_scheme)] = None,
+) -> Optional[Dict]:
     """Retourne le contexte utilisateur deja valide par JWTAuthMiddleware.
 
     Le middleware a deja decode le JWT HS512 avec JWT_SECRET et injecte les claims
@@ -106,16 +109,10 @@ rice_router = APIRouter(
                       400: {"description": "Fichier manquant ou JSON enseignants invalide"}
                   })
 async def rice_analyze(
-    files: List[UploadFile] = File(..., description="Fiches UE et modules (PDF/DOCX)"),
-    enseignants: str = Form(
-        default="[]",
-        description='JSON array: [{id, nom, prenom, modules:[...]}]',
-    ),
-    departement: str = Form(
-        default="auto",
-        description="**auto** (détecte GC/INFO/GE/MECA/TELECOM) | **gc** (Génie Civil - fallback JSON) | **info/ge/meca/telecom** (DB refs)"
-    ),
-    _user: Optional[Dict] = Depends(_get_current_user),
+    files: Annotated[List[UploadFile], File(description="Fiches UE et modules (PDF/DOCX)")],
+    enseignants: Annotated[str, Form(description='JSON array: [{id, nom, prenom, modules:[...]}]')] = "[]",
+    departement: Annotated[str, Form(description="**auto** (détecte GC/INFO/GE/MECA/TELECOM) | **gc** (Génie Civil - fallback JSON) | **info/ge/meca/telecom** (DB refs)")] = "auto",
+    _user: Annotated[Optional[Dict], Depends(_get_current_user)] = None,
 ):
     if not files:
         raise HTTPException(400, "Au moins un fichier est requis")
@@ -160,7 +157,7 @@ async def rice_analyze(
 )
 async def export_csv(
     result: RiceAnalysisResult,
-    _user: Optional[Dict] = Depends(_get_current_user),
+    _user: Annotated[Optional[Dict], Depends(_get_current_user)] = None,
 ):
     """Accept a ``RiceAnalysisResult`` JSON body (as returned by ``/analyze``)
     and return a flattened CSV with one row per *savoir*.
@@ -252,7 +249,7 @@ def get_referential(
                   summary="Forcer le rafraîchissement du cache du référentiel et des affectations")
 @rice_router.post("/gc-refresh-cache",  # backward-compat alias
                   summary="Alias déprécié – utiliser /refresh-cache", include_in_schema=False)
-def refresh_cache(_user: Optional[Dict] = Depends(_get_current_user)):
+def refresh_cache(_user: Annotated[Optional[Dict], Depends(_get_current_user)] = None):
     """Invalidate the affectations cache AND all department referential DB caches
     so the next call reads fresh data from DB."""
     import rice.referential as _ref_mod
@@ -268,9 +265,9 @@ def refresh_cache(_user: Optional[Dict] = Depends(_get_current_user)):
 @rice_router.post("/gc-match",  # backward-compat alias
                   summary="Alias déprécié – utiliser /match", include_in_schema=False)
 async def match_text(
-    text: str = Form(..., description="Texte à matcher (objectif, contenu de fiche…)"),
-    departement: str = Form(default="gc", description="Code département (gc, info, ge, telecom, meca, …)"),
-    _user: Optional[Dict] = Depends(_get_current_user),
+    text: Annotated[str, Form(description="Texte à matcher (objectif, contenu de fiche…)")],
+    departement: Annotated[str, Form(description="Code département (gc, info, ge, telecom, meca, …)")] = "gc",
+    _user: Annotated[Optional[Dict], Depends(_get_current_user)] = None,
 ):
     """
     Match free text against the department referential.
@@ -297,7 +294,13 @@ async def match_text(
     response_model=ValidateSummary,
     summary="Valider et persister le référentiel RICE validé par l'humain en BDD",
 )
-async def rice_validate(request: ValidateRequest, _user: Optional[Dict] = Depends(_get_current_user)):
+async def rice_validate(  # noqa: PLR0915,PLR0912  — see S3776 rationale below
+    request: ValidateRequest,
+    _user: Annotated[Optional[Dict], Depends(_get_current_user)] = None,
+):
+    # NOSONAR S3776 — traverses the full Domaine → Compétence → Sous-Compétence
+    # → Savoir hierarchy and runs a single-transaction upsert; splitting it would
+    # leak DB cursors and break atomicity. Cognitive depth is intrinsic to the tree.
     """
     Persist the human-validated competence tree to PostgreSQL.
 

@@ -109,6 +109,14 @@ public class FormationWorkflowServiceHelper {
             List<String> partIds,
             List<Enseignant> participants) {
 
+        if (sr.getDateSeance() == null) {
+            throw new IllegalArgumentException("La date de la séance ne peut pas être null");
+        }
+
+        if (formation.getDateDebut() == null || formation.getDateFin() == null) {
+            throw new IllegalArgumentException("Les dates de début et fin de la formation sont obligatoires");
+        }
+
         if (sr.getDateSeance().before(formation.getDateDebut()) ||
                 sr.getDateSeance().after(formation.getDateFin())) {
             throw new IllegalStateException("Seance hors plage : " + sr.getDateSeance());
@@ -180,6 +188,7 @@ public class FormationWorkflowServiceHelper {
     /**
      * Crée les présences pour toutes les séances
      */
+    @SuppressWarnings("java:S3776") // builds the cross-product of seances × enseignants × participants — flattening would replicate the same iteration depth in helpers
     public List<Presence> createPresencesForSeances(
             List<SeanceFormation> seances) {
 

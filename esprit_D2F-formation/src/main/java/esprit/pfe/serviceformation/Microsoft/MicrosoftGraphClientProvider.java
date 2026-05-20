@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.Collections;
+import java.util.concurrent.atomic.AtomicReference;
 
 @Service
 @Slf4j
@@ -24,30 +25,34 @@ public class MicrosoftGraphClientProvider {
     @Value("${azure.ad.tenant-id}")
     private String tenantId;
 
-    private volatile GraphServiceClient<Request> cachedGraphClient;
+    private final AtomicReference<GraphServiceClient<Request>> cachedGraphClient = new AtomicReference<>();
 
     public GraphServiceClient<Request> getGraphClient() {
-        if (cachedGraphClient == null) {
-            synchronized (this) {
-                if (cachedGraphClient == null) {
-                    log.info("Initialisation du GraphServiceClient Azure AD (tenant={})", tenantId);
-                    ClientSecretCredential credential = new ClientSecretCredentialBuilder()
-                            .clientId(clientId)
-                            .clientSecret(clientSecret)
-                            .tenantId(tenantId)
-                            .build();
-
-                    TokenCredentialAuthProvider authProvider = new TokenCredentialAuthProvider(
-                            Collections.singletonList("https://graph.microsoft.com/.default"),
-                            credential
-                    );
-
-                    cachedGraphClient = GraphServiceClient.builder()
-                            .authenticationProvider(authProvider)
-                            .buildClient();
-                }
+        GraphServiceClient<Request> client = cachedGraphClient.get();
+        if (client == null) {
+            client = buildGraphClient();
+            if (!cachedGraphClient.compareAndSet(null, client)) {
+                client = cachedGraphClient.get();
             }
         }
-        return cachedGraphClient;
+        return client;
+    }
+
+    private GraphServiceClient<Request> buildGraphClient() {
+        log.info("Initialisation du GraphServiceClient Azure AD (tenant={})", tenantId);
+        ClientSecretCredential credential = new ClientSecretCredentialBuilder()
+                .clientId(clientId)
+                .clientSecret(clientSecret)
+                .tenantId(tenantId)
+                .build();
+
+        TokenCredentialAuthProvider authProvider = new TokenCredentialAuthProvider(
+                Collections.singletonList("https://graph.microsoft.com/.default"),
+                credential
+        );
+
+        return GraphServiceClient.builder()
+                .authenticationProvider(authProvider)
+                .buildClient();
     }
 }

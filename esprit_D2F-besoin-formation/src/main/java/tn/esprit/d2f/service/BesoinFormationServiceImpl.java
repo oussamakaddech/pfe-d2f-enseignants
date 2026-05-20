@@ -147,6 +147,8 @@ public class BesoinFormationServiceImpl implements IBesoinFormationService{
                 .notificationMessage(b.getNotificationMessage())
                 .periodCode(b.getPeriodCode() != null ? b.getPeriodCode().name() : null)
                 .customPeriodLabel(b.getCustomPeriodLabel())
+                .dateDebut(b.getDateDebut())
+                .dateFin(b.getDateFin())
                 .build();
 
         try {

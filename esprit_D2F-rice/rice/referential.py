@@ -728,7 +728,7 @@ def _detect_departement(filenames: List[str], contents: List[bytes]) -> str:
     # ── 1. Filename-first heuristics (REF-2) ─────────────────────────────
     fname_upper = " ".join(filenames).upper()
     # GC: explicit word-boundary \bGC\b or hyphenated/underscore variants
-    if re.search(r"\bGC\b|_GC_|[-_]GC[-_]|GENIE.?CIVIL", fname_upper):
+    if re.search(r"\bGC\b|[-_]GC[-_]|GENIE.?CIVIL", fname_upper):
         logger.info("Auto-detected department from filename: 'gc'")
         return "gc"
     # INFO / GL / SIM / TWIN / PIDEV
@@ -740,11 +740,11 @@ def _detect_departement(filenames: List[str], contents: List[bytes]) -> str:
         logger.info("Auto-detected department from filename: 'info'")
         return "info"
     # GE / électrique
-    if re.search(r"\bGE\b|_GE_|[-_]GE[-_]|ELECTR", fname_upper):
+    if re.search(r"\bGE\b|[-_]GE[-_]|ELECTR", fname_upper):
         logger.info("Auto-detected department from filename: 'ge'")
         return "ge"
     # MECA
-    if re.search(r"\bMECA\b|_MECA_|[-_]MECA[-_]|MECANIQUE", fname_upper):
+    if re.search(r"\bMECA\b|[-_]MECA[-_]|MECANIQUE", fname_upper):
         logger.info("Auto-detected department from filename: 'meca'")
         return "meca"
     # TELECOM

@@ -33,5 +33,7 @@ public class BesoinFormationApprovedEvent implements Serializable {
     private String notificationMessage;
     private String periodCode;
     private String customPeriodLabel;
+    private String dateDebut;
+    private String dateFin;
 }
 

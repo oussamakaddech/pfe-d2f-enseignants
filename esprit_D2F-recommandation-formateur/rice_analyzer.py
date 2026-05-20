@@ -402,7 +402,7 @@ def _detect_type(text: str) -> str:
 
 # ── Standard format: label : value on the SAME line ─────────────────────────
 _RE_MODULE_CODE = re.compile(
-    r"(?:Code|code)\s*[:\-]?\s*([A-Z][A-Z0-9\-_]{2,15})", re.I
+    r"code\s*[:\-]?\s*([A-Z][A-Z0-9\-_]{2,15})", re.I
 )
 # ── Table/reversed format: value on previous line, label on next line ────────
 # Captures code like "MT-34" that appears as a standalone token on its own line
@@ -845,7 +845,7 @@ def _extract_acquis_apprentissage(text: str) -> List[Dict[str, Any]]:
 # ─────────────────────────────────────────────────────────────────────────────
 
 _RE_SEANCE = re.compile(
-    r"(?:S[eé]ance|Seance|Session|Chapitre|Semaine)\s*(\d+(?:\s*[-\u2013]\s*\d+)?)\s*[:\-]?\s*(.+?)(?=\n)",
+    r"(?:S[eé]ance|Session|Chapitre|Semaine)\s*(\d+(?:\s*[-\u2013]\s*\d+)?)\s*[:\-]?\s*(.+?)(?=\n)",
     re.IGNORECASE,
 )
 _RE_CHECKMARK = re.compile(r"^[\u2714\u2713\u2611\u2610]\s*(.+)$", re.MULTILINE)

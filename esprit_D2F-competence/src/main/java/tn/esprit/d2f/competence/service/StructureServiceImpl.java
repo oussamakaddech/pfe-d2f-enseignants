@@ -56,6 +56,43 @@ public class StructureServiceImpl implements IStructureService {
 
     @Override
     @Transactional(readOnly = true)
+    public StructureArbreDTO getStructureComplete(Long upId, Long departementId) {
+        List<Domaine> domaines = domaineRepository.findByUpIdAndDepartementId(upId, departementId);
+        List<Savoir> allSavoirs = domaines.isEmpty()
+                ? List.of()
+                : savoirRepository.findAll().stream()
+                    .filter(s -> domaines.stream().anyMatch(d ->
+                        d.getCompetences().stream().anyMatch(c ->
+                            (s.getCompetence() != null && c.getId().equals(s.getCompetence().getId())) ||
+                            (s.getSousCompetence() != null && c.getSousCompetences().stream().anyMatch(sc -> sc.getId().equals(s.getSousCompetence().getId())))
+                        )
+                    )).toList();
+
+        List<StructureArbreDTO.DomaineArbreDTO> domaineArbreDTOs = domaines.stream()
+                .map(this::buildDomaineArbre).toList();
+
+        long savoirsTheoriques = allSavoirs.stream().filter(s -> s.getType() == TypeSavoir.THEORIQUE).count();
+        long savoirsPratiques  = allSavoirs.stream().filter(s -> s.getType() == TypeSavoir.PRATIQUE).count();
+
+        StructureArbreDTO.StatistiquesDTO stats = StructureArbreDTO.StatistiquesDTO.builder()
+                .totalDomaines(domaines.size())
+                .totalCompetences((int) domaines.stream().mapToLong(d -> d.getCompetences().size()).sum())
+                .totalSousCompetences((int) domaines.stream()
+                        .flatMap(d -> d.getCompetences().stream())
+                        .mapToLong(c -> c.getSousCompetences().size()).sum())
+                .totalSavoirs(allSavoirs.size())
+                .totalSavoirsTheoriques((int) savoirsTheoriques)
+                .totalSavoirsPratiques((int) savoirsPratiques)
+                .build();
+
+        return StructureArbreDTO.builder()
+                .domaines(domaineArbreDTOs)
+                .statistiques(stats)
+                .build();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public StructureArbreDTO.DomaineArbreDTO getStructureDomaine(Long domaineId) {
         Domaine domaine = domaineRepository.findById(domaineId)
                 .orElseThrow(() -> new EntityNotFoundException("Domaine non trouvé avec l'id: " + domaineId));

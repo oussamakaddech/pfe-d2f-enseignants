@@ -10,6 +10,11 @@
     "isolatedModules": true,
     "noEmit": true,
     "jsx": "react-jsx",
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"],
+      "utils/*": ["src/utils/*"]
+    },
     "allowJs": true,
     "checkJs": false,
     "noImplicitAny": true,

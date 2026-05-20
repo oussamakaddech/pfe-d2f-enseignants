@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { setNavigate } from "../utils/navigation";
+import { setNavigate } from "../utils/helpers/navigation";
 
 export function NavigationSetter() {
   const nav = useNavigate();
@@ -9,3 +9,7 @@ export function NavigationSetter() {
   }, [nav]);
   return null;
 }
+
+
+
+

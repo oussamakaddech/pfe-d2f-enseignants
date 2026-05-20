@@ -17,9 +17,14 @@ public class StructureController {
 
     private final IStructureService structureService;
 
-    @Operation(summary = "Structure arborescente complète avec statistiques")
+    @Operation(summary = "Structure arborescente complète avec statistiques, filtrable par upId et departementId")
     @GetMapping("/arbre")
-    public ResponseEntity<StructureArbreDTO> getStructureComplete() {
+    public ResponseEntity<StructureArbreDTO> getStructureComplete(
+            @RequestParam(required = false) Long upId,
+            @RequestParam(required = false) Long departementId) {
+        if (upId != null || departementId != null) {
+            return ResponseEntity.ok(structureService.getStructureComplete(upId, departementId));
+        }
         return ResponseEntity.ok(structureService.getStructureComplete());
     }
 

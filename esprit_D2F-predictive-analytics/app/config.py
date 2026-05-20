@@ -2,8 +2,13 @@
 
 from typing import Optional
 
-from pydantic import Field, PostgresDsn
+from pydantic import Field, PostgresDsn, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+# DSI §11 — no credentials in source code. The DB URL must come from the
+# DATABASE_URL env var. The dev placeholder below carries no real secret and
+# triggers a startup validation error in any non-development environment.
+_DEV_DATABASE_URL = "postgresql://app_user_analyse:CHANGE_ME_DEV_ONLY@localhost:7432/d2f"
 
 
 class Settings(BaseSettings):
@@ -26,7 +31,7 @@ class Settings(BaseSettings):
 
     # ── Database ─────────────────────────────────
     database_url: PostgresDsn = Field(
-        default="postgresql://app_user_analyse:analyse_pass@localhost:7432/d2f",
+        default=_DEV_DATABASE_URL,
         alias="DATABASE_URL",
     )
     db_pool_size: int = Field(default=10, alias="DB_POOL_SIZE")
@@ -73,6 +78,20 @@ class Settings(BaseSettings):
     @property
     def is_production(self) -> bool:
         return self.app_env.lower() == "production"
+
+    @field_validator("database_url")
+    @classmethod
+    def _no_dev_secret_in_prod(cls, v):
+        """DSI §11 — reject the dev placeholder DB URL in non-development environments."""
+        if v is not None and "CHANGE_ME_DEV_ONLY" in str(v):
+            import os
+            env = os.getenv("APP_ENV", "development").lower()
+            if env != "development":
+                raise ValueError(
+                    "DATABASE_URL must be set via env var in non-development "
+                    "environments — dev placeholder credentials are forbidden."
+                )
+        return v
 
 
 settings = Settings()

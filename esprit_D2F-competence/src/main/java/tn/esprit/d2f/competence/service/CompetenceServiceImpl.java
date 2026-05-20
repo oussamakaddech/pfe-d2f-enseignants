@@ -132,6 +132,20 @@ public class CompetenceServiceImpl implements ICompetenceService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public List<CompetenceDTO> getCompetencesByFilter(Long upId, Long departementId) {
+        return competenceRepository.findByDomaine_UpIdAndDomaine_DepartementId(upId, departementId).stream()
+                .map(competenceMapper::toDTO).toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<CompetenceDTO> getCompetencesByFilter(Long upId, Long departementId, Pageable pageable) {
+        return competenceRepository.findByDomaine_UpIdAndDomaine_DepartementId(upId, departementId, pageable)
+                .map(competenceMapper::toDTO);
+    }
+
+    @Override
     @Transactional
     @CacheEvict(value = "competences-by-domaine", allEntries = true)
     public void deleteCompetence(Long id) {

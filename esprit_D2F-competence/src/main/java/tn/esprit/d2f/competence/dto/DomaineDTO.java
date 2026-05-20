@@ -18,5 +18,7 @@ public class DomaineDTO {
     private String nom;
     private String description;
     private Boolean actif;
+    private Long upId;
+    private Long departementId;
     private List<CompetenceDTO> competences;
 }

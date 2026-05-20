@@ -8,6 +8,9 @@ public interface IStructureService {
     /** Obtenir la structure arborescente complète avec statistiques */
     StructureArbreDTO getStructureComplete();
 
+    /** Obtenir la structure filtrée par UP et/ou département (null = pas de filtre) */
+    StructureArbreDTO getStructureComplete(Long upId, Long departementId);
+
     /** Obtenir la structure d'un domaine spécifique */
     StructureArbreDTO.DomaineArbreDTO getStructureDomaine(Long domaineId);
 

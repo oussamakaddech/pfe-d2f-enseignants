@@ -1,5 +1,5 @@
 {
-  "trained_at": "2026-05-17T02:25:36.341227",
+  "trained_at": "2026-05-20T02:55:19.017605",
   "n_features": 17,
   "feature_cols": [
     "avg_level",
@@ -23,22 +23,22 @@
   "cv_folds": 5,
   "min_training_samples": 50,
   "feature_importances": {
-    "avg_level": 0.12848262808307834,
-    "min_level": 0.012885212281179479,
-    "max_level": 0.04483410564924245,
-    "nb_savoirs": 0.06544752012240901,
-    "nb_competences": 0.0264033745971076,
-    "nb_level_5": 0.01959585778780533,
-    "nb_level_1": 0.045542737406165316,
-    "competency_coverage_rate": 0.054685737790078966,
-    "nb_formations_completed": 0.04205726326327655,
-    "nb_formations_in_progress": 0.08801633040686478,
-    "taux_assiduite": 0.01831641180965689,
-    "nb_besoins_exprimes": 0.03434745262626019,
-    "nb_besoins_approuves": 0.03089155666114374,
-    "avg_eval_score": 0.059350757374493954,
-    "nb_evaluations": 0.016288341447784106,
-    "days_since_last_training": 0.22370480138354068,
-    "engagement_score": 0.0891499113099126
+    "avg_level": 0.25735263270166575,
+    "min_level": 0.20223458994785715,
+    "max_level": 0.4089413633512469,
+    "nb_savoirs": 0.0,
+    "nb_competences": 0.0,
+    "nb_level_5": 0.007840973927382205,
+    "nb_level_1": 0.026124926610890414,
+    "competency_coverage_rate": 0.0,
+    "nb_formations_completed": 0.0,
+    "nb_formations_in_progress": 0.0,
+    "taux_assiduite": 0.0,
+    "nb_besoins_exprimes": 0.09750551346095733,
+    "nb_besoins_approuves": 5.815560187768949e-17,
+    "avg_eval_score": 0.0,
+    "nb_evaluations": 0.0,
+    "days_since_last_training": 1.7621251651125813e-16,
+    "engagement_score": 5.001329620388349e-17
   }
 }

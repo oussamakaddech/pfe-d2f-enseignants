@@ -12,7 +12,7 @@ RUN --mount=type=cache,target=/usr/app/.npm \
     npm install --legacy-peer-deps
 
 COPY . .
-RUN npm run build:$BUILD_ENV
+RUN if [ -n "$BUILD_ENV" ]; then npm run build:$BUILD_ENV; else npm run build; fi
 
 FROM nginx:1.24.0-alpine as runtime
 LABEL maintainer="seddik.bouzayani <seddik.bouzayani@esprit.tn>"

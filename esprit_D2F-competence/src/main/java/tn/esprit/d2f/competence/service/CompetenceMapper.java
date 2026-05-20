@@ -34,11 +34,13 @@ public interface CompetenceMapper {
 
     // ─── Competence ──────────────────────────────────────────────────────────
 
-    @Mapping(target = "domaineId", source = "domaine.id")
-    @Mapping(target = "domaineNom", source = "domaine.nom")
-    @Mapping(target = "nbEnseignants", ignore = true)
-    @Mapping(target = "prerequisiteCount", ignore = true)
-    @Mapping(target = "prerequisiteNames", ignore = true)
+    @Mapping(target = "domaineId",      source = "domaine.id")
+    @Mapping(target = "domaineNom",     source = "domaine.nom")
+    @Mapping(target = "upId",           source = "domaine.upId")
+    @Mapping(target = "departementId",  source = "domaine.departementId")
+    @Mapping(target = "nbEnseignants",       ignore = true)
+    @Mapping(target = "prerequisiteCount",   ignore = true)
+    @Mapping(target = "prerequisiteNames",   ignore = true)
     CompetenceDTO toDTO(Competence c);
 
     // ─── SousCompetence ──────────────────────────────────────────────────────

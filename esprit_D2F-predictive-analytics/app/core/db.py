@@ -1,15 +1,28 @@
 """Database connection layer using SQLAlchemy."""
 
 import logging
+import os
 from contextlib import contextmanager
 from typing import Generator
 
-from sqlalchemy import create_engine, text
+from sqlalchemy import create_engine, event, text
 from sqlalchemy.orm import Session, sessionmaker
 
 from app.config import settings
 
 logger = logging.getLogger(__name__)
+
+# Les requêtes raw SQL de ce service lisent des tables qui vivent dans plusieurs
+# schémas Postgres écrits par les microservices Java (formation, competence,
+# besoin, evaluation, certificat, auth) en plus du schéma analyse propre à ce
+# service. Sans cela, des requêtes comme `FROM enseignants e` lèveraient
+# `relation "enseignants" does not exist` → DatabaseError → 503 côté gateway.
+# Note: les schémas sont quotés car `analyse` est un mot-clé Postgres (alias d'ANALYZE).
+_DEFAULT_SCHEMAS = ("analyse", "formation", "competence", "besoin", "evaluation", "certificat", "auth", "public")
+SEARCH_PATH = os.getenv(
+    "DB_SEARCH_PATH",
+    ",".join(f'"{s}"' for s in _DEFAULT_SCHEMAS),
+)
 
 # ── Engine ─────────────────────────────────────
 engine = create_engine(
@@ -20,6 +33,15 @@ engine = create_engine(
     pool_recycle=3600,   # Recycle connections after 1h
     echo=settings.debug,
 )
+
+
+@event.listens_for(engine, "connect")
+def _set_search_path(dbapi_connection, _connection_record):
+    cursor = dbapi_connection.cursor()
+    try:
+        cursor.execute(f"SET search_path TO {SEARCH_PATH}")
+    finally:
+        cursor.close()
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 

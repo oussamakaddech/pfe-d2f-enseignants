@@ -33,11 +33,16 @@ public class CompetenceController {
     private final ICompetenceService competenceService;
     private final IEnseignantCompetenceService enseignantCompetenceService;
 
-    @Operation(summary = "Lister toutes les compétences (paginé)")
+    @Operation(summary = "Lister toutes les compétences (paginé), filtrables par upId et departementId")
     @GetMapping
     @PreAuthorize(AuthorizationMatrix.COMPETENCE_READ)
     public ResponseEntity<Page<CompetenceDTO>> getAllCompetences(
+            @RequestParam(required = false) Long upId,
+            @RequestParam(required = false) Long departementId,
             @PageableDefault(size = 20) Pageable pageable) {
+        if (upId != null || departementId != null) {
+            return ResponseEntity.ok(competenceService.getCompetencesByFilter(upId, departementId, pageable));
+        }
         return ResponseEntity.ok(competenceService.getAllCompetences(pageable));
     }
 

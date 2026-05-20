@@ -9,7 +9,6 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.data.domain.Page;
@@ -29,13 +28,11 @@ public class FormationController {
 
     @Operation(summary = "Créer une formation",
             description = "Réservé aux rôles ADMIN, CUP, D2F. Retourne la formation créée.")
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Formation créée",
-                    content = @Content(schema = @Schema(implementation = Formation.class))),
-            @ApiResponse(responseCode = "400", description = "Payload invalide"),
-            @ApiResponse(responseCode = "401", description = "Non authentifié"),
-            @ApiResponse(responseCode = "403", description = "Permissions insuffisantes")
-    })
+    @ApiResponse(responseCode = "200", description = "Formation créée",
+            content = @Content(schema = @Schema(implementation = Formation.class)))
+    @ApiResponse(responseCode = "400", description = "Payload invalide")
+    @ApiResponse(responseCode = "401", description = "Non authentifié")
+    @ApiResponse(responseCode = "403", description = "Permissions insuffisantes")
     @PostMapping
     @PreAuthorize(AuthorizationMatrix.FORMATION_CREATE)
     public ResponseEntity<Formation> createFormation(@RequestBody Formation formation){
@@ -45,10 +42,8 @@ public class FormationController {
 
     @Operation(summary = "Lister les formations (paginé)",
             description = "Page de formations. Accessible à tout utilisateur authentifié.")
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Page de formations"),
-            @ApiResponse(responseCode = "401", description = "Non authentifié")
-    })
+    @ApiResponse(responseCode = "200", description = "Page de formations")
+    @ApiResponse(responseCode = "401", description = "Non authentifié")
     @GetMapping
     @PreAuthorize(AuthorizationMatrix.FORMATION_READ)
     public ResponseEntity<Page<Formation>> getAllFormations(
@@ -57,10 +52,8 @@ public class FormationController {
     }
 
     @Operation(summary = "Récupérer une formation par son id")
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Formation trouvée"),
-            @ApiResponse(responseCode = "404", description = "Formation inexistante")
-    })
+    @ApiResponse(responseCode = "200", description = "Formation trouvée")
+    @ApiResponse(responseCode = "404", description = "Formation inexistante")
     @GetMapping("/{id}")
     @PreAuthorize(AuthorizationMatrix.FORMATION_READ)
     public ResponseEntity<Formation> getFormationById(
@@ -70,11 +63,9 @@ public class FormationController {
 
     @Operation(summary = "Mettre à jour une formation",
             description = "Réservé aux rôles ADMIN, CUP, D2F, RESPONSABLE_DOSSIER.")
-    @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Formation mise à jour"),
-            @ApiResponse(responseCode = "403", description = "Permissions insuffisantes"),
-            @ApiResponse(responseCode = "404", description = "Formation inexistante")
-    })
+    @ApiResponse(responseCode = "200", description = "Formation mise à jour")
+    @ApiResponse(responseCode = "403", description = "Permissions insuffisantes")
+    @ApiResponse(responseCode = "404", description = "Formation inexistante")
     @PutMapping("/{id}")
     @PreAuthorize(AuthorizationMatrix.FORMATION_UPDATE)
     public ResponseEntity<Formation> updateFormation(@PathVariable Long id, @RequestBody Formation formation){
@@ -84,11 +75,9 @@ public class FormationController {
 
     @Operation(summary = "Supprimer une formation",
             description = "Réservé au rôle ADMIN.")
-    @ApiResponses({
-            @ApiResponse(responseCode = "204", description = "Suppression effectuée"),
-            @ApiResponse(responseCode = "403", description = "Permissions insuffisantes"),
-            @ApiResponse(responseCode = "404", description = "Formation inexistante")
-    })
+    @ApiResponse(responseCode = "204", description = "Suppression effectuée")
+    @ApiResponse(responseCode = "403", description = "Permissions insuffisantes")
+    @ApiResponse(responseCode = "404", description = "Formation inexistante")
     @DeleteMapping("/{id}")
     @PreAuthorize(AuthorizationMatrix.FORMATION_DELETE)
     public ResponseEntity<Void> deleteFormation(@PathVariable Long id){

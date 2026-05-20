@@ -26,6 +26,7 @@ public class BesoinFormation implements Serializable {
     @JsonProperty("username")
     String username ;
 
+    @Enumerated(EnumType.STRING)
     @JsonProperty("typeBesoin")
     TypeBesoin typeBesoin ;
 
@@ -131,6 +132,14 @@ public class BesoinFormation implements Serializable {
     @Column(nullable = true)
     @JsonProperty("customPeriodLabel")
     String customPeriodLabel ;
+
+    @Column(nullable = true)
+    @JsonProperty("dateDebut")
+    String dateDebut ;
+
+    @Column(name = "date_fin", nullable = true)
+    @JsonProperty("dateFin")
+    String dateFin ;
 
     // ── Accesseurs explicites pour les champs Boolean (is* pattern) ──
     // Nécessaire car Lombok génère getApprouveCUP() mais le code existant

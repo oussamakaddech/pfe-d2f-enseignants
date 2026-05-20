@@ -356,26 +356,47 @@ async def detect_at_risk_teachers(
 
 # ── Dashboard ──────────────────────────────────
 
+def _is_declining(d: dict) -> bool:
+    """A competency is declining if recent (3m) demand is significantly lower
+    than the proportional baseline of the last 12m. 12m baseline averaged on 3m
+    windows = demand_12m / 4 ; we flag as declining if 3m is less than half of that.
+    """
+    d12 = d.get("demand_12m") or 0
+    d3 = d.get("demand_3m") or 0
+    return d12 > 0 and d3 < (d12 / 4) * 0.5
+
+
+def _is_in_demand(d: dict) -> bool:
+    """A competency is in demand if 3m activity is at least the proportional
+    baseline of the last 12m (demand_12m / 4)."""
+    d12 = d.get("demand_12m") or 0
+    d3 = d.get("demand_3m") or 0
+    return d12 > 0 and d3 >= d12 / 4
+
+
 @router.get("/dashboard/declining-competencies", tags=["Dashboard"])
 async def declining_competencies(db: Session = Depends(get_db)) -> list[dict[str, Any]]:
-    """Competencies with decreasing average teacher levels over time."""
+    """Competencies whose recent demand has dropped vs the 12-month baseline."""
     data = DataService(db)
     demand = data.get_besoin_demand()
     return [{"competency_id": d["competence_id"], "competency_name": d["competence_nom"],
              "domaine_name": d["domaine_nom"], "demand_3m": d["demand_3m"],
-             "demand_12m": d["demand_12m"]} for d in demand if d["competence_id"]]
+             "demand_12m": d["demand_12m"]}
+            for d in demand if d["competence_id"] and _is_declining(d)]
 
 
 @router.get("/dashboard/in-demand-competencies", tags=["Dashboard"])
 async def in_demand_competencies(db: Session = Depends(get_db)) -> list[dict[str, Any]]:
-    """Competencies most frequently requested in training needs."""
+    """Competencies most frequently requested in recent training needs."""
     data = DataService(db)
     demand = data.get_besoin_demand()
-    sorted_d = sorted(demand, key=lambda x: x.get("demand_12m", 0), reverse=True)
+    filtered = [d for d in demand if d["competence_id"] and _is_in_demand(d)]
+    sorted_d = sorted(filtered, key=lambda x: x.get("demand_12m", 0), reverse=True)
     return [{"competency_id": d["competence_id"], "competency_name": d["competence_nom"],
              "domaine_name": d["domaine_nom"], "demand_3m": d["demand_3m"],
-             "demand_12m": d["demand_12m"], "trend": "increasing" if d["demand_3m"] > d["demand_12m"] / 4 else "stable"}
-            for d in sorted_d[:20] if d["competence_id"]]
+             "demand_12m": d["demand_12m"],
+             "trend": "increasing" if d["demand_3m"] > d["demand_12m"] / 4 else "stable"}
+            for d in sorted_d[:20]]
 
 
 @router.get("/dashboard/teacher-risk-indicators", tags=["Dashboard"])

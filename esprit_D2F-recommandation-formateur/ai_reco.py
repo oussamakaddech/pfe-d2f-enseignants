@@ -19,7 +19,10 @@ app.add_middleware(JWTAuthMiddleware)
 # Handlers d'erreur format DSI : enveloppe normalisee, traceId, pas de stack trace au client.
 register_exception_handlers(app, service_prefix="RECO")
 # === 1) Origines CORS externalisées via variable d'environnement ===
-_cors_raw = os.getenv("CORS_ORIGINS", "http://localhost:3000,http://localhost:5173,http://esprit-d2f.esprit.tn")
+# DSI §11.4 — Production CORS origins MUST be set via CORS_ORIGINS env var (HTTPS only).
+# The defaults below are dev-only localhost fallbacks; the prod URL must be HTTPS.
+_DEFAULT_DEV_ORIGINS = "http://localhost:3000,http://localhost:5173"
+_cors_raw = os.getenv("CORS_ORIGINS", _DEFAULT_DEV_ORIGINS)
 origins = [o.strip() for o in _cors_raw.split(",") if o.strip()]
 
 # === 2) Ajout du middleware CORS ===
@@ -72,6 +75,11 @@ scheduler.start()
 # ── Metriques techniques IA pour monitoring DSI ──
 import time as _time_module
 _start_time = _time_module.time()
+
+@app.get("/health")
+def health():
+    return {"status": "UP", "service": "ai-reco"}
+
 
 @app.get("/metrics")
 def metrics():

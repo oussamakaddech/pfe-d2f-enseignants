@@ -26,16 +26,26 @@ public class DomaineController {
 
     private final IDomaineService domaineService;
 
-    @Operation(summary = "Lister tous les domaines (paginé)")
+    @Operation(summary = "Lister tous les domaines (paginé), filtrables par upId et departementId")
     @GetMapping
     public ResponseEntity<Page<DomaineDTO>> getAllDomaines(
+            @RequestParam(required = false) Long upId,
+            @RequestParam(required = false) Long departementId,
             @PageableDefault(size = 20) Pageable pageable) {
+        if (upId != null || departementId != null) {
+            return ResponseEntity.ok(domaineService.getDomainesByFilter(upId, departementId, pageable));
+        }
         return ResponseEntity.ok(domaineService.getAllDomaines(pageable));
     }
 
-    @Operation(summary = "Lister les domaines actifs")
+    @Operation(summary = "Lister les domaines actifs, filtrables par upId et departementId")
     @GetMapping("/actifs")
-    public ResponseEntity<List<DomaineDTO>> getDomainesActifs() {
+    public ResponseEntity<List<DomaineDTO>> getDomainesActifs(
+            @RequestParam(required = false) Long upId,
+            @RequestParam(required = false) Long departementId) {
+        if (upId != null || departementId != null) {
+            return ResponseEntity.ok(domaineService.getDomainesActifsByFilter(upId, departementId));
+        }
         return ResponseEntity.ok(domaineService.getDomainesActifs());
     }
 

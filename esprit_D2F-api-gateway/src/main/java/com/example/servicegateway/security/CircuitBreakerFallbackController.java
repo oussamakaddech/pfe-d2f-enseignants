@@ -29,10 +29,13 @@ public class CircuitBreakerFallbackController {
     @Value("${gateway.fallback.uri:/fallback}")
     private String fallbackUri;
 
+    @Value("${gateway.fallback.unknown-path:/unknown}")
+    private String unknownPathPlaceholder;
+
     @RequestMapping("${gateway.fallback.uri:/fallback}")
     public Mono<String> fallback(ServerWebExchange exchange) {
         // Récupérer le path original demandé par le client
-        String originalPath = "/unknown";
+        String originalPath = unknownPathPlaceholder;
         var originalUris = exchange.getAttribute(
                 org.springframework.cloud.gateway.support.ServerWebExchangeUtils.GATEWAY_ORIGINAL_REQUEST_URL_ATTR);
         if (originalUris instanceof java.util.LinkedHashSet<?> uris && !uris.isEmpty()) {

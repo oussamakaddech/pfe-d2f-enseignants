@@ -41,6 +41,13 @@ public class FormationWorkflowRequest {
 
     private String organismeRefExterne;
 
+    private String bureauFormationNom;
+
+    @Email(message = "Format d'email invalide pour le bureau de formation")
+    private String bureauFormationMail;
+
+    private String bureauFormationTelephone;
+
     private Integer chargeHoraireGlobal;
 
     private String upId;
@@ -82,10 +89,13 @@ public class FormationWorkflowRequest {
     public static class SeanceRequest {
         private Long idSeance;
 
+        @NotNull(message = "La date de la séance est obligatoire")
         private Date dateSeance;
 
+        @NotBlank(message = "L'heure de début est obligatoire")
         private String heureDebut;
 
+        @NotBlank(message = "L'heure de fin est obligatoire")
         private String heureFin;
 
         private String salle;
