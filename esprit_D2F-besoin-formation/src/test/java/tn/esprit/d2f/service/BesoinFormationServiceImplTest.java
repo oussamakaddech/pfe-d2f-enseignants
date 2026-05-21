@@ -133,7 +133,7 @@ class BesoinFormationServiceImplTest {
         request.setDepartement("DEP");
         request.setEstOuverte(true);
         request.setAutresInformations("Infos");
-        request.setPeriodCode(tn.esprit.d2f.entity.enumerations.PeriodCode.P1);
+        request.setPeriodCode(tn.esprit.d2f.entity.enumerations.PeriodCode.WINTER);
         request.setCustomPeriodLabel("Label");
         
         request.setApprouveCUP(false);

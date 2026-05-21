@@ -79,8 +79,11 @@ services:
       timeout: 5s
       retries: 5
       start_period: 10s
+    # DSI §2 — alias réseau DSI obligatoire : db.dsi.local:5432
     networks:
-      - d2f-network
+      d2f-network:
+        aliases:
+          - db.dsi.local
 
   rabbitmq:
     image: rabbitmq:3.13-management-alpine
@@ -100,8 +103,11 @@ services:
       timeout: 10s
       retries: 5
       start_period: 20s
+    # DSI §2 — alias réseau DSI obligatoire : broker.dsi.local:5672
     networks:
-      - d2f-network
+      d2f-network:
+        aliases:
+          - broker.dsi.local
 
   redis:
     image: redis:7-alpine
@@ -122,7 +128,7 @@ services:
       - d2f-network
 
   pgadmin:
-    image: dpage/pgadmin4:latest
+    image: dpage/pgadmin4:8.14
     container_name: d2f-pgadmin
     restart: unless-stopped
     profiles:
@@ -152,7 +158,8 @@ services:
       - "8085:8085"
     environment:
       SPRING_PROFILES_ACTIVE: prod
-      DB_URL: jdbc:postgresql://postgres:5432/d2f
+      # DSI §2 — hostname DB standard (résolu via alias Docker ou DNS DSI en production)
+      DB_URL: jdbc:postgresql://db.dsi.local:5432/d2f
       DB_USER: ${DB_USER_AUTH:-app_user_auth}
       DB_PASSWORD: ${DB_PASSWORD}
       JWT_SECRET: ${JWT_SECRET}
@@ -182,7 +189,7 @@ services:
       - "8005:8005"
     environment:
       SPRING_PROFILES_ACTIVE: prod
-      DB_URL: jdbc:postgresql://postgres:5432/d2f
+      DB_URL: jdbc:postgresql://db.dsi.local:5432/d2f
       DB_USER: ${DB_USER_COMPETENCE:-app_user_competence}
       DB_PASSWORD: ${DB_PASSWORD}
       JWT_SECRET: ${JWT_SECRET}
@@ -208,11 +215,11 @@ services:
       - "8004:8004"
     environment:
       SPRING_PROFILES_ACTIVE: prod
-      DB_URL: jdbc:postgresql://postgres:5432/d2f
+      DB_URL: jdbc:postgresql://db.dsi.local:5432/d2f
       DB_USER: ${DB_USER_BESOIN:-app_user_besoinsformation}
       DB_PASSWORD: ${DB_PASSWORD}
       JWT_SECRET: ${JWT_SECRET}
-      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_HOST: broker.dsi.local
       SPRING_RABBITMQ_PORT: 5672
       SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USERNAME:-d2f}
       SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
@@ -240,11 +247,11 @@ services:
       - "8086:8086"
     environment:
       SPRING_PROFILES_ACTIVE: prod
-      DB_URL: jdbc:postgresql://postgres:5432/d2f
+      DB_URL: jdbc:postgresql://db.dsi.local:5432/d2f
       DB_USER: ${DB_USER_CERTIFICAT:-app_user_certificat}
       DB_PASSWORD: ${DB_PASSWORD}
       JWT_SECRET: ${JWT_SECRET}
-      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_HOST: broker.dsi.local
       SPRING_RABBITMQ_PORT: 5672
       SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USERNAME:-d2f}
       SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
@@ -272,11 +279,11 @@ services:
       - "8087:8087"
     environment:
       SPRING_PROFILES_ACTIVE: prod
-      DB_URL: jdbc:postgresql://postgres:5432/d2f
+      DB_URL: jdbc:postgresql://db.dsi.local:5432/d2f
       DB_USER: ${DB_USER_EVALUATION:-app_user_evaluation}
       DB_PASSWORD: ${DB_PASSWORD}
       JWT_SECRET: ${JWT_SECRET}
-      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_HOST: broker.dsi.local
       SPRING_RABBITMQ_PORT: 5672
       SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USERNAME:-d2f}
       SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
@@ -338,8 +345,11 @@ services:
       timeout: 10s
       retries: 3
       start_period: 60s
+    # DSI §2 — alias réseau DSI obligatoire : api-gateway.dsi.local:8080
     networks:
-      - d2f-network
+      d2f-network:
+        aliases:
+          - api-gateway.dsi.local
 
   # ── Formation Service ───────────────────────────────────────────────────────
 
@@ -353,20 +363,29 @@ services:
       - "8088:8088"
     environment:
       SPRING_PROFILES_ACTIVE: prod
-      DB_URL: jdbc:postgresql://postgres:5432/d2f
+      DB_URL: jdbc:postgresql://db.dsi.local:5432/d2f
       DB_USER: ${DB_USER_FORMATION:-app_user_formation}
       DB_PASSWORD: ${DB_PASSWORD}
       JWT_SECRET: ${JWT_SECRET}
-      SPRING_RABBITMQ_HOST: rabbitmq
+      SPRING_RABBITMQ_HOST: broker.dsi.local
       SPRING_RABBITMQ_PORT: 5672
       SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USERNAME:-d2f}
       SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
-      AZURE_AD_CLIENT_ID: ${AZURE_AD_CLIENT_ID}
-      AZURE_AD_CLIENT_SECRET: ${AZURE_AD_CLIENT_SECRET}
-      AZURE_AD_TENANT_ID: ${AZURE_AD_TENANT_ID}
+      # Organisateur de calendrier (DSI §1.1 — externalisé)
+      FORMATION_ORGANIZER_EMAIL: ${FORMATION_ORGANIZER_EMAIL:-noreply@d2f.local}
+      # Mail SMTP interne DSI (obligatoire par défaut)
+      MAIL_HOST: ${MAIL_HOST:-smtp.internal.dsi.local}
+      MAIL_PORT: ${MAIL_PORT:-587}
+      MAIL_USERNAME: ${MAIL_USERNAME:-}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      # Azure AD — DÉSACTIVÉ par défaut (activer uniquement sur décision DSI)
+      AZURE_AD_ENABLED: ${AZURE_AD_ENABLED:-false}
+      AZURE_AD_CLIENT_ID: ${AZURE_AD_CLIENT_ID:-}
+      AZURE_AD_CLIENT_SECRET: ${AZURE_AD_CLIENT_SECRET:-}
+      AZURE_AD_TENANT_ID: ${AZURE_AD_TENANT_ID:-}
       AZURE_AD_GRAPH_SCOPE: ${AZURE_AD_GRAPH_SCOPE:-https://graph.microsoft.com/.default}
-      AZURE_AD_MAIL_USERNAME: ${AZURE_AD_MAIL_USERNAME}
-      AZURE_AD_MAIL_PASSWORD: ${AZURE_AD_MAIL_PASSWORD}
+      AZURE_AD_MAIL_USERNAME: ${AZURE_AD_MAIL_USERNAME:-}
+      AZURE_AD_MAIL_PASSWORD: ${AZURE_AD_MAIL_PASSWORD:-}
     depends_on:
       postgres:
         condition: service_healthy
@@ -394,8 +413,9 @@ services:
       JWT_SECRET: ${JWT_SECRET}
       DB_NAME: ${POSTGRES_DB:-d2f}
       DB_USER: ${DB_USER:-d2f}
-      DB_PASS: ${DB_PASSWORD:-d2fpasswd}
-      DB_HOST: postgres
+      DB_PASS: ${DB_PASSWORD}
+      # DSI §2 — hostname DB standard
+      DB_HOST: db.dsi.local
       DB_PORT: "5432"
       CORS_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:3000,http://localhost:5173}
     healthcheck:
@@ -419,8 +439,9 @@ services:
       APP_ENV: production
       DB_NAME: ${POSTGRES_DB:-d2f}
       DB_USER: ${DB_USER:-d2f}
-      DB_PASS: ${DB_PASSWORD:-d2fpasswd}
-      DB_HOST: postgres
+      DB_PASS: ${DB_PASSWORD}
+      # DSI §2 — hostname DB standard
+      DB_HOST: db.dsi.local
       DB_PORT: "5432"
       CORS_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:3000,http://localhost:5173}
       JWT_SECRET: ${JWT_SECRET}
@@ -443,23 +464,24 @@ services:
     restart: unless-stopped
     environment:
       APP_ENV: production
-      DATABASE_URL: postgresql://${DB_USER_ANALYSE:-app_user_analyse}:${DB_PASSWORD}@postgres:5432/d2f
+      # DSI §2 — hostname DB standard (alias db.dsi.local résolu dans Docker)
+      DATABASE_URL: postgresql://${DB_USER_ANALYSE:-app_user_analyse}:${DB_PASSWORD}@db.dsi.local:5432/d2f
       JWT_SECRET: ${JWT_SECRET}
       JWT_ALGORITHM: HS512
       JWT_AUTH_ENABLED: "true"
-      # Seuils de détection
-      SEUIL_GAP_CRITIQUE: "0.75"
-      SEUIL_GAP_HAUTE: "0.50"
-      SEUIL_STAGNATION_MOIS: "12"
-      SEUIL_COMPLETION_FAIBLE: "40.0"
+      # DSI §1.1 — seuils de détection externalisés (valeurs par défaut dans .env.example)
+      SEUIL_GAP_CRITIQUE: ${SEUIL_GAP_CRITIQUE:-0.75}
+      SEUIL_GAP_HAUTE: ${SEUIL_GAP_HAUTE:-0.50}
+      SEUIL_STAGNATION_MOIS: ${SEUIL_STAGNATION_MOIS:-12}
+      SEUIL_COMPLETION_FAIBLE: ${SEUIL_COMPLETION_FAIBLE:-40.0}
       # Scheduler nightly
-      SCHEDULER_ENABLED: "true"
-      BATCH_ANALYSIS_HOUR: "2"
-      DASHBOARD_REFRESH_HOUR: "3"
-      # Messaging désactivé par défaut (pas d'ActiveMQ en dev local)
-      MESSAGING_ENABLED: "false"
-      # CORS
-      CORS_ORIGINS: "http://localhost:5173,http://localhost:3000"
+      SCHEDULER_ENABLED: ${SCHEDULER_ENABLED:-true}
+      BATCH_ANALYSIS_HOUR: ${BATCH_ANALYSIS_HOUR:-2}
+      DASHBOARD_REFRESH_HOUR: ${DASHBOARD_REFRESH_HOUR:-3}
+      # Messaging désactivé par défaut
+      MESSAGING_ENABLED: ${MESSAGING_ENABLED:-false}
+      # DSI §1.1+§10 — CORS externalisé (production = domaine interne DSI)
+      CORS_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:5173,http://localhost:3000}
     depends_on:
       postgres:
         condition: service_healthy

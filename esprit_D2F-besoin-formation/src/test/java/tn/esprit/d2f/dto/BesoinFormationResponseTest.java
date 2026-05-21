@@ -38,7 +38,7 @@ class BesoinFormationResponseTest {
                 .impactStrategique("Impact")
                 .estOuverte(true)
                 .autresInformations("Autres Infos")
-                .periodCode(PeriodCode.P1)
+                .periodCode(PeriodCode.WINTER)
                 .customPeriodLabel("Custom Label")
                 .eventPublished(true)
                 .notificationMessage("Notification")
@@ -84,7 +84,7 @@ class BesoinFormationResponseTest {
                 1L, "user1", TypeBesoin.COLLECTIF, "Titre", "Objectif", 20, 10, "UP1", "DEP1", Priorite.HAUTE,
                 "Animateur", "Prerequis", "Public", "Programme", "Theme", "Objectifs Operationnels",
                 "Objectifs Pedagogiques", "Methodes", "Moyens", "Evaluation", "Profil", "Horaire",
-                "Impact", true, "Autres Infos", PeriodCode.P1, "Custom Label", true, "Notification", true, false, null
+                "Impact", true, "Autres Infos", PeriodCode.WINTER, "Custom Label", true, "Notification", true, false, null
         );
     }
 
@@ -161,7 +161,7 @@ class BesoinFormationResponseTest {
         response.setImpactStrategique("Impact");
         response.setEstOuverte(true);
         response.setAutresInformations("Autres Infos");
-        response.setPeriodCode(PeriodCode.P1);
+        response.setPeriodCode(PeriodCode.WINTER);
         response.setCustomPeriodLabel("Custom Label");
         response.setEventPublished(true);
         response.setNotificationMessage("Notification");
@@ -206,7 +206,7 @@ class BesoinFormationResponseTest {
                 1L, "user1", TypeBesoin.COLLECTIF, "Titre", "Objectif", 20, 10, "UP1", "DEP1", Priorite.HAUTE,
                 "Animateur", "Prerequis", "Public", "Programme", "Theme", "Objectifs Operationnels",
                 "Objectifs Pedagogiques", "Methodes", "Moyens", "Evaluation", "Profil", "Horaire",
-                "Impact", true, "Autres Infos", PeriodCode.P1, "Custom Label", true, "Notification", true, false, null
+                "Impact", true, "Autres Infos", PeriodCode.WINTER, "Custom Label", true, "Notification", true, false, null
         );
     }
 
@@ -277,12 +277,12 @@ class BesoinFormationResponseTest {
         BesoinFormationResponse response = new BesoinFormationResponse();
         response.setTypeBesoin(TypeBesoin.COLLECTIF);
         response.setPriorite(Priorite.HAUTE);
-        response.setPeriodCode(PeriodCode.P1);
+        response.setPeriodCode(PeriodCode.WINTER);
 
         assertAll("Verify enums",
             () -> assertEquals(TypeBesoin.COLLECTIF, response.getTypeBesoin()),
             () -> assertEquals(Priorite.HAUTE, response.getPriorite()),
-            () -> assertEquals(PeriodCode.P1, response.getPeriodCode())
+            () -> assertEquals(PeriodCode.WINTER, response.getPeriodCode())
         );
     }
 

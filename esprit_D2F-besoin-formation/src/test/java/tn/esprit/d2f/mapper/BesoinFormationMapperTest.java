@@ -42,7 +42,7 @@ class BesoinFormationMapperTest {
         request.setImpactStrategique("Impact");
         request.setEstOuverte(true);
         request.setAutresInformations("Autres Infos");
-        request.setPeriodCode(PeriodCode.P1);
+        request.setPeriodCode(PeriodCode.WINTER);
         request.setCustomPeriodLabel("Custom Label");
 
         BesoinFormation entity = mapper.toEntity(request);
@@ -79,7 +79,7 @@ class BesoinFormationMapperTest {
                 "user1", TypeBesoin.COLLECTIF, "Titre", "Objectif", 10, 5, "Theme", "UP1", "DEP1", Priorite.HAUTE,
                 "Animateur", "Prerequis", "Public", "Programme", "Objectifs Operationnels",
                 "Objectifs Pedagogiques", "Methodes", "Moyens", "Evaluation", "Profil", "Horaire",
-                "Impact", true, "Autres Infos", PeriodCode.P1, "Custom Label"
+                "Impact", true, "Autres Infos", PeriodCode.WINTER, "Custom Label"
         );
     }
 
@@ -184,7 +184,7 @@ class BesoinFormationMapperTest {
         entity.setImpactStrategique("Impact");
         entity.setEstOuverte(true);
         entity.setAutresInformations("Autres Infos");
-        entity.setPeriodCode(PeriodCode.P2);
+        entity.setPeriodCode(PeriodCode.SUMMER);
         entity.setCustomPeriodLabel("Custom Label");
         entity.setEventPublished(true);
         entity.setNotificationMessage("Notification");
@@ -229,7 +229,7 @@ class BesoinFormationMapperTest {
                 1L, "user1", "Titre", "Objectif", true, false, true, 20, 10, TypeBesoin.INDIVIDUEL, Priorite.MOYENNE,
                 "Animateur", "Prerequis", "Public", "Programme", "Theme", "Objectifs Operationnels",
                 "Objectifs Pedagogiques", "Methodes", "Moyens", "Evaluation", "Profil", "Horaire",
-                "UP1", "DEP1", "Impact", true, "Autres Infos", PeriodCode.P2, "Custom Label", true, "Notification"
+                "UP1", "DEP1", "Impact", true, "Autres Infos", PeriodCode.SUMMER, "Custom Label", true, "Notification"
         );
     }
 
@@ -350,7 +350,7 @@ class BesoinFormationMapperTest {
         request.setImpactStrategique("Impact");
         request.setEstOuverte(true);
         request.setAutresInformations("Autres Infos");
-        request.setPeriodCode(PeriodCode.P1);
+        request.setPeriodCode(PeriodCode.WINTER);
         request.setCustomPeriodLabel("Custom Label");
         request.setApprouveCUP(true);
         request.setApprouveChefDep(false);

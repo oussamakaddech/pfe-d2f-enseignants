@@ -43,11 +43,27 @@ public class DefaultCredentialsManager {
      */
     @SuppressWarnings("java:S2068") // False positive: password is injected from external config, not hardcoded
     private void validateCredentials() {
-        String placeholderCredential = "CHANGE_ME_IN_PRODUCTION";
-        if (isProductionEnvironment() && placeholderCredential.equals(defaultAdminPassword)) {
+        if (isProductionEnvironment()) {
+            rejectWeakPassword(defaultAdminPassword);
+        }
+    }
+
+    private static final java.util.Set<String> BANNED_PASSWORDS = java.util.Set.of(
+        "CHANGE_ME_IN_PRODUCTION", "admin", "admin123", "password", "password123",
+        "123456", "azerty", "qwerty", "d2f", "esprit", "changeme", "test"
+    );
+
+    private void rejectWeakPassword(String password) {
+        if (password == null || password.isBlank() || BANNED_PASSWORDS.contains(password.toLowerCase())) {
             throw new IllegalStateException(
-                "Les identifiants par défaut doivent être configurés en production. " +
-                "Veuillez définir les propriétés app.security.default-admin.* dans votre configuration."
+                "Le mot de passe administrateur par défaut est trop faible ou non configuré. " +
+                "Définissez APP_SECURITY_DEFAULT_ADMIN_PASSWORD avec un mot de passe fort " +
+                "(min. 12 caractères, majuscules, chiffres, caractères spéciaux)."
+            );
+        }
+        if (password.length() < 12) {
+            throw new IllegalStateException(
+                "Le mot de passe administrateur doit contenir au moins 12 caractères."
             );
         }
     }
