@@ -1,7 +1,7 @@
-﻿# =============================================================================
-# D2F CI Pipeline â€” DSI 2025-2026
+# =============================================================================
+# D2F CI Pipeline - DSI 2025-2026
 # Ordre : lint -> test -> security (OWASP/npm audit bloquant)
-#         -> sonar (Quality Gate bloquant) -> build & push Docker
+#         -> sonar (Quality Gate bloquant, runner self-hosted) -> build & push Docker
 # =============================================================================
 
 name: D2F CI Pipeline
@@ -24,9 +24,9 @@ env:
   MAVEN_OPTS: '-Xmx3072m'
 
 jobs:
-  # â”€â”€ Tests Backend Java â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  # -- Tests Backend Java -------------------------------------------------------
   test-backend:
-    name: Tests Backend â€” ${{ matrix.service }}
+    name: Tests Backend - ${{ matrix.service }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -66,14 +66,14 @@ jobs:
         if: always()
         uses: dorny/test-reporter@v1
         with:
-          name: Test Results â€” ${{ matrix.service }}
+          name: Test Results - ${{ matrix.service }}
           path: ${{ matrix.service }}/target/surefire-reports/*.xml
           reporter: java-junit
           fail-on-error: true
 
-  # â”€â”€ Tests Python â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  # -- Tests Python -------------------------------------------------------------
   test-python:
-    name: Tests Python â€” ${{ matrix.service }}
+    name: Tests Python - ${{ matrix.service }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -103,10 +103,10 @@ jobs:
           if [ -d tests ]; then
             pytest tests/ -v --cov=. --cov-report=xml --cov-report=term
           else
-            echo "No tests directory â€” skipping"
+            echo "No tests directory - skipping"
           fi
 
-      - name: DSI Â§11.7 â€” interdire print() en production
+      - name: DSI 11.7 - interdire print() en production
         run: |
           FOUND=$(grep -rn --include="*.py" -E "^\s*print\(" \
             ${{ matrix.service }} \
@@ -114,12 +114,12 @@ jobs:
             --exclude-dir __pycache__ \
             --exclude-dir .venv || true)
           if [ -n "$FOUND" ]; then
-            echo "PII risk â€” print() trouvÃ© dans le code de production :"
+            echo "PII risk - print() trouve dans le code de production :"
             echo "$FOUND"
             exit 1
           fi
 
-  # â”€â”€ Tests Frontend â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  # -- Tests Frontend -----------------------------------------------------------
   test-frontend:
     name: Tests Frontend
     runs-on: ubuntu-latest
@@ -151,9 +151,9 @@ jobs:
         working-directory: esprit_D2F-webapp
         run: npm run build
 
-  # â”€â”€ OWASP Dependency Check (DSI Â§12.12 â€” CVSS â‰¥ 7 bloquant) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  # -- OWASP Dependency Check (DSI 12.12 - CVSS >= 7 bloquant) -----------------
   security-backend:
-    name: OWASP â€” ${{ matrix.service }}
+    name: OWASP - ${{ matrix.service }}
     runs-on: ubuntu-latest
     needs: test-backend
     strategy:
@@ -203,7 +203,7 @@ jobs:
           path: ${{ matrix.service }}/target/dependency-check-report.*
           retention-days: 30
 
-  # â”€â”€ npm audit (DSI Â§12.12 â€” bloquant) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  # -- npm audit (bloquant) -----------------------------------------------------
   security-frontend:
     name: npm audit (bloquant)
     runs-on: ubuntu-latest
@@ -222,11 +222,10 @@ jobs:
         working-directory: esprit_D2F-webapp
         run: npm audit --audit-level=high --omit=dev
 
-  # â”€â”€ SonarQube Quality Gate (DSI Â§3.7 â€” bloquant) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-  # ActivÃ© uniquement si SONAR_ENABLED=true est dÃ©fini dans Actions Variables.
-  # Sans ce flag, le job est ignorÃ© et build-docker s'exÃ©cute quand mÃªme.
+  # -- SonarQube Quality Gate (runner self-hosted -> SonarQube localhost:9000) --
+  # Active si SONAR_ENABLED=true dans Actions Variables.
   sonar:
-    name: SonarQube â€” ${{ matrix.module }}
+    name: SonarQube - ${{ matrix.module }}
     runs-on: self-hosted
     needs: [security-backend, security-frontend, test-python]
     if: >-
@@ -261,18 +260,16 @@ jobs:
         run: |
           mvn -B verify sonar:sonar \
             -Dsonar.projectKey=${{ matrix.projectKey }} \
-            -Dsonar.organization=${{ secrets.SONAR_ORGANIZATION }} \
             -Dsonar.host.url=$SONAR_HOST_URL \
             -Dsonar.token=$SONAR_TOKEN \
             -Dsonar.qualitygate.wait=true \
             -Dsonar.qualitygate.timeout=300
 
-  # â”€â”€ Build & Push Docker (DSI Â§11 â€” aprÃ¨s tous les quality gates) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  # -- Build & Push Docker (apres tous les quality gates) -----------------------
   build-docker:
-    name: Docker Build & Push â€” ${{ matrix.image }}
+    name: Docker Build & Push - ${{ matrix.image }}
     runs-on: ubuntu-latest
     needs: [security-backend, security-frontend, test-python, sonar]
-    # Tourne si sonar a rÃ©ussi OU a Ã©tÃ© ignorÃ© (SONAR_ENABLED non activÃ©)
     if: >-
       always() &&
       needs.security-backend.result == 'success' &&
@@ -328,4 +325,3 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha,scope=${{ matrix.image }}
           cache-to: type=gha,mode=max,scope=${{ matrix.image }}
-
