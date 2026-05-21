@@ -96,7 +96,10 @@ function Invoke-WebAnalysis {
             if (-not (Test-Path "node_modules")) { throw "npm ci failed et node_modules absent" }
         }
         Write-Host "  [2/3] tests + coverage..."
+        $savedPrefWeb = $ErrorActionPreference
+        $ErrorActionPreference = "Continue"
         npm run test:coverage 2>&1 | Out-Null  # ne pas bloquer si fail, laisser Sonar décider
+        $ErrorActionPreference = $savedPrefWeb
         Write-Host "  [3/3] sonar-scanner..."
         if (-not (Get-Command sonar-scanner -ErrorAction SilentlyContinue)) {
             throw "sonar-scanner introuvable dans le PATH"
