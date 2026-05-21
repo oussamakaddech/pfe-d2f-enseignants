@@ -119,8 +119,21 @@ Write-Host ""
 Write-Host "[INFO] Récupération de la liste des projets existants..." -ForegroundColor Green
 $existingProjects = Get-SonarQubeProjects -SonarToken $SonarToken -SonarUrl $SonarUrl
 
-# Projets à conserver
-$projectsToKeep = @("service-formation", "d2f_api_gateway", "d2f_authentification", "d2f_besoin_formation", "d2f_certificat", "d2f_competence", "d2f_evaluation", "d2f_analyse", "d2f_webapp")
+# Projets à conserver (clés canoniques définies dans run-all-sonar-tests.ps1)
+$projectsToKeep = @(
+    "d2f_formation",
+    "d2f_api_gateway",
+    "d2f_authentification",
+    "d2f_besoin_formation",
+    "d2f_certificat",
+    "d2f_competence",
+    "d2f_evaluation",
+    "d2f_analyse",
+    "d2f_webapp",
+    "d2f_rice",
+    "d2f_predictive_analytics",
+    "d2f_recommandation_formateur"
+)
 
 # Supprimer les projets en double ou obsolètes
 Write-Host ""
@@ -129,8 +142,9 @@ foreach ($project in $existingProjects) {
     $projectKey = $project.key
 
     # Vérifier si le projet doit être supprimé
-    if ($projectKey -eq "d2f_formation" -or $projectKey -eq "coded2f_formation") {
-        Write-Host "  [DELETE] Projet en double trouvé: $projectKey" -ForegroundColor Red
+    # "service-formation" et "coded2f_formation" sont d'anciens noms, remplacés par "d2f_formation"
+    if ($projectKey -eq "service-formation" -or $projectKey -eq "coded2f_formation") {
+        Write-Host "  [DELETE] Projet en double/obsolète trouvé: $projectKey" -ForegroundColor Red
         Remove-SonarQubeProject -ProjectKey $projectKey -SonarToken $SonarToken -SonarUrl $SonarUrl
     }
     elseif (-not ($projectsToKeep -contains $projectKey)) {
