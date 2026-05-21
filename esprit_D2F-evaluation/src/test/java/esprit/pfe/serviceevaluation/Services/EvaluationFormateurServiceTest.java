@@ -29,6 +29,12 @@ class EvaluationFormateurServiceTest {
     @Mock
     private EvaluationFormateurRepository evaluationRepository;
 
+    @Mock
+    private esprit.pfe.serviceevaluation.client.FormationClient formationClient;
+
+    @Mock
+    private esprit.pfe.serviceevaluation.client.AuthClient authClient;
+
     @InjectMocks
     private EvaluationFormateurService evaluationService;
 
