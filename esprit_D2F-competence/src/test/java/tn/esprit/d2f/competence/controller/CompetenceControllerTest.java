@@ -51,7 +51,7 @@ class CompetenceControllerTest {
     void testGetAllCompetences() {
         Page<CompetenceDTO> page = new PageImpl<>(List.of(competenceDTO));
         when(competenceService.getAllCompetences(any(Pageable.class))).thenReturn(page);
-        ResponseEntity<Page<CompetenceDTO>> response = competenceController.getAllCompetences(Pageable.unpaged());
+        ResponseEntity<Page<CompetenceDTO>> response = competenceController.getAllCompetences(null, null, Pageable.unpaged());
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
     }
 

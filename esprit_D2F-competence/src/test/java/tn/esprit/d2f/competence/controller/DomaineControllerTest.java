@@ -47,7 +47,7 @@ class DomaineControllerTest {
     void testGetAllDomaines() {
         Page<DomaineDTO> page = new PageImpl<>(List.of(domaineDTO));
         when(domaineService.getAllDomaines(any(Pageable.class))).thenReturn(page);
-        ResponseEntity<Page<DomaineDTO>> response = domaineController.getAllDomaines(Pageable.unpaged());
+        ResponseEntity<Page<DomaineDTO>> response = domaineController.getAllDomaines(null, null, Pageable.unpaged());
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody()).isNotNull();
     }
@@ -55,7 +55,7 @@ class DomaineControllerTest {
     @Test
     void testGetDomainesActifs() {
         when(domaineService.getDomainesActifs()).thenReturn(List.of(domaineDTO));
-        ResponseEntity<List<DomaineDTO>> response = domaineController.getDomainesActifs();
+        ResponseEntity<List<DomaineDTO>> response = domaineController.getDomainesActifs(null, null);
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
     }
 

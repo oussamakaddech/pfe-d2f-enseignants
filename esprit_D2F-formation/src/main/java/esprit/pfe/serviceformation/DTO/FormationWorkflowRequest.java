@@ -53,7 +53,7 @@ public class FormationWorkflowRequest {
     private String upId;
     private String departementId;
 
-    private String competance;
+    private String competence;
     private String domaine;
     private String populationCible;
     

@@ -44,7 +44,7 @@ public class FormationWorkflowServiceHelper {
         formation.setOrganismeRefExterne(request.getOrganismeRefExterne());
         formation.setChargeHoraireGlobal(request.getChargeHoraireGlobal());
         formation.setDomaine(request.getDomaine());
-        formation.setCompetance(request.getCompetance());
+        formation.setCompetence(request.getCompetence());
         formation.setPopulationCible(request.getPopulationCible());
         formation.setObjectifs(request.getObjectifs());
         formation.setObjectifsPedago(request.getObjectifsPedago());

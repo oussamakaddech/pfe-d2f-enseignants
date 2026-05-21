@@ -10,6 +10,7 @@ import esprit.pfe.serviceformation.messaging.EvaluationBatchMessage;
 import esprit.pfe.serviceformation.messaging.EvaluationPublisher;
 import lombok.extern.slf4j.Slf4j;
 import org.hibernate.Hibernate;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -35,8 +36,11 @@ public class FormationWorkflowService {
     private final DeptRepository departementRepository;
     private final UpRepository upRepository;
     private final EvaluationPublisher evaluationPublisher;
-    private final OutlookCalendarService outlookCalendarService;
-    private final OutlookMailService outlookMailService;
+    // DSI §4/§2 — injection optionnelle : null si azure.ad.enabled=false
+    @Autowired(required = false)
+    private OutlookCalendarService outlookCalendarService;
+    @Autowired(required = false)
+    private OutlookMailService outlookMailService;
     private final FormationWorkflowServiceHelper helper;
 
     public FormationWorkflowService(DocumentRepository documentRepository,
@@ -47,8 +51,6 @@ public class FormationWorkflowService {
             DeptRepository departementRepository,
             UpRepository upRepository,
             EvaluationPublisher evaluationPublisher,
-            OutlookCalendarService outlookCalendarService,
-            OutlookMailService outlookMailService,
             FormationWorkflowServiceHelper helper) {
         this.documentRepository = documentRepository;
         this.formationRepository = formationRepository;
@@ -58,8 +60,6 @@ public class FormationWorkflowService {
         this.departementRepository = departementRepository;
         this.upRepository = upRepository;
         this.evaluationPublisher = evaluationPublisher;
-        this.outlookCalendarService = outlookCalendarService;
-        this.outlookMailService = outlookMailService;
         this.helper = helper;
     }
 
@@ -164,7 +164,7 @@ public class FormationWorkflowService {
         formation.setBureauFormationTelephone(request.getBureauFormationTelephone());
         formation.setChargeHoraireGlobal(request.getChargeHoraireGlobal());
         formation.setDomaine(request.getDomaine());
-        formation.setCompetance(request.getCompetance());
+        formation.setCompetence(request.getCompetence());
         formation.setPopulationCible(request.getPopulationCible());
         formation.setObjectifs(request.getObjectifs());
         formation.setObjectifsPedago(request.getObjectifsPedago());
@@ -439,6 +439,7 @@ public class FormationWorkflowService {
 
     // ── Notification CUP d'une nouvelle formation à planifier ──
     private void notifyCUPOfNewFormation(Formation formation) {
+        if (outlookMailService == null) return;
         if (formation.getUp() == null) return;
         List<Enseignant> cups = enseignantRepository.findByUpAndCup(formation.getUp(), "O");
         String subject = "[D2F] Formation a planifier : " + formation.getTitreFormation();
@@ -549,6 +550,11 @@ public class FormationWorkflowService {
 
     // ── Envoyer des emails à une liste de destinataires avec gestion d'erreur individuelle ──
     private void sendEmailsSafely(Set<String> emails, String subject, String html) {
+        // DSI §4/§2 — Outlook désactivé si azure.ad.enabled != true
+        if (outlookMailService == null) {
+            log.info("[Formation] Mail Outlook désactivé (azure.ad.enabled=false) — {} destinataires non notifiés, sujet={}", emails.size(), subject);
+            return;
+        }
         log.info("sendEmailsSafely: envoi a {} destinataires, sujet={}", emails.size(), subject);
         int successCount = 0;
         int failCount = 0;
@@ -772,6 +778,7 @@ public class FormationWorkflowService {
 
     @SuppressWarnings("java:S3776") // mail-template branching by formation kind + audience
     public void notifyTeachersOfApprovedFormation(Formation formation) {
+        if (outlookMailService == null) return;
         // Envoyer uniquement aux enseignants concernés (participants + animateurs), pas à tous
         Set<String> recipientIds = new HashSet<>();
         if (formation.getSeances() != null) {
@@ -977,6 +984,11 @@ public class FormationWorkflowService {
     private void createOrUpdateCalendarEvent(SeanceFormation freshSeance, String eventSubject,
             String eventHtmlContent, OffsetDateTime eventStart, OffsetDateTime eventEnd,
             Set<String> emails, Formation freshFormation) {
+        // DSI §4/§2 — Outlook désactivé si azure.ad.enabled != true
+        if (outlookCalendarService == null) {
+            log.info("[Formation] Calendrier Outlook désactivé (azure.ad.enabled=false) — séance {} sans événement.", freshSeance.getIdSeance());
+            return;
+        }
         boolean isNewEvent = freshSeance.getCalendarEventId() == null;
 
         OutlookEventParameters eventParams = OutlookEventParameters.builder()
@@ -1012,6 +1024,11 @@ public class FormationWorkflowService {
     }
 
     private void sendCalendarNotification(Set<String> emails, boolean isNewEvent, Formation freshFormation) {
+        // DSI §4/§2 — Outlook désactivé si azure.ad.enabled != true
+        if (outlookMailService == null) {
+            log.info("[Formation] Mail Outlook désactivé (azure.ad.enabled=false) — notification non envoyée pour formation {}.", freshFormation.getIdFormation());
+            return;
+        }
         String subjectType = isNewEvent ? "Invitation" : "Mise a jour";
         String mailSubject = String.format("[D2F] %s : %s", subjectType, freshFormation.getTitreFormation());
         String htmlContent = buildEmailContent(freshFormation);
@@ -1027,6 +1044,11 @@ public class FormationWorkflowService {
 
     @SuppressWarnings("java:S3776") // graph API cleanup with multiple try/catch layers — single transactional unit
     public void removeSeanceFromCalendar(SeanceFormation seance) {
+        // DSI §4/§2 — Outlook désactivé si azure.ad.enabled != true
+        if (outlookCalendarService == null) {
+            log.info("[Formation] Calendrier Outlook désactivé (azure.ad.enabled=false) — suppression événement ignorée pour séance {}.", seance.getIdSeance());
+            return;
+        }
         // Initialiser les collections lazy
         if (seance.getAnimateurs() != null) Hibernate.initialize(seance.getAnimateurs());
         if (seance.getParticipants() != null) Hibernate.initialize(seance.getParticipants());
@@ -1318,7 +1340,7 @@ public class FormationWorkflowService {
         dto.setCoutRepas(formation.getCoutRepas() != null ? formation.getCoutRepas().floatValue() : 0.0f);
         dto.setCoutTransport(formation.getCoutTransport() != null ? formation.getCoutTransport().floatValue() : 0.0f);
         dto.setAcquis(formation.getAcquis());
-        dto.setCompetance(formation.getCompetance());
+        dto.setCompetence(formation.getCompetence());
         dto.setDomaine(formation.getDomaine());
         dto.setEvalMethods(formation.getEvalMethods());
         dto.setIndicateurs(formation.getIndicateurs());

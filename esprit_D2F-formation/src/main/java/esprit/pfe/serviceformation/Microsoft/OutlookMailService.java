@@ -9,11 +9,14 @@ import com.microsoft.graph.models.UserSendMailParameterSet;
 import com.microsoft.graph.requests.GraphServiceClient;
 import okhttp3.Request;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 import java.util.Collections;
 import lombok.RequiredArgsConstructor;
 
+// DSI §4/§2 — Service Azure AD conditionnel : désactivé par défaut (azure.ad.enabled=false).
 @Service
+@ConditionalOnProperty(name = "azure.ad.enabled", havingValue = "true")
 @Slf4j
 @RequiredArgsConstructor
 public class OutlookMailService {

@@ -48,7 +48,7 @@ public interface FormationRepository extends JpaRepository<Formation, Long> {
         )
         FROM Formation f
         WHERE
-          (f.competance        = :#{#filter.competence}   OR :#{#filter.competence}   IS NULL)
+          (f.competence        = :#{#filter.competence}   OR :#{#filter.competence}   IS NULL)
           AND (f.domaine        = :#{#filter.domaine}      OR :#{#filter.domaine}      IS NULL)
           AND (f.up.id          = :#{#filter.upId}         OR :#{#filter.upId}         IS NULL)
           AND (f.departement.id = :#{#filter.deptId}       OR :#{#filter.deptId}       IS NULL)
@@ -63,7 +63,7 @@ public interface FormationRepository extends JpaRepository<Formation, Long> {
         SELECT f.typeFormation, COUNT(f)
         FROM Formation f
         WHERE
-          (:#{#filter.competence} IS NULL    OR f.competance        = :#{#filter.competence})
+          (:#{#filter.competence} IS NULL    OR f.competence        = :#{#filter.competence})
           AND (:#{#filter.domaine}    IS NULL OR f.domaine           = :#{#filter.domaine})
           AND (:#{#filter.upId}       IS NULL OR f.up.id             = :#{#filter.upId})
           AND (:#{#filter.deptId}     IS NULL OR f.departement.id    = :#{#filter.deptId})
@@ -81,7 +81,7 @@ public interface FormationRepository extends JpaRepository<Formation, Long> {
                LEFT JOIN f.seances s
                LEFT JOIN s.animateurs a
           WHERE
-              (:#{#filter.competence} IS NULL     OR f.competance         = :#{#filter.competence})
+              (:#{#filter.competence} IS NULL     OR f.competence         = :#{#filter.competence})
               AND (:#{#filter.domaine}    IS NULL OR f.domaine            = :#{#filter.domaine})
               AND (:#{#filter.upId}       IS NULL OR f.up.id              = :#{#filter.upId})
               AND (:#{#filter.deptId}     IS NULL OR f.departement.id     = :#{#filter.deptId})
@@ -100,7 +100,7 @@ public interface FormationRepository extends JpaRepository<Formation, Long> {
                JOIN f.seances s
                JOIN s.animateurs a
           WHERE
-              (:#{#filter.competence} IS NULL     OR f.competance         = :#{#filter.competence})
+              (:#{#filter.competence} IS NULL     OR f.competence         = :#{#filter.competence})
               AND (:#{#filter.domaine}    IS NULL OR f.domaine            = :#{#filter.domaine})
               AND (:#{#filter.upId}       IS NULL OR f.up.id              = :#{#filter.upId})
               AND (:#{#filter.deptId}     IS NULL OR f.departement.id     = :#{#filter.deptId})
@@ -119,7 +119,7 @@ public interface FormationRepository extends JpaRepository<Formation, Long> {
                JOIN f.seances s
                JOIN s.animateurs a
           WHERE
-              (:#{#filter.competence} IS NULL     OR f.competance         = :#{#filter.competence})
+              (:#{#filter.competence} IS NULL     OR f.competence         = :#{#filter.competence})
               AND (:#{#filter.domaine}    IS NULL OR f.domaine            = :#{#filter.domaine})
               AND (:#{#filter.upId}       IS NULL OR f.up.id              = :#{#filter.upId})
               AND (:#{#filter.deptId}     IS NULL OR f.departement.id     = :#{#filter.deptId})

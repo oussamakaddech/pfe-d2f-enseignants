@@ -4,10 +4,10 @@ import esprit.pfe.serviceformation.entities.*;
 import esprit.pfe.serviceformation.repositories.*;
 import esprit.pfe.serviceformation.microsoft.OutlookMailService;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import lombok.RequiredArgsConstructor;
 
 import java.time.format.DateTimeFormatter;
 import java.time.LocalDate;
@@ -21,10 +21,16 @@ import java.util.stream.Collectors;
  */
 @Service
 @Slf4j
-@RequiredArgsConstructor
 public class FormationReminderScheduler {
     private final SeanceFormationRepository seanceFormationRepository;
-    private final OutlookMailService outlookMailService;
+
+    /** Optionnel : absent si azure.ad.enabled != true */
+    @Autowired(required = false)
+    private OutlookMailService outlookMailService;
+
+    public FormationReminderScheduler(SeanceFormationRepository seanceFormationRepository) {
+        this.seanceFormationRepository = seanceFormationRepository;
+    }
 
     /**
      * Exécuté chaque jour à 08h00 pour vérifier les séances à venir
@@ -33,6 +39,11 @@ public class FormationReminderScheduler {
     @Scheduled(cron = "0 0 8 * * *")
     @Transactional(readOnly = true)
     public void sendDailyReminders() {
+        // DSI §4/§2 — Outlook désactivé si azure.ad.enabled != true
+        if (outlookMailService == null) {
+            log.debug("[Rappel] Mail Outlook désactivé (azure.ad.enabled=false) — rappels ignorés.");
+            return;
+        }
         LocalDate today = LocalDate.now(ZoneId.of("Africa/Tunis"));
         int[] daysBefore = {7, 3, 1};
 

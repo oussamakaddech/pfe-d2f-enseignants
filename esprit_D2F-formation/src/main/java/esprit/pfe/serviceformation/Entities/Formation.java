@@ -19,6 +19,7 @@ import java.util.List;
 @SQLDelete(sql = "UPDATE formation.formations SET deleted_at = NOW() WHERE id_formation = ?")
 @Where(clause = "deleted_at IS NULL")
 @Table(name = "formations")
+@com.fasterxml.jackson.annotation.JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
 public class Formation {
 
     @Id
@@ -116,7 +117,7 @@ public class Formation {
 
     // Liste de séances
     @OneToMany(mappedBy = "formation", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
-
+    @com.fasterxml.jackson.annotation.JsonIgnore
     private List<SeanceFormation> seances;
 
     // Animateurs liés à la formation (au niveau formation, pas seulement séance)
@@ -124,6 +125,7 @@ public class Formation {
     @JoinTable(name = "formation_animateur",
             joinColumns = @JoinColumn(name = "formation_id"),
             inverseJoinColumns = @JoinColumn(name = "enseignant_id"))
+    @com.fasterxml.jackson.annotation.JsonIgnore
     private List<Enseignant> animateurs;
 
 
@@ -136,6 +138,7 @@ public class Formation {
     private Dept departement;
 
     @OneToMany(mappedBy = "formation", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @com.fasterxml.jackson.annotation.JsonIgnore
     private List<Document> documents;
 
     @OneToMany(
@@ -143,9 +146,11 @@ public class Formation {
             cascade = CascadeType.ALL,
             orphanRemoval = true
     )
+    @com.fasterxml.jackson.annotation.JsonIgnore
     private List<Inscription> inscriptions = new ArrayList<>();
 
     @OneToMany(mappedBy = "formation", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
+    @com.fasterxml.jackson.annotation.JsonIgnore
     private List<FormationCompetence> formationCompetences = new ArrayList<>();
 
     @Column(name = "inscriptions_ouvertes", nullable = false)
