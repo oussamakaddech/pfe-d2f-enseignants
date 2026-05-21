@@ -1,7 +1,6 @@
 package tn.esprit.d2f;
 
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 class BesoinsFormationApplicationTest {
