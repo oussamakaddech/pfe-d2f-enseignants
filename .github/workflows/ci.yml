@@ -1,7 +1,8 @@
 # =============================================================================
 # D2F CI Pipeline - DSI 2025-2026
 # Ordre : lint -> test -> security (OWASP/npm audit bloquant)
-#         -> sonar (Quality Gate bloquant, runner self-hosted) -> build & push Docker
+#         -> sonar-dashboard-refresh -> sonar (Quality Gate bloquant, runner self-hosted)
+#         -> build & push Docker
 # =============================================================================
 
 name: D2F CI Pipeline
@@ -17,10 +18,20 @@ on:
   pull_request:
     branches: [ main, develop ]
   workflow_dispatch:
+    inputs:
+      skip_sonar:
+        description: 'Skip SonarQube analysis'
+        type: boolean
+        default: false
+      skip_docker:
+        description: 'Skip Docker build & push'
+        type: boolean
+        default: false
 
 env:
   JAVA_VERSION: '17'
   NODE_VERSION: '20'
+  PYTHON_VERSION: '3.11'
   MAVEN_OPTS: '-Xmx3072m'
 
 jobs:
@@ -86,7 +97,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.11'
+          python-version: ${{ env.PYTHON_VERSION }}
           cache: 'pip'
           cache-dependency-path: ${{ matrix.service }}/requirements*.txt
 
@@ -222,37 +233,132 @@ jobs:
         working-directory: esprit_D2F-webapp
         run: npm audit --audit-level=high --omit=dev
 
+  # -- SonarQube Dashboard Refresh (cleanup doublons + projets obsoletes) --------
+  # DSI S3.7 - Nettoyage automatique avant analyse pour un dashboard propre.
+  sonar-dashboard-refresh:
+    name: SonarQube Dashboard Refresh
+    runs-on: self-hosted
+    needs: [security-backend, security-frontend, test-python]
+    if: >-
+      vars.SONAR_ENABLED == 'true' &&
+      !inputs.skip_sonar &&
+      (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Generate ephemeral SonarQube token
+        id: sonar-token
+        shell: pwsh
+        env:
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+          SONAR_USER: ${{ secrets.SONAR_USER || 'admin' }}
+          SONAR_PASS: ${{ secrets.SONAR_PASS }}
+        run: |
+          $auth = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes("${env:SONAR_USER}:${env:SONAR_PASS}"))
+          $headers = @{ Authorization = "Basic $auth"; "Content-Type" = "application/json" }
+          $tokenName = "ci-refresh-$(Get-Date -Format 'yyyyMMdd-HHmmss')"
+          $resp = Invoke-WebRequest -Uri "$env:SONAR_HOST_URL/api/user_tokens/generate?name=$tokenName" -Method Post -Headers $headers -UseBasicParsing
+          $token = ($resp.Content | ConvertFrom-Json).token
+          echo "sonar-token=$token" >> $env:GITHUB_OUTPUT
+
+      - name: Clean duplicate / obsolete projects
+        shell: pwsh
+        env:
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+          SONAR_TOKEN: ${{ steps.sonar-token.outputs.sonar-token }}
+        run: |
+          $auth = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes("${env:SONAR_TOKEN}:"))
+          $headers = @{ Authorization = "Basic $auth" }
+
+          # Projets valides a conserver
+          $projectsToKeep = @(
+            "d2f_api_gateway", "d2f_authentification", "d2f_besoin_formation",
+            "d2f_certificat", "d2f_competence", "d2f_evaluation", "d2f_formation",
+            "d2f_analyse", "d2f_webapp", "d2f_rice", "d2f_predictive_analytics",
+            "d2f_recommandation_formateur"
+          )
+
+          # Recuperer tous les projets existants
+          $resp = Invoke-WebRequest -Uri "$env:SONAR_HOST_URL/api/projects/search?ps=500" -Headers $headers -UseBasicParsing
+          $projects = ($resp.Content | ConvertFrom-Json).components
+
+          Write-Host "[$($projects.Count) projets trouves sur SonarQube]"
+
+          foreach ($project in $projects) {
+            $key = $project.key
+            # Supprimer les doublons connus
+            if ($key -eq "d2f_formation" -or $key -eq "coded2f_formation" -or $key -eq "service-formation") {
+              Write-Host "  [DELETE] Doublon: $key" -ForegroundColor Red
+              Invoke-WebRequest -Uri "$env:SONAR_HOST_URL/api/projects/delete?project=$key" -Method Post -Headers $headers -UseBasicParsing
+            }
+            # Supprimer les projets obsoletes
+            elseif (-not ($projectsToKeep -contains $key)) {
+              Write-Host "  [DELETE] Obsolete: $key" -ForegroundColor Yellow
+              Invoke-WebRequest -Uri "$env:SONAR_HOST_URL/api/projects/delete?project=$key" -Method Post -Headers $headers -UseBasicParsing
+            } else {
+              Write-Host "  [KEEP] $key" -ForegroundColor Green
+            }
+          }
+
+      - name: Revoke ephemeral token
+        if: always()
+        shell: pwsh
+        env:
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+          SONAR_TOKEN: ${{ steps.sonar-token.outputs.sonar-token }}
+        run: |
+          $auth = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes("${env:SONAR_TOKEN}:"))
+          $headers = @{ Authorization = "Basic $auth" }
+          try {
+            Invoke-WebRequest -Uri "$env:SONAR_HOST_URL/api/user_tokens/revoke?name=ci-refresh-" -Method Post -Headers $headers -UseBasicParsing
+          } catch { Write-Host "Token cleanup skipped" }
+
   # -- SonarQube Quality Gate (runner self-hosted -> SonarQube localhost:9000) --
   # Active si SONAR_ENABLED=true dans Actions Variables.
   sonar:
     name: SonarQube - ${{ matrix.module }}
     runs-on: self-hosted
-    needs: [security-backend, security-frontend, test-python]
+    needs: [sonar-dashboard-refresh]
     if: >-
       vars.SONAR_ENABLED == 'true' &&
+      !inputs.skip_sonar &&
       (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
     strategy:
       fail-fast: false
       matrix:
         include:
-          - { module: esprit_D2F-api-gateway,      projectKey: d2f_api_gateway }
-          - { module: esprit_D2F-authentification,  projectKey: d2f_authentification }
-          - { module: esprit_D2F-besoin-formation,  projectKey: d2f_besoin_formation }
-          - { module: esprit_D2F-certificat,        projectKey: d2f_certificat }
-          - { module: esprit_D2F-competence,        projectKey: d2f_competence }
-          - { module: esprit_D2F-evaluation,        projectKey: d2f_evaluation }
-          - { module: esprit_D2F-formation,         projectKey: d2f_formation }
+          # --- Services Java (Maven + JaCoCo) ---
+          - { module: esprit_D2F-api-gateway,              projectKey: d2f_api_gateway,              type: java }
+          - { module: esprit_D2F-authentification,         projectKey: d2f_authentification,         type: java }
+          - { module: esprit_D2F-besoin-formation,         projectKey: d2f_besoin_formation,         type: java }
+          - { module: esprit_D2F-certificat,               projectKey: d2f_certificat,               type: java }
+          - { module: esprit_D2F-competence,               projectKey: d2f_competence,               type: java }
+          - { module: esprit_D2F-evaluation,               projectKey: d2f_evaluation,               type: java }
+          - { module: esprit_D2F-formation,                projectKey: d2f_formation,                type: java }
+          - { module: esprit_D2F-analyse,                  projectKey: d2f_analyse,                  type: java }
+          # --- Webapp (Vite + Vitest + lcov) ---
+          - { module: esprit_D2F-webapp,                   projectKey: d2f_webapp,                   type: web }
+          # --- Services Python (pytest + cov) ---
+          - { module: esprit_D2F-rice,                     projectKey: d2f_rice,                     type: python }
+          - { module: esprit_D2F-predictive-analytics,     projectKey: d2f_predictive_analytics,     type: python }
+          - { module: esprit_D2F-recommandation-formateur, projectKey: d2f_recommandation_formateur, type: python }
     steps:
       - uses: actions/checkout@v4
         with: { fetch-depth: 0 }
-      - uses: actions/setup-java@v4
+
+      # --- Java : Maven + JaCoCo ---
+      - name: Setup Java
+        if: matrix.type == 'java'
+        uses: actions/setup-java@v4
         with: { java-version: '17', distribution: 'temurin', cache: 'maven' }
 
       - name: Install shared security module
+        if: matrix.type == 'java'
         working-directory: esprit_D2F-common-security
         run: mvn -B clean install -DskipTests
 
-      - name: Sonar scan + Quality Gate wait
+      - name: Sonar scan Java (Maven)
+        if: matrix.type == 'java'
         working-directory: ${{ matrix.module }}
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
@@ -262,6 +368,73 @@ jobs:
             -Dsonar.projectKey=${{ matrix.projectKey }} \
             -Dsonar.host.url=$SONAR_HOST_URL \
             -Dsonar.token=$SONAR_TOKEN \
+            -Dsonar.qualitygate.wait=true \
+            -Dsonar.qualitygate.timeout=300
+
+      # --- Webapp : npm + Vitest + sonar-scanner ---
+      - name: Setup Node
+        if: matrix.type == 'web'
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: esprit_D2F-webapp/package-lock.json
+
+      - name: Install & test coverage (webapp)
+        if: matrix.type == 'web'
+        working-directory: ${{ matrix.module }}
+        run: |
+          npm ci --legacy-peer-deps
+          npm run test:coverage
+
+      - name: Sonar scan Webapp (sonar-scanner)
+        if: matrix.type == 'web'
+        working-directory: ${{ matrix.module }}
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+        run: |
+          sonar-scanner \
+            -Dsonar.projectKey=${{ matrix.projectKey }} \
+            -Dsonar.host.url=$SONAR_HOST_URL \
+            -Dsonar.login=$SONAR_TOKEN \
+            -Dsonar.qualitygate.wait=true \
+            -Dsonar.qualitygate.timeout=300
+
+      # --- Python : pytest + cov + sonar-scanner ---
+      - name: Setup Python
+        if: matrix.type == 'python'
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+          cache-dependency-path: ${{ matrix.module }}/requirements*.txt
+
+      - name: Install dependencies (Python)
+        if: matrix.type == 'python'
+        working-directory: ${{ matrix.module }}
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-cov
+
+      - name: Test + coverage (Python)
+        if: matrix.type == 'python'
+        working-directory: ${{ matrix.module }}
+        run: |
+          python -m pytest --cov=. --cov-report=xml --junit-xml=junit-results.xml || true
+
+      - name: Sonar scan Python (sonar-scanner)
+        if: matrix.type == 'python'
+        working-directory: ${{ matrix.module }}
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+        run: |
+          sonar-scanner \
+            -Dsonar.projectKey=${{ matrix.projectKey }} \
+            -Dsonar.host.url=$SONAR_HOST_URL \
+            -Dsonar.login=$SONAR_TOKEN \
             -Dsonar.qualitygate.wait=true \
             -Dsonar.qualitygate.timeout=300
 
@@ -276,6 +449,8 @@ jobs:
       needs.security-frontend.result == 'success' &&
       needs.test-python.result == 'success' &&
       (needs.sonar.result == 'success' || needs.sonar.result == 'skipped') &&
+      !inputs.skip_docker &&
+.\scripts\refresh-sonar-dashboard.ps1
       github.event_name == 'push' &&
       (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
     strategy:

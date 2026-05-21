@@ -1,6 +1,7 @@
 package esprit.pfe.serviceformation.controllers;
 
 import esprit.pfe.serviceformation.microsoft.OutlookMailService;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import lombok.RequiredArgsConstructor;
@@ -12,6 +13,7 @@ import java.util.Map;
 @RequestMapping("/api/v1/mail")
 @RequiredArgsConstructor
 @Slf4j
+@ConditionalOnProperty(name = "azure.ad.enabled", havingValue = "true")
 public class MailController {
     private static final String ERROR_KEY = "error";
     private final OutlookMailService mailService;

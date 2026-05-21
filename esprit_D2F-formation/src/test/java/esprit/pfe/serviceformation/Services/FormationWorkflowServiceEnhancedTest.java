@@ -626,7 +626,7 @@ class FormationWorkflowServiceEnhancedTest {
         Formation formation = createFormation(1L, EtatFormation.VISIBLE);
         formation.setTitreFormation("Formation Test");
         formation.setTypeFormation(TypeFormation.INTERNE);
-        formation.setPeriodCode(PeriodCode.P1);
+        formation.setPeriodCode(PeriodCode.WINTER);
         formation.setCustomPeriodLabel("Période personnalisée");
 
         Up up = new Up();
@@ -646,7 +646,7 @@ class FormationWorkflowServiceEnhancedTest {
 
         assertThat(result).isNotEmpty();
         assertThat(result.get(0).getTitreFormation()).isEqualTo("Formation Test");
-        assertThat(result.get(0).getPeriodCode()).isEqualTo("P1");
+        assertThat(result.get(0).getPeriodCode()).isEqualTo("WINTER");
         assertThat(result.get(0).getCustomPeriodLabel()).isEqualTo("Période personnalisée");
     }
 

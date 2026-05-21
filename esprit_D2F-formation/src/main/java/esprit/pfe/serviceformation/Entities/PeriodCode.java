@@ -1,5 +1,5 @@
 package esprit.pfe.serviceformation.entities;
 
 public enum PeriodCode {
-    WINTER, SUMMER, SPRINT, WORKSHOP, OTHER
+    P1, P2, WINTER, SUMMER, SPRINT, WORKSHOP, OTHER
 }

@@ -30,7 +30,7 @@ public class FormationDTO {
     private String bureauFormationTelephone;
     private int chargeHoraireGlobal;
     private String domaine;
-    private String competance;
+    private String competence;
     private String populationCible;
     private String objectifs;
     private String objectifsPedago;

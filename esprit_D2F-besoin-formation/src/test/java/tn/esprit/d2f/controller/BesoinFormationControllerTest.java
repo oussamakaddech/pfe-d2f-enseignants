@@ -66,7 +66,7 @@ class BesoinFormationControllerTest {
         mockMvc.perform(post("/api/v1/besoins-formations")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().isOk());
+                .andExpect(status().isCreated());
     }
 
     @Test

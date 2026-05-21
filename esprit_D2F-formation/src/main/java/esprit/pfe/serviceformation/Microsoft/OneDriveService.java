@@ -8,6 +8,7 @@ import com.microsoft.graph.requests.GraphServiceClient;
 import esprit.pfe.serviceformation.dto.OneDriveItemDTO;
 import lombok.extern.slf4j.Slf4j;
 import okhttp3.Request;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 import lombok.RequiredArgsConstructor;
 
@@ -17,7 +18,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+// DSI §4/§2 — Service Azure AD conditionnel : désactivé par défaut (azure.ad.enabled=false).
 @Service
+@ConditionalOnProperty(name = "azure.ad.enabled", havingValue = "true")
 @Slf4j
 @RequiredArgsConstructor
 public class OneDriveService {

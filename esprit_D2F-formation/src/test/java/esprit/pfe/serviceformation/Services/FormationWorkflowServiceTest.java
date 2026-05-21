@@ -470,13 +470,13 @@ class FormationWorkflowServiceTest {
     @DisplayName("updateFormationWorkflow - Parsing PeriodCode (valide et invalide)")
     void shouldHandlePeriodCodeParsing() {
         Formation existing = createFullFormation();
-        request.setPeriodCode("P1"); // Valid
-        
+        request.setPeriodCode("WINTER"); // Valid
+
         lenient().when(formationRepository.findById(anyLong())).thenReturn(Optional.of(existing));
         lenient().when(formationRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         formationWorkflowService.updateFormationWorkflow(1L, request);
-        assertThat(existing.getPeriodCode()).isEqualTo(PeriodCode.P1);
+        assertThat(existing.getPeriodCode()).isEqualTo(PeriodCode.WINTER);
 
         request.setPeriodCode("INVALID");
         formationWorkflowService.updateFormationWorkflow(1L, request);

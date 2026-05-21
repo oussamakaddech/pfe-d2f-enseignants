@@ -58,8 +58,8 @@ class FormationWorkflowServiceHelperTest {
     void shouldInitFormationFromRequest() {
         request.setUpId("UP1");
         request.setDepartementId("DEP1");
-        request.setPeriodCode("P1");
-        
+        request.setPeriodCode("WINTER");
+
         when(upRepository.findById("UP1")).thenReturn(Optional.of(new Up()));
         when(departementRepository.findById("DEP1")).thenReturn(Optional.of(new Dept()));
 
@@ -67,7 +67,7 @@ class FormationWorkflowServiceHelperTest {
 
         assertThat(formation.getIdBesoinFormation()).isEqualTo(100L);
         assertThat(formation.getTitreFormation()).isEqualTo("Test Helper");
-        assertThat(formation.getPeriodCode()).isEqualTo(PeriodCode.P1);
+        assertThat(formation.getPeriodCode()).isEqualTo(PeriodCode.WINTER);
         assertThat(formation.getEtatFormation()).isEqualTo(EtatFormation.ENREGISTRE);
     }
 

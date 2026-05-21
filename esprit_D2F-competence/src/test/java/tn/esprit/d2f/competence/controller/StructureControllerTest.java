@@ -74,7 +74,7 @@ class StructureControllerTest {
     void getStructureComplete_ShouldReturnOkWithStructure() {
         when(structureService.getStructureComplete()).thenReturn(structureArbreDTO);
 
-        ResponseEntity<StructureArbreDTO> response = structureController.getStructureComplete();
+        ResponseEntity<StructureArbreDTO> response = structureController.getStructureComplete(null, null);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody()).isNotNull();
