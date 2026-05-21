@@ -26,8 +26,8 @@ class OpenApiConfigTest {
             assertEquals("D2F — Service Authentification", api.getInfo().getTitle());
             assertEquals("API d'authentification et gestion des utilisateurs JWT.", api.getInfo().getDescription());
             assertEquals("1.0.0", api.getInfo().getVersion());
-            assertEquals("D2F Team", api.getInfo().getContact().getName());
-            assertEquals("seddik.bouzayani@esprit.tn", api.getInfo().getContact().getEmail());
+            assertEquals("DSI ESPRIT", api.getInfo().getContact().getName());
+            assertEquals("dsi@esprit.tn", api.getInfo().getContact().getEmail());
         } catch (Exception e) {
             fail("Exception occurred: " + e.getMessage());
         }
