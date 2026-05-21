@@ -47,7 +47,9 @@ function Get-SonarToken {
 function Test-Wanted {
     param([string]$ModulePath)
     if ($Only.Count -eq 0) { return $true }
-    return $Only -contains $ModulePath
+    # Expand comma-separated values (e.g. when passed via Start-Process -File)
+    $expanded = $Only | ForEach-Object { $_ -split ',' } | Where-Object { $_.Trim() -ne '' } | ForEach-Object { $_.Trim() }
+    return $expanded -contains $ModulePath
 }
 
 function Invoke-JavaAnalysis {
