@@ -36,8 +36,8 @@ $pythonModules = @(
 # --- Helpers ---
 function Get-SonarToken {
     param([string]$Url, [string]$Username, [SecureString]$Secret)
-    $pwd = [System.Net.NetworkCredential]::new("", $Secret).Password
-    $auth = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes("${Username}:$pwd"))
+    $plainPwd = [System.Net.NetworkCredential]::new("", $Secret).Password
+    $auth = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes("${Username}:$plainPwd"))
     $tokenName = "monorepo-scanner-$(Get-Date -Format 'yyyyMMdd-HHmmss')"
     $headers = @{ Authorization = "Basic $auth"; "Content-Type" = "application/json" }
     $resp = Invoke-WebRequest -Uri "$Url/api/user_tokens/generate?name=$tokenName" -Method Post -Headers $headers -UseBasicParsing -ErrorAction Stop
@@ -89,7 +89,10 @@ function Invoke-WebAnalysis {
     try {
         Write-Host "  [1/3] npm ci..."
         npm ci --legacy-peer-deps --silent
-        if ($LASTEXITCODE -ne 0) { throw "npm ci failed" }
+        if ($LASTEXITCODE -ne 0) {
+            Write-Host "  [WARN] npm ci échoué (devserver en cours?). Utilisation des node_modules existants." -ForegroundColor Yellow
+            if (-not (Test-Path "node_modules")) { throw "npm ci failed et node_modules absent" }
+        }
         Write-Host "  [2/3] tests + coverage..."
         npm run test:coverage 2>&1 | Out-Null  # ne pas bloquer si fail, laisser Sonar décider
         Write-Host "  [3/3] sonar-scanner..."
@@ -124,7 +127,12 @@ function Invoke-PythonAnalysis {
         python -m pip install -q -r requirements.txt
         python -m pip install -q pytest pytest-cov
         Write-Host "  [2/3] pytest + coverage..."
-        python -m pytest --cov=. --cov-report=xml --junit-xml=junit-results.xml 2>&1 | Out-Null
+        # $ErrorActionPreference = "Stop" makes PS5.1 throw on native stderr → use Continue locally
+        $savedPref = $ErrorActionPreference
+        $ErrorActionPreference = "Continue"
+        python -m pytest -W ignore::DeprecationWarning -W ignore::PendingDeprecationWarning `
+            --cov=. --cov-report=xml --junit-xml=junit-results.xml 2>&1 | Out-Null
+        $ErrorActionPreference = $savedPref
         Write-Host "  [3/3] sonar-scanner..."
         if (-not (Get-Command sonar-scanner -ErrorAction SilentlyContinue)) {
             throw "sonar-scanner introuvable dans le PATH"

@@ -29,7 +29,7 @@ class OpenApiConfigTest {
 
         OpenAPI api = (OpenAPI) openApiObj;
         assertNotNull(api.getInfo());
-        assertEquals("D2F - Service Évaluation", api.getInfo().getTitle());
+        assertEquals("D2F — Service Évaluation", api.getInfo().getTitle());
         assertEquals("API de gestion des évaluations formateur et globales", api.getInfo().getDescription());
         assertEquals("1.0.0", api.getInfo().getVersion());
     }
