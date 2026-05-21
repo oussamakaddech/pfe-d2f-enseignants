@@ -8,7 +8,7 @@ interface Props {
   data: AnalyseData;
 }
 
-export default function ProfileCard({ data }: Props) {
+export default function ProfileCard({ data }: Readonly<Props>) {
   const risk = Math.round((data.overallRiskScore || 0) * 100);
   const hasCritical = data.gaps.some((g) => g.gravite === "elevee");
 

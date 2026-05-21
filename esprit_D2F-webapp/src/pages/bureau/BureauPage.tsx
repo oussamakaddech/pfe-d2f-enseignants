@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, type RefObject, type Key } from "react";
 import {
   Table,
   Button,
@@ -26,11 +26,52 @@ import "@/styles/pages/bureau-page.css";
 
 const { Option: _Option } = Input as any;
 
+type SearchDropdownProps = Readonly<{
+  placeholder: string;
+  selectedKeys: Key[];
+  setSelectedKeys: (keys: Key[]) => void;
+  confirm: () => void;
+  clearFilters?: () => void;
+  onSearch: (keys: string[], confirm: () => void) => void;
+  onReset: (clearFilters: () => void) => void;
+  inputRef: RefObject<any>;
+}>;
+
+function ColumnSearchDropdown({ placeholder, selectedKeys, setSelectedKeys, confirm, clearFilters, onSearch, onReset, inputRef }: SearchDropdownProps) {
+  return (
+    <div style={{ padding: 8 }}>
+      <Input
+        ref={inputRef}
+        placeholder={`Rechercher ${placeholder}`}
+        value={selectedKeys[0] as string}
+        onChange={(e) => setSelectedKeys(e.target.value ? [e.target.value] : [])}
+        onPressEnter={() => onSearch(selectedKeys as string[], confirm)}
+        style={{ marginBottom: 8, display: "block" }}
+      />
+      <Button
+        type="primary"
+        onClick={() => onSearch(selectedKeys as string[], confirm)}
+        icon={<SearchOutlined />}
+        size="small"
+        style={{ width: 90, marginRight: 8 }}
+      >
+        OK
+      </Button>
+      <Button onClick={() => clearFilters && onReset(clearFilters)} size="small" style={{ width: 90 }}>
+        Réinitialiser
+      </Button>
+    </div>
+  );
+}
+
+function ColumnSearchIcon({ filtered }: Readonly<{ filtered: boolean }>) {
+  return <SearchOutlined style={{ color: filtered ? "#1890ff" : undefined }} />;
+}
+
 export default function BureauPage() {
   const { message: msgApi } = useAppNotification();
   const [data, setData] = useState<Bureau[]>([]);
   const [loading, setLoading] = useState(false);
-  const [searchText, setSearchText] = useState("");
   const [searchedColumn, setSearchedColumn] = useState("");
   const searchInput = useRef<any>(null);
 
@@ -114,43 +155,27 @@ export default function BureauPage() {
   // ── Recherche colonne ─────────────────────────────────────────────────
   const handleSearch = (selectedKeys: string[], confirm: () => void, dataIndex: string) => {
     confirm();
-    setSearchText(selectedKeys[0] || "");
     setSearchedColumn(dataIndex);
   };
 
   const handleReset = (clearFilters: () => void) => {
     clearFilters();
-    setSearchText("");
   };
 
   const getColumnSearchProps = (dataIndex: keyof Bureau, placeholder: string) => ({
     filterDropdown: ({ setSelectedKeys, selectedKeys, confirm, clearFilters }: any) => (
-      <div style={{ padding: 8 }}>
-        <Input
-          ref={searchInput}
-          placeholder={`Rechercher ${placeholder}`}
-          value={selectedKeys[0]}
-          onChange={(e) => setSelectedKeys(e.target.value ? [e.target.value] : [])}
-          onPressEnter={() => handleSearch(selectedKeys, confirm, dataIndex)}
-          style={{ marginBottom: 8, display: "block" }}
-        />
-        <Button
-          type="primary"
-          onClick={() => handleSearch(selectedKeys, confirm, dataIndex)}
-          icon={<SearchOutlined />}
-          size="small"
-          style={{ width: 90, marginRight: 8 }}
-        >
-          OK
-        </Button>
-        <Button onClick={() => handleReset(clearFilters)} size="small" style={{ width: 90 }}>
-          Réinitialiser
-        </Button>
-      </div>
+      <ColumnSearchDropdown
+        placeholder={placeholder}
+        selectedKeys={selectedKeys}
+        setSelectedKeys={setSelectedKeys}
+        confirm={confirm}
+        clearFilters={clearFilters}
+        onSearch={(keys, conf) => handleSearch(keys, conf, dataIndex)}
+        onReset={handleReset}
+        inputRef={searchInput}
+      />
     ),
-    filterIcon: (filtered: boolean) => (
-      <SearchOutlined style={{ color: filtered ? "#1890ff" : undefined }} />
-    ),
+    filterIcon: (filtered: boolean) => <ColumnSearchIcon filtered={filtered} />,
     onFilter: (value: any, record: Bureau) =>
       String(record[dataIndex] ?? "").toLowerCase().includes(String(value).toLowerCase()),
     filterDropdownProps: {
@@ -261,7 +286,7 @@ export default function BureauPage() {
                 <h2 className="bureau-hero-title">Gestion des Bureaux</h2>
                 <span className="bureau-hero-badge">
                   {data.length}
-                  <span style={{ fontWeight: 400, marginLeft: 4 }}>bureau{data.length !== 1 ? "x" : ""}</span>
+                  <span style={{ fontWeight: 400, marginLeft: 4 }}>bureau{data.length === 1 ? "" : "x"}</span>
                 </span>
               </div>
               <div className="bureau-hero-subtitle">Gérer les bureaux externes (nom, email, téléphone)</div>
@@ -319,7 +344,7 @@ export default function BureauPage() {
             columns={columns}
             rowKey="id"
             loading={loading}
-            pagination={{ pageSize: 10, showTotal: (total) => `${total} bureau${total !== 1 ? "x" : ""}` }}
+            pagination={{ pageSize: 10, showTotal: (total) => `${total} bureau${total === 1 ? "" : "x"}` }}
           />
         </Card>
       </div>
@@ -333,7 +358,7 @@ export default function BureauPage() {
         confirmLoading={saveLoading}
         okText={modalMode === "create" ? "Créer" : "Enregistrer"}
         cancelText="Annuler"
-        destroyOnClose
+        destroyOnHidden
         width={480}
       >
         <Form form={form} layout="vertical" style={{ marginTop: 16 }}>

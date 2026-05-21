@@ -192,7 +192,6 @@ export default function BesoinForm() {
   const [compDomaines, setCompDomaines] = useState<any[]>([]);
   const [compCompetences, setCompCompetences] = useState<any[]>([]);
   const [selectedCompLinks, setSelectedCompLinks] = useState<any[]>([]);
-  const [rowSousComps, setRowSousComps] = useState<Record<number, any[]>>({});
   const [rowSavoirs, setRowSavoirs] = useState<Record<number, any[]>>({});
   const [compLoaded, setCompLoaded] = useState(false);
   const [compSearch, setCompSearch] = useState("");
@@ -288,7 +287,6 @@ export default function BesoinForm() {
       setSubmitted(true);
       form.resetFields();
       setSelectedCompLinks([]);
-      setRowSousComps({});
       setRowSavoirs({});
       setCompLoaded(false);
       setCompSearch("");
@@ -425,16 +423,14 @@ export default function BesoinForm() {
           const isCollectif  = typeBesoin === "COLLECTIF";
           const showSection  = canManageParticipants || isIndividuel || isCollectif;
           if (!showSection) return null;
-          const sectionTitle = canManageParticipants
-            ? "Liste des participants"
-            : isCollectif
-            ? "Liste des enseignants participants"
-            : "Autres enseignants participants";
-          const sectionHint = canManageParticipants
-            ? "Optionnel — vous pouvez importer un fichier Excel ou saisir manuellement"
-            : isCollectif
-            ? "Ajoutez les enseignants qui participeront à cette formation collective"
-            : "Optionnel — ajoutez les enseignants qui participeront avec vous";
+          let sectionTitle: string;
+          if (canManageParticipants) sectionTitle = "Liste des participants";
+          else if (isCollectif) sectionTitle = "Liste des enseignants participants";
+          else sectionTitle = "Autres enseignants participants";
+          let sectionHint: string;
+          if (canManageParticipants) sectionHint = "Optionnel — vous pouvez importer un fichier Excel ou saisir manuellement";
+          else if (isCollectif) sectionHint = "Ajoutez les enseignants qui participeront à cette formation collective";
+          else sectionHint = "Optionnel — ajoutez les enseignants qui participeront avec vous";
           return (
             <>
               <SectionLabel
@@ -626,13 +622,10 @@ export default function BesoinForm() {
         title="Compétences visées (référentiel RICE)"
         hint="Optionnel — sélectionnez les compétences et savoirs ciblés par cette formation"
       />
-      {!compLoaded ? (
-        <div style={{ textAlign: "center", padding: "32px 0" }}>
-          <Spin tip="Chargement du référentiel…" />
-        </div>
-      ) : compDomaines.length === 0 && compCompetences.length === 0 ? (
-        <Empty description="Référentiel non disponible" />
-      ) : (
+      {compLoaded ? (
+        compDomaines.length === 0 && compCompetences.length === 0 ? (
+          <Empty description="Référentiel non disponible" />
+        ) : (
         <>
           <div style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap", alignItems: "center" }}>
             <Input
@@ -658,7 +651,7 @@ export default function BesoinForm() {
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 12 }}>
               {selectedCompLinks.map((link, idx) => (
-                <div key={idx} style={{ display: "flex", gap: 8, alignItems: "flex-start", background: "#fafafa", border: "1px solid #f0f0f0", borderRadius: 8, padding: "12px 14px" }}>
+                <div key={`comp-${link.competenceId ?? idx}`} style={{ display: "flex", gap: 8, alignItems: "flex-start", background: "#fafafa", border: "1px solid #f0f0f0", borderRadius: 8, padding: "12px 14px" }}>
                   <span style={{ minWidth: 22, fontWeight: 600, color: "#999", paddingTop: 4 }}>{idx + 1}</span>
                   <div style={{ flex: 1, display: "flex", gap: 8, flexWrap: "wrap" }}>
                     <Select
@@ -725,6 +718,11 @@ export default function BesoinForm() {
             Ajouter une compétence
           </Button>
         </>
+      )
+      ) : (
+        <div style={{ textAlign: "center", padding: "32px 0" }}>
+          <Spin tip="Chargement du référentiel…" />
+        </div>
       )}
     </div>,
 

@@ -14,7 +14,7 @@ interface Props {
   data: AnalyseGap[];
 }
 
-export default function GapTable({ data }: Props) {
+export default function GapTable({ data }: Readonly<Props>) {
   const columns = [
     {
       title: "Compétence",

@@ -18,8 +18,6 @@ export default function useStructureData() {
   const { message } = useAppNotification();
   const [structure, setStructure] = useState(null);
   const [structureLoading, setStructureLoading] = useState(false);
-  const [structureLoaded, setStructureLoaded] = useState(false);
-
   const [searchResults, setSearchResults] = useState(null);
   const [searchKeyword, setSearchKeyword] = useState("");
   const [selectedDomaine, setSelectedDomaine] = useState(null);
@@ -54,11 +52,9 @@ export default function useStructureData() {
 
   const loadStructure = useCallback(async (upId?: number | null, deptId?: number | null) => {
     setStructureLoading(true);
-    setStructureLoaded(false);
     try {
       const data = await CompetenceService.structure.getArbreComplet(upId, deptId);
       setStructure(data);
-      setStructureLoaded(true);
     } catch (err) {
       message.error("Erreur lors du chargement de la structure");
       console.error(err);
@@ -68,7 +64,6 @@ export default function useStructureData() {
   }, []);
 
   const invalidateStructure = useCallback(() => {
-    setStructureLoaded(false);
     loadStructure(filterUpId, filterDeptId);
   }, [filterUpId, filterDeptId, loadStructure]);
 

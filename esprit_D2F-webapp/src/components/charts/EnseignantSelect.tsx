@@ -13,13 +13,31 @@ interface Props {
   size?: "small" | "middle" | "large";
 }
 
+type OptionData = { value: string; label: string; risk: number };
+
+function scoreColor(score: number): string {
+  if (score >= 0.7) return "#ef4444";
+  if (score >= 0.4) return "#f59e0b";
+  return "#10b981";
+}
+
+function TeacherOption({ data }: Readonly<{ data: OptionData }>) {
+  return (
+    <Space>
+      <Avatar size={20} icon={<UserOutlined />} style={{ backgroundColor: scoreColor(data.risk ?? 0) }} />
+      <Text>{data.label}</Text>
+      <Text type="secondary" style={{ fontSize: 11 }}>{data.value}</Text>
+    </Space>
+  );
+}
+
 export default function EnseignantSelect({
   value,
   onChange,
   teachers,
   loading = false,
   size = "large",
-}: Props) {
+}: Readonly<Props>) {
   const options = useMemo(
     () =>
       teachers
@@ -52,19 +70,7 @@ export default function EnseignantSelect({
           String(option.value).toLowerCase().includes(t)
         );
       }}
-      optionRender={(option) => {
-        const score = (option.data as { risk?: number }).risk ?? 0;
-        const color = score >= 0.7 ? "#ef4444" : score >= 0.4 ? "#f59e0b" : "#10b981";
-        return (
-          <Space>
-            <Avatar size={20} icon={<UserOutlined />} style={{ backgroundColor: color }} />
-            <Text>{String(option.label)}</Text>
-            <Text type="secondary" style={{ fontSize: 11 }}>
-              {String(option.value)}
-            </Text>
-          </Space>
-        );
-      }}
+      optionRender={(option) => <TeacherOption data={option.data as OptionData} />}
       options={options}
     />
   );

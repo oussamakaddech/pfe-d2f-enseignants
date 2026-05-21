@@ -34,7 +34,7 @@ export default function AppPageHeader({
   actions,
   tags,
   divider = true,
-}: AppPageHeaderProps) {
+}: Readonly<AppPageHeaderProps>) {
   return (
     <div
       style={{

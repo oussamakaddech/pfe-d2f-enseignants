@@ -4,7 +4,23 @@ import { TeacherRiskIndicator } from "@/services/analyse/AnalysePredictiveServic
 
 const { Text } = Typography;
 
-const riskColor = (s: number): string => (s >= 0.7 ? "#ef4444" : s >= 0.4 ? "#f59e0b" : "#10b981");
+function riskColor(s: number): string {
+  if (s >= 0.7) return "#ef4444";
+  if (s >= 0.4) return "#f59e0b";
+  return "#10b981";
+}
+
+function badgeColor(v: number): string {
+  if (v > 3) return "#10b981";
+  if (v > 0) return "#f59e0b";
+  return "#ef4444";
+}
+
+function tagColor(v: string): string {
+  if (v === "OK") return "green";
+  if (v?.includes("entretien")) return "red";
+  return "orange";
+}
 
 interface Props {
   data: TeacherRiskIndicator[];
@@ -12,7 +28,7 @@ interface Props {
   onAnalyze?: (teacherId: string) => void;
 }
 
-export default function RiskTable({ data, threshold, onAnalyze }: Props) {
+export default function RiskTable({ data, threshold, onAnalyze }: Readonly<Props>) {
   const columns = [
     {
       title: "Enseignant",
@@ -46,8 +62,8 @@ export default function RiskTable({ data, threshold, onAnalyze }: Props) {
       dataIndex: "disengagement_signals",
       render: (signals: string[]) => (
         <Space wrap size={4}>
-          {(signals || []).map((s, i) => (
-            <Tag key={i} color="volcano" style={{ fontSize: 11 }}>{s}</Tag>
+          {(signals || []).map((s) => (
+            <Tag key={s} color="volcano" style={{ fontSize: 11 }}>{s}</Tag>
           ))}
           {(!signals || signals.length === 0) && <Tag color="green">Aucun signal</Tag>}
         </Space>
@@ -71,7 +87,7 @@ export default function RiskTable({ data, threshold, onAnalyze }: Props) {
         <Badge
           count={v || 0}
           showZero
-          style={{ backgroundColor: v > 3 ? "#10b981" : v > 0 ? "#f59e0b" : "#ef4444" }}
+          style={{ backgroundColor: badgeColor(v) }}
         />
       ),
     },
@@ -80,7 +96,7 @@ export default function RiskTable({ data, threshold, onAnalyze }: Props) {
       dataIndex: "recommendation",
       width: 160,
       render: (v: string) => (
-        <Tag color={v === "OK" ? "green" : v?.includes("entretien") ? "red" : "orange"}>{v}</Tag>
+        <Tag color={tagColor(v)}>{v}</Tag>
       ),
     },
     ...(onAnalyze
