@@ -30,7 +30,7 @@ public class CircuitBreakerFallbackController {
     private String fallbackUri;
 
     @Value("${gateway.fallback.unknown-path:/unknown}")
-    private String unknownPathPlaceholder;
+    private String unknownPathPlaceholder = "/unknown";
 
     @RequestMapping("${gateway.fallback.uri:/fallback}")
     public Mono<String> fallback(ServerWebExchange exchange) {

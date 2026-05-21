@@ -23,7 +23,7 @@ class OpenApiConfigTest {
 
             OpenAPI api = (OpenAPI) openApiObj;
             assertNotNull(api.getInfo());
-            assertEquals("D2F - Service Authentification", api.getInfo().getTitle());
+            assertEquals("D2F — Service Authentification", api.getInfo().getTitle());
             assertEquals("API d'authentification et gestion des utilisateurs JWT", api.getInfo().getDescription());
             assertEquals("1.0.0", api.getInfo().getVersion());
             assertEquals("D2F Team", api.getInfo().getContact().getName());
