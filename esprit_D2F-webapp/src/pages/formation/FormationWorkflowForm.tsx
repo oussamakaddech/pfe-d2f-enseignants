@@ -225,7 +225,7 @@ export default function FormationWorkflowForm({ initialDate, onFormationCreated,
       matched = formateursList.find(f => f.mail && f.mail.toLowerCase() === email);
     }
     if (!matched) {
-      const norm = text.toLowerCase().replace(/<[^>]*>/g, "").trim();
+      const norm = text.toLowerCase().replaceAll(/<[^>]*>/g, "").trim();
       matched = formateursList.find(f => {
         const full  = `${f.nom} ${f.prenom}`.toLowerCase();
         const fullR = `${f.prenom} ${f.nom}`.toLowerCase();
@@ -1187,8 +1187,9 @@ export default function FormationWorkflowForm({ initialDate, onFormationCreated,
                       <Row gutter={[16, 12]} style={{ marginTop: 12 }}>
                         <Col xs={24} sm={8}>
                           <div className="creation-field">
-                            <label className="creation-field-label">Nom du bureau</label>
+                            <label className="creation-field-label" htmlFor="bureau-nom">Nom du bureau</label>
                             <Input
+                              id="bureau-nom"
                               size="large"
                               value={bureauNom}
                               onChange={(e) => setBureauNom(e.target.value)}
@@ -1198,8 +1199,9 @@ export default function FormationWorkflowForm({ initialDate, onFormationCreated,
                         </Col>
                         <Col xs={24} sm={8}>
                           <div className="creation-field">
-                            <label className="creation-field-label">Email du bureau</label>
+                            <label className="creation-field-label" htmlFor="bureau-mail">Email du bureau</label>
                             <Input
+                              id="bureau-mail"
                               size="large"
                               type="email"
                               value={bureauMail}
@@ -1210,8 +1212,9 @@ export default function FormationWorkflowForm({ initialDate, onFormationCreated,
                         </Col>
                         <Col xs={24} sm={8}>
                           <div className="creation-field">
-                            <label className="creation-field-label">Numéro de téléphone</label>
+                            <label className="creation-field-label" htmlFor="bureau-telephone">Numéro de téléphone</label>
                             <Input
+                              id="bureau-telephone"
                               size="large"
                               value={bureauTelephone}
                               onChange={(e) => setBureauTelephone(e.target.value)}
@@ -1352,8 +1355,9 @@ export default function FormationWorkflowForm({ initialDate, onFormationCreated,
                           <span className="creation-competence-num" aria-hidden="true">{idx + 1}</span>
 
                           <div className="creation-field creation-comp-select">
-                            <label className="creation-field-label">Domaine (filtre)</label>
+                            <label className="creation-field-label" htmlFor={`comp-domaine-${idx}`}>Domaine (filtre)</label>
                             <Select
+                              id={`comp-domaine-${idx}`}
                               showSearch
                               allowClear
                               size="large"

@@ -67,7 +67,7 @@
   border-radius: 20px;
   font-size: 13px;
   font-weight: 700;
-  color: #B51200;
+  color: #8b0e00; /* NOSONAR: contrast ratio 8.6:1 on light background */
 }
 
 /* ─── Stats cards ─────────────────────────────────────────────────────── */
@@ -164,7 +164,7 @@
 /* ─── Action buttons ──────────────────────────────────────────────────── */
 
 .bureau-btn-edit:hover  { color: #2563eb !important; background: #eff6ff !important; }
-.bureau-btn-delete:hover { color: #ef4444 !important; background: #fef2f2 !important; }
+.bureau-btn-delete:hover { color: #b91c1c !important; background: #fef2f2 !important; }
 
 .bureau-btn-add {
   background: #B51200 !important;

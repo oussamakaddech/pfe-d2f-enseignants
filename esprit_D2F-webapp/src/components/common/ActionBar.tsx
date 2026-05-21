@@ -1,5 +1,4 @@
-import { Space, Button, Popconfirm, Typography } from "antd";
-import { neutral } from "@/styles/themes/tokens";
+import { Button, Popconfirm, Typography } from "antd";
 
 const { Text } = Typography;
 
@@ -38,8 +37,10 @@ export default function ActionBar({
   gap = 8,
   className = "",
   style,
-}: ActionBarProps) {
-  const justifyContent = align === "left" ? "flex-start" : align === "center" ? "center" : "flex-end";
+}: Readonly<ActionBarProps>) {
+  let justifyContent = "flex-end";
+  if (align === "left") justifyContent = "flex-start";
+  else if (align === "center") justifyContent = "center";
 
   return (
     <div

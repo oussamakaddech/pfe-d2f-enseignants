@@ -33,7 +33,7 @@ const STYLES: Record<Status, { color: string; icon: React.ReactNode; label: stri
   error:    { color: "default", icon: <ExclamationCircleOutlined />, label: "Statut indisponible" },
 };
 
-export default function ModelStatusBadge({ refreshKey = 0 }: Props) {
+export default function ModelStatusBadge({ refreshKey = 0 }: Readonly<Props>) {
   const [report, setReport] = useState<DriftReport | null>(null);
   const [status, setStatus] = useState<Status>("loading");
 
@@ -49,9 +49,9 @@ export default function ModelStatusBadge({ refreshKey = 0 }: Props) {
   const meta = STYLES[status];
   const tooltip = report?.recommendation
     || report?.message
-    || (report?.days_since_training !== undefined
-        ? `Entraîné il y a ${report.days_since_training} jours`
-        : "Statut du modèle prédictif");
+    || (report?.days_since_training === undefined
+        ? "Statut du modèle prédictif"
+        : `Entraîné il y a ${report.days_since_training} jours`);
 
   return (
     <Tooltip title={tooltip}>

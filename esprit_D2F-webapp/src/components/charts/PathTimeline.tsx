@@ -8,15 +8,15 @@ interface Props {
   steps: AnalyseRecommandation[];
 }
 
-export default function PathTimeline({ steps }: Props) {
+export default function PathTimeline({ steps }: Readonly<Props>) {
   if (!steps || steps.length === 0) {
     return <Empty description="Spécifiez une compétence cible pour générer un parcours." />;
   }
 
   return (
     <div className="reco-timeline">
-      {steps.map((step, idx) => (
-        <div key={idx} className="reco-step">
+      {steps.map((step) => (
+        <div key={step.ordre} className="reco-step">
           <div className="reco-step-number">{step.ordre}</div>
           <div className="reco-content">
             <Row justify="space-between" align="middle">

@@ -18,7 +18,7 @@ export default function DashboardKpis({
   inDemand,
   riskIndicators,
   riskThreshold,
-}: Props) {
+}: Readonly<Props>) {
   const atRiskCount = riskIndicators.filter((r) => r.attrition_risk_score >= riskThreshold).length;
 
   return (
@@ -35,8 +35,8 @@ export default function DashboardKpis({
             valueStyle={{ color: "#ef4444" }}
           />
           <div style={{ marginTop: 12 }}>
-            {declining.slice(0, 5).map((c, i) => (
-              <Tag key={i} color="red" style={{ marginBottom: 4 }}>
+            {declining.slice(0, 5).map((c) => (
+              <Tag key={c.competency_name} color="red" style={{ marginBottom: 4 }}>
                 {c.competency_name}
               </Tag>
             ))}
@@ -56,8 +56,8 @@ export default function DashboardKpis({
             valueStyle={{ color: "#10b981" }}
           />
           <div style={{ marginTop: 12 }}>
-            {inDemand.slice(0, 5).map((c, i) => (
-              <Tag key={i} color="green" style={{ marginBottom: 4 }}>
+            {inDemand.slice(0, 5).map((c) => (
+              <Tag key={c.competency_name} color="green" style={{ marginBottom: 4 }}>
                 {c.competency_name}
               </Tag>
             ))}
