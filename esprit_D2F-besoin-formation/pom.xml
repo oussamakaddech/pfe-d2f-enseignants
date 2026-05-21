@@ -239,16 +239,7 @@
 						<goals>
 							<goal>report</goal>
 						</goals>
-						<configuration>
-							<excludes>
-								<exclude>tn/esprit/d2f/entity/**</exclude>
-								<exclude>tn/esprit/d2f/dto/BesoinFormationRequest.class</exclude>
-								<exclude>tn/esprit/d2f/dto/BesoinFormationResponse.class</exclude>
-								<exclude>tn/esprit/d2f/dto/BesoinFormationApprovedEvent.class</exclude>
-							<exclude>esprit/pfe/auth/security/AuthorizationMatrix.class</exclude>
-							<exclude>tn/esprit/d2f/BesoinsFormationApplication.class</exclude>
-							</excludes>
-						</configuration>
+
 					</execution>
 				</executions>
 			</plugin>

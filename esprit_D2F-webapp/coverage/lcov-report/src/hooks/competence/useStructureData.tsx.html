@@ -25,28 +25,28 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/140</span>
+                <span class='fraction'>0/146</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>0/66</span>
+                <span class='fraction'>0/64</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>0/24</span>
+                <span class='fraction'>0/25</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/127</span>
+                <span class='fraction'>0/134</span>
             </div>
         
             
@@ -403,7 +403,20 @@
 <a name='L338'></a><a href='#L338'>338</a>
 <a name='L339'></a><a href='#L339'>339</a>
 <a name='L340'></a><a href='#L340'>340</a>
-<a name='L341'></a><a href='#L341'>341</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L341'></a><a href='#L341'>341</a>
+<a name='L342'></a><a href='#L342'>342</a>
+<a name='L343'></a><a href='#L343'>343</a>
+<a name='L344'></a><a href='#L344'>344</a>
+<a name='L345'></a><a href='#L345'>345</a>
+<a name='L346'></a><a href='#L346'>346</a>
+<a name='L347'></a><a href='#L347'>347</a>
+<a name='L348'></a><a href='#L348'>348</a>
+<a name='L349'></a><a href='#L349'>349</a>
+<a name='L350'></a><a href='#L350'>350</a>
+<a name='L351'></a><a href='#L351'>351</a>
+<a name='L352'></a><a href='#L352'>352</a>
+<a name='L353'></a><a href='#L353'>353</a>
+<a name='L354'></a><a href='#L354'>354</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -439,6 +452,9 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -467,10 +483,17 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -705,6 +728,9 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -777,6 +803,9 @@ export default function <span class="fstat-no" title="function not covered" >use
   const [niveauLoading, setNiveauLoading] = <span class="cstat-no" title="statement not covered" >useState(false);</span>
   const [allSavoirsHierarchie, setAllSavoirsHierarchie] = <span class="cstat-no" title="statement not covered" >useState([]);</span>
 &nbsp;
+  const [filterUpId, setFilterUpId] = <span class="cstat-no" title="statement not covered" >useState&lt;number | null&gt;(null);</span>
+  const [filterDeptId, setFilterDeptId] = <span class="cstat-no" title="statement not covered" >useState&lt;number | null&gt;(null);</span>
+&nbsp;
   const [matrixCompId, setMatrixCompId] = <span class="cstat-no" title="statement not covered" >useState(null);</span>
   const [matrixData, setMatrixData] = <span class="cstat-no" title="statement not covered" >useState(null);</span>
   const [matrixLoading, setMatrixLoading] = <span class="cstat-no" title="statement not covered" >useState(false);</span>
@@ -794,11 +823,11 @@ export default function <span class="fstat-no" title="function not covered" >use
 <span class="cstat-no" title="statement not covered" >    loadAllSavoirs();</span>
   }, [loadAllSavoirs]);
 &nbsp;
-  const loadStructure = <span class="cstat-no" title="statement not covered" >useCallback(<span class="fstat-no" title="function not covered" >async () =&gt; {</span></span>
-<span class="cstat-no" title="statement not covered" >    if (structureLoaded) <span class="cstat-no" title="statement not covered" >return;</span></span>
+  const loadStructure = <span class="cstat-no" title="statement not covered" >useCallback(<span class="fstat-no" title="function not covered" >async (u</span>pId?: number | null, deptId?: number | null) =&gt; {</span>
 <span class="cstat-no" title="statement not covered" >    setStructureLoading(true);</span>
+<span class="cstat-no" title="statement not covered" >    setStructureLoaded(false);</span>
 <span class="cstat-no" title="statement not covered" >    try {</span>
-      const data = <span class="cstat-no" title="statement not covered" >await CompetenceService.structure.getArbreComplet();</span>
+      const data = <span class="cstat-no" title="statement not covered" >await CompetenceService.structure.getArbreComplet(upId, deptId);</span>
 <span class="cstat-no" title="statement not covered" >      setStructure(data);</span>
 <span class="cstat-no" title="statement not covered" >      setStructureLoaded(true);</span>
     } catch (err) {
@@ -807,11 +836,18 @@ export default function <span class="fstat-no" title="function not covered" >use
     } finally {
 <span class="cstat-no" title="statement not covered" >      setStructureLoading(false);</span>
     }
-  }, [structureLoaded]);
+  }, []);
 &nbsp;
   const invalidateStructure = <span class="cstat-no" title="statement not covered" >useCallback(<span class="fstat-no" title="function not covered" >() =&gt; {</span></span>
 <span class="cstat-no" title="statement not covered" >    setStructureLoaded(false);</span>
-  }, []);
+<span class="cstat-no" title="statement not covered" >    loadStructure(filterUpId, filterDeptId);</span>
+  }, [filterUpId, filterDeptId, loadStructure]);
+&nbsp;
+  const applyFilter = <span class="cstat-no" title="statement not covered" >useCallback(<span class="fstat-no" title="function not covered" >(u</span>pId: number | null, deptId: number | null) =&gt; {</span>
+<span class="cstat-no" title="statement not covered" >    setFilterUpId(upId);</span>
+<span class="cstat-no" title="statement not covered" >    setFilterDeptId(deptId);</span>
+<span class="cstat-no" title="statement not covered" >    loadStructure(upId, deptId);</span>
+  }, [loadStructure]);
 &nbsp;
   const openNiveauModal = <span class="cstat-no" title="statement not covered" >useCallback(<span class="fstat-no" title="function not covered" >async (t</span>ype, id, nom) =&gt; {</span>
 <span class="cstat-no" title="statement not covered" >    setNiveauTarget({ type, id, nom });</span>
@@ -1049,6 +1085,9 @@ export default function <span class="fstat-no" title="function not covered" >use
     structureLoading,
     loadStructure,
     invalidateStructure,
+    filterUpId,
+    filterDeptId,
+    applyFilter,
     searchResults,
     searchKeyword,
     selectedDomaine,
@@ -1090,7 +1129,7 @@ export default function <span class="fstat-no" title="function not covered" >use
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-05-20T01:51:46.861Z
+                at 2026-05-20T23:09:51.318Z
             </div>
         <script src="../../../prettify.js"></script>
         <script>

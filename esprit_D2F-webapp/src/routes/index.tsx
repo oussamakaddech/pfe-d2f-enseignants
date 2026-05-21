@@ -45,6 +45,7 @@ const AnalysePredictivePage = lazy(() => import("@/pages/analyse/AnalysePredicti
 const AnalyticsDashboardPage = lazy(() => import("@/pages/analyse/AnalyticsDashboardPage"));
 const TeacherAnalyticsPage = lazy(() => import("@/pages/analyse/TeacherAnalyticsPage"));
 const SkillPassportPage = lazy(() => import("@/pages/profile/SkillPassportPage"));
+const BureauPage = lazy(() => import("@/pages/bureau/BureauPage"));
 
 function PageSkeleton() {
   return (
@@ -103,6 +104,7 @@ export default function AppRoutes() {
                   <Route path="/home/UpDept" element={<UpDeptDataGrid />} />
                   <Route path="/home/certificate" element={<CompletedFormations />} />
                   <Route path="/home/certificate/:formationId" element={<CertificatePage />} />
+                  <Route path="/home/bureaux" element={<BureauPage />} />
                 </Route>
 
                 <Route element={<RoleGuard allowedRoles={["admin", "CUP", "CHEF_DEPARTEMENT"]} />}>

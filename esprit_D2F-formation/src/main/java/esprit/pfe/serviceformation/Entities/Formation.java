@@ -4,7 +4,10 @@ import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.Where;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -13,7 +16,8 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-
+@SQLDelete(sql = "UPDATE formation.formations SET deleted_at = NOW() WHERE id_formation = ?")
+@Where(clause = "deleted_at IS NULL")
 @Table(name = "formations")
 public class Formation {
 
@@ -29,8 +33,8 @@ public class Formation {
     private String titreFormation;
     @Column(nullable = true)
     private String domaine;
-    @Column(nullable = true)
-    private String competance ;
+    @Column(name = "competence", nullable = true)
+    private String competence;
     @Column(nullable = true)
     private String populationCible;
 
@@ -159,5 +163,15 @@ public class Formation {
 
     @Column(name = "last_refresh_date")
     private java.time.OffsetDateTime lastRefreshDate;
+
+    @Column(length = 255, nullable = true)
+    private String salle;
+
+    @Column(name = "calendar_event_id", length = 512, nullable = true)
+    private String calendarEventId;
+
+    // DSI §4 — Soft delete : suppression logique traçable
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
 
 }

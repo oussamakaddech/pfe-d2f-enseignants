@@ -95,6 +95,35 @@ cd esprit_D2F-competence && ./mvnw test
 cd esprit_D2F-webapp && npm run test:coverage
 ```
 
+## 🏗️ Architecture Frontend — État et gestion des données (DSI §5 / §7)
+
+Le frontend utilise la stack prescrite par le CDC DSI : **React 18+ + Vite + React Context + Axios**.
+
+### Rôles distincts des deux mécanismes d'état
+
+| Mécanisme | Usage | Justification DSI |
+|---|---|---|
+| **React Context** | État applicatif global : session utilisateur, rôles JWT, thème UI | Prescrit par CDC §5 — géré dans `hooks/auth/useAuth.ts` |
+| **React Query (TanStack)** | Cache du state serveur : dé-duplication des requêtes HTTP, invalidation automatique, état de chargement | Bibliothèque complémentaire — ne remplace pas React Context |
+
+React Query gère exclusivement le **cache des données distantes** (ce que React Context seul ne fait pas de manière déclarative). Tous les appels HTTP restent centralisés dans `src/services/`. React Context continue de gérer l'état d'authentification et les préférences utilisateur. Cette combinaison est conforme à la séparation des responsabilités exigée par §7.
+
+## 🌐 Infrastructure DSI (§2)
+
+| Ressource DSI | Hostname standard | Résolution Docker (local) |
+|---|---|---|
+| Base de données PostgreSQL | `db.dsi.local:5432` | Alias Docker → container `d2f-postgres` |
+| Message Broker RabbitMQ | `broker.dsi.local:5672` | Alias Docker → container `d2f-rabbitmq` |
+| API Gateway | `api-gateway.dsi.local:8080` | Alias Docker → container `d2f-gateway` |
+
+En environnement DSI, les DNS internes `*.dsi.local` résolvent directement vers l'infrastructure Esprit. En développement local, les alias Docker du `docker-compose.yml` assurent la même résolution sans modifier le code.
+
+## 🔒 Azure AD / Microsoft 365 (DÉSACTIVÉ par défaut)
+
+L'intégration avec Microsoft Graph (calendrier Outlook, Teams, OneDrive) est **désactivée par défaut** (`AZURE_AD_ENABLED=false`). Elle ne peut être activée que sur décision explicite de la DSI, par configuration de la variable d'environnement `AZURE_AD_ENABLED=true`. Par défaut, le service de formation utilise :
+- **SMTP interne** : `smtp.internal.dsi.local` pour les notifications
+- **Stockage local** pour les documents de formation
+
 ## 📊 Qualité (SonarQube)
 
 Pipeline CI exécute SonarQube avec Quality Gate bloquant sur chaque push/PR.

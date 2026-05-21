@@ -8,7 +8,6 @@ import tn.esprit.d2f.entity.BesoinCompetence;
 import tn.esprit.d2f.repository.BesoinCompetenceRepository;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -20,7 +19,7 @@ public class BesoinCompetenceServiceImpl implements IBesoinCompetenceService {
     public List<BesoinCompetenceDTO> getByBesoin(Long besoinId) {
         return repository.findByBesoinId(besoinId).stream()
                 .map(this::toDTO)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
@@ -38,10 +37,10 @@ public class BesoinCompetenceServiceImpl implements IBesoinCompetenceService {
                         .savoirNom(l.getSavoirNom())
                         .sousCompetenceId(l.getSousCompetenceId())
                         .build())
-                .collect(Collectors.toList());
+                .toList();
         return repository.saveAll(entities).stream()
                 .map(this::toDTO)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     private BesoinCompetenceDTO toDTO(BesoinCompetence e) {

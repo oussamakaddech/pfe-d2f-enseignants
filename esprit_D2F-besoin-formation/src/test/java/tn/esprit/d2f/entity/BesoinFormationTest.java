@@ -43,8 +43,10 @@ class BesoinFormationTest {
         besoin.setImpactStrategique("Impact");
         besoin.setEstOuverte(true);
         besoin.setAutresInformations("Autres Infos");
-        besoin.setPeriodCode(PeriodCode.P1);
+        besoin.setPeriodCode(PeriodCode.WINTER);
         besoin.setCustomPeriodLabel("Custom Label");
+        besoin.setDateDebut("2026-06-01");
+        besoin.setDateFin("2026-06-15");
 
         assertThat(besoin).extracting(
                 BesoinFormation::getIdBesoinFormation,
@@ -78,10 +80,12 @@ class BesoinFormationTest {
                 BesoinFormation::getEstOuverte,
                 BesoinFormation::getAutresInformations,
                 BesoinFormation::getPeriodCode,
-                BesoinFormation::getCustomPeriodLabel
+                BesoinFormation::getCustomPeriodLabel,
+                BesoinFormation::getDateDebut,
+                BesoinFormation::getDateFin
         ).containsExactly(
                 1L, "user1", TypeBesoin.COLLECTIF, "Titre", "Objectif", "Animateur", "Prerequis", "Public", 20, "Programme", 10, "Theme", "Objectifs Operationnels",
-                "Objectifs Pedagogiques", "Methodes", "Moyens", "Evaluation", "Profil", "Horaire", "UP1", "DEP1", true, false, null, "Notification", true, Priorite.HAUTE, "Impact", true, "Autres Infos", PeriodCode.P1, "Custom Label"
+                "Objectifs Pedagogiques", "Methodes", "Moyens", "Evaluation", "Profil", "Horaire", "UP1", "DEP1", true, false, null, "Notification", true, Priorite.HAUTE, "Impact", true, "Autres Infos", PeriodCode.WINTER, "Custom Label", "2026-06-01", "2026-06-15"
         );
     }
 
@@ -227,12 +231,12 @@ class BesoinFormationTest {
         BesoinFormation besoin = new BesoinFormation();
         besoin.setTypeBesoin(TypeBesoin.COLLECTIF);
         besoin.setPriorite(Priorite.HAUTE);
-        besoin.setPeriodCode(PeriodCode.P1);
+        besoin.setPeriodCode(PeriodCode.WINTER);
 
         assertAll("Verify enums",
             () -> assertEquals(TypeBesoin.COLLECTIF, besoin.getTypeBesoin()),
             () -> assertEquals(Priorite.HAUTE, besoin.getPriorite()),
-            () -> assertEquals(PeriodCode.P1, besoin.getPeriodCode())
+            () -> assertEquals(PeriodCode.WINTER, besoin.getPeriodCode())
         );
     }
 }

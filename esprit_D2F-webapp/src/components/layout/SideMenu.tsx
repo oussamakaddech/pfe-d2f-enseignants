@@ -23,6 +23,7 @@ import {
   BookOutlined,
   AppstoreOutlined,
   CheckSquareOutlined,
+  BankOutlined,
 } from "@ant-design/icons";
 import { useNavigate, useLocation } from "react-router-dom";
 import { AuthContext } from "@/components/common/AuthProvider";
@@ -92,6 +93,7 @@ export default function SideMenu() {
         { label: "Annuaire Enseignants", key: "/home/Enseignants",    icon: TeamOutlined      },
         { label: "Structures (UP/Dépt)", key: "/home/UpDept",         icon: ApartmentOutlined },
         { label: "Inscriptions",         key: "/home/ListeFormation", icon: FileTextOutlined  },
+        { label: "Gestion des Bureaux",  key: "/home/bureaux",        icon: BankOutlined      },
       ]},
       { type: "group", label: "FORMATIONS", children: [
         { label: "Nouvelle Formation",    key: "/home/Formation/Creer",       icon: PlusCircleOutlined     },
@@ -242,10 +244,11 @@ export default function SideMenu() {
  * Ouvre automatiquement le sous-menu correspondant à la route active.
  */
 function getDefaultOpenKeys(pathname) {
-  if (pathname.startsWith("/home/besoins"))       return ["besoin_formation_menu"];
-  if (pathname.startsWith("/home/rice"))           return ["rice_ia_group"];
+  if (pathname.startsWith("/home/besoins"))         return ["besoin_formation_menu"];
+  if (pathname.startsWith("/home/rice"))            return ["rice_ia_group"];
   if (pathname.startsWith("/home/affectations") ||
       pathname.startsWith("/home/rice/matchmaking")) return ["gestion_affectation"];
+  if (pathname.startsWith("/home/bureaux"))         return [];
   return [];
 }
 

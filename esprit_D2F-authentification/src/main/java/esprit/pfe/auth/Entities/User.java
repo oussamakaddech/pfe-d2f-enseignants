@@ -6,7 +6,8 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.*;
-
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.Where;
 
 import java.time.LocalDateTime;
 import java.util.HashSet;
@@ -19,6 +20,8 @@ import java.util.UUID;
                 @UniqueConstraint(columnNames = "username"),
                 @UniqueConstraint(columnNames = "email")
         })
+@SQLDelete(sql = "UPDATE auth.users SET deleted_at = NOW() WHERE id = ?")
+@Where(clause = "deleted_at IS NULL")
 @Data
 @Getter
 @Setter
@@ -70,6 +73,10 @@ public class User {
 
     @Column(name = "lock_until")
     private LocalDateTime lockUntil;
+
+    // DSI §4 — Soft delete : suppression logique traçable (audit trail)
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
 
     @PrePersist
     public void ensureId() {

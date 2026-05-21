@@ -70,6 +70,12 @@ public final class AuthorizationMatrix {
     public static final String SKILL_PASSPORT_READ_ALL =
             "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_D2F')";
 
+    // ── Bureau ──────────────────────────────────────────────────────────
+    public static final String BUREAU_READ   = "hasAnyRole('ROLE_ADMIN')";
+    public static final String BUREAU_CREATE = "hasAnyRole('ROLE_ADMIN')";
+    public static final String BUREAU_UPDATE = "hasAnyRole('ROLE_ADMIN')";
+    public static final String BUREAU_DELETE = "hasAnyRole('ROLE_ADMIN')";
+
     public static final String GATEWAY_ACCESS = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_D2F','ROLE_ENSEIGNANT','ROLE_FORMATEUR','ROLE_CHEF_DEPARTEMENT','ROLE_RESPONSABLE_DOSSIER')";
     public static final String PUBLIC_ACCESS = "permitAll()";
 }

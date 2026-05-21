@@ -6,6 +6,9 @@ on:
       - main
       - develop
       - oussama
+      - 'feature/**'
+      - 'hotfix/**'
+      - 'release/**'
   pull_request:
     types: [opened, synchronize, reopened]
   schedule:

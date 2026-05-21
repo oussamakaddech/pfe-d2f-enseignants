@@ -82,7 +82,7 @@ class BesoinFormationServiceImplCoverageTest {
         existing.setDepartement("Original DEP");
         existing.setEstOuverte(true);
         existing.setAutresInformations("Original Infos");
-        existing.setPeriodCode(PeriodCode.P1);
+        existing.setPeriodCode(PeriodCode.WINTER);
         existing.setCustomPeriodLabel("Original Label");
         existing.setApprouveCUP(true);
         existing.setApprouveChefDep(true);
@@ -109,7 +109,7 @@ class BesoinFormationServiceImplCoverageTest {
         assertEquals("Original DEP", existing.getDepartement());
         assertTrue(existing.getEstOuverte());
         assertEquals("Original Infos", existing.getAutresInformations());
-        assertEquals(PeriodCode.P1, existing.getPeriodCode());
+        assertEquals(PeriodCode.WINTER, existing.getPeriodCode());
         assertEquals("Original Label", existing.getCustomPeriodLabel());
         assertTrue(existing.getApprouveCUP());
         assertTrue(existing.getApprouveChefDep());
@@ -304,7 +304,7 @@ class BesoinFormationServiceImplCoverageTest {
         besoin.setIdBesoinFormation(id);
         besoin.setEventPublished(false);
         besoin.setTypeBesoin(TypeBesoin.COLLECTIF);
-        besoin.setPeriodCode(PeriodCode.P2);
+        besoin.setPeriodCode(PeriodCode.SUMMER);
         besoin.setNbMaxParticipants(20);
         besoin.setDureeFormation(10);
 

@@ -4,13 +4,18 @@ import com.microsoft.graph.models.*;
 import com.microsoft.graph.requests.GraphServiceClient;
 import okhttp3.Request;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 import lombok.RequiredArgsConstructor;
 
 import java.time.OffsetDateTime;
 import java.util.List;
 
+// DSI §4/§2 — Service Azure AD conditionnel : désactivé par défaut (azure.ad.enabled=false).
+// Activer uniquement sur décision DSI avec AZURE_AD_ENABLED=true.
 @Service
+@ConditionalOnProperty(name = "azure.ad.enabled", havingValue = "true")
 @Slf4j
 @RequiredArgsConstructor
 public class OutlookCalendarService {

@@ -105,6 +105,8 @@ export default function FormationWorkflowForm({ initialDate, onFormationCreated,
   const [formPrenom, setFormPrenom] = useState("");
   const [formEmail, setFormEmail] = useState("");
 
+  const [salle, setSalle] = useState("");
+
   const [bureauNom, setBureauNom] = useState("");
   const [bureauMail, setBureauMail] = useState("");
   const [bureauTelephone, setBureauTelephone] = useState("");
@@ -588,11 +590,12 @@ export default function FormationWorkflowForm({ initialDate, onFormationCreated,
       const payload = {
         idBesoinFormation: besoinInfo?.idBesoinFormation || besoinInfo?.idBesionFormation || null,
         typeBesoin: besoinInfo?.typeBesoin || null,
-        titreFormation: titre, 
-        dateDebut: dateDebut || null, 
-        dateFin: dateFin || null, 
-        typeFormation, 
-        etatFormation, 
+        titreFormation: titre,
+        salle: salle || null,
+        dateDebut: dateDebut || null,
+        dateFin: dateFin || null,
+        typeFormation,
+        etatFormation,
         ouverte,
         coutFormation: parseFloat(cout) || 0, 
         externeFormateurNom: formNom,
@@ -871,6 +874,21 @@ export default function FormationWorkflowForm({ initialDate, onFormationCreated,
                       <CalendarOutlined /> Date Fin <span style={{ color: "var(--color-error)" }}>*</span>
                     </label>
                     <Input size="large" type="date" value={dateFin} onChange={(e) => setDateFin(e.target.value)} />
+                  </div>
+                </Col>
+                <Col xs={24} sm={12}>
+                  <div className="creation-field">
+                    <label className="creation-field-label">
+                      <EnvironmentOutlined /> Salle / Lieu de la Formation
+                    </label>
+                    <Input
+                      size="large"
+                      value={salle}
+                      onChange={(e) => setSalle(e.target.value)}
+                      placeholder="Ex : Salle A101, Amphi B..."
+                      prefix={<EnvironmentOutlined style={{ color: "#a0aec0" }} />}
+                    />
+                    <span className="creation-field-help">Utilisé comme titre de l'événement Outlook : D2f‑{salle || "Salle"}‑{titre || "Formation"}‑Animateur</span>
                   </div>
                 </Col>
                 <Col xs={24} sm={12}>

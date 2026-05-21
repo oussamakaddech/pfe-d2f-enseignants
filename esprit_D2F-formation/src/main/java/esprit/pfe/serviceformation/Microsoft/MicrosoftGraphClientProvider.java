@@ -6,13 +6,16 @@ import com.microsoft.graph.authentication.TokenCredentialAuthProvider;
 import com.microsoft.graph.requests.GraphServiceClient;
 import okhttp3.Request;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.Collections;
 import java.util.concurrent.atomic.AtomicReference;
 
+// DSI §4/§2 — Provider conditionnel : instancié uniquement si azure.ad.enabled=true
 @Service
+@ConditionalOnProperty(name = "azure.ad.enabled", havingValue = "true")
 @Slf4j
 public class MicrosoftGraphClientProvider {
 
@@ -24,6 +27,9 @@ public class MicrosoftGraphClientProvider {
 
     @Value("${azure.ad.tenant-id}")
     private String tenantId;
+
+    @Value("${azure.ad.graph-scope:https://graph.microsoft.com/.default}")
+    private String graphScope;
 
     private final AtomicReference<GraphServiceClient<Request>> cachedGraphClient = new AtomicReference<>();
 
@@ -47,7 +53,7 @@ public class MicrosoftGraphClientProvider {
                 .build();
 
         TokenCredentialAuthProvider authProvider = new TokenCredentialAuthProvider(
-                Collections.singletonList("https://graph.microsoft.com/.default"),
+                Collections.singletonList(graphScope),
                 credential
         );
 
