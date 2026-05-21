@@ -79,6 +79,17 @@ const PERIOD_OPTIONS = [
   { value: "OTHER",    label: "Autre" },
 ];
 
+function mapBesoinLink(l: any) {
+  return {
+    domaineId: l.domaineId ?? null,
+    competenceId: l.competenceId ?? null,
+    competenceNom: l.competenceNom || "",
+    savoirId: l.savoirId ?? null,
+    savoirNom: l.savoirNom || "",
+    sousCompetenceId: l.sousCompetenceId ?? null,
+  };
+}
+
 export default function FormationWorkflowForm({ initialDate, onFormationCreated, besoinInfo }) {
   const navigate = useNavigate();
   const auth = useContext(AuthContext);
@@ -287,14 +298,7 @@ export default function FormationWorkflowForm({ initialDate, onFormationCreated,
           BesoinCompetenceService.getByBesoin(Number(besoinId))
             .then((links) => {
               if (links.length > 0) {
-                setSelectedCompLinks(links.map((l) => ({
-                  domaineId: l.domaineId ?? null,
-                  competenceId: l.competenceId ?? null,
-                  competenceNom: l.competenceNom || "",
-                  savoirId: l.savoirId ?? null,
-                  savoirNom: l.savoirNom || "",
-                  sousCompetenceId: l.sousCompetenceId ?? null,
-                })));
+                setSelectedCompLinks(links.map(mapBesoinLink));
               }
             })
             .catch(() => { /* ignore — pre-fill is best-effort */ });
