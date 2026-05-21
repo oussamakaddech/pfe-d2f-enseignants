@@ -31,6 +31,10 @@ function TeacherOption({ data }: Readonly<{ data: OptionData }>) {
   );
 }
 
+function renderTeacherOption(option: { data: OptionData }) {
+  return <TeacherOption data={option.data} />;
+}
+
 export default function EnseignantSelect({
   value,
   onChange,
@@ -70,7 +74,7 @@ export default function EnseignantSelect({
           String(option.value).toLowerCase().includes(t)
         );
       }}
-      optionRender={(option) => <TeacherOption data={option.data as OptionData} />}
+      optionRender={renderTeacherOption}
       options={options}
     />
   );

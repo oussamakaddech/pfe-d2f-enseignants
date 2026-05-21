@@ -68,6 +68,44 @@ function ColumnSearchIcon({ filtered }: Readonly<{ filtered: boolean }>) {
   return <SearchOutlined style={{ color: filtered ? "#1890ff" : undefined }} />;
 }
 
+type SearchColumnConfig = {
+  onSearch: (selectedKeys: string[], confirm: () => void, dataIndex: string) => void;
+  onReset: (clearFilters: () => void) => void;
+  searchInputRef: RefObject<any>;
+  searchedColumn: string;
+};
+
+function getColumnSearchProps(dataIndex: keyof Bureau, placeholder: string, cfg: SearchColumnConfig) {
+  return {
+    filterDropdown: ({ setSelectedKeys, selectedKeys, confirm, clearFilters }: any) => (
+      <ColumnSearchDropdown
+        placeholder={placeholder}
+        selectedKeys={selectedKeys}
+        setSelectedKeys={setSelectedKeys}
+        confirm={confirm}
+        clearFilters={clearFilters}
+        onSearch={(keys, conf) => cfg.onSearch(keys, conf, dataIndex)}
+        onReset={cfg.onReset}
+        inputRef={cfg.searchInputRef}
+      />
+    ),
+    filterIcon: (filtered: boolean) => <ColumnSearchIcon filtered={filtered} />,
+    onFilter: (value: any, record: Bureau) =>
+      String(record[dataIndex] ?? "").toLowerCase().includes(String(value).toLowerCase()),
+    filterDropdownProps: {
+      onOpenChange: (visible: boolean) => {
+        if (visible) setTimeout(() => cfg.searchInputRef.current?.select(), 100);
+      },
+    },
+    render: (text: string) =>
+      cfg.searchedColumn === dataIndex ? (
+        <span style={{ backgroundColor: "#ffc069" }}>{text}</span>
+      ) : (
+        text
+      ),
+  };
+}
+
 export default function BureauPage() {
   const { message: msgApi } = useAppNotification();
   const [data, setData] = useState<Bureau[]>([]);
@@ -162,34 +200,12 @@ export default function BureauPage() {
     clearFilters();
   };
 
-  const getColumnSearchProps = (dataIndex: keyof Bureau, placeholder: string) => ({
-    filterDropdown: ({ setSelectedKeys, selectedKeys, confirm, clearFilters }: any) => (
-      <ColumnSearchDropdown
-        placeholder={placeholder}
-        selectedKeys={selectedKeys}
-        setSelectedKeys={setSelectedKeys}
-        confirm={confirm}
-        clearFilters={clearFilters}
-        onSearch={(keys, conf) => handleSearch(keys, conf, dataIndex)}
-        onReset={handleReset}
-        inputRef={searchInput}
-      />
-    ),
-    filterIcon: (filtered: boolean) => <ColumnSearchIcon filtered={filtered} />,
-    onFilter: (value: any, record: Bureau) =>
-      String(record[dataIndex] ?? "").toLowerCase().includes(String(value).toLowerCase()),
-    filterDropdownProps: {
-      onOpenChange: (visible: boolean) => {
-        if (visible) setTimeout(() => searchInput.current?.select(), 100);
-      },
-    },
-    render: (text: string) =>
-      searchedColumn === dataIndex ? (
-        <span style={{ backgroundColor: "#ffc069" }}>{text}</span>
-      ) : (
-        text
-      ),
-  });
+  const searchCfg: SearchColumnConfig = {
+    onSearch: handleSearch,
+    onReset: handleReset,
+    searchInputRef: searchInput,
+    searchedColumn,
+  };
 
   const getInitials = (nom: string) =>
     nom
@@ -205,7 +221,7 @@ export default function BureauPage() {
       key: "nom",
       sorter: (a: Bureau, b: Bureau) => a.nom.localeCompare(b.nom),
       sortDirections: ["ascend" as const, "descend" as const],
-      ...getColumnSearchProps("nom", "Nom"),
+      ...getColumnSearchProps("nom", "Nom", searchCfg),
       render: (nom: string) => (
         <div className="bureau-name-cell">
           <div className="bureau-avatar">{getInitials(nom)}</div>
@@ -218,7 +234,7 @@ export default function BureauPage() {
       dataIndex: "email",
       key: "email",
       sorter: (a: Bureau, b: Bureau) => (a.email || "").localeCompare(b.email || ""),
-      ...getColumnSearchProps("email", "Email"),
+      ...getColumnSearchProps("email", "Email", searchCfg),
       render: (email: string) =>
         email ? (
           <span><MailOutlined style={{ marginRight: 6, color: "#64748b" }} />{email}</span>
@@ -230,7 +246,7 @@ export default function BureauPage() {
       title: "Téléphone",
       dataIndex: "numeroTelephone",
       key: "numeroTelephone",
-      ...getColumnSearchProps("numeroTelephone", "Téléphone"),
+      ...getColumnSearchProps("numeroTelephone", "Téléphone", searchCfg),
       render: (tel: string) =>
         tel ? (
           <span><PhoneOutlined style={{ marginRight: 6, color: "#64748b" }} />{tel}</span>

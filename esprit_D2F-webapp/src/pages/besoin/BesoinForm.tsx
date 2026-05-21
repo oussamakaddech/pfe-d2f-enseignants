@@ -622,10 +622,15 @@ export default function BesoinForm() {
         title="Compétences visées (référentiel RICE)"
         hint="Optionnel — sélectionnez les compétences et savoirs ciblés par cette formation"
       />
-      {compLoaded ? (
-        compDomaines.length === 0 && compCompetences.length === 0 ? (
-          <Empty description="Référentiel non disponible" />
-        ) : (
+      {!compLoaded && (
+        <div style={{ textAlign: "center", padding: "32px 0" }}>
+          <Spin tip="Chargement du référentiel…" />
+        </div>
+      )}
+      {compLoaded && compDomaines.length === 0 && compCompetences.length === 0 && (
+        <Empty description="Référentiel non disponible" />
+      )}
+      {compLoaded && (compDomaines.length > 0 || compCompetences.length > 0) && (
         <>
           <div style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap", alignItems: "center" }}>
             <Input
@@ -718,11 +723,6 @@ export default function BesoinForm() {
             Ajouter une compétence
           </Button>
         </>
-      )
-      ) : (
-        <div style={{ textAlign: "center", padding: "32px 0" }}>
-          <Spin tip="Chargement du référentiel…" />
-        </div>
       )}
     </div>,
 
