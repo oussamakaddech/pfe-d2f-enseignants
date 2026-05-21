@@ -56,22 +56,27 @@ class JWTAuthMiddleware(BaseHTTPMiddleware):
         if request.method == "OPTIONS":
             return await call_next(request)
 
+        # Priority: 1) Authorization header (API / mobile clients)
+        #           2) d2f_auth_token HttpOnly cookie (web browser — same as gateway)
         auth_header = request.headers.get("Authorization", "")
-        if not auth_header.startswith("Bearer "):
-            logger.warning(f"Missing or invalid Authorization header for {path}")
-            return JSONResponse(
-                status_code=401,
-                content={
-                    "timestamp": None,
-                    "status": 401,
-                    "errorCode": "AUTH-401",
-                    "message": "Missing or invalid authorization token",
-                    "path": path,
-                    "traceId": None,
-                },
-            )
-
-        token = auth_header[7:]
+        if auth_header.startswith("Bearer "):
+            token = auth_header[7:]
+        else:
+            cookie_token = request.cookies.get("d2f_auth_token", "")
+            if not cookie_token:
+                logger.warning(f"Missing or invalid Authorization header/cookie for {path}")
+                return JSONResponse(
+                    status_code=401,
+                    content={
+                        "timestamp": None,
+                        "status": 401,
+                        "errorCode": "AUTH-401",
+                        "message": "Missing or invalid authorization token",
+                        "path": path,
+                        "traceId": None,
+                    },
+                )
+            token = cookie_token
         try:
             payload = jwt.decode(token, JWT_SECRET, algorithms=[JWT_ALGORITHM])
             request.state.user_id = payload.get("sub")

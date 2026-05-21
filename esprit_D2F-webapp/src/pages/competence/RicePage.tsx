@@ -797,7 +797,7 @@ export default function RicePage() {
           okText="Creer et lier"
           cancelText="Annuler"
           confirmLoading={savingNewEns}
-          destroyOnClose
+          destroyOnHidden
         >
           <Space direction="vertical" style={{ width: "100%" }} size="middle">
             <div>
@@ -843,7 +843,7 @@ export default function RicePage() {
           okText="Fusionner"
           cancelText="Annuler"
           okButtonProps={{ disabled: !mergeDst }}
-          destroyOnClose
+          destroyOnHidden
         >
           <Alert
             type="warning"
