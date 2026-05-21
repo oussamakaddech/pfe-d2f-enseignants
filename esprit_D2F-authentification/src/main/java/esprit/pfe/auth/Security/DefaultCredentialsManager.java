@@ -49,7 +49,7 @@ public class DefaultCredentialsManager {
     }
 
     private static final java.util.Set<String> BANNED_PASSWORDS = java.util.Set.of(
-        "CHANGE_ME_IN_PRODUCTION", "admin", "admin123", "password", "password123",
+        "change_me_in_production", "admin", "admin123", "password", "password123",
         "123456", "azerty", "qwerty", "d2f", "esprit", "changeme", "test"
     );
 
