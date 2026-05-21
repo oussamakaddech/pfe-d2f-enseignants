@@ -1,0 +1,58 @@
+# =============================================================================
+# Docker Compose — Overlay Production D2F
+# Remplace les directives build: par des images pré-construites du registre DSI.
+#
+# Variables d'environnement requises (fournies par le pipeline CD) :
+#   REGISTRY   — URL du registre interne (ex: registry.dsi.local)
+#   IMAGE_TAG  — Tag de l'image à déployer (ex: sha-abc1234 ou v1.2.3)
+#
+# Usage :
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml \
+#     pull && up -d --no-build --remove-orphans
+# =============================================================================
+
+services:
+
+  auth-service:
+    image: ${REGISTRY}/d2f-authentification:${IMAGE_TAG}
+    pull_policy: always
+
+  competence-service:
+    image: ${REGISTRY}/d2f-competence:${IMAGE_TAG}
+    pull_policy: always
+
+  besoin-formation-service:
+    image: ${REGISTRY}/d2f-besoin-formation:${IMAGE_TAG}
+    pull_policy: always
+
+  certificat-service:
+    image: ${REGISTRY}/d2f-certificat:${IMAGE_TAG}
+    pull_policy: always
+
+  evaluation-service:
+    image: ${REGISTRY}/d2f-evaluation:${IMAGE_TAG}
+    pull_policy: always
+
+  api-gateway:
+    image: ${REGISTRY}/d2f-api-gateway:${IMAGE_TAG}
+    pull_policy: always
+
+  formation-service:
+    image: ${REGISTRY}/d2f-formation:${IMAGE_TAG}
+    pull_policy: always
+
+  ai-reco-service:
+    image: ${REGISTRY}/d2f-recommandation-formateur:${IMAGE_TAG}
+    pull_policy: always
+
+  rice-service:
+    image: ${REGISTRY}/d2f-rice:${IMAGE_TAG}
+    pull_policy: always
+
+  predictive-analytics-service:
+    image: ${REGISTRY}/d2f-predictive-analytics:${IMAGE_TAG}
+    pull_policy: always
+
+  webapp:
+    image: ${REGISTRY}/d2f-webapp:${IMAGE_TAG}
+    pull_policy: always
