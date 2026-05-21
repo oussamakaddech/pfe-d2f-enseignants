@@ -33,7 +33,7 @@ class DefaultCredentialsManagerTest {
                 "admin", "CHANGE_ME_IN_PRODUCTION", "System", "Admin", "0000", "admin@d2f.local"
             )
         );
-        assertTrue(exception.getMessage().contains("Les identifiants par défaut doivent être configurés"));
+        assertTrue(exception.getMessage().contains("trop faible ou non configuré"));
     }
 
     @Test
