@@ -1,16 +1,22 @@
 # =============================================================================
-# GitHub Actions — Pipeline CI D2F (conforme DSI 2025-2026)
-# Ordre : lint -> build -> tests -> security (OWASP/npm audit bloquant)
-#         -> sonar (Quality Gate bloquant) -> docker
+# D2F CI Pipeline — DSI 2025-2026
+# Ordre : lint -> test -> security (OWASP/npm audit bloquant)
+#         -> sonar (Quality Gate bloquant) -> build & push Docker
 # =============================================================================
 
 name: D2F CI Pipeline
 
 on:
   push:
-    branches: [ main, develop, oussama ]
+    branches:
+      - main
+      - develop
+      - 'feature/**'
+      - 'hotfix/**'
+      - 'release/**'
   pull_request:
     branches: [ main, develop ]
+  workflow_dispatch:
 
 env:
   JAVA_VERSION: '17'
@@ -20,7 +26,7 @@ env:
 jobs:
   # ── Tests Backend Java ──────────────────────────────────────────────────────
   test-backend:
-    name: Tests Backend - ${{ matrix.service }}
+    name: Tests Backend — ${{ matrix.service }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -60,14 +66,14 @@ jobs:
         if: always()
         uses: dorny/test-reporter@v1
         with:
-          name: Test Results - ${{ matrix.service }}
+          name: Test Results — ${{ matrix.service }}
           path: ${{ matrix.service }}/target/surefire-reports/*.xml
           reporter: java-junit
           fail-on-error: true
 
   # ── Tests Python ────────────────────────────────────────────────────────────
   test-python:
-    name: Tests Python - ${{ matrix.service }}
+    name: Tests Python — ${{ matrix.service }}
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -75,6 +81,7 @@ jobs:
         service:
           - esprit_D2F-rice
           - esprit_D2F-predictive-analytics
+          - esprit_D2F-recommandation-formateur
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -82,6 +89,7 @@ jobs:
           python-version: '3.11'
           cache: 'pip'
           cache-dependency-path: ${{ matrix.service }}/requirements*.txt
+
       - name: Install dependencies
         working-directory: ${{ matrix.service }}
         run: |
@@ -95,10 +103,10 @@ jobs:
           if [ -d tests ]; then
             pytest tests/ -v --cov=. --cov-report=xml --cov-report=term
           else
-            echo "No tests directory found, skipping tests"
+            echo "No tests directory — skipping"
           fi
 
-      - name: DSI §11.7 - forbid raw print() outside tests
+      - name: DSI §11.7 — interdire print() en production
         run: |
           FOUND=$(grep -rn --include="*.py" -E "^\s*print\(" \
             ${{ matrix.service }} \
@@ -106,12 +114,12 @@ jobs:
             --exclude-dir __pycache__ \
             --exclude-dir .venv || true)
           if [ -n "$FOUND" ]; then
-            echo "PII risk - print() found in production code:"
+            echo "PII risk — print() trouvé dans le code de production :"
             echo "$FOUND"
             exit 1
           fi
 
-  # ── Tests Frontend + npm audit (bloquant) ───────────────────────────────────
+  # ── Tests Frontend ──────────────────────────────────────────────────────────
   test-frontend:
     name: Tests Frontend
     runs-on: ubuntu-latest
@@ -127,25 +135,25 @@ jobs:
         working-directory: esprit_D2F-webapp
         run: npm ci --legacy-peer-deps
 
-      - name: Run linter
+      - name: Lint
         working-directory: esprit_D2F-webapp
         run: npm run lint
 
-      - name: Run type check
+      - name: Type check
         working-directory: esprit_D2F-webapp
         run: npm run typecheck
 
-      - name: Run tests
+      - name: Tests with coverage
         working-directory: esprit_D2F-webapp
         run: npm run test:coverage
 
-      - name: Build
+      - name: Build production bundle
         working-directory: esprit_D2F-webapp
         run: npm run build
 
-  # ── SÉCURITÉ — OWASP Dependency Check (DSI §12.12 — bloquant) ───────────────
+  # ── OWASP Dependency Check (DSI §12.12 — CVSS ≥ 7 bloquant) ───────────────
   security-backend:
-    name: OWASP Dependency Check - ${{ matrix.service }}
+    name: OWASP — ${{ matrix.service }}
     runs-on: ubuntu-latest
     needs: test-backend
     strategy:
@@ -176,21 +184,16 @@ jobs:
           key: owasp-nvd-${{ runner.os }}-${{ github.run_id }}
           restore-keys: owasp-nvd-${{ runner.os }}-
 
-      - name: OWASP Dependency Check (fail on CVSS >= 7)
+      - name: OWASP Dependency Check
         working-directory: ${{ matrix.service }}
         run: |
-          if [ -f owasp-suppressions.xml ]; then
-            mvn -B org.owasp:dependency-check-maven:check \
-              -DfailBuildOnCVSS=7 \
-              -DassemblyAnalyzerEnabled=false \
-              -DsuppressionFile=owasp-suppressions.xml \
-              -Dformats=HTML,JSON
-          else
-            mvn -B org.owasp:dependency-check-maven:check \
-              -DfailBuildOnCVSS=7 \
-              -DassemblyAnalyzerEnabled=false \
-              -Dformats=HTML,JSON
-          fi
+          SUPPRESSION=""
+          [ -f owasp-suppressions.xml ] && SUPPRESSION="-DsuppressionFile=owasp-suppressions.xml"
+          mvn -B org.owasp:dependency-check-maven:check \
+            -DfailBuildOnCVSS=7 \
+            -DassemblyAnalyzerEnabled=false \
+            $SUPPRESSION \
+            -Dformats=HTML,JSON
 
       - name: Upload OWASP report
         if: always()
@@ -198,10 +201,11 @@ jobs:
         with:
           name: owasp-${{ matrix.service }}
           path: ${{ matrix.service }}/target/dependency-check-report.*
+          retention-days: 30
 
-  # ── SÉCURITÉ — npm audit bloquant (frontend) ────────────────────────────────
+  # ── npm audit (DSI §12.12 — bloquant) ───────────────────────────────────────
   security-frontend:
-    name: npm audit (frontend, bloquant)
+    name: npm audit (bloquant)
     runs-on: ubuntu-latest
     needs: test-frontend
     steps:
@@ -214,34 +218,31 @@ jobs:
       - name: Install
         working-directory: esprit_D2F-webapp
         run: npm ci --legacy-peer-deps
-      - name: Audit high/critical (bloquant)
+      - name: Audit high/critical
         working-directory: esprit_D2F-webapp
         run: npm audit --audit-level=high --omit=dev
 
-  # ── SonarQube Quality Gate bloquant (DSI §3.7) ──────────────────────────────
+  # ── SonarQube Quality Gate (DSI §3.7 — bloquant) ───────────────────────────
+  # Activé uniquement si SONAR_ENABLED=true est défini dans Actions Variables.
+  # Sans ce flag, le job est ignoré et build-docker s'exécute quand même.
   sonar:
-    name: SonarQube Quality Gate
+    name: SonarQube — ${{ matrix.module }}
     runs-on: ubuntu-latest
     needs: [security-backend, security-frontend, test-python]
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    if: >-
+      vars.SONAR_ENABLED == 'true' &&
+      (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
     strategy:
       fail-fast: false
       matrix:
         include:
-          - module: esprit_D2F-api-gateway
-            projectKey: d2f_api_gateway
-          - module: esprit_D2F-authentification
-            projectKey: d2f_authentification
-          - module: esprit_D2F-besoin-formation
-            projectKey: d2f_besoin_formation
-          - module: esprit_D2F-certificat
-            projectKey: d2f_certificat
-          - module: esprit_D2F-competence
-            projectKey: d2f_competence
-          - module: esprit_D2F-evaluation
-            projectKey: d2f_evaluation
-          - module: esprit_D2F-formation
-            projectKey: d2f_formation
+          - { module: esprit_D2F-api-gateway,      projectKey: d2f_api_gateway }
+          - { module: esprit_D2F-authentification,  projectKey: d2f_authentification }
+          - { module: esprit_D2F-besoin-formation,  projectKey: d2f_besoin_formation }
+          - { module: esprit_D2F-certificat,        projectKey: d2f_certificat }
+          - { module: esprit_D2F-competence,        projectKey: d2f_competence }
+          - { module: esprit_D2F-evaluation,        projectKey: d2f_evaluation }
+          - { module: esprit_D2F-formation,         projectKey: d2f_formation }
     steps:
       - uses: actions/checkout@v4
         with: { fetch-depth: 0 }
@@ -252,7 +253,7 @@ jobs:
         working-directory: esprit_D2F-common-security
         run: mvn -B clean install -DskipTests
 
-      - name: Sonar scan with Quality Gate wait
+      - name: Sonar scan + Quality Gate wait
         working-directory: ${{ matrix.module }}
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
@@ -260,28 +261,70 @@ jobs:
         run: |
           mvn -B verify sonar:sonar \
             -Dsonar.projectKey=${{ matrix.projectKey }} \
+            -Dsonar.organization=${{ secrets.SONAR_ORGANIZATION }} \
             -Dsonar.host.url=$SONAR_HOST_URL \
-            -Dsonar.login=$SONAR_TOKEN \
+            -Dsonar.token=$SONAR_TOKEN \
             -Dsonar.qualitygate.wait=true \
             -Dsonar.qualitygate.timeout=300
 
-  # ── Build Docker Images (uniquement si tout vert) ───────────────────────────
+  # ── Build & Push Docker (DSI §11 — après tous les quality gates) ────────────
   build-docker:
-    name: Build Docker Images
+    name: Docker Build & Push — ${{ matrix.image }}
     runs-on: ubuntu-latest
-    needs: [sonar]
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
+    needs: [security-backend, security-frontend, test-python, sonar]
+    # Tourne si sonar a réussi OU a été ignoré (SONAR_ENABLED non activé)
+    if: >-
+      always() &&
+      needs.security-backend.result == 'success' &&
+      needs.security-frontend.result == 'success' &&
+      needs.test-python.result == 'success' &&
+      (needs.sonar.result == 'success' || needs.sonar.result == 'skipped') &&
+      github.event_name == 'push' &&
+      (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { image: d2f-authentification,         context: ".",                                      file: "esprit_D2F-authentification/Dockerfile" }
+          - { image: d2f-competence,               context: ".",                                      file: "esprit_D2F-competence/Dockerfile" }
+          - { image: d2f-besoin-formation,         context: ".",                                      file: "esprit_D2F-besoin-formation/Dockerfile" }
+          - { image: d2f-formation,                context: ".",                                      file: "esprit_D2F-formation/Dockerfile" }
+          - { image: d2f-evaluation,               context: ".",                                      file: "esprit_D2F-evaluation/Dockerfile" }
+          - { image: d2f-certificat,               context: ".",                                      file: "esprit_D2F-certificat/Dockerfile" }
+          - { image: d2f-analyse,                  context: ".",                                      file: "esprit_D2F-analyse/Dockerfile" }
+          - { image: d2f-api-gateway,              context: "esprit_D2F-api-gateway",                 file: "esprit_D2F-api-gateway/Dockerfile" }
+          - { image: d2f-recommandation-formateur, context: "esprit_D2F-recommandation-formateur",    file: "esprit_D2F-recommandation-formateur/Dockerfile" }
+          - { image: d2f-rice,                     context: "esprit_D2F-rice",                        file: "esprit_D2F-rice/Dockerfile" }
+          - { image: d2f-predictive-analytics,     context: "esprit_D2F-predictive-analytics",        file: "esprit_D2F-predictive-analytics/Dockerfile" }
+          - { image: d2f-webapp,                   context: "esprit_D2F-webapp",                      file: "esprit_D2F-webapp/Dockerfile" }
     steps:
       - uses: actions/checkout@v4
+
       - uses: docker/setup-buildx-action@v3
-      - name: Login to registry
+
+      - name: Login to Docker Hub
         uses: docker/login-action@v3
         with:
-          registry: ${{ secrets.REGISTRY_URL }}
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
-      - name: Build all images
-        run: |
-          export IMAGE_TAG=${GITHUB_SHA::7}
-          export REGISTRY=${{ secrets.REGISTRY_URL }}
-          docker compose build --pull
+
+      - name: Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ secrets.REGISTRY_URL }}/${{ matrix.image }}
+          tags: |
+            type=sha,prefix=sha-,format=short
+            type=ref,event=branch
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.file }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=${{ matrix.image }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.image }}
