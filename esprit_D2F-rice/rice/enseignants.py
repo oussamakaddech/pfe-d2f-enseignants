@@ -61,7 +61,6 @@ def _match_enseignants_by_name(
 
         # ── substring fallback ────────────────────────────────────────────
         for eid, display, ens_norm in ens_lookup:
-            ens_nom_norm = _normalize(eid.split("-")[-1]) if "-" in eid else ""
             if ens_norm in fn_norm or _normalize("".join(reversed(ens_norm.split()))) in fn_norm:
                 matched_ids.append(eid)
                 name_to_match[fiche_name] = (eid, display)
