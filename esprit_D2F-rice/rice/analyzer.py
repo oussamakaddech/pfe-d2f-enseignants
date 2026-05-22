@@ -133,7 +133,6 @@ def _analyze_single_fiche(
     enseignants: List[EnseignantInfo],
     departement: str = "gc",
     raw_tables: Optional[List] = None,
-    use_module_prefix: bool = False,
 ) -> Tuple[DomaineProposition, List[FicheEnseignantExtrait]]:
     """
     Full NLP pipeline for one fiche module:
@@ -579,14 +578,12 @@ def analyze_files(
     all_extracted_ens: List[FicheEnseignantExtrait] = []
     seen_codes: Dict[str, int] = {}
 
-    multi = len(filenames) > 1
     for filename, data in zip(filenames, file_contents):
         text, raw_tables = _extract_text(filename, data)
         domaine, extracted_ens = _analyze_single_fiche(
             filename, text, enseignants,
             departement=departement,
             raw_tables=raw_tables,
-            use_module_prefix=multi,
         )
 
         if domaine.code in seen_codes:

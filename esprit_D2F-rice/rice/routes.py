@@ -90,9 +90,7 @@ def _get_current_user(
     }
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # Router
-# ─────────────────────────────────────────────────────────────────────────────
 
 rice_router = APIRouter(
     prefix="/rice",
@@ -293,6 +291,11 @@ async def match_text(
     "/validate",
     response_model=ValidateSummary,
     summary="Valider et persister le référentiel RICE validé par l'humain en BDD",
+    responses={
+        400: {"description": "propositions list is empty"},
+        500: {"description": "DB error during validation"},
+        503: {"description": "Database unreachable"},
+    },
 )
 async def rice_validate(  # noqa: PLR0915,PLR0912  — see S3776 rationale below
     request: ValidateRequest,

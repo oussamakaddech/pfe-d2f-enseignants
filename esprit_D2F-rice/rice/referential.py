@@ -19,6 +19,8 @@ from rice.nlp import _normalize, _codes_match, _detect_type
 
 logger = logging.getLogger("rice_analyzer")
 
+_KW_DIAGNOSTIC_URBAIN = _KW_DIAGNOSTIC_URBAIN
+
 # ── Optional imports ─────────────────────────────────────────────────────────
 try:
     from sentence_transformers import SentenceTransformer as _SentenceTransformer
@@ -80,7 +82,7 @@ _GC_FALLBACK_REF: Dict[str, Any] = {
         "GC-TECH-U": {
             "nom": "Compétences en urbanisme (U)",
             "keywords": [
-                "urbanisme", "amenagement urbain", "diagnostic urbain",
+                "urbanisme", "amenagement urbain", _KW_DIAGNOSTIC_URBAIN,
                 "situation urbaine", "ville", "territoire", "paysage",
             ],
         },
@@ -169,9 +171,9 @@ _GC_FALLBACK_REF: Dict[str, Any] = {
         "E3":  ["diagnostic environnemental eau", "systeme gestion eaux",
                 "traitement eaux", "gestion dechets eau", "assainissement diagnostic"],
         # ── U – Urbanisme ─────────────────────────────────────────────────
-        "U1":  ["analyser situation urbaine", "analyse urbaine", "diagnostic urbain",
+        "U1":  ["analyser situation urbaine", "analyse urbaine", _KW_DIAGNOSTIC_URBAIN,
                 "situation technique urbaine", "echelle urbaine"],
-        "U2":  ["realiser diagnostic urbain", "etude urbaine", "diagnostic urbain"],
+        "U2":  ["realiser diagnostic urbain", "etude urbaine", _KW_DIAGNOSTIC_URBAIN],
         "U3a": ["concevoir amenagement urbain", "projet amenagement urbain",
                 "plan amenagement", "design urbain"],
         "U3b": ["conduire projet amenagement urbain", "piloter amenagement",
@@ -564,9 +566,7 @@ def _suggest_gc_enseignants(savoir_codes: List[str]) -> List[str]:
     return list(suggested)
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # _DepartmentReferentialManager
-# ─────────────────────────────────────────────────────────────────────────────
 
 class _DepartmentReferentialManager:
     """High-level façade for accessing per-department referentials."""

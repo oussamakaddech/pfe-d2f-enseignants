@@ -9,7 +9,6 @@ def parse_referentiel(file_path):
     domaine_nom = "Technique"
     
     competences = {}
-    current_section = 0
     current_comp_code = None
 
     # Pre-populate competences from the table section
@@ -55,9 +54,13 @@ def parse_referentiel(file_path):
             code_savoir = match_savoir.group(1)
             nom_savoir = match_savoir.group(2).strip()
             type_sav = "THEORIQUE" if match_savoir.group(3) == "T" else "PRATIQUE"
-            niveau_sav = match_savoir.group(4) + "_DEBUTANT" if match_savoir.group(4) == "N1" else (
-                         match_savoir.group(4) + "_AVANCE" if match_savoir.group(4) == "N4" else
-                         match_savoir.group(4) + "_INTERMEDIAIRE")
+            niveau_raw = match_savoir.group(4)
+            if niveau_raw == "N1":
+                niveau_sav = niveau_raw + "_DEBUTANT"
+            elif niveau_raw == "N4":
+                niveau_sav = niveau_raw + "_AVANCE"
+            else:
+                niveau_sav = niveau_raw + "_INTERMEDIAIRE"
             
             if current_comp_code in competences:
                 competences[current_comp_code]["savoirs"].append({

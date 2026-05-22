@@ -62,6 +62,9 @@ except Exception:
 # Re-export so other submodules can check availability
 __all_flags__ = {"_PDF_OK", "_DOCX_OK", "_FUZZY_OK", "_OCR_OK"}
 
+_RE_WHITESPACE_NEWLINE = r"\s*\n\s*"
+_RE_SINGLE_DIGIT = r"^(\d)\s*$"
+
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Text extraction
@@ -1079,7 +1082,7 @@ def _scan_tables_for_meta(raw_tables: List, meta: Dict[str, Any]) -> None:
                     meta["prerequis"] = value.strip()
 
                 elif meta_key == "objectif" and "objectif" not in meta:
-                    meta["objectif"] = re.sub(r"\s*\n\s*", " ", value).strip()
+                    meta["objectif"] = re.sub(_RE_WHITESPACE_NEWLINE, " ", value).strip()
 
 
 def _extract_metadata(text: str, raw_tables: Optional[List] = None) -> Dict[str, Any]:
@@ -1265,7 +1268,7 @@ def _extract_metadata(text: str, raw_tables: Optional[List] = None) -> Dict[str,
     m = _RE_OBJECTIF.search(text)
     if m:
         obj = m.group(1).strip()
-        obj = re.sub(r"\s*\n\s*", " ", obj).strip()
+        obj = re.sub(_RE_WHITESPACE_NEWLINE, " ", obj).strip()
         meta["objectif"] = obj
 
     return meta
@@ -1382,7 +1385,7 @@ def _extract_acquis_apprentissage(text: str) -> List[Dict[str, Any]]:
             if bm:
                 bloom = int(bm.group(1))
                 rest = rest[:bm.start()].strip()
-            elif re.match(r'^(\d)\s*$', rest):
+            elif re.match(_RE_SINGLE_DIGIT, rest):
                 bloom = int(rest)
                 rest = ''
 
@@ -1397,7 +1400,7 @@ def _extract_acquis_apprentissage(text: str) -> List[Dict[str, Any]]:
                 if bm_standalone:
                     bloom_standalone = max(int(bm_standalone.group(1)), int(bm_standalone.group(2)))
                     continue  # don't add to text_between
-                bm_single = re.match(r'^(\d)\s*$', ct)
+                bm_single = re.match(_RE_SINGLE_DIGIT, ct)
                 if bm_single:
                     bloom_standalone = int(bm_single.group(1))
                     continue
@@ -1434,7 +1437,7 @@ def _extract_acquis_apprentissage(text: str) -> List[Dict[str, Any]]:
                     if bm_s2:
                         trailing_bloom = max(int(bm_s2.group(1)), int(bm_s2.group(2)))
                         continue
-                    bm_s1 = re.match(r'^(\d)\s*$', ct)
+                    bm_s1 = re.match(_RE_SINGLE_DIGIT, ct)
                     if bm_s1:
                         trailing_bloom = int(bm_s1.group(1))
                         continue
@@ -1546,10 +1549,6 @@ def _extract_referentiel_competences(text: str) -> List[Dict[str, Any]]:
     Returns a list of dicts: {code, text, domaine_code, domaine_nom, bloom_level}
     only if this looks like a referential document (>= 3 items), else [].
     """
-    re_comp = re.compile(
-        r"^([A-Z][a-z]?(?:ech)?)\s*(\d+[a-z]?)\s*[-\u2013]\s*(.{10,300})$",
-        re.MULTILINE,
-    )
     re_section = re.compile(
         r"Comp[eé]tences?\s+(?:dans\s+le\s+domaine\s+(?:de[sl]?\s+)?|en\s+|transversales?\s+)"
         r"(.{3,60})\s*\(\s*([A-Z][a-z]*)\s*\)",
@@ -1599,7 +1598,7 @@ def _extract_referentiel_competences(text: str) -> List[Dict[str, Any]]:
         if tail:
             comp_text = f"{comp_text} {' '.join(tail)}"
 
-        comp_text = re.sub(r"\s*\n\s*", " ", comp_text)
+        comp_text = re.sub(_RE_WHITESPACE_NEWLINE, " ", comp_text)
         comp_text = re.sub(r"\s+", " ", comp_text).strip()
         comp_text = re.split(
             r"\s+[•·]\s*Comp[eé]tences?\s+|\s+Comp[eé]tences?\s+dans\s+le\s+domaine\s+",
