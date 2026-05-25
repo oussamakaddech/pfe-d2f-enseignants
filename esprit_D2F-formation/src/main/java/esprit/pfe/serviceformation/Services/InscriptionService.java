@@ -5,6 +5,10 @@ import esprit.pfe.serviceformation.dto.*;
 import esprit.pfe.serviceformation.entities.*;
 import esprit.pfe.serviceformation.repositories.*;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -14,18 +18,24 @@ import java.util.stream.Collectors;
 @Service
 @Transactional
 public class InscriptionService {
+    private static final String FORMATION_INTROUVABLE = "Formation introuvable";
+
     private final FormationRepository formationRepo;
     private final EnseignantRepository enseignantRepo;
     private final InscriptionRepository inscriptionRepo;
+    private final InscriptionService self;
 
     @Autowired
     public InscriptionService(FormationRepository formationRepo,
                               EnseignantRepository enseignantRepo,
-                              InscriptionRepository inscriptionRepo) {
+                              InscriptionRepository inscriptionRepo,
+                              @Lazy InscriptionService self) {
         this.formationRepo = formationRepo;
         this.enseignantRepo = enseignantRepo;
         this.inscriptionRepo = inscriptionRepo;
+        this.self = self;
     }
+
 
     /**
      * 1. Lister les formations accessibles pour un formateur
@@ -57,7 +67,7 @@ public class InscriptionService {
     public Inscription demanderInscription(Long formationId, String enseignantId) {
         // 1. Vérifications préalables
         Formation f = formationRepo.findById(formationId)
-                .orElseThrow(() -> new IllegalArgumentException("Formation introuvable"));
+                .orElseThrow(() -> new IllegalArgumentException(FORMATION_INTROUVABLE));
 
         if (!f.isInscriptionsOuvertes()) {
             throw new IllegalStateException("Cette formation n'est pas visible pour inscription");
@@ -112,18 +122,36 @@ public class InscriptionService {
                 && f1.getDateFin().compareTo(f2.getDateDebut()) >= 0;
     }
 
+    @Transactional(readOnly = true)
+    public Page<InscriptionDTO> listerInscriptionsParFormation(Long formationId, Pageable pageable) {
+        formationRepo.findById(formationId)
+                .orElseThrow(() -> new IllegalArgumentException(FORMATION_INTROUVABLE));
+        return inscriptionRepo
+                .findByFormation_IdFormation(formationId, pageable)
+                .map(this::mapInscriptionToDTO);
+    }
+
     /**
      * 3. Lister les demandes PENDING pour D2F ou CUP
      */
     @Transactional(readOnly = true)
     public List<InscriptionDTO> listerInscriptionsParFormation(Long formationId) {
         formationRepo.findById(formationId)
-                .orElseThrow(() -> new IllegalArgumentException("Formation introuvable"));
+                .orElseThrow(() -> new IllegalArgumentException(FORMATION_INTROUVABLE));
         return inscriptionRepo
                 .findByFormation_IdFormation(formationId)
                 .stream()
                 .map(this::mapInscriptionToDTO)
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public Page<FormationDTO> listerFormationsAccessibles(String enseignantId, Pageable pageable) {
+        List<FormationDTO> all = self.listerFormationsAccessibles(enseignantId);
+        int start = (int) pageable.getOffset();
+        int end = Math.min(start + pageable.getPageSize(), all.size());
+        List<FormationDTO> slice = (start >= all.size()) ? List.of() : all.subList(start, end);
+        return new PageImpl<>(slice, pageable, all.size());
     }
 
     /**

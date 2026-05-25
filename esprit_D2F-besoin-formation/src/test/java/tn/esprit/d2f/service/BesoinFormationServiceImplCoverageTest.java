@@ -1,5 +1,6 @@
 package tn.esprit.d2f.service;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -10,6 +11,9 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 import tn.esprit.d2f.dto.BesoinFormationEventPublisher;
 import tn.esprit.d2f.dto.BesoinFormationRequest;
 import tn.esprit.d2f.dto.BesoinFormationResponse;
@@ -18,12 +22,13 @@ import tn.esprit.d2f.entity.Notification;
 import tn.esprit.d2f.entity.enumerations.PeriodCode;
 import tn.esprit.d2f.entity.enumerations.Priorite;
 import tn.esprit.d2f.entity.enumerations.TypeBesoin;
+import tn.esprit.d2f.exception.ResourceNotFoundException;
 import tn.esprit.d2f.mapper.BesoinFormationMapper;
 import tn.esprit.d2f.repository.BesoinFormationRepository;
 import tn.esprit.d2f.repository.NotificationRepository;
 
 import java.util.Collections;
-import java.util.NoSuchElementException;
+import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -57,6 +62,18 @@ class BesoinFormationServiceImplCoverageTest {
                 notificationRepository,
                 besoinFormationMapper
         );
+        // Provide an ADMIN security context for service methods that read SecurityContextHolder
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken(
+                        "test-admin", null,
+                        List.of(new SimpleGrantedAuthority("ROLE_ADMIN"))
+                )
+        );
+    }
+
+    @AfterEach
+    void tearDown() {
+        SecurityContextHolder.clearContext();
     }
 
     // ──────────────────────────────────────────────
@@ -254,7 +271,8 @@ class BesoinFormationServiceImplCoverageTest {
 
         when(besoinFormationRepository.findById(999L)).thenReturn(Optional.empty());
 
-        assertThrows(NoSuchElementException.class, () -> service.modifyBesoinFormation(request));
+        // Service now throws ResourceNotFoundException (→ HTTP 404) instead of NoSuchElementException
+        assertThrows(ResourceNotFoundException.class, () -> service.modifyBesoinFormation(request));
     }
 
     // ──────────────────────────────────────────────
@@ -265,7 +283,9 @@ class BesoinFormationServiceImplCoverageTest {
     void approuverBesoin_whenNotFound_shouldThrow() {
         when(besoinFormationRepository.findById(999L)).thenReturn(Optional.empty());
 
-        assertThrows(IllegalArgumentException.class, () -> service.approuverBesoin(999L));
+        // Service now throws ResourceNotFoundException (→ HTTP 404) instead of IllegalArgumentException
+        // Exception is thrown before SecurityContextHolder is accessed, so no auth setup needed
+        assertThrows(ResourceNotFoundException.class, () -> service.approuverBesoin(999L));
     }
 
     // ──────────────────────────────────────────────
@@ -277,9 +297,13 @@ class BesoinFormationServiceImplCoverageTest {
         long id = 1L;
         BesoinFormation besoin = new BesoinFormation();
         besoin.setIdBesoinFormation(id);
+        // Pre-set steps 1 and 2 so the service advances to step 3 (Admin) where publishApprovalEvent is called
+        besoin.setApprouveCUP(true);
+        besoin.setApprouveChefDep(true);
+        besoin.setApprouveAdmin(false);
         besoin.setEventPublished(false);
-        besoin.setTypeBesoin(null);   // null typeBesoin
-        besoin.setPeriodCode(null);   // null periodCode
+        besoin.setTypeBesoin(null);   // null typeBesoin → event.typeBesoin = null
+        besoin.setPeriodCode(null);   // null periodCode → event.periodCode = null
         besoin.setNbMaxParticipants(20);
         besoin.setDureeFormation(10);
 
@@ -302,9 +326,13 @@ class BesoinFormationServiceImplCoverageTest {
         long id = 1L;
         BesoinFormation besoin = new BesoinFormation();
         besoin.setIdBesoinFormation(id);
+        // Pre-set steps 1 and 2 so the service advances to step 3 (Admin) where publishApprovalEvent is called
+        besoin.setApprouveCUP(true);
+        besoin.setApprouveChefDep(true);
+        besoin.setApprouveAdmin(false);
         besoin.setEventPublished(false);
-        besoin.setTypeBesoin(TypeBesoin.COLLECTIF);
-        besoin.setPeriodCode(PeriodCode.SUMMER);
+        besoin.setTypeBesoin(TypeBesoin.COLLECTIF);   // non-null → event.typeBesoin = "COLLECTIF"
+        besoin.setPeriodCode(PeriodCode.SUMMER);       // non-null → event.periodCode = "SUMMER"
         besoin.setNbMaxParticipants(20);
         besoin.setDureeFormation(10);
 
@@ -327,14 +355,17 @@ class BesoinFormationServiceImplCoverageTest {
         long id = 1L;
         BesoinFormation besoin = new BesoinFormation();
         besoin.setIdBesoinFormation(id);
-        besoin.setEventPublished(null);  // null instead of false
+        // Pre-set steps 1 and 2 so the service advances to step 3 (Admin) where publish is called
+        besoin.setApprouveCUP(true);
+        besoin.setApprouveChefDep(true);
+        besoin.setApprouveAdmin(false);
+        besoin.setEventPublished(null);  // null instead of false — Boolean.TRUE.equals(null) == false → publish
         besoin.setNbMaxParticipants(20);
         besoin.setDureeFormation(10);
 
         when(besoinFormationRepository.findById(id)).thenReturn(Optional.of(besoin));
         when(besoinFormationRepository.save(any(BesoinFormation.class))).thenReturn(besoin);
 
-        // eventPublished is null, Boolean.TRUE.equals(null) == false, so it proceeds to publish
         BesoinFormationResponse result = service.approuverBesoin(id);
 
         assertNotNull(result);

@@ -22,8 +22,6 @@ import tn.esprit.d2f.competence.service.ICompetenceService;
 import tn.esprit.d2f.competence.service.IEnseignantCompetenceService;
 import esprit.d2f.common.security.AuthorizationMatrix;
 
-import java.util.List;
-
 @Tag(name = "Compétences", description = "Gestion des compétences")
 @RestController
 @RequestMapping("/api/v1/competences")
@@ -37,8 +35,8 @@ public class CompetenceController {
     @GetMapping
     @PreAuthorize(AuthorizationMatrix.COMPETENCE_READ)
     public ResponseEntity<Page<CompetenceDTO>> getAllCompetences(
-            @RequestParam(required = false) Long upId,
-            @RequestParam(required = false) Long departementId,
+            @RequestParam(required = false) String upId,
+            @RequestParam(required = false) String departementId,
             @PageableDefault(size = 20) Pageable pageable) {
         if (upId != null || departementId != null) {
             return ResponseEntity.ok(competenceService.getCompetencesByFilter(upId, departementId, pageable));
@@ -46,11 +44,13 @@ public class CompetenceController {
         return ResponseEntity.ok(competenceService.getAllCompetences(pageable));
     }
 
-    @Operation(summary = "Lister les compétences d'un domaine")
+    @Operation(summary = "Lister les compétences d'un domaine (paginé)")
     @GetMapping("/domaine/{domaineId}")
     @PreAuthorize(AuthorizationMatrix.COMPETENCE_READ)
-    public ResponseEntity<List<CompetenceDTO>> getCompetencesByDomaine(@PathVariable Long domaineId) {
-        return ResponseEntity.ok(competenceService.getCompetencesByDomaine(domaineId));
+    public ResponseEntity<Page<CompetenceDTO>> getCompetencesByDomaine(
+            @PathVariable Long domaineId,
+            @PageableDefault(size = 20) Pageable pageable) {
+        return ResponseEntity.ok(competenceService.getCompetencesByDomaine(domaineId, pageable));
     }
 
     @Operation(summary = "Obtenir une compétence par ID")
@@ -100,10 +100,12 @@ public class CompetenceController {
         return ResponseEntity.noContent().build();
     }
 
-    @Operation(summary = "Lister les enseignants d'une compétence")
+    @Operation(summary = "Lister les enseignants d'une compétence (paginé)")
     @GetMapping("/{id}/enseignants")
     @PreAuthorize(AuthorizationMatrix.COMPETENCE_READ)
-    public ResponseEntity<List<EnseignantCompetenceDTO>> getEnseignantsByCompetence(@PathVariable Long id) {
-        return ResponseEntity.ok(enseignantCompetenceService.getByCompetenceId(id));
+    public ResponseEntity<Page<EnseignantCompetenceDTO>> getEnseignantsByCompetence(
+            @PathVariable Long id,
+            @PageableDefault(size = 20) Pageable pageable) {
+        return ResponseEntity.ok(enseignantCompetenceService.getByCompetenceId(id, pageable));
     }
 }

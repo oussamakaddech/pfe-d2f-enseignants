@@ -13,6 +13,11 @@ import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
+
 import java.io.ByteArrayOutputStream;
 import java.util.Date;
 import java.util.List;
@@ -161,17 +166,25 @@ public class FormationWorkflowController {
 
     @GetMapping("/animateur")
     @PreAuthorize(AuthorizationMatrix.FORMATION_READ_OWN)
-    public ResponseEntity<List<FormationDTO>> getFormationsByAnimateurEmail(@AuthenticationPrincipal Jwt jwt) {
+    public ResponseEntity<Page<FormationDTO>> getFormationsByAnimateurEmail(
+            @AuthenticationPrincipal Jwt jwt,
+            @PageableDefault(size = 20, sort = "idFormation") Pageable pageable) {
         String email = jwt.getClaim("email");
-        List<FormationDTO> formations = formationWorkflowService.getFormationsByAnimateurEmail(email);
-        return ResponseEntity.ok(formations);
+        List<FormationDTO> all = formationWorkflowService.getFormationsByAnimateurEmail(email);
+        int from = (int) pageable.getOffset();
+        int to = Math.min(from + pageable.getPageSize(), all.size());
+        return ResponseEntity.ok(new PageImpl<>(from >= all.size() ? List.of() : all.subList(from, to), pageable, all.size()));
     }
 
     @GetMapping("/seances/{seanceId}/presences")
     @PreAuthorize(AuthorizationMatrix.FORMATION_READ)
-    public ResponseEntity<List<PresenceDTO>> getPresencesBySeance(@PathVariable("seanceId") Long seanceId) {
-        List<PresenceDTO> presences = formationWorkflowService.getPresencesBySeance(seanceId);
-        return ResponseEntity.ok(presences);
+    public ResponseEntity<Page<PresenceDTO>> getPresencesBySeance(
+            @PathVariable("seanceId") Long seanceId,
+            @PageableDefault(size = 50, sort = "id") Pageable pageable) {
+        List<PresenceDTO> all = formationWorkflowService.getPresencesBySeance(seanceId);
+        int from = (int) pageable.getOffset();
+        int to = Math.min(from + pageable.getPageSize(), all.size());
+        return ResponseEntity.ok(new PageImpl<>(from >= all.size() ? List.of() : all.subList(from, to), pageable, all.size()));
     }
 
     @PutMapping("/seances/{seanceId}/presences/batch")
@@ -223,9 +236,12 @@ public class FormationWorkflowController {
 
     @GetMapping("/with-documents")
     @PreAuthorize(AuthorizationMatrix.FORMATION_READ)
-    public ResponseEntity<List<FormationWithDocumentsDTO>> getAllFormationsWithDocuments() {
-        List<FormationWithDocumentsDTO> dtos = formationWorkflowService.getAllFormationsWithDocuments();
-        return ResponseEntity.ok(dtos);
+    public ResponseEntity<Page<FormationWithDocumentsDTO>> getAllFormationsWithDocuments(
+            @PageableDefault(size = 20, sort = "idFormation") Pageable pageable) {
+        List<FormationWithDocumentsDTO> all = formationWorkflowService.getAllFormationsWithDocuments();
+        int from = (int) pageable.getOffset();
+        int to = Math.min(from + pageable.getPageSize(), all.size());
+        return ResponseEntity.ok(new PageImpl<>(from >= all.size() ? List.of() : all.subList(from, to), pageable, all.size()));
     }
 
     @GetMapping("/enseignants/{id}/calendar")
@@ -243,19 +259,33 @@ public class FormationWorkflowController {
 
     @GetMapping("/visibles")
     @PreAuthorize(AuthorizationMatrix.FORMATION_READ)
-    public List<FormationDTO> getFormationsVisibles() {
-        return formationWorkflowService.getFormationsVisibles();
+    public ResponseEntity<Page<FormationDTO>> getFormationsVisibles(
+            @PageableDefault(size = 20, sort = "idFormation") Pageable pageable) {
+        List<FormationDTO> all = formationWorkflowService.getFormationsVisibles();
+        int from = (int) pageable.getOffset();
+        int to = Math.min(from + pageable.getPageSize(), all.size());
+        return ResponseEntity.ok(new PageImpl<>(from >= all.size() ? List.of() : all.subList(from, to), pageable, all.size()));
     }
 
     @GetMapping("/par-up")
     @PreAuthorize(AuthorizationMatrix.FORMATION_READ)
-    public List<FormationDTO> getFormationsParUp(@RequestParam String upId) {
-        return formationWorkflowService.getFormationsParUp(upId);
+    public ResponseEntity<Page<FormationDTO>> getFormationsParUp(
+            @RequestParam String upId,
+            @PageableDefault(size = 20, sort = "idFormation") Pageable pageable) {
+        List<FormationDTO> all = formationWorkflowService.getFormationsParUp(upId);
+        int from = (int) pageable.getOffset();
+        int to = Math.min(from + pageable.getPageSize(), all.size());
+        return ResponseEntity.ok(new PageImpl<>(from >= all.size() ? List.of() : all.subList(from, to), pageable, all.size()));
     }
 
     @GetMapping("/par-departement")
     @PreAuthorize(AuthorizationMatrix.FORMATION_READ)
-    public List<FormationDTO> getFormationsParDepartement(@RequestParam String deptId) {
-        return formationWorkflowService.getFormationsParDepartement(deptId);
+    public ResponseEntity<Page<FormationDTO>> getFormationsParDepartement(
+            @RequestParam String deptId,
+            @PageableDefault(size = 20, sort = "idFormation") Pageable pageable) {
+        List<FormationDTO> all = formationWorkflowService.getFormationsParDepartement(deptId);
+        int from = (int) pageable.getOffset();
+        int to = Math.min(from + pageable.getPageSize(), all.size());
+        return ResponseEntity.ok(new PageImpl<>(from >= all.size() ? List.of() : all.subList(from, to), pageable, all.size()));
     }
 }

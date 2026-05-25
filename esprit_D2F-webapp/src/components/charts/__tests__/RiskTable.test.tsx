@@ -1,7 +1,7 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import RiskTable from '../RiskTable';
-import type { TeacherRiskIndicator } from '@/services/analyse/AnalysePredictiveService';
+import type { TeacherRiskIndicator } from '@/models/analyse';
 
 const sample: TeacherRiskIndicator[] = [
   {

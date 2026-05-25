@@ -5,6 +5,7 @@ import tn.esprit.d2f.entity.enumerations.PeriodCode;
 import tn.esprit.d2f.entity.enumerations.Priorite;
 import tn.esprit.d2f.entity.enumerations.TypeBesoin;
 
+import java.time.LocalDate;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -298,5 +299,31 @@ class BesoinFormationRequestTest {
             () -> assertNull(request.getTypeBesoin()),
             () -> assertNull(request.getPriorite())
         );
+    }
+
+    @Test
+    void testDateFinAfterDateDebutWhenDatesAreNull() {
+        BesoinFormationRequest request = new BesoinFormationRequest();
+
+        assertTrue(request.isDateFinAfterDateDebut());
+    }
+
+    @Test
+    void testDateFinAfterDateDebutWhenEndBeforeStart() {
+        BesoinFormationRequest request = new BesoinFormationRequest();
+        request.setDateDebut(LocalDate.now().plusDays(5));
+        request.setDateFin(LocalDate.now().plusDays(1));
+
+        assertFalse(request.isDateFinAfterDateDebut());
+    }
+
+    @Test
+    void testDateFinAfterDateDebutWhenEndEqualsStart() {
+        BesoinFormationRequest request = new BesoinFormationRequest();
+        LocalDate date = LocalDate.now().plusDays(5);
+        request.setDateDebut(date);
+        request.setDateFin(date);
+
+        assertTrue(request.isDateFinAfterDateDebut());
     }
 }

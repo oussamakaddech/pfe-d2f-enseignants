@@ -47,10 +47,8 @@ const SavoirCard = memo(function SavoirCard({
 }) {
   const [hovered, setHovered] = useState(false);
   const isEditing = editingNom?.path?.join("-") === `${di}-${ci}-${sci}-${si}`;
-  const niveau = NIVEAU_OPTIONS.find((n) => n.value === savoir.niveau) || NIVEAU_OPTIONS[0];
-
   const assigned = useMemo(() => {
-    const ids = (savoir.enseignantsSuggeres ?? []).map((id) => String(id));
+    const ids = (savoir.enseignantsSuggeres ?? []).map(String);
     const map = new Map((allEnseignants ?? []).map((e) => [String(e.id ?? e.enseignantId), e]));
     return ids.map((id) => ({ id, ens: map.get(id) })).filter((x) => x.ens);
   }, [savoir.enseignantsSuggeres, allEnseignants]);

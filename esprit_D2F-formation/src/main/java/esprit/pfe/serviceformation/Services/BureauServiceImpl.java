@@ -3,6 +3,8 @@ package esprit.pfe.serviceformation.services;
 import esprit.pfe.serviceformation.entities.Bureau;
 import esprit.pfe.serviceformation.repositories.BureauRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -13,6 +15,11 @@ import java.util.List;
 public class BureauServiceImpl implements BureauService {
 
     private final BureauRepository bureauRepository;
+
+    @Override
+    public Page<Bureau> getAllBureaux(Pageable pageable) {
+        return bureauRepository.findAll(pageable);
+    }
 
     @Override
     public List<Bureau> getAllBureaux() {

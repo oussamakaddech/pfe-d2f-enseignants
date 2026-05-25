@@ -41,6 +41,7 @@ class EnseignantCompetenceServiceImplTest {
     @Mock EnseignantCompetenceRepository enseignantCompetenceRepository;
     @Mock SavoirRepository savoirRepository;
     @Mock CompetenceMapper competenceMapper;
+    @Mock IEnseignantCompetenceService self;
     @InjectMocks EnseignantCompetenceServiceImpl ecService;
 
     static final String ENS_ID = "ens-uuid-001";
@@ -260,6 +261,116 @@ class EnseignantCompetenceServiceImplTest {
         
         assertThat(result.getContent()).hasSize(1);
         verify(enseignantCompetenceRepository).findAllFetched(pageable);
+    }
+
+    @Test
+    void getCompetencesByEnseignant_Page_ShouldReturnFirstSlice() {
+        Pageable pageable = PageRequest.of(0, 1);
+        EnseignantCompetenceDTO dto = EnseignantCompetenceDTO.builder()
+            .id(1L)
+            .enseignantId(ENS_ID)
+            .savoirId(1L)
+            .niveau(NiveauMaitrise.N2_ELEMENTAIRE)
+            .dateAcquisition(LocalDate.of(2025, 1, 15))
+            .commentaire("Bon niveau")
+            .build();
+        when(self.getCompetencesByEnseignant(ENS_ID)).thenReturn(List.of(dto));
+
+        Page<EnseignantCompetenceDTO> result = ecService.getCompetencesByEnseignant(ENS_ID, pageable);
+
+        assertThat(result.getContent()).hasSize(1);
+        assertThat(result.getTotalElements()).isEqualTo(1);
+    }
+
+    @Test
+    void getCompetencesByEnseignant_Page_ShouldReturnEmptyWhenOffsetPastEnd() {
+        Pageable pageable = PageRequest.of(2, 1);
+        EnseignantCompetenceDTO dto = EnseignantCompetenceDTO.builder()
+            .id(1L)
+            .enseignantId(ENS_ID)
+            .savoirId(1L)
+            .niveau(NiveauMaitrise.N2_ELEMENTAIRE)
+            .dateAcquisition(LocalDate.of(2025, 1, 15))
+            .commentaire("Bon niveau")
+            .build();
+        when(self.getCompetencesByEnseignant(ENS_ID)).thenReturn(List.of(dto));
+
+        Page<EnseignantCompetenceDTO> result = ecService.getCompetencesByEnseignant(ENS_ID, pageable);
+
+        assertThat(result.getContent()).isEmpty();
+        assertThat(result.getTotalElements()).isEqualTo(1);
+    }
+
+    @Test
+    void getCompetencesByEnseignantAndDomaine_Page_ShouldReturnSlice() {
+        Pageable pageable = PageRequest.of(0, 1);
+        EnseignantCompetenceDTO dto = EnseignantCompetenceDTO.builder()
+            .id(1L)
+            .enseignantId(ENS_ID)
+            .savoirId(1L)
+            .niveau(NiveauMaitrise.N2_ELEMENTAIRE)
+            .dateAcquisition(LocalDate.of(2025, 1, 15))
+            .commentaire("Bon niveau")
+            .build();
+        when(self.getCompetencesByEnseignantAndDomaine(ENS_ID, 1L)).thenReturn(List.of(dto));
+
+        Page<EnseignantCompetenceDTO> result = ecService.getCompetencesByEnseignantAndDomaine(ENS_ID, 1L, pageable);
+
+        assertThat(result.getContent()).hasSize(1);
+    }
+
+    @Test
+    void getCompetencesByEnseignantAndCompetence_Page_ShouldReturnSlice() {
+        Pageable pageable = PageRequest.of(0, 1);
+        EnseignantCompetenceDTO dto = EnseignantCompetenceDTO.builder()
+            .id(1L)
+            .enseignantId(ENS_ID)
+            .savoirId(1L)
+            .niveau(NiveauMaitrise.N2_ELEMENTAIRE)
+            .dateAcquisition(LocalDate.of(2025, 1, 15))
+            .commentaire("Bon niveau")
+            .build();
+        when(self.getCompetencesByEnseignantAndCompetence(ENS_ID, 1L)).thenReturn(List.of(dto));
+
+        Page<EnseignantCompetenceDTO> result = ecService.getCompetencesByEnseignantAndCompetence(ENS_ID, 1L, pageable);
+
+        assertThat(result.getContent()).hasSize(1);
+    }
+
+    @Test
+    void getCompetencesByEnseignantAndNiveau_Page_ShouldReturnSlice() {
+        Pageable pageable = PageRequest.of(0, 1);
+        EnseignantCompetenceDTO dto = EnseignantCompetenceDTO.builder()
+            .id(1L)
+            .enseignantId(ENS_ID)
+            .savoirId(1L)
+            .niveau(NiveauMaitrise.N2_ELEMENTAIRE)
+            .dateAcquisition(LocalDate.of(2025, 1, 15))
+            .commentaire("Bon niveau")
+            .build();
+        when(self.getCompetencesByEnseignantAndNiveau(ENS_ID, NiveauMaitrise.N2_ELEMENTAIRE)).thenReturn(List.of(dto));
+
+        Page<EnseignantCompetenceDTO> result = ecService.getCompetencesByEnseignantAndNiveau(ENS_ID, NiveauMaitrise.N2_ELEMENTAIRE, pageable);
+
+        assertThat(result.getContent()).hasSize(1);
+    }
+
+    @Test
+    void getByCompetenceId_Page_ShouldReturnSlice() {
+        Pageable pageable = PageRequest.of(0, 1);
+        EnseignantCompetenceDTO dto = EnseignantCompetenceDTO.builder()
+            .id(1L)
+            .enseignantId(ENS_ID)
+            .savoirId(1L)
+            .niveau(NiveauMaitrise.N2_ELEMENTAIRE)
+            .dateAcquisition(LocalDate.of(2025, 1, 15))
+            .commentaire("Bon niveau")
+            .build();
+        when(self.getByCompetenceId(1L)).thenReturn(List.of(dto));
+
+        Page<EnseignantCompetenceDTO> result = ecService.getByCompetenceId(1L, pageable);
+
+        assertThat(result.getContent()).hasSize(1);
     }
 
     // ─── getByCompetenceId ────────────────────────────────────────────────────

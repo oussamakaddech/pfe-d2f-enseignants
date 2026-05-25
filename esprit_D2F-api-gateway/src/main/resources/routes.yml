@@ -170,18 +170,6 @@ spring:
                 name: rice-cb
                 fallbackUri: forward:/fallback
 
-        # ── AI Recommendation Service (port 8000) ───────────────────────────
-        - id: ai-reco-service
-          uri: ${AI_RECO_SERVICE_URL:http://localhost:8000}
-          predicates:
-            - Path=/api/ai/**
-          filters:
-            - StripPrefix=2
-            - AuthorizationFilter
-            - name: CircuitBreaker
-              args:
-                name: ai-reco-cb
-                fallbackUri: forward:/fallback
 
         # ── Analyse Predictive Service (port 8090) ──────────────────────────
         - id: analyse-service

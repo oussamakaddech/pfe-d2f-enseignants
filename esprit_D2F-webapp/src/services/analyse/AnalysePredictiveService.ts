@@ -3,73 +3,74 @@ import { config } from "@/config/env";
 
 const PREDICTIVE_API = `${config.ANALYSE_URL}/analyse`;
 
-export type Gravite = "elevee" | "moyenne" | "faible";
+export type { Gravite, AnalyseGap, AnalyseRecommandation, AnalyseData, DecliningCompetency, InDemandCompetency, TeacherRiskIndicator, DriftReport } from "@/models/analyse";
 
-export interface AnalyseGap {
-  competenceCode: string;
-  competenceLabel: string;
-  niveauActuel: number;
-  niveauCible: number;
-  gap: number;
-  gravite: Gravite;
-  explication: string;
-}
-
-export interface AnalyseRecommandation {
-  ordre: number;
-  formationId: number;
-  titre: string;
-  competencesCiblees: string[];
-  dureeEstimee: string;
-  prerequisManquants: string[];
-  probabiliteReussite: number;
-  justification: string;
-}
-
-export interface AnalyseData {
-  enseignantId: string;
-  competenceAnalysee: string;
-  gaps: AnalyseGap[];
-  overallRiskScore: number;
-  recommandationsFormations: AnalyseRecommandation[];
-  isHeuristic: boolean;
-  modelNeedsTraining: boolean;
-}
-
-export interface DecliningCompetency {
+interface RawGapItem {
   competency_id: number;
   competency_name: string;
-  domaine_name?: string;
-  demand_3m?: number;
-  demand_12m?: number;
+  current_level: number;
+  required_level: number;
+  predicted_gap: number;
+  confidence?: number;
+  explanation?: { method?: string; model_trained?: boolean };
 }
 
-export interface InDemandCompetency extends DecliningCompetency {
-  trend?: "increasing" | "stable";
+interface RawPathStep {
+  step_number: number;
+  formation_id: number;
+  formation_title: string;
+  competency_name: string;
+  estimated_duration_hours: number;
+  missing_prerequisites?: string[];
+  success_probability: number;
 }
 
-export interface TeacherRiskIndicator {
-  teacher_id: string;
-  teacher_name: string;
-  attrition_risk_score: number;
-  disengagement_signals: string[];
-  competency_stagnation_rate: number;
-  training_velocity: number;
-  recommendation: string;
-}
-
-export interface DriftReport {
-  drift_detected: boolean;
-  message?: string;
-  recommendation?: string | null;
-  days_since_training?: number;
-  checked_features?: Array<{
-    feature: string;
-    previous_importance: number;
-    current_importance: number;
-    relative_change: number;
-    drift_flag: boolean;
+interface DashboardData {
+  declining_competencies?: Array<{
+    competency_id: number;
+    competency_name: string;
+    domaine_name?: string;
+    demand_3m?: number;
+    demand_12m?: number;
   }>;
+  in_demand_competencies?: Array<{
+    competency_id: number;
+    competency_name: string;
+    domaine_name?: string;
+    demand_3m?: number;
+    demand_12m?: number;
+    trend?: "increasing" | "stable";
+  }>;
+  teacher_risk_indicators?: Array<{
+    teacher_id: string;
+    teacher_name: string;
+    attrition_risk_score: number;
+    disengagement_signals?: string[];
+    competency_stagnation_rate?: number;
+    training_velocity?: number;
+    recommendation?: string;
+  }>;
+}
+
+type DecliningCompetency = NonNullable<DashboardData['declining_competencies']>[number];
+type InDemandCompetency = NonNullable<DashboardData['in_demand_competencies']>[number];
+type TeacherRiskIndicator = NonNullable<DashboardData['teacher_risk_indicators']>[number];
+
+function mapGapItem(g: RawGapItem, isHeuristic: boolean): AnalyseGap {
+  let gravite: Gravite = "faible";
+  if (g.predicted_gap >= 2) gravite = "elevee";
+  else if (g.predicted_gap >= 1) gravite = "moyenne";
+  return {
+    competenceCode: `C${g.competency_id}`,
+    competenceLabel: g.competency_name,
+    niveauActuel: g.current_level,
+    niveauCible: g.required_level,
+    gap: g.predicted_gap,
+    gravite,
+    explication: isHeuristic
+      ? `Gap estimé (heuristique): ${g.predicted_gap.toFixed(1)} — Entraînez le modèle pour des prédictions plus précises`
+      : `Gap prédit: ${g.predicted_gap.toFixed(1)} (confiance: ${(g.confidence * 100).toFixed(0)}%)`,
+  };
 }
 
 const AnalysePredictiveService = {
@@ -133,7 +134,7 @@ const AnalysePredictiveService = {
   },
 
   // ── Legacy adapters (used by existing page) ────
-  async analyserEnseignant(
+  async analyserEnseignant( // NOSONAR — nested try-catch for auto-train retry is intentional
     enseignantId: string,
     competenceCible?: string,
     options?: { autoTrain?: boolean }
@@ -142,15 +143,15 @@ const AnalysePredictiveService = {
     try {
       const gapsRes = await this.predictGaps(enseignantId, 6, 10);
 
-      let recommendations: any[] = [];
+      let recommendations: AnalyseRecommandation[] = [];
       if (competenceCible) {
         try {
           const recoRes = await this.recommendPath(
             enseignantId,
-            parseInt(competenceCible.replace(/\D/g, "") || "0"),
+            Number.parseInt(competenceCible.replaceAll(/\D/g, "") || "0"),
             4
           );
-          recommendations = (recoRes.path || []).map((step: any) => ({
+          recommendations = (recoRes.path || []).map((step: RawPathStep) => ({
             ordre: step.step_number,
             formationId: step.formation_id,
             titre: step.formation_title,
@@ -161,7 +162,7 @@ const AnalysePredictiveService = {
             justification: "Basé sur votre profil et les prérequis de la formation.",
           }));
         } catch (e) {
-          console.warn("Recommandations non disponibles pour cette compétence", e);
+          // Recommandations non disponibles — continue sans
         }
       }
 
@@ -171,56 +172,37 @@ const AnalysePredictiveService = {
       return {
         enseignantId,
         competenceAnalysee: competenceCible || "Toutes",
-        gaps: (gapsRes.gaps || []).map((g: any) => ({
-          competenceCode: `C${g.competency_id}`,
-          competenceLabel: g.competency_name,
-          niveauActuel: g.current_level,
-          niveauCible: g.required_level,
-          gap: g.predicted_gap,
-          gravite: g.predicted_gap >= 2 ? "elevee" : g.predicted_gap >= 1 ? "moyenne" : "faible",
-          explication: isHeuristic
-            ? `Gap estimé (heuristique): ${g.predicted_gap.toFixed(1)} — Entraînez le modèle pour des prédictions plus précises`
-            : `Gap prédit: ${g.predicted_gap.toFixed(1)} (confiance: ${(g.confidence * 100).toFixed(0)}%)`,
-        })),
+        gaps: (gapsRes.gaps || []).map((g: RawGapItem) => mapGapItem(g, isHeuristic)),
         overallRiskScore: gapsRes.overall_risk_score || 0,
         recommandationsFormations: recommendations,
         isHeuristic,
         modelNeedsTraining: isHeuristic,
       };
-    } catch (error: any) {
-      console.error("Erreur lors de l'analyse prédictive de l'enseignant :", error);
+    } catch (error: unknown) {
       // If 503 (model not trained) and caller has admin rights, try to auto-train and retry once.
       // Otherwise surface a clear actionable message — only admins can train the model.
-      if (error?.response?.status === 503) {
+      const axiosError = error as { response?: { status: number; data?: { message?: string } } };
+      if (axiosError?.response?.status === 503) {
         if (!autoTrain) {
           throw new Error(
             "Le modèle prédictif n'est pas encore entraîné. Veuillez demander à un administrateur de lancer l'entraînement."
           );
         }
-        console.info("Modèle non entraîné — tentative d'entraînement automatique...");
         try {
           await this.trainModel();
           const gapsRes = await this.predictGaps(enseignantId, 6, 10);
           return {
             enseignantId,
             competenceAnalysee: competenceCible || "Toutes",
-            gaps: (gapsRes.gaps || []).map((g: any) => ({
-              competenceCode: `C${g.competency_id}`,
-              competenceLabel: g.competency_name,
-              niveauActuel: g.current_level,
-              niveauCible: g.required_level,
-              gap: g.predicted_gap,
-              gravite: g.predicted_gap >= 2 ? "elevee" : g.predicted_gap >= 1 ? "moyenne" : "faible",
-              explication: `Gap prédit: ${g.predicted_gap.toFixed(1)} (confiance: ${(g.confidence * 100).toFixed(0)}%)`,
-            })),
+            gaps: (gapsRes.gaps || []).map((g: RawGapItem) => mapGapItem(g, false)),
             overallRiskScore: gapsRes.overall_risk_score || 0,
             recommandationsFormations: [],
             isHeuristic: false,
             modelNeedsTraining: false,
           };
-        } catch (retryError: any) {
-          console.error("Échec de l'entraînement automatique :", retryError);
-          if (retryError?.response?.status === 403) {
+        } catch (retryError: unknown) {
+          const retryAxiosError = retryError as { response?: { status: number } };
+          if (retryAxiosError?.response?.status === 403) {
             throw new Error(
               "Le modèle n'est pas entraîné et l'entraînement automatique a été refusé (403). Contactez un administrateur."
             );
@@ -239,18 +221,17 @@ const AnalysePredictiveService = {
       const data = await this.getDashboardSummary();
       return {
         dashboard: {
-          competencesEnDeclin: (data.declining_competencies || []).map((c: any) => c.competency_name).filter(Boolean),
-          competencesEnForteDemande: (data.in_demand_competencies || []).map((c: any) => c.competency_name).filter(Boolean),
+          competencesEnDeclin: (data.declining_competencies || []).map((c: DecliningCompetency) => c.competency_name).filter(Boolean),
+          competencesEnForteDemande: (data.in_demand_competencies || []).map((c: InDemandCompetency) => c.competency_name).filter(Boolean),
           enseignantsARisque: (data.teacher_risk_indicators || [])
-            .filter((r: any) => r.attrition_risk_score > 0.5)
-            .map((r: any) => r.teacher_name),
+            .filter((r: TeacherRiskIndicator) => r.attrition_risk_score > 0.5)
+            .map((r: TeacherRiskIndicator) => r.teacher_name),
         },
         rawDeclining: data.declining_competencies || [],
         rawInDemand: data.in_demand_competencies || [],
         rawRiskIndicators: data.teacher_risk_indicators || [],
       };
     } catch (error) {
-      console.error("Erreur lors de l'analyse des tendances globales :", error);
       throw error;
     }
   },

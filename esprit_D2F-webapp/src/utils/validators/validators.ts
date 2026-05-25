@@ -50,7 +50,7 @@ export const maxLength = (value, max) =>
  * @returns {boolean}
  */
 export const isPositiveNumber = (value) =>
-  !isNaN(value) && Number(value) > 0;
+  !Number.isNaN(value) && Number(value) > 0;
 
 /**
  * Vérifie qu'une valeur est un entier positif ou nul.

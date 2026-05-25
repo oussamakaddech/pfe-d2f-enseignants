@@ -25,21 +25,21 @@ export const DISPLAY_MODE_KEY = "ctp-display-mode-v2";
 export const OPEN_COMPS_KEY = "ctp-open-comps";
 export const ACTIVE_COMP_KEY = "ctp-active-comp";
 
-export function toNiveauRank(niveau) {
+export function toNiveauRank(niveau: unknown): number {
   if (niveau == null) return 999;
   const asText = String(niveau).trim();
   const match = asText.match(/(\d+)/);
   return match ? Number(match[1]) : 999;
 }
 
-export function formatNiveau(niveau) {
+export function formatNiveau(niveau: unknown): string {
   const hit = NIVEAU_SAVOIR_OPTIONS?.find((n) => String(n.value) === String(niveau));
   return hit?.label || (niveau ? `Niveau ${niveau}` : "-");
 }
 
-export function getNiveauStyle(niveau) {
+export function getNiveauStyle(niveau: unknown): { color: string; bg: string; border: string } {
   const rank = toNiveauRank(niveau);
-  const map = {
+  const map: Record<number, { color: string; bg: string; border: string }> = {
     1: { color: "#9a3412", bg: "#ffedd5", border: "#fdba74" },
     2: { color: "#1d4ed8", bg: "#dbeafe", border: "#93c5fd" },
     3: { color: "#0f766e", bg: "#ccfbf1", border: "#5eead4" },
@@ -49,17 +49,18 @@ export function getNiveauStyle(niveau) {
   return map[rank] || { color: "#334155", bg: "#e2e8f0", border: "#cbd5e1" };
 }
 
-export function getTypeLabel(type) {
+export function getTypeLabel(type: string): string {
   if (type === "THEORIQUE") return "theorique";
   if (type === "PRATIQUE") return "pratique";
   return "-";
 }
 
-export function getTypeBadge(type) {
+export function getTypeBadge(type: string): string {
   return type === "THEORIQUE" ? "theorique" : "pratique";
 }
 
-export function buildFlatSavoirs(crud) {
+
+export function buildFlatSavoirs(crud: { domaines?: Array<{ id: unknown }>; competences?: Array<{ id: unknown; domaineId: unknown }>; sousComps?: Array<{ id: unknown; competenceId: unknown }>; savoirs?: Array<{ id: unknown; code?: string; nom?: string; description?: string; type?: string; niveau?: unknown; sousCompetenceId?: unknown; competenceId?: unknown }> }) {
   const domaines = crud.domaines || [];
   const competences = crud.competences || [];
   const sousComps = crud.sousComps || [];
@@ -71,11 +72,14 @@ export function buildFlatSavoirs(crud) {
 
   return savoirs.map((s) => {
     const sc = s?.sousCompetenceId != null ? scById.get(String(s.sousCompetenceId)) : null;
-    const comp = sc
-      ? compById.get(String(sc.competenceId))
-      : s?.competenceId != null
-        ? compById.get(String(s.competenceId))
-        : null;
+    let comp;
+    if (sc) {
+      comp = compById.get(String(sc.competenceId));
+    } else if (s?.competenceId == null) {
+      comp = null;
+    } else {
+      comp = compById.get(String(s.competenceId));
+    }
     const domaine = comp ? domaineById.get(String(comp.domaineId)) : null;
 
     return {
@@ -98,7 +102,7 @@ export function buildFlatSavoirs(crud) {
   });
 }
 
-export function getFilteredCrud(crud, domaineId) {
+export function getFilteredCrud(crud: { domaines?: Array<{ id: unknown; domaineId?: unknown }>; competences?: Array<{ id: unknown; domaineId: unknown }>; sousComps?: Array<{ id: unknown; competenceId: unknown }>; savoirs?: Array<{ id: unknown; competenceId?: unknown; sousCompetenceId?: unknown }> }, domaineId: unknown) {
   const { domaines = [], competences = [], sousComps = [], savoirs = [] } = crud;
   if (!domaineId) return { domaines, competences, sousComps, savoirs };
 
@@ -118,13 +122,13 @@ export function getFilteredCrud(crud, domaineId) {
   };
 }
 
-export function hasAnyActiveFilters(filters, debouncedQ) {
+export function hasAnyActiveFilters(filters: { q?: string; type?: string; niveau?: string } | null, debouncedQ: string) {
   if (!filters) return false;
   const query = (debouncedQ ?? filters.q ?? "").trim();
   return query.length > 0 || filters.type !== "ALL" || filters.niveau !== "ALL";
 }
 
-export function buildFilterChips(filters) {
+export function buildFilterChips(filters: { q?: string; type?: string; niveau?: string } | null): Array<{ key: string; label: string; color: string }> {
   if (!filters) return [];
   const chips = [];
 

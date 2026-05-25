@@ -24,7 +24,7 @@
  * @returns {string}
  */
 export const extractErrorMessage = (
-  error,
+  error: unknown,
   fallback = "Une erreur est survenue. Veuillez réessayer."
 ) => {
   if (!error) return fallback;
@@ -51,7 +51,8 @@ export const extractErrorMessage = (
  * @param {unknown} error
  * @returns {number|null}
  */
-export const extractStatusCode = (error) => error?.response?.status ?? null;
+export const extractStatusCode = (error: unknown): number | null =>
+  (error as { response?: { status?: number } })?.response?.status ?? null;
 
 /**
  * Vérifie si l'erreur correspond à un code HTTP 401 (non authentifié).
@@ -59,7 +60,7 @@ export const extractStatusCode = (error) => error?.response?.status ?? null;
  * @param {unknown} error
  * @returns {boolean}
  */
-export const isUnauthorized = (error) => extractStatusCode(error) === 401;
+export const isUnauthorized = (error: unknown): boolean => extractStatusCode(error) === 401;
 
 /**
  * Vérifie si l'erreur correspond à un code HTTP 403 (interdit).
@@ -67,7 +68,7 @@ export const isUnauthorized = (error) => extractStatusCode(error) === 401;
  * @param {unknown} error
  * @returns {boolean}
  */
-export const isForbidden = (error) => extractStatusCode(error) === 403;
+export const isForbidden = (error: unknown): boolean => extractStatusCode(error) === 403;
 
 /**
  * Vérifie si l'erreur correspond à un code HTTP 404 (non trouvé).
@@ -75,34 +76,24 @@ export const isForbidden = (error) => extractStatusCode(error) === 403;
  * @param {unknown} error
  * @returns {boolean}
  */
-export const isNotFound = (error) => extractStatusCode(error) === 404;
+export const isNotFound = (error: unknown): boolean => extractStatusCode(error) === 404;
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Headers
+// Headers (no-ops — JWT is in HttpOnly cookie, sent automatically)
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * Construit l'objet headers avec le token JWT Bearer extrait du localStorage.
- * Retourne un objet vide si aucun token n'est présent.
- *
- * @returns {Record<string, string>}
- *
- * @example
- * axios.get("/api/v1/domaines", { headers: authHeader() });
+ * @deprecated JWT est en HttpOnly cookie, envoyé automatiquement via withCredentials.
+ * Retourne toujours un objet vide. Conservé pour compatibilité des imports existants.
  */
-export const authHeader = () => {
-  const token = localStorage.getItem("authToken");
-  return token ? { Authorization: `Bearer ${token}` } : {};
-};
+export const authHeader = (): Record<string, string> => ({});
 
 /**
- * Construit les headers complets pour une requête JSON authentifiée.
- *
- * @returns {Record<string, string>}
+ * @deprecated JWT est en HttpOnly cookie. Retourne uniquement Content-Type.
+ * Conservé pour compatibilité des imports existants.
  */
-export const jsonAuthHeaders = () => ({
+export const jsonAuthHeaders = (): Record<string, string> => ({
   "Content-Type": "application/json",
-  ...authHeader(),
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -147,7 +138,7 @@ export const paginationParams = ({ page = 0, size = 20, sort = "" } = {}) => ({
  *   isLast: boolean,
  * }}
  */
-export const extractPageData = (pageResponse) => {
+export const extractPageData = (pageResponse: unknown): { content: unknown[]; totalElements: number; totalPages: number; currentPage: number; pageSize: number; isFirst: boolean; isLast: boolean } => {
   if (!pageResponse || typeof pageResponse !== "object") {
     return {
       content: [],
@@ -182,7 +173,7 @@ export const extractPageData = (pageResponse) => {
  * @param {Record<string, unknown>} params
  * @returns {string} - Ex: "page=0&size=20&sort=nom%2Casc"
  */
-export const buildQueryString = (params = {}) => {
+export const buildQueryString = (params: Record<string, unknown> = {}): string => {
   const entries = Object.entries(params).filter(
     ([, v]) => v !== null && v !== undefined && v !== ""
   );

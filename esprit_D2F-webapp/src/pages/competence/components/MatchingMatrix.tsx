@@ -1,4 +1,4 @@
-import React, { createContext, useContext } from "react";
+import React, { createContext, useContext, useMemo } from "react";
 import PropTypes from "prop-types";
 import { Progress, Tooltip, Avatar, Tag } from "antd";
 import { CheckCircleFilled, CheckOutlined } from "@ant-design/icons";
@@ -11,7 +11,7 @@ const hashToHsl = (id) => {
   let h = 0;
   const str = String(id);
   for (let i = 0; i < str.length; i++) {
-    h = (h * 31 + str.charCodeAt(i)) % 360;
+    h = (h * 31 + (str.codePointAt(i) ?? 0)) % 360;
   }
   return `hsl(${h}, 65%, 50%)`;
 };
@@ -80,16 +80,11 @@ function CompetenceGroupRow({ comp, enseignants, assignments }) {
 
         return (
           <td key={ens.id} className="col-ens" style={{ textAlign: "center" }}>
-            {pct === 0 ? null : pct === 100 ? (
-              <CheckCircleFilled style={{ color: "#22c55e", fontSize: 20 }} />
-            ) : (
-              <Progress
-                type="circle"
-                size={32}
-                percent={pct}
-                strokeColor={getProgressColor(pct)}
-              />
-            )}
+            {(() => {
+              if (pct === 0) return null;
+              if (pct === 100) return <CheckCircleFilled style={{ color: "#22c55e", fontSize: 20 }} />;
+              return <Progress type="circle" size={32} percent={pct} strokeColor={getProgressColor(pct)} />;
+            })()}
           </td>
         );
       })}
@@ -105,7 +100,7 @@ CompetenceGroupRow.propTypes = {
 
 // ─── SousCompGroupRow ─────────────────────────────────────────────────────────
 // FIX: renders empty <td> for each enseignant column to maintain table structure
-function SousCompGroupRow({ sc, ensCount }) {
+function SousCompGroupRow({ sc, enseignants }) {
   return (
     <tr className="sc-group-row">
       <td className="sticky-col">
@@ -113,8 +108,8 @@ function SousCompGroupRow({ sc, ensCount }) {
           <Tag color="cyan">{sc.code}</Tag> {sc.nom}
         </div>
       </td>
-      {Array.from({ length: ensCount }).map((_, i) => (
-        <td key={i} className="col-ens" />
+      {enseignants.map((ens) => (
+        <td key={ens.id ?? ens.enseignantId} className="col-ens" />
       ))}
     </tr>
   );
@@ -122,7 +117,7 @@ function SousCompGroupRow({ sc, ensCount }) {
 
 SousCompGroupRow.propTypes = {
   sc: PropTypes.object.isRequired,
-  ensCount: PropTypes.number.isRequired,
+  enseignants: PropTypes.array.isRequired,
 };
 
 // ─── SavoirRow ────────────────────────────────────────────────────────────────
@@ -260,7 +255,7 @@ export default function MatchingMatrix({
     });
   });
 
-  const dragContextValue = {
+  const dragContextValue = useMemo(() => ({
     draggingId,
     dragOverCell,
     onDragStart,
@@ -269,7 +264,7 @@ export default function MatchingMatrix({
     onDragLeave,
     onDrop,
     onUnassign,
-  };
+  }), [draggingId, dragOverCell, onDragStart, onDragEnd, onDragOver, onDragLeave, onDrop, onUnassign]);
 
   return (
     <DragContext.Provider value={dragContextValue}>
@@ -299,7 +294,7 @@ export default function MatchingMatrix({
               {/* Sous-compétences and their savoirs */}
               {comp.sousCompetences?.map((sc) => (
                 <React.Fragment key={sc.id}>
-                  <SousCompGroupRow sc={sc} ensCount={enseignants.length} />
+                  <SousCompGroupRow sc={sc} enseignants={enseignants} />
                   {(sc.savoirs ?? []).map((s) => (
                     <SavoirRow
                       key={s.id}

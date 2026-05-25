@@ -11,6 +11,32 @@ const API_URL = `${config.FORMATION_URL}/formation/formations-workflow`;
 type Presence = unknown;
 type FormationWorkflowPayload = Record<string, unknown>;
 
+function normalizeListResponse(payload: unknown): Formation[] {
+  if (Array.isArray(payload)) {
+    return payload as Formation[];
+  }
+
+  if (payload && typeof payload === "object") {
+    const candidate = payload as {
+      content?: unknown;
+      data?: unknown;
+      items?: unknown;
+    };
+
+    if (Array.isArray(candidate.content)) {
+      return candidate.content as Formation[];
+    }
+    if (Array.isArray(candidate.data)) {
+      return candidate.data as Formation[];
+    }
+    if (Array.isArray(candidate.items)) {
+      return candidate.items as Formation[];
+    }
+  }
+
+  return [];
+}
+
 const FormationWorkflowService = {
   async createFormationWorkflow(
     formationData: FormationWorkflowPayload
@@ -39,7 +65,7 @@ const FormationWorkflowService = {
 
   async getAllFormationWorkflows(): Promise<Formation[]> {
     const response = await axios.get<Formation[]>(API_URL);
-    return response.data;
+    return normalizeListResponse(response.data);
   },
 
   async updatePresence(
@@ -97,17 +123,17 @@ const FormationWorkflowService = {
 
   async getFormationsByAnimateur(): Promise<Formation[]> {
     const response = await axios.get<Formation[]>(`${API_URL}/animateur`);
-    return response.data;
+    return normalizeListResponse(response.data);
   },
 
   async getFormationsAchevees(): Promise<Formation[]> {
     const response = await axios.get<Formation[]>(`${API_URL}/achevees`);
-    return response.data;
+    return normalizeListResponse(response.data);
   },
 
   async getAllFormationWithDocuments(): Promise<Formation[]> {
     const response = await axios.get<Formation[]>(`${API_URL}/with-documents`);
-    return response.data;
+    return normalizeListResponse(response.data);
   },
 
   // Backward-compatible alias used by some legacy pages.
@@ -119,7 +145,7 @@ const FormationWorkflowService = {
     const response = await axios.get<Formation[]>(
       `${API_URL}/enseignants/${enseignantId}/calendar`
     );
-    return response.data;
+    return normalizeListResponse(response.data);
   },
 
   async updateInscriptionsOuvertes(id: Id, ouvert: boolean): Promise<Formation> {
@@ -133,14 +159,14 @@ const FormationWorkflowService = {
 
   async getFormationsVisibles(): Promise<Formation[]> {
     const response = await axios.get<Formation[]>(`${API_URL}/visibles`);
-    return response.data;
+    return normalizeListResponse(response.data);
   },
 
   async getFormationsParUp(upId: Id): Promise<Formation[]> {
     const response = await axios.get<Formation[]>(`${API_URL}/par-up`, {
       params: { upId },
     });
-    return response.data;
+    return normalizeListResponse(response.data);
   },
 
   async exportFormations(
@@ -156,7 +182,7 @@ const FormationWorkflowService = {
     const response = await axios.get<Formation[]>(`${API_URL}/par-departement`, {
       params: { deptId },
     });
-    return response.data;
+    return normalizeListResponse(response.data);
   },
 };
 

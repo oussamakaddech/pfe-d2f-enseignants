@@ -1,4 +1,3 @@
-// src/pages/competence/rice/AnalyzingStep.jsx
 // Step 1 – animated progress screen shown while the RICE AI analysis is running.
 
 import { Progress, Steps, Button, Space } from "antd";

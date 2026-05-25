@@ -10,7 +10,6 @@ import esprit.pfe.serviceformation.messaging.EvaluationBatchMessage;
 import esprit.pfe.serviceformation.messaging.EvaluationPublisher;
 import lombok.extern.slf4j.Slf4j;
 import org.hibernate.Hibernate;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -37,10 +36,8 @@ public class FormationWorkflowService {
     private final UpRepository upRepository;
     private final EvaluationPublisher evaluationPublisher;
     // DSI §4/§2 — injection optionnelle : null si azure.ad.enabled=false
-    @Autowired(required = false)
-    private OutlookCalendarService outlookCalendarService;
-    @Autowired(required = false)
-    private OutlookMailService outlookMailService;
+    private final OutlookCalendarService outlookCalendarService;
+    private final OutlookMailService outlookMailService;
     private final FormationWorkflowServiceHelper helper;
 
     public FormationWorkflowService(DocumentRepository documentRepository,
@@ -51,7 +48,9 @@ public class FormationWorkflowService {
             DeptRepository departementRepository,
             UpRepository upRepository,
             EvaluationPublisher evaluationPublisher,
-            FormationWorkflowServiceHelper helper) {
+            FormationWorkflowServiceHelper helper,
+            @org.springframework.lang.Nullable OutlookCalendarService outlookCalendarService,
+            @org.springframework.lang.Nullable OutlookMailService outlookMailService) {
         this.documentRepository = documentRepository;
         this.formationRepository = formationRepository;
         this.seanceFormationRepository = seanceFormationRepository;
@@ -61,6 +60,8 @@ public class FormationWorkflowService {
         this.upRepository = upRepository;
         this.evaluationPublisher = evaluationPublisher;
         this.helper = helper;
+        this.outlookCalendarService = outlookCalendarService;
+        this.outlookMailService = outlookMailService;
     }
 
     private static final String ORGANIZER_EMAIL = "Application.Formationdesformateurs@Esprit.tn";
@@ -347,14 +348,19 @@ public class FormationWorkflowService {
     // ── ENREGISTRE : Notification admin + CUPs qu'une formation est enregistrée ──
     private void notifyEnregistrement(Formation formation) {
         // Notification admin
-        try {
-            String subject = "[D2F] Nouvelle Formation Enregistree : " + formation.getTitreFormation();
-            String html = buildStateNotificationHtml(formation, "Nouvelle Formation Enregistree",
-                    "Une nouvelle formation a ete enregistree et est en attente de planification.",
-                    "#1565c0");
-            outlookMailService.sendMail(ORGANIZER_EMAIL, subject, html);
-        } catch (Exception ex) {
-            log.warn("Echec notification admin enregistrement : {}", ex.getMessage());
+        // DSI §4/§2 — Outlook désactivé si azure.ad.enabled != true
+        if (outlookMailService != null) {
+            try {
+                String subject = "[D2F] Nouvelle Formation Enregistree : " + formation.getTitreFormation();
+                String html = buildStateNotificationHtml(formation, "Nouvelle Formation Enregistree",
+                        "Une nouvelle formation a ete enregistree et est en attente de planification.",
+                        "#1565c0");
+                outlookMailService.sendMail(ORGANIZER_EMAIL, subject, html);
+            } catch (Exception ex) {
+                log.warn("Echec notification admin enregistrement : {}", ex.getMessage());
+            }
+        } else {
+            log.info("[Formation] Mail Outlook désactivé (azure.ad.enabled=false) — notification admin enregistrement ignorée.");
         }
 
         // Notification CUPs pour planifier
@@ -382,14 +388,19 @@ public class FormationWorkflowService {
         // Notification aux CUPs
         notifyCUPOfApprovedFormation(formation);
         // Notification admin
-        try {
-            String subject = "[D2F] Formation Publiee : " + formation.getTitreFormation();
-            String html = buildStateNotificationHtml(formation, "Formation Publiee",
-                    "La formation est maintenant visible et ouverte aux inscriptions.",
-                    "#1b5e20");
-            outlookMailService.sendMail(ORGANIZER_EMAIL, subject, html);
-        } catch (Exception ex) {
-            log.warn("Echec notification admin visibilite : {}", ex.getMessage());
+        // DSI §4/§2 — Outlook désactivé si azure.ad.enabled != true
+        if (outlookMailService != null) {
+            try {
+                String subject = "[D2F] Formation Publiee : " + formation.getTitreFormation();
+                String html = buildStateNotificationHtml(formation, "Formation Publiee",
+                        "La formation est maintenant visible et ouverte aux inscriptions.",
+                        "#1b5e20");
+                outlookMailService.sendMail(ORGANIZER_EMAIL, subject, html);
+            } catch (Exception ex) {
+                log.warn("Echec notification admin visibilite : {}", ex.getMessage());
+            }
+        } else {
+            log.info("[Formation] Mail Outlook désactivé (azure.ad.enabled=false) — notification admin visibilité ignorée.");
         }
     }
 
@@ -449,9 +460,9 @@ public class FormationWorkflowService {
                 String html = String.format(
                         "<!DOCTYPE html><html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'><style>" +
                         "* { margin: 0; padding: 0; box-sizing: border-box; }" +
-                        "body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; color: #2c3e50; background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); padding: 20px; }" +
+                        "body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; color: #2c3e50; background: linear-gradient(135deg, #f5f7fa 0%%, #c3cfe2 100%%); padding: 20px; }" +
                         ".container { max-width: 650px; margin: 0 auto; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 10px 40px rgba(0,0,0,0.1); }" +
-                        ".header { background: linear-gradient(135deg, #1565c0 0%, #0d47a1 100%); color: white; padding: 40px 30px; text-align: center; }" +
+                        ".header { background: linear-gradient(135deg, #1565c0 0%%, #0d47a1 100%%); color: white; padding: 40px 30px; text-align: center; }" +
                         ".header h1 { font-size: 26px; margin: 0; font-weight: 600; }" +
                         ".header-subtitle { font-size: 14px; margin-top: 10px; opacity: 0.95; }" +
                         ".header-icon { font-size: 48px; margin-bottom: 15px; }" +
@@ -580,9 +591,9 @@ public class FormationWorkflowService {
             for (SeanceFormation seance : formation.getSeances()) {
                 seancesHtml.append(String.format(
                         "<div class='seance-item'><span class='seance-icon'>📅</span> <strong>%s</strong> | %s à %s | Salle: <em>%s</em></div>",
-                        seance.getDateSeance(),
-                        seance.getHeureDebut(),
-                        seance.getHeureFin(),
+                        formatDate(seance.getDateSeance()),
+                        formatTime(seance.getHeureDebut()),
+                        formatTime(seance.getHeureFin()),
                         seance.getSalle() != null ? seance.getSalle() : "À définir"));
             }
         }
@@ -632,7 +643,7 @@ public class FormationWorkflowService {
                 "<div class='detail-item'><span class='detail-label'>Titre</span><span class='detail-value'>" + formation.getTitreFormation() + "</span></div>" +
                 "<div class='detail-item'><span class='detail-label'>Domaine</span><span class='detail-value'>" + (formation.getDomaine() != null ? formation.getDomaine() : "N/A") + "</span></div>" +
                 "<div class='detail-item'><span class='detail-label'>Type</span><span class='detail-value'>" + (formation.getTypeFormation() != null ? formation.getTypeFormation().toString() : "N/A") + "</span></div>" +
-                "<div class='detail-item'><span class='detail-label'>Période</span><span class='detail-value'>" + formation.getDateDebut() + " au " + formation.getDateFin() + "</span></div>" +
+                "<div class='detail-item'><span class='detail-label'>Période</span><span class='detail-value'>" + formatDate(formation.getDateDebut()) + " au " + formatDate(formation.getDateFin()) + "</span></div>" +
                 "</div>" +
                 (!animateursStr.isEmpty() ? "<div class='details-section'><h3>🏫 Animateurs</h3><div class='animateurs-list'>" + animateursStr + "</div></div>" : "") +
                 (!seancesHtml.isEmpty() ? "<div class='details-section'><h3>⏱️ Détail des Séances</h3>" + seancesHtml.toString() + "</div>" : "") +
@@ -815,9 +826,9 @@ public class FormationWorkflowService {
             for (SeanceFormation seance : formation.getSeances()) {
                 seancesHtml.append(String.format(
                         "<div class='seance-item'><span class='calendar-icon'>📅</span><strong>%s</strong> | %s - %s | Salle: <em>%s</em></div>",
-                        seance.getDateSeance(),
-                        seance.getHeureDebut(),
-                        seance.getHeureFin(),
+                        formatDate(seance.getDateSeance()),
+                        formatTime(seance.getHeureDebut()),
+                        formatTime(seance.getHeureFin()),
                         seance.getSalle() != null ? seance.getSalle() : "À définir"));
             }
         }
@@ -851,7 +862,7 @@ public class FormationWorkflowService {
                 "<div class='section-title'>Informations de la Formation</div>" +
                 "<div class='info-box'><span class='info-label'>Titre</span><span class='info-value'>" + formation.getTitreFormation() + "</span></div>" +
                 "<div class='info-box'><span class='info-label'>Domaine</span><span class='info-value'>" + (formation.getDomaine() != null ? formation.getDomaine() : "N/A") + "</span></div>" +
-                "<div class='info-box'><span class='info-label'>Période</span><span class='info-value'>" + formation.getDateDebut() + " au " + formation.getDateFin() + "</span></div>" +
+                "<div class='info-box'><span class='info-label'>Période</span><span class='info-value'>" + formatDate(formation.getDateDebut()) + " au " + formatDate(formation.getDateFin()) + "</span></div>" +
                 "<div class='section-title'>Calendrier des Séances</div>" +
                 (!seancesHtml.isEmpty() ? seancesHtml.toString() : "<p style='color: #7f8c8d;'>À définir</p>") +
                 "</div>" +
@@ -863,6 +874,11 @@ public class FormationWorkflowService {
     }
 
     public void notifyCUPOfApprovedFormation(Formation formation) {
+        // DSI §4/§2 — Outlook désactivé si azure.ad.enabled != true
+        if (outlookMailService == null) {
+            log.info("[Formation] Mail Outlook désactivé (azure.ad.enabled=false) — notification CUP formation approuvée ignorée.");
+            return;
+        }
         if (formation.getUp() == null)
             return;
         List<Enseignant> cups = enseignantRepository.findByUpAndCup(formation.getUp(), "O");
@@ -870,9 +886,9 @@ public class FormationWorkflowService {
         String htmlContent = String.format(
                 "<!DOCTYPE html><html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'><style>" +
                 "* { margin: 0; padding: 0; box-sizing: border-box; }" +
-                "body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; color: #2c3e50; background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); padding: 20px; }" +
+                "body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; color: #2c3e50; background: linear-gradient(135deg, #f5f7fa 0%%, #c3cfe2 100%%); padding: 20px; }" +
                 ".container { max-width: 650px; margin: 0 auto; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 10px 40px rgba(0,0,0,0.1); }" +
-                ".header { background: linear-gradient(135deg, #1565c0 0%, #0d47a1 100%); color: white; padding: 40px 30px; text-align: center; }" +
+                ".header { background: linear-gradient(135deg, #1565c0 0%%, #0d47a1 100%%); color: white; padding: 40px 30px; text-align: center; }" +
                 ".header h1 { font-size: 28px; margin: 0; font-weight: 600; }" +
                 ".header-icon { font-size: 48px; margin-bottom: 15px; }" +
                 ".content { padding: 40px 30px; }" +
@@ -904,8 +920,8 @@ public class FormationWorkflowService {
                 "</div></div></body></html>",
                 formation.getTitreFormation(),
                 formation.getDomaine() != null ? formation.getDomaine() : "N/A",
-                formation.getDateDebut(),
-                formation.getDateFin(),
+                formatDate(formation.getDateDebut()),
+                formatDate(formation.getDateFin()),
                 formation.getUp().getLibelle());
         for (Enseignant cup : cups) {
             if (cup.getMail() == null || cup.getMail().isBlank()) continue;
@@ -1029,17 +1045,11 @@ public class FormationWorkflowService {
             log.info("[Formation] Mail Outlook désactivé (azure.ad.enabled=false) — notification non envoyée pour formation {}.", freshFormation.getIdFormation());
             return;
         }
-        String subjectType = isNewEvent ? "Invitation" : "Mise a jour";
-        String mailSubject = String.format("[D2F] %s : %s", subjectType, freshFormation.getTitreFormation());
-        String htmlContent = buildEmailContent(freshFormation);
-
-        for (String email : emails) {
-            try {
-                outlookMailService.sendMail(email, mailSubject, htmlContent);
-            } catch (Exception ex) {
-                log.warn("Echec de l'envoi de la notification calendar a {} : {}", email, ex.getMessage());
-            }
-        }
+        // Ne pas envoyer d'email supplémentaire ici :
+        // L'événement calendrier Outlook envoie déjà une invitation automatique aux participants,
+        // et notifyPlanification() envoie un email de notification complet séparément.
+        // Envoyer un 3e email ici causerait un doublon/triplon.
+        log.info("[Formation] Notification calendrier ignorée (doublon) pour formation {} — gérée par notifyPlanification.", freshFormation.getIdFormation());
     }
 
     @SuppressWarnings("java:S3776") // graph API cleanup with multiple try/catch layers — single transactional unit
@@ -1090,6 +1100,11 @@ public class FormationWorkflowService {
     }
 
     private void sendCancellationEmails(Set<String> emails, String mailSubject, String htmlContent) {
+        // DSI §4/§2 — Outlook désactivé si azure.ad.enabled != true
+        if (outlookMailService == null) {
+            log.info("[Formation] Mail Outlook désactivé (azure.ad.enabled=false) — {} emails d'annulation non envoyés.", emails.size());
+            return;
+        }
         for (String email : emails) {
             if (email == null || email.isBlank()) continue;
             try {
@@ -1117,8 +1132,8 @@ public class FormationWorkflowService {
                 "<p>Nous vous informons que la seance suivante a ete <strong>annulee</strong> :</p>" +
                 "<ul>" +
                 "<li><strong>Formation :</strong> " + formation.getTitreFormation() + "</li>" +
-                "<li><strong>Date :</strong> " + seance.getDateSeance() + "</li>" +
-                "<li><strong>Heure :</strong> " + seance.getHeureDebut() + " - " + seance.getHeureFin() + "</li>" +
+                "<li><strong>Date :</strong> " + formatDate(seance.getDateSeance()) + "</li>" +
+                "<li><strong>Heure :</strong> " + formatTime(seance.getHeureDebut()) + " - " + formatTime(seance.getHeureFin()) + "</li>" +
                 "<li><strong>Salle :</strong> " + (seance.getSalle() != null ? seance.getSalle() : "A definir") + "</li>" +
                 "</ul>" +
                 "</div>" +
@@ -1167,26 +1182,35 @@ public class FormationWorkflowService {
         allRecipientEmails.add(ORGANIZER_EMAIL);
 
         // Envoyer un email global d'annulation a tous les concernes
-        String subject = "[D2F] Annulation de Formation : " + freshFormation.getTitreFormation();
-        String htmlContent = buildCancellationFormationHtml(freshFormation);
-        for (String email : allRecipientEmails) {
-            try {
-                outlookMailService.sendMail(email, subject, htmlContent);
-            } catch (Exception ex) {
-                log.warn("Echec envoi mail d'annulation formation a {} : {}", email, ex.getMessage());
+        // DSI §4/§2 — Outlook désactivé si azure.ad.enabled != true
+        if (outlookMailService != null) {
+            String subject = "[D2F] Annulation de Formation : " + freshFormation.getTitreFormation();
+            String htmlContent = buildCancellationFormationHtml(freshFormation);
+            for (String email : allRecipientEmails) {
+                try {
+                    outlookMailService.sendMail(email, subject, htmlContent);
+                } catch (Exception ex) {
+                    log.warn("Echec envoi mail d'annulation formation a {} : {}", email, ex.getMessage());
+                }
             }
+        } else {
+            log.info("[Formation] Mail Outlook désactivé (azure.ad.enabled=false) — {} emails d'annulation formation non envoyés.", allRecipientEmails.size());
         }
 
         // Supprimer les evenements Outlook calendar pour chaque seance
-        for (SeanceFormation seance : freshFormation.getSeances()) {
-            if (seance.getCalendarEventId() != null) {
-                try {
-                    outlookCalendarService.deleteEventInCalendar(ORGANIZER_EMAIL, seance.getCalendarEventId());
-                } catch (Exception ex) {
-                    log.error("Erreur lors de la suppression de l'evenement calendar pour seance {} : {}",
-                            seance.getIdSeance(), ex.getMessage());
+        if (outlookCalendarService != null) {
+            for (SeanceFormation seance : freshFormation.getSeances()) {
+                if (seance.getCalendarEventId() != null) {
+                    try {
+                        outlookCalendarService.deleteEventInCalendar(ORGANIZER_EMAIL, seance.getCalendarEventId());
+                    } catch (Exception ex) {
+                        log.error("Erreur lors de la suppression de l'evenement calendar pour seance {} : {}",
+                                seance.getIdSeance(), ex.getMessage());
+                    }
                 }
             }
+        } else {
+            log.info("[Formation] Calendrier Outlook désactivé (azure.ad.enabled=false) — suppression des événements calendrier ignorée.");
         }
     }
 
@@ -1195,6 +1219,11 @@ public class FormationWorkflowService {
      * Utilise par notifyAnnulation qui gere les emails separement.
      */
     private void removeFormationCalendarEvents(Formation formation) {
+        // DSI §4/§2 — Outlook désactivé si azure.ad.enabled != true
+        if (outlookCalendarService == null) {
+            log.info("[Formation] Calendrier Outlook désactivé (azure.ad.enabled=false) — suppression des événements calendrier ignorée pour formation {}.", formation.getIdFormation());
+            return;
+        }
         if (formation.getSeances() == null) return;
         for (SeanceFormation seance : formation.getSeances()) {
             if (seance.getCalendarEventId() != null) {
@@ -1216,9 +1245,9 @@ public class FormationWorkflowService {
             for (SeanceFormation seance : formation.getSeances()) {
                 seancesHtml.append(String.format(
                         "<li>Le %s de %s a %s en salle %s</li>",
-                        seance.getDateSeance(),
-                        seance.getHeureDebut(),
-                        seance.getHeureFin(),
+                        formatDate(seance.getDateSeance()),
+                        formatTime(seance.getHeureDebut()),
+                        formatTime(seance.getHeureFin()),
                         seance.getSalle() != null ? seance.getSalle() : "A definir"));
             }
         }
@@ -1238,7 +1267,7 @@ public class FormationWorkflowService {
                 "<ul>" +
                 "<li><strong>Titre :</strong> " + formation.getTitreFormation() + "</li>" +
                 "<li><strong>Domaine :</strong> " + (formation.getDomaine() != null ? formation.getDomaine() : "N/A") + "</li>" +
-                "<li><strong>Dates prevues :</strong> " + formation.getDateDebut() + " - " + formation.getDateFin() + "</li>" +
+                "<li><strong>Dates prevues :</strong> " + formatDate(formation.getDateDebut()) + " - " + formatDate(formation.getDateFin()) + "</li>" +
                 "</ul>" +
                 "<p><strong>Seances annulees :</strong></p><ul>" + seancesHtml.toString() + "</ul>" +
                 "<p>Veuillez ne pas vous presenter aux seances susmentionnees.</p>" +
@@ -1549,9 +1578,22 @@ public class FormationWorkflowService {
     }
 
     public List<FormationDTO> getFormationsParUp(String upId) {
-        return formationRepository
-                .findByUp_Id(upId)
-                .stream()
+        List<Formation> formations = formationRepository.findByUp_Id(upId);
+        formations.forEach(f -> {
+            if (f.getSeances() != null) {
+                f.getSeances().forEach(seance -> {
+                    if (seance.getAnimateurs() != null)
+                        Hibernate.initialize(seance.getAnimateurs());
+                    if (seance.getParticipants() != null)
+                        Hibernate.initialize(seance.getParticipants());
+                });
+            }
+            if (f.getFormationCompetences() != null)
+                Hibernate.initialize(f.getFormationCompetences());
+            if (f.getInscriptions() != null)
+                Hibernate.initialize(f.getInscriptions());
+        });
+        return formations.stream()
                 .filter(f -> f.getEtatFormation() == EtatFormation.VISIBLE
                         || f.getEtatFormation() == EtatFormation.PLANIFIE
                         || f.getEtatFormation() == EtatFormation.EN_COURS
@@ -1561,9 +1603,21 @@ public class FormationWorkflowService {
     }
 
     public List<FormationDTO> getFormationsParDepartement(String deptId) {
-        return formationRepository.findByDepartement_Id(deptId)
-                .stream()
-                .map(this::mapFormationToDTO)
-                .toList();
+        List<Formation> formations = formationRepository.findByDepartement_Id(deptId);
+        formations.forEach(f -> {
+            if (f.getSeances() != null) {
+                f.getSeances().forEach(seance -> {
+                    if (seance.getAnimateurs() != null)
+                        Hibernate.initialize(seance.getAnimateurs());
+                    if (seance.getParticipants() != null)
+                        Hibernate.initialize(seance.getParticipants());
+                });
+            }
+            if (f.getFormationCompetences() != null)
+                Hibernate.initialize(f.getFormationCompetences());
+            if (f.getInscriptions() != null)
+                Hibernate.initialize(f.getInscriptions());
+        });
+        return formations.stream().map(this::mapFormationToDTO).toList();
     }
 }

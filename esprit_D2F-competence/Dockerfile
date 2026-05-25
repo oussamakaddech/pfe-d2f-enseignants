@@ -47,6 +47,9 @@ LABEL maintainer="D2F Team <d2f@esprit.tn>"
 # Create user
 RUN addgroup -g 2003 esprit ; adduser --ingroup esprit --disabled-password --uid 2003 esprit
 
+# Install curl for HEALTHCHECK
+RUN apk add --no-cache curl
+
 # Use user
 USER esprit
 
@@ -63,7 +66,7 @@ EXPOSE 8005
 
 # Healthcheck — vérifie que Spring Boot Actuator répond (conformité DSI §2.1)
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-  CMD wget -q --spider http://localhost:8005/actuator/health || exit 1
+  CMD curl -sf http://localhost:8005/actuator/health || exit 1
 
 # Run application when container starts
 ENTRYPOINT ["java","-cp","opt/app:opt/app/lib/*","tn.esprit.d2f.competence.CompetenceServiceApplication"]

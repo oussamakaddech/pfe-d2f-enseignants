@@ -10,7 +10,7 @@ import java.time.OffsetDateTime;
 @AllArgsConstructor
 @Entity
 @Table(name = "inscriptions", uniqueConstraints = @UniqueConstraint(columnNames = { "formation_id", "enseignant_id" }))
-public class Inscription {
+public class Inscription extends BaseAuditEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;

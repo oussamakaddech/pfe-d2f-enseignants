@@ -2,18 +2,18 @@ import type { ReactNode } from "react";
 import { Space, Button } from "antd";
 
 interface QuickAction {
-  key: string;
-  label: string;
-  icon: ReactNode;
-  onClick: () => void;
-  type?: "primary" | "default" | "dashed" | "text" | "link";
-  danger?: boolean;
-  disabled?: boolean;
+  readonly key: string;
+  readonly label: string;
+  readonly icon: ReactNode;
+  readonly onClick: () => void;
+  readonly type?: "primary" | "default" | "dashed" | "text" | "link";
+  readonly danger?: boolean;
+  readonly disabled?: boolean;
 }
 
 interface D2FQuickActionsProps {
-  actions: QuickAction[];
-  size?: "small" | "middle" | "large";
+  readonly actions: QuickAction[];
+  readonly size?: "small" | "middle" | "large";
 }
 
 export default function D2FQuickActions({ actions, size = "middle" }: D2FQuickActionsProps) {

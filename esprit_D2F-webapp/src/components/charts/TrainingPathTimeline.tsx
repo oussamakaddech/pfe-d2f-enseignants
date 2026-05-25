@@ -12,8 +12,10 @@ const TYPE_COLOR: Record<string, string> = {
   INTERNE: "#3b82f6", EXTERNE: "#8b5cf6", EN_LIGNE: "#10b981",
 };
 
-function StepDot({ item, index }: { item: TrainingPathItem; index: number }) {
-  const bg = item.deja_suivie ? "#10b981" : item.prerequis_satisfaits ? "#B51200" : "#94a3b8";
+function StepDot({ item, index }: { readonly item: TrainingPathItem; readonly index: number }) {
+  let bg = "#94a3b8";
+  if (item.deja_suivie) bg = "#10b981";
+  else if (item.prerequis_satisfaits) bg = "#B51200";
   return (
     <div style={{
       width: 32, height: 32, borderRadius: "50%",
@@ -27,7 +29,7 @@ function StepDot({ item, index }: { item: TrainingPathItem; index: number }) {
 }
 
 interface TrainingPathTimelineProps {
-  path: TrainingPath;
+  readonly path: TrainingPath;
 }
 
 export default function TrainingPathTimeline({ path }: TrainingPathTimelineProps) {

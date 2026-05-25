@@ -5,20 +5,20 @@ const { Text, Paragraph } = Typography;
 
 interface EmptyStateStandardProps {
   /** Titre principal */
-  title?: string;
+  readonly title?: string;
   /** Description */
-  description?: string;
+  readonly description?: string;
   /** Icône personnalisée */
-  image?: React.ReactNode;
+  readonly image?: React.ReactNode;
   /** Texte du bouton d'action */
-  actionLabel?: string;
+  readonly actionLabel?: string;
   /** Icône du bouton d'action */
-  actionIcon?: React.ReactNode;
+  readonly actionIcon?: React.ReactNode;
   /** Callback du bouton d'action */
-  onAction?: () => void;
+  readonly onAction?: () => void;
   /** Type de bouton */
-  actionType?: "primary" | "default" | "dashed";
-  className?: string;
+  readonly actionType?: "primary" | "default" | "dashed";
+  readonly className?: string;
 }
 
 /**

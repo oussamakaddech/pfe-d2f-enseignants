@@ -1,17 +1,15 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useMemo } from "react";
 import { Doughnut, Radar } from "react-chartjs-2";
 import { DatePicker, Divider, Tabs, Typography, Row, Col, Skeleton } from "antd";
 import {
   BarChartOutlined,
   TeamOutlined,
-  RobotOutlined,
   PieChartOutlined,
   LineChartOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 
-import KPIService from "@/services/analyse/KPIService";
-import ParticipantKPIService from "@/services/analyse/ParticipantKPIService";
+import { useFormationsByEtat, useGlobalParticipantKPI } from "@/hooks/kpi";
 import { AppPageHeader } from "@/components/common";
 import "@/styles/pages/kpichart.css";
 import { neutral, brand, shadow, radius } from "@/styles/themes/tokens";
@@ -23,7 +21,6 @@ import NonAffectedList        from "./NonAffectedList";
 import MetricCards            from "./MetricCards";
 import FormationsByTypeFiltered from "./FormationsByTypeFiltered";
 import DonutByTrainerType     from "./DonutByTrainerType";
-import RecommendationSection  from "./RecommendationSection";
 
 const { Text, Title } = Typography;
 const { RangePicker } = DatePicker;
@@ -51,44 +48,24 @@ const sectionTitle = (iconColor = brand[500]) => ({
 
 // ── Composant ────────────────────────────────────────────────────────────────
 export default function KPIChart() {
-  const [activeTab, setActiveTab]         = useState("dashboard");
-  const [kpiData, setKpiData]             = useState({ formations: 0, heures: 0, participants: 0 });
-  const [globalKpiData, setGlobalKpiData] = useState({ total: 0, presents: 0, taux: 0 });
-  const [formationsByEtat, setFormationsByEtat] = useState([]);
-  const [loading, setLoading]             = useState(false);
-  const [start, setStart]                 = useState("2025-01-01");
-  const [end, setEnd]                     = useState("2025-12-31");
-  const fetchId = useRef(0);
+  const [activeTab, setActiveTab] = useState("dashboard");
+  const [start, setStart]         = useState("2025-01-01");
+  const [end, setEnd]             = useState("2025-12-31");
 
-  useEffect(() => {
-    if (activeTab !== "dashboard") return;
-    const id = ++fetchId.current;
-    setLoading(true);
+  const enabled = activeTab === "dashboard";
+  const { data: formationsByEtatRaw, isLoading: loadingEtat } =
+    useFormationsByEtat(enabled ? start : "", enabled ? end : "");
+  const { data: globalKpiRaw, isLoading: loadingGlobal } =
+    useGlobalParticipantKPI(enabled ? start : "", enabled ? end : "");
 
-    (async () => {
-      try {
-        const [totF, totH, uniqP, byEtatData, global] = await Promise.all([
-          KPIService.getTotalFormations(start, end),
-          KPIService.getTotalHeures(start, end),
-          KPIService.getUniqueParticipants(start, end),
-          KPIService.getFormationsByEtat(start, end),
-          ParticipantKPIService.getGlobalParticipantKPI(start, end),
-        ]);
-        if (id !== fetchId.current) return;
-        setKpiData({ formations: totF, heures: totH, participants: uniqP });
-        setFormationsByEtat(byEtatData);
-        setGlobalKpiData({
-          total:   global.nombreParticipantsTotal,
-          presents: global.nombreParticipantsPresent,
-          taux:    global.tauxParticipation,
-        });
-      } catch (err) {
-        if (id === fetchId.current) console.error("Erreur KPI :", err);
-      } finally {
-        if (id === fetchId.current) setLoading(false);
-      }
-    })();
-  }, [start, end, activeTab]);
+  const loading = loadingEtat || loadingGlobal;
+
+  const formationsByEtat = (formationsByEtatRaw ?? {}) as Record<string, number>;
+
+  const globalKpiData = useMemo(() => {
+    const g = globalKpiRaw as { nombreParticipantsTotal?: number; nombreParticipantsPresent?: number; tauxParticipation?: number } | undefined;
+    return { total: g?.nombreParticipantsTotal ?? 0, presents: g?.nombreParticipantsPresent ?? 0, taux: g?.tauxParticipation ?? 0 };
+  }, [globalKpiRaw]);
 
   const tabItems = [
     {
@@ -96,14 +73,6 @@ export default function KPIChart() {
       label: (
         <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
           <BarChartOutlined /> Tableau de bord
-        </span>
-      ),
-    },
-    {
-      key: "recommandation",
-      label: (
-        <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <RobotOutlined /> Recommandations IA
         </span>
       ),
     },
@@ -275,9 +244,7 @@ export default function KPIChart() {
             </>
           )}
         </>
-      ) : (
-        <RecommendationSection />
-      )}
+      ) : null}
     </div>
   );
 }

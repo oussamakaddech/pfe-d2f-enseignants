@@ -1,38 +1,33 @@
 // GeneratedCertificates.js
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { List, Typography, Button, Space, Card, Tag, Empty, Spin } from "antd";
+import { List, Button, Card, Tag, Empty, Spin } from "antd";
 import {
   ArrowLeftOutlined,
   FilePdfOutlined,
-  FileProtectOutlined,
   DownloadOutlined,
   SafetyCertificateOutlined,
 } from "@ant-design/icons";
-import CertificateService from "@/services/certificat/CertificateService";
+import { useGenerateCertificates } from "@/hooks/certificat";
 import { config } from "@/config/env";
-import { AppPageHeader, brand } from "@/components/common";
+import { AppPageHeader } from "@/components/common";
 import "@/styles/pages/generated-certificates.css";
 
 function GeneratedCertificates() {
   const { formationId } = useParams();
+  const navigate = useNavigate();
+  const generateMut = useGenerateCertificates();
   const [pdfFiles, setPdfFiles] = useState([]);
   const [loading, setLoading] = useState(false);
-  const navigate = useNavigate();
 
   useEffect(() => {
-    async function fetchGeneratedCertificates() {
-      setLoading(true);
-      try {
-        const data = await CertificateService.generateCertificates(formationId);
-        setPdfFiles(data);
-      } catch (error) {
-        console.error("Erreur lors de la génération des certificats :", error);
-      } finally {
-        setLoading(false);
-      }
-    }
-    fetchGeneratedCertificates();
+    if (!formationId) return;
+    setLoading(true);
+    generateMut.mutateAsync(formationId)
+      .then((data) => setPdfFiles(data || []))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formationId]);
 
   return (
@@ -53,16 +48,19 @@ function GeneratedCertificates() {
       />
 
       <Card className="generated-certs-card">
-        {loading ? (
-          <div style={{ textAlign: "center", padding: 40 }}>
-            <Spin size="large" />
-          </div>
-        ) : pdfFiles.length === 0 ? (
-          <Empty
-            description="Aucun certificat généré"
-            image={Empty.PRESENTED_IMAGE_SIMPLE}
-          />
-        ) : (
+        {(() => {
+          if (loading) return (
+            <div style={{ textAlign: "center", padding: 40 }}>
+              <Spin size="large" />
+            </div>
+          );
+          if (pdfFiles.length === 0) return (
+            <Empty
+              description="Aucun certificat généré"
+              image={Empty.PRESENTED_IMAGE_SIMPLE}
+            />
+          );
+          return (
           <List
             dataSource={pdfFiles}
             renderItem={(pdfFile) => (
@@ -70,6 +68,7 @@ function GeneratedCertificates() {
                 className="generated-certs-list-item"
                 actions={[
                   <Button
+                    key="download"
                     type="text"
                     icon={<DownloadOutlined />}
                     href={`${config.CERTF_URL}/certificat/${pdfFile}`}
@@ -96,7 +95,8 @@ function GeneratedCertificates() {
               </List.Item>
             )}
           />
-        )}
+          );
+        })()}
       </Card>
     </div>
   );

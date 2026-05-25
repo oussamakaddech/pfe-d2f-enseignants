@@ -1,6 +1,6 @@
 import { defaultApi as axios } from "@/utils/helpers/httpClient";
 import { config } from "@/config/env";
-import type { Id } from "@/models/common";
+import type { Id, ApiListOrPage } from "@/models/common";
 import type { BesoinFormation } from "@/models/besoin";
 
 const API_URL = `${config.Besoin_URL}/besoins-formation`;
@@ -10,10 +10,18 @@ interface ModifyBesoinPayload {
   commentaire: string;
 }
 
+export interface BesoinNotification {
+  id?: Id;
+  message?: string;
+  read?: boolean;
+  createdAt?: string;
+  [key: string]: unknown;
+}
+
 const BesoinFormationService = {
   async getAllBesoinFormations(): Promise<BesoinFormation[]> {
-    const response = await axios.get<any>(`${API_URL}`);
-    return response.data?.content || response.data || [];
+    const response = await axios.get<ApiListOrPage<BesoinFormation>>(`${API_URL}`);
+    return (response.data as { content?: BesoinFormation[] }).content ?? (response.data as BesoinFormation[]) ?? [];
   },
 
   async getBesoinFormation(id: Id): Promise<BesoinFormation> {
@@ -46,8 +54,8 @@ const BesoinFormationService = {
   },
 
   async getApprovedBesoinFormations(): Promise<BesoinFormation[]> {
-    const response = await axios.get<any>(`${API_URL}/approved`);
-    return response.data?.content || response.data || [];
+    const response = await axios.get<ApiListOrPage<BesoinFormation>>(`${API_URL}/approved`);
+    return (response.data as { content?: BesoinFormation[] }).content ?? (response.data as BesoinFormation[]) ?? [];
   },
 
   async approveBesoin(id: Id): Promise<BesoinFormation> {
@@ -55,34 +63,30 @@ const BesoinFormationService = {
     return response.data;
   },
 
-  async getUserNotifications(username: string): Promise<any[]> {
-    const response = await axios.get<any>(`${API_URL}/notifications/${username}`);
-    return response.data?.content || response.data || [];
+  async getUserNotifications(username: string): Promise<BesoinNotification[]> {
+    const response = await axios.get<ApiListOrPage<BesoinNotification>>(`${API_URL}/notifications/${username}`);
+    return (response.data as { content?: BesoinNotification[] }).content ?? (response.data as BesoinNotification[]) ?? [];
   },
 
   async getBesoinsByUp(up: string): Promise<BesoinFormation[]> {
-    const response = await axios.get<any>(`${API_URL}/by-up/${up}`);
-    return response.data?.content || response.data || [];
+    const response = await axios.get<ApiListOrPage<BesoinFormation>>(`${API_URL}/by-up/${up}`);
+    return (response.data as { content?: BesoinFormation[] }).content ?? (response.data as BesoinFormation[]) ?? [];
   },
 
   async getBesoinsByDepartement(departement: string): Promise<BesoinFormation[]> {
-    const response = await axios.get<any>(`${API_URL}/by-departement/${departement}`);
-    return response.data?.content || response.data || [];
+    const response = await axios.get<ApiListOrPage<BesoinFormation>>(`${API_URL}/by-departement/${departement}`);
+    return (response.data as { content?: BesoinFormation[] }).content ?? (response.data as BesoinFormation[]) ?? [];
   },
 
   async getBesoinsByPriorite(): Promise<BesoinFormation[]> {
-    const response = await axios.get<any>(`${API_URL}/by-priorite`);
-    return response.data?.content || response.data || [];
+    const response = await axios.get<ApiListOrPage<BesoinFormation>>(`${API_URL}/by-priorite`);
+    return (response.data as { content?: BesoinFormation[] }).content ?? (response.data as BesoinFormation[]) ?? [];
   },
 
   async getBesoinsByPrioriteLevel(priorite: string): Promise<BesoinFormation[]> {
-    const response = await axios.get<any>(`${API_URL}/by-priorite/${priorite}`);
-    return response.data?.content || response.data || [];
+    const response = await axios.get<ApiListOrPage<BesoinFormation>>(`${API_URL}/by-priorite/${priorite}`);
+    return (response.data as { content?: BesoinFormation[] }).content ?? (response.data as BesoinFormation[]) ?? [];
   },
 };
 
 export default BesoinFormationService;
-
-
-
-

@@ -1,9 +1,9 @@
 import { Card } from "antd";
 
 interface ResponsiveTableWrapperProps {
-  children: React.ReactNode;
-  className?: string;
-  style?: React.CSSProperties;
+  readonly children: React.ReactNode;
+  readonly className?: string;
+  readonly style?: React.CSSProperties;
 }
 
 /**

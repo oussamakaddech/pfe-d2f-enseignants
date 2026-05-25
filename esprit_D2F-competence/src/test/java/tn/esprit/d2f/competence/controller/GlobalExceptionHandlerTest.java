@@ -114,6 +114,33 @@ class GlobalExceptionHandlerTest {
     }
 
     @Test
+    @DisplayName("handleAccessDenied : retourne 403")
+    void testHandleAccessDenied() {
+        org.springframework.security.access.AccessDeniedException ex =
+                new org.springframework.security.access.AccessDeniedException("forbidden");
+        ResponseEntity<Map<String, Object>> response = exceptionHandler.handleAccessDenied(ex, request);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN);
+        assertThat(response.getBody())
+                .isNotNull()
+                .containsEntry("errorCode", "COMP-403")
+                .containsEntry("status", 403);
+        assertThat(response.getBody().get("message").toString()).contains("Accès refusé");
+    }
+
+    @Test
+    @DisplayName("handleDataIntegrityViolation : null root cause")
+    void testHandleDataIntegrityViolationNullRootCause() {
+        DataIntegrityViolationException ex = new DataIntegrityViolationException("Error",
+                new RuntimeException((String) null));
+
+        ResponseEntity<Map<String, Object>> response = exceptionHandler.handleDataIntegrityViolation(ex, request);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+        assertThat(response.getBody()).containsEntry("errorCode", "COMP-409");
+    }
+
+    @Test
     @DisplayName("handleGeneral : retourne 500")
     void testHandleGeneral() {
         Exception ex = new Exception("Erreur fatale");

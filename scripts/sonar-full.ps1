@@ -53,8 +53,7 @@ $Modules = @(
     @{ Type="java";   Path="esprit_D2F-analyse";                  Key="d2f_analyse" },
     @{ Type="web";    Path="esprit_D2F-webapp";                   Key="d2f_webapp" },
     @{ Type="python"; Path="esprit_D2F-rice";                     Key="d2f_rice" },
-    @{ Type="python"; Path="esprit_D2F-predictive-analytics";     Key="d2f_predictive_analytics" },
-    @{ Type="python"; Path="esprit_D2F-recommandation-formateur"; Key="d2f_recommandation_formateur" }
+    @{ Type="python"; Path="esprit_D2F-predictive-analytics";     Key="d2f_predictive_analytics" }
 )
 
 # -- Helpers ------------------------------------------------------------------
@@ -142,7 +141,7 @@ function Invoke-Java($mod) {
             $scanArgs = @("-B", "-q", "sonar:sonar",
                       "-Dsonar.projectKey=$($mod.Key)",
                       "-Dsonar.host.url=$SonarUrl",
-                      "-Dsonar.login=$SonarToken",
+                      "-Dsonar.token=$SonarToken",
                       "-Dsonar.qualitygate.wait=false")
             & $mvn @scanArgs *>> $log
             $rc = $LASTEXITCODE
@@ -175,7 +174,7 @@ function Invoke-Web($mod) {
                 Write-LogLine $log "[$($mod.Key)] sonar-scanner..."
                 $scanArgs = @("-Dsonar.projectKey=$($mod.Key)",
                           "-Dsonar.host.url=$SonarUrl",
-                          "-Dsonar.login=$SonarToken",
+                          "-Dsonar.token=$SonarToken",
                           "-Dsonar.javascript.lcov.reportPaths=coverage/lcov.info",
                           "-Dsonar.qualitygate.wait=false")
                 & sonar-scanner @scanArgs *>> $log
@@ -196,10 +195,16 @@ function Invoke-Python($mod) {
     try {
         if (-not $SkipTests) {
             Write-LogLine $log "[$($mod.Key)] pip install -r requirements.txt..."
-            python -m pip install -q -r requirements.txt *>> $log
-            python -m pip install -q pytest pytest-cov *>> $log
-            Write-LogLine $log "[$($mod.Key)] pytest --cov..."
-            python -m pytest --cov=. --cov-report=xml --junit-xml=junit-results.xml *>> $log
+            # Use the virtual environment Python if present
+            $pyExe = if (Test-Path ".\\.venv\\Scripts\\python.exe") { ".venv\\Scripts\\python.exe" } else { "python" }
+            & $pyExe -m pip install -q -r requirements.txt *>> $log
+            & $pyExe -m pip install -q pytest pytest-cov *>> $log
+            Write-LogLine $log "[$($mod.Key)] pytest --cov=rice..."
+            # RICE_DISABLE_SEMANTIC=true prevents sentence-transformers from loading,
+            # which avoids multi-minute hangs caused by building embeddings during tests.
+            $env:RICE_DISABLE_SEMANTIC = "true"
+            & $pyExe -m pytest --cov=rice --cov-report=xml:coverage.xml --junitxml=junit-results.xml *>> $log
+            Remove-Item Env:\RICE_DISABLE_SEMANTIC -ErrorAction SilentlyContinue
         }
         if (-not $SkipScan) {
             if (-not (Get-Command sonar-scanner -ErrorAction SilentlyContinue)) {
@@ -209,7 +214,7 @@ function Invoke-Python($mod) {
                 Write-LogLine $log "[$($mod.Key)] sonar-scanner..."
                 $scanArgs = @("-Dsonar.projectKey=$($mod.Key)",
                           "-Dsonar.host.url=$SonarUrl",
-                          "-Dsonar.login=$SonarToken",
+                          "-Dsonar.token=$SonarToken",
                           "-Dsonar.qualitygate.wait=false")
                 & sonar-scanner @scanArgs *>> $log
                 $rc = $LASTEXITCODE

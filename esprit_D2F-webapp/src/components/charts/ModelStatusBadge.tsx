@@ -1,4 +1,3 @@
-import { useEffect, useState } from "react";
 import { Tag, Tooltip, Space } from "antd";
 import {
   CheckCircleOutlined,
@@ -6,25 +5,13 @@ import {
   ExclamationCircleOutlined,
   ClockCircleOutlined,
 } from "@ant-design/icons";
-import AnalysePredictiveService, { DriftReport } from "@/services/analyse/AnalysePredictiveService";
-
-type Status = "loading" | "no_model" | "fresh" | "stale" | "drift" | "error";
+import { useModelStatus, type ModelStatus } from "@/hooks/analyse/useModelStatus";
 
 interface Props {
   refreshKey?: number;
 }
 
-function classify(report: DriftReport | null): Status {
-  if (!report) return "loading";
-  if (report.message?.toLowerCase().includes("no model")) return "no_model";
-  if (report.drift_detected) {
-    if (report.days_since_training !== undefined && report.days_since_training > 90) return "stale";
-    return "drift";
-  }
-  return "fresh";
-}
-
-const STYLES: Record<Status, { color: string; icon: React.ReactNode; label: string }> = {
+const STYLES: Record<ModelStatus, { color: string; icon: React.ReactNode; label: string }> = {
   loading:  { color: "default", icon: <ClockCircleOutlined spin />, label: "Vérification…" },
   no_model: { color: "orange",  icon: <ExclamationCircleOutlined />, label: "Mode heuristique" },
   fresh:    { color: "green",   icon: <CheckCircleOutlined />,       label: "Modèle à jour" },
@@ -34,17 +21,7 @@ const STYLES: Record<Status, { color: string; icon: React.ReactNode; label: stri
 };
 
 export default function ModelStatusBadge({ refreshKey = 0 }: Readonly<Props>) {
-  const [report, setReport] = useState<DriftReport | null>(null);
-  const [status, setStatus] = useState<Status>("loading");
-
-  useEffect(() => {
-    let cancelled = false;
-    setStatus("loading");
-    AnalysePredictiveService.getDrift()
-      .then((r) => { if (!cancelled) { setReport(r); setStatus(classify(r)); } })
-      .catch(() => { if (!cancelled) setStatus("error"); });
-    return () => { cancelled = true; };
-  }, [refreshKey]);
+  const { report, status } = useModelStatus(refreshKey);
 
   const meta = STYLES[status];
   const tooltip = report?.recommendation

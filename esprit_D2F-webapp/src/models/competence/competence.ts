@@ -2,8 +2,12 @@ import type { Id } from '../common';
 
 export interface Domaine {
   id?: Id;
-  nomDomaine?: string;
+  code?: string;
+  nom?: string;
+  description?: string;
   actif?: boolean;
+  upId?: Id;
+  departementId?: Id;
 }
 
 export interface Competence {

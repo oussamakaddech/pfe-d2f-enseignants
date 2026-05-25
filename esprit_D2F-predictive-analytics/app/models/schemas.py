@@ -63,18 +63,18 @@ class PathRecommendationResponse(BaseModel):
     total_estimated_hours: float
     overall_success_probability: float
     path: list[TrainingStep]
-    alternative_paths: Optional[list[list[TrainingStep]]]
+    alternative_paths: Optional[list[list[TrainingStep]]] = None
 
 
 class AtRiskTeacher(BaseModel):
     teacher_id: str
     teacher_name: str
     email: str
-    department: Optional[str]
+    department: Optional[str] = None
     risk_score: float
     risk_factors: list[str]
     top_gaps: list[CompetencyGap]
-    last_training_date: Optional[date]
+    last_training_date: Optional[date] = None
     engagement_score: float
 
 

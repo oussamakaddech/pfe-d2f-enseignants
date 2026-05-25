@@ -1,4 +1,3 @@
-// src/components/EvaluationListEnriched.jsx
 import { useState, useEffect } from "react";
 import {
   Card,
@@ -13,22 +12,17 @@ import {
 import { DownloadOutlined, SaveOutlined } from "@ant-design/icons";
 import useAppNotification from "@/hooks/ui/useAppNotification";
 import { writeExcel, exportDateLabel, isoDate } from "utils/helpers/excelExport";
-import EvaluationFormateurService from "@/services/evaluation/EvaluationFormateurService";
+import { useEvaluationsGlobales, useUpdateEvaluationsBulkFlat } from "@/hooks/evaluation";
 
 const EvaluationListEnriched = () => {
   const { message } = useAppNotification();
+  const { data: rawEvaluations = [] } = useEvaluationsGlobales();
   const [evaluations, setEvaluations] = useState([]);
+  const bulkUpdateMut = useUpdateEvaluationsBulkFlat();
 
   useEffect(() => {
-    EvaluationFormateurService.listAllEvaluationsEnriched()
-      .then((data) => setEvaluations(data))
-      .catch((error) => {
-        console.error(
-          "Erreur lors de la récupération des évaluations enrichies :",
-          error
-        );
-      });
-  }, []);
+    setEvaluations(rawEvaluations);
+  }, [rawEvaluations]);
 
   const handleChange = (index, field, value) => {
     const copy = [...evaluations];
@@ -51,10 +45,9 @@ const EvaluationListEnriched = () => {
       enseignantId: e.enseignantId,
       formationId: e.formationId,
     }));
-    EvaluationFormateurService.updateEvaluationsBulk(dtos)
+    bulkUpdateMut.mutateAsync({ evaluations: dtos })
       .then(() => message.success("Mise à jour en masse effectuée avec succès"))
-      .catch((err) => {
-        console.error("Erreur lors de la mise à jour en masse :", err);
+      .catch(() => {
         message.error("Erreur lors de la mise à jour en masse");
       });
   };

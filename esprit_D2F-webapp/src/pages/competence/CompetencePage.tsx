@@ -40,12 +40,11 @@ const NIVEAU_OPTIONS = [
 const niveauMeta = (niveau) =>
   NIVEAU_OPTIONS.find((n) => n.value === niveau) ?? { label: niveau ?? "-", color: "default" };
 
-const extractLegacyPrerequisiteManual = (description) => {
+const extractLegacyPrerequisiteManual = (description = "") => {
   const marker = "Prerequis (manuel):";
-  const raw = description || "";
-  const idx = raw.indexOf(marker);
+  const idx = description.indexOf(marker);
   if (idx === -1) return "";
-  return raw.slice(idx + marker.length).trim();
+  return description.slice(idx + marker.length).trim();
 };
 
 export default function CompetencePage() {
@@ -143,10 +142,10 @@ export default function CompetencePage() {
       
       // S'assurer que l'ID est bien un nombre
       const prerequisiteId = typeof values.prerequisiteId === 'string' 
-        ? parseInt(values.prerequisiteId, 10) 
+        ? Number.parseInt(values.prerequisiteId, 10)
         : values.prerequisiteId;
-      
-      if (isNaN(prerequisiteId)) {
+
+      if (Number.isNaN(prerequisiteId)) {
         message.error("ID de compétence prérequise invalide");
         return;
       }
@@ -290,6 +289,23 @@ export default function CompetencePage() {
       }))
   ), [crud.competences, prerequisiteTarget]);
 
+  const renderExpandedCompRow = useCallback((record) => (
+    <CompetenceExpandedRow
+      competence={record}
+      sousComps={crud.sousComps}
+      loading={crud.scLoading}
+      onAddRoot={(parent) =>
+        crud.openScModal(scForm, { type: "competence", id: parent.id, nom: parent.nom, code: parent.code }, null)
+      }
+      onAddChild={(parentSc) =>
+        crud.openScModal(scForm, { type: "sousCompetence", id: parentSc.id, nom: parentSc.nom, code: parentSc.code, competenceId: parentSc.competenceId }, null)
+      }
+      onAddSavoir={(leafSc) => crud.openSavoirModal(savoirForm, null, leafSc)}
+      onEdit={(row) => crud.openScModal(scForm, null, row)}
+      onDelete={crud.handleScDelete}
+    />
+  ), [crud, scForm, savoirForm]);
+
   /* ════════════════════════════════════════════════════════════════════════
      DÉFINITION DES ONGLETS
   ════════════════════════════════════════════════════════════════════════ */
@@ -328,43 +344,7 @@ export default function CompetencePage() {
           searchPlaceholder="Rechercher une compétence (nom, code, domaine…)"
           tableProps={{
             expandable: {
-              expandedRowRender: (record) => (
-                <CompetenceExpandedRow
-                  competence={record}
-                  sousComps={crud.sousComps}
-                  loading={crud.scLoading}
-                  onAddRoot={(parent) =>
-                    crud.openScModal(
-                      scForm,
-                      {
-                        type: "competence",
-                        id: parent.id,
-                        nom: parent.nom,
-                        code: parent.code,
-                      },
-                      null,
-                    )
-                  }
-                  onAddChild={(parentSc) =>
-                    crud.openScModal(
-                      scForm,
-                      {
-                        type: "sousCompetence",
-                        id: parentSc.id,
-                        nom: parentSc.nom,
-                        code: parentSc.code,
-                        competenceId: parentSc.competenceId,
-                      },
-                      null,
-                    )
-                  }
-                  onAddSavoir={(leafSc) =>
-                    crud.openSavoirModal(savoirForm, null, leafSc)
-                  }
-                  onEdit={(row) => crud.openScModal(scForm, null, row)}
-                  onDelete={crud.handleScDelete}
-                />
-              ),
+              expandedRowRender: renderExpandedCompRow,
               rowExpandable: () => true,
             },
           }}
@@ -439,7 +419,7 @@ export default function CompetencePage() {
         title={`Prérequis — ${prerequisiteTarget?.nom || ""}`}
         open={prerequisiteModal}
         width={700}
-        destroyOnClose
+        destroyOnHidden
         onCancel={() => {
           setPrerequisiteModal(false);
           setPrerequisiteTarget(null);

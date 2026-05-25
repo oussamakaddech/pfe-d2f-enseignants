@@ -12,14 +12,16 @@ function initials(prenom, nom) {
 
 function colorFromText(text) {
   let hash = 0;
-  for (let i = 0; i < (text || "").length; i++) hash = text.charCodeAt(i) + ((hash << 5) - hash);
+  for (let i = 0; i < (text || "").length; i++) hash = (text.codePointAt(i) ?? 0) + ((hash << 5) - hash);
   const h = hash % 360;
   return `hsl(${h} 70% 50%)`;
 }
 
 function TeacherLoadCard({ teacher, assignedSavoirIds = [], totalSavoirs = 1, onChipClick, onUnassign, onEditRequest, onDeactivate }) {
   const percent = Math.round((assignedSavoirIds.length / Math.max(1, totalSavoirs)) * 100);
-  const statusColor = percent < 50 ? "#52c41a" : percent < 80 ? "#faad14" : "#ff4d4f";
+  let statusColor = "#ff4d4f";
+  if (percent < 50) statusColor = "#52c41a";
+  else if (percent < 80) statusColor = "#faad14";
 
   return (
     <Card size="small" className="teacher-card" style={{ marginBottom: 10 }}>
@@ -36,8 +38,8 @@ function TeacherLoadCard({ teacher, assignedSavoirIds = [], totalSavoirs = 1, on
           <Space direction="vertical" size={4} style={{ width: 160 }}>
             <Progress percent={percent} strokeColor={statusColor} size="small" />
             <div className="teacher-actions">
-              <Button icon={<EditOutlined />} size="small" onClick={() => onEditRequest && onEditRequest(teacher)} />
-              <Popconfirm title="Désactiver cet enseignant ?" onConfirm={() => onDeactivate && onDeactivate(teacher.id)}>
+              <Button icon={<EditOutlined />} size="small" onClick={() => onEditRequest?.(teacher)} />
+              <Popconfirm title="Désactiver cet enseignant ?" onConfirm={() => onDeactivate?.(teacher.id)}>
                 <Button icon={<DeleteOutlined />} size="small" />
               </Popconfirm>
             </div>
@@ -47,7 +49,7 @@ function TeacherLoadCard({ teacher, assignedSavoirIds = [], totalSavoirs = 1, on
 
       <div className="teacher-savoirs">
         {assignedSavoirIds.map((sId) => (
-          <Tag key={sId} color="default" closable onClose={() => onUnassign && onUnassign(sId)} onClick={() => onChipClick && onChipClick(sId)}>
+          <Tag key={sId} color="default" closable onClose={() => onUnassign?.(sId)} onClick={() => onChipClick?.(sId)}>
             {sId}
           </Tag>
         ))}

@@ -13,7 +13,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @Entity
 @Table(name = "ups")
-public class Up {
+public class Up extends BaseAuditEntity {
 
     @Id
 

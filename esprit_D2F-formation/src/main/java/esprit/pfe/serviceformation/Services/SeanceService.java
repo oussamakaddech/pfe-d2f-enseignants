@@ -8,6 +8,8 @@ import esprit.pfe.serviceformation.repositories.SeanceFormationRepository;
 import esprit.pfe.serviceformation.utils.ValidationUtils;
 import esprit.pfe.serviceformation.utils.ExceptionUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.sql.Time;
@@ -104,6 +106,10 @@ public class SeanceService {
      * READ ALL - Récupère toutes les séances
      * @return Liste de tous les SeanceDTO
      */
+    public Page<SeanceDTO> getAllSeances(Pageable pageable) {
+        return seanceRepo.findAll(pageable).map(this::mapEntityToDto);
+    }
+
     public List<SeanceDTO> getAllSeances() {
         try {
             List<SeanceFormation> entities = seanceRepo.findAll();

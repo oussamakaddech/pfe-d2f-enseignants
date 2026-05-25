@@ -1,26 +1,26 @@
 import { Card, Row, Col, Typography, Tag } from "antd";
-import { neutral, radius, shadow } from "@/styles/themes/tokens";
+import { neutral } from "@/styles/themes/tokens";
 
 const { Text, Paragraph } = Typography;
 
 interface InfoSummaryItem {
-  label: string;
-  value: React.ReactNode;
-  icon?: React.ReactNode;
-  tag?: { color: string; text: string };
+  readonly label: string;
+  readonly value: React.ReactNode;
+  readonly icon?: React.ReactNode;
+  readonly tag?: { color: string; text: string };
 }
 
 interface InfoSummaryCardProps {
   /** Titre de la carte */
-  title?: React.ReactNode;
+  readonly title?: React.ReactNode;
   /** Icône du titre */
-  titleIcon?: React.ReactNode;
+  readonly titleIcon?: React.ReactNode;
   /** Éléments à afficher */
-  items: InfoSummaryItem[];
+  readonly items: InfoSummaryItem[];
   /** Nombre de colonnes */
-  columns?: number;
-  className?: string;
-  style?: React.CSSProperties;
+  readonly columns?: number;
+  readonly className?: string;
+  readonly style?: React.CSSProperties;
 }
 
 /**
@@ -57,8 +57,8 @@ export default function InfoSummaryCard({
         </div>
       )}
       <Row gutter={[16, 14]}>
-        {items.map((item, idx) => (
-          <Col xs={24} sm={12} lg={colSpan} key={idx}>
+        {items.map((item) => (
+          <Col xs={24} sm={12} lg={colSpan} key={item.label}>
             <div>
               <Text style={{ fontSize: 12, fontWeight: 600, color: neutral[500], display: "block", marginBottom: 3 }}>
                 {item.label}

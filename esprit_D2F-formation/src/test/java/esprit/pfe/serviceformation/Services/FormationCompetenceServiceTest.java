@@ -9,6 +9,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 
 import java.util.Collections;
 import java.util.List;
@@ -31,6 +33,13 @@ class FormationCompetenceServiceTest {
         service.getByFormationId(1L);
         verify(repository).findByFormationIdFormation(1L);
     }
+
+    @Test
+    void testGetByFormationIdPageable() {
+        when(repository.findByFormationIdFormation(anyLong(), any(PageRequest.class))).thenReturn(new PageImpl<>(Collections.emptyList()));
+        service.getByFormationId(1L, PageRequest.of(0, 10));
+        verify(repository).findByFormationIdFormation(1L, PageRequest.of(0, 10));
+    }
     
     @Test
     void testGetByCompetenceId() {
@@ -40,10 +49,24 @@ class FormationCompetenceServiceTest {
     }
 
     @Test
+    void testGetByCompetenceIdPageable() {
+        when(repository.findByCompetenceId(anyLong(), any(PageRequest.class))).thenReturn(new PageImpl<>(Collections.emptyList()));
+        service.getByCompetenceId(1L, PageRequest.of(0, 10));
+        verify(repository).findByCompetenceId(1L, PageRequest.of(0, 10));
+    }
+
+    @Test
     void testGetByDomaineId() {
         when(repository.findByDomaineId(anyLong())).thenReturn(Collections.emptyList());
         service.getByDomaineId(1L);
         verify(repository).findByDomaineId(1L);
+    }
+
+    @Test
+    void testGetByDomaineIdPageable() {
+        when(repository.findByDomaineId(anyLong(), any(PageRequest.class))).thenReturn(new PageImpl<>(Collections.emptyList()));
+        service.getByDomaineId(1L, PageRequest.of(0, 10));
+        verify(repository).findByDomaineId(1L, PageRequest.of(0, 10));
     }
 
     @Test

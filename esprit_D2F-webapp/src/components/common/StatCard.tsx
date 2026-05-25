@@ -1,19 +1,19 @@
 import { Skeleton, Tooltip } from "antd";
 import { ArrowUpOutlined, ArrowDownOutlined } from "@ant-design/icons";
-import type { ReactNode } from "react";
+import type { ReactNode, ElementType } from "react";
 import { radius, neutral } from "@/styles/themes/tokens";
 
 interface StatCardProps {
-  icon: ReactNode;
-  iconColor?: string;
-  label: string;
-  value: ReactNode;
-  unit?: string;
-  subtext?: string;
-  trend?: { value: number; label?: string };
-  accentColor?: string;
-  loading?: boolean;
-  onClick?: () => void;
+  readonly icon: ReactNode;
+  readonly iconColor?: string;
+  readonly label: string;
+  readonly value: ReactNode;
+  readonly unit?: string;
+  readonly subtext?: string;
+  readonly trend?: { value: number; label?: string };
+  readonly accentColor?: string;
+  readonly loading?: boolean;
+  readonly onClick?: () => void;
 }
 
 export default function StatCard({
@@ -38,26 +38,18 @@ export default function StatCard({
 
   const trendUp = trend && trend.value > 0;
   const trendDown = trend && trend.value < 0;
-  const trendColor = trendUp ? "#10b981" : trendDown ? "#ef4444" : neutral[500];
+  let trendColor: string = neutral[500];
+  if (trendUp) trendColor = "#10b981";
+  else if (trendDown) trendColor = "#ef4444";
 
-  // Renders a card. When `onClick` is supplied, it behaves as a button (role,
-  // tabIndex, and keyboard handler are all set together).
   const interactive = !!onClick;
+  const Tag = (interactive ? "button" : "div") as ElementType;
   return (
-    /* eslint-disable jsx-a11y/no-static-element-interactions, jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-tabindex */
-    <div
+    <Tag
+      type={interactive ? "button" : undefined}
       className={`d2f-stat-card d2f-hover-lift${interactive ? " d2f-stat-card-clickable" : ""}`}
       style={baseStyle(accentColor)}
       onClick={onClick}
-      role={interactive ? "button" : undefined}
-      tabIndex={interactive ? 0 : undefined}
-      onKeyDown={
-        interactive
-          ? (e) => {
-              if (e.key === "Enter" || e.key === " ") onClick();
-            }
-          : undefined
-      }
     >
       {/* Header row: icon + trend */}
       <div
@@ -144,7 +136,7 @@ export default function StatCard({
       {subtext && (
         <div style={{ fontSize: 12, color: neutral[500], marginTop: 6 }}>{subtext}</div>
       )}
-    </div>
+    </Tag>
   );
 }
 

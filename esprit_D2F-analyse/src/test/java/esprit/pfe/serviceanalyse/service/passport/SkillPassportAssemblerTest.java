@@ -131,4 +131,164 @@ class SkillPassportAssemblerTest {
 
         assertThat(passport.getStatut()).isEqualTo("à_risque");
     }
+
+    // ── Statut en_progression si gap non élevé ────────────────────────────
+
+    @Test
+    void assemble_withMediumGap_returnsEnProgressionStatut() {
+        TeacherIdentityDTO identity = TeacherIdentityDTO.builder().username("jdoe").build();
+        DomainSummaryDTO domain = DomainSummaryDTO.builder()
+                .nom("Info").scoreGlobal(3.0).totalSavoirs(2)
+                .competences(Collections.emptyList()).build();
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("gaps", List.of(
+                Map.of("competenceCode", "I1", "competenceLabel", "Java",
+                       "niveauActuel", 2, "niveauCible", 3, "gap", 1.0,
+                       "gravite", "moyenne", "explication", "Écart modéré")
+        ));
+        result.put("recommandationsFormations", Collections.emptyList());
+
+        when(authClient.getTeacherIdentity(any(), any())).thenReturn(identity);
+        when(competenceClient.getDomainSummaries(any(), any())).thenReturn(List.of(domain));
+        when(formationClient.getFormationsForTeacher(any(), any())).thenReturn(Collections.emptyList());
+        when(certificatClient.getCertificationsForTeacher(any(), any())).thenReturn(Collections.emptyList());
+        when(analysePredictiveService.analyserEnseignant(any(), any())).thenReturn(result);
+
+        TeacherSkillPassportDTO passport = assembler.assemble("jdoe", null);
+
+        assertThat(passport.getStatut()).isEqualTo("en_progression");
+    }
+
+    // ── Gravité "elevee" (sans accent) aussi détectée ─────────────────────
+
+    @Test
+    void assemble_withEleveeGap_returnsRisqueStatut() {
+        TeacherIdentityDTO identity = TeacherIdentityDTO.builder().username("jdoe").build();
+        DomainSummaryDTO domain = DomainSummaryDTO.builder()
+                .nom("Info").scoreGlobal(3.0).totalSavoirs(2)
+                .competences(Collections.emptyList()).build();
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("gaps", List.of(
+                Map.of("competenceCode", "I1", "competenceLabel", "Java",
+                       "niveauActuel", 1, "niveauCible", 4, "gap", 3.0,
+                       "gravite", "elevee", "explication", "Grand écart")
+        ));
+        result.put("recommandationsFormations", Collections.emptyList());
+
+        when(authClient.getTeacherIdentity(any(), any())).thenReturn(identity);
+        when(competenceClient.getDomainSummaries(any(), any())).thenReturn(List.of(domain));
+        when(formationClient.getFormationsForTeacher(any(), any())).thenReturn(Collections.emptyList());
+        when(certificatClient.getCertificationsForTeacher(any(), any())).thenReturn(Collections.emptyList());
+        when(analysePredictiveService.analyserEnseignant(any(), any())).thenReturn(result);
+
+        TeacherSkillPassportDTO passport = assembler.assemble("jdoe", null);
+
+        assertThat(passport.getStatut()).isEqualTo("à_risque");
+    }
+
+    // ── buildGaps exception retourne liste vide ────────────────────────────
+
+    @Test
+    void assemble_whenGapsFails_returnsEmptyGaps() {
+        TeacherIdentityDTO identity = TeacherIdentityDTO.builder().username("jdoe").build();
+
+        when(authClient.getTeacherIdentity(any(), any())).thenReturn(identity);
+        when(competenceClient.getDomainSummaries(any(), any())).thenReturn(Collections.emptyList());
+        when(formationClient.getFormationsForTeacher(any(), any())).thenReturn(Collections.emptyList());
+        when(certificatClient.getCertificationsForTeacher(any(), any())).thenReturn(Collections.emptyList());
+        when(analysePredictiveService.analyserEnseignant(any(), any())).thenThrow(new RuntimeException("Analyse error"));
+
+        TeacherSkillPassportDTO passport = assembler.assemble("jdoe", null);
+
+        assertThat(passport.getGaps()).isEmpty();
+        assertThat(passport.getRecommandations()).isEmpty();
+    }
+
+    // ── Recommandations avec formationId "N/A" filtrées ───────────────────
+
+    @Test
+    void assemble_filtersNARecommendations() {
+        TeacherIdentityDTO identity = TeacherIdentityDTO.builder().username("jdoe").build();
+        DomainSummaryDTO domain = DomainSummaryDTO.builder()
+                .nom("Info").scoreGlobal(3.0).totalSavoirs(1)
+                .competences(Collections.emptyList()).build();
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("gaps", Collections.emptyList());
+        result.put("recommandationsFormations", List.of(
+                Map.of("formationId", "N/A", "titre", "Pas de formation",
+                       "dureeEstimee", "0h", "probabiliteReussite", 0.0,
+                       "priorite", "basse", "justification", "N/A"),
+                Map.of("formationId", "5", "titre", "Python Avancé",
+                       "dureeEstimee", "20h", "probabiliteReussite", 0.85,
+                       "priorite", "haute", "justification", "Gap Python",
+                       "competencesCiblees", List.of("Python"))
+        ));
+
+        when(authClient.getTeacherIdentity(any(), any())).thenReturn(identity);
+        when(competenceClient.getDomainSummaries(any(), any())).thenReturn(List.of(domain));
+        when(formationClient.getFormationsForTeacher(any(), any())).thenReturn(Collections.emptyList());
+        when(certificatClient.getCertificationsForTeacher(any(), any())).thenReturn(Collections.emptyList());
+        when(analysePredictiveService.analyserEnseignant(any(), any())).thenReturn(result);
+
+        TeacherSkillPassportDTO passport = assembler.assemble("jdoe", null);
+
+        assertThat(passport.getRecommandations()).hasSize(1);
+        assertThat(passport.getRecommandations().get(0).getFormationId()).isEqualTo("5");
+    }
+
+    // ── Score global avec domaines vides retourne 0.0 ─────────────────────
+
+    @Test
+    void assemble_withEmptyDomains_returnsZeroScore() {
+        TeacherIdentityDTO identity = TeacherIdentityDTO.builder().username("jdoe").build();
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("gaps", Collections.emptyList());
+        result.put("recommandationsFormations", Collections.emptyList());
+
+        when(authClient.getTeacherIdentity(any(), any())).thenReturn(identity);
+        when(competenceClient.getDomainSummaries(any(), any())).thenReturn(Collections.emptyList());
+        when(formationClient.getFormationsForTeacher(any(), any())).thenReturn(Collections.emptyList());
+        when(certificatClient.getCertificationsForTeacher(any(), any())).thenReturn(Collections.emptyList());
+        when(analysePredictiveService.analyserEnseignant(any(), any())).thenReturn(result);
+
+        TeacherSkillPassportDTO passport = assembler.assemble("jdoe", null);
+
+        assertThat(passport.getScoreGlobal()).isEqualTo(0.0);
+    }
+
+    // ── Recommandations limitées à 5 ──────────────────────────────────────
+
+    @Test
+    void assemble_limitsRecommendationsTo5() {
+        TeacherIdentityDTO identity = TeacherIdentityDTO.builder().username("jdoe").build();
+        DomainSummaryDTO domain = DomainSummaryDTO.builder()
+                .nom("Info").scoreGlobal(3.0).totalSavoirs(1)
+                .competences(Collections.emptyList()).build();
+
+        List<Map<String, Object>> recos = new ArrayList<>();
+        for (int i = 1; i <= 8; i++) {
+            recos.add(Map.of("formationId", String.valueOf(i), "titre", "Formation " + i,
+                    "dureeEstimee", "10h", "probabiliteReussite", 0.8,
+                    "priorite", "haute", "justification", "Gap",
+                    "competencesCiblees", List.of("Comp")));
+        }
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("gaps", Collections.emptyList());
+        result.put("recommandationsFormations", recos);
+
+        when(authClient.getTeacherIdentity(any(), any())).thenReturn(identity);
+        when(competenceClient.getDomainSummaries(any(), any())).thenReturn(List.of(domain));
+        when(formationClient.getFormationsForTeacher(any(), any())).thenReturn(Collections.emptyList());
+        when(certificatClient.getCertificationsForTeacher(any(), any())).thenReturn(Collections.emptyList());
+        when(analysePredictiveService.analyserEnseignant(any(), any())).thenReturn(result);
+
+        TeacherSkillPassportDTO passport = assembler.assemble("jdoe", null);
+
+        assertThat(passport.getRecommandations()).hasSize(5);
+    }
 }

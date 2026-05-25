@@ -1,10 +1,10 @@
 import { Progress, Tooltip } from "antd";
 
 interface PredictionScoreBarProps {
-  value:   number;   // 0–1
-  label?:  string;
-  size?:   "small" | "default";
-  showPct?: boolean;
+  readonly value:   number;   // 0–1
+  readonly label?:  string;
+  readonly size?:   "small" | "default";
+  readonly showPct?: boolean;
 }
 
 function scoreToColor(v: number): string {

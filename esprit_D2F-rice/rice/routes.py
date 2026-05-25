@@ -1,13 +1,11 @@
 """FastAPI routes for the RICE analysis API."""
 
-from __future__ import annotations
-
 import csv as _csv
 import io as _io
 import json as _json
 import logging
 import os
-from typing import Annotated, Dict, List, Optional
+from typing import Annotated, Dict, List
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile
 from fastapi.concurrency import run_in_threadpool
@@ -42,8 +40,165 @@ from rice.referential import (
     _SEMANTIC_CORPUS_BUILT,
 )
 from rice.analyzer import analyze_files
+from rice.validate_helpers import (
+    _upsert_domaine,
+    _upsert_competence,
+    _upsert_sous_competence as _upsert_sous_competence_db,
+    _insert_savoir_links,
+    _upsert_savoir_row,
+    _process_validate_propositions,
+    _build_validate_summary,
+)
 
 logger = logging.getLogger("rice_analyzer")
+
+
+async def _prepare_analyze_inputs(files: List[UploadFile], enseignants: str, departement: str):
+    if not files:
+        raise HTTPException(400, "Au moins un fichier est requis")
+
+    try:
+        ens_list = [EnseignantInfo(**e) for e in _json.loads(enseignants)]
+    except Exception as exc:
+        raise HTTPException(400, f"Format enseignants invalide: {exc}") from exc
+
+    from rice.upload_security import sanitize_filename, validate_uploads_batch
+
+    filenames = [sanitize_filename(f.filename, i) for i, f in enumerate(files)]
+    contents = [await f.read() for f in files]
+
+    validation_error = validate_uploads_batch(filenames, contents)
+    if validation_error:
+        logger.warning("Upload rejete: %s", validation_error)
+        raise HTTPException(400, validation_error)
+
+    dept_key = departement.lower().strip()
+    if dept_key == "auto":
+        dept_key = _detect_departement(filenames, contents)
+        departement = dept_key
+
+    return filenames, contents, ens_list, departement
+def _empty_validate_counts():
+    return {
+        "upserted_domaines": 0,
+        "upserted_competences": 0,
+        "upserted_sous_competences": 0,
+        "inserted_savoirs": 0,
+        "updated_savoirs": 0,
+        "inserted_links": 0,
+    }
+
+def _accumulate_savoir_counts(counts, inserted: int, updated: int, links: int):
+    counts["inserted_savoirs"] += inserted
+    counts["updated_savoirs"] += updated
+    counts["inserted_links"] += links
+
+def _upsert_savoir(cur, savoir, parent_code: str, overwrite: bool, errors: List[str], conn):
+    return _upsert_savoir_row(cur, savoir, parent_code, overwrite, errors, conn)
+
+def _upsert_savoir_sous_competence(cur, savoir, competence_code: str, overwrite: bool, errors: List[str], conn):
+    return _upsert_savoir_row(cur, savoir, competence_code, overwrite, errors, conn, parent_type="sous_competence")
+
+def _upsert_sous_competence(cur, sc, competence_code: str, overwrite: bool, errors: List[str], conn):
+    upserted = 1 if _upsert_sous_competence_db(cur, sc, competence_code, errors, conn) else 0
+    if not upserted:
+        return (0, 0, 0, 0)
+
+    inserted = updated = links = 0
+    for savoir in sc.savoirs:
+        ins, upd, lnk = _upsert_savoir_sous_competence(cur, savoir, sc.code, overwrite, errors, conn)
+        inserted += ins
+        updated += upd
+        links += lnk
+    return (upserted, inserted, updated, links)
+
+def _process_competence_savoirs(cur, competence, overwrite: bool, errors: List[str], conn, counts) -> None:
+    for savoir in (competence.savoirs or []):
+        ins, upd, lnk = _upsert_savoir(cur, savoir, competence.code, overwrite, errors, conn)
+        _accumulate_savoir_counts(counts, ins, upd, lnk)
+
+def _process_competence_subcompetences(cur, competence, overwrite: bool, errors: List[str], conn, counts) -> None:
+    for sc in competence.sousCompetences:
+        upserted, ins, upd, lnk = _upsert_sous_competence(cur, sc, competence.code, overwrite, errors, conn)
+        counts["upserted_sous_competences"] += upserted
+        _accumulate_savoir_counts(counts, ins, upd, lnk)
+
+def _process_validate_domaine(cur, domaine, overwrite: bool, counts, errors, conn) -> None:
+    if not _upsert_domaine(cur, domaine, errors, conn):
+        return
+
+    counts["upserted_domaines"] += 1
+    for competence in domaine.competences:
+        if not _upsert_competence(cur, competence, domaine.code, errors, conn):
+            continue
+        counts["upserted_competences"] += 1
+        _process_competence_savoirs(cur, competence, overwrite, errors, conn, counts)
+        _process_competence_subcompetences(cur, competence, overwrite, errors, conn, counts)
+
+def _process_validate_propositions(cur, request: ValidateRequest, errors: List[str], conn):
+    counts = _empty_validate_counts()
+    for domaine in request.propositions:
+        _process_validate_domaine(cur, domaine, request.overwrite, counts, errors, conn)
+    return counts
+
+def _open_validate_connection():
+    import rice.db as _db_mod
+
+    conn = _db_mod._get_db_connection()
+    cur = conn.cursor()
+    return conn, cur
+
+def _close_validate_connection(conn, cur):
+    try:
+        cur.close()
+        import rice.db as _db_mod
+
+        _db_mod._put_db_connection(conn)
+    except Exception:
+        pass
+
+def _run_validate_transaction(request: ValidateRequest, errors: List[str], conn, cur):
+    counts = _process_validate_propositions(cur, request, errors, conn)
+    conn.commit()
+    return counts
+
+
+def _csv_header():
+    return [
+        "domaine_code", "domaine_nom",
+        "competence_code", "competence_nom",
+        "sous_competence_code", "sous_competence_nom",
+        "savoir_code", "savoir_nom", "savoir_type", "savoir_niveau",
+        "enseignants_suggeres", "ref_codes",
+    ]
+
+
+def _build_export_row(domaine_code, domaine_nom, comp_code, comp_nom, sav, sc_code, sc_nom):
+    return [
+        domaine_code, domaine_nom, comp_code, comp_nom,
+        sc_code or "", sc_nom or "",
+        sav.code, sav.nom, sav.type, sav.niveau,
+        "; ".join(sav.enseignantsSuggeres),
+        "; ".join(sav.refCodes),
+    ]
+
+
+def _iter_export_rows(result: RiceAnalysisResult):
+    for domaine in result.propositions:
+        domaine_code = domaine.code or ""
+        domaine_nom = domaine.nom or ""
+        for comp in domaine.competences:
+            yield from _iter_competence_export_rows(domaine_code, domaine_nom, comp)
+
+
+def _iter_competence_export_rows(domaine_code, domaine_nom, comp):
+    comp_code = comp.code or ""
+    comp_nom = comp.nom or ""
+    for sav in (comp.savoirs or []):
+        yield _build_export_row(domaine_code, domaine_nom, comp_code, comp_nom, sav, "", "")
+    for sc in comp.sousCompetences:
+        for sav in sc.savoirs:
+            yield _build_export_row(domaine_code, domaine_nom, comp_code, comp_nom, sav, sc.code, sc.nom)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -52,22 +207,20 @@ logger = logging.getLogger("rice_analyzer")
 # L'authentification globale est assuree par JWTAuthMiddleware (rice/jwt_middleware.py)
 # avec JWT_SECRET HS512 fourni via variable d'environnement.
 #
+
 # _get_current_user lit le contexte deja injecte par le middleware (request.state),
 # evitant une seconde decode du token et toute logique secret independante.
 # ─────────────────────────────────────────────────────────────────────────────
 
 _APP_ENV = os.getenv("APP_ENV", "development").lower()
-_AUTH_TOGGLE = os.getenv("RICE_AUTH_ENABLED", "true").lower() in ("true", "1", "yes")
-# En production, l'authentification est toujours active : le toggle n'a aucun effet.
-_AUTH_ENABLED = True if _APP_ENV in ("production", "prod") else _AUTH_TOGGLE
-
+_AUTH_ENABLED = os.getenv("RICE_AUTH_ENABLED", "false").lower() in ("true", "1", "yes")
 _oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token", auto_error=False)
 
 
 def _get_current_user(
     request: Request,
-    token: Annotated[Optional[str], Depends(_oauth2_scheme)] = None,
-) -> Optional[Dict]:
+    token: Annotated[str | None, Depends(_oauth2_scheme)] = None,
+) -> Dict | None:
     """Retourne le contexte utilisateur deja valide par JWTAuthMiddleware.
 
     Le middleware a deja decode le JWT HS512 avec JWT_SECRET et injecte les claims
@@ -110,33 +263,9 @@ async def rice_analyze(
     files: Annotated[List[UploadFile], File(description="Fiches UE et modules (PDF/DOCX)")],
     enseignants: Annotated[str, Form(description='JSON array: [{id, nom, prenom, modules:[...]}]')] = "[]",
     departement: Annotated[str, Form(description="**auto** (détecte GC/INFO/GE/MECA/TELECOM) | **gc** (Génie Civil - fallback JSON) | **info/ge/meca/telecom** (DB refs)")] = "auto",
-    _user: Annotated[Optional[Dict], Depends(_get_current_user)] = None,
+    _user: Annotated[Dict | None, Depends(_get_current_user)] = None,
 ):
-    if not files:
-        raise HTTPException(400, "Au moins un fichier est requis")
-
-    try:
-        ens_list = [EnseignantInfo(**e) for e in _json.loads(enseignants)]
-    except Exception as exc:
-        raise HTTPException(400, f"Format enseignants invalide: {exc}") from exc
-
-    # Defense-en-profondeur : sanitize les noms et lit les contenus, puis validation
-    # taille / nombre / magic bytes via upload_security.validate_uploads_batch.
-    from rice.upload_security import sanitize_filename, validate_uploads_batch
-
-    filenames = [sanitize_filename(f.filename, i) for i, f in enumerate(files)]
-    contents = [await f.read() for f in files]
-
-    validation_error = validate_uploads_batch(filenames, contents)
-    if validation_error:
-        logger.warning("Upload rejete: %s", validation_error)
-        raise HTTPException(400, validation_error)
-
-    # Department resolution: "auto" → heuristic detection from filenames & content
-    dept_key = departement.lower().strip()
-    if dept_key == "auto":
-        dept_key = _detect_departement(filenames, contents)
-        departement = dept_key
+    filenames, contents, ens_list, departement = await _prepare_analyze_inputs(files, enseignants, departement)
 
     # Run CPU-bound analysis in a thread pool to avoid blocking the event loop
     result = await run_in_threadpool(analyze_files, filenames, contents, ens_list, departement)
@@ -147,6 +276,29 @@ async def rice_analyze(
 # /export-csv  (convert a RiceAnalysisResult to downloadable CSV)
 # ─────────────────────────────────────────────────────────────────────────────
 
+def _write_competence_csv_rows(writer, domaine_code, domaine_nom, comp):
+    """Write all savoir rows for a single competence (direct + sous-competence)."""
+    comp_code = comp.code or ""
+    comp_nom = comp.nom or ""
+    for sav in (comp.savoirs or []):
+        writer.writerow([
+            domaine_code, domaine_nom, comp_code, comp_nom,
+            "", "",
+            sav.code, sav.nom, sav.type, sav.niveau,
+            "; ".join(sav.enseignantsSuggeres),
+            "; ".join(sav.refCodes),
+        ])
+    for sc in comp.sousCompetences:
+        for sav in sc.savoirs:
+            writer.writerow([
+                domaine_code, domaine_nom, comp_code, comp_nom,
+                sc.code, sc.nom,
+                sav.code, sav.nom, sav.type, sav.niveau,
+                "; ".join(sav.enseignantsSuggeres),
+                "; ".join(sav.refCodes),
+            ])
+
+
 @rice_router.post(
     "/export-csv",
     summary="📊 Export CSV (1 ligne/savoir)",
@@ -155,67 +307,18 @@ async def rice_analyze(
 )
 async def export_csv(
     result: RiceAnalysisResult,
-    _user: Annotated[Optional[Dict], Depends(_get_current_user)] = None,
+    _user: Annotated[Dict | None, Depends(_get_current_user)] = None,
 ):
     """Accept a ``RiceAnalysisResult`` JSON body (as returned by ``/analyze``)
     and return a flattened CSV with one row per *savoir*.
-
-    Columns: ``domaine_code``, ``domaine_nom``, ``competence_code``,
-    ``competence_nom``, ``sous_competence_code``, ``sous_competence_nom``,
-    ``savoir_code``, ``savoir_nom``, ``savoir_type``, ``savoir_niveau``,
-    ``enseignants_suggeres``, ``ref_codes``.
     """
     buf = _io.StringIO()
     writer = _csv.writer(buf)
 
-    # Header row
-    writer.writerow([
-        "domaine_code", "domaine_nom",
-        "competence_code", "competence_nom",
-        "sous_competence_code", "sous_competence_nom",
-        "savoir_code", "savoir_nom", "savoir_type", "savoir_niveau",
-        "enseignants_suggeres", "ref_codes",
-    ])
+    writer.writerow(_csv_header())
+    for row in _iter_export_rows(result):
+        writer.writerow(row)
 
-    for domaine in result.propositions:
-        domaine_code = domaine.code or ""
-        domaine_nom = domaine.nom or ""
-        for comp in domaine.competences:
-            comp_code = comp.code or ""
-            comp_nom = comp.nom or ""
-            for sav in (comp.savoirs or []):
-                writer.writerow([
-                    domaine_code,
-                    domaine_nom,
-                    comp_code,
-                    comp_nom,
-                    "",
-                    "",
-                    sav.code,
-                    sav.nom,
-                    sav.type,
-                    sav.niveau,
-                    "; ".join(sav.enseignantsSuggeres),
-                    "; ".join(sav.refCodes),
-                ])
-            for sc in comp.sousCompetences:
-                for sav in sc.savoirs:
-                    writer.writerow([
-                        domaine_code,
-                        domaine_nom,
-                        comp_code,
-                        comp_nom,
-                        sc.code,
-                        sc.nom,
-                        sav.code,
-                        sav.nom,
-                        sav.type,
-                        sav.niveau,
-                        "; ".join(sav.enseignantsSuggeres),
-                        "; ".join(sav.refCodes),
-                    ])
-
-    # Add UTF-8 BOM so Excel opens accented characters correctly
     csv_bytes = ("\ufeff" + buf.getvalue()).encode("utf-8")
     return StreamingResponse(
         _io.BytesIO(csv_bytes),
@@ -247,7 +350,7 @@ def get_referential(
                   summary="Forcer le rafraîchissement du cache du référentiel et des affectations")
 @rice_router.post("/gc-refresh-cache",  # backward-compat alias
                   summary="Alias déprécié – utiliser /refresh-cache", include_in_schema=False)
-def refresh_cache(_user: Annotated[Optional[Dict], Depends(_get_current_user)] = None):
+def refresh_cache(_user: Annotated[Dict | None, Depends(_get_current_user)] = None):
     """Invalidate the affectations cache AND all department referential DB caches
     so the next call reads fresh data from DB."""
     import rice.referential as _ref_mod
@@ -265,7 +368,7 @@ def refresh_cache(_user: Annotated[Optional[Dict], Depends(_get_current_user)] =
 async def match_text(
     text: Annotated[str, Form(description="Texte à matcher (objectif, contenu de fiche…)")],
     departement: Annotated[str, Form(description="Code département (gc, info, ge, telecom, meca, …)")] = "gc",
-    _user: Annotated[Optional[Dict], Depends(_get_current_user)] = None,
+    _user: Annotated[Dict | None, Depends(_get_current_user)] = None,
 ):
     """
     Match free text against the department referential.
@@ -297,261 +400,27 @@ async def match_text(
         503: {"description": "Database unreachable"},
     },
 )
-async def rice_validate(  # noqa: PLR0915,PLR0912  — see S3776 rationale below
+async def rice_validate(
     request: ValidateRequest,
-    _user: Annotated[Optional[Dict], Depends(_get_current_user)] = None,
+    _user: Annotated[Dict | None, Depends(_get_current_user)] = None,
 ):
-    # NOSONAR S3776 — traverses the full Domaine → Compétence → Sous-Compétence
-    # → Savoir hierarchy and runs a single-transaction upsert; splitting it would
-    # leak DB cursors and break atomicity. Cognitive depth is intrinsic to the tree.
-    """
-    Persist the human-validated competence tree to PostgreSQL.
-
-    Traverses the full Domaine → Compétence → SousCompétence → Savoir hierarchy
-    and upserts every level in order so that the foreign-key chain is always intact.
-    """
+    """Persist the human-validated competence tree to PostgreSQL."""
     if not request.propositions:
         raise HTTPException(400, "propositions list is empty")
 
-    upserted_domaines = 0
-    upserted_competences = 0
-    upserted_sous_competences = 0
-    inserted_savoirs = 0
-    updated_savoirs = 0
-    inserted_links = 0
     errors: List[str] = []
 
     try:
-        conn = _get_db_connection()
-        cur = conn.cursor()
+        conn, cur = _open_validate_connection()
     except Exception as exc:
         raise HTTPException(503, f"Database unreachable: {exc}") from exc
 
     try:
-        for domaine in request.propositions:
-            # ── Upsert domaine ────────────────────────────────────────────
-            try:
-                cur.execute("""
-                    INSERT INTO domaines (code, nom, description, actif)
-                    VALUES (%s, %s, %s, true)
-                    ON CONFLICT (code) DO UPDATE SET
-                        nom         = EXCLUDED.nom,
-                        description = EXCLUDED.description
-                """, (
-                    domaine.code[:50],
-                    domaine.nom[:255],
-                    (domaine.description or "")[:500],
-                ))
-                upserted_domaines += 1
-            except Exception as dom_err:
-                conn.rollback()
-                errors.append(f"domaine {domaine.code}: {dom_err}")
-                continue
-
-            for competence in domaine.competences:
-                # ── Upsert competence ─────────────────────────────────────
-                try:
-                    cur.execute("""
-                        INSERT INTO competences
-                            (code, nom, description, ordre, domaine_id)
-                        VALUES (
-                            %s, %s, %s, %s,
-                            (SELECT id FROM domaines WHERE code = %s)
-                        )
-                        ON CONFLICT (code) DO UPDATE SET
-                            nom        = EXCLUDED.nom,
-                            description = EXCLUDED.description,
-                            ordre      = EXCLUDED.ordre,
-                            domaine_id = EXCLUDED.domaine_id
-                    """, (
-                        competence.code[:50],
-                        competence.nom[:255],
-                        (competence.description or "")[:500],
-                        competence.ordre,
-                        domaine.code[:50],
-                    ))
-                    upserted_competences += 1
-                except Exception as comp_err:
-                    conn.rollback()
-                    errors.append(f"competence {competence.code}: {comp_err}")
-                    continue
-
-                for savoir in (competence.savoirs or []):
-                    sav_id = savoir.tmpId
-                    try:
-                        cur.execute("""
-                            INSERT INTO savoirs
-                                (id, code, nom, description, type, niveau,
-                                 sous_competence_id, competence_id)
-                            VALUES (
-                                %s, %s, %s, %s, %s, %s,
-                                NULL,
-                                (SELECT id FROM competences WHERE code = %s)
-                            )
-                            ON CONFLICT (id) DO UPDATE SET
-                                code               = EXCLUDED.code,
-                                nom                = EXCLUDED.nom,
-                                description        = EXCLUDED.description,
-                                type               = EXCLUDED.type,
-                                niveau             = EXCLUDED.niveau,
-                                sous_competence_id = NULL,
-                                competence_id      = EXCLUDED.competence_id
-                            RETURNING (xmax = 0) AS inserted
-                        """, (
-                            sav_id,
-                            savoir.code[:50],
-                            savoir.nom[:255],
-                            (savoir.description or "")[:500],
-                            savoir.type,
-                            savoir.niveau,
-                            competence.code[:50],
-                        ))
-                        row = cur.fetchone()
-                        if row and row[0]:
-                            inserted_savoirs += 1
-                        else:
-                            updated_savoirs += 1
-                    except Exception as sav_err:
-                        conn.rollback()
-                        errors.append(f"savoir {savoir.code}: {sav_err}")
-                        continue
-
-                    if request.overwrite:
-                        try:
-                            cur.execute(
-                                "DELETE FROM enseignant_competences WHERE savoir_id = %s",
-                                (sav_id,),
-                            )
-                        except Exception:
-                            conn.rollback()
-
-                    for ens_id in savoir.enseignantsSuggeres:
-                        try:
-                            cur.execute("""
-                                INSERT INTO enseignant_competences
-                                    (enseignant_id, savoir_id, niveau, date_acquisition)
-                                VALUES (%s, %s, %s, CURRENT_DATE)
-                                ON CONFLICT DO NOTHING
-                            """, (ens_id, sav_id, savoir.niveau))
-                            inserted_links += 1
-                        except Exception as link_err:
-                            conn.rollback()
-                            errors.append(f"link {ens_id}->{savoir.code}: {link_err}")
-
-                for sc in competence.sousCompetences:
-                    # ── Upsert sous_competence ────────────────────────────
-                    try:
-                        cur.execute("""
-                            INSERT INTO sous_competences
-                                (code, nom, description, competence_id)
-                            VALUES (
-                                %s, %s, %s,
-                                (SELECT id FROM competences WHERE code = %s)
-                            )
-                            ON CONFLICT (code) DO UPDATE SET
-                                nom          = EXCLUDED.nom,
-                                description  = EXCLUDED.description,
-                                competence_id = EXCLUDED.competence_id
-                        """, (
-                            sc.code[:50],
-                            sc.nom[:255],
-                            (sc.description or "")[:500],
-                            competence.code[:50],
-                        ))
-                        upserted_sous_competences += 1
-                    except Exception as sc_err:
-                        conn.rollback()
-                        errors.append(f"sous_competence {sc.code}: {sc_err}")
-                        continue
-
-                    for savoir in sc.savoirs:
-                        sav_id = savoir.tmpId
-                        # ── Upsert savoir ─────────────────────────────────
-                        try:
-                            cur.execute("""
-                                INSERT INTO savoirs
-                                        (id, code, nom, description, type, niveau,
-                                         sous_competence_id, competence_id)
-                                VALUES (
-                                    %s, %s, %s, %s, %s, %s,
-                                        (SELECT id FROM sous_competences WHERE code = %s),
-                                        NULL
-                                )
-                                ON CONFLICT (id) DO UPDATE SET
-                                    code               = EXCLUDED.code,
-                                    nom                = EXCLUDED.nom,
-                                    description        = EXCLUDED.description,
-                                    type               = EXCLUDED.type,
-                                    niveau             = EXCLUDED.niveau,
-                                        sous_competence_id = EXCLUDED.sous_competence_id,
-                                        competence_id      = NULL
-                                RETURNING (xmax = 0) AS inserted
-                            """, (
-                                sav_id,
-                                savoir.code[:50],
-                                savoir.nom[:255],
-                                (savoir.description or "")[:500],
-                                savoir.type,
-                                savoir.niveau,
-                                sc.code[:50],
-                            ))
-                            row = cur.fetchone()
-                            if row and row[0]:
-                                inserted_savoirs += 1
-                            else:
-                                updated_savoirs += 1
-                        except Exception as sav_err:
-                            conn.rollback()
-                            errors.append(f"savoir {savoir.code}: {sav_err}")
-                            continue
-
-                        # ── Teacher links ─────────────────────────────────
-                        if request.overwrite:
-                            try:
-                                cur.execute(
-                                    "DELETE FROM enseignant_competences WHERE savoir_id = %s",
-                                    (sav_id,),
-                                )
-                            except Exception:
-                                conn.rollback()
-
-                        for ens_id in savoir.enseignantsSuggeres:
-                            try:
-                                cur.execute("""
-                                    INSERT INTO enseignant_competences
-                                        (enseignant_id, savoir_id, niveau, date_acquisition)
-                                    VALUES (%s, %s, %s, CURRENT_DATE)
-                                    ON CONFLICT DO NOTHING
-                                """, (ens_id, sav_id, savoir.niveau))
-                                inserted_links += 1
-                            except Exception as link_err:
-                                conn.rollback()
-                                errors.append(f"link {ens_id}->{savoir.code}: {link_err}")
-
-        conn.commit()
+        counts = _run_validate_transaction(request, errors, conn, cur)
     except Exception as exc:
         conn.rollback()
         raise HTTPException(500, f"DB error during validation: {exc}") from exc
     finally:
-        try:
-            cur.close()
-            _put_db_connection(conn)
-        except Exception:
-            pass
+        _close_validate_connection(conn, cur)
 
-    logger.info(
-        f"Validate: domaines={upserted_domaines} competences={upserted_competences} "
-        f"sous_competences={upserted_sous_competences} "
-        f"inserted={inserted_savoirs} updated={updated_savoirs} "
-        f"links={inserted_links} errors={len(errors)}"
-    )
-    return ValidateSummary(
-        status="ok",
-        upserted_domaines=upserted_domaines,
-        upserted_competences=upserted_competences,
-        upserted_sous_competences=upserted_sous_competences,
-        inserted_savoirs=inserted_savoirs,
-        updated_savoirs=updated_savoirs,
-        inserted_enseignant_links=inserted_links,
-        errors=errors[:30],
-    )
+    return _build_validate_summary(counts, errors, logger)

@@ -14,7 +14,7 @@ import java.util.List;
 @AllArgsConstructor
 @Entity
 @Table(name = "enseignants")
-public class Enseignant {
+public class Enseignant extends BaseAuditEntity {
 
     @Id
     @Column(length = 10, nullable = false, unique = true)
@@ -38,7 +38,7 @@ public class Enseignant {
     @Column(length = 1, nullable = false)
     private String cup;
 
-    @Column(name = "chefdepartement", length = 1, nullable = false)
+    @Column(name = "chef_departement", length = 1, nullable = false)
     private String chefDepartement;
 
     // Relation avec UP et Dept si besoin

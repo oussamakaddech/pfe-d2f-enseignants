@@ -37,7 +37,7 @@ export function useAnalytics(enseignantId: string) {
     queryKey: ["training-path", enseignantId, trainingCompetenceId],
     queryFn:  () => AnalyticsService.getTrainingPath(enseignantId, trainingCompetenceId!),
     enabled:  !!enseignantId && trainingCompetenceId !== null,
-    retry:    (_count: number, error: any) => error?.response?.status !== 404,
+    retry:    (_count: number, error: unknown) => (error as { response?: { status: number } })?.response?.status !== 404,
   });
 
   const runAnalysis = useCallback(async () => {
@@ -62,7 +62,7 @@ export function useAnalytics(enseignantId: string) {
 
   const error =
     analysisMutation.isError
-      ? (analysisMutation.error as any)?.response?.data?.message || "Erreur lors de l'analyse"
+      ? (analysisMutation.error as { response?: { data?: { message?: string } } })?.response?.data?.message || "Erreur lors de l'analyse"
       : gapsQ.isError
       ? "Erreur chargement gaps"
       : recoQ.isError

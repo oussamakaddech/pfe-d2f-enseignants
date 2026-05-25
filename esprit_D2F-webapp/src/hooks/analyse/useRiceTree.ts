@@ -1,4 +1,3 @@
-// src/hooks/useRiceTree.js
 // Custom hook that owns the entire RICE competence tree state.
 // Provides all mutation helpers (rename, delete, toggle type/niveau, assign,
 // merge, etc.) and derived memos (allSavoirsFlat, liveStats, treeFilteredIndices).

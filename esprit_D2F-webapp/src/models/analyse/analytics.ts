@@ -1,4 +1,4 @@
-// ── Types analytiques D2F ─────────────────────────────────
+
 
 export type NiveauUrgence = "FAIBLE" | "MODEREE" | "HAUTE" | "CRITIQUE";
 export type NiveauRisque  = "FAIBLE" | "MODERE" | "ELEVE" | "CRITIQUE";

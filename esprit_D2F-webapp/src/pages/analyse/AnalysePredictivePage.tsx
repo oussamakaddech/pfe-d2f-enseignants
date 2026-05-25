@@ -31,7 +31,7 @@ const { Title, Text } = Typography;
 const { Option } = Select;
 
 const normalizeRole = (v: unknown): string =>
-  String(v || "").toLowerCase().replace(/^role_?/, "").replace(/[\s_-]+/g, "");
+  String(v || "").toLowerCase().replace(/^role_?/, "").replaceAll(/[\s_-]+/g, "");
 
 export default function AnalysePredictivePage() {
   const { message } = useAppNotification();
@@ -64,8 +64,8 @@ export default function AnalysePredictivePage() {
       setDeclining(data.declining_competencies || []);
       setInDemand(data.in_demand_competencies || []);
       setRiskIndicators(data.teacher_risk_indicators || []);
-    } catch (e) {
-      console.warn("Dashboard load failed, using empty state", e);
+    } catch {
+      // using empty state as fallback
     } finally {
       setDashLoading(false);
     }
@@ -85,7 +85,7 @@ export default function AnalysePredictivePage() {
         message.info("Statut: " + result.status);
       }
       setModelStatusKey((k) => k + 1);
-    } catch (err) {
+    } catch {
       message.error("Erreur lors de l'entraînement du modèle. Vérifiez que le service est accessible.");
     } finally {
       setLoading(false);

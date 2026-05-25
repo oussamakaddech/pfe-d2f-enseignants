@@ -1,73 +1,67 @@
 import { defaultApi as axios } from "@/utils/helpers/httpClient";
-import { config } from "@/config/env"; 
-import { optionalAuthHeader } from "@/services/auth/authHeaders";
+import { config } from "@/config/env";
 const API_URL =`${config.FORMATION_URL}/formation/documents`;
 
+interface DocumentCreatePayload {
+  formationId: string | number;
+  pathType: string;
+  nomDocument: string;
+  obligation: string;
+  file: File;
+}
+
+interface DocumentUpdatePayload {
+  pathType: string;
+  nomDocument: string;
+  obligation: string;
+  file?: File;
+}
+
 const DocumentService = {
-  // Création d'un document
-  async createDocument({ formationId, pathType, nomDocument, obligation, file }) {
+  async createDocument({ formationId, pathType, nomDocument, obligation, file }: DocumentCreatePayload) {
     const formData = new FormData();
-    formData.append("formationId", formationId);
+    formData.append("formationId", String(formationId));
     formData.append("pathType",    pathType);
     formData.append("nomDocument", nomDocument);
     formData.append("obligation",  obligation);
     formData.append("file",        file);
 
-    const { data } = await axios.post(API_URL, formData, {
-      headers: {
-        ...optionalAuthHeader(),
-        "Content-Type": "multipart/form-data",
-      },
-    });
-    return data; // DocumentDTO
+    const { data } = await axios.post(API_URL, formData);
+    return data;
   },
 
-  // Récupérer tous les documents
   async getAllDocuments() {
-    const { data } = await axios.get(API_URL, { headers: optionalAuthHeader() });
-    return data; // Array<DocumentDTO>
+    const { data } = await axios.get(API_URL);
+    return data;
   },
 
-  // Récupérer un document par son id
-  async getDocumentById(id) {
-    const { data } = await axios.get(`${API_URL}/${id}`, {
-      headers: optionalAuthHeader(),
-    });
-    return data; // DocumentDTO
+  async getDocumentById(id: number | string) {
+    const { data } = await axios.get(`${API_URL}/${id}`);
+    return data;
   },
 
-  // Mise à jour d'un document
-  async updateDocument(id, { pathType, nomDocument, obligation, file }) {
+  async updateDocument(id: number | string, { pathType, nomDocument, obligation, file }: DocumentUpdatePayload) {
     const formData = new FormData();
     formData.append("pathType",    pathType);
     formData.append("nomDocument", nomDocument);
     formData.append("obligation",  obligation);
     if (file) {
-      formData.append("file", file); // facultatif
+      formData.append("file", file);
     }
 
-    const { data } = await axios.put(`${API_URL}/${id}`, formData, {
-      headers: {
-        ...optionalAuthHeader(),
-        "Content-Type": "multipart/form-data",
-      },
-    });
-    return data; // DocumentDTO
+    const { data } = await axios.put(`${API_URL}/${id}`, formData);
+    return data;
   },
 
-  // Suppression
-  async deleteDocument(id) {
-    await axios.delete(`${API_URL}/${id}`, { headers: optionalAuthHeader() });
+  async deleteDocument(id: number | string) {
+    await axios.delete(`${API_URL}/${id}`);
   },
 
-  // Téléchargement avec nom de fichier dynamique
-  async downloadDocument(id) {
+  async downloadDocument(id: number | string) {
     const response = await axios.get(`${API_URL}/download/${id}`, {
       responseType: "blob",
-      headers: optionalAuthHeader(),
     });
 
-    // Extraction du filename depuis le header
     const disposition = response.headers["content-disposition"];
     let filename = "document";
     if (disposition) {

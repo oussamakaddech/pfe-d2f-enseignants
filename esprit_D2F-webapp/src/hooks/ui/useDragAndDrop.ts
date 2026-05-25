@@ -1,4 +1,3 @@
-// src/hooks/useDragAndDrop.js
 // Custom hook that owns all HTML5 drag-and-drop state and event handlers
 // for the RICE step-2 review panel.
 //
@@ -95,11 +94,10 @@ export function useDragAndDrop({ tree, toggleEnsAssign, updateTree, effectiveEns
     return info;
   };
 
-  const resolveEnsName = useCallback((ensObj, fallback) =>
-    ensObj
-      ? ensObj.prenom ? `${ensObj.prenom} ${ensObj.nom}` : ensObj.nom
-      : fallback,
-  []);
+  const resolveEnsName = useCallback((ensObj, fallback) => {
+    if (!ensObj) return fallback;
+    return ensObj.prenom ? `${ensObj.prenom} ${ensObj.nom}` : ensObj.nom;
+  }, []);
 
   const handleMove = useCallback((info, di, ci, sci, si, ensId, ensName) => {
     updateTree((t) => {

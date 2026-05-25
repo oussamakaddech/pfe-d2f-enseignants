@@ -11,6 +11,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 
 import java.util.Date;
 import java.util.List;
@@ -69,5 +71,44 @@ class ParticipantKpiServiceTest {
         ParticipantKpiDTO result = kpiService.getGlobalParticipantKpi(start, end);
 
         assertThat(result.getTauxParticipation()).isEqualTo(50.0);
+    }
+
+    @Test
+    @DisplayName("getParticipantKpis(Pageable) - pagination")
+    void shouldGetParticipantKpisPageable() {
+        Date start = new Date(0);
+        Date end = new Date(System.currentTimeMillis() + 1000000);
+
+        Formation f = new Formation();
+        f.setIdFormation(1L);
+        f.setDateDebut(new Date());
+        f.setEtatFormation(EtatFormation.ACHEVE);
+
+        when(formationRepository.findByEtatFormation(EtatFormation.ACHEVE)).thenReturn(List.of(f));
+        when(presenceRepository.countByFormationIdAndPeriod(eq(1L), any(), any())).thenReturn(10L);
+        when(presenceRepository.countPresentByFormationIdAndPeriod(eq(1L), any(), any())).thenReturn(8L);
+
+        Page<ParticipantKpiDTO> page = kpiService.getParticipantKpis(start, end, PageRequest.of(0, 10));
+
+        assertThat(page.getTotalElements()).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("getGlobalParticipantKpi - zero when no formation in range")
+    void shouldGetGlobalParticipantKpiWhenNoFormationMatches() {
+        Date start = new Date(0);
+        Date end = new Date(System.currentTimeMillis() + 1000000);
+
+        Formation f = new Formation();
+        f.setIdFormation(1L);
+        f.setDateDebut(new Date(System.currentTimeMillis() - 100000000L));
+        f.setEtatFormation(EtatFormation.ACHEVE);
+
+        when(formationRepository.findByEtatFormation(EtatFormation.ACHEVE)).thenReturn(List.of(f));
+
+        ParticipantKpiDTO result = kpiService.getGlobalParticipantKpi(start, end);
+
+        assertThat(result.getNombreParticipantsTotal()).isZero();
+        assertThat(result.getTauxParticipation()).isZero();
     }
 }

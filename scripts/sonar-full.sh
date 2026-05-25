@@ -2,10 +2,10 @@
 # =============================================================================
 # sonar-full.sh — One-command SonarQube analysis for the D2F monorepo
 # =============================================================================
-# Runs build + tests + sonar-scan for the 12 modules:
+# Runs build + tests + sonar-scan for the 11 modules:
 #   8 Java (Spring Boot via Maven + JaCoCo)
 #   1 Web (React/Vite + Vitest + lcov)
-#   3 Python (pytest + coverage + sonar-scanner)
+#   2 Python (pytest + coverage + sonar-scanner)
 #
 # Usage:
 #   bash scripts/sonar-full.sh                       # all modules
@@ -70,7 +70,6 @@ MODULES=(
   "web|esprit_D2F-webapp|d2f_webapp"
   "python|esprit_D2F-rice|d2f_rice"
   "python|esprit_D2F-predictive-analytics|d2f_predictive_analytics"
-  "python|esprit_D2F-recommandation-formateur|d2f_recommandation_formateur"
 )
 
 # ── helpers ───────────────────────────────────────────────────────────────────
@@ -161,7 +160,7 @@ run_java() {
       $mvn_cmd -B -q sonar:sonar \
         "-Dsonar.projectKey=$key" \
         "-Dsonar.host.url=$SONAR_URL" \
-        "-Dsonar.login=$SONAR_TOKEN" \
+        "-Dsonar.token=$SONAR_TOKEN" \
         "-Dsonar.qualitygate.wait=false"
     fi
   ) > "$log" 2>&1
@@ -190,7 +189,7 @@ run_web() {
       sonar-scanner \
         "-Dsonar.projectKey=$key" \
         "-Dsonar.host.url=$SONAR_URL" \
-        "-Dsonar.login=$SONAR_TOKEN" \
+        "-Dsonar.token=$SONAR_TOKEN" \
         "-Dsonar.javascript.lcov.reportPaths=coverage/lcov.info" \
         "-Dsonar.qualitygate.wait=false"
     fi
@@ -221,7 +220,7 @@ run_python() {
       sonar-scanner \
         "-Dsonar.projectKey=$key" \
         "-Dsonar.host.url=$SONAR_URL" \
-        "-Dsonar.login=$SONAR_TOKEN" \
+        "-Dsonar.token=$SONAR_TOKEN" \
         "-Dsonar.qualitygate.wait=false"
     fi
   ) > "$log" 2>&1

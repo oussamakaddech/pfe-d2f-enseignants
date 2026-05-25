@@ -1,4 +1,3 @@
-// src/components/EditProfile.jsx
 import { useEffect, useState } from "react";
 import { Form, Input, Button, Card } from "antd";
 import { EditOutlined } from "@ant-design/icons";
@@ -47,15 +46,8 @@ export default function EditProfile() {
       await editProfile(payload);
       msgApi.success("Profil mis à jour avec succès !");
     } catch (err) {
-      console.error("editProfile error", {
-        status:  err.response?.status,
-        data:    err.response?.data,
-        request: payload,
-      });
-      const backendMsg =
-        err.response?.data?.message ||
-        JSON.stringify(err.response?.data) ||
-        err.message;
+      const e = err as { response?: { status?: number; data?: { message?: string } }; message?: string };
+      const backendMsg = e.response?.data?.message || e.message || "Une erreur est survenue.";
       msgApi.error(backendMsg);
     }
   };

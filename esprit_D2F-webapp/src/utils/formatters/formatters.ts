@@ -16,7 +16,7 @@
 export const formatDate = (value) => {
   if (!value) return "—";
   const d = value instanceof Date ? value : new Date(value);
-  if (isNaN(d.getTime())) return "—";
+  if (Number.isNaN(d.getTime())) return "—";
   return d.toLocaleDateString("fr-FR", {
     day: "2-digit",
     month: "short",
@@ -32,7 +32,7 @@ export const formatDate = (value) => {
 export const formatDateTime = (value) => {
   if (!value) return "—";
   const d = value instanceof Date ? value : new Date(value);
-  if (isNaN(d.getTime())) return "—";
+  if (Number.isNaN(d.getTime())) return "—";
   return d.toLocaleString("fr-FR", {
     day: "2-digit",
     month: "short",
@@ -50,7 +50,7 @@ export const formatDateTime = (value) => {
 export const formatDateShort = (value) => {
   if (!value) return "—";
   const d = value instanceof Date ? value : new Date(value);
-  if (isNaN(d.getTime())) return "—";
+  if (Number.isNaN(d.getTime())) return "—";
   return d.toLocaleDateString("fr-FR");
 };
 
@@ -62,7 +62,7 @@ export const formatDateShort = (value) => {
 export const formatRelativeTime = (value) => {
   if (!value) return "—";
   const d = value instanceof Date ? value : new Date(value);
-  if (isNaN(d.getTime())) return "—";
+  if (Number.isNaN(d.getTime())) return "—";
 
   const diffMs = Date.now() - d.getTime();
   const diffSec = Math.floor(diffMs / 1000);
@@ -126,7 +126,7 @@ export const normalizeForSearch = (str) => {
   return String(str)
     .toLowerCase()
     .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "");
+    .replaceAll(/[\u0300-\u036f]/g, "");
 };
 
 // ── Nombres ───────────────────────────────────────────────────────────────────
@@ -149,7 +149,7 @@ export const formatNumber = (value) => {
  */
 export const formatPercent = (value, digits = 1) => {
   if (value === null || value === undefined) return "—";
-  return `${(Number(value) * 100).toFixed(digits).replace(".", ",")} %`;
+  return `${(Number(value) * 100).toFixed(digits).replaceAll(".", ",")} %`;
 };
 
 // ── Codes / Labels ────────────────────────────────────────────────────────────
@@ -161,7 +161,7 @@ export const formatPercent = (value, digits = 1) => {
  */
 export const formatCode = (code) => {
   if (!code) return "";
-  return String(code).toUpperCase().replace(/\s+/g, "-");
+  return String(code).toUpperCase().replaceAll(/\s+/g, "-");
 };
 
 /**

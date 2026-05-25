@@ -12,6 +12,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
+
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -92,11 +96,11 @@ public class KPIController {
     }
 
     @GetMapping("/enseignants-non-affectes")
-    public List<EnseignantDTO> getEnseignantsNonAffectes(
+    public ResponseEntity<Page<EnseignantDTO>> getEnseignantsNonAffectes(
             @RequestParam("start") @DateTimeFormat(pattern = "yyyy-MM-dd") Date start,
-            @RequestParam("end")   @DateTimeFormat(pattern = "yyyy-MM-dd") Date end
-    ) {
-        return kpiService.getEnseignantsNonAffectes(start, end);
+            @RequestParam("end")   @DateTimeFormat(pattern = "yyyy-MM-dd") Date end,
+            @PageableDefault(size = 20, sort = "id") Pageable pageable) {
+        return ResponseEntity.ok(kpiService.getEnseignantsNonAffectes(start, end, pageable));
     }
 
     @GetMapping("/count-heures")

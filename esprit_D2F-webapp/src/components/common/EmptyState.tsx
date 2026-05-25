@@ -5,11 +5,11 @@ import { neutral } from "@/styles/themes/tokens";
 const { Title, Text } = Typography;
 
 interface EmptyStateProps {
-  icon?: ReactNode;
-  title: string;
-  description?: string;
-  action?: { label: string; onClick: () => void; icon?: ReactNode };
-  compact?: boolean;
+  readonly icon?: ReactNode;
+  readonly title: string;
+  readonly description?: string;
+  readonly action?: { label: string; onClick: () => void; icon?: ReactNode };
+  readonly compact?: boolean;
 }
 
 /**

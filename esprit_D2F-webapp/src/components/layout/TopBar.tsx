@@ -24,11 +24,8 @@ export default function TopBar() {
     },
     {
       key: "logout",
-      label: (
-        <span role="button" tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { logout(); navigate("/"); } }} onClick={() => { logout(); navigate("/"); }}>
-          <LogoutOutlined /> Déconnexion
-        </span>
-      ),
+      label: <span><LogoutOutlined /> Déconnexion</span>,
+      onClick: () => { logout(); navigate("/"); },
     },
   ];
 

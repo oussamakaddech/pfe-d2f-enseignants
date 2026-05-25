@@ -1,17 +1,17 @@
 import type { ReactNode } from "react";
-import { Typography, Space, Divider } from "antd";
+import { Typography } from "antd";
 import { brand, neutral, radius } from "@/styles/themes/tokens";
 
 const { Title, Text } = Typography;
 
 interface D2FPageHeaderProps {
-  icon: ReactNode;
-  title: string;
-  subtitle?: string;
-  iconColor?: string;
-  actions?: ReactNode;
-  tags?: ReactNode;
-  divider?: boolean;
+  readonly icon: ReactNode;
+  readonly title: string;
+  readonly subtitle?: string;
+  readonly iconColor?: string;
+  readonly actions?: ReactNode;
+  readonly tags?: ReactNode;
+  readonly divider?: boolean;
 }
 
 export default function D2FPageHeader({

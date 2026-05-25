@@ -164,8 +164,6 @@ class AuthorizationFilterTest {
         "/api/certificat/any, PATCH, ADMIN, true",
         "/api/rice/any, GET, ADMIN, true",
         "/api/rice/any, GET, ENSEIGNANT, false",
-        "/api/ai/any, GET, ENSEIGNANT, true",
-        "/api/ai/any, GET, , false",
         "/api/analyse/predict/train, POST, ADMIN, true",
         "/api/analyse/predict/train, POST, CUP, false",
         "/api/analyse/dashboard/any, GET, CHEF_DEPARTEMENT, true",

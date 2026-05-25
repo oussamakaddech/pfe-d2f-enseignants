@@ -26,7 +26,7 @@ case "$TYPE" in
     ./mvnw -B -q sonar:sonar \
       "-Dsonar.projectKey=$KEY" \
       "-Dsonar.host.url=$SONAR_URL" \
-      "-Dsonar.login=$SONAR_TOKEN" \
+      "-Dsonar.token=$SONAR_TOKEN" \
       "-Dsonar.qualitygate.wait=false" 2>&1 | tail -5
     ;;
   web)
@@ -37,7 +37,7 @@ case "$TYPE" in
     sonar-scanner \
       "-Dsonar.projectKey=$KEY" \
       "-Dsonar.host.url=$SONAR_URL" \
-      "-Dsonar.login=$SONAR_TOKEN" \
+      "-Dsonar.token=$SONAR_TOKEN" \
       "-Dsonar.qualitygate.wait=false" 2>&1 | tail -5
     ;;
   python)
@@ -53,7 +53,7 @@ case "$TYPE" in
     sonar-scanner \
       "-Dsonar.projectKey=$KEY" \
       "-Dsonar.host.url=$SONAR_URL" \
-      "-Dsonar.login=$SONAR_TOKEN" \
+      "-Dsonar.token=$SONAR_TOKEN" \
       "-Dsonar.qualitygate.wait=false" 2>&1 | tail -5
     ;;
   *)

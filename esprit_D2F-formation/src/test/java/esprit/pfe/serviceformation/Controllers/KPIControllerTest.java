@@ -30,7 +30,7 @@ class KPIControllerTest {
 
     @BeforeEach
     void setup() {
-        mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
+        mockMvc = MockMvcBuilders.standaloneSetup(controller).setCustomArgumentResolvers(new org.springframework.data.web.PageableHandlerMethodArgumentResolver()).build();
     }
 
     @Test
@@ -106,3 +106,4 @@ class KPIControllerTest {
         mockMvc.perform(get("/api/v1/kpi/count-by-trainer-type-with-ids")).andExpect(status().isOk());
     }
 }
+

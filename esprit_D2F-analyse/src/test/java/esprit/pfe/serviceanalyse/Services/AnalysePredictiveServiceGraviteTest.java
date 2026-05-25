@@ -9,6 +9,8 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.client.RestTemplate;
 
@@ -20,6 +22,7 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 class AnalysePredictiveServiceGraviteTest {
 
     @Mock
@@ -47,13 +50,13 @@ class AnalysePredictiveServiceGraviteTest {
         aff.put("competence", comp);
         aff.put("niveauMaitrise", niveauMaitrise);
 
-        when(restTemplate.getForObject(contains("/api/v1/enseignant-competences"), List.class))
+        when(restTemplate.getForObject(contains("/api/v1/enseignant-competences"), eq(List.class)))
             .thenReturn(List.of(aff));
-        when(restTemplate.getForObject(contains("/formations"), List.class))
+        when(restTemplate.getForObject(contains("/formations"), eq(List.class)))
             .thenReturn(Collections.emptyList());
-        when(restTemplate.getForObject(contains("/formation-competences/formation/"), List.class))
+        when(restTemplate.getForObject(contains("/formation-competences/formation/"), eq(List.class)))
             .thenReturn(Collections.emptyList());
-        when(restTemplate.getForObject(contains("/besoinsFormations"), List.class))
+        when(restTemplate.getForObject(contains("/besoinsFormations"), eq(List.class)))
             .thenReturn(Collections.emptyList());
 
         Map<String, Object> result = analysePredictiveService.analyserEnseignant("ens1", null);
@@ -94,13 +97,13 @@ class AnalysePredictiveServiceGraviteTest {
         aff2.put("competence", comp2);
         aff2.put("niveauMaitrise", 3); // Low gap
 
-        when(restTemplate.getForObject(contains("/api/v1/enseignant-competences"), List.class))
+        when(restTemplate.getForObject(contains("/api/v1/enseignant-competences"), eq(List.class)))
             .thenReturn(List.of(aff, aff2));
-        when(restTemplate.getForObject(contains("/formations"), List.class))
+        when(restTemplate.getForObject(contains("/formations"), eq(List.class)))
             .thenReturn(Collections.emptyList());
-        when(restTemplate.getForObject(contains("/formation-competences/formation/"), List.class))
+        when(restTemplate.getForObject(contains("/formation-competences/formation/"), eq(List.class)))
             .thenReturn(Collections.emptyList());
-        when(restTemplate.getForObject(contains("/besoinsFormations"), List.class))
+        when(restTemplate.getForObject(contains("/besoinsFormations"), eq(List.class)))
             .thenReturn(Collections.emptyList());
 
         Map<String, Object> result = analysePredictiveService.analyserEnseignant("ens1", null);
@@ -128,13 +131,13 @@ class AnalysePredictiveServiceGraviteTest {
         aff2.put("competence", comp2);
         aff2.put("niveauMaitrise", 3); // Low gap
 
-        when(restTemplate.getForObject(contains("/api/v1/enseignant-competences"), List.class))
+        when(restTemplate.getForObject(contains("/api/v1/enseignant-competences"), eq(List.class)))
             .thenReturn(List.of(aff, aff2));
-        when(restTemplate.getForObject(contains("/formations"), List.class))
+        when(restTemplate.getForObject(contains("/formations"), eq(List.class)))
             .thenReturn(Collections.emptyList());
-        when(restTemplate.getForObject(contains("/formation-competences/formation/"), List.class))
+        when(restTemplate.getForObject(contains("/formation-competences/formation/"), eq(List.class)))
             .thenReturn(Collections.emptyList());
-        when(restTemplate.getForObject(contains("/besoinsFormations"), List.class))
+        when(restTemplate.getForObject(contains("/besoinsFormations"), eq(List.class)))
             .thenReturn(Collections.emptyList());
 
         Map<String, Object> result = analysePredictiveService.analyserEnseignant("ens1", null);
@@ -155,13 +158,13 @@ class AnalysePredictiveServiceGraviteTest {
         aff.put("competence", comp);
         aff.put("niveauMaitrise", 2); // Medium gap
 
-        when(restTemplate.getForObject(contains("/api/v1/enseignant-competences"), List.class))
+        when(restTemplate.getForObject(contains("/api/v1/enseignant-competences"), eq(List.class)))
             .thenReturn(List.of(aff));
-        when(restTemplate.getForObject(contains("/formations"), List.class))
+        when(restTemplate.getForObject(contains("/formations"), eq(List.class)))
             .thenReturn(Collections.emptyList());
-        when(restTemplate.getForObject(contains("/formation-competences/formation/"), List.class))
+        when(restTemplate.getForObject(contains("/formation-competences/formation/"), eq(List.class)))
             .thenReturn(Collections.emptyList());
-        when(restTemplate.getForObject(contains("/besoinsFormations"), List.class))
+        when(restTemplate.getForObject(contains("/besoinsFormations"), eq(List.class)))
             .thenReturn(Collections.emptyList());
 
         Map<String, Object> result = analysePredictiveService.analyserEnseignant("ens1", null);

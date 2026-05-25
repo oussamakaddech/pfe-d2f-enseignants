@@ -3,11 +3,14 @@ package esprit.pfe.serviceformation.services;
 import esprit.pfe.serviceformation.entities.Dept;
 import esprit.pfe.serviceformation.repositories.DeptRepository;
 import org.apache.poi.ss.usermodel.*;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import lombok.RequiredArgsConstructor;
 
+import jakarta.persistence.EntityNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -16,6 +19,33 @@ import java.util.List;
 @RequiredArgsConstructor
 public class DeptService {
     private final DeptRepository deptRepository;
+
+    public Page<Dept> findAll(Pageable pageable) {
+        return deptRepository.findAll(pageable);
+    }
+
+    public List<Dept> findAll() {
+        return deptRepository.findAll();
+    }
+
+    public Dept findById(String id) {
+        return deptRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Département introuvable : " + id));
+    }
+
+    public Dept create(Dept dept) {
+        return deptRepository.save(dept);
+    }
+
+    public Dept update(String id, Dept dept) {
+        Dept existing = findById(id);
+        existing.setLibelle(dept.getLibelle());
+        return deptRepository.save(existing);
+    }
+
+    public void delete(String id) {
+        deptRepository.deleteById(id);
+    }
 
     @Transactional
     public void importDeptsFromExcel(MultipartFile file) throws IOException {

@@ -5,16 +5,16 @@ const { Paragraph } = Typography;
 
 interface ErrorStateStandardProps {
   /** Titre de l'erreur */
-  title?: string;
+  readonly title?: string;
   /** Description détaillée */
-  description?: string;
+  readonly description?: string;
   /** Texte du bouton de retry */
-  retryLabel?: string;
+  readonly retryLabel?: string;
   /** Callback de retry */
-  onRetry?: () => void;
+  readonly onRetry?: () => void;
   /** Statut Ant Design Result */
-  status?: "error" | "warning" | "info" | "404" | "403" | "500";
-  className?: string;
+  readonly status?: "error" | "warning" | "info" | "404" | "403" | "500";
+  readonly className?: string;
 }
 
 /**

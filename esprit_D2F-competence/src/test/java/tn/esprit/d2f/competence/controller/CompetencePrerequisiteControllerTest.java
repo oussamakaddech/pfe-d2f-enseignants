@@ -8,6 +8,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import tn.esprit.d2f.competence.dto.CompetencePrerequisiteDTO;
@@ -44,8 +47,9 @@ class CompetencePrerequisiteControllerTest {
 
     @Test
     void testGetByCompetence() {
-        when(prerequisiteService.getPrerequisitesByCompetence(1L)).thenReturn(List.of(dto));
-        ResponseEntity<List<CompetencePrerequisiteDTO>> response = controller.getByCompetence(1L);
+        when(prerequisiteService.getPrerequisitesByCompetence(eq(1L), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of(dto)));
+        ResponseEntity<Page<CompetencePrerequisiteDTO>> response = controller.getByCompetence(1L, Pageable.unpaged());
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
     }
 

@@ -4,6 +4,9 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -12,7 +15,6 @@ import tn.esprit.d2f.competence.dto.CompetencePrerequisiteRequest;
 import tn.esprit.d2f.competence.entity.enumerations.NiveauMaitrise;
 import tn.esprit.d2f.competence.service.ICompetencePrerequisiteService;
 
-import java.util.List;
 import java.util.Map;
 
 @Tag(name = "Prerequis Competence", description = "Gestion des prerequis entre competences")
@@ -23,10 +25,12 @@ public class CompetencePrerequisiteController {
 
     private final ICompetencePrerequisiteService prerequisiteService;
 
-    @Operation(summary = "Lister les prerequis d'une competence")
+    @Operation(summary = "Lister les prerequis d'une competence (paginé)")
     @GetMapping
-    public ResponseEntity<List<CompetencePrerequisiteDTO>> getByCompetence(@PathVariable Long competenceId) {
-        return ResponseEntity.ok(prerequisiteService.getPrerequisitesByCompetence(competenceId));
+    public ResponseEntity<Page<CompetencePrerequisiteDTO>> getByCompetence(
+            @PathVariable Long competenceId,
+            @PageableDefault(size = 20) Pageable pageable) {
+        return ResponseEntity.ok(prerequisiteService.getPrerequisitesByCompetence(competenceId, pageable));
     }
 
     @Operation(summary = "Verifier l'eligibilite d'un enseignant selon les prerequis")

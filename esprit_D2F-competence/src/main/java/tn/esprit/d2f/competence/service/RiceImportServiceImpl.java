@@ -4,6 +4,10 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Lazy;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import tn.esprit.d2f.competence.dto.*;
@@ -29,6 +33,9 @@ public class RiceImportServiceImpl implements IRiceImportService {
     private final EnseignantCompetenceRepository   enseignantCompetenceRepository;
     private final RiceImportLogRepository          riceImportLogRepository;
     private final ObjectMapper                     objectMapper;
+
+    @Lazy
+    private final IRiceImportService self;
 
     /** Mutable counters passed through the import pipeline. */
     private static class ImportCounters {
@@ -286,6 +293,12 @@ public class RiceImportServiceImpl implements IRiceImportService {
                 .toList();
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public Page<RiceImportResult> getImportHistory(Pageable pageable) {
+        return paginate(self.getImportHistory(), pageable);
+    }
+
     private RiceImportResult toResult(RiceImportLog logEntry) {
         return RiceImportResult.builder()
                 .generatedAt(logEntry.getGeneratedAt())
@@ -316,5 +329,11 @@ public class RiceImportServiceImpl implements IRiceImportService {
 
     private NiveauMaitrise parseNiveau(String niveau) {
         try { return NiveauMaitrise.valueOf(niveau.toUpperCase()); } catch (Exception e) { return NiveauMaitrise.N2_ELEMENTAIRE; }
+    }
+
+    private Page<RiceImportResult> paginate(List<RiceImportResult> items, Pageable pageable) {
+        int from = (int) pageable.getOffset();
+        int to = Math.min(from + pageable.getPageSize(), items.size());
+        return new PageImpl<>(from >= items.size() ? List.of() : items.subList(from, to), pageable, items.size());
     }
 }

@@ -1,6 +1,6 @@
 import { Card, Avatar, Typography, Tag, Divider, Statistic, Alert } from "antd";
 import { UserOutlined, BulbOutlined } from "@ant-design/icons";
-import { AnalyseData } from "@/services/analyse/AnalysePredictiveService";
+import type { AnalyseData } from "@/models/analyse";
 
 const { Title } = Typography;
 

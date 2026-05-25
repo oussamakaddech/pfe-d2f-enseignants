@@ -57,14 +57,11 @@ export default function useCompetencePageState({ crud, loadStructure }) {
         return;
       }
 
-      const competencesForDomaine = (crud.competences || []).filter(
-        (c) => String(c.domaineId) === String(nextDomaine.id),
-      );
       const nextCompetence =
         consultCompetence &&
         String(consultCompetence.domaineId) === String(nextDomaine.id)
           ? consultCompetence
-          : competencesForDomaine[0] ?? null;
+          : (crud.competences || []).find((c) => String(c.domaineId) === String(nextDomaine.id)) ?? null;
 
       if (!nextCompetence) return;
 
@@ -117,8 +114,8 @@ export default function useCompetencePageState({ crud, loadStructure }) {
     };
 
     refreshWidth();
-    window.addEventListener("resize", refreshWidth);
-    return () => window.removeEventListener("resize", refreshWidth);
+    globalThis.addEventListener("resize", refreshWidth);
+    return () => globalThis.removeEventListener("resize", refreshWidth);
   }, [viewMode]);
 
   return {

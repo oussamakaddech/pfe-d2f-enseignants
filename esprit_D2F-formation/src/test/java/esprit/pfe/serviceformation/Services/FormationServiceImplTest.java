@@ -2,6 +2,10 @@ package esprit.pfe.serviceformation.services;
 
 import esprit.pfe.serviceformation.entities.EtatFormation;
 import esprit.pfe.serviceformation.entities.Formation;
+import esprit.pfe.serviceformation.entities.PeriodCode;
+import esprit.pfe.serviceformation.entities.TypeFormation;
+import esprit.pfe.serviceformation.microsoft.OutlookCalendarService;
+import esprit.pfe.serviceformation.microsoft.OutlookEventParameters;
 import esprit.pfe.serviceformation.repositories.FormationRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -30,6 +34,9 @@ class FormationServiceImplTest {
 
     @Mock
     private FormationRepository formationRepository;
+
+    @Mock
+    private OutlookCalendarService outlookCalendarService;
 
     @InjectMocks
     private FormationServiceImpl formationService;
@@ -189,6 +196,77 @@ class FormationServiceImplTest {
             Page<esprit.pfe.serviceformation.entities.Formation> result = formationService.getAllFormations(Pageable.unpaged());
 
             assertThat(result).isEmpty();
+        }
+    }
+
+    @Nested
+    @DisplayName("createFormation() with Outlook Calendar")
+    class CreateWithOutlook {
+
+        @Test
+        @DisplayName("cree evenement Outlook quand service disponible et eventId non null")
+        void shouldCreateOutlookEvent() {
+            when(formationRepository.save(any(Formation.class))).thenAnswer(inv -> {
+                Formation f = inv.getArgument(0);
+                if (f.getIdFormation() == null) f.setIdFormation(1L);
+                return f;
+            });
+            when(outlookCalendarService.addEventToCalendarAndReturnIdWithTeamsUrl(any(OutlookEventParameters.class)))
+                    .thenReturn(new OutlookCalendarService.EventCreationResult("evt-123", null));
+
+            Formation result = formationService.createFormation(formation);
+
+            assertThat(result).isNotNull();
+            verify(outlookCalendarService).addEventToCalendarAndReturnIdWithTeamsUrl(any());
+            verify(formationRepository, atLeast(2)).save(any());
+        }
+
+        @Test
+        @DisplayName("ne cree pas evenement Outlook quand service retourne eventId null")
+        void shouldNotSaveWhenEventIdNull() {
+            when(formationRepository.save(any(Formation.class))).thenReturn(formation);
+            when(outlookCalendarService.addEventToCalendarAndReturnIdWithTeamsUrl(any(OutlookEventParameters.class)))
+                    .thenReturn(new OutlookCalendarService.EventCreationResult(null, null));
+
+            Formation result = formationService.createFormation(formation);
+
+            assertThat(result).isNotNull();
+            verify(formationRepository, times(1)).save(any());
+        }
+
+        @Test
+        @DisplayName("continue sans Outlook quand exception levee")
+        void shouldContinueWhenOutlookFails() {
+            when(formationRepository.save(any(Formation.class))).thenReturn(formation);
+            when(outlookCalendarService.addEventToCalendarAndReturnIdWithTeamsUrl(any(OutlookEventParameters.class)))
+                    .thenThrow(new RuntimeException("Outlook unavailable"));
+
+            Formation result = formationService.createFormation(formation);
+
+            assertThat(result).isNotNull();
+        }
+    }
+
+    @Nested
+    @DisplayName("updateFormation() extended")
+    class UpdateExtended {
+
+        @Test
+        @DisplayName("met a jour typeFormation et periodCode")
+        void shouldUpdateTypeAndPeriod() {
+            Formation updated = new Formation();
+            updated.setTitreFormation("Updated");
+            updated.setTypeFormation(TypeFormation.INTERNE);
+            updated.setDateDebut(new Date());
+            updated.setDateFin(new Date());
+            updated.setPeriodCode(PeriodCode.P1);
+
+            when(formationRepository.findById(1L)).thenReturn(Optional.of(formation));
+            when(formationRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+            Formation result = formationService.updateFormation(1L, updated);
+
+            assertThat(result).isNotNull();
         }
     }
 }

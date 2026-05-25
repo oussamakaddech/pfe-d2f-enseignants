@@ -1,4 +1,3 @@
-// src/pages/competence/rice/constants.js
 // Shared constants, department configuration, and the DepartmentBadge component.
 
 import { Tag } from "antd";
@@ -126,58 +125,62 @@ export const formatFileSize = (bytes) => {
 
 export const STORAGE_KEY = "rice_session_v2";
 
+function addSavoirToLoad(load, savoir) {
+  (savoir.enseignantsSuggeres ?? []).forEach((eid) => {
+    const key = String(eid);
+    if (!load.has(key)) {
+      load.set(key, { count: 0, savoirCodes: [], refCodes: [] });
+    }
+    const entry = load.get(key);
+    entry.count += 1;
+    entry.savoirCodes.push(savoir.code);
+    entry.refCodes.push(...(savoir.refCodes ?? []));
+  });
+}
+
+function processCompLoad(comp, load) {
+  (comp.savoirs ?? []).forEach((savoir) => addSavoirToLoad(load, savoir));
+  (comp.sousCompetences ?? []).forEach((sc) => {
+    (sc.savoirs ?? []).forEach((savoir) => addSavoirToLoad(load, savoir));
+  });
+}
+
 /** Calculer la charge de chaque enseignant depuis le tree. */
 export function computeEnseignantLoad(tree) {
   const load = new Map();
   (tree ?? []).forEach((domaine) => {
-    (domaine.competences ?? []).forEach((comp) => {
-      (comp.savoirs ?? []).forEach((savoir) => {
-        (savoir.enseignantsSuggeres ?? []).forEach((eid) => {
-          const key = String(eid);
-          if (!load.has(key)) {
-            load.set(key, { count: 0, savoirCodes: [], refCodes: [] });
-          }
-          const entry = load.get(key);
-          entry.count += 1;
-          entry.savoirCodes.push(savoir.code);
-          entry.refCodes.push(...(savoir.refCodes ?? []));
-        });
-      });
-      (comp.sousCompetences ?? []).forEach((sc) => {
-        (sc.savoirs ?? []).forEach((savoir) => {
-          (savoir.enseignantsSuggeres ?? []).forEach((eid) => {
-            const key = String(eid);
-            if (!load.has(key)) {
-              load.set(key, { count: 0, savoirCodes: [], refCodes: [] });
-            }
-            const entry = load.get(key);
-            entry.count += 1;
-            entry.savoirCodes.push(savoir.code);
-            entry.refCodes.push(...(savoir.refCodes ?? []));
-          });
-        });
-      });
-    });
+    (domaine.competences ?? []).forEach((comp) => processCompLoad(comp, load));
   });
   return load;
+}
+
+function countCompSavoirs(comp) {
+  let total = 0;
+  let covered = 0;
+  (comp.savoirs ?? []).forEach((s) => {
+    total += 1;
+    if ((s.enseignantsSuggeres ?? []).length > 0) covered += 1;
+  });
+  (comp.sousCompetences ?? []).forEach((sc) => {
+    (sc.savoirs ?? []).forEach((s) => {
+      total += 1;
+      if ((s.enseignantsSuggeres ?? []).length > 0) covered += 1;
+    });
+  });
+  return { total, covered };
 }
 
 /** Calculer le taux de couverture (% savoirs avec >= 1 enseignant). */
 export function computeCoveragePct(tree) {
   let total = 0;
   let covered = 0;
-  (tree ?? []).forEach((d) => (d.competences ?? []).forEach((c) =>
-    (c.savoirs ?? []).forEach((s) => {
-      total += 1;
-      if ((s.enseignantsSuggeres ?? []).length > 0) covered += 1;
-    }),
-  ));
-  (tree ?? []).forEach((d) => (d.competences ?? []).forEach((c) =>
-    (c.sousCompetences ?? []).forEach((sc) => (sc.savoirs ?? []).forEach((s) => {
-      total += 1;
-      if ((s.enseignantsSuggeres ?? []).length > 0) covered += 1;
-    }))),
-  );
+  (tree ?? []).forEach((d) => {
+    (d.competences ?? []).forEach((c) => {
+      const r = countCompSavoirs(c);
+      total += r.total;
+      covered += r.covered;
+    });
+  });
   return total === 0 ? 0 : Math.round((covered / total) * 100);
 }
 
@@ -196,7 +199,7 @@ const AVATAR_COLORS = [
 export function avatarColor(id) {
   let hash = 0;
   String(id).split("").forEach((c) => {
-    hash = c.charCodeAt(0) + ((hash << 5) - hash);
+    hash = (c.codePointAt(0) ?? 0) + ((hash << 5) - hash);
   });
   return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
 }
@@ -205,12 +208,12 @@ export function normalize(str) {
   return String(str ?? "")
     .toLowerCase()
     .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "");
+    .replaceAll(/[\u0300-\u036f]/g, "");
 }
 
 export function matchSuggestedEnseignants(savoir, allEnseignants) {
   const aiSuggestedIds = new Set(
-    (savoir?.aiSuggestedIds ?? savoir?.enseignantsSuggeres ?? []).map((id) => String(id)),
+    (savoir?.aiSuggestedIds ?? savoir?.enseignantsSuggeres ?? []).map(String),
   );
   const savoirWords = normalize(savoir?.nom)
     .split(/\s+/)

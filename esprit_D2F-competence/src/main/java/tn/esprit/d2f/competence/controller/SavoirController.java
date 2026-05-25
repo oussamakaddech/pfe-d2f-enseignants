@@ -16,8 +16,6 @@ import tn.esprit.d2f.competence.dto.SavoirRequest;
 import tn.esprit.d2f.competence.entity.enumerations.TypeSavoir;
 import tn.esprit.d2f.competence.service.ISavoirService;
 
-import java.util.List;
-
 @Tag(name = "Savoirs", description = "Gestion des savoirs")
 @RestController
 @RequestMapping("/api/v1/savoirs")
@@ -33,22 +31,28 @@ public class SavoirController {
         return ResponseEntity.ok(savoirService.getAllSavoirs(pageable));
     }
 
-    @Operation(summary = "Lister les savoirs d'une sous-compétence")
+    @Operation(summary = "Lister les savoirs d'une sous-compétence (paginé)")
     @GetMapping("/sous-competence/{sousCompetenceId}")
-    public ResponseEntity<List<SavoirDTO>> getSavoirsBySousCompetence(@PathVariable Long sousCompetenceId) {
-        return ResponseEntity.ok(savoirService.getSavoirsBySousCompetence(sousCompetenceId));
+    public ResponseEntity<Page<SavoirDTO>> getSavoirsBySousCompetence(
+            @PathVariable Long sousCompetenceId,
+            @PageableDefault(size = 20) Pageable pageable) {
+        return ResponseEntity.ok(savoirService.getSavoirsBySousCompetence(sousCompetenceId, pageable));
     }
 
-    @Operation(summary = "Lister les savoirs directs d'une compétence")
+    @Operation(summary = "Lister les savoirs directs d'une compétence (paginé)")
     @GetMapping("/competence/{competenceId}")
-    public ResponseEntity<List<SavoirDTO>> getSavoirsByCompetence(@PathVariable Long competenceId) {
-        return ResponseEntity.ok(savoirService.getSavoirsByCompetence(competenceId));
+    public ResponseEntity<Page<SavoirDTO>> getSavoirsByCompetence(
+            @PathVariable Long competenceId,
+            @PageableDefault(size = 20) Pageable pageable) {
+        return ResponseEntity.ok(savoirService.getSavoirsByCompetence(competenceId, pageable));
     }
 
-    @Operation(summary = "Lister les savoirs par type")
+    @Operation(summary = "Lister les savoirs par type (paginé)")
     @GetMapping("/type/{type}")
-    public ResponseEntity<List<SavoirDTO>> getSavoirsByType(@PathVariable TypeSavoir type) {
-        return ResponseEntity.ok(savoirService.getSavoirsByType(type));
+    public ResponseEntity<Page<SavoirDTO>> getSavoirsByType(
+            @PathVariable TypeSavoir type,
+            @PageableDefault(size = 20) Pageable pageable) {
+        return ResponseEntity.ok(savoirService.getSavoirsByType(type, pageable));
     }
 
     @Operation(summary = "Rechercher des savoirs par mot-clé (paginé)")

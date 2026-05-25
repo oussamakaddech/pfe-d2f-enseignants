@@ -15,6 +15,10 @@ import tn.esprit.d2f.competence.entity.NiveauSavoirRequis;
 import tn.esprit.d2f.competence.entity.Savoir;
 import tn.esprit.d2f.competence.entity.SousCompetence;
 import tn.esprit.d2f.competence.entity.enumerations.NiveauMaitrise;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import tn.esprit.d2f.competence.repository.CompetenceRepository;
 import tn.esprit.d2f.competence.repository.NiveauSavoirRequisRepository;
 import tn.esprit.d2f.competence.repository.SavoirRepository;
@@ -40,6 +44,8 @@ class NiveauDefinitionServiceImplTest {
     private SousCompetenceRepository sousCompetenceRepository;
     @Mock
     private SavoirRepository savoirRepository;
+    @Mock
+    private INiveauDefinitionService self;
 
     @InjectMocks
     private NiveauDefinitionServiceImpl niveauService;
@@ -205,6 +211,81 @@ class NiveauDefinitionServiceImplTest {
         
         List<NiveauSavoirRequisDTO> res = niveauService.getSavoirsRequisBySousCompetenceAndNiveau(1L, NiveauMaitrise.N2_ELEMENTAIRE);
         assertThat(res).hasSize(1);
+    }
+
+    @Test
+    @DisplayName("getSavoirsRequisByCompetenceAndNiveau(paged): retourne une page")
+    void testGetSavoirsRequisByCompetenceAndNiveauPaged() {
+        Pageable pageable = PageRequest.of(0, 1);
+        when(self.getSavoirsRequisByCompetenceAndNiveau(1L, NiveauMaitrise.N1_DEBUTANT)).thenReturn(List.of(
+            NiveauSavoirRequisDTO.builder()
+                .id(1L)
+                .competenceId(1L)
+                .competenceNom("Compétence 1")
+                .savoirId(1L)
+                .savoirNom("Savoir 1")
+                .savoirCode("S1")
+                .niveau(NiveauMaitrise.N1_DEBUTANT)
+                .build()));
+
+        Page<NiveauSavoirRequisDTO> res = niveauService.getSavoirsRequisByCompetenceAndNiveau(1L, NiveauMaitrise.N1_DEBUTANT, pageable);
+
+        assertThat(res.getContent()).hasSize(1);
+        assertThat(res.getTotalElements()).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("getSavoirsRequisByCompetenceAndNiveau(paged): retourne vide hors bornes")
+    void testGetSavoirsRequisByCompetenceAndNiveauPagedOutsideRange() {
+        Pageable pageable = PageRequest.of(2, 1);
+        when(self.getSavoirsRequisByCompetenceAndNiveau(1L, NiveauMaitrise.N1_DEBUTANT)).thenReturn(List.of(
+            NiveauSavoirRequisDTO.builder()
+                .id(1L)
+                .competenceId(1L)
+                .competenceNom("Compétence 1")
+                .savoirId(1L)
+                .savoirNom("Savoir 1")
+                .savoirCode("S1")
+                .niveau(NiveauMaitrise.N1_DEBUTANT)
+                .build()));
+
+        Page<NiveauSavoirRequisDTO> res = niveauService.getSavoirsRequisByCompetenceAndNiveau(1L, NiveauMaitrise.N1_DEBUTANT, pageable);
+
+        assertThat(res.getContent()).isEmpty();
+        assertThat(res.getTotalElements()).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("getSavoirsRequisBySousCompetenceAndNiveau(paged): retourne une page")
+    void testGetSavoirsRequisBySousCompetenceAndNiveauPaged() {
+        Pageable pageable = PageRequest.of(0, 1);
+        when(self.getSavoirsRequisBySousCompetenceAndNiveau(1L, NiveauMaitrise.N2_ELEMENTAIRE)).thenReturn(List.of(
+            NiveauSavoirRequisDTO.builder()
+                .id(2L)
+                .sousCompetenceId(1L)
+                .sousCompetenceNom("Sous-Compétence 1")
+                .savoirId(1L)
+                .savoirNom("Savoir 1")
+                .savoirCode("S1")
+                .niveau(NiveauMaitrise.N2_ELEMENTAIRE)
+                .build()));
+
+        Page<NiveauSavoirRequisDTO> res = niveauService.getSavoirsRequisBySousCompetenceAndNiveau(1L, NiveauMaitrise.N2_ELEMENTAIRE, pageable);
+
+        assertThat(res.getContent()).hasSize(1);
+        assertThat(res.getTotalElements()).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("getAll(paged): retourne toutes les NSR paginées")
+    void testGetAllPaged() {
+        Pageable pageable = PageRequest.of(0, 10);
+        when(niveauRepo.findAll(pageable)).thenReturn(new PageImpl<>(List.of(nsrCompetence, nsrSousCompetence)));
+
+        Page<NiveauSavoirRequisDTO> res = niveauService.getAll(pageable);
+
+        assertThat(res.getContent()).hasSize(2);
+        assertThat(res.getTotalElements()).isEqualTo(2);
     }
 
     @Test

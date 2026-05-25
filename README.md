@@ -1,6 +1,6 @@
 # 🎓 Plateforme D2F — Développement professionnel des enseignants
 
-Plateforme de gestion des compétences et de développement professionnel des enseignants ESPRIT, avec analyse prédictive et recommandation de formateurs.
+Plateforme de gestion des compétences et de développement professionnel des enseignants ESPRIT, avec analyse prédictive.
 
 ## 📦 Architecture
 
@@ -17,7 +17,6 @@ pfe-d2f-enseignants/
 ├── esprit_D2F-certificat/            # Certificats PDF (port 8086)
 ├── esprit_D2F-analyse/               # Analyse transverse (port 8089)
 ├── esprit_D2F-rice/                  # RICE — Référentiel Intelligent (FastAPI, port 8001)
-├── esprit_D2F-recommandation-formateur/ # IA Recommandation (FastAPI, port 8000)
 ├── esprit_D2F-predictive-analytics/  # Analyse Prédictive (FastAPI, port 8080)
 ├── esprit_D2F-webapp/                # Frontend React 19 + Vite (port 3000/5173)
 ├── docker-compose.yml                # Orchestration locale

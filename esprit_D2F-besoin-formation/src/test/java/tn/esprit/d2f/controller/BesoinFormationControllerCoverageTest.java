@@ -9,6 +9,8 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.AuditorAware;
+import org.springframework.data.jpa.mapping.JpaMetamodelMappingContext;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import tn.esprit.d2f.repository.NotificationRepository;
@@ -36,6 +38,15 @@ class BesoinFormationControllerCoverageTest {
 
     @MockitoBean
     private NotificationRepository notificationRepository;
+
+    // Required to prevent "JPA metamodel must not be empty" and "auditorProvider not found"
+    // in @WebMvcTest slices when @EnableJpaAuditing is on the main @SpringBootApplication class.
+    @MockitoBean
+    private JpaMetamodelMappingContext jpaMetamodelMappingContext;
+
+    @SuppressWarnings("rawtypes")
+    @MockitoBean(name = "auditorProvider")
+    private AuditorAware auditorProvider;
 
     @Autowired
     private ObjectMapper objectMapper;

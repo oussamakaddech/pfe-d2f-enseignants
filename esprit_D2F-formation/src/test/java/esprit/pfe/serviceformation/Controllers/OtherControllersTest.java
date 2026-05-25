@@ -2,15 +2,23 @@ package esprit.pfe.serviceformation.controllers;
 
 import esprit.pfe.serviceformation.services.*;
 import esprit.pfe.serviceformation.repositories.*;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.data.domain.AuditorAware;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.mapping.JpaMetamodelMappingContext;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.util.Collections;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -25,11 +33,27 @@ class OtherControllersTest {
     @MockitoBean private SeanceService seanceService;
     @MockitoBean private UpService upService;
     @MockitoBean private DeptService deptService;
-    
+
     @MockitoBean private UpRepository upRepository;
     @MockitoBean private DeptRepository deptRepository;
     @MockitoBean private SeanceFormationRepository seanceFormationRepository;
     @MockitoBean private DocumentRepository documentRepository;
+
+    // Required: @EnableJpaAuditing on the main class causes @WebMvcTest to need these beans
+    @MockitoBean
+    private JpaMetamodelMappingContext jpaMetamodelMappingContext;
+
+    @SuppressWarnings("rawtypes")
+    @MockitoBean(name = "auditorProvider")
+    private AuditorAware auditorProvider;
+
+    @BeforeEach
+    void stubPageableMethods() {
+        when(documentService.getAll(any(Pageable.class))).thenReturn(new PageImpl<>(Collections.emptyList()));
+        when(seanceService.getAllSeances(any(Pageable.class))).thenReturn(new PageImpl<>(Collections.emptyList()));
+        when(upService.findAll(any(Pageable.class))).thenReturn(new PageImpl<>(Collections.emptyList()));
+        when(deptService.findAll(any(Pageable.class))).thenReturn(new PageImpl<>(Collections.emptyList()));
+    }
 
     @Test
     @DisplayName("DocumentController - getAllDocuments")

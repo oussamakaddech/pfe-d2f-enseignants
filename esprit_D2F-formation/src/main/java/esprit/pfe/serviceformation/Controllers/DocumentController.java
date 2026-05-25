@@ -11,6 +11,10 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import lombok.RequiredArgsConstructor;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
+
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
@@ -76,12 +80,9 @@ public class DocumentController {
     }
 
     @GetMapping
-    public ResponseEntity<List<DocumentDTO>> getAll() {
-        List<DocumentDTO> dtos = service.getAll()
-                .stream()
-                .map(DocumentMapper::mapToDTO)
-                .toList();
-        return ResponseEntity.ok(dtos);
+    public ResponseEntity<Page<DocumentDTO>> getAll(
+            @PageableDefault(size = 20, sort = "id") Pageable pageable) {
+        return ResponseEntity.ok(service.getAll(pageable).map(DocumentMapper::mapToDTO));
     }
 
     @PostMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)

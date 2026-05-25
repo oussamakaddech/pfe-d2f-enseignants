@@ -15,8 +15,6 @@ import tn.esprit.d2f.competence.dto.SousCompetenceDTO;
 import tn.esprit.d2f.competence.dto.SousCompetenceRequest;
 import tn.esprit.d2f.competence.service.ISousCompetenceService;
 
-import java.util.List;
-
 @Tag(name = "Sous-Compétences", description = "Gestion des sous-compétences")
 @RestController
 @RequestMapping("/api/v1/sous-competences")
@@ -32,10 +30,12 @@ public class SousCompetenceController {
         return ResponseEntity.ok(sousCompetenceService.getAllSousCompetences(pageable));
     }
 
-    @Operation(summary = "Lister les sous-compétences d'une compétence")
+    @Operation(summary = "Lister les sous-compétences d'une compétence (paginé)")
     @GetMapping("/competence/{competenceId}")
-    public ResponseEntity<List<SousCompetenceDTO>> getSousCompetencesByCompetence(@PathVariable Long competenceId) {
-        return ResponseEntity.ok(sousCompetenceService.getSousCompetencesByCompetence(competenceId));
+    public ResponseEntity<Page<SousCompetenceDTO>> getSousCompetencesByCompetence(
+            @PathVariable Long competenceId,
+            @PageableDefault(size = 20) Pageable pageable) {
+        return ResponseEntity.ok(sousCompetenceService.getSousCompetencesByCompetence(competenceId, pageable));
     }
 
     @Operation(summary = "Obtenir une sous-compétence par ID")

@@ -84,7 +84,6 @@ class CircuitBreakerFallbackControllerTest {
             "/api/certificat/export,     certificat",
             "/api/besoins-formation/all, besoin-formation",
             "/api/analyse/predict,       analyse-prédictive",
-            "/api/ai/recommend,          recommandation-IA",
             "/api/rice/score,            RICE",
             "/api/v1/skill-passports/me, skill-passport",
             "/api/something-else,        inconnu"

@@ -1,6 +1,9 @@
 package tn.esprit.d2f.service;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import tn.esprit.d2f.dto.BesoinCompetenceDTO;
@@ -20,6 +23,14 @@ public class BesoinCompetenceServiceImpl implements IBesoinCompetenceService {
         return repository.findByBesoinId(besoinId).stream()
                 .map(this::toDTO)
                 .toList();
+    }
+
+    @Override
+    public Page<BesoinCompetenceDTO> getByBesoin(Long besoinId, Pageable pageable) {
+        List<BesoinCompetenceDTO> all = getByBesoin(besoinId);
+        int from = (int) pageable.getOffset();
+        int to = Math.min(from + pageable.getPageSize(), all.size());
+        return new PageImpl<>(from >= all.size() ? List.of() : all.subList(from, to), pageable, all.size());
     }
 
     @Override

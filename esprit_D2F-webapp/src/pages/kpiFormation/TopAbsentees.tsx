@@ -1,4 +1,3 @@
-// src/components/TopAbsentees.jsx
 import { useState, useEffect, useRef } from 'react';
 import { Card, Row, Col, Select, DatePicker, Spin, Table, Button } from 'antd';
 import { Line } from 'react-chartjs-2';

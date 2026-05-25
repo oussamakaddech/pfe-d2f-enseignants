@@ -248,5 +248,113 @@ class DomaineServiceImplTest {
             assertThatThrownBy(() -> domaineService.deleteDomaine(99L))
                     .isInstanceOf(RuntimeException.class);
         }
+
+        @Test @DisplayName("supprime sans savoirs liés")
+        void shouldDeleteWithNoSavoirs() {
+            when(domaineRepository.existsById(1L)).thenReturn(true);
+            when(savoirRepository.findIdsByDomaineId(1L)).thenReturn(List.of());
+            doNothing().when(domaineRepository).deleteById(1L);
+
+            domaineService.deleteDomaine(1L);
+
+            verify(niveauRepo).deleteByCompetence_DomaineId(1L);
+            verify(niveauRepo).deleteBySousCompetence_Competence_DomaineId(1L);
+            verify(niveauRepo, never()).deleteBySavoirIdIn(anyList());
+            verify(enseignantCompetenceRepository, never()).deleteBySavoirIdIn(anyList());
+            verify(domaineRepository).deleteById(1L);
+        }
+    }
+
+    // ── GetByCode not found ─────────────────────────────────────────────────
+    @Test
+    @DisplayName("getDomaineByCode: leve une exception si le code est absent")
+    void shouldThrowWhenCodeNotFound() {
+        when(domaineRepository.findByCode("UNKNOWN")).thenReturn(Optional.empty());
+        assertThatThrownBy(() -> domaineService.getDomaineByCode("UNKNOWN"))
+                .isInstanceOf(RuntimeException.class);
+    }
+
+    // ── Create with actif=false ─────────────────────────────────────────────
+    @Test
+    @DisplayName("createDomaine: actif=false définit actif à false")
+    void shouldCreateDomaineWithActifFalse() {
+        DomaineRequest req = DomaineRequest.builder()
+                .code("NEW").nom("Nouveau").description("desc").actif(false).build();
+        Domaine newDomaine = Domaine.builder()
+                .id(2L).code("NEW").nom("Nouveau").description("desc").actif(false)
+                .competences(new ArrayList<>()).build();
+        DomaineDTO newDTO = DomaineDTO.builder()
+                .id(2L).code("NEW").nom("Nouveau").description("desc").actif(false)
+                .competences(List.of()).build();
+
+        when(domaineRepository.existsByCode("NEW")).thenReturn(false);
+        when(domaineRepository.save(any(Domaine.class))).thenReturn(newDomaine);
+        when(competenceMapper.toDTO(any(Domaine.class))).thenReturn(newDTO);
+
+        DomaineDTO result = domaineService.createDomaine(req);
+
+        assertThat(result).isNotNull();
+        verify(domaineRepository).save(argThat(d -> !d.getActif()));
+    }
+
+    // ── Update with actif=null ──────────────────────────────────────────────
+    @Test
+    @DisplayName("updateDomaine: actif=null ne change pas l'état actif")
+    void shouldUpdateWithoutChangingActifWhenNull() {
+        DomaineRequest req = DomaineRequest.builder()
+                .code("GC-TECH").nom("Updated").description("desc").actif(null).build();
+
+        when(domaineRepository.findById(1L)).thenReturn(Optional.of(domaine));
+        when(domaineRepository.save(any(Domaine.class))).thenReturn(domaine);
+        when(competenceMapper.toDTO(any(Domaine.class))).thenReturn(domaineDTO);
+
+        domaineService.updateDomaine(1L, req);
+
+        verify(domaineRepository).save(argThat(Domaine::getActif)); // reste true
+    }
+
+    // ── GetByFilter ─────────────────────────────────────────────────────────
+    @Test
+    @DisplayName("getDomainesByFilter(upId, departementId) retourne la liste filtrée")
+    void shouldReturnFilteredDomaines() {
+        when(domaineRepository.findByUpIdAndDepartementId("1", "2")).thenReturn(List.of(domaine));
+        when(competenceMapper.toDTO(any(Domaine.class))).thenReturn(domaineDTO);
+
+        List<DomaineDTO> result = domaineService.getDomainesByFilter("1", "2");
+
+        assertThat(result).hasSize(1);
+    }
+
+    @Test
+    @DisplayName("getDomainesByFilter(upId, departementId, pageable) retourne la page filtrée")
+    void shouldReturnFilteredDomainesPaged() {
+        Pageable pageable = PageRequest.of(0, 20);
+        when(domaineRepository.findByUpIdAndDepartementId("1", "2", pageable))
+                .thenReturn(new PageImpl<>(List.of(domaine)));
+        when(competenceMapper.toDTO(any(Domaine.class))).thenReturn(domaineDTO);
+
+        Page<DomaineDTO> result = domaineService.getDomainesByFilter("1", "2", pageable);
+
+        assertThat(result.getContent()).hasSize(1);
+    }
+
+    @Test
+    @DisplayName("getDomainesActifsByFilter retourne les domaines actifs filtrés")
+    void shouldReturnActifsByFilter() {
+        when(domaineRepository.findActifsByUpIdAndDepartementId("1", "2")).thenReturn(List.of(domaine));
+        when(competenceMapper.toDTO(any(Domaine.class))).thenReturn(domaineDTO);
+
+        List<DomaineDTO> result = domaineService.getDomainesActifsByFilter("1", "2");
+
+        assertThat(result).hasSize(1);
+    }
+
+    // ── Toggle not found ────────────────────────────────────────────────────
+    @Test
+    @DisplayName("toggleActif: leve une exception si domaine absent")
+    void shouldThrowWhenToggleNotFound() {
+        when(domaineRepository.findById(99L)).thenReturn(Optional.empty());
+        assertThatThrownBy(() -> domaineService.toggleActif(99L))
+                .isInstanceOf(RuntimeException.class);
     }
 }

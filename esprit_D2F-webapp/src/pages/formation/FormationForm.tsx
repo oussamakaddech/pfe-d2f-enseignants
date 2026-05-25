@@ -22,8 +22,8 @@ function FormationForm({ initialDate, onFormationCreated }) {
 
       const newFormation = await FormationService.createFormation(formationData);
       onFormationCreated(newFormation);
-    } catch (error) {
-      console.error("Erreur lors de la création de la formation :", error);
+    } catch {
+      // silently handle
     }
   };
 

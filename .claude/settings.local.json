@@ -4,7 +4,19 @@
       "Bash(./mvnw compile *)",
       "Bash(./mvnw test *)",
       "Bash(curl -s http://localhost:8080/actuator/env)",
-      "Bash(wmic process *)"
+      "Bash(wmic process *)",
+      "Bash(npx tsc *)",
+      "Bash(npm run *)",
+      "Bash(grep -v \"\\\\$\\\\{\")",
+      "Bash(ls esprit_D2F-*/Dockerfile)",
+      "Bash(ls esprit_D2F-*/src/main/docker/Dockerfile)",
+      "Bash(find . -name \"Dockerfile\" -not -path \"*worktrees*\")",
+      "Bash(xargs grep -l \"@CreatedDate\\\\|@LastModifiedDate\")",
+      "Bash(xargs grep -n \"findBy\")",
+      "Bash(xargs cat)",
+      "Bash(mvn compile *)",
+      "Bash(mvn clean *)",
+      "Bash(mvn test *)"
     ]
   }
 }

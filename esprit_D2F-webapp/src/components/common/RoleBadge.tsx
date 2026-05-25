@@ -2,8 +2,8 @@ import { Tag } from "antd";
 import { roleColors } from "@/styles/themes/tokens";
 
 interface RoleBadgeProps {
-  role: string;
-  size?: "small" | "default";
+  readonly role: string;
+  readonly size?: "small" | "default";
 }
 
 export default function RoleBadge({ role, size = "default" }: RoleBadgeProps) {

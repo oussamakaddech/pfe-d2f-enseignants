@@ -7,7 +7,7 @@ import esprit.pfe.serviceformation.microsoft.OutlookEventParameters;
 import esprit.pfe.serviceformation.repositories.FormationRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.hibernate.Hibernate;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -30,12 +30,12 @@ public class FormationServiceImpl implements FormationService {
     private final FormationRepository formationRepository;
 
     // DSI §4/§2 — injection optionnelle : null si azure.ad.enabled=false
-    @Autowired(required = false)
-    private OutlookCalendarService outlookCalendarService;
+    private final OutlookCalendarService outlookCalendarService;
 
-    @Autowired
-    public FormationServiceImpl(FormationRepository formationRepository) {
+    public FormationServiceImpl(FormationRepository formationRepository,
+                                @org.springframework.lang.Nullable OutlookCalendarService outlookCalendarService) {
         this.formationRepository = formationRepository;
+        this.outlookCalendarService = outlookCalendarService;
     }
 
     @Override
@@ -146,9 +146,9 @@ public class FormationServiceImpl implements FormationService {
     public Page<Formation> getAllFormations(Pageable pageable) {
         Page<Formation> formations = formationRepository.findAll(pageable);
         formations.forEach(f -> {
-            if (f.getSeances() != null) f.getSeances().size();
-            if (f.getFormationCompetences() != null) f.getFormationCompetences().size();
-            if (f.getInscriptions() != null) f.getInscriptions().size();
+            if (f.getSeances() != null) Hibernate.initialize(f.getSeances());
+            if (f.getFormationCompetences() != null) Hibernate.initialize(f.getFormationCompetences());
+            if (f.getInscriptions() != null) Hibernate.initialize(f.getInscriptions());
         });
         return formations;
     }

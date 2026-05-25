@@ -77,7 +77,6 @@ public class CircuitBreakerFallbackController {
         if (path.contains("evaluation")) return "évaluation";
         if (path.contains("certificat")) return "certificat";
         if (path.contains("analyse")) return "analyse-prédictive";
-        if (path.contains("ai")) return "recommandation-IA";
         if (path.contains("rice")) return "RICE";
         if (path.contains("skill-passports")) return "skill-passport";
         return "inconnu";

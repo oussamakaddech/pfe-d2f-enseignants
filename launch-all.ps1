@@ -88,27 +88,7 @@ try {
     Write-Host "  AVERTISSEMENT: Docker non disponible - vérifiez que Docker est installé et en cours" -ForegroundColor DarkYellow
 }
 
-# ── [2/14] Vérifier / démarrer Ollama ───────────────────────────────────
-Write-Host "`n[2/14] Vérification Ollama (LLM local)..." -ForegroundColor Yellow
-$ollamaRunning = Get-NetTCPConnection -LocalPort 11434 -ErrorAction SilentlyContinue
-if ($ollamaRunning) {
-    Write-Host "  Ollama déjà actif sur le port 11434" -ForegroundColor Green
-} else {
-    $ollamaExe = Get-Command ollama -ErrorAction SilentlyContinue
-    if ($ollamaExe) {
-        Start-Process -FilePath "ollama" -ArgumentList "serve" -WindowStyle Hidden
-        Start-Sleep -Seconds 4
-        if (Get-NetTCPConnection -LocalPort 11434 -ErrorAction SilentlyContinue) {
-            Write-Host "  Ollama démarré (mistral disponible)" -ForegroundColor Green
-        } else {
-            Write-Host "  AVERTISSEMENT: Ollama n'a pas démarré (fallback regex activé)" -ForegroundColor DarkYellow
-        }
-    } else {
-        Write-Host "  AVERTISSEMENT: ollama non installé (https://ollama.com/download)" -ForegroundColor DarkYellow
-    }
-}
-
-# ── [3-9/14] Microservices Java ──────────────────────────────────────────
+# ── [2-7/12] Microservices Java ──────────────────────────────────────────
 $services = @(
     @{ Name = "Auth";             Dir = "esprit_D2F-authentification";  Port = 8085 },
     @{ Name = "Formation";        Dir = "esprit_D2F-formation";         Port = 8088 },
@@ -118,7 +98,7 @@ $services = @(
     @{ Name = "Competence";       Dir = "esprit_D2F-competence";        Port = 8005 }
 )
 
-$step = 3
+$step = 2
 foreach ($svc in $services) {
     $svcPath = "$ROOT\$($svc.Dir)"
     if (Test-Path $svcPath) {
@@ -133,8 +113,8 @@ foreach ($svc in $services) {
     $step++
 }
 
-# ── [10/14] API Gateway ──────────────────────────────────────────────────
-Write-Host "`n[10/14] Lancement API Gateway (port 8080)..." -ForegroundColor Yellow
+# ── [8/12] API Gateway ──────────────────────────────────────────────────
+Write-Host "`n[8/12] Lancement API Gateway (port 8080)..." -ForegroundColor Yellow
 $apigwPath = "$ROOT\esprit_D2F-api-gateway"
 if (Test-Path $apigwPath) {
     Clear-Port 8080
@@ -145,24 +125,8 @@ if (Test-Path $apigwPath) {
     Write-Host "  ERREUR: Répertoire esprit_D2F-api-gateway introuvable" -ForegroundColor Red
 }
 
-# ── [11/14] AI Reco Service (Python) ────────────────────────────────────
-Write-Host "`n[11/14] Lancement AI Reco Service (port 8000)..." -ForegroundColor Yellow
-$aiRecoPath = "$ROOT\esprit_D2F-recommandation-formateur"
-if (Test-Path $aiRecoPath) {
-    if (-not (Test-Path $PYTHON)) {
-        Write-Host "  ERREUR: virtualenv Python introuvable à $PYTHON" -ForegroundColor Red
-    } else {
-        Clear-Port 8000
-        Start-Process powershell -ArgumentList "-NoExit", "-Command", `
-            "Set-Location '$aiRecoPath'; Write-Host 'Démarrage AI Reco Service sur port 8000...' -ForegroundColor Cyan; & '$PYTHON' -m uvicorn ai_reco:app --host 0.0.0.0 --port 8000"
-        Start-Sleep -Seconds 1
-    }
-} else {
-    Write-Host "  ERREUR: Répertoire esprit_D2F-recommandation-formateur introuvable" -ForegroundColor Red
-}
-
-# ── [12/14] RICE Service (Python + Ollama LLM) ───────────────────────────
-Write-Host "`n[12/14] Lancement RICE Service (port 8001)..." -ForegroundColor Yellow
+# ── [9/12] RICE Service (Python + NLP) ──────────────────────────────────
+Write-Host "`n[9/12] Lancement RICE Service (port 8001)..." -ForegroundColor Yellow
 $ricePath = "$ROOT\esprit_D2F-rice"
 if (Test-Path $ricePath) {
     if (-not (Test-Path $PYTHON)) {
@@ -180,15 +144,15 @@ if (Test-Path $ricePath) {
         }
         Clear-Port 8001
         Start-Process powershell -ArgumentList "-NoExit", "-Command", `
-            "Set-Location '$ricePath'; `$env:TESSERACT_CMD='$tessExe'; `$env:TESSDATA_PREFIX='$tessData'; Write-Host 'Démarrage RICE Service sur port 8001 (LLM: mistral)...' -ForegroundColor Cyan; & '$PYTHON' -m uvicorn main:app --host 0.0.0.0 --port 8001"
+            "Set-Location '$ricePath'; `$env:TESSERACT_CMD='$tessExe'; `$env:TESSDATA_PREFIX='$tessData'; Write-Host 'Démarrage RICE Service sur port 8001 (NLP + OCR)...' -ForegroundColor Cyan; & '$PYTHON' -m uvicorn main:app --host 0.0.0.0 --port 8001"
         Start-Sleep -Seconds 1
     }
 } else {
     Write-Host "  ERREUR: Répertoire esprit_D2F-rice introuvable" -ForegroundColor Red
 }
 
-# ── [13/14] Predictive Analytics Service (Python/FastAPI) ────────────────
-Write-Host "`n[13/14] Lancement Predictive Analytics Service (port 8090)..." -ForegroundColor Yellow
+# ── [10/12] Predictive Analytics Service (Python/FastAPI) ────────────────
+Write-Host "`n[10/12] Lancement Predictive Analytics Service (port 8090)..." -ForegroundColor Yellow
 $predictivePath = "$ROOT\esprit_D2F-predictive-analytics"
 if (Test-Path $predictivePath) {
     if (-not (Test-Path $PYTHON)) {
@@ -203,8 +167,8 @@ if (Test-Path $predictivePath) {
     Write-Host "  ERREUR: Répertoire esprit_D2F-predictive-analytics introuvable" -ForegroundColor Red
 }
 
-# ── [14/14] Frontend React ───────────────────────────────────────────────
-Write-Host "`n[14/14] Lancement Frontend (port 5173)..." -ForegroundColor Yellow
+# ── [11/12] Frontend React ───────────────────────────────────────────────
+Write-Host "`n[11/12] Lancement Frontend (port 5173)..." -ForegroundColor Yellow
 $webappPath = "$ROOT\esprit_D2F-webapp"
 if (Test-Path $webappPath) {
     Clear-Port 5173
@@ -227,8 +191,7 @@ Write-Host "  Evaluation:       http://localhost:8087"
 Write-Host "  Besoin-Formation: http://localhost:8004"
 Write-Host "  Competence:       http://localhost:8005"
 Write-Host "  API Gateway:      http://localhost:8080"
-Write-Host "  AI Reco:          http://localhost:8000"
-Write-Host "  RICE Service:     http://localhost:8001  (Ollama mistral)"
+Write-Host "  RICE Service:     http://localhost:8001  (NLP + OCR)"
 Write-Host "  Predictive-Analytics: http://localhost:8090  (scikit-learn FastAPI)"
 Write-Host "  Frontend:         http://localhost:5173"
 Write-Host "  Artemis Console:  http://localhost:8161"

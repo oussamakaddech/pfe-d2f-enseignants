@@ -18,7 +18,7 @@ vi.mock("@/utils/helpers/httpClient", () => ({
 
 vi.mock("@/config/env", () => ({
   config: {
-    FORMATION_URL: 'http://localhost:8080/api',
+    FORMATION_URL: 'http://api-test.local',
   },
 }));
 

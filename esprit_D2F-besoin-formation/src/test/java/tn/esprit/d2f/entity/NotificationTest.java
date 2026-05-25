@@ -41,11 +41,9 @@ class NotificationTest {
 
     @Test
     void testDefaultCreatedAt() {
+        // createdAt is JPA-managed via @CreatedDate; it is null until the entity is persisted
         Notification notification = new Notification();
-
-        assertNotNull(notification.getCreatedAt());
-        assertTrue(notification.getCreatedAt().isBefore(LocalDateTime.now().plusSeconds(1)));
-        assertTrue(notification.getCreatedAt().isAfter(LocalDateTime.now().minusSeconds(1)));
+        assertNull(notification.getCreatedAt());
     }
 
     @Test
@@ -114,10 +112,14 @@ class NotificationTest {
     }
 
     @Test
-    void testCreatedAtIsNotNull() {
+    void testCreatedAtIsNullBeforePersistence() {
+        // createdAt is populated by JPA auditing at persist time, not at construction
         Notification notification = new Notification();
+        assertNull(notification.getCreatedAt());
 
-        assertNotNull(notification.getCreatedAt());
+        LocalDateTime now = LocalDateTime.now();
+        notification.setCreatedAt(now);
+        assertEquals(now, notification.getCreatedAt());
     }
 
     @Test
@@ -125,9 +127,10 @@ class NotificationTest {
         Notification notification1 = new Notification();
         Notification notification2 = new Notification();
 
-        // Both should have a non-null createdAt; they may or may not be equal in time
-        assertNotNull(notification1.getCreatedAt());
-        assertNotNull(notification2.getCreatedAt());
+        // Each notification is a distinct object; createdAt is null until JPA persists them
+        assertNotSame(notification1, notification2);
+        assertNull(notification1.getCreatedAt());
+        assertNull(notification2.getCreatedAt());
     }
 
     @Test

@@ -8,6 +8,8 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.http.MediaType;
+import org.springframework.data.domain.AuditorAware;
+import org.springframework.data.jpa.mapping.JpaMetamodelMappingContext;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.verify;
@@ -23,6 +25,14 @@ class NotificationControllerTest {
 
     @MockitoBean
     private SimpMessagingTemplate messagingTemplate;
+
+    // Required when @EnableJpaAuditing is enabled on the main application class.
+    @MockitoBean
+    private JpaMetamodelMappingContext jpaMetamodelMappingContext;
+
+    @SuppressWarnings("rawtypes")
+    @MockitoBean(name = "auditorProvider")
+    private AuditorAware auditorProvider;
 
     @Test
     void sendNotification_ShouldReturnMessage() {

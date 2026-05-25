@@ -25,9 +25,9 @@ const STATUS_CONFIG: Record<StatusType, { color: string; bg: string; icon: React
 };
 
 interface D2FStatusPillProps {
-  status: StatusType;
-  customLabel?: string;
-  size?: "small" | "default";
+  readonly status: StatusType;
+  readonly customLabel?: string;
+  readonly size?: "small" | "default";
 }
 
 export default function D2FStatusPill({ status, customLabel, size = "default" }: D2FStatusPillProps) {

@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { format } from "date-fns";
-import { Input, InputNumber, DatePicker, TimePicker, Button, Space, Card, Form } from "antd";
-import useAppNotification from "@/hooks/ui/useAppNotification";
+import { Input, InputNumber, Button, Space, Card, Form } from "antd";
 import { PlusOutlined, DeleteOutlined } from "@ant-design/icons";
 import FormationWorkflowService from "@/services/formation/FormationWorkflowService";
 
@@ -77,9 +76,9 @@ function FormationEditForm({ formation, onUpdate, onCancel }) {
       dateDebut,
       dateFin,
       typeFormation,
-      coutFormation: parseFloat(coutFormation),
+      coutFormation: Number.parseFloat(coutFormation),
       organismeRefExterne,
-      chargeHoraireGlobal: parseInt(chargeHoraireGlobal),
+      chargeHoraireGlobal: Number.parseInt(chargeHoraireGlobal),
       // Ici, vous devez également gérer la mise à jour des animateurs/participants si besoin.
       // Pour cet exemple, nous nous concentrons sur les séances.
       seances,
@@ -90,9 +89,8 @@ function FormationEditForm({ formation, onUpdate, onCancel }) {
         updatedFormation
       );
       onUpdate(updated);
-    } catch (error) {
-      console.error("Erreur lors de la modification de la formation :", error);
-      // Vous pouvez ajouter ici une gestion d'erreur via Snackbar ou autre.
+    } catch {
+      // Erreur gérée silencieusement
     }
   };
 
@@ -150,7 +148,7 @@ function FormationEditForm({ formation, onUpdate, onCancel }) {
 
       <h4>Les Séances</h4>
       {seances.map((s, index) => (
-        <Card key={index} size="small" style={{ marginBottom: 16 }}>
+        <Card key={s.idSeance ?? index} size="small" style={{ marginBottom: 16 }}>
           <Form.Item label="Date de séance" required>
             <Input
               type="date"

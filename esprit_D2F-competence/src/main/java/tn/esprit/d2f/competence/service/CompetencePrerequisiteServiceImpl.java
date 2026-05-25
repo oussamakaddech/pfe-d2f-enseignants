@@ -2,6 +2,10 @@ package tn.esprit.d2f.competence.service;
 
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.annotation.Lazy;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import tn.esprit.d2f.competence.dto.CompetencePrerequisiteDTO;
@@ -31,6 +35,9 @@ public class CompetencePrerequisiteServiceImpl implements ICompetencePrerequisit
     private final CompetenceRepository competenceRepository;
     private final EnseignantCompetenceRepository enseignantCompetenceRepository;
 
+    @Lazy
+    private final ICompetencePrerequisiteService self;
+
     private static final Map<NiveauMaitrise, String> NIVEAU_LABELS = new EnumMap<>(NiveauMaitrise.class);
 
     static {
@@ -46,6 +53,12 @@ public class CompetencePrerequisiteServiceImpl implements ICompetencePrerequisit
     public List<CompetencePrerequisiteDTO> getPrerequisitesByCompetence(Long competenceId) {
         ensureCompetenceExists(competenceId);
         return withLabels(prerequisiteRepository.findByCompetenceId(competenceId));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<CompetencePrerequisiteDTO> getPrerequisitesByCompetence(Long competenceId, Pageable pageable) {
+        return paginate(self.getPrerequisitesByCompetence(competenceId), pageable);
     }
 
     @Override
@@ -135,7 +148,7 @@ public class CompetencePrerequisiteServiceImpl implements ICompetencePrerequisit
     @Transactional(readOnly = true)
     @SuppressWarnings("java:S6809") // Read-only self-calls within transactional context – no proxy bypass impact
     public boolean checkEnseignantMeetsPrerequisites(Long competenceId, String enseignantId) {
-        List<CompetencePrerequisiteDTO> prerequisites = getPrerequisitesByCompetence(competenceId);
+        List<CompetencePrerequisiteDTO> prerequisites = self.getPrerequisitesByCompetence(competenceId);
         return prerequisites.stream().allMatch(pr -> {
             NiveauMaitrise niveauActuel = getBestNiveauForCompetence(enseignantId, pr.getPrerequisiteId());
             return niveauActuel != null && niveauActuel.ordinal() >= pr.getNiveauMinimum().ordinal();
@@ -146,7 +159,7 @@ public class CompetencePrerequisiteServiceImpl implements ICompetencePrerequisit
     @Transactional(readOnly = true)
     @SuppressWarnings("java:S6809") // Read-only self-calls within transactional context – no proxy bypass impact
     public Map<String, Object> checkEnseignantEligibilityDetails(Long competenceId, String enseignantId) {
-        List<CompetencePrerequisiteDTO> prerequisites = getPrerequisitesByCompetence(competenceId);
+        List<CompetencePrerequisiteDTO> prerequisites = self.getPrerequisitesByCompetence(competenceId);
 
         List<Map<String, Object>> satisfaits = new ArrayList<>();
         List<Map<String, Object>> manquants = new ArrayList<>();
@@ -243,5 +256,11 @@ public class CompetencePrerequisiteServiceImpl implements ICompetencePrerequisit
 
     private String niveauToLabel(NiveauMaitrise niveau) {
         return NIVEAU_LABELS.getOrDefault(niveau, String.valueOf(niveau));
+    }
+
+    private Page<CompetencePrerequisiteDTO> paginate(List<CompetencePrerequisiteDTO> items, Pageable pageable) {
+        int from = (int) pageable.getOffset();
+        int to = Math.min(from + pageable.getPageSize(), items.size());
+        return new PageImpl<>(from >= items.size() ? List.of() : items.subList(from, to), pageable, items.size());
     }
 }

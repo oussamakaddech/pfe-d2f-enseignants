@@ -72,8 +72,12 @@ export default function AnalyticsDashboardPage() {
     {
       title: "Tendance", dataIndex: "tendance", width: 140,
       render: v => {
-        const color = v === "PROGRESSION" ? "success" : v === "REGRESSION" ? "error" : "default";
-        const icon = v === "PROGRESSION" ? "↑" : v === "REGRESSION" ? "↓" : "→";
+        let color = "default";
+        if (v === "PROGRESSION") color = "success";
+        else if (v === "REGRESSION") color = "error";
+        let icon = "→";
+        if (v === "PROGRESSION") icon = "↑";
+        else if (v === "REGRESSION") icon = "↓";
         return <Tag color={color}>{icon} {v}</Tag>;
       },
     },
@@ -92,7 +96,7 @@ export default function AnalyticsDashboardPage() {
   const alerteColumns: ColumnsType<AlerteResumee> = [
     { title: "Titre", dataIndex: "titre", render: v => <Text strong>{v}</Text> },
     { title: "Type", dataIndex: "type_alerte",
-      render: v => <Tag color="purple" style={{ fontSize: 11 }}>{v.replace(/_/g, " ")}</Tag> },
+      render: v => <Tag color="purple" style={{ fontSize: 11 }}>{v.replaceAll("_", " ")}</Tag> },
     { title: "Sévérité", dataIndex: "severite", width: 100,
       render: v => <Tag color={SEVERITE_COLOR[v] ?? "default"}>{v}</Tag> },
     { title: "Date", dataIndex: "created_at", width: 160,

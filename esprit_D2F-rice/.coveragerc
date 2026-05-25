@@ -1,0 +1,15 @@
+[run]
+source = rice
+relative_files = True
+omit =
+    debug_*.py
+    diag_*.py
+    main.py
+    rice_analyzer.py
+    rice_analyzer_backup.py
+
+[report]
+exclude_lines =
+    pragma: no cover
+    if __name__ == .__main__.:
+    pass

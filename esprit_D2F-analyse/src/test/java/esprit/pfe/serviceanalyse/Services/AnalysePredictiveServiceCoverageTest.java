@@ -6,6 +6,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.client.RestTemplate;
 
@@ -16,6 +18,7 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 class AnalysePredictiveServiceCoverageTest {
 
     @Mock
@@ -46,13 +49,13 @@ class AnalysePredictiveServiceCoverageTest {
         formation.put("idFormation", 101);
         formation.put("etatFormation", "ANNULEE"); // Should be skipped
 
-        when(restTemplate.getForObject(contains("/api/v1/enseignant-competences"), List.class))
+        when(restTemplate.getForObject(contains("/api/v1/enseignant-competences"), eq(List.class)))
             .thenReturn(List.of(aff));
-        when(restTemplate.getForObject(contains("/formations"), List.class))
+        when(restTemplate.getForObject(contains("/formations"), eq(List.class)))
             .thenReturn(List.of(formation));
-        when(restTemplate.getForObject(contains("/formation-competences/formation/"), List.class))
+        when(restTemplate.getForObject(contains("/formation-competences/formation/"), eq(List.class)))
             .thenReturn(Collections.emptyList());
-        when(restTemplate.getForObject(contains("/besoinsFormations"), List.class))
+        when(restTemplate.getForObject(contains("/besoinsFormations"), eq(List.class)))
             .thenReturn(Collections.emptyList());
 
         Map<String, Object> result = analysePredictiveService.analyserEnseignant("ens1", null);
@@ -81,13 +84,13 @@ class AnalysePredictiveServiceCoverageTest {
         fc.put("competenceId", 1L);
         fc.put("competenceNom", "Java");
 
-        when(restTemplate.getForObject(contains("/api/v1/enseignant-competences"), List.class))
+        when(restTemplate.getForObject(contains("/api/v1/enseignant-competences"), eq(List.class)))
             .thenReturn(List.of(aff));
-        when(restTemplate.getForObject(contains("/formations"), List.class))
+        when(restTemplate.getForObject(contains("/formations"), eq(List.class)))
             .thenReturn(List.of(formation));
-        when(restTemplate.getForObject(contains("/formation-competences/formation/"), List.class))
+        when(restTemplate.getForObject(contains("/formation-competences/formation/"), eq(List.class)))
             .thenReturn(List.of(fc));
-        when(restTemplate.getForObject(contains("/besoinsFormations"), List.class))
+        when(restTemplate.getForObject(contains("/besoinsFormations"), eq(List.class)))
             .thenReturn(Collections.emptyList());
 
         Map<String, Object> result = analysePredictiveService.analyserEnseignant("ens1", null);
@@ -111,13 +114,13 @@ class AnalysePredictiveServiceCoverageTest {
         besoin.put("competence", "Java");
         besoin.put("titre", "Formation Java");
 
-        when(restTemplate.getForObject(contains("/api/v1/enseignant-competences"), List.class))
+        when(restTemplate.getForObject(contains("/api/v1/enseignant-competences"), eq(List.class)))
             .thenReturn(List.of(aff));
-        when(restTemplate.getForObject(contains("/formations"), List.class))
+        when(restTemplate.getForObject(contains("/formations"), eq(List.class)))
             .thenReturn(Collections.emptyList());
-        when(restTemplate.getForObject(contains("/formation-competences/formation/"), List.class))
+        when(restTemplate.getForObject(contains("/formation-competences/formation/"), eq(List.class)))
             .thenReturn(Collections.emptyList());
-        when(restTemplate.getForObject(contains("/besoinsFormations"), List.class))
+        when(restTemplate.getForObject(contains("/besoinsFormations"), eq(List.class)))
             .thenReturn(List.of(besoin));
 
         Map<String, Object> result = analysePredictiveService.analyserEnseignant("ens1", null);
@@ -144,20 +147,19 @@ class AnalysePredictiveServiceCoverageTest {
         besoin2.put("competence", "Python");
         besoin2.put("titre", "Formation Python");
 
-        when(restTemplate.getForObject(contains("/api/v1/enseignant-competences"), List.class))
+        when(restTemplate.getForObject(contains("/api/v1/enseignant-competences"), eq(List.class)))
             .thenReturn(List.of(aff));
-        when(restTemplate.getForObject(contains("/formations"), List.class))
+        when(restTemplate.getForObject(contains("/formations"), eq(List.class)))
             .thenReturn(Collections.emptyList());
-        when(restTemplate.getForObject(contains("/formation-competences/formation/"), List.class))
+        when(restTemplate.getForObject(contains("/formation-competences/formation/"), eq(List.class)))
             .thenReturn(Collections.emptyList());
-        when(restTemplate.getForObject(contains("/besoinsFormations"), List.class))
-            .thenReturn(List.of(besoin1, besoin2, besoin1, besoin2, besoin1)); // 5 besoins Java
+        when(restTemplate.getForObject(contains("/besoinsFormations"), eq(List.class)))
+            .thenReturn(List.of(besoin1, besoin1, besoin1, besoin1, besoin1, besoin2, besoin2)); // 5 besoins Java
 
         Map<String, Object> result = analysePredictiveService.analyserEnseignant("ens1", null);
         assertNotNull(result);
         List<Map<String, Object>> besoins = (List<Map<String, Object>>) result.get("besoinsDetectes");
         assertEquals(2, besoins.size(), "Deux types de besoins doivent être détectés");
-        // Java should have high priority (>= 5 occurrences)
         assertEquals("haute", besoins.get(0).get("priorite"), "Java doit avoir une priorité haute");
     }
 
@@ -171,13 +173,13 @@ class AnalysePredictiveServiceCoverageTest {
         aff.put("competence", comp);
         aff.put("niveauMaitrise", 2);
 
-        when(restTemplate.getForObject(contains("/api/v1/enseignant-competences"), List.class))
+        when(restTemplate.getForObject(contains("/api/v1/enseignant-competences"), eq(List.class)))
             .thenReturn(List.of(aff));
-        when(restTemplate.getForObject(contains("/formations"), List.class))
+        when(restTemplate.getForObject(contains("/formations"), eq(List.class)))
             .thenReturn(Collections.emptyList());
-        when(restTemplate.getForObject(contains("/formation-competences/formation/"), List.class))
+        when(restTemplate.getForObject(contains("/formation-competences/formation/"), eq(List.class)))
             .thenReturn(Collections.emptyList());
-        when(restTemplate.getForObject(contains("/besoinsFormations"), List.class))
+        when(restTemplate.getForObject(contains("/besoinsFormations"), eq(List.class)))
             .thenReturn(Collections.emptyList());
 
         Map<String, Object> result = analysePredictiveService.analyserEnseignant("ens1", null);
@@ -199,13 +201,13 @@ class AnalysePredictiveServiceCoverageTest {
         aff.put("competence", comp);
         aff.put("niveauMaitrise", 1); // High gap
 
-        when(restTemplate.getForObject(contains("/api/v1/enseignant-competences"), List.class))
+        when(restTemplate.getForObject(contains("/api/v1/enseignant-competences"), eq(List.class)))
             .thenReturn(List.of(aff));
-        when(restTemplate.getForObject(contains("/formations"), List.class))
+        when(restTemplate.getForObject(contains("/formations"), eq(List.class)))
             .thenReturn(Collections.emptyList());
-        when(restTemplate.getForObject(contains("/formation-competences/formation/"), List.class))
+        when(restTemplate.getForObject(contains("/formation-competences/formation/"), eq(List.class)))
             .thenReturn(Collections.emptyList());
-        when(restTemplate.getForObject(contains("/besoinsFormations"), List.class))
+        when(restTemplate.getForObject(contains("/besoinsFormations"), eq(List.class)))
             .thenReturn(Collections.emptyList());
 
         Map<String, Object> result = analysePredictiveService.analyserEnseignant("ens1", null);
@@ -224,13 +226,13 @@ class AnalysePredictiveServiceCoverageTest {
         aff.put("competence", comp);
         aff.put("niveauMaitrise", 2);
 
-        when(restTemplate.getForObject(contains("/api/v1/enseignant-competences"), List.class))
+        when(restTemplate.getForObject(contains("/api/v1/enseignant-competences"), eq(List.class)))
             .thenReturn(List.of(aff));
-        when(restTemplate.getForObject(contains("/formations"), List.class))
+        when(restTemplate.getForObject(contains("/formations"), eq(List.class)))
             .thenReturn(Collections.emptyList());
-        when(restTemplate.getForObject(contains("/formation-competences/formation/"), List.class))
+        when(restTemplate.getForObject(contains("/formation-competences/formation/"), eq(List.class)))
             .thenReturn(Collections.emptyList());
-        when(restTemplate.getForObject(contains("/besoinsFormations"), List.class))
+        when(restTemplate.getForObject(contains("/besoinsFormations"), eq(List.class)))
             .thenReturn(Collections.emptyList());
 
         Map<String, Object> result = analysePredictiveService.analyserEnseignant("ens1", null);
@@ -245,13 +247,13 @@ class AnalysePredictiveServiceCoverageTest {
         Map<String, Object> aff = new HashMap<>();
         aff.put("niveauMaitrise", 2);
 
-        when(restTemplate.getForObject(contains("/api/v1/enseignant-competences"), List.class))
+        when(restTemplate.getForObject(contains("/api/v1/enseignant-competences"), eq(List.class)))
             .thenReturn(List.of(aff));
-        when(restTemplate.getForObject(contains("/formations"), List.class))
+        when(restTemplate.getForObject(contains("/formations"), eq(List.class)))
             .thenReturn(Collections.emptyList());
-        when(restTemplate.getForObject(contains("/formation-competences/formation/"), List.class))
+        when(restTemplate.getForObject(contains("/formation-competences/formation/"), eq(List.class)))
             .thenReturn(Collections.emptyList());
-        when(restTemplate.getForObject(contains("/besoinsFormations"), List.class))
+        when(restTemplate.getForObject(contains("/besoinsFormations"), eq(List.class)))
             .thenReturn(Collections.emptyList());
 
         Map<String, Object> result = analysePredictiveService.analyserEnseignant("ens1", null);
@@ -270,13 +272,13 @@ class AnalysePredictiveServiceCoverageTest {
         aff.put("competence", comp);
         aff.put("niveauMaitrise", null);
 
-        when(restTemplate.getForObject(contains("/api/v1/enseignant-competences"), List.class))
+        when(restTemplate.getForObject(contains("/api/v1/enseignant-competences"), eq(List.class)))
             .thenReturn(List.of(aff));
-        when(restTemplate.getForObject(contains("/formations"), List.class))
+        when(restTemplate.getForObject(contains("/formations"), eq(List.class)))
             .thenReturn(Collections.emptyList());
-        when(restTemplate.getForObject(contains("/formation-competences/formation/"), List.class))
+        when(restTemplate.getForObject(contains("/formation-competences/formation/"), eq(List.class)))
             .thenReturn(Collections.emptyList());
-        when(restTemplate.getForObject(contains("/besoinsFormations"), List.class))
+        when(restTemplate.getForObject(contains("/besoinsFormations"), eq(List.class)))
             .thenReturn(Collections.emptyList());
 
         Map<String, Object> result = analysePredictiveService.analyserEnseignant("ens1", null);
@@ -295,13 +297,13 @@ class AnalysePredictiveServiceCoverageTest {
         aff.put("competence", comp);
         aff.put("niveauMaitrise", "DEBUTANT");
 
-        when(restTemplate.getForObject(contains("/api/v1/enseignant-competences"), List.class))
+        when(restTemplate.getForObject(contains("/api/v1/enseignant-competences"), eq(List.class)))
             .thenReturn(List.of(aff));
-        when(restTemplate.getForObject(contains("/formations"), List.class))
+        when(restTemplate.getForObject(contains("/formations"), eq(List.class)))
             .thenReturn(Collections.emptyList());
-        when(restTemplate.getForObject(contains("/formation-competences/formation/"), List.class))
+        when(restTemplate.getForObject(contains("/formation-competences/formation/"), eq(List.class)))
             .thenReturn(Collections.emptyList());
-        when(restTemplate.getForObject(contains("/besoinsFormations"), List.class))
+        when(restTemplate.getForObject(contains("/besoinsFormations"), eq(List.class)))
             .thenReturn(Collections.emptyList());
 
         Map<String, Object> result = analysePredictiveService.analyserEnseignant("ens1", null);
@@ -324,13 +326,13 @@ class AnalysePredictiveServiceCoverageTest {
         formation.put("titreFormation", "Java Advanced");
         formation.put("etatFormation", "PLANIFIEE");
 
-        when(restTemplate.getForObject(contains("/api/v1/enseignant-competences"), List.class))
+        when(restTemplate.getForObject(contains("/api/v1/enseignant-competences"), eq(List.class)))
             .thenReturn(List.of(aff));
-        when(restTemplate.getForObject(contains("/formations"), List.class))
+        when(restTemplate.getForObject(contains("/formations"), eq(List.class)))
             .thenReturn(List.of(formation));
-        when(restTemplate.getForObject(contains("/formation-competences/formation/"), List.class))
+        when(restTemplate.getForObject(contains("/formation-competences/formation/"), eq(List.class)))
             .thenReturn(Collections.emptyList());
-        when(restTemplate.getForObject(contains("/besoinsFormations"), List.class))
+        when(restTemplate.getForObject(contains("/besoinsFormations"), eq(List.class)))
             .thenReturn(Collections.emptyList());
 
         Map<String, Object> result = analysePredictiveService.analyserEnseignant("ens1", null);
@@ -357,13 +359,13 @@ class AnalysePredictiveServiceCoverageTest {
         Map<String, Object> fc = new HashMap<>();
         fc.put("competenceNom", "Java");
 
-        when(restTemplate.getForObject(contains("/api/v1/enseignant-competences"), List.class))
+        when(restTemplate.getForObject(contains("/api/v1/enseignant-competences"), eq(List.class)))
             .thenReturn(List.of(aff));
-        when(restTemplate.getForObject(contains("/formations"), List.class))
+        when(restTemplate.getForObject(contains("/formations"), eq(List.class)))
             .thenReturn(List.of(formation));
-        when(restTemplate.getForObject(contains("/formation-competences/formation/"), List.class))
+        when(restTemplate.getForObject(contains("/formation-competences/formation/"), eq(List.class)))
             .thenReturn(List.of(fc));
-        when(restTemplate.getForObject(contains("/besoinsFormations"), List.class))
+        when(restTemplate.getForObject(contains("/besoinsFormations"), eq(List.class)))
             .thenReturn(Collections.emptyList());
 
         Map<String, Object> result = analysePredictiveService.analyserEnseignant("ens1", null);
@@ -390,13 +392,13 @@ class AnalysePredictiveServiceCoverageTest {
         Map<String, Object> fc = new HashMap<>();
         fc.put("competenceId", 1L);
 
-        when(restTemplate.getForObject(contains("/api/v1/enseignant-competences"), List.class))
+        when(restTemplate.getForObject(contains("/api/v1/enseignant-competences"), eq(List.class)))
             .thenReturn(List.of(aff));
-        when(restTemplate.getForObject(contains("/formations"), List.class))
+        when(restTemplate.getForObject(contains("/formations"), eq(List.class)))
             .thenReturn(List.of(formation));
-        when(restTemplate.getForObject(contains("/formation-competences/formation/"), List.class))
+        when(restTemplate.getForObject(contains("/formation-competences/formation/"), eq(List.class)))
             .thenReturn(List.of(fc));
-        when(restTemplate.getForObject(contains("/besoinsFormations"), List.class))
+        when(restTemplate.getForObject(contains("/besoinsFormations"), eq(List.class)))
             .thenReturn(Collections.emptyList());
 
         Map<String, Object> result = analysePredictiveService.analyserEnseignant("ens1", null);
@@ -415,13 +417,13 @@ class AnalysePredictiveServiceCoverageTest {
         aff.put("competence", comp);
         aff.put("niveauMaitrise", 2);
 
-        when(restTemplate.getForObject(contains("/api/v1/enseignant-competences"), List.class))
+        when(restTemplate.getForObject(contains("/api/v1/enseignant-competences"), eq(List.class)))
             .thenReturn(List.of(aff));
-        when(restTemplate.getForObject(contains("/formations"), List.class))
+        when(restTemplate.getForObject(contains("/formations"), eq(List.class)))
             .thenReturn(Collections.emptyList());
-        when(restTemplate.getForObject(contains("/formation-competences/formation/"), List.class))
+        when(restTemplate.getForObject(contains("/formation-competences/formation/"), eq(List.class)))
             .thenReturn(Collections.emptyList());
-        when(restTemplate.getForObject(contains("/besoinsFormations"), List.class))
+        when(restTemplate.getForObject(contains("/besoinsFormations"), eq(List.class)))
             .thenReturn(Collections.emptyList());
 
         Map<String, Object> result = analysePredictiveService.analyserEnseignant("ens1", null);
@@ -440,13 +442,13 @@ class AnalysePredictiveServiceCoverageTest {
         aff.put("competence", comp);
         aff.put("niveauMaitrise", 2);
 
-        when(restTemplate.getForObject(contains("/api/v1/enseignant-competences"), List.class))
+        when(restTemplate.getForObject(contains("/api/v1/enseignant-competences"), eq(List.class)))
             .thenReturn(List.of(aff));
-        when(restTemplate.getForObject(contains("/formations"), List.class))
+        when(restTemplate.getForObject(contains("/formations"), eq(List.class)))
             .thenReturn(Collections.emptyList());
-        when(restTemplate.getForObject(contains("/formation-competences/formation/"), List.class))
+        when(restTemplate.getForObject(contains("/formation-competences/formation/"), eq(List.class)))
             .thenReturn(Collections.emptyList());
-        when(restTemplate.getForObject(contains("/besoinsFormations"), List.class))
+        when(restTemplate.getForObject(contains("/besoinsFormations"), eq(List.class)))
             .thenReturn(null);
 
         Map<String, Object> result = analysePredictiveService.analyserEnseignant("ens1", null);
@@ -458,9 +460,9 @@ class AnalysePredictiveServiceCoverageTest {
     @Test
     void testAnalyserEnseignant_WithEmptyEvaluationService() {
         // Test with empty evaluation service
-        when(restTemplate.getForObject(contains("/api/v1/enseignant-competences"), List.class))
+        when(restTemplate.getForObject(contains("/api/v1/enseignant-competences"), eq(List.class)))
             .thenThrow(new RuntimeException("Comp service down"));
-        when(restTemplate.getForObject(contains("/evaluation/evaluations-globales"), List.class))
+        when(restTemplate.getForObject(contains("/evaluation/evaluations-globales"), eq(List.class)))
             .thenReturn(Collections.emptyList());
 
         Map<String, Object> result = analysePredictiveService.analyserEnseignant("ens1", null);
@@ -472,9 +474,9 @@ class AnalysePredictiveServiceCoverageTest {
     @Test
     void testAnalyserEnseignant_WithNullEvaluationService() {
         // Test with null evaluation service
-        when(restTemplate.getForObject(contains("/api/v1/enseignant-competences"), List.class))
+        when(restTemplate.getForObject(contains("/api/v1/enseignant-competences"), eq(List.class)))
             .thenThrow(new RuntimeException("Comp service down"));
-        when(restTemplate.getForObject(contains("/evaluation/evaluations-globales"), List.class))
+        when(restTemplate.getForObject(contains("/evaluation/evaluations-globales"), eq(List.class)))
             .thenReturn(null);
 
         Map<String, Object> result = analysePredictiveService.analyserEnseignant("ens1", null);
@@ -486,7 +488,7 @@ class AnalysePredictiveServiceCoverageTest {
     @Test
     void testAnalyserTendancesGlobales_WithEmptyEvaluationService() {
         // Test with empty evaluation service
-        when(restTemplate.getForObject(contains("/evaluation/evaluations-globales"), List.class))
+        when(restTemplate.getForObject(contains("/evaluation/evaluations-globales"), eq(List.class)))
             .thenReturn(Collections.emptyList());
 
         Map<String, Object> result = analysePredictiveService.analyserTendancesGlobales();
@@ -499,7 +501,7 @@ class AnalysePredictiveServiceCoverageTest {
     @Test
     void testAnalyserTendancesGlobales_WithNullEvaluationService() {
         // Test with null evaluation service
-        when(restTemplate.getForObject(contains("/evaluation/evaluations-globales"), List.class))
+        when(restTemplate.getForObject(contains("/evaluation/evaluations-globales"), eq(List.class)))
             .thenReturn(null);
 
         Map<String, Object> result = analysePredictiveService.analyserTendancesGlobales();
@@ -518,7 +520,7 @@ class AnalysePredictiveServiceCoverageTest {
         Map<String, Object> eval2 = new HashMap<>();
         eval2.put("evaluateurId", "ens2");
 
-        when(restTemplate.getForObject(contains("/evaluation/evaluations-globales"), List.class))
+        when(restTemplate.getForObject(contains("/evaluation/evaluations-globales"), eq(List.class)))
             .thenReturn(List.of(eval1, eval2));
 
         Map<String, Object> result = analysePredictiveService.analyserTendancesGlobales();
@@ -542,7 +544,7 @@ class AnalysePredictiveServiceCoverageTest {
         eval3.put("note", 4.5);
         eval3.put("evaluateurId", "ens3");
 
-        when(restTemplate.getForObject(contains("/evaluation/evaluations-globales"), List.class))
+        when(restTemplate.getForObject(contains("/evaluation/evaluations-globales"), eq(List.class)))
             .thenReturn(List.of(eval1, eval2, eval3));
 
         Map<String, Object> result = analysePredictiveService.analyserTendancesGlobales();

@@ -18,7 +18,7 @@ public class DomaineDTO {
     private String nom;
     private String description;
     private Boolean actif;
-    private Long upId;
-    private Long departementId;
+    private String upId;
+    private String departementId;
     private List<CompetenceDTO> competences;
 }

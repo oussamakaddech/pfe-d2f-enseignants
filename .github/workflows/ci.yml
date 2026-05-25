@@ -450,7 +450,6 @@ jobs:
       needs.test-python.result == 'success' &&
       (needs.sonar.result == 'success' || needs.sonar.result == 'skipped') &&
       !inputs.skip_docker &&
-.\scripts\refresh-sonar-dashboard.ps1
       github.event_name == 'push' &&
       (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
     strategy:

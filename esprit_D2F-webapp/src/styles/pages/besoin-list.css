@@ -740,18 +740,29 @@
   position: relative;
   display: flex;
   flex-direction: column;
-  gap: var(--bf-sp-3);
   height: 100%;
-  padding: var(--bf-sp-4) var(--bf-sp-5);
   background: var(--bf-surface);
   border: 1px solid var(--bf-border);
   border-radius: var(--bf-r-lg);
   box-shadow: var(--bf-shadow-xs);
-  cursor: pointer;
   overflow: hidden;
   transition: transform var(--bf-dur) var(--bf-ease),
               box-shadow var(--bf-dur) var(--bf-ease),
               border-color var(--bf-dur) var(--bf-ease);
+}
+.bf-card__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--bf-sp-3);
+  flex: 1;
+  padding: var(--bf-sp-4) var(--bf-sp-5);
+  background: none;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  width: 100%;
 }
 .bf-card::before {
   content: "";

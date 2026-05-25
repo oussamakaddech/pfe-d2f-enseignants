@@ -34,7 +34,7 @@ const initialsOf = (name) => {
 const colorOfName = (str) => {
   const palette = ["#B51200", "#0891b2", "#7c3aed", "#059669", "#d97706", "#2563eb", "#db2777"];
   let h = 0;
-  for (let i = 0; i < (str || "").length; i += 1) h = (h * 31 + str.charCodeAt(i)) >>> 0;
+  for (let i = 0; i < (str || "").length; i += 1) h = (h * 31 + (str.codePointAt(i) ?? 0)) >>> 0;
   return palette[h % palette.length];
 };
 
@@ -80,7 +80,7 @@ export default function BesoinCard({
   const title = besoin.titre || besoin.objectifFormation || "Sans titre";
   const desc = besoin.titre && besoin.objectifFormation ? besoin.objectifFormation : null;
   const typeTone = TYPE_TONES[besoin.typeBesoin] || "info";
-  const typeLabel = TYPE_LABELS[besoin.typeBesoin] || besoin.typeBesoin?.replace(/_/g, " ");
+  const typeLabel = TYPE_LABELS[besoin.typeBesoin] || besoin.typeBesoin?.replaceAll("_", " ");
   const recent = isRecent(besoin.dateCreation);
 
   const stopProp = (fn) => (e) => {
@@ -102,76 +102,77 @@ export default function BesoinCard({
   ];
 
   return (
-    <article
-      className={`bf-card bf-card--prio-${priorite}${recent ? " bf-card--is-new" : ""}`}
-      role="button"
-      tabIndex={0}
-      onClick={onOpen}
-      onKeyDown={handleKeyDown}
-      aria-label={`Besoin : ${title}`}
-    >
-      <div className="bf-card__rail" aria-hidden="true" />
+    <div className={`bf-card bf-card--prio-${priorite}${recent ? " bf-card--is-new" : ""}`}>
+      <button
+        type="button"
+        className="bf-card__body"
+        onClick={onOpen}
+        onKeyDown={handleKeyDown}
+        aria-label={`Besoin : ${title}`}
+      >
+        <div className="bf-card__rail" aria-hidden="true" />
 
-      {recent && (
-        <span className="bf-card__new-badge" aria-label="Nouveau besoin">
-          Nouveau
-        </span>
-      )}
-
-      {/* Top : badges */}
-      <header className="bf-card__top">
-        <BesoinPriorityBadge value={priorite} />
-        <BesoinStatusBadge approved={!!besoin.approuveAdmin} />
-      </header>
-
-      {/* Title */}
-      <h3 className="bf-card__title" title={title}>{title}</h3>
-      {desc && <p className="bf-card__desc">{desc}</p>}
-
-      {/* Demandeur inline */}
-      <div className="bf-card__requester">
-        <Avatar
-          size={32}
-          style={{ background: colorOfName(demandeurName), fontWeight: 600, fontSize: 12 }}
-        >
-          {initialsOf(demandeurName)}
-        </Avatar>
-        <div className="bf-card__requester-body">
-          <div className="bf-card__requester-name">{demandeurName}</div>
-          <div className="bf-card__requester-sub">
-            {formatDate(besoin.dateCreation) || "Date inconnue"}
-            {besoin.propositionAnimateur && (
-              <>
-                <span className="bf-card__sep" aria-hidden="true">•</span>
-                <UserOutlined style={{ marginRight: 4 }} />
-                {besoin.propositionAnimateur}
-              </>
-            )}
-          </div>
-        </div>
-        {typeLabel && (
-          <span className={`bf-type-pill bf-type-pill--${typeTone}`}>{typeLabel}</span>
-        )}
-      </div>
-
-      {/* Horaire souhaité (si renseigné) */}
-      {besoin.horaireSouhaite && (
-        <div className="bf-card__schedule">
-          <ClockCircleOutlined />
-          <span>
-            Souhaité : <strong>{besoin.horaireSouhaite}</strong>
+        {recent && (
+          <span className="bf-card__new-badge" aria-label="Nouveau besoin">
+            Nouveau
           </span>
+        )}
+
+        {/* Top : badges */}
+        <header className="bf-card__top">
+          <BesoinPriorityBadge value={priorite} />
+          <BesoinStatusBadge approved={!!besoin.approuveAdmin} />
+        </header>
+
+        {/* Title */}
+        <h3 className="bf-card__title" title={title}>{title}</h3>
+        {desc && <p className="bf-card__desc">{desc}</p>}
+
+        {/* Demandeur inline */}
+        <div className="bf-card__requester">
+          <Avatar
+            size={32}
+            style={{ background: colorOfName(demandeurName), fontWeight: 600, fontSize: 12 }}
+          >
+            {initialsOf(demandeurName)}
+          </Avatar>
+          <div className="bf-card__requester-body">
+            <div className="bf-card__requester-name">{demandeurName}</div>
+            <div className="bf-card__requester-sub">
+              {formatDate(besoin.dateCreation) || "Date inconnue"}
+              {besoin.propositionAnimateur && (
+                <>
+                  <span className="bf-card__sep" aria-hidden="true">•</span>
+                  <UserOutlined style={{ marginRight: 4 }} />
+                  {besoin.propositionAnimateur}
+                </>
+              )}
+            </div>
+          </div>
+          {typeLabel && (
+            <span className={`bf-type-pill bf-type-pill--${typeTone}`}>{typeLabel}</span>
+          )}
         </div>
-      )}
 
-      {/* Meta chips */}
-      <BesoinCardMeta items={metaItems} />
+        {/* Horaire souhaité (si renseigné) */}
+        {besoin.horaireSouhaite && (
+          <div className="bf-card__schedule">
+            <ClockCircleOutlined />
+            <span>
+              Souhaité : <strong>{besoin.horaireSouhaite}</strong>
+            </span>
+          </div>
+        )}
 
-      {/* Divider */}
-      <div className="bf-card__divider" aria-hidden="true" />
+        {/* Meta chips */}
+        <BesoinCardMeta items={metaItems} />
+
+        {/* Divider */}
+        <div className="bf-card__divider" aria-hidden="true" />
+      </button>
 
       {/* Actions */}
-      <footer className="bf-card__actions" onClick={(e) => e.stopPropagation()}>
+      <div className="bf-card__actions">
         {!besoin.approuveAdmin && (
           <Popconfirm
             title="Approuver ce besoin ?"
@@ -230,8 +231,8 @@ export default function BesoinCard({
             aria-label="Supprimer"
           />
         </Popconfirm>
-      </footer>
-    </article>
+      </div>
+    </div>
   );
 }
 

@@ -1,4 +1,3 @@
-// src/pages/competence/CompetenceMatchingPage.jsx
 import React, { useEffect, useReducer, useState, useMemo, useCallback, useRef } from "react";
 import {
   Select,
@@ -8,7 +7,6 @@ import {
   Space,
   Typography,
   Badge,
-  Tooltip,
   Switch,
   Modal,
   Form,
@@ -23,13 +21,10 @@ import {
   CheckCircleOutlined,
   SearchOutlined,
   BookOutlined,
-  WarningOutlined,
-  PlusOutlined,
   HolderOutlined,
   EditOutlined,
   DeleteOutlined,
   TeamOutlined,
-  SolutionOutlined,
   ThunderboltOutlined,
 } from "@ant-design/icons";
 import useAppNotification from "@/hooks/ui/useAppNotification";
@@ -64,7 +59,7 @@ const getAvatarColor = (id) => {
   let hash = 0;
   const str = String(id);
   for (let i = 0; i < str.length; i++) {
-    hash = str.charCodeAt(i) + ((hash << 5) - hash);
+    hash = (str.codePointAt(i) ?? 0) + ((hash << 5) - hash);
   }
   return colors[Math.abs(hash) % colors.length];
 };
@@ -165,9 +160,6 @@ export default function CompetenceMatchingPage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingEns, setEditingEns] = useState(null);
   const [form] = Form.useForm();
-  const [showHelp, setShowHelp] = useState(false);
-  const [quickAssignModal, setQuickAssignModal] = useState({ savoir: null, open: false });
-
   const stateRef = useRef(state);
   stateRef.current = state;
 
@@ -230,7 +222,8 @@ export default function CompetenceMatchingPage() {
     dispatch({ type: "ASSIGN_SAVOIR", payload: { savoirId: sId, enseignantId: ensId } });
     const savoir = stateRef.current.savoirs.find((x) => String(x.id) === sId);
     const teacher = teacherById.get(ensId);
-    message.success(`${savoir?.code ?? sId} → ${teacher ? `${teacher.prenom} ${teacher.nom}`.trim() : ensId}`, 2);
+    const teacherName = teacher ? `${teacher.prenom} ${teacher.nom}`.trim() : ensId;
+    message.success(`${savoir?.code ?? sId} → ${teacherName}`, 2);
     handleDragEnd();
   }, [teacherById, handleDragEnd]);
 
@@ -239,6 +232,9 @@ export default function CompetenceMatchingPage() {
     dispatch({ type: "UNASSIGN_SAVOIR", payload: { savoirId: String(savoirId), enseignantId: String(enseignantId) } });
     message.info("Assignation retirée", 1.5);
   }, []);
+
+  const makeUnassignHandler = (savoirId: string, enseignantId: string) =>
+    () => handleUnassign(savoirId, enseignantId);
 
   // ── Save ────────────────────────────────────────────────────────────────
   const handleSave = useCallback(async () => {
@@ -282,7 +278,6 @@ export default function CompetenceMatchingPage() {
   }, [reloadData]);
 
   // ── Teacher CRUD ─────────────────────────────────────────────────────────
-  const handleCreateTeacher = useCallback(() => { setEditingEns(null); form.resetFields(); setShowCreateModal(true); }, [form]);
   const handleEditTeacher = useCallback((ens) => { setEditingEns(ens); form.setFieldsValue(ens); setShowCreateModal(true); }, [form]);
   const handleDeleteTeacher = useCallback((ens) => {
     modal.confirm({
@@ -304,16 +299,6 @@ export default function CompetenceMatchingPage() {
       message.success(editingEns ? "Enseignant mis à jour" : "Enseignant créé");
     } catch { message.error("Erreur lors de la sauvegarde"); }
   }, [editingEns, reloadData, form]);
-
-  // ── Quick Assign ─────────────────────────────────────────────────────────
-  const handleQuickAssign = useCallback((savoirId, enseignantId) => {
-    const current = state.assignments[String(savoirId)] ?? [];
-    if (current.map(String).includes(String(enseignantId))) { message.info("Déjà assigné"); return; }
-    dispatch({ type: "ASSIGN_SAVOIR", payload: { savoirId, enseignantId } });
-    const savoir = state.savoirs.find((x) => String(x.id) === String(savoirId));
-    const teacher = teacherById.get(String(enseignantId));
-    message.success(`${savoir?.code ?? savoirId} → ${teacher ? `${teacher.prenom} ${teacher.nom}`.trim() : enseignantId}`);
-  }, [state.assignments, state.savoirs, teacherById]);
 
   // ── Derived Values ───────────────────────────────────────────────────────
   const filteredSavoirs = useMemo(() => {
@@ -345,7 +330,9 @@ export default function CompetenceMatchingPage() {
     state.enseignants.forEach((e) => map.set(String(e.id), []));
     (state.savoirs || []).forEach((s) => {
       (state.assignments[String(s.id)] ?? []).forEach((ensId) => {
-        const k = String(ensId); if (!map.has(k)) map.set(k, []); map.get(k).push(s);
+        const k = String(ensId);
+        if (!map.has(k)) map.set(k, []);
+        map.get(k).push(s);
       });
     });
     return map;
@@ -415,12 +402,10 @@ export default function CompetenceMatchingPage() {
             </div>
           </div>
           <div className="panel-body-scrollable">
-            {state.loading.data ? (
-              <Skeleton active paragraph={{ rows: 10 }} />
-            ) : filteredSavoirs.length === 0 ? (
-              <Empty description="Aucun savoir trouvé" />
-            ) : (
-              filteredSavoirs.map((s) => {
+            {(() => {
+              if (state.loading.data) return <Skeleton active paragraph={{ rows: 10 }} />;
+              if (filteredSavoirs.length === 0) return <Empty description="Aucun savoir trouvé" />;
+              return filteredSavoirs.map((s) => {
                 const sId = String(s.id);
                 const assigned = (state.assignments[sId] ?? []).map((id) => teacherById.get(id)).filter(Boolean);
                 return (
@@ -436,7 +421,7 @@ export default function CompetenceMatchingPage() {
                     {assigned.length > 0 && (
                       <div className="savoir-assigned-teachers">
                         {assigned.map((ens) => (
-                          <Tag key={ens.id} className="teacher-assignment-tag" closable onClose={() => handleUnassign(String(s.id), String(ens.id))}>
+                          <Tag key={ens.id} className="teacher-assignment-tag" closable onClose={makeUnassignHandler(String(s.id), String(ens.id))}>
                             {ens.prenom} {ens.nom}
                           </Tag>
                         ))}
@@ -444,8 +429,8 @@ export default function CompetenceMatchingPage() {
                     )}
                   </div>
                 );
-              })
-            )}
+              });
+            })()}
           </div>
         </section>
 
@@ -461,12 +446,10 @@ export default function CompetenceMatchingPage() {
             </div>
           </div>
           <div className="panel-body-scrollable">
-            {state.loading.data ? (
-              <Skeleton active avatar paragraph={{ rows: 10 }} />
-            ) : sortedEnseignants.length === 0 ? (
-              <Empty description="Aucun enseignant" />
-            ) : (
-              sortedEnseignants.map((ens) => {
+            {(() => {
+              if (state.loading.data) return <Skeleton active avatar paragraph={{ rows: 10 }} />;
+              if (sortedEnseignants.length === 0) return <Empty description="Aucun enseignant" />;
+              return sortedEnseignants.map((ens) => {
                 const ensId = String(ens.id);
                 const count = assignmentCountByEns[ensId] ?? 0;
                 const loadPct = Math.round((count / Math.max(maxLoad, 1)) * 100);
@@ -478,7 +461,11 @@ export default function CompetenceMatchingPage() {
                   // eslint-disable-next-line jsx-a11y/no-static-element-interactions
                   <div key={ensId} className={`enseignant-assignment-card ${draggingId ? "drag-mode-active" : ""} ${dragOverEns === ensId ? "drag-over-target" : ""}`}
                     onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "copy"; setDragOverEns(ensId); }}
-                    onDragLeave={(e) => { const related = e.relatedTarget; if (related && e.currentTarget.contains(related)) return; setDragOverEns(null); }}
+                    onDragLeave={(e) => {
+                      const related = e.relatedTarget;
+                      if (related && e.currentTarget.contains(related)) return;
+                      setDragOverEns(null);
+                    }}
                     onDrop={(e) => handleEnsDrop(e, ensId)}>
                     
                     {dragOverEns === ensId && (
@@ -510,7 +497,7 @@ export default function CompetenceMatchingPage() {
                     {assigned.length > 0 && (
                       <div className="enseignant-assigned-savoirs" style={{ marginTop: 12 }}>
                         {assigned.map((sv) => (
-                          <Tag key={sv.id} color="blue" closable onClose={() => handleUnassign(String(sv.id), ensId)} style={{ marginBottom: 4 }}>
+                          <Tag key={sv.id} color="blue" closable onClose={makeUnassignHandler(String(sv.id), ensId)} style={{ marginBottom: 4 }}>
                             {sv.code}
                           </Tag>
                         ))}
@@ -518,8 +505,8 @@ export default function CompetenceMatchingPage() {
                     )}
                   </div>
                 );
-              })
-            )}
+              });
+            })()}
           </div>
         </section>
       </div>

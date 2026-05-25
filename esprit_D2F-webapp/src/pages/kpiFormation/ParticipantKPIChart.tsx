@@ -58,8 +58,8 @@ const ParticipantKPIChart = () => {
         });
 
         setFormationsKpiData(formationsKPI);
-      } catch (error) {
-        console.error("Erreur récupération KPI participants :", error);
+      } catch {
+        // silently handle
       }
     };
     fetchKPIs();

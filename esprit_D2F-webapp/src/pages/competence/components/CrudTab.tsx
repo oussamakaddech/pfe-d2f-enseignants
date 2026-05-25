@@ -1,4 +1,3 @@
-// src/pages/competence/components/CrudTab.jsx
 import { useMemo, useState } from "react";
 import PropTypes from "prop-types";
 import { Alert, Button, Input, Popconfirm, Space, Table, Tooltip } from "antd";

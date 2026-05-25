@@ -4,20 +4,32 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
+import org.hibernate.annotations.SQLRestriction;
 import tn.esprit.d2f.entity.enumerations.PeriodCode;
 import tn.esprit.d2f.entity.enumerations.Priorite;
 import tn.esprit.d2f.entity.enumerations.TypeBesoin;
 
 import java.io.Serializable;
+import java.time.Instant;
 
+/**
+ * Entité principale du service besoin-formation.
+ *
+ * <p>Fix 5 — Soft Delete : les enregistrements supprimés ont {@code deleted_at} non null.
+ * {@code @SQLRestriction} filtre automatiquement ces enregistrements dans toutes les requêtes JPA.</p>
+ *
+ * <p>Fix 6 — Audit : champs {@code createdAt}, {@code updatedAt}, {@code createdBy}, {@code updatedBy}
+ * hérités de {@link BaseAuditEntity} (déjà implémentés).</p>
+ */
 @Entity
+@SQLRestriction("deleted_at IS NULL")   // Fix 5: Soft Delete — filtre global automatique
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
 @ToString
-public class BesoinFormation implements Serializable {
+public class BesoinFormation extends BaseAuditEntity implements Serializable {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @JsonProperty("idBesoinFormation")
@@ -179,4 +191,12 @@ public class BesoinFormation implements Serializable {
 
     @Column(name = "last_refresh_date")
     private java.time.LocalDateTime lastRefreshDate;
+
+    // ── Fix 5 — Soft Delete ────────────────────────────────────────────────
+    /**
+     * Timestamp UTC de la suppression logique. NULL = enregistrement actif.
+     * {@link org.hibernate.annotations.SQLRestriction} filtre automatiquement les lignes non-nulles.
+     */
+    @Column(name = "deleted_at")
+    private Instant deletedAt;
 }

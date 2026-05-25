@@ -84,7 +84,7 @@ export function buildMatrixRows(matrixData = {}) {
 
 export function buildExportFileName(competenceCode, date = new Date()) {
   const safeCode = (competenceCode || "competence")
-    .replace(/[^A-Za-z0-9_-]/g, "_")
+    .replaceAll(/[^A-Za-z0-9_-]/g, "_")
     .slice(0, 40);
   const isoDate = date.toISOString().slice(0, 10);
   return `affectation_niveaux_${safeCode}_${isoDate}.xlsx`;

@@ -1,6 +1,6 @@
 // DocumentListModal.jsx
 import { useState } from "react";
-import { Modal, Button, List, Typography, Empty, Space } from "antd";
+import { Modal, Button, List, Empty } from "antd";
 import { EditOutlined, PlusOutlined, CloseOutlined } from "@ant-design/icons";
 import UpdateDocumentForm from "./UpdateDocumentForm";
 import DocumentCreateForm from "./DocumentCreateForm";
@@ -31,7 +31,7 @@ const DocumentListModal = ({ open, onClose, formation, onDocumentsUpdated }) => 
       }
       width={720}
     >
-      {formation.documents && formation.documents.length > 0 ? (
+      {(formation.documents?.length ?? 0) > 0 ? (
         <List
           dataSource={formation.documents}
           renderItem={(doc) => (
@@ -72,7 +72,7 @@ const DocumentListModal = ({ open, onClose, formation, onDocumentsUpdated }) => 
           </Button>
         )}
       </div>
-      {formation.documents && formation.documents.map((doc) => (
+      {formation.documents?.map((doc) => (
         selectedDocId === doc.idDocument && (
           <div key={`edit-${doc.idDocument}`} style={{ marginTop: "1rem" }}>
             <UpdateDocumentForm documentData={doc} onUpdated={handleUpdateComplete} />

@@ -68,27 +68,14 @@ describe('http', () => {
     });
   });
 
-  describe('authHeader', () => {
-    beforeEach(() => localStorage.clear());
-    it('returns empty object when no token', () => {
+  describe('authHeader (deprecated no-op)', () => {
+    it('always returns empty object — JWT is in HttpOnly cookie', () => {
       expect(authHeader()).toEqual({});
-    });
-    it('returns Bearer header when token exists', () => {
-      localStorage.setItem('authToken', 'my-token');
-      expect(authHeader()).toEqual({ Authorization: 'Bearer my-token' });
     });
   });
 
-  describe('jsonAuthHeaders', () => {
-    beforeEach(() => localStorage.clear());
-    it('includes Content-Type and auth header', () => {
-      localStorage.setItem('authToken', 't');
-      expect(jsonAuthHeaders()).toEqual({
-        'Content-Type': 'application/json',
-        Authorization: 'Bearer t',
-      });
-    });
-    it('includes Content-Type even without token', () => {
+  describe('jsonAuthHeaders (deprecated no-op)', () => {
+    it('always returns only Content-Type — JWT is in HttpOnly cookie', () => {
       expect(jsonAuthHeaders()).toEqual({ 'Content-Type': 'application/json' });
     });
   });

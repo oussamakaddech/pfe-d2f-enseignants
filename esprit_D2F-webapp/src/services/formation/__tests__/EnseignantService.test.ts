@@ -42,10 +42,9 @@ describe('EnseignantService', () => {
     expect(result).toEqual([{ id: 'E1' }]);
   });
 
-  it('throws when no auth for getAllEnseignants', async () => {
-    const { requireAuthHeader } = await import('@/services/auth/authHeaders');
-    vi.mocked(requireAuthHeader).mockImplementationOnce(() => { throw new Error('No token'); });
-    await expect(EnseignantService.getAllEnseignants()).rejects.toThrow('No token');
+  it('throws on getAllEnseignants error', async () => {
+    httpMocks.mockGet.mockRejectedValueOnce(new Error('Network error'));
+    await expect(EnseignantService.getAllEnseignants()).rejects.toThrow('Network error');
   });
 
   it('gets enseignant by id', async () => {

@@ -15,7 +15,7 @@ import java.time.LocalDate;
 @Entity
 @Table(name = "evaluation_globale",
         uniqueConstraints = @UniqueConstraint(columnNames = {"formationId"}))
-public class EvaluationGlobale {
+public class EvaluationGlobale extends BaseAuditEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

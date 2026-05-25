@@ -1,6 +1,6 @@
 import { Empty, Row, Col, Tag, Typography, Progress, Alert, Space } from "antd";
 import { BulbOutlined, HistoryOutlined } from "@ant-design/icons";
-import { AnalyseRecommandation } from "@/services/analyse/AnalysePredictiveService";
+import type { AnalyseRecommandation } from "@/models/analyse";
 
 const { Text } = Typography;
 

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import dayjs from "dayjs";
 import {
@@ -6,7 +6,6 @@ import {
   Typography,
   Tabs,
   Tag,
-  Spin,
   Button,
   Row,
   Col,
@@ -29,7 +28,8 @@ import {
   CheckSquareOutlined,
   ReloadOutlined,
 } from "@ant-design/icons";
-import FormationWorkflowService from "@/services/formation/FormationWorkflowService";
+import { useFormationById } from "@/hooks/formation";
+import { useAggregatedPresences } from "@/hooks/presence";
 import SeanceCard from "./SeanceCard";
 import FormationEvaluationsTab from "./FormationEvaluationsTab";
 import useAppNotification from "@/hooks/ui/useAppNotification";
@@ -45,6 +45,10 @@ const STATUS_META = {
   ANNULE:     { label: "Annulée",     color: "#dc2626", bg: "#fef2f2" },
 };
 
+const matchesParticipant = (x, ens) =>
+  (x.enseignant?.mail && x.enseignant.mail === ens.mail) ||
+  (x.enseignant?.id && x.enseignant.id === ens.id);
+
 const initialsOf = (nom, prenom) => {
   const a = (prenom || "").trim().charAt(0).toUpperCase();
   const b = (nom || "").trim().charAt(0).toUpperCase();
@@ -54,7 +58,7 @@ const initialsOf = (nom, prenom) => {
 const colorOfName = (str) => {
   const palette = ["#B51200", "#0891b2", "#7c3aed", "#059669", "#d97706", "#2563eb", "#db2777"];
   let h = 0;
-  for (let i = 0; i < (str || "").length; i += 1) h = (h * 31 + str.charCodeAt(i)) >>> 0;
+  for (let i = 0; i < (str || "").length; i += 1) h = (h * 31 + (str.codePointAt(i) ?? 0)) >>> 0;
   return palette[h % palette.length];
 };
 
@@ -62,52 +66,29 @@ const FormationDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { message: msgApi } = useAppNotification();
-  const [formation, setFormation] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [presencesBySeance, setPresencesBySeance] = useState({}); // { [seanceId]: PresenceDTO[] }
-  const [aggLoading, setAggLoading] = useState(false);
 
-  const fetchFormation = () => {
-    setLoading(true);
-    FormationWorkflowService.getFormationWorkflowById(id)
-      .then((data) => setFormation(data))
-      .catch(() => msgApi.error("Erreur lors du chargement de la formation"))
-      .finally(() => setLoading(false));
-  };
-
+  const { data: formation = null, isLoading: loading, isError } = useFormationById(id);
   useEffect(() => {
-    fetchFormation();
+    if (isError) msgApi.error("Erreur lors du chargement de la formation");
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id]);
+  }, [isError]);
 
-  // Aggregate presences across all seances for the "Enseignants" tab
-  const loadAggregatedPresences = async () => {
-    if (!formation?.seances?.length) return;
-    setAggLoading(true);
-    try {
-      const results = await Promise.all(
-        formation.seances.map((s) =>
-          FormationWorkflowService.getPresencesBySeance(s.idSeance).catch(() => [])
-        )
-      );
-      const byId = {};
-      formation.seances.forEach((s, idx) => {
-        byId[s.idSeance] = (results[idx] || []).map((p) => ({
-          ...p,
-          presence: typeof p.present === "boolean" ? p.present : !!p.presence,
-        }));
-      });
-      setPresencesBySeance(byId);
-    } finally {
-      setAggLoading(false);
-    }
-  };
+  const seanceIds = useMemo(
+    () => (formation?.seances || []).map((s) => s.idSeance).filter(Boolean),
+    [formation],
+  );
+  const { data: aggResults = [], isLoading: aggLoading, refetch: refetchPresences } = useAggregatedPresences(seanceIds);
 
-  // Auto-load aggregated presences once formation is loaded
-  useEffect(() => {
-    if (formation?.seances?.length) loadAggregatedPresences();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [formation?.idFormation]);
+  const presencesBySeance = useMemo(() => {
+    const byId = {};
+    seanceIds.forEach((sid, idx) => {
+      byId[sid] = (aggResults[idx] || []).map((p) => ({
+        ...p,
+        presence: typeof p.present === "boolean" ? p.present : !!p.presence,
+      }));
+    });
+    return byId;
+  }, [seanceIds, aggResults]);
 
   // Derived data
   const seancesCount = formation?.seances?.length || 0;
@@ -133,10 +114,10 @@ const FormationDetail = () => {
       let presentes = 0;
       let totalSeancesAvecPresence = 0;
       Object.values(presencesBySeance).forEach((presences) => {
-        const p = presences.find(
-          (x) => (x.enseignant?.mail && x.enseignant.mail === ens.mail) ||
-                 (x.enseignant?.id && x.enseignant.id === ens.id)
-        );
+        let p;
+        for (const x of presences) {
+          if (matchesParticipant(x, ens)) { p = x; break; }
+        }
         if (p) {
           totalSeancesAvecPresence += 1;
           if (p.presence) presentes += 1;
@@ -210,7 +191,7 @@ const FormationDetail = () => {
               size="small"
               icon={<ReloadOutlined />}
               loading={aggLoading}
-              onClick={loadAggregatedPresences}
+              onClick={() => void refetchPresences()}
             >
               Recalculer les présences
             </Button>
@@ -254,7 +235,9 @@ const FormationDetail = () => {
                 width: 120,
                 render: (t) => {
                   if (!t) return <Text type="secondary">—</Text>;
-                  const label = t === "P" ? "Permanent" : t === "V" ? "Vacataire" : t;
+                  let label = t;
+                  if (t === "P") label = "Permanent";
+                  else if (t === "V") label = "Vacataire";
                   const cls = t === "P" ? "fd-type-tag p" : "fd-type-tag v";
                   return <span className={cls}>{label}</span>;
                 },

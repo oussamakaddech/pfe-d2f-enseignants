@@ -10,8 +10,13 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
+import org.springframework.http.ResponseEntity;
+
 import java.util.Date;
-import java.util.List;
+
 
 @RestController
 @RequestMapping("/api/v1/kpi/participants")
@@ -22,10 +27,11 @@ public class ParticipantKpiController {
 
     // KPI par formation achevée dans une période donnée
     @GetMapping("/formations")
-    public List<ParticipantKpiDTO> getFormationsParticipantKpis(
+    public ResponseEntity<Page<ParticipantKpiDTO>> getFormationsParticipantKpis(
             @RequestParam("startDate") @DateTimeFormat(pattern = "yyyy-MM-dd") Date startDate,
-            @RequestParam("endDate") @DateTimeFormat(pattern = "yyyy-MM-dd") Date endDate) {
-        return participantKpiService.getParticipantKpis(startDate, endDate);
+            @RequestParam("endDate") @DateTimeFormat(pattern = "yyyy-MM-dd") Date endDate,
+            @PageableDefault(size = 20, sort = "formationId") Pageable pageable) {
+        return ResponseEntity.ok(participantKpiService.getParticipantKpis(startDate, endDate, pageable));
     }
 
     // KPI global sur toutes les formations achevées dans une période donnée

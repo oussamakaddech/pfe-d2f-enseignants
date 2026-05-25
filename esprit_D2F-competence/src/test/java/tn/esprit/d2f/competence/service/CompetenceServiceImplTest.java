@@ -295,4 +295,31 @@ class CompetenceServiceImplTest {
         competenceService.updateCompetence(2L, req);
         verify(competenceRepository).save(argThat(c -> c.getOrdre() == 1)); // Remains 1 from setUp
     }
+
+    // ── GetByFilter ──────────────────────────────────────────────────────────
+    @Test
+    @DisplayName("getCompetencesByFilter(upId, departementId) retourne la liste filtrée")
+    void getCompetencesByFilter_shouldReturnFilteredList() {
+        when(competenceRepository.findByDomaine_UpIdAndDomaine_DepartementId("1", "2"))
+                .thenReturn(List.of(competence));
+        when(competenceMapper.toDTO(any(Competence.class))).thenReturn(competenceDTO);
+
+        List<CompetenceDTO> result = competenceService.getCompetencesByFilter("1", "2");
+
+        assertThat(result).hasSize(1);
+        verify(competenceRepository).findByDomaine_UpIdAndDomaine_DepartementId("1", "2");
+    }
+
+    @Test
+    @DisplayName("getCompetencesByFilter(upId, departementId, pageable) retourne la page filtrée")
+    void getCompetencesByFilterPaged_shouldReturnFilteredPage() {
+        Pageable pageable = PageRequest.of(0, 20);
+        when(competenceRepository.findByDomaine_UpIdAndDomaine_DepartementId("1", "2", pageable))
+                .thenReturn(new PageImpl<>(List.of(competence)));
+        when(competenceMapper.toDTO(any(Competence.class))).thenReturn(competenceDTO);
+
+        Page<CompetenceDTO> result = competenceService.getCompetencesByFilter("1", "2", pageable);
+
+        assertThat(result.getContent()).hasSize(1);
+    }
 }

@@ -40,7 +40,7 @@ class GlobalExceptionHandlerTest {
 
         assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
         assertEquals("Entity not found", response.getBody().getMessage());
-        assertEquals("BESOIN-404", response.getBody().getErrorCode());
+        assertEquals("BESOIN_NOT_FOUND", response.getBody().getErrorCode());
         assertEquals("/api/test", response.getBody().getPath());
     }
 
@@ -59,7 +59,7 @@ class GlobalExceptionHandlerTest {
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
         assertTrue(response.getBody().getMessage().contains("field1: cannot be null"));
         assertTrue(response.getBody().getMessage().contains("field2: must be positive"));
-        assertEquals("BESOIN-400", response.getBody().getErrorCode());
+        assertEquals("BESOIN_VALIDATION_ERROR", response.getBody().getErrorCode());
     }
 
     @Test
@@ -68,7 +68,7 @@ class GlobalExceptionHandlerTest {
         ResponseEntity<ErrorResponse> response = handler.handleAccessDenied(ex, request);
 
         assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
-        assertEquals("BESOIN-403", response.getBody().getErrorCode());
+        assertEquals("BESOIN_ACCESS_DENIED", response.getBody().getErrorCode());
     }
 
     @Test
@@ -77,7 +77,7 @@ class GlobalExceptionHandlerTest {
         ResponseEntity<ErrorResponse> response = handler.handleAuthentication(ex, request);
 
         assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
-        assertEquals("BESOIN-401", response.getBody().getErrorCode());
+        assertEquals("BESOIN_UNAUTHORIZED", response.getBody().getErrorCode());
     }
 
     @Test
@@ -86,18 +86,22 @@ class GlobalExceptionHandlerTest {
         ResponseEntity<ErrorResponse> response = handler.handleIllegalArgument(ex, request);
 
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
-        assertEquals("Illegal arg", response.getBody().getMessage());
-        assertEquals("BESOIN-400", response.getBody().getErrorCode());
+        // Handler always returns a generic sanitized message (Fix 1 — never leak raw Java messages)
+        assertEquals("Requête invalide : vérifiez les paramètres envoyés.", response.getBody().getMessage());
+        assertEquals("BESOIN_BUSINESS_RULE_VIOLATION", response.getBody().getErrorCode());
     }
 
     @Test
     void testHandleDataIntegrity_WithRootCause() {
-        DataIntegrityViolationException ex = new DataIntegrityViolationException("Outer msg", new RuntimeException("Root cause msg"));
+        DataIntegrityViolationException ex = new DataIntegrityViolationException("Outer msg",
+                new RuntimeException("Root cause msg"));
         ResponseEntity<ErrorResponse> response = handler.handleDataIntegrity(ex, request);
 
         assertEquals(HttpStatus.CONFLICT, response.getStatusCode());
-        assertTrue(response.getBody().getMessage().contains("Root cause msg"));
-        assertEquals("BESOIN-409", response.getBody().getErrorCode());
+        // Handler always returns a generic sanitized message for data integrity violations
+        assertEquals("Conflit de données : une contrainte d'intégrité a été violée.",
+                response.getBody().getMessage());
+        assertEquals("BESOIN_DATA_CONFLICT", response.getBody().getErrorCode());
     }
 
     @Test
@@ -106,8 +110,10 @@ class GlobalExceptionHandlerTest {
         ResponseEntity<ErrorResponse> response = handler.handleDataIntegrity(ex, request);
 
         assertEquals(HttpStatus.CONFLICT, response.getStatusCode());
-        assertTrue(response.getBody().getMessage().contains("Outer msg"));
-        assertEquals("BESOIN-409", response.getBody().getErrorCode());
+        // Handler always returns a generic sanitized message (never leaks raw DB message)
+        assertEquals("Conflit de données : une contrainte d'intégrité a été violée.",
+                response.getBody().getMessage());
+        assertEquals("BESOIN_DATA_CONFLICT", response.getBody().getErrorCode());
     }
 
     @Test
@@ -116,7 +122,7 @@ class GlobalExceptionHandlerTest {
         ResponseEntity<ErrorResponse> response = handler.handleGeneral(ex, request);
 
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
-        assertEquals("BESOIN-500", response.getBody().getErrorCode());
+        assertEquals("BESOIN_INTERNAL_ERROR", response.getBody().getErrorCode());
         assertNotNull(response.getBody().getTraceId());
     }
 }

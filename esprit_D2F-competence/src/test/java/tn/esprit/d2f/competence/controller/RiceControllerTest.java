@@ -8,6 +8,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import tn.esprit.d2f.competence.dto.RiceImportRequest;
@@ -78,27 +81,28 @@ class RiceControllerTest {
     @Test
     @DisplayName("GET /imports - doit retourner 200 avec l'historique des imports")
     void getImportHistory_ShouldReturnOkWithHistory() {
-        when(riceImportService.getImportHistory()).thenReturn(List.of(importResult));
+        when(riceImportService.getImportHistory(any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of(importResult)));
 
-        ResponseEntity<List<RiceImportResult>> response = riceController.getImportHistory();
+        ResponseEntity<Page<RiceImportResult>> response = riceController.getImportHistory(Pageable.unpaged());
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody()).isNotNull();
-        assertThat(response.getBody()).hasSize(1);
-        assertThat(response.getBody().get(0).getDomainesCreated()).isEqualTo(1);
-        verify(riceImportService).getImportHistory();
+        assertThat(response.getBody().getContent()).hasSize(1);
+        assertThat(response.getBody().getContent().get(0).getDomainesCreated()).isEqualTo(1);
+        verify(riceImportService).getImportHistory(any(Pageable.class));
     }
 
     @Test
     @DisplayName("GET /imports - doit retourner liste vide si aucun import")
     void getImportHistory_ShouldReturnEmptyListWhenNoHistory() {
-        when(riceImportService.getImportHistory()).thenReturn(List.of());
+        when(riceImportService.getImportHistory(any(Pageable.class))).thenReturn(Page.empty());
 
-        ResponseEntity<List<RiceImportResult>> response = riceController.getImportHistory();
+        ResponseEntity<Page<RiceImportResult>> response = riceController.getImportHistory(Pageable.unpaged());
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody()).isNotNull();
         assertThat(response.getBody()).isEmpty();
-        verify(riceImportService).getImportHistory();
+        verify(riceImportService).getImportHistory(any(Pageable.class));
     }
 }

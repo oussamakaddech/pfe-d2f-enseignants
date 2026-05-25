@@ -3,11 +3,14 @@ package esprit.pfe.serviceformation.services;
 import esprit.pfe.serviceformation.entities.Up;
 import esprit.pfe.serviceformation.repositories.UpRepository;
 import org.apache.poi.ss.usermodel.*;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 import lombok.RequiredArgsConstructor;
 
+import jakarta.persistence.EntityNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -15,7 +18,34 @@ import java.util.List;
 @Service
 @RequiredArgsConstructor
 public class UpService {
-    private final  UpRepository upRepository;
+    private final UpRepository upRepository;
+
+    public Page<Up> findAll(Pageable pageable) {
+        return upRepository.findAll(pageable);
+    }
+
+    public List<Up> findAll() {
+        return upRepository.findAll();
+    }
+
+    public Up findById(String id) {
+        return upRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("UP introuvable : " + id));
+    }
+
+    public Up create(Up up) {
+        return upRepository.save(up);
+    }
+
+    public Up update(String id, Up up) {
+        Up existing = findById(id);
+        existing.setLibelle(up.getLibelle());
+        return upRepository.save(existing);
+    }
+
+    public void delete(String id) {
+        upRepository.deleteById(id);
+    }
 
     @Transactional
     public void importUpsFromExcel(MultipartFile file) throws IOException {

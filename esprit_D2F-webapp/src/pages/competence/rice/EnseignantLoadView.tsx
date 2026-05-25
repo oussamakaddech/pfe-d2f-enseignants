@@ -9,39 +9,55 @@ import { cloneDeep, computeEnseignantLoad, getInitials, avatarColor } from "./co
 
 const { Text } = Typography;
 
+const addSousCompSavoirRows = (rows, d, di, c, ci, sc, sci) => {
+  (sc.savoirs ?? []).forEach((s, si) => {
+    rows.push({ di, ci, sci, si, domaineNom: d.nom, competenceNom: c.nom, ...s });
+  });
+};
+
 const flattenSavoirs = (tree) => {
   const rows = [];
   (tree ?? []).forEach((d, di) => {
     (d.competences ?? []).forEach((c, ci) => {
       (c.savoirs ?? []).forEach((s, si) => {
-        rows.push({
-          di, ci, sci: -1, si,
-          domaineNom: d.nom,
-          competenceNom: c.nom,
-          ...s,
-        });
+        rows.push({ di, ci, sci: -1, si, domaineNom: d.nom, competenceNom: c.nom, ...s });
       });
       (c.sousCompetences ?? []).forEach((sc, sci) => {
-        (sc.savoirs ?? []).forEach((s, si) => {
-          rows.push({
-            di, ci, sci, si,
-            domaineNom: d.nom,
-            competenceNom: c.nom,
-            ...s,
-          });
-        });
+        addSousCompSavoirRows(rows, d, di, c, ci, sc, sci);
       });
     });
   });
   return rows;
 };
 
-export default function EnseignantLoadView({ tree, setTree, allEnseignants, extractedEnseignants }) {
-    const getByPath = (next, di, ci, sci, si) => {
-      if (sci === -1) return next?.[di]?.competences?.[ci]?.savoirs?.[si];
-      return next?.[di]?.competences?.[ci]?.sousCompetences?.[sci]?.savoirs?.[si];
-    };
+const getSavoirByPath = (next, di, ci, sci, si) => {
+  if (sci === -1) return next?.[di]?.competences?.[ci]?.savoirs?.[si];
+  return next?.[di]?.competences?.[ci]?.sousCompetences?.[sci]?.savoirs?.[si];
+};
 
+const forEachTreeSavoir = (tree, cb) => {
+  (tree ?? []).forEach((d) => {
+    (d.competences ?? []).forEach((c) => {
+      (c.savoirs ?? []).forEach(cb);
+      (c.sousCompetences ?? []).forEach((sc) => (sc.savoirs ?? []).forEach(cb));
+    });
+  });
+};
+
+const computeLoadStyle = (e, total) => {
+  const ratio = total ? Math.round((e.loadCount / total) * 100) : 0;
+  let loadCls = "";
+  if (e.loadCount > 10) loadCls = "overloaded";
+  else if (e.loadCount > 5) loadCls = "warning";
+  let loadStrokeColor = "#52c41a";
+  if (loadCls === "overloaded") loadStrokeColor = "#f5222d";
+  else if (loadCls === "warning") loadStrokeColor = "#fa8c16";
+  return { ratio, loadCls, loadStrokeColor };
+};
+
+const isEnterOrSpace = (key) => key === "Enter" || key === " ";
+
+export default function EnseignantLoadView({ tree, setTree, allEnseignants, extractedEnseignants }) {
   const loadMap = useMemo(() => computeEnseignantLoad(tree), [tree]);
   const allSavoirs = useMemo(() => flattenSavoirs(tree), [tree]);
 
@@ -78,7 +94,7 @@ export default function EnseignantLoadView({ tree, setTree, allEnseignants, extr
   const removeOne = (path, eid) => {
     const { di, ci, sci, si } = path;
     const next = cloneDeep(tree);
-    const s = getByPath(next, di, ci, sci, si);
+    const s = getSavoirByPath(next, di, ci, sci, si);
     if (!s) return;
     s.enseignantsSuggeres = (s.enseignantsSuggeres ?? []).filter((x) => String(x) !== String(eid));
     setTree(next);
@@ -87,7 +103,7 @@ export default function EnseignantLoadView({ tree, setTree, allEnseignants, extr
   const addOne = (path, eid) => {
     const { di, ci, sci, si } = path;
     const next = cloneDeep(tree);
-    const s = getByPath(next, di, ci, sci, si);
+    const s = getSavoirByPath(next, di, ci, sci, si);
     if (!s) return;
     const ids = new Set((s.enseignantsSuggeres ?? []).map(String));
     ids.add(String(eid));
@@ -98,14 +114,9 @@ export default function EnseignantLoadView({ tree, setTree, allEnseignants, extr
   const removeAllFromTeacher = () => {
     if (!selectedEnsId) return;
     const next = cloneDeep(tree);
-    (next ?? []).forEach((d) => (d.competences ?? []).forEach((c) => {
-      (c.savoirs ?? []).forEach((s) => {
-        s.enseignantsSuggeres = (s.enseignantsSuggeres ?? []).filter((x) => String(x) !== String(selectedEnsId));
-      });
-      (c.sousCompetences ?? []).forEach((sc) => (sc.savoirs ?? []).forEach((s) => {
-        s.enseignantsSuggeres = (s.enseignantsSuggeres ?? []).filter((x) => String(x) !== String(selectedEnsId));
-      }));
-    }));
+    forEachTreeSavoir(next, (s) => {
+      s.enseignantsSuggeres = (s.enseignantsSuggeres ?? []).filter((x) => String(x) !== String(selectedEnsId));
+    });
     setTree(next);
   };
 
@@ -125,14 +136,24 @@ export default function EnseignantLoadView({ tree, setTree, allEnseignants, extr
     <Row gutter={16}>
       <Col xs={24} lg={8}>
         {(enseignantRows ?? []).map((e) => {
-          const ratio = allSavoirs.length ? Math.round((e.loadCount / allSavoirs.length) * 100) : 0;
+          const { ratio, loadCls, loadStrokeColor } = computeLoadStyle(e, allSavoirs.length);
           const cls = [
             "ens-teacher-card",
             selectedEnsId === e.id ? "selected" : "",
-            e.loadCount > 10 ? "overloaded" : e.loadCount > 5 ? "warning" : "",
+            loadCls,
           ].filter(Boolean).join(" ");
           return (
-            <div key={e.id} className={cls} role="button" tabIndex={0} onClick={() => setSelectedEnsId(e.id)} onKeyDown={(ev) => { if (ev.key === "Enter" || ev.key === " ") { ev.preventDefault(); setSelectedEnsId(e.id); } }}>
+            <button
+              key={e.id}
+              type="button"
+              className={cls}
+              onClick={() => setSelectedEnsId(e.id)}
+              onKeyDown={(ev) => {
+                if (!isEnterOrSpace(ev.key)) return;
+                ev.preventDefault();
+                setSelectedEnsId(e.id);
+              }}
+            >
               <Space align="start">
                 <Avatar style={{ background: avatarColor(e.id) }}>{getInitials(e.nomComplet, "")}</Avatar>
                 <div>
@@ -141,7 +162,7 @@ export default function EnseignantLoadView({ tree, setTree, allEnseignants, extr
                     <Progress
                       size="small"
                       percent={ratio}
-                      strokeColor={e.loadCount > 10 ? "#f5222d" : e.loadCount > 5 ? "#fa8c16" : "#52c41a"}
+                      strokeColor={loadStrokeColor}
                       format={() => `${e.loadCount}/${allSavoirs.length} savoirs`}
                     />
                   </div>
@@ -150,7 +171,7 @@ export default function EnseignantLoadView({ tree, setTree, allEnseignants, extr
                   </Space>
                 </div>
               </Space>
-            </div>
+            </button>
           );
         })}
       </Col>
@@ -222,8 +243,8 @@ export default function EnseignantLoadView({ tree, setTree, allEnseignants, extr
               ),
               children: (
                 <Space direction="vertical" style={{ width: "100%" }}>
-                  {unmatched.map((u, idx) => (
-                    <div key={`unmatched-${idx}`} style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
+                  {unmatched.map((u) => (
+                    <div key={`${u.nom_complet}-${u.fichier}`} style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
                       <Text>{u.nom_complet}</Text>
                       <Text type="secondary">{u.fichier}</Text>
                     </div>

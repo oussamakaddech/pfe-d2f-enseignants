@@ -47,6 +47,7 @@ class SavoirServiceImplTest {
     @Mock private CompetenceRepository competenceRepository;
     @Mock private EnseignantCompetenceRepository enseignantCompetenceRepository;
     @Mock private CompetenceMapper competenceMapper;
+    @Mock private ISavoirService self;
 
     @InjectMocks private SavoirServiceImpl savoirService;
 
@@ -124,6 +125,52 @@ class SavoirServiceImplTest {
 
             assertThat(list).hasSize(1);
             verify(savoirRepository).searchByKeyword("test");
+        }
+    }
+
+    @Nested
+    @DisplayName("Paged methods")
+    class PagedMethods {
+        @Test
+        void shouldPageBySousCompetence() {
+            Pageable pageable = PageRequest.of(0, 1);
+            when(self.getSavoirsBySousCompetence(3L)).thenReturn(List.of(savoirDTO));
+
+            Page<SavoirDTO> result = savoirService.getSavoirsBySousCompetence(3L, pageable);
+
+            assertThat(result.getContent()).hasSize(1);
+            assertThat(result.getTotalElements()).isEqualTo(1);
+        }
+
+        @Test
+        void shouldPageBySousCompetencePastEnd() {
+            Pageable pageable = PageRequest.of(3, 1);
+            when(self.getSavoirsBySousCompetence(3L)).thenReturn(List.of(savoirDTO));
+
+            Page<SavoirDTO> result = savoirService.getSavoirsBySousCompetence(3L, pageable);
+
+            assertThat(result.getContent()).isEmpty();
+            assertThat(result.getTotalElements()).isEqualTo(1);
+        }
+
+        @Test
+        void shouldPageByCompetence() {
+            Pageable pageable = PageRequest.of(0, 1);
+            when(self.getSavoirsByCompetence(2L)).thenReturn(List.of(savoirDTO));
+
+            Page<SavoirDTO> result = savoirService.getSavoirsByCompetence(2L, pageable);
+
+            assertThat(result.getContent()).hasSize(1);
+        }
+
+        @Test
+        void shouldPageByType() {
+            Pageable pageable = PageRequest.of(0, 1);
+            when(self.getSavoirsByType(TypeSavoir.PRATIQUE)).thenReturn(List.of(savoirDTO));
+
+            Page<SavoirDTO> result = savoirService.getSavoirsByType(TypeSavoir.PRATIQUE, pageable);
+
+            assertThat(result.getContent()).hasSize(1);
         }
     }
 

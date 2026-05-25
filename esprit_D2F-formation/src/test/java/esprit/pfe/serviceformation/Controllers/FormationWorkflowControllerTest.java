@@ -35,7 +35,7 @@ class FormationWorkflowControllerTest {
 
     @BeforeEach
     void setup() {
-        mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
+        mockMvc = MockMvcBuilders.standaloneSetup(controller).setCustomArgumentResolvers(new org.springframework.data.web.PageableHandlerMethodArgumentResolver()).build();
     }
 
     @Test
@@ -146,3 +146,4 @@ class FormationWorkflowControllerTest {
                 .param("end", "2023-12-31")).andExpect(status().isOk());
     }
 }
+

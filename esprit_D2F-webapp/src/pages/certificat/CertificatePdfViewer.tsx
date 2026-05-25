@@ -1,4 +1,3 @@
-// src/components/CertificatePdfViewer.jsx
 import { useEffect, useState } from "react";
 import jsPDF from "jspdf";
 import PropTypes from "prop-types";
@@ -37,7 +36,7 @@ function CertificatePdfViewer({ certificate }) {
       try {
         doc.addImage(img, "PNG", 0, 0, w, h);
       } catch {
-        console.warn("Impossible d'ajouter le fond, on continue sans.");
+        // background image not available, continue without it
       }
 
       // 3) Superposition des champs (alignés à gauche)

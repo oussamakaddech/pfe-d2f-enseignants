@@ -92,14 +92,15 @@ class BesoinFormationResponseTest {
     void testNoArgsConstructor() {
         BesoinFormationResponse response = new BesoinFormationResponse();
 
+        // nbMaxParticipants and dureeFormation are Integer (nullable) — default is null, not 0
         assertThat(response).extracting(
                 BesoinFormationResponse::getIdBesoinFormation,
                 BesoinFormationResponse::getUsername,
                 BesoinFormationResponse::getNbMaxParticipants,
                 BesoinFormationResponse::getDureeFormation,
                 BesoinFormationResponse::getApprouveAdmin
-        ).containsExactly(0L, null, 0, 0, null);
-        
+        ).containsExactly(0L, null, null, null, null);
+
         assertThat(response).usingRecursiveComparison()
                 .ignoringFields("idBesoinFormation", "nbMaxParticipants", "dureeFormation")
                 .isEqualTo(new BesoinFormationResponse());
@@ -290,10 +291,12 @@ class BesoinFormationResponseTest {
     void testDefaultValues() {
         BesoinFormationResponse response = new BesoinFormationResponse();
 
+        // idBesoinFormation is primitive long → defaults to 0L
+        // nbMaxParticipants and dureeFormation are Integer (nullable) → default is null
         assertAll("Verify defaults",
             () -> assertEquals(0L, response.getIdBesoinFormation()),
-            () -> assertEquals(0, response.getNbMaxParticipants()),
-            () -> assertEquals(0, response.getDureeFormation())
+            () -> assertNull(response.getNbMaxParticipants()),
+            () -> assertNull(response.getDureeFormation())
         );
     }
 

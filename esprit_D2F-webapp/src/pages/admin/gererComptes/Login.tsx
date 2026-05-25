@@ -1,9 +1,7 @@
-// src/pages/Auth/Login.jsx
 import { useState, useContext } from "react";
 import { Form, Input, Button, Typography } from "antd";
 import { UserOutlined, LockOutlined } from "@ant-design/icons";
 import useAppNotification from "@/hooks/ui/useAppNotification";
-import { v4 as uuidv4 } from "uuid";
 import { useNavigate } from "react-router-dom";
 import { login as loginService } from "@/services/auth/AuthService";
 import { AuthContext } from "@/components/common/AuthProvider";
@@ -31,8 +29,6 @@ export default function Login() {
   const navigate = useNavigate();
   const { login } = useContext(AuthContext);
   const [loading, setLoading] = useState(false);
-  const [deviceId] = useState(uuidv4());
-
   const onFinish = async ({ username, password }) => {
     setLoading(true);
     form.setFields([{ name: "password", errors: [] }]);
@@ -92,8 +88,8 @@ export default function Login() {
             Plateforme de Développement<br />des Formateurs — D2F
           </p>
           <div className="login-brand-features">
-            {FEATURES.map((f, i) => (
-              <div key={i} className="login-brand-feature">
+            {FEATURES.map((f) => (
+              <div key={f} className="login-brand-feature">
                 <span className="login-brand-feature-dot" />
                 {f}
               </div>

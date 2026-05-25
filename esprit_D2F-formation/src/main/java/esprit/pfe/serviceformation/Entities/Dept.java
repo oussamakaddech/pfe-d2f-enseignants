@@ -13,7 +13,7 @@ import lombok.NoArgsConstructor;
 @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"}) // Évite les erreurs de proxy
 @Entity
 @Table(name = "departements")
-public class Dept {
+public class Dept extends BaseAuditEntity {
 
     @Id
 

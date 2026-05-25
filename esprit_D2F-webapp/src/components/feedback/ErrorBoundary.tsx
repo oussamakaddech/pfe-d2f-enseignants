@@ -1,25 +1,29 @@
-import React from "react";
+import { Component } from "react";
+import type { ReactNode, ErrorInfo } from "react";
 import { Result, Button } from "antd";
 import { ReloadOutlined } from "@ant-design/icons";
 
-/**
- * Error Boundary Component
- * Catches errors in child components and displays a user-friendly error page
- * instead of crashing the entire application.
- */
-export default class ErrorBoundary extends React.Component {
-  constructor(props) {
+interface ErrorBoundaryProps {
+  children: ReactNode;
+}
+
+interface ErrorBoundaryState {
+  hasError: boolean;
+  error: Error | null;
+  errorInfo: ErrorInfo | null;
+}
+
+export default class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  constructor(props: ErrorBoundaryProps) {
     super(props);
     this.state = { hasError: false, error: null, errorInfo: null };
   }
 
-  static getDerivedStateFromError(error) {
+  static getDerivedStateFromError(_error: Error): Partial<ErrorBoundaryState> {
     return { hasError: true };
   }
 
-  componentDidCatch(error, errorInfo) {
-    // Log error details for debugging
-    console.error("ErrorBoundary caught an error:", error, errorInfo);
+  componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
     this.setState({
       error,
       errorInfo,
@@ -31,7 +35,7 @@ export default class ErrorBoundary extends React.Component {
   };
 
   handleReload = () => {
-    window.location.reload();
+    globalThis.location.reload();
   };
 
   render() {

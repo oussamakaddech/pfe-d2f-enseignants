@@ -3,6 +3,7 @@ package tn.esprit.d2f.competence.service;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.transaction.annotation.Transactional;
@@ -17,6 +18,7 @@ import tn.esprit.d2f.competence.entity.enumerations.NiveauMaitrise;
 import tn.esprit.d2f.competence.repository.EnseignantCompetenceRepository;
 import tn.esprit.d2f.competence.repository.SavoirRepository;
 
+import org.springframework.data.domain.PageImpl;
 import java.util.List;
 
 @Slf4j
@@ -27,6 +29,9 @@ public class EnseignantCompetenceServiceImpl implements IEnseignantCompetenceSer
     private final EnseignantCompetenceRepository enseignantCompetenceRepository;
     private final SavoirRepository savoirRepository;
     private final CompetenceMapper competenceMapper;
+
+    @Lazy
+    private final IEnseignantCompetenceService self;
 
     @Override
     @Transactional(readOnly = true)
@@ -47,10 +52,22 @@ public class EnseignantCompetenceServiceImpl implements IEnseignantCompetenceSer
 
     @Override
     @Transactional(readOnly = true)
+    public Page<EnseignantCompetenceDTO> getCompetencesByEnseignant(String enseignantId, Pageable pageable) {
+        return paginate(self.getCompetencesByEnseignant(enseignantId), pageable);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public List<EnseignantCompetenceDTO> getCompetencesByEnseignantAndDomaine(String enseignantId, Long domaineId) {
         return enseignantCompetenceRepository.findByEnseignantIdAndDomaineId(enseignantId, domaineId).stream()
                 .map(competenceMapper::toDTO)
                 .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<EnseignantCompetenceDTO> getCompetencesByEnseignantAndDomaine(String enseignantId, Long domaineId, Pageable pageable) {
+        return paginate(self.getCompetencesByEnseignantAndDomaine(enseignantId, domaineId), pageable);
     }
 
     @Override
@@ -63,10 +80,22 @@ public class EnseignantCompetenceServiceImpl implements IEnseignantCompetenceSer
 
     @Override
     @Transactional(readOnly = true)
+    public Page<EnseignantCompetenceDTO> getCompetencesByEnseignantAndCompetence(String enseignantId, Long competenceId, Pageable pageable) {
+        return paginate(self.getCompetencesByEnseignantAndCompetence(enseignantId, competenceId), pageable);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public List<EnseignantCompetenceDTO> getCompetencesByEnseignantAndNiveau(String enseignantId, NiveauMaitrise niveau) {
         return enseignantCompetenceRepository.findByEnseignantIdAndNiveau(enseignantId, niveau).stream()
                 .map(competenceMapper::toDTO)
                 .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<EnseignantCompetenceDTO> getCompetencesByEnseignantAndNiveau(String enseignantId, NiveauMaitrise niveau, Pageable pageable) {
+        return paginate(self.getCompetencesByEnseignantAndNiveau(enseignantId, niveau), pageable);
     }
 
     @Override
@@ -132,5 +161,17 @@ public class EnseignantCompetenceServiceImpl implements IEnseignantCompetenceSer
         return enseignantCompetenceRepository.findByCompetenceId(competenceId).stream()
                 .map(competenceMapper::toDTO)
                 .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<EnseignantCompetenceDTO> getByCompetenceId(Long competenceId, Pageable pageable) {
+        return paginate(self.getByCompetenceId(competenceId), pageable);
+    }
+
+    private Page<EnseignantCompetenceDTO> paginate(List<EnseignantCompetenceDTO> items, Pageable pageable) {
+        int from = (int) pageable.getOffset();
+        int to = Math.min(from + pageable.getPageSize(), items.size());
+        return new PageImpl<>(from >= items.size() ? List.of() : items.subList(from, to), pageable, items.size());
     }
 }

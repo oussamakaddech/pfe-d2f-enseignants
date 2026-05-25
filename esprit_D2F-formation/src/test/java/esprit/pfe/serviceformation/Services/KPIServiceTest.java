@@ -10,6 +10,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 
 import java.util.Date;
 import java.util.List;
@@ -279,6 +281,33 @@ class KPIServiceTest {
         assertEquals("Dupont", result.get(0).getNom());
         assertNull(result.get(0).getDeptId());
         assertNull(result.get(0).getUpId());
+    }
+
+    @Test
+    void getEnseignantsNonAffectes_pageable_shouldSliceResults() {
+        Enseignant ens = new Enseignant();
+        ens.setId("ens-1");
+        ens.setNom("Dupont");
+        ens.setPrenom("Jean");
+        ens.setMail("jean@esprit.tn");
+        ens.setType("Permanent");
+
+        when(enseignantRepository.findEnseignantsNonAffectesSurPeriode(any(), any())).thenReturn(List.of(ens));
+
+        Page<EnseignantDTO> result = service.getEnseignantsNonAffectes(start, end, PageRequest.of(0, 10));
+
+        assertEquals(1, result.getTotalElements());
+        assertEquals("Dupont", result.getContent().get(0).getNom());
+    }
+
+    @Test
+    void getEnseignantsNonAffectes_pageableBeyondRange_shouldReturnEmptyPage() {
+        when(enseignantRepository.findEnseignantsNonAffectesSurPeriode(any(), any())).thenReturn(List.of());
+
+        Page<EnseignantDTO> result = service.getEnseignantsNonAffectes(start, end, PageRequest.of(1, 10));
+
+        assertTrue(result.isEmpty());
+        assertEquals(0, result.getTotalElements());
     }
 
     @Test

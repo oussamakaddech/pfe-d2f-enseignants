@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Form, Input, Button, Typography, Card, Row, Col } from "antd";
+import { Form, Input, Button, Typography, Card } from "antd";
 import { MailOutlined, ArrowLeftOutlined } from "@ant-design/icons";
 import useAppNotification from "@/hooks/ui/useAppNotification";
 import { forgotPassword } from "@/services/auth/AuthService";

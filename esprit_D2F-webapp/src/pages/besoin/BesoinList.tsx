@@ -22,7 +22,6 @@ import {
   Popconfirm,
   Space,
   Typography,
-  Avatar,
 } from "antd";
 import moment from "moment";
 import {
@@ -39,12 +38,11 @@ import {
 import { useNavigate } from "react-router-dom";
 
 import { writeExcel, exportDateLabel, isoDate } from "../../utils/helpers/excelExport";
-import BesoinFormationService from "@/services/besoin/BesoinFormationService";
-import DeptService from "@/services/formation/DeptService";
-import UpService from "@/services/api/UploadService";
-import MailService from "@/services/besoin/MailService";
-import { getAllAccounts } from "@/services/auth/AccountService";
+import { useSendEmail } from "@/hooks/formation";
 import useAppNotification from "@/hooks/ui/useAppNotification";
+import { ROLES } from "@/utils/constants/roles";
+import { useBesoins, useModifyBesoin, useRemoveBesoin, useApproveBesoin } from "@/hooks/besoin/useBesoins";
+import { useDepartements, useUps, useAllAccounts } from "@/hooks/formation/useFormations";
 
 import BesoinHeader from "./components/BesoinHeader";
 import BesoinStatsRow from "./components/BesoinStatsRow";
@@ -53,6 +51,8 @@ import ViewModeToggle from "./components/ViewModeToggle";
 import BesoinCard from "./components/BesoinCard";
 import BesoinPriorityBadge from "./components/BesoinPriorityBadge";
 import BesoinStatusBadge from "./components/BesoinStatusBadge";
+import BesoinEditModal from "@/components/besoin/BesoinEditModal";
+import BesoinMailModal from "@/components/besoin/BesoinMailModal";
 
 import "@/styles/pages/besoin-tokens.css";
 import "@/styles/pages/besoin-list.css";
@@ -84,13 +84,22 @@ export default function BesoinList() {
   const navigate = useNavigate();
   const { message: msgApi } = useAppNotification();
 
-  // ───── data ─────
-  const [besoins, setBesoins] = useState([]);
-  const [departements, setDepartements] = useState([]);
-  const [ups, setUps] = useState([]);
-  const [types, setTypes] = useState([]);
-  const [cupAccounts, setCupAccounts] = useState([]);
-  const [loading, setLoading] = useState(false);
+  // ───── data via hooks ─────
+  const { data: besoinsData = [], isLoading: loading, refetch: refetchBesoins } = useBesoins();
+  const { data: departements = [] } = useDepartements();
+  const { data: ups = [] } = useUps();
+  const { data: accountsData = [] } = useAllAccounts();
+  const modifyMut  = useModifyBesoin();
+  const removeMut  = useRemoveBesoin();
+  const approveMut = useApproveBesoin();
+  const sendEmailMut = useSendEmail();
+
+  const besoins = besoinsData;
+  const types = useMemo(() => [...new Set(besoins.map((b) => b.typeBesoin).filter(Boolean))], [besoins]);
+  const cupAccounts = useMemo(
+    () => accountsData.filter((a) => String(a.role || "").toUpperCase() === ROLES.CUP.toUpperCase() && (a.email || a.emailAddress)),
+    [accountsData]
+  );
 
   // ───── ui state ─────
   const [searchText, setSearchText] = useState("");
@@ -122,37 +131,6 @@ export default function BesoinList() {
     return opt ? opt.label : r.periodeFormation || null;
   };
 
-  // ═══════════════ fetch ═══════════════
-  const fetchData = async () => {
-    setLoading(true);
-    try {
-      const [allBesoins, depts, upsData, accounts] = await Promise.all([
-        BesoinFormationService.getAllBesoinFormations(),
-        DeptService.getAllDepts(),
-        UpService.getAllUps(),
-        getAllAccounts().catch(() => []),
-      ]);
-      const besoinArray = Array.isArray(allBesoins) ? allBesoins : allBesoins?.content || [];
-      setBesoins(besoinArray);
-      setDepartements(depts);
-      setUps(upsData);
-      setTypes([...new Set(besoinArray.map((b) => b.typeBesoin).filter(Boolean))]);
-      const cups = (Array.isArray(accounts) ? accounts : []).filter(
-        (a) => String(a.role || "").toUpperCase() === "CUP" && (a.email || a.emailAddress)
-      );
-      setCupAccounts(cups);
-    } catch {
-      msgApi.error("Erreur lors du chargement des besoins");
-      setBesoins([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   // ═══════════════ filtering ═══════════════
   const filtered = useMemo(() => {
@@ -207,9 +185,8 @@ export default function BesoinList() {
       return;
     }
     try {
-      await BesoinFormationService.removeBesoinFormation(id);
+      await removeMut.mutateAsync(id);
       msgApi.success("Besoin supprimé avec succès");
-      setBesoins((prev) => prev.filter((b) => getBesoinId(b) !== id));
     } catch {
       msgApi.error("Erreur lors de la suppression");
     }
@@ -223,7 +200,7 @@ export default function BesoinList() {
     }
     setApprovingId(id);
     try {
-      await BesoinFormationService.approveBesoin(id);
+      await approveMut.mutateAsync(id);
       msgApi.success("Besoin approuvé — redirection vers la création de formation...");
       setTimeout(() => navigate("/home/Formation/Creer", { state: { besoinInfo: record } }), 800);
     } catch {
@@ -269,10 +246,9 @@ export default function BesoinList() {
         ...values,
         horaireSouhaite: values.horaireSouhaite ? values.horaireSouhaite.format("YYYY-MM-DD HH:mm") : undefined,
       };
-      await BesoinFormationService.modifyBesoinFormation(payload, "Modification depuis l'interface");
+      await modifyMut.mutateAsync({ besoin: payload, commentaire: "Modification depuis l'interface" });
       msgApi.success("Besoin modifié avec succès");
       setEditModalOpen(false);
-      await fetchData();
     } catch {
       msgApi.error("Erreur lors de la modification");
     } finally {
@@ -536,7 +512,7 @@ export default function BesoinList() {
     try {
       const values = await mailForm.validateFields();
       setMailSending(true);
-      const result = await MailService.sendEmail(values.to, values.subject, values.content);
+      const result = await sendEmailMut.mutateAsync({ to: values.to, subject: values.subject, content: values.content });
       msgApi.success(result?.message || "E-mail envoyé au CUP avec succès");
       setMailModalOpen(false);
       mailForm.resetFields();
@@ -573,8 +549,7 @@ export default function BesoinList() {
         `Liste_Besoins_Formation_${isoDate()}.xlsx`
       );
       msgApi.success("Export Excel réussi");
-    } catch (e) {
-      console.error("Export error:", e);
+    } catch {
       msgApi.error("Erreur lors de l'exportation Excel");
     }
   };
@@ -678,8 +653,8 @@ export default function BesoinList() {
         <Skeleton active paragraph={{ rows: 3 }} className="bf-skeleton" />
         <Skeleton active paragraph={{ rows: 2 }} className="bf-skeleton" />
         <div className="bf-skeleton-grid" aria-hidden="true">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="bf-skeleton-card">
+          {["sk0","sk1","sk2","sk3","sk4","sk5"].map((key) => (
+            <div key={key} className="bf-skeleton-card">
               <div className="bf-sk-row">
                 <div className="bf-sk-line bf-sk-line--w-30" />
                 <div className="bf-sk-line bf-sk-line--w-30" style={{ marginLeft: "auto" }} />
@@ -721,7 +696,7 @@ export default function BesoinList() {
           filteredCount={filtered.length}
           loading={loading}
           exportDisabled={filtered.length === 0}
-          onRefresh={fetchData}
+          onRefresh={() => refetchBesoins()}
           onExport={exportToExcel}
           onAdd={() => navigate("/home/besoins/ajouter")}
         />
@@ -755,7 +730,7 @@ export default function BesoinList() {
       />
 
       {filtered.length === 0 && !loading && (
-        <div className="bf-empty" role="status">
+        <output className="bf-empty">
           <div className="bf-empty__illustration" aria-hidden="true">
             <InboxOutlined />
           </div>
@@ -789,7 +764,7 @@ export default function BesoinList() {
               Ajouter un besoin
             </Button>
           </div>
-        </div>
+        </output>
       )}
 
       {viewMode === "cards" && filtered.length > 0 && (
@@ -950,7 +925,7 @@ export default function BesoinList() {
         title={
           <span className="bf-modal__title">
             <span className="bf-modal__title-icon"><MailOutlined /></span>
-            Demander des informations au CUP
+            {" "}Demander des informations au CUP
           </span>
         }
         open={mailModalOpen}

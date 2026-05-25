@@ -1,4 +1,4 @@
-import  { useState, useEffect } from "react";
+﻿import  { useState, useEffect } from "react";
 import {
   Row,
   Col,
@@ -28,14 +28,22 @@ import {
 import { Doughnut } from "react-chartjs-2";
 import moment from "moment";
 
-import KPIService from "@/services/analyse/KPIService";
-import FormationWorkflowService from "@/services/formation/FormationWorkflowService";
-import DeptService from "@/services/formation/DeptService";
-import UpService from "@/services/api/UploadService";
+import { useKpiCountByTrainerTypeMutation } from "@/hooks/kpi";
+import { useAllFormations, useDepartements, useUps } from "@/hooks/formation";
 
 const { Title, Text } = Typography;
 const { Option } = Select;
 const { RangePicker } = DatePicker;
+
+const collectInterneAnimateurs = (formation) => {
+  const result = [];
+  formation.seances?.forEach((s) => {
+    s.animateurs?.forEach((a) => {
+      if (!result.some((x) => x.id === a.id)) result.push(a);
+    });
+  });
+  return result;
+};
 
 const COLORS = ["#FF4D4F", "#1890FF", "#52C41A"];
 
@@ -71,8 +79,8 @@ export default function DonutByTrainerTypeWithFilters() {
           etat: parsed.etat ?? null,
         });
       }
-    } catch (e) {
-      console.warn("Impossible de lire les filtres depuis localStorage :", e);
+    } catch {
+      // ignore invalid stored filters
     }
   }, []);
 
@@ -80,8 +88,8 @@ export default function DonutByTrainerTypeWithFilters() {
   useEffect(() => {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(filters));
-    } catch (e) {
-      console.warn("Impossible de sauvegarder les filtres dans localStorage :", e);
+    } catch {
+      // ignore localStorage write failures
     }
   }, [filters]);
 
@@ -89,9 +97,10 @@ export default function DonutByTrainerTypeWithFilters() {
   const [drawerVisible, setDrawerVisible] = useState(false);
 
   // ─── 3) Options pour remplir les Select dans le Drawer (Compétences, Dépts, UPs) ───────
-  const [deptsOptions, setDeptsOptions] = useState([]);
-  const [upsOptions, setUpsOptions] = useState([]);
-  const [loadingOptions, setLoadingOptions] = useState(true);
+  const { data: deptsOptions = [], isLoading: loadingOptions } = useDepartements();
+  const { data: upsOptions = [] } = useUps();
+  const { data: allFormations = [] } = useAllFormations();
+  const kpiTrainerTypeMut = useKpiCountByTrainerTypeMutation();
 
   // ─── 4) État pour récupérer counts + listes d’IDs depuis KPIService ────────────────────
   const [countsData, setCountsData] = useState(null);
@@ -107,79 +116,30 @@ export default function DonutByTrainerTypeWithFilters() {
   const [selectedCategory, setSelectedCategory] = useState(null);
   // selectedCategory ∈ { "Externe uniquement", "Interne uniquement", "Mixtes" }
 
-  // ─── 7) Charger les options (Compétences, Dépts, UPs) au montage ───────────────────────
-  useEffect(() => {
-    const fetchAllOptions = async () => {
-      try {
-        const [depts, ups] = await Promise.all([
-          DeptService.getAllDepts(),
-          UpService.getAllUps(),
-        ]);
-        setDeptsOptions(depts || []);
-        setUpsOptions(ups || []);
-      } catch (err) {
-        console.error("Erreur chargement options :", err);
-        message.error("Impossible de charger les listes de filtres.");
-      } finally {
-        setLoadingOptions(false);
-      }
-    };
-    fetchAllOptions();
-  }, []);
 
   // ─── 8) Fonction pour récupérer counts + formations complètes par ID ──────────────────
   const fetchCountsAndLists = async () => {
     try {
       // 1) Récupérer le count et les listes d’IDs
-      const data = await KPIService.getCountByTrainerTypeWithIds(filters);
+      const data = await kpiTrainerTypeMut.mutateAsync(filters);
       setCountsData(data);
 
       const externeIds = data.externeOnlyIds || [];
       const interneIds = data.interneOnlyIds || [];
       const mixteIds = data.mixteIds || [];
 
-      // 2) Pour chaque ID, appeler FormationWorkflowService.getFormationWorkflowById(id)
-      const promExterne =
-        externeIds.length > 0
-          ? Promise.all(
-              externeIds.map((id) =>
-                FormationWorkflowService.getFormationWorkflowById(id)
-              )
-            )
-          : Promise.resolve([]);
+      // 2) Trouver les formations par ID depuis le cache
+      const findById = (id) => allFormations.find((f) => f.idFormation === id || f.id === id) || null;
 
-      const promInterne =
-        interneIds.length > 0
-          ? Promise.all(
-              interneIds.map((id) =>
-                FormationWorkflowService.getFormationWorkflowById(id)
-              )
-            )
-          : Promise.resolve([]);
-
-      const promMixte =
-        mixteIds.length > 0
-          ? Promise.all(
-              mixteIds.map((id) =>
-                FormationWorkflowService.getFormationWorkflowById(id)
-              )
-            )
-          : Promise.resolve([]);
-
-      // 3) Attendre les trois promesses en parallèle
-      const [externes, internes, mixtes] = await Promise.all([
-        promExterne.catch(() => []),
-        promInterne.catch(() => []),
-        promMixte.catch(() => []),
-      ]);
+      const externes = externeIds.map(findById).filter(Boolean);
+      const internes = interneIds.map(findById).filter(Boolean);
+      const mixtes = mixteIds.map(findById).filter(Boolean);
 
       setExterneFormations(externes);
       setInterneFormations(internes);
       setMixteFormations(mixtes);
     } catch (err) {
-      console.error("Erreur récupération données par type de formateur :", err);
-      message.error("Impossible de récupérer les données “par type de formateur”.");
-      setCountsData(null);
+      message.error("Impossible de récupérer les données par type de formateur.");
       setExterneFormations([]);
       setInterneFormations([]);
       setMixteFormations([]);
@@ -223,13 +183,6 @@ export default function DonutByTrainerTypeWithFilters() {
       rawList: mixteFormations,
     },
   ];
-
-  // ─── 11) Gestion du clic sur un segment du donut ───────────────────────────────────────
-  const onPieClick = (_, index) => {
-    const category = chartData[index].name;
-    setSelectedCategory(category);
-    setModalVisible(true);
-  };
 
   // Sélectionne la liste à afficher dans le Modal selon la catégorie
   let dataToShowInModal = [];
@@ -432,15 +385,7 @@ export default function DonutByTrainerTypeWithFilters() {
               style: { textAlign: "center", marginTop: 16 },
             }}
             renderItem={(formation) => {
-              // Récupérer la liste unique des animateurs internes
-              const interneAnimateurs = [];
-              formation.seances?.forEach((s) => {
-                s.animateurs?.forEach((a) => {
-                  if (!interneAnimateurs.find((x) => x.id === a.id)) {
-                    interneAnimateurs.push(a);
-                  }
-                });
-              });
+              const interneAnimateurs = collectInterneAnimateurs(formation);
               const isExterne = Boolean(
                 formation.externeFormateurEmail &&
                   formation.externeFormateurEmail.trim() !== ""
@@ -598,7 +543,7 @@ export default function DonutByTrainerTypeWithFilters() {
         onClose={() => setDrawerVisible(false)}
         open={drawerVisible}
         width={360}
-        destroyOnClose
+        destroyOnHidden
       >
         <Form
           layout="vertical"

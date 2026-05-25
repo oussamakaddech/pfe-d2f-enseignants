@@ -4,6 +4,7 @@
  * Design system partagé avec la page liste (.bf-scope + tokens --bf-*).
  * ─────────────────────────────────────────────────────────────────────── */
 import { useContext, useEffect, useRef, useState } from "react";
+import { getActiveRole } from "@/utils/storage/storage";
 import {
   Form,
   Input,
@@ -21,8 +22,7 @@ import {
   Progress,
   Empty,
 } from "antd";
-import locale from "antd/es/date-picker/locale/fr_FR";
-import moment from "moment";
+
 import {
   SaveOutlined,
   ApartmentOutlined,
@@ -48,13 +48,23 @@ import * as XLSX from "xlsx";
 
 import { AuthContext } from "@/components/common/AuthProvider";
 import BesoinFormationService from "@/services/besoin/BesoinFormationService";
-import BesoinCompetenceService from "@/services/besoin/BesoinCompetenceService";
+import BesoinCompetenceService, { BesoinCompetenceLink } from "@/services/besoin/BesoinCompetenceService";
 import CompetenceService from "@/services/competence/CompetenceService";
 import DeptService from "@/services/formation/DeptService";
 import UpService from "@/services/api/UploadService";
 import useAppNotification from "@/hooks/ui/useAppNotification";
+import { ROLES } from "@/utils/constants/roles";
 import "@/styles/pages/besoin-tokens.css";
 import "@/styles/pages/besoin-form.css";
+import SectionLabel from "@/components/besoin/SectionLabel";
+import ChoiceCardGroup from "@/components/besoin/ChoiceCardGroup";
+
+type ReferentielDomaine    = { id?: string | number; nom?: string };
+type ReferentielCompetence = { id?: string | number; nom?: string; domaineId?: string | number };
+type ReferentielSavoir     = { id?: string | number; nom?: string; type?: string };
+type LookupItem = { id?: string | number; name?: string; libelle?: string };
+const toNum = (v: string | number | null | undefined): number | null =>
+  v == null ? null : Number(v);
 
 const { Title, Text } = Typography;
 const { TextArea } = Input;
@@ -69,9 +79,9 @@ const PERIOD_OPTIONS = [
 ];
 
 const slideVariants = {
-  enter: (direction) => ({ x: direction > 0 ? 40 : -40, opacity: 0 }),
+  enter: (direction: number) => ({ x: direction > 0 ? 40 : -40, opacity: 0 }),
   center: { x: 0, opacity: 1 },
-  exit: (direction) => ({ x: direction < 0 ? 40 : -40, opacity: 0 }),
+  exit: (direction: number) => ({ x: direction < 0 ? 40 : -40, opacity: 0 }),
 };
 
 const typeOptions = [
@@ -109,90 +119,37 @@ const STEPS_META = [
 ];
 
 /* ─────────────────────────────────────────────────────────────────────── */
-/* Sub-component : SectionLabel (header au-dessus d'un groupe de champs) */
-/* ─────────────────────────────────────────────────────────────────────── */
-function SectionLabel({ icon, title, hint }) {
-  return (
-    <div className="bf-form-section">
-      <div className="bf-form-section__icon">{icon}</div>
-      <div className="bf-form-section__body">
-        <div className="bf-form-section__title">{title}</div>
-        {hint && <div className="bf-form-section__hint">{hint}</div>}
-      </div>
-    </div>
-  );
-}
-
-/* ─────────────────────────────────────────────────────────────────────── */
-/* Sub-component : ChoiceCardGroup (Type / Priorité)                       */
-/* ─────────────────────────────────────────────────────────────────────── */
-function ChoiceCardGroup({ options, value, onChange, variant = "type" }) {
-  return (
-    <div className={`bf-choice-grid bf-choice-grid--${variant}`}>
-      {options.map((opt) => {
-        const active = value === opt.value;
-        return (
-          <button
-            type="button"
-            key={opt.value}
-            className={`bf-choice${active ? " bf-choice--active" : ""}`}
-            style={{
-              "--choice-accent": opt.accent,
-              "--choice-accent-bg": opt.accentBg,
-            }}
-            onClick={() => onChange(opt.value)}
-            aria-pressed={active}
-          >
-            {variant === "type" ? (
-              <span className="bf-choice__icon">{opt.icon}</span>
-            ) : (
-              <span className="bf-choice__dot" aria-hidden="true" />
-            )}
-            <span className="bf-choice__body">
-              <span className="bf-choice__title">{opt.label}</span>
-              <span className="bf-choice__desc">{opt.description}</span>
-            </span>
-            {active && (
-              <span className="bf-choice__check" aria-hidden="true">
-                <CheckCircleOutlined />
-              </span>
-            )}
-          </button>
-        );
-      })}
-    </div>
-  );
-}
-
 /* ═══════════════════════════════════════════════════════════════════════ */
 /* MAIN COMPONENT                                                            */
 /* ═══════════════════════════════════════════════════════════════════════ */
 export default function BesoinForm() {
-  const { user } = useContext(AuthContext);
+  const user = useContext(AuthContext)?.user;
   const [form] = Form.useForm();
-  const activeRole = String(localStorage.getItem("activeRole") || "").toUpperCase();
+  const activeRole = String(getActiveRole() || "").toUpperCase();
   const userRole = String(user?.role || "").toUpperCase();
-  const canManageParticipants = ["CUP", "ADMIN"].includes(userRole) || ["CUP", "ADMIN"].includes(activeRole);
+  const canManageParticipants =
+    [ROLES.CUP.toUpperCase(), ROLES.ADMIN.toUpperCase()].includes(userRole) ||
+    [ROLES.CUP.toUpperCase(), ROLES.ADMIN.toUpperCase()].includes(activeRole);
 
   const { message: msgApi } = useAppNotification();
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [departements, setDepartements] = useState([]);
-  const [ups, setUps] = useState([]);
+  const [departements, setDepartements] = useState<LookupItem[]>([]);
+  const [ups, setUps] = useState<LookupItem[]>([]);
   const [currentStep, setCurrentStep] = useState(0);
   const [direction, setDirection] = useState(0);
   const [submitted, setSubmitted] = useState(false);
-  const participantsFileInputRef = useRef(null);
+  const participantsFileInputRef = useRef<HTMLInputElement>(null);
   const [lastImportCount, setLastImportCount] = useState(0);
-  const participantsText = Form.useWatch("publicCible", form) || "";
-  const participantsLines = participantsText.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+  const participantsText = String(Form.useWatch("publicCible", form) || "");
+  const participantsLines = participantsText.split(/\r?\n/).map((l: string) => l.trim()).filter(Boolean);
   const participantsCount = participantsLines.length;
 
   // Competence RICE state
-  const [compDomaines, setCompDomaines] = useState<any[]>([]);
-  const [compCompetences, setCompCompetences] = useState<any[]>([]);
-  const [selectedCompLinks, setSelectedCompLinks] = useState<any[]>([]);
-  const [rowSavoirs, setRowSavoirs] = useState<Record<number, any[]>>({});
+  const [compDomaines, setCompDomaines] = useState<ReferentielDomaine[]>([]);
+  const [compCompetences, setCompCompetences] = useState<ReferentielCompetence[]>([]);
+  const [selectedCompLinks, setSelectedCompLinks] = useState<BesoinCompetenceLink[]>([]);
+  const [rowSavoirs, setRowSavoirs] = useState<Record<number, ReferentielSavoir[]>>({});
   const [compLoaded, setCompLoaded] = useState(false);
   const [compSearch, setCompSearch] = useState("");
 
@@ -227,22 +184,22 @@ export default function BesoinForm() {
     }
   }, [currentStep]);
 
-  const handleCompetenceChange = async (idx: number, competence: any) => {
+  const handleCompetenceChange = async (idx: number, competence: ReferentielCompetence | null) => {
     const updated = [...selectedCompLinks];
     updated[idx] = {
       ...updated[idx],
-      competenceId: competence?.id || null,
+      competenceId: toNum(competence?.id ?? null),
       competenceNom: competence?.nom || "",
-      domaineId: competence?.domaineId || updated[idx]?.domaineId || null,
+      domaineId: toNum(competence?.domaineId ?? updated[idx]?.domaineId ?? null),
       sousCompetenceId: null,
       savoirId: null,
     };
     setSelectedCompLinks(updated);
-    const newSavoirs: Record<number, any[]> = { ...rowSavoirs };
+    const newSavoirs: Record<number, ReferentielSavoir[]> = { ...rowSavoirs };
     newSavoirs[idx] = [];
     if (competence?.id) {
       try {
-        newSavoirs[idx] = await CompetenceService.savoir.getByCompetence(competence.id);
+        newSavoirs[idx] = await CompetenceService.savoir.getByCompetence(competence.id) as ReferentielSavoir[];
       } catch { /* ignore */ }
     }
     setRowSavoirs(newSavoirs);
@@ -293,7 +250,8 @@ export default function BesoinForm() {
       setLastImportCount(0);
       setCurrentStep(0);
     } catch (err) {
-      msgApi.error(err.response?.data?.message || "Erreur lors de l'ajout du besoin");
+      const e = err as { response?: { data?: { message?: string } } };
+      msgApi.error(e.response?.data?.message || "Erreur lors de l'ajout du besoin");
     } finally {
       setSubmitting(false);
     }
@@ -310,7 +268,7 @@ export default function BesoinForm() {
     }
   };
 
-  const importParticipantsFromExcel = async (event) => {
+  const importParticipantsFromExcel = async (event: React.ChangeEvent<HTMLInputElement>) => {
     try {
       const file = event.target.files?.[0];
       if (!file) return;
@@ -320,11 +278,11 @@ export default function BesoinForm() {
       if (!firstSheetName) { msgApi.warning("Fichier Excel vide"); return; }
       const rows = XLSX.utils.sheet_to_json(workbook.Sheets[firstSheetName], { header: 1 });
       if (!Array.isArray(rows) || rows.length === 0) { msgApi.warning("Aucune donnée participants trouvée"); return; }
-      const [headerRow = [], ...dataRows] = rows;
-      const header = headerRow.map((cell) => String(cell || "").trim().toLowerCase());
-      const idxNom = header.findIndex((h) => ["nom", "name"].includes(h));
-      const idxPrenom = header.findIndex((h) => ["prénom", "prenom", "first name", "firstname"].includes(h));
-      const idxEmail = header.findIndex((h) => ["email", "mail"].includes(h));
+      const [headerRow = [], ...dataRows] = rows as unknown[][];
+      const header = (headerRow as unknown[]).map((cell) => String(cell || "").trim().toLowerCase());
+      const idxNom = header.findIndex((h: string) => ["nom", "name"].includes(h));
+      const idxPrenom = header.findIndex((h: string) => ["prénom", "prenom", "first name", "firstname"].includes(h));
+      const idxEmail = header.findIndex((h: string) => ["email", "mail"].includes(h));
       const parsedLines = dataRows
         .map((row) => {
           if (!Array.isArray(row)) return "";
@@ -354,7 +312,7 @@ export default function BesoinForm() {
 
   const clearParticipants = () => { form.setFieldsValue({ publicCible: "" }); setLastImportCount(0); };
 
-  const formatParticipantsSummary = (rawValue) => {
+  const formatParticipantsSummary = (rawValue: unknown) => {
     const lines = String(rawValue || "").split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
     if (lines.length === 0) return "—";
     const preview = lines.slice(0, 3).join(" | ");
@@ -643,7 +601,7 @@ export default function BesoinForm() {
             />
             {compSearch && (
               <span style={{ fontSize: 12, color: "#888" }}>
-                {compCompetences.filter((c: any) => c.nom?.toLowerCase().includes(compSearch.trim().toLowerCase())).length} résultat(s)
+                {compCompetences.filter((c: ReferentielCompetence) => c.nom?.toLowerCase().includes(compSearch.trim().toLowerCase())).length} résultat(s)
               </span>
             )}
           </div>
@@ -668,9 +626,9 @@ export default function BesoinForm() {
                         const u = [...selectedCompLinks];
                         u[idx] = { ...u[idx], domaineId: val ?? null, competenceId: null, savoirId: null };
                         setSelectedCompLinks(u);
-                        const ns: Record<number, any[]> = { ...rowSavoirs }; ns[idx] = []; setRowSavoirs(ns);
+                        const ns: Record<number, ReferentielSavoir[]> = { ...rowSavoirs }; ns[idx] = []; setRowSavoirs(ns);
                       }}
-                      options={compDomaines.map((d: any) => ({ value: d.id, label: d.nom }))}
+                      options={compDomaines.map((d: ReferentielDomaine) => ({ value: d.id, label: d.nom }))}
                       showSearch
                       optionFilterProp="label"
                     />
@@ -679,13 +637,13 @@ export default function BesoinForm() {
                       allowClear
                       style={{ minWidth: 220 }}
                       value={link.competenceId}
-                      onChange={(val) => handleCompetenceChange(idx, compCompetences.find((c: any) => c.id === val) || null)}
+                      onChange={(val) => handleCompetenceChange(idx, compCompetences.find((c: ReferentielCompetence) => c.id === val) || null)}
                       options={compCompetences
-                        .filter((c: any) => {
+                        .filter((c: ReferentielCompetence) => {
                           const kw = compSearch.trim().toLowerCase();
                           return (!link.domaineId || c.domaineId === link.domaineId) && (!kw || c.nom?.toLowerCase().includes(kw));
                         })
-                        .map((c: any) => ({ value: c.id, label: c.nom }))}
+                        .map((c: ReferentielCompetence) => ({ value: c.id, label: c.nom }))}
                       showSearch
                       optionFilterProp="label"
                     />
@@ -697,10 +655,10 @@ export default function BesoinForm() {
                       disabled={!link.competenceId}
                       onChange={(val) => {
                         const u = [...selectedCompLinks];
-                        u[idx] = { ...u[idx], savoirId: val ?? null, savoirNom: (rowSavoirs[idx] || []).find((s: any) => s.id === val)?.nom || "" };
+                        u[idx] = { ...u[idx], savoirId: val ?? null, savoirNom: (rowSavoirs[idx] || []).find((s: ReferentielSavoir) => s.id === val)?.nom || "" };
                         setSelectedCompLinks(u);
                       }}
-                      options={(rowSavoirs[idx] || []).map((s: any) => ({ value: s.id, label: `${s.nom} (${s.type || ""})` }))}
+                      options={(rowSavoirs[idx] || []).map((s: ReferentielSavoir) => ({ value: s.id, label: `${s.nom} (${s.type || ""})` }))}
                       showSearch
                       optionFilterProp="label"
                     />
@@ -870,7 +828,7 @@ export default function BesoinForm() {
                   key="list"
                   size="large"
                   className="bf-btn bf-btn--primary"
-                  onClick={() => window.location.href = "/home/besoins"}
+                  onClick={() => globalThis.location.href = "/home/besoins"}
                 >
                   Voir la liste des besoins
                 </Button>,
@@ -894,10 +852,15 @@ export default function BesoinForm() {
   const progressPercent = isSummary
     ? 100
     : Math.round(((currentStep + 1) / (STEPS_META.length + 1)) * 100);
+  const progressStep = isSummary ? STEPS_META.length : currentStep + 1;
+  const formatProgress = () => (
+    <span className="bf-form-header__progress-text">
+      {progressStep}/<small>{STEPS_META.length}</small>
+    </span>
+  );
 
   return (
     <ConfigProvider
-      locale={locale}
       theme={{ token: { colorPrimary: "#B51200", borderRadius: 10, fontFamily: "'Inter', sans-serif" } }}
     >
       <div className="bf-scope bf-form-page">
@@ -925,11 +888,7 @@ export default function BesoinForm() {
                 size={56}
                 strokeColor={{ "0%": "#B51200", "100%": "#9a0f00" }}
                 strokeWidth={8}
-                format={() => (
-                  <span className="bf-form-header__progress-text">
-                    {isSummary ? STEPS_META.length : currentStep + 1}/<small>{STEPS_META.length}</small>
-                  </span>
-                )}
+                format={formatProgress}
               />
             </div>
           </div>
@@ -938,7 +897,9 @@ export default function BesoinForm() {
         {/* ═══════════ STEPPER MINIMAL ═══════════ */}
         <nav className="bf-stepper" aria-label="Étapes du formulaire">
           {STEPS_META.map((s, idx) => {
-            const state = idx < currentStep ? "done" : idx === currentStep ? "active" : "pending";
+            let state = "pending";
+            if (idx < currentStep) state = "done";
+            else if (idx === currentStep) state = "active";
             return (
               <button
                 key={s.key}
@@ -964,19 +925,7 @@ export default function BesoinForm() {
         <div className="bf-form-shell">
           <Form form={form} layout="vertical" onFinish={handleSubmit} autoComplete="off" preserve={true} className="bf-form">
             <AnimatePresence mode="wait" custom={direction}>
-              {!isSummary ? (
-                <motion.div
-                  key={`step-${currentStep}`}
-                  custom={direction}
-                  variants={slideVariants}
-                  initial="enter"
-                  animate="center"
-                  exit="exit"
-                  transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-                >
-                  {stepContent[currentStep]}
-                </motion.div>
-              ) : (
+              {isSummary ? (
                 <motion.div
                   key="summary"
                   custom={direction}
@@ -1015,7 +964,7 @@ export default function BesoinForm() {
                                 <dt>{it.label}</dt>
                                 <dd className={it.strong ? "is-strong" : ""}>
                                   {it.pillColor ? (
-                                    <span className="bf-summary-pill" style={{ "--pill": it.pillColor }}>
+                                    <span className="bf-summary-pill" style={{ "--pill": it.pillColor } as React.CSSProperties}>
                                       {it.value}
                                     </span>
                                   ) : (
@@ -1030,13 +979,25 @@ export default function BesoinForm() {
                     </div>
                   </div>
                 </motion.div>
+              ) : (
+                <motion.div
+                  key={`step-${currentStep}`}
+                  custom={direction}
+                  variants={slideVariants}
+                  initial="enter"
+                  animate="center"
+                  exit="exit"
+                  transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+                >
+                  {stepContent[currentStep]}
+                </motion.div>
               )}
             </AnimatePresence>
           </Form>
         </div>
 
         {/* ═══════════ STICKY NAV BAR ═══════════ */}
-        <div className="bf-nav-bar" role="region" aria-label="Navigation du formulaire">
+        <section className="bf-nav-bar" aria-label="Navigation du formulaire">
           <div className="bf-nav-bar__progress">
             <span className="bf-nav-bar__step-label">
               Étape {isSummary ? STEPS_META.length : currentStep + 1} sur {STEPS_META.length}
@@ -1091,7 +1052,7 @@ export default function BesoinForm() {
               </Button>
             )}
           </div>
-        </div>
+        </section>
       </div>
     </ConfigProvider>
   );

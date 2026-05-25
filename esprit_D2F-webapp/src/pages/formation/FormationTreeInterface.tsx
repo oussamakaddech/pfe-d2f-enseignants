@@ -16,8 +16,8 @@ const FormationTreeInterface = () => {
         try {
           const data = await FormationWorkflowService.getAllFormationsWithDocuments();
           setFormations(data);
-        } catch (error) {
-          console.error("Erreur lors de la récupération des formations :", error);
+        } catch {
+          // silently handle
         }
       }
       fetchFormations();
@@ -30,8 +30,8 @@ const FormationTreeInterface = () => {
           try {
             const tree = await OneDriveService.getDriveHierarchyForFormation(selectedFormation.titreFormation);
             setOneDriveTree(tree);
-          } catch (error) {
-            console.error("Erreur lors du chargement de la hiérarchie OneDrive :", error);
+          } catch {
+            // silently handle
           }
         }
       }
@@ -175,8 +175,8 @@ const FormationTreeInterface = () => {
                       const tree = await OneDriveService.getDriveHierarchyForFormation(selectedFormation.titreFormation);
                       setOneDriveTree(tree);
                       setSelectedFile(null);
-                    } catch (error) {
-                      console.error("Erreur lors de la suppression du fichier :", error);
+                    } catch {
+                      // silently handle
                     }
                   }}
                 >

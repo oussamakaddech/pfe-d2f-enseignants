@@ -10,6 +10,7 @@ import java.util.List;
 public interface ICompetenceService {
     Page<CompetenceDTO> getAllCompetences(Pageable pageable);
     List<CompetenceDTO> getCompetencesByDomaine(Long domaineId);
+    Page<CompetenceDTO> getCompetencesByDomaine(Long domaineId, Pageable pageable);
     CompetenceDTO getCompetenceById(Long id);
     CompetenceDTO createCompetence(Long domaineId, CompetenceRequest request);
     CompetenceDTO updateCompetence(Long id, CompetenceRequest request);
@@ -20,6 +21,6 @@ public interface ICompetenceService {
     Page<CompetenceDTO> searchCompetences(String keyword, Pageable pageable);
 
     /** Liste filtrée par UP et/ou département (null = pas de filtre). */
-    List<CompetenceDTO> getCompetencesByFilter(Long upId, Long departementId);
-    Page<CompetenceDTO> getCompetencesByFilter(Long upId, Long departementId, Pageable pageable);
+    List<CompetenceDTO> getCompetencesByFilter(String upId, String departementId);
+    Page<CompetenceDTO> getCompetencesByFilter(String upId, String departementId, Pageable pageable);
 }

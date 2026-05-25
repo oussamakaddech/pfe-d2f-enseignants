@@ -57,8 +57,9 @@ class CompetenceControllerTest {
 
     @Test
     void testGetCompetencesByDomaine() {
-        when(competenceService.getCompetencesByDomaine(1L)).thenReturn(List.of(competenceDTO));
-        ResponseEntity<List<CompetenceDTO>> response = competenceController.getCompetencesByDomaine(1L);
+        when(competenceService.getCompetencesByDomaine(eq(1L), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of(competenceDTO)));
+        ResponseEntity<Page<CompetenceDTO>> response = competenceController.getCompetencesByDomaine(1L, Pageable.unpaged());
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
     }
 
@@ -103,8 +104,40 @@ class CompetenceControllerTest {
     @Test
     void testGetEnseignantsByCompetence() {
         EnseignantCompetenceDTO ecDTO = new EnseignantCompetenceDTO();
-        when(enseignantCompetenceService.getByCompetenceId(1L)).thenReturn(List.of(ecDTO));
-        ResponseEntity<List<EnseignantCompetenceDTO>> response = competenceController.getEnseignantsByCompetence(1L);
+        when(enseignantCompetenceService.getByCompetenceId(eq(1L), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of(ecDTO)));
+        ResponseEntity<Page<EnseignantCompetenceDTO>> response = competenceController.getEnseignantsByCompetence(1L, Pageable.unpaged());
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+    }
+
+    @Test
+    @DisplayName("getAllCompetences: avec upId non null appelle getCompetencesByFilter")
+    void testGetAllCompetencesWithUpId() {
+        Page<CompetenceDTO> page = new PageImpl<>(List.of(competenceDTO));
+        when(competenceService.getCompetencesByFilter(eq("1"), isNull(), any(Pageable.class))).thenReturn(page);
+        ResponseEntity<Page<CompetenceDTO>> response = competenceController.getAllCompetences("1", null, Pageable.unpaged());
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        verify(competenceService).getCompetencesByFilter(eq("1"), isNull(), any(Pageable.class));
+        verify(competenceService, never()).getAllCompetences(any(Pageable.class));
+    }
+
+    @Test
+    @DisplayName("getAllCompetences: avec departementId non null appelle getCompetencesByFilter")
+    void testGetAllCompetencesWithDepartementId() {
+        Page<CompetenceDTO> page = new PageImpl<>(List.of(competenceDTO));
+        when(competenceService.getCompetencesByFilter(isNull(), eq("2"), any(Pageable.class))).thenReturn(page);
+        ResponseEntity<Page<CompetenceDTO>> response = competenceController.getAllCompetences(null, "2", Pageable.unpaged());
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        verify(competenceService).getCompetencesByFilter(isNull(), eq("2"), any(Pageable.class));
+    }
+
+    @Test
+    @DisplayName("getAllCompetences: avec upId et departementId appelle getCompetencesByFilter")
+    void testGetAllCompetencesWithBothFilters() {
+        Page<CompetenceDTO> page = new PageImpl<>(List.of(competenceDTO));
+        when(competenceService.getCompetencesByFilter(eq("1"), eq("2"), any(Pageable.class))).thenReturn(page);
+        ResponseEntity<Page<CompetenceDTO>> response = competenceController.getAllCompetences("1", "2", Pageable.unpaged());
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        verify(competenceService).getCompetencesByFilter(eq("1"), eq("2"), any(Pageable.class));
     }
 }

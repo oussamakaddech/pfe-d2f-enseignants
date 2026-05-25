@@ -5,15 +5,15 @@ import { brand, neutral, radius, shadow } from "@/styles/themes/tokens";
 const { Title, Text } = Typography;
 
 interface D2FSectionProps {
-  title?: string;
-  subtitle?: string;
-  icon?: ReactNode;
-  iconColor?: string;
-  extra?: ReactNode;
-  children: ReactNode;
-  bordered?: boolean;
-  className?: string;
-  style?: React.CSSProperties;
+  readonly title?: string;
+  readonly subtitle?: string;
+  readonly icon?: ReactNode;
+  readonly iconColor?: string;
+  readonly extra?: ReactNode;
+  readonly children: ReactNode;
+  readonly bordered?: boolean;
+  readonly className?: string;
+  readonly style?: React.CSSProperties;
 }
 
 export default function D2FSection({

@@ -3,12 +3,29 @@
 import logging
 import time
 from datetime import date, datetime, timezone
-from typing import Any, Optional
+from typing import Annotated, Any, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from sqlalchemy.orm import Session
 
 from app.core.db import get_db
+
+# Reusable Annotated dependency types
+DbSession = Annotated[Session, Depends(get_db)]
+UrgenceFilter = Annotated[Optional[str], Query(description="Filtre: FAIBLE|MODEREE|HAUTE|CRITIQUE")]
+PageParam = Annotated[int, Query(ge=0)]
+SizeParam = Annotated[int, Query(ge=1, le=100)]
+CompetenceIdFilter = Annotated[Optional[int], Query()]
+TypeAlerteFilter = Annotated[Optional[str], Query()]
+SeveriteFilter = Annotated[Optional[str], Query()]
+StatutAlertFilter = Annotated[Optional[str], Query(description="NOUVELLE|LUE|TRAITEE|IGNOREE|ESCALADEE")]
+EnseignantIdFilter = Annotated[Optional[str], Query()]
+DepartementIdFilter = Annotated[Optional[str], Query()]
+AlertStatutParam = Annotated[str, Query(description="NOUVELLE|LUE|TRAITEE|IGNOREE|ESCALADEE")]
+TraiteParParam = Annotated[Optional[str], Query()]
+CommentaireParam = Annotated[Optional[str], Query()]
+SeuilParam = Annotated[float, Query(ge=0.0, le=1.0)]
+
 from app.core.observability import dsi_error_body
 from app.engines.alert_engine import AlertEngine
 from app.engines.dashboard_engine import DashboardEngine
@@ -56,7 +73,7 @@ def _build_domaine_demand(besoins_demand: list[dict], total_besoins: int) -> dic
 async def analyze_enseignant(
     enseignant_id: str,
     request: Request,
-    db: Session = Depends(get_db),
+    db: DbSession,
 ) -> dict[str, Any]:
     """
     Déclenche le pipeline complet :
@@ -228,10 +245,10 @@ def _upsert_risk_profile(db: Session, enseignant_id: str, gaps: list, snapshot: 
 @router.get("/gaps/{enseignant_id}", summary="Gaps de compétences d'un enseignant")
 async def get_gaps(
     enseignant_id: str,
-    urgence: Optional[str] = Query(None, description="Filtre: FAIBLE|MODEREE|HAUTE|CRITIQUE"),
-    page: int = Query(0, ge=0),
-    size: int = Query(20, ge=1, le=100),
-    db: Session = Depends(get_db),
+    db: DbSession,
+    urgence: UrgenceFilter = None,
+    page: PageParam = 0,
+    size: SizeParam = 20,
 ) -> dict[str, Any]:
     q = (
         db.query(SkillGap)
@@ -275,10 +292,10 @@ async def get_gaps(
 @router.get("/recommendations/{enseignant_id}", summary="Recommandations de formations")
 async def get_recommendations(
     enseignant_id: str,
-    competence_id: Optional[int] = Query(None),
-    page: int = Query(0, ge=0),
-    size: int = Query(20, ge=1, le=100),
-    db: Session = Depends(get_db),
+    db: DbSession,
+    competence_id: CompetenceIdFilter = None,
+    page: PageParam = 0,
+    size: SizeParam = 20,
 ) -> dict[str, Any]:
     q = (
         db.query(Recommendation)
@@ -325,7 +342,7 @@ async def get_recommendations(
 async def get_training_path(
     enseignant_id: str,
     competence_id: int,
-    db: Session = Depends(get_db),
+    db: DbSession,
 ) -> dict[str, Any]:
     path = (
         db.query(TrainingPath)
@@ -380,14 +397,14 @@ async def get_training_path(
 # ── GET /api/v1/analytics/alerts ─────────────────────────────
 @router.get("/alerts", summary="Liste des alertes (ADMIN/CUP)")
 async def get_alerts(
-    type_alerte: Optional[str] = Query(None),
-    severite:    Optional[str] = Query(None),
-    statut:      Optional[str] = Query(None, description="NOUVELLE|LUE|TRAITEE|IGNOREE|ESCALADEE"),
-    enseignant_id: Optional[str] = Query(None),
-    departement_id: Optional[str] = Query(None),
-    page: int = Query(0, ge=0),
-    size: int = Query(20, ge=1, le=100),
-    db: Session = Depends(get_db),
+    db: DbSession,
+    type_alerte: TypeAlerteFilter = None,
+    severite:    SeveriteFilter = None,
+    statut:      StatutAlertFilter = None,
+    enseignant_id: EnseignantIdFilter = None,
+    departement_id: DepartementIdFilter = None,
+    page: PageParam = 0,
+    size: SizeParam = 20,
 ) -> dict[str, Any]:
     q = db.query(AlertEvent).order_by(AlertEvent.created_at.desc())
 
@@ -435,10 +452,10 @@ _VALID_ALERT_STATUTS = {"NOUVELLE", "LUE", "TRAITEE", "IGNOREE", "ESCALADEE"}
 @router.patch("/alerts/{alert_id}", summary="Mettre à jour le statut d'une alerte")
 async def update_alert(
     alert_id: int,
-    statut: str = Query(..., description="NOUVELLE|LUE|TRAITEE|IGNOREE|ESCALADEE"),
-    traite_par: Optional[str] = Query(None),
-    commentaire: Optional[str] = Query(None),
-    db: Session = Depends(get_db),
+    db: DbSession,
+    statut: AlertStatutParam = ...,
+    traite_par: TraiteParParam = None,
+    commentaire: CommentaireParam = None,
 ) -> dict[str, Any]:
     # Validate statut BEFORE the lookup so callers receive a deterministic 400.
     statut_norm = statut.upper()
@@ -458,22 +475,22 @@ async def update_alert(
 
 # ── GET /api/v1/analytics/dashboard/global ───────────────────
 @router.get("/dashboard/global", summary="Tableau de bord global (ADMIN/CUP)")
-async def dashboard_global(db: Session = Depends(get_db)) -> dict[str, Any]:
+async def dashboard_global(db: DbSession) -> dict[str, Any]:
     engine = DashboardEngine(db)
     return engine.compute_all()
 
 
 # ── GET /api/v1/analytics/dashboard/competences-declining ────
 @router.get("/dashboard/competences-declining", summary="Compétences en déclin")
-async def dashboard_competences_declining(db: Session = Depends(get_db)) -> list[dict]:
+async def dashboard_competences_declining(db: DbSession) -> list[dict]:
     return DashboardEngine(db).competences_en_declin()
 
 
 # ── GET /api/v1/analytics/dashboard/teachers-at-risk ─────────
 @router.get("/dashboard/teachers-at-risk", summary="Enseignants à risque")
 async def dashboard_teachers_at_risk(
-    seuil: float = Query(0.50, ge=0.0, le=1.0),
-    db: Session = Depends(get_db),
+    db: DbSession,
+    seuil: SeuilParam = 0.50,
 ) -> list[dict]:
     return DashboardEngine(db).enseignants_a_risque(seuil=seuil)
 
@@ -486,7 +503,7 @@ async def dashboard_teachers_at_risk(
 )
 async def trigger_batch(
     request: Request,
-    db: Session = Depends(get_db),
+    db: DbSession,
 ) -> dict[str, Any]:
     """Déclenche l'analyse de tous les enseignants actifs (tâche longue — async)."""
     svc     = DataService(db)
@@ -505,7 +522,7 @@ async def trigger_batch(
 
 # ── GET /api/v1/analytics/health ─────────────────────────────
 @router.get("/health", summary="Health check analytics", include_in_schema=False)
-async def health(db: Session = Depends(get_db)) -> dict[str, Any]:
+async def health(db: DbSession) -> dict[str, Any]:
     try:
         db.execute(__import__("sqlalchemy").text("SELECT 1"))
         db_ok = True

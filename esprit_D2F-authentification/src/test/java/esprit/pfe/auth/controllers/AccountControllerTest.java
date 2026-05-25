@@ -16,6 +16,8 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.data.domain.AuditorAware;
+import org.springframework.data.jpa.mapping.JpaMetamodelMappingContext;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -39,6 +41,14 @@ class AccountControllerTest {
 
     @MockitoBean
     private AuditService auditService;
+
+        // Required when @EnableJpaAuditing is enabled on the main application class.
+        @MockitoBean
+        private JpaMetamodelMappingContext jpaMetamodelMappingContext;
+
+        @SuppressWarnings("rawtypes")
+        @MockitoBean(name = "auditorProvider")
+        private AuditorAware auditorProvider;
 
     private User testUser;
     private Role adminRole;

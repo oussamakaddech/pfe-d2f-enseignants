@@ -5,9 +5,13 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import tn.esprit.d2f.dto.BesoinCompetenceDTO;
+import tn.esprit.d2f.dto.PageResponse;
 import tn.esprit.d2f.service.IBesoinCompetenceService;
 
 import java.util.Arrays;
@@ -15,6 +19,8 @@ import java.util.Collections;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -33,15 +39,16 @@ class BesoinCompetenceControllerTest {
     @Test
     void getByBesoin_shouldReturnEmptyList() {
         long besoinId = 1L;
-        when(service.getByBesoin(besoinId)).thenReturn(Collections.emptyList());
+        when(service.getByBesoin(eq(besoinId), any(Pageable.class))).thenReturn(Page.empty());
 
-        ResponseEntity<List<BesoinCompetenceDTO>> response = controller.getByBesoin(besoinId);
+        // Controller now returns PageResponse<> (Fix 7)
+        ResponseEntity<PageResponse<BesoinCompetenceDTO>> response = controller.getByBesoin(besoinId, Pageable.unpaged());
 
         assertNotNull(response);
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
-        assertTrue(response.getBody().isEmpty());
-        verify(service).getByBesoin(besoinId);
+        assertTrue(response.getBody().getContent().isEmpty());
+        verify(service).getByBesoin(eq(besoinId), any(Pageable.class));
     }
 
     @Test
@@ -58,16 +65,17 @@ class BesoinCompetenceControllerTest {
                 .sousCompetenceId(40L)
                 .build();
 
-        when(service.getByBesoin(besoinId)).thenReturn(Arrays.asList(dto));
+        when(service.getByBesoin(eq(besoinId), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(Arrays.asList(dto)));
 
-        ResponseEntity<List<BesoinCompetenceDTO>> response = controller.getByBesoin(besoinId);
+        ResponseEntity<PageResponse<BesoinCompetenceDTO>> response = controller.getByBesoin(besoinId, Pageable.unpaged());
 
         assertNotNull(response);
         assertEquals(HttpStatus.OK, response.getStatusCode());
         assertNotNull(response.getBody());
-        assertEquals(1, response.getBody().size());
-        assertEquals("Java Programming", response.getBody().get(0).getCompetenceNom());
-        verify(service).getByBesoin(besoinId);
+        assertEquals(1, response.getBody().getContent().size());
+        assertEquals("Java Programming", response.getBody().getContent().get(0).getCompetenceNom());
+        verify(service).getByBesoin(eq(besoinId), any(Pageable.class));
     }
 
     @Test
@@ -87,14 +95,15 @@ class BesoinCompetenceControllerTest {
                 .competenceNom("Spring Boot")
                 .build();
 
-        when(service.getByBesoin(besoinId)).thenReturn(Arrays.asList(dto1, dto2));
+        when(service.getByBesoin(eq(besoinId), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(Arrays.asList(dto1, dto2)));
 
-        ResponseEntity<List<BesoinCompetenceDTO>> response = controller.getByBesoin(besoinId);
+        ResponseEntity<PageResponse<BesoinCompetenceDTO>> response = controller.getByBesoin(besoinId, Pageable.unpaged());
 
         assertNotNull(response);
         assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertEquals(2, response.getBody().size());
-        verify(service).getByBesoin(besoinId);
+        assertEquals(2, response.getBody().getContent().size());
+        verify(service).getByBesoin(eq(besoinId), any(Pageable.class));
     }
 
     @Test

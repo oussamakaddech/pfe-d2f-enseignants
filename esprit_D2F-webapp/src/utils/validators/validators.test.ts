@@ -146,7 +146,7 @@ describe('Validators Utility', () => {
     it('should validate valid URLs', () => {
       const validUrls = [
         'https://example.com',
-        'http://localhost:3000',
+        'http://test.example:3000',
         'https://example.com/path',
       ];
 

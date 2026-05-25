@@ -150,21 +150,21 @@ public class DomaineServiceImpl implements IDomaineService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<DomaineDTO> getDomainesByFilter(Long upId, Long departementId) {
+    public List<DomaineDTO> getDomainesByFilter(String upId, String departementId) {
         return domaineRepository.findByUpIdAndDepartementId(upId, departementId).stream()
                 .map(competenceMapper::toDTO).toList();
     }
 
     @Override
     @Transactional(readOnly = true)
-    public Page<DomaineDTO> getDomainesByFilter(Long upId, Long departementId, Pageable pageable) {
+    public Page<DomaineDTO> getDomainesByFilter(String upId, String departementId, Pageable pageable) {
         return domaineRepository.findByUpIdAndDepartementId(upId, departementId, pageable)
                 .map(competenceMapper::toDTO);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public List<DomaineDTO> getDomainesActifsByFilter(Long upId, Long departementId) {
+    public List<DomaineDTO> getDomainesActifsByFilter(String upId, String departementId) {
         return domaineRepository.findActifsByUpIdAndDepartementId(upId, departementId).stream()
                 .map(competenceMapper::toDTO).toList();
     }

@@ -11,6 +11,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
@@ -127,10 +131,10 @@ class AuditServiceTest {
 
     @Test
     void testGetAllAuditLogs() {
-        when(auditLogRepository.findAll()).thenReturn(List.of(new AuditLog()));
-        List<AuditLog> logs = auditService.getAllAuditLogs();
-        assertEquals(1, logs.size());
-        verify(auditLogRepository).findAll();
+        when(auditLogRepository.findAll(any(Pageable.class))).thenReturn(new PageImpl<>(List.of(new AuditLog())));
+        Page<AuditLog> logs = auditService.getAllAuditLogs(PageRequest.of(0, 10));
+        assertEquals(1, logs.getContent().size());
+        verify(auditLogRepository).findAll(any(Pageable.class));
     }
 
     @Test
@@ -216,9 +220,9 @@ class AuditServiceTest {
     @Test
     @DisplayName("getAllAuditLogs - should return empty list when no logs exist")
     void testGetAllAuditLogs_EmptyResult() {
-        when(auditLogRepository.findAll()).thenReturn(List.of());
-        List<AuditLog> logs = auditService.getAllAuditLogs();
-        assertThat(logs).isEmpty();
+        when(auditLogRepository.findAll(any(Pageable.class))).thenReturn(new PageImpl<>(List.of()));
+        Page<AuditLog> logs = auditService.getAllAuditLogs(PageRequest.of(0, 10));
+        assertThat(logs.getContent()).isEmpty();
     }
 
     @Test

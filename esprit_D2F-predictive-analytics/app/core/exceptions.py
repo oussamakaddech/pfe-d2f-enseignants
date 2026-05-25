@@ -52,7 +52,7 @@ class DatabaseError(HTTPException):
 
 # ── Handlers — format DSI sur tous les cas ────────────────────────────────────
 
-async def model_not_trained_handler(request: Request, exc: ModelNotTrainedError):
+def model_not_trained_handler(request: Request, exc: ModelNotTrainedError):
     return JSONResponse(
         status_code=exc.status_code,
         content=dsi_error_body(
@@ -64,7 +64,7 @@ async def model_not_trained_handler(request: Request, exc: ModelNotTrainedError)
     )
 
 
-async def insufficient_data_handler(request: Request, exc: InsufficientDataError):
+def insufficient_data_handler(request: Request, exc: InsufficientDataError):
     return JSONResponse(
         status_code=exc.status_code,
         content=dsi_error_body(
@@ -76,7 +76,7 @@ async def insufficient_data_handler(request: Request, exc: InsufficientDataError
     )
 
 
-async def teacher_not_found_handler(request: Request, exc: TeacherNotFoundError):
+def teacher_not_found_handler(request: Request, exc: TeacherNotFoundError):
     return JSONResponse(
         status_code=exc.status_code,
         content=dsi_error_body(
@@ -88,7 +88,7 @@ async def teacher_not_found_handler(request: Request, exc: TeacherNotFoundError)
     )
 
 
-async def database_error_handler(request: Request, exc: DatabaseError):
+def database_error_handler(request: Request, exc: DatabaseError):
     increment("db_errors")
     return JSONResponse(
         status_code=exc.status_code,
@@ -101,7 +101,7 @@ async def database_error_handler(request: Request, exc: DatabaseError):
     )
 
 
-async def http_exception_handler(request: Request, exc: HTTPException):
+def http_exception_handler(request: Request, exc: HTTPException):
     """Handler pour toutes les HTTPException non capturées plus haut."""
     return JSONResponse(
         status_code=exc.status_code,
@@ -114,7 +114,7 @@ async def http_exception_handler(request: Request, exc: HTTPException):
     )
 
 
-async def generic_exception_handler(request: Request, exc: Exception):
+def generic_exception_handler(request: Request, exc: Exception):
     """Catch-all — 500 avec format DSI, sans exposer la stacktrace."""
     logger.error(
         "Exception non gérée | path=%s error=%s\n%s",
@@ -132,7 +132,7 @@ async def generic_exception_handler(request: Request, exc: Exception):
     )
 
 
-async def validation_exception_handler(request: Request, exc: ValidationError):
+def validation_exception_handler(request: Request, exc: ValidationError):
     logger.warning(
         "Validation error | path=%s error=%s",
         request.url.path, str(exc),

@@ -1,6 +1,7 @@
-import { useContext, ReactNode } from "react";
+import { useContext, useEffect, ReactNode } from "react";
 import { Navigate, Outlet } from "react-router-dom";
 import { AuthContext } from "@/components/common/AuthProvider";
+import { notify } from "@/utils/helpers/notifications";
 
 const normalizeRole = (value: unknown): string =>
   (typeof value === "string" ? value : "")
@@ -99,6 +100,13 @@ interface RoleGuardProps {
   allowedRoles: string[];
 }
 
+function ForbiddenRedirect() {
+  useEffect(() => {
+    notify.warning("Accès refusé. Vous n'avez pas les droits nécessaires pour accéder à cette page.");
+  }, []);
+  return <Navigate to="/home/profile" replace />;
+}
+
 export function RoleGuard({ allowedRoles }: Readonly<RoleGuardProps>) {
   const auth = useContext(AuthContext);
   if (!auth) {
@@ -108,7 +116,7 @@ export function RoleGuard({ allowedRoles }: Readonly<RoleGuardProps>) {
   const role = normalizeRole(user?.role);
   const normalizedAllowedRoles = allowedRoles.map(normalizeRole);
   if (!user || !normalizedAllowedRoles.includes(role)) {
-    return <Navigate to="/home/profile" replace />;
+    return <ForbiddenRedirect />;
   }
   return <Outlet />;
 }

@@ -21,6 +21,7 @@ import tn.esprit.d2f.competence.repository.EnseignantCompetenceRepository;
 import tn.esprit.d2f.competence.repository.SavoirRepository;
 import tn.esprit.d2f.competence.repository.SousCompetenceRepository;
 
+import org.springframework.data.domain.PageImpl;
 import java.util.List;
 
 @Slf4j
@@ -62,6 +63,22 @@ public class CompetenceServiceImpl implements ICompetenceService {
                     return dto;
                 })
                 .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<CompetenceDTO> getCompetencesByDomaine(Long domaineId, Pageable pageable) {
+        List<CompetenceDTO> all = competenceRepository.findByDomaineIdWithDomaine(domaineId).stream()
+                .map(c -> {
+                    CompetenceDTO dto = competenceMapper.toDTO(c);
+                    dto.setPrerequisiteCount(prerequisiteRepository.countByCompetenceId(c.getId()));
+                    dto.setPrerequisiteNames(prerequisiteRepository.findPrerequisiteNamesByCompetenceId(c.getId()));
+                    return dto;
+                })
+                .toList();
+        int from = (int) pageable.getOffset();
+        int to = Math.min(from + pageable.getPageSize(), all.size());
+        return new PageImpl<>(from >= all.size() ? List.of() : all.subList(from, to), pageable, all.size());
     }
 
     @Override
@@ -133,14 +150,14 @@ public class CompetenceServiceImpl implements ICompetenceService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<CompetenceDTO> getCompetencesByFilter(Long upId, Long departementId) {
+    public List<CompetenceDTO> getCompetencesByFilter(String upId, String departementId) {
         return competenceRepository.findByDomaine_UpIdAndDomaine_DepartementId(upId, departementId).stream()
                 .map(competenceMapper::toDTO).toList();
     }
 
     @Override
     @Transactional(readOnly = true)
-    public Page<CompetenceDTO> getCompetencesByFilter(Long upId, Long departementId, Pageable pageable) {
+    public Page<CompetenceDTO> getCompetencesByFilter(String upId, String departementId, Pageable pageable) {
         return competenceRepository.findByDomaine_UpIdAndDomaine_DepartementId(upId, departementId, pageable)
                 .map(competenceMapper::toDTO);
     }

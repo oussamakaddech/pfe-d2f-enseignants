@@ -69,6 +69,7 @@ class FormationWorkflowServiceTest {
         lenient().when(formationRepository.save(any())).thenAnswer(inv -> {
             Formation f = inv.getArgument(0);
             if (f.getIdFormation() == null) f.setIdFormation(1L);
+            if (f.getEtatFormation() == null) f.setEtatFormation(EtatFormation.ENREGISTRE);
             return f;
         });
         lenient().when(seanceFormationRepository.existsSeanceConflict(any(), any(), any(), any())).thenReturn(false);

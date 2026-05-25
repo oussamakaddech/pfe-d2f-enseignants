@@ -16,8 +16,8 @@ const RISQUE_CONFIG: Record<NiveauRisque, { color: string; label: string }> = {
 };
 
 interface RiskBadgeProps {
-  type:  "urgence" | "risque";
-  value: NiveauUrgence | NiveauRisque;
+  readonly type:  "urgence" | "risque";
+  readonly value: NiveauUrgence | NiveauRisque;
 }
 
 export default function RiskBadge({ type, value }: RiskBadgeProps) {

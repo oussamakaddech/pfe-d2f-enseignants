@@ -30,18 +30,16 @@ function StatCard({ icon, label, value, hint, variant, progress, trend }) {
         </div>
         {hint && <div className="bf-stat__hint">{hint}</div>}
         {typeof progress === "number" && (
-          <div
+          <progress
             className="bf-stat__progress"
-            role="progressbar"
-            aria-valuenow={progress}
-            aria-valuemin={0}
-            aria-valuemax={100}
+            value={progress}
+            max={100}
           >
             <div
               className="bf-stat__progress-bar"
               style={{ width: `${Math.min(100, Math.max(0, progress))}%` }}
             />
-          </div>
+          </progress>
         )}
       </div>
     </article>

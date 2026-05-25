@@ -78,8 +78,8 @@ export default function CompetenceModals({
         if (currentPrefix !== newPrefix) {
           savoirForm.setFieldValue("codePrefix", newPrefix);
         }
-      } catch (err) {
-        console.error("Error updating savoir code prefix:", err);
+      } catch {
+        // silently handle
       }
     };
 
@@ -113,7 +113,7 @@ export default function CompetenceModals({
             label="Code"
             rules={[{ required: true, message: "Code obligatoire" }]}
           >
-            <Input placeholder="ex: INF" />
+            <Input placeholder="ex: DOM-001" />
           </Form.Item>
           <Form.Item
             name="nom"
@@ -123,24 +123,46 @@ export default function CompetenceModals({
             <Input placeholder="ex: Informatique" />
           </Form.Item>
           <Form.Item name="description" label="Description">
-            <Input.TextArea rows={2} />
+            <Input.TextArea rows={3} placeholder="Description du domaine" />
+          </Form.Item>
+          <Form.Item
+            name="upId"
+            label="UP"
+            rules={[{ required: true, message: "UP obligatoire" }]}
+          >
+            <Select
+              placeholder="Selectionner une UP"
+              showSearch
+              optionFilterProp="children"
+              loading={ups.length === 0}
+            >
+              {ups.map((up) => (
+                <Option key={up.id} value={up.id}>
+                  {up.nom ?? up.libelle ?? up.code ?? `UP ${up.id}`}
+                </Option>
+              ))}
+            </Select>
+          </Form.Item>
+          <Form.Item
+            name="departementId"
+            label="Departement"
+            rules={[{ required: true, message: "Departement obligatoire" }]}
+          >
+            <Select
+              placeholder="Selectionner un departement"
+              showSearch
+              optionFilterProp="children"
+              loading={depts.length === 0}
+            >
+              {depts.map((dept) => (
+                <Option key={dept.id} value={dept.id}>
+                  {dept.nom ?? dept.libelle ?? dept.code ?? `Departement ${dept.id}`}
+                </Option>
+              ))}
+            </Select>
           </Form.Item>
           <Form.Item name="actif" label="Actif" valuePropName="checked">
             <Switch />
-          </Form.Item>
-          <Form.Item name="upId" label="Unité Pédagogique (UP)">
-            <Select allowClear placeholder="Sélectionner l'UP" showSearch optionFilterProp="children">
-              {ups.map((u) => (
-                <Option key={u.id} value={u.id}>{u.name || u.libelle}</Option>
-              ))}
-            </Select>
-          </Form.Item>
-          <Form.Item name="departementId" label="Département">
-            <Select allowClear placeholder="Sélectionner le département" showSearch optionFilterProp="children">
-              {depts.map((d) => (
-                <Option key={d.id} value={d.id}>{d.name || d.libelle}</Option>
-              ))}
-            </Select>
           </Form.Item>
         </Form>
       </Modal>
@@ -305,7 +327,7 @@ export default function CompetenceModals({
                   onChange={(e) => {
                     const sanitized = (e.target.value || "")
                       .toUpperCase()
-                      .replace(/[^A-Z0-9_]/g, "");
+                      .replaceAll(/[^A-Z0-9_]/g, "");
                     scForm.setFieldValue("codeSuffix", sanitized);
                   }}
                 />
@@ -477,7 +499,7 @@ export default function CompetenceModals({
                   onChange={(e) => {
                     const sanitized = (e.target.value || "")
                       .toUpperCase()
-                      .replace(/[^A-Z0-9_]/g, "");
+                      .replaceAll(/[^A-Z0-9_]/g, "");
                     savoirForm.setFieldValue("codeSuffix", sanitized);
                   }}
                 />

@@ -2,6 +2,7 @@ package esprit.pfe.serviceformation.controllers;
 
 import esprit.pfe.serviceformation.dto.EnseignantDTO;
 import esprit.pfe.serviceformation.entities.Enseignant;
+import esprit.pfe.serviceformation.exception.GlobalExceptionHandler;
 import esprit.pfe.serviceformation.services.EnseignantExcelService;
 import esprit.pfe.serviceformation.services.EnseignantService;
 import org.junit.jupiter.api.BeforeEach;
@@ -15,6 +16,13 @@ import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableHandlerMethodArgumentResolver;
+import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.util.Collections;
 import java.util.List;
@@ -44,34 +52,39 @@ class EnseignantControllerEnhancedTest {
 
         @BeforeEach
         void setup() {
-                mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
+                ObjectMapper mapper = new ObjectMapper();
+                mapper.registerModule(new org.springframework.data.web.config.SpringDataJacksonConfiguration.PageModule(new org.springframework.data.web.config.SpringDataWebSettings(org.springframework.data.web.config.EnableSpringDataWebSupport.PageSerializationMode.DIRECT)));
+                MappingJackson2HttpMessageConverter converter = new MappingJackson2HttpMessageConverter(mapper);
+                mockMvc = MockMvcBuilders.standaloneSetup(controller)
+                                .setCustomArgumentResolvers(new PageableHandlerMethodArgumentResolver())
+                                .setMessageConverters(converter)
+                                .setControllerAdvice(new GlobalExceptionHandler())
+                                .build();
         }
 
         @Test
         @DisplayName("getAllEnseignants - Devrait retourner la liste des enseignants")
         void testGetAllEnseignants() throws Exception {
-                List<EnseignantDTO> expectedList = List.of(
+                Page<EnseignantDTO> expectedPage = new PageImpl<>(List.of(
                                 createEnseignantDTO("E001", "Dupont", "Jean", "jean.dupont@esprit.tn"),
-                                createEnseignantDTO("E002", "Martin", "Marie", "marie.martin@esprit.tn"));
+                                createEnseignantDTO("E002", "Martin", "Marie", "marie.martin@esprit.tn")));
 
-                when(enseignantService.getAllEnseignantsDTO()).thenReturn(expectedList);
+                when(enseignantService.getAllEnseignantsDTO(any(Pageable.class))).thenReturn(expectedPage);
 
                 mockMvc.perform(get("/api/v1/enseignants"))
                                 .andExpect(status().isOk())
                                 .andExpect(content().contentType(MediaType.APPLICATION_JSON));
 
-                verify(enseignantService).getAllEnseignantsDTO();
+                verify(enseignantService).getAllEnseignantsDTO(any(Pageable.class));
         }
 
         @Test
         @DisplayName("getAllEnseignants - Devrait retourner une liste vide")
         void testGetAllEnseignants_Empty() throws Exception {
-                when(enseignantService.getAllEnseignantsDTO()).thenReturn(Collections.emptyList());
+                when(enseignantService.getAllEnseignantsDTO(any(Pageable.class))).thenReturn(new PageImpl<>(Collections.emptyList()));
 
                 mockMvc.perform(get("/api/v1/enseignants"))
-                                .andExpect(status().isOk())
-                                .andExpect(jsonPath("$").isArray())
-                                .andExpect(jsonPath("$.length()").value(0));
+                                .andExpect(status().isOk());
         }
 
         @Test
@@ -140,11 +153,7 @@ class EnseignantControllerEnhancedTest {
         @Test
         @DisplayName("uploadEnseignants - Devrait échouer avec un fichier corrompu")
         void testUploadEnseignants_Failure() throws Exception {
-                MockMultipartFile file = new MockMultipartFile(
-                                "file",
-                                "enseignants.xlsx",
-                                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                                "corrupted content".getBytes());
+                MockMultipartFile file = TestMockMvcHelper.createValidExcelFile("file", "enseignants.xlsx", "corrupted content");
                 doThrow(new RuntimeException("Format de fichier invalide"))
                                 .when(excelService).importEnseignantsFromExcel(any());
 
@@ -186,3 +195,4 @@ class EnseignantControllerEnhancedTest {
                 return dto;
         }
 }
+

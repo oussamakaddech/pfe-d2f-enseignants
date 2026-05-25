@@ -20,11 +20,11 @@ export function createApiClient(baseURL?: string) {
 
   // Expose a small helper on the created instance so code that imports the
   // client as `axios` can still call `axios.isAxiosError(...)` safely.
-  (api as any).isAxiosError = (error: unknown) => {
+  (api as unknown as Record<string, unknown>).isAxiosError = (error: unknown) => {
     try {
-      return axiosIsAxiosError ? axiosIsAxiosError(error as any) : (error as any)?.isAxiosError === true;
+      return axiosIsAxiosError ? axiosIsAxiosError(error as Record<string, unknown>) : (error as Record<string, unknown>)?.isAxiosError === true;
     } catch {
-      return (error as any)?.isAxiosError === true;
+      return (error as Record<string, unknown>)?.isAxiosError === true;
     }
   };
 
@@ -46,14 +46,14 @@ export function createApiClient(baseURL?: string) {
         }
 
         try {
-          window.dispatchEvent(new Event("auth:loggedOut"));
+          globalThis.dispatchEvent(new Event("auth:loggedOut"));
         } catch {
           /* ignore */
         }
         const isAlreadyOnLogin =
-          window.location.pathname === "/" ||
-          window.location.pathname.startsWith("/login") ||
-          window.location.pathname.startsWith("/auth");
+          globalThis.location.pathname === "/" ||
+          globalThis.location.pathname.startsWith("/login") ||
+          globalThis.location.pathname.startsWith("/auth");
         if (!isAlreadyOnLogin) {
           navigate("/", { replace: true });
         }

@@ -146,6 +146,127 @@ class StructureServiceImplTest {
     }
 
     @Test
+    @DisplayName("getStructureComplete(upId, departementId): avec domaines filtrés")
+    void testGetStructureCompleteWithFilters() {
+        when(domaineRepository.findByUpIdAndDepartementId("1", "2")).thenReturn(List.of(domaine));
+        when(savoirRepository.findAll()).thenReturn(List.of(savoir1, savoir2));
+        when(competenceMapper.toDTO(any(Savoir.class))).thenReturn(new SavoirDTO());
+
+        StructureArbreDTO result = structureService.getStructureComplete("1", "2");
+
+        assertThat(result).isNotNull();
+        assertThat(result.getDomaines()).hasSize(1);
+        assertThat(result.getStatistiques().getTotalDomaines()).isEqualTo(1);
+        assertThat(result.getStatistiques().getTotalCompetences()).isEqualTo(1);
+        assertThat(result.getStatistiques().getTotalSavoirsTheoriques()).isEqualTo(1);
+        assertThat(result.getStatistiques().getTotalSavoirsPratiques()).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("getStructureComplete(upId, departementId): avec domaines vides")
+    void testGetStructureCompleteWithFiltersEmptyDomaines() {
+        when(domaineRepository.findByUpIdAndDepartementId("99", "99")).thenReturn(List.of());
+
+        StructureArbreDTO result = structureService.getStructureComplete("99", "99");
+
+        assertThat(result).isNotNull();
+        assertThat(result.getDomaines()).isEmpty();
+        assertThat(result.getStatistiques().getTotalDomaines()).isZero();
+        assertThat(result.getStatistiques().getTotalSavoirs()).isZero();
+    }
+
+    @Test
+    @DisplayName("buildCompetenceArbre: sousCompetences null et savoirs null")
+    void testBuildCompetenceArbreWithNulls() {
+        Competence comp = Competence.builder().id(10L).code("CX").nom("Comp X").domaine(domaine).build();
+        comp.setSousCompetences(null);
+        comp.setSavoirs(null);
+        domaine.setCompetences(List.of(comp));
+
+        when(domaineRepository.findById(1L)).thenReturn(Optional.of(domaine));
+        when(enseignantCompetenceRepository.countDistinctEnseignantsByDomaineId(1L)).thenReturn(0L);
+        when(enseignantCompetenceRepository.countDistinctEnseignantsByCompetenceId(10L)).thenReturn(0L);
+
+        StructureArbreDTO.DomaineArbreDTO result = structureService.getStructureDomaine(1L);
+
+        assertThat(result.getCompetences()).hasSize(1);
+        assertThat(result.getCompetences().get(0).getSousCompetences()).isEmpty();
+        assertThat(result.getCompetences().get(0).getSavoirsDirect()).isEmpty();
+        assertThat(result.getCompetences().get(0).getNombreSavoirs()).isZero();
+    }
+
+    @Test
+    @DisplayName("buildSousCompetenceArbre: enfants null et savoirs null")
+    void testBuildSousCompetenceArbreWithNulls() {
+        SousCompetence sc = SousCompetence.builder().id(20L).code("SCX").nom("SC X").competence(competence).build();
+        sc.setEnfants(null);
+        sc.setSavoirs(null);
+        competence.setSousCompetences(List.of(sc));
+        competence.setSavoirs(null);
+        domaine.setCompetences(List.of(competence));
+
+        when(domaineRepository.findById(1L)).thenReturn(Optional.of(domaine));
+        when(enseignantCompetenceRepository.countDistinctEnseignantsByDomaineId(1L)).thenReturn(0L);
+        when(enseignantCompetenceRepository.countDistinctEnseignantsByCompetenceId(1L)).thenReturn(0L);
+        when(enseignantCompetenceRepository.countDistinctEnseignantsBySousCompetenceId(20L)).thenReturn(0L);
+
+        StructureArbreDTO.DomaineArbreDTO result = structureService.getStructureDomaine(1L);
+
+        assertThat(result.getCompetences().get(0).getSousCompetences()).hasSize(1);
+        assertThat(result.getCompetences().get(0).getSousCompetences().get(0).getEnfants()).isEmpty();
+        assertThat(result.getCompetences().get(0).getSousCompetences().get(0).getSavoirs()).isEmpty();
+        assertThat(result.getCompetences().get(0).getSousCompetences().get(0).getNombreSavoirs()).isZero();
+    }
+
+    @Test
+    @DisplayName("countSavoirsRecursive: avec enfants imbriqués")
+    void testCountSavoirsRecursiveWithNestedEnfants() {
+        Savoir savoirEnfant = Savoir.builder().id(3L).code("SE").nom("Savoir Enfant").type(TypeSavoir.THEORIQUE).build();
+        SousCompetence enfant = SousCompetence.builder().id(30L).code("ENF").nom("Enfant").competence(competence).build();
+        enfant.setSavoirs(List.of(savoirEnfant));
+        enfant.setEnfants(List.of());
+
+        sousCompetence.setEnfants(List.of(enfant));
+        sousCompetence.setSavoirs(List.of(savoir2));
+        competence.setSousCompetences(List.of(sousCompetence));
+        competence.setSavoirs(List.of(savoir1));
+        domaine.setCompetences(List.of(competence));
+
+        when(domaineRepository.findById(1L)).thenReturn(Optional.of(domaine));
+        when(enseignantCompetenceRepository.countDistinctEnseignantsByDomaineId(1L)).thenReturn(0L);
+        when(enseignantCompetenceRepository.countDistinctEnseignantsByCompetenceId(1L)).thenReturn(0L);
+        when(enseignantCompetenceRepository.countDistinctEnseignantsBySousCompetenceId(anyLong())).thenReturn(0L);
+        when(competenceMapper.toDTO(any(Savoir.class))).thenReturn(new SavoirDTO());
+
+        StructureArbreDTO.DomaineArbreDTO result = structureService.getStructureDomaine(1L);
+
+        // savoir1 (direct) + savoir2 (sc) + savoirEnfant (enfant de sc) = 3
+        assertThat(result.getCompetences().get(0).getNombreSavoirs()).isEqualTo(3);
+    }
+
+    @Test
+    @DisplayName("buildSousCompetenceArbre: sousCompetence avec parent non-null est filtrée")
+    void testBuildCompetenceArbreFiltersChildrenWithParent() {
+        SousCompetence childSc = SousCompetence.builder().id(40L).code("CHILD").nom("Child").competence(competence).parent(sousCompetence).build();
+        sousCompetence.setEnfants(List.of(childSc));
+        sousCompetence.setSavoirs(null);
+        competence.setSousCompetences(List.of(sousCompetence, childSc));
+        competence.setSavoirs(null);
+        domaine.setCompetences(List.of(competence));
+
+        when(domaineRepository.findById(1L)).thenReturn(Optional.of(domaine));
+        when(enseignantCompetenceRepository.countDistinctEnseignantsByDomaineId(1L)).thenReturn(0L);
+        when(enseignantCompetenceRepository.countDistinctEnseignantsByCompetenceId(1L)).thenReturn(0L);
+        when(enseignantCompetenceRepository.countDistinctEnseignantsBySousCompetenceId(anyLong())).thenReturn(0L);
+
+        StructureArbreDTO.DomaineArbreDTO result = structureService.getStructureDomaine(1L);
+
+        // Only sousCompetence (parent==null) should appear; childSc (parent!=null) is filtered
+        assertThat(result.getCompetences().get(0).getSousCompetences()).hasSize(1);
+        assertThat(result.getCompetences().get(0).getSousCompetences().get(0).getId()).isEqualTo(1L);
+    }
+
+    @Test
     @DisplayName("Exception handling sur count distincts")
     void testExceptionHandlingOnCounts() {
         when(domaineRepository.findById(1L)).thenReturn(Optional.of(domaine));

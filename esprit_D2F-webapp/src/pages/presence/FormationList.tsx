@@ -1,5 +1,4 @@
-// src/pages/presence/FormationList.jsx
-import { useEffect, useState, useContext, useMemo } from "react";
+import { useState, useContext, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import dayjs from "dayjs";
 import {
@@ -28,7 +27,9 @@ import {
   ApartmentOutlined,
   SearchOutlined,
 } from "@ant-design/icons";
-import FormationWorkflowService from "@/services/formation/FormationWorkflowService";
+import { useFormationsByAnimateur } from "@/hooks/presence/usePresence";
+import { useFormationsAchevees } from "@/hooks/formation/useFormations";
+import { ROLES } from "@/utils/constants/roles";
 import { AuthContext } from "@/components/common/AuthProvider";
 import { AppPageHeader } from "@/components/common";
 import "@/styles/pages/formation-list.css";
@@ -56,8 +57,6 @@ const uniqueByMail = (list) => {
 
 const FormationList = () => {
   const { user } = useContext(AuthContext);
-  const [formations, setFormations] = useState([]);
-  const [loading, setLoading] = useState(false);
   const [titleFilter, setTitleFilter] = useState("");
   const [deptFilter, setDeptFilter] = useState("");
   const [upFilter, setUpFilter] = useState("");
@@ -66,17 +65,11 @@ const FormationList = () => {
   const [endDate, setEndDate] = useState(null);
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const fetchFn =
-      user?.role === "D2F"
-        ? FormationWorkflowService.getFormationsAchevees
-        : FormationWorkflowService.getFormationsByAnimateur;
-    setLoading(true);
-    fetchFn()
-      .then((data) => setFormations(Array.isArray(data) ? data : []))
-      .catch((err) => console.error("Erreur récupération formations :", err))
-      .finally(() => setLoading(false));
-  }, [user]);
+  const isD2F = user?.role === ROLES.D2F;
+  const { data: achevees = [], isLoading: loadingAchevees } = useFormationsAchevees();
+  const { data: parAnimateur = [], isLoading: loadingAnimateur } = useFormationsByAnimateur();
+  const formations = isD2F ? achevees : parAnimateur;
+  const loading = isD2F ? loadingAchevees : loadingAnimateur;
 
   // Extract dropdown options
   const depts = useMemo(() => {
@@ -94,8 +87,8 @@ const FormationList = () => {
   const filtered = useMemo(() => {
     return formations.filter((f) => {
       if (titleFilter && !(f.titreFormation || "").toLowerCase().includes(titleFilter.toLowerCase())) return false;
-      if (deptFilter && (!f.departement1 || f.departement1.id !== deptFilter)) return false;
-      if (upFilter && (!f.up1 || f.up1.id !== upFilter)) return false;
+      if (deptFilter && f.departement1?.id !== deptFilter) return false;
+      if (upFilter && f.up1?.id !== upFilter) return false;
       if (statusFilter && f.etatFormation !== statusFilter) return false;
       if (startDate && dayjs(f.dateDebut).isBefore(startDate, "day")) return false;
       if (endDate && dayjs(f.dateFin).isAfter(endDate, "day")) return false;

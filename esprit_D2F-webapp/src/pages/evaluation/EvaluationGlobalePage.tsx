@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   Table,
   Button,
@@ -29,9 +29,14 @@ import {
 import { AppPageHeader, EmptyState } from "@/components/common";
 import "@/styles/pages/evaluation-globale-page.css";
 import moment from "moment";
-import EvaluationGlobaleService from "@/services/evaluation/EvaluationGlobaleService";
-import FormationWorkflowService from "@/services/formation/FormationWorkflowService";
 import useAppNotification from "@/hooks/ui/useAppNotification";
+import {
+  useEvaluationsGlobales,
+  useCreateEvaluationGlobale,
+  useUpdateEvaluationGlobale,
+  useDeleteEvaluationGlobale,
+} from "@/hooks/evaluation/useEvaluations";
+import { useAllFormations } from "@/hooks/formation/useFormations";
 
 const { Option } = Select;
 const { TextArea } = Input;
@@ -44,52 +49,42 @@ const RECO_COLORS = {
 };
 
 export default function EvaluationGlobalePage() {
-  const [evaluations, setEvaluations] = useState([]);
-  const [filtered, setFiltered] = useState([]);
-  const [formations, setFormations] = useState([]);
-  const [loading, setLoading] = useState(false);
   const { message: msgApi } = useAppNotification();
+  const { data: evaluationsData = [], isLoading: loading } = useEvaluationsGlobales();
+  const { data: formationsData = [] } = useAllFormations();
+  const createMut = useCreateEvaluationGlobale();
+  const updateMut = useUpdateEvaluationGlobale();
+  const deleteMut = useDeleteEvaluationGlobale();
+
+  const evaluations = evaluationsData as Record<string, unknown>[];
+  const formations  = formationsData;
+
   const [openForm, setOpenForm] = useState(false);
-  const [editingEval, setEditingEval] = useState(null);
+  const [editingEval, setEditingEval] = useState<Record<string, unknown> | null>(null);
   const [form] = Form.useForm();
 
   const [filterText, setFilterText] = useState("");
-  const [recoFilter, setRecoFilter] = useState();
-  const [formationFilter, setFormationFilter] = useState();
+  const [recoFilter, setRecoFilter] = useState<string | undefined>();
+  const [formationFilter, setFormationFilter] = useState<unknown>();
 
-  useEffect(() => {
-    applyFilters();
-  }, [evaluations, filterText, recoFilter, formationFilter]);
-
-  useEffect(() => {
-    void loadEvaluations();
-    void loadFormations();
-  }, []);
-
-  async function loadEvaluations() {
-    setLoading(true);
-    try {
-      const data = await EvaluationGlobaleService.getAllEvaluationGlobales();
-      setEvaluations(Array.isArray(data) ? data : []);
-      msgApi.success("Évaluations globales chargées !");
-    } catch (err) {
-      console.error(err);
-      msgApi.error("Erreur chargement évaluations");
-    } finally {
-      setLoading(false);
-    }
+  function getFormationTitre(formationId: unknown) {
+    const f = formations.find((f) => f.idFormation === formationId);
+    return f ? f.titreFormation : `Formation #${formationId}`;
   }
 
-  async function loadFormations() {
-    try {
-      const data = await FormationWorkflowService.getAllFormationWorkflows();
-      const arr = Array.isArray(data) ? data : data ? [data] : [];
-      setFormations(arr);
-    } catch (err) {
-      console.error(err);
-      setFormations([]);
+  const filtered = useMemo(() => {
+    let res = [...evaluations];
+    if (filterText) {
+      res = res.filter((e) =>
+        (getFormationTitre(e["formationId"]) || "").toLowerCase().includes(filterText.toLowerCase()) ||
+        String(e["commentaireGeneral"] || "").toLowerCase().includes(filterText.toLowerCase())
+      );
     }
-  }
+    if (recoFilter) res = res.filter((e) => e["recommandation"] === recoFilter);
+    if (formationFilter) res = res.filter((e) => e["formationId"] === formationFilter);
+    return res;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [evaluations, filterText, recoFilter, formationFilter, formations]);
 
   function openCreate() {
     setEditingEval(null);
@@ -97,14 +92,14 @@ export default function EvaluationGlobalePage() {
     setOpenForm(true);
   }
 
-  function openEdit(record) {
+  function openEdit(record: Record<string, unknown>) {
     setEditingEval(record);
     form.setFieldsValue({
-      formationId: record.formationId,
-      commentaireGeneral: record.commentaireGeneral,
-      dateEvaluation: record.dateEvaluation ? moment(record.dateEvaluation) : null,
-      noteGlobale: record.noteGlobale,
-      recommandation: record.recommandation,
+      formationId: record["formationId"],
+      commentaireGeneral: record["commentaireGeneral"],
+      dateEvaluation: record["dateEvaluation"] ? moment(record["dateEvaluation"] as string) : null,
+      noteGlobale: record["noteGlobale"],
+      recommandation: record["recommandation"],
     });
     setOpenForm(true);
   }
@@ -116,53 +111,28 @@ export default function EvaluationGlobalePage() {
         ...values,
         dateEvaluation: values.dateEvaluation ? values.dateEvaluation.toDate() : null,
       };
-
       if (editingEval) {
-        await EvaluationGlobaleService.updateEvaluationGlobale(
-          editingEval.idEvalGlobale,
-          payload
-        );
+        await updateMut.mutateAsync({ id: editingEval["idEvalGlobale"] as number, data: payload });
         msgApi.success("Évaluation globale mise à jour !");
       } else {
-        await EvaluationGlobaleService.createEvaluationGlobale(payload);
+        await createMut.mutateAsync(payload);
         msgApi.success("Évaluation globale créée !");
       }
       setOpenForm(false);
-      void loadEvaluations();
-    } catch (err) {
-      if (err.errorFields) return;
-      const apiMsg =
-        err.response?.data?.message || err.response?.data?.error || err.message;
-      msgApi.error(`Erreur : ${apiMsg}`);
+    } catch (err: unknown) {
+      const e = err as { errorFields?: unknown; response?: { data?: { message?: string; error?: string } }; message?: string };
+      if (e.errorFields) return;
+      msgApi.error(`Erreur : ${e.response?.data?.message ?? e.response?.data?.error ?? e.message}`);
     }
   }
 
-  async function handleDelete(id) {
+  async function handleDelete(id: unknown) {
     try {
-      await EvaluationGlobaleService.deleteEvaluationGlobale(id);
+      await deleteMut.mutateAsync(id as number);
       msgApi.success("Évaluation supprimée");
-      void loadEvaluations();
     } catch {
       msgApi.error("Erreur suppression");
     }
-  }
-
-  function getFormationTitre(formationId) {
-    const f = formations.find((f) => f.idFormation === formationId);
-    return f ? f.titreFormation : `Formation #${formationId}`;
-  }
-
-  function applyFilters() {
-    let res = [...evaluations];
-    if (filterText) {
-      res = res.filter((e) =>
-        (getFormationTitre(e.formationId) || "").toLowerCase().includes(filterText.toLowerCase()) ||
-        (e.commentaireGeneral || "").toLowerCase().includes(filterText.toLowerCase())
-      );
-    }
-    if (recoFilter) res = res.filter((e) => e.recommandation === recoFilter);
-    if (formationFilter) res = res.filter((e) => e.formationId === formationFilter);
-    setFiltered(res);
   }
 
   function resetFilters() {
@@ -200,8 +170,14 @@ export default function EvaluationGlobalePage() {
       align: "center",
       render: (n) => {
         if (n == null) return "\u2014";
-        const color = n >= 16 ? "#059669" : n >= 10 ? "#2563eb" : n >= 5 ? "#d97706" : "#dc2626";
-        const bg = n >= 16 ? "#ecfdf5" : n >= 10 ? "#eff6ff" : n >= 5 ? "#fffbeb" : "#fef2f2";
+        let color = "#dc2626";
+        if (n >= 16) color = "#059669";
+        else if (n >= 10) color = "#2563eb";
+        else if (n >= 5) color = "#d97706";
+        let bg = "#fef2f2";
+        if (n >= 16) bg = "#ecfdf5";
+        else if (n >= 10) bg = "#eff6ff";
+        else if (n >= 5) bg = "#fffbeb";
         return (
           <Tag style={{ color, background: bg, borderColor: color, borderRadius: 8, fontWeight: 700, fontSize: 13, padding: "2px 10px" }}>
             <StarFilled style={{ marginRight: 4, fontSize: 11 }} />{n}/20
@@ -269,8 +245,7 @@ export default function EvaluationGlobalePage() {
   ];
 
   return (
-    <>
-      <div className="evaluation-page">
+    <div className="evaluation-page">
         <AppPageHeader
           icon={<TrophyOutlined />}
           title="Évaluation Globale des Formations"
@@ -443,8 +418,7 @@ export default function EvaluationGlobalePage() {
             </Form.Item>
           </Form>
         </Drawer>
-      </div>
-    </>
+    </div>
   );
 }
 

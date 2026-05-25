@@ -199,6 +199,12 @@ class TestDeptRefManager(unittest.TestCase):
 
     def setUp(self):
         self.mgr = ra._DepartmentReferentialManager()
+        # Ensure a clean cache state for each test
+        ra._REF_DB_CACHE.clear()
+
+    def tearDown(self):
+        # Clean up any entries added during this test
+        ra._REF_DB_CACHE.clear()
 
     def test_list_departments(self):
         depts = self.mgr.list_departments()

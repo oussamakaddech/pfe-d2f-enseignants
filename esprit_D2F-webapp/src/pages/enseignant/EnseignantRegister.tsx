@@ -1,4 +1,3 @@
-// src/components/EnseignantRegister.jsx
 import  { useEffect, useState } from 'react';
 import { Card, Form, Input, Select, Button, Typography } from 'antd';
 import { UserOutlined, LockOutlined, MailOutlined, PhoneOutlined, InfoCircleOutlined } from '@ant-design/icons';

@@ -6,9 +6,11 @@ import esprit.pfe.serviceformation.microsoft.OneDriveService;
 import esprit.pfe.serviceformation.repositories.DocumentRepository;
 import esprit.pfe.serviceformation.repositories.FormationRepository;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.io.IOException;
 import java.util.Date;
@@ -21,12 +23,13 @@ public class DocumentService {
     private final FormationRepository      formationRepo;
 
     /** Optionnel : absent si azure.ad.enabled != true */
-    @Autowired(required = false)
-    private OneDriveService          oneDriveService;
+    private final OneDriveService          oneDriveService;
 
-    public DocumentService(DocumentRepository documentRepo, FormationRepository formationRepo) {
+    public DocumentService(DocumentRepository documentRepo, FormationRepository formationRepo,
+                           @org.springframework.lang.Nullable OneDriveService oneDriveService) {
         this.documentRepo = documentRepo;
         this.formationRepo = formationRepo;
+        this.oneDriveService = oneDriveService;
     }
 
     /**
@@ -62,6 +65,10 @@ public class DocumentService {
     public Document getById(Long id) {
         return documentRepo.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Document introuvable avec l'ID: " + id));
+    }
+
+    public Page<Document> getAll(Pageable pageable) {
+        return documentRepo.findAll(pageable);
     }
 
     public List<Document> getAll() {

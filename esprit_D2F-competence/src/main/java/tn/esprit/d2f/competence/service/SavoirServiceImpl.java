@@ -1,6 +1,7 @@
 package tn.esprit.d2f.competence.service;
 
 import jakarta.persistence.EntityNotFoundException;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,6 +21,7 @@ import tn.esprit.d2f.competence.repository.NiveauSavoirRequisRepository;
 import tn.esprit.d2f.competence.repository.SavoirRepository;
 import tn.esprit.d2f.competence.repository.SousCompetenceRepository;
 
+import org.springframework.data.domain.PageImpl;
 import java.util.List;
 
 @Slf4j
@@ -33,6 +35,9 @@ public class SavoirServiceImpl implements ISavoirService {
     private final CompetenceRepository competenceRepository;
     private final EnseignantCompetenceRepository enseignantCompetenceRepository;
     private final CompetenceMapper competenceMapper;
+
+    @Lazy
+    private final ISavoirService self;
 
     @Override
     @Transactional(readOnly = true)
@@ -51,6 +56,12 @@ public class SavoirServiceImpl implements ISavoirService {
 
     @Override
     @Transactional(readOnly = true)
+    public Page<SavoirDTO> getSavoirsBySousCompetence(Long sousCompetenceId, Pageable pageable) {
+        return paginate(self.getSavoirsBySousCompetence(sousCompetenceId), pageable);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public List<SavoirDTO> getSavoirsByCompetence(Long competenceId) {
         return savoirRepository.findByCompetenceId(competenceId).stream()
                 .map(competenceMapper::toDTO)
@@ -59,10 +70,22 @@ public class SavoirServiceImpl implements ISavoirService {
 
     @Override
     @Transactional(readOnly = true)
+    public Page<SavoirDTO> getSavoirsByCompetence(Long competenceId, Pageable pageable) {
+        return paginate(self.getSavoirsByCompetence(competenceId), pageable);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public List<SavoirDTO> getSavoirsByType(TypeSavoir type) {
         return savoirRepository.findByType(type).stream()
                 .map(competenceMapper::toDTO)
                 .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<SavoirDTO> getSavoirsByType(TypeSavoir type, Pageable pageable) {
+        return paginate(self.getSavoirsByType(type), pageable);
     }
 
     @Override
@@ -169,5 +192,11 @@ public class SavoirServiceImpl implements ISavoirService {
     public Page<SavoirDTO> searchSavoirs(String keyword, Pageable pageable) {
         return savoirRepository.searchByKeyword(keyword, pageable)
                 .map(competenceMapper::toDTO);
+    }
+
+    private Page<SavoirDTO> paginate(List<SavoirDTO> items, Pageable pageable) {
+        int from = (int) pageable.getOffset();
+        int to = Math.min(from + pageable.getPageSize(), items.size());
+        return new PageImpl<>(from >= items.size() ? List.of() : items.subList(from, to), pageable, items.size());
     }
 }

@@ -89,11 +89,12 @@ class CertificateControllerTest {
 
     @Test
     void getByFormation_shouldReturnFilteredList() {
-        when(certificateService.findByFormation(10L)).thenReturn(List.of(response));
+        when(certificateService.findByFormation(eq(10L), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of(response)));
 
-        List<CertificateResponse> result = controller.getByFormation(10L);
+        Page<CertificateResponse> result = controller.getByFormation(10L, Pageable.unpaged());
 
-        assertEquals(1, result.size());
+        assertEquals(1, result.getContent().size());
     }
 
     @Test
@@ -144,12 +145,13 @@ class CertificateControllerTest {
                 .expiresAt(Instant.now().plus(1, ChronoUnit.HOURS))
                 .build();
 
-        when(certificateService.findByEmail("jean@esprit.tn")).thenReturn(List.of(response));
+        when(certificateService.findByEmail(eq("jean@esprit.tn"), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of(response)));
 
-        List<CertificateResponse> result = controller.getByEmail(mockJwt);
+        Page<CertificateResponse> result = controller.getByEmail(mockJwt, Pageable.unpaged());
 
-        assertEquals(1, result.size());
-        assertEquals("Dupont", result.get(0).getNomEnseignant());
+        assertEquals(1, result.getContent().size());
+        assertEquals("Dupont", result.getContent().get(0).getNomEnseignant());
     }
 
     @Test
@@ -161,9 +163,10 @@ class CertificateControllerTest {
                 .expiresAt(Instant.now().plus(1, ChronoUnit.HOURS))
                 .build();
 
-        when(certificateService.findByEmail("unknown@esprit.tn")).thenReturn(List.of());
+        when(certificateService.findByEmail(eq("unknown@esprit.tn"), any(Pageable.class)))
+                .thenReturn(Page.empty());
 
-        assertTrue(controller.getByEmail(mockJwt).isEmpty());
+        assertTrue(controller.getByEmail(mockJwt, Pageable.unpaged()).isEmpty());
     }
 
     @Test

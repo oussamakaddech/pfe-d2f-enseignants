@@ -10,7 +10,7 @@ import lombok.Setter;
 @EqualsAndHashCode
 @Entity
 @Table(name = "roles")
-public class Role {
+public class Role extends BaseAuditEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Integer id;

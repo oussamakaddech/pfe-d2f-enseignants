@@ -56,7 +56,7 @@ public class StructureServiceImpl implements IStructureService {
 
     @Override
     @Transactional(readOnly = true)
-    public StructureArbreDTO getStructureComplete(Long upId, Long departementId) {
+    public StructureArbreDTO getStructureComplete(String upId, String departementId) {
         List<Domaine> domaines = domaineRepository.findByUpIdAndDepartementId(upId, departementId);
         List<Savoir> allSavoirs = domaines.isEmpty()
                 ? List.of()

@@ -1,5 +1,4 @@
 import { useState } from "react";
-import PropTypes from "prop-types";
 import PresenceList from "./PresenceList";
 import { Card, Typography, Button, Space, Tag } from "antd";
 import {
@@ -10,7 +9,18 @@ import {
   RightOutlined,
 } from "@ant-design/icons";
 
-const formatTime = (t) => {
+interface Seance {
+  idSeance: number | string;
+  dateSeance?: string | Date;
+  heureDebut?: string;
+  heureFin?: string;
+  salle?: string;
+  contenus?: string;
+  participants?: unknown[];
+  presences?: unknown[];
+}
+
+const formatTime = (t: string | Date | undefined | null): string => {
   if (!t) return "—";
   // Backend may return "HH:mm:ss" or Date
   if (typeof t === "string") return t.length >= 5 ? t.slice(0, 5) : t;
@@ -21,7 +31,7 @@ const formatTime = (t) => {
   }
 };
 
-const SeanceCard = ({ seance }) => {
+const SeanceCard = ({ seance }: { seance: Seance }) => {
   const [showPresences, setShowPresences] = useState(false);
 
   const participantsCount = Array.isArray(seance.participants) ? seance.participants.length : 0;
@@ -133,19 +143,6 @@ const SeanceCard = ({ seance }) => {
       )}
     </Card>
   );
-};
-
-SeanceCard.propTypes = {
-  seance: PropTypes.shape({
-    idSeance: PropTypes.oneOfType([PropTypes.number, PropTypes.string]).isRequired,
-    dateSeance: PropTypes.oneOfType([PropTypes.string, PropTypes.instanceOf(Date)]),
-    heureDebut: PropTypes.any,
-    heureFin: PropTypes.any,
-    salle: PropTypes.string,
-    contenus: PropTypes.string,
-    participants: PropTypes.array,
-    presences: PropTypes.array,
-  }).isRequired,
 };
 
 export default SeanceCard;

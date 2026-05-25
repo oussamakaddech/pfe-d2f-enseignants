@@ -1,5 +1,4 @@
-// src/pages/CompletedFormations.jsx
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   Table,
   Button,
@@ -11,7 +10,6 @@ import {
   Row,
   Col,
   Statistic,
-  Tag,
   Typography,
 } from "antd";
 import {
@@ -30,13 +28,9 @@ import useAppNotification from "@/hooks/ui/useAppNotification";
 import { AppPageHeader, brand } from "@/components/common";
 import "@/styles/pages/completed-formations.css";
 
-import FormationWorkflowService from "@/services/formation/FormationWorkflowService";
-import FormationCustomService from "@/services/formation/FormationCustomService";
-import FormationReportService from "@/services/formation/FormationReportService";
-import EnseignantService from "@/services/formation/EnseignantService";
-import CertificateService from "@/services/certificat/CertificateService";
-import UpService from "@/services/api/UploadService";
-import DeptService from "@/services/formation/DeptService";
+import { useFormationsAchevees, useGenerateFormationCertificates, useFormationReportFetch } from "@/hooks/formation";
+import { useEnseignants } from "@/hooks/enseignant";
+import { useGenerateCertificates } from "@/hooks/certificat";
 
 const { Option } = Select;
 const { RangePicker } = DatePicker;
@@ -45,20 +39,19 @@ const { Text } = Typography;
 export default function CompletedFormations() {
   // États principaux
   const { message } = useAppNotification();
-  const [formations, setFormations] = useState([]);
-  const [loadingTable, setLoadingTable] = useState(false);
+  const { data: formations = [], isLoading: loadingTable } = useFormationsAchevees();
+  const { data: enseignantsData = [], isLoading: loadingEns } = useEnseignants();
+  const enseignants = enseignantsData;
+  const generateCertMut = useGenerateCertificates();
+  const genBatchMut = useGenerateFormationCertificates();
+  const reportFetchMut = useFormationReportFetch();
+
   const [loadingButtons, setLoadingButtons] = useState({});
   const [typeCertif, setTypeCertif] = useState("CERTIF");
   const navigate = useNavigate();
 
-  // Filtres UP & Département
-  const [ups, setUps] = useState([]);
-  const [depts, setDepts] = useState([]);
-
   // Drawer PDF-attestation
   const [drawerVisible, setDrawerVisible] = useState(false);
-  const [enseignants, setEnseignants] = useState([]);
-  const [loadingEns, setLoadingEns] = useState(false);
   const [selectedEns, setSelectedEns] = useState(null);
   const [attType, setAttType] = useState("PARTICIPATION");
   const [period, setPeriod] = useState([]);
@@ -71,24 +64,12 @@ export default function CompletedFormations() {
   const [loadingNewCertEns, setLoadingNewCertEns] = useState(false);
   const [selectedNewCertEns, setSelectedNewCertEns] = useState(null);
 
-  // Chargement initial
-  useEffect(() => {
-    setLoadingTable(true);
-    FormationWorkflowService.getFormationsAchevees()
-      .then(setFormations)
-      .catch(() => message.error("Impossible de charger les formations achevées."))
-      .finally(() => setLoadingTable(false));
-
-    UpService.getAllUps().then(setUps).catch(() => {});
-    DeptService.getAllDepts().then(setDepts).catch(() => {});
-  }, []);
-
   // Génération de certificats batch
   const handleGenerateCertificate = async (record) => {
     const id = record.idFormation;
     setLoadingButtons((prev) => ({ ...prev, [id]: true }));
     try {
-      await FormationCustomService.generateCertificates(id, typeCertif);
+      await genBatchMut.mutateAsync({ formationId: id, typeCertif });
       message.success("Certificats générés !");
       setFormations((prev) =>
         prev.map((f) =>
@@ -119,11 +100,6 @@ export default function CompletedFormations() {
     setSelectedEns(null);
     setPeriod([]);
     setDrawerVisible(true);
-    setLoadingEns(true);
-    EnseignantService.getAllEnseignants()
-      .then(setEnseignants)
-      .catch(() => message.error("Impossible de charger les enseignants."))
-      .finally(() => setLoadingEns(false));
   };
 
   // Génère **seulement** la page tableau en PDF
@@ -136,12 +112,7 @@ export default function CompletedFormations() {
     const [start, end] = period.map((d) => d.format("YYYY-MM-DD"));
 
     try {
-      const items = await FormationReportService.getFormationsParRoleEtPeriode(
-        role,
-        ensId,
-        start,
-        end
-      );
+      const items = await reportFetchMut.mutateAsync({ role, enseignantId: ensId, start, end });
       const doc = new jsPDF({ unit: "pt", format: "a4" });
       doc.setFont("times", "normal").setFontSize(12);
 
@@ -192,8 +163,7 @@ export default function CompletedFormations() {
       });
 
       setPdfUrl(doc.output("bloburl"));
-    } catch (e) {
-      console.error(e);
+    } catch {
       message.error("Échec de la génération du tableau PDF.");
       setDrawerVisible(false);
     }
@@ -203,12 +173,8 @@ export default function CompletedFormations() {
   const openNewCertDrawer = (formationId) => {
     setNewCertFormationId(formationId);
     setSelectedNewCertEns(null);
-    setLoadingNewCertEns(true);
+    setNewCertEnseignants(enseignants);
     setNewCertDrawerVisible(true);
-    EnseignantService.getAllEnseignants()
-      .then(setNewCertEnseignants)
-      .catch(() => message.error("Impossible de charger les enseignants."))
-      .finally(() => setLoadingNewCertEns(false));
   };
 
   // Crée un certificat individuel
@@ -231,11 +197,10 @@ export default function CompletedFormations() {
         deptEnseignant: ens.departement1?.libelle || ens.dept?.libelle || "",
         roleEnFormation: "PARTICIPANT",
       };
-      await CertificateService.createCertificate(payload);
+      await generateCertMut.mutateAsync(payload.formationId);
       message.success("Certificat créé !");
       setNewCertDrawerVisible(false);
-    } catch (e) {
-      console.error(e);
+    } catch {
       message.error("Échec de la création du certificat.");
     }
   };

@@ -1,0 +1,583 @@
+﻿c:/Users/oussama/Desktop/pfe-d2f-enseignants/.venv/Scripts/python.exe : C
+:\Users\oussama\Desktop\pfe-d2f-enseignants\.venv\Lib\site-packages\pytes
+t_asyncio\plugin.py:208: PytestDeprecationWarning: The configuration 
+option "asyncio_default_fixture_loop_scope" is unset.
+Au caractère Ligne:1 : 66
++ ... t_D2F-rice; 
+c:/Users/oussama/Desktop/pfe-d2f-enseignants/.venv/Script ...
++                 
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (C:\Users\oussam...cope" is  
+   unset.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+The event loop scope for asynchronous fixtures will default to the 
+fixture caching scope. Future versions of pytest-asyncio will default 
+the loop scope for asynchronous fixtures to function scope. Set the 
+default fixture loop scope explicitly in order to avoid unexpected 
+behavior in the future. Valid fixture loop scopes are: "function", 
+"class", "module", "package", "session"
+
+  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSE
+T))
+============================= test session starts =============================
+platform win32 -- Python 3.13.2, pytest-8.3.3, pluggy-1.6.0
+rootdir: C:\Users\oussama\Desktop\pfe-d2f-enseignants\esprit_D2F-rice
+configfile: pytest.ini
+testpaths: tests
+plugins: anyio-4.12.1, asyncio-0.24.0, cov-7.0.0
+asyncio: mode=Mode.STRICT, default_loop_scope=None
+collected 621 items
+
+tests\test_analyzer_extra.py ...............                             [  2%]
+tests\test_api.py .FFFFFFFFFFFFFFFFFFFFFFFFF                             [  6%]
+tests\test_cache.py ................                                     [  9%]
+tests\test_db.py .....................F.FF.F                             [ 13%]
+tests\test_enseignants.py .............                                  [ 15%]
+tests\test_error_handlers.py .........                                   [ 17%]
+tests\test_gc_referential.py ...................................         [ 22%]
+tests\test_helpers.py ......................F.F...                       [ 27%]
+tests\test_jwt_middleware.py ...........                                 [ 28%]
+tests\test_llm.py ............                                           [ 30%]
+tests\test_models.py ...................                                 [ 33%]
+tests\test_nlp.py ...................................................... [ 42%]
+...............F........                                                 [ 46%]
+tests\test_nlp_extra.py ................................................ [ 54%]
+..................................................                       [ 62%]
+tests\test_observability.py ....................                         [ 65%]
+tests\test_ratelimit.py .............                                    [ 67%]
+tests\test_rice_fixes.py ............................................... [ 75%]
+......FFFFFFFF..F...                                                     [ 78%]
+tests\test_rice_universal.py ............................FF............. [ 85%]
+........................                                                 [ 89%]
+tests\test_routes_extra.py ...........                                   [ 90%]
+tests\test_upload_security.py ................                           [ 93%]
+tests\test_upload_security_extra.py .................................... [ 99%]
+....                                                                     [100%]
+
+================================== FAILURES ===================================
+_____________________ TestGcReferential.test_returns_200 ______________________
+tests\test_api.py:76: in test_returns_200
+    assert r.status_code == 200
+E   assert 401 == 200
+E    +  where 401 = <Response [401 Unauthorized]>.status_code
+---------------------------- Captured stdout call -----------------------------
+2026-05-22T04:32:50+0100 WARNING [rice.jwt_middleware] Missing or invalid Authorization header/cookie for /rice/gc-referential
+2026-05-22T04:32:50+0100 INFO [httpx] HTTP Request: GET http://testserver/rice/gc-referential "HTTP/1.1 401 Unauthorized"
+------------------------------ Captured log call ------------------------------
+WARNING  rice.jwt_middleware:jwt_middleware.py:67 Missing or invalid Authorization header/cookie for /rice/gc-referential
+INFO     httpx:_client.py:1038 HTTP Request: GET http://testserver/rice/gc-referential "HTTP/1.1 401 Unauthorized"
+___________________ TestGcReferential.test_contains_savoirs ___________________
+tests\test_api.py:81: in test_contains_savoirs
+    assert "savoirs" in data
+E   AssertionError: assert 'savoirs' in {'errorCode': 'AUTH-401', 'message': 'Missing or invalid authorization token', 'path': '/rice/gc-referential', 'status': 401, ...}
+---------------------------- Captured stdout call -----------------------------
+2026-05-22T04:32:50+0100 WARNING [rice.jwt_middleware] Missing or invalid Authorization header/cookie for /rice/gc-referential
+2026-05-22T04:32:50+0100 INFO [httpx] HTTP Request: GET http://testserver/rice/gc-referential "HTTP/1.1 401 Unauthorized"
+------------------------------ Captured log call ------------------------------
+WARNING  rice.jwt_middleware:jwt_middleware.py:67 Missing or invalid Authorization header/cookie for /rice/gc-referential
+INFO     httpx:_client.py:1038 HTTP Request: GET http://testserver/rice/gc-referential "HTTP/1.1 401 Unauthorized"
+_________________ TestGcReferential.test_contains_competences _________________
+tests\test_api.py:87: in test_contains_competences
+    assert "competences" in data
+E   AssertionError: assert 'competences' in {'errorCode': 'AUTH-401', 'message': 'Missing or invalid authorization token', 'path': '/rice/gc-referential', 'status': 401, ...}
+---------------------------- Captured stdout call -----------------------------
+2026-05-22T04:32:50+0100 WARNING [rice.jwt_middleware] Missing or invalid Authorization header/cookie for /rice/gc-referential
+2026-05-22T04:32:50+0100 INFO [httpx] HTTP Request: GET http://testserver/rice/gc-referential "HTTP/1.1 401 Unauthorized"
+------------------------------ Captured log call ------------------------------
+WARNING  rice.jwt_middleware:jwt_middleware.py:67 Missing or invalid Authorization header/cookie for /rice/gc-referential
+INFO     httpx:_client.py:1038 HTTP Request: GET http://testserver/rice/gc-referential "HTTP/1.1 401 Unauthorized"
+___________________ TestGcReferential.test_contains_niveaux ___________________
+tests\test_api.py:92: in test_contains_niveaux
+    assert "niveaux" in data
+E   AssertionError: assert 'niveaux' in {'errorCode': 'AUTH-401', 'message': 'Missing or invalid authorization token', 'path': '/rice/gc-referential', 'status': 401, ...}
+---------------------------- Captured stdout call -----------------------------
+2026-05-22T04:32:50+0100 WARNING [rice.jwt_middleware] Missing or invalid Authorization header/cookie for /rice/gc-referential
+2026-05-22T04:32:50+0100 INFO [httpx] HTTP Request: GET http://testserver/rice/gc-referential "HTTP/1.1 401 Unauthorized"
+------------------------------ Captured log call ------------------------------
+WARNING  rice.jwt_middleware:jwt_middleware.py:67 Missing or invalid Authorization header/cookie for /rice/gc-referential
+INFO     httpx:_client.py:1038 HTTP Request: GET http://testserver/rice/gc-referential "HTTP/1.1 401 Unauthorized"
+__________________ TestGcReferential.test_contains_domaines ___________________
+tests\test_api.py:97: in test_contains_domaines
+    assert "domaines" in data
+E   AssertionError: assert 'domaines' in {'errorCode': 'AUTH-401', 'message': 'Missing or invalid authorization token', 'path': '/rice/gc-referential', 'status': 401, ...}
+---------------------------- Captured stdout call -----------------------------
+2026-05-22T04:32:50+0100 WARNING [rice.jwt_middleware] Missing or invalid Authorization header/cookie for /rice/gc-referential
+2026-05-22T04:32:50+0100 INFO [httpx] HTTP Request: GET http://testserver/rice/gc-referential "HTTP/1.1 401 Unauthorized"
+------------------------------ Captured log call ------------------------------
+WARNING  rice.jwt_middleware:jwt_middleware.py:67 Missing or invalid Authorization header/cookie for /rice/gc-referential
+INFO     httpx:_client.py:1038 HTTP Request: GET http://testserver/rice/gc-referential "HTTP/1.1 401 Unauthorized"
+______________________ TestGcMatch.test_match_fondation _______________________
+tests\test_api.py:106: in test_match_fondation
+    assert r.status_code == 200
+E   assert 401 == 200
+E    +  where 401 = <Response [401 Unauthorized]>.status_code
+---------------------------- Captured stdout call -----------------------------
+2026-05-22T04:32:50+0100 WARNING [rice.jwt_middleware] Missing or invalid Authorization header/cookie for /rice/gc-match
+2026-05-22T04:32:50+0100 INFO [httpx] HTTP Request: POST http://testserver/rice/gc-match "HTTP/1.1 401 Unauthorized"
+------------------------------ Captured log call ------------------------------
+WARNING  rice.jwt_middleware:jwt_middleware.py:67 Missing or invalid Authorization header/cookie for /rice/gc-match
+INFO     httpx:_client.py:1038 HTTP Request: POST http://testserver/rice/gc-match "HTTP/1.1 401 Unauthorized"
+________________________ TestGcMatch.test_match_beton _________________________
+tests\test_api.py:113: in test_match_beton
+    assert r.status_code == 200
+E   assert 401 == 200
+E    +  where 401 = <Response [401 Unauthorized]>.status_code
+---------------------------- Captured stdout call -----------------------------
+2026-05-22T04:32:50+0100 WARNING [rice.jwt_middleware] Missing or invalid Authorization header/cookie for /rice/gc-match
+2026-05-22T04:32:50+0100 INFO [httpx] HTTP Request: POST http://testserver/rice/gc-match "HTTP/1.1 401 Unauthorized"
+------------------------------ Captured log call ------------------------------
+WARNING  rice.jwt_middleware:jwt_middleware.py:67 Missing or invalid Authorization header/cookie for /rice/gc-match
+INFO     httpx:_client.py:1038 HTTP Request: POST http://testserver/rice/gc-match "HTTP/1.1 401 Unauthorized"
+__________________ TestGcMatch.test_match_returns_competence __________________
+tests\test_api.py:118: in test_match_returns_competence
+    assert r.status_code == 200
+E   assert 401 == 200
+E    +  where 401 = <Response [401 Unauthorized]>.status_code
+---------------------------- Captured stdout call -----------------------------
+2026-05-22T04:32:50+0100 WARNING [rice.jwt_middleware] Missing or invalid Authorization header/cookie for /rice/gc-match
+2026-05-22T04:32:50+0100 INFO [httpx] HTTP Request: POST http://testserver/rice/gc-match "HTTP/1.1 401 Unauthorized"
+------------------------------ Captured log call ------------------------------
+WARNING  rice.jwt_middleware:jwt_middleware.py:67 Missing or invalid Authorization header/cookie for /rice/gc-match
+INFO     httpx:_client.py:1038 HTTP Request: POST http://testserver/rice/gc-match "HTTP/1.1 401 Unauthorized"
+____________ TestGcMatch.test_match_returns_suggested_enseignants _____________
+tests\test_api.py:125: in test_match_returns_suggested_enseignants
+    assert r.status_code == 200
+E   assert 401 == 200
+E    +  where 401 = <Response [401 Unauthorized]>.status_code
+---------------------------- Captured stdout call -----------------------------
+2026-05-22T04:32:50+0100 WARNING [rice.jwt_middleware] Missing or invalid Authorization header/cookie for /rice/gc-match
+2026-05-22T04:32:50+0100 INFO [httpx] HTTP Request: POST http://testserver/rice/gc-match "HTTP/1.1 401 Unauthorized"
+------------------------------ Captured log call ------------------------------
+WARNING  rice.jwt_middleware:jwt_middleware.py:67 Missing or invalid Authorization header/cookie for /rice/gc-match
+INFO     httpx:_client.py:1038 HTTP Request: POST http://testserver/rice/gc-match "HTTP/1.1 401 Unauthorized"
+___________________ TestGcMatch.test_empty_text_returns_422 ___________________
+tests\test_api.py:131: in test_empty_text_returns_422
+    assert r.status_code == 422
+E   assert 401 == 422
+E    +  where 401 = <Response [401 Unauthorized]>.status_code
+---------------------------- Captured stdout call -----------------------------
+2026-05-22T04:32:50+0100 WARNING [rice.jwt_middleware] Missing or invalid Authorization header/cookie for /rice/gc-match
+2026-05-22T04:32:50+0100 INFO [httpx] HTTP Request: POST http://testserver/rice/gc-match "HTTP/1.1 401 Unauthorized"
+------------------------------ Captured log call ------------------------------
+WARNING  rice.jwt_middleware:jwt_middleware.py:67 Missing or invalid Authorization header/cookie for /rice/gc-match
+INFO     httpx:_client.py:1038 HTTP Request: POST http://testserver/rice/gc-match "HTTP/1.1 401 Unauthorized"
+__________________ TestGcMatch.test_missing_text_returns_422 __________________
+tests\test_api.py:135: in test_missing_text_returns_422
+    assert r.status_code == 422
+E   assert 401 == 422
+E    +  where 401 = <Response [401 Unauthorized]>.status_code
+---------------------------- Captured stdout call -----------------------------
+2026-05-22T04:32:50+0100 WARNING [rice.jwt_middleware] Missing or invalid Authorization header/cookie for /rice/gc-match
+2026-05-22T04:32:50+0100 INFO [httpx] HTTP Request: POST http://testserver/rice/gc-match "HTTP/1.1 401 Unauthorized"
+------------------------------ Captured log call ------------------------------
+WARNING  rice.jwt_middleware:jwt_middleware.py:67 Missing or invalid Authorization header/cookie for /rice/gc-match
+INFO     httpx:_client.py:1038 HTTP Request: POST http://testserver/rice/gc-match "HTTP/1.1 401 Unauthorized"
+______________________ TestRiceAnalyze.test_returns_200 _______________________
+tests\test_api.py:175: in test_returns_200
+    assert r.status_code == 200
+E   assert 401 == 200
+E    +  where 401 = <Response [401 Unauthorized]>.status_code
+---------------------------- Captured stdout call -----------------------------
+2026-05-22T04:32:50+0100 WARNING [rice.jwt_middleware] Missing or invalid Authorization header/cookie for /rice/analyze
+2026-05-22T04:32:50+0100 INFO [httpx] HTTP Request: POST http://testserver/rice/analyze "HTTP/1.1 401 Unauthorized"
+------------------------------ Captured log call ------------------------------
+WARNING  rice.jwt_middleware:jwt_middleware.py:67 Missing or invalid Authorization header/cookie for /rice/analyze
+INFO     httpx:_client.py:1038 HTTP Request: POST http://testserver/rice/analyze "HTTP/1.1 401 Unauthorized"
+________________ TestRiceAnalyze.test_result_has_propositions _________________
+tests\test_api.py:180: in test_result_has_propositions
+    assert "propositions" in data
+E   AssertionError: assert 'propositions' in {'errorCode': 'AUTH-401', 'message': 'Missing or invalid authorization token', 'path': '/rice/analyze', 'status': 401, ...}
+---------------------------- Captured stdout call -----------------------------
+2026-05-22T04:32:50+0100 WARNING [rice.jwt_middleware] Missing or invalid Authorization header/cookie for /rice/analyze
+2026-05-22T04:32:50+0100 INFO [httpx] HTTP Request: POST http://testserver/rice/analyze "HTTP/1.1 401 Unauthorized"
+------------------------------ Captured log call ------------------------------
+WARNING  rice.jwt_middleware:jwt_middleware.py:67 Missing or invalid Authorization header/cookie for /rice/analyze
+INFO     httpx:_client.py:1038 HTTP Request: POST http://testserver/rice/analyze "HTTP/1.1 401 Unauthorized"
+____________________ TestRiceAnalyze.test_result_has_stats ____________________
+tests\test_api.py:186: in test_result_has_stats
+    assert "stats" in data
+E   AssertionError: assert 'stats' in {'errorCode': 'AUTH-401', 'message': 'Missing or invalid authorization token', 'path': '/rice/analyze', 'status': 401, ...}
+---------------------------- Captured stdout call -----------------------------
+2026-05-22T04:32:51+0100 WARNING [rice.jwt_middleware] Missing or invalid Authorization header/cookie for /rice/analyze
+2026-05-22T04:32:51+0100 INFO [httpx] HTTP Request: POST http://testserver/rice/analyze "HTTP/1.1 401 Unauthorized"
+------------------------------ Captured log call ------------------------------
+WARNING  rice.jwt_middleware:jwt_middleware.py:67 Missing or invalid Authorization header/cookie for /rice/analyze
+INFO     httpx:_client.py:1038 HTTP Request: POST http://testserver/rice/analyze "HTTP/1.1 401 Unauthorized"
+__________________ TestRiceAnalyze.test_stats_total_domaines __________________
+tests\test_api.py:194: in test_stats_total_domaines
+    assert r.json()["stats"]["totalDomaines"] == 1
+E   KeyError: 'stats'
+---------------------------- Captured stdout call -----------------------------
+2026-05-22T04:32:51+0100 WARNING [rice.jwt_middleware] Missing or invalid Authorization header/cookie for /rice/analyze
+2026-05-22T04:32:51+0100 INFO [httpx] HTTP Request: POST http://testserver/rice/analyze "HTTP/1.1 401 Unauthorized"
+------------------------------ Captured log call ------------------------------
+WARNING  rice.jwt_middleware:jwt_middleware.py:67 Missing or invalid Authorization header/cookie for /rice/analyze
+INFO     httpx:_client.py:1038 HTTP Request: POST http://testserver/rice/analyze "HTTP/1.1 401 Unauthorized"
+________________ TestRiceAnalyze.test_domaine_has_competences _________________
+tests\test_api.py:198: in test_domaine_has_competences
+    domaine = r.json()["propositions"][0]
+E   KeyError: 'propositions'
+---------------------------- Captured stdout call -----------------------------
+2026-05-22T04:32:51+0100 WARNING [rice.jwt_middleware] Missing or invalid Authorization header/cookie for /rice/analyze
+2026-05-22T04:32:51+0100 INFO [httpx] HTTP Request: POST http://testserver/rice/analyze "HTTP/1.1 401 Unauthorized"
+------------------------------ Captured log call ------------------------------
+WARNING  rice.jwt_middleware:jwt_middleware.py:67 Missing or invalid Authorization header/cookie for /rice/analyze
+INFO     httpx:_client.py:1038 HTTP Request: POST http://testserver/rice/analyze "HTTP/1.1 401 Unauthorized"
+____________ TestRiceAnalyze.test_competence_has_sous_competences _____________
+tests\test_api.py:204: in test_competence_has_sous_competences
+    comp = r.json()["propositions"][0]["competences"][0]
+E   KeyError: 'propositions'
+---------------------------- Captured stdout call -----------------------------
+2026-05-22T04:32:51+0100 WARNING [rice.jwt_middleware] Missing or invalid Authorization header/cookie for /rice/analyze
+2026-05-22T04:32:51+0100 INFO [httpx] HTTP Request: POST http://testserver/rice/analyze "HTTP/1.1 401 Unauthorized"
+------------------------------ Captured log call ------------------------------
+WARNING  rice.jwt_middleware:jwt_middleware.py:67 Missing or invalid Authorization header/cookie for /rice/analyze
+INFO     httpx:_client.py:1038 HTTP Request: POST http://testserver/rice/analyze "HTTP/1.1 401 Unauthorized"
+_______________ TestRiceAnalyze.test_savoir_has_required_fields _______________
+tests\test_api.py:210: in test_savoir_has_required_fields
+    comp = r.json()["propositions"][0]["competences"][0]
+E   KeyError: 'propositions'
+---------------------------- Captured stdout call -----------------------------
+2026-05-22T04:32:51+0100 WARNING [rice.jwt_middleware] Missing or invalid Authorization header/cookie for /rice/analyze
+2026-05-22T04:32:51+0100 INFO [httpx] HTTP Request: POST http://testserver/rice/analyze "HTTP/1.1 401 Unauthorized"
+------------------------------ Captured log call ------------------------------
+WARNING  rice.jwt_middleware:jwt_middleware.py:67 Missing or invalid Authorization header/cookie for /rice/analyze
+INFO     httpx:_client.py:1038 HTTP Request: POST http://testserver/rice/analyze "HTTP/1.1 401 Unauthorized"
+____________________ TestRiceAnalyze.test_niveau_is_valid _____________________
+tests\test_api.py:222: in test_niveau_is_valid
+    for dom in r.json()["propositions"]:
+E   KeyError: 'propositions'
+---------------------------- Captured stdout call -----------------------------
+2026-05-22T04:32:51+0100 WARNING [rice.jwt_middleware] Missing or invalid Authorization header/cookie for /rice/analyze
+2026-05-22T04:32:51+0100 INFO [httpx] HTTP Request: POST http://testserver/rice/analyze "HTTP/1.1 401 Unauthorized"
+------------------------------ Captured log call ------------------------------
+WARNING  rice.jwt_middleware:jwt_middleware.py:67 Missing or invalid Authorization header/cookie for /rice/analyze
+INFO     httpx:_client.py:1038 HTTP Request: POST http://testserver/rice/analyze "HTTP/1.1 401 Unauthorized"
+_________________ TestRiceAnalyze.test_with_enseignants_list __________________
+tests\test_api.py:234: in test_with_enseignants_list
+    assert r.status_code == 200
+E   assert 401 == 200
+E    +  where 401 = <Response [401 Unauthorized]>.status_code
+---------------------------- Captured stdout call -----------------------------
+2026-05-22T04:32:51+0100 WARNING [rice.jwt_middleware] Missing or invalid Authorization header/cookie for /rice/analyze
+2026-05-22T04:32:51+0100 INFO [httpx] HTTP Request: POST http://testserver/rice/analyze "HTTP/1.1 401 Unauthorized"
+------------------------------ Captured log call ------------------------------
+WARNING  rice.jwt_middleware:jwt_middleware.py:67 Missing or invalid Authorization header/cookie for /rice/analyze
+INFO     httpx:_client.py:1038 HTTP Request: POST http://testserver/rice/analyze "HTTP/1.1 401 Unauthorized"
+__________________ TestRiceAnalyze.test_no_files_returns_400 __________________
+tests\test_api.py:238: in test_no_files_returns_400
+    assert r.status_code in (400, 422)
+E   assert 401 in (400, 422)
+E    +  where 401 = <Response [401 Unauthorized]>.status_code
+---------------------------- Captured stdout call -----------------------------
+2026-05-22T04:32:51+0100 WARNING [rice.jwt_middleware] Missing or invalid Authorization header/cookie for /rice/analyze
+2026-05-22T04:32:51+0100 INFO [httpx] HTTP Request: POST http://testserver/rice/analyze "HTTP/1.1 401 Unauthorized"
+------------------------------ Captured log call ------------------------------
+WARNING  rice.jwt_middleware:jwt_middleware.py:67 Missing or invalid Authorization header/cookie for /rice/analyze
+INFO     httpx:_client.py:1038 HTTP Request: POST http://testserver/rice/analyze "HTTP/1.1 401 Unauthorized"
+__________ TestRiceAnalyze.test_invalid_enseignants_json_returns_400 __________
+tests\test_api.py:243: in test_invalid_enseignants_json_returns_400
+    assert r.status_code == 400
+E   assert 401 == 400
+E    +  where 401 = <Response [401 Unauthorized]>.status_code
+---------------------------- Captured stdout call -----------------------------
+2026-05-22T04:32:51+0100 WARNING [rice.jwt_middleware] Missing or invalid Authorization header/cookie for /rice/analyze
+2026-05-22T04:32:51+0100 INFO [httpx] HTTP Request: POST http://testserver/rice/analyze "HTTP/1.1 401 Unauthorized"
+------------------------------ Captured log call ------------------------------
+WARNING  rice.jwt_middleware:jwt_middleware.py:67 Missing or invalid Authorization header/cookie for /rice/analyze
+INFO     httpx:_client.py:1038 HTTP Request: POST http://testserver/rice/analyze "HTTP/1.1 401 Unauthorized"
+_____________________ TestRiceAnalyze.test_multiple_files _____________________
+tests\test_api.py:258: in test_multiple_files
+    assert r.status_code == 200
+E   assert 401 == 200
+E    +  where 401 = <Response [401 Unauthorized]>.status_code
+---------------------------- Captured stdout call -----------------------------
+2026-05-22T04:32:51+0100 WARNING [rice.jwt_middleware] Missing or invalid Authorization header/cookie for /rice/analyze
+2026-05-22T04:32:51+0100 INFO [httpx] HTTP Request: POST http://testserver/rice/analyze "HTTP/1.1 401 Unauthorized"
+------------------------------ Captured log call ------------------------------
+WARNING  rice.jwt_middleware:jwt_middleware.py:67 Missing or invalid Authorization header/cookie for /rice/analyze
+INFO     httpx:_client.py:1038 HTTP Request: POST http://testserver/rice/analyze "HTTP/1.1 401 Unauthorized"
+__________ TestRiceAnalyze.test_extracted_enseignants_field_present ___________
+tests\test_api.py:263: in test_extracted_enseignants_field_present
+    assert "extractedEnseignants" in r.json()
+E   AssertionError: assert 'extractedEnseignants' in {'errorCode': 'AUTH-401', 'message': 'Missing or invalid authorization token', 'path': '/rice/analyze', 'status': 401, ...}
+E    +  where {'errorCode': 'AUTH-401', 'message': 'Missing or invalid authorization token', 'path': '/rice/analyze', 'status': 401, ...} = json()
+E    +    where json = <Response [401 Unauthorized]>.json
+---------------------------- Captured stdout call -----------------------------
+2026-05-22T04:32:51+0100 WARNING [rice.jwt_middleware] Missing or invalid Authorization header/cookie for /rice/analyze
+2026-05-22T04:32:51+0100 INFO [httpx] HTTP Request: POST http://testserver/rice/analyze "HTTP/1.1 401 Unauthorized"
+------------------------------ Captured log call ------------------------------
+WARNING  rice.jwt_middleware:jwt_middleware.py:67 Missing or invalid Authorization header/cookie for /rice/analyze
+INFO     httpx:_client.py:1038 HTTP Request: POST http://testserver/rice/analyze "HTTP/1.1 401 Unauthorized"
+____________ TestRiceAnalyze.test_found_enseignants_field_present _____________
+tests\test_api.py:267: in test_found_enseignants_field_present
+    assert "foundEnseignants" in r.json()
+E   AssertionError: assert 'foundEnseignants' in {'errorCode': 'AUTH-401', 'message': 'Missing or invalid authorization token', 'path': '/rice/analyze', 'status': 401, ...}
+E    +  where {'errorCode': 'AUTH-401', 'message': 'Missing or invalid authorization token', 'path': '/rice/analyze', 'status': 401, ...} = json()
+E    +    where json = <Response [401 Unauthorized]>.json
+---------------------------- Captured stdout call -----------------------------
+2026-05-22T04:32:51+0100 WARNING [rice.jwt_middleware] Missing or invalid Authorization header/cookie for /rice/analyze
+2026-05-22T04:32:51+0100 INFO [httpx] HTTP Request: POST http://testserver/rice/analyze "HTTP/1.1 401 Unauthorized"
+------------------------------ Captured log call ------------------------------
+WARNING  rice.jwt_middleware:jwt_middleware.py:67 Missing or invalid Authorization header/cookie for /rice/analyze
+INFO     httpx:_client.py:1038 HTTP Request: POST http://testserver/rice/analyze "HTTP/1.1 401 Unauthorized"
+__________ TestFetchEnseignantAffectations.test_returns_cached_data ___________
+tests\test_db.py:139: in test_returns_cached_data
+    assert result == {"E001": ["S1a", "S2b"]}
+E   AssertionError: assert {} == {'E001': ['S1a', 'S2b']}
+E     
+E     Right contains 1 more item:
+E     {'E001': ['S1a', 'S2b']}
+E     Use -v to get more diff
+_ TestFetchEnseignantAffectations.test_returns_stale_on_db_failure_with_cache _
+tests\test_db.py:153: in test_returns_stale_on_db_failure_with_cache
+    assert result == {"E001": ["S1a"]}
+E   AssertionError: assert {} == {'E001': ['S1a']}
+E     
+E     Right contains 1 more item:
+E     {'E001': ['S1a']}
+E     Use -v to get more diff
+____________ TestFetchAllEnseignantsInfo.test_returns_cached_data _____________
+tests\test_db.py:167: in test_returns_cached_data
+    assert "E001" in result
+E   AssertionError: assert 'E001' in {}
+___ TestFetchAllEnseignantsInfo.test_returns_stale_on_db_failure_with_cache ___
+tests\test_db.py:182: in test_returns_stale_on_db_failure_with_cache
+    assert "E001" in result
+E   AssertionError: assert 'E001' in {}
+_________________ TestEscapePrompt.test_strips_control_chars __________________
+tests\test_helpers.py:151: in test_strips_control_chars
+    assert "\x00" not in result
+E   AssertionError: assert '\x00' not in 'Hello\x00World\x07!'
+E     
+E     '\x00' is contained here:
+E       Hello World!
+E     ?      +
+_____________ TestEscapePrompt.test_collapses_excessive_newlines ______________
+tests\test_helpers.py:163: in test_collapses_excessive_newlines
+    assert "\n\n\n\n" not in result
+E   AssertionError: assert '\n\n\n\n' not in 'Line1\n\n\n\n\n\nLine2'
+E     
+E     '\n\n\n\n' is contained here:
+E       Line1
+E       
+E       
+E       
+E       
+E       
+E       Line2
+___________ TestMatchEnseignantsByName.test_partial_lastname_match ____________
+tests\test_nlp.py:391: in test_partial_lastname_match
+    assert "E002" in ids
+E   AssertionError: assert 'E002' in []
+________________ TestAnalyzeNonGcNot422.test_info_returns_200 _________________
+tests\test_rice_fixes.py:416: in test_info_returns_200
+    assert r.status_code == 200, r.text
+E   AssertionError: {"timestamp":null,"status":401,"errorCode":"AUTH-401","message":"Missing or invalid authorization token","path":"/rice/analyze","traceId":null}
+E   assert 401 == 200
+E    +  where 401 = <Response [401 Unauthorized]>.status_code
+---------------------------- Captured stdout call -----------------------------
+2026-05-22T04:33:12+0100 WARNING [rice.jwt_middleware] Missing or invalid Authorization header/cookie for /rice/analyze
+2026-05-22T04:33:12+0100 INFO [httpx] HTTP Request: POST http://testserver/rice/analyze "HTTP/1.1 401 Unauthorized"
+------------------------------ Captured log call ------------------------------
+WARNING  rice.jwt_middleware:jwt_middleware.py:67 Missing or invalid Authorization header/cookie for /rice/analyze
+INFO     httpx:_client.py:1038 HTTP Request: POST http://testserver/rice/analyze "HTTP/1.1 401 Unauthorized"
+_________________ TestAnalyzeNonGcNot422.test_ge_returns_200 __________________
+tests\test_rice_fixes.py:420: in test_ge_returns_200
+    assert r.status_code == 200, r.text
+E   AssertionError: {"timestamp":null,"status":401,"errorCode":"AUTH-401","message":"Missing or invalid authorization token","path":"/rice/analyze","traceId":null}
+E   assert 401 == 200
+E    +  where 401 = <Response [401 Unauthorized]>.status_code
+---------------------------- Captured stdout call -----------------------------
+2026-05-22T04:33:12+0100 WARNING [rice.jwt_middleware] Missing or invalid Authorization header/cookie for /rice/analyze
+2026-05-22T04:33:12+0100 INFO [httpx] HTTP Request: POST http://testserver/rice/analyze "HTTP/1.1 401 Unauthorized"
+------------------------------ Captured log call ------------------------------
+WARNING  rice.jwt_middleware:jwt_middleware.py:67 Missing or invalid Authorization header/cookie for /rice/analyze
+INFO     httpx:_client.py:1038 HTTP Request: POST http://testserver/rice/analyze "HTTP/1.1 401 Unauthorized"
+________________ TestAnalyzeNonGcNot422.test_meca_returns_200 _________________
+tests\test_rice_fixes.py:424: in test_meca_returns_200
+    assert r.status_code == 200, r.text
+E   AssertionError: {"timestamp":null,"status":401,"errorCode":"AUTH-401","message":"Missing or invalid authorization token","path":"/rice/analyze","traceId":null}
+E   assert 401 == 200
+E    +  where 401 = <Response [401 Unauthorized]>.status_code
+---------------------------- Captured stdout call -----------------------------
+2026-05-22T04:33:12+0100 WARNING [rice.jwt_middleware] Missing or invalid Authorization header/cookie for /rice/analyze
+2026-05-22T04:33:12+0100 INFO [httpx] HTTP Request: POST http://testserver/rice/analyze "HTTP/1.1 401 Unauthorized"
+------------------------------ Captured log call ------------------------------
+WARNING  rice.jwt_middleware:jwt_middleware.py:67 Missing or invalid Authorization header/cookie for /rice/analyze
+INFO     httpx:_client.py:1038 HTTP Request: POST http://testserver/rice/analyze "HTTP/1.1 401 Unauthorized"
+_______________ TestAnalyzeNonGcNot422.test_telecom_returns_200 _______________
+tests\test_rice_fixes.py:428: in test_telecom_returns_200
+    assert r.status_code == 200, r.text
+E   AssertionError: {"timestamp":null,"status":401,"errorCode":"AUTH-401","message":"Missing or invalid authorization token","path":"/rice/analyze","traceId":null}
+E   assert 401 == 200
+E    +  where 401 = <Response [401 Unauthorized]>.status_code
+---------------------------- Captured stdout call -----------------------------
+2026-05-22T04:33:12+0100 WARNING [rice.jwt_middleware] Missing or invalid Authorization header/cookie for /rice/analyze
+2026-05-22T04:33:12+0100 INFO [httpx] HTTP Request: POST http://testserver/rice/analyze "HTTP/1.1 401 Unauthorized"
+------------------------------ Captured log call ------------------------------
+WARNING  rice.jwt_middleware:jwt_middleware.py:67 Missing or invalid Authorization header/cookie for /rice/analyze
+INFO     httpx:_client.py:1038 HTTP Request: POST http://testserver/rice/analyze "HTTP/1.1 401 Unauthorized"
+_____________ TestAnalyzeNonGcNot422.test_auto_detect_returns_200 _____________
+tests\test_rice_fixes.py:435: in test_auto_detect_returns_200
+    assert r.status_code == 200, r.text
+E   AssertionError: {"timestamp":null,"status":401,"errorCode":"AUTH-401","message":"Missing or invalid authorization token","path":"/rice/analyze","traceId":null}
+E   assert 401 == 200
+E    +  where 401 = <Response [401 Unauthorized]>.status_code
+---------------------------- Captured stdout call -----------------------------
+2026-05-22T04:33:12+0100 WARNING [rice.jwt_middleware] Missing or invalid Authorization header/cookie for /rice/analyze
+2026-05-22T04:33:12+0100 INFO [httpx] HTTP Request: POST http://testserver/rice/analyze "HTTP/1.1 401 Unauthorized"
+------------------------------ Captured log call ------------------------------
+WARNING  rice.jwt_middleware:jwt_middleware.py:67 Missing or invalid Authorization header/cookie for /rice/analyze
+INFO     httpx:_client.py:1038 HTTP Request: POST http://testserver/rice/analyze "HTTP/1.1 401 Unauthorized"
+__________ TestAnalyzeNonGcNot422.test_info_result_has_propositions ___________
+tests\test_rice_fixes.py:440: in test_info_result_has_propositions
+    assert "propositions" in data
+E   AssertionError: assert 'propositions' in {'errorCode': 'AUTH-401', 'message': 'Missing or invalid authorization token', 'path': '/rice/analyze', 'status': 401, ...}
+---------------------------- Captured stdout call -----------------------------
+2026-05-22T04:33:12+0100 WARNING [rice.jwt_middleware] Missing or invalid Authorization header/cookie for /rice/analyze
+2026-05-22T04:33:12+0100 INFO [httpx] HTTP Request: POST http://testserver/rice/analyze "HTTP/1.1 401 Unauthorized"
+------------------------------ Captured log call ------------------------------
+WARNING  rice.jwt_middleware:jwt_middleware.py:67 Missing or invalid Authorization header/cookie for /rice/analyze
+INFO     httpx:_client.py:1038 HTTP Request: POST http://testserver/rice/analyze "HTTP/1.1 401 Unauthorized"
+_____________ TestAnalyzeNonGcNot422.test_info_stats_correct_dept _____________
+tests\test_rice_fixes.py:445: in test_info_stats_correct_dept
+    assert r.json()["stats"]["departement"] == "info"
+E   KeyError: 'stats'
+---------------------------- Captured stdout call -----------------------------
+2026-05-22T04:33:13+0100 WARNING [rice.jwt_middleware] Missing or invalid Authorization header/cookie for /rice/analyze
+2026-05-22T04:33:13+0100 INFO [httpx] HTTP Request: POST http://testserver/rice/analyze "HTTP/1.1 401 Unauthorized"
+------------------------------ Captured log call ------------------------------
+WARNING  rice.jwt_middleware:jwt_middleware.py:67 Missing or invalid Authorization header/cookie for /rice/analyze
+INFO     httpx:_client.py:1038 HTTP Request: POST http://testserver/rice/analyze "HTTP/1.1 401 Unauthorized"
+_________________ TestAnalyzeNonGcNot422.test_gc_still_works __________________
+tests\test_rice_fixes.py:455: in test_gc_still_works
+    assert r.status_code == 200
+E   assert 401 == 200
+E    +  where 401 = <Response [401 Unauthorized]>.status_code
+---------------------------- Captured stdout call -----------------------------
+2026-05-22T04:33:13+0100 WARNING [rice.jwt_middleware] Missing or invalid Authorization header/cookie for /rice/analyze
+2026-05-22T04:33:13+0100 INFO [httpx] HTTP Request: POST http://testserver/rice/analyze "HTTP/1.1 401 Unauthorized"
+------------------------------ Captured log call ------------------------------
+WARNING  rice.jwt_middleware:jwt_middleware.py:67 Missing or invalid Authorization header/cookie for /rice/analyze
+INFO     httpx:_client.py:1038 HTTP Request: POST http://testserver/rice/analyze "HTTP/1.1 401 Unauthorized"
+_ TestEnseignantsSuggeresFallback.test_savoir_has_extracted_teacher_as_fallback _
+tests\test_rice_fixes.py:548: in test_savoir_has_extracted_teacher_as_fallback
+    assert len(all_suggested) > 0, (
+E   AssertionError: Expected at least one teacher in enseignantsSuggeres but got none. extracted_ids fallback may not be working.
+E   assert 0 > 0
+E    +  where 0 = len(set())
+---------------------------- Captured stdout call -----------------------------
+2026-05-22T04:33:21+0100 INFO [rice_analyzer] Analyzing fiche: fiche_metal.txt (200 chars) [dept=gc]
+2026-05-22T04:33:21+0100 INFO [rice_analyzer]   Metadata: {'nom_module': 'Structures Metalliques', 'responsable': 'Module : Structures Metalliques', 'enseignants_noms': ['Ahmed Tounsi'], 'enseignants_roles': {'Ahmed Tounsi': 'enseignant', 'Module : Structures Metalliques': 'responsable'}}
+2026-05-22T04:33:21+0100 INFO [rice_analyzer]   Extracted professor names: ['Ahmed Tounsi', 'Module : Structures Metalliques']
+2026-05-22T04:33:21+0100 INFO [rice_analyzer]   Matched enseignants: 0 (by name: 0, by module: 0, by ref [gc]: 0)
+2026-05-22T04:33:21+0100 INFO [rice_analyzer]   Referential savoir matches [gc]: ['C1b', 'C7', 'C2b', 'E1b', 'C1c']
+2026-05-22T04:33:21+0100 INFO [rice_analyzer]   Acquis d'apprentissage found: 1
+2026-05-22T04:33:21+0100 INFO [rice_analyzer]   SÚances found: 0
+---------------------------- Captured stderr call -----------------------------
+\rBatches:   0%|          | 0/1 [00:00<?, ?it/s]\rBatches: 100%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588| 1/1 [00:00<00:00, 67.15it/s]\n\rBatches:   0%|          | 0/1 [00:00<?, ?it/s]\rBatches: 100%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588| 1/1 [00:00<00:00, 141.73it/s]
+------------------------------ Captured log call ------------------------------
+INFO     rice_analyzer:analyzer.py:145 Analyzing fiche: fiche_metal.txt (200 chars) [dept=gc]
+INFO     rice_analyzer:analyzer.py:149   Metadata: {'nom_module': 'Structures Metalliques', 'responsable': 'Module : Structures Metalliques', 'enseignants_noms': ['Ahmed Tounsi'], 'enseignants_roles': {'Ahmed Tounsi': 'enseignant', 'Module : Structures Metalliques': 'responsable'}}
+INFO     rice_analyzer:analyzer.py:212   Extracted professor names: ['Ahmed Tounsi', 'Module : Structures Metalliques']
+INFO     rice_analyzer:analyzer.py:243   Matched enseignants: 0 (by name: 0, by module: 0, by ref [gc]: 0)
+INFO     rice_analyzer:analyzer.py:247   Referential savoir matches [gc]: ['C1b', 'C7', 'C2b', 'E1b', 'C1c']
+INFO     rice_analyzer:analyzer.py:253   Acquis d'apprentissage found: 1
+INFO     rice_analyzer:analyzer.py:257   SÚances found: 0
+___________________ TestDeptRefManager.test_invalidate_all ____________________
+tests\test_rice_universal.py:245: in test_invalidate_all
+    ra._REF_DB_CACHE["gc"]   = {"savoirs": {"X": []}}
+E   TypeError: '_ThreadSafeCache' object does not support item assignment
+_______________ TestDeptRefManager.test_invalidate_clears_cache _______________
+tests\test_rice_universal.py:240: in test_invalidate_clears_cache
+    ra._REF_DB_CACHE["test_dept"] = {"savoirs": {}}
+E   TypeError: '_ThreadSafeCache' object does not support item assignment
+============================== warnings summary ===============================
+..\.venv\Lib\site-packages\starlette\formparsers.py:12
+  C:\Users\oussama\Desktop\pfe-d2f-enseignants\.venv\Lib\site-packages\starlette\formparsers.py:12: PendingDeprecationWarning: Please use `import python_multipart` instead.
+    import multipart
+
+<frozen importlib._bootstrap>:488
+  <frozen importlib._bootstrap>:488: DeprecationWarning: builtin type SwigPyPacked has no __module__ attribute
+
+<frozen importlib._bootstrap>:488
+  <frozen importlib._bootstrap>:488: DeprecationWarning: builtin type SwigPyObject has no __module__ attribute
+
+tests/test_jwt_middleware.py::TestJWTValidation::test_cookie_token_accepted
+  C:\Users\oussama\Desktop\pfe-d2f-enseignants\.venv\Lib\site-packages\httpx\_client.py:822: DeprecationWarning: Setting per-request cookies=<...> is being deprecated, because the expected behaviour on cookie persistence is ambiguous. Set cookies directly on the client instance instead.
+    warnings.warn(message, DeprecationWarning)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=============================== tests coverage ================================
+_______________ coverage: platform win32, python 3.13.2-final-0 _______________
+
+Name                                   Stmts   Miss  Cover   Missing
+--------------------------------------------------------------------
+rice\__init__.py                          10      0   100%
+rice\analyzer.py                         243     30    88%   106, 120-121, 160, 162, 164, 218-219, 232, 274, 284-326, 636
+rice\cache.py                             44      0   100%
+rice\db.py                               107     52    51%   37, 56-57, 72-98, 110-156
+rice\enseignants.py                       45     10    78%   63-73
+rice\error_handlers.py                    29      0   100%
+rice\jwt_middleware.py                    52      6    88%   25-33
+rice\llm.py                               16      2    88%   17-18
+rice\models.py                            68      0   100%
+rice\nlp.py                              787    342    57%   27-28, 33-34, 39-42, 52, 56-60, 105, 124-154, 167-204, 208-211, 222, 224, 519-585, 594-629, 638-679, 687-707, 759-780, 908, 980, 984, 1007, 1010, 1028-1085, 1101-1110, 1114, 1122, 1151, 1189, 1193, 1206-1209, 1218-1221, 1225-1229, 1233-1236, 1259, 1301-1303, 1326, 1328, 1330, 1333, 1336, 1342, 1348-1370, 1381-1382, 1388-1390, 1396-1407, 1411, 1415-1421, 1427, 1433-1444, 1468, 1502-1504, 1588, 1591-1596, 1599
+rice\observability\__init__.py             0      0   100%
+rice\observability\logging_config.py       5      0   100%
+rice\observability\pii_filter.py          18      0   100%
+rice\ratelimit.py                         62      2    97%   110-111
+rice\referential.py                      354    159    55%   29-32, 293-431, 449-450, 453, 455-456, 460, 464-466, 488, 586, 589, 595-597, 601-603, 638-639, 652, 655, 660, 674-691, 697, 701, 704, 715-717, 744-745, 748-749, 752-753, 760-761, 800-808, 814-815, 817-818, 820-821, 830-845, 855
+rice\routes.py                           187    117    37%   115-143, 313-548
+rice\upload_security.py                   55      0   100%
+--------------------------------------------------------------------
+TOTAL                                   2082    720    65%
+=========================== short test summary info ===========================
+FAILED tests/test_api.py::TestGcReferential::test_returns_200 - assert 401 ==...
+FAILED tests/test_api.py::TestGcReferential::test_contains_savoirs - Assertio...
+FAILED tests/test_api.py::TestGcReferential::test_contains_competences - Asse...
+FAILED tests/test_api.py::TestGcReferential::test_contains_niveaux - Assertio...
+FAILED tests/test_api.py::TestGcReferential::test_contains_domaines - Asserti...
+FAILED tests/test_api.py::TestGcMatch::test_match_fondation - assert 401 == 200
+FAILED tests/test_api.py::TestGcMatch::test_match_beton - assert 401 == 200
+FAILED tests/test_api.py::TestGcMatch::test_match_returns_competence - assert...
+FAILED tests/test_api.py::TestGcMatch::test_match_returns_suggested_enseignants
+FAILED tests/test_api.py::TestGcMatch::test_empty_text_returns_422 - assert 4...
+FAILED tests/test_api.py::TestGcMatch::test_missing_text_returns_422 - assert...
+FAILED tests/test_api.py::TestRiceAnalyze::test_returns_200 - assert 401 == 200
+FAILED tests/test_api.py::TestRiceAnalyze::test_result_has_propositions - Ass...
+FAILED tests/test_api.py::TestRiceAnalyze::test_result_has_stats - AssertionE...
+FAILED tests/test_api.py::TestRiceAnalyze::test_stats_total_domaines - KeyErr...
+FAILED tests/test_api.py::TestRiceAnalyze::test_domaine_has_competences - Key...
+FAILED tests/test_api.py::TestRiceAnalyze::test_competence_has_sous_competences
+FAILED tests/test_api.py::TestRiceAnalyze::test_savoir_has_required_fields - ...
+FAILED tests/test_api.py::TestRiceAnalyze::test_niveau_is_valid - KeyError: '...
+FAILED tests/test_api.py::TestRiceAnalyze::test_with_enseignants_list - asser...
+FAILED tests/test_api.py::TestRiceAnalyze::test_no_files_returns_400 - assert...
+FAILED tests/test_api.py::TestRiceAnalyze::test_invalid_enseignants_json_returns_400
+FAILED tests/test_api.py::TestRiceAnalyze::test_multiple_files - assert 401 =...
+FAILED tests/test_api.py::TestRiceAnalyze::test_extracted_enseignants_field_present
+FAILED tests/test_api.py::TestRiceAnalyze::test_found_enseignants_field_present
+FAILED tests/test_db.py::TestFetchEnseignantAffectations::test_returns_cached_data
+FAILED tests/test_db.py::TestFetchEnseignantAffectations::test_returns_stale_on_db_failure_with_cache
+FAILED tests/test_db.py::TestFetchAllEnseignantsInfo::test_returns_cached_data
+FAILED tests/test_db.py::TestFetchAllEnseignantsInfo::test_returns_stale_on_db_failure_with_cache
+FAILED tests/test_helpers.py::TestEscapePrompt::test_strips_control_chars - A...
+FAILED tests/test_helpers.py::TestEscapePrompt::test_collapses_excessive_newlines
+FAILED tests/test_nlp.py::TestMatchEnseignantsByName::test_partial_lastname_match
+FAILED tests/test_rice_fixes.py::TestAnalyzeNonGcNot422::test_info_returns_200
+FAILED tests/test_rice_fixes.py::TestAnalyzeNonGcNot422::test_ge_returns_200
+FAILED tests/test_rice_fixes.py::TestAnalyzeNonGcNot422::test_meca_returns_200
+FAILED tests/test_rice_fixes.py::TestAnalyzeNonGcNot422::test_telecom_returns_200
+FAILED tests/test_rice_fixes.py::TestAnalyzeNonGcNot422::test_auto_detect_returns_200
+FAILED tests/test_rice_fixes.py::TestAnalyzeNonGcNot422::test_info_result_has_propositions
+FAILED tests/test_rice_fixes.py::TestAnalyzeNonGcNot422::test_info_stats_correct_dept
+FAILED tests/test_rice_fixes.py::TestAnalyzeNonGcNot422::test_gc_still_works
+FAILED tests/test_rice_fixes.py::TestEnseignantsSuggeresFallback::test_savoir_has_extracted_teacher_as_fallback
+FAILED tests/test_rice_universal.py::TestDeptRefManager::test_invalidate_all
+FAILED tests/test_rice_universal.py::TestDeptRefManager::test_invalidate_clears_cache
+================= 43 failed, 578 passed, 4 warnings in 55.92s =================
+<sys>:0: DeprecationWarning: builtin type swigvarlink has no __module__ 
+attribute

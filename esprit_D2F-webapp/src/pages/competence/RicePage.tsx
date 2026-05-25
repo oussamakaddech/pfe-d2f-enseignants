@@ -1,4 +1,3 @@
-// src/pages/competence/RicePage.jsx
 // RICE - Referentiel Intelligent de Competences Enseignants
 // Slim orchestrator: owns cross-cutting state and delegates rendering to step components.
 //
@@ -75,8 +74,7 @@ const isLikelyValidExtractedName = (value) => {
 // ---------------------------------------------------------------------------
 export default function RicePage() {
   const { message: msgApi } = useAppNotification();
-  // useNavigate kept for potential future programmatic navigation
-  const _navigate = useNavigate(); // eslint-disable-line no-unused-vars
+  const navigate = useNavigate();
 
   // -- Step control -----------------------------------------------------------
   const [currentStep, setCurrentStep] = useState(0);
@@ -269,13 +267,13 @@ export default function RicePage() {
     for (const d of cleaned)
       for (const c of d.competences ?? []) {
         for (const s of c.savoirs ?? []) {
-          const suggested = (s.enseignantsSuggeres ?? []).map((id) => String(id));
+          const suggested = (s.enseignantsSuggeres ?? []).map(String);
           s.aiSuggestedIds = suggested;
           s.enseignantsSuggeres = []; // Clear auto-assignments – use Matchmaking page instead
         }
         for (const sc of c.sousCompetences ?? [])
           for (const s of sc.savoirs ?? []) {
-            const suggested = (s.enseignantsSuggeres ?? []).map((id) => String(id));
+            const suggested = (s.enseignantsSuggeres ?? []).map(String);
             s.aiSuggestedIds = suggested;
             s.enseignantsSuggeres = []; // Clear auto-assignments – use Matchmaking page instead
           }
@@ -316,7 +314,7 @@ export default function RicePage() {
     setExtractedEnseignants(Array.from(dedupMap.values()));
     try {
       localStorage.setItem("rice_extracted_enseignants", JSON.stringify(Array.from(dedupMap.values())));
-    } catch (err) {
+    } catch {
       // ignore
     }
   };
@@ -393,10 +391,10 @@ export default function RicePage() {
   const remapEnseignant = useCallback(
     (extId, realId) => {
       remapInTree(extId, realId);
-      const extIdx = parseInt(extId.replace("ext_", ""), 10);
+      const extIdx = Number.parseInt(extId.replace("ext_", ""), 10);
       setExtractedEnseignants((prev) => {
         const next = prev.map((ex, i) => (i === extIdx ? { ...ex, matched_id: realId } : ex));
-        try { localStorage.setItem("rice_extracted_enseignants", JSON.stringify(next)); } catch (e) {}
+        try { localStorage.setItem("rice_extracted_enseignants", JSON.stringify(next)); } catch { }
         return next;
       });
       msgApi.success("Enseignant identifie");
@@ -416,7 +414,7 @@ export default function RicePage() {
       const prenom = createEnsData.prenom.trim();
       const mail =
         createEnsData.mail.trim() ||
-        `${nomUp.toLowerCase()}.${prenom.toLowerCase().replace(/\s+/g, ".")}@esprit.tn`;
+        `${nomUp.toLowerCase()}.${prenom.toLowerCase().replaceAll(/\s+/g, ".")}@esprit.tn`;
       const created = await EnseignantService.createEnseignant({
         nom: nomUp, prenom, mail, type: "P", etat: "A",
       });
@@ -563,8 +561,8 @@ export default function RicePage() {
       handleCtrlZ(e);
     };
 
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
+    globalThis.addEventListener("keydown", onKeyDown);
+    return () => globalThis.removeEventListener("keydown", onKeyDown);
   }, [
     currentStep,
     files.length,
@@ -637,11 +635,10 @@ export default function RicePage() {
 
   // --------------------------------------------------------------------------
   return (
-    <>
-      <div
-        className="rice-page"
-        style={{ "--rice-accent": DEPT_ACCENT[departement] ?? "#1677ff" }}
-      >
+    <div
+      className="rice-page"
+      style={{ "--rice-accent": DEPT_ACCENT[departement] ?? "#1677ff" }}
+    >
 
         {/* Hero banner */}
         <div className="rice-hero">
@@ -898,8 +895,7 @@ export default function RicePage() {
           <div className="rice-autosave-badge">💾 Sauvegardé automatiquement</div>
         )}
 
-      </div>
-    </>
+    </div>
   );
 }
 

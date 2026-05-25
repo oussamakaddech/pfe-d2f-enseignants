@@ -5,10 +5,12 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
+import org.springframework.data.domain.AuditorAware;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import tn.esprit.d2f.entity.BesoinFormation;
 import tn.esprit.d2f.entity.enumerations.Priorite;
 import tn.esprit.d2f.entity.enumerations.TypeBesoin;
@@ -18,6 +20,12 @@ import static org.junit.jupiter.api.Assertions.*;
 @DataJpaTest
 @ActiveProfiles("test")
 class BesoinFormationRepositoryTest {
+
+    // Required: @EnableJpaAuditing on the main class references "auditorProvider" by name.
+    // @DataJpaTest slices don't scan the full context, so we provide a mock.
+    @SuppressWarnings("rawtypes")
+    @MockitoBean(name = "auditorProvider")
+    private AuditorAware auditorProvider;
 
     @Autowired
     private TestEntityManager entityManager;

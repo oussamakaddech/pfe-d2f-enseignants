@@ -1,5 +1,7 @@
 package tn.esprit.d2f.competence.service;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import tn.esprit.d2f.competence.dto.NiveauSavoirRequisDTO;
 import tn.esprit.d2f.competence.dto.NiveauSavoirRequisRequest;
 import tn.esprit.d2f.competence.dto.NiveauxGroupesDTO;
@@ -17,9 +19,11 @@ NiveauxGroupesDTO getNiveauxByCompetence(Long competenceId);
 
     /** Obtenir les savoirs requis pour un niveau spécifique d'une compétence */
     List<NiveauSavoirRequisDTO> getSavoirsRequisByCompetenceAndNiveau(Long competenceId, NiveauMaitrise niveau);
+    Page<NiveauSavoirRequisDTO> getSavoirsRequisByCompetenceAndNiveau(Long competenceId, NiveauMaitrise niveau, Pageable pageable);
 
     /** Obtenir les savoirs requis pour un niveau spécifique d'une sous-compétence */
     List<NiveauSavoirRequisDTO> getSavoirsRequisBySousCompetenceAndNiveau(Long sousCompetenceId, NiveauMaitrise niveau);
+    Page<NiveauSavoirRequisDTO> getSavoirsRequisBySousCompetenceAndNiveau(Long sousCompetenceId, NiveauMaitrise niveau, Pageable pageable);
 
     /** Associer un savoir requis à un niveau */
     NiveauSavoirRequisDTO addSavoirRequis(NiveauSavoirRequisRequest request);
@@ -32,4 +36,5 @@ NiveauxGroupesDTO getNiveauxByCompetence(Long competenceId);
 
     /** Obtenir tous les niveaux définis */
     List<NiveauSavoirRequisDTO> getAll();
+    Page<NiveauSavoirRequisDTO> getAll(Pageable pageable);
 }

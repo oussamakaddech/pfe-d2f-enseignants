@@ -42,7 +42,7 @@ class FormationStateSchedulerTest {
         scheduler.updateFormationStates();
 
         verify(formationRepository).save(f);
-        verify(formationWorkflowService).synchronizeFormationCalendar(f);
+        verify(formationWorkflowService).handleEtatTransitions(f, EtatFormation.ENREGISTRE);
     }
 
     @Test
@@ -60,7 +60,7 @@ class FormationStateSchedulerTest {
 
         scheduler.updateFormationStates();
 
-        verify(formationWorkflowService).synchronizeFormationCalendar(f);
+        verify(formationWorkflowService).handleEtatTransitions(f, EtatFormation.PLANIFIE);
     }
 
     @Test
@@ -78,6 +78,6 @@ class FormationStateSchedulerTest {
 
         scheduler.updateFormationStates();
 
-        verify(formationWorkflowService).removeFormationCalendar(f);
+        verify(formationWorkflowService).handleEtatTransitions(f, EtatFormation.EN_COURS);
     }
 }

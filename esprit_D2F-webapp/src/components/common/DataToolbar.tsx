@@ -4,34 +4,34 @@ import { SearchOutlined, ReloadOutlined } from "@ant-design/icons";
 const { Text } = Typography;
 
 interface DataToolbarAction {
-  key: string;
-  label: React.ReactNode;
-  icon?: React.ReactNode;
-  onClick?: () => void;
-  type?: "primary" | "default" | "dashed" | "text" | "link";
-  danger?: boolean;
-  disabled?: boolean;
-  className?: string;
+  readonly key: string;
+  readonly label: React.ReactNode;
+  readonly icon?: React.ReactNode;
+  readonly onClick?: () => void;
+  readonly type?: "primary" | "default" | "dashed" | "text" | "link";
+  readonly danger?: boolean;
+  readonly disabled?: boolean;
+  readonly className?: string;
 }
 
 interface DataToolbarProps {
   /** Titre optionnel de la toolbar */
-  title?: React.ReactNode;
+  readonly title?: React.ReactNode;
   /** Barre de recherche intégrée */
-  searchValue?: string;
-  searchPlaceholder?: string;
-  onSearchChange?: (value: string) => void;
+  readonly searchValue?: string;
+  readonly searchPlaceholder?: string;
+  readonly onSearchChange?: (value: string) => void;
   /** Bouton rafraîchir */
-  onRefresh?: () => void;
-  loading?: boolean;
+  readonly onRefresh?: () => void;
+  readonly loading?: boolean;
   /** Actions principales (à droite) */
-  actions?: DataToolbarAction[];
+  readonly actions?: DataToolbarAction[];
   /** Filtres additionnels (au milieu) */
-  filters?: React.ReactNode;
+  readonly filters?: React.ReactNode;
   /** Compteur de résultats */
-  count?: number;
-  countLabel?: string;
-  className?: string;
+  readonly count?: number;
+  readonly countLabel?: string;
+  readonly className?: string;
 }
 
 /**

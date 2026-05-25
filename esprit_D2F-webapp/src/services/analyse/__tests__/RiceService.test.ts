@@ -47,14 +47,14 @@ describe('RiceService', () => {
     httpMocks.mockPost.mockResolvedValueOnce({ data: { success: true } });
     const result = await RiceService.importToDb({ domaines: [] });
     expect(result).toEqual({ success: true });
-    expect(httpMocks.mockPost).toHaveBeenCalledWith(expect.stringContaining('/competence/rice/import'), { domaines: [] }, expect.anything());
+    expect(httpMocks.mockPost).toHaveBeenCalledWith(expect.stringContaining('/competence/rice/import'), { domaines: [] });
   });
 
   it('getImportHistory retrieves imports', async () => {
     httpMocks.mockGet.mockResolvedValueOnce({ data: [] });
     const result = await RiceService.getImportHistory();
     expect(result).toEqual([]);
-    expect(httpMocks.mockGet).toHaveBeenCalledWith(expect.stringContaining('/competence/rice/imports'), expect.anything());
+    expect(httpMocks.mockGet).toHaveBeenCalledWith(expect.stringContaining('/competence/rice/imports'));
   });
 
   it('getEnseignants tries formation then fallback to competence', async () => {
@@ -82,8 +82,8 @@ describe('RiceService', () => {
     });
 
     expect(result).toEqual({ added: 1, removed: 1 });
-    expect(httpMocks.mockDelete).toHaveBeenCalledWith(expect.stringContaining('/100'), expect.anything());
-    expect(httpMocks.mockPost).toHaveBeenCalledWith(expect.stringContaining('/enseignant-competences'), expect.objectContaining({ savoirId: 2 }), expect.anything());
+    expect(httpMocks.mockDelete).toHaveBeenCalledWith(expect.stringContaining('/100'));
+    expect(httpMocks.mockPost).toHaveBeenCalledWith(expect.stringContaining('/enseignant-competences'), expect.objectContaining({ savoirId: 2 }));
   });
 
   it('covers CRUD for enseignants', async () => {
@@ -95,6 +95,82 @@ describe('RiceService', () => {
 
     httpMocks.mockPatch.mockResolvedValueOnce({ data: { id: 'E1', etat: 'I' } });
     await expect(RiceService.deactivateEnseignant('E1')).resolves.toEqual({ id: 'E1', etat: 'I' });
+  });
+
+  it('getEnseignantAffectations returns assignments', async () => {
+    httpMocks.mockGet.mockResolvedValueOnce({ data: [{ id: 1, savoirId: 1, enseignantId: 'E1' }] });
+    const result = await RiceService.getEnseignantAffectations();
+    expect(result).toEqual([{ id: 1, savoirId: 1, enseignantId: 'E1' }]);
+    expect(httpMocks.mockGet).toHaveBeenCalledWith(
+      expect.stringContaining('/enseignant-competences')
+    );
+  });
+
+  it('assignCompetence posts to enseignant-competences', async () => {
+    httpMocks.mockPost.mockResolvedValueOnce({ data: { id: 10 } });
+    const result = await RiceService.assignCompetence({ enseignantId: 'E1', savoirId: 1, niveau: 'N1_DEBUTANT' });
+    expect(result).toEqual({ id: 10 });
+    expect(httpMocks.mockPost).toHaveBeenCalledWith(
+      expect.stringContaining('/enseignant-competences'),
+      { enseignantId: 'E1', savoirId: 1, niveau: 'N1_DEBUTANT' }
+    );
+  });
+
+  it('removeAssignment deletes by id', async () => {
+    httpMocks.mockDelete.mockResolvedValueOnce({ data: null });
+    await RiceService.removeAssignment(42);
+    expect(httpMocks.mockDelete).toHaveBeenCalledWith(
+      expect.stringContaining('/enseignant-competences/42')
+    );
+  });
+
+  it('getSavoirs returns array directly', async () => {
+    httpMocks.mockGet.mockResolvedValueOnce({ data: [{ id: 1 }] });
+    await expect(RiceService.getSavoirs()).resolves.toEqual([{ id: 1 }]);
+  });
+
+  it('getSavoirs with departement filters by department', async () => {
+    httpMocks.mockGet.mockResolvedValueOnce({ data: { content: [{ id: 2 }], totalPages: 1 } });
+    await expect(RiceService.getSavoirs('gc')).resolves.toEqual([{ id: 2 }]);
+  });
+
+  it('getSavoirs handles savoirs object key format', async () => {
+    httpMocks.mockGet.mockResolvedValueOnce({ data: { savoirs: [{ id: 3 }], totalPages: 1 } });
+    await expect(RiceService.getSavoirs()).resolves.toEqual([{ id: 3 }]);
+  });
+
+  it('getSavoirs falls back to rice referential on error', async () => {
+    httpMocks.mockGet.mockRejectedValueOnce(new Error('competence fail'));
+    httpMocks.mockGet.mockResolvedValueOnce({ data: { savoirs: [{ id: 4 }] } });
+    await expect(RiceService.getSavoirs()).resolves.toEqual([{ id: 4 }]);
+  });
+
+  it('getSavoirs rethrows if fallback also fails', async () => {
+    httpMocks.mockGet.mockRejectedValueOnce(new Error('competence fail'));
+    httpMocks.mockGet.mockRejectedValueOnce(new Error('rice fail'));
+    await expect(RiceService.getSavoirs()).rejects.toThrow('competence fail');
+  });
+
+  it('saveAssignments returns immediately for empty add and remove', async () => {
+    const result = await RiceService.saveAssignments({ add: [], remove: [] });
+    expect(result).toEqual({ added: 0, removed: 0 });
+    expect(httpMocks.mockGet).not.toHaveBeenCalled();
+  });
+
+  it('getEnseignants handles multi-page via fallback', async () => {
+    httpMocks.mockGet.mockRejectedValueOnce(new Error('formation fail'));
+    httpMocks.mockGet
+      .mockResolvedValueOnce({ data: { content: [{ id: 'E1' }], totalPages: 2 } })
+      .mockResolvedValueOnce({ data: { content: [{ id: 'E2' }], totalPages: 2 } });
+    const result = await RiceService.getEnseignants();
+    expect(result).toHaveLength(2);
+  });
+
+  it('getEnseignants normalizes data-keyed payload', async () => {
+    httpMocks.mockGet.mockRejectedValueOnce(new Error('fail'));
+    httpMocks.mockGet.mockResolvedValueOnce({ data: { data: [{ id: 'E3' }], totalPages: 1 } });
+    const result = await RiceService.getEnseignants();
+    expect(result).toEqual([{ id: 'E3' }]);
   });
 });
 

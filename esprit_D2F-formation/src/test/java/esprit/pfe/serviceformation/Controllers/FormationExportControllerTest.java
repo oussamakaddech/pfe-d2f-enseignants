@@ -32,7 +32,7 @@ class FormationExportControllerTest {
 
     @BeforeEach
     void setup() {
-        mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
+        mockMvc = MockMvcBuilders.standaloneSetup(controller).setCustomArgumentResolvers(new org.springframework.data.web.PageableHandlerMethodArgumentResolver()).build();
     }
 
     @Test
@@ -75,3 +75,4 @@ class FormationExportControllerTest {
                 .param("deptId", "D2")).andExpect(status().isOk());
     }
 }
+

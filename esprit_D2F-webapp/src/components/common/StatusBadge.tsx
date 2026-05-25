@@ -2,10 +2,10 @@ import { Tag } from "antd";
 import { statusColors, type FormationStatus } from "@/styles/themes/tokens";
 
 interface StatusBadgeProps {
-  status: FormationStatus | string;
-  size?: "small" | "default";
+  readonly status: string;
+  readonly size?: "small" | "default";
   /** Affiche un petit point coloré devant le label. Défaut : true */
-  dot?: boolean;
+  readonly dot?: boolean;
 }
 
 export default function StatusBadge({ status, size = "default", dot = true }: StatusBadgeProps) {
