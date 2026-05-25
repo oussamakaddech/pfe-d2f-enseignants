@@ -11,16 +11,15 @@ export const navigate = (to: string, options?: { replace?: boolean }) => {
     try {
       _navigate(to, options);
       return;
-    } catch (e) {
+    } catch {
       // fallback to location change if react-router navigation fails
-      console.debug("[navigation] react-router navigate failed", e);
     }
   }
 
   if (options?.replace) {
-    window.location.replace(to);
+    globalThis.location.replace(to);
   } else {
-    window.location.href = to;
+    globalThis.location.href = to;
   }
 };
 

@@ -1,4 +1,3 @@
-// src/components/KPI/FormationsByTypeFiltered.jsx
 
 import{ useState, useEffect } from "react";
 import {
@@ -16,80 +15,41 @@ import {
 } from "antd";
 import { FilterOutlined } from "@ant-design/icons";
 import useAppNotification from "@/hooks/ui/useAppNotification";
-import KPIService from "@/services/analyse/KPIService";
-import DeptService from "@/services/formation/DeptService";
-import UpService from "@/services/api/UploadService";
+import { useDepartements, useUps } from "@/hooks/formation";
+import { useKpiFormationsByTypeFilteredMutation } from "@/hooks/kpi";
 
 
 const { RangePicker } = DatePicker;
 const { Option } = Select;
 
 export default function FormationsByTypeFiltered() {
-  // 1) État des filtres initialisés à null
   const { message } = useAppNotification();
   const [filters, setFilters] = useState({
-    domaine:    null,
-    upId:       null,
-    deptId:     null,
-    ouverte:    null,
-    start:      null,
-    end:        null,
-    etat:       null,
+    domaine: null, upId: null, deptId: null,
+    ouverte: null, start: null, end: null, etat: null,
   });
-
-  // 2) Stocke { interne, externe, enLigne } retourné par l’API
   const [dataByType, setDataByType] = useState(null);
-
-  // 3) Options pour les selects (chargées dynamiquement)
-  const [deptsOptions, setDeptsOptions] = useState([]);
-  const [upsOptions, setUpsOptions] = useState([]);
-  const [loadingOptions, setLoadingOptions] = useState(true);
-
-  // 4) Loading pour l’appel principal
-  const [loadingData, setLoadingData] = useState(false);
-
-  // 5) Visibilité du Drawer de filtres
   const [drawerVisible, setDrawerVisible] = useState(false);
 
-  // ─── Charger les listes de filtres (Compétences, Départements, UPs)
-  useEffect(() => {
-    const fetchAllOptions = async () => {
-      try {
-        const [depts, ups] = await Promise.all([
-          DeptService.getAllDepts(),
-          UpService.getAllUps(),
-        ]);
-        setDeptsOptions(depts || []);
-        setUpsOptions(ups || []);
-      } catch (err) {
-        console.error("Erreur chargement options :", err);
-        message.error("Impossible de charger les listes de filtres.");
-      } finally {
-        setLoadingOptions(false);
-      }
-    };
-    fetchAllOptions();
-  }, []);
+  const { data: deptsRaw = [], isLoading: loadingDepts } = useDepartements();
+  const { data: upsRaw = [], isLoading: loadingUps }     = useUps();
+  const kpiMut = useKpiFormationsByTypeFilteredMutation();
 
-  // ─── Fonction pour appeler l’API avec les filtres
-  const fetchData = async () => {
-    setLoadingData(true);
-    try {
-      const result = await KPIService.getFormationsByTypeFiltered(filters);
-      setDataByType(result);
-    } catch (err) {
-      console.error("Erreur récupération données par type :", err);
-      message.error("Impossible de récupérer les données par type.");
-    } finally {
-      setLoadingData(false);
-    }
-  };
+  type OptionRow = { id?: unknown; libelle?: string };
+  const deptsOptions = deptsRaw as OptionRow[];
+  const upsOptions   = upsRaw   as OptionRow[];
+  const loadingOptions = loadingDepts || loadingUps;
+  const loadingData    = kpiMut.isPending;
 
-  // ─── Au premier rendu, après chargement des options, on déclenche fetchData()
   useEffect(() => {
     if (!loadingOptions) {
-      fetchData();
+      kpiMut.mutateAsync(filters)
+        .then(setDataByType)
+        .catch(() => {
+          message.error("Impossible de récupérer les données par type.");
+        });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loadingOptions]);
 
   // ─── Dès qu’on modifie un champ du formulaire, on met à jour l’objet filters
@@ -110,9 +70,12 @@ export default function FormationsByTypeFiltered() {
     setFilters(newFilters);
   };
 
-  // ─── Quand l’utilisateur clique sur “Appliquer”, on relance fetchData() puis on ferme le Drawer
   const onFinish = () => {
-    fetchData();
+    kpiMut.mutateAsync(filters)
+      .then(setDataByType)
+      .catch(() => {
+        message.error("Impossible de récupérer les données par type.");
+      });
     setDrawerVisible(false);
   };
 
@@ -146,7 +109,7 @@ export default function FormationsByTypeFiltered() {
         onClose={() => setDrawerVisible(false)}
         open={drawerVisible}
         width={360}
-        destroyOnClose
+        destroyOnHidden
       >
         <Form
           layout="vertical"
@@ -168,7 +131,7 @@ export default function FormationsByTypeFiltered() {
               }
             >
               {upsOptions.map((u) => (
-                <Option key={u.id} value={u.id}>
+                <Option key={String(u.id)} value={u.id as string}>
                   {u.libelle}
                 </Option>
               ))}
@@ -186,7 +149,7 @@ export default function FormationsByTypeFiltered() {
               }
             >
               {deptsOptions.map((d) => (
-                <Option key={d.id} value={d.id}>
+                <Option key={String(d.id)} value={d.id as string}>
                   {d.libelle}
                 </Option>
               ))}
@@ -218,11 +181,14 @@ export default function FormationsByTypeFiltered() {
       </Drawer>
 
       {/* Si on charge les données, on affiche un spinner */}
-      {loadingData ? (
-        <div style={{ textAlign: "center", padding: 50 }}>
-          <Spin tip="Chargement des données…"><div /></Spin>
-        </div>
-      ) : dataByType ? (
+      {(() => {
+        if (loadingData) return (
+          <div style={{ textAlign: "center", padding: 50 }}>
+            <Spin tip="Chargement des données…"><div /></Spin>
+          </div>
+        );
+        if (!dataByType) return null;
+        return (
         <Row gutter={[16, 16]}>
           <Col xs={24} sm={8}>
             <Card
@@ -261,7 +227,8 @@ export default function FormationsByTypeFiltered() {
             </Card>
           </Col>
         </Row>
-      ) : null}
+        );
+      })()}
     </div>
   );
 }

@@ -1,6 +1,7 @@
 package tn.esprit.d2f.competence.service;
 
 import jakarta.persistence.EntityNotFoundException;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,6 +19,7 @@ import tn.esprit.d2f.competence.repository.NiveauSavoirRequisRepository;
 import tn.esprit.d2f.competence.repository.SavoirRepository;
 import tn.esprit.d2f.competence.repository.SousCompetenceRepository;
 
+import org.springframework.data.domain.PageImpl;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Deque;
@@ -38,6 +40,9 @@ public class SousCompetenceServiceImpl implements ISousCompetenceService {
     private final SavoirRepository savoirRepository;
     private final CompetenceMapper competenceMapper;
 
+    @Lazy
+    private final ISousCompetenceService self;
+
     @Override
     @Transactional(readOnly = true)
     public Page<SousCompetenceDTO> getAllSousCompetences(Pageable pageable) {
@@ -51,6 +56,12 @@ public class SousCompetenceServiceImpl implements ISousCompetenceService {
         return sousCompetenceRepository.findByCompetenceIdAndParentIsNull(competenceId).stream()
                 .map(competenceMapper::toDTO)
                 .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<SousCompetenceDTO> getSousCompetencesByCompetence(Long competenceId, Pageable pageable) {
+        return paginate(self.getSousCompetencesByCompetence(competenceId), pageable);
     }
 
     @Override
@@ -219,5 +230,11 @@ public class SousCompetenceServiceImpl implements ISousCompetenceService {
         }
 
         return ids;
+    }
+
+    private Page<SousCompetenceDTO> paginate(List<SousCompetenceDTO> items, Pageable pageable) {
+        int from = (int) pageable.getOffset();
+        int to = Math.min(from + pageable.getPageSize(), items.size());
+        return new PageImpl<>(from >= items.size() ? List.of() : items.subList(from, to), pageable, items.size());
     }
 }

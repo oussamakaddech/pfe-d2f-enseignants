@@ -1,4 +1,3 @@
-// src/pages/competence/EnseignantCompetencePage.jsx
 import { useEffect, useState, useCallback, useContext } from "react";
 import { useParams } from "react-router-dom";
 import {
@@ -286,11 +285,10 @@ export default function EnseignantCompetencePage() {
   ];
 
   return (
-    <>
-      <div>
-        <AppPageHeader
-          icon={<TrophyOutlined />}
-          title={paramId ? `Compétences de l'enseignant ${paramId}` : "Mes Compétences"}
+    <div>
+      <AppPageHeader
+        icon={<TrophyOutlined />}
+        title={paramId ? `Compétences de l'enseignant ${paramId}` : "Mes Compétences"}
           subtitle="Consulter, ajouter et mettre à jour les compétences maîtrisées"
         />
 
@@ -434,8 +432,7 @@ export default function EnseignantCompetencePage() {
             </Form.Item>
           </Form>
         </Modal>
-      </div>
-    </>
+    </div>
   );
 }
 

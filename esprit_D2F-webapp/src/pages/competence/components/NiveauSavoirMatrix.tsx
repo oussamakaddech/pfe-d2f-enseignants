@@ -1,4 +1,3 @@
-// src/pages/competence/components/NiveauSavoirMatrix.jsx
 import PropTypes from "prop-types";
 import { Empty, Tooltip } from "antd";
 

@@ -1,5 +1,6 @@
 package tn.esprit.d2f.service;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -9,17 +10,22 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
 import tn.esprit.d2f.dto.BesoinFormationApprovedEvent;
 import tn.esprit.d2f.dto.BesoinFormationEventPublisher;
 import tn.esprit.d2f.dto.BesoinFormationRequest;
 import tn.esprit.d2f.dto.BesoinFormationResponse;
 import tn.esprit.d2f.entity.BesoinFormation;
 import tn.esprit.d2f.entity.Notification;
+import tn.esprit.d2f.exception.ResourceNotFoundException;
 import tn.esprit.d2f.mapper.BesoinFormationMapper;
 import tn.esprit.d2f.repository.BesoinFormationRepository;
 import tn.esprit.d2f.repository.NotificationRepository;
 import tn.esprit.d2f.entity.enumerations.TypeBesoin;
 import java.util.Collections;
+import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -48,6 +54,18 @@ class BesoinFormationServiceImplTest {
                 notificationRepository,
                 besoinFormationMapper
         );
+        // Provide an ADMIN security context for service methods that read SecurityContextHolder
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken(
+                        "test-admin", null,
+                        List.of(new SimpleGrantedAuthority("ROLE_ADMIN"))
+                )
+        );
+    }
+
+    @AfterEach
+    void tearDown() {
+        SecurityContextHolder.clearContext();
     }
 
     @Test
@@ -89,7 +107,8 @@ class BesoinFormationServiceImplTest {
         long id = 1L;
         when(besoinFormationRepository.findById(id)).thenReturn(Optional.empty());
 
-        assertThrows(IllegalArgumentException.class, () -> service.retrieveBesoinFormation(id));
+        // Service now throws ResourceNotFoundException (→ HTTP 404) instead of IllegalArgumentException
+        assertThrows(ResourceNotFoundException.class, () -> service.retrieveBesoinFormation(id));
     }
 
     @Test
@@ -114,8 +133,16 @@ class BesoinFormationServiceImplTest {
     @Test
     void removeBesoinFormation_shouldDelete() {
         long id = 1L;
+        BesoinFormation besoin = new BesoinFormation();
+        besoin.setIdBesoinFormation(id);
+        when(besoinFormationRepository.findById(id)).thenReturn(Optional.of(besoin));
+
         service.removeBesoinFormation(id);
-        verify(besoinFormationRepository).deleteById(id);
+
+        // Fix 5: soft delete — sets deletedAt instead of hard-deleting
+        assertNotNull(besoin.getDeletedAt());
+        verify(besoinFormationRepository).save(besoin);
+        verify(besoinFormationRepository, never()).deleteById(any());
     }
 
     @Test
@@ -166,6 +193,10 @@ class BesoinFormationServiceImplTest {
         long id = 1L;
         BesoinFormation besoin = new BesoinFormation();
         besoin.setIdBesoinFormation(id);
+        // Pre-set steps 1 and 2 so the service advances to step 3 (Admin approval)
+        besoin.setApprouveCUP(true);
+        besoin.setApprouveChefDep(true);
+        besoin.setApprouveAdmin(false);
         besoin.setEventPublished(false);
         besoin.setNbMaxParticipants(20);
         besoin.setDureeFormation(10);
@@ -177,7 +208,7 @@ class BesoinFormationServiceImplTest {
 
         assertTrue(result.getApprouveAdmin());
         verify(eventPublisher).publish(any(BesoinFormationApprovedEvent.class));
-        verify(besoinFormationRepository, times(2)).save(any(BesoinFormation.class));
+        verify(besoinFormationRepository).save(any(BesoinFormation.class));
     }
 
     @Test
@@ -216,7 +247,7 @@ class BesoinFormationServiceImplTest {
         service.approuverBesoin(id);
 
         verify(eventPublisher).publish(any(BesoinFormationApprovedEvent.class));
-        verify(besoinFormationRepository, times(2)).save(b);
+        verify(besoinFormationRepository).save(b);
     }
 
     @Test
@@ -224,12 +255,16 @@ class BesoinFormationServiceImplTest {
         long id = 1L;
         BesoinFormation besoin = new BesoinFormation();
         besoin.setIdBesoinFormation(id);
+        // All steps already completed — falls to the 'else' branch (no action)
+        besoin.setApprouveCUP(true);
+        besoin.setApprouveChefDep(true);
         besoin.setApprouveAdmin(true);
         besoin.setEventPublished(true);
         besoin.setNbMaxParticipants(20);
         besoin.setDureeFormation(10);
 
         when(besoinFormationRepository.findById(id)).thenReturn(Optional.of(besoin));
+        when(besoinFormationRepository.save(any(BesoinFormation.class))).thenReturn(besoin);
 
         BesoinFormationResponse result = service.approuverBesoin(id);
 
@@ -241,6 +276,10 @@ class BesoinFormationServiceImplTest {
         long id = 1L;
         BesoinFormation besoin = new BesoinFormation();
         besoin.setIdBesoinFormation(id);
+        // Pre-set steps 1 and 2 so the service advances to step 3 where the publisher is called
+        besoin.setApprouveCUP(true);
+        besoin.setApprouveChefDep(true);
+        besoin.setApprouveAdmin(false);
         besoin.setEventPublished(false);
         besoin.setNbMaxParticipants(20);
         besoin.setDureeFormation(10);
@@ -249,6 +288,7 @@ class BesoinFormationServiceImplTest {
         when(besoinFormationRepository.save(any(BesoinFormation.class))).thenReturn(besoin);
         doThrow(new RuntimeException("MQ Error")).when(eventPublisher).publish(any());
 
+        // publishApprovalEvent has a try-catch — publisher failure must NOT roll back the approval
         BesoinFormationResponse result = service.approuverBesoin(id);
 
         assertNotNull(result);

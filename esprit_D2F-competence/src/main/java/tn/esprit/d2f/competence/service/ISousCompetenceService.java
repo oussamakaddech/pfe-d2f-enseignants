@@ -10,6 +10,7 @@ import java.util.List;
 public interface ISousCompetenceService {
     Page<SousCompetenceDTO> getAllSousCompetences(Pageable pageable);
     List<SousCompetenceDTO> getSousCompetencesByCompetence(Long competenceId);
+    Page<SousCompetenceDTO> getSousCompetencesByCompetence(Long competenceId, Pageable pageable);
     SousCompetenceDTO getSousCompetenceById(Long id);
     SousCompetenceDTO createSousCompetence(Long competenceId, SousCompetenceRequest request);
     SousCompetenceDTO createSousCompetenceEnfant(Long parentId, SousCompetenceRequest request);

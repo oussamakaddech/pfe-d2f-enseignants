@@ -179,7 +179,6 @@ public class AuthorizationFilter extends AbstractGatewayFilterFactory<Authorizat
         if (path.startsWith("/api/evaluation/")) return getEvaluationRoles(method);
         if (path.startsWith("/api/certificat/")) return getCertificatRoles(method);
         if (path.startsWith("/api/rice/")) return ADMIN_ONLY;
-        if (path.startsWith("/api/ai/")) return ALL_ROLES;
         if (path.startsWith("/api/analyse/")) return getAnalyseRoles(path);
 
         return ALL_ROLES;

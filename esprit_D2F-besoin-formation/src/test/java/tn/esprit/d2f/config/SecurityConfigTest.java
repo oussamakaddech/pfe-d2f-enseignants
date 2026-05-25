@@ -2,19 +2,24 @@ package tn.esprit.d2f.config;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
+import java.util.Map;
+
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import org.springframework.web.servlet.config.annotation.CorsRegistration;
 
 class SecurityConfigTest {
 
@@ -37,25 +42,37 @@ class SecurityConfigTest {
     void testJwtAuthenticationConverter() {
         JwtAuthenticationConverter converter = config.jwtAuthenticationConverter();
         assertNotNull(converter);
+        Jwt jwt = Jwt.withTokenValue("token")
+            .header("alg", "none")
+            .claim("scope", "ROLE_ADMIN ROLE_CUP")
+            .build();
+
+        Authentication authentication = converter.convert(jwt);
+
+        assertThat(authentication).isNotNull();
+        assertThat(authentication.getAuthorities())
+            .extracting("authority")
+            .containsExactly("ROLE_ADMIN", "ROLE_CUP");
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     void testCorsConfigurer() {
         WebMvcConfigurer corsConfigurer = config.corsConfigurer();
         assertNotNull(corsConfigurer);
 
-        CorsRegistry registry = mock(CorsRegistry.class);
-        CorsRegistration registration = mock(CorsRegistration.class);
-        
-        when(registry.addMapping("/**")).thenReturn(registration);
-        when(registration.allowedOrigins(any(String[].class))).thenReturn(registration);
-        when(registration.allowedMethods(any(String[].class))).thenReturn(registration);
-        when(registration.allowedHeaders(anyString())).thenReturn(registration);
-        when(registration.allowCredentials(true)).thenReturn(registration);
+        CorsRegistry registry = new CorsRegistry();
 
         corsConfigurer.addCorsMappings(registry);
 
-        verify(registry).addMapping("/**");
+        Map<String, CorsConfiguration> configurations =
+                ReflectionTestUtils.invokeMethod(registry, "getCorsConfigurations");
+        assertThat(configurations).containsKey("/**");
+        assertThat(configurations.get("/**").getAllowedOrigins())
+            .containsExactly("http://localhost:5173", "http://localhost:3000");
+        assertThat(configurations.get("/**").getAllowedMethods())
+            .containsExactly("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS");
+        assertTrue(configurations.get("/**").getAllowCredentials());
     }
 
     @Test

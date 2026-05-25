@@ -38,7 +38,7 @@ class FormationWorkflowControllerEnhancedTest {
 
     @BeforeEach
     void setup() {
-        mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
+        mockMvc = MockMvcBuilders.standaloneSetup(controller).setCustomArgumentResolvers(new org.springframework.data.web.PageableHandlerMethodArgumentResolver()).build();
     }
 
     @Test
@@ -249,8 +249,8 @@ class FormationWorkflowControllerEnhancedTest {
 
         mockMvc.perform(get("/api/v1/formations-workflow/seances/1/presences"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$").isArray())
-                .andExpect(jsonPath("$.length()").value(2));
+                .andExpect(jsonPath("$.content").isArray())
+                .andExpect(jsonPath("$.content.length()").value(2));
 
         verify(formationWorkflowService).getPresencesBySeance(1L);
     }
@@ -331,8 +331,8 @@ class FormationWorkflowControllerEnhancedTest {
 
         mockMvc.perform(get("/api/v1/formations-workflow/visibles"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$").isArray())
-                .andExpect(jsonPath("$.length()").value(1));
+                .andExpect(jsonPath("$.content").isArray())
+                .andExpect(jsonPath("$.content.length()").value(1));
 
         verify(formationWorkflowService).getFormationsVisibles();
     }
@@ -346,8 +346,8 @@ class FormationWorkflowControllerEnhancedTest {
         mockMvc.perform(get("/api/v1/formations-workflow/par-up")
                 .param("upId", "UP1"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$").isArray())
-                .andExpect(jsonPath("$.length()").value(1));
+                .andExpect(jsonPath("$.content").isArray())
+                .andExpect(jsonPath("$.content.length()").value(1));
 
         verify(formationWorkflowService).getFormationsParUp("UP1");
     }
@@ -361,8 +361,8 @@ class FormationWorkflowControllerEnhancedTest {
         mockMvc.perform(get("/api/v1/formations-workflow/par-departement")
                 .param("deptId", "D1"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$").isArray())
-                .andExpect(jsonPath("$.length()").value(1));
+                .andExpect(jsonPath("$.content").isArray())
+                .andExpect(jsonPath("$.content.length()").value(1));
 
         verify(formationWorkflowService).getFormationsParDepartement("D1");
     }
@@ -393,3 +393,4 @@ class FormationWorkflowControllerEnhancedTest {
         return dto;
     }
 }
+

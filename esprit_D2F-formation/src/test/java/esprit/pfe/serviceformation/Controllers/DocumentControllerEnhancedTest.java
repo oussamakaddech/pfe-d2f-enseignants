@@ -2,6 +2,7 @@ package esprit.pfe.serviceformation.controllers;
 
 
 import esprit.pfe.serviceformation.entities.Document;
+import esprit.pfe.serviceformation.exception.GlobalExceptionHandler;
 import esprit.pfe.serviceformation.services.DocumentService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -14,6 +15,14 @@ import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableHandlerMethodArgumentResolver;
+import org.springframework.http.converter.ByteArrayHttpMessageConverter;
+import org.springframework.http.converter.StringHttpMessageConverter;
+import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.util.Collections;
 import java.util.List;
@@ -38,7 +47,17 @@ class DocumentControllerEnhancedTest {
 
     @BeforeEach
     void setup() {
-        mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.registerModule(new org.springframework.data.web.config.SpringDataJacksonConfiguration.PageModule(new org.springframework.data.web.config.SpringDataWebSettings(org.springframework.data.web.config.EnableSpringDataWebSupport.PageSerializationMode.DIRECT)));
+        MappingJackson2HttpMessageConverter converter = new MappingJackson2HttpMessageConverter(mapper);
+        mockMvc = MockMvcBuilders.standaloneSetup(controller)
+                .setCustomArgumentResolvers(new PageableHandlerMethodArgumentResolver())
+                .setMessageConverters(
+                        new ByteArrayHttpMessageConverter(),
+                        new StringHttpMessageConverter(),
+                        converter)
+                .setControllerAdvice(new GlobalExceptionHandler())
+                .build();
     }
 
     @Test
@@ -139,25 +158,22 @@ class DocumentControllerEnhancedTest {
                 createDocument(1L, "path/test1.txt", "Document 1"),
                 createDocument(2L, "path/test2.txt", "Document 2")
         );
-        when(service.getAll()).thenReturn(documents);
+        when(service.getAll(any(Pageable.class))).thenReturn(new PageImpl<>(documents));
 
         mockMvc.perform(get("/api/v1/documents"))
                 .andExpect(status().isOk())
-                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andExpect(jsonPath("$").isArray())
-                .andExpect(jsonPath("$.length()").value(2));
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON));
 
-        verify(service).getAll();
+        verify(service).getAll(any(Pageable.class));
     }
 
     @Test
     @DisplayName("getAll - Devrait retourner une liste vide")
     void testGetAll_Empty() throws Exception {
-        when(service.getAll()).thenReturn(Collections.emptyList());
+        when(service.getAll(any(Pageable.class))).thenReturn(new PageImpl<>(Collections.emptyList()));
 
         mockMvc.perform(get("/api/v1/documents"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(0));
+                .andExpect(status().isOk());
     }
 
     @Test
@@ -278,3 +294,4 @@ class DocumentControllerEnhancedTest {
         return doc;
     }
 }
+

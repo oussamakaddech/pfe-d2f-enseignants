@@ -1,5 +1,4 @@
-// src/components/FormationProgressCards.jsx
-import  { useState, useEffect } from "react";
+import { useState } from "react";
 import {
   Card,
   Progress,
@@ -14,10 +13,8 @@ import {
   Switch
 } from "antd";
 import dayjs from "dayjs";
-import FormationWorkflowService from "@/services/formation/FormationWorkflowService";
-import ParticipantKPIService    from "@/services/analyse/ParticipantKPIService";
-import UpService                from "@/services/api/UploadService";
-import DeptService              from "@/services/formation/DeptService";
+import { useAllFormations, useUps, useDepartements } from "@/hooks/formation";
+import { useFormationsParticipantKPIs } from "@/hooks/kpi";
 import "@/styles/components/chart-scroll.css";
 
 const { Text } = Typography;
@@ -26,83 +23,46 @@ const { Search }      = Input;
 const { Option }      = Select;
 
 export default function FormationProgressCards() {
-  // États
-  const [forms, setForms]       = useState([]);  
-  const [kpis, setKpis]         = useState([]);  
-  const [loading, setLoading]   = useState(true);
-
-  // Plage de dates
-  const [range, setRange]       = useState([
+  const [range, setRange] = useState([
     dayjs().startOf("year"),
-    dayjs().endOf("year")
+    dayjs().endOf("year"),
   ]);
+  const [searchTitle, setSearchTitle]   = useState("");
+  const [searchDomaine, setSearchDomaine] = useState("");
+  const [selectedUp, setSelectedUp]     = useState(undefined);
+  const [selectedDept, setSelectedDept] = useState(undefined);
+  const [sortAsc, setSortAsc]           = useState(false);
 
-  // Options selects
-  const [ups, setUps]           = useState([]);
-  const [depts, setDepts]       = useState([]);
-  const [, setDomaines] = useState([]);
+  const { data: formsRaw = [] } = useAllFormations();
+  const { data: upsRaw = [] }   = useUps();
+  const { data: deptsRaw = [] } = useDepartements();
 
-  // Filtres UI
-  const [searchTitle, setSearchTitle]           = useState("");
-  const [searchDomaine, setSearchDomaine]       = useState("");
-  const [selectedUp, setSelectedUp]             = useState(undefined);
-  const [selectedDept, setSelectedDept]         = useState(undefined);
-  const [sortAsc, setSortAsc]                   = useState(false);
+  type FormRow = { idFormation?: unknown; titreFormation?: string; domaine?: string; up1?: { id?: unknown }; departement1?: { id?: unknown } };
+  type OptionRow = { id?: unknown; libelle?: string };
+  type KpiRow = { formationId?: unknown; nombreParticipantsTotal?: number; nombreParticipantsPresent?: number; tauxParticipation?: number };
 
-  // 1) Charger UP, Dept
-  useEffect(() => {
-    UpService.getAllUps().then(setUps).catch(console.error);
-    DeptService.getAllDepts().then(setDepts).catch(console.error);
-  }, []);
+  const forms  = formsRaw as FormRow[];
+  const ups    = upsRaw   as OptionRow[];
+  const depts  = deptsRaw as OptionRow[];
 
-  // 2) Charger toutes les formations et extraire domaines
-  useEffect(() => {
-    FormationWorkflowService.getAllFormationWorkflows()
-      .then(forms => {
-        setForms(forms);
-        const uniq = Array.from(
-          new Set(forms.map(f => f.domaine).filter(d => d?.trim()))
-        );
-        setDomaines(uniq);
-      })
-      .catch(console.error);
-  }, []);
-
-  // 3) Charger KPI lorsque la plage change
-  useEffect(() => {
-    let alive = true;
-    (async () => {
-      setLoading(true);
-      try {
-        const [start, end] = range;
-        const data = await ParticipantKPIService.getFormationsParticipantKPIs(
-          start.format("YYYY-MM-DD"),
-          end.format("YYYY-MM-DD")
-        );
-        if (alive) setKpis(data);
-      } catch (e) {
-        console.error(e);
-        if (alive) setKpis([]);
-      } finally {
-        if (alive) setLoading(false);
-      }
-    })();
-    return () => { alive = false; };
-  }, [range]);
+  const startDate = range[0].format("YYYY-MM-DD");
+  const endDate   = range[1].format("YYYY-MM-DD");
+  const { data: kpisRaw, isLoading: loading } = useFormationsParticipantKPIs(startDate, endDate);
+  const kpis = Array.isArray(kpisRaw) ? (kpisRaw as KpiRow[]) : [];
 
   if (loading) {
     return (
       <div style={styles.center}>
-        <Spin size="large" tip="Chargement..."><div /></Spin>
+        <Spin size="large" />
       </div>
     );
   }
 
-  // 4) Filtrer les formations
+  // Filtrer les formations
   const filtered = forms
     .filter(f =>
       !searchTitle ||
-      f.titreFormation.toLowerCase().includes(searchTitle.toLowerCase())
+      (f.titreFormation ?? "").toLowerCase().includes(searchTitle.toLowerCase())
     )
     .filter(f =>
       !searchDomaine ||
@@ -119,10 +79,10 @@ export default function FormationProgressCards() {
 
   // 5) Fusionner avec KPI
   const merged = filtered.map(f => {
-    const k = kpis.find(k => k.formationId === f.idFormation) || {
+    const k: KpiRow = kpis.find(k => k.formationId === f.idFormation) ?? {
       nombreParticipantsTotal:   0,
       nombreParticipantsPresent: 0,
-      tauxParticipation:         0
+      tauxParticipation:         0,
     };
     return { ...f, ...k };
   });
@@ -130,8 +90,8 @@ export default function FormationProgressCards() {
   // 6) Tri
   const sorted = merged.sort((a, b) =>
     sortAsc
-      ? a.tauxParticipation - b.tauxParticipation
-      : b.tauxParticipation - a.tauxParticipation
+      ? (a.tauxParticipation ?? 0) - (b.tauxParticipation ?? 0)
+      : (b.tauxParticipation ?? 0) - (a.tauxParticipation ?? 0)
   );
 
   // 7) Affichage
@@ -169,7 +129,7 @@ export default function FormationProgressCards() {
           onChange={setSelectedUp}
           style={{ width: 120 }}
         >
-          {ups.map(u => <Option key={u.id} value={u.id}>{u.libelle}</Option>)}
+          {ups.map(u => <Option key={String(u.id)} value={u.id as string}>{u.libelle}</Option>)}
         </Select>
         <Select
           placeholder="Dépt"
@@ -178,7 +138,7 @@ export default function FormationProgressCards() {
           onChange={setSelectedDept}
           style={{ width: 140 }}
         >
-          {depts.map(d => <Option key={d.id} value={d.id}>{d.libelle}</Option>)}
+          {depts.map(d => <Option key={String(d.id)} value={d.id as string}>{d.libelle}</Option>)}
         </Select>
         <span>
           Tri asc&nbsp;
@@ -190,9 +150,9 @@ export default function FormationProgressCards() {
       <div style={styles.cardsContainer}>
         <Row gutter={[16, 16]}>
           {sorted.map(f => {
-            const pct = Math.round(f.tauxParticipation);
+            const pct = Math.round(f.tauxParticipation ?? 0);
             return (
-              <Col span={24} key={f.idFormation}>
+              <Col span={24} key={String(f.idFormation)}>
                 <Card hoverable style={styles.card} styles={{ body: { padding: 16 } }}>
                   <Text strong style={styles.title}>
                     {f.titreFormation}

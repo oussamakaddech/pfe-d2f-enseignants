@@ -29,8 +29,7 @@ $webModules = @(
 
 $pythonModules = @(
     @{ Path = "esprit_D2F-rice";                     Key = "d2f_rice" },
-    @{ Path = "esprit_D2F-predictive-analytics";     Key = "d2f_predictive_analytics" },
-    @{ Path = "esprit_D2F-recommandation-formateur"; Key = "d2f_recommandation_formateur" }
+    @{ Path = "esprit_D2F-predictive-analytics";     Key = "d2f_predictive_analytics" }
 )
 
 # --- Helpers ---
@@ -42,6 +41,30 @@ function Get-SonarToken {
     $headers = @{ Authorization = "Basic $auth"; "Content-Type" = "application/json" }
     $resp = Invoke-WebRequest -Uri "$Url/api/user_tokens/generate?name=$tokenName" -Method Post -Headers $headers -UseBasicParsing -ErrorAction Stop
     return ($resp.Content | ConvertFrom-Json).token
+}
+
+# Résout l'exécutable Python disponible sur le système.
+# Priorité : venv du dépôt → launcher py → python3 → python
+function Resolve-PythonExe {
+    # 1. Venv à la racine du dépôt (chemin absolu depuis le script)
+    $repoRoot = Split-Path -Parent $PSScriptRoot
+    $venvPy = Join-Path $repoRoot ".venv\Scripts\python.exe"
+    if (Test-Path $venvPy) { return $venvPy }
+
+    # 2. Venv local au module courant (cas où Push-Location a déjà été fait)
+    $localVenv = Join-Path (Get-Location) ".venv\Scripts\python.exe"
+    if (Test-Path $localVenv) { return $localVenv }
+
+    # 3. Launcher py (installé avec Python officiel Windows)
+    if (Get-Command py -ErrorAction SilentlyContinue) { return "py" }
+
+    # 4. python3 (Linux / macOS / certains Windows)
+    if (Get-Command python3 -ErrorAction SilentlyContinue) { return "python3" }
+
+    # 5. python (fallback)
+    if (Get-Command python -ErrorAction SilentlyContinue) { return "python" }
+
+    return $null
 }
 
 function Test-Wanted {
@@ -57,7 +80,7 @@ function Invoke-JavaAnalysis {
     if (-not (Test-Wanted $Mod.Path)) { return $null }
     if (-not (Test-Path "$($Mod.Path)/pom.xml")) {
         Write-Host "  [SKIP] $($Mod.Path) (pas de pom.xml)" -ForegroundColor Yellow
-        return $false
+        return $null
     }
     Write-Host ""
     Write-Host "[Java] $($Mod.Path)" -ForegroundColor Cyan
@@ -65,14 +88,14 @@ function Invoke-JavaAnalysis {
     try {
         $mvnCmd = if (Test-Path "mvnw.cmd") { ".\mvnw.cmd" } else { "mvn" }
         Write-Host "  [1/2] verify (tests + JaCoCo)..."
-        & $mvnCmd -B -q clean verify
+        & $mvnCmd -B -q clean verify | Out-Host
         if ($LASTEXITCODE -ne 0) { throw "Maven verify failed" }
         Write-Host "  [2/2] sonar:sonar..."
         & $mvnCmd -B -q sonar:sonar `
             "-Dsonar.projectKey=$($Mod.Key)" `
             "-Dsonar.host.url=$Url" `
-            "-Dsonar.login=$Token" `
-            "-Dsonar.qualitygate.wait=true"
+            "-Dsonar.token=$Token" `
+            "-Dsonar.qualitygate.wait=true" | Out-Host
         if ($LASTEXITCODE -ne 0) { throw "Sonar scan failed (Quality Gate ?)" }
         Write-Host "  [OK] $($Mod.Path)" -ForegroundColor Green
         return $true
@@ -85,12 +108,16 @@ function Invoke-JavaAnalysis {
 function Invoke-WebAnalysis {
     param([hashtable]$Mod, [string]$Token, [string]$Url)
     if (-not (Test-Wanted $Mod.Path)) { return $null }
+    if (-not (Test-Path "$($Mod.Path)/package.json")) {
+        Write-Host "  [SKIP] $($Mod.Path) (pas de package.json)" -ForegroundColor Yellow
+        return $null
+    }
     Write-Host ""
     Write-Host "[Web]  $($Mod.Path)" -ForegroundColor Cyan
     Push-Location $Mod.Path
     try {
         Write-Host "  [1/3] npm ci..."
-        npm ci --legacy-peer-deps --silent
+        npm ci --legacy-peer-deps --silent | Out-Host
         if ($LASTEXITCODE -ne 0) {
             Write-Host "  [WARN] npm ci échoué (devserver en cours?). Utilisation des node_modules existants." -ForegroundColor Yellow
             if (-not (Test-Path "node_modules")) { throw "npm ci failed et node_modules absent" }
@@ -107,8 +134,8 @@ function Invoke-WebAnalysis {
         & sonar-scanner `
             "-Dsonar.projectKey=$($Mod.Key)" `
             "-Dsonar.host.url=$Url" `
-            "-Dsonar.login=$Token" `
-            "-Dsonar.qualitygate.wait=true"
+            "-Dsonar.token=$Token" `
+            "-Dsonar.qualitygate.wait=true" | Out-Host
         if ($LASTEXITCODE -ne 0) { throw "Sonar scan failed (Quality Gate ?)" }
         Write-Host "  [OK] $($Mod.Path)" -ForegroundColor Green
         return $true
@@ -121,21 +148,27 @@ function Invoke-WebAnalysis {
 function Invoke-PythonAnalysis {
     param([hashtable]$Mod, [string]$Token, [string]$Url)
     if (-not (Test-Wanted $Mod.Path)) { return $null }
+    if (-not (Test-Path "$($Mod.Path)/requirements.txt")) {
+        Write-Host "  [SKIP] $($Mod.Path) (pas de requirements.txt)" -ForegroundColor Yellow
+        return $null
+    }
     Write-Host ""
     Write-Host "[Py]   $($Mod.Path)" -ForegroundColor Cyan
     Push-Location $Mod.Path
     try {
-        if (-not (Get-Command python -ErrorAction SilentlyContinue)) {
-            throw "python introuvable dans le PATH"
+        $pyExe = Resolve-PythonExe
+        if (-not $pyExe) {
+            throw "Aucun executable Python trouve (python / python3 / py / .venv). Installez Python ou creez un venv a la racine du depot."
         }
+        Write-Host "  [INFO] Python utilise : $pyExe" -ForegroundColor Gray
         Write-Host "  [1/3] pip install..."
-        python -m pip install -q -r requirements.txt
-        python -m pip install -q pytest pytest-cov
+        & $pyExe -m pip install -q -r requirements.txt | Out-Host
+        & $pyExe -m pip install -q pytest pytest-cov | Out-Host
         Write-Host "  [2/3] pytest + coverage..."
         # $ErrorActionPreference = "Stop" makes PS5.1 throw on native stderr → use Continue locally
         $savedPref = $ErrorActionPreference
         $ErrorActionPreference = "Continue"
-        python -m pytest -W ignore::DeprecationWarning -W ignore::PendingDeprecationWarning `
+        & $pyExe -m pytest -W ignore::DeprecationWarning -W ignore::PendingDeprecationWarning `
             --cov=. --cov-report=xml --junit-xml=junit-results.xml 2>&1 | Out-Null
         $ErrorActionPreference = $savedPref
         Write-Host "  [3/3] sonar-scanner..."
@@ -145,8 +178,8 @@ function Invoke-PythonAnalysis {
         & sonar-scanner `
             "-Dsonar.projectKey=$($Mod.Key)" `
             "-Dsonar.host.url=$Url" `
-            "-Dsonar.login=$Token" `
-            "-Dsonar.qualitygate.wait=true"
+            "-Dsonar.token=$Token" `
+            "-Dsonar.qualitygate.wait=true" | Out-Host
         if ($LASTEXITCODE -ne 0) { throw "Sonar scan failed (Quality Gate ?)" }
         Write-Host "  [OK] $($Mod.Path)" -ForegroundColor Green
         return $true

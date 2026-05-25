@@ -40,4 +40,18 @@ class CustomExceptionHandlerTest {
         assertNotNull(response.getBody());
         assertEquals("Bad request", response.getBody().getMessage());
     }
+    
+    @Test
+    void handleTokenExpiredException_ShouldReturnCustomError() {
+        TokenExpiredException ex = new TokenExpiredException("Token expired");
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        when(request.getRequestURI()).thenReturn("/api/reset-password");
+
+        ResponseEntity<CustomErrorResponse> response = handler.handleTokenExpiredException(ex, request);
+
+        assertEquals(HttpStatus.GONE, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertEquals("Token expired", response.getBody().getMessage());
+        assertEquals("/api/reset-password", response.getBody().getPath());
+    }
 }

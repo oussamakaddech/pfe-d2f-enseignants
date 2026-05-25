@@ -1,4 +1,3 @@
-// src/pages/presence/PresenceList.jsx
 import { useEffect, useMemo, useState } from "react";
 import PropTypes from "prop-types";
 import {
@@ -26,11 +25,10 @@ import {
   TeamOutlined,
   SaveOutlined,
   ReloadOutlined,
-  UserOutlined,
   EditOutlined,
 } from "@ant-design/icons";
 import { writeExcel, exportDateLabel, isoDate } from "utils/helpers/excelExport";
-import FormationWorkflowService from "@/services/formation/FormationWorkflowService";
+import { useSeancePresences, useBatchUpdatePresences, useMarkAllPresences } from "@/hooks/presence";
 import useAppNotification from "@/hooks/ui/useAppNotification";
 import "@/styles/pages/presence-list.css";
 
@@ -45,7 +43,7 @@ const initialsOf = (nom, prenom) => {
 const colorOfName = (str) => {
   const palette = ["#B51200", "#0891b2", "#7c3aed", "#059669", "#d97706", "#2563eb", "#db2777"];
   let h = 0;
-  for (let i = 0; i < (str || "").length; i += 1) h = (h * 31 + str.charCodeAt(i)) >>> 0;
+  for (let i = 0; i < (str || "").length; i += 1) h = (h * 31 + (str.codePointAt(i) ?? 0)) >>> 0;
   return palette[h % palette.length];
 };
 
@@ -53,35 +51,29 @@ const PresenceList = ({ seanceId }) => {
   const { message: msgApi } = useAppNotification();
   const [presences, setPresences] = useState([]);
   const [originalById, setOriginalById] = useState({});
-  const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState("");
 
-  const loadPresences = () => {
-    setLoading(true);
-    FormationWorkflowService.getPresencesBySeance(seanceId)
-      .then((data) => {
-        const list = Array.isArray(data) ? data : [];
-        // Backend returns `present` (PresenceDTO); legacy code reads `presence`.
-        const normalized = list.map((p) => ({
-          ...p,
-          presence: typeof p.present === "boolean" ? p.present : !!p.presence,
-        }));
-        setPresences(normalized);
-        const map = {};
-        normalized.forEach((p) => {
-          map[p.idParticipation] = { presence: p.presence, commentaire: p.commentaire || "" };
-        });
-        setOriginalById(map);
-      })
-      .catch(() => msgApi.error("Erreur lors du chargement des présences"))
-      .finally(() => setLoading(false));
-  };
+  const { data: rawPresences = [], isLoading: loading } = useSeancePresences(seanceId);
+  const batchUpdateMut = useBatchUpdatePresences();
+  const markAllMut = useMarkAllPresences();
 
   useEffect(() => {
-    if (seanceId) loadPresences();
+    const list = Array.isArray(rawPresences) ? rawPresences : [];
+    const normalized = list.map((p) => ({
+      ...p,
+      presence: typeof p.present === "boolean" ? p.present : !!p.presence,
+    }));
+    setPresences(normalized);
+    const map = {};
+    normalized.forEach((p) => {
+      map[p.idParticipation] = { presence: p.presence, commentaire: p.commentaire || "" };
+    });
+    setOriginalById(map);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [seanceId]);
+  }, [rawPresences]);
+
+  const loadPresences = () => { /* data reloaded via React Query invalidation */ };
 
   const togglePresence = (idParticipation, nextPresence) => {
     setPresences((prev) =>
@@ -125,9 +117,8 @@ const PresenceList = ({ seanceId }) => {
           present: !!p.presence,
           commentaire: p.commentaire || "",
         }));
-      await FormationWorkflowService.batchUpdatePresences(seanceId, updates);
+      await batchUpdateMut.mutateAsync({ seanceId, updates });
       msgApi.success(`${dirtyIds.length} présence(s) enregistrée(s)`);
-      loadPresences();
     } catch (err) {
       msgApi.error(err?.response?.data?.error || "Erreur lors de l'enregistrement");
     } finally {
@@ -138,13 +129,12 @@ const PresenceList = ({ seanceId }) => {
   const handleMarkAll = async (present) => {
     setSaving(true);
     try {
-      await FormationWorkflowService.markAllPresences(seanceId, present);
+      await markAllMut.mutateAsync({ seanceId, present });
       msgApi.success(
         present
           ? "Tous les enseignants marqués présents"
           : "Tous les enseignants marqués absents"
       );
-      loadPresences();
     } catch (err) {
       msgApi.error(err?.response?.data?.error || "Erreur lors de l'opération groupée");
     } finally {
@@ -173,10 +163,11 @@ const PresenceList = ({ seanceId }) => {
       Nom:    p.enseignant?.nom    || "",
       Prénom: p.enseignant?.prenom || "",
       Email:  p.enseignant?.mail   || "",
-      Type:
-        p.enseignant?.type === "P" ? "Permanent" :
-        p.enseignant?.type === "V" ? "Vacataire" :
-        (p.enseignant?.type || ""),
+      Type: (() => {
+        if (p.enseignant?.type === "P") return "Permanent";
+        if (p.enseignant?.type === "V") return "Vacataire";
+        return p.enseignant?.type || "";
+      })(),
       Statut: p.presence ? "Présent" : "Absent",
       Commentaire: p.commentaire || "",
     }));
@@ -229,7 +220,9 @@ const PresenceList = ({ seanceId }) => {
       width: 110,
       render: (t) => {
         if (!t) return <Text type="secondary">—</Text>;
-        const label = t === "P" ? "Permanent" : t === "V" ? "Vacataire" : t;
+        let label = t;
+        if (t === "P") label = "Permanent";
+        else if (t === "V") label = "Vacataire";
         const cls = t === "P" ? "presence-type-tag p" : "presence-type-tag v";
         return <span className={cls}>{label}</span>;
       },

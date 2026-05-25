@@ -1,17 +1,35 @@
-// src/services/UpService.js
-
 import { defaultApi as axios } from "@/utils/helpers/httpClient";
 import { config } from "@/config/env";
 
 const API_URL = `${config.FORMATION_URL}/formation/ups`;
 
+function normalizeListResponse<T>(payload: T[] | { content?: T[]; data?: T[]; items?: T[] }): T[] {
+  if (Array.isArray(payload)) {
+    return payload;
+  }
+
+  if (payload && typeof payload === "object") {
+    const candidate = payload as { content?: unknown[]; data?: unknown[]; items?: unknown[] };
+    if (Array.isArray(candidate.content)) {
+      return candidate.content as T[];
+    }
+    if (Array.isArray(candidate.data)) {
+      return candidate.data as T[];
+    }
+    if (Array.isArray(candidate.items)) {
+      return candidate.items as T[];
+    }
+  }
+
+  return [];
+}
+
 const UpService = {
-  async createUp(upData) {
+  async createUp(upData: Record<string, unknown>) {
     try {
       const response = await axios.post(API_URL, upData);
       return response.data;
     } catch (error) {
-      console.error("Erreur lors de la création de l'UP :", error);
       throw error;
     }
   },
@@ -19,48 +37,43 @@ const UpService = {
   async getAllUps() {
     try {
       const response = await axios.get(API_URL);
-      // Retourner un array, même s'il est vide
-      return Array.isArray(response.data) ? response.data : [];
+      return normalizeListResponse(response.data);
     } catch (error) {
-      if (error.response?.status === 404) {
-        console.warn("Aucune UP trouvée");
+      const axiosError = error as { response?: { status?: number } };
+      if (axiosError?.response?.status === 404) {
         return [];
       }
-      console.error("Erreur lors de la récupération des UPs :", error);
-      return []; // Retourner array vide en cas d'erreur
+      return [];
     }
   },
 
-  async getUpById(id) {
+  async getUpById(id: number | string) {
     try {
       const response = await axios.get(`${API_URL}/${id}`);
       return response.data;
     } catch (error) {
-      console.error(`Erreur lors de la récupération de l'UP ${id} :`, error);
       throw error;
     }
   },
 
-  async updateUp(id, upData) {
+  async updateUp(id: number | string, upData: Record<string, unknown>) {
     try {
       const response = await axios.put(`${API_URL}/${id}`, upData);
       return response.data;
     } catch (error) {
-      console.error(`Erreur lors de la mise à jour de l'UP ${id} :`, error);
       throw error;
     }
   },
 
-  async deleteUp(id) {
+  async deleteUp(id: number | string) {
     try {
       await axios.delete(`${API_URL}/${id}`);
     } catch (error) {
-      console.error(`Erreur lors de la suppression de l'UP ${id} :`, error);
       throw error;
     }
   },
 
-  async importUpsExcel(file) {
+  async importUpsExcel(file: File) {
     try {
       const formData = new FormData();
       formData.append("file", file);
@@ -69,7 +82,6 @@ const UpService = {
       });
       return response.data;
     } catch (error) {
-      console.error("Erreur lors de l'import des UPs :", error);
       throw error;
     }
   },

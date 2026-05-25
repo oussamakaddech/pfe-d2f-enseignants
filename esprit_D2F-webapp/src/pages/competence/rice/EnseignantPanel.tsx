@@ -15,9 +15,27 @@ const { Text } = Typography;
 
 const flatten = (tree) => {
   const all = [];
-  (tree ?? []).forEach((d) => (d.competences ?? []).forEach((c) =>
-    (c.sousCompetences ?? []).forEach((sc) => (sc.savoirs ?? []).forEach((s) => all.push(s)))));
+  for (const d of tree ?? []) {
+    for (const c of d.competences ?? []) {
+      for (const s of c.savoirs ?? []) all.push(s);
+      for (const sc of c.sousCompetences ?? []) {
+        for (const s of sc.savoirs ?? []) all.push(s);
+      }
+    }
+  }
   return all;
+};
+
+const countActiveTeachers = (allSavoirs) => {
+  const ids = new Set();
+  allSavoirs.forEach((s) => (s.enseignantsSuggeres ?? []).forEach((id) => ids.add(String(id))));
+  return ids.size;
+};
+
+const getCoverageColor = (tauxCouverture) => {
+  if (tauxCouverture >= 80) return "#52c41a";
+  if (tauxCouverture >= 50) return "#fa8c16";
+  return "#f5222d";
 };
 
 export default function EnseignantPanel({ tree, setTree, allEnseignants, extractedEnseignants, departement }) {
@@ -27,13 +45,11 @@ export default function EnseignantPanel({ tree, setTree, allEnseignants, extract
   const totalSavoirs = allSavoirs.length;
   const savoirsCoverts = allSavoirs.filter((s) => (s.enseignantsSuggeres ?? []).length > 0).length;
   const tauxCouverture = useMemo(() => computeCoveragePct(tree), [tree]);
-  const enseignantsActifs = useMemo(() => {
-    const ids = new Set();
-    allSavoirs.forEach((s) => (s.enseignantsSuggeres ?? []).forEach((id) => ids.add(String(id))));
-    return ids.size;
-  }, [allSavoirs]);
+  const enseignantsActifs = useMemo(() => countActiveTeachers(allSavoirs), [allSavoirs]);
 
   const unmatched = (extractedEnseignants ?? []).filter((e) => !e.matched_id);
+
+  const tauxColor = getCoverageColor(tauxCouverture);
 
   return (
     <div className="ens-panel">
@@ -70,7 +86,7 @@ export default function EnseignantPanel({ tree, setTree, allEnseignants, extract
               value={tauxCouverture}
               suffix="%"
               valueStyle={{
-                color: tauxCouverture >= 80 ? "#52c41a" : tauxCouverture >= 50 ? "#fa8c16" : "#f5222d",
+                color: tauxColor,
               }}
             />
           </Col>

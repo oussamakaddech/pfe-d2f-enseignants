@@ -1,4 +1,3 @@
-// src/pages/competence/rice/UploadStep.jsx
 // Step 0 – File upload and department/referential selection.
 // Includes session restore alert (tree only – files cannot be serialized).
 
@@ -22,6 +21,98 @@ import {
 const { Text, Title, Paragraph } = Typography;
 const { Dragger } = Upload;
 
+function filterEnseignants(allEnseignants, query) {
+  const q = query.trim().toLowerCase();
+  if (!q) return allEnseignants;
+  return (allEnseignants ?? []).filter((e) => {
+    const full = `${e.prenom ?? ""} ${e.nom ?? ""}`.toLowerCase();
+    return (
+      full.includes(q)
+      || String(e.departement ?? "").toLowerCase().includes(q)
+      || String(e.grade ?? "").toLowerCase().includes(q)
+    );
+  });
+}
+
+function EnseignantsAvailability({ loading, error, slowLoad, allEnseignants, departement, onRetry, onContinue, onShowPreview }) {
+  if (loading) {
+    return (
+      <div style={{ marginTop: 8 }}>
+        {slowLoad && (
+          <Alert
+            type="warning"
+            showIcon
+            message="Chargement long — vérifiez la disponibilité du service"
+            action={(
+              <Space>
+                <Button size="small" onClick={onRetry}>Réessayer</Button>
+                <Button size="small" type="text" onClick={onContinue}>Continuer sans enseignants</Button>
+              </Space>
+            )}
+            style={{ marginBottom: 8 }}
+          />
+        )}
+        <Skeleton.Input active size="small" style={{ width: 200 }} />
+        <Text style={{ color: "rgba(255,255,255,0.75)", fontSize: 12, display: "block", marginTop: 6 }}>
+          Chargement des enseignants...
+        </Text>
+      </div>
+    );
+  }
+  if (error) {
+    return <Alert type="warning" message={error} showIcon style={{ marginTop: 8 }} />;
+  }
+  if (allEnseignants.length === 0) {
+    return (
+      <Alert
+        type="info"
+        showIcon
+        message="Aucun enseignant en base de données"
+        description="Demandez à l'administrateur d'ajouter les enseignants dans le module de gestion."
+        style={{ marginTop: 8 }}
+      />
+    );
+  }
+  return (
+    <div style={{ marginTop: 8 }}>
+      <Space align="start">
+        <TeamOutlined style={{ color: "#52c41a", marginTop: 2 }} />
+        <div>
+          <Text style={{ color: "rgba(255,255,255,0.9)" }}>
+            <strong style={{ color: "#52c41a" }}>{allEnseignants.length}</strong>
+            {" "}enseignants disponibles pour le matching IA
+          </Text>
+          {departement !== "auto" && (
+            <div>
+              <Text type="secondary" style={{ fontSize: 11, color: "rgba(255,255,255,0.65)" }}>
+                Filtrés par département <DepartmentBadge deptCode={departement} />
+              </Text>
+            </div>
+          )}
+          <Button
+            type="link"
+            size="small"
+            style={{ padding: 0, height: 20, color: "#91caff" }}
+            onClick={onShowPreview}
+          >
+            Voir la liste →
+          </Button>
+        </div>
+      </Space>
+    </div>
+  );
+}
+EnseignantsAvailability.propTypes = {
+  loading: PropTypes.bool,
+  error: PropTypes.string,
+  slowLoad: PropTypes.bool,
+  allEnseignants: PropTypes.array.isRequired,
+  departement: PropTypes.string,
+  onRetry: PropTypes.func.isRequired,
+  onContinue: PropTypes.func.isRequired,
+  onShowPreview: PropTypes.func.isRequired,
+};
+
 
 
 function FileIcon({ name }) {
@@ -32,7 +123,7 @@ function FileIcon({ name }) {
 }
 FileIcon.propTypes = { name: PropTypes.string };
 
-export default function UploadStep({
+export default function UploadStep({ // NOSONAR — complexity spread across JSX branches, no clean extraction
   files,
   analyzing,
   handleAnalyze,
@@ -53,18 +144,12 @@ export default function UploadStep({
   const etaSeconds = Math.max(20, files.length * 20);
   const visibleFiles = files.slice(0, 5);
   const hiddenCount = Math.max(0, files.length - visibleFiles.length);
-  const filteredPreviewRows = useMemo(() => {
-    const q = ensPreviewSearch.trim().toLowerCase();
-    if (!q) return allEnseignants;
-    return (allEnseignants ?? []).filter((e) => {
-      const full = `${e.prenom ?? ""} ${e.nom ?? ""}`.toLowerCase();
-      return (
-        full.includes(q)
-        || String(e.departement ?? "").toLowerCase().includes(q)
-        || String(e.grade ?? "").toLowerCase().includes(q)
-      );
-    });
-  }, [allEnseignants, ensPreviewSearch]);
+  const plural = files.length > 1 ? "s" : "";
+  const deptLabel = departement === "auto" ? "auto" : deptCfg.shortNom;
+  const filteredPreviewRows = useMemo(
+    () => filterEnseignants(allEnseignants, ensPreviewSearch),
+    [allEnseignants, ensPreviewSearch]
+  );
 
   return (
     <div className="upload-step-root">
@@ -209,8 +294,8 @@ export default function UploadStep({
             ) : (
               <Text type="secondary" style={{ fontSize: 12, marginTop: 8, display: "block", textAlign: "center" }}>
                 <CheckCircleOutlined style={{ color: "#52c41a" }} />{" "}
-                {files.length} fichier{files.length > 1 ? "s" : ""} pr\u00eat{files.length > 1 ? "s" : ""} \u2014 d\u00e9partement{" "}
-                <strong style={{ color: deptCfg.color }}>{departement === "auto" ? "auto" : deptCfg.shortNom}</strong>
+                {files.length} fichier{plural} pr\u00eat{plural} \u2014 d\u00e9partement{" "}
+                <strong style={{ color: deptCfg.color }}>{deptLabel}</strong>
               </Text>
             )}
           </div>
@@ -234,73 +319,16 @@ export default function UploadStep({
             <div className="rice-feature-list">
               <div className="ens-availability">
                 <Text strong style={{ color: "#fff" }}>Enseignants disponibles</Text>
-
-                {enseignantsLoading && (
-                  <div style={{ marginTop: 8 }}>
-                    <Skeleton.Input active size="small" style={{ width: 200 }} />
-                    <Text style={{ color: "rgba(255,255,255,0.75)", fontSize: 12, display: "block", marginTop: 6 }}>
-                      Chargement des enseignants...
-                    </Text>
-                  </div>
-                )}
-
-                {enseignantsLoadSlow && enseignantsLoading && (
-                  <Alert
-                    type="warning"
-                    showIcon
-                    message="Chargement long — vérifiez la disponibilité du service"
-                    action={(
-                      <Space>
-                        <Button size="small" onClick={onRetryEnseignants}>Réessayer</Button>
-                        <Button size="small" type="text" onClick={onContinueWithoutEnseignants}>Continuer sans enseignants</Button>
-                      </Space>
-                    )}
-                    style={{ marginTop: 8 }}
-                  />
-                )}
-
-                {!enseignantsLoading && enseignantsError && (
-                  <Alert type="warning" message={enseignantsError} showIcon style={{ marginTop: 8 }} />
-                )}
-
-                {!enseignantsLoading && !enseignantsError && allEnseignants.length > 0 && (
-                  <div style={{ marginTop: 8 }}>
-                    <Space align="start">
-                      <TeamOutlined style={{ color: "#52c41a", marginTop: 2 }} />
-                      <div>
-                        <Text style={{ color: "rgba(255,255,255,0.9)" }}>
-                          <strong style={{ color: "#52c41a" }}>{allEnseignants.length}</strong>
-                          {" "}enseignants disponibles pour le matching IA
-                        </Text>
-                        {departement !== "auto" && (
-                          <div>
-                            <Text type="secondary" style={{ fontSize: 11, color: "rgba(255,255,255,0.65)" }}>
-                              Filtrés par département <DepartmentBadge deptCode={departement} />
-                            </Text>
-                          </div>
-                        )}
-                        <Button
-                          type="link"
-                          size="small"
-                          style={{ padding: 0, height: 20, color: "#91caff" }}
-                          onClick={() => setShowEnseignantsPreview(true)}
-                        >
-                          Voir la liste →
-                        </Button>
-                      </div>
-                    </Space>
-                  </div>
-                )}
-
-                {!enseignantsLoading && !enseignantsError && allEnseignants.length === 0 && (
-                  <Alert
-                    type="info"
-                    showIcon
-                    message="Aucun enseignant en base de données"
-                    description="Demandez à l'administrateur d'ajouter les enseignants dans le module de gestion."
-                    style={{ marginTop: 8 }}
-                  />
-                )}
+                <EnseignantsAvailability
+                  loading={enseignantsLoading}
+                  error={enseignantsError}
+                  slowLoad={enseignantsLoadSlow}
+                  allEnseignants={allEnseignants}
+                  departement={departement}
+                  onRetry={onRetryEnseignants}
+                  onContinue={onContinueWithoutEnseignants}
+                  onShowPreview={() => setShowEnseignantsPreview(true)}
+                />
               </div>
 
               {files.length === 0 ? (

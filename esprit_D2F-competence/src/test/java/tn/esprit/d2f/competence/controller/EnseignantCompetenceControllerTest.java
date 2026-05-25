@@ -10,6 +10,8 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.AuditorAware;
@@ -234,11 +236,12 @@ class EnseignantCompetenceControllerTest {
         @WithMockUser(roles = "admin")
         @DisplayName("200 – renvoie la liste des affectations d'un enseignant")
         void shouldReturn200() throws Exception {
-            when(service.getCompetencesByEnseignant("ens-001")).thenReturn(List.of(sampleDTO()));
+            Page<EnseignantCompetenceDTO> page = new PageImpl<>(List.of(sampleDTO()));
+            when(service.getCompetencesByEnseignant(eq("ens-001"), any(Pageable.class))).thenReturn(page);
 
             mockMvc.perform(get(BASE_URL + "/enseignant/ens-001"))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$[0].enseignantId").value("ens-001"));
+                    .andExpect(jsonPath("$.content[0].enseignantId").value("ens-001"));
         }
     }
 
@@ -251,11 +254,12 @@ class EnseignantCompetenceControllerTest {
         @WithMockUser(roles = "admin")
         @DisplayName("200 – renvoie la liste filtrée")
         void shouldReturn200() throws Exception {
-            when(service.getCompetencesByEnseignantAndDomaine("ens-001", 1L)).thenReturn(List.of(sampleDTO()));
+            Page<EnseignantCompetenceDTO> page = new PageImpl<>(List.of(sampleDTO()));
+            when(service.getCompetencesByEnseignantAndDomaine(eq("ens-001"), eq(1L), any(Pageable.class))).thenReturn(page);
 
             mockMvc.perform(get(BASE_URL + "/enseignant/ens-001/domaine/1"))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$[0].enseignantId").value("ens-001"));
+                    .andExpect(jsonPath("$.content[0].enseignantId").value("ens-001"));
         }
     }
 
@@ -268,11 +272,12 @@ class EnseignantCompetenceControllerTest {
         @WithMockUser(roles = "admin")
         @DisplayName("200 – renvoie la liste filtrée")
         void shouldReturn200() throws Exception {
-            when(service.getCompetencesByEnseignantAndCompetence("ens-001", 2L)).thenReturn(List.of(sampleDTO()));
+            Page<EnseignantCompetenceDTO> page = new PageImpl<>(List.of(sampleDTO()));
+            when(service.getCompetencesByEnseignantAndCompetence(eq("ens-001"), eq(2L), any(Pageable.class))).thenReturn(page);
 
             mockMvc.perform(get(BASE_URL + "/enseignant/ens-001/competence/2"))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$[0].enseignantId").value("ens-001"));
+                    .andExpect(jsonPath("$.content[0].enseignantId").value("ens-001"));
         }
     }
 
@@ -285,11 +290,12 @@ class EnseignantCompetenceControllerTest {
         @WithMockUser(roles = "admin")
         @DisplayName("200 – renvoie la liste filtrée")
         void shouldReturn200() throws Exception {
-            when(service.getCompetencesByEnseignantAndNiveau("ens-001", NiveauMaitrise.N2_ELEMENTAIRE)).thenReturn(List.of(sampleDTO()));
+            Page<EnseignantCompetenceDTO> page = new PageImpl<>(List.of(sampleDTO()));
+            when(service.getCompetencesByEnseignantAndNiveau(eq("ens-001"), eq(NiveauMaitrise.N2_ELEMENTAIRE), any(Pageable.class))).thenReturn(page);
 
             mockMvc.perform(get(BASE_URL + "/enseignant/ens-001/niveau/N2_ELEMENTAIRE"))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$[0].enseignantId").value("ens-001"));
+                    .andExpect(jsonPath("$.content[0].enseignantId").value("ens-001"));
         }
     }
 

@@ -1,4 +1,3 @@
-// src/pages/competence/components/CompetenceExpandedRow.jsx
 import PropTypes from "prop-types";
 import { Alert, Button, Card, Empty, Popconfirm, Space, Tag, Tooltip, Typography } from "antd";
 import { DeleteOutlined, EditOutlined, PlusOutlined } from "@ant-design/icons";

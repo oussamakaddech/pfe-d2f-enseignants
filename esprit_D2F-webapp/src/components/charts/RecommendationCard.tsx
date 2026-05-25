@@ -12,8 +12,8 @@ const TYPE_COLOR: Record<string, string> = {
 };
 
 interface RecommendationCardProps {
-  recommendation: Recommendation;
-  rank?:          number;
+  readonly recommendation: Recommendation;
+  readonly rank?:          number;
 }
 
 export default function RecommendationCard({ recommendation: r, rank }: RecommendationCardProps) {

@@ -5,14 +5,14 @@ const { Text } = Typography;
 
 interface FilterPanelProps {
   /** Contenu des filtres */
-  children: React.ReactNode;
+  readonly children: React.ReactNode;
   /** Titre du panneau */
-  title?: string;
+  readonly title?: string;
   /** Afficher le bouton réinitialiser */
-  onReset?: () => void;
+  readonly onReset?: () => void;
   /** Nombre de filtres actifs */
-  activeCount?: number;
-  className?: string;
+  readonly activeCount?: number;
+  readonly className?: string;
 }
 
 /**

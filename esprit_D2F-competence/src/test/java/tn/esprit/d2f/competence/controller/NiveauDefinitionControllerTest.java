@@ -7,6 +7,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import tn.esprit.d2f.competence.dto.NiveauSavoirRequisDTO;
@@ -19,6 +22,7 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -41,10 +45,10 @@ class NiveauDefinitionControllerTest {
 
     @Test
     void testGetAll() {
-        when(niveauService.getAll()).thenReturn(List.of(dto));
-        ResponseEntity<List<NiveauSavoirRequisDTO>> response = controller.getAll();
+        when(niveauService.getAll(any(Pageable.class))).thenReturn(new PageImpl<>(List.of(dto)));
+        ResponseEntity<Page<NiveauSavoirRequisDTO>> response = controller.getAll(Pageable.unpaged());
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(response.getBody()).hasSize(1);
+        assertThat(response.getBody().getContent()).hasSize(1);
     }
 
     @Test
@@ -65,15 +69,17 @@ class NiveauDefinitionControllerTest {
 
     @Test
     void testGetByCompetenceAndNiveau() {
-        when(niveauService.getSavoirsRequisByCompetenceAndNiveau(1L, NiveauMaitrise.N1_DEBUTANT)).thenReturn(List.of(dto));
-        ResponseEntity<List<NiveauSavoirRequisDTO>> response = controller.getByCompetenceAndNiveau(1L, NiveauMaitrise.N1_DEBUTANT);
+        when(niveauService.getSavoirsRequisByCompetenceAndNiveau(eq(1L), eq(NiveauMaitrise.N1_DEBUTANT), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of(dto)));
+        ResponseEntity<Page<NiveauSavoirRequisDTO>> response = controller.getByCompetenceAndNiveau(1L, NiveauMaitrise.N1_DEBUTANT, Pageable.unpaged());
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
     }
 
     @Test
     void testGetBySousCompetenceAndNiveau() {
-        when(niveauService.getSavoirsRequisBySousCompetenceAndNiveau(1L, NiveauMaitrise.N1_DEBUTANT)).thenReturn(List.of(dto));
-        ResponseEntity<List<NiveauSavoirRequisDTO>> response = controller.getBySousCompetenceAndNiveau(1L, NiveauMaitrise.N1_DEBUTANT);
+        when(niveauService.getSavoirsRequisBySousCompetenceAndNiveau(eq(1L), eq(NiveauMaitrise.N1_DEBUTANT), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of(dto)));
+        ResponseEntity<Page<NiveauSavoirRequisDTO>> response = controller.getBySousCompetenceAndNiveau(1L, NiveauMaitrise.N1_DEBUTANT, Pageable.unpaged());
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
     }
 

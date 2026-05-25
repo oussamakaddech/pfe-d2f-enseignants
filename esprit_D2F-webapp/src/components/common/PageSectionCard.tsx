@@ -1,13 +1,13 @@
 import { Card, Skeleton } from "antd";
 
 interface PageSectionCardProps {
-  title?: React.ReactNode;
-  extra?: React.ReactNode;
-  children: React.ReactNode;
-  className?: string;
-  style?: React.CSSProperties;
-  loading?: boolean;
-  noPadding?: boolean;
+  readonly title?: React.ReactNode;
+  readonly extra?: React.ReactNode;
+  readonly children: React.ReactNode;
+  readonly className?: string;
+  readonly style?: React.CSSProperties;
+  readonly loading?: boolean;
+  readonly noPadding?: boolean;
 }
 
 /**

@@ -1,4 +1,3 @@
-// src/pages/competence/components/StructureSearchResultsView.jsx
 import PropTypes from "prop-types";
 import { Card, Descriptions, Empty, Space, Tag, Typography } from "antd";
 import { ApartmentOutlined, BookOutlined, BulbOutlined, FolderOpenOutlined } from "@ant-design/icons";

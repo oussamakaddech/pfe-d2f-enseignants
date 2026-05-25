@@ -14,7 +14,9 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 
 import java.util.Collections;
 
@@ -42,28 +44,28 @@ class BasicControllersTest {
 
     @BeforeEach
     void setup() {
-        mockMvcDept = MockMvcBuilders.standaloneSetup(new DeptController(deptRepository, deptService)).build();
-        mockMvcUp = MockMvcBuilders.standaloneSetup(new UpController(upRepository, upService)).build();
-        mockMvcEns = MockMvcBuilders.standaloneSetup(new EnseignantController(excelService, enseignantService)).build();
+        mockMvcDept = TestMockMvcHelper.buildMockMvc(new DeptController(deptService));
+        mockMvcUp = TestMockMvcHelper.buildMockMvc(new UpController(upService));
+        mockMvcEns = TestMockMvcHelper.buildMockMvc(new EnseignantController(excelService, enseignantService));
     }
 
     @Test
     void testDeptUpload() throws Exception {
-        MockMultipartFile file = new MockMultipartFile("file", "test.xlsx", "text/plain", "data".getBytes());
+        MockMultipartFile file = TestMockMvcHelper.createValidExcelFile("file", "test.xlsx", "data");
         mockMvcDept.perform(multipart("/api/v1/departements/import-excel").file(file)).andExpect(status().isOk());
         verify(deptService).importDeptsFromExcel(any());
     }
 
     @Test
     void testUpUpload() throws Exception {
-        MockMultipartFile file = new MockMultipartFile("file", "test.xlsx", "text/plain", "data".getBytes());
+        MockMultipartFile file = TestMockMvcHelper.createValidExcelFile("file", "test.xlsx", "data");
         mockMvcUp.perform(multipart("/api/v1/ups/import-excel").file(file)).andExpect(status().isOk());
         verify(upService).importUpsFromExcel(any());
     }
 
     @Test
     void testGetAllEnseignants() throws Exception {
-        when(enseignantService.getAllEnseignantsDTO()).thenReturn(Collections.emptyList());
+        when(enseignantService.getAllEnseignantsDTO(any(Pageable.class))).thenReturn(new PageImpl<>(Collections.emptyList()));
         mockMvcEns.perform(get("/api/v1/enseignants")).andExpect(status().isOk());
     }
 }

@@ -15,7 +15,7 @@ class EnseignantInfo(BaseModel):
 
 
 class SavoirProposition(BaseModel):
-    tmpId: str
+    tmpId: str = ""
     code: str
     nom: str
     description: Optional[str] = None
@@ -29,7 +29,7 @@ class SavoirProposition(BaseModel):
 
 
 class SousCompetenceProposition(BaseModel):
-    tmpId: str
+    tmpId: str = ""
     code: str
     nom: str
     description: Optional[str] = None
@@ -38,7 +38,7 @@ class SousCompetenceProposition(BaseModel):
 
 
 class CompetenceProposition(BaseModel):
-    tmpId: str
+    tmpId: str = ""
     code: str
     nom: str
     description: Optional[str] = None
@@ -50,7 +50,7 @@ class CompetenceProposition(BaseModel):
 
 
 class DomaineProposition(BaseModel):
-    tmpId: str
+    tmpId: str = ""
     code: str
     nom: str
     description: Optional[str] = None

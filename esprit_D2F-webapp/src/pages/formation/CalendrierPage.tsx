@@ -1,6 +1,5 @@
-// src/pages/CalendrierPage.jsx
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { Calendar, dateFnsLocalizer } from "react-big-calendar";
 import { format, parse, startOfWeek, getDay } from "date-fns";
 import { fr } from "date-fns/locale/fr";
@@ -20,7 +19,7 @@ import useAppNotification from "@/hooks/ui/useAppNotification";
 import "@/styles/pages/calendrier.css";
 
 import FormationWorkflowForm from "@/pages/formation/FormationWorkflowForm";
-import FormationWorkflowService from "@/services/formation/FormationWorkflowService";
+import { useAllFormations } from "@/hooks/formation";
 import EventDetails from "@/pages/presence/EventDetails";
 import MailForm from "@/pages/besoin/MailForm";
 import DocumentCreateForm from "@/pages/documentFormation/DocumentCreateForm";
@@ -36,8 +35,6 @@ const localizer = dateFnsLocalizer({
 
 export default function CalendrierPage() {
   const { message } = useAppNotification();
-  // données calendrier
-  const [events, setEvents] = useState([]);
   // modal & sélection
   const [showModal, setShowModal] = useState(false);
   const [selectedDate, setSelectedDate] = useState(null);
@@ -50,8 +47,8 @@ export default function CalendrierPage() {
   // état calendrier
   const [currentDate, setCurrentDate] = useState(new Date());
   const [currentView, setCurrentView] = useState("month");
-  // loading
-  const [isLoading, setIsLoading] = useState(false);
+
+  const { data: formations = [], isLoading, refetch: refetchFormations } = useAllFormations();
 
   const steps = [
     { key: "form", title: "Créer la formation" },
@@ -59,26 +56,16 @@ export default function CalendrierPage() {
     { key: "mail", title: "Envoyer l'e-mail" },
   ];
 
-  useEffect(() => {
-    loadFormations();
-  }, []);
-
   const showAlert = (msg, severity = "info") => {
     if (severity === "error") message.error(msg);
     else if (severity === "success") message.success(msg);
     else message.info(msg);
   };
 
-  const loadFormations = async () => {
-    setIsLoading(true);
-    try {
-      const data =
-        await FormationWorkflowService.getAllFormationWorkflows();
-      const formations = Array.isArray(data) ? data : data ? [data] : [];
-      const eventsData = [];
-
-      formations.forEach((f) => {
-        if (f.seances?.length) {
+  const events = useMemo(() => {
+    const eventsData = [];
+    (Array.isArray(formations) ? formations : []).forEach((f) => {
+      if (f.seances?.length) {
           f.seances.forEach((s) => {
             eventsData.push({
               id: s.idSeance,
@@ -98,16 +85,8 @@ export default function CalendrierPage() {
           });
         }
       });
-
-      setEvents(eventsData);
-      showAlert("Formations chargées avec succès !", "success");
-    } catch (err) {
-      console.error("❌ Erreur chargement formations:", err);
-      showAlert("Erreur lors du chargement des formations", "error");
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    return eventsData;
+  }, [formations]);
 
   const handleSelectSlot = (slotInfo) => {
     setSelectedEvent(null);
@@ -140,7 +119,7 @@ export default function CalendrierPage() {
   const onFormationCreatedWizard = (newFormation) => {
     setCreatedFormation(newFormation);
     setWizardStep(1);
-    loadFormations();
+    void refetchFormations();
     showAlert("Formation créée, ajoutez des documents", "info");
   };
 
@@ -315,15 +294,11 @@ export default function CalendrierPage() {
         open={showModal}
         onCancel={handleClose}
         className="cal-modal"
-        title={
-          showWizard
-            ? steps[wizardStep].title
-            : selectedEvent
-            ? selectedEvent.details.seance
-              ? "Détails de la Séance"
-              : "Détails de la Formation"
-            : "Créer une Formation"
-        }
+        title={(() => {
+          if (showWizard) return steps[wizardStep].title;
+          if (!selectedEvent) return "Créer une Formation";
+          return selectedEvent.details.seance ? "Détails de la Séance" : "Détails de la Formation";
+        })()}
         width={680}
         styles={{ body: { maxHeight: "72vh", overflowY: "auto", padding: "16px 24px" } }}
         footer={
@@ -375,7 +350,8 @@ export default function CalendrierPage() {
           )
         }
       >
-        {showWizard ? (
+        {(() => {
+          if (showWizard) return (
           <>
             <Steps
               current={wizardStep}
@@ -405,7 +381,8 @@ export default function CalendrierPage() {
               />
             )}
           </>
-        ) : selectedEvent ? (
+          );
+          if (selectedEvent) return (
           <div style={{ position: "relative" }}>
             {isLoading && (
               <div style={{ textAlign: "center", padding: 40 }}>
@@ -416,12 +393,14 @@ export default function CalendrierPage() {
               <EventDetails selectedEvent={selectedEvent} />
             </div>
           </div>
-        ) : (
+          );
+          return (
           <FormationWorkflowForm
             initialDate={selectedDate}
             onFormationCreated={onFormationCreatedWizard}
           />
-        )}
+          );
+        })()}
       </Modal>
     </div>
   );

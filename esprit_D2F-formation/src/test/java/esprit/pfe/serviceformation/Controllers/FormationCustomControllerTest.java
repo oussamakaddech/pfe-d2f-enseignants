@@ -26,7 +26,7 @@ class FormationCustomControllerTest {
 
     @BeforeEach
     void setup() {
-        mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
+        mockMvc = MockMvcBuilders.standaloneSetup(controller).setCustomArgumentResolvers(new org.springframework.data.web.PageableHandlerMethodArgumentResolver()).build();
     }
 
     @Test
@@ -41,3 +41,4 @@ class FormationCustomControllerTest {
         mockMvc.perform(put("/api/v1/formations-custom/1/generate-certificates")).andExpect(status().isConflict());
     }
 }
+

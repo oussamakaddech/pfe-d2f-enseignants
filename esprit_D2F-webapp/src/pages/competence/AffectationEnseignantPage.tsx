@@ -1,10 +1,9 @@
-// src/pages/competence/AffectationEnseignantPage.jsx
 // Tableau des affectations enseignants ↔ savoirs (résultat de l'analyse RICE)
 
 import { useEffect, useState, useCallback, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  Table, Tag, Space, Typography, Tooltip, Input, Button, Empty, Popconfirm, Badge, Modal, Form, Select, Row, Col, Divider, Statistic
+  Table, Tag, Space, Typography, Tooltip, Input, Button, Empty, Popconfirm, Modal, Form, Select, Row, Col, Statistic
 } from "antd";
 import {
   SearchOutlined, ReloadOutlined, RobotOutlined, DeleteOutlined,
@@ -87,7 +86,6 @@ export default function AffectationEnseignantPage() {
       if (affResult.status === "fulfilled") {
         setAffectations(Array.isArray(affResult.value) ? affResult.value : []);
       } else {
-        console.error("Erreur chargement affectations:", affResult.reason);
         msgApi.warning("Impossible de charger les affectations — vérifiez que le service compétence est démarré");
         setAffectations([]);
       }
@@ -95,7 +93,6 @@ export default function AffectationEnseignantPage() {
       if (ensResult.status === "fulfilled") {
         setEnseignants(Array.isArray(ensResult.value) ? ensResult.value : []);
       } else {
-        console.error("Erreur chargement enseignants:", ensResult.reason);
         const reasonMsg = ensResult.reason?.message || String(ensResult.reason);
         msgApi.error("Impossible de charger les enseignants: " + reasonMsg);
         // non-critical: table rows will fall back to showing the raw enseignantId
@@ -107,8 +104,7 @@ export default function AffectationEnseignantPage() {
       } else {
         setSavoirs([]);
       }
-    } catch (err) {
-      console.error(err);
+    } catch {
       msgApi.error("Erreur inattendue lors du chargement des données");
     } finally {
       setLoading(false);
@@ -253,7 +249,7 @@ export default function AffectationEnseignantPage() {
       await CompetenceService.enseignantCompetence.remove(affId);
       msgApi.success("Affectation supprimée");
       loadAll();
-    } catch (err) {
+    } catch {
       msgApi.error("Erreur lors de la suppression");
     }
   };

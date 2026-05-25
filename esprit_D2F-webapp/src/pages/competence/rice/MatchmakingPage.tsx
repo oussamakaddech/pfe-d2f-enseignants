@@ -1,5 +1,4 @@
 import React, { useEffect, useReducer, useRef, useMemo, useState } from "react";
-import PropTypes from "prop-types";
 import {
   Row,
   Col,
@@ -135,13 +134,16 @@ function MatchmakingPage() {
 
       const assignments = new Map();
       const assignmentIds = new Map();
-      const affectationList = Array.isArray(affectations)
-        ? affectations
-        : Array.isArray(affectations?.content)
-          ? affectations.content
-          : Array.isArray(affectations?.data)
-            ? affectations.data
-            : [];
+      let affectationList;
+      if (Array.isArray(affectations)) {
+        affectationList = affectations;
+      } else if (Array.isArray(affectations?.content)) {
+        affectationList = affectations.content;
+      } else if (Array.isArray(affectations?.data)) {
+        affectationList = affectations.data;
+      } else {
+        affectationList = [];
+      }
 
       if (Array.isArray(affectationList) && affectationList.length > 0) {
         affectationList.forEach((a) => {
@@ -165,7 +167,6 @@ function MatchmakingPage() {
       dispatch({ type: "SET_ASSIGNMENTS", assignments });
       dispatch({ type: "SET_ASSIGNMENT_IDS", assignmentIds });
     } catch (err) {
-      console.error(err);
       if (options.reportErrors) {
         dispatch({ type: "SET_ERROR", error: err });
       }
@@ -218,11 +219,9 @@ function MatchmakingPage() {
 
   function scrollToSavoir(savoirId) {
     const el = savoirRefs.current[savoirId];
-    if (el && el.scrollIntoView) {
-      el.scrollIntoView({ behavior: "smooth", block: "center" });
-      el.classList && el.classList.add("match-highlight");
-      setTimeout(() => el.classList && el.classList.remove("match-highlight"), 1400);
-    }
+    el?.scrollIntoView({ behavior: "smooth", block: "center" });
+    el?.classList?.add("match-highlight");
+    setTimeout(() => el?.classList?.remove("match-highlight"), 1400);
   }
 
   async function handleSave() {
@@ -236,8 +235,8 @@ function MatchmakingPage() {
 
       const adds = new Map();
       const removes = new Map();
-      (pending.add || []).forEach((p) => { if (p && p.savoirId != null && p.enseignantId != null) adds.set(key(p), norm(p)); });
-      (pending.remove || []).forEach((p) => { if (p && p.savoirId != null && p.enseignantId != null) removes.set(key(p), norm(p)); });
+      (pending?.add ?? []).forEach((p) => { if (p?.savoirId != null && p?.enseignantId != null) adds.set(key(p), norm(p)); });
+      (pending?.remove ?? []).forEach((p) => { if (p?.savoirId != null && p?.enseignantId != null) removes.set(key(p), norm(p)); });
 
       // Cancel out operations present in both lists
       for (const k of Array.from(adds.keys())) {
@@ -281,7 +280,6 @@ function MatchmakingPage() {
       api.success({ message: "Affectations sauvegardées" });
       await loadData(() => true, { reportErrors: false });
     } catch (err) {
-      console.error("saveAssignments error:", err?.response ?? err);
       dispatch({ type: "SET_ERROR", error: err });
       const backendMsg = err?.response?.data?.message ?? err?.response?.data ?? err?.message ?? String(err);
       api.error({ message: "Erreur lors de la sauvegarde", description: String(backendMsg) });
@@ -295,7 +293,6 @@ function MatchmakingPage() {
       dispatch({ type: "CREATE_TEACHER", teacher: created });
       api.success({ message: "Enseignant créé" });
     } catch (err) {
-      console.error(err);
       api.error({ message: "Erreur création enseignant", description: err?.response?.data?.message ?? err?.message });
     }
   }
@@ -306,7 +303,6 @@ function MatchmakingPage() {
       dispatch({ type: "UPDATE_TEACHER", teacher: updated });
       api.success({ message: "Enseignant mis à jour" });
     } catch (err) {
-      console.error(err);
       api.error({ message: "Erreur mise à jour enseignant", description: err?.response?.data?.message ?? err?.message });
     }
   }
@@ -317,7 +313,6 @@ function MatchmakingPage() {
       dispatch({ type: "DEACTIVATE_TEACHER", id });
       api.success({ message: "Enseignant désactivé" });
     } catch (err) {
-      console.error(err);
       api.error({ message: "Erreur désactivation", description: err?.response?.data?.message ?? err?.message });
     }
   }
@@ -343,8 +338,8 @@ function MatchmakingPage() {
         await handleCreateTeacher(vals);
       }
       setTeacherModalVisible(false);
-    } catch (e) {
-      console.error(e);
+    } catch {
+      // silently handle
     }
   }
 

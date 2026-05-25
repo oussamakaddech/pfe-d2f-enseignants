@@ -14,7 +14,7 @@ import java.util.List;
 @AllArgsConstructor
 @Entity
 @Table(name = "seances")
-public class SeanceFormation {
+public class SeanceFormation extends BaseAuditEntity {
 
         @Id
         @GeneratedValue(strategy = GenerationType.IDENTITY)

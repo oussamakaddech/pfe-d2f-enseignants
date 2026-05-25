@@ -27,7 +27,7 @@ import java.util.UUID;
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-public class User {
+public class User extends BaseAuditEntity {
     @Id
     @Column(length = 36)                // UUID ou ID enseignant
     private String id;

@@ -1,4 +1,3 @@
-// src/components/ListAccounts.jsx
 import { useEffect, useRef, useState } from 'react';
 import {
   Table,
@@ -50,11 +49,32 @@ const { Option } = Select;
 
 const ROLES = ['admin', 'CUP', 'Enseignant', 'Formateur', 'CHEF_DEPARTEMENT', 'RESPONSABLE_DOSSIER'];
 
+const handleSearch = (selectedKeys, confirm) => { confirm(); };
+const handleReset = (clearFilters) => { clearFilters(); };
+const renderFilterIcon = (filtered) => <SearchOutlined style={{ color: filtered ? '#1890ff' : undefined }} />;
+
+function makeFilterDropdown(dataIndex, searchInputRef) {
+  return ({ setSelectedKeys, selectedKeys, confirm, clearFilters }) => (
+    <div style={{ padding: 8 }}>
+      <Input
+        ref={searchInputRef}
+        placeholder={`Rechercher ${dataIndex}`}
+        value={selectedKeys[0]}
+        onChange={e => setSelectedKeys(e.target.value ? [e.target.value] : [])}
+        onPressEnter={() => handleSearch(selectedKeys, confirm)}
+        style={{ marginBottom: 8, display: 'block' }}
+      />
+      <Space>
+        <Button type="primary" onClick={() => handleSearch(selectedKeys, confirm)} icon={<SearchOutlined />} size="small">OK</Button>
+        <Button onClick={() => handleReset(clearFilters)} size="small">Reset</Button>
+      </Space>
+    </div>
+  );
+}
+
 export default function ListAccounts() {
   const { message: msgApi } = useAppNotification();
   const [accounts, setAccounts] = useState([]);
-  const [searchText, setSearchText] = useState('');
-  const [searchedColumn, setSearchedColumn] = useState('');
   const searchInput = useRef(null);
   const [drawerVisible, setDrawerVisible] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState(false);
@@ -159,35 +179,9 @@ export default function ListAccounts() {
     }
   };
 
-  const handleSearch = (selectedKeys, confirm, dataIndex) => {
-    confirm();
-    setSearchText(selectedKeys[0] || '');
-    setSearchedColumn(dataIndex);
-  };
-
-  const handleReset = clearFilters => {
-    clearFilters();
-    setSearchText('');
-  };
-
   const getColumnSearchProps = dataIndex => ({
-    filterDropdown: ({ setSelectedKeys, selectedKeys, confirm, clearFilters }) => (
-      <div style={{ padding: 8 }}>
-        <Input
-          ref={searchInput}
-          placeholder={`Rechercher ${dataIndex}`}
-          value={selectedKeys[0]}
-          onChange={e => setSelectedKeys(e.target.value ? [e.target.value] : [])}
-          onPressEnter={() => handleSearch(selectedKeys, confirm, dataIndex)}
-          style={{ marginBottom: 8, display: 'block' }}
-        />
-        <Space>
-          <Button type="primary" onClick={() => handleSearch(selectedKeys, confirm, dataIndex)} icon={<SearchOutlined />} size="small">OK</Button>
-          <Button onClick={() => handleReset(clearFilters)} size="small">Reset</Button>
-        </Space>
-      </div>
-    ),
-    filterIcon: filtered => <SearchOutlined style={{ color: filtered ? '#1890ff' : undefined }} />,
+    filterDropdown: makeFilterDropdown(dataIndex, searchInput),
+    filterIcon: renderFilterIcon,
     onFilter: (value, record) => record[dataIndex]?.toString().toLowerCase().includes(value.toLowerCase()),
   });
 

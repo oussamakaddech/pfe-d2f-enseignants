@@ -128,7 +128,7 @@ class GapEngine:
             niveau_actuel = current_index.get(cid, 0)
             gap_brut = max(0.0, (niveau_requis - niveau_actuel) / 5.0)
 
-            if gap_brut == 0.0:
+            if gap_brut < 1e-9:
                 continue  # pas de gap
 
             # ── Urgence ──────────────────────────────────

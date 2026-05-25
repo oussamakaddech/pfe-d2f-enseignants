@@ -66,4 +66,33 @@ class MailControllerTest {
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, r.getStatusCode());
         assertTrue(((Map<?, ?>) r.getBody()).containsKey("error"));
     }
+
+    @Test
+    void rejectsBlankTo() {
+        ResponseEntity<Object> r = controller.sendEmail(payload("   ", "s", "c"));
+        assertEquals(HttpStatus.BAD_REQUEST, r.getStatusCode());
+        assertTrue(((Map<?, ?>) r.getBody()).containsKey("error"));
+    }
+
+    @Test
+    void rejectsBlankSubject() {
+        ResponseEntity<Object> r = controller.sendEmail(payload("a@b.tn", "   ", "c"));
+        assertEquals(HttpStatus.BAD_REQUEST, r.getStatusCode());
+        assertTrue(((Map<?, ?>) r.getBody()).containsKey("error"));
+    }
+
+    @Test
+    void rejectsBlankContent() {
+        ResponseEntity<Object> r = controller.sendEmail(payload("a@b.tn", "s", "   "));
+        assertEquals(HttpStatus.BAD_REQUEST, r.getStatusCode());
+        assertTrue(((Map<?, ?>) r.getBody()).containsKey("error"));
+    }
+
+    @Test
+    void returnsBadRequestOnIllegalArgumentException() {
+        doThrow(new IllegalArgumentException("invalid")).when(mailService).sendMail("a@b.tn", "s", "c");
+        ResponseEntity<Object> r = controller.sendEmail(payload("a@b.tn", "s", "c"));
+        assertEquals(HttpStatus.BAD_REQUEST, r.getStatusCode());
+        assertTrue(((Map<?, ?>) r.getBody()).containsKey("error"));
+    }
 }

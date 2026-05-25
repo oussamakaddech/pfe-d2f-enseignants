@@ -1,4 +1,4 @@
-import { useState, useEffect, useContext } from "react";
+import { useState, useContext, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Table,
@@ -28,10 +28,15 @@ import "@/styles/pages/formation-consultation-page.css";
 import moment from "moment";
 
 import { AuthContext } from "@/components/common/AuthProvider";
-import { getProfile } from "@/services/auth/AccountService";
-import FormationWorkflowService from "@/services/formation/FormationWorkflowService";
-import UpService from "@/services/api/UploadService";
-import DeptService from "@/services/formation/DeptService";
+import {
+  useAllFormations,
+  useFormationsParDepartement,
+  useDeleteFormation,
+  useExportFormations,
+  useUps,
+  useDepartements,
+  useProfile,
+} from "@/hooks/formation";
 import FormationWorkflowEditForm from "./FormationWorkflowEditForm";
 import MailForm from "@/pages/besoin/MailForm";
 import useAppNotification from "@/hooks/ui/useAppNotification";
@@ -40,7 +45,7 @@ const normalizeRole = (value) =>
   String(value || "")
     .toLowerCase()
     .replace(/^role_?/, "")
-    .replace(/[\s_-]+/g, "");
+    .replaceAll(/[\s_-]+/g, "");
 
 const { Text } = Typography;
 const { RangePicker } = DatePicker;
@@ -58,11 +63,43 @@ export default function FormationConsultationPage() {
   const navigate = useNavigate();
   const { user } = useContext(AuthContext);
   const canManageFormations = normalizeRole(user?.role) === "admin";
-  const [formations, setFormations] = useState([]);
-  const [filtered, setFiltered] = useState([]);
+  const isChefDept = normalizeRole(user?.role) === "chefdepartement";
+  const { message: msgApi } = useAppNotification();
+
+  const { data: profile } = useProfile();
+  const deptId = user?.deptId || profile?.deptId || profile?.departementId;
+
+  const { data: formationsAll = [], isLoading: loadingAll, refetch: refetchAll } = useAllFormations();
+  const { data: formationsDept = [], isLoading: loadingDept, refetch: refetchDept } = useFormationsParDepartement(
+    isChefDept ? deptId : undefined,
+  );
+  const loading = loadingAll || loadingDept;
+  const formations = useMemo(
+    () => isChefDept && deptId ? formationsDept : formationsAll,
+    [isChefDept, deptId, formationsDept, formationsAll],
+  );
+
+  const deleteMut = useDeleteFormation();
+  const exportMut = useExportFormations();
+
+  const { data: upsData = [] } = useUps();
+  const { data: deptsData = [] } = useDepartements();
+  const upsOptions = useMemo(
+    () => (upsData as unknown[]).map((u: unknown) => {
+      const up = u as { id?: unknown; libelle?: string; nom?: string };
+      return { id: up.id, libelle: up.libelle || up.nom || "_" };
+    }),
+    [upsData],
+  );
+  const deptsOptions = useMemo(
+    () => (deptsData as unknown[]).map((d: unknown) => {
+      const dept = d as { id?: unknown; libelle?: string; nom?: string };
+      return { id: dept.id, libelle: dept.libelle || dept.nom || "_" };
+    }),
+    [deptsData],
+  );
 
   const [filterText, setFilterText] = useState("");
-
   const [typeFilter, setTypeFilter] = useState();
   const [etatFilter, setEtatFilter] = useState();
   const [upFilter, setUpFilter] = useState();
@@ -70,80 +107,13 @@ export default function FormationConsultationPage() {
   const [periodFilter, setPeriodFilter] = useState();
   const [periodRange, setPeriodRange] = useState([]);
 
-  const [upsOptions, setUpsOptions] = useState([]);
-  const [deptsOptions, setDeptsOptions] = useState([]);
-
-  const [loading, setLoading] = useState(false);
-  const { message: msgApi } = useAppNotification();
-
   const [openEdit, setOpenEdit] = useState(false);
   const [openExport, setOpenExport] = useState(false);
   const [openMail, setOpenMail] = useState(false);
 
   const [selectedFormation, setSelectedFormation] = useState(null);
 
-  useEffect(() => {
-    void loadFormations();
-  }, []);
-
-  useEffect(() => {
-    applyFilters();
-  }, [
-    formations,
-    filterText,
-    typeFilter,
-    etatFilter,
-    upFilter,
-    deptFilter,
-    periodFilter,
-    periodRange,
-  ]);
-
-  async function loadFormations() {
-    setLoading(true);
-    try {
-      let data;
-      const role = normalizeRole(user?.role);
-      
-      if (role === "chefdepartement") {
-        // We need the deptId. If not in user object, we might need to fetch profile
-        // For now, let's assume we can get it from the user object or we fetch it
-        let deptId = user?.deptId;
-        if (!deptId) {
-          const profile = await getProfile();
-          deptId = profile.deptId || profile.departementId;
-        }
-        
-        if (deptId) {
-          data = await FormationWorkflowService.getFormationsParDepartement(deptId);
-        } else {
-          data = await FormationWorkflowService.getAllFormationWorkflows();
-        }
-      } else {
-        data = await FormationWorkflowService.getAllFormationWorkflows();
-      }
-      
-      const arr = Array.isArray(data) ? data : data ? [data] : [];
-      setFormations(arr);
-
-      // Charger TOUS les UPs et Départements depuis les APIs
-      const [allUps, allDepts] = await Promise.all([
-        UpService.getAllUps().catch(() => []),
-        DeptService.getAllDepts().catch(() => []),
-      ]);
-      setUpsOptions(allUps.map((u) => ({ id: u.id, libelle: u.libelle || u.nom || "_" })));
-      setDeptsOptions(allDepts.map((d) => ({ id: d.id, libelle: d.libelle || d.nom || "_" })));
-
-      msgApi.success("Formations chargées !");
-    } catch (err) {
-      console.error(err);
-      msgApi.error("Erreur chargement");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  function applyFilters() {
+  const filtered = useMemo(() => {
     let res = [...formations];
     if (filterText) {
       res = res.filter((f) =>
@@ -168,16 +138,15 @@ export default function FormationConsultationPage() {
         );
       });
     }
-    setFiltered(res);
-  }
+    return res;
+  }, [formations, filterText, typeFilter, etatFilter, upFilter, deptFilter, periodFilter, periodRange]);
 
   async function handleDelete(id) {
     if (!canManageFormations) return;
 
     try {
-      await FormationWorkflowService.deleteFormationWorkflow(id);
+      await deleteMut.mutateAsync(id);
       msgApi.success("Formation supprimée");
-      void loadFormations();
     } catch {
       msgApi.error("Erreur suppression");
     }
@@ -192,22 +161,21 @@ export default function FormationConsultationPage() {
     const [start, end] = periodRange.map((d) => d.format("YYYY-MM-DD"));
 
     try {
-      const response = await FormationWorkflowService.exportFormations(start, end);
+      const response = await exportMut.mutateAsync({ start, end });
       const blob = new Blob([response.data], {
         type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
       });
-      const url = window.URL.createObjectURL(blob);
+      const url = globalThis.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
       a.download = `formations_${start}_${end}.xlsx`;
       document.body.appendChild(a);
       a.click();
       a.remove();
-      window.URL.revokeObjectURL(url);
+      globalThis.URL.revokeObjectURL(url);
       msgApi.success("✔️ Export réussi !");
       setOpenExport(false);
     } catch (error) {
-      console.error("Erreur export Excel :", error);
       const apiMsg =
         error.response?.data?.message ||
         error.response?.data?.error ||
@@ -349,8 +317,7 @@ export default function FormationConsultationPage() {
   const hasActiveFilters = filterText || typeFilter || etatFilter || upFilter || deptFilter || periodFilter || periodRange.length > 0;
 
   return (
-    <>
-      <div className="formation-consultation-page">
+    <div className="formation-consultation-page">
 
         {/* ── En-tête ─────────────────────────────────────────────────────── */}
         <AppPageHeader
@@ -517,7 +484,7 @@ export default function FormationConsultationPage() {
                 formation={selectedFormation}
                 onFormationUpdated={() => {
                   setOpenEdit(false);
-                  void loadFormations();
+                  void refetchAll(); void refetchDept();
                 }}
               />
             )}
@@ -539,7 +506,6 @@ export default function FormationConsultationPage() {
           />
         </Modal>
       </div>
-    </>
   );
 }
 

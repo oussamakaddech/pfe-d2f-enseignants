@@ -22,7 +22,7 @@ public interface IDomaineService {
     Page<DomaineDTO> searchDomaines(String keyword, Pageable pageable);
 
     /** Liste filtrée par UP et/ou département (null = pas de filtre). */
-    List<DomaineDTO> getDomainesByFilter(Long upId, Long departementId);
-    Page<DomaineDTO> getDomainesByFilter(Long upId, Long departementId, Pageable pageable);
-    List<DomaineDTO> getDomainesActifsByFilter(Long upId, Long departementId);
+    List<DomaineDTO> getDomainesByFilter(String upId, String departementId);
+    Page<DomaineDTO> getDomainesByFilter(String upId, String departementId, Pageable pageable);
+    List<DomaineDTO> getDomainesActifsByFilter(String upId, String departementId);
 }

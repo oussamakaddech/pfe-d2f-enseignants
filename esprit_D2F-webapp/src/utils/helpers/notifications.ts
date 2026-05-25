@@ -26,7 +26,6 @@ export const notify = {
   },
   error(content: string) {
     if (messageApi) messageApi.error(content);
-    else if (typeof window !== "undefined") console.error("[notify]", content);
   },
   warning(content: string) {
     if (messageApi) messageApi.warning(content);

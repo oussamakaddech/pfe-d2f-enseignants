@@ -6,6 +6,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.data.domain.AuditorAware;
+import org.springframework.data.jpa.mapping.JpaMetamodelMappingContext;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -18,7 +20,6 @@ import tn.esprit.d2f.service.IBesoinFormationService;
 
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -36,6 +37,15 @@ class BesoinFormationControllerTest {
 
     @MockitoBean
     private NotificationRepository notificationRepository;
+
+    // Required to prevent "JPA metamodel must not be empty" and "auditorProvider not found"
+    // in @WebMvcTest slices when @EnableJpaAuditing is on the main @SpringBootApplication class.
+    @MockitoBean
+    private JpaMetamodelMappingContext jpaMetamodelMappingContext;
+
+    @SuppressWarnings("rawtypes")
+    @MockitoBean(name = "auditorProvider")
+    private AuditorAware auditorProvider;
 
     @Autowired
     private ObjectMapper objectMapper;
@@ -76,15 +86,17 @@ class BesoinFormationControllerTest {
     }
 
     @Test
-    void addBesoinFormation_withValidationErrors_shouldReturnBadRequest() {
-        BesoinFormationController controller = new BesoinFormationController(service, notificationRepository);
-        org.springframework.validation.BindingResult bindingResult = mock(org.springframework.validation.BindingResult.class);
-        when(bindingResult.hasErrors()).thenReturn(true);
-        when(bindingResult.getAllErrors()).thenReturn(java.util.Collections.emptyList());
+    void addBesoinFormation_withMissingTitle_shouldReturnBadRequest() throws Exception {
+        // Fix 8 : la validation Bean Validation est gérée par GlobalExceptionHandler.
+        // Un titre absent (null) ou trop court doit retourner HTTP 400.
+        BesoinFormationRequest invalidRequest = new BesoinFormationRequest();
+        // titre absent → @NotBlank échoue
+        invalidRequest.setTypeBesoin(tn.esprit.d2f.entity.enumerations.TypeBesoin.COLLECTIF);
 
-        org.springframework.http.ResponseEntity<?> response = controller.addBesoinFormation(new BesoinFormationRequest(), bindingResult);
-        
-        org.junit.jupiter.api.Assertions.assertEquals(org.springframework.http.HttpStatus.BAD_REQUEST, response.getStatusCode());
+        mockMvc.perform(post("/api/v1/besoins-formations")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(invalidRequest)))
+                .andExpect(status().isBadRequest());
     }
 
     @Test

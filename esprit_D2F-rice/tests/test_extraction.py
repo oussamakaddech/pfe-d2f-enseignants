@@ -34,12 +34,12 @@ rice_analyzer._fetch_all_enseignants_info = lambda: {}
 
 from rice_analyzer import (
     _extract_subcompetences,
-    _llm_extract_subcompetences,
     _load_generic_ref,
     _get_effective_referential,
     _GC_FALLBACK_REF,
     _GENERIC_FALLBACK_REF,
 )
+from rice.nlp import _llm_extract_subcompetences
 
 
 # ─────────────────────────────────────────────────────────────────────────────

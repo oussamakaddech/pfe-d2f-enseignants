@@ -2,6 +2,9 @@ package esprit.pfe.serviceformation.controllers;
 
 import esprit.pfe.serviceformation.entities.FormationCompetence;
 import esprit.pfe.serviceformation.services.FormationCompetenceService;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import lombok.RequiredArgsConstructor;
@@ -16,8 +19,10 @@ public class FormationCompetenceController {
 
     /** GET les liaisons pour une formation */
     @GetMapping("/formation/{formationId}")
-    public ResponseEntity<List<FormationCompetence>> getByFormation(@PathVariable Long formationId) {
-        return ResponseEntity.ok(formationCompetenceService.getByFormationId(formationId));
+    public ResponseEntity<Page<FormationCompetence>> getByFormation(
+            @PathVariable Long formationId,
+            @PageableDefault(size = 20, sort = "id") Pageable pageable) {
+        return ResponseEntity.ok(formationCompetenceService.getByFormationId(formationId, pageable));
     }
 
     /** POST ajouter une liaison formation-compétence */
@@ -53,13 +58,17 @@ public class FormationCompetenceController {
 
     /** GET les formations liées à une compétence */
     @GetMapping("/competence/{competenceId}")
-    public ResponseEntity<List<FormationCompetence>> getByCompetence(@PathVariable Long competenceId) {
-        return ResponseEntity.ok(formationCompetenceService.getByCompetenceId(competenceId));
+    public ResponseEntity<Page<FormationCompetence>> getByCompetence(
+            @PathVariable Long competenceId,
+            @PageableDefault(size = 20, sort = "id") Pageable pageable) {
+        return ResponseEntity.ok(formationCompetenceService.getByCompetenceId(competenceId, pageable));
     }
 
     /** GET les formations liées à un domaine */
     @GetMapping("/domaine/{domaineId}")
-    public ResponseEntity<List<FormationCompetence>> getByDomaine(@PathVariable Long domaineId) {
-        return ResponseEntity.ok(formationCompetenceService.getByDomaineId(domaineId));
+    public ResponseEntity<Page<FormationCompetence>> getByDomaine(
+            @PathVariable Long domaineId,
+            @PageableDefault(size = 20, sort = "id") Pageable pageable) {
+        return ResponseEntity.ok(formationCompetenceService.getByDomaineId(domaineId, pageable));
     }
 }

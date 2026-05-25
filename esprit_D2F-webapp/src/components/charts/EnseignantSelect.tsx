@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { Select, Avatar, Space, Typography } from "antd";
 import { UserOutlined } from "@ant-design/icons";
-import { TeacherRiskIndicator } from "@/services/analyse/AnalysePredictiveService";
+import type { TeacherRiskIndicator } from "@/models/analyse";
 
 const { Text } = Typography;
 

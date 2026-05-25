@@ -3,6 +3,7 @@ package esprit.pfe.serviceanalyse.controllers;
 import esprit.pfe.serviceanalyse.dto.passport.TeacherIdentityDTO;
 import esprit.pfe.serviceanalyse.dto.passport.TeacherSkillPassportDTO;
 import esprit.pfe.serviceanalyse.exception.PassportAccessDeniedException;
+import esprit.pfe.serviceanalyse.exception.GlobalExceptionHandler;
 import esprit.pfe.serviceanalyse.service.passport.SkillPassportAssembler;
 import esprit.pfe.serviceanalyse.service.passport.SkillPassportAuthorizationService;
 import esprit.pfe.serviceanalyse.service.passport.SkillPassportPdfGenerator;
@@ -15,6 +16,7 @@ import org.springframework.http.MediaType;
 import org.springframework.security.core.Authentication;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.context.annotation.Import;
 
 import java.util.Collections;
 
@@ -25,6 +27,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @WebMvcTest(SkillPassportController.class)
 @AutoConfigureMockMvc(addFilters = false)
+@Import(GlobalExceptionHandler.class)
 class SkillPassportControllerTest {
 
     @Autowired
@@ -40,6 +43,12 @@ class SkillPassportControllerTest {
     private SkillPassportAuthorizationService authorizationService;
 
     private TeacherSkillPassportDTO samplePassport;
+
+        private Authentication mockAuthentication(String username) {
+                Authentication authentication = mock(Authentication.class);
+                when(authentication.getName()).thenReturn(username);
+                return authentication;
+        }
 
     @BeforeEach
     void setup() {
@@ -72,11 +81,13 @@ class SkillPassportControllerTest {
 
     @Test
     void getPassportJson_returns200WithData() throws Exception {
+        Authentication authentication = mockAuthentication("admin");
         doNothing().when(authorizationService).checkAccess(any(Authentication.class), eq("jdoe"));
-        when(authorizationService.extractUsername(any())).thenReturn("admin");
+        when(authorizationService.extractUsername(any(Authentication.class))).thenReturn("admin");
         when(assembler.assemble(eq("jdoe"), any())).thenReturn(samplePassport);
 
         mockMvc.perform(get("/api/v1/skill-passports/teacher/jdoe/json")
+                        .principal(authentication)
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
@@ -90,12 +101,14 @@ class SkillPassportControllerTest {
     @Test
     void getPassportPdf_returns200WithPdfHeaders() throws Exception {
         byte[] fakePdf = "fake-pdf-bytes".getBytes();
+        Authentication authentication = mockAuthentication("admin");
         doNothing().when(authorizationService).checkAccess(any(Authentication.class), eq("jdoe"));
-        when(authorizationService.extractUsername(any())).thenReturn("admin");
+        when(authorizationService.extractUsername(any(Authentication.class))).thenReturn("admin");
         when(assembler.assemble(eq("jdoe"), any())).thenReturn(samplePassport);
         when(pdfGenerator.generate(any())).thenReturn(fakePdf);
 
         mockMvc.perform(get("/api/v1/skill-passports/teacher/jdoe")
+                        .principal(authentication)
                         .accept(MediaType.APPLICATION_PDF))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_PDF))
@@ -107,10 +120,12 @@ class SkillPassportControllerTest {
 
     @Test
     void getMyPassportJson_returns200() throws Exception {
-        when(authorizationService.extractUsername(any())).thenReturn("jdoe");
+        Authentication authentication = mockAuthentication("jdoe");
+        when(authorizationService.extractUsername(any(Authentication.class))).thenReturn("jdoe");
         when(assembler.assemble(eq("jdoe"), any())).thenReturn(samplePassport);
 
         mockMvc.perform(get("/api/v1/skill-passports/me/json")
+                        .principal(authentication)
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.identity.nom").value("Doe"));
@@ -120,10 +135,12 @@ class SkillPassportControllerTest {
 
     @Test
     void getPassportJson_returns403WhenAccessDenied() throws Exception {
+        Authentication authentication = mockAuthentication("admin");
         doThrow(new PassportAccessDeniedException("Accès refusé."))
                 .when(authorizationService).checkAccess(any(Authentication.class), eq("autre"));
 
         mockMvc.perform(get("/api/v1/skill-passports/teacher/autre/json")
+                        .principal(authentication)
                         .accept(MediaType.APPLICATION_JSON))
                 .andExpect(status().isForbidden());
     }
@@ -133,11 +150,13 @@ class SkillPassportControllerTest {
     @Test
     void getMyPassportPdf_returnsCorrectContentDisposition() throws Exception {
         byte[] fakePdf = "pdf".getBytes();
-        when(authorizationService.extractUsername(any())).thenReturn("jdoe");
+        Authentication authentication = mockAuthentication("jdoe");
+        when(authorizationService.extractUsername(any(Authentication.class))).thenReturn("jdoe");
         when(assembler.assemble(eq("jdoe"), any())).thenReturn(samplePassport);
         when(pdfGenerator.generate(any())).thenReturn(fakePdf);
 
         mockMvc.perform(get("/api/v1/skill-passports/me")
+                        .principal(authentication)
                         .accept(MediaType.APPLICATION_PDF))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_PDF))

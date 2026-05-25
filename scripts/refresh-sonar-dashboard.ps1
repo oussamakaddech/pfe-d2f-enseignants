@@ -4,8 +4,49 @@
 param(
     [string]$SonarUrl = "http://localhost:9000",
     [string]$SonarUser = "admin",
-    [SecureString]$SonarSecret = ("0710oussamA@" | ConvertTo-SecureString -AsPlainText -Force)
+    [SecureString]$SonarSecret,
+    [string[]]$Only = @(),
+    [switch]$NoBrowser
 )
+
+$ErrorActionPreference = "Stop"
+
+# =============================================================================
+# Resolve Sonar secret from param / env / interactive prompt
+# =============================================================================
+function Resolve-SonarSecret {
+    param([SecureString]$ProvidedSecret)
+
+    if ($ProvidedSecret) {
+        return $ProvidedSecret
+    }
+
+    if ($env:SONAR_SECRET -and $env:SONAR_SECRET.Trim().Length -gt 0) {
+        return ($env:SONAR_SECRET | ConvertTo-SecureString -AsPlainText -Force)
+    }
+
+    if ($env:SONAR_PASSWORD -and $env:SONAR_PASSWORD.Trim().Length -gt 0) {
+        return ($env:SONAR_PASSWORD | ConvertTo-SecureString -AsPlainText -Force)
+    }
+
+    Write-Host "[INFO] Aucun secret Sonar fourni (param/env). Saisie interactive demandee..." -ForegroundColor Yellow
+    return (Read-Host "Mot de passe SonarQube pour l'utilisateur '$SonarUser'" -AsSecureString)
+}
+
+# =============================================================================
+# Vérifie l'accessibilite SonarQube
+# =============================================================================
+function Test-SonarReachability {
+    param([string]$Url)
+
+    try {
+        $null = Invoke-WebRequest -Uri "$Url/api/system/status" -UseBasicParsing -TimeoutSec 15 -ErrorAction Stop
+        return $true
+    } catch {
+        Write-Host "[ERREUR] SonarQube est injoignable a $Url : $_" -ForegroundColor Red
+        return $false
+    }
+}
 
 # =============================================================================
 # Fonction pour générer un token SonarQube
@@ -108,6 +149,13 @@ Write-Host "[ÉTAPE 1/3] Nettoyage des projets" -ForegroundColor Cyan
 Write-Host "===============================================================" -ForegroundColor Cyan
 Write-Host ""
 
+$SonarSecret = Resolve-SonarSecret -ProvidedSecret $SonarSecret
+
+if (-not (Test-SonarReachability -Url $SonarUrl)) {
+    Write-Host "[ERREUR] Arret du rafraichissement: SonarQube indisponible." -ForegroundColor Red
+    exit 1
+}
+
 $SonarToken = Get-SonarQubeToken -Url $SonarUrl -Username $SonarUser -Secret $SonarSecret
 
 if (-not $SonarToken) {
@@ -131,8 +179,7 @@ $projectsToKeep = @(
     "d2f_analyse",
     "d2f_webapp",
     "d2f_rice",
-    "d2f_predictive_analytics",
-    "d2f_recommandation_formateur"
+    "d2f_predictive_analytics"
 )
 
 # Supprimer les projets en double ou obsolètes
@@ -164,7 +211,7 @@ Write-Host "[INFO] Lancement de l'analyse complète de tous les services..." -Fo
 Write-Host "[INFO] Modules à analyser:" -ForegroundColor Green
 Write-Host "  • Services Java: api-gateway, authentification, besoin-formation, certificat, competence, evaluation, formation, analyse" -ForegroundColor Gray
 Write-Host "  • Application Web: webapp (Vite + Vitest)" -ForegroundColor Gray
-Write-Host "  • Services Python: rice, predictive-analytics, recommandation-formateur" -ForegroundColor Gray
+Write-Host "  • Services Python: rice, predictive-analytics" -ForegroundColor Gray
 Write-Host ""
 Write-Host "[INFO] Chaque module exécutera:" -ForegroundColor Green
 Write-Host "  1. Tests unitaires et génération de couverture" -ForegroundColor Gray
@@ -178,12 +225,37 @@ Write-Host ""
 
 # Lancer l'analyse complète de tous les services
 try {
-    & ".\scripts\run-all-sonar-tests.ps1" -SonarUrl $SonarUrl -SonarUser $SonarUser -SonarSecret $SonarSecret
-    $testStatus = "SUCCÈS"
+    $runAllScript = Join-Path $PSScriptRoot "run-all-sonar-tests.ps1"
+    if (-not (Test-Path $runAllScript)) {
+        throw "Script introuvable: $runAllScript"
+    }
+
+    $plainPassword = [System.Net.NetworkCredential]::new("", $SonarSecret).Password
+    $env:SONAR_SECRET_PLAIN = $plainPassword
+
+    $escapedUrl = $SonarUrl.Replace("'", "''")
+    $escapedUser = $SonarUser.Replace("'", "''")
+    $onlyListLiteral = if ($Only.Count -gt 0) {
+        "@(" + (($Only | ForEach-Object { "'" + ($_.Replace("'", "''")) + "'" }) -join ",") + ")"
+    } else {
+        "@()"
+    }
+
+    $runAllCommand = "& '$runAllScript' -SonarUrl '$escapedUrl' -SonarUser '$escapedUser' -SonarSecret (ConvertTo-SecureString `$env:SONAR_SECRET_PLAIN -AsPlainText -Force) -Only $onlyListLiteral"
+
+    powershell -NoProfile -ExecutionPolicy Bypass -Command $runAllCommand
+    $runExitCode = $LASTEXITCODE
+    Remove-Item Env:SONAR_SECRET_PLAIN -ErrorAction SilentlyContinue
+
+    if ($runExitCode -ne 0) {
+        throw "run-all-sonar-tests.ps1 a retourne le code $runExitCode"
+    }
+
+    $testStatus = "SUCCES"
     $testColor = "Green"
 } catch {
     Write-Host "[ERREUR] Échec lors de l'exécution des tests : $_" -ForegroundColor Red
-    $testStatus = "ÉCHEC"
+    $testStatus = "ECHEC"
     $testColor = "Red"
 }
 
@@ -200,7 +272,7 @@ Write-Host "  Durée totale          : $($duration.TotalSeconds -as [int]) secon
 Write-Host "  Heure de fin          : $endTime" -ForegroundColor Yellow
 Write-Host ""
 
-if ($testStatus -eq "SUCCÈS") {
+if ($testStatus -eq "SUCCES") {
     Write-Host "[OK] Rafraîchissement du dashboard SonarQube terminé avec succès !" -ForegroundColor Green
 } else {
     Write-Host "[ATTENTION] Rafraîchissement du dashboard terminé avec des erreurs." -ForegroundColor Yellow
@@ -211,10 +283,18 @@ Write-Host "[INFO] Accédez au dashboard SonarQube : $SonarUrl" -ForegroundColor
 Write-Host ""
 
 # Ouvrir automatiquement le dashboard
-Write-Host "[INFO] Ouverture automatique du dashboard SonarQube..." -ForegroundColor Yellow
-Start-Process $SonarUrl
+if (-not $NoBrowser) {
+    Write-Host "[INFO] Ouverture automatique du dashboard SonarQube..." -ForegroundColor Yellow
+    Start-Process $SonarUrl
+}
 
 Write-Host ""
 Write-Host "===============================================================" -ForegroundColor Green
 Write-Host "[MISSION] Dashboard refresh + Tests SonarQube TERMINÉS" -ForegroundColor Green
 Write-Host "===============================================================" -ForegroundColor Green
+
+if ($testStatus -eq "SUCCES") {
+    exit 0
+}
+
+exit 1

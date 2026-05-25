@@ -73,4 +73,16 @@ class EvaluationConsumerTest {
 
         verify(evalService).createEvaluationsBulk(argThat(list -> list.size() == 2));
     }
+
+    @Test
+    void recover_shouldThrowAmqpRejectAndDontRequeueException() {
+        EvaluationBatchMessage msg = new EvaluationBatchMessage();
+        msg.setFormationId(10L);
+        Exception ex = new RuntimeException("Test exception");
+
+        org.junit.jupiter.api.Assertions.assertThrows(
+            org.springframework.amqp.AmqpRejectAndDontRequeueException.class,
+            () -> consumer.recover(ex, msg)
+        );
+    }
 }

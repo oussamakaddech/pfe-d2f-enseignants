@@ -1,27 +1,27 @@
 import { Row, Col, Card, Statistic } from "antd";
-import { neutral, radius, shadow } from "@/styles/themes/tokens";
+import { neutral } from "@/styles/themes/tokens";
 
 interface SummaryStatItem {
   /** Titre de la stat */
-  title: string;
+  readonly title: string;
   /** Valeur numérique */
-  value: number | string;
+  readonly value: number | string;
   /** Préfixe (icône) */
-  prefix?: React.ReactNode;
+  readonly prefix?: React.ReactNode;
   /** Suffixe (unité) */
-  suffix?: string;
+  readonly suffix?: string;
   /** Couleur de la valeur */
-  color?: string;
+  readonly color?: string;
 }
 
 interface SummaryStatsRowProps {
   /** Liste des statistiques à afficher */
-  stats: SummaryStatItem[];
+  readonly stats: SummaryStatItem[];
   /** Nombre de colonnes (défaut: auto basé sur stats.length) */
-  cols?: number;
+  readonly cols?: number;
   /** Gap entre les cartes */
-  gutter?: number | [number, number];
-  className?: string;
+  readonly gutter?: number | [number, number];
+  readonly className?: string;
 }
 
 /**
@@ -40,8 +40,8 @@ export default function SummaryStatsRow({
 
   return (
     <Row gutter={gutter} className={className} style={{ marginBottom: 20 }}>
-      {stats.map((stat, idx) => (
-        <Col xs={24} sm={12} md={colSpan >= 8 ? 8 : colSpan * 3} lg={colSpan} key={idx}>
+      {stats.map((stat) => (
+        <Col xs={24} sm={12} md={colSpan >= 8 ? 8 : colSpan * 3} lg={colSpan} key={stat.title}>
           <Card
             size="small"
             style={{

@@ -1,5 +1,7 @@
 package tn.esprit.d2f.competence.service;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import tn.esprit.d2f.competence.dto.CompetencePrerequisiteDTO;
 import tn.esprit.d2f.competence.dto.CompetencePrerequisiteRequest;
 import tn.esprit.d2f.competence.entity.enumerations.NiveauMaitrise;
@@ -9,6 +11,7 @@ import java.util.Map;
 
 public interface ICompetencePrerequisiteService {
     List<CompetencePrerequisiteDTO> getPrerequisitesByCompetence(Long competenceId);
+    Page<CompetencePrerequisiteDTO> getPrerequisitesByCompetence(Long competenceId, Pageable pageable);
 
     List<CompetencePrerequisiteDTO> getCompetencesNecessitant(Long prerequisiteId);
 

@@ -35,6 +35,7 @@ import FormationWorkflowService from "@/services/formation/FormationWorkflowServ
 import InscriptionService from "@/services/formation/InscriptionService";
 import EnseignantService from "@/services/formation/EnseignantService";
 import { getProfile } from "@/services/auth/AccountService";
+import { ROLES } from "@/utils/constants/roles";
 
 import "@/styles/pages/formation-cards.css";
 import useAppNotification from "@/hooks/ui/useAppNotification";
@@ -44,7 +45,7 @@ const { RangePicker } = DatePicker;
 
 function getTypeClass(type) {
   if (!type) return "type-default";
-  const t = String(type).toUpperCase().replace(/\s/g, "_");
+  const t = String(type).toUpperCase().replaceAll(/\s/g, "_");
   return `type-${t}`;
 }
 
@@ -65,13 +66,14 @@ export default function FormationCards() {
   const [deptFilter, setDeptFilter] = useState();
   const [ouverteFilter, setOuverteFilter] = useState();
   const [dateRange, setDateRange] = useState([]);
+  const formationsList = Array.isArray(formations) ? formations : [];
 
   // 1️⃣ Profil utilisateur
   useEffect(() => {
     (async () => {
       try {
         const user = await getProfile();
-        if (!user.role || user.role === "admin") user.role = "D2F";
+        if (!user.role || user.role === ROLES.ADMIN) user.role = ROLES.D2F;
         setCurrentUser(user);
       } catch {
         messageApi.error("Impossible de récupérer le profil utilisateur");
@@ -90,24 +92,23 @@ export default function FormationCards() {
     setLoading(true);
     try {
       let data = [];
-      if (currentUser.role === "CUP") {
+      if (currentUser.role === ROLES.CUP) {
         const identifier = currentUser.emailAddress || currentUser.email || currentUser.id;
         const enseignant = await EnseignantService.getEnseignantById(identifier);
         data = await FormationWorkflowService.getFormationsParUp(enseignant.up?.id);
-      } else if (currentUser.role === "Formateur") {
+      } else if (currentUser.role === ROLES.FORMATEUR) {
         const identifier = currentUser.emailAddress || currentUser.email || currentUser.id;
         data = await InscriptionService.getFormationsAccessibles(identifier);
       } else {
         // admin, D2F, Enseignant, etc.
         data = await FormationWorkflowService.getFormationsVisibles();
         // Fallback for admin-like roles to see everything if nothing is marked visible
-        if ((currentUser.role === "D2F" || currentUser.role === "admin") && (!data || data.length === 0)) {
+        if ((currentUser.role === ROLES.D2F || currentUser.role === ROLES.ADMIN) && (!data || data.length === 0)) {
           data = await FormationWorkflowService.getAllFormationWorkflows();
         }
       }
-      setFormations(data || []);
-    } catch (err) {
-      console.error(err);
+      setFormations(Array.isArray(data) ? data : []);
+    } catch {
       messageApi.error("Erreur de chargement des formations");
       setFormations([]);
     } finally {
@@ -118,7 +119,7 @@ export default function FormationCards() {
   const handleToggle = async (idFormation) => {
     try {
       setLoading(true);
-      const cur = formations.find((f) => f.idFormation === idFormation);
+      const cur = formationsList.find((f) => f.idFormation === idFormation);
       if (!cur) throw new Error("Formation introuvable");
       const nextState = !cur.inscriptionsOuvertes;
       await FormationWorkflowService.updateInscriptionsOuvertes(idFormation, nextState);
@@ -151,7 +152,7 @@ export default function FormationCards() {
     setDateRange([]);
   };
 
-  const filtered = formations.filter((f) => {
+  const filtered = formationsList.filter((f) => {
     if (searchText && !f.titreFormation?.toLowerCase().includes(searchText.toLowerCase())) return false;
     if (typeFilter && f.typeFormation !== typeFilter) return false;
     if (upFilter && f.up1?.libelle !== upFilter) return false;
@@ -166,38 +167,37 @@ export default function FormationCards() {
   });
 
   // options filtres
-  const types = Array.from(new Set(formations.map((f) => f.typeFormation)))
+  const types = Array.from(new Set(formationsList.map((f) => f.typeFormation)))
     .filter(Boolean)
     .map((t) => ({ label: t, value: t }));
-  const ups = Array.from(new Set(formations.map((f) => f.up1?.libelle).filter(Boolean)))
+  const ups = Array.from(new Set(formationsList.map((f) => f.up1?.libelle).filter(Boolean)))
     .map((u) => ({ label: u, value: u }));
-  const depts = Array.from(new Set(formations.map((f) => f.departement1?.libelle).filter(Boolean)))
+  const depts = Array.from(new Set(formationsList.map((f) => f.departement1?.libelle).filter(Boolean)))
     .map((d) => ({ label: d, value: d }));
 
   // Stats
   const stats = useMemo(() => {
-    const total = formations.length;
-    const open = formations.filter(f => f.ouverte).length;
+    const total = formationsList.length;
+    const open = formationsList.filter(f => f.ouverte).length;
     const closed = total - open;
-    const uniqueTypes = new Set(formations.map(f => f.typeFormation).filter(Boolean)).size;
+    const uniqueTypes = new Set(formationsList.map(f => f.typeFormation).filter(Boolean)).size;
     return { total, open, closed, uniqueTypes };
-  }, [formations]);
+  }, [formationsList]);
 
-  const isAdminLike = currentUser?.role === "D2F" || currentUser?.role === "CUP";
+  const isAdminLike = currentUser?.role === ROLES.D2F || currentUser?.role === ROLES.CUP;
 
-  if (loading && formations.length === 0) {
+  if (loading && formationsList.length === 0) {
     return <div className="fc-loading"><Spin size="large" /></div>;
   }
   if (!currentUser) {
     return <div className="fc-loading"><Spin size="large" /></div>;
   }
-  if (!formations || formations.length === 0) {
+  if (!formationsList || formationsList.length === 0) {
     return <Empty description="Aucune formation disponible" style={{ marginTop: 80 }} />;
   }
 
   return (
-    <>
-      <div className="fc-page">
+    <div className="fc-page">
         {/* Hero Banner */}
         <div className="fc-hero">
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 16 }}>
@@ -206,14 +206,20 @@ export default function FormationCards() {
                 <h2 className="fc-hero-title">Liste des Formations</h2>
                 <span className="fc-hero-badge">
                   {filtered.length}
-                  <span className="fc-hero-badge-total">/ {formations.length}</span>
+                  <span className="fc-hero-badge-total">/ {formationsList.length}</span>
                 </span>
               </div>
               <div className="fc-hero-subtitle">
-                {filtered.length !== formations.length
-                  ? `${filtered.length} formation${filtered.length > 1 ? "s" : ""} affichée${filtered.length > 1 ? "s" : ""} sur ${formations.length}`
-                  : `${formations.length} formation${formations.length > 1 ? "s" : ""} disponible${formations.length > 1 ? "s" : ""}`
-                }
+                {(() => {
+                  const fCount = filtered.length;
+                  const tCount = formationsList.length;
+                  if (fCount !== tCount) {
+                    const p = fCount > 1 ? "s" : "";
+                    return `${fCount} formation${p} affichée${p} sur ${tCount}`;
+                  }
+                  const p = tCount > 1 ? "s" : "";
+                  return `${tCount} formation${p} disponible${p}`;
+                })()}
               </div>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -301,7 +307,7 @@ export default function FormationCards() {
               <Col key={f.idFormation} xs={24} sm={12} md={8} lg={6}>
                 <Card
                   className="formation-card"
-                  bodyStyle={{ padding: 0 }}
+                  styles={{ body: { padding: 0 } }}
                   cover={
                     <div className={`card-header ${getTypeClass(f.typeFormation)}`}>
                       <span>
@@ -383,7 +389,7 @@ export default function FormationCards() {
                       </Tooltip>
                     )}
 
-                    {(currentUser.role === "Formateur" || currentUser.role === "Enseignant") &&
+                    {(currentUser.role === ROLES.FORMATEUR || currentUser.role === ROLES.ENSEIGNANT) &&
                       f.inscriptionsOuvertes &&
                       (requested.includes(f.idFormation) ? (
                         <Tooltip title="Demande déjà envoyée">
@@ -424,8 +430,7 @@ export default function FormationCards() {
         {filtered.length === 0 && (
           <Empty description="Aucun résultat pour ces filtres" className="fc-empty" />
         )}
-      </div>
-    </>
+    </div>
   );
 }
 

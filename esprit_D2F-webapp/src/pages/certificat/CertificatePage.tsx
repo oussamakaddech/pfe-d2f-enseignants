@@ -1,13 +1,12 @@
-// src/pages/CertificatePage.jsx
-import  { useEffect, useState, useCallback } from "react";
+import { useState, useCallback } from "react";
 import { useParams } from "react-router-dom";
-import CertificateService from "@/services/certificat/CertificateService";
+import { useCertificatesByFormation, useUpdateCertificate } from "@/hooks/certificat/useCertificats";
 import CertificateEditorViewerItem from "./CertificateEditorViewerItem";
+import type { Certificate } from "@/models/certificat";
 import {
   Table,
   Input,
   Space,
-  message,
   Card,
   Tag,
   Row,
@@ -20,15 +19,16 @@ import {
   TeamOutlined,
   FileProtectOutlined,
 } from "@ant-design/icons";
-import { AppPageHeader, brand, neutral } from "@/components/common";
+import { AppPageHeader } from "@/components/common";
+import { brand } from "@/styles/themes/tokens";
 import "@/styles/pages/certificate-page.css";
 
 const { Search } = Input;
 
 export default function CertificatePage() {
-  const { formationId } = useParams();
-  const [certificates, setCertificates] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const { formationId } = useParams<string>();
+  const { data: certificates = [], isLoading: loading } = useCertificatesByFormation(formationId);
+  const updateMutation = useUpdateCertificate();
   const [search, setSearch] = useState({
     nom: "",
     prenom: "",
@@ -36,42 +36,26 @@ export default function CertificatePage() {
     role: "",
   });
 
-  useEffect(() => {
-    const fetchCertificates = async () => {
-      setLoading(true);
-      try {
-        const response = await CertificateService.getCertificatesByFormation(
-          formationId
-        );
-        setCertificates(response.data);
-      } catch (error) {
-        console.error(error);
-        message.error("Impossible de récupérer les certificats.");
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchCertificates();
-  }, [formationId]);
-
-  const handleSearchChange = (field, value) => {
+  const handleSearchChange = (field: string, value: string) => {
     setSearch((prev) => ({ ...prev, [field]: value }));
   };
 
-  const filteredData = certificates.filter((cert) =>
+  const filteredData = certificates.filter((cert: Certificate) =>
     cert.nomEnseignant.toLowerCase().includes(search.nom.toLowerCase()) &&
     cert.prenomEnseignant.toLowerCase().includes(search.prenom.toLowerCase()) &&
     cert.mailEnseignant.toLowerCase().includes(search.email.toLowerCase()) &&
     cert.roleEnFormation.toLowerCase().includes(search.role.toLowerCase())
   );
 
-  const handleCertUpdate = useCallback((updatedCert) => {
-    setCertificates((prev) =>
-      prev.map((c) =>
-        c.idCertificate === updatedCert.idCertificate ? updatedCert : c
-      )
-    );
-  }, []);
+  const handleCertUpdate = useCallback((updatedCert: Certificate) => {
+    if (updatedCert.idCertificate) {
+      updateMutation.mutate({ id: updatedCert.idCertificate, data: updatedCert });
+    }
+  }, [updateMutation]);
+
+  const renderExpandedRow = useCallback((record: Certificate) => (
+    <CertificateEditorViewerItem certificate={record} onUpdate={handleCertUpdate} />
+  ), [handleCertUpdate]);
 
   const columns = [
     {
@@ -203,12 +187,7 @@ export default function CertificatePage() {
         loading={loading}
         pagination={{ pageSize: 10, showSizeChanger: true, showTotal: (total) => `${total} certificat${total !== 1 ? "s" : ""}` }}
         expandable={{
-          expandedRowRender: (record) => (
-            <CertificateEditorViewerItem
-              certificate={record}
-              onUpdate={handleCertUpdate}
-            />
-          ),
+          expandedRowRender: renderExpandedRow,
           expandRowByClick: true,
         }}
         locale={{

@@ -21,23 +21,20 @@ describe('storage', () => {
     localStorage.clear();
   });
 
-  describe('token', () => {
-    it('getToken returns null initially', () => {
+  describe('token (deprecated no-ops — JWT is in HttpOnly cookie)', () => {
+    it('getToken always returns null', () => {
       expect(getToken()).toBeNull();
     });
-    it('setToken stores and getToken retrieves', () => {
+    it('setToken is a no-op', () => {
       setToken('abc');
-      expect(getToken()).toBe('abc');
+      expect(getToken()).toBeNull();
     });
-    it('hasToken returns true/false', () => {
+    it('hasToken always returns false', () => {
+      setToken('abc');
       expect(hasToken()).toBe(false);
-      setToken('abc');
-      expect(hasToken()).toBe(true);
     });
-    it('removeToken removes the token', () => {
-      setToken('abc');
-      removeToken();
-      expect(getToken()).toBeNull();
+    it('removeToken is a no-op', () => {
+      expect(() => removeToken()).not.toThrow();
     });
   });
 
@@ -107,11 +104,9 @@ describe('storage', () => {
       expect(storage.hasToken).toBe(hasToken);
       expect(storage.clearSession).toBe(clearSession);
     });
-    it('works end-to-end', () => {
+    it('token methods are no-ops (JWT in HttpOnly cookie)', () => {
       storage.setToken('t');
-      expect(storage.getToken()).toBe('t');
-      expect(storage.hasToken()).toBe(true);
-      storage.clearSession();
+      expect(storage.getToken()).toBeNull();
       expect(storage.hasToken()).toBe(false);
     });
   });

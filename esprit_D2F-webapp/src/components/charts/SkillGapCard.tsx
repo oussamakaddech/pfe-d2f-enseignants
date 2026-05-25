@@ -12,13 +12,16 @@ const NIVEAU_LABEL: Record<number, string> = {
 };
 
 interface SkillGapCardProps {
-  gap:       SkillGap;
-  onClick?:  (gap: SkillGap) => void;
-  compact?:  boolean;
+  readonly gap:       SkillGap;
+  readonly onClick?:  (gap: SkillGap) => void;
+  readonly compact?:  boolean;
 }
 
 export default function SkillGapCard({ gap, onClick, compact = false }: SkillGapCardProps) {
   const isCritique = gap.niveau_urgence === "CRITIQUE";
+  let borderColor = "#f59e0b";
+  if (isCritique) borderColor = "#ef4444";
+  else if (gap.niveau_urgence === "HAUTE") borderColor = "#f97316";
 
   return (
     <Card
@@ -26,7 +29,7 @@ export default function SkillGapCard({ gap, onClick, compact = false }: SkillGap
       onClick={() => onClick?.(gap)}
       size="small"
       style={{
-        borderLeft: `4px solid ${isCritique ? "#ef4444" : gap.niveau_urgence === "HAUTE" ? "#f97316" : "#f59e0b"}`,
+        borderLeft: `4px solid ${borderColor}`,
         borderRadius: 12,
         background: "rgba(255,255,255,0.92)",
         backdropFilter: "blur(8px)",

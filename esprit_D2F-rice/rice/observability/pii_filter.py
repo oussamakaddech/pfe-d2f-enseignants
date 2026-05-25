@@ -20,7 +20,7 @@ _PATTERNS = [
     # Emails RFC 5322 simplifié
     (re.compile(r"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}"), "***@***.***"),
     # JWT bearer (Authorization: Bearer xxxxx)
-    (re.compile(r"(?i)(Bearer\s+)[A-Za-z0-9._\-+/=]+"), r"\1***"),
+    (re.compile(r"(?i)(Bearer\s+)[A-Z0-9._\-+/=]+"), r"\1***"),
     # Numéros téléphoniques internationaux (e.164, formats TN)
     (re.compile(r"\+?\d{1,3}[\s.-]?\(?\d{2,4}\)?[\s.-]?\d{3,4}[\s.-]?\d{3,4}"), "+***"),
     # CIN 8 chiffres (Tunisie)

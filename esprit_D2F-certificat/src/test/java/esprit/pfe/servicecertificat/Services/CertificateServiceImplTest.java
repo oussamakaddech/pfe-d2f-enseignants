@@ -64,6 +64,7 @@ class CertificateServiceImplTest {
         certificate.setNomEnseignant("Doe");
         certificate.setPrenomEnseignant("John");
         certificate.setMailEnseignant("john.doe@test.com");
+
     }
 
     @Test
@@ -168,5 +169,78 @@ class CertificateServiceImplTest {
         assertThatThrownBy(() -> certificateService.update(99L, request))
                 .isInstanceOf(ResourceNotFoundException.class)
                 .hasMessageContaining("introuvable");
+    }
+
+    @Test
+    @DisplayName("findByFormation avec pagination - devrait retourner une page de certificats (offset < size)")
+    void findByFormation_Paginated_OffsetLessThanSize() {
+        when(certificateRepository.findByFormationId(1L)).thenReturn(List.of(certificate));
+
+        Page<CertificateResponse> result = certificateService.findByFormation(1L, PageRequest.of(0, 10));
+
+        assertThat(result).isNotNull();
+        assertThat(result.getContent()).hasSize(1);
+        assertThat(result.getContent().get(0).getId()).isEqualTo(100L);
+        assertThat(result.getTotalElements()).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("findByFormation avec pagination - devrait retourner une page vide (offset >= size)")
+    void findByFormation_Paginated_OffsetGreaterThanOrEqualSize() {
+        when(certificateRepository.findByFormationId(1L)).thenReturn(List.of(certificate));
+
+        Page<CertificateResponse> result = certificateService.findByFormation(1L, PageRequest.of(1, 10));
+
+        assertThat(result).isNotNull();
+        assertThat(result.getContent()).isEmpty();
+        assertThat(result.getTotalElements()).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("findByEmail avec pagination - devrait retourner une page de certificats (offset < size)")
+    void findByEmail_Paginated_OffsetLessThanSize() {
+        when(certificateRepository.findByMailEnseignant("john.doe@test.com")).thenReturn(List.of(certificate));
+
+        Page<CertificateResponse> result = certificateService.findByEmail("john.doe@test.com", PageRequest.of(0, 10));
+
+        assertThat(result).isNotNull();
+        assertThat(result.getContent()).hasSize(1);
+        assertThat(result.getTotalElements()).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("findByEmail avec pagination - devrait retourner une page vide (offset >= size)")
+    void findByEmail_Paginated_OffsetGreaterThanOrEqualSize() {
+        when(certificateRepository.findByMailEnseignant("john.doe@test.com")).thenReturn(List.of(certificate));
+
+        Page<CertificateResponse> result = certificateService.findByEmail("john.doe@test.com", PageRequest.of(1, 10));
+
+        assertThat(result).isNotNull();
+        assertThat(result.getContent()).isEmpty();
+        assertThat(result.getTotalElements()).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("findByEnseignant avec pagination - devrait retourner une page de certificats (offset < size)")
+    void findByEnseignant_Paginated_OffsetLessThanSize() {
+        when(certificateRepository.findByEnseignantId("ENS1")).thenReturn(List.of(certificate));
+
+        Page<CertificateResponse> result = certificateService.findByEnseignant("ENS1", PageRequest.of(0, 10));
+
+        assertThat(result).isNotNull();
+        assertThat(result.getContent()).hasSize(1);
+        assertThat(result.getTotalElements()).isEqualTo(1);
+    }
+
+    @Test
+    @DisplayName("findByEnseignant avec pagination - devrait retourner une page vide (offset >= size)")
+    void findByEnseignant_Paginated_OffsetGreaterThanOrEqualSize() {
+        when(certificateRepository.findByEnseignantId("ENS1")).thenReturn(List.of(certificate));
+
+        Page<CertificateResponse> result = certificateService.findByEnseignant("ENS1", PageRequest.of(1, 10));
+
+        assertThat(result).isNotNull();
+        assertThat(result.getContent()).isEmpty();
+        assertThat(result.getTotalElements()).isEqualTo(1);
     }
 }

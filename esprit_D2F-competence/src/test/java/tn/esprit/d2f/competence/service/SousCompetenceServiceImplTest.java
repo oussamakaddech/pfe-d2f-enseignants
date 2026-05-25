@@ -50,6 +50,7 @@ class SousCompetenceServiceImplTest {
     @Mock private NiveauSavoirRequisRepository niveauRepo;
     @Mock private SavoirRepository savoirRepository;
     @Mock private CompetenceMapper competenceMapper;
+    @Mock private ISousCompetenceService self;
 
     @InjectMocks private SousCompetenceServiceImpl sousCompetenceService;
 
@@ -115,6 +116,30 @@ class SousCompetenceServiceImplTest {
 
             assertThat(result).hasSize(1);
             verify(sousCompetenceRepository).findByCompetenceIdAndParentIsNull(2L);
+        }
+
+        @Test
+        @DisplayName("retourne une page pour une competence")
+        void shouldReturnPagedRootSousCompetences() {
+            Pageable pageable = PageRequest.of(0, 1);
+            when(self.getSousCompetencesByCompetence(2L)).thenReturn(List.of(sousCompetenceDTO));
+
+            Page<SousCompetenceDTO> result = sousCompetenceService.getSousCompetencesByCompetence(2L, pageable);
+
+            assertThat(result.getContent()).hasSize(1);
+            assertThat(result.getTotalElements()).isEqualTo(1);
+        }
+
+        @Test
+        @DisplayName("retourne vide hors bornes pour une competence")
+        void shouldReturnEmptyPageWhenOffsetPastEnd() {
+            Pageable pageable = PageRequest.of(4, 1);
+            when(self.getSousCompetencesByCompetence(2L)).thenReturn(List.of(sousCompetenceDTO));
+
+            Page<SousCompetenceDTO> result = sousCompetenceService.getSousCompetencesByCompetence(2L, pageable);
+
+            assertThat(result.getContent()).isEmpty();
+            assertThat(result.getTotalElements()).isEqualTo(1);
         }
     }
 

@@ -1,4 +1,3 @@
-// src/pages/MailForm.jsx
 import PropTypes from "prop-types";
 import "@/styles/pages/mail-form.css";
 import { Form, Input, Button } from "antd";
@@ -25,12 +24,10 @@ export default function MailForm({ formation, onSendSuccess }) {
 
   // Séances
   const seancesStr = (formation.seances || [])
-    .map(
-      (s, i) =>
-        `${i + 1}. ${moment(s.dateSeance).format("DD/MM/YYYY")} de ${
-          s.heureDebut
-        } à ${s.heureFin}${s.salle ? ` en salle ${s.salle}` : ""}`
-    )
+    .map((s, i) => {
+      const salle = s.salle ? ` en salle ${s.salle}` : "";
+      return `${i + 1}. ${moment(s.dateSeance).format("DD/MM/YYYY")} de ${s.heureDebut} à ${s.heureFin}${salle}`;
+    })
     .join("\n");
 
   // Animateurs uniques, clé = mail
@@ -93,7 +90,6 @@ export default function MailForm({ formation, onSendSuccess }) {
       form.resetFields(["subject", "content"]);
       if (onSendSuccess) onSendSuccess();
     } catch (err) {
-      console.error(err);
       const errorMsg = err.response?.data?.error || err.response?.data?.message || err.message || "Échec de l’envoi de l’e-mail.";
       message.error(`❌ ${errorMsg}`);
     }

@@ -6,12 +6,14 @@ import esprit.pfe.serviceformation.entities.Formation;
 import esprit.pfe.serviceformation.repositories.FormationRepository;
 import esprit.pfe.serviceformation.repositories.PresenceRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -19,6 +21,13 @@ public class ParticipantKpiService {
 
     private final FormationRepository formationRepository;
     private final PresenceRepository presenceRepository;
+
+    public Page<ParticipantKpiDTO> getParticipantKpis(Date startDate, Date endDate, Pageable pageable) {
+        List<ParticipantKpiDTO> all = getParticipantKpis(startDate, endDate);
+        int from = (int) pageable.getOffset();
+        int to = Math.min(from + pageable.getPageSize(), all.size());
+        return new PageImpl<>(from >= all.size() ? List.of() : all.subList(from, to), pageable, all.size());
+    }
 
     // KPIs par formation achevée pour une période donnée
     public List<ParticipantKpiDTO> getParticipantKpis(Date startDate, Date endDate) {

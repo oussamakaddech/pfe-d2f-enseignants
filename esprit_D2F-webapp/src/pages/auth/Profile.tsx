@@ -1,4 +1,3 @@
-// src/pages/GererComptes/Profile.jsx
 import { useEffect, useState } from "react";
 import {
   Card,
@@ -109,22 +108,25 @@ export default function Profile() {
 
   return (
     <div className="profile-container">
-      {loading ? (
-        <div style={{ textAlign: "center", paddingTop: 100 }}>
-          <Spin size="large" tip="Chargement de votre univers..."><div /></Spin>
-        </div>
-      ) : error ? (
-        <Card className="profile-main-card">
-          <Alert
-            message="Oups !"
-            description={error}
-            type="error"
-            showIcon
-            icon={<ExclamationCircleOutlined />}
-            action={<Button size="small" onClick={loadProfile}>Réessayer</Button>}
-          />
-        </Card>
-      ) : (
+      {(() => {
+        if (loading) return (
+          <div style={{ textAlign: "center", paddingTop: 100 }}>
+            <Spin size="large" tip="Chargement de votre univers..."><div /></Spin>
+          </div>
+        );
+        if (error) return (
+          <Card className="profile-main-card">
+            <Alert
+              message="Oups !"
+              description={error}
+              type="error"
+              showIcon
+              icon={<ExclamationCircleOutlined />}
+              action={<Button size="small" onClick={loadProfile}>Réessayer</Button>}
+            />
+          </Card>
+        );
+        return (
         <>
           <Card className="profile-main-card" variant="borderless">
             {/* Avatar Section */}
@@ -240,7 +242,8 @@ export default function Profile() {
             </Form>
           </Drawer>
         </>
-      )}
+        );
+      })()}
     </div>
   );
 }

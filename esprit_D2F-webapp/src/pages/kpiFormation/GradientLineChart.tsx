@@ -1,4 +1,3 @@
-// src/components/GradientLineChart.js
 import  { useRef, useEffect, useState } from 'react';
 import { Card, Spin } from 'antd';
 import {
@@ -27,7 +26,7 @@ ChartJS.register(
 
 const GradientLineChart = ({ title, labels, values }) => {
   const chartRef = useRef(null);
-  const [data, setData] = useState({
+  const [data] = useState({
     labels,
     datasets: [{
       label: title,

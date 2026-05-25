@@ -21,7 +21,7 @@ function SavoirMatchCard({ savoir, assignedTeacherIds = [], allTeachers = [], on
 
         <div className={`savoir-assigned ${assignedTeacherIds.length === 0 ? "savoir-unassigned" : ""}`}>
           {assignedTeacherIds.map((id) => {
-            const t = allTeachers.find((x) => x.id === id) || { prenom: "?", nom: "?" };
+            const t = allTeachers.find((x) => x.id === id) ?? { prenom: "?", nom: "?" };
             return (
               <Tag key={id} closable onClose={() => onUnassign(savoir.id, id)}>
                 {t.prenom} {t.nom}

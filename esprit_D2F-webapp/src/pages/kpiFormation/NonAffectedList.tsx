@@ -1,4 +1,3 @@
-// src/components/NonAffectedGrid.jsx
 import { useState, useEffect } from 'react';
 import {
   Card,
@@ -59,7 +58,7 @@ export default function NonAffectedGrid() {
           start.format('YYYY-MM-DD'),
           end.format('YYYY-MM-DD')
         );
-        setAllStats(data);
+        setAllStats(Array.isArray(data) ? data : []);
       } catch {
         setAllStats([]);
       } finally {
@@ -70,8 +69,9 @@ export default function NonAffectedGrid() {
 
   // Filtrer côté client dès que UP ou Dept évoluent
   useEffect(() => {
+    const source = Array.isArray(allStats) ? allStats : [];
     setStats(
-      allStats.filter(item =>
+      source.filter(item =>
         (!selectedUp   || item.upId   === selectedUp) &&
         (!selectedDept || item.deptId === selectedDept)
       )
@@ -121,7 +121,9 @@ export default function NonAffectedGrid() {
 
       {/* ---- AFFICHAGE ---- */}
       {loading ? (
-        <Spin tip="Chargement..." style={{ width: '100%', padding: 50 }} />
+        <div style={{ width: '100%', padding: 50, textAlign: 'center' }}>
+          <Spin />
+        </div>
       ) : (
         <div
           style={{

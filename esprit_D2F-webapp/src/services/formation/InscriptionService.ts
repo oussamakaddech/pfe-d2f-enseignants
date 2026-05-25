@@ -1,72 +1,42 @@
 import { defaultApi as axios } from "@/utils/helpers/httpClient";
 import { config } from "@/config/env"; 
-import { optionalAuthHeader } from "@/services/auth/authHeaders";
 const API_URL = `${config.FORMATION_URL}/formation/inscription`;
 
-// Si certains endpoints sont sécurisés, décommentez et utilisez cette fonction :
-// function getToken() {
-//   return localStorage.getItem("authToken");
-// }
-
 const InscriptionService = {
-  /**
-   * 1. Récupérer les formations accessibles pour un enseignant
-   * GET /inscription/formations/accessibles?enseignantId=…
-   */
-  async getFormationsAccessibles(enseignantId) {
+  async getFormationsAccessibles(enseignantId: string | number) {
     try {
       const response = await axios.get(`${API_URL}/formations/accessibles`, {
         params: { enseignantId },
       });
-      return response.data; // Liste de Formation
-     
+      return response.data;
     } catch (error) {
-      console.error("Erreur fetch formations accessibles :", error);
       throw error;
     }
   },
 
-  /**
-   * 2. Demander une inscription
-   * POST /inscription/inscriptions?formationId=…&enseignantId=…
-   */
-  async demanderInscription(formationId, enseignantId) {
+  async demanderInscription(formationId: string | number, enseignantId: string | number) {
     try {
       const response = await axios.post(`${API_URL}/inscriptions`, null, {
         params: { formationId, enseignantId },
       });
-      return response.data; // Objet Inscription créé
+      return response.data;
     } catch (error) {
-      console.error("Erreur lors de la demande d'inscription :", error);
       throw error;
     }
   },
 
-  /**
-   * 3. Lister les demandes en attente
-   * GET /inscription/inscriptions/demandes?userId=…&isD2F=…
-   */
- async getInscriptionsByFormation(formationId) {
+ async getInscriptionsByFormation(formationId: string | number) {
     try {
       const response = await axios.get(
         `${API_URL}/formations/${formationId}/inscriptions`
       );
-      return response.data; // Liste de Inscription
+      return response.data;
     } catch (error) {
-      console.error(
-        "Erreur fetch inscriptions par formation :",
-        error
-      );
       throw error;
     }
   },
 
-
-  /**
-   * 4. Approuver ou rejeter une demande
-   * PUT /inscription/inscriptions/{id}/traiter?approuver=…
-   */
-  async traiterDemande(id, approuver) {
+  async traiterDemande(id: string | number, approuver: boolean) {
     try {
       const response = await axios.put(
         `${API_URL}/inscriptions/${id}/traiter`,
@@ -75,9 +45,8 @@ const InscriptionService = {
           params: { approuver },
         }
       );
-      return response.data; // Objet Inscription mis à jour
+      return response.data;
     } catch (error) {
-      console.error(`Erreur traitement demande ${id} :`, error);
       throw error;
     }
   },

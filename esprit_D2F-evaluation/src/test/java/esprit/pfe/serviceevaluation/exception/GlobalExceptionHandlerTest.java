@@ -121,4 +121,14 @@ class GlobalExceptionHandlerTest {
         assertEquals("EVAL-500", response.getBody().getErrorCode());
         assertNotNull(response.getBody().getTraceId());
     }
+
+    @Test
+    void handleIllegalState_ShouldReturn409() {
+        IllegalStateException ex = new IllegalStateException("State conflict message");
+        ResponseEntity<ErrorResponse> response = globalExceptionHandler.handleIllegalState(ex, request);
+
+        assertEquals(HttpStatus.CONFLICT, response.getStatusCode());
+        assertEquals("State conflict message", response.getBody().getMessage());
+        assertEquals("EVAL-409", response.getBody().getErrorCode());
+    }
 }

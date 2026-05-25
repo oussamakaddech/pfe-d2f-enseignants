@@ -12,6 +12,12 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableHandlerMethodArgumentResolver;
+import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import java.util.Collections;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -30,7 +36,13 @@ class SeanceControllerTest {
 
     @BeforeEach
     void setup() {
-        mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.registerModule(new org.springframework.data.web.config.SpringDataJacksonConfiguration.PageModule(new org.springframework.data.web.config.SpringDataWebSettings(org.springframework.data.web.config.EnableSpringDataWebSupport.PageSerializationMode.DIRECT)));
+        MappingJackson2HttpMessageConverter converter = new MappingJackson2HttpMessageConverter(mapper);
+        mockMvc = MockMvcBuilders.standaloneSetup(controller)
+                .setCustomArgumentResolvers(new PageableHandlerMethodArgumentResolver())
+                .setMessageConverters(converter)
+                .build();
     }
 
     @Test
@@ -60,13 +72,13 @@ class SeanceControllerTest {
 
     @Test
     void testGetAllSeances() throws Exception {
-        when(seanceService.getAllSeances()).thenReturn(Collections.emptyList());
+        when(seanceService.getAllSeances(any(Pageable.class))).thenReturn(new PageImpl<>(Collections.emptyList()));
         mockMvc.perform(get("/api/v1/seances")).andExpect(status().isOk());
     }
 
     @Test
     void testGetAllSeances_Error() throws Exception {
-        when(seanceService.getAllSeances()).thenThrow(new RuntimeException("Err"));
+        when(seanceService.getAllSeances(any(Pageable.class))).thenThrow(new RuntimeException("Err"));
         mockMvc.perform(get("/api/v1/seances")).andExpect(status().isInternalServerError());
     }
 
@@ -103,3 +115,4 @@ class SeanceControllerTest {
         mockMvc.perform(delete("/api/v1/seances/1")).andExpect(status().isNotFound());
     }
 }
+

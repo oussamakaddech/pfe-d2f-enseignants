@@ -10,6 +10,9 @@ from typing import Any, Dict
 
 logger = logging.getLogger("rice_analyzer")
 
+# Sentinel for detecting missing keys
+_MISSING = object()
+
 # ── Startup env-var validation ──────────────────────────────────────────────
 _REQUIRED_ENV_VARS: Dict[str, str] = {
     "DB_NAME": "PostgreSQL database name",
@@ -59,10 +62,13 @@ class _ThreadSafeCache:
             self._ts[key] = _time.time()
 
     # --- invalidate -----------------------------------------------------------
-    def pop(self, key: str) -> None:
+    def pop(self, key: str, default: Any = None) -> Any:
         with self._lock:
-            self._data.pop(key, None)
+            val = self._data.pop(key, _MISSING)
             self._ts.pop(key, None)
+            if val is _MISSING:
+                return default
+            return val
 
     def clear(self) -> None:
         with self._lock:
@@ -77,3 +83,24 @@ class _ThreadSafeCache:
     def __bool__(self) -> bool:
         with self._lock:
             return bool(self._data)
+
+    # --- dictionary compatibility magic methods ------------------------------
+    def __getitem__(self, key: str) -> Any:
+        with self._lock:
+            return self._data[key]
+
+    def __setitem__(self, key: str, value: Any) -> None:
+        self.set(key, value)
+
+    def __delitem__(self, key: str) -> None:
+        with self._lock:
+            self._data.pop(key, None)
+            self._ts.pop(key, None)
+
+    def __contains__(self, key: str) -> bool:
+        with self._lock:
+            return key in self._data
+
+    def __len__(self) -> int:
+        with self._lock:
+            return len(self._data)

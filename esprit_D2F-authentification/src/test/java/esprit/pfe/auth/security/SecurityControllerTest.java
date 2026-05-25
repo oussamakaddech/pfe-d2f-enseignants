@@ -3,72 +3,111 @@ package esprit.pfe.auth.security;
 import esprit.pfe.auth.entities.ERole;
 import esprit.pfe.auth.entities.Role;
 import esprit.pfe.auth.entities.User;
+import esprit.pfe.auth.error.CustomExceptionHandler;
 import esprit.pfe.auth.payload.request.SignupRequest;
 import esprit.pfe.auth.repositories.ConfirmationKeyRepo;
 import esprit.pfe.auth.repositories.RoleRepository;
 import esprit.pfe.auth.repositories.UserRepository;
 import esprit.pfe.auth.services.EmailService;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
-import org.springframework.security.core.Authentication;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@WebMvcTest(SecurityController.class)
-@AutoConfigureMockMvc(addFilters = false) // Disable security filters for unit testing controller
+@ExtendWith(MockitoExtension.class)
 class SecurityControllerTest {
 
-    @Autowired
-    private MockMvc mockMvc;
-
-    @MockitoBean
+    @Mock
     private EmailService emailService;
 
-    @MockitoBean
+    @Mock
     private UserRepository userRepository;
 
-    @MockitoBean
+    @Mock
     private RoleRepository roleRepository;
 
-    @MockitoBean
+    @Mock
     private AuthenticationManager authenticationManager;
 
-    @MockitoBean
+    @Mock
     private JwtEncoder jwtEncoder;
 
-    @MockitoBean
+    @Mock
     private ConfirmationKeyRepo confirmationKeyRepo;
 
-    @MockitoBean
+    @Mock
     private PasswordEncoder passwordEncoder;
 
-    @MockitoBean
+    @Mock
     private esprit.pfe.auth.services.AuditService auditService;
 
-    @Autowired
+    private SecurityController securityController;
+
+    private MockMvc mockMvc;
     private ObjectMapper objectMapper;
 
     private SignupRequest signupRequest;
 
     @BeforeEach
     void setUp() {
+        objectMapper = new ObjectMapper();
+        securityController = new SecurityController(
+                emailService,
+                userRepository,
+                roleRepository,
+                authenticationManager,
+                jwtEncoder,
+                confirmationKeyRepo,
+                passwordEncoder,
+                auditService);
+
+        ReflectionTestUtils.setField(securityController, "mailFrom", "noreply@d2f.local");
+        ReflectionTestUtils.setField(securityController, "adminEmail", "admin@d2f.local");
+        ReflectionTestUtils.setField(securityController, "cookieSecure", true);
+        ReflectionTestUtils.setField(securityController, "lockoutMaxAttempts", 5);
+        ReflectionTestUtils.setField(securityController, "lockoutDurationMinutes", 15);
+
+        mockMvc = MockMvcBuilders.standaloneSetup(securityController)
+                .setControllerAdvice(new CustomExceptionHandler())
+                .setMessageConverters(new MappingJackson2HttpMessageConverter(objectMapper))
+                .build();
+
         signupRequest = new SignupRequest();
         signupRequest.setUsername("newuser");
         signupRequest.setEmail("newuser@example.com");
@@ -142,7 +181,7 @@ class SecurityControllerTest {
                 .param("token", rawToken)
                 .param("newPassword", "newpass123"))
                 .andExpect(status().isOk())
-                .andExpect(content().string("Password changed"));
+            .andExpect(content().string("\"Password changed\""));
     }
 
     @Test
@@ -199,8 +238,126 @@ class SecurityControllerTest {
     }
 
     @Test
+    void login_WhenAccountLocked_ShouldRejectBeforeAuthenticationManager() {
+        User user = new User();
+        user.setUsername("locked-user");
+        user.setLockUntil(LocalDateTime.now().plusMinutes(10));
+        when(userRepository.findByUsername("locked-user")).thenReturn(Optional.of(user));
+
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        when(request.getRemoteAddr()).thenReturn("127.0.0.1");
+
+        assertThrows(esprit.pfe.auth.error.LoginException.class, () ->
+                securityController.login("locked-user", "password123", request, mock(HttpServletResponse.class)));
+
+        verify(authenticationManager, never()).authenticate(any());
+        verify(auditService).logFailedLogin("locked-user", "127.0.0.1", "Account locked");
+    }
+
+    @Test
+    void login_WhenSuccessfulAndFailedAttemptsExist_ShouldResetState() {
+        User user = new User();
+        user.setUsername("retry-user");
+        user.setEmail("retry@example.com");
+        user.setFailedLoginAttempts(2);
+        when(userRepository.findByUsername("retry-user")).thenReturn(Optional.of(user));
+
+        Authentication auth = mock(Authentication.class);
+        when(auth.getAuthorities()).thenReturn((java.util.Collection) List.of(new SimpleGrantedAuthority("ROLE_USER")));
+        when(authenticationManager.authenticate(any())).thenReturn(auth);
+
+        org.springframework.security.oauth2.jwt.Jwt jwt = mock(org.springframework.security.oauth2.jwt.Jwt.class);
+        when(jwt.getTokenValue()).thenReturn("retry-jwt");
+        when(jwtEncoder.encode(any())).thenReturn(jwt);
+
+        HttpServletRequest request = mock(HttpServletRequest.class);
+        when(request.getRemoteAddr()).thenReturn("127.0.0.1");
+        HttpServletResponse response = mock(HttpServletResponse.class);
+
+        ResponseEntity<Map<String, Object>> result = securityController.login("retry-user", "password123", request, response);
+
+        assertEquals(HttpStatus.OK, result.getStatusCode());
+        assertEquals(0, user.getFailedLoginAttempts());
+        assertEquals(null, user.getLockUntil());
+        verify(userRepository).save(user);
+
+        ArgumentCaptor<String> headerCaptor = ArgumentCaptor.forClass(String.class);
+        verify(response).addHeader(eq(HttpHeaders.SET_COOKIE), headerCaptor.capture());
+        assertTrue(headerCaptor.getValue().contains("d2f_auth_token=retry-jwt"));
+    }
+
+    @Test
+    void refreshToken_WhenAuthenticated_ShouldReturnCookieAndMetadata() {
+        User user = new User();
+        user.setId("USER-1");
+        user.setUsername("refresh-user");
+        user.setEmail("refresh@example.com");
+        when(userRepository.findByUsername("refresh-user")).thenReturn(Optional.of(user));
+
+        Authentication authentication = mock(Authentication.class);
+        when(authentication.isAuthenticated()).thenReturn(true);
+        when(authentication.getName()).thenReturn("refresh-user");
+        when(authentication.getAuthorities()).thenReturn((java.util.Collection) List.of(new SimpleGrantedAuthority("ROLE_USER")));
+
+        org.springframework.security.oauth2.jwt.Jwt jwt = mock(org.springframework.security.oauth2.jwt.Jwt.class);
+        when(jwt.getTokenValue()).thenReturn("refreshed-jwt");
+        when(jwtEncoder.encode(any())).thenReturn(jwt);
+
+        HttpServletResponse response = mock(HttpServletResponse.class);
+
+        ResponseEntity<Map<String, Object>> result = securityController.refreshToken(authentication, response);
+
+        assertEquals(HttpStatus.OK, result.getStatusCode());
+        assertEquals("refresh-user", result.getBody().get("username"));
+        assertEquals("refresh@example.com", result.getBody().get("email"));
+
+        ArgumentCaptor<String> headerCaptor = ArgumentCaptor.forClass(String.class);
+        verify(response).addHeader(eq(HttpHeaders.SET_COOKIE), headerCaptor.capture());
+        assertTrue(headerCaptor.getValue().contains("d2f_auth_token=refreshed-jwt"));
+    }
+
+    @Test
+    void refreshToken_WhenAuthenticationMissing_ShouldReturnUnauthorized() {
+        HttpServletResponse response = mock(HttpServletResponse.class);
+
+        ResponseEntity<Map<String, Object>> result = securityController.refreshToken(null, response);
+
+        assertEquals(HttpStatus.UNAUTHORIZED, result.getStatusCode());
+        verifyNoInteractions(response);
+    }
+
+    @Test
+    void logout_ShouldExpireCookie() {
+        HttpServletResponse response = mock(HttpServletResponse.class);
+
+        ResponseEntity<esprit.pfe.auth.payload.response.MessageResponse> result = securityController.logout(response);
+
+        assertEquals(HttpStatus.OK, result.getStatusCode());
+        assertEquals("Logged out successfully", result.getBody().getMessage());
+
+        ArgumentCaptor<String> headerCaptor = ArgumentCaptor.forClass(String.class);
+        verify(response).addHeader(eq(HttpHeaders.SET_COOKIE), headerCaptor.capture());
+        assertTrue(headerCaptor.getValue().contains("Max-Age=0"));
+    }
+
+    @Test
+    void resetDevices_ShouldClearDeviceIdsAndPersist() {
+        User user = new User();
+        user.setUsername("device-user");
+        user.setDeviceIds(new HashSet<>(Set.of("device-1", "device-2")));
+        when(userRepository.findByUsername("device-user")).thenReturn(Optional.of(user));
+
+        ResponseEntity<esprit.pfe.auth.payload.response.MessageResponse> result = securityController.resetDevices("device-user");
+
+        assertEquals(HttpStatus.OK, result.getStatusCode());
+        assertTrue(user.getDeviceIds().isEmpty());
+        verify(userRepository).save(user);
+    }
+
+    @Test
     void resetPassword_WhenTokenInvalid_ShouldReturnBadRequest() throws Exception {
-        when(confirmationKeyRepo.findByToken("invalid-token")).thenReturn(Optional.empty());
+        String hashed = SecurityController.hashConfirmationToken("invalid-token");
+        when(confirmationKeyRepo.findByToken(hashed)).thenReturn(Optional.empty());
 
         mockMvc.perform(post("/api/v1/auth/reset-password")
                 .param("token", "invalid-token")

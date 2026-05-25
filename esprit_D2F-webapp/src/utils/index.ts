@@ -8,7 +8,7 @@
  * Conformité DSI §1.4 : Organisation Structurée du Code
  *
  * Usage :
- *   import { formatDate, requiredRule, authHeader } from "../utils";
+ *   import { formatDate, requiredRule, paginationParams } from "../utils";
  * =============================================================================
  */
 

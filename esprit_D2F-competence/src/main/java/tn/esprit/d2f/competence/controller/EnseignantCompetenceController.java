@@ -15,7 +15,6 @@ import tn.esprit.d2f.competence.dto.EnseignantCompetenceRequest;
 import tn.esprit.d2f.competence.entity.enumerations.NiveauMaitrise;
 import tn.esprit.d2f.competence.service.IEnseignantCompetenceService;
 
-import java.util.List;
 import java.util.Map;
 
 @Tag(name = "Affectations Enseignant", description = "Gestion des affectations compétences/savoirs aux enseignants")
@@ -33,31 +32,36 @@ public class EnseignantCompetenceController {
         return ResponseEntity.ok(enseignantCompetenceService.getAll(pageable));
     }
 
-    @Operation(summary = "Affectations d'un enseignant")
+    @Operation(summary = "Affectations d'un enseignant (paginé)")
     @GetMapping("/enseignant/{enseignantId}")
-    public ResponseEntity<List<EnseignantCompetenceDTO>> getByEnseignant(@PathVariable String enseignantId) {
-        return ResponseEntity.ok(enseignantCompetenceService.getCompetencesByEnseignant(enseignantId));
+    public ResponseEntity<Page<EnseignantCompetenceDTO>> getByEnseignant(
+            @PathVariable String enseignantId,
+            @PageableDefault(size = 20) Pageable pageable) {
+        return ResponseEntity.ok(enseignantCompetenceService.getCompetencesByEnseignant(enseignantId, pageable));
     }
 
-    @Operation(summary = "Affectations d'un enseignant filtrées par domaine")
+    @Operation(summary = "Affectations d'un enseignant filtrées par domaine (paginé)")
     @GetMapping("/enseignant/{enseignantId}/domaine/{domaineId}")
-    public ResponseEntity<List<EnseignantCompetenceDTO>> getByEnseignantAndDomaine(
-            @PathVariable String enseignantId, @PathVariable Long domaineId) {
-        return ResponseEntity.ok(enseignantCompetenceService.getCompetencesByEnseignantAndDomaine(enseignantId, domaineId));
+    public ResponseEntity<Page<EnseignantCompetenceDTO>> getByEnseignantAndDomaine(
+            @PathVariable String enseignantId, @PathVariable Long domaineId,
+            @PageableDefault(size = 20) Pageable pageable) {
+        return ResponseEntity.ok(enseignantCompetenceService.getCompetencesByEnseignantAndDomaine(enseignantId, domaineId, pageable));
     }
 
-    @Operation(summary = "Affectations d'un enseignant filtrées par compétence")
+    @Operation(summary = "Affectations d'un enseignant filtrées par compétence (paginé)")
     @GetMapping("/enseignant/{enseignantId}/competence/{competenceId}")
-    public ResponseEntity<List<EnseignantCompetenceDTO>> getByEnseignantAndCompetence(
-            @PathVariable String enseignantId, @PathVariable Long competenceId) {
-        return ResponseEntity.ok(enseignantCompetenceService.getCompetencesByEnseignantAndCompetence(enseignantId, competenceId));
+    public ResponseEntity<Page<EnseignantCompetenceDTO>> getByEnseignantAndCompetence(
+            @PathVariable String enseignantId, @PathVariable Long competenceId,
+            @PageableDefault(size = 20) Pageable pageable) {
+        return ResponseEntity.ok(enseignantCompetenceService.getCompetencesByEnseignantAndCompetence(enseignantId, competenceId, pageable));
     }
 
-    @Operation(summary = "Affectations d'un enseignant filtrées par niveau")
+    @Operation(summary = "Affectations d'un enseignant filtrées par niveau (paginé)")
     @GetMapping("/enseignant/{enseignantId}/niveau/{niveau}")
-    public ResponseEntity<List<EnseignantCompetenceDTO>> getByEnseignantAndNiveau(
-            @PathVariable String enseignantId, @PathVariable NiveauMaitrise niveau) {
-        return ResponseEntity.ok(enseignantCompetenceService.getCompetencesByEnseignantAndNiveau(enseignantId, niveau));
+    public ResponseEntity<Page<EnseignantCompetenceDTO>> getByEnseignantAndNiveau(
+            @PathVariable String enseignantId, @PathVariable NiveauMaitrise niveau,
+            @PageableDefault(size = 20) Pageable pageable) {
+        return ResponseEntity.ok(enseignantCompetenceService.getCompetencesByEnseignantAndNiveau(enseignantId, niveau, pageable));
     }
 
     @Operation(summary = "Nombre de savoirs maîtrisés par un enseignant")

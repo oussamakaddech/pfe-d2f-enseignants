@@ -95,18 +95,16 @@ export default function ExportMenu({ crud, structure, stats, handleExportExcel }
   ];
 
   return (
-    <>
-      <Dropdown
-        menu={{ items: menuItems, onClick: ({ key }) => { if (key !== "__stats__") run(key); } }}
-        trigger={["click"]}
-        placement="bottomRight"
-        aria-label="Menu d'export"
-      >
-        <Button icon={<DownloadOutlined />} size="middle" loading={loading}>
-          Exporter <span className="ctp-export-caret">▾</span>
-        </Button>
-      </Dropdown>
-    </>
+    <Dropdown
+      menu={{ items: menuItems, onClick: ({ key }) => { if (key !== "__stats__") run(key); } }}
+      trigger={["click"]}
+      placement="bottomRight"
+      aria-label="Menu d'export"
+    >
+      <Button icon={<DownloadOutlined />} size="middle" loading={loading}>
+        Exporter <span className="ctp-export-caret">▾</span>
+      </Button>
+    </Dropdown>
   );
 }
 

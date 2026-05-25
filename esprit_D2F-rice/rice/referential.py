@@ -19,10 +19,15 @@ from rice.nlp import _normalize, _codes_match, _detect_type
 
 logger = logging.getLogger("rice_analyzer")
 
-_KW_DIAGNOSTIC_URBAIN = _KW_DIAGNOSTIC_URBAIN
+_KW_DIAGNOSTIC_URBAIN = "diagnostic urbain"
 
 # ── Optional imports ─────────────────────────────────────────────────────────
+import os as _os
+_SEMANTIC_DISABLED_BY_ENV = _os.environ.get("RICE_DISABLE_SEMANTIC", "").lower() in ("1", "true", "yes")
+
 try:
+    if _SEMANTIC_DISABLED_BY_ENV:
+        raise ImportError("Semantic model disabled via RICE_DISABLE_SEMANTIC env var")
     from sentence_transformers import SentenceTransformer as _SentenceTransformer
     import numpy as _np
     _SEMANTIC_OK = True
@@ -163,13 +168,18 @@ _GC_FALLBACK_REF: Dict[str, Any] = {
                 "cvc", "plomberie", "ventilation dimensionner"],
         # ── E – Eau ───────────────────────────────────────────────────────
         "E1a": ["concevoir reseau hydraulique", "concevoir ouvrage hydraulique",
-                "hydraulique urbain conception", "hydrologie reseau conception"],
+                "hydraulique urbain conception", "hydrologie reseau conception",
+                "conception hydraulique"],
         "E1b": ["dimensionner reseau hydraulique", "dimensionner ouvrage hydraulique",
-                "calcul hydraulique", "dimensionner reseau assainissement"],
+                "calcul hydraulique", "dimensionner reseau assainissement",
+                "reseau assainissement", "debit crue", "crue debit"],
         "E2":  ["diagnostic hydrologie quantitative", "gestion reseau hydraulique",
-                "diagnostic reseau hydraulique", "hydrologie gestion"],
+                "diagnostic reseau hydraulique", "hydrologie gestion",
+                "hydrologie", "debit", "crue", "bassin versant",
+                "hydrologie quantitative"],
         "E3":  ["diagnostic environnemental eau", "systeme gestion eaux",
-                "traitement eaux", "gestion dechets eau", "assainissement diagnostic"],
+                "traitement eaux", "gestion dechets eau", "assainissement diagnostic",
+                "assainissement", "reseau eau"],
         # ── U – Urbanisme ─────────────────────────────────────────────────
         "U1":  ["analyser situation urbaine", "analyse urbaine", _KW_DIAGNOSTIC_URBAIN,
                 "situation technique urbaine", "echelle urbaine"],
@@ -272,23 +282,118 @@ _GENERIC_FALLBACK_REF: Dict = {
 }
 
 
+def _fetch_savoirs_from_db(cur, dept_key: str) -> Dict[str, List]:
+    cur.execute("""
+        SELECT column_name FROM information_schema.columns
+        WHERE table_schema = 'public' AND table_name = 'ref_savoirs'
+          AND column_name = 'departement'
+    """)
+    has_dept_col = cur.fetchone() is not None
+    if has_dept_col:
+        cur.execute("SELECT code, nom, keywords FROM ref_savoirs WHERE departement = %s", (dept_key,))
+    else:
+        cur.execute("SELECT code, nom, keywords FROM ref_savoirs")
+    override: Dict[str, List] = {}
+    for code, nom, keywords in cur.fetchall():
+        if isinstance(keywords, list):
+            kws = list(keywords)
+        elif isinstance(keywords, str):
+            kws = [k.strip().lower() for k in keywords.split(',') if k.strip()]
+        else:
+            kws = []
+        if nom:
+            kws_norm = [_normalize(k) for k in kws]
+            if _normalize(nom) not in kws_norm:
+                kws.append(nom.lower())
+        override[code] = kws
+    return override
+
+
+def _fetch_competences_from_db(cur, dept_key: str) -> Dict[str, Any]:
+    db_competences: Dict[str, Any] = {}
+    try:
+        cur.execute("""
+            SELECT EXISTS (
+                SELECT 1 FROM information_schema.tables
+                WHERE table_schema = 'public' AND table_name = 'ref_competences'
+            )
+        """)
+        if not cur.fetchone()[0]:
+            return db_competences
+        cur.execute("SELECT code, nom, keywords FROM ref_competences WHERE departement = %s", (dept_key,))
+        for comp_code, comp_nom, comp_kws in cur.fetchall():
+            kws = comp_kws if isinstance(comp_kws, list) else (
+                [k.strip().lower() for k in (comp_kws or "").split(",") if k.strip()]
+            )
+            db_competences[comp_code] = {"nom": comp_nom or comp_code, "keywords": kws}
+    except Exception as comp_exc:
+        logger.debug(f"Cannot load ref_competences for [{dept_key}]: {comp_exc}")
+    return db_competences
+
+
+def _fetch_domaines_from_db(cur, dept_key: str) -> Dict[str, str]:
+    db_domaines: Dict[str, str] = {}
+    try:
+        cur.execute("""
+            SELECT EXISTS (
+                SELECT 1 FROM information_schema.tables
+                WHERE table_schema = 'public' AND table_name = 'ref_domaines'
+            )
+        """)
+        if not cur.fetchone()[0]:
+            return db_domaines
+        cur.execute("SELECT code, nom FROM ref_domaines WHERE departement = %s", (dept_key,))
+        for dom_code, dom_nom in cur.fetchall():
+            db_domaines[dom_code] = dom_nom or dom_code
+    except Exception as dom_exc:
+        logger.debug(f"Cannot load ref_domaines for [{dept_key}]: {dom_exc}")
+    return db_domaines
+
+
+def _fetch_niveaux_from_db(dept_key: str) -> Dict[str, str]:
+    db_niveaux: Dict[str, str] = {}
+    try:
+        conn2 = _get_db_connection()
+        cur2 = conn2.cursor()
+        cur2.execute("""
+            SELECT column_name FROM information_schema.columns
+            WHERE table_schema = 'public' AND table_name = 'ref_savoirs'
+              AND column_name = 'niveau'
+        """)
+        if cur2.fetchone():
+            cur2.execute("SELECT code, niveau FROM ref_savoirs WHERE departement = %s AND niveau IS NOT NULL", (dept_key,))
+            for sav_code, sav_niveau in cur2.fetchall():
+                db_niveaux[sav_code] = sav_niveau
+        cur2.close(); _put_db_connection(conn2)
+    except Exception:
+        pass
+    return db_niveaux
+
+
+def _merge_gc_ref(base: Dict, override: Dict, db_competences: Dict, db_domaines: Dict) -> Dict:
+    return {
+        **base,
+        "savoirs":     {**base["savoirs"],    **override},
+        "competences": {**base["competences"], **db_competences} if db_competences else base["competences"],
+        "domaines":    {**base["domaines"],    **db_domaines}    if db_domaines    else base["domaines"],
+    }
+
+
+def _merge_non_gc_ref(override: Dict, db_competences: Dict, db_domaines: Dict, dept_key: str) -> Dict:
+    merged = {
+        **_EMPTY_REFERENTIAL,
+        "savoirs":     override,
+        "competences": db_competences,
+        "domaines":    db_domaines,
+        "niveaux":     {},
+    }
+    db_niveaux = _fetch_niveaux_from_db(dept_key)
+    if db_niveaux:
+        merged["niveaux"] = db_niveaux
+    return merged
+
+
 def _load_ref_from_db(departement: str = "gc") -> Optional[Dict]:
-    """Load the full department referential from DB: savoirs + competences + domaines.
-
-    Tables queried (all optional – graceful degradation when absent):
-    * ``ref_savoirs``    – savoir keywords, filtered by ``departement`` column when present
-    * ``ref_competences``– competence keywords per department (created by migrate script)
-    * ``ref_domaines``   – domain names per department (created by migrate script)
-
-    Behaviour:
-    * Génie Civil (``departement='gc'``): DB rows are merged **on top of** the
-      built-in ``_GC_FALLBACK_REF`` so that the in-memory dictionary acts as a
-      safety net when the DB table is empty or absent.
-    * Any other department: only DB rows are used.  Populate the tables via
-      ``seed_autres_departements.py`` (or the migration SQL script).
-
-    Returns the merged referential dict, or ``None`` on DB error / table absent.
-    """
     global _SEMANTIC_CORPUS_BUILT
     dept_key = departement.lower().strip()
     cached = _REF_DB_CACHE.get(dept_key, ttl=_REF_DB_TTL)
@@ -297,8 +402,6 @@ def _load_ref_from_db(departement: str = "gc") -> Optional[Dict]:
     try:
         conn = _get_db_connection()
         cur = conn.cursor()
-
-        # ── 1. Check ref_savoirs table existence ──────────────────────────
         cur.execute("""
             SELECT EXISTS (
                 SELECT 1 FROM information_schema.tables
@@ -309,123 +412,26 @@ def _load_ref_from_db(departement: str = "gc") -> Optional[Dict]:
             cur.close(); _put_db_connection(conn)
             return None
 
-        # ── 2. Load savoirs (filter by departement column when present) ────
-        cur.execute("""
-            SELECT column_name FROM information_schema.columns
-            WHERE table_schema = 'public' AND table_name = 'ref_savoirs'
-              AND column_name = 'departement'
-        """)
-        has_dept_col = cur.fetchone() is not None
-        if has_dept_col:
-            cur.execute("SELECT code, nom, keywords FROM ref_savoirs WHERE departement = %s",
-                        (dept_key,))
-        else:
-            cur.execute("SELECT code, nom, keywords FROM ref_savoirs")
-        override: Dict[str, List] = {}
-        for code, nom, keywords in cur.fetchall():
-            if isinstance(keywords, list):
-                kws = list(keywords)
-            elif isinstance(keywords, str):
-                kws = [k.strip().lower() for k in keywords.split(',') if k.strip()]
-            else:
-                kws = []
-            if nom:
-                kws_norm = [_normalize(k) for k in kws]
-                nom_norm = _normalize(nom)
-                if nom_norm not in kws_norm:
-                    kws.append(nom.lower())
-            override[code] = kws
-
-        # ── 3. Load competences from ref_competences (if table exists) ─────
-        db_competences: Dict[str, Any] = {}
-        try:
-            cur.execute("""
-                SELECT EXISTS (
-                    SELECT 1 FROM information_schema.tables
-                    WHERE table_schema = 'public' AND table_name = 'ref_competences'
-                )
-            """)
-            if cur.fetchone()[0]:
-                cur.execute("""
-                    SELECT code, nom, keywords
-                    FROM ref_competences
-                    WHERE departement = %s
-                """, (dept_key,))
-                for comp_code, comp_nom, comp_kws in cur.fetchall():
-                    kws = comp_kws if isinstance(comp_kws, list) else (
-                        [k.strip().lower() for k in (comp_kws or "").split(",") if k.strip()]
-                    )
-                    db_competences[comp_code] = {
-                        "nom": comp_nom or comp_code,
-                        "keywords": kws,
-                    }
-        except Exception as comp_exc:
-            logger.debug(f"Cannot load ref_competences for [{dept_key}]: {comp_exc}")
-
-        # ── 4. Load domaines from ref_domaines (if table exists) ───────────
-        db_domaines: Dict[str, str] = {}
-        try:
-            cur.execute("""
-                SELECT EXISTS (
-                    SELECT 1 FROM information_schema.tables
-                    WHERE table_schema = 'public' AND table_name = 'ref_domaines'
-                )
-            """)
-            if cur.fetchone()[0]:
-                cur.execute("""
-                    SELECT code, nom FROM ref_domaines WHERE departement = %s
-                """, (dept_key,))
-                for dom_code, dom_nom in cur.fetchall():
-                    db_domaines[dom_code] = dom_nom or dom_code
-        except Exception as dom_exc:
-            logger.debug(f"Cannot load ref_domaines for [{dept_key}]: {dom_exc}")
-
+        override = _fetch_savoirs_from_db(cur, dept_key)
+        db_competences = _fetch_competences_from_db(cur, dept_key)
+        db_domaines = _fetch_domaines_from_db(cur, dept_key)
         cur.close(); _put_db_connection(conn)
 
-        if override or db_competences or db_domaines:
-            if dept_key in ("gc", "genie_civil", "genie-civil"):
-                base = _GC_FALLBACK_REF
-                merged: Dict = {
-                    **base,
-                    "savoirs":     {**base["savoirs"],    **override},
-                    "competences": {**base["competences"], **db_competences} if db_competences else base["competences"],
-                    "domaines":    {**base["domaines"],    **db_domaines}    if db_domaines    else base["domaines"],
-                }
-            else:
-                merged = {
-                    **_EMPTY_REFERENTIAL,
-                    "savoirs":     override,
-                    "competences": db_competences,
-                    "domaines":    db_domaines,
-                    "niveaux":     {},
-                }
-                try:
-                    conn2 = _get_db_connection()
-                    cur2 = conn2.cursor()
-                    cur2.execute("""
-                        SELECT column_name FROM information_schema.columns
-                        WHERE table_schema = 'public' AND table_name = 'ref_savoirs'
-                          AND column_name = 'niveau'
-                    """)
-                    if cur2.fetchone():
-                        cur2.execute("""
-                            SELECT code, niveau FROM ref_savoirs
-                            WHERE departement = %s AND niveau IS NOT NULL
-                        """, (dept_key,))
-                        for sav_code, sav_niveau in cur2.fetchall():
-                            merged["niveaux"][sav_code] = sav_niveau
-                    cur2.close(); _put_db_connection(conn2)
-                except Exception:
-                    pass
+        if not override and not db_competences and not db_domaines:
+            return None
 
-            _REF_DB_CACHE.set(dept_key, merged)
-            logger.info(
-                f"Referential loaded from DB [{dept_key}]: "
-                f"{len(override)} savoirs, {len(db_competences)} compétences, "
-                f"{len(db_domaines)} domaines"
-            )
-            _SEMANTIC_CORPUS_BUILT = False
-            return merged
+        is_gc = dept_key in ("gc", "genie_civil", "genie-civil")
+        merged = _merge_gc_ref(_GC_FALLBACK_REF, override, db_competences, db_domaines) if is_gc \
+            else _merge_non_gc_ref(override, db_competences, db_domaines, dept_key)
+
+        _REF_DB_CACHE.set(dept_key, merged)
+        logger.info(
+            f"Referential loaded from DB [{dept_key}]: "
+            f"{len(override)} savoirs, {len(db_competences)} compétences, "
+            f"{len(db_domaines)} domaines"
+        )
+        _SEMANTIC_CORPUS_BUILT = False
+        return merged
     except Exception as exc:
         logger.debug(f"Cannot load referential from DB for [{dept_key}] (ok if absent): {exc}")
     return None
@@ -511,17 +517,12 @@ def _match_gc_savoir(text: str, departement: str = "gc") -> List[str]:
         if semantic_codes:
             logger.debug(f"Semantic [{departement}]: '{text[:60]}' → {semantic_codes}")
 
-    matches = []
-    for code, keywords in ref["savoirs"].items():
-        # Normalize each keyword (strip accents, lowercase) before comparing
-        # Weight each hit by the number of words in the keyword (longer = more specific)
-        score = sum(
-            len(kw.split())
-            for kw in keywords
-            if _normalize(kw) in norm
-        )
-        if score > 0:
-            matches.append((code, score))
+    norm_words = set(norm.split())
+    matches = [
+        (code, _score_keywords(norm, norm_words, keywords))
+        for code, keywords in ref["savoirs"].items()
+    ]
+    matches = [(code, score) for code, score in matches if score > 0]
     matches.sort(key=lambda x: x[1], reverse=True)
     keyword_codes = [code for code, _ in matches]
 
@@ -542,15 +543,10 @@ def _gc_ref_niveau(gc_codes: List[str], departement: str = "gc") -> Optional[str
 def _match_gc_competence(text: str, departement: str = "gc") -> Optional[str]:
     ref = _get_effective_referential(departement)
     norm = _normalize(text)
-    best_code = None
-    best_score = 0
+    norm_words = set(norm.split())
+    best_code, best_score = None, 0
     for code, info in ref["competences"].items():
-        # Normalize keywords and weight by word-count (longer keywords are more specific)
-        score = sum(
-            len(kw.split())
-            for kw in info["keywords"]
-            if _normalize(kw) in norm
-        )
+        score = _score_keywords(norm, norm_words, info["keywords"])
         if score > best_score:
             best_score = score
             best_code = code
@@ -564,6 +560,24 @@ def _suggest_gc_enseignants(savoir_codes: List[str]) -> List[str]:
         if any(_codes_match(ec, sc) for ec in codes for sc in savoir_codes):
             suggested.add(ens_id)
     return list(suggested)
+
+
+def _score_keywords(norm_text: str, norm_words: set, keywords: List[str]) -> int:
+    """Calculate keyword match score for given normalized text and keyword list."""
+    score = 0
+    for kw in keywords:
+        norm_kw = _normalize(kw)
+        kw_words = norm_kw.split()
+        if norm_kw in norm_text:
+            # Tier-1: full phrase match — high score (word count × 2)
+            score += len(kw_words) * 2
+        elif len(kw_words) > 1 and all(w in norm_words for w in kw_words):
+            # Tier-2: all words present but not consecutive — lower score
+            score += len(kw_words)
+        elif len(kw_words) == 1 and kw_words[0] in norm_words:
+            # Single-word keyword exact word match
+            score += 1
+    return score
 
 
 # _DepartmentReferentialManager
@@ -717,138 +731,117 @@ def _match_gc_savoir_semantic(text: str, threshold: float = 0.35, top_k: int = 5
         return []
 
 
-def _detect_departement(filenames: List[str], contents: List[bytes]) -> str:
-    """Heuristically infer the ESPRIT department code from filenames and file text.
+_DEPT_SIGNALS_WEIGHTED = [
+    (
+        "info",
+        [
+            ("web semantique", 5), ("semantic web", 5), ("ontologie", 4),
+            ("rdf", 4), ("owl", 3), ("sparql", 5), ("rdflib", 4),
+            ("owlready", 4), ("protege", 4), ("linked data", 4),
+            ("knowledge graph", 4), ("framework python", 3),
+            ("django", 3), ("flask", 3), ("fastapi", 3),
+            ("twin", 3), ("5twin", 3), ("up-web", 3), ("up-il", 3),
+            ("up-gl", 3), ("infdev", 3), ("infsec", 3), ("infweb", 3),
+            ("pidev", 3), ("base de donnees", 3), ("base de donnee", 3),
+            ("sql", 2), ("nosql", 2), ("mongodb", 2),
+            ("react", 2), ("angular", 2), ("vue", 2), ("spring", 2),
+            ("microservice", 3), ("algorithmique", 3), ("programmation", 2),
+            ("logiciel", 2), ("java", 3), ("python", 2),
+            ("javascript", 3), ("framework", 2), ("informatique", 3),
+            ("machine learning", 4), ("intelligence artificielle", 4),
+        ],
+    ),
+    (
+        "gc",
+        [
+            ("beton", 5), ("fondation", 4), ("geotechnique", 5),
+            ("structure portante", 5), ("hydraulique", 3),
+            ("ouvrage", 3), ("chaussee", 4), ("genie civil", 5),
+            ("topographie", 4),
+        ],
+    ),
+    ("ge", [("genie electrique", 5), ("electrotechnique", 4), ("automatique", 3), ("electronique", 4)]),
+    ("meca", [("genie mecanique", 5), ("thermodynamique", 4), ("usinage", 4), ("fabrication", 3)]),
+    ("telecom", [("telecom", 5), ("telecommunication", 5), ("signal numerique", 4), ("radiocommunication", 4)]),
+]
 
-    Priority order:
-      1. Filename pattern matching (word-boundary sigils like ``GC``, ``_INFO_``)
-      2. UP / UE code extraction from combined text
-      3. Keyword scoring over combined text
-    """
-    # ── 1. Filename-first heuristics (REF-2) ─────────────────────────────
-    fname_upper = " ".join(filenames).upper()
-    # GC: explicit word-boundary \bGC\b or hyphenated/underscore variants
-    if re.search(r"\bGC\b|[-_]GC[-_]|GENIE.?CIVIL", fname_upper):
-        logger.info("Auto-detected department from filename: 'gc'")
-        return "gc"
-    # INFO / GL / SIM / TWIN / PIDEV
-    if re.search(
-        r"\bINFO\b|_INFO_|[-_]INFO[-_]|INFORMATIQ|_GL_|[-_]GL[-_]"
-        r"|_SIM_|[-_]SIM[-_]|_TWIN_|PIDEV|DEVOPS|[-_]WEB[-_]|_WEB_",
-        fname_upper,
+_UP_TO_DEPT = {
+    'UPIL': 'info', 'UPGL': 'info', 'UPSIM': 'info', 'UPGC': 'gc',
+    'UPGE': 'ge', 'UPMECA': 'meca', 'UPTELECOM': 'telecom',
+}
+
+
+def _contains_any(text: str, needles: List[str]) -> bool:
+    return any(needle in text for needle in needles)
+
+
+def _detect_by_filename(fname_upper: str) -> Optional[str]:
+    if (
+        " GC " in f" {fname_upper} "
+        or _contains_any(fname_upper, ["-GC-", "_GC_", "GENIE CIVIL", "GENIE-CIVIL"])
     ):
-        logger.info("Auto-detected department from filename: 'info'")
+        return "gc"
+    if (
+        " INFO " in f" {fname_upper} "
+        or _contains_any(fname_upper, ["INFORMATIQ", "PIDEV", "DEVOPS", "-INFO-", "_INFO_", "-GL-", "_GL_", "-SIM-", "_SIM_", "-TWIN-", "_TWIN_", "-WEB-", "_WEB_"])
+    ):
         return "info"
-    # GE / électrique
-    if re.search(r"\bGE\b|[-_]GE[-_]|ELECTR", fname_upper):
-        logger.info("Auto-detected department from filename: 'ge'")
+    if " GE " in f" {fname_upper} " or _contains_any(fname_upper, ["-GE-", "_GE_", "ELECTR"]):
         return "ge"
-    # MECA
-    if re.search(r"\bMECA\b|[-_]MECA[-_]|MECANIQUE", fname_upper):
-        logger.info("Auto-detected department from filename: 'meca'")
+    if " MECA " in f" {fname_upper} " or _contains_any(fname_upper, ["-MECA-", "_MECA_", "MECANIQUE"]):
         return "meca"
-    # TELECOM
-    if re.search(r"\bTELECOM\b|TELECOMMUN", fname_upper):
-        logger.info("Auto-detected department from filename: 'telecom'")
+    if " TELECOM " in f" {fname_upper} " or "TELECOMMUN" in fname_upper:
         return "telecom"
+    return None
 
-    # ── 2. Build combined text from filenames + first 4 KB of each file ──
-    combined = " ".join(filenames).lower()
-    for data in contents:
-        try:
-            combined += " " + data[:4096].decode("utf-8", errors="ignore").lower()
-        except Exception:
-            pass
 
-    _DEPT_SIGNALS_WEIGHTED = [
-        (
-            "info",
-            [
-                ("web semantique", 5), ("semantic web", 5), ("ontologie", 4),
-                ("rdf", 4), ("owl", 3), ("sparql", 5), ("rdflib", 4),
-                ("owlready", 4), ("protege", 4), ("linked data", 4),
-                ("knowledge graph", 4), ("framework python", 3),
-                ("django", 3), ("flask", 3), ("fastapi", 3),
-                ("twin", 3), ("5twin", 3), ("up-web", 3), ("up-il", 3),
-                ("up-gl", 3), ("infdev", 3), ("infsec", 3), ("infweb", 3),
-                ("pidev", 3), ("base de donnees", 3), ("base de donnee", 3),
-                ("sql", 2), ("nosql", 2), ("mongodb", 2),
-                ("react", 2), ("angular", 2), ("vue", 2), ("spring", 2),
-                ("microservice", 3), ("algorithmique", 3), ("programmation", 2),
-                ("logiciel", 2), ("java", 3), ("python", 2),
-                ("javascript", 3), ("framework", 2), ("informatique", 3),
-                ("machine learning", 4), ("intelligence artificielle", 4),
-            ],
-        ),
-        (
-            "gc",
-            [
-                ("beton", 5), ("fondation", 4), ("geotechnique", 5),
-                ("structure portante", 5), ("hydraulique", 3),
-                ("ouvrage", 3), ("chaussee", 4), ("genie civil", 5),
-                ("topographie", 4),
-            ],
-        ),
-        ("ge", [("genie electrique", 5), ("electrotechnique", 4), ("automatique", 3), ("electronique", 4)]),
-        ("meca", [("genie mecanique", 5), ("thermodynamique", 4), ("usinage", 4), ("fabrication", 3)]),
-        ("telecom", [("telecom", 5), ("telecommunication", 5), ("signal numerique", 4), ("radiocommunication", 4)]),
-    ]
-
-    # ── 3. UP / UE code extraction ─────────────────────────────────────────
+def _detect_by_up_code(combined: str) -> Optional[str]:
     up_match = re.search(r'(?:unit[eé]\s+p[eé]dagogique|UP)\s*[:\-]?\s*(UP[\-_]?[A-Z]{2,6})', combined, re.IGNORECASE)
-    if up_match:
-        up_code = up_match.group(1).upper().replace('-', '').replace('_', '')
-        _UP_TO_DEPT = {
-            'UPIL': 'info', 'UPGL': 'info', 'UPSIM': 'info', 'UPGC': 'gc',
-            'UPGE': 'ge', 'UPMECA': 'meca', 'UPTELECOM': 'telecom',
-        }
-        up_dept = _UP_TO_DEPT.get(up_code)
-        if up_dept:
-            logger.info(f"Auto-detected department from UP code '{up_code}': '{up_dept}'")
-            return up_dept
+    if not up_match:
+        return None
+    up_code = up_match.group(1).upper().replace('-', '').replace('_', '')
+    return _UP_TO_DEPT.get(up_code)
 
+
+def _detect_by_ue_code(combined: str) -> Optional[str]:
     ue_match = re.search(r'(?:unit[eé]\s+d[\x27\u2019]enseignement|UE)\s*[:\-]?\s*([A-Z]{3,6}\w{2,10})', combined, re.IGNORECASE)
-    if ue_match:
-        ue_code = ue_match.group(1).upper()
-        if ue_code.startswith(('INF', 'DEV', 'WEB', 'SIM')):
-            logger.info(f"Auto-detected department from UE code '{ue_code}': 'info'")
-            return 'info'
-        elif ue_code.startswith('GC'):
-            logger.info(f"Auto-detected department from UE code '{ue_code}': 'gc'")
-            return 'gc'
-        elif ue_code.startswith('GE'):
-            logger.info(f"Auto-detected department from UE code '{ue_code}': 'ge'")
-            return 'ge'
+    if not ue_match:
+        return None
+    ue_code = ue_match.group(1).upper()
+    if ue_code.startswith(('INF', 'DEV', 'WEB', 'SIM')):
+        return 'info'
+    if ue_code.startswith('GC'):
+        return 'gc'
+    if ue_code.startswith('GE'):
+        return 'ge'
+    return None
 
-    # ── 3b. Module code detection (Code: MT-34 / INFxx / GCxx...) ───────
+
+def _detect_by_module_code(combined: str) -> Optional[str]:
     meta_code_match = re.search(
-        r"(?:code(?:\s+module|\s+ue)?|module)\s*[:\-]?\s*([A-Z]{1,5}[\-_]?\d{1,4}[A-Z]?)",
-        combined,
-        re.IGNORECASE,
+        r"(?:code(?:\s+(?:module|ue))?|module)\s*[:\-]?\s*([A-Z]{1,5}[-_]?\d{1,4}[A-Z]?)",
+        combined, re.IGNORECASE,
     )
-    if meta_code_match:
-        meta_code = meta_code_match.group(1).upper().replace("_", "-")
-        if any(meta_code.startswith(p) for p in ["INF", "DEV", "WEB", "SIM", "TV"]):
-            logger.info("Auto-detected department from module code '%s': 'info'", meta_code)
-            return "info"
-        if any(meta_code.startswith(p) for p in ["GC", "BTP", "CIV"]):
-            logger.info("Auto-detected department from module code '%s': 'gc'", meta_code)
-            return "gc"
-        if any(meta_code.startswith(p) for p in ["GE", "ELC", "AUT"]):
-            logger.info("Auto-detected department from module code '%s': 'ge'", meta_code)
-            return "ge"
-        if any(meta_code.startswith(p) for p in ["ME", "MEC", "ROB"]):
-            logger.info("Auto-detected department from module code '%s': 'meca'", meta_code)
-            return "meca"
-        if any(meta_code.startswith(p) for p in ["TEL", "COM", "RES"]):
-            logger.info("Auto-detected department from module code '%s': 'telecom'", meta_code)
-            return "telecom"
+    if not meta_code_match:
+        return None
+    meta_code = meta_code_match.group(1).upper().replace("_", "-")
+    code_map = [
+        (["INF", "DEV", "WEB", "SIM", "TV"], "info"),
+        (["GC", "BTP", "CIV"], "gc"),
+        (["GE", "ELC", "AUT"], "ge"),
+        (["ME", "MEC", "ROB"], "meca"),
+        (["TEL", "COM", "RES"], "telecom"),
+    ]
+    for prefixes, dept in code_map:
+        if any(meta_code.startswith(p) for p in prefixes):
+            return dept
+    return None
 
-    # ── 4. Weighted keyword scoring ───────────────────────────────────────
+
+def _detect_by_keywords(combined: str) -> str:
     best_dept, best_score = "gc", 0
     for dept_code, weighted_keywords in _DEPT_SIGNALS_WEIGHTED:
         score = sum(weight for kw, weight in weighted_keywords if kw in combined)
-        # MT-* is ambiguous in isolation, but often INFO in web/software contexts.
         if dept_code == "info" and "mt-" in combined and any(
             kw in combined for kw in ["web", "sparql", "rdf", "owl", "ontologie", "informatique"]
         ):
@@ -856,5 +849,43 @@ def _detect_departement(filenames: List[str], contents: List[bytes]) -> str:
         if score > best_score:
             best_score = score
             best_dept = dept_code
-    logger.info(f"Auto-detected department: '{best_dept}' (score={best_score})")
     return best_dept
+
+
+def _build_combined_text(filenames: List[str], contents: List[bytes]) -> str:
+    combined = " ".join(filenames).lower()
+    for data in contents:
+        try:
+            combined += " " + data[:4096].decode("utf-8", errors="ignore").lower()
+        except Exception:
+            pass
+    return combined
+
+
+def _detect_departement(filenames: List[str], contents: List[bytes]) -> str:
+    fname_upper = " ".join(filenames).upper()
+    dept = _detect_by_filename(fname_upper)
+    if dept:
+        logger.info(f"Auto-detected department from filename: '{dept}'")
+        return dept
+
+    combined = _build_combined_text(filenames, contents)
+
+    dept = _detect_by_up_code(combined)
+    if dept:
+        logger.info(f"Auto-detected department from UP code: '{dept}'")
+        return dept
+
+    dept = _detect_by_ue_code(combined)
+    if dept:
+        logger.info(f"Auto-detected department from UE code '{dept}'")
+        return dept
+
+    dept = _detect_by_module_code(combined)
+    if dept:
+        logger.info(f"Auto-detected department from module code '{dept}'")
+        return dept
+
+    dept = _detect_by_keywords(combined)
+    logger.info(f"Auto-detected department: '{dept}' (keyword match)")
+    return dept

@@ -28,6 +28,8 @@ public class AnalysePredictiveService {
     private static final String PRIORITE_HAUTE = "haute";
     private static final String PRIORITE = "priorite";
     private static final String EVALUATIONS_GLOBALES = "/evaluation/evaluations-globales";
+    private static final String TOTAL_EVALUATIONS = "totalEvaluations";
+    private static final String NOTE_MOYENNE = "noteMoyenne";
 
     private final RestTemplate restTemplate;
 
@@ -301,17 +303,19 @@ public class AnalysePredictiveService {
     public Map<String, Object> analyserTendancesGlobales() {
         Map<String, Object> result = new LinkedHashMap<>();
         Map<String, Object> stats = new LinkedHashMap<>();
+        stats.put(TOTAL_EVALUATIONS, 0);
+        stats.put(NOTE_MOYENNE, 0.0);
         try {
             String evalUrl = evaluationServiceUrl + EVALUATIONS_GLOBALES;
             List<Map<String, Object>> evals = restTemplate.getForObject(evalUrl, List.class);
             if (evals != null) {
-                stats.put("totalEvaluations", evals.size());
-                stats.put("noteMoyenne", evals.stream().filter(e -> e.get("note") != null).mapToDouble(e -> ((Number) e.get("note")).doubleValue()).average().orElse(0.0));
+                stats.put(TOTAL_EVALUATIONS, evals.size());
+                stats.put(NOTE_MOYENNE, evals.stream().filter(e -> e.get("note") != null).mapToDouble(e -> ((Number) e.get("note")).doubleValue()).average().orElse(0.0));
             }
         } catch (Exception e) {
             log.warn("Service evaluation indisponible pour tendances");
-            stats.put("totalEvaluations", 0);
-            stats.put("noteMoyenne", 0.0);
+            stats.put(TOTAL_EVALUATIONS, 0);
+            stats.put(NOTE_MOYENNE, 0.0);
         }
         result.put("statistiques", stats);
         result.put("dashboard", genererDashboard());
@@ -363,8 +367,8 @@ public class AnalysePredictiveService {
     }
 
     private int getPrioriteOrder(Object priorite) {
-        if (PRIORITE_HAUTE.equals(priorite)) return 3;
-        if (MOYENNE.equals(priorite)) return 2;
+        if (PRIORITE_HAUTE.equals(priorite) || GRAVITE_ELEVEE.equals(priorite)) return 3;
+        if (MOYENNE.equals(priorite) || GRAVITE_MOYENNE.equals(priorite)) return 2;
         return 1;
     }
 }

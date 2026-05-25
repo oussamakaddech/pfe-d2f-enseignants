@@ -5,12 +5,12 @@ const { Text } = Typography;
 
 interface PageLoaderProps {
   /** Texte optionnel sous le spinner */
-  tip?: string;
+  readonly tip?: string;
   /** Taille du spinner */
-  size?: "small" | "default" | "large";
+  readonly size?: "small" | "default" | "large";
   /** Hauteur minimale du conteneur */
-  minHeight?: number | string;
-  className?: string;
+  readonly minHeight?: number | string;
+  readonly className?: string;
 }
 
 /**

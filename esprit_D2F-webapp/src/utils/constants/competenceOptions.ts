@@ -1,4 +1,3 @@
-// src/pages/competence/constants/competenceOptions.js
 
 export const TYPE_SAVOIR_OPTIONS = ["THEORIQUE", "PRATIQUE"];
 

@@ -3,6 +3,8 @@ package esprit.pfe.serviceformation.exception;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.transaction.TransactionSystemException;
 
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -38,6 +40,24 @@ class GlobalExceptionHandlerTest {
 
         @GetMapping("/test-general")
         public void throwGeneral() throws Exception { throw new Exception("General"); }
+
+        @GetMapping("/test-entity-not-found")
+        public void throwEntityNotFound() { throw new jakarta.persistence.EntityNotFoundException("Entity missing"); }
+
+        @GetMapping("/test-formation-state")
+        public void throwFormationState() { throw new FormationStateException("State mismatch"); }
+
+        @GetMapping("/test-inscription")
+        public void throwInscription() { throw new InscriptionException("Inscription blocked"); }
+
+        @GetMapping("/test-illegal-state")
+        public void throwIllegalState() { throw new IllegalStateException("Bad state"); }
+
+        @GetMapping("/test-not-readable")
+        public void throwNotReadable() { throw new HttpMessageNotReadableException("Bad body", (org.springframework.http.HttpInputMessage) null); }
+
+        @GetMapping("/test-transaction")
+        public void throwTransaction() { throw new TransactionSystemException("Tx failed", new RuntimeException("Root cause")); }
     }
 
     @BeforeEach
@@ -87,5 +107,47 @@ class GlobalExceptionHandlerTest {
         mockMvc.perform(get("/test-general"))
                 .andExpect(status().isInternalServerError())
                 .andExpect(jsonPath("$.errorCode").value("FORM-500"));
+    }
+
+    @Test
+    void testHandleEntityNotFound() throws Exception {
+        mockMvc.perform(get("/test-entity-not-found"))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.errorCode").value("FORM-404"));
+    }
+
+    @Test
+    void testHandleFormationState() throws Exception {
+        mockMvc.perform(get("/test-formation-state"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.errorCode").value("FORMATION_INVALID_STATE_TRANSITION"));
+    }
+
+    @Test
+    void testHandleInscription() throws Exception {
+        mockMvc.perform(get("/test-inscription"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.errorCode").value("FORM-INSCRIPTION-409"));
+    }
+
+    @Test
+    void testHandleIllegalState() throws Exception {
+        mockMvc.perform(get("/test-illegal-state"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errorCode").value("FORM-400"));
+    }
+
+    @Test
+    void testHandleNotReadable() throws Exception {
+        mockMvc.perform(get("/test-not-readable"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errorCode").value("FORM-400"));
+    }
+
+    @Test
+    void testHandleTransaction() throws Exception {
+        mockMvc.perform(get("/test-transaction"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.errorCode").value("FORM-400"));
     }
 }

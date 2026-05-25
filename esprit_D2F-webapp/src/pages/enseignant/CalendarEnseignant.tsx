@@ -1,6 +1,5 @@
-// src/pages/Enseignant/CalendarEnseignant.jsx
 
-import { useEffect, useState } from "react";
+import { useState, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Calendar, dateFnsLocalizer } from "react-big-calendar";
 import { format, parse, startOfWeek, getDay } from "date-fns";
@@ -9,7 +8,6 @@ import {
   Button,
   Modal,
   Typography,
-  Divider,
   Row,
   Col,
   Space,
@@ -25,11 +23,49 @@ import {
   EnvironmentOutlined,
   ApartmentOutlined,
 } from "@ant-design/icons";
-import FormationWorkflowService from "@/services/formation/FormationWorkflowService";
+import { useFormationsForCalendar } from "@/hooks/formation";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import "@/styles/pages/calendar-enseignant.css";
 
 const { Title, Text } = Typography;
+
+const seanceHasAnimateur = (seance, enseignantId) =>
+  seance.animateurs.some((e) => e.id === enseignantId);
+
+const seanceHasParticipant = (seance, enseignantId) =>
+  seance.participants.some((e) => e.id === enseignantId);
+
+const toAnimateurEvent = (f, s) => ({
+  id: `A-${f.idFormation}-${s.idSeance}`,
+  title: f.titreFormation,
+  start: new Date(`${s.dateSeance}T${s.heureDebut}`),
+  end: new Date(`${s.dateSeance}T${s.heureFin}`),
+  allDay: false,
+  resource: { role: "animateur", formation: f, seance: s },
+});
+
+const toParticipantEvent = (f, s) => ({
+  id: `P-${f.idFormation}-${s.idSeance}`,
+  title: f.titreFormation,
+  start: new Date(`${s.dateSeance}T${s.heureDebut}`),
+  end: new Date(`${s.dateSeance}T${s.heureFin}`),
+  allDay: false,
+  resource: { role: "participant", formation: f, seance: s },
+});
+
+const buildAnimateurEvents = (formations, enseignantId) =>
+  formations.flatMap((f) =>
+    f.seances
+      .filter((s) => seanceHasAnimateur(s, enseignantId))
+      .map((s) => toAnimateurEvent(f, s))
+  );
+
+const buildParticipantEvents = (formations, enseignantId) =>
+  formations.flatMap((f) =>
+    f.seances
+      .filter((s) => seanceHasParticipant(s, enseignantId))
+      .map((s) => toParticipantEvent(f, s))
+  );
 
 const locales = { fr };
 const localizer = dateFnsLocalizer({
@@ -46,59 +82,31 @@ export default function CalendarEnseignant() {
 
   const [date, setDate] = useState(new Date());
   const [view, setView] = useState("month");
-  const [events, setEvents] = useState([]);
-  const [enseignantInfo, setEnseignantInfo] = useState(null);
   const [open, setOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState(null);
 
-  useEffect(() => {
-    async function fetchEvents() {
-      try {
-        const dto = await FormationWorkflowService.getFormationsForCalendar(enseignantId);
+  const { data: calendarDto } = useFormationsForCalendar(enseignantId);
+  const dto = calendarDto as { asAnimateur: unknown[]; asParticipant: unknown[] } | undefined;
 
-        const enseignant =
-          dto.asAnimateur.flatMap((f) => f.seances)
-            .find((s) => s.animateurs.some((e) => e.id === enseignantId))
-            ?.animateurs.find((e) => e.id === enseignantId) ||
-          dto.asParticipant.flatMap((f) => f.seances)
-            .find((s) => s.participants.some((e) => e.id === enseignantId))
-            ?.participants.find((e) => e.id === enseignantId);
+  const enseignantInfo = useMemo(() => {
+    if (!dto) return null;
+    return (dto.asAnimateur as { seances?: { animateurs?: { id?: unknown; nom?: string; prenom?: string; deptLibelle?: string; upLibelle?: string }[] }[] }[])
+      .flatMap((f) => f.seances ?? [])
+      .find((s) => seanceHasAnimateur(s, enseignantId))
+      ?.animateurs?.find((e) => e.id === enseignantId) ||
+    (dto.asParticipant as { seances?: { participants?: { id?: unknown; nom?: string; prenom?: string; deptLibelle?: string; upLibelle?: string }[] }[] }[])
+      .flatMap((f) => f.seances ?? [])
+      .find((s) => seanceHasParticipant(s, enseignantId))
+      ?.participants?.find((e) => e.id === enseignantId);
+  }, [dto, enseignantId]);
 
-        setEnseignantInfo(enseignant);
-
-        const animateurEvents = dto.asAnimateur.flatMap((f) =>
-          f.seances
-            .filter((s) => s.animateurs.some((e) => e.id === enseignantId))
-            .map((s) => ({
-              id: `A-${f.idFormation}-${s.idSeance}`,
-              title: f.titreFormation,
-              start: new Date(`${s.dateSeance}T${s.heureDebut}`),
-              end: new Date(`${s.dateSeance}T${s.heureFin}`),
-              allDay: false,
-              resource: { role: "animateur", formation: f, seance: s },
-            }))
-        );
-
-        const participantEvents = dto.asParticipant.flatMap((f) =>
-          f.seances
-            .filter((s) => s.participants.some((e) => e.id === enseignantId))
-            .map((s) => ({
-              id: `P-${f.idFormation}-${s.idSeance}`,
-              title: f.titreFormation,
-              start: new Date(`${s.dateSeance}T${s.heureDebut}`),
-              end: new Date(`${s.dateSeance}T${s.heureFin}`),
-              allDay: false,
-              resource: { role: "participant", formation: f, seance: s },
-            }))
-        );
-
-        setEvents([...animateurEvents, ...participantEvents]);
-      } catch (err) {
-        console.error("Erreur chargement du calendrier :", err);
-      }
-    }
-    fetchEvents();
-  }, [enseignantId]);
+  const events = useMemo(() => {
+    if (!dto) return [];
+    return [
+      ...buildAnimateurEvents(dto.asAnimateur, enseignantId),
+      ...buildParticipantEvents(dto.asParticipant, enseignantId),
+    ];
+  }, [dto, enseignantId]);
 
   const eventStyleGetter = (event) => ({
     style: {
@@ -125,15 +133,13 @@ export default function CalendarEnseignant() {
 
   const isAnimateur = selectedEvent?.resource.role === "animateur";
 
-  const seancePeople = selectedEvent
-    ? (isAnimateur
-        ? selectedEvent.resource.formation.seances.find(
-            (s) => s.idSeance === selectedEvent.resource.seance.idSeance
-          )?.participants ?? []
-        : selectedEvent.resource.formation.seances.find(
-            (s) => s.idSeance === selectedEvent.resource.seance.idSeance
-          )?.animateurs ?? [])
-    : [];
+  let seancePeople: unknown[] = [];
+  if (selectedEvent) {
+    const seance = selectedEvent.resource.formation.seances.find(
+      (s) => s.idSeance === selectedEvent.resource.seance.idSeance
+    );
+    seancePeople = isAnimateur ? seance?.participants ?? [] : seance?.animateurs ?? [];
+  }
 
   return (
     <div className="cal-ens-container">
@@ -183,11 +189,11 @@ export default function CalendarEnseignant() {
         <Space wrap size={12} align="center">
           <span className="cal-ens-legend-label">Légende :</span>
           <span className="cal-ens-legend-item animateur">
-            <span className="cal-ens-legend-dot" />
+            <span className="cal-ens-legend-dot" />{" "}
             Animateur
           </span>
           <span className="cal-ens-legend-item participant">
-            <span className="cal-ens-legend-dot" />
+            <span className="cal-ens-legend-dot" />{" "}
             Participant
           </span>
         </Space>

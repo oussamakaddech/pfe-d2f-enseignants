@@ -345,10 +345,9 @@ try:
 except ImportError:
     _SEMANTIC_OK = False
 
-# ── LLM disabled (Ollama removed) ────────────────────────────────────────────
+# ── LLM disabled (fallback NLP only) ────────────────────────────────────────
 _LLM_OK = False
 _LLM_MODEL = "none"
-_OLLAMA_HOST = "disabled"
 _LLM_TIMEOUT = 0
 
 # ── Authentication / Authorization ────────────────────────────────────────
@@ -872,7 +871,7 @@ def _detect_type(text: str, departement: str = "gc") -> str:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# LLM Layer – Ollama-powered extraction (augments & replaces regex NLP)
+# LLM Layer – disabled; regex/table NLP remains the active path
 # ─────────────────────────────────────────────────────────────────────────────
 
 _LLM_TIMEOUT = int(os.getenv("RICE_LLM_TIMEOUT", "90"))  # seconds
@@ -888,7 +887,7 @@ def _escape_prompt(text: str) -> str:
 
 
 def _llm_chat(messages: List[Dict], temperature: float = 0.05) -> Optional[str]:
-    """LLM stub — always returns None (Ollama removed).
+    """LLM stub — always returns None.
 
     The NLP pipeline falls back to table-based and regex-based NER
     automatically when this function returns None.
@@ -1513,7 +1512,7 @@ def _extract_metadata(text: str, raw_tables: Optional[List] = None) -> Dict[str,
     NLP-based Named Entity extraction for fiche module metadata.
 
     Strategy (priority order):
-    1. **LLM-based NER** (primary) — Ollama local model understands any layout.
+    1. **LLM-based NER** (disabled) — fallback NLP handles layout variations.
     2. **Table-based NER** (fills gaps) — pdfplumber structured tables.
     3. **Regex-based NER** (fills remaining gaps) — pattern matching fallback.
     """

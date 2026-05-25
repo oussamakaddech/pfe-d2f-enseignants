@@ -11,8 +11,11 @@ import java.util.List;
 public interface ISavoirService {
     Page<SavoirDTO> getAllSavoirs(Pageable pageable);
     List<SavoirDTO> getSavoirsBySousCompetence(Long sousCompetenceId);
+    Page<SavoirDTO> getSavoirsBySousCompetence(Long sousCompetenceId, Pageable pageable);
     List<SavoirDTO> getSavoirsByCompetence(Long competenceId);
+    Page<SavoirDTO> getSavoirsByCompetence(Long competenceId, Pageable pageable);
     List<SavoirDTO> getSavoirsByType(TypeSavoir type);
+    Page<SavoirDTO> getSavoirsByType(TypeSavoir type, Pageable pageable);
     SavoirDTO getSavoirById(Long id);
     SavoirDTO createSavoir(Long sousCompetenceId, SavoirRequest request);
     SavoirDTO createSavoirForCompetence(Long competenceId, SavoirRequest request);

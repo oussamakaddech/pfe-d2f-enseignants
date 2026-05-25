@@ -71,7 +71,7 @@ function createStyledSheet(data, sheetName, headerColors) {
 
 export function buildCSVString(rows, columns) {
   const header = columns.map((c) => `"${c.label}"`).join(",");
-  const body = rows.map((row) => columns.map((c) => `"${String(row[c.key] ?? "").replace(/"/g, '""')}"`).join(","));
+  const body = rows.map((row) => columns.map((c) => `"${String(row[c.key] ?? "").replaceAll('"', '""')}"`).join(","));
   return [header, ...body].join("\n");
 }
 
@@ -83,7 +83,7 @@ export function downloadFile(content, filename, mimeType) {
   a.download = filename;
   document.body.appendChild(a);
   a.click();
-  document.body.removeChild(a);
+  a.remove();
   URL.revokeObjectURL(url);
 }
 
@@ -135,11 +135,9 @@ export function doExportStructureExcel(crud, domaineId) {
     XLSX.utils.json_to_sheet(
       f.savoirs.map((s) => {
         const fsc = f.sousComps.find((sc) => String(sc.id) === String(s.sousCompetenceId));
-        const comp = fsc
-          ? f.competences.find((c) => String(c.id) === String(fsc.competenceId))
-          : s.competenceId != null
-            ? f.competences.find((c) => String(c.id) === String(s.competenceId))
-            : null;
+        let comp = null;
+        if (fsc) comp = f.competences.find((c) => String(c.id) === String(fsc.competenceId)) ?? null;
+        else if (s.competenceId != null) comp = f.competences.find((c) => String(c.id) === String(s.competenceId)) ?? null;
         return {
           Code: s.code,
           Nom: s.nom,
@@ -166,11 +164,9 @@ export function doExportSavoirsExcel(crud, domaineId) {
     XLSX.utils.json_to_sheet(
       f.savoirs.map((s) => {
         const fsc = f.sousComps.find((sc) => String(sc.id) === String(s.sousCompetenceId));
-        const comp = fsc
-          ? f.competences.find((c) => String(c.id) === String(fsc.competenceId))
-          : s.competenceId != null
-            ? f.competences.find((c) => String(c.id) === String(s.competenceId))
-            : null;
+        let comp = null;
+        if (fsc) comp = f.competences.find((c) => String(c.id) === String(fsc.competenceId)) ?? null;
+        else if (s.competenceId != null) comp = f.competences.find((c) => String(c.id) === String(s.competenceId)) ?? null;
         const dom = comp ? f.domaines.find((d) => String(d.id) === String(comp.domaineId)) : null;
         return {
           Code: s.code,
@@ -246,11 +242,9 @@ export function doExportSavoirsCSV(crud, domaineId) {
 
   const rows = f.savoirs.map((s) => {
     const fsc = f.sousComps.find((sc) => String(sc.id) === String(s.sousCompetenceId));
-    const comp = fsc
-      ? f.competences.find((c) => String(c.id) === String(fsc.competenceId))
-      : s.competenceId != null
-        ? f.competences.find((c) => String(c.id) === String(s.competenceId))
-        : null;
+    let comp = null;
+    if (fsc) comp = f.competences.find((c) => String(c.id) === String(fsc.competenceId)) ?? null;
+    else if (s.competenceId != null) comp = f.competences.find((c) => String(c.id) === String(s.competenceId)) ?? null;
     const dom = comp ? f.domaines.find((d) => String(d.id) === String(comp.domaineId)) : null;
 
     return {

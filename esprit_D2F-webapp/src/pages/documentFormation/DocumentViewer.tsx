@@ -1,4 +1,3 @@
-// src/components/DocumentViewer.jsx
 
 import PropTypes from "prop-types";
 import { Card, Button, Image, Typography } from "antd";

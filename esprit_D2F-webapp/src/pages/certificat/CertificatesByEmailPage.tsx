@@ -1,14 +1,12 @@
-// src/pages/CertificatesByEmailPage.js
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Row, Col, Card, Typography, Tag, Empty, Statistic } from "antd";
 import {
   FilePdfOutlined,
   SafetyCertificateOutlined,
-  DownloadOutlined,
   EyeOutlined,
   FileProtectOutlined,
 } from "@ant-design/icons";
-import CertificateService from "@/services/certificat/CertificateService";
+import { useCertificatesByEmail } from "@/hooks/certificat/useCertificats";
 import CertificatePdfViewer from "./CertificatePdfViewer";
 import { AppPageHeader, brand } from "@/components/common";
 import "@/styles/pages/certificates-by-email-page.css";
@@ -16,20 +14,8 @@ import "@/styles/pages/certificates-by-email-page.css";
 const { Text, Title } = Typography;
 
 function CertificatesByEmailPage() {
-  const [certificates, setCertificates] = useState([]);
+  const { data: certificates = [] } = useCertificatesByEmail();
   const [selectedCertificate, setSelectedCertificate] = useState(null);
-
-  useEffect(() => {
-    async function fetchData() {
-      try {
-        const response = await CertificateService.getCertificatesByEmail();
-        setCertificates(response.data);
-      } catch (error) {
-        console.error("Erreur lors de la récupération des certificats :", error);
-      }
-    }
-    fetchData();
-  }, []);
 
   const handleSelectCertificate = (cert) => {
     setSelectedCertificate(cert);

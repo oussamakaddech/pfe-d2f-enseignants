@@ -1,7 +1,7 @@
 """All API routers for the predictive analytics service."""
 
 from datetime import date
-from typing import Any, Optional
+from typing import Annotated, Any, Optional
 
 from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy import text
@@ -20,9 +20,12 @@ from app.services.data_service import DataService
 
 router = APIRouter()
 
+DBSession = Annotated[Session, Depends(get_db)]
+OptStrQuery = Annotated[Optional[str], Query(alias="deptId")]
 
-@router.get("/health", response_model=HealthResponse, tags=["Health"])
-async def health_check(db: Session = Depends(get_db)) -> HealthResponse:
+
+@router.get("/health", tags=["Health"])
+async def health_check(db: DBSession) -> HealthResponse:
     """Health check endpoint for Docker and monitoring.
 
     Verifies both the service and the database connectivity.
@@ -39,11 +42,11 @@ async def health_check(db: Session = Depends(get_db)) -> HealthResponse:
 
 # ── Predict ────────────────────────────────────
 
-@router.post("/predict/gaps/{teacher_id}", response_model=GapPredictionResponse, tags=["Prediction"])
+@router.post("/predict/gaps/{teacher_id}", tags=["Prediction"])
 async def predict_gaps(
     teacher_id: str,
     request: GapPredictionRequest,
-    db: Session = Depends(get_db),
+    db: DBSession,
 ) -> GapPredictionResponse:
     """Predict competency gaps for a teacher in N months."""
     data = DataService(db)
@@ -73,7 +76,7 @@ async def predict_gaps(
 
 
 @router.post("/predict/train", tags=["Prediction"])
-async def train_gap_model(db: Session = Depends(get_db)) -> dict[str, Any]:
+async def train_gap_model(db: DBSession) -> dict[str, Any]:
     """Trigger model retraining on current database snapshot.
 
     Returns training metrics if successful, or a helpful diagnostic message
@@ -118,7 +121,7 @@ async def train_gap_model(db: Session = Depends(get_db)) -> dict[str, Any]:
 
 
 @router.get("/predict/drift", tags=["Prediction"])
-async def check_model_drift(db: Session = Depends(get_db)) -> dict[str, Any]:
+async def check_model_drift(db: DBSession) -> dict[str, Any]:
     """Check for data/model drift by comparing current data against training metadata."""
     data = DataService(db)
     teachers = data.get_teacher_profile()
@@ -172,10 +175,10 @@ def _compute_relevance_score(formation: dict, current_level: float, target_level
     return round(min(1.0, max(0.0, score)), 3)
 
 
-@router.post("/recommend/path", response_model=PathRecommendationResponse, tags=["Recommendation"])
+@router.post("/recommend/path", tags=["Recommendation"])
 async def recommend_path(
     request: PathRecommendationRequest,
-    db: Session = Depends(get_db),
+    db: DBSession,
 ) -> PathRecommendationResponse:
     """Recommend a personalized training path for a teacher to reach a target competency."""
     data = DataService(db)
@@ -312,11 +315,11 @@ def _compute_teacher_risk(t: dict) -> dict:
     }
 
 
-@router.get("/detect/at-risk-teachers", response_model=AtRiskTeachersResponse, tags=["Detection"])
+@router.get("/detect/at-risk-teachers", tags=["Detection"])
 async def detect_at_risk_teachers(
     threshold: float = 0.7,
-    dept_id: Optional[str] = Query(default=None, alias="deptId"),
-    db: Session = Depends(get_db),
+    dept_id: OptStrQuery = None,
+    db: DBSession = None,
 ) -> AtRiskTeachersResponse:
     """Detect teachers at risk based on competency gaps and engagement.
 
@@ -375,7 +378,7 @@ def _is_in_demand(d: dict) -> bool:
 
 
 @router.get("/dashboard/declining-competencies", tags=["Dashboard"])
-async def declining_competencies(db: Session = Depends(get_db)) -> list[dict[str, Any]]:
+async def declining_competencies(db: DBSession) -> list[dict[str, Any]]:
     """Competencies whose recent demand has dropped vs the 12-month baseline."""
     data = DataService(db)
     demand = data.get_besoin_demand()
@@ -386,7 +389,7 @@ async def declining_competencies(db: Session = Depends(get_db)) -> list[dict[str
 
 
 @router.get("/dashboard/in-demand-competencies", tags=["Dashboard"])
-async def in_demand_competencies(db: Session = Depends(get_db)) -> list[dict[str, Any]]:
+async def in_demand_competencies(db: DBSession) -> list[dict[str, Any]]:
     """Competencies most frequently requested in recent training needs."""
     data = DataService(db)
     demand = data.get_besoin_demand()
@@ -401,8 +404,8 @@ async def in_demand_competencies(db: Session = Depends(get_db)) -> list[dict[str
 
 @router.get("/dashboard/teacher-risk-indicators", tags=["Dashboard"])
 async def teacher_risk_indicators(
-    dept_id: Optional[str] = Query(default=None, alias="deptId"),
-    db: Session = Depends(get_db),
+    dept_id: OptStrQuery,
+    db: DBSession,
 ) -> list[dict[str, Any]]:
     """Per-teacher risk indicators for attrition and disengagement."""
     data = DataService(db)
@@ -414,10 +417,10 @@ async def teacher_risk_indicators(
     return [_compute_teacher_risk(t) for t in teachers]
 
 
-@router.get("/dashboard/summary", response_model=DashboardResponse, tags=["Dashboard"])
+@router.get("/dashboard/summary", tags=["Dashboard"])
 async def dashboard_summary(
-    dept_id: Optional[str] = Query(default=None, alias="deptId"),
-    db: Session = Depends(get_db),
+    dept_id: OptStrQuery,
+    db: DBSession,
 ) -> DashboardResponse:
     """Combined dashboard with all KPIs. Optional department filter.
 
@@ -457,7 +460,7 @@ async def dashboard_summary(
 @router.get("/dashboard/department/{dept_id}", tags=["Dashboard"])
 async def department_dashboard(
     dept_id: str,
-    db: Session = Depends(get_db),
+    db: DBSession,
 ) -> dict[str, Any]:
     """Dashboard filtered for a specific department."""
     data = DataService(db)

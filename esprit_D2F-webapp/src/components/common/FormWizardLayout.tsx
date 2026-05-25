@@ -1,17 +1,16 @@
 import { Steps, Card } from "antd";
-import { neutral, radius, shadow } from "@/styles/themes/tokens";
 
 interface FormWizardLayoutProps {
   /** Étape active */
-  currentStep: number;
+  readonly currentStep: number;
   /** Définition des étapes */
-  steps: Array<{ title: string; icon?: React.ReactNode }>;
+  readonly steps: Array<{ title: string; icon?: React.ReactNode }>;
   /** Contenu de l'étape active */
-  children: React.ReactNode;
+  readonly children: React.ReactNode;
   /** Footer (boutons navigation) */
-  footer?: React.ReactNode;
+  readonly footer?: React.ReactNode;
   /** Classe CSS */
-  className?: string;
+  readonly className?: string;
 }
 
 /**

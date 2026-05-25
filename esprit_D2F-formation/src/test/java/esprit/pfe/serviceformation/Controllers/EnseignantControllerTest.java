@@ -2,6 +2,7 @@ package esprit.pfe.serviceformation.controllers;
 
 
 import esprit.pfe.serviceformation.entities.Enseignant;
+import esprit.pfe.serviceformation.exception.GlobalExceptionHandler;
 import esprit.pfe.serviceformation.services.EnseignantExcelService;
 import esprit.pfe.serviceformation.services.EnseignantService;
 import org.junit.jupiter.api.BeforeEach;
@@ -14,6 +15,12 @@ import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableHandlerMethodArgumentResolver;
+import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.util.Collections;
 
@@ -34,12 +41,19 @@ class EnseignantControllerTest {
 
     @BeforeEach
     void setup() {
-        mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.registerModule(new org.springframework.data.web.config.SpringDataJacksonConfiguration.PageModule(new org.springframework.data.web.config.SpringDataWebSettings(org.springframework.data.web.config.EnableSpringDataWebSupport.PageSerializationMode.DIRECT)));
+        MappingJackson2HttpMessageConverter converter = new MappingJackson2HttpMessageConverter(mapper);
+        mockMvc = MockMvcBuilders.standaloneSetup(controller)
+                .setCustomArgumentResolvers(new PageableHandlerMethodArgumentResolver())
+                .setMessageConverters(converter)
+                .setControllerAdvice(new GlobalExceptionHandler())
+                .build();
     }
 
     @Test
     void testGetAllEnseignants() throws Exception {
-        when(enseignantService.getAllEnseignantsDTO()).thenReturn(Collections.emptyList());
+        when(enseignantService.getAllEnseignantsDTO(any(Pageable.class))).thenReturn(new PageImpl<>(Collections.emptyList()));
         mockMvc.perform(get("/api/v1/enseignants")).andExpect(status().isOk());
     }
 
@@ -72,13 +86,13 @@ class EnseignantControllerTest {
 
     @Test
     void testUploadEnseignants_Success() throws Exception {
-        MockMultipartFile file = new MockMultipartFile("file", "test.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "content".getBytes());
+        MockMultipartFile file = TestMockMvcHelper.createValidExcelFile("file", "test.xlsx", "content");
         mockMvc.perform(multipart("/api/v1/enseignants/upload").file(file)).andExpect(status().isOk());
     }
 
     @Test
     void testUploadEnseignants_Failure() throws Exception {
-        MockMultipartFile file = new MockMultipartFile("file", "test.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", "content".getBytes());
+        MockMultipartFile file = TestMockMvcHelper.createValidExcelFile("file", "test.xlsx", "content");
         doThrow(new RuntimeException("Import error")).when(excelService).importEnseignantsFromExcel(any());
         mockMvc.perform(multipart("/api/v1/enseignants/upload").file(file)).andExpect(status().isBadRequest());
     }

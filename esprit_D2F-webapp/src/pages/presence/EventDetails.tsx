@@ -1,4 +1,3 @@
-// src/pages/EventDetails.jsx
 
 import { format } from "date-fns";
 import "@/styles/pages/event-details.css";

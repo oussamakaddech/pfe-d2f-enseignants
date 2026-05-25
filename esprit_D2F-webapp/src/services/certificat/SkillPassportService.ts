@@ -98,15 +98,15 @@ const BASE_URL = `${config.GATEWAY_URL}/api/v1/skill-passports`;
 
 // ── Utilitaire : téléchargement d'un Blob PDF ──────────────────────────────
 function downloadPdfBlob(blob: Blob, filename: string): void {
-  const url = window.URL.createObjectURL(blob);
+  const url = globalThis.URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.style.display = "none";
   a.href = url;
   a.download = filename;
   document.body.appendChild(a);
   a.click();
-  window.URL.revokeObjectURL(url);
-  document.body.removeChild(a);
+  globalThis.URL.revokeObjectURL(url);
+  a.remove();
 }
 
 // ── Service principal ──────────────────────────────────────────────────────
@@ -118,7 +118,7 @@ const SkillPassportService = {
     const response = await axios.get(`${BASE_URL}/me`, {
       responseType: "blob",
     });
-    const today = new Date().toISOString().slice(0, 10).replace(/-/g, "");
+    const today = new Date().toISOString().slice(0, 10).replaceAll("-", "");
     downloadPdfBlob(response.data as Blob, `skill-passport-me-${today}.pdf`);
   },
 
@@ -129,7 +129,7 @@ const SkillPassportService = {
     const response = await axios.get(`${BASE_URL}/teacher/${username}`, {
       responseType: "blob",
     });
-    const today = new Date().toISOString().slice(0, 10).replace(/-/g, "");
+    const today = new Date().toISOString().slice(0, 10).replaceAll("-", "");
     downloadPdfBlob(response.data as Blob, `skill-passport-${username}-${today}.pdf`);
   },
 

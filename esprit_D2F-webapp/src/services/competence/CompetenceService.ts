@@ -24,7 +24,7 @@ type PrerequisiteRequest = Record<string, unknown>;
 
 const DomaineAPI = {
   getAll: async (upId?: number | null, departementId?: number | null): Promise<Domaine[]> => {
-    const params = new URLSearchParams({ size: "1000", page: "0" });
+    const params = new URLSearchParams();
     if (upId)          params.set("upId",          String(upId));
     if (departementId) params.set("departementId", String(departementId));
     const res = await axios.get<ApiListOrPage<Domaine>>(`${BASE}/domaines?${params}`);
@@ -71,7 +71,7 @@ const DomaineAPI = {
 const CompetenceAPI = {
   getAll: async (): Promise<Competence[]> => {
     const res = await axios.get<ApiListOrPage<Competence>>(
-      `${BASE}/competences?size=1000&page=0`,
+      `${BASE}/competences`,
       
     );
     return toList(res.data);
@@ -111,7 +111,7 @@ const CompetenceAPI = {
 const SousCompetenceAPI = {
   getAll: async (): Promise<SousCompetence[]> => {
     const res = await axios.get<ApiListOrPage<SousCompetence>>(
-      `${BASE}/sous-competences?size=1000&page=0`,
+      `${BASE}/sous-competences`,
       
     );
     return toList(res.data);
@@ -173,7 +173,7 @@ const SousCompetenceAPI = {
 const SavoirAPI = {
   getAll: async (): Promise<Savoir[]> => {
     const res = await axios.get<ApiListOrPage<Savoir>>(
-      `${BASE}/savoirs?size=1000&page=0`,
+      `${BASE}/savoirs`,
       
     );
     return toList(res.data);
@@ -243,7 +243,7 @@ const SavoirAPI = {
 const EnseignantCompetenceAPI = {
   getAll: async (): Promise<EnseignantCompetence[]> => {
     const res = await axios.get<ApiListOrPage<EnseignantCompetence>>(
-      `${BASE}/enseignant-competences?size=1000&page=0`,
+      `${BASE}/enseignant-competences`,
       
     );
     return toList(res.data);

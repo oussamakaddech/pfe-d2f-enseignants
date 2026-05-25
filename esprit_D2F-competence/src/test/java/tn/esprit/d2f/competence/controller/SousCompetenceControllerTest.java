@@ -51,8 +51,9 @@ class SousCompetenceControllerTest {
 
     @Test
     void testGetSousCompetencesByCompetence() {
-        when(sousCompetenceService.getSousCompetencesByCompetence(1L)).thenReturn(List.of(scDTO));
-        ResponseEntity<List<SousCompetenceDTO>> response = sousCompetenceController.getSousCompetencesByCompetence(1L);
+        when(sousCompetenceService.getSousCompetencesByCompetence(eq(1L), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of(scDTO)));
+        ResponseEntity<Page<SousCompetenceDTO>> response = sousCompetenceController.getSousCompetencesByCompetence(1L, Pageable.unpaged());
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
     }
 

@@ -5,9 +5,23 @@ import tn.esprit.d2f.dto.BesoinFormationRequest;
 import tn.esprit.d2f.dto.BesoinFormationResponse;
 import tn.esprit.d2f.entity.BesoinFormation;
 
+/**
+ * Mapper manuel BesoinFormation ↔ DTO.
+ *
+ * <p>Fix 8 — Gère la conversion {@code LocalDate → String} pour les champs
+ * {@code dateDebut} / {@code dateFin} (le Request DTO utilise désormais {@code LocalDate}
+ * pour permettre la validation {@code @Future}, tandis que l'entité stocke une chaîne VARCHAR).</p>
+ *
+ * <p>Fix 6 — Les champs d'audit ({@code createdAt}, {@code updatedAt}, {@code createdBy},
+ * {@code updatedBy}) sont inclus dans la réponse pour la traçabilité.</p>
+ */
 @Component
 public class BesoinFormationMapper {
 
+    /**
+     * Convertit un {@link BesoinFormationRequest} en entité JPA.
+     * Le champ {@code dateDebut}/{@code dateFin} est converti de {@code LocalDate} → {@code String} ISO.
+     */
     public BesoinFormation toEntity(BesoinFormationRequest request) {
         if (request == null) return null;
 
@@ -38,12 +52,17 @@ public class BesoinFormationMapper {
         entity.setAutresInformations(request.getAutresInformations());
         entity.setPeriodCode(request.getPeriodCode());
         entity.setCustomPeriodLabel(request.getCustomPeriodLabel());
-        entity.setDateDebut(request.getDateDebut());
-        entity.setDateFin(request.getDateFin());
+        // Fix 8: LocalDate → String (entité stocke en VARCHAR "yyyy-MM-dd")
+        entity.setDateDebut(request.getDateDebut() != null ? request.getDateDebut().toString() : null);
+        entity.setDateFin(request.getDateFin() != null ? request.getDateFin().toString() : null);
 
         return entity;
     }
 
+    /**
+     * Convertit une entité {@link BesoinFormation} en {@link BesoinFormationResponse}.
+     * Inclut les champs d'audit hérités de {@code BaseAuditEntity} (Fix 6).
+     */
     public BesoinFormationResponse toResponse(BesoinFormation entity) {
         if (entity == null) return null;
 
@@ -82,6 +101,11 @@ public class BesoinFormationMapper {
                 .dateDebut(entity.getDateDebut())
                 .dateFin(entity.getDateFin())
                 .eventPublished(entity.getEventPublished())
+                // Fix 6 — Champs d'audit (traçabilité)
+                .createdAt(entity.getCreatedAt())
+                .updatedAt(entity.getUpdatedAt())
+                .createdBy(entity.getCreatedBy())
+                .updatedBy(entity.getUpdatedBy())
                 .build();
     }
 }

@@ -21,7 +21,6 @@ import {
   BookOutlined,
   TrophyOutlined,
   WarningOutlined,
-  UserOutlined,
   MailOutlined,
   CalendarOutlined,
 } from "@ant-design/icons";
@@ -39,9 +38,9 @@ const { Title, Text, Paragraph } = Typography;
 
 interface Props {
   /** Si fourni, affiche le passeport d'un autre enseignant (admin/CUP). */
-  targetUsername?: string;
+  readonly targetUsername?: string;
   /** Libellé affiché sur le bouton de téléchargement. */
-  downloadLabel?: string;
+  readonly downloadLabel?: string;
 }
 
 /**
@@ -148,7 +147,9 @@ export default function SkillPassportPage({ targetUsername, downloadLabel }: Pro
       dataIndex: "statut",
       key: "statut",
       render: (s: string) => {
-        const c = s?.includes("TERMINEE") ? "green" : s?.includes("COURS") ? "orange" : "default";
+        let c = "default";
+        if (s?.includes("TERMINEE")) c = "green";
+        else if (s?.includes("COURS")) c = "orange";
         return <Tag color={c}>{s}</Tag>;
       },
     },
@@ -168,7 +169,9 @@ export default function SkillPassportPage({ targetUsername, downloadLabel }: Pro
       dataIndex: "priorite",
       key: "priorite",
       render: (p: string) => {
-        const c = p === "haute" ? "red" : p === "moyenne" ? "orange" : "default";
+        let c = "default";
+        if (p === "haute") c = "red";
+        else if (p === "moyenne") c = "orange";
         return <Tag color={c}>{p?.toUpperCase()}</Tag>;
       },
     },
@@ -266,9 +269,9 @@ export default function SkillPassportPage({ targetUsername, downloadLabel }: Pro
           { icon: <TrophyOutlined />, value: passport.totalFormations,     label: "Formations suivies",  color: "#27ae60" },
           { icon: <SafetyCertificateOutlined />, value: passport.totalCertifications, label: "Certifications", color: "#e67e22" },
           { icon: <WarningOutlined />, value: passport.totalGaps,          label: "Gaps détectés",       color: "#c0392b" },
-        ].map((kpi, i) => (
-          <Col xs={12} md={6} key={i}>
-            <Card bodyStyle={{ textAlign: "center", padding: 20 }}>
+        ].map((kpi) => (
+          <Col xs={12} md={6} key={kpi.label}>
+            <Card styles={{ body: { textAlign: "center", padding: 20 } }}>
               <div style={{ fontSize: 28, color: kpi.color, marginBottom: 4 }}>{kpi.icon}</div>
               <Statistic value={kpi.value} valueStyle={{ color: kpi.color, fontSize: 32 }} />
               <Text type="secondary" style={{ fontSize: 12 }}>{kpi.label}</Text>
@@ -285,8 +288,8 @@ export default function SkillPassportPage({ targetUsername, downloadLabel }: Pro
         {(!domaines || domaines.length === 0) ? (
           <Paragraph type="secondary" italic>Aucune compétence enregistrée.</Paragraph>
         ) : (
-          domaines.map((domaine, idx) => (
-            <div key={idx} style={{ marginBottom: 20 }}>
+          domaines.map((domaine) => (
+            <div key={domaine.domaineId ?? domaine.nom} style={{ marginBottom: 20 }}>
               <Row justify="space-between" align="middle" style={{ marginBottom: 8 }}>
                 <Col>
                   <Text strong style={{ fontSize: 14, color: brand[700] }}>{domaine.nom}</Text>
@@ -320,11 +323,12 @@ export default function SkillPassportPage({ targetUsername, downloadLabel }: Pro
                       dataIndex: "niveauLabel",
                       key: "niveau",
                       width: "18%",
-                      render: (l: string, r: { niveauNumeric: number }) => (
-                        <Tag color={r.niveauNumeric >= 4 ? "green" : r.niveauNumeric >= 3 ? "orange" : "red"}>
-                          {l}
-                        </Tag>
-                      ),
+                      render: (l: string, r: { niveauNumeric: number }) => {
+                        let niveauColor = "red";
+                        if (r.niveauNumeric >= 4) niveauColor = "green";
+                        else if (r.niveauNumeric >= 3) niveauColor = "orange";
+                        return <Tag color={niveauColor}>{l}</Tag>;
+                      },
                     },
                     { title: "Acquis le", dataIndex: "dateAcquisition", key: "date", width: "14%" },
                   ]}

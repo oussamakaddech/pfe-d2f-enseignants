@@ -17,30 +17,22 @@ const KEYS = {
   PREFERRED_LANG: "preferredLang",
 };
 
-// ── Token JWT ─────────────────────────────────────────────────────────────────
+// ── Token JWT — DEPRECATED ────────────────────────────────────────────────────
+// JWT est maintenant stocké en HttpOnly cookie (withCredentials: true).
+// Ces fonctions ne font rien et sont conservées uniquement pour éviter de
+// casser d'éventuels imports existants. À supprimer lors du prochain refactor.
 
-/**
- * Récupère le token JWT stocké.
- * @returns {string|null}
- */
-export const getToken = () => localStorage.getItem(KEYS.AUTH_TOKEN);
+/** @deprecated JWT est en HttpOnly cookie. Retourne toujours null. */
+export const getToken = (): null => null;
 
-/**
- * Stocke le token JWT.
- * @param {string} token
- */
-export const setToken = (token) => localStorage.setItem(KEYS.AUTH_TOKEN, token);
+/** @deprecated JWT est positionné par le backend via Set-Cookie. */
+export const setToken = (_token: string): void => { /* no-op */ };
 
-/**
- * Supprime le token JWT.
- */
-export const removeToken = () => localStorage.removeItem(KEYS.AUTH_TOKEN);
+/** @deprecated Utilisez AuthService.logout() pour invalider la session. */
+export const removeToken = (): void => { /* no-op */ };
 
-/**
- * Vérifie si un token JWT est présent.
- * @returns {boolean}
- */
-export const hasToken = () => !!localStorage.getItem(KEYS.AUTH_TOKEN);
+/** @deprecated JWT est en HttpOnly cookie, non accessible depuis JS. */
+export const hasToken = (): false => false;
 
 // ── Profil utilisateur ────────────────────────────────────────────────────────
 
@@ -61,7 +53,7 @@ export const getProfile = () => {
  * Stocke le profil utilisateur sérialisé.
  * @param {object} profile
  */
-export const setProfile = (profile) =>
+export const setProfile = (profile: Record<string, unknown>): void =>
   localStorage.setItem(KEYS.USER_PROFILE, JSON.stringify(profile));
 
 /**
@@ -81,7 +73,7 @@ export const getActiveRole = () => localStorage.getItem(KEYS.ACTIVE_ROLE);
  * Stocke le rôle actif.
  * @param {string} role
  */
-export const setActiveRole = (role) =>
+export const setActiveRole = (role: string): void =>
   localStorage.setItem(KEYS.ACTIVE_ROLE, role);
 
 /**
@@ -102,7 +94,7 @@ export const getPreferredLang = () =>
  * Stocke la langue préférée.
  * @param {string} lang
  */
-export const setPreferredLang = (lang) =>
+export const setPreferredLang = (lang: string): void =>
   localStorage.setItem(KEYS.PREFERRED_LANG, lang);
 
 // ── Utilitaires globaux ───────────────────────────────────────────────────────
@@ -111,7 +103,6 @@ export const setPreferredLang = (lang) =>
  * Supprime toutes les données de session (logout complet).
  */
 export const clearSession = () => {
-  localStorage.removeItem(KEYS.AUTH_TOKEN);
   localStorage.removeItem(KEYS.USER_PROFILE);
   localStorage.removeItem(KEYS.ACTIVE_ROLE);
 };

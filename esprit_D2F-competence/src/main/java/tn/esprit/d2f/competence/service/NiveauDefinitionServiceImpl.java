@@ -3,6 +3,10 @@ package tn.esprit.d2f.competence.service;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Lazy;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import tn.esprit.d2f.competence.dto.NiveauSavoirRequisDTO;
@@ -29,6 +33,8 @@ public class NiveauDefinitionServiceImpl implements INiveauDefinitionService {
     private final CompetenceRepository competenceRepository;
     private final SousCompetenceRepository sousCompetenceRepository;
     private final SavoirRepository savoirRepository;
+    @Lazy
+    private final INiveauDefinitionService self;
 
     @Override
     @Transactional(readOnly = true)
@@ -66,10 +72,22 @@ public class NiveauDefinitionServiceImpl implements INiveauDefinitionService {
 
     @Override
     @Transactional(readOnly = true)
+    public Page<NiveauSavoirRequisDTO> getSavoirsRequisByCompetenceAndNiveau(Long competenceId, NiveauMaitrise niveau, Pageable pageable) {
+        return paginate(self.getSavoirsRequisByCompetenceAndNiveau(competenceId, niveau), pageable);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     public List<NiveauSavoirRequisDTO> getSavoirsRequisBySousCompetenceAndNiveau(Long sousCompetenceId, NiveauMaitrise niveau) {
         return niveauRepo.findBySousCompetenceIdAndNiveau(sousCompetenceId, niveau).stream()
                 .map(this::toDTO)
                 .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<NiveauSavoirRequisDTO> getSavoirsRequisBySousCompetenceAndNiveau(Long sousCompetenceId, NiveauMaitrise niveau, Pageable pageable) {
+        return paginate(self.getSavoirsRequisBySousCompetenceAndNiveau(sousCompetenceId, niveau), pageable);
     }
 
     @Override
@@ -151,6 +169,12 @@ public class NiveauDefinitionServiceImpl implements INiveauDefinitionService {
                 .toList();
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public Page<NiveauSavoirRequisDTO> getAll(Pageable pageable) {
+        return niveauRepo.findAll(pageable).map(this::toDTO);
+    }
+
     // ── Helpers ──────────────────────────────────────────────────────────────
 
     private Map<String, List<NiveauSavoirRequisDTO>> groupByNiveau(List<NiveauSavoirRequis> list) {
@@ -180,5 +204,11 @@ public class NiveauDefinitionServiceImpl implements INiveauDefinitionService {
                 .savoirCode(nsr.getSavoir() != null ? nsr.getSavoir().getCode() : null)
                 .description(nsr.getDescription())
                 .build();
+    }
+
+    private Page<NiveauSavoirRequisDTO> paginate(List<NiveauSavoirRequisDTO> items, Pageable pageable) {
+        int from = (int) pageable.getOffset();
+        int to = Math.min(from + pageable.getPageSize(), items.size());
+        return new PageImpl<>(from >= items.size() ? List.of() : items.subList(from, to), pageable, items.size());
     }
 }

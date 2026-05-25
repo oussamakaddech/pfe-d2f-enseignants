@@ -122,4 +122,41 @@ class StructureControllerTest {
         assertThat(response.getBody()).isNotNull();
         verify(structureService).rechercheParDomaine(1L, "sols");
     }
+
+    @Test
+    @DisplayName("GET /arbre?upId=1 - doit appeler getStructureComplete(upId, departementId)")
+    void getStructureComplete_WithUpId_ShouldCallFilteredMethod() {
+        when(structureService.getStructureComplete("1", null)).thenReturn(structureArbreDTO);
+
+        ResponseEntity<StructureArbreDTO> response = structureController.getStructureComplete("1", null);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).isNotNull();
+        verify(structureService).getStructureComplete("1", null);
+        verify(structureService, never()).getStructureComplete();
+    }
+
+    @Test
+    @DisplayName("GET /arbre?departementId=2 - doit appeler getStructureComplete(upId, departementId)")
+    void getStructureComplete_WithDepartementId_ShouldCallFilteredMethod() {
+        when(structureService.getStructureComplete(null, "2")).thenReturn(structureArbreDTO);
+
+        ResponseEntity<StructureArbreDTO> response = structureController.getStructureComplete(null, "2");
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        verify(structureService).getStructureComplete(null, "2");
+        verify(structureService, never()).getStructureComplete();
+    }
+
+    @Test
+    @DisplayName("GET /arbre?upId=1&departementId=2 - doit appeler getStructureComplete avec les deux filtres")
+    void getStructureComplete_WithBothFilters_ShouldCallFilteredMethod() {
+        when(structureService.getStructureComplete("1", "2")).thenReturn(structureArbreDTO);
+
+        ResponseEntity<StructureArbreDTO> response = structureController.getStructureComplete("1", "2");
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        verify(structureService).getStructureComplete("1", "2");
+        verify(structureService, never()).getStructureComplete();
+    }
 }

@@ -1,4 +1,3 @@
-// src/components/DocumentCreateForm.jsx
 import { useState } from "react";
 import PropTypes from "prop-types";
 import { Form, Input, Select, Checkbox, Upload, Button, Typography } from "antd";
@@ -41,8 +40,7 @@ export default function DocumentCreateForm({ formationId, onDocumentCreated, onC
       form.resetFields();
       setFileList([]);
       onDocumentCreated(newDoc);
-    } catch (err) {
-      console.error(err);
+    } catch {
       message.error("🚫 Erreur lors de la création du document.");
     } finally {
       setLoading(false);
@@ -77,7 +75,7 @@ export default function DocumentCreateForm({ formationId, onDocumentCreated, onC
         name="file"
         label="Fichier"
         valuePropName="fileList"
-        getValueFromEvent={e => e && e.fileList}
+        getValueFromEvent={e => e?.fileList}
         rules={[{ required: true }]}
       >
         <Upload {...uploadProps} maxCount={1}>

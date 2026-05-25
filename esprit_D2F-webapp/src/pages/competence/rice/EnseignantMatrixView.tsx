@@ -8,6 +8,12 @@ import { cloneDeep, matchSuggestedEnseignants } from "./constants";
 
 const { Text } = Typography;
 
+const addSousCompRows = (rows, di, ci, sc, sci, domaineNom) => {
+  (sc.savoirs ?? []).forEach((s, si) => {
+    rows.push({ di, ci, sci, si, domaineNom, ...s });
+  });
+};
+
 const flatten = (tree) => {
   const rows = [];
   (tree ?? []).forEach((d, di) => {
@@ -16,13 +22,60 @@ const flatten = (tree) => {
         rows.push({ di, ci, sci: -1, si, domaineNom: d.nom, ...s });
       });
       (c.sousCompetences ?? []).forEach((sc, sci) => {
-        (sc.savoirs ?? []).forEach((s, si) => {
-          rows.push({ di, ci, sci, si, domaineNom: d.nom, ...s });
-        });
+        addSousCompRows(rows, di, ci, sc, sci, d.nom);
       });
     });
   });
   return rows;
+};
+
+const getSavoirByRow = (next, row) => (
+  row.sci === -1
+    ? next?.[row.di]?.competences?.[row.ci]?.savoirs?.[row.si]
+    : next?.[row.di]?.competences?.[row.ci]?.sousCompetences?.[row.sci]?.savoirs?.[row.si]
+);
+
+const rowClassName = (row) => {
+  const n = (row.enseignantsSuggeres ?? []).length;
+  if (n === 0) return "ens-matrix-row-uncovered";
+  if (n > 3) return "ens-matrix-row-over";
+  return "";
+};
+
+const getSourceClass = (row, tid, allEnseignants) => {
+  const checked = (row.enseignantsSuggeres ?? []).includes(tid);
+  if (!checked) return "";
+  const { suggested } = matchSuggestedEnseignants(row, allEnseignants);
+  const source = suggested.find((s) => String(s.id ?? s.enseignantId) === tid)?.source ?? "manual";
+  if (source === "ai") return "source-ai";
+  if (source === "module_match") return "source-module";
+  return "source-manual";
+};
+
+const buildTeacherColumn = (teacher, allSavoirs, allEnseignants, toggleCell) => {
+  const tid = String(teacher.id ?? teacher.enseignantId);
+  const fullName = teacher.prenom ? `${teacher.prenom} ${teacher.nom}` : teacher.nom;
+  const load = allSavoirs.filter((s) => (s.enseignantsSuggeres ?? []).includes(tid)).length;
+
+  return {
+    title: (
+      <Tooltip title={`${fullName} (${load} savoirs)`}>
+        <span>{(fullName || "?").split(" ").map((x) => x[0]).join("").slice(0, 2).toUpperCase()}</span>
+      </Tooltip>
+    ),
+    key: `t-${tid}`,
+    width: 58,
+    className: "ens-matrix-cell",
+    render: (_, row) => {
+      const checked = (row.enseignantsSuggeres ?? []).includes(tid);
+      const sourceClass = getSourceClass(row, tid, allEnseignants);
+      return (
+        <div className={`ens-matrix-check ${sourceClass}`}>
+          <Checkbox checked={checked} onChange={() => toggleCell(row, tid)} />
+        </div>
+      );
+    },
+  };
 };
 
 export default function EnseignantMatrixView({ tree, setTree, allEnseignants }) {
@@ -66,9 +119,7 @@ export default function EnseignantMatrixView({ tree, setTree, allEnseignants }) 
 
   const toggleCell = (row, teacherId) => {
     const next = cloneDeep(tree);
-    const s = row.sci === -1
-      ? next?.[row.di]?.competences?.[row.ci]?.savoirs?.[row.si]
-      : next?.[row.di]?.competences?.[row.ci]?.sousCompetences?.[row.sci]?.savoirs?.[row.si];
+    const s = getSavoirByRow(next, row);
     if (!s) return;
     const ids = new Set((s.enseignantsSuggeres ?? []).map(String));
     const key = String(teacherId);
@@ -92,37 +143,7 @@ export default function EnseignantMatrixView({ tree, setTree, allEnseignants }) 
         </Space>
       ),
     },
-    ...teachers.map((t) => {
-      const tid = String(t.id ?? t.enseignantId);
-      const fullName = t.prenom ? `${t.prenom} ${t.nom}` : t.nom;
-      const load = allSavoirs.filter((s) => (s.enseignantsSuggeres ?? []).includes(tid)).length;
-      return {
-        title: (
-          <Tooltip title={`${fullName} (${load} savoirs)`}>
-            <span>{(fullName || "?").split(" ").map((x) => x[0]).join("").slice(0, 2).toUpperCase()}</span>
-          </Tooltip>
-        ),
-        key: `t-${tid}`,
-        width: 58,
-        className: "ens-matrix-cell",
-        render: (_, row) => {
-          const checked = (row.enseignantsSuggeres ?? []).includes(tid);
-          let sourceClass = "";
-          if (checked) {
-            const { suggested } = matchSuggestedEnseignants(row, allEnseignants);
-            const source = suggested.find((s) => String(s.id ?? s.enseignantId) === tid)?.source ?? "manual";
-            if (source === "ai") sourceClass = "source-ai";
-            else if (source === "module_match") sourceClass = "source-module";
-            else sourceClass = "source-manual";
-          }
-          return (
-            <div className={`ens-matrix-check ${sourceClass}`}>
-              <Checkbox checked={checked} onChange={() => toggleCell(row, tid)} />
-            </div>
-          );
-        },
-      };
-    }),
+    ...teachers.map((t) => buildTeacherColumn(t, allSavoirs, allEnseignants, toggleCell)),
   ];
 
   return (
@@ -150,12 +171,7 @@ export default function EnseignantMatrixView({ tree, setTree, allEnseignants }) 
         dataSource={pageRows}
         size="small"
         pagination={false}
-        rowClassName={(row) => {
-          const n = (row.enseignantsSuggeres ?? []).length;
-          if (n === 0) return "ens-matrix-row-uncovered";
-          if (n > 3) return "ens-matrix-row-over";
-          return "";
-        }}
+        rowClassName={rowClassName}
         scroll={{ x: "max-content" }}
       />
 

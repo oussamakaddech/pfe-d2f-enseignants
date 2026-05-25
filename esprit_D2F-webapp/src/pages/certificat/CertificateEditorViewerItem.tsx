@@ -1,4 +1,3 @@
-// src/components/CertificateEditorViewerItem.jsx
 import { useEffect, useState } from "react";
 import { Row, Col, Card, Input, Button, Form, Spin } from "antd";
 import { SaveOutlined } from "@ant-design/icons";

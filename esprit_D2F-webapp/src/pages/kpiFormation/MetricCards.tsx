@@ -1,4 +1,3 @@
-// src/components/KPI/MetricCards.js
 
 import { useState, useEffect, useRef } from "react";
 import {
@@ -25,9 +24,8 @@ import { brand, neutral, shadow, radius } from "@/styles/themes/tokens";
 import useAppNotification from "@/hooks/ui/useAppNotification";
 import dayjs from "dayjs";
 
-import KPIService from "@/services/analyse/KPIService";
-import DeptService from "@/services/formation/DeptService";
-import UpService from "@/services/api/UploadService";
+import { useDepartements, useUps } from "@/hooks/formation";
+import { useKpiCountAndHeuresMutation } from "@/hooks/kpi";
 
 const { Text } = Typography;
 const { RangePicker } = DatePicker;
@@ -36,34 +34,41 @@ const { Option } = Select;
 // Clé pour stocker la configuration des cartes dans localStorage
 const LOCALSTORAGE_KEY = "metricCardsConfiguration";
 
+function buildGenericTitleParts(filters, upsOptions, deptsOptions) {
+  const { domaine, upId, deptId, ouverte, start, end, etat } = filters;
+  const parts = [];
+  if (domaine) parts.push(`Domaine=${domaine}`);
+  if (upId !== null) {
+    const upItem = upsOptions.find((u) => u.id === upId);
+    parts.push(`UP=${upItem ? upItem.libelle : upId}`);
+  }
+  if (deptId !== null) {
+    const deptItem = deptsOptions.find((d) => d.id === deptId);
+    parts.push(`Dépt=${deptItem ? deptItem.libelle : deptId}`);
+  }
+  if (ouverte !== null) parts.push(`Ouverte=${ouverte ? "Oui" : "Non"}`);
+  if (start && end) parts.push(`Période=${start}→${end}`);
+  if (etat) parts.push(`État=${etat}`);
+  return parts;
+}
+
 const MetricCards = () => {
   //
   // ─── ÉTATS LOCAUX ──────────────────────────────────────────────────────────────
   //
   const { message } = useAppNotification();
-  // Chaque carte est de la forme :
-  // {
-  //   id: <number>,
-  //   visible: <bool>,
-  //   filters: { domaine, upId, deptId, ouverte, start, end, etat },
-  //   count: Number|null,       // nombre de formations
-  //   totalHeures: Number|null, // somme des heures
-  //   title: String
-  // }
-  //
   const [cards, setCards] = useState([]);
-
-  // Listes pour remplir les filtres
-  const [deptsOptions, setDeptsOptions] = useState([]);
-  const [upsOptions, setUpsOptions] = useState([]);
-  const [loadingOptions, setLoadingOptions] = useState(true);
-
-  // Période globale (dayjs) à appliquer à toutes les cartes
   const [globalPeriod, setGlobalPeriod] = useState(null);
-
-  // Pour éviter de relancer le recalcul au moindre changement de "cards"
-  // on utilisera un ref pour ne déclencher l’effet de recalcul qu’une seule fois au montage.
   const isFirstMount = useRef(true);
+
+  const { data: deptsRaw = [], isLoading: loadingDepts } = useDepartements();
+  const { data: upsRaw = [], isLoading: loadingUps }     = useUps();
+  const kpiMut = useKpiCountAndHeuresMutation();
+
+  type OptionRow = { id?: unknown; libelle?: string };
+  const deptsOptions = deptsRaw as OptionRow[];
+  const upsOptions   = upsRaw   as OptionRow[];
+  const loadingOptions = loadingDepts || loadingUps;
 
   //
   // ─── EFFETS AU MONTAGE ───────────────────────────────────────────────────────────
@@ -78,8 +83,8 @@ const MetricCards = () => {
       let parsed = [];
       try {
         parsed = JSON.parse(stored);
-      } catch (e) {
-        console.warn("Impossible de parser la configuration depuis localStorage :", e);
+      } catch {
+        // ignore invalid stored config
       }
 
       // On met d’abord à jour l’état local avec la config stockée
@@ -95,16 +100,9 @@ const MetricCards = () => {
               try {
                 // On reconstruit l’objet filters exactement comme on le ferait
                 // depuis le formulaire, afin de récupérer les bonnes données :
-                const { count, totalHeures } = await KPIService.getCountAndHeures(c.filters);
-                return {
-                  ...c,
-                  count,
-                  totalHeures,
-                  title: buildTitle(c.filters),
-                };
-              // eslint-disable-next-line no-unused-vars
-              } catch (e) {
-                // Si l’API échoue pour une carte, on la conserve telle quelle
+                const { count, totalHeures } = await kpiMut.mutateAsync(c.filters);
+                return { ...c, count, totalHeures, title: buildTitle(c.filters) };
+              } catch {
                 return c;
               }
             })
@@ -127,25 +125,6 @@ const MetricCards = () => {
     localStorage.setItem(LOCALSTORAGE_KEY, JSON.stringify(cards));
   }, [cards]);
 
-  // 3) Charger dynamiquement Compétences, Départements, UPs
-  useEffect(() => {
-    const fetchAllOptions = async () => {
-      try {
-        const [depts, ups] = await Promise.all([
-          DeptService.getAllDepts(),
-          UpService.getAllUps(),
-        ]);
-        setDeptsOptions(depts || []);
-        setUpsOptions(ups || []);
-      } catch (error) {
-        console.error("Erreur lors de la récupération des options :", error);
-        message.error("Impossible de charger les listes de filtres.");
-      } finally {
-        setLoadingOptions(false);
-      }
-    };
-    fetchAllOptions();
-  }, []);
 
   //
   // ─── FONCTIONS POUR GÉRER LES CARTES ──────────────────────────────────────────────
@@ -257,22 +236,7 @@ const MetricCards = () => {
     }
 
     // 5) Cas générique : concaténer chaque critère
-    const parts = [];
-    if (domaine) parts.push(`Domaine=${domaine}`);
-    if (upId !== null) {
-      const upItem = upsOptions.find((u) => u.id === upId);
-      const label = upItem ? upItem.libelle : upId;
-      parts.push(`UP=${label}`);
-    }
-    if (deptId !== null) {
-      const deptItem = deptsOptions.find((d) => d.id === deptId);
-      const label = deptItem ? deptItem.libelle : deptId;
-      parts.push(`Dépt=${label}`);
-    }
-    if (ouverte !== null) parts.push(`Ouverte=${ouverte ? "Oui" : "Non"}`);
-    if (start && end) parts.push(`Période=${start}→${end}`);
-    if (etat) parts.push(`État=${etat}`);
-
+    const parts = buildGenericTitleParts(filters, upsOptions, deptsOptions);
     if (parts.length === 0) {
       return "Toutes formations (PLANIFIE + ACHEVE)";
     }
@@ -304,7 +268,7 @@ const MetricCards = () => {
 
     try {
       // 2) Appel à /kpi/count-heures
-      const { count, totalHeures } = await KPIService.getCountAndHeures(filters);
+      const { count, totalHeures } = await kpiMut.mutateAsync(filters);
 
       // 3) Mise à jour de la carte dans le state
       setCards((prev) =>
@@ -320,8 +284,7 @@ const MetricCards = () => {
             : c
         )
       );
-    } catch (err) {
-      console.error("Erreur lors de la récupération du count & heures :", err);
+    } catch {
       message.error("Impossible de calculer l’indicateur. Vérifiez vos filtres.");
     } finally {
       // 4) Fermeture du Drawer
@@ -348,7 +311,7 @@ const MetricCards = () => {
       cards.map(async (c) => {
         const newFilters = { ...c.filters, start: newStart, end: newEnd };
         try {
-          const { count, totalHeures } = await KPIService.getCountAndHeures(newFilters);
+          const { count, totalHeures } = await kpiMut.mutateAsync(newFilters);
           return {
             ...c,
             filters: newFilters,
@@ -356,8 +319,7 @@ const MetricCards = () => {
             totalHeures,
             title: buildTitle(newFilters),
           };
-        // eslint-disable-next-line no-unused-vars
-        } catch (e) {
+        } catch {
           // En cas d’erreur, on ne met à jour que les filtres
           return { ...c, filters: newFilters };
         }
@@ -497,7 +459,7 @@ const MetricCards = () => {
               onClose={() => closeSettings(card.id)}
               open={card.visible}
               width={350}
-              destroyOnClose
+              destroyOnHidden
             >
               <Form
                 layout="vertical"
@@ -535,7 +497,7 @@ const MetricCards = () => {
                     }
                   >
                     {upsOptions.map((u) => (
-                      <Option key={u.id} value={u.id}>
+                      <Option key={String(u.id)} value={u.id as string}>
                         {u.libelle}
                       </Option>
                     ))}
@@ -554,7 +516,7 @@ const MetricCards = () => {
                     }
                   >
                     {deptsOptions.map((d) => (
-                      <Option key={d.id} value={d.id}>
+                      <Option key={String(d.id)} value={d.id as string}>
                         {d.libelle}
                       </Option>
                     ))}

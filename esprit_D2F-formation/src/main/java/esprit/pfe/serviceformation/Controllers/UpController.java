@@ -1,73 +1,78 @@
 package esprit.pfe.serviceformation.controllers;
 
-
+import esprit.d2f.common.security.AuthorizationMatrix;
 import esprit.pfe.serviceformation.entities.Up;
-import esprit.pfe.serviceformation.repositories.UpRepository;
 import esprit.pfe.serviceformation.services.UpService;
+import esprit.pfe.serviceformation.utils.FileSecurityValidator;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import lombok.RequiredArgsConstructor;
 
-import java.util.List;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
+
+import java.util.Set;
 
 @RestController
 @RequestMapping("/api/v1/ups")
-
 @RequiredArgsConstructor
 public class UpController {
-    private final UpRepository upRepository;
-    private final  UpService upService;
+    private final UpService upService;
+
+    private static final Set<String> ALLOWED_EXCEL_MIME = Set.of(
+        "application/vnd.ms-excel",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    );
+    private static final long MAX_EXCEL_SIZE = 20L * 1024 * 1024;
+
     @PostMapping("/import-excel")
+    @PreAuthorize(AuthorizationMatrix.REFERENTIEL_IMPORT)
     public ResponseEntity<String> importExcel(@RequestParam("file") MultipartFile file) {
-        if (file.isEmpty()) {
-            return ResponseEntity.badRequest().body("Fichier vide");
+        String validationError = FileSecurityValidator.validate(file, ALLOWED_EXCEL_MIME, MAX_EXCEL_SIZE);
+        if (validationError != null) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(validationError);
         }
         try {
             upService.importUpsFromExcel(file);
             return ResponseEntity.ok("Import UP réussi");
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body("Erreur import UP : " + e.getMessage());
+            return ResponseEntity.badRequest().body("Erreur import UP : " + e.getMessage());
         }
     }
-    // Récupérer toutes les UP
+
     @GetMapping
-    public ResponseEntity<List<Up>> getAllUp(){
-        return ResponseEntity.ok(upRepository.findAll());
+    @PreAuthorize(AuthorizationMatrix.REFERENTIEL_READ)
+    public ResponseEntity<Page<Up>> getAllUp(
+            @PageableDefault(size = 20, sort = "id") Pageable pageable) {
+        return ResponseEntity.ok(upService.findAll(pageable));
     }
 
-    // Récupérer une UP par ID
     @GetMapping("/{id}")
-    public ResponseEntity<Up> getUpById(@PathVariable String id){
-        return upRepository.findById(id)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
+    @PreAuthorize(AuthorizationMatrix.REFERENTIEL_READ)
+    public ResponseEntity<Up> getUpById(@PathVariable String id) {
+        return ResponseEntity.ok(upService.findById(id));
     }
 
-    // Ajouter une UP
     @PostMapping
-    public ResponseEntity<Up> createUp(@RequestBody Up up){
-        Up saved = upRepository.save(up);
-        return ResponseEntity.ok(saved);
+    @PreAuthorize(AuthorizationMatrix.REFERENTIEL_WRITE)
+    public ResponseEntity<Up> createUp(@RequestBody Up up) {
+        return ResponseEntity.ok(upService.create(up));
     }
 
-    // Mettre à jour une UP
     @PutMapping("/{id}")
-    public ResponseEntity<Up> updateUp(@PathVariable String id, @RequestBody Up up){
-        return upRepository.findById(id)
-                .map(existing -> {
-                    existing.setLibelle(up.getLibelle());
-                    return ResponseEntity.ok(upRepository.save(existing));
-                })
-                .orElse(ResponseEntity.notFound().build());
+    @PreAuthorize(AuthorizationMatrix.REFERENTIEL_WRITE)
+    public ResponseEntity<Up> updateUp(@PathVariable String id, @RequestBody Up up) {
+        return ResponseEntity.ok(upService.update(id, up));
     }
 
-    // Supprimer une UP
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteUp(@PathVariable String id){
-        upRepository.deleteById(id);
+    @PreAuthorize(AuthorizationMatrix.REFERENTIEL_WRITE)
+    public ResponseEntity<Void> deleteUp(@PathVariable String id) {
+        upService.delete(id);
         return ResponseEntity.noContent().build();
     }
 }

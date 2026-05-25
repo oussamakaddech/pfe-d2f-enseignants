@@ -36,11 +36,11 @@ public class Domaine extends BaseAuditEntity {
     @Builder.Default
     private Boolean actif = true;
 
-    @Column(name = "up_id")
-    private Long upId;
+    @Column(name = "up_id", length = 255)
+    private String upId;
 
-    @Column(name = "departement_id")
-    private Long departementId;
+    @Column(name = "departement_id", length = 255)
+    private String departementId;
 
     @OneToMany(mappedBy = "domaine", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonManagedReference("domaine-competence")

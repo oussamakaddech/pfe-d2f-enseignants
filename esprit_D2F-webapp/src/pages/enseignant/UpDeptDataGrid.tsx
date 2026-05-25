@@ -1,4 +1,3 @@
-// src/components/UpDeptDataGrid.jsx
 import { useState, useRef, useEffect } from 'react';
 import {
   Tabs,
@@ -25,8 +24,6 @@ import useAppNotification from "@/hooks/ui/useAppNotification";
 import { AppPageHeader } from "@/components/common";
 import "@/styles/pages/up-dept-data-grid.css";
 
-const { TabPane } = Tabs;
-
 export default function UpDeptDataGrid() {
   const { message: msgApi } = useAppNotification();
 
@@ -47,7 +44,6 @@ export default function UpDeptDataGrid() {
   const [formDept] = Form.useForm();
 
   // Search states
-  const [searchText, setSearchText] = useState('');
   const [searchedColumn, setSearchedColumn] = useState('');
   const searchInput = useRef(null);
 
@@ -59,7 +55,6 @@ export default function UpDeptDataGrid() {
   /*** Fetch data ***/
   const fetchUps = async () => {
     try {
-      setSearchText('');
       const list = await UpService.getAllUps();
       setUps(list);
     } catch (err) {
@@ -68,7 +63,6 @@ export default function UpDeptDataGrid() {
   };
   const fetchDepts = async () => {
     try {
-      setSearchText('');
       const list = await DeptService.getAllDepts();
       setDepts(list);
     } catch (err) {
@@ -123,7 +117,7 @@ export default function UpDeptDataGrid() {
         msgApi.success('UP mise à jour');
       }
       setDrawerUpVisible(false);
-      fetchUps();
+      await fetchUps();
     } catch (err) {
       msgApi.error(err.response?.data || err.message);
     }
@@ -179,12 +173,10 @@ export default function UpDeptDataGrid() {
   /*** Search helpers ***/
   const handleSearch = (selectedKeys, confirm, dataIndex) => {
     confirm();
-    setSearchText(selectedKeys[0]);
     setSearchedColumn(dataIndex);
   };
   const handleReset = clearFilters => {
     clearFilters();
-    setSearchText('');
   };
   const getColumnSearchProps = (dataIndex, placeholder) => ({
     filterDropdown: ({ setSelectedKeys, selectedKeys, confirm, clearFilters }) => (
@@ -218,8 +210,10 @@ export default function UpDeptDataGrid() {
     filterIcon: filtered => <SearchOutlined style={{ color: filtered ? '#1890ff' : undefined }} />,
     onFilter: (value, record) =>
       record[dataIndex]?.toString().toLowerCase().includes(value.toLowerCase()),
-    onFilterDropdownVisibleChange: visible => {
-      if (visible) setTimeout(() => searchInput.current?.select(), 100);
+    filterDropdownProps: {
+      onOpenChange: visible => {
+        if (visible) setTimeout(() => searchInput.current?.select(), 100);
+      },
     },
     render: text =>
       searchedColumn === dataIndex ? (
@@ -295,156 +289,170 @@ export default function UpDeptDataGrid() {
   ];
 
   return (
-    <>
-      <div>
-        <AppPageHeader
-          icon={<ApartmentOutlined />}
-          title="Gestion des UP & Départements"
+    <div className="updept-page">
+      <AppPageHeader
+        icon={<ApartmentOutlined />}
+        title="Gestion des UP & Départements"
           subtitle="Administrer les unités pédagogiques et les départements"
         />
-        <Tabs defaultActiveKey="ups">
-          {/* UP Tab */}
-          <TabPane tab="UP" key="ups">
-            <div style={{ marginBottom: 16, display: 'flex', gap: 8 }}>
-              <Button type="text" icon={<ReloadOutlined />}
-                onClick={fetchUps}
-                style={{ fontSize: 20 }}
-              />
-              <Button icon={<PlusOutlined />} onClick={openCreateUp}>
-                Ajouter UP
-              </Button>
-              <Upload
-                accept=".xlsx,.xls"
-                beforeUpload={f => {
-                  setFileUp(f);
-                  return false;
-                }}
-                showUploadList={false}
-              >
-                <Button icon={<UploadOutlined />}>Sélectionner fichier</Button>
-              </Upload>
-              <Button
-                type="primary"
-                disabled={!fileUp}
-                onClick={handleUploadUp}
-              >
-                Importer Excel
-              </Button>
-            </div>
-            <Table
-              dataSource={ups}
-              columns={upColumns}
-              rowKey="id"
-              pagination={{ pageSize: 10 }}
-            />
+        <Tabs
+          defaultActiveKey="ups"
+          items={[
+            {
+              key: 'ups',
+              label: 'UP',
+              children: (
+                <>
+                  <div className="updept-toolbar">
+                    <Button type="text" icon={<ReloadOutlined />}
+                      onClick={fetchUps}
+                      style={{ fontSize: 20 }}
+                    />
+                    <Button icon={<PlusOutlined />} onClick={openCreateUp}>
+                      Ajouter UP
+                    </Button>
+                    <Upload
+                      accept=".xlsx,.xls"
+                      beforeUpload={f => {
+                        setFileUp(f);
+                        return false;
+                      }}
+                      showUploadList={false}
+                    >
+                      <Button icon={<UploadOutlined />}>Sélectionner fichier</Button>
+                    </Upload>
+                    <Button
+                      type="primary"
+                      disabled={!fileUp}
+                      onClick={handleUploadUp}
+                    >
+                      Importer Excel
+                    </Button>
+                  </div>
+                  <div className="updept-table-card">
+                    <Table
+                      dataSource={ups}
+                      columns={upColumns}
+                      rowKey="id"
+                      pagination={{ pageSize: 10 }}
+                    />
+                  </div>
 
-            <Drawer
-              title={upMode === 'create' ? 'Ajouter UP' : 'Modifier UP'}
-              width={360}
-              onClose={() => setDrawerUpVisible(false)}
-              open={drawerUpVisible}
-              destroyOnClose
-            >
-              <Form layout="vertical" form={formUp} onFinish={handleSubmitUp}>
-                <Form.Item
-                  name="id"
-                  label="ID"
-                  rules={[{ required: true, message: 'ID requis' }]}
-                >
-                  <Input disabled={upMode === 'edit'} />
-                </Form.Item>
-                <Form.Item
-                  name="libelle"
-                  label="Libellé"
-                  rules={[{ required: true, message: 'Libellé requis' }]}
-                >
-                  <Input />
-                </Form.Item>
-                <Form.Item>
-                  <Button type="primary" htmlType="submit">
-                    {upMode === 'create' ? 'Créer' : 'Mettre à jour'}
-                  </Button>
-                </Form.Item>
-              </Form>
-            </Drawer>
-          </TabPane>
+                  <Drawer
+                    title={upMode === 'create' ? 'Ajouter UP' : 'Modifier UP'}
+                    width={360}
+                    onClose={() => setDrawerUpVisible(false)}
+                    open={drawerUpVisible}
+                    destroyOnHidden
+                  >
+                    <Form layout="vertical" form={formUp} onFinish={handleSubmitUp}>
+                      <Form.Item
+                        name="id"
+                        label="ID"
+                        rules={[{ required: true, message: 'ID requis' }]}
+                      >
+                        <Input disabled={upMode === 'edit'} />
+                      </Form.Item>
+                      <Form.Item
+                        name="libelle"
+                        label="Libellé"
+                        rules={[{ required: true, message: 'Libellé requis' }]}
+                      >
+                        <Input />
+                      </Form.Item>
+                      <Form.Item>
+                        <Button type="primary" htmlType="submit">
+                          {upMode === 'create' ? 'Créer' : 'Mettre à jour'}
+                        </Button>
+                      </Form.Item>
+                    </Form>
+                  </Drawer>
+                </>
+              ),
+            },
+            {
+              key: 'depts',
+              label: 'Département',
+              children: (
+                <>
+                  <div className="updept-toolbar">
+                    <Button type="text" icon={<ReloadOutlined />}
+                      onClick={fetchDepts}
+                      style={{ fontSize: 20 }}
+                    />
+                    <Button icon={<PlusOutlined />} onClick={openCreateDept}>
+                      Ajouter Département
+                    </Button>
+                    <Upload
+                      accept=".xlsx,.xls"
+                      beforeUpload={f => {
+                        setFileDept(f);
+                        return false;
+                      }}
+                      showUploadList={false}
+                    >
+                      <Button icon={<UploadOutlined />}>Sélectionner fichier</Button>
+                    </Upload>
+                    <Button
+                      type="primary"
+                      disabled={!fileDept}
+                      onClick={handleUploadDept}
+                    >
+                      Importer Excel
+                    </Button>
+                  </div>
+                  <div className="updept-table-card">
+                    <Table
+                      dataSource={depts}
+                      columns={deptColumns}
+                      rowKey="id"
+                      pagination={{ pageSize: 10 }}
+                    />
+                  </div>
 
-          {/* Département Tab */}
-          <TabPane tab="Département" key="depts">
-            <div style={{ marginBottom: 16, display: 'flex', gap: 8 }}>
-              <Button type="text" icon={<ReloadOutlined />}
-                onClick={fetchDepts}
-                style={{ fontSize: 20 }}
-              />
-              <Button icon={<PlusOutlined />} onClick={openCreateDept}>
-                Ajouter Département
-              </Button>
-              <Upload
-                accept=".xlsx,.xls"
-                beforeUpload={f => {
-                  setFileDept(f);
-                  return false;
-                }}
-                showUploadList={false}
-              >
-                <Button icon={<UploadOutlined />}>Sélectionner fichier</Button>
-              </Upload>
-              <Button
-                type="primary"
-                disabled={!fileDept}
-                onClick={handleUploadDept}
-              >
-                Importer Excel
-              </Button>
-            </div>
-            <Table
-              dataSource={depts}
-              columns={deptColumns}
-              rowKey="id"
-              pagination={{ pageSize: 10 }}
-            />
-
-            <Drawer
-              title={
-                deptMode === 'create'
-                  ? 'Ajouter Département'
-                  : 'Modifier Département'
-              }
-              width={360}
-              onClose={() => setDrawerDeptVisible(false)}
-              open={drawerDeptVisible}
-              destroyOnClose
-            >
-              <Form
-                layout="vertical"
-                form={formDept}
-                onFinish={handleSubmitDept}
-              >
-                <Form.Item
-                  name="id"
-                  label="ID"
-                  rules={[{ required: true, message: 'ID requis' }]}
-                >
-                  <Input disabled={deptMode === 'edit'} />
-                </Form.Item>
-                <Form.Item
-                  name="nom"
-                  label="Nom"
-                  rules={[{ required: true, message: 'Nom requis' }]}
-                >
-                  <Input />
-                </Form.Item>
-                <Form.Item>
-                  <Button type="primary" htmlType="submit">
-                    {deptMode === 'create' ? 'Créer' : 'Mettre à jour'}
-                  </Button>
-                </Form.Item>
-              </Form>
-            </Drawer>
-          </TabPane>
-        </Tabs>
-      </div>
-    </>
+                  <Drawer
+                    title={
+                      deptMode === 'create'
+                        ? 'Ajouter Département'
+                        : 'Modifier Département'
+                    }
+                    width={360}
+                    onClose={() => setDrawerDeptVisible(false)}
+                    open={drawerDeptVisible}
+                    destroyOnHidden
+                  >
+                    <Form
+                      layout="vertical"
+                      form={formDept}
+                      onFinish={handleSubmitDept}
+                    >
+                      <Form.Item
+                        name="id"
+                        label="ID"
+                        rules={[{ required: true, message: 'ID requis' }]}
+                      >
+                        <Input disabled={deptMode === 'edit'} />
+                      </Form.Item>
+                      <Form.Item
+                        name="nom"
+                        label="Nom"
+                        rules={[{ required: true, message: 'Nom requis' }]}
+                      >
+                        <Input />
+                      </Form.Item>
+                      <Form.Item>
+                        <Button type="primary" htmlType="submit">
+                          {deptMode === 'create' ? 'Créer' : 'Mettre à jour'}
+                        </Button>
+                      </Form.Item>
+                    </Form>
+                  </Drawer>
+                </>
+              ),
+            },
+          ]}
+        />
+    </div>
   );
 }
 

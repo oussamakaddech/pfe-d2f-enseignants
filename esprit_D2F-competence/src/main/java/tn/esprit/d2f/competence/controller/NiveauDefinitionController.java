@@ -4,6 +4,9 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -13,8 +16,6 @@ import tn.esprit.d2f.competence.dto.NiveauxGroupesDTO;
 import tn.esprit.d2f.competence.entity.enumerations.NiveauMaitrise;
 import tn.esprit.d2f.competence.service.INiveauDefinitionService;
 
-import java.util.List;
-
 @Tag(name = "Niveaux & Savoirs Requis", description = "Définition des niveaux de maîtrise requis par compétence")
 @RestController
 @RequestMapping("/api/v1/niveaux")
@@ -23,10 +24,11 @@ public class NiveauDefinitionController {
 
     private final INiveauDefinitionService niveauService;
 
-    @Operation(summary = "Tous les savoirs requis définis")
+    @Operation(summary = "Tous les savoirs requis définis (paginé)")
     @GetMapping
-    public ResponseEntity<List<NiveauSavoirRequisDTO>> getAll() {
-        return ResponseEntity.ok(niveauService.getAll());
+    public ResponseEntity<Page<NiveauSavoirRequisDTO>> getAll(
+            @PageableDefault(size = 20) Pageable pageable) {
+        return ResponseEntity.ok(niveauService.getAll(pageable));
     }
 
     @Operation(summary = "Savoirs requis groupés par niveau pour une compétence")
@@ -41,18 +43,20 @@ public class NiveauDefinitionController {
         return ResponseEntity.ok(niveauService.getNiveauxBySousCompetence(sousCompetenceId));
     }
 
-    @Operation(summary = "Savoirs requis pour un niveau spécifique d'une compétence")
+    @Operation(summary = "Savoirs requis pour un niveau spécifique d'une compétence (paginé)")
     @GetMapping("/competence/{competenceId}/niveau/{niveau}")
-    public ResponseEntity<List<NiveauSavoirRequisDTO>> getByCompetenceAndNiveau(
-            @PathVariable Long competenceId, @PathVariable NiveauMaitrise niveau) {
-        return ResponseEntity.ok(niveauService.getSavoirsRequisByCompetenceAndNiveau(competenceId, niveau));
+    public ResponseEntity<Page<NiveauSavoirRequisDTO>> getByCompetenceAndNiveau(
+            @PathVariable Long competenceId, @PathVariable NiveauMaitrise niveau,
+            @PageableDefault(size = 20) Pageable pageable) {
+        return ResponseEntity.ok(niveauService.getSavoirsRequisByCompetenceAndNiveau(competenceId, niveau, pageable));
     }
 
-    @Operation(summary = "Savoirs requis pour un niveau spécifique d'une sous-compétence")
+    @Operation(summary = "Savoirs requis pour un niveau spécifique d'une sous-compétence (paginé)")
     @GetMapping("/sous-competence/{sousCompetenceId}/niveau/{niveau}")
-    public ResponseEntity<List<NiveauSavoirRequisDTO>> getBySousCompetenceAndNiveau(
-            @PathVariable Long sousCompetenceId, @PathVariable NiveauMaitrise niveau) {
-        return ResponseEntity.ok(niveauService.getSavoirsRequisBySousCompetenceAndNiveau(sousCompetenceId, niveau));
+    public ResponseEntity<Page<NiveauSavoirRequisDTO>> getBySousCompetenceAndNiveau(
+            @PathVariable Long sousCompetenceId, @PathVariable NiveauMaitrise niveau,
+            @PageableDefault(size = 20) Pageable pageable) {
+        return ResponseEntity.ok(niveauService.getSavoirsRequisBySousCompetenceAndNiveau(sousCompetenceId, niveau, pageable));
     }
 
     @Operation(summary = "Associer un savoir requis à un niveau")

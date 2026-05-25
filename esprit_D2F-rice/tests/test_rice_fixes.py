@@ -535,15 +535,15 @@ AA2 Dimensionner profile I en acier 4
             enseignants=[],
             departement="gc",
         )
-        # Collect all teacher IDs mentioned in savoirs
-        all_suggested = {
-            eid
-            for dom in result.propositions
-            for comp in dom.competences
-            for sc in comp.sousCompetences
-            for sav in sc.savoirs
-            for eid in sav.enseignantsSuggeres
-        }
+        # Collect all teacher IDs mentioned in savoirs (both direct and nested)
+        all_suggested = set()
+        for dom in result.propositions:
+            for comp in dom.competences:
+                for sav in comp.savoirs:
+                    all_suggested.update(sav.enseignantsSuggeres)
+                for sc in comp.sousCompetences:
+                    for sav in sc.savoirs:
+                        all_suggested.update(sav.enseignantsSuggeres)
         # The auto-created ID for "Ahmed Tounsi" should appear somewhere
         assert len(all_suggested) > 0, (
             "Expected at least one teacher in enseignantsSuggeres but got none. "

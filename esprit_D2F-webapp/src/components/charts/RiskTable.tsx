@@ -1,6 +1,6 @@
 import { Table, Avatar, Tag, Space, Progress, Typography, Badge, Button, Tooltip } from "antd";
 import { UserOutlined, ThunderboltOutlined } from "@ant-design/icons";
-import { TeacherRiskIndicator } from "@/services/analyse/AnalysePredictiveService";
+import type { TeacherRiskIndicator } from "@/models/analyse";
 
 const { Text } = Typography;
 

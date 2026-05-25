@@ -43,7 +43,12 @@ public class SecurityConfig {
                 // DSI §12 — RBAC deny-by-default : whitelist minimale + JWT obligatoire.
                 // Le contrôle fin est porté par @PreAuthorize sur chaque méthode.
                 .authorizeHttpRequests(auth -> auth
+                        // Fix 14 — Actuator health/info : ouverts pour les liveness/readiness probes K8s
                         .requestMatchers("/actuator/health", "/actuator/info").permitAll()
+                        // Fix 14 — Prometheus : ouvert pour le scraping (à protéger par réseau en prod)
+                        .requestMatchers("/actuator/prometheus", "/actuator/metrics").permitAll()
+                        // Fix 14 — Circuit Breaker status : authentifié (exposition sécurisée)
+                        .requestMatchers("/actuator/circuitbreakers").authenticated()
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html").permitAll()
                         .anyRequest().authenticated()
                 )

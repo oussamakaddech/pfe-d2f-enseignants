@@ -52,6 +52,9 @@ LABEL maintainer="seddik.bouzayani <seddik.bouzayani@esprit.tn>"
 # Create user (Alpine-compatible)
 RUN addgroup -g 2003 esprit && adduser -D -u 2003 -G esprit esprit
 
+# Install curl for HEALTHCHECK
+RUN apk add --no-cache curl
+
 # Use user
 USER esprit
 
@@ -68,7 +71,7 @@ EXPOSE 8086
 
 # Healthcheck — vérifie que Spring Boot Actuator répond (conformité DSI §2.1)
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-  CMD wget -q --spider http://localhost:8086/actuator/health || exit 1
+  CMD curl -sf http://localhost:8086/actuator/health || exit 1
 
 # Run app when container starts (set correct main class for this project)
 ENTRYPOINT ["java","-cp","/opt/app:/opt/app/lib/*","esprit.pfe.servicecertificat.ServiceCertificatApplication"]

@@ -110,4 +110,44 @@ class DomaineControllerTest {
         ResponseEntity<DomaineDTO> response = domaineController.toggleActif(1L);
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
     }
+
+    @Test
+    @DisplayName("getAllDomaines: avec upId appelle getDomainesByFilter")
+    void testGetAllDomainesWithUpId() {
+        Page<DomaineDTO> page = new PageImpl<>(List.of(domaineDTO));
+        when(domaineService.getDomainesByFilter(eq("1"), isNull(), any(Pageable.class))).thenReturn(page);
+        ResponseEntity<Page<DomaineDTO>> response = domaineController.getAllDomaines("1", null, Pageable.unpaged());
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        verify(domaineService).getDomainesByFilter(eq("1"), isNull(), any(Pageable.class));
+        verify(domaineService, never()).getAllDomaines(any(Pageable.class));
+    }
+
+    @Test
+    @DisplayName("getAllDomaines: avec departementId appelle getDomainesByFilter")
+    void testGetAllDomainesWithDepartementId() {
+        Page<DomaineDTO> page = new PageImpl<>(List.of(domaineDTO));
+        when(domaineService.getDomainesByFilter(isNull(), eq("2"), any(Pageable.class))).thenReturn(page);
+        ResponseEntity<Page<DomaineDTO>> response = domaineController.getAllDomaines(null, "2", Pageable.unpaged());
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        verify(domaineService).getDomainesByFilter(isNull(), eq("2"), any(Pageable.class));
+    }
+
+    @Test
+    @DisplayName("getDomainesActifs: avec upId et departementId appelle getDomainesActifsByFilter")
+    void testGetDomainesActifsWithFilters() {
+        when(domaineService.getDomainesActifsByFilter("1", "2")).thenReturn(List.of(domaineDTO));
+        ResponseEntity<List<DomaineDTO>> response = domaineController.getDomainesActifs("1", "2");
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        verify(domaineService).getDomainesActifsByFilter("1", "2");
+        verify(domaineService, never()).getDomainesActifs();
+    }
+
+    @Test
+    @DisplayName("getDomainesActifs: avec upId seul appelle getDomainesActifsByFilter")
+    void testGetDomainesActifsWithUpIdOnly() {
+        when(domaineService.getDomainesActifsByFilter("1", null)).thenReturn(List.of(domaineDTO));
+        ResponseEntity<List<DomaineDTO>> response = domaineController.getDomainesActifs("1", null);
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        verify(domaineService).getDomainesActifsByFilter("1", null);
+    }
 }

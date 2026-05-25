@@ -3,30 +3,46 @@ import { config } from "@/config/env";
 
 const API_URL = `${config.FORMATION_URL}/formation/kpi/participants`;
 
-const ParticipantKPIService = {
+function normalizeListResponse<T>(payload: T[] | { content?: T[]; data?: T[]; items?: T[] }): T[] {
+  if (Array.isArray(payload)) {
+    return payload;
+  }
 
-  // Récupère les KPIs détaillés par formation sur une période donnée
-  async getFormationsParticipantKPIs(startDate, endDate) {
+  if (payload && typeof payload === "object") {
+    const candidate = payload as { content?: unknown[]; data?: unknown[]; items?: unknown[] };
+    if (Array.isArray(candidate.content)) {
+      return candidate.content as T[];
+    }
+    if (Array.isArray(candidate.data)) {
+      return candidate.data as T[];
+    }
+    if (Array.isArray(candidate.items)) {
+      return candidate.items as T[];
+    }
+  }
+
+  return [];
+}
+
+const ParticipantKPIService = {
+  async getFormationsParticipantKPIs(startDate: string, endDate: string) {
     try {
       const response = await axios.get(`${API_URL}/formations`, {
         params: { startDate, endDate },
       });
-      return response.data;
+      return normalizeListResponse(response.data);
     } catch (error) {
-      console.error("Erreur lors de la récupération des KPIs participants par formation :", error);
       throw error;
     }
   },
 
-  // Récupère le KPI global des participants sur une période donnée
-  async getGlobalParticipantKPI(startDate, endDate) {
+  async getGlobalParticipantKPI(startDate: string, endDate: string) {
     try {
       const response = await axios.get(`${API_URL}/global`, {
         params: { startDate, endDate },
       });
       return response.data;
     } catch (error) {
-      console.error("Erreur lors de la récupération du KPI global des participants :", error);
       throw error;
     }
   },

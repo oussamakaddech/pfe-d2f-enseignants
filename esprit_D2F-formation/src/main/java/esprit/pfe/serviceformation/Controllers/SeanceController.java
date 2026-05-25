@@ -6,8 +6,12 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
+
 import java.util.Map;
+
 
 @RestController
 @RequestMapping("/api/v1/seances")
@@ -38,10 +42,10 @@ public class SeanceController {
 
     // READ ALL
     @GetMapping
-    public ResponseEntity<List<SeanceDTO>> getAllSeances() {
+    public ResponseEntity<Page<SeanceDTO>> getAllSeances(
+            @PageableDefault(size = 20, sort = "id") Pageable pageable) {
         try {
-            List<SeanceDTO> list = seanceService.getAllSeances();
-            return ResponseEntity.ok(list);
+            return ResponseEntity.ok(seanceService.getAllSeances(pageable));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }

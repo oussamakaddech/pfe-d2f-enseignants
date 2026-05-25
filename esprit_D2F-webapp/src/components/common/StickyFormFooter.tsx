@@ -5,22 +5,22 @@ const { Text } = Typography;
 
 interface StickyFormFooterProps {
   /** Bouton retour / annuler */
-  onBack?: () => void;
-  backLabel?: string;
-  backDisabled?: boolean;
+  readonly onBack?: () => void;
+  readonly backLabel?: string;
+  readonly backDisabled?: boolean;
   /** Bouton suivant */
-  onNext?: () => void;
-  nextLabel?: string;
-  nextDisabled?: boolean;
+  readonly onNext?: () => void;
+  readonly nextLabel?: string;
+  readonly nextDisabled?: boolean;
   /** Bouton submit final */
-  onSubmit?: () => void;
-  submitLabel?: string;
-  submitDisabled?: boolean;
+  readonly onSubmit?: () => void;
+  readonly submitLabel?: string;
+  readonly submitDisabled?: boolean;
   /** Indicateur d'étape */
-  stepIndicator?: string;
+  readonly stepIndicator?: string;
   /** Contenu personnalisé à droite */
-  actions?: React.ReactNode;
-  className?: string;
+  readonly actions?: React.ReactNode;
+  readonly className?: string;
 }
 
 /**

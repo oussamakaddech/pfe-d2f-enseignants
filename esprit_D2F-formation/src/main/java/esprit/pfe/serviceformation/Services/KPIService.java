@@ -5,6 +5,9 @@ import esprit.pfe.serviceformation.entities.*;
 import esprit.pfe.serviceformation.repositories.*;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.Arrays;
@@ -65,6 +68,13 @@ public class KPIService {
         validateDates(start, end);
         validateFilters(upId, deptId);
         return presenceRepository.findTopAbsentees(upId, deptId, start, end, EtatFormation.ACHEVE);
+    }
+
+    public Page<EnseignantDTO> getEnseignantsNonAffectes(Date start, Date end, Pageable pageable) {
+        List<EnseignantDTO> all = getEnseignantsNonAffectes(start, end);
+        int from = (int) pageable.getOffset();
+        int to = Math.min(from + pageable.getPageSize(), all.size());
+        return new PageImpl<>(from >= all.size() ? List.of() : all.subList(from, to), pageable, all.size());
     }
 
     public List<EnseignantDTO> getEnseignantsNonAffectes(Date start, Date end) {

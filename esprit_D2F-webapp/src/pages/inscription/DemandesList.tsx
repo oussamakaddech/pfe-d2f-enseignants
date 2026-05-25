@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useState, useRef } from "react";
 import {
   Table,
   Button,
@@ -30,7 +30,7 @@ import {
 } from "@ant-design/icons";
 import { useParams, useNavigate } from "react-router-dom";
 import { writeExcel, exportDateLabel, isoDate } from "utils/helpers/excelExport";
-import InscriptionService from "@/services/formation/InscriptionService";
+import { useInscriptionsByFormation, useTraiterDemande } from "@/hooks/formation";
 import useAppNotification from "@/hooks/ui/useAppNotification";
 import { AppPageHeader, brand } from "@/components/common";
 import "@/styles/pages/demandes-list.css";
@@ -40,35 +40,18 @@ const { Title, Text } = Typography;
 export default function DemandesList() {
   const { id: formationId } = useParams();
   const navigate = useNavigate();
-  const [demandes, setDemandes] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [, setSearchText] = useState("");
   const [searchedColumn, setSearchedColumn] = useState("");
   const searchInput = useRef(null);
   const { message: msgApi } = useAppNotification();
 
-  const fetchData = async () => {
-    setLoading(true);
-    try {
-      const data = await InscriptionService.getInscriptionsByFormation(formationId);
-      setDemandes(data);
-    } catch {
-      msgApi.error("Impossible de charger les inscriptions");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [formationId]);
+  const { data: demandes = [], isLoading: loading, refetch } = useInscriptionsByFormation(formationId);
+  const traiterMut = useTraiterDemande();
 
   const handleTraitement = async (id, approuver) => {
     try {
-      await InscriptionService.traiterDemande(id, approuver);
+      await traiterMut.mutateAsync({ id, approuver });
       msgApi.success(approuver ? "✅ Demande approuvée" : "❌ Demande rejetée");
-      await fetchData();
+      void refetch();
     } catch {
       msgApi.error("Erreur lors du traitement");
     }
@@ -76,13 +59,11 @@ export default function DemandesList() {
 
   const handleSearch = (selectedKeys, confirm, dataIndex) => {
     confirm();
-    setSearchText(selectedKeys[0] || "");
     setSearchedColumn(dataIndex);
   };
 
   const handleReset = (clearFilters) => {
     clearFilters();
-    setSearchText("");
   };
 
   const getColumnSearchProps = (dataIndex) => ({
@@ -116,8 +97,10 @@ export default function DemandesList() {
     ),
     onFilter: (value, record) =>
       record[dataIndex]?.toString().toLowerCase().includes(value.toLowerCase()),
-    onFilterDropdownVisibleChange: (visible) => {
-      if (visible) setTimeout(() => searchInput.current?.select(), 100);
+    filterDropdownProps: {
+      onOpenChange: (visible) => {
+        if (visible) setTimeout(() => searchInput.current?.select(), 100);
+      },
     },
     render: (text) =>
       searchedColumn === dataIndex ? (
@@ -281,8 +264,7 @@ export default function DemandesList() {
   ];
 
   return (
-    <>
-      <div style={{ maxWidth: 1200, margin: "0 auto" }}>
+    <div style={{ maxWidth: 1200, margin: "0 auto" }}>
         <AppPageHeader
           icon={<UserOutlined />}
           title={`Demandes d'inscription — Formation #${formationId}`}
@@ -292,7 +274,7 @@ export default function DemandesList() {
               <Button icon={<ArrowLeftOutlined />} onClick={() => navigate(-1)}>
                 Retour
               </Button>
-              <Button icon={<ReloadOutlined />} onClick={fetchData} loading={loading}>
+              <Button icon={<ReloadOutlined />} onClick={() => void refetch()} loading={loading}>
                 Actualiser
               </Button>
               <Button
@@ -361,8 +343,7 @@ export default function DemandesList() {
             size="middle"
           />
         </Card>
-      </div>
-    </>
+    </div>
   );
 }
 

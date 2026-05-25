@@ -76,7 +76,9 @@ const formatDate = (value) => {
 };
 
 function DocEmpty({ variant = "default", icon, title, text }) {
-  const variantClass = variant === "tree" ? " doc-empty-icon--tree" : variant === "preview" ? " doc-empty-icon--preview" : "";
+  let variantClass = "";
+  if (variant === "tree") variantClass = " doc-empty-icon--tree";
+  else if (variant === "preview") variantClass = " doc-empty-icon--preview";
   return (
     <div className="doc-empty">
       <div className={`doc-empty-icon${variantClass}`}>{icon}</div>
@@ -128,11 +130,13 @@ export default function CombinedFormationOneDriveTree() {
       try {
         const data = await FormationWorkflowService.getAllFormationWithDocuments();
         if (!isMounted) return;
-        const list = Array.isArray(data) ? data : data ? [data] : [];
+        let list;
+        if (Array.isArray(data)) { list = data; }
+        else if (data) { list = [data]; }
+        else { list = []; }
         setFormations(list);
         setFilteredFormations(list);
-      } catch (error) {
-        console.error(error);
+      } catch {
         notification.error({ message: "Erreur de chargement des formations" });
       } finally {
         if (isMounted) {
@@ -209,8 +213,7 @@ export default function CombinedFormationOneDriveTree() {
       setTreeData(list.map(toTreeNode));
       setExpandedKeys(list.map((node) => node.id));
       setSelectedFile(null);
-    } catch (error) {
-      console.error(error);
+    } catch {
       notification.error({ message: "Erreur OneDrive" });
       setTreeData([]);
     } finally {
@@ -261,7 +264,7 @@ export default function CombinedFormationOneDriveTree() {
             <span className="doc-hero-icon">
               <CloudServerOutlined />
             </span>
-            Explorer les formations et leurs dossiers
+            {" "}Explorer les formations et leurs dossiers
           </Title>
           <Paragraph className="doc-hero-subtitle">
             Sélectionnez une formation, parcourez son arborescence OneDrive et ouvrez un document en aperçu sans quitter la page.
@@ -356,7 +359,7 @@ export default function CombinedFormationOneDriveTree() {
             title={
               <span className="doc-panel-title">
                 <span className="doc-panel-title-icon"><AppstoreOutlined /></span>
-                Formations
+                {" "}Formations
               </span>
             }
             extra={<span className="doc-count-chip">{filteredFormations.length} résultat(s)</span>}
@@ -430,7 +433,7 @@ export default function CombinedFormationOneDriveTree() {
             title={
               <span className="doc-panel-title doc-panel-title--tree">
                 <span className="doc-panel-title-icon"><PartitionOutlined /></span>
-                Arborescence OneDrive
+                {" "}Arborescence OneDrive
               </span>
             }
             extra={selectedFormation ? <span className="doc-status-chip doc-status-chip--active">Formation sélectionnée</span> : null}
@@ -451,29 +454,33 @@ export default function CombinedFormationOneDriveTree() {
                   </div>
                 </div>
 
-                {treeLoading ? (
-                  <div style={{ minHeight: 240, display: "grid", placeItems: "center" }}>
-                    <Spin size="large" />
-                  </div>
-                ) : treeData.length > 0 ? (
-                  <div className="doc-tree-wrapper">
-                    <Tree
-                      showIcon
-                      blockNode
-                      treeData={treeData}
-                      expandedKeys={expandedKeys}
-                      onExpand={setExpandedKeys}
-                      onSelect={onSelectTree}
+                {(() => {
+                  if (treeLoading) return (
+                    <div style={{ minHeight: 240, display: "grid", placeItems: "center" }}>
+                      <Spin size="large" />
+                    </div>
+                  );
+                  if (treeData.length > 0) return (
+                    <div className="doc-tree-wrapper">
+                      <Tree
+                        showIcon
+                        blockNode
+                        treeData={treeData}
+                        expandedKeys={expandedKeys}
+                        onExpand={setExpandedKeys}
+                        onSelect={onSelectTree}
+                      />
+                    </div>
+                  );
+                  return (
+                    <DocEmpty
+                      variant="tree"
+                      icon={<FolderOutlined />}
+                      title="Aucun dossier"
+                      text="Aucun dossier n'est disponible pour cette formation"
                     />
-                  </div>
-                ) : (
-                  <DocEmpty
-                    variant="tree"
-                    icon={<FolderOutlined />}
-                    title="Aucun dossier"
-                    text="Aucun dossier n'est disponible pour cette formation"
-                  />
-                )}
+                  );
+                })()}
               </>
             ) : (
               <DocEmpty
@@ -493,7 +500,7 @@ export default function CombinedFormationOneDriveTree() {
             title={
               <span className="doc-panel-title doc-panel-title--preview">
                 <span className="doc-panel-title-icon"><EyeOutlined /></span>
-                Prévisualisation
+                {" "}Prévisualisation
               </span>
             }
             extra={selectedFile ? <span className="doc-status-chip doc-status-chip--ready">Document prêt</span> : null}
@@ -549,7 +556,7 @@ export default function CombinedFormationOneDriveTree() {
         onCancel={() => setUploadModalVisible(false)}
         footer={null}
         width={720}
-        destroyOnClose
+        destroyOnHidden
       >
         {selectedFormation && (
           <DocumentUploadPanel

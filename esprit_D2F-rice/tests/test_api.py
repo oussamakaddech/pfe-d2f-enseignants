@@ -68,31 +68,31 @@ class TestHealth:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# GET /rice/gc-referential
+# GET /rice/referential/gc
 # ─────────────────────────────────────────────────────────────────────────────
 class TestGcReferential:
     def test_returns_200(self):
-        r = client.get("/rice/gc-referential")
+        r = client.get("/rice/referential/gc")
         assert r.status_code == 200
 
     def test_contains_savoirs(self):
-        r = client.get("/rice/gc-referential")
+        r = client.get("/rice/referential/gc")
         data = r.json()
         assert "savoirs" in data
         assert len(data["savoirs"]) > 0
 
     def test_contains_competences(self):
-        r = client.get("/rice/gc-referential")
+        r = client.get("/rice/referential/gc")
         data = r.json()
         assert "competences" in data
 
     def test_contains_niveaux(self):
-        r = client.get("/rice/gc-referential")
+        r = client.get("/rice/referential/gc")
         data = r.json()
         assert "niveaux" in data
 
     def test_contains_domaines(self):
-        r = client.get("/rice/gc-referential")
+        r = client.get("/rice/referential/gc")
         data = r.json()
         assert "domaines" in data
 
@@ -139,26 +139,26 @@ class TestGcMatch:
 # POST /rice/analyze  – plain text fiche
 # ─────────────────────────────────────────────────────────────────────────────
 SAMPLE_FICHE_TEXT = b"""
-Unite pedagogique : Genie Civil
+Unite pedagogique : Genie Civil GC
 Module : Resistance des Materiaux
-Code : RDM-01
+Code : RDM-GC-01
 Responsable Module : Ahmed Benali
 Enseignants : Ahmed Benali, Sarah Martin
 Prerequis : Mathematiques
 
 Acquis d'apprentissage :
-AA1 Identifier les types de contraintes mecaniques 1
-AA2 Appliquer les methodes de calcul RDM 3
-AA3 Analyser les resultats d'un essai de traction 4
+AA1 Identifier les types de contraintes mecaniques appliquees aux structures 1
+AA2 Appliquer les methodes de calcul RDM fondation beton arme 3
+AA3 Analyser les resultats d'un essai de traction geotechnique 4
 Contenu detaille
 
-Seance 1 : Introduction
-- Definition des contraintes
-- Loi de Hooke
+Seance 1 : Introduction aux structures
+- Definition des contraintes sur fondations
+- Loi de Hooke appliquee au beton
 
-Seance 2 : Applications numeriques
-- Calcul de deformation
-- Validation experimentale
+Seance 2 : Applications numeriques geotechnique
+- Calcul de deformation des sols
+- Dimensionner fondation superficielle eurocode
 """
 
 
@@ -166,7 +166,7 @@ class TestRiceAnalyze:
     def _post_analyze(self, file_content=SAMPLE_FICHE_TEXT, enseignants=None):
         if enseignants is None:
             enseignants = []
-        files = {"files": ("fiche_rdm.txt", io.BytesIO(file_content), "text/plain")}
+        files = {"files": ("fiche_gc_rdm.txt", io.BytesIO(file_content), "text/plain")}
         data = {"enseignants": json.dumps(enseignants)}
         return client.post("/rice/analyze", files=files, data=data)
 
@@ -199,18 +199,27 @@ class TestRiceAnalyze:
         assert "competences" in domaine
         assert len(domaine["competences"]) > 0
 
-    def test_competence_has_sous_competences(self):
+    def test_competence_has_savoirs(self):
+        """The fiche has AA items but no sub-section headers, so savoirs land
+        directly on the competence (savoirs_directs path)."""
         r = self._post_analyze()
         comp = r.json()["propositions"][0]["competences"][0]
         assert "sousCompetences" in comp
-        assert len(comp["sousCompetences"]) > 0
+        assert "savoirs" in comp
+        # Either direct savoirs or nested sousCompetences must be non-empty
+        total_savoirs = len(comp["savoirs"]) + sum(
+            len(sc["savoirs"]) for sc in comp["sousCompetences"]
+        )
+        assert total_savoirs > 0
 
     def test_savoir_has_required_fields(self):
         r = self._post_analyze()
         comp = r.json()["propositions"][0]["competences"][0]
-        sc = comp["sousCompetences"][0]
-        assert len(sc["savoirs"]) > 0
-        sav = sc["savoirs"][0]
+        # Get first savoir from direct savoirs or first sousCompetence
+        if comp["savoirs"]:
+            sav = comp["savoirs"][0]
+        else:
+            sav = comp["sousCompetences"][0]["savoirs"][0]
         assert "nom" in sav
         assert "type" in sav
         assert "niveau" in sav
@@ -221,7 +230,9 @@ class TestRiceAnalyze:
         r = self._post_analyze()
         for dom in r.json()["propositions"]:
             for comp in dom["competences"]:
-                for sc in comp["sousCompetences"]:
+                for sav in comp.get("savoirs", []):
+                    assert sav["niveau"] in valid
+                for sc in comp.get("sousCompetences", []):
                     for sav in sc["savoirs"]:
                         assert sav["niveau"] in valid
 

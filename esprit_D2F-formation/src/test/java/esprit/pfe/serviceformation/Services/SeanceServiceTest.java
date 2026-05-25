@@ -2,6 +2,7 @@ package esprit.pfe.serviceformation.services;
 
 import esprit.pfe.serviceformation.dto.EnseignantDTO;
 import esprit.pfe.serviceformation.dto.SeanceDTO;
+import esprit.pfe.serviceformation.entities.Enseignant;
 import esprit.pfe.serviceformation.entities.SeanceFormation;
 import esprit.pfe.serviceformation.repositories.SeanceFormationRepository;
 import esprit.pfe.serviceformation.utils.ValidationUtils;
@@ -17,6 +18,8 @@ import java.util.*;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 
 @ExtendWith(MockitoExtension.class)
 class SeanceServiceTest {
@@ -31,6 +34,15 @@ class SeanceServiceTest {
         s.setIdSeance(1L);
         when(seanceRepo.findAll()).thenReturn(List.of(s));
         assertFalse(service.getAllSeances().isEmpty());
+    }
+
+    @Test
+    void testGetAllSeancesPageable() {
+        SeanceFormation s = new SeanceFormation();
+        s.setIdSeance(1L);
+        when(seanceRepo.findAll(any(PageRequest.class))).thenReturn(new PageImpl<>(List.of(s)));
+
+        assertEquals(1, service.getAllSeances(PageRequest.of(0, 10)).getTotalElements());
     }
 
     @Test
@@ -127,5 +139,19 @@ class SeanceServiceTest {
     void testDeleteSeance_NotFound() {
         when(seanceRepo.findById(anyLong())).thenReturn(Optional.empty());
         assertThrows(RuntimeException.class, () -> service.deleteSeance(1L));
+    }
+
+    @Test
+    void testDeleteSeance_Success() {
+        SeanceFormation seance = new SeanceFormation();
+        seance.setIdSeance(1L);
+        seance.setAnimateurs(new ArrayList<>(List.of(new Enseignant())));
+        seance.setParticipants(new ArrayList<>(List.of(new Enseignant())));
+        when(seanceRepo.findById(1L)).thenReturn(Optional.of(seance));
+
+        service.deleteSeance(1L);
+
+        verify(seanceRepo).save(seance);
+        verify(seanceRepo).delete(seance);
     }
 }

@@ -1,5 +1,4 @@
-// src/components/FormationEvaluationsTab.jsx
-import  { useState, useEffect } from "react";
+import  { useState, useEffect, useMemo } from "react";
 import PropTypes from "prop-types";
 import {
   Table,
@@ -15,48 +14,33 @@ import {
   DownloadOutlined,
 } from "@ant-design/icons";
 import { writeExcel, exportDateLabel, isoDate } from "utils/helpers/excelExport";
-import EvaluationFormateurService from "@/services/evaluation/EvaluationFormateurService";
-import EnseignantService from "@/services/formation/EnseignantService";
+import { useEvaluationsEnrichedByFormation, useUpdateEvaluationsBulk } from "@/hooks/evaluation";
+import { useEnseignants } from "@/hooks/enseignant";
 
 const { Text } = Typography;
 
 const FormationEvaluationsTab = ({ formationId }) => {
-  const [evaluations, setEvaluations] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const { data: rawEvals = [], isLoading } = useEvaluationsEnrichedByFormation(formationId);
+  const { data: enseignantsData = [] } = useEnseignants();
+  const bulkUpdateMut = useUpdateEvaluationsBulk();
 
-  const loadEvaluations = () => {
-    setLoading(true);
-    Promise.all([
-      EvaluationFormateurService.listEvaluationsEnrichedByFormation(formationId),
-      EnseignantService.getAllEnseignants(),
-    ])
-      .then(([evals, enseignants]) => {
-        const ensMap = enseignants.reduce((map, ens) => {
-          map[ens.id] = ens;
-          return map;
-        }, {});
-        const enriched = evals.map(ev => {
-          const ens = ensMap[ev.enseignantId] || {};
-          return {
-            key: ev.idEvalParticipant,
-            ...ev,
-            nom: ens.nom || "",
-            prenom: ens.prenom || "",
-            mail: ens.mail || "",
-          };
-        });
-        setEvaluations(enriched);
-      })
-      .catch(err => console.error(err))
-      .finally(() => setLoading(false));
-  };
+  const enrichedBase = useMemo(() => {
+    const ensMap = enseignantsData.reduce((map, ens) => {
+      map[ens.id] = ens;
+      return map;
+    }, {});
+    return rawEvals.map(ev => {
+      const ens = ensMap[ev.enseignantId] || {};
+      return { key: ev.idEvalParticipant, ...ev, nom: ens.nom || "", prenom: ens.prenom || "", mail: ens.mail || "" };
+    });
+  }, [rawEvals, enseignantsData]);
+
+  const [evaluations, setEvaluations] = useState([]);
+  const loading = isLoading;
 
   useEffect(() => {
-    if (formationId) {
-      loadEvaluations();
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [formationId]);
+    setEvaluations(enrichedBase);
+  }, [enrichedBase]);
 
   const handleSaveAll = () => {
     const dtoList = evaluations.map(ev => ({
@@ -67,10 +51,7 @@ const FormationEvaluationsTab = ({ formationId }) => {
       satisfaisant: ev.satisfaisant,
       commentaire: ev.commentaire,
     }));
-    EvaluationFormateurService
-      .updateEvaluationsBulkByFormation(formationId, dtoList)
-      .then(loadEvaluations)
-      .catch(console.error);
+    bulkUpdateMut.mutateAsync({ formationId, evaluations: dtoList }).catch(console.error);
   };
 
   const exportExcel = () => {

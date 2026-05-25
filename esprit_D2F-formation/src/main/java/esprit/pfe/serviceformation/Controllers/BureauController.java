@@ -10,7 +10,9 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 
 @RestController
 @RequestMapping("/api/v1/bureaux")
@@ -21,8 +23,9 @@ public class BureauController {
 
     @GetMapping
     @PreAuthorize(AuthorizationMatrix.BUREAU_READ)
-    public ResponseEntity<List<Bureau>> getAllBureaux() {
-        return ResponseEntity.ok(bureauService.getAllBureaux());
+    public ResponseEntity<Page<Bureau>> getAllBureaux(
+            @PageableDefault(size = 20, sort = "id") Pageable pageable) {
+        return ResponseEntity.ok(bureauService.getAllBureaux(pageable));
     }
 
     @GetMapping("/{id}")

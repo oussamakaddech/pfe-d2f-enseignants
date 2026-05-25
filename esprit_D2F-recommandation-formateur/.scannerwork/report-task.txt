@@ -1,6 +1,0 @@
-projectKey=d2f_recommandation_formateur
-serverUrl=http://localhost:9000
-serverVersion=26.3.0.120487
-dashboardUrl=http://localhost:9000/dashboard?id=d2f_recommandation_formateur
-ceTaskId=9ef275f9-0df2-4520-ba47-eaa925260d1b
-ceTaskUrl=http://localhost:9000/api/ce/task?id=9ef275f9-0df2-4520-ba47-eaa925260d1b

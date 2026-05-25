@@ -19,7 +19,7 @@ const AnalyticsService = {
   },
 
   async triggerBatchAnalysis(): Promise<{ message: string; nb_queued: number }> {
-    const res = await axios.post(`${BASE}/trigger-batch-analysis`);
+    const res = await axios.post<{ message: string; nb_queued: number }>(`${BASE}/trigger-batch-analysis`);
     return res.data;
   },
 
@@ -65,7 +65,7 @@ const AnalyticsService = {
   },
 
   async getCompetencesDeclining(): Promise<DashboardData["competences_en_declin"]> {
-    const res = await axios.get(`${BASE}/dashboard/competences-declining`);
+    const res = await axios.get<DashboardData["competences_en_declin"]>(`${BASE}/dashboard/competences-declining`);
     return res.data;
   },
 

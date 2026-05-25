@@ -8,14 +8,13 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/certificates")
@@ -43,8 +42,10 @@ public class CertificateController {
 
     @GetMapping("/formation/{formationId}")
     @PreAuthorize(AuthorizationMatrix.CERTIFICAT_READ)
-    public List<CertificateResponse> getByFormation(@PathVariable Long formationId) {
-        return certificateService.findByFormation(formationId);
+    public Page<CertificateResponse> getByFormation(
+            @PathVariable Long formationId,
+            @PageableDefault(size = 20) Pageable pageable) {
+        return certificateService.findByFormation(formationId, pageable);
     }
 
     @PutMapping("/{id}/deliver")
@@ -55,15 +56,19 @@ public class CertificateController {
 
     @GetMapping("/email")
     @PreAuthorize(AuthorizationMatrix.CERTIFICAT_READ)
-    public List<CertificateResponse> getByEmail(@AuthenticationPrincipal Jwt jwt) {
+    public Page<CertificateResponse> getByEmail(
+            @AuthenticationPrincipal Jwt jwt,
+            @PageableDefault(size = 20) Pageable pageable) {
         String email = jwt.getClaim("email");
-        return certificateService.findByEmail(email);
+        return certificateService.findByEmail(email, pageable);
     }
 
     @GetMapping("/enseignant/{enseignantId}")
     @PreAuthorize(AuthorizationMatrix.CERTIFICAT_READ)
-    public ResponseEntity<List<CertificateResponse>> getByEnseignant(@PathVariable String enseignantId) {
-        return ResponseEntity.ok(certificateService.findByEnseignant(enseignantId));
+    public ResponseEntity<Page<CertificateResponse>> getByEnseignant(
+            @PathVariable String enseignantId,
+            @PageableDefault(size = 20) Pageable pageable) {
+        return ResponseEntity.ok(certificateService.findByEnseignant(enseignantId, pageable));
     }
 
     @PutMapping("/{id}")

@@ -7,17 +7,17 @@ import { brand, neutral, radius, shadow } from "@/styles/themes/tokens";
 const { Text } = Typography;
 
 interface D2FDataCardProps {
-  icon: ReactNode;
-  iconColor?: string;
-  label: string;
-  value: ReactNode;
-  unit?: string;
-  subtext?: string;
-  trend?: { value: number; label?: string };
-  accentColor?: string;
-  loading?: boolean;
-  href?: string;
-  className?: string;
+  readonly icon: ReactNode;
+  readonly iconColor?: string;
+  readonly label: string;
+  readonly value: ReactNode;
+  readonly unit?: string;
+  readonly subtext?: string;
+  readonly trend?: { value: number; label?: string };
+  readonly accentColor?: string;
+  readonly loading?: boolean;
+  readonly href?: string;
+  readonly className?: string;
 }
 
 export default function D2FDataCard({
@@ -36,7 +36,9 @@ export default function D2FDataCard({
   const navigate = useNavigate();
   const trendUp = trend && trend.value > 0;
   const trendDown = trend && trend.value < 0;
-  const trendColor = trendUp ? "#10b981" : trendDown ? "#ef4444" : neutral[500];
+  let trendColor: string = neutral[500];
+  if (trendUp) trendColor = "#10b981";
+  else if (trendDown) trendColor = "#ef4444";
 
   const cardStyle: React.CSSProperties = {
     background: "#fff",

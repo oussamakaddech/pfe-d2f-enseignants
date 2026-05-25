@@ -6,6 +6,9 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -13,8 +16,6 @@ import esprit.d2f.common.security.AuthorizationMatrix;
 import tn.esprit.d2f.competence.dto.RiceImportRequest;
 import tn.esprit.d2f.competence.dto.RiceImportResult;
 import tn.esprit.d2f.competence.service.IRiceImportService;
-
-import java.util.List;
 
 @Tag(name = "RICE Import", description = "Import de la structure RICE validée par l'IA")
 @RestController
@@ -35,10 +36,11 @@ public class RiceController {
         return ResponseEntity.ok(riceImportService.importRice(request));
     }
 
-    @Operation(summary = "Historique des imports RICE")
+    @Operation(summary = "Historique des imports RICE (paginé)")
     @GetMapping("/imports")
     @PreAuthorize(AuthorizationMatrix.RICE_READ)
-    public ResponseEntity<List<RiceImportResult>> getImportHistory() {
-        return ResponseEntity.ok(riceImportService.getImportHistory());
+    public ResponseEntity<Page<RiceImportResult>> getImportHistory(
+            @PageableDefault(size = 20) Pageable pageable) {
+        return ResponseEntity.ok(riceImportService.getImportHistory(pageable));
     }
 }

@@ -1,11 +1,13 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { lazy, Suspense } from "react";
 import { Skeleton, Row, Col } from "antd";
+import { neutral } from "@/styles/themes/tokens";
 
 import AuthProvider from "@/components/common/AuthProvider";
 import { NavigationSetter } from "./NavigationSetter";
 import { PrivateRoute, RoleGuard } from "./guards";
 import AppLayout from "@/components/layout/AppLayout";
+import { ROLES } from "@/utils/constants/roles";
 
 const KPIChart = lazy(() => import("@/pages/kpiFormation/KPIChart"));
 const CalendrierPage = lazy(() => import("@/pages/formation/CalendrierPage"));
@@ -49,7 +51,7 @@ const BureauPage = lazy(() => import("@/pages/bureau/BureauPage"));
 
 function PageSkeleton() {
   return (
-    <div style={{ padding: 24, background: "#f7fafc", minHeight: "calc(100vh - 128px)" }}>
+    <div style={{ padding: 24, background: neutral[50], minHeight: "calc(100vh - 128px)" }}>
       <Skeleton.Input active style={{ width: 260, height: 28, marginBottom: 28, display: "block" }} />
       <Row gutter={[16, 16]} style={{ marginBottom: 28 }}>
         {[1, 2, 3, 4].map((i) => (
@@ -93,21 +95,20 @@ export default function AppRoutes() {
                 <Route path="/home/ListeFormation/:id" element={<FicheFormation />} />
                 <Route path="/home/MyCertificate" element={<CertificatesByEmailPage />} />
 
-                <Route element={<RoleGuard allowedRoles={["admin"]} />}>
+                <Route element={<RoleGuard allowedRoles={[ROLES.ADMIN]} />}>
                   <Route path="/home/accounts" element={<ListAccounts />} />
                   <Route path="/home/rice" element={<RicePage />} />
                   <Route path="/home/Formation" element={<FormationPage />} />
                   <Route path="/home/Formation/Creer" element={<FormationCreationPage />} />
                   <Route path="/home/Enseignants" element={<TeachersDataGrid />} />
-                  <Route path="/home/enseignants" element={<TeachersDataGrid />} />
-                  <Route path="/home/enseignant" element={<TeachersDataGrid />} />
+
                   <Route path="/home/UpDept" element={<UpDeptDataGrid />} />
                   <Route path="/home/certificate" element={<CompletedFormations />} />
                   <Route path="/home/certificate/:formationId" element={<CertificatePage />} />
                   <Route path="/home/bureaux" element={<BureauPage />} />
                 </Route>
 
-                <Route element={<RoleGuard allowedRoles={["admin", "CUP", "CHEF_DEPARTEMENT"]} />}>
+                <Route element={<RoleGuard allowedRoles={[ROLES.ADMIN, ROLES.CUP, ROLES.CHEF_DEPARTEMENT]} />}>
                   <Route path="/home/KPI" element={<KPIChart />} />
                   <Route path="/home/AnalysePredictive" element={<AnalysePredictivePage />} />
                   <Route path="/home/analytics/dashboard" element={<AnalyticsDashboardPage />} />
@@ -115,43 +116,43 @@ export default function AppRoutes() {
                   <Route path="/home/analytics/teacher/:enseignantId" element={<TeacherAnalyticsPage />} />
                 </Route>
 
-                <Route element={<RoleGuard allowedRoles={["admin", "CHEF_DEPARTEMENT"]} />}>
+                <Route element={<RoleGuard allowedRoles={[ROLES.ADMIN, ROLES.CHEF_DEPARTEMENT]} />}>
                   <Route path="/home/Calendrier" element={<CalendrierPage />} />
                   <Route path="/home/calendar/:enseignantId" element={<CalendarEnseignant />} />
                 </Route>
 
-                <Route element={<RoleGuard allowedRoles={["admin", "ResponsableDossier", "CHEF_DEPARTEMENT"]} />}>
+                <Route element={<RoleGuard allowedRoles={[ROLES.ADMIN, ROLES.RESPONSABLE_DOSSIER, ROLES.CHEF_DEPARTEMENT]} />}>
                   <Route path="/home/Formation/Consulter" element={<FormationConsultationPage />} />
                   <Route path="/home/File" element={<CombinedFormationOneDriveTree />} />
                 </Route>
 
-                <Route element={<RoleGuard allowedRoles={["admin", "CUP", "CHEF_DEPARTEMENT"]} />}>
+                <Route element={<RoleGuard allowedRoles={[ROLES.ADMIN, ROLES.CUP, ROLES.CHEF_DEPARTEMENT]} />}>
                   <Route path="/home/Evaluations" element={<EvaluationGlobalePage />} />
                 </Route>
 
-                <Route element={<RoleGuard allowedRoles={["admin", "CUP", "Enseignant", "CHEF_DEPARTEMENT"]} />}>
+                <Route element={<RoleGuard allowedRoles={[ROLES.ADMIN, ROLES.CUP, ROLES.ENSEIGNANT, ROLES.CHEF_DEPARTEMENT]} />}>
                   <Route path="/home/competences" element={<CompetencePage />} />
                   <Route path="/home/competence" element={<CompetencePage />} />
                   <Route path="/home/competences/enseignant/:enseignantId" element={<EnseignantCompetencePage />} />
                   <Route path="/home/competence/enseignant/:enseignantId" element={<EnseignantCompetencePage />} />
                 </Route>
 
-                <Route element={<RoleGuard allowedRoles={["admin", "CUP"]} />}>
+                <Route element={<RoleGuard allowedRoles={[ROLES.ADMIN, ROLES.CUP]} />}>
                   <Route path="/home/affectations" element={<AffectationEnseignantPage />} />
                   <Route path="/home/rice/matchmaking" element={<CompetenceMatchingPage />} />
                   <Route path="/home/rice/competence-matching" element={<CompetenceMatchingPage />} />
                 </Route>
 
-                <Route element={<RoleGuard allowedRoles={["admin", "CUP", "Enseignant", "CHEF_DEPARTEMENT"]} />}>
+                <Route element={<RoleGuard allowedRoles={[ROLES.ADMIN, ROLES.CUP, ROLES.ENSEIGNANT, ROLES.CHEF_DEPARTEMENT]} />}>
                   <Route path="/home/besoins" element={<BesoinList />} />
                   <Route path="/home/besoins/ajouter" element={<BesoinForm />} />
                 </Route>
 
-                <Route element={<RoleGuard allowedRoles={["admin", "CUP"]} />}>
+                <Route element={<RoleGuard allowedRoles={[ROLES.ADMIN, ROLES.CUP]} />}>
                   <Route path="/home/ListeFormation/:id/demandes" element={<DemandesList />} />
                 </Route>
 
-                <Route element={<RoleGuard allowedRoles={["Formateur", "Enseignant", "admin"]} />}>
+                <Route element={<RoleGuard allowedRoles={[ROLES.FORMATEUR, ROLES.ENSEIGNANT, ROLES.ADMIN]} />}>
                   <Route path="/home/animateur-formations" element={<FormationList />} />
                   <Route path="/home/animateur-formations/:id" element={<FormationDetail />} />
                 </Route>

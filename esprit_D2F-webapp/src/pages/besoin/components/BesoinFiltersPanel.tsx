@@ -135,7 +135,7 @@ export default function BesoinFiltersPanel({
       </div>
 
       {/* Quick filters — 1-clic */}
-      <div className="bf-quickfilters" role="group" aria-label="Filtres rapides">
+      <fieldset className="bf-quickfilters" aria-label="Filtres rapides">
         <span className="bf-quickfilters__label">
           <ThunderboltOutlined /> Filtres rapides
         </span>
@@ -179,7 +179,7 @@ export default function BesoinFiltersPanel({
         >
           <CalendarOutlined /> Cette semaine
         </button>
-      </div>
+      </fieldset>
 
       {/* Secondary row */}
       <div className="bf-filters__secondary">
@@ -204,7 +204,7 @@ export default function BesoinFiltersPanel({
           onChange={(v) => setFilter("type", v)}
         >
           {types.map((t) => (
-            <Option key={t} value={t}>{TYPE_LABELS[t] || t?.replace(/_/g, " ")}</Option>
+            <Option key={t} value={t}>{TYPE_LABELS[t] || t?.replaceAll("_", " ")}</Option>
           ))}
         </Select>
         <Select

@@ -1,4 +1,3 @@
-// src/pages/competence/StructureArbrePage.jsx
 import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import {
   Tree, Card, Input, Select, Tabs, Tag, Space, Typography, Spin, Statistic,
@@ -45,7 +44,7 @@ export default function StructureArbrePage() {
 
   // Niveau definitions
   const [niveauModalVisible, setNiveauModalVisible] = useState(false);
-  const [niveauTarget, setNiveauTarget] = useState(null); // { type: 'competence'|'sousCompetence', id, nom }
+  const [niveauTarget, setNiveauTarget] = useState(null);
   const [niveauData, setNiveauData] = useState({});
   const [niveauLoading, setNiveauLoading] = useState(false);
   const [addNiveauForm] = Form.useForm();
@@ -55,9 +54,8 @@ export default function StructureArbrePage() {
     try {
       const data = await CompetenceService.structure.getArbreComplet();
       setStructure(data);
-    } catch (err) {
+    } catch {
       message.error("Erreur lors du chargement de la structure");
-      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -87,9 +85,8 @@ export default function StructureArbrePage() {
         }
         setSearchResults(data);
         setActiveTab("search");
-      } catch (err) {
+      } catch {
         message.error("Erreur de recherche");
-        console.error(err);
       } finally {
         setSearchLoading(false);
       }
@@ -151,9 +148,8 @@ export default function StructureArbrePage() {
         data = await CompetenceService.niveauDefinition.getBySousCompetence(id);
       }
       setNiveauData(data);
-    } catch (err) {
+    } catch {
       message.error("Erreur lors du chargement des niveaux");
-      console.error(err);
     } finally {
       setNiveauLoading(false);
     }
@@ -178,7 +174,6 @@ export default function StructureArbrePage() {
       openNiveauModal(niveauTarget.type, niveauTarget.id, niveauTarget.nom);
     } catch (err) {
       message.error(err.response?.data?.message || "Erreur lors de l'ajout");
-      console.error(err);
     }
   }, [niveauTarget, addNiveauForm, openNiveauModal]);
 
@@ -189,7 +184,6 @@ export default function StructureArbrePage() {
       openNiveauModal(niveauTarget.type, niveauTarget.id, niveauTarget.nom);
     } catch (err) {
       message.error("Erreur lors de la suppression");
-      console.error(err);
     }
   }, [niveauTarget, openNiveauModal]);
 
@@ -322,6 +316,15 @@ export default function StructureArbrePage() {
   }
 
   const stats = structure?.statistiques;
+
+  let searchContent;
+  if (searchLoading) {
+    searchContent = <Spin />;
+  } else if (searchResults) {
+    searchContent = <SearchResultsView results={searchResults} keyword={searchKeyword} />;
+  } else {
+    searchContent = <Empty description="Saisissez un mot-clé (min. 2 caractères) pour lancer la recherche" />;
+  }
 
   return (
     <div style={{ padding: 24 }}>
@@ -461,13 +464,7 @@ export default function StructureArbrePage() {
                   )}
                 </Space>
 
-                {searchLoading ? (
-                  <Spin />
-                ) : searchResults ? (
-                  <SearchResultsView results={searchResults} keyword={searchKeyword} />
-                ) : (
-                  <Empty description="Saisissez un mot-clé (min. 2 caractères) pour lancer la recherche" />
-                )}
+                {searchContent}
               </Card>
             ),
           },

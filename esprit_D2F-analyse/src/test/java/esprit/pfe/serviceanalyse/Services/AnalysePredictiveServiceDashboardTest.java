@@ -6,6 +6,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.web.client.RestTemplate;
 
@@ -16,6 +18,7 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 class AnalysePredictiveServiceDashboardTest {
 
     @Mock
@@ -42,13 +45,13 @@ class AnalysePredictiveServiceDashboardTest {
         aff.put("competence", comp);
         aff.put("niveauMaitrise", 4); // No gap
 
-        when(restTemplate.getForObject(contains("/api/v1/enseignant-competences"), List.class))
+        when(restTemplate.getForObject(contains("/api/v1/enseignant-competences"), eq(List.class)))
             .thenReturn(List.of(aff));
-        when(restTemplate.getForObject(contains("/formations"), List.class))
+        when(restTemplate.getForObject(contains("/formations"), eq(List.class)))
             .thenReturn(Collections.emptyList());
-        when(restTemplate.getForObject(contains("/formation-competences/formation/"), List.class))
+        when(restTemplate.getForObject(contains("/formation-competences/formation/"), eq(List.class)))
             .thenReturn(Collections.emptyList());
-        when(restTemplate.getForObject(contains("/besoinsFormations"), List.class))
+        when(restTemplate.getForObject(contains("/besoinsFormations"), eq(List.class)))
             .thenReturn(Collections.emptyList());
 
         Map<String, Object> result = analysePredictiveService.analyserEnseignant("ens1", null);
@@ -70,13 +73,13 @@ class AnalysePredictiveServiceDashboardTest {
         aff.put("competence", comp);
         aff.put("niveauMaitrise", 1); // High gap
 
-        when(restTemplate.getForObject(contains("/api/v1/enseignant-competences"), List.class))
+        when(restTemplate.getForObject(contains("/api/v1/enseignant-competences"), eq(List.class)))
             .thenReturn(List.of(aff));
-        when(restTemplate.getForObject(contains("/formations"), List.class))
+        when(restTemplate.getForObject(contains("/formations"), eq(List.class)))
             .thenReturn(Collections.emptyList());
-        when(restTemplate.getForObject(contains("/formation-competences/formation/"), List.class))
+        when(restTemplate.getForObject(contains("/formation-competences/formation/"), eq(List.class)))
             .thenReturn(Collections.emptyList());
-        when(restTemplate.getForObject(contains("/besoinsFormations"), List.class))
+        when(restTemplate.getForObject(contains("/besoinsFormations"), eq(List.class)))
             .thenReturn(Collections.emptyList());
 
         Map<String, Object> result = analysePredictiveService.analyserEnseignant("ens1", null);
@@ -89,7 +92,7 @@ class AnalysePredictiveServiceDashboardTest {
     @Test
     void testAnalyserTendancesGlobales_WithNullEvals() {
         // Test with null evaluations
-        when(restTemplate.getForObject(contains("/evaluation/evaluations-globales"), List.class))
+        when(restTemplate.getForObject(contains("/evaluation/evaluations-globales"), eq(List.class)))
             .thenReturn(null);
 
         Map<String, Object> result = analysePredictiveService.analyserTendancesGlobales();
@@ -105,7 +108,7 @@ class AnalysePredictiveServiceDashboardTest {
     @Test
     void testAnalyserTendancesGlobales_WithServiceFailure() {
         // Test with service failure
-        when(restTemplate.getForObject(contains("/evaluation/evaluations-globales"), List.class))
+        when(restTemplate.getForObject(contains("/evaluation/evaluations-globales"), eq(List.class)))
             .thenThrow(new RuntimeException("Service down"));
 
         Map<String, Object> result = analysePredictiveService.analyserTendancesGlobales();
@@ -129,7 +132,7 @@ class AnalysePredictiveServiceDashboardTest {
         eval2.put("note", 2.5);
         eval2.put("evaluateurId", "ens2");
 
-        when(restTemplate.getForObject(contains("/evaluation/evaluations-globales"), List.class))
+        when(restTemplate.getForObject(contains("/evaluation/evaluations-globales"), eq(List.class)))
             .thenReturn(List.of(eval1, eval2));
 
         Map<String, Object> result = analysePredictiveService.analyserTendancesGlobales();
@@ -145,7 +148,7 @@ class AnalysePredictiveServiceDashboardTest {
     @Test
     void testGenererDashboard_WithNullEvals() {
         // Test with null evaluations
-        when(restTemplate.getForObject(contains("/evaluation/evaluations-globales"), List.class))
+        when(restTemplate.getForObject(contains("/evaluation/evaluations-globales"), eq(List.class)))
             .thenReturn(null);
 
         Map<String, Object> result = analysePredictiveService.analyserTendancesGlobales();
@@ -161,7 +164,7 @@ class AnalysePredictiveServiceDashboardTest {
     @Test
     void testGenererDashboard_WithServiceFailure() {
         // Test with service failure
-        when(restTemplate.getForObject(contains("/evaluation/evaluations-globales"), List.class))
+        when(restTemplate.getForObject(contains("/evaluation/evaluations-globales"), eq(List.class)))
             .thenThrow(new RuntimeException("Service down"));
 
         Map<String, Object> result = analysePredictiveService.analyserTendancesGlobales();
@@ -185,7 +188,7 @@ class AnalysePredictiveServiceDashboardTest {
         eval2.put("note", 2.5);
         eval2.put("evaluateurId", "ens2");
 
-        when(restTemplate.getForObject(contains("/evaluation/evaluations-globales"), List.class))
+        when(restTemplate.getForObject(contains("/evaluation/evaluations-globales"), eq(List.class)))
             .thenReturn(List.of(eval1, eval2));
 
         Map<String, Object> result = analysePredictiveService.analyserTendancesGlobales();
@@ -208,7 +211,7 @@ class AnalysePredictiveServiceDashboardTest {
         eval2.put("note", null);
         eval2.put("evaluateurId", "ens2");
 
-        when(restTemplate.getForObject(contains("/evaluation/evaluations-globales"), List.class))
+        when(restTemplate.getForObject(contains("/evaluation/evaluations-globales"), eq(List.class)))
             .thenReturn(List.of(eval1, eval2));
 
         Map<String, Object> result = analysePredictiveService.analyserTendancesGlobales();

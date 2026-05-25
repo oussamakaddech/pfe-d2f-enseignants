@@ -4,7 +4,6 @@ import esprit.pfe.serviceformation.entities.*;
 import esprit.pfe.serviceformation.repositories.*;
 import esprit.pfe.serviceformation.microsoft.OutlookMailService;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,11 +24,12 @@ public class FormationReminderScheduler {
     private final SeanceFormationRepository seanceFormationRepository;
 
     /** Optionnel : absent si azure.ad.enabled != true */
-    @Autowired(required = false)
-    private OutlookMailService outlookMailService;
+    private final OutlookMailService outlookMailService;
 
-    public FormationReminderScheduler(SeanceFormationRepository seanceFormationRepository) {
+    public FormationReminderScheduler(SeanceFormationRepository seanceFormationRepository,
+                                      @org.springframework.lang.Nullable OutlookMailService outlookMailService) {
         this.seanceFormationRepository = seanceFormationRepository;
+        this.outlookMailService = outlookMailService;
     }
 
     /**

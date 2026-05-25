@@ -1,6 +1,6 @@
 import { Table, Tag, Space, Progress, Typography, Tooltip } from "antd";
 import { BulbOutlined } from "@ant-design/icons";
-import { AnalyseGap, Gravite } from "@/services/analyse/AnalysePredictiveService";
+import type { AnalyseGap, Gravite } from "@/models/analyse";
 
 const { Text } = Typography;
 

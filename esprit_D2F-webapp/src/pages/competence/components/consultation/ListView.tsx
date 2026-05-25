@@ -19,7 +19,9 @@ const { Option } = Select;
 const PAGE_SIZE = 50;
 
 function Badge({ text, type = "muted" }) {
-  const cls = type === "theorique" ? "ctp-badge--theorique" : type === "pratique" ? "ctp-badge--pratique" : "ctp-badge--muted";
+  let cls = "ctp-badge--muted";
+  if (type === "theorique") cls = "ctp-badge--theorique";
+  else if (type === "pratique") cls = "ctp-badge--pratique";
   return <span className={`ctp-badge ${cls}`}>{text}</span>;
 }
 

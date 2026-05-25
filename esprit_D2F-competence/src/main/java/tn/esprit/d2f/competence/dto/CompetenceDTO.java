@@ -22,8 +22,8 @@ public class CompetenceDTO {
     private Integer ordre;
     private Long domaineId;
     private String domaineNom;
-    private Long upId;
-    private Long departementId;
+    private String upId;
+    private String departementId;
     private Long nbEnseignants;
     private Long prerequisiteCount;
     private List<String> prerequisiteNames;

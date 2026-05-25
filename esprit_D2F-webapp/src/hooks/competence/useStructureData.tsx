@@ -41,8 +41,8 @@ export default function useStructureData() {
     try {
       const all = await CompetenceService.savoir.getAll();
       setAllSavoirsHierarchie(all);
-    } catch (err) {
-      console.error("[useStructureData] loadAllSavoirs error:", err?.message);
+    } catch {
+      // silently handle
     }
   }, []);
 
@@ -55,9 +55,8 @@ export default function useStructureData() {
     try {
       const data = await CompetenceService.structure.getArbreComplet(upId, deptId);
       setStructure(data);
-    } catch (err) {
+    } catch {
       message.error("Erreur lors du chargement de la structure");
-      console.error(err);
     } finally {
       setStructureLoading(false);
     }
@@ -85,9 +84,8 @@ export default function useStructureData() {
         data = await CompetenceService.niveauDefinition.getBySousCompetence(id);
       }
       setNiveauData(data);
-    } catch (err) {
+    } catch {
       message.error("Erreur lors du chargement des niveaux");
-      console.error(err);
     } finally {
       setNiveauLoading(false);
     }
@@ -111,8 +109,7 @@ export default function useStructureData() {
         : await CompetenceService.niveauDefinition.getBySousCompetence(niveauTarget.id);
       setNiveauData(refresh);
     } catch (err) {
-      message.error(err.response?.data?.message || "Erreur lors de l&apos;ajout");
-      console.error(err);
+      message.error(err.response?.data?.message || "Erreur lors de l'ajout");
     }
   }, [niveauTarget]);
 
@@ -125,9 +122,8 @@ export default function useStructureData() {
         ? await CompetenceService.niveauDefinition.getByCompetence(niveauTarget.id)
         : await CompetenceService.niveauDefinition.getBySousCompetence(niveauTarget.id);
       setNiveauData(refresh);
-    } catch (err) {
+    } catch {
       message.error("Erreur lors de la suppression");
-      console.error(err);
     }
   }, [niveauTarget]);
 
@@ -140,9 +136,8 @@ export default function useStructureData() {
     try {
       const resp = await CompetenceService.niveauDefinition.getByCompetence(compId);
       setMatrixData(resp.niveaux ?? resp);
-    } catch (err) {
+    } catch {
       message.error("Erreur lors du chargement de la matrice des niveaux");
-      console.error(err);
     } finally {
       setMatrixLoading(false);
     }
@@ -163,9 +158,8 @@ export default function useStructureData() {
       if (domaine) data = await CompetenceService.structure.rechercheParDomaine(domaine, keyword.trim());
       else data = await CompetenceService.structure.rechercheGlobale(keyword.trim());
       setSearchResults(data);
-    } catch (err) {
+    } catch {
       message.error("Erreur de recherche");
-      console.error(err);
     } finally {
       setSearchLoading(false);
     }

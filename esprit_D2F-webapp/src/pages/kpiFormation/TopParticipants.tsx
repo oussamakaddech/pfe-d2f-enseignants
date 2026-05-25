@@ -1,5 +1,4 @@
-// src/components/TopParticipants.jsx
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card, Row, Col, Select, DatePicker, Spin, Table, Button } from 'antd';
 import { Line } from 'react-chartjs-2';
 import { DownOutlined, UpOutlined } from '@ant-design/icons';

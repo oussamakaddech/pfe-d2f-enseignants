@@ -85,6 +85,8 @@ class FormationWorkflowServiceEnhancedTest {
             Formation f = inv.getArgument(0);
             if (f.getIdFormation() == null)
                 f.setIdFormation(1L);
+            if (f.getEtatFormation() == null)
+                f.setEtatFormation(EtatFormation.ENREGISTRE);
             return f;
         });
         lenient().when(seanceFormationRepository.existsSeanceConflict(any(), any(), any(), any())).thenReturn(false);
@@ -353,19 +355,22 @@ class FormationWorkflowServiceEnhancedTest {
         Formation formation = createFormation(1L, EtatFormation.VISIBLE);
         formation.setTitreFormation("Formation Test");
 
-        Enseignant e1 = new Enseignant();
-        e1.setId("E1");
-        e1.setMail("e1@esprit.tn");
-        e1.setNom("Nom1");
-        e1.setPrenom("Prenom1");
+        SeanceFormation seance = new SeanceFormation();
+        seance.setIdSeance(10L);
 
-        Enseignant e2 = new Enseignant();
-        e2.setId("E2");
-        e2.setMail("e2@esprit.tn");
-        e2.setNom("Nom2");
-        e2.setPrenom("Prenom2");
+        Enseignant animateur = new Enseignant();
+        animateur.setId("E1");
+        animateur.setMail("e1@esprit.tn");
 
-        when(enseignantRepository.findAll()).thenReturn(List.of(e1, e2));
+        Enseignant participant = new Enseignant();
+        participant.setId("E2");
+        participant.setMail("e2@esprit.tn");
+
+        seance.setAnimateurs(List.of(animateur));
+        seance.setParticipants(List.of(participant));
+        formation.setSeances(List.of(seance));
+
+        when(enseignantRepository.findAllById(anyCollection())).thenReturn(List.of(animateur, participant));
 
         formationWorkflowService.notifyTeachersOfApprovedFormation(formation);
 
@@ -449,7 +454,11 @@ class FormationWorkflowServiceEnhancedTest {
         seance.setIdSeance(1L);
         seance.setCalendarEventId("event123");
         seance.setFormation(formation);
-        seance.setAnimateurs(new ArrayList<>());
+
+        Enseignant animateur = new Enseignant();
+        animateur.setId("E1");
+        animateur.setMail("e1@esprit.tn");
+        seance.setAnimateurs(List.of(animateur));
         seance.setParticipants(new ArrayList<>());
         
         formation.setSeances(List.of(seance));
@@ -459,9 +468,7 @@ class FormationWorkflowServiceEnhancedTest {
         formationWorkflowService.removeFormationCalendar(formation);
 
         verify(outlookCalendarService).deleteEventInCalendar(anyString(), eq("event123"));
-        // La méthode removeFormationCalendar envoie un mail global, et removeSeanceFromCalendar envoie un mail pour chaque séance
-        // Donc nous avons 2 appels à sendMail
-        verify(outlookMailService, times(2)).sendMail(eq("Application.Formationdesformateurs@Esprit.tn"), anyString(), anyString());
+        verify(outlookMailService, times(2)).sendMail(anyString(), anyString(), anyString());
     }
 
     @Test

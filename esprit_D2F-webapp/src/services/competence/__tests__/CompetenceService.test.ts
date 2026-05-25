@@ -38,10 +38,10 @@ describe('CompetenceService', () => {
     await expect(CompetenceService.domaine.getById(3)).resolves.toEqual({ id: 3 });
 
     httpMocks.mockPost.mockResolvedValueOnce({ data: { id: 4 } });
-    await expect(CompetenceService.domaine.create({ nomDomaine: 'D' })).resolves.toEqual({ id: 4 });
+    await expect(CompetenceService.domaine.create({ code: 'DOM-01', nom: 'D', description: 'Desc', actif: true, upId: 1, departementId: 2 })).resolves.toEqual({ id: 4 });
 
-    httpMocks.mockPut.mockResolvedValueOnce({ data: { id: 4, nomDomaine: 'D2' } });
-    await expect(CompetenceService.domaine.update(4, { nomDomaine: 'D2' })).resolves.toEqual({ id: 4, nomDomaine: 'D2' });
+    httpMocks.mockPut.mockResolvedValueOnce({ data: { id: 4, code: 'DOM-02', nom: 'D2' } });
+    await expect(CompetenceService.domaine.update(4, { code: 'DOM-02', nom: 'D2' })).resolves.toEqual({ id: 4, code: 'DOM-02', nom: 'D2' });
 
     httpMocks.mockPatch.mockResolvedValueOnce({ data: { id: 4, actif: false } });
     await expect(CompetenceService.domaine.toggleActif(4)).resolves.toEqual({ id: 4, actif: false });

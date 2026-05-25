@@ -171,7 +171,7 @@ export default function ConsultationTab({ structure, crud, handleExportExcel }) 
 
             {isPending && (
               <div className="ctp-refresh-bar">
-                <span className="ctp-refresh-dot" />
+                <span className="ctp-refresh-dot" />{" "}
                 Mise a jour des donnees...
               </div>
             )}

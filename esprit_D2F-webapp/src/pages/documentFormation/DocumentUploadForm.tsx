@@ -1,4 +1,3 @@
-// src/components/DocumentUploadForm.jsx
 import { useState } from "react";
 import PropTypes from "prop-types";
 import { Form, Input, Select, Checkbox, Upload, Button } from "antd";
@@ -46,7 +45,6 @@ export default function DocumentUploadForm({ formationId, onClose, onDocumentAdd
       onDocumentAdded(newDoc);
       onClose();
     } catch (err) {
-      console.error(err);
       message.error("🚫 Erreur lors de l’ajout du document.");
     } finally {
       setLoading(false);
@@ -89,7 +87,7 @@ export default function DocumentUploadForm({ formationId, onClose, onDocumentAdd
         name="file"
         label="Fichier"
         valuePropName="fileList"
-        getValueFromEvent={e => e && e.fileList}
+        getValueFromEvent={e => e?.fileList}
         rules={[{ required: true }]}
       >
         <Upload {...uploadProps} maxCount={1}>

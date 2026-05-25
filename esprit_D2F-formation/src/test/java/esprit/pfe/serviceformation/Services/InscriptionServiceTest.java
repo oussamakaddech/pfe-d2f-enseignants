@@ -8,6 +8,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.sql.Time;
 import java.util.*;
@@ -15,6 +18,7 @@ import java.util.*;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -24,6 +28,11 @@ class InscriptionServiceTest {
     @Mock private EnseignantRepository enseignantRepo;
     @Mock private InscriptionRepository inscriptionRepo;
     @InjectMocks private InscriptionService service;
+
+    @org.junit.jupiter.api.BeforeEach
+    void wireSelfReference() {
+        ReflectionTestUtils.setField(service, "self", service);
+    }
 
     private Formation createValidFormation(Long id) {
         Formation f = new Formation();
@@ -69,6 +78,25 @@ class InscriptionServiceTest {
         
         when(formationRepo.findAll()).thenReturn(Collections.emptyList());
         assertTrue(service.listerFormationsAccessibles("E1").isEmpty());
+    }
+
+    @Test
+    void testListerFormationsAccessiblesPageable_shouldSliceAndPaginate() {
+        Enseignant ens = new Enseignant();
+        ens.setId("E1");
+        when(enseignantRepo.findById("E1")).thenReturn(Optional.of(ens));
+
+        Formation f1 = createValidFormation(1L);
+        Formation f2 = createValidFormation(2L);
+        when(formationRepo.findAll()).thenReturn(List.of(f1, f2));
+
+        Page<FormationDTO> firstPage = service.listerFormationsAccessibles("E1", PageRequest.of(0, 1));
+        Page<FormationDTO> emptyPage = service.listerFormationsAccessibles("E1", PageRequest.of(2, 1));
+
+        assertEquals(2, firstPage.getTotalElements());
+        assertEquals(1, firstPage.getContent().size());
+        assertTrue(emptyPage.isEmpty());
+        assertEquals(2, emptyPage.getTotalElements());
     }
 
     @Test
@@ -145,5 +173,23 @@ class InscriptionServiceTest {
         
         service.traiterDemande(1L, true);
         assertEquals(EtatInscription.APPROVED, ins.getEtat());
+    }
+
+    @Test
+    void testListerInscriptionsParFormationPageable_Success() {
+        Formation f = createValidFormation(1L);
+        when(formationRepo.findById(1L)).thenReturn(Optional.of(f));
+
+        Inscription ins = new Inscription();
+        ins.setId(1L);
+        ins.setFormation(f);
+        ins.setEnseignant(new Enseignant());
+        when(inscriptionRepo.findByFormation_IdFormation(eq(1L), any(PageRequest.class)))
+                .thenReturn(new org.springframework.data.domain.PageImpl<>(List.of(ins)));
+
+        Page<InscriptionDTO> result = service.listerInscriptionsParFormation(1L, PageRequest.of(0, 10));
+
+        assertEquals(1, result.getTotalElements());
+        assertEquals(1L, result.getContent().get(0).getId());
     }
 }

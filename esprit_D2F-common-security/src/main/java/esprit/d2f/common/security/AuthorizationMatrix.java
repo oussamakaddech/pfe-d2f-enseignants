@@ -76,6 +76,16 @@ public final class AuthorizationMatrix {
     public static final String BUREAU_UPDATE = "hasAnyRole('ROLE_ADMIN')";
     public static final String BUREAU_DELETE = "hasAnyRole('ROLE_ADMIN')";
 
+    // ── Référentiel (Dept, UP, Enseignant) ─────────────────────────────
+    public static final String REFERENTIEL_READ   = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_D2F','ROLE_ENSEIGNANT','ROLE_CHEF_DEPARTEMENT','ROLE_FORMATEUR','ROLE_RESPONSABLE_DOSSIER')";
+    public static final String REFERENTIEL_WRITE  = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_D2F')";
+    public static final String REFERENTIEL_IMPORT = "hasAnyRole('ROLE_ADMIN')";
+
+    // ── Inscription ─────────────────────────────────────────────────────
+    public static final String INSCRIPTION_READ    = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_D2F','ROLE_ENSEIGNANT','ROLE_FORMATEUR')";
+    public static final String INSCRIPTION_CREATE  = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_D2F','ROLE_ENSEIGNANT')";
+    public static final String INSCRIPTION_APPROVE = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_D2F')";
+
     public static final String GATEWAY_ACCESS = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_D2F','ROLE_ENSEIGNANT','ROLE_FORMATEUR','ROLE_CHEF_DEPARTEMENT','ROLE_RESPONSABLE_DOSSIER')";
     public static final String PUBLIC_ACCESS = "permitAll()";
 }

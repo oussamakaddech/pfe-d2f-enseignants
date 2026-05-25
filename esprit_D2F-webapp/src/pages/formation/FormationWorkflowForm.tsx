@@ -35,9 +35,6 @@ import {
   CheckSquareOutlined,
   EnvironmentOutlined,
   CheckOutlined,
-  ArrowLeftOutlined,
-  ArrowRightOutlined,
-  SaveOutlined,
   GlobalOutlined,
   LaptopOutlined,
   BankOutlined,
@@ -59,8 +56,11 @@ import FormationCompetenceService from "@/services/competence/FormationCompetenc
 import CompetenceService from "@/services/competence/CompetenceService";
 import BesoinCompetenceService from "@/services/besoin/BesoinCompetenceService";
 import { AuthContext } from "@/components/common/AuthProvider";
+import { ROLES, isAdmin } from "@/utils/constants/roles";
 
 import DocumentUploadForm from "../documentFormation/DocumentUploadForm";
+import WizardStepper from "@/components/wizard/WizardStepper";
+import WizardNavFooter from "@/components/wizard/WizardNavFooter";
 import "@/styles/pages/formation-workflow-form.css";
 
 const STEPS = [
@@ -71,6 +71,8 @@ const STEPS = [
   { title: "Coûts", icon: <DollarOutlined /> },
 ];
 
+const getPersonIds = (arr: { id?: unknown }[]) => (Array.isArray(arr) ? arr : []).map((a) => a?.id).filter(Boolean);
+
 const PERIOD_OPTIONS = [
   { value: "WINTER",   label: "Winter" },
   { value: "SUMMER",   label: "Summer" },
@@ -79,8 +81,15 @@ const PERIOD_OPTIONS = [
   { value: "OTHER",    label: "Autre" },
 ];
 
-function mapBesoinLink(l: any) {
+type PersonItem   = { id?: unknown; type?: string; cup?: string; chefDepartement?: string; nom?: string; prenom?: string; mail?: string; upLibelle?: string; deptLibelle?: string; isAuthUser?: boolean; userName?: string; etat?: string };
+type AccountItem  = { id?: unknown; role?: string; userName?: string; username?: string; lastName?: string; firstName?: string; emailAddress?: string; email?: string; type?: string; upLibelle?: string; deptLibelle?: string };
+type SeanceItem   = { id?: unknown; dateSeance?: string; heureDebut?: unknown; heureFin?: unknown; salle?: unknown; animateurs?: { id?: unknown }[]; participants?: { id?: unknown }[]; seances?: SeanceItem[] };
+type FormationRaw = { idFormation?: unknown; id?: unknown; titreFormation?: string; seances?: SeanceItem[]; participants?: { id?: unknown }[] };
+type LookupNode  = { id?: unknown; libelle?: string; nom?: string };
+type BesoinLinkRaw = { _id?: string; domaineId?: number | null; competenceId?: number | null; competenceNom?: string; savoirId?: number | null; savoirNom?: string; sousCompetenceId?: number | null };
+function mapBesoinLink(l: BesoinLinkRaw) {
   return {
+    _id: crypto.randomUUID(),
     domaineId: l.domaineId ?? null,
     competenceId: l.competenceId ?? null,
     competenceNom: l.competenceNom || "",
@@ -90,11 +99,13 @@ function mapBesoinLink(l: any) {
   };
 }
 
-export default function FormationWorkflowForm({ initialDate, onFormationCreated, besoinInfo }) {
+type BesoinInfoShape = { titre?: string; objectifFormation?: string; dateDebut?: string; dateFin?: string; dureeFormation?: number; estOuverte?: boolean; periodCode?: string; customPeriodLabel?: string; periodeFormation?: string; publicCible?: string; propositionAnimateur?: string; objectifsPedagogiques?: string; methodesEvaluationAcquis?: string; theme?: string; up?: unknown; departement?: unknown; idBesoinFormation?: number | string; typeBesoin?: string; priorite?: string };
+type FormationWorkflowFormProps = { initialDate?: string; onFormationCreated?: (f?: import("@/models/formation").Formation) => void; besoinInfo?: BesoinInfoShape };
+export default function FormationWorkflowForm({ initialDate, onFormationCreated, besoinInfo }: Readonly<FormationWorkflowFormProps>) {
   const navigate = useNavigate();
   const auth = useContext(AuthContext);
   const { message } = useAppNotification();
-  const isAdmin = auth?.user?.role === "admin" || auth?.user?.role === "ADMIN";
+  const isAdminUser = isAdmin(auth?.user?.role);
   const [activeStep, setActiveStep] = useState(0);
 
   // States
@@ -122,39 +133,39 @@ export default function FormationWorkflowForm({ initialDate, onFormationCreated,
   const [bureauMail, setBureauMail] = useState("");
   const [bureauTelephone, setBureauTelephone] = useState("");
 
-  const [ups, setUps] = useState([]);
-  const [depts, setDepts] = useState([]);
-  const [selectedUp, setSelectedUp] = useState(null);
-  const [selectedDept, setSelectedDept] = useState(null);
+  const [ups, setUps] = useState<LookupNode[]>([]);
+  const [depts, setDepts] = useState<LookupNode[]>([]);
+  const [selectedUp, setSelectedUp] = useState<LookupNode | null>(null);
+  const [selectedDept, setSelectedDept] = useState<LookupNode | null>(null);
 
-  const [enseignants, setEnseignants] = useState([]);
-  const [existingFormations, setExistingFormations] = useState([]);
+  const [enseignants, setEnseignants] = useState<PersonItem[]>([]);
+  const [existingFormations, setExistingFormations] = useState<unknown[]>([]);
 
-  const [animSel, setAnimSel] = useState([]);
-  const [animFilterUp, setAnimFilterUp] = useState(null);
-  const [animFilterDept, setAnimFilterDept] = useState(null);
+  const [animSel, setAnimSel] = useState<PersonItem[]>([]);
+  const [animFilterUp, setAnimFilterUp] = useState<LookupNode | null>(null);
+  const [animFilterDept, setAnimFilterDept] = useState<LookupNode | null>(null);
 
-  const [partSel, setPartSel] = useState([]);
-  const [partFilterUp, setPartFilterUp] = useState(null);
-  const [partFilterDept, setPartFilterDept] = useState(null);
+  const [partSel, setPartSel] = useState<PersonItem[]>([]);
+  const [partFilterUp, setPartFilterUp] = useState<LookupNode | null>(null);
+  const [partFilterDept, setPartFilterDept] = useState<LookupNode | null>(null);
 
-  const [overlapWarnings, setOverlapWarnings] = useState([]);
+  const [overlapWarnings, setOverlapWarnings] = useState<unknown[]>([]);
   const [domaine, setDomaine] = useState(besoinInfo?.theme || "");
   const [populationCible, setPopulationCible] = useState(besoinInfo?.publicCible || "");
   const [objectifs, setObjectifs] = useState(besoinInfo?.objectifFormation || "");
   const [objectifsPedago, setObjectifsPedago] = useState(besoinInfo?.objectifsPedagogiques || "");
   const [evalMethods, setEvalMethods] = useState(besoinInfo?.methodesEvaluationAcquis || "");
+  const enseignantsList = Array.isArray(enseignants) ? enseignants : [];
 
   const [coutTransport, setCoutTransport] = useState(0);
   const [coutHebergement, setCoutHebergement] = useState(0);
   const [coutRepas, setCoutRepas] = useState(0);
 
   // Competence states
-  const [compDomaines, setCompDomaines] = useState([]);
-  const [compCompetences, setCompCompetences] = useState([]);
-  const [selectedCompLinks, setSelectedCompLinks] = useState([]);
-  const [rowSousComps, setRowSousComps] = useState({});
-  const [rowSavoirs, setRowSavoirs] = useState({});
+  const [compDomaines, setCompDomaines] = useState<{ id?: string | number | null; nom?: string }[]>([]);
+  const [compCompetences, setCompCompetences] = useState<{ id?: string | number | null; nom?: string; domaineId?: string | number | null }[]>([]);
+  const [selectedCompLinks, setSelectedCompLinks] = useState<BesoinLinkRaw[]>([]);
+  const [rowSavoirs, setRowSavoirs] = useState<Record<number, { id?: unknown; nom?: string; type?: string }[]>>({});
   const [compSearch, setCompSearch] = useState("");
 
   const [seances, setSeances] = useState([
@@ -176,9 +187,9 @@ export default function FormationWorkflowForm({ initialDate, onFormationCreated,
 
   // snack state replaced by message.xxx from antd
   const [showUpload, setShowUpload] = useState(false);
-  const [newFormationId, setNewFormationId] = useState(null);
+  const [newFormationId, setNewFormationId] = useState<number | string | null>(null);
 
-  const getEnseignantLabel = (opt) => {
+  const getEnseignantLabel = (opt: { type?: string; cup?: string; chefDepartement?: string; nom?: string; prenom?: string; mail?: string } | null) => {
     if (!opt) return "";
     let roles = [];
     if (opt.type === "P") roles.push("Perm.");
@@ -190,14 +201,16 @@ export default function FormationWorkflowForm({ initialDate, onFormationCreated,
     return `${opt.nom} ${opt.prenom} (${opt.mail})${roleStr}`;
   };
 
-  const getAnimateurLabel = (opt) => {
+  const getAnimateurLabel = (opt: { type?: string; cup?: string; nom?: string; prenom?: string; mail?: string } | null) => {
     if (!opt) return "";
-    const type = opt.type === "P" ? " · Perm." : opt.type === "V" ? " · Vac." : "";
+    let type = "";
+    if (opt.type === "P") type = " · Perm.";
+    else if (opt.type === "V") type = " · Vac.";
     const cup = opt.cup === "O" || opt.cup === "Y" || opt.cup === "1" ? " · CUP" : "";
     return `${opt.nom} ${opt.prenom} (${opt.mail})${type}${cup}`;
   };
 
-  const [formateursList, setFormateursList] = useState([]);
+  const [formateursList, setFormateursList] = useState<PersonItem[]>([]);
 
   // Filters
   const optionsAnim = formateursList.filter(x =>
@@ -205,25 +218,25 @@ export default function FormationWorkflowForm({ initialDate, onFormationCreated,
     (!animFilterDept || x.deptLibelle === animFilterDept.libelle)
   );
 
-  const optionsPart = enseignants.filter(x =>
+  const optionsPart = enseignantsList.filter(x =>
     (!partFilterUp || x.upLibelle === partFilterUp.libelle) &&
     (!partFilterDept || x.deptLibelle === partFilterDept.libelle)
   );
 
   // Pre-fill participants from publicCible if possible
   useEffect(() => {
-    if (besoinInfo?.publicCible && enseignants.length > 0 && partSel.length === 0) {
+    if (besoinInfo?.publicCible && enseignantsList.length > 0 && partSel.length === 0) {
       const emails = (besoinInfo.publicCible.match(/<([^>]+)>/g) || [])
         .map(m => m.slice(1, -1).trim().toLowerCase());
 
       if (emails.length > 0) {
-        const matched = enseignants.filter(e => e.mail && emails.includes(e.mail.toLowerCase()));
+        const matched = enseignantsList.filter(e => e.mail && emails.includes(e.mail.toLowerCase()));
         if (matched.length > 0) {
           setPartSel(matched);
         }
       }
     }
-  }, [besoinInfo, enseignants, partSel.length]);
+  }, [besoinInfo, enseignantsList, partSel.length]);
 
   // Pre-fill animateur from propositionAnimateur if possible
   useEffect(() => {
@@ -263,11 +276,11 @@ export default function FormationWorkflowForm({ initialDate, onFormationCreated,
 
         if (besoinInfo) {
           if (besoinInfo.up) {
-            const foundUp = u.find(up => String(up.id) === String(besoinInfo.up));
+            const foundUp = u.find((up: LookupNode) => String(up.id) === String(besoinInfo.up));
             if (foundUp) setSelectedUp(foundUp);
           }
           if (besoinInfo.departement) {
-            const foundDept = d.find(dept => String(dept.id) === String(besoinInfo.departement));
+            const foundDept = d.find((dept: LookupNode) => String(dept.id) === String(besoinInfo.departement));
             if (foundDept) setSelectedDept(foundDept);
           }
         }
@@ -309,64 +322,67 @@ export default function FormationWorkflowForm({ initialDate, onFormationCreated,
     }
   }, [activeStep]);
 
+  const validateStep0 = () => {
+    if (!titre || titre.trim().length < 5) {
+      message.error("Le titre doit contenir au moins 5 caractères");
+      return false;
+    }
+    if (!typeFormation) {
+      message.error("Sélectionnez un type de formation");
+      return false;
+    }
+    if (dateDebut && dateFin && dateDebut > dateFin) {
+      message.error("La date de fin doit être postérieure à la date de début");
+      return false;
+    }
+    return true;
+  };
+
+  const validateStep2 = () => {
+    if (seances.length === 0) {
+      message.error("Ajoutez au moins une séance avant de continuer");
+      return false;
+    }
+    const missDate = seances.findIndex(s => !s.dateSeance);
+    if (missDate !== -1) {
+      message.error(`La séance #${missDate + 1} n'a pas de date`);
+      return false;
+    }
+    const badTime = seances.findIndex(s => s.heureDebut && s.heureFin && s.heureDebut >= s.heureFin);
+    if (badTime !== -1) {
+      message.error(`La séance #${badTime + 1} : l'heure de fin doit être après l'heure de début`);
+      return false;
+    }
+    const totalMin = seances.reduce((acc, s) => {
+      const start = toMinutes(s.heureDebut) ?? 0;
+      const end   = toMinutes(s.heureFin)   ?? 0;
+      return acc + Math.max(0, end - start);
+    }, 0);
+    if (totalMin > 0) setChargeH(Math.round((totalMin / 60) * 10) / 10);
+    return true;
+  };
+
   const handleNext = () => {
-    // ── Étape 0 : Général ───────────────────────────────────────────────────
-    if (activeStep === 0) {
-      if (!titre || titre.trim().length < 5) {
-        message.error("Le titre doit contenir au moins 5 caractères");
-        return;
-      }
-      if (!typeFormation) {
-        message.error("Sélectionnez un type de formation");
-        return;
-      }
-      if (dateDebut && dateFin && dateDebut > dateFin) {
-        message.error("La date de fin doit être postérieure à la date de début");
-        return;
-      }
-    }
-    // ── Étape 2 : Planning & Acteurs ────────────────────────────────────────
-    if (activeStep === 2) {
-      if (seances.length === 0) {
-        message.error("Ajoutez au moins une séance avant de continuer");
-        return;
-      }
-      const missDate = seances.findIndex(s => !s.dateSeance);
-      if (missDate !== -1) {
-        message.error(`La séance #${missDate + 1} n'a pas de date`);
-        return;
-      }
-      const badTime = seances.findIndex(s => s.heureDebut && s.heureFin && s.heureDebut >= s.heureFin);
-      if (badTime !== -1) {
-        message.error(`La séance #${badTime + 1} : l'heure de fin doit être après l'heure de début`);
-        return;
-      }
-      // Auto-sync charge horaire depuis les séances si non modifiée manuellement
-      const totalMin = seances.reduce((acc, s) => {
-        const start = toMinutes(s.heureDebut) ?? 0;
-        const end   = toMinutes(s.heureFin)   ?? 0;
-        return acc + Math.max(0, end - start);
-      }, 0);
-      if (totalMin > 0) setChargeH(Math.round((totalMin / 60) * 10) / 10);
-    }
+    if (activeStep === 0 && !validateStep0()) return;
+    if (activeStep === 2 && !validateStep2()) return;
     setActiveStep(prev => prev + 1);
   };
 
   const handleBack = () => setActiveStep((prev) => prev - 1);
 
-  const toMinutes = (timeValue) => {
+  const toMinutes = (timeValue: unknown) => {
     if (!timeValue) return null;
     const parts = String(timeValue).split(":");
     if (parts.length <2) return null;
-    const h = parseInt(parts[0], 10);
-    const m = parseInt(parts[1], 10);
+    const h = Number.parseInt(parts[0], 10);
+    const m = Number.parseInt(parts[1], 10);
     if (Number.isNaN(h) || Number.isNaN(m)) return null;
     return (h * 60) + m;
   };
 
-  const intersects = (left, right) => left.some((id) => right.includes(id));
+  const intersects = (left: unknown[], right: unknown[]) => left.some((id) => right.includes(id));
 
-  const sameTimeWindow = (a, b) => {
+  const sameTimeWindow = (a: { dateSeance?: string; heureDebut?: unknown; heureFin?: unknown }, b: { dateSeance?: string; heureDebut?: unknown; heureFin?: unknown }) => {
     if (!a?.dateSeance || !b?.dateSeance || a.dateSeance !== b.dateSeance) return false;
     const aStart = toMinutes(a.heureDebut);
     const aEnd = toMinutes(a.heureFin);
@@ -376,15 +392,15 @@ export default function FormationWorkflowForm({ initialDate, onFormationCreated,
     return aStart < bEnd && bStart < aEnd;
   };
 
-  const normalizedSalle = (value) => String(value || "").trim().toLowerCase();
+  const normalizedSalle = (value: unknown) => String(value || "").trim().toLowerCase();
 
-  const getAnimateurStableId = (anim) => (
+  const getAnimateurStableId = (anim: PersonItem) => (
     anim?.isAuthUser
       ? String(anim.userName || anim.nom || "").substring(0, 10).toUpperCase()
       : anim?.id
   );
 
-  const mergeFormateursAccounts = (accountsData, enseignantsData) => {
+  const mergeFormateursAccounts = (accountsData: AccountItem[], enseignantsData: PersonItem[]) => {
     if (!Array.isArray(accountsData)) return [];
     const formateurs = accountsData
       .filter(a => (a.role || "").toUpperCase() === "FORMATEUR")
@@ -407,16 +423,16 @@ export default function FormationWorkflowForm({ initialDate, onFormationCreated,
     const enriched = formateurs.map(f => {
       const prefix = f.mail ? f.mail.split("@")[0] : "";
       const match = enseignantsData.find(ex =>
-        fUserNames.includes(ex.id) || ex.mail === f.mail || ex.mail?.split("@")[0] === prefix
+        fUserNames.includes(ex.id as string) || ex.mail === f.mail || ex.mail?.split("@")[0] === prefix
       );
       return match ? { ...f, upLibelle: match.upLibelle || "", deptLibelle: match.deptLibelle || "", type: match.type || f.type } : f;
     });
     return enriched;
   };
 
-  const checkExistingFormationConflicts = (localSeance, idx, existingFormations, messages, participantIds, animateurIds) => {
+  const checkExistingFormationConflicts = (localSeance: SeanceItem, idx: number, existingFormations: FormationRaw[], messages: string[], participantIds: unknown[], animateurIds: unknown[]) => {
     existingFormations.forEach((f) => {
-      const existingSeances = Array.isArray(f.seances) ? f.seances : [];
+      const existingSeances: SeanceItem[] = Array.isArray(f.seances) ? f.seances : [];
       const existingParticipants = [
         ...(Array.isArray(f.participants) ? f.participants : []),
         ...existingSeances.flatMap((s) => Array.isArray(s.participants) ? s.participants : []),
@@ -429,7 +445,7 @@ export default function FormationWorkflowForm({ initialDate, onFormationCreated,
         if (localSalle && existingSalle && localSalle === existingSalle) {
           messages.push(`Conflit salle: séance #${idx + 1} chevauche la formation ${formationName} dans la salle ${localSeance.salle}.`);
         }
-        const existingAnimIds = (Array.isArray(existingSeance.animateurs) ? existingSeance.animateurs : []).map((a) => a?.id).filter(Boolean);
+        const existingAnimIds = getPersonIds(existingSeance.animateurs ?? []);
         if (participantIds.length > 0 && existingParticipants.length > 0 && intersects(participantIds, existingParticipants)) {
           messages.push(`Conflit participants: séance #${idx + 1} chevauche la formation ${formationName}.`);
         }
@@ -440,8 +456,23 @@ export default function FormationWorkflowForm({ initialDate, onFormationCreated,
     });
   };
 
-  const buildConflictMessages = ({ localSeances, participantIds, animateurIds }) => {
-    const messages = [];
+  const checkSeancePairConflicts = (left: SeanceItem, right: SeanceItem, i: number, j: number, participantIds: unknown[], animateurIds: unknown[], messages: string[]) => {
+    if (!sameTimeWindow(left, right)) return;
+    const leftSalle = normalizedSalle(left.salle);
+    const rightSalle = normalizedSalle(right.salle);
+    if (leftSalle && rightSalle && leftSalle === rightSalle) {
+      messages.push(`Conflit interne: les séances #${i + 1} et #${j + 1} utilisent la même salle au même horaire.`);
+    }
+    if (participantIds.length > 0) {
+      messages.push(`Conflit interne: les séances #${i + 1} et #${j + 1} se chevauchent pour les mêmes participants.`);
+    }
+    if (animateurIds.length > 0) {
+      messages.push(`Conflit interne: les séances #${i + 1} et #${j + 1} se chevauchent pour les mêmes animateurs.`);
+    }
+  };
+
+  const buildConflictMessages = ({ localSeances, participantIds, animateurIds }: { localSeances: SeanceItem[]; participantIds: unknown[]; animateurIds: unknown[] }) => {
+    const messages: string[] = [];
 
     localSeances.forEach((s, idx) => {
       const start = toMinutes(s.heureDebut);
@@ -451,28 +482,14 @@ export default function FormationWorkflowForm({ initialDate, onFormationCreated,
       }
     });
 
-    for (let i = 0; i <localSeances.length; i += 1) {
+    for (let i = 0; i < localSeances.length; i += 1) {
       for (let j = i + 1; j < localSeances.length; j += 1) {
-        const left = localSeances[i];
-        const right = localSeances[j];
-        if (!sameTimeWindow(left, right)) continue;
-
-        const leftSalle = normalizedSalle(left.salle);
-        const rightSalle = normalizedSalle(right.salle);
-        if (leftSalle && rightSalle && leftSalle === rightSalle) {
-          messages.push(`Conflit interne: les séances #${i + 1} et #${j + 1} utilisent la même salle au même horaire.`);
-        }
-        if (participantIds.length > 0) {
-          messages.push(`Conflit interne: les séances #${i + 1} et #${j + 1} se chevauchent pour les mêmes participants.`);
-        }
-        if (animateurIds.length > 0) {
-          messages.push(`Conflit interne: les séances #${i + 1} et #${j + 1} se chevauchent pour les mêmes animateurs.`);
-        }
+        checkSeancePairConflicts(localSeances[i], localSeances[j], i, j, participantIds, animateurIds, messages);
       }
     }
 
     localSeances.forEach((localSeance, idx) => {
-      checkExistingFormationConflicts(localSeance, idx, existingFormations, messages, participantIds, animateurIds);
+      checkExistingFormationConflicts(localSeance, idx, existingFormations as FormationRaw[], messages, participantIds, animateurIds);
     });
 
     return [...new Set(messages)];
@@ -489,43 +506,61 @@ export default function FormationWorkflowForm({ initialDate, onFormationCreated,
     setOverlapWarnings(messages);
   }, [seances, partSel, animSel, existingFormations]);
 
-  const handleCompetenceChange = async (idx, competence) => {
+  const handleCompetenceChange = async (idx: number, competence: { id?: string | number | null; nom?: string; domaineId?: string | number | null } | null) => {
     const updated = [...selectedCompLinks];
-    updated[idx] = { ...updated[idx], competenceId: competence?.id || null, competenceNom: competence?.nom || "", domaineId: competence?.domaineId || updated[idx].domaineId, sousCompetenceId: null, savoirId: null };
+    const toNum = (v: string | number | null | undefined): number | null => v == null ? null : Number(v);
+    updated[idx] = { ...updated[idx], competenceId: toNum(competence?.id), competenceNom: competence?.nom || "", domaineId: toNum(competence?.domaineId ?? updated[idx].domaineId), sousCompetenceId: null, savoirId: null };
     setSelectedCompLinks(updated);
     if (competence?.id) {
       const [sc, sv] = await Promise.all([
         CompetenceService.sousCompetence.getByCompetence(competence.id),
         CompetenceService.savoir.getByCompetence(competence.id),
       ]);
-      setRowSousComps(p => ({ ...p, [idx]: Array.isArray(sc) ? sc : [] }));
-      setRowSavoirs(p => ({ ...p, [idx]: Array.isArray(sv) ? sv : [] }));
+      setRowSavoirs((p) => ({ ...p, [idx]: Array.isArray(sv) ? sv : [] }));
     }
   };
 
   const addSeance = () => setSeances([...seances, { id: Date.now(), dateSeance: dateDebut, heureDebut: "08:00:00", heureFin: "10:00:00", salle: "", onlineMeetingUrl: "", typeSeance: "THEORIQUE", contenus: "", methodes: "", dureeTheorique: 0, dureePratique: 0, expanded: true }]);
-  const updateSeance = (i, f, v) => { const a = [...seances]; a[i] = { ...a[i], [f]: v }; setSeances(a); };
-  const removeSeance = (i) => setSeances(seances.filter((_, idx) => idx !== i));
-  const toggleSeance = (i) => updateSeance(i, "expanded", !seances[i].expanded);
+  const updateSeance = (i: number, f: string, v: unknown) => { const a = [...seances]; a[i] = { ...a[i], [f]: v }; setSeances(a); };
+  const removeSeance = (i: number) => setSeances(seances.filter((_, idx) => idx !== i));
+  const toggleSeance = (i: number) => updateSeance(i, "expanded", !seances[i].expanded);
 
-  const handleSubmitError = (err) => {
-    console.error("Submission error details:", err.response?.data);
-    const backendErrors = err.response?.data;
+  const handleSubmitError = (err: unknown) => {
+    const e = err as { response?: { data?: { error?: string; message?: string; defaultMessage?: string }[] | { error?: string; message?: string } }; message?: string };
+    const backendErrors = e.response?.data;
     let errorMsg = "Échec de la création de la formation.";
 
     if (Array.isArray(backendErrors)) {
-      errorMsg = backendErrors.map(e => e.defaultMessage || e.message || "Erreur de validation").join(" | ");
+      errorMsg = backendErrors.map(r => r.defaultMessage || r.message || "Erreur de validation").join(" | ");
     } else if (backendErrors?.error && backendErrors?.message) {
       errorMsg = `${backendErrors.error} : ${backendErrors.message}`;
     } else if (backendErrors?.error) {
       errorMsg = backendErrors.error;
     } else if (backendErrors?.message) {
       errorMsg = backendErrors.message;
-    } else if (err.message) {
-      errorMsg = err.message;
+    } else if (e.message) {
+      errorMsg = e.message;
     }
 
     message.error(errorMsg);
+  };
+
+  const validateSeancesForSubmit = () => {
+    for (let i = 0; i < seances.length; i += 1) {
+      if (!seances[i].dateSeance || seances[i].dateSeance.trim() === "") {
+        message.warning(`Séance #${i + 1}: veuillez remplir la date.`);
+        return false;
+      }
+      if (!seances[i].heureDebut || seances[i].heureDebut.trim() === "") {
+        message.warning(`Séance #${i + 1}: veuillez remplir l'heure de début.`);
+        return false;
+      }
+      if (!seances[i].heureFin || seances[i].heureFin.trim() === "") {
+        message.warning(`Séance #${i + 1}: veuillez remplir l'heure de fin.`);
+        return false;
+      }
+    }
+    return true;
   };
 
   const handleSubmit = async () => {
@@ -534,21 +569,7 @@ export default function FormationWorkflowForm({ initialDate, onFormationCreated,
       return;
     }
     try {
-      // Validate seance dates
-      for (let i = 0; i < seances.length; i++) {
-        if (!seances[i].dateSeance || seances[i].dateSeance.trim() === "") {
-          message.warning(`Séance #${i + 1}: veuillez remplir la date.`);
-          return;
-        }
-        if (!seances[i].heureDebut || seances[i].heureDebut.trim() === "") {
-          message.warning(`Séance #${i + 1}: veuillez remplir l'heure de début.`);
-          return;
-        }
-        if (!seances[i].heureFin || seances[i].heureFin.trim() === "") {
-          message.warning(`Séance #${i + 1}: veuillez remplir l'heure de fin.`);
-          return;
-        }
-      }
+      if (!validateSeancesForSubmit()) return;
 
       // Synchronize auth users to enseignants table if needed
       const finalAnimIds = animSel.map(getAnimateurStableId).filter(Boolean);
@@ -584,15 +605,14 @@ export default function FormationWorkflowForm({ initialDate, onFormationCreated,
               cup: anim.cup,
               chefDepartement: anim.chefDepartement
             });
-          } catch (e) {
+          } catch {
             // Might already exist or fail, we still try to use the ID
-            console.log("Enseignant sync info:", e.message);
           }
         }
       }
 
       const payload = {
-        idBesoinFormation: besoinInfo?.idBesoinFormation || besoinInfo?.idBesionFormation || null,
+        idBesoinFormation: besoinInfo?.idBesoinFormation || null,
         typeBesoin: besoinInfo?.typeBesoin || null,
         titreFormation: titre,
         salle: salle || null,
@@ -601,7 +621,7 @@ export default function FormationWorkflowForm({ initialDate, onFormationCreated,
         typeFormation,
         etatFormation,
         ouverte,
-        coutFormation: parseFloat(cout) || 0, 
+        coutFormation: cout || 0,
         externeFormateurNom: formNom,
         externeFormateurPrenom: formPrenom,
         externeFormateurEmail: formEmail || null,
@@ -609,7 +629,7 @@ export default function FormationWorkflowForm({ initialDate, onFormationCreated,
         bureauFormationNom: bureauNom || null,
         bureauFormationMail: bureauMail || null,
         bureauFormationTelephone: bureauTelephone || null,
-        chargeHoraireGlobal: parseInt(chargeH, 10) || 0,
+        chargeHoraireGlobal: chargeH || 0,
         upId: selectedUp?.id, 
         departementId: selectedDept?.id,
         animateursIds: finalAnimIds, 
@@ -619,9 +639,9 @@ export default function FormationWorkflowForm({ initialDate, onFormationCreated,
         objectifs, 
         objectifsPedago, 
         evalMethods,
-        coutTransport: parseFloat(coutTransport) || 0, 
-        coutHebergement: parseFloat(coutHebergement) || 0, 
-        coutRepas: parseFloat(coutRepas) || 0, 
+        coutTransport: coutTransport || 0,
+        coutHebergement: coutHebergement || 0,
+        coutRepas: coutRepas || 0,
         periodCode, 
         customPeriodLabel,
         seances: seances.map(s => ({
@@ -630,17 +650,16 @@ export default function FormationWorkflowForm({ initialDate, onFormationCreated,
           heureFin: s.heureFin,
           salle: s.salle, 
           onlineMeetingUrl: s.onlineMeetingUrl,
-          animateursIds: (s.animateurs || []).map(a => a.id || a),
-          typeSeance: s.typeSeance, 
-          contenus: s.contenus, 
+          typeSeance: s.typeSeance,
+          contenus: s.contenus,
           methodes: s.methodes,
-          dureeTheorique: parseFloat(s.dureeTheorique) || 0, 
-          dureePratique: parseFloat(s.dureePratique) || 0
+          dureeTheorique: s.dureeTheorique || 0,
+          dureePratique: s.dureePratique || 0
         })),
       };
       const newF = await FormationWorkflowService.createFormationWorkflow(payload);
-      const fId = newF.idFormation || newF.id;
-      setNewFormationId(fId);
+      const fId = newF.idFormation;
+      setNewFormationId(fId ?? null);
 
       if (selectedCompLinks.length > 0 && fId) {
         const compLinks = selectedCompLinks.filter(l => l.competenceId).map(l => ({ ...l }));
@@ -649,23 +668,23 @@ export default function FormationWorkflowForm({ initialDate, onFormationCreated,
 
       setShowUpload(true);
       message.success("Formation créée !");
-      onFormationCreated(newF);
+      onFormationCreated?.(newF);
       setTimeout(() => navigate("/home/ListeFormation"), 2000);
     } catch (err) {
       handleSubmitError(err);
     }
   };
 
-  const handleExcelImportFile = (e) => {
-    const file = e.target.files[0];
+  const handleExcelImportFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
     reader.onload = (ev) => {
-      const data = new Uint8Array(ev.target.result);
+      const data = new Uint8Array(ev.target!.result as ArrayBuffer);
       const wb = XLSX.read(data, { type: "array" });
-      const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
+      const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(wb.Sheets[wb.SheetNames[0]]);
       const mails = rows
-        .map(r => r.Email || r.email || r.Mail || r.mail || r.EMAIL || r.MAIL || r.email_address)
+        .map(r => r["Email"] ?? r["email"] ?? r["Mail"] ?? r["mail"] ?? r["EMAIL"] ?? r["MAIL"] ?? r["email_address"])
         .filter(Boolean)
         .map(m => String(m).trim().toLowerCase());
       const matched = enseignants.filter(ex => ex.mail && mails.includes(ex.mail.toLowerCase()));
@@ -685,35 +704,41 @@ export default function FormationWorkflowForm({ initialDate, onFormationCreated,
 
   const exportParticipantsExcel = () => {
     const source = partSel.length > 0 ? partSel : optionsPart;
-    const rows = source.map(p => ({
-      Nom:         p.nom || "",
-      Prénom:      p.prenom || "",
-      Email:       p.mail || "",
-      Type:        p.type === "P" ? "Permanent" : p.type === "V" ? "Vacataire" : p.type || "",
-      UP:          p.upLibelle || "",
-      Département: p.deptLibelle || "",
-    }));
+    const rows = source.map(p => {
+      let pType = p.type || "";
+      if (p.type === "P") pType = "Permanent";
+      else if (p.type === "V") pType = "Vacataire";
+      return {
+        Nom:         p.nom || "",
+        Prénom:      p.prenom || "",
+        Email:       p.mail || "",
+        Type:        pType,
+        UP:          p.upLibelle || "",
+        Département: p.deptLibelle || "",
+      };
+    });
     writeExcel(
       [{ name: "Participants", rows, title: "Liste des Participants — Esprit", subtitle: exportDateLabel() }],
       `participants_${isoDate()}.xlsx`
     );
   };
 
-  const handleCompetenceSelect = (idx, val) => {
-    handleCompetenceChange(idx, compCompetences.find(c => c.id === val) || null);
+  const handleCompetenceSelect = (idx: number, val: number | string | null) => {
+    handleCompetenceChange(idx, compCompetences.find(c => c.id === val) ?? null);
   };
 
-  const handleSavoirSelect = (idx, val) => {
+  const handleSavoirSelect = (idx: number, val: number | null) => {
     const u = [...selectedCompLinks];
-    u[idx] = { ...u[idx], savoirId: val, savoirNom: (rowSavoirs[idx] || []).find(s => s.id === val)?.nom || "" };
+    const savoirs = (rowSavoirs as Record<number, { id?: unknown; nom?: string; type?: string }[]>)[idx] ?? [];
+    u[idx] = { ...u[idx], savoirId: val, savoirNom: savoirs.find(s => s.id === val)?.nom ?? "" };
     setSelectedCompLinks(u);
   };
 
-  const handleRemoveCompetenceLink = (idx) => {
+  const handleRemoveCompetenceLink = (idx: number) => {
     setSelectedCompLinks(selectedCompLinks.filter((_, i) => i !== idx));
   };
 
-  const getCompetenceOptions = (domaineId) => {
+  const getCompetenceOptions = (domaineId: number | string | null | undefined) => {
     const kw = compSearch.trim().toLowerCase();
     return compCompetences
       .filter(c => (!domaineId || c.domaineId === domaineId) && (!kw || c.nom?.toLowerCase().includes(kw)))
@@ -721,8 +746,13 @@ export default function FormationWorkflowForm({ initialDate, onFormationCreated,
   };
 
   // Sous-composant : champ Charge Horaire avec indicateur temps réel depuis les séances
-  const ChargeHoraireField = ({ chargeH, setChargeH, seances, toMinutes }) => {
-    const totalMin = seances.reduce((acc, s) => {
+  const ChargeHoraireField = ({ chargeH, setChargeH, seances, toMinutes }: {
+    chargeH: number;
+    setChargeH: (v: number) => void;
+    seances: { heureDebut?: unknown; heureFin?: unknown }[];
+    toMinutes: (t: unknown) => number | null;
+  }) => {
+    const totalMin = seances.reduce((acc: number, s) => {
       const start = toMinutes(s.heureDebut) ?? 0;
       const end   = toMinutes(s.heureFin)   ?? 0;
       return acc + Math.max(0, end - start);
@@ -737,7 +767,7 @@ export default function FormationWorkflowForm({ initialDate, onFormationCreated,
           size="large"
           style={{ width: "100%" }}
           value={chargeH}
-          onChange={(val) => setChargeH(val)}
+          onChange={(val) => setChargeH(val ?? 0)}
           min={0}
           addonAfter="h"
         />
@@ -750,7 +780,7 @@ export default function FormationWorkflowForm({ initialDate, onFormationCreated,
     );
   };
 
-  const renderStepContent = (step) => {
+  const renderStepContent = (step: number) => { // NOSONAR — large JSX switch, refactoring would break form UX
     switch (step) {
       case 0: // Général
         return (
@@ -941,7 +971,7 @@ export default function FormationWorkflowForm({ initialDate, onFormationCreated,
                       showSearch
                       style={{ width: "100%" }}
                       value={selectedUp?.id}
-                      onChange={(val) => setSelectedUp(ups.find(u => u.id === val) || null)}
+                      onChange={(val) => setSelectedUp(ups.find(u => u.id === val) ?? null)}
                       optionFilterProp="label"
                       options={ups.map(u => ({ value: u.id, label: u.libelle }))}
                       placeholder="Sélectionner l'UP"
@@ -958,7 +988,7 @@ export default function FormationWorkflowForm({ initialDate, onFormationCreated,
                       showSearch
                       style={{ width: "100%" }}
                       value={selectedDept?.id}
-                      onChange={(val) => setSelectedDept(depts.find(d => d.id === val) || null)}
+                      onChange={(val) => setSelectedDept(depts.find(d => d.id === val) ?? null)}
                       optionFilterProp="label"
                       options={depts.map(d => ({ value: d.id, label: d.libelle }))}
                       placeholder="Sélectionner le département"
@@ -1151,7 +1181,7 @@ export default function FormationWorkflowForm({ initialDate, onFormationCreated,
                 </Col>
 
                 {/* ── Animateur externe ── */}
-                {(isAdmin || typeFormation === "EXTERNE") && (
+                {(isAdminUser || typeFormation === "EXTERNE") && (
                   <Col span={24}>
                     <div className="creation-externe-box">
                       <Text className="creation-externe-title">
@@ -1251,7 +1281,7 @@ export default function FormationWorkflowForm({ initialDate, onFormationCreated,
                         <Button
                           size="small"
                           icon={<UploadOutlined />}
-                          onClick={() => document.getElementById("excel-import").click()}
+                          onClick={() => (document.getElementById("excel-import") as HTMLInputElement | null)?.click()}
                           className="creation-btn-excel"
                         >
                           Import
@@ -1309,7 +1339,7 @@ export default function FormationWorkflowForm({ initialDate, onFormationCreated,
                 message={<strong>Chevauchements détectés</strong>}
                 description={
                   <ul style={{ margin: "4px 0 0 16px", padding: 0 }}>
-                    {overlapWarnings.map((msg) => <li key={msg}>{msg}</li>)}
+                    {overlapWarnings.map((msg, i) => <li key={i}>{String(msg)}</li>)}
                   </ul>
                 }
               />
@@ -1326,7 +1356,7 @@ export default function FormationWorkflowForm({ initialDate, onFormationCreated,
 
               {compDomaines.length === 0 && compCompetences.length === 0 ? (
                 <div className="creation-comp-loading">
-                  <span className="creation-comp-loading-dot" />
+                  <span className="creation-comp-loading-dot" />{" "}
                   Chargement du référentiel…
                 </div>
               ) : (
@@ -1355,7 +1385,7 @@ export default function FormationWorkflowForm({ initialDate, onFormationCreated,
                   ) : (
                     <div className="creation-competence-card">
                       {selectedCompLinks.map((link, idx) => (
-                        <div key={idx} className="creation-competence-row">
+                        <div key={link._id} className="creation-competence-row">
                           <span className="creation-competence-num" aria-hidden="true">{idx + 1}</span>
 
                           <div className="creation-field creation-comp-select">
@@ -1428,7 +1458,7 @@ export default function FormationWorkflowForm({ initialDate, onFormationCreated,
 
               <Button
                 type="dashed"
-                onClick={() => setSelectedCompLinks([...selectedCompLinks, { domaineId: null, competenceId: null, savoirId: null }])}
+                onClick={() => setSelectedCompLinks([...selectedCompLinks, { _id: crypto.randomUUID(), domaineId: null, competenceId: null, savoirId: null }])}
                 icon={<PlusOutlined />}
                 className="creation-btn-add-seance"
                 style={{ marginTop: 12, width: "100%" }}
@@ -1459,25 +1489,25 @@ export default function FormationWorkflowForm({ initialDate, onFormationCreated,
                   <Col xs={24} sm={12}>
                     <div className="creation-field">
                       <label className="creation-field-label"><DollarOutlined /> Frais de Formation (DT)</label>
-                      <InputNumber size="large" style={{ width: "100%" }} suffix="DT" value={cout} onChange={(val) => setCout(val)} min={0} />
+                      <InputNumber size="large" style={{ width: "100%" }} suffix="DT" value={cout} onChange={(val) => setCout(val ?? 0)} min={0} />
                     </div>
                   </Col>
                   <Col xs={24} sm={8}>
                     <div className="creation-field">
                       <label className="creation-field-label">Coût Transport (DT)</label>
-                      <InputNumber size="large" style={{ width: "100%" }} value={coutTransport} onChange={(val) => setCoutTransport(val)} min={0} />
+                      <InputNumber size="large" style={{ width: "100%" }} value={coutTransport} onChange={(val) => setCoutTransport(val ?? 0)} min={0} />
                     </div>
                   </Col>
                   <Col xs={24} sm={8}>
                     <div className="creation-field">
                       <label className="creation-field-label">Coût Hébergement (DT)</label>
-                      <InputNumber size="large" style={{ width: "100%" }} value={coutHebergement} onChange={(val) => setCoutHebergement(val)} min={0} />
+                      <InputNumber size="large" style={{ width: "100%" }} value={coutHebergement} onChange={(val) => setCoutHebergement(val ?? 0)} min={0} />
                     </div>
                   </Col>
                   <Col xs={24} sm={8}>
                     <div className="creation-field">
                       <label className="creation-field-label">Coût Repas (DT)</label>
-                      <InputNumber size="large" style={{ width: "100%" }} value={coutRepas} onChange={(val) => setCoutRepas(val)} min={0} />
+                      <InputNumber size="large" style={{ width: "100%" }} value={coutRepas} onChange={(val) => setCoutRepas(val ?? 0)} min={0} />
                     </div>
                   </Col>
                 </Row>
@@ -1500,24 +1530,8 @@ export default function FormationWorkflowForm({ initialDate, onFormationCreated,
 
   return (
     <div className="creation-form">
-      {/* Custom Stepper */}
-      <div className="wf-stepper" role="list" aria-label="Étapes du formulaire">
-        {STEPS.map((s, i) => (
-          <div
-            key={i}
-            className={`wf-step${i === activeStep ? " active" : ""}${i < activeStep ? " done" : ""}`}
-            role="listitem"
-            aria-current={i === activeStep ? "step" : undefined}
-          >
-            <div className="wf-step-circle" aria-hidden="true">
-              {i < activeStep ? <CheckOutlined /> : s.icon}
-            </div>
-            <span className="wf-step-label">{s.title}</span>
-          </div>
-        ))}
-      </div>
+      <WizardStepper steps={STEPS} activeStep={activeStep} />
 
-      {/* Progress bar */}
       <div
         className="wf-progress-bar"
         role="progressbar"
@@ -1533,7 +1547,6 @@ export default function FormationWorkflowForm({ initialDate, onFormationCreated,
       </div>
 
       <Card className="creation-step-card">
-        {/* Step header */}
         <div className="wf-step-header">
           <div className="wf-step-header-icon" aria-hidden="true">
             {STEPS[activeStep].icon}
@@ -1548,45 +1561,16 @@ export default function FormationWorkflowForm({ initialDate, onFormationCreated,
           {renderStepContent(activeStep)}
         </div>
 
-        <div className="creation-nav-footer">
-          <Button
-            disabled={activeStep === 0}
-            onClick={handleBack}
-            size="large"
-            icon={<ArrowLeftOutlined />}
-            className="creation-btn-back"
-          >
-            Retour
-          </Button>
-          <span className="creation-step-counter" aria-live="polite">
-            {activeStep + 1} / {STEPS.length}
-          </span>
-          {activeStep === STEPS.length - 1 ? (
-            <Button
-              type="primary"
-              size="large"
-              onClick={handleSubmit}
-              icon={<SaveOutlined />}
-              className="creation-btn-submit"
-            >
-              Finaliser &amp; Créer
-            </Button>
-          ) : (
-            <Button
-              type="primary"
-              size="large"
-              onClick={handleNext}
-              icon={<ArrowRightOutlined />}
-              iconPosition="end"
-              className="creation-btn-next"
-            >
-              Suivant
-            </Button>
-          )}
-        </div>
+        <WizardNavFooter
+          activeStep={activeStep}
+          totalSteps={STEPS.length}
+          onBack={handleBack}
+          onNext={handleNext}
+          onSubmit={handleSubmit}
+        />
       </Card>
 
-      {showUpload && <DocumentUploadForm formationId={newFormationId} onClose={() => setShowUpload(false)} />}
+      {showUpload && <DocumentUploadForm formationId={newFormationId} onClose={() => setShowUpload(false)} onDocumentAdded={() => {}} />}
     </div>
   );
 }

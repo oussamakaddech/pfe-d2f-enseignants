@@ -53,22 +53,25 @@ class SavoirControllerTest {
 
     @Test
     void testGetSavoirsBySousCompetence() {
-        when(savoirService.getSavoirsBySousCompetence(1L)).thenReturn(List.of(savoirDTO));
-        ResponseEntity<List<SavoirDTO>> response = savoirController.getSavoirsBySousCompetence(1L);
+        when(savoirService.getSavoirsBySousCompetence(eq(1L), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of(savoirDTO)));
+        ResponseEntity<Page<SavoirDTO>> response = savoirController.getSavoirsBySousCompetence(1L, Pageable.unpaged());
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
     }
 
     @Test
     void testGetSavoirsByCompetence() {
-        when(savoirService.getSavoirsByCompetence(1L)).thenReturn(List.of(savoirDTO));
-        ResponseEntity<List<SavoirDTO>> response = savoirController.getSavoirsByCompetence(1L);
+        when(savoirService.getSavoirsByCompetence(eq(1L), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of(savoirDTO)));
+        ResponseEntity<Page<SavoirDTO>> response = savoirController.getSavoirsByCompetence(1L, Pageable.unpaged());
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
     }
 
     @Test
     void testGetSavoirsByType() {
-        when(savoirService.getSavoirsByType(TypeSavoir.THEORIQUE)).thenReturn(List.of(savoirDTO));
-        ResponseEntity<List<SavoirDTO>> response = savoirController.getSavoirsByType(TypeSavoir.THEORIQUE);
+        when(savoirService.getSavoirsByType(eq(TypeSavoir.THEORIQUE), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of(savoirDTO)));
+        ResponseEntity<Page<SavoirDTO>> response = savoirController.getSavoirsByType(TypeSavoir.THEORIQUE, Pageable.unpaged());
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
     }
 

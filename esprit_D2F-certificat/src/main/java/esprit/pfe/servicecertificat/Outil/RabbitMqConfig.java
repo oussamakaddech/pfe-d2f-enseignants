@@ -51,7 +51,10 @@ public class RabbitMqConfig {
         typeIdMappings.put("CertificateBatchMessage", esprit.pfe.servicecertificat.dto.CertificateBatchMessage.class);
 
         DefaultJackson2JavaTypeMapper javaTypeMapper = new DefaultJackson2JavaTypeMapper();
-        javaTypeMapper.setTrustedPackages("*");
+        javaTypeMapper.setTrustedPackages(
+            "esprit.pfe.servicecertificat.dto",
+            "esprit.pfe.serviceformation.messaging"
+        );
         javaTypeMapper.setIdClassMapping(typeIdMappings);
         converter.setJavaTypeMapper(javaTypeMapper);
 

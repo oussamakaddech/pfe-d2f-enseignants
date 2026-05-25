@@ -27,11 +27,11 @@ public interface DomaineRepository extends JpaRepository<Domaine, Long> {
     // ─── Filtres UP / Département ────────────────────────────────────────────
 
     @Query("SELECT d FROM Domaine d WHERE (:upId IS NULL OR d.upId = :upId) AND (:departementId IS NULL OR d.departementId = :departementId)")
-    List<Domaine> findByUpIdAndDepartementId(@Param("upId") Long upId, @Param("departementId") Long departementId);
+    List<Domaine> findByUpIdAndDepartementId(@Param("upId") String upId, @Param("departementId") String departementId);
 
     @Query("SELECT d FROM Domaine d WHERE (:upId IS NULL OR d.upId = :upId) AND (:departementId IS NULL OR d.departementId = :departementId)")
-    Page<Domaine> findByUpIdAndDepartementId(@Param("upId") Long upId, @Param("departementId") Long departementId, Pageable pageable);
+    Page<Domaine> findByUpIdAndDepartementId(@Param("upId") String upId, @Param("departementId") String departementId, Pageable pageable);
 
     @Query("SELECT d FROM Domaine d WHERE d.actif = true AND (:upId IS NULL OR d.upId = :upId) AND (:departementId IS NULL OR d.departementId = :departementId)")
-    List<Domaine> findActifsByUpIdAndDepartementId(@Param("upId") Long upId, @Param("departementId") Long departementId);
+    List<Domaine> findActifsByUpIdAndDepartementId(@Param("upId") String upId, @Param("departementId") String departementId);
 }

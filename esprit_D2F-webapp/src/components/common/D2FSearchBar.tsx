@@ -7,17 +7,17 @@ import { brand, neutral, radius } from "@/styles/themes/tokens";
 const { Text } = Typography;
 
 interface SearchOption {
-  value: string;
-  label: React.ReactNode;
-  path: string;
-  category: string;
+  readonly value: string;
+  readonly label: React.ReactNode;
+  readonly path: string;
+  readonly category: string;
 }
 
 interface D2FSearchBarProps {
-  options?: SearchOption[];
-  placeholder?: string;
-  width?: number | string;
-  onSearch?: (value: string) => void;
+  readonly options?: SearchOption[];
+  readonly placeholder?: string;
+  readonly width?: number | string;
+  readonly onSearch?: (value: string) => void;
 }
 
 export default function D2FSearchBar({
@@ -48,7 +48,12 @@ export default function D2FSearchBar({
     onSearch?.(value);
   };
 
-  const renderOption = (option: SearchOption) => (
+  const renderOption = (option: SearchOption) => {
+    let catIcon = "📋";
+    if (option.category === "formation") catIcon = "📚";
+    else if (option.category === "enseignant") catIcon = "👤";
+    else if (option.category === "competence") catIcon = "🎯";
+    return (
     <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "4px 0" }}>
       <span
         style={{
@@ -64,7 +69,7 @@ export default function D2FSearchBar({
           flexShrink: 0,
         }}
       >
-        {option.category === "formation" ? "📚" : option.category === "enseignant" ? "👤" : option.category === "competence" ? "🎯" : "📋"}
+        {catIcon}
       </span>
       <div>
         <Text strong style={{ fontSize: 13 }}>{option.value}</Text>
@@ -72,7 +77,8 @@ export default function D2FSearchBar({
         <Text type="secondary" style={{ fontSize: 11 }}>{option.category}</Text>
       </div>
     </div>
-  );
+    );
+  };
 
   return (
     <AutoComplete
@@ -81,7 +87,7 @@ export default function D2FSearchBar({
       onSearch={handleSearch}
       value={searchValue}
       open={open}
-      onDropdownVisibleChange={setOpen}
+      onOpenChange={setOpen}
       style={{ width }}
     >
       <Input

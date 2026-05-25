@@ -57,17 +57,24 @@ public class OutlookMailService {
 
         // Envoi du mail à partir de la boîte "Application.Formationdesformateurs@Esprit.tn"
         try {
-            graphClient.users("Application.Formationdesformateurs@Esprit.tn")
-                    .sendMail(UserSendMailParameterSet.newBuilder()
-                            .withMessage(message)
-                            .withSaveToSentItems(true)
-                            .build())
-                    .buildRequest()
-                    .post();
+            executeSendMail(graphClient, "Application.Formationdesformateurs@Esprit.tn", UserSendMailParameterSet.newBuilder()
+                    .withMessage(message)
+                    .withSaveToSentItems(true)
+                    .build());
             log.info("Email envoyé avec succès à {}", to);
         } catch (RuntimeException e) {
             log.error("Échec de l'envoi d'email à {} : {}", to, e.getMessage());
             throw new MailDeliveryException("Échec de l'envoi d'email à " + to + " : " + e.getMessage(), e);
         }
+    }
+
+    /**
+     * Execute the Graph API sendMail call. Protected to allow test subclasses or spies to override.
+     */
+    protected void executeSendMail(GraphServiceClient<Request> client, String userId, UserSendMailParameterSet params) {
+        client.users(userId)
+                .sendMail(params)
+                .buildRequest()
+                .post();
     }
 }

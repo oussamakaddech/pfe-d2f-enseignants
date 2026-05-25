@@ -7,6 +7,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import tn.esprit.d2f.competence.dto.*;
 import tn.esprit.d2f.competence.entity.*;
 import tn.esprit.d2f.competence.repository.*;
@@ -30,6 +32,7 @@ class RiceImportServiceImplTest {
     @Mock private EnseignantCompetenceRepository enseignantCompetenceRepository;
     @Mock private RiceImportLogRepository riceImportLogRepository;
     @Mock private ObjectMapper objectMapper;
+    @Mock private IRiceImportService self;
     @InjectMocks private RiceImportServiceImpl service;
 
     @Test
@@ -206,6 +209,31 @@ class RiceImportServiceImplTest {
         List<RiceImportResult> history = service.getImportHistory();
         assertThat(history).hasSize(1);
         assertThat(history.get(0).getTauxCouvertureParDomaine()).containsEntry("IT", 85.5);
+    }
+
+    @Test
+    @DisplayName("getImportHistory paged: retourne une page")
+    void testGetImportHistoryPaged() {
+        RiceImportResult first = RiceImportResult.builder().domainesCreated(1).build();
+        RiceImportResult second = RiceImportResult.builder().domainesCreated(2).build();
+        when(self.getImportHistory()).thenReturn(List.of(first, second));
+
+        Page<RiceImportResult> page = service.getImportHistory(PageRequest.of(0, 1));
+
+        assertThat(page.getContent()).hasSize(1);
+        assertThat(page.getTotalElements()).isEqualTo(2);
+    }
+
+    @Test
+    @DisplayName("getImportHistory paged: retourne vide hors bornes")
+    void testGetImportHistoryPagedOutsideRange() {
+        RiceImportResult first = RiceImportResult.builder().domainesCreated(1).build();
+        when(self.getImportHistory()).thenReturn(List.of(first));
+
+        Page<RiceImportResult> page = service.getImportHistory(PageRequest.of(3, 1));
+
+        assertThat(page.getContent()).isEmpty();
+        assertThat(page.getTotalElements()).isEqualTo(1);
     }
 
     @Test

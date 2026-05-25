@@ -1,6 +1,6 @@
 # SonarQube — Analyse one-command du monorepo D2F
 
-Lance build + tests + scan + Quality Gate pour les **12 modules** du monorepo (8 Java + 1 Web + 3 Python) avec une seule commande.
+Lance build + tests + scan + Quality Gate pour les **11 modules** du monorepo (8 Java + 1 Web + 2 Python) avec une seule commande.
 
 ## Pré-requis
 
@@ -15,7 +15,7 @@ Lance build + tests + scan + Quality Gate pour les **12 modules** du monorepo (8
 ## Bash (Linux / macOS / WSL / Git Bash)
 
 ```bash
-# Tout (12 modules)
+# Tout (11 modules)
 SONAR_TOKEN=squ_xxx bash scripts/sonar-full.sh
 
 # Bootstrap token via admin/password
@@ -104,7 +104,6 @@ Chaque module écrit dans `scripts/.sonar-logs/<projectKey>.log` (compilation, t
 | Web (Vite+TS) | `esprit_D2F-webapp` | `d2f_webapp` |
 | Python | `esprit_D2F-rice` | `d2f_rice` |
 | Python | `esprit_D2F-predictive-analytics` | `d2f_predictive_analytics` |
-| Python | `esprit_D2F-recommandation-formateur` | `d2f_recommandation_formateur` |
 
 ## CI / GitHub Actions
 

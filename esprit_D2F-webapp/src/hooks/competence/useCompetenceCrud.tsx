@@ -1,4 +1,22 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+
+function buildCompDeleteErrorMessage(sousCompsCount, savoirsDirectsCount) {
+  const pl = (n, w) => `${n} ${w}${n > 1 ? 's' : ''}`;
+  const scLabel = pl(sousCompsCount, 'sous-compétence');
+  const scRef = `${sousCompsCount > 1 ? 'ces' : 'cette'} sous-compétence${sousCompsCount > 1 ? 's' : ''}`;
+
+  if (savoirsDirectsCount === 0) {
+    return `Cette compétence contient ${scLabel}. Veuillez supprimer ${scRef} avant de supprimer la compétence. Les lignes de prérequis liées seront supprimées automatiquement.`;
+  }
+
+  const sdLabel = pl(savoirsDirectsCount, 'savoir') + `${savoirsDirectsCount > 1 ? 's direct' : ' direct'}`;
+  const sdRef = `${savoirsDirectsCount > 1 ? 'ces' : 'ce'} savoir${savoirsDirectsCount > 1 ? 's' : ''} direct${savoirsDirectsCount > 1 ? 's' : ''}`;
+  return `Cette compétence contient ${scLabel} et ${sdLabel}. Veuillez supprimer ${scRef} et ${sdRef} avant de supprimer la compétence. Les lignes de prérequis liées seront supprimées automatiquement.`;
+}
+
+function countSousComp(nodes) {
+  return (nodes ?? []).reduce((sum, node) => sum + 1 + countSousComp(node.enfants), 0);
+}
 import { ApartmentOutlined, BookOutlined } from "@ant-design/icons";
 import { Switch, Tag, Tooltip } from "antd";
 import useAppNotification from "@/hooks/ui/useAppNotification";
@@ -36,7 +54,6 @@ export default function useCompetenceCrud({ onInvalidateStructure, onSavoirMutat
       const data = await CompetenceService.domaine.getAll();
       setDomaines(data);
     } catch (err) {
-      console.error("[CompetencePage] loadDomaines error:", err?.response?.status, err?.message);
       msgApi.error(err?.response?.data?.message || "Erreur lors du chargement des domaines");
     } finally {
       setDomainesLoading(false);
@@ -49,7 +66,6 @@ export default function useCompetenceCrud({ onInvalidateStructure, onSavoirMutat
       const data = await CompetenceService.competence.getAll();
       setCompetences(data);
     } catch (err) {
-      console.error("[CompetencePage] loadCompetences error:", err?.response?.status, err?.message);
       msgApi.error(err?.response?.data?.message || "Erreur lors du chargement des compétences");
     } finally {
       setCompLoading(false);
@@ -62,7 +78,6 @@ export default function useCompetenceCrud({ onInvalidateStructure, onSavoirMutat
       const data = await CompetenceService.sousCompetence.getAll();
       setSousComps(data);
     } catch (err) {
-      console.error("[CompetencePage] loadSousCompetences error:", err?.response?.status, err?.message);
       msgApi.error(err?.response?.data?.message || "Erreur lors du chargement des sous-compétences");
     } finally {
       setScLoading(false);
@@ -76,7 +91,6 @@ export default function useCompetenceCrud({ onInvalidateStructure, onSavoirMutat
       setSavoirs(data);
       if (onSavoirsChanged) onSavoirsChanged(data);
     } catch (err) {
-      console.error("[CompetencePage] loadSavoirs error:", err?.response?.status, err?.message);
       msgApi.error(err?.response?.data?.message || "Erreur lors du chargement des savoirs");
     } finally {
       setSavoirsLoading(false);
@@ -92,18 +106,37 @@ export default function useCompetenceCrud({ onInvalidateStructure, onSavoirMutat
 
   const openDomaineModal = useCallback((form, record = null) => {
     setEditingDomaine(record);
-    form.setFieldsValue(record || { code: "", nom: "", description: "", actif: true });
+    form.setFieldsValue(
+      record
+        ? {
+            code: record.code ?? "",
+            nom: record.nom ?? record.nomDomaine ?? "",
+            description: record.description ?? "",
+            actif: record.actif ?? true,
+            upId: record.upId ?? undefined,
+            departementId: record.departementId ?? undefined,
+          }
+        : { code: "", nom: "", description: "", actif: true, upId: undefined, departementId: undefined }
+    );
     setDomaineModal(true);
   }, []);
 
   const handleDomaineSubmit = useCallback(async (form) => {
     try {
       const values = await form.validateFields();
+      const payload = {
+        code: (values.code ?? "").trim(),
+        nom: (values.nom ?? "").trim(),
+        description: (values.description ?? "").trim(),
+        actif: values.actif ?? true,
+        upId: values.upId,
+        departementId: values.departementId,
+      };
       if (editingDomaine) {
-        await CompetenceService.domaine.update(editingDomaine.id, values);
+        await CompetenceService.domaine.update(editingDomaine.id, payload);
         msgApi.success("Domaine mis à jour");
       } else {
-        await CompetenceService.domaine.create(values);
+        await CompetenceService.domaine.create(payload);
         msgApi.success("Domaine créé");
       }
       onInvalidateStructure();
@@ -127,25 +160,16 @@ export default function useCompetenceCrud({ onInvalidateStructure, onSavoirMutat
     }
   }, [loadCompetences, loadDomaines, msgApi, onInvalidateStructure]);
 
-  const splitDescriptionAndPrerequisites = useCallback((description) => {
+  const splitDescriptionAndPrerequisites = useCallback((description = "") => {
     const marker = "Prerequis (manuel):";
-    const raw = description || "";
-    const idx = raw.indexOf(marker);
+    const idx = description.indexOf(marker);
     if (idx === -1) {
-      return { descriptionCore: raw, prerequisiteManual: "" };
+      return { descriptionCore: description, prerequisiteManual: "" };
     }
 
-    const descriptionCore = raw.slice(0, idx).trimEnd();
-    const prerequisiteManual = raw.slice(idx + marker.length).trim();
+    const descriptionCore = description.slice(0, idx).trimEnd();
+    const prerequisiteManual = description.slice(idx + marker.length).trim();
     return { descriptionCore, prerequisiteManual };
-  }, []);
-
-  const buildDescriptionWithPrerequisites = useCallback((descriptionCore, prerequisiteManual) => {
-    const base = (descriptionCore || "").trim();
-    const manual = (prerequisiteManual || "").trim();
-
-    if (!manual) return base;
-    return `${base ? `${base}\n\n` : ""}Prerequis (manuel):\n${manual}`;
   }, []);
 
   const openCompModal = useCallback((form, record = null) => {
@@ -190,23 +214,8 @@ export default function useCompetenceCrud({ onInvalidateStructure, onSavoirMutat
     }
   }, [editingComp, loadCompetences, msgApi, onInvalidateStructure]);
 
-  function buildCompDeleteErrorMessage(sousCompsCount, savoirsDirectsCount) {
-    const pl = (n, w) => `${n} ${w}${n > 1 ? 's' : ''}`;
-    const scLabel = pl(sousCompsCount, 'sous-compétence');
-    const scRef = `${sousCompsCount > 1 ? 'ces' : 'cette'} sous-compétence${sousCompsCount > 1 ? 's' : ''}`;
-
-    if (savoirsDirectsCount === 0) {
-      return `Cette compétence contient ${scLabel}. Veuillez supprimer ${scRef} avant de supprimer la compétence. Les lignes de prérequis liées seront supprimées automatiquement.`;
-    }
-
-    const sdLabel = pl(savoirsDirectsCount, 'savoir') + `${savoirsDirectsCount > 1 ? 's direct' : ' direct'}`;
-    const sdRef = `${savoirsDirectsCount > 1 ? 'ces' : 'ce'} savoir${savoirsDirectsCount > 1 ? 's' : ''} direct${savoirsDirectsCount > 1 ? 's' : ''}`;
-    return `Cette compétence contient ${scLabel} et ${sdLabel}. Veuillez supprimer ${scRef} et ${sdRef} avant de supprimer la compétence. Les lignes de prérequis liées seront supprimées automatiquement.`;
-  }
-
   const handleCompDelete = useCallback(async (id) => {
     // Vérifier si la compétence a des sous-compétences ou savoirs
-    const competence = competences.find(c => String(c.id) === String(id));
     const sousCompsCount = sousComps.filter(sc => String(sc.competenceId) === String(id)).length;
     const savoirsDirectsCount = savoirs.filter(s => String(s.competenceId) === String(id) && !s.sousCompetenceId).length;
     
@@ -225,7 +234,7 @@ export default function useCompetenceCrud({ onInvalidateStructure, onSavoirMutat
     } catch (err) {
       msgApi.error(err.response?.data?.message || "Erreur lors de la suppression");
     }
-  }, [loadCompetences, loadDomaines, loadSousCompetences, msgApi, onInvalidateStructure, competences, sousComps, savoirs]);
+  }, [loadCompetences, loadDomaines, loadSousCompetences, msgApi, onInvalidateStructure, sousComps, savoirs]);
 
   const openScModal = useCallback((form, target = null, record = null) => {
     setEditingSc(record ?? null);
@@ -312,7 +321,8 @@ export default function useCompetenceCrud({ onInvalidateStructure, onSavoirMutat
 
   const openSavoirModal = useCallback((form, record = null, targetSousComp = null) => {
     setEditingSavoir(record);
-    const detectedMode = record ? (record.sousCompetenceId ? "sc" : "direct") : "sc";
+    let detectedMode = "sc";
+    if (record) detectedMode = record.sousCompetenceId ? "sc" : "direct";
     setSavoirMode(detectedMode);
 
     const splitCode = (code = "") => {
@@ -338,7 +348,6 @@ export default function useCompetenceCrud({ onInvalidateStructure, onSavoirMutat
       codeSuffix = cs;
     } else if (targetSousComp) {
       codePrefix = buildCreatePrefix(targetSousComp);
-      codeSuffix = "";
     }
 
     form.setFieldsValue(
@@ -463,10 +472,6 @@ export default function useCompetenceCrud({ onInvalidateStructure, onSavoirMutat
       render: (_, record) => <Tag color="blue">{record.competences?.length ?? 0}</Tag>,
     },
   ], [loadDomaines, msgApi]);
-
-  function countSousComp(nodes) {
-    return (nodes ?? []).reduce((sum, node) => sum + 1 + countSousComp(node.enfants), 0);
-  }
 
   const compColumns = useMemo(() => [
     {

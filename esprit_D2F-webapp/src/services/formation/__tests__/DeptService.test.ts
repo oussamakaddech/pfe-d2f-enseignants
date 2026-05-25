@@ -66,4 +66,23 @@ describe('DeptService', () => {
     httpMocks.mockGet.mockRejectedValueOnce(new Error('Network error'));
     await expect(DeptService.getAllDepts()).rejects.toThrow('Network error');
   });
+
+  it('propagates errors from createDept, getDeptById, updateDept, deleteDept, importDeptsExcel', async () => {
+    const err = new Error('server error');
+
+    httpMocks.mockPost.mockRejectedValueOnce(err);
+    await expect(DeptService.createDept({ nom: 'X' })).rejects.toThrow('server error');
+
+    httpMocks.mockGet.mockRejectedValueOnce(err);
+    await expect(DeptService.getDeptById(99)).rejects.toThrow('server error');
+
+    httpMocks.mockPut.mockRejectedValueOnce(err);
+    await expect(DeptService.updateDept(99, { nom: 'Y' })).rejects.toThrow('server error');
+
+    httpMocks.mockDelete.mockRejectedValueOnce(err);
+    await expect(DeptService.deleteDept(99)).rejects.toThrow('server error');
+
+    httpMocks.mockPost.mockRejectedValueOnce(err);
+    await expect(DeptService.importDeptsExcel(new File([''], 'x.xlsx'))).rejects.toThrow('server error');
+  });
 });

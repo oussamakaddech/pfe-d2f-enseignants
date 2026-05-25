@@ -3,6 +3,8 @@ package esprit.pfe.serviceformation.services;
 import esprit.pfe.serviceformation.dto.EnseignantDTO;
 import esprit.pfe.serviceformation.entities.Enseignant;
 import esprit.pfe.serviceformation.repositories.EnseignantRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
@@ -77,12 +79,13 @@ public class EnseignantServiceImpl implements EnseignantService {
                 .orElseThrow(() -> new IllegalArgumentException("Enseignant introuvable avec l'id ou l'email : " + id));
     }
 
-    public List<EnseignantDTO> getAllEnseignantsDTO() {
-        // 1) Récupérer tous les enseignants en JOIN FETCH
-        List<Enseignant> enseignants = enseignantRepository.findAll();
+    @Override
+    public Page<EnseignantDTO> getAllEnseignantsDTO(Pageable pageable) {
+        return enseignantRepository.findAll(pageable).map(this::mapToDTO);
+    }
 
-        // 2) Mapper vers DTO
-        return enseignants.stream().map(this::mapToDTO).toList();
+    public List<EnseignantDTO> getAllEnseignantsDTO() {
+        return enseignantRepository.findAll().stream().map(this::mapToDTO).toList();
     }
 
     private EnseignantDTO mapToDTO(Enseignant e) {

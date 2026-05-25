@@ -2,9 +2,12 @@ package esprit.pfe.serviceformation.controllers;
 
 import esprit.pfe.serviceformation.dto.*;
 import esprit.pfe.serviceformation.entities.*;
+import esprit.pfe.serviceformation.exception.GlobalExceptionHandler;
 import esprit.pfe.serviceformation.services.*;
-import esprit.pfe.serviceformation.repositories.*;
 import esprit.pfe.serviceformation.microsoft.*;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -12,12 +15,20 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.MediaType;
+import org.springframework.http.converter.ByteArrayHttpMessageConverter;
+import org.springframework.http.converter.StringHttpMessageConverter;
+import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
-import java.util.Collections;
-import java.util.Optional;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableHandlerMethodArgumentResolver;
 
+import java.util.Collections;
+
+
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
@@ -38,10 +49,8 @@ class ComprehensiveControllersTest {
     @Mock private KPIService kpiService;
     @Mock private SeanceService seanceService;
     @Mock private DocumentService docService;
-    @Mock private DeptService deptService;
-    @Mock private DeptRepository deptRepository;
-    @Mock private UpService upService;
-    @Mock private UpRepository upRepository;
+        @Mock private DeptService deptService;
+        @Mock private UpService upService;
     @Mock private InscriptionService inscService;
     @Mock private OneDriveService odService;
     @Mock private FormationWorkflowService formationWorkflowService;
@@ -61,23 +70,79 @@ class ComprehensiveControllersTest {
 
     @BeforeEach
     void setup() {
-        mockMvcFC = MockMvcBuilders.standaloneSetup(fcController).build();
-        mockMvcFCustom = MockMvcBuilders.standaloneSetup(fCustomController).build();
-        mockMvcMail = MockMvcBuilders.standaloneSetup(mailController).build();
-        mockMvcPKPI = MockMvcBuilders.standaloneSetup(pkpiController).build();
-        mockMvcEns = MockMvcBuilders.standaloneSetup(ensController).build();
-        mockMvcKPI = MockMvcBuilders.standaloneSetup(kpiController).build();
-        mockMvcSeance = MockMvcBuilders.standaloneSetup(seanceController).build();
-        mockMvcDoc = MockMvcBuilders.standaloneSetup(docController).build();
-        mockMvcDept = MockMvcBuilders.standaloneSetup(deptController).build();
-        mockMvcUp = MockMvcBuilders.standaloneSetup(upController).build();
-        mockMvcInsc = MockMvcBuilders.standaloneSetup(inscController).build();
-        mockMvcOD = MockMvcBuilders.standaloneSetup(odController).build();
+        var exceptionHandler = new GlobalExceptionHandler();
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.registerModule(new org.springframework.data.web.config.SpringDataJacksonConfiguration.PageModule(
+                new org.springframework.data.web.config.SpringDataWebSettings(
+                        org.springframework.data.web.config.EnableSpringDataWebSupport.PageSerializationMode.DIRECT)));
+        MappingJackson2HttpMessageConverter converter = new MappingJackson2HttpMessageConverter(mapper);
+        mockMvcFC = MockMvcBuilders.standaloneSetup(fcController)
+                .setCustomArgumentResolvers(new PageableHandlerMethodArgumentResolver())
+                .setMessageConverters(new ByteArrayHttpMessageConverter(), new StringHttpMessageConverter(), converter)
+                .setControllerAdvice(exceptionHandler)
+                .build();
+        mockMvcFCustom = MockMvcBuilders.standaloneSetup(fCustomController)
+                .setCustomArgumentResolvers(new PageableHandlerMethodArgumentResolver())
+                .setMessageConverters(new ByteArrayHttpMessageConverter(), new StringHttpMessageConverter(), converter)
+                .setControllerAdvice(exceptionHandler)
+                .build();
+        mockMvcMail = MockMvcBuilders.standaloneSetup(mailController)
+                .setCustomArgumentResolvers(new PageableHandlerMethodArgumentResolver())
+                .setMessageConverters(new ByteArrayHttpMessageConverter(), new StringHttpMessageConverter(), converter)
+                .setControllerAdvice(exceptionHandler)
+                .build();
+        mockMvcPKPI = MockMvcBuilders.standaloneSetup(pkpiController)
+                .setCustomArgumentResolvers(new PageableHandlerMethodArgumentResolver())
+                .setMessageConverters(new ByteArrayHttpMessageConverter(), new StringHttpMessageConverter(), converter)
+                .setControllerAdvice(exceptionHandler)
+                .build();
+        mockMvcEns = MockMvcBuilders.standaloneSetup(ensController)
+                .setCustomArgumentResolvers(new PageableHandlerMethodArgumentResolver())
+                .setMessageConverters(new ByteArrayHttpMessageConverter(), new StringHttpMessageConverter(), converter)
+                .setControllerAdvice(exceptionHandler)
+                .build();
+        mockMvcKPI = MockMvcBuilders.standaloneSetup(kpiController)
+                .setCustomArgumentResolvers(new PageableHandlerMethodArgumentResolver())
+                .setMessageConverters(new ByteArrayHttpMessageConverter(), new StringHttpMessageConverter(), converter)
+                .setControllerAdvice(exceptionHandler)
+                .build();
+        mockMvcSeance = MockMvcBuilders.standaloneSetup(seanceController)
+                .setCustomArgumentResolvers(new PageableHandlerMethodArgumentResolver())
+                .setMessageConverters(new ByteArrayHttpMessageConverter(), new StringHttpMessageConverter(), converter)
+                .setControllerAdvice(exceptionHandler)
+                .build();
+        mockMvcDoc = MockMvcBuilders.standaloneSetup(docController)
+                .setCustomArgumentResolvers(new PageableHandlerMethodArgumentResolver())
+                .setMessageConverters(new ByteArrayHttpMessageConverter(), new StringHttpMessageConverter(), converter)
+                .setControllerAdvice(exceptionHandler)
+                .build();
+        mockMvcDept = MockMvcBuilders.standaloneSetup(deptController)
+                .setCustomArgumentResolvers(new PageableHandlerMethodArgumentResolver())
+                .setMessageConverters(new ByteArrayHttpMessageConverter(), new StringHttpMessageConverter(), converter)
+                .setControllerAdvice(exceptionHandler)
+                .build();
+        mockMvcUp = MockMvcBuilders.standaloneSetup(upController)
+                .setCustomArgumentResolvers(new PageableHandlerMethodArgumentResolver())
+                .setMessageConverters(new ByteArrayHttpMessageConverter(), new StringHttpMessageConverter(), converter)
+                .setControllerAdvice(exceptionHandler)
+                .build();
+        mockMvcInsc = MockMvcBuilders.standaloneSetup(inscController)
+                .setCustomArgumentResolvers(new PageableHandlerMethodArgumentResolver())
+                .setMessageConverters(new ByteArrayHttpMessageConverter(), new StringHttpMessageConverter(), converter)
+                .setControllerAdvice(exceptionHandler)
+                .build();
+        mockMvcOD = MockMvcBuilders.standaloneSetup(odController)
+                .setCustomArgumentResolvers(new PageableHandlerMethodArgumentResolver())
+                .setMessageConverters(new ByteArrayHttpMessageConverter(), new StringHttpMessageConverter(), converter)
+                .setControllerAdvice(exceptionHandler)
+                .build();
     }
 
     @Test
     void testFormationCompetence() throws Exception {
-        when(fcService.getByFormationId(anyLong())).thenReturn(Collections.emptyList());
+        when(fcService.getByFormationId(anyLong(), any(Pageable.class))).thenReturn(new PageImpl<>(Collections.emptyList()));
+        when(fcService.getByCompetenceId(anyLong(), any(Pageable.class))).thenReturn(new PageImpl<>(Collections.emptyList()));
+        when(fcService.getByDomaineId(anyLong(), any(Pageable.class))).thenReturn(new PageImpl<>(Collections.emptyList()));
         mockMvcFC.perform(get("/api/v1/formation-competences/formation/1")).andExpect(status().is2xxSuccessful());
 
         mockMvcFC.perform(post("/api/v1/formation-competences/formation/1")
@@ -105,10 +170,10 @@ class ComprehensiveControllersTest {
 
     @Test
     void testMail() throws Exception {
+        String json = "{\"to\":\"test@test.com\",\"subject\":\"Subj\",\"content\":\"Body\"}";
         mockMvcMail.perform(post("/api/v1/mail/send")
-                .param("to", "test@test.com")
-                .param("subject", "Subj")
-                .param("content", "Body")).andExpect(status().is2xxSuccessful());
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(json)).andExpect(status().is2xxSuccessful());
     }
 
     @Test
@@ -123,7 +188,7 @@ class ComprehensiveControllersTest {
 
     @Test
     void testEnseignant() throws Exception {
-        when(ensService.getAllEnseignantsDTO()).thenReturn(Collections.emptyList());
+        when(ensService.getAllEnseignantsDTO(any(Pageable.class))).thenReturn(new PageImpl<>(Collections.emptyList()));
         mockMvcEns.perform(get("/api/v1/enseignants")).andExpect(status().is2xxSuccessful());
         
         when(ensService.getEnseignantById(anyString())).thenReturn(new Enseignant());
@@ -180,6 +245,7 @@ class ComprehensiveControllersTest {
         }
 
         when(docService.getById(anyLong())).thenReturn(dummyDoc);
+        when(docService.getAll(any(Pageable.class))).thenReturn(new PageImpl<>(Collections.emptyList()));
         mockMvcDoc.perform(get("/api/v1/documents/1")).andExpect(status().is2xxSuccessful());
         mockMvcDoc.perform(get("/api/v1/documents")).andExpect(status().is2xxSuccessful());
         mockMvcDoc.perform(delete("/api/v1/documents/1")).andExpect(status().is2xxSuccessful());
@@ -190,11 +256,11 @@ class ComprehensiveControllersTest {
 
     @Test
     void testDept() throws Exception {
-        when(deptRepository.findAll()).thenReturn(Collections.emptyList());
-        mockMvcDept.perform(get("/api/v1/departements")).andExpect(status().is2xxSuccessful());
-        
-        when(deptRepository.findById(anyString())).thenReturn(Optional.of(new Dept()));
-        mockMvcDept.perform(get("/api/v1/departements/1")).andExpect(status().is2xxSuccessful());
+                when(deptService.findAll(any(Pageable.class))).thenReturn(new PageImpl<>(Collections.emptyList()));
+                mockMvcDept.perform(get("/api/v1/departements")).andExpect(status().is2xxSuccessful());
+
+                when(deptService.findById(anyString())).thenReturn(new Dept());
+                mockMvcDept.perform(get("/api/v1/departements/1")).andExpect(status().is2xxSuccessful());
         
         mockMvcDept.perform(post("/api/v1/departements")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -207,10 +273,10 @@ class ComprehensiveControllersTest {
 
     @Test
     void testUp() throws Exception {
-        when(upRepository.findAll()).thenReturn(Collections.emptyList());
+        when(upService.findAll(any(Pageable.class))).thenReturn(new PageImpl<>(Collections.emptyList()));
         mockMvcUp.perform(get("/api/v1/ups")).andExpect(status().is2xxSuccessful());
-        
-        when(upRepository.findById(anyString())).thenReturn(Optional.of(new Up()));
+
+        when(upService.findById(anyString())).thenReturn(new Up());
         mockMvcUp.perform(get("/api/v1/ups/1")).andExpect(status().is2xxSuccessful());
         
         mockMvcUp.perform(post("/api/v1/ups")
@@ -247,3 +313,4 @@ class ComprehensiveControllersTest {
         mockMvcOD.perform(get("/api/v1/onedrive/formations/1/hierarchy")).andExpect(status().is2xxSuccessful());
     }
 }
+

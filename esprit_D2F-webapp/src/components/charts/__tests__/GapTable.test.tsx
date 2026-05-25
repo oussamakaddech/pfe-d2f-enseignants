@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import { describe, it, expect } from 'vitest';
 import GapTable from '../GapTable';
-import type { AnalyseGap } from '@/services/analyse/AnalysePredictiveService';
+import type { AnalyseGap } from '@/models/analyse';
 
 const gaps: AnalyseGap[] = [
   { competenceCode: 'C1', competenceLabel: 'Spring Boot', niveauActuel: 1, niveauCible: 4,

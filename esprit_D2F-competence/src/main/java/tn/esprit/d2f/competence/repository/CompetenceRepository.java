@@ -47,9 +47,9 @@ public interface CompetenceRepository extends JpaRepository<Competence, Long> {
     // ─── Filtres UP / Département (via Domaine) ───────────────────────────────
 
     @Query("SELECT c FROM Competence c JOIN FETCH c.domaine d WHERE (:upId IS NULL OR d.upId = :upId) AND (:departementId IS NULL OR d.departementId = :departementId)")
-    List<Competence> findByDomaine_UpIdAndDomaine_DepartementId(@Param("upId") Long upId, @Param("departementId") Long departementId);
+    List<Competence> findByDomaine_UpIdAndDomaine_DepartementId(@Param("upId") String upId, @Param("departementId") String departementId);
 
     @Query(value = "SELECT c FROM Competence c JOIN FETCH c.domaine d WHERE (:upId IS NULL OR d.upId = :upId) AND (:departementId IS NULL OR d.departementId = :departementId)",
            countQuery = "SELECT COUNT(c) FROM Competence c JOIN c.domaine d WHERE (:upId IS NULL OR d.upId = :upId) AND (:departementId IS NULL OR d.departementId = :departementId)")
-    Page<Competence> findByDomaine_UpIdAndDomaine_DepartementId(@Param("upId") Long upId, @Param("departementId") Long departementId, Pageable pageable);
+    Page<Competence> findByDomaine_UpIdAndDomaine_DepartementId(@Param("upId") String upId, @Param("departementId") String departementId, Pageable pageable);
 }

@@ -1,10 +1,10 @@
 import { Card, Row, Col, Statistic, Tag, Progress } from "antd";
 import { FallOutlined, RiseOutlined, WarningOutlined } from "@ant-design/icons";
-import {
+import type {
   DecliningCompetency,
   InDemandCompetency,
   TeacherRiskIndicator,
-} from "@/services/analyse/AnalysePredictiveService";
+} from "@/models/analyse";
 
 interface Props {
   declining: DecliningCompetency[];

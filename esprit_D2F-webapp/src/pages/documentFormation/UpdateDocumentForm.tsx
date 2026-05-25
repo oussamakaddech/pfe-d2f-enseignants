@@ -1,4 +1,3 @@
-// src/components/UpdateDocumentForm.jsx
 import { useState, useEffect } from "react";
 import PropTypes from "prop-types";
 import { Form, Input, Select, Checkbox, Upload, Button, Typography } from "antd";
@@ -50,8 +49,7 @@ export default function UpdateDocumentForm({ documentData, onUpdated }) {
       form.resetFields();
       setFileList([]);
       onUpdated(updatedDoc);
-    } catch (err) {
-      console.error(err);
+    } catch {
       message.error("🚫 Erreur lors de la mise à jour du document.");
     } finally {
       setLoading(false);
@@ -90,7 +88,7 @@ export default function UpdateDocumentForm({ documentData, onUpdated }) {
         name="file"
         label="Nouveau fichier (optionnel)"
         valuePropName="fileList"
-        getValueFromEvent={e => e && e.fileList}
+        getValueFromEvent={e => e?.fileList}
       >
         <Upload {...uploadProps} maxCount={1}>
           <Button icon={<UploadOutlined />}>Sélectionner fichier</Button>
@@ -104,13 +102,13 @@ export default function UpdateDocumentForm({ documentData, onUpdated }) {
         <Button 
           danger 
           onClick={async () => {
-            if (window.confirm("Voulez-vous vraiment supprimer ce document ?")) {
+            if (globalThis.confirm("Voulez-vous vraiment supprimer ce document ?")) {
               setLoading(true);
               try {
                 await DocumentService.deleteDocument(documentData.idDocument);
                 message.success("Document supprimé");
                 onUpdated(null); // signal deletion
-              } catch (err) {
+              } catch {
                 message.error("Erreur suppression");
               } finally {
                 setLoading(false);

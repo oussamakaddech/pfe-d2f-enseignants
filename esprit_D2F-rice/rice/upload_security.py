@@ -23,7 +23,7 @@ MAX_FILE_SIZE_BYTES = int(os.getenv("RICE_MAX_FILE_SIZE_BYTES", str(20 * 1024 * 
 MAX_TOTAL_UPLOAD_BYTES = int(os.getenv("RICE_MAX_TOTAL_UPLOAD_BYTES", str(100 * 1024 * 1024)))  # 100 MB
 MAX_FILENAME_LENGTH = 255
 
-ALLOWED_EXTENSIONS = frozenset({"pdf", "docx", "doc"})
+ALLOWED_EXTENSIONS = frozenset({"pdf", "docx", "doc", "txt"})
 
 # Magic bytes for accepted formats.
 MAGIC_BYTES = {

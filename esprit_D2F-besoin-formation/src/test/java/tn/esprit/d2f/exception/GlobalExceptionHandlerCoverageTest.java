@@ -34,7 +34,7 @@ class GlobalExceptionHandlerCoverageTest {
         assertEquals(HttpStatus.NOT_FOUND, response.getStatusCode());
         assertNotNull(response.getBody());
         assertEquals("Besoin not found", response.getBody().getMessage());
-        assertEquals("BESOIN-404", response.getBody().getErrorCode());
+        assertEquals("BESOIN_NOT_FOUND", response.getBody().getErrorCode());
         assertEquals("/api/v1/test", response.getBody().getPath());
         assertNotNull(response.getBody().getTraceId());
         assertNotNull(response.getBody().getTimestamp());
@@ -48,7 +48,7 @@ class GlobalExceptionHandlerCoverageTest {
 
         assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
         assertNotNull(response.getBody());
-        assertEquals("BESOIN-401", response.getBody().getErrorCode());
+        assertEquals("BESOIN_UNAUTHORIZED", response.getBody().getErrorCode());
         assertNotNull(response.getBody().getTraceId());
     }
 
@@ -59,7 +59,7 @@ class GlobalExceptionHandlerCoverageTest {
 
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
         assertNotNull(response.getBody());
-        assertEquals("BESOIN-500", response.getBody().getErrorCode());
+        assertEquals("BESOIN_INTERNAL_ERROR", response.getBody().getErrorCode());
         assertNotNull(response.getBody().getTraceId());
         assertEquals("/api/v1/test", response.getBody().getPath());
     }
@@ -71,7 +71,9 @@ class GlobalExceptionHandlerCoverageTest {
 
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
         assertNotNull(response.getBody());
-        assertEquals("", response.getBody().getMessage());
+        // Handler always returns a generic message to avoid leaking internal details (Fix 1)
+        assertEquals("Requête invalide : vérifiez les paramètres envoyés.", response.getBody().getMessage());
+        assertEquals("BESOIN_BUSINESS_RULE_VIOLATION", response.getBody().getErrorCode());
     }
 
     @Test
@@ -83,7 +85,7 @@ class GlobalExceptionHandlerCoverageTest {
         assertEquals(HttpStatus.FORBIDDEN, response.getStatusCode());
         assertNotNull(response.getBody());
         assertTrue(response.getBody().getMessage().contains("Accès refusé"));
-        assertEquals("BESOIN-403", response.getBody().getErrorCode());
+        assertEquals("BESOIN_ACCESS_DENIED", response.getBody().getErrorCode());
         assertNotNull(response.getBody().getTimestamp());
         assertEquals(403, response.getBody().getStatus());
     }

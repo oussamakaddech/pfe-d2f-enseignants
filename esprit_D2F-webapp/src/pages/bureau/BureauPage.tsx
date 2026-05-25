@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, type RefObject, type Key } from "react";
+import { useState, useRef, type RefObject, type Key } from "react";
 import {
   Table,
   Button,
@@ -10,6 +10,7 @@ import {
   Tooltip,
   Card,
 } from "antd";
+import type { FilterDropdownProps } from "antd/es/table/interface";
 import {
   SearchOutlined,
   PlusOutlined,
@@ -19,12 +20,10 @@ import {
   MailOutlined,
   BankOutlined,
 } from "@ant-design/icons";
-import BureauService from "@/services/bureau/BureauService";
 import useAppNotification from "@/hooks/ui/useAppNotification";
+import { useBureaux, useCreateBureau, useUpdateBureau, useDeleteBureau } from "@/hooks/bureau/useBureaux";
 import type { Bureau } from "@/models/bureau";
 import "@/styles/pages/bureau-page.css";
-
-const { Option: _Option } = Input as any;
 
 type SearchDropdownProps = Readonly<{
   placeholder: string;
@@ -34,7 +33,7 @@ type SearchDropdownProps = Readonly<{
   clearFilters?: () => void;
   onSearch: (keys: string[], confirm: () => void) => void;
   onReset: (clearFilters: () => void) => void;
-  inputRef: RefObject<any>;
+  inputRef: RefObject<HTMLInputElement>;
 }>;
 
 function ColumnSearchDropdown({ placeholder, selectedKeys, setSelectedKeys, confirm, clearFilters, onSearch, onReset, inputRef }: SearchDropdownProps) {
@@ -71,13 +70,13 @@ function ColumnSearchIcon({ filtered }: Readonly<{ filtered: boolean }>) {
 type SearchColumnConfig = {
   onSearch: (selectedKeys: string[], confirm: () => void, dataIndex: string) => void;
   onReset: (clearFilters: () => void) => void;
-  searchInputRef: RefObject<any>;
+  searchInputRef: RefObject<HTMLInputElement>;
   searchedColumn: string;
 };
 
 function getColumnSearchProps(dataIndex: keyof Bureau, placeholder: string, cfg: SearchColumnConfig) {
   return {
-    filterDropdown: ({ setSelectedKeys, selectedKeys, confirm, clearFilters }: any) => (
+    filterDropdown: ({ setSelectedKeys, selectedKeys, confirm, clearFilters }: FilterDropdownProps) => (
       <ColumnSearchDropdown
         placeholder={placeholder}
         selectedKeys={selectedKeys}
@@ -90,7 +89,7 @@ function getColumnSearchProps(dataIndex: keyof Bureau, placeholder: string, cfg:
       />
     ),
     filterIcon: (filtered: boolean) => <ColumnSearchIcon filtered={filtered} />,
-    onFilter: (value: any, record: Bureau) =>
+    onFilter: (value: boolean | Key, record: Bureau) =>
       String(record[dataIndex] ?? "").toLowerCase().includes(String(value).toLowerCase()),
     filterDropdownProps: {
       onOpenChange: (visible: boolean) => {
@@ -108,33 +107,22 @@ function getColumnSearchProps(dataIndex: keyof Bureau, placeholder: string, cfg:
 
 export default function BureauPage() {
   const { message: msgApi } = useAppNotification();
-  const [data, setData] = useState<Bureau[]>([]);
-  const [loading, setLoading] = useState(false);
+  const { data: bureaux = [], isLoading: loading } = useBureaux();
+  const createMut  = useCreateBureau();
+  const updateMut  = useUpdateBureau();
+  const deleteMut  = useDeleteBureau();
+
   const [searchedColumn, setSearchedColumn] = useState("");
-  const searchInput = useRef<any>(null);
+  const searchInput = useRef<RefObject<HTMLInputElement>>(null);
 
   // ── Modal état ────────────────────────────────────────────────────────
   const [modalOpen, setModalOpen] = useState(false);
   const [modalMode, setModalMode] = useState<"create" | "edit">("create");
   const [editingRecord, setEditingRecord] = useState<Bureau | null>(null);
-  const [saveLoading, setSaveLoading] = useState(false);
   const [form] = Form.useForm();
 
-  useEffect(() => {
-    fetchData();
-  }, []);
-
-  const fetchData = async () => {
-    setLoading(true);
-    try {
-      const list = await BureauService.getAllBureaux();
-      setData(list);
-    } catch {
-      msgApi.error("Erreur lors du chargement des bureaux");
-    } finally {
-      setLoading(false);
-    }
-  };
+  const data = Array.isArray(bureaux) ? bureaux : [];
+  const saveLoading = createMut.isPending || updateMut.isPending;
 
   // ── Ouvrir modal création ─────────────────────────────────────────────
   const openCreate = () => {
@@ -160,33 +148,29 @@ export default function BureauPage() {
   const handleSave = async () => {
     try {
       const values = await form.validateFields();
-      setSaveLoading(true);
       if (modalMode === "create") {
-        await BureauService.createBureau(values);
+        await createMut.mutateAsync(values);
         msgApi.success("Bureau créé avec succès !");
       } else {
-        await BureauService.updateBureau(editingRecord!.id, values);
+        await updateMut.mutateAsync({ id: editingRecord!.id, data: values });
         msgApi.success("Bureau modifié avec succès !");
       }
       setModalOpen(false);
       form.resetFields();
-      fetchData();
-    } catch (err: any) {
-      if (err?.errorFields) return;
-      msgApi.error(err?.response?.data?.message || "Erreur lors de la sauvegarde");
-    } finally {
-      setSaveLoading(false);
+    } catch (err: unknown) {
+      const e = err as { errorFields?: unknown; response?: { data?: { message?: string } } };
+      if (e?.errorFields) return;
+      msgApi.error(e?.response?.data?.message || "Erreur lors de la sauvegarde");
     }
   };
 
   // ── Supprimer ─────────────────────────────────────────────────────────
   const handleDelete = async (record: Bureau) => {
     try {
-      await BureauService.deleteBureau(record.id);
+      await deleteMut.mutateAsync(record.id);
       msgApi.success(`Bureau "${record.nom}" supprimé`);
-      fetchData();
-    } catch (err: any) {
-      msgApi.error(err?.response?.data?.message || "Erreur lors de la suppression");
+    } catch (err: unknown) {
+      msgApi.error((err as { response?: { data?: { message?: string } } })?.response?.data?.message || "Erreur lors de la suppression");
     }
   };
 
@@ -258,7 +242,7 @@ export default function BureauPage() {
       title: "Actions",
       key: "actions",
       width: 100,
-      render: (_: any, record: Bureau) => (
+      render: (_: unknown, record: Bureau) => (
         <Space size="small">
           <Tooltip title="Modifier">
             <Button

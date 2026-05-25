@@ -1,4 +1,3 @@
-import axios, { type AxiosError } from "axios";
 import { createApiClient } from "@/utils/helpers/httpClient";
 import { config } from "@/config/env";
 import type {
@@ -12,7 +11,7 @@ const API_URL = `${config.URL_ACCOUNT}/account`;
 const api = createApiClient(API_URL);
 
 export async function getAllAccounts(): Promise<AuthUser[]> {
-  const response = await api.get<any>("/list-accounts");
+  const response = await api.get<AuthUser[] | { content: AuthUser[] }>("/list-accounts");
   return response.data?.content || response.data || [];
 }
 
@@ -31,22 +30,8 @@ export async function editProfile(
 export async function updatePassword(
   request: UpdatePasswordRequest
 ): Promise<unknown> {
-  try {
-    const res = await api.post("/update-password", request);
-    return res.data;
-  } catch (err) {
-    if (axios.isAxiosError(err)) {
-      const typedError = err as AxiosError;
-      console.error("updatePassword error", {
-        status: typedError.response?.status,
-        data: typedError.response?.data,
-        request,
-      });
-    } else {
-      console.error("updatePassword unexpected error", { request, err });
-    }
-    throw err;
-  }
+  const res = await api.post("/update-password", request);
+  return res.data;
 }
 
 export async function banAccount(userName: string): Promise<unknown> {

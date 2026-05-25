@@ -3,13 +3,34 @@ import { config } from "@/config/env";
 
 const API_URL = `${config.FORMATION_URL}/formation/kpi`;
 
-function isNotFoundError(error) {
-  return error?.isAxiosError === true && error.response?.status === 404;
+function isNotFoundError(error: unknown): boolean {
+  return (error as { isAxiosError?: boolean; response?: { status?: number } })?.isAxiosError === true
+    && (error as { response?: { status?: number } })?.response?.status === 404;
+}
+
+function normalizeListResponse<T>(payload: T[] | { content?: T[]; data?: T[]; items?: T[] }): T[] {
+  if (Array.isArray(payload)) {
+    return payload;
+  }
+
+  if (payload && typeof payload === "object") {
+    const candidate = payload as { content?: unknown[]; data?: unknown[]; items?: unknown[] };
+    if (Array.isArray(candidate.content)) {
+      return candidate.content as T[];
+    }
+    if (Array.isArray(candidate.data)) {
+      return candidate.data as T[];
+    }
+    if (Array.isArray(candidate.items)) {
+      return candidate.items as T[];
+    }
+  }
+
+  return [];
 }
 
 const KPIService = {
-  // Récupère le nombre total de formations sur une période donnée
-  async getTotalFormations(start, end) {
+  async getTotalFormations(start: string, end: string) {
     try {
       const response = await axios.get(`${API_URL}/formations`, {
         params: { start, end },
@@ -17,16 +38,13 @@ const KPIService = {
       return response.data || 0;
     } catch (error) {
       if (isNotFoundError(error)) {
-        console.warn("Aucune formation trouvée");
         return 0;
       }
-      console.error("Erreur lors de la récupération du nombre total de formations :", error);
       throw error;
     }
   },
 
-  // Récupère le total des heures de formation sur une période donnée
-  async getTotalHeures(start, end) {
+  async getTotalHeures(start: string, end: string) {
     try {
       const response = await axios.get(`${API_URL}/heures`, {
         params: { start, end },
@@ -34,16 +52,13 @@ const KPIService = {
       return response.data || 0;
     } catch (error) {
       if (isNotFoundError(error)) {
-        console.warn("Aucune heure trouvée");
         return 0;
       }
-      console.error("Erreur lors de la récupération du total des heures :", error);
       throw error;
     }
   },
 
-  // Récupère le nombre de participants uniques sur une période donnée
-  async getUniqueParticipants(start, end) {
+  async getUniqueParticipants(start: string, end: string) {
     try {
       const response = await axios.get(`${API_URL}/participants`, {
         params: { start, end },
@@ -51,105 +66,72 @@ const KPIService = {
       return response.data || 0;
     } catch (error) {
       if (isNotFoundError(error)) {
-        console.warn("Aucun participant trouvé");
         return 0;
       }
-      console.error("Erreur lors de la récupération du nombre de participants uniques :", error);
       throw error;
     }
   },
 
-  // Récupère la répartition des formations par état sur une période donnée
-  async getFormationsByEtat(start, end) {
+  async getFormationsByEtat(start: string, end: string) {
     try {
       const response = await axios.get(`${API_URL}/formations-by-etat`, {
         params: { start, end },
       });
-      return response.data || {
-        enregistre: 0,
-        planifie: 0,
-        enCours: 0,
-        acheve: 0,
-        annule: 0,
-        total: 0,
-      };
+      return response.data || { enregistre: 0, planifie: 0, enCours: 0, acheve: 0, annule: 0, total: 0 };
     } catch (error) {
       if (isNotFoundError(error)) {
-        console.warn("Aucune formation par état trouvée");
-        return {
-          enregistre: 0,
-          planifie: 0,
-          enCours: 0,
-          acheve: 0,
-          annule: 0,
-          total: 0,
-        };
+        return { enregistre: 0, planifie: 0, enCours: 0, acheve: 0, annule: 0, total: 0 };
       }
-      console.error("Erreur lors de la récupération des formations par état :", error);
       throw error;
     }
   },
 
-  // Top des enseignants les plus assidus sur les formations achevées
-  async getTopParticipants(start, end, upId = null, deptId = null) {
+  async getTopParticipants(start: string, end: string, upId: string | null = null, deptId: string | null = null) {
     try {
-      const params = { start, end };
+      const params: Record<string, unknown> = { start, end };
       if (upId) params.upId = upId;
       if (deptId) params.deptId = deptId;
 
-      const response = await axios.get(`${API_URL}/top-participants`, {
-        params,
-      });
+      const response = await axios.get(`${API_URL}/top-participants`, { params });
       return response.data || [];
     } catch (error) {
       if (isNotFoundError(error)) {
-        console.warn("Aucun top participant trouvé");
         return [];
       }
-      console.error("Erreur lors de la récupération du top participants :", error);
       throw error;
     }
   },
 
-  // Top des enseignants les plus absents sur les formations achevées
-  async getTopAbsentees(start, end, upId = null, deptId = null) {
+  async getTopAbsentees(start: string, end: string, upId: string | null = null, deptId: string | null = null) {
     try {
-      const params = { start, end };
+      const params: Record<string, unknown> = { start, end };
       if (upId) params.upId = upId;
       if (deptId) params.deptId = deptId;
 
-      const response = await axios.get(`${API_URL}/top-absentees`, {
-        params,
-      });
+      const response = await axios.get(`${API_URL}/top-absentees`, { params });
       return response.data || [];
     } catch (error) {
       if (isNotFoundError(error)) {
-        console.warn("Aucun top absentee trouvé");
         return [];
       }
-      console.error("Erreur lors de la récupération du top absentees :", error);
       throw error;
     }
   },
 
-  // Enseignants non affectés à aucune séance sur la période donnée
-  async getEnseignantsNonAffectes(start, end) {
+  async getEnseignantsNonAffectes(start: string, end: string) {
     try {
       const response = await axios.get(`${API_URL}/enseignants-non-affectes`, {
         params: { start, end },
       });
-      return response.data || [];
+      return normalizeListResponse(response.data);
     } catch (error) {
       if (isNotFoundError(error)) {
-        console.warn("Aucun enseignant non affecté trouvé");
         return [];
       }
-      console.error("Erreur lors de la récupération des enseignants non affectés :", error);
       throw error;
     }
   },
 
-  // Récupère le count et les heures totales avec filtres
   async getCountAndHeures({
     domaine = null,
     upId = null,
@@ -158,9 +140,17 @@ const KPIService = {
     start = null,
     end = null,
     etat = null,
+  }: {
+    domaine?: string | null;
+    upId?: string | null;
+    deptId?: string | null;
+    ouverte?: boolean | null;
+    start?: string | null;
+    end?: string | null;
+    etat?: string | null;
   } = {}) {
     try {
-      const params = {};
+      const params: Record<string, unknown> = {};
       if (domaine !== null) params.domaine = domaine;
       if (upId !== null) params.upId = upId;
       if (deptId !== null) params.deptId = deptId;
@@ -173,18 +163,12 @@ const KPIService = {
       return response.data || { count: 0, totalHeures: 0 };
     } catch (error) {
       if (isNotFoundError(error)) {
-        console.warn("Aucune formation filtrée trouvée");
         return { count: 0, totalHeures: 0 };
       }
-      console.error(
-        "Erreur lors de la récupération du count & totalHeures de formations filtrées :",
-        error
-      );
       throw error;
     }
   },
 
-  // Récupère les formations par type avec filtres
   async getFormationsByTypeFiltered({
     domaine = null,
     upId = null,
@@ -193,9 +177,17 @@ const KPIService = {
     start = null,
     end = null,
     etat = null,
+  }: {
+    domaine?: string | null;
+    upId?: string | null;
+    deptId?: string | null;
+    ouverte?: boolean | null;
+    start?: string | null;
+    end?: string | null;
+    etat?: string | null;
   } = {}) {
     try {
-      const params = {};
+      const params: Record<string, unknown> = {};
       if (domaine !== null) params.domaine = domaine;
       if (upId !== null) params.upId = upId;
       if (deptId !== null) params.deptId = deptId;
@@ -204,38 +196,24 @@ const KPIService = {
       if (end !== null) params.end = end;
       if (etat !== null) params.etat = etat;
 
-      const response = await axios.get(
-        `${API_URL}/formations-by-type-filtered`,
-        { params }
-      );
+      const response = await axios.get(`${API_URL}/formations-by-type-filtered`, { params });
       return response.data || { interne: 0, externe: 0, enLigne: 0 };
     } catch (error) {
       if (isNotFoundError(error)) {
-        console.warn("Aucune formation par type filtrée trouvée");
         return { interne: 0, externe: 0, enLigne: 0 };
       }
-      console.error(
-        "Erreur lors de la récupération des formations par type filtré :",
-        error
-      );
       throw error;
     }
   },
 
-  // Récupère le count par type de formateur avec IDs
-  async getCountByTrainerTypeWithIds(filters = {}) {
+  async getCountByTrainerTypeWithIds(filters: Record<string, unknown> = {}) {
     try {
-      const response = await axios.get(
-        `${API_URL}/count-by-trainer-type-with-ids`,
-        { params: filters }
-      );
+      const response = await axios.get(`${API_URL}/count-by-trainer-type-with-ids`, { params: filters });
       return response.data || [];
     } catch (error) {
       if (isNotFoundError(error)) {
-        console.warn("Aucune donnée count-by-trainer-type trouvée");
         return [];
       }
-      console.error("Erreur récupération count-by-trainer-type-with-ids :", error);
       throw error;
     }
   },
