@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { Card, Space, Typography, Tooltip } from "antd";
 import { WarningOutlined, FallOutlined } from "@ant-design/icons";
 import type { SkillGap } from "@/models/analyse";
@@ -17,7 +18,7 @@ interface SkillGapCardProps {
   readonly compact?:  boolean;
 }
 
-export default function SkillGapCard({ gap, onClick, compact = false }: SkillGapCardProps) {
+const SkillGapCard = memo(function SkillGapCard({ gap, onClick, compact = false }: SkillGapCardProps) {
   const isCritique = gap.niveau_urgence === "CRITIQUE";
   let borderColor = "#f59e0b";
   if (isCritique) borderColor = "#ef4444";
@@ -112,7 +113,9 @@ export default function SkillGapCard({ gap, onClick, compact = false }: SkillGap
       </Space>
     </Card>
   );
-}
+});
+
+export default SkillGapCard;
 
 
 

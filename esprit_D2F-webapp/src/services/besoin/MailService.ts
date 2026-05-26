@@ -10,7 +10,7 @@ const MailService = {
         { to, subject, content }
       );
       return response.data;
-    } catch (error) {
+    } catch (error: unknown) {
       throw error;
     }
   }

@@ -74,17 +74,35 @@ class UserDetailsServiceImplTest {
     }
 
     @Test
+    void testLoadUserByUsername_FallsBackToId() {
+        // Arrange
+        when(userRepository.findByUsername("test123")).thenReturn(java.util.Optional.empty());
+        when(userRepository.findById("test123")).thenReturn(java.util.Optional.of(testUser));
+
+        // Act
+        UserDetails userDetails = userDetailsService.loadUserByUsername("test123");
+
+        // Assert
+        assertNotNull(userDetails);
+        assertEquals("testuser", userDetails.getUsername());
+        verify(userRepository, times(1)).findByUsername("test123");
+        verify(userRepository, times(1)).findById("test123");
+    }
+
+    @Test
     void testLoadUserByUsername_UserNotFound() {
         // Arrange
         when(userRepository.findByUsername("nonexistent")).thenReturn(java.util.Optional.empty());
+        when(userRepository.findById("nonexistent")).thenReturn(java.util.Optional.empty());
 
         // Act & Assert
         UsernameNotFoundException exception = assertThrows(
                 UsernameNotFoundException.class,
                 () -> userDetailsService.loadUserByUsername("nonexistent")
         );
-        assertTrue(exception.getMessage().contains("User Not Found with username: nonexistent"));
+        assertTrue(exception.getMessage().contains("User Not Found with username or id: nonexistent"));
         verify(userRepository, times(1)).findByUsername("nonexistent");
+        verify(userRepository, times(1)).findById("nonexistent");
     }
 
     @Test

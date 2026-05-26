@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { Timeline, Tag, Space, Typography, Tooltip } from "antd";
 import { ClockCircleOutlined, CheckCircleOutlined, LockOutlined } from "@ant-design/icons";
 import type { TrainingPath, TrainingPathItem } from "@/models/analyse";
@@ -32,7 +33,7 @@ interface TrainingPathTimelineProps {
   readonly path: TrainingPath;
 }
 
-export default function TrainingPathTimeline({ path }: TrainingPathTimelineProps) {
+const TrainingPathTimeline = memo(function TrainingPathTimeline({ path }: TrainingPathTimelineProps) {
   return (
     <div>
       {/* Résumé du parcours */}
@@ -119,7 +120,9 @@ export default function TrainingPathTimeline({ path }: TrainingPathTimelineProps
       />
     </div>
   );
-}
+});
+
+export default TrainingPathTimeline;
 
 
 

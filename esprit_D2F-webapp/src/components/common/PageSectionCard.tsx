@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { Card, Skeleton } from "antd";
 
 interface PageSectionCardProps {
@@ -16,7 +17,7 @@ interface PageSectionCardProps {
  * - Optionnel : titre + extra en header
  * - Optionnel : loading skeleton
  */
-export default function PageSectionCard({
+const PageSectionCard = memo(function PageSectionCard({
   title,
   extra,
   children,
@@ -50,7 +51,9 @@ export default function PageSectionCard({
       )}
     </Card>
   );
-}
+});
+
+export default PageSectionCard;
 
 
 

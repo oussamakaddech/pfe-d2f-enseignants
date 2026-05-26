@@ -100,7 +100,7 @@ export function useRiceReport({ tree, departement, msgApi, onImportSuccess }) {
       setReport(result);
       if (onImportSuccess) onImportSuccess(result);
       queryClient.invalidateQueries({ queryKey: ["rice-import-history"] });
-    } catch (err) {
+    } catch (err: unknown) {
       msgApi.error(err.response?.data?.message ?? "Erreur lors de l'import en base");
     }
   }, [tree, computeClientCoverage, msgApi, onImportSuccess, importMutation, queryClient]);

@@ -1,6 +1,6 @@
 import  { useState } from "react";
 import PropTypes from "prop-types"; // ✅ Importer PropTypes
-import FormationService from "@/services/formation/FormationService";
+import { useCreateFormation } from "@/hooks/formation/useFormations";
 
 function FormationForm({ initialDate, onFormationCreated }) {
   const [titreFormation, setTitreFormation] = useState("");
@@ -20,7 +20,8 @@ function FormationForm({ initialDate, onFormationCreated }) {
         dateFin,
       };
 
-      const newFormation = await FormationService.createFormation(formationData);
+      const { mutateAsync: createFormation } = useCreateFormation();
+      const newFormation = await createFormation(formationData);
       onFormationCreated(newFormation);
     } catch {
       // silently handle

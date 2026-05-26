@@ -91,7 +91,7 @@ export default function TeachersDataGrid() {
       await deleteMut.mutateAsync(record.id);
       msgApi.success(`Enseignant "${record.nom} ${record.prenom}" supprimé`);
       if (selectedTeacher?.id === record.id) setSelectedTeacher(null);
-    } catch (err) {
+    } catch (err: unknown) {
       const msg = err.response?.data?.message || "Erreur lors de la suppression";
       msgApi.error(msg);
     }
@@ -189,7 +189,7 @@ export default function TeachersDataGrid() {
       setCreatingExtractIndex(null);
       setCreatingExtract(null);
       createForm.resetFields();
-    } catch (err) {
+    } catch (err: unknown) {
       if (err.errorFields) return;
       const msg = err.response?.data?.message || err.message || "Erreur lors de la création";
       msgApi.error(msg);
@@ -218,7 +218,7 @@ export default function TeachersDataGrid() {
       msgApi.success("Enseignant modifié avec succès !");
       setEditModalOpen(false);
       setEditingRecord(null);
-    } catch (err) {
+    } catch (err: unknown) {
       if (err.errorFields) return; // form validation error
       const msg = err.response?.data?.message || "Erreur lors de la modification";
       msgApi.error(msg);
@@ -233,7 +233,7 @@ export default function TeachersDataGrid() {
       const res = await uploadMut.mutateAsync(file);
       msgApi.success(res?.data?.message || res?.message || "Import Excel réussi !");
       setFile(null);
-    } catch (err) {
+    } catch (err: unknown) {
       const msg = err.response?.data?.message || err.message;
       msgApi.error(msg);
     }
@@ -635,7 +635,7 @@ export default function TeachersDataGrid() {
           <EnseignantRegister
             initialValues={{
               id: selectedTeacher?.id,
-              username: selectedTeacher?.id,
+              username: selectedTeacher?.mail?.split("@")[0] || "",
               firstName: selectedTeacher?.prenom,
               lastName: selectedTeacher?.nom,
               email: selectedTeacher?.mail,

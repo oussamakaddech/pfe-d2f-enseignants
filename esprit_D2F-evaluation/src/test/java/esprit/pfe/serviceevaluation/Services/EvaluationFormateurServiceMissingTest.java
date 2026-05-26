@@ -59,6 +59,8 @@ class EvaluationFormateurServiceMissingTest {
         dto.setNote(15.0f);
         dto.setSatisfaisant(true);
         dto.setCommentaire("Bon formateur");
+
+        lenient().when(authClient.enseignantExists(anyString())).thenReturn(true);
     }
 
     @Test

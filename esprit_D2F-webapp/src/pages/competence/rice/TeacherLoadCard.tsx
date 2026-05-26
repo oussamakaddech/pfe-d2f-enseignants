@@ -1,78 +1,137 @@
-import React from "react";
-import PropTypes from "prop-types";
-import { Card, Avatar, Tag, Progress, Space, Button, Popconfirm } from "antd";
-import { EditOutlined, DeleteOutlined } from "@ant-design/icons";
-import "@/styles/pages/matchmaking-page.css";
+import { useMemo } from "react";
+import { Avatar, Tag, Progress, Popconfirm, Tooltip, Button } from "antd";
+import { EditOutlined, StopOutlined } from "@ant-design/icons";
+import { avatarColor, getInitials } from "./constants";
 
-function initials(prenom, nom) {
-  const p = (prenom || "").charAt(0).toUpperCase();
-  const n = (nom || "").charAt(0).toUpperCase();
-  return `${p}${n}`.trim() || "U";
+// ── Types ──────────────────────────────────────────────────────────────────────
+interface Enseignant {
+  id: number | string;
+  nom?: string;
+  prenom?: string;
+  departement?: string;
+  grade?: string;
+}
+interface TeacherLoadCardProps {
+  teacher: Enseignant;
+  assignedSavoirIds?: (number | string)[];
+  savoirCodeMap?: Map<string, string>;
+  totalSavoirs?: number;
+  onChipClick?: (savoirId: number | string) => void;
+  onUnassign?: (savoirId: number | string) => void;
+  onEditRequest?: (teacher: Enseignant) => void;
+  onDeactivate?: () => void;
 }
 
-function colorFromText(text) {
-  let hash = 0;
-  for (let i = 0; i < (text || "").length; i++) hash = (text.codePointAt(i) ?? 0) + ((hash << 5) - hash);
-  const h = hash % 360;
-  return `hsl(${h} 70% 50%)`;
+// ── Progress stroke color ──────────────────────────────────────────────────────
+function loadColor(pct: number): string {
+  if (pct === 0) return "#d9d9d9";
+  if (pct <= 30) return "#52c41a";
+  if (pct <= 60) return "#faad14";
+  return "#ff4d4f";
 }
 
-function TeacherLoadCard({ teacher, assignedSavoirIds = [], totalSavoirs = 1, onChipClick, onUnassign, onEditRequest, onDeactivate }) {
-  const percent = Math.round((assignedSavoirIds.length / Math.max(1, totalSavoirs)) * 100);
-  let statusColor = "#ff4d4f";
-  if (percent < 50) statusColor = "#52c41a";
-  else if (percent < 80) statusColor = "#faad14";
+// ── Component ──────────────────────────────────────────────────────────────────
+export default function TeacherLoadCard({
+  teacher,
+  assignedSavoirIds = [],
+  savoirCodeMap,
+  totalSavoirs = 1,
+  onChipClick,
+  onUnassign,
+  onEditRequest,
+  onDeactivate,
+}: Readonly<TeacherLoadCardProps>) {
+  const count = assignedSavoirIds.length;
+  const percent = useMemo(
+    () => Math.round((count / Math.max(1, totalSavoirs)) * 100),
+    [count, totalSavoirs],
+  );
+
+  const avatarBg = useMemo(() => avatarColor(teacher.id), [teacher.id]);
+  const initials = useMemo(
+    () => getInitials(teacher.nom ?? "", teacher.prenom ?? ""),
+    [teacher.nom, teacher.prenom],
+  );
+  const fullName = `${teacher.prenom ?? ""} ${teacher.nom ?? ""}`.trim();
+  const dept = (teacher.departement ?? "").toUpperCase();
 
   return (
-    <Card size="small" className="teacher-card" style={{ marginBottom: 10 }}>
-      <div className="teacher-row">
-        <div style={{ display: "flex", alignItems: "center" }}>
-          <Avatar style={{ backgroundColor: colorFromText(teacher.nom || teacher.prenom) }}>{initials(teacher.prenom, teacher.nom)}</Avatar>
-          <div style={{ marginLeft: 12 }}>
-            <div className="teacher-name">{teacher.prenom} {teacher.nom}</div>
-            <div className="teacher-dept">{teacher.departement || teacher.department || '-'}</div>
+    <div className="tlc-card">
+      {/* ── Header row ── */}
+      <div className="tlc-header">
+        <Avatar className="tlc-avatar" style={{ background: avatarBg }} size={38}>
+          {initials}
+        </Avatar>
+
+        <div className="tlc-info">
+          <div className="tlc-name">{fullName || "—"}</div>
+          <div className="tlc-meta">
+            {dept && <span className="tlc-dept">{dept}</span>}
+            {teacher.grade && <span className="tlc-grade">{teacher.grade}</span>}
           </div>
         </div>
 
-        <div style={{ textAlign: "right" }}>
-          <Space direction="vertical" size={4} style={{ width: 160 }}>
-            <Progress percent={percent} strokeColor={statusColor} size="small" />
-            <div className="teacher-actions">
-              <Button icon={<EditOutlined />} size="small" onClick={() => onEditRequest?.(teacher)} />
-              <Popconfirm title="Désactiver cet enseignant ?" onConfirm={() => onDeactivate?.(teacher.id)}>
-                <Button icon={<DeleteOutlined />} size="small" />
-              </Popconfirm>
-            </div>
-          </Space>
+        <div className="tlc-actions">
+          <Tooltip title="Modifier">
+            <Button
+              type="text"
+              size="small"
+              icon={<EditOutlined />}
+              onClick={() => onEditRequest?.(teacher)}
+              className="tlc-action-btn"
+            />
+          </Tooltip>
+          <Popconfirm
+            title="Désactiver cet enseignant ?"
+            description="Toutes ses affectations seront retirées."
+            okText="Désactiver"
+            cancelText="Annuler"
+            okButtonProps={{ danger: true }}
+            onConfirm={() => onDeactivate?.()}
+          >
+            <Tooltip title="Désactiver">
+              <Button
+                type="text"
+                size="small"
+                icon={<StopOutlined />}
+                className="tlc-action-btn tlc-action-btn--danger"
+              />
+            </Tooltip>
+          </Popconfirm>
         </div>
       </div>
 
-      <div className="teacher-savoirs">
-        {assignedSavoirIds.map((sId) => (
-          <Tag key={sId} color="default" closable onClose={() => onUnassign?.(sId)} onClick={() => onChipClick?.(sId)}>
-            {sId}
-          </Tag>
-        ))}
-        {assignedSavoirIds.length === 0 && <div className="teacher-empty">Aucun savoir</div>}
+      {/* ── Load bar ── */}
+      <div className="tlc-load">
+        <Progress
+          percent={percent}
+          strokeColor={loadColor(percent)}
+          trailColor="#f0f0f0"
+          size="small"
+          format={() => `${count} savoir${count > 1 ? "s" : ""}`}
+        />
       </div>
-    </Card>
+
+      {/* ── Savoir chips ── */}
+      {count > 0 && (
+        <div className="tlc-chips">
+          {assignedSavoirIds.map((sId) => {
+            const code = savoirCodeMap?.get(String(sId)) ?? String(sId);
+            return (
+              <Tag
+                key={sId}
+                closable
+                className="tlc-chip"
+                onClose={() => onUnassign?.(sId)}
+                onClick={() => onChipClick?.(sId)}
+              >
+                {code}
+              </Tag>
+            );
+          })}
+        </div>
+      )}
+      {count === 0 && <p className="tlc-empty">Aucun savoir assigné</p>}
+    </div>
   );
 }
-
-TeacherLoadCard.propTypes = {
-  teacher: PropTypes.object.isRequired,
-  assignedSavoirIds: PropTypes.array,
-  totalSavoirs: PropTypes.number,
-  onChipClick: PropTypes.func,
-  onUnassign: PropTypes.func,
-  onEditRequest: PropTypes.func,
-  onDeactivate: PropTypes.func,
-};
-
-export default TeacherLoadCard;
-
-
-
-
-
-

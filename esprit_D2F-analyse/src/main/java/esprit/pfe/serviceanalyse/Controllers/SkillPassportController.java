@@ -78,7 +78,7 @@ public class SkillPassportController {
         String username = authorizationService.extractUsername(authentication);
         log.info("Génération passeport PDF pour l'enseignant connecté : {}", username);
 
-        TeacherSkillPassportDTO passport = assembler.assemble(username, bearerToken);
+        TeacherSkillPassportDTO passport = assembler.assemble(username, authentication, bearerToken);
         byte[] pdf = pdfGenerator.generate(passport);
 
         return ResponseEntity.ok()
@@ -118,7 +118,7 @@ public class SkillPassportController {
         authorizationService.checkAccess(authentication, username);
         log.info("Génération passeport PDF pour enseignant={} par {}", username, authentication.getName());
 
-        TeacherSkillPassportDTO passport = assembler.assemble(username, bearerToken);
+        TeacherSkillPassportDTO passport = assembler.assemble(username, authentication, bearerToken);
         byte[] pdf = pdfGenerator.generate(passport);
 
         return ResponseEntity.ok()
@@ -158,7 +158,7 @@ public class SkillPassportController {
         authorizationService.checkAccess(authentication, username);
         log.info("Données JSON passeport pour enseignant={}", username);
 
-        TeacherSkillPassportDTO passport = assembler.assemble(username, bearerToken);
+        TeacherSkillPassportDTO passport = assembler.assemble(username, authentication, bearerToken);
         return ResponseEntity.ok(passport);
     }
 
@@ -186,7 +186,7 @@ public class SkillPassportController {
             @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String bearerToken) {
 
         String username = authorizationService.extractUsername(authentication);
-        TeacherSkillPassportDTO passport = assembler.assemble(username, bearerToken);
+        TeacherSkillPassportDTO passport = assembler.assemble(username, authentication, bearerToken);
         return ResponseEntity.ok(passport);
     }
 }

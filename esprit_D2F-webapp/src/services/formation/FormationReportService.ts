@@ -25,7 +25,7 @@ const FormationReportService = {
       };
       const response = await axios.get(API_URL, { params });
       return response.data;
-    } catch (error) {
+    } catch (error: unknown) {
       throw error;
     }
   }

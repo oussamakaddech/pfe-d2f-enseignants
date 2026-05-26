@@ -1,7 +1,8 @@
 import { Skeleton, Tooltip } from "antd";
 import { ArrowUpOutlined, ArrowDownOutlined } from "@ant-design/icons";
 import type { ReactNode, ElementType } from "react";
-import { radius, neutral } from "@/styles/themes/tokens";
+import { neutral } from "@/styles/themes/tokens";
+import styles from "./StatCard.module.css";
 
 interface StatCardProps {
   readonly icon: ReactNode;
@@ -30,7 +31,7 @@ export default function StatCard({
 }: StatCardProps) {
   if (loading) {
     return (
-      <div className="d2f-stat-card" style={baseStyle(accentColor)}>
+      <div className={`${styles.card} d2f-stat-card`} style={{ borderTop: `3px solid ${accentColor}` }}>
         <Skeleton active paragraph={{ rows: 2 }} title={false} />
       </div>
     );
@@ -47,31 +48,16 @@ export default function StatCard({
   return (
     <Tag
       type={interactive ? "button" : undefined}
-      className={`d2f-stat-card d2f-hover-lift${interactive ? " d2f-stat-card-clickable" : ""}`}
-      style={baseStyle(accentColor)}
+      className={`${styles.card} d2f-stat-card d2f-hover-lift${interactive ? " d2f-stat-card-clickable" : ""}`}
+      style={{ borderTop: `3px solid ${accentColor}` }}
       onClick={onClick}
     >
-      {/* Header row: icon + trend */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          marginBottom: 14,
-        }}
-      >
+      <div className={styles.header}>
         <div
+          className={styles.iconBox}
           style={{
-            width: 42,
-            height: 42,
-            borderRadius: radius.md,
             background: `${iconColor}14`,
             color: iconColor,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontSize: 20,
-            flexShrink: 0,
           }}
         >
           {icon}
@@ -80,16 +66,10 @@ export default function StatCard({
         {trend != null && (
           <Tooltip title={trend.label}>
             <span
+              className={styles.trendBadge}
               style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 3,
-                padding: "3px 8px",
-                borderRadius: radius.full,
                 background: `${trendColor}14`,
                 color: trendColor,
-                fontSize: 11,
-                fontWeight: 600,
               }}
             >
               {trendUp && <ArrowUpOutlined style={{ fontSize: 10 }} />}
@@ -100,55 +80,24 @@ export default function StatCard({
         )}
       </div>
 
-      {/* Label */}
-      <div
-        style={{
-          fontSize: 12,
-          fontWeight: 500,
-          color: neutral[600],
-          textTransform: "uppercase",
-          letterSpacing: "0.5px",
-          marginBottom: 6,
-        }}
-      >
+      <div className={styles.label}>
         {label}
       </div>
 
-      {/* Value */}
-      <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
-        <span
-          style={{
-            fontSize: 30,
-            fontWeight: 700,
-            color: neutral[900],
-            lineHeight: 1.1,
-            letterSpacing: "-0.02em",
-          }}
-        >
+      <div className={styles.valueRow}>
+        <span className={styles.value}>
           {value}
         </span>
         {unit && (
-          <span style={{ fontSize: 13, fontWeight: 500, color: neutral[500] }}>{unit}</span>
+          <span className={styles.unit}>{unit}</span>
         )}
       </div>
 
-      {/* Subtext */}
       {subtext && (
-        <div style={{ fontSize: 12, color: neutral[500], marginTop: 6 }}>{subtext}</div>
+        <div className={styles.subtext}>{subtext}</div>
       )}
     </Tag>
   );
-}
-
-function baseStyle(accentColor: string): React.CSSProperties {
-  return {
-    background: "#fff",
-    borderRadius: 16,
-    border: "1px solid rgba(0,0,0,0.07)",
-    borderTop: `3px solid ${accentColor}`,
-    boxShadow: "0 1px 3px rgba(15,23,42,0.06), 0 1px 2px rgba(15,23,42,0.04)",
-    padding: "18px 20px",
-  };
 }
 
 

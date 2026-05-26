@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { Card, Space, Typography, Tag, Tooltip } from "antd";
 import { BookOutlined, CheckCircleOutlined } from "@ant-design/icons";
 import type { Recommendation } from "@/models/analyse";
@@ -16,7 +17,7 @@ interface RecommendationCardProps {
   readonly rank?:          number;
 }
 
-export default function RecommendationCard({ recommendation: r, rank }: RecommendationCardProps) {
+const RecommendationCard = memo(function RecommendationCard({ recommendation: r, rank }: RecommendationCardProps) {
   return (
     <Card
       size="small"
@@ -86,7 +87,9 @@ export default function RecommendationCard({ recommendation: r, rank }: Recommen
       </Space>
     </Card>
   );
-}
+});
+
+export default RecommendationCard;
 
 
 

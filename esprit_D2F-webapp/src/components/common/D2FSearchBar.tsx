@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { memo, useState } from "react";
 import { Input, AutoComplete, Typography } from "antd";
 import { SearchOutlined } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
@@ -20,7 +20,7 @@ interface D2FSearchBarProps {
   readonly onSearch?: (value: string) => void;
 }
 
-export default function D2FSearchBar({
+const D2FSearchBar = memo(function D2FSearchBar({
   options = [],
   placeholder = "Rechercher une formation, un enseignant, une compétence...",
   width = 420,
@@ -103,7 +103,9 @@ export default function D2FSearchBar({
       />
     </AutoComplete>
   );
-}
+});
+
+export default D2FSearchBar;
 
 
 

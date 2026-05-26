@@ -9,7 +9,7 @@ const InscriptionService = {
         params: { enseignantId },
       });
       return response.data;
-    } catch (error) {
+    } catch (error: unknown) {
       throw error;
     }
   },
@@ -20,18 +20,18 @@ const InscriptionService = {
         params: { formationId, enseignantId },
       });
       return response.data;
-    } catch (error) {
+    } catch (error: unknown) {
       throw error;
     }
   },
 
- async getInscriptionsByFormation(formationId: string | number) {
+  async getInscriptionsByFormation(formationId: string | number) {
     try {
       const response = await axios.get(
         `${API_URL}/formations/${formationId}/inscriptions`
       );
       return response.data;
-    } catch (error) {
+    } catch (error: unknown) {
       throw error;
     }
   },
@@ -46,7 +46,7 @@ const InscriptionService = {
         }
       );
       return response.data;
-    } catch (error) {
+    } catch (error: unknown) {
       throw error;
     }
   },

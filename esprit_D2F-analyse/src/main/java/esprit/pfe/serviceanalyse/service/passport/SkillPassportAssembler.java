@@ -6,8 +6,10 @@ import esprit.pfe.serviceanalyse.service.client.AuthServiceClient;
 import esprit.pfe.serviceanalyse.service.client.CertificatServiceClient;
 import esprit.pfe.serviceanalyse.service.client.CompetenceServiceClient;
 import esprit.pfe.serviceanalyse.service.client.FormationServiceClient;
+import esprit.pfe.serviceanalyse.service.passport.SkillPassportAuthorizationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -32,15 +34,27 @@ public class SkillPassportAssembler {
     private final FormationServiceClient formationClient;
     private final CertificatServiceClient certificatClient;
     private final AnalysePredictiveService analysePredictiveService;
+    private final SkillPassportAuthorizationService authorizationService;
 
     private static final DateTimeFormatter ISO_FORMATTER =
             DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss");
 
-    public TeacherSkillPassportDTO assemble(String enseignantUsername, String bearerToken) {
+    public TeacherSkillPassportDTO assemble(String enseignantUsername, Authentication authentication, String bearerToken) {
         log.info("Assemblage passeport pour enseignant={}", enseignantUsername);
 
         // ── 1. Identité enseignant ──────────────────────────────────────────
-        TeacherIdentityDTO identity = authClient.getTeacherIdentity(enseignantUsername, bearerToken);
+        // Optimisation : si l'utilisateur cherche son propre passeport, utiliser le JWT
+        // au lieu de faire un appel HTTP vers auth (évite les 404 pour les users
+        // authentifiés mais non-présents en base users d'auth)
+        String currentUsername = authorizationService.extractUsername(authentication);
+        TeacherIdentityDTO identity;
+        if (currentUsername.equals(enseignantUsername)) {
+            // Utilisateur cherche son propre passeport → extraire du JWT
+            identity = authClient.getTeacherIdentityFromJwt(authentication);
+        } else {
+            // Admin/CUP cherche le passeport d'un autre → fetcher depuis auth
+            identity = authClient.getTeacherIdentity(enseignantUsername, bearerToken);
+        }
 
         // ── 2. Compétences agrégées par domaine ────────────────────────────
         List<DomainSummaryDTO> domaines = competenceClient.getDomainSummaries(enseignantUsername, bearerToken);

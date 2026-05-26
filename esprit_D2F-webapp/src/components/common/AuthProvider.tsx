@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useCallback, useRef, createContext } from "react";
+import { useState, useMemo, useEffect, useCallback, useRef, createContext, memo } from "react";
 import { flushSync } from "react-dom";
 import type { ReactNode } from "react";
 import type { AuthUser, AuthContextValue, UserRole } from "@/models/auth";
@@ -45,7 +45,7 @@ const AuthProvider = ({ children }: AuthProviderProps) => {
           const updatedUser: AuthUser = {
             userId: data.userId,
             username: data.username,
-            role: data.role,
+            role: data.role as UserRole,
             email: data.email,
             expiresIn: data.expiresIn,
           };
@@ -152,4 +152,4 @@ const AuthProvider = ({ children }: AuthProviderProps) => {
   return <AuthContext.Provider value={authValue}>{children}</AuthContext.Provider>;
 };
 
-export default AuthProvider;
+export default memo(AuthProvider);

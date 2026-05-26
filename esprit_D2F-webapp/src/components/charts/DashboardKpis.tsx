@@ -1,26 +1,27 @@
+import { memo } from "react";
 import { Card, Row, Col, Statistic, Tag, Progress } from "antd";
 import { FallOutlined, RiseOutlined, WarningOutlined } from "@ant-design/icons";
 import type {
   DecliningCompetency,
   InDemandCompetency,
   TeacherRiskIndicator,
-} from "@/models/analyse";
-
+} from "@/models/analyse";
+
 interface Props {
   declining: DecliningCompetency[];
   inDemand: InDemandCompetency[];
   riskIndicators: TeacherRiskIndicator[];
   riskThreshold: number;
-}
-
-export default function DashboardKpis({
+}
+
+const DashboardKpis = memo(function DashboardKpis({
   declining,
   inDemand,
   riskIndicators,
   riskThreshold,
 }: Readonly<Props>) {
-  const atRiskCount = riskIndicators.filter((r) => r.attrition_risk_score >= riskThreshold).length;
-
+  const atRiskCount = riskIndicators.filter((r) => r.attrition_risk_score >= riskThreshold).length;
+
   return (
     <Row gutter={[20, 20]} style={{ marginBottom: 24 }}>
       <Col xs={24} sm={8}>
@@ -42,8 +43,8 @@ export default function DashboardKpis({
             ))}
           </div>
         </Card>
-      </Col>
-
+      </Col>
+
       <Col xs={24} sm={8}>
         <Card
           className="analyse-card analyse-stat-card d2f-hover-lift"
@@ -63,8 +64,8 @@ export default function DashboardKpis({
             ))}
           </div>
         </Card>
-      </Col>
-
+      </Col>
+
       <Col xs={24} sm={8}>
         <Card
           className="analyse-card analyse-stat-card d2f-hover-lift"
@@ -86,4 +87,6 @@ export default function DashboardKpis({
       </Col>
     </Row>
   );
-}
+});
+
+export default DashboardKpis;

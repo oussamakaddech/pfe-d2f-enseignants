@@ -12,7 +12,7 @@ class ClientFallbacksTest {
     @DisplayName("AuthClientFallback - should return false")
     void testAuthClientFallback() {
         AuthClientFallback fallback = new AuthClientFallback();
-        assertEquals(false, fallback.getEnseignant("123"));
+        assertEquals(false, fallback.enseignantExists("123"));
     }
 
     @Test

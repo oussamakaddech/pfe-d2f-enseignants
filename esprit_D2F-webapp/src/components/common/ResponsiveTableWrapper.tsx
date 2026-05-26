@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { Card } from "antd";
 
 interface ResponsiveTableWrapperProps {
@@ -11,7 +12,7 @@ interface ResponsiveTableWrapperProps {
  * - Card avec radius 16, shadow subtil
  * - Overflow scroll horizontal sur mobile
  */
-export default function ResponsiveTableWrapper({
+const ResponsiveTableWrapper = memo(function ResponsiveTableWrapper({
   children,
   className = "",
   style,
@@ -35,7 +36,9 @@ export default function ResponsiveTableWrapper({
       </div>
     </Card>
   );
-}
+});
+
+export default ResponsiveTableWrapper;
 
 
 

@@ -1,18 +1,367 @@
-.matchmaking-container { height: 100%; display: flex; flex-direction: column; }
-.matchmaking-header { background: #fff; padding: 12px 16px; border-bottom: 1px solid #f0f0f0; }
-.matchmaking-content { padding: 16px; flex: 1 1 auto; overflow: hidden; }
-.matchmaking-footer { background: #fff; padding: 12px 16px; border-top: 1px solid #f0f0f0; }
-.matchmaking-left { padding-right: 8px; height: 100%; overflow: auto; }
-.matchmaking-right { padding-left: 8px; height: 100%; overflow: auto; }
-.savoir-card { margin-bottom: 10px; }
-.savoir-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; }
-.savoir-assigned { margin-bottom: 8px; }
-.savoir-unassigned { border-left: 4px solid rgba(255,0,0,0.12); padding-left:8px; }
-.savoir-actions { margin-top: 6px; }
-.teacher-card { }
-.teacher-row { display:flex; justify-content:space-between; align-items:center; }
-.teacher-name { font-weight:600; }
-.teacher-dept { font-size:12px; color:#666; }
-.teacher-savoirs { margin-top:8px; display:flex; gap:6px; flex-wrap:wrap; }
-.teacher-empty { color:#999; font-size:12px; }
-.match-highlight { box-shadow: 0 0 0 4px rgba(24, 144, 255, 0.12); transition: box-shadow 300ms ease; }
+/* ═══════════════════════════════════════════════════════════════════════════════
+   RICE Matchmaking Page — Design System v2
+   ═══════════════════════════════════════════════════════════════════════════════ */
+
+/* ── Layout ───────────────────────────────────────────────────────────────────── */
+.mm-layout {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: #f8f9fc;
+}
+
+/* ── Toolbar ──────────────────────────────────────────────────────────────────── */
+.mm-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 20px !important;
+  height: auto !important;
+  background: #fff !important;
+  border-bottom: 1px solid #e8eaf0;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+  flex-wrap: wrap;
+}
+.mm-toolbar__left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.mm-toolbar__icon {
+  color: #6366f1;
+  font-size: 16px;
+  margin-right: 4px;
+}
+
+/* ── Stats bar ────────────────────────────────────────────────────────────────── */
+.mm-statsbar {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  padding: 8px 20px;
+  background: #fff;
+  border-bottom: 1px solid #eef0f5;
+  font-size: 13px;
+}
+.mm-stat {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #475569;
+}
+.mm-stat__icon { font-size: 14px; color: #94a3b8; }
+.mm-stat__icon--ok  { color: #22c55e; }
+.mm-stat__icon--warn { color: #f59e0b; }
+.mm-stat strong { color: #1e293b; font-weight: 600; }
+.mm-stat--total {
+  margin-left: auto;
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+/* ── Content ──────────────────────────────────────────────────────────────────── */
+.mm-content {
+  flex: 1 1 auto;
+  overflow: hidden;
+  padding: 0 !important;
+}
+.mm-col {
+  height: 100%;
+  overflow-y: auto;
+  padding: 16px;
+}
+.mm-col--savoirs {
+  border-right: 1px solid #e8eaf0;
+  background: #f8f9fc;
+}
+.mm-col--teachers {
+  background: #fff;
+}
+
+/* ── Column header ────────────────────────────────────────────────────────────── */
+.mm-col-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid #e8eaf0;
+}
+.mm-col-head__title {
+  font-weight: 700;
+  font-size: 14px;
+  color: #1e293b;
+  letter-spacing: 0.3px;
+}
+.mm-add-btn {
+  margin-left: auto !important;
+  border-radius: 6px !important;
+}
+
+/* ── Savoir list ──────────────────────────────────────────────────────────────── */
+.mm-savoir-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.mm-pagination {
+  display: flex;
+  justify-content: center;
+  padding: 16px 0 8px;
+}
+
+/* ── Teacher list ─────────────────────────────────────────────────────────────── */
+.mm-teacher-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.mm-loading {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 48px;
+}
+.mm-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 16px;
+  color: #94a3b8;
+  gap: 12px;
+  font-size: 13px;
+}
+
+/* ── Save bar (footer) ────────────────────────────────────────────────────────── */
+.mm-savebar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 20px !important;
+  background: #fff !important;
+  border-top: 1px solid #e8eaf0;
+  box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.04);
+}
+.mm-savebar__info { font-size: 13px; }
+.mm-savebar__pending {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #f59e0b;
+  font-weight: 500;
+}
+.mm-savebar__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #f59e0b;
+  animation: pulse-dot 1.4s ease-in-out infinite;
+}
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.5; transform: scale(1.3); }
+}
+.mm-savebar__clean { color: #94a3b8; }
+.mm-save-btn { border-radius: 8px !important; }
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   SavoirMatchCard (smc-*)
+   ═══════════════════════════════════════════════════════════════════════════════ */
+.smc-card {
+  position: relative;
+  background: #fff;
+  border: 1px solid #e8eaf0;
+  border-radius: 10px;
+  padding: 12px 14px 10px;
+  transition: box-shadow 180ms ease, border-color 180ms ease;
+  overflow: hidden;
+}
+.smc-card:hover {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+  border-color: #c7d2fe;
+}
+.smc-card--assigned  { border-left: 3px solid #22c55e; }
+.smc-card--unassigned { border-left: 3px solid #f59e0b; }
+
+/* Status stripe */
+.smc-stripe {
+  position: absolute;
+  top: 0; right: 0;
+  width: 4px;
+  height: 100%;
+  border-radius: 0 10px 10px 0;
+}
+.smc-stripe--ok   { background: linear-gradient(180deg, #22c55e 0%, #16a34a 100%); }
+.smc-stripe--warn { background: linear-gradient(180deg, #f59e0b 0%, #d97706 100%); }
+
+/* Header */
+.smc-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+.smc-header__left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex: 1;
+}
+.smc-code {
+  font-weight: 700;
+  font-size: 12px;
+  color: #4f46e5;
+  background: #eef2ff;
+  border: 1px solid #c7d2fe;
+  border-radius: 5px;
+  padding: 2px 7px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.smc-nom {
+  font-size: 13px;
+  color: #1e293b;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 220px;
+  cursor: default;
+}
+.smc-header__badges {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.smc-tag-type, .smc-tag-niveau {
+  font-size: 11px !important;
+  border-radius: 5px !important;
+}
+
+/* Assigned teachers row */
+.smc-assigned { margin-bottom: 8px; min-height: 22px; }
+.smc-teachers {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+}
+.smc-teachers__icon { color: #22c55e; font-size: 13px; margin-right: 2px; }
+.smc-teacher-tag {
+  font-size: 11px !important;
+  border-radius: 20px !important;
+  background: #f0fdf4 !important;
+  border-color: #86efac !important;
+  color: #166534 !important;
+}
+.smc-unassigned-hint {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #d97706;
+}
+.smc-unassigned-hint__icon { font-size: 13px; }
+
+/* Select */
+.smc-select-wrap { display: flex; }
+.smc-select { width: 100% !important; }
+
+/* Highlight on scroll-to */
+.match-highlight {
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.3) !important;
+  border-color: #6366f1 !important;
+  transition: box-shadow 300ms ease, border-color 300ms ease;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════════
+   TeacherLoadCard (tlc-*)
+   ═══════════════════════════════════════════════════════════════════════════════ */
+.tlc-card {
+  background: #fff;
+  border: 1px solid #e8eaf0;
+  border-radius: 10px;
+  padding: 12px 14px;
+  transition: box-shadow 180ms ease;
+}
+.tlc-card:hover { box-shadow: 0 3px 12px rgba(0, 0, 0, 0.08); }
+
+.tlc-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.tlc-avatar {
+  flex-shrink: 0;
+  font-weight: 700;
+  font-size: 14px !important;
+  letter-spacing: 0.5px;
+}
+.tlc-info { flex: 1 1 auto; min-width: 0; }
+.tlc-name {
+  font-weight: 600;
+  font-size: 13px;
+  color: #1e293b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tlc-meta {
+  display: flex;
+  gap: 6px;
+  margin-top: 2px;
+}
+.tlc-dept {
+  font-size: 11px;
+  background: #f1f5f9;
+  color: #475569;
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-weight: 600;
+}
+.tlc-grade {
+  font-size: 11px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  border-radius: 4px;
+  padding: 1px 6px;
+}
+.tlc-actions {
+  display: flex;
+  gap: 2px;
+  flex-shrink: 0;
+}
+.tlc-action-btn { border-radius: 6px !important; color: #64748b !important; }
+.tlc-action-btn--danger:hover { color: #ef4444 !important; }
+
+.tlc-load { margin-bottom: 8px; }
+
+.tlc-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+}
+.tlc-chip {
+  font-size: 11px !important;
+  border-radius: 5px !important;
+  cursor: pointer;
+  transition: background 150ms;
+  background: #eff6ff !important;
+  border-color: #bfdbfe !important;
+  color: #1e40af !important;
+}
+.tlc-chip:hover { background: #dbeafe !important; }
+.tlc-empty {
+  font-size: 12px;
+  color: #94a3b8;
+  margin: 4px 0 0;
+  font-style: italic;
+}

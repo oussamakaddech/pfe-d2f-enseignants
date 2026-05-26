@@ -5,7 +5,7 @@ import org.springframework.stereotype.Component;
 @Component
 public class AuthClientFallback implements AuthClient {
     @Override
-    public Object getEnseignant(String id) {
+    public boolean enseignantExists(String id) {
         return false;
     }
 }

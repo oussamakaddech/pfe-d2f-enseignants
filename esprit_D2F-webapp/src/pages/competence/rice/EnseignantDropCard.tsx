@@ -1,6 +1,30 @@
 import { Avatar, Progress, Tag, Typography } from "antd";
-import PropTypes from "prop-types";
 import { avatarColor, getInitials } from "./constants";
+
+interface SavoirRef { tmpId?: string; code?: string; nom: string }
+interface EnseignantRef {
+  id?: unknown;
+  enseignantId?: unknown;
+  nom: string;
+  prenom?: string;
+  grade?: string;
+  role?: string;
+  departement?: string;
+}
+
+interface EnseignantDropCardProps {
+  enseignant: EnseignantRef;
+  assignedSavoirs: SavoirRef[];
+  totalSavoirs: number;
+  isDragging?: boolean;
+  isOver?: boolean;
+  onDragOver: (e: React.DragEvent, eid: string) => void;
+  onDragLeave: (e: React.DragEvent) => void;
+  onDrop: (e: React.DragEvent, eid: string) => void;
+  onTagDragStart: (e: React.DragEvent, eid: string, s: SavoirRef) => void;
+  onTagDragEnd: (e: React.DragEvent) => void;
+  onRemoveChip: (s: SavoirRef, eid: string) => void;
+}
 
 
 const { Text } = Typography;
@@ -31,7 +55,7 @@ export default function EnseignantDropCard({
   onTagDragStart,
   onTagDragEnd,
   onRemoveChip,
-}) {
+}: Readonly<EnseignantDropCardProps>) {
   const eid = String(enseignant.id ?? enseignant.enseignantId);
   const count = assignedSavoirs.length;
   const fullName = enseignant.prenom ? `${enseignant.prenom} ${enseignant.nom}` : enseignant.nom;
@@ -93,19 +117,6 @@ export default function EnseignantDropCard({
   );
 }
 
-EnseignantDropCard.propTypes = {
-  enseignant: PropTypes.object.isRequired,
-  assignedSavoirs: PropTypes.array.isRequired,
-  totalSavoirs: PropTypes.number.isRequired,
-  isDragging: PropTypes.bool,
-  isOver: PropTypes.bool,
-  onDragOver: PropTypes.func.isRequired,
-  onDragLeave: PropTypes.func.isRequired,
-  onDrop: PropTypes.func.isRequired,
-  onTagDragStart: PropTypes.func.isRequired,
-  onTagDragEnd: PropTypes.func.isRequired,
-  onRemoveChip: PropTypes.func.isRequired,
-};
 
 
 

@@ -1,4 +1,4 @@
-import { useState, useEffect, useContext } from "react";
+import { useState, useEffect } from "react";
 import { format } from "date-fns";
 import { useNavigate } from "react-router-dom";
 import {
@@ -48,14 +48,17 @@ import useAppNotification from "@/hooks/ui/useAppNotification";
 const { Text, Title } = Typography;
 const { TextArea } = Input;
 
-import FormationWorkflowService from "@/services/formation/FormationWorkflowService";
-import UpService from "@/services/api/UploadService";
-import DeptService from "@/services/formation/DeptService";
+import { useAuth } from "@/hooks/auth/useAuth";
+import { useAllFormations, useCreateFormation } from "@/hooks/formation/useFormations";
+import { useAllUps } from "@/hooks/formation/useUpCrud";
+import { useAllDepts } from "@/hooks/formation/useDeptCrud";
+import { useEnseignants } from "@/hooks/enseignant/useEnseignants";
+import { useAllAccounts } from "@/hooks/formation/useFormations";
+import { useReplaceAllFormationCompetences } from "@/hooks/competence/useFormationCompetence";
+import { useCompetenceDomaineApi, useCompetenceApi } from "@/hooks/competence/useCompetenceService";
 import EnseignantService from "@/services/formation/EnseignantService";
-import FormationCompetenceService from "@/services/competence/FormationCompetenceService";
 import CompetenceService from "@/services/competence/CompetenceService";
-import BesoinCompetenceService from "@/services/besoin/BesoinCompetenceService";
-import { AuthContext } from "@/components/common/AuthProvider";
+import { useBesoinCompetences } from "@/hooks/besoin/useBesoins";
 import { ROLES, isAdmin } from "@/utils/constants/roles";
 
 import DocumentUploadForm from "../documentFormation/DocumentUploadForm";
@@ -103,10 +106,23 @@ type BesoinInfoShape = { titre?: string; objectifFormation?: string; dateDebut?:
 type FormationWorkflowFormProps = { initialDate?: string; onFormationCreated?: (f?: import("@/models/formation").Formation) => void; besoinInfo?: BesoinInfoShape };
 export default function FormationWorkflowForm({ initialDate, onFormationCreated, besoinInfo }: Readonly<FormationWorkflowFormProps>) {
   const navigate = useNavigate();
-  const auth = useContext(AuthContext);
+  const auth = useAuth();
   const { message } = useAppNotification();
   const isAdminUser = isAdmin(auth?.user?.role);
   const [activeStep, setActiveStep] = useState(0);
+
+  // Hook data sources (React Query)
+  const { data: upsData } = useAllUps();
+  const { data: deptsData } = useAllDepts();
+  const { data: enseignantsData } = useEnseignants();
+  const { data: formationsData } = useAllFormations();
+  const { data: accountsData } = useAllAccounts();
+  const { data: besoinCompetencesData } = useBesoinCompetences(
+    activeStep === 3 ? besoinInfo?.idBesoinFormation : undefined
+  );
+  // Hooks used later in submit: call at top-level
+  const { mutateAsync: createFormation } = useCreateFormation();
+  const { mutateAsync: replaceCompetences } = useReplaceAllFormationCompetences();
 
   // States
   const [titre, setTitre] = useState(besoinInfo?.titre || besoinInfo?.objectifFormation || "");
@@ -263,13 +279,10 @@ export default function FormationWorkflowForm({ initialDate, onFormationCreated,
   useEffect(() => {
     (async () => {
       try {
-        const [u, d, e, formations, accountsData] = await Promise.all([
-          UpService.getAllUps(),
-          DeptService.getAllDepts(),
-          EnseignantService.getAllEnseignants(),
-          FormationWorkflowService.getAllFormationWorkflows(),
-          import("@/services/auth/AccountService").then(m => m.default.getAllAccounts()).catch(() => []),
-        ]);
+        const u = (upsData ?? []) as LookupNode[];
+        const d = (deptsData ?? []) as LookupNode[];
+        const e = (enseignantsData ?? []) as PersonItem[];
+        const formations = (formationsData ?? []) as FormationRaw[];
         setUps(u);
         setDepts(d);
         setEnseignants(e);
@@ -286,7 +299,7 @@ export default function FormationWorkflowForm({ initialDate, onFormationCreated,
         }
 
         setExistingFormations(formations);
-        setFormateursList(mergeFormateursAccounts(accountsData, e));
+        setFormateursList(mergeFormateursAccounts((accountsData ?? []) as AccountItem[], e));
       } catch {
         message.error("Échec chargement des données");
       }
@@ -296,25 +309,23 @@ export default function FormationWorkflowForm({ initialDate, onFormationCreated,
   // Lazy-load référentiel RICE uniquement quand l'utilisateur atteint l'étape 3
   useEffect(() => {
     if (activeStep === 3 && compDomaines.length === 0) {
+      const domaineApi = useCompetenceDomaineApi();
+      const competenceApi = useCompetenceApi();
       Promise.all([
-        CompetenceService.domaine.getAll(),
-        CompetenceService.competence.getAll(),
+        domaineApi.getAll(),
+        competenceApi.getAll(),
       ]).then(([domainesData, competencesData]) => {
         const domaines = Array.isArray(domainesData) ? domainesData : [];
         const competences = Array.isArray(competencesData) ? competencesData : [];
         setCompDomaines(domaines);
         setCompCompetences(competences);
 
-        // Pre-fill from besoin competences if available
-        const besoinId = besoinInfo?.idBesoinFormation;
-        if (besoinId && selectedCompLinks.length === 0) {
-          BesoinCompetenceService.getByBesoin(Number(besoinId))
-            .then((links) => {
-              if (links.length > 0) {
-                setSelectedCompLinks(links.map(mapBesoinLink));
-              }
-            })
-            .catch(() => { /* ignore — pre-fill is best-effort */ });
+        // Pre-fill from besoin competences if available via useBesoinCompetences hook
+        if (besoinCompetencesData && selectedCompLinks.length === 0) {
+          const links = Array.isArray(besoinCompetencesData) ? besoinCompetencesData : [];
+          if (links.length > 0) {
+            setSelectedCompLinks(links.map(mapBesoinLink));
+          }
         }
       }).catch(() => {
         message.error("Impossible de charger le référentiel de compétences");
@@ -348,7 +359,11 @@ export default function FormationWorkflowForm({ initialDate, onFormationCreated,
       message.error(`La séance #${missDate + 1} n'a pas de date`);
       return false;
     }
-    const badTime = seances.findIndex(s => s.heureDebut && s.heureFin && s.heureDebut >= s.heureFin);
+    const badTime = seances.findIndex(s => {
+      const sd = toMinutes(s.heureDebut);
+      const ed = toMinutes(s.heureFin);
+      return sd !== null && ed !== null && sd >= ed;
+    });
     if (badTime !== -1) {
       message.error(`La séance #${badTime + 1} : l'heure de fin doit être après l'heure de début`);
       return false;
@@ -463,10 +478,16 @@ export default function FormationWorkflowForm({ initialDate, onFormationCreated,
     if (leftSalle && rightSalle && leftSalle === rightSalle) {
       messages.push(`Conflit interne: les séances #${i + 1} et #${j + 1} utilisent la même salle au même horaire.`);
     }
-    if (participantIds.length > 0) {
+    // check participant intersection between the two seances
+    const leftPartIds = getPersonIds(left.participants ?? []);
+    const rightPartIds = getPersonIds(right.participants ?? []);
+    if (leftPartIds.length > 0 && rightPartIds.length > 0 && intersects(leftPartIds, rightPartIds)) {
       messages.push(`Conflit interne: les séances #${i + 1} et #${j + 1} se chevauchent pour les mêmes participants.`);
     }
-    if (animateurIds.length > 0) {
+    // check animateur intersection between the two seances
+    const leftAnimIds = getPersonIds(left.animateurs ?? []);
+    const rightAnimIds = getPersonIds(right.animateurs ?? []);
+    if (leftAnimIds.length > 0 && rightAnimIds.length > 0 && intersects(leftAnimIds, rightAnimIds)) {
       messages.push(`Conflit interne: les séances #${i + 1} et #${j + 1} se chevauchent pour les mêmes animateurs.`);
     }
   };
@@ -657,20 +678,20 @@ export default function FormationWorkflowForm({ initialDate, onFormationCreated,
           dureePratique: s.dureePratique || 0
         })),
       };
-      const newF = await FormationWorkflowService.createFormationWorkflow(payload);
+      const newF = await createFormation(payload);
       const fId = newF.idFormation;
       setNewFormationId(fId ?? null);
 
       if (selectedCompLinks.length > 0 && fId) {
         const compLinks = selectedCompLinks.filter(l => l.competenceId).map(l => ({ ...l }));
-        await FormationCompetenceService.replaceAllForFormation(fId, compLinks);
+        await replaceCompetences({ formationId: fId, newLinks: compLinks as unknown as Record<string, unknown> });
       }
 
       setShowUpload(true);
       message.success("Formation créée !");
       onFormationCreated?.(newF);
       setTimeout(() => navigate("/home/ListeFormation"), 2000);
-    } catch (err) {
+    } catch (err: unknown) {
       handleSubmitError(err);
     }
   };

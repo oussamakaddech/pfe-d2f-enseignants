@@ -12,7 +12,6 @@ import {
 } from "@ant-design/icons";
 import { motion, AnimatePresence } from "framer-motion";
 import { useMemo, useState } from "react";
-import PropTypes from "prop-types";
 import {
   DepartmentBadge, DEPARTMENT_OPTIONS, formatFileSize, useDepartmentConfig,
 } from "./constants";
@@ -34,7 +33,13 @@ function filterEnseignants(allEnseignants, query) {
   });
 }
 
-function EnseignantsAvailability({ loading, error, slowLoad, allEnseignants, departement, onRetry, onContinue, onShowPreview }) {
+interface EnseignantsAvailabilityProps {
+  loading?: boolean; error?: string; slowLoad?: boolean;
+  allEnseignants: Record<string, unknown>[];
+  departement?: string;
+  onRetry: () => void; onContinue: () => void; onShowPreview: () => void;
+}
+function EnseignantsAvailability({ loading, error, slowLoad, allEnseignants, departement, onRetry, onContinue, onShowPreview }: Readonly<EnseignantsAvailabilityProps>) {
   if (loading) {
     return (
       <div style={{ marginTop: 8 }}>
@@ -102,26 +107,31 @@ function EnseignantsAvailability({ loading, error, slowLoad, allEnseignants, dep
     </div>
   );
 }
-EnseignantsAvailability.propTypes = {
-  loading: PropTypes.bool,
-  error: PropTypes.string,
-  slowLoad: PropTypes.bool,
-  allEnseignants: PropTypes.array.isRequired,
-  departement: PropTypes.string,
-  onRetry: PropTypes.func.isRequired,
-  onContinue: PropTypes.func.isRequired,
-  onShowPreview: PropTypes.func.isRequired,
-};
 
 
 
-function FileIcon({ name }) {
+function FileIcon({ name }: Readonly<{ name?: string }>) {
   const ext = (name ?? "").split(".").pop().toLowerCase();
   if (ext === "pdf") return <FilePdfOutlined style={{ color: "#cf1322", fontSize: 20 }} />;
   if (ext === "docx" || ext === "doc") return <FileWordOutlined style={{ color: "#1677ff", fontSize: 20 }} />;
   return <FileTextOutlined style={{ color: "#8c8c8c", fontSize: 20 }} />;
 }
-FileIcon.propTypes = { name: PropTypes.string };
+
+interface UploadStepProps {
+  files: File[];
+  analyzing?: boolean;
+  handleAnalyze: () => void;
+  handleUploadChange: (info: unknown) => void;
+  setCurrentStep: (step: number) => void;
+  departement?: string;
+  setDepartement?: (dept: string) => void;
+  allEnseignants?: Record<string, unknown>[];
+  enseignantsLoading?: boolean;
+  enseignantsError?: string;
+  enseignantsLoadSlow?: boolean;
+  onRetryEnseignants?: () => void;
+  onContinueWithoutEnseignants?: () => void;
+}
 
 export default function UploadStep({ // NOSONAR — complexity spread across JSX branches, no clean extraction
   files,
@@ -131,13 +141,13 @@ export default function UploadStep({ // NOSONAR — complexity spread across JSX
   setCurrentStep,
   departement,
   setDepartement,
-  allEnseignants,
+  allEnseignants = [],
   enseignantsLoading,
   enseignantsError,
   enseignantsLoadSlow,
-  onRetryEnseignants,
-  onContinueWithoutEnseignants,
-}) {
+  onRetryEnseignants = () => undefined,
+  onContinueWithoutEnseignants = () => undefined,
+}: Readonly<UploadStepProps>) {
   const [showEnseignantsPreview, setShowEnseignantsPreview] = useState(false);
   const [ensPreviewSearch, setEnsPreviewSearch] = useState("");
   const deptCfg = useDepartmentConfig(departement === "auto" ? "gc" : departement);
@@ -489,21 +499,6 @@ export default function UploadStep({ // NOSONAR — complexity spread across JSX
   );
 }
 
-UploadStep.propTypes = {
-  files: PropTypes.array.isRequired,
-  analyzing: PropTypes.bool,
-  handleAnalyze: PropTypes.func.isRequired,
-  handleUploadChange: PropTypes.func.isRequired,
-  setCurrentStep: PropTypes.func.isRequired,
-  departement: PropTypes.string,
-  setDepartement: PropTypes.func,
-  allEnseignants: PropTypes.array,
-  enseignantsLoading: PropTypes.bool,
-  enseignantsError: PropTypes.string,
-  enseignantsLoadSlow: PropTypes.bool,
-  onRetryEnseignants: PropTypes.func,
-  onContinueWithoutEnseignants: PropTypes.func,
-};
 
 
 

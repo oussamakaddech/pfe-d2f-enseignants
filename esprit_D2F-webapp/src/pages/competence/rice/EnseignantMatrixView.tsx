@@ -2,7 +2,6 @@ import { useMemo, useState } from "react";
 import {
   Checkbox, Pagination, Select, Space, Switch, Table, Tag, Tooltip, Typography,
 } from "antd";
-import PropTypes from "prop-types";
 import { cloneDeep, matchSuggestedEnseignants } from "./constants";
 
 
@@ -78,7 +77,13 @@ const buildTeacherColumn = (teacher, allSavoirs, allEnseignants, toggleCell) => 
   };
 };
 
-export default function EnseignantMatrixView({ tree, setTree, allEnseignants }) {
+interface EnseignantMatrixViewProps {
+  tree: Record<string, unknown>[];
+  setTree: (tree: Record<string, unknown>[]) => void;
+  allEnseignants: Record<string, unknown>[];
+}
+
+export default function EnseignantMatrixView({ tree, setTree, allEnseignants }: Readonly<EnseignantMatrixViewProps>) {
   const allSavoirs = useMemo(() => flatten(tree), [tree]);
   const [domainFilter, setDomainFilter] = useState([]);
   const [onlyUncovered, setOnlyUncovered] = useState(false);
@@ -190,11 +195,6 @@ export default function EnseignantMatrixView({ tree, setTree, allEnseignants }) 
   );
 }
 
-EnseignantMatrixView.propTypes = {
-  tree: PropTypes.array.isRequired,
-  setTree: PropTypes.func.isRequired,
-  allEnseignants: PropTypes.array.isRequired,
-};
 
 
 

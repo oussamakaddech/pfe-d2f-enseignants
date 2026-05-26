@@ -1,4 +1,10 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
+import { Switch, Tag, Tooltip } from "antd";
+import { ApartmentOutlined, BookOutlined } from "@ant-design/icons";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import useAppNotification from "@/hooks/ui/useAppNotification";
+import CompetenceService from "@/services/competence/CompetenceService";
+import { NIVEAU_SAVOIR_OPTIONS, TYPE_SAVOIR_OPTIONS } from "@/utils/constants/competenceOptions";
 
 function buildCompDeleteErrorMessage(sousCompsCount, savoirsDirectsCount) {
   const pl = (n, w) => `${n} ${w}${n > 1 ? 's' : ''}`;
@@ -17,92 +23,155 @@ function buildCompDeleteErrorMessage(sousCompsCount, savoirsDirectsCount) {
 function countSousComp(nodes) {
   return (nodes ?? []).reduce((sum, node) => sum + 1 + countSousComp(node.enfants), 0);
 }
-import { ApartmentOutlined, BookOutlined } from "@ant-design/icons";
-import { Switch, Tag, Tooltip } from "antd";
-import useAppNotification from "@/hooks/ui/useAppNotification";
-import CompetenceService from "@/services/competence/CompetenceService";
-import { NIVEAU_SAVOIR_OPTIONS, TYPE_SAVOIR_OPTIONS } from "@/utils/constants/competenceOptions";
 
-export default function useCompetenceCrud({ onInvalidateStructure, onSavoirMutated, onSavoirsChanged }) {
+export default function useCompetenceCrud() {
   const { message: msgApi } = useAppNotification();
+  const qc = useQueryClient();
 
-  const [domaines, setDomaines] = useState([]);
-  const [domainesLoading, setDomainesLoading] = useState(false);
   const [domaineModal, setDomaineModal] = useState(false);
   const [editingDomaine, setEditingDomaine] = useState(null);
 
-  const [competences, setCompetences] = useState([]);
-  const [compLoading, setCompLoading] = useState(false);
   const [compModal, setCompModal] = useState(false);
   const [editingComp, setEditingComp] = useState(null);
 
-  const [sousComps, setSousComps] = useState([]);
-  const [scLoading, setScLoading] = useState(false);
   const [scModal, setScModal] = useState(false);
   const [editingSc, setEditingSc] = useState(null);
   const [scCreateTarget, setScCreateTarget] = useState(null);
 
-  const [savoirs, setSavoirs] = useState([]);
-  const [savoirsLoading, setSavoirsLoading] = useState(false);
   const [savoirModal, setSavoirModal] = useState(false);
   const [editingSavoir, setEditingSavoir] = useState(null);
   const [savoirMode, setSavoirMode] = useState("sc");
 
-  const loadDomaines = useCallback(async () => {
-    setDomainesLoading(true);
-    try {
-      const data = await CompetenceService.domaine.getAll();
-      setDomaines(data);
-    } catch (err) {
-      msgApi.error(err?.response?.data?.message || "Erreur lors du chargement des domaines");
-    } finally {
-      setDomainesLoading(false);
-    }
-  }, [msgApi]);
+  const domainesQuery = useQuery({
+    queryKey: ["domaines"],
+    queryFn: () => CompetenceService.domaine.getAll(),
+  });
 
-  const loadCompetences = useCallback(async () => {
-    setCompLoading(true);
-    try {
-      const data = await CompetenceService.competence.getAll();
-      setCompetences(data);
-    } catch (err) {
-      msgApi.error(err?.response?.data?.message || "Erreur lors du chargement des compétences");
-    } finally {
-      setCompLoading(false);
-    }
-  }, [msgApi]);
+  const competencesQuery = useQuery({
+    queryKey: ["competences"],
+    queryFn: () => CompetenceService.competence.getAll(),
+  });
 
-  const loadSousCompetences = useCallback(async () => {
-    setScLoading(true);
-    try {
-      const data = await CompetenceService.sousCompetence.getAll();
-      setSousComps(data);
-    } catch (err) {
-      msgApi.error(err?.response?.data?.message || "Erreur lors du chargement des sous-compétences");
-    } finally {
-      setScLoading(false);
-    }
-  }, [msgApi]);
+  const sousCompsQuery = useQuery({
+    queryKey: ["sousCompetences"],
+    queryFn: () => CompetenceService.sousCompetence.getAll(),
+  });
 
-  const loadSavoirs = useCallback(async () => {
-    setSavoirsLoading(true);
-    try {
-      const data = await CompetenceService.savoir.getAll();
-      setSavoirs(data);
-      if (onSavoirsChanged) onSavoirsChanged(data);
-    } catch (err) {
-      msgApi.error(err?.response?.data?.message || "Erreur lors du chargement des savoirs");
-    } finally {
-      setSavoirsLoading(false);
-    }
-  }, [msgApi, onSavoirsChanged]);
+  const savoirsQuery = useQuery({
+    queryKey: ["all-savoirs"],
+    queryFn: () => CompetenceService.savoir.getAll(),
+    staleTime: 5 * 60 * 1000,
+  });
 
-  useEffect(() => {
-    loadDomaines();
-    loadCompetences();
-    loadSousCompetences();
-    loadSavoirs();
-  }, [loadDomaines, loadCompetences, loadSousCompetences, loadSavoirs]);
+  const invalidateAfterDomainMutation = useCallback(() => {
+    qc.invalidateQueries({ queryKey: ["domaines"] });
+    qc.invalidateQueries({ queryKey: ["structure"] });
+  }, [qc]);
+
+  const invalidateAfterCompetenceMutation = useCallback(() => {
+    qc.invalidateQueries({ queryKey: ["competences"] });
+    qc.invalidateQueries({ queryKey: ["structure"] });
+  }, [qc]);
+
+  const invalidateAfterScMutation = useCallback(() => {
+    qc.invalidateQueries({ queryKey: ["sousCompetences"] });
+    qc.invalidateQueries({ queryKey: ["competences"] });
+    qc.invalidateQueries({ queryKey: ["structure"] });
+    qc.invalidateQueries({ queryKey: ["all-savoirs"] });
+  }, [qc]);
+
+  const invalidateAfterSavoirMutation = useCallback(() => {
+    qc.invalidateQueries({ queryKey: ["all-savoirs"] });
+    qc.invalidateQueries({ queryKey: ["sousCompetences"] });
+    qc.invalidateQueries({ queryKey: ["competences"] });
+    qc.invalidateQueries({ queryKey: ["structure"] });
+  }, [qc]);
+
+  const domaineMutation = useMutation({
+    mutationFn: ({ id, payload }) =>
+      id ? CompetenceService.domaine.update(id, payload) : CompetenceService.domaine.create(payload),
+    onSuccess: (_, variables) => {
+      msgApi.success(variables.id ? "Domaine mis à jour" : "Domaine créé");
+      invalidateAfterDomainMutation();
+    },
+  });
+
+  const domaineDeleteMutation = useMutation({
+    mutationFn: (id) => CompetenceService.domaine.delete(id),
+    onSuccess: () => {
+      msgApi.success("Domaine supprimé");
+      invalidateAfterDomainMutation();
+      qc.invalidateQueries({ queryKey: ["competences"] });
+    },
+  });
+
+  const domaineToggleActifMutation = useMutation({
+    mutationFn: (id) => CompetenceService.domaine.toggleActif(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["domaines"] });
+    },
+  });
+
+  const competenceMutation = useMutation({
+    mutationFn: ({ id, domaineId, payload }) => {
+      if (id) return CompetenceService.competence.update(id, payload);
+      return CompetenceService.competence.create(domaineId, payload);
+    },
+    onSuccess: (_, variables) => {
+      msgApi.success(variables.id ? "Compétence mise à jour" : "Compétence créée");
+      invalidateAfterCompetenceMutation();
+    },
+  });
+
+  const competenceDeleteMutation = useMutation({
+    mutationFn: (id) => CompetenceService.competence.delete(id),
+    onSuccess: () => {
+      msgApi.success("Compétence supprimée");
+      invalidateAfterCompetenceMutation();
+      qc.invalidateQueries({ queryKey: ["sousCompetences"] });
+      qc.invalidateQueries({ queryKey: ["domaines"] });
+    },
+  });
+
+  const sousCompetenceMutation = useMutation({
+    mutationFn: ({ id, payload, scCreateTarget }) => {
+      if (id) return CompetenceService.sousCompetence.update(id, payload);
+      if (scCreateTarget?.type === "sousCompetence") return CompetenceService.sousCompetence.createEnfant(scCreateTarget.id, payload);
+      return CompetenceService.sousCompetence.create(payload.competenceId, payload);
+    },
+    onSuccess: (_, variables) => {
+      msgApi.success(variables.id ? "Sous-compétence mise à jour" : "Sous-compétence créée");
+      invalidateAfterScMutation();
+    },
+  });
+
+  const sousCompetenceDeleteMutation = useMutation({
+    mutationFn: (id) => CompetenceService.sousCompetence.delete(id),
+    onSuccess: () => {
+      msgApi.success("Sous-compétence supprimée");
+      invalidateAfterScMutation();
+    },
+  });
+
+  const savoirMutation = useMutation({
+    mutationFn: ({ id, payload, savoirMode, sousCompetenceId, competenceId }) => {
+      if (id) return CompetenceService.savoir.update(id, payload);
+      if (savoirMode === "direct") return CompetenceService.savoir.createForCompetence(competenceId, payload);
+      return CompetenceService.savoir.create(sousCompetenceId, payload);
+    },
+    onSuccess: (_, variables) => {
+      msgApi.success(variables.id ? "Savoir mis à jour" : "Savoir créé");
+      invalidateAfterSavoirMutation();
+    },
+  });
+
+  const savoirDeleteMutation = useMutation({
+    mutationFn: (id) => CompetenceService.savoir.delete(id),
+    onSuccess: () => {
+      msgApi.success("Savoir supprimé");
+      invalidateAfterSavoirMutation();
+    },
+  });
 
   const openDomaineModal = useCallback((form, record = null) => {
     setEditingDomaine(record);
@@ -132,33 +201,21 @@ export default function useCompetenceCrud({ onInvalidateStructure, onSavoirMutat
         upId: values.upId,
         departementId: values.departementId,
       };
-      if (editingDomaine) {
-        await CompetenceService.domaine.update(editingDomaine.id, payload);
-        msgApi.success("Domaine mis à jour");
-      } else {
-        await CompetenceService.domaine.create(payload);
-        msgApi.success("Domaine créé");
-      }
-      onInvalidateStructure();
+      await domaineMutation.mutateAsync({ id: editingDomaine?.id, payload });
       setDomaineModal(false);
-      loadDomaines();
-    } catch (err) {
+    } catch (err: unknown) {
       if (err?.errorFields) return;
       msgApi.error(err?.response?.data?.message || "Erreur lors de la sauvegarde");
     }
-  }, [editingDomaine, loadDomaines, msgApi, onInvalidateStructure]);
+  }, [editingDomaine, domaineMutation, msgApi]);
 
   const handleDomaineDelete = useCallback(async (id) => {
     try {
-      await CompetenceService.domaine.delete(id);
-      msgApi.success("Domaine supprimé");
-      onInvalidateStructure();
-      loadDomaines();
-      loadCompetences();
-    } catch (err) {
+      await domaineDeleteMutation.mutateAsync(id);
+    } catch (err: unknown) {
       msgApi.error(err.response?.data?.message || "Erreur lors de la suppression");
     }
-  }, [loadCompetences, loadDomaines, msgApi, onInvalidateStructure]);
+  }, [domaineDeleteMutation, msgApi]);
 
   const splitDescriptionAndPrerequisites = useCallback((description = "") => {
     const marker = "Prerequis (manuel):";
@@ -198,43 +255,33 @@ export default function useCompetenceCrud({ onInvalidateStructure, onSavoirMutat
         ...rest,
         prerequisiteManual: (prerequisiteManual || "").trim() || null,
       };
-      if (editingComp) {
-        await CompetenceService.competence.update(editingComp.id, payload);
-        msgApi.success("Compétence mise à jour");
-      } else {
-        await CompetenceService.competence.create(domaineId, payload);
-        msgApi.success("Compétence créée");
-      }
-      onInvalidateStructure();
+      await competenceMutation.mutateAsync({
+        id: editingComp?.id,
+        domaineId: editingComp ? undefined : domaineId,
+        payload,
+      });
       setCompModal(false);
-      loadCompetences();
-    } catch (err) {
+    } catch (err: unknown) {
       if (err?.errorFields) return;
       msgApi.error(err.response?.data?.message || "Erreur lors de la sauvegarde");
     }
-  }, [editingComp, loadCompetences, msgApi, onInvalidateStructure]);
+  }, [editingComp, competenceMutation, msgApi]);
 
   const handleCompDelete = useCallback(async (id) => {
-    // Vérifier si la compétence a des sous-compétences ou savoirs
-    const sousCompsCount = sousComps.filter(sc => String(sc.competenceId) === String(id)).length;
-    const savoirsDirectsCount = savoirs.filter(s => String(s.competenceId) === String(id) && !s.sousCompetenceId).length;
-    
+    const sousCompsCount = (sousCompsQuery.data ?? []).filter(sc => String(sc.competenceId) === String(id)).length;
+    const savoirsDirectsCount = (savoirsQuery.data ?? []).filter(s => String(s.competenceId) === String(id) && !s.sousCompetenceId).length;
+
     if (sousCompsCount > 0 || savoirsDirectsCount > 0) {
       msgApi.error(buildCompDeleteErrorMessage(sousCompsCount, savoirsDirectsCount));
       return;
     }
-    
+
     try {
-      await CompetenceService.competence.delete(id);
-      msgApi.success("Compétence supprimée");
-      onInvalidateStructure();
-      loadCompetences();
-      loadSousCompetences();
-      loadDomaines();
-    } catch (err) {
+      await competenceDeleteMutation.mutateAsync(id);
+    } catch (err: unknown) {
       msgApi.error(err.response?.data?.message || "Erreur lors de la suppression");
     }
-  }, [loadCompetences, loadDomaines, loadSousCompetences, msgApi, onInvalidateStructure, sousComps, savoirs]);
+  }, [competenceDeleteMutation, msgApi, sousCompsQuery.data, savoirsQuery.data]);
 
   const openScModal = useCallback((form, target = null, record = null) => {
     setEditingSc(record ?? null);
@@ -284,40 +331,26 @@ export default function useCompetenceCrud({ onInvalidateStructure, onSavoirMutat
         ...rest,
         code: `${codePrefix ?? ""}${codeSuffix ?? ""}`,
       };
-      if (editingSc) {
-        await CompetenceService.sousCompetence.update(editingSc.id, payload);
-        msgApi.success("Sous-compétence mise à jour");
-      } else {
-        if (scCreateTarget?.type === "sousCompetence") {
-          await CompetenceService.sousCompetence.createEnfant(scCreateTarget.id, payload);
-        } else {
-          await CompetenceService.sousCompetence.create(competenceId, payload);
-        }
-        msgApi.success("Sous-compétence créée");
-      }
-      onInvalidateStructure();
+      await sousCompetenceMutation.mutateAsync({
+        id: editingSc?.id,
+        payload,
+        scCreateTarget,
+      });
       setScModal(false);
       setScCreateTarget(null);
-      loadSousCompetences();
-      loadCompetences();
-    } catch (err) {
+    } catch (err: unknown) {
       if (err?.errorFields) return;
       msgApi.error(err.response?.data?.message || "Erreur lors de la sauvegarde");
     }
-  }, [editingSc, loadCompetences, loadSousCompetences, msgApi, onInvalidateStructure, scCreateTarget]);
+  }, [editingSc, scCreateTarget, sousCompetenceMutation, msgApi]);
 
   const handleScDelete = useCallback(async (id) => {
     try {
-      await CompetenceService.sousCompetence.delete(id);
-      msgApi.success("Sous-compétence supprimée");
-      onInvalidateStructure();
-      loadSousCompetences();
-      loadSavoirs();
-      loadCompetences();
-    } catch (err) {
+      await sousCompetenceDeleteMutation.mutateAsync(id);
+    } catch (err: unknown) {
       msgApi.error(err.response?.data?.message || "Erreur lors de la suppression");
     }
-  }, [loadCompetences, loadSavoirs, loadSousCompetences, msgApi, onInvalidateStructure]);
+  }, [sousCompetenceDeleteMutation, msgApi]);
 
   const openSavoirModal = useCallback((form, record = null, targetSousComp = null) => {
     setEditingSavoir(record);
@@ -389,13 +422,13 @@ export default function useCompetenceCrud({ onInvalidateStructure, onSavoirMutat
   }, []);
 
   const leafSousComps = useMemo(() => {
-    const flat = flattenSousComps(sousComps);
+    const flat = flattenSousComps(sousCompsQuery.data ?? []);
     const unique = new Map();
     flat.forEach((sc) => {
       if (!unique.has(sc.id)) unique.set(sc.id, sc);
     });
     return Array.from(unique.values()).filter((sc) => !sc.enfants || sc.enfants.length === 0);
-  }, [flattenSousComps, sousComps]);
+  }, [flattenSousComps, sousCompsQuery.data]);
 
   const handleSavoirSubmit = useCallback(async (form) => {
     try {
@@ -405,41 +438,27 @@ export default function useCompetenceCrud({ onInvalidateStructure, onSavoirMutat
         ...rest,
         code: `${codePrefix ?? ""}${codeSuffix ?? ""}`,
       };
-      if (editingSavoir) {
-        await CompetenceService.savoir.update(editingSavoir.id, payload);
-        msgApi.success("Savoir mis à jour");
-      } else {
-        if (savoirMode === "direct") {
-          await CompetenceService.savoir.createForCompetence(competenceId, payload);
-        } else {
-          await CompetenceService.savoir.create(sousCompetenceId, payload);
-        }
-        msgApi.success("Savoir créé");
-      }
-      onInvalidateStructure();
+      await savoirMutation.mutateAsync({
+        id: editingSavoir?.id,
+        payload,
+        savoirMode,
+        sousCompetenceId,
+        competenceId,
+      });
       setSavoirModal(false);
-      loadSavoirs();
-      loadSousCompetences();
-      if (savoirMode === "direct") loadCompetences();
-      if (onSavoirMutated) onSavoirMutated();
-    } catch (err) {
+    } catch (err: unknown) {
+      if (err?.errorFields) return;
       msgApi.error(err.response?.data?.message || "Erreur lors de la sauvegarde");
     }
-  }, [editingSavoir, loadCompetences, loadSavoirs, loadSousCompetences, msgApi, onInvalidateStructure, onSavoirMutated, savoirMode]);
+  }, [editingSavoir, savoirMode, savoirMutation, msgApi]);
 
   const handleSavoirDelete = useCallback(async (id) => {
     try {
-      await CompetenceService.savoir.delete(id);
-      msgApi.success("Savoir supprimé");
-      onInvalidateStructure();
-      loadSavoirs();
-      loadSousCompetences();
-      loadCompetences();
-      if (onSavoirMutated) onSavoirMutated();
-    } catch (err) {
+      await savoirDeleteMutation.mutateAsync(id);
+    } catch (err: unknown) {
       msgApi.error(err.response?.data?.message || "Erreur lors de la suppression");
     }
-  }, [loadCompetences, loadSavoirs, loadSousCompetences, msgApi, onInvalidateStructure, onSavoirMutated]);
+  }, [savoirDeleteMutation, msgApi]);
 
   const domaineColumns = useMemo(() => [
     { title: "Code", dataIndex: "code", key: "code", width: 130 },
@@ -455,12 +474,7 @@ export default function useCompetenceCrud({ onInvalidateStructure, onSavoirMutat
           checked={actif}
           size="small"
           onChange={async () => {
-            try {
-              await CompetenceService.domaine.toggleActif(record.id);
-              loadDomaines();
-            } catch {
-              msgApi.error("Erreur lors du changement de statut");
-            }
+            domaineToggleActifMutation.mutate(record.id);
           }}
         />
       ),
@@ -471,7 +485,7 @@ export default function useCompetenceCrud({ onInvalidateStructure, onSavoirMutat
       width: 110,
       render: (_, record) => <Tag color="blue">{record.competences?.length ?? 0}</Tag>,
     },
-  ], [loadDomaines, msgApi]);
+  ], [domaineToggleActifMutation]);
 
   const compColumns = useMemo(() => [
     {
@@ -491,7 +505,7 @@ export default function useCompetenceCrud({ onInvalidateStructure, onSavoirMutat
       title: "Domaine",
       dataIndex: "domaineNom",
       key: "domaineNom",
-      filters: domaines.map((d) => ({ text: d.nom, value: d.nom })),
+      filters: (domainesQuery.data ?? []).map((d) => ({ text: d.nom, value: d.nom })),
       onFilter: (v, r) => r.domaineNom === v,
     },
     {
@@ -501,7 +515,7 @@ export default function useCompetenceCrud({ onInvalidateStructure, onSavoirMutat
       render: (_, r) => {
         const nbSc = countSousComp(r.sousCompetences);
         const nbDirectFromComp = r.savoirs?.length ?? 0;
-        const nbDirectFromList = savoirs.filter(
+        const nbDirectFromList = (savoirsQuery.data ?? []).filter(
           (s) => String(s.competenceId) === String(r.id) && !s.sousCompetenceId,
         ).length;
         const nbDirect = nbDirectFromComp || nbDirectFromList;
@@ -510,7 +524,7 @@ export default function useCompetenceCrud({ onInvalidateStructure, onSavoirMutat
           : <Tag color="gold" icon={<BookOutlined />}>{nbDirect} directs</Tag>;
       },
     },
-  ], [domaines, savoirs]);
+  ], [domainesQuery.data, savoirsQuery.data]);
 
   const savoirColumns = useMemo(() => [
     { title: "Code", dataIndex: "code", key: "code", width: 100 },
@@ -549,20 +563,20 @@ export default function useCompetenceCrud({ onInvalidateStructure, onSavoirMutat
   ], []);
 
   return {
-    domaines,
-    domainesLoading,
+    domaines: domainesQuery.data ?? [],
+    domainesLoading: domainesQuery.isLoading,
     domaineModal,
     editingDomaine,
-    competences,
-    compLoading,
+    competences: competencesQuery.data ?? [],
+    compLoading: competencesQuery.isLoading,
     compModal,
     editingComp,
-    sousComps,
-    scLoading,
+    sousComps: sousCompsQuery.data ?? [],
+    scLoading: sousCompsQuery.isLoading,
     scModal,
     editingSc,
-    savoirs,
-    savoirsLoading,
+    savoirs: savoirsQuery.data ?? [],
+    savoirsLoading: savoirsQuery.isLoading,
     savoirModal,
     editingSavoir,
     savoirMode,
@@ -575,10 +589,10 @@ export default function useCompetenceCrud({ onInvalidateStructure, onSavoirMutat
     setEditingComp,
     setEditingSc,
     setEditingSavoir,
-    loadDomaines,
-    loadCompetences,
-    loadSousCompetences,
-    loadSavoirs,
+    loadDomaines: () => domainesQuery.refetch(),
+    loadCompetences: () => competencesQuery.refetch(),
+    loadSousCompetences: () => sousCompsQuery.refetch(),
+    loadSavoirs: () => savoirsQuery.refetch(),
     openDomaineModal,
     handleDomaineSubmit,
     handleDomaineDelete,
@@ -600,11 +614,3 @@ export default function useCompetenceCrud({ onInvalidateStructure, onSavoirMutat
     prerequisite: CompetenceService.prerequisite,
   };
 }
-
-
-
-
-
-
-
-

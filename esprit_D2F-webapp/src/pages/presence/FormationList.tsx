@@ -1,4 +1,4 @@
-import { useState, useContext, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import dayjs from "dayjs";
 import {
@@ -30,7 +30,7 @@ import {
 import { useFormationsByAnimateur } from "@/hooks/presence/usePresence";
 import { useFormationsAchevees } from "@/hooks/formation/useFormations";
 import { ROLES } from "@/utils/constants/roles";
-import { AuthContext } from "@/components/common/AuthProvider";
+import { useAuth } from "@/hooks/auth/useAuth";
 import { AppPageHeader } from "@/components/common";
 import "@/styles/pages/formation-list.css";
 
@@ -56,7 +56,7 @@ const uniqueByMail = (list) => {
 };
 
 const FormationList = () => {
-  const { user } = useContext(AuthContext);
+  const { user } = useAuth();
   const [titleFilter, setTitleFilter] = useState("");
   const [deptFilter, setDeptFilter] = useState("");
   const [upFilter, setUpFilter] = useState("");

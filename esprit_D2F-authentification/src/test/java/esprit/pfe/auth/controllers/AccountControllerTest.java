@@ -189,6 +189,17 @@ class AccountControllerTest {
         verify(accountService).getPrincipalByUsername("testuser");
     }
 
+        @Test
+        @DisplayName("userExistsById - should return boolean existence")
+        void userExistsById_ShouldReturnOk() throws Exception {
+                when(accountService.userExistsById("USER123")).thenReturn(true);
+
+                mockMvc.perform(get("/api/v1/account/exists/USER123"))
+                                .andExpect(status().isOk());
+
+                verify(accountService).userExistsById("USER123");
+        }
+
     @Test
     @DisplayName("banAccount - should extract IP from X-Forwarded-For header")
     void banAccount_ShouldExtractForwardedIp() throws Exception {

@@ -237,6 +237,7 @@ public class SecurityController {
                 String.format(LOG_MESSAGE_FORMAT_3, username, ip));
 
         User user = userRepository.findByUsername(username)
+            .or(() -> userRepository.findById(username))
                 .orElseThrow(() -> {
                     auditService.logFailedLogin(username, ip, "User not found");
                     return new LoginException("User not found.");
@@ -280,7 +281,7 @@ public class SecurityController {
             // Return metadata only — NO token in body
             Map<String, Object> body = new HashMap<>();
             body.put("userId", user.getId());
-            body.put("username", username);
+            body.put("username", user.getUsername());
             body.put("role", scope);
             body.put(EMAIL_KEY, user.getEmail());
             body.put("expiresIn", JWT_DURATION_MINUTES * 60);

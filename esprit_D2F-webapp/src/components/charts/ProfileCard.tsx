@@ -1,17 +1,18 @@
+import { memo } from "react";
 import { Card, Avatar, Typography, Tag, Divider, Statistic, Alert } from "antd";
 import { UserOutlined, BulbOutlined } from "@ant-design/icons";
-import type { AnalyseData } from "@/models/analyse";
-
-const { Title } = Typography;
-
+import type { AnalyseData } from "@/models/analyse";
+
+const { Title } = Typography;
+
 interface Props {
   data: AnalyseData;
-}
-
-export default function ProfileCard({ data }: Readonly<Props>) {
+}
+
+const ProfileCard = memo(function ProfileCard({ data }: Readonly<Props>) {
   const risk = Math.round((data.overallRiskScore || 0) * 100);
-  const hasCritical = data.gaps.some((g) => g.gravite === "elevee");
-
+  const hasCritical = data.gaps.some((g) => g.gravite === "elevee");
+
   return (
     <>
       <Card title={<span><UserOutlined /> Profil</span>} className="analyse-card">
@@ -31,8 +32,8 @@ export default function ProfileCard({ data }: Readonly<Props>) {
           suffix="%"
           valueStyle={{ color: (data.overallRiskScore || 0) > 0.7 ? "#ef4444" : "#10b981" }}
         />
-      </Card>
-
+      </Card>
+
       <Card
         title={<span><BulbOutlined /> Insight IA</span>}
         style={{ marginTop: 20 }}
@@ -51,4 +52,6 @@ export default function ProfileCard({ data }: Readonly<Props>) {
       </Card>
     </>
   );
-}
+});
+
+export default ProfileCard;

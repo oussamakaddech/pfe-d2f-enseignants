@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Row,
@@ -29,12 +29,11 @@ import {
   ReloadOutlined,
   AppstoreOutlined,
 } from "@ant-design/icons";
-import moment from "moment";
+import dayjs from "dayjs";
 
-import FormationWorkflowService from "@/services/formation/FormationWorkflowService";
-import InscriptionService from "@/services/formation/InscriptionService";
-import EnseignantService from "@/services/formation/EnseignantService";
-import { getProfile } from "@/services/auth/AccountService";
+import { useFormationsVisibles, useAllFormations, useFormationsParUp, useUpdateInscriptionsOuvertes } from "@/hooks/formation/useFormations";
+import { useProfile, useDemanderInscription, useFormationsAccessibles } from "@/hooks/formation/useFormationExtras";
+import { useEnseignantById } from "@/hooks/enseignant/useEnseignants";
 import { ROLES } from "@/utils/constants/roles";
 
 import "@/styles/pages/formation-cards.css";
@@ -51,13 +50,45 @@ function getTypeClass(type) {
 
 
 export default function FormationCards() {
-  const [currentUser, setCurrentUser] = useState(null);
-  const [formations, setFormations] = useState([]);
-  const [loading, setLoading] = useState(false);
   const [requested, setRequested] = useState([]);
   const navigate = useNavigate();
 
   const { message: messageApi } = useAppNotification();
+
+  const { data: profile, isLoading: profileLoading } = useProfile();
+  const currentUser = useMemo(() => {
+    if (!profile) return null;
+    const user = { ...profile };
+    if (!user.role || user.role === ROLES.ADMIN) user.role = ROLES.D2F;
+    return user;
+  }, [profile]);
+
+  const identifier = currentUser?.emailAddress || currentUser?.email || currentUser?.id;
+  const { data: enseignant } = useEnseignantById(currentUser?.role === ROLES.CUP ? identifier : undefined);
+  const { data: parUp, refetch: refetchParUp } = useFormationsParUp(currentUser?.role === ROLES.CUP ? enseignant?.up?.id : undefined);
+  const { data: accessibles, refetch: refetchAccessibles } = useFormationsAccessibles(currentUser?.role === ROLES.FORMATEUR ? identifier : undefined);
+  const { data: visibles, isLoading: visiblesLoading, refetch: refetchVisibles } = useFormationsVisibles();
+  const { data: all } = useAllFormations();
+  const { mutateAsync: updateOuvertes } = useUpdateInscriptionsOuvertes();
+  const { mutateAsync: demanderMutation } = useDemanderInscription();
+
+  const formations = useMemo(() => {
+    if (!currentUser) return [];
+    let data = [];
+    if (currentUser.role === ROLES.CUP) {
+      data = parUp;
+    } else if (currentUser.role === ROLES.FORMATEUR) {
+      data = accessibles;
+    } else {
+      data = visibles;
+      if ((currentUser.role === ROLES.D2F || currentUser.role === ROLES.ADMIN) && (!data || data.length === 0)) {
+        data = all;
+      }
+    }
+    return Array.isArray(data) ? data : [];
+  }, [currentUser, parUp, accessibles, visibles, all]);
+
+  const loading = profileLoading || visiblesLoading || (!currentUser);
 
   // filtres
   const [searchText, setSearchText] = useState("");
@@ -68,77 +99,24 @@ export default function FormationCards() {
   const [dateRange, setDateRange] = useState([]);
   const formationsList = Array.isArray(formations) ? formations : [];
 
-  // 1️⃣ Profil utilisateur
-  useEffect(() => {
-    (async () => {
-      try {
-        const user = await getProfile();
-        if (!user.role || user.role === ROLES.ADMIN) user.role = ROLES.D2F;
-        setCurrentUser(user);
-      } catch {
-        messageApi.error("Impossible de récupérer le profil utilisateur");
-      }
-    })();
-  }, [messageApi]);
-
-  // 2️⃣ Chargement formations
-  useEffect(() => {
-    if (!currentUser) return;
-    fetchFormations();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentUser]);
-
-  const fetchFormations = async () => {
-    setLoading(true);
-    try {
-      let data = [];
-      if (currentUser.role === ROLES.CUP) {
-        const identifier = currentUser.emailAddress || currentUser.email || currentUser.id;
-        const enseignant = await EnseignantService.getEnseignantById(identifier);
-        data = await FormationWorkflowService.getFormationsParUp(enseignant.up?.id);
-      } else if (currentUser.role === ROLES.FORMATEUR) {
-        const identifier = currentUser.emailAddress || currentUser.email || currentUser.id;
-        data = await InscriptionService.getFormationsAccessibles(identifier);
-      } else {
-        // admin, D2F, Enseignant, etc.
-        data = await FormationWorkflowService.getFormationsVisibles();
-        // Fallback for admin-like roles to see everything if nothing is marked visible
-        if ((currentUser.role === ROLES.D2F || currentUser.role === ROLES.ADMIN) && (!data || data.length === 0)) {
-          data = await FormationWorkflowService.getAllFormationWorkflows();
-        }
-      }
-      setFormations(Array.isArray(data) ? data : []);
-    } catch {
-      messageApi.error("Erreur de chargement des formations");
-      setFormations([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleToggle = async (idFormation) => {
     try {
-      setLoading(true);
       const cur = formationsList.find((f) => f.idFormation === idFormation);
       if (!cur) throw new Error("Formation introuvable");
       const nextState = !cur.inscriptionsOuvertes;
-      await FormationWorkflowService.updateInscriptionsOuvertes(idFormation, nextState);
-      await fetchFormations();
+      await updateOuvertes({ id: idFormation, ouvert: nextState });
       messageApi.success(nextState ? "Inscriptions ouvertes" : "Inscriptions fermées");
-    } catch (err) {
+    } catch (err: unknown) {
       messageApi.error(err.response?.data?.message || "Échec de la mise à jour");
-    } finally {
-      setLoading(false);
     }
   };
 
   const handleDemande = async (idFormation) => {
     try {
-      const identifier = currentUser.emailAddress || currentUser.email || currentUser.id;
-      await InscriptionService.demanderInscription(idFormation, identifier);
+      await demanderMutation({ formationId: idFormation, enseignantId: identifier });
       messageApi.success("Demande d'inscription envoyée !");
       setRequested((prev) => [...prev, idFormation]);
-    } catch (err) {
+    } catch (err: unknown) {
       messageApi.error(err.response?.data?.message || "Échec de la demande");
     }
   };
@@ -160,7 +138,7 @@ export default function FormationCards() {
     if (ouverteFilter !== undefined && f.ouverte !== ouverteFilter) return false;
     if (dateRange.length === 2) {
       const [start, end] = dateRange;
-      const d = moment(f.dateDebut);
+      const d = dayjs(f.dateDebut);
       if (d.isBefore(start, "day") || d.isAfter(end, "day")) return false;
     }
     return true;
@@ -225,7 +203,11 @@ export default function FormationCards() {
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <Button
                 icon={<ReloadOutlined />}
-                onClick={fetchFormations}
+                onClick={() => {
+                  if (currentUser?.role === ROLES.CUP) refetchParUp();
+                  else if (currentUser?.role === ROLES.FORMATEUR) refetchAccessibles();
+                  else refetchVisibles();
+                }}
                 loading={loading}
                 className="fc-btn-refresh"
               >

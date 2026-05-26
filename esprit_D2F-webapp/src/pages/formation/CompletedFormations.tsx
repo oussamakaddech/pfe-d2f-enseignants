@@ -77,7 +77,7 @@ export default function CompletedFormations() {
         )
       );
       navigate(`/home/certificate/${id}`);
-    } catch (error) {
+    } catch (error: unknown) {
       const resp = error.response;
       if (
         resp?.status === 409 &&

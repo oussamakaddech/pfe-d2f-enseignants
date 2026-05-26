@@ -33,7 +33,7 @@ const DeptService = {
     try {
       const response = await axios.post(API_URL, deptData);
       return response.data;
-    } catch (error) {
+    } catch (error: unknown) {
       throw error;
     }
   },
@@ -42,7 +42,7 @@ const DeptService = {
     try {
       const response = await axios.get(API_URL);
       return normalizeListResponse(response.data);
-    } catch (error) {
+    } catch (error: unknown) {
       if (isNotFoundError(error)) {
         return [];
       }
@@ -54,7 +54,7 @@ const DeptService = {
     try {
       const response = await axios.get(`${API_URL}/${id}`);
       return response.data;
-    } catch (error) {
+    } catch (error: unknown) {
       throw error;
     }
   },
@@ -63,7 +63,7 @@ const DeptService = {
     try {
       const response = await axios.put(`${API_URL}/${id}`, deptData);
       return response.data;
-    } catch (error) {
+    } catch (error: unknown) {
       throw error;
     }
   },
@@ -71,7 +71,7 @@ const DeptService = {
   async deleteDept(id: number | string) {
     try {
       await axios.delete(`${API_URL}/${id}`);
-    } catch (error) {
+    } catch (error: unknown) {
       throw error;
     }
   },
@@ -82,7 +82,7 @@ const DeptService = {
       formData.append("file", file);
       const response = await axios.post(`${API_URL}/import-excel`, formData);
       return response.data;
-    } catch (error) {
+    } catch (error: unknown) {
       throw error;
     }
   },

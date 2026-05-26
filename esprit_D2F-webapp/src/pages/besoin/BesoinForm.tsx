@@ -3,7 +3,7 @@
  * Wizard 4 étapes + récapitulatif groupé.
  * Design system partagé avec la page liste (.bf-scope + tokens --bf-*).
  * ─────────────────────────────────────────────────────────────────────── */
-import { useContext, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { getActiveRole } from "@/utils/storage/storage";
 import {
   Form,
@@ -17,7 +17,6 @@ import {
   Tag,
   Result,
   DatePicker,
-  ConfigProvider,
   Breadcrumb,
   Progress,
   Empty,
@@ -46,12 +45,12 @@ import {
 import { motion, AnimatePresence } from "framer-motion";
 import * as XLSX from "xlsx";
 
-import { AuthContext } from "@/components/common/AuthProvider";
-import BesoinFormationService from "@/services/besoin/BesoinFormationService";
-import BesoinCompetenceService, { BesoinCompetenceLink } from "@/services/besoin/BesoinCompetenceService";
-import CompetenceService from "@/services/competence/CompetenceService";
-import DeptService from "@/services/formation/DeptService";
-import UpService from "@/services/api/UploadService";
+import { useAuth } from "@/hooks/auth/useAuth";
+import { useAddBesoin, useModifyBesoin, useReplaceBesoinCompetences } from "@/hooks/besoin/useBesoins";
+import { BesoinCompetenceLink } from "@/services/besoin/BesoinCompetenceService";
+import { useCompetenceDomaineApi, useCompetenceApi, useSavoirApi } from "@/hooks/competence/useCompetenceService";
+import { useAllDepts } from "@/hooks/formation/useDeptCrud";
+import { useAllUps } from "@/hooks/formation/useUpCrud";
 import useAppNotification from "@/hooks/ui/useAppNotification";
 import { ROLES } from "@/utils/constants/roles";
 import "@/styles/pages/besoin-tokens.css";
@@ -123,7 +122,7 @@ const STEPS_META = [
 /* MAIN COMPONENT                                                            */
 /* ═══════════════════════════════════════════════════════════════════════ */
 export default function BesoinForm() {
-  const user = useContext(AuthContext)?.user;
+  const { user } = useAuth();
   const [form] = Form.useForm();
   const activeRole = String(getActiveRole() || "").toUpperCase();
   const userRole = String(user?.role || "").toUpperCase();
@@ -132,10 +131,10 @@ export default function BesoinForm() {
     [ROLES.CUP.toUpperCase(), ROLES.ADMIN.toUpperCase()].includes(activeRole);
 
   const { message: msgApi } = useAppNotification();
-  const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [departements, setDepartements] = useState<LookupItem[]>([]);
-  const [ups, setUps] = useState<LookupItem[]>([]);
+  const { data: departements = [], isLoading: deptsLoading } = useAllDepts();
+  const { data: ups = [], isLoading: upsLoading } = useAllUps();
+  const loading = deptsLoading || upsLoading;
   const [currentStep, setCurrentStep] = useState(0);
   const [direction, setDirection] = useState(0);
   const [submitted, setSubmitted] = useState(false);
@@ -153,29 +152,14 @@ export default function BesoinForm() {
   const [compLoaded, setCompLoaded] = useState(false);
   const [compSearch, setCompSearch] = useState("");
 
-  useEffect(() => {
-    (async () => {
-      setLoading(true);
-      try {
-        const [deptsData, upsData] = await Promise.all([DeptService.getAllDepts(), UpService.getAllUps()]);
-        setDepartements(deptsData);
-        setUps(upsData);
-      } catch {
-        msgApi.error("Erreur lors du chargement des données");
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, [msgApi]);
-
   // Lazy-load référentiel RICE quand l'utilisateur atteint l'étape Compétences (step 3)
   useEffect(() => {
     if (currentStep === 3 && !compLoaded) {
       const upId   = form.getFieldValue("up")         ? Number(form.getFieldValue("up"))         : null;
       const deptId = form.getFieldValue("departement") ? Number(form.getFieldValue("departement")) : null;
       Promise.all([
-        CompetenceService.domaine.getAll(upId, deptId),
-        CompetenceService.competence.getAll(),
+        useCompetenceDomaineApi().getAll(upId, deptId),
+        useCompetenceApi().getAll(),
       ]).then(([domainesData, competencesData]) => {
         setCompDomaines(Array.isArray(domainesData) ? domainesData : []);
         setCompCompetences(Array.isArray(competencesData) ? competencesData : []);
@@ -199,7 +183,7 @@ export default function BesoinForm() {
     newSavoirs[idx] = [];
     if (competence?.id) {
       try {
-        newSavoirs[idx] = await CompetenceService.savoir.getByCompetence(competence.id) as ReferentielSavoir[];
+        newSavoirs[idx] = await useSavoirApi().getByCompetence(competence.id) as ReferentielSavoir[];
       } catch { /* ignore */ }
     }
     setRowSavoirs(newSavoirs);
@@ -232,12 +216,12 @@ export default function BesoinForm() {
         objectifsPedagogiques: values.objectifsPedagogiques,
         methodesEvaluationAcquis: values.methodesEvaluationAcquis,
       };
-      const created = await BesoinFormationService.addBesoinFormation(payload);
+      const created = await useAddBesoin().mutateAsync(payload);
       const besoinId = created?.idBesoinFormation;
       if (besoinId && selectedCompLinks.length > 0) {
         const links = selectedCompLinks.filter((l) => l.competenceId).map((l) => ({ ...l }));
         if (links.length > 0) {
-          await BesoinCompetenceService.replaceAll(Number(besoinId), links);
+          await useReplaceBesoinCompetences().mutateAsync({ besoinId: Number(besoinId), links });
         }
       }
       msgApi.success("Besoin de formation ajouté avec succès !");
@@ -249,7 +233,7 @@ export default function BesoinForm() {
       setCompSearch("");
       setLastImportCount(0);
       setCurrentStep(0);
-    } catch (err) {
+    } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string } } };
       msgApi.error(e.response?.data?.message || "Erreur lors de l'ajout du besoin");
     } finally {
@@ -860,9 +844,6 @@ export default function BesoinForm() {
   );
 
   return (
-    <ConfigProvider
-      theme={{ token: { colorPrimary: "#B51200", borderRadius: 10, fontFamily: "'Inter', sans-serif" } }}
-    >
       <div className="bf-scope bf-form-page">
         {/* ═══════════ HEADER ═══════════ */}
         <header className="bf-form-header">
@@ -1054,7 +1035,6 @@ export default function BesoinForm() {
           </div>
         </section>
       </div>
-    </ConfigProvider>
   );
 }
 

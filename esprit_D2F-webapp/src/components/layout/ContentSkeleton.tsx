@@ -1,6 +1,7 @@
-import { Row, Col, Skeleton } from "antd";
-
-export default function ContentSkeleton() {
+import { memo } from "react";
+import { Row, Col, Skeleton } from "antd";
+
+const ContentSkeleton = memo(function ContentSkeleton() {
   return (
     <div style={{ padding: 24 }}>
       <Skeleton.Input active style={{ width: 300, height: 28, marginBottom: 24, display: "block" }} />
@@ -14,4 +15,6 @@ export default function ContentSkeleton() {
       <Skeleton active paragraph={{ rows: 6 }} />
     </div>
   );
-}
+});
+
+export default ContentSkeleton;

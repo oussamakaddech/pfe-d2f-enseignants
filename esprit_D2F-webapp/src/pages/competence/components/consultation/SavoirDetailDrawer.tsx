@@ -1,4 +1,3 @@
-/* eslint-disable react/prop-types */
 import { BookOutlined, InfoCircleOutlined } from "@ant-design/icons";
 import { Alert, Button, Divider, Drawer, Empty, Progress, Tag, Tooltip, Typography } from "antd";
 import { formatNiveau, getNiveauStyle, getTypeBadge, getTypeLabel, ACCENT } from "@/utils/helpers/consultationViewUtils";
@@ -10,7 +9,35 @@ function Badge({ text, type = "muted" }) {
   return <span className={`ctp-badge ${cls}`}>{text}</span>;
 }
 
-export default function SavoirDetailDrawer({ payload, open, onClose }) {
+interface SavoirItem {
+  id?: number;
+  code?: string;
+  nom?: string;
+  type?: string;
+  niveau?: string;
+  competenceNom?: string;
+  competenceCode?: string;
+  sousCompetenceNom?: string;
+  domaineNom?: string;
+  isDirect?: boolean;
+  description?: string;
+}
+
+interface DrawerPayload {
+  mode?: "single" | "multi";
+  savoir?: SavoirItem;
+  items?: SavoirItem[];
+  savoirs?: SavoirItem[];
+  title?: string;
+}
+
+interface SavoirDetailDrawerProps {
+  payload: DrawerPayload | null;
+  open: boolean;
+  onClose: () => void;
+}
+
+export default function SavoirDetailDrawer({ payload, open, onClose }: Readonly<SavoirDetailDrawerProps>) {
   if (!payload) return null;
 
   const mode = payload?.mode || "single";

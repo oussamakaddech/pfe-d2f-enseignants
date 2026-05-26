@@ -86,6 +86,12 @@ public class AccountController {
         return new UserDTO(user);
     }
 
+    @GetMapping("/exists/{userId}")
+    @PreAuthorize(AuthorizationMatrix.ACCOUNT_VIEW_PROFILE)
+    public boolean userExistsById(@PathVariable String userId) {
+        return this.accountService.userExistsById(userId);
+    }
+
     @DeleteMapping("/delete/{userId}")
     @PreAuthorize(AuthorizationMatrix.ACCOUNT_DELETE)
     public void deleteAccount(@PathVariable String userId) {

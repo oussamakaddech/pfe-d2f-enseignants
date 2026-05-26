@@ -1,4 +1,3 @@
-/* eslint-disable react/prop-types */
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { Select, Spin } from "antd";
 import StructureSearchResultsView from "./StructureSearchResultsView";
@@ -9,11 +8,17 @@ import CardsView from "./consultation/CardsView";
 import ListView from "./consultation/ListView";
 import SavoirDetailDrawer from "./consultation/SavoirDetailDrawer";
 import { buildFlatSavoirs, DISPLAY_MODE_KEY } from "@/utils/helpers/consultationViewUtils";
-import UpService from "@/services/api/UploadService";
-import DeptService from "@/services/formation/DeptService";
+import { useAllUps } from "@/hooks/formation/useUpCrud";
+import { useAllDepts } from "@/hooks/formation/useDeptCrud";
 import "@/styles/pages/consultation-tab.css";
 
-export default function ConsultationTab({ structure, crud, handleExportExcel }) {
+interface ConsultationTabProps {
+  structure: Record<string, unknown>;
+  crud: Record<string, unknown>;
+  handleExportExcel: () => void;
+}
+
+export default function ConsultationTab({ structure, crud, handleExportExcel }: Readonly<ConsultationTabProps>) {
   const [displayMode, setDisplayMode] = useState(() => {
     const saved = localStorage.getItem(DISPLAY_MODE_KEY);
     return ["cards", "list"].includes(saved) ? saved : "cards";
@@ -27,16 +32,10 @@ export default function ConsultationTab({ structure, crud, handleExportExcel }) 
   const [deferredCrud, setDeferredCrud] = useState(crud);
   const contentRef = useRef(null);
 
-  const [ups, setUps] = useState([]);
-  const [depts, setDepts] = useState([]);
+  const { data: ups = [] } = useAllUps();
+  const { data: depts = [] } = useAllDepts();
   const [selectedUpId, setSelectedUpId] = useState<number | null>(null);
   const [selectedDeptId, setSelectedDeptId] = useState<number | null>(null);
-
-  useEffect(() => {
-    Promise.all([UpService.getAllUps(), DeptService.getAllDepts()])
-      .then(([uData, dData]) => { setUps(uData); setDepts(dData); })
-      .catch(() => {});
-  }, []);
 
   const handleFilterChange = useCallback((upId: number | null, deptId: number | null) => {
     setSelectedUpId(upId);

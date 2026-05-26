@@ -8,6 +8,8 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
 
@@ -55,6 +57,30 @@ public class AuthServiceClient {
                 .role(str(body.get("role")))
                 .telephone(str(body.get("phoneNumber")))
                 .build();
+    }
+
+    /**
+     * Extrait l'identité directement du JWT Bearer pour les utilisateurs authentifiés.
+     * Évite les appels HTTP vers auth quand on a déjà les claims en main.
+     * Utile pour les utilisateurs qui cherchent leur propre passeport.
+     */
+    public TeacherIdentityDTO getTeacherIdentityFromJwt(Authentication authentication) {
+        try {
+            Jwt jwt = (Jwt) authentication.getPrincipal();
+            String username = jwt.getSubject();
+            String email = jwt.getClaimAsString("email");
+
+            return TeacherIdentityDTO.builder()
+                    .username(username)
+                    .enseignantId(username)
+                    .email(email)
+                    .nom("Enseignant")
+                    .prenom(username)
+                    .build();
+        } catch (Exception e) {
+            log.warn("Impossible d'extraire l'identité du JWT : {}", e.getMessage());
+            return fallbackIdentity(authentication.getName());
+        }
     }
 
     /**

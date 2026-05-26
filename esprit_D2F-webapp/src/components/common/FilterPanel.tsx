@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { Card, Space, Button, Typography } from "antd";
 import { FilterOutlined, ClearOutlined } from "@ant-design/icons";
 
@@ -21,7 +22,7 @@ interface FilterPanelProps {
  * - Header avec titre + compteur + reset
  * - Layout flex pour les filtres
  */
-export default function FilterPanel({
+const FilterPanel = memo(function FilterPanel({
   children,
   title = "Filtres",
   onReset,
@@ -75,7 +76,9 @@ export default function FilterPanel({
       </div>
     </Card>
   );
-}
+});
+
+export default FilterPanel;
 
 
 

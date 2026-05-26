@@ -1,4 +1,4 @@
-import { useState, useEffect, useContext, useMemo } from "react";
+import { useState, useMemo } from "react";
 import {
   Card, Input, Button, Tag, Row, Col, Alert, Spin, Typography, Space, Empty,
   Tabs, Select, Table,
@@ -10,13 +10,9 @@ import {
 } from "@ant-design/icons";
 import useAppNotification from "@/hooks/ui/useAppNotification";
 import { motion, AnimatePresence } from "framer-motion";
-import { AuthContext } from "@/components/common/AuthProvider";
-import AnalysePredictiveService, {
-  AnalyseData,
-  DecliningCompetency,
-  InDemandCompetency,
-  TeacherRiskIndicator,
-} from "@/services/analyse/AnalysePredictiveService";
+import { useAuth } from "@/hooks/auth/useAuth";
+import { useDashboardSummary, useTrainModel, useAnalyserEnseignant } from "@/hooks/analyse/useAnalysePredictive";
+import type { AnalyseData, DecliningCompetency, InDemandCompetency, TeacherRiskIndicator } from "@/models/analyse";
 import DashboardKpis from "@/components/charts/DashboardKpis";
 import RiskTable from "@/components/charts/RiskTable";
 import GapTable from "@/components/charts/GapTable";
@@ -35,15 +31,14 @@ const normalizeRole = (v: unknown): string =>
 
 export default function AnalysePredictivePage() {
   const { message } = useAppNotification();
-  const { user } = useContext(AuthContext) as { user: { role?: string } | null };
+  const { user } = useAuth();
   const role = normalizeRole(user?.role);
   const isAdmin = role === "admin";
 
   // ── Dashboard state ─────────────────────────
-  const [dashLoading, setDashLoading] = useState<boolean>(false);
-  const [declining, setDeclining] = useState<DecliningCompetency[]>([]);
-  const [inDemand, setInDemand] = useState<InDemandCompetency[]>([]);
-  const [riskIndicators, setRiskIndicators] = useState<TeacherRiskIndicator[]>([]);
+  const { data: dashboardData, isLoading: dashLoading, refetch: refetchDashboard } = useDashboardSummary();
+  const trainModelMutation = useTrainModel();
+  const analyserEnseignantMutation = useAnalyserEnseignant();
   const [riskThreshold, setRiskThreshold] = useState<number>(0.7);
   const [modelStatusKey, setModelStatusKey] = useState<number>(0);
 
@@ -55,26 +50,10 @@ export default function AnalysePredictivePage() {
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<string>("dashboard");
 
-  useEffect(() => { loadDashboard(); }, []);
-
-  async function loadDashboard() {
-    setDashLoading(true);
-    try {
-      const data = await AnalysePredictiveService.getDashboardSummary();
-      setDeclining(data.declining_competencies || []);
-      setInDemand(data.in_demand_competencies || []);
-      setRiskIndicators(data.teacher_risk_indicators || []);
-    } catch {
-      // using empty state as fallback
-    } finally {
-      setDashLoading(false);
-    }
-  }
-
   async function handleTrainModel() {
     setLoading(true);
     try {
-      const result = await AnalysePredictiveService.trainModel();
+      const result = await trainModelMutation.mutateAsync();
       if (result.status === "trained") {
         message.success(`Modèle entraîné ! RMSE: ${result.metrics?.cv_rmse || "N/A"}, R²: ${result.metrics?.test_r2 || "N/A"}`);
       } else if (result.status === "no_data") {
@@ -98,14 +77,14 @@ export default function AnalysePredictivePage() {
     if (idOverride) setEnseignantId(id);
     setLoading(true); setError(null);
     try {
-      const data = await AnalysePredictiveService.analyserEnseignant(
-        id,
-        competenceCible.trim() || undefined,
-        { autoTrain: isAdmin },
-      );
+      const data = await analyserEnseignantMutation.mutateAsync({
+        enseignantId: id,
+        competenceCible: competenceCible.trim() || undefined,
+        autoTrain: isAdmin,
+      });
       setAnalyseData(data);
       setActiveTab("individual");
-    } catch (err) {
+    } catch (err: unknown) {
       const errMsg = (err as { message?: string })?.message || String(err);
       if (errMsg.includes("entraîné") || errMsg.includes("modèle") || errMsg.includes("503")) {
         setError(
@@ -155,10 +134,10 @@ export default function AnalysePredictivePage() {
       label: <span><DashboardOutlined /> Dashboard Prédictif</span>,
       children: (
         <Spin spinning={dashLoading}>
-          <DashboardKpis
-            declining={declining}
-            inDemand={inDemand}
-            riskIndicators={riskIndicators}
+            <DashboardKpis
+            declining={dashboardData?.declining_competencies || []}
+            inDemand={dashboardData?.in_demand_competencies || []}
+            riskIndicators={dashboardData?.teacher_risk_indicators || []}
             riskThreshold={riskThreshold}
           />
 
@@ -173,14 +152,14 @@ export default function AnalysePredictivePage() {
                   <Option value={0.7}>Seuil: 70%</Option>
                   <Option value={0.8}>Seuil: 80%</Option>
                 </Select>
-                <Button size="small" icon={<ReloadOutlined />} onClick={loadDashboard}>
+                <Button size="small" icon={<ReloadOutlined />} onClick={refetchDashboard}>
                   Rafraîchir
                 </Button>
               </Space>
             }
           >
             <RiskTable
-              data={riskIndicators}
+              data={dashboardData?.teacher_risk_indicators || []}
               threshold={riskThreshold}
               onAnalyze={handleAnalyzeFromTable}
             />
@@ -189,9 +168,9 @@ export default function AnalysePredictivePage() {
           <Row gutter={[20, 20]}>
             <Col xs={24} lg={12}>
               <Card title={<span><FallOutlined /> Compétences en Déclin</span>} className="analyse-card">
-                {declining.length > 0 ? (
+                {(dashboardData?.declining_competencies || []).length > 0 ? (
                   <Table
-                    dataSource={declining}
+                    dataSource={dashboardData?.declining_competencies || []}
                     rowKey="competency_id"
                     pagination={false}
                     size="small"
@@ -204,9 +183,9 @@ export default function AnalysePredictivePage() {
             </Col>
             <Col xs={24} lg={12}>
               <Card title={<span><RiseOutlined /> Compétences en Forte Demande</span>} className="analyse-card">
-                {inDemand.length > 0 ? (
+                {(dashboardData?.in_demand_competencies || []).length > 0 ? (
                   <Table
-                    dataSource={inDemand}
+                    dataSource={dashboardData?.in_demand_competencies || []}
                     rowKey="competency_id"
                     pagination={false}
                     size="small"
@@ -282,7 +261,7 @@ export default function AnalysePredictivePage() {
                 Ré-entraîner le modèle
               </Button>
             )}
-            <Button icon={<ReloadOutlined />} onClick={loadDashboard} loading={dashLoading}>
+            <Button icon={<ReloadOutlined />} onClick={refetchDashboard} loading={dashLoading}>
               Rafraîchir
             </Button>
           </Space>
@@ -308,7 +287,7 @@ export default function AnalysePredictivePage() {
             <EnseignantSelect
               value={enseignantId}
               onChange={setEnseignantId}
-              teachers={riskIndicators}
+              teachers={dashboardData?.teacher_risk_indicators || []}
               loading={dashLoading}
             />
           </Col>

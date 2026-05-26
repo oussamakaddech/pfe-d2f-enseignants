@@ -92,14 +92,14 @@ const RiceService = {
       if (!departement) return list;
       const deptNorm = String(departement).toLowerCase();
       return list.filter((e) => String(e?.departement ?? e?.department ?? "").toLowerCase() === deptNorm);
-    } catch (err) {
+    } catch (err: unknown) {
       // Compatibility fallback: some deployments expose teachers via competence service,
       // and some secured deployments reject the formation endpoint while still allowing
       // the competence endpoint with the same token.
       try {
         const data = await fetchAllPages(`${COMPETENCE_BASE}/enseignants`, params);
         return normalizeEnseignantsPayload(data);
-      } catch (fallbackErr) {
+      } catch (fallbackErr: unknown) {
         throw fallbackErr?.response?.status ? fallbackErr : err;
       }
     }
@@ -117,7 +117,7 @@ const RiceService = {
     try {
       const data = await fetchAllPages(`${COMPETENCE_BASE}/savoirs`, params);
       return normalizeSavoirsPayload(data);
-    } catch (err) {
+    } catch (err: unknown) {
       // Fallback to rice referential endpoint if present
       try {
         const res2 = await axios.get(`${RICE_BASE}/referential${params}`);

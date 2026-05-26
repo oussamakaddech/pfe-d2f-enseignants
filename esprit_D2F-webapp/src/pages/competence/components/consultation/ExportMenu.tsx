@@ -1,4 +1,3 @@
-/* eslint-disable react/prop-types */
 import { useCallback, useMemo, useState } from "react";
 import { CodeOutlined, DownloadOutlined, FileExcelOutlined, FileTextOutlined } from "@ant-design/icons";
 import { Button, Dropdown, Tag } from "antd";
@@ -13,7 +12,14 @@ import {
 } from "@/utils/helpers/exportUtils";
 import { getFilteredCrud } from "@/utils/helpers/consultationViewUtils";
 
-export default function ExportMenu({ crud, structure, stats, handleExportExcel }) {
+interface ExportMenuProps {
+  crud: Record<string, unknown>;
+  structure: Record<string, unknown>;
+  stats: Record<string, number> | undefined;
+  handleExportExcel: () => void;
+}
+
+export default function ExportMenu({ crud, structure, stats, handleExportExcel }: Readonly<ExportMenuProps>) {
   const [loading, setLoading] = useState(false);
   const { message: messageApi } = useAppNotification();
 
@@ -40,7 +46,7 @@ export default function ExportMenu({ crud, structure, stats, handleExportExcel }
       else if (key === "csv-competences") doExportCompetencesCSV(crud, domaineId);
       else if (key === "json-full") doExportStructureJSON(crud);
       messageApi.success("Export genere");
-    } catch (err) {
+    } catch (err: unknown) {
       messageApi.error(`Erreur export : ${err?.message || "inconnue"}`);
     } finally {
       setLoading(false);

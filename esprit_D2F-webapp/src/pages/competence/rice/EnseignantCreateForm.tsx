@@ -1,5 +1,12 @@
 import { Button, Form, Input, Select, Space } from "antd";
-import PropTypes from "prop-types";
+
+interface EnseignantCreateFormProps {
+  defaultPrenom?: string;
+  defaultNom?: string;
+  defaultDepartement?: string;
+  onSubmit: (values: { prenom: string; nom: string; email: string; departement: string }) => void;
+  loading?: boolean;
+}
 
 export default function EnseignantCreateForm({
   defaultPrenom,
@@ -7,7 +14,7 @@ export default function EnseignantCreateForm({
   defaultDepartement,
   onSubmit,
   loading,
-}) {
+}: Readonly<EnseignantCreateFormProps>) {
   const [form] = Form.useForm();
 
   return (
@@ -74,13 +81,6 @@ export default function EnseignantCreateForm({
   );
 }
 
-EnseignantCreateForm.propTypes = {
-  defaultPrenom: PropTypes.string,
-  defaultNom: PropTypes.string,
-  defaultDepartement: PropTypes.string,
-  onSubmit: PropTypes.func.isRequired,
-  loading: PropTypes.bool,
-};
 
 
 

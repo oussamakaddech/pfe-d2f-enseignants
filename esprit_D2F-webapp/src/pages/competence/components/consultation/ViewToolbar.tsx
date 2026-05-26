@@ -1,9 +1,17 @@
-/* eslint-disable react/prop-types */
 import { AppstoreOutlined, BarsOutlined } from "@ant-design/icons";
 import { Segmented } from "antd";
 import ExportMenu from "./ExportMenu";
 
-export default function ViewToolbar({ displayMode, setDisplayMode, handleExportExcel, crud, structure, stats }) {
+interface ViewToolbarProps {
+  displayMode: string;
+  setDisplayMode: (mode: string) => void;
+  handleExportExcel: () => void;
+  crud: Record<string, unknown>;
+  structure: Record<string, unknown>;
+  stats: Record<string, number> | undefined;
+}
+
+export default function ViewToolbar({ displayMode, setDisplayMode, handleExportExcel, crud, structure, stats }: Readonly<ViewToolbarProps>) {
   return (
     <div className="ctp-toolbar ctp-section">
       <Segmented

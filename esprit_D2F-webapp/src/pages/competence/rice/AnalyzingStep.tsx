@@ -3,10 +3,19 @@
 import { Progress, Steps, Button, Space } from "antd";
 import { Typography } from "antd";
 import { CheckCircleOutlined, LoadingOutlined, RobotOutlined } from "@ant-design/icons";
-import PropTypes from "prop-types";
 import { useEffect, useState } from "react";
 
 const { Title, Paragraph } = Typography;
+
+interface AnalyzingStepProps {
+  filesCount: number;
+  analysisProgress: number;
+  analyzeIsCanceledRef: React.MutableRefObject<boolean>;
+  progressTimerRef: React.MutableRefObject<ReturnType<typeof setInterval> | null>;
+  setAnalyzing: (v: boolean) => void;
+  setCurrentStep: (step: number) => void;
+  setAnalysisProgress: (v: number) => void;
+}
 
 export default function AnalyzingStep({
   filesCount,
@@ -16,7 +25,7 @@ export default function AnalyzingStep({
   setAnalyzing,
   setCurrentStep,
   setAnalysisProgress,
-}) {
+}: Readonly<AnalyzingStepProps>) {
   const [elapsedSec, setElapsedSec] = useState(0);
 
   useEffect(() => {
@@ -124,15 +133,6 @@ export default function AnalyzingStep({
   );
 }
 
-AnalyzingStep.propTypes = {
-  filesCount: PropTypes.number.isRequired,
-  analysisProgress: PropTypes.number.isRequired,
-  analyzeIsCanceledRef: PropTypes.object.isRequired,
-  progressTimerRef: PropTypes.object.isRequired,
-  setAnalyzing: PropTypes.func.isRequired,
-  setCurrentStep: PropTypes.func.isRequired,
-  setAnalysisProgress: PropTypes.func.isRequired,
-};
 
 
 

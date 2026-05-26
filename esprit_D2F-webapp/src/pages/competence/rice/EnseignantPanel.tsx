@@ -6,7 +6,6 @@ import {
   BookOutlined, CheckCircleOutlined, InfoCircleOutlined, TableOutlined,
   TeamOutlined, UserOutlined, WarningOutlined, DatabaseOutlined,
 } from "@ant-design/icons";
-import PropTypes from "prop-types";
 import EnseignantLoadView from "./EnseignantLoadView";
 import EnseignantMatrixView from "./EnseignantMatrixView";
 import { computeCoveragePct } from "./constants";
@@ -38,7 +37,15 @@ const getCoverageColor = (tauxCouverture) => {
   return "#f5222d";
 };
 
-export default function EnseignantPanel({ tree, setTree, allEnseignants, extractedEnseignants, departement }) {
+interface EnseignantPanelProps {
+  tree: Record<string, unknown>[];
+  setTree: (tree: Record<string, unknown>[]) => void;
+  allEnseignants: Record<string, unknown>[];
+  extractedEnseignants?: Record<string, unknown>[];
+  departement: string;
+}
+
+export default function EnseignantPanel({ tree, setTree, allEnseignants, extractedEnseignants, departement }: Readonly<EnseignantPanelProps>) {
   const [viewMode, setViewMode] = useState("savoir");
 
   const allSavoirs = useMemo(() => flatten(tree), [tree]);
@@ -186,13 +193,6 @@ export default function EnseignantPanel({ tree, setTree, allEnseignants, extract
   );
 }
 
-EnseignantPanel.propTypes = {
-  tree: PropTypes.array.isRequired,
-  setTree: PropTypes.func.isRequired,
-  allEnseignants: PropTypes.array.isRequired,
-  extractedEnseignants: PropTypes.array,
-  departement: PropTypes.string.isRequired,
-};
 
 
 

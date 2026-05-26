@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Form, Input, Button, Card } from "antd";
 import { LockOutlined } from "@ant-design/icons";
-import { updatePassword } from "@/services/auth/AccountService";
+import { useUpdatePassword } from "@/hooks/auth/useAuthService";
 import { AppPageHeader, shadow, radius } from "@/components/common";
 import useAppNotification from "@/hooks/ui/useAppNotification";
 
@@ -9,14 +9,15 @@ export default function UpdatePassword() {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const { message } = useAppNotification();
+  const { mutateAsync: updatePwd } = useUpdatePassword();
 
   const handleSubmit = async (values) => {
     setLoading(true);
     try {
-      await updatePassword(values);
+      await updatePwd(values);
       message.success("Mot de passe mis à jour avec succès !");
       form.resetFields();
-    } catch (error) {
+    } catch (error: unknown) {
       message.error(error?.response?.data?.message || "Erreur lors de la mise à jour.");
     } finally {
       setLoading(false);

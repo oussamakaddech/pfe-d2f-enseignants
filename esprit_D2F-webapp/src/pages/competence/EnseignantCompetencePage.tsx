@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useContext } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import {
   Table,
@@ -23,24 +23,17 @@ import {
   DeleteOutlined,
   TrophyOutlined,
 } from "@ant-design/icons";
-import { AuthContext } from "@/components/common/AuthProvider";
-import CompetenceService from "@/services/competence/CompetenceService";
+import { useAuth } from "@/hooks/auth/useAuth";
+import { useEnseignantCompetenceApi, useCompetenceDomaineApi, useSavoirApi, useStructureApi } from "@/hooks/competence/useCompetenceService";
 import useAppNotification from "@/hooks/ui/useAppNotification";
 import { AppPageHeader } from "@/components/common";
+import { NIVEAU_OPTIONS } from "@/utils/constants/competenceOptions";
 import "@/styles/pages/competence-page.css";
 
 const { Text } = Typography;
 const { Option } = Select;
 
-const NIVEAU_OPTIONS = [
-  { value: "N1_DEBUTANT",      label: "N1 – Débutant",      color: "default" },
-  { value: "N2_ELEMENTAIRE",   label: "N2 – Élémentaire",   color: "blue" },
-  { value: "N3_INTERMEDIAIRE", label: "N3 – Intermédiaire", color: "cyan" },
-  { value: "N4_AVANCE",        label: "N4 – Avancé",        color: "green" },
-  { value: "N5_EXPERT",        label: "N5 – Expert",        color: "gold" },
-];
-
-function niveauTag(niveau) {
+function niveauTag(niveau: string | undefined) {
   const found = NIVEAU_OPTIONS.find((n) => n.value === niveau);
   return found ? (
     <Tag color={found.color}>{found.label}</Tag>
@@ -51,11 +44,15 @@ function niveauTag(niveau) {
 
 export default function EnseignantCompetencePage() {
   const { enseignantId: paramId } = useParams();
-  const { user } = useContext(AuthContext);
+  const { user } = useAuth();
 
   // Resolve the enseignant to display: URL param (admin) or current user
   const enseignantId = paramId || user?.username;
 
+  const ecApi = useEnseignantCompetenceApi();
+  const domaineApi = useCompetenceDomaineApi();
+  const savoirApi = useSavoirApi();
+  const structureApi = useStructureApi();
   const { message: msgApi } = useAppNotification();
 
   const [competences, setCompetences] = useState([]);
@@ -85,17 +82,17 @@ export default function EnseignantCompetencePage() {
     try {
       let data;
       if (filterDomaine) {
-        data = await CompetenceService.enseignantCompetence.getByEnseignantAndDomaine(
+        data = await ecApi.getByEnseignantAndDomaine(
           enseignantId,
           filterDomaine
         );
       } else if (filterNiveau) {
-        data = await CompetenceService.enseignantCompetence.getByEnseignantAndNiveau(
+        data = await ecApi.getByEnseignantAndNiveau(
           enseignantId,
           filterNiveau
         );
       } else {
-        data = await CompetenceService.enseignantCompetence.getByEnseignant(enseignantId);
+        data = await ecApi.getByEnseignant(enseignantId);
       }
       setCompetences(data);
     } catch {
@@ -108,7 +105,7 @@ export default function EnseignantCompetencePage() {
   const loadCount = useCallback(async () => {
     if (!enseignantId) return;
     try {
-      const res = await CompetenceService.enseignantCompetence.countByEnseignant(enseignantId);
+      const res = await ecApi.countByEnseignant(enseignantId);
       setCount(res.count ?? 0);
     } catch {
       // silent
@@ -117,7 +114,7 @@ export default function EnseignantCompetencePage() {
 
   const loadDomaines = useCallback(async () => {
     try {
-      const data = await CompetenceService.domaine.getActifs();
+      const data = await domaineApi.getActifs();
       setDomaines(data);
     } catch {
       // silent
@@ -127,7 +124,7 @@ export default function EnseignantCompetencePage() {
   const loadSavoirs = useCallback(async () => {
     setSavoirsLoading(true);
     try {
-      const data = await CompetenceService.savoir.getAll();
+      const data = await savoirApi.getAll();
       setSavoirs(data);
     } catch {
       msgApi.error("Erreur lors du chargement des savoirs");
@@ -152,7 +149,7 @@ export default function EnseignantCompetencePage() {
   const handleAssign = async () => {
     try {
       const values = await assignForm.validateFields();
-      await CompetenceService.enseignantCompetence.assign({
+      await ecApi.assign({
         enseignantId,
         ...values,
       });
@@ -160,7 +157,7 @@ export default function EnseignantCompetencePage() {
       setAssignModal(false);
       loadCompetences();
       loadCount();
-    } catch (err) {
+    } catch (err: unknown) {
       if (err?.errorFields) return;
       const msg = err.response?.data?.message || "Erreur lors de l'ajout";
       msgApi.error(msg);
@@ -177,11 +174,11 @@ export default function EnseignantCompetencePage() {
   const handleUpdateNiveau = async () => {
     try {
       const { niveau } = await niveauForm.validateFields();
-      await CompetenceService.enseignantCompetence.updateNiveau(editingRecord.id, niveau);
+      await ecApi.updateNiveau(editingRecord.id, niveau);
       msgApi.success("Niveau mis à jour");
       setNiveauModal(false);
       loadCompetences();
-    } catch (err) {
+    } catch (err: unknown) {
       if (err?.errorFields) return;
       const msg = err.response?.data?.message || "Erreur lors de la mise à jour";
       msgApi.error(msg);
@@ -191,11 +188,11 @@ export default function EnseignantCompetencePage() {
   // ─── Delete ───────────────────────────────────────────────────────────────
   const handleDelete = async (id) => {
     try {
-      await CompetenceService.enseignantCompetence.remove(id);
+      await ecApi.remove(id);
       msgApi.success("Compétence retirée");
       loadCompetences();
       loadCount();
-    } catch (err) {
+    } catch (err: unknown) {
       const msg = err.response?.data?.message || "Erreur lors de la suppression";
       msgApi.error(msg);
     }

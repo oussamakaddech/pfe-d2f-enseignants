@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { Space, Button, Input, Typography } from "antd";
 import { SearchOutlined, ReloadOutlined } from "@ant-design/icons";
 
@@ -38,7 +39,7 @@ interface DataToolbarProps {
  * Toolbar standardisée pour les pages de données.
  * Layout : [Titre + Compteur] [Filtres] [Recherche + Actions]
  */
-export default function DataToolbar({
+const DataToolbar = memo(function DataToolbar({
   title,
   searchValue,
   searchPlaceholder = "Rechercher...",
@@ -122,7 +123,9 @@ export default function DataToolbar({
       </Space>
     </div>
   );
-}
+});
+
+export default DataToolbar;
 
 
 

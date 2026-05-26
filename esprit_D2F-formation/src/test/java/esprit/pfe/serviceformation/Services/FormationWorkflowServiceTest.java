@@ -357,7 +357,7 @@ class FormationWorkflowServiceTest {
         formationWorkflowService.synchronizeFormationCalendar(f);
         
         verify(outlookCalendarService).updateEventInCalendarWithTeamsUrl(any());
-        verify(outlookMailService, atLeastOnce()).sendMail(anyString(), anyString(), anyString());
+        verify(outlookMailService, never()).sendMail(anyString(), anyString(), anyString());
     }
 
     @Test

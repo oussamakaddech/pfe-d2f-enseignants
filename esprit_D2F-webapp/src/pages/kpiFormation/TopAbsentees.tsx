@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useRef, useMemo } from 'react';
 import { Card, Row, Col, Select, DatePicker, Spin, Table, Button } from 'antd';
 import { Line } from 'react-chartjs-2';
 import { DownOutlined, UpOutlined } from '@ant-design/icons';
@@ -14,10 +14,9 @@ import {
   Legend,
   Filler
 } from 'chart.js';
-import KPIService from '@/services/analyse/KPIService';
-import EnseignantService from '@/services/formation/EnseignantService';  // ← import
-import UpService from '@/services/api/UploadService';
-import DeptService from '@/services/formation/DeptService';
+import { useTopAbsentees } from "@/hooks/kpi/useKpi";
+import { useEnseignants } from "@/hooks/enseignant/useEnseignants";
+import { useUps, useDepartements } from "@/hooks/formation/useFormations";
 import "@/styles/components/chart-scroll.css";
 
 ChartJS.register(
@@ -35,10 +34,12 @@ const { RangePicker } = DatePicker;
 const { Option }      = Select;
 
 export default function TopAbsentees() {
-  const [ups, setUps]         = useState([]);
-  const [depts, setDepts]     = useState([]);
-  const [stats, setStats]     = useState([]);       // contiendra les objets enrichis
-  const [loading, setLoading] = useState(false);
+  const { data: upsData } = useUps();
+  const { data: deptsData } = useDepartements();
+  const ups = upsData ?? [];
+  const depts = deptsData ?? [];
+  const { data: enseignants } = useEnseignants();
+
   const [sortOrder, setSortOrder] = useState('desc');
   const [showTable, setShowTable] = useState(false);
   const [filters, setFilters]     = useState({
@@ -48,46 +49,32 @@ export default function TopAbsentees() {
   });
   const chartRef = useRef(null);
 
-  // Charge UPs & Dépts
-  useEffect(() => {
-    UpService.getAllUps().then(setUps).catch(console.error);
-    DeptService.getAllDepts().then(setDepts).catch(console.error);
-  }, []);
+  const [start, end] = filters.range;
+  const { data: raw, isLoading } = useTopAbsentees(
+    start.format('YYYY-MM-DD'),
+    end.format('YYYY-MM-DD'),
+    filters.upId,
+    filters.deptId
+  );
 
-  // Fetch + enrichissement
-  useEffect(() => {
-    let alive = true;
-    setLoading(true);
-    (async () => {
-      try {
-        const [start, end] = filters.range;
-        // 1) on récupère le top raw
-        const raw = await KPIService.getTopAbsentees(
-          start.format('YYYY-MM-DD'),
-          end.format('YYYY-MM-DD'),
-          filters.upId,
-          filters.deptId
-        );
-        // 2) pour chaque entrée, on va chercher les infos complètes
-        const enriched = await Promise.all(raw.map(async entry => {
-          const ens = await EnseignantService.getEnseignantById(entry.enseignantId);
-          return {
-            ...entry,
-            mail: ens.mail,
-            deptLibelle: ens.dept.libelle,
-            upLibelle: ens.up.libelle
-          };
-        }));
-        if (!alive) return;
-        setStats(enriched);
-      } catch {
-        if (alive) setStats([]);
-      } finally {
-        if (alive) setLoading(false);
-      }
-    })();
-    return () => { alive = false; };
-  }, [filters]);
+  const enseignantMap = useMemo(() => {
+    const map = new Map();
+    (enseignants ?? []).forEach(ens => map.set(ens.id, ens));
+    return map;
+  }, [enseignants]);
+
+  const stats = useMemo(() => {
+    if (!raw) return [];
+    return raw.map(entry => {
+      const ens = enseignantMap.get(entry.enseignantId);
+      return {
+        ...entry,
+        mail: ens?.mail,
+        deptLibelle: ens?.dept?.libelle,
+        upLibelle: ens?.up?.libelle
+      };
+    });
+  }, [raw, enseignantMap]);
 
   // Tri et top 10
   const sorted = [...stats].sort((a, b) =>
@@ -194,7 +181,7 @@ export default function TopAbsentees() {
         </Col>
       </Row>
 
-      {loading ? (
+      {isLoading ? (
         <Spin tip="Chargement..." style={{ margin: '150px auto', display: 'block' }} />
       ) : (
         <>

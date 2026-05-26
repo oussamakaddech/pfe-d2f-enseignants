@@ -1,4 +1,4 @@
-import { useContext, useMemo } from "react";
+import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Row, Col, Typography, Tag } from "antd";
 import { motion } from "framer-motion";
@@ -8,7 +8,7 @@ import {
   SafetyCertificateOutlined, CalendarOutlined, SearchOutlined,
   PlusCircleOutlined, UserOutlined, ArrowRightOutlined,
 } from "@ant-design/icons";
-import { AuthContext } from "@/components/common/AuthProvider";
+import { useAuth } from "@/hooks/auth/useAuth";
 
 const { Title, Text } = Typography;
 
@@ -85,7 +85,7 @@ const cardVariants = {
 };
 
 export default function Home() {
-  const { user } = useContext(AuthContext);
+  const { user } = useAuth();
   const navigate  = useNavigate();
   const roleKey   = normalizeRole(user?.role);
   const cards     = useMemo(() => CARDS_BY_ROLE[roleKey] ?? [], [roleKey]);

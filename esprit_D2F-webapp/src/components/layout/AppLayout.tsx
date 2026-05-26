@@ -1,4 +1,4 @@
-import { useState, useContext, useMemo, memo, Suspense } from "react";
+import { useState, useMemo, memo, Suspense } from "react";
 import { Layout, Dropdown, Avatar, Button, Breadcrumb, Badge, Tooltip, Row, Col, Skeleton } from "antd";
 import {
   MenuFoldOutlined, MenuUnfoldOutlined, UserOutlined,
@@ -8,7 +8,7 @@ import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import SideMenu from "./SideMenu";
 import ContentSkeleton from "./ContentSkeleton";
-import { AuthContext } from "@/components/common/AuthProvider";
+import { useAuth } from "@/hooks/auth";
 import { HEADER_HEIGHT, ROUTE_LABELS, getBackTarget } from "./AppLayoutConstants";
 import "@/styles/components/layout.css";
 
@@ -49,7 +49,7 @@ const today = new Date().toLocaleDateString("fr-FR", {
 
 function AppLayout() {
   const [collapsed, setCollapsed] = useState(false);
-  const { user, logout } = useContext(AuthContext);
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const siderWidth = collapsed ? 80 : 260;

@@ -4,7 +4,7 @@ import { Form, Input, Select, Checkbox, Upload, Button, Typography } from "antd"
 import { UploadOutlined } from "@ant-design/icons";
 import useAppNotification from "@/hooks/ui/useAppNotification";
 import "antd/dist/reset.css";
-import DocumentService from "@/services/formation/DocumentService";
+import { useCreateDocument } from "@/hooks/document/useDocument";
 
 const { Option } = Select;
 const PATH_OPTIONS = [
@@ -35,7 +35,8 @@ export default function DocumentCreateForm({ formationId, onDocumentCreated, onC
         obligation:  values.obligation,
         file:        values.file[0].originFileObj,
       };
-      const newDoc = await DocumentService.createDocument(payload);
+      const { mutateAsync: createDoc } = useCreateDocument();
+      const newDoc = await createDoc(payload);
       message.success("Document créé avec succès");
       form.resetFields();
       setFileList([]);

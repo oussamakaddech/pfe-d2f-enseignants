@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { Result, Button, Typography } from "antd";
 import { neutral } from "@/styles/themes/tokens";
 
@@ -23,7 +24,7 @@ interface ErrorStateStandardProps {
  * - Bouton retry optionnel
  * - Description détaillée optionnelle
  */
-export default function ErrorStateStandard({
+const ErrorStateStandard = memo(function ErrorStateStandard({
   title = "Une erreur est survenue",
   description,
   retryLabel = "Réessayer",
@@ -62,7 +63,9 @@ export default function ErrorStateStandard({
       />
     </div>
   );
-}
+});
+
+export default ErrorStateStandard;
 
 
 

@@ -9,6 +9,7 @@ import {
   InfoCircleOutlined,
   TeamOutlined,
 } from "@ant-design/icons";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import useAppNotification from "@/hooks/ui/useAppNotification";
 import CompetenceService from "@/services/competence/CompetenceService";
 
@@ -16,8 +17,8 @@ const { Text } = Typography;
 
 export default function useStructureData() {
   const { message } = useAppNotification();
-  const [structure, setStructure] = useState(null);
-  const [structureLoading, setStructureLoading] = useState(false);
+  const qc = useQueryClient();
+
   const [searchResults, setSearchResults] = useState(null);
   const [searchKeyword, setSearchKeyword] = useState("");
   const [selectedDomaine, setSelectedDomaine] = useState(null);
@@ -26,166 +27,69 @@ export default function useStructureData() {
 
   const [niveauModalVisible, setNiveauModalVisible] = useState(false);
   const [niveauTarget, setNiveauTarget] = useState(null);
-  const [niveauData, setNiveauData] = useState({});
-  const [niveauLoading, setNiveauLoading] = useState(false);
-  const [allSavoirsHierarchie, setAllSavoirsHierarchie] = useState([]);
 
   const [filterUpId, setFilterUpId] = useState<number | null>(null);
   const [filterDeptId, setFilterDeptId] = useState<number | null>(null);
 
   const [matrixCompId, setMatrixCompId] = useState(null);
-  const [matrixData, setMatrixData] = useState(null);
-  const [matrixLoading, setMatrixLoading] = useState(false);
 
-  const loadAllSavoirs = useCallback(async () => {
-    try {
-      const all = await CompetenceService.savoir.getAll();
-      setAllSavoirsHierarchie(all);
-    } catch {
-      // silently handle
-    }
-  }, []);
+  const allSavoirsQuery = useQuery({
+    queryKey: ["all-savoirs"],
+    queryFn: () => CompetenceService.savoir.getAll(),
+    staleTime: 5 * 60 * 1000,
+  });
 
-  useEffect(() => {
-    loadAllSavoirs();
-  }, [loadAllSavoirs]);
+  const structureQuery = useQuery({
+    queryKey: ["structure", filterUpId, filterDeptId],
+    queryFn: () => CompetenceService.structure.getArbreComplet(filterUpId, filterDeptId),
+  });
 
-  const loadStructure = useCallback(async (upId?: number | null, deptId?: number | null) => {
-    setStructureLoading(true);
-    try {
-      const data = await CompetenceService.structure.getArbreComplet(upId, deptId);
-      setStructure(data);
-    } catch {
-      message.error("Erreur lors du chargement de la structure");
-    } finally {
-      setStructureLoading(false);
-    }
-  }, []);
+  const niveauQuery = useQuery({
+    queryKey: ["niveau", niveauTarget?.type, niveauTarget?.id],
+    queryFn: () =>
+      niveauTarget.type === "competence"
+        ? CompetenceService.niveauDefinition.getByCompetence(niveauTarget.id)
+        : CompetenceService.niveauDefinition.getBySousCompetence(niveauTarget.id),
+    enabled: niveauModalVisible && !!niveauTarget,
+  });
 
-  const invalidateStructure = useCallback(() => {
-    loadStructure(filterUpId, filterDeptId);
-  }, [filterUpId, filterDeptId, loadStructure]);
+  const matrixQuery = useQuery({
+    queryKey: ["matrix", matrixCompId],
+    queryFn: () => CompetenceService.niveauDefinition.getByCompetence(matrixCompId),
+    enabled: !!matrixCompId,
+    select: (resp) => resp.niveaux ?? resp,
+  });
 
-  const applyFilter = useCallback((upId: number | null, deptId: number | null) => {
-    setFilterUpId(upId);
-    setFilterDeptId(deptId);
-    loadStructure(upId, deptId);
-  }, [loadStructure]);
-
-  const openNiveauModal = useCallback(async (type, id, nom) => {
-    setNiveauTarget({ type, id, nom });
-    setNiveauModalVisible(true);
-    setNiveauLoading(true);
-    try {
-      let data;
-      if (type === "competence") {
-        data = await CompetenceService.niveauDefinition.getByCompetence(id);
-      } else {
-        data = await CompetenceService.niveauDefinition.getBySousCompetence(id);
-      }
-      setNiveauData(data);
-    } catch {
-      message.error("Erreur lors du chargement des niveaux");
-    } finally {
-      setNiveauLoading(false);
-    }
-  }, []);
-
-  const handleAddNiveauSavoir = useCallback(async (values) => {
-    if (!niveauTarget) return;
-    try {
+  const addNiveauMutation = useMutation({
+    mutationFn: ({ values, target }) => {
       const request = {
         niveau: values.niveau,
         savoirId: values.savoirId,
         description: values.description,
       };
-      if (niveauTarget.type === "competence") request.competenceId = niveauTarget.id;
-      else request.sousCompetenceId = niveauTarget.id;
-
-      await CompetenceService.niveauDefinition.add(request);
+      if (target.type === "competence") request.competenceId = target.id;
+      else request.sousCompetenceId = target.id;
+      return CompetenceService.niveauDefinition.add(request);
+    },
+    onSuccess: (_, variables) => {
       message.success("Savoir requis ajouté au niveau");
-      const refresh = niveauTarget.type === "competence"
-        ? await CompetenceService.niveauDefinition.getByCompetence(niveauTarget.id)
-        : await CompetenceService.niveauDefinition.getBySousCompetence(niveauTarget.id);
-      setNiveauData(refresh);
-    } catch (err) {
+      qc.invalidateQueries({ queryKey: ["niveau", variables.target?.type, variables.target?.id] });
+    },
+    onError: (err: unknown) => {
       message.error(err.response?.data?.message || "Erreur lors de l'ajout");
-    }
-  }, [niveauTarget]);
+    },
+  });
 
-  const handleRemoveNiveauSavoir = useCallback(async (id) => {
-    if (!niveauTarget) return;
-    try {
-      await CompetenceService.niveauDefinition.remove(id);
+  const removeNiveauMutation = useMutation({
+    mutationFn: ({ id, target }) => CompetenceService.niveauDefinition.remove(id),
+    onSuccess: (_, variables) => {
       message.success("Savoir requis supprimé du niveau");
-      const refresh = niveauTarget.type === "competence"
-        ? await CompetenceService.niveauDefinition.getByCompetence(niveauTarget.id)
-        : await CompetenceService.niveauDefinition.getBySousCompetence(niveauTarget.id);
-      setNiveauData(refresh);
-    } catch {
+      qc.invalidateQueries({ queryKey: ["niveau", variables.target?.type, variables.target?.id] });
+    },
+    onError: () => {
       message.error("Erreur lors de la suppression");
-    }
-  }, [niveauTarget]);
-
-  const loadMatrixData = useCallback(async (compId) => {
-    if (!compId) {
-      setMatrixData(null);
-      return;
-    }
-    setMatrixLoading(true);
-    try {
-      const resp = await CompetenceService.niveauDefinition.getByCompetence(compId);
-      setMatrixData(resp.niveaux ?? resp);
-    } catch {
-      message.error("Erreur lors du chargement de la matrice des niveaux");
-    } finally {
-      setMatrixLoading(false);
-    }
-  }, []);
-
-  const refreshMatrixIfNeeded = useCallback(() => {
-    if (matrixCompId) loadMatrixData(matrixCompId);
-  }, [loadMatrixData, matrixCompId]);
-
-  const doSearch = useCallback(async (keyword, domaine) => {
-    if (!keyword || keyword.trim().length <2) {
-      setSearchResults(null);
-      return;
-    }
-    setSearchLoading(true);
-    try {
-      let data;
-      if (domaine) data = await CompetenceService.structure.rechercheParDomaine(domaine, keyword.trim());
-      else data = await CompetenceService.structure.rechercheGlobale(keyword.trim());
-      setSearchResults(data);
-    } catch {
-      message.error("Erreur de recherche");
-    } finally {
-      setSearchLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    if (!searchKeyword || searchKeyword.trim().length < 2) {
-      setSearchResults(null);
-      return;
-    }
-    debounceRef.current = setTimeout(() => {
-      doSearch(searchKeyword, selectedDomaine);
-    }, 400);
-    return () => clearTimeout(debounceRef.current);
-  }, [doSearch, searchKeyword, selectedDomaine]);
-
-  const handleSearch = useCallback((value) => {
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    doSearch(value, selectedDomaine);
-  }, [doSearch, selectedDomaine]);
-
-  const handleClearSearch = useCallback(() => {
-    setSearchKeyword("");
-    setSearchResults(null);
-  }, []);
+    },
+  });
 
   const buildSavoirNode = (s) => ({
     key: `sav-${s.id}`,
@@ -276,7 +180,7 @@ export default function useStructureData() {
         isLeaf: true,
       })) || []),
     ],
-  }), [openNiveauModal, buildSousCompNode]);
+  }), [buildSousCompNode]);
 
   const buildDomaineNode = useCallback((domaine) => ({
     key: `dom-${domaine.id}`,
@@ -294,13 +198,87 @@ export default function useStructureData() {
   }), [buildCompetenceNode]);
 
   const treeData = useMemo(() => {
-    if (!structure?.domaines) return [];
-    return structure.domaines.map(buildDomaineNode);
-  }, [structure, buildDomaineNode]);
+    if (!structureQuery.data?.domaines) return [];
+    return structureQuery.data.domaines.map(buildDomaineNode);
+  }, [structureQuery.data, buildDomaineNode]);
+
+  const loadStructure = useCallback(() => structureQuery.refetch(), [structureQuery]);
+
+  const invalidateStructure = useCallback(() => {
+    qc.invalidateQueries({ queryKey: ["structure"] });
+  }, [qc]);
+
+  const refreshMatrixIfNeeded = useCallback(() => {
+    if (matrixCompId) qc.invalidateQueries({ queryKey: ["matrix"] });
+  }, [qc, matrixCompId]);
+
+  const applyFilter = useCallback((upId: number | null, deptId: number | null) => {
+    setFilterUpId(upId);
+    setFilterDeptId(deptId);
+  }, []);
+
+  const openNiveauModal = useCallback(async (type, id, nom) => {
+    setNiveauTarget({ type, id, nom });
+    setNiveauModalVisible(true);
+  }, []);
+
+  const handleAddNiveauSavoir = useCallback(async (values) => {
+    if (!niveauTarget) return;
+    await addNiveauMutation.mutateAsync({ values, target: niveauTarget });
+  }, [niveauTarget, addNiveauMutation]);
+
+  const handleRemoveNiveauSavoir = useCallback(async (id) => {
+    if (!niveauTarget) return;
+    await removeNiveauMutation.mutateAsync({ id, target: niveauTarget });
+  }, [niveauTarget, removeNiveauMutation]);
+
+  const loadMatrixData = useCallback((compId) => {
+    setMatrixCompId(compId);
+  }, []);
+
+  const doSearch = useCallback(async (keyword, domaine) => {
+    if (!keyword || keyword.trim().length < 2) {
+      setSearchResults(null);
+      return;
+    }
+    setSearchLoading(true);
+    try {
+      let data;
+      if (domaine) data = await CompetenceService.structure.rechercheParDomaine(domaine, keyword.trim());
+      else data = await CompetenceService.structure.rechercheGlobale(keyword.trim());
+      setSearchResults(data);
+    } catch {
+      message.error("Erreur de recherche");
+    } finally {
+      setSearchLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (!searchKeyword || searchKeyword.trim().length < 2) {
+      setSearchResults(null);
+      return;
+    }
+    debounceRef.current = setTimeout(() => {
+      doSearch(searchKeyword, selectedDomaine);
+    }, 400);
+    return () => clearTimeout(debounceRef.current);
+  }, [doSearch, searchKeyword, selectedDomaine]);
+
+  const handleSearch = useCallback((value) => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    doSearch(value, selectedDomaine);
+  }, [doSearch, selectedDomaine]);
+
+  const handleClearSearch = useCallback(() => {
+    setSearchKeyword("");
+    setSearchResults(null);
+  }, []);
 
   return {
-    structure,
-    structureLoading,
+    structure: structureQuery.data,
+    structureLoading: structureQuery.isLoading,
     loadStructure,
     invalidateStructure,
     filterUpId,
@@ -317,26 +295,19 @@ export default function useStructureData() {
     niveauModalVisible,
     setNiveauModalVisible,
     niveauTarget,
-    niveauData,
-    niveauLoading,
+    niveauData: niveauQuery.data,
+    niveauLoading: niveauQuery.isLoading,
     handleAddNiveauSavoir,
     handleRemoveNiveauSavoir,
-    allSavoirsHierarchie,
-    setAllSavoirsHierarchie,
+    allSavoirsHierarchie: allSavoirsQuery.data ?? [],
+    setAllSavoirsHierarchie: () => {},
     treeData,
     matrixCompId,
     setMatrixCompId,
-    matrixData,
-    matrixLoading,
+    matrixData: matrixQuery.data,
+    matrixLoading: matrixQuery.isLoading,
     loadMatrixData,
     refreshMatrixIfNeeded,
     openNiveauModal,
   };
 }
-
-
-
-
-
-
-

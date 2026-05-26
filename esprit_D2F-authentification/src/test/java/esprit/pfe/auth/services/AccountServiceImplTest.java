@@ -4,6 +4,8 @@ import esprit.pfe.auth.entities.ERole;
 import esprit.pfe.auth.entities.Role;
 import esprit.pfe.auth.entities.User;
 import esprit.pfe.auth.error.BadRequestException;
+import esprit.pfe.auth.error.LoginException;
+import esprit.pfe.auth.error.ResourceNotFoundException;
 import esprit.pfe.auth.payload.request.EditProfileRequest;
 import esprit.pfe.auth.payload.request.UpdatePasswordRequest;
 import esprit.pfe.auth.repositories.RoleRepository;
@@ -140,6 +142,20 @@ class AccountServiceImplTest {
     }
 
     @Test
+    void testGetPrincipal_UserNotFound() {
+        // Arrange
+        when(userRepository.findByUsername("nonexistent")).thenReturn(Optional.empty());
+
+        // Act & Assert — JWT's user deleted → 401 LoginException (not 400 BadRequest)
+        LoginException exception = assertThrows(
+            LoginException.class,
+            () -> accountService.getPrincipal("nonexistent")
+        );
+        assertEquals("User not found", exception.getMessage());
+        verify(userRepository, times(1)).findByUsername("nonexistent");
+    }
+
+    @Test
     void testEditProfile_Success() {
         // Arrange
         when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(testUser));
@@ -164,9 +180,9 @@ class AccountServiceImplTest {
         // Arrange
         when(userRepository.findByUsername("nonexistent")).thenReturn(Optional.empty());
 
-        // Act & Assert
-        BadRequestException exception = assertThrows(
-            BadRequestException.class,
+        // Act & Assert — JWT's user no longer exists → 401 LoginException
+        LoginException exception = assertThrows(
+            LoginException.class,
             () -> accountService.editProfile("nonexistent", editProfileRequest)
         );
         assertEquals("User not found", exception.getMessage());
@@ -213,6 +229,21 @@ class AccountServiceImplTest {
     }
 
     @Test
+    void testUpdatePassword_UserNotFound() {
+        // Arrange — mismatch check happens before the DB lookup, so use matching passwords
+        when(userRepository.findByUsername("nonexistent")).thenReturn(Optional.empty());
+
+        // Act & Assert — JWT's user deleted → 401 LoginException
+        LoginException exception = assertThrows(
+            LoginException.class,
+            () -> accountService.updatePassword("nonexistent", updatePasswordRequest)
+        );
+        assertEquals("User not found", exception.getMessage());
+        verify(userRepository, times(1)).findByUsername("nonexistent");
+        verify(userRepository, never()).save(any(User.class));
+    }
+
+    @Test
     void testUpdatePassword_PasswordMismatch() {
         // Arrange
         updatePasswordRequest.setConfirmation("differentPassword");
@@ -246,9 +277,9 @@ class AccountServiceImplTest {
         // Arrange
         when(userRepository.findByUsername("nonexistent")).thenReturn(Optional.empty());
 
-        // Act & Assert
-        BadRequestException exception = assertThrows(
-            BadRequestException.class,
+        // Act & Assert — admin lookup of non-existent user → 404 ResourceNotFoundException
+        ResourceNotFoundException exception = assertThrows(
+            ResourceNotFoundException.class,
             () -> accountService.getPrincipalByUsername("nonexistent")
         );
         assertEquals("User not found", exception.getMessage());
@@ -274,9 +305,9 @@ class AccountServiceImplTest {
         // Arrange
         when(userRepository.findById("nonexistent")).thenReturn(Optional.empty());
 
-        // Act & Assert
-        BadRequestException exception = assertThrows(
-            BadRequestException.class,
+        // Act & Assert — deleting non-existent resource → 404 ResourceNotFoundException
+        ResourceNotFoundException exception = assertThrows(
+            ResourceNotFoundException.class,
             () -> accountService.deleteAccount("nonexistent")
         );
         assertEquals("User not found", exception.getMessage());
@@ -306,6 +337,21 @@ class AccountServiceImplTest {
         verify(userRepository, times(1)).findById("test123");
         verify(roleRepository, times(1)).findByName(ERole.ADMIN);
         verify(userRepository, times(1)).save(testUser);
+    }
+
+    @Test
+    void testUpdateAccount_UserNotFound() {
+        // Arrange
+        when(userRepository.findById("nonexistent")).thenReturn(Optional.empty());
+
+        // Act & Assert — admin update on non-existent resource → 404 ResourceNotFoundException
+        ResourceNotFoundException exception = assertThrows(
+            ResourceNotFoundException.class,
+            () -> accountService.updateAccount("nonexistent", editProfileRequest, null)
+        );
+        assertEquals("User not found", exception.getMessage());
+        verify(userRepository, times(1)).findById("nonexistent");
+        verify(userRepository, never()).save(any(User.class));
     }
 
     @Test

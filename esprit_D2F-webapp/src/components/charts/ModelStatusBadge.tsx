@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { Tag, Tooltip, Space } from "antd";
 import {
   CheckCircleOutlined,
@@ -5,12 +6,12 @@ import {
   ExclamationCircleOutlined,
   ClockCircleOutlined,
 } from "@ant-design/icons";
-import { useModelStatus, type ModelStatus } from "@/hooks/analyse/useModelStatus";
-
+import { useModelStatus, type ModelStatus } from "@/hooks/analyse/useModelStatus";
+
 interface Props {
   refreshKey?: number;
-}
-
+}
+
 const STYLES: Record<ModelStatus, { color: string; icon: React.ReactNode; label: string }> = {
   loading:  { color: "default", icon: <ClockCircleOutlined spin />, label: "Vérification…" },
   no_model: { color: "orange",  icon: <ExclamationCircleOutlined />, label: "Mode heuristique" },
@@ -18,18 +19,18 @@ const STYLES: Record<ModelStatus, { color: string; icon: React.ReactNode; label:
   stale:    { color: "orange",  icon: <ClockCircleOutlined />,       label: "Modèle ancien" },
   drift:    { color: "red",     icon: <WarningOutlined />,           label: "Dérive détectée" },
   error:    { color: "default", icon: <ExclamationCircleOutlined />, label: "Statut indisponible" },
-};
-
-export default function ModelStatusBadge({ refreshKey = 0 }: Readonly<Props>) {
-  const { report, status } = useModelStatus(refreshKey);
-
+};
+
+const ModelStatusBadge = memo(function ModelStatusBadge({ refreshKey = 0 }: Readonly<Props>) {
+  const { report, status } = useModelStatus(refreshKey);
+
   const meta = STYLES[status];
   const tooltip = report?.recommendation
     || report?.message
     || (report?.days_since_training === undefined
         ? "Statut du modèle prédictif"
-        : `Entraîné il y a ${report.days_since_training} jours`);
-
+        : `Entraîné il y a ${report.days_since_training} jours`);
+
   return (
     <Tooltip title={tooltip}>
       <Tag color={meta.color} style={{ borderRadius: 12, padding: "2px 10px" }}>
@@ -40,4 +41,6 @@ export default function ModelStatusBadge({ refreshKey = 0 }: Readonly<Props>) {
       </Tag>
     </Tooltip>
   );
-}
+});
+
+export default ModelStatusBadge;

@@ -1,3 +1,4 @@
+import { memo } from "react";
 import type { ReactNode } from "react";
 import { Typography } from "antd";
 import { brand, neutral, radius } from "@/styles/themes/tokens";
@@ -14,7 +15,7 @@ interface D2FPageHeaderProps {
   readonly divider?: boolean;
 }
 
-export default function D2FPageHeader({
+const D2FPageHeader = memo(function D2FPageHeader({
   icon,
   title,
   subtitle,
@@ -98,7 +99,9 @@ export default function D2FPageHeader({
       </div>
     </div>
   );
-}
+});
+
+export default D2FPageHeader;
 
 
 

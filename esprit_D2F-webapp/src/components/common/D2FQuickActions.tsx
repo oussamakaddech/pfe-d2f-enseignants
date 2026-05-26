@@ -1,3 +1,4 @@
+import { memo } from "react";
 import type { ReactNode } from "react";
 import { Space, Button } from "antd";
 
@@ -16,7 +17,7 @@ interface D2FQuickActionsProps {
   readonly size?: "small" | "middle" | "large";
 }
 
-export default function D2FQuickActions({ actions, size = "middle" }: D2FQuickActionsProps) {
+const D2FQuickActions = memo(function D2FQuickActions({ actions, size = "middle" }: D2FQuickActionsProps) {
   return (
     <Space wrap size={size === "small" ? 8 : 12}>
       {actions.map((action) => (
@@ -34,7 +35,9 @@ export default function D2FQuickActions({ actions, size = "middle" }: D2FQuickAc
       ))}
     </Space>
   );
-}
+});
+
+export default D2FQuickActions;
 
 
 

@@ -22,11 +22,8 @@ import {
   ExclamationCircleOutlined,
   BellOutlined,
 } from "@ant-design/icons";
-import {
-  getProfile,
-  editProfile,
-  updatePassword,
-} from "@/services/auth/AccountService";
+import { useProfile } from "@/hooks/formation/useFormationExtras";
+import { useEditProfile, useUpdatePassword } from "@/hooks/auth/useAuthService";
 import useAppNotification from "@/hooks/ui/useAppNotification";
 import "@/styles/pages/profile.css";
 
@@ -44,40 +41,35 @@ export default function Profile() {
 
   const [infoForm] = Form.useForm();
   const [pwdForm] = Form.useForm();
+  const { data: profileData, refetch: refetchProfile } = useProfile();
+  const { mutateAsync: editProfileApi } = useEditProfile();
+  const { mutateAsync: updatePwdApi } = useUpdatePassword();
 
   useEffect(() => {
-    loadProfile();
-  }, []);
-
-  const loadProfile = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-      const data = await getProfile();
-      setProfile(data);
-      infoForm.setFieldsValue({
-        email: data.email,
-        phoneNumber: data.phoneNumber,
-        firstName: data.firstName || data.firsName,
-        lastName: data.lastName,
-      });
-    } catch (err) {
-      const errorMsg = err.response?.data?.message || err.message || "Impossible de charger le profil.";
-      setError(errorMsg);
-      msgApi.error(errorMsg);
-    } finally {
+    if (profileData) {
+      setProfile(profileData);
       setLoading(false);
+      infoForm.setFieldsValue({
+        email: profileData.email,
+        phoneNumber: profileData.phoneNumber,
+        firstName: profileData.firstName || profileData.firsName,
+        lastName: profileData.lastName,
+      });
     }
+  }, [profileData]);
+
+  const loadProfile = () => {
+    refetchProfile();
   };
 
   const onFinishInfo = async (values) => {
     setSaving(true);
     try {
-      await editProfile(values);
+      await editProfileApi(values);
       msgApi.success("Profil mis à jour !");
       setIsInfoDrawerOpen(false);
       await loadProfile();
-    } catch (err) {
+    } catch (err: unknown) {
       msgApi.error(err.response?.data?.message || err.message || "Erreur de modification");
     } finally {
       setSaving(false);
@@ -91,11 +83,11 @@ export default function Profile() {
     }
     setPasswordSaving(true);
     try {
-      await updatePassword({ newPassword, confirmation });
+      await updatePwdApi({ newPassword, confirmation });
       msgApi.success("Mot de passe changé !");
       setIsPwdDrawerOpen(false);
       pwdForm.resetFields();
-    } catch (err) {
+    } catch (err: unknown) {
       msgApi.error(err.response?.data?.message || err.message || "Erreur");
     } finally {
       setPasswordSaving(false);

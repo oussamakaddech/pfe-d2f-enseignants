@@ -1,9 +1,10 @@
-import { useContext, useMemo } from "react";
+import { memo, useMemo } from "react";
 import { Menu, Avatar, Badge, Typography, Divider } from "antd";
+import type { MenuProps } from "antd";
 import { UserOutlined } from "@ant-design/icons";
 import { useNavigate, useLocation } from "react-router-dom";
-import { AuthContext } from "@/components/common/AuthProvider";
-import { roleMenus, accountGroup } from "./sideMenuData";
+import { useAuth } from "@/hooks/auth";
+import { roleMenus, accountGroup, type MenuItem } from "./sideMenuData";
 import "@/styles/components/sidemenu.css";
 
 const { Text } = Typography;
@@ -23,10 +24,10 @@ const ROLE_LABELS: Record<string, string> = {
   chefdepartement:    "Chef de Département",
 };
 
-function processItems(items: any[]): any[] {
-  return items.map((item: any) => {
+function processItems(items: MenuItem[]): MenuProps["items"] {
+  return items.map((item: MenuItem) => {
     if (item.type === "group") {
-      return { type: "group", label: item.label, children: processItems(item.children || []) };
+      return { type: "group" as const, label: item.label, children: processItems(item.children || []) };
     }
     const Icon = item.icon;
     const children = item.children ? processItems(item.children) : undefined;
@@ -43,8 +44,8 @@ function getDefaultOpenKeys(pathname: string): string[] {
   return [];
 }
 
-export default function SideMenu() {
-  const { user, logout } = useContext(AuthContext);
+const SideMenu = memo(function SideMenu({ collapsed }: { collapsed?: boolean }) {
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const roleKey = normalizeRole(user?.role);
@@ -74,7 +75,7 @@ export default function SideMenu() {
             <Avatar
               size={40}
               icon={<UserOutlined />}
-              src={user?.avatar}
+              src={typeof user?.avatar === "string" ? user.avatar : undefined}
               className="user-avatar"
               style={{ background: "#B51200", color: "#fff" }}
             />
@@ -100,4 +101,6 @@ export default function SideMenu() {
       </div>
     </div>
   );
-}
+});
+
+export default SideMenu;

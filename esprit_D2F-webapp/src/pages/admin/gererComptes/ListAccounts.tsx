@@ -32,13 +32,8 @@ import {
   StopOutlined,
   SolutionOutlined,
 } from '@ant-design/icons';
-import {
-  getAllAccounts,
-  banAccount,
-  enableAccount,
-  deleteAccount,
-  updateAccount,
-} from '@/services/auth/AccountService';
+import { useAllAccounts } from "@/hooks/formation/useFormations";
+import { useBanAccount, useEnableAccount, useDeleteAccount, useUpdateAccount } from "@/hooks/auth/useAuthService";
 import Register from '@/pages/auth/Register';
 import useAppNotification from "@/hooks/ui/useAppNotification";
 import { AppPageHeader, brand } from "@/components/common";
@@ -81,15 +76,15 @@ export default function ListAccounts() {
   const [editingRecord, setEditingRecord] = useState(null);
   const [editForm] = Form.useForm();
   const [loading, setLoading] = useState(false);
+  const { data: allAccounts, refetch: refetchAllAccounts } = useAllAccounts();
+  const { mutateAsync: banAccountApi } = useBanAccount();
+  const { mutateAsync: enableAccountApi } = useEnableAccount();
+  const { mutateAsync: deleteAccountApi } = useDeleteAccount();
+  const { mutateAsync: updateAccountApi } = useUpdateAccount();
 
   useEffect(() => {
-    fetchAccounts();
-  }, []);
-
-  const fetchAccounts = async () => {
-    try {
-      const data = await getAllAccounts();
-      const normalized = data.map(acc => {
+    if (allAccounts) {
+      const normalized = allAccounts.map(acc => {
         let statusValue;
         if (typeof acc.status === 'boolean') {
           statusValue = acc.status ? 'BLOQUÉ' : 'ACTIF';
@@ -101,9 +96,11 @@ export default function ListAccounts() {
         return { ...acc, status: statusValue };
       });
       setAccounts(normalized);
-    } catch (err) {
-      msgApi.error(err.response?.data?.message || 'Erreur de récupération');
     }
+  }, [allAccounts]);
+
+  const fetchAccounts = () => {
+    refetchAllAccounts();
   };
 
   const stats = {
@@ -136,18 +133,18 @@ export default function ListAccounts() {
     try {
       const values = await editForm.validateFields();
       setLoading(true);
-      await updateAccount(editingRecord.id, {
+      await updateAccountApi({ userId: editingRecord.id, data: {
         firstName: values.firstName,
         lastName: values.lastName,
         email: values.email,
         phoneNumber: values.phoneNumber,
-      }, values.role);
+      }, role: values.role });
       msgApi.success('Compte modifié avec succès !');
       setEditModalVisible(false);
       editForm.resetFields();
       setEditingRecord(null);
       fetchAccounts();
-    } catch (err) {
+    } catch (err: unknown) {
       msgApi.error(err.response?.data?.message || 'Erreur de modification');
     } finally {
       setLoading(false);
@@ -156,10 +153,10 @@ export default function ListAccounts() {
 
   const handleDelete = async userId => {
     try {
-      await deleteAccount(userId);
+      await deleteAccountApi(userId);
       msgApi.success('Compte supprimé avec succès !');
       fetchAccounts();
-    } catch (err) {
+    } catch (err: unknown) {
       msgApi.error(err.response?.data?.message || 'Erreur de suppression');
     }
   };
@@ -168,13 +165,13 @@ export default function ListAccounts() {
     const nextStatus = record.status === 'ACTIF' ? 'BLOQUÉ' : 'ACTIF';
     try {
       if (nextStatus === 'BLOQUÉ') {
-        await banAccount(record.userName);
+        await banAccountApi(record.userName);
       } else {
-        await enableAccount(record.userName);
+        await enableAccountApi(record.userName);
       }
       msgApi.success(nextStatus === 'ACTIF' ? 'Compte débloqué !' : 'Compte bloqué !');
       fetchAccounts();
-    } catch (err) {
+    } catch (err: unknown) {
       msgApi.error(err.response?.data?.message || 'Erreur de mise à jour');
     }
   };

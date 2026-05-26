@@ -28,8 +28,8 @@ import { useRiceTree }    from "@/hooks/analyse/useRiceTree";
 import { useDragAndDrop } from "@/hooks/ui/useDragAndDrop";
 import { useRiceReport }  from "@/hooks/analyse/useRiceReport";
 
-import RiceService       from "@/services/analyse/RiceService";
-import EnseignantService from "@/services/formation/EnseignantService";
+import { useRiceEnseignants, useRiceAnalyze, useRiceSaveAssignments, useRiceAssignCompetence, useRiceRemoveAssignment } from "@/hooks/analyse/useRiceService";
+import { useEnseignants, useCreateEnseignant } from "@/hooks/enseignant/useEnseignants";
 
 import UploadStep    from "./rice/UploadStep";
 import AnalyzingStep from "./rice/AnalyzingStep";
@@ -113,6 +113,9 @@ export default function RicePage() {
   const skipHistoryRef = useRef(false);
 
   // -- Custom hooks -----------------------------------------------------------
+  const riceAnalyze = useRiceAnalyze();
+  const createEnseignantHook = useCreateEnseignant();
+
   const treeHook = useRiceTree(msgApi);
   const {
     tree, setTree,
@@ -176,10 +179,13 @@ export default function RicePage() {
   } = reportHook;
 
   // -- Load enseignants from DB (mount + department change) ------------------
+  const riceEnsQuery = useRiceEnseignants(departement === "auto" ? null : departement);
+  const ensSlowTimerRef = useRef(null);
+
   const loadEnseignants = useCallback(() => {
     setIgnoreEnseignants(false);
-    setEnseignantsReloadKey((k) => k + 1);
-  }, []);
+    riceEnsQuery.refetch();
+  }, [riceEnsQuery.refetch]);
 
   const continueWithoutEnseignants = useCallback(() => {
     setIgnoreEnseignants(true);
@@ -191,50 +197,45 @@ export default function RicePage() {
 
   useEffect(() => {
     if (ignoreEnseignants) return;
-    let cancelled = false;
-    let slowTimer;
 
-    const load = async () => {
+    if (riceEnsQuery.isLoading) {
       setEnseignantsLoading(true);
       setEnseignantsError(null);
       setEnseignantsLoadSlow(false);
-      slowTimer = setTimeout(() => {
-        if (!cancelled) setEnseignantsLoadSlow(true);
+      ensSlowTimerRef.current = setTimeout(() => {
+        setEnseignantsLoadSlow(true);
       }, 5000);
+    }
 
-      try {
-        const dept = departement === "auto" ? null : departement;
-        const data = await RiceService.getEnseignants(dept);
-        if (!cancelled) setAllEnseignants(Array.isArray(data) ? data : []);
-      } catch (err) {
-        if (!cancelled) {
-          const status = err?.response?.status;
-          if (status === 401 || status === 403) {
-            setEnseignantsError("Session expirée. Veuillez vous reconnecter pour charger les enseignants.");
-            msgApi.warning("Session expirée — reconnectez-vous");
-          } else {
-            setEnseignantsError(
-              "Impossible de charger les enseignants. Vérifiez votre connexion ou contactez l&apos;admin.",
-            );
-            msgApi.warning("Enseignants non chargés — affectation manuelle uniquement");
-          }
-          setAllEnseignants([]);
-        }
-      } finally {
-        clearTimeout(slowTimer);
-        if (!cancelled) {
-          setEnseignantsLoading(false);
-          setEnseignantsLoadSlow(false);
-        }
+    if (riceEnsQuery.data) {
+      clearTimeout(ensSlowTimerRef.current);
+      setAllEnseignants(Array.isArray(riceEnsQuery.data) ? riceEnsQuery.data : []);
+      setEnseignantsLoading(false);
+      setEnseignantsLoadSlow(false);
+    }
+
+    if (riceEnsQuery.error) {
+      clearTimeout(ensSlowTimerRef.current);
+      const err = riceEnsQuery.error;
+      const status = err?.response?.status;
+      if (status === 401 || status === 403) {
+        setEnseignantsError("Session expirée. Veuillez vous reconnecter pour charger les enseignants.");
+        msgApi.warning("Session expirée — reconnectez-vous");
+      } else {
+        setEnseignantsError(
+          "Impossible de charger les enseignants. Vérifiez votre connexion ou contactez l&apos;admin.",
+        );
+        msgApi.warning("Enseignants non chargés — affectation manuelle uniquement");
       }
-    };
+      setAllEnseignants([]);
+      setEnseignantsLoading(false);
+      setEnseignantsLoadSlow(false);
+    }
 
-    load();
     return () => {
-      cancelled = true;
-      clearTimeout(slowTimer);
+      clearTimeout(ensSlowTimerRef.current);
     };
-  }, [departement, enseignantsReloadKey, ignoreEnseignants, msgApi]);
+  }, [riceEnsQuery.data, riceEnsQuery.isLoading, riceEnsQuery.error, ignoreEnseignants, msgApi]);
 
   // -- Upload change handler --------------------------------------------------
   const handleUploadChange = useCallback(({ fileList }) => {
@@ -360,9 +361,9 @@ export default function RicePage() {
     }, 800);
 
     try {
-      const result = await RiceService.analyze(
-        files.filter(Boolean), enseignants, departement,
-      );
+      const result = await riceAnalyze.mutateAsync({
+        files: files.filter(Boolean), enseignants, departement,
+      });
       clearInterval(progressTimerRef.current);
       if (analyzeIsCanceledRef.current) return;
       setAnalysisProgress(100);
@@ -377,7 +378,7 @@ export default function RicePage() {
       detectDepartment(result);
 
       setTimeout(() => setCurrentStep(2), 400);
-    } catch (err) {
+    } catch (err: unknown) {
       clearInterval(progressTimerRef.current);
       if (analyzeIsCanceledRef.current) return;
       msgApi.error(err.response?.data?.detail ?? err.message ?? "Erreur d&apos;analyse IA");
@@ -415,7 +416,7 @@ export default function RicePage() {
       const mail =
         createEnsData.mail.trim() ||
         `${nomUp.toLowerCase()}.${prenom.toLowerCase().replaceAll(/\s+/g, ".")}@esprit.tn`;
-      const created = await EnseignantService.createEnseignant({
+      const created = await createEnseignantHook.mutateAsync({
         nom: nomUp, prenom, mail, type: "P", etat: "A",
       });
       const realId = String(created.id ?? created.enseignantId);
@@ -439,7 +440,7 @@ export default function RicePage() {
       }
       setCreateEnsModal(false);
       setCreateEnsTarget(null);
-    } catch (err) {
+    } catch (err: unknown) {
       msgApi.error(err.response?.data?.message ?? "Erreur lors de la creation");
     } finally {
       setSavingNewEns(false);

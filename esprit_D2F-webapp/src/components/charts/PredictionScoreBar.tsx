@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { Progress, Tooltip } from "antd";
 
 interface PredictionScoreBarProps {
@@ -14,7 +15,7 @@ function scoreToColor(v: number): string {
   return "#10b981";
 }
 
-export default function PredictionScoreBar({
+const PredictionScoreBar = memo(function PredictionScoreBar({
   value, label, size = "default", showPct = true,
 }: PredictionScoreBarProps) {
   const pct   = Math.round(value * 100);
@@ -35,7 +36,9 @@ export default function PredictionScoreBar({
       </div>
     </Tooltip>
   );
-}
+});
+
+export default PredictionScoreBar;
 
 
 

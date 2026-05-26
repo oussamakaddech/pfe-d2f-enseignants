@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef } from 'react';
 import {
   Tabs,
   Table,
@@ -18,8 +18,8 @@ import {
   ReloadOutlined,
   ApartmentOutlined,
 } from '@ant-design/icons';
-import UpService from '@/services/api/UploadService';
-import DeptService from '@/services/formation/DeptService';
+import { useAllUps, useCreateUp, useUpdateUp, useDeleteUp, useImportUpsExcel } from "@/hooks/formation/useUpCrud";
+import { useAllDepts, useCreateDept, useUpdateDept, useDeleteDept, useImportDeptsExcel } from "@/hooks/formation/useDeptCrud";
 import useAppNotification from "@/hooks/ui/useAppNotification";
 import { AppPageHeader } from "@/components/common";
 import "@/styles/pages/up-dept-data-grid.css";
@@ -27,16 +27,25 @@ import "@/styles/pages/up-dept-data-grid.css";
 export default function UpDeptDataGrid() {
   const { message: msgApi } = useAppNotification();
 
+  const { data: ups = [], refetch: fetchUps } = useAllUps();
+  const { data: depts = [], refetch: fetchDepts } = useAllDepts();
+  const { mutateAsync: importUpsExcel } = useImportUpsExcel();
+  const { mutateAsync: createUp } = useCreateUp();
+  const { mutateAsync: updateUp } = useUpdateUp();
+  const { mutateAsync: deleteUp } = useDeleteUp();
+  const { mutateAsync: importDeptsExcel } = useImportDeptsExcel();
+  const { mutateAsync: createDept } = useCreateDept();
+  const { mutateAsync: updateDept } = useUpdateDept();
+  const { mutateAsync: deleteDept } = useDeleteDept();
+
   // UP states
-  const [ups, setUps] = useState([]);
   const [fileUp, setFileUp] = useState(null);
   const [drawerUpVisible, setDrawerUpVisible] = useState(false);
-  const [upMode, setUpMode] = useState('create'); // 'create' or 'edit'
+  const [upMode, setUpMode] = useState('create');
   const [currentUp, setCurrentUp] = useState(null);
   const [formUp] = Form.useForm();
 
   // Dept states
-  const [depts, setDepts] = useState([]);
   const [fileDept, setFileDept] = useState(null);
   const [drawerDeptVisible, setDrawerDeptVisible] = useState(false);
   const [deptMode, setDeptMode] = useState('create');
@@ -47,49 +56,24 @@ export default function UpDeptDataGrid() {
   const [searchedColumn, setSearchedColumn] = useState('');
   const searchInput = useRef(null);
 
-  useEffect(() => {
-    fetchUps();
-    fetchDepts();
-  }, []);
-
-  /*** Fetch data ***/
-  const fetchUps = async () => {
-    try {
-      const list = await UpService.getAllUps();
-      setUps(list);
-    } catch (err) {
-      msgApi.error(err.message || 'Erreur chargement UPs');
-    }
-  };
-  const fetchDepts = async () => {
-    try {
-      const list = await DeptService.getAllDepts();
-      setDepts(list);
-    } catch (err) {
-      msgApi.error(err.message || 'Erreur chargement Départements');
-    }
-  };
-
   /*** Import Excel ***/
   const handleUploadUp = async () => {
     if (!fileUp) return;
     try {
-      const res = await UpService.importUpsExcel(fileUp);
+      const res = await importUpsExcel(fileUp);
       msgApi.success(res);
       setFileUp(null);
-      fetchUps();
-    } catch (err) {
+    } catch (err: unknown) {
       msgApi.error(err.response?.data || err.message);
     }
   };
   const handleUploadDept = async () => {
     if (!fileDept) return;
     try {
-      const res = await DeptService.importDeptsExcel(fileDept);
+      const res = await importDeptsExcel(fileDept);
       msgApi.success(res);
       setFileDept(null);
-      fetchDepts();
-    } catch (err) {
+    } catch (err: unknown) {
       msgApi.error(err.response?.data || err.message);
     }
   };
@@ -110,24 +94,22 @@ export default function UpDeptDataGrid() {
   const handleSubmitUp = async values => {
     try {
       if (upMode === 'create') {
-        await UpService.createUp(values);
+        await createUp(values);
         msgApi.success('UP créée');
       } else {
-        await UpService.updateUp(currentUp.id, values);
+        await updateUp({ id: currentUp.id, data: values });
         msgApi.success('UP mise à jour');
       }
       setDrawerUpVisible(false);
-      await fetchUps();
-    } catch (err) {
+    } catch (err: unknown) {
       msgApi.error(err.response?.data || err.message);
     }
   };
   const handleDeleteUp = async id => {
     try {
-      await UpService.deleteUp(id);
+      await deleteUp(id);
       msgApi.success('UP supprimée');
-      fetchUps();
-    } catch (err) {
+    } catch (err: unknown) {
       msgApi.error(err.response?.data || err.message);
     }
   };
@@ -148,24 +130,14 @@ export default function UpDeptDataGrid() {
   const handleSubmitDept = async values => {
     try {
       if (deptMode === 'create') {
-        await DeptService.createDept(values);
+        await createDept(values);
         msgApi.success('Département créé');
       } else {
-        await DeptService.updateDept(currentDept.id, values);
+        await updateDept({ id: currentDept.id, data: values });
         msgApi.success('Département mis à jour');
       }
       setDrawerDeptVisible(false);
-      fetchDepts();
-    } catch (err) {
-      msgApi.error(err.response?.data || err.message);
-    }
-  };
-  const handleDeleteDept = async id => {
-    try {
-      await DeptService.deleteDept(id);
-      msgApi.success('Département supprimé');
-      fetchDepts();
-    } catch (err) {
+    } catch (err: unknown) {
       msgApi.error(err.response?.data || err.message);
     }
   };

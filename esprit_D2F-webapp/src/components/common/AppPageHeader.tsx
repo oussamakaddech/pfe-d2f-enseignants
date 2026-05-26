@@ -1,8 +1,9 @@
+import { memo } from "react";
 import type { ReactNode } from "react";
-import { Typography } from "antd";
-
-const { Title, Text } = Typography;
-
+import { Typography } from "antd";
+
+const { Title, Text } = Typography;
+
 interface AppPageHeaderProps {
   icon: ReactNode;
   title: string;
@@ -12,8 +13,8 @@ interface AppPageHeaderProps {
   tags?: ReactNode;
   /** Affiche un séparateur fin sous l'en-tête. Défaut : true */
   divider?: boolean;
-}
-
+}
+
 /**
  * En-tête standardisé pour toutes les pages de l'application.
  * Remplace les titres ad-hoc, les breadcrumbs dupliqués et les emojis.
@@ -26,7 +27,7 @@ interface AppPageHeaderProps {
  *     actions={<Button type="primary">Nouvelle formation</Button>}
  *   />
  */
-export default function AppPageHeader({
+const AppPageHeader = memo(function AppPageHeader({
   icon,
   title,
   subtitle,
@@ -81,8 +82,8 @@ export default function AppPageHeader({
                 pointerEvents: "none",
               }}
             />
-          </div>
-
+          </div>
+
           <div style={{ minWidth: 0 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
               <Title
@@ -114,8 +115,8 @@ export default function AppPageHeader({
               </Text>
             )}
           </div>
-        </div>
-
+        </div>
+
         {/* Right: actions */}
         {actions && (
           <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
@@ -125,8 +126,10 @@ export default function AppPageHeader({
       </div>
     </div>
   );
-}
+});
 
-
-
+export default AppPageHeader;
+
+
+
 

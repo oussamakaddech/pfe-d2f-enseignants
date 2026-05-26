@@ -1,7 +1,8 @@
-import { Button, Popconfirm, Typography } from "antd";
-
-const { Text } = Typography;
-
+import { memo } from "react";
+import { Button, Popconfirm, Typography } from "antd";
+
+const { Text } = Typography;
+
 interface ActionBarAction {
   key: string;
   label: React.ReactNode;
@@ -12,8 +13,8 @@ interface ActionBarAction {
   disabled?: boolean;
   className?: string;
   confirm?: string;
-}
-
+}
+
 interface ActionBarProps {
   /** Actions à afficher */
   actions: ActionBarAction[];
@@ -23,15 +24,15 @@ interface ActionBarProps {
   gap?: number;
   className?: string;
   style?: React.CSSProperties;
-}
-
+}
+
 /**
  * Barre d'actions standardisée.
  * - Supporte les confirmations (Popconfirm)
  * - Alignement configurable
  * - Espacement cohérent
  */
-export default function ActionBar({
+const ActionBar = memo(function ActionBar({
   actions,
   align = "right",
   gap = 8,
@@ -40,8 +41,8 @@ export default function ActionBar({
 }: Readonly<ActionBarProps>) {
   let justifyContent = "flex-end";
   if (align === "left") justifyContent = "flex-start";
-  else if (align === "center") justifyContent = "center";
-
+  else if (align === "center") justifyContent = "center";
+
   return (
     <div
       className={`action-bar ${className}`}
@@ -67,8 +68,8 @@ export default function ActionBar({
           >
             {action.label}
           </Button>
-        );
-
+        );
+
         if (action.confirm) {
           return (
             <Popconfirm
@@ -81,14 +82,16 @@ export default function ActionBar({
               {btn}
             </Popconfirm>
           );
-        }
-
+        }
+
         return btn;
       })}
     </div>
   );
-}
+});
 
-
-
+export default ActionBar;
+
+
+
 

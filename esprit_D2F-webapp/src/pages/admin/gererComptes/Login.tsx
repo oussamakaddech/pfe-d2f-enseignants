@@ -1,13 +1,19 @@
-import { useState, useContext } from "react";
+import { useState } from "react";
 import { Form, Input, Button, Typography } from "antd";
 import { UserOutlined, LockOutlined } from "@ant-design/icons";
 import useAppNotification from "@/hooks/ui/useAppNotification";
 import { useNavigate } from "react-router-dom";
-import { login as loginService } from "@/services/auth/AuthService";
-import { AuthContext } from "@/components/common/AuthProvider";
+import { useLogin } from "@/hooks/auth/useAuthService";
+import { useAuth } from "@/hooks/auth/useAuth";
+import type { LoginResponse, UserRole } from "@/models/auth";
 import "@/styles/pages/login.css";
 
 const { Title } = Typography;
+
+interface LoginFormValues {
+  username: string;
+  password: string;
+}
 
 const FEATURES = [
   "Gestion des formations continues",
@@ -25,30 +31,34 @@ const PARTICLES = Array.from({ length: 14 }, (_, i) => ({
 
 export default function Login() {
   const { message } = useAppNotification();
-  const [form] = Form.useForm();
+  const [form] = Form.useForm<LoginFormValues>();
   const navigate = useNavigate();
-  const { login } = useContext(AuthContext);
+  const { login } = useAuth();
+  const { mutateAsync: loginApi } = useLogin();
   const [loading, setLoading] = useState(false);
-  const onFinish = async ({ username, password }) => {
+
+  const onFinish = async (values: LoginFormValues) => {
+    const { username, password } = values;
     setLoading(true);
     form.setFields([{ name: "password", errors: [] }]);
     try {
-      const data = await loginService({ username, password });
+      const data: LoginResponse = await loginApi({ username, password });
       if (!data.role) throw new Error("Réponse de connexion invalide");
       login({
         userId: data.userId,
         username,
-        role: data.role,
+        role: data.role as UserRole,
         email: data.email,
         expiresIn: data.expiresIn
       });
       message.success("Connexion réussie !", 2);
       navigate("/home/profile");
-    } catch (err) {
-      if (err.response?.status === 401) {
+    } catch (err: unknown) {
+      const axiosError = err as { response?: { status?: number; data?: { message?: string } } };
+      if (axiosError.response?.status === 401) {
         form.setFields([{ name: "password", errors: ["Nom d'utilisateur ou mot de passe incorrect"] }]);
       } else {
-        message.error(err.response?.data?.message || "Échec de la connexion.", 3);
+        message.error(axiosError.response?.data?.message || "Échec de la connexion.", 3);
       }
     } finally {
       setLoading(false);
@@ -69,9 +79,9 @@ export default function Login() {
                 width: p.size,
                 height: p.size,
                 left: p.left,
-                "--dur":   p.dur,
+                "--dur": p.dur,
                 "--delay": p.delay,
-              }}
+              } as React.CSSProperties}
             />
           ))}
         </div>
