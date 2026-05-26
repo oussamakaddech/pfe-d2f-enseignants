@@ -1,7 +1,11 @@
 package esprit.pfe.serviceformation.services;
 
+import esprit.pfe.serviceformation.dto.CreateFormationRequest;
+import esprit.pfe.serviceformation.dto.FormationResponseDTO;
+import esprit.pfe.serviceformation.dto.UpdateFormationRequest;
 import esprit.pfe.serviceformation.entities.Enseignant;
 import esprit.pfe.serviceformation.entities.Formation;
+import esprit.pfe.serviceformation.exception.ResourceNotFoundException;
 import esprit.pfe.serviceformation.microsoft.OutlookCalendarService;
 import esprit.pfe.serviceformation.microsoft.OutlookEventParameters;
 import esprit.pfe.serviceformation.repositories.FormationRepository;
@@ -10,16 +14,18 @@ import lombok.extern.slf4j.Slf4j;
 import org.hibernate.Hibernate;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.ZoneId;
 import java.util.List;
-import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class FormationServiceImpl implements FormationService {
 
     private static final ZoneId TZ = ZoneId.of("Africa/Tunis");
@@ -28,19 +34,25 @@ public class FormationServiceImpl implements FormationService {
     private String organizerEmail;
 
     private final FormationRepository formationRepository;
+    private final FormationMapper formationMapper;
 
     // DSI §4/§2 — injection optionnelle : null si azure.ad.enabled=false
     private final OutlookCalendarService outlookCalendarService;
 
     public FormationServiceImpl(FormationRepository formationRepository,
-                                @org.springframework.lang.Nullable OutlookCalendarService outlookCalendarService) {
+                               FormationMapper formationMapper,
+                               @org.springframework.lang.Nullable OutlookCalendarService outlookCalendarService) {
         this.formationRepository = formationRepository;
+        this.formationMapper = formationMapper;
         this.outlookCalendarService = outlookCalendarService;
     }
 
     @Override
-    public Formation createFormation(Formation formation) {
+    @Transactional
+    public FormationResponseDTO createFormation(CreateFormationRequest request) {
+        Formation formation = formationMapper.toEntity(request);
         Formation saved = formationRepository.save(formation);
+
         // DSI §4/§2 — intégration Outlook conditionnelle (azure.ad.enabled=true requis)
         if (outlookCalendarService != null) {
             try {
@@ -54,9 +66,10 @@ public class FormationServiceImpl implements FormationService {
                         saved.getIdFormation(), e.getMessage());
             }
         } else {
-            log.info("[Formation] Calendrier Outlook désactivé (azure.ad.enabled=false) — formation {} créée sans événement.", saved.getIdFormation());
+            log.debug("[Formation] Calendrier Outlook désactivé (azure.ad.enabled=false) — formation {} créée sans événement.", saved.getIdFormation());
         }
-        return saved;
+
+        return formationMapper.toResponseDTO(saved);
     }
 
     private String createOutlookEvent(Formation f) {
@@ -105,51 +118,62 @@ public class FormationServiceImpl implements FormationService {
     }
 
     @Override
-    public Formation updateFormation(Long id, Formation formation) {
-        Optional<Formation> existingFormation = formationRepository.findById(id);
-        if(existingFormation.isPresent()){
-            Formation f = existingFormation.get();
-            // Mise à jour des champs de la formation
-            f.setTitreFormation(formation.getTitreFormation());
-            f.setTypeFormation(formation.getTypeFormation());
-            f.setDateDebut(formation.getDateDebut());
-            f.setDateFin(formation.getDateFin());
-            f.setEtatFormation(formation.getEtatFormation());
-            f.setCoutFormation(formation.getCoutFormation());
-            f.setOrganismeRefExterne(formation.getOrganismeRefExterne());
-            f.setChargeHoraireGlobal(formation.getChargeHoraireGlobal());
-            f.setPeriodCode(formation.getPeriodCode());
-            f.setCustomPeriodLabel(formation.getCustomPeriodLabel());
-            // Mettez à jour les associations si nécessaire
-            return formationRepository.save(f);
-        } else {
-            throw new IllegalArgumentException("Formation introuvable avec l'id : " + id);
-        }
-    }
+    @Transactional
+    public FormationResponseDTO updateFormation(Long id, UpdateFormationRequest request) {
+        Formation existingFormation = formationRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Formation avec l'id " + id + " introuvable"));
 
-    @Override
-    public void deleteFormation(Long id) {
-        if (!formationRepository.existsById(id)) {
-            throw new IllegalArgumentException("Impossible de supprimer : Formation introuvable avec l'id : " + id);
-        }
-        formationRepository.deleteById(id);
+        // Utilise le mapper pour la mise à jour partielle
+        formationMapper.updateEntityFromRequest(request, existingFormation);
+
+        Formation updated = formationRepository.save(existingFormation);
+        return formationMapper.toResponseDTO(updated);
     }
 
     @Override
     @Transactional
-    public Formation getFormationById(Long id) {
-        return formationRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Formation introuvable avec l'id : " + id));
+    public void deleteFormation(Long id) {
+        Formation formation = formationRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Formation avec l'id " + id + " introuvable"));
+        // DSI §3 - Soft delete via Hibernate @SQLDelete
+        formationRepository.deleteById(id);
+        log.info("Formation {} softly deleted", id);
     }
+
     @Override
     @Transactional(readOnly = true)
-    public Page<Formation> getAllFormations(Pageable pageable) {
+    public FormationResponseDTO getFormationById(Long id) {
+        Formation formation = formationRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Formation avec l'id " + id + " introuvable"));
+        return formationMapper.toResponseDTO(formation);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Formation getFormationByIdWithAllRelations(Long id) {
+        return formationRepository.findByIdWithAllRelations(id)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Formation avec l'id " + id + " introuvable"));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Page<FormationResponseDTO> getAllFormations(Pageable pageable) {
         Page<Formation> formations = formationRepository.findAll(pageable);
         formations.forEach(f -> {
             if (f.getSeances() != null) Hibernate.initialize(f.getSeances());
             if (f.getFormationCompetences() != null) Hibernate.initialize(f.getFormationCompetences());
             if (f.getInscriptions() != null) Hibernate.initialize(f.getInscriptions());
         });
-        return formations;
+
+        // Convert to DTOs
+        List<FormationResponseDTO> dtos = formations.stream()
+                .map(formationMapper::toResponseDTO)
+                .collect(Collectors.toList());
+
+        return new PageImpl<>(dtos, pageable, formations.getTotalElements());
     }
 }
