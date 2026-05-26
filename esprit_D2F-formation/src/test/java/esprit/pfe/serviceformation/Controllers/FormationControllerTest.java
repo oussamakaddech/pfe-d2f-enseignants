@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import esprit.pfe.serviceformation.dto.FormationResponseDTO;
 import esprit.pfe.serviceformation.entities.EtatFormation;
 import esprit.pfe.serviceformation.entities.Formation;
 import esprit.pfe.serviceformation.entities.TypeFormation;
@@ -71,7 +72,10 @@ class FormationControllerTest {
         @DisplayName("200 - Retourne toutes les formations")
         @WithMockUser(roles = "ADMIN")
         void shouldReturnAll() throws Exception {
-            Page<esprit.pfe.serviceformation.entities.Formation> page = new PageImpl<>(List.of(testFormation));
+            FormationResponseDTO dtoFormation = new FormationResponseDTO();
+            dtoFormation.setIdFormation(1L);
+            dtoFormation.setTitreFormation("Formation Java 17");
+            Page<FormationResponseDTO> page = new PageImpl<>(List.of(dtoFormation));
             when(formationService.getAllFormations(any(Pageable.class))).thenReturn(page);
 
             mockMvc.perform(get("/api/v1/formations"))
@@ -94,7 +98,10 @@ class FormationControllerTest {
         @DisplayName("200 - Retourne la formation")
         @WithMockUser(roles = "ADMIN")
         void shouldReturnById() throws Exception {
-            when(formationService.getFormationById(1L)).thenReturn(testFormation);
+            FormationResponseDTO dtoFormation = new FormationResponseDTO();
+            dtoFormation.setIdFormation(1L);
+            dtoFormation.setTitreFormation("Formation Java 17");
+            when(formationService.getFormationById(1L)).thenReturn(dtoFormation);
 
             mockMvc.perform(get("/api/v1/formations/1"))
                     .andExpect(status().isOk())
@@ -111,7 +118,10 @@ class FormationControllerTest {
         @DisplayName("200 - Création réussie")
         @WithMockUser(roles = "ADMIN")
         void shouldCreate() throws Exception {
-            when(formationService.createFormation(any())).thenReturn(testFormation);
+            FormationResponseDTO dtoFormation = new FormationResponseDTO();
+            dtoFormation.setIdFormation(1L);
+            dtoFormation.setTitreFormation("Formation Java 17");
+            when(formationService.createFormation(any())).thenReturn(dtoFormation);
 
             mockMvc.perform(post("/api/v1/formations")
                     .with(csrf())
@@ -130,8 +140,10 @@ class FormationControllerTest {
         @DisplayName("200 - Mise à jour réussie")
         @WithMockUser(roles = "ADMIN")
         void shouldUpdate() throws Exception {
-            testFormation.setTitreFormation("Formation Java 17 - V2");
-            when(formationService.updateFormation(eq(1L), any())).thenReturn(testFormation);
+            FormationResponseDTO dtoFormation = new FormationResponseDTO();
+            dtoFormation.setIdFormation(1L);
+            dtoFormation.setTitreFormation("Formation Java 17 - V2");
+            when(formationService.updateFormation(eq(1L), any())).thenReturn(dtoFormation);
 
             mockMvc.perform(put("/api/v1/formations/1")
                     .with(csrf())

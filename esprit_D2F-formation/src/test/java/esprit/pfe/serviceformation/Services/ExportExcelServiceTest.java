@@ -12,6 +12,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.sql.Time;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
@@ -46,8 +47,8 @@ class ExportExcelServiceTest {
 
         FormationDTO f1 = new FormationDTO();
         f1.setTitreFormation("Formation Java");
-        f1.setDepartement1(new DeptDTO() {{ setLibelle("Dept Info"); }});
-        f1.setUp1(new UpDTO() {{ setLibelle("UP Dev"); }});
+        f1.setDepartement(new DeptDTO() {{ setLibelle("Dept Info"); }});
+        f1.setUp(new UpDTO() {{ setLibelle("UP Dev"); }});
 
         SeanceDTO s1 = new SeanceDTO();
         s1.setDateSeance(startDate);

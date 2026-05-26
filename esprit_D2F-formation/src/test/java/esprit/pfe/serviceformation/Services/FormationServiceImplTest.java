@@ -1,5 +1,8 @@
 package esprit.pfe.serviceformation.services;
 
+import esprit.pfe.serviceformation.dto.CreateFormationRequest;
+import esprit.pfe.serviceformation.dto.FormationResponseDTO;
+import esprit.pfe.serviceformation.dto.UpdateFormationRequest;
 import esprit.pfe.serviceformation.entities.EtatFormation;
 import esprit.pfe.serviceformation.entities.Formation;
 import esprit.pfe.serviceformation.entities.PeriodCode;
@@ -19,6 +22,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -65,9 +69,18 @@ class FormationServiceImplTest {
         @Test
         @DisplayName("sauvegarde et retourne la formation")
         void shouldCreateFormation() {
+            CreateFormationRequest request = new CreateFormationRequest();
+            request.setTitreFormation("Spring Boot Avancé");
+            request.setDateDebut(LocalDate.now());
+            request.setDateFin(LocalDate.now().plusDays(5));
+            request.setTypeFormation("INTERNE");
+            request.setEtatFormation("PLANIFIEE");
+            request.setChargeHoraireGlobal(40);
+            request.setCoutFormation(500.0f);
+
             when(formationRepository.save(any(Formation.class))).thenReturn(formation);
 
-            Formation result = formationService.createFormation(formation);
+            FormationResponseDTO result = formationService.createFormation(request);
 
             assertThat(result).isNotNull();
             assertThat(result.getIdFormation()).isEqualTo(1L);
@@ -83,21 +96,21 @@ class FormationServiceImplTest {
         @Test
         @DisplayName("met à jour une formation existante")
         void shouldUpdateFormation() {
-            Formation updated = new Formation();
-            updated.setTitreFormation("Spring Boot Avancé - V2");
-            updated.setEtatFormation(EtatFormation.EN_COURS);
-            updated.setCoutFormation(750.0f);
-            updated.setChargeHoraireGlobal(60);
-            updated.setDateDebut(new Date());
-            updated.setDateFin(new Date());
+            UpdateFormationRequest updateRequest = new UpdateFormationRequest();
+            updateRequest.setTitreFormation("Spring Boot Avancé - V2");
+            updateRequest.setEtatFormation("EN_COURS");
+            updateRequest.setCoutFormation(750.0f);
+            updateRequest.setChargeHoraireGlobal(60);
+            updateRequest.setDateDebut(LocalDate.now());
+            updateRequest.setDateFin(LocalDate.now().plusDays(5));
 
             when(formationRepository.findById(1L)).thenReturn(Optional.of(formation));
             when(formationRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
-            Formation result = formationService.updateFormation(1L, updated);
+            FormationResponseDTO result = formationService.updateFormation(1L, updateRequest);
 
             assertThat(result.getTitreFormation()).isEqualTo("Spring Boot Avancé - V2");
-            assertThat(result.getEtatFormation()).isEqualTo(EtatFormation.EN_COURS);
+            assertThat(result.getEtatFormation()).isEqualTo("EN_COURS");
             assertThat(result.getCoutFormation()).isEqualTo(750.0f);
             verify(formationRepository).findById(1L);
             verify(formationRepository).save(any());
@@ -106,9 +119,14 @@ class FormationServiceImplTest {
         @Test
         @DisplayName("lève IllegalArgumentException si formation introuvable")
         void shouldThrowWhenNotFound() {
+            UpdateFormationRequest updateRequest = new UpdateFormationRequest();
+            updateRequest.setTitreFormation("Test");
+            updateRequest.setDateDebut(LocalDate.now());
+            updateRequest.setDateFin(LocalDate.now().plusDays(5));
+
             when(formationRepository.findById(999L)).thenReturn(Optional.empty());
 
-            assertThatThrownBy(() -> formationService.updateFormation(999L, formation))
+            assertThatThrownBy(() -> formationService.updateFormation(999L, updateRequest))
                     .isInstanceOf(IllegalArgumentException.class)
                     .hasMessageContaining("introuvable");
         }
@@ -148,7 +166,7 @@ class FormationServiceImplTest {
         void shouldReturnFormation() {
             when(formationRepository.findById(1L)).thenReturn(Optional.of(formation));
 
-            Formation result = formationService.getFormationById(1L);
+            FormationResponseDTO result = formationService.getFormationById(1L);
 
             assertThat(result).isNotNull();
             assertThat(result.getTitreFormation()).isEqualTo("Spring Boot Avancé");
@@ -182,7 +200,7 @@ class FormationServiceImplTest {
 
             when(formationRepository.findAll(any(Pageable.class))).thenReturn(new PageImpl<>(List.of(formation, f2)));
 
-            Page<esprit.pfe.serviceformation.entities.Formation> result = formationService.getAllFormations(Pageable.unpaged());
+            Page<esprit.pfe.serviceformation.dto.FormationResponseDTO> result = formationService.getAllFormations(Pageable.unpaged());
 
             assertThat(result).hasSize(2);
             verify(formationRepository).findAll(any(Pageable.class));
@@ -193,7 +211,7 @@ class FormationServiceImplTest {
         void shouldReturnEmptyList() {
             when(formationRepository.findAll(any(Pageable.class))).thenReturn(new PageImpl<>(new ArrayList<>()));
 
-            Page<esprit.pfe.serviceformation.entities.Formation> result = formationService.getAllFormations(Pageable.unpaged());
+            Page<esprit.pfe.serviceformation.dto.FormationResponseDTO> result = formationService.getAllFormations(Pageable.unpaged());
 
             assertThat(result).isEmpty();
         }
@@ -206,6 +224,14 @@ class FormationServiceImplTest {
         @Test
         @DisplayName("cree evenement Outlook quand service disponible et eventId non null")
         void shouldCreateOutlookEvent() {
+            CreateFormationRequest request = new CreateFormationRequest();
+            request.setTitreFormation("Spring Boot Avancé");
+            request.setDateDebut(LocalDate.now());
+            request.setDateFin(LocalDate.now().plusDays(5));
+            request.setTypeFormation("INTERNE");
+            request.setEtatFormation("PLANIFIEE");
+            request.setChargeHoraireGlobal(40);
+
             when(formationRepository.save(any(Formation.class))).thenAnswer(inv -> {
                 Formation f = inv.getArgument(0);
                 if (f.getIdFormation() == null) f.setIdFormation(1L);
@@ -214,7 +240,7 @@ class FormationServiceImplTest {
             when(outlookCalendarService.addEventToCalendarAndReturnIdWithTeamsUrl(any(OutlookEventParameters.class)))
                     .thenReturn(new OutlookCalendarService.EventCreationResult("evt-123", null));
 
-            Formation result = formationService.createFormation(formation);
+            FormationResponseDTO result = formationService.createFormation(request);
 
             assertThat(result).isNotNull();
             verify(outlookCalendarService).addEventToCalendarAndReturnIdWithTeamsUrl(any());
@@ -224,11 +250,19 @@ class FormationServiceImplTest {
         @Test
         @DisplayName("ne cree pas evenement Outlook quand service retourne eventId null")
         void shouldNotSaveWhenEventIdNull() {
+            CreateFormationRequest request = new CreateFormationRequest();
+            request.setTitreFormation("Spring Boot Avancé");
+            request.setDateDebut(LocalDate.now());
+            request.setDateFin(LocalDate.now().plusDays(5));
+            request.setTypeFormation("INTERNE");
+            request.setEtatFormation("PLANIFIEE");
+            request.setChargeHoraireGlobal(40);
+
             when(formationRepository.save(any(Formation.class))).thenReturn(formation);
             when(outlookCalendarService.addEventToCalendarAndReturnIdWithTeamsUrl(any(OutlookEventParameters.class)))
                     .thenReturn(new OutlookCalendarService.EventCreationResult(null, null));
 
-            Formation result = formationService.createFormation(formation);
+            FormationResponseDTO result = formationService.createFormation(request);
 
             assertThat(result).isNotNull();
             verify(formationRepository, times(1)).save(any());
@@ -237,11 +271,19 @@ class FormationServiceImplTest {
         @Test
         @DisplayName("continue sans Outlook quand exception levee")
         void shouldContinueWhenOutlookFails() {
+            CreateFormationRequest request = new CreateFormationRequest();
+            request.setTitreFormation("Spring Boot Avancé");
+            request.setDateDebut(LocalDate.now());
+            request.setDateFin(LocalDate.now().plusDays(5));
+            request.setTypeFormation("INTERNE");
+            request.setEtatFormation("PLANIFIEE");
+            request.setChargeHoraireGlobal(40);
+
             when(formationRepository.save(any(Formation.class))).thenReturn(formation);
             when(outlookCalendarService.addEventToCalendarAndReturnIdWithTeamsUrl(any(OutlookEventParameters.class)))
                     .thenThrow(new RuntimeException("Outlook unavailable"));
 
-            Formation result = formationService.createFormation(formation);
+            FormationResponseDTO result = formationService.createFormation(request);
 
             assertThat(result).isNotNull();
         }
@@ -254,17 +296,17 @@ class FormationServiceImplTest {
         @Test
         @DisplayName("met a jour typeFormation et periodCode")
         void shouldUpdateTypeAndPeriod() {
-            Formation updated = new Formation();
-            updated.setTitreFormation("Updated");
-            updated.setTypeFormation(TypeFormation.INTERNE);
-            updated.setDateDebut(new Date());
-            updated.setDateFin(new Date());
-            updated.setPeriodCode(PeriodCode.P1);
+            UpdateFormationRequest updateRequest = new UpdateFormationRequest();
+            updateRequest.setTitreFormation("Updated");
+            updateRequest.setTypeFormation("INTERNE");
+            updateRequest.setDateDebut(LocalDate.now());
+            updateRequest.setDateFin(LocalDate.now().plusDays(5));
+            updateRequest.setPeriodCode("P1");
 
             when(formationRepository.findById(1L)).thenReturn(Optional.of(formation));
             when(formationRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
-            Formation result = formationService.updateFormation(1L, updated);
+            FormationResponseDTO result = formationService.updateFormation(1L, updateRequest);
 
             assertThat(result).isNotNull();
         }
