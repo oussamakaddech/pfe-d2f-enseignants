@@ -1,26 +1,38 @@
 package esprit.pfe.serviceformation.dto;
 
-import esprit.pfe.serviceformation.entities.Dept;
-import esprit.pfe.serviceformation.entities.Up;
+import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Data;
-import lombok.Getter;
-import lombok.Setter;
-import java.util.Date;
+import lombok.NoArgsConstructor;
+
+import java.time.LocalDate;
 import java.util.List;
 
-@Getter
-@Setter
+/**
+ * Legacy DTO for Formation - kept for backward compatibility.
+ * New code should use FormationResponseDTO and CreateFormationRequest/UpdateFormationRequest.
+ * This DTO is deprecated and should not be used for new endpoints.
+ *
+ * @deprecated Use FormationResponseDTO, CreateFormationRequest, or UpdateFormationRequest instead
+ */
+@Deprecated(since = "2026-05", forRemoval = true)
 @Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+@Schema(name = "FormationDTO (Deprecated)", description = "Legacy formation DTO - use FormationResponseDTO instead")
 public class FormationDTO {
+
     private Long idFormation;
     private String typeBesoin;
     private Long idBesoinFormation;
     private String titreFormation;
     private String typeFormation;
-    private Date dateDebut;
-    private Date dateFin;
+    private LocalDate dateDebut;
+    private LocalDate dateFin;
     private String etatFormation;
-    private float coutFormation;
+    private Float coutFormation;
     private String organismeRefExterne;
     private String externeFormateurNom;
     private String externeFormateurPrenom;
@@ -28,7 +40,7 @@ public class FormationDTO {
     private String bureauFormationNom;
     private String bureauFormationMail;
     private String bureauFormationTelephone;
-    private int chargeHoraireGlobal;
+    private Integer chargeHoraireGlobal;
     private String domaine;
     private String competence;
     private String populationCible;
@@ -41,17 +53,18 @@ public class FormationDTO {
     private String prerequis;
     private String acquis;
     private String indicateurs;
-    private Dept departement;
-    private Up up;
+
+    // Fixed: Removed duplicate fields (departement1, up1)
+    private DeptDTO departement;
+    private UpDTO up;
+
     private List<SeanceDTO> seances;
     private List<EnseignantDTO> animateurs;
-    private DeptDTO departement1;
-    private UpDTO up1;
-    private boolean ouverte ;
-    private boolean inscriptionsOuvertes ;
-    private boolean certifGenerated ;
+
+    private boolean ouverte;
+    private boolean inscriptionsOuvertes;
+    private boolean certifGenerated;
     private String periodCode;
     private String customPeriodLabel;
-
 }
 
