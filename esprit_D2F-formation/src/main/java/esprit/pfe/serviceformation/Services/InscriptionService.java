@@ -213,8 +213,8 @@ public class InscriptionService {
         dto.setTitreFormation(formation.getTitreFormation());
         dto.setTypeFormation(
                 formation.getTypeFormation() != null ? formation.getTypeFormation().toString() : "INTERNE");
-        dto.setDateDebut(formation.getDateDebut());
-        dto.setDateFin(formation.getDateFin());
+        dto.setDateDebut(formation.getDateDebut() != null ? formation.getDateDebut().toInstant().atZone(java.time.ZoneId.systemDefault()).toLocalDate() : null);
+        dto.setDateFin(formation.getDateFin() != null ? formation.getDateFin().toInstant().atZone(java.time.ZoneId.systemDefault()).toLocalDate() : null);
         dto.setEtatFormation(
                 formation.getEtatFormation() != null ? formation.getEtatFormation().toString() : "PLANIFIE");
         dto.setCoutFormation(formation.getCoutFormation());
@@ -245,14 +245,14 @@ public class InscriptionService {
             DeptDTO deptDTO = new DeptDTO();
             deptDTO.setId(formation.getDepartement().getId());
             deptDTO.setLibelle(formation.getDepartement().getLibelle());
-            dto.setDepartement1(deptDTO);
+            dto.setDepartement(deptDTO);
         }
         // Transformation pour UP
         if (formation.getUp() != null) {
             UpDTO upDTO = new UpDTO();
             upDTO.setId(formation.getUp().getId());
             upDTO.setLibelle(formation.getUp().getLibelle());
-            dto.setUp1(upDTO);
+            dto.setUp(upDTO);
         }
         return dto;
     }

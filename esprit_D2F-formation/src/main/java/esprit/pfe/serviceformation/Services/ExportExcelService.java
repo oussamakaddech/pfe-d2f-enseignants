@@ -77,8 +77,8 @@ public class ExportExcelService {
     }
 
     private String formatEquipe(FormationDTO formation) {
-        String dept = Optional.ofNullable(formation.getDepartement1()).map(DeptDTO::getLibelle).orElse("");
-        String up = Optional.ofNullable(formation.getUp1()).map(UpDTO::getLibelle).orElse("");
+        String dept = Optional.ofNullable(formation.getDepartement()).map(DeptDTO::getLibelle).orElse("");
+        String up = Optional.ofNullable(formation.getUp()).map(UpDTO::getLibelle).orElse("");
         return dept + " / " + up;
     }
 
