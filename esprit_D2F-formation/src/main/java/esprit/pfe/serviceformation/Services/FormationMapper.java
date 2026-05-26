@@ -183,10 +183,10 @@ public class FormationMapper {
         }
 
         LocalDate dateDebut = formation.getDateDebut() != null ?
-            formation.getDateDebut().toLocalDate()
+            formation.getDateDebut().toInstant().atZone(ZoneId.systemDefault()).toLocalDate()
             : null;
         LocalDate dateFin = formation.getDateFin() != null ?
-            formation.getDateFin().toLocalDate()
+            formation.getDateFin().toInstant().atZone(ZoneId.systemDefault()).toLocalDate()
             : null;
 
         return FormationResponseDTO.builder()
