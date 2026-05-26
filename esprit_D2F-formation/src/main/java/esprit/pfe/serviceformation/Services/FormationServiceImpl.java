@@ -25,7 +25,6 @@ import java.util.stream.Collectors;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class FormationServiceImpl implements FormationService {
 
     private static final ZoneId TZ = ZoneId.of("Africa/Tunis");
@@ -175,5 +174,73 @@ public class FormationServiceImpl implements FormationService {
                 .collect(Collectors.toList());
 
         return new PageImpl<>(dtos, pageable, formations.getTotalElements());
+    }
+
+    @Override
+    @Transactional
+    public FormationResponseDTO recoverDeletedFormation(Long id) {
+        Formation deleted = formationRepository.findDeletedById(id);
+        if (deleted == null) {
+            throw new ResourceNotFoundException(
+                    "Formation supprimée avec l'id " + id + " introuvable");
+        }
+
+        // Recover by clearing the deleted_at timestamp
+        deleted.setDeletedAt(null);
+        Formation recovered = formationRepository.save(deleted);
+        log.info("Formation {} recovered from soft delete", id);
+
+        return formationMapper.toResponseDTO(recovered);
+    }
+
+    @Override
+    @Transactional
+    public FormationResponseDTO cloneFormation(Long sourceId, String newTitle) {
+        Formation source = formationRepository.findByIdWithAllRelations(sourceId)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Formation source avec l'id " + sourceId + " introuvable"));
+
+        Formation cloned = new Formation();
+        cloned.setTitreFormation(newTitle);
+        cloned.setTypeBesoin(source.getTypeBesoin());
+        cloned.setDomaine(source.getDomaine());
+        cloned.setCompetence(source.getCompetence());
+        cloned.setPopulationCible(source.getPopulationCible());
+        cloned.setObjectifs(source.getObjectifs());
+        cloned.setObjectifsPedago(source.getObjectifsPedago());
+        cloned.setEvalMethods(source.getEvalMethods());
+        cloned.setTypeFormation(source.getTypeFormation());
+        cloned.setExterneFormateurNom(source.getExterneFormateurNom());
+        cloned.setExterneFormateurPrenom(source.getExterneFormateurPrenom());
+        cloned.setExterneFormateurEmail(source.getExterneFormateurEmail());
+        cloned.setOrganismeRefExterne(source.getOrganismeRefExterne());
+        cloned.setBureauFormationNom(source.getBureauFormationNom());
+        cloned.setBureauFormationMail(source.getBureauFormationMail());
+        cloned.setBureauFormationTelephone(source.getBureauFormationTelephone());
+        cloned.setDateDebut(source.getDateDebut());
+        cloned.setDateFin(source.getDateFin());
+        cloned.setEtatFormation(source.getEtatFormation());
+        cloned.setCoutTransport(source.getCoutTransport());
+        cloned.setCoutHebergement(source.getCoutHebergement());
+        cloned.setCoutRepas(source.getCoutRepas());
+        cloned.setCoutFormation(source.getCoutFormation());
+        cloned.setPrerequis(source.getPrerequis());
+        cloned.setAcquis(source.getAcquis());
+        cloned.setIndicateurs(source.getIndicateurs());
+        cloned.setChargeHoraireGlobal(source.getChargeHoraireGlobal());
+        cloned.setCertifGenerated(false);
+        cloned.setUp(source.getUp());
+        cloned.setDepartement(source.getDepartement());
+        cloned.setInscriptionsOuvertes(false);
+        cloned.setOuverte(false);
+        cloned.setPeriodCode(source.getPeriodCode());
+        cloned.setCustomPeriodLabel(source.getCustomPeriodLabel());
+        cloned.setSalle(source.getSalle());
+
+        Formation saved = formationRepository.save(cloned);
+        log.info("Formation {} cloned from source {} with new title '{}'",
+                saved.getIdFormation(), sourceId, newTitle);
+
+        return formationMapper.toResponseDTO(saved);
     }
 }

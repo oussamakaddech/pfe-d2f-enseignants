@@ -54,4 +54,19 @@ public interface FormationService {
      * @return formation with all relations
      */
     Formation getFormationByIdWithAllRelations(Long id);
+
+    /**
+     * Recover a soft-deleted formation (restore it)
+     * @param id formation ID
+     * @return restored formation as response DTO
+     */
+    FormationResponseDTO recoverDeletedFormation(Long id);
+
+    /**
+     * Clone an existing formation with all its properties
+     * @param sourceId source formation ID to clone
+     * @param newTitle title for the cloned formation
+     * @return cloned formation as response DTO
+     */
+    FormationResponseDTO cloneFormation(Long sourceId, String newTitle);
 }

@@ -4,6 +4,8 @@ import esprit.pfe.serviceformation.dto.CreateFormationRequest;
 import esprit.pfe.serviceformation.dto.FormationResponseDTO;
 import esprit.pfe.serviceformation.dto.UpdateFormationRequest;
 import esprit.pfe.serviceformation.services.FormationService;
+import esprit.pfe.serviceformation.services.FormationSearchService;
+import esprit.pfe.serviceformation.dto.FormationFilter;
 import esprit.d2f.common.security.AuthorizationMatrix;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -36,6 +38,7 @@ import org.springframework.web.bind.annotation.*;
 public class FormationController {
 
     private final FormationService formationService;
+    private final FormationSearchService formationSearchService;
 
     /**
      * Create a new formation.
@@ -202,5 +205,114 @@ public class FormationController {
         log.info("Deleting formation id: {}", id);
         formationService.deleteFormation(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/{id}/recover")
+    @PreAuthorize(AuthorizationMatrix.FORMATION_DELETE)
+    @Operation(
+        summary = "Récupérer une formation supprimée",
+        description = "Restaure une formation supprimée (soft delete). Réservé au rôle ADMIN."
+    )
+    @ApiResponse(responseCode = "200", description = "Formation restaurée")
+    @ApiResponse(responseCode = "404", description = "Formation supprimée introuvable")
+    @ApiResponse(responseCode = "403", description = "Permissions insuffisantes")
+    public ResponseEntity<FormationResponseDTO> recoverDeletedFormation(
+            @Parameter(description = "ID de la formation supprimée") @PathVariable Long id) {
+        log.info("Recovering deleted formation id: {}", id);
+        FormationResponseDTO recovered = formationService.recoverDeletedFormation(id);
+        return ResponseEntity.ok(recovered);
+    }
+
+    @PostMapping("/{id}/clone")
+    @PreAuthorize(AuthorizationMatrix.FORMATION_CREATE)
+    @Operation(
+        summary = "Dupliquer une formation",
+        description = "Crée une copie d'une formation existante avec un nouveau titre. Réservé aux rôles ADMIN, CUP, D2F."
+    )
+    @ApiResponse(
+        responseCode = "201",
+        description = "Formation dupliquée créée",
+        content = @Content(schema = @Schema(implementation = FormationResponseDTO.class))
+    )
+    @ApiResponse(responseCode = "400", description = "Requête invalide")
+    @ApiResponse(responseCode = "404", description = "Formation source introuvable")
+    public ResponseEntity<FormationResponseDTO> cloneFormation(
+            @Parameter(description = "ID de la formation à dupliquer") @PathVariable Long id,
+            @Parameter(description = "Titre pour la formation dupliquée") @RequestParam String newTitle) {
+        log.info("Cloning formation id: {} with new title: {}", id, newTitle);
+        FormationResponseDTO cloned = formationService.cloneFormation(id, newTitle);
+        return ResponseEntity.status(HttpStatus.CREATED).body(cloned);
+    }
+
+    @GetMapping("/search/by-title")
+    @PreAuthorize(AuthorizationMatrix.FORMATION_READ)
+    @Operation(
+        summary = "Rechercher les formations par titre",
+        description = "Retourne une page de formations correspondant au titre recherché."
+    )
+    @ApiResponse(
+        responseCode = "200",
+        description = "Résultats de recherche (paginé)",
+        content = @Content(schema = @Schema(implementation = Page.class))
+    )
+    public ResponseEntity<Page<FormationResponseDTO>> searchByTitle(
+            @Parameter(description = "Titre (ou partie du titre) à rechercher") @RequestParam String title,
+            @Parameter(description = "Pagination (page, size, sort)") Pageable pageable) {
+        log.debug("Searching formations by title: {}", title);
+        return ResponseEntity.ok(formationSearchService.searchByTitle(title, pageable));
+    }
+
+    @GetMapping("/search/by-state")
+    @PreAuthorize(AuthorizationMatrix.FORMATION_READ)
+    @Operation(
+        summary = "Rechercher les formations par état",
+        description = "Retourne une page de formations dans un état donné (PLANIFIEE, EN_COURS, ACHEVEE, ANNULEE)."
+    )
+    @ApiResponse(
+        responseCode = "200",
+        description = "Formations par état (paginé)",
+        content = @Content(schema = @Schema(implementation = Page.class))
+    )
+    public ResponseEntity<Page<FormationResponseDTO>> searchByState(
+            @Parameter(description = "État de la formation (PLANIFIEE, EN_COURS, ACHEVEE, ANNULEE)") @RequestParam String state,
+            @Parameter(description = "Pagination (page, size, sort)") Pageable pageable) {
+        log.debug("Searching formations by state: {}", state);
+        return ResponseEntity.ok(formationSearchService.searchByState(state, pageable));
+    }
+
+    @GetMapping("/search/by-domain")
+    @PreAuthorize(AuthorizationMatrix.FORMATION_READ)
+    @Operation(
+        summary = "Rechercher les formations par domaine",
+        description = "Retourne une page de formations appartenant à un domaine donné."
+    )
+    @ApiResponse(
+        responseCode = "200",
+        description = "Formations par domaine (paginé)",
+        content = @Content(schema = @Schema(implementation = Page.class))
+    )
+    public ResponseEntity<Page<FormationResponseDTO>> searchByDomain(
+            @Parameter(description = "Domaine de compétence") @RequestParam String domain,
+            @Parameter(description = "Pagination (page, size, sort)") Pageable pageable) {
+        log.debug("Searching formations by domain: {}", domain);
+        return ResponseEntity.ok(formationSearchService.searchByDomain(domain, pageable));
+    }
+
+    @PostMapping("/search/advanced")
+    @PreAuthorize(AuthorizationMatrix.FORMATION_READ)
+    @Operation(
+        summary = "Recherche avancée avec filtres multiples",
+        description = "Recherche formations avec critères complexes (compétence, domaine, UP, département, état, dates, type de formateur)."
+    )
+    @ApiResponse(
+        responseCode = "200",
+        description = "Formations filtrées (paginé)",
+        content = @Content(schema = @Schema(implementation = Page.class))
+    )
+    public ResponseEntity<Page<FormationResponseDTO>> advancedSearch(
+            @Valid @RequestBody FormationFilter filter,
+            @Parameter(description = "Pagination (page, size, sort)") Pageable pageable) {
+        log.debug("Advanced search with filter: {}", filter);
+        return ResponseEntity.ok(formationSearchService.searchFormations(filter, pageable));
     }
 }
