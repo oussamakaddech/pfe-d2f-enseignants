@@ -15,4 +15,6 @@ public class RiceImportRequest {
     @NotEmpty(message = "Au moins un domaine est requis")
     @Valid
     private List<RiceDomaineRequest> domaines;
+
+    private String departement;
 }

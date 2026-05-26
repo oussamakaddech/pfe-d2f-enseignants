@@ -65,18 +65,26 @@ public class RiceImportServiceImpl implements IRiceImportService {
     @Transactional
     public RiceImportResult importRice(RiceImportRequest request) {
         ImportCounters counters = new ImportCounters();
+        String deptPrefix = buildDeptPrefix(request.getDepartement());
 
         for (RiceDomaineRequest domReq : request.getDomaines()) {
-            processDomaine(domReq, counters);
+            processDomaine(domReq, deptPrefix, counters);
         }
 
         return buildResult(counters);
     }
 
+    private String buildDeptPrefix(String departement) {
+        if (departement == null || departement.isBlank() || "auto".equals(departement)) {
+            return "";
+        }
+        return departement.toUpperCase() + "_";
+    }
+
     // ── Domaine level ────────────────────────────────────────────────────────
 
-    private void processDomaine(RiceDomaineRequest domReq, ImportCounters c) {
-        PersistedEntity<Domaine> persisted = findOrCreateDomaine(domReq);
+    private void processDomaine(RiceDomaineRequest domReq, String deptPrefix, ImportCounters c) {
+        PersistedEntity<Domaine> persisted = findOrCreateDomaine(domReq, deptPrefix);
         Domaine domaine = persisted.entity;
         if (persisted.created) c.domainesCreated++;
 
@@ -86,29 +94,29 @@ public class RiceImportServiceImpl implements IRiceImportService {
         if (domReq.getCompetences() == null) return;
 
         for (RiceCompetenceRequest compReq : domReq.getCompetences()) {
-            processCompetence(compReq, domaine, savoirStats, c);
+            processCompetence(compReq, domaine, deptPrefix, savoirStats, c);
         }
     }
 
     // ── Competence level ─────────────────────────────────────────────────────
 
     private void processCompetence(RiceCompetenceRequest compReq, Domaine domaine,
-                                   int[] savoirStats, ImportCounters c) {
-        PersistedEntity<Competence> persisted = findOrCreateCompetence(compReq, domaine);
+                                   String deptPrefix, int[] savoirStats, ImportCounters c) {
+        PersistedEntity<Competence> persisted = findOrCreateCompetence(compReq, domaine, deptPrefix);
         Competence competence = persisted.entity;
         if (persisted.created) c.competencesCreated++;
 
         // Direct savoirs on competence
         if (compReq.getSavoirs() != null) {
             for (RiceSavoirRequest savReq : compReq.getSavoirs()) {
-                processSavoirOnCompetence(savReq, competence, savoirStats, c);
+                processSavoirOnCompetence(savReq, competence, deptPrefix, savoirStats, c);
             }
         }
 
         // Sous-competences
         if (compReq.getSousCompetences() != null) {
             for (RiceSousCompetenceRequest scReq : compReq.getSousCompetences()) {
-                processSousCompetence(scReq, competence, savoirStats, c);
+                processSousCompetence(scReq, competence, deptPrefix, savoirStats, c);
             }
         }
     }
@@ -116,23 +124,23 @@ public class RiceImportServiceImpl implements IRiceImportService {
     // ── Sous-Competence level ────────────────────────────────────────────────
 
     private void processSousCompetence(RiceSousCompetenceRequest scReq, Competence competence,
-                                       int[] savoirStats, ImportCounters c) {
-        PersistedEntity<SousCompetence> persisted = findOrCreateSousCompetence(scReq, competence);
+                                       String deptPrefix, int[] savoirStats, ImportCounters c) {
+        PersistedEntity<SousCompetence> persisted = findOrCreateSousCompetence(scReq, competence, deptPrefix);
         SousCompetence sc = persisted.entity;
         if (persisted.created) c.sousCompetencesCreated++;
 
         if (scReq.getSavoirs() == null) return;
 
         for (RiceSavoirRequest savReq : scReq.getSavoirs()) {
-            processSavoirOnSousCompetence(savReq, sc, savoirStats, c);
+            processSavoirOnSousCompetence(savReq, sc, deptPrefix, savoirStats, c);
         }
     }
 
     // ── Savoir level ─────────────────────────────────────────────────────────
 
     private void processSavoirOnCompetence(RiceSavoirRequest savReq, Competence competence,
-                                           int[] savoirStats, ImportCounters c) {
-        PersistedEntity<Savoir> persisted = findOrCreateSavoirOnCompetence(savReq, competence);
+                                           String deptPrefix, int[] savoirStats, ImportCounters c) {
+        PersistedEntity<Savoir> persisted = findOrCreateSavoirOnCompetence(savReq, competence, deptPrefix);
         Savoir savoir = persisted.entity;
         if (persisted.created) c.savoirsCreated++;
         savoirStats[1]++;
@@ -140,8 +148,8 @@ public class RiceImportServiceImpl implements IRiceImportService {
     }
 
     private void processSavoirOnSousCompetence(RiceSavoirRequest savReq, SousCompetence sc,
-                                                int[] savoirStats, ImportCounters c) {
-        PersistedEntity<Savoir> persisted = findOrCreateSavoirOnSousCompetence(savReq, sc);
+                                               String deptPrefix, int[] savoirStats, ImportCounters c) {
+        PersistedEntity<Savoir> persisted = findOrCreateSavoirOnSousCompetence(savReq, sc, deptPrefix);
         Savoir savoir = persisted.entity;
         if (persisted.created) c.savoirsCreated++;
         savoirStats[1]++;
@@ -287,13 +295,18 @@ public class RiceImportServiceImpl implements IRiceImportService {
         return normalized.substring(0, LEGACY_TEXT_LIMIT);
     }
 
-    private String normalizeCode(String value) {
+    private String normalizeCode(String value, String deptPrefix) {
         if (value == null) return null;
-        return value.trim();
+        String trimmed = value.trim();
+        return deptPrefix.isEmpty() ? trimmed : deptPrefix + trimmed;
     }
 
-    private PersistedEntity<Domaine> findOrCreateDomaine(RiceDomaineRequest domReq) {
-        String code = normalizeCode(domReq.getCode());
+    private String normalizeCode(String value) {
+        return normalizeCode(value, "");
+    }
+
+    private PersistedEntity<Domaine> findOrCreateDomaine(RiceDomaineRequest domReq, String deptPrefix) {
+        String code = normalizeCode(domReq.getCode(), deptPrefix);
         return domaineRepository.findByCodeIgnoreCase(code)
                 .map(existing -> new PersistedEntity<>(existing, false))
                 .orElseGet(() -> saveOrReloadDomaine(code, domReq));
@@ -315,8 +328,8 @@ public class RiceImportServiceImpl implements IRiceImportService {
         }
     }
 
-    private PersistedEntity<Competence> findOrCreateCompetence(RiceCompetenceRequest compReq, Domaine domaine) {
-        String code = normalizeCode(compReq.getCode());
+    private PersistedEntity<Competence> findOrCreateCompetence(RiceCompetenceRequest compReq, Domaine domaine, String deptPrefix) {
+        String code = normalizeCode(compReq.getCode(), deptPrefix);
         return competenceRepository.findByCodeIgnoreCase(code)
                 .map(existing -> new PersistedEntity<>(existing, false))
                 .orElseGet(() -> saveOrReloadCompetence(code, compReq, domaine));
@@ -339,8 +352,8 @@ public class RiceImportServiceImpl implements IRiceImportService {
         }
     }
 
-    private PersistedEntity<SousCompetence> findOrCreateSousCompetence(RiceSousCompetenceRequest scReq, Competence competence) {
-        String code = normalizeCode(scReq.getCode());
+    private PersistedEntity<SousCompetence> findOrCreateSousCompetence(RiceSousCompetenceRequest scReq, Competence competence, String deptPrefix) {
+        String code = normalizeCode(scReq.getCode(), deptPrefix);
         return sousCompetenceRepository.findByCodeIgnoreCase(code)
                 .map(existing -> new PersistedEntity<>(existing, false))
                 .orElseGet(() -> saveOrReloadSousCompetence(code, scReq, competence));
@@ -362,8 +375,8 @@ public class RiceImportServiceImpl implements IRiceImportService {
         }
     }
 
-    private PersistedEntity<Savoir> findOrCreateSavoirOnCompetence(RiceSavoirRequest savReq, Competence competence) {
-        String code = normalizeCode(savReq.getCode());
+    private PersistedEntity<Savoir> findOrCreateSavoirOnCompetence(RiceSavoirRequest savReq, Competence competence, String deptPrefix) {
+        String code = normalizeCode(savReq.getCode(), deptPrefix);
         return savoirRepository.findByCodeIgnoreCase(code)
                 .map(existing -> new PersistedEntity<>(existing, false))
                 .orElseGet(() -> saveOrReloadSavoirOnCompetence(code, savReq, competence));
@@ -388,8 +401,8 @@ public class RiceImportServiceImpl implements IRiceImportService {
         }
     }
 
-    private PersistedEntity<Savoir> findOrCreateSavoirOnSousCompetence(RiceSavoirRequest savReq, SousCompetence sc) {
-        String code = normalizeCode(savReq.getCode());
+    private PersistedEntity<Savoir> findOrCreateSavoirOnSousCompetence(RiceSavoirRequest savReq, SousCompetence sc, String deptPrefix) {
+        String code = normalizeCode(savReq.getCode(), deptPrefix);
         return savoirRepository.findByCodeIgnoreCase(code)
                 .map(existing -> new PersistedEntity<>(existing, false))
                 .orElseGet(() -> saveOrReloadSavoirOnSousCompetence(code, savReq, sc));
