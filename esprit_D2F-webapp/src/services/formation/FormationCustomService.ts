@@ -1,6 +1,6 @@
 import { defaultApi as axios } from "@/utils/helpers/httpClient";
 import { config } from "@/config/env";
-const API_URL_CUSTOM =`${config.FORMATION_URL}/formation/formations-custom`;
+const API_URL_CUSTOM =`${config.FORMATION_URL}/api/v1/formations-custom`;
 
 const FormationCustomService = {
   async generateCertificates(formationId: number, typeCertif = "CERTIF") {
