@@ -63,8 +63,8 @@ public class FormationExportController {
               .append(f.getDateFin()).append(";")
               .append(f.getCoutFormation()).append(";")
               .append(f.getChargeHoraireGlobal()).append(";")
-              .append(f.getDepartement1() != null ? f.getDepartement1().getLibelle() : "").append(";")
-              .append(f.getUp1() != null ? f.getUp1().getLibelle() : "").append("\n");
+              .append(f.getDepartement() != null ? f.getDepartement().getLibelle() : "").append(";")
+              .append(f.getUp() != null ? f.getUp().getLibelle() : "").append("\n");
         }
 
         byte[] bytes = sb.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8);
@@ -84,12 +84,12 @@ public class FormationExportController {
         }
         if (deptId != null && !deptId.isBlank()) {
             formations = formations.stream()
-                    .filter(f -> f.getDepartement1() != null && deptId.equals(f.getDepartement1().getId()))
+                    .filter(f -> f.getDepartement() != null && deptId.equals(f.getDepartement().getId()))
                     .toList();
         }
         if (upId != null && !upId.isBlank()) {
             formations = formations.stream()
-                    .filter(f -> f.getUp1() != null && upId.equals(f.getUp1().getId()))
+                    .filter(f -> f.getUp() != null && upId.equals(f.getUp().getId()))
                     .toList();
         }
         return formations;

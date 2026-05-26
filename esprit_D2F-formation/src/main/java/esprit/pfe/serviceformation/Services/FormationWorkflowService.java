@@ -1366,8 +1366,8 @@ public class FormationWorkflowService {
         dto.setTypeBesoin(formation.getTypeBesoin());
         dto.setTitreFormation(formation.getTitreFormation());
         dto.setTypeFormation(formation.getTypeFormation() != null ? formation.getTypeFormation().toString() : null);
-        dto.setDateDebut(formation.getDateDebut());
-        dto.setDateFin(formation.getDateFin());
+        dto.setDateDebut(formation.getDateDebut() != null ? formation.getDateDebut().toInstant().atZone(java.time.ZoneId.systemDefault()).toLocalDate() : null);
+        dto.setDateFin(formation.getDateFin() != null ? formation.getDateFin().toInstant().atZone(java.time.ZoneId.systemDefault()).toLocalDate() : null);
         dto.setEtatFormation(formation.getEtatFormation() != null ? formation.getEtatFormation().toString() : null);
         dto.setCoutFormation(formation.getCoutFormation() != null ? formation.getCoutFormation().floatValue() : 0.0f);
         dto.setOrganismeRefExterne(formation.getOrganismeRefExterne());
@@ -1407,13 +1407,13 @@ public class FormationWorkflowService {
             DeptDTO deptDTO = new DeptDTO();
             deptDTO.setId(formation.getDepartement().getId());
             deptDTO.setLibelle(formation.getDepartement().getLibelle());
-            dto.setDepartement1(deptDTO);
+            dto.setDepartement(deptDTO);
         }
         if (formation.getUp() != null) {
             UpDTO upDTO = new UpDTO();
             upDTO.setId(formation.getUp().getId());
             upDTO.setLibelle(formation.getUp().getLibelle());
-            dto.setUp1(upDTO);
+            dto.setUp(upDTO);
         }
         return dto;
     }
