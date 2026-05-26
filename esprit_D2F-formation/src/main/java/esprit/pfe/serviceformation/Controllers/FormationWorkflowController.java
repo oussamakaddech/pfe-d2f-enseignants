@@ -4,7 +4,9 @@ import esprit.d2f.common.security.AuthorizationMatrix;
 import esprit.pfe.serviceformation.dto.*;
 import esprit.pfe.serviceformation.entities.Formation;
 import esprit.pfe.serviceformation.services.ExportExcelService;
+import esprit.pfe.serviceformation.services.FormationService;
 import esprit.pfe.serviceformation.services.FormationWorkflowService;
+import esprit.pfe.serviceformation.services.FormationMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.*;
@@ -23,10 +25,13 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import jakarta.validation.Valid;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
 
 @Slf4j
 @RestController
 @RequestMapping("/api/v1/formations-workflow")
+@Tag(name = "Formations Workflow", description = "Opérations de workflow et fonctionnalités avancées pour les formations")
 public class FormationWorkflowController {
 
     private static final String KEY_ERROR = "error";
@@ -35,14 +40,22 @@ public class FormationWorkflowController {
 
     private final ExportExcelService exportExcelService;
     private final FormationWorkflowService formationWorkflowService;
+    private final FormationService formationService;
+    private final FormationMapper formationMapper;
 
-    public FormationWorkflowController(ExportExcelService exportExcelService, FormationWorkflowService formationWorkflowService) {
+    public FormationWorkflowController(ExportExcelService exportExcelService,
+                                     FormationWorkflowService formationWorkflowService,
+                                     FormationService formationService,
+                                     FormationMapper formationMapper) {
         this.exportExcelService = exportExcelService;
         this.formationWorkflowService = formationWorkflowService;
+        this.formationService = formationService;
+        this.formationMapper = formationMapper;
     }
 
     @PostMapping
     @PreAuthorize(AuthorizationMatrix.FORMATION_CREATE)
+    @Operation(summary = "Créer une formation via workflow", description = "Crée une formation avec toutes ses relations (séances, animateurs, participants)")
     public ResponseEntity<Object> createFormation(@Valid @RequestBody FormationWorkflowRequest request, org.springframework.validation.BindingResult result) {
         if (result.hasErrors()) {
             log.error("Validation errors: {}", result.getAllErrors());
@@ -55,7 +68,7 @@ public class FormationWorkflowController {
                     request.getAnimateursIds() != null ? request.getAnimateursIds().size() : 0,
                     request.getParticipantsIds() != null ? request.getParticipantsIds().size() : 0);
             Formation formation = formationWorkflowService.createFormationWorkflow(request);
-            FormationDTO dto = formationWorkflowService.mapFormationToDTO(formation);
+            FormationResponseDTO dto = formationMapper.toResponseDTO(formation);
             return ResponseEntity.status(HttpStatus.CREATED).body(dto);
         } catch (IllegalStateException e) {
             log.error("Erreur metier lors de la creation de la formation : {}", e.getMessage());
@@ -71,6 +84,7 @@ public class FormationWorkflowController {
 
     @PutMapping("/{id}")
     @PreAuthorize(AuthorizationMatrix.FORMATION_UPDATE)
+    @Operation(summary = "Mettre à jour une formation via workflow")
     public ResponseEntity<Object> updateFormation(@PathVariable Long id, @Valid @RequestBody FormationWorkflowRequest request, org.springframework.validation.BindingResult result) {
         if (result.hasErrors()) {
             log.error("Validation errors for update: {}", result.getAllErrors());
@@ -81,7 +95,7 @@ public class FormationWorkflowController {
             if (formation == null) {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
             }
-            FormationDTO dto = formationWorkflowService.mapFormationToDTO(formation);
+            FormationResponseDTO dto = formationMapper.toResponseDTO(formation);
             return ResponseEntity.ok(dto);
         } catch (IllegalStateException e) {
             log.error("Erreur metier lors de la mise a jour de la formation {} : {}", id, e.getMessage());
@@ -110,19 +124,19 @@ public class FormationWorkflowController {
 
     @GetMapping("/{id}")
     @PreAuthorize(AuthorizationMatrix.FORMATION_READ)
+    @Operation(summary = "Récupérer une formation par son ID")
     public ResponseEntity<Object> getFormationById(@PathVariable Long id) {
         try {
-            FormationDTO dto = formationWorkflowService.getFormationWorkflowById(id);
+            FormationResponseDTO dto = formationService.getFormationById(id);
             return ResponseEntity.ok(dto);
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(KEY_ERROR, e.getMessage()));
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(KEY_ERROR, MSG_ERREUR_INTERNE, KEY_MESSAGE, e.getMessage()));
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(KEY_ERROR, e.getMessage()));
         }
     }
 
     @GetMapping
     @PreAuthorize(AuthorizationMatrix.FORMATION_READ)
+    @Operation(summary = "Lister toutes les formations (legacy - utiliser /api/v1/formations)")
     public ResponseEntity<Object> getAllFormations() {
         try {
             List<FormationDTO> dtos = formationWorkflowService.getAllFormationWorkflows();

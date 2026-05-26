@@ -32,7 +32,7 @@ public class FormationMapper {
                 esprit.pfe.serviceformation.entities.TypeFormation.INTERNE :
                 request.getTypeFormation().equals("EXTERNE") ?
                     esprit.pfe.serviceformation.entities.TypeFormation.EXTERNE :
-                    esprit.pfe.serviceformation.entities.TypeFormation.MIXTE
+                    esprit.pfe.serviceformation.entities.TypeFormation.EN_LIGNE
             : null);
 
         formation.setEtatFormation(request.getEtatFormation() != null ?
@@ -223,22 +223,45 @@ public class FormationMapper {
             .ouverte(formation.isOuverte())
             .inscriptionsOuvertes(formation.isInscriptionsOuvertes())
             .certifGenerated(formation.isCertifGenerated())
-            .up(formation.getUp() != null ? new UpDTO(formation.getUp().getId(), formation.getUp().getLibelle()) : null)
-            .departement(formation.getDepartement() != null ?
-                new DeptDTO(formation.getDepartement().getId(), formation.getDepartement().getNom())
-                : null)
+            .up(formation.getUp() != null ? createUpDTO(formation.getUp()) : null)
+            .departement(formation.getDepartement() != null ? createDeptDTO(formation.getDepartement()) : null)
             .seances(formation.getSeances() != null ?
-                formation.getSeances().stream().map(s -> SeanceDTO.builder()
-                    .idSeance(s.getIdSeance())
-                    .dateSeance(s.getDateSeance())
-                    .heureDebut(s.getHeureDebut())
-                    .heureFin(s.getHeureFin())
-                    .build()).collect(Collectors.toList())
+                formation.getSeances().stream().map(this::mapSeanceToDTO).collect(Collectors.toList())
                 : null)
             .createdAt(formation.getCreatedAt())
             .updatedAt(formation.getUpdatedAt())
             .createdBy(formation.getCreatedBy())
             .updatedBy(formation.getUpdatedBy())
             .build();
+    }
+
+    private UpDTO createUpDTO(esprit.pfe.serviceformation.entities.Up up) {
+        UpDTO dto = new UpDTO();
+        dto.setId(up.getId());
+        dto.setLibelle(up.getLibelle());
+        return dto;
+    }
+
+    private DeptDTO createDeptDTO(esprit.pfe.serviceformation.entities.Dept dept) {
+        DeptDTO dto = new DeptDTO();
+        dto.setId(dept.getId());
+        dto.setLibelle(dept.getLibelle());
+        return dto;
+    }
+
+    private SeanceDTO mapSeanceToDTO(esprit.pfe.serviceformation.entities.SeanceFormation seance) {
+        SeanceDTO dto = new SeanceDTO();
+        dto.setIdSeance(seance.getIdSeance());
+        dto.setDateSeance(seance.getDateSeance());
+        dto.setHeureDebut(seance.getHeureDebut());
+        dto.setHeureFin(seance.getHeureFin());
+        dto.setSalle(seance.getSalle());
+        dto.setTypeSeance(seance.getTypeSeance());
+        dto.setContenus(seance.getContenus());
+        dto.setMethodes(seance.getMethodes());
+        dto.setDureeTheorique(seance.getDureeTheorique());
+        dto.setDureePratique(seance.getDureePratique());
+        dto.setOnlineMeetingUrl(seance.getOnlineMeetingUrl());
+        return dto;
     }
 }

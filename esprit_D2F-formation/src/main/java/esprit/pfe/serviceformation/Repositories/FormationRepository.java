@@ -192,4 +192,18 @@ public interface FormationRepository extends JpaRepository<Formation, Long> {
   List<Long> findMixteIdsWithFilters(@Param("filter") FormationFilter filter);
 
   List<Formation> findByInscriptionsOuvertesTrue();
+
+  // ==================== SOFT DELETE RECOVERY ====================
+
+  /**
+   * Find a soft-deleted formation by ID (returns null if not deleted or not found)
+   */
+  @Query(value = "SELECT * FROM formation.formations WHERE id_formation = :id AND deleted_at IS NOT NULL", nativeQuery = true)
+  Formation findDeletedById(@org.springframework.data.repository.query.Param("id") Long id);
+
+  /**
+   * Find all soft-deleted formations
+   */
+  @Query(value = "SELECT * FROM formation.formations WHERE deleted_at IS NOT NULL", nativeQuery = true)
+  List<Formation> findAllDeleted();
 }
