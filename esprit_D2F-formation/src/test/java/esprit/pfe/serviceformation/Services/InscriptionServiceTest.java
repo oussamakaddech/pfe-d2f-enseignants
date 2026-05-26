@@ -150,13 +150,13 @@ class InscriptionServiceTest {
         f.setEtatFormation(EtatFormation.PLANIFIE);
         f.setDepartement(new Dept());
         f.setUp(new Up());
-        
+
         SeanceFormation s = new SeanceFormation();
         f.setSeances(List.of(s));
-        
+
         FormationDTO dto = service.mapFormationToDTO(f);
-        assertNotNull(dto.getDepartement1());
-        assertNotNull(dto.getUp1());
+        assertNotNull(dto.getDepartement());
+        assertNotNull(dto.getUp());
         assertFalse(dto.getSeances().isEmpty());
     }
 

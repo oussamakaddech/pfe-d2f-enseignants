@@ -252,8 +252,8 @@ class InscriptionServiceEnhancedTest {
         FormationDTO dto = service.mapFormationToDTO(f);
         assertNotNull(dto.getTypeFormation());
         assertNotNull(dto.getEtatFormation());
-        assertNull(dto.getDepartement1());
-        assertNull(dto.getUp1());
+        assertNull(dto.getDepartement());
+        assertNull(dto.getUp());
         assertNull(dto.getSeances());
     }
 

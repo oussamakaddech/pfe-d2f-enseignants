@@ -12,7 +12,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
-import java.util.Date;
+import java.time.LocalDate;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -52,14 +52,14 @@ class FormationExportControllerTest {
         FormationDTO f1 = new FormationDTO();
         f1.setIdFormation(1L);
         f1.setTitreFormation("T1");
-        f1.setDateDebut(new Date());
-        f1.setDateFin(new Date());
-        
+        f1.setDateDebut(LocalDate.of(2026, 1, 1));
+        f1.setDateFin(LocalDate.of(2026, 1, 31));
+
         DeptDTO d1 = new DeptDTO(); d1.setId("D1"); d1.setLibelle("Dept1");
-        f1.setDepartement1(d1);
-        
+        f1.setDepartement(d1);
+
         UpDTO u1 = new UpDTO(); u1.setId("U1"); u1.setLibelle("Up1");
-        f1.setUp1(u1);
+        f1.setUp(u1);
 
         when(formationWorkflowService.getAllFormationWorkflows()).thenReturn(List.of(f1));
 
