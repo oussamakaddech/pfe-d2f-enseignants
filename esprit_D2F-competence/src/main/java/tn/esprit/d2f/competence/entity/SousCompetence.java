@@ -34,6 +34,7 @@ public class SousCompetence extends BaseAuditEntity {
     @Column(nullable = false)
     private String nom;
 
+    @Column(columnDefinition = "TEXT")
     private String description;
 
     @ManyToOne(fetch = FetchType.LAZY)

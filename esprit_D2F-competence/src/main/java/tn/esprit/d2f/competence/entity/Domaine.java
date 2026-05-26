@@ -30,6 +30,7 @@ public class Domaine extends BaseAuditEntity {
     @Column(nullable = false)
     private String nom;
 
+    @Column(columnDefinition = "TEXT")
     private String description;
 
     @Column(nullable = false)

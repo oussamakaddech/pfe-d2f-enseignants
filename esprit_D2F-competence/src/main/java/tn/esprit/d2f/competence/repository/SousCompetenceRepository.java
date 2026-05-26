@@ -14,6 +14,7 @@ import java.util.Optional;
 @Repository
 public interface SousCompetenceRepository extends JpaRepository<SousCompetence, Long> {
     Optional<SousCompetence> findByCode(String code);
+    Optional<SousCompetence> findByCodeIgnoreCase(String code);
     List<SousCompetence> findByCompetenceId(Long competenceId);
     List<SousCompetence> findByCompetenceIdAndParentIsNull(Long competenceId);
     List<SousCompetence> findByParentId(Long parentId);

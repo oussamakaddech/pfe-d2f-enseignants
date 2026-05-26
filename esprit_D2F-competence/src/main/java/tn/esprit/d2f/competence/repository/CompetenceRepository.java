@@ -14,6 +14,7 @@ import java.util.Optional;
 @Repository
 public interface CompetenceRepository extends JpaRepository<Competence, Long> {
     Optional<Competence> findByCode(String code);
+    Optional<Competence> findByCodeIgnoreCase(String code);
     List<Competence> findByDomaineId(Long domaineId);
     boolean existsByCode(String code);
 

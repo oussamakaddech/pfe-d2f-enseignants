@@ -39,6 +39,7 @@ public class EnseignantCompetence extends BaseAuditEntity {
 
     private LocalDate dateAcquisition;
 
+    @Column(columnDefinition = "TEXT")
     private String commentaire;
 
     @PrePersist

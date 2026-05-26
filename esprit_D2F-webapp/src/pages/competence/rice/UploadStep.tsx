@@ -156,6 +156,16 @@ export default function UploadStep({ // NOSONAR — complexity spread across JSX
   const hiddenCount = Math.max(0, files.length - visibleFiles.length);
   const plural = files.length > 1 ? "s" : "";
   const deptLabel = departement === "auto" ? "auto" : deptCfg.shortNom;
+  const draggerFileList = useMemo(
+    () => files.map((f, i) => ({
+      uid: `file-${i}`,
+      name: f.name ?? f,
+      size: f.size,
+      status: "done",
+      originFileObj: f,
+    })),
+    [files],
+  );
   const filteredPreviewRows = useMemo(
     () => filterEnseignants(allEnseignants, ensPreviewSearch),
     [allEnseignants, ensPreviewSearch]
@@ -196,13 +206,7 @@ export default function UploadStep({ // NOSONAR — complexity spread across JSX
               beforeUpload={() => false}
               onChange={handleUploadChange}
               showUploadList={false}
-              fileList={files.map((f, i) => ({
-                uid: `file-${i}`,
-                name: f.name ?? f,
-                size: f.size,
-                status: "done",
-                originFileObj: f,
-              }))}
+              fileList={draggerFileList}
               className="rice-dragger"
             >
               <div className="rice-dragger-inner">

@@ -32,6 +32,7 @@ public class Competence extends BaseAuditEntity {
     @Column(nullable = false)
     private String nom;
 
+    @Column(columnDefinition = "TEXT")
     private String description;
 
     @Column(name = "prerequisite_manual", columnDefinition = "TEXT")

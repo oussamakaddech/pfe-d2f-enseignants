@@ -50,6 +50,7 @@ public class NiveauSavoirRequis extends BaseAuditEntity {
     @JoinColumn(name = "savoir_id", nullable = false)
     private Savoir savoir;
 
+    @Column(columnDefinition = "TEXT")
     private String description;
 
     /**
