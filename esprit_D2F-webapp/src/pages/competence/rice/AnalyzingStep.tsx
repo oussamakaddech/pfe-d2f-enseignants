@@ -3,7 +3,7 @@
 import { Progress, Steps, Button, Space } from "antd";
 import { Typography } from "antd";
 import { CheckCircleOutlined, LoadingOutlined, RobotOutlined } from "@ant-design/icons";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 const { Title, Paragraph } = Typography;
 
@@ -33,17 +33,21 @@ export default function AnalyzingStep({
     return () => clearInterval(t);
   }, []);
 
-  const PROGRESS_TEXTS = [
-    { max: 30, text: "Lecture et extraction du texte en cours..." },
-    { max: 60, text: "Analyse NLP et taxonomie de Bloom..." },
-    { max: 80, text: "Construction de l'arbre de compétences..." },
-    { max: 95, text: "Matching avec le référentiel du département..." },
-  ];
-  const dynamicText = PROGRESS_TEXTS.find(t => analysisProgress < t.max)?.text ?? "Finalisation... presque prêt !";
+  const dynamicText = useMemo(() => {
+    const progressTexts = [
+      { max: 30, text: "Lecture et extraction du texte en cours..." },
+      { max: 60, text: "Analyse NLP et taxonomie de Bloom..." },
+      { max: 80, text: "Construction de l'arbre de compétences..." },
+      { max: 95, text: "Matching avec le référentiel du département..." },
+    ];
+    return progressTexts.find((t) => analysisProgress < t.max)?.text ?? "Finalisation... presque prêt !";
+  }, [analysisProgress]);
 
-  const SUB_STEP_BOUNDARIES = [20, 40, 60, 80, 100];
-  const stepIndex = SUB_STEP_BOUNDARIES.findIndex(t => analysisProgress < t);
-  const currentSubStep = stepIndex === -1 ? SUB_STEP_BOUNDARIES.length : stepIndex;
+  const currentSubStep = useMemo(() => {
+    const boundaries = [20, 40, 60, 80, 100];
+    const stepIndex = boundaries.findIndex((t) => analysisProgress < t);
+    return stepIndex === -1 ? boundaries.length : stepIndex;
+  }, [analysisProgress]);
 
   const stepIcon = (threshold, prev) => {
     if (analysisProgress >= threshold) return <CheckCircleOutlined style={{ color: "#52c41a" }} />;

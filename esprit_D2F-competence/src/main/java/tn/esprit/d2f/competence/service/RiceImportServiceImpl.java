@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Lazy;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -25,6 +26,8 @@ import java.util.*;
 @Service
 @RequiredArgsConstructor
 public class RiceImportServiceImpl implements IRiceImportService {
+
+    private static final int LEGACY_TEXT_LIMIT = 255;
 
     private final DomaineRepository                domaineRepository;
     private final CompetenceRepository             competenceRepository;
@@ -48,6 +51,16 @@ public class RiceImportServiceImpl implements IRiceImportService {
         final Map<String, int[]> domainSavoirStats = new LinkedHashMap<>();
     }
 
+    private static class PersistedEntity<T> {
+        private final T entity;
+        private final boolean created;
+
+        private PersistedEntity(T entity, boolean created) {
+            this.entity = entity;
+            this.created = created;
+        }
+    }
+
     @Override
     @Transactional
     public RiceImportResult importRice(RiceImportRequest request) {
@@ -63,18 +76,9 @@ public class RiceImportServiceImpl implements IRiceImportService {
     // ── Domaine level ────────────────────────────────────────────────────────
 
     private void processDomaine(RiceDomaineRequest domReq, ImportCounters c) {
-        boolean[] isNew = {false};
-        Domaine domaine = domaineRepository.findByCode(domReq.getCode())
-                .orElseGet(() -> {
-                    isNew[0] = true;
-                    return domaineRepository.save(Domaine.builder()
-                            .code(domReq.getCode())
-                            .nom(domReq.getNom())
-                            .description(domReq.getDescription())
-                            .actif(true)
-                            .build());
-                });
-        if (isNew[0]) c.domainesCreated++;
+        PersistedEntity<Domaine> persisted = findOrCreateDomaine(domReq);
+        Domaine domaine = persisted.entity;
+        if (persisted.created) c.domainesCreated++;
 
         int[] savoirStats = {0, 0};
         c.domainSavoirStats.put(domReq.getNom(), savoirStats);
@@ -90,20 +94,9 @@ public class RiceImportServiceImpl implements IRiceImportService {
 
     private void processCompetence(RiceCompetenceRequest compReq, Domaine domaine,
                                    int[] savoirStats, ImportCounters c) {
-        boolean[] isNew = {false};
-        final Domaine finalDomaine = domaine;
-        Competence competence = competenceRepository.findByCode(compReq.getCode())
-                .orElseGet(() -> {
-                    isNew[0] = true;
-                    return competenceRepository.save(Competence.builder()
-                            .code(compReq.getCode())
-                            .nom(compReq.getNom())
-                            .description(compReq.getDescription())
-                            .ordre(compReq.getOrdre() != null ? compReq.getOrdre() : 1)
-                            .domaine(finalDomaine)
-                            .build());
-                });
-        if (isNew[0]) c.competencesCreated++;
+        PersistedEntity<Competence> persisted = findOrCreateCompetence(compReq, domaine);
+        Competence competence = persisted.entity;
+        if (persisted.created) c.competencesCreated++;
 
         // Direct savoirs on competence
         if (compReq.getSavoirs() != null) {
@@ -124,19 +117,9 @@ public class RiceImportServiceImpl implements IRiceImportService {
 
     private void processSousCompetence(RiceSousCompetenceRequest scReq, Competence competence,
                                        int[] savoirStats, ImportCounters c) {
-        boolean[] isNew = {false};
-        final Competence finalComp = competence;
-        SousCompetence sc = sousCompetenceRepository.findByCode(scReq.getCode())
-                .orElseGet(() -> {
-                    isNew[0] = true;
-                    return sousCompetenceRepository.save(SousCompetence.builder()
-                            .code(scReq.getCode())
-                            .nom(scReq.getNom())
-                            .description(scReq.getDescription())
-                            .competence(finalComp)
-                            .build());
-                });
-        if (isNew[0]) c.sousCompetencesCreated++;
+        PersistedEntity<SousCompetence> persisted = findOrCreateSousCompetence(scReq, competence);
+        SousCompetence sc = persisted.entity;
+        if (persisted.created) c.sousCompetencesCreated++;
 
         if (scReq.getSavoirs() == null) return;
 
@@ -149,43 +132,18 @@ public class RiceImportServiceImpl implements IRiceImportService {
 
     private void processSavoirOnCompetence(RiceSavoirRequest savReq, Competence competence,
                                            int[] savoirStats, ImportCounters c) {
-        boolean[] isNew = {false};
-        final Competence finalComp = competence;
-        Savoir savoir = savoirRepository.findByCode(savReq.getCode())
-                .orElseGet(() -> {
-                    isNew[0] = true;
-                    return savoirRepository.save(Savoir.builder()
-                            .code(savReq.getCode())
-                            .nom(savReq.getNom())
-                            .description(savReq.getDescription())
-                            .type(parseTypeSavoir(savReq.getType()))
-                            .niveau(parseNiveau(savReq.getNiveau()))
-                            .competence(finalComp)
-                            .sousCompetence(null)
-                            .build());
-                });
-        if (isNew[0]) c.savoirsCreated++;
+        PersistedEntity<Savoir> persisted = findOrCreateSavoirOnCompetence(savReq, competence);
+        Savoir savoir = persisted.entity;
+        if (persisted.created) c.savoirsCreated++;
         savoirStats[1]++;
         processEnseignantAssignments(savReq, savoir, savoirStats, c);
     }
 
     private void processSavoirOnSousCompetence(RiceSavoirRequest savReq, SousCompetence sc,
                                                 int[] savoirStats, ImportCounters c) {
-        boolean[] isNew = {false};
-        final SousCompetence finalSc = sc;
-        Savoir savoir = savoirRepository.findByCode(savReq.getCode())
-                .orElseGet(() -> {
-                    isNew[0] = true;
-                    return savoirRepository.save(Savoir.builder()
-                            .code(savReq.getCode())
-                            .nom(savReq.getNom())
-                            .description(savReq.getDescription())
-                            .type(parseTypeSavoir(savReq.getType()))
-                            .niveau(parseNiveau(savReq.getNiveau()))
-                            .sousCompetence(finalSc)
-                            .build());
-                });
-        if (isNew[0]) c.savoirsCreated++;
+        PersistedEntity<Savoir> persisted = findOrCreateSavoirOnSousCompetence(savReq, sc);
+        Savoir savoir = persisted.entity;
+        if (persisted.created) c.savoirsCreated++;
         savoirStats[1]++;
         processEnseignantAssignments(savReq, savoir, savoirStats, c);
     }
@@ -225,6 +183,11 @@ public class RiceImportServiceImpl implements IRiceImportService {
                 c.affectationsCreated++;
                 c.enseignantsCoveredSet.add(ensId);
                 return 1;
+            }
+            c.enseignantsCoveredSet.add(ensId);
+        } catch (DataIntegrityViolationException e) {
+            if (!enseignantCompetenceRepository.existsByEnseignantIdAndSavoirId(ensId, savoir.getId())) {
+                throw e;
             }
             c.enseignantsCoveredSet.add(ensId);
         } catch (Exception e) {
@@ -315,6 +278,139 @@ public class RiceImportServiceImpl implements IRiceImportService {
 
     private String serializeTaux(Map<String, Double> taux) {
         try { return objectMapper.writeValueAsString(taux); } catch (Exception e) { return "{}"; }
+    }
+
+    private String limitLegacyText(String value) {
+        if (value == null) return null;
+        String normalized = value.trim();
+        if (normalized.length() <= LEGACY_TEXT_LIMIT) return normalized;
+        return normalized.substring(0, LEGACY_TEXT_LIMIT);
+    }
+
+    private String normalizeCode(String value) {
+        if (value == null) return null;
+        return value.trim();
+    }
+
+    private PersistedEntity<Domaine> findOrCreateDomaine(RiceDomaineRequest domReq) {
+        String code = normalizeCode(domReq.getCode());
+        return domaineRepository.findByCodeIgnoreCase(code)
+                .map(existing -> new PersistedEntity<>(existing, false))
+                .orElseGet(() -> saveOrReloadDomaine(code, domReq));
+    }
+
+    private PersistedEntity<Domaine> saveOrReloadDomaine(String code, RiceDomaineRequest domReq) {
+        try {
+            Domaine created = domaineRepository.save(Domaine.builder()
+                    .code(code)
+                    .nom(domReq.getNom())
+                    .description(limitLegacyText(domReq.getDescription()))
+                    .actif(true)
+                    .build());
+            return new PersistedEntity<>(created, true);
+        } catch (DataIntegrityViolationException ex) {
+            return domaineRepository.findByCodeIgnoreCase(code)
+                    .map(existing -> new PersistedEntity<>(existing, false))
+                    .orElseThrow(() -> ex);
+        }
+    }
+
+    private PersistedEntity<Competence> findOrCreateCompetence(RiceCompetenceRequest compReq, Domaine domaine) {
+        String code = normalizeCode(compReq.getCode());
+        return competenceRepository.findByCodeIgnoreCase(code)
+                .map(existing -> new PersistedEntity<>(existing, false))
+                .orElseGet(() -> saveOrReloadCompetence(code, compReq, domaine));
+    }
+
+    private PersistedEntity<Competence> saveOrReloadCompetence(String code, RiceCompetenceRequest compReq, Domaine domaine) {
+        try {
+            Competence created = competenceRepository.save(Competence.builder()
+                    .code(code)
+                    .nom(compReq.getNom())
+                    .description(limitLegacyText(compReq.getDescription()))
+                    .ordre(compReq.getOrdre() != null ? compReq.getOrdre() : 1)
+                    .domaine(domaine)
+                    .build());
+            return new PersistedEntity<>(created, true);
+        } catch (DataIntegrityViolationException ex) {
+            return competenceRepository.findByCodeIgnoreCase(code)
+                    .map(existing -> new PersistedEntity<>(existing, false))
+                    .orElseThrow(() -> ex);
+        }
+    }
+
+    private PersistedEntity<SousCompetence> findOrCreateSousCompetence(RiceSousCompetenceRequest scReq, Competence competence) {
+        String code = normalizeCode(scReq.getCode());
+        return sousCompetenceRepository.findByCodeIgnoreCase(code)
+                .map(existing -> new PersistedEntity<>(existing, false))
+                .orElseGet(() -> saveOrReloadSousCompetence(code, scReq, competence));
+    }
+
+    private PersistedEntity<SousCompetence> saveOrReloadSousCompetence(String code, RiceSousCompetenceRequest scReq, Competence competence) {
+        try {
+            SousCompetence created = sousCompetenceRepository.save(SousCompetence.builder()
+                    .code(code)
+                    .nom(scReq.getNom())
+                    .description(limitLegacyText(scReq.getDescription()))
+                    .competence(competence)
+                    .build());
+            return new PersistedEntity<>(created, true);
+        } catch (DataIntegrityViolationException ex) {
+            return sousCompetenceRepository.findByCodeIgnoreCase(code)
+                    .map(existing -> new PersistedEntity<>(existing, false))
+                    .orElseThrow(() -> ex);
+        }
+    }
+
+    private PersistedEntity<Savoir> findOrCreateSavoirOnCompetence(RiceSavoirRequest savReq, Competence competence) {
+        String code = normalizeCode(savReq.getCode());
+        return savoirRepository.findByCodeIgnoreCase(code)
+                .map(existing -> new PersistedEntity<>(existing, false))
+                .orElseGet(() -> saveOrReloadSavoirOnCompetence(code, savReq, competence));
+    }
+
+    private PersistedEntity<Savoir> saveOrReloadSavoirOnCompetence(String code, RiceSavoirRequest savReq, Competence competence) {
+        try {
+            Savoir created = savoirRepository.save(Savoir.builder()
+                    .code(code)
+                    .nom(savReq.getNom())
+                    .description(limitLegacyText(savReq.getDescription()))
+                    .type(parseTypeSavoir(savReq.getType()))
+                    .niveau(parseNiveau(savReq.getNiveau()))
+                    .competence(competence)
+                    .sousCompetence(null)
+                    .build());
+            return new PersistedEntity<>(created, true);
+        } catch (DataIntegrityViolationException ex) {
+            return savoirRepository.findByCodeIgnoreCase(code)
+                    .map(existing -> new PersistedEntity<>(existing, false))
+                    .orElseThrow(() -> ex);
+        }
+    }
+
+    private PersistedEntity<Savoir> findOrCreateSavoirOnSousCompetence(RiceSavoirRequest savReq, SousCompetence sc) {
+        String code = normalizeCode(savReq.getCode());
+        return savoirRepository.findByCodeIgnoreCase(code)
+                .map(existing -> new PersistedEntity<>(existing, false))
+                .orElseGet(() -> saveOrReloadSavoirOnSousCompetence(code, savReq, sc));
+    }
+
+    private PersistedEntity<Savoir> saveOrReloadSavoirOnSousCompetence(String code, RiceSavoirRequest savReq, SousCompetence sc) {
+        try {
+            Savoir created = savoirRepository.save(Savoir.builder()
+                    .code(code)
+                    .nom(savReq.getNom())
+                    .description(limitLegacyText(savReq.getDescription()))
+                    .type(parseTypeSavoir(savReq.getType()))
+                    .niveau(parseNiveau(savReq.getNiveau()))
+                    .sousCompetence(sc)
+                    .build());
+            return new PersistedEntity<>(created, true);
+        } catch (DataIntegrityViolationException ex) {
+            return savoirRepository.findByCodeIgnoreCase(code)
+                    .map(existing -> new PersistedEntity<>(existing, false))
+                    .orElseThrow(() -> ex);
+        }
     }
 
     private Map<String, Double> deserializeTaux(String json) {

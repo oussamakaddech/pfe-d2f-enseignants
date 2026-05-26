@@ -8,6 +8,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
@@ -20,6 +22,7 @@ import org.springframework.security.access.AccessDeniedException;
 public class GlobalExceptionHandler {
 
     private static final String MODULE_PREFIX = "COMP";
+    private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<Map<String, Object>> handleAccessDenied(AccessDeniedException ex,
@@ -61,9 +64,13 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, Object>> handleDataIntegrityViolation(
             DataIntegrityViolationException ex, HttpServletRequest request) {
         String rootCause = ex.getMostSpecificCause().getMessage();
-        String message = (rootCause != null && rootCause.toLowerCase().contains("unique"))
+        String lowerRootCause = rootCause == null ? "" : rootCause.toLowerCase();
+        log.warn("[{}] Violation d’intégrité des données: {}", MODULE_PREFIX + "-409", rootCause, ex);
+        String message = (lowerRootCause.contains("value too long") || lowerRootCause.contains("too long for type character varying"))
+                ? "Conflit de données : une valeur dépasse la taille maximale autorisée."
+                : (lowerRootCause.contains("unique"))
                 ? "Conflit de données : une ressource avec ces informations existe déjà."
-                : "Conflit de données : contrainte d’intégrité violée. " + rootCause;
+                : "Conflit de données : contrainte d’intégrité violée.";
         return buildResponse(HttpStatus.CONFLICT, message,
                 MODULE_PREFIX + "-409", request.getRequestURI());
     }
@@ -71,7 +78,10 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> handleGeneral(Exception ex,
                                                                HttpServletRequest request) {
-        return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, "Erreur interne: " + ex.getMessage(),
+        String traceId = UUID.randomUUID().toString();
+        log.error("[{}] Erreur interne non gérée: {}", traceId, ex.getMessage(), ex);
+        return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR,
+                "Erreur interne du serveur. Référence: " + traceId,
                 MODULE_PREFIX + "-500", request.getRequestURI());
     }
 

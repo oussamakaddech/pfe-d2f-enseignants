@@ -13,6 +13,7 @@ import {
   UserOutlined, WarningOutlined,
 } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
+import { useMemo } from "react";
 
 const { Text } = Typography;
 
@@ -138,52 +139,55 @@ export default function ReportStep({
   resetAll,
 }: Readonly<ReportStepProps>) {
   const navigate = useNavigate();
-  const importStats = report?.importStats ?? {
+  const importStats = useMemo(() => report?.importStats ?? {
     upserted_domaines: report?.domainesCreated ?? 0,
     upserted_competences: report?.competencesCreated ?? 0,
     inserted_savoirs: report?.savoirsCreated ?? 0,
     updated_savoirs: report?.updatedSavoirs ?? 0,
     inserted_enseignant_links: report?.affectationsCreated ?? 0,
     errors: report?.errors ?? [],
-  };
+  }, [report]);
 
-  const orphans = allSavoirsFlat.filter((s) => (s.enseignantsSuggeres ?? []).length === 0);
-  const ensSavoirsMap = buildEnseignantSavoirsMap(allSavoirsFlat);
+  const orphans = useMemo(() => allSavoirsFlat.filter((s) => (s.enseignantsSuggeres ?? []).length === 0), [allSavoirsFlat]);
+  const ensSavoirsMap = useMemo(() => buildEnseignantSavoirsMap(allSavoirsFlat), [allSavoirsFlat]);
   const hasEnseignantRows = ensSavoirsMap.size > 0;
-  const extractedNameMap = hasEnseignantRows ? buildExtractedNameMap(extractedEnseignants) : new Map();
-  const enseignantRows = hasEnseignantRows
-    ? buildEnseignantRows(ensSavoirsMap, extractedNameMap, effectiveEnseignants)
-    : [];
-  const enseignantColumns = hasEnseignantRows ? buildEnseignantColumns(setCurrentStep) : [];
+  const extractedNameMap = useMemo(() => (hasEnseignantRows ? buildExtractedNameMap(extractedEnseignants) : new Map()), [hasEnseignantRows, extractedEnseignants]);
+  const enseignantRows = useMemo(() => (
+    hasEnseignantRows ? buildEnseignantRows(ensSavoirsMap, extractedNameMap, effectiveEnseignants) : []
+  ), [hasEnseignantRows, ensSavoirsMap, extractedNameMap, effectiveEnseignants]);
+  const enseignantColumns = useMemo(() => (hasEnseignantRows ? buildEnseignantColumns(setCurrentStep) : []), [hasEnseignantRows, setCurrentStep]);
 
-  let historyChildren;
-  if (historyLoading) {
-    historyChildren = <div style={{ textAlign: "center", padding: 24 }}><Spin /></div>;
-  } else if (!importHistory || importHistory.length === 0) {
-    historyChildren = <Empty description="Aucun import précédent" image={Empty.PRESENTED_IMAGE_SIMPLE} />;
-  } else {
-    historyChildren = (
+  const historyColumns = useMemo(() => ([
+    {
+      title: "Date",
+      dataIndex: "generatedAt",
+      render: (v) => v ? new Date(v).toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" }) : "–",
+      width: 130,
+    },
+    { title: "Domaines", dataIndex: "domainesCreated", align: "center", width: 90 },
+    { title: "Compétences", dataIndex: "competencesCreated", align: "center", width: 110 },
+    { title: "Savoirs", dataIndex: "savoirsCreated", align: "center", width: 80 },
+    { title: "Affectations", dataIndex: "affectationsCreated", align: "center", width: 110 },
+    { title: "Enseignants", dataIndex: "enseignantsCovered", align: "center", width: 140 },
+    { title: "Résumé", dataIndex: "message", ellipsis: true },
+  ]), []);
+
+  const historyChildren = useMemo(() => {
+    if (historyLoading) {
+      return <div style={{ textAlign: "center", padding: 24 }}><Spin /></div>;
+    }
+    if (!importHistory || importHistory.length === 0) {
+      return <Empty description="Aucun import précédent" image={Empty.PRESENTED_IMAGE_SIMPLE} />;
+    }
+    return (
       <Table
         dataSource={importHistory.map((r, i) => ({ ...r, key: i }))}
         size="small"
         pagination={{ pageSize: 5, size: "small" }}
-        columns={[
-          {
-            title: "Date",
-            dataIndex: "generatedAt",
-            render: (v) => v ? new Date(v).toLocaleString("fr-FR", { dateStyle: "short", timeStyle: "short" }) : "–",
-            width: 130,
-          },
-          { title: "Domaines",    dataIndex: "domainesCreated",    align: "center", width: 90 },
-          { title: "Compétences", dataIndex: "competencesCreated", align: "center", width: 110 },
-          { title: "Savoirs",     dataIndex: "savoirsCreated",     align: "center", width: 80 },
-          { title: "Affectations",dataIndex: "affectationsCreated",align: "center", width: 110 },
-          { title: "Enseignants", dataIndex: "enseignantsCovered", align: "center", width: 140 },
-          { title: "Résumé",      dataIndex: "message",            ellipsis: true },
-        ]}
+        columns={historyColumns}
       />
     );
-  }
+  }, [historyLoading, importHistory, historyColumns]);
 
   return (
     <>

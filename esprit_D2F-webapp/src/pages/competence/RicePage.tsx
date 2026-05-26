@@ -15,7 +15,7 @@ import {
 } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  Alert, Input, Modal, Select, Space, Steps, Typography,
+  Alert, Button, Card, Input, Modal, Select, Space, Steps, Typography,
 } from "antd";
 import {
   BarChartOutlined, EditOutlined, InboxOutlined,
@@ -615,7 +615,7 @@ export default function RicePage() {
   }, [currentStep, report]);
 
   // -- Steps config -----------------------------------------------------------
-  const steps = [
+  const steps = useMemo(() => ([
     {
       title: "Upload",
       icon: <InboxOutlined />,
@@ -627,12 +627,47 @@ export default function RicePage() {
       description: analyzing ? "En cours..." : "",
     },
     {
-      title: "Revision (Structure)",
+      title: "Revue structure",
       icon: <EditOutlined />,
       description: currentStep >= 2 ? `${liveStats.totalSavoirs} savoirs` : "",
     },
     { title: "Rapport", icon: <BarChartOutlined /> },
-  ];
+  ]), [files.length, analyzing, currentStep, liveStats.totalSavoirs]);
+
+  const workflowHighlights = useMemo(() => ([
+    {
+      label: "Fichiers prêts",
+      value: files.length,
+      note: "Documents à analyser",
+    },
+    {
+      label: "Enseignants chargés",
+      value: ignoreEnseignants ? 0 : allEnseignants.length,
+      note: ignoreEnseignants ? "Mode manuel actif" : "Synchronisé avec le backend",
+    },
+    {
+      label: "Savoirs extraits",
+      value: liveStats.totalSavoirs,
+      note: `${liveStats.totalDomaines} domaines · ${liveStats.totalComp} compétences`,
+    },
+    {
+      label: "Affectations actives",
+      value: liveStats.enseignantsAssigned,
+      note: `${effectiveEnseignants.length} enseignants visibles`,
+    },
+  ]), [
+    files.length,
+    ignoreEnseignants,
+    allEnseignants.length,
+    liveStats.totalSavoirs,
+    liveStats.totalDomaines,
+    liveStats.totalComp,
+    liveStats.enseignantsAssigned,
+    effectiveEnseignants.length,
+  ]);
+
+  const currentStageTitle = steps[currentStep]?.title ?? "Upload";
+  const currentDeptLabel = departement === "auto" ? "Auto-détection" : departement.toUpperCase();
 
   // --------------------------------------------------------------------------
   return (
@@ -640,151 +675,250 @@ export default function RicePage() {
       className="rice-page"
       style={{ "--rice-accent": DEPT_ACCENT[departement] ?? "#1677ff" }}
     >
-
-        {/* Hero banner */}
-        <div className="rice-hero">
+      <div className="rice-shell">
+        <section className="rice-hero">
           <div className="rice-hero-content">
-            <div className="rice-hero-icon-wrap"><RobotOutlined /></div>
-            <div className="rice-hero-text">
-              <Title level={3} className="rice-hero-title">
-                RICE - Referentiel Intelligent de Competences
+            <div className="rice-hero-copy">
+              <div className="rice-hero-kicker">
+                <ThunderboltOutlined />
+                <span>RICE Workbench</span>
+              </div>
+              <Title level={2} className="rice-hero-title">
+                Référentiel intelligent des compétences enseignants
               </Title>
               <Paragraph className="rice-hero-subtitle">
-                Importez vos fiches UE/modules, laissez l&apos;IA extraire automatiquement
-                l&apos;arbre de competences, revisez par glisser-deposer, puis enregistrez en base.
+                Importez vos fiches, laissez l&apos;analyse IA extraire l&apos;arbre de compétences,
+                corrigez la structure par glisser-déposer, puis synchronisez les résultats vers la base.
               </Paragraph>
+              <div className="rice-hero-chips">
+                <span className="rice-chip">{currentDeptLabel}</span>
+                <span className="rice-chip">Étape {currentStep + 1} / {steps.length}</span>
+                <span className="rice-chip">Backend prêt</span>
+                <span className="rice-chip rice-chip-accent">{currentStageTitle}</span>
+              </div>
+              <Space wrap className="rice-hero-actions">
+                <Button
+                  type="primary"
+                  size="large"
+                  icon={analyzing ? <LoadingOutlined /> : <RobotOutlined />}
+                  onClick={handleAnalyze}
+                  disabled={files.length === 0 || analyzing}
+                  className="rice-primary-action"
+                >
+                  {analyzing ? "Analyse en cours" : "Lancer l&apos;analyse"}
+                </Button>
+                <Button
+                  size="large"
+                  icon={<MergeCellsOutlined />}
+                  onClick={() => navigate("/home/rice/matchmaking")}
+                >
+                  Ouvrir le matchmaking
+                </Button>
+                <Button size="large" onClick={resetAll}>
+                  Réinitialiser
+                </Button>
+              </Space>
             </div>
-            <div className="rice-hero-badge">
-              <ThunderboltOutlined style={{ marginRight: 5 }} />
-              IA · NLP · Bloom
+
+            <div className="rice-hero-metrics">
+              {workflowHighlights.map((item) => (
+                <Card key={item.label} className="rice-metric-card" bordered={false}>
+                  <Text className="rice-metric-label">{item.label}</Text>
+                  <div className="rice-metric-value">{item.value}</div>
+                  <Text className="rice-metric-note" type="secondary">{item.note}</Text>
+                </Card>
+              ))}
             </div>
           </div>
+        </section>
+
+        <section className="rice-stage-card">
+          <div className="rice-stage-head">
+            <div>
+              <Text className="rice-section-kicker">Pipeline backend</Text>
+              <Title level={4} style={{ margin: 0 }}>
+                {currentStageTitle} · {files.length} fichier(s) · {liveStats.totalSavoirs} savoirs
+              </Title>
+            </div>
+            <div className="rice-stage-summary">
+              <span className="rice-chip">{liveStats.totalDomaines} domaines</span>
+              <span className="rice-chip">{liveStats.totalComp} compétences</span>
+              <span className="rice-chip">{liveStats.enseignantsAssigned} enseignants liés</span>
+            </div>
+          </div>
+          <Steps current={currentStep} items={steps} size="small" responsive className="rice-steps-wrapper" />
+        </section>
+
+        <div className="rice-workbench-grid">
+          <main className="rice-workbench-main">
+            <AnimatePresence mode="wait">
+              {currentStep === 0 && (
+                <motion.div key="step0" variants={STEP_VARIANTS} initial="initial" animate="animate" exit="exit">
+                  <UploadStep
+                    files={files}
+                    analyzing={analyzing}
+                    handleAnalyze={handleAnalyze}
+                    handleUploadChange={handleUploadChange}
+                    setCurrentStep={setCurrentStep}
+                    departement={departement}
+                    setDepartement={setDepartement}
+                    allEnseignants={allEnseignants}
+                    enseignantsLoading={enseignantsLoading}
+                    enseignantsError={enseignantsError}
+                    enseignantsLoadSlow={enseignantsLoadSlow}
+                    onRetryEnseignants={loadEnseignants}
+                    onContinueWithoutEnseignants={continueWithoutEnseignants}
+                  />
+                </motion.div>
+              )}
+
+              {currentStep === 1 && (
+                <motion.div key="step1" variants={STEP_VARIANTS} initial="initial" animate="animate" exit="exit">
+                  <AnalyzingStep
+                    filesCount={files.length}
+                    analysisProgress={analysisProgress}
+                    analyzeIsCanceledRef={analyzeIsCanceledRef}
+                    progressTimerRef={progressTimerRef}
+                    setAnalyzing={setAnalyzing}
+                    setCurrentStep={setCurrentStep}
+                    setAnalysisProgress={setAnalysisProgress}
+                  />
+                </motion.div>
+              )}
+
+              {currentStep === 2 && (
+                <motion.div key="step2" variants={STEP_VARIANTS} initial="initial" animate="animate" exit="exit">
+                  <ReviewStep
+                    tree={tree}
+                    setTree={setTree}
+                    treeSearch={treeSearch}
+                    setTreeSearch={setTreeSearch}
+                    editingNom={editingNom}
+                    setEditingNom={setEditingNom}
+                    startRename={startRename}
+                    commitRename={commitRename}
+                    deleteSavoir={deleteSavoir}
+                    deleteSC={deleteSC}
+                    deleteComp={deleteComp}
+                    deleteDomaine={deleteDomaine}
+                    addDomaine={addDomaine}
+                    addCompetence={addCompetence}
+                    addSousCompetence={addSousCompetence}
+                    addSavoir={addSavoir}
+                    toggleType={toggleType}
+                    setNiveau={setNiveau}
+                    setEnseignants={setEnseignants}
+                    openMerge={openMerge}
+                    setMergeModal={setMergeModal}
+                    liveStats={liveStats}
+                    treeFilteredIndices={treeFilteredIndices}
+                    departement={departement}
+                    extractedEnseignants={extractedEnseignants}
+                    allEnseignants={allEnseignants}
+                    dbEnseignants={allEnseignants}
+                    effectiveEnseignants={effectiveEnseignants}
+                    filteredEffectiveEns={filteredEffectiveEns}
+                    ensSearchStep2={ensSearchStep2}
+                    setEnsSearchStep2={setEnsSearchStep2}
+                    loadingEns={enseignantsLoading}
+                    loadEnseignants={loadEnseignants}
+                    result={analysisResult}
+                    clearAllAssignments={clearAllAssignments}
+                    remapEnseignant={remapEnseignant}
+                    allSavoirsFlat={allSavoirsFlat}
+                    setCreateEnsTarget={setCreateEnsTarget}
+                    setCreateEnsData={setCreateEnsData}
+                    setCreateEnsModal={setCreateEnsModal}
+                    isDragging={dndHook.isDragging}
+                    draggedSavoirInfo={dndHook.draggedSavoirInfo}
+                    dragOverEns={dndHook.dragOverEns}
+                    onSavoirDragStart={dndHook.onSavoirDragStart}
+                    onSavoirDragEnd={dndHook.onSavoirDragEnd}
+                    onTagDragStart={dndHook.onTagDragStart}
+                    onEnsDragOver={dndHook.onEnsDragOver}
+                    onEnsDragLeave={dndHook.onEnsDragLeave}
+                    onEnsDrop={dndHook.onEnsDrop}
+                    toggleEnsAssign={toggleEnsAssign}
+                    setCurrentStep={setCurrentStep}
+                    initialPanel="structure"
+                  />
+                </motion.div>
+              )}
+
+              {currentStep === 3 && (
+                <motion.div key="step3" variants={STEP_VARIANTS} initial="initial" animate="animate" exit="exit">
+                  <ReportStep
+                    report={report}
+                    importing={importing}
+                    handleImport={handleImport}
+                    exportReportJson={exportReportJson}
+                    departement={departement}
+                    importHistory={importHistory}
+                    historyLoading={historyLoading}
+                    loadImportHistory={loadImportHistory}
+                    allSavoirsFlat={allSavoirsFlat}
+                    effectiveEnseignants={effectiveEnseignants}
+                    extractedEnseignants={extractedEnseignants}
+                    setCurrentStep={setCurrentStep}
+                    resetAll={resetAll}
+                  />
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </main>
+
+          <aside className="rice-workbench-aside">
+            <Card className="rice-side-card" bordered={false} title="Connecteur backend">
+              <div className="rice-side-stat-list">
+                <div className="rice-side-stat">
+                  <Text type="secondary">Enseignants chargés</Text>
+                  <strong>{ignoreEnseignants ? 0 : allEnseignants.length}</strong>
+                </div>
+                <div className="rice-side-stat">
+                  <Text type="secondary">Département</Text>
+                  <strong>{currentDeptLabel}</strong>
+                </div>
+                <div className="rice-side-stat">
+                  <Text type="secondary">Synchronisation</Text>
+                  <strong>{enseignantsLoading ? "En cours" : "Active"}</strong>
+                </div>
+              </div>
+              {enseignantsError && (
+                <Alert
+                  type="warning"
+                  showIcon
+                  message={enseignantsError}
+                  className="rice-side-alert"
+                />
+              )}
+              <div className="rice-side-actions">
+                <Button block onClick={loadEnseignants}>
+                  Recharger le backend
+                </Button>
+                <Button block onClick={continueWithoutEnseignants}>
+                  Continuer sans enseignants
+                </Button>
+              </div>
+            </Card>
+
+            <Card className="rice-side-card" bordered={false} title="Parcours rapide">
+              <div className="rice-journey-list">
+                {steps.map((step, index) => (
+                  <div
+                    key={step.title}
+                    className={`rice-journey-item${index === currentStep ? " active" : ""}${index < currentStep ? " done" : ""}`}
+                  >
+                    <span className="rice-journey-index">{index + 1}</span>
+                    <div>
+                      <strong>{step.title}</strong>
+                      <div>{step.description || "Prêt"}</div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          </aside>
         </div>
-
-        {/* Steps */}
-        <div className="rice-steps-wrapper">
-          <Steps current={currentStep} items={steps} size="small" responsive />
-        </div>
-
-        {/* Step 0: Upload */}
-        <AnimatePresence mode="wait">
-          {currentStep === 0 && (
-            <motion.div key="step0" variants={STEP_VARIANTS} initial="initial" animate="animate" exit="exit">
-              <UploadStep
-                files={files}
-                analyzing={analyzing}
-                handleAnalyze={handleAnalyze}
-                handleUploadChange={handleUploadChange}
-                setCurrentStep={setCurrentStep}
-                departement={departement}
-                setDepartement={setDepartement}
-                allEnseignants={allEnseignants}
-                enseignantsLoading={enseignantsLoading}
-                enseignantsError={enseignantsError}
-                enseignantsLoadSlow={enseignantsLoadSlow}
-                onRetryEnseignants={loadEnseignants}
-                onContinueWithoutEnseignants={continueWithoutEnseignants}
-              />
-            </motion.div>
-          )}
-
-          {/* Step 1: Analyzing */}
-          {currentStep === 1 && (
-            <motion.div key="step1" variants={STEP_VARIANTS} initial="initial" animate="animate" exit="exit">
-              <AnalyzingStep
-                filesCount={files.length}
-                analysisProgress={analysisProgress}
-                analyzeIsCanceledRef={analyzeIsCanceledRef}
-                progressTimerRef={progressTimerRef}
-                setAnalyzing={setAnalyzing}
-                setCurrentStep={setCurrentStep}
-                setAnalysisProgress={setAnalysisProgress}
-              />
-            </motion.div>
-          )}
-
-          {/* Step 2: Review (Structure) */}
-          {currentStep === 2 && (
-            <motion.div key="step2" variants={STEP_VARIANTS} initial="initial" animate="animate" exit="exit">
-              <ReviewStep
-                tree={tree}
-                setTree={setTree}
-                treeSearch={treeSearch}
-                setTreeSearch={setTreeSearch}
-                editingNom={editingNom}
-                setEditingNom={setEditingNom}
-                startRename={startRename}
-                commitRename={commitRename}
-                deleteSavoir={deleteSavoir}
-                deleteSC={deleteSC}
-                deleteComp={deleteComp}
-                deleteDomaine={deleteDomaine}
-                addDomaine={addDomaine}
-                addCompetence={addCompetence}
-                addSousCompetence={addSousCompetence}
-                addSavoir={addSavoir}
-                toggleType={toggleType}
-                setNiveau={setNiveau}
-                setEnseignants={setEnseignants}
-                openMerge={openMerge}
-                setMergeModal={setMergeModal}
-                liveStats={liveStats}
-                treeFilteredIndices={treeFilteredIndices}
-                departement={departement}
-                extractedEnseignants={extractedEnseignants}
-                allEnseignants={allEnseignants}
-                dbEnseignants={allEnseignants}
-                effectiveEnseignants={effectiveEnseignants}
-                filteredEffectiveEns={filteredEffectiveEns}
-                ensSearchStep2={ensSearchStep2}
-                setEnsSearchStep2={setEnsSearchStep2}
-                loadingEns={enseignantsLoading}
-                loadEnseignants={loadEnseignants}
-                result={analysisResult}
-                clearAllAssignments={clearAllAssignments}
-                remapEnseignant={remapEnseignant}
-                allSavoirsFlat={allSavoirsFlat}
-                setCreateEnsTarget={setCreateEnsTarget}
-                setCreateEnsData={setCreateEnsData}
-                setCreateEnsModal={setCreateEnsModal}
-                isDragging={dndHook.isDragging}
-                draggedSavoirInfo={dndHook.draggedSavoirInfo}
-                dragOverEns={dndHook.dragOverEns}
-                onSavoirDragStart={dndHook.onSavoirDragStart}
-                onSavoirDragEnd={dndHook.onSavoirDragEnd}
-                onTagDragStart={dndHook.onTagDragStart}
-                onEnsDragOver={dndHook.onEnsDragOver}
-                onEnsDragLeave={dndHook.onEnsDragLeave}
-                onEnsDrop={dndHook.onEnsDrop}
-                toggleEnsAssign={toggleEnsAssign}
-                setCurrentStep={setCurrentStep}
-                initialPanel="structure"
-              />
-            </motion.div>
-          )}
-
-          
-          {/* Step 3: Report */}
-          {currentStep === 3 && (
-            <motion.div key="step3" variants={STEP_VARIANTS} initial="initial" animate="animate" exit="exit">
-              <ReportStep
-                report={report}
-                importing={importing}
-                handleImport={handleImport}
-                exportReportJson={exportReportJson}
-                departement={departement}
-                importHistory={importHistory}
-                historyLoading={historyLoading}
-                loadImportHistory={loadImportHistory}
-                allSavoirsFlat={allSavoirsFlat}
-                effectiveEnseignants={effectiveEnseignants}
-                extractedEnseignants={extractedEnseignants}
-                setCurrentStep={setCurrentStep}
-                resetAll={resetAll}
-              />
-            </motion.div>
-          )}
-        </AnimatePresence>
 
         {/* Create Enseignant Modal */}
         <Modal
@@ -893,9 +1027,10 @@ export default function RicePage() {
         </Modal>
 
         {currentStep === 2 && showAutosave && (
-          <div className="rice-autosave-badge">💾 Sauvegardé automatiquement</div>
+          <div className="rice-autosave-badge">Sauvegardé automatiquement</div>
         )}
 
+      </div>
     </div>
   );
 }
