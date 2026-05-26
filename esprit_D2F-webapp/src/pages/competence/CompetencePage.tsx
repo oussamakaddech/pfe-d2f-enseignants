@@ -27,18 +27,10 @@ import {
   buildExportFileName,
   buildMatrixRows,
 } from "@/utils/helpers/consultationUtils";
+import { NIVEAU_OPTIONS, NIVEAU_SAVOIR_OPTIONS } from "@/utils/constants/competenceOptions";
 
-
-const NIVEAU_OPTIONS = [
-  { value: "N1_DEBUTANT", label: "N1 - Debutant", color: "default" },
-  { value: "N2_ELEMENTAIRE", label: "N2 - Elementaire", color: "blue" },
-  { value: "N3_INTERMEDIAIRE", label: "N3 - Intermediaire", color: "cyan" },
-  { value: "N4_AVANCE", label: "N4 - Avance", color: "green" },
-  { value: "N5_EXPERT", label: "N5 - Expert", color: "gold" },
-];
-
-const niveauMeta = (niveau) =>
-  NIVEAU_OPTIONS.find((n) => n.value === niveau) ?? { label: niveau ?? "-", color: "default" };
+const niveauMeta = (niveau: string | undefined) =>
+  NIVEAU_SAVOIR_OPTIONS.find((n) => n.value === niveau) ?? { label: niveau ?? "-", color: "default" };
 
 const extractLegacyPrerequisiteManual = (description = "") => {
   const marker = "Prerequis (manuel):";
@@ -62,18 +54,13 @@ export default function CompetencePage() {
   const [prerequisiteLoading, setPrerequisiteLoading] = useState(false);
 
   const structure = useStructureData();
-  const loadStructure = structure.loadStructure;
-  const crud = useCompetenceCrud({
-    onInvalidateStructure: structure.invalidateStructure,
-    onSavoirMutated: structure.refreshMatrixIfNeeded,
-    onSavoirsChanged: structure.setAllSavoirsHierarchie,
-  });
+  const crud = useCompetenceCrud();
   const prerequisiteApi = crud.prerequisite;
   const loadCompetences = crud.loadCompetences;
   const {
     activeTab,
     handleTabChange,
-  } = useCompetencePageState({ crud, loadStructure });
+  } = useCompetencePageState({ crud, loadStructure: structure.loadStructure });
 
   const consultationCrud = useMemo(() => ({
     domaines: crud.domaines || [],
@@ -121,7 +108,7 @@ export default function CompetencePage() {
     try {
       const data = await prerequisiteApi.getByCompetence(competenceId);
       setPrerequisites(Array.isArray(data) ? data : []);
-    } catch (err) {
+    } catch (err: unknown) {
       message.error(err?.response?.data?.message || "Erreur lors du chargement des prerequis");
       setPrerequisites([]);
     } finally {
@@ -133,31 +120,23 @@ export default function CompetencePage() {
     if (!prerequisiteTarget?.id) return;
     try {
       const values = await addPrerequisiteForm.validateFields();
-      
-      // Validation supplémentaire pour éviter l'envoi de null
       if (!values.prerequisiteId || values.prerequisiteId === "") {
         message.error("Veuillez sélectionner une compétence prérequise valide");
         return;
       }
-      
-      // S'assurer que l'ID est bien un nombre
-      const prerequisiteId = typeof values.prerequisiteId === 'string' 
+      const prerequisiteId = typeof values.prerequisiteId === 'string'
         ? Number.parseInt(values.prerequisiteId, 10)
         : values.prerequisiteId;
-
       if (Number.isNaN(prerequisiteId)) {
         message.error("ID de compétence prérequise invalide");
         return;
       }
-      
-      // Préparer les données avec l'ID validé
       const payload = {
         ...values,
-        prerequisiteId: prerequisiteId,
+        prerequisiteId,
         niveauMinimum: values.niveauMinimum,
-        description: values.description || null
+        description: values.description || null,
       };
-      
       await prerequisiteApi.add(prerequisiteTarget.id, payload);
       message.success("Prerequis ajoute");
       addPrerequisiteForm.resetFields();
@@ -165,11 +144,11 @@ export default function CompetencePage() {
         loadPrerequisites(prerequisiteTarget.id),
         loadCompetences(),
       ]);
-    } catch (err) {
+    } catch (err: unknown) {
       if (err?.errorFields) return;
       message.error(err?.response?.data?.message || "Erreur lors de l'ajout du prerequis");
     }
-  }, [addPrerequisiteForm, prerequisiteTarget, prerequisiteApi, loadPrerequisites, loadCompetences]);
+  }, [addPrerequisiteForm, loadCompetences, loadPrerequisites, message, prerequisiteApi, prerequisiteTarget]);
 
   const handleUpdatePrerequisiteNiveau = useCallback(async (id, niveauMinimum) => {
     if (!prerequisiteTarget?.id) return;
@@ -177,7 +156,7 @@ export default function CompetencePage() {
       await prerequisiteApi.updateNiveau(prerequisiteTarget.id, id, niveauMinimum);
       message.success("Niveau minimum mis a jour");
       await loadPrerequisites(prerequisiteTarget.id);
-    } catch (err) {
+    } catch (err: unknown) {
       message.error(err?.response?.data?.message || "Erreur lors de la mise a jour du niveau");
     }
   }, [prerequisiteApi, loadPrerequisites, prerequisiteTarget]);
@@ -191,7 +170,7 @@ export default function CompetencePage() {
         loadPrerequisites(prerequisiteTarget.id),
         loadCompetences(),
       ]);
-    } catch (err) {
+    } catch (err: unknown) {
       message.error(err?.response?.data?.message || "Erreur lors de la suppression du prerequis");
     }
   }, [prerequisiteApi, loadPrerequisites, prerequisiteTarget, loadCompetences]);

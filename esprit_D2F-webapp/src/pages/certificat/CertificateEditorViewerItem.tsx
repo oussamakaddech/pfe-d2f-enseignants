@@ -3,7 +3,7 @@ import { Row, Col, Card, Input, Button, Form, Spin } from "antd";
 import { SaveOutlined } from "@ant-design/icons";
 import useAppNotification from "@/hooks/ui/useAppNotification";
 import jsPDF from "jspdf";
-import CertificateService from "@/services/certificat/CertificateService";
+import { useUpdateCertificate } from "@/hooks/certificat/useCertificats";
 
 export default function CertificateEditorViewerItem({ certificate, onUpdate }) {
   const { message } = useAppNotification();
@@ -88,13 +88,14 @@ const generatePdfDocument = async (data) => {
     });
   };
 
+  const { mutateAsync: updateCertificate } = useUpdateCertificate();
+
   // Sauvegarde côté back
   const handleUpdate = async () => {
     try {
       const { data: updated } =
-        await CertificateService.updateCertificate(
-          certData.idCertificate,
-          certData
+        await updateCertificate(
+          { id: certData.idCertificate, data: certData }
         );
       setCertData(updated);
       onUpdate?.(updated);

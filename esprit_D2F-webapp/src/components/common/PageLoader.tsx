@@ -1,5 +1,6 @@
+import { memo } from "react";
 import { Spin, Typography } from "antd";
-import { neutral } from "@/styles/themes/tokens";
+import styles from "./PageLoader.module.css";
 
 const { Text } = Typography;
 
@@ -19,7 +20,7 @@ interface PageLoaderProps {
  * - Tip optionnel
  * - Hauteur minimale configurable
  */
-export default function PageLoader({
+const PageLoader = memo(function PageLoader({
   tip = "Chargement...",
   size = "large",
   minHeight = 400,
@@ -27,24 +28,13 @@ export default function PageLoader({
 }: PageLoaderProps) {
   return (
     <div
-      className={`page-loader ${className}`}
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        minHeight,
-        gap: 16,
-      }}
+      className={`${styles.loader} ${className}`}
+      style={{ minHeight }}
     >
       <Spin size={size} />
-      {tip && (
-        <Text style={{ fontSize: 13, color: neutral[500] }}>{tip}</Text>
-      )}
+      {tip && <Text className={styles.tip}>{tip}</Text>}
     </div>
   );
-}
+});
 
-
-
-
+export default PageLoader;

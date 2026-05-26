@@ -1,22 +1,23 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useRef, useMemo } from 'react';
 import { Card, Row, Col, Select, DatePicker, Spin, Table, Button } from 'antd';
 import { Line } from 'react-chartjs-2';
 import { DownOutlined, UpOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
-import UpService from '@/services/api/UploadService';
-import DeptService from '@/services/formation/DeptService';
-import KPIService from '@/services/analyse/KPIService';
-import EnseignantService from '@/services/formation/EnseignantService';
+import { useUps, useDepartements } from "@/hooks/formation/useFormations";
+import { useTopParticipants } from "@/hooks/kpi/useKpi";
+import { useEnseignants } from "@/hooks/enseignant/useEnseignants";
 import "@/styles/components/chart-scroll.css";
 
 const { Option }      = Select;
 const { RangePicker } = DatePicker;
 
 export default function TopParticipants() {
-  const [ups, setUps]             = useState([]);
-  const [depts, setDepts]         = useState([]);
-  const [stats, setStats]         = useState([]);       // contiendra les objets enrichis
-  const [loading, setLoading]     = useState(false);
+  const { data: upsData } = useUps();
+  const { data: deptsData } = useDepartements();
+  const ups = upsData ?? [];
+  const depts = deptsData ?? [];
+  const { data: enseignants } = useEnseignants();
+
   const [sortOrder, setSortOrder] = useState('desc');
   const [showTable, setShowTable] = useState(false);
   const [filters, setFilters]     = useState({
@@ -25,50 +26,28 @@ export default function TopParticipants() {
     range: [ dayjs().startOf('year'), dayjs().endOf('year') ]
   });
   const chartRef = useRef(null);
-  const enseignantCache = useRef(new Map());
 
-  // Charge UPs & départements
-  useEffect(() => {
-    UpService.getAllUps().then(setUps).catch(console.error);
-    DeptService.getAllDepts().then(setDepts).catch(console.error);
-  }, []);
+  const [start, end] = filters.range;
+  const { data: raw, isLoading } = useTopParticipants(
+    start.format('YYYY-MM-DD'),
+    end.format('YYYY-MM-DD'),
+    filters.upId,
+    filters.deptId
+  );
 
-  // Récupère & enrichit les stats dès que les filtres changent
-  useEffect(() => {
-    let alive = true;
-    setLoading(true);
-    (async () => {
-      try {
-        const [start, end] = filters.range;
-        // 1) Récup KPI brut
-        const raw = await KPIService.getTopParticipants(
-          start.format('YYYY-MM-DD'),
-          end.format('YYYY-MM-DD'),
-          filters.upId,
-          filters.deptId
-        );
-        // 2) Enrichissement via l'API Enseignant
-      const cache = enseignantCache.current;
-      const enriched = await Promise.all(
-        raw.map(async entry => {
-          if (!cache.has(entry.enseignantId)) {
-            const ens = await EnseignantService.getEnseignantById(entry.enseignantId);
-            cache.set(entry.enseignantId, ens);
-          }
-          const ens = cache.get(entry.enseignantId);
-          return { ...entry, mail: ens.mail, deptLibelle: ens.dept.libelle, upLibelle: ens.up.libelle };
-        })
-      );
-        if (!alive) return;
-        setStats(enriched);
-      } catch {
-        if (alive) setStats([]);
-      } finally {
-        if (alive) setLoading(false);
-      }
-    })();
-    return () => { alive = false; };
-  }, [filters]);
+  const enseignantMap = useMemo(() => {
+    const map = new Map();
+    (enseignants ?? []).forEach(ens => map.set(ens.id, ens));
+    return map;
+  }, [enseignants]);
+
+  const stats = useMemo(() => {
+    if (!raw) return [];
+    return raw.map(entry => {
+      const ens = enseignantMap.get(entry.enseignantId);
+      return { ...entry, mail: ens?.mail, deptLibelle: ens?.dept?.libelle, upLibelle: ens?.up?.libelle };
+    });
+  }, [raw, enseignantMap]);
 
   // Tri et top 10
   const sorted = [...stats].sort((a, b) =>
@@ -182,7 +161,7 @@ export default function TopParticipants() {
         </Col>
       </Row>
 
-      {loading ? (
+      {isLoading ? (
         <Spin tip="Chargement..." style={{ margin: '150px auto', display: 'block' }} />
       ) : (
         <>

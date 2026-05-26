@@ -1,4 +1,3 @@
-/* eslint-disable react/prop-types */
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Empty, Input, Pagination, Select } from "antd";
 import { SearchOutlined } from "@ant-design/icons";
@@ -18,14 +17,15 @@ import "@/styles/pages/list-view.css";
 const { Option } = Select;
 const PAGE_SIZE = 50;
 
-function Badge({ text, type = "muted" }) {
+interface BadgeProps { text: string; type?: string }
+function Badge({ text, type = "muted" }: Readonly<BadgeProps>) {
   let cls = "ctp-badge--muted";
   if (type === "theorique") cls = "ctp-badge--theorique";
   else if (type === "pratique") cls = "ctp-badge--pratique";
   return <span className={`ctp-badge ${cls}`}>{text}</span>;
 }
 
-function useDebouncedValue(value, delay = 300) {
+function useDebouncedValue<T>(value: T, delay = 300): T {
   const [debounced, setDebounced] = useState(value);
   useEffect(() => {
     const timer = setTimeout(() => setDebounced(value), delay);
@@ -34,7 +34,12 @@ function useDebouncedValue(value, delay = 300) {
   return debounced;
 }
 
-function ListRow({ savoir, accent, onClick }) {
+interface FlatSavoir {
+  id?: number; code?: string; nom?: string; type?: string; niveau?: string;
+  competenceNom?: string; sousCompetenceNom?: string; competenceId?: number;
+}
+interface ListRowProps { savoir: FlatSavoir; accent: string; onClick: () => void }
+function ListRow({ savoir, accent, onClick }: Readonly<ListRowProps>) {
   const niveauStyle = getNiveauStyle(savoir.niveau);
   return (
     <button className="ctp-list-row" onClick={onClick}>
@@ -58,6 +63,17 @@ function ListRow({ savoir, accent, onClick }) {
   );
 }
 
+interface ListFilters { q: string; type: string; niveau: string }
+interface ListViewProps {
+  flatSavoirs: FlatSavoir[];
+  selectedDomaine: number | null;
+  onOpenSavoir: (savoir: FlatSavoir) => void;
+  competences: { id?: number; nom?: string; code?: string }[];
+  listMode: string;
+  setListMode: (mode: string) => void;
+  listFilters: ListFilters;
+  setListFilters: (f: ListFilters) => void;
+}
 export default function ListView({
   flatSavoirs,
   selectedDomaine,
@@ -67,7 +83,7 @@ export default function ListView({
   setListMode,
   listFilters,
   setListFilters,
-}) {
+}: Readonly<ListViewProps>) {
   const listTopRef = useRef(null);
   const [page, setPage] = useState(1);
   const debouncedQuery = useDebouncedValue(listFilters.q, 300);

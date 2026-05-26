@@ -1,34 +1,35 @@
+import { memo } from "react";
 import { Table, Avatar, Tag, Space, Progress, Typography, Badge, Button, Tooltip } from "antd";
 import { UserOutlined, ThunderboltOutlined } from "@ant-design/icons";
-import type { TeacherRiskIndicator } from "@/models/analyse";
-
-const { Text } = Typography;
-
+import type { TeacherRiskIndicator } from "@/models/analyse";
+
+const { Text } = Typography;
+
 function riskColor(s: number): string {
   if (s >= 0.7) return "#ef4444";
   if (s >= 0.4) return "#f59e0b";
   return "#10b981";
-}
-
+}
+
 function badgeColor(v: number): string {
   if (v > 3) return "#10b981";
   if (v > 0) return "#f59e0b";
   return "#ef4444";
-}
-
+}
+
 function tagColor(v: string): string {
   if (v === "OK") return "green";
   if (v?.includes("entretien")) return "red";
   return "orange";
-}
-
+}
+
 interface Props {
   data: TeacherRiskIndicator[];
   threshold: number;
   onAnalyze?: (teacherId: string) => void;
-}
-
-export default function RiskTable({ data, threshold, onAnalyze }: Readonly<Props>) {
+}
+
+const RiskTable = memo(function RiskTable({ data, threshold, onAnalyze }: Readonly<Props>) {
   const columns = [
     {
       title: "Enseignant",
@@ -116,8 +117,8 @@ export default function RiskTable({ data, threshold, onAnalyze }: Readonly<Props
           ),
         }]
       : []),
-  ];
-
+  ];
+
   return (
     <Table<TeacherRiskIndicator>
       dataSource={data}
@@ -128,4 +129,6 @@ export default function RiskTable({ data, threshold, onAnalyze }: Readonly<Props
       rowClassName={(r) => (r.attrition_risk_score >= threshold ? "risk-row-high" : "")}
     />
   );
-}
+});
+
+export default RiskTable;

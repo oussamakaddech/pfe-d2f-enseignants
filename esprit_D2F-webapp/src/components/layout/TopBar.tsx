@@ -1,12 +1,11 @@
-// components/TopBar.jsx
+import { memo } from "react";
 import { Breadcrumb, Dropdown, Avatar, Space } from "antd";
 import { UserOutlined, LogoutOutlined } from "@ant-design/icons";
 import { useNavigate, useLocation } from "react-router-dom";
-import { useContext } from "react";
-import { AuthContext } from "@/components/common/AuthProvider";
+import { useAuth } from "@/hooks/auth";
 
-export default function TopBar() {
-  const { user, logout } = useContext(AuthContext);
+const TopBar = memo(function TopBar() {
+  const { user, logout } = useAuth();
   const navigate = useNavigate();
   const { pathname } = useLocation();
 
@@ -37,12 +36,14 @@ export default function TopBar() {
       <Dropdown menu={{ items: menu }} placement="bottomRight">
         <Space>
           <Avatar icon={<UserOutlined />} />
-          {user?.name || "Utilisateur"}
+          {user?.username || user?.userName || "Utilisateur"}
         </Space>
       </Dropdown>
     </div>
   );
-}
+});
+
+export default TopBar;
 
 
 

@@ -1,3 +1,4 @@
+import type { ComponentType } from "react";
 import {
   CalendarOutlined, FileTextOutlined, ReadOutlined, SolutionOutlined,
   LogoutOutlined, ApartmentOutlined, RobotOutlined, SearchOutlined,
@@ -7,7 +8,14 @@ import {
   AppstoreOutlined, CheckSquareOutlined, BankOutlined,
 } from "@ant-design/icons";
 
-type MenuItem = Record<string, unknown>;
+export interface MenuItem {
+  type?: "group";
+  label?: string;
+  key?: string;
+  icon?: ComponentType<{ style?: React.CSSProperties }>;
+  danger?: boolean;
+  children?: MenuItem[];
+}
 
 export const accountGroup: MenuItem[] = [
   { type: "group", label: "MON COMPTE", children: [

@@ -1,5 +1,4 @@
 import { defaultApi as axios } from "@/utils/helpers/httpClient";
-import type { AxiosResponse } from "axios";
 import { config } from "@/config/env";
 import type { ApiListOrPage, Id } from "@/models/common";
 import type {
@@ -16,11 +15,44 @@ const BASE = `${config.COMPETENCE_URL}/competence`;
 const toList = <T>(payload: ApiListOrPage<T>): T[] =>
   Array.isArray(payload) ? payload : payload.content ?? [];
 
-type TreeNode = Record<string, unknown>;
-type NiveauDefinition = Record<string, unknown>;
-type EnseignantCompetence = Record<string, unknown>;
-type AssignRequest = Record<string, unknown>;
-type PrerequisiteRequest = Record<string, unknown>;
+export interface TreeNode {
+  id?: Id;
+  code?: string;
+  nom?: string;
+  type?: string;
+  children?: TreeNode[];
+  [key: string]: unknown;
+}
+
+export interface NiveauDefinition {
+  id?: Id;
+  competenceId?: Id;
+  sousCompetenceId?: Id;
+  niveau?: string;
+  description?: string;
+  [key: string]: unknown;
+}
+
+export interface EnseignantCompetence {
+  id?: Id;
+  enseignantId?: Id;
+  competenceId?: Id;
+  niveau?: string;
+  [key: string]: unknown;
+}
+
+export interface AssignRequest {
+  enseignantId?: Id;
+  competenceId?: Id;
+  niveau?: string;
+  [key: string]: unknown;
+}
+
+export interface PrerequisiteRequest {
+  prerequisiteId?: Id;
+  niveauMinimum?: string;
+  [key: string]: unknown;
+}
 
 const DomaineAPI = {
   getAll: async (upId?: number | null, departementId?: number | null): Promise<Domaine[]> => {
@@ -55,7 +87,7 @@ const DomaineAPI = {
     return res.data;
   },
 
-  delete: (id: Id): Promise<AxiosResponse<unknown>> =>
+  delete: (id: Id): Promise<{ data: unknown }> =>
     axios.delete(`${BASE}/domaines/${id}`),
 
   toggleActif: async (id: Id): Promise<Domaine> => {
@@ -104,7 +136,7 @@ const CompetenceAPI = {
     return res.data;
   },
 
-  delete: (id: Id): Promise<AxiosResponse<unknown>> =>
+  delete: (id: Id): Promise<{ data: unknown }> =>
     axios.delete(`${BASE}/competences/${id}`),
 };
 
@@ -166,7 +198,7 @@ const SousCompetenceAPI = {
     return res.data;
   },
 
-  delete: (id: Id): Promise<AxiosResponse<unknown>> =>
+  delete: (id: Id): Promise<{ data: unknown }> =>
     axios.delete(`${BASE}/sous-competences/${id}`),
 };
 
@@ -236,7 +268,7 @@ const SavoirAPI = {
     return res.data;
   },
 
-  delete: (id: Id): Promise<AxiosResponse<unknown>> =>
+  delete: (id: Id): Promise<{ data: unknown }> =>
     axios.delete(`${BASE}/savoirs/${id}`),
 };
 
@@ -305,7 +337,7 @@ const EnseignantCompetenceAPI = {
     return res.data;
   },
 
-  remove: (id: Id): Promise<AxiosResponse<unknown>> =>
+  remove: (id: Id): Promise<{ data: unknown }> =>
     axios.delete(`${BASE}/enseignant-competences/${id}`),
 };
 
@@ -358,7 +390,7 @@ const NiveauDefinitionAPI = {
     return res.data;
   },
 
-  remove: (id: Id): Promise<AxiosResponse<unknown>> =>
+  remove: (id: Id): Promise<{ data: unknown }> =>
     axios.delete(`${BASE}/niveaux/${id}`),
 };
 
@@ -438,7 +470,7 @@ const PrerequisiteAPI = {
     return res.data;
   },
 
-  remove: (competenceId: Id, id: Id): Promise<AxiosResponse<unknown>> =>
+  remove: (competenceId: Id, id: Id): Promise<{ data: unknown }> =>
     axios.delete(`${BASE}/competences/${competenceId}/prerequisite/${id}`),
 };
 

@@ -26,69 +26,37 @@ function normalizeListResponse<T>(payload: T[] | { content?: T[]; data?: T[]; it
 
 const UpService = {
   async createUp(upData: Record<string, unknown>) {
-    try {
-      const response = await axios.post(API_URL, upData);
-      return response.data;
-    } catch (error) {
-      throw error;
-    }
+    const response = await axios.post(API_URL, upData);
+    return response.data;
   },
 
   async getAllUps() {
-    try {
-      const response = await axios.get(API_URL);
-      return normalizeListResponse(response.data);
-    } catch (error) {
-      const axiosError = error as { response?: { status?: number } };
-      if (axiosError?.response?.status === 404) {
-        return [];
-      }
-      return [];
-    }
+    const response = await axios.get(API_URL);
+    return normalizeListResponse(response.data);
   },
 
   async getUpById(id: number | string) {
-    try {
-      const response = await axios.get(`${API_URL}/${id}`);
-      return response.data;
-    } catch (error) {
-      throw error;
-    }
+    const response = await axios.get(`${API_URL}/${id}`);
+    return response.data;
   },
 
   async updateUp(id: number | string, upData: Record<string, unknown>) {
-    try {
-      const response = await axios.put(`${API_URL}/${id}`, upData);
-      return response.data;
-    } catch (error) {
-      throw error;
-    }
+    const response = await axios.put(`${API_URL}/${id}`, upData);
+    return response.data;
   },
 
   async deleteUp(id: number | string) {
-    try {
-      await axios.delete(`${API_URL}/${id}`);
-    } catch (error) {
-      throw error;
-    }
+    await axios.delete(`${API_URL}/${id}`);
   },
 
   async importUpsExcel(file: File) {
-    try {
-      const formData = new FormData();
-      formData.append("file", file);
-      const response = await axios.post(`${API_URL}/import-excel`, formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
-      return response.data;
-    } catch (error) {
-      throw error;
-    }
+    const formData = new FormData();
+    formData.append("file", file);
+    const response = await axios.post(`${API_URL}/import-excel`, formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+    return response.data;
   },
 };
 
 export default UpService;
-
-
-
-

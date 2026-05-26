@@ -31,7 +31,7 @@ const ParticipantKPIService = {
         params: { startDate, endDate },
       });
       return normalizeListResponse(response.data);
-    } catch (error) {
+    } catch (error: unknown) {
       throw error;
     }
   },
@@ -42,7 +42,7 @@ const ParticipantKPIService = {
         params: { startDate, endDate },
       });
       return response.data;
-    } catch (error) {
+    } catch (error: unknown) {
       throw error;
     }
   },

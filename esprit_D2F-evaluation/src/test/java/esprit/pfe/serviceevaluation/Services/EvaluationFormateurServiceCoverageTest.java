@@ -64,7 +64,7 @@ class EvaluationFormateurServiceCoverageTest {
     @DisplayName("ajouterEvalParticipant - with valid clients - should save successfully")
     void ajouterEvalParticipant_ValidClients_ShouldSave() {
         when(formationClient.getFormation(10L)).thenReturn(true);
-        when(authClient.getEnseignant("ENS001")).thenReturn(true);
+        when(authClient.enseignantExists("ENS001")).thenReturn(true);
         when(evaluationRepository.save(any(EvaluationFormateur.class))).thenReturn(entity);
 
         EvaluationFormateurDTO result = service.ajouterEvalParticipant(dto);
@@ -72,7 +72,7 @@ class EvaluationFormateurServiceCoverageTest {
         assertNotNull(result);
         assertEquals("ENS001", result.getEnseignantId());
         verify(formationClient).getFormation(10L);
-        verify(authClient).getEnseignant("ENS001");
+        verify(authClient).enseignantExists("ENS001");
         verify(evaluationRepository).save(any(EvaluationFormateur.class));
     }
 
@@ -82,14 +82,14 @@ class EvaluationFormateurServiceCoverageTest {
         when(formationClient.getFormation(10L)).thenReturn(false);
 
         assertThrows(ResourceNotFoundException.class, () -> service.ajouterEvalParticipant(dto));
-        verify(authClient, never()).getEnseignant(anyString());
+        verify(authClient, never()).enseignantExists(anyString());
     }
 
     @Test
     @DisplayName("ajouterEvalParticipant - enseignant not found - should throw ResourceNotFoundException")
     void ajouterEvalParticipant_EnseignantNotFound_ShouldThrow() {
         when(formationClient.getFormation(10L)).thenReturn(true);
-        when(authClient.getEnseignant("ENS001")).thenReturn(false);
+        when(authClient.enseignantExists("ENS001")).thenReturn(false);
 
         assertThrows(ResourceNotFoundException.class, () -> service.ajouterEvalParticipant(dto));
         verify(evaluationRepository, never()).save(any());
@@ -99,7 +99,7 @@ class EvaluationFormateurServiceCoverageTest {
     @DisplayName("modifierEvalParticipant - with valid data - should update successfully")
     void modifierEvalParticipant_ValidData_ShouldUpdate() {
         when(formationClient.getFormation(10L)).thenReturn(true);
-        when(authClient.getEnseignant("ENS001")).thenReturn(true);
+        when(authClient.enseignantExists("ENS001")).thenReturn(true);
         when(evaluationRepository.findById(1L)).thenReturn(Optional.of(entity));
         when(evaluationRepository.save(any(EvaluationFormateur.class))).thenReturn(entity);
 
@@ -114,7 +114,7 @@ class EvaluationFormateurServiceCoverageTest {
 
         assertNotNull(result);
         verify(formationClient).getFormation(10L);
-        verify(authClient).getEnseignant("ENS001");
+        verify(authClient).enseignantExists("ENS001");
         verify(evaluationRepository).save(any(EvaluationFormateur.class));
     }
 
@@ -122,7 +122,7 @@ class EvaluationFormateurServiceCoverageTest {
     @DisplayName("modifierEvalParticipant - evaluation not found - should throw RuntimeException")
     void modifierEvalParticipant_EvaluationNotFound_ShouldThrow() {
         when(formationClient.getFormation(10L)).thenReturn(true);
-        when(authClient.getEnseignant("ENS001")).thenReturn(true);
+        when(authClient.enseignantExists("ENS001")).thenReturn(true);
         when(evaluationRepository.findById(999L)).thenReturn(Optional.empty());
 
         assertThrows(RuntimeException.class, () -> service.modifierEvalParticipant(999L, dto));
@@ -170,7 +170,7 @@ class EvaluationFormateurServiceCoverageTest {
         service.createEvaluationsBulk(List.of());
 
         verify(formationClient, never()).getFormation(anyLong());
-        verify(authClient, never()).getEnseignant(anyString());
+        verify(authClient, never()).enseignantExists(anyString());
         verify(evaluationRepository).saveAll(anyList());
     }
 
@@ -183,12 +183,12 @@ class EvaluationFormateurServiceCoverageTest {
         dto2.setNote(14.0f);
 
         when(formationClient.getFormation(10L)).thenReturn(true);
-        when(authClient.getEnseignant("ENS001")).thenReturn(true);
+        when(authClient.enseignantExists("ENS001")).thenReturn(true);
 
         service.createEvaluationsBulk(Arrays.asList(dto, dto2));
 
         verify(formationClient).getFormation(10L);
-        verify(authClient).getEnseignant("ENS001");
+        verify(authClient).enseignantExists("ENS001");
         verify(evaluationRepository).saveAll(anyList());
     }
 
@@ -208,14 +208,14 @@ class EvaluationFormateurServiceCoverageTest {
         service.updateEvaluationsBulkByFormation(10L, List.of());
 
         verify(formationClient, never()).getFormation(anyLong());
-        verify(authClient, never()).getEnseignant(anyString());
+        verify(authClient, never()).enseignantExists(anyString());
     }
 
     @Test
     @DisplayName("updateEvaluationsBulkByFormation - create new - should save new evaluation")
     void updateEvaluationsBulkByFormation_CreateNew_ShouldSave() {
         when(formationClient.getFormation(10L)).thenReturn(true);
-        when(authClient.getEnseignant("ENS001")).thenReturn(true);
+        when(authClient.enseignantExists("ENS001")).thenReturn(true);
         when(evaluationRepository.findByFormationId(10L)).thenReturn(List.of());
 
         EvaluationFormateurDTO newDto = new EvaluationFormateurDTO();
@@ -233,7 +233,7 @@ class EvaluationFormateurServiceCoverageTest {
     @DisplayName("updateEvaluationsBulkByFormation - update existing - should update")
     void updateEvaluationsBulkByFormation_UpdateExisting_ShouldUpdate() {
         when(formationClient.getFormation(10L)).thenReturn(true);
-        when(authClient.getEnseignant("ENS001")).thenReturn(true);
+        when(authClient.enseignantExists("ENS001")).thenReturn(true);
         when(evaluationRepository.findByFormationId(10L)).thenReturn(List.of(entity));
 
         EvaluationFormateurDTO updateDto = new EvaluationFormateurDTO();
@@ -257,7 +257,7 @@ class EvaluationFormateurServiceCoverageTest {
         oldEntity.setFormationId(10L);
 
         when(formationClient.getFormation(10L)).thenReturn(true);
-        when(authClient.getEnseignant("ENS001")).thenReturn(true);
+        when(authClient.enseignantExists("ENS001")).thenReturn(true);
         when(evaluationRepository.findByFormationId(10L)).thenReturn(Arrays.asList(entity, oldEntity));
 
         EvaluationFormateurDTO updateDto = new EvaluationFormateurDTO();

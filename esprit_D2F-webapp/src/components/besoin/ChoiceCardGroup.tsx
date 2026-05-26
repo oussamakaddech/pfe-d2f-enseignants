@@ -1,16 +1,17 @@
+import { memo } from "react";
 import type { ReactNode } from "react";
-import { CheckCircleOutlined } from "@ant-design/icons";
-
-export type ChoiceOption = { value: string; label: string; description?: string; icon?: ReactNode; accent?: string; accentBg?: string };
-
+import { CheckCircleOutlined } from "@ant-design/icons";
+
+export type ChoiceOption = { value: string; label: string; description?: string; icon?: ReactNode; accent?: string; accentBg?: string };
+
 interface ChoiceCardGroupProps {
   options: ChoiceOption[];
   value: string;
   onChange: (val: string) => void;
   variant?: string;
-}
-
-export default function ChoiceCardGroup({ options, value, onChange, variant = "type" }: ChoiceCardGroupProps) {
+}
+
+const ChoiceCardGroup = memo(function ChoiceCardGroup({ options, value, onChange, variant = "type" }: ChoiceCardGroupProps) {
   return (
     <div className={`bf-choice-grid bf-choice-grid--${variant}`}>
       {options.map((opt) => {
@@ -46,4 +47,6 @@ export default function ChoiceCardGroup({ options, value, onChange, variant = "t
       })}
     </div>
   );
-}
+});
+
+export default ChoiceCardGroup;

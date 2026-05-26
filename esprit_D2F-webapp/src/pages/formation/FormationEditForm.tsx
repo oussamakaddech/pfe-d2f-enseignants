@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
 import { format } from "date-fns";
+import useAppNotification from "@/hooks/ui/useAppNotification";
 import { Input, InputNumber, Button, Space, Card, Form } from "antd";
 import { PlusOutlined, DeleteOutlined } from "@ant-design/icons";
-import FormationWorkflowService from "@/services/formation/FormationWorkflowService";
+import { useUpdateFormation } from "@/hooks/formation/useFormations";
 
 function FormationEditForm({ formation, onUpdate, onCancel }) {
   // Champs généraux de la formation
@@ -21,8 +22,8 @@ function FormationEditForm({ formation, onUpdate, onCancel }) {
   useEffect(() => {
     if (formation) {
       setTitreFormation(formation.titreFormation);
-      setDateDebut(format(new Date(formation.dateDebut), "yyyy-MM-dd"));
-      setDateFin(format(new Date(formation.dateFin), "yyyy-MM-dd"));
+      setDateDebut(formation.dateDebut ? format(new Date(formation.dateDebut), "yyyy-MM-dd") : "");
+      setDateFin(formation.dateFin ? format(new Date(formation.dateFin), "yyyy-MM-dd") : "");
       setTypeFormation(formation.typeFormation);
       setCoutFormation(formation.coutFormation);
       setOrganismeRefExterne(formation.organismeRefExterne);
@@ -38,6 +39,9 @@ function FormationEditForm({ formation, onUpdate, onCancel }) {
       );
     }
   }, [formation]);
+
+  const { message } = useAppNotification();
+  const { mutateAsync: updateFormation } = useUpdateFormation();
 
   // Fonction de modification d'une séance dans la liste
   const handleSeanceChange = (index, field, value) => {
@@ -84,13 +88,10 @@ function FormationEditForm({ formation, onUpdate, onCancel }) {
       seances,
     };
     try {
-      const updated = await FormationWorkflowService.updateFormationWorkflow(
-        formation.idFormation,
-        updatedFormation
-      );
+      const updated = await updateFormation({ id: formation.idFormation, data: updatedFormation });
       onUpdate(updated);
-    } catch {
-      // Erreur gérée silencieusement
+    } catch (err) {
+      message.error("Échec de la mise à jour de la formation.");
     }
   };
 

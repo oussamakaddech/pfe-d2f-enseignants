@@ -11,7 +11,7 @@ const FormationCustomService = {
         { params: { typeCertif } }
       );
       return response.data;
-    } catch (error) {
+    } catch (error: unknown) {
       throw error;
     }
   }

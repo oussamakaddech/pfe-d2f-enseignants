@@ -41,8 +41,8 @@ import {
   FolderOutlined,
   PictureOutlined,
 } from "@ant-design/icons";
-import FormationWorkflowService from "@/services/formation/FormationWorkflowService";
-import OneDriveService from "@/services/api/OneDriveService";
+import { useFormationsWithDocuments } from "@/hooks/formation/useFormations";
+import { useFormationHierarchy } from "@/hooks/api/useOneDrive";
 import DocumentViewer from "./DocumentViewer";
 import DocumentListModal from "./DocumentListModal";
 import DocumentUploadPanel from "./DocumentUploadPanel";
@@ -119,38 +119,16 @@ export default function CombinedFormationOneDriveTree() {
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [searchText, setSearchText] = useState("");
   const [dateRange, setDateRange] = useState([]);
-  const [formationsLoading, setFormationsLoading] = useState(false);
-  const [treeLoading, setTreeLoading] = useState(false);
+  const { data: formationsData = [], isLoading: formationsLoading } = useFormationsWithDocuments();
 
   useEffect(() => {
-    let isMounted = true;
-
-    const loadFormations = async () => {
-      setFormationsLoading(true);
-      try {
-        const data = await FormationWorkflowService.getAllFormationWithDocuments();
-        if (!isMounted) return;
-        let list;
-        if (Array.isArray(data)) { list = data; }
-        else if (data) { list = [data]; }
-        else { list = []; }
-        setFormations(list);
-        setFilteredFormations(list);
-      } catch {
-        notification.error({ message: "Erreur de chargement des formations" });
-      } finally {
-        if (isMounted) {
-          setFormationsLoading(false);
-        }
-      }
-    };
-
-    loadFormations();
-
-    return () => {
-      isMounted = false;
-    };
-  }, []);
+    let list;
+    if (Array.isArray(formationsData)) { list = formationsData; }
+    else if (formationsData) { list = [formationsData]; }
+    else { list = []; }
+    setFormations(list);
+    setFilteredFormations(list);
+  }, [formationsData]);
 
   useEffect(() => {
     let result = formations;
@@ -198,7 +176,9 @@ export default function CombinedFormationOneDriveTree() {
     };
   }, [selectedFormation, treeData]);
 
-  const loadTree = useCallback(async () => {
+  const { data: hierarchyData, isLoading: treeLoading, refetch: refetchHierarchy } = useFormationHierarchy(selectedFormation?.idFormation);
+
+  useEffect(() => {
     if (!selectedFormation) {
       setTreeData([]);
       setExpandedKeys([]);
@@ -206,24 +186,16 @@ export default function CombinedFormationOneDriveTree() {
       return;
     }
 
-    setTreeLoading(true);
-    try {
-      const nodes = await OneDriveService.getFormationHierarchy(selectedFormation.idFormation);
-      const list = Array.isArray(nodes) ? nodes : [];
-      setTreeData(list.map(toTreeNode));
-      setExpandedKeys(list.map((node) => node.id));
+    if (hierarchyData) {
+      const nodes = Array.isArray(hierarchyData) ? hierarchyData : [];
+      setTreeData(nodes.map(toTreeNode));
+      setExpandedKeys(nodes.map((node) => node.id));
       setSelectedFile(null);
-    } catch {
-      notification.error({ message: "Erreur OneDrive" });
+    } else if (!treeLoading) {
       setTreeData([]);
-    } finally {
-      setTreeLoading(false);
+      setExpandedKeys([]);
     }
-  }, [selectedFormation]);
-
-  useEffect(() => {
-    loadTree();
-  }, [loadTree]);
+  }, [hierarchyData, treeLoading, selectedFormation]);
 
   const onSelectTree = (_, { node }) => {
     if (!node.isLeaf) return;
@@ -341,7 +313,7 @@ export default function CombinedFormationOneDriveTree() {
             </Button>
             <Button
               icon={<ReloadOutlined />}
-              onClick={loadTree}
+              onClick={refetchHierarchy}
               disabled={!selectedFormation}
               className="doc-btn-refresh"
             >

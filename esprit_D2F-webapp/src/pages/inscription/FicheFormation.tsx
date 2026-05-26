@@ -1,5 +1,4 @@
 import { useParams, useNavigate } from "react-router-dom";
-import { useEffect, useState } from "react";
 import {
   Card,
   Descriptions,
@@ -27,8 +26,8 @@ import {
   BarChartOutlined,
   AimOutlined,
 } from "@ant-design/icons";
-import moment from "moment";
-import FormationWorkflowService from "@/services/formation/FormationWorkflowService";
+import dayjs from "dayjs";
+import { useFormationById } from "@/hooks/formation/useFormations";
 import "@/styles/pages/fiche-formation.css";
 
 const PERIOD_OPTIONS = [
@@ -46,16 +45,7 @@ const { Title, Paragraph, Text } = Typography;
 export default function FicheFormation() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const [formation, setFormation] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
-  useEffect(() => {
-    FormationWorkflowService.getFormationWorkflowById(id)
-      .then((data) => setFormation(data))
-      .catch((err) => setError(err.message || "Erreur de chargement"))
-      .finally(() => setLoading(false));
-  }, [id]);
+  const { data: formation, isLoading: loading, error } = useFormationById(id);
 
   if (loading) {
     return <Spin className="fiche-spin" size="large" />;
@@ -65,7 +55,7 @@ export default function FicheFormation() {
       <Alert
         type="error"
         message="Erreur"
-        description={error}
+        description={error?.message || "Erreur de chargement"}
         showIcon
         className="fiche-error"
       />
@@ -145,7 +135,7 @@ export default function FicheFormation() {
             <Descriptions column={1} size="middle" layout="horizontal" styles={{ label: { fontWeight: 600, width: 160 } }}>
               <Descriptions.Item label={<Space><CalendarOutlined /> Dates</Space>}>
                 <Text strong>
-                  {moment(dateDebut).format("DD/MM/YYYY")} → {moment(dateFin).format("DD/MM/YYYY")}
+                  {dayjs(dateDebut).format("DD/MM/YYYY")} → {dayjs(dateFin).format("DD/MM/YYYY")}
                 </Text>
               </Descriptions.Item>
               <Descriptions.Item label={<Space><CalendarOutlined /> Période</Space>}>
@@ -272,7 +262,7 @@ export default function FicheFormation() {
             items={seances.map((s, i) => ({
               label: (
                 <Text type="secondary">
-                  {moment(s.dateSeance).format("DD/MM/YYYY")}
+                  {dayjs(s.dateSeance).format("DD/MM/YYYY")}
                   <br />
                   {s.heureDebut?.slice(0, 5)} - {s.heureFin?.slice(0, 5)}
                 </Text>

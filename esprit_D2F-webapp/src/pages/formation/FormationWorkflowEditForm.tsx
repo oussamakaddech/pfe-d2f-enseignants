@@ -1,4 +1,4 @@
-import { useState, useEffect, useContext } from "react";
+import { useState, useEffect } from "react";
 import { format } from "date-fns";
 import {
   Row,
@@ -28,7 +28,7 @@ import "@/styles/pages/formation-workflow-edit-form.css";
 
 import { useAllFormations, useUpdateFormation, useUps, useDepartements } from "@/hooks/formation";
 import { useEnseignants } from "@/hooks/enseignant";
-import { AuthContext } from "@/components/common/AuthProvider";
+import { useAuth } from "@/hooks/auth/useAuth";
 import DocumentListModal from "../documentFormation/DocumentListModal";
 import DocumentUploadPanel from "../documentFormation/DocumentUploadPanel";
 
@@ -45,7 +45,7 @@ const PERIOD_OPTIONS = [
 
 export default function FormationWorkflowEditForm({ formation, onFormationUpdated }) {
   const { message } = useAppNotification();
-  const { user } = useContext(AuthContext);
+  const { user } = useAuth();
   const role = String(user?.role || "").toLowerCase().replaceAll(/[\s_-]+/g, "");
   const isResponsableDossier = role === "responsabledossier";
   
@@ -457,7 +457,7 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
       const res = await updateMut.mutateAsync({ id: formation.idFormation, data: payload });
       message.success("Formation mise à jour !");
       onFormationUpdated(res);
-    } catch (err) {
+    } catch (err: unknown) {
       const msg = err.response?.data?.message || err.response?.data?.error || err.message;
       message.error(msg);
     }

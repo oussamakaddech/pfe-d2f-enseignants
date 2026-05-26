@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import {
   Card,
   DatePicker,
@@ -18,9 +18,9 @@ import {
   ClusterOutlined
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
-import KPIService from '@/services/analyse/KPIService';
-import DeptService from '@/services/formation/DeptService';
-import UpService from '@/services/api/UploadService';
+import { useEnseignantsNonAffectes } from "@/hooks/kpi/useKpi";
+import { useDepartements } from "@/hooks/formation/useFormations";
+import { useUps } from "@/hooks/formation/useFormations";
 import "@/styles/components/chart-scroll.css";
 
 const { RangePicker } = DatePicker;
@@ -28,53 +28,29 @@ const { Option } = Select;
 const { Title, Text } = Typography;
 
 export default function NonAffectedGrid() {
-  const [allStats, setAllStats]     = useState([]);
-  const [stats, setStats]           = useState([]);
-  const [loading, setLoading]       = useState(false);
-  const [range, setRange]           = useState([
+  const { data: upsData } = useUps();
+  const { data: deptsData } = useDepartements();
+  const ups = upsData ?? [];
+  const depts = deptsData ?? [];
+
+  const [range, setRange] = useState([
     dayjs().startOf('year'),
     dayjs().endOf('year')
   ]);
-  const [ups, setUps]               = useState([]);
-  const [depts, setDepts]           = useState([]);
   const [selectedUp, setSelectedUp] = useState(null);
   const [selectedDept, setSelectedDept] = useState(null);
 
-  // Charger UPs & Depts une seule fois
-  useEffect(() => {
-    (async () => {
-      setUps(await UpService.getAllUps());
-      setDepts(await DeptService.getAllDepts());
-    })();
-  }, []);
+  const [start, end] = range;
+  const { data: allStats, isLoading } = useEnseignantsNonAffectes(
+    start.format('YYYY-MM-DD'),
+    end.format('YYYY-MM-DD')
+  );
 
-  // Charger toutes les stats à chaque changement de date
-  useEffect(() => {
-    (async () => {
-      setLoading(true);
-      const [start, end] = range;
-      try {
-        const data = await KPIService.getEnseignantsNonAffectes(
-          start.format('YYYY-MM-DD'),
-          end.format('YYYY-MM-DD')
-        );
-        setAllStats(Array.isArray(data) ? data : []);
-      } catch {
-        setAllStats([]);
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, [range]);
-
-  // Filtrer côté client dès que UP ou Dept évoluent
-  useEffect(() => {
+  const stats = useMemo(() => {
     const source = Array.isArray(allStats) ? allStats : [];
-    setStats(
-      source.filter(item =>
-        (!selectedUp   || item.upId   === selectedUp) &&
-        (!selectedDept || item.deptId === selectedDept)
-      )
+    return source.filter(item =>
+      (!selectedUp   || item.upId   === selectedUp) &&
+      (!selectedDept || item.deptId === selectedDept)
     );
   }, [allStats, selectedUp, selectedDept]);
 
@@ -120,7 +96,7 @@ export default function NonAffectedGrid() {
       </Row>
 
       {/* ---- AFFICHAGE ---- */}
-      {loading ? (
+      {isLoading ? (
         <div style={{ width: '100%', padding: 50, textAlign: 'center' }}>
           <Spin />
         </div>

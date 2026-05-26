@@ -1,20 +1,21 @@
+import { memo } from "react";
 import { Table, Tag, Space, Progress, Typography, Tooltip } from "antd";
 import { BulbOutlined } from "@ant-design/icons";
-import type { AnalyseGap, Gravite } from "@/models/analyse";
-
-const { Text } = Typography;
-
+import type { AnalyseGap, Gravite } from "@/models/analyse";
+
+const { Text } = Typography;
+
 const graviteColors: Record<Gravite, string> = {
   elevee: "#ef4444",
   moyenne: "#f59e0b",
   faible: "#10b981",
-};
-
+};
+
 interface Props {
   data: AnalyseGap[];
-}
-
-export default function GapTable({ data }: Readonly<Props>) {
+}
+
+const GapTable = memo(function GapTable({ data }: Readonly<Props>) {
   const columns = [
     {
       title: "Compétence",
@@ -81,8 +82,8 @@ export default function GapTable({ data }: Readonly<Props>) {
         </Tooltip>
       ),
     },
-  ];
-
+  ];
+
   return (
     <Table<AnalyseGap>
       dataSource={data}
@@ -92,4 +93,6 @@ export default function GapTable({ data }: Readonly<Props>) {
       size="middle"
     />
   );
-}
+});
+
+export default GapTable;

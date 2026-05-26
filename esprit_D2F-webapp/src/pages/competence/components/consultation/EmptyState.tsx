@@ -1,4 +1,3 @@
-/* eslint-disable react/prop-types */
 import {
   InboxOutlined,
   SearchOutlined,
@@ -26,7 +25,12 @@ const EMPTY_CONFIGS = {
   },
 };
 
-export default function EmptyState({ type, onClear }) {
+interface EmptyStateProps {
+  type: "noData" | "noResults" | "noComp";
+  onClear?: () => void;
+}
+
+export default function EmptyState({ type, onClear }: Readonly<EmptyStateProps>) {
   const cfg = EMPTY_CONFIGS[type] || EMPTY_CONFIGS.noData;
   const Icon = cfg.icon;
 

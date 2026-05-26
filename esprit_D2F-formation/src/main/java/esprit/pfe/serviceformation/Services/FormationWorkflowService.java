@@ -724,11 +724,17 @@ public class FormationWorkflowService {
     private static final DateTimeFormatter TIME_FMT = DateTimeFormatter.ofPattern("HH:mm");
 
     private String formatDate(java.util.Date date) {
+        if (date == null) {
+            return "À définir";
+        }
         return date.toInstant().atZone(ZoneId.of(FormationWorkflowServiceHelper.TIMEZONE_TUNIS)).toLocalDate()
                 .format(DATE_FMT);
     }
 
     private String formatTime(java.sql.Time time) {
+        if (time == null) {
+            return "À définir";
+        }
         return time.toLocalTime().format(TIME_FMT);
     }
 

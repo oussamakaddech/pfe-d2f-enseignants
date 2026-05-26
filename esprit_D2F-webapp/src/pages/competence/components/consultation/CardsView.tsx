@@ -1,4 +1,3 @@
-/* eslint-disable react/prop-types */
 import { useEffect, useMemo, useState } from "react";
 import { Input, Select } from "antd";
 import { SearchOutlined } from "@ant-design/icons";
@@ -21,20 +20,35 @@ import "@/styles/pages/cards-view.css";
 const { Option } = Select;
 const PAGE = 20;
 
-function Badge({ text, type = "muted" }) {
+interface BadgeProps { text: string; type?: string }
+function Badge({ text, type = "muted" }: Readonly<BadgeProps>) {
   let cls = "ctp-badge--muted";
   if (type === "theorique") cls = "ctp-badge--theorique";
   else if (type === "pratique") cls = "ctp-badge--pratique";
   return <span className={`ctp-badge ${cls}`}>{text}</span>;
 }
 
-function useDebouncedValue(value, delay = 300) {
+function useDebouncedValue<T>(value: T, delay = 300): T {
   const [debounced, setDebounced] = useState(value);
   useEffect(() => {
     const timer = setTimeout(() => setDebounced(value), delay);
     return () => clearTimeout(timer);
   }, [value, delay]);
   return debounced;
+}
+
+interface FlatSavoir {
+  id?: number; code?: string; nom?: string; type?: string; niveau?: string;
+  competenceId?: number; sousCompetenceNom?: string;
+}
+
+interface CardsViewProps {
+  crud: Record<string, unknown>;
+  selectedDomaine: number | null;
+  flatSavoirs: FlatSavoir[];
+  onOpenSavoir: (savoir: FlatSavoir) => void;
+  openAll: boolean;
+  onOpenAllConsumed: () => void;
 }
 
 export default function CardsView({
@@ -44,7 +58,7 @@ export default function CardsView({
   onOpenSavoir,
   openAll,
   onOpenAllConsumed,
-}) {
+}: Readonly<CardsViewProps>) {
   const scopedCompetences = useMemo(
     () => (crud.competences || []).filter((c) => (selectedDomaine ? String(c.domaineId) === String(selectedDomaine) : true)),
     [crud.competences, selectedDomaine],

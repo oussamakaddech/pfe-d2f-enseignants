@@ -13,7 +13,6 @@ import {
   UserOutlined, WarningOutlined,
 } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
-import PropTypes from "prop-types";
 
 const { Text } = Typography;
 
@@ -107,6 +106,22 @@ const buildEnseignantColumns = (setCurrentStep) => ([
   },
 ]);
 
+interface ReportStepProps {
+  report?: Record<string, unknown> | null;
+  importing?: boolean;
+  handleImport: () => void;
+  exportReportJson: () => void;
+  departement: string;
+  importHistory?: Record<string, unknown>[];
+  historyLoading?: boolean;
+  loadImportHistory: () => void;
+  allSavoirsFlat: Record<string, unknown>[];
+  effectiveEnseignants: Record<string, unknown>[];
+  extractedEnseignants: Record<string, unknown>[];
+  setCurrentStep: (step: number) => void;
+  resetAll: () => void;
+}
+
 export default function ReportStep({
   report,
   importing,
@@ -121,7 +136,7 @@ export default function ReportStep({
   extractedEnseignants,
   setCurrentStep,
   resetAll,
-}) {
+}: Readonly<ReportStepProps>) {
   const navigate = useNavigate();
   const importStats = report?.importStats ?? {
     upserted_domaines: report?.domainesCreated ?? 0,
@@ -398,21 +413,6 @@ export default function ReportStep({
   );
 }
 
-ReportStep.propTypes = {
-  report: PropTypes.object,
-  importing: PropTypes.bool,
-  handleImport: PropTypes.func.isRequired,
-  exportReportJson: PropTypes.func.isRequired,
-  departement: PropTypes.string.isRequired,
-  importHistory: PropTypes.array,
-  historyLoading: PropTypes.bool,
-  loadImportHistory: PropTypes.func.isRequired,
-  allSavoirsFlat: PropTypes.array.isRequired,
-  effectiveEnseignants: PropTypes.array.isRequired,
-  extractedEnseignants: PropTypes.array.isRequired,
-  setCurrentStep: PropTypes.func.isRequired,
-  resetAll: PropTypes.func.isRequired,
-};
 
 
 

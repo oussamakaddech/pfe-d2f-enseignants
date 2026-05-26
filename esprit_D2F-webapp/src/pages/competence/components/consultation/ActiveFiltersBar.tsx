@@ -1,6 +1,16 @@
-/* eslint-disable react/prop-types */
+interface FilterChip {
+  key: string;
+  label: string;
+  color: string;
+}
 
-export default function ActiveFiltersBar({ filters, onRemove, onClearAll }) {
+interface ActiveFiltersBarProps {
+  filters: FilterChip[];
+  onRemove: (key: string) => void;
+  onClearAll: () => void;
+}
+
+export default function ActiveFiltersBar({ filters, onRemove, onClearAll }: Readonly<ActiveFiltersBarProps>) {
   if (!Array.isArray(filters) || filters.length === 0) return null;
 
   return (

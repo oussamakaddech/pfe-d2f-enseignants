@@ -1,13 +1,13 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Doughnut, Bar } from "react-chartjs-2";
-import ParticipantKPIService from "@/services/analyse/ParticipantKPIService";
+import { useGlobalParticipantKPI, useFormationsParticipantKPIs } from "@/hooks/kpi/useKpi";
 
 import {
     Chart as ChartJS,
     ArcElement,
-    BarElement,        // <--- à ajouter
+    BarElement,
     CategoryScale,
-    LinearScale,       // <--- à ajouter
+    LinearScale,
     RadialLinearScale,
     PointElement,
     LineElement,
@@ -17,12 +17,12 @@ import {
     Legend,
     Title
   } from "chart.js";
-  
+
   ChartJS.register(
     ArcElement,
-    BarElement,        // <--- important pour les graphiques en barres
+    BarElement,
     CategoryScale,
-    LinearScale,       // <--- important pour le scale "linear"
+    LinearScale,
     RadialLinearScale,
     PointElement,
     LineElement,
@@ -32,38 +32,21 @@ import {
     Legend,
     Title
   );
-  
+
 const ParticipantKPIChart = () => {
-  const [globalKpiData, setGlobalKpiData] = useState({
-    total: 0,
-    presents: 0,
-    taux: 0,
-  });
-
-  const [formationsKpiData, setFormationsKpiData] = useState([]);
-
   const [start, setStart] = useState("2025-01-01");
   const [end, setEnd] = useState("2025-12-31");
 
-  useEffect(() => {
-    const fetchKPIs = async () => {
-      try {
-        const globalKPI = await ParticipantKPIService.getGlobalParticipantKPI(start, end);
-        const formationsKPI = await ParticipantKPIService.getFormationsParticipantKPIs(start, end);
+  const { data: globalKPI } = useGlobalParticipantKPI(start, end);
+  const { data: formationsKpiData } = useFormationsParticipantKPIs(start, end);
 
-        setGlobalKpiData({
-          total: globalKPI.nombreParticipantsTotal,
-          presents: globalKPI.nombreParticipantsPresent,
-          taux: globalKPI.tauxParticipation,
-        });
+  const globalKpiData = {
+    total: globalKPI?.nombreParticipantsTotal ?? 0,
+    presents: globalKPI?.nombreParticipantsPresent ?? 0,
+    taux: globalKPI?.tauxParticipation ?? 0,
+  };
 
-        setFormationsKpiData(formationsKPI);
-      } catch {
-        // silently handle
-      }
-    };
-    fetchKPIs();
-  }, [start, end]);
+  const formationsKPI = Array.isArray(formationsKpiData) ? formationsKpiData : [];
 
   return (
     <div style={{ maxWidth: "1000px", margin: "auto", padding: "30px" }}>
@@ -125,10 +108,10 @@ const ParticipantKPIChart = () => {
           <h3>📊 Participation par Formation</h3>
           <Bar
             data={{
-              labels: formationsKpiData.map(f => f.titreFormation),
+              labels: formationsKPI.map(f => f.titreFormation),
               datasets: [{
                 label: "Taux de Participation (%)",
-                data: formationsKpiData.map(f => f.tauxParticipation),
+                data: formationsKPI.map(f => f.tauxParticipation),
                 backgroundColor: "rgba(54, 162, 235, 0.6)",
                 borderColor: "rgba(54, 162, 235, 1)",
                 borderWidth: 1,
@@ -147,6 +130,3 @@ const ParticipantKPIChart = () => {
 };
 
 export default ParticipantKPIChart;
-
-
-

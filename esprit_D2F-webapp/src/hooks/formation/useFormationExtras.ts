@@ -1,4 +1,5 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
+import type { AxiosError } from "axios";
 import FormationCustomService from "@/services/formation/FormationCustomService";
 import FormationReportService from "@/services/formation/FormationReportService";
 import FormationWorkflowService from "@/services/formation/FormationWorkflowService";
@@ -95,8 +96,16 @@ export function useExportFormations() {
 }
 
 export function useProfile() {
-  return useQuery<AuthUser>({
+  return useQuery<AuthUser, AxiosError>({
     queryKey: ["profile"],
     queryFn: () => getProfile(),
+    // Never retry on auth/not-found errors — the httpClient interceptor already
+    // dispatches auth:loggedOut on 401, so retrying would just flood the server.
+    retry: (failureCount, error) => {
+      const status = error?.response?.status;
+      if (status === 401 || status === 403 || status === 404) return false;
+      return failureCount < 2;
+    },
+    staleTime: 5 * 60 * 1000, // 5 min — profile rarely changes
   });
 }

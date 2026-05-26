@@ -1,5 +1,6 @@
 // Shared constants, department configuration, and the DepartmentBadge component.
 
+import type React from "react";
 import { Tag } from "antd";
 
 // ── Niveau options ─────────────────────────────────────────────────────────────
@@ -77,9 +78,10 @@ export function useDepartmentConfig(deptCode) {
   return DepartmentConfig[deptCode?.toLowerCase()?.trim()] ?? DepartmentConfig.gc;
 }
 
+interface DepartmentBadgeProps { deptCode?: string; showIcon?: boolean; style?: React.CSSProperties }
+
 /** DepartmentBadge – inline component to display a department badge. */
-// eslint-disable-next-line react/prop-types
-export function DepartmentBadge({ deptCode, showIcon = true, style = {} }) {
+export function DepartmentBadge({ deptCode, showIcon = true, style = {} }: Readonly<DepartmentBadgeProps>) {
   const cfg = useDepartmentConfig(deptCode);
   return (
     <Tag

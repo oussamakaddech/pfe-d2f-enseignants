@@ -1,11 +1,50 @@
 import { memo, useMemo, useState } from "react";
 import { Avatar, Dropdown, Input, Select, Space, Tag, Tooltip, Typography } from "antd";
 import { DeleteOutlined, EditOutlined, HolderOutlined, MergeCellsOutlined, MoreOutlined } from "@ant-design/icons";
-import PropTypes from "prop-types";
 import { NIVEAU_OPTIONS, TYPE_LABEL, avatarColor, getInitials } from "./constants";
 
 
 const { Text } = Typography;
+
+interface SavoirNode {
+  code: string;
+  nom: string;
+  type: string;
+  niveau?: string;
+  enseignantsSuggeres?: unknown[];
+  aiSuggestedIds?: unknown[];
+  tmpId?: string;
+}
+
+interface EnseignantRef {
+  id?: unknown;
+  enseignantId?: unknown;
+  nom?: string;
+  prenom?: string;
+}
+
+interface SavoirCardProps {
+  savoir: SavoirNode;
+  di: number;
+  ci: number;
+  sci: number;
+  si: number;
+  editingNom: { path: number[]; value: string } | null;
+  setEditingNom: (v: { path: number[]; value: string } | null | ((p: { path: number[]; value: string }) => { path: number[]; value: string })) => void;
+  commitRename: () => void;
+  startRename: (path: number[], nom: string) => void;
+  toggleType: (di: number, ci: number, sci: number, si: number) => void;
+  setNiveau: (di: number, ci: number, sci: number, si: number, v: string) => void;
+  setEnseignants: (di: number, ci: number, sci: number, si: number, ids: unknown[]) => void;
+  deleteSavoir: (di: number, ci: number, sci: number, si: number) => void;
+  openMerge: (di: number, ci: number, sci: number, si: number) => void;
+  setMergeModal: (v: boolean) => void;
+  onSavoirDragStart: (e: React.DragEvent, di: number, ci: number, sci: number, si: number) => void;
+  onSavoirDragEnd: (e: React.DragEvent) => void;
+  isBeingDragged?: boolean;
+  allEnseignants: EnseignantRef[];
+  inlineHint?: boolean;
+}
 
 const NIVEAU_DOT = {
   N1_DEBUTANT: "#94a3b8",
@@ -44,7 +83,7 @@ const SavoirCard = memo(function SavoirCard({
   isBeingDragged,
   allEnseignants,
   inlineHint,
-}) {
+}: Readonly<SavoirCardProps>) {
   const [hovered, setHovered] = useState(false);
   const isEditing = editingNom?.path?.join("-") === `${di}-${ci}-${sci}-${si}`;
   const assigned = useMemo(() => {
@@ -172,37 +211,6 @@ const SavoirCard = memo(function SavoirCard({
     </div>
   );
 });
-
-SavoirCard.propTypes = {
-  savoir: PropTypes.shape({
-    nom: PropTypes.string.isRequired,
-    code: PropTypes.string.isRequired,
-    type: PropTypes.string.isRequired,
-    niveau: PropTypes.string,
-    enseignantsSuggeres: PropTypes.arrayOf(PropTypes.string),
-    aiSuggestedIds: PropTypes.arrayOf(PropTypes.string),
-  }).isRequired,
-  di: PropTypes.number.isRequired,
-  ci: PropTypes.number.isRequired,
-  sci: PropTypes.number.isRequired,
-  si: PropTypes.number.isRequired,
-  editingNom: PropTypes.object,
-  setEditingNom: PropTypes.func.isRequired,
-  commitRename: PropTypes.func.isRequired,
-  startRename: PropTypes.func.isRequired,
-  toggleType: PropTypes.func.isRequired,
-  setNiveau: PropTypes.func.isRequired,
-  setEnseignants: PropTypes.func.isRequired,
-  deleteSavoir: PropTypes.func.isRequired,
-  openMerge: PropTypes.func.isRequired,
-  setMergeModal: PropTypes.func.isRequired,
-  onSavoirDragStart: PropTypes.func.isRequired,
-  onSavoirDragEnd: PropTypes.func.isRequired,
-  isBeingDragged: PropTypes.bool,
-  allEnseignants: PropTypes.array.isRequired,
-  loadByTeacher: PropTypes.object,
-  inlineHint: PropTypes.bool,
-};
 
 export default SavoirCard;
 

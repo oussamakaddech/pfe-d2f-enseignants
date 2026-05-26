@@ -1,20 +1,32 @@
-import PropTypes from "prop-types";
 import "@/styles/pages/mail-form.css";
 import { Form, Input, Button } from "antd";
-import moment from "moment";
+import dayjs from "dayjs";
 import useAppNotification from "@/hooks/ui/useAppNotification";
-import MailService from "@/services/besoin/MailService";
+import { useSendEmail } from "@/hooks/formation/useFormationExtras";
 
-export default function MailForm({ formation, onSendSuccess }) {
+interface Personne { nom?: string; prenom?: string; mail?: string; unitePedagogique?: { nomUP?: string } }
+interface Seance { dateSeance?: string; heureDebut?: string; heureFin?: string; salle?: string; animateurs?: Personne[]; participants?: Personne[] }
+interface Formation {
+  responsableEmail: string;
+  responsableName?: string;
+  titreFormation: string;
+  dateDebut: string;
+  dateFin: string;
+  objectif?: string;
+  seances?: Seance[];
+}
+interface MailFormProps { formation: Formation; onSendSuccess?: () => void }
+
+export default function MailForm({ formation, onSendSuccess }: Readonly<MailFormProps>) {
   const { message } = useAppNotification();
   const [form] = Form.useForm();
 
   // 1) Valeurs par défaut
   const defaultTo = formation?.responsableEmail || "";
   const defaultSubject = formation
-    ? `Formation "${formation.titreFormation}" planifiée du ${moment(formation.dateDebut).format(
+    ? `Formation "${formation.titreFormation}" planifiée du ${dayjs(formation.dateDebut).format(
         "DD/MM/YYYY"
-      )} au ${moment(formation.dateFin).format("DD/MM/YYYY")}`
+      )} au ${dayjs(formation.dateFin).format("DD/MM/YYYY")}`
     : "";
 
   // Objectif
@@ -26,7 +38,7 @@ export default function MailForm({ formation, onSendSuccess }) {
   const seancesStr = (formation.seances || [])
     .map((s, i) => {
       const salle = s.salle ? ` en salle ${s.salle}` : "";
-      return `${i + 1}. ${moment(s.dateSeance).format("DD/MM/YYYY")} de ${s.heureDebut} à ${s.heureFin}${salle}`;
+      return `${i + 1}. ${dayjs(s.dateSeance).format("DD/MM/YYYY")} de ${s.heureDebut} à ${s.heureFin}${salle}`;
     })
     .join("\n");
 
@@ -71,9 +83,9 @@ export default function MailForm({ formation, onSendSuccess }) {
   const defaultContent = formation
     ? `Bonjour ${formation.responsableName || "à tous"},\n\n` +
       `${objectifStr}` +
-      `Votre formation "${formation.titreFormation}" se déroulera du ${moment(
+      `Votre formation "${formation.titreFormation}" se déroulera du ${dayjs(
         formation.dateDebut
-      ).format("DD/MM/YYYY")} au ${moment(formation.dateFin).format(
+      ).format("DD/MM/YYYY")} au ${dayjs(formation.dateFin).format(
         "DD/MM/YYYY"
       )}.\n\n` +
       `Détail des séances :\n${seancesStr}\n\n` +
@@ -82,14 +94,15 @@ export default function MailForm({ formation, onSendSuccess }) {
     : "";
 
   // 2) Envoi
+  const { mutateAsync: sendEmail } = useSendEmail();
   const handleFinish = async (values) => {
     try {
-      const result = await MailService.sendEmail(values.to, values.subject, values.content);
+      const result = await sendEmail({ to: values.to, subject: values.subject, content: values.content });
       const successMsg = result?.message || "📨 E-mail envoyé avec succès !";
       message.success(successMsg);
       form.resetFields(["subject", "content"]);
       if (onSendSuccess) onSendSuccess();
-    } catch (err) {
+    } catch (err: unknown) {
       const errorMsg = err.response?.data?.error || err.response?.data?.message || err.message || "Échec de l’envoi de l’e-mail.";
       message.error(`❌ ${errorMsg}`);
     }
@@ -140,49 +153,6 @@ export default function MailForm({ formation, onSendSuccess }) {
   );
 }
 
-MailForm.propTypes = {
-  formation: PropTypes.shape({
-    responsableEmail: PropTypes.string.isRequired,
-    responsableName: PropTypes.string,
-    titreFormation: PropTypes.string.isRequired,
-    dateDebut: PropTypes.string.isRequired,
-    dateFin: PropTypes.string.isRequired,
-    objectif: PropTypes.string,
-    seances: PropTypes.arrayOf(
-      PropTypes.shape({
-        dateSeance: PropTypes.string,
-        heureDebut: PropTypes.string,
-        heureFin: PropTypes.string,
-        salle: PropTypes.string,
-        animateurs: PropTypes.arrayOf(
-          PropTypes.shape({
-            nom: PropTypes.string,
-            prenom: PropTypes.string,
-            mail: PropTypes.string,
-            unitePedagogique: PropTypes.shape({
-              nomUP: PropTypes.string,
-            }),
-          })
-        ),
-        participants: PropTypes.arrayOf(
-          PropTypes.shape({
-            nom: PropTypes.string,
-            prenom: PropTypes.string,
-            mail: PropTypes.string,
-            unitePedagogique: PropTypes.shape({
-              nomUP: PropTypes.string,
-            }),
-          })
-        ),
-      })
-    ).isRequired,
-  }).isRequired,
-  onSendSuccess: PropTypes.func,
-};
-
-MailForm.defaultProps = {
-  onSendSuccess: null,
-};
 
 
 

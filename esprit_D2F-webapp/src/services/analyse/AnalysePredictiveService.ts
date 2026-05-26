@@ -161,7 +161,7 @@ const AnalysePredictiveService = {
             probabiliteReussite: step.success_probability,
             justification: "Basé sur votre profil et les prérequis de la formation.",
           }));
-        } catch (e) {
+        } catch (e: unknown) {
           // Recommandations non disponibles — continue sans
         }
       }
@@ -231,7 +231,7 @@ const AnalysePredictiveService = {
         rawInDemand: data.in_demand_competencies || [],
         rawRiskIndicators: data.teacher_risk_indicators || [],
       };
-    } catch (error) {
+    } catch (error: unknown) {
       throw error;
     }
   },

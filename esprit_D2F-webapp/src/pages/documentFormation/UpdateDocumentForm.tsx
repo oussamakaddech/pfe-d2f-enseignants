@@ -4,7 +4,7 @@ import { Form, Input, Select, Checkbox, Upload, Button, Typography } from "antd"
 import { UploadOutlined } from "@ant-design/icons";
 import useAppNotification from "@/hooks/ui/useAppNotification";
 import "antd/dist/reset.css";
-import DocumentService from "@/services/formation/DocumentService";
+import { useUpdateDocument } from "@/hooks/document/useDocument";
 
 const { Option } = Select;
 const PATH_OPTIONS = [
@@ -44,7 +44,8 @@ export default function UpdateDocumentForm({ documentData, onUpdated }) {
         obligation:  values.obligation,
         file:        values.file?.[0]?.originFileObj,
       };
-      const updatedDoc = await DocumentService.updateDocument(documentData.idDocument, payload);
+      const { mutateAsync: updateDoc } = useUpdateDocument();
+      const updatedDoc = await updateDoc({ id: documentData.idDocument, ...payload });
       message.success("Document mis à jour avec succès");
       form.resetFields();
       setFileList([]);

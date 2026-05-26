@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { Steps, Card } from "antd";
 
 interface FormWizardLayoutProps {
@@ -19,7 +20,7 @@ interface FormWizardLayoutProps {
  * - Card pour le contenu
  * - Footer pour la navigation
  */
-export default function FormWizardLayout({
+const FormWizardLayout = memo(function FormWizardLayout({
   currentStep,
   steps,
   children,
@@ -74,7 +75,9 @@ export default function FormWizardLayout({
       </Card>
     </div>
   );
-}
+});
+
+export default FormWizardLayout;
 
 
 

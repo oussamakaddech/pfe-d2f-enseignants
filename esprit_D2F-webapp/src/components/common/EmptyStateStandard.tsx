@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { Empty, Button, Typography } from "antd";
 import { neutral } from "@/styles/themes/tokens";
 
@@ -27,7 +28,7 @@ interface EmptyStateStandardProps {
  * - Titre + description
  * - Bouton d'action optionnel
  */
-export default function EmptyStateStandard({
+const EmptyStateStandard = memo(function EmptyStateStandard({
   title = "Aucune donnée",
   description,
   image,
@@ -73,7 +74,9 @@ export default function EmptyStateStandard({
       </Empty>
     </div>
   );
-}
+});
+
+export default EmptyStateStandard;
 
 
 

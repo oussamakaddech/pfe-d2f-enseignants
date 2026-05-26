@@ -34,19 +34,30 @@ const { Option } = Select;
 // Clé pour stocker la configuration des cartes dans localStorage
 const LOCALSTORAGE_KEY = "metricCardsConfiguration";
 
-function buildGenericTitleParts(filters, upsOptions, deptsOptions) {
+interface NamedOption { id?: unknown; libelle?: string }
+interface CardFilters {
+  domaine?: string | null;
+  upId?: unknown | null;
+  deptId?: unknown | null;
+  ouverte?: boolean | null;
+  start?: string | null;
+  end?: string | null;
+  etat?: string | null;
+}
+
+function buildGenericTitleParts(filters: CardFilters, upsOptions: NamedOption[], deptsOptions: NamedOption[]): string[] {
   const { domaine, upId, deptId, ouverte, start, end, etat } = filters;
-  const parts = [];
+  const parts: string[] = [];
   if (domaine) parts.push(`Domaine=${domaine}`);
-  if (upId !== null) {
+  if (upId !== null && upId !== undefined) {
     const upItem = upsOptions.find((u) => u.id === upId);
     parts.push(`UP=${upItem ? upItem.libelle : upId}`);
   }
-  if (deptId !== null) {
+  if (deptId !== null && deptId !== undefined) {
     const deptItem = deptsOptions.find((d) => d.id === deptId);
     parts.push(`Dépt=${deptItem ? deptItem.libelle : deptId}`);
   }
-  if (ouverte !== null) parts.push(`Ouverte=${ouverte ? "Oui" : "Non"}`);
+  if (ouverte !== null && ouverte !== undefined) parts.push(`Ouverte=${ouverte ? "Oui" : "Non"}`);
   if (start && end) parts.push(`Période=${start}→${end}`);
   if (etat) parts.push(`État=${etat}`);
   return parts;
@@ -57,17 +68,16 @@ const MetricCards = () => {
   // ─── ÉTATS LOCAUX ──────────────────────────────────────────────────────────────
   //
   const { message } = useAppNotification();
-  const [cards, setCards] = useState([]);
-  const [globalPeriod, setGlobalPeriod] = useState(null);
+  const [cards, setCards] = useState<Record<string, unknown>[]>([]);
+  const [globalPeriod, setGlobalPeriod] = useState<[dayjs.Dayjs, dayjs.Dayjs] | null>(null);
   const isFirstMount = useRef(true);
 
   const { data: deptsRaw = [], isLoading: loadingDepts } = useDepartements();
   const { data: upsRaw = [], isLoading: loadingUps }     = useUps();
   const kpiMut = useKpiCountAndHeuresMutation();
 
-  type OptionRow = { id?: unknown; libelle?: string };
-  const deptsOptions = deptsRaw as OptionRow[];
-  const upsOptions   = upsRaw   as OptionRow[];
+  const deptsOptions = deptsRaw as NamedOption[];
+  const upsOptions   = upsRaw   as NamedOption[];
   const loadingOptions = loadingDepts || loadingUps;
 
   //

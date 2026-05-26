@@ -1,7 +1,8 @@
-import PropTypes from "prop-types";
 import { useMemo } from "react";
 import { Input, Select, DatePicker, Button, Tag } from "antd";
-import moment from "moment";
+import dayjs from "dayjs";
+import isoWeek from "dayjs/plugin/isoWeek";
+dayjs.extend(isoWeek);
 import {
   SearchOutlined,
   CloseOutlined,
@@ -39,6 +40,26 @@ const TYPE_LABELS = {
  * - Ligne 2 (secondaire) : selects métier
  * - Footer : pills "filtres actifs" avec clear individuel
  */
+interface NamedItem { id: number | string; name?: string; libelle?: string }
+interface BesoinFilters {
+  dateRange?: [dayjs.Dayjs, dayjs.Dayjs] | null;
+  statut?: string | null;
+  priorite?: string | null;
+  type?: string | null;
+  upId?: number | string | null;
+  deptId?: number | string | null;
+}
+interface BesoinFiltersPanelProps {
+  searchText: string;
+  filters: BesoinFilters;
+  types: string[];
+  ups: NamedItem[];
+  departements: NamedItem[];
+  onSearchChange: (value: string) => void;
+  onFiltersChange: (filters: BesoinFilters) => void;
+  onReset: () => void;
+}
+
 export default function BesoinFiltersPanel({
   searchText,
   filters,
@@ -48,7 +69,7 @@ export default function BesoinFiltersPanel({
   onSearchChange,
   onFiltersChange,
   onReset,
-}) {
+}: Readonly<BesoinFiltersPanelProps>) {
   const setFilter = (key, value) => onFiltersChange({ ...filters, [key]: value });
 
   // Compute active filter chips for the footer
@@ -89,8 +110,8 @@ export default function BesoinFiltersPanel({
   const toggleQuick = (key, value) => setFilter(key, isQuickActive(key, value) ? null : value);
   const isThisWeekActive = useMemo(() => {
     if (!filters.dateRange?.[0] || !filters.dateRange?.[1]) return false;
-    const weekStart = moment().startOf("isoWeek");
-    const weekEnd   = moment().endOf("isoWeek");
+    const weekStart = dayjs().startOf("isoWeek");
+    const weekEnd   = dayjs().endOf("isoWeek");
     return (
       filters.dateRange[0].isSame(weekStart, "day") &&
       filters.dateRange[1].isSame(weekEnd, "day")
@@ -98,7 +119,7 @@ export default function BesoinFiltersPanel({
   }, [filters.dateRange]);
   const toggleThisWeek = () => {
     if (isThisWeekActive) setFilter("dateRange", null);
-    else setFilter("dateRange", [moment().startOf("isoWeek"), moment().endOf("isoWeek")]);
+    else setFilter("dateRange", [dayjs().startOf("isoWeek"), dayjs().endOf("isoWeek")]);
   };
 
   return (
@@ -244,16 +265,6 @@ export default function BesoinFiltersPanel({
   );
 }
 
-BesoinFiltersPanel.propTypes = {
-  searchText: PropTypes.string.isRequired,
-  filters: PropTypes.object.isRequired,
-  types: PropTypes.array.isRequired,
-  ups: PropTypes.array.isRequired,
-  departements: PropTypes.array.isRequired,
-  onSearchChange: PropTypes.func.isRequired,
-  onFiltersChange: PropTypes.func.isRequired,
-  onReset: PropTypes.func.isRequired,
-};
 
 
 

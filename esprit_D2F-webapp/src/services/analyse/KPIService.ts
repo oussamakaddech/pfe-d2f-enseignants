@@ -36,7 +36,7 @@ const KPIService = {
         params: { start, end },
       });
       return response.data || 0;
-    } catch (error) {
+    } catch (error: unknown) {
       if (isNotFoundError(error)) {
         return 0;
       }
@@ -50,7 +50,7 @@ const KPIService = {
         params: { start, end },
       });
       return response.data || 0;
-    } catch (error) {
+    } catch (error: unknown) {
       if (isNotFoundError(error)) {
         return 0;
       }
@@ -64,7 +64,7 @@ const KPIService = {
         params: { start, end },
       });
       return response.data || 0;
-    } catch (error) {
+    } catch (error: unknown) {
       if (isNotFoundError(error)) {
         return 0;
       }
@@ -78,7 +78,7 @@ const KPIService = {
         params: { start, end },
       });
       return response.data || { enregistre: 0, planifie: 0, enCours: 0, acheve: 0, annule: 0, total: 0 };
-    } catch (error) {
+    } catch (error: unknown) {
       if (isNotFoundError(error)) {
         return { enregistre: 0, planifie: 0, enCours: 0, acheve: 0, annule: 0, total: 0 };
       }
@@ -94,7 +94,7 @@ const KPIService = {
 
       const response = await axios.get(`${API_URL}/top-participants`, { params });
       return response.data || [];
-    } catch (error) {
+    } catch (error: unknown) {
       if (isNotFoundError(error)) {
         return [];
       }
@@ -110,7 +110,7 @@ const KPIService = {
 
       const response = await axios.get(`${API_URL}/top-absentees`, { params });
       return response.data || [];
-    } catch (error) {
+    } catch (error: unknown) {
       if (isNotFoundError(error)) {
         return [];
       }
@@ -124,7 +124,7 @@ const KPIService = {
         params: { start, end },
       });
       return normalizeListResponse(response.data);
-    } catch (error) {
+    } catch (error: unknown) {
       if (isNotFoundError(error)) {
         return [];
       }
@@ -161,7 +161,7 @@ const KPIService = {
 
       const response = await axios.get(`${API_URL}/count-heures`, { params });
       return response.data || { count: 0, totalHeures: 0 };
-    } catch (error) {
+    } catch (error: unknown) {
       if (isNotFoundError(error)) {
         return { count: 0, totalHeures: 0 };
       }
@@ -198,7 +198,7 @@ const KPIService = {
 
       const response = await axios.get(`${API_URL}/formations-by-type-filtered`, { params });
       return response.data || { interne: 0, externe: 0, enLigne: 0 };
-    } catch (error) {
+    } catch (error: unknown) {
       if (isNotFoundError(error)) {
         return { interne: 0, externe: 0, enLigne: 0 };
       }
@@ -210,7 +210,7 @@ const KPIService = {
     try {
       const response = await axios.get(`${API_URL}/count-by-trainer-type-with-ids`, { params: filters });
       return response.data || [];
-    } catch (error) {
+    } catch (error: unknown) {
       if (isNotFoundError(error)) {
         return [];
       }

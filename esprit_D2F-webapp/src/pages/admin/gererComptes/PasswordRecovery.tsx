@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Form, Input, Button, Typography, Card } from "antd";
 import { MailOutlined, ArrowLeftOutlined } from "@ant-design/icons";
 import useAppNotification from "@/hooks/ui/useAppNotification";
-import { forgotPassword } from "@/services/auth/AuthService";
+import { useForgotPassword } from "@/hooks/auth/useAuthService";
 
 const { Title, Text } = Typography;
 
@@ -15,9 +15,10 @@ function PasswordRecovery() {
   const handleSubmit = async (values) => {
     setSubmitting(true);
     try {
-      const response = await forgotPassword(values.email);
+      const { mutateAsync: forgotPwd } = useForgotPassword();
+      const response = await forgotPwd(values.email);
       message.success(response || "Email de réinitialisation envoyé");
-    } catch (err) {
+    } catch (err: unknown) {
       const msg = err?.response?.data?.message || "Erreur lors de l'envoi";
       message.error(msg);
     } finally {

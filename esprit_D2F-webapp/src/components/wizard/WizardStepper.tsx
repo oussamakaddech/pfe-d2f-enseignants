@@ -1,17 +1,18 @@
+import { memo } from "react";
 import { CheckOutlined } from "@ant-design/icons";
-import type { ReactNode } from "react";
-
+import type { ReactNode } from "react";
+
 interface Step {
   title: string;
   icon: ReactNode;
-}
-
+}
+
 interface WizardStepperProps {
   steps: Step[];
   activeStep: number;
-}
-
-export default function WizardStepper({ steps, activeStep }: WizardStepperProps) {
+}
+
+const WizardStepper = memo(function WizardStepper({ steps, activeStep }: WizardStepperProps) {
   return (
     <div className="wf-stepper" role="list" aria-label="Étapes du formulaire">
       {steps.map((s, i) => (
@@ -29,4 +30,6 @@ export default function WizardStepper({ steps, activeStep }: WizardStepperProps)
       ))}
     </div>
   );
-}
+});
+
+export default WizardStepper;

@@ -1,8 +1,9 @@
+import { memo } from "react";
 import { Modal, Form, Input, Select } from "antd";
-import { MailOutlined, FileTextOutlined } from "@ant-design/icons";
-
-const { TextArea } = Input;
-
+import { MailOutlined, FileTextOutlined } from "@ant-design/icons";
+
+const { TextArea } = Input;
+
 interface BesoinMailModalProps {
   open: boolean;
   mailSending: boolean;
@@ -11,9 +12,9 @@ interface BesoinMailModalProps {
   form: ReturnType<typeof Form.useForm>[0];
   onOk: () => void;
   onCancel: () => void;
-}
-
-export default function BesoinMailModal({ open, mailSending, mailRecord, cupAccounts, form, onOk, onCancel }: BesoinMailModalProps) {
+}
+
+const BesoinMailModal = memo(function BesoinMailModal({ open, mailSending, mailRecord, cupAccounts, form, onOk, onCancel }: BesoinMailModalProps) {
   return (
     <Modal
       title={
@@ -77,4 +78,6 @@ export default function BesoinMailModal({ open, mailSending, mailRecord, cupAcco
       </Form>
     </Modal>
   );
-}
+});
+
+export default BesoinMailModal;

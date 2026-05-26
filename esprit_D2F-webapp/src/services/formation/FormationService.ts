@@ -7,7 +7,7 @@ const FormationService = {
     try {
       const response = await axios.post(API_URL, formationData);
       return response.data;
-    } catch (error) {
+    } catch (error: unknown) {
       throw error;
     }
   },
@@ -16,7 +16,7 @@ const FormationService = {
     try {
       const response = await axios.get(API_URL);
       return response.data;
-    } catch (error) {
+    } catch (error: unknown) {
       throw error;
     }
   },
@@ -25,7 +25,7 @@ const FormationService = {
     try {
       const response = await axios.get(`${API_URL}/${id}`);
       return response.data;
-    } catch (error) {
+    } catch (error: unknown) {
       throw error;
     }
   },
@@ -34,7 +34,7 @@ const FormationService = {
     try {
       const response = await axios.put(`${API_URL}/${id}`, formationData);
       return response.data;
-    } catch (error) {
+    } catch (error: unknown) {
       throw error;
     }
   },
@@ -42,7 +42,7 @@ const FormationService = {
   async deleteFormation(id: number | string) {
     try {
       await axios.delete(`${API_URL}/${id}`);
-    } catch (error) {
+    } catch (error: unknown) {
       throw error;
     }
   },

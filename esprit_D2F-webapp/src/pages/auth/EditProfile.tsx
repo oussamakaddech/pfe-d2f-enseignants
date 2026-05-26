@@ -2,33 +2,31 @@ import { useEffect, useState } from "react";
 import { Form, Input, Button, Card } from "antd";
 import { EditOutlined } from "@ant-design/icons";
 import useAppNotification from "@/hooks/ui/useAppNotification";
-import { getProfile, editProfile } from "@/services/auth/AccountService";
+import { useProfile } from "@/hooks/formation/useFormationExtras";
+import { useEditProfile } from "@/hooks/auth/useAuthService";
 import { AppPageHeader, shadow, radius } from "@/components/common";
 
 export default function EditProfile() {
   const [form] = Form.useForm();
   const { message: msgApi } = useAppNotification();
   const [profile, setProfile] = useState(null);
+  const { data: profileData } = useProfile();
+  const { mutateAsync: editProfileApi } = useEditProfile();
 
   // Chargement initial
   useEffect(() => {
-    (async () => {
-      try {
-        const data = await getProfile();
-        setProfile(data);
-        form.setFieldsValue({
-          userName:    data.userName,
-          role:        data.role,
-          email:       data.email,
-          phoneNumber: data.phoneNumber,
-          firstName:   data.firsName,    // mapping existant
-          lastName:    data.lastName,    // ajouté si présent côté back
-        });
-      } catch (err) {
-        msgApi.error(err.response?.data?.message || "Impossible de charger votre profil");
-      }
-    })();
-  }, [form, msgApi]);
+    if (profileData) {
+      setProfile(profileData);
+      form.setFieldsValue({
+        userName:    profileData.userName,
+        role:        profileData.role,
+        email:       profileData.email,
+        phoneNumber: profileData.phoneNumber,
+        firstName:   profileData.firsName,
+        lastName:    profileData.lastName,
+      });
+    }
+  }, [profileData, form]);
 
   const onFinish = async (values) => {
     if (!profile) return;
@@ -43,9 +41,9 @@ export default function EditProfile() {
 
     setProfile({ ...profile, ...payload });
     try {
-      await editProfile(payload);
+      await editProfileApi(payload);
       msgApi.success("Profil mis à jour avec succès !");
-    } catch (err) {
+    } catch (err: unknown) {
       const e = err as { response?: { status?: number; data?: { message?: string } }; message?: string };
       const backendMsg = e.response?.data?.message || e.message || "Une erreur est survenue.";
       msgApi.error(backendMsg);

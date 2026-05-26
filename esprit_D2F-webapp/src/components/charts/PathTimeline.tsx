@@ -1,18 +1,19 @@
+import { memo } from "react";
 import { Empty, Row, Col, Tag, Typography, Progress, Alert, Space } from "antd";
 import { BulbOutlined, HistoryOutlined } from "@ant-design/icons";
-import type { AnalyseRecommandation } from "@/models/analyse";
-
-const { Text } = Typography;
-
+import type { AnalyseRecommandation } from "@/models/analyse";
+
+const { Text } = Typography;
+
 interface Props {
   steps: AnalyseRecommandation[];
-}
-
-export default function PathTimeline({ steps }: Readonly<Props>) {
+}
+
+const PathTimeline = memo(function PathTimeline({ steps }: Readonly<Props>) {
   if (!steps || steps.length === 0) {
     return <Empty description="Spécifiez une compétence cible pour générer un parcours." />;
-  }
-
+  }
+
   return (
     <div className="reco-timeline">
       {steps.map((step) => (
@@ -57,4 +58,6 @@ export default function PathTimeline({ steps }: Readonly<Props>) {
       ))}
     </div>
   );
-}
+});
+
+export default PathTimeline;

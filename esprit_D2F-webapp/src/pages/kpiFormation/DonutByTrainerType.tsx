@@ -26,7 +26,7 @@ import {
   HomeOutlined,
 } from "@ant-design/icons";
 import { Doughnut } from "react-chartjs-2";
-import moment from "moment";
+import dayjs from "dayjs";
 
 import { useKpiCountByTrainerTypeMutation } from "@/hooks/kpi";
 import { useAllFormations, useDepartements, useUps } from "@/hooks/formation";
@@ -35,8 +35,12 @@ const { Title, Text } = Typography;
 const { Option } = Select;
 const { RangePicker } = DatePicker;
 
-const collectInterneAnimateurs = (formation) => {
-  const result = [];
+interface Animateur { id?: number | string; [key: string]: unknown }
+interface Seance { animateurs?: Animateur[] }
+interface FormationWithSeances { seances?: Seance[] }
+
+const collectInterneAnimateurs = (formation: FormationWithSeances): Animateur[] => {
+  const result: Animateur[] = [];
   formation.seances?.forEach((s) => {
     s.animateurs?.forEach((a) => {
       if (!result.some((x) => x.id === a.id)) result.push(a);
@@ -103,17 +107,17 @@ export default function DonutByTrainerTypeWithFilters() {
   const kpiTrainerTypeMut = useKpiCountByTrainerTypeMutation();
 
   // ─── 4) État pour récupérer counts + listes d’IDs depuis KPIService ────────────────────
-  const [countsData, setCountsData] = useState(null);
+  const [countsData, setCountsData] = useState<Record<string, number | number[]> | null>(null);
   // { externeOnlyCount, interneOnlyCount, mixteCount, externeOnlyIds, interneOnlyIds, mixteIds }
 
   // ─── 5) État pour stocker les objets “formation” complets (retrouvés par ID) ────────────
-  const [externeFormations, setExterneFormations] = useState([]);
-  const [interneFormations, setInterneFormations] = useState([]);
-  const [mixteFormations, setMixteFormations] = useState([]);
+  const [externeFormations, setExterneFormations] = useState<Record<string, unknown>[]>([]);
+  const [interneFormations, setInterneFormations] = useState<Record<string, unknown>[]>([]);
+  const [mixteFormations, setMixteFormations] = useState<Record<string, unknown>[]>([]);
 
   // ─── 6) État pour le Modal (catégorie + visibilité) ──────────────────────────────────
   const [modalVisible, setModalVisible] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState(null);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   // selectedCategory ∈ { "Externe uniquement", "Interne uniquement", "Mixtes" }
 
 
@@ -138,7 +142,7 @@ export default function DonutByTrainerTypeWithFilters() {
       setExterneFormations(externes);
       setInterneFormations(internes);
       setMixteFormations(mixtes);
-    } catch (err) {
+    } catch (err: unknown) {
       message.error("Impossible de récupérer les données par type de formateur.");
       setExterneFormations([]);
       setInterneFormations([]);
@@ -555,8 +559,8 @@ export default function DonutByTrainerTypeWithFilters() {
             dateRange:
               filters.start && filters.end
                 ? [
-                    moment(filters.start, "YYYY-MM-DD"),
-                    moment(filters.end, "YYYY-MM-DD"),
+                    dayjs(filters.start, "YYYY-MM-DD"),
+                    dayjs(filters.end, "YYYY-MM-DD"),
                   ]
                 : null,
             etat: filters.etat,

@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { Tag } from "antd";
 import type { NiveauRisque, NiveauUrgence } from "@/models/analyse";
 
@@ -20,14 +21,16 @@ interface RiskBadgeProps {
   readonly value: NiveauUrgence | NiveauRisque;
 }
 
-export default function RiskBadge({ type, value }: RiskBadgeProps) {
+const RiskBadge = memo(function RiskBadge({ type, value }: RiskBadgeProps) {
   const cfg = type === "urgence"
     ? URGENCE_CONFIG[value as NiveauUrgence]
     : RISQUE_CONFIG[value as NiveauRisque];
 
   if (!cfg) return <Tag>{value}</Tag>;
   return <Tag color={cfg.color} style={{ fontWeight: 600 }}>{cfg.label}</Tag>;
-}
+});
+
+export default RiskBadge;
 
 
 

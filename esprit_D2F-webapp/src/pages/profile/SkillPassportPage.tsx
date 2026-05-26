@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import {
   Button,
   Card,
@@ -24,13 +24,8 @@ import {
   MailOutlined,
   CalendarOutlined,
 } from "@ant-design/icons";
-import SkillPassportService, {
-  TeacherSkillPassportDTO,
-  SkillGapSummaryDTO,
-  TrainingHistoryDTO,
-  CertificationSummaryDTO,
-  RecommendationSummaryDTO,
-} from "@/services/certificat/SkillPassportService";
+import type { TeacherSkillPassportDTO, SkillGapSummaryDTO, TrainingHistoryDTO, CertificationSummaryDTO, RecommendationSummaryDTO } from "@/services/certificat/SkillPassportService";
+import { useMyPassportData, usePassportDataByUsername, useDownloadMyPassport, useDownloadPassportByUsername } from "@/hooks/certificat/useSkillPassport";
 import { AppPageHeader, brand, neutral, shadow, radius } from "@/components/common";
 import "@/styles/pages/skill-passport-page.css";
 
@@ -49,42 +44,32 @@ interface Props {
  * Usage admin/CUP   : <SkillPassportPage targetUsername="jdoe" downloadLabel="Télécharger le passeport" />
  */
 export default function SkillPassportPage({ targetUsername, downloadLabel }: Props) {
-  const [passport, setPassport] = useState<TeacherSkillPassportDTO | null>(null);
-  const [loading, setLoading] = useState(true);
+  const myQuery = useMyPassportData();
+  const targetQuery = usePassportDataByUsername(targetUsername);
+  const downloadMutation = useDownloadMyPassport();
+  const downloadByUsernameMutation = useDownloadPassportByUsername();
   const [downloadLoading, setDownloadLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [downloadError, setDownloadError] = useState<string | null>(null);
 
-  useEffect(() => {
-    fetchPassport();
-  }, [targetUsername]);
-
-  const fetchPassport = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = targetUsername
-        ? await SkillPassportService.getPassportDataByUsername(targetUsername)
-        : await SkillPassportService.getMyPassportData();
-      setPassport(data);
-    } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { message?: string } }; message?: string })
-        ?.response?.data?.message ?? (err as { message?: string })?.message;
-      setError(msg ?? "Impossible de charger les données du passeport.");
-    } finally {
-      setLoading(false);
-    }
-  };
+  const query = targetUsername ? targetQuery : myQuery;
+  const passport = query.data ?? null;
+  const loading = query.isLoading;
+  const queryError = query.error
+    ? (query.error as { response?: { data?: { message?: string } }; message?: string })?.response?.data?.message ?? (query.error as { message?: string })?.message ?? "Impossible de charger les données du passeport."
+    : null;
+  const error = downloadError ?? queryError;
+  const fetchPassport = query.refetch;
 
   const handleDownloadPdf = async () => {
     setDownloadLoading(true);
     try {
       if (targetUsername) {
-        await SkillPassportService.downloadPassportByUsername(targetUsername);
+        await downloadByUsernameMutation.mutateAsync(targetUsername);
       } else {
-        await SkillPassportService.downloadMyPassport();
+        await downloadMutation.mutateAsync();
       }
     } catch {
-      setError("Échec du téléchargement PDF. Veuillez réessayer.");
+      setDownloadError("Échec du téléchargement PDF. Veuillez réessayer.");
     } finally {
       setDownloadLoading(false);
     }

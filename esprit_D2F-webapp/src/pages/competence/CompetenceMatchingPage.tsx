@@ -28,7 +28,7 @@ import {
   ThunderboltOutlined,
 } from "@ant-design/icons";
 import useAppNotification from "@/hooks/ui/useAppNotification";
-import RiceService from "@/services/analyse/RiceService";
+import { useRiceSavoirs, useRiceEnseignants, useRiceSaveAssignments, useRiceCreateEnseignant, useRiceUpdateEnseignant, useRiceDeactivateEnseignant } from "@/hooks/analyse/useRiceService";
 import AppPageHeader from "@/components/common/AppPageHeader";
 import "@/styles/pages/competence-matching-page.css";
 
@@ -151,6 +151,11 @@ function reducer(state, action) {
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 export default function CompetenceMatchingPage() {
+  const saveAssignments = useRiceSaveAssignments();
+  const createEnseignantHook = useRiceCreateEnseignant();
+  const updateEnseignantHook = useRiceUpdateEnseignant();
+  const deactivateEnseignantHook = useRiceDeactivateEnseignant();
+
   const { message, modal } = useAppNotification();
   const [state, dispatch] = useReducer(reducer, initialState);
   const [draggingId, setDraggingId] = useState(null);
@@ -186,26 +191,24 @@ export default function CompetenceMatchingPage() {
   }, [state.savoirs]);
 
   // ── Load Data ────────────────────────────────────────────────────────────
-  const reloadData = useCallback(async (dept = stateRef.current.filters.departement) => {
-    const normalizedDept = dept === "all" ? null : dept;
-    dispatch({ type: "SET_LOADING", payload: { key: "data", value: true } });
-    try {
-      const [savoirs, enseignants] = await Promise.all([
-        RiceService.getSavoirs(normalizedDept),
-        RiceService.getEnseignants(normalizedDept),
-      ]);
+  const dept = state.filters.departement;
+  const normalizedDept = dept === "all" ? null : dept;
+  const { data: savoirsData = [], refetch: refetchSavoirs } = useRiceSavoirs(normalizedDept);
+  const { data: enseignantsData = [], refetch: refetchEnseignants } = useRiceEnseignants(normalizedDept);
+
+  const reloadData = useCallback(async () => {
+    await Promise.all([refetchSavoirs(), refetchEnseignants()]);
+  }, [refetchSavoirs, refetchEnseignants]);
+
+  useEffect(() => {
+    if (savoirsData.length > 0 || enseignantsData.length > 0) {
       const assignments = {};
-      (savoirs || []).forEach((s) => {
+      (savoirsData || []).forEach((s) => {
         assignments[String(s.id)] = (s.enseignants ?? s.enseignantIds ?? []).map(String);
       });
-      dispatch({ type: "LOAD_SUCCESS", payload: { savoirs: savoirs || [], enseignants: enseignants || [], assignments } });
-    } catch (err) {
-      dispatch({ type: "SET_ERROR", payload: { error: err?.message ?? String(err) } });
-      message.error("Erreur lors du chargement");
+      dispatch({ type: "LOAD_SUCCESS", payload: { savoirs: savoirsData || [], enseignants: enseignantsData || [], assignments } });
     }
-  }, []);
-
-  useEffect(() => { reloadData(); }, []); // eslint-disable-line
+  }, [savoirsData, enseignantsData]);
 
   // ── Drag Handlers ────────────────────────────────────────────────────────
   const handleDragEnd = useCallback(() => { setDraggingId(null); setDragOverEns(null); }, []);
@@ -258,11 +261,11 @@ export default function CompetenceMatchingPage() {
 
     dispatch({ type: "SET_LOADING", payload: { key: "saving", value: true } });
     try {
-      await RiceService.saveAssignments(payloadWithNiveaux);
+      await saveAssignments.mutateAsync(payloadWithNiveaux);
       dispatch({ type: "SAVE_SUCCESS" });
       message.success(`${payload.add.length + payload.remove.length} modification(s) sauvegardée(s)`);
-      await reloadData();
-    } catch (err) {
+      await Promise.all([refetchSavoirs(), refetchEnseignants()]);
+    } catch (err: unknown) {
       const msg = err?.response?.data?.message ?? err?.message ?? "Erreur inconnue";
       dispatch({ type: "SET_ERROR", payload: { error: msg } });
       message.error("Erreur: " + msg, 3);
@@ -285,7 +288,7 @@ export default function CompetenceMatchingPage() {
       content: `${ens.prenom} ${ens.nom} sera désactivé(e).`,
       okText: "Désactiver", okType: "danger",
       onOk: async () => {
-        try { await RiceService.deactivateEnseignant(ens.id); message.success("Enseignant désactivé"); await reloadData(); }
+        try { await deactivateEnseignantHook.mutateAsync(ens.id); message.success("Enseignant désactivé"); await reloadData(); }
         catch { message.error("Erreur lors de la désactivation"); }
       },
     });
@@ -293,8 +296,8 @@ export default function CompetenceMatchingPage() {
 
   const handleModalSubmit = useCallback(async (values) => {
     try {
-      if (editingEns) await RiceService.updateEnseignant(editingEns.id, values);
-      else await RiceService.createEnseignant(values);
+      if (editingEns) await updateEnseignantHook.mutateAsync({ id: editingEns.id, data: values });
+      else await createEnseignantHook.mutateAsync(values);
       setShowCreateModal(false); form.resetFields(); await reloadData();
       message.success(editingEns ? "Enseignant mis à jour" : "Enseignant créé");
     } catch { message.error("Erreur lors de la sauvegarde"); }

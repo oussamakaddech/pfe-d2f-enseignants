@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { Card, Typography, Tooltip } from "antd";
 import { ArrowUpOutlined, ArrowDownOutlined } from "@ant-design/icons";
 import type { ReactNode } from "react";
@@ -20,7 +21,7 @@ interface D2FDataCardProps {
   readonly className?: string;
 }
 
-export default function D2FDataCard({
+const D2FDataCard = memo(function D2FDataCard({
   icon,
   iconColor = brand[500],
   label,
@@ -132,7 +133,9 @@ export default function D2FDataCard({
       {content}
     </Card>
   );
-}
+});
+
+export default D2FDataCard;
 
 
 

@@ -1,4 +1,4 @@
-import { useState, useContext, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Table,
@@ -25,9 +25,9 @@ import {
 } from "@ant-design/icons";
 import { AppPageHeader, StatusBadge, EmptyState } from "@/components/common";
 import "@/styles/pages/formation-consultation-page.css";
-import moment from "moment";
+import dayjs from "dayjs";
 
-import { AuthContext } from "@/components/common/AuthProvider";
+import { useAuth } from "@/hooks/auth/useAuth";
 import {
   useAllFormations,
   useFormationsParDepartement,
@@ -61,7 +61,7 @@ const PERIOD_OPTIONS = [
 
 export default function FormationConsultationPage() {
   const navigate = useNavigate();
-  const { user } = useContext(AuthContext);
+  const { user } = useAuth();
   const canManageFormations = normalizeRole(user?.role) === "admin";
   const isChefDept = normalizeRole(user?.role) === "chefdepartement";
   const { message: msgApi } = useAppNotification();
@@ -130,11 +130,11 @@ export default function FormationConsultationPage() {
     if (periodRange.length === 2) {
       const [start, end] = periodRange;
       res = res.filter((f) => {
-        const debut = moment(f.dateDebut),
-          fin = moment(f.dateFin);
+        const debut = dayjs(f.dateDebut),
+          fin = dayjs(f.dateFin);
         return (
-          debut.isSameOrAfter(start, "day") &&
-          fin.isSameOrBefore(end, "day")
+          !debut.isBefore(start, "day") &&
+          !fin.isAfter(end, "day")
         );
       });
     }
@@ -175,7 +175,7 @@ export default function FormationConsultationPage() {
       globalThis.URL.revokeObjectURL(url);
       msgApi.success("✔️ Export réussi !");
       setOpenExport(false);
-    } catch (error) {
+    } catch (error: unknown) {
       const apiMsg =
         error.response?.data?.message ||
         error.response?.data?.error ||
@@ -243,11 +243,11 @@ export default function FormationConsultationPage() {
       width: 150,
       render: (_, r) => (
         <div className="formation-date-cell">
-          <span className="formation-date-start">{r.dateDebut ? moment(r.dateDebut).format("DD/MM/YYYY") : "\u2014"}</span>
-          <span className="formation-date-end">{r.dateFin ? moment(r.dateFin).format("DD/MM/YYYY") : "\u2014"}</span>
+          <span className="formation-date-start">{r.dateDebut ? dayjs(r.dateDebut).format("DD/MM/YYYY") : "\u2014"}</span>
+          <span className="formation-date-end">{r.dateFin ? dayjs(r.dateFin).format("DD/MM/YYYY") : "\u2014"}</span>
         </div>
       ),
-      sorter: (a, b) => moment(a.dateDebut) - moment(b.dateDebut),
+      sorter: (a, b) => dayjs(a.dateDebut).valueOf() - dayjs(b.dateDebut).valueOf(),
     },
     {
       title: "État",
@@ -435,7 +435,7 @@ export default function FormationConsultationPage() {
                 <div className="formation-seance-list">
                   {(record.seances || []).map((s) => (
                     <span key={s.idSeance} className="formation-seance-tag">
-                      <span className="formation-seance-date">{moment(s.dateSeance).format("L")}</span>
+                      <span className="formation-seance-date">{dayjs(s.dateSeance).format("DD/MM/YYYY")}</span>
                       <span className="formation-seance-time">{s.heureDebut}–{s.heureFin}</span>
                       {s.salle && <span className="formation-seance-salle">· {s.salle}</span>}
                     </span>

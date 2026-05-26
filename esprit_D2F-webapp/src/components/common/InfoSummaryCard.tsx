@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { Card, Row, Col, Typography, Tag } from "antd";
 import { neutral } from "@/styles/themes/tokens";
 
@@ -29,7 +30,7 @@ interface InfoSummaryCardProps {
  * - Supporte les tags pour les statuts
  * - Icônes optionnelles
  */
-export default function InfoSummaryCard({
+const InfoSummaryCard = memo(function InfoSummaryCard({
   title,
   titleIcon,
   items,
@@ -78,7 +79,9 @@ export default function InfoSummaryCard({
       </Row>
     </Card>
   );
-}
+});
+
+export default InfoSummaryCard;
 
 
 

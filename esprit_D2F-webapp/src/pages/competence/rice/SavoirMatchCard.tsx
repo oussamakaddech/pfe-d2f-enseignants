@@ -1,66 +1,136 @@
-import React from "react";
-import PropTypes from "prop-types";
-import { Card, Tag, Select } from "antd";
-import "@/styles/pages/matchmaking-page.css";
+import { useMemo } from "react";
+import { Tag, Select, Tooltip } from "antd";
+import { BookOutlined, ExperimentOutlined, CheckCircleOutlined, WarningOutlined } from "@ant-design/icons";
+import { NIVEAU_OPTIONS, TYPE_COLOR, TYPE_ICON, TYPE_LABEL } from "./constants";
 
-function SavoirMatchCard({ savoir, assignedTeacherIds = [], allTeachers = [], onAssignChange, onUnassign, innerRef }) {
-  const options = allTeachers.map((t) => ({ label: `${t.prenom} ${t.nom}`, value: t.id }));
+// ── Types ──────────────────────────────────────────────────────────────────────
+interface Savoir {
+  id: number | string;
+  code?: string;
+  nom?: string;
+  type?: string;
+  niveau?: string | number;
+  domaine?: string;
+}
+interface Enseignant {
+  id: number | string;
+  nom?: string;
+  prenom?: string;
+  etat?: string;
+}
+interface SavoirMatchCardProps {
+  savoir: Savoir;
+  assignedTeacherIds?: (number | string)[];
+  allTeachers?: Enseignant[];
+  onAssignChange: (savoirId: number | string, newIds: (number | string)[]) => void;
+  onUnassign: (savoirId: number | string, enseignantId: number | string) => void;
+}
+
+// ── Helpers ────────────────────────────────────────────────────────────────────
+function getNiveauMeta(niveau: string | number | undefined) {
+  const hit = NIVEAU_OPTIONS.find((n) => n.value === String(niveau ?? ""));
+  return hit ?? { label: niveau ? `N${niveau}` : "—", color: "default", emoji: "" };
+}
+
+function getTypeMeta(type: string | undefined) {
+  const t = type || "THEORIQUE";
+  return {
+    color: TYPE_COLOR[t as keyof typeof TYPE_COLOR] ?? "default",
+    icon: t === "PRATIQUE" ? <ExperimentOutlined /> : <BookOutlined />,
+    label: TYPE_LABEL[t as keyof typeof TYPE_LABEL] ?? t,
+  };
+}
+
+// ── Component ──────────────────────────────────────────────────────────────────
+export default function SavoirMatchCard({
+  savoir,
+  assignedTeacherIds = [],
+  allTeachers = [],
+  onAssignChange,
+  onUnassign,
+}: Readonly<SavoirMatchCardProps>) {
+  const isAssigned = assignedTeacherIds.length > 0;
+  const niveauMeta = useMemo(() => getNiveauMeta(savoir.niveau), [savoir.niveau]);
+  const typeMeta = useMemo(() => getTypeMeta(savoir.type), [savoir.type]);
+
+  const selectOptions = useMemo(
+    () => allTeachers.map((t) => ({
+      label: `${t.prenom ?? ""} ${t.nom ?? ""}`.trim(),
+      value: t.id,
+    })),
+    [allTeachers],
+  );
 
   return (
-    <div className="savoir-card" ref={innerRef}>
-      <Card size="small">
-        <div className="savoir-header">
-          <div>
-            <strong>{savoir.code}</strong> &nbsp; {savoir.nom}
-          </div>
-          <div>
-            <Tag color={(savoir.type || "THEORIQUE") === "PRATIQUE" ? "green" : "blue"}>{savoir.type || "THEORIQUE"}</Tag>
-            <Tag className="savoir-niveau">{`N${savoir.niveau ?? 1}`}</Tag>
-          </div>
-        </div>
+    <div className={`smc-card${isAssigned ? " smc-card--assigned" : " smc-card--unassigned"}`}>
+      {/* ── Status stripe ── */}
+      <div className={`smc-stripe${isAssigned ? " smc-stripe--ok" : " smc-stripe--warn"}`} />
 
-        <div className={`savoir-assigned ${assignedTeacherIds.length === 0 ? "savoir-unassigned" : ""}`}>
-          {assignedTeacherIds.map((id) => {
-            const t = allTeachers.find((x) => x.id === id) ?? { prenom: "?", nom: "?" };
-            return (
-              <Tag key={id} closable onClose={() => onUnassign(savoir.id, id)}>
-                {t.prenom} {t.nom}
-              </Tag>
-            );
-          })}
+      {/* ── Header ── */}
+      <div className="smc-header">
+        <div className="smc-header__left">
+          <span className="smc-code">{savoir.code}</span>
+          <Tooltip title={savoir.nom}>
+            <span className="smc-nom">{savoir.nom}</span>
+          </Tooltip>
         </div>
+        <div className="smc-header__badges">
+          <Tag
+            icon={typeMeta.icon}
+            color={typeMeta.color}
+            className="smc-tag-type"
+          >
+            {typeMeta.label}
+          </Tag>
+          <Tag color={niveauMeta.color} className="smc-tag-niveau">
+            {niveauMeta.emoji} {niveauMeta.label}
+          </Tag>
+        </div>
+      </div>
 
-        <div className="savoir-actions">
-          <Select
-            mode="multiple"
-            placeholder="+ Affecter"
-            options={options}
-            value={assignedTeacherIds}
-            onChange={(vals) => onAssignChange(savoir.id, vals)}
-            style={{ minWidth: 220 }}
-            showSearch
-            optionFilterProp="label"
-            allowClear
-          />
-        </div>
-      </Card>
+      {/* ── Assigned teachers ── */}
+      <div className="smc-assigned">
+        {isAssigned ? (
+          <div className="smc-teachers">
+            <CheckCircleOutlined className="smc-teachers__icon" />
+            {assignedTeacherIds.map((id) => {
+              const t = allTeachers.find((x) => String(x.id) === String(id));
+              const label = t ? `${t.prenom ?? ""} ${t.nom ?? ""}`.trim() : String(id);
+              return (
+                <Tag
+                  key={id}
+                  closable
+                  onClose={() => onUnassign(savoir.id, id)}
+                  className="smc-teacher-tag"
+                >
+                  {label}
+                </Tag>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="smc-unassigned-hint">
+            <WarningOutlined className="smc-unassigned-hint__icon" />
+            <span>Aucun enseignant assigné</span>
+          </div>
+        )}
+      </div>
+
+      {/* ── Assign select ── */}
+      <div className="smc-select-wrap">
+        <Select
+          mode="multiple"
+          placeholder="Affecter un enseignant..."
+          options={selectOptions}
+          value={assignedTeacherIds}
+          onChange={(vals) => onAssignChange(savoir.id, vals)}
+          className="smc-select"
+          showSearch
+          optionFilterProp="label"
+          allowClear
+          size="small"
+        />
+      </div>
     </div>
   );
 }
-
-SavoirMatchCard.propTypes = {
-  savoir: PropTypes.object.isRequired,
-  assignedTeacherIds: PropTypes.array,
-  allTeachers: PropTypes.array,
-  onAssignChange: PropTypes.func.isRequired,
-  onUnassign: PropTypes.func.isRequired,
-  innerRef: PropTypes.oneOfType([PropTypes.func, PropTypes.object]),
-};
-
-export default SavoirMatchCard;
-
-
-
-
-
-

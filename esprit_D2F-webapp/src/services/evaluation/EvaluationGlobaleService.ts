@@ -8,7 +8,7 @@ const EvaluationGlobaleService = {
     try {
       const response = await axios.post(API_URL, data);
       return response.data;
-    } catch (error) {
+    } catch (error: unknown) {
       throw error;
     }
   },
@@ -20,7 +20,7 @@ const EvaluationGlobaleService = {
       if (Array.isArray(body)) return body;
       if (body && Array.isArray(body.content)) return body.content;
       return [];
-    } catch (error) {
+    } catch (error: unknown) {
       throw error;
     }
   },
@@ -29,7 +29,7 @@ const EvaluationGlobaleService = {
     try {
       const response = await axios.get(`${API_URL}/${id}`);
       return response.data;
-    } catch (error) {
+    } catch (error: unknown) {
       throw error;
     }
   },
@@ -38,7 +38,7 @@ const EvaluationGlobaleService = {
     try {
       const response = await axios.get(`${API_URL}/formation/${formationId}`);
       return response.data;
-    } catch (error) {
+    } catch (error: unknown) {
       throw error;
     }
   },
@@ -47,7 +47,7 @@ const EvaluationGlobaleService = {
     try {
       const response = await axios.put(`${API_URL}/${id}`, data);
       return response.data;
-    } catch (error) {
+    } catch (error: unknown) {
       throw error;
     }
   },
@@ -55,7 +55,7 @@ const EvaluationGlobaleService = {
   async deleteEvaluationGlobale(id: number | string) {
     try {
       await axios.delete(`${API_URL}/${id}`);
-    } catch (error) {
+    } catch (error: unknown) {
       throw error;
     }
   },

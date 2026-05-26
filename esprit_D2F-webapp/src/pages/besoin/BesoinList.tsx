@@ -23,7 +23,7 @@ import {
   Space,
   Typography,
 } from "antd";
-import moment from "moment";
+import dayjs from "dayjs";
 import {
   FileTextOutlined,
   UserOutlined,
@@ -154,8 +154,8 @@ export default function BesoinList() {
       const start = filters.dateRange[0].startOf("day");
       const end = filters.dateRange[1].endOf("day");
       res = res.filter((b) => {
-        const date = moment(b.dateCreation || b.horaireSouhaite);
-        return date.isValid() && date.isBetween(start, end, null, "[]");
+        const date = dayjs(b.dateCreation || b.horaireSouhaite);
+        return date.isValid() && !date.isBefore(start) && !date.isAfter(end);
       });
     }
     return res;
@@ -232,7 +232,7 @@ export default function BesoinList() {
       periodeFormation: record.periodeFormation || "",
       periodCode: record.periodCode || "OTHER",
       customPeriodLabel: record.customPeriodLabel || record.periodeFormation || "",
-      horaireSouhaite: record.horaireSouhaite ? moment(record.horaireSouhaite) : null,
+      horaireSouhaite: record.horaireSouhaite ? dayjs(record.horaireSouhaite) : null,
     });
     setEditModalOpen(true);
   };
@@ -516,7 +516,7 @@ export default function BesoinList() {
       msgApi.success(result?.message || "E-mail envoyé au CUP avec succès");
       setMailModalOpen(false);
       mailForm.resetFields();
-    } catch (err) {
+    } catch (err: unknown) {
       if (err?.errorFields) return;
       msgApi.error(
         err?.response?.data?.error ||
@@ -540,9 +540,9 @@ export default function BesoinList() {
         "UP":                 getLabel(findById(ups, b.up)),
         "Département":        getLabel(findById(departements, b.departement)),
         "Statut":             b.approuveAdmin ? "Approuvé" : "En attente",
-        "Date Création":      b.dateCreation ? moment(b.dateCreation).format("DD/MM/YYYY") : "—",
+        "Date Création":      b.dateCreation ? dayjs(b.dateCreation).format("DD/MM/YYYY") : "—",
         "Période":            periodLabelOf(b) || "—",
-        "Horaire Souhaité":   b.horaireSouhaite ? moment(b.horaireSouhaite).format("DD/MM/YYYY HH:mm") : "—",
+        "Horaire Souhaité":   b.horaireSouhaite ? dayjs(b.horaireSouhaite).format("DD/MM/YYYY HH:mm") : "—",
       }));
       writeExcel(
         [{ name: "Besoins de Formation", rows, title: "Liste des Besoins de Formation — Esprit", subtitle: exportDateLabel() }],

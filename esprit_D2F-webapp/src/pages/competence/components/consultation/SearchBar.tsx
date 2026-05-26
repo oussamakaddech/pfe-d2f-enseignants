@@ -1,11 +1,29 @@
-/* eslint-disable react/prop-types */
 import { SearchOutlined } from "@ant-design/icons";
 import { Input, Select, Tag } from "antd";
 
 const { Option } = Select;
 const { Search } = Input;
 
-export default function SearchBar({ structure }) {
+interface Domaine { id: number; nom: string; code: string }
+interface StructureData { domaines?: Domaine[] }
+
+interface StructureState {
+  structureLoading: boolean;
+  searchLoading: boolean;
+  selectedDomaine: number | null;
+  setSelectedDomaine: (val: number | null) => void;
+  searchKeyword: string;
+  setSearchKeyword: (val: string) => void;
+  handleSearch: (val: string) => void;
+  handleClearSearch: () => void;
+  structure?: StructureData;
+}
+
+interface SearchBarProps {
+  structure: StructureState;
+}
+
+export default function SearchBar({ structure }: Readonly<SearchBarProps>) {
   return (
     <div className="ctp-search-card ctp-section">
       <div className="ctp-filter-row">

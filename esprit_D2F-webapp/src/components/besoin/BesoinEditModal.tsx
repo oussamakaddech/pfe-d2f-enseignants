@@ -1,6 +1,7 @@
+import { memo } from "react";
 import { Modal, Form, Input, Select, Row, Col, DatePicker } from "antd";
-import { FileTextOutlined, UserOutlined } from "@ant-design/icons";
-
+import { FileTextOutlined, UserOutlined } from "@ant-design/icons";
+
 const { TextArea } = Input;
 const { Option } = Select;
 const PERIOD_OPTIONS = [
@@ -8,8 +9,8 @@ const PERIOD_OPTIONS = [
   { value: "S2", label: "Semestre 2 (Février-Juin)" },
   { value: "S3", label: "Semestre 3 (Été)" },
   { value: "OTHER", label: "Autre" },
-];
-
+];
+
 interface BesoinEditModalProps {
   open: boolean;
   saving: boolean;
@@ -18,9 +19,9 @@ interface BesoinEditModalProps {
   form: ReturnType<typeof Form.useForm>[0];
   onOk: () => void;
   onCancel: () => void;
-}
-
-export default function BesoinEditModal({ open, saving, ups, departements, form, onOk, onCancel }: BesoinEditModalProps) {
+}
+
+const BesoinEditModal = memo(function BesoinEditModal({ open, saving, ups, departements, form, onOk, onCancel }: BesoinEditModalProps) {
   return (
     <Modal
       title="Modifier le besoin"
@@ -123,4 +124,6 @@ export default function BesoinEditModal({ open, saving, ups, departements, form,
       </Form>
     </Modal>
   );
-}
+});
+
+export default BesoinEditModal;

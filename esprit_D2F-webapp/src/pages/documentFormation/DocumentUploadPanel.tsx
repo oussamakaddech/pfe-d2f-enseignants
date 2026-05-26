@@ -10,7 +10,7 @@ import {
 } from "antd";
 import { UploadOutlined } from "@ant-design/icons";
 import useAppNotification from "@/hooks/ui/useAppNotification";
-import DocumentService from "@/services/formation/DocumentService";
+import { useCreateDocument } from "@/hooks/document/useDocument";
 
 const { Option } = Select;
 const PATH_OPTIONS = [
@@ -48,14 +48,15 @@ export default function DocumentUploadPanel({
         obligation:  values.obligation,
         file:        fileList[0].originFileObj,
       };
-      const newDoc = await DocumentService.createDocument(payload);
+      const { mutateAsync: createDoc } = useCreateDocument();
+      const newDoc = await createDoc(payload);
       message.success("Document ajouté avec succès");
       form.resetFields();
       setFileList([]);
       onDocumentAdded(newDoc);
       onClose();
-    } catch (err) {
-      message.error("🚫 Erreur lors de l’ajout du document.");
+    } catch (err: unknown) {
+      message.error("🚫 Erreur lors de l'ajout du document.");
     } finally {
       setLoading(false);
     }

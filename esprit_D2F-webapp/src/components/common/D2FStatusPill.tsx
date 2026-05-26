@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { Tag } from "antd";
 import {
   CheckCircleOutlined,
@@ -7,6 +8,7 @@ import {
   PauseCircleOutlined,
 } from "@ant-design/icons";
 import { semantic, neutral } from "@/styles/themes/tokens";
+import styles from "./D2FStatusPill.module.css";
 
 type StatusType = "enregistre" | "planifie" | "en_cours" | "acheve" | "annule" | "approuve" | "en_attente" | "critique" | "haute" | "moyenne" | "basse";
 
@@ -30,7 +32,7 @@ interface D2FStatusPillProps {
   readonly size?: "small" | "default";
 }
 
-export default function D2FStatusPill({ status, customLabel, size = "default" }: D2FStatusPillProps) {
+const D2FStatusPill = memo(function D2FStatusPill({ status, customLabel, size = "default" }: D2FStatusPillProps) {
   const config = STATUS_CONFIG[status];
   if (!config) return <Tag>{status}</Tag>;
 
@@ -38,11 +40,9 @@ export default function D2FStatusPill({ status, customLabel, size = "default" }:
     <Tag
       icon={config.icon}
       color={config.color}
+      className={styles.pill}
       style={{
-        borderRadius: 9999,
-        border: "none",
         background: config.bg,
-        fontWeight: 500,
         fontSize: size === "small" ? 11 : 12,
         padding: size === "small" ? "1px 8px" : "2px 12px",
       }}
@@ -50,8 +50,6 @@ export default function D2FStatusPill({ status, customLabel, size = "default" }:
       {customLabel || config.label}
     </Tag>
   );
-}
+});
 
-
-
-
+export default D2FStatusPill;

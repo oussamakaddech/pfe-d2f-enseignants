@@ -28,7 +28,7 @@ public class EvaluationFormateurService {
         if (Boolean.FALSE.equals(formationClient.getFormation(formationId))) {
             throw new esprit.pfe.serviceevaluation.exception.ResourceNotFoundException("Formation introuvable");
         }
-        if (Boolean.FALSE.equals(authClient.getEnseignant(enseignantId))) {
+        if (!authClient.enseignantExists(enseignantId)) {
             throw new esprit.pfe.serviceevaluation.exception.ResourceNotFoundException("Enseignant introuvable");
         }
     }

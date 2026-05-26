@@ -1,7 +1,8 @@
-import { Form, Input, Select, Modal } from "antd";
-
-const { Option } = Select;
-
+import { memo } from "react";
+import { Form, Input, Select, Modal } from "antd";
+
+const { Option } = Select;
+
 interface TeacherEditModalProps {
   open: boolean;
   record: Record<string, unknown> | null;
@@ -11,9 +12,9 @@ interface TeacherEditModalProps {
   form: ReturnType<typeof Form.useForm>[0];
   onOk: () => void;
   onCancel: () => void;
-}
-
-export default function TeacherEditModal({ open, record, confirmLoading, ups, depts, form, onOk, onCancel }: TeacherEditModalProps) {
+}
+
+const TeacherEditModal = memo(function TeacherEditModal({ open, record, confirmLoading, ups, depts, form, onOk, onCancel }: TeacherEditModalProps) {
   return (
     <Modal
       title={`Modifier — ${record?.nom ?? ""} ${record?.prenom ?? ""}`}
@@ -74,4 +75,6 @@ export default function TeacherEditModal({ open, record, confirmLoading, ups, de
       </Form>
     </Modal>
   );
-}
+});
+
+export default TeacherEditModal;

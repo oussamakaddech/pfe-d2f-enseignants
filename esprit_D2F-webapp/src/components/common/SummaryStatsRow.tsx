@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { Row, Col, Card, Statistic } from "antd";
 import { neutral } from "@/styles/themes/tokens";
 
@@ -30,7 +31,7 @@ interface SummaryStatsRowProps {
  * - Hover animé
  * - Responsive
  */
-export default function SummaryStatsRow({
+const SummaryStatsRow = memo(function SummaryStatsRow({
   stats,
   cols,
   gutter = [16, 16],
@@ -68,7 +69,9 @@ export default function SummaryStatsRow({
       ))}
     </Row>
   );
-}
+});
+
+export default SummaryStatsRow;
 
 
 

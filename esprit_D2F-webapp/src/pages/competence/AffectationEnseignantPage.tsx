@@ -10,11 +10,12 @@ import {
   DownloadOutlined, PlusOutlined, EditOutlined, TeamOutlined,
   BookOutlined, SafetyCertificateOutlined
 } from "@ant-design/icons";
-import CompetenceService from "@/services/competence/CompetenceService";
-import EnseignantService from "@/services/formation/EnseignantService";
+import { useEnseignantCompetenceApi, useSavoirApi } from "@/hooks/competence/useCompetenceService";
+import { useEnseignants } from "@/hooks/enseignant/useEnseignants";
 import AppPageHeader from "@/components/common/AppPageHeader";
 import "@/styles/pages/affectation-enseignant-page.css";
 import useAppNotification from "@/hooks/ui/useAppNotification";
+import { NIVEAU_OPTIONS } from "@/utils/constants/competenceOptions";
 
 const { Text } = Typography;
 const { Option } = Select;
@@ -26,14 +27,6 @@ const NIVEAU_COLOR = {
   N4_AVANCE:        "green",
   N5_EXPERT:        "gold",
 };
-
-const NIVEAU_OPTIONS = [
-  { value: "N1_DEBUTANT", label: "N1 - Débutant" },
-  { value: "N2_ELEMENTAIRE", label: "N2 - Élémentaire" },
-  { value: "N3_INTERMEDIAIRE", label: "N3 - Intermédiaire" },
-  { value: "N4_AVANCE", label: "N4 - Avancé" },
-  { value: "N5_EXPERT", label: "N5 - Expert" },
-];
 
 const NIVEAU_LABEL = {
   N1_DEBUTANT:      "N1",
@@ -61,8 +54,11 @@ export default function AffectationEnseignantPage() {
   const { message: msgApi } = useAppNotification();
   const navigate = useNavigate();
 
+  const ecApi = useEnseignantCompetenceApi();
+  const savoirApi = useSavoirApi();
+  const { data: enseignants = [] } = useEnseignants();
+
   const [affectations, setAffectations] = useState([]);
-  const [enseignants,  setEnseignants]  = useState([]);
   const [loading,      setLoading]      = useState(false);
   const [search,       setSearch]       = useState("");
 
@@ -77,10 +73,9 @@ export default function AffectationEnseignantPage() {
   const loadAll = useCallback(async () => {
     setLoading(true);
     try {
-      const [affResult, ensResult, savResult] = await Promise.allSettled([
-        CompetenceService.enseignantCompetence.getAll(),
-        EnseignantService.getAllEnseignants(),
-        CompetenceService.savoir.getAll(),
+      const [affResult, savResult] = await Promise.allSettled([
+        ecApi.getAll(),
+        savoirApi.getAll(),
       ]);
 
       if (affResult.status === "fulfilled") {
@@ -88,15 +83,6 @@ export default function AffectationEnseignantPage() {
       } else {
         msgApi.warning("Impossible de charger les affectations — vérifiez que le service compétence est démarré");
         setAffectations([]);
-      }
-
-      if (ensResult.status === "fulfilled") {
-        setEnseignants(Array.isArray(ensResult.value) ? ensResult.value : []);
-      } else {
-        const reasonMsg = ensResult.reason?.message || String(ensResult.reason);
-        msgApi.error("Impossible de charger les enseignants: " + reasonMsg);
-        // non-critical: table rows will fall back to showing the raw enseignantId
-        setEnseignants([]);
       }
 
       if (savResult.status === "fulfilled") {
@@ -219,11 +205,11 @@ export default function AffectationEnseignantPage() {
   const handleAssign = async () => {
     try {
       const values = await assignForm.validateFields();
-      await CompetenceService.enseignantCompetence.assign(values);
+      await ecApi.assign(values);
       msgApi.success("Affectation ajoutée avec succès");
       setAssignModal(false);
       loadAll();
-    } catch (err) {
+    } catch (err: unknown) {
       if (err?.errorFields) return;
       const msg = err.response?.data?.message || "Erreur lors de l'ajout";
       msgApi.error(msg);
@@ -233,11 +219,11 @@ export default function AffectationEnseignantPage() {
   const handleUpdateNiveau = async () => {
     try {
       const { niveau } = await niveauForm.validateFields();
-      await CompetenceService.enseignantCompetence.updateNiveau(editingRecord.affId, niveau);
+      await ecApi.updateNiveau(editingRecord.affId, niveau);
       msgApi.success("Niveau mis à jour");
       setNiveauModal(false);
       loadAll();
-    } catch (err) {
+    } catch (err: unknown) {
       if (err?.errorFields) return;
       const msg = err.response?.data?.message || "Erreur lors de la mise à jour";
       msgApi.error(msg);
@@ -246,7 +232,7 @@ export default function AffectationEnseignantPage() {
 
   const handleDeleteSavoir = async (affId) => {
     try {
-      await CompetenceService.enseignantCompetence.remove(affId);
+      await ecApi.remove(affId);
       msgApi.success("Affectation supprimée");
       loadAll();
     } catch {
@@ -352,7 +338,7 @@ export default function AffectationEnseignantPage() {
           cancelText="Annuler"
           onConfirm={async () => {
             try {
-              await Promise.all(rec.savoirs.map((s) => CompetenceService.enseignantCompetence.remove(s.affId)));
+              await Promise.all(rec.savoirs.map((s) => ecApi.remove(s.affId)));
               msgApi.success("Affectations supprimées");
               loadAll();
             } catch {

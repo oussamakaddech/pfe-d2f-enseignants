@@ -1,42 +1,16 @@
 // FormationTreeInterface.jsx
 import  { useEffect, useState } from "react";
-import FormationWorkflowService from "@/services/formation/FormationWorkflowService";
-import OneDriveService from "@/services/api/OneDriveService";
+import { useFormationsWithDocuments } from "@/hooks/formation/useFormations";
+import { useFormationHierarchy, useDeleteOneDriveFile } from "@/hooks/api/useOneDrive";
 
 const FormationTreeInterface = () => {
-    const [formations, setFormations] = useState([]);
     const [selectedFormation, setSelectedFormation] = useState(null);
-    const [oneDriveTree, setOneDriveTree] = useState([]);
     const [selectedFile, setSelectedFile] = useState(null);
     const [expandedNodes, setExpandedNodes] = useState({});
   
-    // Chargement des formations avec documents (métadonnées en BDD)
-    useEffect(() => {
-      async function fetchFormations() {
-        try {
-          const data = await FormationWorkflowService.getAllFormationsWithDocuments();
-          setFormations(data);
-        } catch {
-          // silently handle
-        }
-      }
-      fetchFormations();
-    }, []);
-  
-    // Lorsqu'une formation est sélectionnée, chargez l'arborescence réelle depuis OneDrive pour ce dossier
-    useEffect(() => {
-      async function fetchOneDriveTree() {
-        if (selectedFormation) {
-          try {
-            const tree = await OneDriveService.getDriveHierarchyForFormation(selectedFormation.titreFormation);
-            setOneDriveTree(tree);
-          } catch {
-            // silently handle
-          }
-        }
-      }
-      fetchOneDriveTree();
-    }, [selectedFormation]);
+    const { data: formations = [] } = useFormationsWithDocuments();
+    const { data: oneDriveTree = [] } = useFormationHierarchy(selectedFormation?.idFormation);
+    const { mutateAsync: deleteOneDriveFile } = useDeleteOneDriveFile();
   
     const toggleNode = (nodeId) => {
       setExpandedNodes((prev) => ({ ...prev, [nodeId]: !prev[nodeId] }));
@@ -102,7 +76,6 @@ const FormationTreeInterface = () => {
               onClick={() => {
                 setSelectedFormation(formation);
                 setSelectedFile(null);
-                setOneDriveTree([]); // Réinitialisez l'arbre lors d'une nouvelle sélection
               }}
               onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setSelectedFormation(formation); setSelectedFile(null); setOneDriveTree([]); } }}
               style={{ cursor: "pointer" }}
@@ -165,15 +138,11 @@ const FormationTreeInterface = () => {
                   className="btn btn-danger mt-2"
                   onClick={async () => {
                     try {
-                      // Par exemple, dans OneDriveService, vous pouvez définir les paramètres nécessaires
-                      await OneDriveService.deleteFile(
-                        selectedFormation.titreFormation,
-                        selectedFile.folder ? selectedFile.name : "dossier_parent", // selon l'organisation
-                        selectedFile.name  // ici, on utilise le nom du fichier
-                      );
-                      // Rechargez l'arborescence après suppression
-                      const tree = await OneDriveService.getDriveHierarchyForFormation(selectedFormation.titreFormation);
-                      setOneDriveTree(tree);
+                      await deleteOneDriveFile({
+                        nomFormation: selectedFormation.titreFormation,
+                        nomDocument: selectedFile.folder ? selectedFile.name : "dossier_parent",
+                        originalFileName: selectedFile.name
+                      });
                       setSelectedFile(null);
                     } catch {
                       // silently handle

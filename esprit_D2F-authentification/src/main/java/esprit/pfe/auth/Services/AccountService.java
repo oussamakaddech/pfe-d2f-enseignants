@@ -20,6 +20,7 @@ public interface AccountService {
 
     String updatePassword(String userName, UpdatePasswordRequest updatePasswordRequest);
     User getPrincipalByUsername(String username);
+    boolean userExistsById(String userId);
     void deleteAccount(String userId);
     User updateAccount(String userId, EditProfileRequest editProfileRequest, String roleName);
 

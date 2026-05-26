@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { Button, Space, Typography } from "antd";
 import { neutral } from "@/styles/themes/tokens";
 
@@ -29,7 +30,7 @@ interface StickyFormFooterProps {
  * - Boutons avec styles cohérents
  * - Indicateur d'étape optionnel
  */
-export default function StickyFormFooter({
+const StickyFormFooter = memo(function StickyFormFooter({
   onBack,
   backLabel = "Retour",
   backDisabled = false,
@@ -128,7 +129,9 @@ export default function StickyFormFooter({
       </Space>
     </div>
   );
-}
+});
+
+export default StickyFormFooter;
 
 
 

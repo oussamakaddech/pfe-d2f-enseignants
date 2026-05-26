@@ -2,5 +2,5 @@ projectKey=d2f_predictive_analytics
 serverUrl=http://localhost:9000
 serverVersion=26.3.0.120487
 dashboardUrl=http://localhost:9000/dashboard?id=d2f_predictive_analytics
-ceTaskId=9f0ac84f-b589-46ec-b022-691af0d0c1dd
-ceTaskUrl=http://localhost:9000/api/ce/task?id=9f0ac84f-b589-46ec-b022-691af0d0c1dd
+ceTaskId=74c7c772-b605-45c1-a817-e34de97ff596
+ceTaskUrl=http://localhost:9000/api/ce/task?id=74c7c772-b605-45c1-a817-e34de97ff596

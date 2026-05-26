@@ -1,15 +1,16 @@
+import { memo } from "react";
 import { Button } from "antd";
-import { ArrowLeftOutlined, ArrowRightOutlined, SaveOutlined } from "@ant-design/icons";
-
+import { ArrowLeftOutlined, ArrowRightOutlined, SaveOutlined } from "@ant-design/icons";
+
 interface WizardNavFooterProps {
   activeStep: number;
   totalSteps: number;
   onBack: () => void;
   onNext: () => void;
   onSubmit: () => void;
-}
-
-export default function WizardNavFooter({ activeStep, totalSteps, onBack, onNext, onSubmit }: WizardNavFooterProps) {
+}
+
+const WizardNavFooter = memo(function WizardNavFooter({ activeStep, totalSteps, onBack, onNext, onSubmit }: WizardNavFooterProps) {
   return (
     <div className="creation-nav-footer">
       <Button
@@ -48,4 +49,6 @@ export default function WizardNavFooter({ activeStep, totalSteps, onBack, onNext
       )}
     </div>
   );
-}
+});
+
+export default WizardNavFooter;

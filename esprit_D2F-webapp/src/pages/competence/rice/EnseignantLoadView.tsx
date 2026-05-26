@@ -3,7 +3,6 @@ import {
   Alert, Avatar, Badge, Button, Card, Col, Collapse, Progress, Row, Space, Tag, Typography,
 } from "antd";
 import { WarningOutlined } from "@ant-design/icons";
-import PropTypes from "prop-types";
 import { cloneDeep, computeEnseignantLoad, getInitials, avatarColor } from "./constants";
 
 
@@ -57,7 +56,14 @@ const computeLoadStyle = (e, total) => {
 
 const isEnterOrSpace = (key) => key === "Enter" || key === " ";
 
-export default function EnseignantLoadView({ tree, setTree, allEnseignants, extractedEnseignants }) {
+interface EnseignantLoadViewProps {
+  tree: Record<string, unknown>[];
+  setTree: (tree: Record<string, unknown>[]) => void;
+  allEnseignants: Record<string, unknown>[];
+  extractedEnseignants?: Record<string, unknown>[];
+}
+
+export default function EnseignantLoadView({ tree, setTree, allEnseignants, extractedEnseignants }: Readonly<EnseignantLoadViewProps>) {
   const loadMap = useMemo(() => computeEnseignantLoad(tree), [tree]);
   const allSavoirs = useMemo(() => flattenSavoirs(tree), [tree]);
 
@@ -259,12 +265,6 @@ export default function EnseignantLoadView({ tree, setTree, allEnseignants, extr
   );
 }
 
-EnseignantLoadView.propTypes = {
-  tree: PropTypes.array.isRequired,
-  setTree: PropTypes.func.isRequired,
-  allEnseignants: PropTypes.array.isRequired,
-  extractedEnseignants: PropTypes.array,
-};
 
 
 

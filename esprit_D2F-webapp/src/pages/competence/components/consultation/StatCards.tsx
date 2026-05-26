@@ -1,4 +1,3 @@
-/* eslint-disable react/prop-types */
 import {
   ApartmentOutlined,
   BookOutlined,
@@ -17,7 +16,21 @@ const STAT_DEFS = [
   { key: "pratiques", label: "Pratiques", statKey: "totalSavoirsPratiques", icon: <ExperimentOutlined />, accent: ACCENT.pratique },
 ];
 
-export default function StatCards({ stats, onStatClick }) {
+interface Stats {
+  totalDomaines?: number;
+  totalCompetences?: number;
+  totalSousCompetences?: number;
+  totalSavoirs?: number;
+  totalSavoirsTheoriques?: number;
+  totalSavoirsPratiques?: number;
+}
+
+interface StatCardsProps {
+  stats?: Stats;
+  onStatClick: (key: string) => void;
+}
+
+export default function StatCards({ stats, onStatClick }: Readonly<StatCardsProps>) {
   return (
     <div className="ctp-stat-grid ctp-section">
       {STAT_DEFS.map((def) => (

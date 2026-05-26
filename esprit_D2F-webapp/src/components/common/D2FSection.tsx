@@ -1,3 +1,4 @@
+import { memo } from "react";
 import type { ReactNode } from "react";
 import { Card, Typography } from "antd";
 import { brand, neutral, radius, shadow } from "@/styles/themes/tokens";
@@ -16,7 +17,7 @@ interface D2FSectionProps {
   readonly style?: React.CSSProperties;
 }
 
-export default function D2FSection({
+const D2FSection = memo(function D2FSection({
   title,
   subtitle,
   icon,
@@ -60,7 +61,9 @@ export default function D2FSection({
       {children}
     </Card>
   );
-}
+});
+
+export default D2FSection;
 
 
 

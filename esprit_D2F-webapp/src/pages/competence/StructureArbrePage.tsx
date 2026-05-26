@@ -10,30 +10,22 @@ import {
   DeleteOutlined, InfoCircleOutlined,
 } from "@ant-design/icons";
 import useAppNotification from "@/hooks/ui/useAppNotification";
-import CompetenceService from "@/services/competence/CompetenceService";
+import { useStructureApi, useNiveauDefinitionApi, useSavoirApi } from "@/hooks/competence/useCompetenceService";
+import { NIVEAU_LABELS, NIVEAU_OPTIONS } from "@/utils/constants/competenceOptions";
 import "@/styles/pages/structure-arbre-page.css";
 
 const { Title, Text } = Typography;
 const { Search } = Input;
 const { Option } = Select;
 
-const NIVEAU_LABELS = {
-  N1_DEBUTANT: { label: "N1 – Débutant", color: "#ff4d4f" },
-  N2_ELEMENTAIRE: { label: "N2 – Élémentaire", color: "#fa8c16" },
-  N3_INTERMEDIAIRE: { label: "N3 – Intermédiaire", color: "#fadb14" },
-  N4_AVANCE: { label: "N4 – Avancé", color: "#52c41a" },
-  N5_EXPERT: { label: "N5 – Expert", color: "#1890ff" },
-};
-
-const NIVEAU_OPTIONS = Object.entries(NIVEAU_LABELS).map(([key, val]) => ({
-  value: key,
-  label: val.label,
-}));
-
 // ─── Structure Tree Page ────────────────────────────────────────────────────
 
 export default function StructureArbrePage() {
   const { message } = useAppNotification();
+  // ── Hooks appelés au niveau racine du composant (Rules of Hooks) ───────────
+  const structureApi    = useStructureApi();
+  const niveauDefApi    = useNiveauDefinitionApi();
+
   const [loading, setLoading] = useState(true);
   const [structure, setStructure] = useState(null);
   const [searchResults, setSearchResults] = useState(null);
@@ -52,14 +44,14 @@ export default function StructureArbrePage() {
   const fetchStructure = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await CompetenceService.structure.getArbreComplet();
+      const data = await structureApi.getArbreComplet();
       setStructure(data);
     } catch {
       message.error("Erreur lors du chargement de la structure");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [structureApi, message]);
 
   useEffect(() => {
     fetchStructure();
@@ -70,7 +62,7 @@ export default function StructureArbrePage() {
   const debounceRef = useRef(null);
 
   const doSearch = useCallback(
-    async (keyword, domaine) => {
+    async (keyword: string, domaine: string | null) => {
       if (!keyword || keyword.trim().length < 2) {
         setSearchResults(null);
         return;
@@ -79,9 +71,9 @@ export default function StructureArbrePage() {
       try {
         let data;
         if (domaine) {
-          data = await CompetenceService.structure.rechercheParDomaine(domaine, keyword.trim());
+          data = await structureApi.rechercheParDomaine(domaine, keyword.trim());
         } else {
-          data = await CompetenceService.structure.rechercheGlobale(keyword.trim());
+          data = await structureApi.rechercheGlobale(keyword.trim());
         }
         setSearchResults(data);
         setActiveTab("search");
@@ -91,7 +83,7 @@ export default function StructureArbrePage() {
         setSearchLoading(false);
       }
     },
-    []
+    [structureApi, message]
   );
 
   // Debounce search when keyword changes (typing)
@@ -136,16 +128,16 @@ export default function StructureArbrePage() {
 
   // ─── Niveau modal ──────────────────────────────────────────────────
 
-  const openNiveauModal = useCallback(async (type, id, nom) => {
+  const openNiveauModal = useCallback(async (type: string, id: number, nom: string) => {
     setNiveauTarget({ type, id, nom });
     setNiveauModalVisible(true);
     setNiveauLoading(true);
     try {
       let data;
       if (type === "competence") {
-        data = await CompetenceService.niveauDefinition.getByCompetence(id);
+        data = await niveauDefApi.getByCompetence(id);
       } else {
-        data = await CompetenceService.niveauDefinition.getBySousCompetence(id);
+        data = await niveauDefApi.getBySousCompetence(id);
       }
       setNiveauData(data);
     } catch {
@@ -153,11 +145,11 @@ export default function StructureArbrePage() {
     } finally {
       setNiveauLoading(false);
     }
-  }, []);
+  }, [niveauDefApi, message]);
 
-  const handleAddNiveauSavoir = useCallback(async (values) => {
+  const handleAddNiveauSavoir = useCallback(async (values: { niveau: string; savoirId: number; description?: string }) => {
     try {
-      const request = {
+      const request: Record<string, unknown> = {
         niveau: values.niveau,
         savoirId: values.savoirId,
         description: values.description,
@@ -167,25 +159,26 @@ export default function StructureArbrePage() {
       } else {
         request.sousCompetenceId = niveauTarget.id;
       }
-      await CompetenceService.niveauDefinition.add(request);
+      await niveauDefApi.add(request);
       message.success("Savoir requis ajouté au niveau");
       addNiveauForm.resetFields();
       // Refresh niveau data
       openNiveauModal(niveauTarget.type, niveauTarget.id, niveauTarget.nom);
-    } catch (err) {
-      message.error(err.response?.data?.message || "Erreur lors de l'ajout");
+    } catch (err: unknown) {
+      const axiosErr = err as { response?: { data?: { message?: string } } };
+      message.error(axiosErr.response?.data?.message || "Erreur lors de l'ajout");
     }
-  }, [niveauTarget, addNiveauForm, openNiveauModal]);
+  }, [niveauTarget, addNiveauForm, openNiveauModal, niveauDefApi, message]);
 
-  const handleRemoveNiveauSavoir = useCallback(async (id) => {
+  const handleRemoveNiveauSavoir = useCallback(async (id: number) => {
     try {
-      await CompetenceService.niveauDefinition.remove(id);
+      await niveauDefApi.remove(id);
       message.success("Savoir requis supprimé du niveau");
       openNiveauModal(niveauTarget.type, niveauTarget.id, niveauTarget.nom);
-    } catch (err) {
+    } catch {
       message.error("Erreur lors de la suppression");
     }
-  }, [niveauTarget, openNiveauModal]);
+  }, [niveauTarget, openNiveauModal, niveauDefApi, message]);
 
   // ─── Tree node helpers ──────────────────────────────────────────────
 
@@ -302,7 +295,7 @@ export default function StructureArbrePage() {
 
   const [allSavoirs, setAllSavoirs] = useState([]);
   useEffect(() => {
-    CompetenceService.savoir.getAll().then(setAllSavoirs).catch(() => {});
+    useSavoirApi().getAll().then(setAllSavoirs).catch(() => {});
   }, []);
 
   // ─── Render ─────────────────────────────────────────────────────────

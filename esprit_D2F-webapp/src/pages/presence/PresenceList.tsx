@@ -119,7 +119,7 @@ const PresenceList = ({ seanceId }) => {
         }));
       await batchUpdateMut.mutateAsync({ seanceId, updates });
       msgApi.success(`${dirtyIds.length} présence(s) enregistrée(s)`);
-    } catch (err) {
+    } catch (err: unknown) {
       msgApi.error(err?.response?.data?.error || "Erreur lors de l'enregistrement");
     } finally {
       setSaving(false);
@@ -135,7 +135,7 @@ const PresenceList = ({ seanceId }) => {
           ? "Tous les enseignants marqués présents"
           : "Tous les enseignants marqués absents"
       );
-    } catch (err) {
+    } catch (err: unknown) {
       msgApi.error(err?.response?.data?.error || "Erreur lors de l'opération groupée");
     } finally {
       setSaving(false);

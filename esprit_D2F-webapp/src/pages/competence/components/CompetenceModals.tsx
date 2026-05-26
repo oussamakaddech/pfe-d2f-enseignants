@@ -1,11 +1,10 @@
-/* eslint-disable react/prop-types */
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import {
   DeleteOutlined,
   PlusOutlined,
 } from "@ant-design/icons";
-import UpService from "@/services/api/UploadService";
-import DeptService from "@/services/formation/DeptService";
+import { useAllUps } from "@/hooks/formation/useUpCrud";
+import { useAllDepts } from "@/hooks/formation/useDeptCrud";
 import {
   Badge,
   Button,
@@ -34,6 +33,18 @@ import {
 const { Option } = Select;
 const { Text } = Typography;
 
+import type { FormInstance } from "antd";
+
+interface CompetenceModalsProps {
+  crud: Record<string, unknown>;
+  structure: Record<string, unknown>;
+  domaineForm: FormInstance;
+  compForm: FormInstance;
+  scForm: FormInstance;
+  savoirForm: FormInstance;
+  addNiveauForm: FormInstance;
+}
+
 export default function CompetenceModals({
   crud,
   structure,
@@ -42,15 +53,9 @@ export default function CompetenceModals({
   scForm,
   savoirForm,
   addNiveauForm,
-}) {
-  const [ups, setUps] = useState([]);
-  const [depts, setDepts] = useState([]);
-
-  useEffect(() => {
-    Promise.all([UpService.getAllUps(), DeptService.getAllDepts()])
-      .then(([uData, dData]) => { setUps(uData); setDepts(dData); })
-      .catch(() => {});
-  }, []);
+}: Readonly<CompetenceModalsProps>) {
+  const { data: ups = [] } = useAllUps();
+  const { data: depts = [] } = useAllDepts();
 
   // Mettre à jour le prefix des savoirs quand le parent ou le mode change
   useEffect(() => {

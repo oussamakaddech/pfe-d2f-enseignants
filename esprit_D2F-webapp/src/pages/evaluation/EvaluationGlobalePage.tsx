@@ -28,7 +28,7 @@ import {
 } from "@ant-design/icons";
 import { AppPageHeader, EmptyState } from "@/components/common";
 import "@/styles/pages/evaluation-globale-page.css";
-import moment from "moment";
+import dayjs from "dayjs";
 import useAppNotification from "@/hooks/ui/useAppNotification";
 import {
   useEvaluationsGlobales,
@@ -97,7 +97,7 @@ export default function EvaluationGlobalePage() {
     form.setFieldsValue({
       formationId: record["formationId"],
       commentaireGeneral: record["commentaireGeneral"],
-      dateEvaluation: record["dateEvaluation"] ? moment(record["dateEvaluation"] as string) : null,
+      dateEvaluation: record["dateEvaluation"] ? dayjs(record["dateEvaluation"] as string) : null,
       noteGlobale: record["noteGlobale"],
       recommandation: record["recommandation"],
     });
@@ -210,8 +210,8 @@ export default function EvaluationGlobalePage() {
       dataIndex: "dateEvaluation",
       key: "dateEvaluation",
       width: 120,
-      render: (d) => d ? moment(d).format("DD/MM/YYYY") : "\u2014",
-      sorter: (a, b) => moment(a.dateEvaluation) - moment(b.dateEvaluation),
+      render: (d) => d ? dayjs(d).format("DD/MM/YYYY") : "\u2014",
+      sorter: (a, b) => dayjs(a.dateEvaluation).valueOf() - dayjs(b.dateEvaluation).valueOf(),
     },
     {
       title: "Actions",

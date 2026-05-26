@@ -2,7 +2,7 @@ import  { useEffect, useState } from 'react';
 import { Card, Form, Input, Select, Button, Typography } from 'antd';
 import { UserOutlined, LockOutlined, MailOutlined, PhoneOutlined, InfoCircleOutlined } from '@ant-design/icons';
 import PropTypes from 'prop-types';
-import { signup } from '@/services/auth/AuthService';
+import { useRegister } from "@/hooks/auth/useRegister";
 
 const { Title } = Typography;
 const { Option } = Select;
@@ -10,6 +10,7 @@ const { Option } = Select;
 export default function EnseignantRegister({ initialValues = {}, onSuccess, onError }) {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
+  const { register } = useRegister();
 
   useEffect(() => {
     form.setFieldsValue({
@@ -26,9 +27,9 @@ export default function EnseignantRegister({ initialValues = {}, onSuccess, onEr
   const onFinish = async values => {
     setLoading(true);
     try {
-      await signup(values);
+      await register(values);
       onSuccess?.();
-    } catch (err) {
+    } catch (err: unknown) {
       const msg = err.response?.data?.message || "Erreur lors de l'inscription.";
       onError?.(msg);
     } finally {
