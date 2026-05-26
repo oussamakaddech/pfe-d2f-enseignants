@@ -84,6 +84,7 @@ export function useRiceReport({ tree, departement, msgApi, onImportSuccess }) {
           })),
         })),
       })),
+      departement: departement !== "auto" ? departement : undefined,
     };
 
     try {
