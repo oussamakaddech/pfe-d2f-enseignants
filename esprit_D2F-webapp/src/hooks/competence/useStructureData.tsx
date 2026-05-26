@@ -33,6 +33,12 @@ export default function useStructureData() {
 
   const [matrixCompId, setMatrixCompId] = useState(null);
 
+  // Define openNiveauModal early so it can be used in callbacks below
+  const openNiveauModal = useCallback(async (type, id, nom) => {
+    setNiveauTarget({ type, id, nom });
+    setNiveauModalVisible(true);
+  }, []);
+
   const allSavoirsQuery = useQuery({
     queryKey: ["all-savoirs"],
     queryFn: () => CompetenceService.savoir.getAll(),
@@ -215,11 +221,6 @@ export default function useStructureData() {
   const applyFilter = useCallback((upId: number | null, deptId: number | null) => {
     setFilterUpId(upId);
     setFilterDeptId(deptId);
-  }, []);
-
-  const openNiveauModal = useCallback(async (type, id, nom) => {
-    setNiveauTarget({ type, id, nom });
-    setNiveauModalVisible(true);
   }, []);
 
   const handleAddNiveauSavoir = useCallback(async (values) => {
