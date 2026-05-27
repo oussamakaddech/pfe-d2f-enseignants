@@ -200,8 +200,14 @@ export default function CompetencePage() {
       title: "Description",
       dataIndex: "description",
       key: "description",
-      ellipsis: true,
-      render: (value) => value || "-",
+      render: (value) => (
+        <span
+          style={{ display: "inline-block", maxWidth: 220, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+          title={value || ""}
+        >
+          {value || "-"}
+        </span>
+      ),
     },
     {
       title: "Actions",

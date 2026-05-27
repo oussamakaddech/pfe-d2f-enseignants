@@ -47,6 +47,18 @@ describe('authService', () => {
     apiMocks.mockGet.mockResolvedValueOnce({ data: { id: 1 } });
     await expect(getProfile()).resolves.toEqual({ id: 1 });
   });
+
+  it('refreshToken is sent silently', async () => {
+    apiMocks.mockGet.mockResolvedValueOnce({ data: { userId: 1, role: 'admin', email: 'a@b.com' } });
+
+    await expect(import('../authService').then(({ refreshToken }) => refreshToken())).resolves.toEqual({
+      userId: 1,
+      role: 'admin',
+      email: 'a@b.com',
+    });
+
+    expect(apiMocks.mockGet).toHaveBeenCalledWith('/refresh', { meta: { silent: true } });
+  });
 });
 
 

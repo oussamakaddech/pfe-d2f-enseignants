@@ -6,6 +6,7 @@
 interface AppConfig {
   API_BASE_URL: string;
   FORMATION_URL: string;
+  FORMATION_SERVICE_URL: string;
   URL_ACCOUNT: string;
   AI_URL: string;
   Besoin_URL: string;
@@ -31,6 +32,9 @@ const readApiBase = (): string => {
 };
 
 const API_BASE_URL = readApiBase();
+const FORMATION_SERVICE_URL = import.meta.env.VITE_FORMATION_SERVICE_URL
+  ? stripTrailingSlash(import.meta.env.VITE_FORMATION_SERVICE_URL)
+  : "http://localhost:8088";
 const RICE_URL = import.meta.env.VITE_RICE_URL
   ? stripTrailingSlash(import.meta.env.VITE_RICE_URL)
   : API_BASE_URL;
@@ -38,6 +42,7 @@ const RICE_URL = import.meta.env.VITE_RICE_URL
 export const config: AppConfig = {
   API_BASE_URL,
   FORMATION_URL: API_BASE_URL,
+  FORMATION_SERVICE_URL,
   URL_ACCOUNT: API_BASE_URL,
   AI_URL: API_BASE_URL,
   Besoin_URL: API_BASE_URL,

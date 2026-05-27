@@ -142,7 +142,19 @@ export default function EnseignantMatrixView({ tree, setTree, allEnseignants }: 
       width: 380,
       render: (_, row) => (
         <Space>
-          <Text style={{ maxWidth: 260 }} ellipsis={{ tooltip: row.nom }}>{row.nom}</Text>
+          <Tooltip title={row.nom}>
+            <Text
+              style={{
+                display: "inline-block",
+                maxWidth: 260,
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {row.nom}
+            </Text>
+          </Tooltip>
           <Tag color={row.type === "PRATIQUE" ? "volcano" : "purple"}>{row.type}</Tag>
           <Tag>{row.niveau}</Tag>
         </Space>

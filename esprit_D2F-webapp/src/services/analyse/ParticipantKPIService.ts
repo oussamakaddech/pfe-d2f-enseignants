@@ -24,6 +24,10 @@ function normalizeListResponse<T>(payload: T[] | { content?: T[]; data?: T[]; it
   return [];
 }
 
+function isNotFoundError(error: unknown): boolean {
+  return (error as { response?: { status?: number } })?.response?.status === 404;
+}
+
 const ParticipantKPIService = {
   async getFormationsParticipantKPIs(startDate: string, endDate: string) {
     try {

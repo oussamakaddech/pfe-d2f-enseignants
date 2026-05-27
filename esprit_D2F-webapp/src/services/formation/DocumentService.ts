@@ -1,6 +1,6 @@
 import { defaultApi as axios } from "@/utils/helpers/httpClient";
 import { config } from "@/config/env";
-const API_URL =`${config.FORMATION_URL}/api/v1/documents`;
+const API_URL =`${config.FORMATION_URL}/formation/documents`;
 
 interface DocumentCreatePayload {
   formationId: string | number;

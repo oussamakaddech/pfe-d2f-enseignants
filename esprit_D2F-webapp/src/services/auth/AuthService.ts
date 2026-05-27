@@ -66,7 +66,10 @@ export async function getProfile(): Promise<AuthUser> {
  * and returns a new one.
  */
 export async function refreshToken(): Promise<LoginResponse> {
-  const response: AxiosResponse<LoginResponse> = await api.get("/refresh");
+  const response: AxiosResponse<LoginResponse> = await api.get(
+    "/refresh",
+    { meta: { silent: true } } as never
+  );
   return response.data;
 }
 

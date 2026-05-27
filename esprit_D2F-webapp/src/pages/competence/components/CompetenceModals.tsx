@@ -592,7 +592,14 @@ export default function CompetenceModals({
                           {
                             title: "Description",
                             dataIndex: "description",
-                            ellipsis: true,
+                            render: (value) => (
+                              <span
+                                style={{ display: "inline-block", maxWidth: 360, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+                                title={value || ""}
+                              >
+                                {value || "-"}
+                              </span>
+                            ),
                           },
                           {
                             title: "",

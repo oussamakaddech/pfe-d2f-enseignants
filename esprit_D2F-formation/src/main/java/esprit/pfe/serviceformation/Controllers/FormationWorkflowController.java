@@ -78,7 +78,8 @@ public class FormationWorkflowController {
             return ResponseEntity.badRequest().body(Map.of(KEY_ERROR, e.getMessage()));
         } catch (Exception e) {
             log.error("Erreur interne lors de la creation de la formation : ", e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(KEY_ERROR, MSG_ERREUR_INTERNE, KEY_MESSAGE, e.getMessage()));
+            String errorMsg = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(KEY_ERROR, MSG_ERREUR_INTERNE, KEY_MESSAGE, errorMsg));
         }
     }
 
@@ -104,8 +105,9 @@ public class FormationWorkflowController {
             log.error("Argument invalide lors de la mise a jour de la formation {} : {}", id, e.getMessage());
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(KEY_ERROR, e.getMessage()));
         } catch (Exception e) {
-            log.error("Erreur interne lors de la mise a jour de la formation {} : {}", id, e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(KEY_ERROR, MSG_ERREUR_INTERNE, KEY_MESSAGE, e.getMessage()));
+            log.error("Erreur interne lors de la mise a jour de la formation {} : ", id, e);
+            String errorMsg = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(KEY_ERROR, MSG_ERREUR_INTERNE, KEY_MESSAGE, errorMsg));
         }
     }
 
@@ -118,7 +120,9 @@ public class FormationWorkflowController {
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of(KEY_ERROR, e.getMessage()));
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(KEY_ERROR, MSG_ERREUR_INTERNE, KEY_MESSAGE, e.getMessage()));
+            log.error("Erreur interne lors de la suppression de la formation {} : ", id, e);
+            String errorMsg = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(KEY_ERROR, MSG_ERREUR_INTERNE, KEY_MESSAGE, errorMsg));
         }
     }
 
@@ -130,7 +134,9 @@ public class FormationWorkflowController {
             FormationResponseDTO dto = formationService.getFormationById(id);
             return ResponseEntity.ok(dto);
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(KEY_ERROR, e.getMessage()));
+            log.error("Erreur lors de la recuperation de la formation {} : ", id, e);
+            String errorMsg = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(KEY_ERROR, errorMsg));
         }
     }
 
@@ -142,7 +148,9 @@ public class FormationWorkflowController {
             List<FormationDTO> dtos = formationWorkflowService.getAllFormationWorkflows();
             return ResponseEntity.ok(dtos);
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(KEY_ERROR, MSG_ERREUR_INTERNE, KEY_MESSAGE, e.getMessage()));
+            log.error("Erreur interne lors de la recuperation de toutes les formations : ", e);
+            String errorMsg = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(KEY_ERROR, MSG_ERREUR_INTERNE, KEY_MESSAGE, errorMsg));
         }
     }
 
@@ -174,7 +182,8 @@ public class FormationWorkflowController {
             return ResponseEntity.ok().headers(headers).body(content);
         } catch (Exception e) {
             log.error("Erreur lors de l'export Excel", e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(KEY_ERROR, MSG_ERREUR_INTERNE, KEY_MESSAGE, e.getMessage()));
+            String errorMsg = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(KEY_ERROR, MSG_ERREUR_INTERNE, KEY_MESSAGE, errorMsg));
         }
     }
 
@@ -211,8 +220,9 @@ public class FormationWorkflowController {
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(KEY_ERROR, e.getMessage()));
         } catch (Exception e) {
-            log.error("Erreur lors du batch update des presences (seance {}) : {}", seanceId, e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(KEY_ERROR, MSG_ERREUR_INTERNE, KEY_MESSAGE, e.getMessage()));
+            log.error("Erreur lors du batch update des presences (seance {}) : ", seanceId, e);
+            String errorMsg = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(KEY_ERROR, MSG_ERREUR_INTERNE, KEY_MESSAGE, errorMsg));
         }
     }
 
@@ -226,8 +236,9 @@ public class FormationWorkflowController {
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(KEY_ERROR, e.getMessage()));
         } catch (Exception e) {
-            log.error("Erreur lors du mark-all des presences (seance {}) : {}", seanceId, e.getMessage());
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(KEY_ERROR, MSG_ERREUR_INTERNE, KEY_MESSAGE, e.getMessage()));
+            log.error("Erreur lors du mark-all des presences (seance {}) : ", seanceId, e);
+            String errorMsg = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(KEY_ERROR, MSG_ERREUR_INTERNE, KEY_MESSAGE, errorMsg));
         }
     }
 
@@ -244,7 +255,9 @@ public class FormationWorkflowController {
             List<FormationDTO> achevees = formationWorkflowService.getFormationsAchevees();
             return ResponseEntity.ok(achevees);
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(KEY_ERROR, MSG_ERREUR_INTERNE, KEY_MESSAGE, e.getMessage()));
+            log.error("Erreur lors de la recuperation des formations achevees : ", e);
+            String errorMsg = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(KEY_ERROR, MSG_ERREUR_INTERNE, KEY_MESSAGE, errorMsg));
         }
     }
 

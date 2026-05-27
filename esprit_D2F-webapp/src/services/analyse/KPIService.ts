@@ -4,8 +4,7 @@ import { config } from "@/config/env";
 const API_URL = `${config.FORMATION_URL}/formation/kpi`;
 
 function isNotFoundError(error: unknown): boolean {
-  return (error as { isAxiosError?: boolean; response?: { status?: number } })?.isAxiosError === true
-    && (error as { response?: { status?: number } })?.response?.status === 404;
+  return (error as { response?: { status?: number } })?.response?.status === 404;
 }
 
 function normalizeListResponse<T>(payload: T[] | { content?: T[]; data?: T[]; items?: T[] }): T[] {

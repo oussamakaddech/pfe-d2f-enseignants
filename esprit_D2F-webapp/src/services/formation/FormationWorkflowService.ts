@@ -4,7 +4,7 @@ import { config } from "@/config/env";
 import type { Id } from "@/models/common";
 import type { Formation } from "@/models/formation";
 
-const API_URL = `${config.FORMATION_URL}/api/v1/formations-workflow`;
+const API_URL = `${config.FORMATION_URL}/formation/formations-workflow`;
 
 // Token is now in HttpOnly cookie, sent automatically via withCredentials: true.
 
