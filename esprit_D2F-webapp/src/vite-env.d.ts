@@ -2,6 +2,7 @@
 
 interface ImportMetaEnv {
   readonly VITE_API_URL: string;
+  readonly VITE_FORMATION_SERVICE_URL?: string;
   readonly VITE_RICE_URL?: string;
 }
 

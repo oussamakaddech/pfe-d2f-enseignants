@@ -1,6 +1,6 @@
 import { defaultApi as axios } from "@/utils/helpers/httpClient";
 import { config } from "@/config/env"; 
-const API_URL =  `${config.FORMATION_URL}/api/v1/formations`;
+const API_URL =  `${config.FORMATION_URL}/formation/formations`;
 
 const FormationService = {
   async createFormation(formationData: Record<string, unknown>) {

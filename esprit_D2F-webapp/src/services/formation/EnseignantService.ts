@@ -1,6 +1,6 @@
 import { defaultApi as axios } from "@/utils/helpers/httpClient";
 import { config } from "@/config/env";
-const API_URL =  `${config.FORMATION_URL}/api/v1/enseignants`;
+const API_URL = `${config.FORMATION_URL}/formation/enseignants`;
 
 function normalizeListResponse<T>(payload: T[] | { content?: T[]; data?: T[]; items?: T[] }): T[] {
   if (Array.isArray(payload)) {

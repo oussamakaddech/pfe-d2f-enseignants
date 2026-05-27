@@ -12,6 +12,18 @@ import { navigate } from "./navigation";
 import { config } from "../../config/env";
 import { notify } from "./notifications";
 
+const NETWORK_ERROR_TOAST_COOLDOWN_MS = 10_000;
+let lastNetworkErrorToastAt = 0;
+
+function shouldShowNetworkErrorToast(): boolean {
+  const now = Date.now();
+  if (now - lastNetworkErrorToastAt < NETWORK_ERROR_TOAST_COOLDOWN_MS) {
+    return false;
+  }
+  lastNetworkErrorToastAt = now;
+  return true;
+}
+
 export function createApiClient(baseURL?: string) {
   const api = axios.create({
     baseURL,
@@ -63,7 +75,9 @@ export function createApiClient(baseURL?: string) {
         const serverMsg = error?.response?.data?.message;
 
         if (!error?.response) {
-          notify.error("Pas de connexion au serveur. Vérifiez votre réseau.");
+          if (shouldShowNetworkErrorToast()) {
+            notify.error("Pas de connexion au serveur. Vérifiez votre réseau.");
+          }
         } else if (status >= 500) {
           notify.error(serverMsg || "Erreur serveur. Réessayez dans un instant.");
         } else if (status === 403) {

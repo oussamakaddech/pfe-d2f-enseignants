@@ -1,7 +1,7 @@
 import { defaultApi as axios } from "@/utils/helpers/httpClient";
 import { config } from "@/config/env";
 
-const PREDICTIVE_API = `${config.ANALYSE_URL}/analyse`;
+const PREDICTIVE_API = `${config.ANALYSE_URL}/analyse/v1/analyse-predictive`;
 
 export type { Gravite, AnalyseGap, AnalyseRecommandation, AnalyseData, DecliningCompetency, InDemandCompetency, TeacherRiskIndicator, DriftReport } from "@/models/analyse";
 

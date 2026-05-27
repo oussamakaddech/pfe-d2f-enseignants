@@ -499,7 +499,18 @@ export default function StructureArbrePage() {
                       columns={[
                         { title: "Code", dataIndex: "savoirCode", width: 100 },
                         { title: "Savoir", dataIndex: "savoirNom" },
-                        { title: "Description", dataIndex: "description", ellipsis: true },
+                        {
+                          title: "Description",
+                          dataIndex: "description",
+                          render: (value) => (
+                            <span
+                              style={{ display: "inline-block", maxWidth: 420, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
+                              title={value || ""}
+                            >
+                              {value || "-"}
+                            </span>
+                          ),
+                        },
                         {
                           title: "",
                           width: 50,

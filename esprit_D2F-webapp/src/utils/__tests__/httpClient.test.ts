@@ -3,6 +3,13 @@ import axios, { isAxiosError } from 'axios';
 import { createApiClient } from "@/utils/helpers/httpClient";
 import { navigate } from "@/utils/helpers/navigation";
 
+const notifyMocks = vi.hoisted(() => ({
+  error: vi.fn(),
+  warning: vi.fn(),
+  info: vi.fn(),
+  success: vi.fn(),
+}));
+
 vi.mock('axios', async () => {
   const actual = await vi.importActual('axios') as any;
   return {
@@ -25,10 +32,15 @@ vi.mock('@/utils/helpers/navigation', () => ({
   navigate: vi.fn(),
 }));
 
+vi.mock('@/utils/helpers/notifications', () => ({
+  notify: notifyMocks,
+}));
+
 describe('httpClient', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     sessionStorage.clear();
+    vi.useRealTimers();
   });
 
   it('creates an api client with withCredentials', () => {
@@ -67,6 +79,24 @@ describe('httpClient', () => {
     
     // It should also navigate to login if not already on login
     expect(navigate).toHaveBeenCalledWith('/', { replace: true });
+  });
+
+  it('throttles repeated network error toasts', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-05-27T10:00:00Z'));
+
+    const api = createApiClient();
+    const responseErrorHandler = (api.interceptors.response.use as any).mock.calls[0][1];
+
+    await expect(responseErrorHandler({ config: { url: '/foo' } })).rejects.toEqual({ config: { url: '/foo' } });
+    expect(notifyMocks.error).toHaveBeenCalledTimes(1);
+
+    await expect(responseErrorHandler({ config: { url: '/bar' } })).rejects.toEqual({ config: { url: '/bar' } });
+    expect(notifyMocks.error).toHaveBeenCalledTimes(1);
+
+    vi.setSystemTime(new Date('2026-05-27T10:00:11Z'));
+    await expect(responseErrorHandler({ config: { url: '/baz' } })).rejects.toEqual({ config: { url: '/baz' } });
+    expect(notifyMocks.error).toHaveBeenCalledTimes(2);
   });
 });
 

@@ -38,6 +38,7 @@ describe('FormationWorkflowService', () => {
 
     httpMocks.mockGet.mockResolvedValueOnce({ data: [{ id: 1 }] });
     await expect(FormationWorkflowService.getAllFormationWorkflows()).resolves.toEqual([{ id: 1 }]);
+    expect(httpMocks.mockGet).toHaveBeenCalledWith(expect.stringContaining('/formation/formations-workflow'));
 
     httpMocks.mockGet.mockResolvedValueOnce({ data: [{ id: 2 }] });
     await expect(FormationWorkflowService.getFormationsAchevees()).resolves.toEqual([{ id: 2 }]);

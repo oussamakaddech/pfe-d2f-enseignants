@@ -296,7 +296,7 @@ export default function useStructureData() {
     niveauModalVisible,
     setNiveauModalVisible,
     niveauTarget,
-    niveauData: niveauQuery.data,
+    niveauData: niveauQuery.data ?? {},
     niveauLoading: niveauQuery.isLoading,
     handleAddNiveauSavoir,
     handleRemoveNiveauSavoir,

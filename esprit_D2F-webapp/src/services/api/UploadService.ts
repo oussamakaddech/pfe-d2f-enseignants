@@ -1,7 +1,11 @@
-import { defaultApi as axios } from "@/utils/helpers/httpClient";
 import { config } from "@/config/env";
+import { defaultApi as axios } from "@/utils/helpers/httpClient";
 
 const API_URL = `${config.FORMATION_URL}/formation/ups`;
+
+function isNotFoundError(error: unknown): boolean {
+  return (error as { response?: { status?: number } })?.response?.status === 404;
+}
 
 function normalizeListResponse<T>(payload: T[] | { content?: T[]; data?: T[]; items?: T[] }): T[] {
   if (Array.isArray(payload)) {
@@ -31,8 +35,15 @@ const UpService = {
   },
 
   async getAllUps() {
-    const response = await axios.get(API_URL);
-    return normalizeListResponse(response.data);
+    try {
+      const response = await axios.get(API_URL);
+      return normalizeListResponse(response.data);
+    } catch (error: unknown) {
+      if (isNotFoundError(error)) {
+        return [];
+      }
+      throw error;
+    }
   },
 
   async getUpById(id: number | string) {

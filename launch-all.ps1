@@ -9,7 +9,8 @@
 $ROOT   = $PSScriptRoot
 $PYTHON = "$ROOT\.venv\Scripts\python.exe"
 
-# Charger les variables sensibles depuis .env si elles ne sont pas déjà définies.
+# Charger les variables sensibles depuis .env et ecraser les valeurs heritees
+# de la session PowerShell courante.
 function Import-EnvFile([string]$envFilePath) {
     if (-not (Test-Path $envFilePath)) {
         return
@@ -29,7 +30,7 @@ function Import-EnvFile([string]$envFilePath) {
         $name = $parts[0].Trim()
         $value = $parts[1].Trim()
 
-        if ($name -and -not (Test-Path "Env:$name")) {
+        if ($name) {
             Set-Item -Path "Env:$name" -Value $value
         }
     }

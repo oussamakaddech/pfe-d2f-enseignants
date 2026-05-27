@@ -1,6 +1,7 @@
 package esprit.pfe.serviceformation.controllers;
 
 import esprit.d2f.common.security.AuthorizationMatrix;
+import esprit.pfe.serviceformation.common.PageResponse;
 import esprit.pfe.serviceformation.dto.EnseignantDTO;
 import esprit.pfe.serviceformation.entities.Enseignant;
 import esprit.pfe.serviceformation.services.EnseignantExcelService;
@@ -13,7 +14,6 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import lombok.RequiredArgsConstructor;
 
-import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 
@@ -34,9 +34,9 @@ public class EnseignantController {
 
     @GetMapping
     @PreAuthorize(AuthorizationMatrix.REFERENTIEL_READ)
-    public ResponseEntity<Page<EnseignantDTO>> getAllEnseignants(
+    public ResponseEntity<PageResponse<EnseignantDTO>> getAllEnseignants(
             @PageableDefault(size = 20, sort = "id") Pageable pageable) {
-        return ResponseEntity.ok(enseignantService.getAllEnseignantsDTO(pageable));
+        return ResponseEntity.ok(PageResponse.from(enseignantService.getAllEnseignantsDTO(pageable)));
     }
 
     @GetMapping("/{id}")

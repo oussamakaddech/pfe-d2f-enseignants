@@ -1,4 +1,4 @@
-import { Avatar, Progress, Tag, Typography } from "antd";
+import { Avatar, Progress, Tag, Tooltip, Typography } from "antd";
 import { avatarColor, getInitials } from "./constants";
 
 interface SavoirRef { tmpId?: string; code?: string; nom: string }
@@ -77,7 +77,19 @@ export default function EnseignantDropCard({
           {getInitials(enseignant.nom, enseignant.prenom)}
         </Avatar>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <Text strong ellipsis={{ tooltip: fullName }}>{fullName}</Text>
+          <Tooltip title={fullName}>
+            <Text
+              strong
+              style={{
+                display: "block",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+              }}
+            >
+              {fullName}
+            </Text>
+          </Tooltip>
           <div>
             <Text type="secondary" style={{ fontSize: 11 }}>
               {enseignant.grade || enseignant.role || (enseignant.departement ? String(enseignant.departement).toUpperCase() : "")}

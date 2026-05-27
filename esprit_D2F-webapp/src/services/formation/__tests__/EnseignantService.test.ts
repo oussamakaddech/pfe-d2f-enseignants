@@ -40,6 +40,7 @@ describe('EnseignantService', () => {
     httpMocks.mockGet.mockResolvedValueOnce({ data: [{ id: 'E1' }] });
     const result = await EnseignantService.getAllEnseignants();
     expect(result).toEqual([{ id: 'E1' }]);
+    expect(httpMocks.mockGet).toHaveBeenCalledWith(expect.stringContaining('/formation/enseignants'));
   });
 
   it('throws on getAllEnseignants error', async () => {
