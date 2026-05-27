@@ -1366,8 +1366,8 @@ public class FormationWorkflowService {
         dto.setTypeBesoin(formation.getTypeBesoin());
         dto.setTitreFormation(formation.getTitreFormation());
         dto.setTypeFormation(formation.getTypeFormation() != null ? formation.getTypeFormation().toString() : null);
-        dto.setDateDebut(formation.getDateDebut() != null ? formation.getDateDebut().toInstant().atZone(java.time.ZoneId.systemDefault()).toLocalDate() : null);
-        dto.setDateFin(formation.getDateFin() != null ? formation.getDateFin().toInstant().atZone(java.time.ZoneId.systemDefault()).toLocalDate() : null);
+        dto.setDateDebut(formation.getDateDebut() != null ? new java.sql.Timestamp(formation.getDateDebut().getTime()).toInstant().atZone(java.time.ZoneId.of(FormationWorkflowServiceHelper.TIMEZONE_TUNIS)).toLocalDate() : null);
+        dto.setDateFin(formation.getDateFin() != null ? new java.sql.Timestamp(formation.getDateFin().getTime()).toInstant().atZone(java.time.ZoneId.of(FormationWorkflowServiceHelper.TIMEZONE_TUNIS)).toLocalDate() : null);
         dto.setEtatFormation(formation.getEtatFormation() != null ? formation.getEtatFormation().toString() : null);
         dto.setCoutFormation(formation.getCoutFormation() != null ? formation.getCoutFormation().floatValue() : 0.0f);
         dto.setOrganismeRefExterne(formation.getOrganismeRefExterne());
