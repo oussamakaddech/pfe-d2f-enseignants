@@ -4,24 +4,24 @@ import { useFormationsWithDocuments } from "@/hooks/formation/useFormations";
 import { useFormationHierarchy, useDeleteOneDriveFile } from "@/hooks/api/useOneDrive";
 
 const FormationTreeInterface = () => {
-    const [selectedFormation, setSelectedFormation] = useState(null);
-    const [selectedFile, setSelectedFile] = useState(null);
-    const [expandedNodes, setExpandedNodes] = useState({});
+    const [selectedFormation, setSelectedFormation] = useState<any>(null);
+    const [selectedFile, setSelectedFile] = useState<any>(null);
+    const [expandedNodes, setExpandedNodes] = useState<any>({});
   
     const { data: formations = [] } = useFormationsWithDocuments();
     const { data: oneDriveTree = [] } = useFormationHierarchy(selectedFormation?.idFormation);
     const { mutateAsync: deleteOneDriveFile } = useDeleteOneDriveFile();
   
-    const toggleNode = (nodeId) => {
-      setExpandedNodes((prev) => ({ ...prev, [nodeId]: !prev[nodeId] }));
+    const toggleNode = (nodeId: any) => {
+      setExpandedNodes((prev: any) => ({ ...prev, [nodeId]: !prev[nodeId] }));
     };
   
     // Rendu récursif de l'arborescence OneDrive
-    const renderOneDriveTree = (nodes) => {
+    const renderOneDriveTree = (nodes: any) => {
       if (!nodes || nodes.length === 0) return <p>Aucun fichier trouvé.</p>;
       return (
         <ul style={{ listStyle: "none", marginLeft: "10px" }}>
-          {nodes.map((node) => {
+          {nodes.map((node: any) => {
             const isFolder = node.folder;
             const isExpanded = expandedNodes[node.id] || false;
             return (
@@ -67,7 +67,7 @@ const FormationTreeInterface = () => {
       if (!formations.length) return <p>Aucune formation disponible.</p>;
       return (
         <ul className="list-group">
-          {formations.map((formation) => (
+          {formations.map((formation: any) => (
             <li
               key={formation.idFormation}
               role="button"
@@ -77,7 +77,7 @@ const FormationTreeInterface = () => {
                 setSelectedFormation(formation);
                 setSelectedFile(null);
               }}
-              onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setSelectedFormation(formation); setSelectedFile(null); setOneDriveTree([]); } }}
+              onKeyDown={(e: any) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setSelectedFormation(formation); setSelectedFile(null); } }}
               style={{ cursor: "pointer" }}
             >
               {formation.titreFormation}
@@ -139,7 +139,7 @@ const FormationTreeInterface = () => {
                   onClick={async () => {
                     try {
                       await deleteOneDriveFile({
-                        nomFormation: selectedFormation.titreFormation,
+                        nomFormation: selectedFormation?.titreFormation,
                         nomDocument: selectedFile.folder ? selectedFile.name : "dossier_parent",
                         originalFileName: selectedFile.name
                       });

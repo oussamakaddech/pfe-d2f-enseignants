@@ -1,6 +1,6 @@
 import { useContext, useEffect, ReactNode } from "react";
 import { Navigate, Outlet } from "react-router-dom";
-import { AuthContext } from "@/components/common/AuthProvider";
+import { AuthContext } from "@/context/AuthContext";
 import { notify } from "@/utils/helpers/notifications";
 
 const normalizeRole = (value: unknown): string =>

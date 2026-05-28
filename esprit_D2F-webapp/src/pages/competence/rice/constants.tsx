@@ -15,9 +15,9 @@ export const NIVEAU_OPTIONS = [
 // ── Savoir type config ─────────────────────────────────────────────────────────
 import { BookOutlined, ExperimentOutlined } from "@ant-design/icons";
 
-export const TYPE_COLOR = { THEORIQUE: "purple", PRATIQUE: "volcano" };
-export const TYPE_ICON  = { THEORIQUE: <BookOutlined />, PRATIQUE: <ExperimentOutlined /> };
-export const TYPE_LABEL = { THEORIQUE: "Théorique", PRATIQUE: "Pratique" };
+export const TYPE_COLOR: Record<string, string> = { THEORIQUE: "purple", PRATIQUE: "volcano" };
+export const TYPE_ICON: Record<string, React.ReactNode> = { THEORIQUE: <BookOutlined />, PRATIQUE: <ExperimentOutlined /> };
+export const TYPE_LABEL: Record<string, string> = { THEORIQUE: "Théorique", PRATIQUE: "Pratique" };
 
 // ── Department configuration ────────────────────────────────────────────────────
 export const DepartmentConfig = {
@@ -74,8 +74,8 @@ export const DepartmentConfig = {
 };
 
 /** useDepartmentConfig – returns department config for a given code. */
-export function useDepartmentConfig(deptCode) {
-  return DepartmentConfig[deptCode?.toLowerCase()?.trim()] ?? DepartmentConfig.gc;
+export function useDepartmentConfig(deptCode?: string) {
+  return DepartmentConfig[deptCode?.toLowerCase()?.trim() as keyof typeof DepartmentConfig] ?? DepartmentConfig.gc;
 }
 
 interface DepartmentBadgeProps { deptCode?: string; showIcon?: boolean; style?: React.CSSProperties }
@@ -111,14 +111,14 @@ export const DEPARTMENT_OPTIONS = Object.values(DepartmentConfig).map((cfg) => (
 }));
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
-export const cloneDeep = (x) => {
+export const cloneDeep = (x: unknown) => {
   try {
     if (typeof structuredClone === "function") return structuredClone(x);
   } catch { /* fall through */ }
   return JSON.parse(JSON.stringify(x));
 };
 
-export const formatFileSize = (bytes) => {
+export const formatFileSize = (bytes: number) => {
   if (!bytes) return "";
   if (bytes < 1024) return `${bytes} o`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} Ko`;
@@ -127,44 +127,75 @@ export const formatFileSize = (bytes) => {
 
 export const STORAGE_KEY = "rice_session_v2";
 
-function addSavoirToLoad(load, savoir) {
-  (savoir.enseignantsSuggeres ?? []).forEach((eid) => {
+// ── Internal type helpers ────────────────────────────────────────────────────────
+interface SavoirItem {
+  code?: string;
+  nom?: string;
+  enseignantsSuggeres?: unknown[];
+  aiSuggestedIds?: string[];
+  refCodes?: string[];
+}
+
+interface SousCompetence { savoirs?: SavoirItem[] }
+
+interface CompetenceItem {
+  savoirs?: SavoirItem[];
+  sousCompetences?: SousCompetence[];
+}
+
+interface DomaineItem { competences?: CompetenceItem[] }
+
+type LoadMap = Map<string, { count: number; savoirCodes: string[]; refCodes: string[] }>;
+
+interface EnseignantItem {
+  id?: string | number;
+  enseignantId?: string | number;
+  modules?: string[];
+}
+
+interface EnseignantMatch extends Record<string, unknown> {
+  source: "ai" | "module_match" | "manual";
+}
+// ─────────────────────────────────────────────────────────────────────────────────
+
+function addSavoirToLoad(load: LoadMap, savoir: SavoirItem) {
+  (savoir.enseignantsSuggeres ?? []).forEach((eid: unknown) => {
     const key = String(eid);
     if (!load.has(key)) {
       load.set(key, { count: 0, savoirCodes: [], refCodes: [] });
     }
-    const entry = load.get(key);
+    const entry = load.get(key)!;
     entry.count += 1;
-    entry.savoirCodes.push(savoir.code);
+    entry.savoirCodes.push(savoir.code ?? "");
     entry.refCodes.push(...(savoir.refCodes ?? []));
   });
 }
 
-function processCompLoad(comp, load) {
-  (comp.savoirs ?? []).forEach((savoir) => addSavoirToLoad(load, savoir));
-  (comp.sousCompetences ?? []).forEach((sc) => {
-    (sc.savoirs ?? []).forEach((savoir) => addSavoirToLoad(load, savoir));
+function processCompLoad(comp: CompetenceItem, load: LoadMap) {
+  (comp.savoirs ?? []).forEach((savoir: SavoirItem) => addSavoirToLoad(load, savoir));
+  (comp.sousCompetences ?? []).forEach((sc: SousCompetence) => {
+    (sc.savoirs ?? []).forEach((savoir: SavoirItem) => addSavoirToLoad(load, savoir));
   });
 }
 
 /** Calculer la charge de chaque enseignant depuis le tree. */
-export function computeEnseignantLoad(tree) {
-  const load = new Map();
-  (tree ?? []).forEach((domaine) => {
-    (domaine.competences ?? []).forEach((comp) => processCompLoad(comp, load));
+export function computeEnseignantLoad(tree: DomaineItem[]) {
+  const load: LoadMap = new Map();
+  (tree ?? []).forEach((domaine: DomaineItem) => {
+    (domaine.competences ?? []).forEach((comp: CompetenceItem) => processCompLoad(comp, load));
   });
   return load;
 }
 
-function countCompSavoirs(comp) {
+function countCompSavoirs(comp: CompetenceItem) {
   let total = 0;
   let covered = 0;
-  (comp.savoirs ?? []).forEach((s) => {
+  (comp.savoirs ?? []).forEach((s: SavoirItem) => {
     total += 1;
     if ((s.enseignantsSuggeres ?? []).length > 0) covered += 1;
   });
-  (comp.sousCompetences ?? []).forEach((sc) => {
-    (sc.savoirs ?? []).forEach((s) => {
+  (comp.sousCompetences ?? []).forEach((sc: SousCompetence) => {
+    (sc.savoirs ?? []).forEach((s: SavoirItem) => {
       total += 1;
       if ((s.enseignantsSuggeres ?? []).length > 0) covered += 1;
     });
@@ -173,11 +204,11 @@ function countCompSavoirs(comp) {
 }
 
 /** Calculer le taux de couverture (% savoirs avec >= 1 enseignant). */
-export function computeCoveragePct(tree) {
+export function computeCoveragePct(tree: DomaineItem[]) {
   let total = 0;
   let covered = 0;
-  (tree ?? []).forEach((d) => {
-    (d.competences ?? []).forEach((c) => {
+  (tree ?? []).forEach((d: DomaineItem) => {
+    (d.competences ?? []).forEach((c: CompetenceItem) => {
       const r = countCompSavoirs(c);
       total += r.total;
       covered += r.covered;
@@ -187,7 +218,7 @@ export function computeCoveragePct(tree) {
 }
 
 /** Générer initiales depuis nom/prénom. */
-export function getInitials(nom, prenom) {
+export function getInitials(nom?: string, prenom?: string) {
   const n = `${prenom?.[0] ?? ""}${nom?.[0] ?? ""}`;
   return n.toUpperCase() || "?";
 }
@@ -198,7 +229,7 @@ const AVATAR_COLORS = [
 ];
 
 /** Couleur d'avatar déterministe par ID. */
-export function avatarColor(id) {
+export function avatarColor(id: string | number) {
   let hash = 0;
   String(id).split("").forEach((c) => {
     hash = (c.codePointAt(0) ?? 0) + ((hash << 5) - hash);
@@ -206,27 +237,27 @@ export function avatarColor(id) {
   return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
 }
 
-export function normalize(str) {
+export function normalize(str: string) {
   return String(str ?? "")
     .toLowerCase()
     .normalize("NFD")
     .replaceAll(/[\u0300-\u036f]/g, "");
 }
 
-export function matchSuggestedEnseignants(savoir, allEnseignants) {
+export function matchSuggestedEnseignants(savoir: SavoirItem, allEnseignants: EnseignantItem[]) {
   const aiSuggestedIds = new Set(
     (savoir?.aiSuggestedIds ?? savoir?.enseignantsSuggeres ?? []).map(String),
   );
-  const savoirWords = normalize(savoir?.nom)
+  const savoirWords = normalize(savoir?.nom ?? "")
     .split(/\s+/)
     .filter((w) => w.length > 3);
 
-  const suggested = [];
-  const others = [];
+  let suggested: EnseignantMatch[] = [];
+  let others: EnseignantMatch[] = [];
 
-  (allEnseignants ?? []).forEach((e) => {
+  (allEnseignants ?? []).forEach((e: EnseignantItem) => {
     const id = String(e.id ?? e.enseignantId);
-    const moduleMatch = (e.modules ?? []).some((mod) =>
+    const moduleMatch = (e.modules ?? []).some((mod: string) =>
       savoirWords.some((w) => normalize(mod).includes(w)),
     );
 

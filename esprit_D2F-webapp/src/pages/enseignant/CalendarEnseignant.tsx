@@ -1,6 +1,7 @@
 
 import { useState, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+// @ts-ignore
 import { Calendar, dateFnsLocalizer } from "react-big-calendar";
 import { format, parse, startOfWeek, getDay } from "date-fns";
 import { fr } from "date-fns/locale/fr";
@@ -29,13 +30,53 @@ import "@/styles/pages/calendar-enseignant.css";
 
 const { Title, Text } = Typography;
 
-const seanceHasAnimateur = (seance, enseignantId) =>
+interface Person {
+  id: string | number;
+  nom?: string;
+  prenom?: string;
+  deptLibelle?: string;
+  upLibelle?: string;
+}
+
+interface Seance {
+  idSeance: string | number;
+  dateSeance: string;
+  heureDebut: string;
+  heureFin: string;
+  salle?: string;
+  animateurs: Person[];
+  participants: Person[];
+}
+
+interface FormationCalendar {
+  idFormation: string | number;
+  titreFormation: string;
+  typeFormation?: string;
+  etatFormation?: string;
+  chargeHoraireGlobal?: string;
+  seances: Seance[];
+}
+
+interface CalendarEvent {
+  id: string;
+  title: string;
+  start: Date;
+  end: Date;
+  allDay: boolean;
+  resource: {
+    role: "animateur" | "participant";
+    formation: FormationCalendar;
+    seance: Seance;
+  };
+}
+
+const seanceHasAnimateur = (seance: Seance, enseignantId: string | undefined): boolean =>
   seance.animateurs.some((e) => e.id === enseignantId);
 
-const seanceHasParticipant = (seance, enseignantId) =>
+const seanceHasParticipant = (seance: Seance, enseignantId: string | undefined): boolean =>
   seance.participants.some((e) => e.id === enseignantId);
 
-const toAnimateurEvent = (f, s) => ({
+const toAnimateurEvent = (f: FormationCalendar, s: Seance): CalendarEvent => ({
   id: `A-${f.idFormation}-${s.idSeance}`,
   title: f.titreFormation,
   start: new Date(`${s.dateSeance}T${s.heureDebut}`),
@@ -44,7 +85,7 @@ const toAnimateurEvent = (f, s) => ({
   resource: { role: "animateur", formation: f, seance: s },
 });
 
-const toParticipantEvent = (f, s) => ({
+const toParticipantEvent = (f: FormationCalendar, s: Seance): CalendarEvent => ({
   id: `P-${f.idFormation}-${s.idSeance}`,
   title: f.titreFormation,
   start: new Date(`${s.dateSeance}T${s.heureDebut}`),
@@ -53,14 +94,14 @@ const toParticipantEvent = (f, s) => ({
   resource: { role: "participant", formation: f, seance: s },
 });
 
-const buildAnimateurEvents = (formations, enseignantId) =>
+const buildAnimateurEvents = (formations: FormationCalendar[], enseignantId: string | undefined): CalendarEvent[] =>
   formations.flatMap((f) =>
     f.seances
       .filter((s) => seanceHasAnimateur(s, enseignantId))
       .map((s) => toAnimateurEvent(f, s))
   );
 
-const buildParticipantEvents = (formations, enseignantId) =>
+const buildParticipantEvents = (formations: FormationCalendar[], enseignantId: string | undefined): CalendarEvent[] =>
   formations.flatMap((f) =>
     f.seances
       .filter((s) => seanceHasParticipant(s, enseignantId))
@@ -83,18 +124,18 @@ export default function CalendarEnseignant() {
   const [date, setDate] = useState(new Date());
   const [view, setView] = useState("month");
   const [open, setOpen] = useState(false);
-  const [selectedEvent, setSelectedEvent] = useState(null);
+  const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
 
   const { data: calendarDto } = useFormationsForCalendar(enseignantId);
-  const dto = calendarDto as { asAnimateur: unknown[]; asParticipant: unknown[] } | undefined;
+  const dto = calendarDto as { asAnimateur: FormationCalendar[]; asParticipant: FormationCalendar[] } | undefined;
 
   const enseignantInfo = useMemo(() => {
     if (!dto) return null;
-    return (dto.asAnimateur as { seances?: { animateurs?: { id?: unknown; nom?: string; prenom?: string; deptLibelle?: string; upLibelle?: string }[] }[] }[])
+    return dto.asAnimateur
       .flatMap((f) => f.seances ?? [])
       .find((s) => seanceHasAnimateur(s, enseignantId))
       ?.animateurs?.find((e) => e.id === enseignantId) ||
-    (dto.asParticipant as { seances?: { participants?: { id?: unknown; nom?: string; prenom?: string; deptLibelle?: string; upLibelle?: string }[] }[] }[])
+    dto.asParticipant
       .flatMap((f) => f.seances ?? [])
       .find((s) => seanceHasParticipant(s, enseignantId))
       ?.participants?.find((e) => e.id === enseignantId);
@@ -108,7 +149,7 @@ export default function CalendarEnseignant() {
     ];
   }, [dto, enseignantId]);
 
-  const eventStyleGetter = (event) => ({
+  const eventStyleGetter = (event: CalendarEvent) => ({
     style: {
       backgroundColor: event.resource.role === "animateur" ? "#ffe4e4" : "#dbeafe",
       borderRadius: 6,
@@ -121,7 +162,7 @@ export default function CalendarEnseignant() {
     className: event.resource.role === "animateur" ? "blink-animateur" : "",
   });
 
-  const handleSelectEvent = (event) => {
+  const handleSelectEvent = (event: CalendarEvent) => {
     setSelectedEvent(event);
     setOpen(true);
   };
@@ -133,7 +174,7 @@ export default function CalendarEnseignant() {
 
   const isAnimateur = selectedEvent?.resource.role === "animateur";
 
-  let seancePeople: unknown[] = [];
+  let seancePeople: Person[] = [];
   if (selectedEvent) {
     const seance = selectedEvent.resource.formation.seances.find(
       (s) => s.idSeance === selectedEvent.resource.seance.idSeance
@@ -208,8 +249,8 @@ export default function CalendarEnseignant() {
           endAccessor="end"
           date={date}
           view={view}
-          onNavigate={(newDate) => setDate(newDate)}
-          onView={(newView) => setView(newView)}
+          onNavigate={(newDate: Date) => setDate(newDate)}
+          onView={(newView: string) => setView(newView)}
           toolbar
           views={["month", "week", "day"]}
           style={{ height: "100%" }}
@@ -340,7 +381,7 @@ export default function CalendarEnseignant() {
               </Text>
               <div className="cal-ens-modal-person-tags">
                 {seancePeople.length > 0
-                  ? seancePeople.map((p) => (
+                  ? seancePeople.map((p: Person) => (
                       <Tag key={p.id} icon={<UserOutlined />}>
                         {p.nom} {p.prenom}
                       </Tag>

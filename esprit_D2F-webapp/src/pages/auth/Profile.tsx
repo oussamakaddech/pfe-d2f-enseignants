@@ -31,7 +31,7 @@ const { Title, Text } = Typography;
 
 export default function Profile() {
   const { message: msgApi } = useAppNotification();
-  const [profile, setProfile] = useState(null);
+  const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [passwordSaving, setPasswordSaving] = useState(false);
@@ -62,21 +62,21 @@ export default function Profile() {
     refetchProfile();
   };
 
-  const onFinishInfo = async (values) => {
+  const onFinishInfo = async (values: any) => {
     setSaving(true);
     try {
       await editProfileApi(values);
       msgApi.success("Profil mis à jour !");
       setIsInfoDrawerOpen(false);
       await loadProfile();
-    } catch (err: unknown) {
+    } catch (err: any) {
       msgApi.error(err.response?.data?.message || err.message || "Erreur de modification");
     } finally {
       setSaving(false);
     }
   };
 
-  const onFinishPwd = async ({ newPassword, confirmation }) => {
+  const onFinishPwd = async ({ newPassword, confirmation }: any) => {
     if (newPassword !== confirmation) {
       msgApi.warning("Les mots de passe ne correspondent pas");
       return;
@@ -87,7 +87,7 @@ export default function Profile() {
       msgApi.success("Mot de passe changé !");
       setIsPwdDrawerOpen(false);
       pwdForm.resetFields();
-    } catch (err: unknown) {
+    } catch (err: any) {
       msgApi.error(err.response?.data?.message || err.message || "Erreur");
     } finally {
       setPasswordSaving(false);

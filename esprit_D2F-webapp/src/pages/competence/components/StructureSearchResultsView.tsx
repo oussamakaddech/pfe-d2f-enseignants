@@ -2,7 +2,7 @@ import PropTypes from "prop-types";
 import { Card, Descriptions, Empty, Space, Tag, Typography } from "antd";
 import { ApartmentOutlined, BookOutlined, BulbOutlined, FolderOpenOutlined } from "@ant-design/icons";
 
-export default function StructureSearchResultsView({ results }) {
+export default function StructureSearchResultsView({ results }: any) {
   const { domaines = [], competences = [], sousCompetences = [], savoirs = [] } = results;
   const hasResults = domaines.length || competences.length || sousCompetences.length || savoirs.length;
 
@@ -12,7 +12,7 @@ export default function StructureSearchResultsView({ results }) {
     <Space direction="vertical" style={{ width: "100%" }} size="middle">
       {domaines.length > 0 && (
         <Card size="small" title={<><FolderOpenOutlined /> Domaines ({domaines.length})</>}>
-          {domaines.map((d) => (
+          {domaines.map((d: any) => (
             <Tag key={d.id} color="blue" style={{ margin: 4, padding: "4px 8px" }}>
               <strong>{d.code}</strong> — {d.nom}
             </Tag>
@@ -22,7 +22,7 @@ export default function StructureSearchResultsView({ results }) {
       {competences.length > 0 && (
         <Card size="small" title={<><ApartmentOutlined /> Compétences ({competences.length})</>}>
           <Descriptions column={1} size="small" bordered>
-            {competences.map((c) => (
+            {competences.map((c: any) => (
               <Descriptions.Item key={c.id} label={<Tag color="green">{c.code}</Tag>}>
                 <strong>{c.nom}</strong>
                 {c.domaineNom && <Typography.Text type="secondary"> — {c.domaineNom}</Typography.Text>}
@@ -35,7 +35,7 @@ export default function StructureSearchResultsView({ results }) {
       {sousCompetences.length > 0 && (
         <Card size="small" title={<><BulbOutlined /> Compétences filles ({sousCompetences.length})</>}>
           <Descriptions column={1} size="small" bordered>
-            {sousCompetences.map((sc) => (
+            {sousCompetences.map((sc: any) => (
               <Descriptions.Item key={sc.id} label={<Tag color="orange">{sc.code}</Tag>}>
                 <strong>{sc.nom}</strong>
                 {sc.competenceNom && <Typography.Text type="secondary"> — {sc.competenceNom}</Typography.Text>}
@@ -48,7 +48,7 @@ export default function StructureSearchResultsView({ results }) {
       {savoirs.length > 0 && (
         <Card size="small" title={<><BookOutlined /> Savoirs ({savoirs.length})</>}>
           <Descriptions column={1} size="small" bordered>
-            {savoirs.map((s) => (
+            {savoirs.map((s: any) => (
               <Descriptions.Item
                 key={s.id}
                 label={(

@@ -49,8 +49,8 @@ export default function CompetencePage() {
   const [addPrerequisiteForm] = Form.useForm();
 
   const [prerequisiteModal, setPrerequisiteModal] = useState(false);
-  const [prerequisiteTarget, setPrerequisiteTarget] = useState(null);
-  const [prerequisites, setPrerequisites] = useState([]);
+  const [prerequisiteTarget, setPrerequisiteTarget] = useState<any>(null);
+  const [prerequisites, setPrerequisites] = useState<any[]>([]);
   const [prerequisiteLoading, setPrerequisiteLoading] = useState(false);
 
   const structure = useStructureData();
@@ -79,7 +79,7 @@ export default function CompetencePage() {
       return;
     }
 
-    const competence = crud.competences.find(
+    const competence = (crud.competences as any[]).find(
       (c) => String(c.id) === String(structure.matrixCompId),
     );
 
@@ -92,23 +92,23 @@ export default function CompetencePage() {
       sheet,
       [
         ["Affectation des savoirs par niveau de compétence"],
-        ["Compétence", competence?.nom || "-"],
-        ["Code", competence?.code || "-"],
+        ["Compétence", (competence as any)?.nom || "-"],
+        ["Code", (competence as any)?.code || "-"],
       ],
       { origin: "A1" },
     );
 
     XLSX.utils.book_append_sheet(workbook, sheet, "Affectation Niveaux");
 
-    XLSX.writeFile(workbook, buildExportFileName(competence?.code));
+    XLSX.writeFile(workbook, buildExportFileName((competence as any)?.code));
   };
 
-  const loadPrerequisites = useCallback(async (competenceId) => {
+  const loadPrerequisites = useCallback(async (competenceId: any) => {
     setPrerequisiteLoading(true);
     try {
       const data = await prerequisiteApi.getByCompetence(competenceId);
       setPrerequisites(Array.isArray(data) ? data : []);
-    } catch (err: unknown) {
+    } catch (err: any) {
       message.error(err?.response?.data?.message || "Erreur lors du chargement des prerequis");
       setPrerequisites([]);
     } finally {
@@ -144,24 +144,24 @@ export default function CompetencePage() {
         loadPrerequisites(prerequisiteTarget.id),
         loadCompetences(),
       ]);
-    } catch (err: unknown) {
+    } catch (err: any) {
       if (err?.errorFields) return;
       message.error(err?.response?.data?.message || "Erreur lors de l'ajout du prerequis");
     }
   }, [addPrerequisiteForm, loadCompetences, loadPrerequisites, message, prerequisiteApi, prerequisiteTarget]);
 
-  const handleUpdatePrerequisiteNiveau = useCallback(async (id, niveauMinimum) => {
+  const handleUpdatePrerequisiteNiveau = useCallback(async (id: any, niveauMinimum: any) => {
     if (!prerequisiteTarget?.id) return;
     try {
       await prerequisiteApi.updateNiveau(prerequisiteTarget.id, id, niveauMinimum);
       message.success("Niveau minimum mis a jour");
       await loadPrerequisites(prerequisiteTarget.id);
-    } catch (err: unknown) {
+    } catch (err: any) {
       message.error(err?.response?.data?.message || "Erreur lors de la mise a jour du niveau");
     }
   }, [prerequisiteApi, loadPrerequisites, prerequisiteTarget]);
 
-  const handleRemovePrerequisite = useCallback(async (id) => {
+  const handleRemovePrerequisite = useCallback(async (id: any) => {
     if (!prerequisiteTarget?.id) return;
     try {
       await prerequisiteApi.remove(prerequisiteTarget.id, id);
@@ -170,7 +170,7 @@ export default function CompetencePage() {
         loadPrerequisites(prerequisiteTarget.id),
         loadCompetences(),
       ]);
-    } catch (err: unknown) {
+    } catch (err: any) {
       message.error(err?.response?.data?.message || "Erreur lors de la suppression du prerequis");
     }
   }, [prerequisiteApi, loadPrerequisites, prerequisiteTarget, loadCompetences]);
@@ -179,7 +179,7 @@ export default function CompetencePage() {
     {
       title: "Competence prerequise",
       key: "prerequisite",
-      render: (_, record) => (
+      render: (_: any, record: any) => (
         <Space direction="vertical" size={0}>
           <span>{record.prerequisiteNom}</span>
           <Tag color="geekblue">{record.prerequisiteCode}</Tag>
@@ -191,7 +191,7 @@ export default function CompetencePage() {
       dataIndex: "niveauMinimum",
       key: "niveauMinimum",
       width: 170,
-      render: (value) => {
+      render: (value: any) => {
         const meta = niveauMeta(value);
         return <Tag color={meta.color}>{meta.label}</Tag>;
       },
@@ -200,7 +200,7 @@ export default function CompetencePage() {
       title: "Description",
       dataIndex: "description",
       key: "description",
-      render: (value) => (
+      render: (value: any) => (
         <span
           style={{ display: "inline-block", maxWidth: 220, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}
           title={value || ""}
@@ -213,7 +213,7 @@ export default function CompetencePage() {
       title: "Actions",
       key: "actions",
       width: 280,
-      render: (_, record) => (
+      render: (_: any, record: any) => (
         <Space>
           <Select
             size="small"
@@ -250,7 +250,7 @@ export default function CompetencePage() {
         if (!names.length && !manual) return "-";
         return (
           <Space size={4} wrap>
-            {names.map((name) => (
+            {names.map((name: any) => (
               <Tag key={`${record.id}-${name}`} color="orange">
                 {name}
               </Tag>
@@ -265,29 +265,29 @@ export default function CompetencePage() {
   ], [crud.compColumns]);
 
   const prerequisiteCompetenceOptions = useMemo(() => (
-    crud.competences
-      .filter((c) => String(c.id) !== String(prerequisiteTarget?.id))
-      .map((c) => ({
+    (crud.competences as any[])
+      .filter((c: any) => String(c.id) !== String(prerequisiteTarget?.id))
+      .map((c: any) => ({
         value: c.id,
         label: `${c.nom} (${c.code})`,
         searchText: `${c.nom || ""} ${c.code || ""}`.toLowerCase(),
       }))
   ), [crud.competences, prerequisiteTarget]);
 
-  const renderExpandedCompRow = useCallback((record) => (
+  const renderExpandedCompRow = useCallback((record: any) => (
     <CompetenceExpandedRow
-      competence={record}
-      sousComps={crud.sousComps}
-      loading={crud.scLoading}
-      onAddRoot={(parent) =>
-        crud.openScModal(scForm, { type: "competence", id: parent.id, nom: parent.nom, code: parent.code }, null)
-      }
-      onAddChild={(parentSc) =>
-        crud.openScModal(scForm, { type: "sousCompetence", id: parentSc.id, nom: parentSc.nom, code: parentSc.code, competenceId: parentSc.competenceId }, null)
-      }
-      onAddSavoir={(leafSc) => crud.openSavoirModal(savoirForm, null, leafSc)}
-      onEdit={(row) => crud.openScModal(scForm, null, row)}
-      onDelete={crud.handleScDelete}
+      {...{
+        competence: record,
+        sousComps: crud.sousComps,
+        loading: crud.scLoading,
+        onAddRoot: (parent: any) =>
+          crud.openScModal(scForm, { type: "competence", id: parent.id, nom: parent.nom, code: parent.code }, null),
+        onAddChild: (parentSc: any) =>
+          crud.openScModal(scForm, { type: "sousCompetence", id: parentSc.id, nom: parentSc.nom, code: parentSc.code, competenceId: parentSc.competenceId }, null),
+        onAddSavoir: (leafSc: any) => crud.openSavoirModal(savoirForm, null, leafSc),
+        onEdit: (row: any) => crud.openScModal(scForm, null, row),
+        onDelete: crud.handleScDelete,
+      } as any}
     />
   ), [crud, scForm, savoirForm]);
 
@@ -305,7 +305,7 @@ export default function CompetencePage() {
           data={crud.domaines}
           loading={crud.domainesLoading}
           onAdd={() => crud.openDomaineModal(domaineForm)}
-          onEdit={(record) => crud.openDomaineModal(domaineForm, record)}
+          onEdit={(record: any) => crud.openDomaineModal(domaineForm, record)}
           onDelete={crud.handleDomaineDelete}
           addLabel="Ajouter un domaine"
           searchPlaceholder="Rechercher un domaine (nom, code…)"
@@ -319,20 +319,22 @@ export default function CompetencePage() {
       label: "Compétences",
       children: (
         <CrudTab
-          columns={compColumnsWithPrerequisite}
-          data={crud.competences}
-          loading={crud.compLoading}
-          onAdd={() => crud.openCompModal(compForm)}
-          onEdit={(record) => crud.openCompModal(compForm, record)}
-          onDelete={crud.handleCompDelete}
-          addLabel="Ajouter une compétence"
-          searchPlaceholder="Rechercher une compétence (nom, code, domaine…)"
-          tableProps={{
-            expandable: {
-              expandedRowRender: renderExpandedCompRow,
-              rowExpandable: () => true,
+          {...{
+            columns: compColumnsWithPrerequisite,
+            data: crud.competences,
+            loading: crud.compLoading,
+            onAdd: () => crud.openCompModal(compForm),
+            onEdit: (record: any) => crud.openCompModal(compForm, record),
+            onDelete: crud.handleCompDelete,
+            addLabel: "Ajouter une compétence",
+            searchPlaceholder: "Rechercher une compétence (nom, code, domaine…)",
+            tableProps: {
+              expandable: {
+                expandedRowRender: renderExpandedCompRow,
+                rowExpandable: () => true,
+              },
             },
-          }}
+          } as any}
         />
       ),
     },
@@ -347,7 +349,7 @@ export default function CompetencePage() {
           data={crud.savoirs}
           loading={crud.savoirsLoading}
           onAdd={() => crud.openSavoirModal(savoirForm)}
-          onEdit={(record) => crud.openSavoirModal(savoirForm, record)}
+          onEdit={(record: any) => crud.openSavoirModal(savoirForm, record)}
           onDelete={crud.handleSavoirDelete}
           addLabel="Ajouter un savoir"
           searchPlaceholder="Rechercher un savoir (nom, code, type…)"

@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import jsPDF from "jspdf";
 import PropTypes from "prop-types";
 
-function CertificatePdfViewer({ certificate }) {
+function CertificatePdfViewer({ certificate }: any) {
   const [pdfUrl, setPdfUrl] = useState("");
 
   useEffect(() => {
@@ -82,7 +82,7 @@ function CertificatePdfViewer({ certificate }) {
         h - 40  // Y
       );
 
-      setPdfUrl(doc.output("bloburl"));
+      setPdfUrl(doc.output("bloburl").toString());
     };
 
     generatePdf();

@@ -30,12 +30,8 @@ function isNotFoundError(error: unknown): boolean {
 
 const DeptService = {
   async createDept(deptData: Record<string, unknown>) {
-    try {
-      const response = await axios.post(API_URL, deptData);
-      return response.data;
-    } catch (error: unknown) {
-      throw error;
-    }
+    const response = await axios.post(API_URL, deptData);
+    return response.data;
   },
 
   async getAllDepts() {
@@ -51,45 +47,25 @@ const DeptService = {
   },
 
   async getDeptById(id: number | string) {
-    try {
-      const response = await axios.get(`${API_URL}/${id}`);
-      return response.data;
-    } catch (error: unknown) {
-      throw error;
-    }
+    const response = await axios.get(`${API_URL}/${id}`);
+    return response.data;
   },
 
   async updateDept(id: number | string, deptData: Record<string, unknown>) {
-    try {
-      const response = await axios.put(`${API_URL}/${id}`, deptData);
-      return response.data;
-    } catch (error: unknown) {
-      throw error;
-    }
+    const response = await axios.put(`${API_URL}/${id}`, deptData);
+    return response.data;
   },
 
   async deleteDept(id: number | string) {
-    try {
-      await axios.delete(`${API_URL}/${id}`);
-    } catch (error: unknown) {
-      throw error;
-    }
+    await axios.delete(`${API_URL}/${id}`);
   },
 
   async importDeptsExcel(file: File) {
-    try {
-      const formData = new FormData();
-      formData.append("file", file);
-      const response = await axios.post(`${API_URL}/import-excel`, formData);
-      return response.data;
-    } catch (error: unknown) {
-      throw error;
-    }
+    const formData = new FormData();
+    formData.append("file", file);
+    const response = await axios.post(`${API_URL}/import-excel`, formData);
+    return response.data;
   },
 };
 
 export default DeptService;
-
-
-
-

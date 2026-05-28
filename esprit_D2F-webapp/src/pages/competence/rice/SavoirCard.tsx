@@ -1,5 +1,6 @@
 import { memo, useMemo, useState } from "react";
 import { Avatar, Dropdown, Input, Select, Space, Tag, Tooltip, Typography } from "antd";
+import type { MenuProps } from "antd";
 import { DeleteOutlined, EditOutlined, HolderOutlined, MergeCellsOutlined, MoreOutlined } from "@ant-design/icons";
 import { NIVEAU_OPTIONS, TYPE_LABEL, avatarColor, getInitials } from "./constants";
 
@@ -46,7 +47,7 @@ interface SavoirCardProps {
   inlineHint?: boolean;
 }
 
-const NIVEAU_DOT = {
+const NIVEAU_DOT: Record<string, string> = {
   N1_DEBUTANT: "#94a3b8",
   N2_ELEMENTAIRE: "#3b82f6",
   N3_INTERMEDIAIRE: "#16a34a",
@@ -54,7 +55,7 @@ const NIVEAU_DOT = {
   N5_EXPERT: "#ef4444",
 };
 
-const NIVEAU_SIMPLE = {
+const NIVEAU_SIMPLE: Record<string, string> = {
   N1_DEBUTANT: "Niveau 1",
   N2_ELEMENTAIRE: "Niveau 2",
   N3_INTERMEDIAIRE: "Niveau 3",
@@ -89,11 +90,13 @@ const SavoirCard = memo(function SavoirCard({
   const assigned = useMemo(() => {
     const ids = (savoir.enseignantsSuggeres ?? []).map(String);
     const map = new Map((allEnseignants ?? []).map((e) => [String(e.id ?? e.enseignantId), e]));
-    return ids.map((id) => ({ id, ens: map.get(id) })).filter((x) => x.ens);
+    return ids
+      .map((id) => ({ id, ens: map.get(id) }))
+      .filter((x): x is { id: string; ens: EnseignantRef } => Boolean(x.ens));
   }, [savoir.enseignantsSuggeres, allEnseignants]);
   const aiSuggestionCount = (savoir.aiSuggestedIds ?? []).length;
 
-  const menuItems = [
+  const menuItems: MenuProps["items"] = [
     {
       key: "rename",
       icon: <EditOutlined />,
@@ -119,14 +122,13 @@ const SavoirCard = memo(function SavoirCard({
     },
   ];
 
-  const removeTeacher = (id) => {
+  const removeTeacher = (id: string) => {
     const next = (savoir.enseignantsSuggeres ?? []).filter((x) => String(x) !== String(id));
     setEnseignants(di, ci, sci, si, next);
   };
 
   return (
     /* Draggable savoir card; keyboard users access the dropdown menu (MoreOutlined) for assign / move actions. (S6848 — by-design DnD.) */
-    // eslint-disable-next-line jsx-a11y/no-static-element-interactions
     <div
       className={`savoir-card${isBeingDragged ? " is-dragging" : ""}`}
       draggable
@@ -172,7 +174,7 @@ const SavoirCard = memo(function SavoirCard({
           </Tag>
 
           <Space size={4}>
-            <span className="niveau-dot" style={{ background: NIVEAU_DOT[savoir.niveau] || "#94a3b8" }} />
+            <span className="niveau-dot" style={{ background: NIVEAU_DOT[savoir.niveau ?? ""] || "#94a3b8" }} />
             <Select
               size="small"
               value={savoir.niveau}
@@ -191,7 +193,7 @@ const SavoirCard = memo(function SavoirCard({
             {getInitials(assigned[0].ens.nom, assigned[0].ens.prenom)}
           </Avatar>
           <Text style={{ fontSize: 12 }}>
-            {(assigned[0].ens.prenom ? `${assigned[0].ens.prenom} ${assigned[0].ens.nom}` : assigned[0].ens.nom).slice(0, 16)}
+            {(assigned[0].ens.prenom ? `${assigned[0].ens.prenom} ${assigned[0].ens.nom}` : assigned[0].ens.nom ?? "").slice(0, 16)}
           </Text>
           <button type="button" className="link-button" aria-label="Retirer cet enseignant" onClick={() => removeTeacher(assigned[0].id)}>×</button>
           {assigned.length > 1 && <Text type="secondary">+{assigned.length - 1}</Text>}

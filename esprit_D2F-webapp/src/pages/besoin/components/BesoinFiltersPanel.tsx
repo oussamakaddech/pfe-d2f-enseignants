@@ -70,7 +70,7 @@ export default function BesoinFiltersPanel({
   onFiltersChange,
   onReset,
 }: Readonly<BesoinFiltersPanelProps>) {
-  const setFilter = (key, value) => onFiltersChange({ ...filters, [key]: value });
+  const setFilter = (key: any, value: any) => onFiltersChange({ ...filters, [key]: value });
 
   // Compute active filter chips for the footer
   const activeChips = useMemo(() => {
@@ -89,7 +89,7 @@ export default function BesoinFiltersPanel({
     }
     if (filters.priorite) chips.push({ key: "priorite", label: `Priorité : ${filters.priorite}`, clear: () => setFilter("priorite", null) });
     if (filters.type) {
-      chips.push({ key: "type", label: `Type : ${TYPE_LABELS[filters.type] || filters.type}`, clear: () => setFilter("type", null) });
+      chips.push({ key: "type", label: `Type : ${(TYPE_LABELS as any)[filters.type] || filters.type}`, clear: () => setFilter("type", null) });
     }
     if (filters.upId) {
       const lbl = ups.find((u) => String(u.id) === String(filters.upId))?.name || ups.find((u) => String(u.id) === String(filters.upId))?.libelle;
@@ -106,8 +106,8 @@ export default function BesoinFiltersPanel({
   const activeCount = activeChips.length;
 
   // Quick filter chips — accès 1-clic aux filtres les plus courants
-  const isQuickActive = (key, value) => filters[key] === value;
-  const toggleQuick = (key, value) => setFilter(key, isQuickActive(key, value) ? null : value);
+  const isQuickActive = (key: any, value: any) => (filters as any)[key] === value;
+  const toggleQuick = (key: any, value: any) => setFilter(key, isQuickActive(key, value) ? null : value);
   const isThisWeekActive = useMemo(() => {
     if (!filters.dateRange?.[0] || !filters.dateRange?.[1]) return false;
     const weekStart = dayjs().startOf("isoWeek");
@@ -225,7 +225,7 @@ export default function BesoinFiltersPanel({
           onChange={(v) => setFilter("type", v)}
         >
           {types.map((t) => (
-            <Option key={t} value={t}>{TYPE_LABELS[t] || t?.replaceAll("_", " ")}</Option>
+            <Option key={t} value={t}>{(TYPE_LABELS as any)[t] || t?.replaceAll("_", " ")}</Option>
           ))}
         </Select>
         <Select

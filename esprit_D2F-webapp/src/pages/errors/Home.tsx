@@ -12,7 +12,7 @@ import { useAuth } from "@/hooks/auth/useAuth";
 
 const { Title, Text } = Typography;
 
-const normalizeRole = (value) =>
+const normalizeRole = (value: any) =>
   String(value || "").toLowerCase().replace(/^role_?/, "").replaceAll(/[\s_-]+/g, "");
 
 const ROLE_LABELS = {
@@ -85,11 +85,11 @@ const cardVariants = {
 };
 
 export default function Home() {
-  const { user } = useAuth();
+  const { user } = useAuth() as any;
   const navigate  = useNavigate();
   const roleKey   = normalizeRole(user?.role);
-  const cards     = useMemo(() => CARDS_BY_ROLE[roleKey] ?? [], [roleKey]);
-  const roleLabel = ROLE_LABELS[roleKey] ?? user?.role ?? "";
+  const cards     = useMemo(() => (CARDS_BY_ROLE as any)[roleKey] ?? [], [roleKey]);
+  const roleLabel = (ROLE_LABELS as any)[roleKey] ?? user?.role ?? "";
   const displayName = user?.username ?? user?.name ?? "Utilisateur";
 
   return (
@@ -145,11 +145,11 @@ export default function Home() {
       {/* ── Cards Grid ── */}
       <motion.div variants={containerVariants} initial="hidden" animate="visible">
         <Row gutter={[20, 20]}>
-          {cards.map((card) => {
+          {cards.map((card: any) => {
             const Icon = card.icon;
             return (
               <Col xs={24} sm={12} md={8} lg={6} key={card.path}>
-                <motion.div variants={cardVariants} style={{ height: "100%" }}>
+                <motion.div variants={cardVariants as any} style={{ height: "100%" }}>
                   <div
                     role="button"
                     tabIndex={0}

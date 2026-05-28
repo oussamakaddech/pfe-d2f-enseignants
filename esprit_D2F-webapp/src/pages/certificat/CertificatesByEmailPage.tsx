@@ -15,9 +15,9 @@ const { Text, Title } = Typography;
 
 function CertificatesByEmailPage() {
   const { data: certificates = [] } = useCertificatesByEmail();
-  const [selectedCertificate, setSelectedCertificate] = useState(null);
+  const [selectedCertificate, setSelectedCertificate] = useState<any>(null);
 
-  const handleSelectCertificate = (cert) => {
+  const handleSelectCertificate = (cert: any) => {
     setSelectedCertificate(cert);
   };
 
@@ -49,7 +49,7 @@ function CertificatesByEmailPage() {
         />
       ) : (
         <Row gutter={[20, 20]} style={{ marginBottom: 32 }}>
-          {certificates.map((cert) => {
+          {certificates.map((cert: any) => {
             const isSelected =
               selectedCertificate &&
               selectedCertificate.idCertificate === cert.idCertificate;

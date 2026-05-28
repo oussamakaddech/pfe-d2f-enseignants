@@ -1,3 +1,5 @@
+import "axios";
+
 // Axios module augmentation
 declare module "axios" {
   export interface AxiosRequestConfig {

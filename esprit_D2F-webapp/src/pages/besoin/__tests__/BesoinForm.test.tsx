@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { BrowserRouter } from "react-router-dom";
 import { App } from "antd";
-import { AuthContext } from "@/components/common/AuthProvider";
+import { AuthContext } from "@/context/AuthContext";
 import BesoinForm from "../BesoinForm";
 import BesoinFormationService from "@/services/besoin/BesoinFormationService";
 import DeptService from "@/services/formation/DeptService";
@@ -24,11 +24,11 @@ const mockUps = [
   { id: 2, name: "UP Math" },
 ];
 
-function renderWithProviders(ui) {
+function renderWithProviders(ui: any) {
   return render(
     <BrowserRouter>
       <App>
-        <AuthContext.Provider value={{ user: mockUser }}>
+        <AuthContext.Provider value={{ user: mockUser } as any}>
           {ui}
         </AuthContext.Provider>
       </App>
@@ -36,25 +36,25 @@ function renderWithProviders(ui) {
   );
 }
 
-function openSelect(labelText) {
+function openSelect(labelText: any) {
   const field = screen.getByText(labelText).closest(".ant-form-item");
-  return field.querySelector(".ant-select-selector");
+  return field!.querySelector(".ant-select-selector");
 }
 
-async function chooseSelect(labelText, optionText) {
-  fireEvent.mouseDown(openSelect(labelText));
+async function chooseSelect(labelText: any, optionText: any) {
+  fireEvent.mouseDown(openSelect(labelText)!);
   await waitFor(() => {
     const optionContent = Array.from(document.querySelectorAll(".ant-select-item-option-content")).find(
       (element) => element.textContent && element.textContent.trim() === optionText
     );
     const option = optionContent?.closest(".ant-select-item-option");
     expect(option).toBeTruthy();
-    fireEvent.click(option);
+    fireEvent.click(option!);
   });
 }
 
-async function chooseOptionByRole(labelText, optionName) {
-  fireEvent.mouseDown(openSelect(labelText));
+async function chooseOptionByRole(labelText: any, optionName: any) {
+  fireEvent.mouseDown(openSelect(labelText)!);
   await waitFor(() => {
     const option = screen.getByRole("option", { name: optionName });
     fireEvent.click(option);
@@ -150,7 +150,7 @@ describe.skip("BesoinForm", { timeout: 60000 }, () => {
       expect(screen.getByText("Récapitulatif de votre demande")).toBeInTheDocument();
     }, { timeout: 5000 });
     
-    screen.debug(screen.getByText("Récapitulatif de votre demande").parentElement);
+    screen.debug(screen.getByText("Récapitulatif de votre demande").parentElement!);
 
     expect(screen.getByText(/Formation Test/i)).toBeInTheDocument();
     expect(screen.getByText(/Période 1/i)).toBeInTheDocument();

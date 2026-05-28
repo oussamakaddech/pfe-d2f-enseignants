@@ -24,14 +24,21 @@ const ROLE_LABELS: Record<string, string> = {
   chefdepartement:    "Chef de Département",
 };
 
-function processItems(items: MenuItem[]): MenuProps["items"] {
-  return items.map((item: MenuItem) => {
+type AntdMenuItem = NonNullable<MenuProps["items"]>[number];
+
+function processItems(items: MenuItem[]): AntdMenuItem[] {
+  return items.map((item): AntdMenuItem => {
     if (item.type === "group") {
-      return { type: "group" as const, label: item.label, children: processItems(item.children || []) };
+      return { type: "group", label: item.label, children: processItems(item.children ?? []) };
     }
     const Icon = item.icon;
-    const children = item.children ? processItems(item.children) : undefined;
-    return { ...item, icon: Icon ? <Icon /> : null, ...(children !== undefined && { children }) };
+    return {
+      key: item.key ?? "",
+      label: item.label,
+      danger: item.danger,
+      icon: Icon ? <Icon /> : null,
+      ...(item.children ? { children: processItems(item.children) } : {}),
+    };
   });
 }
 

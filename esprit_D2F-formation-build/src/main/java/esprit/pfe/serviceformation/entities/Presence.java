@@ -1,0 +1,32 @@
+package esprit.pfe.serviceformation.entities;
+
+import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Entity
+@Table(name = "presences")
+public class Presence extends BaseAuditEntity {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long idParticipation;
+
+    @Column(name = "presence")
+    private boolean present;
+    private String commentaire;
+
+    // Relation vers la séance à laquelle la présence est associée
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "seance_id")
+    private SeanceFormation seanceFormation;
+
+    // Relation vers l'enseignant qui est présent à la séance
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "enseignant_id")
+    private Enseignant enseignant;
+}

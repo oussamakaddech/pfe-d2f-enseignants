@@ -46,38 +46,33 @@ export default function CompletedFormations() {
   const genBatchMut = useGenerateFormationCertificates();
   const reportFetchMut = useFormationReportFetch();
 
-  const [loadingButtons, setLoadingButtons] = useState({});
+  const [loadingButtons, setLoadingButtons] = useState<any>({});
   const [typeCertif, setTypeCertif] = useState("CERTIF");
   const navigate = useNavigate();
 
   // Drawer PDF-attestation
   const [drawerVisible, setDrawerVisible] = useState(false);
-  const [selectedEns, setSelectedEns] = useState(null);
+  const [selectedEns, setSelectedEns] = useState<any>(null);
   const [attType, setAttType] = useState("PARTICIPATION");
-  const [period, setPeriod] = useState([]);
-  const [pdfUrl, setPdfUrl] = useState(null);
+  const [period, setPeriod] = useState<any>([]);
+  const [pdfUrl, setPdfUrl] = useState<any>(null);
 
   // Drawer création de certificat individuel
   const [newCertDrawerVisible, setNewCertDrawerVisible] = useState(false);
-  const [newCertFormationId, setNewCertFormationId] = useState(null);
-  const [newCertEnseignants, setNewCertEnseignants] = useState([]);
+  const [newCertFormationId, setNewCertFormationId] = useState<any>(null);
+  const [newCertEnseignants, setNewCertEnseignants] = useState<any>([]);
   const [loadingNewCertEns, setLoadingNewCertEns] = useState(false);
-  const [selectedNewCertEns, setSelectedNewCertEns] = useState(null);
+  const [selectedNewCertEns, setSelectedNewCertEns] = useState<any>(null);
 
   // Génération de certificats batch
-  const handleGenerateCertificate = async (record) => {
+  const handleGenerateCertificate = async (record: any) => {
     const id = record.idFormation;
-    setLoadingButtons((prev) => ({ ...prev, [id]: true }));
+    setLoadingButtons((prev: any) => ({ ...prev, [id]: true }));
     try {
       await genBatchMut.mutateAsync({ formationId: id, typeCertif });
       message.success("Certificats générés !");
-      setFormations((prev) =>
-        prev.map((f) =>
-          f.idFormation === id ? { ...f, certifGenerated: true } : f
-        )
-      );
       navigate(`/home/certificate/${id}`);
-    } catch (error: unknown) {
+    } catch (error: any) {
       const resp = error.response;
       if (
         resp?.status === 409 &&
@@ -90,7 +85,7 @@ export default function CompletedFormations() {
         message.error("Échec de la génération des certificats.");
       }
     } finally {
-      setLoadingButtons((prev) => ({ ...prev, [id]: false }));
+      setLoadingButtons((prev: any) => ({ ...prev, [id]: false }));
     }
   };
 
@@ -109,7 +104,7 @@ export default function CompletedFormations() {
     }
     const role = attType === "ANIMATION" ? "animateur" : "participant";
     const ensId = selectedEns.id;
-    const [start, end] = period.map((d) => d.format("YYYY-MM-DD"));
+    const [start, end] = period.map((d: any) => d.format("YYYY-MM-DD"));
 
     try {
       const items = await reportFetchMut.mutateAsync({ role, enseignantId: ensId, start, end });
@@ -120,9 +115,9 @@ export default function CompletedFormations() {
         attType === "ANIMATION"
           ? ["Formation", "Formateur(s)", "Date", "Nb.h", "Public cible", "Objectifs"]
           : ["Formation", "Formateur", "Date"];
-      const body = items.map((f) => {
+      const body = items.map((f: any) => {
         const noms = Array.isArray(f.formateurs)
-          ? f.formateurs.map((fr) => `${fr.nom} ${fr.prenom}`).join(", ")
+          ? f.formateurs.map((fr: any) => `${fr.nom} ${fr.prenom}`).join(", ")
           : "";
         return attType === "ANIMATION"
           ? [
@@ -170,7 +165,7 @@ export default function CompletedFormations() {
   };
 
   // Ouvre le Drawer de création d'un certificat individuel
-  const openNewCertDrawer = (formationId) => {
+  const openNewCertDrawer = (formationId: any) => {
     setNewCertFormationId(formationId);
     setSelectedNewCertEns(null);
     setNewCertEnseignants(enseignants);
@@ -181,7 +176,7 @@ export default function CompletedFormations() {
   const handleCreateCertificate = async () => {
     if (!selectedNewCertEns) return;
     try {
-      const formation = formations.find((f) => f.idFormation === newCertFormationId);
+      const formation = formations.find((f: any) => f.idFormation === newCertFormationId) as any;
       const ens = selectedNewCertEns;
       const payload = {
         formationId: formation.idFormation,
@@ -197,7 +192,7 @@ export default function CompletedFormations() {
         deptEnseignant: ens.departement1?.libelle || ens.dept?.libelle || "",
         roleEnFormation: "PARTICIPANT",
       };
-      await generateCertMut.mutateAsync(payload.formationId);
+      await generateCertMut.mutateAsync(payload.formationId!);
       message.success("Certificat créé !");
       setNewCertDrawerVisible(false);
     } catch {
@@ -216,7 +211,7 @@ export default function CompletedFormations() {
     {
       title: "Action",
       key: "action",
-      render: (_, rec) => (
+      render: (_: any, rec: any) => (
         <Space size={4}>
           <Button
             type="primary"
@@ -258,7 +253,7 @@ export default function CompletedFormations() {
   ];
 
   // Stats
-  const certifCount = formations.filter(f => f.certifGenerated).length;
+  const certifCount = formations.filter((f: any) => f.certifGenerated).length;
   const pendingCount = formations.length - certifCount;
 
   return (
@@ -374,9 +369,9 @@ export default function CompletedFormations() {
               rowSelection={{
                 type: "radio",
                 selectedRowKeys: selectedEns ? [selectedEns.id] : [],
-                onChange: (_, rows) => setSelectedEns(rows[0]),
-                getRowKey: (r) => r.id,
-              }}
+                onChange: (_: any, rows: any) => setSelectedEns(rows[0]),
+                getRowKey: (r: any) => r.id,
+              } as any}
               loading={loadingEns}
               pagination={{ pageSize: 5 }}
               rowKey="id"
@@ -425,9 +420,9 @@ export default function CompletedFormations() {
           rowSelection={{
             type: "radio",
             selectedRowKeys: selectedNewCertEns ? [selectedNewCertEns.id] : [],
-            onChange: (_, rows) => setSelectedNewCertEns(rows[0]),
-            getRowKey: (r) => r.id,
-          }}
+            onChange: (_: any, rows: any) => setSelectedNewCertEns(rows[0]),
+            getRowKey: (r: any) => r.id,
+          } as any}
           loading={loadingNewCertEns}
           pagination={{ pageSize: 5 }}
           rowKey="id"

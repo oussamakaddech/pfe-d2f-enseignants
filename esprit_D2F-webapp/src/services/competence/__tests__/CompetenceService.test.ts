@@ -78,7 +78,7 @@ describe('CompetenceService', () => {
     await expect(CompetenceService.savoir.search('algo')).resolves.toEqual([{ id: 31 }]);
 
     httpMocks.mockPost.mockResolvedValueOnce({ data: { id: 32 } });
-    await expect(CompetenceService.savoir.createForCompetence(11, { nomSavoir: 'S' })).resolves.toEqual({ id: 32 });
+    await expect(CompetenceService.savoir.createForCompetence(11, { nomSavoir: 'S' } as any)).resolves.toEqual({ id: 32 });
 
     httpMocks.mockGet.mockResolvedValueOnce({ data: [{ id: 'node-1' }] });
     await expect(CompetenceService.structure.getArbreComplet()).resolves.toEqual([{ id: 'node-1' }]);
@@ -141,10 +141,10 @@ describe('CompetenceService', () => {
     await expect(CompetenceService.savoir.getById(83)).resolves.toEqual({ id: 83 });
 
     httpMocks.mockPost.mockResolvedValueOnce({ data: { id: 84 } });
-    await expect(CompetenceService.savoir.create(71, { nomSavoir: 'S1' })).resolves.toEqual({ id: 84 });
+    await expect(CompetenceService.savoir.create(71, { nomSavoir: 'S1' } as any)).resolves.toEqual({ id: 84 });
 
     httpMocks.mockPut.mockResolvedValueOnce({ data: { id: 84, nomSavoir: 'S2' } });
-    await expect(CompetenceService.savoir.update(84, { nomSavoir: 'S2' })).resolves.toEqual({ id: 84, nomSavoir: 'S2' });
+    await expect(CompetenceService.savoir.update(84, { nomSavoir: 'S2' } as any)).resolves.toEqual({ id: 84, nomSavoir: 'S2' });
 
     httpMocks.mockDelete.mockResolvedValueOnce({ data: { deleted: true } });
     await expect(CompetenceService.savoir.delete(84)).resolves.toMatchObject({ data: { deleted: true } });

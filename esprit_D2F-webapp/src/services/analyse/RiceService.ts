@@ -34,14 +34,15 @@ const fetchAllPages = async (url: string, baseParams = "") => {
   const first = await axios.get(`${url}${baseParams}`);
   const data = first?.data;
 
-    const d = data as { content?: unknown[]; totalPages?: number };
-    if (!Array.isArray(d?.content) || !Number.isInteger(d?.totalPages) || d.totalPages <= 1) {
+  const d = data as { content?: unknown[]; totalPages?: number };
+  const totalPages = d?.totalPages ?? 0;
+  if (!Array.isArray(d?.content) || !Number.isInteger(d?.totalPages) || totalPages <= 1) {
     return data;
   }
 
   const pageJoiner = baseParams.includes("?") ? "&" : "?";
   const requests = [];
-  for (let page = 1; page < d.totalPages; page++) {
+  for (let page = 1; page < totalPages; page++) {
     requests.push(axios.get(`${url}${baseParams}${pageJoiner}page=${page}`));
   }
 
@@ -88,7 +89,7 @@ const RiceService = {
 
     try {
       const res = await axios.get(FORMATION_ENS_BASE);
-      const list = normalizeEnseignantsPayload(res.data);
+      const list = normalizeEnseignantsPayload<Record<string, unknown>>(res.data);
       if (!departement) return list;
       const deptNorm = String(departement).toLowerCase();
       return list.filter((e) => String(e?.departement ?? e?.department ?? "").toLowerCase() === deptNorm);
@@ -98,9 +99,10 @@ const RiceService = {
       // the competence endpoint with the same token.
       try {
         const data = await fetchAllPages(`${COMPETENCE_BASE}/enseignants`, params);
-        return normalizeEnseignantsPayload(data);
+        return normalizeEnseignantsPayload<Record<string, unknown>>(data);
       } catch (fallbackErr: unknown) {
-        throw fallbackErr?.response?.status ? fallbackErr : err;
+        const fallbackHttpErr = fallbackErr as { response?: { status?: number } };
+        throw fallbackHttpErr?.response?.status ? fallbackErr : err;
       }
     }
   },
@@ -143,7 +145,7 @@ const RiceService = {
     let removed = 0;
     if (remove.length > 0) {
       const existingRes = await axios.get(`${COMPETENCE_BASE}/enseignant-competences`);
-      const existing = normalizeAssignmentsPayload(existingRes.data);
+      const existing = normalizeAssignmentsPayload<Record<string, unknown>>(existingRes.data);
       const idByPair = new Map<string, number>(
         existing.map((ec) => [
           `${String(ec?.savoirId)}|${String(ec?.enseignantId)}`,

@@ -1,8 +1,12 @@
 /**
- * storage.js — Abstraction du localStorage — D2F Webapp
+ * storage.ts — Abstraction du localStorage — D2F Webapp
  * =============================================================================
- * Centralise toutes les clés localStorage pour éviter les fautes de frappe
- * dispersées dans le code et faciliter la maintenance.
+ * Centralise les clés localStorage non sensibles (rôle actif, langue).
+ *
+ * SÉCURITÉ : le profil utilisateur (PII) N'EST PAS stocké ici. La source unique
+ * de l'identité de session est `AuthContext` (sessionStorage "d2f_user"), et le
+ * JWT reste dans un cookie HttpOnly. Ne jamais réintroduire de stockage de PII
+ * en clair dans localStorage.
  *
  * Conformité DSI §1.3 : Modularité et Réutilisabilité
  * Conformité DSI §1.4 : Organisation Structurée du Code (src/utils/)
@@ -11,55 +15,9 @@
 
 // ── Clés centralisées ─────────────────────────────────────────────────────────
 const KEYS = {
-  AUTH_TOKEN: "authToken",
-  USER_PROFILE: "userProfile",
   ACTIVE_ROLE: "activeRole",
   PREFERRED_LANG: "preferredLang",
 };
-
-// ── Token JWT — DEPRECATED ────────────────────────────────────────────────────
-// JWT est maintenant stocké en HttpOnly cookie (withCredentials: true).
-// Ces fonctions ne font rien et sont conservées uniquement pour éviter de
-// casser d'éventuels imports existants. À supprimer lors du prochain refactor.
-
-/** @deprecated JWT est en HttpOnly cookie. Retourne toujours null. */
-export const getToken = (): null => null;
-
-/** @deprecated JWT est positionné par le backend via Set-Cookie. */
-export const setToken = (_token: string): void => { /* no-op */ };
-
-/** @deprecated Utilisez AuthService.logout() pour invalider la session. */
-export const removeToken = (): void => { /* no-op */ };
-
-/** @deprecated JWT est en HttpOnly cookie, non accessible depuis JS. */
-export const hasToken = (): false => false;
-
-// ── Profil utilisateur ────────────────────────────────────────────────────────
-
-/**
- * Récupère le profil utilisateur désérialisé.
- * @returns {object|null}
- */
-export const getProfile = () => {
-  const raw = localStorage.getItem(KEYS.USER_PROFILE);
-  try {
-    return raw ? JSON.parse(raw) : null;
-  } catch {
-    return null;
-  }
-};
-
-/**
- * Stocke le profil utilisateur sérialisé.
- * @param {object} profile
- */
-export const setProfile = (profile: Record<string, unknown>): void =>
-  localStorage.setItem(KEYS.USER_PROFILE, JSON.stringify(profile));
-
-/**
- * Supprime le profil utilisateur.
- */
-export const removeProfile = () => localStorage.removeItem(KEYS.USER_PROFILE);
 
 // ── Rôle actif ────────────────────────────────────────────────────────────────
 
@@ -100,10 +58,10 @@ export const setPreferredLang = (lang: string): void =>
 // ── Utilitaires globaux ───────────────────────────────────────────────────────
 
 /**
- * Supprime toutes les données de session (logout complet).
+ * Supprime les données de session non sensibles (rôle actif).
+ * Le profil/JWT est géré par AuthContext + cookie HttpOnly.
  */
 export const clearSession = () => {
-  localStorage.removeItem(KEYS.USER_PROFILE);
   localStorage.removeItem(KEYS.ACTIVE_ROLE);
 };
 
@@ -112,13 +70,6 @@ export const clearSession = () => {
  * Utile pour les injections de dépendances ou les tests.
  */
 export const storage = {
-  getToken,
-  setToken,
-  removeToken,
-  hasToken,
-  getProfile,
-  setProfile,
-  removeProfile,
   getActiveRole,
   setActiveRole,
   removeActiveRole,

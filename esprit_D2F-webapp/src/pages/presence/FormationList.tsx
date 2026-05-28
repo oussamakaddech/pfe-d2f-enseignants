@@ -46,9 +46,9 @@ const STATUS_META = {
   ANNULE:     { label: "Annulée",     color: "#dc2626", bg: "#fef2f2" },
 };
 
-const uniqueByMail = (list) => {
+const uniqueByMail = (list: any[]) => {
   const map = new Map();
-  (list || []).forEach((p) => {
+  (list || []).forEach((p: any) => {
     const key = p?.mail || p?.id;
     if (key && !map.has(key)) map.set(key, p);
   });
@@ -61,31 +61,31 @@ const FormationList = () => {
   const [deptFilter, setDeptFilter] = useState("");
   const [upFilter, setUpFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
-  const [startDate, setStartDate] = useState(null);
-  const [endDate, setEndDate] = useState(null);
+  const [startDate, setStartDate] = useState<any>(null);
+  const [endDate, setEndDate] = useState<any>(null);
   const navigate = useNavigate();
 
   const isD2F = user?.role === ROLES.D2F;
   const { data: achevees = [], isLoading: loadingAchevees } = useFormationsAchevees();
   const { data: parAnimateur = [], isLoading: loadingAnimateur } = useFormationsByAnimateur();
-  const formations = isD2F ? achevees : parAnimateur;
+  const formations = (isD2F ? achevees : parAnimateur) as any[];
   const loading = isD2F ? loadingAchevees : loadingAnimateur;
 
   // Extract dropdown options
   const depts = useMemo(() => {
-    const m = {};
-    formations.forEach((f) => { if (f.departement1) m[f.departement1.id] = f.departement1.libelle; });
+    const m: Record<string, string> = {};
+    formations.forEach((f: any) => { if (f.departement1) m[f.departement1.id] = f.departement1.libelle; });
     return Object.entries(m).map(([id, libelle]) => ({ id, libelle }));
   }, [formations]);
 
   const ups = useMemo(() => {
-    const m = {};
-    formations.forEach((f) => { if (f.up1) m[f.up1.id] = f.up1.libelle; });
+    const m: Record<string, string> = {};
+    formations.forEach((f: any) => { if (f.up1) m[f.up1.id] = f.up1.libelle; });
     return Object.entries(m).map(([id, libelle]) => ({ id, libelle }));
   }, [formations]);
 
   const filtered = useMemo(() => {
-    return formations.filter((f) => {
+    return formations.filter((f: any) => {
       if (titleFilter && !(f.titreFormation || "").toLowerCase().includes(titleFilter.toLowerCase())) return false;
       if (deptFilter && f.departement1?.id !== deptFilter) return false;
       if (upFilter && f.up1?.id !== upFilter) return false;
@@ -108,9 +108,9 @@ const FormationList = () => {
   // Global stats
   const stats = useMemo(() => {
     const total = formations.length;
-    const enCours = formations.filter((f) => f.etatFormation === "EN_COURS").length;
-    const achevees = formations.filter((f) => f.etatFormation === "ACHEVE").length;
-    const totalSeances = formations.reduce((sum, f) => sum + (f.seances?.length || 0), 0);
+    const enCours = formations.filter((f: any) => f.etatFormation === "EN_COURS").length;
+    const achevees = formations.filter((f: any) => f.etatFormation === "ACHEVE").length;
+    const totalSeances = formations.reduce((sum: number, f: any) => sum + (f.seances?.length || 0), 0);
     return { total, enCours, achevees, totalSeances };
   }, [formations]);
 
@@ -230,11 +230,11 @@ const FormationList = () => {
         </Row>
       ) : (
         <Row gutter={[16, 16]}>
-          {filtered.map((f) => {
+          {filtered.map((f: any) => {
             const seancesCount = f.seances?.length || 0;
-            const participants = uniqueByMail((f.seances || []).flatMap((s) => s.participants || []));
+            const participants = uniqueByMail((f.seances || []).flatMap((s: any) => s.participants || []));
             const participantsCount = participants.length;
-            const status = STATUS_META[f.etatFormation] || STATUS_META.ENREGISTRE;
+            const status = (STATUS_META as any)[f.etatFormation] || STATUS_META.ENREGISTRE;
             const goTo = () => navigate(`/home/animateur-formations/${f.idFormation}`);
 
             return (

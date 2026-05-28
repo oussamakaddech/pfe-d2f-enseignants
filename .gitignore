@@ -30,3 +30,6 @@ run.log
 diag_out.txt
 debug_ens.py
 diag_tv.py
+
+# Large build artifacts
+formation-service.jar

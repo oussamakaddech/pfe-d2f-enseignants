@@ -1,6 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import type { ReactElement } from "react";
 import CombinedFormationOneDriveTree from "../CombinedFormationOneDriveTree";
+
+const renderWithClient = (ui: ReactElement) => {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return render(<QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>);
+};
 import FormationWorkflowService from "@/services/formation/FormationWorkflowService";
 import OneDriveService from "@/services/api/OneDriveService";
 
@@ -17,7 +24,7 @@ vi.mock("@/services/api/OneDriveService", () => ({
 }));
 
 vi.mock("../DocumentViewer", () => ({
-  default: ({ url, ext }) => (
+  default: ({ url, ext }: any) => (
     <div data-testid="document-viewer">
       viewer:{ext}:{url}
     </div>
@@ -29,7 +36,7 @@ vi.mock("../DocumentUploadPanel", () => ({
 }));
 
 vi.mock("../DocumentListModal", () => ({
-  default: ({ open }) => (open ? <div data-testid="documents-modal">documents-modal</div> : null),
+  default: ({ open }: any) => (open ? <div data-testid="documents-modal">documents-modal</div> : null),
 }));
 
 const formations = [
@@ -71,12 +78,12 @@ const tree = [
 describe("CombinedFormationOneDriveTree", { timeout: 15000 }, () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    FormationWorkflowService.getAllFormationWithDocuments.mockResolvedValue(formations);
-    OneDriveService.getFormationHierarchy.mockResolvedValue(tree);
+    (FormationWorkflowService.getAllFormationWithDocuments as any).mockResolvedValue(formations);
+    (OneDriveService.getFormationHierarchy as any).mockResolvedValue(tree);
   });
 
   it("affiche les formations et charge l'aperçu d'un document sélectionné", async () => {
-    render(<CombinedFormationOneDriveTree />);
+    renderWithClient(<CombinedFormationOneDriveTree />);
 
     await waitFor(() => {
       expect(screen.getByText("Explorer les formations et leurs dossiers")).toBeInTheDocument();
@@ -103,7 +110,7 @@ describe("CombinedFormationOneDriveTree", { timeout: 15000 }, () => {
   });
 
   it("filtre les formations par texte", async () => {
-    render(<CombinedFormationOneDriveTree />);
+    renderWithClient(<CombinedFormationOneDriveTree />);
 
     await waitFor(() => {
       expect(screen.getByText("React Avancé")).toBeInTheDocument();

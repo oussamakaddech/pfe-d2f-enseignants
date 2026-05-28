@@ -1,17 +1,55 @@
 import * as XLSX from "xlsx";
 import { getFilteredCrud } from "./consultationViewUtils";
 
-export function getExportDateSuffix() {
+interface Domaine {
+  id: string | number;
+  code: string;
+  nom: string;
+}
+
+interface Competence {
+  id: string | number;
+  code: string;
+  nom: string;
+  domaineId: string | number;
+}
+
+interface SousCompetence {
+  id: string | number;
+  code: string;
+  nom: string;
+  competenceId: string | number;
+  parentId?: string | number | null;
+}
+
+interface Savoir {
+  id: string | number;
+  code: string;
+  nom: string;
+  type: string;
+  niveau: string;
+  sousCompetenceId?: string | number | null;
+  competenceId?: string | number | null;
+}
+
+interface ReferentielCrud {
+  domaines: Domaine[];
+  competences: Competence[];
+  sousComps: SousCompetence[];
+  savoirs: Savoir[];
+}
+
+export function getExportDateSuffix(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
-export function buildCSVString(rows, columns) {
+export function buildCSVString(rows: Array<Record<string, unknown>>, columns: Array<{ key: string; label: string }>): string {
   const header = columns.map((c) => `"${c.label}"`).join(",");
   const body = rows.map((row) => columns.map((c) => `"${String(row[c.key] ?? "").replaceAll('"', '""')}"`).join(","));
   return [header, ...body].join("\n");
 }
 
-export function downloadFile(content, filename, mimeType) {
+export function downloadFile(content: BlobPart, filename: string, mimeType: string): void {
   const blob = new Blob([content], { type: mimeType });
   const url = URL.createObjectURL(blob);
   const a = document.createElement("a");
@@ -24,54 +62,58 @@ export function downloadFile(content, filename, mimeType) {
 }
 
 // Helper pour créer une feuille stylisée avec en-tête en gras et bordures
-const createStyledSheet = (data, sheetName, headerColors) => {
+const createStyledSheet = (data: Array<Record<string, unknown>>, sheetName: string, headerColors: { fg: string; bg: string }) => {
   const ws = XLSX.utils.json_to_sheet(data);
-  const range = XLSX.utils.decode_range(ws["!ref"]);
+  const range = XLSX.utils.decode_range(ws["!ref"] || "A1:A1");
 
   // Style pour les en-têtes
   for (let C = range.s.c; C <= range.e.c; ++C) {
     const address = XLSX.utils.encode_cell({r: 0, c: C});
-    if (!ws[address]) continue;
-    ws[address].s = {
-      fill: {
-        fgColor: { rgb: headerColors.fg },
-        bgColor: { rgb: headerColors.bg }
-      },
-      font: {
-        bold: true,
-        sz: 12,
-        color: { rgb: headerColors.fg }
-      },
-      border: {
-        top: { style: "thin", color: { auto: 1 } },
-        right: { style: "thin", color: { auto: 1 } },
-        bottom: { style: "thin", color: { auto: 1 } },
-        left: { style: "thin", color: { auto: 1 } }
-      }
-    };
+    const cell = ws[address];
+    if (cell) {
+      (cell as any).s = {
+        fill: {
+          fgColor: { rgb: headerColors.fg },
+          bgColor: { rgb: headerColors.bg }
+        },
+        font: {
+          bold: true,
+          sz: 12,
+          color: { rgb: headerColors.fg }
+        },
+        border: {
+          top: { style: "thin", color: { auto: 1 } },
+          right: { style: "thin", color: { auto: 1 } },
+          bottom: { style: "thin", color: { auto: 1 } },
+          left: { style: "thin", color: { auto: 1 } }
+        }
+      };
+    }
   }
 
   // Style pour les données
   for (let R = range.s.r + 1; R <= range.e.r; ++R) {
     for (let C = range.s.c; C <= range.e.c; ++C) {
       const address = XLSX.utils.encode_cell({r: R, c: C});
-      if (!ws[address]) continue;
-      ws[address].s = {
-        fill: {
-          fgColor: { rgb: "000000" },
-          bgColor: { rgb: R % 2 === 0 ? "FFFFFF" : "F5F7FA" }
-        },
-        font: {
-          sz: 11,
-          color: { rgb: "1A1A1A" }
-        },
-        border: {
-          top: { style: "thin", color: { rgb: "D0D7DE" } },
-          right: { style: "thin", color: { rgb: "D0D7DE" } },
-          bottom: { style: "thin", color: { rgb: "D0D7DE" } },
-          left: { style: "thin", color: { rgb: "D0D7DE" } }
-        }
-      };
+      const cell = ws[address];
+      if (cell) {
+        (cell as any).s = {
+          fill: {
+            fgColor: { rgb: "000000" },
+            bgColor: { rgb: R % 2 === 0 ? "FFFFFF" : "F5F7FA" }
+          },
+          font: {
+            sz: 11,
+            color: { rgb: "1A1A1A" }
+          },
+          border: {
+            top: { style: "thin", color: { rgb: "D0D7DE" } },
+            right: { style: "thin", color: { rgb: "D0D7DE" } },
+            bottom: { style: "thin", color: { rgb: "D0D7DE" } },
+            left: { style: "thin", color: { rgb: "D0D7DE" } }
+          }
+        };
+      }
     }
   }
 
@@ -87,8 +129,8 @@ const createStyledSheet = (data, sheetName, headerColors) => {
   return ws;
 };
 
-export function doExportStructureExcel(crud, domaineId) {
-  const f = getFilteredCrud(crud, domaineId);
+export function doExportStructureExcel(crud: unknown, domaineId?: unknown): void {
+  const f = getFilteredCrud(crud as any, domaineId) as unknown as ReferentielCrud;
   const wb = XLSX.utils.book_new();
   const sfx = domaineId ? "_domaine" : "_complet";
 
@@ -145,7 +187,7 @@ export function doExportStructureExcel(crud, domaineId) {
     createStyledSheet(
       f.savoirs.map((s) => {
         const fsc = f.sousComps.find((sc) => String(sc.id) === String(s.sousCompetenceId));
-        let comp = null;
+        let comp: Competence | null = null;
         if (fsc) comp = f.competences.find((c) => String(c.id) === String(fsc.competenceId)) ?? null;
         else if (s.competenceId != null) comp = f.competences.find((c) => String(c.id) === String(s.competenceId)) ?? null;
         return {
@@ -166,8 +208,8 @@ export function doExportStructureExcel(crud, domaineId) {
   XLSX.writeFile(wb, `structure${sfx}_${getExportDateSuffix()}.xlsx`);
 }
 
-export function doExportSavoirsExcel(crud, domaineId) {
-  const f = getFilteredCrud(crud, domaineId);
+export function doExportSavoirsExcel(crud: unknown, domaineId?: unknown): void {
+  const f = getFilteredCrud(crud as any, domaineId) as unknown as ReferentielCrud;
   const sfx = domaineId ? "_domaine" : "";
   const wb = XLSX.utils.book_new();
 
@@ -176,7 +218,7 @@ export function doExportSavoirsExcel(crud, domaineId) {
     createStyledSheet(
       f.savoirs.map((s) => {
         const fsc = f.sousComps.find((sc) => String(sc.id) === String(s.sousCompetenceId));
-        let comp = null;
+        let comp: Competence | null = null;
         if (fsc) comp = f.competences.find((c) => String(c.id) === String(fsc.competenceId)) ?? null;
         else if (s.competenceId != null) comp = f.competences.find((c) => String(c.id) === String(s.competenceId)) ?? null;
         const dom = comp ? f.domaines.find((d) => String(d.id) === String(comp.domaineId)) : null;
@@ -199,17 +241,18 @@ export function doExportSavoirsExcel(crud, domaineId) {
   XLSX.writeFile(wb, `savoirs${sfx}_${getExportDateSuffix()}.xlsx`);
 }
 
-export function doExportSynthesisExcel(crud, stats) {
+export function doExportSynthesisExcel(crud: unknown, stats?: Record<string, number | null | undefined>): void {
+  const c = crud as ReferentielCrud;
   const wb = XLSX.utils.book_new();
 
   // Feuille Statistiques
   const statsRows = [
-    { "INDICATEUR": "Domaines", "VALEUR": stats?.totalDomaines ?? (crud.domaines || []).length },
-    { "INDICATEUR": "Compétences", "VALEUR": stats?.totalCompetences ?? (crud.competences || []).length },
-    { "INDICATEUR": "Sous-compétences", "VALEUR": stats?.totalSousCompetences ?? (crud.sousComps || []).length },
-    { "INDICATEUR": "Savoirs", "VALEUR": stats?.totalSavoirs ?? (crud.savoirs || []).length },
-    { "INDICATEUR": "Savoirs théoriques", "VALEUR": stats?.totalSavoirsTheoriques ?? (crud.savoirs || []).filter((s) => s.type === "THEORIQUE").length },
-    { "INDICATEUR": "Savoirs pratiques", "VALEUR": stats?.totalSavoirsPratiques ?? (crud.savoirs || []).filter((s) => s.type === "PRATIQUE").length },
+    { "INDICATEUR": "Domaines", "VALEUR": stats?.totalDomaines ?? (c.domaines || []).length },
+    { "INDICATEUR": "Compétences", "VALEUR": stats?.totalCompetences ?? (c.competences || []).length },
+    { "INDICATEUR": "Sous-compétences", "VALEUR": stats?.totalSousCompetences ?? (c.sousComps || []).length },
+    { "INDICATEUR": "Savoirs", "VALEUR": stats?.totalSavoirs ?? (c.savoirs || []).length },
+    { "INDICATEUR": "Savoirs théoriques", "VALEUR": stats?.totalSavoirsTheoriques ?? (c.savoirs || []).filter((s) => s.type === "THEORIQUE").length },
+    { "INDICATEUR": "Savoirs pratiques", "VALEUR": stats?.totalSavoirsPratiques ?? (c.savoirs || []).filter((s) => s.type === "PRATIQUE").length },
   ];
 
   XLSX.utils.book_append_sheet(
@@ -222,13 +265,13 @@ export function doExportSynthesisExcel(crud, stats) {
   XLSX.utils.book_append_sheet(
     wb,
     createStyledSheet(
-      (crud.domaines || []).map((d) => {
-        const comps = (crud.competences || []).filter((c) => String(c.domaineId) === String(d.id));
-        const compIds = new Set(comps.map((c) => String(c.id)));
-        const scs = (crud.sousComps || []).filter((sc) => compIds.has(String(sc.competenceId)));
+      (c.domaines || []).map((d) => {
+        const comps = (c.competences || []).filter((comp) => String(comp.domaineId) === String(d.id));
+        const compIds = new Set(comps.map((comp) => String(comp.id)));
+        const scs = (c.sousComps || []).filter((sc) => compIds.has(String(sc.competenceId)));
         const scIds = new Set(scs.map((sc) => String(sc.id)));
-        const savs = (crud.savoirs || []).filter(
-          (s) => scIds.has(String(s.sousCompetenceId)) || compIds.has(String(s.competenceId)),
+        const savs = (c.savoirs || []).filter(
+          (s) => scIds.has(String(s.sousCompetenceId)) || (s.competenceId != null && compIds.has(String(s.competenceId))),
         );
 
         return {
@@ -250,8 +293,8 @@ export function doExportSynthesisExcel(crud, stats) {
   XLSX.writeFile(wb, `synthese_referentiel_${getExportDateSuffix()}.xlsx`);
 }
 
-export function doExportSavoirsCSV(crud, domaineId) {
-  const f = getFilteredCrud(crud, domaineId);
+export function doExportSavoirsCSV(crud: unknown, domaineId?: unknown): void {
+  const f = getFilteredCrud(crud as any, domaineId) as unknown as ReferentielCrud;
   const sfx = domaineId ? "_domaine" : "";
   const columns = [
     { key: "code", label: "Code" },
@@ -265,7 +308,7 @@ export function doExportSavoirsCSV(crud, domaineId) {
 
   const rows = f.savoirs.map((s) => {
     const fsc = f.sousComps.find((sc) => String(sc.id) === String(s.sousCompetenceId));
-    let comp = null;
+    let comp: Competence | null = null;
     if (fsc) comp = f.competences.find((c) => String(c.id) === String(fsc.competenceId)) ?? null;
     else if (s.competenceId != null) comp = f.competences.find((c) => String(c.id) === String(s.competenceId)) ?? null;
     const dom = comp ? f.domaines.find((d) => String(d.id) === String(comp.domaineId)) : null;
@@ -284,8 +327,8 @@ export function doExportSavoirsCSV(crud, domaineId) {
   downloadFile("\uFEFF" + buildCSVString(rows, columns), `savoirs${sfx}_${getExportDateSuffix()}.csv`, "text/csv;charset=utf-8;");
 }
 
-export function doExportCompetencesCSV(crud, domaineId) {
-  const f = getFilteredCrud(crud, domaineId);
+export function doExportCompetencesCSV(crud: unknown, domaineId?: unknown): void {
+  const f = getFilteredCrud(crud as any, domaineId) as unknown as ReferentielCrud;
   const sfx = domaineId ? "_domaine" : "";
   const columns = [
     { key: "code", label: "Code" },
@@ -312,9 +355,9 @@ export function doExportCompetencesCSV(crud, domaineId) {
   downloadFile("\uFEFF" + buildCSVString(rows, columns), `competences${sfx}_${getExportDateSuffix()}.csv`, "text/csv;charset=utf-8;");
 }
 
-const mapSavoir = (s) => ({ id: s.id, code: s.code, nom: s.nom, type: s.type, niveau: s.niveau });
+const mapSavoir = (s: Savoir) => ({ id: s.id, code: s.code, nom: s.nom, type: s.type, niveau: s.niveau });
 
-const buildSousCompetenceNode = (sc, savoirs) => ({
+const buildSousCompetenceNode = (sc: SousCompetence, savoirs: Savoir[]) => ({
   id: sc.id,
   code: sc.code,
   nom: sc.nom,
@@ -322,7 +365,7 @@ const buildSousCompetenceNode = (sc, savoirs) => ({
   savoirs: (savoirs || []).filter((s) => String(s.sousCompetenceId) === String(sc.id)).map(mapSavoir),
 });
 
-const buildCompetenceNode = (c, crud) => {
+const buildCompetenceNode = (c: Competence, crud: ReferentielCrud) => {
   const scs = (crud.sousComps || []).filter((sc) => String(sc.competenceId) === String(c.id));
   return {
     id: c.id,
@@ -335,22 +378,23 @@ const buildCompetenceNode = (c, crud) => {
   };
 };
 
-export function doExportStructureJSON(crud) {
+export function doExportStructureJSON(crud: unknown): void {
+  const c = crud as ReferentielCrud;
   const json = {
     exportedAt: new Date().toISOString(),
     stats: {
-      domaines: (crud.domaines || []).length,
-      competences: (crud.competences || []).length,
-      sousCompetences: (crud.sousComps || []).length,
-      savoirs: (crud.savoirs || []).length,
+      domaines: (c.domaines || []).length,
+      competences: (c.competences || []).length,
+      sousCompetences: (c.sousComps || []).length,
+      savoirs: (c.savoirs || []).length,
     },
-    domaines: (crud.domaines || []).map((d) => ({
+    domaines: (c.domaines || []).map((d) => ({
       id: d.id,
       code: d.code,
       nom: d.nom,
-      competences: (crud.competences || [])
-        .filter((c) => String(c.domaineId) === String(d.id))
-        .map((c) => buildCompetenceNode(c, crud)),
+      competences: (c.competences || [])
+        .filter((comp) => String(comp.domaineId) === String(d.id))
+        .map((comp) => buildCompetenceNode(comp, c)),
     })),
   };
 

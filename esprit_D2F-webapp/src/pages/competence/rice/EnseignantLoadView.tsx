@@ -8,20 +8,20 @@ import { cloneDeep, computeEnseignantLoad, getInitials, avatarColor } from "./co
 
 const { Text } = Typography;
 
-const addSousCompSavoirRows = (rows, d, di, c, ci, sc, sci) => {
-  (sc.savoirs ?? []).forEach((s, si) => {
+const addSousCompSavoirRows = (rows: any, d: any, di: any, c: any, ci: any, sc: any, sci: any) => {
+  (sc.savoirs ?? []).forEach((s: any, si: any) => {
     rows.push({ di, ci, sci, si, domaineNom: d.nom, competenceNom: c.nom, ...s });
   });
 };
 
-const flattenSavoirs = (tree) => {
-  const rows = [];
-  (tree ?? []).forEach((d, di) => {
-    (d.competences ?? []).forEach((c, ci) => {
-      (c.savoirs ?? []).forEach((s, si) => {
+const flattenSavoirs = (tree: any) => {
+  let rows: any[] = [];
+  (tree ?? []).forEach((d: any, di: any) => {
+    (d.competences ?? []).forEach((c: any, ci: any) => {
+      (c.savoirs ?? []).forEach((s: any, si: any) => {
         rows.push({ di, ci, sci: -1, si, domaineNom: d.nom, competenceNom: c.nom, ...s });
       });
-      (c.sousCompetences ?? []).forEach((sc, sci) => {
+      (c.sousCompetences ?? []).forEach((sc: any, sci: any) => {
         addSousCompSavoirRows(rows, d, di, c, ci, sc, sci);
       });
     });
@@ -29,21 +29,21 @@ const flattenSavoirs = (tree) => {
   return rows;
 };
 
-const getSavoirByPath = (next, di, ci, sci, si) => {
+const getSavoirByPath = (next: any, di: any, ci: any, sci: any, si: any) => {
   if (sci === -1) return next?.[di]?.competences?.[ci]?.savoirs?.[si];
   return next?.[di]?.competences?.[ci]?.sousCompetences?.[sci]?.savoirs?.[si];
 };
 
-const forEachTreeSavoir = (tree, cb) => {
-  (tree ?? []).forEach((d) => {
-    (d.competences ?? []).forEach((c) => {
+const forEachTreeSavoir = (tree: any, cb: any) => {
+  (tree ?? []).forEach((d: any) => {
+    (d.competences ?? []).forEach((c: any) => {
       (c.savoirs ?? []).forEach(cb);
-      (c.sousCompetences ?? []).forEach((sc) => (sc.savoirs ?? []).forEach(cb));
+      (c.sousCompetences ?? []).forEach((sc: any) => (sc.savoirs ?? []).forEach(cb));
     });
   });
 };
 
-const computeLoadStyle = (e, total) => {
+const computeLoadStyle = (e: any, total: any) => {
   const ratio = total ? Math.round((e.loadCount / total) * 100) : 0;
   let loadCls = "";
   if (e.loadCount > 10) loadCls = "overloaded";
@@ -54,7 +54,7 @@ const computeLoadStyle = (e, total) => {
   return { ratio, loadCls, loadStrokeColor };
 };
 
-const isEnterOrSpace = (key) => key === "Enter" || key === " ";
+const isEnterOrSpace = (key: any) => key === "Enter" || key === " ";
 
 interface EnseignantLoadViewProps {
   tree: Record<string, unknown>[];
@@ -80,7 +80,7 @@ export default function EnseignantLoadView({ tree, setTree, allEnseignants, extr
       };
     });
 
-    base.sort((a, b) => b.loadCount - a.loadCount || a.nomComplet.localeCompare(b.nomComplet));
+    base.sort((a, b) => b.loadCount - a.loadCount || String(a.nomComplet || '').localeCompare(String(b.nomComplet || '')));
     return base;
   }, [allEnseignants, loadMap]);
 
@@ -97,16 +97,16 @@ export default function EnseignantLoadView({ tree, setTree, allEnseignants, extr
     [allSavoirs],
   );
 
-  const removeOne = (path, eid) => {
+  const removeOne = (path: any, eid: any) => {
     const { di, ci, sci, si } = path;
     const next = cloneDeep(tree);
     const s = getSavoirByPath(next, di, ci, sci, si);
     if (!s) return;
-    s.enseignantsSuggeres = (s.enseignantsSuggeres ?? []).filter((x) => String(x) !== String(eid));
+    s.enseignantsSuggeres = (s.enseignantsSuggeres ?? []).filter((x: any) => String(x) !== String(eid));
     setTree(next);
   };
 
-  const addOne = (path, eid) => {
+  const addOne = (path: any, eid: any) => {
     const { di, ci, sci, si } = path;
     const next = cloneDeep(tree);
     const s = getSavoirByPath(next, di, ci, sci, si);
@@ -120,8 +120,8 @@ export default function EnseignantLoadView({ tree, setTree, allEnseignants, extr
   const removeAllFromTeacher = () => {
     if (!selectedEnsId) return;
     const next = cloneDeep(tree);
-    forEachTreeSavoir(next, (s) => {
-      s.enseignantsSuggeres = (s.enseignantsSuggeres ?? []).filter((x) => String(x) !== String(selectedEnsId));
+    forEachTreeSavoir(next, (s: any) => {
+      s.enseignantsSuggeres = (s.enseignantsSuggeres ?? []).filter((x: any) => String(x) !== String(selectedEnsId));
     });
     setTree(next);
   };
@@ -161,9 +161,9 @@ export default function EnseignantLoadView({ tree, setTree, allEnseignants, extr
               }}
             >
               <Space align="start">
-                <Avatar style={{ background: avatarColor(e.id) }}>{getInitials(e.nomComplet, "")}</Avatar>
+                <Avatar style={{ background: avatarColor(e.id) }}>{getInitials(String(e.nomComplet ?? ""), "")}</Avatar>
                 <div>
-                  <Text strong>{e.nomComplet}</Text>
+                  <Text strong>{e.nomComplet as any}</Text>
                   <div style={{ marginTop: 6 }}>
                     <Progress
                       size="small"
@@ -173,7 +173,7 @@ export default function EnseignantLoadView({ tree, setTree, allEnseignants, extr
                     />
                   </div>
                   <Space wrap size={4} style={{ marginTop: 4 }}>
-                    {e.refCodes.slice(0, 5).map((rc) => <Tag key={`${e.id}-${rc}`}>{rc}</Tag>)}
+                    {e.refCodes.slice(0, 5).map((rc: any) => <Tag key={`${e.id}-${rc}`}>{rc}</Tag>)}
                   </Space>
                 </div>
               </Space>
@@ -201,7 +201,7 @@ export default function EnseignantLoadView({ tree, setTree, allEnseignants, extr
                 label: `${domaineNom} (${savoirs.length} savoirs)`,
                 children: (
                   <Space direction="vertical" style={{ width: "100%" }}>
-                    {savoirs.map((s) => (
+                    {savoirs.map((s: any) => (
                       <div key={`${s.code}-${s.di}-${s.ci}-${s.sci}-${s.si}`} style={{ display: "flex", alignItems: "center", gap: 8 }}>
                         <Tag color={s.type === "PRATIQUE" ? "volcano" : "purple"}>{s.type}</Tag>
                         <Text style={{ flex: 1 }}>{s.nom}</Text>
@@ -231,7 +231,7 @@ export default function EnseignantLoadView({ tree, setTree, allEnseignants, extr
                   disabled={!selectedEnsId}
                   onClick={() => addOne(s, selectedEnsId)}
                 >
-                  + Assigner à {selected?.nomComplet ?? "..."}
+                  + Assigner à {(selected?.nomComplet ?? "...") as any}
                 </Button>
               </div>
             ))}
@@ -251,8 +251,8 @@ export default function EnseignantLoadView({ tree, setTree, allEnseignants, extr
                 <Space direction="vertical" style={{ width: "100%" }}>
                   {unmatched.map((u) => (
                     <div key={`${u.nom_complet}-${u.fichier}`} style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
-                      <Text>{u.nom_complet}</Text>
-                      <Text type="secondary">{u.fichier}</Text>
+                      <Text>{u.nom_complet as any}</Text>
+                      <Text type="secondary">{u.fichier as any}</Text>
                     </div>
                   ))}
                 </Space>

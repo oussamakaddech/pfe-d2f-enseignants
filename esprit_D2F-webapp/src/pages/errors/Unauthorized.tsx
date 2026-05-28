@@ -1,7 +1,8 @@
-import { Navigate } from "react-router-dom"
+import { useNavigate } from "react-router-dom"
 
 
 function Unauthorized() {
+  const navigate = useNavigate();
   return (
     <div>
     <div className="color-line" />
@@ -9,7 +10,7 @@ function Unauthorized() {
       <div className="row">
         <div className="col-lg-12 col-md-12 col-sm-12 col-xs-12">
         <div className="back-link back-backend">
-          <button onClick={() => Navigate(-1)} className="btn btn-primary">Retour</button>
+          <button onClick={() => navigate(-1)} className="btn btn-primary">Retour</button>
         </div>
         </div>
       </div>

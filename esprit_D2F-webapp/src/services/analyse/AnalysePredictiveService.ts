@@ -3,7 +3,8 @@ import { config } from "@/config/env";
 
 const PREDICTIVE_API = `${config.ANALYSE_URL}/analyse/v1/analyse-predictive`;
 
-export type { Gravite, AnalyseGap, AnalyseRecommandation, AnalyseData, DecliningCompetency, InDemandCompetency, TeacherRiskIndicator, DriftReport } from "@/models/analyse";
+import type { Gravite, AnalyseGap, AnalyseRecommandation, AnalyseData, DriftReport } from "@/models/analyse";
+export type { Gravite, AnalyseGap, AnalyseRecommandation, AnalyseData, DriftReport };
 
 interface RawGapItem {
   competency_id: number;
@@ -69,7 +70,7 @@ function mapGapItem(g: RawGapItem, isHeuristic: boolean): AnalyseGap {
     gravite,
     explication: isHeuristic
       ? `Gap estimé (heuristique): ${g.predicted_gap.toFixed(1)} — Entraînez le modèle pour des prédictions plus précises`
-      : `Gap prédit: ${g.predicted_gap.toFixed(1)} (confiance: ${(g.confidence * 100).toFixed(0)}%)`,
+      : `Gap prédit: ${g.predicted_gap.toFixed(1)} (confiance: ${((g.confidence ?? 0) * 100).toFixed(0)}%)`,
   };
 }
 

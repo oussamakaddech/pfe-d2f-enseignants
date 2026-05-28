@@ -71,7 +71,9 @@ export default function FormationPage() {
                 className="formation-action-card-icon"
                 style={{ background: c.gradient }}
               >
-                {<c.icon style={{ fontSize: 36, color: "var(--text-on-dark)" }} />}
+                <span style={{ fontSize: 36, color: "var(--text-on-dark)" }}>
+                  {c.icon}
+                </span>
               </div>
               <Badge
                 count={c.badge}

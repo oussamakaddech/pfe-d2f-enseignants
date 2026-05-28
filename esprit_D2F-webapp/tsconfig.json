@@ -20,6 +20,8 @@
     "noImplicitAny": true,
     "strictNullChecks": true,
     "strict": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
     "types": ["vite/client"]
   },
   "include": ["src"],

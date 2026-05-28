@@ -36,6 +36,17 @@ export interface BesoinFormation {
   impactStrategique?: string;
 }
 
+export interface BesoinCompetenceLink {
+  id?: number;
+  besoinId?: number;
+  domaineId?: number | null;
+  competenceId?: number | null;
+  competenceNom?: string;
+  savoirId?: number | null;
+  savoirNom?: string;
+  sousCompetenceId?: number | null;
+}
+
 
 
 

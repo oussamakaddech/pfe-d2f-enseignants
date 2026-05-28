@@ -1,8 +1,9 @@
 import { memo } from "react";
-import { Button, Popconfirm, Typography } from "antd";
-
-const { Text } = Typography;
-
+import { Button, Popconfirm, Typography } from "antd";
+import s from "./ActionBar.module.css";
+
+const { Text } = Typography;
+
 interface ActionBarAction {
   key: string;
   label: React.ReactNode;
@@ -13,8 +14,8 @@ interface ActionBarAction {
   disabled?: boolean;
   className?: string;
   confirm?: string;
-}
-
+}
+
 interface ActionBarProps {
   /** Actions à afficher */
   actions: ActionBarAction[];
@@ -24,8 +25,8 @@ interface ActionBarProps {
   gap?: number;
   className?: string;
   style?: React.CSSProperties;
-}
-
+}
+
 /**
  * Barre d'actions standardisée.
  * - Supporte les confirmations (Popconfirm)
@@ -41,18 +42,12 @@ const ActionBar = memo(function ActionBar({
 }: Readonly<ActionBarProps>) {
   let justifyContent = "flex-end";
   if (align === "left") justifyContent = "flex-start";
-  else if (align === "center") justifyContent = "center";
-
+  else if (align === "center") justifyContent = "center";
+
   return (
     <div
-      className={`action-bar ${className}`}
-      style={{
-        display: "flex",
-        justifyContent,
-        alignItems: "center",
-        gap,
-        ...style,
-      }}
+      className={`action-bar ${s.container} ${className}`}
+      style={{ justifyContent, gap, ...style }}
     >
       {actions.map((action) => {
         const btn = (
@@ -63,13 +58,12 @@ const ActionBar = memo(function ActionBar({
             onClick={action.confirm ? undefined : action.onClick}
             danger={action.danger}
             disabled={action.disabled}
-            className={action.className}
-            style={{ borderRadius: 8, fontWeight: 500 }}
+            className={`${action.className ?? ""} ${s.actionButton}`}
           >
             {action.label}
           </Button>
-        );
-
+        );
+
         if (action.confirm) {
           return (
             <Popconfirm
@@ -82,16 +76,16 @@ const ActionBar = memo(function ActionBar({
               {btn}
             </Popconfirm>
           );
-        }
-
+        }
+
         return btn;
       })}
     </div>
   );
 });
 
-export default ActionBar;
-
-
-
+export default ActionBar;
+
+
+
 

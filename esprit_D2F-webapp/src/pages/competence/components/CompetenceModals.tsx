@@ -36,8 +36,8 @@ const { Text } = Typography;
 import type { FormInstance } from "antd";
 
 interface CompetenceModalsProps {
-  crud: Record<string, unknown>;
-  structure: Record<string, unknown>;
+  crud: any;
+  structure: any;
   domaineForm: FormInstance;
   compForm: FormInstance;
   scForm: FormInstance;
@@ -68,12 +68,12 @@ export default function CompetenceModals({
 
         let newPrefix = "";
         if (crud.savoirMode === "sc" && scId) {
-          const sousComp = crud.leafSousComps.find((sc) => sc.id === scId);
+          const sousComp = crud.leafSousComps.find((sc: any) => sc.id === scId);
           if (sousComp?.code) {
             newPrefix = `${sousComp.code}-`;
           }
         } else if (crud.savoirMode === "direct" && compId) {
-          const comp = crud.competences.find((c) => c.id === compId);
+          const comp = crud.competences.find((c: any) => c.id === compId);
           if (comp?.code) {
             newPrefix = `${comp.code}-`;
           }
@@ -141,7 +141,7 @@ export default function CompetenceModals({
               optionFilterProp="children"
               loading={ups.length === 0}
             >
-              {ups.map((up) => (
+              {(ups as any[]).map((up: any) => (
                 <Option key={up.id} value={up.id}>
                   {up.nom ?? up.libelle ?? up.code ?? `UP ${up.id}`}
                 </Option>
@@ -159,7 +159,7 @@ export default function CompetenceModals({
               optionFilterProp="children"
               loading={depts.length === 0}
             >
-              {depts.map((dept) => (
+              {(depts as any[]).map((dept: any) => (
                 <Option key={dept.id} value={dept.id}>
                   {dept.nom ?? dept.libelle ?? dept.code ?? `Departement ${dept.id}`}
                 </Option>
@@ -190,7 +190,7 @@ export default function CompetenceModals({
           layout="vertical"
           onValuesChange={(changedValues) => {
             if (!crud.editingComp && changedValues.domaineId) {
-              const domaine = crud.domaines.find(d => d.id === changedValues.domaineId);
+              const domaine = crud.domaines.find((d: any) => d.id === changedValues.domaineId);
               if (domaine?.code) {
                 compForm.setFieldsValue({ code: `${domaine.code}-` });
               }
@@ -210,7 +210,7 @@ export default function CompetenceModals({
               showSearch
               optionFilterProp="children"
             >
-              {crud.domaines.map((d) => (
+              {crud.domaines.map((d: any) => (
                 <Option key={d.id} value={d.id}>
                   {d.nom}
                 </Option>
@@ -281,7 +281,7 @@ export default function CompetenceModals({
               showSearch
               optionFilterProp="children"
             >
-              {crud.competences.map((c) => (
+              {crud.competences.map((c: any) => (
                 <Option key={c.id} value={c.id}>
                   {c.nom} ({c.domaineNom})
                 </Option>
@@ -382,12 +382,12 @@ export default function CompetenceModals({
               
               let newPrefix = "";
               if (crud.savoirMode === "sc" && scId) {
-                const sousComp = crud.leafSousComps?.find((sc) => sc.id === scId);
+                const sousComp = crud.leafSousComps?.find((sc: any) => sc.id === scId);
                 if (sousComp?.code) {
                   newPrefix = `${sousComp.code}-`;
                 }
               } else if (crud.savoirMode === "direct" && compId) {
-                const comp = crud.competences?.find((c) => c.id === compId);
+                const comp = crud.competences?.find((c: any) => c.id === compId);
                 if (comp?.code) {
                   newPrefix = `${comp.code}-`;
                 }
@@ -426,11 +426,11 @@ export default function CompetenceModals({
             >
               <Select
                 placeholder="Selectionner une competence fille"
-                disabled={!!crud.editingSavoir}
+                disabled={!!(crud as any).editingSavoir}
                 showSearch
                 optionFilterProp="children"
               >
-                {crud.leafSousComps.map((sc) => (
+                {(crud as any).leafSousComps.map((sc: any) => (
                   <Option key={sc.id} value={sc.id}>
                     {sc.nom} ({sc.competenceNom})
                   </Option>
@@ -442,16 +442,16 @@ export default function CompetenceModals({
               name="competenceId"
               label="Competence mere"
               rules={[
-                { required: !crud.editingSavoir, message: "Competence mere obligatoire" },
+                { required: !(crud as any).editingSavoir, message: "Competence mere obligatoire" },
               ]}
             >
               <Select
                 placeholder="Selectionner une competence mere"
-                disabled={!!crud.editingSavoir}
+                disabled={!!(crud as any).editingSavoir}
                 showSearch
                 optionFilterProp="children"
               >
-                {crud.competences.map((c) => (
+                {(crud as any).competences.map((c: any) => (
                   <Option key={c.id} value={c.id}>
                     {c.nom} ({c.domaineNom})
                   </Option>
@@ -604,7 +604,7 @@ export default function CompetenceModals({
                           {
                             title: "",
                             width: 50,
-                            render: (_, record) => (
+                            render: (_: any, record: any) => (
                               <Popconfirm
                                 title="Supprimer ce savoir requis ?"
                                 onConfirm={() =>
@@ -661,7 +661,7 @@ export default function CompetenceModals({
                     optionFilterProp="children"
                     style={{ width: 250 }}
                   >
-                    {structure.allSavoirsHierarchie.map((s) => (
+                    {structure.allSavoirsHierarchie.map((s: any) => (
                       <Option key={s.id} value={s.id}>
                         {s.code} - {s.nom}
                       </Option>

@@ -2,7 +2,7 @@ import  { useState } from "react";
 import PropTypes from "prop-types"; // ✅ Importer PropTypes
 import { useCreateFormation } from "@/hooks/formation/useFormations";
 
-function FormationForm({ initialDate, onFormationCreated }) {
+function FormationForm({ initialDate, onFormationCreated }: any) {
   const [titreFormation, setTitreFormation] = useState("");
   const [dateDebut, setDateDebut] = useState(
     initialDate ? initialDate.toISOString().split("T")[0] : ""
@@ -11,7 +11,7 @@ function FormationForm({ initialDate, onFormationCreated }) {
     initialDate ? initialDate.toISOString().split("T")[0] : ""
   );
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: any) => {
     e.preventDefault();
     try {
       const formationData = {

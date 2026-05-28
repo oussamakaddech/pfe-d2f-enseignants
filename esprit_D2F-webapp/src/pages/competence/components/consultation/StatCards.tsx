@@ -37,7 +37,7 @@ export default function StatCards({ stats, onStatClick }: Readonly<StatCardsProp
         <button
           key={def.key}
           className="ctp-stat-card"
-          style={{ "--ctp-stat-accent": def.accent.color }}
+          style={{ "--ctp-stat-accent": def.accent.color } as React.CSSProperties}
           onClick={() => onStatClick(def.key)}
         >
           <div className="ctp-stat-card__head">
@@ -45,7 +45,7 @@ export default function StatCards({ stats, onStatClick }: Readonly<StatCardsProp
               {def.icon}
             </div>
           </div>
-          <div className="ctp-stat-card__value">{stats?.[def.statKey] ?? 0}</div>
+          <div className="ctp-stat-card__value">{(stats as any)?.[def.statKey] ?? 0}</div>
           <div className="ctp-stat-card__label">{def.label}</div>
         </button>
       ))}

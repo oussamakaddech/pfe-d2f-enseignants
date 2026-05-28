@@ -102,7 +102,7 @@ describe('KPIService', () => {
   it('getCountAndHeures with all filters', async () => {
     httpMocks.mockGet.mockResolvedValueOnce({ data: { count: 2, totalHeures: 10 } });
     const result = await KPIService.getCountAndHeures({
-      domaine: 'GC', upId: 1, deptId: 2, ouverte: true, start: 's', end: 'e', etat: 'planifie',
+      domaine: 'GC', upId: '1', deptId: '2', ouverte: true, start: 's', end: 'e', etat: 'planifie',
     });
     expect(result).toEqual({ count: 2, totalHeures: 10 });
 
@@ -127,7 +127,7 @@ describe('KPIService', () => {
   it('getFormationsByTypeFiltered succeeds with all params, handles 404, and throws', async () => {
     httpMocks.mockGet.mockResolvedValueOnce({ data: { interne: 1, externe: 2, enLigne: 3 } });
     const r = await KPIService.getFormationsByTypeFiltered({
-      domaine: 'GC', upId: 1, deptId: 2, ouverte: true, start: 's', end: 'e', etat: 'planifie',
+      domaine: 'GC', upId: '1', deptId: '2', ouverte: true, start: 's', end: 'e', etat: 'planifie',
     });
     expect(r).toEqual({ interne: 1, externe: 2, enLigne: 3 });
 

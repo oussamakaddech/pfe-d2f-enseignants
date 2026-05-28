@@ -25,20 +25,20 @@ const TYPE_LABELS = {
   COLLECTIF:  "Collectif",
 };
 
-const initialsOf = (name) => {
+const initialsOf = (name: any) => {
   const parts = String(name || "").split(/[\s._-]+/).filter(Boolean);
   if (parts.length === 0) return "?";
   return (parts[0].charAt(0) + (parts[1]?.charAt(0) || "")).toUpperCase();
 };
 
-const colorOfName = (str) => {
+const colorOfName = (str: any) => {
   const palette = ["#B51200", "#0891b2", "#7c3aed", "#059669", "#d97706", "#2563eb", "#db2777"];
   let h = 0;
   for (let i = 0; i < (str || "").length; i += 1) h = (h * 31 + (str.codePointAt(i) ?? 0)) >>> 0;
   return palette[h % palette.length];
 };
 
-const formatDate = (d) => {
+const formatDate = (d: any) => {
   if (!d) return null;
   try {
     return new Date(d).toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric" });
@@ -48,7 +48,7 @@ const formatDate = (d) => {
 };
 
 const NEW_THRESHOLD_DAYS = 7;
-const isRecent = (d) => {
+const isRecent = (d: any) => {
   if (!d) return false;
   const t = new Date(d).getTime();
   if (!Number.isFinite(t)) return false;
@@ -73,21 +73,21 @@ export default function BesoinCard({
   onEdit,
   onDelete,
   onOpen,
-}) {
+}: any) {
   const id = besoin.idBesoinFormation ?? besoin.idBesionFormation ?? besoin.id;
   const priorite = besoin.priorite || "BASSE";
   const demandeurName = besoin.username || "—";
   const title = besoin.titre || besoin.objectifFormation || "Sans titre";
   const desc = besoin.titre && besoin.objectifFormation ? besoin.objectifFormation : null;
-  const typeTone = TYPE_TONES[besoin.typeBesoin] || "info";
-  const typeLabel = TYPE_LABELS[besoin.typeBesoin] || besoin.typeBesoin?.replaceAll("_", " ");
+  const typeTone = (TYPE_TONES as any)[besoin.typeBesoin] || "info";
+  const typeLabel = (TYPE_LABELS as any)[besoin.typeBesoin] || besoin.typeBesoin?.replaceAll("_", " ");
   const recent = isRecent(besoin.dateCreation);
 
-  const stopProp = (fn) => (e) => {
+  const stopProp = (fn: any) => (e: any) => {
     e.stopPropagation();
     if (fn) fn(e);
   };
-  const handleKeyDown = (e) => {
+  const handleKeyDown = (e: any) => {
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
       onOpen?.();

@@ -21,7 +21,7 @@ export function useEvaluationGlobaleByFormation(formationId: Id | undefined) {
 export function useCreateEvaluationGlobale() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (data: unknown) => EvaluationGlobaleService.createEvaluationGlobale(data),
+    mutationFn: (data: Record<string, unknown>) => EvaluationGlobaleService.createEvaluationGlobale(data),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["evaluations-globales"] }),
   });
 }
@@ -29,7 +29,7 @@ export function useCreateEvaluationGlobale() {
 export function useUpdateEvaluationGlobale() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, data }: { id: Id; data: unknown }) =>
+    mutationFn: ({ id, data }: { id: Id; data: Record<string, unknown> }) =>
       EvaluationGlobaleService.updateEvaluationGlobale(id, data),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["evaluations-globales"] }),
   });
@@ -54,7 +54,7 @@ export function useEvaluationsEnrichedByFormation(formationId: Id | undefined) {
 export function useUpdateEvaluationsBulk() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ formationId, evaluations }: { formationId: Id; evaluations: unknown[] }) =>
+    mutationFn: ({ formationId, evaluations }: { formationId: Id; evaluations: Record<string, unknown>[] }) =>
       EvaluationFormateurService.updateEvaluationsBulkByFormation(formationId, evaluations),
     onSuccess: (_, { formationId }) =>
       qc.invalidateQueries({ queryKey: ["evaluations-enriched", formationId] }),
@@ -63,7 +63,7 @@ export function useUpdateEvaluationsBulk() {
 
 export function useUpdateEvaluationsBulkFlat() {
   return useMutation({
-    mutationFn: ({ formationId, evaluations }: { formationId?: Id; evaluations: unknown[] }) =>
+    mutationFn: ({ formationId, evaluations }: { formationId?: Id; evaluations: Record<string, unknown>[] }) =>
       formationId
         ? EvaluationFormateurService.updateEvaluationsBulkByFormation(formationId, evaluations)
         : Promise.resolve(null),

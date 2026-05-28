@@ -27,8 +27,8 @@ export { default as EmptyStateStandard } from './EmptyStateStandard';
 export { default as ErrorStateStandard } from './ErrorStateStandard';
 export { default as PageLoader } from './PageLoader';
 
-// Provider
-export { default as AuthProvider, AuthContext } from './AuthProvider';
+// Provider (re-exported from context for backwards compatibility)
+export { default as AuthProvider, AuthContext } from '@/context/AuthContext';
 
 // Backwards-compat re-export of design tokens (preferred path: '@/styles/themes/tokens').
 export * from '@/styles/themes/tokens';

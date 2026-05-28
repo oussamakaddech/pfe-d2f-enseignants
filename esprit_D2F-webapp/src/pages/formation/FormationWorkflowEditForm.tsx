@@ -35,6 +35,122 @@ import DocumentUploadPanel from "../documentFormation/DocumentUploadPanel";
 const { Text, Title } = Typography;
 const { TextArea } = Input;
 
+interface EnseignantItem {
+  id: string;
+  nom: string;
+  prenom: string;
+  mail: string;
+  type: string;
+  cup: string;
+  chefDepartement: string;
+  upLibelle: string;
+  deptLibelle: string;
+}
+
+interface SeanceData {
+  idSeance: string;
+  dateSeance: string;
+  heureDebut: string;
+  heureFin: string;
+  salle: string;
+  animateurs: EnseignantItem[];
+  participants: EnseignantItem[];
+  typeSeance: string;
+  contenus: string;
+  methodes: string;
+  dureeTheorique: number;
+  dureePratique: number;
+}
+
+interface SeanceState {
+  id?: number;
+  idSeance?: string;
+  dateSeance: string;
+  heureDebut: string;
+  heureFin: string;
+  salle: string;
+  animateurs: EnseignantItem[];
+  typeSeance: string;
+  contenus: string;
+  methodes: string;
+  dureeTheorique: number;
+  dureePratique: number;
+  expanded: boolean;
+}
+
+interface UPItem {
+  id: string;
+  libelle?: string;
+}
+
+interface DeptItem {
+  id: string;
+  libelle?: string;
+}
+
+interface FormationEdit {
+  id?: string;
+  idFormation: string;
+  titreFormation: string;
+  dateDebut: string;
+  dateFin: string;
+  typeFormation: string;
+  etatFormation: string;
+  coutFormation: number;
+  organismeRefExterne: string;
+  chargeHoraireGlobal: number;
+  externeFormateurNom: string;
+  externeFormateurPrenom: string;
+  externeFormateurEmail: string;
+  ouverte: boolean;
+  domaine: string;
+  populationCible: string;
+  objectifs: string;
+  objectifsPedago: string;
+  evalMethods: string;
+  prerequis: string;
+  acquis: string;
+  indicateurs: string;
+  coutTransport: number;
+  coutHebergement: number;
+  coutRepas: number;
+  up1: { id: string };
+  departement1: { id: string };
+  periodCode: string;
+  customPeriodLabel: string;
+  periodeFormation: string;
+  seances: SeanceData[];
+  animateurs: EnseignantItem[];
+  participants: EnseignantItem[];
+}
+
+interface SeancePayload {
+  idSeance: string;
+  dateSeance: string;
+  heureDebut: string;
+  heureFin: string;
+  salle: string;
+  animateursIds: string[];
+  typeSeance: string;
+  contenus: string;
+  methodes: string;
+  dureeTheorique: number;
+  dureePratique: number;
+}
+
+interface FormationWorkflowEditFormProps {
+  formation: FormationEdit;
+  onFormationUpdated: (res: Record<string, unknown>) => void;
+}
+
+interface SeanceConflictItem {
+  dateSeance: string;
+  heureDebut: string;
+  heureFin: string;
+  salle: string;
+  animateurIds: string[];
+}
+
 const PERIOD_OPTIONS = [
   { value: "WINTER",   label: "Winter" },
   { value: "SUMMER",   label: "Summer" },
@@ -43,7 +159,7 @@ const PERIOD_OPTIONS = [
   { value: "OTHER",    label: "Autre" },
 ];
 
-export default function FormationWorkflowEditForm({ formation, onFormationUpdated }) {
+export default function FormationWorkflowEditForm({ formation, onFormationUpdated }: FormationWorkflowEditFormProps) {
   const { message } = useAppNotification();
   const { user } = useAuth();
   const role = String(user?.role || "").toLowerCase().replaceAll(/[\s_-]+/g, "");
@@ -68,24 +184,26 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
   const [formEmail, setFormEmail] = useState("");
 
   /* UP & Département */
-  const { data: ups = [] } = useUps();
-  const { data: depts = [] } = useDepartements();
+  const { data: upsRaw = [] } = useUps();
+  const { data: deptsRaw = [] } = useDepartements();
   const { data: ensData = [] } = useEnseignants();
   const { data: allFormations = [] } = useAllFormations();
+  const ups = upsRaw as UPItem[];
+  const depts = deptsRaw as DeptItem[];
   const updateMut = useUpdateFormation();
-  const [selectedUp, setSelectedUp] = useState(null);
-  const [selectedDept, setSelectedDept] = useState(null);
+  const [selectedUp, setSelectedUp] = useState<UPItem | null>(null);
+  const [selectedDept, setSelectedDept] = useState<DeptItem | null>(null);
 
   /* enseignants + filtres */
-  const ens = ensData;
-  const [animSel, setAnimSel] = useState([]);
-  const [partSel, setPartSel] = useState([]);
-  const existingFormations = Array.isArray(allFormations) ? allFormations : [];
-  const [overlapWarnings, setOverlapWarnings] = useState([]);
-  const [animFilterUp] = useState(null);
-  const [animFilterDept] = useState(null);
-  const [partFilterUp, setPartFilterUp] = useState(null);
-  const [partFilterDept, setPartFilterDept] = useState(null);
+  const ens = ensData as unknown as EnseignantItem[];
+  const [animSel, setAnimSel] = useState<EnseignantItem[]>([]);
+  const [partSel, setPartSel] = useState<EnseignantItem[]>([]);
+  const existingFormations = (Array.isArray(allFormations) ? allFormations : []) as unknown as FormationEdit[];
+  const [overlapWarnings, setOverlapWarnings] = useState<string[]>([]);
+  const [animFilterUp] = useState<UPItem | null>(null);
+  const [animFilterDept] = useState<DeptItem | null>(null);
+  const [partFilterUp, setPartFilterUp] = useState<UPItem | null>(null);
+  const [partFilterDept, setPartFilterDept] = useState<DeptItem | null>(null);
 
   /* “plus d’infos” */
   const [domaine, setDomaine] = useState("");
@@ -103,7 +221,7 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
   const [coutRepas, setCoutRepas] = useState(0);
 
   /* séances */
-  const [seances, setSeances] = useState([]);
+  const [seances, setSeances] = useState<SeanceState[]>([]);
   const [ouverte, setOuverte] = useState(false);
   
   // Structured Period State
@@ -115,7 +233,7 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
   const [openDocModal, setOpenDocModal] = useState(false);
   const [openUploadPanel, setOpenUploadPanel] = useState(false);
   
-  const getEnseignantLabel = (opt) => {
+  const getEnseignantLabel = (opt: EnseignantItem | null) => {
     if (!opt) return "";
     let roles = [];
     if (opt.type === "P") roles.push("Perm.");
@@ -166,7 +284,7 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
 
     /* séances complètes (avec animateurs) */
     setSeances(
-      (formation.seances || []).map((s) => ({
+      (formation.seances || []).map((s: SeanceData) => ({
         idSeance: s.idSeance,
         dateSeance: format(new Date(s.dateSeance), "yyyy-MM-dd"),
         heureDebut: s.heureDebut,
@@ -183,14 +301,14 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
     );
 
     /* sélection animateurs / participants global */
-    const amap = {},
-      pmap = {};
+    const amap: Record<string, EnseignantItem> = {},
+      pmap: Record<string, EnseignantItem> = {};
     // Animateurs au niveau de la formation (priorité)
-    (formation.animateurs || []).forEach((a) => (amap[a.id] = a));
+    (formation.animateurs || []).forEach((a: EnseignantItem) => { (amap)[a.id] = a; });
     // Compléter avec les animateurs des séances
-    (formation.seances || []).forEach((s) => {
-      (s.animateurs || []).forEach((a) => (amap[a.id] = a));
-      (s.participants || []).forEach((p) => (pmap[p.id] = p));
+    (formation.seances || []).forEach((s: SeanceData) => {
+      (s.animateurs || []).forEach((a: EnseignantItem) => { (amap)[a.id] = a; });
+      (s.participants || []).forEach((p: EnseignantItem) => { (pmap)[p.id] = p; });
     });
     setAnimSel(Object.values(amap));
     setPartSel(Object.values(pmap));
@@ -199,17 +317,17 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
 
   /* ---------- filtres animateurs / participants ---------- */
   const optionsAnim = ens.filter(
-    (x) =>
+    (x: EnseignantItem) =>
       (!animFilterUp || x.upLibelle === animFilterUp.libelle) &&
       (!animFilterDept || x.deptLibelle === animFilterDept.libelle)
   );
   const optionsPart = ens.filter(
-    (x) =>
+    (x: EnseignantItem) =>
       (!partFilterUp || x.upLibelle === partFilterUp.libelle) &&
       (!partFilterDept || x.deptLibelle === partFilterDept.libelle)
   );
 
-  const toMinutes = (timeValue) => {
+  const toMinutes = (timeValue: string | null | undefined) => {
     if (!timeValue) return null;
     const parts = String(timeValue).split(":");
     if (parts.length < 2) return null;
@@ -219,7 +337,7 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
     return (h * 60) + m;
   };
 
-  const sameTimeWindow = (a, b) => {
+  const sameTimeWindow = (a: { dateSeance: string; heureDebut: string; heureFin: string }, b: { dateSeance: string; heureDebut: string; heureFin: string }) => {
     if (!a?.dateSeance || !b?.dateSeance || a.dateSeance !== b.dateSeance) return false;
     const aStart = toMinutes(a.heureDebut);
     const aEnd = toMinutes(a.heureFin);
@@ -229,12 +347,12 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
     return aStart < bEnd && bStart < aEnd;
   };
 
-  const intersects = (left, right) => left.some((id) => right.includes(id));
-  const normalizedSalle = (value) => String(value || "").trim().toLowerCase();
+  const intersects = (left: string[], right: string[]) => left.some((id: string) => right.includes(id));
+  const normalizedSalle = (value: unknown) => String(value || "").trim().toLowerCase();
 
-  const validateLocalSeances = (localSeances) => {
-    const msgs = [];
-    localSeances.forEach((s, idx) => {
+  const validateLocalSeances = (localSeances: SeanceConflictItem[]) => {
+    const msgs: string[] = [];
+    localSeances.forEach((s: { dateSeance: string; heureDebut: string; heureFin: string }, idx: number) => {
       const start = toMinutes(s.heureDebut);
       const end = toMinutes(s.heureFin);
       if (start !== null && end !== null && start >= end) {
@@ -244,7 +362,7 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
     return msgs;
   };
 
-  const checkSeancePairConflicts = (left, right, i, j, participantIds, msgs) => {
+  const checkSeancePairConflicts = (left: SeanceConflictItem, right: SeanceConflictItem, i: number, j: number, participantIds: string[], msgs: string[]) => {
     if (!sameTimeWindow(left, right)) return;
     const leftSalle = normalizedSalle(left.salle);
     const rightSalle = normalizedSalle(right.salle);
@@ -259,8 +377,8 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
     }
   };
 
-  const checkInternalConflicts = (localSeances, participantIds) => {
-    const msgs = [];
+  const checkInternalConflicts = (localSeances: SeanceConflictItem[], participantIds: string[]) => {
+    const msgs: string[] = [];
     for (let i = 0; i < localSeances.length; i += 1) {
       for (let j = i + 1; j < localSeances.length; j += 1) {
         checkSeancePairConflicts(localSeances[i], localSeances[j], i, j, participantIds, msgs);
@@ -269,8 +387,8 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
     return msgs;
   };
 
-  const checkExistingSeanceConflict = (localSeance, idx, existingSeance, formationName, participantIds, existingParticipants) => {
-    const msgs = [];
+  const checkExistingSeanceConflict = (localSeance: SeanceConflictItem, idx: number, existingSeance: SeanceData, formationName: string, participantIds: string[], existingParticipants: string[]) => {
+    const msgs: string[] = [];
     if (!sameTimeWindow(localSeance, existingSeance)) return msgs;
 
     const localSalle = normalizedSalle(localSeance.salle);
@@ -279,7 +397,7 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
       msgs.push(`Conflit salle: séance #${idx + 1} chevauche la formation ${formationName} dans la salle ${localSeance.salle}.`);
     }
 
-    const existingAnimIds = (Array.isArray(existingSeance.animateurs) ? existingSeance.animateurs : []).map((a) => a?.id).filter(Boolean);
+    const existingAnimIds = (Array.isArray(existingSeance.animateurs) ? existingSeance.animateurs : []).map((a: EnseignantItem) => a?.id).filter(Boolean);
     if (participantIds.length > 0 && existingParticipants.length > 0 && intersects(participantIds, existingParticipants)) {
       msgs.push(`Conflit participants: séance #${idx + 1} chevauche la formation ${formationName}.`);
     }
@@ -289,44 +407,44 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
     return msgs;
   };
 
-  const checkLocalAgainstFormation = (localSeances, f, msgs, participantIds) => {
+  const checkLocalAgainstFormation = (localSeances: SeanceConflictItem[], f: FormationEdit, msgs: string[], participantIds: string[]) => {
     const existingSeances = Array.isArray(f.seances) ? f.seances : [];
     const existingParticipants = [
       ...(Array.isArray(f.participants) ? f.participants : []),
-      ...existingSeances.flatMap((s) => Array.isArray(s.participants) ? s.participants : []),
+      ...existingSeances.flatMap((s: SeanceData) => Array.isArray(s.participants) ? s.participants : []),
     ].map((p) => p?.id).filter(Boolean);
     const formationName = f.titreFormation || `#${f.idFormation || f.id || "?"}`;
-    localSeances.forEach((localSeance, idx) => {
-      existingSeances.forEach((existingSeance) => {
+    localSeances.forEach((localSeance: SeanceConflictItem, idx: number) => {
+      existingSeances.forEach((existingSeance: SeanceData) => {
         msgs.push(...checkExistingSeanceConflict(localSeance, idx, existingSeance, formationName, participantIds, existingParticipants));
       });
     });
   };
 
-  const checkExternalConflicts = (localSeances, participantIds, existingFormations, formation) => {
-    const msgs = [];
+  const checkExternalConflicts = (localSeances: SeanceConflictItem[], participantIds: string[], existingFormations: FormationEdit[], formation: FormationEdit) => {
+    const msgs: string[] = [];
     existingFormations
-      .filter((f) => (f.idFormation || f.id) !== formation.idFormation)
-      .forEach((f) => checkLocalAgainstFormation(localSeances, f, msgs, participantIds));
+      .filter((f: FormationEdit) => (f.idFormation || f.id) !== formation.idFormation)
+      .forEach((f: FormationEdit) => checkLocalAgainstFormation(localSeances, f, msgs, participantIds));
     return msgs;
   };
 
   const buildConflictMessages = () => {
-    const messages = [];
-    const participantIds = partSel.map((p) => p.id).filter(Boolean);
-    const localSeances = seances.map((s) => ({
+    const messages: string[] = [];
+    const participantIds = partSel.map((p: EnseignantItem) => p.id).filter(Boolean);
+    const localSeances: SeanceConflictItem[] = seances.map((s: SeanceState) => ({
       dateSeance: s.dateSeance,
       heureDebut: s.heureDebut,
       heureFin: s.heureFin,
       salle: s.salle,
-      animateurIds: (Array.isArray(s.animateurs) ? s.animateurs : []).map((a) => a?.id).filter(Boolean),
+      animateurIds: (Array.isArray(s.animateurs) ? s.animateurs : []).map((a: EnseignantItem) => a?.id).filter(Boolean),
     }));
 
     messages.push(...validateLocalSeances(localSeances));
     messages.push(...checkInternalConflicts(localSeances, participantIds));
     messages.push(...checkExternalConflicts(localSeances, participantIds, existingFormations, formation));
 
-    return [...new Set(messages)];
+    return [...new Set(messages)] as string[];
   };
 
   useEffect(() => {
@@ -353,40 +471,42 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
       },
     ]);
 
-  const updateSeance = (i, f, v) =>
+  const updateSeance = (i: number, f: string, v: unknown) =>
     setSeances((s) => {
       const a = [...s];
       a[i] = { ...a[i], [f]: v };
       return a;
     });
-  const removeSeance = (i) => setSeances((s) => s.filter((_, idx) => idx !== i));
-  const toggleSeance = (i) =>
+  const removeSeance = (i: number) => setSeances((s) => s.filter((_, idx) => idx !== i));
+  const toggleSeance = (i: number) =>
     setSeances((s) =>
       s.map((se, idx) => (idx === i ? { ...se, expanded: !se.expanded } : se))
     );
 
   /* ---------- import Excel participants ---------- */
-  const handleFile = (e) => {
+  const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
     if (!f) return;
     const reader = new FileReader();
-    reader.onload = (ev) => {
-      const wb = XLSX.read(new Uint8Array(ev.target.result), { type: "array" });
+    reader.onload = (ev: ProgressEvent<FileReader>) => {
+      const result = ev.target?.result;
+      if (!result || typeof result === "string") return;
+      const wb = XLSX.read(new Uint8Array(result), { type: "array" });
       const ws = wb.Sheets[wb.SheetNames[0]];
-      const rows = XLSX.utils.sheet_to_json(ws, { header: 1 });
+      const rows = XLSX.utils.sheet_to_json(ws, { header: 1 }) as unknown[][];
       if (rows.length < 2) {
         message.warning("Excel vide ou mal formaté");
         return;
       }
-      const hdr = rows[0].map((h) => String(h).toLowerCase().trim());
-      const idx = hdr.findIndex((h) => h === "email" || h === "mail");
+      const hdr = rows[0].map((h: unknown) => String(h).toLowerCase().trim());
+      const idx = hdr.findIndex((h: string) => h === "email" || h === "mail");
       if (idx < 0) {
         message.warning(`Colonne Email introuvable. Colonnes attendues : Email, Nom, Prénom. Colonnes trouvées : ${rows[0].join(", ")}`);
         e.target.value = "";
         return;
       }
-      const mails = rows.slice(1).map((r) => r[idx]).filter(Boolean);
-      const matched = ens.filter((x) => mails.includes(x.mail));
+      const mails = rows.slice(1).map((r: unknown[]) => r[idx]).filter(Boolean);
+      const matched = ens.filter((x: EnseignantItem) => mails.includes(x.mail));
       setPartSel(matched);
       message.success(`${matched.length} participant${matched.length > 1 ? "s" : ""} importé${matched.length > 1 ? "s" : ""}`);
       e.target.value = "";
@@ -395,7 +515,7 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
   };
 
   /* ---------- soumission ---------- */
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (seances.length === 0) {
       message.warning("Veuillez ajouter au moins une séance.");
@@ -416,16 +536,16 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
       typeFormation,
       etatFormation,
       ouverte,
-      coutFormation: Number.parseFloat(cout),
+      coutFormation: Number.parseFloat(cout as unknown as string),
       externeFormateurNom: formNom,
       externeFormateurPrenom: formPrenom,
       externeFormateurEmail: formEmail,
       organismeRefExterne: organisme,
-      chargeHoraireGlobal: Number.parseInt(chargeH, 10),
+      chargeHoraireGlobal: Number.parseInt(chargeH as unknown as string, 10),
       upId: selectedUp?.id,
       departementId: selectedDept?.id,
-      participantsIds: partSel.map((p) => p.id),
-      animateursIds: animSel.map((a) => a.id),
+      participantsIds: partSel.map((p: EnseignantItem) => p.id),
+      animateursIds: animSel.map((a: EnseignantItem) => a.id),
       domaine,
       populationCible,
       objectifs,
@@ -439,13 +559,13 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
       coutRepas,
       periodCode,
       customPeriodLabel,
-      seances: seances.map((s) => ({
+      seances: seances.map((s: SeanceState) => ({
         idSeance: s.idSeance,
         dateSeance: s.dateSeance,
         heureDebut: s.heureDebut,
         heureFin: s.heureFin,
         salle: s.salle,
-        animateursIds: s.animateurs.map((a) => a.id),
+        animateursIds: s.animateurs.map((a: EnseignantItem) => a.id),
         typeSeance: s.typeSeance,
         contenus: s.contenus,
         methodes: s.methodes,
@@ -456,10 +576,11 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
     try {
       const res = await updateMut.mutateAsync({ id: formation.idFormation, data: payload });
       message.success("Formation mise à jour !");
-      onFormationUpdated(res);
+      onFormationUpdated(res as unknown as Record<string, unknown>);
     } catch (err: unknown) {
-      const msg = err.response?.data?.message || err.response?.data?.error || err.message;
-      message.error(msg);
+      const error = err as { response?: { data?: { message?: string; error?: string } }; message?: string };
+      const msg = error.response?.data?.message || error.response?.data?.error || error.message;
+      message.error(msg ?? "Erreur inconnue");
     }
   };
 
@@ -549,7 +670,7 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
             </Col>
             <Col span={8}>
               <Text type="secondary">Coût Formation</Text>
-              <InputNumber value={cout} onChange={(val) => setCout(val)} style={{ width: "100%" }} min={0} />
+              <InputNumber value={cout} onChange={(val) => setCout(val ?? 0)} style={{ width: "100%" }} min={0} />
             </Col>
             <Col span={8}>
               <Text type="secondary">Organisme Externe</Text>
@@ -557,15 +678,15 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
             </Col>
             <Col span={8}>
               <Text type="secondary">Coût Transport</Text>
-              <InputNumber value={coutTransport} onChange={(val) => setCoutTransport(val)} style={{ width: "100%" }} min={0} />
+              <InputNumber value={coutTransport} onChange={(val) => setCoutTransport(val ?? 0)} style={{ width: "100%" }} min={0} />
             </Col>
             <Col span={8}>
               <Text type="secondary">Coût Hébergement</Text>
-              <InputNumber value={coutHebergement} onChange={(val) => setCoutHebergement(val)} style={{ width: "100%" }} min={0} />
+              <InputNumber value={coutHebergement} onChange={(val) => setCoutHebergement(val ?? 0)} style={{ width: "100%" }} min={0} />
             </Col>
             <Col span={8}>
               <Text type="secondary">Coût Repas</Text>
-              <InputNumber value={coutRepas} onChange={(val) => setCoutRepas(val)} style={{ width: "100%" }} min={0} />
+              <InputNumber value={coutRepas} onChange={(val) => setCoutRepas(val ?? 0)} style={{ width: "100%" }} min={0} />
             </Col>
           </>
         )}
@@ -590,10 +711,10 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
             showSearch
             placeholder="Sélectionner UP"
             value={selectedUp?.id}
-            onChange={(val) => setSelectedUp(ups.find(u => u.id === val) ?? null)}
+            onChange={(val) => setSelectedUp(ups.find((u: UPItem) => u.id === val) ?? null)}
             disabled={isResponsableDossier}
             style={{ width: "100%" }}
-            options={ups.map(u => ({ value: u.id, label: u.libelle }))}
+            options={ups.map((u: UPItem) => ({ value: u.id, label: u.libelle }))}
             optionFilterProp="label"
           />
         </Col>
@@ -603,10 +724,10 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
             showSearch
             placeholder="Sélectionner Département"
             value={selectedDept?.id}
-            onChange={(val) => setSelectedDept(depts.find(d => d.id === val) ?? null)}
+            onChange={(val) => setSelectedDept(depts.find((d: DeptItem) => d.id === val) ?? null)}
             disabled={isResponsableDossier}
             style={{ width: "100%" }}
-            options={depts.map(d => ({ value: d.id, label: d.libelle }))}
+            options={depts.map((d: DeptItem) => ({ value: d.id, label: d.libelle }))}
             optionFilterProp="label"
           />
         </Col>
@@ -615,7 +736,7 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
           <Text type="secondary">Charge Horaire</Text>
           <InputNumber
             value={chargeH}
-            onChange={(val) => setChargeH(val)}
+            onChange={(val) => setChargeH(val ?? 0)}
             disabled={isResponsableDossier}
             style={{ width: "100%" }}
             min={0}
@@ -662,7 +783,7 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
           </Button>
           {showMore && (
             <Row gutter={[16, 16]} style={{ marginTop: 8 }}>
-              {[
+              {([
                 ["Domaine", domaine, setDomaine],
                 ["Pop. Cible", populationCible, setPopulationCible],
                 ["Objectifs", objectifs, setObjectifs],
@@ -671,7 +792,7 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
                 ["Prérequis", prerequis, setPrerequis],
                 ["Acquis", acquis, setAcquis],
                 ["Indicateurs", indicateurs, setIndicateurs],
-              ].map(([lbl, val, setVal]) => (
+              ] as [string, string, (v: string) => void][]).map(([lbl, val, setVal]) => (
                 <Col xs={24} sm={12} key={lbl}>
                   <Text type="secondary">{lbl}</Text>
                   <Input value={val} onChange={(e) => setVal(e.target.value)} />
@@ -687,7 +808,7 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
       <div className="workflow-edit-section">
         <div className="workflow-edit-section-title">Séances</div>
         <Row gutter={[16, 16]}>
-        {seances.map((s, i) => (
+        {seances.map((s: SeanceState, i: number) => (
           <Col span={24} key={s.idSeance || s.id}>
             <div className="workflow-edit-session-card">
               <div className="workflow-edit-session-header">
@@ -727,8 +848,8 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
                     mode="multiple"
                     disabled={typeFormation === "EXTERNE"}
                     options={optionsAnim.map(o => ({ value: o.id, label: getEnseignantLabel(o) }))}
-                    value={s.animateurs.map(a => a.id)}
-                    onChange={(ids) => updateSeance(i, "animateurs", optionsAnim.filter(o => ids.includes(o.id)))}
+                    value={s.animateurs.map((a: EnseignantItem) => a.id)}
+                    onChange={(ids) => updateSeance(i, "animateurs", optionsAnim.filter((o: EnseignantItem) => ids.includes(o.id)))}
                     style={{ width: "100%" }}
                     optionFilterProp="label"
                     showSearch
@@ -821,9 +942,9 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
               <Select
                 showSearch allowClear placeholder="Toutes"
                 value={partFilterUp?.id}
-                onChange={(val) => setPartFilterUp(ups.find(u => u.id === val) ?? null)}
+                onChange={(val) => setPartFilterUp(ups.find((u: UPItem) => u.id === val) ?? null)}
                 style={{ width: "100%" }}
-                options={ups.map(u => ({ value: u.id, label: u.libelle }))}
+            options={ups.map((u: UPItem) => ({ value: u.id, label: u.libelle }))}
                 optionFilterProp="label"
               />
             </Col>
@@ -832,9 +953,9 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
               <Select
                 showSearch allowClear placeholder="Tous"
                 value={partFilterDept?.id}
-                onChange={(val) => setPartFilterDept(depts.find(d => d.id === val) ?? null)}
+                onChange={(val) => setPartFilterDept(depts.find((d: DeptItem) => d.id === val) ?? null)}
                 style={{ width: "100%" }}
-                options={depts.map(d => ({ value: d.id, label: d.libelle }))}
+                options={depts.map((d: DeptItem) => ({ value: d.id, label: d.libelle }))}
                 optionFilterProp="label"
               />
             </Col>
@@ -843,8 +964,8 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
           <Select
             mode="multiple"
             options={optionsPart.map(o => ({ value: o.id, label: getEnseignantLabel(o) }))}
-            value={partSel.map(p => p.id)}
-            onChange={(ids) => setPartSel(optionsPart.filter(o => ids.includes(o.id)))}
+            value={partSel.map((p: EnseignantItem) => p.id)}
+            onChange={(ids) => setPartSel(optionsPart.filter((o: EnseignantItem) => ids.includes(o.id)))}
             style={{ width: "100%" }}
             optionFilterProp="label"
             showSearch

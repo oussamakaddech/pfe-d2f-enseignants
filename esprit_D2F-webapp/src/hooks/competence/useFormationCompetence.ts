@@ -45,7 +45,7 @@ export function useDeleteFormationCompetence() {
 export function useReplaceAllFormationCompetences() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ formationId, newLinks }: { formationId: Id; newLinks: Record<string, unknown> }) =>
+    mutationFn: ({ formationId, newLinks }: { formationId: Id; newLinks: Record<string, unknown>[] }) =>
       FormationCompetenceService.replaceAllForFormation(formationId, newLinks),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["formation-competences"] }),
   });

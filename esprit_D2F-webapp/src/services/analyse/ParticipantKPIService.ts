@@ -1,5 +1,5 @@
 import { defaultApi as axios } from "@/utils/helpers/httpClient";
-import { config } from "@/config/env"; 
+import { config } from "@/config/env";
 
 const API_URL = `${config.FORMATION_URL}/formation/kpi/participants`;
 
@@ -24,36 +24,20 @@ function normalizeListResponse<T>(payload: T[] | { content?: T[]; data?: T[]; it
   return [];
 }
 
-function isNotFoundError(error: unknown): boolean {
-  return (error as { response?: { status?: number } })?.response?.status === 404;
-}
-
 const ParticipantKPIService = {
   async getFormationsParticipantKPIs(startDate: string, endDate: string) {
-    try {
-      const response = await axios.get(`${API_URL}/formations`, {
-        params: { startDate, endDate },
-      });
-      return normalizeListResponse(response.data);
-    } catch (error: unknown) {
-      throw error;
-    }
+    const response = await axios.get(`${API_URL}/formations`, {
+      params: { startDate, endDate },
+    });
+    return normalizeListResponse(response.data);
   },
 
   async getGlobalParticipantKPI(startDate: string, endDate: string) {
-    try {
-      const response = await axios.get(`${API_URL}/global`, {
-        params: { startDate, endDate },
-      });
-      return response.data;
-    } catch (error: unknown) {
-      throw error;
-    }
+    const response = await axios.get(`${API_URL}/global`, {
+      params: { startDate, endDate },
+    });
+    return response.data;
   },
 };
 
 export default ParticipantKPIService;
-
-
-
-

@@ -1,0 +1,99 @@
+/* BureauPage.module.css */
+
+.searchDropdown {
+  padding: var(--space-2);
+}
+
+.searchDropdownInput {
+  margin-bottom: var(--space-2);
+  display: block;
+}
+
+.searchBtnOk {
+  width: 90px;
+  margin-right: var(--space-2);
+}
+
+.searchBtnReset {
+  width: 90px;
+}
+
+.searchHighlight {
+  background-color: #ffc069;
+}
+
+.heroFlexRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+}
+
+.heroTitleRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+}
+
+.heroBadgeCount {
+  font-weight: var(--font-regular);
+  margin-left: var(--space-1);
+}
+
+/* Stat card: brand */
+.statIconBrand {
+  background: var(--primary-50);
+  color: var(--primary-500);
+}
+
+.statValueBrand {
+  color: var(--primary-500);
+}
+
+/* Stat card: info (blue) */
+.statIconInfo {
+  background: var(--color-info-bg);
+  color: var(--color-info);
+}
+
+.statValueInfo {
+  color: var(--color-info);
+}
+
+/* Stat card: success (green) */
+.statIconSuccess {
+  background: #f0fdf4;
+  color: #16a34a;
+}
+
+.statValueSuccess {
+  color: #16a34a;
+}
+
+/* Email / phone icons */
+.iconMuted {
+  margin-right: 6px;
+  color: var(--text-subtle);
+}
+
+/* Empty value placeholder */
+.emptyValue {
+  color: var(--neutral-300);
+}
+
+/* Form top margin */
+.formTopMargin {
+  margin-top: var(--space-4);
+}
+
+/* Input prefix icon */
+.inputPrefixIcon {
+  color: var(--neutral-400);
+}
+
+/* Filtered column highlight */
+.columnSearchHighlight {
+  color: var(--color-info);
+}

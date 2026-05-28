@@ -41,13 +41,13 @@ export default function DemandesList() {
   const { id: formationId } = useParams();
   const navigate = useNavigate();
   const [searchedColumn, setSearchedColumn] = useState("");
-  const searchInput = useRef(null);
+  const searchInput = useRef<any>(null);
   const { message: msgApi } = useAppNotification();
 
   const { data: demandes = [], isLoading: loading, refetch } = useInscriptionsByFormation(formationId);
   const traiterMut = useTraiterDemande();
 
-  const handleTraitement = async (id, approuver) => {
+  const handleTraitement = async (id: any, approuver: any) => {
     try {
       await traiterMut.mutateAsync({ id, approuver });
       msgApi.success(approuver ? "✅ Demande approuvée" : "❌ Demande rejetée");
@@ -57,23 +57,23 @@ export default function DemandesList() {
     }
   };
 
-  const handleSearch = (selectedKeys, confirm, dataIndex) => {
+  const handleSearch = (selectedKeys: any, confirm: any, dataIndex: any) => {
     confirm();
     setSearchedColumn(dataIndex);
   };
 
-  const handleReset = (clearFilters) => {
+  const handleReset = (clearFilters: any) => {
     clearFilters();
   };
 
-  const getColumnSearchProps = (dataIndex) => ({
-    filterDropdown: ({ setSelectedKeys, selectedKeys, confirm, clearFilters }) => (
+  const getColumnSearchProps = (dataIndex: any) => ({
+    filterDropdown: ({ setSelectedKeys, selectedKeys, confirm, clearFilters }: any) => (
       <div style={{ padding: 8 }}>
         <Input
           ref={searchInput}
           placeholder={`Rechercher ${dataIndex}`}
           value={selectedKeys[0]}
-          onChange={(e) => setSelectedKeys(e.target.value ? [e.target.value] : [])}
+          onChange={(e: any) => setSelectedKeys(e.target.value ? [e.target.value] : [])}
           onPressEnter={() => handleSearch(selectedKeys, confirm, dataIndex)}
           style={{ marginBottom: 8, display: "block" }}
         />
@@ -92,17 +92,17 @@ export default function DemandesList() {
         </Space>
       </div>
     ),
-    filterIcon: (filtered) => (
+    filterIcon: (filtered: any) => (
       <SearchOutlined style={{ color: filtered ? "#B51200" : undefined }} />
     ),
-    onFilter: (value, record) =>
+    onFilter: (value: any, record: any) =>
       record[dataIndex]?.toString().toLowerCase().includes(value.toLowerCase()),
     filterDropdownProps: {
-      onOpenChange: (visible) => {
+      onOpenChange: (visible: any) => {
         if (visible) setTimeout(() => searchInput.current?.select(), 100);
       },
     },
-    render: (text) =>
+    render: (text: any) =>
       searchedColumn === dataIndex ? (
         <span style={{ backgroundColor: "#ffc069", padding: "0 4px", borderRadius: 4 }}>{text}</span>
       ) : (
@@ -111,8 +111,8 @@ export default function DemandesList() {
   });
 
   const exportToExcel = () => {
-    const approved = demandes.filter((r) => r.etat === "APPROVED");
-    const rows = approved.map((r) => ({
+    const approved = demandes.filter((r: any) => r.etat === "APPROVED");
+    const rows = approved.map((r: any) => ({
       Nom:         r.enseignant.nom,
       Prénom:      r.enseignant.prenom,
       Email:       r.enseignant.mail,
@@ -129,9 +129,9 @@ export default function DemandesList() {
 
   // Statistiques
   const total = demandes.length;
-  const approvedCount = demandes.filter((d) => d.etat === "APPROVED").length;
-  const pendingCount = demandes.filter((d) => d.etat === "PENDING").length;
-  const rejectedCount = demandes.filter((d) => d.etat === "REJECTED").length;
+  const approvedCount = demandes.filter((d: any) => d.etat === "APPROVED").length;
+  const pendingCount = demandes.filter((d: any) => d.etat === "PENDING").length;
+  const rejectedCount = demandes.filter((d: any) => d.etat === "REJECTED").length;
 
   if (loading) return <Spin style={{ display: "block", margin: "4rem auto" }} size="large" />;
   if (!demandes.length)
@@ -142,11 +142,11 @@ export default function DemandesList() {
       />
     );
 
-  const columns = [
+  const columns: any[] = [
     {
       title: "Enseignant",
       key: "enseignant",
-      render: (_, r) => (
+      render: (_: any, r: any) => (
         <Space>
           <Avatar
             style={{ backgroundColor: brand[500] }}
@@ -170,39 +170,39 @@ export default function DemandesList() {
       title: "Département",
       dataIndex: ["enseignant", "deptLibelle"],
       key: "deptLibelle",
-      render: (val) => (
+      ...getColumnSearchProps("deptLibelle"),
+      render: (val: any) => (
         <Tag icon={<ApartmentOutlined />} color="processing">
           {val || "—"}
         </Tag>
       ),
-      sorter: (a, b) =>
+      sorter: (a: any, b: any) =>
         (a.enseignant.deptLibelle || "").localeCompare(b.enseignant.deptLibelle || ""),
-      ...getColumnSearchProps("deptLibelle"),
     },
     {
       title: "UP",
       dataIndex: ["enseignant", "upLibelle"],
       key: "upLibelle",
-      render: (val) => (
+      ...getColumnSearchProps("upLibelle"),
+      render: (val: any) => (
         <Tag icon={<TeamOutlined />} color="default">
           {val || "—"}
         </Tag>
       ),
-      sorter: (a, b) =>
+      sorter: (a: any, b: any) =>
         (a.enseignant.upLibelle || "").localeCompare(b.enseignant.upLibelle || ""),
-      ...getColumnSearchProps("upLibelle"),
     },
     {
       title: "Date demande",
       dataIndex: "dateDemande",
       key: "dateDemande",
-      render: (d) => (
+      render: (d: any) => (
         <Text type="secondary">
           <ClockCircleOutlined style={{ marginRight: 6 }} />
           {new Date(d).toLocaleDateString("fr-FR")}
         </Text>
       ),
-      sorter: (a, b) => new Date(a.dateDemande) - new Date(b.dateDemande),
+      sorter: (a: any, b: any) => new Date(a.dateDemande).getTime() - new Date(b.dateDemande).getTime(),
     },
     {
       title: "État",
@@ -213,14 +213,14 @@ export default function DemandesList() {
         { text: "Approuvé", value: "APPROVED" },
         { text: "Rejeté", value: "REJECTED" },
       ],
-      onFilter: (value, record) => record.etat === value,
-      render: (etat) => {
+      onFilter: (value: any, record: any) => record.etat === value,
+      render: (etat: any) => {
         const config = {
           APPROVED: { color: "success", icon: <CheckCircleOutlined />, text: "Approuvé" },
           REJECTED: { color: "error", icon: <CloseCircleOutlined />, text: "Rejeté" },
           PENDING:  { color: "warning", icon: <ClockCircleOutlined />, text: "En attente" },
         };
-        const c = config[etat] || config.PENDING;
+        const c = (config as any)[etat] || config.PENDING;
         return (
           <Badge
             status={c.color}
@@ -237,7 +237,7 @@ export default function DemandesList() {
       title: "Actions",
       key: "actions",
       width: 220,
-      render: (_, r) => (
+      render: (_: any, r: any) => (
         <Space>
           <Button
             type="primary"

@@ -23,7 +23,7 @@ export default function BesoinHeader({
   onAdd,
   loading = false,
   exportDisabled = false,
-}) {
+}: any) {
   return (
     <header className="bf-header">
       <Breadcrumb

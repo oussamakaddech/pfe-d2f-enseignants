@@ -11,15 +11,15 @@ function PasswordRecovery() {
   const { message } = useAppNotification();
   const navigate = useNavigate();
   const [submitting, setSubmitting] = useState(false);
+  const { mutateAsync: forgotPwd } = useForgotPassword();
 
-  const handleSubmit = async (values) => {
+  const handleSubmit = async (values: any) => {
     setSubmitting(true);
     try {
-      const { mutateAsync: forgotPwd } = useForgotPassword();
       const response = await forgotPwd(values.email);
-      message.success(response || "Email de réinitialisation envoyé");
+      message.success((response as any) || "Email de réinitialisation envoyé");
     } catch (err: unknown) {
-      const msg = err?.response?.data?.message || "Erreur lors de l'envoi";
+      const msg = (err as any)?.response?.data?.message || "Erreur lors de l'envoi";
       message.error(msg);
     } finally {
       setSubmitting(false);

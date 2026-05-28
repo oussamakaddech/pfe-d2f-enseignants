@@ -4,10 +4,10 @@ import { DeleteOutlined, EditOutlined, PlusOutlined } from "@ant-design/icons";
 
 const { Text } = Typography;
 
-function flattenSousCompList(items = []) {
-  const acc = [];
-  const walk = (list) => {
-    list.forEach((node) => {
+function flattenSousCompList(items: any[] = []) {
+  const acc: any[] = [];
+  const walk = (list: any[]) => {
+    list.forEach((node: any) => {
       acc.push(node);
       if (Array.isArray(node.enfants) && node.enfants.length > 0) {
         walk(node.enfants);
@@ -18,7 +18,7 @@ function flattenSousCompList(items = []) {
   return acc;
 }
 
-function SousCompNode({ node, depth, onAddChild, onEdit, onDelete }) {
+function SousCompNode({ node, depth, onAddChild, onEdit, onDelete }: any) {
   const enfants = node.enfants ?? [];
   const isLeaf = enfants.length === 0;
   const hasSavoirs = (node.savoirs?.length ?? 0) > 0;
@@ -56,7 +56,7 @@ function SousCompNode({ node, depth, onAddChild, onEdit, onDelete }) {
         </Tooltip>
       </Space>
 
-      {enfants.map((child) => (
+      {enfants.map((child: any) => (
         <SousCompNode
           key={child.id}
           node={child}
@@ -86,7 +86,7 @@ export default function CompetenceExpandedRow({
   onAddChild,
   onEdit,
   onDelete,
-}) {
+}: any) {
   const allNodesForComp = flattenSousCompList(sousComps ?? []).filter(
     (sc) => String(sc.competenceId) === String(competence.id),
   );
@@ -96,7 +96,7 @@ export default function CompetenceExpandedRow({
     byId.set(String(n.id), { ...n, enfants: [] });
   });
 
-  const roots = [];
+  const roots: any[] = [];
   byId.forEach((node) => {
     if (node.parentId && byId.has(String(node.parentId))) {
       byId.get(String(node.parentId)).enfants.push(node);

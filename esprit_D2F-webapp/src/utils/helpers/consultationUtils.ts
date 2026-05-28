@@ -1,3 +1,34 @@
+interface Domaine {
+  id: string | number;
+  code: string;
+  nom: string;
+}
+
+interface Competence {
+  id: string | number;
+  code: string;
+  nom: string;
+  domaineId: string | number;
+}
+
+interface SousCompetence {
+  id: string | number;
+  code: string;
+  nom: string;
+  competenceId: string | number;
+  parentId?: string | number | null;
+}
+
+interface Savoir {
+  id: string | number;
+  code: string;
+  nom: string;
+  type: string;
+  niveau: string;
+  sousCompetenceId?: string | number | null;
+  competenceId?: string | number | null;
+}
+
 export const NIVEAUX_MATRIX = [
   { key: "N1_DEBUTANT", label: "N 1" },
   { key: "N2_ELEMENTAIRE", label: "N 2" },
@@ -6,13 +37,18 @@ export const NIVEAUX_MATRIX = [
   { key: "N5_EXPERT", label: "N 5" },
 ];
 
-export function buildD3TreeData(domaines = [], competences = [], sousComps = [], savoirs = []) {
-  const toSavoirNode = (s) => ({
+export function buildD3TreeData(
+  domaines: Domaine[] = [],
+  competences: Competence[] = [],
+  sousComps: SousCompetence[] = [],
+  savoirs: Savoir[] = []
+): { name: string; children: any[] } {
+  const toSavoirNode = (s: Savoir) => ({
     name: s.nom,
     attributes: { code: s.code, type: s.type },
   });
 
-  const getDirectSavoirs = (competenceId) =>
+  const getDirectSavoirs = (competenceId: string | number) =>
     savoirs
       .filter(
         (s) =>
@@ -21,7 +57,7 @@ export function buildD3TreeData(domaines = [], competences = [], sousComps = [],
       )
       .map(toSavoirNode);
 
-  const buildScChildren = (competenceId, parentScId = null) => {
+  const buildScChildren = (competenceId: string | number, parentScId: string | number | null = null): any[] => {
     const nodes = sousComps.filter(
       (sc) =>
         String(sc.competenceId) === String(competenceId) &&
@@ -67,14 +103,14 @@ export function buildD3TreeData(domaines = [], competences = [], sousComps = [],
   };
 }
 
-export function buildMatrixRows(matrixData = {}) {
+export function buildMatrixRows(matrixData: Record<string, Array<{ savoirCode?: string }>> = {}): Array<Record<string, string>> {
   const maxRows = Math.max(
     ...NIVEAUX_MATRIX.map((n) => (matrixData?.[n.key] || []).length),
     1,
   );
 
   return Array.from({ length: maxRows }, (_, idx) => {
-    const row = {};
+    const row: Record<string, string> = {};
     NIVEAUX_MATRIX.forEach((n) => {
       row[n.label] = matrixData?.[n.key]?.[idx]?.savoirCode || "";
     });
@@ -82,7 +118,7 @@ export function buildMatrixRows(matrixData = {}) {
   });
 }
 
-export function buildExportFileName(competenceCode, date = new Date()) {
+export function buildExportFileName(competenceCode: string | null | undefined, date: Date = new Date()): string {
   const safeCode = (competenceCode || "competence")
     .replaceAll(/[^A-Za-z0-9_-]/g, "_")
     .slice(0, 40);

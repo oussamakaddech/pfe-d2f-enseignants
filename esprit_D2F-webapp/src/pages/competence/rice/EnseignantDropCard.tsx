@@ -29,14 +29,14 @@ interface EnseignantDropCardProps {
 
 const { Text } = Typography;
 
-function loadClass(count) {
+function loadClass(count: any) {
   if (count === 0) return "load-none";
   if (count <= 3) return "load-ok";
   if (count <= 6) return "load-high";
   return "load-over";
 }
 
-function loadColor(count) {
+function loadColor(count: any) {
   if (count === 0) return "#94a3b8";
   if (count <= 3) return "#3b82f6";
   if (count <= 6) return "#f59e0b";
@@ -63,7 +63,6 @@ export default function EnseignantDropCard({
 
   return (
     /* Drop target: HTML5 DnD has no native keyboard equivalent — keyboard users can use the explicit "Assign" actions from the per-savoir dropdown menu. (S6848 — by-design DnD.) */
-    // eslint-disable-next-line jsx-a11y/no-static-element-interactions
     <div
       className={`ens-drop-card ${loadClass(count)}${isOver ? " is-over" : ""}`}
       ref={null}

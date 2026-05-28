@@ -6,7 +6,7 @@ import { AppstoreOutlined, UnorderedListOutlined } from "@ant-design/icons";
  * Toggle Cards / Tableau aligné avec compteur de résultats.
  * Le résultat est mis en valeur typographiquement (chiffre gros, label discret).
  */
-export default function ViewModeToggle({ value, onChange, count, total }) {
+export default function ViewModeToggle({ value, onChange, count, total }: any) {
   return (
     <div className="bf-viewmode">
       <div className="bf-viewmode__count" aria-live="polite">

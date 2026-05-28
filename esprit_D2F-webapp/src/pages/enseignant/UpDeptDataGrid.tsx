@@ -9,6 +9,8 @@ import {
   Form,
   Popconfirm,
 } from 'antd';
+import type { TableColumnType, InputRef } from 'antd';
+import type { FilterDropdownProps } from 'antd/es/table/interface';
 import {
   SearchOutlined,
   UploadOutlined,
@@ -23,6 +25,13 @@ import { useAllDepts, useCreateDept, useUpdateDept, useDeleteDept, useImportDept
 import useAppNotification from "@/hooks/ui/useAppNotification";
 import { AppPageHeader } from "@/components/common";
 import "@/styles/pages/up-dept-data-grid.css";
+
+interface RecordItem {
+  id: string | number;
+  libelle?: string;
+  nom?: string;
+  [key: string]: unknown;
+}
 
 export default function UpDeptDataGrid() {
   const { message: msgApi } = useAppNotification();
@@ -39,22 +48,22 @@ export default function UpDeptDataGrid() {
   const { mutateAsync: deleteDept } = useDeleteDept();
 
   // UP states
-  const [fileUp, setFileUp] = useState(null);
+  const [fileUp, setFileUp] = useState<File | null>(null);
   const [drawerUpVisible, setDrawerUpVisible] = useState(false);
-  const [upMode, setUpMode] = useState('create');
-  const [currentUp, setCurrentUp] = useState(null);
+  const [upMode, setUpMode] = useState<'create' | 'edit'>('create');
+  const [currentUp, setCurrentUp] = useState<RecordItem | null>(null);
   const [formUp] = Form.useForm();
 
   // Dept states
-  const [fileDept, setFileDept] = useState(null);
+  const [fileDept, setFileDept] = useState<File | null>(null);
   const [drawerDeptVisible, setDrawerDeptVisible] = useState(false);
-  const [deptMode, setDeptMode] = useState('create');
-  const [currentDept, setCurrentDept] = useState(null);
+  const [deptMode, setDeptMode] = useState<'create' | 'edit'>('create');
+  const [currentDept, setCurrentDept] = useState<RecordItem | null>(null);
   const [formDept] = Form.useForm();
 
   // Search states
   const [searchedColumn, setSearchedColumn] = useState('');
-  const searchInput = useRef(null);
+  const searchInput = useRef<InputRef>(null);
 
   /*** Import Excel ***/
   const handleUploadUp = async () => {
@@ -64,7 +73,8 @@ export default function UpDeptDataGrid() {
       msgApi.success(res);
       setFileUp(null);
     } catch (err: unknown) {
-      msgApi.error(err.response?.data || err.message);
+      const error = err as { response?: { data?: string }; message?: string };
+      msgApi.error(error.response?.data || error.message || 'Erreur');
     }
   };
   const handleUploadDept = async () => {
@@ -74,7 +84,8 @@ export default function UpDeptDataGrid() {
       msgApi.success(res);
       setFileDept(null);
     } catch (err: unknown) {
-      msgApi.error(err.response?.data || err.message);
+      const error = err as { response?: { data?: string }; message?: string };
+      msgApi.error(error.response?.data || error.message || 'Erreur');
     }
   };
 
@@ -85,32 +96,44 @@ export default function UpDeptDataGrid() {
     formUp.resetFields();
     setDrawerUpVisible(true);
   };
-  const openEditUp = record => {
+  const openEditUp = (record: RecordItem) => {
     setUpMode('edit');
     setCurrentUp(record);
     formUp.setFieldsValue({ id: record.id, libelle: record.libelle });
     setDrawerUpVisible(true);
   };
-  const handleSubmitUp = async values => {
+  const handleSubmitUp = async (values: Record<string, unknown>) => {
     try {
       if (upMode === 'create') {
         await createUp(values);
         msgApi.success('UP créée');
       } else {
-        await updateUp({ id: currentUp.id, data: values });
+        await updateUp({ id: currentUp!.id, data: values });
         msgApi.success('UP mise à jour');
       }
       setDrawerUpVisible(false);
     } catch (err: unknown) {
-      msgApi.error(err.response?.data || err.message);
+      const error = err as { response?: { data?: string }; message?: string };
+      msgApi.error(error.response?.data || error.message || 'Erreur');
     }
   };
-  const handleDeleteUp = async id => {
+  const handleDeleteUp = async (id: string | number) => {
     try {
       await deleteUp(id);
       msgApi.success('UP supprimée');
     } catch (err: unknown) {
-      msgApi.error(err.response?.data || err.message);
+      const error = err as { response?: { data?: string }; message?: string };
+      msgApi.error(error.response?.data || error.message || 'Erreur');
+    }
+  };
+
+  const handleDeleteDept = async (id: string | number) => {
+    try {
+      await deleteDept(id);
+      msgApi.success('Département supprimé');
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: string }; message?: string };
+      msgApi.error(error.response?.data || error.message || 'Erreur');
     }
   };
 
@@ -121,43 +144,44 @@ export default function UpDeptDataGrid() {
     formDept.resetFields();
     setDrawerDeptVisible(true);
   };
-  const openEditDept = record => {
+  const openEditDept = (record: RecordItem) => {
     setDeptMode('edit');
     setCurrentDept(record);
     formDept.setFieldsValue({ id: record.id, nom: record.nom });
     setDrawerDeptVisible(true);
   };
-  const handleSubmitDept = async values => {
+  const handleSubmitDept = async (values: Record<string, unknown>) => {
     try {
       if (deptMode === 'create') {
         await createDept(values);
         msgApi.success('Département créé');
       } else {
-        await updateDept({ id: currentDept.id, data: values });
+        await updateDept({ id: currentDept!.id, data: values });
         msgApi.success('Département mis à jour');
       }
       setDrawerDeptVisible(false);
     } catch (err: unknown) {
-      msgApi.error(err.response?.data || err.message);
+      const error = err as { response?: { data?: string }; message?: string };
+      msgApi.error(error.response?.data || error.message || 'Erreur');
     }
   };
 
   /*** Search helpers ***/
-  const handleSearch = (selectedKeys, confirm, dataIndex) => {
+  const handleSearch = (selectedKeys: React.Key[], confirm: () => void, dataIndex: string) => {
     confirm();
     setSearchedColumn(dataIndex);
   };
-  const handleReset = clearFilters => {
-    clearFilters();
+  const handleReset = (clearFilters?: () => void) => {
+    clearFilters?.();
   };
-  const getColumnSearchProps = (dataIndex, placeholder) => ({
-    filterDropdown: ({ setSelectedKeys, selectedKeys, confirm, clearFilters }) => (
+  const getColumnSearchProps = (dataIndex: string, placeholder: string): TableColumnType<RecordItem> => ({
+    filterDropdown: ({ setSelectedKeys, selectedKeys, confirm, clearFilters }: FilterDropdownProps) => (
       <div style={{ padding: 8 }}>
         <Input
           ref={searchInput}
           placeholder={`Rechercher ${placeholder}`}
-          value={selectedKeys[0]}
-          onChange={e => setSelectedKeys(e.target.value ? [e.target.value] : [])}
+          value={selectedKeys[0] as string}
+          onChange={(e) => setSelectedKeys(e.target.value ? [e.target.value] : [])}
           onPressEnter={() => handleSearch(selectedKeys, confirm, dataIndex)}
           style={{ marginBottom: 8, display: 'block' }}
         />
@@ -179,29 +203,29 @@ export default function UpDeptDataGrid() {
         </Button>
       </div>
     ),
-    filterIcon: filtered => <SearchOutlined style={{ color: filtered ? '#1890ff' : undefined }} />,
+    filterIcon: (filtered: boolean) => <SearchOutlined style={{ color: filtered ? '#1890ff' : undefined }} />,
     onFilter: (value, record) =>
-      record[dataIndex]?.toString().toLowerCase().includes(value.toLowerCase()),
+      Boolean(record[dataIndex]?.toString().toLowerCase().includes(String(value).toLowerCase())),
     filterDropdownProps: {
-      onOpenChange: visible => {
-        if (visible) setTimeout(() => searchInput.current?.select(), 100);
+      onOpenChange: (visible: boolean) => {
+        if (visible) setTimeout(() => searchInput.current?.focus(), 100);
       },
     },
-    render: text =>
+    render: (text: unknown) =>
       searchedColumn === dataIndex ? (
-        <span style={{ backgroundColor: '#ffc069' }}>{text}</span>
+        <span style={{ backgroundColor: '#ffc069' }}>{String(text)}</span>
       ) : (
-        text
+        String(text)
       ),
   });
 
   /*** Columns definition without ID column ***/
-  const upColumns = [
+  const upColumns: TableColumnType<RecordItem>[] = [
     {
       title: 'Libellé',
       dataIndex: 'libelle',
       key: 'libelle',
-      sorter: (a, b) => a.libelle.localeCompare(b.libelle),
+      sorter: (a, b) => (a.libelle ?? '').localeCompare(b.libelle ?? ''),
       ...getColumnSearchProps('libelle', 'Libellé'),
     },
     {
@@ -228,12 +252,12 @@ export default function UpDeptDataGrid() {
     },
   ];
 
-  const deptColumns = [
+  const deptColumns: TableColumnType<RecordItem>[] = [
     {
        title: 'Libellé',
       dataIndex: 'libelle',
       key: 'libelle',
-      sorter: (a, b) => a.libelle.localeCompare(b.libelle),
+      sorter: (a, b) => (a.libelle ?? '').localeCompare(b.libelle ?? ''),
       ...getColumnSearchProps('libelle', 'Libellé'),
     },
     {
@@ -277,7 +301,7 @@ export default function UpDeptDataGrid() {
                 <>
                   <div className="updept-toolbar">
                     <Button type="text" icon={<ReloadOutlined />}
-                      onClick={fetchUps}
+                      onClick={() => fetchUps()}
                       style={{ fontSize: 20 }}
                     />
                     <Button icon={<PlusOutlined />} onClick={openCreateUp}>
@@ -285,7 +309,7 @@ export default function UpDeptDataGrid() {
                     </Button>
                     <Upload
                       accept=".xlsx,.xls"
-                      beforeUpload={f => {
+                      beforeUpload={(f) => {
                         setFileUp(f);
                         return false;
                       }}
@@ -302,8 +326,8 @@ export default function UpDeptDataGrid() {
                     </Button>
                   </div>
                   <div className="updept-table-card">
-                    <Table
-                      dataSource={ups}
+                    <Table<RecordItem>
+                      dataSource={ups as RecordItem[]}
                       columns={upColumns}
                       rowKey="id"
                       pagination={{ pageSize: 10 }}
@@ -349,7 +373,7 @@ export default function UpDeptDataGrid() {
                 <>
                   <div className="updept-toolbar">
                     <Button type="text" icon={<ReloadOutlined />}
-                      onClick={fetchDepts}
+                      onClick={() => fetchDepts()}
                       style={{ fontSize: 20 }}
                     />
                     <Button icon={<PlusOutlined />} onClick={openCreateDept}>
@@ -357,7 +381,7 @@ export default function UpDeptDataGrid() {
                     </Button>
                     <Upload
                       accept=".xlsx,.xls"
-                      beforeUpload={f => {
+                      beforeUpload={(f) => {
                         setFileDept(f);
                         return false;
                       }}
@@ -374,8 +398,8 @@ export default function UpDeptDataGrid() {
                     </Button>
                   </div>
                   <div className="updept-table-card">
-                    <Table
-                      dataSource={depts}
+                    <Table<RecordItem>
+                      dataSource={depts as RecordItem[]}
                       columns={deptColumns}
                       rowKey="id"
                       pagination={{ pageSize: 10 }}

@@ -10,6 +10,10 @@ vi.mock("@/utils/helpers/httpClient", () => ({
     post: apiMocks.mockPost,
     get: apiMocks.mockGet,
   })),
+  defaultApi: {
+    post: apiMocks.mockPost,
+    get: apiMocks.mockGet,
+  },
 }));
 
 import {
@@ -18,7 +22,7 @@ import {
   login,
   resetPassword,
   signup,
-} from '../authService';
+} from '../AuthService';
 
 describe('authService', () => {
   beforeEach(() => {
@@ -51,7 +55,7 @@ describe('authService', () => {
   it('refreshToken is sent silently', async () => {
     apiMocks.mockGet.mockResolvedValueOnce({ data: { userId: 1, role: 'admin', email: 'a@b.com' } });
 
-    await expect(import('../authService').then(({ refreshToken }) => refreshToken())).resolves.toEqual({
+    await expect(import('../AuthService').then(({ refreshToken }) => refreshToken())).resolves.toEqual({
       userId: 1,
       role: 'admin',
       email: 'a@b.com',

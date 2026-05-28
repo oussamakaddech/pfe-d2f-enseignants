@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
-import PropTypes from "prop-types";
 import { Form, Input, Select, Checkbox, Upload, Button, Typography } from "antd";
+import type { UploadFile } from "antd";
 import { UploadOutlined } from "@ant-design/icons";
 import useAppNotification from "@/hooks/ui/useAppNotification";
 import "antd/dist/reset.css";
-import { useUpdateDocument } from "@/hooks/document/useDocument";
+import { useUpdateDocument, useDeleteDocument } from "@/hooks/document/useDocument";
+import type { FormationDocument } from "@/models/document";
 
 const { Option } = Select;
 const PATH_OPTIONS = [
@@ -13,11 +14,25 @@ const PATH_OPTIONS = [
   { value: "DOCUMENT", label: "Autre dossier…" },
 ];
 
-export default function UpdateDocumentForm({ documentData, onUpdated }) {
+interface UpdateDocumentFormProps {
+  documentData: FormationDocument;
+  onUpdated: (doc: FormationDocument | null) => void;
+}
+
+interface DocFormValues {
+  pathType: string;
+  nomDocument: string;
+  obligation: boolean;
+  file?: UploadFile[];
+}
+
+export default function UpdateDocumentForm({ documentData, onUpdated }: UpdateDocumentFormProps) {
   const { message } = useAppNotification();
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
-  const [fileList, setFileList] = useState([]);
+  const [fileList, setFileList] = useState<UploadFile[]>([]);
+  const { mutateAsync: updateDoc } = useUpdateDocument();
+  const { mutateAsync: deleteDoc } = useDeleteDocument();
 
   useEffect(() => {
     form.setFieldsValue({
@@ -31,25 +46,24 @@ export default function UpdateDocumentForm({ documentData, onUpdated }) {
 
   const uploadProps = {
     beforeUpload: () => false,
-    onChange: ({ fileList }) => setFileList(fileList.slice(-1)),
+    onChange: ({ fileList }: { fileList: UploadFile[] }) => setFileList(fileList.slice(-1)),
     fileList,
   };
 
-  const onFinish = async (values) => {
+  const onFinish = async (values: DocFormValues) => {
     setLoading(true);
     try {
       const payload = {
         pathType:    values.pathType,
         nomDocument: values.nomDocument,
-        obligation:  values.obligation,
-        file:        values.file?.[0]?.originFileObj,
+        obligation:  String(values.obligation),
+        file:        values.file?.[0]?.originFileObj as File | undefined,
       };
-      const { mutateAsync: updateDoc } = useUpdateDocument();
       const updatedDoc = await updateDoc({ id: documentData.idDocument, ...payload });
       message.success("Document mis à jour avec succès");
       form.resetFields();
       setFileList([]);
-      onUpdated(updatedDoc);
+      onUpdated(updatedDoc as FormationDocument);
     } catch {
       message.error("🚫 Erreur lors de la mise à jour du document.");
     } finally {
@@ -106,7 +120,7 @@ export default function UpdateDocumentForm({ documentData, onUpdated }) {
             if (globalThis.confirm("Voulez-vous vraiment supprimer ce document ?")) {
               setLoading(true);
               try {
-                await DocumentService.deleteDocument(documentData.idDocument);
+                await deleteDoc(documentData.idDocument);
                 message.success("Document supprimé");
                 onUpdated(null); // signal deletion
               } catch {
@@ -123,16 +137,6 @@ export default function UpdateDocumentForm({ documentData, onUpdated }) {
     </Form>
   );
 }
-
-UpdateDocumentForm.propTypes = {
-  documentData: PropTypes.shape({
-    idDocument:  PropTypes.oneOfType([PropTypes.number, PropTypes.string]).isRequired,
-    pathType:    PropTypes.string.isRequired,
-    nomDocument: PropTypes.string.isRequired,
-    obligation:  PropTypes.bool.isRequired,
-  }).isRequired,
-  onUpdated: PropTypes.func.isRequired,
-};
 
 
 

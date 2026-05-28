@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { BrowserRouter } from "react-router-dom";
 import { App } from "antd";
-import AuthProvider from "@/components/common/AuthProvider";
+import AuthProvider from "@/context/AuthContext";
 import BesoinList from "../BesoinList";
 import BesoinFormationService from "@/services/besoin/BesoinFormationService";
 import DeptService from "@/services/formation/DeptService";
@@ -51,7 +51,7 @@ const mockUps = [
   { id: 2, name: "UP Math" },
 ];
 
-function renderWithProviders(ui) {
+function renderWithProviders(ui: any) {
   return render(
     <BrowserRouter>
       <App>
@@ -131,7 +131,7 @@ describe.skip("BesoinList", { timeout: 60000 }, () => {
 
     const deleteButton = document.querySelectorAll(".anticon-delete")[0]?.closest("button");
     expect(deleteButton).toBeTruthy();
-    fireEvent.click(deleteButton);
+    fireEvent.click(deleteButton!);
 
     const confirmButton = await screen.findByRole("button", { name: "Oui" });
     fireEvent.click(confirmButton);

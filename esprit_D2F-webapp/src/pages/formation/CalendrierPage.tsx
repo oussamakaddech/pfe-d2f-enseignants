@@ -1,5 +1,6 @@
 
 import { useState, useMemo } from "react";
+// @ts-ignore
 import { Calendar, dateFnsLocalizer } from "react-big-calendar";
 import { format, parse, startOfWeek, getDay } from "date-fns";
 import { fr } from "date-fns/locale/fr";
@@ -37,12 +38,12 @@ export default function CalendrierPage() {
   const { message } = useAppNotification();
   // modal & sélection
   const [showModal, setShowModal] = useState(false);
-  const [selectedDate, setSelectedDate] = useState(null);
-  const [selectedEvent, setSelectedEvent] = useState(null);
+  const [selectedDate, setSelectedDate] = useState<any>(null);
+  const [selectedEvent, setSelectedEvent] = useState<any>(null);
   // wizard: étapes création, docs, mail
   const [showWizard, setShowWizard] = useState(false);
   const [wizardStep, setWizardStep] = useState(0);
-  const [createdFormation, setCreatedFormation] = useState(null);
+  const [createdFormation, setCreatedFormation] = useState<any>(null);
   const [docsAdded, setDocsAdded] = useState(false);
   // état calendrier
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -56,14 +57,14 @@ export default function CalendrierPage() {
     { key: "mail", title: "Envoyer l'e-mail" },
   ];
 
-  const showAlert = (msg, severity = "info") => {
+  const showAlert = (msg: any, severity = "info") => {
     if (severity === "error") message.error(msg);
     else if (severity === "success") message.success(msg);
     else message.info(msg);
   };
 
   const events = useMemo(() => {
-    const eventsData = [];
+    let eventsData: any[] = [];
     (Array.isArray(formations) ? formations : []).forEach((f) => {
       if (f.seances?.length) {
           f.seances.forEach((s) => {
@@ -88,7 +89,7 @@ export default function CalendrierPage() {
     return eventsData;
   }, [formations]);
 
-  const handleSelectSlot = (slotInfo) => {
+  const handleSelectSlot = (slotInfo: any) => {
     setSelectedEvent(null);
     setSelectedDate(slotInfo.start);
     setShowModal(true);
@@ -98,15 +99,15 @@ export default function CalendrierPage() {
     setDocsAdded(false);
   };
 
-  const handleSelectEvent = (event) => {
+  const handleSelectEvent = (event: any) => {
     setShowWizard(false);
     setSelectedEvent(event);
     setSelectedDate(null);
     setShowModal(true);
   };
 
-  const handleNavigate = (newDate) => setCurrentDate(newDate);
-  const handleViewChange = (view) => setCurrentView(view);
+  const handleNavigate = (newDate: any) => setCurrentDate(newDate);
+  const handleViewChange = (view: any) => setCurrentView(view);
 
   const handleClose = () => {
     setShowModal(false);
@@ -116,7 +117,7 @@ export default function CalendrierPage() {
     setSelectedEvent(null);
   };
 
-  const onFormationCreatedWizard = (newFormation) => {
+  const onFormationCreatedWizard = (newFormation: any) => {
     setCreatedFormation(newFormation);
     setWizardStep(1);
     void refetchFormations();
@@ -132,7 +133,7 @@ export default function CalendrierPage() {
     showAlert("E-mail envoyé ! Vous pouvez en envoyer un autre.", "success");
   };
 
-  const getStatusClass = (etat) => {
+  const getStatusClass = (etat: any) => {
     switch (etat) {
       case "ENREGISTRE": return "cal-event--enregistre";
       case "PLANIFIE":   return "cal-event--planifie";
@@ -143,7 +144,7 @@ export default function CalendrierPage() {
     }
   };
 
-  const eventStyleGetter = (event) => {
+  const eventStyleGetter = (event: any) => {
     const etat = event.details?.formation?.etatFormation;
     return {
       className: getStatusClass(etat),
@@ -361,7 +362,7 @@ export default function CalendrierPage() {
 
             {wizardStep === 0 && (
               <FormationWorkflowForm
-                initialDate={selectedDate}
+                initialDate={selectedDate as any}
                 onFormationCreated={onFormationCreatedWizard}
               />
             )}
@@ -390,13 +391,13 @@ export default function CalendrierPage() {
               </div>
             )}
             <div style={{ opacity: isLoading ? 0.5 : 1 }}>
-              <EventDetails selectedEvent={selectedEvent} />
+              <EventDetails {...{selectedEvent} as any} />
             </div>
           </div>
           );
           return (
           <FormationWorkflowForm
-            initialDate={selectedDate}
+            initialDate={selectedDate as any}
             onFormationCreated={onFormationCreatedWizard}
           />
           );

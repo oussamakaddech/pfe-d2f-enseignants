@@ -9,7 +9,7 @@ import { AppPageHeader, shadow, radius } from "@/components/common";
 export default function EditProfile() {
   const [form] = Form.useForm();
   const { message: msgApi } = useAppNotification();
-  const [profile, setProfile] = useState(null);
+  const [profile, setProfile] = useState<any>(null);
   const { data: profileData } = useProfile();
   const { mutateAsync: editProfileApi } = useEditProfile();
 
@@ -28,7 +28,7 @@ export default function EditProfile() {
     }
   }, [profileData, form]);
 
-  const onFinish = async (values) => {
+  const onFinish = async (values: any) => {
     if (!profile) return;
     const payload = {
       firstName:   values.firstName,

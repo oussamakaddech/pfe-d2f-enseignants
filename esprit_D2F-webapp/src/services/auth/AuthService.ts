@@ -1,5 +1,5 @@
 import type { AxiosResponse } from "axios";
-import { createApiClient } from "@/utils/helpers/httpClient";
+import { defaultApi as api } from "@/utils/helpers/httpClient";
 
 import { config } from "@/config/env";
 import type {
@@ -10,7 +10,7 @@ import type {
   AuthUser,
 } from "@/models/auth";
 
-const api = createApiClient(`${config.URL_ACCOUNT}/auth`);
+const AUTH_BASE = `${config.URL_ACCOUNT}/auth`;
 
 /**
  * Authenticate user. JWT is set as HttpOnly cookie by the server.
@@ -24,7 +24,7 @@ export async function login({
   params.append("username", username);
   params.append("password", password);
   const response: AxiosResponse<LoginResponse> = await api.post(
-    `/login`,
+    `${AUTH_BASE}/login`,
     params
   );
 
@@ -33,12 +33,12 @@ export async function login({
 }
 
 export async function signup(payload: SignupRequest): Promise<unknown> {
-  const response = await api.post("/signup", payload);
+  const response = await api.post(`${AUTH_BASE}/signup`, payload);
   return response.data;
 }
 
 export async function forgotPassword(emailAddress: string): Promise<unknown> {
-  const url = `/forgot-password?emailAddress=${encodeURIComponent(
+  const url = `${AUTH_BASE}/forgot-password?emailAddress=${encodeURIComponent(
     emailAddress
   )}`;
   const response = await api.post(url);
@@ -49,7 +49,7 @@ export async function resetPassword({
   confirmationKey,
   newPassword,
 }: ResetPasswordRequest): Promise<unknown> {
-  const response = await api.post(`/reset-password`, {
+  const response = await api.post(`${AUTH_BASE}/reset-password`, {
     confirmationKey,
     newPassword,
   });
@@ -57,7 +57,7 @@ export async function resetPassword({
 }
 
 export async function getProfile(): Promise<AuthUser> {
-  const response = await api.get("/profile");
+  const response = await api.get(`${AUTH_BASE}/profile`);
   return response.data;
 }
 
@@ -67,7 +67,7 @@ export async function getProfile(): Promise<AuthUser> {
  */
 export async function refreshToken(): Promise<LoginResponse> {
   const response: AxiosResponse<LoginResponse> = await api.get(
-    "/refresh",
+    `${AUTH_BASE}/refresh`,
     { meta: { silent: true } } as never
   );
   return response.data;
@@ -77,7 +77,7 @@ export async function refreshToken(): Promise<LoginResponse> {
  * Logout — server invalidates the HttpOnly cookie (Max-Age=0).
  */
 export async function logout(): Promise<void> {
-  await api.post("/logout");
+  await api.post(`${AUTH_BASE}/logout`);
 }
 
 

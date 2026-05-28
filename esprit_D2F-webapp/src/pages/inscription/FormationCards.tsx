@@ -42,7 +42,7 @@ import useAppNotification from "@/hooks/ui/useAppNotification";
 const { Text } = Typography;
 const { RangePicker } = DatePicker;
 
-function getTypeClass(type) {
+function getTypeClass(type: any) {
   if (!type) return "type-default";
   const t = String(type).toUpperCase().replaceAll(/\s/g, "_");
   return `type-${t}`;
@@ -50,7 +50,7 @@ function getTypeClass(type) {
 
 
 export default function FormationCards() {
-  const [requested, setRequested] = useState([]);
+  const [requested, setRequested] = useState<any[]>([]);
   const navigate = useNavigate();
 
   const { message: messageApi } = useAppNotification();
@@ -65,7 +65,7 @@ export default function FormationCards() {
 
   const identifier = currentUser?.emailAddress || currentUser?.email || currentUser?.id;
   const { data: enseignant } = useEnseignantById(currentUser?.role === ROLES.CUP ? identifier : undefined);
-  const { data: parUp, refetch: refetchParUp } = useFormationsParUp(currentUser?.role === ROLES.CUP ? enseignant?.up?.id : undefined);
+  const { data: parUp, refetch: refetchParUp } = useFormationsParUp(currentUser?.role === ROLES.CUP ? (enseignant as any)?.up?.id : undefined);
   const { data: accessibles, refetch: refetchAccessibles } = useFormationsAccessibles(currentUser?.role === ROLES.FORMATEUR ? identifier : undefined);
   const { data: visibles, isLoading: visiblesLoading, refetch: refetchVisibles } = useFormationsVisibles();
   const { data: all } = useAllFormations();
@@ -74,7 +74,7 @@ export default function FormationCards() {
 
   const formations = useMemo(() => {
     if (!currentUser) return [];
-    let data = [];
+    let data: any = [];
     if (currentUser.role === ROLES.CUP) {
       data = parUp;
     } else if (currentUser.role === ROLES.FORMATEUR) {
@@ -92,31 +92,31 @@ export default function FormationCards() {
 
   // filtres
   const [searchText, setSearchText] = useState("");
-  const [typeFilter, setTypeFilter] = useState();
-  const [upFilter, setUpFilter] = useState();
-  const [deptFilter, setDeptFilter] = useState();
-  const [ouverteFilter, setOuverteFilter] = useState();
-  const [dateRange, setDateRange] = useState([]);
+  const [typeFilter, setTypeFilter] = useState<any>();
+  const [upFilter, setUpFilter] = useState<any>();
+  const [deptFilter, setDeptFilter] = useState<any>();
+  const [ouverteFilter, setOuverteFilter] = useState<any>();
+  const [dateRange, setDateRange] = useState<any>([]);
   const formationsList = Array.isArray(formations) ? formations : [];
 
-  const handleToggle = async (idFormation) => {
+  const handleToggle = async (idFormation: any) => {
     try {
-      const cur = formationsList.find((f) => f.idFormation === idFormation);
+      const cur = formationsList.find((f: any) => f.idFormation === idFormation);
       if (!cur) throw new Error("Formation introuvable");
       const nextState = !cur.inscriptionsOuvertes;
       await updateOuvertes({ id: idFormation, ouvert: nextState });
       messageApi.success(nextState ? "Inscriptions ouvertes" : "Inscriptions fermées");
-    } catch (err: unknown) {
+    } catch (err: any) {
       messageApi.error(err.response?.data?.message || "Échec de la mise à jour");
     }
   };
 
-  const handleDemande = async (idFormation) => {
+  const handleDemande = async (idFormation: any) => {
     try {
-      await demanderMutation({ formationId: idFormation, enseignantId: identifier });
+      await demanderMutation({ formationId: idFormation, enseignantId: identifier as any });
       messageApi.success("Demande d'inscription envoyée !");
       setRequested((prev) => [...prev, idFormation]);
-    } catch (err: unknown) {
+    } catch (err: any) {
       messageApi.error(err.response?.data?.message || "Échec de la demande");
     }
   };
@@ -130,7 +130,7 @@ export default function FormationCards() {
     setDateRange([]);
   };
 
-  const filtered = formationsList.filter((f) => {
+  const filtered = formationsList.filter((f: any) => {
     if (searchText && !f.titreFormation?.toLowerCase().includes(searchText.toLowerCase())) return false;
     if (typeFilter && f.typeFormation !== typeFilter) return false;
     if (upFilter && f.up1?.libelle !== upFilter) return false;
@@ -145,20 +145,20 @@ export default function FormationCards() {
   });
 
   // options filtres
-  const types = Array.from(new Set(formationsList.map((f) => f.typeFormation)))
+  const types = Array.from(new Set(formationsList.map((f: any) => f.typeFormation)))
     .filter(Boolean)
-    .map((t) => ({ label: t, value: t }));
-  const ups = Array.from(new Set(formationsList.map((f) => f.up1?.libelle).filter(Boolean)))
-    .map((u) => ({ label: u, value: u }));
-  const depts = Array.from(new Set(formationsList.map((f) => f.departement1?.libelle).filter(Boolean)))
-    .map((d) => ({ label: d, value: d }));
+    .map((t) => ({ label: t as string, value: t as string }));
+  const ups = Array.from(new Set(formationsList.map((f: any) => f.up1?.libelle).filter(Boolean)))
+    .map((u) => ({ label: u as string, value: u as string }));
+  const depts = Array.from(new Set(formationsList.map((f: any) => f.departement1?.libelle).filter(Boolean)))
+    .map((d) => ({ label: d as string, value: d as string }));
 
   // Stats
   const stats = useMemo(() => {
     const total = formationsList.length;
-    const open = formationsList.filter(f => f.ouverte).length;
+    const open = formationsList.filter((f: any) => f.ouverte).length;
     const closed = total - open;
-    const uniqueTypes = new Set(formationsList.map(f => f.typeFormation).filter(Boolean)).size;
+    const uniqueTypes = new Set(formationsList.map((f: any) => f.typeFormation).filter(Boolean)).size;
     return { total, open, closed, uniqueTypes };
   }, [formationsList]);
 
@@ -274,7 +274,7 @@ export default function FormationCards() {
               { label: "Fermées", value: false },
             ]}
           />
-          <RangePicker value={dateRange.length ? dateRange : null} onChange={(dates) => setDateRange(dates || [])} />
+          <RangePicker value={dateRange.length ? (dateRange as any) : null} onChange={(dates: any) => setDateRange(dates || [])} />
           <div className="fc-filter-divider" />
           <Button icon={<ReloadOutlined />} onClick={handleResetFilters} className="fc-btn-reset">
             Réinitialiser
@@ -283,7 +283,7 @@ export default function FormationCards() {
 
         {/* Grille de cartes */}
         <Row gutter={[20, 20]}>
-          {filtered.map((f) => {
+          {filtered.map((f: any) => {
             const isOpen = f.ouverte;
             return (
               <Col key={f.idFormation} xs={24} sm={12} md={8} lg={6}>

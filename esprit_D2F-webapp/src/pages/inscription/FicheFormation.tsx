@@ -83,7 +83,7 @@ export default function FicheFormation() {
     periodeFormation,
     periodCode,
     customPeriodLabel,
-  } = formation;
+  } = (formation || {}) as any;
 
   const typeColor = {
     INTERNE: "blue",
@@ -259,7 +259,7 @@ export default function FicheFormation() {
         >
           <Timeline
             mode="left"
-            items={seances.map((s, i) => ({
+            items={seances.map((s: any, i: any) => ({
               label: (
                 <Text type="secondary">
                   {dayjs(s.dateSeance).format("DD/MM/YYYY")}
@@ -271,7 +271,7 @@ export default function FicheFormation() {
                 <div>
                   <Text strong>Séance {i + 1}</Text>
                   {s.titreSeance && <div><Text type="secondary">{s.titreSeance}</Text></div>}
-                  {s.salle && <Tag size="small">{s.salle}</Tag>}
+                  {s.salle && <Tag>{s.salle}</Tag>}
                 </div>
               ),
               color: i === 0 ? "var(--primary-500)" : "gray",

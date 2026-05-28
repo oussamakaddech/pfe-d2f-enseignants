@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { PrivateRoute } from '@/routes/guards';
-import { AuthContext } from '@/components/common/AuthProvider';
+import { AuthContext } from '@/context/AuthContext';
 import type { AuthContextValue } from '@/models/auth';
 
 // Mock component to render inside PrivateRoute via Outlet
@@ -21,7 +21,7 @@ describe('PrivateRoute', () => {
         username: 'testuser',
         userName: 'testuser',
         emailAddress: 'test@example.com',
-        role: 'USER'
+        role: 'Enseignant'
       },
       login: vi.fn(),
       logout: vi.fn(),
@@ -50,7 +50,7 @@ describe('PrivateRoute', () => {
         username: 'testuser',
         userName: 'testuser',
         emailAddress: 'test@example.com',
-        role: 'USER'
+        role: 'Enseignant'
       },
       login: vi.fn(),
       logout: vi.fn(),

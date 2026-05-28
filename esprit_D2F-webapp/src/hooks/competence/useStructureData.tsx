@@ -19,22 +19,22 @@ export default function useStructureData() {
   const { message } = useAppNotification();
   const qc = useQueryClient();
 
-  const [searchResults, setSearchResults] = useState(null);
+  const [searchResults, setSearchResults] = useState<any>(null);
   const [searchKeyword, setSearchKeyword] = useState("");
-  const [selectedDomaine, setSelectedDomaine] = useState(null);
+  const [selectedDomaine, setSelectedDomaine] = useState<any>(null);
   const [searchLoading, setSearchLoading] = useState(false);
-  const debounceRef = useRef(null);
+  const debounceRef = useRef<any>(null);
 
   const [niveauModalVisible, setNiveauModalVisible] = useState(false);
-  const [niveauTarget, setNiveauTarget] = useState(null);
+  const [niveauTarget, setNiveauTarget] = useState<any>(null);
 
   const [filterUpId, setFilterUpId] = useState<number | null>(null);
   const [filterDeptId, setFilterDeptId] = useState<number | null>(null);
 
-  const [matrixCompId, setMatrixCompId] = useState(null);
+  const [matrixCompId, setMatrixCompId] = useState<any>(null);
 
   // Define openNiveauModal early so it can be used in callbacks below
-  const openNiveauModal = useCallback(async (type, id, nom) => {
+  const openNiveauModal = useCallback(async (type: any, id: any, nom: any) => {
     setNiveauTarget({ type, id, nom });
     setNiveauModalVisible(true);
   }, []);
@@ -53,7 +53,7 @@ export default function useStructureData() {
   const niveauQuery = useQuery({
     queryKey: ["niveau", niveauTarget?.type, niveauTarget?.id],
     queryFn: () =>
-      niveauTarget.type === "competence"
+      niveauTarget?.type === "competence"
         ? CompetenceService.niveauDefinition.getByCompetence(niveauTarget.id)
         : CompetenceService.niveauDefinition.getBySousCompetence(niveauTarget.id),
     enabled: niveauModalVisible && !!niveauTarget,
@@ -63,12 +63,12 @@ export default function useStructureData() {
     queryKey: ["matrix", matrixCompId],
     queryFn: () => CompetenceService.niveauDefinition.getByCompetence(matrixCompId),
     enabled: !!matrixCompId,
-    select: (resp) => resp.niveaux ?? resp,
+    select: (resp: any) => resp.niveaux ?? resp,
   });
 
-  const addNiveauMutation = useMutation({
+  const addNiveauMutation = useMutation<any, Error, { values: any; target: any }>({
     mutationFn: ({ values, target }) => {
-      const request = {
+      const request: any = {
         niveau: values.niveau,
         savoirId: values.savoirId,
         description: values.description,
@@ -82,12 +82,12 @@ export default function useStructureData() {
       qc.invalidateQueries({ queryKey: ["niveau", variables.target?.type, variables.target?.id] });
     },
     onError: (err: unknown) => {
-      message.error(err.response?.data?.message || "Erreur lors de l'ajout");
+      message.error((err as any).response?.data?.message || "Erreur lors de l'ajout");
     },
   });
 
-  const removeNiveauMutation = useMutation({
-    mutationFn: ({ id, target }) => CompetenceService.niveauDefinition.remove(id),
+  const removeNiveauMutation = useMutation<any, Error, { id: any; target: any }>({
+    mutationFn: ({ id }) => CompetenceService.niveauDefinition.remove(id),
     onSuccess: (_, variables) => {
       message.success("Savoir requis supprimé du niveau");
       qc.invalidateQueries({ queryKey: ["niveau", variables.target?.type, variables.target?.id] });
@@ -97,7 +97,7 @@ export default function useStructureData() {
     },
   });
 
-  const buildSavoirNode = (s) => ({
+  const buildSavoirNode = (s: any) => ({
     key: `sav-${s.id}`,
     title: (
       <Space>
@@ -112,7 +112,7 @@ export default function useStructureData() {
     isLeaf: true,
   });
 
-  const buildSousCompNode = useCallback((sc) => {
+  const buildSousCompNode = useCallback((sc: any) => {
     const enfants = sc.enfants ?? [];
     const isLeaf = enfants.length === 0;
 
@@ -146,7 +146,7 @@ export default function useStructureData() {
     };
   }, [openNiveauModal]);
 
-  const buildCompetenceNode = useCallback((comp) => ({
+  const buildCompetenceNode = useCallback((comp: any) => ({
     key: `comp-${comp.id}`,
     title: (
       <Space>
@@ -170,7 +170,7 @@ export default function useStructureData() {
     ),
     children: [
       ...(comp.sousCompetences?.map(buildSousCompNode) || []),
-      ...(comp.savoirsDirect?.map((s) => ({
+      ...(comp.savoirsDirect?.map((s: any) => ({
         key: `sav-direct-${s.id}`,
         title: (
           <Space>
@@ -188,7 +188,7 @@ export default function useStructureData() {
     ],
   }), [buildSousCompNode]);
 
-  const buildDomaineNode = useCallback((domaine) => ({
+  const buildDomaineNode = useCallback((domaine: any) => ({
     key: `dom-${domaine.id}`,
     title: (
       <Space>
@@ -204,8 +204,8 @@ export default function useStructureData() {
   }), [buildCompetenceNode]);
 
   const treeData = useMemo(() => {
-    if (!structureQuery.data?.domaines) return [];
-    return structureQuery.data.domaines.map(buildDomaineNode);
+    if (!(structureQuery.data as any)?.domaines) return [];
+    return (structureQuery.data as any).domaines.map(buildDomaineNode);
   }, [structureQuery.data, buildDomaineNode]);
 
   const loadStructure = useCallback(() => structureQuery.refetch(), [structureQuery]);
@@ -223,21 +223,21 @@ export default function useStructureData() {
     setFilterDeptId(deptId);
   }, []);
 
-  const handleAddNiveauSavoir = useCallback(async (values) => {
+  const handleAddNiveauSavoir = useCallback(async (values: any) => {
     if (!niveauTarget) return;
     await addNiveauMutation.mutateAsync({ values, target: niveauTarget });
   }, [niveauTarget, addNiveauMutation]);
 
-  const handleRemoveNiveauSavoir = useCallback(async (id) => {
+  const handleRemoveNiveauSavoir = useCallback(async (id: any) => {
     if (!niveauTarget) return;
     await removeNiveauMutation.mutateAsync({ id, target: niveauTarget });
   }, [niveauTarget, removeNiveauMutation]);
 
-  const loadMatrixData = useCallback((compId) => {
+  const loadMatrixData = useCallback((compId: any) => {
     setMatrixCompId(compId);
   }, []);
 
-  const doSearch = useCallback(async (keyword, domaine) => {
+  const doSearch = useCallback(async (keyword: any, domaine: any) => {
     if (!keyword || keyword.trim().length < 2) {
       setSearchResults(null);
       return;
@@ -256,7 +256,7 @@ export default function useStructureData() {
   }, []);
 
   useEffect(() => {
-    if (debounceRef.current) clearTimeout(debounceRef.current);
+    if (debounceRef.current) clearTimeout(debounceRef.current as any);
     if (!searchKeyword || searchKeyword.trim().length < 2) {
       setSearchResults(null);
       return;
@@ -264,11 +264,11 @@ export default function useStructureData() {
     debounceRef.current = setTimeout(() => {
       doSearch(searchKeyword, selectedDomaine);
     }, 400);
-    return () => clearTimeout(debounceRef.current);
+    return () => clearTimeout(debounceRef.current as any);
   }, [doSearch, searchKeyword, selectedDomaine]);
 
-  const handleSearch = useCallback((value) => {
-    if (debounceRef.current) clearTimeout(debounceRef.current);
+  const handleSearch = useCallback((value: any) => {
+    if (debounceRef.current) clearTimeout(debounceRef.current as any);
     doSearch(value, selectedDomaine);
   }, [doSearch, selectedDomaine]);
 

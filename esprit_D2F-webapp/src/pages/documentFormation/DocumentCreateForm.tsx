@@ -1,10 +1,12 @@
 import { useState } from "react";
-import PropTypes from "prop-types";
 import { Form, Input, Select, Checkbox, Upload, Button, Typography } from "antd";
+import type { UploadFile } from "antd";
 import { UploadOutlined } from "@ant-design/icons";
 import useAppNotification from "@/hooks/ui/useAppNotification";
 import "antd/dist/reset.css";
 import { useCreateDocument } from "@/hooks/document/useDocument";
+import type { Id } from "@/models/common";
+import type { FormationDocument } from "@/models/document";
 
 const { Option } = Select;
 const PATH_OPTIONS = [
@@ -13,34 +15,47 @@ const PATH_OPTIONS = [
   { value: "DOCUMENT", label: "Autre dossier…" },
 ];
 
-export default function DocumentCreateForm({ formationId, onDocumentCreated, onCancel }) {
+interface DocumentCreateFormProps {
+  formationId: Id;
+  onDocumentCreated: (doc: FormationDocument) => void;
+  onCancel: () => void;
+}
+
+interface DocFormValues {
+  pathType: string;
+  nomDocument: string;
+  obligation: boolean;
+  file?: UploadFile[];
+}
+
+export default function DocumentCreateForm({ formationId, onDocumentCreated, onCancel }: DocumentCreateFormProps) {
   const { message } = useAppNotification();
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
-  const [fileList, setFileList] = useState([]);
+  const [fileList, setFileList] = useState<UploadFile[]>([]);
+  const { mutateAsync: createDoc } = useCreateDocument();
 
   const uploadProps = {
     beforeUpload: () => false,
-    onChange: ({ fileList }) => setFileList(fileList.slice(-1)),
+    onChange: ({ fileList }: { fileList: UploadFile[] }) => setFileList(fileList.slice(-1)),
     fileList,
   };
 
-  const onFinish = async (values) => {
+  const onFinish = async (values: DocFormValues) => {
     setLoading(true);
     try {
       const payload = {
         formationId,
         pathType:    values.pathType,
         nomDocument: values.nomDocument,
-        obligation:  values.obligation,
-        file:        values.file[0].originFileObj,
+        obligation:  String(values.obligation),
+        file:        values.file?.[0]?.originFileObj as File,
       };
-      const { mutateAsync: createDoc } = useCreateDocument();
       const newDoc = await createDoc(payload);
       message.success("Document créé avec succès");
       form.resetFields();
       setFileList([]);
-      onDocumentCreated(newDoc);
+      onDocumentCreated(newDoc as FormationDocument);
     } catch {
       message.error("🚫 Erreur lors de la création du document.");
     } finally {
@@ -95,12 +110,6 @@ export default function DocumentCreateForm({ formationId, onDocumentCreated, onC
     </Form>
   );
 }
-
-DocumentCreateForm.propTypes = {
-  formationId:       PropTypes.oneOfType([PropTypes.number, PropTypes.string]).isRequired,
-  onDocumentCreated: PropTypes.func.isRequired,
-  onCancel:          PropTypes.func.isRequired,
-};
 
 
 

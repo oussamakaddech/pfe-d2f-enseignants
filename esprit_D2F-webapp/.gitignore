@@ -17,6 +17,10 @@ dist-ssr
 .env.*
 !.env.example
 
+# Auth/session artifacts — never commit tokens or cookies
+cookies.txt
+*.cookies
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

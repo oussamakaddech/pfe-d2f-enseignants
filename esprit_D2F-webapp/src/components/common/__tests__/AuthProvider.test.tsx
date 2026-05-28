@@ -1,7 +1,7 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import AuthProvider from '@/components/common/AuthProvider';
+import AuthProvider from '@/context/AuthContext';
 import { useAuth } from '@/hooks/auth/useAuth';
 import type { AuthUser } from '@/models/auth';
 
@@ -15,7 +15,7 @@ const TestComponent = () => {
       userName: 'testuser',
       username: 'testuser',
       emailAddress: 'test@example.com',
-      role: 'USER'
+      role: 'USER' as any
     };
     login(testUser);
   };

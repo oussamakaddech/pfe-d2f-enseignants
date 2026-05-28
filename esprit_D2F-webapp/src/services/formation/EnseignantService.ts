@@ -25,64 +25,35 @@ function normalizeListResponse<T>(payload: T[] | { content?: T[]; data?: T[]; it
 
 const EnseignantService = {
   async createEnseignant(enseignantData: Record<string, unknown>) {
-    try {
-      const response = await axios.post(API_URL, enseignantData);
-      return response.data;
-    } catch (error: unknown) {
-      throw error;
-    }
+    const response = await axios.post(API_URL, enseignantData);
+    return response.data;
   },
 
-  async getAllEnseignants() {
-    try {
-      const response = await axios.get(API_URL);
-      return normalizeListResponse(response.data);
-    } catch (error: unknown) {
-      throw error;
-    }
+  async getAllEnseignants(): Promise<Record<string, unknown>[]> {
+    const response = await axios.get(API_URL);
+    return normalizeListResponse<Record<string, unknown>>(response.data);
   },
 
   async getEnseignantById(id: number | string) {
-    try {
-      const response = await axios.get(`${API_URL}/${id}`);
-      return response.data;
-    } catch (error: unknown) {
-      throw error;
-    }
+    const response = await axios.get(`${API_URL}/${id}`);
+    return response.data;
   },
 
   async updateEnseignant(id: number | string, enseignantData: Record<string, unknown>) {
-    try {
-      const response = await axios.put(`${API_URL}/${id}`, enseignantData);
-      return response.data;
-    } catch (error: unknown) {
-      throw error;
-    }
+    const response = await axios.put(`${API_URL}/${id}`, enseignantData);
+    return response.data;
   },
 
   async deleteEnseignant(id: number | string) {
-    try {
-      await axios.delete(`${API_URL}/${id}`);
-    } catch (error: unknown) {
-      throw error;
-    }
+    await axios.delete(`${API_URL}/${id}`);
   },
 
   async uploadEnseignants(file: File) {
     const formData = new FormData();
     formData.append("file", file);
-
-    try {
-      const response = await axios.post(`${API_URL}/upload`, formData);
-      return response.data;
-    } catch (error: unknown) {
-      throw error;
-    }
+    const response = await axios.post(`${API_URL}/upload`, formData);
+    return response.data;
   },
 };
 
 export default EnseignantService;
-
-
-
-

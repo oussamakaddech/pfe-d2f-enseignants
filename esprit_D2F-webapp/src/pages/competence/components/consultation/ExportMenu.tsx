@@ -13,8 +13,8 @@ import {
 import { getFilteredCrud } from "@/utils/helpers/consultationViewUtils";
 
 interface ExportMenuProps {
-  crud: Record<string, unknown>;
-  structure: Record<string, unknown>;
+  crud: any;
+  structure: any;
   stats: Record<string, number> | undefined;
   handleExportExcel: () => void;
 }
@@ -25,7 +25,7 @@ export default function ExportMenu({ crud, structure, stats, handleExportExcel }
 
   const domaineId = structure.selectedDomaine;
   const domaineName = useMemo(
-    () => (domaineId ? structure.structure?.domaines?.find((d) => String(d.id) === String(domaineId))?.nom : null),
+    () => (domaineId ? structure.structure?.domaines?.find((d: any) => String(d.id) === String(domaineId))?.nom : null),
     [domaineId, structure.structure?.domaines],
   );
 
@@ -34,7 +34,7 @@ export default function ExportMenu({ crud, structure, stats, handleExportExcel }
     return { domaines: f.domaines.length, competences: f.competences.length, savoirs: f.savoirs.length };
   }, [crud, domaineId]);
 
-  const run = useCallback(async (key) => {
+  const run = useCallback(async (key: any) => {
     setLoading(true);
     try {
       localStorage.setItem("ctp-export-format", key);
@@ -46,7 +46,7 @@ export default function ExportMenu({ crud, structure, stats, handleExportExcel }
       else if (key === "csv-competences") doExportCompetencesCSV(crud, domaineId);
       else if (key === "json-full") doExportStructureJSON(crud);
       messageApi.success("Export genere");
-    } catch (err: unknown) {
+    } catch (err: any) {
       messageApi.error(`Erreur export : ${err?.message || "inconnue"}`);
     } finally {
       setLoading(false);
@@ -102,7 +102,7 @@ export default function ExportMenu({ crud, structure, stats, handleExportExcel }
 
   return (
     <Dropdown
-      menu={{ items: menuItems, onClick: ({ key }) => { if (key !== "__stats__") run(key); } }}
+      menu={{ items: menuItems as any[], onClick: ({ key }) => { if (key !== "__stats__") run(key); } }}
       trigger={["click"]}
       placement="bottomRight"
       aria-label="Menu d'export"

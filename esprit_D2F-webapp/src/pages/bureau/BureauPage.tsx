@@ -11,6 +11,7 @@ import {
   Card,
 } from "antd";
 import type { FilterDropdownProps } from "antd/es/table/interface";
+import type { InputRef } from "antd";
 import {
   SearchOutlined,
   PlusOutlined,
@@ -24,6 +25,7 @@ import useAppNotification from "@/hooks/ui/useAppNotification";
 import { useBureaux, useCreateBureau, useUpdateBureau, useDeleteBureau } from "@/hooks/bureau/useBureaux";
 import type { Bureau } from "@/models/bureau";
 import "@/styles/pages/bureau-page.css";
+import s from "./BureauPage.module.css";
 
 type SearchDropdownProps = Readonly<{
   placeholder: string;
@@ -33,30 +35,30 @@ type SearchDropdownProps = Readonly<{
   clearFilters?: () => void;
   onSearch: (keys: string[], confirm: () => void) => void;
   onReset: (clearFilters: () => void) => void;
-  inputRef: RefObject<HTMLInputElement>;
+  inputRef: React.RefObject<InputRef | null>;
 }>;
 
 function ColumnSearchDropdown({ placeholder, selectedKeys, setSelectedKeys, confirm, clearFilters, onSearch, onReset, inputRef }: SearchDropdownProps) {
   return (
-    <div style={{ padding: 8 }}>
+    <div className={s.searchDropdown}>
       <Input
         ref={inputRef}
         placeholder={`Rechercher ${placeholder}`}
         value={selectedKeys[0] as string}
         onChange={(e) => setSelectedKeys(e.target.value ? [e.target.value] : [])}
         onPressEnter={() => onSearch(selectedKeys as string[], confirm)}
-        style={{ marginBottom: 8, display: "block" }}
+        className={s.searchDropdownInput}
       />
       <Button
         type="primary"
         onClick={() => onSearch(selectedKeys as string[], confirm)}
         icon={<SearchOutlined />}
         size="small"
-        style={{ width: 90, marginRight: 8 }}
+        className={s.searchBtnOk}
       >
         OK
       </Button>
-      <Button onClick={() => clearFilters && onReset(clearFilters)} size="small" style={{ width: 90 }}>
+      <Button onClick={() => clearFilters && onReset(clearFilters)} size="small" className={s.searchBtnReset}>
         Réinitialiser
       </Button>
     </div>
@@ -64,13 +66,13 @@ function ColumnSearchDropdown({ placeholder, selectedKeys, setSelectedKeys, conf
 }
 
 function ColumnSearchIcon({ filtered }: Readonly<{ filtered: boolean }>) {
-  return <SearchOutlined style={{ color: filtered ? "#1890ff" : undefined }} />;
+  return <SearchOutlined className={filtered ? s.columnSearchHighlight : undefined} />;
 }
 
 type SearchColumnConfig = {
   onSearch: (selectedKeys: string[], confirm: () => void, dataIndex: string) => void;
   onReset: (clearFilters: () => void) => void;
-  searchInputRef: RefObject<HTMLInputElement>;
+  searchInputRef: React.RefObject<InputRef | null>;
   searchedColumn: string;
 };
 
@@ -98,7 +100,7 @@ function getColumnSearchProps(dataIndex: keyof Bureau, placeholder: string, cfg:
     },
     render: (text: string) =>
       cfg.searchedColumn === dataIndex ? (
-        <span style={{ backgroundColor: "#ffc069" }}>{text}</span>
+        <span className={s.searchHighlight}>{text}</span>
       ) : (
         text
       ),
@@ -113,7 +115,7 @@ export default function BureauPage() {
   const deleteMut  = useDeleteBureau();
 
   const [searchedColumn, setSearchedColumn] = useState("");
-  const searchInput = useRef<RefObject<HTMLInputElement>>(null);
+  const searchInput = useRef<InputRef>(null);
 
   // ── Modal état ────────────────────────────────────────────────────────
   const [modalOpen, setModalOpen] = useState(false);
@@ -221,9 +223,9 @@ export default function BureauPage() {
       ...getColumnSearchProps("email", "Email", searchCfg),
       render: (email: string) =>
         email ? (
-          <span><MailOutlined style={{ marginRight: 6, color: "#64748b" }} />{email}</span>
+          <span><MailOutlined className={s.iconMuted} />{email}</span>
         ) : (
-          <span style={{ color: "#cbd5e0" }}>—</span>
+          <span className={s.emptyValue}>—</span>
         ),
     },
     {
@@ -233,9 +235,9 @@ export default function BureauPage() {
       ...getColumnSearchProps("numeroTelephone", "Téléphone", searchCfg),
       render: (tel: string) =>
         tel ? (
-          <span><PhoneOutlined style={{ marginRight: 6, color: "#64748b" }} />{tel}</span>
+          <span><PhoneOutlined className={s.iconMuted} />{tel}</span>
         ) : (
-          <span style={{ color: "#cbd5e0" }}>—</span>
+          <span className={s.emptyValue}>—</span>
         ),
     },
     {
@@ -280,13 +282,13 @@ export default function BureauPage() {
       <div className="bureau-page">
         {/* Hero Banner */}
         <div className="bureau-hero">
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 16 }}>
+          <div className={s.heroFlexRow}>
             <div>
-              <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+              <div className={s.heroTitleRow}>
                 <h2 className="bureau-hero-title">Gestion des Bureaux</h2>
                 <span className="bureau-hero-badge">
                   {data.length}
-                  <span style={{ fontWeight: 400, marginLeft: 4 }}>bureau{data.length === 1 ? "" : "x"}</span>
+                  <span className={s.heroBadgeCount}>bureau{data.length === 1 ? "" : "x"}</span>
                 </span>
               </div>
               <div className="bureau-hero-subtitle">Gérer les bureaux externes (nom, email, téléphone)</div>
@@ -305,32 +307,32 @@ export default function BureauPage() {
         {/* Stats */}
         <div className="bureau-stats">
           <div className="bureau-stat-card">
-            <div className="bureau-stat-icon" style={{ background: "#fff0ee", color: "#B51200" }}>
+            <div className={`bureau-stat-icon ${s.statIconBrand}`}>
               <BankOutlined />
             </div>
             <div>
               <div className="bureau-stat-label">Total Bureaux</div>
-              <div className="bureau-stat-value" style={{ color: "#B51200" }}>{data.length}</div>
+              <div className={`bureau-stat-value ${s.statValueBrand}`}>{data.length}</div>
             </div>
           </div>
           <div className="bureau-stat-card">
-            <div className="bureau-stat-icon" style={{ background: "#eff6ff", color: "#2563eb" }}>
+            <div className={`bureau-stat-icon ${s.statIconInfo}`}>
               <MailOutlined />
             </div>
             <div>
               <div className="bureau-stat-label">Avec Email</div>
-              <div className="bureau-stat-value" style={{ color: "#2563eb" }}>
+              <div className={`bureau-stat-value ${s.statValueInfo}`}>
                 {data.filter((b) => b.email).length}
               </div>
             </div>
           </div>
           <div className="bureau-stat-card">
-            <div className="bureau-stat-icon" style={{ background: "#f0fdf4", color: "#16a34a" }}>
+            <div className={`bureau-stat-icon ${s.statIconSuccess}`}>
               <PhoneOutlined />
             </div>
             <div>
               <div className="bureau-stat-label">Avec Téléphone</div>
-              <div className="bureau-stat-value" style={{ color: "#16a34a" }}>
+              <div className={`bureau-stat-value ${s.statValueSuccess}`}>
                 {data.filter((b) => b.numeroTelephone).length}
               </div>
             </div>
@@ -361,7 +363,7 @@ export default function BureauPage() {
         destroyOnHidden
         width={480}
       >
-        <Form form={form} layout="vertical" style={{ marginTop: 16 }}>
+        <Form form={form} layout="vertical" className={s.formTopMargin}>
           <Form.Item
             name="nom"
             label="Nom"
@@ -377,14 +379,14 @@ export default function BureauPage() {
               { type: "email", message: "Email invalide" },
             ]}
           >
-            <Input placeholder="email@exemple.com" prefix={<MailOutlined style={{ color: "#a0aec0" }} />} />
+            <Input placeholder="email@exemple.com" prefix={<MailOutlined className={s.inputPrefixIcon} />} />
           </Form.Item>
           <Form.Item
             name="numeroTelephone"
             label="Numéro de Téléphone"
             rules={[{ required: true, message: "Le numéro de téléphone est requis" }]}
           >
-            <Input placeholder="+216 XX XXX XXX" prefix={<PhoneOutlined style={{ color: "#a0aec0" }} />} />
+            <Input placeholder="+216 XX XXX XXX" prefix={<PhoneOutlined className={s.inputPrefixIcon} />} />
           </Form.Item>
         </Form>
       </Modal>

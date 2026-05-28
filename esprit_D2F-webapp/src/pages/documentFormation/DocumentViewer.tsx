@@ -1,17 +1,21 @@
-
-import PropTypes from "prop-types";
 import { Card, Button, Image, Typography } from "antd";
+import type { CSSProperties } from "react";
 import 'antd/dist/reset.css';
 const { Paragraph, Text } = Typography;
 
-const baseStyle = {
+const baseStyle: CSSProperties = {
   width: "100%",
   height: 430,
   border: "none",
   borderRadius: 4,
 };
 
-export default function DocumentViewer({ url, ext }) {
+interface DocumentViewerProps {
+  url: string;
+  ext?: string;
+}
+
+export default function DocumentViewer({ url, ext }: DocumentViewerProps) {
   const e = (ext ?? "").toLowerCase();
 
   // Docs / PPT / XLS / PDF
@@ -72,11 +76,6 @@ export default function DocumentViewer({ url, ext }) {
     </Card>
   );
 }
-
-DocumentViewer.propTypes = {
-  url: PropTypes.string.isRequired,
-  ext: PropTypes.string.isRequired,
-};
 
 
 
