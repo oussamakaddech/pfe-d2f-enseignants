@@ -16,7 +16,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@SQLDelete(sql = "UPDATE formation.formations SET deleted_at = NOW() WHERE id_formation = ?")
+@SQLDelete(sql = "UPDATE formation.formations SET deleted_at = NOW() WHERE id_formation = ? AND version = ?")
 @SQLRestriction("deleted_at IS NULL")
 @Table(name = "formations")
 @com.fasterxml.jackson.annotation.JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})

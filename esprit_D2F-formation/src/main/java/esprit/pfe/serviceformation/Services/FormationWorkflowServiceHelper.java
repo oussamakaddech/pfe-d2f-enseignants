@@ -80,7 +80,7 @@ public class FormationWorkflowServiceHelper {
                     .filter(Objects::nonNull)
                     .toList());
         } else {
-            formation.setAnimateurs(Collections.emptyList());
+            formation.setAnimateurs(new ArrayList<>());
         }
     }
 
@@ -360,6 +360,12 @@ public class FormationWorkflowServiceHelper {
      * Convertit une date et une heure en OffsetDateTime pour Microsoft Graph
      */
     public OffsetDateTime convertToOffsetDateTime(Date dateUtil, Time time) {
+        if (dateUtil == null) {
+            throw new IllegalArgumentException("La date de la séance ne peut pas être null");
+        }
+        if (time == null) {
+            throw new IllegalArgumentException("L'heure de la séance ne peut pas être null");
+        }
         LocalDate localDate = dateUtil.toInstant()
                 .atZone(ZoneId.of(TIMEZONE_TUNIS))
                 .toLocalDate();
