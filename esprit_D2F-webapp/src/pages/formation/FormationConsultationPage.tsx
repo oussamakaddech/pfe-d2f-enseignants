@@ -41,7 +41,7 @@ import FormationWorkflowEditForm from "./FormationWorkflowEditForm";
 import MailForm from "@/pages/besoin/MailForm";
 import useAppNotification from "@/hooks/ui/useAppNotification";
 
-const normalizeRole = (value) =>
+const normalizeRole = (value: any) =>
   String(value || "")
     .toLowerCase()
     .replace(/^role_?/, "")
@@ -71,7 +71,7 @@ export default function FormationConsultationPage() {
 
   const { data: formationsAll = [], isLoading: loadingAll, refetch: refetchAll } = useAllFormations();
   const { data: formationsDept = [], isLoading: loadingDept, refetch: refetchDept } = useFormationsParDepartement(
-    isChefDept ? deptId : undefined,
+    isChefDept ? deptId as any : undefined,
   );
   const loading = loadingAll || loadingDept;
   const formations = useMemo(
@@ -105,31 +105,31 @@ export default function FormationConsultationPage() {
   const [upFilter, setUpFilter] = useState();
   const [deptFilter, setDeptFilter] = useState();
   const [periodFilter, setPeriodFilter] = useState();
-  const [periodRange, setPeriodRange] = useState([]);
+  const [periodRange, setPeriodRange] = useState<any[]>([]);
 
   const [openEdit, setOpenEdit] = useState(false);
   const [openExport, setOpenExport] = useState(false);
   const [openMail, setOpenMail] = useState(false);
 
-  const [selectedFormation, setSelectedFormation] = useState(null);
+  const [selectedFormation, setSelectedFormation] = useState<any>(null);
 
   const filtered = useMemo(() => {
     let res = [...formations];
     if (filterText) {
-      res = res.filter((f) =>
+      res = res.filter((f: any) =>
         (f.titreFormation || "")
           .toLowerCase()
           .includes(filterText.toLowerCase())
       );
     }
-    if (typeFilter) res = res.filter((f) => f.typeFormation === typeFilter);
-    if (etatFilter) res = res.filter((f) => f.etatFormation === etatFilter);
-    if (upFilter) res = res.filter((f) => f.up1?.id === upFilter);
-    if (deptFilter) res = res.filter((f) => f.departement1?.id === deptFilter);
-    if (periodFilter) res = res.filter((f) => f.periodCode === periodFilter);
+    if (typeFilter) res = res.filter((f: any) => f.typeFormation === typeFilter);
+    if (etatFilter) res = res.filter((f: any) => f.etatFormation === etatFilter);
+    if (upFilter) res = res.filter((f: any) => f.up1?.id === upFilter);
+    if (deptFilter) res = res.filter((f: any) => f.departement1?.id === deptFilter);
+    if (periodFilter) res = res.filter((f: any) => f.periodCode === periodFilter);
     if (periodRange.length === 2) {
       const [start, end] = periodRange;
-      res = res.filter((f) => {
+      res = res.filter((f: any) => {
         const debut = dayjs(f.dateDebut),
           fin = dayjs(f.dateFin);
         return (
@@ -141,7 +141,7 @@ export default function FormationConsultationPage() {
     return res;
   }, [formations, filterText, typeFilter, etatFilter, upFilter, deptFilter, periodFilter, periodRange]);
 
-  async function handleDelete(id) {
+  async function handleDelete(id: any) {
     if (!canManageFormations) return;
 
     try {
@@ -158,7 +158,7 @@ export default function FormationConsultationPage() {
       return;
     }
 
-    const [start, end] = periodRange.map((d) => d.format("YYYY-MM-DD"));
+    const [start, end] = periodRange.map((d: any) => d.format("YYYY-MM-DD"));
 
     try {
       const response = await exportMut.mutateAsync({ start, end });
@@ -175,7 +175,7 @@ export default function FormationConsultationPage() {
       globalThis.URL.revokeObjectURL(url);
       msgApi.success("✔️ Export réussi !");
       setOpenExport(false);
-    } catch (error: unknown) {
+    } catch (error: any) {
       const apiMsg =
         error.response?.data?.message ||
         error.response?.data?.error ||
@@ -185,9 +185,9 @@ export default function FormationConsultationPage() {
   }
 
   const rowSelection = {
-    type: "radio",
+    type: "radio" as const,
     selectedRowKeys: selectedFormation ? [selectedFormation.idFormation] : [],
-    onChange: (_, selectedRows) => {
+    onChange: (_: any, selectedRows: any[]) => {
       setSelectedFormation(selectedRows[0] || null);
     },
   };
@@ -202,7 +202,7 @@ export default function FormationConsultationPage() {
       title: "Formation",
       key: "formation",
       width: 260,
-      render: (_, r) => (
+      render: (_: any, r: any) => (
         <div>
           <div className="formation-col-title">{r.titreFormation || "\u2014"}</div>
           <div className="formation-col-subtitle">
@@ -210,7 +210,7 @@ export default function FormationConsultationPage() {
           </div>
         </div>
       ),
-      sorter: (a, b) =>
+      sorter: (a: any, b: any) =>
         (a.titreFormation || "").localeCompare(b.titreFormation || ""),
     },
     {
@@ -218,52 +218,52 @@ export default function FormationConsultationPage() {
       dataIndex: "typeFormation",
       key: "typeFormation",
       width: 110,
-      render: (t) => {
-        const c = TYPE_COLORS[t] || { color: "#6b7280", bg: "#f9fafb", border: "#e5e7eb" };
+      render: (t: any) => {
+        const c = (TYPE_COLORS as any)[t] || { color: "#6b7280", bg: "#f9fafb", border: "#e5e7eb" };
         return <Tag style={{ color: c.color, background: c.bg, borderColor: c.border, borderRadius: 6, fontWeight: 500 }}>{t || "\u2014"}</Tag>;
       },
-      sorter: (a, b) =>
+      sorter: (a: any, b: any) =>
         (a.typeFormation || "").localeCompare(b.typeFormation || ""),
     },
     {
       title: "Période",
       key: "periode",
       width: 130,
-      render: (_, r) => {
+      render: (_: any, r: any) => {
         if (r.periodCode === "OTHER") return <Tag>{r.customPeriodLabel || "Autre"}</Tag>;
         const opt = PERIOD_OPTIONS.find(o => o.value === r.periodCode);
         return opt ? <Tag>{opt.label}</Tag> : "\u2014";
       },
-      sorter: (a, b) =>
+      sorter: (a: any, b: any) =>
         (a.periodCode || "").localeCompare(b.periodCode || ""),
     },
     {
       title: "Dates",
       key: "dates",
       width: 150,
-      render: (_, r) => (
+      render: (_: any, r: any) => (
         <div className="formation-date-cell">
           <span className="formation-date-start">{r.dateDebut ? dayjs(r.dateDebut).format("DD/MM/YYYY") : "\u2014"}</span>
           <span className="formation-date-end">{r.dateFin ? dayjs(r.dateFin).format("DD/MM/YYYY") : "\u2014"}</span>
         </div>
       ),
-      sorter: (a, b) => dayjs(a.dateDebut).valueOf() - dayjs(b.dateDebut).valueOf(),
+      sorter: (a: any, b: any) => dayjs(a.dateDebut).valueOf() - dayjs(b.dateDebut).valueOf(),
     },
     {
       title: "État",
       dataIndex: "etatFormation",
       key: "etatFormation",
       width: 120,
-      render: (e) => e ? <StatusBadge status={e} /> : <Tag>\u2014</Tag>,
-      sorter: (a, b) =>
+      render: (e: any) => e ? <StatusBadge status={e} /> : <Tag>\u2014</Tag>,
+      sorter: (a: any, b: any) =>
         (a.etatFormation || "").localeCompare(b.etatFormation || ""),
     },
     {
       title: "Actions",
       key: "actions",
       width: 100,
-      align: "center",
-      render: (_, r) => {
+      align: "center" as const,
+      render: (_: any, r: any) => {
         const role = normalizeRole(user?.role);
         const isResponsableDossier = role === "responsabledossier";
         
@@ -398,12 +398,12 @@ export default function FormationConsultationPage() {
               {PERIOD_OPTIONS.map(o => <Option key={o.value} value={o.value}>{o.label}</Option>)}
             </Select>
             <Select placeholder="UP" allowClear value={upFilter} onChange={setUpFilter} style={{ width: 170 }} showSearch optionFilterProp="children">
-              {upsOptions.map((u) => <Option key={u.id} value={u.id}>{u.libelle}</Option>)}
+              {upsOptions.map((u) => <Option key={u.id as any} value={u.id as any}>{u.libelle}</Option>)}
             </Select>
             <Select placeholder="Département" allowClear value={deptFilter} onChange={setDeptFilter} style={{ width: 170 }} showSearch optionFilterProp="children">
-              {deptsOptions.map((d) => <Option key={d.id} value={d.id}>{d.libelle}</Option>)}
+              {deptsOptions.map((d) => <Option key={d.id as any} value={d.id as any}>{d.libelle}</Option>)}
             </Select>
-            <RangePicker onChange={setPeriodRange} placeholder={["Début", "Fin"]} style={{ width: 220 }} />
+            <RangePicker onChange={setPeriodRange as any} placeholder={["Début", "Fin"]} style={{ width: 220 }} />
           </div>
         </div>
 
@@ -416,7 +416,7 @@ export default function FormationConsultationPage() {
           rowKey="idFormation"
           loading={loading}
           size="middle"
-          pagination={{ pageSize: 10, showSizeChanger: true, showTotal: (total) => `${total} formation${total !== 1 ? "s" : ""}` }}
+          pagination={{ pageSize: 10, showSizeChanger: true, showTotal: (total: any) => `${total} formation${total !== 1 ? "s" : ""}` }}
           locale={{
             emptyText: (
               <EmptyState
@@ -429,11 +429,11 @@ export default function FormationConsultationPage() {
             ),
           }}
           expandable={{
-            expandedRowRender: (record) => (
+            expandedRowRender: (record: any) => (
               <div className="formation-expand-content">
                 <span className="formation-expand-title">Séances</span>
                 <div className="formation-seance-list">
-                  {(record.seances || []).map((s) => (
+                  {(record.seances || []).map((s: any) => (
                     <span key={s.idSeance} className="formation-seance-tag">
                       <span className="formation-seance-date">{dayjs(s.dateSeance).format("DD/MM/YYYY")}</span>
                       <span className="formation-seance-time">{s.heureDebut}–{s.heureFin}</span>
@@ -443,7 +443,7 @@ export default function FormationConsultationPage() {
                 </div>
               </div>
             ),
-            rowExpandable: (record) => record.seances != null,
+            rowExpandable: (record: any) => record.seances != null,
           }}
         />
         </div>
@@ -484,7 +484,10 @@ export default function FormationConsultationPage() {
                 formation={selectedFormation}
                 onFormationUpdated={() => {
                   setOpenEdit(false);
-                  void refetchAll(); void refetchDept();
+                  void refetchAll();
+                  if (isChefDept && deptId) {
+                    void refetchDept();
+                  }
                 }}
               />
             )}

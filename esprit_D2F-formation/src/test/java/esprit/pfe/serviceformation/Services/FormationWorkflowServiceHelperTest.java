@@ -214,4 +214,13 @@ class FormationWorkflowServiceHelperTest {
         assertThat(odt).isNotNull();
         assertThat(odt.getHour()).isEqualTo(9);
     }
+
+    @Test
+    @DisplayName("convertToOffsetDateTime - Échec si date ou heure null")
+    void shouldRejectNullDateOrTime() {
+        Time t = Time.valueOf("09:00:00");
+
+        assertThrows(IllegalArgumentException.class, () -> helper.convertToOffsetDateTime(null, t));
+        assertThrows(IllegalArgumentException.class, () -> helper.convertToOffsetDateTime(new Date(), null));
+    }
 }

@@ -141,6 +141,22 @@ class FormationWorkflowServiceTest {
     }
 
     @Test
+    @DisplayName("deleteFormationWorkflow - Continue même si le nettoyage échoue")
+    void shouldDeleteFormationEvenIfCleanupFails() {
+        Formation formation = new Formation();
+        formation.setIdFormation(1L);
+        formation.setSeances(new ArrayList<>());
+
+        lenient().when(formationRepository.findById(1L)).thenReturn(Optional.of(formation));
+        FormationWorkflowService serviceSpy = spy(formationWorkflowService);
+        doThrow(new RuntimeException("cleanup failed")).when(serviceSpy).removeFormationCalendar(formation);
+
+        serviceSpy.deleteFormationWorkflow(1L);
+
+        verify(formationRepository).delete(formation);
+    }
+
+    @Test
     @DisplayName("getFormationWorkflowById - Succès")
     void shouldGetFormationWorkflowById() {
         Formation formation = new Formation();

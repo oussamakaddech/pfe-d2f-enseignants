@@ -193,7 +193,7 @@ public class FormationWorkflowService {
                     .map(id -> enseignantRepository.findById(id).orElse(null))
                     .filter(Objects::nonNull)
                     .toList();
-            formation.setAnimateurs(animateurs);
+            formation.setAnimateurs(new ArrayList<>(animateurs));
         }
     }
 
@@ -319,8 +319,12 @@ public class FormationWorkflowService {
         for (String pid : partIds)
             ensureNoConflict(pid, sr.getDateSeance(), hd, hf, false, ignoreId, formationId);
 
-        sf.setAnimateurs(seanceAnimIds.stream().map(enseignantMap::get).filter(Objects::nonNull).toList());
-        sf.setParticipants(partIds.stream().map(enseignantMap::get).filter(Objects::nonNull).toList());
+        sf.setAnimateurs(new ArrayList<>(seanceAnimIds.stream().map(enseignantMap::get)
+            .filter(Objects::nonNull)
+            .toList()));
+        sf.setParticipants(new ArrayList<>(partIds.stream().map(enseignantMap::get)
+            .filter(Objects::nonNull)
+            .toList()));
     }
 
     public void handleEtatTransitions(Formation formation, EtatFormation oldEtat) {
@@ -689,7 +693,7 @@ public class FormationWorkflowService {
 
         // Supprimer les presences des enseignants qui ne sont plus concernes
         for (Presence p : oldList) {
-            String ensId = p.getEnseignant().getId();
+            String ensId = p.getEnseignant() != null ? p.getEnseignant().getId() : null;
             if (!newEnsIds.contains(ensId)) {
                 presenceRepository.delete(p);
             }
@@ -698,7 +702,9 @@ public class FormationWorkflowService {
         // Ajouter les presences manquantes pour les nouveaux enseignants
         for (String id : newEnsIds) {
             boolean exists = oldList.stream()
-                    .anyMatch(p -> p.getEnseignant().getId().equals(id));
+                    .anyMatch(p -> p.getEnseignant() != null
+                            && p.getEnseignant().getId() != null
+                            && p.getEnseignant().getId().equals(id));
             if (!exists) {
                 Enseignant ens = enseignantRepository.findById(id)
                         .orElseThrow(() -> new IllegalArgumentException("Enseignant introuvable : " + id));
@@ -716,7 +722,12 @@ public class FormationWorkflowService {
     public void deleteFormationWorkflow(Long formationId) {
         Formation formation = formationRepository.findById(formationId)
                 .orElseThrow(() -> new IllegalArgumentException("Formation introuvable avec l'id : " + formationId));
-        removeFormationCalendar(formation);
+        try {
+            removeFormationCalendar(formation);
+        } catch (RuntimeException ex) {
+            log.error("Erreur lors du nettoyage calendrier/email pour la formation {} : {}",
+                    formationId, ex.getMessage());
+        }
         formationRepository.delete(formation);
     }
 
@@ -971,7 +982,9 @@ public class FormationWorkflowService {
     }
 
     private String buildAnimateursString(SeanceFormation freshSeance, Formation freshFormation) {
-        String animateursStr = freshSeance.getAnimateurs().stream()
+        String animateursStr = freshSeance.getAnimateurs() == null
+            ? ""
+            : freshSeance.getAnimateurs().stream()
                 .map(e -> e.getNom() + " " + e.getPrenom())
                 .collect(Collectors.joining(", "));
         if (freshFormation.getExterneFormateurNom() != null && !freshFormation.getExterneFormateurNom().isBlank()) {
@@ -1583,6 +1596,7 @@ public class FormationWorkflowService {
                 .toList();
     }
 
+    @Transactional(readOnly = true)
     public List<FormationDTO> getFormationsParUp(String upId) {
         List<Formation> formations = formationRepository.findByUp_Id(upId);
         formations.forEach(f -> {
@@ -1608,6 +1622,7 @@ public class FormationWorkflowService {
                 .toList();
     }
 
+    @Transactional(readOnly = true)
     public List<FormationDTO> getFormationsParDepartement(String deptId) {
         List<Formation> formations = formationRepository.findByDepartement_Id(deptId);
         formations.forEach(f -> {

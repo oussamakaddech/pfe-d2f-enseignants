@@ -445,6 +445,79 @@ class FormationWorkflowServiceEnhancedTest {
     }
 
     @Test
+    @DisplayName("synchronizeFormationCalendar - Séance sans animateurs")
+    void shouldSynchronizeFormationCalendarWithoutAnimateurs() {
+        Formation formation = createFormation(1L, EtatFormation.PLANIFIE);
+        formation.setTitreFormation("Formation Test");
+
+        SeanceFormation seance = new SeanceFormation();
+        seance.setIdSeance(1L);
+        seance.setCalendarEventId("event123");
+        seance.setFormation(formation);
+        seance.setDateSeance(new java.util.Date());
+        seance.setHeureDebut(java.sql.Time.valueOf("09:00:00"));
+        seance.setHeureFin(java.sql.Time.valueOf("11:00:00"));
+        seance.setAnimateurs(null);
+        seance.setParticipants(new ArrayList<>());
+
+        formation.setSeances(List.of(seance));
+
+        when(formationRepository.findById(1L)).thenReturn(Optional.of(formation));
+        when(seanceFormationRepository.findById(1L)).thenReturn(Optional.of(seance));
+        when(helper.convertToOffsetDateTime(any(), any())).thenReturn(java.time.OffsetDateTime.now());
+        when(outlookCalendarService.updateEventInCalendarWithTeamsUrl(any()))
+                .thenReturn(new OutlookCalendarService.EventCreationResult("event123", "https://teams.microsoft.com/l/meetup-join/123"));
+
+        assertDoesNotThrow(() -> formationWorkflowService.synchronizeFormationCalendar(formation));
+
+        verify(outlookCalendarService).updateEventInCalendarWithTeamsUrl(any());
+    }
+
+    @Test
+    @DisplayName("updateFormationWorkflow - Présence existante sans enseignant")
+    void shouldUpdateFormationWhenExistingPresenceHasNoEnseignant() {
+        Formation existing = createFormation(1L, EtatFormation.PLANIFIE);
+        existing.setTitreFormation("Formation Test");
+        existing.setSeances(new ArrayList<>());
+
+        SeanceFormation existingSeance = new SeanceFormation();
+        existingSeance.setIdSeance(1L);
+        existingSeance.setFormation(existing);
+        existingSeance.setAnimateurs(new ArrayList<>());
+        existingSeance.setParticipants(new ArrayList<>());
+        existing.getSeances().add(existingSeance);
+
+        FormationWorkflowRequest.SeanceRequest seanceRequest = new FormationWorkflowRequest.SeanceRequest();
+        seanceRequest.setIdSeance(1L);
+        seanceRequest.setDateSeance(new java.util.Date());
+        seanceRequest.setHeureDebut("09:00");
+        seanceRequest.setHeureFin("11:00");
+        seanceRequest.setAnimateursIds(new ArrayList<>());
+
+        request.setEtatFormation(EtatFormation.PLANIFIE);
+        request.setParticipantsIds(List.of("P1"));
+        request.setSeances(List.of(seanceRequest));
+
+        Presence malformedPresence = new Presence();
+        malformedPresence.setIdParticipation(1L);
+        malformedPresence.setSeanceFormation(existingSeance);
+        malformedPresence.setEnseignant(null);
+
+        Enseignant participant = new Enseignant();
+        participant.setId("P1");
+        participant.setMail("p1@esprit.tn");
+
+        when(formationRepository.findById(1L)).thenReturn(Optional.of(existing));
+        when(enseignantRepository.findAllById(any())).thenReturn(List.of(participant));
+        when(enseignantRepository.findById("P1")).thenReturn(Optional.of(participant));
+        when(presenceRepository.findBySeanceFormation_IdSeance(1L)).thenReturn(List.of(malformedPresence));
+
+        assertDoesNotThrow(() -> formationWorkflowService.updateFormationWorkflow(1L, request));
+        verify(presenceRepository).delete(malformedPresence);
+        verify(presenceRepository).save(any(Presence.class));
+    }
+
+    @Test
     @DisplayName("removeFormationCalendar - Succès")
     void shouldRemoveFormationCalendar() {
         Formation formation = createFormation(1L, EtatFormation.ANNULE);
