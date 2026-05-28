@@ -104,8 +104,14 @@ const SkillGapCard = memo(function SkillGapCard({ gap, onClick, compact = false 
         {!compact && gap.justification && (
           <Paragraph
             type="secondary"
-            style={{ fontSize: 11, marginBottom: 0 }}
-            ellipsis={{ rows: 2 }}
+            style={{
+              fontSize: 11,
+              marginBottom: 0,
+              display: "-webkit-box",
+              WebkitBoxOrient: "vertical",
+              WebkitLineClamp: 2,
+              overflow: "hidden",
+            }}
           >
             {gap.justification}
           </Paragraph>
