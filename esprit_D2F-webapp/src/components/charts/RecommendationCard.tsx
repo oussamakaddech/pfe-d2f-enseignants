@@ -78,8 +78,14 @@ const RecommendationCard = memo(function RecommendationCard({ recommendation: r,
         {r.justification && (
           <Paragraph
             type="secondary"
-            style={{ fontSize: 11, marginBottom: 0 }}
-            ellipsis={{ rows: 2 }}
+            style={{
+              fontSize: 11,
+              marginBottom: 0,
+              display: "-webkit-box",
+              WebkitBoxOrient: "vertical",
+              WebkitLineClamp: 2,
+              overflow: "hidden",
+            }}
           >
             {r.justification}
           </Paragraph>

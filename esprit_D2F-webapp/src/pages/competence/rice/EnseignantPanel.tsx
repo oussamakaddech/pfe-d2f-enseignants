@@ -12,7 +12,7 @@ import { computeCoveragePct } from "./constants";
 
 const { Text } = Typography;
 
-const flatten = (tree) => {
+const flatten = (tree: any) => {
   const all = [];
   for (const d of tree ?? []) {
     for (const c of d.competences ?? []) {
@@ -25,13 +25,13 @@ const flatten = (tree) => {
   return all;
 };
 
-const countActiveTeachers = (allSavoirs) => {
+const countActiveTeachers = (allSavoirs: any) => {
   const ids = new Set();
-  allSavoirs.forEach((s) => (s.enseignantsSuggeres ?? []).forEach((id) => ids.add(String(id))));
+  allSavoirs.forEach((s: any) => (s.enseignantsSuggeres ?? []).forEach((id: any) => ids.add(String(id))));
   return ids.size;
 };
 
-const getCoverageColor = (tauxCouverture) => {
+const getCoverageColor = (tauxCouverture: any) => {
   if (tauxCouverture >= 80) return "#52c41a";
   if (tauxCouverture >= 50) return "#fa8c16";
   return "#f5222d";
@@ -170,7 +170,20 @@ export default function EnseignantPanel({ tree, setTree, allEnseignants, extract
                   {
                     title: "Fichier source",
                     dataIndex: "fichier",
-                    render: (f) => <Text type="secondary" ellipsis>{f}</Text>,
+                    render: (f) => (
+                      <Text
+                        type="secondary"
+                        style={{
+                          display: "block",
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                          minWidth: 0,
+                        }}
+                      >
+                        {f}
+                      </Text>
+                    ),
                   },
                   {
                     title: "Rôle",
