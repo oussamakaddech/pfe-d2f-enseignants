@@ -4,20 +4,20 @@ import { Select, Typography, Space } from "antd";
 
 const { Text } = Typography;
 
-function SessionEditor({ session, enseignants, onSessionChange }) {
-  const enseignantOptions = enseignants.map((e) => ({
+function SessionEditor({ session, enseignants, onSessionChange }: any) {
+  const enseignantOptions = enseignants.map((e: any) => ({
     value: e.mail,
     label: `${e.nom} ${e.prenom} (${e.mail})`,
     ...e,
   }));
 
-  const handleAnimateursChange = (values) => {
-    const selected = enseignants.filter((e) => values.includes(e.mail));
+  const handleAnimateursChange = (values: any) => {
+    const selected = enseignants.filter((e: any) => values.includes(e.mail));
     onSessionChange({ ...session, animateurs: selected });
   };
 
-  const handleParticipantsChange = (values) => {
-    const selected = enseignants.filter((e) => values.includes(e.mail));
+  const handleParticipantsChange = (values: any) => {
+    const selected = enseignants.filter((e: any) => values.includes(e.mail));
     onSessionChange({ ...session, participants: selected });
   };
 
@@ -33,7 +33,7 @@ function SessionEditor({ session, enseignants, onSessionChange }) {
             mode="multiple"
             placeholder="Sélectionner les animateurs"
             options={enseignantOptions}
-            value={(session.animateurs || []).map((a) => a.mail)}
+            value={(session.animateurs || []).map((a: any) => a.mail)}
             onChange={handleAnimateursChange}
             style={{ width: "100%" }}
             optionFilterProp="label"
@@ -46,7 +46,7 @@ function SessionEditor({ session, enseignants, onSessionChange }) {
             mode="multiple"
             placeholder="Sélectionner les participants"
             options={enseignantOptions}
-            value={(session.participants || []).map((p) => p.mail)}
+            value={(session.participants || []).map((p: any) => p.mail)}
             onChange={handleParticipantsChange}
             style={{ width: "100%" }}
             optionFilterProp="label"

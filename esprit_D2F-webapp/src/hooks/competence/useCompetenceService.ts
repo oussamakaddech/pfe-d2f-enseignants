@@ -1,5 +1,5 @@
 import CompetenceService from "@/services/competence/CompetenceService";
-import type { TreeNode, NiveauDefinition, EnseignantCompetence, AssignRequest, PrerequisiteRequest } from "@/services/competence/CompetenceService";
+import type { TreeNode, NiveauDefinition, EnseignantCompetence, AssignRequest, PrerequisiteRequest } from "@/models/competence";
 
 export function useCompetenceDomaineApi() {
   return CompetenceService.domaine;

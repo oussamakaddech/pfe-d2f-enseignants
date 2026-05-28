@@ -3,34 +3,58 @@ import { Card, Form, Input, Select, Button, Typography } from 'antd';
 import { UserOutlined, LockOutlined, MailOutlined, PhoneOutlined, InfoCircleOutlined } from '@ant-design/icons';
 import PropTypes from 'prop-types';
 import { useRegister } from "@/hooks/auth/useRegister";
+import type { RegisterFormValues } from "@/hooks/auth/useRegister";
 
 const { Title } = Typography;
 const { Option } = Select;
 
-export default function EnseignantRegister({ initialValues = {}, onSuccess, onError }) {
+interface EnseignantRegisterProps {
+  initialValues?: {
+    id?: string;
+    username?: string;
+    firstName?: string;
+    lastName?: string;
+    email?: string;
+    role?: string;
+    phoneNumber?: string;
+  };
+  onSuccess?: () => void;
+  onError?: (message: string) => void;
+}
+
+export default function EnseignantRegister({ initialValues = {}, onSuccess, onError }: EnseignantRegisterProps) {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const { register } = useRegister();
 
+  const id = initialValues.id || '';
+  const username = initialValues.username || '';
+  const firstName = initialValues.firstName || '';
+  const lastName = initialValues.lastName || '';
+  const email = initialValues.email || '';
+  const role = initialValues.role || 'Formateur';
+  const phoneNumber = initialValues.phoneNumber || '';
+
   useEffect(() => {
     form.setFieldsValue({
-      id: initialValues.id || '',
-      username: initialValues.username || '',
-      firstName: initialValues.firstName || '',
-      lastName: initialValues.lastName || '',
-      email: initialValues.email || '',
-      role: initialValues.role || 'Formateur',
-      phoneNumber: initialValues.phoneNumber || '',
+      id,
+      username,
+      firstName,
+      lastName,
+      email,
+      role,
+      phoneNumber,
     });
-  }, [initialValues, form]);
+  }, [form, id, username, firstName, lastName, email, role, phoneNumber]);
 
-  const onFinish = async values => {
+  const onFinish = async (values: RegisterFormValues) => {
     setLoading(true);
     try {
       await register(values);
       onSuccess?.();
     } catch (err: unknown) {
-      const msg = err.response?.data?.message || "Erreur lors de l'inscription.";
+      const error = err as { response?: { data?: { message?: string } } };
+      const msg = error.response?.data?.message || "Erreur lors de l'inscription.";
       onError?.(msg);
     } finally {
       setLoading(false);

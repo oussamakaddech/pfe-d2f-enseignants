@@ -31,7 +31,7 @@ describe('DocumentService', () => {
   it('creates a document', async () => {
     httpMocks.mockPost.mockResolvedValueOnce({ data: { id: 1 } });
     const file = new File(['x'], 'doc.pdf');
-    const result = await DocumentService.createDocument({ formationId: 1, pathType: 'SUPPORT', nomDocument: 'D', obligation: true, file });
+    const result = await DocumentService.createDocument({ formationId: 1, pathType: 'SUPPORT', nomDocument: 'D', obligation: 'true', file });
     expect(httpMocks.mockPost).toHaveBeenCalledOnce();
     expect(result).toEqual({ id: 1 });
   });
@@ -46,7 +46,7 @@ describe('DocumentService', () => {
 
   it('updates a document', async () => {
     httpMocks.mockPut.mockResolvedValueOnce({ data: { id: 3 } });
-    const result = await DocumentService.updateDocument(3, { pathType: 'x', nomDocument: 'y', obligation: false });
+    const result = await DocumentService.updateDocument(3, { pathType: 'x', nomDocument: 'y', obligation: 'false' });
     expect(httpMocks.mockPut).toHaveBeenCalledOnce();
     expect(result).toEqual({ id: 3 });
   });

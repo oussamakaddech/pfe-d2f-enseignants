@@ -55,23 +55,23 @@ export default function EnseignantCompetencePage() {
   const structureApi = useStructureApi();
   const { message: msgApi } = useAppNotification();
 
-  const [competences, setCompetences] = useState([]);
+  const [competences, setCompetences] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [count, setCount] = useState(0);
 
   // Assign modal
   const [assignModal, setAssignModal] = useState(false);
   const [assignForm] = Form.useForm();
-  const [savoirs, setSavoirs] = useState([]);
+  const [savoirs, setSavoirs] = useState<any[]>([]);
   const [savoirsLoading, setSavoirsLoading] = useState(false);
 
   // Edit niveau modal
   const [niveauModal, setNiveauModal] = useState(false);
   const [niveauForm] = Form.useForm();
-  const [editingRecord, setEditingRecord] = useState(null);
+  const [editingRecord, setEditingRecord] = useState<any>(null);
 
   // Filters
-  const [domaines, setDomaines] = useState([]);
+  const [domaines, setDomaines] = useState<any[]>([]);
   const [filterDomaine, setFilterDomaine] = useState(null);
   const [filterNiveau, setFilterNiveau] = useState(null);
 
@@ -105,7 +105,7 @@ export default function EnseignantCompetencePage() {
   const loadCount = useCallback(async () => {
     if (!enseignantId) return;
     try {
-      const res = await ecApi.countByEnseignant(enseignantId);
+      const res = await ecApi.countByEnseignant(enseignantId) as any;
       setCount(res.count ?? 0);
     } catch {
       // silent
@@ -157,7 +157,7 @@ export default function EnseignantCompetencePage() {
       setAssignModal(false);
       loadCompetences();
       loadCount();
-    } catch (err: unknown) {
+    } catch (err: any) {
       if (err?.errorFields) return;
       const msg = err.response?.data?.message || "Erreur lors de l'ajout";
       msgApi.error(msg);
@@ -165,7 +165,7 @@ export default function EnseignantCompetencePage() {
   };
 
   // ─── Update niveau ────────────────────────────────────────────────────────
-  const openNiveauModal = (record) => {
+  const openNiveauModal = (record: any) => {
     setEditingRecord(record);
     niveauForm.setFieldsValue({ niveau: record.niveau });
     setNiveauModal(true);
@@ -174,11 +174,11 @@ export default function EnseignantCompetencePage() {
   const handleUpdateNiveau = async () => {
     try {
       const { niveau } = await niveauForm.validateFields();
-      await ecApi.updateNiveau(editingRecord.id, niveau);
+      await ecApi.updateNiveau((editingRecord as any).id, niveau);
       msgApi.success("Niveau mis à jour");
       setNiveauModal(false);
       loadCompetences();
-    } catch (err: unknown) {
+    } catch (err: any) {
       if (err?.errorFields) return;
       const msg = err.response?.data?.message || "Erreur lors de la mise à jour";
       msgApi.error(msg);
@@ -186,13 +186,13 @@ export default function EnseignantCompetencePage() {
   };
 
   // ─── Delete ───────────────────────────────────────────────────────────────
-  const handleDelete = async (id) => {
+  const handleDelete = async (id: any) => {
     try {
       await ecApi.remove(id);
       msgApi.success("Compétence retirée");
       loadCompetences();
       loadCount();
-    } catch (err: unknown) {
+    } catch (err: any) {
       const msg = err.response?.data?.message || "Erreur lors de la suppression";
       msgApi.error(msg);
     }
@@ -204,13 +204,13 @@ export default function EnseignantCompetencePage() {
       title: "Domaine",
       dataIndex: "domaineNom",
       key: "domaineNom",
-      sorter: (a, b) => (a.domaineNom || "").localeCompare(b.domaineNom || ""),
+      sorter: (a: any, b: any) => (a.domaineNom || "").localeCompare(b.domaineNom || ""),
     },
     {
       title: "Compétence",
       dataIndex: "competenceNom",
       key: "competenceNom",
-      sorter: (a, b) => (a.competenceNom || "").localeCompare(b.competenceNom || ""),
+      sorter: (a: any, b: any) => (a.competenceNom || "").localeCompare(b.competenceNom || ""),
     },
     {
       title: "Sous-Compétence",
@@ -221,7 +221,7 @@ export default function EnseignantCompetencePage() {
       title: "Savoir",
       dataIndex: "savoirNom",
       key: "savoirNom",
-      render: (nom, record) => (
+      render: (nom: any, record: any) => (
         <>
           <Text strong>{nom}</Text>
           <br />
@@ -235,29 +235,29 @@ export default function EnseignantCompetencePage() {
       title: "Niveau",
       dataIndex: "niveau",
       key: "niveau",
-      render: (niveau) => niveauTag(niveau),
+      render: (niveau: any) => niveauTag(niveau),
       filters: NIVEAU_OPTIONS.map((n) => ({ text: n.label, value: n.value })),
-      onFilter: (v, r) => r.niveau === v,
+      onFilter: (v: any, r: any) => r.niveau === v,
     },
     {
       title: "Date Acquisition",
       dataIndex: "dateAcquisition",
       key: "dateAcquisition",
-      render: (d) => d || "—",
-      sorter: (a, b) => (a.dateAcquisition || "").localeCompare(b.dateAcquisition || ""),
+      render: (d: any) => d || "—",
+      sorter: (a: any, b: any) => (a.dateAcquisition || "").localeCompare(b.dateAcquisition || ""),
     },
     {
       title: "Commentaire",
       dataIndex: "commentaire",
       key: "commentaire",
       ellipsis: true,
-      render: (c) => c || "—",
+      render: (c: any) => c || "—",
     },
     {
       title: "Actions",
       key: "actions",
       width: 100,
-      render: (_, record) => (
+      render: (_: any, record: any) => (
         <Space>
           <Tooltip title="Modifier le niveau">
             <Button

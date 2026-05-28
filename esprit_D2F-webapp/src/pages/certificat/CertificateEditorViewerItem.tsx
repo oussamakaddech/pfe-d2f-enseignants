@@ -5,13 +5,13 @@ import useAppNotification from "@/hooks/ui/useAppNotification";
 import jsPDF from "jspdf";
 import { useUpdateCertificate } from "@/hooks/certificat/useCertificats";
 
-export default function CertificateEditorViewerItem({ certificate, onUpdate }) {
+export default function CertificateEditorViewerItem({ certificate, onUpdate }: any) {
   const { message } = useAppNotification();
   const [certData, setCertData] = useState(certificate);
   const [pdfUrl, setPdfUrl] = useState("");
 
 // src/components/CertificateEditorViewerItem.jsx
-const generatePdfDocument = async (data) => {
+const generatePdfDocument = async (data: any) => {
   const doc = new jsPDF({
     orientation: "landscape",
     unit: "pt",
@@ -76,12 +76,12 @@ const generatePdfDocument = async (data) => {
   // À chaque modification de certData, on régénère l'aperçu
   useEffect(() => {
     if (!certData?.idCertificate) return;
-    generatePdfDocument(certData).then(setPdfUrl);
+    generatePdfDocument(certData).then((url: any) => setPdfUrl(url.toString()));
   }, [certData]);
 
   // Gère la modification dans le formulaire
-  const handleChange = (field, value) => {
-    setCertData((prev) => {
+  const handleChange = (field: any, value: any) => {
+    setCertData((prev: any) => {
       const updated = { ...prev, [field]: value };
       onUpdate?.(updated);
       return updated;

@@ -8,6 +8,7 @@
  * The browser sends the cookie automatically with `withCredentials: true`.
  */
 import axios, { isAxiosError as axiosIsAxiosError } from "axios";
+import type { AxiosResponse, AxiosError } from "axios";
 import { navigate } from "./navigation";
 import { config } from "../../config/env";
 import { notify } from "./notifications";
@@ -43,8 +44,8 @@ export function createApiClient(baseURL?: string) {
   // No request interceptor needed — HttpOnly cookie is sent automatically
 
   api.interceptors.response.use(
-    (response) => response,
-    (error) => {
+    (response: AxiosResponse) => response,
+    (error: AxiosError) => {
       const status = error?.response?.status;
       const url = error?.config?.url;
 
@@ -69,16 +70,16 @@ export function createApiClient(baseURL?: string) {
         if (!isAlreadyOnLogin) {
           navigate("/", { replace: true });
         }
-      } else if (error?.config?.meta?.silent !== true) {
+      } else if ((error?.config as { meta?: { silent?: boolean } })?.meta?.silent !== true) {
         // Global UX feedback for unexpected errors. Callers can opt out by
         // passing { meta: { silent: true } } when they handle the error themselves.
-        const serverMsg = error?.response?.data?.message;
+        const serverMsg = (error?.response?.data as { message?: string })?.message;
 
         if (!error?.response) {
           if (shouldShowNetworkErrorToast()) {
             notify.error("Pas de connexion au serveur. Vérifiez votre réseau.");
           }
-        } else if (status >= 500) {
+        } else if (status && status >= 500) {
           notify.error(serverMsg || "Erreur serveur. Réessayez dans un instant.");
         } else if (status === 403) {
           notify.warning(serverMsg || "Accès refusé.");
@@ -94,7 +95,7 @@ export function createApiClient(baseURL?: string) {
   return api;
 }
 
-export const defaultApi = createApiClient();
+export const defaultApi = createApiClient(config.API_BASE_URL);
 
 
 

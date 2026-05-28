@@ -2,31 +2,31 @@ import { useState, useCallback } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import RiceService from "@/services/analyse/RiceService";
 
-export function useRiceReport({ tree, departement, msgApi, onImportSuccess }) {
-  const [report, setReport] = useState(null);
+export function useRiceReport({ tree, departement, msgApi, onImportSuccess }: any) {
+  const [report, setReport] = useState<any>(null);
   const queryClient = useQueryClient();
 
-  const countSavoirsInArray = (savoirs) => {
+  const countSavoirsInArray = (savoirs: any) => {
     let total = 0;
     let covered = 0;
     for (const s of savoirs ?? []) {
       total++;
       const realIds = (s.enseignantsSuggeres ?? []).filter(
-        (id) => !String(id).startsWith("ext_") && !String(id).startsWith("manual_"),
+        (id: any) => !String(id).startsWith("ext_") && !String(id).startsWith("manual_"),
       );
       if (realIds.length > 0) covered++;
     }
     return { total, covered };
   };
 
-  const buildSavoirPayload = (savoirs) => (savoirs ?? []).map((s) => ({
+  const buildSavoirPayload = (savoirs: any) => (savoirs ?? []).map((s: any) => ({
     code: s.code,
     nom: s.nom,
     description: s.description ?? null,
     type: s.type,
     niveau: s.niveau,
     enseignantIds: (s.enseignantsSuggeres ?? []).filter(
-      (id) => !String(id).startsWith("ext_") && !String(id).startsWith("manual_"),
+      (id: any) => !String(id).startsWith("ext_") && !String(id).startsWith("manual_"),
     ),
   }));
 
@@ -35,48 +35,48 @@ export function useRiceReport({ tree, departement, msgApi, onImportSuccess }) {
     for (const d of tree) {
       let total = 0;
       let covered = 0;
-      for (const c of d.competences ?? []) {
+      for (const c of (d.competences ?? [])) {
         const allSavoirs = [
           ...(c.savoirs ?? []),
-          ...(c.sousCompetences ?? []).flatMap((sc) => sc.savoirs ?? []),
+          ...(c.sousCompetences ?? []).flatMap((sc: any) => sc.savoirs ?? []),
         ];
         const r = countSavoirsInArray(allSavoirs);
         total += r.total;
         covered += r.covered;
       }
-      if (total > 0) result[d.nom] = Math.round((covered * 1000) / total) / 10;
+      if (total > 0) (result as any)[d.nom] = Math.round((covered * 1000) / total) / 10;
     }
     return result;
   }, [tree]);
 
-  const importMutation = useMutation({
-    mutationFn: (payload) => RiceService.importToDb(payload),
+  const importMutation = useMutation<any, Error, any>({
+    mutationFn: (payload: any) => RiceService.importToDb(payload),
   });
 
   const historyQuery = useQuery({
     queryKey: ["rice-import-history"],
-    queryFn: () => RiceService.getImportHistory().then((data) => Array.isArray(data) ? data : []),
+    queryFn: () => RiceService.getImportHistory().then((data: any) => Array.isArray(data) ? data : []),
     enabled: false,
     staleTime: 5 * 60 * 1000,
   });
 
-  const setImportHistory = useCallback((data) => {
+  const setImportHistory = useCallback((data: any) => {
     queryClient.setQueryData(["rice-import-history"], data);
   }, [queryClient]);
 
   const handleImport = useCallback(async () => {
     const payload = {
-      domaines: tree.map((d) => ({
+      domaines: tree.map((d: any) => ({
         code: d.code,
         nom: d.nom,
         description: d.description ?? null,
-        competences: (d.competences ?? []).map((c) => ({
+        competences: (d.competences ?? []).map((c: any) => ({
           code: c.code,
           nom: c.nom,
           description: c.description ?? null,
           ordre: c.ordre ?? 1,
           savoirs: buildSavoirPayload(c.savoirs),
-          sousCompetences: (c.sousCompetences ?? []).map((sc) => ({
+          sousCompetences: (c.sousCompetences ?? []).map((sc: any) => ({
             code: sc.code,
             nom: sc.nom,
             description: sc.description ?? null,
@@ -102,7 +102,7 @@ export function useRiceReport({ tree, departement, msgApi, onImportSuccess }) {
       if (onImportSuccess) onImportSuccess(result);
       queryClient.invalidateQueries({ queryKey: ["rice-import-history"] });
     } catch (err: unknown) {
-      msgApi.error(err.response?.data?.message ?? "Erreur lors de l'import en base");
+      msgApi.error((err as any).response?.data?.message ?? "Erreur lors de l'import en base");
     }
   }, [tree, computeClientCoverage, msgApi, onImportSuccess, importMutation, queryClient]);
 

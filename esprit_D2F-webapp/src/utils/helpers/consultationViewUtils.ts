@@ -66,9 +66,9 @@ export function buildFlatSavoirs(crud: { domaines?: Array<{ id: unknown }>; comp
   const sousComps = crud.sousComps || [];
   const savoirs = crud.savoirs || [];
 
-  const domaineById = new Map(domaines.map((d) => [String(d.id), d]));
-  const compById = new Map(competences.map((c) => [String(c.id), c]));
-  const scById = new Map(sousComps.map((sc) => [String(sc.id), sc]));
+  const domaineById = new Map<string, { id: unknown; code?: string; nom?: string }>(domaines.map((d) => [String(d.id), d]));
+  const compById = new Map<string, { id: unknown; domaineId: unknown; code?: string; nom?: string }>(competences.map((c) => [String(c.id), c]));
+  const scById = new Map<string, { id: unknown; competenceId: unknown; nom?: string }>(sousComps.map((sc) => [String(sc.id), sc]));
 
   return savoirs.map((s) => {
     const sc = s?.sousCompetenceId != null ? scById.get(String(s.sousCompetenceId)) : null;

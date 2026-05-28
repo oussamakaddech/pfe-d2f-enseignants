@@ -1,4 +1,5 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
+import type { TableColumnType } from "antd";
 import {
   Table,
   Button,
@@ -41,12 +42,35 @@ import { useAllFormations } from "@/hooks/formation/useFormations";
 const { Option } = Select;
 const { TextArea } = Input;
 
-const RECO_COLORS = {
+interface RecoColor {
+  color: string;
+  bg: string;
+  border: string;
+  label: string;
+}
+
+const RECO_COLORS: Record<string, RecoColor> = {
   EXCELLENTE: { color: "#059669", bg: "#ecfdf5", border: "#a7f3d0", label: "Excellente" },
   A_CONTINUER: { color: "#2563eb", bg: "#eff6ff", border: "#bfdbfe", label: "A continuer" },
   A_AMELIORER: { color: "#d97706", bg: "#fffbeb", border: "#fde68a", label: "A ameliorer" },
   A_ARRETER: { color: "#dc2626", bg: "#fef2f2", border: "#fecaca", label: "A arreter" },
 };
+
+interface EvalRecord {
+  idEvalGlobale?: number;
+  formationId?: number;
+  noteGlobale?: number;
+  recommandation?: string;
+  commentaireGeneral?: string;
+  dateEvaluation?: string;
+  [key: string]: unknown;
+}
+
+interface FormationRecord {
+  idFormation: number;
+  titreFormation: string;
+  [key: string]: unknown;
+}
 
 export default function EvaluationGlobalePage() {
   const { message: msgApi } = useAppNotification();
@@ -56,16 +80,16 @@ export default function EvaluationGlobalePage() {
   const updateMut = useUpdateEvaluationGlobale();
   const deleteMut = useDeleteEvaluationGlobale();
 
-  const evaluations = evaluationsData as Record<string, unknown>[];
-  const formations  = formationsData;
+  const evaluations = evaluationsData as EvalRecord[];
+  const formations = formationsData as FormationRecord[];
 
   const [openForm, setOpenForm] = useState(false);
-  const [editingEval, setEditingEval] = useState<Record<string, unknown> | null>(null);
+  const [editingEval, setEditingEval] = useState<EvalRecord | null>(null);
   const [form] = Form.useForm();
 
   const [filterText, setFilterText] = useState("");
   const [recoFilter, setRecoFilter] = useState<string | undefined>();
-  const [formationFilter, setFormationFilter] = useState<unknown>();
+  const [formationFilter, setFormationFilter] = useState<number | undefined>();
 
   function getFormationTitre(formationId: unknown) {
     const f = formations.find((f) => f.idFormation === formationId);
@@ -76,12 +100,12 @@ export default function EvaluationGlobalePage() {
     let res = [...evaluations];
     if (filterText) {
       res = res.filter((e) =>
-        (getFormationTitre(e["formationId"]) || "").toLowerCase().includes(filterText.toLowerCase()) ||
-        String(e["commentaireGeneral"] || "").toLowerCase().includes(filterText.toLowerCase())
+        (getFormationTitre(e.formationId) || "").toLowerCase().includes(filterText.toLowerCase()) ||
+        String(e.commentaireGeneral || "").toLowerCase().includes(filterText.toLowerCase())
       );
     }
-    if (recoFilter) res = res.filter((e) => e["recommandation"] === recoFilter);
-    if (formationFilter) res = res.filter((e) => e["formationId"] === formationFilter);
+    if (recoFilter) res = res.filter((e) => e.recommandation === recoFilter);
+    if (formationFilter) res = res.filter((e) => e.formationId === formationFilter);
     return res;
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [evaluations, filterText, recoFilter, formationFilter, formations]);
@@ -92,14 +116,14 @@ export default function EvaluationGlobalePage() {
     setOpenForm(true);
   }
 
-  function openEdit(record: Record<string, unknown>) {
+  function openEdit(record: EvalRecord) {
     setEditingEval(record);
     form.setFieldsValue({
-      formationId: record["formationId"],
-      commentaireGeneral: record["commentaireGeneral"],
-      dateEvaluation: record["dateEvaluation"] ? dayjs(record["dateEvaluation"] as string) : null,
-      noteGlobale: record["noteGlobale"],
-      recommandation: record["recommandation"],
+      formationId: record.formationId,
+      commentaireGeneral: record.commentaireGeneral,
+      dateEvaluation: record.dateEvaluation ? dayjs(record.dateEvaluation) : null,
+      noteGlobale: record.noteGlobale,
+      recommandation: record.recommandation,
     });
     setOpenForm(true);
   }
@@ -112,7 +136,7 @@ export default function EvaluationGlobalePage() {
         dateEvaluation: values.dateEvaluation ? values.dateEvaluation.toDate() : null,
       };
       if (editingEval) {
-        await updateMut.mutateAsync({ id: editingEval["idEvalGlobale"] as number, data: payload });
+        await updateMut.mutateAsync({ id: editingEval.idEvalGlobale as number, data: payload });
         msgApi.success("Évaluation globale mise à jour !");
       } else {
         await createMut.mutateAsync(payload);
@@ -126,9 +150,9 @@ export default function EvaluationGlobalePage() {
     }
   }
 
-  async function handleDelete(id: unknown) {
+  async function handleDelete(id: number) {
     try {
-      await deleteMut.mutateAsync(id as number);
+      await deleteMut.mutateAsync(id);
       msgApi.success("Évaluation supprimée");
     } catch {
       msgApi.error("Erreur suppression");
@@ -141,15 +165,15 @@ export default function EvaluationGlobalePage() {
     setFormationFilter(undefined);
   }
 
-  const hasActiveFilters = filterText || recoFilter || formationFilter;
+  const hasActiveFilters = !!(filterText || recoFilter || formationFilter);
 
   const avgNote = evaluations.length > 0
-    ? (evaluations.reduce((s, e) => s + (e.noteGlobale || 0), 0) / evaluations.length).toFixed(1)
+    ? (evaluations.reduce((s, e) => s + (Number(e.noteGlobale) || 0), 0) / evaluations.length).toFixed(1)
     : "\u2014";
   const excellentCount = evaluations.filter((e) => e.recommandation === "EXCELLENTE").length;
   const toImproveCount = evaluations.filter((e) => e.recommandation === "A_AMELIORER").length;
 
-  const columns = [
+  const columns: TableColumnType<EvalRecord>[] = [
     {
       title: "Formation",
       dataIndex: "formationId",
@@ -229,7 +253,7 @@ export default function EvaluationGlobalePage() {
           />
           <Popconfirm
             title="Supprimer cette évaluation ?"
-            onConfirm={() => handleDelete(r.idEvalGlobale)}
+            onConfirm={() => handleDelete(r.idEvalGlobale!)}
           >
             <Button
               type="text"

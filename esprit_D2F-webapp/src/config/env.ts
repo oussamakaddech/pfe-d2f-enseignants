@@ -34,7 +34,7 @@ const readApiBase = (): string => {
 const API_BASE_URL = readApiBase();
 const FORMATION_SERVICE_URL = import.meta.env.VITE_FORMATION_SERVICE_URL
   ? stripTrailingSlash(import.meta.env.VITE_FORMATION_SERVICE_URL)
-  : "http://localhost:8088";
+  : API_BASE_URL;
 const RICE_URL = import.meta.env.VITE_RICE_URL
   ? stripTrailingSlash(import.meta.env.VITE_RICE_URL)
   : API_BASE_URL;

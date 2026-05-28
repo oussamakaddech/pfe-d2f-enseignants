@@ -40,11 +40,11 @@ export default function CertificatePage() {
     setSearch((prev) => ({ ...prev, [field]: value }));
   };
 
-  const filteredData = certificates.filter((cert: Certificate) =>
-    cert.nomEnseignant.toLowerCase().includes(search.nom.toLowerCase()) &&
-    cert.prenomEnseignant.toLowerCase().includes(search.prenom.toLowerCase()) &&
-    cert.mailEnseignant.toLowerCase().includes(search.email.toLowerCase()) &&
-    cert.roleEnFormation.toLowerCase().includes(search.role.toLowerCase())
+  const filteredData = certificates.filter((cert: any) =>
+    (cert.nomEnseignant || "").toLowerCase().includes(search.nom.toLowerCase()) &&
+    (cert.prenomEnseignant || "").toLowerCase().includes(search.prenom.toLowerCase()) &&
+    (cert.mailEnseignant || "").toLowerCase().includes(search.email.toLowerCase()) &&
+    (cert.roleEnFormation || "").toLowerCase().includes(search.role.toLowerCase())
   );
 
   const handleCertUpdate = useCallback((updatedCert: Certificate) => {
@@ -62,13 +62,13 @@ export default function CertificatePage() {
       title: "Nom",
       dataIndex: "nomEnseignant",
       key: "nomEnseignant",
-      sorter: (a, b) => a.nomEnseignant.localeCompare(b.nomEnseignant),
+      sorter: (a: any, b: any) => (a.nomEnseignant || "").localeCompare(b.nomEnseignant || ""),
     },
     {
       title: "Prénom",
       dataIndex: "prenomEnseignant",
       key: "prenomEnseignant",
-      sorter: (a, b) => a.prenomEnseignant.localeCompare(b.prenomEnseignant),
+      sorter: (a: any, b: any) => (a.prenomEnseignant || "").localeCompare(b.prenomEnseignant || ""),
     },
     {
       title: "Email",
@@ -79,7 +79,7 @@ export default function CertificatePage() {
       title: "Rôle",
       dataIndex: "roleEnFormation",
       key: "roleEnFormation",
-      render: (role) => {
+      render: (role: any) => {
         const isAnimateur = role?.toLowerCase().includes("animateur");
         return (
           <Tag
@@ -94,8 +94,8 @@ export default function CertificatePage() {
         { text: "ANIMATEUR", value: "animateur" },
         { text: "PARTICIPANT", value: "participant" },
       ],
-      onFilter: (value, record) =>
-        record.roleEnFormation
+      onFilter: (value: any, record: any) =>
+        (record.roleEnFormation || "")
           .toLowerCase()
           .includes(value.toLowerCase()),
     },

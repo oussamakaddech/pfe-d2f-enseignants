@@ -20,13 +20,18 @@ const border = (rgb = C.border) => ({ style: "thin", color: { rgb } });
 const allBorders = { top: border(), bottom: border(), left: border(), right: border() };
 
 // ── Calcul automatique de largeur de colonne ───────────────────────────────
-function autoColWidths(keys, rows) {
+function autoColWidths(keys: string[], rows: any[]): XLSX.ColInfo[] {
   return keys.map(key => ({
     wch: Math.max(
       String(key).length + 2,
       ...rows.map(r => String(r[key] ?? "").length)
     ) + 3,
   }));
+}
+
+export interface SheetOptions {
+  title?: string;
+  subtitle?: string;
 }
 
 // ── Feuille stylisée ───────────────────────────────────────────────────────
@@ -36,7 +41,7 @@ function autoColWidths(keys, rows) {
  *   title    {string}  Titre du rapport (ligne fusionnée, fond rouge)
  *   subtitle {string}  Sous-titre (date d'export, filtres actifs…)
  */
-export function styledSheet(rows, { title, subtitle } = {}) {
+export function styledSheet(rows: any[], { title, subtitle }: SheetOptions = {}): XLSX.WorkSheet {
   if (!rows || rows.length === 0) {
     const ws = XLSX.utils.aoa_to_sheet([["Aucune donnée"]]);
     return ws;
@@ -48,7 +53,7 @@ export function styledSheet(rows, { title, subtitle } = {}) {
   const hasSub   = Boolean(subtitle);
 
   // Construire le tableau de tableaux (AOA)
-  const aoa = [];
+  const aoa: any[][] = [];
   if (hasTitle) aoa.push([title,    ...Array(ncols - 1).fill(null)]);
   if (hasSub)   aoa.push([subtitle, ...Array(ncols - 1).fill(null)]);
   aoa.push(keys);                                         // en-tête colonnes
@@ -70,20 +75,22 @@ export function styledSheet(rows, { title, subtitle } = {}) {
       const addr = XLSX.utils.encode_cell({ r: R, c: C_ });
       if (!ws[addr]) return;
 
+      const cell = ws[addr] as XLSX.CellObject & { s?: any };
+
       if (hasTitle && R === 0) {
-        ws[addr].s = {
+        cell.s = {
           fill: { fgColor: { rgb: C.brand } },
           font: { bold: true, sz: 14, color: { rgb: C.white }, name: "Calibri" },
           alignment: { horizontal: "center", vertical: "center" },
         };
       } else if (hasSub && R === (hasTitle ? 1 : 0)) {
-        ws[addr].s = {
+        cell.s = {
           fill: { fgColor: { rgb: C.brandLight } },
           font: { sz: 9, italic: true, color: { rgb: C.textMuted }, name: "Calibri" },
           alignment: { horizontal: "center", vertical: "center" },
         };
       } else if (R === headerRow) {
-        ws[addr].s = {
+        cell.s = {
           fill: { fgColor: { rgb: C.brand } },
           font: { bold: true, sz: 11, color: { rgb: C.white }, name: "Calibri" },
           border: allBorders,
@@ -91,7 +98,7 @@ export function styledSheet(rows, { title, subtitle } = {}) {
         };
       } else {
         const dataIdx = R - headerRow;
-        ws[addr].s = {
+        cell.s = {
           fill: { fgColor: { rgb: dataIdx % 2 === 1 ? C.rowEven : C.rowOdd } },
           font: { sz: 10, color: { rgb: C.textDark }, name: "Calibri" },
           border: allBorders,
@@ -115,12 +122,19 @@ export function styledSheet(rows, { title, subtitle } = {}) {
   return ws;
 }
 
+export interface SheetConfig {
+  name: string;
+  rows: any[];
+  title?: string;
+  subtitle?: string;
+}
+
 // ── Écriture du fichier ────────────────────────────────────────────────────
 /**
  * @param {Array<{name: string, rows: object[], title?: string, subtitle?: string}>} sheets
  * @param {string} filename
  */
-export function writeExcel(sheets, filename) {
+export function writeExcel(sheets: SheetConfig[], filename: string): void {
   const wb = XLSX.utils.book_new();
   sheets.forEach(({ name, rows, title, subtitle }) => {
     const ws = styledSheet(rows, { title, subtitle });
@@ -130,13 +144,13 @@ export function writeExcel(sheets, filename) {
 }
 
 // ── Helper date ────────────────────────────────────────────────────────────
-export function exportDateLabel() {
+export function exportDateLabel(): string {
   return `Généré le ${new Date().toLocaleDateString("fr-FR", {
     day: "2-digit", month: "long", year: "numeric",
   })} à ${new Date().toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}`;
 }
 
-export function isoDate() {
+export function isoDate(): string {
   return new Date().toISOString().slice(0, 10);
 }
 

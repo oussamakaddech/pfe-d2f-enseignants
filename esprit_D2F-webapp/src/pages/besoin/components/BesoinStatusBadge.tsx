@@ -3,7 +3,7 @@ import PropTypes from "prop-types";
 /**
  * Pill statut. Le dot pulse en jaune si "en attente" (action requise).
  */
-export default function BesoinStatusBadge({ approved }) {
+export default function BesoinStatusBadge({ approved }: any) {
   const tone = approved ? "approved" : "pending";
   const label = approved ? "Approuvé" : "En attente";
   return (

@@ -1,20 +1,28 @@
-// DocumentListModal.jsx
 import { useState } from "react";
 import { Modal, Button, List, Empty } from "antd";
 import { EditOutlined, PlusOutlined, CloseOutlined } from "@ant-design/icons";
 import UpdateDocumentForm from "./UpdateDocumentForm";
 import DocumentCreateForm from "./DocumentCreateForm";
+import type { Id } from "@/models/common";
+import type { FormationDocument, FormationWithDocuments } from "@/models/document";
 
-const DocumentListModal = ({ open, onClose, formation, onDocumentsUpdated }) => {
-  const [selectedDocId, setSelectedDocId] = useState(null);
+interface DocumentListModalProps {
+  open: boolean;
+  onClose: () => void;
+  formation: FormationWithDocuments;
+  onDocumentsUpdated: (doc: FormationDocument | null) => void;
+}
+
+const DocumentListModal = ({ open, onClose, formation, onDocumentsUpdated }: DocumentListModalProps) => {
+  const [selectedDocId, setSelectedDocId] = useState<Id | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
 
-  const handleUpdateComplete = (updatedDoc) => {
+  const handleUpdateComplete = (updatedDoc: FormationDocument | null) => {
     onDocumentsUpdated(updatedDoc);
     setSelectedDocId(null);
   };
 
-  const handleDocumentCreated = (newDoc) => {
+  const handleDocumentCreated = (newDoc: FormationDocument) => {
     onDocumentsUpdated(newDoc);
     setShowCreateForm(false);
   };

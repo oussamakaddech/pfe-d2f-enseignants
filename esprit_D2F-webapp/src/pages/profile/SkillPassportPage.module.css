@@ -1,0 +1,134 @@
+/* SkillPassportPage.module.css */
+
+.loadingWrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 400px;
+}
+
+.errorAlert {
+  margin: var(--space-6);
+}
+
+.pageWrapper {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* Identity card */
+.identityCard {
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-color);
+  border-left: 4px solid var(--primary-600);
+  box-shadow: var(--shadow-sm);
+  padding: var(--space-5) var(--space-6);
+  margin-bottom: var(--space-6);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+}
+
+.identityName {
+  font-size: var(--text-xl);
+  color: var(--neutral-900);
+}
+
+.identityMeta {
+  color: var(--neutral-500);
+  font-size: var(--text-sm);
+}
+
+.scoreWrapper {
+  text-align: center;
+}
+
+.scoreValue {
+  font-size: 36px;
+  font-weight: var(--font-bold);
+  line-height: 1;
+}
+
+.scoreUnit {
+  font-size: var(--text-xl);
+  color: var(--neutral-400);
+  font-weight: var(--font-regular);
+}
+
+.statutTagRow {
+  margin-top: var(--space-2);
+}
+
+/* KPI */
+.kpiIcon {
+  font-size: 28px;
+  margin-bottom: var(--space-1);
+}
+
+.kpiLabel {
+  font-size: var(--text-xs);
+}
+
+/* Domain section */
+.domainRow {
+  margin-bottom: var(--space-5);
+}
+
+.domainName {
+  font-size: var(--text-base);
+}
+
+.domainSavoirs {
+  margin-left: var(--space-2);
+  font-size: var(--text-xs);
+}
+
+.progressBar {
+  width: 140px;
+}
+
+/* Card title zero margin */
+.cardTitle {
+  margin: 0;
+}
+
+/* Table small font */
+.tableSmall {
+  font-size: var(--text-xs);
+}
+
+/* Section card with bottom margin */
+.sectionCard {
+  margin-bottom: var(--space-6);
+}
+
+/* Divider tight */
+.tightDivider {
+  margin: var(--space-3) 0;
+}
+
+/* Filter toolbar widths */
+.filterSearch {
+  width: 280px;
+}
+
+.filterRecoSelect {
+  width: 160px;
+}
+
+.filterFormationSelect {
+  width: 220px;
+}
+
+.filterResetBtn {
+  font-size: var(--text-xs);
+  padding: 0 var(--space-1);
+}
+
+/* Note number input full width */
+.fullWidth {
+  width: 100%;
+}

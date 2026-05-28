@@ -1,5 +1,6 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
-import SkillPassportService, { type TeacherSkillPassportDTO } from "@/services/certificat/SkillPassportService";
+import SkillPassportService from "@/services/certificat/SkillPassportService";
+import type { TeacherSkillPassportDTO } from "@/models/certificat";
 
 export function useMyPassportData() {
   return useQuery<TeacherSkillPassportDTO>({

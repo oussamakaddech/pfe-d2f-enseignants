@@ -12,7 +12,7 @@ import {
  * Mini-card statistique réutilisable.
  * Variant détermine la couleur d'accent (rail + icône) sans changer la structure.
  */
-function StatCard({ icon, label, value, hint, variant, progress, trend }) {
+function StatCard({ icon, label, value, hint, variant, progress, trend }: any) {
   return (
     <article className={`bf-stat bf-stat--${variant}`}>
       <div className="bf-stat__rail" aria-hidden="true" />
@@ -64,7 +64,7 @@ StatCard.propTypes = {
  * Rangée de 3 KPI cards alignées sur la même grille.
  * Hint = texte contextuel court ("Total cumulé", "Dossiers traités", etc.).
  */
-export default function BesoinStatsRow({ total, approved, pending }) {
+export default function BesoinStatsRow({ total, approved, pending }: any) {
   const tauxApprobation = total === 0 ? 0 : Math.round((approved * 100) / total);
   const tauxAttente     = total === 0 ? 0 : Math.round((pending  * 100) / total);
   return (

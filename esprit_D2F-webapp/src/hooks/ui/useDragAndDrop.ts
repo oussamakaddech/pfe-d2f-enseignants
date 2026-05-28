@@ -7,21 +7,21 @@
 
 import { useState, useRef, useCallback } from "react";
 
-export function useDragAndDrop({ tree, toggleEnsAssign, updateTree, effectiveEnseignants, msgApi }) {
-  const dragInfo = useRef(null);
-  const [dragOverEns, setDragOverEns] = useState(null);
+export function useDragAndDrop({ tree, toggleEnsAssign, updateTree, effectiveEnseignants, msgApi }: any) {
+  const dragInfo = useRef<any>(null);
+  const [dragOverEns, setDragOverEns] = useState<any>(null);
   const [isDragging, setIsDragging] = useState(false);
-  const [draggedSavoirInfo, setDraggedSavoirInfo] = useState(null); // { nom, type, … }
+  const [draggedSavoirInfo, setDraggedSavoirInfo] = useState<any>(null); // { nom, type, … }
 
   // ── low-level accessor (duplicated here to avoid circular deps) ────────────
-  const getSavoir = (t, di, ci, sci, si) => {
+  const getSavoir = (t: any, di: any, ci: any, sci: any, si: any) => {
     if (sci === -1) return t[di].competences[ci].savoirs[si];
     return t[di].competences[ci].sousCompetences[sci].savoirs[si];
   };
 
   // ── drag START from a SavoirCard (assign scenario) ────────────────────────
   const onSavoirDragStart = useCallback(
-    (e, di, ci, sci, si) => {
+    (e: any, di: any, ci: any, sci: any, si: any) => {
       const savoir = sci === -1
         ? tree[di]?.competences?.[ci]?.savoirs?.[si]
         : tree[di]?.competences?.[ci]?.sousCompetences?.[sci]?.savoirs?.[si];
@@ -51,7 +51,7 @@ export function useDragAndDrop({ tree, toggleEnsAssign, updateTree, effectiveEns
 
   // ── drag START from an assigned savoir TAG (transfer scenario) ────────────
   const onTagDragStart = useCallback(
-    (e, fromEnsId, s) => {
+    (e: any, fromEnsId: any, s: any) => {
       e.stopPropagation(); // don't bubble to the parent SavoirCard draggable
       const info = {
         di: s.di, ci: s.ci, sci: s.sci, si: s.si,
@@ -70,14 +70,14 @@ export function useDragAndDrop({ tree, toggleEnsAssign, updateTree, effectiveEns
   );
 
   // ── drag OVER enseignant card ──────────────────────────────────────────────
-  const onEnsDragOver = useCallback((e, ensId) => {
+  const onEnsDragOver = useCallback((e: any, ensId: any) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = "move";
     setDragOverEns(ensId);
   }, []);
 
   // ── drag LEAVE enseignant card ─────────────────────────────────────────────
-  const onEnsDragLeave = useCallback((e) => {
+  const onEnsDragLeave = useCallback((e: any) => {
     // Only clear if we actually left the card (not just entering a child element)
     if (!e.currentTarget.contains(e.relatedTarget)) {
       setDragOverEns(null);
@@ -85,7 +85,7 @@ export function useDragAndDrop({ tree, toggleEnsAssign, updateTree, effectiveEns
   }, []);
 
   // ── DROP on enseignant card ────────────────────────────────────────────────
-  const parseDropInfo = (e) => {
+  const parseDropInfo = (e: any) => {
     let info = dragInfo.current;
     if (!info) {
       try { info = JSON.parse(e.dataTransfer.getData("application/json")); }
@@ -94,13 +94,13 @@ export function useDragAndDrop({ tree, toggleEnsAssign, updateTree, effectiveEns
     return info;
   };
 
-  const resolveEnsName = useCallback((ensObj, fallback) => {
+  const resolveEnsName = useCallback((ensObj: any, fallback: any) => {
     if (!ensObj) return fallback;
     return ensObj.prenom ? `${ensObj.prenom} ${ensObj.nom}` : ensObj.nom;
   }, []);
 
-  const handleMove = useCallback((info, di, ci, sci, si, ensId, ensName) => {
-    updateTree((t) => {
+  const handleMove = useCallback((info: any, di: any, ci: any, sci: any, si: any, ensId: any, ensName: any) => {
+    updateTree((t: any) => {
       const s = getSavoir(t, di, ci, sci, si);
       if (!s.enseignantsSuggeres) s.enseignantsSuggeres = [];
       const srcIdx = s.enseignantsSuggeres.indexOf(info.fromEnsId);
@@ -108,14 +108,14 @@ export function useDragAndDrop({ tree, toggleEnsAssign, updateTree, effectiveEns
       if (!s.enseignantsSuggeres.includes(ensId)) s.enseignantsSuggeres.push(ensId);
     });
     const srcObj = effectiveEnseignants.find(
-      (en) => String(en.id ?? en.enseignantId) === info.fromEnsId,
+      (en: any) => String(en.id ?? en.enseignantId) === info.fromEnsId,
     );
     const srcName = resolveEnsName(srcObj, info.fromEnsId);
     msgApi.success(`« ${info.nom} » déplacé de ${srcName} → ${ensName}`);
   }, [updateTree, effectiveEnseignants, msgApi, resolveEnsName]);
 
   const onEnsDrop = useCallback(
-    (e, ensId) => {
+    (e: any, ensId: any) => {
       e.preventDefault();
       setDragOverEns(null);
       setIsDragging(false);
@@ -128,7 +128,7 @@ export function useDragAndDrop({ tree, toggleEnsAssign, updateTree, effectiveEns
       dragInfo.current = null;
 
       const ensObj = effectiveEnseignants.find(
-        (en) => String(en.id ?? en.enseignantId) === ensId,
+        (en: any) => String(en.id ?? en.enseignantId) === ensId,
       );
 
       if (ensObj?._fromExtraction && !ensObj?._matched) {

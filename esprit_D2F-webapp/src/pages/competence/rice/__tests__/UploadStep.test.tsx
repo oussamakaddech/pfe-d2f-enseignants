@@ -29,9 +29,9 @@ vi.mock("framer-motion", () => ({
       layout, layoutId,
       onAnimationStart, onAnimationComplete,
       ...props
-    }) => <div {...props}>{children}</div>,
+    }: any) => <div {...props}>{children}</div>,
   },
-  AnimatePresence: ({ children }) => <>{children}</>,
+  AnimatePresence: ({ children }: any) => <>{children}</>,
 }));
 
 describe("UploadStep", { timeout: 15000 }, () => {
@@ -45,7 +45,7 @@ describe("UploadStep", { timeout: 15000 }, () => {
     setDepartement: vi.fn(),
     allEnseignants: [],
     enseignantsLoading: false,
-    enseignantsError: null,
+    enseignantsError: undefined,
     enseignantsLoadSlow: false,
     onRetryEnseignants: vi.fn(),
     onContinueWithoutEnseignants: vi.fn(),

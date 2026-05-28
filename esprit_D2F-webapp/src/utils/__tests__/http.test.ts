@@ -1,12 +1,10 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import {
   extractErrorMessage,
   extractStatusCode,
   isUnauthorized,
   isForbidden,
   isNotFound,
-  authHeader,
-  jsonAuthHeaders,
   paginationParams,
   extractPageData,
   buildQueryString,
@@ -68,18 +66,6 @@ describe('http', () => {
     });
   });
 
-  describe('authHeader (deprecated no-op)', () => {
-    it('always returns empty object — JWT is in HttpOnly cookie', () => {
-      expect(authHeader()).toEqual({});
-    });
-  });
-
-  describe('jsonAuthHeaders (deprecated no-op)', () => {
-    it('always returns only Content-Type — JWT is in HttpOnly cookie', () => {
-      expect(jsonAuthHeaders()).toEqual({ 'Content-Type': 'application/json' });
-    });
-  });
-
   describe('paginationParams', () => {
     it('uses defaults', () => {
       expect(paginationParams()).toEqual({ page: 0, size: 20 });
@@ -132,7 +118,3 @@ describe('http', () => {
     });
   });
 });
-
-
-
-

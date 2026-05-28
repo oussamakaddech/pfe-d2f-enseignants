@@ -1,9 +1,15 @@
-// DocumentUpdateDialog.jsx
-
 import { Modal } from "antd";
 import UpdateDocumentForm from "./UpdateDocumentForm";
+import type { FormationDocument } from "@/models/document";
 
-const DocumentUpdateDialog = ({ open, onClose, documentData, onUpdated }) => {
+interface DocumentUpdateDialogProps {
+  open: boolean;
+  onClose: () => void;
+  documentData: FormationDocument;
+  onUpdated: (doc: FormationDocument | null) => void;
+}
+
+const DocumentUpdateDialog = ({ open, onClose, documentData, onUpdated }: DocumentUpdateDialogProps) => {
   return (
     <Modal
       title={`Modifier le document : ${documentData.nomDocument}`}

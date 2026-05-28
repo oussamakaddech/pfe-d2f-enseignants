@@ -7,13 +7,13 @@ import {
 
 describe('consultationUtils', () => {
   it('builds recursive D3 tree and attaches savoirs only on leaf sous-competences', () => {
-    const domaines = [{ id: 1, nom: 'Informatique', code: 'INF' }];
-    const competences = [{ id: 10, domaineId: 1, nom: 'Web', code: 'WEB' }];
-    const sousComps = [
+    const domaines: any[] = [{ id: 1, nom: 'Informatique', code: 'INF' }];
+    const competences: any[] = [{ id: 10, domaineId: 1, nom: 'Web', code: 'WEB' }];
+    const sousComps: any[] = [
       { id: 100, competenceId: 10, parentId: null, nom: 'Frontend', code: 'WEB-FE' },
       { id: 101, competenceId: 10, parentId: 100, nom: 'React', code: 'WEB-REACT' },
     ];
-    const savoirs = [
+    const savoirs: any[] = [
       { id: 200, sousCompetenceId: 100, nom: 'Should be ignored', code: 'IGN', type: 'THEORIQUE' },
       { id: 201, sousCompetenceId: 101, nom: 'Hooks', code: 'HK', type: 'PRATIQUE' },
     ];
@@ -39,10 +39,10 @@ describe('consultationUtils', () => {
   });
 
   it('attaches direct competence savoirs as children of competence nodes', () => {
-    const domaines = [{ id: 1, nom: 'Genie Civil', code: 'GC' }];
-    const competences = [{ id: 10, domaineId: 1, nom: 'Sols', code: 'S' }];
-    const sousComps = [];
-    const savoirs = [
+    const domaines: any[] = [{ id: 1, nom: 'Genie Civil', code: 'GC' }];
+    const competences: any[] = [{ id: 10, domaineId: 1, nom: 'Sols', code: 'S' }];
+    const sousComps: any[] = [];
+    const savoirs: any[] = [
       { id: 300, competenceId: 10, sousCompetenceId: null, nom: 'S1', code: 'S1', type: 'THEORIQUE' },
       { id: 301, competenceId: 10, sousCompetenceId: null, nom: 'S2', code: 'S2', type: 'PRATIQUE' },
     ];

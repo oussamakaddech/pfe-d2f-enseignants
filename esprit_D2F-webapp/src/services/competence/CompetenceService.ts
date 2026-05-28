@@ -6,53 +6,17 @@ import type {
   Domaine,
   Savoir,
   SousCompetence,
+  TreeNode,
+  NiveauDefinition,
+  EnseignantCompetence,
+  AssignRequest,
+  PrerequisiteRequest,
 } from "@/models/competence";
 
 const BASE = `${config.COMPETENCE_URL}/competence`;
 
-
-
 const toList = <T>(payload: ApiListOrPage<T>): T[] =>
   Array.isArray(payload) ? payload : payload.content ?? [];
-
-export interface TreeNode {
-  id?: Id;
-  code?: string;
-  nom?: string;
-  type?: string;
-  children?: TreeNode[];
-  [key: string]: unknown;
-}
-
-export interface NiveauDefinition {
-  id?: Id;
-  competenceId?: Id;
-  sousCompetenceId?: Id;
-  niveau?: string;
-  description?: string;
-  [key: string]: unknown;
-}
-
-export interface EnseignantCompetence {
-  id?: Id;
-  enseignantId?: Id;
-  competenceId?: Id;
-  niveau?: string;
-  [key: string]: unknown;
-}
-
-export interface AssignRequest {
-  enseignantId?: Id;
-  competenceId?: Id;
-  niveau?: string;
-  [key: string]: unknown;
-}
-
-export interface PrerequisiteRequest {
-  prerequisiteId?: Id;
-  niveauMinimum?: string;
-  [key: string]: unknown;
-}
 
 const DomaineAPI = {
   getAll: async (upId?: number | null, departementId?: number | null): Promise<Domaine[]> => {

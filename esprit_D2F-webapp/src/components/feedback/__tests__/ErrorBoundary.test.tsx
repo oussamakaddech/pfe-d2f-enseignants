@@ -16,7 +16,7 @@ describe('ErrorBoundary', () => {
   });
 
   afterEach(() => {
-    console.error.mockRestore();
+    (console.error as any).mockRestore();
   });
 
   it('should render children when there is no error', () => {

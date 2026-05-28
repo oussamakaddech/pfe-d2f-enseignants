@@ -4,8 +4,9 @@ import { formatNiveau, getNiveauStyle, getTypeBadge, getTypeLabel, ACCENT } from
 
 const { Paragraph } = Typography;
 
-function Badge({ text, type = "muted" }) {
-  const cls = ACCENT[type]?.badgeCls || "ctp-badge--muted";
+interface BadgeProps { text: string; type?: string }
+function Badge({ text, type = "muted" }: Readonly<BadgeProps>) {
+  const cls = (ACCENT as any)[type]?.badgeCls || "ctp-badge--muted";
   return <span className={`ctp-badge ${cls}`}>{text}</span>;
 }
 
@@ -73,7 +74,7 @@ export default function SavoirDetailDrawer({ payload, open, onClose }: Readonly<
             <div className="ctp-drawer-section-title">Informations</div>
             <div className="ctp-drawer-row">
               <span className="ctp-drawer-key">Type</span>
-              <span className="ctp-drawer-val"><Badge text={getTypeLabel(single.type)} type={getTypeBadge(single.type)} /></span>
+              <span className="ctp-drawer-val"><Badge text={getTypeLabel(single.type as any)} type={getTypeBadge(single.type as any)} /></span>
             </div>
             <div className="ctp-drawer-row">
               <span className="ctp-drawer-key">Niveau</span>
@@ -128,10 +129,10 @@ export default function SavoirDetailDrawer({ payload, open, onClose }: Readonly<
         <Empty description="Aucun savoir disponible" />
       ) : (
         <div className="ctp-savoir-list">
-          {items.map((s) => (
+          {items.map((s: any) => (
             <div key={`${s.id}-${s.code}`} className="ctp-savoir-item">
               <div className="ctp-savoir-item__name">{s.nom}</div>
-              <div className="ctp-savoir-item__code">{s.code}</div>
+               <div className="ctp-savoir-item__code">{s.code}</div>
               <div className="ctp-savoir-item__path">
                 {s.domaineNom} · {s.competenceNom}
                 {s.sousCompetenceNom ? ` · ${s.sousCompetenceNom}` : " · direct"}

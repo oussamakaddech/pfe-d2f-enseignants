@@ -4,6 +4,7 @@ import { ArrowUpOutlined, ArrowDownOutlined } from "@ant-design/icons";
 import type { ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { brand, neutral, radius, shadow } from "@/styles/themes/tokens";
+import s from "./D2FDataCard.module.css";
 
 const { Text } = Typography;
 
@@ -54,55 +55,36 @@ const D2FDataCard = memo(function D2FDataCard({
 
   const content = (
     <>
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14 }}>
+      <div className={s.cardHeader}>
         <div
-          style={{
-            width: 44,
-            height: 44,
-            borderRadius: radius.md,
-            background: `${iconColor}14`,
-            color: iconColor,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontSize: 20,
-            flexShrink: 0,
-          }}
+          className={s.iconBox}
+          style={{ background: `${iconColor}14`, color: iconColor }}
         >
           {icon}
         </div>
         {trend != null && (
           <Tooltip title={trend.label}>
             <span
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 3,
-                padding: "3px 8px",
-                borderRadius: radius.full,
-                background: `${trendColor}14`,
-                color: trendColor,
-                fontSize: 11,
-                fontWeight: 600,
-              }}
+              className={s.trendBadge}
+              style={{ background: `${trendColor}14`, color: trendColor }}
             >
-              {trendUp && <ArrowUpOutlined style={{ fontSize: 10 }} />}
-              {trendDown && <ArrowDownOutlined style={{ fontSize: 10 }} />}
+              {trendUp && <ArrowUpOutlined className={s.trendIcon} />}
+              {trendDown && <ArrowDownOutlined className={s.trendIcon} />}
               {Math.abs(trend.value)}%
             </span>
           </Tooltip>
         )}
       </div>
-      <div style={{ fontSize: 12, fontWeight: 500, color: neutral[600], textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: 6 }}>
+      <div className={s.cardLabel} style={{ color: neutral[600] }}>
         {label}
       </div>
-      <div style={{ display: "flex", alignItems: "baseline", gap: 6 }}>
-        <span style={{ fontSize: 30, fontWeight: 700, color: neutral[900], lineHeight: 1.1, letterSpacing: "-0.02em" }}>
+      <div className={s.valueRow}>
+        <span className={s.valueNumber} style={{ color: neutral[900] }}>
           {loading ? "—" : value}
         </span>
-        {unit && <span style={{ fontSize: 13, fontWeight: 500, color: neutral[500] }}>{unit}</span>}
+        {unit && <span className={s.valueUnit} style={{ color: neutral[500] }}>{unit}</span>}
       </div>
-      {subtext && <div style={{ fontSize: 12, color: neutral[500], marginTop: 6 }}>{subtext}</div>}
+      {subtext && <div className={s.subtext} style={{ color: neutral[500] }}>{subtext}</div>}
     </>
   );
 

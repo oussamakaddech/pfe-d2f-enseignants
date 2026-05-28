@@ -1,5 +1,12 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import type { ReactElement } from 'react';
+
+const renderWithClient = (ui: ReactElement) => {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return render(<QueryClientProvider client={queryClient}>{ui}</QueryClientProvider>);
+};
 
 const httpMocks = vi.hoisted(() => ({
   mockGet: vi.fn(),
@@ -22,7 +29,7 @@ describe('ModelStatusBadge', () => {
     httpMocks.mockGet.mockResolvedValueOnce({
       data: { drift_detected: false, days_since_training: 5 },
     });
-    render(<ModelStatusBadge />);
+    renderWithClient(<ModelStatusBadge />);
     await waitFor(() => expect(screen.getByText(/à jour/i)).toBeInTheDocument());
   });
 
@@ -30,7 +37,7 @@ describe('ModelStatusBadge', () => {
     httpMocks.mockGet.mockResolvedValueOnce({
       data: { drift_detected: false, message: 'No model loaded' },
     });
-    render(<ModelStatusBadge />);
+    renderWithClient(<ModelStatusBadge />);
     await waitFor(() => expect(screen.getByText(/heuristique/i)).toBeInTheDocument());
   });
 
@@ -38,7 +45,7 @@ describe('ModelStatusBadge', () => {
     httpMocks.mockGet.mockResolvedValueOnce({
       data: { drift_detected: true, days_since_training: 10, recommendation: 'Retrain' },
     });
-    render(<ModelStatusBadge />);
+    renderWithClient(<ModelStatusBadge />);
     await waitFor(() => expect(screen.getByText(/Dérive/i)).toBeInTheDocument());
   });
 
@@ -46,13 +53,13 @@ describe('ModelStatusBadge', () => {
     httpMocks.mockGet.mockResolvedValueOnce({
       data: { drift_detected: true, days_since_training: 120 },
     });
-    render(<ModelStatusBadge />);
+    renderWithClient(<ModelStatusBadge />);
     await waitFor(() => expect(screen.getByText(/ancien/i)).toBeInTheDocument());
   });
 
   it('shows error state when the endpoint fails', async () => {
     httpMocks.mockGet.mockRejectedValueOnce(new Error('boom'));
-    render(<ModelStatusBadge />);
+    renderWithClient(<ModelStatusBadge />);
     await waitFor(() => expect(screen.getByText(/indisponible/i)).toBeInTheDocument());
   });
 });

@@ -3,7 +3,7 @@ import { lazy, Suspense } from "react";
 import { Skeleton, Row, Col } from "antd";
 import { neutral } from "@/styles/themes/tokens";
 
-import AuthProvider from "@/components/common/AuthProvider";
+import AuthProvider from "@/context/AuthContext";
 import { NavigationSetter } from "./NavigationSetter";
 import { PrivateRoute, RoleGuard } from "./guards";
 import AppLayout from "@/components/layout/AppLayout";

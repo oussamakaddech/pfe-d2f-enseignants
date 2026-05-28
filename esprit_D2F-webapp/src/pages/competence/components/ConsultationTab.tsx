@@ -13,15 +13,15 @@ import { useAllDepts } from "@/hooks/formation/useDeptCrud";
 import "@/styles/pages/consultation-tab.css";
 
 interface ConsultationTabProps {
-  structure: Record<string, unknown>;
-  crud: Record<string, unknown>;
+  structure: any;
+  crud: any;
   handleExportExcel: () => void;
 }
 
 export default function ConsultationTab({ structure, crud, handleExportExcel }: Readonly<ConsultationTabProps>) {
   const [displayMode, setDisplayMode] = useState(() => {
     const saved = localStorage.getItem(DISPLAY_MODE_KEY);
-    return ["cards", "list"].includes(saved) ? saved : "cards";
+    return (["cards", "list"].includes(saved as any) ? saved : "cards") as string;
   });
   const [listMode, setListMode] = useState("grouped");
   const [listFilters, setListFilters] = useState({ q: "", type: "ALL", niveau: "ALL" });
@@ -30,7 +30,7 @@ export default function ConsultationTab({ structure, crud, handleExportExcel }: 
   const [drawerPayload, setDrawerPayload] = useState(null);
   const [isPending, startTransition] = useTransition();
   const [deferredCrud, setDeferredCrud] = useState(crud);
-  const contentRef = useRef(null);
+  const contentRef = useRef<any>(null);
 
   const { data: ups = [] } = useAllUps();
   const { data: depts = [] } = useAllDepts();
@@ -49,7 +49,7 @@ export default function ConsultationTab({ structure, crud, handleExportExcel }: 
     startTransition(() => setDeferredCrud(crud));
   }, [crud]);
 
-  const flatSavoirs = useMemo(() => buildFlatSavoirs(deferredCrud), [deferredCrud]);
+  const flatSavoirs = useMemo(() => buildFlatSavoirs(deferredCrud) as any, [deferredCrud]);
 
   const isSearchLoading = structure.searchLoading;
   const hasSearchResults = !isSearchLoading && !!structure.searchResults;
@@ -66,7 +66,7 @@ export default function ConsultationTab({ structure, crud, handleExportExcel }: 
     }, 50);
   }, []);
 
-  const handleStatClick = useCallback((key) => {
+  const handleStatClick = useCallback((key: any) => {
     switch (key) {
       case "domaines":
       case "competences":
@@ -98,8 +98,8 @@ export default function ConsultationTab({ structure, crud, handleExportExcel }: 
     scrollToContent();
   }, [scrollToContent]);
 
-  const openSingleSavoir = useCallback((savoir) => {
-    setDrawerPayload({ mode: "single", savoir: savoir || null });
+  const openSingleSavoir = useCallback((savoir: any) => {
+    setDrawerPayload({ mode: "single", savoir: savoir || null } as any);
   }, []);
 
   return (
@@ -115,7 +115,7 @@ export default function ConsultationTab({ structure, crud, handleExportExcel }: 
           showSearch
           optionFilterProp="children"
         >
-          {ups.map((u) => (
+          {ups.map((u: any) => (
             <Select.Option key={u.id} value={u.id}>{u.name || u.libelle}</Select.Option>
           ))}
         </Select>
@@ -128,7 +128,7 @@ export default function ConsultationTab({ structure, crud, handleExportExcel }: 
           showSearch
           optionFilterProp="children"
         >
-          {depts.map((d) => (
+          {depts.map((d: any) => (
             <Select.Option key={d.id} value={d.id}>{d.name || d.libelle}</Select.Option>
           ))}
         </Select>

@@ -14,9 +14,15 @@ vi.mock("@/utils/helpers/httpClient", () => ({
     put: apiMocks.mockPut,
     delete: apiMocks.mockDelete,
   })),
+  defaultApi: {
+    get: apiMocks.mockGet,
+    post: apiMocks.mockPost,
+    put: apiMocks.mockPut,
+    delete: apiMocks.mockDelete,
+  },
 }));
 
-import accountService from '../accountService';
+import accountService from '../AccountService';
 
 describe('accountService', () => {
   beforeEach(() => { vi.clearAllMocks(); });

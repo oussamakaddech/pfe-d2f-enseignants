@@ -23,7 +23,7 @@ const { Search }      = Input;
 const { Option }      = Select;
 
 export default function FormationProgressCards() {
-  const [range, setRange] = useState([
+  const [range, setRange] = useState<[dayjs.Dayjs, dayjs.Dayjs]>([
     dayjs().startOf("year"),
     dayjs().endOf("year"),
   ]);
@@ -106,7 +106,7 @@ export default function FormationProgressCards() {
         <RangePicker
           value={range}
           format="YYYY-MM-DD"
-          onChange={dates => dates && setRange(dates)}
+          onChange={dates => dates && setRange(dates as any)}
         />
         <Search
           placeholder="Recherche titre..."
@@ -182,7 +182,7 @@ export default function FormationProgressCards() {
   );
 }
 
-const styles = {
+const styles: Record<string, React.CSSProperties> = {
   wrapper:        { maxWidth: 900, margin: "auto", padding: 20, fontFamily: "'Arial', sans-serif'" },
   header:         { textAlign: "left", marginBottom: 20 },
   filterBar:      { marginBottom: 16 },

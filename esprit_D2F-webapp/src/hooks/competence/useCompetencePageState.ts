@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 
-const normalizeTab = (tab) => {
+const normalizeTab = (tab: any) => {
   if (tab === "sousCompetences") return "competences";
   if (tab === "recherche") return "hierarchie";
   return tab ?? "domaines";
 };
 
-export default function useCompetencePageState({ crud, loadStructure }) {
+export default function useCompetencePageState({ crud, loadStructure }: any) {
   const [searchParams, setSearchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState(() =>
     normalizeTab(searchParams.get("tab")),
@@ -15,17 +15,17 @@ export default function useCompetencePageState({ crud, loadStructure }) {
 
   const [viewMode, setViewMode] = useState("buttons");
   const [consultNiveau, setConsultNiveau] = useState(0);
-  const [consultDomaine, setConsultDomaine] = useState(null);
-  const [consultCompetence, setConsultCompetence] = useState(null);
-  const [consultScStack, setConsultScStack] = useState([]);
-  const [drawerSavoirs, setDrawerSavoirs] = useState(null);
+  const [consultDomaine, setConsultDomaine] = useState<any>(null);
+  const [consultCompetence, setConsultCompetence] = useState<any>(null);
+  const [consultScStack, setConsultScStack] = useState<any[]>([]);
+  const [drawerSavoirs, setDrawerSavoirs] = useState<any>(null);
   const [drawerVisible, setDrawerVisible] = useState(false);
 
-  const graphContainerRef = useRef(null);
+  const graphContainerRef = useRef<any>(null);
   const [graphContainerWidth, setGraphContainerWidth] = useState(900);
 
   const handleTabChange = useCallback(
-    (tabKey) => {
+    (tabKey: any) => {
       setActiveTab(tabKey);
       setSearchParams({ tab: tabKey });
     },
@@ -33,7 +33,7 @@ export default function useCompetencePageState({ crud, loadStructure }) {
   );
 
   const handleStatNavigation = useCallback(
-    (target) => {
+    (target: any) => {
       setActiveTab("hierarchie");
       setSearchParams({ tab: "hierarchie" });
       setViewMode("buttons");
@@ -61,7 +61,7 @@ export default function useCompetencePageState({ crud, loadStructure }) {
         consultCompetence &&
         String(consultCompetence.domaineId) === String(nextDomaine.id)
           ? consultCompetence
-          : (crud.competences || []).find((c) => String(c.domaineId) === String(nextDomaine.id)) ?? null;
+          : (crud.competences || []).find((c: any) => String(c.domaineId) === String(nextDomaine.id)) ?? null;
 
       if (!nextCompetence) return;
 
@@ -80,11 +80,11 @@ export default function useCompetencePageState({ crud, loadStructure }) {
   );
 
   const buildCardTrigger = useCallback(
-    (target) => ({
+    (target: any) => ({
       role: "button",
       tabIndex: 0,
       onClick: () => handleStatNavigation(target),
-      onKeyDown: (e) => {
+      onKeyDown: (e: any) => {
         if (e.key === "Enter" || e.key === " ") {
           e.preventDefault();
           handleStatNavigation(target);

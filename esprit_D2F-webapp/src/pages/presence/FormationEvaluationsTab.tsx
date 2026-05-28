@@ -30,12 +30,12 @@ const FormationEvaluationsTab = ({ formationId }: FormationEvaluationsTabProps) 
   const bulkUpdateMut = useUpdateEvaluationsBulk();
 
   const enrichedBase = useMemo(() => {
-    const ensMap = enseignantsData.reduce((map: Record<string, unknown>, ens: Record<string, unknown>) => {
+    const ensMap = (enseignantsData as any[]).reduce((map: Record<string, any>, ens: any) => {
       map[ens.id as string] = ens;
       return map;
-    }, {} as Record<string, unknown>);
-    return rawEvals.map((ev: Record<string, unknown>) => {
-      const ens = (ensMap[ev.enseignantId as string] || {}) as Record<string, unknown>;
+    }, {} as Record<string, any>);
+    return (rawEvals as any[]).map((ev: any) => {
+      const ens = (ensMap[ev.enseignantId as string] || {}) as Record<string, any>;
       return { key: ev.idEvalParticipant, ...ev, nom: ens.nom || "", prenom: ens.prenom || "", mail: ens.mail || "" };
     });
   }, [rawEvals, enseignantsData]);
@@ -80,7 +80,7 @@ const FormationEvaluationsTab = ({ formationId }: FormationEvaluationsTabProps) 
     {
       title: "Enseignant",
       key: "enseignant",
-      render: (_, r) => (
+      render: (_: any, r: any) => (
         <>
           <Text strong>{r.nom} {r.prenom}</Text><br/>
           <Text type="secondary">({r.mail})</Text>
@@ -92,10 +92,10 @@ const FormationEvaluationsTab = ({ formationId }: FormationEvaluationsTabProps) 
       dataIndex: "note",
       key: "note",
       width: 120,
-      render: (_, __, idx) => (
+      render: (_: any, __: any, idx: number) => (
         <InputNumber
           min={0} max={20}
-          value={evaluations[idx].note}
+          value={evaluations[idx].note as any}
           onChange={v => {
             const arr = [...evaluations];
             arr[idx].note = v;
@@ -109,9 +109,9 @@ const FormationEvaluationsTab = ({ formationId }: FormationEvaluationsTabProps) 
       dataIndex: "satisfaisant",
       key: "satisfaisant",
       width: 120,
-      render: (_, __, idx) => (
+      render: (_: any, __: any, idx: number) => (
         <Checkbox
-          checked={evaluations[idx].satisfaisant}
+          checked={evaluations[idx].satisfaisant as any}
           onChange={e => {
             const arr = [...evaluations];
             arr[idx].satisfaisant = e.target.checked;
@@ -123,10 +123,10 @@ const FormationEvaluationsTab = ({ formationId }: FormationEvaluationsTabProps) 
     {
       title: "Commentaire",
       key: "commentaire",
-      render: (_, __, idx) => (
+      render: (_: any, __: any, idx: number) => (
         <Input.TextArea
           rows={2}
-          value={evaluations[idx].commentaire}
+          value={evaluations[idx].commentaire as any}
           onChange={e => {
             const arr = [...evaluations];
             arr[idx].commentaire = e.target.value;

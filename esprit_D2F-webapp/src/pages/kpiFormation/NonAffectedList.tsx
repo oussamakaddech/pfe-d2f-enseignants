@@ -30,15 +30,15 @@ const { Title, Text } = Typography;
 export default function NonAffectedGrid() {
   const { data: upsData } = useUps();
   const { data: deptsData } = useDepartements();
-  const ups = upsData ?? [];
-  const depts = deptsData ?? [];
+  const ups = (upsData ?? []) as any[];
+  const depts = (deptsData ?? []) as any[];
 
-  const [range, setRange] = useState([
+  const [range, setRange] = useState<[dayjs.Dayjs, dayjs.Dayjs]>([
     dayjs().startOf('year'),
     dayjs().endOf('year')
   ]);
-  const [selectedUp, setSelectedUp] = useState(null);
-  const [selectedDept, setSelectedDept] = useState(null);
+  const [selectedUp, setSelectedUp] = useState<any>(null);
+  const [selectedDept, setSelectedDept] = useState<any>(null);
 
   const [start, end] = range;
   const { data: allStats, isLoading } = useEnseignantsNonAffectes(
@@ -48,7 +48,7 @@ export default function NonAffectedGrid() {
 
   const stats = useMemo(() => {
     const source = Array.isArray(allStats) ? allStats : [];
-    return source.filter(item =>
+    return source.filter((item: any) =>
       (!selectedUp   || item.upId   === selectedUp) &&
       (!selectedDept || item.deptId === selectedDept)
     );
@@ -63,7 +63,7 @@ export default function NonAffectedGrid() {
           <RangePicker
             value={range}
             format="YYYY-MM-DD"
-            onChange={r => setRange(r)}
+            onChange={r => setRange(r as any)}
             style={{ width: '100%' }}
           />
         </Col>
@@ -115,7 +115,7 @@ export default function NonAffectedGrid() {
             }}
             dataSource={stats}
             locale={{ emptyText: <span style={{ color: '#999' }}>Aucune donnée</span> }}
-            renderItem={item => (
+            renderItem={(item: any) => (
               <List.Item>
                 <Card
                   hoverable

@@ -3,6 +3,7 @@ import { Input, AutoComplete, Typography } from "antd";
 import { SearchOutlined } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import { brand, neutral, radius } from "@/styles/themes/tokens";
+import s from "./D2FSearchBar.module.css";
 
 const { Text } = Typography;
 
@@ -54,20 +55,10 @@ const D2FSearchBar = memo(function D2FSearchBar({
     else if (option.category === "enseignant") catIcon = "👤";
     else if (option.category === "competence") catIcon = "🎯";
     return (
-    <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "4px 0" }}>
+    <div className={s.optionRow}>
       <span
-        style={{
-          width: 28,
-          height: 28,
-          borderRadius: radius.sm,
-          background: `${brand[500]}12`,
-          color: brand[500],
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          fontSize: 13,
-          flexShrink: 0,
-        }}
+        className={s.optionIcon}
+        style={{ background: `${brand[500]}12`, color: brand[500] }}
       >
         {catIcon}
       </span>

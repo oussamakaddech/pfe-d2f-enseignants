@@ -1,24 +1,24 @@
 import { defaultApi as axios } from "@/utils/helpers/httpClient";
 import { config } from "@/config/env";
-import type { BureauRequest } from "@/models/bureau";
+import type { Bureau, BureauRequest } from "@/models/bureau";
 
 const API_URL = `${config.FORMATION_URL}/formation/bureaux`;
 
-function normalizeListResponse(payload: unknown) {
+function normalizeListResponse<T>(payload: unknown): T[] {
   if (Array.isArray(payload)) {
-    return payload;
+    return payload as T[];
   }
 
   if (payload && typeof payload === "object") {
     const candidate = payload as { content?: unknown; data?: unknown; items?: unknown };
     if (Array.isArray(candidate.content)) {
-      return candidate.content;
+      return candidate.content as T[];
     }
     if (Array.isArray(candidate.data)) {
-      return candidate.data;
+      return candidate.data as T[];
     }
     if (Array.isArray(candidate.items)) {
-      return candidate.items;
+      return candidate.items as T[];
     }
   }
 
@@ -26,9 +26,9 @@ function normalizeListResponse(payload: unknown) {
 }
 
 const BureauService = {
-  async getAllBureaux(): Promise<unknown[]> {
+  async getAllBureaux(): Promise<Bureau[]> {
     const response = await axios.get(API_URL);
-    return normalizeListResponse(response.data);
+    return normalizeListResponse<Bureau>(response.data);
   },
 
   async getBureauById(id: number) {

@@ -4,10 +4,10 @@ import { Progress, Tooltip, Avatar, Tag } from "antd";
 import { CheckCircleFilled, CheckOutlined } from "@ant-design/icons";
 
 // ─── Context to avoid deep prop drilling ────────────────────────────────────
-const DragContext = createContext({});
+const DragContext = createContext<any>({});
 
 // ─── Utility ─────────────────────────────────────────────────────────────────
-const hashToHsl = (id) => {
+const hashToHsl = (id: any) => {
   let h = 0;
   const str = String(id);
   for (let i = 0; i < str.length; i++) {
@@ -16,14 +16,14 @@ const hashToHsl = (id) => {
   return `hsl(${h}, 65%, 50%)`;
 };
 
-const getProgressColor = (pct) => {
+const getProgressColor = (pct: any) => {
   if (pct < 40) return "#ef4444";
   if (pct < 75) return "#f59e0b";
   return "#22c55e";
 };
 
 // ─── EnseignantHeader ─────────────────────────────────────────────────────────
-function EnseignantHeader({ enseignant, count }) {
+function EnseignantHeader({ enseignant, count }: any) {
   const fullName = `${enseignant.prenom ?? ""} ${enseignant.nom ?? ""}`.trim();
   const initials = `${(enseignant.prenom ?? "")[0] ?? ""}${(enseignant.nom ?? "")[0] ?? ""}`;
 
@@ -61,7 +61,7 @@ EnseignantHeader.propTypes = {
 };
 
 // ─── CompetenceGroupRow ───────────────────────────────────────────────────────
-function CompetenceGroupRow({ comp, enseignants, assignments }) {
+function CompetenceGroupRow({ comp, enseignants, assignments }: any) {
   const allSavoirs = comp.allSavoirs ?? [];
 
   return (
@@ -70,8 +70,8 @@ function CompetenceGroupRow({ comp, enseignants, assignments }) {
         <Tag color="blue">{comp.code}</Tag>{" "}
         <strong>{comp.nom}</strong>
       </td>
-      {enseignants.map((ens) => {
-        const covered = allSavoirs.filter((s) =>
+      {enseignants.map((ens: any) => {
+        const covered = allSavoirs.filter((s: any) =>
           (assignments[String(s.id)] ?? []).includes(String(ens.id))
         ).length;
         const pct = allSavoirs.length
@@ -100,7 +100,7 @@ CompetenceGroupRow.propTypes = {
 
 // ─── SousCompGroupRow ─────────────────────────────────────────────────────────
 // FIX: renders empty <td> for each enseignant column to maintain table structure
-function SousCompGroupRow({ sc, enseignants }) {
+function SousCompGroupRow({ sc, enseignants }: any) {
   return (
     <tr className="sc-group-row">
       <td className="sticky-col">
@@ -108,7 +108,7 @@ function SousCompGroupRow({ sc, enseignants }) {
           <Tag color="cyan">{sc.code}</Tag> {sc.nom}
         </div>
       </td>
-      {enseignants.map((ens) => (
+      {enseignants.map((ens: any) => (
         <td key={ens.id ?? ens.enseignantId} className="col-ens" />
       ))}
     </tr>
@@ -121,7 +121,7 @@ SousCompGroupRow.propTypes = {
 };
 
 // ─── SavoirRow ────────────────────────────────────────────────────────────────
-function SavoirRow({ savoir, enseignants, assignments, isDraggingAny }) {
+function SavoirRow({ savoir, enseignants, assignments, isDraggingAny }: any) {
   const {
     draggingId,
     dragOverCell,
@@ -136,7 +136,7 @@ function SavoirRow({ savoir, enseignants, assignments, isDraggingAny }) {
   const isBeingDragged = draggingId === String(savoir.id);
   const isAssignedAnywhere = (assignments[String(savoir.id)] ?? []).length > 0;
 
-  const handleDragStart = (e) => {
+  const handleDragStart = (e: any) => {
     e.dataTransfer.setData(
       "application/json",
       JSON.stringify({ savoirId: String(savoir.id), savoirNom: savoir.nom })
@@ -149,7 +149,6 @@ function SavoirRow({ savoir, enseignants, assignments, isDraggingAny }) {
     <tr className="savoir-row">
       <td className="sticky-col">
         {/* Draggable label: keyboard users use the cell-level dropdown actions. (S6848 — by-design DnD.) */}
-        {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions */}
         <div
           className="savoir-label"
           draggable={true}
@@ -169,7 +168,7 @@ function SavoirRow({ savoir, enseignants, assignments, isDraggingAny }) {
         </div>
       </td>
 
-      {enseignants.map((ens) => {
+      {enseignants.map((ens: any) => {
         const isAssigned = (assignments[String(savoir.id)] ?? []).includes(String(ens.id));
         const cellKey = `${savoir.id}-${ens.id}`;
         const isActive = dragOverCell === cellKey;
@@ -183,7 +182,7 @@ function SavoirRow({ savoir, enseignants, assignments, isDraggingAny }) {
             key={cellKey}
             className={cellClass}
             draggable={isAssigned}
-            onDragStart={(e) => {
+            onDragStart={(e: any) => {
               if (!isAssigned) return;
               e.dataTransfer.setData(
                 "application/json",
@@ -198,12 +197,12 @@ function SavoirRow({ savoir, enseignants, assignments, isDraggingAny }) {
             }}
             onDragEnd={onDragEnd}
             onClick={() => isAssigned && onUnassign(String(savoir.id), String(ens.id))}
-            onDragOver={(e) => !isAssigned && onDragOver(e, String(savoir.id), String(ens.id))}
-            onDragLeave={(e) => {
-              if (e.currentTarget.contains(e.relatedTarget)) return;
+            onDragOver={(e: any) => !isAssigned && onDragOver(e, String(savoir.id), String(ens.id))}
+            onDragLeave={(e: any) => {
+              if (e.currentTarget.contains(e.relatedTarget as Node)) return;
               onDragLeave(e);
             }}
-            onDrop={(e) => !isAssigned && onDrop(e, String(savoir.id), String(ens.id))}
+            onDrop={(e: any) => !isAssigned && onDrop(e, String(savoir.id), String(ens.id))}
             style={{
               cursor: isAssigned ? "grab" : "default",
               textAlign: "center",
@@ -240,15 +239,15 @@ export default function MatchingMatrix({
   onDrop,
   onUnassign,
   isDraggingAny,
-}) {
+}: any) {
   // Count assignments per enseignant
-  const ensCounts = enseignants.reduce((acc, e) => {
+  const ensCounts = enseignants.reduce((acc: any, e: any) => {
     acc[String(e.id)] = 0;
     return acc;
   }, {});
 
-  Object.values(assignments ?? {}).forEach((ensIds) => {
-    (ensIds ?? []).forEach((eId) => {
+  Object.values(assignments ?? {}).forEach((ensIds: any) => {
+    (ensIds ?? []).forEach((eId: any) => {
       if (ensCounts[String(eId)] !== undefined) {
         ensCounts[String(eId)] += 1;
       }
@@ -272,7 +271,7 @@ export default function MatchingMatrix({
         <thead>
           <tr className="sticky-header">
             <th className="sticky-col">Compétence / Savoir</th>
-            {enseignants.map((e) => (
+            {enseignants.map((e: any) => (
               <EnseignantHeader
                 key={e.id}
                 enseignant={e}
@@ -282,7 +281,7 @@ export default function MatchingMatrix({
           </tr>
         </thead>
         <tbody>
-          {competences.map((comp) => (
+          {competences.map((comp: any) => (
             <React.Fragment key={comp.id}>
               {/* Competence summary row */}
               <CompetenceGroupRow
@@ -292,10 +291,10 @@ export default function MatchingMatrix({
               />
 
               {/* Sous-compétences and their savoirs */}
-              {comp.sousCompetences?.map((sc) => (
+              {comp.sousCompetences?.map((sc: any) => (
                 <React.Fragment key={sc.id}>
                   <SousCompGroupRow sc={sc} enseignants={enseignants} />
-                  {(sc.savoirs ?? []).map((s) => (
+                  {(sc.savoirs ?? []).map((s: any) => (
                     <SavoirRow
                       key={s.id}
                       savoir={s}
@@ -308,7 +307,7 @@ export default function MatchingMatrix({
               ))}
 
               {/* Direct savoirs (not under a sous-compétence) */}
-              {comp.savoirs?.map((s) => (
+              {comp.savoirs?.map((s: any) => (
                 <SavoirRow
                   key={s.id}
                   savoir={s}

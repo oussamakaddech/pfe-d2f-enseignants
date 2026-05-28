@@ -36,7 +36,7 @@ const NIVEAU_LABEL = {
   N5_EXPERT:        "N5",
 };
 
-const toNiveauEnum = (niveau) => {
+const toNiveauEnum = (niveau: any) => {
   const raw = String(niveau ?? "").trim().toUpperCase();
   if (!raw) return null;
   if (["N1_DEBUTANT", "N2_ELEMENTAIRE", "N3_INTERMEDIAIRE", "N4_AVANCE", "N5_EXPERT"].includes(raw)) {
@@ -58,16 +58,16 @@ export default function AffectationEnseignantPage() {
   const savoirApi = useSavoirApi();
   const { data: enseignants = [] } = useEnseignants();
 
-  const [affectations, setAffectations] = useState([]);
+  const [affectations, setAffectations] = useState<any[]>([]);
   const [loading,      setLoading]      = useState(false);
   const [search,       setSearch]       = useState("");
 
-  const [savoirs,      setSavoirs]      = useState([]);
+  const [savoirs,      setSavoirs]      = useState<any[]>([]);
   const [assignModal,  setAssignModal]  = useState(false);
   const [niveauModal,  setNiveauModal]  = useState(false);
   const [assignForm]   = Form.useForm();
   const [niveauForm]   = Form.useForm();
-  const [editingRecord,setEditingRecord]= useState(null);
+  const [editingRecord,setEditingRecord]= useState<any>(null);
 
   // ── Load ──────────────────────────────────────────────────────────────────
   const loadAll = useCallback(async () => {
@@ -150,13 +150,13 @@ export default function AffectationEnseignantPage() {
     return rows.filter(
       (r) =>
         r.nom.toLowerCase().includes(q) ||
-        r.savoirs.some((s) => s.code.toLowerCase().includes(q) || s.nom.toLowerCase().includes(q))
+        r.savoirs.some((s: any) => s.code.toLowerCase().includes(q) || s.nom.toLowerCase().includes(q))
     );
   }, [rows, search]);
 
   const exportAffectationsCsv = useCallback(() => {
-    const filteredIds = new Set(filtered.map((r) => String(r.enseignantId)));
-    const selected = affectations.filter((a) => filteredIds.has(String(a.enseignantId)));
+    const filteredIds = new Set(filtered.map((r: any) => String(r.enseignantId)));
+    const selected = affectations.filter((a: any) => filteredIds.has(String(a.enseignantId)));
 
     const header = [
       "affectation_id",
@@ -168,14 +168,14 @@ export default function AffectationEnseignantPage() {
       "niveau_label",
     ];
 
-    const niveauToLabel = (niv) => NIVEAU_LABEL[niv] ?? (niv || "—");
-    const resolveName = (eid) => {
+    const niveauToLabel = (niv: any) => (NIVEAU_LABEL as any)[niv] ?? (niv || "—");
+    const resolveName = (eid: any) => {
       const e = ensMap.get(String(eid));
       if (!e) return String(eid).replace(/^EX-/i, "");
       return `${e.prenom ?? ""} ${e.nom ?? ""}`.trim();
     };
 
-    const rowsCsv = selected.map((a) => {
+    const rowsCsv = selected.map((a: any) => {
       const niveau = a.niveau ?? "";
       return [
         a.id ?? "",
@@ -188,7 +188,7 @@ export default function AffectationEnseignantPage() {
       ];
     });
 
-    const esc = (v) => `"${String(v ?? "").replaceAll('"', '""')}"`;
+    const esc = (v: any) => `"${String(v ?? "").replaceAll('"', '""')}"`;
     const csv = [header, ...rowsCsv].map((r) => r.map(esc).join(";")).join("\n");
 
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
@@ -209,7 +209,7 @@ export default function AffectationEnseignantPage() {
       msgApi.success("Affectation ajoutée avec succès");
       setAssignModal(false);
       loadAll();
-    } catch (err: unknown) {
+    } catch (err: any) {
       if (err?.errorFields) return;
       const msg = err.response?.data?.message || "Erreur lors de l'ajout";
       msgApi.error(msg);
@@ -223,14 +223,14 @@ export default function AffectationEnseignantPage() {
       msgApi.success("Niveau mis à jour");
       setNiveauModal(false);
       loadAll();
-    } catch (err: unknown) {
+    } catch (err: any) {
       if (err?.errorFields) return;
       const msg = err.response?.data?.message || "Erreur lors de la mise à jour";
       msgApi.error(msg);
     }
   };
 
-  const handleDeleteSavoir = async (affId) => {
+  const handleDeleteSavoir = async (affId: any) => {
     try {
       await ecApi.remove(affId);
       msgApi.success("Affectation supprimée");
@@ -240,7 +240,7 @@ export default function AffectationEnseignantPage() {
     }
   };
 
-  const openNiveauModal = (record) => {
+  const openNiveauModal = (record: any) => {
     setEditingRecord(record);
     niveauForm.setFieldsValue({ niveau: record.niveau });
     setNiveauModal(true);
@@ -253,8 +253,8 @@ export default function AffectationEnseignantPage() {
       dataIndex: "nom",
       key: "nom",
       width: 220,
-      sorter: (a, b) => a.nom.localeCompare(b.nom),
-      render: (nom, rec) => (
+      sorter: (a: any, b: any) => a.nom.localeCompare(b.nom),
+      render: (nom: any, rec: any) => (
         <Space size={8}>
           <div className="affectation-enseignant-avatar">
             {nom?.[0]?.toUpperCase() ?? "?"}
@@ -271,16 +271,16 @@ export default function AffectationEnseignantPage() {
       dataIndex: "savoirs",
       key: "competences",
       width: 260,
-      sorter: (a, b) => {
-        const aNames = Array.from(new Set(a.savoirs.map((s) => s.competenceNom).filter(Boolean))).sort((x, y) => x.localeCompare(y)).join(" | ");
-        const bNames = Array.from(new Set(b.savoirs.map((s) => s.competenceNom).filter(Boolean))).sort((x, y) => x.localeCompare(y)).join(" | ");
+      sorter: (a: any, b: any) => {
+        const aNames = Array.from(new Set(a.savoirs.map((s: any) => s.competenceNom).filter(Boolean))).sort((x: any, y: any) => x.localeCompare(y)).join(" | ");
+        const bNames = Array.from(new Set(b.savoirs.map((s: any) => s.competenceNom).filter(Boolean))).sort((x: any, y: any) => x.localeCompare(y)).join(" | ");
         return aNames.localeCompare(bNames);
       },
-      render: (savs) => (
+      render: (savs: any) => (
         <Space size={[4, 4]} wrap>
-          {Array.from(new Set(savs.map((s) => s.competenceNom).filter(Boolean))).map((compName) => (
-            <Tag key={compName} color="geekblue" style={{ fontSize: "var(--text-xs)", borderRadius: "var(--radius-full)" }}>
-              {compName}
+          {Array.from(new Set(savs.map((s: any) => s.competenceNom).filter(Boolean))).map((compName: any) => (
+            <Tag key={compName as string} color="geekblue" style={{ fontSize: "var(--text-xs)", borderRadius: "var(--radius-full)" }}>
+              {compName as React.ReactNode}
             </Tag>
           ))}
         </Space>
@@ -290,9 +290,9 @@ export default function AffectationEnseignantPage() {
       title: "Codes savoirs",
       dataIndex: "savoirs",
       key: "codes",
-      render: (savs) => (
+      render: (savs: any) => (
         <Space size={[4, 4]} wrap>
-          {savs.map((s) => (
+          {savs.map((s: any) => (
             <Tooltip key={s.affId} title={s.nom}>
               <Tag
                 color="purple"
@@ -310,15 +310,15 @@ export default function AffectationEnseignantPage() {
       dataIndex: "savoirs",
       key: "niveaux",
       width: 260,
-      render: (savs) => (
+      render: (savs: any) => (
         <Space size={[4, 4]} wrap>
-          {savs.map((s) => (
+          {savs.map((s: any) => (
             <Tooltip key={s.affId} title={`${s.code} – ${s.nom}`}>
               <Tag
-                color={NIVEAU_COLOR[s.niveau] ?? "default"}
+                color={(NIVEAU_COLOR as any)[s.niveau] ?? "default"}
                 style={{ cursor: "default", fontSize: "var(--text-xs)", borderRadius: "var(--radius-full)" }}
               >
-                {NIVEAU_LABEL[s.niveau] ?? s.niveau ?? "—"}
+                {(NIVEAU_LABEL as any)[s.niveau] ?? s.niveau ?? "—"}
               </Tag>
             </Tooltip>
           ))}
@@ -329,8 +329,8 @@ export default function AffectationEnseignantPage() {
       title: "",
       key: "actions",
       width: 60,
-      align: "center",
-      render: (_, rec) => (
+      align: "center" as const,
+      render: (_: any, rec: any) => (
         <Popconfirm
           title={`Supprimer toutes les affectations de ${rec.nom} ?`}
           okText="Supprimer"
@@ -338,7 +338,7 @@ export default function AffectationEnseignantPage() {
           cancelText="Annuler"
           onConfirm={async () => {
             try {
-              await Promise.all(rec.savoirs.map((s) => ecApi.remove(s.affId)));
+              await Promise.all(rec.savoirs.map((s: any) => ecApi.remove(s.affId)));
               msgApi.success("Affectations supprimées");
               loadAll();
             } catch {
@@ -352,7 +352,7 @@ export default function AffectationEnseignantPage() {
     },
   ];
 
-  const expandedRowRender = (record) => {
+  const expandedRowRender = (record: any) => {
     const subColumns = [
       { title: "Code", dataIndex: "code", key: "code" },
       { title: "Nom du Savoir", dataIndex: "nom", key: "nom" },
@@ -360,9 +360,9 @@ export default function AffectationEnseignantPage() {
         title: "Niveau", 
         dataIndex: "niveau", 
         key: "niveau",
-        render: (niveau) => (
-          <Tag color={NIVEAU_COLOR[niveau] ?? "default"}>
-            {NIVEAU_LABEL[niveau] ?? niveau ?? "—"}
+        render: (niveau: any) => (
+          <Tag color={(NIVEAU_COLOR as any)[niveau] ?? "default"}>
+            {(NIVEAU_LABEL as any)[niveau] ?? niveau ?? "—"}
           </Tag>
         )
       },
@@ -370,7 +370,7 @@ export default function AffectationEnseignantPage() {
         title: "Actions",
         key: "actions",
         width: 100,
-        render: (_, sRec) => (
+        render: (_: any, sRec: any) => (
           <Space>
             <Tooltip title="Modifier le niveau">
               <Button size="small" icon={<EditOutlined />} onClick={() => openNiveauModal(sRec)} />
@@ -459,7 +459,7 @@ export default function AffectationEnseignantPage() {
       <div className="affectation-table-wrapper">
         <Table
           dataSource={filtered}
-          columns={columns}
+          columns={columns as any}
           rowKey="enseignantId"
           expandable={{ expandedRowRender, expandRowByClick: false }}
           loading={loading}

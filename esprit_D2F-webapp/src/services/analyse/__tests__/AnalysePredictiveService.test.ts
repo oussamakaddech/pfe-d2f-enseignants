@@ -126,8 +126,7 @@ describe('AnalysePredictiveService', () => {
   });
 
   it('analyserEnseignant throws clear message on 503 without autoTrain', async () => {
-    const err: any = new Error('503');
-    err.response = { status: 503 };
+    const err = Object.assign(new Error('503'), { response: { status: 503 } });
     httpMocks.mockPost.mockRejectedValueOnce(err);
     await expect(
       AnalysePredictiveService.analyserEnseignant('E1', undefined, { autoTrain: false })
@@ -135,8 +134,7 @@ describe('AnalysePredictiveService', () => {
   });
 
   it('analyserEnseignant attempts auto-train on 503 when autoTrain=true', async () => {
-    const err503: any = new Error('503');
-    err503.response = { status: 503 };
+    const err503 = Object.assign(new Error('503'), { response: { status: 503 } });
     httpMocks.mockPost
       .mockRejectedValueOnce(err503)                        // first predictGaps fails
       .mockResolvedValueOnce({ data: { status: 'trained' } }) // trainModel succeeds
@@ -152,8 +150,8 @@ describe('AnalysePredictiveService', () => {
   });
 
   it('analyserEnseignant surfaces 403 retry error when admin auto-train denied', async () => {
-    const err503: any = new Error('503'); err503.response = { status: 503 };
-    const err403: any = new Error('403'); err403.response = { status: 403 };
+    const err503 = Object.assign(new Error('503'), { response: { status: 503 } });
+    const err403 = Object.assign(new Error('403'), { response: { status: 403 } });
     httpMocks.mockPost
       .mockRejectedValueOnce(err503)
       .mockRejectedValueOnce(err403);

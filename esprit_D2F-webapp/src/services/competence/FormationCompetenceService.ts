@@ -23,7 +23,7 @@ const FormationCompetenceService = {
     await api.delete(`${API_URL}/${id}`);
   },
 
-  async replaceAllForFormation(formationId: number | string, newLinks: Record<string, unknown>) {
+  async replaceAllForFormation(formationId: number | string, newLinks: Record<string, unknown>[]) {
     const response = await api.put(`${API_URL}/formation/${formationId}/replace-all`, newLinks);
     return response.data;
   },

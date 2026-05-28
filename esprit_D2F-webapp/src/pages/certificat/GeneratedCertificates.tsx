@@ -17,7 +17,7 @@ function GeneratedCertificates() {
   const { formationId } = useParams();
   const navigate = useNavigate();
   const generateMut = useGenerateCertificates();
-  const [pdfFiles, setPdfFiles] = useState([]);
+  const [pdfFiles, setPdfFiles] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -63,7 +63,7 @@ function GeneratedCertificates() {
           return (
           <List
             dataSource={pdfFiles}
-            renderItem={(pdfFile) => (
+            renderItem={(pdfFile: any) => (
               <List.Item
                 className="generated-certs-list-item"
                 actions={[

@@ -1,61 +1,16 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import {
-  getToken,
-  setToken,
-  removeToken,
-  hasToken,
-  getProfile,
-  setProfile,
-  removeProfile,
   getActiveRole,
   setActiveRole,
   removeActiveRole,
   getPreferredLang,
   setPreferredLang,
   clearSession,
-  storage,
 } from '../storage';
 
 describe('storage', () => {
   beforeEach(() => {
     localStorage.clear();
-  });
-
-  describe('token (deprecated no-ops — JWT is in HttpOnly cookie)', () => {
-    it('getToken always returns null', () => {
-      expect(getToken()).toBeNull();
-    });
-    it('setToken is a no-op', () => {
-      setToken('abc');
-      expect(getToken()).toBeNull();
-    });
-    it('hasToken always returns false', () => {
-      setToken('abc');
-      expect(hasToken()).toBe(false);
-    });
-    it('removeToken is a no-op', () => {
-      expect(() => removeToken()).not.toThrow();
-    });
-  });
-
-  describe('profile', () => {
-    it('getProfile returns null initially', () => {
-      expect(getProfile()).toBeNull();
-    });
-    it('setProfile stores JSON and getProfile parses', () => {
-      const profile = { name: 'John', role: 'admin' };
-      setProfile(profile);
-      expect(getProfile()).toEqual(profile);
-    });
-    it('getProfile returns null for invalid JSON', () => {
-      localStorage.setItem('userProfile', '{invalid');
-      expect(getProfile()).toBeNull();
-    });
-    it('removeProfile clears profile', () => {
-      setProfile({ name: 'John' });
-      removeProfile();
-      expect(getProfile()).toBeNull();
-    });
   });
 
   describe('activeRole', () => {
@@ -84,34 +39,12 @@ describe('storage', () => {
   });
 
   describe('clearSession', () => {
-    it('removes token, profile, and activeRole but not lang', () => {
-      setToken('abc');
-      setProfile({ name: 'John' });
+    it('removes activeRole but not lang', () => {
       setActiveRole('admin');
       setPreferredLang('en');
       clearSession();
-      expect(getToken()).toBeNull();
-      expect(getProfile()).toBeNull();
       expect(getActiveRole()).toBeNull();
       expect(getPreferredLang()).toBe('en');
     });
   });
-
-  describe('storage (object API)', () => {
-    it('regroups all methods', () => {
-      expect(storage.getToken).toBe(getToken);
-      expect(storage.setToken).toBe(setToken);
-      expect(storage.hasToken).toBe(hasToken);
-      expect(storage.clearSession).toBe(clearSession);
-    });
-    it('token methods are no-ops (JWT in HttpOnly cookie)', () => {
-      storage.setToken('t');
-      expect(storage.getToken()).toBeNull();
-      expect(storage.hasToken()).toBe(false);
-    });
-  });
 });
-
-
-
-

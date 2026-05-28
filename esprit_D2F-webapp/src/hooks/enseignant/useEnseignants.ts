@@ -21,7 +21,10 @@ const KEYS = {
 export function useEnseignants() {
   return useQuery<Enseignant[]>({
     queryKey: KEYS.all,
-    queryFn: () => EnseignantService.getAllEnseignants(),
+    queryFn: async () => {
+      const data = await EnseignantService.getAllEnseignants();
+      return data as Enseignant[];
+    },
   });
 }
 
@@ -36,7 +39,7 @@ export function useEnseignantById(id: Id | undefined) {
 export function useCreateEnseignant() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (data: unknown) => EnseignantService.createEnseignant(data),
+    mutationFn: (data: Record<string, unknown>) => EnseignantService.createEnseignant(data),
     onSuccess: () => qc.invalidateQueries({ queryKey: KEYS.all }),
   });
 }
@@ -44,7 +47,7 @@ export function useCreateEnseignant() {
 export function useUpdateEnseignant() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: ({ id, data }: { id: Id; data: unknown }) =>
+    mutationFn: ({ id, data }: { id: Id; data: Record<string, unknown> }) =>
       EnseignantService.updateEnseignant(id, data),
     onSuccess: () => qc.invalidateQueries({ queryKey: KEYS.all }),
   });

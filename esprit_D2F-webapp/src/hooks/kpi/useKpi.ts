@@ -4,8 +4,8 @@ import ParticipantKPIService from "@/services/analyse/ParticipantKPIService";
 
 type KpiFilters = {
   domaine?: string | null;
-  upId?: string | number | null;
-  deptId?: string | number | null;
+  upId?: string | null;
+  deptId?: string | null;
   ouverte?: boolean | null;
   start?: string | null;
   end?: string | null;
@@ -50,9 +50,11 @@ export function useTopParticipants(
   upId?: string | number | null,
   deptId?: string | number | null,
 ) {
+  const upIdStr = upId != null ? String(upId) : null;
+  const deptIdStr = deptId != null ? String(deptId) : null;
   return useQuery<unknown[]>({
     queryKey: ["kpi", "top-participants", start, end, upId, deptId],
-    queryFn: () => KPIService.getTopParticipants(start, end, upId, deptId),
+    queryFn: () => KPIService.getTopParticipants(start, end, upIdStr, deptIdStr),
     enabled: !!start && !!end,
   });
 }
@@ -63,9 +65,11 @@ export function useTopAbsentees(
   upId?: string | number | null,
   deptId?: string | number | null,
 ) {
+  const upIdStr = upId != null ? String(upId) : null;
+  const deptIdStr = deptId != null ? String(deptId) : null;
   return useQuery<unknown[]>({
     queryKey: ["kpi", "top-absentees", start, end, upId, deptId],
-    queryFn: () => KPIService.getTopAbsentees(start, end, upId, deptId),
+    queryFn: () => KPIService.getTopAbsentees(start, end, upIdStr, deptIdStr),
     enabled: !!start && !!end,
   });
 }

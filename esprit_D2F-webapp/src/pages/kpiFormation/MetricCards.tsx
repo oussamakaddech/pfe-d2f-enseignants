@@ -1,44 +1,25 @@
-
 import { useState, useEffect, useRef } from "react";
-import {
-  Card,
-  Row,
-  Col,
-  Button,
-  Drawer,
-  Form,
-  Input,
-  Select,
-  DatePicker,
-  Switch,
-  Spin,
-  Tooltip,
-  Typography,
-} from "antd";
-import {
-  SettingOutlined, PlusOutlined, CloseOutlined,
-  BarChartOutlined, ClockCircleOutlined,
-} from "@ant-design/icons";
+import { Row, Button, DatePicker, Spin, Typography } from "antd";
+import { BarChartOutlined, PlusOutlined } from "@ant-design/icons";
 import { EmptyState } from "@/components/common";
-import { brand, neutral, shadow, radius } from "@/styles/themes/tokens";
+import { brand, neutral, radius } from "@/styles/themes/tokens";
 import useAppNotification from "@/hooks/ui/useAppNotification";
 import dayjs from "dayjs";
 
 import { useDepartements, useUps } from "@/hooks/formation";
 import { useKpiCountAndHeuresMutation } from "@/hooks/kpi";
+import { MetricCardItem } from "./components/MetricCardItem";
 
 const { Text } = Typography;
 const { RangePicker } = DatePicker;
-const { Option } = Select;
 
-// Clé pour stocker la configuration des cartes dans localStorage
 const LOCALSTORAGE_KEY = "metricCardsConfiguration";
 
 interface NamedOption { id?: unknown; libelle?: string }
 interface CardFilters {
   domaine?: string | null;
-  upId?: unknown | null;
-  deptId?: unknown | null;
+  upId?: any;
+  deptId?: any;
   ouverte?: boolean | null;
   start?: string | null;
   end?: string | null;
@@ -64,9 +45,6 @@ function buildGenericTitleParts(filters: CardFilters, upsOptions: NamedOption[],
 }
 
 const MetricCards = () => {
-  //
-  // ─── ÉTATS LOCAUX ──────────────────────────────────────────────────────────────
-  //
   const { message } = useAppNotification();
   const [cards, setCards] = useState<Record<string, unknown>[]>([]);
   const [globalPeriod, setGlobalPeriod] = useState<[dayjs.Dayjs, dayjs.Dayjs] | null>(null);
@@ -80,41 +58,38 @@ const MetricCards = () => {
   const upsOptions   = upsRaw   as NamedOption[];
   const loadingOptions = loadingDepts || loadingUps;
 
-  //
-  // ─── EFFETS AU MONTAGE ───────────────────────────────────────────────────────────
-  //
+  const buildTitle = (filters: CardFilters): string => {
+    const { domaine, upId, deptId, ouverte, start, end, etat } = filters;
+    const onlyOuverte = ouverte === true && !domaine && upId === null && deptId === null && !start && !end && !etat;
+    if (onlyOuverte) return "Formations transversales (ouvertes)";
+    const onlyPeriod = start && end && !domaine && upId === null && deptId === null && ouverte === null && !etat;
+    if (onlyPeriod) return `Formations du ${start} au ${end}`;
+    if (upId !== null && !domaine && deptId === null && ouverte === null && !start && !end && !etat) {
+      const upItem = upsOptions.find((u) => u.id === upId);
+      return `Formations UP : ${upItem ? upItem.libelle : `UP ${upId}`}`;
+    }
+    if (deptId !== null && !domaine && upId === null && ouverte === null && !start && !end && !etat) {
+      const deptItem = deptsOptions.find((d) => d.id === deptId);
+      return `Formations Département : ${deptItem ? deptItem.libelle : `Dept ${deptId}`}`;
+    }
+    const parts = buildGenericTitleParts(filters, upsOptions, deptsOptions);
+    return parts.length === 0 ? "Toutes formations (PLANIFIE + ACHEVE)" : parts.join("  •  ");
+  };
 
-  // 1) Charger la configuration des cartes depuis localStorage ET
-  //    lancer un rafraîchissement des "count" + "totalHeures"
-  //    *uniquement* lors du tout premier rendu du composant.
   useEffect(() => {
     const stored = localStorage.getItem(LOCALSTORAGE_KEY);
     if (stored) {
       let parsed = [];
-      try {
-        parsed = JSON.parse(stored);
-      } catch {
-        // ignore invalid stored config
-      }
-
-      // On met d’abord à jour l’état local avec la config stockée
+      try { parsed = JSON.parse(stored); } catch { /* ignore */ }
       setCards(parsed);
-
-      // Ensuite, pour chaque carte retrouvée, on appelle immédiatement l’API
-      // pour récupérer le 'count' et le 'totalHeures' les plus récents.
-      // On ne le fait que si parsed.length > 0.
       if (parsed.length > 0) {
         (async () => {
           const rafraichies = await Promise.all(
-            parsed.map(async (c) => {
+            parsed.map(async (c: any) => {
               try {
-                // On reconstruit l’objet filters exactement comme on le ferait
-                // depuis le formulaire, afin de récupérer les bonnes données :
                 const { count, totalHeures } = await kpiMut.mutateAsync(c.filters);
                 return { ...c, count, totalHeures, title: buildTitle(c.filters) };
-              } catch {
-                return c;
-              }
+              } catch { return c; }
             })
           );
           setCards(rafraichies);
@@ -123,224 +98,61 @@ const MetricCards = () => {
     }
   }, []);
 
-  // 2) Chaque fois que "cards" change, on sauvegarde dans localStorage
-  //    (cela inclut les rafraîchissements initiaux ou tout ajout/suppression d’une carte)
   useEffect(() => {
-    // On ne sauvegarde pas lors du premier montage (car on vient de lire localStorage),
-    // mais on sauvegarde après chaque ajout/suppression/modification de contenu de "cards".
-    if (isFirstMount.current) {
-      isFirstMount.current = false;
-      return;
-    }
+    if (isFirstMount.current) { isFirstMount.current = false; return; }
     localStorage.setItem(LOCALSTORAGE_KEY, JSON.stringify(cards));
   }, [cards]);
 
+  const openSettings  = (id: unknown) => setCards((prev) => prev.map((c) => (c.id === id ? { ...c, visible: true } : c)));
+  const closeSettings = (id: unknown) => setCards((prev) => prev.map((c) => (c.id === id ? { ...c, visible: false } : c)));
+  const deleteCard    = (id: unknown) => setCards((prev) => prev.filter((c) => c.id !== id));
 
-  //
-  // ─── FONCTIONS POUR GÉRER LES CARTES ──────────────────────────────────────────────
-  //
-
-  // Ouvre le panneau de réglages pour la carte id
-  const openSettings = (id) => {
-    setCards((prev) => prev.map((c) => (c.id === id ? { ...c, visible: true } : c)));
-  };
-
-  // Ferme le panneau de réglages pour la carte id
-  const closeSettings = (id) => {
-    setCards((prev) => prev.map((c) => (c.id === id ? { ...c, visible: false } : c)));
-  };
-
-  // Supprime la carte d’ID id
-  const deleteCard = (id) => {
-    setCards((prev) => prev.filter((c) => c.id !== id));
-  };
-
-  // Ajoute une nouvelle carte vierge
   const addCard = () => {
-    const newCard = {
-      id: Date.now(),
-      visible: false,
-      filters: {
-        domaine: null,
-        upId: null,
-        deptId: null,
-        ouverte: null,
-        start: null,
-        end: null,
-        etat: null,
-      },
-      count: null,
-      totalHeures: null,
+    setCards((prev) => [...prev, {
+      id: Date.now(), visible: false,
+      filters: { domaine: null, upId: null, deptId: null, ouverte: null, start: null, end: null, etat: null },
+      count: null, totalHeures: null,
       title: "Toutes formations (PLANIFIE + ACHEVE)",
-    };
-    setCards((prev) => [...prev, newCard]);
+    }]);
   };
 
-  /**
-   * buildTitle(filters):
-   *   - Génére un titre « parlant » selon les filtres
-   *   - Si seul filtre = ouverte true → "Formations transversales (ouvertes)"
-   *   - Si seul filtre = période start+end → "Formations du X au Y"
-   *   - Si seul filtre = upId → "Formations UP : <libellé>"
-   *   - Si seul filtre = deptId → "Formations Département : <libellé>"
-   *   - Sinon, concatène toutes les paires "Clé=Valeur" par " • "
-   *   - Si aucun filtre → "Toutes formations (PLANIFIE + ACHEVE)"
-   */
-  const buildTitle = (filters) => {
-    const { domaine, upId, deptId, ouverte, start, end, etat } = filters;
-
-    // 1) Si seul filtre = ouverte true
-    const onlyOuverte =
-      ouverte === true &&
-      !domaine &&
-      upId === null &&
-      deptId === null &&
-      !start &&
-      !end &&
-      !etat;
-    if (onlyOuverte) {
-      return "Formations transversales (ouvertes)";
-    }
-
-    // 2) Si seul filtre = période
-    const onlyPeriod =
-      start &&
-      end &&
-      !domaine &&
-      upId === null &&
-      deptId === null &&
-      ouverte === null &&
-      !etat;
-    if (onlyPeriod) {
-      return `Formations du ${start} au ${end}`;
-    }
-
-    // 3) Si seul filtre = upId
-    if (
-      upId !== null &&
-      !domaine &&
-      deptId === null &&
-      ouverte === null &&
-      !start &&
-      !end &&
-      !etat
-    ) {
-      const upItem = upsOptions.find((u) => u.id === upId);
-      const label = upItem ? upItem.libelle : `UP ${upId}`;
-      return `Formations UP : ${label}`;
-    }
-
-    // 4) Si seul filtre = deptId
-    if (
-      deptId !== null &&
-      !domaine &&
-      upId === null &&
-      ouverte === null &&
-      !start &&
-      !end &&
-      !etat
-    ) {
-      const deptItem = deptsOptions.find((d) => d.id === deptId);
-      const label = deptItem ? deptItem.libelle : `Dept ${deptId}`;
-      return `Formations Département : ${label}`;
-    }
-
-    // 5) Cas générique : concaténer chaque critère
-    const parts = buildGenericTitleParts(filters, upsOptions, deptsOptions);
-    if (parts.length === 0) {
-      return "Toutes formations (PLANIFIE + ACHEVE)";
-    }
-    return parts.join("  •  ");
-  };
-
-  /**
-   * handleFormSubmit(cardId, values):
-   *   - Reconstruit 'filters' à partir des valeurs du Formulaire
-   *   - Appelle KPIService.getCountAndHeures(filters)
-   *   - Met à jour la carte : count, totalHeures, filters, title
-   *   - Ferme le Drawer
-   */
-  const handleFormSubmit = async (cardId, values) => {
-    // 1) Construire l’objet filters
-    const filters = {
-      domaine:    values.domaine    || null,
-      upId:       values.upId       !== undefined ? values.upId : null,
-      deptId:     values.deptId     !== undefined ? values.deptId : null,
-      ouverte:    values.ouverte    !== undefined ? values.ouverte : null,
-      start:      values.dateRange
-                    ? values.dateRange[0].format("YYYY-MM-DD")
-                    : null,
-      end:        values.dateRange
-                    ? values.dateRange[1].format("YYYY-MM-DD")
-                    : null,
-      etat:       values.etat || null,
+  const handleFormSubmit = async (cardId: unknown, values: Record<string, unknown>) => {
+    const filters: CardFilters = {
+      domaine: values.domaine as string || null,
+      upId:    values.upId !== undefined ? values.upId : null,
+      deptId:  values.deptId !== undefined ? values.deptId : null,
+      ouverte: values.ouverte !== undefined ? values.ouverte as boolean : null,
+      start:   values.dateRange ? (values.dateRange as dayjs.Dayjs[])[0].format("YYYY-MM-DD") : null,
+      end:     values.dateRange ? (values.dateRange as dayjs.Dayjs[])[1].format("YYYY-MM-DD") : null,
+      etat:    values.etat as string || null,
     };
-
     try {
-      // 2) Appel à /kpi/count-heures
       const { count, totalHeures } = await kpiMut.mutateAsync(filters);
-
-      // 3) Mise à jour de la carte dans le state
-      setCards((prev) =>
-        prev.map((c) =>
-          c.id === cardId
-            ? {
-                ...c,
-                count,
-                totalHeures,
-                filters,
-                title: buildTitle(filters),
-              }
-            : c
-        )
-      );
+      setCards((prev) => prev.map((c) => c.id === cardId ? { ...c, count, totalHeures, filters, title: buildTitle(filters) } : c));
     } catch {
-      message.error("Impossible de calculer l’indicateur. Vérifiez vos filtres.");
+      message.error("Impossible de calculer l'indicateur. Vérifiez vos filtres.");
     } finally {
-      // 4) Fermeture du Drawer
       closeSettings(cardId);
     }
   };
 
-  /**
-   * handleGlobalPeriodChange(dates):
-   *   - Applique la période globale aux filtres "start" et "end" de toutes les cartes,
-   *   - Appelle KPIService.getCountAndHeures pour chacune,
-   *   - Met à jour chaque carte dans le state.
-   */
-  const handleGlobalPeriodChange = async (dates) => {
-    if (!dates) {
-      setGlobalPeriod(null);
-      return;
-    }
+  const handleGlobalPeriodChange = async (dates: any) => {
+    if (!dates) { setGlobalPeriod(null); return; }
     const newStart = dates[0].format("YYYY-MM-DD");
     const newEnd   = dates[1].format("YYYY-MM-DD");
     setGlobalPeriod(dates);
-
     const updated = await Promise.all(
       cards.map(async (c) => {
-        const newFilters = { ...c.filters, start: newStart, end: newEnd };
+        const newFilters = { ...(c.filters as CardFilters), start: newStart, end: newEnd };
         try {
           const { count, totalHeures } = await kpiMut.mutateAsync(newFilters);
-          return {
-            ...c,
-            filters: newFilters,
-            count,
-            totalHeures,
-            title: buildTitle(newFilters),
-          };
-        } catch {
-          // En cas d’erreur, on ne met à jour que les filtres
-          return { ...c, filters: newFilters };
-        }
+          return { ...c, filters: newFilters, count, totalHeures, title: buildTitle(newFilters) };
+        } catch { return { ...c, filters: newFilters }; }
       })
     );
     setCards(updated);
   };
 
-  //
-  // ─── AFFICHAGE DU SPINNER SI LES LISTES D’OPTIONS SONT EN COURS DE CHARGEMENT ───
-  //
   if (loadingOptions) {
     return (
       <div style={{ textAlign: "center", padding: "50px 0" }}>
@@ -349,51 +161,26 @@ const MetricCards = () => {
     );
   }
 
-
-
-  //
-  // ─── RENDU FINAL ────────────────────────────────────────────────────────────────
-  //
   return (
     <div>
-      {/* ── En-tête de section ────────────────────────────────────────────── */}
-      <div style={{
-        display: "flex", alignItems: "center", justifyContent: "space-between",
-        flexWrap: "wrap", gap: 12, marginBottom: 16,
-      }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 12, marginBottom: 16 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <div style={{
-            width: 32, height: 32, borderRadius: radius.sm,
-            background: `${brand[500]}15`,
-            display: "flex", alignItems: "center", justifyContent: "center",
-          }}>
+          <div style={{ width: 32, height: 32, borderRadius: radius.sm, background: `${brand[500]}15`, display: "flex", alignItems: "center", justifyContent: "center" }}>
             <BarChartOutlined style={{ color: brand[500], fontSize: 16 }} />
           </div>
           <div>
-            <Text strong style={{ fontSize: 15, color: neutral[900] }}>
-              Indicateurs personnalisés
-            </Text>
-            <Text style={{ display: "block", fontSize: 12, color: neutral[500] }}>
-              Nombre et heures de formation par filtre
-            </Text>
+            <Text strong style={{ fontSize: 15, color: neutral[900] }}>Indicateurs personnalisés</Text>
+            <Text style={{ display: "block", fontSize: 12, color: neutral[500] }}>Nombre et heures de formation par filtre</Text>
           </div>
         </div>
-
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <RangePicker
-            style={{ maxWidth: 290 }}
-            value={globalPeriod}
-            onChange={handleGlobalPeriodChange}
-            placeholder={["Date début", "Date fin"]}
-          />
-          <Button type="primary" onClick={addCard} icon={<PlusOutlined />}
-            style={{ background: brand[500], borderColor: brand[500] }}>
+          <RangePicker style={{ maxWidth: 290 }} value={globalPeriod} onChange={handleGlobalPeriodChange} placeholder={["Date début", "Date fin"]} />
+          <Button type="primary" onClick={addCard} icon={<PlusOutlined />} style={{ background: brand[500], borderColor: brand[500] }}>
             Ajouter
           </Button>
         </div>
       </div>
 
-      {/* ── État vide ─────────────────────────────────────────────────────── */}
       {cards.length === 0 && (
         <EmptyState
           icon={<BarChartOutlined />}
@@ -404,163 +191,18 @@ const MetricCards = () => {
         />
       )}
 
-      {/* ── Grille de cartes ─────────────────────────────────────────────── */}
       <Row gutter={[16, 16]}>
         {cards.map((card) => (
-          <Col key={card.id} xs={24} sm={12} md={8} lg={6}>
-            {/* Tooltip pour afficher le titre complet */}
-            <Tooltip title={card.title} placement="top" mouseEnterDelay={0.4}>
-              <Card
-                hoverable
-                style={{
-                  borderRadius: radius.lg,
-                  borderTop: `3px solid ${brand[500]}`,
-                  boxShadow: shadow.sm,
-                  border: "1px solid rgba(0,0,0,0.07)",
-                  overflow: "hidden",
-                }}
-                styles={{ body: { padding: "16px 18px" } }}
-              >
-                {/* Titre + actions */}
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 14 }}>
-                  <Text
-                    strong
-                    style={{ fontSize: 12, color: neutral[700], lineHeight: 1.4, maxWidth: "75%" }}
-                  >
-                    {card.title.length > 40 ? card.title.slice(0, 40) + "…" : card.title}
-                  </Text>
-                  <div style={{ display: "flex", gap: 4 }}>
-                    <Tooltip title="Configurer">
-                      <SettingOutlined
-                        style={{ fontSize: 14, color: neutral[400], cursor: "pointer", padding: 4 }}
-                        onClick={() => openSettings(card.id)}
-                      />
-                    </Tooltip>
-                    <Tooltip title="Supprimer">
-                      <CloseOutlined
-                        style={{ fontSize: 14, color: "#ef4444", cursor: "pointer", padding: 4 }}
-                        onClick={() => deleteCard(card.id)}
-                      />
-                    </Tooltip>
-                  </div>
-                </div>
-
-                {/* Valeurs */}
-                <div style={{ display: "flex", alignItems: "baseline", gap: 6, marginBottom: 6 }}>
-                  <span style={{ fontSize: 28, fontWeight: 700, color: neutral[900], lineHeight: 1 }}>
-                    {card.count !== null ? card.count : "—"}
-                  </span>
-                  <Text style={{ fontSize: 12, color: neutral[500] }}>formations</Text>
-                </div>
-
-                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                  <ClockCircleOutlined style={{ color: neutral[400], fontSize: 12 }} />
-                  <Text style={{ fontSize: 12, color: neutral[500] }}>
-                    {card.totalHeures !== null ? `${card.totalHeures} h totales` : "—"}
-                  </Text>
-                </div>
-              </Card>
-            </Tooltip>
-
-            {/* Drawer pour configurer les filtres */}
-            <Drawer
-              title="Configurer l’indicateur"
-              placement="right"
-              onClose={() => closeSettings(card.id)}
-              open={card.visible}
-              width={350}
-              destroyOnHidden
-            >
-              <Form
-                layout="vertical"
-                onFinish={(values) => handleFormSubmit(card.id, values)}
-                initialValues={{
-                  domaine:    card.filters.domaine,
-                  upId:       card.filters.upId,
-                  deptId:     card.filters.deptId,
-                  ouverte:    card.filters.ouverte,
-                  etat:       card.filters.etat,
-                  dateRange:
-                    card.filters.start && card.filters.end
-                      ? [
-                          dayjs(card.filters.start, "YYYY-MM-DD"),
-                          dayjs(card.filters.end,   "YYYY-MM-DD"),
-                        ]
-                      : null,
-                }}
-              >
-
-                {/* Champ "Domaine" */}
-                <Form.Item label="Domaine" name="domaine">
-                  <Input placeholder="Ex : Informatique" allowClear />
-                </Form.Item>
-
-                {/* Champ "UP" */}
-                <Form.Item label="UP" name="upId">
-                  <Select
-                    showSearch
-                    placeholder="Sélectionner une UP"
-                    allowClear
-                    optionFilterProp="children"
-                    filterOption={(input, option) =>
-                      option.children.toLowerCase().includes(input.toLowerCase())
-                    }
-                  >
-                    {upsOptions.map((u) => (
-                      <Option key={String(u.id)} value={u.id as string}>
-                        {u.libelle}
-                      </Option>
-                    ))}
-                  </Select>
-                </Form.Item>
-
-                {/* Champ "Département" */}
-                <Form.Item label="Département" name="deptId">
-                  <Select
-                    showSearch
-                    placeholder="Sélectionner un département"
-                    allowClear
-                    optionFilterProp="children"
-                    filterOption={(input, option) =>
-                      option.children.toLowerCase().includes(input.toLowerCase())
-                    }
-                  >
-                    {deptsOptions.map((d) => (
-                      <Option key={String(d.id)} value={d.id as string}>
-                        {d.libelle}
-                      </Option>
-                    ))}
-                  </Select>
-                </Form.Item>
-
-                {/* Champ "Ouverte" */}
-                <Form.Item label="Ouverte" name="ouverte" valuePropName="checked">
-                  <Switch checkedChildren="Oui" unCheckedChildren="Non" />
-                </Form.Item>
-
-                {/* Champ "Période" */}
-                <Form.Item label="Période" name="dateRange">
-                  <RangePicker style={{ width: "100%" }} allowEmpty={[false, false]} />
-                </Form.Item>
-
-                {/* Champ "État" */}
-                <Form.Item label="État" name="etat">
-                  <Select placeholder="Sélectionner l’état (facultatif)" allowClear>
-                    <Option value="PLANIFIE">PLANIFIE</Option>
-                    <Option value="ACHEVE">ACHEVE</Option>
-                    <Option value="TOUT">TOUT</Option>
-                  </Select>
-                </Form.Item>
-
-                {/* Bouton "Appliquer" */}
-                <Form.Item style={{ textAlign: "right" }}>
-                  <Button type="primary" htmlType="submit">
-                    Appliquer
-                  </Button>
-                </Form.Item>
-              </Form>
-            </Drawer>
-          </Col>
+          <MetricCardItem
+            key={card.id as any}
+            card={card as any}
+            upsOptions={upsOptions}
+            deptsOptions={deptsOptions}
+            onOpenSettings={openSettings}
+            onCloseSettings={closeSettings}
+            onDelete={deleteCard}
+            onFormSubmit={handleFormSubmit}
+          />
         ))}
       </Row>
     </div>
@@ -568,7 +210,3 @@ const MetricCards = () => {
 };
 
 export default MetricCards;
-
-
-
-

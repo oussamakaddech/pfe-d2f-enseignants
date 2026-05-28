@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import React, { useState, useMemo } from "react";
 import { Doughnut, Radar } from "react-chartjs-2";
 import { DatePicker, Divider, Tabs, Typography, Row, Col, Skeleton } from "antd";
 import {
@@ -26,7 +26,7 @@ const { Text, Title } = Typography;
 const { RangePicker } = DatePicker;
 
 // ── Styles réutilisables ──────────────────────────────────────────────────────
-const chartCard = {
+const chartCard: React.CSSProperties = {
   background: "#fff",
   borderRadius: radius.lg,
   border: `1px solid rgba(0,0,0,0.07)`,
@@ -36,7 +36,7 @@ const chartCard = {
   flexDirection: "column",
 };
 
-const sectionTitle = (iconColor = brand[500]) => ({
+const sectionTitle = (iconColor: string = brand[500]): React.CSSProperties => ({
   display: "flex",
   alignItems: "center",
   gap: 8,
@@ -249,7 +249,7 @@ export default function KPIChart() {
   );
 }
 
-function SectionHeader({ icon, color, children }) {
+function SectionHeader({ icon, color, children }: { icon: React.ReactNode; color: string; children: React.ReactNode }) {
   return (
     <div style={{
       display: "flex", alignItems: "center", gap: 10,

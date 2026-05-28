@@ -22,8 +22,8 @@ export default function CrudTab({
   tableProps = undefined,
   searchable = true,
   searchPlaceholder = "Rechercher...",
-}) {
-  const [selectedRowKeys, setSelectedRowKeys] = useState([]);
+}: any) {
+  const [selectedRowKeys, setSelectedRowKeys] = useState<any[]>([]);
   const [selectionMode, setSelectionMode] = useState(false);
   const [searchText, setSearchText] = useState("");
 
@@ -31,14 +31,14 @@ export default function CrudTab({
   const filteredData = useMemo(() => {
     if (!searchable || !searchText.trim()) return data;
     const kw = searchText.trim().toLowerCase();
-    return data.filter((row) =>
+    return data.filter((row: any) =>
       Object.values(row).some(
-        (val) => typeof val === "string" && val.toLowerCase().includes(kw),
+        (val: any) => typeof val === "string" && val.toLowerCase().includes(kw),
       ),
     );
   }, [data, searchText, searchable]);
 
-  const selectedRows = filteredData.filter((r) =>
+  const selectedRows = filteredData.filter((r: any) =>
     selectedRowKeys.includes(r.id),
   );
   const hasSelection = selectedRowKeys.length > 0;
@@ -50,7 +50,7 @@ export default function CrudTab({
 
   const handleBulkDelete = async () => {
     if (onBulkDelete) await onBulkDelete(selectedRowKeys);
-    else await Promise.all(selectedRowKeys.map((id) => onDelete(id)));
+    else await Promise.all(selectedRowKeys.map((id: any) => onDelete(id)));
     setSelectedRowKeys([]);
     setSelectionMode(false);
   };
@@ -66,7 +66,7 @@ export default function CrudTab({
   const rowSelection = selectionMode
     ? {
         selectedRowKeys,
-        onChange: (keys) => setSelectedRowKeys(keys),
+        onChange: (keys: any) => setSelectedRowKeys(keys),
         selections: [
           Table.SELECTION_ALL,
           Table.SELECTION_INVERT,
@@ -161,7 +161,7 @@ export default function CrudTab({
             title: "Actions",
             key: "actions",
             width: 120,
-            render: (_, record) => (
+            render: (_: any, record: any) => (
               <Space>
                 <Tooltip title="Modifier">
                   <Button
@@ -193,7 +193,7 @@ export default function CrudTab({
           showTotal: (total) => `${total} élément(s)`,
         }}
         size="small"
-        {...tableProps}
+        {...(tableProps || {})}
       />
     </div>
   );

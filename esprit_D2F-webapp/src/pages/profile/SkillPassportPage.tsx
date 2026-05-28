@@ -24,10 +24,11 @@ import {
   MailOutlined,
   CalendarOutlined,
 } from "@ant-design/icons";
-import type { TeacherSkillPassportDTO, SkillGapSummaryDTO, TrainingHistoryDTO, CertificationSummaryDTO, RecommendationSummaryDTO } from "@/services/certificat/SkillPassportService";
+import type { TeacherSkillPassportDTO, SkillGapSummaryDTO, TrainingHistoryDTO, CertificationSummaryDTO, RecommendationSummaryDTO } from "@/models/certificat";
 import { useMyPassportData, usePassportDataByUsername, useDownloadMyPassport, useDownloadPassportByUsername } from "@/hooks/certificat/useSkillPassport";
 import { AppPageHeader, brand, neutral, shadow, radius } from "@/components/common";
 import "@/styles/pages/skill-passport-page.css";
+import s from "./SkillPassportPage.module.css";
 
 const { Title, Text, Paragraph } = Typography;
 
@@ -119,7 +120,7 @@ export default function SkillPassportPage({ targetUsername, downloadLabel }: Pro
       key: "gravite",
       render: (g: string) => <Tag color={graviteColor(g)}>{g?.toUpperCase()}</Tag>,
     },
-    { title: "Explication",  dataIndex: "explication",    key: "explic", ellipsis: true },
+    { title: "Explication",  dataIndex: "explication",    key: "explic" },
   ];
 
   const formationColumns = [
@@ -168,13 +169,13 @@ export default function SkillPassportPage({ targetUsername, downloadLabel }: Pro
         <Progress percent={Math.round(v * 100)} size="small" strokeColor={scoreColor(v * 5)} />
       ),
     },
-    { title: "Justification", dataIndex: "justification", key: "just", ellipsis: true },
+    { title: "Justification", dataIndex: "justification", key: "just" },
   ];
 
   // ── Rendu ────────────────────────────────────────────────────────────
   if (loading) {
     return (
-      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", minHeight: 400 }}>
+      <div className={s.loadingWrapper}>
         <Spin size="large" tip="Chargement du passeport de compétences…"><div /></Spin>
       </div>
     );
@@ -188,11 +189,11 @@ export default function SkillPassportPage({ targetUsername, downloadLabel }: Pro
         description={error}
         showIcon
         action={
-          <Button size="small" onClick={fetchPassport}>
+          <Button size="small" onClick={() => fetchPassport()}>
             Réessayer
           </Button>
         }
-        style={{ margin: 24 }}
+        className={s.errorAlert}
       />
     );
   }
@@ -202,7 +203,7 @@ export default function SkillPassportPage({ targetUsername, downloadLabel }: Pro
   const { identity, scoreGlobal, statut, domaines, formations, certifications, gaps, recommandations } = passport;
 
   return (
-    <div style={{ maxWidth: 1200, margin: "0 auto" }}>
+    <div className={s.pageWrapper}>
 
       {/* ── En-tête ─────────────────────────────────────────────────── */}
       <AppPageHeader
@@ -223,27 +224,21 @@ export default function SkillPassportPage({ targetUsername, downloadLabel }: Pro
       />
 
       {/* ── Identité ─────────────────────────────────────────────────── */}
-      <div style={{
-        background: "#fff", borderRadius: radius.lg,
-        border: `1px solid rgba(0,0,0,0.07)`,
-        borderLeft: `4px solid ${brand[600]}`,
-        boxShadow: shadow.sm, padding: "20px 24px",
-        marginBottom: 24, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 16,
-      }}>
+      <div className={s.identityCard}>
         <Space direction="vertical" size={4}>
-          <Text strong style={{ fontSize: 18, color: neutral[900] }}>
+          <Text strong className={s.identityName}>
             {identity.prenom} {identity.nom}
           </Text>
           <Space size={16} wrap>
-            <Text style={{ color: neutral[500], fontSize: 13 }}><MailOutlined style={{ marginRight: 6 }} />{identity.email}</Text>
-            <Text style={{ color: neutral[500], fontSize: 13 }}><CalendarOutlined style={{ marginRight: 6 }} />Généré le {passport.dateGeneration?.replace("T", " ").slice(0, 16)}</Text>
+            <Text className={s.identityMeta}><MailOutlined style={{ marginRight: 6 }} />{identity.email}</Text>
+            <Text className={s.identityMeta}><CalendarOutlined style={{ marginRight: 6 }} />Généré le {passport.dateGeneration?.replace("T", " ").slice(0, 16)}</Text>
           </Space>
         </Space>
-        <div style={{ textAlign: "center" }}>
-          <div style={{ fontSize: 36, fontWeight: 700, color: scoreColor(scoreGlobal), lineHeight: 1 }}>
-            {scoreGlobal.toFixed(1)}<span style={{ fontSize: 18, color: neutral[400], fontWeight: 400 }}>/5</span>
+        <div className={s.scoreWrapper}>
+          <div className={s.scoreValue} style={{ color: scoreColor(scoreGlobal) }}>
+            {scoreGlobal.toFixed(1)}<span className={s.scoreUnit}>/5</span>
           </div>
-          <div style={{ marginTop: 8 }}>{statutTag(statut)}</div>
+          <div className={s.statutTagRow}>{statutTag(statut)}</div>
         </div>
       </div>
 
@@ -257,9 +252,9 @@ export default function SkillPassportPage({ targetUsername, downloadLabel }: Pro
         ].map((kpi) => (
           <Col xs={12} md={6} key={kpi.label}>
             <Card styles={{ body: { textAlign: "center", padding: 20 } }}>
-              <div style={{ fontSize: 28, color: kpi.color, marginBottom: 4 }}>{kpi.icon}</div>
+              <div className={s.kpiIcon} style={{ color: kpi.color }}>{kpi.icon}</div>
               <Statistic value={kpi.value} valueStyle={{ color: kpi.color, fontSize: 32 }} />
-              <Text type="secondary" style={{ fontSize: 12 }}>{kpi.label}</Text>
+              <Text type="secondary" className={s.kpiLabel}>{kpi.label}</Text>
             </Card>
           </Col>
         ))}
@@ -267,18 +262,18 @@ export default function SkillPassportPage({ targetUsername, downloadLabel }: Pro
 
       {/* ── Domaines & Compétences ───────────────────────────────────── */}
       <Card
-        title={<Title level={4} style={{ margin: 0 }}>Domaines & Compétences Maîtrisées</Title>}
-        style={{ marginBottom: 24 }}
+        title={<Title level={4} className={s.cardTitle}>Domaines & Compétences Maîtrisées</Title>}
+        className={s.sectionCard}
       >
         {(!domaines || domaines.length === 0) ? (
           <Paragraph type="secondary" italic>Aucune compétence enregistrée.</Paragraph>
         ) : (
-          domaines.map((domaine) => (
-            <div key={domaine.domaineId ?? domaine.nom} style={{ marginBottom: 20 }}>
+          domaines.map((domaine, idx) => (
+            <div key={domaine.domaineId ?? domaine.nom} className={s.domainRow}>
               <Row justify="space-between" align="middle" style={{ marginBottom: 8 }}>
                 <Col>
-                  <Text strong style={{ fontSize: 14, color: brand[700] }}>{domaine.nom}</Text>
-                  <Text type="secondary" style={{ marginLeft: 8, fontSize: 12 }}>
+                  <Text strong className={s.domainName} style={{ color: brand[700] }}>{domaine.nom}</Text>
+                  <Text type="secondary" className={s.domainSavoirs}>
                     {domaine.totalSavoirs} savoirs
                   </Text>
                 </Col>
@@ -289,7 +284,7 @@ export default function SkillPassportPage({ targetUsername, downloadLabel }: Pro
                       size="small"
                       strokeColor={scoreColor(domaine.scoreGlobal)}
                       format={() => `${domaine.scoreGlobal.toFixed(1)}/5`}
-                      style={{ width: 140 }}
+                      className={s.progressBar}
                     />
                   </Tooltip>
                 </Col>
@@ -297,7 +292,7 @@ export default function SkillPassportPage({ targetUsername, downloadLabel }: Pro
               {domaine.competences?.flatMap((comp) => comp.savoirs ?? []).length > 0 && (
                 <Table
                   dataSource={domaine.competences?.flatMap((comp) =>
-                    (comp.savoirs ?? []).map((s) => ({ ...s, competenceNom: comp.nom, key: s.code }))
+                    (comp.savoirs ?? []).map((sv) => ({ ...sv, competenceNom: comp.nom, key: sv.code }))
                   )}
                   columns={[
                     { title: "Compétence", dataIndex: "competenceNom", key: "comp", width: "25%" },
@@ -319,10 +314,10 @@ export default function SkillPassportPage({ targetUsername, downloadLabel }: Pro
                   ]}
                   size="small"
                   pagination={false}
-                  style={{ fontSize: 12 }}
+                  className={s.tableSmall}
                 />
               )}
-              {idx < domaines.length - 1 && <Divider style={{ margin: "12px 0" }} />}
+              {idx < domaines.length - 1 && <Divider className={s.tightDivider} />}
             </div>
           ))
         )}
@@ -330,8 +325,8 @@ export default function SkillPassportPage({ targetUsername, downloadLabel }: Pro
 
       {/* ── Formations ───────────────────────────────────────────────── */}
       <Card
-        title={<Title level={4} style={{ margin: 0 }}>Formations Suivies</Title>}
-        style={{ marginBottom: 24 }}
+        title={<Title level={4} className={s.cardTitle}>Formations Suivies</Title>}
+        className={s.sectionCard}
       >
         <Table<TrainingHistoryDTO>
           dataSource={formations ?? []}
@@ -345,8 +340,8 @@ export default function SkillPassportPage({ targetUsername, downloadLabel }: Pro
 
       {/* ── Certifications ───────────────────────────────────────────── */}
       <Card
-        title={<Title level={4} style={{ margin: 0 }}>Certifications Obtenues</Title>}
-        style={{ marginBottom: 24 }}
+        title={<Title level={4} className={s.cardTitle}>Certifications Obtenues</Title>}
+        className={s.sectionCard}
       >
         <Table<CertificationSummaryDTO>
           dataSource={certifications ?? []}

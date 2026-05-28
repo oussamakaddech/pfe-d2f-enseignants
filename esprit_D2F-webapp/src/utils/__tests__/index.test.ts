@@ -9,13 +9,10 @@ import {
   positiveNumberRule, codeFormatRule, rangeRule,
   noLeadingTrailingSpacesRule, confirmPasswordRule,
   nomRules, codeRules, descriptionRules, emailRules,
-  getToken, setToken, removeToken, hasToken,
-  getProfile, setProfile, removeProfile,
   getActiveRole, setActiveRole, removeActiveRole,
   getPreferredLang, setPreferredLang, clearSession, storage,
   extractErrorMessage, extractStatusCode,
   isUnauthorized, isForbidden, isNotFound,
-  authHeader, jsonAuthHeaders,
   paginationParams, extractPageData, buildQueryString,
 } from '../index';
 
@@ -60,13 +57,6 @@ describe('utils barrel index', () => {
   });
 
   it('re-exports all storage functions', () => {
-    expect(getToken).toBeDefined();
-    expect(setToken).toBeDefined();
-    expect(removeToken).toBeDefined();
-    expect(hasToken).toBeDefined();
-    expect(getProfile).toBeDefined();
-    expect(setProfile).toBeDefined();
-    expect(removeProfile).toBeDefined();
     expect(getActiveRole).toBeDefined();
     expect(setActiveRole).toBeDefined();
     expect(removeActiveRole).toBeDefined();
@@ -82,8 +72,6 @@ describe('utils barrel index', () => {
     expect(isUnauthorized).toBeDefined();
     expect(isForbidden).toBeDefined();
     expect(isNotFound).toBeDefined();
-    expect(authHeader).toBeDefined();
-    expect(jsonAuthHeaders).toBeDefined();
     expect(paginationParams).toBeDefined();
     expect(extractPageData).toBeDefined();
     expect(buildQueryString).toBeDefined();

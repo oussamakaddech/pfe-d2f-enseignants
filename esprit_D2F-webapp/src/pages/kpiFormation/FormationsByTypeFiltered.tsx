@@ -28,7 +28,7 @@ export default function FormationsByTypeFiltered() {
     domaine: null, upId: null, deptId: null,
     ouverte: null, start: null, end: null, etat: null,
   });
-  const [dataByType, setDataByType] = useState(null);
+  const [dataByType, setDataByType] = useState<any>(null);
   const [drawerVisible, setDrawerVisible] = useState(false);
 
   const { data: deptsRaw = [], isLoading: loadingDepts } = useDepartements();
@@ -53,7 +53,7 @@ export default function FormationsByTypeFiltered() {
   }, [loadingOptions]);
 
   // ─── Dès qu’on modifie un champ du formulaire, on met à jour l’objet filters
-  const onFormChange = (changedValues, allValues) => {
+  const onFormChange = (_changedValues: any, allValues: any) => {
     const newFilters = {
       domaine:    allValues.domaine    || null,
       upId:       allValues.upId       || null,
@@ -127,7 +127,7 @@ export default function FormationsByTypeFiltered() {
               allowClear
               optionFilterProp="children"
               filterOption={(input, option) =>
-                option.children.toLowerCase().includes(input.toLowerCase())
+                (option?.children as string | undefined)?.toLowerCase().includes(input.toLowerCase()) ?? false
               }
             >
               {upsOptions.map((u) => (
@@ -145,7 +145,7 @@ export default function FormationsByTypeFiltered() {
               allowClear
               optionFilterProp="children"
               filterOption={(input, option) =>
-                option.children.toLowerCase().includes(input.toLowerCase())
+                (option?.children as string | undefined)?.toLowerCase().includes(input.toLowerCase()) ?? false
               }
             >
               {deptsOptions.map((d) => (

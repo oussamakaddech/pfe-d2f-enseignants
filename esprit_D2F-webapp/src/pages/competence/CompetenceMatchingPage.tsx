@@ -35,11 +35,11 @@ import "@/styles/pages/competence-matching-page.css";
 const { Title, Text } = Typography;
 
 // ─── Initial State ────────────────────────────────────────────────────────────
-const initialState = {
+const initialState: Record<string, any> = {
   savoirs: [],
   enseignants: [],
-  assignments: {},
-  pendingChanges: { add: [], remove: [] },
+  assignments: {} as Record<string, any>,
+  pendingChanges: { add: [] as any[], remove: [] as any[] },
   filters: {
     departement: "all",
     domaine: "all",
@@ -51,7 +51,7 @@ const initialState = {
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-const getAvatarColor = (id) => {
+const getAvatarColor = (id: any) => {
   const colors = [
     "#fa8c16", "#faad14", "#52c41a", "#1890ff", "#722ed1",
     "#13c2c2", "#eb2f96", "#2f54eb", "#a0d911", "#f5222d",
@@ -64,14 +64,14 @@ const getAvatarColor = (id) => {
   return colors[Math.abs(hash) % colors.length];
 };
 
-const normalizePending = (pending) => {
-  const key = (item) => `${item.savoirId}|${item.enseignantId}`;
+const normalizePending = (pending: any) => {
+  const key = (item: any) => `${item.savoirId}|${item.enseignantId}`;
   const adds = new Map();
   const removes = new Map();
-  (pending?.add || []).forEach((item) => {
+  (pending?.add || []).forEach((item: any) => {
     if (item?.savoirId && item?.enseignantId) adds.set(key(item), item);
   });
-  (pending?.remove || []).forEach((item) => {
+  (pending?.remove || []).forEach((item: any) => {
     if (item?.savoirId && item?.enseignantId) removes.set(key(item), item);
   });
   for (const k of adds.keys()) {
@@ -80,7 +80,7 @@ const normalizePending = (pending) => {
   return { add: Array.from(adds.values()), remove: Array.from(removes.values()) };
 };
 
-const normalizeNiveauForAssignment = (niveau) => {
+const normalizeNiveauForAssignment = (niveau: any) => {
   const raw = String(niveau ?? "").trim().toUpperCase();
   if (!raw) return "N1_DEBUTANT";
 
@@ -98,7 +98,7 @@ const normalizeNiveauForAssignment = (niveau) => {
 };
 
 // ─── Reducer ──────────────────────────────────────────────────────────────────
-function reducer(state, action) {
+function reducer(state: any, action: any) {
   switch (action.type) {
     case "LOAD_SUCCESS": {
       const { savoirs, enseignants, assignments } = action.payload;
@@ -124,7 +124,7 @@ function reducer(state, action) {
       const sId = String(savoirId);
       const eId = String(enseignantId);
       const assignments = { ...state.assignments };
-      assignments[sId] = (assignments[sId] ?? []).filter((id) => String(id) !== eId);
+      assignments[sId] = (assignments[sId] ?? []).filter((id: any) => String(id) !== eId);
       const pending = { add: [...state.pendingChanges.add], remove: [...state.pendingChanges.remove] };
       const addIdx = pending.add.findIndex((p) => String(p.savoirId) === sId && String(p.enseignantId) === eId);
       if (addIdx !== -1) pending.add.splice(addIdx, 1);
@@ -158,8 +158,8 @@ export default function CompetenceMatchingPage() {
 
   const { message, modal } = useAppNotification();
   const [state, dispatch] = useReducer(reducer, initialState);
-  const [draggingId, setDraggingId] = useState(null);
-  const [dragOverEns, setDragOverEns] = useState(null);
+  const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [dragOverEns, setDragOverEns] = useState<string | null>(null);
   const [ensSearch, setEnsSearch] = useState("");
   const [ensSort, setEnsSort] = useState("name");
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -171,14 +171,14 @@ export default function CompetenceMatchingPage() {
   // ── Teacher Map ──────────────────────────────────────────────────────────
   const teacherById = useMemo(() => {
     const map = new Map();
-    (state.enseignants || []).forEach((ens) => map.set(String(ens.id), ens));
+    (state.enseignants || []).forEach((ens: any) => map.set(String(ens.id), ens));
     return map;
   }, [state.enseignants]);
 
   // ── Domain Options ───────────────────────────────────────────────────────
   const domainOptions = useMemo(() => {
     const map = new Map();
-    (state.savoirs || []).forEach((s) => {
+    (state.savoirs || []).forEach((s: any) => {
       const code = s.domaine?.code ?? s.domaine?.nom ?? s.domaine;
       if (!code) return;
       const label = s.domaine?.nom ?? s.domaine?.code ?? String(code);
@@ -202,8 +202,8 @@ export default function CompetenceMatchingPage() {
 
   useEffect(() => {
     if (savoirsData.length > 0 || enseignantsData.length > 0) {
-      const assignments = {};
-      (savoirsData || []).forEach((s) => {
+      const assignments: Record<string, any> = {};
+      (savoirsData || []).forEach((s: any) => {
         assignments[String(s.id)] = (s.enseignants ?? s.enseignantIds ?? []).map(String);
       });
       dispatch({ type: "LOAD_SUCCESS", payload: { savoirs: savoirsData || [], enseignants: enseignantsData || [], assignments } });
@@ -213,17 +213,17 @@ export default function CompetenceMatchingPage() {
   // ── Drag Handlers ────────────────────────────────────────────────────────
   const handleDragEnd = useCallback(() => { setDraggingId(null); setDragOverEns(null); }, []);
 
-  const handleEnsDrop = useCallback((e, ensId) => {
+  const handleEnsDrop = useCallback((e: any, ensId: any) => {
     e.preventDefault();
     e.stopPropagation();
-    let payload = {};
+    let payload: any = {};
     try { payload = JSON.parse(e.dataTransfer.getData("text/plain") || "{}"); } catch { payload = {}; }
     const sId = String(payload.savoirId ?? "");
     if (!sId) { handleDragEnd(); return; }
     const alreadyAssigned = (stateRef.current.assignments[sId] ?? []).includes(ensId);
     if (alreadyAssigned) { message.warning("Déjà assigné à cet enseignant", 2); handleDragEnd(); return; }
     dispatch({ type: "ASSIGN_SAVOIR", payload: { savoirId: sId, enseignantId: ensId } });
-    const savoir = stateRef.current.savoirs.find((x) => String(x.id) === sId);
+    const savoir = stateRef.current.savoirs.find((x: any) => String(x.id) === sId);
     const teacher = teacherById.get(ensId);
     const teacherName = teacher ? `${teacher.prenom} ${teacher.nom}`.trim() : ensId;
     message.success(`${savoir?.code ?? sId} → ${teacherName}`, 2);
@@ -231,7 +231,7 @@ export default function CompetenceMatchingPage() {
   }, [teacherById, handleDragEnd]);
 
   // ── Unassign ─────────────────────────────────────────────────────────────
-  const handleUnassign = useCallback((savoirId, enseignantId) => {
+  const handleUnassign = useCallback((savoirId: any, enseignantId: any) => {
     dispatch({ type: "UNASSIGN_SAVOIR", payload: { savoirId: String(savoirId), enseignantId: String(enseignantId) } });
     message.info("Assignation retirée", 1.5);
   }, []);
@@ -244,8 +244,8 @@ export default function CompetenceMatchingPage() {
     const payload = normalizePending(stateRef.current.pendingChanges);
     if (payload.add.length === 0 && payload.remove.length === 0) { message.info("Aucune modification"); return; }
 
-    const savoirById = new Map(
-      (stateRef.current.savoirs || []).map((s) => [String(s.id), s]),
+    const savoirById = new Map<string, any>(
+      (stateRef.current.savoirs || []).map((s: any) => [String(s.id), s]),
     );
 
     const payloadWithNiveaux = {
@@ -265,7 +265,7 @@ export default function CompetenceMatchingPage() {
       dispatch({ type: "SAVE_SUCCESS" });
       message.success(`${payload.add.length + payload.remove.length} modification(s) sauvegardée(s)`);
       await Promise.all([refetchSavoirs(), refetchEnseignants()]);
-    } catch (err: unknown) {
+    } catch (err: any) {
       const msg = err?.response?.data?.message ?? err?.message ?? "Erreur inconnue";
       dispatch({ type: "SET_ERROR", payload: { error: msg } });
       message.error("Erreur: " + msg, 3);
@@ -281,8 +281,8 @@ export default function CompetenceMatchingPage() {
   }, [reloadData]);
 
   // ── Teacher CRUD ─────────────────────────────────────────────────────────
-  const handleEditTeacher = useCallback((ens) => { setEditingEns(ens); form.setFieldsValue(ens); setShowCreateModal(true); }, [form]);
-  const handleDeleteTeacher = useCallback((ens) => {
+  const handleEditTeacher = useCallback((ens: any) => { setEditingEns(ens); form.setFieldsValue(ens); setShowCreateModal(true); }, [form]);
+  const handleDeleteTeacher = useCallback((ens: any) => {
     modal.confirm({
       title: "Désactiver cet enseignant ?",
       content: `${ens.prenom} ${ens.nom} sera désactivé(e).`,
@@ -294,9 +294,9 @@ export default function CompetenceMatchingPage() {
     });
   }, [reloadData]);
 
-  const handleModalSubmit = useCallback(async (values) => {
+  const handleModalSubmit = useCallback(async (values: any) => {
     try {
-      if (editingEns) await updateEnseignantHook.mutateAsync({ id: editingEns.id, data: values });
+      if (editingEns) await updateEnseignantHook.mutateAsync({ id: (editingEns as any).id, data: values });
       else await createEnseignantHook.mutateAsync(values);
       setShowCreateModal(false); form.resetFields(); await reloadData();
       message.success(editingEns ? "Enseignant mis à jour" : "Enseignant créé");
@@ -306,7 +306,7 @@ export default function CompetenceMatchingPage() {
   // ── Derived Values ───────────────────────────────────────────────────────
   const filteredSavoirs = useMemo(() => {
     const q = (state.filters.search ?? "").toLowerCase();
-    return (state.savoirs || []).filter((s) => {
+    return (state.savoirs || []).filter((s: any) => {
       if (q && !`${s.nom} ${s.code}`.toLowerCase().includes(q)) return false;
       if (state.filters.domaine !== "all") {
         const sd = s.domaine?.code ?? s.domaine?.nom ?? s.domaine ?? "";
@@ -320,19 +320,19 @@ export default function CompetenceMatchingPage() {
   const pendingTotal = useMemo(() => state.pendingChanges.add.length + state.pendingChanges.remove.length, [state.pendingChanges]);
 
   const assignmentCountByEns = useMemo(() => {
-    const counts = {};
-    state.enseignants.forEach((e) => (counts[String(e.id)] = 0));
-    Object.values(state.assignments).forEach((ids) => (ids ?? []).forEach((id) => { if (counts[String(id)] !== undefined) counts[String(id)]++; }));
+    const counts: Record<string, any> = {};
+    state.enseignants.forEach((e: any) => (counts[String(e.id)] = 0));
+    Object.values(state.assignments).forEach((ids: any) => ((ids ?? []) as any[]).forEach((id: any) => { if (counts[String(id)] !== undefined) counts[String(id)]++; }));
     return counts;
   }, [state.enseignants, state.assignments]);
 
-  const maxLoad = useMemo(() => { const v = Object.values(assignmentCountByEns); return v.length ? Math.max(1, ...v) : 1; }, [assignmentCountByEns]);
+  const maxLoad = useMemo(() => { const v = Object.values(assignmentCountByEns) as number[]; return v.length ? Math.max(1, ...v) : 1; }, [assignmentCountByEns]);
 
   const assignedSavoirsByEns = useMemo(() => {
     const map = new Map();
-    state.enseignants.forEach((e) => map.set(String(e.id), []));
-    (state.savoirs || []).forEach((s) => {
-      (state.assignments[String(s.id)] ?? []).forEach((ensId) => {
+    state.enseignants.forEach((e: any) => map.set(String(e.id), []));
+    (state.savoirs || []).forEach((s: any) => {
+      (state.assignments[String(s.id)] ?? []).forEach((ensId: any) => {
         const k = String(ensId);
         if (!map.has(k)) map.set(k, []);
         map.get(k).push(s);
@@ -345,8 +345,8 @@ export default function CompetenceMatchingPage() {
     let list = [...state.enseignants];
     if (ensSearch.trim()) { const q = ensSearch.toLowerCase(); list = list.filter((e) => `${e.prenom} ${e.nom}`.toLowerCase().includes(q)); }
     if (ensSort === "name") list.sort((a, b) => `${a.nom} ${a.prenom}`.localeCompare(`${b.nom} ${b.prenom}`));
-    else if (ensSort === "load_desc") list.sort((a, b) => (assignmentCountByEns[String(b.id)] || 0) - (assignmentCountByEns[String(a.id)] || 0));
-    else list.sort((a, b) => (assignmentCountByEns[String(a.id)] || 0) - (assignmentCountByEns[String(b.id)] || 0));
+    else if (ensSort === "load_desc") list.sort((a: any, b: any) => (assignmentCountByEns[String(b.id)] || 0) - (assignmentCountByEns[String(a.id)] || 0));
+    else list.sort((a: any, b: any) => (assignmentCountByEns[String(a.id)] || 0) - (assignmentCountByEns[String(b.id)] || 0));
     return list;
   }, [state.enseignants, ensSearch, ensSort, assignmentCountByEns]);
 
@@ -354,7 +354,6 @@ export default function CompetenceMatchingPage() {
   return (
     // Page-level drag-end listener captures stray drag releases; keyboard users
     // never trigger drag events. (S6848 — by-design DnD widget.)
-    // eslint-disable-next-line jsx-a11y/no-static-element-interactions
     <div className={`competence-matching-page ${draggingId ? "is-dragging" : ""}`} onDragEnd={handleDragEnd}>
       {/* Header */}
       <AppPageHeader
@@ -365,7 +364,7 @@ export default function CompetenceMatchingPage() {
           <Space size="middle">
             <Select 
               value={state.filters.departement} 
-              onChange={(v) => { dispatch({ type: "SET_FILTER", payload: { key: "departement", value: v } }); reloadData(v); }} 
+              onChange={(v) => { dispatch({ type: "SET_FILTER", payload: { key: "departement", value: v } }); reloadData(); }} 
               style={{ width: 180 }} 
               options={[{ value: "all", label: "Tous les départements" }]} 
             />
@@ -408,12 +407,11 @@ export default function CompetenceMatchingPage() {
             {(() => {
               if (state.loading.data) return <Skeleton active paragraph={{ rows: 10 }} />;
               if (filteredSavoirs.length === 0) return <Empty description="Aucun savoir trouvé" />;
-              return filteredSavoirs.map((s) => {
+              return filteredSavoirs.map((s: any) => {
                 const sId = String(s.id);
-                const assigned = (state.assignments[sId] ?? []).map((id) => teacherById.get(id)).filter(Boolean);
+                const assigned = (state.assignments[sId] ?? []).map((id: any) => teacherById.get(id)).filter(Boolean);
                 return (
                   /* Draggable assignment card; keyboard users use the per-card menu actions. (S6848 — by-design DnD.) */
-                  // eslint-disable-next-line jsx-a11y/no-static-element-interactions
                   <div key={sId} className={`savoir-assignment-card ${assigned.length > 0 ? "assigned" : "unassigned"} ${draggingId === sId ? "dragging" : ""}`}
                     draggable onDragStart={(e) => { e.dataTransfer.setData("text/plain", JSON.stringify({ savoirId: String(s.id), code: s.code, action: "assign" })); e.dataTransfer.effectAllowed = "copy"; setDraggingId(String(s.id)); }} onDragEnd={handleDragEnd}>
                     <div className="savoir-card-header">
@@ -423,7 +421,7 @@ export default function CompetenceMatchingPage() {
                     </div>
                     {assigned.length > 0 && (
                       <div className="savoir-assigned-teachers">
-                        {assigned.map((ens) => (
+                        {assigned.map((ens: any) => (
                           <Tag key={ens.id} className="teacher-assignment-tag" closable onClose={makeUnassignHandler(String(s.id), String(ens.id))}>
                             {ens.prenom} {ens.nom}
                           </Tag>
@@ -461,12 +459,11 @@ export default function CompetenceMatchingPage() {
                 const avatarColor = getAvatarColor(ensId);
                 return (
                   /* Drop target for the assignment; keyboard equivalent provided by the per-savoir menu. (S6848 — by-design DnD.) */
-                  // eslint-disable-next-line jsx-a11y/no-static-element-interactions
                   <div key={ensId} className={`enseignant-assignment-card ${draggingId ? "drag-mode-active" : ""} ${dragOverEns === ensId ? "drag-over-target" : ""}`}
                     onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "copy"; setDragOverEns(ensId); }}
                     onDragLeave={(e) => {
                       const related = e.relatedTarget;
-                      if (related && e.currentTarget.contains(related)) return;
+                      if (related && e.currentTarget.contains(related as Node)) return;
                       setDragOverEns(null);
                     }}
                     onDrop={(e) => handleEnsDrop(e, ensId)}>
@@ -499,7 +496,7 @@ export default function CompetenceMatchingPage() {
 
                     {assigned.length > 0 && (
                       <div className="enseignant-assigned-savoirs" style={{ marginTop: 12 }}>
-                        {assigned.map((sv) => (
+                        {assigned.map((sv: any) => (
                           <Tag key={sv.id} color="blue" closable onClose={makeUnassignHandler(String(sv.id), ensId)} style={{ marginBottom: 4 }}>
                             {sv.code}
                           </Tag>

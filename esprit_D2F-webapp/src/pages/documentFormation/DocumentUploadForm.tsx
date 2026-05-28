@@ -1,10 +1,12 @@
 import { useState } from "react";
-import PropTypes from "prop-types";
 import { Form, Input, Select, Checkbox, Upload, Button } from "antd";
+import type { UploadFile } from "antd";
 import { UploadOutlined } from "@ant-design/icons";
 import useAppNotification from "@/hooks/ui/useAppNotification";
 import "antd/dist/reset.css";
 import { useCreateDocument } from "@/hooks/document/useDocument";
+import type { Id } from "@/models/common";
+import type { FormationDocument } from "@/models/document";
 
 const { Option } = Select;
 const PATH_OPTIONS = [
@@ -13,19 +15,33 @@ const PATH_OPTIONS = [
   { value: "DOCUMENT", label: "Autre dossier…" },
 ];
 
-export default function DocumentUploadForm({ formationId, onClose, onDocumentAdded }) {
+interface DocumentUploadFormProps {
+  formationId: Id;
+  onClose: () => void;
+  onDocumentAdded: (doc: FormationDocument) => void;
+}
+
+interface DocFormValues {
+  pathType: string;
+  nomDocument: string;
+  obligation: boolean;
+  file?: UploadFile[];
+}
+
+export default function DocumentUploadForm({ formationId, onClose, onDocumentAdded }: DocumentUploadFormProps) {
   const { message } = useAppNotification();
   const [form] = Form.useForm();
-  const [fileList, setFileList] = useState([]);
+  const [fileList, setFileList] = useState<UploadFile[]>([]);
   const [loading, setLoading] = useState(false);
+  const { mutateAsync: createDoc } = useCreateDocument();
 
   const uploadProps = {
     beforeUpload: () => false,
-    onChange: ({ fileList }) => setFileList(fileList.slice(-1)),
+    onChange: ({ fileList }: { fileList: UploadFile[] }) => setFileList(fileList.slice(-1)),
     fileList,
   };
 
-  const onFinish = async (values) => {
+  const onFinish = async (values: DocFormValues) => {
     if (fileList.length === 0) {
       return message.error("Veuillez sélectionner un fichier.");
     }
@@ -35,17 +51,16 @@ export default function DocumentUploadForm({ formationId, onClose, onDocumentAdd
         formationId,
         pathType:    values.pathType,
         nomDocument: values.nomDocument,
-        obligation:  values.obligation,
-        file:        fileList[0].originFileObj,
+        obligation:  String(values.obligation),
+        file:        fileList[0]?.originFileObj as File,
       };
-      const { mutateAsync: createDoc } = useCreateDocument();
       const newDoc = await createDoc(payload);
       message.success("Document ajouté avec succès");
       form.resetFields();
       setFileList([]);
-      onDocumentAdded(newDoc);
+      onDocumentAdded(newDoc as FormationDocument);
       onClose();
-    } catch (err: unknown) {
+    } catch {
       message.error("🚫 Erreur lors de l'ajout du document.");
     } finally {
       setLoading(false);
@@ -107,12 +122,6 @@ export default function DocumentUploadForm({ formationId, onClose, onDocumentAdd
     </Form>
   );
 }
-
-DocumentUploadForm.propTypes = {
-  formationId:     PropTypes.number.isRequired,
-  onClose:         PropTypes.func.isRequired,
-  onDocumentAdded: PropTypes.func.isRequired,
-};
 
 
 

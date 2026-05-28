@@ -1,5 +1,5 @@
 import { defaultApi as axios } from "@/utils/helpers/httpClient";
-import { config } from "@/config/env"; 
+import { config } from "@/config/env";
 const API_URL = `${config.FORMATION_URL}/formation/formation-report`;
 
 function formatDate(date: Date | string): string {
@@ -16,23 +16,15 @@ const FormationReportService = {
     start: Date | string,
     end: Date | string
   ) {
-    try {
-      const params = {
-        role,
-        enseignantId,
-        start: formatDate(start),
-        end: formatDate(end),
-      };
-      const response = await axios.get(API_URL, { params });
-      return response.data;
-    } catch (error: unknown) {
-      throw error;
-    }
+    const params = {
+      role,
+      enseignantId,
+      start: formatDate(start),
+      end: formatDate(end),
+    };
+    const response = await axios.get(API_URL, { params });
+    return response.data;
   }
 };
 
 export default FormationReportService;
-
-
-
-

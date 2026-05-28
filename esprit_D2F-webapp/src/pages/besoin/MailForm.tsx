@@ -95,14 +95,14 @@ export default function MailForm({ formation, onSendSuccess }: Readonly<MailForm
 
   // 2) Envoi
   const { mutateAsync: sendEmail } = useSendEmail();
-  const handleFinish = async (values) => {
+  const handleFinish = async (values: any) => {
     try {
       const result = await sendEmail({ to: values.to, subject: values.subject, content: values.content });
       const successMsg = result?.message || "📨 E-mail envoyé avec succès !";
       message.success(successMsg);
       form.resetFields(["subject", "content"]);
       if (onSendSuccess) onSendSuccess();
-    } catch (err: unknown) {
+    } catch (err: any) {
       const errorMsg = err.response?.data?.error || err.response?.data?.message || err.message || "Échec de l’envoi de l’e-mail.";
       message.error(`❌ ${errorMsg}`);
     }

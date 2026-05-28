@@ -60,7 +60,7 @@ class RiceImportServiceImplTest {
         request.setDomaines(List.of(domReq));
 
         Domaine newDomaine = Domaine.builder().id(1L).code("DOM-001").nom("Informatique").build();
-        when(domaineRepository.findByCode("DOM-001")).thenReturn(Optional.empty());
+        when(domaineRepository.findByCodeIgnoreCase("DOM-001")).thenReturn(Optional.empty());
         when(domaineRepository.save(any())).thenReturn(newDomaine);
         when(riceImportLogRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
@@ -80,7 +80,7 @@ class RiceImportServiceImplTest {
         request.setDomaines(List.of(domReq));
 
         Domaine existingDomaine = Domaine.builder().id(1L).code("DOM-001").build();
-        when(domaineRepository.findByCode("DOM-001")).thenReturn(Optional.of(existingDomaine));
+        when(domaineRepository.findByCodeIgnoreCase("DOM-001")).thenReturn(Optional.of(existingDomaine));
         when(riceImportLogRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
         RiceImportResult result = service.importRice(request);
@@ -121,16 +121,16 @@ class RiceImportServiceImplTest {
         SousCompetence sc = SousCompetence.builder().id(1L).code("SC-001").build();
         Savoir savoir = Savoir.builder().id(1L).code("SAV-001").build();
 
-        when(domaineRepository.findByCode("DOM-001")).thenReturn(Optional.empty());
+        when(domaineRepository.findByCodeIgnoreCase("DOM-001")).thenReturn(Optional.empty());
         when(domaineRepository.save(any(Domaine.class))).thenReturn(domaine);
         
-        when(competenceRepository.findByCode("COMP-001")).thenReturn(Optional.empty());
+        when(competenceRepository.findByCodeIgnoreCase("COMP-001")).thenReturn(Optional.empty());
         when(competenceRepository.save(any(Competence.class))).thenReturn(competence);
         
-        when(sousCompetenceRepository.findByCode("SC-001")).thenReturn(Optional.empty());
+        when(sousCompetenceRepository.findByCodeIgnoreCase("SC-001")).thenReturn(Optional.empty());
         when(sousCompetenceRepository.save(any(SousCompetence.class))).thenReturn(sc);
         
-        when(savoirRepository.findByCode("SAV-001")).thenReturn(Optional.empty());
+        when(savoirRepository.findByCodeIgnoreCase("SAV-001")).thenReturn(Optional.empty());
         when(savoirRepository.save(any(Savoir.class))).thenReturn(savoir);
         
         when(enseignantCompetenceRepository.existsByEnseignantIdAndSavoirId("ens-123", 1L)).thenReturn(false);
@@ -178,9 +178,9 @@ class RiceImportServiceImplTest {
         Competence competence = Competence.builder().id(2L).code("COMP-EXIST").build();
         Savoir savoir = Savoir.builder().id(3L).code("SAV-EXIST").build();
 
-        when(domaineRepository.findByCode("DOM-EXIST")).thenReturn(Optional.of(domaine));
-        when(competenceRepository.findByCode("COMP-EXIST")).thenReturn(Optional.of(competence));
-        when(savoirRepository.findByCode("SAV-EXIST")).thenReturn(Optional.of(savoir));
+        when(domaineRepository.findByCodeIgnoreCase("DOM-EXIST")).thenReturn(Optional.of(domaine));
+        when(competenceRepository.findByCodeIgnoreCase("COMP-EXIST")).thenReturn(Optional.of(competence));
+        when(savoirRepository.findByCodeIgnoreCase("SAV-EXIST")).thenReturn(Optional.of(savoir));
         
         when(enseignantCompetenceRepository.existsByEnseignantIdAndSavoirId("ens-456", 3L)).thenReturn(true);
         when(riceImportLogRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
@@ -261,15 +261,15 @@ class RiceImportServiceImplTest {
         RiceImportRequest request = new RiceImportRequest();
         request.setDomaines(List.of(domReq));
 
-        when(domaineRepository.findByCode(any())).thenReturn(Optional.of(Domaine.builder().id(1L).build()));
-        when(competenceRepository.findByCode(any())).thenReturn(Optional.of(Competence.builder().id(2L).build()));
-        when(sousCompetenceRepository.findByCode(any())).thenReturn(Optional.empty());
+        when(domaineRepository.findByCodeIgnoreCase(any())).thenReturn(Optional.of(Domaine.builder().id(1L).build()));
+        when(competenceRepository.findByCodeIgnoreCase(any())).thenReturn(Optional.of(Competence.builder().id(2L).build()));
+        when(sousCompetenceRepository.findByCodeIgnoreCase(any())).thenReturn(Optional.empty());
         when(sousCompetenceRepository.save(any())).thenAnswer(inv -> {
             SousCompetence sc = inv.getArgument(0);
             sc.setId(10L);
             return sc;
         });
-        when(savoirRepository.findByCode(any())).thenReturn(Optional.empty());
+        when(savoirRepository.findByCodeIgnoreCase(any())).thenReturn(Optional.empty());
         when(savoirRepository.save(any())).thenAnswer(inv -> {
             Savoir s = inv.getArgument(0);
             s.setId(100L);

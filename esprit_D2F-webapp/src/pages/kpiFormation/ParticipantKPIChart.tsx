@@ -41,9 +41,9 @@ const ParticipantKPIChart = () => {
   const { data: formationsKpiData } = useFormationsParticipantKPIs(start, end);
 
   const globalKpiData = {
-    total: globalKPI?.nombreParticipantsTotal ?? 0,
-    presents: globalKPI?.nombreParticipantsPresent ?? 0,
-    taux: globalKPI?.tauxParticipation ?? 0,
+    total: (globalKPI as any)?.nombreParticipantsTotal ?? 0,
+    presents: (globalKPI as any)?.nombreParticipantsPresent ?? 0,
+    taux: (globalKPI as any)?.tauxParticipation ?? 0,
   };
 
   const formationsKPI = Array.isArray(formationsKpiData) ? formationsKpiData : [];
@@ -108,10 +108,10 @@ const ParticipantKPIChart = () => {
           <h3>📊 Participation par Formation</h3>
           <Bar
             data={{
-              labels: formationsKPI.map(f => f.titreFormation),
+              labels: formationsKPI.map((f: any) => f.titreFormation),
               datasets: [{
                 label: "Taux de Participation (%)",
-                data: formationsKPI.map(f => f.tauxParticipation),
+                data: formationsKPI.map((f: any) => f.tauxParticipation),
                 backgroundColor: "rgba(54, 162, 235, 0.6)",
                 borderColor: "rgba(54, 162, 235, 1)",
                 borderWidth: 1,

@@ -58,13 +58,6 @@ export {
 
 // ── Stockage local ────────────────────────────────────────────────────────────
 export {
-  getToken,
-  setToken,
-  removeToken,
-  hasToken,
-  getProfile,
-  setProfile,
-  removeProfile,
   getActiveRole,
   setActiveRole,
   removeActiveRole,
@@ -81,8 +74,6 @@ export {
   isUnauthorized,
   isForbidden,
   isNotFound,
-  authHeader,
-  jsonAuthHeaders,
   paginationParams,
   extractPageData,
   buildQueryString,

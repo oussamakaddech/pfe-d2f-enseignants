@@ -1,7 +1,7 @@
 import PropTypes from "prop-types";
 import { Empty, Tooltip } from "antd";
 
-export default function NiveauSavoirMatrix({ data, title, code }) {
+export default function NiveauSavoirMatrix({ data, title, code }: any) {
   const NIVEAUX = [
     { key: "N1_DEBUTANT", label: "N 1" },
     { key: "N2_ELEMENTAIRE", label: "N 2" },
@@ -16,7 +16,7 @@ export default function NiveauSavoirMatrix({ data, title, code }) {
     return <Empty description="Aucun savoir requis défini pour cette compétence" />;
   }
 
-  const tdStyle = {
+  const tdStyle: React.CSSProperties = {
     border: "1px solid #000",
     padding: "6px 12px",
     textAlign: "center",
@@ -24,7 +24,7 @@ export default function NiveauSavoirMatrix({ data, title, code }) {
     minWidth: 80,
   };
 
-  const thStyle = {
+  const thStyle: React.CSSProperties = {
     ...tdStyle,
     fontWeight: "bold",
     background: "#fff",

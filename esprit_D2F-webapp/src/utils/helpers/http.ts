@@ -29,18 +29,22 @@ export const extractErrorMessage = (
 ) => {
   if (!error) return fallback;
 
-  const data = error?.response?.data;
+  const errorObj = error as { response?: { data?: unknown }; message?: string } | null | undefined;
+  const data = errorObj?.response?.data;
 
   if (data) {
     if (typeof data === "string" && data.trim().length > 0) return data.trim();
-    if (typeof data.message === "string" && data.message.trim().length > 0)
-      return data.message.trim();
-    if (typeof data.error === "string" && data.error.trim().length > 0)
-      return data.error.trim();
+    if (data && typeof data === "object") {
+      const dataObj = data as Record<string, unknown>;
+      if (typeof dataObj.message === "string" && dataObj.message.trim().length > 0)
+        return dataObj.message.trim();
+      if (typeof dataObj.error === "string" && dataObj.error.trim().length > 0)
+        return dataObj.error.trim();
+    }
   }
 
-  if (typeof error.message === "string" && error.message.trim().length > 0)
-    return error.message.trim();
+  if (errorObj && typeof errorObj.message === "string" && errorObj.message.trim().length > 0)
+    return errorObj.message.trim();
 
   return fallback;
 };
@@ -77,24 +81,6 @@ export const isForbidden = (error: unknown): boolean => extractStatusCode(error)
  * @returns {boolean}
  */
 export const isNotFound = (error: unknown): boolean => extractStatusCode(error) === 404;
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Headers (no-ops — JWT is in HttpOnly cookie, sent automatically)
-// ─────────────────────────────────────────────────────────────────────────────
-
-/**
- * @deprecated JWT est en HttpOnly cookie, envoyé automatiquement via withCredentials.
- * Retourne toujours un objet vide. Conservé pour compatibilité des imports existants.
- */
-export const authHeader = (): Record<string, string> => ({});
-
-/**
- * @deprecated JWT est en HttpOnly cookie. Retourne uniquement Content-Type.
- * Conservé pour compatibilité des imports existants.
- */
-export const jsonAuthHeaders = (): Record<string, string> => ({
-  "Content-Type": "application/json",
-});
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Pagination
@@ -151,14 +137,16 @@ export const extractPageData = (pageResponse: unknown): { content: unknown[]; to
     };
   }
 
+  const pageObj = pageResponse as Record<string, unknown>;
+
   return {
-    content: pageResponse.content ?? [],
-    totalElements: pageResponse.totalElements ?? 0,
-    totalPages: pageResponse.totalPages ?? 0,
-    currentPage: pageResponse.number ?? 0,
-    pageSize: pageResponse.size ?? 20,
-    isFirst: pageResponse.first ?? true,
-    isLast: pageResponse.last ?? true,
+    content: (pageObj.content as unknown[]) ?? [],
+    totalElements: (pageObj.totalElements as number) ?? 0,
+    totalPages: (pageObj.totalPages as number) ?? 0,
+    currentPage: (pageObj.number as number) ?? 0,
+    pageSize: (pageObj.size as number) ?? 20,
+    isFirst: (pageObj.first as boolean) ?? true,
+    isLast: (pageObj.last as boolean) ?? true,
   };
 };
 
@@ -174,9 +162,9 @@ export const extractPageData = (pageResponse: unknown): { content: unknown[]; to
  * @returns {string} - Ex: "page=0&size=20&sort=nom%2Casc"
  */
 export const buildQueryString = (params: Record<string, unknown> = {}): string => {
-  const entries = Object.entries(params).filter(
-    ([, v]) => v !== null && v !== undefined && v !== ""
-  );
+  const entries = Object.entries(params)
+    .filter(([, v]) => v !== null && v !== undefined && v !== "")
+    .map(([k, v]) => [k, String(v)]);
   return new URLSearchParams(entries).toString();
 };
 

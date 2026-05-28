@@ -36,36 +36,40 @@ const { Option }      = Select;
 export default function TopAbsentees() {
   const { data: upsData } = useUps();
   const { data: deptsData } = useDepartements();
-  const ups = upsData ?? [];
-  const depts = deptsData ?? [];
+  const ups = (upsData ?? []) as any[];
+  const depts = (deptsData ?? []) as any[];
   const { data: enseignants } = useEnseignants();
 
   const [sortOrder, setSortOrder] = useState('desc');
   const [showTable, setShowTable] = useState(false);
-  const [filters, setFilters]     = useState({
+  const [filters, setFilters] = useState<{
+    upId: any;
+    deptId: any;
+    range: [dayjs.Dayjs | null, dayjs.Dayjs | null];
+  }>({
     upId: null,
     deptId: null,
     range: [ dayjs().startOf('year'), dayjs().endOf('year') ]
   });
-  const chartRef = useRef(null);
+  const chartRef = useRef<any>(null);
 
   const [start, end] = filters.range;
   const { data: raw, isLoading } = useTopAbsentees(
-    start.format('YYYY-MM-DD'),
-    end.format('YYYY-MM-DD'),
+    start ? start.format('YYYY-MM-DD') : '',
+    end ? end.format('YYYY-MM-DD') : '',
     filters.upId,
     filters.deptId
   );
 
   const enseignantMap = useMemo(() => {
     const map = new Map();
-    (enseignants ?? []).forEach(ens => map.set(ens.id, ens));
+    (enseignants ?? []).forEach((ens: any) => map.set(ens.id, ens));
     return map;
   }, [enseignants]);
 
   const stats = useMemo(() => {
     if (!raw) return [];
-    return raw.map(entry => {
+    return raw.map((entry: any) => {
       const ens = enseignantMap.get(entry.enseignantId);
       return {
         ...entry,
@@ -77,14 +81,14 @@ export default function TopAbsentees() {
   }, [raw, enseignantMap]);
 
   // Tri et top 10
-  const sorted = [...stats].sort((a, b) =>
+  const sorted = [...stats].sort((a: any, b: any) =>
     sortOrder === 'asc'
       ? a.totalPresences - b.totalPresences
       : b.totalPresences - a.totalPresences
   );
   const top10  = sorted.slice(0, 10);
-  const labels = top10.map(s => `${s.nom} ${s.prenom}`);
-  const values = top10.map(s => s.totalPresences);
+  const labels = top10.map((s: any) => `${s.nom} ${s.prenom}`);
+  const values = top10.map((s: any) => s.totalPresences);
 
   // Chart data
   const chartData = {
@@ -106,7 +110,7 @@ export default function TopAbsentees() {
   const options = {
     responsive: true,
     maintainAspectRatio: false,
-    interaction: { mode: 'index', intersect: false },
+    interaction: { mode: 'index' as const, intersect: false },
     plugins: {
       legend: { display: false },
       title: { display: true, text: 'Top 10 Enseignants par Absences', font: { size: 16 } }
@@ -143,7 +147,7 @@ export default function TopAbsentees() {
           <RangePicker
             value={filters.range}
             format="YYYY-MM-DD"
-            onChange={range => setFilters(f => ({ ...f, range }))}
+            onChange={(range: any) => setFilters(f => ({ ...f, range: range ?? [null, null] }))}
             style={{ width: '100%' }}
           />
         </Col>
@@ -155,7 +159,7 @@ export default function TopAbsentees() {
             onChange={upId => setFilters(f => ({ ...f, upId }))}
             style={{ width: '100%' }}
           >
-            {ups.map(u => <Option key={u.id} value={u.id}>{u.libelle}</Option>)}
+            {ups.map((u: any) => <Option key={u.id} value={u.id}>{u.libelle}</Option>)}
           </Select>
         </Col>
         <Col span={6}>
@@ -166,7 +170,7 @@ export default function TopAbsentees() {
             onChange={deptId => setFilters(f => ({ ...f, deptId }))}
             style={{ width: '100%' }}
           >
-            {depts.map(d => <Option key={d.id} value={d.id}>{d.libelle}</Option>)}
+            {depts.map((d: any) => <Option key={d.id} value={d.id}>{d.libelle}</Option>)}
           </Select>
         </Col>
         <Col span={6}>

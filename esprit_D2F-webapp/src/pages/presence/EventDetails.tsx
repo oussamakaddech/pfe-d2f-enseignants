@@ -24,6 +24,20 @@ import {
 
 const { Text } = Typography;
 
+interface EventDetailsProps {
+  readonly selectedEvent: any;
+  readonly editedDateSeance: string;
+  readonly setEditedDateSeance: (val: string) => void;
+  readonly editedHeureDebut: string;
+  readonly setEditedHeureDebut: (val: string) => void;
+  readonly editedHeureFin: string;
+  readonly setEditedHeureFin: (val: string) => void;
+  readonly editedSalle: string;
+  readonly setEditedSalle: (val: string) => void;
+  readonly editedParticipants: string;
+  readonly setEditedParticipants: (val: string) => void;
+}
+
 const EventDetails = ({
   selectedEvent,
   editedDateSeance,
@@ -36,14 +50,14 @@ const EventDetails = ({
   setEditedSalle,
   editedParticipants,
   setEditedParticipants,
-}) => {
+}: EventDetailsProps) => {
   if (!selectedEvent?.details) return null;
 
   const { formation, seance } = selectedEvent.details;
   const hasSeance = !!seance;
 
-  const getEtatTagColor = (etat) => {
-    const colors = {
+  const getEtatTagColor = (etat: string) => {
+    const colors: Record<string, string> = {
       ENREGISTRE: "warning",
       PLANIFIE: "processing",
       EN_COURS: "success",
@@ -176,7 +190,7 @@ const EventDetails = ({
               <div style={{ marginBottom: 16 }}>
                 <Text strong style={{ display: "block", marginBottom: 8 }}>👥 Animateurs</Text>
                 <Space wrap>
-                  {seance.animateurs.map((a) => (
+                  {seance.animateurs.map((a: any) => (
                     <Tag key={a.id} icon={<UserOutlined />} color="blue">
                       {a.nom} {a.prenom}
                     </Tag>
@@ -189,7 +203,7 @@ const EventDetails = ({
               <div>
                 <Text strong style={{ display: "block", marginBottom: 8 }}>👤 Participants Enregistrés</Text>
                 <Space wrap>
-                  {seance.participants.map((p) => (
+                  {seance.participants.map((p: any) => (
                     <Tag key={p.id} icon={<UserOutlined />} color="green">
                       {p.nom} {p.prenom}
                     </Tag>

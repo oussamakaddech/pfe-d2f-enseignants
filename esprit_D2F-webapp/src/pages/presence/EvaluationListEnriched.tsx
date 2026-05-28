@@ -17,20 +17,20 @@ import { useEvaluationsGlobales, useUpdateEvaluationsBulkFlat } from "@/hooks/ev
 const EvaluationListEnriched = () => {
   const { message } = useAppNotification();
   const { data: rawEvaluations = [] } = useEvaluationsGlobales();
-  const [evaluations, setEvaluations] = useState([]);
+  const [evaluations, setEvaluations] = useState<any[]>([]);
   const bulkUpdateMut = useUpdateEvaluationsBulkFlat();
 
   useEffect(() => {
-    setEvaluations(rawEvaluations);
+    setEvaluations(rawEvaluations as any[]);
   }, [rawEvaluations]);
 
-  const handleChange = (index, field, value) => {
+  const handleChange = (index: number, field: string, value: any) => {
     const copy = [...evaluations];
     copy[index][field] = value;
     setEvaluations(copy);
   };
 
-  const handleCheckboxChange = (index, field, checked) => {
+  const handleCheckboxChange = (index: number, field: string, checked: boolean) => {
     const copy = [...evaluations];
     copy[index][field] = checked;
     setEvaluations(copy);
@@ -72,7 +72,7 @@ const EvaluationListEnriched = () => {
       title: "Enseignant",
       dataIndex: "nom",
       key: "nom",
-      render: (_, row) => (
+      render: (_: any, row: any) => (
         <div>
           <div>{row.nom} {row.prenom}</div>
           <Typography.Text type="secondary" style={{ fontSize: 12 }}>({row.mail})</Typography.Text>
@@ -84,7 +84,7 @@ const EvaluationListEnriched = () => {
       dataIndex: "note",
       key: "note",
       width: 100,
-      render: (_, row, idx) => (
+      render: (_: any, row: any, idx: number) => (
         <InputNumber
           value={row.note}
           onChange={(val) => handleChange(idx, "note", val)}
@@ -99,7 +99,7 @@ const EvaluationListEnriched = () => {
       dataIndex: "satisfaisant",
       key: "satisfaisant",
       width: 120,
-      render: (_, row, idx) => (
+      render: (_: any, row: any, idx: number) => (
         <Checkbox
           checked={row.satisfaisant}
           onChange={(e) => handleCheckboxChange(idx, "satisfaisant", e.target.checked)}
@@ -110,7 +110,7 @@ const EvaluationListEnriched = () => {
       title: "Commentaire",
       dataIndex: "commentaire",
       key: "commentaire",
-      render: (_, row, idx) => (
+      render: (_: any, row: any, idx: number) => (
         <Input
           value={row.commentaire}
           onChange={(e) => handleChange(idx, "commentaire", e.target.value)}

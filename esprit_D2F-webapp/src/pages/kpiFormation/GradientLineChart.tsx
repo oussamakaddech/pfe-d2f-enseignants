@@ -24,8 +24,10 @@ ChartJS.register(
   Filler
 );
 
-const GradientLineChart = ({ title, labels, values }) => {
-  const chartRef = useRef(null);
+interface GradientLineChartProps { title: string; labels: any[]; values: any[] }
+
+const GradientLineChart = ({ title, labels, values }: GradientLineChartProps) => {
+  const chartRef = useRef<any>(null);
   const [data] = useState({
     labels,
     datasets: [{
@@ -45,7 +47,7 @@ const GradientLineChart = ({ title, labels, values }) => {
   const options = {
     responsive: true,
     interaction: {
-      mode: 'index',
+      mode: 'index' as const,
       intersect: false
     },
     plugins: {

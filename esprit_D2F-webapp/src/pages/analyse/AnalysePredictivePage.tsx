@@ -152,7 +152,7 @@ export default function AnalysePredictivePage() {
                   <Option value={0.7}>Seuil: 70%</Option>
                   <Option value={0.8}>Seuil: 80%</Option>
                 </Select>
-                <Button size="small" icon={<ReloadOutlined />} onClick={refetchDashboard}>
+                <Button size="small" icon={<ReloadOutlined />} onClick={() => refetchDashboard()}>
                   Rafraîchir
                 </Button>
               </Space>
@@ -261,7 +261,7 @@ export default function AnalysePredictivePage() {
                 Ré-entraîner le modèle
               </Button>
             )}
-            <Button icon={<ReloadOutlined />} onClick={refetchDashboard} loading={dashLoading}>
+            <Button icon={<ReloadOutlined />} onClick={() => refetchDashboard()} loading={dashLoading}>
               Rafraîchir
             </Button>
           </Space>

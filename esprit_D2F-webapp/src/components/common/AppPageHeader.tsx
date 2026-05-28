@@ -1,9 +1,10 @@
 import { memo } from "react";
 import type { ReactNode } from "react";
-import { Typography } from "antd";
-
-const { Title, Text } = Typography;
-
+import { Typography } from "antd";
+import s from "./AppPageHeader.module.css";
+
+const { Title, Text } = Typography;
+
 interface AppPageHeaderProps {
   icon: ReactNode;
   title: string;
@@ -13,8 +14,8 @@ interface AppPageHeaderProps {
   tags?: ReactNode;
   /** Affiche un séparateur fin sous l'en-tête. Défaut : true */
   divider?: boolean;
-}
-
+}
+
 /**
  * En-tête standardisé pour toutes les pages de l'application.
  * Remplace les titres ad-hoc, les breadcrumbs dupliqués et les emojis.
@@ -37,89 +38,36 @@ const AppPageHeader = memo(function AppPageHeader({
   divider = true,
 }: Readonly<AppPageHeaderProps>) {
   return (
-    <div
-      style={{
-        marginBottom: "var(--page-header-gap)",
-        paddingBottom: divider ? 18 : 0,
-        borderBottom: divider ? "1px solid var(--page-header-border)" : undefined,
-      }}
-    >
-      <div
-        style={{
-          display: "flex",
-          alignItems: "flex-start",
-          justifyContent: "space-between",
-          flexWrap: "wrap",
-          gap: 16,
-        }}
-      >
+    <div className={`${s.header} ${divider ? s.headerDivider : ""}`}>
+      <div className={s.headerRow}>
         {/* Left: icon + title */}
-        <div style={{ display: "flex", alignItems: "center", gap: 14, minWidth: 0 }}>
+        <div className={s.leftSection}>
           <div
-            style={{
-              flexShrink: 0,
-              width: 46,
-              height: 46,
-              borderRadius: "var(--radius-md)",
-              background: iconColor,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: 20,
-              color: "var(--text-on-dark)",
-              boxShadow: "var(--page-header-icon-shadow)",
-              position: "relative",
-            }}
+            className={s.iconBox}
+            style={{ background: iconColor }}
           >
             {icon}
-            <span
-              aria-hidden="true"
-              style={{
-                position: "absolute",
-                inset: 0,
-                borderRadius: "var(--radius-md)",
-                border: "1px solid rgba(255,255,255,0.12)",
-                pointerEvents: "none",
-              }}
-            />
-          </div>
-
-          <div style={{ minWidth: 0 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
-              <Title
-                level={3}
-                style={{
-                  margin: 0,
-                  fontWeight: 700,
-                  color: "var(--text-main)",
-                  lineHeight: 1.2,
-                  fontSize: 20,
-                  letterSpacing: "-0.01em",
-                }}
-              >
+            <span aria-hidden="true" className={s.iconOverlay} />
+          </div>
+
+          <div className={s.titleSection}>
+            <div className={s.titleRow}>
+              <Title level={3} className={s.title}>
                 {title}
               </Title>
               {tags}
             </div>
             {subtitle && (
-              <Text
-                style={{
-                  color: "var(--text-muted)",
-                  fontSize: 13,
-                  lineHeight: "20px",
-                  marginTop: 2,
-                  display: "block",
-                }}
-              >
+              <Text className={s.subtitle}>
                 {subtitle}
               </Text>
             )}
           </div>
-        </div>
-
+        </div>
+
         {/* Right: actions */}
         {actions && (
-          <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
+          <div className={s.actionsSection}>
             {actions}
           </div>
         )}
@@ -128,8 +76,8 @@ const AppPageHeader = memo(function AppPageHeader({
   );
 });
 
-export default AppPageHeader;
-
-
-
+export default AppPageHeader;
+
+
+
 

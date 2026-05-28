@@ -5,7 +5,7 @@ import { Input, InputNumber, Button, Space, Card, Form } from "antd";
 import { PlusOutlined, DeleteOutlined } from "@ant-design/icons";
 import { useUpdateFormation } from "@/hooks/formation/useFormations";
 
-function FormationEditForm({ formation, onUpdate, onCancel }) {
+function FormationEditForm({ formation, onUpdate, onCancel }: any) {
   // Champs généraux de la formation
   const [titreFormation, setTitreFormation] = useState("");
   const [dateDebut, setDateDebut] = useState("");
@@ -16,7 +16,7 @@ function FormationEditForm({ formation, onUpdate, onCancel }) {
   const [chargeHoraireGlobal, setChargeHoraireGlobal] = useState(0);
 
   // Pour les séances, on copie la liste existante
-  const [seances, setSeances] = useState([]);
+  const [seances, setSeances] = useState<any[]>([]);
 
   // Lors du chargement du composant, pré-remplir les champs
   useEffect(() => {
@@ -30,7 +30,7 @@ function FormationEditForm({ formation, onUpdate, onCancel }) {
       setChargeHoraireGlobal(formation.chargeHoraireGlobal);
       // On suppose que formation.seances est déjà une liste
       setSeances(
-        formation.seances.map((s) => ({
+        (formation.seances || []).map((s: any) => ({
           idSeance: s.idSeance,
           dateSeance: format(new Date(s.dateSeance), "yyyy-MM-dd"),
           heureDebut: s.heureDebut, // Format HH:mm:ss
@@ -44,7 +44,7 @@ function FormationEditForm({ formation, onUpdate, onCancel }) {
   const { mutateAsync: updateFormation } = useUpdateFormation();
 
   // Fonction de modification d'une séance dans la liste
-  const handleSeanceChange = (index, field, value) => {
+  const handleSeanceChange = (index: any, field: any, value: any) => {
     const newSeances = [...seances];
     newSeances[index][field] = value;
     setSeances(newSeances);
@@ -63,13 +63,13 @@ function FormationEditForm({ formation, onUpdate, onCancel }) {
   };
 
   // Suppression d'une séance (optionnel)
-  const handleDeleteSeance = (index) => {
+  const handleDeleteSeance = (index: any) => {
     const newSeances = seances.filter((_, i) => i !== index);
     setSeances(newSeances);
   };
 
   // Envoi de la modification
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: any) => {
     e.preventDefault();
     if (seances.length === 0) {
       message.warning("Veuillez ajouter au moins une séance.");
@@ -80,9 +80,9 @@ function FormationEditForm({ formation, onUpdate, onCancel }) {
       dateDebut,
       dateFin,
       typeFormation,
-      coutFormation: Number.parseFloat(coutFormation),
+      coutFormation: Number.parseFloat(coutFormation as any),
       organismeRefExterne,
-      chargeHoraireGlobal: Number.parseInt(chargeHoraireGlobal),
+      chargeHoraireGlobal: Number.parseInt(chargeHoraireGlobal as any, 10),
       // Ici, vous devez également gérer la mise à jour des animateurs/participants si besoin.
       // Pour cet exemple, nous nous concentrons sur les séances.
       seances,
@@ -90,7 +90,7 @@ function FormationEditForm({ formation, onUpdate, onCancel }) {
     try {
       const updated = await updateFormation({ id: formation.idFormation, data: updatedFormation });
       onUpdate(updated);
-    } catch (err) {
+    } catch (err: any) {
       message.error("Échec de la mise à jour de la formation.");
     }
   };
@@ -127,7 +127,7 @@ function FormationEditForm({ formation, onUpdate, onCancel }) {
       <Form.Item label="Coût Formation">
         <InputNumber
           value={coutFormation}
-          onChange={(val) => setCoutFormation(val)}
+          onChange={(val) => setCoutFormation(val ?? 0)}
           style={{ width: "100%" }}
           min={0}
         />
@@ -141,7 +141,7 @@ function FormationEditForm({ formation, onUpdate, onCancel }) {
       <Form.Item label="Charge Horaire Global">
         <InputNumber
           value={chargeHoraireGlobal}
-          onChange={(val) => setChargeHoraireGlobal(val)}
+          onChange={(val) => setChargeHoraireGlobal(val ?? 0)}
           style={{ width: "100%" }}
           min={0}
         />

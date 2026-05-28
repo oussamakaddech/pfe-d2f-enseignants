@@ -4,20 +4,12 @@ const MAIL_API_URL = `${config.FORMATION_URL}/formation/mail`;
 
 const MailService = {
   async sendEmail(to: string, subject: string, content: string) {
-    try {
-      const response = await axios.post(
-        `${MAIL_API_URL}/send`,
-        { to, subject, content }
-      );
-      return response.data;
-    } catch (error: unknown) {
-      throw error;
-    }
+    const response = await axios.post(
+      `${MAIL_API_URL}/send`,
+      { to, subject, content }
+    );
+    return response.data;
   }
 };
 
 export default MailService;
-
-
-
-

@@ -18,7 +18,7 @@ const KEYS = {
 export function useGenerateFormationCertificates() {
   return useMutation({
     mutationFn: ({ formationId, typeCertif = "CERTIF" }: { formationId: Id; typeCertif?: string }) =>
-      FormationCustomService.generateCertificates(formationId, typeCertif),
+      FormationCustomService.generateCertificates(formationId as any, typeCertif),
   });
 }
 
@@ -30,7 +30,7 @@ export function useFormationsParRoleEtPeriode(
 ) {
   return useQuery<unknown[]>({
     queryKey: KEYS.report(role, enseignantId!, start, end),
-    queryFn: () => FormationReportService.getFormationsParRoleEtPeriode(role, enseignantId!, start, end),
+    queryFn: () => FormationReportService.getFormationsParRoleEtPeriode(role, String(enseignantId), start, end),
     enabled: !!enseignantId && !!start && !!end,
   });
 }
@@ -47,7 +47,7 @@ export function useFormationReportFetch() {
       enseignantId: Id;
       start: string;
       end: string;
-    }) => FormationReportService.getFormationsParRoleEtPeriode(role, enseignantId, start, end),
+    }) => FormationReportService.getFormationsParRoleEtPeriode(role, String(enseignantId), start, end),
   });
 }
 

@@ -153,8 +153,8 @@ function MatchmakingPage() {
 
     let affectationList: Record<string, unknown>[];
     if (Array.isArray(affectationsData)) affectationList = affectationsData;
-    else if (Array.isArray((affectationsData as Record<string, unknown>)?.content)) affectationList = (affectationsData as Record<string, unknown[][]>).content;
-    else if (Array.isArray((affectationsData as Record<string, unknown>)?.data)) affectationList = (affectationsData as Record<string, unknown[][]>).data;
+    else if (Array.isArray((affectationsData as Record<string, unknown>)?.content)) affectationList = (affectationsData as Record<string, Record<string, unknown>[]>).content;
+    else if (Array.isArray((affectationsData as Record<string, unknown>)?.data)) affectationList = (affectationsData as Record<string, Record<string, unknown>[]>).data;
     else affectationList = [];
 
     if (affectationList.length > 0) {
@@ -465,7 +465,7 @@ function MatchmakingPage() {
                       totalSavoirs={filteredSavoirs.length}
                       onChipClick={(sId) => scrollToSavoir(sId)}
                       onUnassign={(sId) => handleUnassign(sId, t.id)}
-                      onEditRequest={(teacher) => openEditModal(teacher)}
+                      onEditRequest={(teacher) => openEditModal(teacher as Enseignant)}
                       onDeactivate={() => handleDeactivateTeacher(t.id)}
                     />
                   );
@@ -513,7 +513,7 @@ function MatchmakingPage() {
       <Modal
         title={
           <Space>
-            <Avatar style={{ background: editingTeacher ? avatarColor(editingTeacher.id) : "#4f46e5", size: 28 }}>
+            <Avatar size={28} style={{ background: editingTeacher ? avatarColor(editingTeacher.id) : "#4f46e5" }}>
               {editingTeacher ? getInitials(editingTeacher.nom ?? "", editingTeacher.prenom ?? "") : <PlusOutlined />}
             </Avatar>
             {editingTeacher ? `Modifier — ${editingTeacher.prenom} ${editingTeacher.nom}` : "Créer un enseignant"}

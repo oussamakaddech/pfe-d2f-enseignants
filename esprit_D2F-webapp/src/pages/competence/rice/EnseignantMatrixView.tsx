@@ -7,20 +7,20 @@ import { cloneDeep, matchSuggestedEnseignants } from "./constants";
 
 const { Text } = Typography;
 
-const addSousCompRows = (rows, di, ci, sc, sci, domaineNom) => {
-  (sc.savoirs ?? []).forEach((s, si) => {
+const addSousCompRows = (rows: any, di: any, ci: any, sc: any, sci: any, domaineNom: any) => {
+  (sc.savoirs ?? []).forEach((s: any, si: any) => {
     rows.push({ di, ci, sci, si, domaineNom, ...s });
   });
 };
 
-const flatten = (tree) => {
-  const rows = [];
-  (tree ?? []).forEach((d, di) => {
-    (d.competences ?? []).forEach((c, ci) => {
-      (c.savoirs ?? []).forEach((s, si) => {
+const flatten = (tree: any) => {
+  let rows: any[] = [];
+  (tree ?? []).forEach((d: any, di: any) => {
+    (d.competences ?? []).forEach((c: any, ci: any) => {
+      (c.savoirs ?? []).forEach((s: any, si: any) => {
         rows.push({ di, ci, sci: -1, si, domaineNom: d.nom, ...s });
       });
-      (c.sousCompetences ?? []).forEach((sc, sci) => {
+      (c.sousCompetences ?? []).forEach((sc: any, sci: any) => {
         addSousCompRows(rows, di, ci, sc, sci, d.nom);
       });
     });
@@ -28,20 +28,20 @@ const flatten = (tree) => {
   return rows;
 };
 
-const getSavoirByRow = (next, row) => (
+const getSavoirByRow = (next: any, row: any) => (
   row.sci === -1
     ? next?.[row.di]?.competences?.[row.ci]?.savoirs?.[row.si]
     : next?.[row.di]?.competences?.[row.ci]?.sousCompetences?.[row.sci]?.savoirs?.[row.si]
 );
 
-const rowClassName = (row) => {
+const rowClassName = (row: any) => {
   const n = (row.enseignantsSuggeres ?? []).length;
   if (n === 0) return "ens-matrix-row-uncovered";
   if (n > 3) return "ens-matrix-row-over";
   return "";
 };
 
-const getSourceClass = (row, tid, allEnseignants) => {
+const getSourceClass = (row: any, tid: any, allEnseignants: any) => {
   const checked = (row.enseignantsSuggeres ?? []).includes(tid);
   if (!checked) return "";
   const { suggested } = matchSuggestedEnseignants(row, allEnseignants);
@@ -51,21 +51,21 @@ const getSourceClass = (row, tid, allEnseignants) => {
   return "source-manual";
 };
 
-const buildTeacherColumn = (teacher, allSavoirs, allEnseignants, toggleCell) => {
+const buildTeacherColumn = (teacher: any, allSavoirs: any, allEnseignants: any, toggleCell: any) => {
   const tid = String(teacher.id ?? teacher.enseignantId);
   const fullName = teacher.prenom ? `${teacher.prenom} ${teacher.nom}` : teacher.nom;
-  const load = allSavoirs.filter((s) => (s.enseignantsSuggeres ?? []).includes(tid)).length;
+  const load = allSavoirs.filter((s: any) => (s.enseignantsSuggeres ?? []).includes(tid)).length;
 
   return {
     title: (
       <Tooltip title={`${fullName} (${load} savoirs)`}>
-        <span>{(fullName || "?").split(" ").map((x) => x[0]).join("").slice(0, 2).toUpperCase()}</span>
+        <span>{(fullName || "?").split(" ").map((x: any) => x[0]).join("").slice(0, 2).toUpperCase()}</span>
       </Tooltip>
     ),
     key: `t-${tid}`,
     width: 58,
     className: "ens-matrix-cell",
-    render: (_, row) => {
+    render: (_: any, row: any) => {
       const checked = (row.enseignantsSuggeres ?? []).includes(tid);
       const sourceClass = getSourceClass(row, tid, allEnseignants);
       return (
@@ -94,7 +94,7 @@ export default function EnseignantMatrixView({ tree, setTree, allEnseignants }: 
 
   const activeTeacherIds = useMemo(() => {
     const ids = new Set();
-    allSavoirs.forEach((s) => (s.enseignantsSuggeres ?? []).forEach((id) => ids.add(String(id))));
+    allSavoirs.forEach((s: any) => (s.enseignantsSuggeres ?? []).forEach((id: any) => ids.add(String(id))));
     return ids;
   }, [allSavoirs]);
 
@@ -108,7 +108,7 @@ export default function EnseignantMatrixView({ tree, setTree, allEnseignants }: 
 
   const filteredRows = useMemo(() => {
     let rows = allSavoirs;
-    if (domainFilter.length > 0) rows = rows.filter((r) => domainFilter.includes(r.domaineNom));
+    if (domainFilter.length > 0) rows = rows.filter((r: any) => (domainFilter as any).includes(r.domaineNom));
     if (onlyUncovered) rows = rows.filter((r) => (r.enseignantsSuggeres ?? []).length === 0);
 
     return [...rows].sort((a, b) => {
@@ -122,7 +122,7 @@ export default function EnseignantMatrixView({ tree, setTree, allEnseignants }: 
   const pageSize = filteredRows.length > 50 ? 20 : filteredRows.length || 20;
   const pageRows = filteredRows.slice((page - 1) * pageSize, page * pageSize);
 
-  const toggleCell = (row, teacherId) => {
+  const toggleCell = (row: any, teacherId: any) => {
     const next = cloneDeep(tree);
     const s = getSavoirByRow(next, row);
     if (!s) return;
@@ -140,7 +140,7 @@ export default function EnseignantMatrixView({ tree, setTree, allEnseignants }: 
       dataIndex: "nom",
       key: "nom",
       width: 380,
-      render: (_, row) => (
+      render: (_: any, row: any) => (
         <Space>
           <Tooltip title={row.nom}>
             <Text
