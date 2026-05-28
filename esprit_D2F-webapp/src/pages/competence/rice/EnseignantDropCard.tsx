@@ -29,14 +29,14 @@ interface EnseignantDropCardProps {
 
 const { Text } = Typography;
 
-function loadClass(count: any) {
+function loadClass(count: number) {
   if (count === 0) return "load-none";
   if (count <= 3) return "load-ok";
   if (count <= 6) return "load-high";
   return "load-over";
 }
 
-function loadColor(count: any) {
+function loadColor(count: number) {
   if (count === 0) return "#94a3b8";
   if (count <= 3) return "#3b82f6";
   if (count <= 6) return "#f59e0b";

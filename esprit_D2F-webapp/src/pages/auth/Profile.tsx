@@ -31,7 +31,8 @@ const { Title, Text } = Typography;
 
 export default function Profile() {
   const { message: msgApi } = useAppNotification();
-  const [profile, setProfile] = useState<any>(null);
+  interface ProfileData { email?: string; phoneNumber?: string; firstName?: string; firsName?: string; lastName?: string; userName?: string; role?: string; newsletter?: boolean }
+  const [profile, setProfile] = useState<ProfileData | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [passwordSaving, setPasswordSaving] = useState(false);
@@ -62,21 +63,22 @@ export default function Profile() {
     refetchProfile();
   };
 
-  const onFinishInfo = async (values: any) => {
+  const onFinishInfo = async (values: Record<string, unknown>) => {
     setSaving(true);
     try {
       await editProfileApi(values);
       msgApi.success("Profil mis à jour !");
       setIsInfoDrawerOpen(false);
       await loadProfile();
-    } catch (err: any) {
-      msgApi.error(err.response?.data?.message || err.message || "Erreur de modification");
+    } catch (err: unknown) {
+      const e = err as { response?: { data?: { message?: string } }; message?: string };
+      msgApi.error(e.response?.data?.message || e.message || "Erreur de modification");
     } finally {
       setSaving(false);
     }
   };
 
-  const onFinishPwd = async ({ newPassword, confirmation }: any) => {
+  const onFinishPwd = async ({ newPassword, confirmation }: { newPassword: string; confirmation: string }) => {
     if (newPassword !== confirmation) {
       msgApi.warning("Les mots de passe ne correspondent pas");
       return;
@@ -87,8 +89,9 @@ export default function Profile() {
       msgApi.success("Mot de passe changé !");
       setIsPwdDrawerOpen(false);
       pwdForm.resetFields();
-    } catch (err: any) {
-      msgApi.error(err.response?.data?.message || err.message || "Erreur");
+    } catch (err: unknown) {
+      const e = err as { response?: { data?: { message?: string } }; message?: string };
+      msgApi.error(e.response?.data?.message || e.message || "Erreur");
     } finally {
       setPasswordSaving(false);
     }

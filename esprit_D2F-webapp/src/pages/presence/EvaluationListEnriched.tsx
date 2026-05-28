@@ -9,31 +9,44 @@ import {
   Typography,
   Space,
 } from "antd";
+import type { TableColumnsType } from "antd";
 import { DownloadOutlined, SaveOutlined } from "@ant-design/icons";
 import useAppNotification from "@/hooks/ui/useAppNotification";
 import { writeExcel, exportDateLabel, isoDate } from "utils/helpers/excelExport";
 import { useEvaluationsGlobales, useUpdateEvaluationsBulkFlat } from "@/hooks/evaluation";
 
+interface EvaluationRow {
+  idEvalParticipant?: string | number;
+  nom?: string;
+  prenom?: string;
+  mail?: string;
+  note?: number | null;
+  satisfaisant?: boolean;
+  commentaire?: string;
+  enseignantId?: string | number;
+  formationId?: string | number;
+}
+
 const EvaluationListEnriched = () => {
   const { message } = useAppNotification();
   const { data: rawEvaluations = [] } = useEvaluationsGlobales();
-  const [evaluations, setEvaluations] = useState<any[]>([]);
+  const [evaluations, setEvaluations] = useState<EvaluationRow[]>([]);
   const bulkUpdateMut = useUpdateEvaluationsBulkFlat();
 
   useEffect(() => {
-    setEvaluations(rawEvaluations as any[]);
+    setEvaluations(rawEvaluations as EvaluationRow[]);
   }, [rawEvaluations]);
 
-  const handleChange = (index: number, field: string, value: any) => {
-    const copy = [...evaluations];
-    copy[index][field] = value;
-    setEvaluations(copy);
+  const handleChange = (index: number, field: keyof EvaluationRow, value: unknown) => {
+    setEvaluations((prev) => {
+      const copy = [...prev];
+      copy[index] = { ...copy[index], [field]: value };
+      return copy;
+    });
   };
 
-  const handleCheckboxChange = (index: number, field: string, checked: boolean) => {
-    const copy = [...evaluations];
-    copy[index][field] = checked;
-    setEvaluations(copy);
+  const handleCheckboxChange = (index: number, field: keyof EvaluationRow, checked: boolean) => {
+    handleChange(index, field, checked);
   };
 
   const handleSaveAll = () => {
@@ -67,12 +80,12 @@ const EvaluationListEnriched = () => {
     );
   };
 
-  const columns = [
+  const columns: TableColumnsType<EvaluationRow> = [
     {
       title: "Enseignant",
       dataIndex: "nom",
       key: "nom",
-      render: (_: any, row: any) => (
+      render: (_: unknown, row: EvaluationRow) => (
         <div>
           <div>{row.nom} {row.prenom}</div>
           <Typography.Text type="secondary" style={{ fontSize: 12 }}>({row.mail})</Typography.Text>
@@ -84,9 +97,9 @@ const EvaluationListEnriched = () => {
       dataIndex: "note",
       key: "note",
       width: 100,
-      render: (_: any, row: any, idx: number) => (
+      render: (_: unknown, row: EvaluationRow, idx: number) => (
         <InputNumber
-          value={row.note}
+          value={row.note ?? undefined}
           onChange={(val) => handleChange(idx, "note", val)}
           min={0}
           max={20}
@@ -99,7 +112,7 @@ const EvaluationListEnriched = () => {
       dataIndex: "satisfaisant",
       key: "satisfaisant",
       width: 120,
-      render: (_: any, row: any, idx: number) => (
+      render: (_: unknown, row: EvaluationRow, idx: number) => (
         <Checkbox
           checked={row.satisfaisant}
           onChange={(e) => handleCheckboxChange(idx, "satisfaisant", e.target.checked)}
@@ -110,7 +123,7 @@ const EvaluationListEnriched = () => {
       title: "Commentaire",
       dataIndex: "commentaire",
       key: "commentaire",
-      render: (_: any, row: any, idx: number) => (
+      render: (_: unknown, row: EvaluationRow, idx: number) => (
         <Input
           value={row.commentaire}
           onChange={(e) => handleChange(idx, "commentaire", e.target.value)}
@@ -132,7 +145,7 @@ const EvaluationListEnriched = () => {
           </Button>
         </Space>
       </div>
-      <Table
+      <Table<EvaluationRow>
         dataSource={evaluations}
         columns={columns}
         rowKey="idEvalParticipant"
@@ -144,11 +157,3 @@ const EvaluationListEnriched = () => {
 };
 
 export default EvaluationListEnriched;
-
-
-
-
-
-
-
-

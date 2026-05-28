@@ -33,6 +33,20 @@ import { ROLES } from "@/utils/constants/roles";
 import { useAuth } from "@/hooks/auth/useAuth";
 import { AppPageHeader } from "@/components/common";
 import "@/styles/pages/formation-list.css";
+import type { Dayjs } from "dayjs";
+
+interface Person { mail?: string; id?: string | number; }
+interface FormationSeance { participants?: Person[]; }
+interface FormationItem {
+  idFormation?: string | number;
+  titreFormation?: string;
+  etatFormation?: string;
+  dateDebut?: string;
+  dateFin?: string;
+  seances?: FormationSeance[];
+  departement1?: { id?: string | number; libelle?: string };
+  up1?: { id?: string | number; libelle?: string };
+}
 
 const { Content } = Layout;
 const { Text } = Typography;
@@ -46,9 +60,9 @@ const STATUS_META = {
   ANNULE:     { label: "Annulée",     color: "#dc2626", bg: "#fef2f2" },
 };
 
-const uniqueByMail = (list: any[]) => {
-  const map = new Map();
-  (list || []).forEach((p: any) => {
+const uniqueByMail = (list: Person[]) => {
+  const map = new Map<string | number, Person>();
+  (list || []).forEach((p: Person) => {
     const key = p?.mail || p?.id;
     if (key && !map.has(key)) map.set(key, p);
   });
@@ -61,31 +75,31 @@ const FormationList = () => {
   const [deptFilter, setDeptFilter] = useState("");
   const [upFilter, setUpFilter] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
-  const [startDate, setStartDate] = useState<any>(null);
-  const [endDate, setEndDate] = useState<any>(null);
+  const [startDate, setStartDate] = useState<Dayjs | null>(null);
+  const [endDate, setEndDate] = useState<Dayjs | null>(null);
   const navigate = useNavigate();
 
   const isD2F = user?.role === ROLES.D2F;
   const { data: achevees = [], isLoading: loadingAchevees } = useFormationsAchevees();
   const { data: parAnimateur = [], isLoading: loadingAnimateur } = useFormationsByAnimateur();
-  const formations = (isD2F ? achevees : parAnimateur) as any[];
+  const formations = (isD2F ? achevees : parAnimateur) as FormationItem[];
   const loading = isD2F ? loadingAchevees : loadingAnimateur;
 
   // Extract dropdown options
   const depts = useMemo(() => {
     const m: Record<string, string> = {};
-    formations.forEach((f: any) => { if (f.departement1) m[f.departement1.id] = f.departement1.libelle; });
+    formations.forEach((f: FormationItem) => { if (f.departement1) m[String(f.departement1.id)] = f.departement1.libelle ?? ""; });
     return Object.entries(m).map(([id, libelle]) => ({ id, libelle }));
   }, [formations]);
 
   const ups = useMemo(() => {
     const m: Record<string, string> = {};
-    formations.forEach((f: any) => { if (f.up1) m[f.up1.id] = f.up1.libelle; });
+    formations.forEach((f: FormationItem) => { if (f.up1) m[String(f.up1.id)] = f.up1.libelle ?? ""; });
     return Object.entries(m).map(([id, libelle]) => ({ id, libelle }));
   }, [formations]);
 
   const filtered = useMemo(() => {
-    return formations.filter((f: any) => {
+    return formations.filter((f: FormationItem) => {
       if (titleFilter && !(f.titreFormation || "").toLowerCase().includes(titleFilter.toLowerCase())) return false;
       if (deptFilter && f.departement1?.id !== deptFilter) return false;
       if (upFilter && f.up1?.id !== upFilter) return false;
@@ -108,9 +122,9 @@ const FormationList = () => {
   // Global stats
   const stats = useMemo(() => {
     const total = formations.length;
-    const enCours = formations.filter((f: any) => f.etatFormation === "EN_COURS").length;
-    const achevees = formations.filter((f: any) => f.etatFormation === "ACHEVE").length;
-    const totalSeances = formations.reduce((sum: number, f: any) => sum + (f.seances?.length || 0), 0);
+    const enCours = formations.filter((f: FormationItem) => f.etatFormation === "EN_COURS").length;
+    const achevees = formations.filter((f: FormationItem) => f.etatFormation === "ACHEVE").length;
+    const totalSeances = formations.reduce((sum: number, f: FormationItem) => sum + (f.seances?.length || 0), 0);
     return { total, enCours, achevees, totalSeances };
   }, [formations]);
 
@@ -230,11 +244,11 @@ const FormationList = () => {
         </Row>
       ) : (
         <Row gutter={[16, 16]}>
-          {filtered.map((f: any) => {
+          {filtered.map((f: FormationItem) => {
             const seancesCount = f.seances?.length || 0;
-            const participants = uniqueByMail((f.seances || []).flatMap((s: any) => s.participants || []));
+            const participants = uniqueByMail((f.seances || []).flatMap((s: FormationSeance) => s.participants || []));
             const participantsCount = participants.length;
-            const status = (STATUS_META as any)[f.etatFormation] || STATUS_META.ENREGISTRE;
+            const status = STATUS_META[f.etatFormation as keyof typeof STATUS_META] || STATUS_META.ENREGISTRE;
             const goTo = () => navigate(`/home/animateur-formations/${f.idFormation}`);
 
             return (

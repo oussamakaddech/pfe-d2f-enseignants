@@ -1,23 +1,42 @@
-// SessionEditor.jsx
-
 import { Select, Typography, Space } from "antd";
 
 const { Text } = Typography;
 
-function SessionEditor({ session, enseignants, onSessionChange }: any) {
-  const enseignantOptions = enseignants.map((e: any) => ({
+interface Enseignant {
+  mail?: string;
+  nom?: string;
+  prenom?: string;
+}
+
+interface Session {
+  dateSeance?: string;
+  heureDebut?: string;
+  heureFin?: string;
+  salle?: string;
+  animateurs?: Enseignant[];
+  participants?: Enseignant[];
+}
+
+interface SessionEditorProps {
+  session: Session;
+  enseignants: Enseignant[];
+  onSessionChange: (session: Session) => void;
+}
+
+function SessionEditor({ session, enseignants, onSessionChange }: SessionEditorProps) {
+  const enseignantOptions = enseignants.map((e) => ({
     value: e.mail,
     label: `${e.nom} ${e.prenom} (${e.mail})`,
     ...e,
   }));
 
-  const handleAnimateursChange = (values: any) => {
-    const selected = enseignants.filter((e: any) => values.includes(e.mail));
+  const handleAnimateursChange = (values: string[]) => {
+    const selected = enseignants.filter((e) => values.includes(e.mail ?? ""));
     onSessionChange({ ...session, animateurs: selected });
   };
 
-  const handleParticipantsChange = (values: any) => {
-    const selected = enseignants.filter((e: any) => values.includes(e.mail));
+  const handleParticipantsChange = (values: string[]) => {
+    const selected = enseignants.filter((e) => values.includes(e.mail ?? ""));
     onSessionChange({ ...session, participants: selected });
   };
 
@@ -33,7 +52,7 @@ function SessionEditor({ session, enseignants, onSessionChange }: any) {
             mode="multiple"
             placeholder="Sélectionner les animateurs"
             options={enseignantOptions}
-            value={(session.animateurs || []).map((a: any) => a.mail)}
+            value={(session.animateurs || []).map((a) => a.mail ?? "")}
             onChange={handleAnimateursChange}
             style={{ width: "100%" }}
             optionFilterProp="label"
@@ -46,7 +65,7 @@ function SessionEditor({ session, enseignants, onSessionChange }: any) {
             mode="multiple"
             placeholder="Sélectionner les participants"
             options={enseignantOptions}
-            value={(session.participants || []).map((p: any) => p.mail)}
+            value={(session.participants || []).map((p) => p.mail ?? "")}
             onChange={handleParticipantsChange}
             style={{ width: "100%" }}
             optionFilterProp="label"
@@ -59,11 +78,3 @@ function SessionEditor({ session, enseignants, onSessionChange }: any) {
 }
 
 export default SessionEditor;
-
-
-
-
-
-
-
-

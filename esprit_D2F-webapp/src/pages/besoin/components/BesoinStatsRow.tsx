@@ -1,4 +1,3 @@
-import PropTypes from "prop-types";
 import {
   InboxOutlined,
   CheckCircleOutlined,
@@ -8,11 +7,29 @@ import {
   ExclamationCircleOutlined,
 } from "@ant-design/icons";
 
-/**
- * Mini-card statistique réutilisable.
- * Variant détermine la couleur d'accent (rail + icône) sans changer la structure.
- */
-function StatCard({ icon, label, value, hint, variant, progress, trend }: any) {
+interface StatCardTrend {
+  tone: "up" | "flat" | "warn";
+  icon?: React.ReactNode;
+  label: string;
+}
+
+interface StatCardProps {
+  icon: React.ReactNode;
+  label: string;
+  value: string | number;
+  hint?: string;
+  variant: "info" | "success" | "warning";
+  progress?: number;
+  trend?: StatCardTrend;
+}
+
+interface BesoinStatsRowProps {
+  total: number;
+  approved: number;
+  pending: number;
+}
+
+function StatCard({ icon, label, value, hint, variant, progress, trend }: StatCardProps) {
   return (
     <article className={`bf-stat bf-stat--${variant}`}>
       <div className="bf-stat__rail" aria-hidden="true" />
@@ -46,25 +63,7 @@ function StatCard({ icon, label, value, hint, variant, progress, trend }: any) {
   );
 }
 
-StatCard.propTypes = {
-  icon: PropTypes.node.isRequired,
-  label: PropTypes.string.isRequired,
-  value: PropTypes.oneOfType([PropTypes.string, PropTypes.number]).isRequired,
-  hint: PropTypes.string,
-  variant: PropTypes.oneOf(["info", "success", "warning"]).isRequired,
-  progress: PropTypes.number,
-  trend: PropTypes.shape({
-    tone: PropTypes.oneOf(["up", "flat", "warn"]).isRequired,
-    icon: PropTypes.node,
-    label: PropTypes.string.isRequired,
-  }),
-};
-
-/**
- * Rangée de 3 KPI cards alignées sur la même grille.
- * Hint = texte contextuel court ("Total cumulé", "Dossiers traités", etc.).
- */
-export default function BesoinStatsRow({ total, approved, pending }: any) {
+export default function BesoinStatsRow({ total, approved, pending }: BesoinStatsRowProps) {
   const tauxApprobation = total === 0 ? 0 : Math.round((approved * 100) / total);
   const tauxAttente     = total === 0 ? 0 : Math.round((pending  * 100) / total);
   return (
@@ -112,11 +111,7 @@ export default function BesoinStatsRow({ total, approved, pending }: any) {
   );
 }
 
-BesoinStatsRow.propTypes = {
-  total: PropTypes.number.isRequired,
-  approved: PropTypes.number.isRequired,
-  pending: PropTypes.number.isRequired,
-};
+
 
 
 

@@ -12,8 +12,25 @@ import { computeCoveragePct } from "./constants";
 
 const { Text } = Typography;
 
-const flatten = (tree: any) => {
-  const all = [];
+interface TreeNode {
+  competences?: TreeNodeCompetence[];
+}
+
+interface TreeNodeCompetence {
+  savoirs?: SavoirNode[];
+  sousCompetences?: TreeNodeSousCompetence[];
+}
+
+interface TreeNodeSousCompetence {
+  savoirs?: SavoirNode[];
+}
+
+interface SavoirNode {
+  enseignantsSuggeres?: unknown[];
+}
+
+const flatten = (tree: TreeNode[]) => {
+  const all: SavoirNode[] = [];
   for (const d of tree ?? []) {
     for (const c of d.competences ?? []) {
       for (const s of c.savoirs ?? []) all.push(s);
@@ -25,13 +42,13 @@ const flatten = (tree: any) => {
   return all;
 };
 
-const countActiveTeachers = (allSavoirs: any) => {
-  const ids = new Set();
-  allSavoirs.forEach((s: any) => (s.enseignantsSuggeres ?? []).forEach((id: any) => ids.add(String(id))));
+const countActiveTeachers = (allSavoirs: SavoirNode[]) => {
+  const ids = new Set<string>();
+  allSavoirs.forEach((s) => (s.enseignantsSuggeres ?? []).forEach((id) => ids.add(String(id))));
   return ids.size;
 };
 
-const getCoverageColor = (tauxCouverture: any) => {
+const getCoverageColor = (tauxCouverture: number) => {
   if (tauxCouverture >= 80) return "#52c41a";
   if (tauxCouverture >= 50) return "#fa8c16";
   return "#f5222d";

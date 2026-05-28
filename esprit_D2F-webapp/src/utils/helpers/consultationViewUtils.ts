@@ -60,15 +60,33 @@ export function getTypeBadge(type: string): string {
 }
 
 
-export function buildFlatSavoirs(crud: { domaines?: Array<{ id: unknown }>; competences?: Array<{ id: unknown; domaineId: unknown }>; sousComps?: Array<{ id: unknown; competenceId: unknown }>; savoirs?: Array<{ id: unknown; code?: string; nom?: string; description?: string; type?: string; niveau?: unknown; sousCompetenceId?: unknown; competenceId?: unknown }> }) {
+export interface FlatSavoir {
+  id?: number | string;
+  code?: string;
+  nom?: string;
+  description?: string;
+  type?: string;
+  niveau?: string;
+  sousCompetenceId?: number | string | null;
+  sousCompetenceNom?: string | null;
+  competenceId?: string | null;
+  competenceCode?: string | null;
+  competenceNom?: string;
+  domaineId?: number | string | null;
+  domaineCode?: string | null;
+  domaineNom?: string;
+  isDirect?: boolean;
+}
+
+export function buildFlatSavoirs(crud: { domaines?: Array<{ id?: unknown; code?: string; nom?: string }>; competences?: Array<{ id?: unknown; domaineId?: unknown; code?: string; nom?: string }>; sousComps?: Array<{ id?: unknown; competenceId?: unknown; nom?: string }>; savoirs?: Array<{ id?: unknown; code?: string; nom?: string; description?: string; type?: string; niveau?: unknown; sousCompetenceId?: unknown; competenceId?: unknown }> }) {
   const domaines = crud.domaines || [];
   const competences = crud.competences || [];
   const sousComps = crud.sousComps || [];
   const savoirs = crud.savoirs || [];
 
-  const domaineById = new Map<string, { id: unknown; code?: string; nom?: string }>(domaines.map((d) => [String(d.id), d]));
-  const compById = new Map<string, { id: unknown; domaineId: unknown; code?: string; nom?: string }>(competences.map((c) => [String(c.id), c]));
-  const scById = new Map<string, { id: unknown; competenceId: unknown; nom?: string }>(sousComps.map((sc) => [String(sc.id), sc]));
+  const domaineById = new Map(domaines.map((d) => [String(d.id), d] as const));
+  const compById = new Map(competences.map((c) => [String(c.id), c] as const));
+  const scById = new Map(sousComps.map((sc) => [String(sc.id), sc] as const));
 
   return savoirs.map((s) => {
     const sc = s?.sousCompetenceId != null ? scById.get(String(s.sousCompetenceId)) : null;

@@ -24,11 +24,11 @@ const { Option } = Select;
 
 export default function FormationsByTypeFiltered() {
   const { message } = useAppNotification();
-  const [filters, setFilters] = useState({
+  const [filters, setFilters] = useState<Record<string, string | boolean | null>>({
     domaine: null, upId: null, deptId: null,
     ouverte: null, start: null, end: null, etat: null,
   });
-  const [dataByType, setDataByType] = useState<any>(null);
+  const [dataByType, setDataByType] = useState<Record<string, unknown> | null>(null);
   const [drawerVisible, setDrawerVisible] = useState(false);
 
   const { data: deptsRaw = [], isLoading: loadingDepts } = useDepartements();
@@ -52,20 +52,17 @@ export default function FormationsByTypeFiltered() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loadingOptions]);
 
-  // ─── Dès qu’on modifie un champ du formulaire, on met à jour l’objet filters
-  const onFormChange = (_changedValues: any, allValues: any) => {
-    const newFilters = {
-      domaine:    allValues.domaine    || null,
-      upId:       allValues.upId       || null,
-      deptId:     allValues.deptId     || null,
-      ouverte:    allValues.ouverte    !== undefined ? allValues.ouverte : null,
-      start:      allValues.dateRange
-                    ? allValues.dateRange[0].format("YYYY-MM-DD")
-                    : null,
-      end:        allValues.dateRange
-                    ? allValues.dateRange[1].format("YYYY-MM-DD")
-                    : null,
-      etat:       allValues.etat || null,
+  const onFormChange = (_changedValues: Record<string, unknown>, allValues: Record<string, unknown>) => {
+    const av = allValues as Record<string, unknown>;
+    const dateRange = Array.isArray(av.dateRange) ? av.dateRange as [{ format: (f: string) => string }, { format: (f: string) => string }] : null;
+    const newFilters: typeof filters = {
+      domaine:    (av.domaine as string | null) || null,
+      upId:       (av.upId as string | null) || null,
+      deptId:     (av.deptId as string | null) || null,
+      ouverte:    av.ouverte !== undefined ? (av.ouverte as boolean | null) : null,
+      start:      dateRange ? dateRange[0].format("YYYY-MM-DD") : null,
+      end:        dateRange ? dateRange[1].format("YYYY-MM-DD") : null,
+      etat:       (av.etat as string | null) || null,
     };
     setFilters(newFilters);
   };
@@ -198,7 +195,7 @@ export default function FormationsByTypeFiltered() {
               style={{ textAlign: "center" }}
             >
               <span style={{ fontSize: "2rem", fontWeight: "bold", color: "#f5222d" }}>
-                {dataByType.interne}
+                {dataByType.interne as React.ReactNode}
               </span>
             </Card>
           </Col>
@@ -210,7 +207,7 @@ export default function FormationsByTypeFiltered() {
               style={{ textAlign: "center" }}
             >
               <span style={{ fontSize: "2rem", fontWeight: "bold", color: "#f5222d" }}>
-                {dataByType.externe}
+                {dataByType.externe as React.ReactNode}
               </span>
             </Card>
           </Col>
@@ -222,7 +219,7 @@ export default function FormationsByTypeFiltered() {
               style={{ textAlign: "center" }}
             >
               <span style={{ fontSize: "2rem", fontWeight: "bold", color: "#f5222d" }}>
-                {dataByType.enLigne}
+                {dataByType.enLigne as React.ReactNode}
               </span>
             </Card>
           </Col>

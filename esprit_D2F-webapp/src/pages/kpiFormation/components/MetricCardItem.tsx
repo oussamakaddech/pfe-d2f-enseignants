@@ -23,19 +23,19 @@ const { Text } = Typography;
 const { RangePicker } = DatePicker;
 const { Option } = Select;
 
-interface NamedOption { id?: unknown; libelle?: string }
+export interface NamedOption { id?: unknown; libelle?: string }
 
-interface CardFilters {
+export interface CardFilters {
   domaine?: string | null;
-  upId?: unknown | null;
-  deptId?: unknown | null;
+  upId?: string | null;
+  deptId?: string | null;
   ouverte?: boolean | null;
   start?: string | null;
   end?: string | null;
   etat?: string | null;
 }
 
-interface MetricCard {
+export interface MetricCard {
   id: unknown;
   visible: unknown;
   filters: CardFilters;

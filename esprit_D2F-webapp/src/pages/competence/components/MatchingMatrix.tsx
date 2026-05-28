@@ -1,13 +1,65 @@
 import React, { createContext, useContext, useMemo } from "react";
-import PropTypes from "prop-types";
 import { Progress, Tooltip, Avatar, Tag } from "antd";
 import { CheckCircleFilled, CheckOutlined } from "@ant-design/icons";
+import type { Id } from "@/models/common";
+
+interface SavoirItem {
+  id?: Id;
+  code?: string;
+  nom?: string;
+  type?: string;
+  niveau?: string | number;
+}
+
+interface SousCompItem {
+  id?: Id;
+  code?: string;
+  nom?: string;
+  savoirs?: SavoirItem[];
+}
+
+interface CompetenceItem {
+  id?: Id;
+  code?: string;
+  nom?: string;
+  allSavoirs?: SavoirItem[];
+  sousCompetences?: SousCompItem[];
+  savoirs?: SavoirItem[];
+}
+
+interface EnseignantItem {
+  id?: Id;
+  enseignantId?: Id;
+  prenom?: string;
+  nom?: string;
+  departement?: string;
+}
+
+interface DragContextValue {
+  draggingId: string | null;
+  dragOverCell: string | null;
+  onDragStart: (id: string) => void;
+  onDragEnd: () => void;
+  onDragOver: (e: React.DragEvent<HTMLElement>, savoirId: string, ensId: string) => void;
+  onDragLeave: (e: React.DragEvent<HTMLElement>) => void;
+  onDrop: (e: React.DragEvent<HTMLElement>, savoirId: string, ensId: string) => void;
+  onUnassign: (savoirId: string, ensId: string) => void;
+}
 
 // ─── Context to avoid deep prop drilling ────────────────────────────────────
-const DragContext = createContext<any>({});
+const DragContext = createContext<DragContextValue>({
+  draggingId: null,
+  dragOverCell: null,
+  onDragStart: () => undefined,
+  onDragEnd: () => undefined,
+  onDragOver: () => undefined,
+  onDragLeave: () => undefined,
+  onDrop: () => undefined,
+  onUnassign: () => undefined,
+});
 
 // ─── Utility ─────────────────────────────────────────────────────────────────
-const hashToHsl = (id: any) => {
+const hashToHsl = (id: Id | undefined) => {
   let h = 0;
   const str = String(id);
   for (let i = 0; i < str.length; i++) {
@@ -16,14 +68,19 @@ const hashToHsl = (id: any) => {
   return `hsl(${h}, 65%, 50%)`;
 };
 
-const getProgressColor = (pct: any) => {
+const getProgressColor = (pct: number) => {
   if (pct < 40) return "#ef4444";
   if (pct < 75) return "#f59e0b";
   return "#22c55e";
 };
 
 // ─── EnseignantHeader ─────────────────────────────────────────────────────────
-function EnseignantHeader({ enseignant, count }: any) {
+interface EnseignantHeaderProps {
+  enseignant: EnseignantItem;
+  count: number;
+}
+
+function EnseignantHeader({ enseignant, count }: EnseignantHeaderProps) {
   const fullName = `${enseignant.prenom ?? ""} ${enseignant.nom ?? ""}`.trim();
   const initials = `${(enseignant.prenom ?? "")[0] ?? ""}${(enseignant.nom ?? "")[0] ?? ""}`;
 
@@ -55,13 +112,14 @@ function EnseignantHeader({ enseignant, count }: any) {
   );
 }
 
-EnseignantHeader.propTypes = {
-  enseignant: PropTypes.object.isRequired,
-  count: PropTypes.number,
-};
-
 // ─── CompetenceGroupRow ───────────────────────────────────────────────────────
-function CompetenceGroupRow({ comp, enseignants, assignments }: any) {
+interface CompetenceGroupRowProps {
+  comp: CompetenceItem;
+  enseignants: EnseignantItem[];
+  assignments: Record<string, string[]>;
+}
+
+function CompetenceGroupRow({ comp, enseignants, assignments }: CompetenceGroupRowProps) {
   const allSavoirs = comp.allSavoirs ?? [];
 
   return (
@@ -70,8 +128,8 @@ function CompetenceGroupRow({ comp, enseignants, assignments }: any) {
         <Tag color="blue">{comp.code}</Tag>{" "}
         <strong>{comp.nom}</strong>
       </td>
-      {enseignants.map((ens: any) => {
-        const covered = allSavoirs.filter((s: any) =>
+      {enseignants.map((ens) => {
+        const covered = allSavoirs.filter((s) =>
           (assignments[String(s.id)] ?? []).includes(String(ens.id))
         ).length;
         const pct = allSavoirs.length
@@ -79,7 +137,7 @@ function CompetenceGroupRow({ comp, enseignants, assignments }: any) {
           : 0;
 
         return (
-          <td key={ens.id} className="col-ens" style={{ textAlign: "center" }}>
+          <td key={String(ens.id)} className="col-ens" style={{ textAlign: "center" }}>
             {(() => {
               if (pct === 0) return null;
               if (pct === 100) return <CheckCircleFilled style={{ color: "#22c55e", fontSize: 20 }} />;
@@ -92,15 +150,14 @@ function CompetenceGroupRow({ comp, enseignants, assignments }: any) {
   );
 }
 
-CompetenceGroupRow.propTypes = {
-  comp: PropTypes.object.isRequired,
-  enseignants: PropTypes.array.isRequired,
-  assignments: PropTypes.object.isRequired,
-};
-
 // ─── SousCompGroupRow ─────────────────────────────────────────────────────────
+interface SousCompGroupRowProps {
+  sc: SousCompItem;
+  enseignants: EnseignantItem[];
+}
+
 // FIX: renders empty <td> for each enseignant column to maintain table structure
-function SousCompGroupRow({ sc, enseignants }: any) {
+function SousCompGroupRow({ sc, enseignants }: SousCompGroupRowProps) {
   return (
     <tr className="sc-group-row">
       <td className="sticky-col">
@@ -108,20 +165,22 @@ function SousCompGroupRow({ sc, enseignants }: any) {
           <Tag color="cyan">{sc.code}</Tag> {sc.nom}
         </div>
       </td>
-      {enseignants.map((ens: any) => (
-        <td key={ens.id ?? ens.enseignantId} className="col-ens" />
+      {enseignants.map((ens) => (
+        <td key={String(ens.id ?? ens.enseignantId)} className="col-ens" />
       ))}
     </tr>
   );
 }
 
-SousCompGroupRow.propTypes = {
-  sc: PropTypes.object.isRequired,
-  enseignants: PropTypes.array.isRequired,
-};
-
 // ─── SavoirRow ────────────────────────────────────────────────────────────────
-function SavoirRow({ savoir, enseignants, assignments, isDraggingAny }: any) {
+interface SavoirRowProps {
+  savoir: SavoirItem;
+  enseignants: EnseignantItem[];
+  assignments: Record<string, string[]>;
+  isDraggingAny?: boolean;
+}
+
+function SavoirRow({ savoir, enseignants, assignments, isDraggingAny }: SavoirRowProps) {
   const {
     draggingId,
     dragOverCell,
@@ -136,7 +195,7 @@ function SavoirRow({ savoir, enseignants, assignments, isDraggingAny }: any) {
   const isBeingDragged = draggingId === String(savoir.id);
   const isAssignedAnywhere = (assignments[String(savoir.id)] ?? []).length > 0;
 
-  const handleDragStart = (e: any) => {
+  const handleDragStart = (e: React.DragEvent<HTMLDivElement>) => {
     e.dataTransfer.setData(
       "application/json",
       JSON.stringify({ savoirId: String(savoir.id), savoirNom: savoir.nom })
@@ -168,7 +227,7 @@ function SavoirRow({ savoir, enseignants, assignments, isDraggingAny }: any) {
         </div>
       </td>
 
-      {enseignants.map((ens: any) => {
+      {enseignants.map((ens) => {
         const isAssigned = (assignments[String(savoir.id)] ?? []).includes(String(ens.id));
         const cellKey = `${savoir.id}-${ens.id}`;
         const isActive = dragOverCell === cellKey;
@@ -182,7 +241,7 @@ function SavoirRow({ savoir, enseignants, assignments, isDraggingAny }: any) {
             key={cellKey}
             className={cellClass}
             draggable={isAssigned}
-            onDragStart={(e: any) => {
+            onDragStart={(e: React.DragEvent<HTMLTableCellElement>) => {
               if (!isAssigned) return;
               e.dataTransfer.setData(
                 "application/json",
@@ -197,12 +256,12 @@ function SavoirRow({ savoir, enseignants, assignments, isDraggingAny }: any) {
             }}
             onDragEnd={onDragEnd}
             onClick={() => isAssigned && onUnassign(String(savoir.id), String(ens.id))}
-            onDragOver={(e: any) => !isAssigned && onDragOver(e, String(savoir.id), String(ens.id))}
-            onDragLeave={(e: any) => {
+            onDragOver={(e: React.DragEvent<HTMLTableCellElement>) => !isAssigned && onDragOver(e, String(savoir.id), String(ens.id))}
+            onDragLeave={(e: React.DragEvent<HTMLTableCellElement>) => {
               if (e.currentTarget.contains(e.relatedTarget as Node)) return;
               onDragLeave(e);
             }}
-            onDrop={(e: any) => !isAssigned && onDrop(e, String(savoir.id), String(ens.id))}
+            onDrop={(e: React.DragEvent<HTMLTableCellElement>) => !isAssigned && onDrop(e, String(savoir.id), String(ens.id))}
             style={{
               cursor: isAssigned ? "grab" : "default",
               textAlign: "center",
@@ -218,14 +277,22 @@ function SavoirRow({ savoir, enseignants, assignments, isDraggingAny }: any) {
   );
 }
 
-SavoirRow.propTypes = {
-  savoir: PropTypes.object.isRequired,
-  enseignants: PropTypes.array.isRequired,
-  assignments: PropTypes.object.isRequired,
-  isDraggingAny: PropTypes.bool,
-};
-
 // ─── MatchingMatrix (Main Export) ─────────────────────────────────────────────
+export interface MatchingMatrixProps {
+  competences: CompetenceItem[];
+  enseignants: EnseignantItem[];
+  assignments: Record<string, string[]>;
+  draggingId: string | null;
+  dragOverCell: string | null;
+  onDragStart: (id: string) => void;
+  onDragEnd: () => void;
+  onDragOver: (e: React.DragEvent<HTMLElement>, savoirId: string, ensId: string) => void;
+  onDragLeave: (e: React.DragEvent<HTMLElement>) => void;
+  onDrop: (e: React.DragEvent<HTMLElement>, savoirId: string, ensId: string) => void;
+  onUnassign: (savoirId: string, ensId: string) => void;
+  isDraggingAny?: boolean;
+}
+
 export default function MatchingMatrix({
   competences,
   enseignants,
@@ -239,22 +306,21 @@ export default function MatchingMatrix({
   onDrop,
   onUnassign,
   isDraggingAny,
-}: any) {
-  // Count assignments per enseignant
-  const ensCounts = enseignants.reduce((acc: any, e: any) => {
+}: MatchingMatrixProps) {
+  const ensCounts = enseignants.reduce<Record<string, number>>((acc, e) => {
     acc[String(e.id)] = 0;
     return acc;
   }, {});
 
-  Object.values(assignments ?? {}).forEach((ensIds: any) => {
-    (ensIds ?? []).forEach((eId: any) => {
+  Object.values(assignments ?? {}).forEach((ensIds) => {
+    ensIds.forEach((eId) => {
       if (ensCounts[String(eId)] !== undefined) {
         ensCounts[String(eId)] += 1;
       }
     });
   });
 
-  const dragContextValue = useMemo(() => ({
+  const dragContextValue = useMemo<DragContextValue>(() => ({
     draggingId,
     dragOverCell,
     onDragStart,
@@ -271,18 +337,18 @@ export default function MatchingMatrix({
         <thead>
           <tr className="sticky-header">
             <th className="sticky-col">Compétence / Savoir</th>
-            {enseignants.map((e: any) => (
+            {enseignants.map((e) => (
               <EnseignantHeader
-                key={e.id}
+                key={String(e.id)}
                 enseignant={e}
-                count={ensCounts[String(e.id)]}
+                count={ensCounts[String(e.id)] ?? 0}
               />
             ))}
           </tr>
         </thead>
         <tbody>
-          {competences.map((comp: any) => (
-            <React.Fragment key={comp.id}>
+          {competences.map((comp) => (
+            <React.Fragment key={String(comp.id)}>
               {/* Competence summary row */}
               <CompetenceGroupRow
                 comp={comp}
@@ -291,12 +357,12 @@ export default function MatchingMatrix({
               />
 
               {/* Sous-compétences and their savoirs */}
-              {comp.sousCompetences?.map((sc: any) => (
-                <React.Fragment key={sc.id}>
+              {comp.sousCompetences?.map((sc) => (
+                <React.Fragment key={String(sc.id)}>
                   <SousCompGroupRow sc={sc} enseignants={enseignants} />
-                  {(sc.savoirs ?? []).map((s: any) => (
+                  {(sc.savoirs ?? []).map((s) => (
                     <SavoirRow
-                      key={s.id}
+                      key={String(s.id)}
                       savoir={s}
                       enseignants={enseignants}
                       assignments={assignments}
@@ -307,9 +373,9 @@ export default function MatchingMatrix({
               ))}
 
               {/* Direct savoirs (not under a sous-compétence) */}
-              {comp.savoirs?.map((s: any) => (
+              {comp.savoirs?.map((s) => (
                 <SavoirRow
-                  key={s.id}
+                  key={String(s.id)}
                   savoir={s}
                   enseignants={enseignants}
                   assignments={assignments}
@@ -323,24 +389,3 @@ export default function MatchingMatrix({
     </DragContext.Provider>
   );
 }
-
-MatchingMatrix.propTypes = {
-  competences: PropTypes.array.isRequired,
-  enseignants: PropTypes.array.isRequired,
-  assignments: PropTypes.object.isRequired,
-  draggingId: PropTypes.string,
-  dragOverCell: PropTypes.string,
-  onDragStart: PropTypes.func.isRequired,
-  onDragEnd: PropTypes.func.isRequired,
-  onDragOver: PropTypes.func.isRequired,
-  onDragLeave: PropTypes.func.isRequired,
-  onDrop: PropTypes.func.isRequired,
-  onUnassign: PropTypes.func.isRequired,
-  isDraggingAny: PropTypes.bool,
-};
-
-
-
-
-
-

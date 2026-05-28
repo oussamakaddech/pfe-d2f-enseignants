@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useState } from "react";
 import { CodeOutlined, DownloadOutlined, FileExcelOutlined, FileTextOutlined } from "@ant-design/icons";
 import { Button, Dropdown, Tag } from "antd";
+import type { MenuProps } from "antd";
 import useAppNotification from "@/hooks/ui/useAppNotification";
 import {
   doExportCompetencesCSV,
@@ -11,10 +12,18 @@ import {
   doExportSynthesisExcel,
 } from "@/utils/helpers/exportUtils";
 import { getFilteredCrud } from "@/utils/helpers/consultationViewUtils";
+import type { TreeNode } from "@/models/competence";
+
+type CrudParam = Parameters<typeof getFilteredCrud>[0];
+
+interface StructureState {
+  selectedDomaine?: unknown;
+  structure?: TreeNode[];
+}
 
 interface ExportMenuProps {
-  crud: any;
-  structure: any;
+  crud: CrudParam;
+  structure: StructureState;
   stats: Record<string, number> | undefined;
   handleExportExcel: () => void;
 }
@@ -25,8 +34,8 @@ export default function ExportMenu({ crud, structure, stats, handleExportExcel }
 
   const domaineId = structure.selectedDomaine;
   const domaineName = useMemo(
-    () => (domaineId ? structure.structure?.domaines?.find((d: any) => String(d.id) === String(domaineId))?.nom : null),
-    [domaineId, structure.structure?.domaines],
+    () => (domaineId ? structure.structure?.find((d) => String(d.id) === String(domaineId))?.nom : null),
+    [domaineId, structure.structure],
   );
 
   const exportStats = useMemo(() => {
@@ -34,7 +43,7 @@ export default function ExportMenu({ crud, structure, stats, handleExportExcel }
     return { domaines: f.domaines.length, competences: f.competences.length, savoirs: f.savoirs.length };
   }, [crud, domaineId]);
 
-  const run = useCallback(async (key: any) => {
+  const run = useCallback(async (key: string) => {
     setLoading(true);
     try {
       localStorage.setItem("ctp-export-format", key);
@@ -46,8 +55,9 @@ export default function ExportMenu({ crud, structure, stats, handleExportExcel }
       else if (key === "csv-competences") doExportCompetencesCSV(crud, domaineId);
       else if (key === "json-full") doExportStructureJSON(crud);
       messageApi.success("Export genere");
-    } catch (err: any) {
-      messageApi.error(`Erreur export : ${err?.message || "inconnue"}`);
+    } catch (err: unknown) {
+      const e = err as { message?: string };
+      messageApi.error(`Erreur export : ${e?.message || "inconnue"}`);
     } finally {
       setLoading(false);
     }
@@ -55,7 +65,7 @@ export default function ExportMenu({ crud, structure, stats, handleExportExcel }
 
   const filterSuffix = domaineName ? ` — ${domaineName}` : "";
 
-  const menuItems = [
+  const menuItems: MenuProps["items"] = [
     {
       type: "group",
       label: <span className="ctp-export-group-label"><FileExcelOutlined /> Excel</span>,
@@ -102,7 +112,7 @@ export default function ExportMenu({ crud, structure, stats, handleExportExcel }
 
   return (
     <Dropdown
-      menu={{ items: menuItems as any[], onClick: ({ key }) => { if (key !== "__stats__") run(key); } }}
+      menu={{ items: menuItems, onClick: ({ key }) => { if (key !== "__stats__") run(key); } }}
       trigger={["click"]}
       placement="bottomRight"
       aria-label="Menu d'export"
@@ -113,9 +123,3 @@ export default function ExportMenu({ crud, structure, stats, handleExportExcel }
     </Dropdown>
   );
 }
-
-
-
-
-
-

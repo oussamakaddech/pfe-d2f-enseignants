@@ -49,7 +49,7 @@ export default function AnalyzingStep({
     return stepIndex === -1 ? boundaries.length : stepIndex;
   }, [analysisProgress]);
 
-  const stepIcon = (threshold: any, prev: any) => {
+  const stepIcon = (threshold: number, prev: number) => {
     if (analysisProgress >= threshold) return <CheckCircleOutlined style={{ color: "#52c41a" }} />;
     if (analysisProgress >= prev)      return <LoadingOutlined />;
     return undefined;

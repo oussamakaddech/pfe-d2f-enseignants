@@ -6,25 +6,25 @@ const { Paragraph } = Typography;
 
 interface BadgeProps { text: string; type?: string }
 function Badge({ text, type = "muted" }: Readonly<BadgeProps>) {
-  const cls = (ACCENT as any)[type]?.badgeCls || "ctp-badge--muted";
+  const cls = (ACCENT as Record<string, { badgeCls?: string }>)[type]?.badgeCls || "ctp-badge--muted";
   return <span className={`ctp-badge ${cls}`}>{text}</span>;
 }
 
 interface SavoirItem {
-  id?: number;
+  id?: number | string;
   code?: string;
   nom?: string;
   type?: string;
   niveau?: string;
   competenceNom?: string;
-  competenceCode?: string;
-  sousCompetenceNom?: string;
+  competenceCode?: string | null;
+  sousCompetenceNom?: string | null;
   domaineNom?: string;
   isDirect?: boolean;
   description?: string;
 }
 
-interface DrawerPayload {
+export interface DrawerPayload {
   mode?: "single" | "multi";
   savoir?: SavoirItem;
   items?: SavoirItem[];
@@ -74,7 +74,7 @@ export default function SavoirDetailDrawer({ payload, open, onClose }: Readonly<
             <div className="ctp-drawer-section-title">Informations</div>
             <div className="ctp-drawer-row">
               <span className="ctp-drawer-key">Type</span>
-              <span className="ctp-drawer-val"><Badge text={getTypeLabel(single.type as any)} type={getTypeBadge(single.type as any)} /></span>
+              <span className="ctp-drawer-val"><Badge text={getTypeLabel(single.type || "")} type={getTypeBadge(single.type || "")} /></span>
             </div>
             <div className="ctp-drawer-row">
               <span className="ctp-drawer-key">Niveau</span>
@@ -129,7 +129,7 @@ export default function SavoirDetailDrawer({ payload, open, onClose }: Readonly<
         <Empty description="Aucun savoir disponible" />
       ) : (
         <div className="ctp-savoir-list">
-          {items.map((s: any) => (
+          {items.map((s: SavoirItem) => (
             <div key={`${s.id}-${s.code}`} className="ctp-savoir-item">
               <div className="ctp-savoir-item__name">{s.nom}</div>
                <div className="ctp-savoir-item__code">{s.code}</div>
@@ -138,7 +138,7 @@ export default function SavoirDetailDrawer({ payload, open, onClose }: Readonly<
                 {s.sousCompetenceNom ? ` · ${s.sousCompetenceNom}` : " · direct"}
               </div>
               <div className="ctp-savoir-item__tags">
-                <Badge text={getTypeLabel(s.type)} type={getTypeBadge(s.type)} />
+                <Badge text={getTypeLabel(s.type || "")} type={getTypeBadge(s.type || "")} />
                 <span className="ctp-badge ctp-badge--muted">{formatNiveau(s.niveau)}</span>
               </div>
             </div>

@@ -1,5 +1,5 @@
-import PropTypes from "prop-types";
 import { Button, Popconfirm, Tooltip, Avatar } from "antd";
+import type React from "react";
 import {
   CheckCircleOutlined,
   MailOutlined,
@@ -16,29 +16,58 @@ import BesoinPriorityBadge from "./BesoinPriorityBadge";
 import BesoinStatusBadge from "./BesoinStatusBadge";
 import BesoinCardMeta from "./BesoinCardMeta";
 
-const TYPE_TONES = {
+const TYPE_TONES: Record<string, string> = {
   INDIVIDUEL: "info",
   COLLECTIF:  "violet",
 };
-const TYPE_LABELS = {
+const TYPE_LABELS: Record<string, string> = {
   INDIVIDUEL: "Individuel",
   COLLECTIF:  "Collectif",
 };
 
-const initialsOf = (name: any) => {
+interface BesoinData {
+  idBesoinFormation?: string | number;
+  idBesionFormation?: string | number;
+  id?: string | number;
+  priorite?: string;
+  username?: string;
+  titre?: string;
+  objectifFormation?: string;
+  typeBesoin?: string;
+  dateCreation?: string;
+  approuveAdmin?: boolean;
+  propositionAnimateur?: string;
+  horaireSouhaite?: string;
+  theme?: string;
+}
+
+interface BesoinCardProps {
+  besoin: BesoinData;
+  upLabel?: string | null;
+  deptLabel?: string | null;
+  periodLabel?: string | null;
+  approvingId?: string | number | null;
+  onApprove: (besoin: Record<string, unknown>) => void;
+  onOpenMail: (besoin: Record<string, unknown>) => void;
+  onEdit: (besoin: Record<string, unknown>) => void;
+  onDelete: (id: string | number) => void;
+  onOpen: () => void;
+}
+
+const initialsOf = (name: string) => {
   const parts = String(name || "").split(/[\s._-]+/).filter(Boolean);
   if (parts.length === 0) return "?";
   return (parts[0].charAt(0) + (parts[1]?.charAt(0) || "")).toUpperCase();
 };
 
-const colorOfName = (str: any) => {
+const colorOfName = (str: string) => {
   const palette = ["#B51200", "#0891b2", "#7c3aed", "#059669", "#d97706", "#2563eb", "#db2777"];
   let h = 0;
   for (let i = 0; i < (str || "").length; i += 1) h = (h * 31 + (str.codePointAt(i) ?? 0)) >>> 0;
   return palette[h % palette.length];
 };
 
-const formatDate = (d: any) => {
+const formatDate = (d: string | null | undefined) => {
   if (!d) return null;
   try {
     return new Date(d).toLocaleDateString("fr-FR", { day: "2-digit", month: "short", year: "numeric" });
@@ -48,7 +77,7 @@ const formatDate = (d: any) => {
 };
 
 const NEW_THRESHOLD_DAYS = 7;
-const isRecent = (d: any) => {
+const isRecent = (d: string | null | undefined) => {
   if (!d) return false;
   const t = new Date(d).getTime();
   if (!Number.isFinite(t)) return false;
@@ -73,21 +102,22 @@ export default function BesoinCard({
   onEdit,
   onDelete,
   onOpen,
-}: any) {
+}: BesoinCardProps) {
   const id = besoin.idBesoinFormation ?? besoin.idBesionFormation ?? besoin.id;
   const priorite = besoin.priorite || "BASSE";
   const demandeurName = besoin.username || "—";
   const title = besoin.titre || besoin.objectifFormation || "Sans titre";
   const desc = besoin.titre && besoin.objectifFormation ? besoin.objectifFormation : null;
-  const typeTone = (TYPE_TONES as any)[besoin.typeBesoin] || "info";
-  const typeLabel = (TYPE_LABELS as any)[besoin.typeBesoin] || besoin.typeBesoin?.replaceAll("_", " ");
+  const typeTone = TYPE_TONES[besoin.typeBesoin ?? ""] || "info";
+  const typeLabel = TYPE_LABELS[besoin.typeBesoin ?? ""] || besoin.typeBesoin?.replaceAll("_", " ");
   const recent = isRecent(besoin.dateCreation);
 
-  const stopProp = (fn: any) => (e: any) => {
-    e.stopPropagation();
-    if (fn) fn(e);
+  const bRecord = besoin as unknown as Record<string, unknown>;
+  const stopProp = (fn: () => void) => (e?: React.SyntheticEvent) => {
+    e?.stopPropagation();
+    fn();
   };
-  const handleKeyDown = (e: any) => {
+  const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
       onOpen?.();
@@ -177,7 +207,7 @@ export default function BesoinCard({
           <Popconfirm
             title="Approuver ce besoin ?"
             description="Cela lance la création de la formation associée."
-            onConfirm={stopProp(() => onApprove(besoin))}
+            onConfirm={stopProp(() => onApprove(bRecord))}
             onCancel={(e) => e?.stopPropagation()}
             okText="Approuver"
             cancelText="Annuler"
@@ -199,7 +229,7 @@ export default function BesoinCard({
           <Button
             size="small"
             icon={<MailOutlined />}
-            onClick={stopProp(() => onOpenMail(besoin))}
+            onClick={stopProp(() => onOpenMail(bRecord))}
             className="bf-iconbtn bf-iconbtn--mail"
             aria-label="Email CUP"
           />
@@ -208,7 +238,7 @@ export default function BesoinCard({
           <Button
             size="small"
             icon={<EditOutlined />}
-            onClick={stopProp(() => onEdit(besoin))}
+            onClick={stopProp(() => onEdit(bRecord))}
             className="bf-iconbtn"
             aria-label="Modifier"
           />
@@ -216,7 +246,7 @@ export default function BesoinCard({
         <Popconfirm
           title="Supprimer ce besoin ?"
           description="Cette action est irréversible."
-          onConfirm={stopProp(() => onDelete(id))}
+          onConfirm={stopProp(() => { if (id != null) onDelete(id); })}
           onCancel={(e) => e?.stopPropagation()}
           okText="Supprimer"
           cancelText="Annuler"
@@ -236,18 +266,6 @@ export default function BesoinCard({
   );
 }
 
-BesoinCard.propTypes = {
-  besoin: PropTypes.object.isRequired,
-  upLabel: PropTypes.string,
-  deptLabel: PropTypes.string,
-  periodLabel: PropTypes.string,
-  approvingId: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
-  onApprove: PropTypes.func.isRequired,
-  onOpenMail: PropTypes.func.isRequired,
-  onEdit: PropTypes.func.isRequired,
-  onDelete: PropTypes.func.isRequired,
-  onOpen: PropTypes.func.isRequired,
-};
 
 
 

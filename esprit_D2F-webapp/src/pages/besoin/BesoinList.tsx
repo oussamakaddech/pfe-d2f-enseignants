@@ -22,6 +22,8 @@ import BesoinMailModal   from "@/components/besoin/BesoinMailModal";
 import "@/styles/pages/besoin-tokens.css";
 import "@/styles/pages/besoin-list.css";
 
+type BfRefItem = { id: string | number; name?: string; libelle?: string };
+
 export default function BesoinList() {
   const navigate = useNavigate();
   const ctx = useBesoinList();
@@ -45,6 +47,9 @@ export default function BesoinList() {
     refetchBesoins,
     PERIOD_OPTIONS,
   } = ctx;
+
+  const typedUps   = ups         as unknown as BfRefItem[];
+  const typedDepts = departements as unknown as BfRefItem[];
 
   const hasActiveFilters =
     !!searchText || !!filters.deptId || !!filters.upId ||
@@ -91,10 +96,10 @@ export default function BesoinList() {
         searchText={searchText}
         filters={filters}
         types={types.filter(Boolean) as string[]}
-        ups={ups as any}
-        departements={departements as any}
+        ups={typedUps}
+        departements={typedDepts}
         onSearchChange={setSearchText}
-        onFiltersChange={setFilters as any}
+        onFiltersChange={(f) => setFilters(f as typeof INITIAL_FILTERS)}
         onReset={() => { setFilters(INITIAL_FILTERS); setSearchText(""); }}
       />
 
@@ -128,20 +133,21 @@ export default function BesoinList() {
         <>
           <Row gutter={[16, 16]} className="bf-grid">
             {pagedCards.map((b) => {
-              const id = getBesoinId(b as any);
+              const br = b as unknown as Record<string, unknown>;
+              const id = getBesoinId(br);
               return (
                 <Col xs={24} sm={12} lg={8} xxl={6} key={String(id)}>
                   <BesoinCard
                     besoin={b}
-                    upLabel={getLabel(findById(ups as any, b.up as any) as any)}
-                    deptLabel={getLabel(findById(departements as any, b.departement as any) as any)}
-                    periodLabel={periodLabelOf(b as any)}
+                    upLabel={getLabel(findById(typedUps, b.up))}
+                    deptLabel={getLabel(findById(typedDepts, b.departement))}
+                    periodLabel={periodLabelOf(br)}
                     approvingId={approvingId}
                     onApprove={handleApprove}
                     onOpenMail={openMailModal}
                     onEdit={openEdit}
                     onDelete={handleDelete}
-                    onOpen={() => openEdit(b as any)}
+                    onOpen={() => openEdit(br)}
                   />
                 </Col>
               );
@@ -163,7 +169,7 @@ export default function BesoinList() {
 
       {viewMode === "table" && filtered.length > 0 && (
         <BesoinTable
-          data={filtered as any}
+          data={filtered as unknown as Record<string, unknown>[]}
           loading={loading}
           approvingId={approvingId}
           getBesoinId={getBesoinId}
@@ -176,16 +182,13 @@ export default function BesoinList() {
 
       {/* Edit Modal (delegated to existing shared component) */}
       <BesoinEditModal
-        {...({
-          open: editModalOpen,
-          form: editForm,
-          saving: saving,
-          ups: ups as any,
-          departements: departements as any,
-          periodOptions: PERIOD_OPTIONS,
-          onSave: handleEditSave,
-          onCancel: () => setEditModalOpen(false),
-        } as any)}
+        open={editModalOpen}
+        form={editForm}
+        saving={saving}
+        ups={typedUps}
+        departements={typedDepts}
+        onOk={handleEditSave}
+        onCancel={() => setEditModalOpen(false)}
       />
 
       {/* Mail CUP Modal */}

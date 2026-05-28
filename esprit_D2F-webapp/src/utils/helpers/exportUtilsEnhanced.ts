@@ -1,6 +1,9 @@
 import * as XLSX from "xlsx";
 import { getFilteredCrud } from "./consultationViewUtils";
 
+type CellWithStyle = XLSX.CellObject & { s?: Record<string, unknown> };
+type FilteredCrudParam = Parameters<typeof getFilteredCrud>[0];
+
 interface Domaine {
   id: string | number;
   code: string;
@@ -71,7 +74,7 @@ const createStyledSheet = (data: Array<Record<string, unknown>>, sheetName: stri
     const address = XLSX.utils.encode_cell({r: 0, c: C});
     const cell = ws[address];
     if (cell) {
-      (cell as any).s = {
+      (cell as CellWithStyle).s = {
         fill: {
           fgColor: { rgb: headerColors.fg },
           bgColor: { rgb: headerColors.bg }
@@ -97,7 +100,7 @@ const createStyledSheet = (data: Array<Record<string, unknown>>, sheetName: stri
       const address = XLSX.utils.encode_cell({r: R, c: C});
       const cell = ws[address];
       if (cell) {
-        (cell as any).s = {
+        (cell as CellWithStyle).s = {
           fill: {
             fgColor: { rgb: "000000" },
             bgColor: { rgb: R % 2 === 0 ? "FFFFFF" : "F5F7FA" }
@@ -130,7 +133,7 @@ const createStyledSheet = (data: Array<Record<string, unknown>>, sheetName: stri
 };
 
 export function doExportStructureExcel(crud: unknown, domaineId?: unknown): void {
-  const f = getFilteredCrud(crud as any, domaineId) as unknown as ReferentielCrud;
+  const f = getFilteredCrud(crud as FilteredCrudParam, domaineId) as unknown as ReferentielCrud;
   const wb = XLSX.utils.book_new();
   const sfx = domaineId ? "_domaine" : "_complet";
 
@@ -209,7 +212,7 @@ export function doExportStructureExcel(crud: unknown, domaineId?: unknown): void
 }
 
 export function doExportSavoirsExcel(crud: unknown, domaineId?: unknown): void {
-  const f = getFilteredCrud(crud as any, domaineId) as unknown as ReferentielCrud;
+  const f = getFilteredCrud(crud as FilteredCrudParam, domaineId) as unknown as ReferentielCrud;
   const sfx = domaineId ? "_domaine" : "";
   const wb = XLSX.utils.book_new();
 
@@ -294,7 +297,7 @@ export function doExportSynthesisExcel(crud: unknown, stats?: Record<string, num
 }
 
 export function doExportSavoirsCSV(crud: unknown, domaineId?: unknown): void {
-  const f = getFilteredCrud(crud as any, domaineId) as unknown as ReferentielCrud;
+  const f = getFilteredCrud(crud as FilteredCrudParam, domaineId) as unknown as ReferentielCrud;
   const sfx = domaineId ? "_domaine" : "";
   const columns = [
     { key: "code", label: "Code" },
@@ -328,7 +331,7 @@ export function doExportSavoirsCSV(crud: unknown, domaineId?: unknown): void {
 }
 
 export function doExportCompetencesCSV(crud: unknown, domaineId?: unknown): void {
-  const f = getFilteredCrud(crud as any, domaineId) as unknown as ReferentielCrud;
+  const f = getFilteredCrud(crud as FilteredCrudParam, domaineId) as unknown as ReferentielCrud;
   const sfx = domaineId ? "_domaine" : "";
   const columns = [
     { key: "code", label: "Code" },

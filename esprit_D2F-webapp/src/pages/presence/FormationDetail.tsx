@@ -6,7 +6,7 @@ import {
 } from "@ant-design/icons";
 import { useFormationById } from "@/hooks/formation";
 import { useAggregatedPresences } from "@/hooks/presence";
-import SeanceCard from "./SeanceCard";
+import SeanceCard, { type SeanceCardData } from "./SeanceCard";
 import FormationEvaluationsTab from "./FormationEvaluationsTab";
 import useAppNotification from "@/hooks/ui/useAppNotification";
 import { FormationHeaderCard } from "./components/FormationHeaderCard";
@@ -32,7 +32,7 @@ const FormationDetail = () => {
   }, [isError]);
 
   const seanceIds = useMemo(
-    () => (formation?.seances || []).map((s) => s.idSeance).filter(Boolean) as any[],
+    () => (formation?.seances || []).map((s) => s.idSeance).filter(Boolean) as number[],
     [formation],
   );
   const { data: aggResults = [], isLoading: aggLoading, refetch: refetchPresences } =
@@ -40,7 +40,7 @@ const FormationDetail = () => {
 
   const presencesBySeance = useMemo(() => {
     const byId: Record<string, { presence: boolean; enseignant?: { mail?: string; id?: unknown } }[]> = {};
-    seanceIds.forEach((sid: any, idx) => {
+    seanceIds.forEach((sid: number, idx) => {
       byId[sid] = ((aggResults[idx] as { present?: boolean; presence?: boolean }[]) || []).map((p) => ({
         ...p,
         presence: typeof p.present === "boolean" ? p.present : !!p.presence,
@@ -102,7 +102,7 @@ const FormationDetail = () => {
       children: (
         <div style={{ paddingTop: 8 }}>
           {formation.seances && formation.seances.length > 0
-            ? formation.seances.map((s) => <SeanceCard key={s.idSeance} seance={s as any} />)
+            ? formation.seances.map((s) => <SeanceCard key={String(s.idSeance)} seance={s as SeanceCardData} />)
             : <Empty description="Aucune séance pour cette formation" />}
         </div>
       ),

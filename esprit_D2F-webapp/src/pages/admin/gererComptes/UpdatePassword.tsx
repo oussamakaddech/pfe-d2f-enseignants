@@ -11,14 +11,14 @@ export default function UpdatePassword() {
   const { message } = useAppNotification();
   const { mutateAsync: updatePwd } = useUpdatePassword();
 
-  const handleSubmit = async (values: any) => {
+  const handleSubmit = async (values: Record<string, unknown>) => {
     setLoading(true);
     try {
       await updatePwd(values);
       message.success("Mot de passe mis à jour avec succès !");
       form.resetFields();
     } catch (error: unknown) {
-      message.error((error as any)?.response?.data?.message || "Erreur lors de la mise à jour.");
+      message.error((error as { response?: { data?: { message?: string } } })?.response?.data?.message || "Erreur lors de la mise à jour.");
     } finally {
       setLoading(false);
     }
@@ -60,7 +60,7 @@ export default function UpdatePassword() {
             rules={[
               { required: true, message: "Veuillez confirmer le mot de passe" },
               ({ getFieldValue }) => ({
-                validator(_: any, value: any) {
+                validator(_: unknown, value: unknown) {
                   if (!value || getFieldValue("newPassword") === value) {
                     return Promise.resolve();
                   }

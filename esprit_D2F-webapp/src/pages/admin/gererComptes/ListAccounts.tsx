@@ -19,6 +19,8 @@ import {
   Divider,
   Avatar,
 } from 'antd';
+import type { TableColumnsType, InputRef } from 'antd';
+import type { FilterDropdownProps } from 'antd/es/table/interface';
 import {
   SearchOutlined,
   PlusOutlined,
@@ -38,29 +40,50 @@ import Register from '@/pages/auth/Register';
 import useAppNotification from "@/hooks/ui/useAppNotification";
 import { AppPageHeader, brand } from "@/components/common";
 import "@/styles/pages/list-accounts.css";
+import type { Id } from "@/models/common";
 
 const { Text } = Typography;
 const { Option } = Select;
 
 const ROLES = ['admin', 'CUP', 'Enseignant', 'Formateur', 'CHEF_DEPARTEMENT', 'RESPONSABLE_DOSSIER'];
 
-const handleSearch = (selectedKeys: any, confirm: any) => { confirm(); };
-const handleReset = (clearFilters: any) => { clearFilters(); };
-const renderFilterIcon = (filtered: any) => <SearchOutlined style={{ color: filtered ? '#1890ff' : undefined }} />;
+type AccountStatus = 'ACTIF' | 'BLOQUÉ' | 'INCONNU';
 
-function makeFilterDropdown(dataIndex: any, searchInputRef: any) {
-  return ({ setSelectedKeys, selectedKeys, confirm, clearFilters }: any) => (
+interface Account {
+  id?: Id;
+  userName?: string;
+  firsName?: string;
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  phoneNumber?: string;
+  role?: string;
+  status?: AccountStatus;
+}
+
+interface BadgeProps {
+  status: string;
+  text: string;
+  style?: React.CSSProperties;
+}
+
+const handleSearchFilter = (selectedKeys: React.Key[], confirm: FilterDropdownProps["confirm"]) => { confirm(); };
+const handleReset = (clearFilters: (() => void) | undefined) => { clearFilters?.(); };
+const renderFilterIcon = (filtered: boolean) => <SearchOutlined style={{ color: filtered ? '#1890ff' : undefined }} />;
+
+function makeFilterDropdown(dataIndex: string, searchInputRef: React.RefObject<InputRef | null>) {
+  return ({ setSelectedKeys, selectedKeys, confirm, clearFilters }: FilterDropdownProps) => (
     <div style={{ padding: 8 }}>
       <Input
         ref={searchInputRef}
         placeholder={`Rechercher ${dataIndex}`}
         value={selectedKeys[0]}
         onChange={e => setSelectedKeys(e.target.value ? [e.target.value] : [])}
-        onPressEnter={() => handleSearch(selectedKeys, confirm)}
+        onPressEnter={() => handleSearchFilter(selectedKeys, confirm)}
         style={{ marginBottom: 8, display: 'block' }}
       />
       <Space>
-        <Button type="primary" onClick={() => handleSearch(selectedKeys, confirm)} icon={<SearchOutlined />} size="small">OK</Button>
+        <Button type="primary" onClick={() => handleSearchFilter(selectedKeys, confirm)} icon={<SearchOutlined />} size="small">OK</Button>
         <Button onClick={() => handleReset(clearFilters)} size="small">Reset</Button>
       </Space>
     </div>
@@ -69,11 +92,11 @@ function makeFilterDropdown(dataIndex: any, searchInputRef: any) {
 
 export default function ListAccounts() {
   const { message: msgApi } = useAppNotification();
-  const [accounts, setAccounts] = useState<any[]>([]);
-  const searchInput = useRef<any>(null);
+  const [accounts, setAccounts] = useState<Account[]>([]);
+  const searchInput = useRef<InputRef>(null);
   const [drawerVisible, setDrawerVisible] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState(false);
-  const [editingRecord, setEditingRecord] = useState<any>(null);
+  const [editingRecord, setEditingRecord] = useState<Account | null>(null);
   const [editForm] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const { data: allAccounts, refetch: refetchAllAccounts } = useAllAccounts();
@@ -84,12 +107,12 @@ export default function ListAccounts() {
 
   useEffect(() => {
     if (allAccounts) {
-      const normalized = allAccounts.map((acc: any) => {
-        let statusValue;
+      const normalized = (allAccounts as Account[]).map((acc) => {
+        let statusValue: AccountStatus;
         if (typeof acc.status === 'boolean') {
-          statusValue = acc.status ? 'BLOQUÉ' : 'ACTIF';
+          statusValue = (acc.status as unknown as boolean) ? 'BLOQUÉ' : 'ACTIF';
         } else if (typeof acc.status === 'string') {
-          statusValue = acc.status;
+          statusValue = acc.status as AccountStatus;
         } else {
           statusValue = 'INCONNU';
         }
@@ -99,9 +122,7 @@ export default function ListAccounts() {
     }
   }, [allAccounts]);
 
-  const fetchAccounts = () => {
-    refetchAllAccounts();
-  };
+  const fetchAccounts = () => { refetchAllAccounts(); };
 
   const stats = {
     total: accounts.length,
@@ -110,14 +131,9 @@ export default function ListAccounts() {
     admins: accounts.filter(a => a.role === 'admin').length,
   };
 
-  // ─── CREATE ──────────────────────────────────────────────
-  const handleCreateSuccess = () => {
-    setDrawerVisible(false);
-    fetchAccounts();
-  };
+  const handleCreateSuccess = () => { setDrawerVisible(false); fetchAccounts(); };
 
-  // ─── UPDATE ──────────────────────────────────────────────
-  const handleEdit = (record: any) => {
+  const handleEdit = (record: Account) => {
     setEditingRecord(record);
     editForm.setFieldsValue({
       firstName: record.firsName || record.firstName,
@@ -133,61 +149,65 @@ export default function ListAccounts() {
     try {
       const values = await editForm.validateFields();
       setLoading(true);
-      await updateAccountApi({ userId: editingRecord?.id, data: {
-        firstName: values.firstName,
-        lastName: values.lastName,
-        email: values.email,
-        phoneNumber: values.phoneNumber,
-      }, role: values.role });
+      await updateAccountApi({ userId: String(editingRecord?.id ?? ""), data: {
+        firstName: values.firstName as string,
+        lastName: values.lastName as string,
+        email: values.email as string,
+        phoneNumber: values.phoneNumber as string,
+      }, role: values.role as string });
       msgApi.success('Compte modifié avec succès !');
       setEditModalVisible(false);
       editForm.resetFields();
       setEditingRecord(null);
       fetchAccounts();
     } catch (err: unknown) {
-      msgApi.error((err as any).response?.data?.message || 'Erreur de modification');
+      const e = err as { response?: { data?: { message?: string } } };
+      msgApi.error(e?.response?.data?.message || 'Erreur de modification');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleDelete = async (userId: any) => {
+  const handleDelete = async (userId: Id) => {
     try {
-      await deleteAccountApi(userId);
+      await deleteAccountApi(String(userId));
       msgApi.success('Compte supprimé avec succès !');
       fetchAccounts();
     } catch (err: unknown) {
-      msgApi.error((err as any).response?.data?.message || 'Erreur de suppression');
+      const e = err as { response?: { data?: { message?: string } } };
+      msgApi.error(e?.response?.data?.message || 'Erreur de suppression');
     }
   };
 
-  const handleToggleStatus = async (record: any) => {
+  const handleToggleStatus = async (record: Account) => {
     const nextStatus = record.status === 'ACTIF' ? 'BLOQUÉ' : 'ACTIF';
     try {
       if (nextStatus === 'BLOQUÉ') {
-        await banAccountApi(record.userName);
+        await banAccountApi(record.userName!);
       } else {
-        await enableAccountApi(record.userName);
+        await enableAccountApi(record.userName!);
       }
       msgApi.success(nextStatus === 'ACTIF' ? 'Compte débloqué !' : 'Compte bloqué !');
       fetchAccounts();
     } catch (err: unknown) {
-      msgApi.error((err as any).response?.data?.message || 'Erreur de mise à jour');
+      const e = err as { response?: { data?: { message?: string } } };
+      msgApi.error(e?.response?.data?.message || 'Erreur de mise à jour');
     }
   };
 
-  const getColumnSearchProps = (dataIndex: any) => ({
+  const getColumnSearchProps = (dataIndex: keyof Account) => ({
     filterDropdown: makeFilterDropdown(dataIndex, searchInput),
     filterIcon: renderFilterIcon,
-    onFilter: (value: any, record: any) => record[dataIndex]?.toString().toLowerCase().includes(value.toLowerCase()),
+    onFilter: (value: boolean | React.Key, record: Account) =>
+      record[dataIndex]?.toString().toLowerCase().includes(String(value).toLowerCase()) ?? false,
   });
 
-  const columns: any[] = [
+  const columns: TableColumnsType<Account> = [
     {
       title: 'Utilisateur',
       dataIndex: 'userName',
       key: 'userName',
-      render: (text: any, record: any) => (
+      render: (text: string, record: Account) => (
         <Space>
           <Avatar icon={<UserOutlined />} style={{ backgroundColor: record.status === 'ACTIF' ? '#1890ff' : '#ccc' }} />
           <div>
@@ -203,7 +223,7 @@ export default function ListAccounts() {
       title: 'Email',
       dataIndex: 'email',
       key: 'email',
-      render: (text: any) => <Text><MailOutlined /> {text}</Text>,
+      render: (text: string) => <Text><MailOutlined /> {text}</Text>,
       ...getColumnSearchProps('email'),
     },
     {
@@ -211,8 +231,8 @@ export default function ListAccounts() {
       dataIndex: 'role',
       key: 'role',
       filters: ROLES.map(r => ({ text: r, value: r })),
-      onFilter: (value: any, record: any) => record.role === value,
-      render: (role: any) => {
+      onFilter: (value, record) => record.role === value,
+      render: (role: string) => {
         const colorMap: Record<string, string> = { admin: 'red', CUP: 'green', Enseignant: 'orange', Formateur: 'default', CHEF_DEPARTEMENT: 'blue', RESPONSABLE_DOSSIER: 'cyan' };
         return <Tag color={colorMap[role] || 'default'} style={{ borderRadius: '12px', padding: '0 10px' }}>{role.toUpperCase()}</Tag>;
       },
@@ -221,29 +241,29 @@ export default function ListAccounts() {
       title: 'Statut',
       dataIndex: 'status',
       key: 'status',
-      render: (status: any) => (
-        <Badge status={status} text={status} style={{ fontWeight: '600' }} />
+      render: (status: string) => (
+        <BadgeStatus status={status} text={status} style={{ fontWeight: '600' } as React.CSSProperties} />
       ),
     },
     {
       title: 'Actions',
       key: 'actions',
-      fixed: 'right',
+      fixed: 'right' as const,
       width: 150,
-      render: (_: any, record: any) => (
+      render: (_: unknown, record: Account) => (
         <Space>
           <Tooltip title="Modifier">
             <Button shape="circle" icon={<EditOutlined />} onClick={() => handleEdit(record)} />
           </Tooltip>
           <Tooltip title={record.status === 'ACTIF' ? 'Bloquer' : 'Débloquer'}>
-            <Button 
-              shape="circle" 
-              danger={record.status === 'ACTIF'} 
-              icon={record.status === 'ACTIF' ? <StopOutlined /> : <CheckCircleOutlined />} 
-              onClick={() => handleToggleStatus(record)} 
+            <Button
+              shape="circle"
+              danger={record.status === 'ACTIF'}
+              icon={record.status === 'ACTIF' ? <StopOutlined /> : <CheckCircleOutlined />}
+              onClick={() => void handleToggleStatus(record)}
             />
           </Tooltip>
-          <Popconfirm title="Supprimer?" onConfirm={() => handleDelete(record.id)} okButtonProps={{ danger: true }}>
+          <Popconfirm title="Supprimer?" onConfirm={() => void handleDelete(record.id!)} okButtonProps={{ danger: true }}>
             <Button shape="circle" danger icon={<DeleteOutlined />} />
           </Popconfirm>
         </Space>
@@ -289,7 +309,7 @@ export default function ListAccounts() {
 
       <Card style={{ borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
         <Divider style={{ margin: "0 0 16px" }} />
-        <Table
+        <Table<Account>
           rowKey="id"
           columns={columns}
           dataSource={accounts}
@@ -303,7 +323,7 @@ export default function ListAccounts() {
         <Register onSuccess={handleCreateSuccess} />
       </Drawer>
 
-      <Modal title="Modifier le compte" open={editModalVisible} onOk={handleEditSubmit} onCancel={() => setEditModalVisible(false)} confirmLoading={loading} okText="Enregistrer" cancelText="Annuler" width={500}>
+      <Modal title="Modifier le compte" open={editModalVisible} onOk={() => void handleEditSubmit()} onCancel={() => setEditModalVisible(false)} confirmLoading={loading} okText="Enregistrer" cancelText="Annuler" width={500}>
         <Form form={editForm} layout="vertical">
           <Row gutter={16}>
             <Col span={12}>
@@ -326,7 +346,7 @@ export default function ListAccounts() {
   );
 }
 
-function Badge({ status, text, style }: any) {
+function BadgeStatus({ status, text, style }: BadgeProps) {
   const colors: Record<string, string> = { ACTIF: '#52c41a', BLOQUÉ: '#f5222d', success: '#52c41a', error: '#f5222d', default: '#d9d9d9' };
   return (
     <div style={{ display: 'flex', alignItems: 'center', ...style }}>

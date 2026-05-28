@@ -130,10 +130,11 @@ export function useMatchmaking() {
     const assignments = new Map<number | string, Set<number | string>>();
     const assignmentIds = new Map<string, number | string>();
 
-    let affectationList: any[];
-    if (Array.isArray(affectationsData)) affectationList = affectationsData;
-    else if (Array.isArray((affectationsData as Record<string, unknown>)?.content)) affectationList = (affectationsData as Record<string, unknown[][]>).content;
-    else if (Array.isArray((affectationsData as Record<string, unknown>)?.data)) affectationList = (affectationsData as Record<string, unknown[][]>).data;
+    interface AffectationItem { id?: number; ecId?: number; enseignantCompetenceId?: number; savoirId?: number; savoir_id?: number; savoir?: number; enseignantId?: number; enseignant_id?: number; enseignant?: number }
+    let affectationList: AffectationItem[];
+    if (Array.isArray(affectationsData)) affectationList = affectationsData as AffectationItem[];
+    else if (Array.isArray((affectationsData as Record<string, unknown>)?.content)) affectationList = (affectationsData as Record<string, AffectationItem[]>).content;
+    else if (Array.isArray((affectationsData as Record<string, unknown>)?.data)) affectationList = (affectationsData as Record<string, AffectationItem[]>).data;
     else affectationList = [];
 
     if (affectationList.length > 0) {

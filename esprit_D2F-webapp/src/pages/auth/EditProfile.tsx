@@ -9,7 +9,8 @@ import { AppPageHeader, shadow, radius } from "@/components/common";
 export default function EditProfile() {
   const [form] = Form.useForm();
   const { message: msgApi } = useAppNotification();
-  const [profile, setProfile] = useState<any>(null);
+  interface EditProfileData { email?: string; phoneNumber?: string; firstName?: string; firsName?: string; lastName?: string; userName?: string; role?: string }
+  const [profile, setProfile] = useState<EditProfileData | null>(null);
   const { data: profileData } = useProfile();
   const { mutateAsync: editProfileApi } = useEditProfile();
 
@@ -28,15 +29,16 @@ export default function EditProfile() {
     }
   }, [profileData, form]);
 
-  const onFinish = async (values: any) => {
+  const onFinish = async (values: Record<string, unknown>) => {
     if (!profile) return;
+    const v = values as Record<string, string>;
     const payload = {
-      firstName:   values.firstName,
-      lastName:    values.lastName,
-      phoneNumber: values.phoneNumber,
-      email:       values.email,
-      userName:    values.userName,
-      role:        values.role,
+      firstName:   v.firstName,
+      lastName:    v.lastName,
+      phoneNumber: v.phoneNumber,
+      email:       v.email,
+      userName:    v.userName,
+      role:        v.role,
     };
 
     setProfile({ ...profile, ...payload });

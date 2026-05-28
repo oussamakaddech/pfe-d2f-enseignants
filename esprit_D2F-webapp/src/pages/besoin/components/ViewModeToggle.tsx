@@ -1,12 +1,14 @@
-import PropTypes from "prop-types";
 import { Segmented } from "antd";
 import { AppstoreOutlined, UnorderedListOutlined } from "@ant-design/icons";
 
-/**
- * Toggle Cards / Tableau aligné avec compteur de résultats.
- * Le résultat est mis en valeur typographiquement (chiffre gros, label discret).
- */
-export default function ViewModeToggle({ value, onChange, count, total }: any) {
+interface ViewModeToggleProps {
+  value: "cards" | "table";
+  onChange: (value: "cards" | "table") => void;
+  count: number;
+  total: number;
+}
+
+export default function ViewModeToggle({ value, onChange, count, total }: ViewModeToggleProps) {
   return (
     <div className="bf-viewmode">
       <div className="bf-viewmode__count" aria-live="polite">
@@ -31,12 +33,7 @@ export default function ViewModeToggle({ value, onChange, count, total }: any) {
   );
 }
 
-ViewModeToggle.propTypes = {
-  value: PropTypes.oneOf(["cards", "table"]).isRequired,
-  onChange: PropTypes.func.isRequired,
-  count: PropTypes.number.isRequired,
-  total: PropTypes.number.isRequired,
-};
+
 
 
 

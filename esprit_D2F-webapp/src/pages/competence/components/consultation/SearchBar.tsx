@@ -1,22 +1,21 @@
 import { SearchOutlined } from "@ant-design/icons";
 import { Input, Select, Tag } from "antd";
+import type { Id } from "@/models/common";
+import type { TreeNode } from "@/models/competence";
 
 const { Option } = Select;
 const { Search } = Input;
 
-interface Domaine { id: number; nom: string; code: string }
-interface StructureData { domaines?: Domaine[] }
-
 interface StructureState {
   structureLoading: boolean;
   searchLoading: boolean;
-  selectedDomaine: number | null;
-  setSelectedDomaine: (val: number | null) => void;
+  selectedDomaine: Id | null;
+  setSelectedDomaine: (val: Id | null) => void;
   searchKeyword: string;
   setSearchKeyword: (val: string) => void;
   handleSearch: (val: string) => void;
   handleClearSearch: () => void;
-  structure?: StructureData;
+  structure?: TreeNode[];
 }
 
 interface SearchBarProps {
@@ -36,8 +35,8 @@ export default function SearchBar({ structure }: Readonly<SearchBarProps>) {
             value={structure.selectedDomaine}
             onChange={(val) => structure.setSelectedDomaine(val)}
           >
-            {structure.structure?.domaines?.map((d) => (
-              <Option key={d.id} value={d.id}>
+            {structure.structure?.map((d) => (
+              <Option key={String(d.id)} value={d.id}>
                 {d.nom} ({d.code})
               </Option>
             ))}
@@ -67,7 +66,7 @@ export default function SearchBar({ structure }: Readonly<SearchBarProps>) {
           <SearchOutlined style={{ color: "#2563eb", fontSize: 13 }} />
           <span className="ctp-filter-tag-label">Filtrage :</span>
           <Tag closable onClose={() => structure.setSelectedDomaine(null)} color="blue">
-            {structure.structure?.domaines?.find((d) => d.id === structure.selectedDomaine)?.nom}
+            {structure.structure?.find((d) => String(d.id) === String(structure.selectedDomaine))?.nom}
           </Tag>
         </div>
       )}

@@ -1,5 +1,6 @@
 
 import { format } from "date-fns";
+import type { Id } from "@/models/common";
 import "@/styles/pages/event-details.css";
 import {
   Card,
@@ -24,8 +25,14 @@ import {
 
 const { Text } = Typography;
 
+interface SeanceAnimateur { id?: Id; nom?: string; prenom?: string }
+interface SeanceParticipant { id?: Id; nom?: string; prenom?: string }
+interface SeanceDetails { idSeance?: Id; animateurs?: SeanceAnimateur[]; participants?: SeanceParticipant[] }
+interface FormationEvent { titreFormation?: string; typeFormation?: string; dateDebut?: string; dateFin?: string; organismeRefExterne?: string; etatFormation?: string }
+interface SelectedEvent { details?: { formation?: FormationEvent; seance?: SeanceDetails } }
+
 interface EventDetailsProps {
-  readonly selectedEvent: any;
+  readonly selectedEvent: SelectedEvent | null;
   readonly editedDateSeance: string;
   readonly setEditedDateSeance: (val: string) => void;
   readonly editedHeureDebut: string;
@@ -113,7 +120,7 @@ const EventDetails = ({
           </Col>
           <Col xs={24} sm={12}>
             <Text type="secondary" style={{ display: "block", marginBottom: 4 }}>État</Text>
-            <Tag color={getEtatTagColor(formation?.etatFormation)} style={{ fontSize: 14, padding: "4px 12px" }}>
+            <Tag color={getEtatTagColor(formation?.etatFormation || "N/A")} style={{ fontSize: 14, padding: "4px 12px" }}>
               {formation?.etatFormation || "N/A"}
             </Tag>
           </Col>
@@ -190,7 +197,7 @@ const EventDetails = ({
               <div style={{ marginBottom: 16 }}>
                 <Text strong style={{ display: "block", marginBottom: 8 }}>👥 Animateurs</Text>
                 <Space wrap>
-                  {seance.animateurs.map((a: any) => (
+                  {seance.animateurs.map((a: SeanceAnimateur) => (
                     <Tag key={a.id} icon={<UserOutlined />} color="blue">
                       {a.nom} {a.prenom}
                     </Tag>
@@ -203,7 +210,7 @@ const EventDetails = ({
               <div>
                 <Text strong style={{ display: "block", marginBottom: 8 }}>👤 Participants Enregistrés</Text>
                 <Space wrap>
-                  {seance.participants.map((p: any) => (
+                  {seance.participants.map((p: SeanceParticipant) => (
                     <Tag key={p.id} icon={<UserOutlined />} color="green">
                       {p.nom} {p.prenom}
                     </Tag>

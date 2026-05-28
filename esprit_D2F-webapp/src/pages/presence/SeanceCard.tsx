@@ -8,15 +8,9 @@ import {
   TeamOutlined,
   RightOutlined,
 } from "@ant-design/icons";
-
-interface Seance {
-  idSeance: number | string;
-  dateSeance?: string | Date;
-  heureDebut?: string;
-  heureFin?: string;
-  salle?: string;
+import type { Seance } from "@/models/formation/formation";
+export interface SeanceCardData extends Seance {
   contenus?: string;
-  participants?: unknown[];
   presences?: unknown[];
 }
 
@@ -31,11 +25,11 @@ const formatTime = (t: string | Date | undefined | null): string => {
   }
 };
 
-const SeanceCard = ({ seance }: { seance: Seance }) => {
+const SeanceCard = ({ seance }: { seance: SeanceCardData }) => {
   const [showPresences, setShowPresences] = useState(false);
 
   const participantsCount = Array.isArray(seance.participants) ? seance.participants.length : 0;
-  const presencesCount = Array.isArray(seance.presences) ? seance.presences.length : participantsCount;
+  const presencesCount = seance.presences?.length ?? 0;
 
   return (
     <Card
@@ -138,7 +132,7 @@ const SeanceCard = ({ seance }: { seance: Seance }) => {
             borderTop: "1px dashed var(--border-color)",
           }}
         >
-          <PresenceList seanceId={seance.idSeance} />
+          <PresenceList seanceId={seance.idSeance as string | number} />
         </div>
       )}
     </Card>

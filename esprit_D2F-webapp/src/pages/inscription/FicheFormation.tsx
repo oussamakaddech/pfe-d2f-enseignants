@@ -28,6 +28,7 @@ import {
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 import { useFormationById } from "@/hooks/formation/useFormations";
+import type { Formation } from "@/models/formation";
 import "@/styles/pages/fiche-formation.css";
 
 const PERIOD_OPTIONS = [
@@ -83,7 +84,7 @@ export default function FicheFormation() {
     periodeFormation,
     periodCode,
     customPeriodLabel,
-  } = (formation || {}) as any;
+  } = formation || ({} as Formation);
 
   const typeColor = {
     INTERNE: "blue",
@@ -259,7 +260,7 @@ export default function FicheFormation() {
         >
           <Timeline
             mode="left"
-            items={seances.map((s: any, i: any) => ({
+            items={seances.map((s: typeof seances[number], i: number) => ({
               label: (
                 <Text type="secondary">
                   {dayjs(s.dateSeance).format("DD/MM/YYYY")}

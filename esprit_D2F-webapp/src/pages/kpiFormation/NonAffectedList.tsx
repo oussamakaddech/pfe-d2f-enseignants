@@ -27,18 +27,33 @@ const { RangePicker } = DatePicker;
 const { Option } = Select;
 const { Title, Text } = Typography;
 
+interface LookupItem {
+  id?: string | number;
+  libelle?: string;
+}
+
+interface EnseignantNonAffecte {
+  nom?: string;
+  prenom?: string;
+  mail?: string;
+  deptLibelle?: string;
+  upLibelle?: string;
+  upId?: string | number;
+  deptId?: string | number;
+}
+
 export default function NonAffectedGrid() {
   const { data: upsData } = useUps();
   const { data: deptsData } = useDepartements();
-  const ups = (upsData ?? []) as any[];
-  const depts = (deptsData ?? []) as any[];
+  const ups = (upsData ?? []) as LookupItem[];
+  const depts = (deptsData ?? []) as LookupItem[];
 
   const [range, setRange] = useState<[dayjs.Dayjs, dayjs.Dayjs]>([
     dayjs().startOf('year'),
     dayjs().endOf('year')
   ]);
-  const [selectedUp, setSelectedUp] = useState<any>(null);
-  const [selectedDept, setSelectedDept] = useState<any>(null);
+  const [selectedUp, setSelectedUp] = useState<string | number | null>(null);
+  const [selectedDept, setSelectedDept] = useState<string | number | null>(null);
 
   const [start, end] = range;
   const { data: allStats, isLoading } = useEnseignantsNonAffectes(
@@ -47,8 +62,8 @@ export default function NonAffectedGrid() {
   );
 
   const stats = useMemo(() => {
-    const source = Array.isArray(allStats) ? allStats : [];
-    return source.filter((item: any) =>
+    const source = Array.isArray(allStats) ? (allStats as EnseignantNonAffecte[]) : [];
+    return source.filter((item) =>
       (!selectedUp   || item.upId   === selectedUp) &&
       (!selectedDept || item.deptId === selectedDept)
     );
@@ -56,14 +71,14 @@ export default function NonAffectedGrid() {
 
   return (
     <Card title="Enseignants Non Affectés" style={{ margin: 20 }}>
-      
+
       {/* ---- FILTRES ---- */}
       <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
         <Col xs={24} md={12}>
           <RangePicker
             value={range}
             format="YYYY-MM-DD"
-            onChange={r => setRange(r as any)}
+            onChange={(r) => { if (r?.[0] && r?.[1]) setRange([r[0], r[1]]); }}
             style={{ width: '100%' }}
           />
         </Col>
@@ -76,7 +91,7 @@ export default function NonAffectedGrid() {
             style={{ width: '100%' }}
           >
             {ups.map(up => (
-              <Option key={up.id} value={up.id}>{up.libelle}</Option>
+              <Option key={String(up.id)} value={up.id}>{up.libelle}</Option>
             ))}
           </Select>
         </Col>
@@ -89,7 +104,7 @@ export default function NonAffectedGrid() {
             style={{ width: '100%' }}
           >
             {depts.map(dept => (
-              <Option key={dept.id} value={dept.id}>{dept.libelle}</Option>
+              <Option key={String(dept.id)} value={dept.id}>{dept.libelle}</Option>
             ))}
           </Select>
         </Col>
@@ -103,19 +118,19 @@ export default function NonAffectedGrid() {
       ) : (
         <div
           style={{
-            maxHeight: 400,          // hauteur fixe : ajuste selon ton besoin
+            maxHeight: 400,
             overflowY: 'auto',
-            paddingRight: 16         // pour éviter que le scroll chevauche le contenu
+            paddingRight: 16
           }}
         >
-          <List
+          <List<EnseignantNonAffecte>
             grid={{
               gutter: 24,
               xs: 1, sm: 2, md: 3, lg: 4, xl: 4, xxl: 6
             }}
             dataSource={stats}
             locale={{ emptyText: <span style={{ color: '#999' }}>Aucune donnée</span> }}
-            renderItem={(item: any) => (
+            renderItem={(item) => (
               <List.Item>
                 <Card
                   hoverable
@@ -158,7 +173,3 @@ export default function NonAffectedGrid() {
     </Card>
   );
 }
-
-
-
-

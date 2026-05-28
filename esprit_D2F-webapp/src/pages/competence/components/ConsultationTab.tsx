@@ -1,36 +1,47 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { Select, Spin } from "antd";
-import StructureSearchResultsView from "./StructureSearchResultsView";
+import StructureSearchResultsView, { type SearchResults } from "./StructureSearchResultsView";
 import SearchBar from "./consultation/SearchBar";
 import StatCards from "./consultation/StatCards";
 import ViewToolbar from "./consultation/ViewToolbar";
 import CardsView from "./consultation/CardsView";
 import ListView from "./consultation/ListView";
-import SavoirDetailDrawer from "./consultation/SavoirDetailDrawer";
-import { buildFlatSavoirs, DISPLAY_MODE_KEY } from "@/utils/helpers/consultationViewUtils";
+import SavoirDetailDrawer, { type DrawerPayload } from "./consultation/SavoirDetailDrawer";
+import { buildFlatSavoirs, DISPLAY_MODE_KEY, type FlatSavoir } from "@/utils/helpers/consultationViewUtils";
 import { useAllUps } from "@/hooks/formation/useUpCrud";
 import { useAllDepts } from "@/hooks/formation/useDeptCrud";
+import type useStructureData from "@/hooks/competence/useStructureData";
+import type { Domaine, Competence, SousCompetence, Savoir } from "@/models/competence";
 import "@/styles/pages/consultation-tab.css";
 
+interface RefItem { id?: string | number; name?: string; libelle?: string; }
+
+interface ConsultationCrud {
+  domaines?: Domaine[];
+  competences?: Competence[];
+  sousComps?: SousCompetence[];
+  savoirs?: Savoir[];
+}
+
 interface ConsultationTabProps {
-  structure: any;
-  crud: any;
+  structure: ReturnType<typeof useStructureData>;
+  crud: ConsultationCrud;
   handleExportExcel: () => void;
 }
 
 export default function ConsultationTab({ structure, crud, handleExportExcel }: Readonly<ConsultationTabProps>) {
   const [displayMode, setDisplayMode] = useState(() => {
     const saved = localStorage.getItem(DISPLAY_MODE_KEY);
-    return (["cards", "list"].includes(saved as any) ? saved : "cards") as string;
+    return (saved !== null && ["cards", "list"].includes(saved) ? saved : "cards");
   });
   const [listMode, setListMode] = useState("grouped");
   const [listFilters, setListFilters] = useState({ q: "", type: "ALL", niveau: "ALL" });
   const [cardsOpenAll, setCardsOpenAll] = useState(false);
   const [justNavigated, setJustNavigated] = useState(false);
-  const [drawerPayload, setDrawerPayload] = useState(null);
+  const [drawerPayload, setDrawerPayload] = useState<DrawerPayload | null>(null);
   const [isPending, startTransition] = useTransition();
   const [deferredCrud, setDeferredCrud] = useState(crud);
-  const contentRef = useRef<any>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
 
   const { data: ups = [] } = useAllUps();
   const { data: depts = [] } = useAllDepts();
@@ -43,13 +54,20 @@ export default function ConsultationTab({ structure, crud, handleExportExcel }: 
     structure.applyFilter?.(upId, deptId);
   }, [structure]);
 
-  const stats = structure.structure?.statistiques;
+  const stats = useMemo(() => ({
+    totalDomaines: deferredCrud.domaines?.length ?? 0,
+    totalCompetences: deferredCrud.competences?.length ?? 0,
+    totalSousCompetences: deferredCrud.sousComps?.length ?? 0,
+    totalSavoirs: deferredCrud.savoirs?.length ?? 0,
+    totalSavoirsTheoriques: deferredCrud.savoirs?.filter((s) => s.type === "THEORIQUE").length ?? 0,
+    totalSavoirsPratiques: deferredCrud.savoirs?.filter((s) => s.type === "PRATIQUE").length ?? 0,
+  }), [deferredCrud]);
 
   useEffect(() => {
     startTransition(() => setDeferredCrud(crud));
   }, [crud]);
 
-  const flatSavoirs = useMemo(() => buildFlatSavoirs(deferredCrud) as any, [deferredCrud]);
+  const flatSavoirs = useMemo(() => buildFlatSavoirs(deferredCrud) as unknown as FlatSavoir[], [deferredCrud]);
 
   const isSearchLoading = structure.searchLoading;
   const hasSearchResults = !isSearchLoading && !!structure.searchResults;
@@ -66,7 +84,7 @@ export default function ConsultationTab({ structure, crud, handleExportExcel }: 
     }, 50);
   }, []);
 
-  const handleStatClick = useCallback((key: any) => {
+  const handleStatClick = useCallback((key: string) => {
     switch (key) {
       case "domaines":
       case "competences":
@@ -98,8 +116,8 @@ export default function ConsultationTab({ structure, crud, handleExportExcel }: 
     scrollToContent();
   }, [scrollToContent]);
 
-  const openSingleSavoir = useCallback((savoir: any) => {
-    setDrawerPayload({ mode: "single", savoir: savoir || null } as any);
+  const openSingleSavoir = useCallback((savoir: FlatSavoir) => {
+    setDrawerPayload({ mode: "single", savoir: savoir || null });
   }, []);
 
   return (
@@ -115,8 +133,8 @@ export default function ConsultationTab({ structure, crud, handleExportExcel }: 
           showSearch
           optionFilterProp="children"
         >
-          {ups.map((u: any) => (
-            <Select.Option key={u.id} value={u.id}>{u.name || u.libelle}</Select.Option>
+          {(ups as RefItem[]).map((u) => (
+            <Select.Option key={String(u.id)} value={u.id}>{u.name || u.libelle}</Select.Option>
           ))}
         </Select>
         <Select
@@ -128,8 +146,8 @@ export default function ConsultationTab({ structure, crud, handleExportExcel }: 
           showSearch
           optionFilterProp="children"
         >
-          {depts.map((d: any) => (
-            <Select.Option key={d.id} value={d.id}>{d.name || d.libelle}</Select.Option>
+          {(depts as RefItem[]).map((d) => (
+            <Select.Option key={String(d.id)} value={d.id}>{d.name || d.libelle}</Select.Option>
           ))}
         </Select>
       </div>
@@ -144,7 +162,7 @@ export default function ConsultationTab({ structure, crud, handleExportExcel }: 
         </div>
       )}
 
-      {hasSearchResults && <StructureSearchResultsView results={structure.searchResults} />}
+      {hasSearchResults && <StructureSearchResultsView results={structure.searchResults as unknown as SearchResults} />}
 
       {isStructureLoading && (
         <div className="ctp-empty-box">
@@ -163,8 +181,8 @@ export default function ConsultationTab({ structure, crud, handleExportExcel }: 
               displayMode={displayMode}
               setDisplayMode={setDisplayMode}
               handleExportExcel={handleExportExcel}
-              crud={crud}
-              structure={structure}
+              crud={crud as unknown as Record<string, unknown>}
+              structure={structure as unknown as Record<string, unknown>}
               stats={stats}
             />
 

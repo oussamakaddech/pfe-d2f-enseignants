@@ -12,7 +12,7 @@ import { useAuth } from "@/hooks/auth/useAuth";
 
 const { Title, Text } = Typography;
 
-const normalizeRole = (value: any) =>
+const normalizeRole = (value: unknown) =>
   String(value || "").toLowerCase().replace(/^role_?/, "").replaceAll(/[\s_-]+/g, "");
 
 const ROLE_LABELS = {
@@ -81,16 +81,16 @@ const containerVariants = {
 
 const cardVariants = {
   hidden:  { opacity: 0, y: 22, scale: 0.97 },
-  visible: { opacity: 1, y: 0,  scale: 1, transition: { duration: 0.35, ease: "easeOut" } },
+  visible: { opacity: 1, y: 0,  scale: 1, transition: { duration: 0.35, ease: "easeOut" as const } },
 };
 
 export default function Home() {
-  const { user } = useAuth() as any;
+  const { user } = useAuth();
   const navigate  = useNavigate();
   const roleKey   = normalizeRole(user?.role);
-  const cards     = useMemo(() => (CARDS_BY_ROLE as any)[roleKey] ?? [], [roleKey]);
-  const roleLabel = (ROLE_LABELS as any)[roleKey] ?? user?.role ?? "";
-  const displayName = user?.username ?? user?.name ?? "Utilisateur";
+  const cards     = useMemo(() => CARDS_BY_ROLE[roleKey as keyof typeof CARDS_BY_ROLE] ?? [], [roleKey]);
+  const roleLabel = ROLE_LABELS[roleKey as keyof typeof ROLE_LABELS] ?? user?.role ?? "";
+  const displayName = user?.username ?? (user?.name as string | undefined) ?? "Utilisateur";
 
   return (
     <div style={{ padding: "28px 24px", maxWidth: 1280, margin: "0 auto" }}>
@@ -145,11 +145,11 @@ export default function Home() {
       {/* ── Cards Grid ── */}
       <motion.div variants={containerVariants} initial="hidden" animate="visible">
         <Row gutter={[20, 20]}>
-          {cards.map((card: any) => {
+          {cards.map((card) => {
             const Icon = card.icon;
             return (
               <Col xs={24} sm={12} md={8} lg={6} key={card.path}>
-                <motion.div variants={cardVariants as any} style={{ height: "100%" }}>
+                <motion.div variants={cardVariants} style={{ height: "100%" }}>
                   <div
                     role="button"
                     tabIndex={0}

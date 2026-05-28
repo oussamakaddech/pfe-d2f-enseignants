@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback, useMemo, useRef } from "react";
 import { Form } from "antd";
 import { useStructureApi, useNiveauDefinitionApi, useSavoirApi } from "@/hooks/competence/useCompetenceService";
 import useAppNotification from "@/hooks/ui/useAppNotification";
+import type { TreeNode, NiveauDefinition } from "@/models/competence";
 
 export function useStructureArbre() {
   const { message } = useAppNotification();
@@ -9,8 +10,8 @@ export function useStructureArbre() {
   const niveauDefApi = useNiveauDefinitionApi();
 
   const [loading, setLoading] = useState(true);
-  const [structure, setStructure] = useState<any>(null);
-  const [searchResults, setSearchResults] = useState<any>(null);
+  const [structure, setStructure] = useState<TreeNode[] | null>(null);
+  const [searchResults, setSearchResults] = useState<TreeNode[] | null>(null);
   const [searchKeyword, setSearchKeyword] = useState("");
   const [selectedDomaine, setSelectedDomaine] = useState<number | string | null>(null);
   const [searchLoading, setSearchLoading] = useState(false);
@@ -19,7 +20,7 @@ export function useStructureArbre() {
   // Niveau definitions modal
   const [niveauModalVisible, setNiveauModalVisible] = useState(false);
   const [niveauTarget, setNiveauTarget] = useState<{ type: string; id: number; nom: string } | null>(null);
-  const [niveauData, setNiveauData] = useState<any>({});
+  const [niveauData, setNiveauData] = useState<NiveauDefinition[]>([]);
   const [niveauLoading, setNiveauLoading] = useState(false);
   const [addNiveauForm] = Form.useForm();
   const [allSavoirs, setAllSavoirs] = useState<Record<string, unknown>[]>([]);
@@ -28,7 +29,7 @@ export function useStructureArbre() {
     setLoading(true);
     try {
       const data = await structureApi.getArbreComplet();
-      setStructure(data as any);
+      setStructure(data);
     } catch {
       message.error("Erreur lors du chargement de la structure");
     } finally {
@@ -65,7 +66,7 @@ export function useStructureArbre() {
         } else {
           data = await structureApi.rechercheGlobale(keyword.trim());
         }
-        setSearchResults(data as any);
+        setSearchResults(data);
         setActiveTab("search");
       } catch {
         message.error("Erreur de recherche");
@@ -128,7 +129,7 @@ export function useStructureArbre() {
         } else {
           data = await niveauDefApi.getBySousCompetence(id);
         }
-        setNiveauData(data as any);
+        setNiveauData(data);
       } catch {
         message.error("Erreur lors du chargement des niveaux");
       } finally {

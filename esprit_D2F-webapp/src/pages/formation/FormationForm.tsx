@@ -1,8 +1,12 @@
-import  { useState } from "react";
-import PropTypes from "prop-types"; // ✅ Importer PropTypes
+import { useState } from "react";
 import { useCreateFormation } from "@/hooks/formation/useFormations";
 
-function FormationForm({ initialDate, onFormationCreated }: any) {
+interface FormationFormProps {
+  initialDate?: Date;
+  onFormationCreated: (data: unknown) => void;
+}
+
+function FormationForm({ initialDate, onFormationCreated }: FormationFormProps) {
   const [titreFormation, setTitreFormation] = useState("");
   const [dateDebut, setDateDebut] = useState(
     initialDate ? initialDate.toISOString().split("T")[0] : ""
@@ -68,11 +72,7 @@ function FormationForm({ initialDate, onFormationCreated }: any) {
   );
 }
 
-// ✅ Ajouter la validation des props
-FormationForm.propTypes = {
-  initialDate: PropTypes.instanceOf(Date), // Objet Date
-  onFormationCreated: PropTypes.func.isRequired, // Fonction obligatoire
-};
+
 
 export default FormationForm;
 

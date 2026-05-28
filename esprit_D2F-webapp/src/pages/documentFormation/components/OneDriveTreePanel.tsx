@@ -71,7 +71,7 @@ export function OneDriveTreePanel({
             treeData={treeData}
             expandedKeys={expandedKeys}
             onExpand={(keys) => onExpand(keys as string[])}
-            onSelect={(keys, info) => onSelectTree(keys as string[], info as any)}
+            onSelect={(keys, info) => onSelectTree(keys as string[], info as unknown as { node: { isLeaf: boolean; raw: { name: string; fileSize?: number; downloadUrl?: string } } })}
           />
         </div>
       ) : (

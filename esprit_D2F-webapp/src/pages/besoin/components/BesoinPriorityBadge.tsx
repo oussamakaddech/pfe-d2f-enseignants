@@ -1,19 +1,20 @@
-import PropTypes from "prop-types";
-
-const PRIORITY_LABELS = {
+const PRIORITY_LABELS: Record<string, string> = {
   CRITIQUE: "Critique",
   HAUTE:    "Haute",
   MOYENNE:  "Moyenne",
   BASSE:    "Basse",
 };
 
-/**
- * Pill de priorité.
- * Le style est porté par la classe `bf-priority--{level}` définie dans la CSS.
- */
-export default function BesoinPriorityBadge({ value, size = "md" }: any) {
+type PriorityValue = keyof typeof PRIORITY_LABELS;
+
+interface BesoinPriorityBadgeProps {
+  value?: PriorityValue;
+  size?: "sm" | "md";
+}
+
+export default function BesoinPriorityBadge({ value, size = "md" }: BesoinPriorityBadgeProps) {
   if (!value) return null;
-  const label = (PRIORITY_LABELS as any)[value] || value;
+  const label = PRIORITY_LABELS[value] || value;
   return (
     <span className={`bf-priority bf-priority--${value} bf-priority--${size}`}>
       <span className="bf-priority__dot" aria-hidden="true" />
@@ -22,10 +23,7 @@ export default function BesoinPriorityBadge({ value, size = "md" }: any) {
   );
 }
 
-BesoinPriorityBadge.propTypes = {
-  value: PropTypes.oneOf(["CRITIQUE", "HAUTE", "MOYENNE", "BASSE"]),
-  size: PropTypes.oneOf(["sm", "md"]),
-};
+
 
 
 

@@ -10,9 +10,10 @@
 //   * ReviewStep        - Step 2 JSX (tree + DnD)
 //   * ReportStep        - Step 3 JSX
 
-import {
+import React, {
   useState, useEffect, useCallback, useRef, useMemo,
 } from "react";
+import type { ComponentProps } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Alert, Button, Card, Input, Modal, Select, Space, Steps, Typography,
@@ -23,19 +24,21 @@ import {
   ThunderboltOutlined, UserAddOutlined,
 } from "@ant-design/icons";
 import { AnimatePresence, motion } from "framer-motion";
+import type { Variants } from "framer-motion";
 
 import { useRiceTree }    from "@/hooks/analyse/useRiceTree";
 import { useDragAndDrop } from "@/hooks/ui/useDragAndDrop";
 import { useRiceReport }  from "@/hooks/analyse/useRiceReport";
 
-import { useRiceEnseignants, useRiceAnalyze, useRiceSaveAssignments, useRiceAssignCompetence, useRiceRemoveAssignment } from "@/hooks/analyse/useRiceService";
-import { useEnseignants, useCreateEnseignant } from "@/hooks/enseignant/useEnseignants";
+import { useRiceEnseignants, useRiceAnalyze } from "@/hooks/analyse/useRiceService";
+import { useCreateEnseignant } from "@/hooks/enseignant/useEnseignants";
 
 import UploadStep    from "./rice/UploadStep";
 import AnalyzingStep from "./rice/AnalyzingStep";
 import ReviewStep    from "./rice/ReviewStep";
 import ReportStep    from "./rice/ReportStep";
 import { cloneDeep, STORAGE_KEY } from "./rice/constants";
+import type { RiceDomaine } from "@/models/competence";
 
 import "@/styles/pages/rice-page.css";
 import useAppNotification from "@/hooks/ui/useAppNotification";
@@ -52,14 +55,44 @@ const DEPT_ACCENT = {
   meca:   "#fa8c16",
 };
 
+interface EnseignantRef extends Record<string, unknown> {
+  id?: string | number;
+  enseignantId?: string | number;
+  nom?: string;
+  prenom?: string;
+  modules?: string[];
+}
+
+interface ExtractedEnseignant extends Record<string, unknown> {
+  nom_complet?: string;
+  fichier?: string;
+  matched_id?: string | number;
+}
+
+interface AnalysisResult extends Record<string, unknown> {
+  propositions?: RiceDomaine[];
+  extractedEnseignants?: ExtractedEnseignant[];
+  foundEnseignants?: EnseignantRef[];
+  detectedDepartement?: string;
+  detectedDepartment?: string;
+  departementDetecte?: string;
+  departement_detecte?: string;
+  stats?: { departement?: string };
+}
+
+interface CreateEnsTarget {
+  path?: number[];
+  eid?: string;
+}
+
 // Shared spring transition for step panels
-const STEP_VARIANTS = {
+const STEP_VARIANTS: Variants = {
   initial: { opacity: 0, y: 18, scale: 0.98 },
   animate: { opacity: 1, y: 0,  scale: 1,    transition: { type: "spring", stiffness: 300, damping: 28 } },
   exit:    { opacity: 0, y: -12, scale: 0.97, transition: { duration: 0.18 } },
 };
 
-const isLikelyValidExtractedName = (value: any) => {
+const isLikelyValidExtractedName = (value: unknown) => {
   const name = String(value ?? "").trim();
   if (name.length < 5) return false;
   if (name.includes(":")) return false;
@@ -80,36 +113,36 @@ export default function RicePage() {
   const [currentStep, setCurrentStep] = useState(0);
 
   // -- Step 0 state -----------------------------------------------------------
-  const [files, setFiles] = useState<any[]>([]);
+  const [files, setFiles] = useState<File[]>([]);
   const [departement, setDepartement] = useState("auto");
-  const [allEnseignants, setAllEnseignants] = useState<any[]>([]);
+  const [allEnseignants, setAllEnseignants] = useState<EnseignantRef[]>([]);
   const [enseignantsLoading, setEnseignantsLoading] = useState(false);
-  const [enseignantsError, setEnseignantsError] = useState<any>(null);
+  const [enseignantsError, setEnseignantsError] = useState<string | null>(null);
   const [enseignantsLoadSlow, setEnseignantsLoadSlow] = useState(false);
   const [ignoreEnseignants, setIgnoreEnseignants] = useState(false);
   const [enseignantsReloadKey, setEnseignantsReloadKey] = useState(0);
-  const [analysisResult, setAnalysisResult] = useState<any>(null);
+  const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
 
   // -- Step 1 state -----------------------------------------------------------
   const [analyzing, setAnalyzing] = useState(false);
   const [analysisProgress, setAnalysisProgress] = useState(0);
   const analyzeIsCanceledRef = useRef(false);
-  const progressTimerRef = useRef<any>(null);
+  const progressTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // -- Step 2 teacher state ---------------------------------------------------
-  const [extractedEnseignants, setExtractedEnseignants] = useState<any[]>([]);
+  const [extractedEnseignants, setExtractedEnseignants] = useState<ExtractedEnseignant[]>([]);
   const [ensSearchStep2, setEnsSearchStep2] = useState("");
-  const [treeHistory, setTreeHistory] = useState<any[]>([]);
+  const [treeHistory, setTreeHistory] = useState<RiceDomaine[][]>([]);
   const [showAutosave, setShowAutosave] = useState(false);
 
   // -- Create-teacher modal state ---------------------------------------------
   const [createEnsModal, setCreateEnsModal] = useState(false);
-  const [createEnsTarget, setCreateEnsTarget] = useState<any>(null);
+  const [createEnsTarget, setCreateEnsTarget] = useState<CreateEnsTarget | null>(null);
   const [createEnsData, setCreateEnsData] = useState({ nom: "", prenom: "", mail: "" });
   const [savingNewEns, setSavingNewEns] = useState(false);
-  const autosaveDebounceRef = useRef<any>(null);
-  const autosaveHideRef = useRef<any>(null);
-  const prevTreeRef = useRef<any>([]);
+  const autosaveDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const autosaveHideRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const prevTreeRef = useRef<RiceDomaine[]>([]);
   const skipHistoryRef = useRef(false);
 
   // -- Custom hooks -----------------------------------------------------------
@@ -141,7 +174,7 @@ export default function RicePage() {
       (allEnseignants ?? []).map((e) => [String(e.id ?? e.enseignantId), e]),
     );
 
-    (analysisResult?.foundEnseignants ?? []).forEach((e: any) => {
+    (analysisResult?.foundEnseignants ?? []).forEach((e) => {
       const id = String(e.id ?? e.enseignantId);
       if (!dbMap.has(id)) dbMap.set(id, { ...e, id, enseignantId: id });
     });
@@ -180,7 +213,7 @@ export default function RicePage() {
 
   // -- Load enseignants from DB (mount + department change) ------------------
   const riceEnsQuery = useRiceEnseignants(departement === "auto" ? null : departement);
-  const ensSlowTimerRef = useRef<any>(null);
+  const ensSlowTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const loadEnseignants = useCallback(() => {
     setIgnoreEnseignants(false);
@@ -216,7 +249,7 @@ export default function RicePage() {
 
     if (riceEnsQuery.error) {
       if (ensSlowTimerRef.current) clearTimeout(ensSlowTimerRef.current);
-      const err = riceEnsQuery.error as any;
+      const err = riceEnsQuery.error as { response?: { status?: number } };
       const status = err?.response?.status;
       if (status === 401 || status === 403) {
         setEnseignantsError("Session expirée. Veuillez vous reconnecter pour charger les enseignants.");
@@ -238,13 +271,14 @@ export default function RicePage() {
   }, [riceEnsQuery.data, riceEnsQuery.isLoading, riceEnsQuery.error, ignoreEnseignants, msgApi]);
 
   // -- Upload change handler --------------------------------------------------
-  const handleUploadChange = useCallback(({ fileList }: any) => {
+  const handleUploadChange = useCallback(({ fileList }: { fileList: Array<{ originFileObj?: File; name?: string; size?: number }> }) => {
     const allowed = new Set(["pdf", "docx", "doc", "txt"]);
     const maxSize = 20 * 1024 * 1024;
-    const accepted = [];
+    const accepted: File[] = [];
 
     for (const f of fileList) {
-      const raw = f.originFileObj ?? f;
+      const raw = f.originFileObj;
+      if (!raw) continue;
       const name = raw?.name ?? "fichier";
       const ext = (name.split(".").pop() || "").toLowerCase();
 
@@ -252,7 +286,7 @@ export default function RicePage() {
         msgApi.warning(`&apos;${name}&apos; n&apos;est pas supporté — seuls PDF, DOCX et TXT sont acceptés`);
         continue;
       }
-      if ((raw?.size ?? 0) > maxSize) {
+      if ((raw.size ?? 0) > maxSize) {
         msgApi.warning(`&apos;${name}&apos; dépasse 20 Mo`);
         continue;
       }
@@ -263,7 +297,7 @@ export default function RicePage() {
   }, [msgApi]);
 
   // -- Step 1: Launch AI analysis --------------------------------------------
-  const cleanTreePropositions = (propositions: any) => {
+  const cleanTreePropositions = (propositions: RiceDomaine[]) => {
     const cleaned = cloneDeep(propositions);
     for (const d of cleaned)
       for (const c of d.competences ?? []) {
@@ -282,12 +316,11 @@ export default function RicePage() {
     return cleaned;
   };
 
-  const deduplicateExtractedEnseignants = (extracted: any) => {
+  const deduplicateExtractedEnseignants = (extracted: ExtractedEnseignant[]) => {
     const extractedClean = (extracted ?? []).filter(
-      (ex: any) => isLikelyValidExtractedName(ex?.nom_complet),
+      (ex) => isLikelyValidExtractedName(ex?.nom_complet),
     );
-    // Build sets of DB enseignant identifiers for fast lookup (both nom+prenom and prenom+nom)
-    const dbNameSets = new Set();
+    const dbNameSets = new Set<string>();
     (allEnseignants ?? []).forEach((e) => {
       const nom = String(e.nom ?? "").trim().toLowerCase();
       const prenom = String(e.prenom ?? "").trim().toLowerCase();
@@ -296,8 +329,8 @@ export default function RicePage() {
         dbNameSets.add(`${prenom} ${nom}`);
       }
     });
-    const dedupMap = new Map();
-    extractedClean.forEach((ex: any) => {
+    const dedupMap = new Map<string, ExtractedEnseignant>();
+    extractedClean.forEach((ex) => {
       const key = String(ex?.nom_complet ?? "").trim().toLowerCase();
       if (!key || dedupMap.has(key)) return;
       // Check if this extracted name matches any DB enseignant (handles both "nom prenom" and "prenom nom")
@@ -320,7 +353,7 @@ export default function RicePage() {
     }
   };
 
-  const detectDepartment = (result: any) => {
+  const detectDepartment = (result: AnalysisResult) => {
     const detectedDept = String(
       result?.detectedDepartement
         ?? result?.detectedDepartment
@@ -378,10 +411,11 @@ export default function RicePage() {
       detectDepartment(result);
 
       setTimeout(() => setCurrentStep(2), 400);
-    } catch (err: any) {
-      clearInterval(progressTimerRef.current);
+    } catch (err: unknown) {
+      clearInterval(progressTimerRef.current ?? undefined);
       if (analyzeIsCanceledRef.current) return;
-      msgApi.error(err.response?.data?.detail ?? err.message ?? "Erreur d&apos;analyse IA");
+      const e = err as { response?: { data?: { detail?: string } }; message?: string };
+      msgApi.error(e?.response?.data?.detail ?? e?.message ?? "Erreur d'analyse IA");
       setCurrentStep(0);
     } finally {
       setAnalyzing(false);
@@ -390,7 +424,7 @@ export default function RicePage() {
 
   // -- Remap ext_ ID to real DB ID across tree + extracted list ---------------
   const remapEnseignant = useCallback(
-    (extId: any, realId: any) => {
+    (extId: string, realId: string) => {
       remapInTree(extId, realId);
       const extIdx = Number.parseInt(extId.replace("ext_", ""), 10);
       setExtractedEnseignants((prev) => {
@@ -440,8 +474,9 @@ export default function RicePage() {
       }
       setCreateEnsModal(false);
       setCreateEnsTarget(null);
-    } catch (err: any) {
-      msgApi.error(err.response?.data?.message ?? "Erreur lors de la creation");
+    } catch (err: unknown) {
+      const e = err as { response?: { data?: { message?: string } } };
+      msgApi.error(e?.response?.data?.message ?? "Erreur lors de la creation");
     } finally {
       setSavingNewEns(false);
     }
@@ -523,19 +558,19 @@ export default function RicePage() {
 
   // -- Keyboard shortcuts ----------------------------------------------------
   useEffect(() => {
-    const handleCtrlEnter = (e: any) => {
+    const handleCtrlEnter = (e: KeyboardEvent) => {
       if (!(e.ctrlKey || e.metaKey) || e.key !== "Enter") return;
       e.preventDefault();
       if (currentStep === 0 && files.length > 0 && !analyzing) {
-        handleAnalyze();
+        void handleAnalyze();
         return;
       }
       if (currentStep === 3 && !importing) {
-        handleImport();
+        void handleImport();
       }
     };
 
-    const handleEscape = (e: any) => {
+    const handleEscape = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return;
       if (editingNom) setEditingNom(null);
       if (mergeModal) {
@@ -545,18 +580,18 @@ export default function RicePage() {
       }
     };
 
-    const handleCtrlZ = (e: any) => {
+    const handleCtrlZ = (e: KeyboardEvent) => {
       if (!(e.ctrlKey || e.metaKey) || e.key.toLowerCase() !== "z") return;
       if (currentStep !== 2 || treeHistory.length === 0) return;
       e.preventDefault();
       const previous = treeHistory[treeHistory.length - 1];
       skipHistoryRef.current = true;
-      setTree(cloneDeep(previous));
+      setTree(cloneDeep(previous) as RiceDomaine[]);
       setTreeHistory((hist) => hist.slice(0, -1));
       msgApi.info("Modification annulée (Ctrl+Z)");
     };
 
-    const onKeyDown = (e: any) => {
+    const onKeyDown = (e: KeyboardEvent) => {
       handleCtrlEnter(e);
       handleEscape(e);
       handleCtrlZ(e);
@@ -590,7 +625,7 @@ export default function RicePage() {
 
     document.body.classList.add("confetti-active");
     const colors = ["#ff4d4f", "#faad14", "#52c41a", "#1677ff", "#722ed1"];
-    const pieces: any[] = [];
+    const pieces: HTMLElement[] = [];
     for (let i = 0; i <26; i += 1) {
       const el = document.createElement("div");
       el.className = "confetti-piece";
@@ -673,7 +708,7 @@ export default function RicePage() {
   return (
     <div
       className="rice-page"
-      style={{ "--rice-accent": DEPT_ACCENT[departement as keyof typeof DEPT_ACCENT] ?? "#1677ff" } as any}
+      style={{ "--rice-accent": DEPT_ACCENT[departement as keyof typeof DEPT_ACCENT] ?? "#1677ff" } as React.CSSProperties & Record<string, string>}
     >
       <div className="rice-shell">
         <section className="rice-hero">
@@ -753,27 +788,27 @@ export default function RicePage() {
           <main className="rice-workbench-main">
             <AnimatePresence mode="wait">
               {currentStep === 0 && (
-                <motion.div key="step0" variants={STEP_VARIANTS as any} initial="initial" animate="animate" exit="exit">
-                  <UploadStep {...({
-                    files,
-                    analyzing,
-                    handleAnalyze,
-                    handleUploadChange,
-                    setCurrentStep,
-                    departement,
-                    setDepartement,
-                    allEnseignants,
-                    enseignantsLoading,
-                    enseignantsError,
-                    enseignantsLoadSlow,
-                    onRetryEnseignants: loadEnseignants,
-                    onContinueWithoutEnseignants: continueWithoutEnseignants,
-                  } as any)} />
+                <motion.div key="step0" variants={STEP_VARIANTS} initial="initial" animate="animate" exit="exit">
+                  <UploadStep
+                    files={files}
+                    analyzing={analyzing}
+                    handleAnalyze={() => void handleAnalyze()}
+                    handleUploadChange={handleUploadChange as (info: unknown) => void}
+                    setCurrentStep={setCurrentStep}
+                    departement={departement}
+                    setDepartement={setDepartement}
+                    allEnseignants={allEnseignants as ComponentProps<typeof UploadStep>["allEnseignants"]}
+                    enseignantsLoading={enseignantsLoading}
+                    enseignantsError={enseignantsError ?? undefined}
+                    enseignantsLoadSlow={enseignantsLoadSlow}
+                    onRetryEnseignants={loadEnseignants}
+                    onContinueWithoutEnseignants={continueWithoutEnseignants}
+                  />
                 </motion.div>
               )}
 
               {currentStep === 1 && (
-                <motion.div key="step1" variants={STEP_VARIANTS as any} initial="initial" animate="animate" exit="exit">
+                <motion.div key="step1" variants={STEP_VARIANTS} initial="initial" animate="animate" exit="exit">
                   <AnalyzingStep
                     filesCount={files.length}
                     analysisProgress={analysisProgress}
@@ -787,81 +822,59 @@ export default function RicePage() {
               )}
 
               {currentStep === 2 && (
-                <motion.div key="step2" variants={STEP_VARIANTS as any} initial="initial" animate="animate" exit="exit">
-                  <ReviewStep {...({
-                    tree,
-                    setTree,
-                    treeSearch,
-                    setTreeSearch,
-                    editingNom,
-                    setEditingNom,
-                    startRename,
-                    commitRename,
-                    deleteSavoir,
-                    deleteSC,
-                    deleteComp,
-                    deleteDomaine,
-                    addDomaine,
-                    addCompetence,
-                    addSousCompetence,
-                    addSavoir,
-                    toggleType,
-                    setNiveau,
-                    setEnseignants,
-                    openMerge,
-                    setMergeModal,
-                    liveStats,
-                    treeFilteredIndices,
-                    departement,
-                    extractedEnseignants,
-                    allEnseignants,
-                    dbEnseignants: allEnseignants,
-                    effectiveEnseignants,
-                    filteredEffectiveEns,
-                    ensSearchStep2,
-                    setEnsSearchStep2,
-                    loadingEns: enseignantsLoading,
-                    loadEnseignants,
-                    result: analysisResult,
-                    clearAllAssignments,
-                    remapEnseignant,
-                    allSavoirsFlat,
-                    setCreateEnsTarget,
-                    setCreateEnsData,
-                    setCreateEnsModal,
-                    isDragging: dndHook.isDragging,
-                    draggedSavoirInfo: dndHook.draggedSavoirInfo,
-                    dragOverEns: dndHook.dragOverEns,
-                    onSavoirDragStart: dndHook.onSavoirDragStart,
-                    onSavoirDragEnd: dndHook.onSavoirDragEnd,
-                    onTagDragStart: dndHook.onTagDragStart,
-                    onEnsDragOver: dndHook.onEnsDragOver,
-                    onEnsDragLeave: dndHook.onEnsDragLeave,
-                    onEnsDrop: dndHook.onEnsDrop,
-                    toggleEnsAssign,
-                    setCurrentStep,
-                    initialPanel: "structure",
-                  } as any)} />
+                <motion.div key="step2" variants={STEP_VARIANTS} initial="initial" animate="animate" exit="exit">
+                  <ReviewStep
+                    tree={tree as ComponentProps<typeof ReviewStep>["tree"]}
+                    setTree={setTree as ComponentProps<typeof ReviewStep>["setTree"]}
+                    treeSearch={treeSearch}
+                    setTreeSearch={setTreeSearch}
+                    editingNom={editingNom as unknown as ComponentProps<typeof ReviewStep>["editingNom"]}
+                    setEditingNom={setEditingNom as unknown as ComponentProps<typeof ReviewStep>["setEditingNom"]}
+                    startRename={startRename as unknown as ComponentProps<typeof ReviewStep>["startRename"]}
+                    commitRename={commitRename}
+                    deleteSavoir={deleteSavoir}
+                    deleteSC={deleteSC}
+                    deleteComp={deleteComp}
+                    deleteDomaine={deleteDomaine}
+                    toggleType={(di, ci, sci) => toggleType(di, ci, sci, 0)}
+                    setNiveau={(di, ci, sci, niveau) => setNiveau(di, ci, sci, 0, niveau)}
+                    setEnseignants={(di, ci, sci, ids) => setEnseignants(di, ci, sci, 0, ids)}
+                    openMerge={() => undefined}
+                    setMergeModal={() => undefined}
+                    liveStats={liveStats}
+                    treeFilteredIndices={treeFilteredIndices as unknown as ComponentProps<typeof ReviewStep>["treeFilteredIndices"]}
+                    departement={departement}
+                    dbEnseignants={allEnseignants as ComponentProps<typeof ReviewStep>["dbEnseignants"]}
+                    allSavoirsFlat={allSavoirsFlat as ComponentProps<typeof ReviewStep>["allSavoirsFlat"]}
+                    onSavoirDragStart={dndHook.onSavoirDragStart as unknown as ComponentProps<typeof ReviewStep>["onSavoirDragStart"]}
+                    onSavoirDragEnd={dndHook.onSavoirDragEnd}
+                    setCurrentStep={setCurrentStep}
+                    updateNodeField={() => undefined}
+                    moveSavoirToSC={() => undefined}
+                    setCreateEnsTarget={setCreateEnsTarget as ComponentProps<typeof ReviewStep>["setCreateEnsTarget"]}
+                    setCreateEnsData={setCreateEnsData as ComponentProps<typeof ReviewStep>["setCreateEnsData"]}
+                    setCreateEnsModal={setCreateEnsModal}
+                  />
                 </motion.div>
               )}
 
               {currentStep === 3 && (
-                <motion.div key="step3" variants={STEP_VARIANTS as any} initial="initial" animate="animate" exit="exit">
-                  <ReportStep {...({
-                    report,
-                    importing,
-                    handleImport,
-                    exportReportJson,
-                    departement,
-                    importHistory,
-                    historyLoading,
-                    loadImportHistory,
-                    allSavoirsFlat,
-                    effectiveEnseignants,
-                    extractedEnseignants,
-                    setCurrentStep,
-                    resetAll,
-                  } as any)} />
+                <motion.div key="step3" variants={STEP_VARIANTS} initial="initial" animate="animate" exit="exit">
+                  <ReportStep
+                    report={report as ComponentProps<typeof ReportStep>["report"]}
+                    importing={importing}
+                    handleImport={handleImport}
+                    exportReportJson={exportReportJson}
+                    departement={departement}
+                    importHistory={importHistory as ComponentProps<typeof ReportStep>["importHistory"]}
+                    historyLoading={historyLoading}
+                    loadImportHistory={loadImportHistory}
+                    allSavoirsFlat={allSavoirsFlat as ComponentProps<typeof ReportStep>["allSavoirsFlat"]}
+                    effectiveEnseignants={effectiveEnseignants as ComponentProps<typeof ReportStep>["effectiveEnseignants"]}
+                    extractedEnseignants={extractedEnseignants as ComponentProps<typeof ReportStep>["extractedEnseignants"]}
+                    setCurrentStep={setCurrentStep}
+                    resetAll={resetAll}
+                  />
                 </motion.div>
               )}
             </AnimatePresence>

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import {
   Table,
   Button,
@@ -31,6 +31,42 @@ import "@/styles/pages/completed-formations.css";
 import { useFormationsAchevees, useGenerateFormationCertificates, useFormationReportFetch } from "@/hooks/formation";
 import { useEnseignants } from "@/hooks/enseignant";
 import { useGenerateCertificates } from "@/hooks/certificat";
+import type { Dayjs } from "dayjs";
+import type { Id } from "@/models/common";
+
+interface FormationRecord {
+  idFormation?: Id;
+  titreFormation?: string;
+  etatFormation?: string;
+  dateDebut?: string;
+  dateFin?: string;
+  certifGenerated?: boolean;
+  chargeHoraireGlobal?: string | number;
+  populationCible?: string;
+  objectifs?: string;
+  up1?: { libelle?: string };
+  departement1?: { libelle?: string };
+}
+
+interface EnseignantRef {
+  id?: Id;
+  nom?: string;
+  prenom?: string;
+  mail?: string;
+  departement1?: { libelle?: string };
+  dept?: { libelle?: string };
+}
+
+interface ReportFormateur { nom?: string; prenom?: string; }
+
+interface ReportItem {
+  titreFormation?: string;
+  formateurs?: ReportFormateur[];
+  dateDebut?: string;
+  chargeHoraireGlobal?: string | number;
+  populationCible?: string;
+  objectifs?: string;
+}
 
 const { Option } = Select;
 const { RangePicker } = DatePicker;
@@ -39,41 +75,43 @@ const { Text } = Typography;
 export default function CompletedFormations() {
   // États principaux
   const { message } = useAppNotification();
-  const { data: formations = [], isLoading: loadingTable } = useFormationsAchevees();
-  const { data: enseignantsData = [], isLoading: loadingEns } = useEnseignants();
-  const enseignants = enseignantsData;
+  const { data: rawFormations = [], isLoading: loadingTable } = useFormationsAchevees();
+  const formations = rawFormations as FormationRecord[];
+  const { data: rawEnseignants = [], isLoading: loadingEns } = useEnseignants();
+  const enseignants = rawEnseignants as EnseignantRef[];
   const generateCertMut = useGenerateCertificates();
   const genBatchMut = useGenerateFormationCertificates();
   const reportFetchMut = useFormationReportFetch();
 
-  const [loadingButtons, setLoadingButtons] = useState<any>({});
+  const [loadingButtons, setLoadingButtons] = useState<Record<string, boolean>>({});
   const [typeCertif, setTypeCertif] = useState("CERTIF");
   const navigate = useNavigate();
 
   // Drawer PDF-attestation
   const [drawerVisible, setDrawerVisible] = useState(false);
-  const [selectedEns, setSelectedEns] = useState<any>(null);
+  const [selectedEns, setSelectedEns] = useState<EnseignantRef | null>(null);
   const [attType, setAttType] = useState("PARTICIPATION");
-  const [period, setPeriod] = useState<any>([]);
-  const [pdfUrl, setPdfUrl] = useState<any>(null);
+  const [period, setPeriod] = useState<Dayjs[]>([]);
+  const [pdfUrl, setPdfUrl] = useState<string | null>(null);
 
   // Drawer création de certificat individuel
   const [newCertDrawerVisible, setNewCertDrawerVisible] = useState(false);
-  const [newCertFormationId, setNewCertFormationId] = useState<any>(null);
-  const [newCertEnseignants, setNewCertEnseignants] = useState<any>([]);
+  const [newCertFormationId, setNewCertFormationId] = useState<Id | null>(null);
+  const [newCertEnseignants, setNewCertEnseignants] = useState<EnseignantRef[]>([]);
   const [loadingNewCertEns, setLoadingNewCertEns] = useState(false);
-  const [selectedNewCertEns, setSelectedNewCertEns] = useState<any>(null);
+  const [selectedNewCertEns, setSelectedNewCertEns] = useState<EnseignantRef | null>(null);
 
   // Génération de certificats batch
-  const handleGenerateCertificate = async (record: any) => {
-    const id = record.idFormation;
-    setLoadingButtons((prev: any) => ({ ...prev, [id]: true }));
+  const handleGenerateCertificate = async (record: FormationRecord) => {
+    const id = String(record.idFormation ?? "");
+    setLoadingButtons((prev) => ({ ...prev, [id]: true }));
     try {
-      await genBatchMut.mutateAsync({ formationId: id, typeCertif });
+      await genBatchMut.mutateAsync({ formationId: record.idFormation!, typeCertif });
       message.success("Certificats générés !");
       navigate(`/home/certificate/${id}`);
-    } catch (error: any) {
-      const resp = error.response;
+    } catch (error: unknown) {
+      const err = error as { response?: { status?: number; data?: string } };
+      const resp = err.response;
       if (
         resp?.status === 409 &&
         typeof resp.data === "string" &&
@@ -85,7 +123,7 @@ export default function CompletedFormations() {
         message.error("Échec de la génération des certificats.");
       }
     } finally {
-      setLoadingButtons((prev: any) => ({ ...prev, [id]: false }));
+      setLoadingButtons((prev) => ({ ...prev, [id]: false }));
     }
   };
 
@@ -104,10 +142,11 @@ export default function CompletedFormations() {
     }
     const role = attType === "ANIMATION" ? "animateur" : "participant";
     const ensId = selectedEns.id;
-    const [start, end] = period.map((d: any) => d.format("YYYY-MM-DD"));
+    const [start, end] = period.map((d) => d.format("YYYY-MM-DD"));
 
     try {
-      const items = await reportFetchMut.mutateAsync({ role, enseignantId: ensId, start, end });
+      const rawItems = await reportFetchMut.mutateAsync({ role, enseignantId: ensId!, start, end });
+      const items = rawItems as ReportItem[];
       const doc = new jsPDF({ unit: "pt", format: "a4" });
       doc.setFont("times", "normal").setFontSize(12);
 
@@ -115,20 +154,20 @@ export default function CompletedFormations() {
         attType === "ANIMATION"
           ? ["Formation", "Formateur(s)", "Date", "Nb.h", "Public cible", "Objectifs"]
           : ["Formation", "Formateur", "Date"];
-      const body = items.map((f: any) => {
+      const body = items.map((f) => {
         const noms = Array.isArray(f.formateurs)
-          ? f.formateurs.map((fr: any) => `${fr.nom} ${fr.prenom}`).join(", ")
+          ? f.formateurs.map((fr) => `${fr.nom ?? ""} ${fr.prenom ?? ""}`).join(", ")
           : "";
         return attType === "ANIMATION"
           ? [
-              f.titreFormation,
+              f.titreFormation ?? "",
               noms,
-              f.dateDebut,
-              `${f.chargeHoraireGlobal || ""} h`,
-              f.populationCible,
-              f.objectifs,
+              f.dateDebut ?? "",
+              `${f.chargeHoraireGlobal ?? ""} h`,
+              f.populationCible ?? "",
+              f.objectifs ?? "",
             ]
-          : [f.titreFormation, noms, f.dateDebut];
+          : [f.titreFormation ?? "", noms, f.dateDebut ?? ""];
       });
 
       autoTable(doc, {
@@ -157,7 +196,7 @@ export default function CompletedFormations() {
         },
       });
 
-      setPdfUrl(doc.output("bloburl"));
+      setPdfUrl(doc.output("bloburl") as unknown as string);
     } catch {
       message.error("Échec de la génération du tableau PDF.");
       setDrawerVisible(false);
@@ -165,7 +204,7 @@ export default function CompletedFormations() {
   };
 
   // Ouvre le Drawer de création d'un certificat individuel
-  const openNewCertDrawer = (formationId: any) => {
+  const openNewCertDrawer = (formationId: Id) => {
     setNewCertFormationId(formationId);
     setSelectedNewCertEns(null);
     setNewCertEnseignants(enseignants);
@@ -176,7 +215,8 @@ export default function CompletedFormations() {
   const handleCreateCertificate = async () => {
     if (!selectedNewCertEns) return;
     try {
-      const formation = formations.find((f: any) => f.idFormation === newCertFormationId) as any;
+      const formation = formations.find((f) => f.idFormation === newCertFormationId);
+      if (!formation) return;
       const ens = selectedNewCertEns;
       const payload = {
         formationId: formation.idFormation,
@@ -211,12 +251,12 @@ export default function CompletedFormations() {
     {
       title: "Action",
       key: "action",
-      render: (_: any, rec: any) => (
+      render: (_: unknown, rec: FormationRecord) => (
         <Space size={4}>
           <Button
             type="primary"
             icon={<FilePdfOutlined />}
-            loading={loadingButtons[rec.idFormation]}
+            loading={loadingButtons[String(rec.idFormation)]}
             disabled={rec.certifGenerated}
             onClick={() => handleGenerateCertificate(rec)}
             className="completed-btn-generate"
@@ -234,7 +274,7 @@ export default function CompletedFormations() {
           )}
           <Button
             icon={<PlusOutlined />}
-            onClick={() => openNewCertDrawer(rec.idFormation)}
+            onClick={() => rec.idFormation != null && openNewCertDrawer(rec.idFormation)}
             className="completed-btn-add"
           >
             Ajouter
@@ -253,7 +293,7 @@ export default function CompletedFormations() {
   ];
 
   // Stats
-  const certifCount = formations.filter((f: any) => f.certifGenerated).length;
+  const certifCount = formations.filter((f) => f.certifGenerated).length;
   const pendingCount = formations.length - certifCount;
 
   return (
@@ -368,10 +408,9 @@ export default function CompletedFormations() {
               columns={ensColumns}
               rowSelection={{
                 type: "radio",
-                selectedRowKeys: selectedEns ? [selectedEns.id] : [],
-                onChange: (_: any, rows: any) => setSelectedEns(rows[0]),
-                getRowKey: (r: any) => r.id,
-              } as any}
+                selectedRowKeys: selectedEns ? [selectedEns.id as React.Key] : [],
+                onChange: (_: React.Key[], rows: EnseignantRef[]) => setSelectedEns(rows[0] ?? null),
+              }}
               loading={loadingEns}
               pagination={{ pageSize: 5 }}
               rowKey="id"
@@ -386,7 +425,7 @@ export default function CompletedFormations() {
             </Space>
             <Space>
               <span>Période :</span>
-              <RangePicker onChange={(dates) => setPeriod(dates)} />
+              <RangePicker onChange={(dates) => setPeriod(dates?.filter((d): d is Dayjs => d !== null) ?? [])} />
             </Space>
           </Space>
         )}
@@ -419,10 +458,9 @@ export default function CompletedFormations() {
           columns={ensColumns}
           rowSelection={{
             type: "radio",
-            selectedRowKeys: selectedNewCertEns ? [selectedNewCertEns.id] : [],
-            onChange: (_: any, rows: any) => setSelectedNewCertEns(rows[0]),
-            getRowKey: (r: any) => r.id,
-          } as any}
+            selectedRowKeys: selectedNewCertEns ? [selectedNewCertEns.id as React.Key] : [],
+            onChange: (_: React.Key[], rows: EnseignantRef[]) => setSelectedNewCertEns(rows[0] ?? null),
+          }}
           loading={loadingNewCertEns}
           pagination={{ pageSize: 5 }}
           rowKey="id"

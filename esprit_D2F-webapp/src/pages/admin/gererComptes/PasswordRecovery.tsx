@@ -13,13 +13,13 @@ function PasswordRecovery() {
   const [submitting, setSubmitting] = useState(false);
   const { mutateAsync: forgotPwd } = useForgotPassword();
 
-  const handleSubmit = async (values: any) => {
+  const handleSubmit = async (values: { email: string }) => {
     setSubmitting(true);
     try {
-      const response = await forgotPwd(values.email);
-      message.success((response as any) || "Email de réinitialisation envoyé");
+      const response = await forgotPwd(values.email) as unknown as string | undefined;
+      message.success(response || "Email de réinitialisation envoyé");
     } catch (err: unknown) {
-      const msg = (err as any)?.response?.data?.message || "Erreur lors de l'envoi";
+      const msg = (err as { response?: { data?: { message?: string } } })?.response?.data?.message || "Erreur lors de l'envoi";
       message.error(msg);
     } finally {
       setSubmitting(false);

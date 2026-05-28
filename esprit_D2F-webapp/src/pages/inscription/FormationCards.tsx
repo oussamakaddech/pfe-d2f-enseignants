@@ -38,11 +38,30 @@ import { ROLES } from "@/utils/constants/roles";
 
 import "@/styles/pages/formation-cards.css";
 import useAppNotification from "@/hooks/ui/useAppNotification";
+import type { Id } from "@/models/common";
+import type { Dayjs } from "dayjs";
+
+interface FormationItem {
+  idFormation?: Id;
+  titreFormation?: string;
+  typeFormation?: string;
+  dateDebut?: string;
+  dateFin?: string;
+  ouverte?: boolean;
+  inscriptionsOuvertes?: boolean;
+  up1?: { libelle?: string };
+  departement1?: { libelle?: string };
+}
+
+interface EnseignantData {
+  up?: { id?: Id };
+  [key: string]: unknown;
+}
 
 const { Text } = Typography;
 const { RangePicker } = DatePicker;
 
-function getTypeClass(type: any) {
+function getTypeClass(type: string | undefined) {
   if (!type) return "type-default";
   const t = String(type).toUpperCase().replaceAll(/\s/g, "_");
   return `type-${t}`;
@@ -50,7 +69,7 @@ function getTypeClass(type: any) {
 
 
 export default function FormationCards() {
-  const [requested, setRequested] = useState<any[]>([]);
+  const [requested, setRequested] = useState<Id[]>([]);
   const navigate = useNavigate();
 
   const { message: messageApi } = useAppNotification();
@@ -65,7 +84,7 @@ export default function FormationCards() {
 
   const identifier = currentUser?.emailAddress || currentUser?.email || currentUser?.id;
   const { data: enseignant } = useEnseignantById(currentUser?.role === ROLES.CUP ? identifier : undefined);
-  const { data: parUp, refetch: refetchParUp } = useFormationsParUp(currentUser?.role === ROLES.CUP ? (enseignant as any)?.up?.id : undefined);
+  const { data: parUp, refetch: refetchParUp } = useFormationsParUp(currentUser?.role === ROLES.CUP ? (enseignant as EnseignantData | undefined)?.up?.id : undefined);
   const { data: accessibles, refetch: refetchAccessibles } = useFormationsAccessibles(currentUser?.role === ROLES.FORMATEUR ? identifier : undefined);
   const { data: visibles, isLoading: visiblesLoading, refetch: refetchVisibles } = useFormationsVisibles();
   const { data: all } = useAllFormations();
@@ -74,15 +93,15 @@ export default function FormationCards() {
 
   const formations = useMemo(() => {
     if (!currentUser) return [];
-    let data: any = [];
+    let data: FormationItem[] = [];
     if (currentUser.role === ROLES.CUP) {
-      data = parUp;
+      data = (parUp as FormationItem[] | undefined) ?? [];
     } else if (currentUser.role === ROLES.FORMATEUR) {
-      data = accessibles;
+      data = (accessibles as FormationItem[] | undefined) ?? [];
     } else {
-      data = visibles;
-      if ((currentUser.role === ROLES.D2F || currentUser.role === ROLES.ADMIN) && (!data || data.length === 0)) {
-        data = all;
+      data = (visibles as FormationItem[] | undefined) ?? [];
+      if ((currentUser.role === ROLES.D2F || currentUser.role === ROLES.ADMIN) && data.length === 0) {
+        data = (all as FormationItem[] | undefined) ?? [];
       }
     }
     return Array.isArray(data) ? data : [];
@@ -92,32 +111,34 @@ export default function FormationCards() {
 
   // filtres
   const [searchText, setSearchText] = useState("");
-  const [typeFilter, setTypeFilter] = useState<any>();
-  const [upFilter, setUpFilter] = useState<any>();
-  const [deptFilter, setDeptFilter] = useState<any>();
-  const [ouverteFilter, setOuverteFilter] = useState<any>();
-  const [dateRange, setDateRange] = useState<any>([]);
+  const [typeFilter, setTypeFilter] = useState<string | undefined>();
+  const [upFilter, setUpFilter] = useState<string | undefined>();
+  const [deptFilter, setDeptFilter] = useState<string | undefined>();
+  const [ouverteFilter, setOuverteFilter] = useState<boolean | undefined>();
+  const [dateRange, setDateRange] = useState<Dayjs[]>([]);
   const formationsList = Array.isArray(formations) ? formations : [];
 
-  const handleToggle = async (idFormation: any) => {
+  const handleToggle = async (idFormation: Id) => {
     try {
-      const cur = formationsList.find((f: any) => f.idFormation === idFormation);
+      const cur = formationsList.find((f) => f.idFormation === idFormation);
       if (!cur) throw new Error("Formation introuvable");
       const nextState = !cur.inscriptionsOuvertes;
       await updateOuvertes({ id: idFormation, ouvert: nextState });
       messageApi.success(nextState ? "Inscriptions ouvertes" : "Inscriptions fermées");
-    } catch (err: any) {
-      messageApi.error(err.response?.data?.message || "Échec de la mise à jour");
+    } catch (err: unknown) {
+      const e = err as { response?: { data?: { message?: string } } };
+      messageApi.error(e.response?.data?.message || "Échec de la mise à jour");
     }
   };
 
-  const handleDemande = async (idFormation: any) => {
+  const handleDemande = async (idFormation: Id) => {
     try {
-      await demanderMutation({ formationId: idFormation, enseignantId: identifier as any });
+      await demanderMutation({ formationId: idFormation, enseignantId: identifier as Id });
       messageApi.success("Demande d'inscription envoyée !");
       setRequested((prev) => [...prev, idFormation]);
-    } catch (err: any) {
-      messageApi.error(err.response?.data?.message || "Échec de la demande");
+    } catch (err: unknown) {
+      const e = err as { response?: { data?: { message?: string } } };
+      messageApi.error(e.response?.data?.message || "Échec de la demande");
     }
   };
 
@@ -130,7 +151,7 @@ export default function FormationCards() {
     setDateRange([]);
   };
 
-  const filtered = formationsList.filter((f: any) => {
+  const filtered = formationsList.filter((f) => {
     if (searchText && !f.titreFormation?.toLowerCase().includes(searchText.toLowerCase())) return false;
     if (typeFilter && f.typeFormation !== typeFilter) return false;
     if (upFilter && f.up1?.libelle !== upFilter) return false;
@@ -145,20 +166,20 @@ export default function FormationCards() {
   });
 
   // options filtres
-  const types = Array.from(new Set(formationsList.map((f: any) => f.typeFormation)))
+  const types = Array.from(new Set(formationsList.map((f) => f.typeFormation)))
     .filter(Boolean)
     .map((t) => ({ label: t as string, value: t as string }));
-  const ups = Array.from(new Set(formationsList.map((f: any) => f.up1?.libelle).filter(Boolean)))
+  const ups = Array.from(new Set(formationsList.map((f) => f.up1?.libelle).filter(Boolean)))
     .map((u) => ({ label: u as string, value: u as string }));
-  const depts = Array.from(new Set(formationsList.map((f: any) => f.departement1?.libelle).filter(Boolean)))
+  const depts = Array.from(new Set(formationsList.map((f) => f.departement1?.libelle).filter(Boolean)))
     .map((d) => ({ label: d as string, value: d as string }));
 
   // Stats
   const stats = useMemo(() => {
     const total = formationsList.length;
-    const open = formationsList.filter((f: any) => f.ouverte).length;
+    const open = formationsList.filter((f) => f.ouverte).length;
     const closed = total - open;
-    const uniqueTypes = new Set(formationsList.map((f: any) => f.typeFormation).filter(Boolean)).size;
+    const uniqueTypes = new Set(formationsList.map((f) => f.typeFormation).filter(Boolean)).size;
     return { total, open, closed, uniqueTypes };
   }, [formationsList]);
 
@@ -274,7 +295,10 @@ export default function FormationCards() {
               { label: "Fermées", value: false },
             ]}
           />
-          <RangePicker value={dateRange.length ? (dateRange as any) : null} onChange={(dates: any) => setDateRange(dates || [])} />
+          <RangePicker
+            value={dateRange.length === 2 ? [dateRange[0], dateRange[1]] : null}
+            onChange={(dates) => setDateRange(dates?.filter((d): d is Dayjs => d !== null) ?? [])}
+          />
           <div className="fc-filter-divider" />
           <Button icon={<ReloadOutlined />} onClick={handleResetFilters} className="fc-btn-reset">
             Réinitialiser
@@ -283,7 +307,7 @@ export default function FormationCards() {
 
         {/* Grille de cartes */}
         <Row gutter={[20, 20]}>
-          {filtered.map((f: any) => {
+          {filtered.map((f) => {
             const isOpen = f.ouverte;
             return (
               <Col key={f.idFormation} xs={24} sm={12} md={8} lg={6}>
@@ -308,8 +332,8 @@ export default function FormationCards() {
                       <div className="card-meta-item">
                         <CalendarOutlined className="icon-primary" />
                         <Text>
-                          {new Date(f.dateDebut).toLocaleDateString("fr-FR")} →{" "}
-                          {new Date(f.dateFin).toLocaleDateString("fr-FR")}
+                          {f.dateDebut ? new Date(f.dateDebut).toLocaleDateString("fr-FR") : "—"} →{" "}
+                          {f.dateFin ? new Date(f.dateFin).toLocaleDateString("fr-FR") : "—"}
                         </Text>
                       </div>
                       <div className="card-meta-item">
@@ -355,8 +379,8 @@ export default function FormationCards() {
                             role="button"
                             tabIndex={0}
                             aria-label="Fermer les inscriptions"
-                            onClick={() => handleToggle(f.idFormation)}
-                            onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") handleToggle(f.idFormation); }}
+                            onClick={() => f.idFormation != null && handleToggle(f.idFormation)}
+                            onKeyDown={(e) => { if ((e.key === "Enter" || e.key === " ") && f.idFormation != null) handleToggle(f.idFormation); }}
                           />
                         ) : (
                           <UnlockOutlined
@@ -364,8 +388,8 @@ export default function FormationCards() {
                             role="button"
                             tabIndex={0}
                             aria-label="Ouvrir les inscriptions"
-                            onClick={() => handleToggle(f.idFormation)}
-                            onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") handleToggle(f.idFormation); }}
+                            onClick={() => f.idFormation != null && handleToggle(f.idFormation)}
+                            onKeyDown={(e) => { if ((e.key === "Enter" || e.key === " ") && f.idFormation != null) handleToggle(f.idFormation); }}
                           />
                         )}
                       </Tooltip>
@@ -373,7 +397,7 @@ export default function FormationCards() {
 
                     {(currentUser.role === ROLES.FORMATEUR || currentUser.role === ROLES.ENSEIGNANT) &&
                       f.inscriptionsOuvertes &&
-                      (requested.includes(f.idFormation) ? (
+                      (f.idFormation != null && requested.includes(f.idFormation) ? (
                         <Tooltip title="Demande déjà envoyée">
                           <CheckCircleOutlined className="icon-disabled" aria-label="Demande déjà envoyée" />
                         </Tooltip>
@@ -384,8 +408,8 @@ export default function FormationCards() {
                             role="button"
                             tabIndex={0}
                             aria-label={`Demander inscription à ${f.titreFormation}`}
-                            onClick={() => handleDemande(f.idFormation)}
-                            onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") handleDemande(f.idFormation); }}
+                            onClick={() => f.idFormation != null && handleDemande(f.idFormation)}
+                            onKeyDown={(e) => { if ((e.key === "Enter" || e.key === " ") && f.idFormation != null) handleDemande(f.idFormation); }}
                           />
                         </Tooltip>
                       ))}
