@@ -1,4 +1,3 @@
-import PropTypes from "prop-types";
 import { Breadcrumb, Button, Tooltip } from "antd";
 import {
   HomeOutlined,
@@ -7,14 +6,16 @@ import {
   FileExcelOutlined,
 } from "@ant-design/icons";
 
-/**
- * Header premium de la page Besoins de Formation.
- * - Fil d'Ariane subtil au-dessus
- * - Titre principal avec compteur intégré
- * - Sous-titre contextuel
- * - CTA primaire bien dégagé à droite
- * - Actions secondaires en boutons "ghost"
- */
+interface BesoinHeaderProps {
+  total: number;
+  filteredCount: number;
+  onRefresh: () => void;
+  onExport: () => void;
+  onAdd: () => void;
+  loading?: boolean;
+  exportDisabled?: boolean;
+}
+
 export default function BesoinHeader({
   total,
   filteredCount,
@@ -23,7 +24,7 @@ export default function BesoinHeader({
   onAdd,
   loading = false,
   exportDisabled = false,
-}: any) {
+}: BesoinHeaderProps) {
   return (
     <header className="bf-header">
       <Breadcrumb
@@ -86,15 +87,7 @@ export default function BesoinHeader({
   );
 }
 
-BesoinHeader.propTypes = {
-  total: PropTypes.number.isRequired,
-  filteredCount: PropTypes.number.isRequired,
-  onRefresh: PropTypes.func.isRequired,
-  onExport: PropTypes.func.isRequired,
-  onAdd: PropTypes.func.isRequired,
-  loading: PropTypes.bool,
-  exportDisabled: PropTypes.bool,
-};
+
 
 
 

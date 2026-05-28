@@ -1,13 +1,25 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import React from "react";
 import { useSearchParams } from "react-router-dom";
+import type { Domaine, Competence } from "@/models/competence";
 
-const normalizeTab = (tab: any) => {
+interface CrudStructure {
+  domaines?: Domaine[];
+  competences?: Competence[];
+}
+
+interface UseCompetencePageStateProps {
+  crud: CrudStructure;
+  loadStructure: () => void;
+}
+
+const normalizeTab = (tab: string | null) => {
   if (tab === "sousCompetences") return "competences";
   if (tab === "recherche") return "hierarchie";
   return tab ?? "domaines";
 };
 
-export default function useCompetencePageState({ crud, loadStructure }: any) {
+export default function useCompetencePageState({ crud, loadStructure }: UseCompetencePageStateProps) {
   const [searchParams, setSearchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState(() =>
     normalizeTab(searchParams.get("tab")),
@@ -15,17 +27,17 @@ export default function useCompetencePageState({ crud, loadStructure }: any) {
 
   const [viewMode, setViewMode] = useState("buttons");
   const [consultNiveau, setConsultNiveau] = useState(0);
-  const [consultDomaine, setConsultDomaine] = useState<any>(null);
-  const [consultCompetence, setConsultCompetence] = useState<any>(null);
-  const [consultScStack, setConsultScStack] = useState<any[]>([]);
-  const [drawerSavoirs, setDrawerSavoirs] = useState<any>(null);
+  const [consultDomaine, setConsultDomaine] = useState<Domaine | null>(null);
+  const [consultCompetence, setConsultCompetence] = useState<Competence | null>(null);
+  const [consultScStack, setConsultScStack] = useState<Domaine[]>([]);
+  const [drawerSavoirs, setDrawerSavoirs] = useState<Competence | null>(null);
   const [drawerVisible, setDrawerVisible] = useState(false);
 
-  const graphContainerRef = useRef<any>(null);
+  const graphContainerRef = useRef<HTMLElement>(null);
   const [graphContainerWidth, setGraphContainerWidth] = useState(900);
 
   const handleTabChange = useCallback(
-    (tabKey: any) => {
+    (tabKey: string) => {
       setActiveTab(tabKey);
       setSearchParams({ tab: tabKey });
     },
@@ -33,7 +45,7 @@ export default function useCompetencePageState({ crud, loadStructure }: any) {
   );
 
   const handleStatNavigation = useCallback(
-    (target: any) => {
+    (target: string) => {
       setActiveTab("hierarchie");
       setSearchParams({ tab: "hierarchie" });
       setViewMode("buttons");
@@ -61,7 +73,7 @@ export default function useCompetencePageState({ crud, loadStructure }: any) {
         consultCompetence &&
         String(consultCompetence.domaineId) === String(nextDomaine.id)
           ? consultCompetence
-          : (crud.competences || []).find((c: any) => String(c.domaineId) === String(nextDomaine.id)) ?? null;
+          : (crud.competences || []).find((c: Competence) => String(c.domaineId) === String(nextDomaine.id)) ?? null;
 
       if (!nextCompetence) return;
 
@@ -80,11 +92,11 @@ export default function useCompetencePageState({ crud, loadStructure }: any) {
   );
 
   const buildCardTrigger = useCallback(
-    (target: any) => ({
+    (target: string) => ({
       role: "button",
       tabIndex: 0,
       onClick: () => handleStatNavigation(target),
-      onKeyDown: (e: any) => {
+      onKeyDown: (e: React.KeyboardEvent) => {
         if (e.key === "Enter" || e.key === " ") {
           e.preventDefault();
           handleStatNavigation(target);
@@ -140,9 +152,3 @@ export default function useCompetencePageState({ crud, loadStructure }: any) {
     buildCardTrigger,
   };
 }
-
-
-
-
-
-

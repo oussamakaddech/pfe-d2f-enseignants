@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, type Key } from "react";
 import { useParams } from "react-router-dom";
 import { useCertificatesByFormation, useUpdateCertificate } from "@/hooks/certificat/useCertificats";
 import CertificateEditorViewerItem from "./CertificateEditorViewerItem";
@@ -40,10 +40,10 @@ export default function CertificatePage() {
     setSearch((prev) => ({ ...prev, [field]: value }));
   };
 
-  const filteredData = certificates.filter((cert: any) =>
+  const filteredData = certificates.filter((cert: Certificate) =>
     (cert.nomEnseignant || "").toLowerCase().includes(search.nom.toLowerCase()) &&
     (cert.prenomEnseignant || "").toLowerCase().includes(search.prenom.toLowerCase()) &&
-    (cert.mailEnseignant || "").toLowerCase().includes(search.email.toLowerCase()) &&
+    ((cert as Record<string, string>).mailEnseignant || "").toLowerCase().includes(search.email.toLowerCase()) &&
     (cert.roleEnFormation || "").toLowerCase().includes(search.role.toLowerCase())
   );
 
@@ -62,13 +62,13 @@ export default function CertificatePage() {
       title: "Nom",
       dataIndex: "nomEnseignant",
       key: "nomEnseignant",
-      sorter: (a: any, b: any) => (a.nomEnseignant || "").localeCompare(b.nomEnseignant || ""),
+      sorter: (a: Certificate, b: Certificate) => (a.nomEnseignant || "").localeCompare(b.nomEnseignant || ""),
     },
     {
       title: "Prénom",
       dataIndex: "prenomEnseignant",
       key: "prenomEnseignant",
-      sorter: (a: any, b: any) => (a.prenomEnseignant || "").localeCompare(b.prenomEnseignant || ""),
+      sorter: (a: Certificate, b: Certificate) => (a.prenomEnseignant || "").localeCompare(b.prenomEnseignant || ""),
     },
     {
       title: "Email",
@@ -79,7 +79,7 @@ export default function CertificatePage() {
       title: "Rôle",
       dataIndex: "roleEnFormation",
       key: "roleEnFormation",
-      render: (role: any) => {
+      render: (role: string) => {
         const isAnimateur = role?.toLowerCase().includes("animateur");
         return (
           <Tag
@@ -94,10 +94,10 @@ export default function CertificatePage() {
         { text: "ANIMATEUR", value: "animateur" },
         { text: "PARTICIPANT", value: "participant" },
       ],
-      onFilter: (value: any, record: any) =>
+      onFilter: (value: boolean | Key, record: Certificate) =>
         (record.roleEnFormation || "")
           .toLowerCase()
-          .includes(value.toLowerCase()),
+          .includes(String(value).toLowerCase()),
     },
   ];
 

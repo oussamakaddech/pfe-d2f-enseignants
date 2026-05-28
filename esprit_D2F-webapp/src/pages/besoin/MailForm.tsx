@@ -7,11 +7,11 @@ import { useSendEmail } from "@/hooks/formation/useFormationExtras";
 interface Personne { nom?: string; prenom?: string; mail?: string; unitePedagogique?: { nomUP?: string } }
 interface Seance { dateSeance?: string; heureDebut?: string; heureFin?: string; salle?: string; animateurs?: Personne[]; participants?: Personne[] }
 interface Formation {
-  responsableEmail: string;
+  responsableEmail?: string;
   responsableName?: string;
-  titreFormation: string;
-  dateDebut: string;
-  dateFin: string;
+  titreFormation?: string;
+  dateDebut?: string;
+  dateFin?: string;
   objectif?: string;
   seances?: Seance[];
 }
@@ -95,16 +95,17 @@ export default function MailForm({ formation, onSendSuccess }: Readonly<MailForm
 
   // 2) Envoi
   const { mutateAsync: sendEmail } = useSendEmail();
-  const handleFinish = async (values: any) => {
+  const handleFinish = async (values: { to: string; subject: string; content: string }) => {
     try {
       const result = await sendEmail({ to: values.to, subject: values.subject, content: values.content });
-      const successMsg = result?.message || "📨 E-mail envoyé avec succès !";
+      const successMsg = result?.message || "E-mail envoyé avec succès !";
       message.success(successMsg);
       form.resetFields(["subject", "content"]);
       if (onSendSuccess) onSendSuccess();
-    } catch (err: any) {
-      const errorMsg = err.response?.data?.error || err.response?.data?.message || err.message || "Échec de l’envoi de l’e-mail.";
-      message.error(`❌ ${errorMsg}`);
+    } catch (err: unknown) {
+      const e = err as { response?: { data?: { error?: string; message?: string } }; message?: string };
+      const errorMsg = e.response?.data?.error || e.response?.data?.message || e.message || "Échec de l’envoi de l’e-mail.";
+      message.error(errorMsg);
     }
   };
 

@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Form } from "antd";
 import dayjs from "dayjs";
 import { useNavigate } from "react-router-dom";
+import type { Id } from "@/models/common";
 
 import { writeExcel, exportDateLabel, isoDate } from "@/utils/helpers/excelExport";
 import { useSendEmail } from "@/hooks/formation";
@@ -33,6 +34,8 @@ export const INITIAL_FILTERS = {
 };
 
 type Filters = typeof INITIAL_FILTERS;
+
+type LookupItem = { id?: string | number; libelle?: string; name?: string; label?: string; nom?: string };
 
 export function useBesoinList() {
   const navigate = useNavigate();
@@ -63,7 +66,7 @@ export function useBesoinList() {
   // ── ui state ──
   const [searchText,  setSearchText]  = useState("");
   const [filters,     setFilters]     = useState<Filters>(INITIAL_FILTERS);
-  const [viewMode,    setViewMode]    = useState("cards");
+  const [viewMode,    setViewMode]    = useState<"cards" | "table">("cards");
   const [page,        setPage]        = useState(1);
   const [pageSize,    setPageSize]    = useState(12);
 
@@ -139,7 +142,7 @@ export function useBesoinList() {
   const handleDelete = async (id: unknown) => {
     if (id == null) { msgApi.error("Identifiant du besoin introuvable"); return; }
     try {
-      await removeMut.mutateAsync(id as any);
+      await removeMut.mutateAsync(id as Id);
       msgApi.success("Besoin supprimé avec succès");
     } catch { msgApi.error("Erreur lors de la suppression"); }
   };
@@ -149,7 +152,7 @@ export function useBesoinList() {
     if (id == null) { msgApi.error("Identifiant du besoin introuvable"); return; }
     setApprovingId(id as string | number);
     try {
-      await approveMut.mutateAsync(id as any);
+      await approveMut.mutateAsync(id as Id);
       msgApi.success("Besoin approuvé — redirection vers la création de formation...");
       setTimeout(() => navigate("/home/Formation/Creer", { state: { besoinInfo: record } }), 800);
     } catch { msgApi.error("Erreur lors de l'approbation"); }
@@ -201,8 +204,8 @@ export function useBesoinList() {
 
   const openMailModal = (record: Record<string, unknown>) => {
     setMailRecord(record);
-    const upLabel   = getLabel(findById(ups as any, record.up as any) as any);
-    const deptLabel = getLabel(findById(departements as any, record.departement as any) as any);
+    const upLabel   = getLabel(findById(ups as LookupItem[], record.up));
+    const deptLabel = getLabel(findById(departements as LookupItem[], record.departement));
     const periodLabel = periodLabelOf(record) || "—";
     const subject = `Demande d'informations complémentaires — Besoin de formation "${record.titre || record.objectifFormation || "sans titre"}"`;
     const defaultTo = cupAccounts[0]?.email || cupAccounts[0]?.emailAddress || "";
@@ -232,11 +235,11 @@ export function useBesoinList() {
         "Type":              b.typeBesoin || "—",
         "Thème":             b.theme || "—",
         "Priorité":          b.priorite || "—",
-        "UP":                getLabel(findById(ups as any, b.up as any) as any),
-        "Département":       getLabel(findById(departements as any, b.departement as any) as any),
+        "UP":                getLabel(findById(ups as LookupItem[], b.up)),
+        "Département":       getLabel(findById(departements as LookupItem[], b.departement)),
         "Statut":            b.approuveAdmin ? "Approuvé" : "En attente",
         "Date Création":     b.dateCreation ? dayjs(b.dateCreation).format("DD/MM/YYYY") : "—",
-        "Période":           periodLabelOf(b as any) || "—",
+        "Période":           periodLabelOf(b as unknown as Record<string, unknown>) || "—",
         "Horaire Souhaité":  b.horaireSouhaite ? dayjs(String(b.horaireSouhaite)).format("DD/MM/YYYY HH:mm") : "—",
       }));
       writeExcel(

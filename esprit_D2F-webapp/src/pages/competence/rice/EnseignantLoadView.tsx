@@ -5,23 +5,85 @@ import {
 import { WarningOutlined } from "@ant-design/icons";
 import { cloneDeep, computeEnseignantLoad, getInitials, avatarColor } from "./constants";
 
-
 const { Text } = Typography;
 
-const addSousCompSavoirRows = (rows: any, d: any, di: any, c: any, ci: any, sc: any, sci: any) => {
-  (sc.savoirs ?? []).forEach((s: any, si: any) => {
-    rows.push({ di, ci, sci, si, domaineNom: d.nom, competenceNom: c.nom, ...s });
+interface FlatSavoirRow {
+  di: number;
+  ci: number;
+  sci: number;
+  si: number;
+  domaineNom: string;
+  competenceNom: string;
+  code?: string;
+  nom?: string;
+  type?: string;
+  niveau?: string;
+  enseignantsSuggeres?: (string | number)[];
+  refCodes?: string[];
+  [key: string]: unknown;
+}
+
+interface EnseignantRef extends Record<string, unknown> {
+  id?: string | number;
+  enseignantId?: string | number;
+  nom?: string;
+  prenom?: string;
+  modules?: string[];
+  matched_id?: string | number;
+}
+
+interface ExtractedEnseignantRef extends Record<string, unknown> {
+  nom_complet?: string;
+  fichier?: string;
+  matched_id?: string | number;
+}
+
+interface TreeSavoir extends Record<string, unknown> {
+  code?: string;
+  nom?: string;
+  type?: string;
+  niveau?: string;
+  enseignantsSuggeres?: (string | number)[];
+  refCodes?: string[];
+}
+
+interface TreeSousComp extends Record<string, unknown> {
+  savoirs?: TreeSavoir[];
+}
+
+interface TreeComp extends Record<string, unknown> {
+  nom?: string;
+  savoirs?: TreeSavoir[];
+  sousCompetences?: TreeSousComp[];
+}
+
+interface TreeDomaine extends Record<string, unknown> {
+  nom?: string;
+  competences?: TreeComp[];
+}
+
+const addSousCompSavoirRows = (
+  rows: FlatSavoirRow[],
+  d: TreeDomaine,
+  di: number,
+  c: TreeComp,
+  ci: number,
+  sc: TreeSousComp,
+  sci: number,
+) => {
+  (sc.savoirs ?? []).forEach((s, si) => {
+    rows.push({ di, ci, sci, si, domaineNom: d.nom ?? "", competenceNom: c.nom ?? "", ...s });
   });
 };
 
-const flattenSavoirs = (tree: any) => {
-  let rows: any[] = [];
-  (tree ?? []).forEach((d: any, di: any) => {
-    (d.competences ?? []).forEach((c: any, ci: any) => {
-      (c.savoirs ?? []).forEach((s: any, si: any) => {
-        rows.push({ di, ci, sci: -1, si, domaineNom: d.nom, competenceNom: c.nom, ...s });
+const flattenSavoirs = (tree: TreeDomaine[]): FlatSavoirRow[] => {
+  const rows: FlatSavoirRow[] = [];
+  (tree ?? []).forEach((d, di) => {
+    (d.competences ?? []).forEach((c, ci) => {
+      (c.savoirs ?? []).forEach((s, si) => {
+        rows.push({ di, ci, sci: -1, si, domaineNom: d.nom ?? "", competenceNom: c.nom ?? "", ...s });
       });
-      (c.sousCompetences ?? []).forEach((sc: any, sci: any) => {
+      (c.sousCompetences ?? []).forEach((sc, sci) => {
         addSousCompSavoirRows(rows, d, di, c, ci, sc, sci);
       });
     });
@@ -29,21 +91,21 @@ const flattenSavoirs = (tree: any) => {
   return rows;
 };
 
-const getSavoirByPath = (next: any, di: any, ci: any, sci: any, si: any) => {
+const getSavoirByPath = (next: TreeDomaine[], di: number, ci: number, sci: number, si: number) => {
   if (sci === -1) return next?.[di]?.competences?.[ci]?.savoirs?.[si];
   return next?.[di]?.competences?.[ci]?.sousCompetences?.[sci]?.savoirs?.[si];
 };
 
-const forEachTreeSavoir = (tree: any, cb: any) => {
-  (tree ?? []).forEach((d: any) => {
-    (d.competences ?? []).forEach((c: any) => {
+const forEachTreeSavoir = (tree: TreeDomaine[], cb: (s: TreeSavoir) => void) => {
+  (tree ?? []).forEach((d) => {
+    (d.competences ?? []).forEach((c) => {
       (c.savoirs ?? []).forEach(cb);
-      (c.sousCompetences ?? []).forEach((sc: any) => (sc.savoirs ?? []).forEach(cb));
+      (c.sousCompetences ?? []).forEach((sc) => (sc.savoirs ?? []).forEach(cb));
     });
   });
 };
 
-const computeLoadStyle = (e: any, total: any) => {
+const computeLoadStyle = (e: { loadCount: number }, total: number) => {
   const ratio = total ? Math.round((e.loadCount / total) * 100) : 0;
   let loadCls = "";
   if (e.loadCount > 10) loadCls = "overloaded";
@@ -54,13 +116,13 @@ const computeLoadStyle = (e: any, total: any) => {
   return { ratio, loadCls, loadStrokeColor };
 };
 
-const isEnterOrSpace = (key: any) => key === "Enter" || key === " ";
+const isEnterOrSpace = (key: string) => key === "Enter" || key === " ";
 
 interface EnseignantLoadViewProps {
-  tree: Record<string, unknown>[];
-  setTree: (tree: Record<string, unknown>[]) => void;
-  allEnseignants: Record<string, unknown>[];
-  extractedEnseignants?: Record<string, unknown>[];
+  tree: TreeDomaine[];
+  setTree: (tree: TreeDomaine[]) => void;
+  allEnseignants: EnseignantRef[];
+  extractedEnseignants?: ExtractedEnseignantRef[];
 }
 
 export default function EnseignantLoadView({ tree, setTree, allEnseignants, extractedEnseignants }: Readonly<EnseignantLoadViewProps>) {
@@ -74,13 +136,13 @@ export default function EnseignantLoadView({ tree, setTree, allEnseignants, extr
       const nomComplet = e.prenom ? `${e.prenom} ${e.nom}` : e.nom;
       return {
         id,
-        nomComplet,
+        nomComplet: String(nomComplet ?? ""),
         loadCount: load.count,
         refCodes: [...new Set(load.refCodes)].slice(0, 8),
       };
     });
 
-    base.sort((a, b) => b.loadCount - a.loadCount || String(a.nomComplet || '').localeCompare(String(b.nomComplet || '')));
+    base.sort((a, b) => b.loadCount - a.loadCount || a.nomComplet.localeCompare(b.nomComplet));
     return base;
   }, [allEnseignants, loadMap]);
 
@@ -97,18 +159,18 @@ export default function EnseignantLoadView({ tree, setTree, allEnseignants, extr
     [allSavoirs],
   );
 
-  const removeOne = (path: any, eid: any) => {
+  const removeOne = (path: FlatSavoirRow, eid: string) => {
     const { di, ci, sci, si } = path;
-    const next = cloneDeep(tree);
+    const next = cloneDeep(tree) as TreeDomaine[];
     const s = getSavoirByPath(next, di, ci, sci, si);
     if (!s) return;
-    s.enseignantsSuggeres = (s.enseignantsSuggeres ?? []).filter((x: any) => String(x) !== String(eid));
+    s.enseignantsSuggeres = (s.enseignantsSuggeres ?? []).filter((x) => String(x) !== String(eid));
     setTree(next);
   };
 
-  const addOne = (path: any, eid: any) => {
+  const addOne = (path: FlatSavoirRow, eid: string) => {
     const { di, ci, sci, si } = path;
-    const next = cloneDeep(tree);
+    const next = cloneDeep(tree) as TreeDomaine[];
     const s = getSavoirByPath(next, di, ci, sci, si);
     if (!s) return;
     const ids = new Set((s.enseignantsSuggeres ?? []).map(String));
@@ -119,19 +181,19 @@ export default function EnseignantLoadView({ tree, setTree, allEnseignants, extr
 
   const removeAllFromTeacher = () => {
     if (!selectedEnsId) return;
-    const next = cloneDeep(tree);
-    forEachTreeSavoir(next, (s: any) => {
-      s.enseignantsSuggeres = (s.enseignantsSuggeres ?? []).filter((x: any) => String(x) !== String(selectedEnsId));
+    const next = cloneDeep(tree) as TreeDomaine[];
+    forEachTreeSavoir(next, (s) => {
+      s.enseignantsSuggeres = (s.enseignantsSuggeres ?? []).filter((x) => String(x) !== String(selectedEnsId));
     });
     setTree(next);
   };
 
   const grouped = useMemo(() => {
-    const map = new Map();
+    const map = new Map<string, FlatSavoirRow[]>();
     selectedSavoirs.forEach((s) => {
       const k = s.domaineNom || "Domaine";
       if (!map.has(k)) map.set(k, []);
-      map.get(k).push(s);
+      map.get(k)!.push(s);
     });
     return map;
   }, [selectedSavoirs]);
@@ -163,7 +225,7 @@ export default function EnseignantLoadView({ tree, setTree, allEnseignants, extr
               <Space align="start">
                 <Avatar style={{ background: avatarColor(e.id) }}>{getInitials(String(e.nomComplet ?? ""), "")}</Avatar>
                 <div>
-                  <Text strong>{e.nomComplet as any}</Text>
+                  <Text strong>{e.nomComplet}</Text>
                   <div style={{ marginTop: 6 }}>
                     <Progress
                       size="small"
@@ -173,7 +235,7 @@ export default function EnseignantLoadView({ tree, setTree, allEnseignants, extr
                     />
                   </div>
                   <Space wrap size={4} style={{ marginTop: 4 }}>
-                    {e.refCodes.slice(0, 5).map((rc: any) => <Tag key={`${e.id}-${rc}`}>{rc}</Tag>)}
+                    {e.refCodes.slice(0, 5).map((rc) => <Tag key={`${e.id}-${rc}`}>{rc}</Tag>)}
                   </Space>
                 </div>
               </Space>
@@ -201,12 +263,12 @@ export default function EnseignantLoadView({ tree, setTree, allEnseignants, extr
                 label: `${domaineNom} (${savoirs.length} savoirs)`,
                 children: (
                   <Space direction="vertical" style={{ width: "100%" }}>
-                    {savoirs.map((s: any) => (
+                    {savoirs.map((s) => (
                       <div key={`${s.code}-${s.di}-${s.ci}-${s.sci}-${s.si}`} style={{ display: "flex", alignItems: "center", gap: 8 }}>
                         <Tag color={s.type === "PRATIQUE" ? "volcano" : "purple"}>{s.type}</Tag>
                         <Text style={{ flex: 1 }}>{s.nom}</Text>
                         <Tag>{s.niveau}</Tag>
-                        <Button size="small" danger onClick={() => removeOne(s, selectedEnsId)}>✕ Retirer</Button>
+                        <Button size="small" danger onClick={() => removeOne(s, selectedEnsId!)}>✕ Retirer</Button>
                       </div>
                     ))}
                   </Space>
@@ -229,9 +291,9 @@ export default function EnseignantLoadView({ tree, setTree, allEnseignants, extr
                   size="small"
                   type="primary"
                   disabled={!selectedEnsId}
-                  onClick={() => addOne(s, selectedEnsId)}
+                  onClick={() => addOne(s, selectedEnsId!)}
                 >
-                  + Assigner à {(selected?.nomComplet ?? "...") as any}
+                  + Assigner à {selected?.nomComplet ?? "..."}
                 </Button>
               </div>
             ))}
@@ -251,8 +313,8 @@ export default function EnseignantLoadView({ tree, setTree, allEnseignants, extr
                 <Space direction="vertical" style={{ width: "100%" }}>
                   {unmatched.map((u) => (
                     <div key={`${u.nom_complet}-${u.fichier}`} style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
-                      <Text>{u.nom_complet as any}</Text>
-                      <Text type="secondary">{u.fichier as any}</Text>
+                      <Text>{u.nom_complet}</Text>
+                      <Text type="secondary">{u.fichier}</Text>
                     </div>
                   ))}
                 </Space>
@@ -264,10 +326,3 @@ export default function EnseignantLoadView({ tree, setTree, allEnseignants, extr
     </Row>
   );
 }
-
-
-
-
-
-
-

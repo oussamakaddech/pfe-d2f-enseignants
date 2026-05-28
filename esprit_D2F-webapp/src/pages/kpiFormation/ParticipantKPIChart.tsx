@@ -2,6 +2,17 @@ import { useState } from "react";
 import { Doughnut, Bar } from "react-chartjs-2";
 import { useGlobalParticipantKPI, useFormationsParticipantKPIs } from "@/hooks/kpi/useKpi";
 
+interface GlobalKPIData {
+  nombreParticipantsTotal?: number;
+  nombreParticipantsPresent?: number;
+  tauxParticipation?: number;
+}
+
+interface FormationKPI {
+  titreFormation?: string;
+  tauxParticipation?: number;
+}
+
 import {
     Chart as ChartJS,
     ArcElement,
@@ -40,13 +51,14 @@ const ParticipantKPIChart = () => {
   const { data: globalKPI } = useGlobalParticipantKPI(start, end);
   const { data: formationsKpiData } = useFormationsParticipantKPIs(start, end);
 
+  const kpi = globalKPI as GlobalKPIData | undefined;
   const globalKpiData = {
-    total: (globalKPI as any)?.nombreParticipantsTotal ?? 0,
-    presents: (globalKPI as any)?.nombreParticipantsPresent ?? 0,
-    taux: (globalKPI as any)?.tauxParticipation ?? 0,
+    total: kpi?.nombreParticipantsTotal ?? 0,
+    presents: kpi?.nombreParticipantsPresent ?? 0,
+    taux: kpi?.tauxParticipation ?? 0,
   };
 
-  const formationsKPI = Array.isArray(formationsKpiData) ? formationsKpiData : [];
+  const formationsKPI: FormationKPI[] = Array.isArray(formationsKpiData) ? formationsKpiData as FormationKPI[] : [];
 
   return (
     <div style={{ maxWidth: "1000px", margin: "auto", padding: "30px" }}>
@@ -108,10 +120,10 @@ const ParticipantKPIChart = () => {
           <h3>📊 Participation par Formation</h3>
           <Bar
             data={{
-              labels: formationsKPI.map((f: any) => f.titreFormation),
+              labels: formationsKPI.map((f) => f.titreFormation),
               datasets: [{
                 label: "Taux de Participation (%)",
-                data: formationsKPI.map((f: any) => f.tauxParticipation),
+                data: formationsKPI.map((f) => f.tauxParticipation),
                 backgroundColor: "rgba(54, 162, 235, 0.6)",
                 borderColor: "rgba(54, 162, 235, 1)",
                 borderWidth: 1,

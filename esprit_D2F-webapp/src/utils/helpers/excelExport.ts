@@ -20,7 +20,7 @@ const border = (rgb = C.border) => ({ style: "thin", color: { rgb } });
 const allBorders = { top: border(), bottom: border(), left: border(), right: border() };
 
 // ── Calcul automatique de largeur de colonne ───────────────────────────────
-function autoColWidths(keys: string[], rows: any[]): XLSX.ColInfo[] {
+function autoColWidths(keys: string[], rows: Record<string, unknown>[]): XLSX.ColInfo[] {
   return keys.map(key => ({
     wch: Math.max(
       String(key).length + 2,
@@ -41,7 +41,7 @@ export interface SheetOptions {
  *   title    {string}  Titre du rapport (ligne fusionnée, fond rouge)
  *   subtitle {string}  Sous-titre (date d'export, filtres actifs…)
  */
-export function styledSheet(rows: any[], { title, subtitle }: SheetOptions = {}): XLSX.WorkSheet {
+export function styledSheet(rows: Record<string, unknown>[], { title, subtitle }: SheetOptions = {}): XLSX.WorkSheet {
   if (!rows || rows.length === 0) {
     const ws = XLSX.utils.aoa_to_sheet([["Aucune donnée"]]);
     return ws;
@@ -53,7 +53,7 @@ export function styledSheet(rows: any[], { title, subtitle }: SheetOptions = {})
   const hasSub   = Boolean(subtitle);
 
   // Construire le tableau de tableaux (AOA)
-  const aoa: any[][] = [];
+  const aoa: (unknown[])[] = [];
   if (hasTitle) aoa.push([title,    ...Array(ncols - 1).fill(null)]);
   if (hasSub)   aoa.push([subtitle, ...Array(ncols - 1).fill(null)]);
   aoa.push(keys);                                         // en-tête colonnes
@@ -75,7 +75,7 @@ export function styledSheet(rows: any[], { title, subtitle }: SheetOptions = {})
       const addr = XLSX.utils.encode_cell({ r: R, c: C_ });
       if (!ws[addr]) return;
 
-      const cell = ws[addr] as XLSX.CellObject & { s?: any };
+      const cell = ws[addr] as XLSX.CellObject & { s?: Record<string, unknown> };
 
       if (hasTitle && R === 0) {
         cell.s = {
@@ -124,7 +124,7 @@ export function styledSheet(rows: any[], { title, subtitle }: SheetOptions = {})
 
 export interface SheetConfig {
   name: string;
-  rows: any[];
+  rows: Record<string, unknown>[];
   title?: string;
   subtitle?: string;
 }

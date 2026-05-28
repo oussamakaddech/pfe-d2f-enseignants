@@ -7,7 +7,8 @@ import {
   FileProtectOutlined,
 } from "@ant-design/icons";
 import { useCertificatesByEmail } from "@/hooks/certificat/useCertificats";
-import CertificatePdfViewer from "./CertificatePdfViewer";
+import CertificatePdfViewer, { type CertificatePdfViewerProps } from "./CertificatePdfViewer";
+import type { Certificate as CertificateModel } from "@/models/certificat";
 import { AppPageHeader, brand } from "@/components/common";
 import "@/styles/pages/certificates-by-email-page.css";
 
@@ -15,9 +16,9 @@ const { Text, Title } = Typography;
 
 function CertificatesByEmailPage() {
   const { data: certificates = [] } = useCertificatesByEmail();
-  const [selectedCertificate, setSelectedCertificate] = useState<any>(null);
+  const [selectedCertificate, setSelectedCertificate] = useState<CertificateModel | null>(null);
 
-  const handleSelectCertificate = (cert: any) => {
+  const handleSelectCertificate = (cert: CertificateModel) => {
     setSelectedCertificate(cert);
   };
 
@@ -49,7 +50,7 @@ function CertificatesByEmailPage() {
         />
       ) : (
         <Row gutter={[20, 20]} style={{ marginBottom: 32 }}>
-          {certificates.map((cert: any) => {
+          {certificates.map((cert: CertificateModel) => {
             const isSelected =
               selectedCertificate &&
               selectedCertificate.idCertificate === cert.idCertificate;
@@ -112,7 +113,7 @@ function CertificatesByEmailPage() {
           }
         >
           <div style={{ height: 600 }}>
-            <CertificatePdfViewer certificate={selectedCertificate} />
+            <CertificatePdfViewer certificate={selectedCertificate as CertificatePdfViewerProps["certificate"]} />
           </div>
         </Card>
       )}

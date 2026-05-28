@@ -1,13 +1,33 @@
-import PropTypes from "prop-types";
 import { Alert, Button, Card, Empty, Popconfirm, Space, Tag, Tooltip, Typography } from "antd";
 import { DeleteOutlined, EditOutlined, PlusOutlined } from "@ant-design/icons";
+import type { Id } from "@/models/common";
+import type { Savoir } from "@/models/competence";
 
 const { Text } = Typography;
 
-function flattenSousCompList(items: any[] = []) {
-  const acc: any[] = [];
-  const walk = (list: any[]) => {
-    list.forEach((node: any) => {
+interface SousComp {
+  id?: Id;
+  nom?: string;
+  code?: string;
+  competenceId?: Id;
+  parentId?: Id;
+  enfants?: SousComp[];
+  savoirs?: Savoir[];
+}
+
+interface SousCompMutable extends SousComp {
+  enfants: SousCompMutable[];
+}
+
+interface CompetenceNode {
+  id?: Id;
+  nom?: string;
+}
+
+function flattenSousCompList(items: SousComp[] = []): SousComp[] {
+  const acc: SousComp[] = [];
+  const walk = (list: SousComp[]) => {
+    list.forEach((node) => {
       acc.push(node);
       if (Array.isArray(node.enfants) && node.enfants.length > 0) {
         walk(node.enfants);
@@ -18,7 +38,16 @@ function flattenSousCompList(items: any[] = []) {
   return acc;
 }
 
-function SousCompNode({ node, depth, onAddChild, onEdit, onDelete }: any) {
+interface SousCompNodeProps {
+  node: SousCompMutable;
+  depth: number;
+  onAddChild: (node: SousComp) => void;
+  onAddSavoir: (node: SousComp) => void;
+  onEdit: (node: SousComp) => void;
+  onDelete: (id: Id) => void;
+}
+
+function SousCompNode({ node, depth, onAddChild, onAddSavoir, onEdit, onDelete }: SousCompNodeProps) {
   const enfants = node.enfants ?? [];
   const isLeaf = enfants.length === 0;
   const hasSavoirs = (node.savoirs?.length ?? 0) > 0;
@@ -32,51 +61,43 @@ function SousCompNode({ node, depth, onAddChild, onEdit, onDelete }: any) {
         {isLeaf ? <Tag color="green">Feuille</Tag> : <Tag color="geekblue">{enfants.length} enfant(s)</Tag>}
 
         <Tooltip title={hasSavoirs ? "Impossible d'ajouter un enfant: ce noeud contient des savoirs" : "Ajouter une sous-compétence"}>
-          <Button
-            size="small"
-            icon={<PlusOutlined />}
-            disabled={hasSavoirs}
-            onClick={() => onAddChild(node)}
-          />
+          <Button size="small" icon={<PlusOutlined />} disabled={hasSavoirs} onClick={() => onAddChild(node)} />
         </Tooltip>
+
+        {isLeaf && (
+          <Tooltip title="Ajouter un savoir">
+            <Button size="small" icon={<PlusOutlined />} onClick={() => onAddSavoir(node)} />
+          </Tooltip>
+        )}
 
         <Tooltip title="Modifier">
           <Button size="small" icon={<EditOutlined />} onClick={() => onEdit(node)} />
         </Tooltip>
 
         <Tooltip title="Supprimer">
-          <Popconfirm
-            title="Confirmer la suppression ?"
-            okText="Oui"
-            cancelText="Non"
-            onConfirm={() => onDelete(node.id)}
-          >
+          <Popconfirm title="Confirmer la suppression ?" okText="Oui" cancelText="Non" onConfirm={() => { if (node.id != null) onDelete(node.id); }}>
             <Button size="small" danger icon={<DeleteOutlined />} />
           </Popconfirm>
         </Tooltip>
       </Space>
 
-      {enfants.map((child: any) => (
-        <SousCompNode
-          key={child.id}
-          node={child}
-          depth={depth + 1}
-          onAddChild={onAddChild}
-          onEdit={onEdit}
-          onDelete={onDelete}
-        />
+      {enfants.map((child) => (
+        <SousCompNode key={String(child.id)} node={child} depth={depth + 1} onAddChild={onAddChild} onAddSavoir={onAddSavoir} onEdit={onEdit} onDelete={onDelete} />
       ))}
     </div>
   );
 }
 
-SousCompNode.propTypes = {
-  node: PropTypes.object.isRequired,
-  depth: PropTypes.number.isRequired,
-  onAddChild: PropTypes.func.isRequired,
-  onEdit: PropTypes.func.isRequired,
-  onDelete: PropTypes.func.isRequired,
-};
+interface CompetenceExpandedRowProps {
+  competence: CompetenceNode;
+  sousComps?: SousComp[];
+  loading?: boolean;
+  onAddRoot: (competence: CompetenceNode) => void;
+  onAddChild: (node: SousComp) => void;
+  onAddSavoir: (node: SousComp) => void;
+  onEdit: (node: SousComp) => void;
+  onDelete: (id: Id) => void;
+}
 
 export default function CompetenceExpandedRow({
   competence,
@@ -84,22 +105,23 @@ export default function CompetenceExpandedRow({
   loading = false,
   onAddRoot,
   onAddChild,
+  onAddSavoir,
   onEdit,
   onDelete,
-}: any) {
+}: CompetenceExpandedRowProps) {
   const allNodesForComp = flattenSousCompList(sousComps ?? []).filter(
     (sc) => String(sc.competenceId) === String(competence.id),
   );
 
-  const byId = new Map();
+  const byId = new Map<string, SousCompMutable>();
   allNodesForComp.forEach((n) => {
     byId.set(String(n.id), { ...n, enfants: [] });
   });
 
-  const roots: any[] = [];
+  const roots: SousCompMutable[] = [];
   byId.forEach((node) => {
     if (node.parentId && byId.has(String(node.parentId))) {
-      byId.get(String(node.parentId)).enfants.push(node);
+      byId.get(String(node.parentId))!.enfants.push(node);
     } else {
       roots.push(node);
     }
@@ -128,33 +150,11 @@ export default function CompetenceExpandedRow({
       ) : (
         <div style={{ opacity: loading ? 0.6 : 1 }}>
           {roots.map((root) => (
-            <SousCompNode
-              key={root.id}
-              node={root}
-              depth={0}
-              onAddChild={onAddChild}
-              onEdit={onEdit}
-              onDelete={onDelete}
-            />
+            <SousCompNode key={String(root.id)} node={root} depth={0} onAddChild={onAddChild} onAddSavoir={onAddSavoir} onEdit={onEdit} onDelete={onDelete} />
           ))}
         </div>
       )}
     </Card>
   );
 }
-
-CompetenceExpandedRow.propTypes = {
-  competence: PropTypes.object.isRequired,
-  sousComps: PropTypes.array.isRequired,
-  loading: PropTypes.bool,
-  onAddRoot: PropTypes.func.isRequired,
-  onAddChild: PropTypes.func.isRequired,
-  onEdit: PropTypes.func.isRequired,
-  onDelete: PropTypes.func.isRequired,
-};
-
-
-
-
-
 

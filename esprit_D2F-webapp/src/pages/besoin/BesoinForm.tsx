@@ -112,8 +112,8 @@ export default function BesoinForm() {
   const summarySections = isSummary
     ? buildSummarySections(
         ctx.form.getFieldsValue(true) as Record<string, unknown>,
-        ctx.ups as any,
-        ctx.departements as any,
+        ctx.ups as Record<string, unknown>[],
+        ctx.departements as Record<string, unknown>[],
         ctx.selectedCompLinks,
         ctx.canManageParticipants,
         ctx.formatParticipantsSummary,

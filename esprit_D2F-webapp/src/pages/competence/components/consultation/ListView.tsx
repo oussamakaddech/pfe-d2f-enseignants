@@ -9,6 +9,7 @@ import {
   getTypeBadge,
   getTypeLabel,
   toNiveauRank,
+  type FlatSavoir,
 } from "@/utils/helpers/consultationViewUtils";
 import ActiveFiltersBar from "./ActiveFiltersBar";
 import EmptyState from "./EmptyState";
@@ -34,11 +35,6 @@ function useDebouncedValue<T>(value: T, delay = 300): T {
   return debounced;
 }
 
-interface FlatSavoir {
-  id?: number; code?: string; nom?: string; type?: string; niveau?: string;
-  competenceNom?: string; sousCompetenceNom?: string; competenceId?: number;
-  domaineId?: any; domaineNom?: any; competenceCode?: any;
-}
 interface ListRowProps { savoir: FlatSavoir; accent: string; onClick: () => void }
 function ListRow({ savoir, accent, onClick }: Readonly<ListRowProps>) {
   const niveauStyle = getNiveauStyle(savoir.niveau);
@@ -55,7 +51,7 @@ function ListRow({ savoir, accent, onClick }: Readonly<ListRowProps>) {
         </div>
       </div>
       <div className="ctp-list-row__meta">
-        <Badge text={getTypeLabel(savoir.type as any)} type={getTypeBadge(savoir.type as any)} />
+        <Badge text={getTypeLabel(savoir.type ?? "")} type={getTypeBadge(savoir.type ?? "")} />
         <span className="ctp-badge" style={{ color: niveauStyle.color, background: niveauStyle.bg, borderColor: niveauStyle.border }}>
           {formatNiveau(savoir.niveau)}
         </span>
@@ -67,13 +63,13 @@ function ListRow({ savoir, accent, onClick }: Readonly<ListRowProps>) {
 interface ListFilters { q: string; type: string; niveau: string }
 interface ListViewProps {
   flatSavoirs: FlatSavoir[];
-  selectedDomaine: number | null;
+  selectedDomaine: number | string | null;
   onOpenSavoir: (savoir: FlatSavoir) => void;
-  competences: { id?: number; nom?: string; code?: string }[];
+  competences: { id?: number | string; nom?: string; code?: string }[];
   listMode: string;
   setListMode: (mode: string) => void;
   listFilters: ListFilters;
-  setListFilters: (f: any) => void;
+  setListFilters: (f: ListFilters | ((prev: ListFilters) => ListFilters)) => void;
 }
 export default function ListView({
   flatSavoirs,
@@ -85,7 +81,7 @@ export default function ListView({
   listFilters,
   setListFilters,
 }: Readonly<ListViewProps>) {
-  const listTopRef = useRef<any>(null);
+  const listTopRef = useRef<HTMLDivElement>(null);
   const [page, setPage] = useState(1);
   const debouncedQuery = useDebouncedValue(listFilters.q, 300);
 
@@ -151,8 +147,8 @@ export default function ListView({
   const hasActiveFilters = listFilters.q.trim() || listFilters.type !== "ALL" || listFilters.niveau !== "ALL";
   const filterChips = buildFilterChips(listFilters);
   const clearFilters = () => setListFilters({ q: "", type: "ALL", niveau: "ALL" });
-  const removeFilter = (key: any) => {
-    setListFilters((prev: any) => ({
+  const removeFilter = (key: string) => {
+    setListFilters((prev: ListFilters) => ({
       ...prev,
       [key]: key === "q" ? "" : "ALL",
     }));
@@ -174,16 +170,16 @@ export default function ListView({
           prefix={<SearchOutlined style={{ color: "#64748b" }} />}
           placeholder="Rechercher un savoir, code, competence..."
           value={listFilters.q}
-          onChange={(e) => setListFilters((prev: any) => ({ ...prev, q: e.target.value }))}
+          onChange={(e) => setListFilters((prev: ListFilters) => ({ ...prev, q: e.target.value }))}
         />
 
-        <Select value={listFilters.type} onChange={(val) => setListFilters((prev: any) => ({ ...prev, type: val }))} style={{ minWidth: 160 }}>
+        <Select value={listFilters.type} onChange={(val) => setListFilters((prev: ListFilters) => ({ ...prev, type: val }))} style={{ minWidth: 160 }}>
           <Option value="ALL">Tous les types</Option>
           <Option value="THEORIQUE">Theoriques</Option>
           <Option value="PRATIQUE">Pratiques</Option>
         </Select>
 
-        <Select value={listFilters.niveau} onChange={(val) => setListFilters((prev: any) => ({ ...prev, niveau: val }))} style={{ minWidth: 190 }}>
+        <Select value={listFilters.niveau} onChange={(val) => setListFilters((prev: ListFilters) => ({ ...prev, niveau: val }))} style={{ minWidth: 190 }}>
           <Option value="ALL">Tous les niveaux</Option>
           {niveaux.map((n) => <Option key={n} value={n}>{formatNiveau(n)}</Option>)}
         </Select>
@@ -205,11 +201,11 @@ export default function ListView({
           </div>
         )}
 
-        {listMode === "flat" && paginatedRows.map((savoir: any) => (
+        {listMode === "flat" && paginatedRows.map((savoir) => (
           <ListRow key={savoir.id} savoir={savoir} accent={compColorMap.get(String(savoir.competenceId)) || "#64748b"} onClick={() => onOpenSavoir(savoir)} />
         ))}
 
-        {listMode === "grouped" && grouped.map((group: any) => {
+        {listMode === "grouped" && grouped.map((group) => {
           const accent = compColorMap.get(String(group.competenceId)) || "#64748b";
           return (
             <div key={group.competenceId}>
@@ -221,7 +217,7 @@ export default function ListView({
                 </span>
                 <span className="ctp-list-group-count">{group.rows.length} savoir(s)</span>
               </div>
-              {group.rows.map((savoir: any) => (
+              {group.rows.map((savoir: FlatSavoir) => (
                 <ListRow key={savoir.id} savoir={savoir} accent={accent} onClick={() => onOpenSavoir(savoir)} />
               ))}
             </div>

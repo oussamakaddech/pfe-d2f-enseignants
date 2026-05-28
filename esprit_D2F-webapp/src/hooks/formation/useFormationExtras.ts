@@ -18,7 +18,7 @@ const KEYS = {
 export function useGenerateFormationCertificates() {
   return useMutation({
     mutationFn: ({ formationId, typeCertif = "CERTIF" }: { formationId: Id; typeCertif?: string }) =>
-      FormationCustomService.generateCertificates(formationId as any, typeCertif),
+      FormationCustomService.generateCertificates(formationId as number, typeCertif),
   });
 }
 

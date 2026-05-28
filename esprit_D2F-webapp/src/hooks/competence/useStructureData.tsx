@@ -1,40 +1,50 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Space, Tag, Typography } from "antd";
-import {
-  ApartmentOutlined,
-  BookOutlined,
-  BulbOutlined,
-  ExperimentOutlined,
-  FolderOpenOutlined,
-  InfoCircleOutlined,
-  TeamOutlined,
-} from "@ant-design/icons";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import useAppNotification from "@/hooks/ui/useAppNotification";
 import CompetenceService from "@/services/competence/CompetenceService";
+import { buildDomaineNode } from "@/components/competence/tree/TreeNodeBuilders";
+import type { Id } from "@/models/common";
+import type { TreeNode, StructureData } from "@/models/competence";
 
-const { Text } = Typography;
+interface NiveauTarget {
+  type: "competence" | "sousCompetence";
+  id: Id;
+  nom: string;
+}
+
+interface NiveauFormValues {
+  niveau?: string;
+  savoirId?: Id;
+  description?: string;
+}
+
+interface NiveauRequest extends Record<string, unknown> {
+  niveau?: string;
+  savoirId?: Id;
+  description?: string;
+  competenceId?: Id;
+  sousCompetenceId?: Id;
+}
 
 export default function useStructureData() {
   const { message } = useAppNotification();
   const qc = useQueryClient();
 
-  const [searchResults, setSearchResults] = useState<any>(null);
+  const [searchResults, setSearchResults] = useState<TreeNode[] | null>(null);
   const [searchKeyword, setSearchKeyword] = useState("");
-  const [selectedDomaine, setSelectedDomaine] = useState<any>(null);
+  const [selectedDomaine, setSelectedDomaine] = useState<Id | null>(null);
   const [searchLoading, setSearchLoading] = useState(false);
-  const debounceRef = useRef<any>(null);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [niveauModalVisible, setNiveauModalVisible] = useState(false);
-  const [niveauTarget, setNiveauTarget] = useState<any>(null);
+  const [niveauTarget, setNiveauTarget] = useState<NiveauTarget | null>(null);
 
   const [filterUpId, setFilterUpId] = useState<number | null>(null);
   const [filterDeptId, setFilterDeptId] = useState<number | null>(null);
 
-  const [matrixCompId, setMatrixCompId] = useState<any>(null);
+  const [matrixCompId, setMatrixCompId] = useState<Id | null>(null);
 
-  // Define openNiveauModal early so it can be used in callbacks below
-  const openNiveauModal = useCallback(async (type: any, id: any, nom: any) => {
+  const openNiveauModal = useCallback(async (type: NiveauTarget["type"], id: Id, nom: string) => {
     setNiveauTarget({ type, id, nom });
     setNiveauModalVisible(true);
   }, []);
@@ -55,20 +65,23 @@ export default function useStructureData() {
     queryFn: () =>
       niveauTarget?.type === "competence"
         ? CompetenceService.niveauDefinition.getByCompetence(niveauTarget.id)
-        : CompetenceService.niveauDefinition.getBySousCompetence(niveauTarget.id),
+        : CompetenceService.niveauDefinition.getBySousCompetence(niveauTarget!.id),
     enabled: niveauModalVisible && !!niveauTarget,
   });
 
   const matrixQuery = useQuery({
     queryKey: ["matrix", matrixCompId],
-    queryFn: () => CompetenceService.niveauDefinition.getByCompetence(matrixCompId),
+    queryFn: () => CompetenceService.niveauDefinition.getByCompetence(matrixCompId!),
     enabled: !!matrixCompId,
-    select: (resp: any) => resp.niveaux ?? resp,
+    select: (resp: unknown): Record<string, Array<{ savoirCode?: string }>> => {
+      const r = resp as Record<string, unknown>;
+      return (r?.niveaux ?? resp) as Record<string, Array<{ savoirCode?: string }>>;
+    },
   });
 
-  const addNiveauMutation = useMutation<any, Error, { values: any; target: any }>({
+  const addNiveauMutation = useMutation<unknown, Error, { values: NiveauFormValues; target: NiveauTarget }>({
     mutationFn: ({ values, target }) => {
-      const request: any = {
+      const request: NiveauRequest = {
         niveau: values.niveau,
         savoirId: values.savoirId,
         description: values.description,
@@ -82,11 +95,12 @@ export default function useStructureData() {
       qc.invalidateQueries({ queryKey: ["niveau", variables.target?.type, variables.target?.id] });
     },
     onError: (err: unknown) => {
-      message.error((err as any).response?.data?.message || "Erreur lors de l'ajout");
+      const e = err as { response?: { data?: { message?: string } } };
+      message.error(e?.response?.data?.message || "Erreur lors de l'ajout");
     },
   });
 
-  const removeNiveauMutation = useMutation<any, Error, { id: any; target: any }>({
+  const removeNiveauMutation = useMutation<unknown, Error, { id: Id; target: NiveauTarget }>({
     mutationFn: ({ id }) => CompetenceService.niveauDefinition.remove(id),
     onSuccess: (_, variables) => {
       message.success("Savoir requis supprimé du niveau");
@@ -97,116 +111,11 @@ export default function useStructureData() {
     },
   });
 
-  const buildSavoirNode = (s: any) => ({
-    key: `sav-${s.id}`,
-    title: (
-      <Space>
-        {s.type === "THEORIQUE" ? <BookOutlined style={{ color: "#722ed1" }} /> : <ExperimentOutlined style={{ color: "#13c2c2" }} />}
-        <Text type="secondary">{s.nom}</Text>
-        <Tag color={s.type === "THEORIQUE" ? "purple" : "cyan"}>
-          {s.type === "THEORIQUE" ? "Théorique" : "Pratique"}
-        </Tag>
-        <Tag>{s.code}</Tag>
-      </Space>
-    ),
-    isLeaf: true,
-  });
-
-  const buildSousCompNode = useCallback((sc: any) => {
-    const enfants = sc.enfants ?? [];
-    const isLeaf = enfants.length === 0;
-
-    return {
-      key: `sc-${sc.id}`,
-      title: (
-        <Space>
-          <BulbOutlined style={{ color: "#fa8c16" }} />
-          <Text>{sc.nom}</Text>
-          <Tag color="orange">{sc.code}</Tag>
-          <Tag color="geekblue">N{sc.niveau ?? "-"}</Tag>
-          <Tag icon={<BookOutlined />}>{sc.nombreSavoirs}</Tag>
-          <Tag icon={<TeamOutlined />} color="purple">{sc.nombreEnseignants}</Tag>
-          <Tag
-            style={{ cursor: "pointer" }}
-            icon={<InfoCircleOutlined />}
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              openNiveauModal("sousCompetence", sc.id, sc.nom);
-            }}
-          >
-            Niveaux
-          </Tag>
-        </Space>
-      ),
-      children: [
-        ...enfants.map(buildSousCompNode),
-        ...(isLeaf ? (sc.savoirs ?? []).map(buildSavoirNode) : []),
-      ],
-    };
-  }, [openNiveauModal]);
-
-  const buildCompetenceNode = useCallback((comp: any) => ({
-    key: `comp-${comp.id}`,
-    title: (
-      <Space>
-        <ApartmentOutlined style={{ color: "#52c41a" }} />
-        <Text>{comp.nom}</Text>
-        <Tag color="green">{comp.code}</Tag>
-        <Tag>{comp.nombreSousCompetences} SC / {comp.nombreSavoirs} S</Tag>
-        <Tag icon={<TeamOutlined />} color="purple">{comp.nombreEnseignants}</Tag>
-        <Tag
-          style={{ cursor: "pointer" }}
-          icon={<InfoCircleOutlined />}
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            openNiveauModal("competence", comp.id, comp.nom);
-          }}
-        >
-          Niveaux
-        </Tag>
-      </Space>
-    ),
-    children: [
-      ...(comp.sousCompetences?.map(buildSousCompNode) || []),
-      ...(comp.savoirsDirect?.map((s: any) => ({
-        key: `sav-direct-${s.id}`,
-        title: (
-          <Space>
-            {s.type === "THEORIQUE" ? <BookOutlined style={{ color: "#722ed1" }} /> : <ExperimentOutlined style={{ color: "#13c2c2" }} />}
-            <Text type="secondary">{s.nom}</Text>
-            <Tag color={s.type === "THEORIQUE" ? "purple" : "cyan"}>
-              {s.type === "THEORIQUE" ? "Théorique" : "Pratique"}
-            </Tag>
-            <Tag>{s.code}</Tag>
-            <Tag color="gold">Direct</Tag>
-          </Space>
-        ),
-        isLeaf: true,
-      })) || []),
-    ],
-  }), [buildSousCompNode]);
-
-  const buildDomaineNode = useCallback((domaine: any) => ({
-    key: `dom-${domaine.id}`,
-    title: (
-      <Space>
-        <FolderOpenOutlined style={{ color: "#1890ff" }} />
-        <Text strong>{domaine.nom}</Text>
-        <Tag color="blue">{domaine.code}</Tag>
-        <Tag color="green">{domaine.nombreCompetences}</Tag>
-        <Tag icon={<TeamOutlined />} color="purple">{domaine.nombreEnseignants}</Tag>
-        {!domaine.actif && <Tag color="red">Inactif</Tag>}
-      </Space>
-    ),
-    children: domaine.competences?.map(buildCompetenceNode) || [],
-  }), [buildCompetenceNode]);
-
   const treeData = useMemo(() => {
-    if (!(structureQuery.data as any)?.domaines) return [];
-    return (structureQuery.data as any).domaines.map(buildDomaineNode);
-  }, [structureQuery.data, buildDomaineNode]);
+    const data = structureQuery.data as unknown as StructureData | undefined;
+    if (!data?.domaines) return [];
+    return data.domaines.map((d) => buildDomaineNode(d, openNiveauModal));
+  }, [structureQuery.data, openNiveauModal]);
 
   const loadStructure = useCallback(() => structureQuery.refetch(), [structureQuery]);
 
@@ -223,28 +132,28 @@ export default function useStructureData() {
     setFilterDeptId(deptId);
   }, []);
 
-  const handleAddNiveauSavoir = useCallback(async (values: any) => {
+  const handleAddNiveauSavoir = useCallback(async (values: NiveauFormValues) => {
     if (!niveauTarget) return;
     await addNiveauMutation.mutateAsync({ values, target: niveauTarget });
   }, [niveauTarget, addNiveauMutation]);
 
-  const handleRemoveNiveauSavoir = useCallback(async (id: any) => {
+  const handleRemoveNiveauSavoir = useCallback(async (id: Id) => {
     if (!niveauTarget) return;
     await removeNiveauMutation.mutateAsync({ id, target: niveauTarget });
   }, [niveauTarget, removeNiveauMutation]);
 
-  const loadMatrixData = useCallback((compId: any) => {
+  const loadMatrixData = useCallback((compId: Id) => {
     setMatrixCompId(compId);
   }, []);
 
-  const doSearch = useCallback(async (keyword: any, domaine: any) => {
+  const doSearch = useCallback(async (keyword: string, domaine: Id | null) => {
     if (!keyword || keyword.trim().length < 2) {
       setSearchResults(null);
       return;
     }
     setSearchLoading(true);
     try {
-      let data;
+      let data: TreeNode[];
       if (domaine) data = await CompetenceService.structure.rechercheParDomaine(domaine, keyword.trim());
       else data = await CompetenceService.structure.rechercheGlobale(keyword.trim());
       setSearchResults(data);
@@ -253,23 +162,25 @@ export default function useStructureData() {
     } finally {
       setSearchLoading(false);
     }
-  }, []);
+  }, [message]);
 
   useEffect(() => {
-    if (debounceRef.current) clearTimeout(debounceRef.current as any);
+    if (debounceRef.current) clearTimeout(debounceRef.current);
     if (!searchKeyword || searchKeyword.trim().length < 2) {
       setSearchResults(null);
       return;
     }
     debounceRef.current = setTimeout(() => {
-      doSearch(searchKeyword, selectedDomaine);
+      void doSearch(searchKeyword, selectedDomaine);
     }, 400);
-    return () => clearTimeout(debounceRef.current as any);
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
   }, [doSearch, searchKeyword, selectedDomaine]);
 
-  const handleSearch = useCallback((value: any) => {
-    if (debounceRef.current) clearTimeout(debounceRef.current as any);
-    doSearch(value, selectedDomaine);
+  const handleSearch = useCallback((value: string) => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    void doSearch(value, selectedDomaine);
   }, [doSearch, selectedDomaine]);
 
   const handleClearSearch = useCallback(() => {

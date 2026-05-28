@@ -112,8 +112,8 @@ export function useTeachersDataGrid() {
 		setEditingRecord(record);
 			editForm.setFieldsValue({
 				...record,
-				upId: record.upId ?? (record.up as any)?.id,
-				deptId: record.deptId ?? (record.dept as any)?.id,
+				upId: record.upId ?? (record.up as Record<string, unknown>)?.id,
+				deptId: record.deptId ?? (record.dept as Record<string, unknown>)?.id,
 			});
 		setEditModalOpen(true);
 	};

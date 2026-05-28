@@ -7,6 +7,11 @@ import { useUps, useDepartements } from "@/hooks/formation/useFormations";
 import { useTopParticipants } from "@/hooks/kpi/useKpi";
 import { useEnseignants } from "@/hooks/enseignant/useEnseignants";
 import "@/styles/components/chart-scroll.css";
+import type { Chart as ChartType } from 'chart.js';
+
+interface RefItem { id?: string | number; libelle?: string; }
+interface EnseignantRef { id?: string | number; mail?: string; dept?: { libelle?: string }; up?: { libelle?: string }; }
+interface KpiEntry { enseignantId?: string | number; nom?: string; prenom?: string; totalPresences?: number; mail?: string; deptLibelle?: string; upLibelle?: string; }
 
 const { Option }      = Select;
 const { RangePicker } = DatePicker;
@@ -14,22 +19,22 @@ const { RangePicker } = DatePicker;
 export default function TopParticipants() {
   const { data: upsData } = useUps();
   const { data: deptsData } = useDepartements();
-  const ups = (upsData ?? []) as any[];
-  const depts = (deptsData ?? []) as any[];
+  const ups = (upsData ?? []) as RefItem[];
+  const depts = (deptsData ?? []) as RefItem[];
   const { data: enseignants } = useEnseignants();
 
   const [sortOrder, setSortOrder] = useState('desc');
   const [showTable, setShowTable] = useState(false);
   const [filters, setFilters] = useState<{
-    upId: any;
-    deptId: any;
+    upId: string | number | null;
+    deptId: string | number | null;
     range: [dayjs.Dayjs | null, dayjs.Dayjs | null];
   }>({
     upId: null,
     deptId: null,
     range: [ dayjs().startOf('year'), dayjs().endOf('year') ]
   });
-  const chartRef = useRef<any>(null);
+  const chartRef = useRef<ChartType<'line'> | null>(null);
 
   const [start, end] = filters.range;
   const { data: raw, isLoading } = useTopParticipants(
@@ -40,28 +45,28 @@ export default function TopParticipants() {
   );
 
   const enseignantMap = useMemo(() => {
-    const map = new Map();
-    (enseignants ?? []).forEach((ens: any) => map.set(ens.id, ens));
+    const map = new Map<string | number, EnseignantRef>();
+    (enseignants as EnseignantRef[] ?? []).forEach((ens: EnseignantRef) => { if (ens.id != null) map.set(ens.id, ens); });
     return map;
   }, [enseignants]);
 
-  const stats = useMemo(() => {
+  const stats = useMemo((): KpiEntry[] => {
     if (!raw) return [];
-    return raw.map((entry: any) => {
-      const ens = enseignantMap.get(entry.enseignantId);
+    return (raw as KpiEntry[]).map((entry: KpiEntry) => {
+      const ens = entry.enseignantId != null ? enseignantMap.get(entry.enseignantId) : undefined;
       return { ...entry, mail: ens?.mail, deptLibelle: ens?.dept?.libelle, upLibelle: ens?.up?.libelle };
     });
   }, [raw, enseignantMap]);
 
   // Tri et top 10
-  const sorted = [...stats].sort((a: any, b: any) =>
+  const sorted = [...stats].sort((a, b) =>
     sortOrder === 'asc'
-      ? a.totalPresences - b.totalPresences
-      : b.totalPresences - a.totalPresences
+      ? (a.totalPresences ?? 0) - (b.totalPresences ?? 0)
+      : (b.totalPresences ?? 0) - (a.totalPresences ?? 0)
   );
   const top10  = sorted.slice(0, 10);
-  const labels = top10.map((s: any) => `${s.nom} ${s.prenom}`);
-  const values = top10.map((s: any) => s.totalPresences);
+  const labels = top10.map((s) => `${s.nom} ${s.prenom}`);
+  const values = top10.map((s) => s.totalPresences ?? 0);
 
   // Chart config
   const chartData = {
@@ -127,7 +132,7 @@ export default function TopParticipants() {
           <RangePicker
             value={filters.range}
             format="YYYY-MM-DD"
-            onChange={(range: any) => setFilters(f => ({ ...f, range: range ?? [null, null] }))}
+            onChange={(range) => setFilters(f => ({ ...f, range: (range ?? [null, null]) as [dayjs.Dayjs | null, dayjs.Dayjs | null] }))}
             style={{ width: '100%' }}
           />
         </Col>
@@ -139,7 +144,7 @@ export default function TopParticipants() {
             onChange={upId => setFilters(f => ({ ...f, upId }))}
             style={{ width: '100%' }}
           >
-            {ups.map((u: any) => <Option key={u.id} value={u.id}>{u.libelle}</Option>)}
+            {ups.map((u: RefItem) => <Option key={String(u.id)} value={u.id}>{u.libelle}</Option>)}
           </Select>
         </Col>
         <Col span={6}>
@@ -150,7 +155,7 @@ export default function TopParticipants() {
             onChange={deptId => setFilters(f => ({ ...f, deptId }))}
             style={{ width: '100%' }}
           >
-            {depts.map((d: any) => <Option key={d.id} value={d.id}>{d.libelle}</Option>)}
+            {depts.map((d: RefItem) => <Option key={String(d.id)} value={d.id}>{d.libelle}</Option>)}
           </Select>
         </Col>
         <Col span={6}>

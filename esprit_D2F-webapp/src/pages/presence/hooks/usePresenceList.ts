@@ -17,10 +17,10 @@ export function usePresenceList(seanceId: number | string) {
 
   useEffect(() => {
     const list = Array.isArray(rawPresences) ? rawPresences : [];
-    const normalized: PresenceRecord[] = list.map((p: any) => ({
-      ...p,
-      presence: typeof p.present === "boolean" ? p.present : !!p.presence,
-    }));
+    const normalized = list.map((p) => {
+      const r = p as Record<string, unknown>;
+      return { ...r, presence: typeof r.present === "boolean" ? r.present : !!r.presence } as PresenceRecord;
+    });
     setPresences(normalized);
     const map: Record<number, { presence: boolean; commentaire: string }> = {};
     normalized.forEach((p) => {

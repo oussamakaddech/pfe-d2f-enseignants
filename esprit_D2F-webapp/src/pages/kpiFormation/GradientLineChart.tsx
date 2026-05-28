@@ -24,10 +24,10 @@ ChartJS.register(
   Filler
 );
 
-interface GradientLineChartProps { title: string; labels: any[]; values: any[] }
+type GradientLineChartProps = { title: string; labels: string[]; values: number[] };
 
 const GradientLineChart = ({ title, labels, values }: GradientLineChartProps) => {
-  const chartRef = useRef<any>(null);
+  const chartRef = useRef<ChartJS<'line'>>(null);
   const [data] = useState({
     labels,
     datasets: [{
@@ -81,15 +81,15 @@ const GradientLineChart = ({ title, labels, values }: GradientLineChartProps) =>
 
   // Applique le dégradé après le premier rendu
   useEffect(() => {
-    const chart = chartRef.current;
+    const chart: Record<string, unknown> | null = chartRef.current as Record<string, unknown> | null;
     if (!chart) return;
-    const ctx = chart.ctx;
-    const { top, bottom } = chart.chartArea;
+    const ctx = (chart.ctx as CanvasRenderingContext2D);
+    const { top, bottom } = chart.chartArea as { top: number; bottom: number };
     const gradient = ctx.createLinearGradient(0, top, 0, bottom);
     gradient.addColorStop(0, 'rgba(255,0,0,0.5)');
     gradient.addColorStop(1, 'rgba(255,0,0,0.05)');
-    chart.data.datasets[0].backgroundColor = gradient;
-    chart.update();
+    (chart.data as { datasets: { backgroundColor: string | CanvasGradient }[] }).datasets[0].backgroundColor = gradient;
+    (chart as { update: () => void }).update();
   }, [labels, values]);
 
   return (

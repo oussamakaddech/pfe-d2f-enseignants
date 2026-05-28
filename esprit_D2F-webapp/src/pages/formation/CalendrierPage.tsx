@@ -18,6 +18,7 @@ import {
 } from "@ant-design/icons";
 import useAppNotification from "@/hooks/ui/useAppNotification";
 import "@/styles/pages/calendrier.css";
+import type { Formation, Seance } from "@/models/formation";
 
 import FormationWorkflowForm from "@/pages/formation/FormationWorkflowForm";
 import { useAllFormations } from "@/hooks/formation";
@@ -34,20 +35,39 @@ const localizer = dateFnsLocalizer({
   locales,
 });
 
+interface FormationEventDetail {
+  formation: Formation;
+  seance?: Seance;
+}
+
+interface CalendarEvent {
+  id: unknown;
+  title: string | undefined;
+  start: Date;
+  end: Date;
+  details: FormationEventDetail;
+}
+
 export default function CalendrierPage() {
   const { message } = useAppNotification();
   // modal & sélection
   const [showModal, setShowModal] = useState(false);
-  const [selectedDate, setSelectedDate] = useState<any>(null);
-  const [selectedEvent, setSelectedEvent] = useState<any>(null);
+  const [selectedDate, setSelectedDate] = useState<string | null>(null);
+  const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   // wizard: étapes création, docs, mail
   const [showWizard, setShowWizard] = useState(false);
   const [wizardStep, setWizardStep] = useState(0);
-  const [createdFormation, setCreatedFormation] = useState<any>(null);
+  const [createdFormation, setCreatedFormation] = useState<Formation | null>(null);
   const [docsAdded, setDocsAdded] = useState(false);
   // état calendrier
   const [currentDate, setCurrentDate] = useState(new Date());
   const [currentView, setCurrentView] = useState("month");
+  // editable session state for EventDetails
+  const [editedDateSeance, setEditedDateSeance] = useState("");
+  const [editedHeureDebut, setEditedHeureDebut] = useState("");
+  const [editedHeureFin, setEditedHeureFin] = useState("");
+  const [editedSalle, setEditedSalle] = useState("");
+  const [editedParticipants, setEditedParticipants] = useState("");
 
   const { data: formations = [], isLoading, refetch: refetchFormations } = useAllFormations();
 
@@ -57,41 +77,41 @@ export default function CalendrierPage() {
     { key: "mail", title: "Envoyer l'e-mail" },
   ];
 
-  const showAlert = (msg: any, severity = "info") => {
+  const showAlert = (msg: string, severity = "info") => {
     if (severity === "error") message.error(msg);
     else if (severity === "success") message.success(msg);
     else message.info(msg);
   };
 
   const events = useMemo(() => {
-    let eventsData: any[] = [];
-    (Array.isArray(formations) ? formations : []).forEach((f) => {
+    const eventsData: CalendarEvent[] = [];
+    (Array.isArray(formations) ? formations as Formation[] : []).forEach((f) => {
       if (f.seances?.length) {
-          f.seances.forEach((s) => {
-            eventsData.push({
-              id: s.idSeance,
-              title: f.titreFormation,
-              start: new Date(`${s.dateSeance}T${s.heureDebut}`),
-              end: new Date(`${s.dateSeance}T${s.heureFin}`),
-              details: { formation: f, seance: s },
-            });
-          });
-        } else {
+        f.seances.forEach((s: Seance) => {
           eventsData.push({
-            id: f.idFormation,
+            id: s.idSeance,
             title: f.titreFormation,
-            start: new Date(`${f.dateDebut}T00:00:00`),
-            end: new Date(`${f.dateFin}T23:59:59`),
-            details: { formation: f },
+            start: new Date(`${s.dateSeance}T${s.heureDebut}`),
+            end: new Date(`${s.dateSeance}T${s.heureFin}`),
+            details: { formation: f, seance: s },
           });
-        }
-      });
+        });
+      } else {
+        eventsData.push({
+          id: f.idFormation,
+          title: f.titreFormation,
+          start: new Date(`${f.dateDebut}T00:00:00`),
+          end: new Date(`${f.dateFin}T23:59:59`),
+          details: { formation: f },
+        });
+      }
+    });
     return eventsData;
   }, [formations]);
 
-  const handleSelectSlot = (slotInfo: any) => {
+  const handleSelectSlot = (slotInfo: { start: Date }) => {
     setSelectedEvent(null);
-    setSelectedDate(slotInfo.start);
+    setSelectedDate(format(slotInfo.start, "yyyy-MM-dd"));
     setShowModal(true);
     setShowWizard(true);
     setWizardStep(0);
@@ -99,15 +119,20 @@ export default function CalendrierPage() {
     setDocsAdded(false);
   };
 
-  const handleSelectEvent = (event: any) => {
+  const handleSelectEvent = (event: CalendarEvent) => {
     setShowWizard(false);
     setSelectedEvent(event);
     setSelectedDate(null);
+    setEditedDateSeance(event.details.seance?.dateSeance ?? "");
+    setEditedHeureDebut(event.details.seance?.heureDebut ?? "");
+    setEditedHeureFin(event.details.seance?.heureFin ?? "");
+    setEditedSalle(event.details.seance?.salle ?? "");
+    setEditedParticipants("");
     setShowModal(true);
   };
 
-  const handleNavigate = (newDate: any) => setCurrentDate(newDate);
-  const handleViewChange = (view: any) => setCurrentView(view);
+  const handleNavigate = (newDate: Date) => setCurrentDate(newDate);
+  const handleViewChange = (view: string) => setCurrentView(view);
 
   const handleClose = () => {
     setShowModal(false);
@@ -117,7 +142,8 @@ export default function CalendrierPage() {
     setSelectedEvent(null);
   };
 
-  const onFormationCreatedWizard = (newFormation: any) => {
+  const onFormationCreatedWizard = (newFormation?: Formation) => {
+    if (!newFormation) return;
     setCreatedFormation(newFormation);
     setWizardStep(1);
     void refetchFormations();
@@ -133,7 +159,7 @@ export default function CalendrierPage() {
     showAlert("E-mail envoyé ! Vous pouvez en envoyer un autre.", "success");
   };
 
-  const getStatusClass = (etat: any) => {
+  const getStatusClass = (etat: string | undefined) => {
     switch (etat) {
       case "ENREGISTRE": return "cal-event--enregistre";
       case "PLANIFIE":   return "cal-event--planifie";
@@ -144,7 +170,7 @@ export default function CalendrierPage() {
     }
   };
 
-  const eventStyleGetter = (event: any) => {
+  const eventStyleGetter = (event: CalendarEvent) => {
     const etat = event.details?.formation?.etatFormation;
     return {
       className: getStatusClass(etat),
@@ -186,7 +212,7 @@ export default function CalendrierPage() {
                 className="cal-btn-create"
                 onClick={() => {
                   setSelectedEvent(null);
-                  setSelectedDate(new Date());
+                  setSelectedDate(format(new Date(), "yyyy-MM-dd"));
                   setShowModal(true);
                   setShowWizard(true);
                   setWizardStep(0);
@@ -362,20 +388,20 @@ export default function CalendrierPage() {
 
             {wizardStep === 0 && (
               <FormationWorkflowForm
-                initialDate={selectedDate as any}
+                initialDate={selectedDate ?? undefined}
                 onFormationCreated={onFormationCreatedWizard}
               />
             )}
 
-            {wizardStep === 1 && (
+            {wizardStep === 1 && createdFormation != null && createdFormation.idFormation != null && (
               <DocumentCreateForm
-                formationId={createdFormation?.idFormation}
+                formationId={createdFormation.idFormation}
                 onDocumentCreated={onDocumentCreatedWizard}
                 onCancel={handleClose}
               />
             )}
 
-            {wizardStep === 2 && (
+            {wizardStep === 2 && createdFormation != null && (
               <MailForm
                 formation={createdFormation}
                 onSendSuccess={onEmailSent}
@@ -391,13 +417,25 @@ export default function CalendrierPage() {
               </div>
             )}
             <div style={{ opacity: isLoading ? 0.5 : 1 }}>
-              <EventDetails {...{selectedEvent} as any} />
+              <EventDetails
+                selectedEvent={selectedEvent}
+                editedDateSeance={editedDateSeance}
+                setEditedDateSeance={setEditedDateSeance}
+                editedHeureDebut={editedHeureDebut}
+                setEditedHeureDebut={setEditedHeureDebut}
+                editedHeureFin={editedHeureFin}
+                setEditedHeureFin={setEditedHeureFin}
+                editedSalle={editedSalle}
+                setEditedSalle={setEditedSalle}
+                editedParticipants={editedParticipants}
+                setEditedParticipants={setEditedParticipants}
+              />
             </div>
           </div>
           );
           return (
           <FormationWorkflowForm
-            initialDate={selectedDate as any}
+            initialDate={selectedDate ?? undefined}
             onFormationCreated={onFormationCreatedWizard}
           />
           );
@@ -406,9 +444,3 @@ export default function CalendrierPage() {
     </div>
   );
 }
-
-
-
-
-
-

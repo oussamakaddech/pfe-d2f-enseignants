@@ -1,7 +1,6 @@
 import  { useEffect, useState } from 'react';
 import { Card, Form, Input, Select, Button, Typography } from 'antd';
 import { UserOutlined, LockOutlined, MailOutlined, PhoneOutlined, InfoCircleOutlined } from '@ant-design/icons';
-import PropTypes from 'prop-types';
 import { useRegister } from "@/hooks/auth/useRegister";
 import type { RegisterFormValues } from "@/hooks/auth/useRegister";
 
@@ -128,19 +127,6 @@ export default function EnseignantRegister({ initialValues = {}, onSuccess, onEr
   );
 }
 
-EnseignantRegister.propTypes = {
-  initialValues: PropTypes.shape({
-    id:          PropTypes.string,
-    username:    PropTypes.string,
-    firstName:   PropTypes.string,
-    lastName:    PropTypes.string,
-    email:       PropTypes.string,
-    role:        PropTypes.string,
-    phoneNumber: PropTypes.string,
-  }),
-  onSuccess: PropTypes.func,
-  onError:   PropTypes.func,
-};
 
 
 

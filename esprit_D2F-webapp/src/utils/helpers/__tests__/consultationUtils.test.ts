@@ -21,14 +21,14 @@ describe('consultationUtils', () => {
     const tree = buildD3TreeData(domaines, competences, sousComps, savoirs);
 
     expect(tree.name).toBe('Referentiel');
-    expect(tree.children).toHaveLength(1);
-    expect(tree.children[0].children).toHaveLength(1);
+    expect(tree.children!).toHaveLength(1);
+    expect(tree.children![0].children!).toHaveLength(1);
 
-    const rootSc = tree.children[0].children[0].children[0];
+    const rootSc = tree.children![0].children![0].children![0];
     expect(rootSc.name).toBe('Frontend');
-    expect(rootSc.children).toHaveLength(1);
+    expect(rootSc.children!).toHaveLength(1);
 
-    const leafSc = rootSc.children[0];
+    const leafSc = rootSc.children![0];
     expect(leafSc.name).toBe('React');
     expect(leafSc.children).toEqual([
       {
@@ -48,7 +48,7 @@ describe('consultationUtils', () => {
     ];
 
     const tree = buildD3TreeData(domaines, competences, sousComps, savoirs);
-    const compNode = tree.children[0].children[0];
+    const compNode = tree.children![0].children![0];
 
     expect(compNode.name).toBe('Sols');
     expect(compNode.children).toEqual([

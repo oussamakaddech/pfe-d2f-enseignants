@@ -1,9 +1,8 @@
-import PropTypes from "prop-types";
+interface BesoinStatusBadgeProps {
+  approved: boolean;
+}
 
-/**
- * Pill statut. Le dot pulse en jaune si "en attente" (action requise).
- */
-export default function BesoinStatusBadge({ approved }: any) {
+export default function BesoinStatusBadge({ approved }: BesoinStatusBadgeProps) {
   const tone = approved ? "approved" : "pending";
   const label = approved ? "Approuvé" : "En attente";
   return (
@@ -14,9 +13,7 @@ export default function BesoinStatusBadge({ approved }: any) {
   );
 }
 
-BesoinStatusBadge.propTypes = {
-  approved: PropTypes.bool.isRequired,
-};
+
 
 
 

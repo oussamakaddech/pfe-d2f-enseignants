@@ -1,7 +1,21 @@
-import PropTypes from "prop-types";
 import { Empty, Tooltip } from "antd";
 
-export default function NiveauSavoirMatrix({ data, title, code }: any) {
+interface NiveauSavoirMatrixItem {
+  savoirNom?: string;
+  savoirCode?: string;
+}
+
+interface NiveauSavoirMatrixData {
+  [key: string]: NiveauSavoirMatrixItem[] | undefined;
+}
+
+interface NiveauSavoirMatrixProps {
+  data: NiveauSavoirMatrixData;
+  title?: string;
+  code?: string;
+}
+
+export default function NiveauSavoirMatrix({ data, title, code }: NiveauSavoirMatrixProps) {
   const NIVEAUX = [
     { key: "N1_DEBUTANT", label: "N 1" },
     { key: "N2_ELEMENTAIRE", label: "N 2" },
@@ -89,11 +103,7 @@ export default function NiveauSavoirMatrix({ data, title, code }: any) {
   );
 }
 
-NiveauSavoirMatrix.propTypes = {
-  data: PropTypes.object.isRequired,
-  title: PropTypes.string,
-  code: PropTypes.string,
-};
+
 
 
 

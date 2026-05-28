@@ -37,12 +37,18 @@ export const NIVEAUX_MATRIX = [
   { key: "N5_EXPERT", label: "N 5" },
 ];
 
+interface D3TreeNode {
+  name: string;
+  attributes?: Record<string, string>;
+  children?: D3TreeNode[];
+}
+
 export function buildD3TreeData(
   domaines: Domaine[] = [],
   competences: Competence[] = [],
   sousComps: SousCompetence[] = [],
   savoirs: Savoir[] = []
-): { name: string; children: any[] } {
+): D3TreeNode {
   const toSavoirNode = (s: Savoir) => ({
     name: s.nom,
     attributes: { code: s.code, type: s.type },
@@ -57,7 +63,7 @@ export function buildD3TreeData(
       )
       .map(toSavoirNode);
 
-  const buildScChildren = (competenceId: string | number, parentScId: string | number | null = null): any[] => {
+  const buildScChildren = (competenceId: string | number, parentScId: string | number | null = null): D3TreeNode[] => {
     const nodes = sousComps.filter(
       (sc) =>
         String(sc.competenceId) === String(competenceId) &&

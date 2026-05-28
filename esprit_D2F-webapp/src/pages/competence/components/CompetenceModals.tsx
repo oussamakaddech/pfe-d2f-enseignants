@@ -34,10 +34,20 @@ const { Option } = Select;
 const { Text } = Typography;
 
 import type { FormInstance } from "antd";
+import type useCompetenceCrud from "@/hooks/competence/useCompetenceCrud";
+import type useStructureData from "@/hooks/competence/useStructureData";
+import type { Id } from "@/models/common";
+
+interface RefItem {
+  id?: Id;
+  nom?: string;
+  libelle?: string;
+  code?: string;
+}
 
 interface CompetenceModalsProps {
-  crud: any;
-  structure: any;
+  crud: ReturnType<typeof useCompetenceCrud>;
+  structure: ReturnType<typeof useStructureData>;
   domaineForm: FormInstance;
   compForm: FormInstance;
   scForm: FormInstance;
@@ -68,12 +78,12 @@ export default function CompetenceModals({
 
         let newPrefix = "";
         if (crud.savoirMode === "sc" && scId) {
-          const sousComp = crud.leafSousComps.find((sc: any) => sc.id === scId);
+          const sousComp = crud.leafSousComps.find((sc) => sc.id === scId);
           if (sousComp?.code) {
             newPrefix = `${sousComp.code}-`;
           }
         } else if (crud.savoirMode === "direct" && compId) {
-          const comp = crud.competences.find((c: any) => c.id === compId);
+          const comp = crud.competences.find((c) => c.id === compId);
           if (comp?.code) {
             newPrefix = `${comp.code}-`;
           }
@@ -141,7 +151,7 @@ export default function CompetenceModals({
               optionFilterProp="children"
               loading={ups.length === 0}
             >
-              {(ups as any[]).map((up: any) => (
+              {(ups as RefItem[]).map((up) => (
                 <Option key={up.id} value={up.id}>
                   {up.nom ?? up.libelle ?? up.code ?? `UP ${up.id}`}
                 </Option>
@@ -159,7 +169,7 @@ export default function CompetenceModals({
               optionFilterProp="children"
               loading={depts.length === 0}
             >
-              {(depts as any[]).map((dept: any) => (
+              {(depts as RefItem[]).map((dept) => (
                 <Option key={dept.id} value={dept.id}>
                   {dept.nom ?? dept.libelle ?? dept.code ?? `Departement ${dept.id}`}
                 </Option>
@@ -190,7 +200,7 @@ export default function CompetenceModals({
           layout="vertical"
           onValuesChange={(changedValues) => {
             if (!crud.editingComp && changedValues.domaineId) {
-              const domaine = crud.domaines.find((d: any) => d.id === changedValues.domaineId);
+              const domaine = crud.domaines.find((d) => d.id === changedValues.domaineId);
               if (domaine?.code) {
                 compForm.setFieldsValue({ code: `${domaine.code}-` });
               }
@@ -210,7 +220,7 @@ export default function CompetenceModals({
               showSearch
               optionFilterProp="children"
             >
-              {crud.domaines.map((d: any) => (
+              {crud.domaines.map((d) => (
                 <Option key={d.id} value={d.id}>
                   {d.nom}
                 </Option>
@@ -281,7 +291,7 @@ export default function CompetenceModals({
               showSearch
               optionFilterProp="children"
             >
-              {crud.competences.map((c: any) => (
+              {crud.competences.map((c) => (
                 <Option key={c.id} value={c.id}>
                   {c.nom} ({c.domaineNom})
                 </Option>
@@ -382,12 +392,12 @@ export default function CompetenceModals({
               
               let newPrefix = "";
               if (crud.savoirMode === "sc" && scId) {
-                const sousComp = crud.leafSousComps?.find((sc: any) => sc.id === scId);
+                const sousComp = crud.leafSousComps?.find((sc) => sc.id === scId);
                 if (sousComp?.code) {
                   newPrefix = `${sousComp.code}-`;
                 }
               } else if (crud.savoirMode === "direct" && compId) {
-                const comp = crud.competences?.find((c: any) => c.id === compId);
+                const comp = crud.competences?.find((c) => c.id === compId);
                 if (comp?.code) {
                   newPrefix = `${comp.code}-`;
                 }
@@ -426,13 +436,13 @@ export default function CompetenceModals({
             >
               <Select
                 placeholder="Selectionner une competence fille"
-                disabled={!!(crud as any).editingSavoir}
+                disabled={!!crud.editingSavoir}
                 showSearch
                 optionFilterProp="children"
               >
-                {(crud as any).leafSousComps.map((sc: any) => (
+                {crud.leafSousComps.map((sc) => (
                   <Option key={sc.id} value={sc.id}>
-                    {sc.nom} ({sc.competenceNom})
+                    {sc.nom} ({(sc as { competenceNom?: string }).competenceNom})
                   </Option>
                 ))}
               </Select>
@@ -442,16 +452,16 @@ export default function CompetenceModals({
               name="competenceId"
               label="Competence mere"
               rules={[
-                { required: !(crud as any).editingSavoir, message: "Competence mere obligatoire" },
+                { required: !crud.editingSavoir, message: "Competence mere obligatoire" },
               ]}
             >
               <Select
                 placeholder="Selectionner une competence mere"
-                disabled={!!(crud as any).editingSavoir}
+                disabled={!!crud.editingSavoir}
                 showSearch
                 optionFilterProp="children"
               >
-                {(crud as any).competences.map((c: any) => (
+                {crud.competences.map((c) => (
                   <Option key={c.id} value={c.id}>
                     {c.nom} ({c.domaineNom})
                   </Option>
@@ -565,7 +575,8 @@ export default function CompetenceModals({
             <Collapse
               defaultActiveKey={Object.keys(NIVEAU_LABELS)}
               items={Object.entries(NIVEAU_LABELS).map(([key, val]) => {
-                const levelItems = structure.niveauData[key] || [];
+                const niveauDataMap = structure.niveauData as Record<string, Array<{ id?: Id; savoirCode?: string; savoirNom?: string; description?: string }>>;
+                const levelItems = niveauDataMap[key] || [];
                 return {
                   key,
                   label: (
@@ -604,11 +615,11 @@ export default function CompetenceModals({
                           {
                             title: "",
                             width: 50,
-                            render: (_: any, record: any) => (
+                            render: (_: unknown, record: { id?: Id }) => (
                               <Popconfirm
                                 title="Supprimer ce savoir requis ?"
                                 onConfirm={() =>
-                                  structure.handleRemoveNiveauSavoir(record.id)
+                                  record.id != null && structure.handleRemoveNiveauSavoir(record.id)
                                 }
                               >
                                 <Button size="small" danger icon={<DeleteOutlined />} />
@@ -661,7 +672,7 @@ export default function CompetenceModals({
                     optionFilterProp="children"
                     style={{ width: 250 }}
                   >
-                    {structure.allSavoirsHierarchie.map((s: any) => (
+                    {structure.allSavoirsHierarchie.map((s) => (
                       <Option key={s.id} value={s.id}>
                         {s.code} - {s.nom}
                       </Option>

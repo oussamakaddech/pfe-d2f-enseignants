@@ -45,7 +45,7 @@ export default function StatCards({ stats, onStatClick }: Readonly<StatCardsProp
               {def.icon}
             </div>
           </div>
-          <div className="ctp-stat-card__value">{(stats as any)?.[def.statKey] ?? 0}</div>
+          <div className="ctp-stat-card__value">{stats?.[def.statKey as keyof Stats] ?? 0}</div>
           <div className="ctp-stat-card__label">{def.label}</div>
         </button>
       ))}

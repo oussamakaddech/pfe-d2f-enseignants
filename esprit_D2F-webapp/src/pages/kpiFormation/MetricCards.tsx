@@ -9,22 +9,12 @@ import dayjs from "dayjs";
 import { useDepartements, useUps } from "@/hooks/formation";
 import { useKpiCountAndHeuresMutation } from "@/hooks/kpi";
 import { MetricCardItem } from "./components/MetricCardItem";
+import type { MetricCard, CardFilters, NamedOption } from "./components/MetricCardItem";
 
 const { Text } = Typography;
 const { RangePicker } = DatePicker;
 
 const LOCALSTORAGE_KEY = "metricCardsConfiguration";
-
-interface NamedOption { id?: unknown; libelle?: string }
-interface CardFilters {
-  domaine?: string | null;
-  upId?: any;
-  deptId?: any;
-  ouverte?: boolean | null;
-  start?: string | null;
-  end?: string | null;
-  etat?: string | null;
-}
 
 function buildGenericTitleParts(filters: CardFilters, upsOptions: NamedOption[], deptsOptions: NamedOption[]): string[] {
   const { domaine, upId, deptId, ouverte, start, end, etat } = filters;
@@ -46,7 +36,7 @@ function buildGenericTitleParts(filters: CardFilters, upsOptions: NamedOption[],
 
 const MetricCards = () => {
   const { message } = useAppNotification();
-  const [cards, setCards] = useState<Record<string, unknown>[]>([]);
+  const [cards, setCards] = useState<MetricCard[]>([]);
   const [globalPeriod, setGlobalPeriod] = useState<[dayjs.Dayjs, dayjs.Dayjs] | null>(null);
   const isFirstMount = useRef(true);
 
@@ -85,7 +75,7 @@ const MetricCards = () => {
       if (parsed.length > 0) {
         (async () => {
           const rafraichies = await Promise.all(
-            parsed.map(async (c: any) => {
+            (parsed as MetricCard[]).map(async (c) => {
               try {
                 const { count, totalHeures } = await kpiMut.mutateAsync(c.filters);
                 return { ...c, count, totalHeures, title: buildTitle(c.filters) };
@@ -119,8 +109,8 @@ const MetricCards = () => {
   const handleFormSubmit = async (cardId: unknown, values: Record<string, unknown>) => {
     const filters: CardFilters = {
       domaine: values.domaine as string || null,
-      upId:    values.upId !== undefined ? values.upId : null,
-      deptId:  values.deptId !== undefined ? values.deptId : null,
+      upId:    values.upId != null ? String(values.upId) : null,
+      deptId:  values.deptId != null ? String(values.deptId) : null,
       ouverte: values.ouverte !== undefined ? values.ouverte as boolean : null,
       start:   values.dateRange ? (values.dateRange as dayjs.Dayjs[])[0].format("YYYY-MM-DD") : null,
       end:     values.dateRange ? (values.dateRange as dayjs.Dayjs[])[1].format("YYYY-MM-DD") : null,
@@ -136,11 +126,11 @@ const MetricCards = () => {
     }
   };
 
-  const handleGlobalPeriodChange = async (dates: any) => {
-    if (!dates) { setGlobalPeriod(null); return; }
+  const handleGlobalPeriodChange = async (dates: [dayjs.Dayjs | null, dayjs.Dayjs | null] | null) => {
+    if (!dates?.[0] || !dates?.[1]) { setGlobalPeriod(null); return; }
     const newStart = dates[0].format("YYYY-MM-DD");
     const newEnd   = dates[1].format("YYYY-MM-DD");
-    setGlobalPeriod(dates);
+    setGlobalPeriod([dates[0], dates[1]]);
     const updated = await Promise.all(
       cards.map(async (c) => {
         const newFilters = { ...(c.filters as CardFilters), start: newStart, end: newEnd };
@@ -194,8 +184,8 @@ const MetricCards = () => {
       <Row gutter={[16, 16]}>
         {cards.map((card) => (
           <MetricCardItem
-            key={card.id as any}
-            card={card as any}
+            key={String(card.id)}
+            card={card}
             upsOptions={upsOptions}
             deptsOptions={deptsOptions}
             onOpenSettings={openSettings}

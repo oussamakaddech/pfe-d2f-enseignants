@@ -1,8 +1,22 @@
 import { useEffect, useState } from "react";
 import jsPDF from "jspdf";
-import PropTypes from "prop-types";
 
-function CertificatePdfViewer({ certificate }: any) {
+interface CertificatePdfData {
+  idCertificate: number;
+  titreFormation?: string;
+  typeCertif?: string;
+  roleEnFormation?: string;
+  dateDebutFormation?: string;
+  dateFinFormation?: string;
+  nomEnseignant: string;
+  prenomEnseignant: string;
+}
+
+interface CertificatePdfViewerProps {
+  certificate?: CertificatePdfData;
+}
+
+function CertificatePdfViewer({ certificate }: CertificatePdfViewerProps) {
   const [pdfUrl, setPdfUrl] = useState("");
 
   useEffect(() => {
@@ -104,20 +118,10 @@ function CertificatePdfViewer({ certificate }: any) {
   );
 }
 
-CertificatePdfViewer.propTypes = {
-  certificate: PropTypes.shape({
-    idCertificate:     PropTypes.number.isRequired,
-    titreFormation:    PropTypes.string,
-    typeCertif:        PropTypes.string,
-    roleEnFormation:   PropTypes.string,
-    dateDebutFormation:PropTypes.string,
-    dateFinFormation:  PropTypes.string,
-    nomEnseignant:     PropTypes.string.isRequired,
-    prenomEnseignant:  PropTypes.string.isRequired,
-  }).isRequired,
-};
+
 
 export default CertificatePdfViewer;
+export type { CertificatePdfViewerProps, CertificatePdfData };
 
 
 

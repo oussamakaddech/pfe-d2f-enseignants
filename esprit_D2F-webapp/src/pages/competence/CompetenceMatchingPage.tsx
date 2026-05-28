@@ -32,14 +32,66 @@ import { useRiceSavoirs, useRiceEnseignants, useRiceSaveAssignments, useRiceCrea
 import AppPageHeader from "@/components/common/AppPageHeader";
 import "@/styles/pages/competence-matching-page.css";
 
-const { Title, Text } = Typography;
+const { Text } = Typography;
+
+// ─── Local types ──────────────────────────────────────────────────────────────
+interface RiceSavoirEntry extends Record<string, unknown> {
+  id?: string | number;
+  code?: string;
+  nom?: string;
+  niveau?: string;
+  domaine?: { code?: string; nom?: string } | string;
+  enseignants?: (string | number)[];
+  enseignantIds?: (string | number)[];
+}
+
+interface RiceEnseignantEntry extends Record<string, unknown> {
+  id?: string | number;
+  prenom?: string;
+  nom?: string;
+  departement?: string;
+  grade?: string;
+}
+
+interface PendingItem {
+  savoirId: string;
+  enseignantId: string;
+  niveau?: string;
+}
+
+interface MatchingFilters {
+  departement: string;
+  domaine: string;
+  search: string;
+  showUnassignedOnly: boolean;
+}
+
+interface MatchingState {
+  savoirs: RiceSavoirEntry[];
+  enseignants: RiceEnseignantEntry[];
+  assignments: Record<string, string[]>;
+  pendingChanges: { add: PendingItem[]; remove: PendingItem[] };
+  filters: MatchingFilters;
+  loading: { data: boolean; saving: boolean };
+  error: string | null;
+}
+
+type MatchingAction =
+  | { type: "LOAD_SUCCESS"; payload: { savoirs: RiceSavoirEntry[]; enseignants: RiceEnseignantEntry[]; assignments: Record<string, string[]> } }
+  | { type: "ASSIGN_SAVOIR"; payload: { savoirId: string; enseignantId: string } }
+  | { type: "UNASSIGN_SAVOIR"; payload: { savoirId: string; enseignantId: string } }
+  | { type: "SAVE_SUCCESS" }
+  | { type: "SET_FILTER"; payload: { key: keyof MatchingFilters; value: string | boolean } }
+  | { type: "SET_LOADING"; payload: { key: keyof MatchingState["loading"]; value: boolean } }
+  | { type: "SET_ERROR"; payload: { error: string } }
+  | { type: "RESET_PENDING" };
 
 // ─── Initial State ────────────────────────────────────────────────────────────
-const initialState: Record<string, any> = {
+const initialState: MatchingState = {
   savoirs: [],
   enseignants: [],
-  assignments: {} as Record<string, any>,
-  pendingChanges: { add: [] as any[], remove: [] as any[] },
+  assignments: {},
+  pendingChanges: { add: [], remove: [] },
   filters: {
     departement: "all",
     domaine: "all",
@@ -51,7 +103,7 @@ const initialState: Record<string, any> = {
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
-const getAvatarColor = (id: any) => {
+const getAvatarColor = (id: string | number) => {
   const colors = [
     "#fa8c16", "#faad14", "#52c41a", "#1890ff", "#722ed1",
     "#13c2c2", "#eb2f96", "#2f54eb", "#a0d911", "#f5222d",
@@ -64,14 +116,14 @@ const getAvatarColor = (id: any) => {
   return colors[Math.abs(hash) % colors.length];
 };
 
-const normalizePending = (pending: any) => {
-  const key = (item: any) => `${item.savoirId}|${item.enseignantId}`;
-  const adds = new Map();
-  const removes = new Map();
-  (pending?.add || []).forEach((item: any) => {
+const normalizePending = (pending: { add: PendingItem[]; remove: PendingItem[] }) => {
+  const key = (item: PendingItem) => `${item.savoirId}|${item.enseignantId}`;
+  const adds = new Map<string, PendingItem>();
+  const removes = new Map<string, PendingItem>();
+  (pending?.add || []).forEach((item) => {
     if (item?.savoirId && item?.enseignantId) adds.set(key(item), item);
   });
-  (pending?.remove || []).forEach((item: any) => {
+  (pending?.remove || []).forEach((item) => {
     if (item?.savoirId && item?.enseignantId) removes.set(key(item), item);
   });
   for (const k of adds.keys()) {
@@ -80,7 +132,7 @@ const normalizePending = (pending: any) => {
   return { add: Array.from(adds.values()), remove: Array.from(removes.values()) };
 };
 
-const normalizeNiveauForAssignment = (niveau: any) => {
+const normalizeNiveauForAssignment = (niveau: unknown): string => {
   const raw = String(niveau ?? "").trim().toUpperCase();
   if (!raw) return "N1_DEBUTANT";
 
@@ -98,7 +150,7 @@ const normalizeNiveauForAssignment = (niveau: any) => {
 };
 
 // ─── Reducer ──────────────────────────────────────────────────────────────────
-function reducer(state: any, action: any) {
+function reducer(state: MatchingState, action: MatchingAction): MatchingState {
   switch (action.type) {
     case "LOAD_SUCCESS": {
       const { savoirs, enseignants, assignments } = action.payload;
@@ -124,7 +176,7 @@ function reducer(state: any, action: any) {
       const sId = String(savoirId);
       const eId = String(enseignantId);
       const assignments = { ...state.assignments };
-      assignments[sId] = (assignments[sId] ?? []).filter((id: any) => String(id) !== eId);
+      assignments[sId] = (assignments[sId] ?? []).filter((id) => String(id) !== eId);
       const pending = { add: [...state.pendingChanges.add], remove: [...state.pendingChanges.remove] };
       const addIdx = pending.add.findIndex((p) => String(p.savoirId) === sId && String(p.enseignantId) === eId);
       if (addIdx !== -1) pending.add.splice(addIdx, 1);
@@ -163,26 +215,31 @@ export default function CompetenceMatchingPage() {
   const [ensSearch, setEnsSearch] = useState("");
   const [ensSort, setEnsSort] = useState("name");
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [editingEns, setEditingEns] = useState(null);
-  const [form] = Form.useForm();
+  const [editingEns, setEditingEns] = useState<RiceEnseignantEntry | null>(null);
+  const [form] = Form.useForm<RiceEnseignantEntry>();
   const stateRef = useRef(state);
   stateRef.current = state;
 
   // ── Teacher Map ──────────────────────────────────────────────────────────
   const teacherById = useMemo(() => {
-    const map = new Map();
-    (state.enseignants || []).forEach((ens: any) => map.set(String(ens.id), ens));
+    const map = new Map<string, RiceEnseignantEntry>();
+    (state.enseignants || []).forEach((ens) => map.set(String(ens.id), ens));
     return map;
   }, [state.enseignants]);
 
   // ── Domain Options ───────────────────────────────────────────────────────
   const domainOptions = useMemo(() => {
-    const map = new Map();
-    (state.savoirs || []).forEach((s: any) => {
-      const code = s.domaine?.code ?? s.domaine?.nom ?? s.domaine;
+    const map = new Map<string, string>();
+    (state.savoirs || []).forEach((s) => {
+      const domaine = s.domaine;
+      const code = typeof domaine === "object" && domaine !== null
+        ? (domaine.code ?? domaine.nom)
+        : (domaine as string | undefined);
       if (!code) return;
-      const label = s.domaine?.nom ?? s.domaine?.code ?? String(code);
-      map.set(String(code), label);
+      const label = typeof domaine === "object" && domaine !== null
+        ? (domaine.nom ?? domaine.code ?? String(code))
+        : String(code);
+      map.set(String(code), String(label));
     });
     return [
       { value: "all", label: "Tous les domaines" },
@@ -202,39 +259,39 @@ export default function CompetenceMatchingPage() {
 
   useEffect(() => {
     if (savoirsData.length > 0 || enseignantsData.length > 0) {
-      const assignments: Record<string, any> = {};
-      (savoirsData || []).forEach((s: any) => {
+      const assignments: Record<string, string[]> = {};
+      (savoirsData as RiceSavoirEntry[] || []).forEach((s) => {
         assignments[String(s.id)] = (s.enseignants ?? s.enseignantIds ?? []).map(String);
       });
-      dispatch({ type: "LOAD_SUCCESS", payload: { savoirs: savoirsData || [], enseignants: enseignantsData || [], assignments } });
+      dispatch({ type: "LOAD_SUCCESS", payload: { savoirs: savoirsData as RiceSavoirEntry[] || [], enseignants: enseignantsData as RiceEnseignantEntry[] || [], assignments } });
     }
   }, [savoirsData, enseignantsData]);
 
   // ── Drag Handlers ────────────────────────────────────────────────────────
   const handleDragEnd = useCallback(() => { setDraggingId(null); setDragOverEns(null); }, []);
 
-  const handleEnsDrop = useCallback((e: any, ensId: any) => {
+  const handleEnsDrop = useCallback((e: React.DragEvent, ensId: string) => {
     e.preventDefault();
     e.stopPropagation();
-    let payload: any = {};
-    try { payload = JSON.parse(e.dataTransfer.getData("text/plain") || "{}"); } catch { payload = {}; }
+    let payload: { savoirId?: string } = {};
+    try { payload = JSON.parse(e.dataTransfer.getData("text/plain") || "{}") as { savoirId?: string }; } catch { payload = {}; }
     const sId = String(payload.savoirId ?? "");
     if (!sId) { handleDragEnd(); return; }
     const alreadyAssigned = (stateRef.current.assignments[sId] ?? []).includes(ensId);
     if (alreadyAssigned) { message.warning("Déjà assigné à cet enseignant", 2); handleDragEnd(); return; }
     dispatch({ type: "ASSIGN_SAVOIR", payload: { savoirId: sId, enseignantId: ensId } });
-    const savoir = stateRef.current.savoirs.find((x: any) => String(x.id) === sId);
+    const savoir = stateRef.current.savoirs.find((x) => String(x.id) === sId);
     const teacher = teacherById.get(ensId);
     const teacherName = teacher ? `${teacher.prenom} ${teacher.nom}`.trim() : ensId;
     message.success(`${savoir?.code ?? sId} → ${teacherName}`, 2);
     handleDragEnd();
-  }, [teacherById, handleDragEnd]);
+  }, [teacherById, handleDragEnd, message]);
 
   // ── Unassign ─────────────────────────────────────────────────────────────
-  const handleUnassign = useCallback((savoirId: any, enseignantId: any) => {
+  const handleUnassign = useCallback((savoirId: string, enseignantId: string) => {
     dispatch({ type: "UNASSIGN_SAVOIR", payload: { savoirId: String(savoirId), enseignantId: String(enseignantId) } });
     message.info("Assignation retirée", 1.5);
-  }, []);
+  }, [message]);
 
   const makeUnassignHandler = (savoirId: string, enseignantId: string) =>
     () => handleUnassign(savoirId, enseignantId);
@@ -244,8 +301,8 @@ export default function CompetenceMatchingPage() {
     const payload = normalizePending(stateRef.current.pendingChanges);
     if (payload.add.length === 0 && payload.remove.length === 0) { message.info("Aucune modification"); return; }
 
-    const savoirById = new Map<string, any>(
-      (stateRef.current.savoirs || []).map((s: any) => [String(s.id), s]),
+    const savoirById = new Map<string, RiceSavoirEntry>(
+      (stateRef.current.savoirs || []).map((s) => [String(s.id), s]),
     );
 
     const payloadWithNiveaux = {
@@ -261,55 +318,59 @@ export default function CompetenceMatchingPage() {
 
     dispatch({ type: "SET_LOADING", payload: { key: "saving", value: true } });
     try {
-      await saveAssignments.mutateAsync(payloadWithNiveaux);
+      await saveAssignments.mutateAsync(payloadWithNiveaux as unknown as { add?: Record<string, unknown>[]; remove?: Record<string, unknown>[] });
       dispatch({ type: "SAVE_SUCCESS" });
       message.success(`${payload.add.length + payload.remove.length} modification(s) sauvegardée(s)`);
       await Promise.all([refetchSavoirs(), refetchEnseignants()]);
-    } catch (err: any) {
-      const msg = err?.response?.data?.message ?? err?.message ?? "Erreur inconnue";
+    } catch (err: unknown) {
+      const e = err as { response?: { data?: { message?: string } }; message?: string };
+      const msg = e?.response?.data?.message ?? e?.message ?? "Erreur inconnue";
       dispatch({ type: "SET_ERROR", payload: { error: msg } });
       message.error("Erreur: " + msg, 3);
     } finally {
       dispatch({ type: "SET_LOADING", payload: { key: "saving", value: false } });
     }
-  }, [reloadData]);
+  }, [saveAssignments, refetchSavoirs, refetchEnseignants, message]);
 
   const handleReset = useCallback(async () => {
     dispatch({ type: "RESET_PENDING" });
     await reloadData();
     message.info("Modifications annulées");
-  }, [reloadData]);
+  }, [reloadData, message]);
 
   // ── Teacher CRUD ─────────────────────────────────────────────────────────
-  const handleEditTeacher = useCallback((ens: any) => { setEditingEns(ens); form.setFieldsValue(ens); setShowCreateModal(true); }, [form]);
-  const handleDeleteTeacher = useCallback((ens: any) => {
+  const handleEditTeacher = useCallback((ens: RiceEnseignantEntry) => { setEditingEns(ens); form.setFieldsValue({ prenom: ens.prenom, nom: ens.nom, departement: ens.departement, grade: ens.grade }); setShowCreateModal(true); }, [form]);
+  const handleDeleteTeacher = useCallback((ens: RiceEnseignantEntry) => {
     modal.confirm({
       title: "Désactiver cet enseignant ?",
       content: `${ens.prenom} ${ens.nom} sera désactivé(e).`,
       okText: "Désactiver", okType: "danger",
       onOk: async () => {
-        try { await deactivateEnseignantHook.mutateAsync(ens.id); message.success("Enseignant désactivé"); await reloadData(); }
+        try { await deactivateEnseignantHook.mutateAsync(ens.id!); message.success("Enseignant désactivé"); await reloadData(); }
         catch { message.error("Erreur lors de la désactivation"); }
       },
     });
-  }, [reloadData]);
+  }, [reloadData, deactivateEnseignantHook, modal, message]);
 
-  const handleModalSubmit = useCallback(async (values: any) => {
+  const handleModalSubmit = useCallback(async (values: RiceEnseignantEntry) => {
     try {
-      if (editingEns) await updateEnseignantHook.mutateAsync({ id: (editingEns as any).id, data: values });
-      else await createEnseignantHook.mutateAsync(values);
+      if (editingEns) await updateEnseignantHook.mutateAsync({ id: editingEns.id!, data: values as Record<string, unknown> });
+      else await createEnseignantHook.mutateAsync(values as Record<string, unknown>);
       setShowCreateModal(false); form.resetFields(); await reloadData();
       message.success(editingEns ? "Enseignant mis à jour" : "Enseignant créé");
     } catch { message.error("Erreur lors de la sauvegarde"); }
-  }, [editingEns, reloadData, form]);
+  }, [editingEns, reloadData, form, updateEnseignantHook, createEnseignantHook, message]);
 
   // ── Derived Values ───────────────────────────────────────────────────────
   const filteredSavoirs = useMemo(() => {
     const q = (state.filters.search ?? "").toLowerCase();
-    return (state.savoirs || []).filter((s: any) => {
+    return (state.savoirs || []).filter((s) => {
       if (q && !`${s.nom} ${s.code}`.toLowerCase().includes(q)) return false;
       if (state.filters.domaine !== "all") {
-        const sd = s.domaine?.code ?? s.domaine?.nom ?? s.domaine ?? "";
+        const domaine = s.domaine;
+        const sd = typeof domaine === "object" && domaine !== null
+          ? (domaine.code ?? domaine.nom ?? "")
+          : (domaine ?? "");
         if (String(sd) !== String(state.filters.domaine)) return false;
       }
       if (state.filters.showUnassignedOnly && (state.assignments[String(s.id)] ?? []).length > 0) return false;
@@ -320,22 +381,22 @@ export default function CompetenceMatchingPage() {
   const pendingTotal = useMemo(() => state.pendingChanges.add.length + state.pendingChanges.remove.length, [state.pendingChanges]);
 
   const assignmentCountByEns = useMemo(() => {
-    const counts: Record<string, any> = {};
-    state.enseignants.forEach((e: any) => (counts[String(e.id)] = 0));
-    Object.values(state.assignments).forEach((ids: any) => ((ids ?? []) as any[]).forEach((id: any) => { if (counts[String(id)] !== undefined) counts[String(id)]++; }));
+    const counts: Record<string, number> = {};
+    state.enseignants.forEach((e) => (counts[String(e.id)] = 0));
+    Object.values(state.assignments).forEach((ids) => (ids ?? []).forEach((id) => { if (counts[String(id)] !== undefined) counts[String(id)]++; }));
     return counts;
   }, [state.enseignants, state.assignments]);
 
-  const maxLoad = useMemo(() => { const v = Object.values(assignmentCountByEns) as number[]; return v.length ? Math.max(1, ...v) : 1; }, [assignmentCountByEns]);
+  const maxLoad = useMemo(() => { const v = Object.values(assignmentCountByEns); return v.length ? Math.max(1, ...v) : 1; }, [assignmentCountByEns]);
 
   const assignedSavoirsByEns = useMemo(() => {
-    const map = new Map();
-    state.enseignants.forEach((e: any) => map.set(String(e.id), []));
-    (state.savoirs || []).forEach((s: any) => {
-      (state.assignments[String(s.id)] ?? []).forEach((ensId: any) => {
+    const map = new Map<string, RiceSavoirEntry[]>();
+    state.enseignants.forEach((e) => map.set(String(e.id), []));
+    (state.savoirs || []).forEach((s) => {
+      (state.assignments[String(s.id)] ?? []).forEach((ensId) => {
         const k = String(ensId);
         if (!map.has(k)) map.set(k, []);
-        map.get(k).push(s);
+        map.get(k)!.push(s);
       });
     });
     return map;
@@ -345,15 +406,13 @@ export default function CompetenceMatchingPage() {
     let list = [...state.enseignants];
     if (ensSearch.trim()) { const q = ensSearch.toLowerCase(); list = list.filter((e) => `${e.prenom} ${e.nom}`.toLowerCase().includes(q)); }
     if (ensSort === "name") list.sort((a, b) => `${a.nom} ${a.prenom}`.localeCompare(`${b.nom} ${b.prenom}`));
-    else if (ensSort === "load_desc") list.sort((a: any, b: any) => (assignmentCountByEns[String(b.id)] || 0) - (assignmentCountByEns[String(a.id)] || 0));
-    else list.sort((a: any, b: any) => (assignmentCountByEns[String(a.id)] || 0) - (assignmentCountByEns[String(b.id)] || 0));
+    else if (ensSort === "load_desc") list.sort((a, b) => (assignmentCountByEns[String(b.id)] || 0) - (assignmentCountByEns[String(a.id)] || 0));
+    else list.sort((a, b) => (assignmentCountByEns[String(a.id)] || 0) - (assignmentCountByEns[String(b.id)] || 0));
     return list;
   }, [state.enseignants, ensSearch, ensSort, assignmentCountByEns]);
 
   // ── Render ───────────────────────────────────────────────────────────────
   return (
-    // Page-level drag-end listener captures stray drag releases; keyboard users
-    // never trigger drag events. (S6848 — by-design DnD widget.)
     <div className={`competence-matching-page ${draggingId ? "is-dragging" : ""}`} onDragEnd={handleDragEnd}>
       {/* Header */}
       <AppPageHeader
@@ -362,24 +421,24 @@ export default function CompetenceMatchingPage() {
         subtitle="Assignez intelligemment les savoirs aux enseignants"
         actions={
           <Space size="middle">
-            <Select 
-              value={state.filters.departement} 
-              onChange={(v) => { dispatch({ type: "SET_FILTER", payload: { key: "departement", value: v } }); reloadData(); }} 
-              style={{ width: 180 }} 
-              options={[{ value: "all", label: "Tous les départements" }]} 
+            <Select
+              value={state.filters.departement}
+              onChange={(v) => { dispatch({ type: "SET_FILTER", payload: { key: "departement", value: v } }); reloadData(); }}
+              style={{ width: 180 }}
+              options={[{ value: "all", label: "Tous les départements" }]}
             />
-            <Select 
-              value={state.filters.domaine ?? "all"} 
-              onChange={(v) => dispatch({ type: "SET_FILTER", payload: { key: "domaine", value: v } })} 
-              style={{ width: 180 }} 
-              options={domainOptions} 
+            <Select
+              value={state.filters.domaine ?? "all"}
+              onChange={(v) => dispatch({ type: "SET_FILTER", payload: { key: "domaine", value: v } })}
+              style={{ width: 180 }}
+              options={domainOptions}
             />
-            <Input.Search 
-              placeholder="Rechercher..." 
-              value={state.filters.search} 
-              onChange={(e) => dispatch({ type: "SET_FILTER", payload: { key: "search", value: e.target.value } })} 
-              style={{ width: 220 }} 
-              allowClear 
+            <Input.Search
+              placeholder="Rechercher..."
+              value={state.filters.search}
+              onChange={(e) => dispatch({ type: "SET_FILTER", payload: { key: "search", value: e.target.value } })}
+              style={{ width: 220 }}
+              allowClear
             />
             <Button icon={<ReloadOutlined />} onClick={() => reloadData()} loading={state.loading.data} />
           </Space>
@@ -395,10 +454,10 @@ export default function CompetenceMatchingPage() {
               <BookOutlined style={{ color: "#1890ff" }} /> Savoirs Disponibles
             </div>
             <div className="panel-controls-section">
-              <Switch 
-                checked={state.filters.showUnassignedOnly} 
-                onChange={(v) => dispatch({ type: "SET_FILTER", payload: { key: "showUnassignedOnly", value: v } })} 
-                size="small" 
+              <Switch
+                checked={state.filters.showUnassignedOnly}
+                onChange={(v) => dispatch({ type: "SET_FILTER", payload: { key: "showUnassignedOnly", value: v } })}
+                size="small"
               />
               <Text style={{ fontSize: 12 }}>Non affectés</Text>
             </div>
@@ -407,22 +466,21 @@ export default function CompetenceMatchingPage() {
             {(() => {
               if (state.loading.data) return <Skeleton active paragraph={{ rows: 10 }} />;
               if (filteredSavoirs.length === 0) return <Empty description="Aucun savoir trouvé" />;
-              return filteredSavoirs.map((s: any) => {
+              return filteredSavoirs.map((s) => {
                 const sId = String(s.id);
-                const assigned = (state.assignments[sId] ?? []).map((id: any) => teacherById.get(id)).filter(Boolean);
+                const assigned = (state.assignments[sId] ?? []).map((id) => teacherById.get(id)).filter(Boolean) as RiceEnseignantEntry[];
                 return (
-                  /* Draggable assignment card; keyboard users use the per-card menu actions. (S6848 — by-design DnD.) */
                   <div key={sId} className={`savoir-assignment-card ${assigned.length > 0 ? "assigned" : "unassigned"} ${draggingId === sId ? "dragging" : ""}`}
                     draggable onDragStart={(e) => { e.dataTransfer.setData("text/plain", JSON.stringify({ savoirId: String(s.id), code: s.code, action: "assign" })); e.dataTransfer.effectAllowed = "copy"; setDraggingId(String(s.id)); }} onDragEnd={handleDragEnd}>
                     <div className="savoir-card-header">
                       <span className="savoir-drag-handle"><HolderOutlined /></span>
-                      <span className="savoir-code-label">{s.code}</span>
-                      <span className="savoir-name-inline">{s.nom}</span>
+                      <span className="savoir-code-label">{s.code as string}</span>
+                      <span className="savoir-name-inline">{s.nom as string}</span>
                     </div>
                     {assigned.length > 0 && (
                       <div className="savoir-assigned-teachers">
-                        {assigned.map((ens: any) => (
-                          <Tag key={ens.id} className="teacher-assignment-tag" closable onClose={makeUnassignHandler(String(s.id), String(ens.id))}>
+                        {assigned.map((ens) => (
+                          <Tag key={String(ens.id)} className="teacher-assignment-tag" closable onClose={makeUnassignHandler(String(s.id), String(ens.id))}>
                             {ens.prenom} {ens.nom}
                           </Tag>
                         ))}
@@ -455,10 +513,9 @@ export default function CompetenceMatchingPage() {
                 const count = assignmentCountByEns[ensId] ?? 0;
                 const loadPct = Math.round((count / Math.max(maxLoad, 1)) * 100);
                 const assigned = assignedSavoirsByEns.get(ensId) ?? [];
-                const initials = `${ens.prenom?.[0] ?? ""}${ens.nom?.[0] ?? ""}`.toUpperCase() || "?";
+                const initials = `${(ens.prenom as string)?.[0] ?? ""}${(ens.nom as string)?.[0] ?? ""}`.toUpperCase() || "?";
                 const avatarColor = getAvatarColor(ensId);
                 return (
-                  /* Drop target for the assignment; keyboard equivalent provided by the per-savoir menu. (S6848 — by-design DnD.) */
                   <div key={ensId} className={`enseignant-assignment-card ${draggingId ? "drag-mode-active" : ""} ${dragOverEns === ensId ? "drag-over-target" : ""}`}
                     onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "copy"; setDragOverEns(ensId); }}
                     onDragLeave={(e) => {
@@ -467,7 +524,7 @@ export default function CompetenceMatchingPage() {
                       setDragOverEns(null);
                     }}
                     onDrop={(e) => handleEnsDrop(e, ensId)}>
-                    
+
                     {dragOverEns === ensId && (
                       <div className="enseignant-drop-overlay">
                         <CheckCircleOutlined style={{ fontSize: 32, color: "#52c41a" }} />
@@ -478,8 +535,8 @@ export default function CompetenceMatchingPage() {
                     <div className="enseignant-card-header">
                       <div className="enseignant-avatar" style={{ backgroundColor: avatarColor }}>{initials}</div>
                       <div className="enseignant-info-section">
-                        <span className="enseignant-full-name">{ens.prenom} {ens.nom}</span>
-                        <span className="enseignant-details-text">{ens.departement || "Département N/A"}</span>
+                        <span className="enseignant-full-name">{ens.prenom as string} {ens.nom as string}</span>
+                        <span className="enseignant-details-text">{(ens.departement as string) || "Département N/A"}</span>
                       </div>
                       <div className="enseignant-action-buttons">
                         <Button type="text" size="small" icon={<EditOutlined />} onClick={() => handleEditTeacher(ens)} />
@@ -496,9 +553,9 @@ export default function CompetenceMatchingPage() {
 
                     {assigned.length > 0 && (
                       <div className="enseignant-assigned-savoirs" style={{ marginTop: 12 }}>
-                        {assigned.map((sv: any) => (
-                          <Tag key={sv.id} color="blue" closable onClose={makeUnassignHandler(String(sv.id), ensId)} style={{ marginBottom: 4 }}>
-                            {sv.code}
+                        {assigned.map((sv) => (
+                          <Tag key={String(sv.id)} color="blue" closable onClose={makeUnassignHandler(String(sv.id), ensId)} style={{ marginBottom: 4 }}>
+                            {sv.code as string}
                           </Tag>
                         ))}
                       </div>
@@ -521,8 +578,8 @@ export default function CompetenceMatchingPage() {
         </div>
         <div className="footer-right-section">
           <Space>
-             <Text type="secondary">{pendingTotal === 0 ? "Tout est à jour" : `${pendingTotal} modification(s) non sauvegardée(s)`}</Text>
-             {pendingTotal > 0 && <Button icon={<UndoOutlined />} onClick={handleReset} type="link">Annuler tout</Button>}
+            <Text type="secondary">{pendingTotal === 0 ? "Tout est à jour" : `${pendingTotal} modification(s) non sauvegardée(s)`}</Text>
+            {pendingTotal > 0 && <Button icon={<UndoOutlined />} onClick={handleReset} type="link">Annuler tout</Button>}
           </Space>
         </div>
       </footer>
@@ -547,9 +604,3 @@ export default function CompetenceMatchingPage() {
     </div>
   );
 }
-
-
-
-
-
-

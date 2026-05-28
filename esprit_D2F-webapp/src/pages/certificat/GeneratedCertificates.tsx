@@ -63,7 +63,7 @@ function GeneratedCertificates() {
           return (
           <List
             dataSource={pdfFiles}
-            renderItem={(pdfFile: any) => (
+            renderItem={(pdfFile: string) => (
               <List.Item
                 className="generated-certs-list-item"
                 actions={[

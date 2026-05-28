@@ -106,7 +106,7 @@ export default function FormationProgressCards() {
         <RangePicker
           value={range}
           format="YYYY-MM-DD"
-          onChange={dates => dates && setRange(dates as any)}
+          onChange={dates => dates && setRange([dates[0] as dayjs.Dayjs, dates[1] as dayjs.Dayjs])}
         />
         <Search
           placeholder="Recherche titre..."

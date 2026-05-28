@@ -11,7 +11,7 @@ import {
 } from "@ant-design/icons";
 import { Input, Select } from "antd";
 import { NIVEAU_LABELS, NIVEAU_OPTIONS } from "@/utils/constants/competenceOptions";
-import StructureSearchResultsView from "./components/StructureSearchResultsView";
+import StructureSearchResultsView, { type SearchResults } from "./components/StructureSearchResultsView";
 import TreeFilters from "./components/tree/TreeFilters";
 import { useStructureArbre } from "./hooks/useStructureArbre";
 import "@/styles/pages/structure-arbre-page.css";
@@ -114,9 +114,8 @@ export default function StructureArbrePage() {
   }), [buildCompetenceNode]);
 
   const treeData = useMemo(() => {
-    const domaines = (structure as Record<string, unknown> & { domaines?: Record<string, unknown>[] })?.domaines;
-    if (!domaines) return [];
-    return domaines.map(buildDomaineNode);
+    if (!structure) return [];
+    return structure.map((domaine) => buildDomaineNode(domaine as unknown as Record<string, unknown>));
   }, [structure, buildDomaineNode]);
 
   if (loading) {
@@ -127,36 +126,17 @@ export default function StructureArbrePage() {
     );
   }
 
-  const stats = (structure as Record<string, unknown> & { statistiques?: Record<string, number> })?.statistiques;
-  const domaines = (structure as Record<string, unknown> & { domaines?: Record<string, unknown>[] })?.domaines ?? [];
+  const domaines = structure ?? [];
 
   let searchContent;
   if (searchLoading) searchContent = <Spin />;
-  else if (searchResults) searchContent = <StructureSearchResultsView results={searchResults} keyword={searchKeyword} />;
+  else if (searchResults) searchContent = <StructureSearchResultsView results={searchResults as unknown as SearchResults} />;
   else searchContent = <Empty description="Saisissez un mot-clé (min. 2 caractères) pour lancer la recherche" />;
 
   return (
     <div style={{ padding: 24 }}>
       <Title level={3}><ApartmentOutlined /> Structure des Compétences</Title>
 
-      {stats && (
-        <Row gutter={16} style={{ marginBottom: 24 }}>
-          {([
-            { title: "Domaines", value: stats.totalDomaines, icon: <FolderOpenOutlined />, color: "#1890ff" },
-            { title: "Compétences", value: stats.totalCompetences, icon: <ApartmentOutlined />, color: "#52c41a" },
-            { title: "Sous-Compétences", value: stats.totalSousCompetences, icon: <BulbOutlined />, color: "#fa8c16" },
-            { title: "Savoirs", value: stats.totalSavoirs, icon: <BookOutlined />, color: "#722ed1" },
-            { title: "Théoriques", value: stats.totalSavoirsTheoriques, icon: <BookOutlined />, color: "#722ed1" },
-            { title: "Pratiques", value: stats.totalSavoirsPratiques, icon: <ExperimentOutlined />, color: "#13c2c2" },
-          ] as { title: string; value: number; icon: React.ReactNode; color: string }[]).map((s) => (
-            <Col span={4} key={s.title}>
-              <Card size="small">
-                <Statistic title={s.title} value={s.value} prefix={s.icon} valueStyle={{ color: s.color }} />
-              </Card>
-            </Col>
-          ))}
-        </Row>
-      )}
 
       <Tabs
         activeKey={activeTab}
@@ -202,7 +182,7 @@ export default function StructureArbrePage() {
             <Collapse
               defaultActiveKey={Object.keys(NIVEAU_LABELS)}
               items={Object.entries(NIVEAU_LABELS).map(([key, val]) => {
-                const niveauItems = (niveauData[key] as Record<string, unknown>[] | undefined) || [];
+                const niveauItems = niveauData.filter((nd) => nd.niveau === key) as unknown as Record<string, unknown>[];
                 return {
                   key,
                   label: (
