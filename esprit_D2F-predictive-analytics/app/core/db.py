@@ -2,6 +2,7 @@
 
 import logging
 import os
+import re
 from contextlib import contextmanager
 from typing import Generator
 
@@ -19,10 +20,23 @@ logger = logging.getLogger(__name__)
 # `relation "enseignants" does not exist` → DatabaseError → 503 côté gateway.
 # Note: les schémas sont quotés car `analyse` est un mot-clé Postgres (alias d'ANALYZE).
 _DEFAULT_SCHEMAS = ("analyse", "formation", "competence", "besoin", "evaluation", "certificat", "auth", "public")
-SEARCH_PATH = os.getenv(
-    "DB_SEARCH_PATH",
-    ",".join(f'"{s}"' for s in _DEFAULT_SCHEMAS),
-)
+# Regle de validation : seuls les identifiants Postgres simples (lettres + underscores) sont autorises.
+_ALLOWED_SCHEMA_RE = re.compile(r"^[a-zA-Z_][a-zA-Z0-9_]*$")
+
+_SEARCH_PATH_RAW = os.getenv("DB_SEARCH_PATH", ",".join(_DEFAULT_SCHEMAS))
+_search_path_parts = [
+    s.strip().strip('"')
+    for s in _SEARCH_PATH_RAW.split(",")
+    if s.strip()
+]
+if not _search_path_parts or not all(_ALLOWED_SCHEMA_RE.match(p) for p in _search_path_parts):
+    logger.warning(
+        "DB_SEARCH_PATH contient des schemas invalides ou est vide. "
+        "Utilisation des schemas par defaut : %s",
+        ",".join(_DEFAULT_SCHEMAS),
+    )
+    _search_path_parts = list(_DEFAULT_SCHEMAS)
+SEARCH_PATH = ", ".join(f'"{s}"' for s in _search_path_parts)
 
 # ── Engine ─────────────────────────────────────
 engine = create_engine(
