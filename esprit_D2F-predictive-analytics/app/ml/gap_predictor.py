@@ -40,6 +40,13 @@ class GapPredictor:
     def __init__(self):
         self.model: GradientBoostingRegressor | None = None
         self.feature_importances: dict[str, float] | None = None
+        self.last_metrics: dict[str, Any] | None = None
+        self._load_model()
+
+    def reload(self) -> None:
+        """Recharge le modèle depuis le disque (utilisé après un rollback)."""
+        self.model = None
+        self.feature_importances = None
         self._load_model()
 
     def _load_model(self) -> None:
@@ -81,6 +88,14 @@ class GapPredictor:
             }
             if self.feature_importances:
                 meta["feature_importances"] = self.feature_importances
+            if self.last_metrics:
+                # Persisté pour permettre la comparaison accuracy_before/after
+                # lors d'un ré-entraînement avec protection rollback (spec §5).
+                meta["metrics"] = {
+                    k: self.last_metrics[k]
+                    for k in ("test_r2", "test_rmse", "cv_rmse", "n_samples")
+                    if k in self.last_metrics
+                }
             with open(meta_path, "w", encoding="utf-8") as f:
                 json.dump(meta, f, indent=2, default=str)
         except Exception as e:
@@ -244,15 +259,17 @@ class GapPredictor:
             zip(FEATURE_COLS, self.model.feature_importances_.tolist())
         )
 
-        self._save_model()
-
-        return {
+        self.last_metrics = {
             "cv_rmse": round(cv_rmse, 3),
             "test_r2": round(test_score, 3),
             "test_rmse": round(test_rmse, 3),
             "n_samples": len(df_train),
             "feature_importances": self.feature_importances,
         }
+
+        self._save_model()
+
+        return dict(self.last_metrics)
 
     def predict(
         self,

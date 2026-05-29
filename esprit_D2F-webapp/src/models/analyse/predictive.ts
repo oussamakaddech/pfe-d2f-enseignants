@@ -53,6 +53,35 @@ export interface TeacherRiskIndicator {
   recommendation: string;
 }
 
+export interface GapHeatmapCell {
+  departement: string;
+  competence_id: number;
+  competence_nom: string;
+  avg_gap: number;
+  enseignants_count: number;
+}
+
+export interface TrainingEffectiveness {
+  formation_id: number;
+  formation_titre: string;
+  avg_level_gain: number;
+  completion_rate: number;
+  nb_recommandee: number;
+}
+
+export interface RiskEvolutionPoint {
+  month: string;
+  critical: number;
+  high: number;
+}
+
+export interface ModelPerformance {
+  gap_model_accuracy: number | null;
+  recommendation_avg_proba: number | null;
+  last_retrained: string | null;
+  last_retrain_status: string | null;
+}
+
 export interface DriftReport {
   drift_detected: boolean;
   message?: string;

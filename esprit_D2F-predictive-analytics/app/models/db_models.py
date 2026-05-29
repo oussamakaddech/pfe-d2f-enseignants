@@ -194,6 +194,24 @@ class AlertEvent(Base):
     updated_at             = Column(DateTime(timezone=True), default=_now, onupdate=_now)
 
 
+class ModelRetrainingLog(Base):
+    """Journal des ré-entraînements de modèle (spec §5 — rollback protection)."""
+
+    __tablename__ = "model_retraining_log"
+
+    id               = Column(BigInteger, primary_key=True, autoincrement=True)
+    model_name       = Column(String(100), nullable=False, default="gap_predictor")
+    model_version    = Column(String(40))
+    accuracy_before  = Column(Numeric(6, 4))
+    accuracy_after   = Column(Numeric(6, 4))
+    accuracy_metric  = Column(String(20), nullable=False, default="test_r2")
+    dataset_size     = Column(Integer, nullable=False, default=0)
+    statut           = Column(String(20), nullable=False, default="success")  # success|rollback|failed
+    raison           = Column(Text)
+    triggered_by     = Column(String(36))
+    retrained_at     = Column(DateTime(timezone=True), default=_now)
+
+
 class DashboardSnapshot(Base):
     __tablename__ = "dashboard_snapshots"
 

@@ -26,12 +26,15 @@ TraiteParParam = Annotated[Optional[str], Query()]
 CommentaireParam = Annotated[Optional[str], Query()]
 SeuilParam = Annotated[float, Query(ge=0.0, le=1.0)]
 
+from app.core.auth import require_roles
 from app.core.observability import dsi_error_body
 from app.engines.alert_engine import AlertEngine
+from app.engines.collaborative import CollaborativeFilter
 from app.engines.dashboard_engine import DashboardEngine
 from app.engines.feature_engine import FeatureEngine
 from app.engines.gap_engine import GapEngine
 from app.engines.recommendation_engine import RecommendationEngine
+from app.engines.risk_scoring import build_factors_from_gaps, compute_risk_score
 from app.models.db_models import (
     AlertEvent, PredictionResult, Recommendation,
     SkillGap, TeacherRiskProfile, TrainingPath, TrainingPathItem,
@@ -128,7 +131,13 @@ async def analyze_enseignant(
             total_enseignants=1,
         )
 
-        # ── 3. RecommendationEngine ───────────────────────────
+        # ── 3. RecommendationEngine (hybride content-based + collaboratif) ──
+        # Le filtre collaboratif s'appuie sur les profils de compétences et les
+        # inscriptions de TOUS les enseignants pour identifier les pairs proches.
+        collaborative = CollaborativeFilter(
+            svc.get_competency_levels(),
+            svc.get_inscriptions(),
+        )
         reco_eng = RecommendationEngine(db)
         all_evals = evaluations + eval_glob
         recommendations, paths = reco_eng.generate(
@@ -136,6 +145,7 @@ async def analyze_enseignant(
             inscriptions, all_evals, prereqs,
             float(snapshot.taux_completion_formations),
             float(snapshot.taux_presence_moyen),
+            collaborative=collaborative,
         )
 
         # ── 4. AlertEngine ────────────────────────────────────
@@ -192,28 +202,30 @@ async def analyze_enseignant(
 
 
 def _upsert_risk_profile(db: Session, enseignant_id: str, gaps: list, snapshot: Any):
-    """Calcule et persiste le profil de risque."""
+    """Calcule et persiste le profil de risque (score multi-facteurs configurable)."""
     nb_crit = sum(1 for g in gaps if g.niveau_urgence == "CRITIQUE")
     nb_mod  = sum(1 for g in gaps if g.niveau_urgence == "HAUTE")
     nb_fai  = sum(1 for g in gaps if g.niveau_urgence in ("MODEREE", "FAIBLE"))
     mois_stag_max = max((g.mois_stagnation for g in gaps), default=0)
     taux_comp     = float(snapshot.taux_completion_formations or 0.0)
 
-    score_risque = round(
-        (nb_crit / max(len(gaps), 1)) * 0.35
-        + (mois_stag_max / 24)         * 0.25
-        + (1 - taux_comp / 100)        * 0.25
-        + (1.0 if any(g.en_regression for g in gaps) else 0.0) * 0.15,
-        4,
+    # Score de risque pondéré (poids w1..w5 issus de la config, jamais codés en dur).
+    factors = build_factors_from_gaps(
+        gaps,
+        taux_completion=taux_comp,
+        nb_besoins_exprimes=int(getattr(snapshot, "nb_besoins_exprimes", 0) or 0),
+        nb_besoins_approuves=int(getattr(snapshot, "nb_besoins_approuves", 0) or 0),
     )
-    score_risque = min(1.0, score_risque)
-
-    if   score_risque >= 0.75: niveau = "CRITIQUE"
-    elif score_risque >= 0.50: niveau = "ELEVE"
-    elif score_risque >= 0.25: niveau = "MODERE"
-    else:                      niveau = "FAIBLE"
+    risk = compute_risk_score(factors)
+    score_risque = risk["score_risque"]
+    niveau       = risk["niveau_risque"]
 
     tendance = "REGRESSION" if any(g.en_regression for g in gaps) else "STABLE"
+    facteurs_risque = {
+        "factors":       {k: round(v, 4) for k, v in factors.items()},
+        "contributions": risk["contributions"],
+        "weights":       risk["weights"],
+    }
 
     existing = db.query(TeacherRiskProfile).filter_by(enseignant_id=enseignant_id).first()
     if existing:
@@ -226,6 +238,7 @@ def _upsert_risk_profile(db: Session, enseignant_id: str, gaps: list, snapshot: 
         existing.nb_mois_stagnation_max     = mois_stag_max
         existing.tendance                   = tendance
         existing.taux_completion_formations = taux_comp
+        existing.facteurs_risque            = facteurs_risque
     else:
         db.add(TeacherRiskProfile(
             enseignant_id              = enseignant_id,
@@ -237,6 +250,7 @@ def _upsert_risk_profile(db: Session, enseignant_id: str, gaps: list, snapshot: 
             nb_mois_stagnation_max     = mois_stag_max,
             tendance                   = tendance,
             taux_completion_formations = taux_comp,
+            facteurs_risque            = facteurs_risque,
         ))
     db.flush()
 
@@ -495,6 +509,33 @@ async def dashboard_teachers_at_risk(
     return DashboardEngine(db).enseignants_a_risque(seuil=seuil)
 
 
+# ── GET /api/v1/analytics/dashboard/gap-heatmap ──────────────
+@router.get("/dashboard/gap-heatmap", summary="Heatmap des gaps département × compétence")
+async def dashboard_gap_heatmap(db: DbSession) -> list[dict]:
+    return DashboardEngine(db).department_gap_heatmap()
+
+
+# ── GET /api/v1/analytics/dashboard/training-effectiveness ───
+@router.get("/dashboard/training-effectiveness", summary="Efficacité des formations")
+async def dashboard_training_effectiveness(db: DbSession) -> list[dict]:
+    return DashboardEngine(db).training_effectiveness()
+
+
+# ── GET /api/v1/analytics/dashboard/risk-evolution ───────────
+@router.get("/dashboard/risk-evolution", summary="Évolution mensuelle du risque")
+async def dashboard_risk_evolution(
+    db: DbSession,
+    months: Annotated[int, Query(ge=1, le=24)] = 6,
+) -> list[dict]:
+    return DashboardEngine(db).monthly_risk_evolution(months=months)
+
+
+# ── GET /api/v1/analytics/dashboard/model-performance ────────
+@router.get("/dashboard/model-performance", summary="Performance du modèle ML")
+async def dashboard_model_performance(db: DbSession) -> dict[str, Any]:
+    return DashboardEngine(db).model_performance()
+
+
 # ── POST /api/v1/analytics/trigger-batch-analysis ────────────
 @router.post(
     "/trigger-batch-analysis",
@@ -517,6 +558,61 @@ async def trigger_batch(
         "message":    f"Analyse batch lancée pour {len(all_ens)} enseignants",
         "nb_queued":  len(all_ens),
         "note":       "Le scheduler exécute l'analyse complète cette nuit à 02h00",
+    }
+
+
+# ── POST /api/v1/analytics/admin/retrain ─────────────────────
+AdminAuth = Annotated[dict, Depends(require_roles("ADMIN"))]
+
+
+@router.post(
+    "/admin/retrain",
+    summary="Ré-entraîner le modèle (ADMIN) — rollback auto si régression",
+)
+async def admin_retrain(auth: AdminAuth, db: DbSession) -> dict[str, Any]:
+    """Ré-entraîne le gap predictor avec protection rollback (spec §5).
+
+    Compare le R² test avant/après ; si la chute dépasse
+    RETRAIN_MAX_ACCURACY_DROP, le modèle précédent est restauré. Chaque
+    exécution est tracée dans `model_retraining_log`.
+    """
+    from app.services.model_trainer import retrain_with_rollback
+
+    return retrain_with_rollback(db, triggered_by=auth.get("user_id"))
+
+
+# ── GET /api/v1/analytics/admin/retraining-log ───────────────
+@router.get("/admin/retraining-log", summary="Historique des ré-entraînements (ADMIN)")
+async def retraining_log(
+    auth: AdminAuth,
+    db: DbSession,
+    page: PageParam = 0,
+    size: SizeParam = 20,
+) -> dict[str, Any]:
+    from app.models.db_models import ModelRetrainingLog
+
+    q = db.query(ModelRetrainingLog).order_by(ModelRetrainingLog.retrained_at.desc())
+    total = q.count()
+    items = q.offset(page * size).limit(size).all()
+    return {
+        "total": total,
+        "page":  page,
+        "size":  size,
+        "entries": [
+            {
+                "id":              e.id,
+                "model_name":      e.model_name,
+                "model_version":   e.model_version,
+                "accuracy_before": float(e.accuracy_before) if e.accuracy_before is not None else None,
+                "accuracy_after":  float(e.accuracy_after) if e.accuracy_after is not None else None,
+                "accuracy_metric": e.accuracy_metric,
+                "dataset_size":    e.dataset_size,
+                "statut":          e.statut,
+                "raison":          e.raison,
+                "retrained_at":    e.retrained_at.isoformat() if e.retrained_at else None,
+            }
+            for e in items
+        ],
     }
 
 
