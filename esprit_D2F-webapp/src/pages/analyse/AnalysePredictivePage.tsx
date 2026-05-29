@@ -11,7 +11,10 @@ import {
 import useAppNotification from "@/hooks/ui/useAppNotification";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAuth } from "@/hooks/auth/useAuth";
-import { useDashboardSummary, useTrainModel, useAnalyserEnseignant } from "@/hooks/analyse/useAnalysePredictive";
+import {
+  useDashboardSummary, useTrainModel, useAnalyserEnseignant,
+  useGapHeatmap, useRiskEvolution, useModelPerformance,
+} from "@/hooks/analyse/useAnalysePredictive";
 import type { AnalyseData, DecliningCompetency, InDemandCompetency, TeacherRiskIndicator } from "@/models/analyse";
 import DashboardKpis from "@/components/charts/DashboardKpis";
 import RiskTable from "@/components/charts/RiskTable";
@@ -20,6 +23,8 @@ import ProfileCard from "@/components/charts/ProfileCard";
 import PathTimeline from "@/components/charts/PathTimeline";
 import EnseignantSelect from "@/components/charts/EnseignantSelect";
 import ModelStatusBadge from "@/components/charts/ModelStatusBadge";
+import GapHeatmap from "@/components/charts/GapHeatmap";
+import TrendLineChart from "@/components/charts/TrendLineChart";
 import "@/styles/pages/analyse-predictive-page.css";
 import { AppPageHeader, brand } from "@/components/common";
 
@@ -39,6 +44,9 @@ export default function AnalysePredictivePage() {
   const { data: dashboardData, isLoading: dashLoading, refetch: refetchDashboard } = useDashboardSummary();
   const trainModelMutation = useTrainModel();
   const analyserEnseignantMutation = useAnalyserEnseignant();
+  const { data: gapHeatmap = [] } = useGapHeatmap();
+  const { data: riskEvolution = [] } = useRiskEvolution(6);
+  const { data: modelPerf } = useModelPerformance();
   const [riskThreshold, setRiskThreshold] = useState<number>(0.7);
   const [modelStatusKey, setModelStatusKey] = useState<number>(0);
 
@@ -194,6 +202,52 @@ export default function AnalysePredictivePage() {
                 ) : (
                   <Empty description="Aucune donnée de demande" />
                 )}
+              </Card>
+            </Col>
+          </Row>
+
+          <Card
+            title={<span><DashboardOutlined /> Heatmap des Gaps · Département × Compétence</span>}
+            className="analyse-card"
+            style={{ marginTop: 24 }}
+            extra={<Text type="secondary">Gap moyen (0–5) — plus c'est rouge, plus l'écart collectif est fort</Text>}
+          >
+            <GapHeatmap data={gapHeatmap} />
+          </Card>
+
+          <Row gutter={[20, 20]} style={{ marginTop: 24 }}>
+            <Col xs={24} lg={16}>
+              <Card title={<span><RiseOutlined /> Évolution Mensuelle du Risque</span>} className="analyse-card">
+                <TrendLineChart data={riskEvolution} />
+              </Card>
+            </Col>
+            <Col xs={24} lg={8}>
+              <Card title={<span><ExperimentOutlined /> Performance du Modèle</span>} className="analyse-card">
+                <Space direction="vertical" size="middle" style={{ width: "100%" }}>
+                  <div>
+                    <Text type="secondary">Précision (R²) du modèle de gaps</Text>
+                    <div><Title level={3} style={{ margin: 0 }}>
+                      {modelPerf?.gap_model_accuracy != null ? modelPerf.gap_model_accuracy.toFixed(2) : "—"}
+                    </Title></div>
+                  </div>
+                  <div>
+                    <Text type="secondary">Proba. de réussite moyenne (reco)</Text>
+                    <div><Text strong>
+                      {modelPerf?.recommendation_avg_proba != null
+                        ? `${(modelPerf.recommendation_avg_proba * 100).toFixed(0)}%` : "—"}
+                    </Text></div>
+                  </div>
+                  <div>
+                    <Text type="secondary">Dernier ré-entraînement</Text>
+                    <div>
+                      <Tag color={modelPerf?.last_retrain_status === "success" ? "green" : "default"}>
+                        {modelPerf?.last_retrained
+                          ? new Date(modelPerf.last_retrained).toLocaleString()
+                          : "Jamais"}
+                      </Tag>
+                    </div>
+                  </div>
+                </Space>
               </Card>
             </Col>
           </Row>

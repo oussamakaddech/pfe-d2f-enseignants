@@ -59,6 +59,27 @@ class Settings(BaseSettings):
     risk_absence_threshold_days: int = Field(default=365, alias="RISK_ABSENCE_THRESHOLD_DAYS")
     risk_engagement_percentile: float = Field(default=10.0, alias="RISK_ENGAGEMENT_PERCENTILE")
 
+    # ── Risk Scoring Weights (multi-factor, configurable — spec §3) ──────
+    # Pondérations w1..w5 du score de risque. Elles sont normalisées à
+    # l'exécution (somme ramenée à 1.0), donc seules les proportions comptent.
+    risk_weight_no_training: float = Field(default=0.30, alias="RISK_WEIGHT_NO_TRAINING")
+    risk_weight_stagnation: float = Field(default=0.25, alias="RISK_WEIGHT_STAGNATION")
+    risk_weight_gap_count: float = Field(default=0.20, alias="RISK_WEIGHT_GAP_COUNT")
+    risk_weight_feedback_decline: float = Field(default=0.10, alias="RISK_WEIGHT_FEEDBACK_DECLINE")
+    risk_weight_unmet_needs: float = Field(default=0.15, alias="RISK_WEIGHT_UNMET_NEEDS")
+    # Seuils de catégorisation du score (0-1) → FAIBLE / MODERE / ELEVE / CRITIQUE
+    risk_score_critique: float = Field(default=0.75, alias="RISK_SCORE_CRITIQUE")
+    risk_score_eleve: float = Field(default=0.50, alias="RISK_SCORE_ELEVE")
+    risk_score_modere: float = Field(default=0.25, alias="RISK_SCORE_MODERE")
+    # Fenêtre (mois) de saturation du facteur stagnation
+    risk_stagnation_window_months: int = Field(default=24, alias="RISK_STAGNATION_WINDOW_MONTHS")
+    # Nb de besoins non satisfaits saturant le facteur "unmet needs"
+    risk_unmet_needs_saturation: int = Field(default=3, alias="RISK_UNMET_NEEDS_SATURATION")
+
+    # ── Model Retraining (rollback protection — spec §5) ─────────────────
+    # Chute de R² (sur le jeu de test) tolérée avant de déclencher un rollback.
+    retrain_max_accuracy_drop: float = Field(default=0.05, alias="RETRAIN_MAX_ACCURACY_DROP")
+
     # ── Scheduler ────────────────────────────────
     scheduler_enabled: bool = Field(default=True, alias="SCHEDULER_ENABLED")
     batch_analysis_hour: int = Field(default=2, alias="BATCH_ANALYSIS_HOUR")

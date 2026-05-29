@@ -2,6 +2,8 @@ import { defaultApi as axios } from "@/utils/helpers/httpClient";
 import { config } from "@/config/env";
 
 const PREDICTIVE_API = `${config.ANALYSE_URL}/analyse/v1/analyse-predictive`;
+// Endpoints du pipeline analytics v1 (dashboard avancé + ré-entraînement).
+const ANALYTICS_V1 = `${PREDICTIVE_API}/v1/analytics`;
 
 import type { Gravite, AnalyseGap, AnalyseRecommandation, AnalyseData, DriftReport } from "@/models/analyse";
 export type { Gravite, AnalyseGap, AnalyseRecommandation, AnalyseData, DriftReport };
@@ -131,6 +133,35 @@ const AnalysePredictiveService = {
 
   async getTeacherRiskIndicators() {
     const res = await axios.get(`${PREDICTIVE_API}/dashboard/teacher-risk-indicators`);
+    return res.data;
+  },
+
+  // ── Dashboard prédictif avancé (analytics v1) ──────────────
+  async getGapHeatmap() {
+    const res = await axios.get(`${ANALYTICS_V1}/dashboard/gap-heatmap`);
+    return res.data;
+  },
+
+  async getTrainingEffectiveness() {
+    const res = await axios.get(`${ANALYTICS_V1}/dashboard/training-effectiveness`);
+    return res.data;
+  },
+
+  async getRiskEvolution(months = 6) {
+    const res = await axios.get(`${ANALYTICS_V1}/dashboard/risk-evolution`, {
+      params: { months },
+    });
+    return res.data;
+  },
+
+  async getModelPerformance() {
+    const res = await axios.get(`${ANALYTICS_V1}/dashboard/model-performance`);
+    return res.data;
+  },
+
+  // ── Ré-entraînement avec rollback (ADMIN) ──────────────────
+  async retrainModel() {
+    const res = await axios.post(`${ANALYTICS_V1}/admin/retrain`, {});
     return res.data;
   },
 

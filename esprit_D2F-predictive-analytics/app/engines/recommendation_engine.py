@@ -70,6 +70,7 @@ class RecommendationEngine:
         prerequisite_graph: list[dict],
         snapshot_taux_completion: float,
         snapshot_taux_presence: float,
+        collaborative: Any = None,
     ) -> tuple[list[Recommendation], list[TrainingPath]]:
 
         formations_completees = {
@@ -123,7 +124,7 @@ class RecommendationEngine:
             if not candidates:
                 continue
 
-            # Scorer
+            # Scorer (hybride : content-based + collaboratif si disponible)
             for f in candidates:
                 fid = int(f.get("formation_id") or f.get("id_formation", 0))
                 s_pert = _score_pertinence(f, gap.niveau_actuel, gap.niveau_requis)
@@ -132,9 +133,19 @@ class RecommendationEngine:
                 f["_score_pertinence"]  = s_pert
                 f["_score_reussite"]    = s_reus
                 f["_score_disponibilite"] = s_disp
-                f["_score_global"]      = round(
-                    s_pert * 0.40 + s_reus * 0.35 + s_disp * 0.25, 4
-                )
+                if collaborative is not None:
+                    s_peer = collaborative.peer_success_rate(enseignant_id, fid)
+                    f["_score_peer"]     = s_peer
+                    f["_peer_adoption"]  = collaborative.peer_adoption_count(enseignant_id, fid)
+                    # Pondération hybride : pertinence 0.40, pairs 0.25,
+                    # réussite historique 0.20, disponibilité 0.15.
+                    f["_score_global"]   = round(
+                        s_pert * 0.40 + s_peer * 0.25 + s_reus * 0.20 + s_disp * 0.15, 4
+                    )
+                else:
+                    f["_score_global"]   = round(
+                        s_pert * 0.40 + s_reus * 0.35 + s_disp * 0.25, 4
+                    )
 
             candidates.sort(key=lambda x: x["_score_global"], reverse=True)
 
@@ -206,6 +217,8 @@ class RecommendationEngine:
                         "pertinence":   item_data.get("score_pertinence", 0.0),
                         "reussite":     item_data.get("score_reussite", 0.0),
                         "disponibilite":item_data.get("score_disponibilite", 0.0),
+                        "pairs":        item_data.get("score_peer"),
+                        "nb_pairs_ayant_suivi": item_data.get("peer_adoption", 0),
                     },
                     training_path_id     = path.id,
                     statut               = "PROPOSEE",
@@ -292,6 +305,19 @@ class RecommendationEngine:
         score_g = float(f.get("_score_global", 0.5))
         proba   = round(min(0.95, 0.55 + score_g * 0.3 + score_reussite * 0.15), 4)
         duree   = int(f.get("charge_horaire_global") or f.get("duree_formation") or 20)
+        score_peer    = f.get("_score_peer")
+        peer_adoption = int(f.get("_peer_adoption", 0) or 0)
+
+        if est_prereq:
+            justification = "Formation prérequis"
+        elif peer_adoption > 0:
+            justification = (
+                f"Suivie par {peer_adoption} enseignant(s) au profil proche "
+                f"(score global {round(score_g, 2)})"
+            )
+        else:
+            justification = f"Score global {round(score_g, 2)}"
+
         return {
             "formation_id":       int(f.get("formation_id") or f.get("id_formation", 0)),
             "formation_titre":    f.get("titre_formation", "Formation"),
@@ -308,11 +334,10 @@ class RecommendationEngine:
             "score_pertinence":   float(f.get("_score_pertinence", 0.0)),
             "score_reussite":     score_reussite,
             "score_disponibilite": float(f.get("_score_disponibilite", 0.0)),
+            "score_peer":         float(score_peer) if score_peer is not None else None,
+            "peer_adoption":      peer_adoption,
             "est_prerequis":      est_prereq,
-            "justification":      (
-                f"Formation prérequis" if est_prereq
-                else f"Score global {round(score_g, 2)}"
-            ),
+            "justification":      justification,
         }
 
     def _proba_globale(self, items: list[dict], facteur_engagement: float) -> float:

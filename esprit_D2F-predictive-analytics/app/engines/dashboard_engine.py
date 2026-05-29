@@ -10,10 +10,10 @@ from sqlalchemy.orm import Session
 
 from app.core.db import db_session as _db_session, execute_query
 from app.models.db_models import (
-    AlertEvent, DashboardSnapshot, Recommendation,
-    SkillGap, TeacherRiskProfile,
+    AlertEvent, DashboardSnapshot, ModelRetrainingLog, Recommendation,
+    SkillGap, TeacherRiskProfile, TrainingPathItem,
 )
-from app.services.data_service import ALL_ENSEIGNANTS_QUERY
+from app.services.data_service import ALL_ENSEIGNANTS_QUERY, DataService
 
 logger = logging.getLogger(__name__)
 
@@ -44,33 +44,52 @@ class DashboardEngine:
             return {**snap.kpis_json, "_cached": True}
         return None
 
+    def _safe(self, name: str, fn, default: Any) -> Any:
+        """Exécute un calcul de KPI en isolant ses erreurs.
+
+        Un KPI défaillant (ex. table source absente) ne doit pas faire échouer
+        l'ensemble du tableau de bord : on journalise et on renvoie un défaut.
+        """
+        try:
+            return fn()
+        except Exception as exc:  # noqa: BLE001 — résilience volontaire par KPI
+            logger.warning("KPI '%s' indisponible : %s", name, exc)
+            return default
+
     def compute_all(self, formations: list[dict] | None = None) -> dict[str, Any]:
         kpis = {
-            "competences_en_declin":         self.competences_en_declin(),
-            "competences_en_demande":        self.competences_en_demande(),
-            "enseignants_a_risque":          self.enseignants_a_risque(),
-            "taux_couverture_departements":  self.taux_couverture_departements(),
-            "top_formations_recommandees":   self.top_formations_recommandees(),
-            "alertes_recentes":              self.alertes_recentes(),
+            "competences_en_declin":         self._safe("competences_en_declin", self.competences_en_declin, []),
+            "competences_en_demande":        self._safe("competences_en_demande", self.competences_en_demande, []),
+            "enseignants_a_risque":          self._safe("enseignants_a_risque", self.enseignants_a_risque, []),
+            "taux_couverture_departements":  self._safe("taux_couverture_departements", self.taux_couverture_departements, []),
+            "top_formations_recommandees":   self._safe("top_formations_recommandees", self.top_formations_recommandees, []),
+            "alertes_recentes":              self._safe("alertes_recentes", self.alertes_recentes, []),
+            "department_gap_heatmap":        self._safe("department_gap_heatmap", self.department_gap_heatmap, []),
+            "training_effectiveness":        self._safe("training_effectiveness", self.training_effectiveness, []),
+            "monthly_risk_evolution":        self._safe("monthly_risk_evolution", self.monthly_risk_evolution, []),
+            "model_performance":             self._safe("model_performance", self.model_performance, {}),
             "generated_at":                  date.today().isoformat(),
         }
-        snap = DashboardSnapshot(
-            scope         = "GLOBAL",
-            scope_id      = None,
-            snapshot_date = date.today(),
-            kpis_json     = kpis,
-        )
-        # Upsert
-        existing = (
-            self.db.query(DashboardSnapshot)
-            .filter_by(scope="GLOBAL", scope_id=None, snapshot_date=date.today())
-            .first()
-        )
-        if existing:
-            existing.kpis_json = kpis
-        else:
-            self.db.add(snap)
-        self.db.flush()
+        # Persistance du snapshot en cache — best-effort : ne doit jamais faire
+        # échouer le calcul du tableau de bord renvoyé à l'appelant.
+        try:
+            existing = (
+                self.db.query(DashboardSnapshot)
+                .filter_by(scope="GLOBAL", scope_id=None, snapshot_date=date.today())
+                .first()
+            )
+            if existing:
+                existing.kpis_json = kpis
+            else:
+                self.db.add(DashboardSnapshot(
+                    scope         = "GLOBAL",
+                    scope_id      = None,
+                    snapshot_date = date.today(),
+                    kpis_json     = kpis,
+                ))
+            self.db.flush()
+        except Exception as exc:  # noqa: BLE001 — cache best-effort
+            logger.warning("Persistance du snapshot dashboard échouée : %s", exc)
         return kpis
 
     # ── KPI 1 : Compétences en déclin ────────────────────────
@@ -286,3 +305,162 @@ class DashboardEngine:
             }
             for r in rows
         ]
+
+    # ── Helper : mapping enseignant → département ─────────────
+    def _ens_dept_map(self) -> dict[str, str]:
+        ens_dept_map: dict[str, str] = {}
+        try:
+            with _db_session() as s:
+                all_ens = execute_query(s, ALL_ENSEIGNANTS_QUERY, {})
+            for e in all_ens:
+                ens_dept_map[str(e.get("enseignant_id", ""))] = str(
+                    e.get("departement_id") or "non_affecte"
+                )
+        except Exception as exc:
+            logger.warning("Failed to load enseignant→dept map: %s", exc)
+        return ens_dept_map
+
+    # ── KPI 7 : Heatmap des gaps département × compétence ────
+    def department_gap_heatmap(self) -> list[dict]:
+        """Gap moyen par couple (département, compétence) — détecte les angles morts collectifs."""
+        rows = (
+            self.db.query(
+                SkillGap.enseignant_id,
+                SkillGap.competence_id,
+                SkillGap.competence_nom,
+                SkillGap.gap_score,
+            )
+            .filter(SkillGap.computed_at >= date.today() - timedelta(days=30))
+            .all()
+        )
+        ens_dept_map = self._ens_dept_map()
+
+        agg: dict[tuple[str, int], dict[str, Any]] = {}
+        for r in rows:
+            dept = ens_dept_map.get(str(r.enseignant_id), "non_affecte")
+            key = (dept, r.competence_id)
+            bucket = agg.setdefault(key, {
+                "departement":    dept,
+                "competence_id":  r.competence_id,
+                "competence_nom": r.competence_nom,
+                "_sum":           0.0,
+                "_n":             0,
+            })
+            bucket["_sum"] += float(r.gap_score or 0.0)
+            bucket["_n"]   += 1
+
+        result = []
+        for cell in agg.values():
+            n = max(cell.pop("_n"), 1)
+            avg_gap = cell.pop("_sum") / n
+            result.append({
+                **cell,
+                "avg_gap":           round(avg_gap, 3),
+                "enseignants_count": n,
+            })
+        result.sort(key=lambda x: x["avg_gap"], reverse=True)
+        return result
+
+    # ── KPI 8 : Efficacité des formations ────────────────────
+    def training_effectiveness(self) -> list[dict]:
+        """Efficacité par formation : gain de niveau planifié × taux de complétion réel."""
+        # Gain de niveau planifié (analytics) par formation.
+        gain_rows = (
+            self.db.query(
+                TrainingPathItem.formation_id,
+                TrainingPathItem.formation_titre,
+                func.avg(TrainingPathItem.niveau_apres - TrainingPathItem.niveau_avant).label("avg_gain"),
+                func.count(TrainingPathItem.id).label("nb_items"),
+            )
+            .group_by(TrainingPathItem.formation_id, TrainingPathItem.formation_titre)
+            .all()
+        )
+        gain_index = {
+            int(g.formation_id): {
+                "formation_titre": g.formation_titre,
+                "avg_level_gain":  round(float(g.avg_gain or 0.0), 2),
+                "nb_recommandee":  int(g.nb_items or 0),
+            }
+            for g in gain_rows
+        }
+
+        # Taux de complétion réel (base partagée).
+        completion_index: dict[int, float] = {}
+        try:
+            with _db_session() as s:
+                for c in DataService(s).get_formation_completion():
+                    fid = int(c["formation_id"])
+                    nb = int(c.get("nb_inscriptions") or 0)
+                    completion_index[fid] = round(
+                        int(c.get("nb_completed") or 0) / nb, 3
+                    ) if nb else 0.0
+        except Exception as exc:
+            logger.warning("Failed to load formation completion: %s", exc)
+
+        formation_ids = set(gain_index) | set(completion_index)
+        result = []
+        for fid in formation_ids:
+            g = gain_index.get(fid, {})
+            result.append({
+                "formation_id":    fid,
+                "formation_titre": g.get("formation_titre", f"Formation {fid}"),
+                "avg_level_gain":  g.get("avg_level_gain", 0.0),
+                "completion_rate": completion_index.get(fid, 0.0),
+                "nb_recommandee":  g.get("nb_recommandee", 0),
+            })
+        result.sort(key=lambda x: (x["avg_level_gain"], x["completion_rate"]), reverse=True)
+        return result[:20]
+
+    # ── KPI 9 : Évolution mensuelle du risque ────────────────
+    def monthly_risk_evolution(self, months: int = 6) -> list[dict]:
+        """Nombre d'alertes critiques / élevées par mois (série temporelle)."""
+        cutoff = date.today() - timedelta(days=months * 31)
+        month_expr = func.to_char(AlertEvent.created_at, "YYYY-MM")
+        rows = (
+            self.db.query(
+                month_expr.label("mois"),
+                func.sum(func.cast(AlertEvent.severite == "CRITICAL", Integer)).label("critical"),
+                func.sum(func.cast(AlertEvent.severite == "WARNING", Integer)).label("high"),
+            )
+            .filter(AlertEvent.created_at >= cutoff)
+            .group_by(month_expr)
+            .order_by(month_expr)
+            .all()
+        )
+        return [
+            {
+                "month":    r.mois,
+                "critical": int(r.critical or 0),
+                "high":     int(r.high or 0),
+            }
+            for r in rows
+        ]
+
+    # ── KPI 10 : Performance du modèle ───────────────────────
+    def model_performance(self) -> dict[str, Any]:
+        """Accuracy du modèle de gap + dernier ré-entraînement (spec §4)."""
+        from app.services.model_trainer import read_current_accuracy
+
+        gap_accuracy = read_current_accuracy()
+
+        # Indice de pertinence des recommandations : proba de réussite moyenne
+        # des recommandations récentes (proxy faute de vérité terrain).
+        reco_proba = (
+            self.db.query(func.avg(Recommendation.probabilite_reussite))
+            .filter(Recommendation.created_at >= date.today() - timedelta(days=30))
+            .scalar()
+        )
+
+        last_log = (
+            self.db.query(ModelRetrainingLog)
+            .filter(ModelRetrainingLog.statut == "success")
+            .order_by(ModelRetrainingLog.retrained_at.desc())
+            .first()
+        )
+
+        return {
+            "gap_model_accuracy":       round(float(gap_accuracy), 3) if gap_accuracy is not None else None,
+            "recommendation_avg_proba": round(float(reco_proba), 3) if reco_proba is not None else None,
+            "last_retrained":           last_log.retrained_at.isoformat() if last_log and last_log.retrained_at else None,
+            "last_retrain_status":      last_log.statut if last_log else None,
+        }

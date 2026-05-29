@@ -1,6 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import AnalysePredictiveService from "@/services/analyse/AnalysePredictiveService";
-import type { AnalyseData, DecliningCompetency, InDemandCompetency, TeacherRiskIndicator, DriftReport } from "@/models/analyse";
+import type {
+  AnalyseData, DecliningCompetency, InDemandCompetency, TeacherRiskIndicator, DriftReport,
+  GapHeatmapCell, RiskEvolutionPoint, TrainingEffectiveness, ModelPerformance,
+} from "@/models/analyse";
 
 export function useDashboardSummary() {
   return useQuery<{
@@ -86,5 +89,41 @@ export function useTeacherRiskIndicators() {
   return useQuery<TeacherRiskIndicator[]>({
     queryKey: ["analyse", "risk-indicators"],
     queryFn: () => AnalysePredictiveService.getTeacherRiskIndicators(),
+  });
+}
+
+export function useGapHeatmap() {
+  return useQuery<GapHeatmapCell[]>({
+    queryKey: ["analyse", "gap-heatmap"],
+    queryFn: () => AnalysePredictiveService.getGapHeatmap(),
+  });
+}
+
+export function useTrainingEffectiveness() {
+  return useQuery<TrainingEffectiveness[]>({
+    queryKey: ["analyse", "training-effectiveness"],
+    queryFn: () => AnalysePredictiveService.getTrainingEffectiveness(),
+  });
+}
+
+export function useRiskEvolution(months = 6) {
+  return useQuery<RiskEvolutionPoint[]>({
+    queryKey: ["analyse", "risk-evolution", months],
+    queryFn: () => AnalysePredictiveService.getRiskEvolution(months),
+  });
+}
+
+export function useModelPerformance() {
+  return useQuery<ModelPerformance>({
+    queryKey: ["analyse", "model-performance"],
+    queryFn: () => AnalysePredictiveService.getModelPerformance(),
+  });
+}
+
+export function useRetrainModel() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => AnalysePredictiveService.retrainModel(),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["analyse"] }),
   });
 }

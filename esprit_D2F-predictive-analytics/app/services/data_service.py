@@ -324,6 +324,18 @@ SELECT e.id AS enseignant_id, e.nom, e.prenom, e.mail AS email, e.dept_id AS dep
 FROM enseignants e
 """
 
+# Taux de complétion réel par formation (inscriptions APPROVED / total).
+FORMATION_COMPLETION_QUERY = """
+SELECT i.formation_id,
+       f.titre_formation,
+       COUNT(*)                                       AS nb_inscriptions,
+       COUNT(*) FILTER (WHERE i.etat = 'APPROVED')    AS nb_completed
+FROM inscriptions i
+JOIN formations f ON f.id_formation = i.formation_id
+GROUP BY i.formation_id, f.titre_formation
+HAVING COUNT(*) > 0
+"""
+
 
 class DataService:
     """Service d'accès aux données en lecture sur la base D2F partagée."""
@@ -408,3 +420,7 @@ class DataService:
 
     def get_all_enseignants(self) -> list[dict[str, Any]]:
         return execute_query(self.db, ALL_ENSEIGNANTS_QUERY)
+
+    def get_formation_completion(self) -> list[dict[str, Any]]:
+        """Taux de complétion réel par formation (pour l'efficacité formation)."""
+        return execute_query(self.db, FORMATION_COMPLETION_QUERY)
