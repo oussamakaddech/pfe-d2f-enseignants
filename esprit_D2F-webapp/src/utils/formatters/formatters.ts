@@ -228,7 +228,7 @@ export const formatFileSize = (bytes: number | null | undefined): string => {
 /**
  * Formate un objet JSON de manière lisible
  */
-export const formatJSON = (obj: any): string => {
+export const formatJSON = (obj: unknown): string => {
   if (obj === null || obj === undefined) return "";
   try {
     return JSON.stringify(obj, null, 2);

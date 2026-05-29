@@ -20,6 +20,7 @@ dist-ssr
 # Auth/session artifacts — never commit tokens or cookies
 cookies.txt
 *.cookies
+*.jwt
 
 # Editor directories and files
 .vscode/*
