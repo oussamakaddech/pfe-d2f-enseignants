@@ -1,11 +1,13 @@
 package esprit.pfe.serviceformation.controllers;
 
+import esprit.d2f.common.security.AuthorizationMatrix;
 import esprit.pfe.serviceformation.dto.FormationDTO;
 import esprit.pfe.serviceformation.services.CalendarExportService;
 import esprit.pfe.serviceformation.services.FormationWorkflowService;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import lombok.RequiredArgsConstructor;
 
@@ -17,6 +19,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/v1/exports")
 @RequiredArgsConstructor
+@PreAuthorize(AuthorizationMatrix.FORMATION_READ)
 public class FormationExportController {
     private final CalendarExportService calendarExportService;
     private final FormationWorkflowService formationWorkflowService;

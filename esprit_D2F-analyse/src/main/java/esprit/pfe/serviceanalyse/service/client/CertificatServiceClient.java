@@ -48,7 +48,7 @@ public class CertificatServiceClient {
 
     private final RestTemplate restTemplate;
 
-    @Value("${services.certificat.url:http://localhost:8086}")
+    @Value("${services.certificat.url}")
     private String certificatServiceUrl;
 
     public CertificatServiceClient(RestTemplate restTemplate) {

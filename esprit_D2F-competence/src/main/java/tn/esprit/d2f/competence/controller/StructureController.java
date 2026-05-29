@@ -1,9 +1,11 @@
 package tn.esprit.d2f.competence.controller;
 
+import esprit.d2f.common.security.AuthorizationMatrix;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import tn.esprit.d2f.competence.dto.SearchResultDTO;
 import tn.esprit.d2f.competence.dto.StructureArbreDTO;
@@ -13,6 +15,7 @@ import tn.esprit.d2f.competence.service.IStructureService;
 @RestController
 @RequestMapping("/api/v1/structure")
 @RequiredArgsConstructor
+@PreAuthorize(AuthorizationMatrix.REFERENTIEL_READ)
 public class StructureController {
 
     private final IStructureService structureService;

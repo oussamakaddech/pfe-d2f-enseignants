@@ -1,8 +1,10 @@
 package esprit.pfe.serviceevaluation.controllers;
 
+import esprit.d2f.common.security.AuthorizationMatrix;
 import org.springframework.amqp.core.Message;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
@@ -10,6 +12,7 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/admin/dlq")
+@PreAuthorize(AuthorizationMatrix.DASHBOARD_ADMIN_FULL)
 public class AdminController {
 
     private final RabbitTemplate rabbitTemplate;

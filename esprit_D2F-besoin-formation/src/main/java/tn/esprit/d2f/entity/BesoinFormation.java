@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 import lombok.*;
 import lombok.experimental.FieldDefaults;
+import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.SQLRestriction;
 import tn.esprit.d2f.entity.enumerations.PeriodCode;
 import tn.esprit.d2f.entity.enumerations.Priorite;
@@ -22,6 +23,7 @@ import java.time.Instant;
  * hérités de {@link BaseAuditEntity} (déjà implémentés).</p>
  */
 @Entity
+@SQLDelete(sql = "UPDATE besoin_formation SET deleted_at = CURRENT_TIMESTAMP WHERE id_besoin_formation = ?")
 @SQLRestriction("deleted_at IS NULL")   // Fix 5: Soft Delete — filtre global automatique
 @Getter
 @Setter

@@ -1,16 +1,16 @@
 package esprit.pfe.auth.websocketconfig;
 
+import java.util.Map;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.SendTo;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
-import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@Controller
 public class NotificationController {
 
     private final SimpMessagingTemplate messagingTemplate;
@@ -22,11 +22,12 @@ public class NotificationController {
     @MessageMapping("/notify")
     @SendTo("/topic/notifications")
     public String sendNotification(String message) {
-        // Simply return the message to be broadcast to all clients
         return message;
     }
+
     @PostMapping("/user/test-websocket")
-    public ResponseEntity<String> sendTestMessage(@RequestBody String message) {
+    public ResponseEntity<String> sendTestMessage(@RequestBody Map<String, String> payload) {
+        String message = payload.getOrDefault("message", "test");
         messagingTemplate.convertAndSend("/topic/notifications", message);
         return ResponseEntity.ok("Message sent to WebSocket!");
     }

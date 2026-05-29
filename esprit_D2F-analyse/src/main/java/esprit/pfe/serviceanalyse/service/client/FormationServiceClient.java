@@ -42,7 +42,7 @@ public class FormationServiceClient {
 
     private final RestTemplate restTemplate;
 
-    @Value("${services.formation.url:http://localhost:8088}")
+    @Value("${services.formation.url}")
     private String formationServiceUrl;
 
     public FormationServiceClient(RestTemplate restTemplate) {

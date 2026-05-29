@@ -1,55 +1,62 @@
-# Base image (Debian-slim preferred for ML libs compatibility)
+# ── Stage 1: Builder (install dependencies) ───────────────────────────────────
+FROM python:3.13-slim AS builder
+
+WORKDIR /build
+
+# System deps for compiling C extensions (psycopg2, numpy, etc.)
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends \
+      gcc \
+      g++ \
+      libpq-dev \
+ && rm -rf /var/lib/apt/lists/*
+
+RUN python -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir --upgrade pip \
+ && pip install --no-cache-dir -r requirements.txt
+
+# ── Stage 2: Runtime (minimal image) ─────────────────────────────────────────
 FROM python:3.13-slim
 
-# Authors
 LABEL Author="seddik bouzayani <seddik.bouzayani@esprit.tn>"
 LABEL maintainer="seddik bouzayani <seddik.bouzayani@esprit.tn>"
 
-# Python and pip behavior
 ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1 \
-    PIP_NO_CACHE_DIR=1 \
-    PIP_DISABLE_PIP_VERSION_CHECK=1 \
-    PIP_DEFAULT_TIMEOUT=600 \
-    PIP_RETRIES=10
+    PYTHONUNBUFFERED=1
 
-# System dependencies
+# Runtime-only system deps
 RUN apt-get update \
  && apt-get install -y --no-install-recommends \
       ca-certificates \
       curl \
       libpq5 \
-      build-essential \
-      git \
  && rm -rf /var/lib/apt/lists/*
+
+# Copy pre-built venv from builder
+COPY --from=builder /opt/venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
 
 # Create non-root user
 RUN groupadd -g 2003 esprit && \
     useradd  -m -u 2003 -g 2003 -s /usr/sbin/nologin esprit
 
-# Workdir
 WORKDIR /app
 
-# Copy and install Python dependencies first (better layer caching)
-COPY requirements.txt ./
-RUN pip install --upgrade pip \
- && pip install --no-cache-dir -r requirements.txt
-
-# Copy application code
-COPY --chown=esprit:esprit . .
-
-# Optional: pass an env file at build time and place it at /app/.env
-ARG ENV_FILE
-RUN if [ -n "$ENV_FILE" ] && [ -f "$ENV_FILE" ]; then cp "$ENV_FILE" /app/.env; fi
-ENV ENV_FILE=/app/.env
+# Selective COPY — application code only (no tests, no cache, no temp files)
+COPY --chown=esprit:esprit main.py .
+COPY --chown=esprit:esprit rice_analyzer.py .
+COPY --chown=esprit:esprit extract_referentiel.py .
+COPY --chown=esprit:esprit refs/ ./refs/
 
 # Switch to non-root user
 USER esprit
 
-# Expose API port
 EXPOSE 8001
 
-HEALTHCHECK CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8001/health')" || exit 1
+HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
+  CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8001/health')" || exit 1
 
-# Default start command
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8001"]

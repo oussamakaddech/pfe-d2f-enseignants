@@ -137,11 +137,15 @@ public class FormationWorkflowController {
 
     @GetMapping
     @PreAuthorize(AuthorizationMatrix.FORMATION_READ)
-    @Operation(summary = "Lister toutes les formations (legacy - utiliser /api/v1/formations)")
-    public ResponseEntity<Object> getAllFormations() {
+    @Operation(summary = "Lister toutes les formations (paginé)")
+    public ResponseEntity<Object> getAllFormations(
+            @PageableDefault(size = 20, sort = "idFormation") Pageable pageable) {
         try {
-            List<FormationDTO> dtos = formationWorkflowService.getAllFormationWorkflows();
-            return ResponseEntity.ok(dtos);
+            List<FormationDTO> all = formationWorkflowService.getAllFormationWorkflows();
+            int from = (int) pageable.getOffset();
+            int to = Math.min(from + pageable.getPageSize(), all.size());
+            Page<FormationDTO> page = new PageImpl<>(from >= all.size() ? List.of() : all.subList(from, to), pageable, all.size());
+            return ResponseEntity.ok(page);
         } catch (Exception e) {
             log.error("Erreur interne lors de la recuperation de toutes les formations : ", e);
             String errorMsg = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
@@ -245,10 +249,14 @@ public class FormationWorkflowController {
 
     @GetMapping("/achevees")
     @PreAuthorize(AuthorizationMatrix.FORMATION_READ)
-    public ResponseEntity<Object> getFormationsAchevees() {
+    public ResponseEntity<Object> getFormationsAchevees(
+            @PageableDefault(size = 20, sort = "idFormation") Pageable pageable) {
         try {
-            List<FormationDTO> achevees = formationWorkflowService.getFormationsAchevees();
-            return ResponseEntity.ok(achevees);
+            List<FormationDTO> all = formationWorkflowService.getFormationsAchevees();
+            int from = (int) pageable.getOffset();
+            int to = Math.min(from + pageable.getPageSize(), all.size());
+            Page<FormationDTO> page = new PageImpl<>(from >= all.size() ? List.of() : all.subList(from, to), pageable, all.size());
+            return ResponseEntity.ok(page);
         } catch (Exception e) {
             log.error("Erreur lors de la recuperation des formations achevees : ", e);
             String errorMsg = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();

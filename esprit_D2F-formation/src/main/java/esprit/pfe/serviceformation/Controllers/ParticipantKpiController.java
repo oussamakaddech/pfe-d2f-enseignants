@@ -2,10 +2,12 @@ package esprit.pfe.serviceformation.controllers;
 
 
 
+import esprit.d2f.common.security.AuthorizationMatrix;
 import esprit.pfe.serviceformation.dto.ParticipantKpiDTO;
 import esprit.pfe.serviceformation.services.ParticipantKpiService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -21,6 +23,7 @@ import java.util.Date;
 @RestController
 @RequestMapping("/api/v1/kpi/participants")
 @RequiredArgsConstructor
+@PreAuthorize(AuthorizationMatrix.DASHBOARD_ADMIN_LIMITED)
 public class ParticipantKpiController {
 
     private final ParticipantKpiService participantKpiService;

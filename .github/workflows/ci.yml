@@ -112,7 +112,7 @@ jobs:
         working-directory: ${{ matrix.service }}
         run: |
           if [ -d tests ]; then
-            pytest tests/ -v --cov=. --cov-report=xml --cov-report=term
+            pytest tests/ -v --cov=. --cov-report=xml --cov-report=term --cov-fail-under=70
           else
             echo "No tests directory - skipping"
           fi
@@ -149,6 +149,10 @@ jobs:
       - name: Lint
         working-directory: esprit_D2F-webapp
         run: npm run lint
+
+      - name: Format check
+        working-directory: esprit_D2F-webapp
+        run: npm run format:check
 
       - name: Type check
         working-directory: esprit_D2F-webapp
