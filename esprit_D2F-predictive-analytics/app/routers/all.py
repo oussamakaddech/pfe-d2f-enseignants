@@ -267,37 +267,44 @@ async def recommend_path(
 def _compute_teacher_risk(t: dict) -> dict:
     """Compute risk score and signals for a single teacher.
 
-    Uses configurable thresholds from settings instead of hardcoded values.
+    Delegates the weighted score computation to risk_scoring.py's
+    configurable multi-factor model (w1..w5, spec §3) instead of
+    hardcoded weights.
     """
-    from app.config import settings
+    from app.engines.risk_scoring import compute_risk_score
 
-    risk_gap_threshold = settings.risk_gap_threshold / 5.0  # Normalize to 0-1 scale
-    risk_absence_days = settings.risk_absence_threshold_days
-    risk_engagement_pct = settings.risk_engagement_percentile / 100.0
+    nb_completed = t.get("nb_formations_completed") or 0
+    nb_exprimes = t.get("nb_besoins_exprimes") or 0
+    nb_approuves = t.get("nb_besoins_approuves") or 0
+    days_since = t.get("days_since_last_training") or settings.risk_absence_threshold_days
+    taux_assiduite = t.get("taux_assiduite") or 1.0
 
-    time_factor = min(1.0, (t.get("days_since_last_training") or risk_absence_days) / float(risk_absence_days))
-    engagement_factor = 1.0 - (t.get("taux_assiduite") or 1.0)
-    stagnation_factor = 1.0 / (1.0 + (t.get("nb_formations_completed") or 0))
+    no_training = min(1.0, days_since / max(settings.risk_absence_threshold_days, 1))
+    stagnation = 1.0 / (1.0 + nb_completed)
+    unmet = min(1.0, max(0, nb_exprimes - nb_approuves) / max(settings.risk_unmet_needs_saturation, 1))
 
-    risk_score = (0.5 * time_factor) + (0.2 * engagement_factor) + (0.3 * stagnation_factor)
+    factors = {
+        "no_training": no_training,
+        "stagnation": stagnation,
+        "gap_count": 0.0,
+        "feedback_decline": 0.0,
+        "unmet_needs": unmet,
+    }
+    result = compute_risk_score(factors)
 
     signals = []
-    if time_factor > 0.8:
+    if no_training > 0.8:
         signals.append("Absence prolongée de formation")
-    if engagement_factor > risk_engagement_pct:
+    if taux_assiduite < settings.risk_engagement_percentile / 100.0:
         signals.append("Baisse d'assiduité")
-    if stagnation_factor > 0.5:
+    if stagnation > 0.5:
         signals.append("Stagnation des compétences")
-    if (t.get("nb_besoins_exprimes") or 0) == 0 and (t.get("nb_formations_completed") or 0) == 0:
+    if nb_completed == 0 and nb_exprimes == 0:
         signals.append("Aucun engagement détecté")
 
-    # Use configurable thresholds from settings
-    critical_threshold = settings.seuil_gap_critique
-    high_threshold = settings.seuil_gap_haute
-
-    if risk_score > critical_threshold:
+    if result["score_risque"] > settings.seuil_gap_critique:
         recommendation = "Planifier entretien"
-    elif risk_score > high_threshold:
+    elif result["score_risque"] > settings.seuil_gap_haute:
         recommendation = "Proposer formation"
     else:
         recommendation = "OK"
@@ -307,10 +314,10 @@ def _compute_teacher_risk(t: dict) -> dict:
         "teacher_name": f"{t.get('prenom', '')} {t.get('nom', '')}".strip(),
         "email": t.get("email", ""),
         "department": t.get("departement_id"),
-        "attrition_risk_score": round(risk_score, 2),
+        "attrition_risk_score": round(result["score_risque"], 2),
         "disengagement_signals": signals,
-        "competency_stagnation_rate": round(stagnation_factor, 2),
-        "training_velocity": t.get("nb_formations_completed") or 0,
+        "competency_stagnation_rate": round(stagnation, 2),
+        "training_velocity": nb_completed,
         "recommendation": recommendation,
     }
 

@@ -2,6 +2,9 @@ package esprit.pfe.serviceanalyse.services;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
@@ -49,6 +52,12 @@ public class AnalysePredictiveService {
     @Value("${services.besoin-formation.url}")
     private String besoinFormationServiceUrl;
 
+    @Value("${services.auth.url}")
+    private String authServiceUrl;
+
+    @Value("${analyse.niveau-cible-par-defaut:4}")
+    private int niveauCibleParDefaut;
+
     /**
      * Analyse complète d'un enseignant : gaps, recommandations, besoins, dashboard.
      */
@@ -92,7 +101,7 @@ public class AnalysePredictiveService {
     @SuppressWarnings("unchecked")
     private void processGapAffectation(Map<String, Object> aff, List<Map<String, Object>> gaps) {
         int niveauActuel = parseNiveau(aff.get(NIVEAU_MAITRISE));
-        int niveauCible = 4;
+        int niveauCible = niveauCibleParDefaut;
         
         Object compObj = aff.get(COMPETENCE);
         String compNom = "Inconnu";
@@ -344,6 +353,25 @@ public class AnalysePredictiveService {
             log.warn("Dashboard metrics partial failure");
         }
         return dashboard;
+    }
+
+    @SuppressWarnings("unchecked")
+    public Page<Map<String, Object>> listerEnseignants(Pageable pageable) {
+        try {
+            String url = authServiceUrl + "/api/v1/account/list-accounts"
+                + "?page=" + pageable.getPageNumber()
+                + "&size=" + pageable.getPageSize();
+            Map<String, Object> response = restTemplate.getForObject(url, Map.class);
+            if (response != null && response.get("content") instanceof List) {
+                List<Map<String, Object>> items = (List<Map<String, Object>>) response.get("content");
+                long total = response.get("totalElements") instanceof Number
+                    ? ((Number) response.get("totalElements")).longValue() : items.size();
+                return new PageImpl<>(items, pageable, total);
+            }
+        } catch (Exception e) {
+            log.warn("Service auth indisponible pour lister enseignants : {}", e.getMessage());
+        }
+        return new PageImpl<>(Collections.emptyList(), pageable, 0);
     }
 
     private int parseNiveau(Object niveauObj) {

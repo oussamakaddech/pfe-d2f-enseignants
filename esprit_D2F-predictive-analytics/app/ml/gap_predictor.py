@@ -2,6 +2,7 @@
 
 import logging
 import os
+from datetime import datetime
 from typing import Any
 
 import joblib
@@ -164,7 +165,6 @@ class GapPredictor:
 
         trained_at = meta.get("trained_at")
         if trained_at:
-            from datetime import datetime
             try:
                 trained_dt = pd.Timestamp(trained_at)
                 days_since = (pd.Timestamp.now() - trained_dt).days
