@@ -33,9 +33,6 @@ public class MicrosoftGraphService {
     private static final String SERVICE_NAME = "microsoft-graph";
     private static final String TAG_SERVICE = "service";
     private static final String FALLBACK_DIR = "/tmp/d2f-onedrive-fallback";
-    private static final String CURRENT_TOKEN = "current-token";
-
-
     private final Counter graphCallSuccessCounter;
     private final Counter graphCallFailureCounter;
     private final Timer graphCallTimer;
@@ -88,11 +85,8 @@ public class MicrosoftGraphService {
         }
 
         Timer.Sample sample = Timer.start();
-        String maskedToken = maskToken(CURRENT_TOKEN);
 
-
-        log.info("Uploading file to OneDrive: {} in folder {} [token: {}...]",
-                fileName, folderPath, maskedToken);
+        log.info("Uploading file to OneDrive: {} in folder {}", fileName, folderPath);
 
         try {
             // Simulate Graph API call (actual implementation would use Microsoft Graph SDK)
@@ -129,11 +123,8 @@ public class MicrosoftGraphService {
         }
 
         Timer.Sample sample = Timer.start();
-        String maskedToken = maskToken(CURRENT_TOKEN);
 
-        log.info("Sending email via Microsoft Graph: to={}, subject={} [token: {}...]",
-                to, subject, maskedToken);
-
+        log.info("Sending email via Microsoft Graph: subject={}", subject);
 
         try {
             // Simulate Graph API call (actual implementation would use Microsoft Graph SDK)
@@ -217,13 +208,13 @@ public class MicrosoftGraphService {
      * Fallback for mail sending - logs the failed email for manual retry.
      */
     public String sendMailFallback(String to, String subject, String body) {
-        log.warn("Email send failed, email queued for later retry: to={}, subject={}", to, subject);
-        
-        // In a real implementation, this would queue the email to ActiveMQ
-        // For now, we log it as a warning for manual intervention
-        log.warn("FAILED_EMAIL: to={}, subject={}, body={}", to, subject, body);
-        
-        return "QUEUED:" + System.currentTimeMillis();
+            log.warn("Email send failed, email queued for later retry: subject={}", subject);
+            
+            // In a real implementation, this would queue the email to ActiveMQ
+            // For now, we log it as a warning for manual intervention
+            log.warn("FAILED_EMAIL: subject={}", subject);
+            
+            return "QUEUED:" + System.currentTimeMillis();
     }
 
     /**
@@ -237,17 +228,6 @@ public class MicrosoftGraphService {
     }
 
     // ==================== HELPER METHODS ====================
-
-    /**
-     * Masks a token for safe logging.
-     * Never exposes more than first 6 characters.
-     */
-    private String maskToken(String token) {
-        if (token == null || token.length() < 6) {
-            return "***";
-        }
-        return token.substring(0, 6) + "***";
-    }
 
     // Simulated Graph API methods (replace with actual Microsoft Graph SDK calls)
 

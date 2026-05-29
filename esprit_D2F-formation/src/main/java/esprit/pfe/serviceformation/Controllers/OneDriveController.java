@@ -8,7 +8,9 @@ import esprit.pfe.serviceformation.microsoft.OneDriveService;
 import esprit.pfe.serviceformation.services.FormationWorkflowService;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+import esprit.d2f.common.security.AuthorizationMatrix;
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.data.domain.Page;
@@ -22,6 +24,7 @@ import java.util.List;
 @RequestMapping("/api/v1/onedrive")
 @RequiredArgsConstructor
 @ConditionalOnProperty(name = "azure.ad.enabled", havingValue = "true")
+@PreAuthorize(AuthorizationMatrix.FORMATION_READ)
 public class OneDriveController {
     private final OneDriveService oneDriveService;
     private final FormationWorkflowService formationService;

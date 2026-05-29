@@ -1,5 +1,6 @@
 package esprit.pfe.servicecertificat.controllers;
 
+import esprit.d2f.common.security.AuthorizationMatrix;
 import esprit.pfe.servicecertificat.dto.CertificateBatchMessage;
 import esprit.pfe.servicecertificat.dto.CertificateResponse;
 import esprit.pfe.servicecertificat.services.CertificateService;
@@ -9,6 +10,7 @@ import org.springframework.core.io.Resource;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.lang.NonNull;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
@@ -28,6 +30,7 @@ public class CertificatePdfController {
     }
 
     @GetMapping("/generate/{formationId}")
+    @PreAuthorize(AuthorizationMatrix.CERTIFICAT_CREATE)
     public ResponseEntity<Object> generatePdfForFormation(@PathVariable @NonNull Long formationId) {
         try {
             List<CertificateResponse> certs = certificateService.findByFormation(formationId);
@@ -69,6 +72,7 @@ public class CertificatePdfController {
     }
 
     @GetMapping("/formation/{formationId}")
+    @PreAuthorize(AuthorizationMatrix.CERTIFICAT_READ)
     public ResponseEntity<Object> getPdfPathsByFormation(@PathVariable @NonNull Long formationId) {
         try {
             List<CertificateResponse> certs = certificateService.findByFormation(formationId);

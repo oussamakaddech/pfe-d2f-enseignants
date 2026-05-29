@@ -1,11 +1,13 @@
 package esprit.pfe.serviceanalyse.controllers;
 
+import esprit.d2f.common.security.AuthorizationMatrix;
 import esprit.pfe.serviceanalyse.services.AnalysePredictiveService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
@@ -15,6 +17,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/v1/analyse-predictive")
 @RequiredArgsConstructor
+@PreAuthorize(AuthorizationMatrix.SKILL_PASSPORT_READ_ALL)
 public class AnalysePredictiveController {
 
     private final AnalysePredictiveService analysePredictiveService;

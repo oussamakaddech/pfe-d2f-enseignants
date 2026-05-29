@@ -2,9 +2,11 @@ package esprit.pfe.serviceformation.controllers;
 
 
 
+import esprit.d2f.common.security.AuthorizationMatrix;
 import esprit.pfe.serviceformation.services.FormationReportService;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import lombok.RequiredArgsConstructor;
 
@@ -14,6 +16,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/v1/formation-report")
 @RequiredArgsConstructor
+@PreAuthorize(AuthorizationMatrix.FORMATION_READ)
 public class FormationReportController {
     private final FormationReportService reportService;
 

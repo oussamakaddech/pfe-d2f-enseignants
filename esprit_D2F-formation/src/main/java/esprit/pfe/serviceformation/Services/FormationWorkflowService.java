@@ -434,7 +434,7 @@ public class FormationWorkflowService {
 
         // 1. Collecter les emails AVANT de recharger depuis la DB
         Set<String> recipientEmails = collectAllRecipientEmails(formation);
-        log.info("Destinataires email annulation : {}", recipientEmails);
+        log.info("Destinataires email annulation : {} destinataires", recipientEmails.size());
 
         // 2. Envoyer l'email d'annulation a tous les concernes
         String subject = "[D2F] Annulation de Formation : " + formation.getTitreFormation();
@@ -509,7 +509,7 @@ public class FormationWorkflowService {
                         formation.getDateFin());
                 outlookMailService.sendMail(cup.getMail(), subject, html);
             } catch (Exception ex) {
-                log.warn("Echec notification CUP {} : {}", cup.getMail(), ex.getMessage());
+                log.warn("Echec notification CUP : {}", ex.getMessage());
             }
         }
     }
@@ -577,10 +577,10 @@ public class FormationWorkflowService {
             try {
                 outlookMailService.sendMail(email, subject, html);
                 successCount++;
-                log.info("Email envoye avec succes a {}", email);
+                log.info("Email envoye avec succes");
             } catch (Exception ex) {
                 failCount++;
-                log.warn("Echec envoi email a {} : {}", email, ex.getMessage());
+                log.warn("Echec envoi email : {}", ex.getMessage());
             }
         }
         log.info("sendEmailsSafely: termine - {} succes, {} echecs sur {} destinataires",
@@ -832,7 +832,7 @@ public class FormationWorkflowService {
             try {
                 outlookMailService.sendMail(e.getMail(), subject, htmlContent);
             } catch (Exception ex) {
-                log.warn("Echec de notification pour l'enseignant {} : {}", e.getMail(), ex.getMessage());
+                log.warn("Echec de notification pour l'enseignant : {}", ex.getMessage());
             }
         }
     }
@@ -945,7 +945,7 @@ public class FormationWorkflowService {
             try {
                 outlookMailService.sendMail(cup.getMail(), subject, htmlContent);
             } catch (Exception ex) {
-                log.warn("Echec de notification CUP {} : {}", cup.getMail(), ex.getMessage());
+                log.warn("Echec de notification CUP : {}", ex.getMessage());
             }
         }
     }
@@ -1129,7 +1129,7 @@ public class FormationWorkflowService {
             try {
                 outlookMailService.sendMail(email, mailSubject, htmlContent);
             } catch (RuntimeException mailEx) {
-                log.warn("Echec envoi mail d'annulation a {} : {}", email, mailEx.getMessage());
+                log.warn("Echec envoi mail d'annulation : {}", mailEx.getMessage());
             }
         }
     }
@@ -1209,7 +1209,7 @@ public class FormationWorkflowService {
                 try {
                     outlookMailService.sendMail(email, subject, htmlContent);
                 } catch (Exception ex) {
-                    log.warn("Echec envoi mail d'annulation formation a {} : {}", email, ex.getMessage());
+                    log.warn("Echec envoi mail d'annulation formation : {}", ex.getMessage());
                 }
             }
         } else {

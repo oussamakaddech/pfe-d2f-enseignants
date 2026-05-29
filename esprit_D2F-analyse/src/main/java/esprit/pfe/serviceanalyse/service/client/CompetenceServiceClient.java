@@ -32,7 +32,7 @@ public class CompetenceServiceClient {
 
     private final RestTemplate restTemplate;
 
-    @Value("${services.competence.url:http://localhost:8005}")
+    @Value("${services.competence.url}")
     private String competenceServiceUrl;
 
     public CompetenceServiceClient(RestTemplate restTemplate) {

@@ -1,5 +1,6 @@
 package esprit.pfe.serviceformation.controllers;
 
+import esprit.d2f.common.security.AuthorizationMatrix;
 import esprit.pfe.serviceformation.dto.DocumentDTO;
 import esprit.pfe.serviceformation.entities.Document;
 import esprit.pfe.serviceformation.services.DocumentMapper;
@@ -7,6 +8,7 @@ import esprit.pfe.serviceformation.services.DocumentService;
 import esprit.pfe.serviceformation.utils.FileSecurityValidator;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.*;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import lombok.RequiredArgsConstructor;
@@ -39,6 +41,7 @@ public class DocumentController {
     private static final long MAX_FILE_SIZE = 50L * 1024 * 1024; // 50 MB
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize(AuthorizationMatrix.FORMATION_UPDATE)
     public ResponseEntity<Object> createDocument(
             @RequestParam Long formationId,
             @RequestParam String pathType,
@@ -70,6 +73,7 @@ public class DocumentController {
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize(AuthorizationMatrix.FORMATION_READ)
     public ResponseEntity<DocumentDTO> getById(@PathVariable Long id) {
         try {
             Document doc = service.getById(id);
@@ -80,12 +84,14 @@ public class DocumentController {
     }
 
     @GetMapping
+    @PreAuthorize(AuthorizationMatrix.FORMATION_READ)
     public ResponseEntity<Page<DocumentDTO>> getAll(
             @PageableDefault(size = 20, sort = "id") Pageable pageable) {
         return ResponseEntity.ok(service.getAll(pageable).map(DocumentMapper::mapToDTO));
     }
 
     @PostMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize(AuthorizationMatrix.FORMATION_UPDATE)
     public ResponseEntity<Object> updateDocument(
             @PathVariable Long id,
             @RequestParam String pathType,
@@ -109,6 +115,7 @@ public class DocumentController {
     }
 
     @DeleteMapping("/{id}")
+    @PreAuthorize(AuthorizationMatrix.FORMATION_DELETE)
     public ResponseEntity<Void> deleteDocument(@PathVariable Long id) {
         try {
             service.deleteDocument(id);
@@ -119,6 +126,7 @@ public class DocumentController {
     }
 
     @GetMapping("/download/{id}")
+    @PreAuthorize(AuthorizationMatrix.FORMATION_READ)
     public ResponseEntity<byte[]> downloadDocument(@PathVariable Long id) {
         try {
             byte[] data = service.downloadDocumentFile(id);

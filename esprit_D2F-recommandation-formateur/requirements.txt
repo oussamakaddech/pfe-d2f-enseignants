@@ -1,0 +1,9 @@
+fastapi
+uvicorn[standard]
+psycopg2-binary
+angle-emb
+transformers>=4.41
+scikit-learn
+joblib
+apscheduler
+python-dotenv
