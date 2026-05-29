@@ -31,17 +31,17 @@ const BureauService = {
     return normalizeListResponse<Bureau>(response.data);
   },
 
-  async getBureauById(id: number) {
+  async getBureauById(id: number): Promise<Bureau> {
     const response = await axios.get(`${API_URL}/${id}`);
     return response.data;
   },
 
-  async createBureau(data: BureauRequest) {
+  async createBureau(data: BureauRequest): Promise<Bureau> {
     const response = await axios.post(API_URL, data);
     return response.data;
   },
 
-  async updateBureau(id: number, data: BureauRequest) {
+  async updateBureau(id: number, data: BureauRequest): Promise<Bureau> {
     const response = await axios.put(`${API_URL}/${id}`, data);
     return response.data;
   },

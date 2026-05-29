@@ -28,7 +28,7 @@ describe('CertificateService', () => {
     expect(res.data).toEqual([{ id: 1 }]);
 
     httpMocks.mockPost.mockResolvedValueOnce({ data: { id: 2 } });
-    const res2 = await CertificateService.createCertificate({ formationId: 1 } as any);
+    const res2 = await CertificateService.createCertificate({ formationId: 1 } as Record<string, unknown>);
     expect(res2.data).toEqual({ id: 2 });
   });
 
@@ -51,7 +51,7 @@ describe('CertificateService', () => {
 
   it('updates and generates PDFs', async () => {
     httpMocks.mockPut.mockResolvedValueOnce({ data: { id: 5 } });
-    const res = await CertificateService.updateCertificate(5, { date: 'x' } as any);
+    const res = await CertificateService.updateCertificate(5, { date: 'x' } as Record<string, unknown>);
     expect(res.data).toEqual({ id: 5 });
 
     httpMocks.mockGet.mockResolvedValueOnce({ data: ['pdf1', 'pdf2'] });

@@ -1,5 +1,6 @@
 import { defaultApi as axios } from "@/utils/helpers/httpClient";
 import { config } from "@/config/env";
+import type { Departement } from "@/models/formation";
 const API_URL = `${config.FORMATION_URL}/formation/departements`;
 
 function normalizeListResponse<T>(payload: T[] | { content?: T[]; data?: T[]; items?: T[] }): T[] {
@@ -29,12 +30,12 @@ function isNotFoundError(error: unknown): boolean {
 }
 
 const DeptService = {
-  async createDept(deptData: Record<string, unknown>) {
+  async createDept(deptData: Record<string, unknown>): Promise<Departement> {
     const response = await axios.post(API_URL, deptData);
     return response.data;
   },
 
-  async getAllDepts() {
+  async getAllDepts(): Promise<Departement[]> {
     try {
       const response = await axios.get(API_URL);
       return normalizeListResponse(response.data);
@@ -46,21 +47,21 @@ const DeptService = {
     }
   },
 
-  async getDeptById(id: number | string) {
+  async getDeptById(id: number | string): Promise<Departement> {
     const response = await axios.get(`${API_URL}/${id}`);
     return response.data;
   },
 
-  async updateDept(id: number | string, deptData: Record<string, unknown>) {
+  async updateDept(id: number | string, deptData: Record<string, unknown>): Promise<Departement> {
     const response = await axios.put(`${API_URL}/${id}`, deptData);
     return response.data;
   },
 
-  async deleteDept(id: number | string) {
+  async deleteDept(id: number | string): Promise<void> {
     await axios.delete(`${API_URL}/${id}`);
   },
 
-  async importDeptsExcel(file: File) {
+  async importDeptsExcel(file: File): Promise<{ count: number }> {
     const formData = new FormData();
     formData.append("file", file);
     const response = await axios.post(`${API_URL}/import-excel`, formData);

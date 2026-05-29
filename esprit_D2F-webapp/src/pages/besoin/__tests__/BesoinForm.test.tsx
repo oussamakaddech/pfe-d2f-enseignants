@@ -24,11 +24,11 @@ const mockUps = [
   { id: 2, name: "UP Math" },
 ];
 
-function renderWithProviders(ui: any) {
+function renderWithProviders(ui: React.ReactElement) {
   return render(
     <BrowserRouter>
       <App>
-        <AuthContext.Provider value={{ user: mockUser } as any}>
+        <AuthContext.Provider value={{ user: mockUser, login: vi.fn(), logout: vi.fn() }}>
           {ui}
         </AuthContext.Provider>
       </App>
@@ -36,12 +36,12 @@ function renderWithProviders(ui: any) {
   );
 }
 
-function openSelect(labelText: any) {
+function openSelect(labelText: string) {
   const field = screen.getByText(labelText).closest(".ant-form-item");
   return field!.querySelector(".ant-select-selector");
 }
 
-async function chooseSelect(labelText: any, optionText: any) {
+async function chooseSelect(labelText: string, optionText: string) {
   fireEvent.mouseDown(openSelect(labelText)!);
   await waitFor(() => {
     const optionContent = Array.from(document.querySelectorAll(".ant-select-item-option-content")).find(
@@ -53,7 +53,7 @@ async function chooseSelect(labelText: any, optionText: any) {
   });
 }
 
-async function chooseOptionByRole(labelText: any, optionName: any) {
+async function chooseOptionByRole(labelText: string, optionName: string) {
   fireEvent.mouseDown(openSelect(labelText)!);
   await waitFor(() => {
     const option = screen.getByRole("option", { name: optionName });

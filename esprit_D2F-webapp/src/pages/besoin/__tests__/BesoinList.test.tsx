@@ -51,7 +51,7 @@ const mockUps = [
   { id: 2, name: "UP Math" },
 ];
 
-function renderWithProviders(ui: any) {
+function renderWithProviders(ui: React.ReactElement) {
   return render(
     <BrowserRouter>
       <App>

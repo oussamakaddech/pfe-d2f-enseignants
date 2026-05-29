@@ -1,5 +1,8 @@
 import { defaultApi as axios } from "@/utils/helpers/httpClient";
 import { config } from "@/config/env";
+import type { RiceAnalyzeResponse, RiceImportHistoryItem, RiceAssignmentResult } from "@/models/analyse";
+import type { Enseignant } from "@/models/enseignant";
+import type { Savoir, EnseignantCompetence } from "@/models/competence";
 
 const RICE_BASE       = `${config.RICE_URL}/rice`;     // direct to Python :8001 (no gateway – avoids codec size limit for file uploads)
 const COMPETENCE_BASE = `${config.COMPETENCE_URL}/competence`;
@@ -60,7 +63,7 @@ const fetchAllPages = async (url: string, baseParams = "") => {
 
 const RiceService = {
 
-  analyze: async (files: File[], enseignants: Record<string, unknown>[], departement = "gc") => {
+  analyze: async (files: File[], enseignants: Record<string, unknown>[], departement = "gc"): Promise<RiceAnalyzeResponse> => {
     const form = new FormData();
     files.forEach((f) => form.append("files", f));
     form.append("enseignants", JSON.stringify(enseignants));
@@ -72,19 +75,19 @@ const RiceService = {
   },
 
 
-  importToDb: async (payload: Record<string, unknown>) => {
+  importToDb: async (payload: Record<string, unknown>): Promise<RiceAnalyzeResponse> => {
     const res = await axios.post(`${COMPETENCE_BASE}/rice/import`, payload);
     return res.data;
   },
 
 
-  getImportHistory: async () => {
+  getImportHistory: async (): Promise<RiceImportHistoryItem[]> => {
     const res = await axios.get(`${COMPETENCE_BASE}/rice/imports`);
     return res.data;
   },
 
 
-  getEnseignants: async (departement: string | null = null) => {
+  getEnseignants: async (departement: string | null = null): Promise<Enseignant[]> => {
     const params = departement ? `?departement=${departement}` : "";
 
     try {
@@ -108,13 +111,13 @@ const RiceService = {
   },
 
 
-  getEnseignantAffectations: async () => {
+  getEnseignantAffectations: async (): Promise<EnseignantCompetence[]> => {
     const res = await axios.get(`${COMPETENCE_BASE}/enseignant-competences`);
     return res.data;
   },
 
 
-  getSavoirs: async (departement: string | null = null) => {
+  getSavoirs: async (departement: string | null = null): Promise<Savoir[]> => {
     const params = departement ? `?departement=${departement}` : "";
     try {
       const data = await fetchAllPages(`${COMPETENCE_BASE}/savoirs`, params);
@@ -134,7 +137,7 @@ const RiceService = {
   },
 
 
-  saveAssignments: async (payload: { add?: Record<string, unknown>[]; remove?: Record<string, unknown>[] }) => {
+  saveAssignments: async (payload: { add?: Record<string, unknown>[]; remove?: Record<string, unknown>[] }): Promise<RiceAssignmentResult> => {
     const add = Array.isArray(payload?.add) ? payload.add : [];
     const remove = Array.isArray(payload?.remove) ? payload.remove : [];
 
@@ -178,27 +181,27 @@ const RiceService = {
     return { added, removed };
   },
 
-  assignCompetence: async (payload: Record<string, unknown>) => {
+  assignCompetence: async (payload: Record<string, unknown>): Promise<EnseignantCompetence> => {
     const res = await axios.post(`${COMPETENCE_BASE}/enseignant-competences`, payload);
     return res.data;
   },
 
-  removeAssignment: async (id: number | string) => {
+  removeAssignment: async (id: number | string): Promise<void> => {
     const res = await axios.delete(`${COMPETENCE_BASE}/enseignant-competences/${id}`);
     return res.data;
   },
 
-  createEnseignant: async (data: Record<string, unknown>) => {
+  createEnseignant: async (data: Record<string, unknown>): Promise<Enseignant> => {
     const res = await axios.post(`${COMPETENCE_BASE}/enseignants`, data);
     return res.data;
   },
 
-  updateEnseignant: async (id: number | string, data: Record<string, unknown>) => {
+  updateEnseignant: async (id: number | string, data: Record<string, unknown>): Promise<Enseignant> => {
     const res = await axios.put(`${COMPETENCE_BASE}/enseignants/${id}`, data);
     return res.data;
   },
 
-  deactivateEnseignant: async (id: number | string) => {
+  deactivateEnseignant: async (id: number | string): Promise<Enseignant> => {
     const res = await axios.patch(`${COMPETENCE_BASE}/enseignants/${id}`, { etat: "I" });
     return res.data;
   },

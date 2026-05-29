@@ -10,7 +10,7 @@ describe('useAppNotification', () => {
   });
 
   // Mock wrapper that provides App context
-  const wrapper = ({ children }: any) => React.createElement(App, {}, children);
+  const wrapper = ({ children }: { children: React.ReactNode }) => React.createElement(App, {}, children);
 
   it('should return message, notification, and modal objects', () => {
     const { result } = renderHook(() => useAppNotification(), { wrapper });

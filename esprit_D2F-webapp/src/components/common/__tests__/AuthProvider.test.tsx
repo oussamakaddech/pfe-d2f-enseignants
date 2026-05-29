@@ -15,7 +15,7 @@ const TestComponent = () => {
       userName: 'testuser',
       username: 'testuser',
       emailAddress: 'test@example.com',
-      role: 'USER' as any
+      role: 'USER' as import('@/models/auth').UserRole
     };
     login(testUser);
   };

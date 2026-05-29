@@ -29,9 +29,9 @@ vi.mock("framer-motion", () => ({
       layout, layoutId,
       onAnimationStart, onAnimationComplete,
       ...props
-    }: any) => <div {...props}>{children}</div>,
+    }: Record<string, unknown>) => <div {...props as React.HTMLAttributes<HTMLDivElement>}>{children as React.ReactNode}</div>,
   },
-  AnimatePresence: ({ children }: any) => <>{children}</>,
+  AnimatePresence: ({ children }: { children: React.ReactNode }) => <>{children}</>,
 }));
 
 describe("UploadStep", { timeout: 15000 }, () => {

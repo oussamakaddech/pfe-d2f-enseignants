@@ -136,71 +136,71 @@ describe('validators — Ant Design rules', () => {
   describe('positiveNumberRule', () => {
     it('resolves for valid positive number', async () => {
       const rule = positiveNumberRule();
-      await expect((rule as any).validator(null, 5)).resolves.toBeUndefined();
+      await expect((rule as { validator: (r: unknown, v: unknown) => Promise<void> }).validator(null, 5)).resolves.toBeUndefined();
     });
     it('resolves for empty value', async () => {
       const rule = positiveNumberRule();
-      await expect((rule as any).validator(null, undefined)).resolves.toBeUndefined();
+      await expect((rule as { validator: (r: unknown, v: unknown) => Promise<void> }).validator(null, undefined)).resolves.toBeUndefined();
     });
     it('resolves for empty value like null', async () => {
       const rule = positiveNumberRule();
-      await expect((rule as any).validator(null, null)).resolves.toBeUndefined();
+      await expect((rule as { validator: (r: unknown, v: unknown) => Promise<void> }).validator(null, null)).resolves.toBeUndefined();
     });
     it('treats zero as empty (falsy) and resolves', async () => {
       const rule = positiveNumberRule();
-      await expect((rule as any).validator(null, 0)).resolves.toBeUndefined();
+      await expect((rule as { validator: (r: unknown, v: unknown) => Promise<void> }).validator(null, 0)).resolves.toBeUndefined();
     });
     it('rejects for negative number', async () => {
       const rule = positiveNumberRule();
-      await expect((rule as any).validator(null, -5)).rejects.toThrow('La valeur doit être un nombre positif');
+      await expect((rule as { validator: (r: unknown, v: unknown) => Promise<void> }).validator(null, -5)).rejects.toThrow('La valeur doit être un nombre positif');
     });
   });
 
   describe('codeFormatRule', () => {
     it('resolves for empty value', async () => {
-      await expect((codeFormatRule() as any).validator(null, '')).resolves.toBeUndefined();
+      await expect((codeFormatRule() as { validator: (r: unknown, v: unknown) => Promise<void> }).validator(null, '')).resolves.toBeUndefined();
     });
     it('resolves for valid code', async () => {
-      await expect((codeFormatRule() as any).validator(null, 'INF-01')).resolves.toBeUndefined();
+      await expect((codeFormatRule() as { validator: (r: unknown, v: unknown) => Promise<void> }).validator(null, 'INF-01')).resolves.toBeUndefined();
     });
     it('rejects for invalid code', async () => {
-      await expect((codeFormatRule('msg') as any).validator(null, 'bad code!')).rejects.toThrow('msg');
+      await expect((codeFormatRule('msg') as { validator: (r: unknown, v: unknown) => Promise<void> }).validator(null, 'bad code!')).rejects.toThrow('msg');
     });
   });
 
   describe('rangeRule', () => {
     it('resolves for value in range', async () => {
-      await expect((rangeRule(1, 10) as any).validator(null, 5)).resolves.toBeUndefined();
+      await expect((rangeRule(1, 10) as { validator: (r: unknown, v: unknown) => Promise<void> }).validator(null, 5)).resolves.toBeUndefined();
     });
     it('resolves for empty value', async () => {
-      await expect((rangeRule(1, 10) as any).validator(null, '')).resolves.toBeUndefined();
+      await expect((rangeRule(1, 10) as { validator: (r: unknown, v: unknown) => Promise<void> }).validator(null, '')).resolves.toBeUndefined();
     });
     it('rejects for out of range', async () => {
-      await expect((rangeRule(1, 10, 'msg') as any).validator(null, 20)).rejects.toThrow('msg');
+      await expect((rangeRule(1, 10, 'msg') as { validator: (r: unknown, v: unknown) => Promise<void> }).validator(null, 20)).rejects.toThrow('msg');
     });
   });
 
   describe('noLeadingTrailingSpacesRule', () => {
     it('resolves for trimmed string', async () => {
-      await expect((noLeadingTrailingSpacesRule() as any).validator(null, 'hello')).resolves.toBeUndefined();
+      await expect((noLeadingTrailingSpacesRule() as { validator: (r: unknown, v: unknown) => Promise<void> }).validator(null, 'hello')).resolves.toBeUndefined();
     });
     it('rejects for leading space', async () => {
-      await expect((noLeadingTrailingSpacesRule('msg') as any).validator(null, ' hello')).rejects.toThrow('msg');
+      await expect((noLeadingTrailingSpacesRule('msg') as { validator: (r: unknown, v: unknown) => Promise<void> }).validator(null, ' hello')).rejects.toThrow('msg');
     });
   });
 
   describe('confirmPasswordRule', () => {
     it('resolves when passwords match', async () => {
       const getFieldValue = vi.fn(() => 'pass');
-      await expect((confirmPasswordRule(getFieldValue) as any).validator(null, 'pass')).resolves.toBeUndefined();
+      await expect((confirmPasswordRule(getFieldValue) as { validator: (r: unknown, v: unknown) => Promise<void> }).validator(null, 'pass')).resolves.toBeUndefined();
     });
     it('resolves for empty value', async () => {
       const getFieldValue = vi.fn(() => 'pass');
-      await expect((confirmPasswordRule(getFieldValue) as any).validator(null, '')).resolves.toBeUndefined();
+      await expect((confirmPasswordRule(getFieldValue) as { validator: (r: unknown, v: unknown) => Promise<void> }).validator(null, '')).resolves.toBeUndefined();
     });
     it('rejects when passwords differ', async () => {
       const getFieldValue = vi.fn(() => 'pass');
-      await expect((confirmPasswordRule(getFieldValue, 'password', 'msg') as any).validator(null, 'diff')).rejects.toThrow('msg');
+      await expect((confirmPasswordRule(getFieldValue, 'password', 'msg') as { validator: (r: unknown, v: unknown) => Promise<void> }).validator(null, 'diff')).rejects.toThrow('msg');
       expect(getFieldValue).toHaveBeenCalledWith('password');
     });
   });
@@ -226,7 +226,7 @@ describe('validators — combined rules', () => {
     it('returns array with maxLength rule', () => {
       const rules = descriptionRules();
       expect(rules).toHaveLength(1);
-      expect((rules[0] as any).max).toBe(500);
+      expect((rules[0] as { max?: number }).max).toBe(500);
     });
   });
 

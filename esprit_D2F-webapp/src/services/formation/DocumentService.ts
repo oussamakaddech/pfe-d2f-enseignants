@@ -1,5 +1,6 @@
 import { defaultApi as axios } from "@/utils/helpers/httpClient";
 import { config } from "@/config/env";
+import type { FormationDocument, FormationWithDocuments } from "@/models/document";
 const API_URL =`${config.FORMATION_URL}/formation/documents`;
 
 interface DocumentCreatePayload {
@@ -18,7 +19,7 @@ interface DocumentUpdatePayload {
 }
 
 const DocumentService = {
-  async createDocument({ formationId, pathType, nomDocument, obligation, file }: DocumentCreatePayload) {
+  async createDocument({ formationId, pathType, nomDocument, obligation, file }: DocumentCreatePayload): Promise<FormationDocument> {
     const formData = new FormData();
     formData.append("formationId", String(formationId));
     formData.append("pathType",    pathType);
@@ -30,17 +31,17 @@ const DocumentService = {
     return data;
   },
 
-  async getAllDocuments() {
+  async getAllDocuments(): Promise<FormationWithDocuments[]> {
     const { data } = await axios.get(API_URL);
     return data;
   },
 
-  async getDocumentById(id: number | string) {
+  async getDocumentById(id: number | string): Promise<FormationDocument> {
     const { data } = await axios.get(`${API_URL}/${id}`);
     return data;
   },
 
-  async updateDocument(id: number | string, { pathType, nomDocument, obligation, file }: DocumentUpdatePayload) {
+  async updateDocument(id: number | string, { pathType, nomDocument, obligation, file }: DocumentUpdatePayload): Promise<FormationDocument> {
     const formData = new FormData();
     formData.append("pathType",    pathType);
     formData.append("nomDocument", nomDocument);

@@ -46,7 +46,7 @@ describe('accountService', () => {
 
   it('edits profile', async () => {
     apiMocks.mockPost.mockResolvedValueOnce({ data: { id: '1', email: 'e' } });
-    const result = await accountService.editProfile({ email: 'e' } as any);
+    const result = await accountService.editProfile({ email: 'e' } as Record<string, unknown>);
     expect(result).toEqual({ id: '1', email: 'e' });
     expect(apiMocks.mockPost).toHaveBeenCalledWith(`${accountUrl}/edit-profile`, { email: 'e' });
   });
@@ -73,7 +73,7 @@ describe('accountService', () => {
     expect(apiMocks.mockDelete).toHaveBeenCalledWith(`${accountUrl}/delete/id1`);
 
     apiMocks.mockPut.mockResolvedValueOnce({ data: { id: 'id1' } });
-    await accountService.updateAccount('id1', { email: 'e' } as any, 'ROLE_ADMIN');
+    await accountService.updateAccount('id1', { email: 'e' } as Record<string, unknown>, 'ROLE_ADMIN');
     expect(apiMocks.mockPut).toHaveBeenCalledWith(`${accountUrl}/update/id1`, { email: 'e' }, { params: { role: 'ROLE_ADMIN' } });
   });
 });

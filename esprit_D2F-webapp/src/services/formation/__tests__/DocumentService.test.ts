@@ -66,7 +66,7 @@ describe('DocumentService', () => {
     
     // Mock click
     const linkMock = { click: vi.fn(), remove: vi.fn(), setAttribute: vi.fn(), href: '' };
-    vi.spyOn(document, 'createElement').mockReturnValue(linkMock as any);
+    vi.spyOn(document, 'createElement').mockReturnValue(linkMock as unknown as HTMLElement);
 
     await DocumentService.downloadDocument(1);
     

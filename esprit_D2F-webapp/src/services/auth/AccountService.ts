@@ -5,6 +5,7 @@ import type {
   EditProfileRequest,
   UpdatePasswordRequest,
 } from "@/models/auth";
+import type { UpdatePasswordResponse, AccountActionResponse } from "@/models/auth";
 
 const API_URL = `${config.URL_ACCOUNT}/account`;
 
@@ -32,24 +33,24 @@ export async function editProfile(
 
 export async function updatePassword(
   request: UpdatePasswordRequest
-): Promise<unknown> {
+): Promise<UpdatePasswordResponse> {
   const res = await api.post(`${API_URL}/update-password`, request);
   return res.data;
 }
 
-export async function banAccount(userName: string): Promise<unknown> {
+export async function banAccount(userName: string): Promise<AccountActionResponse> {
   const response = await api.post(`${API_URL}/ban-account`, null, { params: { userName } });
   return response.data;
 }
 
-export async function enableAccount(userName: string): Promise<unknown> {
+export async function enableAccount(userName: string): Promise<AccountActionResponse> {
   const response = await api.post(`${API_URL}/enable-account`, null, {
     params: { userName },
   });
   return response.data;
 }
 
-export async function deleteAccount(userId: string): Promise<unknown> {
+export async function deleteAccount(userId: string): Promise<AccountActionResponse> {
   const response = await api.delete(`${API_URL}/delete/${userId}`);
   return response.data;
 }
