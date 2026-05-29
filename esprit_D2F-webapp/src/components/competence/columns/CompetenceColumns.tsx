@@ -5,6 +5,14 @@ import { NIVEAU_SAVOIR_OPTIONS, TYPE_SAVOIR_OPTIONS } from "@/utils/constants/co
 import type { Domaine, Competence, Savoir } from "@/models/competence";
 import type { Id } from "@/models/common";
 
+const ellipsisStyle = {
+  display: "block",
+  maxWidth: 360,
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
+};
+
 function countSousComp(nodes: { enfants?: unknown[] }[]): number {
   return (nodes ?? []).reduce((sum, node) => sum + 1 + countSousComp((node.enfants ?? []) as { enfants?: unknown[] }[]), 0);
 }
@@ -15,7 +23,12 @@ export function buildDomaineColumns(
   return [
     { title: "Code", dataIndex: "code", key: "code", width: 130 },
     { title: "Nom", dataIndex: "nom", key: "nom", sorter: (a, b) => (a.nom ?? "").localeCompare(b.nom ?? "") },
-    { title: "Description", dataIndex: "description", key: "description", ellipsis: true },
+    {
+      title: "Description",
+      dataIndex: "description",
+      key: "description",
+      render: (value: string | undefined) => <span style={ellipsisStyle}>{value ?? "-"}</span>,
+    },
     {
       title: "Actif",
       dataIndex: "actif",
@@ -55,7 +68,12 @@ export function buildCompColumns(
     },
     { title: "Code", dataIndex: "code", key: "code", width: 100 },
     { title: "Nom", dataIndex: "nom", key: "nom", sorter: (a, b) => (a.nom ?? "").localeCompare(b.nom ?? "") },
-    { title: "Description", dataIndex: "description", key: "description", ellipsis: true },
+    {
+      title: "Description",
+      dataIndex: "description",
+      key: "description",
+      render: (value: string | undefined) => <span style={ellipsisStyle}>{value ?? "-"}</span>,
+    },
     {
       title: "Domaine",
       dataIndex: "domaineNom",
@@ -84,7 +102,12 @@ export function buildSavoirColumns(): TableColumnsType<Savoir> {
   return [
     { title: "Code", dataIndex: "code", key: "code", width: 100 },
     { title: "Nom", dataIndex: "nom", key: "nom", sorter: (a, b) => (a.nom ?? "").localeCompare(b.nom ?? "") },
-    { title: "Description", dataIndex: "description", key: "description", ellipsis: true },
+    {
+      title: "Description",
+      dataIndex: "description",
+      key: "description",
+      render: (value: string | undefined) => <span style={ellipsisStyle}>{value ?? "-"}</span>,
+    },
     {
       title: "Type",
       dataIndex: "type",

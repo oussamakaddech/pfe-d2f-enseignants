@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { config } from '@/config/env';
 
 const apiMocks = vi.hoisted(() => ({
   mockPost: vi.fn(),
@@ -30,12 +31,14 @@ describe('authService', () => {
     localStorage.clear();
   });
 
+  const authUrl = `${config.URL_ACCOUNT}/auth`;
+
   it('returns user metadata on login (cookie is set by server)', async () => {
     const mockResponse = { userId: 1, role: 'admin', email: 'test@test.com' };
     apiMocks.mockPost.mockResolvedValueOnce({ data: mockResponse });
     const data = await login({ username: 'john', password: 'pwd' });
     expect(data).toEqual(mockResponse);
-    expect(apiMocks.mockPost).toHaveBeenCalledWith('/login', expect.any(URLSearchParams));
+    expect(apiMocks.mockPost).toHaveBeenCalledWith(`${authUrl}/login`, expect.any(URLSearchParams));
   });
 
   it('calls signup/forgot/reset/profile endpoints', async () => {
@@ -61,7 +64,7 @@ describe('authService', () => {
       email: 'a@b.com',
     });
 
-    expect(apiMocks.mockGet).toHaveBeenCalledWith('/refresh', { meta: { silent: true } });
+    expect(apiMocks.mockGet).toHaveBeenCalledWith(`${authUrl}/refresh`, { meta: { silent: true } });
   });
 });
 

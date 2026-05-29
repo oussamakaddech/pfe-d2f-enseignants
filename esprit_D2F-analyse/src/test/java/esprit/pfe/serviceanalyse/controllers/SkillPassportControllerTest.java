@@ -84,7 +84,7 @@ class SkillPassportControllerTest {
         Authentication authentication = mockAuthentication("admin");
         doNothing().when(authorizationService).checkAccess(any(Authentication.class), eq("jdoe"));
         when(authorizationService.extractUsername(any(Authentication.class))).thenReturn("admin");
-        when(assembler.assemble(eq("jdoe"), any())).thenReturn(samplePassport);
+        when(assembler.assemble(eq("jdoe"), any(), any())).thenReturn(samplePassport);
 
         mockMvc.perform(get("/api/v1/skill-passports/teacher/jdoe/json")
                         .principal(authentication)
@@ -104,7 +104,7 @@ class SkillPassportControllerTest {
         Authentication authentication = mockAuthentication("admin");
         doNothing().when(authorizationService).checkAccess(any(Authentication.class), eq("jdoe"));
         when(authorizationService.extractUsername(any(Authentication.class))).thenReturn("admin");
-        when(assembler.assemble(eq("jdoe"), any())).thenReturn(samplePassport);
+        when(assembler.assemble(eq("jdoe"), any(), any())).thenReturn(samplePassport);
         when(pdfGenerator.generate(any())).thenReturn(fakePdf);
 
         mockMvc.perform(get("/api/v1/skill-passports/teacher/jdoe")
@@ -122,7 +122,7 @@ class SkillPassportControllerTest {
     void getMyPassportJson_returns200() throws Exception {
         Authentication authentication = mockAuthentication("jdoe");
         when(authorizationService.extractUsername(any(Authentication.class))).thenReturn("jdoe");
-        when(assembler.assemble(eq("jdoe"), any())).thenReturn(samplePassport);
+        when(assembler.assemble(eq("jdoe"), any(), any())).thenReturn(samplePassport);
 
         mockMvc.perform(get("/api/v1/skill-passports/me/json")
                         .principal(authentication)
@@ -152,7 +152,7 @@ class SkillPassportControllerTest {
         byte[] fakePdf = "pdf".getBytes();
         Authentication authentication = mockAuthentication("jdoe");
         when(authorizationService.extractUsername(any(Authentication.class))).thenReturn("jdoe");
-        when(assembler.assemble(eq("jdoe"), any())).thenReturn(samplePassport);
+        when(assembler.assemble(eq("jdoe"), any(), any())).thenReturn(samplePassport);
         when(pdfGenerator.generate(any())).thenReturn(fakePdf);
 
         mockMvc.perform(get("/api/v1/skill-passports/me")

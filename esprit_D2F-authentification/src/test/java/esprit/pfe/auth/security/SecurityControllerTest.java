@@ -366,13 +366,14 @@ class SecurityControllerTest {
     }
 
     @Test
-    void forgotPassword_WhenAlreadySent_ShouldReturnBadRequest() throws Exception {
+    void forgotPassword_WhenAlreadySent_ShouldReturnOk() throws Exception {
         when(userRepository.existsByEmail("test@example.com")).thenReturn(true);
         when(confirmationKeyRepo.existsByEmailAddress("test@example.com")).thenReturn(true);
 
         mockMvc.perform(post("/api/v1/auth/forgot-password")
                 .param("emailAddress", "test@example.com"))
-                .andExpect(status().isBadRequest());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value("If this email address is registered, you will receive a password reset link."));
     }
 
     @Test
@@ -526,12 +527,12 @@ class SecurityControllerTest {
     }
 
     @Test
-    void forgotPassword_WhenEmailInvalid_ShouldReturnBadRequest() throws Exception {
+    void forgotPassword_WhenEmailInvalid_ShouldReturnOkWithGenericMessage() throws Exception {
         when(userRepository.existsByEmail("invalid@test.com")).thenReturn(false);
 
         mockMvc.perform(post("/api/v1/auth/forgot-password")
                 .param("emailAddress", "invalid@test.com"))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.message").value("Email address invalid"));
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value("If this email address is registered, you will receive a password reset link."));
     }
 }

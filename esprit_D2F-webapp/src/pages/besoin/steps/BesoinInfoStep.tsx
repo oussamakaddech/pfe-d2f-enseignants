@@ -13,6 +13,7 @@ import {
 } from "@ant-design/icons";
 import SectionLabel from "@/components/besoin/SectionLabel";
 import ChoiceCardGroup from "@/components/besoin/ChoiceCardGroup";
+import type { LookupItem } from "@/models/common";
 
 const { Option } = Select;
 const { TextArea } = Input;
@@ -35,8 +36,6 @@ const typeOptions = [
     accentBg: "#f5f3ff",
   },
 ];
-
-interface LookupItem { id?: string | number; name?: string; libelle?: string }
 
 interface BesoinInfoStepProps {
   ups: LookupItem[];

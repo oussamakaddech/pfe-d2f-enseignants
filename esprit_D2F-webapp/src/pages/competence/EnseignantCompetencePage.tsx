@@ -59,6 +59,14 @@ interface DomaineRef {
 const { Text } = Typography;
 const { Option } = Select;
 
+const truncateCellStyle = {
+  display: "block",
+  maxWidth: 360,
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
+};
+
 function niveauTag(niveau: string | undefined) {
   const found = NIVEAU_OPTIONS.find((n) => n.value === niveau);
   return found ? (
@@ -279,8 +287,7 @@ export default function EnseignantCompetencePage() {
       title: "Commentaire",
       dataIndex: "commentaire",
       key: "commentaire",
-      ellipsis: true,
-      render: (c: string | undefined) => c || "—",
+      render: (c: string | undefined) => <span style={truncateCellStyle}>{c || "—"}</span>,
     },
     {
       title: "Actions",

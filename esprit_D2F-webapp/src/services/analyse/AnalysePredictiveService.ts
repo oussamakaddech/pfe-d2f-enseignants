@@ -1,9 +1,10 @@
 import { defaultApi as axios } from "@/utils/helpers/httpClient";
 import { config } from "@/config/env";
 
-const PREDICTIVE_API = `${config.ANALYSE_URL}/analyse/v1/analyse-predictive`;
-// Endpoints du pipeline analytics v1 (dashboard avancé + ré-entraînement).
-const ANALYTICS_V1 = `${PREDICTIVE_API}/v1/analytics`;
+// Base legacy du service d'analyse prédictive: /api/analyse/**
+const PREDICTIVE_API = `${config.ANALYSE_URL}/analyse`;
+// Endpoints du pipeline analytics v1: /api/analyse/v1/analytics/**
+const ANALYTICS_V1 = `${config.ANALYSE_URL}/analyse/v1/analytics`;
 
 import type { Gravite, AnalyseGap, AnalyseRecommandation, AnalyseData, DriftReport } from "@/models/analyse";
 export type { Gravite, AnalyseGap, AnalyseRecommandation, AnalyseData, DriftReport };

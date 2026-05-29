@@ -66,11 +66,14 @@ public class GlobalExceptionHandler {
         String rootCause = ex.getMostSpecificCause().getMessage();
         String lowerRootCause = rootCause == null ? "" : rootCause.toLowerCase();
         log.warn("[{}] Violation d’intégrité des données: {}", MODULE_PREFIX + "-409", rootCause, ex);
-        String message = (lowerRootCause.contains("value too long") || lowerRootCause.contains("too long for type character varying"))
-                ? "Conflit de données : une valeur dépasse la taille maximale autorisée."
-                : (lowerRootCause.contains("unique"))
-                ? "Conflit de données : une ressource avec ces informations existe déjà."
-                : "Conflit de données : contrainte d’intégrité violée.";
+        String message;
+        if (lowerRootCause.contains("value too long") || lowerRootCause.contains("too long for type character varying")) {
+            message = "Conflit de données : une valeur dépasse la taille maximale autorisée.";
+        } else if (lowerRootCause.contains("unique")) {
+            message = "Conflit de données : une ressource avec ces informations existe déjà.";
+        } else {
+            message = "Conflit de données : contrainte d'intégrité violée.";
+        }
         return buildResponse(HttpStatus.CONFLICT, message,
                 MODULE_PREFIX + "-409", request.getRequestURI());
     }

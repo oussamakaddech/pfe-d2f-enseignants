@@ -4,6 +4,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import tn.esprit.d2f.dto.BesoinFormationRequest;
 import tn.esprit.d2f.dto.BesoinFormationResponse;
+import tn.esprit.d2f.entity.Notification;
 import tn.esprit.d2f.entity.enumerations.Priorite;
 
 public interface IBesoinFormationService {
@@ -26,6 +27,9 @@ public interface IBesoinFormationService {
 
     /** §2.2.2 — Filtrage par priorité */
     Page<BesoinFormationResponse> retrieveByPriorite(Priorite priorite, Pageable pageable);
+
+    /** §2.2.3 — Notifications d'un utilisateur */
+    Page<Notification> findNotificationsByUsername(String username, Pageable pageable);
 }
 
 

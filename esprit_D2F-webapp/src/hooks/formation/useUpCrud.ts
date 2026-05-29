@@ -1,14 +1,15 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import UpService from "@/services/api/UploadService";
+import type { LookupItem } from "@/models/common";
 
 const KEYS = {
   all: ["ups"] as const,
 };
 
 export function useAllUps() {
-  return useQuery<unknown[]>({
+  return useQuery<LookupItem[]>({
     queryKey: KEYS.all,
-    queryFn: () => UpService.getAllUps(),
+    queryFn: () => UpService.getAllUps() as Promise<LookupItem[]>,
   });
 }
 

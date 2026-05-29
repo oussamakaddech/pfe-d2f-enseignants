@@ -123,12 +123,17 @@ class FormationControllerTest {
             dtoFormation.setTitreFormation("Formation Java 17");
             when(formationService.createFormation(any())).thenReturn(dtoFormation);
 
+            String requestJson = "{\"titreFormation\":\"Formation Java 17\"," +
+                    "\"dateDebut\":\"2027-01-10\",\"dateFin\":\"2027-01-15\"," +
+                    "\"typeFormation\":\"INTERNE\",\"etatFormation\":\"PLANIFIE\"," +
+                    "\"chargeHoraireGlobal\":40}";
+
             mockMvc.perform(post("/api/v1/formations")
                     .with(csrf())
                     .contentType(MediaType.APPLICATION_JSON)
-                    .content(objectMapper.writeValueAsString(testFormation)))
-                    .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.titreFormation").value("Formation Java 17"));
+                    .content(requestJson))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.titreFormation").value("Formation Java 17"));
         }
     }
 
@@ -145,10 +150,13 @@ class FormationControllerTest {
             dtoFormation.setTitreFormation("Formation Java 17 - V2");
             when(formationService.updateFormation(eq(1L), any())).thenReturn(dtoFormation);
 
+            String requestJson = "{\"titreFormation\":\"Formation Java 17 - V2\"," +
+                    "\"dateDebut\":\"2027-01-10\",\"dateFin\":\"2027-01-15\"}";
+
             mockMvc.perform(put("/api/v1/formations/1")
                     .with(csrf())
                     .contentType(MediaType.APPLICATION_JSON)
-                    .content(objectMapper.writeValueAsString(testFormation)))
+                    .content(requestJson))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.titreFormation").value("Formation Java 17 - V2"));
         }

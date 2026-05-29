@@ -107,6 +107,7 @@ public class CertificateServiceImpl implements CertificateService {
         res.setRoleEnFormation(entity.getRoleEnFormation());
         res.setDelivered(entity.isDelivered());
         res.setCreatedAt(entity.getDateFinFormation());
+        res.setPdfFilePath(entity.getPdfFilePath());
         return res;
     }
 

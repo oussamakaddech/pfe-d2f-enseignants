@@ -3,6 +3,7 @@ package esprit.pfe.serviceformation.services;
 import esprit.pfe.serviceformation.dto.CreateFormationRequest;
 import esprit.pfe.serviceformation.dto.FormationResponseDTO;
 import esprit.pfe.serviceformation.dto.UpdateFormationRequest;
+import esprit.pfe.serviceformation.exception.ResourceNotFoundException;
 import esprit.pfe.serviceformation.entities.EtatFormation;
 import esprit.pfe.serviceformation.entities.Formation;
 import esprit.pfe.serviceformation.entities.PeriodCode;
@@ -42,6 +43,9 @@ class FormationServiceImplTest {
     @Mock
     private OutlookCalendarService outlookCalendarService;
 
+    @Mock
+    private FormationMapper formationMapper;
+
     @InjectMocks
     private FormationServiceImpl formationService;
 
@@ -78,7 +82,13 @@ class FormationServiceImplTest {
             request.setChargeHoraireGlobal(40);
             request.setCoutFormation(500.0f);
 
+            FormationResponseDTO dto = new FormationResponseDTO();
+            dto.setIdFormation(1L);
+            dto.setTitreFormation("Spring Boot Avancé");
+
+            when(formationMapper.toEntity(any(CreateFormationRequest.class))).thenReturn(formation);
             when(formationRepository.save(any(Formation.class))).thenReturn(formation);
+            when(formationMapper.toResponseDTO(any(Formation.class))).thenReturn(dto);
 
             FormationResponseDTO result = formationService.createFormation(request);
 
@@ -104,8 +114,17 @@ class FormationServiceImplTest {
             updateRequest.setDateDebut(LocalDate.now());
             updateRequest.setDateFin(LocalDate.now().plusDays(5));
 
+            FormationResponseDTO dto = new FormationResponseDTO();
+            dto.setIdFormation(1L);
+            dto.setTitreFormation("Spring Boot Avancé - V2");
+            dto.setEtatFormation("EN_COURS");
+            dto.setCoutFormation(750.0f);
+
             when(formationRepository.findById(1L)).thenReturn(Optional.of(formation));
             when(formationRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+            doAnswer(inv -> { formation.setTitreFormation("Spring Boot Avancé - V2"); formation.setCoutFormation(750.0f); return null; })
+                .when(formationMapper).updateEntityFromRequest(any(UpdateFormationRequest.class), any(Formation.class));
+            when(formationMapper.toResponseDTO(any(Formation.class))).thenReturn(dto);
 
             FormationResponseDTO result = formationService.updateFormation(1L, updateRequest);
 
@@ -117,7 +136,7 @@ class FormationServiceImplTest {
         }
 
         @Test
-        @DisplayName("lève IllegalArgumentException si formation introuvable")
+        @DisplayName("lève ResourceNotFoundException si formation introuvable")
         void shouldThrowWhenNotFound() {
             UpdateFormationRequest updateRequest = new UpdateFormationRequest();
             updateRequest.setTitreFormation("Test");
@@ -127,7 +146,7 @@ class FormationServiceImplTest {
             when(formationRepository.findById(999L)).thenReturn(Optional.empty());
 
             assertThatThrownBy(() -> formationService.updateFormation(999L, updateRequest))
-                    .isInstanceOf(IllegalArgumentException.class)
+                    .isInstanceOf(ResourceNotFoundException.class)
                     .hasMessageContaining("introuvable");
         }
     }
@@ -139,7 +158,7 @@ class FormationServiceImplTest {
         @Test
         @DisplayName("supprime par id")
         void shouldDeleteById() {
-            when(formationRepository.existsById(1L)).thenReturn(true);
+            when(formationRepository.findById(1L)).thenReturn(Optional.of(formation));
             doNothing().when(formationRepository).deleteById(1L);
 
             formationService.deleteFormation(1L);
@@ -148,12 +167,12 @@ class FormationServiceImplTest {
         }
 
         @Test
-        @DisplayName("lève IllegalArgumentException si introuvable")
+        @DisplayName("lève ResourceNotFoundException si introuvable")
         void shouldThrowWhenDeleteNotFound() {
-            when(formationRepository.existsById(999L)).thenReturn(false);
+            when(formationRepository.findById(999L)).thenReturn(Optional.empty());
 
             assertThatThrownBy(() -> formationService.deleteFormation(999L))
-                    .isInstanceOf(IllegalArgumentException.class);
+                    .isInstanceOf(ResourceNotFoundException.class);
         }
     }
 
@@ -164,7 +183,12 @@ class FormationServiceImplTest {
         @Test
         @DisplayName("retourne la formation")
         void shouldReturnFormation() {
+            FormationResponseDTO dto = new FormationResponseDTO();
+            dto.setIdFormation(1L);
+            dto.setTitreFormation("Spring Boot Avancé");
+
             when(formationRepository.findById(1L)).thenReturn(Optional.of(formation));
+            when(formationMapper.toResponseDTO(formation)).thenReturn(dto);
 
             FormationResponseDTO result = formationService.getFormationById(1L);
 
@@ -174,12 +198,12 @@ class FormationServiceImplTest {
         }
 
         @Test
-        @DisplayName("lève IllegalArgumentException si introuvable")
+        @DisplayName("lève ResourceNotFoundException si introuvable")
         void shouldThrowWhenNotFound() {
             when(formationRepository.findById(999L)).thenReturn(Optional.empty());
 
             assertThatThrownBy(() -> formationService.getFormationById(999L))
-                    .isInstanceOf(IllegalArgumentException.class)
+                    .isInstanceOf(ResourceNotFoundException.class)
                     .hasMessageContaining("introuvable");
         }
     }
@@ -198,9 +222,18 @@ class FormationServiceImplTest {
             f2.setFormationCompetences(new ArrayList<>());
             f2.setInscriptions(new ArrayList<>());
 
-            when(formationRepository.findAll(any(Pageable.class))).thenReturn(new PageImpl<>(List.of(formation, f2)));
+            FormationResponseDTO dto1 = new FormationResponseDTO();
+            dto1.setIdFormation(1L);
+            dto1.setTitreFormation("Spring Boot Avancé");
+            FormationResponseDTO dto2 = new FormationResponseDTO();
+            dto2.setIdFormation(2L);
+            dto2.setTitreFormation("Docker Masterclass");
 
-            Page<esprit.pfe.serviceformation.dto.FormationResponseDTO> result = formationService.getAllFormations(Pageable.unpaged());
+            when(formationRepository.findAll(any(Pageable.class))).thenReturn(new PageImpl<>(List.of(formation, f2)));
+            when(formationMapper.toResponseDTO(formation)).thenReturn(dto1);
+            when(formationMapper.toResponseDTO(f2)).thenReturn(dto2);
+
+            Page<FormationResponseDTO> result = formationService.getAllFormations(Pageable.unpaged());
 
             assertThat(result).hasSize(2);
             verify(formationRepository).findAll(any(Pageable.class));
@@ -211,7 +244,7 @@ class FormationServiceImplTest {
         void shouldReturnEmptyList() {
             when(formationRepository.findAll(any(Pageable.class))).thenReturn(new PageImpl<>(new ArrayList<>()));
 
-            Page<esprit.pfe.serviceformation.dto.FormationResponseDTO> result = formationService.getAllFormations(Pageable.unpaged());
+            Page<FormationResponseDTO> result = formationService.getAllFormations(Pageable.unpaged());
 
             assertThat(result).isEmpty();
         }
@@ -232,6 +265,11 @@ class FormationServiceImplTest {
             request.setEtatFormation("PLANIFIEE");
             request.setChargeHoraireGlobal(40);
 
+            FormationResponseDTO dto = new FormationResponseDTO();
+            dto.setIdFormation(1L);
+            dto.setTitreFormation("Spring Boot Avancé");
+
+            when(formationMapper.toEntity(any(CreateFormationRequest.class))).thenReturn(formation);
             when(formationRepository.save(any(Formation.class))).thenAnswer(inv -> {
                 Formation f = inv.getArgument(0);
                 if (f.getIdFormation() == null) f.setIdFormation(1L);
@@ -239,6 +277,7 @@ class FormationServiceImplTest {
             });
             when(outlookCalendarService.addEventToCalendarAndReturnIdWithTeamsUrl(any(OutlookEventParameters.class)))
                     .thenReturn(new OutlookCalendarService.EventCreationResult("evt-123", null));
+            when(formationMapper.toResponseDTO(any(Formation.class))).thenReturn(dto);
 
             FormationResponseDTO result = formationService.createFormation(request);
 
@@ -258,9 +297,15 @@ class FormationServiceImplTest {
             request.setEtatFormation("PLANIFIEE");
             request.setChargeHoraireGlobal(40);
 
+            FormationResponseDTO dto = new FormationResponseDTO();
+            dto.setIdFormation(1L);
+            dto.setTitreFormation("Spring Boot Avancé");
+
+            when(formationMapper.toEntity(any(CreateFormationRequest.class))).thenReturn(formation);
             when(formationRepository.save(any(Formation.class))).thenReturn(formation);
             when(outlookCalendarService.addEventToCalendarAndReturnIdWithTeamsUrl(any(OutlookEventParameters.class)))
                     .thenReturn(new OutlookCalendarService.EventCreationResult(null, null));
+            when(formationMapper.toResponseDTO(any(Formation.class))).thenReturn(dto);
 
             FormationResponseDTO result = formationService.createFormation(request);
 
@@ -279,9 +324,15 @@ class FormationServiceImplTest {
             request.setEtatFormation("PLANIFIEE");
             request.setChargeHoraireGlobal(40);
 
+            FormationResponseDTO dto = new FormationResponseDTO();
+            dto.setIdFormation(1L);
+            dto.setTitreFormation("Spring Boot Avancé");
+
+            when(formationMapper.toEntity(any(CreateFormationRequest.class))).thenReturn(formation);
             when(formationRepository.save(any(Formation.class))).thenReturn(formation);
             when(outlookCalendarService.addEventToCalendarAndReturnIdWithTeamsUrl(any(OutlookEventParameters.class)))
                     .thenThrow(new RuntimeException("Outlook unavailable"));
+            when(formationMapper.toResponseDTO(any(Formation.class))).thenReturn(dto);
 
             FormationResponseDTO result = formationService.createFormation(request);
 
@@ -303,8 +354,14 @@ class FormationServiceImplTest {
             updateRequest.setDateFin(LocalDate.now().plusDays(5));
             updateRequest.setPeriodCode("P1");
 
+            FormationResponseDTO dto = new FormationResponseDTO();
+            dto.setIdFormation(1L);
+            dto.setTitreFormation("Updated");
+
             when(formationRepository.findById(1L)).thenReturn(Optional.of(formation));
             when(formationRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+            doNothing().when(formationMapper).updateEntityFromRequest(any(UpdateFormationRequest.class), any(Formation.class));
+            when(formationMapper.toResponseDTO(any(Formation.class))).thenReturn(dto);
 
             FormationResponseDTO result = formationService.updateFormation(1L, updateRequest);
 

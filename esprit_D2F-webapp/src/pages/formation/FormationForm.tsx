@@ -15,17 +15,12 @@ function FormationForm({ initialDate, onFormationCreated }: FormationFormProps) 
     initialDate ? initialDate.toISOString().split("T")[0] : ""
   );
 
-  const handleSubmit = async (e: any) => {
+  const { mutateAsync: createFormation } = useCreateFormation();
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     try {
-      const formationData = {
-        titreFormation,
-        dateDebut,
-        dateFin,
-      };
-
-      const { mutateAsync: createFormation } = useCreateFormation();
-      const newFormation = await createFormation(formationData);
+      const newFormation = await createFormation({ titreFormation, dateDebut, dateFin });
       onFormationCreated(newFormation);
     } catch {
       // silently handle

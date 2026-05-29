@@ -14,8 +14,8 @@ import java.util.Base64;
 @Component
 public class FeignServiceAuthInterceptor implements RequestInterceptor {
 
-    @Value("${jwt.secret}")
-    private String jwtSecret;
+    @Value("${services.internal.jwt-secret:${jwt.secret}}")
+    private String internalSecret;
 
     @Override
     public void apply(RequestTemplate template) {
@@ -27,7 +27,7 @@ public class FeignServiceAuthInterceptor implements RequestInterceptor {
         String header = base64Url("{\"alg\":\"HS512\",\"typ\":\"JWT\"}");
         long now = Instant.now().getEpochSecond();
         String payload = base64Url(
-                "{\"sub\":\"evaluation-service\",\"iat\":" + now + ",\"exp\":" + (now + 300) + ",\"scope\":\"ROLE_ADMIN ROLE_FORMATEUR\"}"
+                "{\"sub\":\"evaluation-service\",\"iat\":" + now + ",\"exp\":" + (now + 300) + ",\"scope\":\"SERVICE_EVALUATION ROLE_FORMATEUR\"}"
         );
         String signatureInput = header + "." + payload;
         String signature = sign(signatureInput);
@@ -42,7 +42,7 @@ public class FeignServiceAuthInterceptor implements RequestInterceptor {
     private String sign(String data) {
         try {
             javax.crypto.Mac mac = javax.crypto.Mac.getInstance("HmacSHA512");
-            mac.init(new SecretKeySpec(jwtSecret.getBytes(StandardCharsets.UTF_8), "HmacSHA512"));
+            mac.init(new SecretKeySpec(internalSecret.getBytes(StandardCharsets.UTF_8), "HmacSHA512"));
             return Base64.getUrlEncoder().withoutPadding()
                     .encodeToString(mac.doFinal(data.getBytes(StandardCharsets.UTF_8)));
         } catch (GeneralSecurityException e) {

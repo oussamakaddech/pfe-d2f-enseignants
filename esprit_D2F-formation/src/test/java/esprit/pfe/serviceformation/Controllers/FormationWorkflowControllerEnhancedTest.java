@@ -162,7 +162,7 @@ class FormationWorkflowControllerEnhancedTest {
     @Test
     @DisplayName("getFormationById - Devrait gérer la formation introuvable")
     void testGetFormationById_NotFound() throws Exception {
-        when(formationWorkflowService.getFormationWorkflowById(999L))
+        lenient().when(formationWorkflowService.getFormationWorkflowById(999L))
                 .thenThrow(new IllegalArgumentException("Formation introuvable"));
 
         mockMvc.perform(get("/api/v1/formations-workflow/999"))
