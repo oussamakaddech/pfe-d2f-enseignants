@@ -20,6 +20,8 @@ export type ApiListOrPage<T> = T[] | ApiPage<T>;
 
 export type Id = string | number;
 
-
-
-
+export interface LookupItem {
+  id?: Id;
+  name?: string;
+  libelle?: string;
+}

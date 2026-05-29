@@ -19,7 +19,6 @@ import tn.esprit.d2f.dto.BesoinFormationResponse;
 import tn.esprit.d2f.dto.PageResponse;
 import tn.esprit.d2f.entity.Notification;
 import tn.esprit.d2f.entity.enumerations.Priorite;
-import tn.esprit.d2f.repository.NotificationRepository;
 import tn.esprit.d2f.service.IBesoinFormationService;
 
 /**
@@ -38,12 +37,9 @@ public class BesoinFormationController {
     private static final String SORT_FIELD = "idBesoinFormation";
 
     private final IBesoinFormationService besoinFormationService;
-    private final NotificationRepository notificationRepository;
 
-    public BesoinFormationController(IBesoinFormationService besoinFormationService,
-                                     NotificationRepository notificationRepository) {
+    public BesoinFormationController(IBesoinFormationService besoinFormationService) {
         this.besoinFormationService = besoinFormationService;
-        this.notificationRepository = notificationRepository;
     }
 
     // ── Lecture ───────────────────────────────────────────────────────────────
@@ -247,7 +243,7 @@ public class BesoinFormationController {
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
         Pageable pageable = PageRequest.of(page, size, Sort.by("idNotification").descending());
-        return ResponseEntity.ok(PageResponse.of(notificationRepository.findByUsername(username, pageable)));
+        return ResponseEntity.ok(PageResponse.of(besoinFormationService.findNotificationsByUsername(username, pageable)));
     }
 
     // ── Helper ────────────────────────────────────────────────────────────────

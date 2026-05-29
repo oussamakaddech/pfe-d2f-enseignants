@@ -1,8 +1,8 @@
 package esprit.pfe.servicecertificat.controllers;
 
 import esprit.pfe.servicecertificat.dto.CertificateBatchMessage;
-import esprit.pfe.servicecertificat.entities.Certificate;
-import esprit.pfe.servicecertificat.repositories.CertificateRepository;
+import esprit.pfe.servicecertificat.dto.CertificateResponse;
+import esprit.pfe.servicecertificat.services.CertificateService;
 import esprit.pfe.servicecertificat.services.CertificatePdfGenerator;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
@@ -18,26 +18,26 @@ import java.util.List;
 @RequestMapping("/api/v1/certificate-pdfs")
 public class CertificatePdfController {
 
-    private final CertificateRepository certificateRepository;
+    private final CertificateService certificateService;
     private final Resource backgroundImageResource;
 
-    public CertificatePdfController(CertificateRepository certificateRepository,
+    public CertificatePdfController(CertificateService certificateService,
                                   @Value("classpath:templates/background.jpg") Resource backgroundImageResource) {
-        this.certificateRepository = certificateRepository;
+        this.certificateService = certificateService;
         this.backgroundImageResource = backgroundImageResource;
     }
 
     @GetMapping("/generate/{formationId}")
     public ResponseEntity<Object> generatePdfForFormation(@PathVariable @NonNull Long formationId) {
         try {
-            List<Certificate> certs = certificateRepository.findByFormationId(formationId);
+            List<CertificateResponse> certs = certificateService.findByFormation(formationId);
             if (certs.isEmpty()) {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND)
                         .body("Aucun certificat trouvé pour la formation avec id " + formationId);
             }
 
             CertificateBatchMessage message = new CertificateBatchMessage();
-            Certificate ref = certs.get(0);
+            CertificateResponse ref = certs.get(0);
             message.setFormationId(ref.getFormationId());
             message.setTitreFormation(ref.getTitreFormation());
             message.setTypeCertif(ref.getTypeCertif());
@@ -46,7 +46,7 @@ public class CertificatePdfController {
             message.setChargeHoraireGlobal(ref.getChargeHoraireGlobal());
 
             List<CertificateBatchMessage.EnseignantPresenceInfo> enseignants = new ArrayList<>();
-            for (Certificate cert : certs) {
+            for (CertificateResponse cert : certs) {
                 CertificateBatchMessage.EnseignantPresenceInfo info = new CertificateBatchMessage.EnseignantPresenceInfo();
                 info.setEnseignantId(cert.getEnseignantId());
                 info.setNom(cert.getNomEnseignant());
@@ -71,9 +71,9 @@ public class CertificatePdfController {
     @GetMapping("/formation/{formationId}")
     public ResponseEntity<Object> getPdfPathsByFormation(@PathVariable @NonNull Long formationId) {
         try {
-            List<Certificate> certs = certificateRepository.findByFormationId(formationId);
+            List<CertificateResponse> certs = certificateService.findByFormation(formationId);
             List<String> paths = certs.stream()
-                    .map(Certificate::getPdfFilePath)
+                    .map(CertificateResponse::getPdfFilePath)
                     .filter(path -> path != null && !path.isEmpty())
                     .toList();
             return ResponseEntity.ok((Object) paths);

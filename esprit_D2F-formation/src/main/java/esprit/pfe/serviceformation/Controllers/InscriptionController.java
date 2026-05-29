@@ -4,9 +4,6 @@ import esprit.d2f.common.security.AuthorizationMatrix;
 import esprit.pfe.serviceformation.dto.FormationDTO;
 import esprit.pfe.serviceformation.dto.InscriptionDTO;
 import esprit.pfe.serviceformation.dto.InscriptionSummaryDTO;
-import esprit.pfe.serviceformation.entities.*;
-import esprit.pfe.serviceformation.repositories.FormationCompetenceRepository;
-import esprit.pfe.serviceformation.repositories.InscriptionRepository;
 import esprit.pfe.serviceformation.services.InscriptionService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -15,22 +12,14 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-
 @RestController
 @RequestMapping("/api/v1/inscription")
 public class InscriptionController {
 
     private final InscriptionService service;
-    private final InscriptionRepository inscriptionRepository;
-    private final FormationCompetenceRepository formationCompetenceRepository;
 
-    public InscriptionController(InscriptionService s,
-                                 InscriptionRepository inscriptionRepository,
-                                 FormationCompetenceRepository formationCompetenceRepository) {
-        this.service = s;
-        this.inscriptionRepository = inscriptionRepository;
-        this.formationCompetenceRepository = formationCompetenceRepository;
+    public InscriptionController(InscriptionService service) {
+        this.service = service;
     }
 
     @GetMapping("/formations/accessibles")
@@ -43,10 +32,10 @@ public class InscriptionController {
 
     @PostMapping("/inscriptions")
     @PreAuthorize(AuthorizationMatrix.INSCRIPTION_CREATE)
-    public Inscription postInscription(
+    public InscriptionDTO postInscription(
             @RequestParam Long formationId,
             @RequestParam String enseignantId) {
-        return service.demanderInscription(formationId, enseignantId);
+        return service.demanderInscriptionDTO(formationId, enseignantId);
     }
 
     @GetMapping("/formations/{formationId}/inscriptions")
@@ -59,10 +48,10 @@ public class InscriptionController {
 
     @PutMapping("/inscriptions/{id}/traiter")
     @PreAuthorize(AuthorizationMatrix.INSCRIPTION_APPROVE)
-    public Inscription traiter(
+    public InscriptionDTO traiter(
             @PathVariable Long id,
             @RequestParam boolean approuver) {
-        return service.traiterDemande(id, approuver);
+        return service.traiterDemandeDTO(id, approuver);
     }
 
     @GetMapping("/enseignant/{enseignantId}")
@@ -70,28 +59,6 @@ public class InscriptionController {
     public ResponseEntity<Page<InscriptionSummaryDTO>> getByEnseignant(
             @PathVariable String enseignantId,
             @PageableDefault(size = 20, sort = "id") Pageable pageable) {
-        Page<InscriptionSummaryDTO> result = inscriptionRepository
-                .findByEnseignant_Id(enseignantId, pageable)
-                .map(this::toSummary);
-        return ResponseEntity.ok(result);
-    }
-
-    private InscriptionSummaryDTO toSummary(Inscription ins) {
-        Formation f = ins.getFormation();
-        List<String> competences = formationCompetenceRepository
-                .findByFormationIdFormation(f.getIdFormation())
-                .stream()
-                .map(fc -> fc.getCompetenceNom() != null ? fc.getCompetenceNom() : String.valueOf(fc.getCompetenceId()))
-                .toList();
-
-        return InscriptionSummaryDTO.builder()
-                .formationId(String.valueOf(f.getIdFormation()))
-                .titreFormation(f.getTitreFormation())
-                .dateDebut(f.getDateDebut() != null ? f.getDateDebut().toString() : "")
-                .dateFin(f.getDateFin() != null ? f.getDateFin().toString() : "")
-                .chargeHoraire(String.valueOf(f.getChargeHoraireGlobal()))
-                .etatFormation(f.getEtatFormation() != null ? f.getEtatFormation().name() : "")
-                .competencesCiblees(competences)
-                .build();
+        return ResponseEntity.ok(service.findSummariesByEnseignantId(enseignantId, pageable));
     }
 }

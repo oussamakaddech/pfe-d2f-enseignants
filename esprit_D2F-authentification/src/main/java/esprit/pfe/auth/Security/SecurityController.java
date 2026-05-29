@@ -37,6 +37,8 @@ import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
 import org.springframework.web.bind.annotation.*;
 
+import org.springframework.security.access.prepost.PreAuthorize;
+
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -189,12 +191,18 @@ public class SecurityController {
     }
 
     @PostMapping("/forgot-password")
-    public String forgotPassword(@RequestParam String emailAddress, HttpServletRequest request) {
+    public ResponseEntity<MessageResponse> forgotPassword(@RequestParam String emailAddress, HttpServletRequest request) {
+        // DSI §8.3 — Message identique que l'email existe ou non pour éviter l'énumération
+        auditService.logPasswordResetRequest(emailAddress, extractClientIp(request));
         if (!userRepository.existsByEmail(emailAddress)) {
-            throw new BadRequestException("Email address invalid");
+            PiiSafeLogger.info(SecurityController.class,
+                    String.format("Password reset requested for non-existent email from IP %s", extractClientIp(request)));
+            return ResponseEntity.ok(new MessageResponse(
+                    "If this email address is registered, you will receive a password reset link."));
         }
         if (confirmationKeyRepo.existsByEmailAddress(emailAddress)) {
-            throw new BadRequestException("We have already sent an email to reset your password");
+            return ResponseEntity.ok(new MessageResponse(
+                    "If this email address is registered, you will receive a password reset link."));
         }
         final var key = UUID.randomUUID().toString();
         SimpleMailMessage simpleMailMessage = new SimpleMailMessage();
@@ -206,11 +214,12 @@ public class SecurityController {
 
         // Audit : PASSWORD_RESET_REQUEST
         String ip = extractClientIp(request);
-        auditService.logPasswordResetRequest(emailAddress, ip);
         PiiSafeLogger.info(SecurityController.class,
                 String.format(LOG_MESSAGE_FORMAT_2, emailAddress, ip));
 
-        return this.generateAndPersistToken(emailAddress, key);
+        this.generateAndPersistToken(emailAddress, key);
+        return ResponseEntity.ok(new MessageResponse(
+                "If this email address is registered, you will receive a password reset link."));
     }
 
     public String generateAndPersistToken(String emailAddress, String key) {
@@ -352,8 +361,6 @@ public class SecurityController {
 
     @PostMapping("/request-reset")
     public ResponseEntity<MessageResponse> requestDeviceReset(@RequestParam String username) {
-        // Envoyer un email à l'administrateur ou déclencher une action pour
-        // réinitialiser les appareils
         SimpleMailMessage simpleMailMessage = new SimpleMailMessage();
         simpleMailMessage.setTo(adminEmail);
         simpleMailMessage.setSubject("Device Reset Request");
@@ -364,6 +371,7 @@ public class SecurityController {
     }
 
     @PostMapping("/reset-devices")
+    @PreAuthorize("hasAnyRole('ADMIN', 'D2F')")
     public ResponseEntity<MessageResponse> resetDevices(@RequestParam String username) {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("User not found."));

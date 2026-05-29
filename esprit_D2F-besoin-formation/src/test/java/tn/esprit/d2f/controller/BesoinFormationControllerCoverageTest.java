@@ -13,7 +13,6 @@ import org.springframework.data.domain.AuditorAware;
 import org.springframework.data.jpa.mapping.JpaMetamodelMappingContext;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-import tn.esprit.d2f.repository.NotificationRepository;
 import tn.esprit.d2f.service.IBesoinFormationService;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -35,9 +34,6 @@ class BesoinFormationControllerCoverageTest {
 
     @MockitoBean
     private IBesoinFormationService service;
-
-    @MockitoBean
-    private NotificationRepository notificationRepository;
 
     // Required to prevent "JPA metamodel must not be empty" and "auditorProvider not found"
     // in @WebMvcTest slices when @EnableJpaAuditing is on the main @SpringBootApplication class.
@@ -76,7 +72,7 @@ class BesoinFormationControllerCoverageTest {
         when(service.retrieveByPriorite(any(), any(Pageable.class))).thenReturn(Page.empty());
         when(service.retrieveByUp(any(), any(Pageable.class))).thenReturn(Page.empty());
         when(service.retrieveByDepartement(any(), any(Pageable.class))).thenReturn(Page.empty());
-        when(notificationRepository.findByUsername(any(), any(Pageable.class))).thenReturn(Page.empty());
+        when(service.findNotificationsByUsername(any(), any(Pageable.class))).thenReturn(Page.empty());
 
         mockMvc.perform(get(url))
                 .andExpect(status().isOk());

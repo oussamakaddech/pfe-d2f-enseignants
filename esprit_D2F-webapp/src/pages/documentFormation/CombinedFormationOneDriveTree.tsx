@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback, useMemo } from "react";
+import type { Dayjs } from "dayjs";
 import {
   Layout, Row, Col, Button, Input, DatePicker, Modal,
   notification, Typography, Space, Card, Statistic,
@@ -52,7 +53,7 @@ export default function CombinedFormationOneDriveTree() {
   const [uploadModalVisible, setUploadModalVisible] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [searchText, setSearchText] = useState("");
-  const [dateRange, setDateRange] = useState<any[]>([]);
+  const [dateRange, setDateRange] = useState<Dayjs[]>([]);
 
   const { data: formationsData = [], isLoading: formationsLoading } = useFormationsWithDocuments();
   const { data: hierarchyData, isLoading: treeLoading, refetch: refetchHierarchy } =

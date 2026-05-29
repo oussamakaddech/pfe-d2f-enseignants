@@ -11,12 +11,14 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.core.Authentication;
+import org.junit.jupiter.api.BeforeEach;
 
 import java.util.*;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class SkillPassportAssemblerTest {
@@ -26,6 +28,13 @@ class SkillPassportAssemblerTest {
     @Mock private FormationServiceClient formationClient;
     @Mock private CertificatServiceClient certificatClient;
     @Mock private AnalysePredictiveService analysePredictiveService;
+    @Mock private SkillPassportAuthorizationService authorizationService;
+    @Mock private Authentication authentication;
+
+    @BeforeEach
+    void setUp() {
+        lenient().when(authorizationService.extractUsername(any())).thenReturn("admin");
+    }
 
     @InjectMocks
     private SkillPassportAssembler assembler;
@@ -66,7 +75,7 @@ class SkillPassportAssemblerTest {
         when(certificatClient.getCertificationsForTeacher(eq("jdoe"), any())).thenReturn(List.of(cert));
         when(analysePredictiveService.analyserEnseignant(eq("jdoe"), isNull())).thenReturn(analyseResult);
 
-        TeacherSkillPassportDTO passport = assembler.assemble("jdoe", "Bearer token");
+        TeacherSkillPassportDTO passport = assembler.assemble("jdoe", authentication, "Bearer token");
 
         assertThat(passport).isNotNull();
         assertThat(passport.getIdentity().getUsername()).isEqualTo("jdoe");
@@ -95,7 +104,7 @@ class SkillPassportAssemblerTest {
                 .thenReturn(Map.of("gaps", Collections.emptyList(),
                                    "recommandationsFormations", Collections.emptyList()));
 
-        TeacherSkillPassportDTO passport = assembler.assemble("jdoe", null);
+        TeacherSkillPassportDTO passport = assembler.assemble("jdoe", authentication, null);
 
         assertThat(passport).isNotNull();
         assertThat(passport.getDomaines()).isEmpty();
@@ -127,7 +136,7 @@ class SkillPassportAssemblerTest {
         when(certificatClient.getCertificationsForTeacher(any(), any())).thenReturn(Collections.emptyList());
         when(analysePredictiveService.analyserEnseignant(any(), any())).thenReturn(result);
 
-        TeacherSkillPassportDTO passport = assembler.assemble("jdoe", null);
+        TeacherSkillPassportDTO passport = assembler.assemble("jdoe", authentication, null);
 
         assertThat(passport.getStatut()).isEqualTo("à_risque");
     }
@@ -155,7 +164,7 @@ class SkillPassportAssemblerTest {
         when(certificatClient.getCertificationsForTeacher(any(), any())).thenReturn(Collections.emptyList());
         when(analysePredictiveService.analyserEnseignant(any(), any())).thenReturn(result);
 
-        TeacherSkillPassportDTO passport = assembler.assemble("jdoe", null);
+        TeacherSkillPassportDTO passport = assembler.assemble("jdoe", authentication, null);
 
         assertThat(passport.getStatut()).isEqualTo("en_progression");
     }
@@ -183,7 +192,7 @@ class SkillPassportAssemblerTest {
         when(certificatClient.getCertificationsForTeacher(any(), any())).thenReturn(Collections.emptyList());
         when(analysePredictiveService.analyserEnseignant(any(), any())).thenReturn(result);
 
-        TeacherSkillPassportDTO passport = assembler.assemble("jdoe", null);
+        TeacherSkillPassportDTO passport = assembler.assemble("jdoe", authentication, null);
 
         assertThat(passport.getStatut()).isEqualTo("à_risque");
     }
@@ -200,7 +209,7 @@ class SkillPassportAssemblerTest {
         when(certificatClient.getCertificationsForTeacher(any(), any())).thenReturn(Collections.emptyList());
         when(analysePredictiveService.analyserEnseignant(any(), any())).thenThrow(new RuntimeException("Analyse error"));
 
-        TeacherSkillPassportDTO passport = assembler.assemble("jdoe", null);
+        TeacherSkillPassportDTO passport = assembler.assemble("jdoe", authentication, null);
 
         assertThat(passport.getGaps()).isEmpty();
         assertThat(passport.getRecommandations()).isEmpty();
@@ -233,7 +242,7 @@ class SkillPassportAssemblerTest {
         when(certificatClient.getCertificationsForTeacher(any(), any())).thenReturn(Collections.emptyList());
         when(analysePredictiveService.analyserEnseignant(any(), any())).thenReturn(result);
 
-        TeacherSkillPassportDTO passport = assembler.assemble("jdoe", null);
+        TeacherSkillPassportDTO passport = assembler.assemble("jdoe", authentication, null);
 
         assertThat(passport.getRecommandations()).hasSize(1);
         assertThat(passport.getRecommandations().get(0).getFormationId()).isEqualTo("5");
@@ -255,7 +264,7 @@ class SkillPassportAssemblerTest {
         when(certificatClient.getCertificationsForTeacher(any(), any())).thenReturn(Collections.emptyList());
         when(analysePredictiveService.analyserEnseignant(any(), any())).thenReturn(result);
 
-        TeacherSkillPassportDTO passport = assembler.assemble("jdoe", null);
+        TeacherSkillPassportDTO passport = assembler.assemble("jdoe", authentication, null);
 
         assertThat(passport.getScoreGlobal()).isEqualTo(0.0);
     }
@@ -287,8 +296,32 @@ class SkillPassportAssemblerTest {
         when(certificatClient.getCertificationsForTeacher(any(), any())).thenReturn(Collections.emptyList());
         when(analysePredictiveService.analyserEnseignant(any(), any())).thenReturn(result);
 
-        TeacherSkillPassportDTO passport = assembler.assemble("jdoe", null);
+        TeacherSkillPassportDTO passport = assembler.assemble("jdoe", authentication, null);
 
         assertThat(passport.getRecommandations()).hasSize(5);
+    }
+
+    // ── JWT path (username matches authenticated user) ─────────────────────
+
+    @Test
+    void assemble_withMatchingUsername_usesJwtPath() {
+        TeacherIdentityDTO identity = TeacherIdentityDTO.builder()
+                .username("jdoe").nom("Doe").prenom("John").email("jdoe@esprit.tn").build();
+
+        when(authorizationService.extractUsername(any())).thenReturn("jdoe");
+        when(authClient.getTeacherIdentityFromJwt(any())).thenReturn(identity);
+        when(competenceClient.getDomainSummaries(any(), any())).thenReturn(Collections.emptyList());
+        when(formationClient.getFormationsForTeacher(any(), any())).thenReturn(Collections.emptyList());
+        when(certificatClient.getCertificationsForTeacher(any(), any())).thenReturn(Collections.emptyList());
+        when(analysePredictiveService.analyserEnseignant(any(), any()))
+                .thenReturn(Map.of("gaps", Collections.emptyList(),
+                        "recommandationsFormations", Collections.emptyList()));
+
+        TeacherSkillPassportDTO passport = assembler.assemble("jdoe", authentication, "Bearer token");
+
+        assertThat(passport).isNotNull();
+        assertThat(passport.getIdentity().getUsername()).isEqualTo("jdoe");
+        verify(authClient).getTeacherIdentityFromJwt(any());
+        verify(authClient, never()).getTeacherIdentity(any(), any());
     }
 }

@@ -1,14 +1,15 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import DeptService from "@/services/formation/DeptService";
+import type { LookupItem } from "@/models/common";
 
 const KEYS = {
   all: ["departements"] as const,
 };
 
 export function useAllDepts() {
-  return useQuery<unknown[]>({
+  return useQuery<LookupItem[]>({
     queryKey: KEYS.all,
-    queryFn: () => DeptService.getAllDepts(),
+    queryFn: () => DeptService.getAllDepts() as Promise<LookupItem[]>,
   });
 }
 

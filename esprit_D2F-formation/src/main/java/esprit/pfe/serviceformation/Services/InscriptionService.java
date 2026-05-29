@@ -23,16 +23,19 @@ public class InscriptionService {
     private final FormationRepository formationRepo;
     private final EnseignantRepository enseignantRepo;
     private final InscriptionRepository inscriptionRepo;
+    private final FormationCompetenceRepository formationCompetenceRepo;
     private final InscriptionService self;
 
     @Autowired
     public InscriptionService(FormationRepository formationRepo,
                               EnseignantRepository enseignantRepo,
                               InscriptionRepository inscriptionRepo,
+                              FormationCompetenceRepository formationCompetenceRepo,
                               @Lazy InscriptionService self) {
         this.formationRepo = formationRepo;
         this.enseignantRepo = enseignantRepo;
         this.inscriptionRepo = inscriptionRepo;
+        this.formationCompetenceRepo = formationCompetenceRepo;
         this.self = self;
     }
 
@@ -268,4 +271,39 @@ public class InscriptionService {
         return dto;
     }
 
+    @Transactional
+    public InscriptionDTO demanderInscriptionDTO(Long formationId, String enseignantId) {
+        return mapInscriptionToDTO(demanderInscription(formationId, enseignantId));
+    }
+
+    @Transactional
+    public InscriptionDTO traiterDemandeDTO(Long inscriptionId, boolean approuver) {
+        return mapInscriptionToDTO(traiterDemande(inscriptionId, approuver));
+    }
+
+    @Transactional(readOnly = true)
+    public Page<InscriptionSummaryDTO> findSummariesByEnseignantId(String enseignantId, Pageable pageable) {
+        return inscriptionRepo
+                .findByEnseignant_Id(enseignantId, pageable)
+                .map(this::toSummary);
+    }
+
+    private InscriptionSummaryDTO toSummary(Inscription ins) {
+        Formation f = ins.getFormation();
+        List<String> competences = formationCompetenceRepo
+                .findByFormationIdFormation(f.getIdFormation())
+                .stream()
+                .map(fc -> fc.getCompetenceNom() != null ? fc.getCompetenceNom() : String.valueOf(fc.getCompetenceId()))
+                .toList();
+
+        return InscriptionSummaryDTO.builder()
+                .formationId(String.valueOf(f.getIdFormation()))
+                .titreFormation(f.getTitreFormation())
+                .dateDebut(f.getDateDebut() != null ? f.getDateDebut().toString() : "")
+                .dateFin(f.getDateFin() != null ? f.getDateFin().toString() : "")
+                .chargeHoraire(String.valueOf(f.getChargeHoraireGlobal()))
+                .etatFormation(f.getEtatFormation() != null ? f.getEtatFormation().name() : "")
+                .competencesCiblees(competences)
+                .build();
+    }
 }

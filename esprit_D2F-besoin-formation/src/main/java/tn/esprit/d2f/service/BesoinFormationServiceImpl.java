@@ -287,6 +287,12 @@ public class BesoinFormationServiceImpl implements IBesoinFormationService {
         }
     }
 
+    @Transactional(readOnly = true)
+    @Override
+    public Page<Notification> findNotificationsByUsername(String username, Pageable pageable) {
+        return notificationRepository.findByUsername(username, pageable);
+    }
+
     private void createNotification(String username, String message, String commentaire) {
         Notification notif = new Notification();
         notif.setUsername(username);

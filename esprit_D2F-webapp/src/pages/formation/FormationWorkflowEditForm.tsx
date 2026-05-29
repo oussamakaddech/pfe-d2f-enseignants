@@ -1,1002 +1,106 @@
-import { useState, useEffect } from "react";
-import { format } from "date-fns";
-import {
-  Row,
-  Col,
-  Input,
-  InputNumber,
-  Select,
-  Button,
-  Typography,
-  Alert,
-  Modal,
-  Radio,
-  Divider,
-  Space,
-  Popconfirm,
-} from "antd";
-import {
-  UploadOutlined,
-  DeleteOutlined,
-  UpOutlined,
-  DownOutlined,
-  SaveOutlined,
-} from "@ant-design/icons";
-import * as XLSX from "xlsx";
-import useAppNotification from "@/hooks/ui/useAppNotification";
-import "@/styles/pages/formation-workflow-edit-form.css";
-
-import { useAllFormations, useUpdateFormation, useUps, useDepartements } from "@/hooks/formation";
-import { useEnseignants } from "@/hooks/enseignant";
-import { useAuth } from "@/hooks/auth/useAuth";
+import { Button, Col, Input, Modal, Row, Typography } from "antd";
+import { DownOutlined, SaveOutlined, UpOutlined } from "@ant-design/icons";
+import { useFormationWorkflow } from "@/hooks/formation/useFormationWorkflow";
 import DocumentListModal from "../documentFormation/DocumentListModal";
 import DocumentUploadPanel from "../documentFormation/DocumentUploadPanel";
+import FormationGeneralSection  from "./components/FormationGeneralSection";
+import FormationSeancesSection  from "./components/FormationSeancesSection";
+import type { FormationEdit } from "./formationWorkflowTypes";
+import "@/styles/pages/formation-workflow-edit-form.css";
 
-const { Text, Title } = Typography;
-const { TextArea } = Input;
-
-interface EnseignantItem {
-  id: string;
-  nom: string;
-  prenom: string;
-  mail: string;
-  type: string;
-  cup: string;
-  chefDepartement: string;
-  upLibelle: string;
-  deptLibelle: string;
-}
-
-interface SeanceData {
-  idSeance: string;
-  dateSeance: string;
-  heureDebut: string;
-  heureFin: string;
-  salle: string;
-  animateurs: EnseignantItem[];
-  participants: EnseignantItem[];
-  typeSeance: string;
-  contenus: string;
-  methodes: string;
-  dureeTheorique: number;
-  dureePratique: number;
-}
-
-interface SeanceState {
-  id?: number;
-  idSeance?: string;
-  dateSeance: string;
-  heureDebut: string;
-  heureFin: string;
-  salle: string;
-  animateurs: EnseignantItem[];
-  typeSeance: string;
-  contenus: string;
-  methodes: string;
-  dureeTheorique: number;
-  dureePratique: number;
-  expanded: boolean;
-}
-
-interface UPItem {
-  id: string;
-  libelle?: string;
-}
-
-interface DeptItem {
-  id: string;
-  libelle?: string;
-}
-
-interface FormationEdit {
-  id?: string;
-  idFormation: string;
-  titreFormation: string;
-  dateDebut: string;
-  dateFin: string;
-  typeFormation: string;
-  etatFormation: string;
-  coutFormation: number;
-  organismeRefExterne: string;
-  chargeHoraireGlobal: number;
-  externeFormateurNom: string;
-  externeFormateurPrenom: string;
-  externeFormateurEmail: string;
-  ouverte: boolean;
-  domaine: string;
-  populationCible: string;
-  objectifs: string;
-  objectifsPedago: string;
-  evalMethods: string;
-  prerequis: string;
-  acquis: string;
-  indicateurs: string;
-  coutTransport: number;
-  coutHebergement: number;
-  coutRepas: number;
-  up1: { id: string };
-  departement1: { id: string };
-  periodCode: string;
-  customPeriodLabel: string;
-  periodeFormation: string;
-  seances: SeanceData[];
-  animateurs: EnseignantItem[];
-  participants: EnseignantItem[];
-}
-
-interface SeancePayload {
-  idSeance: string;
-  dateSeance: string;
-  heureDebut: string;
-  heureFin: string;
-  salle: string;
-  animateursIds: string[];
-  typeSeance: string;
-  contenus: string;
-  methodes: string;
-  dureeTheorique: number;
-  dureePratique: number;
-}
+const { Text } = Typography;
 
 interface FormationWorkflowEditFormProps {
   formation: FormationEdit;
   onFormationUpdated: (res: Record<string, unknown>) => void;
 }
 
-interface SeanceConflictItem {
-  dateSeance: string;
-  heureDebut: string;
-  heureFin: string;
-  salle: string;
-  animateurIds: string[];
-}
-
-const PERIOD_OPTIONS = [
-  { value: "WINTER",   label: "Winter" },
-  { value: "SUMMER",   label: "Summer" },
-  { value: "SPRINT",   label: "Sprint" },
-  { value: "WORKSHOP", label: "Workshop" },
-  { value: "OTHER",    label: "Autre" },
-];
-
 export default function FormationWorkflowEditForm({ formation, onFormationUpdated }: FormationWorkflowEditFormProps) {
-  const { message } = useAppNotification();
-  const { user } = useAuth();
-  const role = String(user?.role || "").toLowerCase().replaceAll(/[\s_-]+/g, "");
-  const isResponsableDossier = role === "responsabledossier";
-  
-  // Can only edit everything if admin
-  // Responsable dossier can only view info but manage documents
-  
-  /* -------------------- états principaux -------------------- */
-  const [titre, setTitre] = useState("");
-  const [dateDebut, setDateDebut] = useState("");
-  const [dateFin, setDateFin] = useState("");
-  const [typeFormation, setTypeFormation] = useState("INTERNE");
-  const [etatFormation, setEtatFormation] = useState("ENREGISTRE");
-  const [cout, setCout] = useState(0);
-  const [organisme, setOrganisme] = useState("");
-  const [chargeH, setChargeH] = useState(40);
+  const h = useFormationWorkflow(formation, onFormationUpdated);
 
-  /* formateur externe */
-  const [formNom, setFormNom] = useState("");
-  const [formPrenom, setFormPrenom] = useState("");
-  const [formEmail, setFormEmail] = useState("");
-
-  /* UP & Département */
-  const { data: upsRaw = [] } = useUps();
-  const { data: deptsRaw = [] } = useDepartements();
-  const { data: ensData = [] } = useEnseignants();
-  const { data: allFormations = [] } = useAllFormations();
-  const ups = upsRaw as UPItem[];
-  const depts = deptsRaw as DeptItem[];
-  const updateMut = useUpdateFormation();
-  const [selectedUp, setSelectedUp] = useState<UPItem | null>(null);
-  const [selectedDept, setSelectedDept] = useState<DeptItem | null>(null);
-
-  /* enseignants + filtres */
-  const ens = ensData as unknown as EnseignantItem[];
-  const [animSel, setAnimSel] = useState<EnseignantItem[]>([]);
-  const [partSel, setPartSel] = useState<EnseignantItem[]>([]);
-  const existingFormations = (Array.isArray(allFormations) ? allFormations : []) as unknown as FormationEdit[];
-  const [overlapWarnings, setOverlapWarnings] = useState<string[]>([]);
-  const [animFilterUp] = useState<UPItem | null>(null);
-  const [animFilterDept] = useState<DeptItem | null>(null);
-  const [partFilterUp, setPartFilterUp] = useState<UPItem | null>(null);
-  const [partFilterDept, setPartFilterDept] = useState<DeptItem | null>(null);
-
-  /* “plus d’infos” */
-  const [domaine, setDomaine] = useState("");
-  const [populationCible, setPopulationCible] = useState("");
-  const [objectifs, setObjectifs] = useState("");
-  const [objectifsPedago, setObjectifsPedago] = useState("");
-  const [evalMethods, setEvalMethods] = useState("");
-  const [prerequis, setPrerequis] = useState("");
-  const [acquis, setAcquis] = useState("");
-  const [indicateurs, setIndicateurs] = useState("");
-
-  /* frais annexes (EXTERNE) */
-  const [coutTransport, setCoutTransport] = useState(0);
-  const [coutHebergement, setCoutHebergement] = useState(0);
-  const [coutRepas, setCoutRepas] = useState(0);
-
-  /* séances */
-  const [seances, setSeances] = useState<SeanceState[]>([]);
-  const [ouverte, setOuverte] = useState(false);
-  
-  // Structured Period State
-  const [periodCode, setPeriodCode] = useState("OTHER");
-  const [customPeriodLabel, setCustomPeriodLabel] = useState("");
-
-  /* UI */
-  const [showMore, setShowMore] = useState(false);
-  const [openDocModal, setOpenDocModal] = useState(false);
-  const [openUploadPanel, setOpenUploadPanel] = useState(false);
-  
-  const getEnseignantLabel = (opt: EnseignantItem | null) => {
-    if (!opt) return "";
-    let roles = [];
-    if (opt.type === "P") roles.push("Perm.");
-    if (opt.type === "V") roles.push("Vac.");
-    if (opt.cup === "O" || opt.cup === "Y" || opt.cup === "1") roles.push("CUP");
-    if (opt.chefDepartement === "O" || opt.chefDepartement === "Y" || opt.chefDepartement === "1") roles.push("ChefDep");
-    
-    const roleStr = roles.length > 0 ? ` [${roles.join(", ")}]` : "";
-    return `${opt.nom} ${opt.prenom} (${opt.mail})${roleStr}`;
-  };
-
-  /* ---------- chargement de la formation à éditer ---------- */
-  useEffect(() => {
-    if (!formation) return;
-
-    setTitre(formation.titreFormation);
-    setDateDebut(format(new Date(formation.dateDebut), "yyyy-MM-dd"));
-    setDateFin(format(new Date(formation.dateFin), "yyyy-MM-dd"));
-    setTypeFormation(formation.typeFormation);
-    setEtatFormation(formation.etatFormation);
-    setCout(formation.coutFormation || 0);
-    setOrganisme(formation.organismeRefExterne || "");
-    setChargeH(formation.chargeHoraireGlobal || 40);
-
-    setFormNom(formation.externeFormateurNom || "");
-    setFormPrenom(formation.externeFormateurPrenom || "");
-    setFormEmail(formation.externeFormateurEmail || "");
-    setOuverte(!!formation.ouverte);
-    setDomaine(formation.domaine || "");
-    setPopulationCible(formation.populationCible || "");
-    setObjectifs(formation.objectifs || "");
-    setObjectifsPedago(formation.objectifsPedago || "");
-    setEvalMethods(formation.evalMethods || "");
-    setPrerequis(formation.prerequis || "");
-    setAcquis(formation.acquis || "");
-    setIndicateurs(formation.indicateurs || "");
-
-    setCoutTransport(formation.coutTransport || 0);
-    setCoutHebergement(formation.coutHebergement || 0);
-    setCoutRepas(formation.coutRepas || 0);
-
-    setSelectedUp(formation.up1 || null);
-    setSelectedDept(formation.departement1 || null);
-    
-    // Mapping back period
-    setPeriodCode(formation.periodCode || "OTHER");
-    setCustomPeriodLabel(formation.customPeriodLabel || formation.periodeFormation || "");
-
-    /* séances complètes (avec animateurs) */
-    setSeances(
-      (formation.seances || []).map((s: SeanceData) => ({
-        idSeance: s.idSeance,
-        dateSeance: format(new Date(s.dateSeance), "yyyy-MM-dd"),
-        heureDebut: s.heureDebut,
-        heureFin: s.heureFin,
-        salle: s.salle || "",
-        animateurs: s.animateurs || [],
-        typeSeance: s.typeSeance || "THEORIQUE",
-        contenus: s.contenus || "",
-        methodes: s.methodes || "",
-        dureeTheorique: s.dureeTheorique || 0,
-        dureePratique: s.dureePratique || 0,
-        expanded: false,
-      }))
-    );
-
-    /* sélection animateurs / participants global */
-    const amap: Record<string, EnseignantItem> = {},
-      pmap: Record<string, EnseignantItem> = {};
-    // Animateurs au niveau de la formation (priorité)
-    (formation.animateurs || []).forEach((a: EnseignantItem) => { (amap)[a.id] = a; });
-    // Compléter avec les animateurs des séances
-    (formation.seances || []).forEach((s: SeanceData) => {
-      (s.animateurs || []).forEach((a: EnseignantItem) => { (amap)[a.id] = a; });
-      (s.participants || []).forEach((p: EnseignantItem) => { (pmap)[p.id] = p; });
-    });
-    setAnimSel(Object.values(amap));
-    setPartSel(Object.values(pmap));
-  }, [formation]);
-
-
-  /* ---------- filtres animateurs / participants ---------- */
-  const optionsAnim = ens.filter(
-    (x: EnseignantItem) =>
-      (!animFilterUp || x.upLibelle === animFilterUp.libelle) &&
-      (!animFilterDept || x.deptLibelle === animFilterDept.libelle)
-  );
-  const optionsPart = ens.filter(
-    (x: EnseignantItem) =>
-      (!partFilterUp || x.upLibelle === partFilterUp.libelle) &&
-      (!partFilterDept || x.deptLibelle === partFilterDept.libelle)
-  );
-
-  const toMinutes = (timeValue: string | null | undefined) => {
-    if (!timeValue) return null;
-    const parts = String(timeValue).split(":");
-    if (parts.length < 2) return null;
-    const h = Number.parseInt(parts[0], 10);
-    const m = Number.parseInt(parts[1], 10);
-    if (Number.isNaN(h) || Number.isNaN(m)) return null;
-    return (h * 60) + m;
-  };
-
-  const sameTimeWindow = (a: { dateSeance: string; heureDebut: string; heureFin: string }, b: { dateSeance: string; heureDebut: string; heureFin: string }) => {
-    if (!a?.dateSeance || !b?.dateSeance || a.dateSeance !== b.dateSeance) return false;
-    const aStart = toMinutes(a.heureDebut);
-    const aEnd = toMinutes(a.heureFin);
-    const bStart = toMinutes(b.heureDebut);
-    const bEnd = toMinutes(b.heureFin);
-    if (aStart === null || aEnd === null || bStart === null || bEnd === null) return false;
-    return aStart < bEnd && bStart < aEnd;
-  };
-
-  const intersects = (left: string[], right: string[]) => left.some((id: string) => right.includes(id));
-  const normalizedSalle = (value: unknown) => String(value || "").trim().toLowerCase();
-
-  const validateLocalSeances = (localSeances: SeanceConflictItem[]) => {
-    const msgs: string[] = [];
-    localSeances.forEach((s: { dateSeance: string; heureDebut: string; heureFin: string }, idx: number) => {
-      const start = toMinutes(s.heureDebut);
-      const end = toMinutes(s.heureFin);
-      if (start !== null && end !== null && start >= end) {
-        msgs.push(`Séance #${idx + 1}: heure de fin doit être après l&apos;heure de début.`);
-      }
-    });
-    return msgs;
-  };
-
-  const checkSeancePairConflicts = (left: SeanceConflictItem, right: SeanceConflictItem, i: number, j: number, participantIds: string[], msgs: string[]) => {
-    if (!sameTimeWindow(left, right)) return;
-    const leftSalle = normalizedSalle(left.salle);
-    const rightSalle = normalizedSalle(right.salle);
-    if (leftSalle && rightSalle && leftSalle === rightSalle) {
-      msgs.push(`Conflit interne: les séances #${i + 1} et #${j + 1} utilisent la même salle au même horaire.`);
-    }
-    if (participantIds.length > 0) {
-      msgs.push(`Conflit interne: les séances #${i + 1} et #${j + 1} se chevauchent pour les mêmes participants.`);
-    }
-    if (left.animateurIds.length > 0 && right.animateurIds.length > 0 && intersects(left.animateurIds, right.animateurIds)) {
-      msgs.push(`Conflit interne: les séances #${i + 1} et #${j + 1} se chevauchent pour un ou plusieurs animateurs.`);
-    }
-  };
-
-  const checkInternalConflicts = (localSeances: SeanceConflictItem[], participantIds: string[]) => {
-    const msgs: string[] = [];
-    for (let i = 0; i < localSeances.length; i += 1) {
-      for (let j = i + 1; j < localSeances.length; j += 1) {
-        checkSeancePairConflicts(localSeances[i], localSeances[j], i, j, participantIds, msgs);
-      }
-    }
-    return msgs;
-  };
-
-  const checkExistingSeanceConflict = (localSeance: SeanceConflictItem, idx: number, existingSeance: SeanceData, formationName: string, participantIds: string[], existingParticipants: string[]) => {
-    const msgs: string[] = [];
-    if (!sameTimeWindow(localSeance, existingSeance)) return msgs;
-
-    const localSalle = normalizedSalle(localSeance.salle);
-    const existingSalle = normalizedSalle(existingSeance.salle);
-    if (localSalle && existingSalle && localSalle === existingSalle) {
-      msgs.push(`Conflit salle: séance #${idx + 1} chevauche la formation ${formationName} dans la salle ${localSeance.salle}.`);
-    }
-
-    const existingAnimIds = (Array.isArray(existingSeance.animateurs) ? existingSeance.animateurs : []).map((a: EnseignantItem) => a?.id).filter(Boolean);
-    if (participantIds.length > 0 && existingParticipants.length > 0 && intersects(participantIds, existingParticipants)) {
-      msgs.push(`Conflit participants: séance #${idx + 1} chevauche la formation ${formationName}.`);
-    }
-    if (localSeance.animateurIds.length > 0 && existingAnimIds.length > 0 && intersects(localSeance.animateurIds, existingAnimIds)) {
-      msgs.push(`Conflit animateurs: séance #${idx + 1} chevauche la formation ${formationName}.`);
-    }
-    return msgs;
-  };
-
-  const checkLocalAgainstFormation = (localSeances: SeanceConflictItem[], f: FormationEdit, msgs: string[], participantIds: string[]) => {
-    const existingSeances = Array.isArray(f.seances) ? f.seances : [];
-    const existingParticipants = [
-      ...(Array.isArray(f.participants) ? f.participants : []),
-      ...existingSeances.flatMap((s: SeanceData) => Array.isArray(s.participants) ? s.participants : []),
-    ].map((p) => p?.id).filter(Boolean);
-    const formationName = f.titreFormation || `#${f.idFormation || f.id || "?"}`;
-    localSeances.forEach((localSeance: SeanceConflictItem, idx: number) => {
-      existingSeances.forEach((existingSeance: SeanceData) => {
-        msgs.push(...checkExistingSeanceConflict(localSeance, idx, existingSeance, formationName, participantIds, existingParticipants));
-      });
-    });
-  };
-
-  const checkExternalConflicts = (localSeances: SeanceConflictItem[], participantIds: string[], existingFormations: FormationEdit[], formation: FormationEdit) => {
-    const msgs: string[] = [];
-    existingFormations
-      .filter((f: FormationEdit) => (f.idFormation || f.id) !== formation.idFormation)
-      .forEach((f: FormationEdit) => checkLocalAgainstFormation(localSeances, f, msgs, participantIds));
-    return msgs;
-  };
-
-  const buildConflictMessages = () => {
-    const messages: string[] = [];
-    const participantIds = partSel.map((p: EnseignantItem) => p.id).filter(Boolean);
-    const localSeances: SeanceConflictItem[] = seances.map((s: SeanceState) => ({
-      dateSeance: s.dateSeance,
-      heureDebut: s.heureDebut,
-      heureFin: s.heureFin,
-      salle: s.salle,
-      animateurIds: (Array.isArray(s.animateurs) ? s.animateurs : []).map((a: EnseignantItem) => a?.id).filter(Boolean),
-    }));
-
-    messages.push(...validateLocalSeances(localSeances));
-    messages.push(...checkInternalConflicts(localSeances, participantIds));
-    messages.push(...checkExternalConflicts(localSeances, participantIds, existingFormations, formation));
-
-    return [...new Set(messages)] as string[];
-  };
-
-  useEffect(() => {
-    setOverlapWarnings(buildConflictMessages());
-  }, [seances, partSel, existingFormations]);
-
-  /* ---------- helpers séances ---------- */
-  const addSeance = () =>
-    setSeances((s) => [
-      ...s,
-      {
-        id: Date.now(),
-        dateSeance: dateDebut || format(new Date(), "yyyy-MM-dd"),
-        heureDebut: "08:00:00",
-        heureFin: "10:00:00",
-        salle: "",
-        animateurs: [],
-        typeSeance: "THEORIQUE",
-        contenus: "",
-        methodes: "",
-        dureeTheorique: 0,
-        dureePratique: 0,
-        expanded: false,
-      },
-    ]);
-
-  const updateSeance = (i: number, f: string, v: unknown) =>
-    setSeances((s) => {
-      const a = [...s];
-      a[i] = { ...a[i], [f]: v };
-      return a;
-    });
-  const removeSeance = (i: number) => setSeances((s) => s.filter((_, idx) => idx !== i));
-  const toggleSeance = (i: number) =>
-    setSeances((s) =>
-      s.map((se, idx) => (idx === i ? { ...se, expanded: !se.expanded } : se))
-    );
-
-  /* ---------- import Excel participants ---------- */
-  const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const f = e.target.files?.[0];
-    if (!f) return;
-    const reader = new FileReader();
-    reader.onload = (ev: ProgressEvent<FileReader>) => {
-      const result = ev.target?.result;
-      if (!result || typeof result === "string") return;
-      const wb = XLSX.read(new Uint8Array(result), { type: "array" });
-      const ws = wb.Sheets[wb.SheetNames[0]];
-      const rows = XLSX.utils.sheet_to_json(ws, { header: 1 }) as unknown[][];
-      if (rows.length < 2) {
-        message.warning("Excel vide ou mal formaté");
-        return;
-      }
-      const hdr = rows[0].map((h: unknown) => String(h).toLowerCase().trim());
-      const idx = hdr.findIndex((h: string) => h === "email" || h === "mail");
-      if (idx < 0) {
-        message.warning(`Colonne Email introuvable. Colonnes attendues : Email, Nom, Prénom. Colonnes trouvées : ${rows[0].join(", ")}`);
-        e.target.value = "";
-        return;
-      }
-      const mails = rows.slice(1).map((r: unknown[]) => r[idx]).filter(Boolean);
-      const matched = ens.filter((x: EnseignantItem) => mails.includes(x.mail));
-      setPartSel(matched);
-      message.success(`${matched.length} participant${matched.length > 1 ? "s" : ""} importé${matched.length > 1 ? "s" : ""}`);
-      e.target.value = "";
-    };
-    reader.readAsArrayBuffer(f);
-  };
-
-  /* ---------- soumission ---------- */
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (seances.length === 0) {
-      message.warning("Veuillez ajouter au moins une séance.");
-      return;
-    }
-
-    const blockingConflicts = buildConflictMessages();
-    if (blockingConflicts.length > 0) {
-      setOverlapWarnings(blockingConflicts);
-      message.error("Conflits détectés: corrigez les dates/salles/personnes avant mise à jour.");
-      return;
-    }
-
-    const payload = {
-      titreFormation: titre,
-      dateDebut,
-      dateFin,
-      typeFormation,
-      etatFormation,
-      ouverte,
-      coutFormation: Number.parseFloat(cout as unknown as string),
-      externeFormateurNom: formNom,
-      externeFormateurPrenom: formPrenom,
-      externeFormateurEmail: formEmail,
-      organismeRefExterne: organisme,
-      chargeHoraireGlobal: Number.parseInt(chargeH as unknown as string, 10),
-      upId: selectedUp?.id,
-      departementId: selectedDept?.id,
-      participantsIds: partSel.map((p: EnseignantItem) => p.id),
-      animateursIds: animSel.map((a: EnseignantItem) => a.id),
-      domaine,
-      populationCible,
-      objectifs,
-      objectifsPedago,
-      evalMethods,
-      prerequis,
-      acquis,
-      indicateurs,
-      coutTransport,
-      coutHebergement,
-      coutRepas,
-      periodCode,
-      customPeriodLabel,
-      seances: seances.map((s: SeanceState) => ({
-        idSeance: s.idSeance,
-        dateSeance: s.dateSeance,
-        heureDebut: s.heureDebut,
-        heureFin: s.heureFin,
-        salle: s.salle,
-        animateursIds: s.animateurs.map((a: EnseignantItem) => a.id),
-        typeSeance: s.typeSeance,
-        contenus: s.contenus,
-        methodes: s.methodes,
-        dureeTheorique: s.dureeTheorique,
-        dureePratique: s.dureePratique,
-      })),
-    };
-    try {
-      const res = await updateMut.mutateAsync({ id: formation.idFormation, data: payload });
-      message.success("Formation mise à jour !");
-      onFormationUpdated(res as unknown as Record<string, unknown>);
-    } catch (err: unknown) {
-      const error = err as { response?: { data?: { message?: string; error?: string } }; message?: string };
-      const msg = error.response?.data?.message || error.response?.data?.error || error.message;
-      message.error(msg ?? "Erreur inconnue");
-    }
-  };
-
-  /* ======================= RENDER ======================= */
   return (
-    <form onSubmit={handleSubmit} className="workflow-edit-page">
-      <div className="workflow-edit-section">
-        <div className="workflow-edit-section-title">Informations générales</div>
+    <form onSubmit={h.handleSubmit} className="workflow-edit-page">
 
-      <Row gutter={[16, 16]}>
-        {/* ----------- infos de base ----------- */}
-        <Col span={24}>
-          <Text type="secondary">Titre Formation</Text>
-          <Input
-            value={titre}
-            onChange={(e) => setTitre(e.target.value)}
-            required
-            disabled={isResponsableDossier}
-          />
-        </Col>
-        <Col span={12}>
-          <Text type="secondary">Date Début</Text>
-          <Input
-            type="date"
-            value={dateDebut}
-            onChange={(e) => setDateDebut(e.target.value)}
-            required
-            disabled={isResponsableDossier}
-          />
-        </Col>
-        <Col span={12}>
-          <Text type="secondary">Date Fin</Text>
-          <Input
-            type="date"
-            value={dateFin}
-            onChange={(e) => setDateFin(e.target.value)}
-            required
-            disabled={isResponsableDossier}
-          />
-        </Col>
-        <Col span={12}>
-          <Text type="secondary">Type Formation</Text>
-          <Select
-            value={typeFormation}
-            onChange={(val) => setTypeFormation(val)}
-            disabled={isResponsableDossier}
-            style={{ width: "100%" }}
-            options={[
-              { value: "INTERNE", label: "INTERNE" },
-              { value: "EXTERNE", label: "EXTERNE" },
-              { value: "EN_LIGNE", label: "EN_LIGNE" },
-            ]}
-          />
-        </Col>
-        <Col span={12}>
-          <Text type="secondary">État Formation</Text>
-          <Select
-            value={etatFormation}
-            onChange={(val) => setEtatFormation(val)}
-            disabled={isResponsableDossier}
-            style={{ width: "100%" }}
-            options={[
-              { value: "ENREGISTRE", label: "ENREGISTRE" },
-              { value: "PLANIFIE", label: "PLANIFIE" },
-              { value: "EN_COURS", label: "EN_COURS" },
-              { value: "ACHEVE", label: "ACHEVE" },
-              { value: "ANNULE", label: "ANNULE" },
-              { value: "VISIBLE", label: "VISIBLE" },
-            ]}
-          />
-        </Col>
+      <FormationGeneralSection
+        titre={h.titre} setTitre={h.setTitre}
+        dateDebut={h.dateDebut} setDateDebut={h.setDateDebut}
+        dateFin={h.dateFin} setDateFin={h.setDateFin}
+        typeFormation={h.typeFormation} setTypeFormation={h.setTypeFormation}
+        etatFormation={h.etatFormation} setEtatFormation={h.setEtatFormation}
+        cout={h.cout} setCout={h.setCout}
+        organisme={h.organisme} setOrganisme={h.setOrganisme}
+        chargeH={h.chargeH} setChargeH={h.setChargeH}
+        formNom={h.formNom} setFormNom={h.setFormNom}
+        formPrenom={h.formPrenom} setFormPrenom={h.setFormPrenom}
+        formEmail={h.formEmail} setFormEmail={h.setFormEmail}
+        coutTransport={h.coutTransport} setCoutTransport={h.setCoutTransport}
+        coutHebergement={h.coutHebergement} setCoutHebergement={h.setCoutHebergement}
+        coutRepas={h.coutRepas} setCoutRepas={h.setCoutRepas}
+        selectedUp={h.selectedUp} setSelectedUp={h.setSelectedUp}
+        selectedDept={h.selectedDept} setSelectedDept={h.setSelectedDept}
+        ups={h.ups} depts={h.depts}
+        ouverte={h.ouverte} setOuverte={h.setOuverte}
+        periodCode={h.periodCode} setPeriodCode={h.setPeriodCode}
+        customPeriodLabel={h.customPeriodLabel} setCustomPeriodLabel={h.setCustomPeriodLabel}
+        isResponsableDossier={h.isResponsableDossier}
+      />
 
-        {/* ----------- formateur externe + coûts ----------- */}
-        {typeFormation === "EXTERNE" && (
-          <>
-            <Col span={8}>
-              <Text type="secondary">Nom Formateur Ext.</Text>
-              <Input value={formNom} onChange={(e) => setFormNom(e.target.value)} />
-            </Col>
-            <Col span={8}>
-              <Text type="secondary">Prénom Formateur Ext.</Text>
-              <Input value={formPrenom} onChange={(e) => setFormPrenom(e.target.value)} />
-            </Col>
-            <Col span={8}>
-              <Text type="secondary">Email Formateur Ext.</Text>
-              <Input type="email" value={formEmail} onChange={(e) => setFormEmail(e.target.value)} />
-            </Col>
-            <Col span={8}>
-              <Text type="secondary">Coût Formation</Text>
-              <InputNumber value={cout} onChange={(val) => setCout(val ?? 0)} style={{ width: "100%" }} min={0} />
-            </Col>
-            <Col span={8}>
-              <Text type="secondary">Organisme Externe</Text>
-              <Input value={organisme} onChange={(e) => setOrganisme(e.target.value)} />
-            </Col>
-            <Col span={8}>
-              <Text type="secondary">Coût Transport</Text>
-              <InputNumber value={coutTransport} onChange={(val) => setCoutTransport(val ?? 0)} style={{ width: "100%" }} min={0} />
-            </Col>
-            <Col span={8}>
-              <Text type="secondary">Coût Hébergement</Text>
-              <InputNumber value={coutHebergement} onChange={(val) => setCoutHebergement(val ?? 0)} style={{ width: "100%" }} min={0} />
-            </Col>
-            <Col span={8}>
-              <Text type="secondary">Coût Repas</Text>
-              <InputNumber value={coutRepas} onChange={(val) => setCoutRepas(val ?? 0)} style={{ width: "100%" }} min={0} />
-            </Col>
-          </>
-        )}
-
-        {/* ----------- ouverte ? ----------- */}
-        <Col xs={24} sm={6}>
-          <Text>Formation ouverte ?</Text>
-          <Radio.Group
-            value={ouverte ? "oui" : "non"}
-            onChange={(e) => setOuverte(e.target.value === "oui")}
-            disabled={isResponsableDossier}
-          >
-            <Radio value="oui">Oui</Radio>
-            <Radio value="non">Non</Radio>
-          </Radio.Group>
-        </Col>
-
-        {/* ----------- charge & rattachement ----------- */}
-        <Col span={8}>
-          <Text type="secondary">UP</Text>
-          <Select
-            showSearch
-            placeholder="Sélectionner UP"
-            value={selectedUp?.id}
-            onChange={(val) => setSelectedUp(ups.find((u: UPItem) => u.id === val) ?? null)}
-            disabled={isResponsableDossier}
-            style={{ width: "100%" }}
-            options={ups.map((u: UPItem) => ({ value: u.id, label: u.libelle }))}
-            optionFilterProp="label"
-          />
-        </Col>
-        <Col span={8}>
-          <Text type="secondary">Département</Text>
-          <Select
-            showSearch
-            placeholder="Sélectionner Département"
-            value={selectedDept?.id}
-            onChange={(val) => setSelectedDept(depts.find((d: DeptItem) => d.id === val) ?? null)}
-            disabled={isResponsableDossier}
-            style={{ width: "100%" }}
-            options={depts.map((d: DeptItem) => ({ value: d.id, label: d.libelle }))}
-            optionFilterProp="label"
-          />
-        </Col>
-
-        <Col span={8}>
-          <Text type="secondary">Charge Horaire</Text>
-          <InputNumber
-            value={chargeH}
-            onChange={(val) => setChargeH(val ?? 0)}
-            disabled={isResponsableDossier}
-            style={{ width: "100%" }}
-            min={0}
-          />
-        </Col>
-
-        <Col xs={24} sm={12}>
-          <Text type="secondary">Période de Formation</Text>
-          <Select
-            value={periodCode}
-            onChange={(val) => setPeriodCode(val)}
-            disabled={isResponsableDossier}
-            style={{ width: "100%" }}
-            options={PERIOD_OPTIONS.map(opt => ({ value: opt.value, label: opt.label }))}
-          />
-        </Col>
-        <Col xs={24} sm={12}>
-          {periodCode === "OTHER" && (
-            <>
-              <Text type="secondary">Précisez la période</Text>
-              <Input
-                value={customPeriodLabel}
-                onChange={(e) => setCustomPeriodLabel(e.target.value)}
-                disabled={isResponsableDossier}
-                placeholder="Ex : Mai - Juin 2024"
-              />
-            </>
-          )}
-        </Col>
-
-      </Row>
-      </div>
-
+      {/* ── Informations complémentaires ──────────────────────────────────── */}
       <div className="workflow-edit-section">
         <div className="workflow-edit-section-title">Informations complémentaires</div>
         <Row gutter={[16, 16]}>
-        {/* ----------- bouton collapse plus d'infos ----------- */}
-        <Col span={24}>
-          <Button
-            icon={showMore ? <UpOutlined /> : <DownOutlined />}
-            onClick={() => setShowMore((m) => !m)}
-          >
-            {showMore ? "Moins d'infos" : "Plus d'infos"}
-          </Button>
-          {showMore && (
-            <Row gutter={[16, 16]} style={{ marginTop: 8 }}>
-              {([
-                ["Domaine", domaine, setDomaine],
-                ["Pop. Cible", populationCible, setPopulationCible],
-                ["Objectifs", objectifs, setObjectifs],
-                ["Obj. Pédago", objectifsPedago, setObjectifsPedago],
-                ["Eval Methods", evalMethods, setEvalMethods],
-                ["Prérequis", prerequis, setPrerequis],
-                ["Acquis", acquis, setAcquis],
-                ["Indicateurs", indicateurs, setIndicateurs],
-              ] as [string, string, (v: string) => void][]).map(([lbl, val, setVal]) => (
-                <Col xs={24} sm={12} key={lbl}>
-                  <Text type="secondary">{lbl}</Text>
-                  <Input value={val} onChange={(e) => setVal(e.target.value)} />
-                </Col>
-              ))}
-            </Row>
-          )}
-        </Col>
-
-        </Row>
-      </div>
-
-      <div className="workflow-edit-section">
-        <div className="workflow-edit-section-title">Séances</div>
-        <Row gutter={[16, 16]}>
-        {seances.map((s: SeanceState, i: number) => (
-          <Col span={24} key={s.idSeance || s.id}>
-            <div className="workflow-edit-session-card">
-              <div className="workflow-edit-session-header">
-                <span className="workflow-edit-session-number">Séance #{i + 1}</span>
-                <div className="workflow-edit-session-actions">
-                  <Button type="text" size="small" icon={s.expanded ? <UpOutlined /> : <DownOutlined />} onClick={() => toggleSeance(i)} />
-                  <Popconfirm title="Supprimer cette séance ?" onConfirm={() => removeSeance(i)}>
-                    <Button type="text" danger size="small" icon={<DeleteOutlined />} />
-                  </Popconfirm>
-                </div>
-              </div>
-              <div style={{ padding: "12px 16px" }}>
-
-              {/* ligne principale */}
-              <Row gutter={[16, 16]}>
-                <Col span={6}>
-                  <Text type="secondary">Date</Text>
-                  <Input type="date" value={s.dateSeance} onChange={(e) => updateSeance(i, "dateSeance", e.target.value)} />
-                </Col>
-                <Col span={6}>
-                  <Text type="secondary">Heure Début</Text>
-                  <Input type="time" value={s.heureDebut} onChange={(e) => updateSeance(i, "heureDebut", e.target.value)} />
-                </Col>
-                <Col span={6}>
-                  <Text type="secondary">Heure Fin</Text>
-                  <Input type="time" value={s.heureFin} onChange={(e) => updateSeance(i, "heureFin", e.target.value)} />
-                </Col>
-                <Col span={6}>
-                  <Text type="secondary">Salle</Text>
-                  <Input value={s.salle} onChange={(e) => updateSeance(i, "salle", e.target.value)} />
-                </Col>
-
-                {/* animateurs séance */}
-                <Col span={24} style={{ marginTop: 8 }}>
-                  <Text type="secondary">Animateurs</Text>
-                  <Select
-                    mode="multiple"
-                    disabled={typeFormation === "EXTERNE"}
-                    options={optionsAnim.map(o => ({ value: o.id, label: getEnseignantLabel(o) }))}
-                    value={s.animateurs.map((a: EnseignantItem) => a.id)}
-                    onChange={(ids) => updateSeance(i, "animateurs", optionsAnim.filter((o: EnseignantItem) => ids.includes(o.id)))}
-                    style={{ width: "100%" }}
-                    optionFilterProp="label"
-                    showSearch
-                  />
-                </Col>
-              </Row>
-
-              {/* champs avancés séance */}
-              {s.expanded && (
-                <Row gutter={[16, 16]} style={{ marginTop: 8 }}>
-                  <Col span={6}>
-                    <Text type="secondary">Type</Text>
-                    <Select
-                      value={s.typeSeance}
-                      onChange={(val) => updateSeance(i, "typeSeance", val)}
-                      style={{ width: "100%" }}
-                      options={[
-                        { value: "THEORIQUE", label: "THEORIQUE" },
-                        { value: "PRATIQUE", label: "PRATIQUE" },
-                      ]}
-                    />
-                  </Col>
-                  <Col span={6}>
-                    <Text type="secondary">Durée théo (h)</Text>
-                    <InputNumber value={s.dureeTheorique} onChange={(val) => updateSeance(i, "dureeTheorique", val)} style={{ width: "100%" }} min={0} />
-                  </Col>
-                  <Col span={6}>
-                    <Text type="secondary">Durée prat (h)</Text>
-                    <InputNumber value={s.dureePratique} onChange={(val) => updateSeance(i, "dureePratique", val)} style={{ width: "100%" }} min={0} />
-                  </Col>
-                  <Col span={6}>
-                    <Text type="secondary">Contenus</Text>
-                    <Input value={s.contenus} onChange={(e) => updateSeance(i, "contenus", e.target.value)} />
-                  </Col>
-                  <Col span={24}>
-                    <Text type="secondary">Méthodes</Text>
-                    <Input value={s.methodes} onChange={(e) => updateSeance(i, "methodes", e.target.value)} />
-                  </Col>
-                </Row>
-              )}
-              </div>
-            </div>
-          </Col>
-        ))}
-        <Col span={24}>
-          <Button type="dashed" danger onClick={addSeance}>
-            + Ajouter Séance
-          </Button>
-        </Col>
-
-        {overlapWarnings.length > 0 && (
           <Col span={24}>
-            <Alert
-              message="Chevauchements détectés"
-              description={
-                <ul style={{ margin: "8px 0 0 16px", padding: 0 }}>
-                  {overlapWarnings.map((msg) => (
-                    <li key={msg}>{msg}</li>
-                  ))}
-                </ul>
-              }
-              type="warning"
-              showIcon
-            />
+            <Button icon={h.showMore ? <UpOutlined /> : <DownOutlined />} onClick={() => h.setShowMore((m) => !m)}>
+              {h.showMore ? "Moins d'infos" : "Plus d'infos"}
+            </Button>
+            {h.showMore && (
+              <Row gutter={[16, 16]} style={{ marginTop: 8 }}>
+                {([
+                  ["Domaine",       h.domaine,          h.setDomaine],
+                  ["Pop. Cible",    h.populationCible,  h.setPopulationCible],
+                  ["Objectifs",     h.objectifs,        h.setObjectifs],
+                  ["Obj. Pédago",   h.objectifsPedago,  h.setObjectifsPedago],
+                  ["Eval Methods",  h.evalMethods,      h.setEvalMethods],
+                  ["Prérequis",     h.prerequis,        h.setPrerequis],
+                  ["Acquis",        h.acquis,           h.setAcquis],
+                  ["Indicateurs",   h.indicateurs,      h.setIndicateurs],
+                ] as [string, string, (v: string) => void][]).map(([lbl, val, setVal]) => (
+                  <Col xs={24} sm={12} key={lbl}>
+                    <Text type="secondary">{lbl}</Text>
+                    <Input value={val} onChange={(e) => setVal(e.target.value)} />
+                  </Col>
+                ))}
+              </Row>
+            )}
           </Col>
-        )}
-
-        {/* ----------- import Excel participants ----------- */}
-        <input
-          accept=".xls,.xlsx"
-          style={{ display: "none" }}
-          id="upload-participants"
-          type="file"
-          onChange={handleFile}
-        />
-        <Col span={24}>
-          <label htmlFor="upload-participants">
-            <Button icon={<UploadOutlined />} danger type="primary">
-              Importer Participants (Excel)
-            </Button>
-          </label>
-        </Col>
-
-        {/* ----------- participants filtrables ----------- */}
-        <Col span={24} style={{ marginTop: 24 }}>
-          <Title level={5}>Participants</Title>
-          <Row gutter={[16, 16]} style={{ marginBottom: 8 }}>
-            <Col span={12}>
-              <Text type="secondary">Filtrer UP</Text>
-              <Select
-                showSearch allowClear placeholder="Toutes"
-                value={partFilterUp?.id}
-                onChange={(val) => setPartFilterUp(ups.find((u: UPItem) => u.id === val) ?? null)}
-                style={{ width: "100%" }}
-            options={ups.map((u: UPItem) => ({ value: u.id, label: u.libelle }))}
-                optionFilterProp="label"
-              />
-            </Col>
-            <Col span={12}>
-              <Text type="secondary">Filtrer Département</Text>
-              <Select
-                showSearch allowClear placeholder="Tous"
-                value={partFilterDept?.id}
-                onChange={(val) => setPartFilterDept(depts.find((d: DeptItem) => d.id === val) ?? null)}
-                style={{ width: "100%" }}
-                options={depts.map((d: DeptItem) => ({ value: d.id, label: d.libelle }))}
-                optionFilterProp="label"
-              />
-            </Col>
-          </Row>
-          <Text type="secondary">Sélectionner Participants</Text>
-          <Select
-            mode="multiple"
-            options={optionsPart.map(o => ({ value: o.id, label: getEnseignantLabel(o) }))}
-            value={partSel.map((p: EnseignantItem) => p.id)}
-            onChange={(ids) => setPartSel(optionsPart.filter((o: EnseignantItem) => ids.includes(o.id)))}
-            style={{ width: "100%" }}
-            optionFilterProp="label"
-            showSearch
-          />
-        </Col>
-
-        {/* ----------- Dossier Section (Specific for ResponsableDossier) ----------- */}
-        <Col span={24} style={{ marginTop: 16 }}>
-          <Divider>Gestion du Dossier</Divider>
-          <Space style={{ display: "flex", justifyContent: "center" }}>
-            <Button 
-               
-              icon={<UploadOutlined />}
-              onClick={() => setOpenUploadPanel(true)}
-            >
-              Scanner / Ajouter Document
-            </Button>
-            <Button 
-              
-              onClick={() => setOpenDocModal(true)}
-            >
-              Consulter Dossier (CRUD)
-            </Button>
-          </Space>
-        </Col>
-
         </Row>
       </div>
 
-      {/* ----------- submit ----------- */}
-      {!isResponsableDossier && (
+      <FormationSeancesSection
+        seances={h.seances}
+        addSeance={h.addSeance}
+        updateSeance={h.updateSeance}
+        removeSeance={h.removeSeance}
+        toggleSeance={h.toggleSeance}
+        overlapWarnings={h.overlapWarnings}
+        typeFormation={h.typeFormation}
+        optionsAnim={h.optionsAnim}
+        optionsPart={h.optionsPart}
+        getEnseignantLabel={h.getEnseignantLabel}
+        partSel={h.partSel}
+        setPartSel={h.setPartSel}
+        partFilterUp={h.partFilterUp}
+        setPartFilterUp={h.setPartFilterUp}
+        partFilterDept={h.partFilterDept}
+        setPartFilterDept={h.setPartFilterDept}
+        ups={h.ups}
+        depts={h.depts}
+        handleFile={h.handleFile}
+        onOpenUpload={() => h.setOpenUploadPanel(true)}
+        onOpenDocModal={() => h.setOpenDocModal(true)}
+      />
+
+      {!h.isResponsableDossier && (
         <div className="workflow-edit-footer">
           <div />
           <div className="workflow-edit-footer-right">
@@ -1007,44 +111,20 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
         </div>
       )}
 
-      {/* Modals for Documents */}
-      <Modal
-        open={openUploadPanel}
-        onCancel={() => setOpenUploadPanel(false)}
-        title="Ajouter au dossier"
-        width={600}
-        footer={null}
-      >
-        <DocumentUploadPanel 
-            formationId={formation.idFormation} 
-            onDocumentAdded={() => {
-              message.success("Document ajouté !");
-              setOpenUploadPanel(false);
-            }}
-            onClose={() => setOpenUploadPanel(false)}
-          />
+      <Modal open={h.openUploadPanel} onCancel={() => h.setOpenUploadPanel(false)} title="Ajouter au dossier" width={600} footer={null}>
+        <DocumentUploadPanel
+          formationId={formation.idFormation}
+          onDocumentAdded={() => { h.setOpenUploadPanel(false); }}
+          onClose={() => h.setOpenUploadPanel(false)}
+        />
       </Modal>
 
       <DocumentListModal
-        open={openDocModal}
+        open={h.openDocModal}
         formation={formation}
-        onClose={() => setOpenDocModal(false)}
-        onDocumentsUpdated={() => {
-          message.info("Dossier mis à jour");
-        }}
+        onClose={() => h.setOpenDocModal(false)}
+        onDocumentsUpdated={() => undefined}
       />
-
-
     </form>
   );
 }
-
-
-
-
-
-
-
-
-
-

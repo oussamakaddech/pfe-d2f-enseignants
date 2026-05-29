@@ -21,4 +21,5 @@ public class CertificateResponse {
     private boolean delivered;
     /** Date d'émission du certificat — utilisée par le Skill Passport. Mappée sur dateFinFormation. */
     private LocalDate createdAt;
+    private String pdfFilePath;
 }

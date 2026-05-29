@@ -15,7 +15,6 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import tn.esprit.d2f.dto.BesoinFormationRequest;
 import tn.esprit.d2f.dto.BesoinFormationResponse;
-import tn.esprit.d2f.repository.NotificationRepository;
 import tn.esprit.d2f.service.IBesoinFormationService;
 
 
@@ -34,9 +33,6 @@ class BesoinFormationControllerTest {
 
     @MockitoBean
     private IBesoinFormationService service;
-
-    @MockitoBean
-    private NotificationRepository notificationRepository;
 
     // Required to prevent "JPA metamodel must not be empty" and "auditorProvider not found"
     // in @WebMvcTest slices when @EnableJpaAuditing is on the main @SpringBootApplication class.
@@ -128,7 +124,7 @@ class BesoinFormationControllerTest {
 
     @Test
     void getUserNotifications_shouldReturnOk() throws Exception {
-        when(notificationRepository.findByUsername(any(), any(Pageable.class))).thenReturn(Page.empty());
+        when(service.findNotificationsByUsername(any(), any(Pageable.class))).thenReturn(Page.empty());
         mockMvc.perform(get("/api/v1/besoins-formations/notifications/testuser"))
                 .andExpect(status().isOk());
     }

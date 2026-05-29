@@ -4,9 +4,7 @@ import esprit.d2f.common.security.AuthorizationMatrix;
 import esprit.pfe.serviceformation.dto.*;
 import esprit.pfe.serviceformation.entities.Formation;
 import esprit.pfe.serviceformation.services.ExportExcelService;
-import esprit.pfe.serviceformation.services.FormationService;
 import esprit.pfe.serviceformation.services.FormationWorkflowService;
-import esprit.pfe.serviceformation.services.FormationMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.*;
@@ -40,17 +38,11 @@ public class FormationWorkflowController {
 
     private final ExportExcelService exportExcelService;
     private final FormationWorkflowService formationWorkflowService;
-    private final FormationService formationService;
-    private final FormationMapper formationMapper;
 
     public FormationWorkflowController(ExportExcelService exportExcelService,
-                                     FormationWorkflowService formationWorkflowService,
-                                     FormationService formationService,
-                                     FormationMapper formationMapper) {
+                                       FormationWorkflowService formationWorkflowService) {
         this.exportExcelService = exportExcelService;
         this.formationWorkflowService = formationWorkflowService;
-        this.formationService = formationService;
-        this.formationMapper = formationMapper;
     }
 
     @PostMapping
@@ -68,7 +60,7 @@ public class FormationWorkflowController {
                     request.getAnimateursIds() != null ? request.getAnimateursIds().size() : 0,
                     request.getParticipantsIds() != null ? request.getParticipantsIds().size() : 0);
             Formation formation = formationWorkflowService.createFormationWorkflow(request);
-            FormationResponseDTO dto = formationMapper.toResponseDTO(formation);
+            FormationDTO dto = formationWorkflowService.mapFormationToDTO(formation);
             return ResponseEntity.status(HttpStatus.CREATED).body(dto);
         } catch (IllegalStateException e) {
             log.error("Erreur metier lors de la creation de la formation : {}", e.getMessage());
@@ -96,7 +88,7 @@ public class FormationWorkflowController {
             if (formation == null) {
                 return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
             }
-            FormationResponseDTO dto = formationMapper.toResponseDTO(formation);
+            FormationDTO dto = formationWorkflowService.mapFormationToDTO(formation);
             return ResponseEntity.ok(dto);
         } catch (IllegalStateException e) {
             log.error("Erreur metier lors de la mise a jour de la formation {} : {}", id, e.getMessage());
@@ -131,12 +123,15 @@ public class FormationWorkflowController {
     @Operation(summary = "Récupérer une formation par son ID")
     public ResponseEntity<Object> getFormationById(@PathVariable Long id) {
         try {
-            FormationResponseDTO dto = formationService.getFormationById(id);
+            FormationDTO dto = formationWorkflowService.getFormationWorkflowById(id);
             return ResponseEntity.ok(dto);
+        } catch (IllegalArgumentException e) {
+            log.warn("Formation introuvable : {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(KEY_ERROR, e.getMessage()));
         } catch (Exception e) {
-            log.error("Erreur lors de la recuperation de la formation {} : ", id, e);
+            log.error("Erreur interne lors de la recuperation de la formation {} : ", id, e);
             String errorMsg = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(KEY_ERROR, errorMsg));
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(KEY_ERROR, MSG_ERREUR_INTERNE, KEY_MESSAGE, errorMsg));
         }
     }
 

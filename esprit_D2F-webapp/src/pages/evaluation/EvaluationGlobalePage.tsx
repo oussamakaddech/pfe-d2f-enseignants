@@ -42,6 +42,14 @@ import { useAllFormations } from "@/hooks/formation/useFormations";
 const { Option } = Select;
 const { TextArea } = Input;
 
+const truncateCellStyle = {
+  display: "block",
+  maxWidth: 360,
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+  whiteSpace: "nowrap",
+};
+
 interface RecoColor {
   color: string;
   bg: string;
@@ -58,8 +66,7 @@ const RECO_COLORS: Record<string, RecoColor> = {
 
 interface EvalRecord {
   idEvalGlobale?: number;
-  formationId?: number;
-  noteGlobale?: number;
+      render: (c) => <span style={truncateCellStyle}>{c || "—"}</span>,
   recommandation?: string;
   commentaireGeneral?: string;
   dateEvaluation?: string;

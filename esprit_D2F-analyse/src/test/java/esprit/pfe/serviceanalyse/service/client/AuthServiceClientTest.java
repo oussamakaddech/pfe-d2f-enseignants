@@ -1,97 +1,109 @@
-
 package esprit.pfe.serviceanalyse.service.client;
 
 import esprit.pfe.serviceanalyse.dto.passport.TeacherIdentityDTO;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.http.*;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.web.client.RestTemplate;
 
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-@DisplayName("AuthServiceClient - Tests")
 class AuthServiceClientTest {
 
-    @Mock
-    private RestTemplate restTemplate;
+    @Mock private RestTemplate restTemplate;
 
-    @InjectMocks
-    private AuthServiceClient client;
+    private AuthServiceClient authServiceClient;
 
     @BeforeEach
     void setUp() {
-        ReflectionTestUtils.setField(client, "authServiceUrl", "http://localhost:8085");
+        authServiceClient = new AuthServiceClient(restTemplate);
+        ReflectionTestUtils.setField(authServiceClient, "authServiceUrl", "http://localhost:8085");
     }
 
     @Test
-    @DisplayName("getTeacherIdentity: retourne l'identité à partir du profil")
-    void getTeacherIdentity_withValidProfile_returnsIdentity() {
-        Map<String, Object> profile = Map.of(
-                "id", "123", "userName", "jdoe",
-                "firsName", "John", "lastName", "Doe",
-                "email", "jdoe@esprit.tn", "role", "ENSEIGNANT",
-                "phoneNumber", "+21612345678"
-        );
+    void getTeacherIdentity_returnsIdentity() {
+        Map<String, Object> body = Map.of(
+                "id", "42",
+                "userName", "jdoe",
+                "firsName", "John",
+                "lastName", "Doe",
+                "email", "jdoe@esprit.tn",
+                "role", "TEACHER",
+                "phoneNumber", "+216123456");
+        ResponseEntity<Map> responseEntity = new ResponseEntity<>(body, HttpStatus.OK);
+        when(restTemplate.exchange(anyString(), any(HttpMethod.class), any(), any(Class.class)))
+                .thenReturn(responseEntity);
 
-        when(restTemplate.exchange(anyString(), eq(HttpMethod.GET), any(HttpEntity.class), eq(Map.class)))
-                .thenReturn(ResponseEntity.ok(profile));
+        TeacherIdentityDTO result = authServiceClient.getTeacherIdentity("jdoe", "Bearer token");
 
-        TeacherIdentityDTO result = client.getTeacherIdentity("jdoe", "Bearer token");
-
-        assertThat(result).isNotNull();
-        assertThat(result.getEnseignantId()).isEqualTo("123");
         assertThat(result.getUsername()).isEqualTo("jdoe");
+        assertThat(result.getEnseignantId()).isEqualTo("42");
         assertThat(result.getPrenom()).isEqualTo("John");
         assertThat(result.getNom()).isEqualTo("Doe");
         assertThat(result.getEmail()).isEqualTo("jdoe@esprit.tn");
-        assertThat(result.getRole()).isEqualTo("ENSEIGNANT");
-        assertThat(result.getTelephone()).isEqualTo("+21612345678");
+        assertThat(result.getRole()).isEqualTo("TEACHER");
+        assertThat(result.getTelephone()).isEqualTo("+216123456");
     }
 
     @Test
-    @DisplayName("getTeacherIdentity: body null retourne fallback identity")
-    void getTeacherIdentity_withNullBody_returnsFallback() {
-        when(restTemplate.exchange(anyString(), eq(HttpMethod.GET), any(HttpEntity.class), eq(Map.class)))
-                .thenReturn(ResponseEntity.ok(null));
+    void getTeacherIdentity_nullBody_returnsFallback() {
+        ResponseEntity<Map> responseEntity = new ResponseEntity<>(null, HttpStatus.OK);
+        when(restTemplate.exchange(anyString(), any(HttpMethod.class), any(), any(Class.class)))
+                .thenReturn(responseEntity);
 
-        TeacherIdentityDTO result = client.getTeacherIdentity("jdoe", "Bearer token");
+        TeacherIdentityDTO result = authServiceClient.getTeacherIdentity("jdoe", "Bearer token");
 
-        assertThat(result).isNotNull();
         assertThat(result.getUsername()).isEqualTo("jdoe");
-        assertThat(result.getEnseignantId()).isEqualTo("jdoe");
         assertThat(result.getNom()).isEqualTo("Enseignant");
         assertThat(result.getPrenom()).isEqualTo("jdoe");
     }
 
+    @Test
+    void getTeacherIdentity_restTemplateThrows_throwsException() {
+        when(restTemplate.exchange(anyString(), any(HttpMethod.class), any(), any(Class.class)))
+                .thenThrow(new RuntimeException("Service unavailable"));
 
+        assertThrows(RuntimeException.class,
+                () -> authServiceClient.getTeacherIdentity("jdoe", "Bearer token"));
+    }
 
     @Test
-    @DisplayName("getTeacherIdentity: champs null dans le profil")
-    void getTeacherIdentity_withNullFields_returnsNullFields() {
-        Map<String, Object> profile = Map.of("id", "123", "userName", "jdoe");
+    void getTeacherIdentityFromJwt_returnsIdentity() {
+        Jwt jwt = mock(Jwt.class);
+        when(jwt.getSubject()).thenReturn("jdoe");
+        when(jwt.getClaimAsString("email")).thenReturn("jdoe@esprit.tn");
+        Authentication authentication = mock(Authentication.class);
+        when(authentication.getPrincipal()).thenReturn(jwt);
 
-        when(restTemplate.exchange(anyString(), eq(HttpMethod.GET), any(HttpEntity.class), eq(Map.class)))
-                .thenReturn(ResponseEntity.ok(profile));
+        TeacherIdentityDTO result = authServiceClient.getTeacherIdentityFromJwt(authentication);
 
-        TeacherIdentityDTO result = client.getTeacherIdentity("jdoe", "Bearer token");
-
-        assertThat(result).isNotNull();
         assertThat(result.getUsername()).isEqualTo("jdoe");
-        assertThat(result.getPrenom()).isNull();
-        assertThat(result.getNom()).isNull();
-        assertThat(result.getEmail()).isNull();
+        assertThat(result.getEmail()).isEqualTo("jdoe@esprit.tn");
+        assertThat(result.getNom()).isEqualTo("Enseignant");
+        assertThat(result.getPrenom()).isEqualTo("jdoe");
+    }
+
+    @Test
+    void getTeacherIdentityFromJwt_throwsException_returnsFallback() {
+        Authentication authentication = mock(Authentication.class);
+        when(authentication.getPrincipal()).thenThrow(new RuntimeException("Invalid JWT"));
+        when(authentication.getName()).thenReturn("fallbackUser");
+
+        TeacherIdentityDTO result = authServiceClient.getTeacherIdentityFromJwt(authentication);
+
+        assertThat(result.getUsername()).isEqualTo("fallbackUser");
+        assertThat(result.getNom()).isEqualTo("Enseignant");
     }
 }

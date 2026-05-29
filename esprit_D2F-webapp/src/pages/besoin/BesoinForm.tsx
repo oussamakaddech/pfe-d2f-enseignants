@@ -9,6 +9,7 @@ import {
   EditOutlined, NodeIndexOutlined,
 } from "@ant-design/icons";
 import { motion, AnimatePresence } from "framer-motion";
+import { useNavigate } from "react-router-dom";
 
 import { useBesoinForm } from "./hooks/useBesoinForm";
 import BesoinInfoStep        from "./steps/BesoinInfoStep";
@@ -39,6 +40,7 @@ const slideVariants = {
 
 export default function BesoinForm() {
   const ctx = useBesoinForm();
+  const navigate = useNavigate();
 
   if (ctx.loading) {
     return (
@@ -60,7 +62,7 @@ export default function BesoinForm() {
               title="Besoin enregistré avec succès"
               subTitle="Votre demande de formation a été transmise et sera examinée prochainement par le CUP."
               extra={[
-                <Button type="primary" key="list" size="large" className="bf-btn bf-btn--primary" onClick={() => { globalThis.location.href = "/home/besoins"; }}>
+                <Button type="primary" key="list" size="large" className="bf-btn bf-btn--primary" onClick={() => navigate("/home/besoins")}>
                   Voir la liste des besoins
                 </Button>,
                 <Button key="again" size="large" className="bf-btn bf-btn--ghost" onClick={() => { ctx.setSubmitted(false); ctx.form.resetFields(); ctx.setCurrentStep(0); }}>
@@ -82,12 +84,12 @@ export default function BesoinForm() {
   const stepContent = [
     <BesoinInfoStep
       key="contexte"
-      ups={ctx.ups as any}
-      departements={ctx.departements as any}
+      ups={ctx.ups}
+      departements={ctx.departements}
       canManageParticipants={ctx.canManageParticipants}
       participantsCount={ctx.participantsCount}
       lastImportCount={ctx.lastImportCount}
-      participantsFileInputRef={ctx.participantsFileInputRef as any}
+      participantsFileInputRef={ctx.participantsFileInputRef}
       onImportExcel={ctx.importParticipantsFromExcel}
       onClearParticipants={ctx.clearParticipants}
     />,

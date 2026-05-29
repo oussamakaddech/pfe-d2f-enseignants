@@ -1,11 +1,7 @@
 package esprit.pfe.serviceformation.controllers;
 
-import esprit.pfe.serviceformation.entities.Formation;
-import esprit.pfe.serviceformation.entities.Inscription;
-import esprit.pfe.serviceformation.entities.EtatFormation;
+import esprit.pfe.serviceformation.dto.InscriptionSummaryDTO;
 import esprit.pfe.serviceformation.exception.GlobalExceptionHandler;
-import esprit.pfe.serviceformation.repositories.FormationCompetenceRepository;
-import esprit.pfe.serviceformation.repositories.InscriptionRepository;
 import esprit.pfe.serviceformation.services.InscriptionService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -38,8 +34,6 @@ class InscriptionControllerTest {
     private MockMvc mockMvc;
 
     @Mock private InscriptionService inscriptionService;
-    @Mock private InscriptionRepository inscriptionRepository;
-    @Mock private FormationCompetenceRepository formationCompetenceRepository;
     @InjectMocks private InscriptionController controller;
 
     @BeforeEach
@@ -101,18 +95,10 @@ class InscriptionControllerTest {
     @Test
     @DisplayName("GET /enseignant/{id} retourne les inscriptions resumees")
     void testGetByEnseignant() throws Exception {
-        Formation formation = new Formation();
-        formation.setIdFormation(1L);
-        formation.setTitreFormation("Spring Boot");
-        formation.setEtatFormation(EtatFormation.ACHEVE);
-        formation.setChargeHoraireGlobal(40);
+        InscriptionSummaryDTO dto = new InscriptionSummaryDTO();
+        dto.setTitreFormation("Spring Boot");
 
-        Inscription inscription = new Inscription();
-        inscription.setId(1L);
-        inscription.setFormation(formation);
-
-        when(inscriptionRepository.findByEnseignant_Id(eq("E001"), any(Pageable.class))).thenReturn(new PageImpl<>(List.of(inscription)));
-        when(formationCompetenceRepository.findByFormationIdFormation(1L)).thenReturn(Collections.emptyList());
+        when(inscriptionService.findSummariesByEnseignantId(eq("E001"), any(Pageable.class))).thenReturn(new PageImpl<>(List.of(dto)));
 
         mockMvc.perform(get("/api/v1/inscription/enseignant/E001"))
                 .andExpect(status().isOk())
@@ -122,7 +108,7 @@ class InscriptionControllerTest {
     @Test
     @DisplayName("GET /enseignant/{id} retourne liste vide quand pas d'inscriptions")
     void testGetByEnseignant_emptyList() throws Exception {
-        when(inscriptionRepository.findByEnseignant_Id(eq("E999"), any(Pageable.class))).thenReturn(new PageImpl<>(Collections.emptyList()));
+        when(inscriptionService.findSummariesByEnseignantId(eq("E999"), any(Pageable.class))).thenReturn(new PageImpl<>(Collections.emptyList()));
 
         mockMvc.perform(get("/api/v1/inscription/enseignant/E999"))
                 .andExpect(status().isOk())

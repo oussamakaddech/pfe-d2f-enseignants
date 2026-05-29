@@ -16,7 +16,7 @@ class FeignServiceAuthInterceptorTest {
         FeignServiceAuthInterceptor interceptor = new FeignServiceAuthInterceptor();
         ReflectionTestUtils.setField(
                 interceptor,
-                "jwtSecret",
+                "internalSecret",
                 "mySecretKeyForTestingPurposesOnlyWhichMustBeAtLeast512BitsLongToPreventWeakKeyExceptions"
         );
 
