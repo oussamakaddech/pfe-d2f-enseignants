@@ -2,12 +2,14 @@ package esprit.pfe.serviceformation.controllers;
 
 
 
+import esprit.d2f.common.security.AuthorizationMatrix;
 import esprit.pfe.serviceformation.dto.FormationDTO;
 import esprit.pfe.serviceformation.dto.OneDriveItemDTO;
 import esprit.pfe.serviceformation.microsoft.OneDriveService;
 import esprit.pfe.serviceformation.services.FormationWorkflowService;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import lombok.RequiredArgsConstructor;
 
@@ -26,6 +28,7 @@ public class OneDriveController {
     private final OneDriveService oneDriveService;
     private final FormationWorkflowService formationService;
     @GetMapping("/hierarchy")
+    @PreAuthorize(AuthorizationMatrix.FORMATION_READ)
     public ResponseEntity<Page<OneDriveItemDTO>> getDriveHierarchy(
             @PageableDefault(size = 50) Pageable pageable) {
         List<OneDriveItemDTO> all = oneDriveService.getDriveHierarchy();
@@ -35,6 +38,7 @@ public class OneDriveController {
     }
 
     @GetMapping("/formations/{id}/hierarchy")
+    @PreAuthorize(AuthorizationMatrix.FORMATION_READ)
     public ResponseEntity<Page<OneDriveItemDTO>> getHierarchyForFormation(
             @PathVariable Long id,
             @PageableDefault(size = 50) Pageable pageable) {
