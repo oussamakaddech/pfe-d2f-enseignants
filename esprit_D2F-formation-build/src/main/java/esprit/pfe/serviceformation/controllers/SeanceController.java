@@ -1,9 +1,11 @@
 package esprit.pfe.serviceformation.controllers;
 
+import esprit.d2f.common.security.AuthorizationMatrix;
 import esprit.pfe.serviceformation.dto.SeanceDTO;
 import esprit.pfe.serviceformation.services.SeanceService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.*;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import org.springframework.data.domain.Page;
@@ -26,6 +28,7 @@ public class SeanceController {
 
     // CREATE
     @PostMapping
+    @PreAuthorize(AuthorizationMatrix.FORMATION_CREATE)
     public ResponseEntity<Object> createSeance(@RequestBody SeanceDTO dto) {
         try {
             SeanceDTO created = seanceService.createSeance(dto);
@@ -42,6 +45,7 @@ public class SeanceController {
 
     // READ ALL
     @GetMapping
+    @PreAuthorize(AuthorizationMatrix.FORMATION_READ)
     public ResponseEntity<Page<SeanceDTO>> getAllSeances(
             @PageableDefault(size = 20, sort = "id") Pageable pageable) {
         try {
@@ -53,6 +57,7 @@ public class SeanceController {
 
     // READ BY ID
     @GetMapping("/{id}")
+    @PreAuthorize(AuthorizationMatrix.FORMATION_READ)
     public ResponseEntity<Object> getSeanceById(@PathVariable Long id) {
         try {
             SeanceDTO dto = seanceService.getSeanceById(id);
@@ -65,6 +70,7 @@ public class SeanceController {
 
     // UPDATE
     @PutMapping("/{id}")
+    @PreAuthorize(AuthorizationMatrix.FORMATION_UPDATE)
     public ResponseEntity<Object> updateSeance(@PathVariable Long id, @RequestBody SeanceDTO dto) {
         try {
             SeanceDTO updated = seanceService.updateSeance(id, dto);
@@ -94,6 +100,7 @@ public class SeanceController {
 
     // DELETE
     @DeleteMapping("/{id}")
+    @PreAuthorize(AuthorizationMatrix.FORMATION_DELETE)
     public ResponseEntity<Object> deleteSeance(@PathVariable Long id) {
         try {
             seanceService.deleteSeance(id);

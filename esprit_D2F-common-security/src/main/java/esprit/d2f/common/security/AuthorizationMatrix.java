@@ -81,6 +81,13 @@ public final class AuthorizationMatrix {
     public static final String REFERENTIEL_WRITE  = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_D2F')";
     public static final String REFERENTIEL_IMPORT = "hasAnyRole('ROLE_ADMIN')";
 
+    // ── Formation-Compétence (liaison) ──────────────────────────────────
+    public static final String FORMATION_COMPETENCE_READ =
+            "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_D2F','ROLE_ENSEIGNANT','ROLE_FORMATEUR','ROLE_CHEF_DEPARTEMENT')";
+    public static final String FORMATION_COMPETENCE_CREATE = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_D2F')";
+    public static final String FORMATION_COMPETENCE_UPDATE = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_D2F','ROLE_RESPONSABLE_DOSSIER')";
+    public static final String FORMATION_COMPETENCE_DELETE = "hasAnyRole('ROLE_ADMIN')";
+
     // ── Inscription ─────────────────────────────────────────────────────
     public static final String INSCRIPTION_READ    = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_D2F','ROLE_ENSEIGNANT','ROLE_FORMATEUR')";
     public static final String INSCRIPTION_CREATE  = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_D2F','ROLE_ENSEIGNANT')";

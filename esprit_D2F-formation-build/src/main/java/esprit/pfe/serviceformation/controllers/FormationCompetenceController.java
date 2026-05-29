@@ -1,11 +1,13 @@
 package esprit.pfe.serviceformation.controllers;
 
+import esprit.d2f.common.security.AuthorizationMatrix;
 import esprit.pfe.serviceformation.entities.FormationCompetence;
 import esprit.pfe.serviceformation.services.FormationCompetenceService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import lombok.RequiredArgsConstructor;
 
@@ -19,6 +21,7 @@ public class FormationCompetenceController {
 
     /** GET les liaisons pour une formation */
     @GetMapping("/formation/{formationId}")
+    @PreAuthorize(AuthorizationMatrix.FORMATION_COMPETENCE_READ)
     public ResponseEntity<Page<FormationCompetence>> getByFormation(
             @PathVariable Long formationId,
             @PageableDefault(size = 20, sort = "id") Pageable pageable) {
@@ -27,6 +30,7 @@ public class FormationCompetenceController {
 
     /** POST ajouter une liaison formation-compétence */
     @PostMapping("/formation/{formationId}")
+    @PreAuthorize(AuthorizationMatrix.FORMATION_COMPETENCE_CREATE)
     public ResponseEntity<FormationCompetence> addFormationCompetence(
             @PathVariable Long formationId,
             @RequestBody FormationCompetence fc) {
@@ -35,6 +39,7 @@ public class FormationCompetenceController {
 
     /** PUT mettre à jour une liaison */
     @PutMapping("/{id}")
+    @PreAuthorize(AuthorizationMatrix.FORMATION_COMPETENCE_UPDATE)
     public ResponseEntity<FormationCompetence> updateFormationCompetence(
             @PathVariable Long id,
             @RequestBody FormationCompetence fc) {
@@ -43,6 +48,7 @@ public class FormationCompetenceController {
 
     /** DELETE supprimer une liaison */
     @DeleteMapping("/{id}")
+    @PreAuthorize(AuthorizationMatrix.FORMATION_COMPETENCE_DELETE)
     public ResponseEntity<Void> deleteFormationCompetence(@PathVariable Long id) {
         formationCompetenceService.deleteFormationCompetence(id);
         return ResponseEntity.noContent().build();
@@ -50,6 +56,7 @@ public class FormationCompetenceController {
 
     /** PUT remplacer toutes les liaisons pour une formation */
     @PutMapping("/formation/{formationId}/replace-all")
+    @PreAuthorize(AuthorizationMatrix.FORMATION_COMPETENCE_DELETE)
     public ResponseEntity<List<FormationCompetence>> replaceAllForFormation(
             @PathVariable Long formationId,
             @RequestBody List<FormationCompetence> newLinks) {
@@ -58,6 +65,7 @@ public class FormationCompetenceController {
 
     /** GET les formations liées à une compétence */
     @GetMapping("/competence/{competenceId}")
+    @PreAuthorize(AuthorizationMatrix.FORMATION_COMPETENCE_READ)
     public ResponseEntity<Page<FormationCompetence>> getByCompetence(
             @PathVariable Long competenceId,
             @PageableDefault(size = 20, sort = "id") Pageable pageable) {
@@ -66,6 +74,7 @@ public class FormationCompetenceController {
 
     /** GET les formations liées à un domaine */
     @GetMapping("/domaine/{domaineId}")
+    @PreAuthorize(AuthorizationMatrix.FORMATION_COMPETENCE_READ)
     public ResponseEntity<Page<FormationCompetence>> getByDomaine(
             @PathVariable Long domaineId,
             @PageableDefault(size = 20, sort = "id") Pageable pageable) {

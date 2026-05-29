@@ -2,10 +2,12 @@ package esprit.pfe.serviceformation.controllers;
 
 
 
+import esprit.d2f.common.security.AuthorizationMatrix;
 import esprit.pfe.serviceformation.dto.ParticipantKpiDTO;
 import esprit.pfe.serviceformation.services.ParticipantKpiService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -27,6 +29,7 @@ public class ParticipantKpiController {
 
     // KPI par formation achevée dans une période donnée
     @GetMapping("/formations")
+    @PreAuthorize(AuthorizationMatrix.DASHBOARD_ADMIN_LIMITED)
     public ResponseEntity<Page<ParticipantKpiDTO>> getFormationsParticipantKpis(
             @RequestParam("startDate") @DateTimeFormat(pattern = "yyyy-MM-dd") Date startDate,
             @RequestParam("endDate") @DateTimeFormat(pattern = "yyyy-MM-dd") Date endDate,
@@ -36,6 +39,7 @@ public class ParticipantKpiController {
 
     // KPI global sur toutes les formations achevées dans une période donnée
     @GetMapping("/global")
+    @PreAuthorize(AuthorizationMatrix.DASHBOARD_ADMIN_LIMITED)
     public ParticipantKpiDTO getGlobalParticipantKpi(
             @RequestParam("startDate") @DateTimeFormat(pattern = "yyyy-MM-dd") Date startDate,
             @RequestParam("endDate") @DateTimeFormat(pattern = "yyyy-MM-dd") Date endDate) {

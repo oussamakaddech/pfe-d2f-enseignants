@@ -2,9 +2,11 @@ package esprit.pfe.serviceformation.controllers;
 
 
 
+import esprit.d2f.common.security.AuthorizationMatrix;
 import esprit.pfe.serviceformation.services.FormationReportService;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import lombok.RequiredArgsConstructor;
 
@@ -26,6 +28,7 @@ public class FormationReportController {
      * @return liste de DTO correspondant
      */
     @GetMapping
+    @PreAuthorize(AuthorizationMatrix.FORMATION_READ)
     public ResponseEntity<List<?>> getFormationsParRoleEtPeriode(
             @RequestParam String role,
             @RequestParam String enseignantId,

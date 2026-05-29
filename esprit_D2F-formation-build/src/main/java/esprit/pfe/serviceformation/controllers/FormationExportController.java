@@ -1,11 +1,13 @@
 package esprit.pfe.serviceformation.controllers;
 
+import esprit.d2f.common.security.AuthorizationMatrix;
 import esprit.pfe.serviceformation.dto.FormationDTO;
 import esprit.pfe.serviceformation.services.CalendarExportService;
 import esprit.pfe.serviceformation.services.FormationWorkflowService;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import lombok.RequiredArgsConstructor;
 
@@ -23,6 +25,7 @@ public class FormationExportController {
 
     /** Export .ics pour une formation */
     @GetMapping(value = "/formation/{formationId}/ics", produces = "text/calendar")
+    @PreAuthorize(AuthorizationMatrix.FORMATION_READ)
     public ResponseEntity<String> exportIcsForFormation(@PathVariable Long formationId) {
         String icsContent = calendarExportService.generateIcsForFormation(formationId);
         return ResponseEntity.ok()
@@ -33,6 +36,7 @@ public class FormationExportController {
 
     /** Export .ics pour un enseignant (toutes ses séances) */
     @GetMapping(value = "/enseignant/{enseignantId}/ics", produces = "text/calendar")
+    @PreAuthorize(AuthorizationMatrix.FORMATION_READ)
     public ResponseEntity<String> exportIcsForEnseignant(@PathVariable String enseignantId) {
         String icsContent = calendarExportService.generateIcsForEnseignant(enseignantId);
         return ResponseEntity.ok()
@@ -43,6 +47,7 @@ public class FormationExportController {
 
     /** Export Excel des formations filtrées par période / département / UP */
     @GetMapping(value = "/formations/excel", produces = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+    @PreAuthorize(AuthorizationMatrix.FORMATION_READ)
     public ResponseEntity<byte[]> exportFormationsExcel(
             @RequestParam(required = false) String start,
             @RequestParam(required = false) String end,
