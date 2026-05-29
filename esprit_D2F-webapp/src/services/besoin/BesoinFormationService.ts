@@ -36,7 +36,7 @@ const BesoinFormationService = {
     return response.data;
   },
 
-  async removeBesoinFormation(id: Id): Promise<unknown> {
+  async removeBesoinFormation(id: Id): Promise<void> {
     const response = await axios.delete(`${API_URL}/${id}`);
     return response.data;
   },

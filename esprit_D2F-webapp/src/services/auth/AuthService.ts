@@ -9,6 +9,7 @@ import type {
   SignupRequest,
   AuthUser,
 } from "@/models/auth";
+import type { SignupResponse, AccountActionResponse } from "@/models/auth";
 
 const AUTH_BASE = `${config.URL_ACCOUNT}/auth`;
 
@@ -32,12 +33,12 @@ export async function login({
   return response.data;
 }
 
-export async function signup(payload: SignupRequest): Promise<unknown> {
+export async function signup(payload: SignupRequest): Promise<SignupResponse> {
   const response = await api.post(`${AUTH_BASE}/signup`, payload);
   return response.data;
 }
 
-export async function forgotPassword(emailAddress: string): Promise<unknown> {
+export async function forgotPassword(emailAddress: string): Promise<AccountActionResponse> {
   const url = `${AUTH_BASE}/forgot-password?emailAddress=${encodeURIComponent(
     emailAddress
   )}`;
@@ -48,7 +49,7 @@ export async function forgotPassword(emailAddress: string): Promise<unknown> {
 export async function resetPassword({
   confirmationKey,
   newPassword,
-}: ResetPasswordRequest): Promise<unknown> {
+}: ResetPasswordRequest): Promise<AccountActionResponse> {
   const response = await api.post(`${AUTH_BASE}/reset-password`, {
     confirmationKey,
     newPassword,

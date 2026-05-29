@@ -38,7 +38,7 @@ describe('BureauService', () => {
   it('creates a bureau', async () => {
     const payload = { nom: 'Nouveau', chefId: 10 };
     httpMocks.mockPost.mockResolvedValueOnce({ data: { id: 3, ...payload } });
-    const result = await BureauService.createBureau(payload as any);
+    const result = await BureauService.createBureau(payload as Record<string, unknown>);
     expect(result).toEqual({ id: 3, ...payload });
     expect(httpMocks.mockPost).toHaveBeenCalledOnce();
   });
@@ -46,7 +46,7 @@ describe('BureauService', () => {
   it('updates a bureau', async () => {
     const payload = { nom: 'Mis à jour', chefId: 5 };
     httpMocks.mockPut.mockResolvedValueOnce({ data: { id: 1, ...payload } });
-    const result = await BureauService.updateBureau(1, payload as any);
+    const result = await BureauService.updateBureau(1, payload as Record<string, unknown>);
     expect(result).toEqual({ id: 1, ...payload });
     expect(httpMocks.mockPut).toHaveBeenCalledWith(
       expect.stringContaining('/1'),

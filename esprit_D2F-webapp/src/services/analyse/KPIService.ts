@@ -1,5 +1,7 @@
 import { defaultApi as axios } from "@/utils/helpers/httpClient";
 import { config } from "@/config/env";
+import type { FormationsByEtat, ParticipantStats, CountHeures, FormationsByType, TrainerTypeCount } from "@/models/analyse/kpi";
+import type { Enseignant } from "@/models/enseignant";
 
 const API_URL = `${config.FORMATION_URL}/formation/kpi`;
 
@@ -29,7 +31,7 @@ function normalizeListResponse<T>(payload: T[] | { content?: T[]; data?: T[]; it
 }
 
 const KPIService = {
-  async getTotalFormations(start: string, end: string) {
+  async getTotalFormations(start: string, end: string): Promise<number> {
     try {
       const response = await axios.get(`${API_URL}/formations`, {
         params: { start, end },
@@ -43,7 +45,7 @@ const KPIService = {
     }
   },
 
-  async getTotalHeures(start: string, end: string) {
+  async getTotalHeures(start: string, end: string): Promise<number> {
     try {
       const response = await axios.get(`${API_URL}/heures`, {
         params: { start, end },
@@ -57,7 +59,7 @@ const KPIService = {
     }
   },
 
-  async getUniqueParticipants(start: string, end: string) {
+  async getUniqueParticipants(start: string, end: string): Promise<number> {
     try {
       const response = await axios.get(`${API_URL}/participants`, {
         params: { start, end },
@@ -71,7 +73,7 @@ const KPIService = {
     }
   },
 
-  async getFormationsByEtat(start: string, end: string) {
+  async getFormationsByEtat(start: string, end: string): Promise<FormationsByEtat> {
     try {
       const response = await axios.get(`${API_URL}/formations-by-etat`, {
         params: { start, end },
@@ -85,7 +87,7 @@ const KPIService = {
     }
   },
 
-  async getTopParticipants(start: string, end: string, upId: string | null = null, deptId: string | null = null) {
+  async getTopParticipants(start: string, end: string, upId: string | null = null, deptId: string | null = null): Promise<ParticipantStats[]> {
     try {
       const params: Record<string, unknown> = { start, end };
       if (upId) params.upId = upId;
@@ -101,7 +103,7 @@ const KPIService = {
     }
   },
 
-  async getTopAbsentees(start: string, end: string, upId: string | null = null, deptId: string | null = null) {
+  async getTopAbsentees(start: string, end: string, upId: string | null = null, deptId: string | null = null): Promise<ParticipantStats[]> {
     try {
       const params: Record<string, unknown> = { start, end };
       if (upId) params.upId = upId;
@@ -117,7 +119,7 @@ const KPIService = {
     }
   },
 
-  async getEnseignantsNonAffectes(start: string, end: string) {
+  async getEnseignantsNonAffectes(start: string, end: string): Promise<Enseignant[]> {
     try {
       const response = await axios.get(`${API_URL}/enseignants-non-affectes`, {
         params: { start, end },
@@ -147,7 +149,7 @@ const KPIService = {
     start?: string | null;
     end?: string | null;
     etat?: string | null;
-  } = {}) {
+  } = {}): Promise<CountHeures> {
     try {
       const params: Record<string, unknown> = {};
       if (domaine !== null) params.domaine = domaine;
@@ -184,7 +186,7 @@ const KPIService = {
     start?: string | null;
     end?: string | null;
     etat?: string | null;
-  } = {}) {
+  } = {}): Promise<FormationsByType> {
     try {
       const params: Record<string, unknown> = {};
       if (domaine !== null) params.domaine = domaine;
@@ -205,7 +207,7 @@ const KPIService = {
     }
   },
 
-  async getCountByTrainerTypeWithIds(filters: Record<string, unknown> = {}) {
+  async getCountByTrainerTypeWithIds(filters: Record<string, unknown> = {}): Promise<TrainerTypeCount[]> {
     try {
       const response = await axios.get(`${API_URL}/count-by-trainer-type-with-ids`, { params: filters });
       return response.data || [];

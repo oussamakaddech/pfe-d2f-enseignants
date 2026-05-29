@@ -11,7 +11,7 @@ const notifyMocks = vi.hoisted(() => ({
 }));
 
 vi.mock('axios', async () => {
-  const actual = await vi.importActual('axios') as any;
+  const actual = await vi.importActual('axios') as typeof import('axios');
   return {
     ...actual,
     default: {
@@ -47,18 +47,18 @@ describe('httpClient', () => {
     const api = createApiClient('http://base.url');
     expect(axios.create).toHaveBeenCalledWith({ baseURL: 'http://base.url', withCredentials: true });
     expect(api.interceptors.response.use).toHaveBeenCalled();
-    expect(typeof (api as any).isAxiosError).toBe('function');
+    expect(typeof (api as unknown as { isAxiosError: unknown }).isAxiosError).toBe('function');
   });
 
   it('isAxiosError helper works', () => {
     const api = createApiClient();
-    (isAxiosError as any).mockReturnValue(true);
-    expect((api as any).isAxiosError({})).toBe(true);
+    (isAxiosError as ReturnType<typeof vi.fn>).mockReturnValue(true);
+    expect((api as unknown as { isAxiosError: (v: unknown) => boolean }).isAxiosError({})).toBe(true);
   });
 
   it('response interceptor handles 401 by dispatching event', async () => {
     const api = createApiClient();
-    const responseErrorHandler = (api.interceptors.response.use as any).mock.calls[0][1];
+    const responseErrorHandler = (api.interceptors.response.use as ReturnType<typeof vi.fn>).mock.calls[0][1];
     
     // Mock location to not be on login page
     Object.defineProperty(window, 'location', {
@@ -86,7 +86,7 @@ describe('httpClient', () => {
     vi.setSystemTime(new Date('2026-05-27T10:00:00Z'));
 
     const api = createApiClient();
-    const responseErrorHandler = (api.interceptors.response.use as any).mock.calls[0][1];
+    const responseErrorHandler = (api.interceptors.response.use as ReturnType<typeof vi.fn>).mock.calls[0][1];
 
     await expect(responseErrorHandler({ config: { url: '/foo' } })).rejects.toEqual({ config: { url: '/foo' } });
     expect(notifyMocks.error).toHaveBeenCalledTimes(1);

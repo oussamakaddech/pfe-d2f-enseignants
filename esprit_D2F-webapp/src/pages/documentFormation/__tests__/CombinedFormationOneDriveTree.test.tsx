@@ -5,19 +5,19 @@ import { useFormationsWithDocuments } from "@/hooks/formation/useFormations";
 import { useFormationHierarchy } from "@/hooks/api/useOneDrive";
 
 vi.mock("antd", () => ({
-  Layout: ({ children }: any) => <div>{children}</div>,
-  Row: ({ children }: any) => <div>{children}</div>,
-  Col: ({ children }: any) => <div>{children}</div>,
-  Button: ({ children, ...props }: any) => <button {...props}>{children}</button>,
+  Layout: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  Row: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  Col: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  Button: ({ children, ...props }: { children: React.ReactNode; [key: string]: unknown }) => <button {...props}>{children}</button>,
   Input: {
-    Search: ({ placeholder, value, onChange, onSearch }: any) => (
+    Search: ({ placeholder, value, onChange, onSearch }: { placeholder?: string; value?: string; onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void; onSearch?: (v: string) => void }) => (
       <input
         placeholder={placeholder}
         value={value}
         onChange={onChange}
-        onKeyDown={(event: any) => {
+        onKeyDown={(event: React.KeyboardEvent<HTMLInputElement>) => {
           if (event.key === "Enter") {
-            onSearch?.(event.currentTarget.value);
+            onSearch?.((event.target as HTMLInputElement).value);
           }
         }}
       />
@@ -26,16 +26,16 @@ vi.mock("antd", () => ({
   DatePicker: {
     RangePicker: () => <div data-testid="range-picker" />,
   },
-  Modal: ({ open, children }: any) => (open ? <div>{children}</div> : null),
+  Modal: ({ open, children }: { open?: boolean; children: React.ReactNode }) => (open ? <div>{children}</div> : null),
   notification: { success: vi.fn() },
   Typography: {
-    Title: ({ children }: any) => <h2>{children}</h2>,
-    Paragraph: ({ children }: any) => <p>{children}</p>,
-    Text: ({ children }: any) => <span>{children}</span>,
+    Title: ({ children }: { children: React.ReactNode }) => <h2>{children}</h2>,
+    Paragraph: ({ children }: { children: React.ReactNode }) => <p>{children}</p>,
+    Text: ({ children }: { children: React.ReactNode }) => <span>{children}</span>,
   },
-  Space: ({ children }: any) => <div>{children}</div>,
-  Card: ({ children }: any) => <div>{children}</div>,
-  Statistic: ({ title, value }: any) => (
+  Space: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  Card: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  Statistic: ({ title, value }: { title?: string; value?: number }) => (
     <div>
       <span>{title}</span>
       <span>{value}</span>
@@ -52,9 +52,9 @@ vi.mock("@/hooks/api/useOneDrive", () => ({
 }));
 
 vi.mock("../components/FormationListPanel", () => ({
-  FormationListPanel: ({ formations, onSelect }: any) => (
+  FormationListPanel: ({ formations, onSelect }: { formations: Array<{ idFormation: number; titreFormation: string }>; onSelect: (f: { idFormation: number; titreFormation: string }) => void }) => (
     <div data-testid="formation-list">
-      {formations.map((formation: any) => (
+      {formations.map((formation) => (
         <button key={formation.idFormation} type="button" onClick={() => onSelect(formation)}>
           {formation.titreFormation}
         </button>
@@ -64,11 +64,11 @@ vi.mock("../components/FormationListPanel", () => ({
 }));
 
 vi.mock("../components/OneDriveTreePanel", () => ({
-  OneDriveTreePanel: ({ selectedFormation, treeData, onSelectTree }: any) => (
+  OneDriveTreePanel: ({ selectedFormation, treeData, onSelectTree }: { selectedFormation?: { titreFormation: string }; treeData: Array<{ key: string; title: string; raw: unknown; children?: Array<{ key: string; title: string; raw: unknown }> }>; onSelectTree: (p: unknown, n: { node: { isLeaf: boolean; raw: unknown } }) => void }) => (
     <div data-testid="tree-panel">
       <div>{selectedFormation ? selectedFormation.titreFormation : "no-formation"}</div>
-      {treeData.flatMap((node: any) =>
-        (node.children ?? []).map((child: any) => (
+      {treeData.flatMap((node) =>
+        (node.children ?? []).map((child) => (
           <button
             key={child.key}
             type="button"
@@ -83,7 +83,7 @@ vi.mock("../components/OneDriveTreePanel", () => ({
 }));
 
 vi.mock("../components/FilePreviewPanel", () => ({
-  FilePreviewPanel: ({ selectedFile }: any) => (
+  FilePreviewPanel: ({ selectedFile }: { selectedFile?: { name: string; downloadUrl: string } }) => (
     <div data-testid="preview-panel">
       {selectedFile ? `${selectedFile.name}:${selectedFile.downloadUrl}` : "empty-preview"}
     </div>
@@ -91,7 +91,7 @@ vi.mock("../components/FilePreviewPanel", () => ({
 }));
 
 vi.mock("../DocumentListModal", () => ({
-  default: ({ open }: any) => (open ? <div data-testid="documents-modal">documents-modal</div> : null),
+  default: ({ open }: { open?: boolean }) => (open ? <div data-testid="documents-modal">documents-modal</div> : null),
 }));
 
 vi.mock("../DocumentUploadPanel", () => ({

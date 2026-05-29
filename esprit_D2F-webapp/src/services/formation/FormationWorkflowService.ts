@@ -3,12 +3,12 @@ import type { AxiosResponse } from "axios";
 import { config } from "@/config/env";
 import type { Id } from "@/models/common";
 import type { Formation } from "@/models/formation";
+import type { Presence, PresenceStats } from "@/models/presence";
 
 const API_URL = `${config.FORMATION_URL}/formation/formations-workflow`;
 
 // Token is now in HttpOnly cookie, sent automatically via withCredentials: true.
 
-type Presence = unknown;
 type FormationWorkflowPayload = Record<string, unknown>;
 
 function normalizeListResponse(payload: unknown): Formation[] {
@@ -53,7 +53,7 @@ const FormationWorkflowService = {
     return response.data;
   },
 
-  async deleteFormationWorkflow(id: Id): Promise<unknown> {
+  async deleteFormationWorkflow(id: Id): Promise<void> {
     const response = await axios.delete(`${API_URL}/${id}`);
     return response.data;
   },
@@ -104,21 +104,9 @@ const FormationWorkflowService = {
     return response.data;
   },
 
-  async getSeancePresenceStats(seanceId: Id): Promise<{
-    seanceId: number;
-    total: number;
-    presents: number;
-    absents: number;
-    tauxPresence: number;
-  }> {
+  async getSeancePresenceStats(seanceId: Id): Promise<PresenceStats> {
     const response = await axios.get(`${API_URL}/seances/${seanceId}/presences/stats`);
-    return response.data as {
-      seanceId: number;
-      total: number;
-      presents: number;
-      absents: number;
-      tauxPresence: number;
-    };
+    return response.data as PresenceStats;
   },
 
   async getFormationsByAnimateur(): Promise<Formation[]> {

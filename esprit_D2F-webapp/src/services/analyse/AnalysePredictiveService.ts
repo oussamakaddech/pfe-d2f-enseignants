@@ -6,7 +6,11 @@ const PREDICTIVE_API = `${config.ANALYSE_URL}/analyse`;
 // Endpoints du pipeline analytics v1: /api/analyse/v1/analytics/**
 const ANALYTICS_V1 = `${config.ANALYSE_URL}/analyse/v1/analytics`;
 
-import type { Gravite, AnalyseGap, AnalyseRecommandation, AnalyseData, DriftReport } from "@/models/analyse";
+import type {
+  Gravite, AnalyseGap, AnalyseRecommandation, AnalyseData, DriftReport,
+  DecliningCompetency, InDemandCompetency, TeacherRiskIndicator,
+  GapHeatmapCell, TrainingEffectiveness, RiskEvolutionPoint, ModelPerformance,
+} from "@/models/analyse";
 export type { Gravite, AnalyseGap, AnalyseRecommandation, AnalyseData, DriftReport };
 
 interface RawGapItem {
@@ -60,6 +64,22 @@ type DecliningCompetency = NonNullable<DashboardData['declining_competencies']>[
 type InDemandCompetency = NonNullable<DashboardData['in_demand_competencies']>[number];
 type TeacherRiskIndicator = NonNullable<DashboardData['teacher_risk_indicators']>[number];
 
+interface PredictGapsResponse {
+  gaps: RawGapItem[];
+  overall_risk_score: number;
+  explanation?: { method?: string; model_trained?: boolean };
+}
+
+interface RecommendPathResponse {
+  path: RawPathStep[];
+}
+
+interface DashboardSummaryResponse {
+  declining_competencies: DashboardData['declining_competencies'];
+  in_demand_competencies: DashboardData['in_demand_competencies'];
+  teacher_risk_indicators: DashboardData['teacher_risk_indicators'];
+}
+
 function mapGapItem(g: RawGapItem, isHeuristic: boolean): AnalyseGap {
   let gravite: Gravite = "faible";
   if (g.predicted_gap >= 2) gravite = "elevee";
@@ -79,7 +99,7 @@ function mapGapItem(g: RawGapItem, isHeuristic: boolean): AnalyseGap {
 
 const AnalysePredictiveService = {
   // ── Prediction ─────────────────────────────────
-  async predictGaps(enseignantId: string, horizonMonths = 6, topN = 10) {
+  async predictGaps(enseignantId: string, horizonMonths = 6, topN = 10): Promise<PredictGapsResponse> {
     const res = await axios.post(
       `${PREDICTIVE_API}/predict/gaps/${enseignantId}`,
       { teacher_id: enseignantId, horizon_months: horizonMonths, top_n: topN }
@@ -87,7 +107,7 @@ const AnalysePredictiveService = {
     return res.data;
   },
 
-  async trainModel() {
+  async trainModel(): Promise<{ message: string }> {
     const res = await axios.post(`${PREDICTIVE_API}/predict/train`, {});
     return res.data;
   },
@@ -98,7 +118,7 @@ const AnalysePredictiveService = {
   },
 
   // ── Recommendation ─────────────────────────────
-  async recommendPath(teacherId: string, targetCompetencyId: number, targetLevel = 4, maxDurationHours?: number) {
+  async recommendPath(teacherId: string, targetCompetencyId: number, targetLevel = 4, maxDurationHours?: number): Promise<RecommendPathResponse> {
     const res = await axios.post(`${PREDICTIVE_API}/recommend/path`, {
       teacher_id: teacherId,
       target_competency_id: targetCompetencyId,
@@ -109,7 +129,7 @@ const AnalysePredictiveService = {
   },
 
   // ── Detection ──────────────────────────────────
-  async getAtRiskTeachers(threshold = 0.7) {
+  async getAtRiskTeachers(threshold = 0.7): Promise<TeacherRiskIndicator[]> {
     const res = await axios.get(`${PREDICTIVE_API}/detect/at-risk-teachers`, {
       params: { threshold },
     });
@@ -117,51 +137,51 @@ const AnalysePredictiveService = {
   },
 
   // ── Dashboard ──────────────────────────────────
-  async getDashboardSummary() {
+  async getDashboardSummary(): Promise<DashboardSummaryResponse> {
     const res = await axios.get(`${PREDICTIVE_API}/dashboard/summary`);
     return res.data;
   },
 
-  async getDecliningCompetencies() {
+  async getDecliningCompetencies(): Promise<DecliningCompetency[]> {
     const res = await axios.get(`${PREDICTIVE_API}/dashboard/declining-competencies`);
     return res.data;
   },
 
-  async getInDemandCompetencies() {
+  async getInDemandCompetencies(): Promise<InDemandCompetency[]> {
     const res = await axios.get(`${PREDICTIVE_API}/dashboard/in-demand-competencies`);
     return res.data;
   },
 
-  async getTeacherRiskIndicators() {
+  async getTeacherRiskIndicators(): Promise<TeacherRiskIndicator[]> {
     const res = await axios.get(`${PREDICTIVE_API}/dashboard/teacher-risk-indicators`);
     return res.data;
   },
 
   // ── Dashboard prédictif avancé (analytics v1) ──────────────
-  async getGapHeatmap() {
+  async getGapHeatmap(): Promise<GapHeatmapCell[]> {
     const res = await axios.get(`${ANALYTICS_V1}/dashboard/gap-heatmap`);
     return res.data;
   },
 
-  async getTrainingEffectiveness() {
+  async getTrainingEffectiveness(): Promise<TrainingEffectiveness[]> {
     const res = await axios.get(`${ANALYTICS_V1}/dashboard/training-effectiveness`);
     return res.data;
   },
 
-  async getRiskEvolution(months = 6) {
+  async getRiskEvolution(months = 6): Promise<RiskEvolutionPoint[]> {
     const res = await axios.get(`${ANALYTICS_V1}/dashboard/risk-evolution`, {
       params: { months },
     });
     return res.data;
   },
 
-  async getModelPerformance() {
+  async getModelPerformance(): Promise<ModelPerformance> {
     const res = await axios.get(`${ANALYTICS_V1}/dashboard/model-performance`);
     return res.data;
   },
 
   // ── Ré-entraînement avec rollback (ADMIN) ──────────────────
-  async retrainModel() {
+  async retrainModel(): Promise<{ message: string }> {
     const res = await axios.post(`${ANALYTICS_V1}/admin/retrain`, {});
     return res.data;
   },
@@ -171,7 +191,7 @@ const AnalysePredictiveService = {
     enseignantId: string,
     competenceCible?: string,
     options?: { autoTrain?: boolean }
-  ) {
+  ): Promise<AnalyseData> {
     const autoTrain = options?.autoTrain ?? false;
     try {
       const gapsRes = await this.predictGaps(enseignantId, 6, 10);
@@ -249,7 +269,16 @@ const AnalysePredictiveService = {
     }
   },
 
-  async analyserTendancesGlobales() {
+  async analyserTendancesGlobales(): Promise<{
+    dashboard: {
+      competencesEnDeclin: string[];
+      competencesEnForteDemande: string[];
+      enseignantsARisque: string[];
+    };
+    rawDeclining: DecliningCompetency[];
+    rawInDemand: InDemandCompetency[];
+    rawRiskIndicators: TeacherRiskIndicator[];
+  }> {
     try {
       const data = await this.getDashboardSummary();
       return {

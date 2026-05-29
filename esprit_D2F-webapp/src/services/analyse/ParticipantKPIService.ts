@@ -1,5 +1,6 @@
 import { defaultApi as axios } from "@/utils/helpers/httpClient";
 import { config } from "@/config/env";
+import type { FormationParticipantKPI, GlobalParticipantKPI } from "@/models/analyse/kpi";
 
 const API_URL = `${config.FORMATION_URL}/formation/kpi/participants`;
 
@@ -25,14 +26,14 @@ function normalizeListResponse<T>(payload: T[] | { content?: T[]; data?: T[]; it
 }
 
 const ParticipantKPIService = {
-  async getFormationsParticipantKPIs(startDate: string, endDate: string) {
+  async getFormationsParticipantKPIs(startDate: string, endDate: string): Promise<FormationParticipantKPI[]> {
     const response = await axios.get(`${API_URL}/formations`, {
       params: { startDate, endDate },
     });
     return normalizeListResponse(response.data);
   },
 
-  async getGlobalParticipantKPI(startDate: string, endDate: string) {
+  async getGlobalParticipantKPI(startDate: string, endDate: string): Promise<GlobalParticipantKPI> {
     const response = await axios.get(`${API_URL}/global`, {
       params: { startDate, endDate },
     });
