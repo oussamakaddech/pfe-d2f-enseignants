@@ -48,7 +48,7 @@ export function useRiceTeacherManager({
       const nomUp = createEnsData.nom.trim().toUpperCase();
       const prenom = createEnsData.prenom.trim();
       const mail = createEnsData.mail.trim() ||
-        `${nomUp.toLowerCase()}.${prenom.toLowerCase().replaceAll(/\s+/g, ".")}@esprit.tn`;
+        `${nomUp.toLowerCase()}.${prenom.toLowerCase().replaceAll(/\s+/g, ".")}@${import.meta.env.VITE_DEFAULT_EMAIL_DOMAIN || 'esprit.tn'}`;
       const created = await createEnseignantMutate({ nom: nomUp, prenom, mail, type: "P", etat: "A" });
       const realId = String(created.id ?? created.enseignantId);
       setAllEnseignants((prev) => [...prev, { ...created, enseignantId: realId } as EnseignantRef]);
