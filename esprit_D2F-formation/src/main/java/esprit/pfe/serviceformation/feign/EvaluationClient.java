@@ -8,7 +8,11 @@ import org.springframework.web.bind.annotation.RequestBody;
 
 import java.util.List;
 
-@FeignClient(name = "evaluation-service", url = "${EVALUATION_SERVICE_URL}", contextId = "evaluationClient")
+@FeignClient(
+        name = "evaluation-service",
+        url = "${EVALUATION_SERVICE_URL}",
+        contextId = "evaluationClient",
+        fallback = EvaluationClientFallback.class)
 public interface EvaluationClient {
 
     @PostMapping("/evaluations/bulk")
