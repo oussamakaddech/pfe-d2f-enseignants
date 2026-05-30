@@ -101,6 +101,14 @@ def execute_query(db: Session, query: str, params: dict | None = None) -> list[d
         rows = result.mappings().all()
         return [dict(row) for row in rows]
     except Exception as e:
-        logger.error("SQL query failed: %s | Params: %s | Error: %s", query[:200], params, str(e))
+        # DSI #12 — ne jamais logguer les valeurs des paramètres : elles peuvent
+        # contenir des données personnelles (ids/noms/emails d'enseignants).
+        # On ne loggue que les NOMS des paramètres liés, jamais leurs valeurs.
+        logger.error(
+            "SQL query failed: %s | Param keys: %s | Error: %s",
+            query[:200],
+            sorted((params or {}).keys()),
+            str(e),
+        )
         db.rollback()
         raise DatabaseError(detail=f"Database query failed: {str(e)[:200]}") from e
