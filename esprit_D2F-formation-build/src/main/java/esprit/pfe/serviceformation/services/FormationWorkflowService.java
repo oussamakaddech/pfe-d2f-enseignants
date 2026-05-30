@@ -23,6 +23,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import static java.util.stream.Collectors.toList;
 
 @Service
 @Slf4j
@@ -39,6 +40,7 @@ public class FormationWorkflowService {
     private final OutlookCalendarService outlookCalendarService;
     private final OutlookMailService outlookMailService;
     private final FormationWorkflowServiceHelper helper;
+    private final FormationMapper formationMapper;
 
     public FormationWorkflowService(DocumentRepository documentRepository,
             FormationRepository formationRepository,
@@ -49,6 +51,7 @@ public class FormationWorkflowService {
             UpRepository upRepository,
             EvaluationPublisher evaluationPublisher,
             FormationWorkflowServiceHelper helper,
+            FormationMapper formationMapper,
             @org.springframework.lang.Nullable OutlookCalendarService outlookCalendarService,
             @org.springframework.lang.Nullable OutlookMailService outlookMailService) {
         this.documentRepository = documentRepository;
@@ -60,6 +63,7 @@ public class FormationWorkflowService {
         this.upRepository = upRepository;
         this.evaluationPublisher = evaluationPublisher;
         this.helper = helper;
+        this.formationMapper = formationMapper;
         this.outlookCalendarService = outlookCalendarService;
         this.outlookMailService = outlookMailService;
     }
@@ -1284,7 +1288,7 @@ public class FormationWorkflowService {
                 "</div></div></body></html>";
     }
 
-    public FormationDTO getFormationWorkflowById(Long formationId) {
+    public FormationResponseDTO getFormationWorkflowById(Long formationId) {
         Formation formation = formationRepository.findById(formationId)
                 .orElseThrow(() -> new IllegalArgumentException("Formation introuvable avec l'id : " + formationId));
         if (formation.getSeances() != null) {
@@ -1295,11 +1299,11 @@ public class FormationWorkflowService {
                     Hibernate.initialize(seance.getParticipants());
             });
         }
-        return mapFormationToDTO(formation);
+        return formationMapper.toResponseDTO(formation);
     }
 
     @Transactional(readOnly = true)
-    public List<FormationDTO> getAllFormationWorkflows() {
+    public List<FormationResponseDTO> getAllFormationWorkflows() {
         List<Formation> formations = formationRepository.findAll();
         formations.forEach(f -> {
             if (f.getSeances() != null) {
@@ -1315,7 +1319,7 @@ public class FormationWorkflowService {
             if (f.getInscriptions() != null)
                 Hibernate.initialize(f.getInscriptions());
         });
-        return formations.stream().map(this::mapFormationToDTO).toList();
+        return formations.stream().map(formationMapper::toResponseDTO).collect(toList());
     }
 
     @Transactional
@@ -1359,66 +1363,7 @@ public class FormationWorkflowService {
         return dto;
     }
 
-    public FormationDTO mapFormationToDTO(Formation formation) {
-        FormationDTO dto = new FormationDTO();
-        dto.setIdFormation(formation.getIdFormation());
-        dto.setIdBesoinFormation(formation.getIdBesoinFormation());
-        dto.setTypeBesoin(formation.getTypeBesoin());
-        dto.setTitreFormation(formation.getTitreFormation());
-        dto.setTypeFormation(formation.getTypeFormation() != null ? formation.getTypeFormation().toString() : null);
-        dto.setDateDebut(formation.getDateDebut() != null ? new java.sql.Timestamp(formation.getDateDebut().getTime()).toInstant().atZone(java.time.ZoneId.of(FormationWorkflowServiceHelper.TIMEZONE_TUNIS)).toLocalDate() : null);
-        dto.setDateFin(formation.getDateFin() != null ? new java.sql.Timestamp(formation.getDateFin().getTime()).toInstant().atZone(java.time.ZoneId.of(FormationWorkflowServiceHelper.TIMEZONE_TUNIS)).toLocalDate() : null);
-        dto.setEtatFormation(formation.getEtatFormation() != null ? formation.getEtatFormation().toString() : null);
-        dto.setCoutFormation(formation.getCoutFormation() != null ? formation.getCoutFormation().floatValue() : 0.0f);
-        dto.setOrganismeRefExterne(formation.getOrganismeRefExterne());
-        dto.setCoutHebergement(formation.getCoutHebergement() != null ? formation.getCoutHebergement().floatValue() : 0.0f);
-        dto.setCoutRepas(formation.getCoutRepas() != null ? formation.getCoutRepas().floatValue() : 0.0f);
-        dto.setCoutTransport(formation.getCoutTransport() != null ? formation.getCoutTransport().floatValue() : 0.0f);
-        dto.setAcquis(formation.getAcquis());
-        dto.setCompetence(formation.getCompetence());
-        dto.setDomaine(formation.getDomaine());
-        dto.setEvalMethods(formation.getEvalMethods());
-        dto.setIndicateurs(formation.getIndicateurs());
-        dto.setObjectifs(formation.getObjectifs());
-        dto.setObjectifsPedago(formation.getObjectifsPedago());
-        dto.setPopulationCible(formation.getPopulationCible());
-        dto.setExterneFormateurEmail(formation.getExterneFormateurEmail());
-        dto.setExterneFormateurNom(formation.getExterneFormateurNom());
-        dto.setExterneFormateurPrenom(formation.getExterneFormateurPrenom());
-        dto.setBureauFormationNom(formation.getBureauFormationNom());
-        dto.setBureauFormationMail(formation.getBureauFormationMail());
-        dto.setBureauFormationTelephone(formation.getBureauFormationTelephone());
-        dto.setPrerequis(formation.getPrerequis());
-        dto.setChargeHoraireGlobal(formation.getChargeHoraireGlobal() != null ? formation.getChargeHoraireGlobal().intValue() : 0);
-        dto.setOuverte(formation.isOuverte());
-        dto.setInscriptionsOuvertes(formation.isInscriptionsOuvertes());
-        dto.setCertifGenerated(formation.isCertifGenerated());
-        dto.setPeriodCode(formation.getPeriodCode() != null ? formation.getPeriodCode().name() : null);
-        dto.setCustomPeriodLabel(formation.getCustomPeriodLabel());
-
-        if (formation.getSeances() != null) {
-            dto.setSeances(formation.getSeances().stream().map(this::mapSeanceToDTO).toList());
-        }
-        if (formation.getAnimateurs() != null) {
-            Hibernate.initialize(formation.getAnimateurs());
-            dto.setAnimateurs(formation.getAnimateurs().stream().map(this::mapEnseignantToDTO).toList());
-        }
-        if (formation.getDepartement() != null) {
-            DeptDTO deptDTO = new DeptDTO();
-            deptDTO.setId(formation.getDepartement().getId());
-            deptDTO.setLibelle(formation.getDepartement().getLibelle());
-            dto.setDepartement(deptDTO);
-        }
-        if (formation.getUp() != null) {
-            UpDTO upDTO = new UpDTO();
-            upDTO.setId(formation.getUp().getId());
-            upDTO.setLibelle(formation.getUp().getLibelle());
-            dto.setUp(upDTO);
-        }
-        return dto;
-    }
-
-    public List<FormationDTO> getFormationsByAnimateurEmail(String email) {
+    public List<FormationResponseDTO> getFormationsByAnimateurEmail(String email) {
         List<Formation> allFormations = formationRepository.findDistinctBySeancesAnimateursMail(email);
         List<Formation> enCours = allFormations.stream()
                 .filter(f -> f.getEtatFormation() == EtatFormation.EN_COURS)
@@ -1431,7 +1376,7 @@ public class FormationWorkflowService {
                 });
             }
         });
-        return enCours.stream().map(this::mapFormationToDTO).toList();
+        return enCours.stream().map(formationMapper::toResponseDTO).collect(toList());
     }
 
     public List<PresenceDTO> getPresencesBySeance(Long seanceId) {
@@ -1504,9 +1449,9 @@ public class FormationWorkflowService {
         return dto;
     }
 
-    public List<FormationDTO> getFormationsAchevees() {
+    public List<FormationResponseDTO> getFormationsAchevees() {
         List<Formation> achevees = formationRepository.findByEtatFormation(EtatFormation.ACHEVE);
-        return achevees.stream().map(this::mapFormationToDTO).toList();
+        return achevees.stream().map(formationMapper::toResponseDTO).collect(toList());
     }
 
     public List<FormationWithDocumentsDTO> getAllFormationsWithDocuments() {
@@ -1553,37 +1498,37 @@ public class FormationWorkflowService {
     }
 
     public FormationsByRoleDTO getFormationsForCalendar(String enseignantId) {
-        List<FormationDTO> animateur = formationRepository
+        List<FormationResponseDTO> animateur = formationRepository
                 .findDistinctBySeances_Animateurs_Id(enseignantId)
-                .stream().map(this::mapFormationToDTO).toList();
+                .stream().map(formationMapper::toResponseDTO).collect(toList());
 
-        List<FormationDTO> participant = formationRepository
+        List<FormationResponseDTO> participant = formationRepository
                 .findDistinctBySeances_Participants_Id(enseignantId)
-                .stream().map(this::mapFormationToDTO).toList();
+                .stream().map(formationMapper::toResponseDTO).collect(toList());
 
         return new FormationsByRoleDTO(animateur, participant);
     }
 
     @Transactional
-    public FormationDTO setInscriptionsOuvertes(Long formationId, boolean ouvert) {
+    public FormationResponseDTO setInscriptionsOuvertes(Long formationId, boolean ouvert) {
         Formation formation = formationRepository.findById(formationId)
                 .orElseThrow(() -> new IllegalArgumentException("Formation introuvable"));
         formation.setInscriptionsOuvertes(ouvert);
         Formation saved = formationRepository.save(formation);
-        return mapFormationToDTO(saved);
+        return formationMapper.toResponseDTO(saved);
     }
 
-    public List<FormationDTO> getFormationsVisibles() {
+    public List<FormationResponseDTO> getFormationsVisibles() {
         return formationRepository.findAll().stream()
                 .filter(f -> f.getEtatFormation() == EtatFormation.VISIBLE
                         || f.getEtatFormation() == EtatFormation.PLANIFIE
                         || f.getEtatFormation() == EtatFormation.EN_COURS
                         || f.isInscriptionsOuvertes())
-                .map(this::mapFormationToDTO)
-                .toList();
+                .map(formationMapper::toResponseDTO)
+                .collect(toList());
     }
 
-    public List<FormationDTO> getFormationsParUp(String upId) {
+    public List<FormationResponseDTO> getFormationsParUp(String upId) {
         List<Formation> formations = formationRepository.findByUp_Id(upId);
         formations.forEach(f -> {
             if (f.getSeances() != null) {
@@ -1604,11 +1549,11 @@ public class FormationWorkflowService {
                         || f.getEtatFormation() == EtatFormation.PLANIFIE
                         || f.getEtatFormation() == EtatFormation.EN_COURS
                         || f.isInscriptionsOuvertes())
-                .map(this::mapFormationToDTO)
-                .toList();
+                .map(formationMapper::toResponseDTO)
+                .collect(toList());
     }
 
-    public List<FormationDTO> getFormationsParDepartement(String deptId) {
+    public List<FormationResponseDTO> getFormationsParDepartement(String deptId) {
         List<Formation> formations = formationRepository.findByDepartement_Id(deptId);
         formations.forEach(f -> {
             if (f.getSeances() != null) {
@@ -1624,6 +1569,6 @@ public class FormationWorkflowService {
             if (f.getInscriptions() != null)
                 Hibernate.initialize(f.getInscriptions());
         });
-        return formations.stream().map(this::mapFormationToDTO).toList();
+        return formations.stream().map(formationMapper::toResponseDTO).collect(toList());
     }
 }

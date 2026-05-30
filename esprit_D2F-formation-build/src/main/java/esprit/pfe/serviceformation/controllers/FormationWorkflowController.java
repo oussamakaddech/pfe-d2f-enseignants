@@ -145,7 +145,7 @@ public class FormationWorkflowController {
     @Operation(summary = "Lister toutes les formations (legacy - utiliser /api/v1/formations)")
     public ResponseEntity<Object> getAllFormations() {
         try {
-            List<FormationDTO> dtos = formationWorkflowService.getAllFormationWorkflows();
+            List<FormationResponseDTO> dtos = formationWorkflowService.getAllFormationWorkflows();
             return ResponseEntity.ok(dtos);
         } catch (Exception e) {
             log.error("Erreur interne lors de la recuperation de toutes les formations : ", e);
@@ -189,11 +189,11 @@ public class FormationWorkflowController {
 
     @GetMapping("/animateur")
     @PreAuthorize(AuthorizationMatrix.FORMATION_READ_OWN)
-    public ResponseEntity<Page<FormationDTO>> getFormationsByAnimateurEmail(
+    public ResponseEntity<Page<FormationResponseDTO>> getFormationsByAnimateurEmail(
             @AuthenticationPrincipal Jwt jwt,
             @PageableDefault(size = 20, sort = "idFormation") Pageable pageable) {
         String email = jwt.getClaim("email");
-        List<FormationDTO> all = formationWorkflowService.getFormationsByAnimateurEmail(email);
+        List<FormationResponseDTO> all = formationWorkflowService.getFormationsByAnimateurEmail(email);
         int from = (int) pageable.getOffset();
         int to = Math.min(from + pageable.getPageSize(), all.size());
         return ResponseEntity.ok(new PageImpl<>(from >= all.size() ? List.of() : all.subList(from, to), pageable, all.size()));
@@ -252,7 +252,7 @@ public class FormationWorkflowController {
     @PreAuthorize(AuthorizationMatrix.FORMATION_READ)
     public ResponseEntity<Object> getFormationsAchevees() {
         try {
-            List<FormationDTO> achevees = formationWorkflowService.getFormationsAchevees();
+            List<FormationResponseDTO> achevees = formationWorkflowService.getFormationsAchevees();
             return ResponseEntity.ok(achevees);
         } catch (Exception e) {
             log.error("Erreur lors de la recuperation des formations achevees : ", e);
@@ -280,15 +280,15 @@ public class FormationWorkflowController {
 
     @PutMapping("/{id}/inscriptionsOuvertes")
     @PreAuthorize(AuthorizationMatrix.FORMATION_UPDATE)
-    public FormationDTO updateInscriptionsOuvertes(@PathVariable Long id, @RequestParam boolean ouvert) {
+    public FormationResponseDTO updateInscriptionsOuvertes(@PathVariable Long id, @RequestParam boolean ouvert) {
         return formationWorkflowService.setInscriptionsOuvertes(id, ouvert);
     }
 
     @GetMapping("/visibles")
     @PreAuthorize(AuthorizationMatrix.FORMATION_READ)
-    public ResponseEntity<Page<FormationDTO>> getFormationsVisibles(
+    public ResponseEntity<Page<FormationResponseDTO>> getFormationsVisibles(
             @PageableDefault(size = 20, sort = "idFormation") Pageable pageable) {
-        List<FormationDTO> all = formationWorkflowService.getFormationsVisibles();
+        List<FormationResponseDTO> all = formationWorkflowService.getFormationsVisibles();
         int from = (int) pageable.getOffset();
         int to = Math.min(from + pageable.getPageSize(), all.size());
         return ResponseEntity.ok(new PageImpl<>(from >= all.size() ? List.of() : all.subList(from, to), pageable, all.size()));
@@ -296,10 +296,10 @@ public class FormationWorkflowController {
 
     @GetMapping("/par-up")
     @PreAuthorize(AuthorizationMatrix.FORMATION_READ)
-    public ResponseEntity<Page<FormationDTO>> getFormationsParUp(
+    public ResponseEntity<Page<FormationResponseDTO>> getFormationsParUp(
             @RequestParam String upId,
             @PageableDefault(size = 20, sort = "idFormation") Pageable pageable) {
-        List<FormationDTO> all = formationWorkflowService.getFormationsParUp(upId);
+        List<FormationResponseDTO> all = formationWorkflowService.getFormationsParUp(upId);
         int from = (int) pageable.getOffset();
         int to = Math.min(from + pageable.getPageSize(), all.size());
         return ResponseEntity.ok(new PageImpl<>(from >= all.size() ? List.of() : all.subList(from, to), pageable, all.size()));
@@ -307,10 +307,10 @@ public class FormationWorkflowController {
 
     @GetMapping("/par-departement")
     @PreAuthorize(AuthorizationMatrix.FORMATION_READ)
-    public ResponseEntity<Page<FormationDTO>> getFormationsParDepartement(
+    public ResponseEntity<Page<FormationResponseDTO>> getFormationsParDepartement(
             @RequestParam String deptId,
             @PageableDefault(size = 20, sort = "idFormation") Pageable pageable) {
-        List<FormationDTO> all = formationWorkflowService.getFormationsParDepartement(deptId);
+        List<FormationResponseDTO> all = formationWorkflowService.getFormationsParDepartement(deptId);
         int from = (int) pageable.getOffset();
         int to = Math.min(from + pageable.getPageSize(), all.size());
         return ResponseEntity.ok(new PageImpl<>(from >= all.size() ? List.of() : all.subList(from, to), pageable, all.size()));

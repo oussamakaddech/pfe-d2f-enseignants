@@ -24,16 +24,19 @@ public class InscriptionService {
     private final EnseignantRepository enseignantRepo;
     private final InscriptionRepository inscriptionRepo;
     private final InscriptionService self;
+    private final FormationMapper formationMapper;
 
     @Autowired
     public InscriptionService(FormationRepository formationRepo,
                               EnseignantRepository enseignantRepo,
                               InscriptionRepository inscriptionRepo,
-                              @Lazy InscriptionService self) {
+                              @Lazy InscriptionService self,
+                              FormationMapper formationMapper) {
         this.formationRepo = formationRepo;
         this.enseignantRepo = enseignantRepo;
         this.inscriptionRepo = inscriptionRepo;
         this.self = self;
+        this.formationMapper = formationMapper;
     }
 
 
@@ -43,7 +46,7 @@ public class InscriptionService {
      * - et soit ouverte à tous (ouverte == true), soit liée à son UP
      */
     @Transactional
-    public List<FormationDTO> listerFormationsAccessibles(String enseignantId) {
+    public List<FormationResponseDTO> listerFormationsAccessibles(String enseignantId) {
         Enseignant ens = enseignantRepo.findById(enseignantId)
                 .or(() -> enseignantRepo.findByMail(enseignantId))
                 .orElseThrow(() -> new IllegalArgumentException("Enseignant introuvable"));
@@ -54,7 +57,7 @@ public class InscriptionService {
                 .filter(f -> f.isOuverte() // ouvertes à tous
                         || (f.getUp() != null && f.getUp().getId().equals(upEns)) // ou UP correspond
                 )
-                .map(this::mapFormationToDTO) // conversion en DTO
+                .map(formationMapper::toResponseDTO)
                 .toList();
     }
 
@@ -146,11 +149,11 @@ public class InscriptionService {
     }
 
     @Transactional(readOnly = true)
-    public Page<FormationDTO> listerFormationsAccessibles(String enseignantId, Pageable pageable) {
-        List<FormationDTO> all = self.listerFormationsAccessibles(enseignantId);
+    public Page<FormationResponseDTO> listerFormationsAccessibles(String enseignantId, Pageable pageable) {
+        List<FormationResponseDTO> all = self.listerFormationsAccessibles(enseignantId);
         int start = (int) pageable.getOffset();
         int end = Math.min(start + pageable.getPageSize(), all.size());
-        List<FormationDTO> slice = (start >= all.size()) ? List.of() : all.subList(start, end);
+        List<FormationResponseDTO> slice = (start >= all.size()) ? List.of() : all.subList(start, end);
         return new PageImpl<>(slice, pageable, all.size());
     }
 
@@ -207,61 +210,10 @@ public class InscriptionService {
         return dto;
     }
 
-    public FormationDTO mapFormationToDTO(Formation formation) {
-        FormationDTO dto = new FormationDTO();
-        dto.setIdFormation(formation.getIdFormation());
-        dto.setTitreFormation(formation.getTitreFormation());
-        dto.setTypeFormation(
-                formation.getTypeFormation() != null ? formation.getTypeFormation().toString() : "INTERNE");
-        dto.setDateDebut(formation.getDateDebut() != null ? formation.getDateDebut().toInstant().atZone(java.time.ZoneId.systemDefault()).toLocalDate() : null);
-        dto.setDateFin(formation.getDateFin() != null ? formation.getDateFin().toInstant().atZone(java.time.ZoneId.systemDefault()).toLocalDate() : null);
-        dto.setEtatFormation(
-                formation.getEtatFormation() != null ? formation.getEtatFormation().toString() : "PLANIFIE");
-        dto.setCoutFormation(formation.getCoutFormation());
-        dto.setOrganismeRefExterne(formation.getOrganismeRefExterne());
-        dto.setCoutHebergement(formation.getCoutHebergement());
-        dto.setCoutFormation(formation.getCoutFormation());
-        dto.setCoutRepas(formation.getCoutRepas());
-        dto.setCoutTransport(formation.getCoutTransport());
-        dto.setAcquis(formation.getAcquis());
-        dto.setDomaine(formation.getDomaine());
-        dto.setEvalMethods(formation.getEvalMethods());
-        dto.setIndicateurs(formation.getIndicateurs());
-        dto.setObjectifs(formation.getObjectifs());
-        dto.setObjectifsPedago(formation.getObjectifsPedago());
-        dto.setPopulationCible(formation.getPopulationCible());
-        dto.setExterneFormateurEmail(formation.getExterneFormateurEmail());
-        dto.setExterneFormateurNom(formation.getExterneFormateurNom());
-        dto.setExterneFormateurPrenom(formation.getExterneFormateurPrenom());
-        dto.setPrerequis(formation.getPrerequis());
-        dto.setChargeHoraireGlobal(formation.getChargeHoraireGlobal());
-        dto.setOuverte(formation.isOuverte());
-        dto.setInscriptionsOuvertes(formation.isInscriptionsOuvertes());
-        if (formation.getSeances() != null) {
-            dto.setSeances(formation.getSeances().stream().map(this::mapSeanceToDTO).toList());
-        }
-        // Transformation pour département
-        if (formation.getDepartement() != null) {
-            DeptDTO deptDTO = new DeptDTO();
-            deptDTO.setId(formation.getDepartement().getId());
-            deptDTO.setLibelle(formation.getDepartement().getLibelle());
-            dto.setDepartement(deptDTO);
-        }
-        // Transformation pour UP
-        if (formation.getUp() != null) {
-            UpDTO upDTO = new UpDTO();
-            upDTO.setId(formation.getUp().getId());
-            upDTO.setLibelle(formation.getUp().getLibelle());
-            dto.setUp(upDTO);
-        }
-        return dto;
-    }
-
-    // dans InscriptionService.java
     public InscriptionDTO mapInscriptionToDTO(Inscription ins) {
         InscriptionDTO dto = new InscriptionDTO();
         dto.setId(ins.getId());
-        dto.setFormation(mapFormationToDTO(ins.getFormation()));
+        dto.setFormation(formationMapper.toResponseDTO(ins.getFormation()));
         dto.setEnseignant(mapEnseignantToDTO(ins.getEnseignant()));
         dto.setEtat(ins.getEtat().toString());
         dto.setDateDemande(ins.getDateDemande());

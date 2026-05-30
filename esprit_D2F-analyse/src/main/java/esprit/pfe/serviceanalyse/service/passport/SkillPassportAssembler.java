@@ -66,8 +66,13 @@ public class SkillPassportAssembler {
         List<CertificationSummaryDTO> certifications = certificatClient.getCertificationsForTeacher(enseignantUsername, bearerToken);
 
         // ── 5. Gaps & recommandations (service d'analyse local) ────────────
-        List<SkillGapSummaryDTO> gaps = buildGaps(enseignantUsername);
-        List<RecommendationSummaryDTO> recommandations = buildRecommandations(enseignantUsername);
+        // L'analyse complète (gaps + recommandations) est coûteuse : elle agrège
+        // plusieurs microservices via HTTP. On l'exécute donc UNE SEULE fois et
+        // on en dérive à la fois les gaps et les recommandations, au lieu de la
+        // relancer deux fois.
+        Map<String, Object> analyse = runAnalyse(enseignantUsername);
+        List<SkillGapSummaryDTO> gaps = buildGaps(analyse);
+        List<RecommendationSummaryDTO> recommandations = buildRecommandations(analyse);
 
         // ── 6. Indicateurs globaux ─────────────────────────────────────────
         int totalSavoirs = domaines.stream()
@@ -94,53 +99,56 @@ public class SkillPassportAssembler {
                 .build();
     }
 
-    @SuppressWarnings("unchecked")
-    private List<SkillGapSummaryDTO> buildGaps(String enseignantId) {
+    /**
+     * Exécute l'analyse prédictive complète une seule fois. En cas d'échec
+     * (service indisponible), retourne une map vide → dégradation gracieuse :
+     * les gaps et recommandations seront simplement vides.
+     */
+    private Map<String, Object> runAnalyse(String enseignantId) {
         try {
             Map<String, Object> analyse = analysePredictiveService.analyserEnseignant(enseignantId, null);
-            List<Map<String, Object>> rawGaps =
-                    (List<Map<String, Object>>) analyse.getOrDefault("gaps", Collections.emptyList());
-
-            return rawGaps.stream().map(g -> SkillGapSummaryDTO.builder()
-                    .competenceCode(str(g.get("competenceCode")))
-                    .competenceLabel(str(g.get("competenceLabel")))
-                    .niveauActuel(toInt(g.get("niveauActuel")))
-                    .niveauCible(toInt(g.get("niveauCible")))
-                    .gap(toDouble(g.get("gap")))
-                    .gravite(str(g.get("gravite")))
-                    .explication(str(g.get("explication")))
-                    .build()
-            ).collect(Collectors.toList());
+            return analyse != null ? analyse : Collections.emptyMap();
         } catch (Exception e) {
-            log.warn("Impossible de calculer les gaps pour {} : {}", enseignantId, e.getMessage());
-            return Collections.emptyList();
+            log.warn("Analyse prédictive indisponible pour {} : {}", enseignantId, e.getMessage());
+            return Collections.emptyMap();
         }
     }
 
     @SuppressWarnings("unchecked")
-    private List<RecommendationSummaryDTO> buildRecommandations(String enseignantId) {
-        try {
-            Map<String, Object> analyse = analysePredictiveService.analyserEnseignant(enseignantId, null);
-            List<Map<String, Object>> rawRecos =
-                    (List<Map<String, Object>>) analyse.getOrDefault("recommandationsFormations", Collections.emptyList());
+    private List<SkillGapSummaryDTO> buildGaps(Map<String, Object> analyse) {
+        List<Map<String, Object>> rawGaps =
+                (List<Map<String, Object>>) analyse.getOrDefault("gaps", Collections.emptyList());
 
-            return rawRecos.stream()
-                    .filter(r -> !"N/A".equals(r.get("formationId")))
-                    .limit(5)
-                    .map(r -> RecommendationSummaryDTO.builder()
-                            .formationId(str(r.get("formationId")))
-                            .titre(str(r.get("titre")))
-                            .duree(str(r.get("dureeEstimee")))
-                            .competencesCiblees(toStringList(r.get("competencesCiblees")))
-                            .probabiliteReussite(toDouble(r.get("probabiliteReussite")))
-                            .priorite(str(r.get("priorite")))
-                            .justification(str(r.get("justification")))
-                            .build()
-                    ).collect(Collectors.toList());
-        } catch (Exception e) {
-            log.warn("Impossible de calculer les recommandations pour {} : {}", enseignantId, e.getMessage());
-            return Collections.emptyList();
-        }
+        return rawGaps.stream().map(g -> SkillGapSummaryDTO.builder()
+                .competenceCode(str(g.get("competenceCode")))
+                .competenceLabel(str(g.get("competenceLabel")))
+                .niveauActuel(toInt(g.get("niveauActuel")))
+                .niveauCible(toInt(g.get("niveauCible")))
+                .gap(toDouble(g.get("gap")))
+                .gravite(str(g.get("gravite")))
+                .explication(str(g.get("explication")))
+                .build()
+        ).collect(Collectors.toList());
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<RecommendationSummaryDTO> buildRecommandations(Map<String, Object> analyse) {
+        List<Map<String, Object>> rawRecos =
+                (List<Map<String, Object>>) analyse.getOrDefault("recommandationsFormations", Collections.emptyList());
+
+        return rawRecos.stream()
+                .filter(r -> !"N/A".equals(r.get("formationId")))
+                .limit(5)
+                .map(r -> RecommendationSummaryDTO.builder()
+                        .formationId(str(r.get("formationId")))
+                        .titre(str(r.get("titre")))
+                        .duree(str(r.get("dureeEstimee")))
+                        .competencesCiblees(toStringList(r.get("competencesCiblees")))
+                        .probabiliteReussite(toDouble(r.get("probabiliteReussite")))
+                        .priorite(str(r.get("priorite")))
+                        .justification(str(r.get("justification")))
+                        .build()
+                ).collect(Collectors.toList());
     }
 
     private double computeScoreGlobal(List<DomainSummaryDTO> domaines, List<SkillGapSummaryDTO> gaps) {

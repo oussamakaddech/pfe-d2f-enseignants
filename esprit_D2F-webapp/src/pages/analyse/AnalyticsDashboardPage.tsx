@@ -1,19 +1,29 @@
-import { Card, Row, Col, Statistic, Table, Tag, Space, Typography, Button, Spin, Alert, Badge, Empty } from "antd";
+import { Card, Row, Col, Statistic, Table, Tag, Space, Typography, Button, Spin, Alert, Badge, Empty, Progress } from "antd";
 import {
   FallOutlined, RiseOutlined, WarningOutlined, ReloadOutlined,
   TeamOutlined, TrophyOutlined, BellOutlined, DashboardOutlined,
+  HeatMapOutlined, LineChartOutlined, ExperimentOutlined, ApartmentOutlined,
 } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import { useDashboard } from "@/hooks/analyse/useDashboard";
 import RiskBadge from "@/components/charts/RiskBadge";
 import PredictionScoreBar from "@/components/charts/PredictionScoreBar";
+import GapHeatmap from "@/components/charts/GapHeatmap";
+import TrendLineChart from "@/components/charts/TrendLineChart";
 import type {
   CompetenceDeclin, CompetenceDemande, TeacherRiskProfile, TopFormation, AlerteResumee,
+  TrainingEffectiveness, CouvertureDepartement,
 } from "@/models/analyse";
 import { AppPageHeader, shadow } from "@/components/common";
 import "@/styles/pages/analytics-dashboard-page.css";
 
 const { Text } = Typography;
+
+function couvertureColor(taux: number): string {
+  if (taux >= 75) return "#10b981";
+  if (taux >= 50) return "#f59e0b";
+  return "#ef4444";
+}
 
 const cardStyle = {
   background: "#fff",
@@ -102,6 +112,23 @@ export default function AnalyticsDashboardPage() {
     { title: "Date", dataIndex: "created_at", width: 160,
       render: v => <Text type="secondary" style={{ fontSize: 11 }}>{new Date(v).toLocaleString("fr-FR")}</Text> },
   ];
+
+  const effColumns: ColumnsType<TrainingEffectiveness> = [
+    { title: "Formation", dataIndex: "formation_titre", render: v => <Text strong>{v}</Text> },
+    { title: "Gain niveau moy.", dataIndex: "avg_level_gain", align: "center", width: 140,
+      render: v => <Tag color={v >= 1 ? "success" : v > 0 ? "processing" : "default"}>+{Number(v ?? 0).toFixed(2)}</Tag> },
+    { title: "Taux complétion", dataIndex: "completion_rate", width: 160,
+      render: v => <Progress percent={Math.round((v ?? 0) * 100)} size="small" strokeColor="#B51200" /> },
+    { title: "Recommandée", dataIndex: "nb_recommandee", align: "center", width: 110,
+      render: v => <Tag color="blue">{v}×</Tag> },
+  ];
+
+  const heatmap        = d?.department_gap_heatmap ?? [];
+  const riskEvolution  = d?.monthly_risk_evolution ?? [];
+  const effectiveness  = d?.training_effectiveness ?? [];
+  const couverture     = d?.taux_couverture_departements ?? [];
+  const modelPerf      = d?.model_performance;
+  const modelAccuracy  = modelPerf?.gap_model_accuracy;
 
   return (
     <div>
@@ -271,6 +298,116 @@ export default function AnalyticsDashboardPage() {
             <Empty description="Aucune alerte récente" image={Empty.PRESENTED_IMAGE_SIMPLE} />
           )}
         </Card>
+
+        {/* ── KPIs avancés ─────────────────────────────────────────── */}
+
+        {/* Heatmap des gaps : Département × Compétence */}
+        <Card
+          title={<Space><HeatMapOutlined style={{ color: "#ef4444" }} /><Text strong>Heatmap des Gaps · Département × Compétence</Text></Space>}
+          style={{ ...cardStyle, marginTop: 20 }}
+          size="small"
+          extra={<Text type="secondary" style={{ fontSize: 11 }}>Gap moyen (0–5) — plus c'est rouge, plus l'écart collectif est fort</Text>}
+        >
+          <GapHeatmap data={heatmap} />
+        </Card>
+
+        {/* Évolution du risque + Performance du modèle */}
+        <Row gutter={[20, 20]} style={{ marginTop: 20 }}>
+          <Col xs={24} lg={16}>
+            <Card
+              title={<Space><LineChartOutlined style={{ color: "#8b5cf6" }} /><Text strong>Évolution Mensuelle du Risque</Text></Space>}
+              style={cardStyle}
+              size="small"
+            >
+              <TrendLineChart data={riskEvolution} />
+            </Card>
+          </Col>
+          <Col xs={24} lg={8}>
+            <Card
+              title={<Space><ExperimentOutlined style={{ color: "#0ea5e9" }} /><Text strong>Performance du Modèle</Text></Space>}
+              style={cardStyle}
+              size="small"
+            >
+              <Space direction="vertical" size="large" style={{ width: "100%" }}>
+                <Statistic
+                  title="Précision (R²) du modèle de gaps"
+                  value={modelAccuracy != null ? modelAccuracy : "—"}
+                  precision={modelAccuracy != null ? 2 : undefined}
+                  valueStyle={{ color: modelAccuracy != null && modelAccuracy >= 0.7 ? "#10b981" : "#f59e0b" }}
+                />
+                <div>
+                  <Text type="secondary" style={{ fontSize: 12 }}>Proba. de réussite moyenne (reco)</Text>
+                  <div>
+                    <Text strong style={{ fontSize: 18 }}>
+                      {modelPerf?.recommendation_avg_proba != null
+                        ? `${Math.round(modelPerf.recommendation_avg_proba * 100)}%` : "—"}
+                    </Text>
+                  </div>
+                </div>
+                <div>
+                  <Text type="secondary" style={{ fontSize: 12 }}>Dernier ré-entraînement</Text>
+                  <div>
+                    <Tag color={modelPerf?.last_retrain_status === "success" ? "green" : "default"}>
+                      {modelPerf?.last_retrained
+                        ? new Date(modelPerf.last_retrained).toLocaleString("fr-FR")
+                        : "Jamais"}
+                    </Tag>
+                  </div>
+                </div>
+              </Space>
+            </Card>
+          </Col>
+        </Row>
+
+        {/* Efficacité des formations + Couverture par département */}
+        <Row gutter={[20, 20]} style={{ marginTop: 20, marginBottom: 8 }}>
+          <Col xs={24} lg={14}>
+            <Card
+              title={<Space><TrophyOutlined style={{ color: "#B51200" }} /><Text strong>Efficacité des Formations</Text></Space>}
+              style={cardStyle}
+              size="small"
+            >
+              {effectiveness.length ? (
+                <Table
+                  dataSource={effectiveness}
+                  columns={effColumns}
+                  rowKey="formation_id"
+                  pagination={{ pageSize: 5, size: "small" }}
+                  size="small"
+                />
+              ) : (
+                <Empty description="Aucune donnée d'efficacité" image={Empty.PRESENTED_IMAGE_SIMPLE} />
+              )}
+            </Card>
+          </Col>
+          <Col xs={24} lg={10}>
+            <Card
+              title={<Space><ApartmentOutlined style={{ color: "#10b981" }} /><Text strong>Couverture par Département</Text></Space>}
+              style={cardStyle}
+              size="small"
+            >
+              {couverture.length ? (
+                <Space direction="vertical" size="middle" style={{ width: "100%" }}>
+                  {couverture.map((c: CouvertureDepartement) => (
+                    <div key={c.departement}>
+                      <Space style={{ justifyContent: "space-between", width: "100%" }}>
+                        <Text strong>{c.departement || "—"}</Text>
+                        <Text type="secondary" style={{ fontSize: 11 }}>{c.nb_evalues} évalué(s)</Text>
+                      </Space>
+                      <Progress
+                        percent={Math.round(c.taux_couverture)}
+                        strokeColor={couvertureColor(c.taux_couverture)}
+                        size="small"
+                      />
+                    </div>
+                  ))}
+                </Space>
+              ) : (
+                <Empty description="Aucune donnée de couverture" image={Empty.PRESENTED_IMAGE_SIMPLE} />
+              )}
+            </Card>
+          </Col>
+        </Row>
       </Spin>
     </div>
   );

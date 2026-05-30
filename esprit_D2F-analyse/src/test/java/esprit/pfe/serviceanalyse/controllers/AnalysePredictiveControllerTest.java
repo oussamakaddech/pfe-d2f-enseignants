@@ -5,6 +5,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -138,6 +140,8 @@ class AnalysePredictiveControllerTest {
 
     @Test
     void testListerEnseignants() throws Exception {
+        when(analysePredictiveService.listerEnseignants(PageRequest.of(0, 10))).thenReturn(new PageImpl<>(List.of(), PageRequest.of(0, 10), 0));
+
         mockMvc.perform(get("/api/v1/analyse-predictive/enseignants")
                 .param("page", "0")
                 .param("size", "10"))

@@ -66,7 +66,6 @@ const RECO_COLORS: Record<string, RecoColor> = {
 
 interface EvalRecord {
   idEvalGlobale?: number;
-      render: (c) => <span style={truncateCellStyle}>{c || "—"}</span>,
   recommandation?: string;
   commentaireGeneral?: string;
   dateEvaluation?: string;

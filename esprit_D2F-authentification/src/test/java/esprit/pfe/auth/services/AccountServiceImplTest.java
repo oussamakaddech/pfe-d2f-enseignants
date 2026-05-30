@@ -418,10 +418,11 @@ class AccountServiceImplTest {
         when(userRepository.findById("test123")).thenReturn(Optional.of(testUser));
 
         // Act & Assert
-        assertThrows(
-            IllegalArgumentException.class,
+        BadRequestException exception = assertThrows(
+            BadRequestException.class,
             () -> accountService.updateAccount("test123", editProfileRequest, "INVALID_ROLE")
         );
+        assertEquals("Invalid role: INVALID_ROLE", exception.getMessage());
     }
 
     @Test

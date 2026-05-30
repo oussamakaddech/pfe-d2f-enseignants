@@ -51,16 +51,19 @@ public class EnseignantServiceImpl implements EnseignantService {
         Optional<Enseignant> existingEnseignant = enseignantRepository.findById(id);
         if (existingEnseignant.isPresent()) {
             Enseignant e = existingEnseignant.get();
-            // Mise à jour des attributs de l'enseignant
-            e.setNom(enseignant.getNom());
-            e.setPrenom(enseignant.getPrenom());
-            e.setType(enseignant.getType());
-            e.setEtat(enseignant.getEtat());
-            e.setCup(enseignant.getCup());
-            e.setChefDepartement(enseignant.getChefDepartement());
-            e.setUp(enseignant.getUp());
-            e.setDept(enseignant.getDept());
-            // Vous pouvez ajouter la mise à jour des associations si nécessaire
+            // Mise à jour partielle (null-safe) : seuls les champs réellement
+            // fournis sont modifiés. Un écrasement inconditionnel mettait à null
+            // des colonnes NOT NULL (etat, type…) et effaçait les associations
+            // up/dept quand le formulaire ne les renvoyait pas → 500 / perte de données.
+            if (enseignant.getNom() != null)             e.setNom(enseignant.getNom());
+            if (enseignant.getPrenom() != null)          e.setPrenom(enseignant.getPrenom());
+            if (enseignant.getMail() != null)            e.setMail(enseignant.getMail());
+            if (enseignant.getType() != null)            e.setType(enseignant.getType());
+            if (enseignant.getEtat() != null)            e.setEtat(enseignant.getEtat());
+            if (enseignant.getCup() != null)             e.setCup(enseignant.getCup());
+            if (enseignant.getChefDepartement() != null) e.setChefDepartement(enseignant.getChefDepartement());
+            if (enseignant.getUp() != null)              e.setUp(enseignant.getUp());
+            if (enseignant.getDept() != null)            e.setDept(enseignant.getDept());
             return enseignantRepository.save(e);
         } else {
             throw new IllegalStateException("Enseignant introuvable avec l'id : " + id);
@@ -95,11 +98,16 @@ public class EnseignantServiceImpl implements EnseignantService {
         dto.setPrenom(e.getPrenom());
         dto.setMail(e.getMail());
         dto.setType(e.getType());
-        // On remplit upLibelle et deptLibelle si up / dept ne sont pas null
+        dto.setEtat(e.getEtat());
+        // On remplit id + libellé de up / dept si présents, pour que le formulaire
+        // d'édition puisse pré-remplir les sélecteurs (sinon une édition renverrait
+        // des valeurs vides et risquerait d'écraser les associations).
         if (e.getUp() != null) {
+            dto.setUpId(e.getUp().getId());
             dto.setUpLibelle(e.getUp().getLibelle());
         }
         if (e.getDept() != null) {
+            dto.setDeptId(e.getDept().getId());
             dto.setDeptLibelle(e.getDept().getLibelle());
         }
         dto.setCup(e.getCup());

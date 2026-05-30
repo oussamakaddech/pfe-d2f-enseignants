@@ -45,7 +45,8 @@ import type { Id } from "@/models/common";
 const { Text } = Typography;
 const { Option } = Select;
 
-const ROLES = ['admin', 'CUP', 'Enseignant', 'Formateur', 'CHEF_DEPARTEMENT', 'RESPONSABLE_DOSSIER'];
+// Rôles alignés sur l'enum backend ERole — UserDTO.role = ERole.name() (MAJUSCULES).
+const ROLES = ['ADMIN', 'CUP', 'D2F', 'ENSEIGNANT', 'FORMATEUR', 'CHEF_DEPARTEMENT', 'RESPONSABLE_DOSSIER'];
 
 type AccountStatus = 'ACTIF' | 'BLOQUÉ' | 'INCONNU';
 
@@ -128,7 +129,7 @@ export default function ListAccounts() {
     total: accounts.length,
     active: accounts.filter(a => a.status === 'ACTIF').length,
     blocked: accounts.filter(a => a.status === 'BLOQUÉ').length,
-    admins: accounts.filter(a => a.role === 'admin').length,
+    admins: accounts.filter(a => (a.role ?? '').toUpperCase() === 'ADMIN').length,
   };
 
   const handleCreateSuccess = () => { setDrawerVisible(false); fetchAccounts(); };
@@ -231,10 +232,11 @@ export default function ListAccounts() {
       dataIndex: 'role',
       key: 'role',
       filters: ROLES.map(r => ({ text: r, value: r })),
-      onFilter: (value, record) => record.role === value,
+      onFilter: (value, record) => (record.role ?? '').toUpperCase() === String(value).toUpperCase(),
       render: (role: string) => {
-        const colorMap: Record<string, string> = { admin: 'red', CUP: 'green', Enseignant: 'orange', Formateur: 'default', CHEF_DEPARTEMENT: 'blue', RESPONSABLE_DOSSIER: 'cyan' };
-        return <Tag color={colorMap[role] || 'default'} style={{ borderRadius: '12px', padding: '0 10px' }}>{role.toUpperCase()}</Tag>;
+        const colorMap: Record<string, string> = { ADMIN: 'red', CUP: 'green', D2F: 'purple', ENSEIGNANT: 'orange', FORMATEUR: 'default', CHEF_DEPARTEMENT: 'blue', RESPONSABLE_DOSSIER: 'cyan' };
+        const key = (role ?? '').toUpperCase();
+        return <Tag color={colorMap[key] || 'default'} style={{ borderRadius: '12px', padding: '0 10px' }}>{key || '—'}</Tag>;
       },
     },
     {

@@ -138,7 +138,13 @@ public class AccountServiceImpl implements AccountService {
         if (roleName != null && !roleName.isBlank()) {
             // Parse roleName: handle "Enseignant:1" format or plain "Enseignant"
             String roleNamePart = roleName.split(":")[0].trim().toUpperCase();
-            ERole eRole = ERole.valueOf(roleNamePart);
+            ERole eRole;
+            try {
+                eRole = ERole.valueOf(roleNamePart);
+            } catch (IllegalArgumentException ex) {
+                // Rôle inconnu → 400 explicite plutôt qu'une 500 IllegalArgumentException.
+                throw new BadRequestException("Invalid role: " + roleName);
+            }
             Role newRole = roleRepository.findByName(eRole)
                     .orElseThrow(() -> new BadRequestException("Role not found: " + roleName));
             Set<Role> roles = new HashSet<>();
