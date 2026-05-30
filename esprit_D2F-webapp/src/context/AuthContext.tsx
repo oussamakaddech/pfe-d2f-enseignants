@@ -35,39 +35,44 @@ const AuthProvider = ({ children }: AuthProviderProps) => {
     }
   }, []);
 
+  const doRefresh = useCallback(() => {
+    refreshTokenApi()
+      .then((data) => {
+        const updatedUser: AuthUser = {
+          userId: data.userId,
+          username: data.username,
+          role: data.role as UserRole,
+          email: data.email,
+          expiresIn: data.expiresIn,
+        };
+        setUser(updatedUser);
+        try {
+          sessionStorage.setItem("d2f_user", JSON.stringify(updatedUser));
+        } catch {
+          /* ignore */
+        }
+      })
+      .catch(() => {
+        stopSilentRefresh();
+        setUser(null);
+        sessionStorage.removeItem("d2f_user");
+        try {
+          globalThis.dispatchEvent(new Event("auth:loggedOut"));
+        } catch {
+          /* ignore */
+        }
+      });
+  }, [stopSilentRefresh]);
+
   const startSilentRefresh = useCallback(() => {
     if (refreshTimerRef.current) {
       clearInterval(refreshTimerRef.current);
     }
+    doRefresh();
     refreshTimerRef.current = setInterval(() => {
-      refreshTokenApi()
-        .then((data) => {
-          const updatedUser: AuthUser = {
-            userId: data.userId,
-            username: data.username,
-            role: data.role as UserRole,
-            email: data.email,
-            expiresIn: data.expiresIn,
-          };
-          setUser(updatedUser);
-          try {
-            sessionStorage.setItem("d2f_user", JSON.stringify(updatedUser));
-          } catch {
-            /* ignore */
-          }
-        })
-        .catch(() => {
-          stopSilentRefresh();
-          setUser(null);
-          sessionStorage.removeItem("d2f_user");
-          try {
-            globalThis.dispatchEvent(new Event("auth:loggedOut"));
-          } catch {
-            /* ignore */
-          }
-        });
+      doRefresh();
     }, REFRESH_INTERVAL_MS);
-  }, [stopSilentRefresh]);
+  }, [doRefresh]);
 
   useEffect(() => {
     if (user) {
@@ -75,32 +80,6 @@ const AuthProvider = ({ children }: AuthProviderProps) => {
     }
     return () => stopSilentRefresh();
   }, [user, startSilentRefresh, stopSilentRefresh]);
-
-  useEffect(() => {
-    if (user) {
-      refreshTokenApi()
-        .then((data) => {
-          const updatedUser: AuthUser = {
-            userId: data.userId,
-            username: data.username,
-            role: data.role as UserRole,
-            email: data.email,
-            expiresIn: data.expiresIn,
-          };
-          setUser(updatedUser);
-          try {
-            sessionStorage.setItem("d2f_user", JSON.stringify(updatedUser));
-          } catch {
-            /* ignore */
-          }
-        })
-        .catch(() => {
-          setUser(null);
-          sessionStorage.removeItem("d2f_user");
-        });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   useEffect(() => {
     const onAuthLoggedOut = () => {

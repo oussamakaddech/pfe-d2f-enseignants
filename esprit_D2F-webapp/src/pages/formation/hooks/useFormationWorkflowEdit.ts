@@ -16,8 +16,7 @@ export type EditSeance = {
 
 export type EditLookup = { id?: unknown; libelle?: string };
 export type EditPerson = { id?: unknown; type?: string; cup?: string; chefDepartement?: string; nom?: string; prenom?: string; mail?: string; upLibelle?: string; deptLibelle?: string };
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type EditFormation = Record<string, any>;
+export type EditFormation = Record<string, unknown>;
 
 function toMinutes(timeValue: unknown): number | null {
   if (!timeValue) return null;

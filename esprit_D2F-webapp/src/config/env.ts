@@ -9,7 +9,7 @@ interface AppConfig {
   FORMATION_SERVICE_URL: string;
   URL_ACCOUNT: string;
   AI_URL: string;
-  Besoin_URL: string;
+  BESOIN_URL: string;
   CERTF_URL: string;
   EVALUATION_URL: string;
   COMPETENCE_URL: string;
@@ -45,7 +45,7 @@ export const config: AppConfig = {
   FORMATION_SERVICE_URL,
   URL_ACCOUNT: API_BASE_URL,
   AI_URL: API_BASE_URL,
-  Besoin_URL: API_BASE_URL,
+  BESOIN_URL: API_BASE_URL,
   CERTF_URL: API_BASE_URL,
   EVALUATION_URL: API_BASE_URL,
   COMPETENCE_URL: API_BASE_URL,

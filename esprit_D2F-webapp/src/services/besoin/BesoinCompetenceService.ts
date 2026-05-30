@@ -2,7 +2,7 @@ import { defaultApi as axios } from "@/utils/helpers/httpClient";
 import { config } from "@/config/env";
 import type { BesoinCompetenceLink } from "@/models/besoin";
 
-const BASE = `${config.Besoin_URL}/besoins-formation`;
+const BASE = `${config.BESOIN_URL}/besoins-formation`;
 
 const BesoinCompetenceService = {
   async getByBesoin(besoinId: number): Promise<BesoinCompetenceLink[]> {

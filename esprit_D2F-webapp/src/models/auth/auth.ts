@@ -41,7 +41,14 @@ export interface LoginResponse {
 }
 
 export interface SignupRequest {
-  [key: string]: unknown;
+  username: string;
+  password: string;
+  firstName?: string;
+  lastName?: string;
+  phoneNumber?: string;
+  email: string;
+  role: string;
+  newsletter?: boolean;
 }
 
 export interface ResetPasswordRequest {
@@ -50,11 +57,16 @@ export interface ResetPasswordRequest {
 }
 
 export interface EditProfileRequest {
-  [key: string]: unknown;
+  email?: string;
+  firstName?: string;
+  lastName?: string;
+  phoneNumber?: string;
+  role?: string;
 }
 
 export interface UpdatePasswordRequest {
-  [key: string]: unknown;
+  oldPassword: string;
+  newPassword: string;
 }
 
 export interface AuthContextValue {

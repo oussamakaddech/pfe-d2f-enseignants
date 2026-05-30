@@ -206,7 +206,7 @@ export default function CalendarEnseignant() {
               </Title>
               {enseignantInfo && (
                 <span className="cal-ens-teacher-sub">
-                  <ApartmentOutlined style={{ marginRight: 4 }} />
+                  <ApartmentOutlined className="mr-4" />
                   {enseignantInfo.deptLibelle || "—"} / {enseignantInfo.upLibelle || "—"}
                 </span>
               )}
@@ -277,14 +277,14 @@ export default function CalendarEnseignant() {
           width={680}
           footer={<Button onClick={handleClose}>Fermer</Button>}
         >
-          <Space direction="vertical" style={{ width: "100%" }} size="middle">
+          <Space direction="vertical" className="w-full" size="middle">
             {/* Enseignant */}
             <div className="cal-ens-modal-section">
               <Row gutter={[16, 8]}>
                 <Col span={24}>
                   <div className="cal-ens-modal-field">
                     <span className="cal-ens-modal-field-label">
-                      <UserOutlined style={{ marginRight: 4 }} />
+                      <UserOutlined className="mr-4" />
                       Enseignant
                     </span>
                     <span className="cal-ens-modal-field-value">
@@ -304,7 +304,7 @@ export default function CalendarEnseignant() {
                 <Col xs={24} sm={12}>
                   <div className="cal-ens-modal-field">
                     <span className="cal-ens-modal-field-label">
-                      <CalendarOutlined style={{ marginRight: 4 }} />
+                      <CalendarOutlined className="mr-4" />
                       Date
                     </span>
                     <span className="cal-ens-modal-field-value">
@@ -315,7 +315,7 @@ export default function CalendarEnseignant() {
                 <Col xs={12} sm={6}>
                   <div className="cal-ens-modal-field">
                     <span className="cal-ens-modal-field-label">
-                      <ClockCircleOutlined style={{ marginRight: 4 }} />
+                      <ClockCircleOutlined className="mr-4" />
                       Début
                     </span>
                     <span className="cal-ens-modal-field-value">
@@ -334,7 +334,7 @@ export default function CalendarEnseignant() {
                 <Col xs={24} sm={12}>
                   <div className="cal-ens-modal-field">
                     <span className="cal-ens-modal-field-label">
-                      <EnvironmentOutlined style={{ marginRight: 4 }} />
+                      <EnvironmentOutlined className="mr-4" />
                       Salle
                     </span>
                     <span className="cal-ens-modal-field-value">
@@ -361,7 +361,7 @@ export default function CalendarEnseignant() {
                 <Col span={24}>
                   <div className="cal-ens-modal-field">
                     <span className="cal-ens-modal-field-label">
-                      <ClockCircleOutlined style={{ marginRight: 4 }} />
+                      <ClockCircleOutlined className="mr-4" />
                       Charge horaire globale
                     </span>
                     <span className="cal-ens-modal-field-value">
@@ -375,7 +375,7 @@ export default function CalendarEnseignant() {
             {/* Personnes associées */}
             <div>
               <Text strong style={{ color: "var(--text-muted)", fontSize: "var(--text-xs)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                <TeamOutlined style={{ marginRight: 6 }} />
+                <TeamOutlined className="mr-6" />
                 {isAnimateur ? "Participants" : "Animateurs"}
               </Text>
               <div className="cal-ens-modal-person-tags">

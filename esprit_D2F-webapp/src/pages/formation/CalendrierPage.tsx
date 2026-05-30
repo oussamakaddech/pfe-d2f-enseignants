@@ -192,9 +192,9 @@ export default function CalendrierPage() {
     <div className="cal-page">
       {/* Hero Banner */}
       <div className="cal-hero">
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 16 }}>
+        <div className="d-flex-sb gap-16">
           <div>
-            <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+            <div className="d-flex-c gap-12">
               <h2 className="cal-hero-title">Calendrier des Formations</h2>
               <span className="cal-hero-badge">
                 {stats.total}
@@ -203,7 +203,7 @@ export default function CalendrierPage() {
             </div>
             <div className="cal-hero-subtitle">Planification et suivi des sessions de formation</div>
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <div className="d-flex-c gap-8">
             <Tooltip title="Créer une nouvelle formation en cliquant sur une date du calendrier">
               <Button
                 type="primary"
@@ -382,7 +382,7 @@ export default function CalendrierPage() {
             <Steps
               current={wizardStep}
               items={steps}
-              style={{ marginBottom: 24 }}
+              className="mb-24"
             />
 
             {wizardStep === 0 && (
@@ -411,7 +411,7 @@ export default function CalendrierPage() {
           if (selectedEvent) return (
           <div style={{ position: "relative" }}>
             {isLoading && (
-              <div style={{ textAlign: "center", padding: 40 }}>
+              <div className="text-center p-24">
                 <Spin size="large" />
               </div>
             )}
