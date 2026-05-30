@@ -114,9 +114,9 @@ spring:
                 name: evaluation-cb
                 fallbackUri: forward:/fallback
 
-        # ── Formation Service (port 8089) ───────────────────────────────────
+        # ── Formation Service (port 8088) ───────────────────────────────────
         - id: formation-service
-          uri: ${FORMATION_SERVICE_URL:http://localhost:8089}
+          uri: ${FORMATION_SERVICE_URL:http://localhost:8088}
           predicates:
             - Path=/api/formation/**
           filters:
@@ -171,7 +171,7 @@ spring:
                 fallbackUri: forward:/fallback
 
 
-        # ── Analyse Predictive Service (port 8090) ──────────────────────────
+        # ── Analyse Predictive Service (FastAPI — local 8090, Docker 8000) ──
         - id: analyse-service
           uri: ${ANALYSE_SERVICE_URL:http://localhost:8090}
           predicates:

@@ -4,6 +4,7 @@ import esprit.pfe.serviceformation.dto.*;
 import esprit.pfe.serviceformation.entities.Formation;
 import esprit.pfe.serviceformation.services.ExportExcelService;
 import esprit.pfe.serviceformation.services.FormationMapper;
+import esprit.pfe.serviceformation.services.FormationService;
 import esprit.pfe.serviceformation.services.FormationWorkflowService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -35,6 +36,7 @@ class FormationWorkflowControllerEnhancedTest {
 
     @Mock private ExportExcelService exportExcelService;
     @Mock private FormationWorkflowService formationWorkflowService;
+    @Mock private FormationService formationService;
     @Mock private FormationMapper formationMapper;
     @InjectMocks private FormationWorkflowController controller;
 
@@ -149,19 +151,19 @@ class FormationWorkflowControllerEnhancedTest {
     @DisplayName("getFormationById - Devrait retourner une formation")
     void testGetFormationById_Success() throws Exception {
         FormationResponseDTO dto = createFormationResponseDTO(1L, "Formation Test");
-        when(formationWorkflowService.getFormationWorkflowById(1L)).thenReturn(dto);
+        when(formationService.getFormationById(1L)).thenReturn(dto);
 
         mockMvc.perform(get("/api/v1/formations-workflow/1"))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON));
 
-        verify(formationWorkflowService).getFormationWorkflowById(1L);
+        verify(formationService).getFormationById(1L);
     }
 
     @Test
     @DisplayName("getFormationById - Devrait gérer la formation introuvable")
     void testGetFormationById_NotFound() throws Exception {
-        lenient().when(formationWorkflowService.getFormationWorkflowById(999L))
+        lenient().when(formationService.getFormationById(999L))
                 .thenThrow(new IllegalArgumentException("Formation introuvable"));
 
         mockMvc.perform(get("/api/v1/formations-workflow/999"))
@@ -172,7 +174,7 @@ class FormationWorkflowControllerEnhancedTest {
     @Test
     @DisplayName("getFormationById - Devrait gérer l'erreur interne")
     void testGetFormationById_InternalError() throws Exception {
-        when(formationWorkflowService.getFormationWorkflowById(1L))
+        when(formationService.getFormationById(1L))
                 .thenThrow(new RuntimeException("Erreur interne"));
 
         mockMvc.perform(get("/api/v1/formations-workflow/1"))
@@ -192,8 +194,8 @@ class FormationWorkflowControllerEnhancedTest {
 
         mockMvc.perform(get("/api/v1/formations-workflow"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content").isArray())
-                .andExpect(jsonPath("$.content.length()").value(2));
+                .andExpect(jsonPath("$").isArray())
+                .andExpect(jsonPath("$.length()").value(2));
 
         verify(formationWorkflowService).getAllFormationWorkflows();
     }
@@ -262,8 +264,8 @@ class FormationWorkflowControllerEnhancedTest {
 
         mockMvc.perform(get("/api/v1/formations-workflow/achevees"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.content").isArray())
-                .andExpect(jsonPath("$.content.length()").value(1));
+                .andExpect(jsonPath("$").isArray())
+                .andExpect(jsonPath("$.length()").value(1));
 
         verify(formationWorkflowService).getFormationsAchevees();
     }
