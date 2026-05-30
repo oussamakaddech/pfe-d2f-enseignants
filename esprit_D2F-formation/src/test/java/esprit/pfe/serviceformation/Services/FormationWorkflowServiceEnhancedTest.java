@@ -52,8 +52,10 @@ class FormationWorkflowServiceEnhancedTest {
     private DocumentRepository documentRepository;
     @Mock
     private FormationWorkflowServiceHelper helper;
-    @Mock
-    private FormationMapper formationMapper;
+    // Vrai mapper (pas de mock) : le mapping entité→DTO est délégué à
+    // FormationMapper ; un mock vide casserait les assertions sur les champs.
+    @org.mockito.Spy
+    private FormationMapper formationMapper = new FormationMapper();
 
     @InjectMocks
     private FormationWorkflowService formationWorkflowService;
@@ -63,7 +65,6 @@ class FormationWorkflowServiceEnhancedTest {
     @BeforeEach
     void setUp() {
         ReflectionTestUtils.setField(formationWorkflowService, "formationMapper", formationMapper);
-        lenient().when(formationMapper.toResponseDTO(any())).thenReturn(new FormationResponseDTO());
 
         request = new FormationWorkflowRequest();
         request.setTitreFormation("Formation Test");

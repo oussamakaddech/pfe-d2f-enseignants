@@ -37,7 +37,10 @@ class FormationWorkflowServiceTest {
     @Mock private PresenceRepository presenceRepository;
     @Mock private DocumentRepository documentRepository;
     @Mock private FormationWorkflowServiceHelper helper;
-    @Mock private FormationMapper formationMapper;
+    // Vrai mapper (pas de mock) : le service délègue le mapping entité→DTO à
+    // FormationMapper. Un mock renvoyant un DTO vide casserait les assertions
+    // sur les champs mappés (titre, id…). FormationMapper est sans dépendance.
+    @org.mockito.Spy private FormationMapper formationMapper = new FormationMapper();
 
     @InjectMocks
     private FormationWorkflowService formationWorkflowService;
@@ -47,7 +50,6 @@ class FormationWorkflowServiceTest {
     @BeforeEach
     void setUp() {
         ReflectionTestUtils.setField(formationWorkflowService, "formationMapper", formationMapper);
-        lenient().when(formationMapper.toResponseDTO(any())).thenReturn(new FormationResponseDTO());
         request = new FormationWorkflowRequest();
         request.setTitreFormation("Formation Test");
         request.setTypeBesoin("PROJET");
@@ -180,7 +182,6 @@ class FormationWorkflowServiceTest {
         sf.setParticipants(new ArrayList<>());
         formation.setSeances(List.of(sf));
         
-        lenient().when(formationMapper.toResponseDTO(any())).thenReturn(new FormationResponseDTO());
         lenient().when(formationRepository.findById(1L)).thenReturn(Optional.of(formation));
 
         FormationResponseDTO dto = formationWorkflowService.getFormationWorkflowById(1L);
@@ -211,7 +212,6 @@ class FormationWorkflowServiceTest {
         sf.setParticipants(new ArrayList<>());
         formation.setSeances(List.of(sf));
         
-        lenient().when(formationMapper.toResponseDTO(any())).thenReturn(new FormationResponseDTO());
         lenient().when(formationRepository.findAll()).thenReturn(List.of(formation));
 
         List<FormationResponseDTO> list = formationWorkflowService.getAllFormationWorkflows();

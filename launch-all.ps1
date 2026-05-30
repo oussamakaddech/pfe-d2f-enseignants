@@ -62,8 +62,8 @@ function Clear-Port([int]$port) {
     }
 }
 
-# ── [1/14] Vérifier Docker (infrastructure) ─────────────────────────────
-Write-Host "`n[1/14] Vérification Docker (postgres / rabbitmq / redis)..." -ForegroundColor Yellow
+# ── [1/12] Vérifier Docker (infrastructure) ─────────────────────────────
+Write-Host "`n[1/12] Vérification Docker (postgres / rabbitmq / redis)..." -ForegroundColor Yellow
 try {
     $pg    = docker ps --filter name=d2f-postgres  --format "{{.Status}}" 2>$null
     $mq    = docker ps --filter name=d2f-rabbitmq  --format "{{.Status}}" 2>$null
@@ -89,33 +89,34 @@ try {
     Write-Host "  AVERTISSEMENT: Docker non disponible - vérifiez que Docker est installé et en cours" -ForegroundColor DarkYellow
 }
 
-# ── [2-7/12] Microservices Java ──────────────────────────────────────────
+# ── [2-8/12] Microservices Java ──────────────────────────────────────────
 $services = @(
     @{ Name = "Auth";             Dir = "esprit_D2F-authentification";  Port = 8085 },
     @{ Name = "Formation";        Dir = "esprit_D2F-formation";         Port = 8088 },
     @{ Name = "Certificat";       Dir = "esprit_D2F-certificat";        Port = 8086 },
     @{ Name = "Evaluation";       Dir = "esprit_D2F-evaluation";        Port = 8087 },
     @{ Name = "Besoin-Formation"; Dir = "esprit_D2F-besoin-formation";  Port = 8004 },
-    @{ Name = "Competence";       Dir = "esprit_D2F-competence";        Port = 8005 }
+    @{ Name = "Competence";       Dir = "esprit_D2F-competence";        Port = 8005 },
+    @{ Name = "Analyse";          Dir = "esprit_D2F-analyse";           Port = 8089 }
 )
 
 $step = 2
 foreach ($svc in $services) {
     $svcPath = "$ROOT\$($svc.Dir)"
     if (Test-Path $svcPath) {
-        Write-Host "`n[$step/14] Lancement $($svc.Name) (port $($svc.Port))..." -ForegroundColor Yellow
+        Write-Host "`n[$step/12] Lancement $($svc.Name) (port $($svc.Port))..." -ForegroundColor Yellow
         Clear-Port $svc.Port
         Start-Process powershell -ArgumentList "-NoExit", "-Command", `
             "Set-Location '$svcPath'; Write-Host 'Démarrage $($svc.Name) sur port $($svc.Port)...' -ForegroundColor Cyan; .\mvnw.cmd spring-boot:run -DskipTests"
         Start-Sleep -Seconds 1
     } else {
-        Write-Host "`n[$step/14] ERREUR: Répertoire $($svc.Name) introuvable à $svcPath" -ForegroundColor Red
+        Write-Host "`n[$step/12] ERREUR: Répertoire $($svc.Name) introuvable à $svcPath" -ForegroundColor Red
     }
     $step++
 }
 
-# ── [8/12] API Gateway ──────────────────────────────────────────────────
-Write-Host "`n[8/12] Lancement API Gateway (port 8080)..." -ForegroundColor Yellow
+# ── [9/12] API Gateway ──────────────────────────────────────────────────
+Write-Host "`n[9/12] Lancement API Gateway (port 8080)..." -ForegroundColor Yellow
 $apigwPath = "$ROOT\esprit_D2F-api-gateway"
 if (Test-Path $apigwPath) {
     Clear-Port 8080
@@ -126,8 +127,8 @@ if (Test-Path $apigwPath) {
     Write-Host "  ERREUR: Répertoire esprit_D2F-api-gateway introuvable" -ForegroundColor Red
 }
 
-# ── [9/12] RICE Service (Python + NLP) ──────────────────────────────────
-Write-Host "`n[9/12] Lancement RICE Service (port 8001)..." -ForegroundColor Yellow
+# ── [10/12] RICE Service (Python + NLP) ─────────────────────────────────
+Write-Host "`n[10/12] Lancement RICE Service (port 8001)..." -ForegroundColor Yellow
 $ricePath = "$ROOT\esprit_D2F-rice"
 if (Test-Path $ricePath) {
     if (-not (Test-Path $PYTHON)) {
@@ -152,8 +153,8 @@ if (Test-Path $ricePath) {
     Write-Host "  ERREUR: Répertoire esprit_D2F-rice introuvable" -ForegroundColor Red
 }
 
-# ── [10/12] Predictive Analytics Service (Python/FastAPI) ────────────────
-Write-Host "`n[10/12] Lancement Predictive Analytics Service (port 8090)..." -ForegroundColor Yellow
+# ── [11/12] Predictive Analytics Service (Python/FastAPI) ────────────────
+Write-Host "`n[11/12] Lancement Predictive Analytics Service (port 8090)..." -ForegroundColor Yellow
 $predictivePath = "$ROOT\esprit_D2F-predictive-analytics"
 if (Test-Path $predictivePath) {
     if (-not (Test-Path $PYTHON)) {
@@ -168,8 +169,8 @@ if (Test-Path $predictivePath) {
     Write-Host "  ERREUR: Répertoire esprit_D2F-predictive-analytics introuvable" -ForegroundColor Red
 }
 
-# ── [11/12] Frontend React ───────────────────────────────────────────────
-Write-Host "`n[11/12] Lancement Frontend (port 5173)..." -ForegroundColor Yellow
+# ── [12/12] Frontend React ───────────────────────────────────────────────
+Write-Host "`n[12/12] Lancement Frontend (port 5173)..." -ForegroundColor Yellow
 $webappPath = "$ROOT\esprit_D2F-webapp"
 if (Test-Path $webappPath) {
     Clear-Port 5173
@@ -191,8 +192,9 @@ Write-Host "  Certificat:       http://localhost:8086"
 Write-Host "  Evaluation:       http://localhost:8087"
 Write-Host "  Besoin-Formation: http://localhost:8004"
 Write-Host "  Competence:       http://localhost:8005"
+Write-Host "  Analyse (Skill Passport): http://localhost:8089"
 Write-Host "  API Gateway:      http://localhost:8080"
 Write-Host "  RICE Service:     http://localhost:8001  (NLP + OCR)"
 Write-Host "  Predictive-Analytics: http://localhost:8090  (scikit-learn FastAPI)"
 Write-Host "  Frontend:         http://localhost:5173"
-Write-Host "  Artemis Console:  http://localhost:8161"
+Write-Host "  RabbitMQ (broker):    localhost:5672  (infra Docker)"

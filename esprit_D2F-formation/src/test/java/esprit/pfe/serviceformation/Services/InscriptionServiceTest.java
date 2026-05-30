@@ -27,14 +27,15 @@ class InscriptionServiceTest {
     @Mock private FormationRepository formationRepo;
     @Mock private EnseignantRepository enseignantRepo;
     @Mock private InscriptionRepository inscriptionRepo;
-    @Mock private FormationMapper formationMapper;
+    // Vrai mapper (pas de mock) : InscriptionService délègue le mapping à
+    // FormationMapper ; un mock vide casserait les assertions sur les champs.
+    @org.mockito.Spy private FormationMapper formationMapper = new FormationMapper();
     @InjectMocks private InscriptionService service;
 
     @org.junit.jupiter.api.BeforeEach
     void wireSelfReference() {
         ReflectionTestUtils.setField(service, "self", service);
         ReflectionTestUtils.setField(service, "formationMapper", formationMapper);
-        lenient().when(formationMapper.toResponseDTO(any())).thenReturn(new FormationResponseDTO());
     }
 
     private Formation createValidFormation(Long id) {

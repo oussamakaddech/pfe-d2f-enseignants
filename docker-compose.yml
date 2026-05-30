@@ -321,6 +321,8 @@ services:
       AI_RECO_SERVICE_URL: http://d2f-ai-reco:8000
       RICE_SERVICE_URL: http://d2f-rice:8001
       ANALYSE_SERVICE_URL: http://d2f-predictive-analytics:8000
+      # Skill Passport — héberge par le service-analyse Java (port 8089)
+      SKILL_PASSPORT_SERVICE_URL: http://d2f-analyse:8089
       # Redis — rate limiting
       REDIS_HOST: d2f-redis
       REDIS_PORT: 6379
@@ -393,6 +395,50 @@ services:
         condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "wget -q --spider http://localhost:8088/actuator/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - d2f-network
+
+  # ── Analyse Service (Java/Spring — Skill Passport, agrégation REST) ──────────
+  # Service SANS base de données : agrège les données des autres microservices
+  # via clients REST (auth, certificat, evaluation, formation, competence, besoin)
+  # et génère le Passeport de Compétences (PDF). Héberge /api/v1/skill-passports/**.
+  analyse-service:
+    build:
+      context: .
+      dockerfile: esprit_D2F-analyse/Dockerfile
+    container_name: d2f-analyse
+    restart: unless-stopped
+    ports:
+      - "8089:8089"
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      JWT_SECRET: ${JWT_SECRET}
+      # URLs des microservices appelés (clients REST)
+      AUTH_SERVICE_URL: http://d2f-auth:8085
+      CERTIFICAT_SERVICE_URL: http://d2f-certificat:8086
+      SERVICES_EVALUATION_URL: http://d2f-evaluation:8087
+      SERVICES_FORMATION_URL: http://d2f-formation:8088
+      SERVICES_COMPETENCE_URL: http://d2f-competence:8005
+      SERVICES_BESOIN_FORMATION_URL: http://d2f-besoin-formation:8004
+    depends_on:
+      auth-service:
+        condition: service_healthy
+      certificat-service:
+        condition: service_healthy
+      evaluation-service:
+        condition: service_healthy
+      formation-service:
+        condition: service_healthy
+      competence-service:
+        condition: service_healthy
+      besoin-formation-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8089/actuator/health || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3

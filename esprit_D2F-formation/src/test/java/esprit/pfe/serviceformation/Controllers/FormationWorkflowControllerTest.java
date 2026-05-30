@@ -4,6 +4,7 @@ import esprit.pfe.serviceformation.dto.*;
 import esprit.pfe.serviceformation.entities.Formation;
 import esprit.pfe.serviceformation.services.ExportExcelService;
 import esprit.pfe.serviceformation.services.FormationMapper;
+import esprit.pfe.serviceformation.services.FormationService;
 import esprit.pfe.serviceformation.services.FormationWorkflowService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -33,6 +34,7 @@ class FormationWorkflowControllerTest {
 
     @Mock private ExportExcelService exportExcelService;
     @Mock private FormationWorkflowService formationWorkflowService;
+    @Mock private FormationService formationService;
     @Mock private FormationMapper formationMapper;
     @InjectMocks private FormationWorkflowController controller;
 
@@ -80,13 +82,13 @@ class FormationWorkflowControllerTest {
 
     @Test
     void testGetFormationById_Success() throws Exception {
-        when(formationWorkflowService.getFormationWorkflowById(anyLong())).thenReturn(new FormationResponseDTO());
+        when(formationService.getFormationById(anyLong())).thenReturn(new FormationResponseDTO());
         mockMvc.perform(get("/api/v1/formations-workflow/1")).andExpect(status().isOk());
     }
 
     @Test
     void testGetFormationById_NotFound() throws Exception {
-        lenient().when(formationWorkflowService.getFormationWorkflowById(anyLong())).thenThrow(new IllegalArgumentException("Not found"));
+        lenient().when(formationService.getFormationById(anyLong())).thenThrow(new IllegalArgumentException("Not found"));
         mockMvc.perform(get("/api/v1/formations-workflow/1")).andExpect(status().isNotFound());
     }
 
