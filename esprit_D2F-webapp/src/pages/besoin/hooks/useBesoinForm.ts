@@ -39,6 +39,11 @@ export function useBesoinForm() {
   const { data: ups         = [], isLoading: upsLoading   } = useAllUps();
   const loading = deptsLoading || upsLoading;
 
+  // Mutations must be created at the top level of the hook (Rules of Hooks),
+  // not inside the handleSubmit event handler.
+  const addBesoin = useAddBesoin();
+  const replaceBesoinCompetences = useReplaceBesoinCompetences();
+
   const [submitting,    setSubmitting]    = useState(false);
   const [currentStep,   setCurrentStep]   = useState(0);
   const [direction,     setDirection]     = useState(0);
@@ -193,18 +198,19 @@ export function useBesoinForm() {
         autresInformations:    values.autresInformations,
         theme:                 values.theme,
         dureeFormation:        values.dureeFormation ? Number(values.dureeFormation) : undefined,
-        nbMaxParticipants:     values.nbMaxParticipants ? Number(values.nbMaxParticipants) : 0,
+        // Omit when empty: backend has @Min(1) and no @NotNull, so sending 0 would fail validation.
+        nbMaxParticipants:     values.nbMaxParticipants ? Number(values.nbMaxParticipants) : undefined,
         periodCode:            values.periodCode,
         customPeriodLabel:     values.customPeriodLabel,
         objectifsPedagogiques: values.objectifsPedagogiques,
         methodesEvaluationAcquis: values.methodesEvaluationAcquis,
       };
-      const created = await useAddBesoin().mutateAsync(payload);
+      const created = await addBesoin.mutateAsync(payload);
       const besoinId = created?.idBesoinFormation;
       if (besoinId && selectedCompLinks.length > 0) {
         const links = selectedCompLinks.filter((l) => l.competenceId).map((l) => ({ ...l }));
         if (links.length > 0) {
-          await useReplaceBesoinCompetences().mutateAsync({ besoinId: Number(besoinId), links });
+          await replaceBesoinCompetences.mutateAsync({ besoinId: Number(besoinId), links });
         }
       }
       msgApi.success("Besoin de formation ajouté avec succès !");
@@ -217,8 +223,21 @@ export function useBesoinForm() {
       setLastImportCount(0);
       setCurrentStep(0);
     } catch (err: unknown) {
-      const e = err as { response?: { data?: { message?: string } } };
-      msgApi.error(e.response?.data?.message || "Erreur lors de l'ajout du besoin");
+      const e = err as {
+        response?: { status?: number; data?: { message?: string; error?: string } };
+        message?: string;
+      };
+      // Surface the real reason: backend validation/business message, then HTTP status,
+      // then a network-level error (e.response is undefined when the request never completed).
+      const backendMsg = e.response?.data?.message || e.response?.data?.error;
+      const status = e.response?.status;
+      const detail =
+        backendMsg ||
+        (status ? `Le serveur a répondu ${status}.` : null) ||
+        (e.message ? `Échec réseau : ${e.message}` : null);
+      // Always log the full error so it is diagnosable even without reading the network tab.
+      console.error("Échec de l'ajout du besoin de formation :", err);
+      msgApi.error(detail ? `Erreur lors de l'ajout du besoin — ${detail}` : "Erreur lors de l'ajout du besoin");
     } finally {
       setSubmitting(false);
     }

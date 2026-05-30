@@ -17,7 +17,6 @@ const FormationConsultationPage = lazy(() => import("@/pages/formation/Formation
 const ListAccounts = lazy(() => import("@/pages/admin/gererComptes/ListAccounts"));
 const TeachersDataGrid = lazy(() => import("@/pages/enseignant/TeachersDataGrid"));
 const CalendarEnseignant = lazy(() => import("@/pages/enseignant/CalendarEnseignant"));
-const CompletedFormations = lazy(() => import("@/pages/formation/CompletedFormations"));
 const CertificatePage = lazy(() => import("@/pages/certificat/CertificatePage"));
 const FormationList = lazy(() => import("@/pages/presence/FormationList"));
 const FormationDetail = lazy(() => import("@/pages/presence/FormationDetail"));
@@ -103,7 +102,7 @@ export default function AppRoutes() {
                   <Route path="/home/Enseignants" element={<TeachersDataGrid />} />
 
                   <Route path="/home/UpDept" element={<UpDeptDataGrid />} />
-                  <Route path="/home/certificate" element={<CompletedFormations />} />
+                  <Route path="/home/certificate" element={<CertificatePage />} />
                   <Route path="/home/certificate/:formationId" element={<CertificatePage />} />
                   <Route path="/home/bureaux" element={<BureauPage />} />
                 </Route>
