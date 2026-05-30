@@ -49,7 +49,7 @@ class FormationExportControllerTest {
 
     @Test
     void testExportFormationsExcel_Filters() throws Exception {
-        FormationDTO f1 = new FormationDTO();
+        FormationResponseDTO f1 = new FormationResponseDTO();
         f1.setIdFormation(1L);
         f1.setTitreFormation("T1");
         f1.setDateDebut(LocalDate.of(2026, 1, 1));

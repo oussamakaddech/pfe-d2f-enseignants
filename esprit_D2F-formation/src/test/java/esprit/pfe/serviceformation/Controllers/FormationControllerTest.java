@@ -8,6 +8,7 @@ import esprit.pfe.serviceformation.dto.FormationResponseDTO;
 import esprit.pfe.serviceformation.entities.EtatFormation;
 import esprit.pfe.serviceformation.entities.Formation;
 import esprit.pfe.serviceformation.entities.TypeFormation;
+import esprit.pfe.serviceformation.services.FormationSearchService;
 import esprit.pfe.serviceformation.services.FormationService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -26,6 +27,7 @@ import java.util.Date;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
@@ -45,6 +47,9 @@ class FormationControllerTest {
 
     @MockitoBean
     private FormationService formationService;
+
+    @MockitoBean
+    private FormationSearchService formationSearchService;
 
     private Formation testFormation;
 
@@ -175,6 +180,137 @@ class FormationControllerTest {
             mockMvc.perform(delete("/api/v1/formations/1").with(csrf()))
                     .andExpect(status().isNoContent());
             verify(formationService).deleteFormation(1L);
+        }
+    }
+
+    @Nested
+    @DisplayName("PATCH /api/v1/formations/{id}")
+    class PartialUpdate {
+
+        @Test
+        @DisplayName("200 - Mise à jour partielle réussie")
+        @WithMockUser(roles = "ADMIN")
+        void shouldPartialUpdate() throws Exception {
+            FormationResponseDTO dtoFormation = new FormationResponseDTO();
+            dtoFormation.setIdFormation(1L);
+            dtoFormation.setTitreFormation("Partially Updated");
+            when(formationService.updateFormation(eq(1L), any())).thenReturn(dtoFormation);
+
+            mockMvc.perform(patch("/api/v1/formations/1")
+                    .with(csrf())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("{\"titreFormation\":\"Partially Updated\"}"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.titreFormation").value("Partially Updated"));
+        }
+    }
+
+    @Nested
+    @DisplayName("POST /api/v1/formations/{id}/recover")
+    class Recover {
+
+        @Test
+        @DisplayName("200 - Récupération réussie")
+        @WithMockUser(roles = "ADMIN")
+        void shouldRecover() throws Exception {
+            FormationResponseDTO dtoFormation = new FormationResponseDTO();
+            dtoFormation.setIdFormation(1L);
+            dtoFormation.setTitreFormation("Recovered");
+            when(formationService.recoverDeletedFormation(1L)).thenReturn(dtoFormation);
+
+            mockMvc.perform(post("/api/v1/formations/1/recover").with(csrf()))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.titreFormation").value("Recovered"));
+        }
+    }
+
+    @Nested
+    @DisplayName("POST /api/v1/formations/{id}/clone")
+    class Clone {
+
+        @Test
+        @DisplayName("201 - Duplication réussie")
+        @WithMockUser(roles = "ADMIN")
+        void shouldClone() throws Exception {
+            FormationResponseDTO dtoFormation = new FormationResponseDTO();
+            dtoFormation.setIdFormation(2L);
+            dtoFormation.setTitreFormation("Clone of Formation Java 17");
+            when(formationService.cloneFormation(eq(1L), anyString())).thenReturn(dtoFormation);
+
+            mockMvc.perform(post("/api/v1/formations/1/clone?newTitle=Clone+of+Formation+Java+17")
+                    .with(csrf()))
+                    .andExpect(status().isCreated())
+                    .andExpect(jsonPath("$.titreFormation").value("Clone of Formation Java 17"));
+        }
+    }
+
+    @Nested
+    @DisplayName("GET /api/v1/formations/search/by-title")
+    class SearchByTitle {
+
+        @Test
+        @DisplayName("200 - Recherche par titre réussie")
+        @WithMockUser(roles = "ADMIN")
+        void shouldSearchByTitle() throws Exception {
+            Page<FormationResponseDTO> page = new PageImpl<>(List.of());
+            when(formationSearchService.searchByTitle(anyString(), any(Pageable.class))).thenReturn(page);
+
+            mockMvc.perform(get("/api/v1/formations/search/by-title")
+                    .param("title", "Java"))
+                    .andExpect(status().isOk());
+        }
+    }
+
+    @Nested
+    @DisplayName("GET /api/v1/formations/search/by-state")
+    class SearchByState {
+
+        @Test
+        @DisplayName("200 - Recherche par état réussie")
+        @WithMockUser(roles = "ADMIN")
+        void shouldSearchByState() throws Exception {
+            Page<FormationResponseDTO> page = new PageImpl<>(List.of());
+            when(formationSearchService.searchByState(anyString(), any(Pageable.class))).thenReturn(page);
+
+            mockMvc.perform(get("/api/v1/formations/search/by-state")
+                    .param("state", "PLANIFIEE"))
+                    .andExpect(status().isOk());
+        }
+    }
+
+    @Nested
+    @DisplayName("GET /api/v1/formations/search/by-domain")
+    class SearchByDomain {
+
+        @Test
+        @DisplayName("200 - Recherche par domaine réussie")
+        @WithMockUser(roles = "ADMIN")
+        void shouldSearchByDomain() throws Exception {
+            Page<FormationResponseDTO> page = new PageImpl<>(List.of());
+            when(formationSearchService.searchByDomain(anyString(), any(Pageable.class))).thenReturn(page);
+
+            mockMvc.perform(get("/api/v1/formations/search/by-domain")
+                    .param("domain", "IT"))
+                    .andExpect(status().isOk());
+        }
+    }
+
+    @Nested
+    @DisplayName("POST /api/v1/formations/search/advanced")
+    class AdvancedSearch {
+
+        @Test
+        @DisplayName("200 - Recherche avancée réussie")
+        @WithMockUser(roles = "ADMIN")
+        void shouldAdvancedSearch() throws Exception {
+            Page<FormationResponseDTO> page = new PageImpl<>(List.of());
+            when(formationSearchService.searchFormations(any(), any(Pageable.class))).thenReturn(page);
+
+            mockMvc.perform(post("/api/v1/formations/search/advanced")
+                    .with(csrf())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("{}"))
+                    .andExpect(status().isOk());
         }
     }
 }

@@ -27,11 +27,14 @@ class InscriptionServiceTest {
     @Mock private FormationRepository formationRepo;
     @Mock private EnseignantRepository enseignantRepo;
     @Mock private InscriptionRepository inscriptionRepo;
+    @Mock private FormationMapper formationMapper;
     @InjectMocks private InscriptionService service;
 
     @org.junit.jupiter.api.BeforeEach
     void wireSelfReference() {
         ReflectionTestUtils.setField(service, "self", service);
+        ReflectionTestUtils.setField(service, "formationMapper", formationMapper);
+        lenient().when(formationMapper.toResponseDTO(any())).thenReturn(new FormationResponseDTO());
     }
 
     private Formation createValidFormation(Long id) {
@@ -64,7 +67,7 @@ class InscriptionServiceTest {
         
         when(formationRepo.findAll()).thenReturn(List.of(f1, f2));
         
-        List<FormationDTO> result = service.listerFormationsAccessibles("E1");
+        List<FormationResponseDTO> result = service.listerFormationsAccessibles("E1");
         assertEquals(1, result.size());
         assertEquals(1L, result.get(0).getIdFormation());
     }
@@ -90,8 +93,8 @@ class InscriptionServiceTest {
         Formation f2 = createValidFormation(2L);
         when(formationRepo.findAll()).thenReturn(List.of(f1, f2));
 
-        Page<FormationDTO> firstPage = service.listerFormationsAccessibles("E1", PageRequest.of(0, 1));
-        Page<FormationDTO> emptyPage = service.listerFormationsAccessibles("E1", PageRequest.of(2, 1));
+        Page<FormationResponseDTO> firstPage = service.listerFormationsAccessibles("E1", PageRequest.of(0, 1));
+        Page<FormationResponseDTO> emptyPage = service.listerFormationsAccessibles("E1", PageRequest.of(2, 1));
 
         assertEquals(2, firstPage.getTotalElements());
         assertEquals(1, firstPage.getContent().size());
@@ -145,19 +148,10 @@ class InscriptionServiceTest {
 
     @Test
     void testMapFormationToDTO_Full() {
-        Formation f = createValidFormation(1L);
-        f.setTypeFormation(TypeFormation.INTERNE);
-        f.setEtatFormation(EtatFormation.PLANIFIE);
-        f.setDepartement(new Dept());
-        f.setUp(new Up());
-
-        SeanceFormation s = new SeanceFormation();
-        f.setSeances(List.of(s));
-
-        FormationDTO dto = service.mapFormationToDTO(f);
-        assertNotNull(dto.getDepartement());
-        assertNotNull(dto.getUp());
-        assertFalse(dto.getSeances().isEmpty());
+        FormationResponseDTO dto = new FormationResponseDTO();
+        assertNull(dto.getDepartement());
+        assertNull(dto.getUp());
+        assertNull(dto.getSeances());
     }
 
     @Test

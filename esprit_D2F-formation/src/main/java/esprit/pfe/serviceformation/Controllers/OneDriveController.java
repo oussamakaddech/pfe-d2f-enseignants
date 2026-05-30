@@ -2,7 +2,7 @@ package esprit.pfe.serviceformation.controllers;
 
 
 
-import esprit.pfe.serviceformation.dto.FormationDTO;
+import esprit.pfe.serviceformation.dto.FormationResponseDTO;
 import esprit.pfe.serviceformation.dto.OneDriveItemDTO;
 import esprit.pfe.serviceformation.microsoft.OneDriveService;
 import esprit.pfe.serviceformation.services.FormationWorkflowService;
@@ -41,7 +41,7 @@ public class OneDriveController {
     public ResponseEntity<Page<OneDriveItemDTO>> getHierarchyForFormation(
             @PathVariable Long id,
             @PageableDefault(size = 50) Pageable pageable) {
-        FormationDTO formation = formationService.getFormationWorkflowById(id);
+        FormationResponseDTO formation = formationService.getFormationWorkflowById(id);
         List<OneDriveItemDTO> all = oneDriveService.getFormationHierarchy(formation.getTitreFormation());
         int from = (int) pageable.getOffset();
         int to = Math.min(from + pageable.getPageSize(), all.size());

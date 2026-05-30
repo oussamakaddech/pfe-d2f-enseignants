@@ -207,11 +207,9 @@ public class MicrosoftGraphService {
     /**
      * Fallback for mail sending - logs the failed email for manual retry.
      */
-    public String sendMailFallback(String to, String subject, String body) {
+    public String sendMailFallback(String subject) {
             log.warn("Email send failed, email queued for later retry: subject={}", subject);
             
-            // In a real implementation, this would queue the email to ActiveMQ
-            // For now, we log it as a warning for manual intervention
             log.warn("FAILED_EMAIL: subject={}", subject);
             
             return "QUEUED:" + System.currentTimeMillis();

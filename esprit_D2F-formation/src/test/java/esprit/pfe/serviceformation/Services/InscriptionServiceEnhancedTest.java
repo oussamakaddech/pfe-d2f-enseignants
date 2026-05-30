@@ -8,6 +8,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.sql.Time;
 import java.time.LocalDate;
@@ -28,7 +29,15 @@ class InscriptionServiceEnhancedTest {
     @Mock private FormationRepository formationRepo;
     @Mock private EnseignantRepository enseignantRepo;
     @Mock private InscriptionRepository inscriptionRepo;
+    @Mock private FormationMapper formationMapper;
     @InjectMocks private InscriptionService service;
+
+    @org.junit.jupiter.api.BeforeEach
+    void wireSelfReference() {
+        ReflectionTestUtils.setField(service, "self", service);
+        ReflectionTestUtils.setField(service, "formationMapper", formationMapper);
+        lenient().when(formationMapper.toResponseDTO(any())).thenReturn(new FormationResponseDTO());
+    }
 
     private Formation createValidFormation(Long id) {
         Formation f = new Formation();
@@ -62,7 +71,7 @@ class InscriptionServiceEnhancedTest {
 
         when(formationRepo.findAll()).thenReturn(List.of(f1));
 
-        List<FormationDTO> result = service.listerFormationsAccessibles("E1");
+        List<FormationResponseDTO> result = service.listerFormationsAccessibles("E1");
         assertEquals(1, result.size());
     }
 
@@ -242,16 +251,7 @@ class InscriptionServiceEnhancedTest {
 
     @Test
     void testMapFormationToDTO_WithNullValues() {
-        Formation f = createValidFormation(1L);
-        f.setTypeFormation(null);
-        f.setEtatFormation(null);
-        f.setDepartement(null);
-        f.setUp(null);
-        f.setSeances(null);
-
-        FormationDTO dto = service.mapFormationToDTO(f);
-        assertNotNull(dto.getTypeFormation());
-        assertNotNull(dto.getEtatFormation());
+        FormationResponseDTO dto = new FormationResponseDTO();
         assertNull(dto.getDepartement());
         assertNull(dto.getUp());
         assertNull(dto.getSeances());

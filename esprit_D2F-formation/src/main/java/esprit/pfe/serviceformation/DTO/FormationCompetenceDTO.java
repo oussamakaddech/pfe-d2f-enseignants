@@ -6,6 +6,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.io.Serializable;
+
 /**
  * DTO for Formation-Competence relationship.
  */
@@ -14,7 +16,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @Builder
 @Schema(name = "FormationCompetenceDTO", description = "Competence associated with a formation")
-public class FormationCompetenceDTO {
+public class FormationCompetenceDTO implements Serializable {
 
     @Schema(description = "Association ID", example = "1")
     private Long id;
