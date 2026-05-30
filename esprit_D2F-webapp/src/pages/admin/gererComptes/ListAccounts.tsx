@@ -65,7 +65,7 @@ interface Account {
 interface BadgeProps {
   status: string;
   text: string;
-  style?: React.CSSProperties;
+  className?: string;
 }
 
 const handleSearchFilter = (selectedKeys: React.Key[], confirm: FilterDropdownProps["confirm"]) => { confirm(); };
@@ -74,14 +74,14 @@ const renderFilterIcon = (filtered: boolean) => <SearchOutlined style={{ color: 
 
 function makeFilterDropdown(dataIndex: string, searchInputRef: React.RefObject<InputRef | null>) {
   return ({ setSelectedKeys, selectedKeys, confirm, clearFilters }: FilterDropdownProps) => (
-    <div style={{ padding: 8 }}>
+    <div className="p-24">
       <Input
         ref={searchInputRef}
         placeholder={`Rechercher ${dataIndex}`}
         value={selectedKeys[0]}
         onChange={e => setSelectedKeys(e.target.value ? [e.target.value] : [])}
         onPressEnter={() => handleSearchFilter(selectedKeys, confirm)}
-        style={{ marginBottom: 8, display: 'block' }}
+        className="mb-8"
       />
       <Space>
         <Button type="primary" onClick={() => handleSearchFilter(selectedKeys, confirm)} icon={<SearchOutlined />} size="small">OK</Button>
@@ -214,7 +214,7 @@ export default function ListAccounts() {
           <div>
             <Text strong>{record.firsName} {record.lastName}</Text>
             <br />
-            <Text type="secondary" style={{ fontSize: '12px' }}>@{text}</Text>
+            <Text type="secondary" className="text-xs">@{text}</Text>
           </div>
         </Space>
       ),
@@ -244,7 +244,7 @@ export default function ListAccounts() {
       dataIndex: 'status',
       key: 'status',
       render: (status: string) => (
-        <BadgeStatus status={status} text={status} style={{ fontWeight: '600' } as React.CSSProperties} />
+        <BadgeStatus status={status} text={status} className="fw-600" />
       ),
     },
     {
@@ -286,7 +286,7 @@ export default function ListAccounts() {
         }
       />
 
-      <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
+      <Row gutter={[16, 16]} className="mb-24">
         <Col xs={24} sm={12} lg={6}>
           <Card size="small">
             <Statistic title="Total Comptes" value={stats.total} prefix={<TeamOutlined />} valueStyle={{ color: brand[500] }} />
@@ -310,14 +310,14 @@ export default function ListAccounts() {
       </Row>
 
       <Card style={{ borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
-        <Divider style={{ margin: "0 0 16px" }} />
+        <Divider className="mb-16" />
         <Table<Account>
           rowKey="id"
           columns={columns}
           dataSource={accounts}
           pagination={{ pageSize: 10, showSizeChanger: true }}
           scroll={{ x: 1000 }}
-          style={{ background: '#fff' }}
+          className="bg-white"
         />
       </Card>
 
@@ -348,10 +348,10 @@ export default function ListAccounts() {
   );
 }
 
-function BadgeStatus({ status, text, style }: BadgeProps) {
+function BadgeStatus({ status, text, className }: BadgeProps) {
   const colors: Record<string, string> = { ACTIF: '#52c41a', BLOQUÉ: '#f5222d', success: '#52c41a', error: '#f5222d', default: '#d9d9d9' };
   return (
-    <div style={{ display: 'flex', alignItems: 'center', ...style }}>
+    <div className={"d-flex-c" + (className ? " " + className : "")}>
       <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: colors[status] || colors.default, marginRight: '8px' }} />
       {text}
     </div>

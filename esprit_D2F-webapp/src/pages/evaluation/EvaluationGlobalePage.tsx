@@ -209,8 +209,8 @@ export default function EvaluationGlobalePage() {
         else if (n >= 10) bg = "#eff6ff";
         else if (n >= 5) bg = "#fffbeb";
         return (
-          <Tag style={{ color, background: bg, borderColor: color, borderRadius: 8, fontWeight: 700, fontSize: 13, padding: "2px 10px" }}>
-            <StarFilled style={{ marginRight: 4, fontSize: 11 }} />{n}/20
+          <Tag className="rounded-8 fw-700 text-sm" style={{ color, background: bg, borderColor: color }}>
+            <StarFilled className="mr-4 text-xs" />{n}/20
           </Tag>
         );
       },
@@ -337,7 +337,7 @@ export default function EvaluationGlobalePage() {
             </div>
             {hasActiveFilters && (
               <Button type="link" size="small" icon={<ReloadOutlined />} onClick={resetFilters}
-                style={{ fontSize: 12, padding: "0 4px" }}>
+                className="text-sm">
                 Réinitialiser
               </Button>
             )}
@@ -431,13 +431,13 @@ export default function EvaluationGlobalePage() {
               </Select>
             </Form.Item>
             <Form.Item name="noteGlobale" label="Note Globale (/20)">
-              <InputNumber min={0} max={20} step={0.5} style={{ width: "100%" }} />
+              <InputNumber min={0} max={20} step={0.5} className="w-full" />
             </Form.Item>
             <Form.Item name="commentaireGeneral" label="Commentaire Général">
               <TextArea rows={4} placeholder="Commentaire général sur la formation" />
             </Form.Item>
             <Form.Item name="dateEvaluation" label="Date d'Évaluation">
-              <DatePicker style={{ width: "100%" }} />
+              <DatePicker className="w-full" />
             </Form.Item>
             <Form.Item name="recommandation" label="Recommandation">
               <Select placeholder="Sélectionner une recommandation" allowClear>

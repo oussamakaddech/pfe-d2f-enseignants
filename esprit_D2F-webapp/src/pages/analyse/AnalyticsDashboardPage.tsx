@@ -52,7 +52,7 @@ export default function AnalyticsDashboardPage() {
     { title: "Précédent", dataIndex: "niveau_ancien", align: "center", width: 90,
       render: v => <Text type="secondary">{v}/5</Text> },
     { title: "Delta", dataIndex: "delta", align: "center", width: 90,
-      render: v => <Text style={{ color: "#ef4444", fontWeight: 600 }}>{v > 0 ? "+" : ""}{v?.toFixed(2)}</Text> },
+      render: v => <Text className="color-danger fw-600">{v > 0 ? "+" : ""}{v?.toFixed(2)}</Text> },
   ];
 
   const demandeColumns: ColumnsType<CompetenceDemande> = [
@@ -73,7 +73,7 @@ export default function AnalyticsDashboardPage() {
       render: (v, r) => (
         <Space>
           <RiskBadge type="risque" value={v} />
-          <Text style={{ fontSize: 11 }}>{Math.round(r.score_risque * 100)}%</Text>
+          <Text className="text-xs">{Math.round(r.score_risque * 100)}%</Text>
         </Space>
       ),
     },
@@ -100,17 +100,17 @@ export default function AnalyticsDashboardPage() {
     { title: "Score moyen", dataIndex: "score_moyen", width: 160,
       render: v => <PredictionScoreBar value={v} size="small" showPct /> },
     { title: "Réussite moy.", dataIndex: "proba_reussite_moy", align: "center", width: 120,
-      render: v => <Text style={{ color: "#10b981", fontWeight: 600 }}>{Math.round(v * 100)}%</Text> },
+      render: v => <Text className="color-success fw-600">{Math.round(v * 100)}%</Text> },
   ];
 
   const alerteColumns: ColumnsType<AlerteResumee> = [
     { title: "Titre", dataIndex: "titre", render: v => <Text strong>{v}</Text> },
     { title: "Type", dataIndex: "type_alerte",
-      render: v => <Tag color="purple" style={{ fontSize: 11 }}>{v.replaceAll("_", " ")}</Tag> },
+      render: v => <Tag color="purple" className="text-xs">{v.replaceAll("_", " ")}</Tag> },
     { title: "Sévérité", dataIndex: "severite", width: 100,
       render: v => <Tag color={SEVERITE_COLOR[v] ?? "default"}>{v}</Tag> },
     { title: "Date", dataIndex: "created_at", width: 160,
-      render: v => <Text type="secondary" style={{ fontSize: 11 }}>{new Date(v).toLocaleString("fr-FR")}</Text> },
+      render: v => <Text type="secondary" className="text-xs">{new Date(v).toLocaleString("fr-FR")}</Text> },
   ];
 
   const effColumns: ColumnsType<TrainingEffectiveness> = [
@@ -142,12 +142,12 @@ export default function AnalyticsDashboardPage() {
       />
 
       {error && (
-        <Alert message={error} type="error" showIcon closable style={{ marginBottom: 16, borderRadius: 8 }} />
+        <Alert message={error} type="error" showIcon closable className="mb-16 rounded-8" />
       )}
 
       <Spin spinning={loading}>
         {/* KPI row */}
-        <Row gutter={[20, 20]} style={{ marginBottom: 24 }}>
+        <Row gutter={[20, 20]} className="mb-24">
           <Col xs={24} sm={6}>
             <Card className="d2f-hover-lift" style={kpiCardStyle("#ef4444")}>
               <Statistic
@@ -191,7 +191,7 @@ export default function AnalyticsDashboardPage() {
         </Row>
 
         {/* Tables row 1 */}
-        <Row gutter={[20, 20]} style={{ marginBottom: 20 }}>
+        <Row gutter={[20, 20]} className="mb-20">
           <Col xs={24} lg={12}>
             <Card
               title={<Space><FallOutlined style={{ color: "#ef4444" }} /><Text strong>Compétences en Déclin</Text></Space>}
@@ -233,7 +233,7 @@ export default function AnalyticsDashboardPage() {
         </Row>
 
         {/* Tables row 2 */}
-        <Row gutter={[20, 20]} style={{ marginBottom: 20 }}>
+        <Row gutter={[20, 20]} className="mb-20">
           <Col xs={24} lg={14}>
             <Card
               title={
@@ -304,9 +304,9 @@ export default function AnalyticsDashboardPage() {
         {/* Heatmap des gaps : Département × Compétence */}
         <Card
           title={<Space><HeatMapOutlined style={{ color: "#ef4444" }} /><Text strong>Heatmap des Gaps · Département × Compétence</Text></Space>}
-          style={{ ...cardStyle, marginTop: 20 }}
+          className="mt-20"
           size="small"
-          extra={<Text type="secondary" style={{ fontSize: 11 }}>Gap moyen (0–5) — plus c'est rouge, plus l'écart collectif est fort</Text>}
+          extra={<Text type="secondary" className="text-xs">Gap moyen (0–5) — plus c'est rouge, plus l'écart collectif est fort</Text>}
         >
           <GapHeatmap data={heatmap} />
         </Card>
@@ -328,7 +328,7 @@ export default function AnalyticsDashboardPage() {
               style={cardStyle}
               size="small"
             >
-              <Space direction="vertical" size="large" style={{ width: "100%" }}>
+              <Space direction="vertical" size="large" className="w-full">
                 <Statistic
                   title="Précision (R²) du modèle de gaps"
                   value={modelAccuracy != null ? modelAccuracy : "—"}
@@ -336,16 +336,16 @@ export default function AnalyticsDashboardPage() {
                   valueStyle={{ color: modelAccuracy != null && modelAccuracy >= 0.7 ? "#10b981" : "#f59e0b" }}
                 />
                 <div>
-                  <Text type="secondary" style={{ fontSize: 12 }}>Proba. de réussite moyenne (reco)</Text>
+                  <Text type="secondary" className="text-sm">Proba. de réussite moyenne (reco)</Text>
                   <div>
-                    <Text strong style={{ fontSize: 18 }}>
+                    <Text strong className="text-lg">
                       {modelPerf?.recommendation_avg_proba != null
                         ? `${Math.round(modelPerf.recommendation_avg_proba * 100)}%` : "—"}
                     </Text>
                   </div>
                 </div>
                 <div>
-                  <Text type="secondary" style={{ fontSize: 12 }}>Dernier ré-entraînement</Text>
+                  <Text type="secondary" className="text-sm">Dernier ré-entraînement</Text>
                   <div>
                     <Tag color={modelPerf?.last_retrain_status === "success" ? "green" : "default"}>
                       {modelPerf?.last_retrained
@@ -360,7 +360,7 @@ export default function AnalyticsDashboardPage() {
         </Row>
 
         {/* Efficacité des formations + Couverture par département */}
-        <Row gutter={[20, 20]} style={{ marginTop: 20, marginBottom: 8 }}>
+        <Row gutter={[20, 20]} className="mt-20 mb-8">
           <Col xs={24} lg={14}>
             <Card
               title={<Space><TrophyOutlined style={{ color: "#B51200" }} /><Text strong>Efficacité des Formations</Text></Space>}
@@ -387,12 +387,12 @@ export default function AnalyticsDashboardPage() {
               size="small"
             >
               {couverture.length ? (
-                <Space direction="vertical" size="middle" style={{ width: "100%" }}>
+                <Space direction="vertical" size="middle" className="w-full">
                   {couverture.map((c: CouvertureDepartement) => (
                     <div key={c.departement}>
-                      <Space style={{ justifyContent: "space-between", width: "100%" }}>
+                      <Space className="d-flex-sb w-full">
                         <Text strong>{c.departement || "—"}</Text>
-                        <Text type="secondary" style={{ fontSize: 11 }}>{c.nb_evalues} évalué(s)</Text>
+                        <Text type="secondary" className="text-xs">{c.nb_evalues} évalué(s)</Text>
                       </Space>
                       <Progress
                         percent={Math.round(c.taux_couverture)}

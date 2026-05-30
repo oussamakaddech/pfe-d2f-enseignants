@@ -85,3 +85,40 @@ button:focus-visible,
 a:focus-visible {
   outline: var(--focus-ring);
 }
+
+/* ── Utility classes for inline style replacements ───────────────────────── */
+.d-flex    { display: flex; }
+.d-flex-c  { display: flex; align-items: center; }
+.d-flex-sb { display: flex; align-items: center; justify-content: space-between; }
+.d-flex-w  { display: flex; align-items: center; flex-wrap: wrap; }
+.gap-4  { gap: 4px; }
+.gap-8  { gap: 8px; }
+.gap-12 { gap: 12px; }
+.gap-16 { gap: 16px; }
+.gap-20 { gap: 20px; }
+.gap-24 { gap: 24px; }
+.mb-8   { margin-bottom: 8px; }
+.mb-16  { margin-bottom: 16px; }
+.mb-20  { margin-bottom: 20px; }
+.mb-24  { margin-bottom: 24px; }
+.mt-20  { margin-top: 20px; }
+.mr-4   { margin-right: 4px; }
+.mr-6   { margin-right: 6px; }
+.p-24   { padding: 24px; }
+.w-full { width: 100%; }
+.text-center { text-align: center; }
+.text-xs     { font-size: var(--text-xs); }
+.text-sm     { font-size: var(--text-sm); }
+.text-base   { font-size: var(--text-base); }
+.text-lg     { font-size: var(--text-lg); }
+.fw-600      { font-weight: 600; }
+.fw-700      { font-weight: 700; }
+.rounded-8   { border-radius: 8px; }
+.rounded-12  { border-radius: 12px; }
+.rounded-14  { border-radius: 14px; }
+.color-danger  { color: #ef4444; }
+.color-success { color: #10b981; }
+.color-warning { color: #f59e0b; }
+.color-info    { color: #3b82f6; }
+.color-muted   { color: var(--text-muted); }
+.bg-white      { background-color: #fff; }
