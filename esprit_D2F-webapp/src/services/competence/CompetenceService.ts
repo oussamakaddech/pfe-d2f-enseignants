@@ -114,11 +114,11 @@ const SousCompetenceAPI = {
   },
 
   getByCompetence: async (competenceId: Id): Promise<SousCompetence[]> => {
-    const res = await axios.get<SousCompetence[]>(
+    const res = await axios.get<ApiListOrPage<SousCompetence>>(
       `${BASE}/sous-competences/competence/${competenceId}`,
-      
+
     );
-    return res.data;
+    return toList(res.data);
   },
 
   getById: async (id: Id): Promise<SousCompetence> => {
@@ -184,8 +184,8 @@ const SavoirAPI = {
   },
 
   getByCompetence: async (competenceId: Id): Promise<Savoir[]> => {
-    const res = await axios.get<Savoir[]>(`${BASE}/savoirs/competence/${competenceId}`);
-    return res.data;
+    const res = await axios.get<ApiListOrPage<Savoir>>(`${BASE}/savoirs/competence/${competenceId}`);
+    return toList(res.data);
   },
 
   getByType: async (type: string): Promise<Savoir[]> => {

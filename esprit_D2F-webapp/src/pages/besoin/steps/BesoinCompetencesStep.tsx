@@ -122,11 +122,11 @@ export default function BesoinCompetencesStep({
                         u[idx] = {
                           ...u[idx],
                           savoirId:  val ?? null,
-                          savoirNom: (rowSavoirs[idx] || []).find((s) => s.id === val)?.nom || "",
+                          savoirNom: (Array.isArray(rowSavoirs[idx]) ? rowSavoirs[idx] : []).find((s) => s.id === val)?.nom || "",
                         };
                         setSelectedCompLinks(u);
                       }}
-                      options={(rowSavoirs[idx] || []).map((s) => ({ value: s.id, label: `${s.nom} (${s.type || ""})` }))}
+                      options={(Array.isArray(rowSavoirs[idx]) ? rowSavoirs[idx] : []).map((s) => ({ value: s.id, label: `${s.nom} (${s.type || ""})` }))}
                       showSearch
                       optionFilterProp="label"
                     />

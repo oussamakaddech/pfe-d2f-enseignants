@@ -1,0 +1,112 @@
+/* Gestion des certifications — design D2F */
+
+.gcert-page {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding-bottom: 32px;
+}
+
+.gcert-toolbar {
+  border-radius: 16px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  background: #ffffff;
+  padding: 16px 18px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.gcert-toolbar-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.gcert-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.gcert-bulkbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 10px 16px;
+  border-radius: 12px;
+  background: #fff0ee;
+  border: 1px solid #ffb3ab;
+  animation: gcert-fade-in 0.18s ease;
+}
+
+.gcert-bulkbar-count { font-weight: 600; color: #B51200; }
+
+@keyframes gcert-fade-in {
+  from { opacity: 0; transform: translateY(-4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.gcert-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+  gap: 16px;
+}
+
+.gcert-card {
+  position: relative;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 14px;
+  background: #ffffff;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease;
+}
+
+.gcert-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 10px 26px rgba(0, 0, 0, 0.10);
+  border-color: #ffb3ab;
+}
+
+.gcert-card--selected {
+  border-color: #B51200;
+  box-shadow: 0 0 0 2px rgba(181, 18, 0, 0.18);
+}
+
+.gcert-card-head { display: flex; align-items: center; gap: 12px; }
+
+.gcert-avatar {
+  flex: 0 0 auto;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  font-size: 16px;
+  color: #fff;
+}
+
+.gcert-card-name { font-weight: 600; color: #1a202c; line-height: 1.3; }
+.gcert-card-formation { font-size: 12.5px; color: #718096; }
+.gcert-card-tags { display: flex; flex-wrap: wrap; gap: 6px; }
+.gcert-card-checkbox { position: absolute; top: 12px; right: 12px; }
+.gcert-card-actions {
+  display: flex; gap: 6px; margin-top: auto; padding-top: 6px;
+  border-top: 1px dashed rgba(0, 0, 0, 0.07);
+}
+
+.gcert-preview-frame {
+  width: 100%;
+  height: 72vh;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 10px;
+}
+
+.gcert-empty { padding: 48px 0; }
