@@ -18,6 +18,14 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir --upgrade pip \
  && pip install --no-cache-dir -r requirements.txt
 
+# ── Pré-téléchargement du modèle sémantique (DSI #9) ──────────────────────────
+# Vendu dans l'image (révision épinglée) : aucun appel HuggingFace au runtime.
+ARG SEMANTIC_MODEL_REPO=sentence-transformers/all-MiniLM-L6-v2
+ARG SEMANTIC_MODEL_REVISION=c9745ed1d9f207416be6d2e6f8de32d1f16199bf
+RUN python -c "from huggingface_hub import snapshot_download; \
+snapshot_download('${SEMANTIC_MODEL_REPO}', revision='${SEMANTIC_MODEL_REVISION}', \
+local_dir='/opt/models/semantic', local_dir_use_symlinks=False)"
+
 # ── Stage 2: Runtime (minimal image) ─────────────────────────────────────────
 FROM python:3.13-slim
 
@@ -38,6 +46,13 @@ RUN apt-get update \
 # Copy pre-built venv from builder
 COPY --from=builder /opt/venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
+
+# Modèle sémantique vendu dans l'image + mode hors-ligne strict (DSI #9).
+COPY --from=builder /opt/models /opt/models
+ENV RICE_SEMANTIC_MODEL=/opt/models/semantic \
+    HF_HUB_OFFLINE=1 \
+    TRANSFORMERS_OFFLINE=1 \
+    HF_HUB_DISABLE_TELEMETRY=1
 
 # Create non-root user
 RUN groupadd -g 2003 esprit && \
