@@ -5,8 +5,12 @@ from pydantic import BaseModel
 from typing import List
 from utils import recommend_semantic, _load_or_build_embeddings
 from apscheduler.schedulers.background import BackgroundScheduler
+from auth_middleware import JWTAuthMiddleware
 
 app = FastAPI(title="Reco IA semantique")
+
+# Blocker DSI #8 : exige un JWT valide pour /api/recommend (défense en profondeur).
+app.add_middleware(JWTAuthMiddleware)
 
 origins = [
     "http://esprit-d2f.esprit.tn",
