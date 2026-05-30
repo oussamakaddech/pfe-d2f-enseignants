@@ -5,6 +5,7 @@ import esprit.pfe.serviceformation.entities.Formation;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
 
@@ -186,10 +187,10 @@ public class FormationMapper {
         }
 
         LocalDate dateDebut = formation.getDateDebut() != null ?
-            formation.getDateDebut().toInstant().atZone(ZoneId.systemDefault()).toLocalDate()
+            Instant.ofEpochMilli(formation.getDateDebut().getTime()).atZone(ZoneId.systemDefault()).toLocalDate()
             : null;
         LocalDate dateFin = formation.getDateFin() != null ?
-            formation.getDateFin().toInstant().atZone(ZoneId.systemDefault()).toLocalDate()
+            Instant.ofEpochMilli(formation.getDateFin().getTime()).atZone(ZoneId.systemDefault()).toLocalDate()
             : null;
 
         return FormationResponseDTO.builder()

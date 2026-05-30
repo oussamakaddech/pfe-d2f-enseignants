@@ -1,5 +1,6 @@
 package esprit.pfe.serviceformation.services;
 
+import esprit.pfe.serviceformation.email.EmailTemplateBuilder;
 import esprit.pfe.serviceformation.entities.*;
 import esprit.pfe.serviceformation.repositories.*;
 import esprit.pfe.serviceformation.microsoft.OutlookMailService;
@@ -76,60 +77,54 @@ public class FormationReminderScheduler {
         String formattedStart = seance.getHeureDebut().toLocalTime().format(timeFormat);
         String formattedEnd = seance.getHeureFin().toLocalTime().format(timeFormat);
 
-        Set<String> emails = new HashSet<>();
+        // Destinataires (email -> nom complet pour personnaliser l'accroche)
+        Map<String, String> recipients = new LinkedHashMap<>();
         if (seance.getAnimateurs() != null) {
-            seance.getAnimateurs().stream()
-                    .map(Enseignant::getMail)
-                    .filter(m -> m != null && !m.isBlank())
-                    .forEach(emails::add);
+            seance.getAnimateurs().forEach(e -> indexRecipient(recipients, e));
         }
         if (seance.getParticipants() != null) {
-            seance.getParticipants().stream()
-                    .map(Enseignant::getMail)
-                    .filter(m -> m != null && !m.isBlank())
-                    .forEach(emails::add);
+            seance.getParticipants().forEach(e -> indexRecipient(recipients, e));
         }
         if (formation.getExterneFormateurEmail() != null && !formation.getExterneFormateurEmail().isBlank()) {
-            emails.add(formation.getExterneFormateurEmail());
+            recipients.putIfAbsent(formation.getExterneFormateurEmail(), null);
         }
 
-        if (emails.isEmpty()) return;
+        if (recipients.isEmpty()) return;
 
+        String salle = seance.getSalle() != null && !seance.getSalle().isBlank() ? seance.getSalle() : "À définir";
         String subject = String.format("[D2F] Rappel J-%d : %s", daysBefore, formation.getTitreFormation());
 
-        String html = "<!DOCTYPE html><html><head><style>" +
-                "body { font-family: 'Segoe UI', sans-serif; color: #333; }" +
-                ".container { max-width: 600px; margin: 20px auto; padding: 20px; border: 1px solid #ddd; border-radius: 10px; background-color: #f9f9f9; }" +
-                ".header { background-color: #c62828; color: white; padding: 10px; text-align: center; border-radius: 10px 10px 0 0; }" +
-                ".content { padding: 20px; }" +
-                ".footer { margin-top: 20px; font-size: 0.8em; text-align: center; color: #777; }" +
-                "strong { color: #c62828; }" +
-                "</style></head><body>" +
-                "<div class='container'>" +
-                "<div class='header'><h2>Rappel de Formation - J-" + daysBefore + "</h2></div>" +
-                "<div class='content'>" +
-                "<p>Bonjour,</p>" +
-                "<p>Ceci est un rappel : la formation <strong>\"" + formation.getTitreFormation() + "\"</strong> aura lieu le <strong>" +
-                formattedDate + "</strong> de <strong>" +
-                formattedStart + "</strong> à <strong>" +
-                formattedEnd + "</strong>" +
-                (seance.getSalle() != null ? " en salle <strong>" + seance.getSalle() + "</strong>" : "") +
-                ".</p>" +
-                "<p>Merci de confirmer votre présence.</p>" +
-                "</div>" +
-                "<div class='footer'>" +
-                "<p>Ceci est un e-mail automatique, merci de ne pas y répondre.</p>" +
-                "<p>&copy; Esprit - Direction du Développement et de la Formation</p>" +
-                "</div></div></body></html>";
-
-        for (String email : emails) {
+        for (Map.Entry<String, String> entry : recipients.entrySet()) {
             try {
-                outlookMailService.sendMail(email, subject, html);
+                String html = EmailTemplateBuilder.create()
+                        .accentColor("#e65100")
+                        .icon("⏰")
+                        .title("Rappel — séance dans " + daysBefore + " jour" + (daysBefore > 1 ? "s" : ""))
+                        .greetingName(entry.getValue())
+                        .intro("Petit rappel : votre formation <strong>" + formation.getTitreFormation()
+                                + "</strong> approche. Voici les informations de la prochaine séance.")
+                        .detail("Date", formattedDate)
+                        .detail("Horaire", formattedStart + " – " + formattedEnd)
+                        .detail("Salle", salle)
+                        .note("Merci de <strong>confirmer votre présence</strong> dans la plateforme D2F.")
+                        .build();
+                outlookMailService.sendMail(entry.getKey(), subject, html);
             } catch (Exception e) {
-                log.warn("Échec envoi rappel à {} : {}", email, e.getMessage());
+                log.warn("Échec envoi rappel à {} : {}", entry.getKey(), e.getMessage());
             }
         }
         log.info("Rappels J-{} envoyés pour séance {} (formation {})", daysBefore, seance.getIdSeance(), formation.getIdFormation());
+    }
+
+    /** Indexe l'e-mail d'un enseignant avec son nom complet (pour personnaliser l'accroche). */
+    private void indexRecipient(Map<String, String> recipients, Enseignant e) {
+        if (e == null || e.getMail() == null || e.getMail().isBlank()) {
+            return;
+        }
+        String prenom = e.getPrenom() != null ? e.getPrenom() : "";
+        String nom = e.getNom() != null ? e.getNom() : "";
+        String full = (prenom + " " + nom).trim();
+        recipients.putIfAbsent(e.getMail(), full.isBlank() ? null : full);
     }
 
     /** Permet de déclencher manuellement les rappels pour une formation donnée */

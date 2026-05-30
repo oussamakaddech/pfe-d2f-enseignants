@@ -1,6 +1,7 @@
 package esprit.pfe.serviceformation.services;
 
 import esprit.pfe.serviceformation.dto.*;
+import esprit.pfe.serviceformation.email.EmailTemplateBuilder;
 import esprit.pfe.serviceformation.entities.*;
 import esprit.pfe.serviceformation.repositories.*;
 import esprit.pfe.serviceformation.microsoft.OutlookCalendarService;
@@ -356,14 +357,15 @@ public class FormationWorkflowService {
 
     // ── ENREGISTRE : Notification admin + CUPs qu'une formation est enregistrée ──
     private void notifyEnregistrement(Formation formation) {
-        // Notification admin
+        // Notification admin (boîte applicative D2F)
         // DSI §4/§2 — Outlook désactivé si azure.ad.enabled != true
         if (outlookMailService != null) {
             try {
-                String subject = "[D2F] Nouvelle Formation Enregistree : " + formation.getTitreFormation();
-                String html = buildStateNotificationHtml(formation, "Nouvelle Formation Enregistree",
-                        "Une nouvelle formation a ete enregistree et est en attente de planification.",
-                        "#1565c0");
+                String subject = "[D2F] Nouvelle formation enregistrée : " + formation.getTitreFormation();
+                String html = buildStateHtml(formation, "Nouvelle formation enregistrée", "📝",
+                        "Une nouvelle formation vient d'être enregistrée et attend d'être planifiée. "
+                                + "Vous trouverez ci-dessous le récapitulatif.",
+                        "#1565c0", null, null);
                 outlookMailService.sendMail(ORGANIZER_EMAIL, subject, html);
             } catch (Exception ex) {
                 log.warn("Echec notification admin enregistrement : {}", ex.getMessage());
@@ -382,12 +384,13 @@ public class FormationWorkflowService {
         synchronizeFormationCalendar(formation);
 
         // Notification aux animateurs et participants
-        Set<String> recipientEmails = collectAllRecipientEmails(formation);
-        String subject = "[D2F] Formation Planifiee : " + formation.getTitreFormation();
-        String html = buildStateNotificationHtml(formation, "Formation Planifiee",
-                "La formation a ete planifiee. Les evenements ont ete ajoutes a votre calendrier Outlook.",
-                "#e65100");
-        sendEmailsSafely(recipientEmails, subject, html);
+        sendStateNotification(formation,
+                "[D2F] Formation planifiée : " + formation.getTitreFormation(),
+                "Formation planifiée", "📅",
+                "Votre formation a été planifiée. Les séances ci-dessous ont été ajoutées à votre calendrier Outlook ; "
+                        + "vous recevrez l'invitation et le lien Teams pour chaque séance.",
+                "#e65100",
+                "Merci de vérifier que les créneaux sont compatibles avec votre emploi du temps.");
     }
 
     // ── VISIBLE : Notification que la formation est visible/publiée ──
@@ -396,14 +399,14 @@ public class FormationWorkflowService {
         notifyTeachersOfApprovedFormation(formation);
         // Notification aux CUPs
         notifyCUPOfApprovedFormation(formation);
-        // Notification admin
+        // Notification admin (boîte applicative D2F)
         // DSI §4/§2 — Outlook désactivé si azure.ad.enabled != true
         if (outlookMailService != null) {
             try {
-                String subject = "[D2F] Formation Publiee : " + formation.getTitreFormation();
-                String html = buildStateNotificationHtml(formation, "Formation Publiee",
-                        "La formation est maintenant visible et ouverte aux inscriptions.",
-                        "#1b5e20");
+                String subject = "[D2F] Formation publiée : " + formation.getTitreFormation();
+                String html = buildStateHtml(formation, "Formation publiée", "🚀",
+                        "La formation est désormais visible et ouverte aux inscriptions.",
+                        "#1b5e20", null, null);
                 outlookMailService.sendMail(ORGANIZER_EMAIL, subject, html);
             } catch (Exception ex) {
                 log.warn("Echec notification admin visibilite : {}", ex.getMessage());
@@ -415,40 +418,39 @@ public class FormationWorkflowService {
 
     // ── EN_COURS : Notification que la formation a démarré ──
     private void notifyEnCours(Formation formation) {
-        Set<String> recipientEmails = collectAllRecipientEmails(formation);
-        String subject = "[D2F] Formation En Cours : " + formation.getTitreFormation();
-        String html = buildStateNotificationHtml(formation, "Formation En Cours",
-                "La formation a demarre. Merci de confirmer votre presence a chaque seance.",
-                "#6a1b9a");
-        sendEmailsSafely(recipientEmails, subject, html);
+        sendStateNotification(formation,
+                "[D2F] Formation en cours : " + formation.getTitreFormation(),
+                "Formation en cours", "▶️",
+                "La formation a démarré. Bonne session à toutes et à tous !",
+                "#6a1b9a",
+                "Merci de confirmer votre présence à chaque séance directement dans la plateforme D2F.");
     }
 
     // ── ACHEVE : Notification de fin de formation + demande évaluation ──
     private void notifyAcheve(Formation formation) {
-        Set<String> recipientEmails = collectAllRecipientEmails(formation);
-        String subject = "[D2F] Formation Achevee : " + formation.getTitreFormation();
-        String html = buildStateNotificationHtml(formation, "Formation Achevee",
-                "La formation est terminee. Merci de remplir les evaluations et de confirmer les presences.",
-                "#00695c");
-        sendEmailsSafely(recipientEmails, subject, html);
+        sendStateNotification(formation,
+                "[D2F] Formation achevée : " + formation.getTitreFormation(),
+                "Formation achevée", "🎓",
+                "La formation est désormais terminée. Merci d'y avoir participé.",
+                "#00695c",
+                "Dernière étape : merci de <strong>remplir l'évaluation</strong> et de vérifier que les présences "
+                        + "ont bien été confirmées dans D2F.");
     }
 
     // ── ANNULE : Notification d'annulation + suppression calendrier ──
     private void notifyAnnulation(Formation formation) {
         log.info("Notification d'annulation pour la formation {} - envoi emails aux concernes", formation.getIdFormation());
 
-        // 1. Collecter les emails AVANT de recharger depuis la DB
-        Set<String> recipientEmails = collectAllRecipientEmails(formation);
-        log.info("Destinataires email annulation : {} destinataires", recipientEmails.size());
+        // 1. Envoyer l'email d'annulation a tous les concernes
+        sendStateNotification(formation,
+                "[D2F] Annulation de formation : " + formation.getTitreFormation(),
+                "Formation annulée", "❌",
+                "Nous vous informons que la formation ci-dessous a été <strong>annulée</strong>. "
+                        + "Les séances correspondantes seront retirées de votre calendrier.",
+                "#c62828",
+                "Aucune action n'est requise de votre part. Nous restons à votre disposition pour toute question.");
 
-        // 2. Envoyer l'email d'annulation a tous les concernes
-        String subject = "[D2F] Annulation de Formation : " + formation.getTitreFormation();
-        String html = buildStateNotificationHtml(formation, "Annulation de Formation",
-                "La formation suivante a ete <strong>annulee</strong>. Les seances sont supprimees du calendrier.",
-                "#c62828");
-        sendEmailsSafely(recipientEmails, subject, html);
-
-        // 3. Supprimer les evenements Outlook calendar
+        // 2. Supprimer les evenements Outlook calendar
         try {
             removeFormationCalendarEvents(formation);
         } catch (Exception ex) {
@@ -462,56 +464,24 @@ public class FormationWorkflowService {
         if (outlookMailService == null) return;
         if (formation.getUp() == null) return;
         List<Enseignant> cups = enseignantRepository.findByUpAndCup(formation.getUp(), "O");
-        String subject = "[D2F] Formation a planifier : " + formation.getTitreFormation();
+        String subject = "[D2F] Formation à planifier : " + formation.getTitreFormation();
         for (Enseignant cup : cups) {
             if (cup.getMail() == null || cup.getMail().isBlank()) continue;
             try {
-                String html = String.format(
-                        "<!DOCTYPE html><html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'><style>" +
-                        "* { margin: 0; padding: 0; box-sizing: border-box; }" +
-                        "body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; color: #2c3e50; background: linear-gradient(135deg, #f5f7fa 0%%, #c3cfe2 100%%); padding: 20px; }" +
-                        ".container { max-width: 650px; margin: 0 auto; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 10px 40px rgba(0,0,0,0.1); }" +
-                        ".header { background: linear-gradient(135deg, #1565c0 0%%, #0d47a1 100%%); color: white; padding: 40px 30px; text-align: center; }" +
-                        ".header h1 { font-size: 26px; margin: 0; font-weight: 600; }" +
-                        ".header-subtitle { font-size: 14px; margin-top: 10px; opacity: 0.95; }" +
-                        ".header-icon { font-size: 48px; margin-bottom: 15px; }" +
-                        ".content { padding: 40px 30px; }" +
-                        ".greeting { font-size: 16px; margin-bottom: 20px; color: #2c3e50; }" +
-                        ".action-box { background: #fff3cd; border-left: 4px solid #ff9800; padding: 15px 20px; margin-bottom: 30px; border-radius: 4px; color: #856404; font-weight: 500; }" +
-                        ".section-title { font-size: 14px; color: #1565c0; font-weight: 600; margin-top: 25px; margin-bottom: 15px; text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; }" +
-                        ".section-title::before { content: ''; display: inline-block; width: 4px; height: 20px; background: #1565c0; margin-right: 10px; border-radius: 2px; }" +
-                        ".info-box { background: #e3f2fd; border-left: 3px solid #1565c0; padding: 12px 15px; margin-bottom: 10px; border-radius: 6px; }" +
-                        ".info-label { font-weight: 600; color: #1565c0; min-width: 100px; display: inline-block; }" +
-                        ".info-value { color: #2c3e50; }" +
-                        ".up-badge { display: inline-block; background: #1565c0; color: white; padding: 5px 12px; border-radius: 20px; font-size: 12px; margin-top: 10px; }" +
-                        ".action-text { background: #e8f5e9; border-left: 4px solid #4caf50; padding: 15px 20px; margin-top: 20px; border-radius: 4px; color: #2e7d32; line-height: 1.6; }" +
-                        ".footer { background: #f8f9fa; border-top: 1px solid #e0e0e0; padding: 20px 30px; text-align: center; font-size: 12px; color: #7f8c8d; }" +
-                        ".footer p { margin: 5px 0; }" +
-                        ".logo { color: #1565c0; font-weight: 600; }" +
-                        "</style></head><body>" +
-                        "<div class='container'>" +
-                        "<div class='header'><div class='header-icon'>⚙️</div><h1>Action Requise</h1><p class='header-subtitle'>Planification de Formation</p></div>" +
-                        "<div class='content'>" +
-                        "<p class='greeting'>Bonjour %s %s,</p>" +
-                        "<div class='action-box'>⚠️ Une nouvelle formation a été enregistrée pour votre UP et requiert votre attention.</div>" +
-                        "<div class='section-title'>Détails de la Formation</div>" +
-                        "<div class='info-box'><span class='info-label'>UP</span><span class='info-value'><strong>%s</strong></span></div>" +
-                        "<div class='info-box'><span class='info-label'>Titre</span><span class='info-value'>%s</span></div>" +
-                        "<div class='info-box'><span class='info-label'>Domaine</span><span class='info-value'>%s</span></div>" +
-                        "<div class='info-box'><span class='info-label'>Période</span><span class='info-value'>%s - %s</span></div>" +
-                        "<div class='action-text'>📌 <strong>Action requise :</strong> Merci de procéder rapidement à la planification des séances pour cette formation.</div>" +
-                        "</div>" +
-                        "<div class='footer'>" +
-                        "<p>Ceci est un e-mail automatique généré par le système D2F.</p>" +
-                        "<p><span class='logo'>Esprit</span> - Direction du Développement et de la Formation</p>" +
-                        "<p>© 2026 - Tous droits réservés</p>" +
-                        "</div></div></body></html>",
-                        cup.getPrenom(), cup.getNom(),
-                        formation.getUp().getLibelle(),
-                        formation.getTitreFormation(),
-                        formation.getDomaine() != null ? formation.getDomaine() : "N/A",
-                        formation.getDateDebut(),
-                        formation.getDateFin());
+                String html = EmailTemplateBuilder.create()
+                        .accentColor("#1565c0")
+                        .icon("⚙️")
+                        .title("Action requise — planification")
+                        .greetingName(fullName(cup))
+                        .intro("Une nouvelle formation a été enregistrée pour votre unité pédagogique "
+                                + "et requiert votre intervention.")
+                        .detail("UP", formation.getUp().getLibelle())
+                        .detail("Titre", formation.getTitreFormation())
+                        .detail("Domaine", formation.getDomaine())
+                        .detail("Période", formatDate(formation.getDateDebut()) + " au " + formatDate(formation.getDateFin()))
+                        .note("📌 <strong>Action requise :</strong> merci de procéder à la planification des "
+                                + "séances de cette formation depuis la plateforme D2F.")
+                        .build();
                 outlookMailService.sendMail(cup.getMail(), subject, html);
             } catch (Exception ex) {
                 log.warn("Echec notification CUP : {}", ex.getMessage());
@@ -568,100 +538,122 @@ public class FormationWorkflowService {
         return emails;
     }
 
-    // ── Envoyer des emails à une liste de destinataires avec gestion d'erreur individuelle ──
-    private void sendEmailsSafely(Set<String> emails, String subject, String html) {
+    // ── Envoyer une notification d'état à tous les concernés, personnalisée par destinataire ──
+    private void sendStateNotification(Formation formation, String subject, String title, String icon,
+            String intro, String accentColor, String note) {
         // DSI §4/§2 — Outlook désactivé si azure.ad.enabled != true
         if (outlookMailService == null) {
-            log.info("[Formation] Mail Outlook désactivé (azure.ad.enabled=false) — {} destinataires non notifiés, sujet={}", emails.size(), subject);
+            log.info("[Formation] Mail Outlook désactivé (azure.ad.enabled=false) — notification « {} » ignorée.", subject);
             return;
         }
-        log.info("sendEmailsSafely: envoi a {} destinataires, sujet={}", emails.size(), subject);
+        Set<String> emails = collectAllRecipientEmails(formation);
+        Map<String, String> nameByEmail = buildNameByEmail(formation);
+        log.info("sendStateNotification: envoi a {} destinataires, sujet={}", emails.size(), subject);
         int successCount = 0;
         int failCount = 0;
         for (String email : emails) {
             try {
+                String html = buildStateHtml(formation, title, icon, intro, accentColor, note, nameByEmail.get(email));
                 outlookMailService.sendMail(email, subject, html);
                 successCount++;
-                log.info("Email envoye avec succes");
             } catch (Exception ex) {
                 failCount++;
                 log.warn("Echec envoi email : {}", ex.getMessage());
             }
         }
-        log.info("sendEmailsSafely: termine - {} succes, {} echecs sur {} destinataires",
+        log.info("sendStateNotification: termine - {} succes, {} echecs sur {} destinataires",
                 successCount, failCount, emails.size());
     }
 
-    // ── Template HTML réutilisable pour les notifications de changement d'état ──
-    @SuppressWarnings("java:S3776") // state-driven HTML template rendering — one branch per workflow state
-    private String buildStateNotificationHtml(Formation formation, String title, String message, String color) {
-        StringBuilder seancesHtml = new StringBuilder();
-        if (formation.getSeances() != null && !formation.getSeances().isEmpty()) {
+    // ── Indexe le nom complet des enseignants concernés par adresse e-mail (pour personnaliser l'accroche) ──
+    private Map<String, String> buildNameByEmail(Formation formation) {
+        Map<String, String> map = new HashMap<>();
+        if (formation.getAnimateurs() != null) {
+            formation.getAnimateurs().forEach(e -> indexName(map, e));
+        }
+        if (formation.getSeances() != null) {
             for (SeanceFormation seance : formation.getSeances()) {
-                seancesHtml.append(String.format(
-                        "<div class='seance-item'><span class='seance-icon'>📅</span> <strong>%s</strong> | %s à %s | Salle: <em>%s</em></div>",
-                        formatDate(seance.getDateSeance()),
-                        formatTime(seance.getHeureDebut()),
-                        formatTime(seance.getHeureFin()),
-                        seance.getSalle() != null ? seance.getSalle() : A_DEFINIR));
+                if (seance.getAnimateurs() != null) seance.getAnimateurs().forEach(e -> indexName(map, e));
+                if (seance.getParticipants() != null) seance.getParticipants().forEach(e -> indexName(map, e));
             }
         }
+        if (formation.getExterneFormateurEmail() != null && !formation.getExterneFormateurEmail().isBlank()
+                && formation.getExterneFormateurNom() != null) {
+            String externe = (formation.getExterneFormateurPrenom() != null ? formation.getExterneFormateurPrenom() + " " : "")
+                    + formation.getExterneFormateurNom();
+            map.putIfAbsent(formation.getExterneFormateurEmail(), externe.trim());
+        }
+        return map;
+    }
 
-        // Animateurs
+    private void indexName(Map<String, String> map, Enseignant e) {
+        if (e != null && e.getMail() != null && !e.getMail().isBlank()) {
+            map.putIfAbsent(e.getMail(), fullName(e));
+        }
+    }
+
+    private String fullName(Enseignant e) {
+        if (e == null) return null;
+        String prenom = e.getPrenom() != null ? e.getPrenom() : "";
+        String nom = e.getNom() != null ? e.getNom() : "";
+        String full = (prenom + " " + nom).trim();
+        return full.isBlank() ? null : full;
+    }
+
+    // ── Ligne de séance formatée pour le gabarit d'e-mail ──
+    private String seanceLine(SeanceFormation seance) {
+        return formatDate(seance.getDateSeance()) + " · "
+                + formatTime(seance.getHeureDebut()) + "–" + formatTime(seance.getHeureFin()) + " · Salle "
+                + (seance.getSalle() != null && !seance.getSalle().isBlank() ? seance.getSalle() : A_DEFINIR);
+    }
+
+    // ── Gabarit unique (compatible Outlook) pour les notifications de changement d'état ──
+    private String buildStateHtml(Formation formation, String title, String icon, String intro,
+            String accentColor, String note, String greetingName) {
+        EmailTemplateBuilder builder = EmailTemplateBuilder.create()
+                .accentColor(accentColor)
+                .icon(icon)
+                .title(title)
+                .greetingName(greetingName)
+                .intro(intro)
+                .detail("Titre", formation.getTitreFormation())
+                .detail("Domaine", formation.getDomaine())
+                .detail("Type", formation.getTypeFormation() != null ? formation.getTypeFormation().toString() : null)
+                .detail("Période", formatDate(formation.getDateDebut()) + " au " + formatDate(formation.getDateFin()));
+
+        String animateurs = buildAnimateursLabel(formation);
+        if (!animateurs.isBlank()) {
+            builder.detail("Animateurs", animateurs);
+        }
+        if (formation.getSeances() != null) {
+            for (SeanceFormation seance : formation.getSeances()) {
+                builder.seance(seanceLine(seance));
+            }
+        }
+        if (note != null && !note.isBlank()) {
+            builder.note(note);
+        }
+        return builder.build();
+    }
+
+    // ── Liste « Prénom Nom » des animateurs (séances + formateur externe) ──
+    private String buildAnimateursLabel(Formation formation) {
         String animateursStr = "";
         if (formation.getSeances() != null) {
             animateursStr = formation.getSeances().stream()
                     .flatMap(s -> s.getAnimateurs() != null ? s.getAnimateurs().stream() : java.util.stream.Stream.empty())
-                    .map(a -> a.getNom() + " " + a.getPrenom())
+                    .map(a -> (a.getPrenom() != null ? a.getPrenom() + " " : "") + (a.getNom() != null ? a.getNom() : ""))
+                    .map(String::trim)
+                    .filter(s -> !s.isBlank())
                     .distinct()
                     .collect(Collectors.joining(", "));
         }
         if (formation.getExterneFormateurNom() != null && !formation.getExterneFormateurNom().isBlank()) {
-            animateursStr += (animateursStr.isEmpty() ? "" : ", ") + formation.getExterneFormateurNom() + " " + formation.getExterneFormateurPrenom();
+            animateursStr += (animateursStr.isEmpty() ? "" : ", ")
+                    + (formation.getExterneFormateurPrenom() != null ? formation.getExterneFormateurPrenom() + " " : "")
+                    + formation.getExterneFormateurNom();
         }
-
-        return "<!DOCTYPE html><html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'><style>" +
-                "* { margin: 0; padding: 0; box-sizing: border-box; }" +
-                "body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; color: #2c3e50; background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); padding: 20px; }" +
-                ".container { max-width: 650px; margin: 0 auto; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 10px 40px rgba(0,0,0,0.1); }" +
-                ".header { background: linear-gradient(135deg, " + color + " 0%, " + adjustBrightness(color, -20) + " 100%); color: white; padding: 40px 30px; text-align: center; }" +
-                ".header h1 { font-size: 28px; margin: 0; font-weight: 600; }" +
-                ".header p { font-size: 14px; margin-top: 8px; opacity: 0.95; }" +
-                ".content { padding: 40px 30px; }" +
-                ".greeting { font-size: 16px; margin-bottom: 25px; color: #2c3e50; }" +
-                ".message-box { background: #f8f9fa; border-left: 4px solid " + color + "; padding: 15px 20px; margin-bottom: 30px; border-radius: 4px; color: #34495e; line-height: 1.6; }" +
-                ".details-section { margin-bottom: 30px; }" +
-                ".details-section h3 { font-size: 14px; color: " + color + "; font-weight: 600; margin-bottom: 15px; text-transform: uppercase; letter-spacing: 0.5px; }" +
-                ".detail-item { display: flex; margin-bottom: 12px; padding: 10px; background: #f8f9fa; border-radius: 6px; }" +
-                ".detail-label { font-weight: 600; color: " + color + "; min-width: 120px; }" +
-                ".detail-value { color: #2c3e50; flex: 1; }" +
-                ".seance-item { padding: 12px; background: #f0f6ff; border-left: 3px solid " + color + "; margin-bottom: 10px; border-radius: 4px; font-size: 14px; line-height: 1.5; }" +
-                ".seance-icon { margin-right: 8px; }" +
-                ".animateurs-list { padding: 12px; background: #f0f6ff; border-left: 3px solid " + color + "; border-radius: 4px; font-size: 14px; }" +
-                ".footer { background: #f8f9fa; border-top: 1px solid #e0e0e0; padding: 20px 30px; text-align: center; font-size: 12px; color: #7f8c8d; }" +
-                ".footer p { margin: 5px 0; }" +
-                ".logo { color: " + color + "; font-weight: 600; }" +
-                "</style></head><body>" +
-                "<div class='container'>" +
-                "<div class='header'><h1>" + title + "</h1></div>" +
-                "<div class='content'>" +
-                "<p class='greeting'>Bonjour,</p>" +
-                "<div class='message-box'>" + message + "</div>" +
-                "<div class='details-section'>" +
-                "<h3>📋 Informations de la Formation</h3>" +
-                "<div class='detail-item'><span class='detail-label'>Titre</span><span class='detail-value'>" + formation.getTitreFormation() + "</span></div>" +
-                "<div class='detail-item'><span class='detail-label'>Domaine</span><span class='detail-value'>" + (formation.getDomaine() != null ? formation.getDomaine() : "N/A") + "</span></div>" +
-                "<div class='detail-item'><span class='detail-label'>Type</span><span class='detail-value'>" + (formation.getTypeFormation() != null ? formation.getTypeFormation().toString() : "N/A") + "</span></div>" +
-                "<div class='detail-item'><span class='detail-label'>Période</span><span class='detail-value'>" + formatDate(formation.getDateDebut()) + " au " + formatDate(formation.getDateFin()) + "</span></div>" +
-                "</div>" +
-                (!animateursStr.isEmpty() ? "<div class='details-section'><h3>🏫 Animateurs</h3><div class='animateurs-list'>" + animateursStr + "</div></div>" : "") +
-                (!seancesHtml.isEmpty() ? "<div class='details-section'><h3>⏱️ Détail des Séances</h3>" + seancesHtml.toString() + "</div>" : "") +
-                "</div>" +
-                "<div class='footer'>" +
-                "<p>Ceci est un e-mail automatique généré par le système D2F.</p>" +
-                "<p><span class='logo'>Esprit</span> - Direction du Développement et de la Formation</p>" +
-                "<p>© 2026 - Tous droits réservés</p>" +
-                "</div></div></body></html>";
+        return animateursStr;
     }
 
     private void syncPresencesForSeances(List<SeanceFormation> seances, List<String> partIds) {
@@ -755,23 +747,6 @@ public class FormationWorkflowService {
         return time.toLocalTime().format(TIME_FMT);
     }
 
-    private String adjustBrightness(String hexColor, int percent) {
-        try {
-            String hex = hexColor.replace("#", "");
-            int r = Integer.parseInt(hex.substring(0, 2), 16);
-            int g = Integer.parseInt(hex.substring(2, 4), 16);
-            int b = Integer.parseInt(hex.substring(4, 6), 16);
-            
-            r = Math.min(255, Math.max(0, r + (r * percent / 100)));
-            g = Math.min(255, Math.max(0, g + (g * percent / 100)));
-            b = Math.min(255, Math.max(0, b + (b * percent / 100)));
-            
-            return String.format("#%02x%02x%02x", r, g, b);
-        } catch (Exception e) {
-            return hexColor;
-        }
-    }
-
     private String buildCalendarEventContent(Formation formation, SeanceFormation seance, String animateursStr) {
         return "<html><body>" +
                 "<h3>" + formation.getTitreFormation() + "</h3>" +
@@ -803,12 +778,12 @@ public class FormationWorkflowService {
                 ? Collections.emptyList()
                 : enseignantRepository.findAllById(recipientIds);
 
-        String subject = "[D2F] Nouvelle Formation Disponible : " + formation.getTitreFormation();
-        String htmlContent = buildApprovalNotificationHtml(formation);
+        String subject = "[D2F] Nouvelle formation disponible : " + formation.getTitreFormation();
 
         for (Enseignant e : recipients) {
             if (e.getMail() == null || e.getMail().isBlank()) continue;
             try {
+                String htmlContent = buildApprovalNotificationHtml(formation, fullName(e));
                 outlookMailService.sendMail(e.getMail(), subject, htmlContent);
             } catch (Exception ex) {
                 log.warn("Echec de notification pour l'enseignant : {}", ex.getMessage());
@@ -816,57 +791,23 @@ public class FormationWorkflowService {
         }
     }
 
-    private String buildApprovalNotificationHtml(Formation formation) {
-        StringBuilder seancesHtml = new StringBuilder();
-        if (formation.getSeances() != null && !formation.getSeances().isEmpty()) {
+    private String buildApprovalNotificationHtml(Formation formation, String greetingName) {
+        EmailTemplateBuilder builder = EmailTemplateBuilder.create()
+                .accentColor("#1b5e20")
+                .icon("✅")
+                .title("Nouvelle formation disponible")
+                .greetingName(greetingName)
+                .intro("Une nouvelle formation vient d'être publiée et vous concerne. "
+                        + "Voici l'essentiel à retenir.")
+                .detail("Titre", formation.getTitreFormation())
+                .detail("Domaine", formation.getDomaine())
+                .detail("Période", formatDate(formation.getDateDebut()) + " au " + formatDate(formation.getDateFin()));
+        if (formation.getSeances() != null) {
             for (SeanceFormation seance : formation.getSeances()) {
-                seancesHtml.append(String.format(
-                        "<div class='seance-item'><span class='calendar-icon'>📅</span><strong>%s</strong> | %s - %s | Salle: <em>%s</em></div>",
-                        formatDate(seance.getDateSeance()),
-                        formatTime(seance.getHeureDebut()),
-                        formatTime(seance.getHeureFin()),
-                        seance.getSalle() != null ? seance.getSalle() : A_DEFINIR));
+                builder.seance(seanceLine(seance));
             }
         }
-        return "<!DOCTYPE html><html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'><style>" +
-                "* { margin: 0; padding: 0; box-sizing: border-box; }" +
-                "body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; color: #2c3e50; background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); padding: 20px; }" +
-                ".container { max-width: 650px; margin: 0 auto; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 10px 40px rgba(0,0,0,0.1); }" +
-                ".header { background: linear-gradient(135deg, #1b5e20 0%, #0d3817 100%); color: white; padding: 40px 30px; text-align: center; }" +
-                ".header h1 { font-size: 28px; margin: 0; font-weight: 600; }" +
-                ".header-icon { font-size: 48px; margin-bottom: 15px; }" +
-                ".content { padding: 40px 30px; }" +
-                ".greeting { font-size: 16px; margin-bottom: 20px; color: #2c3e50; }" +
-                ".intro-message { background: #e8f5e9; border-left: 4px solid #1b5e20; padding: 15px 20px; margin-bottom: 30px; border-radius: 4px; color: #1b5e20; font-weight: 500; line-height: 1.6; }" +
-                ".section-title { font-size: 14px; color: #1b5e20; font-weight: 600; margin-top: 30px; margin-bottom: 15px; text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; }" +
-                ".section-title::before { content: ''; display: inline-block; width: 4px; height: 20px; background: #1b5e20; margin-right: 10px; border-radius: 2px; }" +
-                ".info-box { background: #f8f9fa; padding: 12px 15px; margin-bottom: 12px; border-radius: 6px; border-left: 3px solid #1b5e20; }" +
-                ".info-label { font-weight: 600; color: #1b5e20; display: inline-block; min-width: 100px; }" +
-                ".info-value { color: #2c3e50; }" +
-                ".seance-item { background: #f0f6ff; border-left: 3px solid #1b5e20; padding: 12px 15px; margin-bottom: 10px; border-radius: 4px; font-size: 14px; line-height: 1.6; }" +
-                ".calendar-icon { margin-right: 8px; font-size: 16px; }" +
-                ".cta-section { text-align: center; margin-top: 30px; }" +
-                ".footer { background: #f8f9fa; border-top: 1px solid #e0e0e0; padding: 20px 30px; text-align: center; font-size: 12px; color: #7f8c8d; }" +
-                ".footer p { margin: 5px 0; }" +
-                ".logo { color: #1b5e20; font-weight: 600; }" +
-                "</style></head><body>" +
-                "<div class='container'>" +
-                "<div class='header'><div class='header-icon'>✅</div><h1>Nouvelle Formation Disponible</h1></div>" +
-                "<div class='content'>" +
-                "<p class='greeting'>Bonjour,</p>" +
-                "<div class='intro-message'>Une nouvelle formation a été approuvée et est maintenant visible. Découvrez tous les détails ci-dessous.</div>" +
-                "<div class='section-title'>Informations de la Formation</div>" +
-                "<div class='info-box'><span class='info-label'>Titre</span><span class='info-value'>" + formation.getTitreFormation() + "</span></div>" +
-                "<div class='info-box'><span class='info-label'>Domaine</span><span class='info-value'>" + (formation.getDomaine() != null ? formation.getDomaine() : "N/A") + "</span></div>" +
-                "<div class='info-box'><span class='info-label'>Période</span><span class='info-value'>" + formatDate(formation.getDateDebut()) + " au " + formatDate(formation.getDateFin()) + "</span></div>" +
-                "<div class='section-title'>Calendrier des Séances</div>" +
-                (!seancesHtml.isEmpty() ? seancesHtml.toString() : "<p style='color: #7f8c8d;'>" + A_DEFINIR + "</p>") +
-                "</div>" +
-                "<div class='footer'>" +
-                "<p>Ceci est un e-mail automatique généré par le système D2F.</p>" +
-                "<p><span class='logo'>Esprit</span> - Direction du Développement et de la Formation</p>" +
-                "<p>© 2026 - Tous droits réservés</p>" +
-                "</div></div></body></html>";
+        return builder.build();
     }
 
     public void notifyCUPOfApprovedFormation(Formation formation) {
@@ -878,50 +819,21 @@ public class FormationWorkflowService {
         if (formation.getUp() == null)
             return;
         List<Enseignant> cups = enseignantRepository.findByUpAndCup(formation.getUp(), "O");
-        String subject = "[D2F] Formation Approuvée : " + formation.getTitreFormation();
-        String htmlContent = String.format(
-                "<!DOCTYPE html><html><head><meta charset='utf-8'><meta name='viewport' content='width=device-width, initial-scale=1'><style>" +
-                "* { margin: 0; padding: 0; box-sizing: border-box; }" +
-                "body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; color: #2c3e50; background: linear-gradient(135deg, #f5f7fa 0%%, #c3cfe2 100%%); padding: 20px; }" +
-                ".container { max-width: 650px; margin: 0 auto; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 10px 40px rgba(0,0,0,0.1); }" +
-                ".header { background: linear-gradient(135deg, #1565c0 0%%, #0d47a1 100%%); color: white; padding: 40px 30px; text-align: center; }" +
-                ".header h1 { font-size: 28px; margin: 0; font-weight: 600; }" +
-                ".header-icon { font-size: 48px; margin-bottom: 15px; }" +
-                ".content { padding: 40px 30px; }" +
-                ".greeting { font-size: 16px; margin-bottom: 20px; color: #2c3e50; }" +
-                ".approval-message { background: #e3f2fd; border-left: 4px solid #1565c0; padding: 15px 20px; margin-bottom: 30px; border-radius: 4px; color: #1565c0; font-weight: 500; line-height: 1.6; }" +
-                ".section-title { font-size: 14px; color: #1565c0; font-weight: 600; margin-top: 25px; margin-bottom: 15px; text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; }" +
-                ".section-title::before { content: ''; display: inline-block; width: 4px; height: 20px; background: #1565c0; margin-right: 10px; border-radius: 2px; }" +
-                ".info-box { background: #f5f5f5; border-left: 3px solid #1565c0; padding: 12px 15px; margin-bottom: 10px; border-radius: 6px; }" +
-                ".info-label { font-weight: 600; color: #1565c0; min-width: 80px; display: inline-block; }" +
-                ".info-value { color: #2c3e50; }" +
-                ".footer { background: #f8f9fa; border-top: 1px solid #e0e0e0; padding: 20px 30px; text-align: center; font-size: 12px; color: #7f8c8d; }" +
-                ".footer p { margin: 5px 0; }" +
-                ".logo { color: #1565c0; font-weight: 600; }" +
-                "</style></head><body>" +
-                "<div class='container'>" +
-                "<div class='header'><div class='header-icon'>✅</div><h1>Formation Approuvée</h1></div>" +
-                "<div class='content'>" +
-                "<p class='greeting'>Bonjour,</p>" +
-                "<div class='approval-message'>La formation <strong>%s</strong> a été approuvée et est maintenant visible pour tous les responsables d'unités pédagogiques.</div>" +
-                "<div class='section-title'>Informations Clés</div>" +
-                "<div class='info-box'><span class='info-label'>Domaine</span><span class='info-value'>%s</span></div>" +
-                "<div class='info-box'><span class='info-label'>Période</span><span class='info-value'>%s au %s</span></div>" +
-                "<div class='info-box'><span class='info-label'>UP</span><span class='info-value'>%s</span></div>" +
-                "</div>" +
-                "<div class='footer'>" +
-                "<p>Ceci est un e-mail automatique généré par le système D2F.</p>" +
-                "<p><span class='logo'>Esprit</span> - Direction du Développement et de la Formation</p>" +
-                "<p>© 2026 - Tous droits réservés</p>" +
-                "</div></div></body></html>",
-                formation.getTitreFormation(),
-                formation.getDomaine() != null ? formation.getDomaine() : "N/A",
-                formatDate(formation.getDateDebut()),
-                formatDate(formation.getDateFin()),
-                formation.getUp().getLibelle());
+        String subject = "[D2F] Formation approuvée : " + formation.getTitreFormation();
         for (Enseignant cup : cups) {
             if (cup.getMail() == null || cup.getMail().isBlank()) continue;
             try {
+                String htmlContent = EmailTemplateBuilder.create()
+                        .accentColor("#1565c0")
+                        .icon("✅")
+                        .title("Formation approuvée")
+                        .greetingName(fullName(cup))
+                        .intro("La formation <strong>" + formation.getTitreFormation() + "</strong> a été approuvée "
+                                + "et est désormais visible pour les responsables d'unités pédagogiques.")
+                        .detail("UP", formation.getUp().getLibelle())
+                        .detail("Domaine", formation.getDomaine())
+                        .detail("Période", formatDate(formation.getDateDebut()) + " au " + formatDate(formation.getDateFin()))
+                        .build();
                 outlookMailService.sendMail(cup.getMail(), subject, htmlContent);
             } catch (Exception ex) {
                 log.warn("Echec de notification CUP : {}", ex.getMessage());
@@ -1116,30 +1028,18 @@ public class FormationWorkflowService {
 
     private String buildCancellationSeanceHtml(SeanceFormation seance) {
         Formation formation = seance.getFormation();
-        return "<!DOCTYPE html><html><head><style>" +
-                "body { font-family: 'Segoe UI', sans-serif; color: #333; }" +
-                ".container { max-width: 600px; margin: 20px auto; padding: 20px; border: 1px solid #ddd; border-radius: 10px; background-color: #f9f9f9; }" +
-                ".header { background-color: #c62828; color: white; padding: 10px; text-align: center; border-radius: 10px 10px 0 0; }" +
-                ".content { padding: 20px; }" +
-                ".footer { margin-top: 20px; font-size: 0.8em; text-align: center; color: #777; }" +
-                "strong { color: #c62828; }" +
-                "</style></head><body>" +
-                "<div class='container'>" +
-                "<div class='header'><h2>Annulation de Seance</h2></div>" +
-                "<div class='content'>" +
-                "<p>Bonjour,</p>" +
-                "<p>Nous vous informons que la seance suivante a ete <strong>annulee</strong> :</p>" +
-                "<ul>" +
-                "<li><strong>Formation :</strong> " + formation.getTitreFormation() + "</li>" +
-                "<li><strong>Date :</strong> " + formatDate(seance.getDateSeance()) + "</li>" +
-                "<li><strong>Heure :</strong> " + formatTime(seance.getHeureDebut()) + " - " + formatTime(seance.getHeureFin()) + "</li>" +
-                "<li><strong>Salle :</strong> " + (seance.getSalle() != null ? seance.getSalle() : "A definir") + "</li>" +
-                "</ul>" +
-                "</div>" +
-                "<div class='footer'>" +
-                "<p>Ceci est un e-mail automatique, merci de ne pas y repondre.</p>" +
-                "<p>&copy; Esprit - Direction du Developpement et de la Formation</p>" +
-                "</div></div></body></html>";
+        return EmailTemplateBuilder.create()
+                .accentColor("#c62828")
+                .icon("❌")
+                .title("Annulation de séance")
+                .intro("Nous vous informons que la séance ci-dessous a été <strong>annulée</strong>.")
+                .detail("Formation", formation.getTitreFormation())
+                .detail("Date", formatDate(seance.getDateSeance()))
+                .detail("Horaire", formatTime(seance.getHeureDebut()) + " – " + formatTime(seance.getHeureFin()))
+                .detail("Salle", seance.getSalle() != null && !seance.getSalle().isBlank() ? seance.getSalle() : A_DEFINIR)
+                .note("L'événement correspondant a été retiré de votre calendrier Outlook. "
+                        + "Aucune action n'est requise de votre part.")
+                .build();
     }
 
     @SuppressWarnings("java:S3776") // graph API cleanup for all seances + notifications + repo updates — single transactional unit
@@ -1239,42 +1139,22 @@ public class FormationWorkflowService {
     }
 
     private String buildCancellationFormationHtml(Formation formation) {
-        StringBuilder seancesHtml = new StringBuilder();
+        EmailTemplateBuilder builder = EmailTemplateBuilder.create()
+                .accentColor("#c62828")
+                .icon("❌")
+                .title("Annulation de formation")
+                .intro("Nous vous informons que la formation ci-dessous a été <strong>annulée</strong>.")
+                .detail("Titre", formation.getTitreFormation())
+                .detail("Domaine", formation.getDomaine())
+                .detail("Dates prévues", formatDate(formation.getDateDebut()) + " au " + formatDate(formation.getDateFin()));
         if (formation.getSeances() != null) {
             for (SeanceFormation seance : formation.getSeances()) {
-                seancesHtml.append(String.format(
-                        "<li>Le %s de %s a %s en salle %s</li>",
-                        formatDate(seance.getDateSeance()),
-                        formatTime(seance.getHeureDebut()),
-                        formatTime(seance.getHeureFin()),
-                        seance.getSalle() != null ? seance.getSalle() : "A definir"));
+                builder.seance(seanceLine(seance));
             }
         }
-        return "<!DOCTYPE html><html><head><style>" +
-                "body { font-family: 'Segoe UI', sans-serif; color: #333; }" +
-                ".container { max-width: 600px; margin: 20px auto; padding: 20px; border: 1px solid #ddd; border-radius: 10px; background-color: #f9f9f9; }" +
-                ".header { background-color: #c62828; color: white; padding: 10px; text-align: center; border-radius: 10px 10px 0 0; }" +
-                ".content { padding: 20px; }" +
-                ".footer { margin-top: 20px; font-size: 0.8em; text-align: center; color: #777; }" +
-                "strong { color: #c62828; }" +
-                "</style></head><body>" +
-                "<div class='container'>" +
-                "<div class='header'><h2>Annulation de Formation</h2></div>" +
-                "<div class='content'>" +
-                "<p>Bonjour,</p>" +
-                "<p>Nous vous informons que la formation suivante a ete <strong>annulee</strong> :</p>" +
-                "<ul>" +
-                "<li><strong>Titre :</strong> " + formation.getTitreFormation() + "</li>" +
-                "<li><strong>Domaine :</strong> " + (formation.getDomaine() != null ? formation.getDomaine() : "N/A") + "</li>" +
-                "<li><strong>Dates prevues :</strong> " + formatDate(formation.getDateDebut()) + " - " + formatDate(formation.getDateFin()) + "</li>" +
-                "</ul>" +
-                "<p><strong>Seances annulees :</strong></p><ul>" + seancesHtml.toString() + "</ul>" +
-                "<p>Veuillez ne pas vous presenter aux seances susmentionnees.</p>" +
-                "</div>" +
-                "<div class='footer'>" +
-                "<p>Ceci est un e-mail automatique, merci de ne pas y repondre.</p>" +
-                "<p>&copy; Esprit - Direction du Developpement et de la Formation</p>" +
-                "</div></div></body></html>";
+        builder.note("Les séances ci-dessus sont annulées : merci de ne pas vous y présenter. "
+                + "Les événements correspondants ont été retirés de votre calendrier Outlook.");
+        return builder.build();
     }
 
     public FormationResponseDTO getFormationWorkflowById(Long formationId) {
