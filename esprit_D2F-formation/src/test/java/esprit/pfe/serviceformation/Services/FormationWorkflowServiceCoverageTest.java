@@ -168,25 +168,25 @@ class FormationWorkflowServiceCoverageTest {
         f.setExterneFormateurNom("Ext");
         f.setExterneFormateurPrenom("Nom");
 
-        Method m = FormationWorkflowService.class.getDeclaredMethod("buildStateNotificationHtml",
-                Formation.class, String.class, String.class, String.class);
+        Method m = FormationWorkflowService.class.getDeclaredMethod("buildStateHtml",
+                Formation.class, String.class, String.class, String.class, String.class, String.class, String.class);
         m.setAccessible(true);
-        String html = (String) m.invoke(service, f, "Title", "Message", "#1565c0");
-        assertThat(html).contains("Title").contains("S1").contains("Ext Nom");
+        String html = (String) m.invoke(service, f, "Title", "📅", "Message", "#1565c0", null, "Bob Martin");
+        assertThat(html).contains("Title").contains("S1").contains("Nom Ext").contains("Bob Martin");
     }
 
     @Test
-    @DisplayName("buildStateNotificationHtml - sans seances")
+    @DisplayName("buildStateHtml - sans seances")
     void shouldBuildHtmlWithoutSeances() throws Exception {
         Formation f = createFormation(EtatFormation.PLANIFIE);
         f.setSeances(new ArrayList<>());
         f.setExterneFormateurNom(null);
 
-        Method m = FormationWorkflowService.class.getDeclaredMethod("buildStateNotificationHtml",
-                Formation.class, String.class, String.class, String.class);
+        Method m = FormationWorkflowService.class.getDeclaredMethod("buildStateHtml",
+                Formation.class, String.class, String.class, String.class, String.class, String.class, String.class);
         m.setAccessible(true);
-        String html = (String) m.invoke(service, f, "Title", "Message", "#1565c0");
-        assertThat(html).contains("Title");
+        String html = (String) m.invoke(service, f, "Title", "📅", "Message", "#1565c0", null, null);
+        assertThat(html).contains("Title").contains("Bonjour,");
     }
 
     @Test
@@ -200,10 +200,11 @@ class FormationWorkflowServiceCoverageTest {
         sf.setSalle("S1");
         f.setSeances(List.of(sf));
 
-        Method m = FormationWorkflowService.class.getDeclaredMethod("buildApprovalNotificationHtml", Formation.class);
+        Method m = FormationWorkflowService.class.getDeclaredMethod("buildApprovalNotificationHtml",
+                Formation.class, String.class);
         m.setAccessible(true);
-        String html = (String) m.invoke(service, f);
-        assertThat(html).contains("S1");
+        String html = (String) m.invoke(service, f, "Alice Dupont");
+        assertThat(html).contains("S1").contains("Alice Dupont");
     }
 
     @Test
@@ -212,9 +213,10 @@ class FormationWorkflowServiceCoverageTest {
         Formation f = createFormation(EtatFormation.VISIBLE);
         f.setSeances(new ArrayList<>());
 
-        Method m = FormationWorkflowService.class.getDeclaredMethod("buildApprovalNotificationHtml", Formation.class);
+        Method m = FormationWorkflowService.class.getDeclaredMethod("buildApprovalNotificationHtml",
+                Formation.class, String.class);
         m.setAccessible(true);
-        String html = (String) m.invoke(service, f);
+        String html = (String) m.invoke(service, f, (String) null);
         assertThat(html).isNotEmpty();
     }
 
@@ -231,14 +233,18 @@ class FormationWorkflowServiceCoverageTest {
     }
 
     @Test
-    @DisplayName("adjustBrightness - cas valides et invalides")
-    void shouldAdjustBrightness() throws Exception {
-        Method m = FormationWorkflowService.class.getDeclaredMethod("adjustBrightness", String.class, int.class);
+    @DisplayName("seanceLine - formate date, horaire et salle")
+    void shouldBuildSeanceLine() throws Exception {
+        SeanceFormation sf = new SeanceFormation();
+        sf.setDateSeance(new Date());
+        sf.setHeureDebut(Time.valueOf("09:00:00"));
+        sf.setHeureFin(Time.valueOf("11:00:00"));
+        sf.setSalle("S1");
+
+        Method m = FormationWorkflowService.class.getDeclaredMethod("seanceLine", SeanceFormation.class);
         m.setAccessible(true);
-        String result = (String) m.invoke(service, "#ff0000", -20);
-        assertThat(result).startsWith("#");
-        String result2 = (String) m.invoke(service, "#invalid", 10);
-        assertThat(result2).isEqualTo("#invalid");
+        String line = (String) m.invoke(service, sf);
+        assertThat(line).contains("09:00").contains("11:00").contains("S1");
     }
 
     @Test

@@ -1,3 +1,0 @@
-ALTER TABLE formations
-ADD COLUMN IF NOT EXISTS period_code VARCHAR(255),
-ADD COLUMN IF NOT EXISTS custom_period_label VARCHAR(255);
