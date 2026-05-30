@@ -39,6 +39,19 @@
             <artifactId>spring-cloud-starter-gateway</artifactId>
         </dependency>
 
+        <!-- Spring Security (WebFlux réactif) — verrou "deny-by-default" au niveau du framework.
+             Toute route non explicitement publique exige un JWT valide, même si un développeur
+             oublie d'attacher AuthorizationFilter sur une nouvelle route (DSI — défense en profondeur). -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-security</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+
         <!-- Spring Boot DevTools -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
