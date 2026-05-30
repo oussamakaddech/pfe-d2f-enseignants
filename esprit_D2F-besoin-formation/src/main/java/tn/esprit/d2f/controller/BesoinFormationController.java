@@ -16,8 +16,8 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import tn.esprit.d2f.dto.BesoinFormationRequest;
 import tn.esprit.d2f.dto.BesoinFormationResponse;
+import tn.esprit.d2f.dto.NotificationDTO;
 import tn.esprit.d2f.dto.PageResponse;
-import tn.esprit.d2f.entity.Notification;
 import tn.esprit.d2f.entity.enumerations.Priorite;
 import tn.esprit.d2f.service.IBesoinFormationService;
 
@@ -238,12 +238,13 @@ public class BesoinFormationController {
     @ApiResponse(responseCode = "403", description = "Accès interdit")
     @GetMapping("/notifications/{username}")
     @PreAuthorize("#username == authentication.name or hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_D2F')")
-    public ResponseEntity<PageResponse<Notification>> getUserNotifications(
+    public ResponseEntity<PageResponse<NotificationDTO>> getUserNotifications(
             @Parameter(description = "Identifiant de l'utilisateur") @PathVariable String username,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size) {
         Pageable pageable = PageRequest.of(page, size, Sort.by("idNotification").descending());
-        return ResponseEntity.ok(PageResponse.of(besoinFormationService.findNotificationsByUsername(username, pageable)));
+        return ResponseEntity.ok(PageResponse.of(
+                besoinFormationService.findNotificationsByUsername(username, pageable).map(NotificationDTO::from)));
     }
 
     // ── Helper ────────────────────────────────────────────────────────────────
