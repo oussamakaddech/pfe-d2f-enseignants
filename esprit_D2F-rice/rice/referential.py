@@ -646,9 +646,22 @@ _SEMANTIC_CORPUS_LOCK = _threading.Lock()
 def _get_semantic_model():
     global _SEMANTIC_MODEL
     if _SEMANTIC_MODEL is None and _SEMANTIC_OK:
+        # DSI #9 — pas de téléchargement HuggingFace au runtime : en conteneur,
+        # RICE_SEMANTIC_MODEL pointe sur un chemin LOCAL pré-téléchargé (révision
+        # épinglée) ; en dev on retombe sur l'identifiant HF + révision épinglée.
+        model_ref = _os.getenv("RICE_SEMANTIC_MODEL", "all-MiniLM-L6-v2")
         try:
-            _SEMANTIC_MODEL = _SentenceTransformer('all-MiniLM-L6-v2')
-            logger.info("Semantic model loaded: all-MiniLM-L6-v2")
+            if _os.path.isdir(model_ref):
+                _SEMANTIC_MODEL = _SentenceTransformer(model_ref)
+            else:
+                _SEMANTIC_MODEL = _SentenceTransformer(
+                    model_ref,
+                    revision=_os.getenv(
+                        "RICE_SEMANTIC_MODEL_REVISION",
+                        "c9745ed1d9f207416be6d2e6f8de32d1f16199bf",
+                    ),
+                )
+            logger.info("Semantic model loaded: %s", model_ref)
         except Exception as exc:
             logger.warning(f"Cannot load semantic model: {exc}")
     return _SEMANTIC_MODEL

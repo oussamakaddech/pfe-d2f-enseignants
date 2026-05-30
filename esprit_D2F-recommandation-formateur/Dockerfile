@@ -17,6 +17,15 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir --upgrade pip \
  && pip install --no-cache-dir -r requirements.txt
 
+# ─── Pré-téléchargement du modèle d'embeddings (DSI #9) ───────────────────────
+# Le modèle est vendu DANS l'image (révision épinglée) pour qu'aucun appel à
+# HuggingFace ne soit fait au runtime (supply-chain + déploiement hors-ligne).
+ARG EMBEDDING_MODEL_REPO=WhereIsAI/UAE-Large-V1
+ARG EMBEDDING_MODEL_REVISION=9c9b2c999b3350cfb3171ed429320668e39b00b8
+RUN python -c "from huggingface_hub import snapshot_download; \
+snapshot_download('${EMBEDDING_MODEL_REPO}', revision='${EMBEDDING_MODEL_REVISION}', \
+local_dir='/opt/models/embedding', local_dir_use_symlinks=False)"
+
 # ─── Stage 2: Runtime ─────────────────────────────────────────────────────────
 FROM python:3.13-slim
 
@@ -37,6 +46,13 @@ RUN apt-get update \
 
 COPY --from=builder /opt/venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
+
+# Modèle vendu dans l'image + mode hors-ligne strict (DSI #9 : zéro appel HF au runtime).
+COPY --from=builder /opt/models /opt/models
+ENV EMBEDDING_MODEL=/opt/models/embedding \
+    HF_HUB_OFFLINE=1 \
+    TRANSFORMERS_OFFLINE=1 \
+    HF_HUB_DISABLE_TELEMETRY=1
 
 RUN groupadd -g 2003 esprit && \
     useradd -m -u 2003 -g 2003 -s /usr/sbin/nologin esprit

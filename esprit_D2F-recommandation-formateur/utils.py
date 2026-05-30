@@ -11,7 +11,12 @@ from dotenv import load_dotenv
 
 load_dotenv(os.getenv("ENV_FILE", ".env"))
 
-MODEL_NAME = "WhereIsAI/UAE-Large-V1"
+# DSI #9 — pas de téléchargement depuis HuggingFace au runtime.
+# Le modèle est pré-téléchargé dans l'image Docker (révision épinglée) et
+# EMBEDDING_MODEL pointe alors sur un chemin LOCAL ; en dev, on retombe sur
+# l'identifiant HF. La révision sert au pré-téléchargement reproductible (build).
+MODEL_NAME = os.getenv("EMBEDDING_MODEL", "WhereIsAI/UAE-Large-V1")
+MODEL_REVISION = os.getenv("EMBEDDING_MODEL_REVISION", "9c9b2c999b3350cfb3171ed429320668e39b00b8")
 
 model = AnglE.from_pretrained(
     MODEL_NAME,
