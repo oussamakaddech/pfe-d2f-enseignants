@@ -1,7 +1,7 @@
 package esprit.pfe.serviceformation.controllers;
 
 import esprit.d2f.common.security.AuthorizationMatrix;
-import esprit.pfe.serviceformation.dto.FormationDTO;
+import esprit.pfe.serviceformation.dto.FormationResponseDTO;
 import esprit.pfe.serviceformation.services.CalendarExportService;
 import esprit.pfe.serviceformation.services.FormationWorkflowService;
 import org.springframework.http.HttpHeaders;
@@ -52,12 +52,12 @@ public class FormationExportController {
             @RequestParam(required = false) String deptId,
             @RequestParam(required = false) String upId
     ) {
-        List<FormationDTO> formations = filterFormations(start, end, deptId, upId);
+        List<FormationResponseDTO> formations = filterFormations(start, end, deptId, upId);
 
         // Generate CSV-like content (simple Excel export)
         StringBuilder sb = new StringBuilder();
         sb.append("ID;Titre;Type;État;Date Début;Date Fin;Coût;Charge Horaire;Département;UP\n");
-        for (FormationDTO f : formations) {
+        for (FormationResponseDTO f : formations) {
             sb.append(f.getIdFormation()).append(";")
               .append(f.getTitreFormation()).append(";")
               .append(f.getTypeFormation()).append(";")
@@ -77,8 +77,8 @@ public class FormationExportController {
                 .body(bytes);
     }
 
-    private List<FormationDTO> filterFormations(String start, String end, String deptId, String upId) {
-        List<FormationDTO> formations = formationWorkflowService.getAllFormationWorkflows();
+    private List<FormationResponseDTO> filterFormations(String start, String end, String deptId, String upId) {
+        List<FormationResponseDTO> formations = formationWorkflowService.getAllFormationWorkflows();
 
         if (start != null && end != null) {
             formations = formations.stream()

@@ -7,7 +7,6 @@ import org.springframework.stereotype.Component;
 
 import java.time.LocalDate;
 import java.time.ZoneId;
-import java.util.stream.Collectors;
 
 /**
  * Mapper for converting Formation entities to DTOs and vice versa.
@@ -27,13 +26,15 @@ public class FormationMapper {
 
         Formation formation = new Formation();
         formation.setTitreFormation(request.getTitreFormation());
-        formation.setTypeFormation(request.getTypeFormation() != null ?
-            request.getTypeFormation().equals("INTERNE") ?
-                esprit.pfe.serviceformation.entities.TypeFormation.INTERNE :
-                request.getTypeFormation().equals("EXTERNE") ?
-                    esprit.pfe.serviceformation.entities.TypeFormation.EXTERNE :
-                    esprit.pfe.serviceformation.entities.TypeFormation.EN_LIGNE
-            : null);
+        if (request.getTypeFormation() != null) {
+            esprit.pfe.serviceformation.entities.TypeFormation tf;
+            switch (request.getTypeFormation()) {
+                case "INTERNE": tf = esprit.pfe.serviceformation.entities.TypeFormation.INTERNE; break;
+                case "EXTERNE": tf = esprit.pfe.serviceformation.entities.TypeFormation.EXTERNE; break;
+                default: tf = esprit.pfe.serviceformation.entities.TypeFormation.EN_LIGNE;
+            }
+            formation.setTypeFormation(tf);
+        }
 
         formation.setEtatFormation(request.getEtatFormation() != null ?
             esprit.pfe.serviceformation.entities.EtatFormation.valueOf(request.getEtatFormation())
@@ -80,6 +81,7 @@ public class FormationMapper {
     /**
      * Convert Update Request to Formation Entity (partial update)
      */
+    @SuppressWarnings("java:S3776")
     public void updateEntityFromRequest(UpdateFormationRequest request, Formation formation) {
         if (request == null || formation == null) {
             return;
@@ -177,6 +179,7 @@ public class FormationMapper {
     /**
      * Convert Formation Entity to Response DTO
      */
+    @SuppressWarnings("java:S3776")
     public FormationResponseDTO toResponseDTO(Formation formation) {
         if (formation == null) {
             return null;
@@ -226,7 +229,7 @@ public class FormationMapper {
             .up(formation.getUp() != null ? createUpDTO(formation.getUp()) : null)
             .departement(formation.getDepartement() != null ? createDeptDTO(formation.getDepartement()) : null)
             .seances(formation.getSeances() != null ?
-                formation.getSeances().stream().map(this::mapSeanceToDTO).collect(Collectors.toList())
+                formation.getSeances().stream().map(this::mapSeanceToDTO).toList()
                 : null)
             .createdAt(formation.getCreatedAt())
             .updatedAt(formation.getUpdatedAt())

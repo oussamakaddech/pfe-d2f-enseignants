@@ -307,7 +307,7 @@ class ComprehensiveControllersTest {
     void testOneDrive() throws Exception {
         mockMvcOD.perform(get("/api/v1/onedrive/hierarchy")).andExpect(status().is2xxSuccessful());
         
-        FormationDTO dummyFormation = new FormationDTO();
+        FormationResponseDTO dummyFormation = new FormationResponseDTO();
         dummyFormation.setTitreFormation("Formation Test");
         when(formationWorkflowService.getFormationWorkflowById(anyLong())).thenReturn(dummyFormation);
         mockMvcOD.perform(get("/api/v1/onedrive/formations/1/hierarchy")).andExpect(status().is2xxSuccessful());

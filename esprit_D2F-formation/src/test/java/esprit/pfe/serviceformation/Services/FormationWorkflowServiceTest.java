@@ -13,6 +13,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.*;
 
@@ -36,6 +37,7 @@ class FormationWorkflowServiceTest {
     @Mock private PresenceRepository presenceRepository;
     @Mock private DocumentRepository documentRepository;
     @Mock private FormationWorkflowServiceHelper helper;
+    @Mock private FormationMapper formationMapper;
 
     @InjectMocks
     private FormationWorkflowService formationWorkflowService;
@@ -44,6 +46,8 @@ class FormationWorkflowServiceTest {
 
     @BeforeEach
     void setUp() {
+        ReflectionTestUtils.setField(formationWorkflowService, "formationMapper", formationMapper);
+        lenient().when(formationMapper.toResponseDTO(any())).thenReturn(new FormationResponseDTO());
         request = new FormationWorkflowRequest();
         request.setTitreFormation("Formation Test");
         request.setTypeBesoin("PROJET");
@@ -176,9 +180,10 @@ class FormationWorkflowServiceTest {
         sf.setParticipants(new ArrayList<>());
         formation.setSeances(List.of(sf));
         
+        lenient().when(formationMapper.toResponseDTO(any())).thenReturn(new FormationResponseDTO());
         lenient().when(formationRepository.findById(1L)).thenReturn(Optional.of(formation));
 
-        FormationDTO dto = formationWorkflowService.getFormationWorkflowById(1L);
+        FormationResponseDTO dto = formationWorkflowService.getFormationWorkflowById(1L);
 
         assertThat(dto).isNotNull();
         assertThat(dto.getTitreFormation()).isEqualTo("Test Get");
@@ -206,9 +211,10 @@ class FormationWorkflowServiceTest {
         sf.setParticipants(new ArrayList<>());
         formation.setSeances(List.of(sf));
         
+        lenient().when(formationMapper.toResponseDTO(any())).thenReturn(new FormationResponseDTO());
         lenient().when(formationRepository.findAll()).thenReturn(List.of(formation));
 
-        List<FormationDTO> list = formationWorkflowService.getAllFormationWorkflows();
+        List<FormationResponseDTO> list = formationWorkflowService.getAllFormationWorkflows();
 
         assertThat(list).isNotEmpty();
         assertThat(list.get(0).getTitreFormation()).isEqualTo("Test GetAll");
@@ -237,7 +243,7 @@ class FormationWorkflowServiceTest {
         
         lenient().when(formationRepository.findDistinctBySeancesAnimateursMail("test@esprit.tn")).thenReturn(List.of(formation));
 
-        List<FormationDTO> list = formationWorkflowService.getFormationsByAnimateurEmail("test@esprit.tn");
+        List<FormationResponseDTO> list = formationWorkflowService.getFormationsByAnimateurEmail("test@esprit.tn");
 
         assertThat(list).isNotEmpty();
     }
@@ -277,7 +283,7 @@ class FormationWorkflowServiceTest {
         f.setEtatFormation(EtatFormation.ACHEVE);
         lenient().when(formationRepository.findByEtatFormation(EtatFormation.ACHEVE)).thenReturn(List.of(f));
         
-        List<FormationDTO> list = formationWorkflowService.getFormationsAchevees();
+        List<FormationResponseDTO> list = formationWorkflowService.getFormationsAchevees();
         assertThat(list).isNotEmpty();
     }
 
@@ -322,7 +328,7 @@ class FormationWorkflowServiceTest {
         f.setEtatFormation(EtatFormation.VISIBLE);
         lenient().when(formationRepository.findAll()).thenReturn(List.of(f));
         
-        List<FormationDTO> list = formationWorkflowService.getFormationsVisibles();
+        List<FormationResponseDTO> list = formationWorkflowService.getFormationsVisibles();
         assertThat(list).isNotEmpty();
     }
 
@@ -333,7 +339,7 @@ class FormationWorkflowServiceTest {
         f.setEtatFormation(EtatFormation.VISIBLE);
         lenient().when(formationRepository.findByUp_Id("UP1")).thenReturn(List.of(f));
         
-        List<FormationDTO> list = formationWorkflowService.getFormationsParUp("UP1");
+        List<FormationResponseDTO> list = formationWorkflowService.getFormationsParUp("UP1");
         assertThat(list).isNotEmpty();
     }
 
@@ -343,7 +349,7 @@ class FormationWorkflowServiceTest {
         Formation f = createFullFormation();
         lenient().when(formationRepository.findByDepartement_Id("D1")).thenReturn(List.of(f));
         
-        List<FormationDTO> list = formationWorkflowService.getFormationsParDepartement("D1");
+        List<FormationResponseDTO> list = formationWorkflowService.getFormationsParDepartement("D1");
         assertThat(list).isNotEmpty();
     }
 

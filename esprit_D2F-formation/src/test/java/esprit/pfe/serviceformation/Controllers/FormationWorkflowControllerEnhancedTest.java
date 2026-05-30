@@ -3,6 +3,7 @@ package esprit.pfe.serviceformation.controllers;
 import esprit.pfe.serviceformation.dto.*;
 import esprit.pfe.serviceformation.entities.Formation;
 import esprit.pfe.serviceformation.services.ExportExcelService;
+import esprit.pfe.serviceformation.services.FormationMapper;
 import esprit.pfe.serviceformation.services.FormationWorkflowService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -34,10 +35,12 @@ class FormationWorkflowControllerEnhancedTest {
 
     @Mock private ExportExcelService exportExcelService;
     @Mock private FormationWorkflowService formationWorkflowService;
+    @Mock private FormationMapper formationMapper;
     @InjectMocks private FormationWorkflowController controller;
 
     @BeforeEach
     void setup() {
+        lenient().when(formationMapper.toResponseDTO(any())).thenReturn(new FormationResponseDTO());
         mockMvc = MockMvcBuilders.standaloneSetup(controller).setCustomArgumentResolvers(new org.springframework.data.web.PageableHandlerMethodArgumentResolver()).build();
     }
 
@@ -45,10 +48,8 @@ class FormationWorkflowControllerEnhancedTest {
     @DisplayName("createFormation - Devrait créer une formation valide")
     void testCreateFormation_Success() throws Exception {
         Formation formation = createFormation(1L, "Formation Test");
-        FormationDTO dto = createFormationDTO(1L, "Formation Test");
 
         when(formationWorkflowService.createFormationWorkflow(any())).thenReturn(formation);
-        when(formationWorkflowService.mapFormationToDTO(any())).thenReturn(dto);
 
         String formationJson = "{" +
                 "\"titreFormation\":\"Formation Test\"," +
@@ -80,10 +81,8 @@ class FormationWorkflowControllerEnhancedTest {
     @DisplayName("updateFormation - Devrait mettre à jour une formation existante")
     void testUpdateFormation_Success() throws Exception {
         Formation formation = createFormation(1L, "Formation Mis à jour");
-        FormationDTO dto = createFormationDTO(1L, "Formation Mis à jour");
 
         when(formationWorkflowService.updateFormationWorkflow(eq(1L), any())).thenReturn(formation);
-        when(formationWorkflowService.mapFormationToDTO(any())).thenReturn(dto);
 
         String formationJson = "{" +
                 "\"titreFormation\":\"Formation Mis à jour\"," +
@@ -149,7 +148,7 @@ class FormationWorkflowControllerEnhancedTest {
     @Test
     @DisplayName("getFormationById - Devrait retourner une formation")
     void testGetFormationById_Success() throws Exception {
-        FormationDTO dto = createFormationDTO(1L, "Formation Test");
+        FormationResponseDTO dto = createFormationResponseDTO(1L, "Formation Test");
         when(formationWorkflowService.getFormationWorkflowById(1L)).thenReturn(dto);
 
         mockMvc.perform(get("/api/v1/formations-workflow/1"))
@@ -185,16 +184,16 @@ class FormationWorkflowControllerEnhancedTest {
     @Test
     @DisplayName("getAllFormations - Devrait retourner toutes les formations")
     void testGetAllFormations_Success() throws Exception {
-        List<FormationDTO> formations = List.of(
-                createFormationDTO(1L, "Formation 1"),
-                createFormationDTO(2L, "Formation 2")
+        List<FormationResponseDTO> formations = List.of(
+                createFormationResponseDTO(1L, "Formation 1"),
+                createFormationResponseDTO(2L, "Formation 2")
         );
         when(formationWorkflowService.getAllFormationWorkflows()).thenReturn(formations);
 
         mockMvc.perform(get("/api/v1/formations-workflow"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$").isArray())
-                .andExpect(jsonPath("$.length()").value(2));
+                .andExpect(jsonPath("$.content").isArray())
+                .andExpect(jsonPath("$.content.length()").value(2));
 
         verify(formationWorkflowService).getAllFormationWorkflows();
     }
@@ -258,13 +257,13 @@ class FormationWorkflowControllerEnhancedTest {
     @Test
     @DisplayName("getFormationsAchevees - Devrait retourner les formations achevées")
     void testGetFormationsAchevees_Success() throws Exception {
-        List<FormationDTO> formations = List.of(createFormationDTO(1L, "Formation Achevée"));
+        List<FormationResponseDTO> formations = List.of(createFormationResponseDTO(1L, "Formation Achevée"));
         when(formationWorkflowService.getFormationsAchevees()).thenReturn(formations);
 
         mockMvc.perform(get("/api/v1/formations-workflow/achevees"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$").isArray())
-                .andExpect(jsonPath("$.length()").value(1));
+                .andExpect(jsonPath("$.content").isArray())
+                .andExpect(jsonPath("$.content.length()").value(1));
 
         verify(formationWorkflowService).getFormationsAchevees();
     }
@@ -312,7 +311,7 @@ class FormationWorkflowControllerEnhancedTest {
     @Test
     @DisplayName("setInscriptionsOuvertes - Devrait mettre à jour les inscriptions")
     void testSetInscriptionsOuvertes_Success() throws Exception {
-        FormationDTO dto = createFormationDTO(1L, "Formation Test");
+        FormationResponseDTO dto = createFormationResponseDTO(1L, "Formation Test");
         when(formationWorkflowService.setInscriptionsOuvertes(1L, true)).thenReturn(dto);
 
         mockMvc.perform(put("/api/v1/formations-workflow/1/inscriptionsOuvertes")
@@ -326,7 +325,7 @@ class FormationWorkflowControllerEnhancedTest {
     @Test
     @DisplayName("getFormationsVisibles - Devrait retourner les formations visibles")
     void testGetFormationsVisibles_Success() throws Exception {
-        List<FormationDTO> formations = List.of(createFormationDTO(1L, "Formation Visible"));
+        List<FormationResponseDTO> formations = List.of(createFormationResponseDTO(1L, "Formation Visible"));
         when(formationWorkflowService.getFormationsVisibles()).thenReturn(formations);
 
         mockMvc.perform(get("/api/v1/formations-workflow/visibles"))
@@ -340,7 +339,7 @@ class FormationWorkflowControllerEnhancedTest {
     @Test
     @DisplayName("getFormationsParUp - Devrait retourner les formations par UP")
     void testGetFormationsParUp_Success() throws Exception {
-        List<FormationDTO> formations = List.of(createFormationDTO(1L, "Formation UP1"));
+        List<FormationResponseDTO> formations = List.of(createFormationResponseDTO(1L, "Formation UP1"));
         when(formationWorkflowService.getFormationsParUp("UP1")).thenReturn(formations);
 
         mockMvc.perform(get("/api/v1/formations-workflow/par-up")
@@ -355,7 +354,7 @@ class FormationWorkflowControllerEnhancedTest {
     @Test
     @DisplayName("getFormationsParDepartement - Devrait retourner les formations par département")
     void testGetFormationsParDepartement_Success() throws Exception {
-        List<FormationDTO> formations = List.of(createFormationDTO(1L, "Formation Dept1"));
+        List<FormationResponseDTO> formations = List.of(createFormationResponseDTO(1L, "Formation Dept1"));
         when(formationWorkflowService.getFormationsParDepartement("D1")).thenReturn(formations);
 
         mockMvc.perform(get("/api/v1/formations-workflow/par-departement")
@@ -376,8 +375,8 @@ class FormationWorkflowControllerEnhancedTest {
         return f;
     }
 
-    private FormationDTO createFormationDTO(Long id, String titre) {
-        FormationDTO dto = new FormationDTO();
+    private FormationResponseDTO createFormationResponseDTO(Long id, String titre) {
+        FormationResponseDTO dto = new FormationResponseDTO();
         dto.setIdFormation(id);
         dto.setTitreFormation(titre);
         return dto;

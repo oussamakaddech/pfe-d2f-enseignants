@@ -13,7 +13,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Service
@@ -34,7 +33,7 @@ public class FormationSearchService {
         List<Formation> formations = formationIds.stream()
                 .map(id -> formationRepository.findByIdWithAllRelations(id).orElse(null))
                 .filter(f -> f != null)
-                .collect(Collectors.toList());
+                .toList();
 
         // Apply pagination manually (repository doesn't support this complex query with pagination)
         int start = (int) pageable.getOffset();
@@ -44,7 +43,7 @@ public class FormationSearchService {
         // Convert to DTOs
         List<FormationResponseDTO> dtos = paginatedFormations.stream()
                 .map(formationMapper::toResponseDTO)
-                .collect(Collectors.toList());
+                .toList();
 
         return new PageImpl<>(dtos, pageable, formations.size());
     }
@@ -53,17 +52,13 @@ public class FormationSearchService {
     public Page<FormationResponseDTO> searchByTitle(String title, Pageable pageable) {
         log.debug("Searching formations by title: {}", title);
 
-        FormationFilter filter = FormationFilter.builder()
-                .build();
-
-        // Manual search through all formations (consider adding full-text search index)
         Page<Formation> page = formationRepository.findAll(pageable);
 
         List<FormationResponseDTO> filtered = page.getContent().stream()
                 .filter(f -> f.getTitreFormation() != null &&
                            f.getTitreFormation().toLowerCase().contains(title.toLowerCase()))
                 .map(formationMapper::toResponseDTO)
-                .collect(Collectors.toList());
+                .toList();
 
         // Recalculate pagination on filtered results
         long total = formationRepository.findAll().stream()
@@ -84,7 +79,7 @@ public class FormationSearchService {
                 .filter(f -> f.getEtatFormation() != null &&
                            f.getEtatFormation().toString().equals(state))
                 .map(formationMapper::toResponseDTO)
-                .collect(Collectors.toList());
+                .toList();
 
         long total = formationRepository.findAll().stream()
                 .filter(f -> f.getEtatFormation() != null &&
@@ -103,7 +98,7 @@ public class FormationSearchService {
         List<FormationResponseDTO> filtered = page.getContent().stream()
                 .filter(f -> f.getDomaine() != null && f.getDomaine().equals(domain))
                 .map(formationMapper::toResponseDTO)
-                .collect(Collectors.toList());
+                .toList();
 
         long total = formationRepository.findAll().stream()
                 .filter(f -> f.getDomaine() != null && f.getDomaine().equals(domain))
@@ -112,6 +107,7 @@ public class FormationSearchService {
         return new PageImpl<>(filtered, pageable, total);
     }
 
+    @SuppressWarnings({"java:S3776", "java:S1126"})
     private List<Long> getMatchingFormationIds(FormationFilter filter) {
         // Get all formation IDs that match the filter criteria
         // The repository's custom queries already handle the filtering
@@ -144,6 +140,6 @@ public class FormationSearchService {
                     return true;
                 })
                 .map(Formation::getIdFormation)
-                .collect(Collectors.toList());
+                .toList();
     }
 }

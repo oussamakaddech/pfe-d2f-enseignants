@@ -21,13 +21,14 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.ZoneId;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Slf4j
 @Service
 public class FormationServiceImpl implements FormationService {
 
     private static final ZoneId TZ = ZoneId.of("Africa/Tunis");
+    private static final String FORMATION_INTROUVABLE = " introuvable";
+    private static final String FORMATION_ID_PREFIX = "Formation avec l'id "; 
 
     @Value("${formation.organizer.email}")
     private String organizerEmail;
@@ -121,7 +122,7 @@ public class FormationServiceImpl implements FormationService {
     public FormationResponseDTO updateFormation(Long id, UpdateFormationRequest request) {
         Formation existingFormation = formationRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(
-                        "Formation avec l'id " + id + " introuvable"));
+                        FORMATION_ID_PREFIX + id + FORMATION_INTROUVABLE));
 
         // Utilise le mapper pour la mise à jour partielle
         formationMapper.updateEntityFromRequest(request, existingFormation);
@@ -133,10 +134,9 @@ public class FormationServiceImpl implements FormationService {
     @Override
     @Transactional
     public void deleteFormation(Long id) {
-        Formation formation = formationRepository.findById(id)
+        formationRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(
-                        "Formation avec l'id " + id + " introuvable"));
-        // DSI §3 - Soft delete via Hibernate @SQLDelete
+                        FORMATION_ID_PREFIX + id + FORMATION_INTROUVABLE));
         formationRepository.deleteById(id);
         log.info("Formation {} softly deleted", id);
     }
@@ -146,7 +146,7 @@ public class FormationServiceImpl implements FormationService {
     public FormationResponseDTO getFormationById(Long id) {
         Formation formation = formationRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException(
-                        "Formation avec l'id " + id + " introuvable"));
+                        FORMATION_ID_PREFIX + id + FORMATION_INTROUVABLE));
         return formationMapper.toResponseDTO(formation);
     }
 
@@ -155,7 +155,7 @@ public class FormationServiceImpl implements FormationService {
     public Formation getFormationByIdWithAllRelations(Long id) {
         return formationRepository.findByIdWithAllRelations(id)
                 .orElseThrow(() -> new ResourceNotFoundException(
-                        "Formation avec l'id " + id + " introuvable"));
+                        FORMATION_ID_PREFIX + id + FORMATION_INTROUVABLE));
     }
 
     @Override
@@ -171,7 +171,7 @@ public class FormationServiceImpl implements FormationService {
         // Convert to DTOs
         List<FormationResponseDTO> dtos = formations.stream()
                 .map(formationMapper::toResponseDTO)
-                .collect(Collectors.toList());
+                .toList();
 
         return new PageImpl<>(dtos, pageable, formations.getTotalElements());
     }
@@ -182,7 +182,7 @@ public class FormationServiceImpl implements FormationService {
         Formation deleted = formationRepository.findDeletedById(id);
         if (deleted == null) {
             throw new ResourceNotFoundException(
-                    "Formation supprimée avec l'id " + id + " introuvable");
+                    "Formation supprimée avec l'id " + id + FORMATION_INTROUVABLE);
         }
 
         // Recover by clearing the deleted_at timestamp
@@ -198,7 +198,7 @@ public class FormationServiceImpl implements FormationService {
     public FormationResponseDTO cloneFormation(Long sourceId, String newTitle) {
         Formation source = formationRepository.findByIdWithAllRelations(sourceId)
                 .orElseThrow(() -> new ResourceNotFoundException(
-                        "Formation source avec l'id " + sourceId + " introuvable"));
+                        "Formation source avec l'id " + sourceId + FORMATION_INTROUVABLE));
 
         Formation cloned = new Formation();
         cloned.setTitreFormation(newTitle);

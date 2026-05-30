@@ -12,7 +12,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.sql.Time;
-import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
@@ -33,7 +32,7 @@ class ExportExcelServiceTest {
 
     private Date startDate;
     private Date endDate;
-    private List<FormationDTO> mockFormations;
+    private List<FormationResponseDTO> mockFormations;
 
     @BeforeEach
     void setUp() {
@@ -45,7 +44,7 @@ class ExportExcelServiceTest {
 
         mockFormations = new ArrayList<>();
 
-        FormationDTO f1 = new FormationDTO();
+        FormationResponseDTO f1 = new FormationResponseDTO();
         f1.setTitreFormation("Formation Java");
         f1.setDepartement(new DeptDTO() {{ setLibelle("Dept Info"); }});
         f1.setUp(new UpDTO() {{ setLibelle("UP Dev"); }});
@@ -71,12 +70,12 @@ class ExportExcelServiceTest {
         mockFormations.add(f1);
         
         // Formation without seances
-        FormationDTO f2 = new FormationDTO();
+        FormationResponseDTO f2 = new FormationResponseDTO();
         f2.setTitreFormation("Formation Sans Seance");
         mockFormations.add(f2);
         
         // Formation with out of bounds seance
-        FormationDTO f3 = new FormationDTO();
+        FormationResponseDTO f3 = new FormationResponseDTO();
         f3.setTitreFormation("Formation Hors Limite");
         SeanceDTO s3 = new SeanceDTO();
         Calendar outCal = Calendar.getInstance();

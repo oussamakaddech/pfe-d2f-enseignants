@@ -3,6 +3,7 @@ package esprit.pfe.serviceformation.controllers;
 import esprit.pfe.serviceformation.dto.*;
 import esprit.pfe.serviceformation.entities.Formation;
 import esprit.pfe.serviceformation.services.ExportExcelService;
+import esprit.pfe.serviceformation.services.FormationMapper;
 import esprit.pfe.serviceformation.services.FormationWorkflowService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -32,17 +33,21 @@ class FormationWorkflowControllerTest {
 
     @Mock private ExportExcelService exportExcelService;
     @Mock private FormationWorkflowService formationWorkflowService;
+    @Mock private FormationMapper formationMapper;
     @InjectMocks private FormationWorkflowController controller;
 
     @BeforeEach
     void setup() {
+        lenient().when(formationMapper.toResponseDTO(any())).thenReturn(new FormationResponseDTO());
         mockMvc = MockMvcBuilders.standaloneSetup(controller).setCustomArgumentResolvers(new org.springframework.data.web.PageableHandlerMethodArgumentResolver()).build();
     }
 
     @Test
     void testCreateFormation_Success() throws Exception {
-        when(formationWorkflowService.createFormationWorkflow(any())).thenReturn(new Formation());
-        when(formationWorkflowService.mapFormationToDTO(any())).thenReturn(new FormationDTO());
+        Formation formation = new Formation();
+        formation.setIdFormation(1L);
+        formation.setTitreFormation("Formation Test");
+        when(formationWorkflowService.createFormationWorkflow(any())).thenReturn(formation);
         mockMvc.perform(post("/api/v1/formations-workflow")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"titreFormation\":\"Formation Test\",\"dateDebut\":\"2023-01-01T00:00:00.000+00:00\",\"dateFin\":\"2023-01-02T00:00:00.000+00:00\",\"typeFormation\":\"INTERNE\"}"))
@@ -58,8 +63,10 @@ class FormationWorkflowControllerTest {
 
     @Test
     void testUpdateFormation_Success() throws Exception {
-        when(formationWorkflowService.updateFormationWorkflow(anyLong(), any())).thenReturn(new Formation());
-        when(formationWorkflowService.mapFormationToDTO(any())).thenReturn(new FormationDTO());
+        Formation formation = new Formation();
+        formation.setIdFormation(1L);
+        formation.setTitreFormation("Formation Test");
+        when(formationWorkflowService.updateFormationWorkflow(anyLong(), any())).thenReturn(formation);
         mockMvc.perform(put("/api/v1/formations-workflow/1")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"titreFormation\":\"Formation Test\",\"dateDebut\":\"2023-01-01T00:00:00.000+00:00\",\"dateFin\":\"2023-01-02T00:00:00.000+00:00\",\"typeFormation\":\"INTERNE\"}"))
@@ -73,7 +80,7 @@ class FormationWorkflowControllerTest {
 
     @Test
     void testGetFormationById_Success() throws Exception {
-        when(formationWorkflowService.getFormationWorkflowById(anyLong())).thenReturn(new FormationDTO());
+        when(formationWorkflowService.getFormationWorkflowById(anyLong())).thenReturn(new FormationResponseDTO());
         mockMvc.perform(get("/api/v1/formations-workflow/1")).andExpect(status().isOk());
     }
 
@@ -116,7 +123,7 @@ class FormationWorkflowControllerTest {
 
     @Test
     void testUpdateInscriptionsOuvertes() throws Exception {
-        when(formationWorkflowService.setInscriptionsOuvertes(anyLong(), anyBoolean())).thenReturn(new FormationDTO());
+        when(formationWorkflowService.setInscriptionsOuvertes(anyLong(), anyBoolean())).thenReturn(new FormationResponseDTO());
         mockMvc.perform(put("/api/v1/formations-workflow/1/inscriptionsOuvertes")
                 .param("ouvert", "true")).andExpect(status().isOk());
     }

@@ -38,7 +38,7 @@ class MicrosoftGraphServiceTest {
     void fallbackMethodsReturnLocalOrQueuedValues() {
         assertThat(service.uploadFileFallback("report.txt", new byte[] {1, 2, 3}, "/formations/2026", new RuntimeException("x")))
                 .startsWith("LOCAL_FALLBACK:");
-        assertThat(service.sendMailFallback("teacher@esprit.tn", "Subject", "Body")).startsWith("QUEUED:");
+        assertThat(service.sendMailFallback("Subject")).startsWith("QUEUED:");
         assertNull(service.createCalendarEventFallback("Session", "2026-05-25T10:00:00", "2026-05-25T11:00:00", new String[] {"a@b.c"}));
     }
 }

@@ -217,6 +217,7 @@ class FormationWorkflowServiceHelperTest {
 
     @Test
     @DisplayName("convertToOffsetDateTime - Échec si date ou heure null")
+    @SuppressWarnings("java:S5778")
     void shouldRejectNullDateOrTime() {
         Time t = Time.valueOf("09:00:00");
 

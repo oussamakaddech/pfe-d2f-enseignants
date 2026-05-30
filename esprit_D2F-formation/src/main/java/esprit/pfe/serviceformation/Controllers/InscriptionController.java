@@ -1,7 +1,7 @@
 package esprit.pfe.serviceformation.controllers;
 
 import esprit.d2f.common.security.AuthorizationMatrix;
-import esprit.pfe.serviceformation.dto.FormationDTO;
+import esprit.pfe.serviceformation.dto.FormationResponseDTO;
 import esprit.pfe.serviceformation.dto.InscriptionDTO;
 import esprit.pfe.serviceformation.dto.InscriptionSummaryDTO;
 import esprit.pfe.serviceformation.services.InscriptionService;
@@ -24,7 +24,7 @@ public class InscriptionController {
 
     @GetMapping("/formations/accessibles")
     @PreAuthorize(AuthorizationMatrix.INSCRIPTION_READ)
-    public ResponseEntity<Page<FormationDTO>> getFormationsAccessibles(
+    public ResponseEntity<Page<FormationResponseDTO>> getFormationsAccessibles(
             @RequestParam String enseignantId,
             @PageableDefault(size = 20, sort = "idFormation") Pageable pageable) {
         return ResponseEntity.ok(service.listerFormationsAccessibles(enseignantId, pageable));

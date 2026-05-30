@@ -341,6 +341,181 @@ class FormationServiceImplTest {
     }
 
     @Nested
+    @DisplayName("createFormation() without Outlook")
+    class CreateWithoutOutlook {
+
+        @Test
+        @DisplayName("cree formation sans Outlook quand service est null")
+        void shouldCreateWithoutOutlookWhenServiceNull() {
+            FormationServiceImpl serviceNoOutlook = new FormationServiceImpl(formationRepository, formationMapper, null);
+
+            CreateFormationRequest request = new CreateFormationRequest();
+            request.setTitreFormation("Test");
+            request.setDateDebut(LocalDate.now());
+            request.setDateFin(LocalDate.now().plusDays(5));
+            request.setTypeFormation("INTERNE");
+            request.setEtatFormation("PLANIFIEE");
+
+            FormationResponseDTO dto = new FormationResponseDTO();
+            dto.setIdFormation(1L);
+            dto.setTitreFormation("Test");
+
+            when(formationMapper.toEntity(any(CreateFormationRequest.class))).thenReturn(formation);
+            when(formationRepository.save(any(Formation.class))).thenReturn(formation);
+            when(formationMapper.toResponseDTO(any(Formation.class))).thenReturn(dto);
+
+            FormationResponseDTO result = serviceNoOutlook.createFormation(request);
+
+            assertThat(result).isNotNull();
+            assertThat(result.getTitreFormation()).isEqualTo("Test");
+            verify(formationRepository, times(1)).save(any());
+        }
+    }
+
+    @Nested
+    @DisplayName("recoverDeletedFormation()")
+    class RecoverDeleted {
+
+        @Test
+        @DisplayName("recupere une formation supprimee")
+        void shouldRecoverDeleted() {
+            formation.setDeletedAt(java.time.LocalDateTime.now());
+            when(formationRepository.findDeletedById(1L)).thenReturn(formation);
+            when(formationRepository.save(any(Formation.class))).thenAnswer(inv -> inv.getArgument(0));
+
+            FormationResponseDTO dto = new FormationResponseDTO();
+            dto.setIdFormation(1L);
+            dto.setTitreFormation("Spring Boot Avancé");
+            when(formationMapper.toResponseDTO(any(Formation.class))).thenReturn(dto);
+
+            FormationResponseDTO result = formationService.recoverDeletedFormation(1L);
+
+            assertThat(result).isNotNull();
+            assertThat(formation.getDeletedAt()).isNull();
+            verify(formationRepository).findDeletedById(1L);
+            verify(formationRepository).save(formation);
+        }
+
+        @Test
+        @DisplayName("leve ResourceNotFoundException si formation supprimee introuvable")
+        void shouldThrowWhenNotFound() {
+            when(formationRepository.findDeletedById(999L)).thenReturn(null);
+
+            assertThatThrownBy(() -> formationService.recoverDeletedFormation(999L))
+                    .isInstanceOf(ResourceNotFoundException.class)
+                    .hasMessageContaining("introuvable");
+        }
+    }
+
+    @Nested
+    @DisplayName("cloneFormation()")
+    class CloneFormation {
+
+        @Test
+        @DisplayName("clone une formation existante")
+        void shouldCloneFormation() {
+            formation.setTitreFormation("Source");
+            formation.setTypeBesoin("BESOIN");
+            formation.setDomaine("IT");
+            formation.setCompetence("Java");
+            formation.setPopulationCible("Devs");
+            formation.setObjectifs("Obj");
+            formation.setObjectifsPedago("Peda");
+            formation.setEvalMethods("Eval");
+            formation.setTypeFormation(TypeFormation.INTERNE);
+            formation.setExterneFormateurNom("Doe");
+            formation.setExterneFormateurPrenom("John");
+            formation.setExterneFormateurEmail("john@test.com");
+            formation.setOrganismeRefExterne("Org");
+            formation.setBureauFormationNom("Bureau");
+            formation.setBureauFormationMail("b@b.com");
+            formation.setBureauFormationTelephone("123");
+            formation.setCoutTransport(100f);
+            formation.setCoutHebergement(200f);
+            formation.setCoutRepas(150f);
+            formation.setCoutFormation(500f);
+            formation.setPrerequis("Pre");
+            formation.setAcquis("Post");
+            formation.setIndicateurs("KPI");
+            formation.setChargeHoraireGlobal(40);
+            formation.setCertifGenerated(true);
+            formation.setInscriptionsOuvertes(true);
+            formation.setOuverte(true);
+            formation.setPeriodCode(PeriodCode.P1);
+            formation.setCustomPeriodLabel("P1");
+            formation.setSalle("Salle A");
+
+            when(formationRepository.findByIdWithAllRelations(1L)).thenReturn(Optional.of(formation));
+            when(formationRepository.save(any(Formation.class))).thenAnswer(inv -> inv.getArgument(0));
+
+            FormationResponseDTO dto = new FormationResponseDTO();
+            dto.setIdFormation(2L);
+            dto.setTitreFormation("Clone");
+            when(formationMapper.toResponseDTO(any(Formation.class))).thenReturn(dto);
+
+            FormationResponseDTO result = formationService.cloneFormation(1L, "Clone");
+
+            assertThat(result).isNotNull();
+            assertThat(result.getTitreFormation()).isEqualTo("Clone");
+            verify(formationRepository).findByIdWithAllRelations(1L);
+            verify(formationRepository).save(any());
+        }
+
+        @Test
+        @DisplayName("leve ResourceNotFoundException si source introuvable")
+        void shouldThrowWhenSourceNotFound() {
+            when(formationRepository.findByIdWithAllRelations(999L)).thenReturn(Optional.empty());
+
+            assertThatThrownBy(() -> formationService.cloneFormation(999L, "Clone"))
+                    .isInstanceOf(ResourceNotFoundException.class)
+                    .hasMessageContaining("introuvable");
+        }
+
+        @Test
+        @DisplayName("clone avec animateurs et champs optionnels null")
+        void shouldCloneWithNullOptionals() {
+            when(formationRepository.findByIdWithAllRelations(1L)).thenReturn(Optional.of(formation));
+            when(formationRepository.save(any(Formation.class))).thenAnswer(inv -> inv.getArgument(0));
+
+            FormationResponseDTO dto = new FormationResponseDTO();
+            dto.setIdFormation(2L);
+            dto.setTitreFormation("Clone");
+            when(formationMapper.toResponseDTO(any(Formation.class))).thenReturn(dto);
+
+            FormationResponseDTO result = formationService.cloneFormation(1L, "Clone");
+
+            assertThat(result).isNotNull();
+            verify(formationRepository).save(any());
+        }
+    }
+
+    @Nested
+    @DisplayName("getFormationByIdWithAllRelations()")
+    class GetByIdWithRelations {
+
+        @Test
+        @DisplayName("retourne la formation avec toutes ses relations")
+        void shouldReturnWithAllRelations() {
+            when(formationRepository.findByIdWithAllRelations(1L)).thenReturn(Optional.of(formation));
+
+            Formation result = formationService.getFormationByIdWithAllRelations(1L);
+
+            assertThat(result).isNotNull();
+            assertThat(result.getIdFormation()).isEqualTo(1L);
+            verify(formationRepository).findByIdWithAllRelations(1L);
+        }
+
+        @Test
+        @DisplayName("leve ResourceNotFoundException si introuvable")
+        void shouldThrowWhenNotFound() {
+            when(formationRepository.findByIdWithAllRelations(999L)).thenReturn(Optional.empty());
+
+            assertThatThrownBy(() -> formationService.getFormationByIdWithAllRelations(999L))
+                    .isInstanceOf(ResourceNotFoundException.class);
+        }
+    }
+
+    @Nested
     @DisplayName("updateFormation() extended")
     class UpdateExtended {
 
