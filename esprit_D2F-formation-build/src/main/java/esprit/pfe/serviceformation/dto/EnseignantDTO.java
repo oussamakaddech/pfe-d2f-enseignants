@@ -11,6 +11,7 @@ public class EnseignantDTO {
     private String prenom;
     private String mail;
     private String type;
+    private String etat;
     // ← nouveaux champs
     private String   deptId;
     private String deptLibelle;

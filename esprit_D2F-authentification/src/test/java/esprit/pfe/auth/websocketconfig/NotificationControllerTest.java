@@ -47,8 +47,8 @@ class NotificationControllerTest {
         String message = "REST Test Message";
 
         mockMvc.perform(post("/user/test-websocket")
-                .contentType(MediaType.TEXT_PLAIN)
-                .content(message))
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"message\":\"" + message + "\"}"))
                 .andExpect(status().isOk());
 
         verify(messagingTemplate).convertAndSend("/topic/notifications", message);

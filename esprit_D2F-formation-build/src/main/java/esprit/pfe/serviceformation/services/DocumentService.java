@@ -153,7 +153,7 @@ public class DocumentService {
 
         return oneDriveService.downloadDocument(
                 formation,
-                doc.getNomDocument(),
+                doc.getPathType(),
                 doc.getNomDocument(),
                 fn
         );

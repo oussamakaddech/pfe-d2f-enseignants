@@ -39,12 +39,22 @@ if not _search_path_parts or not all(_ALLOWED_SCHEMA_RE.match(p) for p in _searc
 SEARCH_PATH = ", ".join(f'"{s}"' for s in _search_path_parts)
 
 # ── Engine ─────────────────────────────────────
+# connect_timeout : une base injoignable doit échouer vite (→ 503) plutôt que
+#   bloquer le worker (et figer la suite de tests si la base de dev est éteinte).
+# statement_timeout : garde-fou côté serveur contre une requête analytique qui
+#   dégénère ; renvoyée comme DatabaseError → 503 plutôt que de saturer le pool.
+_connect_args = {
+    "connect_timeout": settings.db_connect_timeout,
+    "options": f"-c statement_timeout={settings.db_statement_timeout_ms}",
+}
 engine = create_engine(
     str(settings.database_url),
     pool_size=settings.db_pool_size,
     max_overflow=settings.db_max_overflow,
     pool_pre_ping=True,  # Verify connections before use
     pool_recycle=3600,   # Recycle connections after 1h
+    pool_timeout=settings.db_connect_timeout,  # attente max d'une conn. du pool
+    connect_args=_connect_args,
     echo=settings.debug,
 )
 

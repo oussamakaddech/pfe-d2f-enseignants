@@ -62,11 +62,17 @@ class TestJWTEnforcement:
         from tests.conftest import make_mock_db
         from app.core.db import get_db
 
+        # Préserver les overrides déjà posés par le fixture `client` (scope
+        # session). Un simple .clear() en teardown les effacerait et les tests
+        # suivants tomberaient sur le vrai get_db → connexion PostgreSQL réelle
+        # → blocage de toute la suite. On sauvegarde puis on restaure.
+        saved_overrides = dict(_app.dependency_overrides)
         _app.dependency_overrides[get_db] = make_mock_db
         with patch("app.main._init_db_tables"):
             with TestClient(_app, raise_server_exceptions=False) as c:
                 yield c
         _app.dependency_overrides.clear()
+        _app.dependency_overrides.update(saved_overrides)
         # Remettre à false pour les autres tests
         jwt_middleware.JWT_AUTH_ENABLED = False
         os.environ["JWT_AUTH_ENABLED"] = "false"

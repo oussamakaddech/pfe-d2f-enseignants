@@ -36,6 +36,12 @@ class Settings(BaseSettings):
     )
     db_pool_size: int = Field(default=10, alias="DB_POOL_SIZE")
     db_max_overflow: int = Field(default=20, alias="DB_MAX_OVERFLOW")
+    # Délai max (s) pour établir une connexion. Sans cela, une base injoignable
+    # bloque le worker indéfiniment (TCP connect sans timeout) au lieu de
+    # renvoyer rapidement une 503. Borne aussi la durée des tests si la base
+    # de dev n'est pas démarrée.
+    db_connect_timeout: int = Field(default=10, alias="DB_CONNECT_TIMEOUT")
+    db_statement_timeout_ms: int = Field(default=15000, alias="DB_STATEMENT_TIMEOUT_MS")
 
     # ── ML Model Paths ───────────────────────────
     models_dir: str = Field(default="data/models", alias="MODELS_DIR")

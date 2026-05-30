@@ -5,29 +5,29 @@ package esprit.pfe.serviceformation.dto;
 import java.util.List;
 
 public class FormationsByRoleDTO {
-    private List<FormationDTO> asAnimateur;
-    private List<FormationDTO> asParticipant;
+    private List<FormationResponseDTO> asAnimateur;
+    private List<FormationResponseDTO> asParticipant;
 
     public FormationsByRoleDTO() {}
 
-    public FormationsByRoleDTO(List<FormationDTO> asAnimateur, List<FormationDTO> asParticipant) {
+    public FormationsByRoleDTO(List<FormationResponseDTO> asAnimateur, List<FormationResponseDTO> asParticipant) {
         this.asAnimateur = asAnimateur;
         this.asParticipant = asParticipant;
     }
 
-    public List<FormationDTO> getAsAnimateur() {
+    public List<FormationResponseDTO> getAsAnimateur() {
         return asAnimateur;
     }
 
-    public void setAsAnimateur(List<FormationDTO> asAnimateur) {
+    public void setAsAnimateur(List<FormationResponseDTO> asAnimateur) {
         this.asAnimateur = asAnimateur;
     }
 
-    public List<FormationDTO> getAsParticipant() {
+    public List<FormationResponseDTO> getAsParticipant() {
         return asParticipant;
     }
 
-    public void setAsParticipant(List<FormationDTO> asParticipant) {
+    public void setAsParticipant(List<FormationResponseDTO> asParticipant) {
         this.asParticipant = asParticipant;
     }
 }

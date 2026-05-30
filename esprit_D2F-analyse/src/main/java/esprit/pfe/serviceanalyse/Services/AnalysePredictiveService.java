@@ -56,7 +56,7 @@ public class AnalysePredictiveService {
     private String authServiceUrl;
 
     @Value("${analyse.niveau-cible-par-defaut:4}")
-    private int niveauCibleParDefaut;
+    private int niveauCibleParDefaut = 4;
 
     /**
      * Analyse complète d'un enseignant : gaps, recommandations, besoins, dashboard.

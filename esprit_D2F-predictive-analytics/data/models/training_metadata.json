@@ -1,5 +1,5 @@
 {
-  "trained_at": "2026-05-28T04:42:34.275718",
+  "trained_at": "2026-05-30T01:12:16.354965",
   "n_features": 17,
   "feature_cols": [
     "avg_level",
@@ -40,5 +40,11 @@
     "nb_evaluations": 0.0,
     "days_since_last_training": 1.7621251651125813e-16,
     "engagement_score": 5.001329620388349e-17
+  },
+  "metrics": {
+    "test_r2": 1.0,
+    "test_rmse": 0.0,
+    "cv_rmse": 0.0,
+    "n_samples": 100
   }
 }

@@ -1,4 +1,6 @@
-
+import type {
+  GapHeatmapCell, TrainingEffectiveness, RiskEvolutionPoint, ModelPerformance,
+} from "./predictive";
 
 export type NiveauUrgence = "FAIBLE" | "MODEREE" | "HAUTE" | "CRITIQUE";
 export type NiveauRisque  = "FAIBLE" | "MODERE" | "ELEVE" | "CRITIQUE";
@@ -153,13 +155,25 @@ export interface AlerteResumee {
   created_at:   string;
 }
 
+export interface CouvertureDepartement {
+  departement:     string;
+  taux_couverture: number;
+  nb_evalues:      number;
+}
+
 export interface DashboardData {
   competences_en_declin:        CompetenceDeclin[];
   competences_en_demande:       CompetenceDemande[];
   enseignants_a_risque:         TeacherRiskProfile[];
-  taux_couverture_departements: { departement: string; taux_couverture: number; nb_evalues: number }[];
+  taux_couverture_departements: CouvertureDepartement[];
   top_formations_recommandees:  TopFormation[];
   alertes_recentes:             AlerteResumee[];
+  // ── KPIs avancés (déjà calculés par DashboardEngine.compute_all) ──────────
+  // Optionnels pour rester compatible avec un backend antérieur.
+  department_gap_heatmap?:      GapHeatmapCell[];
+  training_effectiveness?:      TrainingEffectiveness[];
+  monthly_risk_evolution?:      RiskEvolutionPoint[];
+  model_performance?:           ModelPerformance;
   generated_at:                 string;
 }
 

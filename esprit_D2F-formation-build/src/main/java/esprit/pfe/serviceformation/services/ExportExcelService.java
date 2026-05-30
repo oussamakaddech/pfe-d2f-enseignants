@@ -22,7 +22,7 @@ public class ExportExcelService {
     private final FormationWorkflowService formationWorkflowService;
 
     public ByteArrayOutputStream exportFormationsAvance(Date startDate, Date endDate) throws IOException {
-        List<FormationDTO> formations = formationWorkflowService.getAllFormationWorkflows();
+        List<FormationResponseDTO> formations = formationWorkflowService.getAllFormationWorkflows();
         List<SeanceExport> allSeances = extractFilteredSeances(formations, startDate, endDate);
 
         Workbook workbook = new XSSFWorkbook();
@@ -36,9 +36,9 @@ public class ExportExcelService {
         return out;
     }
 
-    private List<SeanceExport> extractFilteredSeances(List<FormationDTO> formations, Date startDate, Date endDate) {
+    private List<SeanceExport> extractFilteredSeances(List<FormationResponseDTO> formations, Date startDate, Date endDate) {
         List<SeanceExport> allSeances = new ArrayList<>();
-        for (FormationDTO formation : formations) {
+        for (FormationResponseDTO formation : formations) {
             if (formation.getSeances() != null) {
                 addFilteredSeances(allSeances, formation, startDate, endDate);
             }
@@ -47,7 +47,7 @@ public class ExportExcelService {
         return allSeances;
     }
 
-    private void addFilteredSeances(List<SeanceExport> allSeances, FormationDTO formation, Date startDate, Date endDate) {
+    private void addFilteredSeances(List<SeanceExport> allSeances, FormationResponseDTO formation, Date startDate, Date endDate) {
         for (SeanceDTO seance : formation.getSeances()) {
             Date dateSeance = seance.getDateSeance();
             if (dateSeance != null && !dateSeance.before(startDate) && !dateSeance.after(endDate)) {
@@ -56,7 +56,7 @@ public class ExportExcelService {
         }
     }
 
-    private SeanceExport mapToSeanceExport(FormationDTO formation, SeanceDTO seance) {
+    private SeanceExport mapToSeanceExport(FormationResponseDTO formation, SeanceDTO seance) {
         SeanceExport exp = new SeanceExport();
         exp.dateSeance = seance.getDateSeance();
         exp.heureDebut = seance.getHeureDebut();
@@ -76,7 +76,7 @@ public class ExportExcelService {
                 .collect(Collectors.joining(", "));
     }
 
-    private String formatEquipe(FormationDTO formation) {
+    private String formatEquipe(FormationResponseDTO formation) {
         String dept = Optional.ofNullable(formation.getDepartement()).map(DeptDTO::getLibelle).orElse("");
         String up = Optional.ofNullable(formation.getUp()).map(UpDTO::getLibelle).orElse("");
         return dept + " / " + up;
@@ -223,7 +223,7 @@ public class ExportExcelService {
         dc.setCellStyle(dateCellStyle);
     }
 
-    private void createParticipantSheets(Workbook workbook, List<FormationDTO> formations) {
+    private void createParticipantSheets(Workbook workbook, List<FormationResponseDTO> formations) {
         Map<String, Set<ParticipantDTO>> sheetDataParFormation = collectParticipantData(formations);
 
         CellStyle headStyle = createHeaderStyle(workbook);
@@ -232,9 +232,9 @@ public class ExportExcelService {
         }
     }
 
-    private Map<String, Set<ParticipantDTO>> collectParticipantData(List<FormationDTO> formations) {
+    private Map<String, Set<ParticipantDTO>> collectParticipantData(List<FormationResponseDTO> formations) {
         Map<String, Set<ParticipantDTO>> sheetDataParFormation = new LinkedHashMap<>();
-        for (FormationDTO formation : formations) {
+        for (FormationResponseDTO formation : formations) {
             if (formation.getSeances() == null) continue;
             Set<ParticipantDTO> participants = collectFormationParticipants(formation);
             if (!participants.isEmpty()) {
@@ -244,7 +244,7 @@ public class ExportExcelService {
         return sheetDataParFormation;
     }
 
-    private Set<ParticipantDTO> collectFormationParticipants(FormationDTO formation) {
+    private Set<ParticipantDTO> collectFormationParticipants(FormationResponseDTO formation) {
         Set<ParticipantDTO> participants = new LinkedHashSet<>();
         for (SeanceDTO seance : formation.getSeances()) {
             if (seance.getParticipants() != null) {

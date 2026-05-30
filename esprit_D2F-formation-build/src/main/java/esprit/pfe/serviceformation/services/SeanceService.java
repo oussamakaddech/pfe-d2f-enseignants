@@ -154,11 +154,12 @@ public class SeanceService {
         existing.setHeureDebut(dto.getHeureDebut());
         existing.setHeureFin(dto.getHeureFin());
         existing.setSalle(dto.getSalle());
+        existing.setOnlineMeetingUrl(dto.getOnlineMeetingUrl());
 
         // 2) Reconstruire animateurs depuis DTO
-        List<Enseignant> newAnim = dto.getAnimateurs().stream()
-                .map(this::mapDtoToEnseignant)
-                .toList();
+        List<Enseignant> newAnim = dto.getAnimateurs() != null
+                ? dto.getAnimateurs().stream().map(this::mapDtoToEnseignant).toList()
+                : List.of();
         existing.setAnimateurs(newAnim);
 
         // 3) Bloquer si animateur en conflit (en ignorant cette séance)
@@ -173,10 +174,12 @@ public class SeanceService {
         }
 
         // 4) Filtrer participants
-        List<Enseignant> newPart = dto.getParticipants().stream()
-                .map(this::mapDtoToEnseignant)
-                .filter(p -> canSchedule(p.getId(), date, debut, fin, false, id))
-                .toList();
+        List<Enseignant> newPart = dto.getParticipants() != null
+                ? dto.getParticipants().stream()
+                        .map(this::mapDtoToEnseignant)
+                        .filter(p -> canSchedule(p.getId(), date, debut, fin, false, id))
+                        .toList()
+                : List.of();
         existing.setParticipants(newPart);
 
         // 5) Sauvegarde finale
@@ -228,6 +231,7 @@ public class SeanceService {
         entity.setHeureDebut(dto.getHeureDebut());
         entity.setHeureFin(dto.getHeureFin());
         entity.setSalle(dto.getSalle());
+        entity.setOnlineMeetingUrl(dto.getOnlineMeetingUrl());
 
         // Convertir animateurs
         List<Enseignant> animateurs = new ArrayList<>();
