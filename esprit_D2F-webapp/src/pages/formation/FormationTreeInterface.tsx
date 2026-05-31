@@ -79,15 +79,15 @@ const FormationTreeInterface = () => {
     return (
       <ul className="list-group">
         {(formations as Formation[]).map((formation) => (
-          <li
-            key={String(formation.idFormation)}
-            tabIndex={0}
-            className="list-group-item list-group-item-action"
-            onClick={() => { setSelectedFormation(formation); setSelectedFile(null); }}
-            onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setSelectedFormation(formation); setSelectedFile(null); } }}
-            style={{ cursor: "pointer" }}
-          >
-            {formation.titreFormation}
+          <li key={String(formation.idFormation)} className="list-group-item p-0">
+            <button
+              type="button"
+              className="list-group-item-action w-100 text-start border-0 bg-transparent px-3 py-2"
+              onClick={() => { setSelectedFormation(formation); setSelectedFile(null); }}
+              style={{ cursor: "pointer" }}
+            >
+              {formation.titreFormation}
+            </button>
           </li>
         ))}
       </ul>
