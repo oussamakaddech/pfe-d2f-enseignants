@@ -87,6 +87,8 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
         optionsAnim={h.optionsAnim}
         optionsPart={h.optionsPart}
         getEnseignantLabel={h.getEnseignantLabel}
+        animSel={h.animSel}
+        setAnimSel={h.setAnimSel}
         partSel={h.partSel}
         setPartSel={h.setPartSel}
         partFilterUp={h.partFilterUp}

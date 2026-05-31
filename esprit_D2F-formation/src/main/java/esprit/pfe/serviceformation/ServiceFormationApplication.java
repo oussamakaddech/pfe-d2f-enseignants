@@ -11,7 +11,6 @@ import org.springframework.scheduling.annotation.EnableScheduling;
 @EnableScheduling
 @EnableFeignClients
 @EnableJpaAuditing(auditorAwareRef = "auditorProvider")
-//@EnableDiscoveryClient
 @EnableRabbit
 public class ServiceFormationApplication {
 

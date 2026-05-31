@@ -72,6 +72,10 @@ def _build_domaine_demand(besoins_demand: list[dict], total_besoins: int) -> dic
     summary="Lancer une analyse complète pour un enseignant",
     response_model=dict,
     status_code=status.HTTP_202_ACCEPTED,
+    responses={
+        404: {"description": "Enseignant introuvable"},
+        500: {"description": "Erreur lors de l'analyse"},
+    },
 )
 async def analyze_enseignant(
     enseignant_id: str,
@@ -85,102 +89,23 @@ async def analyze_enseignant(
     """
     t_start = time.time()
 
-    # Vérification d'existence
     svc = DataService(db)
-    profiles = svc.get_teacher_profile(enseignant_id)
-    if not profiles:
-        raise HTTPException(
-            status_code=404,
-            detail=_dsi_error(404, "ENS-404", f"Enseignant {enseignant_id} introuvable", request.url.path),
-        )
-    profile = profiles[0]
+    profile = _get_teacher_or_404(svc, enseignant_id, request)
 
-    # Créer l'enregistrement PredictionResult en cours
     pred = PredictionResult(enseignant_id=enseignant_id, statut="EN_COURS")
     db.add(pred)
     db.flush()
 
     try:
-        # Collecte des données
-        comp_levels  = svc.get_competency_levels(enseignant_id)
-        req_levels   = svc.get_required_levels()
-        formations   = svc.get_all_formations()
-        form_comps   = svc.get_formation_competencies()
-        inscriptions = svc.get_inscriptions(enseignant_id)
-        evaluations  = svc.get_evaluations(enseignant_id)
-        eval_glob    = svc.get_evaluations_globales()
-        besoins      = svc.get_besoins(enseignant_id)
-        certificats  = svc.get_certificats(enseignant_id)
-        prereqs      = svc.get_prerequisite_graph()
-        demand       = svc.get_besoin_demand()
-
-        all_demand  = sum(int(d.get("total_demand") or 0) for d in demand)
-        dom_demand  = _build_domaine_demand(demand, all_demand)
-
-        # ── 1. FeatureEngine ──────────────────────────────────
-        feat_eng = FeatureEngine(db)
-        snapshot = feat_eng.build_snapshot(
-            enseignant_id, comp_levels, profile, besoins, certificats
+        data = _collect_analysis_data(svc, enseignant_id)
+        gaps, recommendations, alerts, snapshot = _run_pipeline(
+            db, svc, enseignant_id, profile, data, pred.id,
         )
-
-        # ── 2. GapEngine ─────────────────────────────────────
-        gap_eng = GapEngine(db)
-        gaps = gap_eng.compute_gaps(
-            enseignant_id, comp_levels, req_levels,
-            besoins, pred.id, dom_demand,
-            total_enseignants=1,
-        )
-
-        # ── 3. RecommendationEngine (hybride content-based + collaboratif) ──
-        # Le filtre collaboratif s'appuie sur les profils de compétences et les
-        # inscriptions de TOUS les enseignants pour identifier les pairs proches.
-        collaborative = CollaborativeFilter(
-            svc.get_competency_levels(),
-            svc.get_inscriptions(),
-        )
-        reco_eng = RecommendationEngine(db)
-        all_evals = evaluations + eval_glob
-        recommendations, paths = reco_eng.generate(
-            enseignant_id, gaps, formations, form_comps,
-            inscriptions, all_evals, prereqs,
-            float(snapshot.taux_completion_formations),
-            float(snapshot.taux_presence_moyen),
-            collaborative=collaborative,
-        )
-
-        # ── 4. AlertEngine ────────────────────────────────────
-        dept_id = str(profile.get("departement_id") or "")
-        alert_eng = AlertEngine(db)
-        alerts = alert_eng.detect_and_save(
-            enseignant_id, gaps, profile, besoins, dept_id
-        )
-
-        # ── 5. Mise à jour du risk profile ───────────────────
-        _upsert_risk_profile(db, enseignant_id, gaps, snapshot)
-
-        # ── 6. Finaliser PredictionResult ────────────────────
-        nb_crit = sum(1 for g in gaps if g.niveau_urgence == "CRITIQUE")
-        niveau_moy = (
-            float(snapshot.niveau_moyen_competences)
-            if snapshot.niveau_moyen_competences else 0.0
-        )
-        score_prog = min(1.0, niveau_moy / 5.0)
-
-        pred.statut                   = "TERMINE"
-        pred.nb_competences_analysees = len(set(r.get("competence_id") for r in req_levels))
-        pred.nb_gaps_detectes         = len(gaps)
-        pred.nb_gaps_critiques        = nb_crit
-        pred.nb_recommendations       = len(recommendations)
-        pred.nb_alertes_generees      = len(alerts)
-        pred.score_global_competences = round(niveau_moy / 5.0, 4)
-        pred.score_progression        = round(score_prog, 4)
-        pred.duree_analyse_ms         = int((time.time() - t_start) * 1000)
-
+        _finalize_prediction(pred, data["req_levels"], gaps, recommendations, alerts, snapshot=snapshot, t_start=t_start)
         db.commit()
         logger.info("Analyse terminée pour %s en %dms", enseignant_id, pred.duree_analyse_ms)
-
     except Exception as exc:
-        pred.statut         = "ERREUR"
+        pred.statut = "ERREUR"
         pred.message_erreur = str(exc)[:500]
         db.commit()
         logger.error("Analyse échouée pour %s : %s", enseignant_id, exc)
@@ -199,6 +124,96 @@ async def analyze_enseignant(
         "nb_alertes_generees":  pred.nb_alertes_generees,
         "duree_analyse_ms":     pred.duree_analyse_ms,
     }
+
+
+def _get_teacher_or_404(svc: DataService, enseignant_id: str, request: Request) -> dict:
+    profiles = svc.get_teacher_profile(enseignant_id)
+    if not profiles:
+        raise HTTPException(
+            status_code=404,
+            detail=_dsi_error(404, "ENS-404", f"Enseignant {enseignant_id} introuvable", request.url.path),
+        )
+    return profiles[0]
+
+
+def _collect_analysis_data(svc: DataService, enseignant_id: str) -> dict:
+    comp_levels = svc.get_competency_levels(enseignant_id)
+    req_levels = svc.get_required_levels()
+    formations = svc.get_all_formations()
+    form_comps = svc.get_formation_competencies()
+    inscriptions = svc.get_inscriptions(enseignant_id)
+    evaluations = svc.get_evaluations(enseignant_id)
+    eval_glob = svc.get_evaluations_globales()
+    besoins = svc.get_besoins(enseignant_id)
+    certificats = svc.get_certificats(enseignant_id)
+    prereqs = svc.get_prerequisite_graph()
+    demand = svc.get_besoin_demand()
+    all_demand = sum(int(d.get("total_demand") or 0) for d in demand)
+    dom_demand = _build_domaine_demand(demand, all_demand)
+    return {
+        "comp_levels": comp_levels, "req_levels": req_levels,
+        "formations": formations, "form_comps": form_comps,
+        "inscriptions": inscriptions, "evaluations": evaluations,
+        "eval_glob": eval_glob, "besoins": besoins,
+        "certificats": certificats, "prereqs": prereqs,
+        "dom_demand": dom_demand,
+    }
+
+
+def _run_pipeline(
+    db: Session, svc: DataService, enseignant_id: str, profile: dict,
+    data: dict, pred_id: int,
+):
+    feat_eng = FeatureEngine(db)
+    snapshot = feat_eng.build_snapshot(
+        enseignant_id, data["comp_levels"], profile, data["besoins"], data["certificats"],
+    )
+    gap_eng = GapEngine(db)
+    gaps = gap_eng.compute_gaps(
+        enseignant_id, data["comp_levels"], data["req_levels"],
+        data["besoins"], pred_id, data["dom_demand"],
+    )
+    collaborative = CollaborativeFilter(
+        svc.get_competency_levels(),
+        svc.get_inscriptions(),
+    )
+    reco_eng = RecommendationEngine(db)
+    all_evals = data["evaluations"] + data["eval_glob"]
+    recommendations, _ = reco_eng.generate(
+        enseignant_id, gaps, data["formations"], data["form_comps"],
+        data["inscriptions"], all_evals, data["prereqs"],
+        float(snapshot.taux_completion_formations),
+        float(snapshot.taux_presence_moyen),
+        collaborative=collaborative,
+    )
+    dept_id = str(profile.get("departement_id") or "")
+    alert_eng = AlertEngine(db)
+    alerts = alert_eng.detect_and_save(
+        enseignant_id, gaps, profile, data["besoins"], dept_id,
+    )
+    _upsert_risk_profile(db, enseignant_id, gaps, snapshot)
+    return gaps, recommendations, alerts, snapshot
+
+
+def _finalize_prediction(
+    pred: PredictionResult, req_levels: list, gaps: list,
+    recommendations: list, alerts: list,
+    snapshot: Any, t_start: float,
+):
+    nb_crit = sum(1 for g in gaps if g.niveau_urgence == "CRITIQUE")
+    niveau_moy = (
+        float(snapshot.niveau_moyen_competences)
+        if snapshot.niveau_moyen_competences else 0.0
+    )
+    pred.statut = "TERMINE"
+    pred.nb_competences_analysees = len({r.get("competence_id") for r in req_levels})
+    pred.nb_gaps_detectes = len(gaps)
+    pred.nb_gaps_critiques = nb_crit
+    pred.nb_recommendations = len(recommendations)
+    pred.nb_alertes_generees = len(alerts)
+    pred.score_global_competences = round(niveau_moy / 5.0, 4)
+    pred.score_progression = round(min(1.0, niveau_moy / 5.0), 4)
+    pred.duree_analyse_ms = int((time.time() - t_start) * 1000)
 
 
 def _upsert_risk_profile(db: Session, enseignant_id: str, gaps: list, snapshot: Any):
@@ -352,6 +367,7 @@ async def get_recommendations(
 @router.get(
     "/training-path/{enseignant_id}/{competence_id}",
     summary="Parcours de formation ordonné pour une compétence",
+    responses={404: {"description": "Aucun parcours actif trouvé"}},
 )
 async def get_training_path(
     enseignant_id: str,
@@ -463,7 +479,14 @@ async def get_alerts(
 _VALID_ALERT_STATUTS = {"NOUVELLE", "LUE", "TRAITEE", "IGNOREE", "ESCALADEE"}
 
 
-@router.patch("/alerts/{alert_id}", summary="Mettre à jour le statut d'une alerte")
+@router.patch(
+    "/alerts/{alert_id}",
+    summary="Mettre à jour le statut d'une alerte",
+    responses={
+        400: {"description": "Statut invalide"},
+        404: {"description": "Alerte introuvable"},
+    },
+)
 async def update_alert(
     alert_id: int,
     db: DbSession,

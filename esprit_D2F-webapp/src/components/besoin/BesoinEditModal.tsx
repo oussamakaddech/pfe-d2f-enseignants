@@ -1,7 +1,8 @@
 import { memo } from "react";
 import { Modal, Form, Input, Select, Row, Col, DatePicker } from "antd";
-import { FileTextOutlined, UserOutlined } from "@ant-design/icons";
-
+import { FileTextOutlined, UserOutlined } from "@ant-design/icons";
+import type { ActeurOption } from "@/utils/besoin/acteurs";
+
 const { TextArea } = Input;
 const { Option } = Select;
 const PERIOD_OPTIONS = [
@@ -9,19 +10,20 @@ const PERIOD_OPTIONS = [
   { value: "S2", label: "Semestre 2 (Février-Juin)" },
   { value: "S3", label: "Semestre 3 (Été)" },
   { value: "OTHER", label: "Autre" },
-];
-
+];
+
 interface BesoinEditModalProps {
   open: boolean;
   saving: boolean;
   ups: Array<{ id: string | number; name?: string; libelle?: string }>;
   departements: Array<{ id: string | number; name?: string; libelle?: string }>;
+  acteurOptions?: ActeurOption[];
   form: ReturnType<typeof Form.useForm>[0];
   onOk: () => void;
   onCancel: () => void;
-}
-
-const BesoinEditModal = memo(function BesoinEditModal({ open, saving, ups, departements, form, onOk, onCancel }: BesoinEditModalProps) {
+}
+
+const BesoinEditModal = memo(function BesoinEditModal({ open, saving, ups, departements, acteurOptions = [], form, onOk, onCancel }: BesoinEditModalProps) {
   return (
     <Modal
       title="Modifier le besoin"
@@ -113,6 +115,32 @@ const BesoinEditModal = memo(function BesoinEditModal({ open, saving, ups, depar
           <Col xs={24} md={12}>
             <Form.Item label="Horaire souhaité" name="horaireSouhaite">
               <DatePicker showTime format="YYYY-MM-DD HH:mm" style={{ width: "100%" }} />
+            </Form.Item>
+          </Col>
+          <Col xs={24} md={12}>
+            <Form.Item label="Animateurs proposés" name="animateurs">
+              <Select
+                mode="multiple"
+                size="large"
+                allowClear
+                placeholder="Sélectionner les animateurs"
+                optionFilterProp="label"
+                options={acteurOptions}
+                maxTagCount="responsive"
+              />
+            </Form.Item>
+          </Col>
+          <Col xs={24} md={12}>
+            <Form.Item label="Enseignants participants" name="enseignants">
+              <Select
+                mode="multiple"
+                size="large"
+                allowClear
+                placeholder="Sélectionner les enseignants"
+                optionFilterProp="label"
+                options={acteurOptions}
+                maxTagCount="responsive"
+              />
             </Form.Item>
           </Col>
           <Col xs={24}>

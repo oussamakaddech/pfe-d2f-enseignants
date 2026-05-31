@@ -50,6 +50,8 @@ public class BesoinFormationMapper {
         entity.setImpactStrategique(request.getImpactStrategique());
         entity.setEstOuverte(request.getEstOuverte());
         entity.setAutresInformations(request.getAutresInformations());
+        entity.setAnimateurs(request.getAnimateurs());
+        entity.setEnseignants(request.getEnseignants());
         entity.setPeriodCode(request.getPeriodCode());
         entity.setCustomPeriodLabel(request.getCustomPeriodLabel());
         // Fix 8: LocalDate → String (entité stocke en VARCHAR "yyyy-MM-dd")
@@ -96,6 +98,8 @@ public class BesoinFormationMapper {
                 .impactStrategique(entity.getImpactStrategique())
                 .estOuverte(entity.getEstOuverte())
                 .autresInformations(entity.getAutresInformations())
+                .animateurs(entity.getAnimateurs())
+                .enseignants(entity.getEnseignants())
                 .periodCode(entity.getPeriodCode())
                 .customPeriodLabel(entity.getCustomPeriodLabel())
                 .dateDebut(entity.getDateDebut())

@@ -10,9 +10,7 @@ logger = logging.getLogger(__name__)
 
 def explain_prediction(
     model: Any,
-    features: np.ndarray,
     feature_names: list[str],
-    sample_idx: int = 0,
 ) -> dict[str, Any]:
     """Generate a human-readable explanation for a single prediction.
 

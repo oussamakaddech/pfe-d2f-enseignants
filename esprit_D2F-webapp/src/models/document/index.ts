@@ -8,6 +8,10 @@ export interface FormationDocument {
   originalFileName?: string;
   fileUrl?: string;
   fileType?: string;
+  /** Chemin serveur du fichier (renvoyé par l'endpoint /with-documents). */
+  filePath?: string;
+  /** Date d'ajout du document (renvoyée par l'endpoint /with-documents). */
+  date?: string;
 }
 
 export interface FormationWithDocuments {

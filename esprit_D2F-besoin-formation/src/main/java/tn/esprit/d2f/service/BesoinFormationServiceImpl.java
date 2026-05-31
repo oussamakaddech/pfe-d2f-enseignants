@@ -264,6 +264,8 @@ public class BesoinFormationServiceImpl implements IBesoinFormationService {
         if (src.getDepartement() != null) dest.setDepartement(src.getDepartement());
         if (src.getEstOuverte() != null) dest.setEstOuverte(src.getEstOuverte());
         if (src.getAutresInformations() != null) dest.setAutresInformations(src.getAutresInformations());
+        if (src.getAnimateurs() != null) dest.setAnimateurs(src.getAnimateurs());
+        if (src.getEnseignants() != null) dest.setEnseignants(src.getEnseignants());
         if (src.getPeriodCode() != null) dest.setPeriodCode(src.getPeriodCode());
         if (src.getCustomPeriodLabel() != null) dest.setCustomPeriodLabel(src.getCustomPeriodLabel());
         if (src.getDateDebut() != null) dest.setDateDebut(src.getDateDebut().toString());

@@ -32,7 +32,7 @@ def build_teacher_features(
             )
             .reset_index()
         )
-        df_teacher = df_teacher.merge(comp_agg, on="enseignant_id", how="left")
+        df_teacher = df_teacher.merge(comp_agg, on="enseignant_id", how="left", validate="m:1")
         max_savoirs = df_teacher["nb_savoirs"].max()
         if max_savoirs and max_savoirs > 0:
             df_teacher["competency_coverage_rate"] = df_teacher["nb_savoirs"] / max_savoirs
@@ -84,6 +84,7 @@ def build_gap_labels(
         df_req[["competence_id", "savoir_id", "required_level"]],
         on=["competence_id", "savoir_id"],
         how="left",
+        validate="m:1",
     )
     merged["gap"] = merged["required_level"].fillna(0) - merged["current_level"]
     merged["has_gap"] = (merged["gap"] > 0).astype(int)

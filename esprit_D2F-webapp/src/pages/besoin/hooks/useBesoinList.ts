@@ -13,6 +13,8 @@ import useAppNotification from "@/hooks/ui/useAppNotification";
 import { ROLES } from "@/utils/constants/roles";
 import { useBesoins, useModifyBesoin, useRemoveBesoin, useApproveBesoin } from "@/hooks/besoin/useBesoins";
 import { useDepartements, useUps, useAllAccounts } from "@/hooks/formation/useFormations";
+import { useEnseignants } from "@/hooks/enseignant/useEnseignants";
+import { buildActeurOptions, serializeActeurs, parseActeurs } from "@/utils/besoin/acteurs";
 
 const PERIOD_OPTIONS = [
   { value: "P1",     label: "Période 1" },
@@ -45,6 +47,8 @@ export function useBesoinList() {
   const { data: departements = [] } = useDepartements();
   const { data: ups           = [] } = useUps();
   const { data: accountsData  = [] } = useAllAccounts();
+  const { data: enseignants   = [] } = useEnseignants();
+  const acteurOptions = useMemo(() => buildActeurOptions(enseignants), [enseignants]);
 
   const modifyMut   = useModifyBesoin();
   const removeMut   = useRemoveBesoin();
@@ -166,6 +170,8 @@ export function useBesoinList() {
       titre:                record.titre || "",
       objectifFormation:    record.objectifFormation || "",
       propositionAnimateur: record.propositionAnimateur || "",
+      animateurs:           parseActeurs(record.animateurs),
+      enseignants:          parseActeurs(record.enseignants),
       typeBesoin:           record.typeBesoin || undefined,
       priorite:             record.priorite || undefined,
       impactStrategique:    record.impactStrategique || "",
@@ -193,6 +199,8 @@ export function useBesoinList() {
       const payload = {
         idBesoinFormation: getBesoinId(editingRecord as Record<string, unknown>),
         ...values,
+        animateurs:  serializeActeurs(values.animateurs),
+        enseignants: serializeActeurs(values.enseignants),
         horaireSouhaite: values.horaireSouhaite ? values.horaireSouhaite.format("YYYY-MM-DD HH:mm") : undefined,
       };
       await modifyMut.mutateAsync({ besoin: payload, commentaire: "Modification depuis l'interface" });
@@ -252,7 +260,7 @@ export function useBesoinList() {
 
   return {
     besoins, filtered, pagedCards, loading, stats,
-    departements, ups, cupAccounts, types,
+    departements, ups, cupAccounts, types, acteurOptions,
     searchText, setSearchText,
     filters, setFilters,
     viewMode, setViewMode,

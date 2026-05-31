@@ -30,7 +30,7 @@ export default function BesoinList() {
 
   const {
     besoins, filtered, pagedCards, loading, stats,
-    departements, ups, cupAccounts, types,
+    departements, ups, cupAccounts, types, acteurOptions,
     searchText, setSearchText,
     filters, setFilters,
     viewMode, setViewMode,
@@ -187,6 +187,7 @@ export default function BesoinList() {
         saving={saving}
         ups={typedUps}
         departements={typedDepts}
+        acteurOptions={acteurOptions}
         onOk={handleEditSave}
         onCancel={() => setEditModalOpen(false)}
       />

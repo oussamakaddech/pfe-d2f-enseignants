@@ -118,7 +118,7 @@ class RecommendationEngine:
         for gap in sorted_gaps:
             cid = gap.competence_id
             candidates = self._filter_candidates(
-                cid, gap.niveau_actuel, gap.niveau_requis,
+                cid, gap.niveau_actuel,
                 comp_to_formations, formations_completees
             )
             if not candidates:
@@ -239,7 +239,6 @@ class RecommendationEngine:
         self,
         competence_id: int,
         niveau_actuel: int,
-        niveau_requis: int,
         comp_to_formations: dict,
         formations_completees: set,
     ) -> list[dict]:
@@ -277,7 +276,7 @@ class RecommendationEngine:
         # Ajouter d'abord les formations prérequis manquants
         for prereq_cid in prereq_index.get(gap.competence_id, [])[:2]:
             prereq_candidates = self._filter_candidates(
-                prereq_cid, 0, 3, comp_to_formations, formations_completees
+                prereq_cid, 0, comp_to_formations, formations_completees
             )
             if prereq_candidates:
                 best = max(prereq_candidates, key=lambda x: x.get("_score_global", 0.0))

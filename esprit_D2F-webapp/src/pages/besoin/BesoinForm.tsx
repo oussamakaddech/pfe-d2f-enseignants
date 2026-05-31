@@ -94,7 +94,7 @@ export default function BesoinForm() {
       onClearParticipants={ctx.clearParticipants}
     />,
     <BesoinFormationStep key="formation" />,
-    <BesoinDetailsStep   key="details" />,
+    <BesoinDetailsStep   key="details" acteurOptions={ctx.acteurOptions} acteursLoading={ctx.enseignantsLoading} />,
     <BesoinCompetencesStep
       key="competences"
       compLoaded={ctx.compLoaded}

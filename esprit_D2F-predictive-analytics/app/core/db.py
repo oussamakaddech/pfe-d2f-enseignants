@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 # Note: les schémas sont quotés car `analyse` est un mot-clé Postgres (alias d'ANALYZE).
 _DEFAULT_SCHEMAS = ("analyse", "formation", "competence", "besoin", "evaluation", "certificat", "auth", "public")
 # Regle de validation : seuls les identifiants Postgres simples (lettres + underscores) sont autorises.
-_ALLOWED_SCHEMA_RE = re.compile(r"^[a-zA-Z_][a-zA-Z0-9_]*$")
+_ALLOWED_SCHEMA_RE = re.compile(r"^[a-zA-Z_]\w*$")
 
 _SEARCH_PATH_RAW = os.getenv("DB_SEARCH_PATH", ",".join(_DEFAULT_SCHEMAS))
 _search_path_parts = [
