@@ -1,11 +1,13 @@
 package esprit.pfe.serviceformation.controllers;
 
+import esprit.d2f.common.security.AuthorizationMatrix;
 import esprit.pfe.serviceformation.entities.FormationCompetence;
 import esprit.pfe.serviceformation.services.FormationCompetenceService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import lombok.RequiredArgsConstructor;
 
@@ -18,6 +20,7 @@ public class FormationCompetenceController {
     private final FormationCompetenceService formationCompetenceService;
 
     /** GET les liaisons pour une formation */
+    @PreAuthorize(AuthorizationMatrix.FORMATION_COMPETENCE_READ)
     @GetMapping("/formation/{formationId}")
     public ResponseEntity<Page<FormationCompetence>> getByFormation(
             @PathVariable Long formationId,
@@ -26,6 +29,7 @@ public class FormationCompetenceController {
     }
 
     /** POST ajouter une liaison formation-compétence */
+    @PreAuthorize(AuthorizationMatrix.FORMATION_COMPETENCE_CREATE)
     @PostMapping("/formation/{formationId}")
     public ResponseEntity<FormationCompetence> addFormationCompetence(
             @PathVariable Long formationId,
@@ -34,6 +38,7 @@ public class FormationCompetenceController {
     }
 
     /** PUT mettre à jour une liaison */
+    @PreAuthorize(AuthorizationMatrix.FORMATION_COMPETENCE_UPDATE)
     @PutMapping("/{id}")
     public ResponseEntity<FormationCompetence> updateFormationCompetence(
             @PathVariable Long id,
@@ -42,6 +47,7 @@ public class FormationCompetenceController {
     }
 
     /** DELETE supprimer une liaison */
+    @PreAuthorize(AuthorizationMatrix.FORMATION_COMPETENCE_DELETE)
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteFormationCompetence(@PathVariable Long id) {
         formationCompetenceService.deleteFormationCompetence(id);
@@ -49,6 +55,7 @@ public class FormationCompetenceController {
     }
 
     /** PUT remplacer toutes les liaisons pour une formation */
+    @PreAuthorize(AuthorizationMatrix.FORMATION_COMPETENCE_UPDATE)
     @PutMapping("/formation/{formationId}/replace-all")
     public ResponseEntity<List<FormationCompetence>> replaceAllForFormation(
             @PathVariable Long formationId,
@@ -57,6 +64,7 @@ public class FormationCompetenceController {
     }
 
     /** GET les formations liées à une compétence */
+    @PreAuthorize(AuthorizationMatrix.FORMATION_COMPETENCE_READ)
     @GetMapping("/competence/{competenceId}")
     public ResponseEntity<Page<FormationCompetence>> getByCompetence(
             @PathVariable Long competenceId,
@@ -65,6 +73,7 @@ public class FormationCompetenceController {
     }
 
     /** GET les formations liées à un domaine */
+    @PreAuthorize(AuthorizationMatrix.FORMATION_COMPETENCE_READ)
     @GetMapping("/domaine/{domaineId}")
     public ResponseEntity<Page<FormationCompetence>> getByDomaine(
             @PathVariable Long domaineId,

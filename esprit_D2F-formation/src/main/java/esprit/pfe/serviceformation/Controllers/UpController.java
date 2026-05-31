@@ -1,6 +1,8 @@
 package esprit.pfe.serviceformation.controllers;
 
 import esprit.d2f.common.security.AuthorizationMatrix;
+import esprit.pfe.serviceformation.dto.ReferentialMapper;
+import esprit.pfe.serviceformation.dto.UpDTO;
 import esprit.pfe.serviceformation.entities.Up;
 import esprit.pfe.serviceformation.services.UpService;
 import esprit.pfe.serviceformation.utils.FileSecurityValidator;
@@ -46,27 +48,27 @@ public class UpController {
 
     @GetMapping
     @PreAuthorize(AuthorizationMatrix.REFERENTIEL_READ)
-    public ResponseEntity<Page<Up>> getAllUp(
+    public ResponseEntity<Page<UpDTO>> getAllUp(
             @PageableDefault(size = 20, sort = "id") Pageable pageable) {
-        return ResponseEntity.ok(upService.findAll(pageable));
+        return ResponseEntity.ok(upService.findAll(pageable).map(ReferentialMapper::toUpDTO));
     }
 
     @GetMapping("/{id}")
     @PreAuthorize(AuthorizationMatrix.REFERENTIEL_READ)
-    public ResponseEntity<Up> getUpById(@PathVariable String id) {
-        return ResponseEntity.ok(upService.findById(id));
+    public ResponseEntity<UpDTO> getUpById(@PathVariable String id) {
+        return ResponseEntity.ok(ReferentialMapper.toUpDTO(upService.findById(id)));
     }
 
     @PostMapping
     @PreAuthorize(AuthorizationMatrix.REFERENTIEL_WRITE)
-    public ResponseEntity<Up> createUp(@RequestBody Up up) {
-        return ResponseEntity.ok(upService.create(up));
+    public ResponseEntity<UpDTO> createUp(@RequestBody Up up) {
+        return ResponseEntity.ok(ReferentialMapper.toUpDTO(upService.create(up)));
     }
 
     @PutMapping("/{id}")
     @PreAuthorize(AuthorizationMatrix.REFERENTIEL_WRITE)
-    public ResponseEntity<Up> updateUp(@PathVariable String id, @RequestBody Up up) {
-        return ResponseEntity.ok(upService.update(id, up));
+    public ResponseEntity<UpDTO> updateUp(@PathVariable String id, @RequestBody Up up) {
+        return ResponseEntity.ok(ReferentialMapper.toUpDTO(upService.update(id, up)));
     }
 
     @DeleteMapping("/{id}")

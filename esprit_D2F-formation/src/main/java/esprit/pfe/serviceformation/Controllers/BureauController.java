@@ -1,6 +1,8 @@
 package esprit.pfe.serviceformation.controllers;
 
 import esprit.d2f.common.security.AuthorizationMatrix;
+import esprit.pfe.serviceformation.dto.BureauDTO;
+import esprit.pfe.serviceformation.dto.ReferentialMapper;
 import esprit.pfe.serviceformation.entities.Bureau;
 import esprit.pfe.serviceformation.services.BureauService;
 import jakarta.validation.Valid;
@@ -23,27 +25,28 @@ public class BureauController {
 
     @GetMapping
     @PreAuthorize(AuthorizationMatrix.BUREAU_READ)
-    public ResponseEntity<Page<Bureau>> getAllBureaux(
+    public ResponseEntity<Page<BureauDTO>> getAllBureaux(
             @PageableDefault(size = 20, sort = "id") Pageable pageable) {
-        return ResponseEntity.ok(bureauService.getAllBureaux(pageable));
+        return ResponseEntity.ok(bureauService.getAllBureaux(pageable).map(ReferentialMapper::toBureauDTO));
     }
 
     @GetMapping("/{id}")
     @PreAuthorize(AuthorizationMatrix.BUREAU_READ)
-    public ResponseEntity<Bureau> getBureauById(@PathVariable Long id) {
-        return ResponseEntity.ok(bureauService.getBureauById(id));
+    public ResponseEntity<BureauDTO> getBureauById(@PathVariable Long id) {
+        return ResponseEntity.ok(ReferentialMapper.toBureauDTO(bureauService.getBureauById(id)));
     }
 
     @PostMapping
     @PreAuthorize(AuthorizationMatrix.BUREAU_CREATE)
-    public ResponseEntity<Bureau> createBureau(@Valid @RequestBody Bureau bureau) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(bureauService.createBureau(bureau));
+    public ResponseEntity<BureauDTO> createBureau(@Valid @RequestBody Bureau bureau) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ReferentialMapper.toBureauDTO(bureauService.createBureau(bureau)));
     }
 
     @PutMapping("/{id}")
     @PreAuthorize(AuthorizationMatrix.BUREAU_UPDATE)
-    public ResponseEntity<Bureau> updateBureau(@PathVariable Long id, @Valid @RequestBody Bureau bureau) {
-        return ResponseEntity.ok(bureauService.updateBureau(id, bureau));
+    public ResponseEntity<BureauDTO> updateBureau(@PathVariable Long id, @Valid @RequestBody Bureau bureau) {
+        return ResponseEntity.ok(ReferentialMapper.toBureauDTO(bureauService.updateBureau(id, bureau)));
     }
 
     @DeleteMapping("/{id}")

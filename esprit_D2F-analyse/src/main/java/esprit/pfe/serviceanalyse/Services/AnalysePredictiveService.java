@@ -364,8 +364,8 @@ public class AnalysePredictiveService {
             Map<String, Object> response = restTemplate.getForObject(url, Map.class);
             if (response != null && response.get("content") instanceof List) {
                 List<Map<String, Object>> items = (List<Map<String, Object>>) response.get("content");
-                long total = response.get("totalElements") instanceof Number
-                    ? ((Number) response.get("totalElements")).longValue() : items.size();
+                long total = response.get("totalElements") instanceof Number number
+                    ? number.longValue() : items.size();
                 return new PageImpl<>(items, pageable, total);
             }
         } catch (Exception e) {
@@ -396,7 +396,9 @@ public class AnalysePredictiveService {
 
     private int getPrioriteOrder(Object priorite) {
         if (PRIORITE_HAUTE.equals(priorite) || GRAVITE_ELEVEE.equals(priorite)) return 3;
-        if (MOYENNE.equals(priorite) || GRAVITE_MOYENNE.equals(priorite)) return 2;
+        // MOYENNE et GRAVITE_MOYENNE valent toutes deux "moyenne" : un seul test suffit
+        // (le double test était redondant — signalé par SpotBugs RpC_REPEATED_CONDITIONAL_TEST).
+        if (MOYENNE.equals(priorite)) return 2;
         return 1;
     }
 }

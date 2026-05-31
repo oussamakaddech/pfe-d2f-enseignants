@@ -1,6 +1,8 @@
 package esprit.pfe.serviceformation.controllers;
 
 import esprit.d2f.common.security.AuthorizationMatrix;
+import esprit.pfe.serviceformation.dto.DeptDTO;
+import esprit.pfe.serviceformation.dto.ReferentialMapper;
 import esprit.pfe.serviceformation.entities.Dept;
 import esprit.pfe.serviceformation.services.DeptService;
 import esprit.pfe.serviceformation.utils.FileSecurityValidator;
@@ -46,27 +48,27 @@ public class DeptController {
 
     @GetMapping
     @PreAuthorize(AuthorizationMatrix.REFERENTIEL_READ)
-    public ResponseEntity<Page<Dept>> getAllDept(
+    public ResponseEntity<Page<DeptDTO>> getAllDept(
             @PageableDefault(size = 20, sort = "id") Pageable pageable) {
-        return ResponseEntity.ok(deptService.findAll(pageable));
+        return ResponseEntity.ok(deptService.findAll(pageable).map(ReferentialMapper::toDeptDTO));
     }
 
     @GetMapping("/{id}")
     @PreAuthorize(AuthorizationMatrix.REFERENTIEL_READ)
-    public ResponseEntity<Dept> getDeptById(@PathVariable String id) {
-        return ResponseEntity.ok(deptService.findById(id));
+    public ResponseEntity<DeptDTO> getDeptById(@PathVariable String id) {
+        return ResponseEntity.ok(ReferentialMapper.toDeptDTO(deptService.findById(id)));
     }
 
     @PostMapping
     @PreAuthorize(AuthorizationMatrix.REFERENTIEL_WRITE)
-    public ResponseEntity<Dept> createDept(@RequestBody Dept dept) {
-        return ResponseEntity.ok(deptService.create(dept));
+    public ResponseEntity<DeptDTO> createDept(@RequestBody Dept dept) {
+        return ResponseEntity.ok(ReferentialMapper.toDeptDTO(deptService.create(dept)));
     }
 
     @PutMapping("/{id}")
     @PreAuthorize(AuthorizationMatrix.REFERENTIEL_WRITE)
-    public ResponseEntity<Dept> updateDept(@PathVariable String id, @RequestBody Dept dept) {
-        return ResponseEntity.ok(deptService.update(id, dept));
+    public ResponseEntity<DeptDTO> updateDept(@PathVariable String id, @RequestBody Dept dept) {
+        return ResponseEntity.ok(ReferentialMapper.toDeptDTO(deptService.update(id, dept)));
     }
 
     @DeleteMapping("/{id}")

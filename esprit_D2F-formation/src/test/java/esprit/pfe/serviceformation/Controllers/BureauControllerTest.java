@@ -1,6 +1,7 @@
 
 package esprit.pfe.serviceformation.controllers;
 
+import esprit.pfe.serviceformation.dto.BureauDTO;
 import esprit.pfe.serviceformation.entities.Bureau;
 import esprit.pfe.serviceformation.services.BureauService;
 import org.junit.jupiter.api.BeforeEach;
@@ -53,7 +54,7 @@ class BureauControllerTest {
     void getAllBureaux_returnsList() {
         when(bureauService.getAllBureaux(any(Pageable.class))).thenReturn(new PageImpl<>(List.of(bureau)));
 
-        ResponseEntity<Page<Bureau>> response = bureauController.getAllBureaux(Pageable.unpaged());
+        ResponseEntity<Page<BureauDTO>> response = bureauController.getAllBureaux(Pageable.unpaged());
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody().getContent()).hasSize(1);
@@ -64,7 +65,7 @@ class BureauControllerTest {
     void getBureauById_returnsBureau() {
         when(bureauService.getBureauById(1L)).thenReturn(bureau);
 
-        ResponseEntity<Bureau> response = bureauController.getBureauById(1L);
+        ResponseEntity<BureauDTO> response = bureauController.getBureauById(1L);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody().getNom()).isEqualTo("Bureau Formation");
@@ -75,7 +76,7 @@ class BureauControllerTest {
     void createBureau_returnsCreated() {
         when(bureauService.createBureau(any(Bureau.class))).thenReturn(bureau);
 
-        ResponseEntity<Bureau> response = bureauController.createBureau(bureau);
+        ResponseEntity<BureauDTO> response = bureauController.createBureau(bureau);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
         verify(bureauService).createBureau(bureau);
@@ -87,9 +88,10 @@ class BureauControllerTest {
         Bureau updated = createBureau(1L, "Updated", null, null);
         when(bureauService.updateBureau(eq(1L), any(Bureau.class))).thenReturn(updated);
 
-        ResponseEntity<Bureau> response = bureauController.updateBureau(1L, updated);
+        ResponseEntity<BureauDTO> response = bureauController.updateBureau(1L, updated);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody().getNom()).isEqualTo("Updated");
     }
 
     @Test
