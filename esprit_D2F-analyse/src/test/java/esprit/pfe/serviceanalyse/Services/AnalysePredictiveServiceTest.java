@@ -9,6 +9,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.junit.jupiter.MockitoSettings;
 import org.mockito.quality.Strictness;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.*;
@@ -33,6 +34,7 @@ class AnalysePredictiveServiceTest {
         ReflectionTestUtils.setField(analysePredictiveService, "formationServiceUrl", "http://form");
         ReflectionTestUtils.setField(analysePredictiveService, "competenceServiceUrl", "http://comp");
         ReflectionTestUtils.setField(analysePredictiveService, "besoinFormationServiceUrl", "http://besoin");
+        ReflectionTestUtils.setField(analysePredictiveService, "authServiceUrl", "http://auth");
     }
 
     @Test
@@ -80,6 +82,38 @@ class AnalysePredictiveServiceTest {
         Map<String, Object> stats = (Map<String, Object>) result.get("statistiques");
         assertEquals(1, stats.get("totalEvaluations"));
         assertEquals(4.5, stats.get("noteMoyenne"));
+    }
+
+    @Test
+    void testListerEnseignants_WithNumericTotalElements() {
+        Map<String, Object> response = new HashMap<>();
+        response.put("content", List.of(Map.of("id", "ens1", "nom", "Dupont")));
+        response.put("totalElements", 42);
+
+        when(restTemplate.getForObject(
+            "http://auth/api/v1/account/list-accounts?page=0&size=10",
+            Map.class)).thenReturn(response);
+
+        var page = analysePredictiveService.listerEnseignants(PageRequest.of(0, 10));
+
+        assertEquals(1, page.getContent().size());
+        assertEquals(42L, page.getTotalElements());
+    }
+
+    @Test
+    void testListerEnseignants_WithNonNumericTotalElementsUsesFallback() {
+        Map<String, Object> response = new HashMap<>();
+        response.put("content", List.of(Map.of("id", "ens1", "nom", "Dupont")));
+        response.put("totalElements", "unknown");
+
+        when(restTemplate.getForObject(
+            "http://auth/api/v1/account/list-accounts?page=0&size=10",
+            Map.class)).thenReturn(response);
+
+        var page = analysePredictiveService.listerEnseignants(PageRequest.of(0, 10));
+
+        assertEquals(1, page.getContent().size());
+        assertEquals(1L, page.getTotalElements());
     }
 
     @Test

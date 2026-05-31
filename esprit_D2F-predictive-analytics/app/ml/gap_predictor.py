@@ -160,8 +160,8 @@ class GapPredictor:
                 drift_report["drift_detected"] = True
                 drift_report["recommendation"] = (
                     f"Drift detected on {len(drifted)}/{len(FEATURE_COLS)} features. "
-                    f"Consider retraining the model via POST /api/predict/train"
-                )
+                "Consider retraining the model via POST /api/predict/train"
+            )
 
         trained_at = meta.get("trained_at")
         if trained_at:
@@ -173,7 +173,7 @@ class GapPredictor:
                     drift_report["drift_detected"] = True
                     drift_report["recommendation"] = (
                         f"Model was trained {days_since} days ago. "
-                        f"Consider retraining the model via POST /api/predict/train"
+                        "Consider retraining the model via POST /api/predict/train"
                     )
             except Exception:
                 pass
@@ -212,23 +212,23 @@ class GapPredictor:
             )
 
         # Merge teacher features with gap labels per competency
-        df_train = df_gaps.merge(df_teacher, on="enseignant_id", how="left")
+        df_train = df_gaps.merge(df_teacher, on="enseignant_id", how="left", validate="m:1")
         df_train = df_train.dropna(subset=FEATURE_COLS + ["gap"])
 
         if len(df_train) < settings.min_training_samples:
             raise InsufficientDataError(
                 f"Échantillon trop petit : {len(df_train)} lignes après jointure "
                 f"(seuil = {settings.min_training_samples}). "
-                f"Augmentez les données ou abaissez MIN_TRAINING_SAMPLES dans .env."
+                "Augmentez les données ou abaissez MIN_TRAINING_SAMPLES dans .env."
             )
 
-        X_df = df_train[FEATURE_COLS].copy()
+        x_df = df_train[FEATURE_COLS].copy()
         y = df_train["gap"].values.clip(0, 5)  # Gap is between 0 and 5
 
         # Normalize features for better model convergence
         from app.ml.feature_engineering import normalize_features
-        X_df = normalize_features(X_df, FEATURE_COLS)
-        X = X_df.values
+        x_df = normalize_features(x_df, FEATURE_COLS)
+        X = x_df.values
 
         # Train/test split for validation
         X_train, X_test, y_train, y_test = train_test_split(
@@ -295,57 +295,7 @@ class GapPredictor:
         if df_teacher.empty or df_gaps.empty:
             return {"gaps": [], "overall_risk_score": 0.0, "explanation": {}}
 
-        df_pred = df_gaps.merge(df_teacher, on="enseignant_id", how="left")
-        df_pred = df_pred.dropna(subset=FEATURE_COLS)
-
-        if df_pred.empty:
-            return {"gaps": [], "overall_risk_score": 0.0, "explanation": {}}
-
-        X_df = df_pred[FEATURE_COLS].copy()
-        # Normalize features consistently with training
-        from app.ml.feature_engineering import normalize_features
-        X_df = normalize_features(X_df, FEATURE_COLS)
-        X = X_df.values
-        df_pred["predicted_gap"] = self.model.predict(X).clip(0, 5)
-        df_pred["confidence"] = 1.0 - (df_pred["predicted_gap"] - df_pred["gap"]).abs() / 5.0
-        df_pred["confidence"] = df_pred["confidence"].clip(0.1, 1.0)
-
-        # Risk level categorization
-        def risk_level(gap: float) -> str:
-            if gap >= 3: return "critical"
-            if gap >= 2: return "high"
-            if gap >= 1: return "medium"
-            return "low"
-
-        df_pred["risk_level"] = df_pred["predicted_gap"].apply(risk_level)
-
-        # Sort by predicted gap descending, take top N per teacher
-        df_pred = df_pred.sort_values(["enseignant_id", "predicted_gap"], ascending=[True, False])
-
-        gaps = []
-        for teacher_id, group in df_pred.groupby("enseignant_id"):
-            top = group.head(top_n)
-            for _, row in top.iterrows():
-                gaps.append({
-                    "teacher_id": str(teacher_id),
-                    "competency_id": int(row["competence_id"]),
-                    "competency_name": row["competence_nom"],
-                    "domaine_name": row["domaine_nom"],
-                    "current_level": float(row["current_level"]),
-                    "required_level": float(row.get("required_level") or 0),
-                    "predicted_gap": round(float(row["predicted_gap"]), 2),
-                    "confidence": round(float(row["confidence"]), 2),
-                    "risk_level": row["risk_level"],
-                })
-
-        overall_risk = float(df_pred["predicted_gap"].mean())
-
-        return {
-            "gaps": gaps,
-            "overall_risk_score": round(overall_risk, 2),
-            "explanation": self.feature_importances or {},
-        }
-
+        df_pred = df_gaps.merge(df_teacher, on="enseignant_id", how="left", validate="m:1")
 
     def _heuristic_predict(
         self,
@@ -365,8 +315,7 @@ class GapPredictor:
         if df_teacher.empty or df_gaps.empty:
             return {"gaps": [], "overall_risk_score": 0.0, "explanation": {"method": "heuristic", "model_trained": False}}
 
-        df_pred = df_gaps.merge(df_teacher, on="enseignant_id", how="left")
-        df_pred = df_pred.dropna(subset=FEATURE_COLS)
+        df_pred = df_gaps.merge(df_teacher, on="enseignant_id", how="left", validate="m:1")
 
         if df_pred.empty:
             return {"gaps": [], "overall_risk_score": 0.0, "explanation": {"method": "heuristic", "model_trained": False}}

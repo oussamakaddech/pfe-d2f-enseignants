@@ -110,6 +110,15 @@ export function buildSummarySections(
     ? (String(values.customPeriodLabel || "Autre"))
     : (PERIOD_OPTIONS.find((o) => o.value === values.periodCode)?.label || "—");
 
+  const formatActeurs = (raw: unknown): string => {
+    const list = Array.isArray(raw)
+      ? raw.map((v) => String(v).trim()).filter(Boolean)
+      : String(raw || "").split(/\r?\n/).map((v) => v.trim()).filter(Boolean);
+    if (list.length === 0) return "—";
+    const names = list.map((v) => v.replace(/\s*<[^>]*>\s*$/, "").trim());
+    return `${list.length} — ${names.join(", ")}`;
+  };
+
   return [
     {
       key: "contexte", title: "Contexte", icon: null,
@@ -136,6 +145,8 @@ export function buildSummarySections(
       key: "details", title: "Détails & planning", icon: null,
       items: [
         { label: "Formateur proposé", value: String(values.propositionAnimateur || "—") },
+        { label: "Animateurs",        value: formatActeurs(values.animateurs) },
+        { label: "Enseignants",       value: formatActeurs(values.enseignants) },
         { label: "Période",           value: periodLabel },
         { label: "Date de début",     value: values.dateDebut ? (values.dateDebut as { format: (f: string) => string }).format("DD/MM/YYYY") : "—" },
         { label: "Date de fin",       value: values.dateFin   ? (values.dateFin   as { format: (f: string) => string }).format("DD/MM/YYYY") : "—" },

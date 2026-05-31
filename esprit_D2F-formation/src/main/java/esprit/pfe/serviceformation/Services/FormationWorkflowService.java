@@ -71,6 +71,12 @@ public class FormationWorkflowService {
     }
 
     private static final String ORGANIZER_EMAIL = "Application.Formationdesformateurs@Esprit.tn";
+    private static final String APPROVAL_ACCENT_COLOR = "#1565c0";
+    private static final String CANCELLATION_ACCENT_COLOR = "#c62828";
+    private static final String DETAIL_TITLE = "Titre";
+    private static final String DETAIL_DOMAIN = "Domaine";
+    private static final String DETAIL_PERIOD = "Période";
+    private static final String DETAIL_FORMATION = "Formation";
 
     private Time parseTime(String heure) {
         return helper.parseTime(heure);
@@ -365,7 +371,7 @@ public class FormationWorkflowService {
                 String html = buildStateHtml(formation, "Nouvelle formation enregistrée", "📝",
                         "Une nouvelle formation vient d'être enregistrée et attend d'être planifiée. "
                                 + "Vous trouverez ci-dessous le récapitulatif.",
-                        "#1565c0", null, null);
+                    APPROVAL_ACCENT_COLOR, null, null);
                 outlookMailService.sendMail(ORGANIZER_EMAIL, subject, html);
             } catch (Exception ex) {
                 log.warn("Echec notification admin enregistrement : {}", ex.getMessage());
@@ -406,7 +412,7 @@ public class FormationWorkflowService {
                 String subject = "[D2F] Formation publiée : " + formation.getTitreFormation();
                 String html = buildStateHtml(formation, "Formation publiée", "🚀",
                         "La formation est désormais visible et ouverte aux inscriptions.",
-                        "#1b5e20", null, null);
+                    "#1b5e20", null, null);
                 outlookMailService.sendMail(ORGANIZER_EMAIL, subject, html);
             } catch (Exception ex) {
                 log.warn("Echec notification admin visibilite : {}", ex.getMessage());
@@ -447,7 +453,7 @@ public class FormationWorkflowService {
                 "Formation annulée", "❌",
                 "Nous vous informons que la formation ci-dessous a été <strong>annulée</strong>. "
                         + "Les séances correspondantes seront retirées de votre calendrier.",
-                "#c62828",
+            CANCELLATION_ACCENT_COLOR,
                 "Aucune action n'est requise de votre part. Nous restons à votre disposition pour toute question.");
 
         // 2. Supprimer les evenements Outlook calendar
@@ -468,17 +474,12 @@ public class FormationWorkflowService {
         for (Enseignant cup : cups) {
             if (cup.getMail() == null || cup.getMail().isBlank()) continue;
             try {
-                String html = EmailTemplateBuilder.create()
-                        .accentColor("#1565c0")
-                        .icon("⚙️")
-                        .title("Action requise — planification")
+                String html = baseFormationEmailBuilder(APPROVAL_ACCENT_COLOR, "⚙️",
+                    "Action requise — planification",
+                    "Une nouvelle formation a été enregistrée pour votre unité pédagogique "
+                        + "et requiert votre intervention.", formation)
                         .greetingName(fullName(cup))
-                        .intro("Une nouvelle formation a été enregistrée pour votre unité pédagogique "
-                                + "et requiert votre intervention.")
                         .detail("UP", formation.getUp().getLibelle())
-                        .detail("Titre", formation.getTitreFormation())
-                        .detail("Domaine", formation.getDomaine())
-                        .detail("Période", formatDate(formation.getDateDebut()) + " au " + formatDate(formation.getDateFin()))
                         .note("📌 <strong>Action requise :</strong> merci de procéder à la planification des "
                                 + "séances de cette formation depuis la plateforme D2F.")
                         .build();
@@ -607,29 +608,39 @@ public class FormationWorkflowService {
                 + (seance.getSalle() != null && !seance.getSalle().isBlank() ? seance.getSalle() : A_DEFINIR);
     }
 
-    // ── Gabarit unique (compatible Outlook) pour les notifications de changement d'état ──
-    private String buildStateHtml(Formation formation, String title, String icon, String intro,
-            String accentColor, String note, String greetingName) {
-        EmailTemplateBuilder builder = EmailTemplateBuilder.create()
+    private EmailTemplateBuilder baseFormationEmailBuilder(String accentColor, String icon, String title, String intro,
+            Formation formation) {
+        return EmailTemplateBuilder.create()
                 .accentColor(accentColor)
                 .icon(icon)
                 .title(title)
-                .greetingName(greetingName)
                 .intro(intro)
-                .detail("Titre", formation.getTitreFormation())
-                .detail("Domaine", formation.getDomaine())
-                .detail("Type", formation.getTypeFormation() != null ? formation.getTypeFormation().toString() : null)
-                .detail("Période", formatDate(formation.getDateDebut()) + " au " + formatDate(formation.getDateFin()));
+                .detail(DETAIL_TITLE, formation.getTitreFormation())
+                .detail(DETAIL_DOMAIN, formation.getDomaine())
+                .detail(DETAIL_PERIOD, formatDate(formation.getDateDebut()) + " au " + formatDate(formation.getDateFin()));
+    }
+
+    private void appendFormationSeances(EmailTemplateBuilder builder, Formation formation) {
+        if (formation.getSeances() == null) {
+            return;
+        }
+        for (SeanceFormation seance : formation.getSeances()) {
+            builder.seance(seanceLine(seance));
+        }
+    }
+
+    // ── Gabarit unique (compatible Outlook) pour les notifications de changement d'état ──
+    private String buildStateHtml(Formation formation, String title, String icon, String intro,
+            String accentColor, String note, String greetingName) {
+        EmailTemplateBuilder builder = baseFormationEmailBuilder(accentColor, icon, title, intro, formation)
+                .greetingName(greetingName)
+                .detail("Type", formation.getTypeFormation() != null ? formation.getTypeFormation().toString() : null);
 
         String animateurs = buildAnimateursLabel(formation);
         if (!animateurs.isBlank()) {
             builder.detail("Animateurs", animateurs);
         }
-        if (formation.getSeances() != null) {
-            for (SeanceFormation seance : formation.getSeances()) {
-                builder.seance(seanceLine(seance));
-            }
-        }
+        appendFormationSeances(builder, formation);
         if (note != null && !note.isBlank()) {
             builder.note(note);
         }
@@ -638,22 +649,34 @@ public class FormationWorkflowService {
 
     // ── Liste « Prénom Nom » des animateurs (séances + formateur externe) ──
     private String buildAnimateursLabel(Formation formation) {
-        String animateursStr = "";
-        if (formation.getSeances() != null) {
-            animateursStr = formation.getSeances().stream()
-                    .flatMap(s -> s.getAnimateurs() != null ? s.getAnimateurs().stream() : java.util.stream.Stream.empty())
-                    .map(a -> (a.getPrenom() != null ? a.getPrenom() + " " : "") + (a.getNom() != null ? a.getNom() : ""))
-                    .map(String::trim)
-                    .filter(s -> !s.isBlank())
-                    .distinct()
-                    .collect(Collectors.joining(", "));
-        }
-        if (formation.getExterneFormateurNom() != null && !formation.getExterneFormateurNom().isBlank()) {
-            animateursStr += (animateursStr.isEmpty() ? "" : ", ")
-                    + (formation.getExterneFormateurPrenom() != null ? formation.getExterneFormateurPrenom() + " " : "")
-                    + formation.getExterneFormateurNom();
-        }
+        String animateursStr = buildSeanceAnimateursLabel(formation);
+        animateursStr = appendExterneFormateur(formation, animateursStr);
         return animateursStr;
+    }
+
+    private String buildSeanceAnimateursLabel(Formation formation) {
+        if (formation.getSeances() == null) return "";
+        return formation.getSeances().stream()
+                .flatMap(s -> s.getAnimateurs() != null ? s.getAnimateurs().stream() : java.util.stream.Stream.empty())
+                .map(this::formatAnimateurName)
+                .map(String::trim)
+                .filter(s -> !s.isBlank())
+                .distinct()
+                .collect(Collectors.joining(", "));
+    }
+
+    private String formatAnimateurName(Enseignant a) {
+        return (a.getPrenom() != null ? a.getPrenom() + " " : "") + (a.getNom() != null ? a.getNom() : "");
+    }
+
+    private String appendExterneFormateur(Formation formation, String animateursStr) {
+        if (formation.getExterneFormateurNom() == null || formation.getExterneFormateurNom().isBlank()) {
+            return animateursStr;
+        }
+        String separator = animateursStr.isEmpty() ? "" : ", ";
+        String externeName = (formation.getExterneFormateurPrenom() != null ? formation.getExterneFormateurPrenom() + " " : "")
+                + formation.getExterneFormateurNom();
+        return animateursStr + separator + externeName;
     }
 
     private void syncPresencesForSeances(List<SeanceFormation> seances, List<String> partIds) {
@@ -792,21 +815,11 @@ public class FormationWorkflowService {
     }
 
     private String buildApprovalNotificationHtml(Formation formation, String greetingName) {
-        EmailTemplateBuilder builder = EmailTemplateBuilder.create()
-                .accentColor("#1b5e20")
-                .icon("✅")
-                .title("Nouvelle formation disponible")
-                .greetingName(greetingName)
-                .intro("Une nouvelle formation vient d'être publiée et vous concerne. "
-                        + "Voici l'essentiel à retenir.")
-                .detail("Titre", formation.getTitreFormation())
-                .detail("Domaine", formation.getDomaine())
-                .detail("Période", formatDate(formation.getDateDebut()) + " au " + formatDate(formation.getDateFin()));
-        if (formation.getSeances() != null) {
-            for (SeanceFormation seance : formation.getSeances()) {
-                builder.seance(seanceLine(seance));
-            }
-        }
+        EmailTemplateBuilder builder = baseFormationEmailBuilder("#1b5e20", "✅", "Nouvelle formation disponible",
+            "Une nouvelle formation vient d'être publiée et vous concerne. "
+                + "Voici l'essentiel à retenir.", formation)
+                .greetingName(greetingName);
+        appendFormationSeances(builder, formation);
         return builder.build();
     }
 
@@ -823,16 +836,12 @@ public class FormationWorkflowService {
         for (Enseignant cup : cups) {
             if (cup.getMail() == null || cup.getMail().isBlank()) continue;
             try {
-                String htmlContent = EmailTemplateBuilder.create()
-                        .accentColor("#1565c0")
-                        .icon("✅")
-                        .title("Formation approuvée")
+                String htmlContent = baseFormationEmailBuilder(APPROVAL_ACCENT_COLOR, "✅",
+                    "Formation approuvée",
+                    "La formation <strong>" + formation.getTitreFormation() + "</strong> a été approuvée "
+                        + "et est désormais visible pour les responsables d'unités pédagogiques.", formation)
                         .greetingName(fullName(cup))
-                        .intro("La formation <strong>" + formation.getTitreFormation() + "</strong> a été approuvée "
-                                + "et est désormais visible pour les responsables d'unités pédagogiques.")
                         .detail("UP", formation.getUp().getLibelle())
-                        .detail("Domaine", formation.getDomaine())
-                        .detail("Période", formatDate(formation.getDateDebut()) + " au " + formatDate(formation.getDateFin()))
                         .build();
                 outlookMailService.sendMail(cup.getMail(), subject, htmlContent);
             } catch (Exception ex) {
@@ -1029,11 +1038,11 @@ public class FormationWorkflowService {
     private String buildCancellationSeanceHtml(SeanceFormation seance) {
         Formation formation = seance.getFormation();
         return EmailTemplateBuilder.create()
-                .accentColor("#c62828")
+            .accentColor(CANCELLATION_ACCENT_COLOR)
                 .icon("❌")
                 .title("Annulation de séance")
                 .intro("Nous vous informons que la séance ci-dessous a été <strong>annulée</strong>.")
-                .detail("Formation", formation.getTitreFormation())
+            .detail(DETAIL_FORMATION, formation.getTitreFormation())
                 .detail("Date", formatDate(seance.getDateSeance()))
                 .detail("Horaire", formatTime(seance.getHeureDebut()) + " – " + formatTime(seance.getHeureFin()))
                 .detail("Salle", seance.getSalle() != null && !seance.getSalle().isBlank() ? seance.getSalle() : A_DEFINIR)
@@ -1139,19 +1148,11 @@ public class FormationWorkflowService {
     }
 
     private String buildCancellationFormationHtml(Formation formation) {
-        EmailTemplateBuilder builder = EmailTemplateBuilder.create()
-                .accentColor("#c62828")
-                .icon("❌")
-                .title("Annulation de formation")
-                .intro("Nous vous informons que la formation ci-dessous a été <strong>annulée</strong>.")
-                .detail("Titre", formation.getTitreFormation())
-                .detail("Domaine", formation.getDomaine())
+        EmailTemplateBuilder builder = baseFormationEmailBuilder(CANCELLATION_ACCENT_COLOR, "❌",
+                "Annulation de formation",
+                "Nous vous informons que la formation ci-dessous a été <strong>annulée</strong>.", formation)
                 .detail("Dates prévues", formatDate(formation.getDateDebut()) + " au " + formatDate(formation.getDateFin()));
-        if (formation.getSeances() != null) {
-            for (SeanceFormation seance : formation.getSeances()) {
-                builder.seance(seanceLine(seance));
-            }
-        }
+        appendFormationSeances(builder, formation);
         builder.note("Les séances ci-dessus sont annulées : merci de ne pas vous y présenter. "
                 + "Les événements correspondants ont été retirés de votre calendrier Outlook.");
         return builder.build();

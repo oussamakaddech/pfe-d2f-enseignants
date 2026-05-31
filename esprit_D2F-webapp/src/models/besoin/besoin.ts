@@ -9,6 +9,10 @@ export interface BesoinFormation {
   titre?: string;
   objectifFormation?: string;
   propositionAnimateur?: string;
+  /** Animateurs proposés sélectionnés depuis la base enseignants (une ligne "Nom Prénom <email>" par animateur) */
+  animateurs?: string;
+  /** Enseignants participants proposés sélectionnés depuis la base enseignants (une ligne "Nom Prénom <email>" par enseignant) */
+  enseignants?: string;
   prerequis?: string;
   publicCible?: string;
   nbMaxParticipants?: number;

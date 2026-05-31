@@ -68,7 +68,6 @@ class GapEngine:
         besoins: list[dict],
         prediction_result_id: int | None,
         domaine_demand: dict[int, float],
-        total_enseignants: int,
     ) -> list[SkillGap]:
         """
         Calcule un SkillGap par compétence et le persiste.

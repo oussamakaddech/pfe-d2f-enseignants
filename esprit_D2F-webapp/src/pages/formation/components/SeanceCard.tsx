@@ -1,13 +1,10 @@
 import { Button, Col, Input, InputNumber, Popconfirm, Row, Select, Typography } from "antd";
 import { DeleteOutlined, DownOutlined, UpOutlined } from "@ant-design/icons";
-import type { EnseignantItem, SeanceState } from "../formationWorkflowTypes";
+import type { SeanceState } from "../formationWorkflowTypes";
 
 interface SeanceCardProps {
   seance: SeanceState;
   index: number;
-  typeFormation: string;
-  optionsAnim: EnseignantItem[];
-  getEnseignantLabel: (e: EnseignantItem | null) => string;
   onUpdate: (field: string, value: unknown) => void;
   onRemove: () => void;
   onToggle: () => void;
@@ -16,7 +13,7 @@ interface SeanceCardProps {
 const { Text } = Typography;
 
 export default function SeanceCard({
-  seance: s, index: i, typeFormation, optionsAnim, getEnseignantLabel,
+  seance: s, index: i,
   onUpdate, onRemove, onToggle,
 }: Readonly<SeanceCardProps>) {
   return (
@@ -49,19 +46,6 @@ export default function SeanceCard({
             <Col span={6}>
               <Text type="secondary">Salle</Text>
               <Input value={s.salle} onChange={(e) => onUpdate("salle", e.target.value)} />
-            </Col>
-            <Col span={24} style={{ marginTop: 8 }}>
-              <Text type="secondary">Animateurs</Text>
-              <Select
-                mode="multiple"
-                disabled={typeFormation === "EXTERNE"}
-                options={optionsAnim.map((o) => ({ value: o.id, label: getEnseignantLabel(o) }))}
-                value={s.animateurs.map((a) => a.id)}
-                onChange={(ids) => onUpdate("animateurs", optionsAnim.filter((o) => ids.includes(o.id)))}
-                style={{ width: "100%" }}
-                optionFilterProp="label"
-                showSearch
-              />
             </Col>
           </Row>
 

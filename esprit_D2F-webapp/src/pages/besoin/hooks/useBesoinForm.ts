@@ -6,6 +6,8 @@ import { Form } from "antd";
 import { getActiveRole } from "@/utils/storage/storage";
 import { useAuth } from "@/hooks/auth/useAuth";
 import { useAddBesoin, useReplaceBesoinCompetences } from "@/hooks/besoin/useBesoins";
+import { useEnseignants } from "@/hooks/enseignant/useEnseignants";
+import { buildActeurOptions, serializeActeurs } from "@/utils/besoin/acteurs";
 import type { BesoinCompetenceLink } from "@/models/besoin";
 import {
   useCompetenceDomaineApi,
@@ -37,7 +39,11 @@ export function useBesoinForm() {
   const { message: msgApi } = useAppNotification();
   const { data: departements = [], isLoading: deptsLoading } = useAllDepts();
   const { data: ups         = [], isLoading: upsLoading   } = useAllUps();
+  const { data: enseignants = [], isLoading: enseignantsLoading } = useEnseignants();
   const loading = deptsLoading || upsLoading;
+
+  // Options des sélecteurs Animateurs / Enseignants (base enseignants).
+  const acteurOptions = buildActeurOptions(enseignants);
 
   // Mutations must be created at the top level of the hook (Rules of Hooks),
   // not inside the handleSubmit event handler.
@@ -188,6 +194,8 @@ export function useBesoinForm() {
         titre:                 values.titre,
         objectifFormation:     values.objectifFormation,
         propositionAnimateur:  values.propositionAnimateur,
+        animateurs:            serializeActeurs(values.animateurs),
+        enseignants:           serializeActeurs(values.enseignants),
         dateDebut:             values.dateDebut  ? values.dateDebut.format("YYYY-MM-DD")  : undefined,
         dateFin:               values.dateFin    ? values.dateFin.format("YYYY-MM-DD")    : undefined,
         priorite:              values.priorite,
@@ -269,6 +277,8 @@ export function useBesoinForm() {
     setCompSearch,
     departements,
     ups,
+    acteurOptions,
+    enseignantsLoading,
     handleCompetenceChange,
     handleSubmit,
     next,

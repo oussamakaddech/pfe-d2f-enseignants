@@ -95,6 +95,12 @@ public class BesoinFormationResponse {
 
     private String customPeriodLabel;
 
+    @Schema(description = "Animateurs proposés (une ligne \"Nom Prénom <email>\" par animateur)")
+    private String animateurs;
+
+    @Schema(description = "Enseignants participants proposés (une ligne \"Nom Prénom <email>\" par enseignant)")
+    private String enseignants;
+
     @Schema(description = "Date de début (yyyy-MM-dd)", example = "2026-09-01")
     private String dateDebut;
 

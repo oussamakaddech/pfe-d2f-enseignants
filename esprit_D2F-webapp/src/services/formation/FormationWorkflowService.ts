@@ -120,7 +120,11 @@ const FormationWorkflowService = {
   },
 
   async getAllFormationWithDocuments(): Promise<Formation[]> {
-    const response = await axios.get<Formation[]>(`${API_URL}/with-documents`);
+    // L'endpoint est paginé (défaut 20) ; on demande une grande page pour
+    // récupérer toutes les formations avec leurs documents en un seul appel.
+    const response = await axios.get<Formation[]>(`${API_URL}/with-documents`, {
+      params: { size: 1000 },
+    });
     return normalizeListResponse(response.data);
   },
 

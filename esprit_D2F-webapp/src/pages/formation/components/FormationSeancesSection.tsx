@@ -14,6 +14,8 @@ interface FormationSeancesSectionProps {
   optionsAnim: EnseignantItem[];
   optionsPart: EnseignantItem[];
   getEnseignantLabel: (e: EnseignantItem | null) => string;
+  animSel: EnseignantItem[];
+  setAnimSel: (v: EnseignantItem[]) => void;
   partSel: EnseignantItem[];
   setPartSel: (v: EnseignantItem[]) => void;
   partFilterUp: UPItem | null;
@@ -32,7 +34,7 @@ const { Title, Text } = Typography;
 export default function FormationSeancesSection({
   seances, addSeance, updateSeance, removeSeance, toggleSeance,
   overlapWarnings, typeFormation, optionsAnim, optionsPart, getEnseignantLabel,
-  partSel, setPartSel, partFilterUp, setPartFilterUp, partFilterDept, setPartFilterDept,
+  animSel, setAnimSel, partSel, setPartSel, partFilterUp, setPartFilterUp, partFilterDept, setPartFilterDept,
   ups, depts, handleFile, onOpenUpload, onOpenDocModal,
 }: Readonly<FormationSeancesSectionProps>) {
   return (
@@ -44,9 +46,6 @@ export default function FormationSeancesSection({
             key={s.idSeance || s.id}
             seance={s}
             index={i}
-            typeFormation={typeFormation}
-            optionsAnim={optionsAnim}
-            getEnseignantLabel={getEnseignantLabel}
             onUpdate={(field, value) => updateSeance(i, field, value)}
             onRemove={() => removeSeance(i)}
             onToggle={() => toggleSeance(i)}
@@ -77,6 +76,24 @@ export default function FormationSeancesSection({
           <label htmlFor="upload-participants">
             <Button icon={<UploadOutlined />} danger type="primary">Importer Participants (Excel)</Button>
           </label>
+        </Col>
+
+        <Col span={24} style={{ marginTop: 24 }}>
+          <Title level={5}>Animateurs (Formateurs)</Title>
+          <Text type="secondary">
+            {typeFormation === "EXTERNE"
+              ? "Formation externe : renseignez l'animateur externe dans la section générale."
+              : "Sélectionner les animateurs de la formation"}
+          </Text>
+          <Select
+            mode="multiple"
+            disabled={typeFormation === "EXTERNE"}
+            options={optionsAnim.map((o) => ({ value: o.id, label: getEnseignantLabel(o) }))}
+            value={animSel.map((a) => a.id)}
+            onChange={(ids) => setAnimSel(optionsAnim.filter((o) => ids.includes(o.id)))}
+            style={{ width: "100%" }} optionFilterProp="label" showSearch
+            placeholder="Sélectionner les animateurs..."
+          />
         </Col>
 
         <Col span={24} style={{ marginTop: 24 }}>

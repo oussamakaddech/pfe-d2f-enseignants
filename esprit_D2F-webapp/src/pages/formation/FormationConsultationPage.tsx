@@ -24,6 +24,7 @@ import {
   FilterOutlined,
   ReloadOutlined,
   AppstoreOutlined,
+  FileTextOutlined,
 } from "@ant-design/icons";
 import { AppPageHeader, StatusBadge, EmptyState } from "@/components/common";
 import "@/styles/pages/formation-consultation-page.css";
@@ -33,6 +34,7 @@ import { useAuth } from "@/hooks/auth/useAuth";
 import {
   useAllFormations,
   useFormationsParDepartement,
+  useFormationsWithDocuments,
   useDeleteFormation,
   useExportFormations,
   useUps,
@@ -40,8 +42,10 @@ import {
   useProfile,
 } from "@/hooks/formation";
 import type { Formation } from "@/models/formation";
+import type { FormationDocument } from "@/models/document";
 import type { Id } from "@/models/common";
 import FormationWorkflowEditForm from "./FormationWorkflowEditForm";
+import DocumentConsultationModal from "@/pages/documentFormation/DocumentConsultationModal";
 import MailForm from "@/pages/besoin/MailForm";
 import useAppNotification from "@/hooks/ui/useAppNotification";
 
@@ -94,6 +98,15 @@ export default function FormationConsultationPage() {
     [isChefDept, deptId, formationsDept, formationsAll],
   );
 
+  const { data: formationsWithDocs = [] } = useFormationsWithDocuments();
+  const documentsByFormation = useMemo(() => {
+    const map = new Map<Id, FormationDocument[]>();
+    for (const f of formationsWithDocs) {
+      if (f.idFormation != null) map.set(f.idFormation, f.documents ?? []);
+    }
+    return map;
+  }, [formationsWithDocs]);
+
   const deleteMut = useDeleteFormation();
   const exportMut = useExportFormations();
 
@@ -125,6 +138,7 @@ export default function FormationConsultationPage() {
   const [openEdit, setOpenEdit] = useState(false);
   const [openExport, setOpenExport] = useState(false);
   const [openMail, setOpenMail] = useState(false);
+  const [docsModalFormation, setDocsModalFormation] = useState<Formation | null>(null);
 
   const [selectedFormation, setSelectedFormation] = useState<Formation | null>(null);
 
@@ -255,6 +269,27 @@ export default function FormationConsultationPage() {
       width: 120,
       render: (e: string) => e ? <StatusBadge status={e} /> : <Tag>—</Tag>,
       sorter: (a, b) => (a.etatFormation || "").localeCompare(b.etatFormation || ""),
+    },
+    {
+      title: "Documents",
+      key: "documents",
+      width: 120,
+      align: "center" as const,
+      render: (_, r) => {
+        const count = documentsByFormation.get(r.idFormation as Id)?.length ?? 0;
+        return (
+          <Button
+            type="text"
+            size="small"
+            icon={<FileTextOutlined />}
+            disabled={count === 0}
+            onClick={() => setDocsModalFormation(r)}
+            title={count > 0 ? "Consulter les documents" : "Aucun document"}
+          >
+            {count}
+          </Button>
+        );
+      },
     },
     {
       title: "Actions",
@@ -478,6 +513,14 @@ export default function FormationConsultationPage() {
             )}
           </Drawer>
         )}
+
+        {/* Modal Consultation Documents (lecture seule) */}
+        <DocumentConsultationModal
+          open={docsModalFormation != null}
+          onClose={() => setDocsModalFormation(null)}
+          titreFormation={docsModalFormation?.titreFormation}
+          documents={docsModalFormation ? (documentsByFormation.get(docsModalFormation.idFormation as Id) ?? []) : []}
+        />
 
         {/* Modal Export */}
         <Modal

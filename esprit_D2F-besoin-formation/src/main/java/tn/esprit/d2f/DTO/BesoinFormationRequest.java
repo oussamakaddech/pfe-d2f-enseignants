@@ -86,6 +86,13 @@ public class BesoinFormationRequest {
     private String impactStrategique;
     private Boolean estOuverte;
     private String autresInformations;
+
+    @Schema(description = "Animateurs proposés (une ligne \"Nom Prénom <email>\" par animateur)")
+    private String animateurs;
+
+    @Schema(description = "Enseignants participants proposés (une ligne \"Nom Prénom <email>\" par enseignant)")
+    private String enseignants;
+
     private PeriodCode periodCode;
     private String customPeriodLabel;
 

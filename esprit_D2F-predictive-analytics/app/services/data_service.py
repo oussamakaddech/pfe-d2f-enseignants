@@ -341,6 +341,7 @@ class DataService:
     """Service d'accès aux données en lecture sur la base D2F partagée."""
 
     DEFAULT_PAGE_SIZE = 500
+_LIMIT_OFFSET_CLAUSE = " LIMIT :limit OFFSET :offset"
 
     def __init__(self, db: Session):
         self.db = db
@@ -355,7 +356,7 @@ class DataService:
         query = REQUIRED_LEVELS_QUERY
         params: dict[str, Any] = {}
         if size > 0:
-            query += " LIMIT :limit OFFSET :offset"
+            query += _LIMIT_OFFSET_CLAUSE
             params["limit"] = size
             params["offset"] = page * size
         return execute_query(self.db, query, params)
@@ -367,7 +368,7 @@ class DataService:
         query = FORMATION_COMPETENCIES_QUERY
         params: dict[str, Any] = {}
         if size > 0:
-            query += " LIMIT :limit OFFSET :offset"
+            query += _LIMIT_OFFSET_CLAUSE
             params["limit"] = size
             params["offset"] = page * size
         return execute_query(self.db, query, params)
@@ -376,7 +377,7 @@ class DataService:
         query = FORMATIONS_ALL_QUERY
         params: dict[str, Any] = {}
         if size > 0:
-            query += " LIMIT :limit OFFSET :offset"
+            query += _LIMIT_OFFSET_CLAUSE
             params["limit"] = size
             params["offset"] = page * size
         return execute_query(self.db, query, params)
@@ -397,7 +398,7 @@ class DataService:
         query = EVALUATIONS_GLOBALES_QUERY
         params: dict[str, Any] = {}
         if size > 0:
-            query += " LIMIT :limit OFFSET :offset"
+            query += _LIMIT_OFFSET_CLAUSE
             params["limit"] = size
             params["offset"] = page * size
         return execute_query(self.db, query, params)

@@ -138,6 +138,18 @@ public class BesoinFormation extends BaseAuditEntity implements Serializable {
     @JsonProperty("autresInformations")
     String autresInformations ;
 
+    // ── Acteurs proposés : animateurs & enseignants participants ──
+    // Stockés en texte (une ligne "Nom Prénom <email>" par acteur), cohérent
+    // avec publicCible. Renseignés via les sélecteurs liés à la base enseignants.
+
+    @Column(columnDefinition = "TEXT", nullable = true)
+    @JsonProperty("animateurs")
+    String animateurs ;
+
+    @Column(columnDefinition = "TEXT", nullable = true)
+    @JsonProperty("enseignants")
+    String enseignants ;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = true)
     @JsonProperty("periodCode")

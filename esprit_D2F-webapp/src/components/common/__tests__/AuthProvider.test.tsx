@@ -1,6 +1,17 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+// Prevent the AuthProvider's silent refresh from hitting network during tests
+vi.mock('@/services/auth/AuthService', () => ({
+  refreshToken: vi.fn().mockResolvedValue({
+    userId: 1,
+    username: 'testuser',
+    role: 'USER',
+    email: 'test@example.com',
+    expiresIn: 3600,
+  }),
+  logout: vi.fn().mockResolvedValue({}),
+}));
 import AuthProvider from '@/context/AuthContext';
 import { useAuth } from '@/hooks/auth/useAuth';
 import type { AuthUser } from '@/models/auth';

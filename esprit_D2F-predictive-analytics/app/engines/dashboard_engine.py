@@ -56,7 +56,7 @@ class DashboardEngine:
             logger.warning("KPI '%s' indisponible : %s", name, exc)
             return default
 
-    def compute_all(self, formations: list[dict] | None = None) -> dict[str, Any]:
+    def compute_all(self) -> dict[str, Any]:
         kpis = {
             "competences_en_declin":         self._safe("competences_en_declin", self.competences_en_declin, []),
             "competences_en_demande":        self._safe("competences_en_demande", self.competences_en_demande, []),

@@ -6,10 +6,21 @@ import {
   UserOutlined,
   CalendarOutlined,
   TeamOutlined,
+  SolutionOutlined,
 } from "@ant-design/icons";
 import SectionLabel from "@/components/besoin/SectionLabel";
 
 const { Option } = Select;
+
+export interface ActeurOption {
+  value: string;
+  label: string;
+}
+
+interface BesoinDetailsStepProps {
+  acteurOptions: ActeurOption[];
+  acteursLoading?: boolean;
+}
 
 const PERIOD_OPTIONS = [
   { value: "WINTER",   label: "Winter" },
@@ -19,7 +30,7 @@ const PERIOD_OPTIONS = [
   { value: "OTHER",    label: "Autre" },
 ];
 
-export default function BesoinDetailsStep() {
+export default function BesoinDetailsStep({ acteurOptions, acteursLoading }: BesoinDetailsStepProps) {
   return (
     <div className="bf-step">
       <SectionLabel
@@ -30,6 +41,42 @@ export default function BesoinDetailsStep() {
       <Form.Item label="Proposition de formateur" name="propositionAnimateur">
         <Input placeholder="Nom du formateur proposé (optionnel)" size="large" prefix={<UserOutlined />} />
       </Form.Item>
+
+      <SectionLabel
+        icon={<SolutionOutlined />}
+        title="Acteurs proposés"
+        hint="Optionnel — sélectionnez les animateurs et enseignants depuis la base"
+      />
+      <Row gutter={[16, 12]}>
+        <Col xs={24} md={12}>
+          <Form.Item label="Animateurs proposés" name="animateurs">
+            <Select
+              mode="multiple"
+              size="large"
+              allowClear
+              loading={acteursLoading}
+              placeholder="Sélectionner les animateurs"
+              optionFilterProp="label"
+              options={acteurOptions}
+              maxTagCount="responsive"
+            />
+          </Form.Item>
+        </Col>
+        <Col xs={24} md={12}>
+          <Form.Item label="Enseignants participants" name="enseignants">
+            <Select
+              mode="multiple"
+              size="large"
+              allowClear
+              loading={acteursLoading}
+              placeholder="Sélectionner les enseignants"
+              optionFilterProp="label"
+              options={acteurOptions}
+              maxTagCount="responsive"
+            />
+          </Form.Item>
+        </Col>
+      </Row>
 
       <SectionLabel
         icon={<CalendarOutlined />}

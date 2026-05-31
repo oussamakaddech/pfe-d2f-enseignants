@@ -222,10 +222,13 @@ export function useFormationWorkflow(
     setPartSel(Object.values(pmap));
   }, [formation]);
 
-  // Conflict warnings auto-update
+  // Conflict warnings auto-update.
+  // Les animateurs sont gérés au niveau formation (animSel) : on les injecte
+  // dans chaque séance pour la détection de chevauchements.
   useEffect(() => {
-    setOverlapWarnings(buildConflictMessages(seances, partSel, existingFormations, formation));
-  }, [seances, partSel, existingFormations]); // eslint-disable-line react-hooks/exhaustive-deps
+    const seancesWithAnim = seances.map((s) => ({ ...s, animateurs: animSel }));
+    setOverlapWarnings(buildConflictMessages(seancesWithAnim, partSel, existingFormations, formation));
+  }, [seances, partSel, animSel, existingFormations]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Filtered options ──────────────────────────────────────────────────────
   const optionsAnim = ens.filter((x) => !x.upLibelle || true); // no filter on anim UP/dept
@@ -284,7 +287,9 @@ export function useFormationWorkflow(
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (seances.length === 0) { message.warning("Veuillez ajouter au moins une séance."); return; }
-    const conflicts = buildConflictMessages(seances, partSel, existingFormations, formation);
+    // Animateurs au niveau formation : appliqués à toutes les séances.
+    const seancesWithAnim = seances.map((s) => ({ ...s, animateurs: animSel }));
+    const conflicts = buildConflictMessages(seancesWithAnim, partSel, existingFormations, formation);
     if (conflicts.length > 0) {
       setOverlapWarnings(conflicts);
       message.error("Conflits détectés: corrigez les dates/salles/personnes avant mise à jour.");
@@ -301,7 +306,8 @@ export function useFormationWorkflow(
       coutTransport, coutHebergement, coutRepas, periodCode, customPeriodLabel,
       seances: seances.map((s) => ({
         idSeance: s.idSeance, dateSeance: s.dateSeance, heureDebut: s.heureDebut, heureFin: s.heureFin,
-        salle: s.salle, animateursIds: s.animateurs.map((a) => a.id),
+        // Animateurs gérés au niveau formation → appliqués à chaque séance
+        salle: s.salle, animateursIds: animSel.map((a) => a.id),
         typeSeance: s.typeSeance, contenus: s.contenus, methodes: s.methodes,
         dureeTheorique: s.dureeTheorique, dureePratique: s.dureePratique,
       })),

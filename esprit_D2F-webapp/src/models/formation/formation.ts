@@ -55,6 +55,7 @@ export interface Formation {
   populationCible?: string;
   periodeFormation?: string;
   seances?: Seance[];
+  documents?: import("../document").FormationDocument[];
 }
 
 
