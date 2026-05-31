@@ -62,7 +62,7 @@ const GapHeatmap = memo(function GapHeatmap({ data, maxGap = 5 }: GapHeatmapProp
         return { style: { background: gapColor(v, maxGap), padding: 6 } };
       },
       render: (v?: number) =>
-        v != null ? <span style={{ fontWeight: 600 }}>{Number(v).toFixed(1)}</span> : "",
+        v == null ? "" : <span style={{ fontWeight: 600 }}>{Number(v).toFixed(1)}</span>,
     }));
 
     return [

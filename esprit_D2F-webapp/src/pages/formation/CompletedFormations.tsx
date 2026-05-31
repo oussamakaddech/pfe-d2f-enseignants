@@ -153,7 +153,6 @@ export default function CompletedFormations() {
     try {
       const formation = formations.find((f) => f.idFormation === newCertFormationId);
       if (!formation) return;
-      const ens = selectedNewCertEns;
       await generateCertMut.mutateAsync(formation.idFormation!);
       message.success("Certificat créé !");
       setNewCertDrawerVisible(false);

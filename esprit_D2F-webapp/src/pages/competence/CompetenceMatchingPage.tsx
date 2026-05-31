@@ -80,7 +80,8 @@ export default function CompetenceMatchingPage() {
     dispatch({ type: "ASSIGN_SAVOIR", payload: { savoirId: sId, enseignantId: ensId } });
     const savoir = stateRef.current.savoirs.find((x) => String(x.id) === sId);
     const teacher = teacherById.get(ensId);
-    message.success(`${savoir?.code ?? sId} → ${teacher ? `${teacher.prenom} ${teacher.nom}`.trim() : ensId}`, 2);
+    const teacherName = teacher ? `${teacher.prenom} ${teacher.nom}`.trim() : ensId;
+    message.success(`${savoir?.code ?? sId} → ${teacherName}`, 2);
     handleDragEnd();
   }, [teacherById, handleDragEnd, message]);
 
@@ -159,7 +160,7 @@ export default function CompetenceMatchingPage() {
     state.enseignants.forEach((e) => map.set(String(e.id), []));
     (state.savoirs || []).forEach((s) => {
       (state.assignments[String(s.id)] ?? []).forEach((ensId) => {
-        const k = String(ensId); if (!map.has(k)) map.set(k, []); map.get(k)!.push(s);
+        const k = String(ensId);         if (!map.has(k)) { map.set(k, []); } map.get(k)!.push(s);
       });
     });
     return map;
@@ -174,8 +175,94 @@ export default function CompetenceMatchingPage() {
     return list;
   }, [state.enseignants, ensSearch, ensSort, assignmentCountByEns]);
 
+  let savoirsContent;
+  if (state.loading.data) {
+    savoirsContent = <Skeleton active paragraph={{ rows: 10 }} />;
+  } else if (filteredSavoirs.length === 0) {
+    savoirsContent = <Empty description="Aucun savoir trouvé" />;
+  } else {
+    savoirsContent = filteredSavoirs.map((s) => {
+      const sId = String(s.id);
+      const assigned = (state.assignments[sId] ?? []).map((id) => teacherById.get(id)).filter(Boolean) as RiceEnseignantEntry[];
+      return (
+        <div key={sId} className={`savoir-assignment-card ${assigned.length > 0 ? "assigned" : "unassigned"} ${draggingId === sId ? "dragging" : ""}`}
+          draggable role="button" tabIndex={0} onKeyDown={() => {}} onDragStart={(e) => { e.dataTransfer.setData("text/plain", JSON.stringify({ savoirId: String(s.id), code: s.code, action: "assign" })); e.dataTransfer.effectAllowed = "copy"; setDraggingId(String(s.id)); }} onDragEnd={handleDragEnd}>
+          <div className="savoir-card-header">
+            <span className="savoir-drag-handle"><HolderOutlined /></span>
+            <span className="savoir-code-label">{s.code as string}</span>
+            <span className="savoir-name-inline">{s.nom as string}</span>
+          </div>
+          {assigned.length > 0 && (
+            <div className="savoir-assigned-teachers">
+              {assigned.map((ens) => (
+                <Tag key={String(ens.id)} className="teacher-assignment-tag" closable onClose={makeUnassignHandler(String(s.id), String(ens.id))}>
+                  {ens.prenom} {ens.nom}
+                </Tag>
+              ))}
+            </div>
+          )}
+        </div>
+      );
+    });
+  }
+
+  let enseignantsContent;
+  if (state.loading.data) {
+    enseignantsContent = <Skeleton active avatar paragraph={{ rows: 10 }} />;
+  } else if (sortedEnseignants.length === 0) {
+    enseignantsContent = <Empty description="Aucun enseignant" />;
+  } else {
+    enseignantsContent = sortedEnseignants.map((ens) => {
+      const ensId = String(ens.id);
+      const count = assignmentCountByEns[ensId] ?? 0;
+      const loadPct = Math.round((count / Math.max(maxLoad, 1)) * 100);
+      const assigned = assignedSavoirsByEns.get(ensId) ?? [];
+      const initials = `${(ens.prenom as string)?.[0] ?? ""}${(ens.nom as string)?.[0] ?? ""}`.toUpperCase() || "?";
+      return (
+        <div key={ensId} className={`enseignant-assignment-card ${draggingId ? "drag-mode-active" : ""} ${dragOverEns === ensId ? "drag-over-target" : ""}`}
+          role="button" tabIndex={0} onKeyDown={() => {}}
+          onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "copy"; setDragOverEns(ensId); }}
+          onDragLeave={(e) => { const related = e.relatedTarget; if (related && e.currentTarget.contains(related as Node)) return; setDragOverEns(null); }}
+          onDrop={(e) => handleEnsDrop(e, ensId)}>
+          {dragOverEns === ensId && (
+            <div className="enseignant-drop-overlay">
+              <CheckCircleOutlined style={{ fontSize: 32, color: "#52c41a" }} />
+              <Text strong style={{ color: "#52c41a", marginTop: 8 }}>Relâcher pour assigner</Text>
+            </div>
+          )}
+          <div className="enseignant-card-header">
+            <div className="enseignant-avatar" style={{ backgroundColor: getAvatarColor(ensId) }}>{initials}</div>
+            <div className="enseignant-info-section">
+              <span className="enseignant-full-name">{ens.prenom as string} {ens.nom as string}</span>
+              <span className="enseignant-details-text">{(ens.departement as string) || "Département N/A"}</span>
+            </div>
+            <div className="enseignant-action-buttons">
+              <Button type="text" size="small" icon={<EditOutlined />} onClick={() => handleEditTeacher(ens)} />
+              <Button type="text" size="small" danger icon={<DeleteOutlined />} onClick={() => handleDeleteTeacher(ens)} />
+            </div>
+          </div>
+          <div className="enseignant-statistics-section">
+            <div className="enseignant-progress-section">
+              <Progress percent={loadPct} size="small" strokeColor={loadPct > 80 ? "var(--color-error)" : "var(--color-success)"} />
+            </div>
+            <Badge count={count} style={{ backgroundColor: count > 0 ? 'var(--color-info)' : 'var(--neutral-300)' }} />
+          </div>
+          {assigned.length > 0 && (
+            <div className="enseignant-assigned-savoirs" style={{ marginTop: 12 }}>
+              {assigned.map((sv) => (
+                <Tag key={String(sv.id)} color="blue" closable onClose={makeUnassignHandler(String(sv.id), ensId)} style={{ marginBottom: 4 }}>
+                  {sv.code as string}
+                </Tag>
+              ))}
+            </div>
+          )}
+        </div>
+      );
+    });
+  }
+
   return (
-    <div className={`competence-matching-page ${draggingId ? "is-dragging" : ""}`} onDragEnd={handleDragEnd}>
+    <div className={`competence-matching-page ${draggingId ? "is-dragging" : ""}`} role="none" onKeyDown={() => {}} onDragEnd={handleDragEnd}>
       <AppPageHeader
         icon={<ThunderboltOutlined />} title="Matchmaking & Affectations" subtitle="Assignez intelligemment les savoirs aux enseignants"
         actions={
@@ -197,31 +284,7 @@ export default function CompetenceMatchingPage() {
             </div>
           </div>
           <div className="panel-body-scrollable">
-            {state.loading.data ? <Skeleton active paragraph={{ rows: 10 }} /> :
-             filteredSavoirs.length === 0 ? <Empty description="Aucun savoir trouvé" /> :
-             filteredSavoirs.map((s) => {
-               const sId = String(s.id);
-               const assigned = (state.assignments[sId] ?? []).map((id) => teacherById.get(id)).filter(Boolean) as RiceEnseignantEntry[];
-               return (
-                 <div key={sId} className={`savoir-assignment-card ${assigned.length > 0 ? "assigned" : "unassigned"} ${draggingId === sId ? "dragging" : ""}`}
-                   draggable onDragStart={(e) => { e.dataTransfer.setData("text/plain", JSON.stringify({ savoirId: String(s.id), code: s.code, action: "assign" })); e.dataTransfer.effectAllowed = "copy"; setDraggingId(String(s.id)); }} onDragEnd={handleDragEnd}>
-                   <div className="savoir-card-header">
-                     <span className="savoir-drag-handle"><HolderOutlined /></span>
-                     <span className="savoir-code-label">{s.code as string}</span>
-                     <span className="savoir-name-inline">{s.nom as string}</span>
-                   </div>
-                   {assigned.length > 0 && (
-                     <div className="savoir-assigned-teachers">
-                       {assigned.map((ens) => (
-                         <Tag key={String(ens.id)} className="teacher-assignment-tag" closable onClose={makeUnassignHandler(String(s.id), String(ens.id))}>
-                           {ens.prenom} {ens.nom}
-                         </Tag>
-                       ))}
-                     </div>
-                   )}
-                 </div>
-               );
-             })}
+            {savoirsContent}
           </div>
         </section>
         <section className="matching-panel enseignants-list-panel">
@@ -233,54 +296,7 @@ export default function CompetenceMatchingPage() {
             </div>
           </div>
           <div className="panel-body-scrollable">
-            {state.loading.data ? <Skeleton active avatar paragraph={{ rows: 10 }} /> :
-             sortedEnseignants.length === 0 ? <Empty description="Aucun enseignant" /> :
-             sortedEnseignants.map((ens) => {
-               const ensId = String(ens.id);
-               const count = assignmentCountByEns[ensId] ?? 0;
-               const loadPct = Math.round((count / Math.max(maxLoad, 1)) * 100);
-               const assigned = assignedSavoirsByEns.get(ensId) ?? [];
-               const initials = `${(ens.prenom as string)?.[0] ?? ""}${(ens.nom as string)?.[0] ?? ""}`.toUpperCase() || "?";
-               return (
-                 <div key={ensId} className={`enseignant-assignment-card ${draggingId ? "drag-mode-active" : ""} ${dragOverEns === ensId ? "drag-over-target" : ""}`}
-                   onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "copy"; setDragOverEns(ensId); }}
-                   onDragLeave={(e) => { const related = e.relatedTarget; if (related && e.currentTarget.contains(related as Node)) return; setDragOverEns(null); }}
-                   onDrop={(e) => handleEnsDrop(e, ensId)}>
-                   {dragOverEns === ensId && (
-                     <div className="enseignant-drop-overlay">
-                       <CheckCircleOutlined style={{ fontSize: 32, color: "#52c41a" }} />
-                       <Text strong style={{ color: "#52c41a", marginTop: 8 }}>Relâcher pour assigner</Text>
-                     </div>
-                   )}
-                   <div className="enseignant-card-header">
-                     <div className="enseignant-avatar" style={{ backgroundColor: getAvatarColor(ensId) }}>{initials}</div>
-                     <div className="enseignant-info-section">
-                       <span className="enseignant-full-name">{ens.prenom as string} {ens.nom as string}</span>
-                       <span className="enseignant-details-text">{(ens.departement as string) || "Département N/A"}</span>
-                     </div>
-                     <div className="enseignant-action-buttons">
-                       <Button type="text" size="small" icon={<EditOutlined />} onClick={() => handleEditTeacher(ens)} />
-                       <Button type="text" size="small" danger icon={<DeleteOutlined />} onClick={() => handleDeleteTeacher(ens)} />
-                     </div>
-                   </div>
-                   <div className="enseignant-statistics-section">
-                     <div className="enseignant-progress-section">
-                       <Progress percent={loadPct} size="small" strokeColor={loadPct > 80 ? "var(--color-error)" : "var(--color-success)"} />
-                     </div>
-                     <Badge count={count} style={{ backgroundColor: count > 0 ? 'var(--color-info)' : 'var(--neutral-300)' }} />
-                   </div>
-                   {assigned.length > 0 && (
-                     <div className="enseignant-assigned-savoirs" style={{ marginTop: 12 }}>
-                       {assigned.map((sv) => (
-                         <Tag key={String(sv.id)} color="blue" closable onClose={makeUnassignHandler(String(sv.id), ensId)} style={{ marginBottom: 4 }}>
-                           {sv.code as string}
-                         </Tag>
-                       ))}
-                     </div>
-                   )}
-                 </div>
-               );
-             })}
+            {enseignantsContent}
           </div>
         </section>
       </div>

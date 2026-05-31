@@ -51,7 +51,7 @@ export function buildSousCompNode(sc: TreeNode, openNiveauModal: OpenNiveauModal
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
-            void openNiveauModal("sousCompetence", sc.id!, sc.nom ?? "");
+            openNiveauModal("sousCompetence", sc.id!, sc.nom ?? "");
           }}
         >
           Niveaux
@@ -81,7 +81,7 @@ export function buildCompetenceNode(comp: TreeNode, openNiveauModal: OpenNiveauM
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
-            void openNiveauModal("competence", comp.id!, comp.nom ?? "");
+            openNiveauModal("competence", comp.id!, comp.nom ?? "");
           }}
         >
           Niveaux

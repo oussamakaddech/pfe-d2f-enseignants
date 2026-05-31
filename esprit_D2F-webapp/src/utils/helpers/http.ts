@@ -23,6 +23,16 @@
  * @param {string}  fallback - Message par défaut si rien n'est résolu
  * @returns {string}
  */
+function extractMessageFromData(data: unknown): string | null {
+  if (typeof data === "string") { const t = data.trim(); return t.length > 0 ? t : null; }
+  if (data && typeof data === "object") {
+    const obj = data as Record<string, unknown>;
+    if (typeof obj.message === "string") { const t = obj.message.trim(); if (t.length > 0) return t; }
+    if (typeof obj.error === "string") { const t = obj.error.trim(); if (t.length > 0) return t; }
+  }
+  return null;
+}
+
 export const extractErrorMessage = (
   error: unknown,
   fallback = "Une erreur est survenue. Veuillez réessayer."
@@ -30,21 +40,13 @@ export const extractErrorMessage = (
   if (!error) return fallback;
 
   const errorObj = error as { response?: { data?: unknown }; message?: string } | null | undefined;
-  const data = errorObj?.response?.data;
+  const msg = extractMessageFromData(errorObj?.response?.data);
+  if (msg) return msg;
 
-  if (data) {
-    if (typeof data === "string" && data.trim().length > 0) return data.trim();
-    if (data && typeof data === "object") {
-      const dataObj = data as Record<string, unknown>;
-      if (typeof dataObj.message === "string" && dataObj.message.trim().length > 0)
-        return dataObj.message.trim();
-      if (typeof dataObj.error === "string" && dataObj.error.trim().length > 0)
-        return dataObj.error.trim();
-    }
+  if (errorObj && typeof errorObj.message === "string") {
+    const t = errorObj.message.trim();
+    if (t.length > 0) return t;
   }
-
-  if (errorObj && typeof errorObj.message === "string" && errorObj.message.trim().length > 0)
-    return errorObj.message.trim();
 
   return fallback;
 };

@@ -1,7 +1,7 @@
 import { memo } from "react";
 import type { ReactNode } from "react";
 import { Typography } from "antd";
-import { brand, neutral, radius } from "@/styles/themes/tokens";
+import { brand, neutral } from "@/styles/themes/tokens";
 import s from "./D2FPageHeader.module.css";
 
 const { Title, Text } = Typography;

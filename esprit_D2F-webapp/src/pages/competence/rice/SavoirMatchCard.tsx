@@ -32,12 +32,11 @@ function getNiveauMeta(niveau: string | number | undefined) {
   return hit ?? { label: niveau ? `N${niveau}` : "—", color: "default", emoji: "" };
 }
 
-function getTypeMeta(type: string | undefined) {
-  const t = type || "THEORIQUE";
+function getTypeMeta(type = "THEORIQUE") {
   return {
-    color: TYPE_COLOR[t as keyof typeof TYPE_COLOR] ?? "default",
-    icon: t === "PRATIQUE" ? <ExperimentOutlined /> : <BookOutlined />,
-    label: TYPE_LABEL[t as keyof typeof TYPE_LABEL] ?? t,
+    color: TYPE_COLOR[type as keyof typeof TYPE_COLOR] ?? "default",
+    icon: type === "PRATIQUE" ? <ExperimentOutlined /> : <BookOutlined />,
+    label: TYPE_LABEL[type as keyof typeof TYPE_LABEL] ?? type,
   };
 }
 

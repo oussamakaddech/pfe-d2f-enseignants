@@ -8,6 +8,7 @@ export function useStructureArbre() {
   const { message } = useAppNotification();
   const structureApi = useStructureApi();
   const niveauDefApi = useNiveauDefinitionApi();
+  const savoirApi = useSavoirApi();
 
   const [loading, setLoading] = useState(true);
   const [structure, setStructure] = useState<TreeNode[] | null>(null);
@@ -42,11 +43,11 @@ export function useStructureArbre() {
   }, [fetchStructure]);
 
   useEffect(() => {
-    useSavoirApi()
+    savoirApi
       .getAll()
       .then((s) => setAllSavoirs(s as Record<string, unknown>[]))
       .catch(() => {});
-  }, []);
+  }, [savoirApi]);
 
   // ── Search ──────────────────────────────────────────────────────────────
 

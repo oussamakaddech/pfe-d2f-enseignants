@@ -69,7 +69,7 @@ export default function Profile() {
       await editProfileApi(values);
       msgApi.success("Profil mis à jour !");
       setIsInfoDrawerOpen(false);
-      await loadProfile();
+      loadProfile();
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string } }; message?: string };
       msgApi.error(e.response?.data?.message || e.message || "Erreur de modification");

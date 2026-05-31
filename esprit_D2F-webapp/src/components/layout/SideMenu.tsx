@@ -10,7 +10,7 @@ import "@/styles/components/sidemenu.css";
 const { Text } = Typography;
 
 const normalizeRole = (value: unknown) =>
-  String(value || "")
+  String(value ?? "")
     .toLowerCase()
     .replace(/^role_?/, "")
     .replaceAll(/[\s_-]+/g, "");

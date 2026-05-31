@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback } from "react";
-import type { MutableRefObject } from "react";
+import type { RefObject } from "react";
 import type { RiceDomaine } from "@/models/competence";
 import type { AnalysisResult, EnseignantRef, ExtractedEnseignant } from "@/pages/competence/rice/riceTypes";
 import { cloneDeep } from "@/pages/competence/rice/constants";
@@ -27,12 +27,12 @@ interface UseRiceAnalysisParams {
   setTree: (tree: RiceDomaine[]) => void;
   setCurrentStep: (step: number) => void;
   setDepartement: (dept: string) => void;
-  skipHistoryRef: MutableRefObject<boolean>;
-  prevTreeRef: MutableRefObject<RiceDomaine[]>;
+  skipHistoryRef: RefObject<boolean>;
+  prevTreeRef: RefObject<RiceDomaine[]>;
 }
 
 function isLikelyValidExtractedName(value: unknown): boolean {
-  const name = String(value ?? "").trim();
+  const name = typeof value === "string" ? value.trim() : "";
   if (name.length < 5 || name.includes(":")) return false;
   if (/^(module|code|unite|unit[eé]|responsable|pr[ée]requis|niveaux|objectif)\b/i.test(name)) return false;
   if (name.toLowerCase().includes("module") && name.toLowerCase().includes("unite")) return false;

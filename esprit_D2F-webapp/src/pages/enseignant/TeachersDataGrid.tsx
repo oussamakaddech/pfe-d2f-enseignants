@@ -52,7 +52,7 @@ export default function TeachersDataGrid() {
     handleIgnoreExtract, handleDelete,
   } = useTeachersDataGrid();
 
-  const columns = useTeachersColumns({ onEdit: openEditModal, onDelete: handleDelete });
+  const columns = useTeachersColumns({ onEdit: openEditModal, onDelete: (record) => void handleDelete(record) });
 
   const rowSelection = {
     type: "radio" as const,
@@ -187,7 +187,7 @@ export default function TeachersDataGrid() {
             loading={isLoading}
             rowKey="id"
             pagination={{ pageSize: 10, showTotal: (total) => `${total} enseignant${total !== 1 ? "s" : ""}` }}
-            onRow={(record: Record<string, unknown>) => ({ onClick: () => navigate(`/home/calendar/${record.id}`) })}
+            onRow={(record: Record<string, unknown>) => ({ onClick: () => { navigate(`/home/calendar/${record.id}`); } })}
             style={{ cursor: "pointer" }}
           />
         </Card>

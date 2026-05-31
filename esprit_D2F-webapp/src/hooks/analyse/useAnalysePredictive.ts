@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import AnalysePredictiveService from "@/services/analyse/AnalysePredictiveService";
 import type {
-  AnalyseData, DecliningCompetency, InDemandCompetency, TeacherRiskIndicator, DriftReport,
+  DecliningCompetency, InDemandCompetency, TeacherRiskIndicator, DriftReport,
   GapHeatmapCell, RiskEvolutionPoint, TrainingEffectiveness, ModelPerformance,
 } from "@/models/analyse";
 

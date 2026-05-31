@@ -100,7 +100,12 @@ export function usePresenceList(seanceId: number | string) {
       Nom: p.enseignant?.nom || "",
       Prénom: p.enseignant?.prenom || "",
       Email: p.enseignant?.mail || "",
-      Type: p.enseignant?.type === "P" ? "Permanent" : p.enseignant?.type === "V" ? "Vacataire" : p.enseignant?.type || "",
+      Type: (() => {
+        const type = p.enseignant?.type;
+        if (type === "P") return "Permanent";
+        if (type === "V") return "Vacataire";
+        return type || "";
+      })(),
       Statut: p.presence ? "Présent" : "Absent",
       Commentaire: p.commentaire || "",
     }));

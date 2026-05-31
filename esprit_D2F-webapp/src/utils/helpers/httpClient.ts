@@ -25,6 +25,28 @@ function shouldShowNetworkErrorToast(): boolean {
   return true;
 }
 
+function handle401(error: AxiosError, isFormationApi: boolean): void {
+  if (isFormationApi) return;
+  try { globalThis.dispatchEvent(new Event("auth:loggedOut")); } catch { /* ignore */ }
+  const isAlreadyOnLogin =
+    globalThis.location.pathname === "/" ||
+    globalThis.location.pathname.startsWith("/login") ||
+    globalThis.location.pathname.startsWith("/auth");
+  if (!isAlreadyOnLogin) navigate("/", { replace: true });
+}
+
+function notifyUnexpectedError(err: AxiosError, status: number | undefined, serverMsg: string | undefined): void {
+  if (!err?.response) {
+    if (shouldShowNetworkErrorToast()) notify.error("Pas de connexion au serveur. Vérifiez votre réseau.");
+  } else if (status && status >= 500) {
+    notify.error(serverMsg || "Erreur serveur. Réessayez dans un instant.");
+  } else if (status === 403) {
+    notify.warning(serverMsg || "Accès refusé.");
+  } else if (status === 422) {
+    notify.warning(serverMsg || "Données invalides ou insuffisantes.");
+  }
+}
+
 export function createApiClient(baseURL?: string) {
   const api = axios.create({
     baseURL,
@@ -47,46 +69,13 @@ export function createApiClient(baseURL?: string) {
     (response: AxiosResponse) => response,
     (error: AxiosError) => {
       const status = error?.response?.status;
-      const url = error?.config?.url;
+      const urlStr = String(error?.config?.url || "");
+      const isFormationApi = (config?.FORMATION_URL && urlStr.includes(config.FORMATION_URL)) || urlStr.includes("/formation/");
 
-      const urlStr = String(url || "");
-      const isFormationApi =
-        (config?.FORMATION_URL && urlStr.includes(config.FORMATION_URL)) || urlStr.includes("/formation/");
-
-      if (status === 401) {
-        if (isFormationApi) {
-          return Promise.reject(error);
-        }
-
-        try {
-          globalThis.dispatchEvent(new Event("auth:loggedOut"));
-        } catch {
-          /* ignore */
-        }
-        const isAlreadyOnLogin =
-          globalThis.location.pathname === "/" ||
-          globalThis.location.pathname.startsWith("/login") ||
-          globalThis.location.pathname.startsWith("/auth");
-        if (!isAlreadyOnLogin) {
-          navigate("/", { replace: true });
-        }
-      } else if ((error?.config as { meta?: { silent?: boolean } })?.meta?.silent !== true) {
-        // Global UX feedback for unexpected errors. Callers can opt out by
-        // passing { meta: { silent: true } } when they handle the error themselves.
+      if (status === 401) { handle401(error, isFormationApi); }
+      else if ((error?.config as { meta?: { silent?: boolean } })?.meta?.silent !== true) {
         const serverMsg = (error?.response?.data as { message?: string })?.message;
-
-        if (!error?.response) {
-          if (shouldShowNetworkErrorToast()) {
-            notify.error("Pas de connexion au serveur. Vérifiez votre réseau.");
-          }
-        } else if (status && status >= 500) {
-          notify.error(serverMsg || "Erreur serveur. Réessayez dans un instant.");
-        } else if (status === 403) {
-          notify.warning(serverMsg || "Accès refusé.");
-        } else if (status === 422) {
-          notify.warning(serverMsg || "Données invalides ou insuffisantes.");
-        }
-        // 400/404/409 etc. are left to the caller for context-specific handling.
+        notifyUnexpectedError(error, status, serverMsg);
       }
       return Promise.reject(error);
     }

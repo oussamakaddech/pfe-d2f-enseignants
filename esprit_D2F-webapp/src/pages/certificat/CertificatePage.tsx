@@ -25,7 +25,7 @@ import CertificateEditorViewerItem from "./CertificateEditorViewerItem";
 import "@/styles/pages/gestion-certifications.css";
 
 const AVATAR_COLORS = ["#2563eb", "#7c3aed", "#059669", "#d97706", "#0891b2", "#db2777"];
-const colorFor = (s: string) => AVATAR_COLORS[[...s].reduce((a, c) => a + c.charCodeAt(0), 0) % AVATAR_COLORS.length];
+const colorFor = (s: string) => AVATAR_COLORS[[...s].reduce((a, c) => a + (c.codePointAt(0) ?? 0), 0) % AVATAR_COLORS.length];
 const initials = (c: Certificate) => `${(c.prenomEnseignant || " ")[0]}${(c.nomEnseignant || " ")[0]}`.toUpperCase().trim();
 const emailOf = (c: Certificate) => (c as unknown as Record<string, string>).mailEnseignant || "";
 const isAnimateur = (c: Certificate) => (c.roleEnFormation || "").toLowerCase().includes("animateur");
@@ -84,7 +84,8 @@ export default function CertificatePage() {
   }, [certificates, search, filterType, filterRole, filterFormation]);
 
   useEffect(() => {
-    setSelectedKeys((keys) => keys.filter((k) => rows.some((r) => r.key === k)));
+    const validKeys = new Set(rows.map((r) => r.key));
+    setSelectedKeys((keys) => keys.filter((k) => validKeys.has(k)));
   }, [rows]);
 
   const stats = useMemo(() => ({
@@ -105,7 +106,7 @@ export default function CertificatePage() {
     if (!c.idCertificate) return;
     deliver.mutate(c.idCertificate, {
       onSuccess: () => { message.success("Certificat délivré."); void refetch(); },
-      onError: () => message.error("Échec de la délivrance."),
+      onError: () => { message.error("Échec de la délivrance."); },
     });
   }, [deliver, message, refetch]);
 
@@ -129,7 +130,7 @@ export default function CertificatePage() {
         setGenOpen(false);
         void refetch();
       },
-      onError: () => message.error("Échec de la génération."),
+      onError: () => { message.error("Échec de la génération."); },
     });
   }, [generate, message, refetch]);
 
@@ -188,6 +189,34 @@ export default function CertificatePage() {
     },
     { title: "Actions", key: "actions", width: 150, align: "right", render: (_, c) => rowActions(c) },
   ];
+
+  let content: React.ReactNode;
+  if (view === "table") {
+    content = (
+      <Table<CertRow>
+        rowKey="key"
+        dataSource={rows}
+        columns={columns}
+        loading={loading}
+        rowSelection={{ selectedRowKeys: selectedKeys, onChange: setSelectedKeys }}
+        pagination={{ pageSize: 12, showSizeChanger: true, showTotal: (t) => `${t} certificat(s)` }}
+        locale={{ emptyText: <Empty className="gcert-empty" description="Aucun certificat pour ces critères." /> }}
+        scroll={{ x: "max-content" }}
+      />
+    );
+  } else if (rows.length === 0) {
+    content = <Empty className="gcert-empty" description="Aucun certificat pour ces critères." />;
+  } else {
+    content = (
+      <div className="gcert-grid">
+        {rows.map((c) => (
+          <CertCard key={c.key} cert={c} selectedKeys={selectedKeys} setSelectedKeys={setSelectedKeys}
+            typeTag={typeTag} roleTag={roleTag} handleDeliver={handleDeliver}
+            setPreview={setPreview} setEditing={setEditing} />
+        ))}
+      </div>
+    );
+  }
 
   return (
     <Layout className="gcert-page" style={{ background: "transparent" }}>
@@ -266,47 +295,7 @@ export default function CertificatePage() {
         </div>
       )}
 
-      {view === "table" ? (
-        <Table<CertRow>
-          rowKey="key"
-          dataSource={rows}
-          columns={columns}
-          loading={loading}
-          rowSelection={{ selectedRowKeys: selectedKeys, onChange: setSelectedKeys }}
-          pagination={{ pageSize: 12, showSizeChanger: true, showTotal: (t) => `${t} certificat(s)` }}
-          locale={{ emptyText: <Empty className="gcert-empty" description="Aucun certificat pour ces critères." /> }}
-          scroll={{ x: "max-content" }}
-        />
-      ) : rows.length === 0 ? (
-        <Empty className="gcert-empty" description="Aucun certificat pour ces critères." />
-      ) : (
-        <div className="gcert-grid">
-          {rows.map((c) => {
-            const selected = selectedKeys.includes(c.key);
-            return (
-              <div key={c.key} className={`gcert-card${selected ? " gcert-card--selected" : ""}`}>
-                <Checkbox className="gcert-card-checkbox" checked={selected}
-                  onChange={(e) => setSelectedKeys((ks) => e.target.checked ? [...ks, c.key] : ks.filter((k) => k !== c.key))} />
-                <div className="gcert-card-head">
-                  <div className="gcert-avatar" style={{ background: colorFor(c.nomEnseignant || "?") }}>{initials(c)}</div>
-                  <div style={{ minWidth: 0 }}>
-                    <div className="gcert-card-name">{c.prenomEnseignant} {c.nomEnseignant}</div>
-                    <div className="gcert-card-formation">{c.titreFormation || "—"}</div>
-                  </div>
-                </div>
-                <div className="gcert-card-tags">{typeTag(c)}{roleTag(c)}</div>
-                <div className="gcert-card-actions">
-                  <Button size="small" type="text" icon={<EyeOutlined />} onClick={() => setPreview(c)}>Aperçu</Button>
-                  <Button size="small" type="text" icon={<EditOutlined />} onClick={() => setEditing(c)} />
-                  <Popconfirm title="Délivrer ce certificat ?" okText="Délivrer" cancelText="Annuler" onConfirm={() => handleDeliver(c)}>
-                    <Button size="small" type="text" icon={<SendOutlined />} style={{ color: semantic.success }} />
-                  </Popconfirm>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
+      {content}
 
       {/* Aperçu PDF */}
       <Drawer title="Aperçu du certificat" open={!!preview} onClose={() => setPreview(null)}
@@ -329,6 +318,36 @@ export default function CertificatePage() {
       {/* Génération globale : choix d'une formation achevée */}
       <GenerateModal open={genOpen} pending={generate.isPending} onClose={() => setGenOpen(false)} onGenerate={runGenerate} />
     </Layout>
+  );
+}
+
+/* ── Carte certificat (grille) ────────────────────────────────────────────── */
+function CertCard({ cert, selectedKeys, setSelectedKeys, typeTag, roleTag, handleDeliver, setPreview, setEditing }: {
+  cert: CertRow; selectedKeys: React.Key[]; setSelectedKeys: React.Dispatch<React.SetStateAction<React.Key[]>>;
+  typeTag: (c: Certificate) => React.ReactNode; roleTag: (c: Certificate) => React.ReactNode;
+  handleDeliver: (c: Certificate) => void; setPreview: (c: Certificate | null) => void; setEditing: (c: Certificate | null) => void;
+}) {
+  const selected = selectedKeys.includes(cert.key);
+  return (
+    <div key={cert.key} className={`gcert-card${selected ? " gcert-card--selected" : ""}`}>
+      <Checkbox className="gcert-card-checkbox" checked={selected}
+        onChange={(e) => setSelectedKeys((ks) => e.target.checked ? [...ks, cert.key] : ks.filter((k) => k !== cert.key))} />
+      <div className="gcert-card-head">
+        <div className="gcert-avatar" style={{ background: colorFor(cert.nomEnseignant || "?") }}>{initials(cert)}</div>
+        <div style={{ minWidth: 0 }}>
+          <div className="gcert-card-name">{cert.prenomEnseignant} {cert.nomEnseignant}</div>
+          <div className="gcert-card-formation">{cert.titreFormation || "—"}</div>
+        </div>
+      </div>
+      <div className="gcert-card-tags">{typeTag(cert)}{roleTag(cert)}</div>
+      <div className="gcert-card-actions">
+        <Button size="small" type="text" icon={<EyeOutlined />} onClick={() => setPreview(cert)}>Aperçu</Button>
+        <Button size="small" type="text" icon={<EditOutlined />} onClick={() => setEditing(cert)} />
+        <Popconfirm title="Délivrer ce certificat ?" okText="Délivrer" cancelText="Annuler" onConfirm={() => handleDeliver(cert)}>
+          <Button size="small" type="text" icon={<SendOutlined />} style={{ color: semantic.success }} />
+        </Popconfirm>
+      </div>
+    </div>
   );
 }
 
