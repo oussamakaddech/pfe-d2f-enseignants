@@ -90,25 +90,29 @@ export function useRiceReport({ tree, departement, msgApi, onImportSuccess }: Us
     queryClient.setQueryData(["rice-import-history"], data);
   }, [queryClient]);
 
+  const buildSousCompetencePayload = (sc: RiceSousCompetence) => ({
+    code: sc.code,
+    nom: sc.nom,
+    description: sc.description ?? null,
+    savoirs: buildSavoirPayload(sc.savoirs),
+  });
+
+  const buildCompetencePayload = (c: RiceCompetence) => ({
+    code: c.code,
+    nom: c.nom,
+    description: c.description ?? null,
+    ordre: c.ordre ?? 1,
+    savoirs: buildSavoirPayload(c.savoirs),
+    sousCompetences: (c.sousCompetences ?? []).map(buildSousCompetencePayload),
+  });
+
   const handleImport = useCallback(async () => {
     const payload: Record<string, unknown> = {
       domaines: tree.map((d: RiceDomaine) => ({
         code: d.code,
         nom: d.nom,
         description: d.description ?? null,
-        competences: (d.competences ?? []).map((c: RiceCompetence) => ({
-          code: c.code,
-          nom: c.nom,
-          description: c.description ?? null,
-          ordre: c.ordre ?? 1,
-          savoirs: buildSavoirPayload(c.savoirs),
-          sousCompetences: (c.sousCompetences ?? []).map((sc: RiceSousCompetence) => ({
-            code: sc.code,
-            nom: sc.nom,
-            description: sc.description ?? null,
-            savoirs: buildSavoirPayload(sc.savoirs),
-          })),
-        })),
+        competences: (d.competences ?? []).map(buildCompetencePayload),
       })),
       departement: departement !== "auto" ? departement : undefined,
     };

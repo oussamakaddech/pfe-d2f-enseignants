@@ -16,21 +16,19 @@ const { RangePicker } = DatePicker;
 
 const LOCALSTORAGE_KEY = "metricCardsConfiguration";
 
+function pushFilterPart<T>(parts: string[], value: T | null | undefined, label: string, fmt: (v: T) => string): void {
+  if (value !== null && value !== undefined) parts.push(`${label}=${fmt(value)}`);
+}
+
 function buildGenericTitleParts(filters: CardFilters, upsOptions: NamedOption[], deptsOptions: NamedOption[]): string[] {
   const { domaine, upId, deptId, ouverte, start, end, etat } = filters;
   const parts: string[] = [];
-  if (domaine) parts.push(`Domaine=${domaine}`);
-  if (upId !== null && upId !== undefined) {
-    const upItem = upsOptions.find((u) => u.id === upId);
-    parts.push(`UP=${upItem ? upItem.libelle : upId}`);
-  }
-  if (deptId !== null && deptId !== undefined) {
-    const deptItem = deptsOptions.find((d) => d.id === deptId);
-    parts.push(`Dépt=${deptItem ? deptItem.libelle : deptId}`);
-  }
-  if (ouverte !== null && ouverte !== undefined) parts.push(`Ouverte=${ouverte ? "Oui" : "Non"}`);
+  pushFilterPart(parts, domaine, "Domaine", (v) => v);
+  pushFilterPart(parts, upId, "UP", (v) => { const i = upsOptions.find((u) => u.id === v); return i ? i.libelle : String(v); });
+  pushFilterPart(parts, deptId, "Dépt", (v) => { const i = deptsOptions.find((d) => d.id === v); return i ? i.libelle : String(v); });
+  pushFilterPart(parts, ouverte, "Ouverte", (v) => v ? "Oui" : "Non");
   if (start && end) parts.push(`Période=${start}→${end}`);
-  if (etat) parts.push(`État=${etat}`);
+  pushFilterPart(parts, etat, "État", (v) => v);
   return parts;
 }
 

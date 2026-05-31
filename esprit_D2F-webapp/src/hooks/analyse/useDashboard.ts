@@ -10,7 +10,7 @@ export function useDashboard() {
 
   const atRiskQ = useQuery<TeacherRiskProfile[]>({
     queryKey: ["teachers-at-risk"],
-    queryFn: () => AnalyticsService.getTeachersAtRisk(0.50),
+    queryFn: () => AnalyticsService.getTeachersAtRisk(0.5),
   });
 
   return {

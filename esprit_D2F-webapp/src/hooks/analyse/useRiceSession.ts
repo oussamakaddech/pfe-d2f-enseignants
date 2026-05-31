@@ -77,8 +77,8 @@ export function useRiceSession({
   const handleCtrlEnter = useCallback((e: KeyboardEvent) => {
     if (!(e.ctrlKey || e.metaKey) || e.key !== "Enter") return;
     e.preventDefault();
-    if (currentStep === 0 && filesCount > 0 && !analyzing) { void handleAnalyze(); return; }
-    if (currentStep === 3 && !importing) { void handleImport(); }
+    if (currentStep === 0 && filesCount > 0 && !analyzing) { handleAnalyze(); return; }
+    if (currentStep === 3 && !importing) { handleImport(); }
   }, [currentStep, filesCount, analyzing, importing, handleAnalyze, handleImport]);
 
   const handleEscape = useCallback((e: KeyboardEvent) => {

@@ -59,6 +59,44 @@ function isPreviewable(doc?: FormationDocument | null): boolean {
   return /\.pdf$|pdf|\.(png|jpe?g|gif|webp|svg)$|image/.test(name);
 }
 
+function obligationTag(ob?: boolean) {
+  return ob ? <Tag color="warning">Obligatoire</Tag> : <Tag>Facultatif</Tag>;
+}
+
+function typeTag(t?: string) {
+  return t
+    ? <Tag color={PATH_COLORS[t] ?? neutral[500]}>{PATH_OPTIONS.find((o) => o.value === t)?.label ?? t}</Tag>
+    : <Tag>—</Tag>;
+}
+
+function rowActions(
+  row: DocRow,
+  handleDownload: (row: DocRow) => void,
+  handleDelete: (row: DocRow) => void,
+  setPreview: (r: DocRow | null) => void,
+  setEditing: (r: DocRow | null) => void,
+) {
+  return (
+    <Space size={4}>
+      <Tooltip title="Aperçu">
+        <Button type="text" size="small" icon={<EyeOutlined />} onClick={() => setPreview(row)} />
+      </Tooltip>
+      <Tooltip title="Télécharger">
+        <Button type="text" size="small" icon={<DownloadOutlined />} onClick={() => handleDownload(row)} />
+      </Tooltip>
+      <Tooltip title="Modifier">
+        <Button type="text" size="small" icon={<EditOutlined />} onClick={() => setEditing(row)} />
+      </Tooltip>
+      <Popconfirm title="Supprimer ce document ?" okText="Supprimer" cancelText="Annuler"
+        okButtonProps={{ danger: true }} onConfirm={() => handleDelete(row)}>
+        <Tooltip title="Supprimer">
+          <Button type="text" size="small" danger icon={<DeleteOutlined />} />
+        </Tooltip>
+      </Popconfirm>
+    </Space>
+  );
+}
+
 export default function CombinedFormationOneDriveTree() {
   const { message } = useAppNotification();
   const { data: formationsData = [], isLoading, refetch } = useFormationsWithDocuments();
@@ -136,7 +174,7 @@ export default function CombinedFormationOneDriveTree() {
   const handleDownload = useCallback(
     (row: DocRow) => {
       downloadDoc.mutate(row.idDocument, {
-        onError: () => message.error("Échec du téléchargement."),
+        onError: () => { message.error("Échec du téléchargement."); },
       });
     },
     [downloadDoc, message],
@@ -146,7 +184,7 @@ export default function CombinedFormationOneDriveTree() {
     (row: DocRow) => {
       deleteDoc.mutate(row.idDocument, {
         onSuccess: () => { message.success("Document supprimé."); void refetch(); },
-        onError: () => message.error("Échec de la suppression."),
+        onError: () => { message.error("Échec de la suppression."); },
       });
     },
     [deleteDoc, message, refetch],
@@ -167,32 +205,6 @@ export default function CombinedFormationOneDriveTree() {
   const handleBulkDownload = useCallback(() => {
     selectedRows.forEach((r) => downloadDoc.mutate(r.idDocument));
   }, [selectedRows, downloadDoc]);
-
-  const obligationTag = (ob?: boolean) =>
-    ob ? <Tag color="warning">Obligatoire</Tag> : <Tag>Facultatif</Tag>;
-
-  const typeTag = (t?: string) =>
-    t ? <Tag color={PATH_COLORS[t] ?? neutral[500]}>{PATH_OPTIONS.find((o) => o.value === t)?.label ?? t}</Tag> : <Tag>—</Tag>;
-
-  const rowActions = (row: DocRow) => (
-    <Space size={4}>
-      <Tooltip title="Aperçu">
-        <Button type="text" size="small" icon={<EyeOutlined />} onClick={() => setPreview(row)} />
-      </Tooltip>
-      <Tooltip title="Télécharger">
-        <Button type="text" size="small" icon={<DownloadOutlined />} onClick={() => handleDownload(row)} />
-      </Tooltip>
-      <Tooltip title="Modifier">
-        <Button type="text" size="small" icon={<EditOutlined />} onClick={() => setEditing(row)} />
-      </Tooltip>
-      <Popconfirm title="Supprimer ce document ?" okText="Supprimer" cancelText="Annuler"
-        okButtonProps={{ danger: true }} onConfirm={() => handleDelete(row)}>
-        <Tooltip title="Supprimer">
-          <Button type="text" size="small" danger icon={<DeleteOutlined />} />
-        </Tooltip>
-      </Popconfirm>
-    </Space>
-  );
 
   const columns: ColumnsType<DocRow> = [
     {
@@ -228,8 +240,32 @@ export default function CombinedFormationOneDriveTree() {
       onFilter: (val, r) => Boolean(r.obligation) === val,
       render: obligationTag,
     },
-    { title: "Actions", key: "actions", width: 170, align: "right", render: (_, r) => rowActions(r) },
+    { title: "Actions", key: "actions", width: 170, align: "right", render: (_, r) => rowActions(r, handleDownload, handleDelete, setPreview, setEditing) },
   ];
+
+  const content = view === "table" ? (
+    <Table<DocRow>
+      rowKey="key"
+      dataSource={rows}
+      columns={columns}
+      loading={isLoading}
+      rowSelection={{ selectedRowKeys: selectedKeys, onChange: setSelectedKeys }}
+      pagination={{ pageSize: 12, showSizeChanger: true, showTotal: (t) => `${t} document(s)` }}
+      locale={{ emptyText: <Empty className="gdoc-empty" description="Aucun document pour ces critères." /> }}
+      scroll={{ x: "max-content" }}
+    />
+  ) : rows.length === 0 ? (
+    <Empty className="gdoc-empty" description="Aucun document pour ces critères." />
+  ) : (
+    <div className="gdoc-grid">
+      {rows.map((r) => (
+        <DocCard key={r.key} row={r} selectedKeys={selectedKeys} setSelectedKeys={setSelectedKeys}
+          typeTag={typeTag} obligationTag={obligationTag}
+          setPreview={setPreview} handleDownload={handleDownload}
+          setEditing={setEditing} handleDelete={handleDelete} />
+      ))}
+    </div>
+  );
 
   return (
     <Layout className="gdoc-page" style={{ background: "transparent" }}>
@@ -302,50 +338,7 @@ export default function CombinedFormationOneDriveTree() {
         </div>
       )}
 
-      {view === "table" ? (
-        <Table<DocRow>
-          rowKey="key"
-          dataSource={rows}
-          columns={columns}
-          loading={isLoading}
-          rowSelection={{ selectedRowKeys: selectedKeys, onChange: setSelectedKeys }}
-          pagination={{ pageSize: 12, showSizeChanger: true, showTotal: (t) => `${t} document(s)` }}
-          locale={{ emptyText: <Empty className="gdoc-empty" description="Aucun document pour ces critères." /> }}
-          scroll={{ x: "max-content" }}
-        />
-      ) : rows.length === 0 ? (
-        <Empty className="gdoc-empty" description="Aucun document pour ces critères." />
-      ) : (
-        <div className="gdoc-grid">
-          {rows.map((r) => {
-            const m = fileMeta(r);
-            const selected = selectedKeys.includes(r.key);
-            return (
-              <div key={r.key} className={`gdoc-card${selected ? " gdoc-card--selected" : ""}`}>
-                <Checkbox className="gdoc-card-checkbox" checked={selected}
-                  onChange={(e) => setSelectedKeys((ks) => e.target.checked ? [...ks, r.key] : ks.filter((k) => k !== r.key))} />
-                <div className="gdoc-card-head">
-                  <div className="gdoc-fileicon" style={{ background: `${m.color}14`, color: m.color }}>{m.icon}</div>
-                  <div style={{ minWidth: 0 }}>
-                    <div className="gdoc-card-title">{r.nomDocument || "Sans nom"}</div>
-                    <div className="gdoc-card-formation">{r.formationTitre}</div>
-                  </div>
-                </div>
-                <div className="gdoc-card-tags">{typeTag(r.pathType)}{obligationTag(r.obligation)}</div>
-                <div className="gdoc-card-actions">
-                  <Button size="small" type="text" icon={<EyeOutlined />} onClick={() => setPreview(r)}>Aperçu</Button>
-                  <Button size="small" type="text" icon={<DownloadOutlined />} onClick={() => handleDownload(r)} />
-                  <Button size="small" type="text" icon={<EditOutlined />} onClick={() => setEditing(r)} />
-                  <Popconfirm title="Supprimer ce document ?" okText="Supprimer" cancelText="Annuler"
-                    okButtonProps={{ danger: true }} onConfirm={() => handleDelete(r)}>
-                    <Button size="small" type="text" danger icon={<DeleteOutlined />} />
-                  </Popconfirm>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
+      {content}
 
       {/* Upload (drag & drop) */}
       <UploadModal
@@ -402,6 +395,40 @@ export default function CombinedFormationOneDriveTree() {
         )}
       </Drawer>
     </Layout>
+  );
+}
+
+/* ── Carte document (grille) ──────────────────────────────────────────────── */
+function DocCard({ row, selectedKeys, setSelectedKeys, typeTag, obligationTag, setPreview, handleDownload, setEditing, handleDelete }: {
+  row: DocRow; selectedKeys: React.Key[]; setSelectedKeys: React.Dispatch<React.SetStateAction<React.Key[]>>;
+  typeTag: (t?: string) => React.ReactNode; obligationTag: (ob?: boolean) => React.ReactNode;
+  setPreview: (r: DocRow | null) => void; handleDownload: (r: DocRow) => void;
+  setEditing: (r: DocRow | null) => void; handleDelete: (r: DocRow) => void;
+}) {
+  const m = fileMeta(row);
+  const selected = selectedKeys.includes(row.key);
+  return (
+    <div key={row.key} className={`gdoc-card${selected ? " gdoc-card--selected" : ""}`}>
+      <Checkbox className="gdoc-card-checkbox" checked={selected}
+        onChange={(e) => setSelectedKeys((ks) => e.target.checked ? [...ks, row.key] : ks.filter((k) => k !== row.key))} />
+      <div className="gdoc-card-head">
+        <div className="gdoc-fileicon" style={{ background: `${m.color}14`, color: m.color }}>{m.icon}</div>
+        <div style={{ minWidth: 0 }}>
+          <div className="gdoc-card-title">{row.nomDocument || "Sans nom"}</div>
+          <div className="gdoc-card-formation">{row.formationTitre}</div>
+        </div>
+      </div>
+      <div className="gdoc-card-tags">{typeTag(row.pathType)}{obligationTag(row.obligation)}</div>
+      <div className="gdoc-card-actions">
+        <Button size="small" type="text" icon={<EyeOutlined />} onClick={() => setPreview(row)}>Aperçu</Button>
+        <Button size="small" type="text" icon={<DownloadOutlined />} onClick={() => handleDownload(row)} />
+        <Button size="small" type="text" icon={<EditOutlined />} onClick={() => setEditing(row)} />
+        <Popconfirm title="Supprimer ce document ?" okText="Supprimer" cancelText="Annuler"
+          okButtonProps={{ danger: true }} onConfirm={() => handleDelete(row)}>
+          <Button size="small" type="text" danger icon={<DeleteOutlined />} />
+        </Popconfirm>
+      </div>
+    </div>
   );
 }
 

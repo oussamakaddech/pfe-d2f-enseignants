@@ -9,13 +9,19 @@ import "@/styles/pages/review-step.css";
 
 const { Text } = Typography;
 
+function collectSavoirs(c: { savoirs?: { enseignantsSuggeres?: unknown[] }[]; sousCompetences?: { savoirs?: { enseignantsSuggeres?: unknown[] }[] }[] }): { enseignantsSuggeres?: unknown[] }[] {
+  return [...(c.savoirs ?? []), ...(c.sousCompetences ?? []).flatMap((sc) => sc.savoirs ?? [])];
+}
+
 function collectOrphanIds(tree: DomaineNode[], validIds: Set<string>): Set<string> {
   const orphans = new Set<string>();
-  (tree ?? []).forEach((d) => (d.competences ?? []).forEach((c) => {
-    [...(c.savoirs ?? []), ...(c.sousCompetences ?? []).flatMap((sc) => sc.savoirs ?? [])].forEach((s) => {
-      (s.enseignantsSuggeres ?? []).forEach((id) => { const sid = String(id); if (!validIds.has(sid)) orphans.add(sid); });
-    });
-  }));
+  for (const d of tree ?? [])
+    for (const c of d.competences ?? [])
+      for (const s of collectSavoirs(c))
+        for (const id of s.enseignantsSuggeres ?? []) {
+          const sid = String(id);
+          if (!validIds.has(sid)) orphans.add(sid);
+        }
   return orphans;
 }
 
@@ -52,6 +58,12 @@ interface ReviewStepProps {
   setCreateEnsTarget?: (v: { path: number[] } | null) => void;
   setCreateEnsData?: (v: { nom: string; prenom: string; mail: string } | null) => void;
   setCreateEnsModal?: (v: boolean) => void;
+}
+
+function pushScOpts(opts: { label: string; value: string }[], d: DomaineNode, di: number, c: { code?: string }, ci: number): void {
+  opts.push({ label: `${d.code ?? ""} · ${c.code ?? ""}`, value: JSON.stringify([di, ci, -1]) });
+  for (const [sci, sc] of (c.sousCompetences ?? []).entries())
+    opts.push({ label: `${d.code ?? ""} · ${c.code ?? ""} · ${sc.code ?? ""}`, value: JSON.stringify([di, ci, sci]) });
 }
 
 export default function ReviewStep({
@@ -126,9 +138,10 @@ export default function ReviewStep({
     const invalid = new Set(Array.from(orphanIds));
     if (invalid.size === 0) return;
     const next = cloneDeep(tree) as DomaineNode[];
-    (next ?? []).forEach((d) => (d.competences ?? []).forEach((c) => {
-      [...(c.savoirs ?? []), ...(c.sousCompetences ?? []).flatMap((sc) => sc.savoirs ?? [])].forEach((s) => { s.enseignantsSuggeres = (s.enseignantsSuggeres ?? []).filter((id) => !invalid.has(String(id))); });
-    }));
+    for (const d of next ?? [])
+      for (const c of d.competences ?? [])
+        for (const s of collectSavoirs(c))
+          s.enseignantsSuggeres = (s.enseignantsSuggeres ?? []).filter((id) => !invalid.has(String(id)));
     setTree(next); message.success("IDs orphelins nettoyés");
   };
 
@@ -143,20 +156,18 @@ export default function ReviewStep({
 
   const copyResultText = async () => {
     const lines: string[] = [];
-    const ensMap = new Map(mergedEnseignants.map((e) => [String(e.id ?? e.enseignantId), e]));
     (tree ?? []).forEach((d) => { lines.push(`Domaine: ${d.code ?? ""} - ${d.nom ?? ""}`.trim()); });
     const text = lines.join("\n").trim();
     if (!text) { message.warning("Aucun résultat à copier"); return; }
     try { await navigator.clipboard.writeText(text); message.success("Texte du résultat copié"); } catch { message.error("Copie impossible"); }
-    void ensMap;
   };
+
 
   const scOptions = useMemo(() => {
     const opts: { label: string; value: string }[] = [];
-    (tree ?? []).forEach((d, di) => (d.competences ?? []).forEach((c, ci) => {
-      opts.push({ label: `${d.code ?? ""} · ${c.code ?? ""}`, value: JSON.stringify([di, ci, -1]) });
-      (c.sousCompetences ?? []).forEach((sc, sci) => opts.push({ label: `${d.code ?? ""} · ${c.code ?? ""} · ${sc.code ?? ""}`, value: JSON.stringify([di, ci, sci]) }));
-    }));
+    for (const [di, d] of (tree ?? []).entries())
+      for (const [ci, c] of (d.competences ?? []).entries())
+        pushScOpts(opts, d, di, c, ci);
     if (!selectedNode || selectedNode.type !== "savoir") return opts;
     const [srcDi, srcCi, srcSci] = selectedNode.path;
     return opts.filter((o) => { try { const arr = JSON.parse(o.value) as number[]; return !(arr[0] === srcDi && arr[1] === srcCi && arr[2] === srcSci); } catch { return true; } });

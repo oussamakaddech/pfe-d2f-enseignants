@@ -204,22 +204,20 @@ export function useRiceTree(msgApi: MessageInstance) {
   }, [updateTree, msgApi]);
 
   // ── remap enseignant ID in tree (called after identifing an ext_ teacher) ─
+  const replaceIdInArray = (ids: EnseignantId[] | undefined, from: EnseignantId, to: EnseignantId): void => {
+    if (!ids) return;
+    const idx = ids.indexOf(from);
+    if (idx !== -1) ids[idx] = to;
+  };
+
   const remapInTree = useCallback(
     (extId: EnseignantId, realId: EnseignantId) => {
       updateTree((t) => {
         for (const d of t)
           for (const c of d.competences ?? []) {
-            for (const s of c.savoirs ?? []) {
-              if (!s.enseignantsSuggeres) continue;
-              const idx = s.enseignantsSuggeres.indexOf(extId);
-              if (idx !== -1) s.enseignantsSuggeres[idx] = realId;
-            }
+            for (const s of c.savoirs ?? []) replaceIdInArray(s.enseignantsSuggeres, extId, realId);
             for (const sc of c.sousCompetences ?? [])
-              for (const s of sc.savoirs ?? []) {
-                if (!s.enseignantsSuggeres) continue;
-                const idx = s.enseignantsSuggeres.indexOf(extId);
-                if (idx !== -1) s.enseignantsSuggeres[idx] = realId;
-              }
+              for (const s of sc.savoirs ?? []) replaceIdInArray(s.enseignantsSuggeres, extId, realId);
           }
       });
     },

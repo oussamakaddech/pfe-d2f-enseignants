@@ -30,6 +30,41 @@ function sameTimeWindow(
 const intersects = (l: string[], r: string[]) => l.some((id) => r.includes(id));
 const normSalle   = (v: unknown)              => String(v || "").trim().toLowerCase();
 
+function checkTimeValidity(s: SeanceConflictItem, i: number, msgs: string[]): void {
+  const start = toMinutes(s.heureDebut), end = toMinutes(s.heureFin);
+  if (start !== null && end !== null && start >= end)
+    msgs.push(`Séance #${i + 1}: heure de fin doit être après l'heure de début.`);
+}
+
+function checkInternalConflict(
+  left: SeanceConflictItem, right: SeanceConflictItem, i: number, j: number,
+  participantIds: unknown[], msgs: string[],
+): void {
+  if (!sameTimeWindow(left, right)) return;
+  const ls = normSalle(left.salle), rs = normSalle(right.salle);
+  if (ls && rs && ls === rs)
+    msgs.push(`Conflit interne: les séances #${i + 1} et #${j + 1} utilisent la même salle au même horaire.`);
+  if (participantIds.length > 0)
+    msgs.push(`Conflit interne: les séances #${i + 1} et #${j + 1} se chevauchent pour les mêmes participants.`);
+  if (intersects(left.animateurIds, right.animateurIds))
+    msgs.push(`Conflit interne: les séances #${i + 1} et #${j + 1} se chevauchent pour un ou plusieurs animateurs.`);
+}
+
+function checkExternalConflict(
+  ls: SeanceConflictItem, idx: number, es: { dateSeance: string; heureDebut?: string; heureFin?: string; animateurs?: { id?: unknown }[] },
+  name: string, participantIds: unknown[], existParts: unknown[], msgs: string[],
+): void {
+  if (!sameTimeWindow(ls, es)) return;
+  const lSalle = normSalle(ls.salle), eSalle = normSalle(es.salle);
+  if (lSalle && eSalle && lSalle === eSalle)
+    msgs.push(`Conflit salle: séance #${idx + 1} chevauche la formation ${name} dans la salle ${ls.salle}.`);
+  if (participantIds.length > 0 && existParts.length > 0 && intersects(participantIds, existParts))
+    msgs.push(`Conflit participants: séance #${idx + 1} chevauche la formation ${name}.`);
+  const existAnimIds = (Array.isArray(es.animateurs) ? es.animateurs : []).map((a) => a?.id).filter(Boolean);
+  if (intersects(ls.animateurIds, existAnimIds))
+    msgs.push(`Conflit animateurs: séance #${idx + 1} chevauche la formation ${name}.`);
+}
+
 function buildConflictMessages(
   seances: SeanceState[],
   partSel: EnseignantItem[],
@@ -38,36 +73,15 @@ function buildConflictMessages(
 ): string[] {
   const participantIds = partSel.map((p) => p.id).filter(Boolean);
   const local: SeanceConflictItem[] = seances.map((s) => ({
-    dateSeance: s.dateSeance,
-    heureDebut: s.heureDebut,
-    heureFin: s.heureFin,
-    salle: s.salle,
-    animateurIds: (s.animateurs ?? []).map((a) => a?.id).filter(Boolean),
+    dateSeance: s.dateSeance, heureDebut: s.heureDebut, heureFin: s.heureFin,
+    salle: s.salle, animateurIds: (s.animateurs ?? []).map((a) => a?.id).filter(Boolean),
   }));
 
   const msgs: string[] = [];
-
-  // time validity
-  local.forEach((s, i) => {
-    const start = toMinutes(s.heureDebut), end = toMinutes(s.heureFin);
-    if (start !== null && end !== null && start >= end)
-      msgs.push(`Séance #${i + 1}: heure de fin doit être après l'heure de début.`);
-  });
-
-  // internal conflicts
+  local.forEach((s, i) => checkTimeValidity(s, i, msgs));
   for (let i = 0; i < local.length; i += 1)
-    for (let j = i + 1; j < local.length; j += 1) {
-      if (!sameTimeWindow(local[i], local[j])) continue;
-      const ls = normSalle(local[i].salle), rs = normSalle(local[j].salle);
-      if (ls && rs && ls === rs)
-        msgs.push(`Conflit interne: les séances #${i + 1} et #${j + 1} utilisent la même salle au même horaire.`);
-      if (participantIds.length > 0)
-        msgs.push(`Conflit interne: les séances #${i + 1} et #${j + 1} se chevauchent pour les mêmes participants.`);
-      if (intersects(local[i].animateurIds, local[j].animateurIds))
-        msgs.push(`Conflit interne: les séances #${i + 1} et #${j + 1} se chevauchent pour un ou plusieurs animateurs.`);
-    }
-
-  // external conflicts
+    for (let j = i + 1; j < local.length; j += 1)
+      checkInternalConflict(local[i], local[j], i, j, participantIds, msgs);
   existingFormations
     .filter((f) => (f.idFormation || f.id) !== formation.idFormation)
     .forEach((f) => {
@@ -78,21 +92,25 @@ function buildConflictMessages(
       ].map((p) => p?.id).filter(Boolean);
       const name = f.titreFormation || `#${f.idFormation || f.id || "?"}`;
       local.forEach((ls, idx) => {
-        existingSeances.forEach((es) => {
-          if (!sameTimeWindow(ls, es)) return;
-          const lSalle = normSalle(ls.salle), eSalle = normSalle(es.salle);
-          if (lSalle && eSalle && lSalle === eSalle)
-            msgs.push(`Conflit salle: séance #${idx + 1} chevauche la formation ${name} dans la salle ${ls.salle}.`);
-          if (participantIds.length > 0 && existParts.length > 0 && intersects(participantIds, existParts))
-            msgs.push(`Conflit participants: séance #${idx + 1} chevauche la formation ${name}.`);
-          const existAnimIds = (Array.isArray(es.animateurs) ? es.animateurs : []).map((a) => a?.id).filter(Boolean);
-          if (intersects(ls.animateurIds, existAnimIds))
-            msgs.push(`Conflit animateurs: séance #${idx + 1} chevauche la formation ${name}.`);
-        });
+        existingSeances.forEach((es) => checkExternalConflict(ls, idx, es, name, participantIds, existParts, msgs));
       });
     });
-
   return [...new Set(msgs)];
+}
+
+function getEnseignantLabel(opt: EnseignantItem | null) {
+  if (!opt) return "";
+  const roles: string[] = [];
+  if (opt.type === "P") roles.push("Perm.");
+  if (opt.type === "V") roles.push("Vac.");
+  if (["O", "Y", "1"].includes(opt.cup)) roles.push("CUP");
+  if (["O", "Y", "1"].includes(opt.chefDepartement)) roles.push("ChefDep");
+  return `${opt.nom} ${opt.prenom} (${opt.mail})${roles.length ? ` [${roles.join(", ")}]` : ""}`;
+}
+
+function extractUpdateError(err: unknown): string {
+  const error = err as { response?: { data?: { message?: string; error?: string } }; message?: string };
+  return error.response?.data?.message || error.response?.data?.error || error.message || "Erreur inconnue";
 }
 
 // ── Main hook ─────────────────────────────────────────────────────────────────
@@ -239,16 +257,6 @@ export function useFormationWorkflow(
   );
 
   // ── Helpers ───────────────────────────────────────────────────────────────
-  const getEnseignantLabel = (opt: EnseignantItem | null) => {
-    if (!opt) return "";
-    const roles: string[] = [];
-    if (opt.type === "P") roles.push("Perm.");
-    if (opt.type === "V") roles.push("Vac.");
-    if (["O", "Y", "1"].includes(opt.cup)) roles.push("CUP");
-    if (["O", "Y", "1"].includes(opt.chefDepartement)) roles.push("ChefDep");
-    return `${opt.nom} ${opt.prenom} (${opt.mail})${roles.length ? ` [${roles.join(", ")}]` : ""}`;
-  };
-
   const addSeance = () =>
     setSeances((s) => [
       ...s,
@@ -317,8 +325,7 @@ export function useFormationWorkflow(
       message.success("Formation mise à jour !");
       onFormationUpdated(res as unknown as Record<string, unknown>);
     } catch (err: unknown) {
-      const error = err as { response?: { data?: { message?: string; error?: string } }; message?: string };
-      message.error(error.response?.data?.message || error.response?.data?.error || error.message || "Erreur inconnue");
+      message.error(extractUpdateError(err));
     }
   };
 

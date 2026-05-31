@@ -10,7 +10,7 @@ interface PredictionScoreBarProps {
 
 function scoreToColor(v: number): string {
   if (v >= 0.75) return "#ef4444";
-  if (v >= 0.50) return "#f97316";
+  if (v >= 0.5) return "#f97316";
   if (v >= 0.25) return "#f59e0b";
   return "#10b981";
 }

@@ -63,7 +63,10 @@ function Warn($m) { Write-Host "[WARN] $m" -ForegroundColor Yellow }
 function Fail($m) { Write-Host "[FAIL] $m" -ForegroundColor Red }
 
 function Test-Wanted($mod) {
-    if ($Only.Count -gt 0 -and ($Only -notcontains $mod.Key)) { return $false }
+    if ($Only.Count -gt 0) {
+        $wanted = @($mod.Key, $mod.Path)
+        if (($Only | Where-Object { $wanted -contains $_ }).Count -eq 0) { return $false }
+    }
     if ($JavaOnly   -and $mod.Type -ne "java")   { return $false }
     if ($PythonOnly -and $mod.Type -ne "python") { return $false }
     if ($WebOnly    -and $mod.Type -ne "web")    { return $false }
@@ -72,6 +75,68 @@ function Test-Wanted($mod) {
 
 function Get-RatingLetter($v) {
     try { return [char](64 + [int][double]$v) } catch { return '-' }
+}
+
+function Get-SonarReportTaskPath {
+    param([hashtable]$Mod)
+    return (Join-Path $Mod.Path ".scannerwork\report-task.txt")
+}
+
+function Wait-ForSonarTask {
+    param(
+        [string]$TaskId,
+        [string]$Url,
+        [string]$Token,
+        [string]$LogPath,
+        [int]$TimeoutSeconds = 600
+    )
+
+    $pair = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes("${Token}:"))
+    $headers = @{ Authorization = "Basic $pair" }
+    $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
+
+    while ((Get-Date) -lt $deadline) {
+        try {
+            $resp = Invoke-RestMethod -Headers $headers -Uri "$Url/api/ce/task?id=$TaskId"
+            $task = $resp.task
+            if ($task.status -eq 'SUCCESS') {
+                if ($LogPath) { Write-LogLine $LogPath "[sonar] CE task $TaskId SUCCESS" }
+                return $true
+            }
+            if ($task.status -in @('FAILED', 'CANCELED')) {
+                $message = if ($task.errorMessage) { $task.errorMessage } else { "Sonar CE task $TaskId ended with status $($task.status)" }
+                throw $message
+            }
+        } catch {
+            if ($_.Exception.Message -notmatch '404') { throw }
+        }
+        Start-Sleep -Seconds 3
+    }
+
+    throw "Timeout while waiting for SonarQube task $TaskId"
+}
+
+function Wait-ForSonarCompletion {
+    param([hashtable]$Mod, [string]$Token, [string]$Url, [string]$LogPath)
+
+    $taskFile = Get-SonarReportTaskPath -Mod $Mod
+    if (-not (Test-Path $taskFile)) {
+        Warn "$($Mod.Key): report-task.txt not found, skipping CE wait"
+        return $false
+    }
+
+    $props = @{}
+    Get-Content $taskFile | ForEach-Object {
+        if ($_ -match '^([^=]+)=(.*)$') { $props[$matches[1]] = $matches[2] }
+    }
+
+    if (-not $props.ContainsKey('ceTaskId')) {
+        Warn "$($Mod.Key): report-task.txt missing ceTaskId, skipping CE wait"
+        return $false
+    }
+
+    Write-LogLine $LogPath "[sonar] Waiting for CE task $($props['ceTaskId'])..."
+    return (Wait-ForSonarTask -TaskId $props['ceTaskId'] -Url $Url -Token $Token -LogPath $LogPath)
 }
 
 # -- Prerequisites ------------------------------------------------------------
@@ -179,6 +244,9 @@ function Invoke-Web($mod) {
                           "-Dsonar.qualitygate.wait=false")
                 & sonar-scanner @scanArgs *>> $log
                 $rc = $LASTEXITCODE
+                if ($rc -eq 0) {
+                    Wait-ForSonarCompletion -Mod $mod -Token $SonarToken -Url $SonarUrl -LogPath $log | Out-Null
+                }
             }
         }
     } finally { Pop-Location }
@@ -218,6 +286,9 @@ function Invoke-Python($mod) {
                           "-Dsonar.qualitygate.wait=false")
                 & sonar-scanner @scanArgs *>> $log
                 $rc = $LASTEXITCODE
+                if ($rc -eq 0) {
+                    Wait-ForSonarCompletion -Mod $mod -Token $SonarToken -Url $SonarUrl -LogPath $log | Out-Null
+                }
             }
         }
     } finally { Pop-Location }
@@ -258,8 +329,7 @@ if ($NoSummary -or $SkipScan) {
     exit 0
 }
 
-Info "Waiting 15s for SonarQube to process reports..."
-Start-Sleep -Seconds 15
+Info "Reading SonarQube measures after CE completion..."
 
 Write-Host ""
 Write-Host ("{0,-32} | {1,-4} {2}" -f "Project","QG","Rel Sec Mai HotRev | Bugs Vulns Smells Cov%")

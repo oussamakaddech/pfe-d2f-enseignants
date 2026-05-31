@@ -71,7 +71,7 @@ export default function CompetencePage() {
   const {
     activeTab,
     handleTabChange,
-  } = useCompetencePageState({ crud, loadStructure: structure.loadStructure });
+  } = useCompetencePageState({ crud, loadStructure: () => void structure.loadStructure() });
 
   const consultationCrud = useMemo(() => ({
     domaines: crud.domaines || [],

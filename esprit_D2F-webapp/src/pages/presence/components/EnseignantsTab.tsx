@@ -63,7 +63,14 @@ export function EnseignantsTab({
       title: "Type", dataIndex: "type", key: "type", width: 120,
       render: (t: string) => {
         if (!t) return <Text type="secondary">—</Text>;
-        const label = t === "P" ? "Permanent" : t === "V" ? "Vacataire" : t;
+        let label: string;
+        if (t === "P") {
+          label = "Permanent";
+        } else if (t === "V") {
+          label = "Vacataire";
+        } else {
+          label = t;
+        }
         return <span className={t === "P" ? "fd-type-tag p" : "fd-type-tag v"}>{label}</span>;
       },
       filters: [{ text: "Permanent", value: "P" }, { text: "Vacataire", value: "V" }],
@@ -86,7 +93,14 @@ export function EnseignantsTab({
     {
       title: "Taux", dataIndex: "taux", key: "taux", width: 160,
       render: (t: number) => {
-        const strokeColor = t < 50 ? "#ef4444" : t < 75 ? "#f59e0b" : "#10b981";
+        let strokeColor: string;
+        if (t < 50) {
+          strokeColor = "#ef4444";
+        } else if (t < 75) {
+          strokeColor = "#f59e0b";
+        } else {
+          strokeColor = "#10b981";
+        }
         return <Progress percent={t} size="small" strokeColor={strokeColor} format={(p) => `${p}%`} />;
       },
       sorter: (a: EnseignantWithStats, b: EnseignantWithStats) => a.taux - b.taux,

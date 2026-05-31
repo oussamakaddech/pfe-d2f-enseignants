@@ -14,21 +14,20 @@ interface WizardStepperProps {
 
 const WizardStepper = memo(function WizardStepper({ steps, activeStep }: WizardStepperProps) {
   return (
-    <div className="wf-stepper" role="list" aria-label="Étapes du formulaire">
+    <ol className="wf-stepper" aria-label="Étapes du formulaire">
       {steps.map((s, i) => (
-        <div
+        <li
           key={s.title}
           className={`wf-step${i === activeStep ? " active" : ""}${i < activeStep ? " done" : ""}`}
-          role="listitem"
           aria-current={i === activeStep ? "step" : undefined}
         >
           <div className="wf-step-circle" aria-hidden="true">
             {i < activeStep ? <CheckOutlined /> : s.icon}
           </div>
           <span className="wf-step-label">{s.title}</span>
-        </div>
+        </li>
       ))}
-    </div>
+    </ol>
   );
 });
 

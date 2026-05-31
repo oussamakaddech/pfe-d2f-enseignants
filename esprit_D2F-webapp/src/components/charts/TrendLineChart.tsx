@@ -44,10 +44,9 @@ const TrendLineChart = memo(function TrendLineChart({ data, height = 220 }: Tren
 
   return (
     <div style={{ overflowX: "auto" }}>
-      <svg width={view.width} height={height} role="img" aria-label="Évolution mensuelle du risque">
-        {/* Lignes de grille horizontales */}
+      <svg width={view.width} height={height} aria-label="Évolution mensuelle du risque">
         {gridLines.map((y, i) => (
-          <line key={i} x1={view.padX} y1={y} x2={view.width - view.padX} y2={y}
+          <line key={y} x1={view.padX} y1={y} x2={view.width - view.padX} y2={y}
             stroke="#e5e7eb" strokeWidth={1} strokeDasharray={i === gridLines.length - 1 ? "0" : "3 3"} />
         ))}
         {(["high", "critical"] as const).map((key) => (
@@ -55,11 +54,10 @@ const TrendLineChart = memo(function TrendLineChart({ data, height = 220 }: Tren
             <path d={view.buildPath(key)} fill="none" stroke={COLORS[key]} strokeWidth={2.5} />
             {data.map((d, i) => {
               const { x, y } = view.toXY(i, d[key]);
-              return <circle key={i} cx={x} cy={y} r={3.5} fill={COLORS[key]} />;
+              return <circle key={`${key}-${d.month}`} cx={x} cy={y} r={3.5} fill={COLORS[key]} />;
             })}
           </g>
         ))}
-        {/* Labels des mois */}
         {data.map((d, i) => {
           const x = view.padX + i * view.stepX;
           return (

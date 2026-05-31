@@ -1,5 +1,13 @@
-import { Button, Card, Space, Typography } from "antd";
-import { LoadingOutlined, MergeCellsOutlined, RobotOutlined, ThunderboltOutlined } from "@ant-design/icons";
+import { Button, Space, Typography } from "antd";
+import {
+  FileTextOutlined,
+  LoadingOutlined,
+  MergeCellsOutlined,
+  ReloadOutlined,
+  RobotOutlined,
+  TeamOutlined,
+  ThunderboltOutlined,
+} from "@ant-design/icons";
 import type { EnseignantRef } from "./riceTypes";
 
 interface LiveStats {
@@ -25,27 +33,39 @@ interface RiceHeroSectionProps {
   onReset: () => void;
 }
 
-const { Text, Title, Paragraph } = Typography;
+const { Text, Title } = Typography;
+
+const METRIC_ICONS = [
+  <FileTextOutlined key="files"  style={{ fontSize: 20 }} />,
+  <TeamOutlined    key="ens"    style={{ fontSize: 20 }} />,
+  <ThunderboltOutlined key="sav" style={{ fontSize: 20 }} />,
+  <RobotOutlined   key="aff"   style={{ fontSize: 20 }} />,
+];
 
 export default function RiceHeroSection({
   currentDeptLabel, filesCount, currentStep, stepsCount, currentStageTitle,
   liveStats, allEnseignants, ignoreEnseignants, effectiveEnseignants,
   analyzing, onAnalyze, onNavigateMatchmaking, onReset,
 }: Readonly<RiceHeroSectionProps>) {
-  const highlights = [
-    { label: "Fichiers prêts", value: filesCount, note: "Documents à analyser" },
+
+  const metrics = [
     {
-      label: "Enseignants chargés",
+      label: "Fichiers",
+      value: filesCount,
+      note: filesCount > 0 ? `${filesCount} prêt${filesCount > 1 ? "s" : ""}` : "Aucun chargé",
+    },
+    {
+      label: "Enseignants",
       value: ignoreEnseignants ? 0 : allEnseignants.length,
-      note: ignoreEnseignants ? "Mode manuel actif" : "Synchronisé avec le backend",
+      note: ignoreEnseignants ? "Mode manuel" : "Synchronisé",
     },
     {
-      label: "Savoirs extraits",
+      label: "Savoirs",
       value: liveStats.totalSavoirs,
-      note: `${liveStats.totalDomaines} domaines · ${liveStats.totalComp} compétences`,
+      note: `${liveStats.totalDomaines} dom. · ${liveStats.totalComp} comp.`,
     },
     {
-      label: "Affectations actives",
+      label: "Affectations",
       value: liveStats.enseignantsAssigned,
       note: `${effectiveEnseignants.length} enseignants visibles`,
     },
@@ -53,50 +73,61 @@ export default function RiceHeroSection({
 
   return (
     <section className="rice-hero">
+      {/* ── Top row: brand + actions ─────────────────────── */}
       <div className="rice-hero-content">
         <div className="rice-hero-copy">
           <div className="rice-hero-kicker">
-            <ThunderboltOutlined /><span>RICE Workbench</span>
+            <ThunderboltOutlined />
+            <span>RICE Workbench</span>
           </div>
-          <Title level={2} className="rice-hero-title">
+          <Title level={4} className="rice-hero-title">
             Référentiel intelligent des compétences enseignants
           </Title>
-          <Paragraph className="rice-hero-subtitle">
-            Importez vos fiches, laissez l&apos;analyse IA extraire l&apos;arbre de compétences,
-            corrigez la structure par glisser-déposer, puis synchronisez les résultats vers la base.
-          </Paragraph>
           <div className="rice-hero-chips">
-            <span className="rice-chip">{currentDeptLabel}</span>
-            <span className="rice-chip">Étape {currentStep + 1} / {stepsCount}</span>
-            <span className="rice-chip">Backend prêt</span>
-            <span className="rice-chip rice-chip-accent">{currentStageTitle}</span>
+            <span className="rice-chip rice-chip-accent">{currentDeptLabel}</span>
+            <span className="rice-chip">Étape {currentStep + 1}&thinsp;/&thinsp;{stepsCount}</span>
+            <span className="rice-chip">{currentStageTitle}</span>
           </div>
-          <Space wrap className="rice-hero-actions">
+        </div>
+
+        <div className="rice-hero-actions">
+          <Space wrap>
             <Button
-              type="primary" size="large"
+              icon={<MergeCellsOutlined />}
+              onClick={onNavigateMatchmaking}
+            >
+              Matchmaking
+            </Button>
+            <Button icon={<ReloadOutlined />} onClick={onReset}>
+              Réinitialiser
+            </Button>
+            <Button
+              type="primary"
+              className="rice-primary-action"
               icon={analyzing ? <LoadingOutlined /> : <RobotOutlined />}
               onClick={onAnalyze}
               disabled={filesCount === 0 || analyzing}
-              className="rice-primary-action"
             >
-              {analyzing ? "Analyse en cours" : "Lancer l'analyse"}
+              {analyzing ? "Analyse en cours…" : "Lancer l'analyse"}
             </Button>
-            <Button size="large" icon={<MergeCellsOutlined />} onClick={onNavigateMatchmaking}>
-              Ouvrir le matchmaking
-            </Button>
-            <Button size="large" onClick={onReset}>Réinitialiser</Button>
           </Space>
         </div>
+      </div>
 
-        <div className="rice-hero-metrics">
-          {highlights.map((item) => (
-            <Card key={item.label} className="rice-metric-card" bordered={false}>
-              <Text className="rice-metric-label">{item.label}</Text>
-              <div className="rice-metric-value">{item.value}</div>
-              <Text className="rice-metric-note" type="secondary">{item.note}</Text>
-            </Card>
-          ))}
-        </div>
+      {/* ── Metrics row ──────────────────────────────────── */}
+      <div className="rice-hero-metrics">
+        {metrics.map((m, idx) => (
+          <div key={m.label} className="rice-metric-card ant-card ant-card-bordered">
+            <div className="ant-card-body">
+              <div className="rice-metric-icon">{METRIC_ICONS[idx]}</div>
+              <div className="rice-metric-body">
+                <div className="rice-metric-value">{m.value}</div>
+                <Text className="rice-metric-label">{m.label}</Text>
+                <Text className="rice-metric-note">{m.note}</Text>
+              </div>
+            </div>
+          </div>
+        ))}
       </div>
     </section>
   );

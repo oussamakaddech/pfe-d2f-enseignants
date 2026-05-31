@@ -88,6 +88,99 @@ export type FormationWorkflowFormProps = {
   besoinInfo?: BesoinInfoShape;
 };
 
+const intersects = (left: unknown[], right: unknown[]) => left.some((id) => right.includes(id));
+
+function sameTimeWindow(a: { dateSeance?: string; heureDebut?: unknown; heureFin?: unknown }, b: { dateSeance?: string; heureDebut?: unknown; heureFin?: unknown }) {
+  if (!a?.dateSeance || !b?.dateSeance || a.dateSeance !== b.dateSeance) return false;
+  const aStart = toMinutes(a.heureDebut); const aEnd = toMinutes(a.heureFin);
+  const bStart = toMinutes(b.heureDebut); const bEnd = toMinutes(b.heureFin);
+  if (aStart === null || aEnd === null || bStart === null || bEnd === null) return false;
+  return aStart < bEnd && bStart < aEnd;
+}
+
+function normalizedSalle(value: unknown) { return String(value || "").trim().toLowerCase(); }
+
+function checkExistingFormationConflicts(
+  localSeance: SeanceItem, idx: number, formations: FormationRaw[],
+  msgs: string[], participantIds: unknown[], animateurIds: unknown[],
+) {
+  formations.forEach((f) => {
+    const existingSeances: SeanceItem[] = Array.isArray(f.seances) ? f.seances : [];
+    const existingParticipants = [
+      ...(Array.isArray(f.participants) ? f.participants : []),
+      ...existingSeances.flatMap((s) => Array.isArray(s.participants) ? s.participants : []),
+    ].map((p) => p?.id).filter(Boolean);
+    existingSeances.forEach((existingSeance) => {
+      if (!sameTimeWindow(localSeance, existingSeance)) return;
+      const formationName = f.titreFormation || `#${f.idFormation || f.id || "?"}`;
+      const localSalle = normalizedSalle(localSeance.salle); const existingSalle = normalizedSalle(existingSeance.salle);
+      if (localSalle && existingSalle && localSalle === existingSalle) msgs.push(`Conflit salle: séance #${idx + 1} chevauche la formation ${formationName} dans la salle ${localSeance.salle}.`);
+      const existingAnimIds = getPersonIds(existingSeance.animateurs ?? []);
+      if (participantIds.length > 0 && existingParticipants.length > 0 && intersects(participantIds, existingParticipants)) msgs.push(`Conflit participants: séance #${idx + 1} chevauche la formation ${formationName}.`);
+      if (animateurIds.length > 0 && existingAnimIds.length > 0 && intersects(animateurIds, existingAnimIds)) msgs.push(`Conflit animateurs: séance #${idx + 1} chevauche la formation ${formationName}.`);
+    });
+  });
+}
+
+function checkSeancePairConflicts(
+  left: SeanceItem, right: SeanceItem, i: number, j: number,
+  participantIds: unknown[], animateurIds: unknown[], msgs: string[],
+) {
+  if (!sameTimeWindow(left, right)) return;
+  const leftSalle = normalizedSalle(left.salle); const rightSalle = normalizedSalle(right.salle);
+  if (leftSalle && rightSalle && leftSalle === rightSalle) msgs.push(`Conflit interne: les séances #${i + 1} et #${j + 1} utilisent la même salle au même horaire.`);
+  const leftPartIds = getPersonIds(left.participants ?? []); const rightPartIds = getPersonIds(right.participants ?? []);
+  if (leftPartIds.length > 0 && rightPartIds.length > 0 && intersects(leftPartIds, rightPartIds)) msgs.push(`Conflit interne: les séances #${i + 1} et #${j + 1} se chevauchent pour les mêmes participants.`);
+  const leftAnimIds = getPersonIds(left.animateurs ?? []); const rightAnimIds = getPersonIds(right.animateurs ?? []);
+  if (leftAnimIds.length > 0 && rightAnimIds.length > 0 && intersects(leftAnimIds, rightAnimIds)) msgs.push(`Conflit interne: les séances #${i + 1} et #${j + 1} se chevauchent pour les mêmes animateurs.`);
+}
+
+function buildConflictMessages({ localSeances, participantIds, animateurIds, existingFormations }: { localSeances: SeanceItem[]; participantIds: unknown[]; animateurIds: unknown[]; existingFormations: FormationRaw[] }) {
+  const msgs: string[] = [];
+  localSeances.forEach((s, idx) => { const start = toMinutes(s.heureDebut); const end = toMinutes(s.heureFin); if (start !== null && end !== null && start >= end) msgs.push(`Séance #${idx + 1}: heure de fin doit être après l&apos;heure de début.`); });
+  for (let i = 0; i < localSeances.length; i += 1) for (let j = i + 1; j < localSeances.length; j += 1) checkSeancePairConflicts(localSeances[i], localSeances[j], i, j, participantIds, animateurIds, msgs);
+  localSeances.forEach((localSeance, idx) => checkExistingFormationConflicts(localSeance, idx, existingFormations, msgs, participantIds, animateurIds));
+  return [...new Set(msgs)];
+}
+
+function getEnseignantLabel(opt: { type?: string; cup?: string; chefDepartement?: string; nom?: string; prenom?: string; mail?: string } | null) {
+  if (!opt) return "";
+  const roles = [];
+  if (opt.type === "P") roles.push("Perm.");
+  if (opt.type === "V") roles.push("Vac.");
+  if (opt.cup === "O" || opt.cup === "Y" || opt.cup === "1") roles.push("CUP");
+  if (opt.chefDepartement === "O" || opt.chefDepartement === "Y" || opt.chefDepartement === "1") roles.push("ChefDep");
+  const roleStr = roles.length > 0 ? ` [${roles.join(", ")}]` : "";
+  return `${opt.nom} ${opt.prenom} (${opt.mail})${roleStr}`;
+}
+
+function getAnimateurLabel(opt: { type?: string; cup?: string; nom?: string; prenom?: string; mail?: string } | null) {
+  if (!opt) return "";
+  let type = ""; if (opt.type === "P") type = " · Perm."; else if (opt.type === "V") type = " · Vac.";
+  const cup = opt.cup === "O" || opt.cup === "Y" || opt.cup === "1" ? " · CUP" : "";
+  return `${opt.nom} ${opt.prenom} (${opt.mail})${type}${cup}`;
+}
+
+function extractErrorMsg(err: unknown): string {
+  const e = err as { response?: { data?: { error?: string; message?: string; defaultMessage?: string }[] | { error?: string; message?: string } }; message?: string };
+  const backendErrors = e.response?.data;
+  if (Array.isArray(backendErrors)) return backendErrors.map(r => r.defaultMessage || r.message || "Erreur de validation").join(" | ");
+  if (backendErrors && !Array.isArray(backendErrors)) {
+    if (backendErrors.error && backendErrors.message) return `${backendErrors.error} : ${backendErrors.message}`;
+    if (backendErrors.error) return backendErrors.error;
+    if (backendErrors.message) return backendErrors.message;
+  }
+  return e.message || "Échec de la création de la formation.";
+}
+
+function createAuthUserEnseignant(anim: PersonItem): Promise<unknown> {
+  if (!anim.isAuthUser) return Promise.resolve();
+  return EnseignantService.createEnseignant({
+    id: getAnimateurStableId(anim), nom: anim.nom, prenom: anim.prenom,
+    mail: anim.mail, type: anim.type, etat: anim.etat, cup: anim.cup, chefDepartement: anim.chefDepartement,
+  });
+}
+
 export function useFormationWorkflow({ initialDate, onFormationCreated, besoinInfo }: FormationWorkflowFormProps) {
   const navigate = useNavigate();
   const auth = useAuth();
@@ -105,6 +198,8 @@ export function useFormationWorkflow({ initialDate, onFormationCreated, besoinIn
   );
   const { mutateAsync: createFormation } = useCreateFormation();
   const { mutateAsync: replaceCompetences } = useReplaceAllFormationCompetences();
+  const domaineApi = useCompetenceDomaineApi();
+  const competenceApi = useCompetenceApi();
 
   const [titre, setTitre] = useState(besoinInfo?.titre || besoinInfo?.objectifFormation || "");
   const [dateDebut, setDateDebut] = useState(besoinInfo?.dateDebut || (initialDate ? format(new Date(initialDate), "yyyy-MM-dd") : ""));
@@ -239,8 +334,6 @@ export function useFormationWorkflow({ initialDate, onFormationCreated, besoinIn
 
   useEffect(() => {
     if (activeStep === 3 && compDomaines.length === 0) {
-      const domaineApi = useCompetenceDomaineApi();
-      const competenceApi = useCompetenceApi();
       Promise.all([domaineApi.getAll(), competenceApi.getAll()]).then(([domainesData, competencesData]) => {
         const domaines = Array.isArray(domainesData) ? domainesData : [];
         const competences = Array.isArray(competencesData) ? competencesData : [];
@@ -253,52 +346,6 @@ export function useFormationWorkflow({ initialDate, onFormationCreated, besoinIn
       }).catch(() => message.error("Impossible de charger le référentiel de compétences"));
     }
   }, [activeStep]);
-
-  const intersects = (left: unknown[], right: unknown[]) => left.some((id) => right.includes(id));
-
-  const sameTimeWindow = (a: { dateSeance?: string; heureDebut?: unknown; heureFin?: unknown }, b: { dateSeance?: string; heureDebut?: unknown; heureFin?: unknown }) => {
-    if (!a?.dateSeance || !b?.dateSeance || a.dateSeance !== b.dateSeance) return false;
-    const aStart = toMinutes(a.heureDebut); const aEnd = toMinutes(a.heureFin);
-    const bStart = toMinutes(b.heureDebut); const bEnd = toMinutes(b.heureFin);
-    if (aStart === null || aEnd === null || bStart === null || bEnd === null) return false;
-    return aStart < bEnd && bStart < aEnd;
-  };
-
-  const normalizedSalle = (value: unknown) => String(value || "").trim().toLowerCase();
-
-  const checkExistingFormationConflicts = (localSeance: SeanceItem, idx: number, formations: FormationRaw[], msgs: string[], participantIds: unknown[], animateurIds: unknown[]) => {
-    formations.forEach((f) => {
-      const existingSeances: SeanceItem[] = Array.isArray(f.seances) ? f.seances : [];
-      const existingParticipants = [...(Array.isArray(f.participants) ? f.participants : []), ...existingSeances.flatMap((s) => Array.isArray(s.participants) ? s.participants : [])].map((p) => p?.id).filter(Boolean);
-      existingSeances.forEach((existingSeance) => {
-        if (!sameTimeWindow(localSeance, existingSeance)) return;
-        const formationName = f.titreFormation || `#${f.idFormation || f.id || "?"}`;
-        const localSalle = normalizedSalle(localSeance.salle); const existingSalle = normalizedSalle(existingSeance.salle);
-        if (localSalle && existingSalle && localSalle === existingSalle) msgs.push(`Conflit salle: séance #${idx + 1} chevauche la formation ${formationName} dans la salle ${localSeance.salle}.`);
-        const existingAnimIds = getPersonIds(existingSeance.animateurs ?? []);
-        if (participantIds.length > 0 && existingParticipants.length > 0 && intersects(participantIds, existingParticipants)) msgs.push(`Conflit participants: séance #${idx + 1} chevauche la formation ${formationName}.`);
-        if (animateurIds.length > 0 && existingAnimIds.length > 0 && intersects(animateurIds, existingAnimIds)) msgs.push(`Conflit animateurs: séance #${idx + 1} chevauche la formation ${formationName}.`);
-      });
-    });
-  };
-
-  const checkSeancePairConflicts = (left: SeanceItem, right: SeanceItem, i: number, j: number, participantIds: unknown[], animateurIds: unknown[], msgs: string[]) => {
-    if (!sameTimeWindow(left, right)) return;
-    const leftSalle = normalizedSalle(left.salle); const rightSalle = normalizedSalle(right.salle);
-    if (leftSalle && rightSalle && leftSalle === rightSalle) msgs.push(`Conflit interne: les séances #${i + 1} et #${j + 1} utilisent la même salle au même horaire.`);
-    const leftPartIds = getPersonIds(left.participants ?? []); const rightPartIds = getPersonIds(right.participants ?? []);
-    if (leftPartIds.length > 0 && rightPartIds.length > 0 && intersects(leftPartIds, rightPartIds)) msgs.push(`Conflit interne: les séances #${i + 1} et #${j + 1} se chevauchent pour les mêmes participants.`);
-    const leftAnimIds = getPersonIds(left.animateurs ?? []); const rightAnimIds = getPersonIds(right.animateurs ?? []);
-    if (leftAnimIds.length > 0 && rightAnimIds.length > 0 && intersects(leftAnimIds, rightAnimIds)) msgs.push(`Conflit interne: les séances #${i + 1} et #${j + 1} se chevauchent pour les mêmes animateurs.`);
-  };
-
-  const buildConflictMessages = ({ localSeances, participantIds, animateurIds }: { localSeances: SeanceItem[]; participantIds: unknown[]; animateurIds: unknown[] }) => {
-    const msgs: string[] = [];
-    localSeances.forEach((s, idx) => { const start = toMinutes(s.heureDebut); const end = toMinutes(s.heureFin); if (start !== null && end !== null && start >= end) msgs.push(`Séance #${idx + 1}: heure de fin doit être après l&apos;heure de début.`); });
-    for (let i = 0; i < localSeances.length; i += 1) for (let j = i + 1; j < localSeances.length; j += 1) checkSeancePairConflicts(localSeances[i], localSeances[j], i, j, participantIds, animateurIds, msgs);
-    localSeances.forEach((localSeance, idx) => checkExistingFormationConflicts(localSeance, idx, existingFormations as FormationRaw[], msgs, participantIds, animateurIds));
-    return [...new Set(msgs)];
-  };
 
   useEffect(() => {
     const localAnimIds = animSel.map(getAnimateurStableId).filter(Boolean);
@@ -364,24 +411,6 @@ export function useFormationWorkflow({ initialDate, onFormationCreated, besoinIn
     return compCompetences.filter(c => (!domaineId || c.domaineId === domaineId) && (!kw || c.nom?.toLowerCase().includes(kw))).map(c => ({ value: c.id, label: c.nom }));
   };
 
-  const getEnseignantLabel = (opt: { type?: string; cup?: string; chefDepartement?: string; nom?: string; prenom?: string; mail?: string } | null) => {
-    if (!opt) return "";
-    const roles = [];
-    if (opt.type === "P") roles.push("Perm.");
-    if (opt.type === "V") roles.push("Vac.");
-    if (opt.cup === "O" || opt.cup === "Y" || opt.cup === "1") roles.push("CUP");
-    if (opt.chefDepartement === "O" || opt.chefDepartement === "Y" || opt.chefDepartement === "1") roles.push("ChefDep");
-    const roleStr = roles.length > 0 ? ` [${roles.join(", ")}]` : "";
-    return `${opt.nom} ${opt.prenom} (${opt.mail})${roleStr}`;
-  };
-
-  const getAnimateurLabel = (opt: { type?: string; cup?: string; nom?: string; prenom?: string; mail?: string } | null) => {
-    if (!opt) return "";
-    let type = ""; if (opt.type === "P") type = " · Perm."; else if (opt.type === "V") type = " · Vac.";
-    const cup = opt.cup === "O" || opt.cup === "Y" || opt.cup === "1" ? " · CUP" : "";
-    return `${opt.nom} ${opt.prenom} (${opt.mail})${type}${cup}`;
-  };
-
   const handleExcelImportFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -422,23 +451,36 @@ export function useFormationWorkflow({ initialDate, onFormationCreated, besoinIn
     return true;
   };
 
+  function buildPayload(finalAnimIds: unknown[]) {
+    return {
+      idBesoinFormation: besoinInfo?.idBesoinFormation || null, typeBesoin: besoinInfo?.typeBesoin || null, titreFormation: titre,
+      salle: salle || null, dateDebut: dateDebut || null, dateFin: dateFin || null, typeFormation, etatFormation, ouverte,
+      coutFormation: cout || 0, externeFormateurNom: formNom, externeFormateurPrenom: formPrenom,
+      externeFormateurEmail: formEmail || null, organismeRefExterne: organisme,
+      bureauFormationNom: bureauNom || null, bureauFormationMail: bureauMail || null, bureauFormationTelephone: bureauTelephone || null,
+      chargeHoraireGlobal: chargeH || 0, upId: selectedUp?.id, departementId: selectedDept?.id,
+      animateursIds: finalAnimIds, participantsIds: partSel.map(p => p.id),
+      domaine, populationCible, objectifs, objectifsPedago, evalMethods,
+      coutTransport: coutTransport || 0, coutHebergement: coutHebergement || 0, coutRepas: coutRepas || 0,
+      periodCode, customPeriodLabel,
+      seances: seances.map(s => ({
+        dateSeance: s.dateSeance || null, heureDebut: s.heureDebut, heureFin: s.heureFin, salle: s.salle,
+        onlineMeetingUrl: s.onlineMeetingUrl, typeSeance: s.typeSeance, contenus: s.contenus, methodes: s.methodes,
+        dureeTheorique: s.dureeTheorique || 0, dureePratique: s.dureePratique || 0,
+      })),
+    };
+  }
+
   const handleSubmit = async () => {
     if (seances.length === 0) { message.warning("Ajoutez au moins une séance."); return; }
+    if (!validateSeancesForSubmit()) return;
+    if (titre.trim().length < 5) { message.warning("Le titre doit contenir au moins 5 caractères."); return; }
     try {
-      if (!validateSeancesForSubmit()) return;
       const finalAnimIds = animSel.map(getAnimateurStableId).filter(Boolean);
       const blockingConflicts = buildConflictMessages({ localSeances: seances, participantIds: partSel.map((p) => p.id).filter(Boolean), animateurIds: finalAnimIds });
-      if (titre.trim().length < 5) { message.warning("Le titre doit contenir au moins 5 caractères."); return; }
       if (blockingConflicts.length > 0) { setOverlapWarnings(blockingConflicts); message.error("Conflits détectés: corrigez les dates/salles/personnes."); return; }
-      for (const anim of animSel) {
-        if (anim.isAuthUser) {
-          try { await EnseignantService.createEnseignant({ id: getAnimateurStableId(anim), nom: anim.nom, prenom: anim.prenom, mail: anim.mail, type: anim.type, etat: anim.etat, cup: anim.cup, chefDepartement: anim.chefDepartement }); } catch { /* may already exist */ }
-        }
-      }
-      const payload = {
-        idBesoinFormation: besoinInfo?.idBesoinFormation || null, typeBesoin: besoinInfo?.typeBesoin || null, titreFormation: titre, salle: salle || null, dateDebut: dateDebut || null, dateFin: dateFin || null, typeFormation, etatFormation, ouverte, coutFormation: cout || 0, externeFormateurNom: formNom, externeFormateurPrenom: formPrenom, externeFormateurEmail: formEmail || null, organismeRefExterne: organisme, bureauFormationNom: bureauNom || null, bureauFormationMail: bureauMail || null, bureauFormationTelephone: bureauTelephone || null, chargeHoraireGlobal: chargeH || 0, upId: selectedUp?.id, departementId: selectedDept?.id, animateursIds: finalAnimIds, participantsIds: partSel.map(p => p.id), domaine, populationCible, objectifs, objectifsPedago, evalMethods, coutTransport: coutTransport || 0, coutHebergement: coutHebergement || 0, coutRepas: coutRepas || 0, periodCode, customPeriodLabel,
-        seances: seances.map(s => ({ dateSeance: s.dateSeance || null, heureDebut: s.heureDebut, heureFin: s.heureFin, salle: s.salle, onlineMeetingUrl: s.onlineMeetingUrl, typeSeance: s.typeSeance, contenus: s.contenus, methodes: s.methodes, dureeTheorique: s.dureeTheorique || 0, dureePratique: s.dureePratique || 0 })),
-      };
+      await Promise.all(animSel.map(createAuthUserEnseignant));
+      const payload = buildPayload(finalAnimIds);
       const newF = await createFormation(payload);
       const fId = newF.idFormation;
       setNewFormationId(fId ?? null);
@@ -451,15 +493,7 @@ export function useFormationWorkflow({ initialDate, onFormationCreated, besoinIn
       onFormationCreated?.(newF);
       setTimeout(() => navigate("/home/ListeFormation"), 2000);
     } catch (err: unknown) {
-      const e = err as { response?: { data?: { error?: string; message?: string; defaultMessage?: string }[] | { error?: string; message?: string } }; message?: string };
-      const backendErrors = e.response?.data;
-      let errorMsg = "Échec de la création de la formation.";
-      if (Array.isArray(backendErrors)) errorMsg = backendErrors.map(r => r.defaultMessage || r.message || "Erreur de validation").join(" | ");
-      else if (backendErrors && !Array.isArray(backendErrors) && backendErrors.error && backendErrors.message) errorMsg = `${backendErrors.error} : ${backendErrors.message}`;
-      else if (backendErrors && !Array.isArray(backendErrors) && backendErrors.error) errorMsg = backendErrors.error;
-      else if (backendErrors && !Array.isArray(backendErrors) && backendErrors.message) errorMsg = backendErrors.message;
-      else if (e.message) errorMsg = e.message;
-      message.error(errorMsg);
+      message.error(extractErrorMsg(err));
     }
   };
 

@@ -18,6 +18,16 @@ import { useAllDepts } from "@/hooks/formation/useDeptCrud";
 import { useAllUps } from "@/hooks/formation/useUpCrud";
 import useAppNotification from "@/hooks/ui/useAppNotification";
 import { ROLES } from "@/utils/constants/roles";
+
+function getErrorMessage(err: unknown): string {
+  const e = err as {
+    response?: { status?: number; data?: { message?: string; error?: string } };
+    message?: string;
+  };
+  const backendMsg = e.response?.data?.message || e.response?.data?.error;
+  const status = e.response?.status;
+  return backendMsg || (status ? `Le serveur a répondu ${status}.` : null) || (e.message ? `Échec réseau : ${e.message}` : null) || "Erreur lors de l'ajout du besoin";
+}
 import * as XLSX from "xlsx";
 
 type ReferentielDomaine    = { id?: string | number; nom?: string };
@@ -49,6 +59,9 @@ export function useBesoinForm() {
   // not inside the handleSubmit event handler.
   const addBesoin = useAddBesoin();
   const replaceBesoinCompetences = useReplaceBesoinCompetences();
+  const competenceDomaineApi = useCompetenceDomaineApi();
+  const competenceApiService = useCompetenceApi();
+  const savoirApiService = useSavoirApi();
 
   const [submitting,    setSubmitting]    = useState(false);
   const [currentStep,   setCurrentStep]   = useState(0);
@@ -75,8 +88,8 @@ export function useBesoinForm() {
       const upId   = form.getFieldValue("up")         ? Number(form.getFieldValue("up"))         : null;
       const deptId = form.getFieldValue("departement") ? Number(form.getFieldValue("departement")) : null;
       Promise.all([
-        useCompetenceDomaineApi().getAll(upId, deptId),
-        useCompetenceApi().getAll(),
+        competenceDomaineApi.getAll(upId, deptId),
+        competenceApiService.getAll(),
       ]).then(([domainesData, competencesData]) => {
         setCompDomaines(Array.isArray(domainesData)    ? domainesData    : []);
         setCompCompetences(Array.isArray(competencesData) ? competencesData : []);
@@ -100,7 +113,7 @@ export function useBesoinForm() {
     newSavoirs[idx] = [];
     if (competence?.id) {
       try {
-        newSavoirs[idx] = await useSavoirApi().getByCompetence(competence.id) as ReferentielSavoir[];
+        newSavoirs[idx] = await savoirApiService.getByCompetence(competence.id) as ReferentielSavoir[];
       } catch { /* ignore */ }
     }
     setRowSavoirs(newSavoirs);
@@ -182,37 +195,36 @@ export function useBesoinForm() {
     return `${lines.length} participant(s) — ${preview} ...`;
   };
 
+  function buildPayload(values: Record<string, unknown>) {
+    return {
+      idBesoinFormation: values.idBesoinFormation,
+      codeBesoin:        values.codeBesoin,
+      titre:             values.titre,
+      typeBesoin:        values.typeBesoin,
+      description:       values.description,
+      dateDebut:         values.dateDebut    ? values.dateDebut.format("YYYY-MM-DD")    : undefined,
+      dateFin:           values.dateFin    ? values.dateFin.format("YYYY-MM-DD")    : undefined,
+      priorite:          values.priorite,
+      impactStrategique: values.impactStrategique,
+      publicCible:       (canManageParticipants || values.typeBesoin === "INDIVIDUEL" || values.typeBesoin === "COLLECTIF")
+        ? values.publicCible : undefined,
+      estOuverte:            values.estOuverte || false,
+      autresInformations:    values.autresInformations,
+      theme:                 values.theme,
+      dureeFormation:        values.dureeFormation ? Number(values.dureeFormation) : undefined,
+      nbMaxParticipants:     values.nbMaxParticipants ? Number(values.nbMaxParticipants) : undefined,
+      periodCode:            values.periodCode,
+      customPeriodLabel:     values.customPeriodLabel,
+      objectifsPedagogiques: values.objectifsPedagogiques,
+      methodesEvaluationAcquis: values.methodesEvaluationAcquis,
+    };
+  }
+
   const handleSubmit = async () => {
     setSubmitting(true);
     try {
       const values = form.getFieldsValue(true);
-      const payload = {
-        username:              user?.username || user?.userName || "anonymous",
-        typeBesoin:            values.typeBesoin,
-        up:                    values.up,
-        departement:           values.departement,
-        titre:                 values.titre,
-        objectifFormation:     values.objectifFormation,
-        propositionAnimateur:  values.propositionAnimateur,
-        animateurs:            serializeActeurs(values.animateurs),
-        enseignants:           serializeActeurs(values.enseignants),
-        dateDebut:             values.dateDebut  ? values.dateDebut.format("YYYY-MM-DD")  : undefined,
-        dateFin:               values.dateFin    ? values.dateFin.format("YYYY-MM-DD")    : undefined,
-        priorite:              values.priorite,
-        impactStrategique:     values.impactStrategique,
-        publicCible:           (canManageParticipants || values.typeBesoin === "INDIVIDUEL" || values.typeBesoin === "COLLECTIF")
-          ? values.publicCible : undefined,
-        estOuverte:            values.estOuverte || false,
-        autresInformations:    values.autresInformations,
-        theme:                 values.theme,
-        dureeFormation:        values.dureeFormation ? Number(values.dureeFormation) : undefined,
-        // Omit when empty: backend has @Min(1) and no @NotNull, so sending 0 would fail validation.
-        nbMaxParticipants:     values.nbMaxParticipants ? Number(values.nbMaxParticipants) : undefined,
-        periodCode:            values.periodCode,
-        customPeriodLabel:     values.customPeriodLabel,
-        objectifsPedagogiques: values.objectifsPedagogiques,
-        methodesEvaluationAcquis: values.methodesEvaluationAcquis,
-      };
+      const payload = buildPayload(values);
       const created = await addBesoin.mutateAsync(payload);
       const besoinId = created?.idBesoinFormation;
       if (besoinId && selectedCompLinks.length > 0) {
@@ -231,21 +243,8 @@ export function useBesoinForm() {
       setLastImportCount(0);
       setCurrentStep(0);
     } catch (err: unknown) {
-      const e = err as {
-        response?: { status?: number; data?: { message?: string; error?: string } };
-        message?: string;
-      };
-      // Surface the real reason: backend validation/business message, then HTTP status,
-      // then a network-level error (e.response is undefined when the request never completed).
-      const backendMsg = e.response?.data?.message || e.response?.data?.error;
-      const status = e.response?.status;
-      const detail =
-        backendMsg ||
-        (status ? `Le serveur a répondu ${status}.` : null) ||
-        (e.message ? `Échec réseau : ${e.message}` : null);
-      // Always log the full error so it is diagnosable even without reading the network tab.
       console.error("Échec de l'ajout du besoin de formation :", err);
-      msgApi.error(detail ? `Erreur lors de l'ajout du besoin — ${detail}` : "Erreur lors de l'ajout du besoin");
+      msgApi.error(`Erreur lors de l'ajout du besoin — ${getErrorMessage(err)}`);
     } finally {
       setSubmitting(false);
     }

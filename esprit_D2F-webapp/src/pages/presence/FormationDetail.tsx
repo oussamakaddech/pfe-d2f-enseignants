@@ -65,16 +65,18 @@ const FormationDetail = () => {
     return Array.from(map.values());
   }, [formation]);
 
+  function computeEnsStats(ens: Record<string, unknown>) {
+    let presentes = 0, totalSeancesAvecPresence = 0;
+    for (const presences of Object.values(presencesBySeance)) {
+      const p = presences.find((x) => matchesParticipant(x, ens));
+      if (p) { totalSeancesAvecPresence += 1; if (p.presence) presentes += 1; }
+    }
+    const taux = totalSeancesAvecPresence === 0 ? 0 : Math.round((presentes * 100) / totalSeancesAvecPresence);
+    return { ...ens, presentes, totalSeancesAvecPresence, taux };
+  }
+
   const participantsWithStats = useMemo(() =>
-    allParticipants.map((ens) => {
-      let presentes = 0, totalSeancesAvecPresence = 0;
-      Object.values(presencesBySeance).forEach((presences) => {
-        const p = presences.find((x) => matchesParticipant(x, ens));
-        if (p) { totalSeancesAvecPresence += 1; if (p.presence) presentes += 1; }
-      });
-      const taux = totalSeancesAvecPresence === 0 ? 0 : Math.round((presentes * 100) / totalSeancesAvecPresence);
-      return { ...ens, presentes, totalSeancesAvecPresence, taux } as Parameters<typeof EnseignantsTab>[0]["participantsWithStats"][number];
-    }),
+    allParticipants.map((ens) => computeEnsStats(ens)) as Parameters<typeof EnseignantsTab>[0]["participantsWithStats"],
     [allParticipants, presencesBySeance]
   );
 

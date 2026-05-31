@@ -8,6 +8,10 @@ interface PresenceStatsBannerProps {
   readonly taux: number;
 }
 
+function formatProgress(p: number | undefined) {
+  return <span style={{ fontWeight: 700, fontSize: 14 }}>{p}%</span>;
+}
+
 export function PresenceStatsBanner({ total, presents, absents, taux }: PresenceStatsBannerProps) {
   return (
     <div className="presence-stats-banner">
@@ -41,7 +45,7 @@ export function PresenceStatsBanner({ total, presents, absents, taux }: Presence
           percent={taux}
           size={72}
           strokeColor={{ "0%": "#10b981", "100%": "#059669" }}
-          format={(p) => <span style={{ fontWeight: 700, fontSize: 14 }}>{p}%</span>}
+          format={formatProgress}
         />
       </div>
     </div>

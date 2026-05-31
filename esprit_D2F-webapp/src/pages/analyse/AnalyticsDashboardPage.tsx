@@ -116,7 +116,18 @@ export default function AnalyticsDashboardPage() {
   const effColumns: ColumnsType<TrainingEffectiveness> = [
     { title: "Formation", dataIndex: "formation_titre", render: v => <Text strong>{v}</Text> },
     { title: "Gain niveau moy.", dataIndex: "avg_level_gain", align: "center", width: 140,
-      render: v => <Tag color={v >= 1 ? "success" : v > 0 ? "processing" : "default"}>+{Number(v ?? 0).toFixed(2)}</Tag> },
+      render: v => {
+        let color: string;
+        if (v >= 1) {
+          color = "success";
+        } else if (v > 0) {
+          color = "processing";
+        } else {
+          color = "default";
+        }
+        return <Tag color={color}>+{Number(v ?? 0).toFixed(2)}</Tag>;
+      },
+    },
     { title: "Taux complétion", dataIndex: "completion_rate", width: 160,
       render: v => <Progress percent={Math.round((v ?? 0) * 100)} size="small" strokeColor="#B51200" /> },
     { title: "Recommandée", dataIndex: "nb_recommandee", align: "center", width: 110,

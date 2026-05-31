@@ -65,8 +65,8 @@ export default function CrudTab<T extends object = Record<string, unknown>>({
   };
 
   const handleBulkDelete = async () => {
-    if (onBulkDelete) await onBulkDelete(selectedRowKeys);
-    else await Promise.all(selectedRowKeys.map((id) => onDelete(id as Id)));
+    if (onBulkDelete) { await onBulkDelete(selectedRowKeys); }
+    else { for (const id of selectedRowKeys) await onDelete(id as Id); }
     setSelectedRowKeys([]);
     setSelectionMode(false);
   };

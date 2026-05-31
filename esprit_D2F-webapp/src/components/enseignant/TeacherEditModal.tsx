@@ -17,7 +17,7 @@ interface TeacherEditModalProps {
 const TeacherEditModal = memo(function TeacherEditModal({ open, record, confirmLoading, ups, depts, form, onOk, onCancel }: TeacherEditModalProps) {
   return (
     <Modal
-      title={`Modifier — ${record?.nom ?? ""} ${record?.prenom ?? ""}`}
+      title={`Modifier — ${String(record?.nom ?? "")} ${String(record?.prenom ?? "")}`}
       open={open}
       onCancel={onCancel}
       onOk={onOk}

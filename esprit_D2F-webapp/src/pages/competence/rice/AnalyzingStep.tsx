@@ -1,7 +1,6 @@
-// Step 1 – animated progress screen shown while the RICE AI analysis is running.
+// Step 1 – animated circular-progress screen shown while RICE AI analysis is running.
 
-import { Progress, Steps, Button, Space } from "antd";
-import { Typography } from "antd";
+import { Button, Space, Steps, Typography } from "antd";
 import { CheckCircleOutlined, LoadingOutlined, RobotOutlined } from "@ant-design/icons";
 import { useEffect, useMemo, useState } from "react";
 
@@ -16,6 +15,13 @@ interface AnalyzingStepProps {
   setCurrentStep: (step: number) => void;
   setAnalysisProgress: (v: number) => void;
 }
+
+const PROGRESS_LABELS: { max: number; text: string }[] = [
+  { max: 30, text: "Lecture et extraction du texte…" },
+  { max: 60, text: "Analyse NLP — taxonomie de Bloom…" },
+  { max: 80, text: "Construction de l'arbre de compétences…" },
+  { max: 95, text: "Matching avec le référentiel du département…" },
+];
 
 export default function AnalyzingStep({
   filesCount,
@@ -33,25 +39,22 @@ export default function AnalyzingStep({
     return () => clearInterval(t);
   }, []);
 
-  const dynamicText = useMemo(() => {
-    const progressTexts = [
-      { max: 30, text: "Lecture et extraction du texte en cours..." },
-      { max: 60, text: "Analyse NLP et taxonomie de Bloom..." },
-      { max: 80, text: "Construction de l'arbre de compétences..." },
-      { max: 95, text: "Matching avec le référentiel du département..." },
-    ];
-    return progressTexts.find((t) => analysisProgress < t.max)?.text ?? "Finalisation... presque prêt !";
-  }, [analysisProgress]);
+  const pct = Math.round(analysisProgress);
+
+  const dynamicText = useMemo(
+    () => PROGRESS_LABELS.find((t) => analysisProgress < t.max)?.text ?? "Finalisation… presque prêt !",
+    [analysisProgress],
+  );
 
   const currentSubStep = useMemo(() => {
     const boundaries = [20, 40, 60, 80, 100];
-    const stepIndex = boundaries.findIndex((t) => analysisProgress < t);
-    return stepIndex === -1 ? boundaries.length : stepIndex;
+    const idx = boundaries.findIndex((t) => analysisProgress < t);
+    return idx === -1 ? boundaries.length : idx;
   }, [analysisProgress]);
 
   const stepIcon = (threshold: number, prev: number) => {
-    if (analysisProgress >= threshold) return <CheckCircleOutlined style={{ color: "#52c41a" }} />;
-    if (analysisProgress >= prev)      return <LoadingOutlined />;
+    if (analysisProgress >= threshold) return <CheckCircleOutlined style={{ color: "#10b981" }} />;
+    if (analysisProgress >= prev)      return <LoadingOutlined style={{ color: "#2563eb" }} />;
     return undefined;
   };
 
@@ -65,40 +68,31 @@ export default function AnalyzingStep({
 
   return (
     <div className="rice-analyzing">
-      <RobotOutlined className="rice-loading-icon" />
-      <Title level={4} style={{ color: "#1677ff", marginBottom: 4 }}>
-        Analyse en cours…
-      </Title>
-      <Paragraph type="secondary" style={{ maxWidth: 440, margin: "0 auto 24px" }}>
-        L&apos;IA extrait les compétences, savoirs et niveaux de maîtrise
-        depuis vos {filesCount} fichier(s). Merci de patienter.
-      </Paragraph>
 
-      <Progress
-        percent={Math.round(analysisProgress)}
-        strokeColor={{ from: "#1677ff", to: "#52c41a" }}
-        style={{ maxWidth: 400, margin: "0 auto 16px" }}
-        status={analysisProgress >= 100 ? "success" : "active"}
-      />
-
-      <Paragraph type="secondary" style={{ marginBottom: 4 }}>{dynamicText}</Paragraph>
-      <Paragraph type="secondary" style={{ fontSize: 12, marginBottom: 20 }}>
-        Temps écoulé : {elapsedSec}s
-      </Paragraph>
-
-      <div style={{ marginBottom: 24 }}>
-        <Space>
-          <Button danger onClick={handleCancel}>
-            Annuler l&apos;analyse
-          </Button>
-          {analysisProgress >= 95 && (
-            <Button type="primary" style={{ background: "#52c41a", borderColor: "#52c41a" }} onClick={() => setCurrentStep(2)}>
-              ✓ Voir les résultats
-            </Button>
-          )}
-        </Space>
+      {/* ── Circular progress ring ───────────────────────── */}
+      <div className="rice-progress-ring-wrap">
+        <div className="rice-progress-ring-bg" />
+        <div
+          className="rice-progress-ring-fill"
+          style={{ "--pct": pct } as React.CSSProperties}
+        />
+        <div className="rice-progress-ring-center">
+          <RobotOutlined className="rice-loading-icon" />
+          <div className="rice-progress-pct">{pct}%</div>
+        </div>
       </div>
 
+      {/* ── Status text ──────────────────────────────────── */}
+      <div className="rice-analyzing-text">
+        <Title level={4} style={{ margin: "0 0 6px", color: "#0f172a" }}>
+          {dynamicText}
+        </Title>
+        <Paragraph type="secondary" style={{ margin: 0, fontSize: 13 }}>
+          {filesCount} fichier{filesCount > 1 ? "s" : ""} en cours d&apos;analyse · {elapsedSec}s
+        </Paragraph>
+      </div>
+
+      {/* ── Sub-step list ─────────────────────────────────── */}
       <div className="rice-loading-steps">
         <Steps
           direction="vertical"
@@ -107,22 +101,22 @@ export default function AnalyzingStep({
           items={[
             {
               title: "Extraction du texte",
-              description: "Lecture des fichiers PDF/DOCX",
+              description: "Lecture des fichiers PDF / DOCX",
               icon: stepIcon(20, 0),
             },
             {
               title: "Analyse NLP",
-              description: "Détection des acquis d'apprentissage et taxonomie de Bloom",
+              description: "Détection des acquis d'apprentissage — taxonomie de Bloom",
               icon: stepIcon(40, 20),
             },
             {
               title: "Construction de l'arbre",
-              description: "Organisation en domaines → compétences → savoirs",
+              description: "Domaines → compétences → sous-compétences → savoirs",
               icon: stepIcon(60, 40),
             },
             {
               title: "Extraction des noms d'enseignants",
-              description: "Identification des professeurs dans les fiches modules",
+              description: "Identification dans les fiches modules",
               icon: stepIcon(80, 60),
             },
             {
@@ -133,13 +127,22 @@ export default function AnalyzingStep({
           ]}
         />
       </div>
+
+      {/* ── Actions ──────────────────────────────────────── */}
+      <Space style={{ marginTop: 4 }}>
+        <Button danger onClick={handleCancel}>
+          Annuler l&apos;analyse
+        </Button>
+        {pct >= 95 && (
+          <Button
+            type="primary"
+            onClick={() => setCurrentStep(2)}
+            style={{ background: "#10b981", borderColor: "#10b981" }}
+          >
+            Voir les résultats →
+          </Button>
+        )}
+      </Space>
     </div>
   );
 }
-
-
-
-
-
-
-

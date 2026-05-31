@@ -60,16 +60,16 @@ export function useAnalytics(enseignantId: string) {
     setTrainingCompetenceId(competenceId);
   }, [enseignantId]);
 
-  const error =
-    analysisMutation.isError
-      ? (analysisMutation.error as { response?: { data?: { message?: string } } })?.response?.data?.message || "Erreur lors de l'analyse"
-      : gapsQ.isError
-      ? "Erreur chargement gaps"
-      : recoQ.isError
-      ? "Erreur chargement recommandations"
-      : trainingPathQ.isError
-      ? "Erreur chargement parcours"
-      : null;
+  let error: string | null = null;
+  if (analysisMutation.isError) {
+    error = (analysisMutation.error as { response?: { data?: { message?: string } } })?.response?.data?.message || "Erreur lors de l'analyse";
+  } else if (gapsQ.isError) {
+    error = "Erreur chargement gaps";
+  } else if (recoQ.isError) {
+    error = "Erreur chargement recommandations";
+  } else if (trainingPathQ.isError) {
+    error = "Erreur chargement parcours";
+  }
 
   return {
     loading:         gapsQ.isLoading || recoQ.isLoading || trainingPathQ.isLoading,
