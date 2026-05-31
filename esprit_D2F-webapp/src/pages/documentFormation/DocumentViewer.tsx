@@ -46,6 +46,7 @@ export default function DocumentViewer({ url, ext }: DocumentViewerProps) {
       <Card variant="outlined" styles={{ body: { padding: 0 } }} style={{ borderRadius: 4 }}>
         <video controls style={baseStyle}>
           <source src={url} type={`video/${e}`} />
+          <track kind="captions" />
           <Text>Votre navigateur ne supporte pas la lecture vidéo.</Text>
         </video>
       </Card>
@@ -58,6 +59,7 @@ export default function DocumentViewer({ url, ext }: DocumentViewerProps) {
       <Card variant="outlined" styles={{ body: { padding: 16, textAlign: "center" } }} style={{ borderRadius: 4 }}>
         <audio controls style={{ width: "100%" }}>
           <source src={url} type={`audio/${e}`} />
+          <track kind="captions" />
           <Text>Votre navigateur ne supporte pas la lecture audio.</Text>
         </audio>
       </Card>

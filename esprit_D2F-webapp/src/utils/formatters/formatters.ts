@@ -121,8 +121,8 @@ export const toTitleCase = (str: string | null | undefined): string => {
 export const toKebabCase = (str: string | null | undefined): string => {
   if (!str) return "";
   return String(str)
-    .replace(/([a-z])([A-Z])/g, "$1-$2")
-    .replace(/[\s_]+/g, "-")
+    .replaceAll(/([a-z])([A-Z])/g, "$1-$2")
+    .replaceAll(/[\s_]+/g, "-")
     .toLowerCase();
 };
 
@@ -132,8 +132,8 @@ export const toKebabCase = (str: string | null | undefined): string => {
 export const toCamelCase = (str: string | null | undefined): string => {
   if (!str) return "";
   const s = String(str)
-    .replace(/[-_]+/g, " ")
-    .replace(/[^\w\s]/g, "");
+    .replaceAll(/[-_]+/g, " ")
+    .replaceAll(/[^\w\s]/g, "");
   return s
     .split(" ")
     .map((word, index) => {
@@ -198,7 +198,7 @@ export const formatCurrency = (value: number | string | null | undefined, curren
  */
 export const formatPhone = (phone: string | null | undefined): string => {
   if (!phone) return "—";
-  const cleaned = String(phone).replace(/\D/g, "");
+  const cleaned = String(phone).replaceAll(/\D/g, "");
   if (cleaned.startsWith("216") && cleaned.length === 11) {
     const code = cleaned.slice(0, 3);
     const part1 = cleaned.slice(3, 5);
@@ -221,7 +221,7 @@ export const formatFileSize = (bytes: number | null | undefined): string => {
   const k = 1024;
   const sizes = ["B", "KB", "MB", "GB", "TB"];
   const i = Math.floor(Math.log(bytes) / Math.log(k));
-  const num = parseFloat((bytes / Math.pow(k, i)).toFixed(2));
+  const num = Number.parseFloat((bytes / Math.pow(k, i)).toFixed(2));
   return `${num} ${sizes[i]}`;
 };
 

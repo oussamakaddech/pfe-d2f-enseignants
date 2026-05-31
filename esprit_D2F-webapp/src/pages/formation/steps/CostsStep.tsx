@@ -19,8 +19,8 @@ export default function CostsStep({ typeFormation, organisme, setOrganisme, cout
           <Row gutter={[20, 16]}>
             <Col xs={24} sm={12}>
               <div className="creation-field">
-                <label className="creation-field-label">Organisme Prestataire</label>
-                <Input size="large" value={organisme} onChange={(e) => setOrganisme(e.target.value)} placeholder="Nom de l'organisme..." />
+                <label className="creation-field-label" htmlFor="cout-organisme">Organisme Prestataire</label>
+                <Input id="cout-organisme" size="large" value={organisme} onChange={(e) => setOrganisme(e.target.value)} placeholder="Nom de l'organisme..." />
               </div>
             </Col>
             <Col xs={24} sm={12}>
@@ -31,20 +31,20 @@ export default function CostsStep({ typeFormation, organisme, setOrganisme, cout
             </Col>
             <Col xs={24} sm={8}>
               <div className="creation-field">
-                <label className="creation-field-label">Coût Transport (DT)</label>
-                <InputNumber size="large" style={{ width: "100%" }} value={coutTransport} onChange={(val) => setCoutTransport(val ?? 0)} min={0} />
+                <label className="creation-field-label" htmlFor="cout-transport">Coût Transport (DT)</label>
+                <InputNumber id="cout-transport" size="large" style={{ width: "100%" }} value={coutTransport} onChange={(val) => setCoutTransport(val ?? 0)} min={0} />
               </div>
             </Col>
             <Col xs={24} sm={8}>
               <div className="creation-field">
-                <label className="creation-field-label">Coût Hébergement (DT)</label>
-                <InputNumber size="large" style={{ width: "100%" }} value={coutHebergement} onChange={(val) => setCoutHebergement(val ?? 0)} min={0} />
+                <label className="creation-field-label" htmlFor="cout-hebergement">Coût Hébergement (DT)</label>
+                <InputNumber id="cout-hebergement" size="large" style={{ width: "100%" }} value={coutHebergement} onChange={(val) => setCoutHebergement(val ?? 0)} min={0} />
               </div>
             </Col>
             <Col xs={24} sm={8}>
               <div className="creation-field">
-                <label className="creation-field-label">Coût Repas (DT)</label>
-                <InputNumber size="large" style={{ width: "100%" }} value={coutRepas} onChange={(val) => setCoutRepas(val ?? 0)} min={0} />
+                <label className="creation-field-label" htmlFor="cout-repas">Coût Repas (DT)</label>
+                <InputNumber id="cout-repas" size="large" style={{ width: "100%" }} value={coutRepas} onChange={(val) => setCoutRepas(val ?? 0)} min={0} />
               </div>
             </Col>
           </Row>

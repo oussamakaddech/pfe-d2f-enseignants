@@ -54,8 +54,8 @@ export function styledSheet(rows: Record<string, unknown>[], { title, subtitle }
 
   // Construire le tableau de tableaux (AOA)
   const aoa: (unknown[])[] = [];
-  if (hasTitle) aoa.push([title,    ...Array(ncols - 1).fill(null)]);
-  if (hasSub)   aoa.push([subtitle, ...Array(ncols - 1).fill(null)]);
+  if (hasTitle) aoa.push([title,    ...new Array(ncols - 1).fill(null)]);
+  if (hasSub)   aoa.push([subtitle, ...new Array(ncols - 1).fill(null)]);
   aoa.push(keys);                                         // en-tête colonnes
   rows.forEach(r => aoa.push(keys.map(k => r[k] ?? ""))); // données
 

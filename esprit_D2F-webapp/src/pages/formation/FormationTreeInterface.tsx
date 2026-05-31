@@ -81,7 +81,6 @@ const FormationTreeInterface = () => {
         {(formations as Formation[]).map((formation) => (
           <li
             key={String(formation.idFormation)}
-            role="button"
             tabIndex={0}
             className="list-group-item list-group-item-action"
             onClick={() => { setSelectedFormation(formation); setSelectedFile(null); }}
