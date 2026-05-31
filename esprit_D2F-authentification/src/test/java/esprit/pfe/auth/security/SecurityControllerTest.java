@@ -8,6 +8,7 @@ import esprit.pfe.auth.payload.request.SignupRequest;
 import esprit.pfe.auth.repositories.ConfirmationKeyRepo;
 import esprit.pfe.auth.repositories.RoleRepository;
 import esprit.pfe.auth.repositories.UserRepository;
+import esprit.pfe.auth.services.AuthService;
 import esprit.pfe.auth.services.EmailService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletRequest;
@@ -87,7 +88,10 @@ class SecurityControllerTest {
     @BeforeEach
     void setUp() {
         objectMapper = new ObjectMapper();
-        securityController = new SecurityController(
+
+        // DSI #5 : la logique métier vit dans AuthService ; le contrôleur n'est plus
+        // qu'un adaptateur HTTP. On construit le service avec les mocks et on l'injecte.
+        AuthService authService = new AuthService(
                 emailService,
                 userRepository,
                 roleRepository,
@@ -96,12 +100,13 @@ class SecurityControllerTest {
                 confirmationKeyRepo,
                 passwordEncoder,
                 auditService);
+        ReflectionTestUtils.setField(authService, "mailFrom", "noreply@d2f.local");
+        ReflectionTestUtils.setField(authService, "adminEmail", "admin@d2f.local");
+        ReflectionTestUtils.setField(authService, "lockoutMaxAttempts", 5);
+        ReflectionTestUtils.setField(authService, "lockoutDurationMinutes", 15);
 
-        ReflectionTestUtils.setField(securityController, "mailFrom", "noreply@d2f.local");
-        ReflectionTestUtils.setField(securityController, "adminEmail", "admin@d2f.local");
+        securityController = new SecurityController(authService);
         ReflectionTestUtils.setField(securityController, "cookieSecure", true);
-        ReflectionTestUtils.setField(securityController, "lockoutMaxAttempts", 5);
-        ReflectionTestUtils.setField(securityController, "lockoutDurationMinutes", 15);
 
         mockMvc = MockMvcBuilders.standaloneSetup(securityController)
                 .setControllerAdvice(new CustomExceptionHandler())
@@ -164,7 +169,7 @@ class SecurityControllerTest {
         // SECURITE : depuis V12, le controller hashe le token avec SHA-256 avant le lookup
         // BDD. Le mock doit donc matcher sur le HASH du token clair, pas sur le token clair.
         String rawToken = "valid-token";
-        String hashed = SecurityController.hashConfirmationToken(rawToken);
+        String hashed = AuthService.hashConfirmationToken(rawToken);
 
         esprit.pfe.auth.entities.ConfirmationKey key = new esprit.pfe.auth.entities.ConfirmationKey();
         key.setEmailAddress("test@example.com");
@@ -187,7 +192,7 @@ class SecurityControllerTest {
     @Test
     void resetPassword_WhenTokenExpired_ShouldReturn410() throws Exception {
         String rawToken = "expired-token";
-        String hashed = SecurityController.hashConfirmationToken(rawToken);
+        String hashed = AuthService.hashConfirmationToken(rawToken);
 
         esprit.pfe.auth.entities.ConfirmationKey key = new esprit.pfe.auth.entities.ConfirmationKey();
         key.setEmailAddress("test@example.com");
@@ -356,7 +361,7 @@ class SecurityControllerTest {
 
     @Test
     void resetPassword_WhenTokenInvalid_ShouldReturnBadRequest() throws Exception {
-        String hashed = SecurityController.hashConfirmationToken("invalid-token");
+        String hashed = AuthService.hashConfirmationToken("invalid-token");
         when(confirmationKeyRepo.findByToken(hashed)).thenReturn(Optional.empty());
 
         mockMvc.perform(post("/api/v1/auth/reset-password")
