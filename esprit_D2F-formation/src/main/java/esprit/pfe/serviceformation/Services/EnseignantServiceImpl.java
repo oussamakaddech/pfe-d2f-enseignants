@@ -85,14 +85,15 @@ public class EnseignantServiceImpl implements EnseignantService {
 
     @Override
     public Page<EnseignantDTO> getAllEnseignantsDTO(Pageable pageable) {
-        return enseignantRepository.findAll(pageable).map(this::mapToDTO);
+        return enseignantRepository.findAll(pageable).map(this::toDTO);
     }
 
     public List<EnseignantDTO> getAllEnseignantsDTO() {
-        return enseignantRepository.findAll().stream().map(this::mapToDTO).toList();
+        return enseignantRepository.findAll().stream().map(this::toDTO).toList();
     }
 
-    private EnseignantDTO mapToDTO(Enseignant e) {
+    @Override
+    public EnseignantDTO toDTO(Enseignant e) {
         EnseignantDTO dto = new EnseignantDTO();
         dto.setId(e.getId());
         dto.setNom(e.getNom());

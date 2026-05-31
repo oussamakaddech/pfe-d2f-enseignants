@@ -13,4 +13,5 @@ public interface EnseignantService {
     Enseignant getEnseignantById(String id);
     Page<EnseignantDTO> getAllEnseignantsDTO(Pageable pageable);
     List<EnseignantDTO> getAllEnseignantsDTO();
+    EnseignantDTO toDTO(Enseignant enseignant);
 }

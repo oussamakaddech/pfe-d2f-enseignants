@@ -92,6 +92,8 @@ class EnseignantControllerEnhancedTest {
         void testGetEnseignantById_Success() throws Exception {
                 Enseignant expected = createEnseignant("E001", "Dupont", "Jean", "jean.dupont@esprit.tn");
                 when(enseignantService.getEnseignantById("E001")).thenReturn(expected);
+                when(enseignantService.toDTO(expected))
+                                .thenReturn(createEnseignantDTO("E001", "Dupont", "Jean", "jean.dupont@esprit.tn"));
 
                 mockMvc.perform(get("/api/v1/enseignants/E001"))
                                 .andExpect(status().isOk())
@@ -105,6 +107,8 @@ class EnseignantControllerEnhancedTest {
         void testCreateEnse_Valid() throws Exception {
                 Enseignant created = createEnseignant("E001", "Dupont", "Jean", "jean.dupont@esprit.tn");
                 when(enseignantService.createEnseignant(any(Enseignant.class))).thenReturn(created);
+                when(enseignantService.toDTO(created))
+                                .thenReturn(createEnseignantDTO("E001", "Dupont", "Jean", "jean.dupont@esprit.tn"));
 
                 String enseignantJson = "{" +
                                 "\"nom\":\"Dupont\"," +
@@ -125,6 +129,8 @@ class EnseignantControllerEnhancedTest {
         void testUpdateEnseignant_Success() throws Exception {
                 Enseignant updated = createEnseignant("E001", "Dupont", "Jean-Pierre", "jean.dupont@esprit.tn");
                 when(enseignantService.updateEnseignant(eq("E001"), any(Enseignant.class))).thenReturn(updated);
+                when(enseignantService.toDTO(updated))
+                                .thenReturn(createEnseignantDTO("E001", "Dupont", "Jean-Pierre", "jean.dupont@esprit.tn"));
 
                 String enseignantJson = "{" +
                                 "\"nom\":\"Dupont\"," +

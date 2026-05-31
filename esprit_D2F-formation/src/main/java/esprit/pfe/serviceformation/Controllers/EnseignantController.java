@@ -41,20 +41,20 @@ public class EnseignantController {
 
     @GetMapping("/{id}")
     @PreAuthorize(AuthorizationMatrix.REFERENTIEL_READ)
-    public ResponseEntity<Enseignant> getEnseignantById(@PathVariable String id) {
-        return ResponseEntity.ok(enseignantService.getEnseignantById(id));
+    public ResponseEntity<EnseignantDTO> getEnseignantById(@PathVariable String id) {
+        return ResponseEntity.ok(enseignantService.toDTO(enseignantService.getEnseignantById(id)));
     }
 
     @PostMapping
     @PreAuthorize(AuthorizationMatrix.REFERENTIEL_WRITE)
-    public ResponseEntity<Enseignant> createEnseignant(@RequestBody Enseignant enseignant) {
-        return ResponseEntity.ok(enseignantService.createEnseignant(enseignant));
+    public ResponseEntity<EnseignantDTO> createEnseignant(@RequestBody Enseignant enseignant) {
+        return ResponseEntity.ok(enseignantService.toDTO(enseignantService.createEnseignant(enseignant)));
     }
 
     @PutMapping("/{id}")
     @PreAuthorize(AuthorizationMatrix.REFERENTIEL_WRITE)
-    public ResponseEntity<Enseignant> updateEnseignant(@PathVariable String id, @RequestBody Enseignant enseignant) {
-        return ResponseEntity.ok(enseignantService.updateEnseignant(id, enseignant));
+    public ResponseEntity<EnseignantDTO> updateEnseignant(@PathVariable String id, @RequestBody Enseignant enseignant) {
+        return ResponseEntity.ok(enseignantService.toDTO(enseignantService.updateEnseignant(id, enseignant)));
     }
 
     @DeleteMapping("/{id}")

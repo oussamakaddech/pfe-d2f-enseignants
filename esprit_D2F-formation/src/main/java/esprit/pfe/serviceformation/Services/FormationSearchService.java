@@ -119,10 +119,13 @@ public class FormationSearchService {
                     if (filter.getDomaine() != null && !filter.getDomaine().equals(f.getDomaine())) {
                         return false;
                     }
-                    if (filter.getUpId() != null && (f.getUp() == null || !filter.getUpId().equals(f.getUp().getId()))) {
+                    // Les identifiants d'UP/Dept sont des String côté entité ; le filtre les
+                    // expose en Long. On compare donc les représentations textuelles, sinon
+                    // Long.equals(String) renvoie toujours false (bug détecté par SpotBugs).
+                    if (filter.getUpId() != null && (f.getUp() == null || !String.valueOf(filter.getUpId()).equals(f.getUp().getId()))) {
                         return false;
                     }
-                    if (filter.getDeptId() != null && (f.getDepartement() == null || !filter.getDeptId().equals(f.getDepartement().getId()))) {
+                    if (filter.getDeptId() != null && (f.getDepartement() == null || !String.valueOf(filter.getDeptId()).equals(f.getDepartement().getId()))) {
                         return false;
                     }
                     if (filter.getOuverte() != null && filter.getOuverte() != f.isOuverte()) {

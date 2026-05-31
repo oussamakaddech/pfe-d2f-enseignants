@@ -20,6 +20,8 @@ import java.sql.Time;
 import java.util.*;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
@@ -63,18 +65,20 @@ class FormationWorkflowServiceCoverageTest {
     @Test
     @DisplayName("handleEtatTransitions - tous les états")
     void shouldHandleAllEtatTransitions() {
-        Formation f = createFormation(EtatFormation.ENREGISTRE);
-        service.handleEtatTransitions(f, EtatFormation.NOUVEAU);
-        f.setEtatFormation(EtatFormation.PLANIFIE);
-        service.handleEtatTransitions(f, EtatFormation.ENREGISTRE);
-        f.setEtatFormation(EtatFormation.VISIBLE);
-        service.handleEtatTransitions(f, EtatFormation.PLANIFIE);
-        f.setEtatFormation(EtatFormation.EN_COURS);
-        service.handleEtatTransitions(f, EtatFormation.VISIBLE);
-        f.setEtatFormation(EtatFormation.ACHEVE);
-        service.handleEtatTransitions(f, EtatFormation.EN_COURS);
-        f.setEtatFormation(EtatFormation.ANNULE);
-        service.handleEtatTransitions(f, EtatFormation.ENREGISTRE);
+        assertDoesNotThrow(() -> {
+            Formation f = createFormation(EtatFormation.ENREGISTRE);
+            service.handleEtatTransitions(f, EtatFormation.NOUVEAU);
+            f.setEtatFormation(EtatFormation.PLANIFIE);
+            service.handleEtatTransitions(f, EtatFormation.ENREGISTRE);
+            f.setEtatFormation(EtatFormation.VISIBLE);
+            service.handleEtatTransitions(f, EtatFormation.PLANIFIE);
+            f.setEtatFormation(EtatFormation.EN_COURS);
+            service.handleEtatTransitions(f, EtatFormation.VISIBLE);
+            f.setEtatFormation(EtatFormation.ACHEVE);
+            service.handleEtatTransitions(f, EtatFormation.EN_COURS);
+            f.setEtatFormation(EtatFormation.ANNULE);
+            service.handleEtatTransitions(f, EtatFormation.ENREGISTRE);
+        });
     }
 
     @Test
@@ -89,11 +93,11 @@ class FormationWorkflowServiceCoverageTest {
     @DisplayName("handleEtatTransitions - état null")
     void shouldHandleNullEtat() {
         Formation f = createFormation(null);
-        service.handleEtatTransitions(f, EtatFormation.PLANIFIE);
+        assertDoesNotThrow(() -> service.handleEtatTransitions(f, EtatFormation.PLANIFIE));
     }
 
     @Test
-    @DisplayName("sendEmailsSafely - outlookMailService null")
+    @DisplayName("sendCancellationEmails - outlookMailService null")
     void shouldSkipWhenMailServiceNull() {
         FormationWorkflowService svc = new FormationWorkflowService(
                 documentRepository, formationRepository, seanceFormationRepository,
@@ -103,12 +107,11 @@ class FormationWorkflowServiceCoverageTest {
         ReflectionTestUtils.setField(svc, "formationMapper", formationMapper);
         Formation f = createFormation(EtatFormation.PLANIFIE);
         f.setSeances(new ArrayList<>());
-        Method m = null;
-        try {
-            m = FormationWorkflowService.class.getDeclaredMethod("sendEmailsSafely", Set.class, String.class, String.class);
+        assertDoesNotThrow(() -> {
+            Method m = FormationWorkflowService.class.getDeclaredMethod("sendCancellationEmails", Set.class, String.class, String.class);
             m.setAccessible(true);
             m.invoke(svc, Set.of("test@test.com"), "Subject", "<html></html>");
-        } catch (Exception ignored) {}
+        });
     }
 
     @Test
@@ -286,7 +289,7 @@ class FormationWorkflowServiceCoverageTest {
                 enseignantRepository, presenceRepository, departementRepository,
                 upRepository, evaluationPublisher, helper, formationMapper,
                 outlookCalendarService, null);
-        svc.notifyCUPOfApprovedFormation(f);
+        assertDoesNotThrow(() -> svc.notifyCUPOfApprovedFormation(f));
     }
 
     @Test
@@ -305,7 +308,7 @@ class FormationWorkflowServiceCoverageTest {
         f.setUp(null);
         Method m = FormationWorkflowService.class.getDeclaredMethod("notifyCUPOfNewFormation", Formation.class);
         m.setAccessible(true);
-        m.invoke(service, f);
+        assertDoesNotThrow(() -> m.invoke(service, f));
     }
 
     @Test
@@ -378,7 +381,7 @@ class FormationWorkflowServiceCoverageTest {
         assertThat(p.isPresent()).isTrue();
 
         when(presenceRepository.findById(999L)).thenReturn(Optional.empty());
-        try { service.updatePresence(999L, true, "OK"); } catch (IllegalArgumentException ignored) {}
+        assertThrows(IllegalArgumentException.class, () -> service.updatePresence(999L, true, "OK"));
     }
 
     @Test
@@ -422,6 +425,6 @@ class FormationWorkflowServiceCoverageTest {
     @DisplayName("deleteFormationWorkflow - introuvable")
     void shouldFailDeleteNotFound() {
         when(formationRepository.findById(999L)).thenReturn(Optional.empty());
-        try { service.deleteFormationWorkflow(999L); } catch (IllegalArgumentException ignored) {}
+        assertThrows(IllegalArgumentException.class, () -> service.deleteFormationWorkflow(999L));
     }
 }
