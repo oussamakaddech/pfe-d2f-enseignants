@@ -86,7 +86,7 @@ export const isNonNegativeInteger = (value: unknown): boolean => {
  */
 export const isValidDate = (date: unknown): boolean => {
   if (!(date instanceof Date)) return false;
-  return !isNaN(date.getTime());
+  return !Number.isNaN(date.getTime());
 };
 
 /**

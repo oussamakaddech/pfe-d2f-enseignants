@@ -43,12 +43,12 @@ export default function CompetenciesStep({ compDomaines, compCompetences, select
                       />
                     </div>
                     <div className="creation-field creation-comp-select">
-                      <label className="creation-field-label">Compétence</label>
-                      <Select showSearch size="large" style={{ width: "100%" }} value={link.competenceId} onChange={(val) => handleCompetenceSelect(idx, val)} options={getCompetenceOptions(link.domaineId)} optionFilterProp="label" placeholder="Rechercher une compétence…" aria-label={`Compétence — ligne ${idx + 1}`} />
+                      <label className="creation-field-label" htmlFor={`comp-comp-${idx}`}>Compétence</label>
+                      <Select id={`comp-comp-${idx}`} showSearch size="large" style={{ width: "100%" }} value={link.competenceId} onChange={(val) => handleCompetenceSelect(idx, val)} options={getCompetenceOptions(link.domaineId)} optionFilterProp="label" placeholder="Rechercher une compétence…" aria-label={`Compétence — ligne ${idx + 1}`} />
                     </div>
                     <div className="creation-field creation-comp-select">
-                      <label className="creation-field-label">Savoir</label>
-                      <Select showSearch size="large" style={{ width: "100%" }} value={link.savoirId} onChange={(val) => handleSavoirSelect(idx, val)} options={(rowSavoirs[idx] || []).map(s => ({ value: s.id, label: `${s.nom} (${s.type})` }))} optionFilterProp="label" placeholder="Choisir un savoir…" disabled={!link.competenceId} aria-label={`Savoir — ligne ${idx + 1}`} />
+                      <label className="creation-field-label" htmlFor={`comp-savoir-${idx}`}>Savoir</label>
+                      <Select id={`comp-savoir-${idx}`} showSearch size="large" style={{ width: "100%" }} value={link.savoirId} onChange={(val) => handleSavoirSelect(idx, val)} options={(rowSavoirs[idx] || []).map(s => ({ value: s.id, label: `${s.nom} (${s.type})` }))} optionFilterProp="label" placeholder="Choisir un savoir…" disabled={!link.competenceId} aria-label={`Savoir — ligne ${idx + 1}`} />
                     </div>
                     <Button type="text" danger size="small" icon={<DeleteOutlined />} onClick={() => handleRemoveCompetenceLink(idx)} aria-label={`Supprimer la ligne ${idx + 1}`} className="creation-comp-del-btn" />
                   </div>

@@ -207,9 +207,11 @@ function SavoirRow({ savoir, enseignants, assignments, isDraggingAny }: SavoirRo
   return (
     <tr className="savoir-row">
       <td className="sticky-col">
-        {/* Draggable label: keyboard users use the cell-level dropdown actions. (S6848 — by-design DnD.) */}
+        {/* Draggable label: keyboard users use the cell-level dropdown actions. */}
         <div
           className="savoir-label"
+          role="button"
+          tabIndex={0}
           draggable={true}
           onDragStart={handleDragStart}
           onDragEnd={onDragEnd}

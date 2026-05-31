@@ -62,8 +62,9 @@ export default function EnseignantDropCard({
   const ratio = totalSavoirs > 0 ? Math.round((count * 100) / totalSavoirs) : 0;
 
   return (
-    /* Drop target: HTML5 DnD has no native keyboard equivalent — keyboard users can use the explicit "Assign" actions from the per-savoir dropdown menu. (S6848 — by-design DnD.) */
+    /* Drop target: keyboard users can use the explicit "Assign" actions from the per-savoir dropdown menu. */
     <div
+      role="region"
       className={`ens-drop-card ${loadClass(count)}${isOver ? " is-over" : ""}`}
       ref={null}
       aria-label={`Affectations de ${fullName}`}

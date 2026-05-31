@@ -93,9 +93,9 @@ export default function PlanningStep({ seances, addSeance, updateSeance, removeS
               <div className="creation-externe-box">
                 <Text className="creation-externe-title"><UserAddOutlined style={{ marginRight: 6 }} />Animateur Externe</Text>
                 <Row gutter={[16, 12]} style={{ marginTop: 12 }}>
-                  <Col xs={24} sm={8}><div className="creation-field"><label className="creation-field-label">Nom</label><Input size="large" value={formNom} onChange={(e) => setFormNom(e.target.value)} placeholder="Nom de l'animateur" /></div></Col>
-                  <Col xs={24} sm={8}><div className="creation-field"><label className="creation-field-label">Prénom</label><Input size="large" value={formPrenom} onChange={(e) => setFormPrenom(e.target.value)} placeholder="Prénom de l'animateur" /></div></Col>
-                  <Col xs={24} sm={8}><div className="creation-field"><label className="creation-field-label">Email</label><Input size="large" type="email" value={formEmail} onChange={(e) => setFormEmail(e.target.value)} placeholder="email@organisme.com" /></div></Col>
+                  <Col xs={24} sm={8}><div className="creation-field"><label className="creation-field-label" htmlFor="anim-nom">Nom</label><Input id="anim-nom" size="large" value={formNom} onChange={(e) => setFormNom(e.target.value)} placeholder="Nom de l'animateur" /></div></Col>
+                  <Col xs={24} sm={8}><div className="creation-field"><label className="creation-field-label" htmlFor="anim-prenom">Prénom</label><Input id="anim-prenom" size="large" value={formPrenom} onChange={(e) => setFormPrenom(e.target.value)} placeholder="Prénom de l'animateur" /></div></Col>
+                  <Col xs={24} sm={8}><div className="creation-field"><label className="creation-field-label" htmlFor="anim-email">Email</label><Input id="anim-email" size="large" type="email" value={formEmail} onChange={(e) => setFormEmail(e.target.value)} placeholder="email@organisme.com" /></div></Col>
                 </Row>
               </div>
             </Col>

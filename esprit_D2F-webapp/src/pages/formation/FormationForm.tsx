@@ -30,8 +30,9 @@ function FormationForm({ initialDate, onFormationCreated }: FormationFormProps) 
   return (
     <form onSubmit={handleSubmit}>
       <div className="mb-3">
-        <label>Titre :</label>
+        <label htmlFor="ff-titre">Titre :</label>
         <input
+          id="ff-titre"
           type="text"
           className="form-control"
           value={titreFormation}
@@ -41,8 +42,9 @@ function FormationForm({ initialDate, onFormationCreated }: FormationFormProps) 
       </div>
 
       <div className="mb-3">
-        <label>Date début :</label>
+        <label htmlFor="ff-date-debut">Date début :</label>
         <input
+          id="ff-date-debut"
           type="date"
           className="form-control"
           value={dateDebut}
@@ -52,8 +54,9 @@ function FormationForm({ initialDate, onFormationCreated }: FormationFormProps) 
       </div>
 
       <div className="mb-3">
-        <label>Date fin :</label>
+        <label htmlFor="ff-date-fin">Date fin :</label>
         <input
+          id="ff-date-fin"
           type="date"
           className="form-control"
           value={dateFin}

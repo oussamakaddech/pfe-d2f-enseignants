@@ -117,38 +117,42 @@ export function useRiceTree(msgApi: MessageInstance) {
   );
 
   // ── create (add) ──────────────────────────────────────────────────────────
-  const addDomaine = useCallback((domaine: Partial<RiceDomaine> = { code: "NEW", nom: "Nouvel Domaine" }) => {
+  const addDomaine = useCallback((domaine?: Partial<RiceDomaine>) => {
+    const d = domaine ?? { code: "NEW", nom: "Nouvel Domaine" };
     updateTree((t) => {
-      const idx = t.push({ nom: "Nouvel Domaine", ...domaine, competences: [] }) - 1;
-      setEditingNom({ path: [idx], value: domaine.nom ?? "" });
+      const idx = t.push({ nom: "Nouvel Domaine", ...d, competences: [] }) - 1;
+      setEditingNom({ path: [idx], value: d.nom ?? "" });
     });
   }, [updateTree, setEditingNom]);
 
-  const addCompetence = useCallback((di: number, competence: Partial<RiceCompetence> = { code: "NEW_C", nom: "Nouvelle compétence" }) => {
+  const addCompetence = useCallback((di: number, competence?: Partial<RiceCompetence>) => {
+    const c = competence ?? { code: "NEW_C", nom: "Nouvelle compétence" };
     updateTree((t) => {
       const comps = t[di].competences ?? (t[di].competences = []);
-      const ci = comps.push({ nom: "Nouvelle compétence", ...competence, sousCompetences: [], savoirs: [] }) - 1;
-      setEditingNom({ path: [di, ci], value: competence.nom ?? "" });
+      const ci = comps.push({ nom: "Nouvelle compétence", ...c, sousCompetences: [], savoirs: [] }) - 1;
+      setEditingNom({ path: [di, ci], value: c.nom ?? "" });
     });
   }, [updateTree, setEditingNom]);
 
-  const addSousCompetence = useCallback((di: number, ci: number, sousComp: Partial<RiceSousCompetence> = { code: "NEW_SC", nom: "Nouvelle sous-comp" }) => {
+  const addSousCompetence = useCallback((di: number, ci: number, sousComp?: Partial<RiceSousCompetence>) => {
+    const sc = sousComp ?? { code: "NEW_SC", nom: "Nouvelle sous-comp" };
     updateTree((t) => {
       const comp = t[di].competences![ci];
       const scs = comp.sousCompetences ?? (comp.sousCompetences = []);
-      const sci = scs.push({ nom: "Nouvelle sous-comp", ...sousComp, savoirs: [] }) - 1;
-      setEditingNom({ path: [di, ci, sci], value: sousComp.nom ?? "" });
+      const sci = scs.push({ nom: "Nouvelle sous-comp", ...sc, savoirs: [] }) - 1;
+      setEditingNom({ path: [di, ci, sci], value: sc.nom ?? "" });
     });
   }, [updateTree, setEditingNom]);
 
   // ── create (add savoir) ────────────────────────────────────────────────────
-  const addSavoir = useCallback((di: number, ci: number, sci = -1, savoir: Partial<RiceSavoir> = { code: null, nom: "Nouveau savoir", type: "THEORIQUE", niveau: null, enseignantsSuggeres: [] }) => {
+  const addSavoir = useCallback((di: number, ci: number, sci = -1, savoir?: Partial<RiceSavoir>) => {
+    const s = savoir ?? { code: null, nom: "Nouveau savoir", type: "THEORIQUE", niveau: null, enseignantsSuggeres: [] };
     updateTree((t) => {
       const target = sci === -1 ? t[di].competences![ci] : t[di].competences![ci].sousCompetences![sci];
       const list = target.savoirs ?? (target.savoirs = []);
       const tmpId = `tmp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-      const si = list.push({ nom: "Nouveau savoir", ...savoir, tmpId }) - 1;
-      setEditingNom({ path: [di, ci, sci, si], value: savoir.nom ?? "" });
+      const si = list.push({ nom: "Nouveau savoir", ...s, tmpId }) - 1;
+      setEditingNom({ path: [di, ci, sci, si], value: s.nom ?? "" });
     });
   }, [updateTree, setEditingNom]);
 

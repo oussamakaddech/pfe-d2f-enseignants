@@ -27,22 +27,19 @@ export const getTypeTag = (type: string) => {
   if (type === "P")
     return (
       <span className="teachers-type-tag teachers-type-tag--perm">
-        <span className="teachers-type-dot teachers-type-dot--perm" />
-        Permanent
+        <span className="teachers-type-dot teachers-type-dot--perm" />{" "}Permanent
       </span>
     );
   if (type === "V")
     return (
       <span className="teachers-type-tag teachers-type-tag--vac">
-        <span className="teachers-type-dot teachers-type-dot--vac" />
-        Vacataire
+        <span className="teachers-type-dot teachers-type-dot--vac" />{" "}Vacataire
       </span>
     );
   if (type === "C")
     return (
       <span className="teachers-type-tag teachers-type-tag--cont">
-        <span className="teachers-type-dot teachers-type-dot--cont" />
-        Contractuel
+        <span className="teachers-type-dot teachers-type-dot--cont" />{" "}Contractuel
       </span>
     );
   return (
