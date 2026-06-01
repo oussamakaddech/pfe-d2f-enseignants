@@ -139,22 +139,22 @@ class TestGapEngineJustification:
         return GapEngine(mock_db)
 
     def test_justification_basic(self, engine):
-        j = engine._justification(0.4, 0.3, 0, False, 0)
+        j = engine._justification(0.4, 0, False, 0)
         assert isinstance(j, str)
         assert len(j) > 0
         assert "Écart" in j
 
     def test_justification_includes_regression(self, engine):
-        j = engine._justification(0.4, 0.5, 0, True, 0)
+        j = engine._justification(0.4, 0, True, 0)
         assert "régression" in j.lower()
 
     def test_justification_includes_stagnation(self, engine):
-        j = engine._justification(0.2, 0.3, 8, False, 0)
+        j = engine._justification(0.2, 8, False, 0)
         assert "stagnation" in j.lower()
         assert "8" in j
 
     def test_justification_includes_besoins(self, engine):
-        j = engine._justification(0.2, 0.2, 0, False, 3)
+        j = engine._justification(0.2, 0, False, 3)
         assert "besoin" in j.lower()
         assert "3" in j
 

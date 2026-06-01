@@ -13,8 +13,9 @@ from app.engines.feature_engine import FeatureEngine
 from app.engines.gap_engine import GapEngine
 from app.engines.recommendation_engine import RecommendationEngine
 from app.models.db_models import AlertEvent, SkillGap
-from app.routers.analytics import _build_domaine_demand, _upsert_risk_profile
+from app.routers.analytics import _upsert_risk_profile
 from app.services.data_service import DataService
+from app.services.analysis_collection_service import collect_analysis_data
 
 logger = logging.getLogger(__name__)
 
@@ -32,45 +33,33 @@ def _analyse_un_enseignant(enseignant_id: str) -> bool:
                 return False
             profile = profiles[0]
 
-            comp_levels  = svc.get_competency_levels(enseignant_id)
-            req_levels   = svc.get_required_levels()
-            formations   = svc.get_all_formations()
-            form_comps   = svc.get_formation_competencies()
-            inscriptions = svc.get_inscriptions(enseignant_id)
-            evaluations  = svc.get_evaluations(enseignant_id)
-            eval_glob    = svc.get_evaluations_globales()
-            besoins      = svc.get_besoins(enseignant_id)
-            certificats  = svc.get_certificats(enseignant_id)
-            prereqs      = svc.get_prerequisite_graph()
-            demand       = svc.get_besoin_demand()
-
-            total_demand = sum(int(d.get("total_demand") or 0) for d in demand)
-            dom_demand   = _build_domaine_demand(demand, total_demand)
+            # Use centralized data collection service
+            data = collect_analysis_data(svc, enseignant_id)
 
             feat_eng = FeatureEngine(db)
             snapshot = feat_eng.build_snapshot(
-                enseignant_id, comp_levels, profile, besoins, certificats
+                enseignant_id, data["comp_levels"], profile, data["besoins"], data["certificats"]
             )
 
             gap_eng = GapEngine(db)
             gaps = gap_eng.compute_gaps(
-                enseignant_id, comp_levels, req_levels,
-                besoins, None, dom_demand
+                enseignant_id, data["comp_levels"], data["req_levels"],
+                data["besoins"], None, data["dom_demand"]
             )
 
             if gaps:
                 reco_eng = RecommendationEngine(db)
-                all_evals = evaluations + eval_glob
+                all_evals = data["evaluations"] + data["eval_glob"]
                 reco_eng.generate(
-                    enseignant_id, gaps, formations, form_comps,
-                    inscriptions, all_evals, prereqs,
+                    enseignant_id, gaps, data["formations"], data["form_comps"],
+                    data["inscriptions"], all_evals, data["prereqs"],
                     float(snapshot.taux_completion_formations),
                     float(snapshot.taux_presence_moyen),
                 )
 
                 alert_eng = AlertEngine(db)
                 dept_id = str(profile.get("departement_id") or "")
-                alert_eng.detect_and_save(enseignant_id, gaps, profile, besoins, dept_id)
+                alert_eng.detect_and_save(enseignant_id, gaps, profile, data["besoins"], dept_id)
 
                 _upsert_risk_profile(db, enseignant_id, gaps, snapshot)
 

@@ -31,6 +31,48 @@ _COMPLETED_STATES = {"APPROVED"}
 NEUTRAL_PEER_SCORE = 0.5
 
 
+def _build_profiles(competency_levels: list[dict[str, Any]]) -> dict[str, dict[int, int]]:
+    profiles: dict[str, dict[int, int]] = defaultdict(dict)
+    for cl in competency_levels:
+        tid = str(cl.get("enseignant_id") or "")
+        cid = cl.get("competence_id")
+        if not tid or cid is None:
+            continue
+        cid = int(cid)
+        lvl = int(cl.get("current_level") or 0)
+        profiles[tid][cid] = max(profiles[tid].get(cid, 0), lvl)
+    return profiles
+
+
+def _build_similarity_matrix(
+    teachers: list[str], profiles: dict[str, dict[int, int]]
+) -> np.ndarray | None:
+    if not teachers:
+        return None
+    comp_ids = sorted({c for d in profiles.values() for c in d})
+    if not comp_ids:
+        return None
+    col = {c: i for i, c in enumerate(comp_ids)}
+    row = {t: i for i, t in enumerate(teachers)}
+    matrix = np.zeros((len(teachers), len(comp_ids)), dtype=float)
+    for t, levels in profiles.items():
+        r = row[t]
+        for cid, lvl in levels.items():
+            matrix[r, col[cid]] = lvl
+    return cosine_similarity(matrix)
+
+
+def _build_completers(inscriptions: list[dict[str, Any]]) -> dict[int, set[str]]:
+    completers: dict[int, set[str]] = defaultdict(set)
+    for ins in inscriptions:
+        if ins.get("etat") in _COMPLETED_STATES:
+            fid = ins.get("formation_id")
+            tid = str(ins.get("enseignant_id") or "")
+            if fid is not None and tid:
+                completers[int(fid)].add(tid)
+    return completers
+
+
 class CollaborativeFilter:
     """Filtrage collaboratif basé sur la similarité des profils de compétences."""
 
@@ -43,42 +85,11 @@ class CollaborativeFilter:
         self.k = max(1, k_neighbors)
         self._peers_cache: dict[str, list[tuple[str, float]]] = {}
 
-        # enseignant → {competence_id: niveau max}
-        profiles: dict[str, dict[int, int]] = defaultdict(dict)
-        for cl in competency_levels:
-            tid = str(cl.get("enseignant_id") or "")
-            cid = cl.get("competence_id")
-            if not tid or cid is None:
-                continue
-            cid = int(cid)
-            lvl = int(cl.get("current_level") or 0)
-            profiles[tid][cid] = max(profiles[tid].get(cid, 0), lvl)
-
+        profiles = _build_profiles(competency_levels)
         self.teachers: list[str] = list(profiles.keys())
         self._row: dict[str, int] = {t: i for i, t in enumerate(self.teachers)}
-        comp_ids = sorted({c for d in profiles.values() for c in d})
-        col = {c: i for i, c in enumerate(comp_ids)}
-
-        if self.teachers and comp_ids:
-            matrix = np.zeros((len(self.teachers), len(comp_ids)), dtype=float)
-            for t, levels in profiles.items():
-                r = self._row[t]
-                for cid, lvl in levels.items():
-                    matrix[r, col[cid]] = lvl
-            # Lignes nulles → cosinus indéfini ; cosine_similarity renvoie 0, ce
-            # qui exclut naturellement ces enseignants des voisinages.
-            self._sim = cosine_similarity(matrix)
-        else:
-            self._sim = None
-
-        # formation_id → ensemble d'enseignants l'ayant complétée
-        self.completers: dict[int, set[str]] = defaultdict(set)
-        for ins in inscriptions:
-            if ins.get("etat") in _COMPLETED_STATES:
-                fid = ins.get("formation_id")
-                tid = str(ins.get("enseignant_id") or "")
-                if fid is not None and tid:
-                    self.completers[int(fid)].add(tid)
+        self._sim = _build_similarity_matrix(self.teachers, profiles)
+        self.completers = _build_completers(inscriptions)
 
     def similar_teachers(self, teacher_id: str) -> list[tuple[str, float]]:
         """K plus proches voisins (id, similarité), similarité > 0, triés desc."""

@@ -40,6 +40,7 @@ from app.models.db_models import (
     SkillGap, TeacherRiskProfile, TrainingPath, TrainingPathItem,
 )
 from app.services.data_service import DataService
+from app.services.analysis_collection_service import collect_analysis_data, build_domaine_demand as _build_domaine_demand
 
 router = APIRouter(prefix="/v1/analytics", tags=["Analytics v1"])
 logger = logging.getLogger(__name__)
@@ -52,18 +53,6 @@ def _dsi_error(status_code: int, code: str, message: str, path: str) -> dict:
         message=message,
         path=path,
     )
-
-
-# ── Helper : construire domaine_demand ──────────────────────
-def _build_domaine_demand(besoins_demand: list[dict], total_besoins: int) -> dict[int, float]:
-    index: dict[int, float] = {}
-    for row in besoins_demand:
-        cid = row.get("competence_id")
-        if not cid:
-            continue
-        total_d = int(row.get("total_demand") or 0)
-        index[int(cid)] = total_d / max(total_besoins, 1)
-    return index
 
 
 # ── POST /api/v1/analytics/analyze/{enseignantId} ───────────
@@ -97,7 +86,7 @@ async def analyze_enseignant(
     db.flush()
 
     try:
-        data = _collect_analysis_data(svc, enseignant_id)
+        data = collect_analysis_data(svc, enseignant_id)
         gaps, recommendations, alerts, snapshot = _run_pipeline(
             db, svc, enseignant_id, profile, data, pred.id,
         )
@@ -134,30 +123,6 @@ def _get_teacher_or_404(svc: DataService, enseignant_id: str, request: Request) 
             detail=_dsi_error(404, "ENS-404", f"Enseignant {enseignant_id} introuvable", request.url.path),
         )
     return profiles[0]
-
-
-def _collect_analysis_data(svc: DataService, enseignant_id: str) -> dict:
-    comp_levels = svc.get_competency_levels(enseignant_id)
-    req_levels = svc.get_required_levels()
-    formations = svc.get_all_formations()
-    form_comps = svc.get_formation_competencies()
-    inscriptions = svc.get_inscriptions(enseignant_id)
-    evaluations = svc.get_evaluations(enseignant_id)
-    eval_glob = svc.get_evaluations_globales()
-    besoins = svc.get_besoins(enseignant_id)
-    certificats = svc.get_certificats(enseignant_id)
-    prereqs = svc.get_prerequisite_graph()
-    demand = svc.get_besoin_demand()
-    all_demand = sum(int(d.get("total_demand") or 0) for d in demand)
-    dom_demand = _build_domaine_demand(demand, all_demand)
-    return {
-        "comp_levels": comp_levels, "req_levels": req_levels,
-        "formations": formations, "form_comps": form_comps,
-        "inscriptions": inscriptions, "evaluations": evaluations,
-        "eval_glob": eval_glob, "besoins": besoins,
-        "certificats": certificats, "prereqs": prereqs,
-        "dom_demand": dom_demand,
-    }
 
 
 def _run_pipeline(

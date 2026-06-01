@@ -42,7 +42,7 @@ NIVEAU_REQUIS_CASE = """
 
 # ── Queries ────────────────────────────────────────────────
 
-TEACHER_PROFILE_QUERY = f"""
+TEACHER_PROFILE_QUERY = """
 WITH tf AS (
     SELECT i.enseignant_id,
            COUNT(DISTINCT i.formation_id) FILTER (WHERE i.etat = 'APPROVED') AS nb_completed,
@@ -341,7 +341,7 @@ class DataService:
     """Service d'accès aux données en lecture sur la base D2F partagée."""
 
     DEFAULT_PAGE_SIZE = 500
-_LIMIT_OFFSET_CLAUSE = " LIMIT :limit OFFSET :offset"
+    _LIMIT_OFFSET_CLAUSE = " LIMIT :limit OFFSET :offset"
 
     def __init__(self, db: Session):
         self.db = db

@@ -132,7 +132,7 @@ def metrics():
 app.add_middleware(TraceIDMiddleware)
 app.add_middleware(JWTAuthMiddleware)
 
-_cors_raw = os.getenv("CORS_ORIGINS", "http://localhost:3000,http://localhost:5173,http://localhost:8080")
+_cors_raw = os.getenv("CORS_ORIGINS", "https://localhost:3000,https://localhost:5173,https://localhost:8080")
 _cors_origins = [o.strip() for o in _cors_raw.split(",") if o.strip()]
 # CORS restreint : verbes HTTP et headers explicites (ne pas utiliser "*").
 # Tout besoin supplementaire doit etre ajoute volontairement.
