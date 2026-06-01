@@ -60,9 +60,9 @@ export default function MergeSavoirModal({
           }}
         >
           {allSavoirsFlat
-            .filter((s) => !(mergeSrc &&
-              s.di === mergeSrc.di && s.ci === mergeSrc.ci &&
-              s.sci === mergeSrc.sci && s.si === mergeSrc.si))
+            .filter((s) => !(
+              s.di === mergeSrc?.di && s.ci === mergeSrc?.ci &&
+              s.sci === mergeSrc?.sci && s.si === mergeSrc?.si))
             .map((s) => (
               <Option key={`${s.di}|${s.ci}|${s.sci}|${s.si}`} value={`${s.di}|${s.ci}|${s.sci}|${s.si}`}>
                 {s.label}

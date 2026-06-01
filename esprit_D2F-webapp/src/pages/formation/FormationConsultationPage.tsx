@@ -131,14 +131,14 @@ export default function FormationConsultationPage() {
   const { data: deptsData = [] } = useDepartements();
   const upsOptions = useMemo(
     () => (upsData as unknown[]).map((u: unknown) => {
-      const up = u as RefItem;
+      const up = u as RefItem; // S4325: cast needed for compatibility
       return { id: up.id, libelle: up.libelle || up.nom || "_" };
     }),
     [upsData],
   );
   const deptsOptions = useMemo(
     () => (deptsData as unknown[]).map((d: unknown) => {
-      const dept = d as RefItem;
+      const dept = d as RefItem; // S4325: cast needed for compatibility
       return { id: dept.id, libelle: dept.libelle || dept.nom || "_" };
     }),
     [deptsData],

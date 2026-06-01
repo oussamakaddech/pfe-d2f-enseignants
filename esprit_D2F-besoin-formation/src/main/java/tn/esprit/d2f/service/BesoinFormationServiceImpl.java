@@ -44,6 +44,10 @@ public class BesoinFormationServiceImpl implements IBesoinFormationService {
     private static final String NOT_FOUND_SUFFIX = " not found";
     private static final String BESOIN_FORMATION_WITH_ID_PREFIX = "BesoinFormation with id ";
 
+    private enum ApprovalStep {
+        CUP_APPROVAL, CHEF_DEP_APPROVAL, ADMIN_APPROVAL, COMPLETE
+    }
+
     private final BesoinFormationRepository besoinFormationRepository;
     private final BesoinFormationEventPublisher eventPublisher;
     private final NotificationRepository notificationRepository;
@@ -127,21 +131,31 @@ public class BesoinFormationServiceImpl implements IBesoinFormationService {
 
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         Collection<? extends GrantedAuthority> authorities = auth.getAuthorities();
+
+        executeApprovalStep(b, id, auth, authorities);
+        return besoinFormationMapper.toResponse(besoinFormationRepository.save(b));
+    }
+
+    private void executeApprovalStep(BesoinFormation b, Long id, Authentication auth,
+                                      Collection<? extends GrantedAuthority> authorities) {
         boolean isAdmin   = hasRole(authorities, ROLE_ADMIN);
         boolean isCUP     = hasRole(authorities, ROLE_CUP);
         boolean isChefDep = hasRole(authorities, ROLE_CHEF_DEP);
 
-        if (!Boolean.TRUE.equals(b.getApprouveCUP())) {
-            approveCupStep(b, id, auth, isCUP, isAdmin);
-        } else if (!Boolean.TRUE.equals(b.getApprouveChefDep())) {
-            approveChefDepStep(b, id, auth, isChefDep, isAdmin);
-        } else if (!Boolean.TRUE.equals(b.getApprouveAdmin())) {
-            approveAdminStep(b, id, auth, isAdmin);
-        } else {
-            log.info("Besoin {} is already fully approved — no action taken", id);
+        ApprovalStep step = determineNextApprovalStep(b);
+        switch (step) {
+            case CUP_APPROVAL -> approveCupStep(b, id, auth, isCUP, isAdmin);
+            case CHEF_DEP_APPROVAL -> approveChefDepStep(b, id, auth, isChefDep, isAdmin);
+            case ADMIN_APPROVAL -> approveAdminStep(b, id, auth, isAdmin);
+            case COMPLETE -> log.info("Besoin {} is already fully approved — no action taken", id);
         }
+    }
 
-        return besoinFormationMapper.toResponse(besoinFormationRepository.save(b));
+    private ApprovalStep determineNextApprovalStep(BesoinFormation b) {
+        if (!Boolean.TRUE.equals(b.getApprouveCUP())) return ApprovalStep.CUP_APPROVAL;
+        if (!Boolean.TRUE.equals(b.getApprouveChefDep())) return ApprovalStep.CHEF_DEP_APPROVAL;
+        if (!Boolean.TRUE.equals(b.getApprouveAdmin())) return ApprovalStep.ADMIN_APPROVAL;
+        return ApprovalStep.COMPLETE;
     }
 
     // ── Requêtes filtrées ─────────────────────────────────────────────────────

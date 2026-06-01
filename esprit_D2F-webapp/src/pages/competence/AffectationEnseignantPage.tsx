@@ -134,7 +134,7 @@ export default function AffectationEnseignantPage() {
 
   const handleAssign = async () => {
     try {
-      const values = (await assignForm.validateFields()) as AssignFormValues;
+      const values = (await assignForm.validateFields()) as AssignFormValues; // S4325: cast needed for compatibility
       await ecApi.assign(values);
       msgApi.success("Affectation ajoutée avec succès");
       setAssignModal(false);

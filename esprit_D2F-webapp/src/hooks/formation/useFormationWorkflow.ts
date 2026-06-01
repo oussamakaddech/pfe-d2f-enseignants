@@ -271,30 +271,26 @@ export function useFormationWorkflow(
   const removeSeance = (i: number) => setSeances((s) => s.filter((_, idx) => idx !== i));
   const toggleSeance = (i: number) => setSeances((s) => s.map((se, idx) => idx === i ? { ...se, expanded: !se.expanded } : se));
 
-  const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
     if (!f) return;
-    const reader = new FileReader();
-    reader.onload = (ev: ProgressEvent<FileReader>) => {
-      const result = ev.target?.result;
-      if (!result || typeof result === "string") return;
-      const wb = XLSX.read(new Uint8Array(result), { type: "array" });
-      const ws = wb.Sheets[wb.SheetNames[0]];
-      const rows = XLSX.utils.sheet_to_json(ws, { header: 1 }) as unknown[][];
-      if (rows.length < 2) { message.warning("Excel vide ou mal formaté"); return; }
-      const hdr = rows[0].map((h) => String(h).toLowerCase().trim());
-      const idx = hdr.findIndex((h) => h === "email" || h === "mail");
-      if (idx < 0) { message.warning(`Colonne Email introuvable. Colonnes trouvées : ${rows[0].join(", ")}`); e.target.value = ""; return; }
-      const mailsSet = new Set(rows.slice(1).map((r) => r[idx]).filter(Boolean));
-      const matched = ens.filter((x) => mailsSet.has(x.mail));
-      setPartSel(matched);
-      message.success(`${matched.length} participant${matched.length > 1 ? "s" : ""} importé${matched.length > 1 ? "s" : ""}`);
-      e.target.value = "";
-    };
-    reader.readAsArrayBuffer(f);
+    const buffer = await f.arrayBuffer();
+    const data = new Uint8Array(buffer);
+    const wb = XLSX.read(data, { type: "array" });
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json(ws, { header: 1 }) as unknown[][];
+    if (rows.length < 2) { message.warning("Excel vide ou mal formaté"); return; }
+    const hdr = rows[0].map((h) => String(h).toLowerCase().trim());
+    const idx = hdr.findIndex((h) => h === "email" || h === "mail");
+    if (idx < 0) { message.warning(`Colonne Email introuvable. Colonnes trouvées : ${rows[0].join(", ")}`); e.target.value = ""; return; }
+    const mailsSet = new Set(rows.slice(1).map((r) => r[idx]).filter(Boolean));
+    const matched = ens.filter((x) => mailsSet.has(x.mail));
+    setPartSel(matched);
+    message.success(`${matched.length} participant${matched.length > 1 ? "s" : ""} importé${matched.length > 1 ? "s" : ""}`);
+    e.target.value = "";
   };
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (seances.length === 0) { message.warning("Veuillez ajouter au moins une séance."); return; }
     // Animateurs au niveau formation : appliqués à toutes les séances.
@@ -325,7 +321,7 @@ export function useFormationWorkflow(
     try {
       const res = await updateMut.mutateAsync({ id: formation.idFormation, data: payload });
       message.success("Formation mise à jour !");
-      onFormationUpdated(res as unknown as Record<string, unknown>);
+      onFormationUpdated(res as unknown as Record<string, unknown>); // S4325: cast needed for compatibility
     } catch (err: unknown) {
       message.error(extractUpdateError(err));
     }

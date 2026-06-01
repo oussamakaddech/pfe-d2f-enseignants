@@ -225,25 +225,23 @@ export function useFormationWorkflowEdit(formation: EditFormation, onFormationUp
   const removeSeance = (i: number) => setSeances((s) => s.filter((_, idx) => idx !== i));
   const toggleSeance = (i: number) => setSeances((s) => s.map((se, idx) => (idx === i ? { ...se, expanded: !se.expanded } : se)));
 
-  const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
     if (!f) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      const wb = XLSX.read(new Uint8Array(ev.target!.result as ArrayBuffer), { type: "array" });
-      const ws = wb.Sheets[wb.SheetNames[0]];
-      const rows = XLSX.utils.sheet_to_json<unknown[]>(ws, { header: 1 });
-      if (rows.length < 2) { message.warning("Excel vide ou mal formaté"); return; }
-      const hdr = (rows[0] as string[]).map((h) => String(h).toLowerCase().trim());
-      const idx = hdr.findIndex((h) => h === "email" || h === "mail");
-      if (idx < 0) { message.warning(`Colonne Email introuvable. Colonnes attendues : Email, Nom, Prénom. Colonnes trouvées : ${(rows[0] as string[]).join(", ")}`); e.target.value = ""; return; }
-      const mailsSet = new Set(rows.slice(1).map((r) => r[idx]).filter(Boolean));
-      const matched = ens.filter((x) => mailsSet.has(x.mail));
-      setPartSel(matched);
-      message.success(`${matched.length} participant${matched.length > 1 ? "s" : ""} importé${matched.length > 1 ? "s" : ""}`);
-      e.target.value = "";
-    };
-    reader.readAsArrayBuffer(f);
+    const buffer = await f.arrayBuffer();
+    const data = new Uint8Array(buffer);
+    const wb = XLSX.read(data, { type: "array" });
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json<unknown[]>(ws, { header: 1 });
+    if (rows.length < 2) { message.warning("Excel vide ou mal formaté"); return; }
+    const hdr = (rows[0] as string[]).map((h) => String(h).toLowerCase().trim());
+    const idx = hdr.findIndex((h) => h === "email" || h === "mail");
+    if (idx < 0) { message.warning(`Colonne Email introuvable. Colonnes attendues : Email, Nom, Prénom. Colonnes trouvées : ${(rows[0] as string[]).join(", ")}`); e.target.value = ""; return; }
+    const mailsSet = new Set(rows.slice(1).map((r) => r[idx]).filter(Boolean));
+    const matched = ens.filter((x) => mailsSet.has(x.mail));
+    setPartSel(matched);
+    message.success(`${matched.length} participant${matched.length > 1 ? "s" : ""} importé${matched.length > 1 ? "s" : ""}`);
+    e.target.value = "";
   };
 
   const getEnseignantLabel = (opt: EditPerson | null): string => {
@@ -280,7 +278,7 @@ export function useFormationWorkflowEdit(formation: EditFormation, onFormationUp
     message.error(e.response?.data?.message || e.response?.data?.error || e.message);
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.SyntheticEvent) => {
     e.preventDefault();
     if (seances.length === 0) { message.warning("Veuillez ajouter au moins une séance."); return; }
     const blockingConflicts = buildConflictMessages();

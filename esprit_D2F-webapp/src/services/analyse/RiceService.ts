@@ -26,12 +26,8 @@ const normalizeSavoirsPayload = <T>(payload: T[] | { content?: T[]; data?: T[]; 
   return [];
 };
 
-const normalizeAssignmentsPayload = <T>(payload: T[] | { content?: T[]; data?: T[] }): T[] => {
-  if (Array.isArray(payload)) return payload;
-  if (Array.isArray(payload?.content)) return payload.content;
-  if (Array.isArray(payload?.data)) return payload.data;
-  return [];
-};
+// S4144: reuse normalizeEnseignantsPayload (identical signature)
+const normalizeAssignmentsPayload = normalizeEnseignantsPayload;
 
 const fetchAllPages = async (url: string, baseParams = "") => {
   const first = await axios.get(`${url}${baseParams}`);
@@ -58,7 +54,7 @@ const fetchAllPages = async (url: string, baseParams = "") => {
   return {
     ...data,
     content: mergedContent,
-  } as typeof data;
+  } as typeof data; // S4325: cast needed for compatibility
 };
 
 const RiceService = {
@@ -103,9 +99,9 @@ const RiceService = {
       try {
         const data = await fetchAllPages(`${COMPETENCE_BASE}/enseignants`, params);
         return normalizeEnseignantsPayload<Record<string, unknown>>(data);
-      } catch (fallbackErr: unknown) {
-        const fallbackHttpErr = fallbackErr as { response?: { status?: number } };
-        throw fallbackHttpErr?.response?.status ? fallbackErr : err;
+      } catch (error_: unknown) {
+        const fallbackHttpErr = error_ as { response?: { status?: number } };
+        throw fallbackHttpErr?.response?.status ? error_ : err;
       }
     }
   },

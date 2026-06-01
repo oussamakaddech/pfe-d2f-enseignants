@@ -162,7 +162,7 @@ export default function TeachersDataGrid() {
         <div className="teachers-toolbar">
           <Upload accept=".xlsx,.xls" beforeUpload={(f) => { setFile(f); return false; }} showUploadList={false}>
             <Button icon={<UploadOutlined />} className="teachers-btn-select">
-              {file ? (file as File).name : "Sélectionner fichier"}
+              {file ? file.name : "Sélectionner fichier"}
             </Button>
           </Upload>
           <Tooltip title={file ? "Importer le fichier sélectionné" : "Sélectionnez d'abord un fichier Excel"}>

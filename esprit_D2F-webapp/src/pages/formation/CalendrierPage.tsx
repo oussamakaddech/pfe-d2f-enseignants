@@ -392,7 +392,7 @@ export default function CalendrierPage() {
               />
             )}
 
-            {wizardStep === 1 && createdFormation != null && createdFormation.idFormation != null && (
+            {wizardStep === 1 && createdFormation?.idFormation != null && (
               <DocumentCreateForm
                 formationId={createdFormation.idFormation}
                 onDocumentCreated={onDocumentCreatedWizard}

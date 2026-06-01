@@ -268,7 +268,7 @@ export default function EnseignantLoadView({ tree, setTree, allEnseignants, extr
                         <Tag color={s.type === "PRATIQUE" ? "volcano" : "purple"}>{s.type}</Tag>
                         <Text style={{ flex: 1 }}>{s.nom}</Text>
                         <Tag>{s.niveau}</Tag>
-                        <Button size="small" danger onClick={() => removeOne(s, selectedEnsId!)}>✕ Retirer</Button>
+                        <Button size="small" danger onClick={() => removeOne(s, selectedEnsId ?? "")}>✕ Retirer</Button>
                       </div>
                     ))}
                   </Space>
@@ -291,7 +291,7 @@ export default function EnseignantLoadView({ tree, setTree, allEnseignants, extr
                   size="small"
                   type="primary"
                   disabled={!selectedEnsId}
-                  onClick={() => addOne(s, selectedEnsId!)}
+                  onClick={() => addOne(s, selectedEnsId ?? "")}
                 >
                   + Assigner à {selected?.nomComplet ?? "..."}
                 </Button>

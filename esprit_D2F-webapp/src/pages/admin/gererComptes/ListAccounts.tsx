@@ -113,7 +113,7 @@ export default function ListAccounts() {
         if (typeof acc.status === 'boolean') {
           statusValue = (acc.status as unknown as boolean) ? 'BLOQUÉ' : 'ACTIF';
         } else if (typeof acc.status === 'string') {
-          statusValue = acc.status as AccountStatus;
+          statusValue = acc.status as AccountStatus; // S4325: cast needed for compatibility
         } else {
           statusValue = 'INCONNU';
         }

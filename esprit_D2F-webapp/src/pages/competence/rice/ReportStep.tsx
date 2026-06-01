@@ -203,7 +203,7 @@ export default function ReportStep({
       <Collapse
         ghost
         onChange={(keys) => {
-          if ((keys as string[]).includes("history") && importHistory === null)
+          if ((Array.isArray(keys) ? keys : [keys]).includes("history") && importHistory === null)
             loadImportHistory();
         }}
         items={[

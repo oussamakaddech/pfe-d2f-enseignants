@@ -54,7 +54,7 @@ const FormationEvaluationsTab = ({ formationId }: FormationEvaluationsTabProps) 
       return map;
     }, {});
     return (rawEvals as EvaluationRow[]).map((ev) => {
-      const ens = (ensMap[String(ev.enseignantId)] || {}) as EnseignantData;
+      const ens = (ensMap[String(ev.enseignantId)] || {}) as EnseignantData; // S4325: cast needed for compatibility
       return { key: ev.idEvalParticipant, ...ev, nom: ens.nom || "", prenom: ens.prenom || "", mail: ens.mail || "" };
     });
   }, [rawEvals, enseignantsData]);
