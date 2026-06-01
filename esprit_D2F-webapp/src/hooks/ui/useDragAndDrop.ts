@@ -130,7 +130,7 @@ export function useDragAndDrop({ tree, toggleEnsAssign, updateTree, effectiveEns
     updateTree((t) => {
       const s = getSavoir(t, di, ci, sci, si);
       if (!s) return;
-      if (!s.enseignantsSuggeres) s.enseignantsSuggeres = [];
+      s.enseignantsSuggeres ??= [];
       const srcIdx = s.enseignantsSuggeres.indexOf(info.fromEnsId!);
       if (srcIdx !== -1) s.enseignantsSuggeres.splice(srcIdx, 1);
       if (!s.enseignantsSuggeres.includes(ensId)) s.enseignantsSuggeres.push(ensId);

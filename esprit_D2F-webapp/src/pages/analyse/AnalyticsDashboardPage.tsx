@@ -342,7 +342,7 @@ export default function AnalyticsDashboardPage() {
               <Space direction="vertical" size="large" className="w-full">
                 <Statistic
                   title="Précision (R²) du modèle de gaps"
-                  value={modelAccuracy == null ? "—" : modelAccuracy}
+                  value={modelAccuracy ?? "—"}
                   precision={modelAccuracy == null ? undefined : 2}
                   valueStyle={{ color: modelAccuracy != null && modelAccuracy >= 0.7 ? "#10b981" : "#f59e0b" }}
                 />

@@ -90,7 +90,7 @@ const generatePdfDocument = async (data: Certificate) => {
     try {
       const { data: updated } =
         await updateCertificate(
-          { id: certData.idCertificate, data: certData as Certificate } // S4325: cast needed for compatibility
+          { id: certData.idCertificate, data: certData }
         );
       setCertData(updated);
       onUpdate?.(updated);

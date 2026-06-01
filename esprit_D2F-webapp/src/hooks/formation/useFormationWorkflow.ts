@@ -107,7 +107,8 @@ function getEnseignantLabel(opt: EnseignantItem | null) {
   if (opt.type === "V") roles.push("Vac.");
   if (TRUTHY_FLAGS.has(opt.cup)) roles.push("CUP");
   if (TRUTHY_FLAGS.has(opt.chefDepartement)) roles.push("ChefDep");
-  return `${opt.nom} ${opt.prenom} (${opt.mail})${roles.length ? ` [${roles.join(", ")}]` : ""}`;
+  const roleSuffix = roles.length ? ` [${roles.join(", ")}]` : "";
+  return `${opt.nom} ${opt.prenom} (${opt.mail})${roleSuffix}`;
 }
 
 function extractUpdateError(err: unknown): string {
@@ -278,7 +279,7 @@ export function useFormationWorkflow(
     const data = new Uint8Array(buffer);
     const wb = XLSX.read(data, { type: "array" });
     const ws = wb.Sheets[wb.SheetNames[0]];
-    const rows = XLSX.utils.sheet_to_json(ws, { header: 1 }) as unknown[][];
+    const rows = XLSX.utils.sheet_to_json(ws, { header: 1 });
     if (rows.length < 2) { message.warning("Excel vide ou mal formaté"); return; }
     const hdr = rows[0].map((h) => String(h).toLowerCase().trim());
     const idx = hdr.findIndex((h) => h === "email" || h === "mail");

@@ -12,6 +12,8 @@ type KpiFilters = {
   etat?: string | null;
 };
 
+type IdOrNull = string | number | null;
+
 export function useTotalFormations(start: string, end: string) {
   return useQuery<number>({
     queryKey: ["kpi", "total-formations", start, end],
@@ -47,8 +49,8 @@ export function useFormationsByEtat(start: string, end: string) {
 export function useTopParticipants(
   start: string,
   end: string,
-  upId?: string | number | null,
-  deptId?: string | number | null,
+  upId?: IdOrNull,
+  deptId?: IdOrNull,
 ) {
   const upIdStr = upId == null ? null : String(upId);
   const deptIdStr = deptId == null ? null : String(deptId);
@@ -62,8 +64,8 @@ export function useTopParticipants(
 export function useTopAbsentees(
   start: string,
   end: string,
-  upId?: string | number | null,
-  deptId?: string | number | null,
+  upId?: IdOrNull,
+  deptId?: IdOrNull,
 ) {
   const upIdStr = upId == null ? null : String(upId);
   const deptIdStr = deptId == null ? null : String(deptId);

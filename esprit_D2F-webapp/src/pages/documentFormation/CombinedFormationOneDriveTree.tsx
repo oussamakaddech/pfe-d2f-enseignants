@@ -156,7 +156,8 @@ export default function CombinedFormationOneDriveTree() {
 
   // Réinitialise la sélection si les lignes visibles changent
   useEffect(() => {
-    setSelectedKeys((keys) => keys.filter((k) => rows.some((r) => r.key === k)));
+    const validKeys = new Set(rows.map((r) => r.key));
+    setSelectedKeys((keys) => keys.filter((k) => validKeys.has(k)));
   }, [rows]);
 
   const stats = useMemo(() => {
