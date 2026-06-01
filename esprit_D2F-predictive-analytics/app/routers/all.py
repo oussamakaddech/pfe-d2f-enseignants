@@ -175,6 +175,70 @@ def _compute_relevance_score(formation: dict, current_level: float, target_level
     return round(min(1.0, max(0.0, score)), 3)
 
 
+def _get_current_level(comp_levels: list[dict], target_competency_id: int) -> float:
+    current_level = 0.0
+    for cl in comp_levels:
+        if cl.get("competence_id") == target_competency_id:
+            current_level = max(current_level, float(cl.get("current_level", 0) or 0))
+    return current_level
+
+
+def _filter_target_formations(
+    formations: list[dict], target_competency_id: int, target_level: int,
+    current_level: float,
+) -> list[dict]:
+    target_formations = [
+        f for f in formations
+        if f.get("competence_id") == target_competency_id
+        and _formation_target_level(f) <= target_level
+    ]
+    for f in target_formations:
+        f["_score"] = _compute_relevance_score(f, current_level, target_level)
+    target_formations.sort(key=lambda x: (_formation_target_level(x), -x["_score"]))
+    return target_formations
+
+
+def _deduplicate_formations(formations: list[dict]) -> list[dict]:
+    seen_ids: set = set()
+    unique = []
+    for f in formations:
+        fid = f.get("formation_id") or f.get("id_formation")
+        if fid is None or fid in seen_ids:
+            continue
+        seen_ids.add(fid)
+        unique.append(f)
+    return unique
+
+
+def _build_path(
+    unique_formations: list[dict],
+    max_hours: float | None,
+    missing_prereqs: list[str],
+    target_competency_id: int,
+) -> list[dict]:
+    path = []
+    cumulative_hours = 0.0
+    for i, f in enumerate(unique_formations):
+        hours = _formation_duration(f)
+        if max_hours and cumulative_hours + hours > max_hours:
+            break
+        cumulative_hours += hours
+        base_prob = 0.55 + f["_score"] * 0.3
+        step_bonus = min(0.1, (i + 1) * 0.02)
+        prob = min(0.95, base_prob + step_bonus)
+        path.append({
+            "step_number": i + 1,
+            "formation_id": int(f.get("formation_id") or f.get("id_formation", 0)),
+            "formation_title": f.get("titre_formation", "Formation"),
+            "competency_id": target_competency_id,
+            "competency_name": f.get("competence_nom") or f"Competence {target_competency_id}",
+            "estimated_duration_hours": hours,
+            "missing_prerequisites": missing_prereqs,
+            "success_probability": round(prob, 2),
+        })
+    return path
+
+
 @router.post("/recommend/path", tags=["Recommendation"])
 async def recommend_path(
     request: PathRecommendationRequest,
@@ -186,67 +250,21 @@ async def recommend_path(
     prereqs = data.get_prerequisite_graph()
     comp_levels = data.get_competency_levels(request.teacher_id)
 
-    # Get current level for this teacher on target competency
-    current_level = 0.0
-    for cl in comp_levels:
-        if cl.get("competence_id") == request.target_competency_id:
-            current_level = max(current_level, float(cl.get("current_level", 0) or 0))
+    current_level = _get_current_level(comp_levels, request.target_competency_id)
+    target_formations = _filter_target_formations(
+        formations, request.target_competency_id, request.target_level, current_level
+    )
+    unique_formations = _deduplicate_formations(target_formations)
 
-    # Filter formations for target competency
-    target_formations = [
-        f for f in formations
-        if f.get("competence_id") == request.target_competency_id
-        and _formation_target_level(f) <= request.target_level
-    ]
-
-    # Score and sort formations
-    for f in target_formations:
-        f["_score"] = _compute_relevance_score(f, current_level, request.target_level)
-
-    target_formations.sort(key=lambda x: (_formation_target_level(x), -x["_score"]))
-
-    # Deduplicate by formation_id (legacy: id_formation), keep highest scored
-    seen_ids: set = set()
-    unique_formations = []
-    for f in target_formations:
-        fid = f.get("formation_id") or f.get("id_formation")
-        if fid is None or fid in seen_ids:
-            continue
-        seen_ids.add(fid)
-        unique_formations.append(f)
-
-    # Apply max duration constraint
-    max_hours = request.max_duration_hours
-    path = []
-    cumulative_hours = 0.0
-
-    # Prerequisites for the target competency (once, outside the loop)
     missing_prereqs = [
         p["prereq_name"] for p in prereqs
         if p.get("target_id") == request.target_competency_id
     ][:3]
 
-    for i, f in enumerate(unique_formations):
-        hours = _formation_duration(f)
-        if max_hours and cumulative_hours + hours > max_hours:
-            break
-        cumulative_hours += hours
-
-        # Success probability based on position in path and relevance
-        base_prob = 0.55 + f["_score"] * 0.3
-        step_bonus = min(0.1, (i + 1) * 0.02)
-        prob = min(0.95, base_prob + step_bonus)
-
-        path.append({
-            "step_number": i + 1,
-            "formation_id": int(f.get("formation_id") or f.get("id_formation", 0)),
-            "formation_title": f.get("titre_formation", "Formation"),
-            "competency_id": request.target_competency_id,
-            "competency_name": f.get("competence_nom") or f"Competence {request.target_competency_id}",
-            "estimated_duration_hours": hours,
-            "missing_prerequisites": missing_prereqs,
-            "success_probability": round(prob, 2),
-        })
+    path = _build_path(
+        unique_formations, request.max_duration_hours,
+        missing_prereqs, request.target_competency_id,
+    )
 
     total_hours = sum(s["estimated_duration_hours"] for s in path)
     overall_prob = path[-1]["success_probability"] if path else 0.0

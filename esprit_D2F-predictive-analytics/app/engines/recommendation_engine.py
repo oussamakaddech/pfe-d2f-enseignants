@@ -53,6 +53,93 @@ def _score_disponibilite(formation: dict) -> float:
     return round(min(1.0, score), 4)
 
 
+def _score_candidates(
+    candidates: list[dict],
+    enseignant_id: str,
+    niveau_actuel: int,
+    niveau_requis: int,
+    inscriptions: list[dict],
+    evaluations: list[dict],
+    collaborative: Any,
+) -> list[dict]:
+    for f in candidates:
+        fid = int(f.get("formation_id") or f.get("id_formation", 0))
+        s_pert = _score_pertinence(f, niveau_actuel, niveau_requis)
+        s_reus = _score_reussite(fid, inscriptions, evaluations)
+        s_disp = _score_disponibilite(f)
+        f["_score_pertinence"]  = s_pert
+        f["_score_reussite"]    = s_reus
+        f["_score_disponibilite"] = s_disp
+        if collaborative is not None:
+            s_peer = collaborative.peer_success_rate(enseignant_id, fid)
+            f["_score_peer"]     = s_peer
+            f["_peer_adoption"]  = collaborative.peer_adoption_count(enseignant_id, fid)
+            f["_score_global"]   = round(
+                s_pert * 0.40 + s_peer * 0.25 + s_reus * 0.20 + s_disp * 0.15, 4
+            )
+        else:
+            f["_score_global"]   = round(
+                s_pert * 0.40 + s_reus * 0.35 + s_disp * 0.25, 4
+            )
+    candidates.sort(key=lambda x: x["_score_global"], reverse=True)
+    return candidates
+
+
+def _persist_path_items(
+    db: Session, path: TrainingPath, path_items_data: list[dict],
+    enseignant_id: str, cid: int, gap: SkillGap,
+) -> list[Recommendation]:
+    recs = []
+    for item_data in path_items_data:
+        item = TrainingPathItem(
+            training_path_id     = path.id,
+            formation_id         = item_data["formation_id"],
+            formation_titre      = item_data["formation_titre"],
+            formation_type       = item_data.get("type_formation"),
+            duree_heures         = item_data["duree_heures"],
+            rang                 = item_data["rang"],
+            est_obligatoire      = item_data["est_obligatoire"],
+            niveau_avant         = item_data["niveau_avant"],
+            niveau_apres         = item_data["niveau_apres"],
+            prerequis_satisfaits = item_data["prerequis_satisfaits"],
+            deja_suivie          = item_data["deja_suivie"],
+            score_formation      = item_data["score"],
+            justification        = item_data.get("justification"),
+        )
+        db.add(item)
+
+        rec = Recommendation(
+            enseignant_id        = enseignant_id,
+            competence_id        = cid,
+            skill_gap_id         = gap.id,
+            formation_id         = item_data["formation_id"],
+            formation_titre      = item_data["formation_titre"],
+            formation_type       = item_data.get("type_formation"),
+            score_pertinence     = item_data.get("score_pertinence", 0.0),
+            score_taux_reussite  = item_data.get("score_reussite", 0.0),
+            score_disponibilite  = item_data.get("score_disponibilite", 0.0),
+            score_global         = item_data["score"],
+            probabilite_reussite = item_data["proba_reussite"],
+            rang_dans_parcours   = item_data["rang"],
+            est_prerequis        = item_data["est_prerequis"],
+            prerequis_satisfaits = item_data["prerequis_satisfaits"],
+            niveau_apres         = item_data["niveau_apres"],
+            justification        = item_data.get("justification"),
+            facteurs_score       = {
+                "pertinence":   item_data.get("score_pertinence", 0.0),
+                "reussite":     item_data.get("score_reussite", 0.0),
+                "disponibilite":item_data.get("score_disponibilite", 0.0),
+                "pairs":        item_data.get("score_peer"),
+                "nb_pairs_ayant_suivi": item_data.get("peer_adoption", 0),
+            },
+            training_path_id     = path.id,
+            statut               = "PROPOSEE",
+        )
+        db.add(rec)
+        recs.append(rec)
+    return recs
+
+
 class RecommendationEngine:
     """Filtre, score et construit les parcours de formations."""
 
@@ -78,10 +165,8 @@ class RecommendationEngine:
             if i.get("etat") == "APPROVED"
         }
 
-        # Index formation_id → formation dict
         formations_index = {f["id_formation"]: f for f in formations}
 
-        # Index competence_id → list[formation]
         comp_to_formations: dict[int, list[dict]] = {}
         for fc in formation_competences:
             cid = fc.get("competence_id")
@@ -94,14 +179,12 @@ class RecommendationEngine:
                 entry = {**form, **fc}
                 comp_to_formations.setdefault(cid, []).append(entry)
 
-        # Prérequis index: competence_id → list[prereq_id]
         prereq_index: dict[int, list[int]] = {}
         for p in prerequisite_graph:
             tid = int(p.get("target_id", 0))
             pid = int(p.get("prereq_id", 0))
             prereq_index.setdefault(tid, []).append(pid)
 
-        # Facteur d'engagement enseignant (réduit probabilité si faible)
         facteur_engagement = round(
             snapshot_taux_presence   / 100 * 0.5
             + snapshot_taux_completion / 100 * 0.5,
@@ -112,7 +195,6 @@ class RecommendationEngine:
         all_recommendations: list[Recommendation] = []
         all_paths: list[TrainingPath] = []
 
-        # Trier les gaps par priorité décroissante
         sorted_gaps = sorted(gaps, key=lambda g: float(g.priorite_score), reverse=True)
 
         for gap in sorted_gaps:
@@ -124,32 +206,8 @@ class RecommendationEngine:
             if not candidates:
                 continue
 
-            # Scorer (hybride : content-based + collaboratif si disponible)
-            for f in candidates:
-                fid = int(f.get("formation_id") or f.get("id_formation", 0))
-                s_pert = _score_pertinence(f, gap.niveau_actuel, gap.niveau_requis)
-                s_reus = _score_reussite(fid, inscriptions, evaluations)
-                s_disp = _score_disponibilite(f)
-                f["_score_pertinence"]  = s_pert
-                f["_score_reussite"]    = s_reus
-                f["_score_disponibilite"] = s_disp
-                if collaborative is not None:
-                    s_peer = collaborative.peer_success_rate(enseignant_id, fid)
-                    f["_score_peer"]     = s_peer
-                    f["_peer_adoption"]  = collaborative.peer_adoption_count(enseignant_id, fid)
-                    # Pondération hybride : pertinence 0.40, pairs 0.25,
-                    # réussite historique 0.20, disponibilité 0.15.
-                    f["_score_global"]   = round(
-                        s_pert * 0.40 + s_peer * 0.25 + s_reus * 0.20 + s_disp * 0.15, 4
-                    )
-                else:
-                    f["_score_global"]   = round(
-                        s_pert * 0.40 + s_reus * 0.35 + s_disp * 0.25, 4
-                    )
+            _score_candidates(candidates, enseignant_id, gap.niveau_actuel, gap.niveau_requis, inscriptions, evaluations, collaborative)
 
-            candidates.sort(key=lambda x: x["_score_global"], reverse=True)
-
-            # Construire le parcours avec prérequis
             path_items_data = self._build_path(
                 candidates, gap, prereq_index,
                 comp_to_formations, formations_completees, evaluations, inscriptions
@@ -157,10 +215,8 @@ class RecommendationEngine:
             if not path_items_data:
                 continue
 
-            # Probabilité globale du parcours
             proba_globale = self._proba_globale(path_items_data, facteur_engagement)
 
-            # Persister TrainingPath
             path = TrainingPath(
                 enseignant_id                = enseignant_id,
                 competence_id                = cid,
@@ -178,53 +234,10 @@ class RecommendationEngine:
             self.db.flush()
             all_paths.append(path)
 
-            for item_data in path_items_data:
-                item = TrainingPathItem(
-                    training_path_id     = path.id,
-                    formation_id         = item_data["formation_id"],
-                    formation_titre      = item_data["formation_titre"],
-                    formation_type       = item_data.get("type_formation"),
-                    duree_heures         = item_data["duree_heures"],
-                    rang                 = item_data["rang"],
-                    est_obligatoire      = item_data["est_obligatoire"],
-                    niveau_avant         = item_data["niveau_avant"],
-                    niveau_apres         = item_data["niveau_apres"],
-                    prerequis_satisfaits = item_data["prerequis_satisfaits"],
-                    deja_suivie          = item_data["deja_suivie"],
-                    score_formation      = item_data["score"],
-                    justification        = item_data.get("justification"),
-                )
-                self.db.add(item)
-
-                rec = Recommendation(
-                    enseignant_id        = enseignant_id,
-                    competence_id        = cid,
-                    skill_gap_id         = gap.id,
-                    formation_id         = item_data["formation_id"],
-                    formation_titre      = item_data["formation_titre"],
-                    formation_type       = item_data.get("type_formation"),
-                    score_pertinence     = item_data.get("score_pertinence", 0.0),
-                    score_taux_reussite  = item_data.get("score_reussite", 0.0),
-                    score_disponibilite  = item_data.get("score_disponibilite", 0.0),
-                    score_global         = item_data["score"],
-                    probabilite_reussite = item_data["proba_reussite"],
-                    rang_dans_parcours   = item_data["rang"],
-                    est_prerequis        = item_data["est_prerequis"],
-                    prerequis_satisfaits = item_data["prerequis_satisfaits"],
-                    niveau_apres         = item_data["niveau_apres"],
-                    justification        = item_data.get("justification"),
-                    facteurs_score       = {
-                        "pertinence":   item_data.get("score_pertinence", 0.0),
-                        "reussite":     item_data.get("score_reussite", 0.0),
-                        "disponibilite":item_data.get("score_disponibilite", 0.0),
-                        "pairs":        item_data.get("score_peer"),
-                        "nb_pairs_ayant_suivi": item_data.get("peer_adoption", 0),
-                    },
-                    training_path_id     = path.id,
-                    statut               = "PROPOSEE",
-                )
-                self.db.add(rec)
-                all_recommendations.append(rec)
+            recs = _persist_path_items(
+                self.db, path, path_items_data, enseignant_id, cid, gap
+            )
+            all_recommendations.extend(recs)
 
         self.db.flush()
         logger.info(

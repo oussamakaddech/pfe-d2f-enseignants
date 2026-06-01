@@ -20,6 +20,16 @@ SEUIL_DEPT_NB_ENSEIGNANTS  = 3    # min pour alerte collective
 SEUIL_DEPT_PCT             = 0.30 # 30% du dept
 
 
+def _compute_jours_depuis_refresh(refresh: Any, today: date) -> int:
+    if not refresh:
+        return 0
+    if isinstance(refresh, datetime):
+        return (today - refresh.date()).days
+    if isinstance(refresh, date):
+        return (today - refresh).days
+    return 0
+
+
 class AlertEngine:
     """Évalue les 6 règles de détection et persiste les AlertEvent."""
 
@@ -197,12 +207,7 @@ class AlertEngine:
             if approuve_cup:
                 continue
             refresh = b.get("last_refresh_date") or b.get("lastRefreshDate")
-            jours = 0
-            if refresh:
-                if isinstance(refresh, datetime):
-                    jours = (today - refresh.date()).days
-                elif isinstance(refresh, date):
-                    jours = (today - refresh).days
+            jours = _compute_jours_depuis_refresh(refresh, today)
             if jours < SEUIL_BESOIN_JOURS:
                 continue
             titre = b.get("titre") or b.get("theme") or "Besoin sans titre"

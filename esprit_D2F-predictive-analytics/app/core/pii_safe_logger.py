@@ -4,9 +4,9 @@ Automatically masks emails, phone numbers, IP addresses in log messages."""
 import re
 import logging
 
-EMAIL_PATTERN = re.compile(r'[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}')
-PHONE_PATTERN = re.compile(r'(\+\d{1,3}[\s-]?)?\d{8,15}')
-IP_PATTERN = re.compile(r'\b(?:\d{1,3}\.){3}\d{1,3}\b')
+EMAIL_PATTERN = re.compile(r'[a-zA-Z0-9._%+-]{1,64}@[a-zA-Z0-9.-]{1,253}\.[a-zA-Z]{2,63}')
+PHONE_PATTERN = re.compile(r'(?:\+\d{1,3}[\s-]?)?\d{8,15}')
+IP_PATTERN = re.compile(r'\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b')
 REPLACEMENT = '***'
 
 

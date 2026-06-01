@@ -54,6 +54,74 @@ def _detect_regression(enseignant_id: str, competence_id: int, niveau_actuel: in
     return niveau_actuel < int(last.niveau_actuel)
 
 
+def _build_current_index(competence_levels: list[dict]) -> tuple[dict[int, int], dict[int, date | None]]:
+    current_index: dict[int, int] = {}
+    last_eval_index: dict[int, date | None] = {}
+    for row in competence_levels:
+        cid = row.get("competence_id")
+        if not cid:
+            continue
+        cid = int(cid)
+        n = niveau_to_int(row.get("current_level"))
+        current_index[cid] = max(current_index.get(cid, 0), n)
+        acq = row.get("date_acquisition") or row.get("created_at")
+        if isinstance(acq, datetime):
+            acq = acq.date()
+        if isinstance(acq, date):
+            prev = last_eval_index.get(cid)
+            last_eval_index[cid] = max(prev, acq) if prev else acq
+    return current_index, last_eval_index
+
+
+def _build_required_index(required_levels: list[dict]) -> dict[int, dict]:
+    required_index: dict[int, dict] = {}
+    for row in required_levels:
+        cid = row.get("competence_id")
+        if not cid:
+            continue
+        cid = int(cid)
+        n_req = niveau_to_int(row.get("required_level"))
+        if cid not in required_index or n_req > required_index[cid]["niveau"]:
+            required_index[cid] = {
+                "niveau": n_req,
+                "nom":    row.get("competence_nom", f"Competence {cid}"),
+                "domaine_id":  row.get("domaine_id"),
+                "domaine_nom": row.get("domaine_nom"),
+            }
+    return required_index
+
+
+def _count_besoins(besoins: list[dict], required_index: dict[int, dict]) -> dict[int, int]:
+    besoin_count: dict[int, int] = {}
+    for b in besoins:
+        titre_b = (b.get("theme") or b.get("titre") or "").lower()
+        for cid, info in required_index.items():
+            nom_c = info["nom"].lower()
+            if any(word in titre_b for word in nom_c.split() if len(word) > 3):
+                besoin_count[cid] = besoin_count.get(cid, 0) + 1
+    return besoin_count
+
+
+def _compute_urgence_score(mois_stag: int, en_regres: bool, nb_besoins_c: int) -> float:
+    return min(1.0,
+        (mois_stag / SEUIL_STAGNATION_CRITIQUE)
+        + (0.3 if en_regres else 0.0)
+        + (nb_besoins_c / 5) * 0.2
+    )
+
+
+def _compute_impact_score(cid: int, niveau_requis: int, nb_besoins_c: int, domaine_demand: dict[int, float]) -> float:
+    poids_domaine    = domaine_demand.get(cid, 0.0)
+    niveau_vise      = min(5, niveau_requis + 1)
+    poids_niv_vise   = niveau_vise / 5.0
+    poids_bloquants  = min(1.0, nb_besoins_c / 3.0)
+    return (
+        poids_domaine  * 0.4
+        + poids_niv_vise * 0.3
+        + poids_bloquants * 0.3
+    )
+
+
 class GapEngine:
     """Calcule les gaps de compétences et les persiste en base."""
 
@@ -68,54 +136,16 @@ class GapEngine:
         besoins: list[dict],
         prediction_result_id: int | None,
         domaine_demand: dict[int, float],
+        **_kwargs,
     ) -> list[SkillGap]:
         """
         Calcule un SkillGap par compétence et le persiste.
         domaine_demand : {competence_id → poids_demande 0-1}
         """
 
-        # Index: (competence_id, savoir_id) → niveau_actuel max
-        current_index: dict[int, int] = {}
-        last_eval_index: dict[int, date | None] = {}
-        for row in competence_levels:
-            cid = row.get("competence_id")
-            if not cid:
-                continue
-            cid = int(cid)
-            n = niveau_to_int(row.get("current_level"))
-            current_index[cid] = max(current_index.get(cid, 0), n)
-            acq = row.get("date_acquisition") or row.get("created_at")
-            # Normalize datetime → date so all values stored are comparable.
-            if isinstance(acq, datetime):
-                acq = acq.date()
-            if isinstance(acq, date):
-                prev = last_eval_index.get(cid)
-                last_eval_index[cid] = max(prev, acq) if prev else acq
-
-        # Index: competence_id → niveau_requis max
-        required_index: dict[int, dict] = {}
-        for row in required_levels:
-            cid = row.get("competence_id")
-            if not cid:
-                continue
-            cid = int(cid)
-            n_req = niveau_to_int(row.get("required_level"))
-            if cid not in required_index or n_req > required_index[cid]["niveau"]:
-                required_index[cid] = {
-                    "niveau": n_req,
-                    "nom":    row.get("competence_nom", f"Competence {cid}"),
-                    "domaine_id":  row.get("domaine_id"),
-                    "domaine_nom": row.get("domaine_nom"),
-                }
-
-        # Comptage besoins par compétence (fuzzy via theme/titre)
-        besoin_count: dict[int, int] = {}
-        for b in besoins:
-            titre_b = (b.get("theme") or b.get("titre") or "").lower()
-            for cid, info in required_index.items():
-                nom_c = info["nom"].lower()
-                if any(word in titre_b for word in nom_c.split() if len(word) > 3):
-                    besoin_count[cid] = besoin_count.get(cid, 0) + 1
+        current_index, last_eval_index = _build_current_index(competence_levels)
+        required_index = _build_required_index(required_levels)
+        besoin_count = _count_besoins(besoins, required_index)
 
         gaps: list[SkillGap] = []
 
@@ -128,33 +158,16 @@ class GapEngine:
             gap_brut = max(0.0, (niveau_requis - niveau_actuel) / 5.0)
 
             if gap_brut < 1e-9:
-                continue  # pas de gap
+                continue
 
-            # ── Urgence ──────────────────────────────────
             mois_stag = _compute_mois_stagnation(enseignant_id, cid, self.db)
             en_regres = _detect_regression(enseignant_id, cid, niveau_actuel, self.db)
             nb_besoins_c = besoin_count.get(cid, 0)
 
-            urgence_score = min(1.0,
-                (mois_stag / SEUIL_STAGNATION_CRITIQUE)
-                + (0.3 if en_regres else 0.0)
-                + (nb_besoins_c / 5) * 0.2
-            )
+            urgence_score = _compute_urgence_score(mois_stag, en_regres, nb_besoins_c)
+            impact_score = _compute_impact_score(cid, niveau_requis, nb_besoins_c, domaine_demand)
 
-            # ── Impact ───────────────────────────────────
-            poids_domaine    = domaine_demand.get(cid, 0.0)
-            niveau_vise      = min(5, niveau_requis + 1)
-            poids_niv_vise   = niveau_vise / 5.0
-            # compétences bloquées : simplification — ratio besoins
-            poids_bloquants  = min(1.0, nb_besoins_c / 3.0)
-
-            impact_score = (
-                poids_domaine  * 0.4
-                + poids_niv_vise * 0.3
-                + poids_bloquants * 0.3
-            )
-
-            # ── Priorité ─────────────────────────────────
+            niveau_vise = min(5, niveau_requis + 1)
             priorite_score = round(
                 gap_brut      * 0.45
                 + urgence_score * 0.35
@@ -162,9 +175,6 @@ class GapEngine:
                 4,
             )
 
-            niveau_urgence = _classify_urgence(priorite_score)
-
-            # ── Persistance ──────────────────────────────
             gap = SkillGap(
                 enseignant_id        = enseignant_id,
                 competence_id        = cid,
@@ -179,13 +189,13 @@ class GapEngine:
                 urgence_score        = round(urgence_score, 4),
                 impact_score         = round(impact_score, 4),
                 priorite_score       = priorite_score,
-                niveau_urgence       = niveau_urgence,
+                niveau_urgence       = _classify_urgence(priorite_score),
                 mois_stagnation      = mois_stag,
                 en_regression        = en_regres,
                 nb_besoins_exprimes  = nb_besoins_c,
                 derniere_evaluation  = last_eval_index.get(cid),
                 justification        = self._justification(
-                    gap_brut, urgence_score, mois_stag, en_regres, nb_besoins_c
+                    gap_brut, mois_stag, en_regres, nb_besoins_c
                 ),
                 prediction_result_id = prediction_result_id,
             )
@@ -197,7 +207,7 @@ class GapEngine:
         return gaps
 
     def _justification(
-        self, gap_brut: float, urgence: float, mois_stag: int,
+        self, gap_brut: float, mois_stag: int,
         en_regres: bool, nb_besoins: int
     ) -> str:
         parts = [f"Écart de niveau : {round(gap_brut * 5, 1)}/5 points"]

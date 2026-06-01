@@ -35,6 +35,49 @@ FEATURE_COLS = [
 ]
 
 
+def _compare_importances(
+    saved_importances: dict[str, float],
+    current_importances: dict[str, float],
+    threshold: float,
+) -> tuple[list[dict], bool, str | None]:
+    checked = []
+    for feat in FEATURE_COLS:
+        old_val = saved_importances.get(feat, 0.0)
+        new_val = current_importances.get(feat, 0.0)
+        relative_change = abs(new_val - old_val) / old_val if old_val > 0 else 0.0
+        checked.append({
+            "feature": feat,
+            "previous_importance": round(old_val, 4),
+            "current_importance": round(new_val, 4),
+            "relative_change": round(relative_change, 4),
+            "drift_flag": relative_change > threshold,
+        })
+    drifted = [f for f in checked if f["drift_flag"]]
+    if drifted:
+        return checked, True, (
+            f"Drift detected on {len(drifted)}/{len(FEATURE_COLS)} features. "
+            "Consider retraining the model via POST /api/predict/train"
+        )
+    return checked, False, None
+
+
+def _check_model_age(meta: dict) -> tuple[bool, str | None, int | None]:
+    trained_at = meta.get("trained_at")
+    if not trained_at:
+        return False, None, None
+    try:
+        trained_dt = pd.Timestamp(trained_at)
+        days_since = (pd.Timestamp.now() - trained_dt).days
+        if days_since > 90:
+            return True, (
+                f"Model was trained {days_since} days ago. "
+                "Consider retraining the model via POST /api/predict/train"
+            ), days_since
+        return False, None, days_since
+    except Exception:
+        return False, None, None
+
+
 class GapPredictor:
     """Predicts future competency gaps for teachers using Gradient Boosting."""
 
@@ -131,8 +174,7 @@ class GapPredictor:
         except Exception:
             return {"drift_detected": False, "message": "Could not load training metadata"}
 
-        # Compare feature importances if available
-        drift_report = {
+        drift_report: dict[str, Any] = {
             "drift_detected": False,
             "checked_features": [],
             "recommendation": None,
@@ -140,43 +182,20 @@ class GapPredictor:
 
         saved_importances = meta.get("feature_importances", {})
         if saved_importances and self.feature_importances:
-            for feat in FEATURE_COLS:
-                old_val = saved_importances.get(feat, 0.0)
-                new_val = self.feature_importances.get(feat, 0.0)
-                if old_val > 0:
-                    relative_change = abs(new_val - old_val) / old_val
-                else:
-                    relative_change = 0.0
-                drift_report["checked_features"].append({
-                    "feature": feat,
-                    "previous_importance": round(old_val, 4),
-                    "current_importance": round(new_val, 4),
-                    "relative_change": round(relative_change, 4),
-                    "drift_flag": relative_change > threshold,
-                })
-
-            drifted = [f for f in drift_report["checked_features"] if f["drift_flag"]]
+            checked, drifted, recommendation = _compare_importances(
+                saved_importances, self.feature_importances, threshold
+            )
+            drift_report["checked_features"] = checked
             if drifted:
                 drift_report["drift_detected"] = True
-                drift_report["recommendation"] = (
-                    f"Drift detected on {len(drifted)}/{len(FEATURE_COLS)} features. "
-                "Consider retraining the model via POST /api/predict/train"
-            )
+                drift_report["recommendation"] = recommendation
 
-        trained_at = meta.get("trained_at")
-        if trained_at:
-            try:
-                trained_dt = pd.Timestamp(trained_at)
-                days_since = (pd.Timestamp.now() - trained_dt).days
-                drift_report["days_since_training"] = days_since
-                if days_since > 90:
-                    drift_report["drift_detected"] = True
-                    drift_report["recommendation"] = (
-                        f"Model was trained {days_since} days ago. "
-                        "Consider retraining the model via POST /api/predict/train"
-                    )
-            except Exception:
-                pass
+        age_drift, age_recommendation, days_since = _check_model_age(meta)
+        if days_since is not None:
+            drift_report["days_since_training"] = days_since
+        if age_drift:
+            drift_report["drift_detected"] = True
+            drift_report["recommendation"] = age_recommendation
 
         return drift_report
 
@@ -294,8 +313,6 @@ class GapPredictor:
 
         if df_teacher.empty or df_gaps.empty:
             return {"gaps": [], "overall_risk_score": 0.0, "explanation": {}}
-
-        df_pred = df_gaps.merge(df_teacher, on="enseignant_id", how="left", validate="m:1")
 
     def _heuristic_predict(
         self,
