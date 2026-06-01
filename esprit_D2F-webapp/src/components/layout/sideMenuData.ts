@@ -84,7 +84,7 @@ export const enseignantMenu: MenuItem[] = [
   { label: "Mes Certificats",       key: "/home/MyCertificate",        icon: SafetyCertificateOutlined },
 ];
 
-export const formateurMenu: MenuItem[] = [
+export const animateurMenu: MenuItem[] = [
   { label: "Sessions d'Animation", key: "/home/animateur-formations", icon: ReadOutlined },
   { label: "Mes Inscriptions",     key: "/home/ListeFormation",       icon: AppstoreOutlined },
 ];
@@ -105,7 +105,7 @@ export const roleMenus: Record<string, MenuItem[]> = {
   admin: adminMenu,
   cup: cupMenu,
   enseignant: enseignantMenu,
-  formateur: formateurMenu,
+  animateur: animateurMenu,
   responsabledossier: responsableDossierMenu,
   chefdepartement: chefDepartementMenu,
 };

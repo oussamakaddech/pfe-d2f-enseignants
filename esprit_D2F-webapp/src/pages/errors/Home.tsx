@@ -19,7 +19,7 @@ const ROLE_LABELS = {
   admin:              "Administrateur",
   cup:                "CUP",
   enseignant:         "Enseignant",
-  formateur:          "Formateur",
+  animateur:          "Animateur",
   responsabledossier: "Responsable Dossier",
   chefdepartement:    "Chef de Département",
 };
@@ -50,7 +50,7 @@ const CARDS_BY_ROLE = {
     { title: "Mes Certificats",           icon: SafetyCertificateOutlined, color: "#52c41a", path: "/home/MyCertificate" },
     { title: "Sessions d'Animation",      icon: CalendarOutlined,          color: "#B51200", path: "/home/animateur-formations" },
   ],
-  formateur: [
+  animateur: [
     { title: "Sessions d'Animation",      icon: CalendarOutlined,          color: "#B51200", path: "/home/animateur-formations" },
     { title: "Mes Inscriptions",          icon: FileTextOutlined,          color: "#1890ff", path: "/home/ListeFormation" },
     { title: "Mon Profil",                icon: UserOutlined,              color: "#52c41a", path: "/home/profile" },

@@ -63,7 +63,6 @@ export type UserRole =
   | "cup"   | "CUP"
   | "enseignant" | "ENSEIGNANT"
   | "animateur"  | "ANIMATEUR"
-  | "formateur"  | "FORMATEUR"
   | "chefdepartement" | "CHEF_DEPARTEMENT";
 
 export const roleColors: Record<string, { color: string; bg: string; label: string }> = {
@@ -75,8 +74,7 @@ export const roleColors: Record<string, { color: string; bg: string; label: stri
   ENSEIGNANT:         { color: "#2563eb", bg: "#eff6ff", label: "Enseignant"       },
   animateur:          { color: "#059669", bg: "#ecfdf5", label: "Animateur"        },
   ANIMATEUR:          { color: "#059669", bg: "#ecfdf5", label: "Animateur"        },
-  formateur:          { color: "#d97706", bg: "#fffbeb", label: "Formateur"        },
-  FORMATEUR:          { color: "#d97706", bg: "#fffbeb", label: "Formateur"        },
+
   chefdepartement:    { color: "#0891b2", bg: "#ecfeff", label: "Chef de Dépt."    },
   CHEF_DEPARTEMENT:   { color: "#0891b2", bg: "#ecfeff", label: "Chef de Dépt."    },
   responsabledossier: { color: "#6366f1", bg: "#eef2ff", label: "Resp. Dossier"    },

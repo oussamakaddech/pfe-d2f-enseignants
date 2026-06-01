@@ -19,7 +19,7 @@ const ROLE_LABELS: Record<string, string> = {
   admin:              "Administrateur",
   cup:                "CUP",
   enseignant:         "Enseignant",
-  formateur:          "Formateur",
+  animateur:          "Animateur",
   responsabledossier: "Responsable Dossier",
   chefdepartement:    "Chef de Département",
 };
