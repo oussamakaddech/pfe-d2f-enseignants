@@ -9,7 +9,7 @@ interface SousCompetenceFormModalProps {
   scForm: FormInstance;
 }
 
-export default function SousCompetenceFormModal({ crud, scForm }: SousCompetenceFormModalProps) {
+export default function SousCompetenceFormModal({ crud, scForm }: Readonly<SousCompetenceFormModalProps>) {
   return (
     <Modal
       forceRender

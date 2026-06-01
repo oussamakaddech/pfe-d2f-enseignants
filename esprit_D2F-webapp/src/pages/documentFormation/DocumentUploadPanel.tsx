@@ -38,7 +38,7 @@ export default function DocumentUploadPanel({
   formationId,
   onDocumentAdded,
   onClose,
-}: DocumentUploadPanelProps) {
+}: Readonly<DocumentUploadPanelProps>) {
   const { message } = useAppNotification();
   const [form] = Form.useForm();
   const [fileList, setFileList] = useState<UploadFile[]>([]);
@@ -68,7 +68,7 @@ export default function DocumentUploadPanel({
       message.success("Document ajouté avec succès");
       form.resetFields();
       setFileList([]);
-      onDocumentAdded(newDoc as FormationDocument);
+      onDocumentAdded(newDoc);
       onClose();
     } catch {
       message.error("🚫 Erreur lors de l'ajout du document.");

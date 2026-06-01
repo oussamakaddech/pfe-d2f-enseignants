@@ -249,7 +249,7 @@ export default function KPIChart() {
   );
 }
 
-function SectionHeader({ icon, color, children }: { icon: React.ReactNode; color: string; children: React.ReactNode }) {
+function SectionHeader({ icon, color, children }: Readonly<{ icon: React.ReactNode; color: string; children: React.ReactNode }>) {
   return (
     <div style={{
       display: "flex", alignItems: "center", gap: 10,

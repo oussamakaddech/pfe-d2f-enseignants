@@ -14,7 +14,7 @@ interface LegendTableProps {
   onRowClick: (name: string) => void;
 }
 
-export default function LegendTable({ entries, total, onRowClick }: LegendTableProps) {
+export default function LegendTable({ entries, total, onRowClick }: Readonly<LegendTableProps>) {
   return (
     <Row gutter={[16, 16]}>
       {entries.map((entry) => (

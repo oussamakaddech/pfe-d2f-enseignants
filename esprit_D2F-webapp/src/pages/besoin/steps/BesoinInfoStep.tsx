@@ -1,7 +1,7 @@
 /* ─────────────────────────────────────────────────────────────────────────
  * BesoinInfoStep — Step 0: Contexte (UP, département, type, participants)
  * ─────────────────────────────────────────────────────────────────────── */
-import { useRef } from "react";
+
 import { Form, Select, Button, Tag, Input } from "antd";
 import {
   ApartmentOutlined,
@@ -57,7 +57,7 @@ export default function BesoinInfoStep({
   participantsFileInputRef,
   onImportExcel,
   onClearParticipants,
-}: BesoinInfoStepProps) {
+}: Readonly<BesoinInfoStepProps>) {
   return (
     <div className="bf-step">
       <SectionLabel

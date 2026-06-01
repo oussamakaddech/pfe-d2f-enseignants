@@ -152,7 +152,7 @@ export default function ReportStep({
                 >
                   <Statistic
                     title={title}
-                    value={value as number}
+                    value={value}
                     prefix={icon}
                     valueStyle={{ color, fontSize: 26, fontWeight: 800 }}
                   />

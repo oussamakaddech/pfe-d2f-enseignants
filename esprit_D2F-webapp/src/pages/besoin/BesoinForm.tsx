@@ -6,7 +6,7 @@ import { Form, Button, Typography, Spin, Result, Breadcrumb, Progress } from "an
 import {
   SaveOutlined, ApartmentOutlined, AimOutlined, ClockCircleOutlined,
   CheckCircleOutlined, ArrowLeftOutlined, ArrowRightOutlined, HomeOutlined,
-  EditOutlined, NodeIndexOutlined,
+  NodeIndexOutlined,
 } from "@ant-design/icons";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";

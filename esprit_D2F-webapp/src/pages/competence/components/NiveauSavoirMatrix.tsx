@@ -15,7 +15,7 @@ interface NiveauSavoirMatrixProps {
   code?: string;
 }
 
-export default function NiveauSavoirMatrix({ data, title, code }: NiveauSavoirMatrixProps) {
+export default function NiveauSavoirMatrix({ data, title, code }: Readonly<NiveauSavoirMatrixProps>) {
   const NIVEAUX = [
     { key: "N1_DEBUTANT", label: "N 1" },
     { key: "N2_ELEMENTAIRE", label: "N 2" },

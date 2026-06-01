@@ -23,7 +23,7 @@ interface SessionEditorProps {
   onSessionChange: (session: Session) => void;
 }
 
-function SessionEditor({ session, enseignants, onSessionChange }: SessionEditorProps) {
+function SessionEditor({ session, enseignants, onSessionChange }: Readonly<SessionEditorProps>) {
   const enseignantOptions = enseignants.map((e) => ({
     value: e.mail,
     label: `${e.nom} ${e.prenom} (${e.mail})`,

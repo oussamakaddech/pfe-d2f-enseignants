@@ -1,4 +1,4 @@
-import { defaultApi as axios } from "@/utils/helpers/httpClient";
+import { defaultApi as axios } from "@/services/httpClient";
 import { config } from "@/config/env";
 import type { Bureau, BureauRequest } from "@/models/bureau";
 

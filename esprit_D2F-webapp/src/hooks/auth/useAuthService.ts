@@ -1,9 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { login as loginApi } from "@/services/auth/AuthService";
-import { forgotPassword } from "@/services/auth/AuthService";
-import { resetPassword } from "@/services/auth/AuthService";
-import { getProfile, editProfile, updatePassword as updatePasswordApi } from "@/services/auth/AccountService";
-import { banAccount, enableAccount, deleteAccount, updateAccount } from "@/services/auth/AccountService";
+import { login as loginApi, forgotPassword, resetPassword } from "@/services/auth/AuthService";
+import { editProfile, updatePassword as updatePasswordApi, banAccount, enableAccount, deleteAccount, updateAccount } from "@/services/auth/AccountService";
 import type { LoginRequest, ResetPasswordRequest, EditProfileRequest, UpdatePasswordRequest } from "@/models/auth";
 
 export function useLogin() {

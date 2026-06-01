@@ -12,7 +12,7 @@ interface MatchingFiltersProps {
   onPageReset: () => void;
 }
 
-export function MatchingFilters({ filters, domaineOptions, dispatch, onPageReset }: MatchingFiltersProps) {
+export function MatchingFilters({ filters, domaineOptions, dispatch, onPageReset }: Readonly<MatchingFiltersProps>) {
   return (
     <>
       <div className="mm-toolbar__left">

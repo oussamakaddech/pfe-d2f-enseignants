@@ -30,7 +30,7 @@ const PERIOD_OPTIONS = [
   { value: "OTHER",    label: "Autre" },
 ];
 
-export default function BesoinDetailsStep({ acteurOptions, acteursLoading }: BesoinDetailsStepProps) {
+export default function BesoinDetailsStep({ acteurOptions, acteursLoading }: Readonly<BesoinDetailsStepProps>) {
   return (
     <div className="bf-step">
       <SectionLabel

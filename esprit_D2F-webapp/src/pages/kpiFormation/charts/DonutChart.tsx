@@ -13,7 +13,7 @@ interface DonutChartProps {
   onClick?: () => void;
 }
 
-export default function DonutChart({ data, colors, total, onClick }: DonutChartProps) {
+export default function DonutChart({ data, colors, total, onClick }: Readonly<DonutChartProps>) {
   const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
     if ((e.key === "Enter" || e.key === " ") && onClick) {
       e.preventDefault();

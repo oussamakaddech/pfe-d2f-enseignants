@@ -47,7 +47,7 @@ interface SousCompNodeProps {
   onDelete: (id: Id) => void;
 }
 
-function SousCompNode({ node, depth, onAddChild, onAddSavoir, onEdit, onDelete }: SousCompNodeProps) {
+function SousCompNode({ node, depth, onAddChild, onAddSavoir, onEdit, onDelete }: Readonly<SousCompNodeProps>) {
   const enfants = node.enfants ?? [];
   const isLeaf = enfants.length === 0;
   const hasSavoirs = (node.savoirs?.length ?? 0) > 0;
@@ -108,7 +108,7 @@ export default function CompetenceExpandedRow({
   onAddSavoir,
   onEdit,
   onDelete,
-}: CompetenceExpandedRowProps) {
+}: Readonly<CompetenceExpandedRowProps>) {
   const allNodesForComp = flattenSousCompList(sousComps ?? []).filter(
     (sc) => String(sc.competenceId) === String(competence.id),
   );

@@ -63,8 +63,7 @@ export default function EnseignantDropCard({
 
   return (
     /* Drop target: keyboard users can use the explicit "Assign" actions from the per-savoir dropdown menu. */
-    <div
-      role="region"
+    <section
       className={`ens-drop-card ${loadClass(count)}${isOver ? " is-over" : ""}`}
       ref={null}
       aria-label={`Affectations de ${fullName}`}
@@ -125,7 +124,7 @@ export default function EnseignantDropCard({
       <div className={`ens-drop-zone${isDragging ? " active" : ""}`}>
         {isOver ? "Déposer ici ✓" : "Déposez un savoir ici..."}
       </div>
-    </div>
+    </section>
   );
 }
 

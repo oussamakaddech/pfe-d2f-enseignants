@@ -102,7 +102,7 @@ export default function BesoinCard({
   onEdit,
   onDelete,
   onOpen,
-}: BesoinCardProps) {
+}: Readonly<BesoinCardProps>) {
   const id = besoin.idBesoinFormation ?? besoin.idBesionFormation ?? besoin.id;
   const priorite = besoin.priorite || "BASSE";
   const demandeurName = besoin.username || "—";

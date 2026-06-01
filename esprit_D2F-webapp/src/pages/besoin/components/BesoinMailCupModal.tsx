@@ -90,7 +90,7 @@ export default function BesoinMailCupModal({
   sending,
   onConfirm,
   onCancel,
-}: BesoinMailCupModalProps) {
+}: Readonly<BesoinMailCupModalProps>) {
   const handleOk = async () => {
     const values = await mailForm.validateFields();
     onConfirm(values.to, values.subject, values.content);

@@ -1,11 +1,12 @@
-import { defaultApi as api } from "@/utils/helpers/httpClient";
+import { defaultApi as api } from "@/services/httpClient";
 import { config } from "@/config/env";
 import type {
   AuthUser,
   EditProfileRequest,
   UpdatePasswordRequest,
+  UpdatePasswordResponse,
+  AccountActionResponse,
 } from "@/models/auth";
-import type { UpdatePasswordResponse, AccountActionResponse } from "@/models/auth";
 
 const API_URL = `${config.URL_ACCOUNT}/account`;
 

@@ -18,7 +18,7 @@ interface NiveauDefinitionModalProps {
   addNiveauForm: FormInstance;
 }
 
-export default function NiveauDefinitionModal({ structure, addNiveauForm }: NiveauDefinitionModalProps) {
+export default function NiveauDefinitionModal({ structure, addNiveauForm }: Readonly<NiveauDefinitionModalProps>) {
   return (
     <Modal
       forceRender

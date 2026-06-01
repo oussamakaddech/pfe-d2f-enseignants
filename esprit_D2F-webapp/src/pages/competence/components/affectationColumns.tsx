@@ -1,8 +1,6 @@
-import { Table, Tag, Space, Tooltip, Button, Popconfirm } from "antd";
+import { Tag, Space, Tooltip, Button, Popconfirm } from "antd";
 import type { TableColumnsType } from "antd";
 import { DeleteOutlined, EditOutlined } from "@ant-design/icons";
-import useAppNotification from "@/hooks/ui/useAppNotification";
-import type { EnseignantCompetence } from "@/models/competence";
 import type { Id } from "@/models/common";
 
 export const NIVEAU_COLOR: Record<string, string> = {

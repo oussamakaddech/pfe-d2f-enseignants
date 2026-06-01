@@ -1,4 +1,4 @@
-import { defaultApi as axios } from "@/utils/helpers/httpClient";
+import { defaultApi as axios } from "@/services/httpClient";
 import { config } from "@/config/env"; 
 import type { EvaluationEnriched, EvaluationFormateur } from "@/models/evaluation";
 const EVALUATION_API_URL = `${config.EVALUATION_URL}/evaluation/evaluations`;

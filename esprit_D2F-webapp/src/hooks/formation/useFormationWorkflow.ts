@@ -276,7 +276,7 @@ export function useFormationWorkflow(
     reader.onload = (ev: ProgressEvent<FileReader>) => {
       const result = ev.target?.result;
       if (!result || typeof result === "string") return;
-      const wb = XLSX.read(new Uint8Array(result as ArrayBuffer), { type: "array" });
+      const wb = XLSX.read(new Uint8Array(result), { type: "array" });
       const ws = wb.Sheets[wb.SheetNames[0]];
       const rows = XLSX.utils.sheet_to_json(ws, { header: 1 }) as unknown[][];
       if (rows.length < 2) { message.warning("Excel vide ou mal formaté"); return; }

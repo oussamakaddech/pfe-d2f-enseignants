@@ -31,7 +31,7 @@ export default function TreeFilters({
   onSearch,
   onClearSearch,
   onDomaineChange,
-}: TreeFiltersProps) {
+}: Readonly<TreeFiltersProps>) {
   return (
     <Space style={{ marginBottom: 16, width: "100%" }} direction="vertical">
       <Row gutter={16}>

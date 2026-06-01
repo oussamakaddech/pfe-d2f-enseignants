@@ -1,4 +1,4 @@
-import { defaultApi as axios } from "@/utils/helpers/httpClient";
+import { defaultApi as axios } from "@/services/httpClient";
 import { config } from "@/config/env";
 import type { Id, ApiListOrPage } from "@/models/common";
 import type { BesoinFormation } from "@/models/besoin";

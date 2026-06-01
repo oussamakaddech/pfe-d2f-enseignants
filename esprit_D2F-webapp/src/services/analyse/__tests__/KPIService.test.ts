@@ -4,7 +4,7 @@ const httpMocks = vi.hoisted(() => ({
   mockGet: vi.fn(),
 }));
 
-vi.mock("@/utils/helpers/httpClient", () => ({
+vi.mock("@/services/httpClient", () => ({
   defaultApi: {
     get: httpMocks.mockGet,
   },

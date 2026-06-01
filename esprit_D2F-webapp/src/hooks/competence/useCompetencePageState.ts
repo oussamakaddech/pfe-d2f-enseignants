@@ -1,5 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
-import React from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import type { Domaine, Competence } from "@/models/competence";
 

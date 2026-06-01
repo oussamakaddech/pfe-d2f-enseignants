@@ -2,7 +2,7 @@ interface BesoinStatusBadgeProps {
   approved: boolean;
 }
 
-export default function BesoinStatusBadge({ approved }: BesoinStatusBadgeProps) {
+export default function BesoinStatusBadge({ approved }: Readonly<BesoinStatusBadgeProps>) {
   const tone = approved ? "approved" : "pending";
   const label = approved ? "Approuvé" : "En attente";
   return (

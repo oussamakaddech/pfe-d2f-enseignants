@@ -14,7 +14,7 @@ interface TeacherFormModalProps {
   onCancel: () => void;
 }
 
-export function TeacherFormModal({ open, editingTeacher, form, onOk, onCancel }: TeacherFormModalProps) {
+export function TeacherFormModal({ open, editingTeacher, form, onOk, onCancel }: Readonly<TeacherFormModalProps>) {
   return (
     <Modal
       title={

@@ -1,5 +1,5 @@
 import type { AxiosResponse } from "axios";
-import { defaultApi as api } from "@/utils/helpers/httpClient";
+import { defaultApi as api } from "@/services/httpClient";
 
 import { config } from "@/config/env";
 import type {
@@ -8,8 +8,9 @@ import type {
   ResetPasswordRequest,
   SignupRequest,
   AuthUser,
+  SignupResponse,
+  AccountActionResponse,
 } from "@/models/auth";
-import type { SignupResponse, AccountActionResponse } from "@/models/auth";
 
 const AUTH_BASE = `${config.URL_ACCOUNT}/auth`;
 

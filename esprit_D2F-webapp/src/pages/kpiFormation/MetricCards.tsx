@@ -131,7 +131,7 @@ const MetricCards = () => {
     setGlobalPeriod([dates[0], dates[1]]);
     const updated = await Promise.all(
       cards.map(async (c) => {
-        const newFilters = { ...(c.filters as CardFilters), start: newStart, end: newEnd };
+        const newFilters = { ...c.filters, start: newStart, end: newEnd };
         try {
           const { count, totalHeures } = await kpiMut.mutateAsync(newFilters);
           return { ...c, filters: newFilters, count, totalHeures, title: buildTitle(newFilters) };

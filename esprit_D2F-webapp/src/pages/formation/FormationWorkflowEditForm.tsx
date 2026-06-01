@@ -15,7 +15,7 @@ interface FormationWorkflowEditFormProps {
   onFormationUpdated: (res: Record<string, unknown>) => void;
 }
 
-export default function FormationWorkflowEditForm({ formation, onFormationUpdated }: FormationWorkflowEditFormProps) {
+export default function FormationWorkflowEditForm({ formation, onFormationUpdated }: Readonly<FormationWorkflowEditFormProps>) {
   const h = useFormationWorkflow(formation, onFormationUpdated);
 
   return (

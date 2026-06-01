@@ -5,7 +5,7 @@ const httpMocks = vi.hoisted(() => ({
   mockDelete: vi.fn(),
 }));
 
-vi.mock("@/utils/helpers/httpClient", () => ({
+vi.mock("@/services/httpClient", () => ({
   defaultApi: {
     get: httpMocks.mockGet,
     delete: httpMocks.mockDelete,

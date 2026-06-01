@@ -38,7 +38,7 @@ export default function CrudTab<T extends object = Record<string, unknown>>({
   tableProps = undefined,
   searchable = true,
   searchPlaceholder = "Rechercher...",
-}: CrudTabProps<T>) {
+}: Readonly<CrudTabProps<T>>) {
   const [selectedRowKeys, setSelectedRowKeys] = useState<React.Key[]>([]);
   const [selectionMode, setSelectionMode] = useState(false);
   const [searchText, setSearchText] = useState("");

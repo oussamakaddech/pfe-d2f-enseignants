@@ -9,7 +9,7 @@ interface BesoinCardMetaProps {
   items: BesoinCardMetaItem[];
 }
 
-export default function BesoinCardMeta({ items }: BesoinCardMetaProps) {
+export default function BesoinCardMeta({ items }: Readonly<BesoinCardMetaProps>) {
   const visible = items.filter((i) => i?.value != null);
   if (visible.length === 0) return null;
   return (

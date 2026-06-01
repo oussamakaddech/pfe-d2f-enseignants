@@ -53,7 +53,7 @@ export default function FormationsByTypeFiltered() {
   }, [loadingOptions]);
 
   const onFormChange = (_changedValues: Record<string, unknown>, allValues: Record<string, unknown>) => {
-    const av = allValues as Record<string, unknown>;
+    const av = allValues;
     const dateRange = Array.isArray(av.dateRange) ? av.dateRange as [{ format: (f: string) => string }, { format: (f: string) => string }] : null;
     const newFilters: typeof filters = {
       domaine:    (av.domaine as string | null) || null,

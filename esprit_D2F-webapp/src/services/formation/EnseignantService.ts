@@ -1,4 +1,4 @@
-import { defaultApi as axios } from "@/utils/helpers/httpClient";
+import { defaultApi as axios } from "@/services/httpClient";
 import { config } from "@/config/env";
 import type { Enseignant } from "@/models/enseignant";
 const API_URL = `${config.FORMATION_URL}/formation/enseignants`;

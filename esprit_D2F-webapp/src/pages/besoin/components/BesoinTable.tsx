@@ -31,7 +31,7 @@ export default function BesoinTable({
   onOpenMail,
   onEdit,
   onDelete,
-}: BesoinTableProps) {
+}: Readonly<BesoinTableProps>) {
   const columns = [
     {
       title: "Formation",

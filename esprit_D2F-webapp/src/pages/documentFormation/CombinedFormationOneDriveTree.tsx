@@ -399,12 +399,12 @@ export default function CombinedFormationOneDriveTree() {
 }
 
 /* ── Carte document (grille) ──────────────────────────────────────────────── */
-function DocCard({ row, selectedKeys, setSelectedKeys, typeTag, obligationTag, setPreview, handleDownload, setEditing, handleDelete }: {
+function DocCard({ row, selectedKeys, setSelectedKeys, typeTag, obligationTag, setPreview, handleDownload, setEditing, handleDelete }: Readonly<{
   row: DocRow; selectedKeys: React.Key[]; setSelectedKeys: React.Dispatch<React.SetStateAction<React.Key[]>>;
   typeTag: (t?: string) => React.ReactNode; obligationTag: (ob?: boolean) => React.ReactNode;
   setPreview: (r: DocRow | null) => void; handleDownload: (r: DocRow) => void;
   setEditing: (r: DocRow | null) => void; handleDelete: (r: DocRow) => void;
-}) {
+}>) {
   const m = fileMeta(row);
   const selected = selectedKeys.includes(row.key);
   return (
@@ -435,10 +435,10 @@ function DocCard({ row, selectedKeys, setSelectedKeys, typeTag, obligationTag, s
 /* ── Modale d'upload drag & drop ─────────────────────────────────────────── */
 interface UploadPayload { formationId: Id; pathType: string; nomDocument: string; obligation: string; file: File; }
 
-function UploadModal({ open, formations, pending, onClose, onSubmit }: {
+function UploadModal({ open, formations, pending, onClose, onSubmit }: Readonly<{
   open: boolean; formations: Formation[]; pending: boolean;
   onClose: () => void; onSubmit: (p: UploadPayload) => Promise<void>;
-}) {
+}>) {
   const { message } = useAppNotification();
   const [form] = Form.useForm();
   const [fileList, setFileList] = useState<UploadFile[]>([]);
@@ -512,10 +512,10 @@ function UploadModal({ open, formations, pending, onClose, onSubmit }: {
 /* ── Modale d'édition ────────────────────────────────────────────────────── */
 interface EditPayload { pathType: string; nomDocument: string; obligation: string; file?: File; }
 
-function EditModal({ doc, pending, onClose, onSubmit }: {
+function EditModal({ doc, pending, onClose, onSubmit }: Readonly<{
   doc: DocRow | null; pending: boolean;
   onClose: () => void; onSubmit: (p: EditPayload) => Promise<void>;
-}) {
+}>) {
   const [form] = Form.useForm();
   const [fileList, setFileList] = useState<UploadFile[]>([]);
 

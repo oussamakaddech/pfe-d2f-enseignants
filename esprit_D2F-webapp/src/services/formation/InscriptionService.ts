@@ -1,7 +1,6 @@
-import { defaultApi as axios } from "@/utils/helpers/httpClient";
+import { defaultApi as axios } from "@/services/httpClient";
 import { config } from "@/config/env";
-import type { Formation } from "@/models/formation";
-import type { Inscription } from "@/models/formation";
+import type { Formation, Inscription } from "@/models/formation";
 const API_URL = `${config.FORMATION_URL}/formation/inscription`;
 
 const InscriptionService = {

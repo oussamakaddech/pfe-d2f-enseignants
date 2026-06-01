@@ -7,8 +7,6 @@ import { InboxOutlined, PlusOutlined, ClearOutlined } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 
 import { useBesoinList, INITIAL_FILTERS } from "./hooks/useBesoinList";
-import { buildFormationNeedHtmlEmail } from "./components/BesoinMailCupModal";
-
 import BesoinHeader      from "./components/BesoinHeader";
 import BesoinStatsRow    from "./components/BesoinStatsRow";
 import BesoinFiltersPanel from "./components/BesoinFiltersPanel";
@@ -17,7 +15,6 @@ import BesoinCard        from "./components/BesoinCard";
 import BesoinTable       from "./components/BesoinTable";
 import BesoinMailCupModal from "./components/BesoinMailCupModal";
 import BesoinEditModal   from "@/components/besoin/BesoinEditModal";
-import BesoinMailModal   from "@/components/besoin/BesoinMailModal";
 
 import "@/styles/pages/besoin-tokens.css";
 import "@/styles/pages/besoin-list.css";

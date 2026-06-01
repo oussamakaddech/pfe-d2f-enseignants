@@ -1,15 +1,14 @@
-import { useCallback, useMemo } from "react";
+import React, { useCallback, useMemo } from "react";
 import {
-  Tree, Card, Tabs, Tag, Space, Typography, Spin, Statistic,
-  Row, Col, Badge, Tooltip, Collapse, Empty, Modal,
-  Form, Button, Popconfirm, Table,
+  Tree, Card, Tabs, Tag, Space, Typography, Spin,
+  Badge, Tooltip, Collapse, Empty, Modal,
+  Form, Button, Popconfirm, Table, Input, Select,
 } from "antd";
 import {
   ApartmentOutlined, BookOutlined, TeamOutlined,
   BulbOutlined, ExperimentOutlined, FolderOpenOutlined, PlusOutlined,
   DeleteOutlined, InfoCircleOutlined, SearchOutlined,
 } from "@ant-design/icons";
-import { Input, Select } from "antd";
 import { NIVEAU_LABELS, NIVEAU_OPTIONS } from "@/utils/constants/competenceOptions";
 import StructureSearchResultsView, { type SearchResults } from "./components/StructureSearchResultsView";
 import TreeFilters from "./components/tree/TreeFilters";
@@ -232,4 +231,3 @@ export default function StructureArbrePage() {
   );
 }
 
-import React from "react";

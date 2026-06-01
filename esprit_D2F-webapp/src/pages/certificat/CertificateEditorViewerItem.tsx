@@ -11,7 +11,7 @@ interface CertificateEditorViewerItemProps {
   onUpdate?: (cert: Certificate) => void;
 }
 
-export default function CertificateEditorViewerItem({ certificate, onUpdate }: CertificateEditorViewerItemProps) {
+export default function CertificateEditorViewerItem({ certificate, onUpdate }: Readonly<CertificateEditorViewerItemProps>) {
   const { message } = useAppNotification();
   const [certData, setCertData] = useState<Certificate | undefined>(certificate);
   const [pdfUrl, setPdfUrl] = useState("");
