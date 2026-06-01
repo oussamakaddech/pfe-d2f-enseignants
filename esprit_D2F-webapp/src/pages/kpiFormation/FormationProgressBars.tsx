@@ -88,7 +88,7 @@ export default function FormationProgressCards() {
   });
 
   // 6) Tri
-  const sorted = merged.sort((a, b) =>
+  const sorted = merged.toSorted((a, b) =>
     sortAsc
       ? (a.tauxParticipation ?? 0) - (b.tauxParticipation ?? 0)
       : (b.tauxParticipation ?? 0) - (a.tauxParticipation ?? 0)

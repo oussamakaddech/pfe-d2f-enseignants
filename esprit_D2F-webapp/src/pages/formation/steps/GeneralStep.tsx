@@ -77,12 +77,20 @@ export default function GeneralStep({ besoinInfo, titre, setTitre, typeFormation
           <label className="creation-field-label"><TagOutlined /> Type de Formation</label>
           <div className="creation-type-grid" role="radiogroup" aria-label="Type de formation">
             {[{ value: "INTERNE", label: "Interne (Esprit)", desc: "Animée par un enseignant Esprit", icon: <BankOutlined /> }, { value: "EXTERNE", label: "Externe", desc: "Dispensée par un prestataire externe", icon: <GlobalOutlined /> }, { value: "EN_LIGNE", label: "En ligne (Teams)", desc: "À distance via Microsoft Teams", icon: <LaptopOutlined /> }].map(opt => (
-              <div key={opt.value} className={`creation-type-card ${typeFormation === opt.value ? "selected" : ""}`} onClick={() => setTypeFormation(opt.value)} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setTypeFormation(opt.value); } }} role="radio" aria-checked={typeFormation === opt.value} tabIndex={0}>
+              <label key={opt.value} className={`creation-type-card ${typeFormation === opt.value ? "selected" : ""}`} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setTypeFormation(opt.value); } }} tabIndex={0}>
+                <input
+                  type="radio"
+                  name="typeFormation"
+                  value={opt.value}
+                  checked={typeFormation === opt.value}
+                  onChange={() => setTypeFormation(opt.value)}
+                  className="creation-type-card-input"
+                />
                 <div className="creation-type-card-check" aria-hidden="true"><CheckOutlined /></div>
                 <div className="creation-type-card-icon" aria-hidden="true">{opt.icon}</div>
                 <span className="creation-type-card-label">{opt.label}</span>
                 <span className="creation-type-card-desc">{opt.desc}</span>
-              </div>
+              </label>
             ))}
           </div>
         </div>
@@ -90,9 +98,17 @@ export default function GeneralStep({ besoinInfo, titre, setTitre, typeFormation
           <label className="creation-field-label"><CheckSquareOutlined /> État de la Formation</label>
           <div className="creation-etat-grid" role="radiogroup" aria-label="État de la formation">
             {[{ value: "ENREGISTRE", label: "Enregistré" }, { value: "PLANIFIE", label: "Planifié" }, { value: "EN_COURS", label: "En cours" }, { value: "ACHEVE", label: "Achevé" }].map(opt => (
-              <button key={opt.value} type="button" className={`creation-etat-badge ${opt.value} ${etatFormation === opt.value ? "selected" : ""}`} onClick={() => setEtatFormation(opt.value)} role="radio" aria-checked={etatFormation === opt.value}>
+              <label key={opt.value} className={`creation-etat-badge ${opt.value} ${etatFormation === opt.value ? "selected" : ""}`}>
+                <input
+                  type="radio"
+                  name="etatFormation"
+                  value={opt.value}
+                  checked={etatFormation === opt.value}
+                  onChange={() => setEtatFormation(opt.value)}
+                  className="creation-etat-badge-input"
+                />
                 <span className="creation-etat-dot" aria-hidden="true" />{opt.label}
-              </button>
+              </label>
             ))}
           </div>
           <span className="creation-field-help">Peut être mis à jour à tout moment depuis la liste des formations</span>

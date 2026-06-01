@@ -138,7 +138,7 @@ export default function PlanningStep({ seances, addSeance, updateSeance, removeS
 
       {overlapWarnings.length > 0 && (
         <AntAlert type="warning" showIcon className="creation-alert-overlap" message={<strong>Chevauchements détectés</strong>}
-          description={<ul style={{ margin: "4px 0 0 16px", padding: 0 }}>{overlapWarnings.map((msg, i) => <li key={i}>{String(msg)}</li>)}</ul>}
+          description={<ul style={{ margin: "4px 0 0 16px", padding: 0 }}>{overlapWarnings.map((msg) => <li key={String(msg)}>{String(msg)}</li>)}</ul>}
         />
       )}
     </div>

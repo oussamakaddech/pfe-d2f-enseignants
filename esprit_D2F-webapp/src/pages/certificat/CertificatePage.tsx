@@ -299,7 +299,7 @@ export default function CertificatePage() {
 
       {/* Aperçu PDF */}
       <Drawer title="Aperçu du certificat" open={!!preview} onClose={() => setPreview(null)}
-        width={Math.min(960, typeof globalThis.window === "undefined" ? 960 : globalThis.window.innerWidth - 40)}>
+        width={Math.min(960, globalThis.window === undefined ? 960 : globalThis.window.innerWidth - 40)}>
         {preview && (
           <div style={{ height: "72vh" }}>
             <CertificatePdfViewer certificate={preview as Parameters<typeof CertificatePdfViewer>[0]["certificate"]} />
@@ -309,7 +309,7 @@ export default function CertificatePage() {
 
       {/* Édition */}
       <Drawer title="Modifier le certificat" open={!!editing} onClose={() => setEditing(null)}
-        width={Math.min(1100, typeof window === "undefined" ? 1100 : window.innerWidth - 40)} destroyOnHidden>
+        width={Math.min(1100, globalThis.window === undefined ? 1100 : globalThis.window.innerWidth - 40)} destroyOnHidden>
         {editing && (
           <CertificateEditorViewerItem certificate={editing} onUpdate={() => { void refetch(); }} />
         )}

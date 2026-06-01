@@ -69,7 +69,7 @@ interface LiveStats { totalSavoirs: number; enseignantsAssigned: number; totalCo
 interface ReviewStepProps {
   tree: DomaineNode[]; setTree: (tree: DomaineNode[]) => void;
   treeSearch: string; setTreeSearch: (v: string) => void;
-  editingNom: Record<string, string> | null; setEditingNom: (v: Record<string, string> | null) => void;
+  editingNom: { path: number[]; value: string } | null; setEditingNom: (v: { path: number[]; value: string } | null) => void;
   startRename: (id: string) => void; commitRename: (id: string, val: string) => void;
   deleteSavoir: (...args: number[]) => void; deleteSC: (...args: number[]) => void;
   deleteComp: (...args: number[]) => void; deleteDomaine: (di: number) => void;
@@ -162,7 +162,7 @@ export default function ReviewStep({
     return String(value).split(re).map((chunk, idx) => (chunk.toLowerCase() === q.toLowerCase() ? <mark key={`${chunk}-${idx}`}>{chunk}</mark> : chunk));
   };
 
-  const isEditingPath = (path: number[]) => (editingNom as { path?: number[] } | null)?.path?.join("-") === path.join("-");
+  const isEditingPath = (path: number[]) => editingNom?.path.join("-") === path.join("-");
 
   const cleanupOrphans = () => {
     const invalid = new Set(Array.from(orphanIds));
@@ -269,7 +269,11 @@ export default function ReviewStep({
           mergedEnseignants={mergedEnseignants} scOptions={scOptions}
           handleUpdateField={handleUpdateField}
           handleRemoveEnseignant={(id) => { const cur = selectedNode?.data?.enseignantsSuggeres as unknown[] ?? []; handleUpdateField("enseignantsSuggeres", cur.filter((x) => String(x) !== String(id))); }}
-          handleMoveSavoir={(targetPath) => { if (!selectedNode) return; moveSavoirToSC(selectedNode.path, targetPath); setSelectedNode(null); }}
+          handleMoveSavoir={(targetPath) => {
+            if (!selectedNode) return;
+            moveSavoirToSC(selectedNode.path, targetPath);
+            setSelectedNode(null);
+          }}
           deleteNode={deleteNode}
           setCreateEnsTarget={setCreateEnsTarget} setCreateEnsData={setCreateEnsData} setCreateEnsModal={setCreateEnsModal}
         />

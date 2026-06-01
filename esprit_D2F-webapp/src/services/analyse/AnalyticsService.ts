@@ -69,7 +69,7 @@ const AnalyticsService = {
     return res.data;
   },
 
-  async getTeachersAtRisk(seuil = 0.50): Promise<TeacherRiskProfile[]> {
+  async getTeachersAtRisk(seuil = 0.5): Promise<TeacherRiskProfile[]> {
     const res = await axios.get<TeacherRiskProfile[]>(
       `${BASE}/dashboard/teachers-at-risk`,
       { params: { seuil } }

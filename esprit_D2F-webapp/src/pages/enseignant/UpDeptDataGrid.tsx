@@ -33,6 +33,59 @@ interface RecordItem {
   [key: string]: unknown;
 }
 
+interface ColumnFilterDropdownProps {
+  readonly dataIndex: string;
+  readonly placeholder: string;
+  readonly selectedKeys: React.Key[];
+  readonly searchInputRef: React.RefObject<InputRef | null>;
+  readonly onSetSelectedKeys: (keys: React.Key[]) => void;
+  readonly onSearch: (keys: React.Key[]) => void;
+  readonly onReset: () => void;
+}
+
+function ColumnFilterDropdown({
+  dataIndex,
+  placeholder,
+  selectedKeys,
+  searchInputRef,
+  onSetSelectedKeys,
+  onSearch,
+  onReset,
+}: ColumnFilterDropdownProps) {
+  const handleResetClick = (clearFilters?: () => void) => {
+    clearFilters?.();
+    onReset();
+  };
+  return (
+    <div style={{ padding: 8 }}>
+      <Input
+        ref={searchInputRef}
+        placeholder={`Rechercher ${placeholder}`}
+        value={selectedKeys[0] as string}
+        onChange={(e) => onSetSelectedKeys(e.target.value ? [e.target.value] : [])}
+        onPressEnter={() => onSearch(selectedKeys)}
+        style={{ marginBottom: 8, display: 'block' }}
+      />
+      <Button
+        type="primary"
+        icon={<SearchOutlined />}
+        size="small"
+        onClick={() => onSearch(selectedKeys)}
+        style={{ width: 90, marginRight: 8 }}
+      >
+        OK
+      </Button>
+      <Button
+        size="small"
+        onClick={() => handleResetClick()}
+        style={{ width: 90 }}
+      >
+        Reset
+      </Button>
+    </div>
+  );
+}
+
 export default function UpDeptDataGrid() {
   const { message: msgApi } = useAppNotification();
 
@@ -176,32 +229,15 @@ export default function UpDeptDataGrid() {
   };
   const getColumnSearchProps = (dataIndex: string, placeholder: string): TableColumnType<RecordItem> => ({
     filterDropdown: ({ setSelectedKeys, selectedKeys, confirm, clearFilters }: FilterDropdownProps) => (
-      <div style={{ padding: 8 }}>
-        <Input
-          ref={searchInput}
-          placeholder={`Rechercher ${placeholder}`}
-          value={selectedKeys[0] as string}
-          onChange={(e) => setSelectedKeys(e.target.value ? [e.target.value] : [])}
-          onPressEnter={() => handleSearch(selectedKeys, confirm, dataIndex)}
-          style={{ marginBottom: 8, display: 'block' }}
-        />
-        <Button
-          type="primary"
-          icon={<SearchOutlined />}
-          size="small"
-          onClick={() => handleSearch(selectedKeys, confirm, dataIndex)}
-          style={{ width: 90, marginRight: 8 }}
-        >
-          OK
-        </Button>
-        <Button
-          size="small"
-          onClick={() => handleReset(clearFilters)}
-          style={{ width: 90 }}
-        >
-          Reset
-        </Button>
-      </div>
+      <ColumnFilterDropdown
+        dataIndex={dataIndex}
+        placeholder={placeholder}
+        selectedKeys={selectedKeys}
+        searchInputRef={searchInput}
+        onSetSelectedKeys={setSelectedKeys}
+        onSearch={(keys) => handleSearch(keys, confirm, dataIndex)}
+        onReset={() => handleReset(clearFilters)}
+      />
     ),
     filterIcon: (filtered: boolean) => <SearchOutlined style={{ color: filtered ? '#1890ff' : undefined }} />,
     onFilter: (value, record) =>

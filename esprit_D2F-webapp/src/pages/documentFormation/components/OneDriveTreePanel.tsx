@@ -59,29 +59,37 @@ export function OneDriveTreePanel({
         </div>
       </div>
 
-      {treeLoading ? (
-        <div style={{ minHeight: 240, display: "grid", placeItems: "center" }}>
-          <Spin size="large" />
-        </div>
-      ) : treeData.length > 0 ? (
-        <div className="doc-tree-wrapper">
-          <Tree
-            showIcon
-            blockNode
-            treeData={treeData}
-            expandedKeys={expandedKeys}
-            onExpand={(keys) => onExpand(keys as string[])}
-            onSelect={(keys, info) => onSelectTree(keys as string[], info as unknown as { node: { isLeaf: boolean; raw: { name: string; fileSize?: number; downloadUrl?: string } } })}
+      {(() => {
+        if (treeLoading) {
+          return (
+            <div style={{ minHeight: 240, display: "grid", placeItems: "center" }}>
+              <Spin size="large" />
+            </div>
+          );
+        }
+        if (treeData.length > 0) {
+          return (
+            <div className="doc-tree-wrapper">
+              <Tree
+                showIcon
+                blockNode
+                treeData={treeData}
+                expandedKeys={expandedKeys}
+                onExpand={(keys) => onExpand(keys as string[])}
+                onSelect={(keys, info) => onSelectTree(keys as string[], info as unknown as { node: { isLeaf: boolean; raw: { name: string; fileSize?: number; downloadUrl?: string } } })}
+              />
+            </div>
+          );
+        }
+        return (
+          <DocEmpty
+            variant="tree"
+            icon={<FolderOutlined />}
+            title="Aucun dossier"
+            text="Aucun dossier n'est disponible pour cette formation"
           />
-        </div>
-      ) : (
-        <DocEmpty
-          variant="tree"
-          icon={<FolderOutlined />}
-          title="Aucun dossier"
-          text="Aucun dossier n'est disponible pour cette formation"
-        />
-      )}
+        );
+      })()}
     </>
   );
 }

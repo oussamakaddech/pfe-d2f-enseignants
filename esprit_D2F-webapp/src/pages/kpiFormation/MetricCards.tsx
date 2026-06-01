@@ -54,11 +54,13 @@ const MetricCards = () => {
     if (onlyPeriod) return `Formations du ${start} au ${end}`;
     if (upId !== null && !domaine && deptId === null && ouverte === null && !start && !end && !etat) {
       const upItem = upsOptions.find((u) => u.id === upId);
-      return `Formations UP : ${upItem ? upItem.libelle : `UP ${upId}`}`;
+      const upLabel = upItem ? upItem.libelle : `UP ${upId}`;
+      return `Formations UP : ${upLabel}`;
     }
     if (deptId !== null && !domaine && upId === null && ouverte === null && !start && !end && !etat) {
       const deptItem = deptsOptions.find((d) => d.id === deptId);
-      return `Formations Département : ${deptItem ? deptItem.libelle : `Dept ${deptId}`}`;
+      const deptLabel = deptItem ? deptItem.libelle : `Dept ${deptId}`;
+      return `Formations Département : ${deptLabel}`;
     }
     const parts = buildGenericTitleParts(filters, upsOptions, deptsOptions);
     return parts.length === 0 ? "Toutes formations (PLANIFIE + ACHEVE)" : parts.join("  •  ");

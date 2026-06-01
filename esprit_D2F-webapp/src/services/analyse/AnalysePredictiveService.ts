@@ -198,12 +198,12 @@ const AnalysePredictiveService = {
 
       let recommendations: AnalyseRecommandation[] = [];
       if (competenceCible) {
-        try {
-          const recoRes = await this.recommendPath(
-            enseignantId,
-            Number.parseInt(competenceCible.replaceAll(/\D/g, "") || "0"),
-            4
-          );
+        const recoRes = await this.recommendPath(
+          enseignantId,
+          Number.parseInt(competenceCible.replaceAll(/\D/g, "") || "0"),
+          4
+        ).catch(() => null);
+        if (recoRes) {
           recommendations = (recoRes.path || []).map((step: RawPathStep) => ({
             ordre: step.step_number,
             formationId: step.formation_id,
@@ -214,8 +214,6 @@ const AnalysePredictiveService = {
             probabiliteReussite: step.success_probability,
             justification: "Basé sur votre profil et les prérequis de la formation.",
           }));
-        } catch (e: unknown) {
-          // Recommandations non disponibles — continue sans
         }
       }
 

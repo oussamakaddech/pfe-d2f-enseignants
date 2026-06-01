@@ -111,12 +111,7 @@ export const DEPARTMENT_OPTIONS = Object.values(DepartmentConfig).map((cfg) => (
 }));
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
-export const cloneDeep = (x: unknown) => {
-  try {
-    if (typeof structuredClone === "function") return structuredClone(x);
-  } catch { /* fall through */ }
-  return JSON.parse(JSON.stringify(x));
-};
+export const cloneDeep = <T,>(x: T): T => structuredClone(x);
 
 export const formatFileSize = (bytes: number) => {
   if (!bytes) return "";

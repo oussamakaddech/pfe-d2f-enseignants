@@ -244,7 +244,8 @@ export default function CombinedFormationOneDriveTree() {
     { title: "Actions", key: "actions", width: 170, align: "right", render: (_, r) => rowActions(r, handleDownload, handleDelete, setPreview, setEditing) },
   ];
 
-  const content = view === "table" ? (
+  const emptyState = <Empty className="gdoc-empty" description="Aucun document pour ces critères." />;
+  const tableView = (
     <Table<DocRow>
       rowKey="key"
       dataSource={rows}
@@ -252,21 +253,23 @@ export default function CombinedFormationOneDriveTree() {
       loading={isLoading}
       rowSelection={{ selectedRowKeys: selectedKeys, onChange: setSelectedKeys }}
       pagination={{ pageSize: 12, showSizeChanger: true, showTotal: (t) => `${t} document(s)` }}
-      locale={{ emptyText: <Empty className="gdoc-empty" description="Aucun document pour ces critères." /> }}
+      locale={{ emptyText: emptyState }}
       scroll={{ x: "max-content" }}
     />
-  ) : rows.length === 0 ? (
-    <Empty className="gdoc-empty" description="Aucun document pour ces critères." />
-  ) : (
-    <div className="gdoc-grid">
-      {rows.map((r) => (
-        <DocCard key={r.key} row={r} selectedKeys={selectedKeys} setSelectedKeys={setSelectedKeys}
-          typeTag={typeTag} obligationTag={obligationTag}
-          setPreview={setPreview} handleDownload={handleDownload}
-          setEditing={setEditing} handleDelete={handleDelete} />
-      ))}
-    </div>
   );
+  const gridView = rows.length === 0
+    ? emptyState
+    : (
+      <div className="gdoc-grid">
+        {rows.map((r) => (
+          <DocCard key={r.key} row={r} selectedKeys={selectedKeys} setSelectedKeys={setSelectedKeys}
+            typeTag={typeTag} obligationTag={obligationTag}
+            setPreview={setPreview} handleDownload={handleDownload}
+            setEditing={setEditing} handleDelete={handleDelete} />
+        ))}
+      </div>
+    );
+  const content = view === "table" ? tableView : gridView;
 
   return (
     <Layout className="gdoc-page" style={{ background: "transparent" }}>
@@ -382,7 +385,7 @@ export default function CombinedFormationOneDriveTree() {
         title={preview?.nomDocument || "Aperçu du document"}
         open={!!preview}
         onClose={() => setPreview(null)}
-        width={Math.min(900, typeof window === "undefined" ? 900 : window.innerWidth - 40)}
+        width={Math.min(900, globalThis.window === undefined ? 900 : globalThis.window.innerWidth - 40)}
         extra={preview && (
           <Button icon={<DownloadOutlined />} onClick={() => handleDownload(preview)}>Télécharger</Button>
         )}

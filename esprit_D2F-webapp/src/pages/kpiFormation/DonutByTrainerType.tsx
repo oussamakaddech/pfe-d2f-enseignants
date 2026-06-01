@@ -98,9 +98,14 @@ export default function DonutByTrainerTypeWithFilters() {
 
   const legendEntries = chartData.map((d, i) => ({ ...d, color: COLORS[i] }));
 
-  const dataToShowInModal = selectedCategory === "Externe uniquement" ? externeFormations
-    : selectedCategory === "Interne uniquement" ? interneFormations
-    : mixteFormations;
+  let dataToShowInModal: Record<string, unknown>[];
+  if (selectedCategory === "Externe uniquement") {
+    dataToShowInModal = externeFormations;
+  } else if (selectedCategory === "Interne uniquement") {
+    dataToShowInModal = interneFormations;
+  } else {
+    dataToShowInModal = mixteFormations;
+  }
 
   return (
     <div style={{ maxWidth: 1000, margin: "auto", padding: 24 }}>

@@ -57,6 +57,50 @@ interface Demande {
   enseignant: EnseignantRef;
 }
 
+interface DemandesColumnFilterDropdownProps {
+  readonly dataIndex: keyof EnseignantRef;
+  readonly selectedKeys: React.Key[];
+  readonly searchInputRef: React.RefObject<InputRef | null>;
+  readonly onSetSelectedKeys: (keys: React.Key[]) => void;
+  readonly onSearch: (keys: React.Key[]) => void;
+  readonly onReset: (clearFilters?: () => void) => void;
+}
+
+function DemandesColumnFilterDropdown({
+  dataIndex,
+  selectedKeys,
+  searchInputRef,
+  onSetSelectedKeys,
+  onSearch,
+  onReset,
+}: DemandesColumnFilterDropdownProps) {
+  return (
+    <div style={{ padding: 8 }}>
+      <Input
+        ref={searchInputRef}
+        placeholder={`Rechercher ${dataIndex}`}
+        value={selectedKeys[0]}
+        onChange={(e) => onSetSelectedKeys(e.target.value ? [e.target.value] : [])}
+        onPressEnter={() => onSearch(selectedKeys)}
+        style={{ marginBottom: 8, display: "block" }}
+      />
+      <Space>
+        <Button
+          type="primary"
+          onClick={() => onSearch(selectedKeys)}
+          icon={<SearchOutlined />}
+          size="small"
+        >
+          OK
+        </Button>
+        <Button onClick={() => onReset()} size="small">
+          Réinitialiser
+        </Button>
+      </Space>
+    </div>
+  );
+}
+
 const ETAT_CONFIG: Record<EtatDemande, { color: "success" | "error" | "warning"; icon: React.ReactNode; text: string }> = {
   APPROVED: { color: "success", icon: <CheckCircleOutlined />, text: "Approuvé" },
   REJECTED: { color: "error",   icon: <CloseCircleOutlined />, text: "Rejeté" },
@@ -95,29 +139,14 @@ export default function DemandesList() {
 
   const getColumnSearchProps = (dataIndex: keyof EnseignantRef) => ({
     filterDropdown: ({ setSelectedKeys, selectedKeys, confirm, clearFilters }: FilterDropdownProps) => (
-      <div style={{ padding: 8 }}>
-        <Input
-          ref={searchInput}
-          placeholder={`Rechercher ${dataIndex}`}
-          value={selectedKeys[0]}
-          onChange={(e) => setSelectedKeys(e.target.value ? [e.target.value] : [])}
-          onPressEnter={() => handleSearch(selectedKeys, confirm, dataIndex)}
-          style={{ marginBottom: 8, display: "block" }}
-        />
-        <Space>
-          <Button
-            type="primary"
-            onClick={() => handleSearch(selectedKeys, confirm, dataIndex)}
-            icon={<SearchOutlined />}
-            size="small"
-          >
-            OK
-          </Button>
-          <Button onClick={() => handleReset(clearFilters)} size="small">
-            Réinitialiser
-          </Button>
-        </Space>
-      </div>
+      <DemandesColumnFilterDropdown
+        dataIndex={dataIndex}
+        selectedKeys={selectedKeys}
+        searchInputRef={searchInput}
+        onSetSelectedKeys={setSelectedKeys}
+        onSearch={(keys) => handleSearch(keys, confirm, dataIndex)}
+        onReset={() => handleReset(clearFilters)}
+      />
     ),
     filterIcon: (filtered: boolean) => (
       <SearchOutlined style={{ color: filtered ? "#B51200" : undefined }} />

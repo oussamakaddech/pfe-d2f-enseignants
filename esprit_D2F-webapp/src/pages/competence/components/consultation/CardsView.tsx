@@ -227,7 +227,7 @@ export default function CardsView({
           compRows.map((row) => {
             const compId = String(row.comp.id);
             const paletteIdx = scopedCompetences.findIndex((c: CompetenceRef) => String(c.id) === String(row.comp.id));
-            const accent = COMP_PALETTE[(paletteIdx >= 0 ? paletteIdx : 0) % COMP_PALETTE.length];
+            const accent = COMP_PALETTE[Math.max(paletteIdx, 0) % COMP_PALETTE.length];
             const isOpen = openComps.has(compId);
             const limit = visibleCount.get(compId) || PAGE;
             const visible = row.filteredLinked.slice(0, limit);

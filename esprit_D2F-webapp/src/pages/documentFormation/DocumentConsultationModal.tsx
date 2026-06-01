@@ -16,7 +16,7 @@ function fileLabel(doc: FormationDocument): string {
   if (doc.originalFileName) return doc.originalFileName;
   if (doc.filePath) {
     const parts = doc.filePath.split(/[/\\]/);
-    const last = parts[parts.length - 1];
+    const last = parts.at(-1);
     if (last) return last;
   }
   return doc.nomDocument || "Document";

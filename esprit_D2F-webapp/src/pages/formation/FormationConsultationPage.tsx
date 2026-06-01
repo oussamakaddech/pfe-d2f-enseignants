@@ -78,7 +78,7 @@ interface RefItem {
   nom?: string;
 }
 
-function FormationExpandRow({ record }: { record: Formation }) {
+function FormationExpandRow({ record }: Readonly<{ record: Formation }>) {
   return (
     <div className="formation-expand-content">
       <span className="formation-expand-title">Séances</span>
@@ -93,6 +93,10 @@ function FormationExpandRow({ record }: { record: Formation }) {
       </div>
     </div>
   );
+}
+
+function renderExpandRow(record: Formation) {
+  return <FormationExpandRow record={record} />;
 }
 
 export default function FormationConsultationPage() {
@@ -130,14 +134,14 @@ export default function FormationConsultationPage() {
   const { data: upsData = [] } = useUps();
   const { data: deptsData = [] } = useDepartements();
   const upsOptions = useMemo(
-    () => (upsData as unknown[]).map((u: unknown) => {
+    () => upsData.map((u) => {
       const up = u as RefItem; // S4325: cast needed for compatibility
       return { id: up.id, libelle: up.libelle || up.nom || "_" };
     }),
     [upsData],
   );
   const deptsOptions = useMemo(
-    () => (deptsData as unknown[]).map((d: unknown) => {
+    () => deptsData.map((d) => {
       const dept = d as RefItem; // S4325: cast needed for compatibility
       return { id: dept.id, libelle: dept.libelle || dept.nom || "_" };
     }),
@@ -468,7 +472,7 @@ export default function FormationConsultationPage() {
             ),
           }}
           expandable={{
-            expandedRowRender: (record) => <FormationExpandRow record={record} />,
+            expandedRowRender: renderExpandRow,
             rowExpandable: (record) => record.seances != null,
           }}
         />

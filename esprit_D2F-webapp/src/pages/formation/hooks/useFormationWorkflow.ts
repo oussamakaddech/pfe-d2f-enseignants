@@ -56,11 +56,11 @@ function mergeFormateursAccounts(accountsData: AccountItem[], enseignantsData: P
       upLibelle: "",
       deptLibelle: ""
     }));
-  const fUserNames = formateurs.map(f => f.userName).filter(Boolean);
+  const fUserNames = new Set(formateurs.map(f => f.userName).filter((n): n is string => Boolean(n)));
   const enriched = formateurs.map(f => {
     const prefix = f.mail ? f.mail.split("@")[0] : "";
     const match = enseignantsData.find(ex =>
-      fUserNames.includes(ex.id as string) || ex.mail === f.mail || ex.mail?.split("@")[0] === prefix
+      (typeof ex.id === "string" && fUserNames.has(ex.id)) || ex.mail === f.mail || ex.mail?.split("@")[0] === prefix
     );
     return match ? { ...f, upLibelle: match.upLibelle || "", deptLibelle: match.deptLibelle || "", type: match.type || f.type } : f;
   });
@@ -261,7 +261,8 @@ export function useFormationWorkflow({ initialDate, onFormationCreated, besoinIn
   ]);
 
   const [showUpload, setShowUpload] = useState(false);
-  const [newFormationId, setNewFormationId] = useState<number | string | null>(null);
+  type FormationId = number | string | null;
+  const [newFormationId, setNewFormationId] = useState<FormationId>(null);
 
   const enseignantsList = Array.isArray(enseignants) ? enseignants : [];
 
@@ -288,11 +289,11 @@ export function useFormationWorkflow({ initialDate, onFormationCreated, besoinIn
   useEffect(() => {
     if (!besoinInfo?.propositionAnimateur || formateursList.length === 0 || animSel.length > 0) return;
     const text = besoinInfo.propositionAnimateur.trim();
-    const emailMatch = text.match(/<([^>]+)>/);
+    const emailMatch = /<([^>]+)>/.exec(text);
     let matched: PersonItem | undefined = undefined;
     if (emailMatch) {
       const email = emailMatch[1].trim().toLowerCase();
-      matched = formateursList.find(f => f.mail && f.mail.toLowerCase() === email);
+      matched = formateursList.find(f => f.mail?.toLowerCase() === email);
     }
     if (!matched) {
       const norm = text.toLowerCase().replaceAll(/<[^>]*>/g, "").trim();
@@ -412,24 +413,21 @@ export function useFormationWorkflow({ initialDate, onFormationCreated, besoinIn
     return compCompetences.filter(c => (!domaineId || c.domaineId === domaineId) && (!kw || c.nom?.toLowerCase().includes(kw))).map(c => ({ value: c.id, label: c.nom }));
   };
 
-  const handleExcelImportFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleExcelImportFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = async (ev) => {
-      const { read, utils } = await import("xlsx");
-      const data = new Uint8Array(ev.target!.result as ArrayBuffer);
-      const wb = read(data, { type: "array" });
-      const rows = utils.sheet_to_json<Record<string, unknown>>(wb.Sheets[wb.SheetNames[0]]);
-      const mails = rows.map(r => r["Email"] ?? r["email"] ?? r["Mail"] ?? r["mail"] ?? r["EMAIL"] ?? r["MAIL"] ?? r["email_address"]).filter(Boolean).map(m => String(m).trim().toLowerCase());
-      const matched = enseignants.filter(ex => ex.mail && mails.includes(ex.mail.toLowerCase()));
-      setPartSel(matched);
-      e.target.value = "";
-      if (matched.length > 0) message.success(`${matched.length} participant${matched.length > 1 ? "s" : ""} importé${matched.length > 1 ? "s" : ""}`);
-      else if (mails.length === 0) { const headers = rows.length > 0 ? Object.keys(rows[0]).join(", ") : "fichier vide"; message.warning(`Aucun email trouvé. Colonne attendue : Email ou Mail. Colonnes trouvées : ${headers}`); }
-      else message.warning(`Aucun participant correspondant pour les ${mails.length} email${mails.length > 1 ? "s" : ""} importés`);
-    };
-    reader.readAsArrayBuffer(file);
+    const buffer = await file.arrayBuffer();
+    const { read, utils } = await import("xlsx");
+    const data = new Uint8Array(buffer);
+    const wb = read(data, { type: "array" });
+    const rows = utils.sheet_to_json<Record<string, unknown>>(wb.Sheets[wb.SheetNames[0]]);
+    const mails = rows.map(r => r["Email"] ?? r["email"] ?? r["Mail"] ?? r["mail"] ?? r["EMAIL"] ?? r["MAIL"] ?? r["email_address"]).filter(Boolean).map(m => String(m).trim().toLowerCase());
+    const matched = enseignants.filter(ex => ex.mail && mails.includes(ex.mail.toLowerCase()));
+    setPartSel(matched);
+    e.target.value = "";
+    if (matched.length > 0) message.success(`${matched.length} participant${matched.length > 1 ? "s" : ""} importé${matched.length > 1 ? "s" : ""}`);
+    else if (mails.length === 0) { const headers = rows.length > 0 ? Object.keys(rows[0]).join(", ") : "fichier vide"; message.warning(`Aucun email trouvé. Colonne attendue : Email ou Mail. Colonnes trouvées : ${headers}`); }
+    else message.warning(`Aucun participant correspondant pour les ${mails.length} email${mails.length > 1 ? "s" : ""} importés`);
   };
 
   const exportParticipantsExcel = async () => {

@@ -114,7 +114,7 @@ function renderSousCompBlock(sc: SousCompNode, di: number, ci: number, sci: numb
         <Space>
           <Tag color="cyan">{sc.code}</Tag>
           {isEditingPath([di, ci, sci]) ? (
-            <Input size="small" value={(editingNom as Record<string, string>)?.value} onChange={(e) => setEditingNom({ ...(editingNom ?? {}), value: e.target.value })} onPressEnter={() => commitRename("", "")} onBlur={() => commitRename("", "")} onKeyDown={(e) => e.key === "Escape" && setEditingNom(null)} autoFocus style={{ width: 240 }} />
+            <Input size="small" value={(editingNom as Record<string, string>)?.value} onChange={(e) => setEditingNom({ ...editingNom, value: e.target.value })} onPressEnter={() => commitRename("", "")} onBlur={() => commitRename("", "")} onKeyDown={(e) => e.key === "Escape" && setEditingNom(null)} autoFocus style={{ width: 240 }} />
           ) : (<Text>{markMatch(sc.nom)}</Text>)}
           <Tag>{(sc.savoirs ?? []).length} savoirs</Tag>
         </Space>
@@ -137,7 +137,7 @@ function renderCompetenceBlock(comp: CompNode, di: number, ci: number, ctx: Tree
         <Space>
           <Tag color="purple">{comp.code}</Tag>
           {isEditingPath([di, ci]) ? (
-            <Input size="small" value={(editingNom as Record<string, string>)?.value} onChange={(e) => setEditingNom({ ...(editingNom ?? {}), value: e.target.value })} onPressEnter={() => commitRename("", "")} onBlur={() => commitRename("", "")} onKeyDown={(e) => e.key === "Escape" && setEditingNom(null)} autoFocus style={{ width: 260 }} />
+            <Input size="small" value={(editingNom as Record<string, string>)?.value} onChange={(e) => setEditingNom({ ...editingNom, value: e.target.value })} onPressEnter={() => commitRename("", "")} onBlur={() => commitRename("", "")} onKeyDown={(e) => e.key === "Escape" && setEditingNom(null)} autoFocus style={{ width: 260 }} />
           ) : (<Text>{markMatch(comp.nom)}</Text>)}
         </Space>
         <Space>
@@ -178,7 +178,7 @@ function renderDomainBlock(domaine: DomaineNode, di: number, ctx: TreeCtx) {
         <Space>
           <Tag color="blue">{domaine.code}</Tag>
           {isEditingPath([di]) ? (
-            <Input size="small" value={(editingNom as Record<string, string>)?.value} onChange={(e) => setEditingNom({ ...(editingNom ?? {}), value: e.target.value })} onPressEnter={() => commitRename("", "")} onBlur={() => commitRename("", "")} onKeyDown={(e) => e.key === "Escape" && setEditingNom(null)} autoFocus style={{ width: 260 }} />
+            <Input size="small" value={(editingNom as Record<string, string>)?.value} onChange={(e) => setEditingNom({ ...editingNom, value: e.target.value })} onPressEnter={() => commitRename("", "")} onBlur={() => commitRename("", "")} onKeyDown={(e) => e.key === "Escape" && setEditingNom(null)} autoFocus style={{ width: 260 }} />
           ) : (<Text strong>{markMatch(domaine.nom)}</Text>)}
         </Space>
         <Space>

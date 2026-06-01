@@ -113,7 +113,11 @@ export default function RiceSidePanel({
                   </span>
                   <div>
                     <strong>{step.title}</strong>
-                    <div>{step.description ?? (() => { if (isActive) return "En cours"; if (isDone) return "Terminé"; return "En attente"; })()}</div>
+                    <div>{step.description ?? (() => {
+                      if (isActive) return "En cours";
+                      if (isDone) return "Terminé";
+                      return "En attente";
+                    })()}</div>
                   </div>
                 </div>
               );

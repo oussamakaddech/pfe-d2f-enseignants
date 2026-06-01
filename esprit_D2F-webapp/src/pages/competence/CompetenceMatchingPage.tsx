@@ -76,7 +76,11 @@ export default function CompetenceMatchingPage() {
     try { payload = JSON.parse(e.dataTransfer.getData("text/plain") || "{}") as { savoirId?: string }; } catch { payload = {}; }
     const sId = String(payload.savoirId ?? "");
     if (!sId) { handleDragEnd(); return; }
-    if ((stateRef.current.assignments[sId] ?? []).includes(ensId)) { message.warning("Déjà assigné à cet enseignant", 2); handleDragEnd(); return; }
+    if ((stateRef.current.assignments[sId] ?? []).includes(ensId)) {
+      message.warning("Déjà assigné à cet enseignant", 2);
+      handleDragEnd();
+      return;
+    }
     dispatch({ type: "ASSIGN_SAVOIR", payload: { savoirId: sId, enseignantId: ensId } });
     const savoir = stateRef.current.savoirs.find((x) => String(x.id) === sId);
     const teacher = teacherById.get(ensId);

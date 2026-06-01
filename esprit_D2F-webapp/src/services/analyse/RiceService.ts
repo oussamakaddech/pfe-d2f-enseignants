@@ -54,7 +54,7 @@ const fetchAllPages = async (url: string, baseParams = "") => {
   return {
     ...data,
     content: mergedContent,
-  } as typeof data; // S4325: cast needed for compatibility
+  };
 };
 
 const RiceService = {

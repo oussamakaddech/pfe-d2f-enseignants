@@ -1080,10 +1080,6 @@
   box-shadow: var(--rice-shadow-sm) !important;
 }
 
-.rice-ens-panel.rice-dnd-active {
-  box-shadow: 0 0 0 2px var(--rice-primary), 0 4px 20px rgba(37,99,235,0.18) !important;
-}
-
 .rice-ens-panel .ant-card-body {
   max-height: 72vh;
   overflow-y: auto;
