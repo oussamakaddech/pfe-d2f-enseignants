@@ -40,7 +40,7 @@ export const isStrongPassword = (pass: string): boolean => {
   if (!pass || pass.length < 8) return false;
   const hasUpper = /[A-Z]/.test(pass);
   const hasLower = /[a-z]/.test(pass);
-  const hasDigit = /[0-9]/.test(pass);
+  const hasDigit = /\d/.test(pass);
   const hasSpecial = /[^A-Za-z0-9]/.test(pass);
   return hasUpper && hasLower && hasDigit && hasSpecial;
 };
@@ -50,7 +50,7 @@ export const isStrongPassword = (pass: string): boolean => {
  */
 export const isValidPhone = (phone: string): boolean => {
   if (!phone) return false;
-  return /^\+?[0-9]{8,15}$/.test(phone);
+  return /^\+?\d{8,15}$/.test(phone);
 };
 
 /**

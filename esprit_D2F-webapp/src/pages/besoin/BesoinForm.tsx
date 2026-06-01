@@ -143,7 +143,14 @@ export default function BesoinForm() {
 
       <nav className="bf-stepper" aria-label="Étapes du formulaire">
         {STEPS_META.map((s, idx) => {
-          const state = idx < ctx.currentStep ? "done" : idx === ctx.currentStep ? "active" : "pending";
+          let state: "done" | "active" | "pending";
+          if (idx < ctx.currentStep) {
+            state = "done";
+          } else if (idx === ctx.currentStep) {
+            state = "active";
+          } else {
+            state = "pending";
+          }
           return (
             <button key={s.key} type="button" className={`bf-stepper__item bf-stepper__item--${state}`} onClick={() => idx <= ctx.currentStep && ctx.setCurrentStep(idx)} disabled={idx > ctx.currentStep} aria-current={idx === ctx.currentStep ? "step" : undefined}>
               <span className="bf-stepper__bubble">{state === "done" ? <CheckCircleOutlined /> : <span>{idx + 1}</span>}</span>

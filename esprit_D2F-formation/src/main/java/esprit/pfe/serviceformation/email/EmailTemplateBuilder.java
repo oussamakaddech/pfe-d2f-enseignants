@@ -23,7 +23,7 @@ public final class EmailTemplateBuilder {
     private String title = "Notification";
     private String greetingName;          // null => "Bonjour,"
     private String intro = "";
-    private final List<String[]> details = new ArrayList<>();  // {label, value}
+    private final List<String[]> details = new ArrayList<>();
     private final List<String> seanceLines = new ArrayList<>();
     private String note;                  // encart d'information optionnel (HTML de confiance)
 

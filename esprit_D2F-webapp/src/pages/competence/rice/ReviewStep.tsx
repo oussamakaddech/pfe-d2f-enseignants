@@ -27,11 +27,41 @@ function collectOrphanIds(tree: DomaineNode[], validIds: Set<string>): Set<strin
 
 function flattenTree(tree: DomaineNode[]) {
   const rows: Record<string, unknown>[] = [];
-  (tree ?? []).forEach((d, di) => (d.competences ?? []).forEach((c, ci) => {
-    (c.savoirs ?? []).forEach((s, si) => rows.push({ ...s, di, ci, sci: -1, si, domaineNom: d.nom }));
-    (c.sousCompetences ?? []).forEach((sc, sci) => (sc.savoirs ?? []).forEach((s, si) => rows.push({ ...s, di, ci, sci, si, domaineNom: d.nom })));
-  }));
+  for (const [di, d] of (tree ?? []).entries()) {
+    for (const [ci, c] of (d.competences ?? []).entries()) {
+      appendDirectSavoirs(rows, d, di, c, ci);
+      for (const [sci, sc] of (c.sousCompetences ?? []).entries()) {
+        appendSCSavoirs(rows, d, di, c, ci, sc, sci);
+      }
+    }
+  }
   return rows;
+}
+
+function appendDirectSavoirs(
+  rows: Record<string, unknown>[],
+  d: DomaineNode,
+  di: number,
+  c: { savoirs?: { enseignantsSuggeres?: unknown[] }[] },
+  ci: number,
+) {
+  for (const [si, s] of (c.savoirs ?? []).entries()) {
+    rows.push({ ...s, di, ci, sci: -1, si, domaineNom: d.nom });
+  }
+}
+
+function appendSCSavoirs(
+  rows: Record<string, unknown>[],
+  d: DomaineNode,
+  di: number,
+  c: { savoirs?: { enseignantsSuggeres?: unknown[] }[]; sousCompetences?: { savoirs?: { enseignantsSuggeres?: unknown[] }[] }[] },
+  ci: number,
+  sc: { savoirs?: { enseignantsSuggeres?: unknown[] }[] },
+  sci: number,
+) {
+  for (const [si, s] of (sc.savoirs ?? []).entries()) {
+    rows.push({ ...s, di, ci, sci, si, domaineNom: d.nom });
+  }
 }
 
 interface LiveStats { totalSavoirs: number; enseignantsAssigned: number; totalComp?: number; totalSC?: number; }

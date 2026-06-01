@@ -28,7 +28,7 @@ export const ACTIVE_COMP_KEY = "ctp-active-comp";
 export function toNiveauRank(niveau: unknown): number {
   if (niveau == null) return 999;
   const asText = String(niveau).trim();
-  const match = asText.match(/(\d+)/);
+  const match = /(\d+)/.exec(asText);
   return match ? Number(match[1]) : 999;
 }
 

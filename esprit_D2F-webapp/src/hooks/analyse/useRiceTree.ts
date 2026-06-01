@@ -25,17 +25,18 @@ const getSavoir = (t: RiceDomaine[], di: number, ci: number, sci: number, si: nu
   return comp.sousCompetences![sci].savoirs![si];
 };
 
-const pushSavoirFlat = (
-  list: RiceFlatSavoir[],
-  s: RiceSavoir,
-  si: number,
-  d: RiceDomaine,
-  di: number,
-  c: { code?: string; nom: string },
-  ci: number,
-  sc: { code?: string; nom: string } | null,
-  sci: number,
-) => {
+const pushSavoirFlat = (args: {
+  list: RiceFlatSavoir[];
+  s: RiceSavoir;
+  si: number;
+  d: RiceDomaine;
+  di: number;
+  c: { code?: string; nom: string };
+  ci: number;
+  sc: { code?: string; nom: string } | null;
+  sci: number;
+}) => {
+  const { list, s, si, d, di, c, ci, sc, sci } = args;
   list.push({
     ...s,
     di, ci, sci, si,
@@ -260,10 +261,10 @@ export function useRiceTree(msgApi: MessageInstance) {
     tree.forEach((d, di) => {
       (d.competences ?? []).forEach((c, ci) => {
         for (const [si, s] of (c.savoirs ?? []).entries())
-          pushSavoirFlat(list, s, si, d, di, c, ci, null, -1);
+          pushSavoirFlat({ list, s, si, d, di, c, ci, sc: null, sci: -1 });
         for (const [sci, sc] of (c.sousCompetences ?? []).entries())
           for (const [si, s] of (sc.savoirs ?? []).entries())
-            pushSavoirFlat(list, s, si, d, di, c, ci, sc, sci);
+            pushSavoirFlat({ list, s, si, d, di, c, ci, sc, sci });
       });
     });
     return list;

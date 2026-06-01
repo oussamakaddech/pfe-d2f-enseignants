@@ -91,7 +91,7 @@ export function useRiceSession({
     if (!(e.ctrlKey || e.metaKey) || e.key.toLowerCase() !== "z") return;
     if (currentStep !== 2 || treeHistory.length === 0) return;
     e.preventDefault();
-    const previous = treeHistory[treeHistory.length - 1];
+    const previous = treeHistory.at(-1);
     skipHistoryRef.current = true;
     setTree(cloneDeep(previous) as RiceDomaine[]);
     setTreeHistory((hist) => hist.slice(0, -1));

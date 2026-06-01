@@ -22,7 +22,10 @@ import tn.esprit.d2f.repository.BesoinFormationRepository;
 import tn.esprit.d2f.repository.NotificationRepository;
 
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.Collection;
+import java.util.function.BiConsumer;
+import java.util.function.Supplier;
 
 /**
  * Service métier pour la gestion des besoins de formation.
@@ -277,29 +280,43 @@ public class BesoinFormationServiceImpl implements IBesoinFormationService {
     }
 
     private void updateDataFields(BesoinFormationRequest src, BesoinFormation dest) {
-        if (src.getTitre() != null) dest.setTitre(src.getTitre());
-        if (src.getObjectifFormation() != null) dest.setObjectifFormation(src.getObjectifFormation());
-        if (src.getTypeBesoin() != null) dest.setTypeBesoin(src.getTypeBesoin());
-        if (src.getPriorite() != null) dest.setPriorite(src.getPriorite());
-        if (src.getImpactStrategique() != null) dest.setImpactStrategique(src.getImpactStrategique());
-        if (src.getPropositionAnimateur() != null) dest.setPropositionAnimateur(src.getPropositionAnimateur());
-        if (src.getHoraireSouhaite() != null) dest.setHoraireSouhaite(src.getHoraireSouhaite());
-        if (src.getUp() != null) dest.setUp(src.getUp());
-        if (src.getDepartement() != null) dest.setDepartement(src.getDepartement());
-        if (src.getEstOuverte() != null) dest.setEstOuverte(src.getEstOuverte());
-        if (src.getAutresInformations() != null) dest.setAutresInformations(src.getAutresInformations());
-        if (src.getAnimateurs() != null) dest.setAnimateurs(src.getAnimateurs());
-        if (src.getEnseignants() != null) dest.setEnseignants(src.getEnseignants());
-        if (src.getPeriodCode() != null) dest.setPeriodCode(src.getPeriodCode());
-        if (src.getCustomPeriodLabel() != null) dest.setCustomPeriodLabel(src.getCustomPeriodLabel());
-        if (src.getDateDebut() != null) dest.setDateDebut(src.getDateDebut().toString());
-        if (src.getDateFin() != null) dest.setDateFin(src.getDateFin().toString());
+        copyIfPresent(src::getTitre, BesoinFormation::setTitre, dest);
+        copyIfPresent(src::getObjectifFormation, BesoinFormation::setObjectifFormation, dest);
+        copyIfPresent(src::getTypeBesoin, BesoinFormation::setTypeBesoin, dest);
+        copyIfPresent(src::getPriorite, BesoinFormation::setPriorite, dest);
+        copyIfPresent(src::getImpactStrategique, BesoinFormation::setImpactStrategique, dest);
+        copyIfPresent(src::getPropositionAnimateur, BesoinFormation::setPropositionAnimateur, dest);
+        copyIfPresent(src::getHoraireSouhaite, BesoinFormation::setHoraireSouhaite, dest);
+        copyIfPresent(src::getUp, BesoinFormation::setUp, dest);
+        copyIfPresent(src::getDepartement, BesoinFormation::setDepartement, dest);
+        copyIfPresent(src::getEstOuverte, BesoinFormation::setEstOuverte, dest);
+        copyIfPresent(src::getAutresInformations, BesoinFormation::setAutresInformations, dest);
+        copyIfPresent(src::getAnimateurs, BesoinFormation::setAnimateurs, dest);
+        copyIfPresent(src::getEnseignants, BesoinFormation::setEnseignants, dest);
+        copyIfPresent(src::getPeriodCode, BesoinFormation::setPeriodCode, dest);
+        copyIfPresent(src::getCustomPeriodLabel, BesoinFormation::setCustomPeriodLabel, dest);
+        copyDateAsStringIfPresent(src::getDateDebut, BesoinFormation::setDateDebut, dest);
+        copyDateAsStringIfPresent(src::getDateFin, BesoinFormation::setDateFin, dest);
     }
 
     private void updateApprovalFields(BesoinFormationRequest src, BesoinFormation dest) {
-        if (src.getApprouveCUP() != null) dest.setApprouveCUP(src.getApprouveCUP());
-        if (src.getApprouveChefDep() != null) dest.setApprouveChefDep(src.getApprouveChefDep());
-        if (src.getApprouveAdmin() != null) dest.setApprouveAdmin(src.getApprouveAdmin());
+        copyIfPresent(src::getApprouveCUP, BesoinFormation::setApprouveCUP, dest);
+        copyIfPresent(src::getApprouveChefDep, BesoinFormation::setApprouveChefDep, dest);
+        copyIfPresent(src::getApprouveAdmin, BesoinFormation::setApprouveAdmin, dest);
+    }
+
+    private static <T> void copyIfPresent(Supplier<T> getter, BiConsumer<BesoinFormation, T> setter, BesoinFormation dest) {
+        T value = getter.get();
+        if (value != null) {
+            setter.accept(dest, value);
+        }
+    }
+
+    private static void copyDateAsStringIfPresent(Supplier<LocalDate> getter, BiConsumer<BesoinFormation, String> setter, BesoinFormation dest) {
+        LocalDate value = getter.get();
+        if (value != null) {
+            setter.accept(dest, value.toString());
+        }
     }
 
     private void handleNotifications(BesoinFormation existing, String commentaire) {
