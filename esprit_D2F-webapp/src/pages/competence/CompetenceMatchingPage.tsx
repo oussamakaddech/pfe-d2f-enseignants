@@ -45,7 +45,7 @@ export default function CompetenceMatchingPage() {
     const map = new Map<string, string>();
     (state.savoirs || []).forEach((s) => {
       const domaine = s.domaine;
-      const code = typeof domaine === "object" && domaine !== null ? (domaine.code ?? domaine.nom) : (domaine as string | undefined);
+      const code = typeof domaine === "object" && domaine !== null ? (domaine.code ?? domaine.nom) : domaine;
       if (!code) return;
       const label = typeof domaine === "object" && domaine !== null ? (domaine.nom ?? domaine.code ?? String(code)) : String(code);
       map.set(String(code), String(label));

@@ -11,19 +11,6 @@ import java.util.List;
  * et aucune propriété non supportée (pas de {@code linear-gradient}, {@code flex},
  * pseudo-éléments {@code ::before} ni {@code box-shadow} structurant). Une seule
  * source de vérité pour tous les e-mails du workflow de formation.</p>
- *
- * <pre>{@code
- * String html = EmailTemplateBuilder.create()
- *     .accentColor("#e65100")
- *     .icon("📅")
- *     .title("Formation planifiée")
- *     .greetingName("Yassine Ben Salah")   // null => "Bonjour,"
- *     .intro("La formation ci-dessous a été planifiée.")
- *     .detail("Titre", titre)
- *     .seance("12/06/2026 · 09:00–12:00 · Salle B12")
- *     .note("Les événements ont été ajoutés à votre calendrier Outlook.")
- *     .build();
- * }</pre>
  */
 public final class EmailTemplateBuilder {
 

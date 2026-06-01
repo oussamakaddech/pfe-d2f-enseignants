@@ -17,7 +17,7 @@ function FormationForm({ initialDate, onFormationCreated }: Readonly<FormationFo
 
   const { mutateAsync: createFormation } = useCreateFormation();
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault();
     try {
       const newFormation = await createFormation({ titreFormation, dateDebut, dateFin });

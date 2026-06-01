@@ -34,9 +34,9 @@ function getNiveauMeta(niveau: string | number | undefined) {
 
 function getTypeMeta(type = "THEORIQUE") {
   return {
-    color: TYPE_COLOR[type as keyof typeof TYPE_COLOR] ?? "default",
+    color: TYPE_COLOR[type as keyof typeof TYPE_COLOR] ?? "default", // cast needed
     icon: type === "PRATIQUE" ? <ExperimentOutlined /> : <BookOutlined />,
-    label: TYPE_LABEL[type as keyof typeof TYPE_LABEL] ?? type,
+    label: TYPE_LABEL[type as keyof typeof TYPE_LABEL] ?? type, // cast needed
   };
 }
 
