@@ -2,6 +2,7 @@ package esprit.pfe.serviceformation.services;
 
 import esprit.pfe.serviceformation.dto.EnseignantDTO;
 import esprit.pfe.serviceformation.entities.Enseignant;
+import esprit.pfe.serviceformation.exception.DuplicateEnseignantException;
 import esprit.pfe.serviceformation.repositories.EnseignantRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -19,6 +20,13 @@ public class EnseignantServiceImpl implements EnseignantService {
     @Override
     @Transactional
     public Enseignant createEnseignant(Enseignant enseignant) {
+        // Contrôle d'unicité de l'email (→ 409). La contrainte SQL ux_enseignants_mail
+        // (V29) reste le garde-fou dur ; ce pré-contrôle donne un message clair.
+        if (enseignant.getMail() != null && !enseignant.getMail().isBlank()
+                && enseignantRepository.existsByMail(enseignant.getMail())) {
+            throw new DuplicateEnseignantException(
+                    "Un enseignant avec cet email existe déjà : " + enseignant.getMail());
+        }
         // Auto-generate ID in format E00001, E00002, … if not provided
         if (enseignant.getId() == null || enseignant.getId().isBlank()) {
             String nextId = enseignantRepository.findTopByOrderByIdDesc()
@@ -43,6 +51,13 @@ public class EnseignantServiceImpl implements EnseignantService {
         if (enseignant.getChefDepartement() == null || enseignant.getChefDepartement().isBlank()) {
             enseignant.setChefDepartement("N");
         }
+        // type/etat sont NOT NULL en base : valeurs par défaut si non fournies.
+        if (enseignant.getType() == null || enseignant.getType().isBlank()) {
+            enseignant.setType("P");
+        }
+        if (enseignant.getEtat() == null || enseignant.getEtat().isBlank()) {
+            enseignant.setEtat("A");
+        }
         return enseignantRepository.save(enseignant);
     }
 
@@ -65,6 +80,10 @@ public class EnseignantServiceImpl implements EnseignantService {
             if (enseignant.getChefDepartement() != null) e.setChefDepartement(enseignant.getChefDepartement());
             if (enseignant.getUp() != null)              e.setUp(enseignant.getUp());
             if (enseignant.getDept() != null)            e.setDept(enseignant.getDept());
+            if (enseignant.getGrade() != null)           e.setGrade(enseignant.getGrade());
+            if (enseignant.getTelephone() != null)       e.setTelephone(enseignant.getTelephone());
+            if (enseignant.getPhotoUrl() != null)        e.setPhotoUrl(enseignant.getPhotoUrl());
+            if (enseignant.getUserId() != null)          e.setUserId(enseignant.getUserId());
             return enseignantRepository.save(e);
         } else {
             throw new IllegalStateException("Enseignant introuvable avec l'id : " + id);
@@ -114,6 +133,10 @@ public class EnseignantServiceImpl implements EnseignantService {
         }
         dto.setCup(e.getCup());
         dto.setChefDepartement(e.getChefDepartement());
+        dto.setGrade(e.getGrade());
+        dto.setTelephone(e.getTelephone());
+        dto.setPhotoUrl(e.getPhotoUrl());
+        dto.setUserId(e.getUserId());
         return dto;
     }
 }

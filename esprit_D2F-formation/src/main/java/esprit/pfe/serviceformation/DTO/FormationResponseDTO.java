@@ -136,6 +136,9 @@ public class FormationResponseDTO implements Serializable {
     @Schema(description = "List of trainers/animateurs")
     private List<EnseignantDTO> animateurs;
 
+    @Schema(description = "List of external trainers (linked to a bureau)")
+    private List<AnimateurExterneDTO> animateursExternes;
+
     @Schema(description = "List of competences")
     private List<FormationCompetenceDTO> formationCompetences;
 

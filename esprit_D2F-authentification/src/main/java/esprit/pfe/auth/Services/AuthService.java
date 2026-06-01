@@ -5,6 +5,7 @@ import esprit.pfe.auth.entities.ERole;
 import esprit.pfe.auth.entities.Role;
 import esprit.pfe.auth.entities.User;
 import esprit.pfe.auth.error.BadRequestException;
+import esprit.pfe.auth.error.ConflictException;
 import esprit.pfe.auth.error.LoginException;
 import esprit.pfe.auth.error.TokenExpiredException;
 import esprit.pfe.auth.payload.request.SignupRequest;
@@ -17,6 +18,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
@@ -64,7 +66,9 @@ public class AuthService {
     public static final String PASSWORD_RESET_GENERIC_MESSAGE =
             "If this email address is registered, you will receive a password reset link.";
 
-    public static final int JWT_DURATION_MINUTES = 120;
+    /** Durée de validité du JWT en minutes — configurable (audit DSI : ne pas coder en dur). */
+    @Value("${jwt.expiration-minutes:120}")
+    private int jwtDurationMinutes;
 
     private final EmailService emailService;
     private final UserRepository userRepository;
@@ -226,7 +230,7 @@ public class AuthService {
             String scope = authentication.getAuthorities().stream()
                     .map(GrantedAuthority::getAuthority).collect(Collectors.joining(" "));
 
-            String jwt = generateJwt(username, scope, user.getEmail());
+            String jwt = generateJwt(username, scope, user.getEmail(), user.getId());
 
             if (user.getFailedLoginAttempts() != null && user.getFailedLoginAttempts() > 0) {
                 user.setFailedLoginAttempts(0);
@@ -242,9 +246,9 @@ public class AuthService {
             body.put("username", user.getUsername());
             body.put("role", scope);
             body.put(EMAIL_KEY, user.getEmail());
-            body.put("expiresIn", JWT_DURATION_MINUTES * 60);
+            body.put("expiresIn", jwtDurationMinutes * 60);
 
-            return new JwtSession(jwt, body, JWT_DURATION_MINUTES * 60L);
+            return new JwtSession(jwt, body, jwtDurationMinutes * 60L);
         } catch (AuthenticationException e) {
             int attempts = (user.getFailedLoginAttempts() != null ? user.getFailedLoginAttempts() : 0) + 1;
             user.setFailedLoginAttempts(attempts);
@@ -272,23 +276,30 @@ public class AuthService {
     /** Rafraîchit la session d'un utilisateur déjà authentifié. */
     public JwtSession refresh(Authentication authentication) {
         String username = authentication.getName();
+        // Un jeton sans claim "sub" (subject) ne peut pas être ré-émis : on refuse
+        // proprement (401 via le contrôleur) au lieu de laisser generateJwt lever une
+        // IllegalArgumentException (→ 500).
+        if (username == null || username.isBlank()) {
+            throw new BadCredentialsException("Refresh refusé : jeton sans sujet (claim 'sub' manquant)");
+        }
         String scope = authentication.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority).collect(Collectors.joining(" "));
 
         User user = userRepository.findByUsername(username).orElse(null);
         String email = user != null ? user.getEmail() : "";
+        String userId = user != null ? user.getId() : null;
 
-        String jwt = generateJwt(username, scope, email);
+        String jwt = generateJwt(username, scope, email, userId);
 
         Map<String, Object> body = new HashMap<>();
         body.put("userId", user != null ? user.getId() : null);
         body.put("username", username);
         body.put("role", scope);
         body.put(EMAIL_KEY, email);
-        body.put("expiresIn", JWT_DURATION_MINUTES * 60);
+        body.put("expiresIn", jwtDurationMinutes * 60);
 
         log.info("Token refreshed for user={}", username);
-        return new JwtSession(jwt, body, JWT_DURATION_MINUTES * 60L);
+        return new JwtSession(jwt, body, jwtDurationMinutes * 60L);
     }
 
     // ──────────────────────────────────────────────────────────────────────────
@@ -317,13 +328,13 @@ public class AuthService {
     public void registerUser(SignupRequest signUpRequest) {
         if (signUpRequest.getId() != null && !signUpRequest.getId().isBlank()
                 && userRepository.existsById(signUpRequest.getId())) {
-            throw new BadRequestException("Error: ID is already taken!");
+            throw new ConflictException("Error: ID is already taken!");
         }
         if (userRepository.existsByUsername(signUpRequest.getUsername())) {
-            throw new BadRequestException("Error: Username is already taken!");
+            throw new ConflictException("Error: Username is already taken!");
         }
         if (userRepository.existsByEmail(signUpRequest.getEmail())) {
-            throw new BadRequestException("Error: Email is already in use!");
+            throw new ConflictException("Error: Email is already in use!");
         }
 
         User user = new User(
@@ -335,44 +346,33 @@ public class AuthService {
                 encoder.encode(signUpRequest.getPassword()));
         user.setId(signUpRequest.getId());
 
-        String strRole = signUpRequest.getRole();
+        // SÉCURITÉ (audit DSI – BLOCKER #1) : l'inscription publique attribue
+        // TOUJOURS le rôle ENSEIGNANT. Aucun rôle privilégié (ADMIN, CUP,
+        // ANIMATEUR, …) ne peut être auto-attribué via /signup. L'attribution
+        // d'un rôle se fait uniquement par un administrateur via
+        // PUT /api/v1/account/update/{id}?role=... (protégé par ACCOUNT_UPDATE).
+        Role defaultRole = roleRepository.findByName(ERole.ENSEIGNANT)
+                .orElseThrow(() -> new BadRequestException("Error: Default role 'ENSEIGNANT' is not found."));
         Set<Role> roles = new HashSet<>();
-
-        if (strRole == null || strRole.isBlank() || strRole.isEmpty()) {
-            Role defaultRole = roleRepository.findByName(ERole.ENSEIGNANT)
-                    .orElseThrow(() -> new BadRequestException("Error: Default role 'ENSEIGNANT' is not found."));
-            roles.add(defaultRole);
-            log.info("Aucun rôle spécifié pour l'utilisateur '{}', attribution du rôle par défaut ENSEIGNANT",
-                    signUpRequest.getUsername());
-        } else {
-            switch (strRole) {
-                case "admin" -> roles.add(roleRepository.findByName(ERole.ADMIN)
-                        .orElseThrow(() -> new BadRequestException("Error: Role 'admin' is not found.")));
-                case "CUP" -> roles.add(roleRepository.findByName(ERole.CUP)
-                        .orElseThrow(() -> new BadRequestException("Error: Role 'CUP' is not found.")));
-                case "Enseignant" -> roles.add(roleRepository.findByName(ERole.ENSEIGNANT)
-                        .orElseThrow(() -> new BadRequestException("Error: Role 'Enseignant' is not found.")));
-                case "Formateur" -> roles.add(roleRepository.findByName(ERole.FORMATEUR)
-                        .orElseThrow(() -> new BadRequestException("Error: Role 'Formateur' is not found.")));
-                default -> throw new BadRequestException("Error: Role '" + strRole + "' is not recognized.");
-            }
-        }
-
+        roles.add(defaultRole);
         user.setRoles(roles);
         userRepository.save(user);
+        log.info("Nouvel utilisateur '{}' inscrit avec le rôle par défaut ENSEIGNANT (self-service)",
+                signUpRequest.getUsername());
     }
 
     // ──────────────────────────────────────────────────────────────────────────
     //  JWT
     // ──────────────────────────────────────────────────────────────────────────
 
-    public String generateJwt(String username, String scope, String email) {
+    public String generateJwt(String username, String scope, String email, String userId) {
         JwtClaimsSet jwtClaimsSet = JwtClaimsSet.builder()
                 .issuedAt(Instant.now())
-                .expiresAt(Instant.now().plus(JWT_DURATION_MINUTES, ChronoUnit.MINUTES))
+                .expiresAt(Instant.now().plus(jwtDurationMinutes, ChronoUnit.MINUTES))
                 .subject(username)
                 .claim("scope", scope)
                 .claim(EMAIL_KEY, email)
+                .claim("userId", userId != null ? userId : "")
                 .build();
 
         JwtEncoderParameters jwtEncoderParameters = JwtEncoderParameters.from(

@@ -1,23 +1,18 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useMemo } from 'react';
 import {
   Table,
   Input,
   Button,
   Space,
   Typography,
-  Drawer,
   Modal,
   Form,
   Select,
   Popconfirm,
-  Tag,
   Tooltip,
   Card,
   Row,
   Col,
-  Statistic,
-  Divider,
-  Avatar,
 } from 'antd';
 import type { TableColumnsType, InputRef } from 'antd';
 import type { FilterDropdownProps } from 'antd/es/table/interface';
@@ -33,20 +28,21 @@ import {
   CheckCircleOutlined,
   StopOutlined,
   SolutionOutlined,
+  ReloadOutlined,
+  LockOutlined,
+  UnlockOutlined,
 } from '@ant-design/icons';
 import { useAllAccounts } from "@/hooks/formation/useFormations";
 import { useBanAccount, useEnableAccount, useDeleteAccount, useUpdateAccount } from "@/hooks/auth/useAuthService";
-import Register from '@/pages/auth/Register';
 import useAppNotification from "@/hooks/ui/useAppNotification";
-import { AppPageHeader, brand } from "@/components/common";
+import CreateAccountDrawer, { ACCOUNT_ROLES } from "@/pages/admin/gererComptes/CreateAccountDrawer";
+import { StatCard, RoleBadge, EmptyState } from "@/components/common";
+import { brand, neutral } from "@/styles/themes/tokens";
 import "@/styles/pages/list-accounts.css";
 import type { Id } from "@/models/common";
 
 const { Text } = Typography;
 const { Option } = Select;
-
-// Rôles alignés sur l'enum backend ERole — UserDTO.role = ERole.name() (MAJUSCULES).
-const ROLES = ['ADMIN', 'CUP', 'D2F', 'ENSEIGNANT', 'FORMATEUR', 'CHEF_DEPARTEMENT', 'RESPONSABLE_DOSSIER'];
 
 type AccountStatus = 'ACTIF' | 'BLOQUÉ' | 'INCONNU';
 
@@ -62,45 +58,68 @@ interface Account {
   status?: AccountStatus;
 }
 
-interface BadgeProps {
-  status: string;
-  text: string;
-  className?: string;
-}
-
 const handleSearchFilter = (selectedKeys: React.Key[], confirm: FilterDropdownProps["confirm"]) => { confirm(); };
 const handleReset = (clearFilters: (() => void) | undefined) => { clearFilters?.(); };
-const renderFilterIcon = (filtered: boolean) => <SearchOutlined style={{ color: filtered ? '#1890ff' : undefined }} />;
+const renderFilterIcon = (filtered: boolean) => <SearchOutlined style={{ color: filtered ? brand[500] : undefined }} />;
 
 function makeFilterDropdown(dataIndex: string, searchInputRef: React.RefObject<InputRef | null>) {
   return ({ setSelectedKeys, selectedKeys, confirm, clearFilters }: FilterDropdownProps) => (
-    <div className="p-24">
+    <div style={{ padding: 12 }}>
       <Input
         ref={searchInputRef}
         placeholder={`Rechercher ${dataIndex}`}
         value={selectedKeys[0]}
         onChange={e => setSelectedKeys(e.target.value ? [e.target.value] : [])}
         onPressEnter={() => handleSearchFilter(selectedKeys, confirm)}
-        className="mb-8"
+        style={{ marginBottom: 8, display: "block" }}
+        allowClear
       />
       <Space>
         <Button type="primary" onClick={() => handleSearchFilter(selectedKeys, confirm)} icon={<SearchOutlined />} size="small">OK</Button>
-        <Button onClick={() => handleReset(clearFilters)} size="small">Reset</Button>
+        <Button onClick={() => handleReset(clearFilters)} size="small">Réinitialiser</Button>
       </Space>
     </div>
   );
 }
 
+const STATUS_DOT_COLORS: Record<AccountStatus, string> = {
+  ACTIF:   "#10b981",
+  BLOQUÉ:  "#ef4444",
+  INCONNU: "#9ca3af",
+};
+
+function AccountStatusBadge({ status }: { status: AccountStatus }) {
+  const color = STATUS_DOT_COLORS[status] ?? STATUS_DOT_COLORS.INCONNU;
+  const isActive = status === "ACTIF";
+  return (
+    <span className={isActive ? "accounts-status-active" : "accounts-status-blocked"}>
+      <span
+        aria-hidden="true"
+        style={{
+          width: 6,
+          height: 6,
+          borderRadius: "50%",
+          background: color,
+          display: "inline-block",
+        }}
+      />
+      {status}
+    </span>
+  );
+}
+
 export default function ListAccounts() {
-  const { message: msgApi } = useAppNotification();
+  const { message: msgApi, modal } = useAppNotification();
   const [accounts, setAccounts] = useState<Account[]>([]);
+  const [searchText, setSearchText] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"ALL" | AccountStatus>("ALL");
   const searchInput = useRef<InputRef>(null);
   const [drawerVisible, setDrawerVisible] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [editingRecord, setEditingRecord] = useState<Account | null>(null);
   const [editForm] = Form.useForm();
   const [loading, setLoading] = useState(false);
-  const { data: allAccounts, refetch: refetchAllAccounts } = useAllAccounts();
+  const { data: allAccounts, isLoading, refetch: refetchAllAccounts } = useAllAccounts();
   const { mutateAsync: banAccountApi } = useBanAccount();
   const { mutateAsync: enableAccountApi } = useEnableAccount();
   const { mutateAsync: deleteAccountApi } = useDeleteAccount();
@@ -113,7 +132,7 @@ export default function ListAccounts() {
         if (typeof acc.status === 'boolean') {
           statusValue = (acc.status as unknown as boolean) ? 'BLOQUÉ' : 'ACTIF';
         } else if (typeof acc.status === 'string') {
-          statusValue = acc.status;
+          statusValue = acc.status as AccountStatus;
         } else {
           statusValue = 'INCONNU';
         }
@@ -125,14 +144,33 @@ export default function ListAccounts() {
 
   const fetchAccounts = () => { refetchAllAccounts(); };
 
-  const stats = {
+  const stats = useMemo(() => ({
     total: accounts.length,
     active: accounts.filter(a => a.status === 'ACTIF').length,
     blocked: accounts.filter(a => a.status === 'BLOQUÉ').length,
     admins: accounts.filter(a => (a.role ?? '').toUpperCase() === 'ADMIN').length,
-  };
+  }), [accounts]);
 
-  const handleCreateSuccess = () => { setDrawerVisible(false); fetchAccounts(); };
+  const filteredAccounts = useMemo(() => {
+    const term = searchText.trim().toLowerCase();
+    return accounts.filter((a) => {
+      if (statusFilter !== "ALL" && a.status !== statusFilter) return false;
+      if (!term) return true;
+      return (
+        (a.userName ?? "").toLowerCase().includes(term) ||
+        (a.firstName ?? "").toLowerCase().includes(term) ||
+        (a.firsName ?? "").toLowerCase().includes(term) ||
+        (a.lastName ?? "").toLowerCase().includes(term) ||
+        (a.email ?? "").toLowerCase().includes(term) ||
+        (a.role ?? "").toLowerCase().includes(term)
+      );
+    });
+  }, [accounts, searchText, statusFilter]);
+
+  const handleCreateSuccess = () => {
+    setDrawerVisible(false);
+    fetchAccounts();
+  };
 
   const handleEdit = (record: Account) => {
     setEditingRecord(record);
@@ -141,7 +179,7 @@ export default function ListAccounts() {
       lastName: record.lastName,
       email: record.email,
       phoneNumber: record.phoneNumber,
-      role: record.role,
+      role: (record.role ?? "").toUpperCase(),
     });
     setEditModalVisible(true);
   };
@@ -150,12 +188,16 @@ export default function ListAccounts() {
     try {
       const values = await editForm.validateFields();
       setLoading(true);
-      await updateAccountApi({ userId: String(editingRecord?.id ?? ""), data: {
-        firstName: values.firstName as string,
-        lastName: values.lastName as string,
-        email: values.email as string,
-        phoneNumber: values.phoneNumber as string,
-      }, role: values.role as string });
+      await updateAccountApi({
+        userId: String(editingRecord?.id ?? ""),
+        data: {
+          firstName: values.firstName as string,
+          lastName: values.lastName as string,
+          email: values.email as string,
+          phoneNumber: values.phoneNumber as string,
+        },
+        role: values.role as string,
+      });
       msgApi.success('Compte modifié avec succès !');
       setEditModalVisible(false);
       editForm.resetFields();
@@ -169,35 +211,80 @@ export default function ListAccounts() {
     }
   };
 
-  const handleDelete = async (userId: Id) => {
-    try {
-      await deleteAccountApi(String(userId));
-      msgApi.success('Compte supprimé avec succès !');
-      fetchAccounts();
-    } catch (err: unknown) {
-      const e = err as { response?: { data?: { message?: string } } };
-      msgApi.error(e?.response?.data?.message || 'Erreur de suppression');
-    }
+  const handleDelete = (userId: Id, fullName: string) => {
+    modal.confirm({
+      title: "Supprimer définitivement ce compte ?",
+      content: (
+        <div>
+          <p style={{ marginBottom: 6 }}>
+            Le compte de <strong>{fullName}</strong> sera supprimé. Cette action est irréversible.
+          </p>
+          <p style={{ marginBottom: 0, color: neutral[600], fontSize: 13 }}>
+            Pour le réutiliser plus tard, il faudra le recréer.
+          </p>
+        </div>
+      ),
+      okText: "Supprimer",
+      cancelText: "Annuler",
+      okButtonProps: { danger: true },
+      centered: true,
+      onOk: async () => {
+        try {
+          await deleteAccountApi(String(userId));
+          msgApi.success('Compte supprimé avec succès !');
+          fetchAccounts();
+        } catch (err: unknown) {
+          const e = err as { response?: { data?: { message?: string } } };
+          msgApi.error(e?.response?.data?.message || 'Erreur de suppression');
+        }
+      },
+    });
   };
 
-  const handleToggleStatus = async (record: Account) => {
-    const nextStatus = record.status === 'ACTIF' ? 'BLOQUÉ' : 'ACTIF';
-    try {
-      if (nextStatus === 'BLOQUÉ') {
-        await banAccountApi(record.userName!);
-      } else {
-        await enableAccountApi(record.userName!);
-      }
-      msgApi.success(nextStatus === 'ACTIF' ? 'Compte débloqué !' : 'Compte bloqué !');
-      fetchAccounts();
-    } catch (err: unknown) {
-      const e = err as { response?: { data?: { message?: string } } };
-      msgApi.error(e?.response?.data?.message || 'Erreur de mise à jour');
-    }
+  const handleToggleStatus = (record: Account) => {
+    const willBlock = record.status === 'ACTIF';
+    const fullName = `${record.firsName || record.firstName || ""} ${record.lastName || ""}`.trim() || record.userName;
+    modal.confirm({
+      title: willBlock ? "Bloquer ce compte ?" : "Débloquer ce compte ?",
+      content: (
+        <div>
+          <p style={{ marginBottom: 4 }}>
+            {willBlock
+              ? <>Le compte de <strong>{fullName}</strong> ne pourra plus se connecter à l'application.</>
+              : <>Le compte de <strong>{fullName}</strong> pourra de nouveau se connecter à l'application.</>}
+          </p>
+          <p style={{ marginBottom: 0, color: neutral[600], fontSize: 13 }}>
+            {willBlock
+              ? "Vous pourrez le débloquer à tout moment."
+              : "Ses accès et permissions seront restaurés."}
+          </p>
+        </div>
+      ),
+      okText: willBlock ? "Bloquer" : "Débloquer",
+      cancelText: "Annuler",
+      okButtonProps: willBlock ? { danger: true } : { type: "primary" },
+      centered: true,
+      icon: willBlock ? <StopOutlined style={{ color: "#f59e0b" }} /> : <CheckCircleOutlined style={{ color: "#10b981" }} />,
+      onOk: async () => {
+        try {
+          if (willBlock) {
+            await banAccountApi(record.userName!);
+            msgApi.success(`Compte de ${fullName} bloqué`);
+          } else {
+            await enableAccountApi(record.userName!);
+            msgApi.success(`Compte de ${fullName} débloqué`);
+          }
+          fetchAccounts();
+        } catch (err: unknown) {
+          const e = err as { response?: { data?: { message?: string } } };
+          msgApi.error(e?.response?.data?.message || 'Erreur de mise à jour');
+        }
+      },
+    });
   };
 
   const getColumnSearchProps = (dataIndex: keyof Account) => ({
-    filterDropdown: makeFilterDropdown(dataIndex, searchInput),
+    filterDropdown: makeFilterDropdown(dataIndex as string, searchInput),
     filterIcon: renderFilterIcon,
     onFilter: (value: boolean | React.Key, record: Account) =>
       record[dataIndex]?.toString().toLowerCase().includes(String(value).toLowerCase()) ?? false,
@@ -206,154 +293,335 @@ export default function ListAccounts() {
   const columns: TableColumnsType<Account> = [
     {
       title: 'Utilisateur',
-      dataIndex: 'userName',
-      key: 'userName',
-      render: (text: string, record: Account) => (
-        <Space>
-          <Avatar icon={<UserOutlined />} style={{ backgroundColor: record.status === 'ACTIF' ? '#1890ff' : '#ccc' }} />
-          <div>
-            <Text strong>{record.firsName} {record.lastName}</Text>
-            <br />
-            <Text type="secondary" className="text-xs">@{text}</Text>
+      key: 'user',
+      width: 280,
+      render: (_: unknown, record: Account) => {
+        const fullName = `${record.firsName || record.firstName || ""} ${record.lastName || ""}`.trim() || "—";
+        return (
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <div
+              style={{
+                width: 38,
+                height: 38,
+                borderRadius: 10,
+                background: record.status === 'ACTIF' ? brand[50] : neutral[100],
+                color: record.status === 'ACTIF' ? brand[500] : neutral[500],
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                fontSize: 14,
+                fontWeight: 700,
+                flexShrink: 0,
+                border: `1px solid ${record.status === 'ACTIF' ? "rgba(181,18,0,0.18)" : "rgba(0,0,0,0.06)"}`,
+              }}
+              aria-hidden="true"
+            >
+              {(record.firsName || record.firstName || record.userName || "?").charAt(0).toUpperCase()}
+            </div>
+            <div style={{ minWidth: 0 }}>
+              <div style={{ fontWeight: 600, color: neutral[800], lineHeight: 1.3 }}>{fullName}</div>
+              <div style={{ fontSize: 12, color: neutral[500], marginTop: 2 }}>@{record.userName}</div>
+            </div>
           </div>
-        </Space>
-      ),
+        );
+      },
       ...getColumnSearchProps('userName'),
     },
     {
       title: 'Email',
       dataIndex: 'email',
       key: 'email',
-      render: (text: string) => <Text><MailOutlined /> {text}</Text>,
+      ellipsis: true,
+      render: (text: string) => text ? (
+        <span style={{ color: neutral[700], fontSize: 13 }}>
+          <MailOutlined style={{ marginRight: 6, color: brand[500] }} />
+          {text}
+        </span>
+      ) : <span style={{ color: neutral[300] }}>—</span>,
       ...getColumnSearchProps('email'),
+    },
+    {
+      title: 'Téléphone',
+      dataIndex: 'phoneNumber',
+      key: 'phoneNumber',
+      width: 160,
+      responsive: ['md'],
+      render: (text: string) => text ? (
+        <span style={{ color: neutral[700], fontSize: 13 }}>
+          <PhoneOutlined style={{ marginRight: 6, color: neutral[400] }} />
+          {text}
+        </span>
+      ) : <span style={{ color: neutral[300] }}>—</span>,
     },
     {
       title: 'Rôle',
       dataIndex: 'role',
       key: 'role',
-      filters: ROLES.map(r => ({ text: r, value: r })),
-      onFilter: (value, record) => (record.role ?? '').toUpperCase() === String(value).toUpperCase(),
-      render: (role: string) => {
-        const colorMap: Record<string, string> = { ADMIN: 'red', CUP: 'green', D2F: 'purple', ENSEIGNANT: 'orange', FORMATEUR: 'default', CHEF_DEPARTEMENT: 'blue', RESPONSABLE_DOSSIER: 'cyan' };
-        const key = (role ?? '').toUpperCase();
-        return <Tag color={colorMap[key] || 'default'} style={{ borderRadius: '12px', padding: '0 10px' }}>{key || '—'}</Tag>;
-      },
+      width: 180,
+      render: (role: string) => <RoleBadge role={role} />,
     },
     {
       title: 'Statut',
       dataIndex: 'status',
       key: 'status',
-      render: (status: string) => (
-        <BadgeStatus status={status} text={status} className="fw-600" />
-      ),
+      width: 130,
+      render: (status: AccountStatus) => <AccountStatusBadge status={status} />,
     },
     {
       title: 'Actions',
       key: 'actions',
-      fixed: 'right' as const,
+      fixed: 'right',
       width: 150,
-      render: (_: unknown, record: Account) => (
-        <Space>
-          <Tooltip title="Modifier">
-            <Button shape="circle" icon={<EditOutlined />} onClick={() => handleEdit(record)} />
-          </Tooltip>
-          <Tooltip title={record.status === 'ACTIF' ? 'Bloquer' : 'Débloquer'}>
-            <Button
-              shape="circle"
-              danger={record.status === 'ACTIF'}
-              icon={record.status === 'ACTIF' ? <StopOutlined /> : <CheckCircleOutlined />}
-              onClick={() => void handleToggleStatus(record)}
-            />
-          </Tooltip>
-          <Popconfirm title="Supprimer?" onConfirm={() => void handleDelete(record.id!)} okButtonProps={{ danger: true }}>
-            <Button shape="circle" danger icon={<DeleteOutlined />} />
-          </Popconfirm>
-        </Space>
-      ),
+      render: (_: unknown, record: Account) => {
+        const fullName = `${record.firsName || record.firstName || ""} ${record.lastName || ""}`.trim() || record.userName || "cet utilisateur";
+        return (
+          <Space size={4}>
+            <Tooltip title="Modifier">
+              <Button
+                shape="circle"
+                icon={<EditOutlined />}
+                onClick={() => handleEdit(record)}
+                aria-label="Modifier"
+                className="accounts-action-btn"
+              />
+            </Tooltip>
+            <Tooltip title={record.status === 'ACTIF' ? 'Bloquer' : 'Débloquer'}>
+              <Button
+                shape="circle"
+                icon={record.status === 'ACTIF' ? <LockOutlined /> : <UnlockOutlined />}
+                onClick={() => handleToggleStatus(record)}
+                aria-label={record.status === 'ACTIF' ? 'Bloquer' : 'Débloquer'}
+                className={record.status === 'ACTIF' ? 'accounts-action-btn accounts-action-btn--block' : 'accounts-action-btn accounts-action-btn--activate'}
+              />
+            </Tooltip>
+            <Popconfirm
+              title="Supprimer ?"
+              description={`${fullName} sera définitivement supprimé.`}
+              onConfirm={() => handleDelete(record.id!, fullName)}
+              okText="Supprimer"
+              cancelText="Annuler"
+              okButtonProps={{ danger: true }}
+            >
+              <Tooltip title="Supprimer">
+                <Button
+                  shape="circle"
+                  danger
+                  icon={<DeleteOutlined />}
+                  aria-label="Supprimer"
+                  className="accounts-action-btn accounts-action-btn--delete"
+                />
+              </Tooltip>
+            </Popconfirm>
+          </Space>
+        );
+      },
     },
   ];
 
   return (
-    <div>
-      <AppPageHeader
-        icon={<TeamOutlined />}
-        title="Gestion des Utilisateurs"
-        subtitle="Administrer les comptes, rôles et accès de l'application"
-        actions={
-          <Button type="primary" icon={<PlusOutlined />} onClick={() => setDrawerVisible(true)}>
-            Nouveau Compte
-          </Button>
-        }
-      />
+    <div className="accounts-page">
+      {/* ── Hero header ──────────────────────────────────────────────── */}
+      <div className="accounts-hero">
+        <div className="accounts-hero::before" aria-hidden="true" />
+        <div className="accounts-hero::after" aria-hidden="true" />
+        <div style={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 16 }}>
+          <div>
+            <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+              <h2 className="accounts-hero-title">Gestion des utilisateurs</h2>
+              <span className="accounts-hero-badge">
+                {stats.total}
+                <span className="accounts-hero-badge-total">compte{stats.total === 1 ? "" : "s"}</span>
+              </span>
+            </div>
+            <div className="accounts-hero-subtitle">Administrer les comptes, rôles et accès à l'application</div>
+          </div>
+          <div style={{ display: "flex", gap: 8 }}>
+            <Tooltip title="Rafraîchir la liste">
+              <Button
+                icon={<ReloadOutlined />}
+                onClick={fetchAccounts}
+                className="accounts-btn-refresh"
+                aria-label="Rafraîchir"
+              />
+            </Tooltip>
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={() => setDrawerVisible(true)}
+              className="accounts-btn-create"
+            >
+              Nouveau compte
+            </Button>
+          </div>
+        </div>
+      </div>
 
-      <Row gutter={[16, 16]} className="mb-24">
-        <Col xs={24} sm={12} lg={6}>
-          <Card size="small">
-            <Statistic title="Total Comptes" value={stats.total} prefix={<TeamOutlined />} valueStyle={{ color: brand[500] }} />
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} lg={6}>
-          <Card size="small">
-            <Statistic title="Comptes Actifs" value={stats.active} prefix={<CheckCircleOutlined />} valueStyle={{ color: "#27ae60" }} />
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} lg={6}>
-          <Card size="small">
-            <Statistic title="Comptes Bloqués" value={stats.blocked} prefix={<StopOutlined />} valueStyle={{ color: "#ef4444" }} />
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} lg={6}>
-          <Card size="small">
-            <Statistic title="Administrateurs" value={stats.admins} prefix={<SolutionOutlined />} valueStyle={{ color: "#f59e0b" }} />
-          </Card>
-        </Col>
-      </Row>
+      {/* ── KPI stats ───────────────────────────────────────────────── */}
+      <div className="accounts-stats">
+        <StatCard
+          icon={<TeamOutlined />}
+          label="Total des comptes"
+          value={stats.total}
+          iconColor={brand[500]}
+          accentColor={brand[500]}
+        />
+        <StatCard
+          icon={<CheckCircleOutlined />}
+          label="Comptes actifs"
+          value={stats.active}
+          iconColor="#10b981"
+          accentColor="#10b981"
+        />
+        <StatCard
+          icon={<StopOutlined />}
+          label="Comptes bloqués"
+          value={stats.blocked}
+          iconColor="#ef4444"
+          accentColor="#ef4444"
+        />
+        <StatCard
+          icon={<SolutionOutlined />}
+          label="Administrateurs"
+          value={stats.admins}
+          iconColor="#7c3aed"
+          accentColor="#7c3aed"
+        />
+      </div>
 
-      <Card style={{ borderRadius: 12, boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
-        <Divider className="mb-16" />
+      {/* ── Toolbar ─────────────────────────────────────────────────── */}
+      <div className="accounts-toolbar">
+        <Input
+          allowClear
+          prefix={<SearchOutlined style={{ color: neutral[400] }} />}
+          placeholder="Rechercher (nom, email, rôle...)"
+          value={searchText}
+          onChange={(e) => setSearchText(e.target.value)}
+          style={{ maxWidth: 360 }}
+        />
+        <Select
+          value={statusFilter}
+          onChange={setStatusFilter}
+          style={{ minWidth: 160 }}
+          options={[
+            { value: "ALL",    label: "Tous les statuts" },
+            { value: "ACTIF",  label: "Actifs uniquement" },
+            { value: "BLOQUÉ", label: "Bloqués uniquement" },
+          ]}
+        />
+        <span style={{ color: neutral[500], fontSize: 13 }}>
+          {filteredAccounts.length} résultat{filteredAccounts.length === 1 ? "" : "s"}
+        </span>
+      </div>
+
+      {/* ── Table ───────────────────────────────────────────────────── */}
+      <Card className="accounts-table-card">
         <Table<Account>
           rowKey="id"
           columns={columns}
-          dataSource={accounts}
-          pagination={{ pageSize: 10, showSizeChanger: true }}
+          dataSource={filteredAccounts}
+          loading={isLoading}
+          pagination={{
+            pageSize: 10,
+            showSizeChanger: true,
+            showTotal: (total) => `${total} compte${total === 1 ? "" : "s"}`,
+          }}
           scroll={{ x: 1000 }}
-          className="bg-white"
+          locale={{
+            emptyText: (
+              <EmptyState
+                icon={<TeamOutlined />}
+                title={searchText || statusFilter !== "ALL" ? "Aucun résultat" : "Aucun compte utilisateur"}
+                description={
+                  searchText || statusFilter !== "ALL"
+                    ? "Aucun compte ne correspond à vos critères de recherche."
+                    : "Commencez par créer un compte pour donner accès à l'application."
+                }
+                action={
+                  !searchText && statusFilter === "ALL"
+                    ? { label: "Créer un compte", icon: <PlusOutlined />, onClick: () => setDrawerVisible(true) }
+                    : undefined
+                }
+                compact
+              />
+            ),
+          }}
         />
       </Card>
 
-      <Drawer title="Créer un compte" width={520} onClose={() => setDrawerVisible(false)} open={drawerVisible} styles={{ body: { padding: '24px' } }}>
-        <Register onSuccess={handleCreateSuccess} />
-      </Drawer>
+      {/* ── Create drawer ───────────────────────────────────────────── */}
+      <CreateAccountDrawer
+        open={drawerVisible}
+        onClose={() => setDrawerVisible(false)}
+        onSuccess={handleCreateSuccess}
+      />
 
-      <Modal title="Modifier le compte" open={editModalVisible} onOk={() => void handleEditSubmit()} onCancel={() => setEditModalVisible(false)} confirmLoading={loading} okText="Enregistrer" cancelText="Annuler" width={500}>
-        <Form form={editForm} layout="vertical">
+      {/* ── Edit modal ──────────────────────────────────────────────── */}
+      <Modal
+        title={
+          <Space>
+            <div
+              style={{
+                width: 32,
+                height: 32,
+                borderRadius: 8,
+                background: brand[50],
+                color: brand[500],
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <UserOutlined />
+            </div>
+            <span>Modifier le compte</span>
+          </Space>
+        }
+        open={editModalVisible}
+        onOk={() => void handleEditSubmit()}
+        onCancel={() => {
+          setEditModalVisible(false);
+          editForm.resetFields();
+        }}
+        confirmLoading={loading}
+        okText="Enregistrer"
+        cancelText="Annuler"
+        centered
+        width={520}
+        destroyOnHidden
+        okButtonProps={{
+          style: { background: "var(--btn-primary-gradient)", border: "none", fontWeight: 600 },
+        }}
+      >
+        <Form form={editForm} layout="vertical" style={{ marginTop: 16 }}>
           <Row gutter={16}>
             <Col span={12}>
-              <Form.Item name="firstName" label="Prénom" rules={[{ required: true }]}><Input prefix={<UserOutlined />} /></Form.Item>
+              <Form.Item name="firstName" label="Prénom" rules={[{ required: true, message: "Le prénom est requis" }]}>
+                <Input prefix={<UserOutlined />} placeholder="Prénom" />
+              </Form.Item>
             </Col>
             <Col span={12}>
-              <Form.Item name="lastName" label="Nom" rules={[{ required: true }]}><Input /></Form.Item>
+              <Form.Item name="lastName" label="Nom" rules={[{ required: true, message: "Le nom est requis" }]}>
+                <Input placeholder="Nom" />
+              </Form.Item>
             </Col>
           </Row>
-          <Form.Item name="email" label="Email" rules={[{ required: true, type: 'email' }]}><Input prefix={<MailOutlined />} /></Form.Item>
-          <Form.Item name="phoneNumber" label="Téléphone" rules={[{ required: true }]}><Input prefix={<PhoneOutlined />} /></Form.Item>
-          <Form.Item name="role" label="Rôle" rules={[{ required: true }]}>
-            <Select>
-              {ROLES.map(r => <Option key={r} value={r}>{r}</Option>)}
+          <Form.Item name="email" label="Email" rules={[{ required: true, type: 'email', message: "Email valide requis" }]}>
+            <Input prefix={<MailOutlined />} placeholder="prenom.nom@esprit.tn" />
+          </Form.Item>
+          <Form.Item name="phoneNumber" label="Téléphone" rules={[{ required: true, message: "Le téléphone est requis" }]}>
+            <Input prefix={<PhoneOutlined />} placeholder="0612345678" />
+          </Form.Item>
+          <Form.Item name="role" label="Rôle" rules={[{ required: true, message: "Le rôle est requis" }]}>
+            <Select placeholder="Sélectionner un rôle">
+              {ACCOUNT_ROLES.map((r) => (
+                <Option key={r.value} value={r.value}>
+                  {r.label}
+                </Option>
+              ))}
             </Select>
           </Form.Item>
         </Form>
       </Modal>
-    </div>
-  );
-}
-
-function BadgeStatus({ status, text, className }: Readonly<BadgeProps>) {
-  const colors: Record<string, string> = { ACTIF: '#52c41a', BLOQUÉ: '#f5222d', success: '#52c41a', error: '#f5222d', default: '#d9d9d9' };
-  return (
-    <div className={"d-flex-c" + (className ? " " + className : "")}>
-      <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: colors[status] || colors.default, marginRight: '8px' }} />
-      {text}
     </div>
   );
 }

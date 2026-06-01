@@ -76,6 +76,9 @@ public class FormationWorkflowRequest {
     private List<String> animateursIds;
     private List<String> participantsIds;
 
+    // IDs des animateurs externes (rattachés à un bureau) sélectionnés pour une formation externe
+    private List<Long> animateursExternesIds;
+
     @Valid
     private List<SeanceRequest> seances;
 

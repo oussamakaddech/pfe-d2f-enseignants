@@ -3,10 +3,11 @@ package esprit.pfe.serviceformation.controllers;
 import esprit.d2f.common.security.AuthorizationMatrix;
 import esprit.pfe.serviceformation.common.PageResponse;
 import esprit.pfe.serviceformation.dto.EnseignantDTO;
-import esprit.pfe.serviceformation.entities.Enseignant;
+import esprit.pfe.serviceformation.dto.EnseignantRequest;
 import esprit.pfe.serviceformation.services.EnseignantExcelService;
 import esprit.pfe.serviceformation.services.EnseignantService;
 import esprit.pfe.serviceformation.utils.FileSecurityValidator;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -45,16 +46,18 @@ public class EnseignantController {
         return ResponseEntity.ok(enseignantService.toDTO(enseignantService.getEnseignantById(id)));
     }
 
+    // Création : DTO validé (@Valid) — plus d'entité JPA brute exposée (anti mass-assignment).
     @PostMapping
     @PreAuthorize(AuthorizationMatrix.REFERENTIEL_WRITE)
-    public ResponseEntity<EnseignantDTO> createEnseignant(@RequestBody Enseignant enseignant) {
-        return ResponseEntity.ok(enseignantService.toDTO(enseignantService.createEnseignant(enseignant)));
+    public ResponseEntity<EnseignantDTO> createEnseignant(@Valid @RequestBody EnseignantRequest request) {
+        return ResponseEntity.ok(enseignantService.toDTO(enseignantService.createEnseignant(request.toEntity())));
     }
 
+    // Mise à jour partielle (null-safe) : DTO sans @Valid pour autoriser un PUT partiel.
     @PutMapping("/{id}")
     @PreAuthorize(AuthorizationMatrix.REFERENTIEL_WRITE)
-    public ResponseEntity<EnseignantDTO> updateEnseignant(@PathVariable String id, @RequestBody Enseignant enseignant) {
-        return ResponseEntity.ok(enseignantService.toDTO(enseignantService.updateEnseignant(id, enseignant)));
+    public ResponseEntity<EnseignantDTO> updateEnseignant(@PathVariable String id, @RequestBody EnseignantRequest request) {
+        return ResponseEntity.ok(enseignantService.toDTO(enseignantService.updateEnseignant(id, request.toEntity())));
     }
 
     @DeleteMapping("/{id}")

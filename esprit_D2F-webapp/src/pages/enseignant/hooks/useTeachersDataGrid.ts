@@ -40,10 +40,9 @@ function splitNomComplet(nomComplet?: string) {
 }
 
 function buildTeacherPayload(values: RecordType) {
-	// L'entité backend Enseignant porte les relations imbriquées `up`/`dept`
-	// (pas des champs plats upId/deptId). On envoie donc les objets { id } pour
-	// que l'affectation UP/Département soit réellement persistée. On conserve
-	// aussi upId/deptId pour rétro-compatibilité (ignorés par le backend entité).
+	// Le backend reçoit désormais un DTO EnseignantRequest qui lit les champs plats
+	// upId/deptId (résolus en références côté service). On conserve up/dept { id }
+	// pour rétro-compatibilité (ignorés par le DTO si présents).
 	return {
 		id: values.id,
 		nom: values.nom,
@@ -53,6 +52,9 @@ function buildTeacherPayload(values: RecordType) {
 		etat: values.etat,
 		cup: values.cup,
 		chefDepartement: values.chefDepartement,
+		grade: values.grade,
+		telephone: values.telephone,
+		photoUrl: values.photoUrl,
 		upId: values.upId,
 		deptId: values.deptId,
 		up: values.upId ? { id: values.upId } : null,

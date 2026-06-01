@@ -50,12 +50,6 @@ export default function Profile() {
     if (profileData) {
       setProfile(profileData);
       setLoading(false);
-      infoForm.setFieldsValue({
-        email: profileData.email,
-        phoneNumber: profileData.phoneNumber,
-        firstName: profileData.firstName || profileData.firsName,
-        lastName: profileData.lastName,
-      });
     }
   }, [profileData]);
 
@@ -168,7 +162,15 @@ export default function Profile() {
               <Button
                 type="primary"
                 icon={<EditOutlined />}
-                onClick={() => setIsInfoDrawerOpen(true)}
+                onClick={() => {
+                  infoForm.setFieldsValue({
+                    email: profile?.email,
+                    phoneNumber: profile?.phoneNumber,
+                    firstName: profile?.firstName || profile?.firsName,
+                    lastName: profile?.lastName,
+                  });
+                  setIsInfoDrawerOpen(true);
+                }}
                 size="large"
               >
                 Modifier le profil

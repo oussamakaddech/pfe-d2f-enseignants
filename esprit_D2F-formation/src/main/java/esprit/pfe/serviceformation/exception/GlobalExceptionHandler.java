@@ -73,6 +73,14 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.CONFLICT, ex.getMessage(), MODULE_PREFIX + "-INSCRIPTION-409", request);
     }
 
+    // ==================== DUPLICATE ENSEIGNANT ====================
+
+    @ExceptionHandler(DuplicateEnseignantException.class)
+    public ResponseEntity<ErrorResponse> handleDuplicateEnseignant(DuplicateEnseignantException ex, HttpServletRequest request) {
+        log.warn("Duplicate enseignant: {}", ex.getMessage());
+        return buildResponse(HttpStatus.CONFLICT, ex.getMessage(), MODULE_PREFIX + "-ENSEIGNANT-409", request);
+    }
+
     // ==================== ACCESS CONTROL ====================
     
     @ExceptionHandler(AccessDeniedException.class)

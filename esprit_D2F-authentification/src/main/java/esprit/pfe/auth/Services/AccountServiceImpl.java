@@ -8,9 +8,11 @@ import esprit.pfe.auth.repositories.UserRepository;
 
 
 import esprit.pfe.auth.error.BadRequestException;
+import esprit.pfe.auth.error.ConflictException;
 import esprit.pfe.auth.error.LoginException;
 import esprit.pfe.auth.error.ResourceNotFoundException;
 import esprit.pfe.auth.payload.request.EditProfileRequest;
+import esprit.pfe.auth.payload.request.SignupRequest;
 import esprit.pfe.auth.payload.request.UpdatePasswordRequest;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -39,6 +41,56 @@ public class AccountServiceImpl implements AccountService {
     @Override
     public Page<User> listAccounts(Pageable pageable) {
         return this.userRepository.findAll(pageable);
+    }
+
+    @Override
+    public User createAccount(SignupRequest request, String roleName) {
+        // Conflits → 409 (sémantique REST)
+        if (request.getId() != null && !request.getId().isBlank()
+                && userRepository.existsById(request.getId())) {
+            throw new ConflictException("Error: ID is already taken!");
+        }
+        if (userRepository.existsByUsername(request.getUsername())) {
+            throw new ConflictException("Error: Username is already taken!");
+        }
+        if (userRepository.existsByEmail(request.getEmail())) {
+            throw new ConflictException("Error: Email is already in use!");
+        }
+
+        User user = new User(
+                request.getUsername(),
+                request.getFirstName(),
+                request.getLastName(),
+                request.getPhoneNumber(),
+                request.getEmail(),
+                encoder.encode(request.getPassword()));
+        user.setId(request.getId());
+
+        // Contexte admin (ACCOUNT_CREATE) : le rôle demandé est honoré.
+        Set<Role> roles = new HashSet<>();
+        roles.add(resolveRole(roleName));
+        user.setRoles(roles);
+        return userRepository.save(user);
+    }
+
+    /**
+     * Résout un nom de rôle (ex. "CUP", "Enseignant:1") en entité {@link Role}.
+     * Rôle vide/null → ENSEIGNANT par défaut. Rôle inconnu → 400.
+     */
+    private Role resolveRole(String roleName) {
+        if (roleName == null || roleName.isBlank()) {
+            return roleRepository.findByName(ERole.ENSEIGNANT)
+                    .orElseThrow(() -> new BadRequestException("Default role 'ENSEIGNANT' not found."));
+        }
+        String roleNamePart = roleName.split(":")[0].trim().toUpperCase();
+        ERole eRole;
+        try {
+            eRole = ERole.valueOf(roleNamePart);
+        } catch (IllegalArgumentException ex) {
+            throw new BadRequestException("Invalid role: " + roleName);
+        }
+        return roleRepository.findByName(eRole)
+                .orElseThrow(() -> new BadRequestException("Role not found: " + roleName));
     }
 
     @Override
@@ -134,21 +186,10 @@ public class AccountServiceImpl implements AccountService {
             user.setPhoneNumber(editProfileRequest.getPhoneNumber());
         }
 
-        // Update role if provided
+        // Update role if provided (réutilise la résolution commune)
         if (roleName != null && !roleName.isBlank()) {
-            // Parse roleName: handle "Enseignant:1" format or plain "Enseignant"
-            String roleNamePart = roleName.split(":")[0].trim().toUpperCase();
-            ERole eRole;
-            try {
-                eRole = ERole.valueOf(roleNamePart);
-            } catch (IllegalArgumentException ex) {
-                // Rôle inconnu → 400 explicite plutôt qu'une 500 IllegalArgumentException.
-                throw new BadRequestException("Invalid role: " + roleName);
-            }
-            Role newRole = roleRepository.findByName(eRole)
-                    .orElseThrow(() -> new BadRequestException("Role not found: " + roleName));
             Set<Role> roles = new HashSet<>();
-            roles.add(newRole);
+            roles.add(resolveRole(roleName));
             user.setRoles(roles);
         }
 

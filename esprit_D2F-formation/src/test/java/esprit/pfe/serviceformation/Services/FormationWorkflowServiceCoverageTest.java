@@ -34,6 +34,7 @@ class FormationWorkflowServiceCoverageTest {
     @Mock private EnseignantRepository enseignantRepository;
     @Mock private DeptRepository departementRepository;
     @Mock private UpRepository upRepository;
+    @Mock private AnimateurExterneRepository animateurExterneRepository;
     @Mock private EvaluationPublisher evaluationPublisher;
     @Mock private OutlookCalendarService outlookCalendarService;
     @Mock private OutlookMailService outlookMailService;
@@ -102,7 +103,7 @@ class FormationWorkflowServiceCoverageTest {
         FormationWorkflowService svc = new FormationWorkflowService(
                 documentRepository, formationRepository, seanceFormationRepository,
                 enseignantRepository, presenceRepository, departementRepository,
-                upRepository, evaluationPublisher, helper, formationMapper,
+                upRepository, animateurExterneRepository, evaluationPublisher, helper, formationMapper,
                 outlookCalendarService, null);
         ReflectionTestUtils.setField(svc, "formationMapper", formationMapper);
         Formation f = createFormation(EtatFormation.PLANIFIE);
@@ -274,7 +275,7 @@ class FormationWorkflowServiceCoverageTest {
         FormationWorkflowService svc = new FormationWorkflowService(
                 documentRepository, formationRepository, seanceFormationRepository,
                 enseignantRepository, presenceRepository, departementRepository,
-                upRepository, evaluationPublisher, helper, formationMapper,
+                upRepository, animateurExterneRepository, evaluationPublisher, helper, formationMapper,
                 outlookCalendarService, null);
         svc.notifyTeachersOfApprovedFormation(f);
         verifyNoInteractions(enseignantRepository);
@@ -287,7 +288,7 @@ class FormationWorkflowServiceCoverageTest {
         FormationWorkflowService svc = new FormationWorkflowService(
                 documentRepository, formationRepository, seanceFormationRepository,
                 enseignantRepository, presenceRepository, departementRepository,
-                upRepository, evaluationPublisher, helper, formationMapper,
+                upRepository, animateurExterneRepository, evaluationPublisher, helper, formationMapper,
                 outlookCalendarService, null);
         assertDoesNotThrow(() -> svc.notifyCUPOfApprovedFormation(f));
     }

@@ -29,6 +29,7 @@ const BesoinList = lazy(() => import("@/pages/besoin/BesoinList"));
 const CertificatesByEmailPage = lazy(() => import("@/pages/certificat/CertificatesByEmailPage"));
 const UpDeptDataGrid = lazy(() => import("@/pages/enseignant/UpDeptDataGrid"));
 const Register = lazy(() => import("@/pages/auth/Register"));
+const Forbidden403 = lazy(() => import("@/pages/error/Forbidden403"));
 const Home = lazy(() => import("@/pages/errors/Home"));
 const Login = lazy(() => import("@/pages/admin/gererComptes/Login"));
 const PasswordRecovery = lazy(() => import("@/pages/admin/gererComptes/PasswordRecovery"));
@@ -79,6 +80,7 @@ export default function AppRoutes() {
             <Route path="/auth" element={<Navigate to="/login" replace />} />
             <Route path="/auth/login" element={<Navigate to="/login" replace />} />
             <Route path="/register" element={<Register />} />
+            <Route path="/403" element={<Forbidden403 />} />
             <Route path="/password-recovery" element={<PasswordRecovery />} />
             <Route path="/profile" element={<Navigate to="/home/profile" replace />} />
 
@@ -151,7 +153,7 @@ export default function AppRoutes() {
                   <Route path="/home/ListeFormation/:id/demandes" element={<DemandesList />} />
                 </Route>
 
-                <Route element={<RoleGuard allowedRoles={[ROLES.FORMATEUR, ROLES.ENSEIGNANT, ROLES.ADMIN]} />}>
+                <Route element={<RoleGuard allowedRoles={[ROLES.FORMATEUR, ROLES.ANIMATEUR, ROLES.ENSEIGNANT, ROLES.ADMIN]} />}>
                   <Route path="/home/animateur-formations" element={<FormationList />} />
                   <Route path="/home/animateur-formations/:id" element={<FormationDetail />} />
                 </Route>

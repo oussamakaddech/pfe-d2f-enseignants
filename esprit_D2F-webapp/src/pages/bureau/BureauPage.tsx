@@ -24,6 +24,7 @@ import {
 import useAppNotification from "@/hooks/ui/useAppNotification";
 import { useBureaux, useCreateBureau, useUpdateBureau, useDeleteBureau } from "@/hooks/bureau/useBureaux";
 import type { Bureau } from "@/models/bureau";
+import AnimateursExternesPanel from "./AnimateursExternesPanel";
 import "@/styles/pages/bureau-page.css";
 import s from "./BureauPage.module.css";
 
@@ -346,6 +347,12 @@ export default function BureauPage() {
             columns={columns}
             rowKey="id"
             loading={loading}
+            expandable={{
+              expandedRowRender: (record: Bureau) => (
+                <AnimateursExternesPanel bureauId={record.id} bureauNom={record.nom} />
+              ),
+              rowExpandable: (record: Bureau) => record.id != null,
+            }}
             pagination={{ pageSize: 10, showTotal: (total) => `${total} bureau${total === 1 ? "" : "x"}` }}
           />
         </Card>

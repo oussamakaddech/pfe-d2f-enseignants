@@ -161,7 +161,7 @@ export default function EnseignantLoadView({ tree, setTree, allEnseignants, extr
 
   const removeOne = (path: FlatSavoirRow, eid: string) => {
     const { di, ci, sci, si } = path;
-    const next = cloneDeep(tree) as TreeDomaine[];
+    const next = cloneDeep(tree);
     const s = getSavoirByPath(next, di, ci, sci, si);
     if (!s) return;
     s.enseignantsSuggeres = (s.enseignantsSuggeres ?? []).filter((x) => String(x) !== String(eid));
@@ -170,7 +170,7 @@ export default function EnseignantLoadView({ tree, setTree, allEnseignants, extr
 
   const addOne = (path: FlatSavoirRow, eid: string) => {
     const { di, ci, sci, si } = path;
-    const next = cloneDeep(tree) as TreeDomaine[];
+    const next = cloneDeep(tree);
     const s = getSavoirByPath(next, di, ci, sci, si);
     if (!s) return;
     const ids = new Set((s.enseignantsSuggeres ?? []).map(String));
@@ -181,7 +181,7 @@ export default function EnseignantLoadView({ tree, setTree, allEnseignants, extr
 
   const removeAllFromTeacher = () => {
     if (!selectedEnsId) return;
-    const next = cloneDeep(tree) as TreeDomaine[];
+    const next = cloneDeep(tree);
     forEachTreeSavoir(next, (s) => {
       s.enseignantsSuggeres = (s.enseignantsSuggeres ?? []).filter((x) => String(x) !== String(selectedEnsId));
     });

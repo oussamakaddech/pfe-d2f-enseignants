@@ -10,3 +10,17 @@ export interface BureauRequest {
   email: string;
   numeroTelephone: string;
 }
+
+export interface AnimateurExterne {
+  id: number;
+  nom: string;
+  prenom: string;
+  email?: string | null;
+  bureauId: number;
+}
+
+export interface AnimateurExterneRequest {
+  nom: string;
+  prenom: string;
+  email?: string | null;
+}

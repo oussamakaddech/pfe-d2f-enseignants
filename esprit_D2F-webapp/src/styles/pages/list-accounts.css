@@ -1,11 +1,138 @@
-/* ─── ListAccounts.css ────────────────────────────────────────────────── */
+/* ═══════════════════════════════════════════════════════════════════════
+ * /home/accounts — Page styles
+ * Aligné sur le design system D2F (variables + tokens)
+ * ═══════════════════════════════════════════════════════════════════════ */
 
 .accounts-page {
   max-width: var(--max-page-width);
   margin: 0 auto;
+  padding: 0 0 32px;
 }
 
-/* ── KPI cards ─────────────────────────────────────────────────────────── */
+/* ── Hero header ─────────────────────────────────────────────────────── */
+
+.accounts-hero {
+  position: relative;
+  margin-bottom: 24px;
+  padding: 28px 32px;
+  background: linear-gradient(135deg, #ffffff 0%, #fff8f5 50%, #fff1eb 100%);
+  border: 1px solid rgba(181, 18, 0, 0.12);
+  border-radius: 20px;
+  box-shadow:
+    0 4px 24px rgba(181, 18, 0, 0.06),
+    0 1px 3px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
+}
+
+.accounts-hero > div::before,
+.accounts-hero > div::after {
+  content: "";
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  filter: blur(50px);
+  opacity: 0.5;
+  z-index: 0;
+}
+
+.accounts-hero > div::before {
+  width: 280px;
+  height: 280px;
+  top: -120px;
+  right: -80px;
+  background: radial-gradient(circle, rgba(181, 18, 0, 0.16), transparent 70%);
+}
+
+.accounts-hero > div::after {
+  width: 200px;
+  height: 200px;
+  bottom: -80px;
+  left: 25%;
+  background: radial-gradient(circle, rgba(255, 151, 135, 0.2), transparent 70%);
+}
+
+.accounts-hero-title {
+  font-size: 28px !important;
+  font-weight: 800 !important;
+  background: linear-gradient(135deg, #1f2937 0%, #B51200 80%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin: 0 !important;
+  line-height: 1.2 !important;
+  letter-spacing: -0.02em;
+}
+
+.accounts-hero-subtitle {
+  color: #64748b;
+  font-size: 14px;
+  margin-top: 4px;
+}
+
+.accounts-hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 14px;
+  background: linear-gradient(135deg, #B51200, #9a0f00);
+  color: #fff;
+  border-radius: 9999px;
+  font-size: 13px;
+  font-weight: 700;
+  box-shadow: 0 4px 12px rgba(181, 18, 0, 0.3);
+  letter-spacing: 0.02em;
+}
+
+.accounts-hero-badge-total {
+  color: rgba(255, 255, 255, 0.7);
+  font-weight: 400;
+}
+
+/* ── Buttons ─────────────────────────────────────────────────────────── */
+
+.accounts-btn-create {
+  background: var(--btn-primary-gradient) !important;
+  border: none !important;
+  border-radius: 8px !important;
+  font-weight: 600 !important;
+  box-shadow: var(--btn-primary-shadow) !important;
+  transition: all 0.25s ease !important;
+}
+
+.accounts-btn-create:hover:not(:disabled) {
+  background: var(--btn-primary-gradient-hover) !important;
+  box-shadow: var(--btn-primary-shadow-hover) !important;
+  transform: translateY(-1px);
+}
+
+.accounts-btn-refresh {
+  border-radius: 8px !important;
+  font-weight: 500 !important;
+}
+
+/* ── KPI grid ────────────────────────────────────────────────────────── */
+
+.accounts-stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+@media (max-width: 900px) {
+  .accounts-stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 500px) {
+  .accounts-stats {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── KPI cards (kept for legacy if used outside StatCard) ─────────────── */
+
 .accounts-kpi-card {
   background: var(--bg-card);
   border-radius: var(--radius-lg);
@@ -19,7 +146,8 @@
   box-shadow: var(--shadow-md);
 }
 
-/* ── Table card ─────────────────────────────────────────────────────────── */
+/* ── Table card ──────────────────────────────────────────────────────── */
+
 .accounts-table-card {
   background: var(--bg-card);
   border-radius: var(--radius-lg);
@@ -29,12 +157,32 @@
   margin-bottom: var(--space-4);
 }
 
-/* ── Blocked row ───────────────────────────────────────────────────────── */
+.accounts-table-card .ant-table-thead > tr > th {
+  background: var(--neutral-100) !important;
+  font-weight: 600;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: var(--neutral-700);
+  border-bottom: 2px solid rgba(0, 0, 0, 0.06);
+}
+
+.accounts-table-card .ant-table-tbody > tr {
+  transition: all 0.15s ease;
+}
+
+.accounts-table-card .ant-table-tbody > tr:hover > td {
+  background: #fff8f5 !important;
+}
+
+/* ── Blocked row tint ────────────────────────────────────────────────── */
+
 .accounts-blocked-row > td {
   background: var(--color-error-bg) !important;
 }
 
-/* ── Toolbar ───────────────────────────────────────────────────────────── */
+/* ── Toolbar ─────────────────────────────────────────────────────────── */
+
 .accounts-toolbar {
   display: flex;
   flex-wrap: wrap;
@@ -48,87 +196,101 @@
   box-shadow: var(--shadow-sm);
 }
 
-/* ── Role tags ─────────────────────────────────────────────────────────── */
+/* ── Action buttons in table rows ────────────────────────────────────── */
+
+.accounts-action-btn {
+  border-radius: 8px !important;
+  transition: all 0.2s ease !important;
+}
+
+.accounts-action-btn--activate {
+  color: #10b981 !important;
+  background: var(--color-success-bg) !important;
+  border: 1px solid var(--color-success-border) !important;
+}
+
+.accounts-action-btn--activate:hover {
+  color: #047857 !important;
+  background: #d1fae5 !important;
+  border-color: #047857 !important;
+  transform: scale(1.05);
+}
+
+.accounts-action-btn--block {
+  color: #f59e0b !important;
+  background: var(--color-warning-bg) !important;
+  border: 1px solid var(--color-warning-border) !important;
+}
+
+.accounts-action-btn--block:hover {
+  color: #b45309 !important;
+  background: #fef3c7 !important;
+  border-color: #b45309 !important;
+  transform: scale(1.05);
+}
+
+.accounts-action-btn--delete {
+  color: #ef4444 !important;
+  background: var(--color-error-bg) !important;
+  border: 1px solid var(--color-error-border) !important;
+}
+
+.accounts-action-btn--delete:hover {
+  color: #dc2626 !important;
+  background: #fee2e2 !important;
+  border-color: #dc2626 !important;
+  transform: scale(1.05);
+}
+
+/* ── Role tags ───────────────────────────────────────────────────────── */
+
 .accounts-role-tag {
   border-radius: var(--radius-full);
   font-weight: var(--font-semibold);
   font-size: var(--text-xs);
 }
 
-/* ── Action buttons ─────────────────────────────────────────────────────── */
-.accounts-btn-activate {
-  border-radius: var(--radius-sm) !important;
-  font-weight: 500 !important;
-  border-color: var(--color-success) !important;
-  color: var(--color-success) !important;
-  transition: all 0.25s ease !important;
-}
+/* ── Status badges ───────────────────────────────────────────────────── */
 
-.accounts-btn-activate:hover:not(:disabled) {
-  background: var(--color-success-bg) !important;
-  border-color: var(--color-success) !important;
-  color: var(--color-success) !important;
-}
-
-.accounts-btn-block {
-  border-radius: var(--radius-sm) !important;
-  font-weight: 500 !important;
-  border-color: var(--color-warning) !important;
-  color: var(--color-warning) !important;
-  transition: all 0.25s ease !important;
-}
-
-.accounts-btn-block:hover:not(:disabled) {
-  background: var(--color-warning-bg) !important;
-  border-color: var(--color-warning) !important;
-  color: var(--color-warning) !important;
-}
-
-.accounts-btn-delete {
-  border-radius: var(--radius-sm) !important;
-  font-weight: 500 !important;
-  border-color: var(--color-error) !important;
-  color: var(--color-error) !important;
-  transition: all 0.25s ease !important;
-}
-
-.accounts-btn-delete:hover:not(:disabled) {
-  background: var(--color-error-bg) !important;
-  border-color: var(--color-error) !important;
-  color: var(--color-error) !important;
-}
-
-/* ── Status badge ──────────────────────────────────────────────────────── */
 .accounts-status-active {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
   padding: 2px 10px;
   border-radius: var(--radius-full);
   font-size: var(--text-xs);
   font-weight: var(--font-semibold);
   background: var(--color-success-bg);
   color: var(--color-success);
+  border: 1px solid var(--color-success-border);
 }
 
 .accounts-status-blocked {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
   padding: 2px 10px;
   border-radius: var(--radius-full);
   font-size: var(--text-xs);
   font-weight: var(--font-semibold);
   background: var(--color-error-bg);
   color: var(--color-error);
+  border: 1px solid var(--color-error-border);
 }
 
-/* ── Responsive ────────────────────────────────────────────────────────── */
+/* ── Responsive ──────────────────────────────────────────────────────── */
+
 @media (max-width: 768px) {
   .accounts-toolbar {
     flex-direction: column;
     align-items: stretch;
     padding: 12px;
     border-radius: var(--radius-md);
+  }
+
+  .accounts-toolbar .ant-input,
+  .accounts-toolbar .ant-select {
+    max-width: 100% !important;
+    width: 100%;
   }
 }

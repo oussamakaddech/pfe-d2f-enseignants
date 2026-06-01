@@ -6,6 +6,8 @@ import {
   UploadOutlined, DownloadOutlined,
 } from "@ant-design/icons";
 import type { PersonItem, LookupNode } from "../hooks/useFormationWorkflow";
+import type { AnimateurExterne } from "@/models/bureau";
+import ExterneAnimateursSection from "../components/ExterneAnimateursSection";
 
 const { Text } = Typography;
 
@@ -33,13 +35,15 @@ export type PlanningStepProps = {
   bureauNom: string; setBureauNom: (v: string) => void;
   bureauMail: string; setBureauMail: (v: string) => void;
   bureauTelephone: string; setBureauTelephone: (v: string) => void;
+  externeBureauId: number | null; setExterneBureauId: (v: number | null) => void;
+  animExterneSel: AnimateurExterne[]; setAnimExterneSel: (v: AnimateurExterne[]) => void;
   getAnimateurLabel: (opt: PersonItem | null) => string;
   getEnseignantLabel: (opt: { type?: string; cup?: string; chefDepartement?: string; nom?: string; prenom?: string; mail?: string } | null) => string;
   handleExcelImportFile: (e: React.ChangeEvent<HTMLInputElement>) => void;
   exportParticipantsExcel: () => void;
 };
 
-export default function PlanningStep({ seances, addSeance, updateSeance, removeSeance, toggleSeance, typeFormation, isAdminUser, ups, depts, animSel, setAnimSel, animFilterUp, setAnimFilterUp, animFilterDept, setAnimFilterDept, partSel, setPartSel, partFilterUp, setPartFilterUp, partFilterDept, setPartFilterDept, optionsAnim, optionsPart, overlapWarnings, formNom, setFormNom, formPrenom, setFormPrenom, formEmail, setFormEmail, bureauNom, setBureauNom, bureauMail, setBureauMail, bureauTelephone, setBureauTelephone, getAnimateurLabel, getEnseignantLabel, handleExcelImportFile, exportParticipantsExcel }: Readonly<PlanningStepProps>) {
+export default function PlanningStep({ seances, addSeance, updateSeance, removeSeance, toggleSeance, typeFormation, isAdminUser, ups, depts, animSel, setAnimSel, animFilterUp, setAnimFilterUp, animFilterDept, setAnimFilterDept, partSel, setPartSel, partFilterUp, setPartFilterUp, partFilterDept, setPartFilterDept, optionsAnim, optionsPart, overlapWarnings, formNom, setFormNom, formPrenom, setFormPrenom, formEmail, setFormEmail, bureauNom, setBureauNom, bureauMail, setBureauMail, bureauTelephone, setBureauTelephone, externeBureauId, setExterneBureauId, animExterneSel, setAnimExterneSel, getAnimateurLabel, getEnseignantLabel, handleExcelImportFile, exportParticipantsExcel }: Readonly<PlanningStepProps>) {
   return (
     <div>
       <div className="creation-section-box">
@@ -111,6 +115,17 @@ export default function PlanningStep({ seances, addSeance, updateSeance, removeS
                   <Col xs={24} sm={8}><div className="creation-field"><label className="creation-field-label" htmlFor="bureau-telephone">Numéro de téléphone</label><Input id="bureau-telephone" size="large" value={bureauTelephone} onChange={(e) => setBureauTelephone(e.target.value)} placeholder="+216 XX XXX XXX" /></div></Col>
                 </Row>
               </div>
+            </Col>
+          )}
+
+          {typeFormation === "EXTERNE" && (
+            <Col span={24}>
+              <ExterneAnimateursSection
+                bureauId={externeBureauId}
+                setBureauId={setExterneBureauId}
+                animExterneSel={animExterneSel}
+                setAnimExterneSel={setAnimExterneSel}
+              />
             </Col>
           )}
 

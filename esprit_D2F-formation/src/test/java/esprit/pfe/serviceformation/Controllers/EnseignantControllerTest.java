@@ -66,9 +66,11 @@ class EnseignantControllerTest {
     @Test
     void testCreateEnseignant() throws Exception {
         when(enseignantService.createEnseignant(any())).thenReturn(new Enseignant());
+        // POST validé (@Valid) : nom/prenom/mail obligatoires.
         mockMvc.perform(post("/api/v1/enseignants")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{}")).andExpect(status().isOk());
+                .content("{\"nom\":\"Test\",\"prenom\":\"User\",\"mail\":\"test@esprit.tn\"}"))
+                .andExpect(status().isOk());
     }
 
     @Test

@@ -4,6 +4,7 @@ export const ROLES = {
   CUP:                 "CUP",
   ENSEIGNANT:          "Enseignant",
   FORMATEUR:           "Formateur",
+  ANIMATEUR:           "Animateur",
   CHEF_DEPARTEMENT:    "CHEF_DEPARTEMENT",
   RESPONSABLE_DOSSIER: "ResponsableDossier",
 } as const;

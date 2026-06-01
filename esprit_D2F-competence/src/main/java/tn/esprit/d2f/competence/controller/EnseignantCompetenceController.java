@@ -86,9 +86,14 @@ public class EnseignantCompetenceController {
         return new ResponseEntity<>(enseignantCompetenceService.assignCompetence(request), HttpStatus.CREATED);
     }
 
-    @Operation(summary = "Mettre à jour le niveau de maîtrise d'une affectation")
+    // SÉCURITÉ (audit DSI – BLOCKER #2) : l'ancien AFFECTATION_UPDATE_SELF
+    // autorisait ROLE_ENSEIGNANT sans vérifier l'appartenance de l'affectation
+    // (IDOR : un enseignant pouvait modifier le niveau d'un autre par son id).
+    // La gestion des affectations est réservée à l'admin — cohérent avec
+    // AFFECTATION_CREATE / AFFECTATION_DELETE et avec le gateway (PATCH = admin).
+    @Operation(summary = "Mettre à jour le niveau de maîtrise d'une affectation (admin)")
     @PatchMapping("/{id}/niveau")
-    @PreAuthorize(AuthorizationMatrix.AFFECTATION_UPDATE_SELF)
+    @PreAuthorize(AuthorizationMatrix.AFFECTATION_UPDATE_ALL)
     public ResponseEntity<EnseignantCompetenceDTO> updateNiveau(
             @PathVariable Long id, @RequestParam NiveauMaitrise niveau) {
         return ResponseEntity.ok(enseignantCompetenceService.updateNiveau(id, niveau));

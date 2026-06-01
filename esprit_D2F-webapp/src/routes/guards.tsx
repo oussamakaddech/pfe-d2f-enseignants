@@ -36,23 +36,23 @@ export const FRONTEND_PERMISSIONS = {
     APPROVE: ['admin', 'CUP', 'CHEF_DEPARTEMENT'],
   },
   FORMATION: {
-    READ: ['admin', 'CUP', 'Enseignant', 'Formateur', 'ResponsableDossier', 'CHEF_DEPARTEMENT'],
+    READ: ['admin', 'CUP', 'Enseignant', 'Formateur', 'Animateur', 'ResponsableDossier', 'CHEF_DEPARTEMENT'],
     CREATE: ['admin'],
     UPDATE: ['admin'],
     DELETE: ['admin'],
     APPROVE: ['admin'],
-    READ_OWN: ['Formateur'],
+    READ_OWN: ['Formateur', 'Animateur'],
   },
   EVALUATION: {
     READ_ALL: ['admin', 'CUP', 'CHEF_DEPARTEMENT'],
-    READ_FORMATEUR: ['Formateur'],
-    CREATE: ['admin', 'Formateur'],
-    UPDATE: ['admin', 'Formateur'],
+    READ_FORMATEUR: ['Formateur', 'Animateur'],
+    CREATE: ['admin', 'Formateur', 'Animateur'],
+    UPDATE: ['admin', 'Formateur', 'Animateur'],
     DELETE: ['admin'],
-    MARK_ENTRY: ['Formateur'],
+    MARK_ENTRY: ['Formateur', 'Animateur'],
   },
   CERTIFICAT: {
-    READ: ['admin', 'CUP', 'Enseignant', 'Formateur'],
+    READ: ['admin', 'CUP', 'Enseignant', 'Formateur', 'Animateur'],
     CREATE: ['admin'],
     UPDATE: ['admin'],
     DELETE: ['admin'],
@@ -82,8 +82,8 @@ export const FRONTEND_PERMISSIONS = {
     UPDATE: ['admin'],
     DELETE: ['admin'],
     BAN: ['admin'],
-    VIEW_PROFILE: ['admin', 'CUP', 'Enseignant', 'Formateur'],
-    EDIT_OWN: ['admin', 'CUP', 'Enseignant', 'Formateur'],
+    VIEW_PROFILE: ['admin', 'CUP', 'Enseignant', 'Formateur', 'Animateur'],
+    EDIT_OWN: ['admin', 'CUP', 'Enseignant', 'Formateur', 'Animateur'],
   },
 };
 
@@ -104,7 +104,7 @@ function ForbiddenRedirect() {
   useEffect(() => {
     notify.warning("Accès refusé. Vous n'avez pas les droits nécessaires pour accéder à cette page.");
   }, []);
-  return <Navigate to="/home/profile" replace />;
+  return <Navigate to="/403" replace />;
 }
 
 export function RoleGuard({ allowedRoles }: Readonly<RoleGuardProps>) {

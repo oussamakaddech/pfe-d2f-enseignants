@@ -12,7 +12,7 @@ ChartJS.register(
   Tooltip, Legend, Title,
 );
 
-export { default } from "chart.js";
+export { Chart as default } from "chart.js";
 
 
 

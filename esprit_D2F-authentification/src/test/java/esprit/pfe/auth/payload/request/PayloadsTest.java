@@ -41,7 +41,6 @@ class PayloadsTest {
         request.setPhoneNumber("123");
         request.setEmail("user1@example.com");
         request.setPassword("pass1");
-        request.setRole("admin");
 
         assertEquals("id1", request.getId());
         assertEquals("user1", request.getUsername());
@@ -50,7 +49,6 @@ class PayloadsTest {
         assertEquals("123", request.getPhoneNumber());
         assertEquals("user1@example.com", request.getEmail());
         assertEquals("pass1", request.getPassword());
-        assertEquals("admin", request.getRole());
         assertNotNull(request.toString());
     }
 

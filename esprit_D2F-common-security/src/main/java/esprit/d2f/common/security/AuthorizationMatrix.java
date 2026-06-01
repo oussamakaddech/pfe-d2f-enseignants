@@ -24,23 +24,23 @@ public final class AuthorizationMatrix {
     public static final String BESOIN_FORMATION_DELETE = "hasAnyRole('ROLE_ADMIN')";
     public static final String BESOIN_FORMATION_APPROVE = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_D2F','ROLE_CHEF_DEPARTEMENT')";
 
-    public static final String FORMATION_READ = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_D2F','ROLE_ENSEIGNANT','ROLE_FORMATEUR','ROLE_RESPONSABLE_DOSSIER','ROLE_CHEF_DEPARTEMENT')";
+    public static final String FORMATION_READ = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_D2F','ROLE_ENSEIGNANT','ROLE_FORMATEUR','ROLE_ANIMATEUR','ROLE_RESPONSABLE_DOSSIER','ROLE_CHEF_DEPARTEMENT')";
     public static final String FORMATION_CREATE = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_D2F')";
     public static final String FORMATION_UPDATE = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_D2F','ROLE_RESPONSABLE_DOSSIER')";
     public static final String FORMATION_DELETE = "hasAnyRole('ROLE_ADMIN')";
     public static final String FORMATION_APPROVE = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_D2F')";
-    public static final String FORMATION_READ_OWN = "hasAnyRole('ROLE_ADMIN','ROLE_FORMATEUR')";
+    public static final String FORMATION_READ_OWN = "hasAnyRole('ROLE_ADMIN','ROLE_FORMATEUR','ROLE_ANIMATEUR')";
 
     public static final String EVALUATION_READ_ALL = "hasAnyRole('ROLE_ADMIN','ROLE_CHEF_DEPARTEMENT')";
     public static final String EVALUATION_READ_CUP = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_D2F')";
     public static final String EVALUATION_READ_ENSEIGNANT = "hasAnyRole('ROLE_ADMIN','ROLE_ENSEIGNANT')";
-    public static final String EVALUATION_READ_FORMATEUR = "hasAnyRole('ROLE_ADMIN','ROLE_FORMATEUR')";
-    public static final String EVALUATION_CREATE = "hasAnyRole('ROLE_ADMIN','ROLE_FORMATEUR')";
-    public static final String EVALUATION_UPDATE = "hasAnyRole('ROLE_ADMIN','ROLE_FORMATEUR')";
+    public static final String EVALUATION_READ_FORMATEUR = "hasAnyRole('ROLE_ADMIN','ROLE_FORMATEUR','ROLE_ANIMATEUR')";
+    public static final String EVALUATION_CREATE = "hasAnyRole('ROLE_ADMIN','ROLE_FORMATEUR','ROLE_ANIMATEUR')";
+    public static final String EVALUATION_UPDATE = "hasAnyRole('ROLE_ADMIN','ROLE_FORMATEUR','ROLE_ANIMATEUR')";
     public static final String EVALUATION_DELETE = "hasAnyRole('ROLE_ADMIN')";
-    public static final String EVALUATION_MARK_ENTRY = "hasAnyRole('ROLE_ADMIN','ROLE_FORMATEUR')";
+    public static final String EVALUATION_MARK_ENTRY = "hasAnyRole('ROLE_ADMIN','ROLE_FORMATEUR','ROLE_ANIMATEUR')";
 
-    public static final String CERTIFICAT_READ = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_D2F','ROLE_ENSEIGNANT','ROLE_FORMATEUR')";
+    public static final String CERTIFICAT_READ = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_D2F','ROLE_ENSEIGNANT','ROLE_FORMATEUR','ROLE_ANIMATEUR')";
     public static final String CERTIFICAT_CREATE = "hasAnyRole('ROLE_ADMIN')";
     public static final String CERTIFICAT_UPDATE = "hasAnyRole('ROLE_ADMIN')";
     public static final String CERTIFICAT_DELETE = "hasAnyRole('ROLE_ADMIN')";
@@ -76,23 +76,31 @@ public final class AuthorizationMatrix {
     public static final String BUREAU_UPDATE = "hasAnyRole('ROLE_ADMIN')";
     public static final String BUREAU_DELETE = "hasAnyRole('ROLE_ADMIN')";
 
+    // ── Animateur externe (rattaché à un bureau) ────────────────────────
+    // Sélection + ajout à la volée lors de la création d'une formation externe :
+    // accessible aux mêmes rôles qui créent les formations, pas seulement admin.
+    public static final String ANIMATEUR_EXTERNE_READ   = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_D2F')";
+    public static final String ANIMATEUR_EXTERNE_CREATE = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_D2F')";
+    public static final String ANIMATEUR_EXTERNE_UPDATE = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_D2F')";
+    public static final String ANIMATEUR_EXTERNE_DELETE = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_D2F')";
+
     // ── Référentiel (Dept, UP, Enseignant) ─────────────────────────────
-    public static final String REFERENTIEL_READ   = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_D2F','ROLE_ENSEIGNANT','ROLE_CHEF_DEPARTEMENT','ROLE_FORMATEUR','ROLE_RESPONSABLE_DOSSIER')";
+    public static final String REFERENTIEL_READ   = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_D2F','ROLE_ENSEIGNANT','ROLE_CHEF_DEPARTEMENT','ROLE_FORMATEUR','ROLE_ANIMATEUR','ROLE_RESPONSABLE_DOSSIER')";
     public static final String REFERENTIEL_WRITE  = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_D2F')";
     public static final String REFERENTIEL_IMPORT = "hasAnyRole('ROLE_ADMIN')";
 
     // ── Formation-Compétence (liaison) ──────────────────────────────────
     public static final String FORMATION_COMPETENCE_READ =
-            "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_D2F','ROLE_ENSEIGNANT','ROLE_FORMATEUR','ROLE_CHEF_DEPARTEMENT')";
+            "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_D2F','ROLE_ENSEIGNANT','ROLE_FORMATEUR','ROLE_ANIMATEUR','ROLE_CHEF_DEPARTEMENT')";
     public static final String FORMATION_COMPETENCE_CREATE = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_D2F')";
     public static final String FORMATION_COMPETENCE_UPDATE = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_D2F','ROLE_RESPONSABLE_DOSSIER')";
     public static final String FORMATION_COMPETENCE_DELETE = "hasAnyRole('ROLE_ADMIN')";
 
     // ── Inscription ─────────────────────────────────────────────────────
-    public static final String INSCRIPTION_READ    = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_D2F','ROLE_ENSEIGNANT','ROLE_FORMATEUR')";
+    public static final String INSCRIPTION_READ    = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_D2F','ROLE_ENSEIGNANT','ROLE_FORMATEUR','ROLE_ANIMATEUR')";
     public static final String INSCRIPTION_CREATE  = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_D2F','ROLE_ENSEIGNANT')";
     public static final String INSCRIPTION_APPROVE = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_D2F')";
 
-    public static final String GATEWAY_ACCESS = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_D2F','ROLE_ENSEIGNANT','ROLE_FORMATEUR','ROLE_CHEF_DEPARTEMENT','ROLE_RESPONSABLE_DOSSIER')";
+    public static final String GATEWAY_ACCESS = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_D2F','ROLE_ENSEIGNANT','ROLE_FORMATEUR','ROLE_ANIMATEUR','ROLE_CHEF_DEPARTEMENT','ROLE_RESPONSABLE_DOSSIER')";
     public static final String PUBLIC_ACCESS = "permitAll()";
 }

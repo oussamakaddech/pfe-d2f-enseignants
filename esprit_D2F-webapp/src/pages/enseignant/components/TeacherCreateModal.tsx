@@ -102,6 +102,17 @@ export default function TeacherCreateModal({
             <Option value="I">Inactif (I)</Option>
           </Select>
         </Form.Item>
+        <Form.Item name="grade" label="Grade académique">
+          <Select allowClear placeholder="Sélectionner un grade">
+            <Option value="Assistant">Assistant</Option>
+            <Option value="Maître Assistant">Maître Assistant</Option>
+            <Option value="Maître de Conférences">Maître de Conférences</Option>
+            <Option value="Professeur">Professeur</Option>
+          </Select>
+        </Form.Item>
+        <Form.Item name="telephone" label="Téléphone">
+          <Input placeholder="Ex : 0612345678" />
+        </Form.Item>
         <Form.Item name="cup" label="CUP">
           <Select>
             <Option value="O">Oui</Option>

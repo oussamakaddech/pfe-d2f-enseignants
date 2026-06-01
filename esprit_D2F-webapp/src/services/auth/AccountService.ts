@@ -3,12 +3,27 @@ import { config } from "@/config/env";
 import type {
   AuthUser,
   EditProfileRequest,
+  SignupRequest,
   UpdatePasswordRequest,
   UpdatePasswordResponse,
   AccountActionResponse,
 } from "@/models/auth";
 
 const API_URL = `${config.URL_ACCOUNT}/account`;
+
+/**
+ * Création d'un compte par un administrateur, avec rôle explicite.
+ * Endpoint protégé (ACCOUNT_CREATE). À NE PAS confondre avec l'auto-inscription
+ * publique (AuthService.signup) qui force toujours le rôle ENSEIGNANT.
+ */
+export async function createAccount(
+  request: SignupRequest,
+  role?: string
+): Promise<AuthUser> {
+  const params = role ? { role } : {};
+  const response = await api.post<AuthUser>(`${API_URL}/create-account`, request, { params });
+  return response.data;
+}
 
 export async function getAllAccounts(): Promise<AuthUser[]> {
   const response = await api.get<AuthUser[] | { content: AuthUser[] }>(`${API_URL}/list-accounts`);
@@ -79,6 +94,7 @@ export default {
   enableAccount,
   deleteAccount,
   updateAccount,
+  createAccount,
 };
 
 

@@ -43,12 +43,13 @@ public class AuthorizationFilter extends AbstractGatewayFilterFactory<Authorizat
     private static final String ROLE_D2F = "D2F";
     private static final String ROLE_ENSEIGNANT = "ENSEIGNANT";
     private static final String ROLE_FORMATEUR = "FORMATEUR";
+    private static final String ROLE_ANIMATEUR = "ANIMATEUR";
     private static final String ROLE_CHEF_DEPARTEMENT = "CHEF_DEPARTEMENT";
     private static final String ROLE_RESPONSABLE_DOSSIER = "RESPONSABLE_DOSSIER";
 
     /** All authenticated users */
     private static final List<String> ALL_ROLES = List.of(
-        ROLE_ADMIN, ROLE_CUP, ROLE_D2F, ROLE_ENSEIGNANT, ROLE_FORMATEUR, 
+        ROLE_ADMIN, ROLE_CUP, ROLE_D2F, ROLE_ENSEIGNANT, ROLE_FORMATEUR, ROLE_ANIMATEUR,
         ROLE_CHEF_DEPARTEMENT, ROLE_RESPONSABLE_DOSSIER
     );
 
@@ -65,8 +66,8 @@ public class AuthorizationFilter extends AbstractGatewayFilterFactory<Authorizat
         ROLE_ADMIN, ROLE_CUP, ROLE_D2F, ROLE_ENSEIGNANT, ROLE_CHEF_DEPARTEMENT
     );
 
-    /** Admin + Formateur */
-    private static final List<String> ADMIN_FORMATEUR = List.of(ROLE_ADMIN, ROLE_FORMATEUR);
+    /** Admin + Formateur/Animateur */
+    private static final List<String> ADMIN_FORMATEUR = List.of(ROLE_ADMIN, ROLE_FORMATEUR, ROLE_ANIMATEUR);
 
     /** Admin + CUP + D2F + Chef de département */
     private static final List<String> ADMIN_CUP_D2F_CHEF = List.of(
@@ -188,7 +189,8 @@ public class AuthorizationFilter extends AbstractGatewayFilterFactory<Authorizat
         if (path.contains("/profile") || path.contains("/edit-profile") || path.contains("/update-password")) {
             return ALL_ROLES;
         }
-        if (path.contains("/list-accounts") || path.contains("/ban-account") || path.contains("/enable-account") 
+        if (path.contains("/list-accounts") || path.contains("/ban-account") || path.contains("/enable-account")
+                || path.contains("/create-account")
                 || path.contains("/delete/") || path.contains("/update/")) {
             return ADMIN_ONLY;
         }

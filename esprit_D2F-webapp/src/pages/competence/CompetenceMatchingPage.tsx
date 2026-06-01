@@ -226,7 +226,7 @@ export default function CompetenceMatchingPage() {
         <button key={ensId} type="button" className={`enseignant-assignment-card ${draggingId ? "drag-mode-active" : ""} ${dragOverEns === ensId ? "drag-over-target" : ""}`}
           tabIndex={0} onKeyDown={() => {}}
           onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "copy"; setDragOverEns(ensId); }}
-          onDragLeave={(e) => { const related = e.relatedTarget; if (related && e.currentTarget.contains(related as Node)) return; setDragOverEns(null); }}
+          onDragLeave={(e) => { const related = e.relatedTarget; if (related && e.currentTarget.contains(related as Node)) { return; } setDragOverEns(null); }}
           onDrop={(e) => handleEnsDrop(e, ensId)}>
           {dragOverEns === ensId && (
             <div className="enseignant-drop-overlay">

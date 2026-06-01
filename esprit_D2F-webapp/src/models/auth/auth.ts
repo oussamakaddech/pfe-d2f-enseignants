@@ -41,14 +41,17 @@ export interface LoginResponse {
 }
 
 export interface SignupRequest {
+  id?: string;
   username: string;
   password: string;
   firstName?: string;
   lastName?: string;
   phoneNumber?: string;
   email: string;
-  role: string;
-  newsletter?: boolean;
+  // SÉCURITÉ (audit DSI) : aucun rôle n'est transmis à l'inscription publique.
+  // Tout compte auto-inscrit est ENSEIGNANT. L'attribution d'un rôle (création
+  // de compte par un admin) passe par AccountService.createAccount (?role=...),
+  // jamais par le corps de /signup.
 }
 
 export interface ResetPasswordRequest {

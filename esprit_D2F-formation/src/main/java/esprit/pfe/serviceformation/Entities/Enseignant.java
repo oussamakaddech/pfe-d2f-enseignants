@@ -41,6 +41,22 @@ public class Enseignant extends BaseAuditEntity {
     @Column(name = "chef_departement", length = 1, nullable = false)
     private String chefDepartement;
 
+    // Grade académique (Assistant, Maître Assistant, Maître de Conférences, Professeur…)
+    @Column(length = 100)
+    private String grade;
+
+    @Column(length = 30)
+    private String telephone;
+
+    @Column(name = "photo_url", length = 500)
+    private String photoUrl;
+
+    // Lien explicite vers le compte (auth.users) — architecture microservices :
+    // pas de FK SQL inter-bases, mais identifiant du compte + unicité applicative
+    // (« un compte = une fiche enseignant »). Voir migration V29.
+    @Column(name = "user_id", length = 36, unique = true)
+    private String userId;
+
     // Relation avec UP et Dept si besoin
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "up_id", referencedColumnName = "id", nullable = true)

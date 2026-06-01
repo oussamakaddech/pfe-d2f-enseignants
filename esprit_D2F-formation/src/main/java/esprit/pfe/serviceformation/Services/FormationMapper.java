@@ -232,6 +232,13 @@ public class FormationMapper {
             .seances(formation.getSeances() != null ?
                 formation.getSeances().stream().map(this::mapSeanceToDTO).toList()
                 : null)
+            .animateursExternes(
+                org.hibernate.Hibernate.isInitialized(formation.getAnimateursExternes())
+                        && formation.getAnimateursExternes() != null
+                    ? formation.getAnimateursExternes().stream()
+                        .map(esprit.pfe.serviceformation.dto.ReferentialMapper::toAnimateurExterneDTO)
+                        .toList()
+                    : null)
             .createdAt(formation.getCreatedAt())
             .updatedAt(formation.getUpdatedAt())
             .createdBy(formation.getCreatedBy())

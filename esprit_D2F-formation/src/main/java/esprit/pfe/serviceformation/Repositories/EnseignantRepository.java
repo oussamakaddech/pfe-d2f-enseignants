@@ -16,6 +16,8 @@ public interface EnseignantRepository extends JpaRepository<Enseignant, String> 
 
     Optional<Enseignant> findByMail(String mail);
 
+    boolean existsByMail(String mail);
+
     /** Retourne l'enseignant dont l'id est le plus grand en ordre lexicographique
      *  (ex: "E00099" > "E00010"), utilisé pour l'auto-incrément de l'identifiant. */
     Optional<Enseignant> findTopByOrderByIdDesc();

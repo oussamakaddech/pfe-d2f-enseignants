@@ -58,8 +58,17 @@ const AuthProvider = ({ children }: AuthProviderProps) => {
           /* ignore */
         }
       })
-      .catch(() => {
+      .catch((err: unknown) => {
         if (generation !== authGenerationRef.current) {
+          return;
+        }
+        // On ne déconnecte que sur un échec d'authentification avéré (401/403).
+        // Une erreur transitoire (5xx, service en cours de redémarrage, réseau)
+        // ne doit PAS détruire la session : le cookie reste valide, on réessaiera
+        // au prochain cycle de rafraîchissement.
+        const status = (err as { response?: { status?: number } })?.response?.status;
+        const isAuthFailure = status === 401 || status === 403;
+        if (!isAuthFailure) {
           return;
         }
         stopSilentRefresh();

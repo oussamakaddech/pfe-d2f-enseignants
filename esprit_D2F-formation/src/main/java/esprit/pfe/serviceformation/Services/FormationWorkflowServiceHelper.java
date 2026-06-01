@@ -25,6 +25,7 @@ public class FormationWorkflowServiceHelper {
     private final PresenceRepository presenceRepository;
     private final DeptRepository departementRepository;
     private final UpRepository upRepository;
+    private final AnimateurExterneRepository animateurExterneRepository;
 
     /**
      * Crée les séances de formation avec validation des conflits
@@ -81,6 +82,16 @@ public class FormationWorkflowServiceHelper {
                     .toList());
         } else {
             formation.setAnimateurs(new ArrayList<>());
+        }
+
+        // Animateurs externes (rattachés à un bureau) pour une formation externe
+        if (request.getAnimateursExternesIds() != null && !request.getAnimateursExternesIds().isEmpty()) {
+            formation.setAnimateursExternes(request.getAnimateursExternesIds().stream()
+                    .map(id -> animateurExterneRepository.findById(id).orElse(null))
+                    .filter(Objects::nonNull)
+                    .collect(java.util.stream.Collectors.toCollection(ArrayList::new)));
+        } else {
+            formation.setAnimateursExternes(new ArrayList<>());
         }
     }
 

@@ -13,6 +13,7 @@ import { isAdmin } from "@/utils/constants/roles";
 import useAppNotification from "@/hooks/ui/useAppNotification";
 import EnseignantService from "@/services/formation/EnseignantService";
 import CompetenceService from "@/services/competence/CompetenceService";
+import type { AnimateurExterne } from "@/models/bureau";
 
 export type PersonItem = { id?: unknown; type?: string; cup?: string; chefDepartement?: string; nom?: string; prenom?: string; mail?: string; upLibelle?: string; deptLibelle?: string; isAuthUser?: boolean; userName?: string; etat?: string };
 export type AccountItem = { id?: unknown; role?: string; userName?: string; username?: string; lastName?: string; firstName?: string; emailAddress?: string; email?: string; type?: string; upLibelle?: string; deptLibelle?: string };
@@ -105,6 +106,7 @@ function checkExistingFormationConflicts(
   localSeance: SeanceItem, idx: number, formations: FormationRaw[],
   msgs: string[], participantIds: unknown[], animateurIds: unknown[],
 ) {
+  if (!Array.isArray(formations)) return;
   formations.forEach((f) => {
     const existingSeances: SeanceItem[] = Array.isArray(f.seances) ? f.seances : [];
     const existingParticipants = [
@@ -221,6 +223,8 @@ export function useFormationWorkflow({ initialDate, onFormationCreated, besoinIn
   const [bureauNom, setBureauNom] = useState("");
   const [bureauMail, setBureauMail] = useState("");
   const [bureauTelephone, setBureauTelephone] = useState("");
+  const [externeBureauId, setExterneBureauId] = useState<number | null>(null);
+  const [animExterneSel, setAnimExterneSel] = useState<AnimateurExterne[]>([]);
 
   const [ups, setUps] = useState<LookupNode[]>([]);
   const [depts, setDepts] = useState<LookupNode[]>([]);
@@ -352,7 +356,7 @@ export function useFormationWorkflow({ initialDate, onFormationCreated, besoinIn
   useEffect(() => {
     const localAnimIds = animSel.map(getAnimateurStableId).filter(Boolean);
     const localParticipantIds = partSel.map((p) => p.id).filter(Boolean);
-    setOverlapWarnings(buildConflictMessages({ localSeances: seances, participantIds: localParticipantIds, animateurIds: localAnimIds }));
+    setOverlapWarnings(buildConflictMessages({ localSeances: seances, participantIds: localParticipantIds, animateurIds: localAnimIds, existingFormations: (Array.isArray(existingFormations) ? existingFormations : []) as FormationRaw[] }));
   }, [seances, partSel, animSel, existingFormations]);
 
   const validateStep0 = () => {
@@ -459,6 +463,7 @@ export function useFormationWorkflow({ initialDate, onFormationCreated, besoinIn
       bureauFormationNom: bureauNom || null, bureauFormationMail: bureauMail || null, bureauFormationTelephone: bureauTelephone || null,
       chargeHoraireGlobal: chargeH || 0, upId: selectedUp?.id, departementId: selectedDept?.id,
       animateursIds: finalAnimIds, participantsIds: partSel.map(p => p.id),
+      animateursExternesIds: typeFormation === "EXTERNE" ? animExterneSel.map(a => a.id) : [],
       domaine, populationCible, objectifs, objectifsPedago, evalMethods,
       coutTransport: coutTransport || 0, coutHebergement: coutHebergement || 0, coutRepas: coutRepas || 0,
       periodCode, customPeriodLabel,
@@ -504,6 +509,7 @@ export function useFormationWorkflow({ initialDate, onFormationCreated, besoinIn
     ouverte, setOuverte, periodCode, setPeriodCode, customPeriodLabel, setCustomPeriodLabel,
     formNom, setFormNom, formPrenom, setFormPrenom, formEmail, setFormEmail,
     salle, setSalle, bureauNom, setBureauNom, bureauMail, setBureauMail, bureauTelephone, setBureauTelephone,
+    externeBureauId, setExterneBureauId, animExterneSel, setAnimExterneSel,
     ups, depts, selectedUp, setSelectedUp, selectedDept, setSelectedDept,
     enseignants, enseignantsList, formateursList,
     animSel, setAnimSel, animFilterUp, setAnimFilterUp, animFilterDept, setAnimFilterDept,

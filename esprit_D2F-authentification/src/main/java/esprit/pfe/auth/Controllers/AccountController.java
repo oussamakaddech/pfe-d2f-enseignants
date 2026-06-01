@@ -6,11 +6,15 @@ import esprit.pfe.auth.security.PiiSafeLogger;
 import esprit.pfe.auth.services.AccountService;
 import esprit.pfe.auth.services.AuditService;
 import esprit.pfe.auth.payload.request.EditProfileRequest;
+import esprit.pfe.auth.payload.request.SignupRequest;
 import esprit.pfe.auth.payload.request.UpdatePasswordRequest;
 import esprit.pfe.auth.payload.response.UserDTO;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
@@ -31,6 +35,27 @@ public class AccountController {
     @PreAuthorize(AuthorizationMatrix.ACCOUNT_READ)
     public Page<UserDTO> listAccounts(Pageable pageable) {
         return this.accountService.listAccounts(pageable).map(UserDTO::new);
+    }
+
+    /**
+     * Création d'un compte par un administrateur, avec rôle explicite
+     * (ADMIN, CUP, FORMATEUR/ANIMATEUR, …). Pendant sécurisé de l'auto-inscription
+     * publique : ici le rôle est honoré car l'appelant est authentifié ADMIN
+     * (ACCOUNT_CREATE). Le rôle passe en paramètre, pas dans le corps.
+     */
+    @PostMapping("/create-account")
+    @PreAuthorize(AuthorizationMatrix.ACCOUNT_CREATE)
+    public ResponseEntity<UserDTO> createAccount(
+            @Valid @RequestBody SignupRequest request,
+            @RequestParam(required = false) String role,
+            Principal principal,
+            HttpServletRequest httpRequest) {
+        UserDTO created = new UserDTO(this.accountService.createAccount(request, role));
+        String adminUsername = principal != null ? principal.getName() : "system";
+        PiiSafeLogger.info(AccountController.class,
+                "Account " + request.getUsername() + " (role=" + role + ") created by "
+                        + adminUsername + " from IP " + extractClientIp(httpRequest));
+        return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
     @PostMapping("/ban-account")

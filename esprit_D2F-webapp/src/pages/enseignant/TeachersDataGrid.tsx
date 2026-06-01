@@ -2,7 +2,6 @@ import {
   Table,
   Button,
   Upload,
-  Drawer,
   Space,
   Tooltip,
   Card,
@@ -18,7 +17,7 @@ import {
 } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import { writeExcel, exportDateLabel, isoDate } from "utils/helpers/excelExport";
-import EnseignantRegister from "./EnseignantRegister";
+import CreateAccountDrawer from "@/pages/admin/gererComptes/CreateAccountDrawer";
 import TeacherEditModal from "@/components/enseignant/TeacherEditModal";
 import TeacherCreateModal from "./components/TeacherCreateModal";
 import { useTeachersColumns } from "./components/TeachersTableColumns";
@@ -103,9 +102,9 @@ export default function TeachersDataGrid() {
               <div className="teachers-hero-subtitle">Gérer, importer et créer les comptes enseignants</div>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <Tooltip title={selectedTeacher ? "Créer un compte pour l'enseignant sélectionné" : "Sélectionnez d'abord un enseignant dans le tableau"}>
-                <Button type="primary" icon={<UserAddOutlined />} disabled={!selectedTeacher} onClick={() => setDrawerVisible(true)} className="teachers-btn-create">
-                  Créer Compte
+              <Tooltip title="Créer un nouveau compte utilisateur">
+                <Button type="primary" icon={<UserAddOutlined />} onClick={() => setDrawerVisible(true)} className="teachers-btn-create">
+                  Créer un compte
                 </Button>
               </Tooltip>
             </div>
@@ -193,28 +192,31 @@ export default function TeachersDataGrid() {
         </Card>
 
         {/* Drawer: Créer compte */}
-        <Drawer title="Créer un compte à partir de cet enseignant" width={400} onClose={() => { setDrawerVisible(false); setActiveExtractIndex(null); }} open={drawerVisible} destroyOnHidden>
-          <EnseignantRegister
-            initialValues={{
-              id: String((selectedTeacher as Record<string, unknown>)?.id ?? ""),
-              username: String((selectedTeacher as Record<string, unknown>)?.mail ?? "").split("@")[0] || "",
-              firstName: String((selectedTeacher as Record<string, unknown>)?.prenom ?? ""),
-              lastName: String((selectedTeacher as Record<string, unknown>)?.nom ?? ""),
-              email: String((selectedTeacher as Record<string, unknown>)?.mail ?? ""),
-              role: "Formateur",
-            }}
-            onSuccess={() => {
-              setDrawerVisible(false);
-              setSelectedTeacher(null);
-              if (activeExtractIndex !== null) {
-                const next = extracted.filter((_: unknown, i: number) => i !== activeExtractIndex);
-                setExtracted(next);
-                setActiveExtractIndex(null);
-              }
-            }}
-            onError={() => {}}
-          />
-        </Drawer>
+        <CreateAccountDrawer
+          open={drawerVisible}
+          onClose={() => {
+            setDrawerVisible(false);
+            setActiveExtractIndex(null);
+          }}
+          onSuccess={() => {
+            setDrawerVisible(false);
+            setSelectedTeacher(null);
+            if (activeExtractIndex !== null) {
+              const next = extracted.filter((_: unknown, i: number) => i !== activeExtractIndex);
+              setExtracted(next);
+              setActiveExtractIndex(null);
+            }
+          }}
+          title="Créer un compte pour cet enseignant"
+          subtitle="Les informations de l'enseignant sont pré-remplies. Choisissez le rôle à attribuer puis définissez un identifiant et un mot de passe."
+          initialValues={{
+            firstName: String((selectedTeacher as Record<string, unknown>)?.prenom ?? ""),
+            lastName:  String((selectedTeacher as Record<string, unknown>)?.nom ?? ""),
+            email:     String((selectedTeacher as Record<string, unknown>)?.mail ?? ""),
+            username:  String((selectedTeacher as Record<string, unknown>)?.mail ?? "").split("@")[0] || "",
+            role:      "FORMATEUR",
+          }}
+        />
 
         <TeacherEditModal
           open={editModalOpen}

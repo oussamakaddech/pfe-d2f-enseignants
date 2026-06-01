@@ -6,6 +6,7 @@ from datetime import date, datetime, timedelta, timezone
 from typing import Any
 
 from sqlalchemy import Integer, func
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.core.db import db_session as _db_session, execute_query
@@ -451,12 +452,20 @@ class DashboardEngine:
             .scalar()
         )
 
-        last_log = (
-            self.db.query(ModelRetrainingLog)
-            .filter(ModelRetrainingLog.statut == "success")
-            .order_by(ModelRetrainingLog.retrained_at.desc())
-            .first()
-        )
+        # Le journal de ré-entraînement est une info auxiliaire : s'il est
+        # indisponible (table absente sur une base pas encore migrée, etc.),
+        # on dégrade proprement plutôt que de faire échouer tout l'endpoint.
+        try:
+            last_log = (
+                self.db.query(ModelRetrainingLog)
+                .filter(ModelRetrainingLog.statut == "success")
+                .order_by(ModelRetrainingLog.retrained_at.desc())
+                .first()
+            )
+        except SQLAlchemyError as exc:
+            logger.warning("Journal de ré-entraînement indisponible : %s", exc)
+            self.db.rollback()
+            last_log = None
 
         return {
             "gap_model_accuracy":       round(float(gap_accuracy), 3) if gap_accuracy is not None else None,

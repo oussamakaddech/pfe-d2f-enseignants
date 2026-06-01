@@ -1,5 +1,6 @@
 package esprit.pfe.serviceformation.dto;
 
+import esprit.pfe.serviceformation.entities.AnimateurExterne;
 import esprit.pfe.serviceformation.entities.Bureau;
 import esprit.pfe.serviceformation.entities.Dept;
 import esprit.pfe.serviceformation.entities.Up;
@@ -43,6 +44,19 @@ public final class ReferentialMapper {
         dto.setNom(bureau.getNom());
         dto.setEmail(bureau.getEmail());
         dto.setNumeroTelephone(bureau.getNumeroTelephone());
+        return dto;
+    }
+
+    public static AnimateurExterneDTO toAnimateurExterneDTO(AnimateurExterne animateur) {
+        if (animateur == null) {
+            return null;
+        }
+        AnimateurExterneDTO dto = new AnimateurExterneDTO();
+        dto.setId(animateur.getId());
+        dto.setNom(animateur.getNom());
+        dto.setPrenom(animateur.getPrenom());
+        dto.setEmail(animateur.getEmail());
+        dto.setBureauId(animateur.getBureau() != null ? animateur.getBureau().getId() : null);
         return dto;
     }
 }

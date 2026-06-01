@@ -119,33 +119,34 @@ class SecurityControllerTest {
         signupRequest.setPassword("password123");
         signupRequest.setFirstName("New");
         signupRequest.setLastName("User");
-        signupRequest.setRole("admin");
+        signupRequest.setPhoneNumber("+21612345678");
     }
 
     @Test
-    void registerUser_WhenValidRequest_ShouldReturnSuccess() throws Exception {
+    void registerUser_WhenValidRequest_ShouldReturnCreated() throws Exception {
         when(userRepository.existsByUsername(anyString())).thenReturn(false);
         when(userRepository.existsByEmail(anyString())).thenReturn(false);
-        when(roleRepository.findByName(ERole.ADMIN)).thenReturn(Optional.of(new Role(ERole.ADMIN)));
+        // SÉCURITÉ : l'inscription publique attribue TOUJOURS ENSEIGNANT.
+        when(roleRepository.findByName(ERole.ENSEIGNANT)).thenReturn(Optional.of(new Role(ERole.ENSEIGNANT)));
         when(passwordEncoder.encode(anyString())).thenReturn("encodedPassword");
 
         mockMvc.perform(post("/api/v1/auth/signup")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(signupRequest)))
-                .andExpect(status().isOk())
+                .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.message").value("User registered successfully!"));
 
         verify(userRepository).save(any(User.class));
     }
 
     @Test
-    void registerUser_WhenUsernameExists_ShouldReturnBadRequest() throws Exception {
+    void registerUser_WhenUsernameExists_ShouldReturnConflict() throws Exception {
         when(userRepository.existsByUsername("newuser")).thenReturn(true);
 
         mockMvc.perform(post("/api/v1/auth/signup")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(signupRequest)))
-                .andExpect(status().isBadRequest())
+                .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.message").value("Error: Username is already taken!"));
 
         verify(userRepository, never()).save(any(User.class));
@@ -391,122 +392,75 @@ class SecurityControllerTest {
     }
 
     @Test
-    void registerUser_WhenEmailExists_ShouldReturnBadRequest() throws Exception {
+    void registerUser_WhenEmailExists_ShouldReturnConflict() throws Exception {
         when(userRepository.existsByUsername(anyString())).thenReturn(false);
         when(userRepository.existsByEmail("newuser@example.com")).thenReturn(true);
 
         mockMvc.perform(post("/api/v1/auth/signup")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(signupRequest)))
-                .andExpect(status().isBadRequest())
+                .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.message").value("Error: Email is already in use!"));
     }
 
     @Test
-    void registerUser_WhenIdExists_ShouldReturnBadRequest() throws Exception {
+    void registerUser_WhenIdExists_ShouldReturnConflict() throws Exception {
         signupRequest.setId("existing-id");
         when(userRepository.existsById("existing-id")).thenReturn(true);
 
         mockMvc.perform(post("/api/v1/auth/signup")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(signupRequest)))
-                .andExpect(status().isBadRequest())
+                .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.message").value("Error: ID is already taken!"));
     }
 
+    // SÉCURITÉ (audit DSI – BLOCKER #1) : l'inscription publique ne permet plus
+    // de choisir un rôle. Tout compte auto-inscrit reçoit ENSEIGNANT.
     @Test
-    void registerUser_WithRoleCUP_ShouldAssignRoleCUP() throws Exception {
-        signupRequest.setRole("CUP");
-        when(userRepository.existsByUsername(anyString())).thenReturn(false);
-        when(userRepository.existsByEmail(anyString())).thenReturn(false);
-        when(roleRepository.findByName(ERole.CUP)).thenReturn(Optional.of(new Role(ERole.CUP)));
-
-        mockMvc.perform(post("/api/v1/auth/signup")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(signupRequest)))
-                .andExpect(status().isOk());
-
-        verify(userRepository).save(any(User.class));
-    }
-
-    @Test
-    void registerUser_WithRoleEnseignant_ShouldAssignRoleEnseignant() throws Exception {
-        signupRequest.setRole("Enseignant");
+    void registerUser_AlwaysAssignsEnseignant_NeverPrivilegedRole() throws Exception {
         when(userRepository.existsByUsername(anyString())).thenReturn(false);
         when(userRepository.existsByEmail(anyString())).thenReturn(false);
         when(roleRepository.findByName(ERole.ENSEIGNANT)).thenReturn(Optional.of(new Role(ERole.ENSEIGNANT)));
+        when(passwordEncoder.encode(anyString())).thenReturn("encodedPassword");
 
         mockMvc.perform(post("/api/v1/auth/signup")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(signupRequest)))
-                .andExpect(status().isOk());
+                .andExpect(status().isCreated());
 
-        verify(userRepository).save(any(User.class));
+        // Le rôle privilégié n'est jamais consulté lors d'un signup public.
+        verify(roleRepository).findByName(ERole.ENSEIGNANT);
+        verify(roleRepository, never()).findByName(ERole.ADMIN);
+        verify(roleRepository, never()).findByName(ERole.CUP);
+        ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
+        verify(userRepository).save(captor.capture());
+        assertTrue(captor.getValue().getRoles().stream()
+                .allMatch(r -> r.getName() == ERole.ENSEIGNANT));
     }
 
     @Test
-    void registerUser_WithUnknownRole_ShouldReturnBadRequest() throws Exception {
-        signupRequest.setRole("unknown");
-        when(userRepository.existsByUsername(anyString())).thenReturn(false);
-        when(userRepository.existsByEmail(anyString())).thenReturn(false);
+    void registerUser_WhenPasswordTooWeak_ShouldReturnBadRequest() throws Exception {
+        signupRequest.setPassword("weak");   // < 8 chars, pas de chiffre
 
         mockMvc.perform(post("/api/v1/auth/signup")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(signupRequest)))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.message").value("Error: Role 'unknown' is not recognized."));
+                .andExpect(status().isBadRequest());
 
         verify(userRepository, never()).save(any(User.class));
     }
 
     @Test
-    void registerUser_WithNullRole_ShouldAssignDefaultEnseignant() throws Exception {
-        signupRequest.setRole(null);
-        when(userRepository.existsByUsername(anyString())).thenReturn(false);
-        when(userRepository.existsByEmail(anyString())).thenReturn(false);
-        when(roleRepository.findByName(ERole.ENSEIGNANT)).thenReturn(Optional.of(new Role(ERole.ENSEIGNANT)));
-        when(passwordEncoder.encode(anyString())).thenReturn("encodedPassword");
+    void registerUser_WhenPhoneMissing_ShouldReturnBadRequest() throws Exception {
+        signupRequest.setPhoneNumber(null);
 
         mockMvc.perform(post("/api/v1/auth/signup")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(signupRequest)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.message").value("User registered successfully!"));
+                .andExpect(status().isBadRequest());
 
-        verify(userRepository).save(any(User.class));
-    }
-
-    @Test
-    void registerUser_WithBlankRole_ShouldAssignDefaultEnseignant() throws Exception {
-        signupRequest.setRole("   ");
-        when(userRepository.existsByUsername(anyString())).thenReturn(false);
-        when(userRepository.existsByEmail(anyString())).thenReturn(false);
-        when(roleRepository.findByName(ERole.ENSEIGNANT)).thenReturn(Optional.of(new Role(ERole.ENSEIGNANT)));
-        when(passwordEncoder.encode(anyString())).thenReturn("encodedPassword");
-
-        mockMvc.perform(post("/api/v1/auth/signup")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(signupRequest)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.message").value("User registered successfully!"));
-
-        verify(userRepository).save(any(User.class));
-    }
-
-    @Test
-    void registerUser_WithRoleFormateur_ShouldAssignRoleFormateur() throws Exception {
-        signupRequest.setRole("Formateur");
-        when(userRepository.existsByUsername(anyString())).thenReturn(false);
-        when(userRepository.existsByEmail(anyString())).thenReturn(false);
-        when(roleRepository.findByName(ERole.FORMATEUR)).thenReturn(Optional.of(new Role(ERole.FORMATEUR)));
-        when(passwordEncoder.encode(anyString())).thenReturn("encodedPassword");
-
-        mockMvc.perform(post("/api/v1/auth/signup")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(objectMapper.writeValueAsString(signupRequest)))
-                .andExpect(status().isOk());
-
-        verify(userRepository).save(any(User.class));
+        verify(userRepository, never()).save(any(User.class));
     }
 
     @Test

@@ -128,6 +128,14 @@ public class Formation extends BaseAuditEntity {
     @com.fasterxml.jackson.annotation.JsonIgnore
     private List<Enseignant> animateurs;
 
+    // Animateurs externes (rattachés à un bureau) liés à la formation externe
+    @ManyToMany
+    @JoinTable(name = "formation_animateur_externe", schema = "formation",
+            joinColumns = @JoinColumn(name = "formation_id"),
+            inverseJoinColumns = @JoinColumn(name = "animateur_externe_id"))
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    private List<AnimateurExterne> animateursExternes = new ArrayList<>();
+
 
     @ManyToOne
     @JoinColumn(name = "up_id", nullable = true) // Relation obligatoire

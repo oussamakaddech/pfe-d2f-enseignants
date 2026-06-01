@@ -37,6 +37,7 @@ public class FormationWorkflowService {
     private final PresenceRepository presenceRepository;
     private final DeptRepository departementRepository;
     private final UpRepository upRepository;
+    private final AnimateurExterneRepository animateurExterneRepository;
     private final EvaluationPublisher evaluationPublisher;
     // DSI §4/§2 — injection optionnelle : null si azure.ad.enabled=false
     private final OutlookCalendarService outlookCalendarService;
@@ -51,6 +52,7 @@ public class FormationWorkflowService {
             PresenceRepository presenceRepository,
             DeptRepository departementRepository,
             UpRepository upRepository,
+            AnimateurExterneRepository animateurExterneRepository,
             EvaluationPublisher evaluationPublisher,
             FormationWorkflowServiceHelper helper,
             FormationMapper formationMapper,
@@ -63,6 +65,7 @@ public class FormationWorkflowService {
         this.presenceRepository = presenceRepository;
         this.departementRepository = departementRepository;
         this.upRepository = upRepository;
+        this.animateurExterneRepository = animateurExterneRepository;
         this.evaluationPublisher = evaluationPublisher;
         this.helper = helper;
         this.formationMapper = formationMapper;
@@ -206,6 +209,15 @@ public class FormationWorkflowService {
                     .filter(Objects::nonNull)
                     .toList();
             formation.setAnimateurs(new ArrayList<>(animateurs));
+        }
+
+        // Mise a jour des animateurs externes (rattachés à un bureau)
+        if (request.getAnimateursExternesIds() != null) {
+            List<AnimateurExterne> animateursExternes = request.getAnimateursExternesIds().stream()
+                    .map(id -> animateurExterneRepository.findById(id).orElse(null))
+                    .filter(Objects::nonNull)
+                    .toList();
+            formation.setAnimateursExternes(new ArrayList<>(animateursExternes));
         }
     }
 
@@ -1169,6 +1181,8 @@ public class FormationWorkflowService {
                     Hibernate.initialize(seance.getParticipants());
             });
         }
+        if (formation.getAnimateursExternes() != null)
+            Hibernate.initialize(formation.getAnimateursExternes());
         return formationMapper.toResponseDTO(formation);
     }
 

@@ -79,9 +79,14 @@ public class SecurityController {
         if (authentication == null || !authentication.isAuthenticated()) {
             return ResponseEntity.status(401).build();
         }
-        JwtSession session = authService.refresh(authentication);
-        response.addHeader(HttpHeaders.SET_COOKIE, buildJwtCookie(session.token(), session.maxAgeSeconds()).toString());
-        return ResponseEntity.ok(session.body());
+        try {
+            JwtSession session = authService.refresh(authentication);
+            response.addHeader(HttpHeaders.SET_COOKIE, buildJwtCookie(session.token(), session.maxAgeSeconds()).toString());
+            return ResponseEntity.ok(session.body());
+        } catch (Exception e) {
+            log.warn("Token refresh failed for user={}: {}", authentication.getName(), e.getMessage());
+            return ResponseEntity.status(401).build();
+        }
     }
 
     @PostMapping("/logout")
@@ -106,7 +111,9 @@ public class SecurityController {
     @PostMapping("/signup")
     public ResponseEntity<MessageResponse> registerUser(@Valid @RequestBody SignupRequest signUpRequest) {
         authService.registerUser(signUpRequest);
-        return ResponseEntity.ok(new MessageResponse("User registered successfully!"));
+        // 201 Created — conformité REST (audit DSI).
+        return ResponseEntity.status(org.springframework.http.HttpStatus.CREATED)
+                .body(new MessageResponse("User registered successfully!"));
     }
 
     // ── Helpers HTTP (cookies, IP) ──────────────────────────────────────────────

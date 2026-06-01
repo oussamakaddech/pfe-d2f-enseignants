@@ -13,6 +13,9 @@ export interface Enseignant {
   dateRecrutement?: string;
   telephone?: string;
   adresse?: string;
+  grade?: string;
+  photoUrl?: string;
+  userId?: string;
 }
 
 export interface EnseignantUP {
