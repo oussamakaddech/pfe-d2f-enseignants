@@ -1,0 +1,200 @@
+# =============================================================================
+# Spring Cloud Gateway routes — externalisees au format YAML pour lisibilite
+# =============================================================================
+# Importe via : spring.config.import=optional:classpath:routes.yml
+#
+# IMPORTANT : les routes les plus specifiques DOIVENT etre avant les routes
+# generiques (Spring Gateway evalue dans l'ordre). Ne pas reorganiser sans
+# verifier les patterns de Path.
+# =============================================================================
+spring:
+  cloud:
+    gateway:
+      routes:
+
+        # ── Auth Login — rate limite : 5 req/min par IP ─────────────────────
+        - id: auth-login
+          uri: ${AUTH_SERVICE_URL:http://localhost:8085}
+          predicates:
+            - Path=/api/auth/login
+          filters:
+            - RewritePath=/api/auth/(?<segment>.*), /api/v1/auth/${segment}
+            - AuthorizationFilter
+            - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials, RETAIN_FIRST
+            - name: RequestRateLimiter
+              args:
+                redis-rate-limiter.replenishRate: ${rate-limit.login.replenish-rate}
+                redis-rate-limiter.burstCapacity: ${rate-limit.login.burst-capacity}
+                redis-rate-limiter.requestedTokens: ${rate-limit.login.requested-tokens}
+                key-resolver: "#{@ipKeyResolver}"
+            - name: CircuitBreaker
+              args:
+                name: auth-cb
+                fallbackUri: forward:/fallback
+
+        # ── Auth Forgot-Password — rate limite : 3 req/5 min par IP ─────────
+        - id: auth-forgot-password
+          uri: ${AUTH_SERVICE_URL:http://localhost:8085}
+          predicates:
+            - Path=/api/auth/forgot-password
+          filters:
+            - RewritePath=/api/auth/(?<segment>.*), /api/v1/auth/${segment}
+            - AuthorizationFilter
+            - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials, RETAIN_FIRST
+            - name: RequestRateLimiter
+              args:
+                redis-rate-limiter.replenishRate: ${rate-limit.forgot-password.replenish-rate}
+                redis-rate-limiter.burstCapacity: ${rate-limit.forgot-password.burst-capacity}
+                redis-rate-limiter.requestedTokens: ${rate-limit.forgot-password.requested-tokens}
+                key-resolver: "#{@ipKeyResolver}"
+            - name: CircuitBreaker
+              args:
+                name: auth-cb
+                fallbackUri: forward:/fallback
+
+        # ── Auth Service (catch-all) — rate limite : 20 req/min par IP ──────
+        - id: auth-service
+          uri: ${AUTH_SERVICE_URL:http://localhost:8085}
+          predicates:
+            - Path=/api/auth/**
+          filters:
+            - RewritePath=/api/auth/(?<segment>.*), /api/v1/auth/${segment}
+            - AuthorizationFilter
+            - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials, RETAIN_FIRST
+            - name: CircuitBreaker
+              args:
+                name: auth-cb
+                fallbackUri: forward:/fallback
+            - name: RequestRateLimiter
+              args:
+                redis-rate-limiter.replenishRate: ${rate-limit.default.replenish-rate}
+                redis-rate-limiter.burstCapacity: ${rate-limit.default.burst-capacity}
+                redis-rate-limiter.requestedTokens: ${rate-limit.default.requested-tokens}
+                key-resolver: "#{@ipKeyResolver}"
+
+        # ── Account Service (port 8085) ─────────────────────────────────────
+        - id: account-service
+          uri: ${AUTH_SERVICE_URL:http://localhost:8085}
+          predicates:
+            - Path=/api/account/**
+          filters:
+            - RewritePath=/api/account/(?<segment>.*), /api/v1/account/${segment}
+            - AuthorizationFilter
+            - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials, RETAIN_FIRST
+            - name: CircuitBreaker
+              args:
+                name: auth-cb
+                fallbackUri: forward:/fallback
+
+        # ── Certificat Service (port 8086) ──────────────────────────────────
+        - id: certificat-service
+          uri: ${CERTIFICAT_SERVICE_URL:http://localhost:8086}
+          predicates:
+            - Path=/api/certificat/**
+          filters:
+            - RewritePath=/api/certificat/(?<segment>.*), /api/v1/${segment}
+            - AuthorizationFilter
+            - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials, RETAIN_FIRST
+            - name: CircuitBreaker
+              args:
+                name: certificat-cb
+                fallbackUri: forward:/fallback
+
+        # ── Evaluation Service (port 8087) ──────────────────────────────────
+        - id: evaluation-service
+          uri: ${EVALUATION_SERVICE_URL:http://localhost:8087}
+          predicates:
+            - Path=/api/evaluation/**
+          filters:
+            - RewritePath=/api/evaluation/(?<segment>.*), /api/v1/${segment}
+            - AuthorizationFilter
+            - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials, RETAIN_FIRST
+            - name: CircuitBreaker
+              args:
+                name: evaluation-cb
+                fallbackUri: forward:/fallback
+
+        # ── Formation Service (port 8088) ───────────────────────────────────
+        - id: formation-service
+          uri: ${FORMATION_SERVICE_URL:http://localhost:8088}
+          predicates:
+            - Path=/api/formation/**
+          filters:
+            - RewritePath=/api/formation/(?<segment>.*), /api/v1/${segment}
+            - AuthorizationFilter
+            - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials, RETAIN_FIRST
+            - name: CircuitBreaker
+              args:
+                name: formation-cb
+                fallbackUri: forward:/fallback
+
+        # ── Besoin Formation Service (port 8004) ────────────────────────────
+        - id: besoinsformation-service
+          uri: ${BESOIN_SERVICE_URL:http://localhost:8004}
+          predicates:
+            - Path=/api/besoins-formation, /api/besoins-formation/**
+          filters:
+            - RewritePath=/api/besoins-formation(?<segment>/.*)?, /api/v1/besoins-formations${segment}
+            - AuthorizationFilter
+            - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials, RETAIN_FIRST
+            - name: CircuitBreaker
+              args:
+                name: besoin-cb
+                fallbackUri: forward:/fallback
+
+        # ── Competence Service (port 8005) ──────────────────────────────────
+        - id: competence-service
+          uri: ${COMPETENCE_SERVICE_URL:http://localhost:8005}
+          predicates:
+            - Path=/api/competence/**
+          filters:
+            - RewritePath=/api/competence/(?<segment>.*), /api/v1/${segment}
+            - AuthorizationFilter
+            - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials, RETAIN_FIRST
+            - name: CircuitBreaker
+              args:
+                name: competence-cb
+                fallbackUri: forward:/fallback
+
+        # ── RICE Service (port 8001) ────────────────────────────────────────
+        - id: rice-service
+          uri: ${RICE_SERVICE_URL:http://localhost:8001}
+          predicates:
+            - Path=/api/rice/**
+          filters:
+            - StripPrefix=1
+            - AuthorizationFilter
+            - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials, RETAIN_FIRST
+            - name: CircuitBreaker
+              args:
+                name: rice-cb
+                fallbackUri: forward:/fallback
+
+
+        # ── Analyse Predictive Service (FastAPI — local 8090, Docker 8000) ──
+        - id: analyse-service
+          uri: ${ANALYSE_SERVICE_URL:http://localhost:8090}
+          predicates:
+            - Path=/api/analyse/**
+          filters:
+            - RewritePath=/api/analyse/(?<segment>.*), /api/${segment}
+            - AuthorizationFilter
+            - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials, RETAIN_FIRST
+            - name: CircuitBreaker
+              args:
+                name: analyse-cb
+                fallbackUri: forward:/fallback
+
+        # ── Skill Passport (service-analyse port 8089) ──────────────────────
+        # URL publique versionnee /api/v1/skill-passports/** conforme DSI
+        - id: skill-passport-service
+          uri: ${SKILL_PASSPORT_SERVICE_URL:http://localhost:8089}
+          predicates:
+            - Path=/api/v1/skill-passports/**
+          filters:
+            - AuthorizationFilter
+            - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials, RETAIN_FIRST
+            - name: CircuitBreaker
+              args:
+                name: skill-passport-cb
+                fallbackUri: forward:/fallback

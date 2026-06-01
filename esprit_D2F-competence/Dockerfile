@@ -2,27 +2,34 @@
 FROM eclipse-temurin:17-jdk-alpine as builder
 
 # Authors
-LABEL Author="seddik bouzayani <seddik.bouzayani@esprit.tn>"
-LABEL maintainer="seddik bouzayani <seddik.bouzayani@esprit.tn>"
+LABEL Author="D2F Team <d2f@esprit.tn>"
+LABEL maintainer="D2F Team <d2f@esprit.tn>"
 
 # Workdir
 WORKDIR /opt/app
 
+# Install shared d2f-common-security library (not in Maven Central — local module)
+COPY esprit_D2F-common-security/ /tmp/d2f-common-security/
+RUN --mount=type=cache,target=/root/.m2 \
+    cd /tmp/d2f-common-security && \
+    dos2unix mvnw && chmod u+x mvnw && \
+    ./mvnw install -DskipTests
+
 # Copy Maven Wrapper
-COPY .mvn/ .mvn
+COPY esprit_D2F-competence/.mvn/ .mvn/
 
 # Copy Maven Wrapper script && pom.xml
-COPY mvnw pom.xml ./
+COPY esprit_D2F-competence/mvnw esprit_D2F-competence/pom.xml ./
 
-# Fix mvnw & 
+# Fix mvnw
 RUN dos2unix mvnw && \
     chmod u+x mvnw
 
-# Resolves all project dependencies offline and keep cache   
+# Resolves all project dependencies offline and keep cache
 RUN --mount=type=cache,target=/root/.m2 ./mvnw dependency:go-offline
 
 # Copy source code application
-COPY ./src ./src
+COPY esprit_D2F-competence/src ./src
 
 # Install the package to a local repository and keep cache
 RUN --mount=type=cache,target=/root/.m2 ./mvnw clean install -DskipTests
@@ -34,11 +41,14 @@ RUN mkdir -p target/dependency && (cd target/dependency; jar -xf ../*.jar)
 FROM eclipse-temurin:17-jre-alpine
 
 # Authors
-LABEL Author="seddik bouzayani <seddik.bouzayani@esprit.tn>"
-LABEL maintainer="seddik bouzayani <seddik.bouzayani@esprit.tn>"
+LABEL Author="D2F Team <d2f@esprit.tn>"
+LABEL maintainer="D2F Team <d2f@esprit.tn>"
 
 # Create user
-RUN addgroup -g 2003 esprit ; adduser  --ingroup esprit --disabled-password --uid 2003 esprit
+RUN addgroup -g 2003 esprit ; adduser --ingroup esprit --disabled-password --uid 2003 esprit
+
+# Install curl for HEALTHCHECK
+RUN apk add --no-cache curl
 
 # Use user
 USER esprit
@@ -51,6 +61,12 @@ COPY --from=builder ${DEPENDENCY}/BOOT-INF/lib /opt/app/lib
 COPY --from=builder ${DEPENDENCY}/META-INF /opt/app/META-INF
 COPY --from=builder ${DEPENDENCY}/BOOT-INF/classes /opt/app
 
-# Run app when container starts
-ENTRYPOINT ["java","-cp","opt/app:opt/app/lib/*","tn.esprit.d2f.CompetenceApplication"]
+# Expose port
+EXPOSE 8005
 
+# Healthcheck — vérifie que Spring Boot Actuator répond (conformité DSI §2.1)
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+  CMD curl -sf http://localhost:8005/actuator/health || exit 1
+
+# Run application when container starts
+ENTRYPOINT ["java","-cp","opt/app:opt/app/lib/*","tn.esprit.d2f.competence.CompetenceServiceApplication"]

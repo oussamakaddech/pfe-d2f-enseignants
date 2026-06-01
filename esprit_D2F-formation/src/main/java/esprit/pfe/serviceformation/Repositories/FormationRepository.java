@@ -1,8 +1,11 @@
-package esprit.pfe.serviceformation.Repositories;
+package esprit.pfe.serviceformation.repositories;
 
-import esprit.pfe.serviceformation.DTO.CountHeuresDTO;
-import esprit.pfe.serviceformation.Entities.EtatFormation;
-import esprit.pfe.serviceformation.Entities.Formation;
+import esprit.pfe.serviceformation.dto.CountHeuresDTO;
+import esprit.pfe.serviceformation.dto.FormationFilter;
+import esprit.pfe.serviceformation.entities.EtatFormation;
+import esprit.pfe.serviceformation.entities.Formation;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -10,202 +13,197 @@ import org.springframework.stereotype.Repository;
 
 import java.util.Date;
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface FormationRepository extends JpaRepository<Formation, Long> {
 
-    List<Formation> findDistinctBySeancesAnimateursMail(String email);
-    List<Formation> findByEtatFormation(EtatFormation etatFormation);
+  // ==================== BASIC QUERIES ====================
+  
+  List<Formation> findDistinctBySeancesAnimateursMail(String email);
 
-    // Récupère les formations dont la dateDebut est comprise entre 'start' et 'end'
-    List<Formation> findByDateDebutBetween(Date start, Date end);
+  List<Formation> findByEtatFormation(EtatFormation etatFormation);
 
-    // Compte le nombre total de formations entre 'start' et 'end'
-    @Query("SELECT COUNT(f) FROM Formation f WHERE f.dateDebut BETWEEN :start AND :end")
-    int countTotalFormations(@Param("start") Date start, @Param("end") Date end);
+  List<Formation> findByDepartement_Id(String deptId);
 
-    // Calcule la somme totale des heures de formation (chargeHoraireGlobal) entre 'start' et 'end'
-    @Query("SELECT COALESCE(SUM(f.chargeHoraireGlobal), 0) FROM Formation f WHERE f.dateDebut BETWEEN :start AND :end")
-    int sumTotalHeures(@Param("start") Date start, @Param("end") Date end);
+  List<Formation> findByDateDebutBetween(Date start, Date end);
 
-    // Compte le nombre de participants uniques via les séances associées aux formations entre 'start' et 'end'
-    @Query("SELECT COUNT(DISTINCT p.id) FROM Formation f JOIN f.seances s JOIN s.participants p WHERE f.dateDebut BETWEEN :start AND :end")
-    int countUniqueParticipants(@Param("start") Date start, @Param("end") Date end);
+  Page<Formation> findByEtatFormation(EtatFormation etatFormation, Pageable pageable);
 
+  // ==================== N+1 OPTIMIZATION QUERIES ====================
+  
+  /**
+   * Find formation with all its seances (avoids N+1 on seances access)
+   */
+  @Query("SELECT f FROM Formation f LEFT JOIN FETCH f.seances WHERE f.idFormation = :id")
+  Optional<Formation> findByIdWithSeances(@Param("id") Long id);
 
+  /**
+   * Find formation with all its inscriptions (avoids N+1 on inscriptions access)
+   */
+  @Query("SELECT f FROM Formation f LEFT JOIN FETCH f.inscriptions WHERE f.idFormation = :id")
+  Optional<Formation> findByIdWithInscriptions(@Param("id") Long id);
 
-    // Nouvelle requête pour compter les formations par état sur une période donnée
-    @Query("SELECT f.etatFormation, COUNT(f) FROM Formation f WHERE f.dateDebut BETWEEN :start AND :end GROUP BY f.etatFormation")
-    List<Object[]> countFormationsByEtat(@Param("start") Date start, @Param("end") Date end);
+  /**
+   * Find formation with all its animateurs (avoids N+1 on animateurs access)
+   */
+  @Query("SELECT f FROM Formation f LEFT JOIN FETCH f.animateurs WHERE f.idFormation = :id")
+  Optional<Formation> findByIdWithAnimateurs(@Param("id") Long id);
 
-    List<Formation> findDistinctBySeances_Animateurs_Id(String enseignantId);
+  /**
+   * Find formation with all related entities (full fetch for detailed views)
+   */
+  @Query("""
+      SELECT f FROM Formation f 
+      LEFT JOIN FETCH f.seances 
+      LEFT JOIN FETCH f.inscriptions 
+      LEFT JOIN FETCH f.animateurs 
+      LEFT JOIN FETCH f.up 
+      LEFT JOIN FETCH f.departement
+      WHERE f.idFormation = :id
+      """)
+  Optional<Formation> findByIdWithAllRelations(@Param("id") Long id);
 
-    /**
-     * Parcourt :
-     *   Formation → seances (List<SeanceFormation>) → participants (List<Enseignant>) → id
-     */
-    List<Formation> findDistinctBySeances_Participants_Id(String enseignantId);
+  /**
+   * Find formations by state with seances (for workflow processing)
+   */
+  @Query("SELECT DISTINCT f FROM Formation f LEFT JOIN FETCH f.seances WHERE f.etatFormation = :etat")
+  List<Formation> findByEtatFormationWithSeances(@Param("etat") EtatFormation etat);
 
+  // ==================== IDEMPOTENCY CHECK ====================
+  
+  /**
+   * Check if a formation already exists for a besoin ID (used for event idempotency)
+   */
+  boolean existsByIdBesoinFormation(Long idBesoinFormation);
 
-    /** 2. Toutes les formations rattachées à une UP (quel que soit leur état) */
-    List<Formation> findByUp_Id(String upId);
+  // ==================== STATISTICS QUERIES ====================
+  
+  @Query("SELECT COUNT(f) FROM Formation f WHERE f.dateDebut BETWEEN :start AND :end")
+  int countTotalFormations(@Param("start") Date start, @Param("end") Date end);
 
-    @Query("""
-  SELECT NEW esprit.pfe.serviceformation.DTO.CountHeuresDTO(
-      COUNT(f),
-      COALESCE(SUM(f.chargeHoraireGlobal), 0L)
-  )
-  FROM Formation f
-  WHERE
-    (f.competance        = :competence   OR :competence   IS NULL)
-    AND (f.domaine        = :domaine      OR :domaine      IS NULL)
-    AND (f.up.id          = :upId         OR :upId         IS NULL)
-    AND (f.departement.id = :deptId       OR :deptId       IS NULL)
-    AND (f.ouverte        = :ouverte      OR :ouverte      IS NULL)
-    AND f.dateDebut >= COALESCE(:start, f.dateDebut)
-    AND f.dateDebut <= COALESCE(:end,   f.dateDebut)
-    AND f.etatFormation IN :etats
-""")
-    CountHeuresDTO countAndSumHeuresWithFilters(
-            @Param("competence") String competence,
-            @Param("domaine")    String domaine,
-            @Param("upId")       Long   upId,
-            @Param("deptId")     Long   deptId,
-            @Param("ouverte")    Boolean ouverte,
-            @Param("start")      Date   start,
-            @Param("end")        Date   end,
-            @Param("etats")      List<EtatFormation> etats
-    );
+  @Query("SELECT COALESCE(SUM(f.chargeHoraireGlobal), 0) FROM Formation f WHERE f.dateDebut BETWEEN :start AND :end")
+  int sumTotalHeures(@Param("start") Date start, @Param("end") Date end);
 
-    @Query("""
+  @Query("SELECT COUNT(DISTINCT p.id) FROM Formation f JOIN f.seances s JOIN s.participants p WHERE f.dateDebut BETWEEN :start AND :end")
+  int countUniqueParticipants(@Param("start") Date start, @Param("end") Date end);
+
+  @Query("SELECT f.etatFormation, COUNT(f) FROM Formation f WHERE f.dateDebut BETWEEN :start AND :end GROUP BY f.etatFormation")
+  List<Object[]> countFormationsByEtat(@Param("start") Date start, @Param("end") Date end);
+
+  // ==================== TEACHER QUERIES ====================
+  
+  List<Formation> findDistinctBySeances_Animateurs_Id(String enseignantId);
+
+  List<Formation> findDistinctBySeances_Participants_Id(String enseignantId);
+
+  List<Formation> findByUp_Id(String upId);
+
+  // ==================== FILTERED QUERIES ====================
+  
+  @Query("""
+      SELECT NEW esprit.pfe.serviceformation.dto.CountHeuresDTO(
+          COUNT(f),
+          COALESCE(SUM(f.chargeHoraireGlobal), 0L)
+      )
+      FROM Formation f
+      WHERE
+        (f.competence        = :#{#filter.competence}   OR :#{#filter.competence}   IS NULL)
+        AND (f.domaine        = :#{#filter.domaine}      OR :#{#filter.domaine}      IS NULL)
+        AND (f.up.id          = :#{#filter.upId}         OR :#{#filter.upId}         IS NULL)
+        AND (f.departement.id = :#{#filter.deptId}       OR :#{#filter.deptId}       IS NULL)
+        AND (f.ouverte        = :#{#filter.ouverte}      OR :#{#filter.ouverte}      IS NULL)
+        AND f.dateDebut >= COALESCE(:#{#filter.start}, f.dateDebut)
+        AND f.dateDebut <= COALESCE(:#{#filter.end},   f.dateDebut)
+        AND f.etatFormation IN :#{#filter.etats}
+    """)
+  CountHeuresDTO countAndSumHeuresWithFilters(@Param("filter") FormationFilter filter);
+
+  @Query("""
       SELECT f.typeFormation, COUNT(f)
       FROM Formation f
       WHERE
-        (:competence IS NULL    OR f.competance        = :competence)
-        AND (:domaine    IS NULL OR f.domaine           = :domaine)
-        AND (:upId       IS NULL OR f.up.id             = :upId)
-        AND (:deptId     IS NULL OR f.departement.id    = :deptId)
-        AND (:ouverte    IS NULL OR f.ouverte           = :ouverte)
-        AND (:start      IS NULL OR f.dateDebut >= :start)
-        AND (:end        IS NULL OR f.dateDebut <= :end)
-        AND f.etatFormation IN :etats
+        (:#{#filter.competence} IS NULL    OR f.competence        = :#{#filter.competence})
+        AND (:#{#filter.domaine}    IS NULL OR f.domaine           = :#{#filter.domaine})
+        AND (:#{#filter.upId}       IS NULL OR f.up.id             = :#{#filter.upId})
+        AND (:#{#filter.deptId}     IS NULL OR f.departement.id    = :#{#filter.deptId})
+        AND (:#{#filter.ouverte}    IS NULL OR f.ouverte           = :#{#filter.ouverte})
+        AND (:#{#filter.start}      IS NULL OR f.dateDebut >= :#{#filter.start})
+        AND (:#{#filter.end}        IS NULL OR f.dateDebut <= :#{#filter.end})
+        AND f.etatFormation IN :#{#filter.etats}
       GROUP BY f.typeFormation
     """)
-    List<Object[]> countFormationsByTypeWithFilters(
-            @Param("competence") String              competence,
-            @Param("domaine")    String              domaine,
-            @Param("upId")       Long                upId,
-            @Param("deptId")     Long                deptId,
-            @Param("ouverte")    Boolean             ouverte,
-            @Param("start")      Date                start,
-            @Param("end")        Date                end,
-            @Param("etats")      List<EtatFormation> etats
-    );
+  List<Object[]> countFormationsByTypeWithFilters(@Param("filter") FormationFilter filter);
 
-
-    /**
-     * ------------------------------------------------------------
-     * 1) EXTERNE‐ONLY
-     *    -> email externe NON NULL et NON vide (TRIM(email) <> '')
-     *    -> AUCUN animateur (LEFT JOIN + a.id IS NULL)
-     * ------------------------------------------------------------
-     */
-    @Query("""
-        SELECT DISTINCT f.idFormation
-        FROM Formation f
-             LEFT JOIN f.seances s
-             LEFT JOIN s.animateurs a
-        WHERE 
-            (:competence IS NULL     OR f.competance         = :competence)
-            AND (:domaine    IS NULL OR f.domaine            = :domaine)
-            AND (:upId       IS NULL OR f.up.id              = :upId)
-            AND (:deptId     IS NULL OR f.departement.id     = :deptId)
-            AND (:ouverte    IS NULL OR f.ouverte            = :ouverte)
-            AND (:start      IS NULL OR f.dateDebut          >= :start)
-            AND (:end        IS NULL OR f.dateDebut          <= :end)
-            AND TRIM(f.externeFormateurEmail) <> '' 
-            AND f.etatFormation IN :etats
-            AND a.id IS NULL
+  @Query("""
+      SELECT DISTINCT f.idFormation
+      FROM Formation f
+           LEFT JOIN f.seances s
+           LEFT JOIN s.animateurs a
+      WHERE
+          (:#{#filter.competence} IS NULL     OR f.competence         = :#{#filter.competence})
+          AND (:#{#filter.domaine}    IS NULL OR f.domaine            = :#{#filter.domaine})
+          AND (:#{#filter.upId}       IS NULL OR f.up.id              = :#{#filter.upId})
+          AND (:#{#filter.deptId}     IS NULL OR f.departement.id     = :#{#filter.deptId})
+          AND (:#{#filter.ouverte}    IS NULL OR f.ouverte            = :#{#filter.ouverte})
+          AND (:#{#filter.start}      IS NULL OR f.dateDebut          >= :#{#filter.start})
+          AND (:#{#filter.end}        IS NULL OR f.dateDebut          <= :#{#filter.end})
+          AND TRIM(f.externeFormateurEmail) <> ''
+          AND f.etatFormation IN :#{#filter.etats}
+          AND a.id IS NULL
     """)
-    List<Long> findExterneOnlyIdsWithFilters(
-            @Param("competence") String competence,
-            @Param("domaine")    String domaine,
-            @Param("upId")       Long   upId,
-            @Param("deptId")     Long   deptId,
-            @Param("ouverte")    Boolean ouverte,
-            @Param("start")      Date   start,
-            @Param("end")        Date   end,
-            @Param("etats")      List<EtatFormation> etats
-    );
+  List<Long> findExterneOnlyIdsWithFilters(@Param("filter") FormationFilter filter);
 
-
-    /**
-     * ------------------------------------------------------------
-     * 2) INTERNE‐ONLY
-     *    -> email externe NULL ou vide (TRIM(email) = '')
-     *    -> AU MOINS un animateur (JOIN f.seances s JOIN s.animateurs a)
-     * ------------------------------------------------------------
-     */
-    @Query("""
-        SELECT DISTINCT f.idFormation
-        FROM Formation f
-             JOIN f.seances s
-             JOIN s.animateurs a
-        WHERE 
-            (:competence IS NULL     OR f.competance         = :competence)
-            AND (:domaine    IS NULL OR f.domaine            = :domaine)
-            AND (:upId       IS NULL OR f.up.id              = :upId)
-            AND (:deptId     IS NULL OR f.departement.id     = :deptId)
-            AND (:ouverte    IS NULL OR f.ouverte            = :ouverte)
-            AND (:start      IS NULL OR f.dateDebut          >= :start)
-            AND (:end        IS NULL OR f.dateDebut          <= :end)
-            AND (f.externeFormateurEmail IS NULL 
-                 OR TRIM(f.externeFormateurEmail) = '')
-            AND f.etatFormation IN :etats
+  @Query("""
+      SELECT DISTINCT f.idFormation
+      FROM Formation f
+           JOIN f.seances s
+           JOIN s.animateurs a
+      WHERE
+          (:#{#filter.competence} IS NULL     OR f.competence         = :#{#filter.competence})
+          AND (:#{#filter.domaine}    IS NULL OR f.domaine            = :#{#filter.domaine})
+          AND (:#{#filter.upId}       IS NULL OR f.up.id              = :#{#filter.upId})
+          AND (:#{#filter.deptId}     IS NULL OR f.departement.id     = :#{#filter.deptId})
+          AND (:#{#filter.ouverte}    IS NULL OR f.ouverte            = :#{#filter.ouverte})
+          AND (:#{#filter.start}      IS NULL OR f.dateDebut          >= :#{#filter.start})
+          AND (:#{#filter.end}        IS NULL OR f.dateDebut          <= :#{#filter.end})
+          AND (f.externeFormateurEmail IS NULL
+               OR TRIM(f.externeFormateurEmail) = '')
+          AND f.etatFormation IN :#{#filter.etats}
     """)
-    List<Long> findInterneOnlyIdsWithFilters(
-            @Param("competence") String competence,
-            @Param("domaine")    String domaine,
-            @Param("upId")       Long   upId,
-            @Param("deptId")     Long   deptId,
-            @Param("ouverte")    Boolean ouverte,
-            @Param("start")      Date   start,
-            @Param("end")        Date   end,
-            @Param("etats")      List<EtatFormation> etats
-    );
+  List<Long> findInterneOnlyIdsWithFilters(@Param("filter") FormationFilter filter);
 
-
-    /**
-     * ------------------------------------------------------------
-     * 3) MIXTE
-     *    -> email externe NON NULL et NON vide (TRIM(email) <> '')
-     *    -> AU MOINS un animateur (JOIN f.seances s JOIN s.animateurs a)
-     * ------------------------------------------------------------
-     */
-    @Query("""
-        SELECT DISTINCT f.idFormation
-        FROM Formation f
-             JOIN f.seances s
-             JOIN s.animateurs a
-        WHERE 
-            (:competence IS NULL     OR f.competance         = :competence)
-            AND (:domaine    IS NULL OR f.domaine            = :domaine)
-            AND (:upId       IS NULL OR f.up.id              = :upId)
-            AND (:deptId     IS NULL OR f.departement.id     = :deptId)
-            AND (:ouverte    IS NULL OR f.ouverte            = :ouverte)
-            AND (:start      IS NULL OR f.dateDebut          >= :start)
-            AND (:end        IS NULL OR f.dateDebut          <= :end)
-            AND TRIM(f.externeFormateurEmail) <> ''
-            AND f.etatFormation IN :etats
+  @Query("""
+      SELECT DISTINCT f.idFormation
+      FROM Formation f
+           JOIN f.seances s
+           JOIN s.animateurs a
+      WHERE
+          (:#{#filter.competence} IS NULL     OR f.competence         = :#{#filter.competence})
+          AND (:#{#filter.domaine}    IS NULL OR f.domaine            = :#{#filter.domaine})
+          AND (:#{#filter.upId}       IS NULL OR f.up.id              = :#{#filter.upId})
+          AND (:#{#filter.deptId}     IS NULL OR f.departement.id     = :#{#filter.deptId})
+          AND (:#{#filter.ouverte}    IS NULL OR f.ouverte            = :#{#filter.ouverte})
+          AND (:#{#filter.start}      IS NULL OR f.dateDebut          >= :#{#filter.start})
+          AND (:#{#filter.end}        IS NULL OR f.dateDebut          <= :#{#filter.end})
+          AND TRIM(f.externeFormateurEmail) <> ''
+          AND f.etatFormation IN :#{#filter.etats}
     """)
-    List<Long> findMixteIdsWithFilters(
-            @Param("competence") String competence,
-            @Param("domaine")    String domaine,
-            @Param("upId")       Long   upId,
-            @Param("deptId")     Long   deptId,
-            @Param("ouverte")    Boolean ouverte,
-            @Param("start")      Date   start,
-            @Param("end")        Date   end,
-            @Param("etats")      List<EtatFormation> etats
-    );
+  List<Long> findMixteIdsWithFilters(@Param("filter") FormationFilter filter);
+
+  List<Formation> findByInscriptionsOuvertesTrue();
+
+  // ==================== SOFT DELETE RECOVERY ====================
+
+  /**
+   * Find a soft-deleted formation by ID (returns null if not deleted or not found)
+   */
+  @Query(value = "SELECT * FROM formation.formations WHERE id_formation = :id AND deleted_at IS NOT NULL", nativeQuery = true)
+  Formation findDeletedById(@org.springframework.data.repository.query.Param("id") Long id);
+
+  /**
+   * Find all soft-deleted formations
+   */
+  @Query(value = "SELECT * FROM formation.formations WHERE deleted_at IS NOT NULL", nativeQuery = true)
+  List<Formation> findAllDeleted();
 }

@@ -1,0 +1,113 @@
+# =============================================================================
+# D2F Release Pipeline — DSI 2025-2026
+# Déclenché sur tags sémantiques vX.Y.Z (ou vX.Y.Z-rc.N pour release candidates).
+# Construit et pousse toutes les images avec le tag de version,
+# puis crée la GitHub Release avec notes auto-générées.
+# =============================================================================
+
+name: D2F Release
+
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+      - 'v[0-9]+.[0-9]+.[0-9]+-rc.[0-9]+'
+
+env:
+  REGISTRY: ${{ secrets.REGISTRY_URL }}
+
+jobs:
+  # ── Build et push des images versionnées ────────────────────────────────────
+  release-docker:
+    name: Release Docker — ${{ matrix.image }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { image: d2f-authentification,         context: ".",                                      file: "esprit_D2F-authentification/Dockerfile" }
+          - { image: d2f-competence,               context: ".",                                      file: "esprit_D2F-competence/Dockerfile" }
+          - { image: d2f-besoin-formation,         context: ".",                                      file: "esprit_D2F-besoin-formation/Dockerfile" }
+          - { image: d2f-formation,                context: ".",                                      file: "esprit_D2F-formation/Dockerfile" }
+          - { image: d2f-evaluation,               context: ".",                                      file: "esprit_D2F-evaluation/Dockerfile" }
+          - { image: d2f-certificat,               context: ".",                                      file: "esprit_D2F-certificat/Dockerfile" }
+          - { image: d2f-analyse,                  context: ".",                                      file: "esprit_D2F-analyse/Dockerfile" }
+          - { image: d2f-api-gateway,              context: "esprit_D2F-api-gateway",                 file: "esprit_D2F-api-gateway/Dockerfile" }
+          - { image: d2f-recommandation-formateur, context: "esprit_D2F-recommandation-formateur",    file: "esprit_D2F-recommandation-formateur/Dockerfile" }
+          - { image: d2f-rice,                     context: "esprit_D2F-rice",                        file: "esprit_D2F-rice/Dockerfile" }
+          - { image: d2f-predictive-analytics,     context: "esprit_D2F-predictive-analytics",        file: "esprit_D2F-predictive-analytics/Dockerfile" }
+          - { image: d2f-webapp,                   context: "esprit_D2F-webapp",                      file: "esprit_D2F-webapp/Dockerfile" }
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Docker metadata (semver tags)
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ matrix.image }}
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+            type=raw,value=latest,enable=${{ !contains(github.ref_name, '-rc.') }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.file }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=${{ matrix.image }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.image }}
+
+  # ── Création de la GitHub Release ───────────────────────────────────────────
+  github-release:
+    name: GitHub Release — ${{ github.ref_name }}
+    runs-on: ubuntu-latest
+    needs: release-docker
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "D2F ${{ github.ref_name }}"
+          generate_release_notes: true
+          draft: false
+          prerelease: ${{ contains(github.ref_name, '-rc.') }}
+
+  # ── Déclenchement du déploiement production après release stable ─────────────
+  trigger-deploy:
+    name: Trigger deploy production
+    runs-on: ubuntu-latest
+    needs: github-release
+    if: ${{ !contains(github.ref_name, '-rc.') }}
+    steps:
+      - name: Dispatch CD workflow
+        uses: actions/github-script@v7
+        with:
+          script: |
+            await github.rest.actions.createWorkflowDispatch({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              workflow_id: 'cd.yml',
+              ref: 'main',
+              inputs: {
+                image_tag: '${{ github.ref_name }}',
+                target_env: 'production'
+              }
+            })
+            console.log('CD workflow dispatched for tag ${{ github.ref_name }}')

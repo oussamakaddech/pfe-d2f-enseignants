@@ -1,0 +1,117 @@
+/* ─── AnalysePredictivePage.css ──────────────────────────────────────────── */
+
+.analyse-container {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+/* ── Cartes standard ─────────────────────────────────────────────────────── */
+.analyse-card {
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow 0.2s ease;
+}
+
+.analyse-card:hover {
+  box-shadow: var(--shadow-md);
+}
+
+/* ── Cartes KPI stat ─────────────────────────────────────────────────────── */
+.analyse-stat-card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.analyse-stat-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-md) !important;
+}
+
+/* ── Onglets analyse ─────────────────────────────────────────────────────── */
+.analyse-tabs .ant-tabs-nav {
+  margin-bottom: 20px;
+}
+
+.analyse-tabs .ant-tabs-tab {
+  font-weight: 500;
+  font-size: 14px;
+  padding: 8px 16px;
+}
+
+.analyse-tabs .ant-tabs-tab-active .ant-tabs-tab-btn {
+  color: var(--primary-500) !important;
+  font-weight: 600;
+}
+
+.analyse-tabs .ant-tabs-ink-bar {
+  background-color: var(--primary-500);
+}
+
+/* ── Ligne à risque élevé ────────────────────────────────────────────────── */
+.risk-row-high > td {
+  background: rgba(239, 68, 68, 0.04) !important;
+  border-bottom-color: rgba(239, 68, 68, 0.12) !important;
+}
+
+/* ── Timeline des recommandations ───────────────────────────────────────── */
+.reco-timeline {
+  padding: 16px 8px;
+}
+
+.reco-step {
+  position: relative;
+  padding-left: 44px;
+  padding-bottom: 28px;
+  border-left: 2px dashed var(--border-color);
+}
+
+.reco-step:last-child {
+  border-left: none;
+  padding-bottom: 0;
+}
+
+.reco-step-number {
+  position: absolute;
+  left: -14px;
+  top: 0;
+  width: 28px;
+  height: 28px;
+  background: var(--primary-500);
+  color: #fff;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 12px;
+  box-shadow: 0 2px 8px rgba(181, 18, 0, 0.25);
+  z-index: 1;
+}
+
+.reco-content {
+  background: var(--bg-card);
+  padding: 14px 16px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-xs);
+  transition: box-shadow 0.2s ease;
+}
+
+.reco-content:hover {
+  box-shadow: var(--shadow-sm);
+}
+
+.reco-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-main);
+  margin-bottom: 8px;
+}
+
+/* ── Responsive ──────────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .analyse-container {
+    padding: 0;
+  }
+}

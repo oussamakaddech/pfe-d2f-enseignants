@@ -1,12 +1,7 @@
-package esprit.pfe.auth.Repositories;
+package esprit.pfe.auth.repositories;
 
-////import com.bezkoder.springjwt.models.User;
-
-import esprit.pfe.auth.Entities.User;
-
-
+import esprit.pfe.auth.entities.User;
 import org.springframework.data.jpa.repository.JpaRepository;
-
 import org.springframework.stereotype.Repository;
 
 import java.util.Optional;
@@ -17,13 +12,9 @@ public interface UserRepository extends JpaRepository<User, String> {
 
     Optional<User> findByEmail(String emailAddress);
 
-    Boolean existsByUsername(String username);
+    boolean existsByUsername(String username);
 
-    Boolean existsByEmail(String email);
-    Optional<User> findByDiscount(String discountCode);
+    boolean existsByEmail(String email);
 
-
-    public User findByEmailAndUsername(String email, String username);
-
-
+    User findByEmailAndUsername(String email, String username);
 }

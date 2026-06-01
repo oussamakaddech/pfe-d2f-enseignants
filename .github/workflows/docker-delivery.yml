@@ -1,0 +1,98 @@
+# =============================================================================
+# D2F Emergency Rebuild — DSI 2025-2026
+# Usage manuel uniquement (workflow_dispatch).
+# Reconstruit et pousse un service spécifique SANS passer par la CI complète.
+# RÉSERVÉ aux situations d'urgence — toute exécution est tracée (DSI §11).
+# =============================================================================
+
+name: D2F Emergency Rebuild
+
+on:
+  workflow_dispatch:
+    inputs:
+      service:
+        description: 'Service à reconstruire'
+        required: true
+        type: choice
+        options:
+          - d2f-authentification
+          - d2f-competence
+          - d2f-besoin-formation
+          - d2f-formation
+          - d2f-evaluation
+          - d2f-certificat
+          - d2f-analyse
+          - d2f-api-gateway
+          - d2f-recommandation-formateur
+          - d2f-rice
+          - d2f-predictive-analytics
+          - d2f-webapp
+      image_tag:
+        description: "Tag à appliquer sur l'image (défaut: latest)"
+        required: false
+        default: 'latest'
+      reason:
+        description: 'Raison de la reconstruction (obligatoire — traçabilité DSI §11)'
+        required: true
+
+env:
+  REGISTRY: ${{ secrets.REGISTRY_URL }}
+
+jobs:
+  emergency-rebuild:
+    name: Emergency rebuild — ${{ inputs.service }}:${{ inputs.image_tag }}
+    runs-on: ubuntu-latest
+    environment: emergency-build
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Resolve build context & Dockerfile
+        id: ctx
+        run: |
+          case "${{ inputs.service }}" in
+            d2f-authentification)          echo "context=."                                        >> "$GITHUB_OUTPUT"; echo "file=esprit_D2F-authentification/Dockerfile"          >> "$GITHUB_OUTPUT" ;;
+            d2f-competence)                echo "context=."                                        >> "$GITHUB_OUTPUT"; echo "file=esprit_D2F-competence/Dockerfile"                >> "$GITHUB_OUTPUT" ;;
+            d2f-besoin-formation)          echo "context=."                                        >> "$GITHUB_OUTPUT"; echo "file=esprit_D2F-besoin-formation/Dockerfile"          >> "$GITHUB_OUTPUT" ;;
+            d2f-formation)                 echo "context=."                                        >> "$GITHUB_OUTPUT"; echo "file=esprit_D2F-formation/Dockerfile"                 >> "$GITHUB_OUTPUT" ;;
+            d2f-evaluation)                echo "context=."                                        >> "$GITHUB_OUTPUT"; echo "file=esprit_D2F-evaluation/Dockerfile"                >> "$GITHUB_OUTPUT" ;;
+            d2f-certificat)                echo "context=."                                        >> "$GITHUB_OUTPUT"; echo "file=esprit_D2F-certificat/Dockerfile"                >> "$GITHUB_OUTPUT" ;;
+            d2f-analyse)                   echo "context=."                                        >> "$GITHUB_OUTPUT"; echo "file=esprit_D2F-analyse/Dockerfile"                   >> "$GITHUB_OUTPUT" ;;
+            d2f-api-gateway)               echo "context=esprit_D2F-api-gateway"                  >> "$GITHUB_OUTPUT"; echo "file=esprit_D2F-api-gateway/Dockerfile"               >> "$GITHUB_OUTPUT" ;;
+            d2f-recommandation-formateur)  echo "context=esprit_D2F-recommandation-formateur"     >> "$GITHUB_OUTPUT"; echo "file=esprit_D2F-recommandation-formateur/Dockerfile"  >> "$GITHUB_OUTPUT" ;;
+            d2f-rice)                      echo "context=esprit_D2F-rice"                         >> "$GITHUB_OUTPUT"; echo "file=esprit_D2F-rice/Dockerfile"                      >> "$GITHUB_OUTPUT" ;;
+            d2f-predictive-analytics)      echo "context=esprit_D2F-predictive-analytics"         >> "$GITHUB_OUTPUT"; echo "file=esprit_D2F-predictive-analytics/Dockerfile"      >> "$GITHUB_OUTPUT" ;;
+            d2f-webapp)                    echo "context=esprit_D2F-webapp"                       >> "$GITHUB_OUTPUT"; echo "file=esprit_D2F-webapp/Dockerfile"                    >> "$GITHUB_OUTPUT" ;;
+            *) echo "Service inconnu : ${{ inputs.service }}"; exit 1 ;;
+          esac
+
+      - name: Build and push (sans cache — image fraîche garantie)
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ steps.ctx.outputs.context }}
+          file: ${{ steps.ctx.outputs.file }}
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ inputs.service }}:${{ inputs.image_tag }}
+            ${{ env.REGISTRY }}/${{ inputs.service }}:emergency-${{ github.run_number }}
+          no-cache: true
+
+      - name: Trace d'audit DSI §11
+        run: |
+          echo "========================================"
+          echo "  EMERGENCY REBUILD — TRACE D'AUDIT"
+          echo "========================================"
+          echo "Service   : ${{ inputs.service }}"
+          echo "Tag       : ${{ inputs.image_tag }}"
+          echo "Raison    : ${{ inputs.reason }}"
+          echo "Acteur    : ${{ github.actor }}"
+          echo "Date      : $(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+          echo "Run URL   : ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          echo "========================================"

@@ -14,11 +14,11 @@ COPY .mvn/ .mvn
 # Copy Maven Wrapper script && pom.xml
 COPY mvnw pom.xml ./
 
-# Fix mvnw & 
+# Fix mvnw &
 RUN dos2unix mvnw && \
     chmod u+x mvnw
 
-# Resolves all project dependencies offline and keep cache   
+# Resolves all project dependencies offline and keep cache
 RUN --mount=type=cache,target=/root/.m2 ./mvnw dependency:go-offline
 
 # Copy source code application
@@ -40,6 +40,9 @@ LABEL maintainer="seddik bouzayani <seddik.bouzayani@esprit.tn>"
 # Create user
 RUN addgroup -g 2003 esprit ; adduser  --ingroup esprit --disabled-password --uid 2003 esprit
 
+# Install curl for HEALTHCHECK
+RUN apk add --no-cache curl
+
 # Use user
 USER esprit
 
@@ -51,5 +54,12 @@ COPY --from=builder ${DEPENDENCY}/BOOT-INF/lib /opt/app/lib
 COPY --from=builder ${DEPENDENCY}/META-INF /opt/app/META-INF
 COPY --from=builder ${DEPENDENCY}/BOOT-INF/classes /opt/app
 
-# Run pgpg_profile when container starts
+# Expose port
+EXPOSE 8080
+
+# Healthcheck — vérifie que Spring Boot Actuator répond (conformité DSI §2.1)
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+  CMD curl -sf http://localhost:8080/actuator/health || exit 1
+
+# Run app when container starts
 ENTRYPOINT ["java","-cp","opt/app:opt/app/lib/*","com.example.servicegateway.ServiceGatewayApplication"]

@@ -10,14 +10,12 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-import java.time.LocalDateTime;
-
 @Entity
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
-public class Notification {
+public class Notification extends BaseAuditEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -30,9 +28,6 @@ public class Notification {
     @JsonProperty("username")
      String username;
 
-    @JsonProperty("createdAt")
-    LocalDateTime createdAt = LocalDateTime.now();
-
     @JsonProperty("commentaire")
     private String commentaire;
 
@@ -43,14 +38,6 @@ public class Notification {
 
     public void setCommentaire(String commentaire) {
         this.commentaire = commentaire;
-    }
-
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
     }
 
     public Long getIdNotification() {
@@ -77,4 +64,3 @@ public class Notification {
         this.username = username;
     }
 }
-

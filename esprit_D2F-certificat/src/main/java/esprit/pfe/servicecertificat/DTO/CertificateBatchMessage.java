@@ -1,12 +1,10 @@
-package esprit.pfe.servicecertificat.DTO;
+package esprit.pfe.servicecertificat.dto;
 
 
 import lombok.Data;
 
-import java.util.Date;
+import java.time.LocalDate;
 import java.util.List;
-
-
 
 @Data
 public class CertificateBatchMessage {
@@ -16,8 +14,8 @@ public class CertificateBatchMessage {
     private String typeCertif;          // "CERTIF", "BADGE", "ATTESTATION", etc.
 
     // Dates de la formation
-    private Date dateDebutFormation;    // ex. 2025-03-13
-    private Date dateFinFormation;      // ex. 2025-03-13
+    private LocalDate dateDebutFormation;    // ex. 2025-03-13
+    private LocalDate dateFinFormation;      // ex. 2025-03-13
 
     // Exemple : 40h de formation
     private Integer chargeHoraireGlobal;
@@ -31,7 +29,7 @@ public class CertificateBatchMessage {
         private String enseignantId;         // ex. "E001"
         private String nom;                  // ex. "BEN MUSTAPHA"
         private String prenom;               // ex. "IBTIHEL"
-        private String mail;                 // ex. "ibtihel.benmustapha@esprit.tn"
+        private String mail;                 // Email du destinataire
 
         // Comme vous n’avez plus de participants, vous pouvez mettre "ANIMATEUR"
         // ou laisser un champ pour évoluer plus tard (ex. "ANIMATEUR" / "CO-ANIMATEUR"…)

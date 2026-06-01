@@ -1,0 +1,379 @@
+# =============================================================================
+# D2F CD Pipeline — DSI 2025-2026
+# Déclenché automatiquement quand CI réussit sur main, ou manuellement.
+# Chaîne : test (auto) -> [approbation manuelle DSI] -> production
+# Rollback : basé sur image tag (pas git checkout) — DSI §11
+# =============================================================================
+
+name: D2F CD Pipeline
+
+on:
+  workflow_run:
+    workflows: ["D2F CI Pipeline"]
+    branches: [main]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: "Tag d'image à déployer (ex: sha-abc1234 ou latest). Vide = dernier SHA."
+        required: false
+        default: ''
+      target_env:
+        description: 'Environnement cible'
+        required: true
+        default: 'test'
+        type: choice
+        options: [test, production]
+
+env:
+  REGISTRY: ${{ secrets.REGISTRY_URL }}
+
+jobs:
+  # ── Vérification préalable + résolution du tag ──────────────────────────────
+  precondition:
+    name: Pre-deploy — résolution du tag
+    runs-on: ubuntu-latest
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success')
+    outputs:
+      image_tag: ${{ steps.resolve.outputs.image_tag }}
+    steps:
+      - name: Resolve image tag
+        id: resolve
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "${{ inputs.image_tag }}" ]; then
+            TAG="${{ inputs.image_tag }}"
+          elif [ "${{ github.event_name }}" = "workflow_run" ]; then
+            SHA="${{ github.event.workflow_run.head_sha }}"
+            TAG="sha-${SHA::7}"
+          else
+            TAG="sha-${GITHUB_SHA::7}"
+          fi
+          echo "image_tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "Tag résolu : $TAG"
+
+  # ── Déploiement Test (automatique) ─────────────────────────────────────────
+  deploy-test:
+    name: Deploy — Test
+    runs-on: ubuntu-latest
+    needs: precondition
+    if: >-
+      needs.precondition.result == 'success' &&
+      (github.event_name != 'workflow_dispatch' || inputs.target_env == 'test' || inputs.target_env == 'production')
+    environment:
+      name: test
+      url: http://test.d2f.esprit.tn
+    env:
+      IMAGE_TAG: ${{ needs.precondition.outputs.image_tag }}
+      DEPLOY_DIR: /opt/d2f
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure SSH
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H "${{ secrets.TEST_SERVER_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Deploy vers test
+        run: |
+          REGISTRY="${{ env.REGISTRY }}"
+          IMAGE_TAG="${{ env.IMAGE_TAG }}"
+          DEPLOY_DIR="${{ env.DEPLOY_DIR }}"
+
+          ssh -o StrictHostKeyChecking=yes \
+              "${{ secrets.TEST_SERVER_USER }}@${{ secrets.TEST_SERVER_HOST }}" bash << ENDSSH
+            set -euo pipefail
+            cd "$DEPLOY_DIR"
+
+            # Sauvegarde du tag courant pour rollback éventuel
+            [ -f .image_tag ] && cp .image_tag .prev_image_tag || echo "initial" > .prev_image_tag
+            echo "$IMAGE_TAG" > .image_tag
+
+            echo "=== Deploy TEST — tag: $IMAGE_TAG ==="
+            export IMAGE_TAG="$IMAGE_TAG"
+            export REGISTRY="$REGISTRY"
+
+            docker compose -f docker-compose.yml -f docker-compose.prod.yml pull
+            docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d \
+              --remove-orphans \
+              --no-build
+          ENDSSH
+
+      - name: Health check (boucle — 2 min max)
+        run: |
+          ssh -o StrictHostKeyChecking=yes \
+              "${{ secrets.TEST_SERVER_USER }}@${{ secrets.TEST_SERVER_HOST }}" bash << 'ENDSSH'
+            set -euo pipefail
+            cd /opt/d2f
+
+            TIMEOUT=120
+            ELAPSED=0
+            INTERVAL=10
+
+            echo "Attente que les services passent healthy..."
+            while [ $ELAPSED -lt $TIMEOUT ]; do
+              UNHEALTHY=$(docker compose -f docker-compose.yml -f docker-compose.prod.yml ps -q \
+                | xargs -r docker inspect --format='{{.State.Health.Status}} {{.Name}}' 2>/dev/null \
+                | grep -cE "^(unhealthy|starting)" || echo "0")
+
+              echo "Services non-healthy: $UNHEALTHY (${ELAPSED}s / ${TIMEOUT}s)"
+
+              if [ "$UNHEALTHY" -eq 0 ]; then
+                echo "Tous les services sont healthy"
+                docker compose -f docker-compose.yml -f docker-compose.prod.yml ps
+                exit 0
+              fi
+
+              sleep $INTERVAL
+              ELAPSED=$((ELAPSED + INTERVAL))
+            done
+
+            echo "TIMEOUT : services non-healthy après ${TIMEOUT}s"
+            docker compose -f docker-compose.yml -f docker-compose.prod.yml ps
+            docker compose -f docker-compose.yml -f docker-compose.prod.yml logs --tail=30
+            exit 1
+          ENDSSH
+
+      - name: Smoke tests
+        run: |
+          HOST="${{ secrets.TEST_SERVER_HOST }}"
+
+          check() {
+            local url="$1"
+            for i in 1 2 3; do
+              curl -sf --max-time 10 "$url" > /dev/null && echo "OK: $url" && return 0
+              echo "Tentative $i échouée pour $url — retry dans 5s"
+              sleep 5
+            done
+            echo "FAIL: $url"
+            return 1
+          }
+
+          check "http://$HOST:8080/actuator/health"
+          check "http://$HOST:8085/actuator/health"
+          check "http://$HOST:8005/actuator/health"
+          check "http://$HOST:3000/"
+          echo "Smoke tests TEST OK"
+
+      - name: Notification — succès test
+        if: success()
+        run: |
+          curl -sf --max-time 10 \
+            -X POST "${{ secrets.WEBHOOK_URL }}" \
+            -H "Content-Type: application/json" \
+            -d "{
+              \"event\": \"deploy_success\",
+              \"env\": \"test\",
+              \"image_tag\": \"${{ env.IMAGE_TAG }}\",
+              \"actor\": \"${{ github.actor }}\",
+              \"url\": \"${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\"
+            }" || echo "Webhook non configuré — notification ignorée"
+
+      - name: Rollback — image précédente si échec
+        if: failure()
+        run: |
+          REGISTRY="${{ env.REGISTRY }}"
+
+          ssh -o StrictHostKeyChecking=yes \
+              "${{ secrets.TEST_SERVER_USER }}@${{ secrets.TEST_SERVER_HOST }}" bash << ENDSSH
+            set -euo pipefail
+            cd /opt/d2f
+
+            if [ -f .prev_image_tag ]; then
+              PREV_TAG=\$(cat .prev_image_tag)
+              echo "=== Rollback TEST vers \$PREV_TAG ==="
+              export IMAGE_TAG="\$PREV_TAG"
+              export REGISTRY="$REGISTRY"
+              docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --no-build
+              echo "\$PREV_TAG" > .image_tag
+              echo "Rollback terminé"
+            else
+              echo "Rollback impossible — pas de tag précédent"
+            fi
+          ENDSSH
+
+      - name: Notification — échec test
+        if: failure()
+        run: |
+          curl -sf --max-time 10 \
+            -X POST "${{ secrets.WEBHOOK_URL }}" \
+            -H "Content-Type: application/json" \
+            -d "{
+              \"event\": \"deploy_failed\",
+              \"env\": \"test\",
+              \"image_tag\": \"${{ env.IMAGE_TAG }}\",
+              \"actor\": \"${{ github.actor }}\",
+              \"url\": \"${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\"
+            }" || echo "Webhook non configuré — notification ignorée"
+
+  # ── Déploiement Production (approbation manuelle obligatoire — DSI §11) ─────
+  deploy-prod:
+    name: Deploy — Production
+    runs-on: ubuntu-latest
+    needs: [precondition, deploy-test]
+    if: needs.precondition.result == 'success' && needs.deploy-test.result == 'success'
+    environment:
+      name: production
+      url: https://d2f.esprit.tn
+    env:
+      IMAGE_TAG: ${{ needs.precondition.outputs.image_tag }}
+      DEPLOY_DIR: /opt/d2f
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure SSH
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "${{ secrets.PROD_SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H "${{ secrets.PROD_SERVER_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Backup base de données (DSI §11 — avant chaque mise en production)
+        run: |
+          ssh -o StrictHostKeyChecking=yes \
+              "${{ secrets.PROD_SERVER_USER }}@${{ secrets.PROD_SERVER_HOST }}" bash << 'ENDSSH'
+            set -euo pipefail
+            BACKUP_DIR="/backups/d2f/$(date +%Y%m%d_%H%M%S)"
+            mkdir -p "$BACKUP_DIR"
+
+            POSTGRES_CTR=$(docker compose -f /opt/d2f/docker-compose.yml ps -q postgres)
+            docker exec "$POSTGRES_CTR" pg_dump -U d2f d2f > "$BACKUP_DIR/d2f_backup.sql"
+
+            SIZE=$(du -sh "$BACKUP_DIR/d2f_backup.sql" | cut -f1)
+            echo "Backup créé : $BACKUP_DIR/d2f_backup.sql ($SIZE)"
+
+            # Purge des backups > 7 jours
+            find /backups/d2f -maxdepth 1 -mindepth 1 -type d -mtime +7 -exec rm -rf {} + || true
+          ENDSSH
+
+      - name: Deploy vers production
+        run: |
+          REGISTRY="${{ env.REGISTRY }}"
+          IMAGE_TAG="${{ env.IMAGE_TAG }}"
+          DEPLOY_DIR="${{ env.DEPLOY_DIR }}"
+
+          ssh -o StrictHostKeyChecking=yes \
+              "${{ secrets.PROD_SERVER_USER }}@${{ secrets.PROD_SERVER_HOST }}" bash << ENDSSH
+            set -euo pipefail
+            cd "$DEPLOY_DIR"
+
+            [ -f .image_tag ] && cp .image_tag .prev_image_tag || echo "initial" > .prev_image_tag
+            echo "$IMAGE_TAG" > .image_tag
+
+            echo "=== Deploy PRODUCTION — tag: $IMAGE_TAG ==="
+            export IMAGE_TAG="$IMAGE_TAG"
+            export REGISTRY="$REGISTRY"
+
+            docker compose -f docker-compose.yml -f docker-compose.prod.yml pull
+            docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d \
+              --remove-orphans \
+              --no-build
+          ENDSSH
+
+      - name: Health check production (3 min max)
+        run: |
+          ssh -o StrictHostKeyChecking=yes \
+              "${{ secrets.PROD_SERVER_USER }}@${{ secrets.PROD_SERVER_HOST }}" bash << 'ENDSSH'
+            set -euo pipefail
+            cd /opt/d2f
+
+            TIMEOUT=180
+            ELAPSED=0
+            INTERVAL=10
+
+            echo "Health check production..."
+            while true; do
+              UNHEALTHY=$(docker compose -f docker-compose.yml -f docker-compose.prod.yml ps -q \
+                | xargs -r docker inspect --format='{{.State.Health.Status}} {{.Name}}' 2>/dev/null \
+                | grep -cE "^(unhealthy|starting)" || echo "0")
+
+              echo "Services non-healthy: $UNHEALTHY (${ELAPSED}s / ${TIMEOUT}s)"
+
+              if [ "$UNHEALTHY" -eq 0 ]; then
+                echo "Production healthy"
+                docker compose -f docker-compose.yml -f docker-compose.prod.yml ps
+                exit 0
+              fi
+
+              if [ $ELAPSED -ge $TIMEOUT ]; then
+                echo "TIMEOUT production après ${TIMEOUT}s"
+                docker compose -f docker-compose.yml -f docker-compose.prod.yml logs --tail=50
+                exit 1
+              fi
+
+              sleep $INTERVAL
+              ELAPSED=$((ELAPSED + INTERVAL))
+            done
+          ENDSSH
+
+      - name: Smoke tests production
+        run: |
+          check() {
+            local url="$1"
+            for i in 1 2 3; do
+              curl -sf --max-time 15 "$url" > /dev/null && echo "OK: $url" && return 0
+              echo "Tentative $i échouée pour $url — retry dans 10s"
+              sleep 10
+            done
+            echo "FAIL: $url"; return 1
+          }
+
+          check "https://d2f.esprit.tn/actuator/health"
+          check "https://d2f.esprit.tn/api/v1/auth/actuator/health"
+          check "https://d2f.esprit.tn/"
+          echo "Smoke tests PRODUCTION OK"
+
+      - name: Notification — succès production
+        if: success()
+        run: |
+          curl -sf --max-time 10 \
+            -X POST "${{ secrets.WEBHOOK_URL }}" \
+            -H "Content-Type: application/json" \
+            -d "{
+              \"event\": \"deploy_success\",
+              \"env\": \"production\",
+              \"image_tag\": \"${{ env.IMAGE_TAG }}\",
+              \"actor\": \"${{ github.actor }}\",
+              \"url\": \"${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\"
+            }" || echo "Webhook non configuré"
+
+      - name: Rollback production — image précédente si échec
+        if: failure()
+        run: |
+          REGISTRY="${{ env.REGISTRY }}"
+
+          ssh -o StrictHostKeyChecking=yes \
+              "${{ secrets.PROD_SERVER_USER }}@${{ secrets.PROD_SERVER_HOST }}" bash << ENDSSH
+            set -euo pipefail
+            cd /opt/d2f
+
+            if [ -f .prev_image_tag ]; then
+              PREV_TAG=\$(cat .prev_image_tag)
+              echo "=== ROLLBACK PRODUCTION vers \$PREV_TAG ==="
+              export IMAGE_TAG="\$PREV_TAG"
+              export REGISTRY="$REGISTRY"
+              docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --no-build
+              echo "\$PREV_TAG" > .image_tag
+              echo "Rollback production terminé"
+            else
+              echo "Rollback impossible — aucun tag précédent trouvé"
+              exit 1
+            fi
+          ENDSSH
+
+      - name: Notification — échec production
+        if: failure()
+        run: |
+          curl -sf --max-time 10 \
+            -X POST "${{ secrets.WEBHOOK_URL }}" \
+            -H "Content-Type: application/json" \
+            -d "{
+              \"event\": \"deploy_failed\",
+              \"env\": \"production\",
+              \"image_tag\": \"${{ env.IMAGE_TAG }}\",
+              \"actor\": \"${{ github.actor }}\",
+              \"url\": \"${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\"
+            }" || echo "Webhook non configuré"

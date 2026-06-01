@@ -1,74 +1,64 @@
-package esprit.pfe.serviceformation.Controllers;
+package esprit.pfe.serviceformation.controllers;
 
-
-import esprit.pfe.serviceformation.DTO.FormationDTO;
-import esprit.pfe.serviceformation.DTO.InscriptionDTO;
-import esprit.pfe.serviceformation.Entities.*;
-import esprit.pfe.serviceformation.Services.InscriptionService;
-import org.springframework.http.HttpStatus;
+import esprit.d2f.common.security.AuthorizationMatrix;
+import esprit.pfe.serviceformation.dto.FormationResponseDTO;
+import esprit.pfe.serviceformation.dto.InscriptionDTO;
+import esprit.pfe.serviceformation.dto.InscriptionSummaryDTO;
+import esprit.pfe.serviceformation.services.InscriptionService;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-import org.springframework.web.server.ResponseStatusException;
-
-import java.util.List;
 
 @RestController
-@RequestMapping("/inscription")
+@RequestMapping("/api/v1/inscription")
 public class InscriptionController {
 
     private final InscriptionService service;
 
-    public InscriptionController(InscriptionService s) {
-        this.service = s;
+    public InscriptionController(InscriptionService service) {
+        this.service = service;
     }
 
-    // 1. Récupérer les formations ouvertes
     @GetMapping("/formations/accessibles")
-    public List<FormationDTO> getFormationsAccessibles(
-            @RequestParam String enseignantId) {
-        return service.listerFormationsAccessibles(enseignantId);
+    @PreAuthorize(AuthorizationMatrix.INSCRIPTION_READ)
+    public ResponseEntity<Page<FormationResponseDTO>> getFormationsAccessibles(
+            @RequestParam String enseignantId,
+            @PageableDefault(size = 20, sort = "idFormation") Pageable pageable) {
+        return ResponseEntity.ok(service.listerFormationsAccessibles(enseignantId, pageable));
     }
 
-    // 2. Demander une inscription
     @PostMapping("/inscriptions")
-    public Inscription postInscription(
+    @PreAuthorize(AuthorizationMatrix.INSCRIPTION_CREATE)
+    public InscriptionDTO postInscription(
             @RequestParam Long formationId,
             @RequestParam String enseignantId) {
-        return service.demanderInscription(formationId, enseignantId);
+        return service.demanderInscriptionDTO(formationId, enseignantId);
     }
 
-    // 3. Lister les demandes en attente
-    /*@GetMapping("/inscriptions/demandes")
-    public List<Inscription> getDemandes(
-            @RequestParam String userId,
-            @RequestParam boolean isD2F) {
-        return service.listerDemandes(userId, isD2F);
-    }*/
     @GetMapping("/formations/{formationId}/inscriptions")
-    public List<InscriptionDTO> getInscriptionsByFormation(@PathVariable Long formationId) {
-        try {
-            return service.listerInscriptionsParFormation(formationId);
-        } catch (IllegalArgumentException ex) {
-            // levé si la formation n'existe pas
-            throw new ResponseStatusException(
-                    HttpStatus.NOT_FOUND,
-                    ex.getMessage(),
-                    ex
-            );
-        } catch (Exception ex) {
-            // toute autre erreur inattendue
-            throw new ResponseStatusException(
-                    HttpStatus.INTERNAL_SERVER_ERROR,
-                    "Erreur interne lors de la récupération des inscriptions",
-                    ex
-            );
-        }
+    @PreAuthorize(AuthorizationMatrix.INSCRIPTION_READ)
+    public ResponseEntity<Page<InscriptionDTO>> getInscriptionsByFormation(
+            @PathVariable Long formationId,
+            @PageableDefault(size = 20, sort = "id") Pageable pageable) {
+        return ResponseEntity.ok(service.listerInscriptionsParFormation(formationId, pageable));
     }
 
-    // 4. Approuver ou rejeter une demande
     @PutMapping("/inscriptions/{id}/traiter")
-    public Inscription traiter(
+    @PreAuthorize(AuthorizationMatrix.INSCRIPTION_APPROVE)
+    public InscriptionDTO traiter(
             @PathVariable Long id,
             @RequestParam boolean approuver) {
-        return service.traiterDemande(id, approuver);
+        return service.traiterDemandeDTO(id, approuver);
+    }
+
+    @GetMapping("/enseignant/{enseignantId}")
+    @PreAuthorize(AuthorizationMatrix.INSCRIPTION_READ)
+    public ResponseEntity<Page<InscriptionSummaryDTO>> getByEnseignant(
+            @PathVariable String enseignantId,
+            @PageableDefault(size = 20, sort = "id") Pageable pageable) {
+        return ResponseEntity.ok(service.findSummariesByEnseignantId(enseignantId, pageable));
     }
 }

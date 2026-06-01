@@ -1,6 +1,4 @@
-package esprit.pfe.serviceformation.Entities;
-
-
+package esprit.pfe.serviceformation.entities;
 
 import jakarta.persistence.*;
 import lombok.*;
@@ -11,9 +9,8 @@ import java.time.OffsetDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "inscriptions",
-        uniqueConstraints = @UniqueConstraint(columnNames = {"formation_id", "enseignant_id"}))
-public class Inscription {
+@Table(name = "inscriptions", uniqueConstraints = @UniqueConstraint(columnNames = { "formation_id", "enseignant_id" }))
+public class Inscription extends BaseAuditEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;

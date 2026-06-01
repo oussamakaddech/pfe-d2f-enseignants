@@ -1,6 +1,6 @@
 package esprit.pfe.auth.payload.response;
 
-import esprit.pfe.auth.Entities.User;
+import esprit.pfe.auth.entities.User;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -27,7 +27,14 @@ public class UserDTO {
         this.lastName = user.getLastName();
         this.phoneNumber = user.getPhoneNumber();
         this.email = user.getEmail();
-        this.role = user.getRoles().stream().toList().get(0).getName().name();
+        // Handle case where user might not have roles
+        if (user.getRoles() != null && !user.getRoles().isEmpty()) {
+            this.role = user.getRoles().stream().findFirst()
+                    .map(r -> r.getName().name())
+                    .orElse("USER");
+        } else {
+            this.role = "USER";
+        }
         this.status = user.getDisabled();
     }
 }

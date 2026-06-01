@@ -1,30 +1,36 @@
-package esprit.pfe.serviceformation.Services;
+package esprit.pfe.serviceformation.services;
 
-import esprit.pfe.serviceformation.Entities.Document;
-import esprit.pfe.serviceformation.Entities.DriveSubPath;
-import esprit.pfe.serviceformation.Entities.Formation;
-import esprit.pfe.serviceformation.Microsoft.OneDriveService;
-import esprit.pfe.serviceformation.Repositories.DocumentRepository;
-import esprit.pfe.serviceformation.Repositories.FormationRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import esprit.pfe.serviceformation.entities.Document;
+import esprit.pfe.serviceformation.entities.Formation;
+import esprit.pfe.serviceformation.microsoft.OneDriveService;
+import esprit.pfe.serviceformation.repositories.DocumentRepository;
+import esprit.pfe.serviceformation.repositories.FormationRepository;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 
 import java.io.IOException;
 import java.util.Date;
 import java.util.List;
 
 @Service
+@Slf4j
 public class DocumentService {
+    private final DocumentRepository       documentRepo;
+    private final FormationRepository      formationRepo;
 
-    @Autowired
-    private DocumentRepository       documentRepo;
+    /** Optionnel : absent si azure.ad.enabled != true */
+    private final OneDriveService          oneDriveService;
 
-    @Autowired
-    private FormationRepository      formationRepo;
-
-    @Autowired
-    private OneDriveService          oneDriveService;
+    public DocumentService(DocumentRepository documentRepo, FormationRepository formationRepo,
+                           @org.springframework.lang.Nullable OneDriveService oneDriveService) {
+        this.documentRepo = documentRepo;
+        this.formationRepo = formationRepo;
+        this.oneDriveService = oneDriveService;
+    }
 
     /**
      * Crée + upload :
@@ -38,7 +44,7 @@ public class DocumentService {
             MultipartFile file
     ) throws IOException {
         Formation f = formationRepo.findById(formationId)
-                .orElseThrow(() -> new RuntimeException("Formation non trouvée"));
+                .orElseThrow(() -> new IllegalArgumentException("Formation non trouvée avec l'ID: " + formationId));
 
         String url = oneDriveService.uploadDocumentToFormationFolder(
                 f.getTitreFormation(), pathType, nomDocument,
@@ -58,7 +64,11 @@ public class DocumentService {
 
     public Document getById(Long id) {
         return documentRepo.findById(id)
-                .orElseThrow(() -> new RuntimeException("Document introuvable"));
+                .orElseThrow(() -> new IllegalArgumentException("Document introuvable avec l'ID: " + id));
+    }
+
+    public Page<Document> getAll(Pageable pageable) {
+        return documentRepo.findAll(pageable);
     }
 
     public List<Document> getAll() {
@@ -110,7 +120,6 @@ public class DocumentService {
 
         // extraction des segments du path
         String[] parts = doc.getFilePath().split("/");
-        // …/d2F/{formation}/{pathType}/{nomDocument}/{fileName}
         String pathType    = parts[parts.length - 3];
         String nomDocument = parts[parts.length - 2];
         String fileName    = parts[parts.length - 1];
@@ -124,8 +133,7 @@ public class DocumentService {
                     fileName
             );
         } catch (Exception e) {
-            // log éventuellement
-            System.err.println("Erreur OneDrive delete: " + e.getMessage());
+            log.error("Erreur OneDrive delete pour le document {}: {}", id, e.getMessage());
         }
 
         // 2) on supprime en base

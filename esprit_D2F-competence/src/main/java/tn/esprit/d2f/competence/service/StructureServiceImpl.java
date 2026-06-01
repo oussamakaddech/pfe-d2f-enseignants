@@ -1,0 +1,248 @@
+package tn.esprit.d2f.competence.service;
+
+import jakarta.persistence.EntityNotFoundException;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import tn.esprit.d2f.competence.dto.*;
+import tn.esprit.d2f.competence.entity.Competence;
+import tn.esprit.d2f.competence.entity.Domaine;
+import tn.esprit.d2f.competence.entity.Savoir;
+import tn.esprit.d2f.competence.entity.SousCompetence;
+import tn.esprit.d2f.competence.entity.enumerations.TypeSavoir;
+import tn.esprit.d2f.competence.repository.*;
+
+import java.util.*;
+@Slf4j
+@Service
+@RequiredArgsConstructor
+public class StructureServiceImpl implements IStructureService {
+
+    private final DomaineRepository domaineRepository;
+    private final CompetenceRepository competenceRepository;
+    private final SousCompetenceRepository sousCompetenceRepository;
+    private final SavoirRepository savoirRepository;
+    private final EnseignantCompetenceRepository enseignantCompetenceRepository;
+    private final CompetenceMapper competenceMapper;
+
+    @Override
+    @Transactional(readOnly = true)
+    public StructureArbreDTO getStructureComplete() {
+        List<Domaine> domaines = domaineRepository.findAll();
+        List<Savoir> allSavoirs = savoirRepository.findAll();
+
+        List<StructureArbreDTO.DomaineArbreDTO> domaineArbreDTOs = domaines.stream()
+                .map(this::buildDomaineArbre)
+                .toList();
+
+        long savoirsTheoriques = allSavoirs.stream().filter(s -> s.getType() == TypeSavoir.THEORIQUE).count();
+        long savoirsPratiques = allSavoirs.stream().filter(s -> s.getType() == TypeSavoir.PRATIQUE).count();
+
+        StructureArbreDTO.StatistiquesDTO stats = StructureArbreDTO.StatistiquesDTO.builder()
+                .totalDomaines(domaines.size())
+                .totalCompetences((int) competenceRepository.count())
+                .totalSousCompetences((int) sousCompetenceRepository.count())
+                .totalSavoirs(allSavoirs.size())
+                .totalSavoirsTheoriques((int) savoirsTheoriques)
+                .totalSavoirsPratiques((int) savoirsPratiques)
+                .build();
+
+        return StructureArbreDTO.builder()
+                .domaines(domaineArbreDTOs)
+                .statistiques(stats)
+                .build();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public StructureArbreDTO getStructureComplete(String upId, String departementId) {
+        List<Domaine> domaines = domaineRepository.findByUpIdAndDepartementId(upId, departementId);
+        List<Savoir> allSavoirs = domaines.isEmpty()
+                ? List.of()
+                : savoirRepository.findAll().stream()
+                    .filter(s -> domaines.stream().anyMatch(d ->
+                        d.getCompetences().stream().anyMatch(c ->
+                            (s.getCompetence() != null && c.getId().equals(s.getCompetence().getId())) ||
+                            (s.getSousCompetence() != null && c.getSousCompetences().stream().anyMatch(sc -> sc.getId().equals(s.getSousCompetence().getId())))
+                        )
+                    )).toList();
+
+        List<StructureArbreDTO.DomaineArbreDTO> domaineArbreDTOs = domaines.stream()
+                .map(this::buildDomaineArbre).toList();
+
+        long savoirsTheoriques = allSavoirs.stream().filter(s -> s.getType() == TypeSavoir.THEORIQUE).count();
+        long savoirsPratiques  = allSavoirs.stream().filter(s -> s.getType() == TypeSavoir.PRATIQUE).count();
+
+        StructureArbreDTO.StatistiquesDTO stats = StructureArbreDTO.StatistiquesDTO.builder()
+                .totalDomaines(domaines.size())
+                .totalCompetences((int) domaines.stream().mapToLong(d -> d.getCompetences().size()).sum())
+                .totalSousCompetences((int) domaines.stream()
+                        .flatMap(d -> d.getCompetences().stream())
+                        .mapToLong(c -> c.getSousCompetences().size()).sum())
+                .totalSavoirs(allSavoirs.size())
+                .totalSavoirsTheoriques((int) savoirsTheoriques)
+                .totalSavoirsPratiques((int) savoirsPratiques)
+                .build();
+
+        return StructureArbreDTO.builder()
+                .domaines(domaineArbreDTOs)
+                .statistiques(stats)
+                .build();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public StructureArbreDTO.DomaineArbreDTO getStructureDomaine(Long domaineId) {
+        Domaine domaine = domaineRepository.findById(domaineId)
+                .orElseThrow(() -> new EntityNotFoundException("Domaine non trouvé avec l'id: " + domaineId));
+        return buildDomaineArbre(domaine);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public SearchResultDTO rechercheGlobale(String keyword) {
+        List<DomaineDTO> domaines = domaineRepository.searchByKeyword(keyword).stream()
+                .map(competenceMapper::toDTOLight).toList();
+        List<CompetenceDTO> competences = competenceRepository.searchByKeyword(keyword).stream()
+                .map(competenceMapper::toDTO).toList();
+        List<SousCompetenceDTO> sousCompetences = sousCompetenceRepository.searchByKeyword(keyword).stream()
+                .map(competenceMapper::toDTO).toList();
+        List<SavoirDTO> savoirs = savoirRepository.searchByKeyword(keyword).stream()
+                .map(competenceMapper::toDTO).toList();
+        return SearchResultDTO.builder()
+                .keyword(keyword)
+                .domaines(domaines)
+                .competences(competences)
+                .sousCompetences(sousCompetences)
+                .savoirs(savoirs)
+                .totalResults(domaines.size() + competences.size() + sousCompetences.size() + savoirs.size())
+                .build();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public SearchResultDTO rechercheParDomaine(Long domaineId, String keyword) {
+        List<CompetenceDTO> competences = competenceRepository.searchByDomaineIdAndKeyword(domaineId, keyword).stream()
+                .map(competenceMapper::toDTO).toList();
+        List<SousCompetenceDTO> sousCompetences = sousCompetenceRepository.searchByDomaineIdAndKeyword(domaineId, keyword).stream()
+                .map(competenceMapper::toDTO).toList();
+        List<SavoirDTO> savoirs = savoirRepository.searchByDomaineIdAndKeyword(domaineId, keyword).stream()
+                .map(competenceMapper::toDTO).toList();
+        return SearchResultDTO.builder()
+                .keyword(keyword)
+                .domaines(java.util.Collections.emptyList())
+                .competences(competences)
+                .sousCompetences(sousCompetences)
+                .savoirs(savoirs)
+                .totalResults(competences.size() + sousCompetences.size() + savoirs.size())
+                .build();
+    }
+
+    // ── Helpers ──────────────────────────────────────────────────────────────
+
+    private StructureArbreDTO.DomaineArbreDTO buildDomaineArbre(Domaine domaine) {
+        List<Competence> competences = domaine.getCompetences();
+
+        List<StructureArbreDTO.CompetenceArbreDTO> compArbreDTOs = competences.stream()
+                .map(this::buildCompetenceArbre)
+                .toList();
+
+        long nbEnseignants;
+        try {
+            nbEnseignants = enseignantCompetenceRepository.countDistinctEnseignantsByDomaineId(domaine.getId());
+        } catch (Exception e) {
+            nbEnseignants = 0;
+        }
+
+        return StructureArbreDTO.DomaineArbreDTO.builder()
+                .id(domaine.getId())
+                .code(domaine.getCode())
+                .nom(domaine.getNom())
+                .description(domaine.getDescription())
+                .actif(domaine.getActif())
+                .nombreCompetences(competences.size())
+                .nombreEnseignants(nbEnseignants)
+                .competences(compArbreDTOs)
+                .build();
+    }
+
+    private StructureArbreDTO.CompetenceArbreDTO buildCompetenceArbre(Competence competence) {
+        List<SousCompetence> sousCompetences = competence.getSousCompetences() == null
+                ? Collections.emptyList()
+                : competence.getSousCompetences().stream()
+                .filter(sc -> sc.getParent() == null)
+                .toList();
+
+        List<StructureArbreDTO.SousCompetenceArbreDTO> scArbreDTOs = sousCompetences.stream()
+                .map(this::buildSousCompetenceArbre)
+                .toList();
+
+        List<SavoirDTO> savoirsDirect = competence.getSavoirs() != null
+                ? competence.getSavoirs().stream().map(competenceMapper::toDTO).toList()
+                : Collections.emptyList();
+
+        int totalSavoirs = sousCompetences.stream().mapToInt(this::countSavoirsRecursive).sum()
+                + savoirsDirect.size();
+
+        long nbEnseignants;
+        try {
+            nbEnseignants = enseignantCompetenceRepository.countDistinctEnseignantsByCompetenceId(competence.getId());
+        } catch (Exception e) {
+            nbEnseignants = 0;
+        }
+
+        return StructureArbreDTO.CompetenceArbreDTO.builder()
+                .id(competence.getId())
+                .code(competence.getCode())
+                .nom(competence.getNom())
+                .description(competence.getDescription())
+                .ordre(competence.getOrdre())
+                .nombreSousCompetences(sousCompetences.size())
+                .nombreSavoirs(totalSavoirs)
+                .nombreEnseignants(nbEnseignants)
+                .sousCompetences(scArbreDTOs)
+                .savoirsDirect(savoirsDirect)
+                .build();
+    }
+
+    private StructureArbreDTO.SousCompetenceArbreDTO buildSousCompetenceArbre(SousCompetence sc) {
+        long nbEnseignants;
+        try {
+            nbEnseignants = enseignantCompetenceRepository.countDistinctEnseignantsBySousCompetenceId(sc.getId());
+        } catch (Exception e) {
+            nbEnseignants = 0;
+        }
+
+                List<StructureArbreDTO.SousCompetenceArbreDTO> enfants = sc.getEnfants() == null
+                                ? Collections.emptyList()
+                                : sc.getEnfants().stream()
+                                .map(this::buildSousCompetenceArbre)
+                                .toList();
+
+                List<SavoirDTO> savoirs = sc.getSavoirs() == null
+                                ? Collections.emptyList()
+                                : sc.getSavoirs().stream().map(competenceMapper::toDTO).toList();
+
+        return StructureArbreDTO.SousCompetenceArbreDTO.builder()
+                .id(sc.getId())
+                .code(sc.getCode())
+                .nom(sc.getNom())
+                .description(sc.getDescription())
+                                .niveau(sc.getNiveau())
+                                .nombreSavoirs(countSavoirsRecursive(sc))
+                .nombreEnseignants(nbEnseignants)
+                                .savoirs(savoirs)
+                                .enfants(enfants)
+                .build();
+    }
+
+        private int countSavoirsRecursive(SousCompetence sc) {
+                int current = sc.getSavoirs() == null ? 0 : sc.getSavoirs().size();
+                if (sc.getEnfants() == null || sc.getEnfants().isEmpty()) {
+                        return current;
+                }
+                return current + sc.getEnfants().stream().mapToInt(this::countSavoirsRecursive).sum();
+        }
+
+}

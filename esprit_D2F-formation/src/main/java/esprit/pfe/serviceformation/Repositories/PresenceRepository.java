@@ -1,10 +1,10 @@
-package esprit.pfe.serviceformation.Repositories;
+package esprit.pfe.serviceformation.repositories;
 
-import esprit.pfe.serviceformation.DTO.EnseignantStatsDTO;
-import esprit.pfe.serviceformation.Entities.Enseignant;
-import esprit.pfe.serviceformation.Entities.EtatFormation;
-import esprit.pfe.serviceformation.Entities.Formation;
-import esprit.pfe.serviceformation.Entities.Presence;
+import esprit.pfe.serviceformation.dto.EnseignantStatsDTO;
+import esprit.pfe.serviceformation.entities.Enseignant;
+import esprit.pfe.serviceformation.entities.EtatFormation;
+import esprit.pfe.serviceformation.entities.Formation;
+import esprit.pfe.serviceformation.entities.Presence;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -30,7 +30,7 @@ public interface PresenceRepository extends JpaRepository<Presence, Long> {
     @Query("""
       SELECT p.enseignant
       FROM Presence p
-      WHERE p.presence = true
+      WHERE p.present = true
         AND p.seanceFormation.formation.idFormation = :formationId
       GROUP BY p.enseignant
       HAVING COUNT(p) = (
@@ -43,11 +43,6 @@ public interface PresenceRepository extends JpaRepository<Presence, Long> {
             @Param("formationId") Long formationId
     );
 
-   /* @Query("SELECT DISTINCT p FROM Presence p " +
-            "WHERE p.presence = true " +
-            "  AND p.seanceFormation.formation.idFormation = :formationId")
-    List<Presence> findAllPresentByFormationId(@Param("formationId") Long formationId);
-*/
 
     @Query("SELECT COUNT(p) FROM Presence p WHERE p.seanceFormation.formation.idFormation = :formationId " +
             "AND p.seanceFormation.dateSeance BETWEEN :startDate AND :endDate")
@@ -57,39 +52,17 @@ public interface PresenceRepository extends JpaRepository<Presence, Long> {
 
     @Query("SELECT COUNT(p) FROM Presence p WHERE p.seanceFormation.formation.idFormation = :formationId " +
             "AND p.seanceFormation.dateSeance BETWEEN :startDate AND :endDate " +
-            "AND p.presence = true")
+            "AND p.present = true")
     long countPresentByFormationIdAndPeriod(@Param("formationId") Long formationId,
                                             @Param("startDate") Date startDate,
                                             @Param("endDate") Date endDate);
 
 
 
-   /* @Query("""
-      SELECT new esprit.pfe.serviceformation.DTO.EnseignantStatsDTO(
-        e.id,
-        e.nom,
-        e.prenom,
-        COALESCE(COUNT(p), 0)
-      )
-      FROM Enseignant e
-      LEFT JOIN e.presences p
-        ON p.presence = true
-       AND p.seanceFormation.dateSeance BETWEEN :start AND :end
-       AND ( :upId   IS NULL OR p.seanceFormation.formation.up.id         = :upId   )
-       AND ( :deptId IS NULL OR p.seanceFormation.formation.departement.id = :deptId )
-      GROUP BY e.id, e.nom, e.prenom
-      ORDER BY COALESCE(COUNT(p), 0) DESC
-    """)
-    List<EnseignantStatsDTO> findTopParticipants(
-            @Param("upId")   String upId,    // null pour ignorer le filtre UP
-            @Param("deptId") String deptId,  // null pour ignorer le filtre Département
-            @Param("start")  Date   start,
-            @Param("end")    Date   end
-    );*/
 
 
    @Query("""
-      SELECT new esprit.pfe.serviceformation.DTO.EnseignantStatsDTO(
+      SELECT new esprit.pfe.serviceformation.dto.EnseignantStatsDTO(
         e.id,
         e.nom,
         e.prenom,
@@ -97,7 +70,7 @@ public interface PresenceRepository extends JpaRepository<Presence, Long> {
       )
       FROM Presence p
       JOIN p.enseignant e
-      WHERE p.presence = true
+      WHERE p.present = true
         AND p.seanceFormation.dateSeance BETWEEN :start AND :end
         AND p.seanceFormation.formation.etatFormation = :etat
         AND (:upId   IS NULL OR p.seanceFormation.formation.up.id         = :upId)
@@ -115,7 +88,7 @@ public interface PresenceRepository extends JpaRepository<Presence, Long> {
 
     // ——— Top absentees (plus absents) pour FORMATIONS ACHEVEES ———
     @Query("""
-      SELECT new esprit.pfe.serviceformation.DTO.EnseignantStatsDTO(
+      SELECT new esprit.pfe.serviceformation.dto.EnseignantStatsDTO(
         e.id,
         e.nom,
         e.prenom,
@@ -123,7 +96,7 @@ public interface PresenceRepository extends JpaRepository<Presence, Long> {
       )
       FROM Presence p
       JOIN p.enseignant e
-      WHERE p.presence = false
+      WHERE p.present = false
         AND p.seanceFormation.dateSeance BETWEEN :start AND :end
         AND p.seanceFormation.formation.etatFormation = :etat
         AND (:upId   IS NULL OR p.seanceFormation.formation.up.id         = :upId)

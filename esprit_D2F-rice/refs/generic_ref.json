@@ -1,0 +1,7 @@
+{
+  "gc":      "./refs/gc_ref.json",
+  "info":    "./refs/info_ref.json",
+  "ge":      "./refs/ge_ref.json",
+  "meca":    "./refs/meca_ref.json",
+  "telecom": "./refs/telecom_ref.json"
+}

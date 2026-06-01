@@ -1,2 +1,130 @@
-# pfe-d2f-enseignants
-Plateforme D2F - Développement professionnel des enseignants avec analyse prédictive
+# 🎓 Plateforme D2F — Développement professionnel des enseignants
+
+Plateforme de gestion des compétences et de développement professionnel des enseignants ESPRIT, avec analyse prédictive.
+
+## 📦 Architecture
+
+Architecture **microservices** (Spring Boot 3.x / JDK 17 + FastAPI Python) avec API Gateway, RabbitMQ, PostgreSQL :
+
+```
+pfe-d2f-enseignants/
+├── esprit_D2F-api-gateway/           # API Gateway (Spring Cloud Gateway, port 8080)
+├── esprit_D2F-authentification/      # Auth & Users (JWT HS512, port 8085)
+├── esprit_D2F-competence/            # Gestion compétences & RICE (port 8005)
+├── esprit_D2F-formation/             # Formations & OneDrive (port 8088)
+├── esprit_D2F-besoin-formation/      # Besoins de formation (port 8004)
+├── esprit_D2F-evaluation/            # Évaluations (port 8087)
+├── esprit_D2F-certificat/            # Certificats PDF (port 8086)
+├── esprit_D2F-analyse/               # Analyse transverse (port 8089)
+├── esprit_D2F-rice/                  # RICE — Référentiel Intelligent (FastAPI, port 8001)
+├── esprit_D2F-predictive-analytics/  # Analyse Prédictive (FastAPI, port 8080)
+├── esprit_D2F-webapp/                # Frontend React 19 + Vite (port 3000/5173)
+├── docker-compose.yml                # Orchestration locale
+├── .env.example                      # Variables d'environnement (template)
+└── .github/workflows/                # CI/CD GitHub Actions + SonarQube
+```
+
+## 🚀 Démarrage rapide
+
+### Prérequis
+- Docker & Docker Compose v2+
+- JDK 17+ (développement local)
+- Node.js 20+ (développement frontend)
+- PostgreSQL 15 (via Docker)
+
+### Installation
+
+```bash
+# 1. Cloner le dépôt
+git clone <url> && cd pfe-d2f-enseignants
+
+# 2. Copier et remplir les variables d'environnement
+cp .env.example .env
+# → Remplir JWT_SECRET (min 64 chars), DB_PASSWORD, etc.
+
+# 3. Démarrer toute la stack
+docker compose up -d
+
+# 4. Vérifier la santé des services
+docker compose ps
+```
+
+### Développement local (sans Docker)
+
+```bash
+# Backend (chaque service)
+cd esprit_D2F-competence && ./mvnw spring-boot:run
+
+# Frontend
+cd esprit_D2F-webapp && npm install && npm run dev
+```
+
+## 🔑 Variables d'environnement requises
+
+| Variable | Description | Exemple |
+|---|---|---|
+| `JWT_SECRET` | Clé HS512 (min 64 chars) | `<générer via openssl rand -base64 64>` |
+| `DB_PASSWORD` | Mot de passe PostgreSQL | `<mot de passe fort>` |
+| `VITE_API_URL` | URL API Gateway (frontend) | `http://localhost:8080/api` |
+| `MAIL_USERNAME` | SMTP utilisateur | — |
+| `MAIL_PASSWORD` | SMTP mot de passe | — |
+| `RABBITMQ_HOST` | Hôte RabbitMQ | `rabbitmq` |
+| `RABBITMQ_USERNAME` | Utilisateur RabbitMQ | `d2f` |
+| `RABBITMQ_PASSWORD` | Mot de passe RabbitMQ | `<mot de passe fort>` |
+
+Voir `.env.example` pour la liste complète.
+
+## 🛡️ Sécurité
+
+- **JWT HS512** pour l'authentification stateless
+- **RBAC** via `@PreAuthorize(AuthorizationMatrix.*)` côté backend
+- **CORS** restreint aux origines internes
+- **BCrypt** pour le hachage des mots de passe
+- **Aucun secret dans le code source** — tout via `.env` / variables d'environnement
+- **RabbitMQ** pour la communication asynchrone interservices
+- **Nginx** avec en-têtes de sécurité (CSP, HSTS, X-Frame-Options)
+
+## 🧪 Tests
+
+```bash
+# Backend Java
+cd esprit_D2F-competence && ./mvnw test
+
+# Frontend
+cd esprit_D2F-webapp && npm run test:coverage
+```
+
+## 🏗️ Architecture Frontend — État et gestion des données (DSI §5 / §7)
+
+Le frontend utilise la stack prescrite par le CDC DSI : **React 18+ + Vite + React Context + Axios**.
+
+### Rôles distincts des deux mécanismes d'état
+
+| Mécanisme | Usage | Justification DSI |
+|---|---|---|
+| **React Context** | État applicatif global : session utilisateur, rôles JWT, thème UI | Prescrit par CDC §5 — géré dans `hooks/auth/useAuth.ts` |
+| **React Query (TanStack)** | Cache du state serveur : dé-duplication des requêtes HTTP, invalidation automatique, état de chargement | Bibliothèque complémentaire — ne remplace pas React Context |
+
+React Query gère exclusivement le **cache des données distantes** (ce que React Context seul ne fait pas de manière déclarative). Tous les appels HTTP restent centralisés dans `src/services/`. React Context continue de gérer l'état d'authentification et les préférences utilisateur. Cette combinaison est conforme à la séparation des responsabilités exigée par §7.
+
+## 🌐 Infrastructure DSI (§2)
+
+| Ressource DSI | Hostname standard | Résolution Docker (local) |
+|---|---|---|
+| Base de données PostgreSQL | `db.dsi.local:5432` | Alias Docker → container `d2f-postgres` |
+| Message Broker RabbitMQ | `broker.dsi.local:5672` | Alias Docker → container `d2f-rabbitmq` |
+| API Gateway | `api-gateway.dsi.local:8080` | Alias Docker → container `d2f-gateway` |
+
+En environnement DSI, les DNS internes `*.dsi.local` résolvent directement vers l'infrastructure Esprit. En développement local, les alias Docker du `docker-compose.yml` assurent la même résolution sans modifier le code.
+
+## 🔒 Azure AD / Microsoft 365 (DÉSACTIVÉ par défaut)
+
+L'intégration avec Microsoft Graph (calendrier Outlook, Teams, OneDrive) est **désactivée par défaut** (`AZURE_AD_ENABLED=false`). Elle ne peut être activée que sur décision explicite de la DSI, par configuration de la variable d'environnement `AZURE_AD_ENABLED=true`. Par défaut, le service de formation utilise :
+- **SMTP interne** : `smtp.internal.dsi.local` pour les notifications
+- **Stockage local** pour les documents de formation
+
+## 📊 Qualité (SonarQube)
+
+Pipeline CI exécute SonarQube avec Quality Gate bloquant sur chaque push/PR.
+
+

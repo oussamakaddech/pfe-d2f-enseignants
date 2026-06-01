@@ -1,15 +1,14 @@
-package esprit.pfe.serviceformation.Repositories;
+package esprit.pfe.serviceformation.repositories;
 
-import esprit.pfe.serviceformation.Entities.Enseignant;
-import esprit.pfe.serviceformation.Entities.Formation;
-import esprit.pfe.serviceformation.Entities.SeanceFormation;
+import esprit.pfe.serviceformation.entities.Enseignant;
+import esprit.pfe.serviceformation.entities.Formation;
+import esprit.pfe.serviceformation.entities.SeanceFormation;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.sql.Time;
-import java.time.LocalDate;
 import java.util.Date;
 import java.util.List;
 
@@ -136,4 +135,15 @@ public interface SeanceFormationRepository extends JpaRepository<SeanceFormation
             @Param("heureFin")   Time   heureFin,
             @Param("idSeance")   Long   idSeance
     );
+
+    // Pour le reminder scheduler : séances à une date donnée
+    List<SeanceFormation> findByDateSeance(Date dateSeance);
+
+    // Pour l'export .ics : séances d'un animateur
+    @Query("SELECT s FROM SeanceFormation s JOIN s.animateurs a WHERE a.id = :ensId")
+    List<SeanceFormation> findByAnimateurs_Id(@Param("ensId") String ensId);
+
+    // Pour l'export .ics : séances d'un participant
+    @Query("SELECT s FROM SeanceFormation s JOIN s.participants p WHERE p.id = :ensId")
+    List<SeanceFormation> findByParticipants_Id(@Param("ensId") String ensId);
 }

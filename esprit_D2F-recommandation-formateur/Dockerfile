@@ -1,22 +1,40 @@
-# Base image (Debian-slim preferred for ML libs compatibility)
+# ─── Stage 1: Builder ─────────────────────────────────────────────────────────
+FROM python:3.13-slim AS builder
+
+WORKDIR /build
+
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends \
+      gcc \
+      g++ \
+      libpq-dev \
+ && rm -rf /var/lib/apt/lists/*
+
+RUN python -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir --upgrade pip \
+ && pip install --no-cache-dir -r requirements.txt
+
+# ─── Pré-téléchargement du modèle d'embeddings (DSI #9) ───────────────────────
+# Le modèle est vendu DANS l'image (révision épinglée) pour qu'aucun appel à
+# HuggingFace ne soit fait au runtime (supply-chain + déploiement hors-ligne).
+ARG EMBEDDING_MODEL_REPO=WhereIsAI/UAE-Large-V1
+ARG EMBEDDING_MODEL_REVISION=9c9b2c999b3350cfb3171ed429320668e39b00b8
+RUN python -c "from huggingface_hub import snapshot_download; \
+snapshot_download('${EMBEDDING_MODEL_REPO}', revision='${EMBEDDING_MODEL_REVISION}', \
+local_dir='/opt/models/embedding', local_dir_use_symlinks=False)"
+
+# ─── Stage 2: Runtime ─────────────────────────────────────────────────────────
 FROM python:3.13-slim
 
-# Authors
 LABEL Author="seddik bouzayani <seddik.bouzayani@esprit.tn>"
 LABEL maintainer="seddik bouzayani <seddik.bouzayani@esprit.tn>"
 
-# Python and pip behavior
 ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1 \
-    PIP_NO_CACHE_DIR=1 \
-    PIP_DISABLE_PIP_VERSION_CHECK=1 \
-    PIP_DEFAULT_TIMEOUT=600 \
-    PIP_RETRIES=10
+    PYTHONUNBUFFERED=1
 
-# System dependencies (runtime + minimal build tools if needed)
-# - libgomp1, libopenblas0: needed by scikit-learn/faiss wheels
-# - libpq5: runtime for psycopg2-binary
-# - build-essential, gcc/g++ kept light for native builds if any wheels unavailable
 RUN apt-get update \
  && apt-get install -y --no-install-recommends \
       ca-certificates \
@@ -24,40 +42,35 @@ RUN apt-get update \
       libgomp1 \
       libopenblas0 \
       libpq5 \
-      build-essential \
-      git \
  && rm -rf /var/lib/apt/lists/*
 
-# Create non-root user (as in your style)
-RUN groupadd -g 2003 esprit && \
-    useradd  -m -u 2003 -g 2003 -s /usr/sbin/nologin esprit
+COPY --from=builder /opt/venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
 
-# Workdir
+# Modèle vendu dans l'image + mode hors-ligne strict (DSI #9 : zéro appel HF au runtime).
+COPY --from=builder /opt/models /opt/models
+ENV EMBEDDING_MODEL=/opt/models/embedding \
+    HF_HUB_OFFLINE=1 \
+    TRANSFORMERS_OFFLINE=1 \
+    HF_HUB_DISABLE_TELEMETRY=1
+
+RUN groupadd -g 2003 esprit && \
+    useradd -m -u 2003 -g 2003 -s /usr/sbin/nologin esprit
+
 WORKDIR /app
 
-# Copy and install Python dependencies first (better layer caching)
-COPY requirements.txt ./
-RUN pip install --upgrade pip \
- && pip install --no-cache-dir -r requirements.txt
+COPY --chown=esprit:esprit ai_reco.py .
+COPY --chown=esprit:esprit utils.py .
+COPY --chown=esprit:esprit report_generator.py .
 
-# Copy application code
-COPY --chown=esprit:esprit . .
-
-# Optional: pass an env file at build time and place it at /app/.env
-ARG ENV_FILE
-RUN if [ -n "$ENV_FILE" ] && [ -f "$ENV_FILE" ]; then cp "$ENV_FILE" /app/.env; fi
-# Make the path available at runtime
-ENV ENV_FILE=/app/.env
-
-# Prepare cache/model dirs
 RUN mkdir -p /app/cache /app/models && chown -R esprit:esprit /app
 VOLUME ["/app/cache", "/app/models"]
 
-# Switch to non-root user
 USER esprit
 
-# Expose API port
 EXPOSE 8000
 
-# Default start command (FastAPI via Uvicorn)
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+  CMD curl -sf http://localhost:8000/health || exit 1
+
 CMD ["uvicorn", "ai_reco:app", "--host", "0.0.0.0", "--port", "8000"]

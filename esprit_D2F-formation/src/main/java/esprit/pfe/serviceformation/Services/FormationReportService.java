@@ -1,32 +1,27 @@
-package esprit.pfe.serviceformation.Services;
+package esprit.pfe.serviceformation.services;
 
-import esprit.pfe.serviceformation.DTO.AnimateurFormationDTO;
-import esprit.pfe.serviceformation.DTO.FormateurNameDTO;
-import esprit.pfe.serviceformation.DTO.ParticipantFormationDTO;
-import esprit.pfe.serviceformation.Entities.Enseignant;
-import esprit.pfe.serviceformation.Entities.Formation;
-import esprit.pfe.serviceformation.Repositories.PresenceRepository;
-import esprit.pfe.serviceformation.Repositories.SeanceFormationRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import esprit.pfe.serviceformation.dto.AnimateurFormationDTO;
+import esprit.pfe.serviceformation.dto.FormateurNameDTO;
+import esprit.pfe.serviceformation.dto.ParticipantFormationDTO;
+import esprit.pfe.serviceformation.repositories.PresenceRepository;
+import esprit.pfe.serviceformation.repositories.SeanceFormationRepository;
 import org.springframework.stereotype.Service;
+import lombok.RequiredArgsConstructor;
 
 import java.util.Date;
 import java.util.List;
 
 @Service
+@RequiredArgsConstructor
 public class FormationReportService {
-
-    @Autowired
-    private SeanceFormationRepository seanceRepo;
-
-    @Autowired
-    private PresenceRepository presenceRepo;
+    private final SeanceFormationRepository seanceRepo;
+    private final PresenceRepository presenceRepo;
 
     /**
      * Récupère selon le rôle ("animateur" ou "participant")
      * la liste des formations pour un enseignant et une période données.
      */
-    public List<?> getFormationsParRoleEtPeriode(
+    public List<Object> getFormationsParRoleEtPeriode(
             String role,
             String enseignantId,
             Date debutPeriode,
@@ -36,7 +31,7 @@ public class FormationReportService {
             return seanceRepo.findFormationsByAnimateurAndPeriod(
                             enseignantId, debutPeriode, finPeriode
                     ).stream()
-                    .map(f -> new AnimateurFormationDTO(
+                    .<Object>map(f -> new AnimateurFormationDTO(
                             f.getTitreFormation(),
                             f.getPopulationCible(),
                             f.getObjectifs(),
@@ -50,7 +45,7 @@ public class FormationReportService {
             return presenceRepo.findFormationsByParticipantAndPeriod(
                             enseignantId, debutPeriode, finPeriode
                     ).stream()
-                    .map(f -> {
+                    .<Object>map(f -> {
                         List<FormateurNameDTO> formateurs = seanceRepo
                                 .findAnimateursByFormation(f.getIdFormation())
                                 .stream()

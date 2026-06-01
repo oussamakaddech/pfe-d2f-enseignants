@@ -1,5 +1,5 @@
-package esprit.pfe.auth.Entities;
+package esprit.pfe.auth.entities;
 
 public enum ERole {
-    admin,CUP,D2F,Formateur
+    ADMIN, CUP, D2F, ENSEIGNANT, FORMATEUR, CHEF_DEPARTEMENT, RESPONSABLE_DOSSIER
 }

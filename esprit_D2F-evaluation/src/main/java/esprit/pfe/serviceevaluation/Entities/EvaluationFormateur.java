@@ -1,17 +1,19 @@
-package esprit.pfe.serviceevaluation.Entities;
+package esprit.pfe.serviceevaluation.entities;
 
 
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
 
 @Getter
 @Setter
 @Entity
-public class EvaluationFormateur {
+@Table(name = "evaluation_formateur")
+public class EvaluationFormateur extends BaseAuditEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

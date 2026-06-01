@@ -1,0 +1,619 @@
+"""Core RICE analysis pipeline – _analyze_single_fiche, _fallback_extraction, analyze_files."""
+
+from __future__ import annotations
+
+import logging
+import re
+import uuid
+from typing import Any, Dict, List, Optional, Tuple
+
+from rice.models import (
+    CompetenceProposition,
+    DomaineProposition,
+    EnseignantInfo,
+    FicheEnseignantExtrait,
+    RiceAnalysisResult,
+    SavoirProposition,
+    SousCompetenceProposition,
+)
+from rice.db import _fetch_all_enseignants_info, _create_enseignant_if_new
+# LLM removed
+_LLM_OK = False
+from rice.nlp import (
+    _bloom_to_niveau,
+    _detect_bloom_level,
+    _detect_type,
+    _extract_acquis_apprentissage,
+    _extract_metadata,
+    _extract_referentiel_competences,
+    _extract_seances,
+    _extract_text,
+    _build_domain_name_from_file,
+    _llm_extract_subcompetences,
+    _llm_fallback_items,
+    _normalize,
+    _slug,
+    _RE_CHECKMARK,
+    _RE_BULLET,
+    _RE_NUMBERED,
+)
+from rice.enseignants import _match_enseignants_by_name, _match_enseignants_by_module
+from rice.referential import (
+    _match_gc_savoir,
+    _gc_ref_niveau,
+    _match_gc_competence,
+    _suggest_gc_enseignants,
+)
+
+logger = logging.getLogger("rice_analyzer")
+
+
+# Order used to compare canonical mastery levels.
+_NIVEAU_ORDER = {
+    "N1_DEBUTANT": 1,
+    "N2_ELEMENTAIRE": 2,
+    "N3_INTERMEDIAIRE": 3,
+    "N4_AVANCE": 4,
+    "N5_EXPERT": 5,
+}
+
+
+def _get_niveau_from_referentiel(
+    savoir_code: str,
+    departement: str = "gc",
+    fallback_text: str = "",
+) -> str:
+    """
+    Resolve official mastery level from referential data for DOC_REFERENTIEL.
+
+    Search order:
+      1) exact code match            (e.g. S3)
+      2) code + 'a' fallback         (e.g. S1 -> S1a)
+      3) all 1-letter suffix variants (e.g. S1a/S1b/S1c...) -> minimum level
+      4) Bloom fallback on text
+    """
+    from rice.referential import _get_effective_referential
+
+    ref = _get_effective_referential(departement)
+    niveaux = ref.get("niveaux", {})
+
+    if not niveaux:
+        return _bloom_to_niveau(_detect_bloom_level(fallback_text))
+
+    code = str(savoir_code or "").strip()
+    if not code:
+        return _bloom_to_niveau(_detect_bloom_level(fallback_text))
+
+    # Match only strict 1-letter suffix variants (e.g. S6a, S6b, S6c),
+    # excluding false positives like S60 or S61.
+    variant_pattern = re.compile(r"^" + re.escape(code) + r"[a-z]$", re.IGNORECASE)
+    variants = [
+        val
+        for k, val in niveaux.items()
+        if variant_pattern.match(str(k).strip())
+    ]
+    if variants:
+        return min(variants, key=lambda n: _NIVEAU_ORDER.get(n, 3))
+
+    for k, val in niveaux.items():
+        if str(k).strip().lower() == code.lower():
+            return val
+
+    code_a = f"{code}a"
+    for k, val in niveaux.items():
+        if str(k).strip().lower() == code_a.lower():
+            return val
+
+    niveau_bloom = _bloom_to_niveau(_detect_bloom_level(fallback_text))
+    logger.debug(
+        "  Niveau non trouve dans referentiel pour '%s' [%s] -> fallback Bloom: %s",
+        code,
+        departement,
+        niveau_bloom,
+    )
+    return niveau_bloom
+
+
+def _iter_comp_savoirs(comp: CompetenceProposition):
+    for sc in (comp.sousCompetences or []):
+        for s in (sc.savoirs or []):
+            yield s
+    for s in (comp.savoirs or []):
+        yield s
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Single-fiche analysis
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _is_bad_domain_candidate(value: Optional[str]) -> bool:
+    if not value:
+        return True
+    candidate = value.strip()
+    if len(candidate) < 4:
+        return True
+    if re.match(r"^[A-Z][a-z0-9]{0,3}\d*\s*[-\u2013]\s+", candidate):
+        return True
+    if re.match(r"^[a-zà-ÿ]", candidate) or ("," in candidate and len(candidate) < 90):
+        return True
+    return False
+
+
+def _resolve_domain(meta: Dict, filename: str) -> Tuple[str, str, str, str]:
+    domain_candidates = [
+        meta.get("nom_module"),
+        meta.get("unite_enseignement"),
+        meta.get("unite_pedagogique"),
+    ]
+    domain_name = next((c.strip() for c in domain_candidates if not _is_bad_domain_candidate(c)), None)
+    if not domain_name:
+        domain_name = _build_domain_name_from_file(filename) or "Domaine Général"
+
+    module_name = meta.get("nom_module") or domain_name
+    module_code = meta.get("code_module") or _slug(module_name, 15)
+    domain_code = meta.get("code_module") or _slug(domain_name, 15)
+    return domain_name, module_name, module_code, domain_code
+
+
+def _build_extracted_ens(fiche_ens_names: List[str], roles_map: Dict, name_match_map: Dict, filename: str) -> List[FicheEnseignantExtrait]:
+    extracted_ens: List[FicheEnseignantExtrait] = []
+    for name in fiche_ens_names:
+        role = roles_map.get(name, "enseignant")
+        match_info = name_match_map.get(name)
+        mid, mnom = match_info if match_info else (None, None)
+        extracted_ens.append(FicheEnseignantExtrait(
+            fichier=filename, nom_complet=name, role=role,
+            matched_id=mid, matched_nom=mnom,
+        ))
+    return extracted_ens
+
+
+def _add_ref_matched_ens(all_matched: List[str], extracted_ens: List[FicheEnseignantExtrait], all_ens_by_id: Dict, filename: str) -> None:
+    already_extracted_ids = {ex.matched_id for ex in extracted_ens if ex.matched_id}
+    for eid in all_matched:
+        eid_str = str(eid)
+        if eid_str in already_extracted_ids:
+            continue
+        ens_obj = all_ens_by_id.get(eid_str)
+        if not ens_obj:
+            continue
+        full_name = f"{ens_obj.prenom} {ens_obj.nom}".strip() or eid_str
+        extracted_ens.append(FicheEnseignantExtrait(
+            fichier=filename, nom_complet=full_name, role="enseignant",
+            matched_id=eid_str, matched_nom=full_name,
+        ))
+        already_extracted_ids.add(eid_str)
+
+
+def _build_savoir_from_aa(aa: Dict, comp_code: str, domain_code: str, departement: str, matched_by_name: List, matched_by_module: List, all_matched: List, extracted_ids: List, j: int) -> SavoirProposition:
+    aa_num = aa.get("id", j + 1)
+    gc_codes = _match_gc_savoir(aa["text"], departement=departement)
+    savoir_ens = list(set(matched_by_name + matched_by_module + _suggest_gc_enseignants(gc_codes))) if gc_codes else list(set(matched_by_name + matched_by_module))
+    return SavoirProposition(
+        tmpId=str(uuid.uuid4()),
+        code=f"{comp_code}-AA{aa_num}",
+        nom=aa["text"][:120],
+        description=aa["text"][:200],
+        type=_detect_type(aa["text"], departement),
+        niveau=_gc_ref_niveau(gc_codes, departement=departement) or _bloom_to_niveau(aa["bloom_level"]),
+        enseignantsSuggeres=savoir_ens or all_matched or extracted_ids,
+        refCodes=gc_codes,
+        competence_code=comp_code,
+        domaine_code=domain_code,
+        directToCompetence=False,
+    )
+
+
+def _build_savoir_from_aa_direct(aa: Dict, comp_code: str, domain_code: str, departement: str, matched_by_name: List, matched_by_module: List, all_matched: List, extracted_ids: List, j: int) -> SavoirProposition:
+    aa_num = aa.get("id", j + 1)
+    gc_codes = _match_gc_savoir(aa["text"], departement=departement)
+    savoir_ens = list(set(matched_by_name + matched_by_module + _suggest_gc_enseignants(gc_codes))) if gc_codes else list(set(matched_by_name + matched_by_module))
+    return SavoirProposition(
+        tmpId=str(uuid.uuid4()),
+        code=f"{comp_code}-AA{aa_num}",
+        nom=aa["text"][:120],
+        description=aa["text"][:200],
+        type=_detect_type(aa["text"], departement),
+        niveau=_gc_ref_niveau(gc_codes, departement=departement) or _bloom_to_niveau(aa["bloom_level"]),
+        enseignantsSuggeres=savoir_ens or all_matched or extracted_ids,
+        refCodes=gc_codes,
+        competence_code=comp_code,
+        domaine_code=domain_code,
+        directToCompetence=True,
+    )
+
+
+def _build_competence_from_acquis(acquis: List, subcomp_titles: List, text: str, module_code: str, module_name: str, domain_code: str, comp_idx: int, departement: str, matched_by_name: List, matched_by_module: List, all_matched: List, extracted_ids: List, meta: Dict) -> CompetenceProposition:
+    comp_code = f"{module_code}-C{comp_idx + 1}"
+    sous_comps: List[SousCompetenceProposition] = []
+    savoirs_directs: List[SavoirProposition] = []
+
+    if subcomp_titles:
+        text_lines = text.splitlines()
+        sc_idx = 0
+        for idx_sc, (line_no, title) in enumerate(subcomp_titles):
+            sc_code = f"{comp_code}-SC{sc_idx + 1}"
+            start = line_no - 1
+            end = (subcomp_titles[idx_sc + 1][0] - 1) if (idx_sc + 1 < len(subcomp_titles)) else len(text_lines)
+            sc_block_text = "\n".join(text_lines[start:end])
+            aa_block = [aa for aa in acquis if aa["text"] in sc_block_text] or acquis
+            savoirs = [_build_savoir_from_aa(aa, comp_code, domain_code, departement, matched_by_name, matched_by_module, all_matched, extracted_ids, j) for j, aa in enumerate(aa_block)]
+            sc_gc = list({c for s in savoirs for c in s.refCodes})
+            sous_comps.append(SousCompetenceProposition(
+                tmpId=str(uuid.uuid4()), code=sc_code, nom=title, description=None,
+                refCodes=sc_gc, savoirs=savoirs,
+            ))
+            sc_idx += 1
+    else:
+        savoirs_directs = [_build_savoir_from_aa_direct(aa, comp_code, domain_code, departement, matched_by_name, matched_by_module, all_matched, extracted_ids, j) for j, aa in enumerate(acquis)]
+
+    comp_gc = list({c for sc2 in sous_comps for c in sc2.refCodes})
+    if not subcomp_titles:
+        comp_gc.extend([c for s in savoirs_directs for c in s.refCodes])
+    comp_gc = sorted(set(comp_gc))
+    comp_gc_domaine = _match_gc_competence(" ".join(comp_gc), departement=departement) if comp_gc else None
+    return CompetenceProposition(
+        tmpId=str(uuid.uuid4()), code=comp_code,
+        nom=f"Acquis d'apprentissage – {module_name}",
+        description=meta.get("objectif"), ordre=comp_idx + 1,
+        refCodes=comp_gc, refDomaine=comp_gc_domaine,
+        savoirs=(savoirs_directs if not subcomp_titles else []),
+        sousCompetences=sous_comps,
+    )
+
+
+def _build_savoir_from_ref_item(item: Dict, comp_code: str, domain_code: str, departement: str, matched_by_name: List, matched_by_module: List, all_matched: List, extracted_ids: List) -> SavoirProposition:
+    item_text = item["text"]
+    gc_codes = _match_gc_savoir(item_text, departement=departement)
+    savoir_ens = list(set(matched_by_name + matched_by_module + _suggest_gc_enseignants(gc_codes))) if gc_codes else list(set(matched_by_name + matched_by_module))
+    return SavoirProposition(
+        tmpId=str(uuid.uuid4()), code=item["code"], nom=item_text[:120],
+        description=None, type=_detect_type(item_text, departement),
+        niveau=_get_niveau_from_referentiel(savoir_code=item["code"], departement=departement, fallback_text=item_text),
+        enseignantsSuggeres=savoir_ens or all_matched or extracted_ids,
+        refCodes=gc_codes, competence_code=comp_code, domaine_code=domain_code,
+        directToCompetence=True,
+    )
+
+
+def _build_competences_from_referentiel(referentiel_items: List, comp_idx: int, domain_code: str, departement: str, matched_by_name: List, matched_by_module: List, all_matched: List, extracted_ids: List) -> Tuple[List[CompetenceProposition], int]:
+    grouped: Dict[str, List[Dict[str, Any]]] = {}
+    for it in referentiel_items:
+        grouped.setdefault(it["domaine_code"], []).append(it)
+    competences: List[CompetenceProposition] = []
+    used_comp_codes: set[str] = set()
+
+    for dcode, group_items in grouped.items():
+        native_code = str(dcode).strip().upper() or f"C{comp_idx + 1}"
+        comp_code = native_code if native_code not in used_comp_codes else f"{native_code}{comp_idx + 1}"
+        used_comp_codes.add(comp_code)
+        domaine_nom = (group_items[0].get("domaine_nom") or dcode).strip()
+        comp_name = domaine_nom if dcode.lower() in domaine_nom.lower() else f"{domaine_nom} ({dcode})"
+        savoirs = [_build_savoir_from_ref_item(it, comp_code, domain_code, departement, matched_by_name, matched_by_module, all_matched, extracted_ids) for it in group_items]
+        comp_gc = list({c for s in savoirs for c in s.refCodes})
+        comp_gc_domaine = _match_gc_competence(" ".join(comp_gc), departement=departement) if comp_gc else None
+        competences.append(CompetenceProposition(
+            tmpId=str(uuid.uuid4()), code=comp_code, nom=comp_name[:100],
+            description=None, ordre=comp_idx + 1, refCodes=comp_gc,
+            refDomaine=comp_gc_domaine, savoirs=savoirs, sousCompetences=[],
+        ))
+        comp_idx += 1
+    return competences, comp_idx
+
+
+def _auto_create_teachers(
+    fiche_ens_names: List[str],
+    name_match_map: Dict,
+    all_ens_by_id: Dict[str, EnseignantInfo],
+    matched_by_name: List,
+    departement: str,
+) -> None:
+    """Auto-create new teachers who aren't matched by name."""
+    for name in fiche_ens_names:
+        if name in name_match_map:
+            continue
+        try:
+            new_id, display_name = _create_enseignant_if_new(name, departement)
+            name_match_map[name] = (new_id, display_name)
+            if new_id not in all_ens_by_id:
+                all_ens_by_id[new_id] = EnseignantInfo(id=new_id, nom=name, prenom="", modules=[])
+            if new_id not in matched_by_name:
+                matched_by_name.append(new_id)
+        except Exception as e:
+            logger.warning(f"Could not auto-create teacher '{name}': {e}")
+
+
+def _match_all_enseignants(fiche_ens_names: List[str], roles_map: Dict, text: str, enseignants: List[EnseignantInfo], departement: str, filename: str, meta: Dict) -> Tuple[List[FicheEnseignantExtrait], List[str], List[str], List[str], List[str]]:
+    if meta.get("responsable"):
+        if meta["responsable"] not in fiche_ens_names:
+            fiche_ens_names.append(meta["responsable"])
+        roles_map.setdefault(meta["responsable"], "responsable")
+    fiche_ens_names = list(dict.fromkeys(fiche_ens_names))
+
+    matched_by_name, name_match_map = _match_enseignants_by_name(fiche_ens_names, enseignants)
+    matched_by_module = _match_enseignants_by_module(text, enseignants)
+
+    all_ens_by_id: Dict[str, EnseignantInfo] = {str(e.id): e for e in enseignants}
+    try:
+        all_ens_by_id.update(_fetch_all_enseignants_info())
+    except Exception:
+        pass
+
+    _auto_create_teachers(fiche_ens_names, name_match_map, all_ens_by_id, matched_by_name, departement)
+
+    extracted_ens = _build_extracted_ens(fiche_ens_names, roles_map, name_match_map, filename)
+    logger.info(f"  Extracted professor names: {[e.nom_complet for e in extracted_ens]}")
+
+    ref_savoir_matches = _match_gc_savoir(text, departement=departement)
+    matched_by_ref = _suggest_gc_enseignants(ref_savoir_matches[:10])
+    all_matched = list(set(matched_by_name + matched_by_module + matched_by_ref))
+
+    _add_ref_matched_ens(all_matched, extracted_ens, all_ens_by_id, filename)
+
+    logger.info(f"  Matched enseignants: {len(all_matched)} "
+                f"(by name: {len(matched_by_name)}, by module: {len(matched_by_module)}, "
+                f"by ref [{departement}]: {len(matched_by_ref)})")
+    if ref_savoir_matches:
+        logger.info(f"  Referential savoir matches [{departement}]: {ref_savoir_matches[:5]}")
+
+    extracted_ids: List[str] = [e.matched_id for e in extracted_ens if e.matched_id]
+    return extracted_ens, matched_by_name, matched_by_module, all_matched, extracted_ids
+
+
+def _analyze_single_fiche(
+    filename: str,
+    text: str,
+    enseignants: List[EnseignantInfo],
+    departement: str = "gc",
+    raw_tables: Optional[List] = None,
+) -> Tuple[DomaineProposition, List[FicheEnseignantExtrait]]:
+    logger.info(f"Analyzing fiche: {filename} ({len(text)} chars) [dept={departement}]")
+
+    meta = _extract_metadata(text, raw_tables=raw_tables)
+    logger.info(f"  Metadata: {meta}")
+
+    domain_name, module_name, module_code, domain_code = _resolve_domain(meta, filename)
+
+    fiche_ens_names = meta.get("enseignants_noms", [])
+    roles_map = meta.get("enseignants_roles", {})
+    extracted_ens, matched_by_name, matched_by_module, all_matched, extracted_ids = \
+        _match_all_enseignants(fiche_ens_names, roles_map, text, enseignants, departement, filename, meta)
+
+    acquis = _extract_acquis_apprentissage(text)
+    logger.info(f"  Acquis d'apprentissage found: {len(acquis)}")
+
+    seances = _extract_seances(text)
+    logger.info(f"  Séances found: {len(seances)}")
+
+    referentiel_items = _extract_referentiel_competences(text)
+    is_referentiel = (not acquis) and (not seances) and (len(referentiel_items) >= 3)
+    if is_referentiel:
+        logger.info(f"  Referential-format competencies found: {len(referentiel_items)}")
+
+    competences: List[CompetenceProposition] = []
+    comp_idx = 0
+
+    subcomp_titles = []
+    if subcomp_titles:
+        logger.info(f"  Sous-compétences explicites trouvées: {len(subcomp_titles)} — "
+                     f"{[t for _, t in subcomp_titles[:5]]}")
+
+    if acquis:
+        competences.append(_build_competence_from_acquis(
+            acquis, subcomp_titles, text, module_code, module_name,
+            domain_code, comp_idx, departement, matched_by_name,
+            matched_by_module, all_matched, extracted_ids, meta,
+        ))
+        comp_idx += 1
+
+    if is_referentiel:
+        ref_comps, comp_idx = _build_competences_from_referentiel(
+            referentiel_items, comp_idx, domain_code, departement,
+            matched_by_name, matched_by_module, all_matched, extracted_ids,
+        )
+        competences.extend(ref_comps)
+
+    if not competences and not is_referentiel:
+        competences = _fallback_extraction(text, module_code, module_name,
+                                           all_matched or extracted_ids,
+                                           departement=departement)
+
+    all_ref_fiche = list({c for comp in competences for s in _iter_comp_savoirs(comp) for c in s.refCodes})
+    domaine_ref_domaine = _match_gc_competence(text, departement=departement)
+    if domaine_ref_domaine:
+        logger.info(f"  Domain match [{departement}]: {domaine_ref_domaine} ({len(all_ref_fiche)} ref codes)")
+
+    domaine = DomaineProposition(
+        tmpId=str(uuid.uuid4()), code=domain_code, nom=domain_name,
+        description=f"Domaine extrait de : {filename}" + (
+            f" | Prérequis: {meta['prerequis']}" if meta.get("prerequis") else ""
+        ),
+        refCodes=all_ref_fiche, refDomaine=domaine_ref_domaine,
+        competences=competences,
+    )
+    return domaine, extracted_ens
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Fallback extraction
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _fallback_extraction(
+    text: str,
+    module_code: str,
+    module_name: str,
+    matched_ens: List[str],
+    departement: str = "gc",
+) -> List[CompetenceProposition]:
+    """
+    Fallback when structured sections (AA, Séances) are not found.
+
+    Strategy:
+    1. **LLM** (primary) — extracts action-verb competence phrases from any text.
+    2. **Regex + Bloom filter** (fallback) — bullet extraction with verb validation.
+    """
+    items: List[str] = []
+
+    # ── 0. LLM extraction (primary) ──────────────────────────────────────
+    # LLM fallback removed - use regex bullets
+    items = []
+
+    # ── 1. Regex + Bloom filter (fallback when LLM unavailable/empty) ─────
+    if not items:
+        for pattern in [_RE_CHECKMARK, _RE_BULLET, _RE_NUMBERED]:
+            items.extend(pattern.findall(text))
+        items = [it.strip() for it in items if len(it.strip()) > 5]
+
+        _FALLBACK_NOISE = re.compile(
+            r"^(ce\s+(module|cours|ue)|l['\']objectif|les\s+(étudiants?|apprenants?)|"
+            r"ce\s+cours\s+(est|comporte|comprend)|il\s+(est|s\'agit|faut)|"
+            r"avoir|être|\d+\s*h)",
+            re.IGNORECASE,
+        )
+        _FALLBACK_EXCLUSION = re.compile(
+            r"^(comp[eé]tences?\s+dans|comp[eé]tence\s+en|"
+            r"l['']ing[eé]nieur\s+gc\s+option|"
+            r"du\s+b[aâ]timent|des\s+infrastructures|de\s+l['']am[eé]nagement|"
+            r"axes?\s+forts|en\s+\d+e?\s+ann[eé]e|"
+            r"objectifs?\s+et\s+d[eé]bouch[eé]s|"
+            r"dimension\s+sp[eé]cifique)",
+            re.IGNORECASE,
+        )
+        items = [it for it in items if not _FALLBACK_EXCLUSION.match(_normalize(it))]
+
+        if not items:
+            sentences = re.split(r"[.\n]+", text)
+            items = [
+                s.strip() for s in sentences
+                if 10 < len(s.strip()) < 200
+                and not re.match(r"^(Code|Mode|Evaluation|Référence)", s.strip())
+                and not _FALLBACK_NOISE.match(s.strip())
+                and not _FALLBACK_EXCLUSION.match(_normalize(s.strip()))
+                and _detect_bloom_level(s.strip()) >= 2
+            ]
+            items = items[:20]
+
+    if not items:
+        items = [module_name]
+
+    comp_code = f"{module_code}-C1"
+    savoirs = []
+    for j, item in enumerate(items[:25]):
+        sav_code = f"{comp_code}-S{j + 1}"
+        bloom = _detect_bloom_level(item)
+        gc_codes = _match_gc_savoir(item, departement=departement)
+        savoir_ens = list(set(matched_ens + _suggest_gc_enseignants(gc_codes))) if gc_codes else matched_ens
+        savoirs.append(SavoirProposition(
+            tmpId=str(uuid.uuid4()),
+            code=sav_code,
+            nom=item[:120],
+            description=None,
+            type=_detect_type(item, departement),
+            niveau=_gc_ref_niveau(gc_codes, departement=departement) or _bloom_to_niveau(bloom),
+            enseignantsSuggeres=savoir_ens,
+            refCodes=gc_codes,
+            competence_code=comp_code,
+            directToCompetence=True,
+        ))
+
+    comp_gc = list({c for s in savoirs for c in s.refCodes})
+    comp_gc_domaine = _match_gc_competence(" ".join(comp_gc), departement=departement) if comp_gc else None
+    return [CompetenceProposition(
+        tmpId=str(uuid.uuid4()),
+        code=comp_code,
+        nom=module_name,
+        ordre=1,
+        refCodes=comp_gc,
+        refDomaine=comp_gc_domaine,
+        savoirs=savoirs,
+        sousCompetences=[],
+    )]
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Multi-file analysis entry point
+# ─────────────────────────────────────────────────────────────────────────────
+
+def analyze_files(
+    filenames: List[str],
+    file_contents: List[bytes],
+    enseignants: List[EnseignantInfo],
+    departement: str = "gc",
+) -> RiceAnalysisResult:
+    """Main analysis entry point – processes multiple fiche files.
+
+    ``departement`` selects which referential is used for code matching:
+    * ``"gc"``      – Génie Civil (built-in fallback + DB overrides)
+    * ``"info"``    – Informatique (from DB ``ref_savoirs`` table)
+    * ``"ge"``      – Génie Électrique (from DB)
+    * ``"meca"``    – Génie Mécanique (from DB)
+    * ``"telecom"`` – Télécommunications (from DB)
+    * any other code – uses DB ``ref_savoirs`` rows filtered by that code
+    """
+    domaines: List[DomaineProposition] = []
+    all_extracted_ens: List[FicheEnseignantExtrait] = []
+    seen_codes: Dict[str, int] = {}
+
+    for filename, data in zip(filenames, file_contents):
+        text, raw_tables = _extract_text(filename, data)
+        domaine, extracted_ens = _analyze_single_fiche(
+            filename, text, enseignants,
+            departement=departement,
+            raw_tables=raw_tables,
+        )
+
+        if domaine.code in seen_codes:
+            seen_codes[domaine.code] += 1
+            domaine.code = f"{domaine.code}{seen_codes[domaine.code]}"
+        else:
+            seen_codes[domaine.code] = 1
+
+        domaines.append(domaine)
+        all_extracted_ens.extend(extracted_ens)
+
+    total_comp = sum(len(d.competences) for d in domaines)
+    total_sc   = sum(len(c.sousCompetences)
+                     for d in domaines for c in d.competences)
+    total_sav  = sum(
+        len(c.savoirs or []) + sum(len(sc.savoirs or []) for sc in (c.sousCompetences or []))
+        for d in domaines
+        for c in d.competences
+    )
+    assigned_ens = {
+        eid
+        for d in domaines for c in d.competences
+        for s in _iter_comp_savoirs(c)
+        for eid in s.enseignantsSuggeres
+    }
+
+    all_ref_codes_covered = sorted({
+        c
+        for d in domaines
+        for comp in d.competences
+        for s in _iter_comp_savoirs(comp)
+        for c in s.refCodes
+    })
+    stats = {
+        "departement": departement,
+        "totalDomaines": len(domaines),
+        "totalCompetences": total_comp,
+        "totalSousCompetences": total_sc,
+        "totalSavoirs": total_sav,
+        "enseignantsCovered": len(assigned_ens),
+        "tauxCouverture": round(len(assigned_ens) / max(len(enseignants), 1) * 100, 1),
+        "refCodesCovered": all_ref_codes_covered,
+        "refCodesCoveredCount": len(all_ref_codes_covered),
+    }
+
+    all_db_infos = _fetch_all_enseignants_info()
+    found_ens_list = []
+    for eid in assigned_ens:
+        if eid in all_db_infos:
+            found_ens_list.append(all_db_infos[eid])
+
+    return RiceAnalysisResult(
+        propositions=domaines,
+        stats=stats,
+        extractedEnseignants=all_extracted_ens,
+        foundEnseignants=found_ens_list,
+    )

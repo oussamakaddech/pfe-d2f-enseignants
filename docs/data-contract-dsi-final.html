@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Spécification de données – API de consultation ESPRIT | D2F v1.0</title>
+<style>
+/* ─── Reset ─── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',Arial,sans-serif;font-size:10pt;color:#1a1a2e;line-height:1.6;background:#eef1f6}
+
+/* ─── Page wrapper ─── */
+.page{max-width:960px;margin:0 auto;background:#fff}
+
+/* ─── Cover ─── */
+.cover{background:linear-gradient(140deg,#0d1b3e 0%,#0f3460 55%,#1b6ca8 100%);color:#fff;padding:68px 64px 52px;page-break-after:always}
+.cover-tag{display:inline-block;border:1px solid rgba(255,255,255,.35);color:#b8d8f8;font-size:7.5pt;font-weight:700;letter-spacing:2px;text-transform:uppercase;padding:4px 14px;border-radius:20px;margin-bottom:26px}
+.cover h1{font-size:27pt;font-weight:800;line-height:1.15;letter-spacing:-.5px;margin-bottom:8px}
+.cover h2{font-size:13pt;font-weight:400;color:rgba(255,255,255,.7);margin-bottom:38px}
+.cover-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px 48px;margin-top:32px;padding-top:24px;border-top:1px solid rgba(255,255,255,.2)}
+.cover-grid dt{font-size:7pt;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:#7ec8e3;margin-bottom:2px}
+.cover-grid dd{font-size:9pt;color:rgba(255,255,255,.88)}
+
+/* ─── Content wrapper ─── */
+.wrap{padding:40px 64px 56px}
+
+/* ─── Headings ─── */
+h1.s{font-size:15pt;font-weight:800;color:#0f3460;border-bottom:3px solid #0f3460;padding-bottom:7px;margin:40px 0 18px;page-break-after:avoid}
+h1.s:first-of-type{margin-top:0}
+h2.ss{font-size:11.5pt;font-weight:700;color:#0d1b3e;border-left:4px solid #1b6ca8;padding-left:11px;margin:26px 0 12px;page-break-after:avoid}
+h3.sss{font-size:10pt;font-weight:700;color:#1b6ca8;margin:18px 0 8px;page-break-after:avoid}
+
+/* ─── Tables ─── */
+table{width:100%;border-collapse:collapse;margin:8px 0 16px;font-size:9pt;page-break-inside:avoid}
+thead tr{background:#0f3460;color:#fff}
+thead th{padding:8px 10px;text-align:left;font-size:8.5pt;font-weight:600;letter-spacing:.2px;white-space:nowrap}
+tbody tr:nth-child(even){background:#f2f6fb}
+tbody td{padding:6px 10px;border-bottom:1px solid #dde4ef;vertical-align:top}
+code{font-family:'Consolas','Courier New',monospace;font-size:8.5pt;background:#eef2f8;color:#b03060;padding:1px 5px;border-radius:3px}
+td code{font-size:8pt}
+
+/* ─── Callouts ─── */
+.info{background:#e8f4fd;border-left:4px solid #1b6ca8;padding:10px 14px;margin:10px 0 16px;font-size:9pt;color:#0c3a6e;border-radius:0 5px 5px 0}
+.warn{background:#fff8e6;border-left:4px solid #f0a500;padding:10px 14px;margin:10px 0 16px;font-size:9pt;color:#7a4800;border-radius:0 5px 5px 0}
+.block{background:#fff;border:1px solid #dde4ef;border-radius:6px;padding:14px 18px;margin:10px 0 16px}
+
+/* ─── Architecture block ─── */
+.arch{background:#0d1b3e;color:#a8d8ea;font-family:'Consolas',monospace;font-size:8.5pt;line-height:1.75;padding:18px 22px;border-radius:8px;margin:12px 0 20px;page-break-inside:avoid;white-space:pre}
+.arch .hl{color:#7ec8e3;font-weight:bold}
+.arch .rt{color:#a8e6cf}
+.arch .ar{color:#ffd3b6}
+
+/* ─── GET badge ─── */
+.get{display:inline-block;background:#1b6ca8;color:#fff;font-size:7pt;font-weight:700;padding:1px 7px;border-radius:4px;letter-spacing:.5px;margin-right:4px;vertical-align:middle}
+
+/* ─── Dividers ─── */
+hr{border:none;border-top:1px solid #e2e8f2;margin:22px 0}
+
+/* ─── TOC ─── */
+.toc-row{display:flex;gap:8px;padding:4px 0;border-bottom:1px dotted #ccd5e0;font-size:9.5pt}
+.toc-num{color:#0f3460;font-weight:700;min-width:26px}
+
+/* ─── Two-col animateur ─── */
+.anim-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:10px 0 18px}
+.anim-card{border:1px solid #dde4ef;border-radius:6px;padding:14px 16px}
+.anim-card.int{border-top:4px solid #1b6ca8}
+.anim-card.ext{border-top:4px solid #f0a500}
+.anim-card h4{font-size:10pt;font-weight:700;margin-bottom:8px}
+.anim-card.int h4{color:#0f3460}
+.anim-card.ext h4{color:#7a4800}
+.anim-card ul{margin:0;padding-left:16px;font-size:9pt;line-height:1.7}
+
+/* ─── Footer ─── */
+.footer{background:#f0f4f9;border-top:2px solid #dde4ef;padding:12px 64px;display:flex;justify-content:space-between;font-size:8pt;color:#6b7a90}
+
+/* ─── Print ─── */
+@media print{
+  body{background:#fff;font-size:9.5pt}
+  .page{max-width:100%;box-shadow:none}
+  .wrap{padding:24px 48px 40px}
+  .cover{padding:46px 48px 40px;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .footer{padding:10px 48px}
+  h1.s{page-break-before:always}
+  h1.s:first-of-type{page-break-before:avoid}
+  thead{display:table-header-group}
+  tr{page-break-inside:avoid}
+  .anim-grid{grid-template-columns:1fr 1fr}
+  @page{margin:14mm 12mm;size:A4}
+}
+</style>
+</head>
+<body>
+<div class="page">
+
+<!-- ══════════ COVER ══════════ -->
+<div class="cover">
+  <div class="cover-tag">Data Contract · Version 1.0</div>
+  <h1>Spécification de données<br>API de consultation ESPRIT</h1>
+  <h2>Plateforme D2F — Développement De Formations</h2>
+  <dl class="cover-grid">
+    <dt>Document</dt><dd>Endpoints GET exposés à la DSI</dd>
+    <dt>Version</dt><dd>1.0</dd>
+    <dt>Date</dt><dd>20 mai 2026</dd>
+    <dt>Statut</dt><dd>Proposition initiale</dd>
+    <dt>Émetteur</dt><dd>Équipe PFE D2F — ESPRIT</dd>
+    <dt>Destinataire</dt><dd>DSI ESPRIT</dd>
+  </dl>
+</div>
+
+<!-- ══════════ CONTENT ══════════ -->
+<div class="wrap">
+
+<!-- OBJET -->
+<div class="info" style="margin-bottom:28px">
+  <strong>Objet</strong> — Ce document formalise le <strong>data contract</strong> de la plateforme D2F avant la mise en place des endpoints API en lecture. Il présente les entités métier, leurs champs, les relations, les règles de gestion et les endpoints GET proposés derrière l'API Gateway. <strong>Seules les opérations en lecture (GET) sont couvertes.</strong>
+</div>
+
+<!-- TABLE DES MATIÈRES -->
+<h1 class="s">Table des matières</h1>
+<div style="margin-bottom:8px">
+  <div class="toc-row"><span class="toc-num">1.</span><span>Architecture d'accès</span></div>
+  <div class="toc-row"><span class="toc-num">2.</span><span>Entités métier et champs</span></div>
+  <div class="toc-row"><span class="toc-num">3.</span><span>Relations inter-entités</span></div>
+  <div class="toc-row"><span class="toc-num">4.</span><span>Règles de gestion</span></div>
+  <div class="toc-row"><span class="toc-num">5.</span><span>Endpoints GET proposés</span></div>
+  <div class="toc-row"><span class="toc-num">6.</span><span>Sécurité et contrôle d'accès</span></div>
+  <div class="toc-row"><span class="toc-num">7.</span><span>Pagination, tri et recherche</span></div>
+  <div class="toc-row"><span class="toc-num">8.</span><span>Format standard des erreurs</span></div>
+  <div class="toc-row"><span class="toc-num">9.</span><span>Données sensibles — politique de masquage</span></div>
+</div>
+
+<!-- ══ 1. ARCHITECTURE ══ -->
+<h1 class="s">1. Architecture d'accès</h1>
+<p style="font-size:9.5pt;margin-bottom:12px">Tous les appels transitent par un <strong>point d'entrée unique</strong> — l'API Gateway (port 8080) — qui assure la validation JWT, le rate limiting et le circuit breaker.</p>
+<div class="arch"><span class="hl">DSI / Applications externes</span>
+         │
+         ▼
+  <span class="hl">API Gateway</span>  —  https://&lt;host&gt;/api/v1/...
+  ├── Validation JWT (Bearer Token)
+  ├── Rate Limiting (Redis)
+  └── Circuit Breaker (Resilience4j)
+         │
+         <span class="rt">├── /api/v1/account/**</span>             <span class="ar">→</span> Service Authentification  (8085)
+         <span class="rt">├── /api/v1/besoins-formations/**</span>  <span class="ar">→</span> Service Besoin Formation  (8004)
+         <span class="rt">├── /api/v1/formations/**</span>          <span class="ar">→</span> Service Formation        (8088)
+         <span class="rt">├── /api/v1/seances/**</span>             <span class="ar">→</span> Service Formation        (8088)
+         <span class="rt">├── /api/v1/domaines/**</span>            <span class="ar">→</span> Service Compétence       (8005)
+         <span class="rt">├── /api/v1/competences/**</span>         <span class="ar">→</span> Service Compétence       (8005)
+         <span class="rt">├── /api/v1/evaluations/**</span>         <span class="ar">→</span> Service Évaluation       (8087)
+         <span class="rt">└── /api/v1/certificates/**</span>        <span class="ar">→</span> Service Certificat       (8086)</div>
+
+<table>
+  <thead><tr><th>Service</th><th>Port</th><th>Base de données</th><th>Rôle</th></tr></thead>
+  <tbody>
+    <tr><td><code>esprit-api-gateway</code></td><td><strong>8080</strong></td><td>—</td><td>Point d'entrée unique — sécurité, routage</td></tr>
+    <tr><td><code>esprit-authentification</code></td><td>8085</td><td>PostgreSQL <code>auth</code></td><td>Comptes, rôles, journaux d'audit</td></tr>
+    <tr><td><code>esprit-besoin-formation</code></td><td>8004</td><td>PostgreSQL <code>besoin</code></td><td>Saisie et validation des besoins</td></tr>
+    <tr><td><code>esprit-formation</code></td><td>8088</td><td>PostgreSQL <code>formation</code></td><td>Formations, séances, inscriptions</td></tr>
+    <tr><td><code>esprit-competence</code></td><td>8005</td><td>PostgreSQL <code>competence</code></td><td>Référentiel domaines / compétences / savoirs</td></tr>
+    <tr><td><code>esprit-evaluation</code></td><td>8087</td><td>PostgreSQL <code>evaluation</code></td><td>Évaluations formateurs</td></tr>
+    <tr><td><code>esprit-certificat</code></td><td>8086</td><td>PostgreSQL <code>certificat</code></td><td>Attestations PDF</td></tr>
+  </tbody>
+</table>
+
+<!-- ══ 2. ENTITÉS ══ -->
+<h1 class="s">2. Entités métier et champs</h1>
+
+<!-- 2.1 User -->
+<h2 class="ss">2.1 Utilisateur (<code>User</code>)</h2>
+<p style="font-size:8.5pt;color:#555;margin-bottom:8px">Source : <code>esprit_D2F-authentification</code></p>
+<table>
+  <thead><tr><th>Champ</th><th>Type</th><th>Contrainte</th><th>Description</th></tr></thead>
+  <tbody>
+    <tr><td><code>id</code></td><td>String (UUID)</td><td>PK, NOT NULL</td><td>Identifiant unique</td></tr>
+    <tr><td><code>username</code></td><td>String</td><td>UNIQUE, max 20</td><td>Login institutionnel</td></tr>
+    <tr><td><code>firstName</code></td><td>String</td><td>NOT NULL</td><td>Prénom</td></tr>
+    <tr><td><code>lastName</code></td><td>String</td><td>NOT NULL</td><td>Nom de famille</td></tr>
+    <tr><td><code>email</code></td><td>String</td><td>UNIQUE, max 50</td><td>Adresse e-mail institutionnelle</td></tr>
+    <tr><td><code>roles</code></td><td>List&lt;String&gt;</td><td>—</td><td>Rôles attribués (voir tableau ERole)</td></tr>
+    <tr><td><code>disabled</code></td><td>Boolean</td><td>default: false</td><td>Compte actif (<code>false</code>) ou désactivé (<code>true</code>)</td></tr>
+  </tbody>
+</table>
+<h3 class="sss">Rôles disponibles (<code>ERole</code>)</h3>
+<table>
+  <thead><tr><th>Valeur</th><th>Description</th></tr></thead>
+  <tbody>
+    <tr><td><code>ADMIN</code></td><td>Administrateur plateforme</td></tr>
+    <tr><td><code>CUP</code></td><td>Coordinateur Unité Pédagogique</td></tr>
+    <tr><td><code>D2F</code></td><td>Gestionnaire D2F</td></tr>
+    <tr><td><code>ENSEIGNANT</code></td><td>Enseignant</td></tr>
+    <tr><td><code>ANIMATEUR</code></td><td>Animateur de formation (interne ESPRIT ou externe)</td></tr>
+    <tr><td><code>CHEF_DEPARTEMENT</code></td><td>Chef de département</td></tr>
+    <tr><td><code>RESPONSABLE_DOSSIER</code></td><td>Responsable dossier RH</td></tr>
+  </tbody>
+</table>
+<h3 class="sss">Champs masqués</h3>
+<table>
+  <thead><tr><th>Champ</th><th>Motif</th></tr></thead>
+  <tbody>
+    <tr><td><code>password</code></td><td>Hash bcrypt — sécurité absolue</td></tr>
+    <tr><td><code>failedLoginAttempts</code></td><td>Donnée de sécurité interne</td></tr>
+    <tr><td><code>lockUntil</code></td><td>Donnée de sécurité interne</td></tr>
+    <tr><td><code>deviceIds</code></td><td>Données techniques — vie privée</td></tr>
+  </tbody>
+</table>
+
+<!-- 2.2 BesoinFormation -->
+<h2 class="ss">2.2 Besoin de formation (<code>BesoinFormation</code>)</h2>
+<p style="font-size:8.5pt;color:#555;margin-bottom:8px">Source : <code>esprit_D2F-besoin-formation</code></p>
+<table>
+  <thead><tr><th>Champ</th><th>Type</th><th>Contrainte</th><th>Description</th></tr></thead>
+  <tbody>
+    <tr><td><code>idBesoinFormation</code></td><td>Long</td><td>PK</td><td>Identifiant unique</td></tr>
+    <tr><td><code>username</code></td><td>String</td><td>—</td><td>Identifiant du demandeur</td></tr>
+    <tr><td><code>typeBesoin</code></td><td>Enum</td><td>—</td><td><code>INDIVIDUEL</code>, <code>COLLECTIF</code>, <code>ANIMER_UNE_FORMATION</code></td></tr>
+    <tr><td><code>titre</code></td><td>String</td><td>—</td><td>Intitulé du besoin</td></tr>
+    <tr><td><code>theme</code></td><td>String</td><td>—</td><td>Thème pédagogique</td></tr>
+    <tr><td><code>objectifFormation</code></td><td>String</td><td>—</td><td>Objectif général</td></tr>
+    <tr><td><code>objectifsOperationnels</code></td><td>String</td><td>—</td><td>Objectifs opérationnels</td></tr>
+    <tr><td><code>objectifsPedagogiques</code></td><td>String</td><td>—</td><td>Objectifs pédagogiques</td></tr>
+    <tr><td><code>publicCible</code></td><td>String</td><td>—</td><td>Population visée</td></tr>
+    <tr><td><code>nbMaxParticipants</code></td><td>Integer</td><td>—</td><td>Nombre maximum de participants</td></tr>
+    <tr><td><code>dureeFormation</code></td><td>Integer</td><td>—</td><td>Durée en heures</td></tr>
+    <tr><td><code>priorite</code></td><td>Enum</td><td>—</td><td><code>BASSE</code>, <code>MOYENNE</code>, <code>HAUTE</code>, <code>CRITIQUE</code></td></tr>
+    <tr><td><code>impactStrategique</code></td><td>String</td><td>—</td><td>Justification stratégique</td></tr>
+    <tr><td><code>up</code></td><td>String</td><td>—</td><td>Code unité pédagogique</td></tr>
+    <tr><td><code>departement</code></td><td>String</td><td>—</td><td>Code département</td></tr>
+    <tr><td><code>periodCode</code></td><td>Enum</td><td>—</td><td><code>P1</code>, <code>P2</code>, <code>P3</code>, <code>P4</code>, <code>SUMMER</code>, <code>WINTER</code>, <code>OTHER</code></td></tr>
+    <tr><td><code>approuveCUP</code></td><td>Boolean</td><td>nullable</td><td>Validation CUP — <code>null</code> = en attente, <code>true</code> = approuvé, <code>false</code> = rejeté</td></tr>
+    <tr><td><code>approuveChefDep</code></td><td>Boolean</td><td>nullable</td><td>Validation Chef Département — idem</td></tr>
+    <tr><td><code>approuveAdmin</code></td><td>Boolean</td><td>nullable</td><td>Validation Administrateur — idem</td></tr>
+    <tr><td><code>estOuverte</code></td><td>Boolean</td><td>default: false</td><td>Besoin visible par les candidats</td></tr>
+    <tr><td><code>lastRefreshDate</code></td><td>LocalDateTime</td><td>—</td><td>Date de dernière mise à jour</td></tr>
+  </tbody>
+</table>
+
+<!-- 2.3 Formation -->
+<h2 class="ss">2.3 Formation (<code>Formation</code>)</h2>
+<p style="font-size:8.5pt;color:#555;margin-bottom:8px">Source : <code>esprit_D2F-formation</code></p>
+<table>
+  <thead><tr><th>Champ</th><th>Type</th><th>Contrainte</th><th>Description</th></tr></thead>
+  <tbody>
+    <tr><td><code>idFormation</code></td><td>Long</td><td>PK</td><td>Identifiant unique</td></tr>
+    <tr><td><code>titreFormation</code></td><td>String</td><td>NOT NULL</td><td>Titre de la formation</td></tr>
+    <tr><td><code>typeFormation</code></td><td>Enum</td><td>NOT NULL</td><td><code>INTERNE</code>, <code>EXTERNE</code>, <code>EN_LIGNE</code></td></tr>
+    <tr><td><code>etatFormation</code></td><td>Enum</td><td>NOT NULL</td><td>État — voir tableau EtatFormation</td></tr>
+    <tr><td><code>dateDebut</code></td><td>Date</td><td>NOT NULL</td><td>Date de début</td></tr>
+    <tr><td><code>dateFin</code></td><td>Date</td><td>NOT NULL</td><td>Date de fin</td></tr>
+    <tr><td><code>objectifs</code></td><td>String</td><td>max 2000</td><td>Objectifs généraux</td></tr>
+    <tr><td><code>objectifsPedago</code></td><td>String</td><td>max 2000</td><td>Objectifs pédagogiques</td></tr>
+    <tr><td><code>populationCible</code></td><td>String</td><td>—</td><td>Audience visée</td></tr>
+    <tr><td><code>chargeHoraireGlobal</code></td><td>Integer</td><td>—</td><td>Durée totale en heures</td></tr>
+    <tr><td><code>prerequis</code></td><td>String</td><td>max 2000</td><td>Prérequis</td></tr>
+    <tr><td><code>acquis</code></td><td>String</td><td>max 2000</td><td>Acquis attendus</td></tr>
+    <tr><td><code>animateurs</code></td><td>List&lt;EnseignantRef&gt;</td><td>ManyToMany</td><td>Animateurs internes ESPRIT — voir tableau Types d'animateurs</td></tr>
+    <tr><td><code>organismeRefExterne</code></td><td>String</td><td>—</td><td>Organisme prestataire animateur externe</td></tr>
+    <tr><td><code>inscriptionsOuvertes</code></td><td>Boolean</td><td>—</td><td>Inscriptions ouvertes</td></tr>
+    <tr><td><code>certifGenerated</code></td><td>Boolean</td><td>default: false</td><td>Attestations générées</td></tr>
+    <tr><td><code>periodCode</code></td><td>Enum</td><td>—</td><td>Période académique</td></tr>
+    <tr><td><code>up</code></td><td>Object</td><td>ManyToOne</td><td>Unité pédagogique (id, libelle)</td></tr>
+    <tr><td><code>departement</code></td><td>Object</td><td>ManyToOne</td><td>Département (id, libelle)</td></tr>
+    <tr><td><code>idBesoinFormation</code></td><td>Long</td><td>nullable</td><td>Référence au besoin d'origine</td></tr>
+  </tbody>
+</table>
+
+<h3 class="sss">Types d'animateurs</h3>
+<p style="font-size:9.5pt;margin-bottom:10px">La plateforme D2F distingue deux types d'animateurs selon le champ <code>typeFormation</code> :</p>
+<div class="anim-grid">
+  <div class="anim-card int">
+    <h4>Animateur interne ESPRIT</h4>
+    <ul>
+      <li><strong>typeFormation :</strong> <code>INTERNE</code> ou <code>EN_LIGNE</code></li>
+      <li><strong>Champ :</strong> <code>animateurs</code> (List&lt;EnseignantRef&gt;, ManyToMany)</li>
+      <li><strong>Données :</strong> <code>id</code>, <code>nom</code>, <code>prenom</code>, <code>mail</code>, <code>up</code>, <code>dept</code></li>
+      <li>Enseignant identifié par son matricule ESPRIT</li>
+      <li>Rôle système : <code>ANIMATEUR</code></li>
+    </ul>
+  </div>
+  <div class="anim-card ext">
+    <h4>Animateur externe</h4>
+    <ul>
+      <li><strong>typeFormation :</strong> <code>EXTERNE</code></li>
+      <li><strong>Champs :</strong> <code>externeFormateurNom</code>, <code>externeFormateurPrenom</code>, <code>organismeRefExterne</code></li>
+      <li>Intervenant extérieur à ESPRIT</li>
+      <li>Données stockées en clair dans la formation</li>
+      <li><code>externeFormateurEmail</code> masqué (RGPD)</li>
+    </ul>
+  </div>
+</div>
+<div class="warn">⚠️ Les champs <code>externeFormateurNom</code> et <code>externeFormateurPrenom</code> sont accessibles aux rôles <strong>ADMIN</strong> et <strong>D2F</strong> uniquement. <code>externeFormateurEmail</code> n'est jamais exposé (RGPD).</div>
+
+<h3 class="sss">États de la formation (<code>EtatFormation</code>)</h3>
+<table>
+  <thead><tr><th>Valeur</th><th>Description</th></tr></thead>
+  <tbody>
+    <tr><td><code>NOUVEAU</code></td><td>Saisie initiale</td></tr>
+    <tr><td><code>ENREGISTRE</code></td><td>Validé, non planifié</td></tr>
+    <tr><td><code>PLANIFIE</code></td><td>Dates définies</td></tr>
+    <tr><td><code>EN_COURS</code></td><td>En déroulement</td></tr>
+    <tr><td><code>ACHEVE</code></td><td>Terminée — déclenche la génération automatique des certificats</td></tr>
+    <tr><td><code>ANNULE</code></td><td>Annulée</td></tr>
+    <tr><td><code>VISIBLE</code></td><td>Publiée et accessible à tous les enseignants authentifiés</td></tr>
+  </tbody>
+</table>
+
+<!-- 2.4 Séance -->
+<h2 class="ss">2.4 Séance (<code>SeanceFormation</code>)</h2>
+<p style="font-size:8.5pt;color:#555;margin-bottom:8px">Source : <code>esprit_D2F-formation</code></p>
+<table>
+  <thead><tr><th>Champ</th><th>Type</th><th>Contrainte</th><th>Description</th></tr></thead>
+  <tbody>
+    <tr><td><code>idSeance</code></td><td>Long</td><td>PK</td><td>Identifiant unique</td></tr>
+    <tr><td><code>idFormation</code></td><td>Long</td><td>FK</td><td>Formation parente</td></tr>
+    <tr><td><code>dateSeance</code></td><td>Date</td><td>—</td><td>Date de la séance</td></tr>
+    <tr><td><code>heureDebut</code></td><td>Time</td><td>—</td><td>Heure de début</td></tr>
+    <tr><td><code>heureFin</code></td><td>Time</td><td>—</td><td>Heure de fin</td></tr>
+    <tr><td><code>typeSeance</code></td><td>Enum</td><td>—</td><td><code>THEORIQUE</code>, <code>PRATIQUE</code>, <code>MIXTE</code></td></tr>
+    <tr><td><code>contenus</code></td><td>String</td><td>max 2000</td><td>Contenus de la séance</td></tr>
+    <tr><td><code>methodes</code></td><td>String</td><td>max 2000</td><td>Méthodes pédagogiques</td></tr>
+    <tr><td><code>dureeTheorique</code></td><td>Float</td><td>—</td><td>Heures théoriques</td></tr>
+    <tr><td><code>dureePratique</code></td><td>Float</td><td>—</td><td>Heures pratiques</td></tr>
+    <tr><td><code>salle</code></td><td>String</td><td>max 255</td><td>Salle ou lieu</td></tr>
+  </tbody>
+</table>
+
+<!-- 2.5 Référentiel -->
+<h2 class="ss">2.5 Référentiel de compétences</h2>
+<p style="font-size:8.5pt;color:#555;margin-bottom:8px">Source : <code>esprit_D2F-competence</code></p>
+<h3 class="sss">Domaine</h3>
+<table>
+  <thead><tr><th>Champ</th><th>Type</th><th>Contrainte</th><th>Description</th></tr></thead>
+  <tbody>
+    <tr><td><code>id</code></td><td>Long</td><td>PK</td><td>Identifiant unique</td></tr>
+    <tr><td><code>code</code></td><td>String</td><td>UNIQUE, NOT NULL</td><td>Code unique du domaine</td></tr>
+    <tr><td><code>nom</code></td><td>String</td><td>NOT NULL</td><td>Libellé</td></tr>
+    <tr><td><code>description</code></td><td>String</td><td>—</td><td>Description</td></tr>
+    <tr><td><code>actif</code></td><td>Boolean</td><td>default: true</td><td>Domaine actif dans le référentiel</td></tr>
+    <tr><td><code>nbCompetences</code></td><td>Integer</td><td>calculé</td><td>Nombre de compétences (cache 10 min)</td></tr>
+  </tbody>
+</table>
+<h3 class="sss">Compétence</h3>
+<table>
+  <thead><tr><th>Champ</th><th>Type</th><th>Contrainte</th><th>Description</th></tr></thead>
+  <tbody>
+    <tr><td><code>id</code></td><td>Long</td><td>PK</td><td>Identifiant unique</td></tr>
+    <tr><td><code>code</code></td><td>String</td><td>UNIQUE, NOT NULL</td><td>Code unique</td></tr>
+    <tr><td><code>nom</code></td><td>String</td><td>NOT NULL</td><td>Libellé</td></tr>
+    <tr><td><code>description</code></td><td>String</td><td>—</td><td>Description</td></tr>
+    <tr><td><code>prerequisiteManual</code></td><td>String</td><td>TEXT</td><td>Prérequis textuels</td></tr>
+    <tr><td><code>ordre</code></td><td>Integer</td><td>—</td><td>Ordre d'affichage</td></tr>
+    <tr><td><code>domaineId</code></td><td>Long</td><td>FK</td><td>Domaine parent</td></tr>
+    <tr><td><code>domaineNom</code></td><td>String</td><td>—</td><td>Libellé du domaine parent</td></tr>
+  </tbody>
+</table>
+<h3 class="sss">Sous-compétence</h3>
+<table>
+  <thead><tr><th>Champ</th><th>Type</th><th>Contrainte</th><th>Description</th></tr></thead>
+  <tbody>
+    <tr><td><code>id</code></td><td>Long</td><td>PK</td><td>Identifiant unique</td></tr>
+    <tr><td><code>code</code></td><td>String</td><td>UNIQUE, NOT NULL</td><td>Code unique</td></tr>
+    <tr><td><code>nom</code></td><td>String</td><td>NOT NULL</td><td>Libellé</td></tr>
+    <tr><td><code>description</code></td><td>String</td><td>—</td><td>Description</td></tr>
+    <tr><td><code>niveau</code></td><td>Integer</td><td>default: 1</td><td>Niveau hiérarchique (1 = premier niveau)</td></tr>
+    <tr><td><code>competenceId</code></td><td>Long</td><td>FK</td><td>Compétence parente</td></tr>
+    <tr><td><code>parentId</code></td><td>Long</td><td>nullable</td><td>Sous-compétence parente (hiérarchie)</td></tr>
+  </tbody>
+</table>
+<h3 class="sss">Savoir</h3>
+<table>
+  <thead><tr><th>Champ</th><th>Type</th><th>Contrainte</th><th>Description</th></tr></thead>
+  <tbody>
+    <tr><td><code>id</code></td><td>Long</td><td>PK</td><td>Identifiant unique</td></tr>
+    <tr><td><code>code</code></td><td>String</td><td>UNIQUE, NOT NULL</td><td>Code unique</td></tr>
+    <tr><td><code>nom</code></td><td>String</td><td>NOT NULL</td><td>Libellé</td></tr>
+    <tr><td><code>description</code></td><td>String</td><td>—</td><td>Description</td></tr>
+    <tr><td><code>type</code></td><td>Enum</td><td>NOT NULL</td><td><code>THEORIQUE</code> ou <code>PRATIQUE</code></td></tr>
+    <tr><td><code>niveau</code></td><td>NiveauMaitrise</td><td>default: N2</td><td>Niveau de référence (N1 à N5)</td></tr>
+    <tr><td><code>competenceId</code></td><td>Long</td><td>nullable</td><td>Compétence parente (exclusif avec <code>sousCompetenceId</code>)</td></tr>
+    <tr><td><code>sousCompetenceId</code></td><td>Long</td><td>nullable</td><td>Sous-compétence parente (exclusif avec <code>competenceId</code>)</td></tr>
+  </tbody>
+</table>
+<h3 class="sss">Niveaux de maîtrise (<code>NiveauMaitrise</code>)</h3>
+<table>
+  <thead><tr><th>Valeur</th><th>Libellé</th><th>Description</th></tr></thead>
+  <tbody>
+    <tr><td><code>N1_DEBUTANT</code></td><td>Débutant</td><td>Notions de base</td></tr>
+    <tr><td><code>N2_ELEMENTAIRE</code></td><td>Élémentaire</td><td>Compétences élémentaires</td></tr>
+    <tr><td><code>N3_INTERMEDIAIRE</code></td><td>Intermédiaire</td><td>Maîtrise partielle</td></tr>
+    <tr><td><code>N4_AVANCE</code></td><td>Avancé</td><td>Maîtrise confirmée</td></tr>
+    <tr><td><code>N5_EXPERT</code></td><td>Expert</td><td>Maîtrise complète</td></tr>
+  </tbody>
+</table>
+
+<!-- 2.6 EnseignantCompetence -->
+<h2 class="ss">2.6 Compétences d'un enseignant (<code>EnseignantCompetence</code>)</h2>
+<p style="font-size:8.5pt;color:#555;margin-bottom:8px">Source : <code>esprit_D2F-competence</code></p>
+<div class="info">Contrainte unique : <code>(enseignantId, savoirId)</code> — un enseignant ne peut avoir qu'un seul niveau de maîtrise par savoir.</div>
+<table>
+  <thead><tr><th>Champ</th><th>Type</th><th>Contrainte</th><th>Description</th></tr></thead>
+  <tbody>
+    <tr><td><code>id</code></td><td>Long</td><td>PK</td><td>Identifiant unique</td></tr>
+    <tr><td><code>enseignantId</code></td><td>String</td><td>NOT NULL</td><td>Matricule de l'enseignant</td></tr>
+    <tr><td><code>savoirId</code></td><td>Long</td><td>FK, NOT NULL</td><td>Savoir concerné</td></tr>
+    <tr><td><code>savoirNom</code></td><td>String</td><td>—</td><td>Libellé du savoir (via JOIN)</td></tr>
+    <tr><td><code>niveau</code></td><td>NiveauMaitrise</td><td>NOT NULL</td><td>Niveau déclaré (N1 à N5)</td></tr>
+    <tr><td><code>dateAcquisition</code></td><td>LocalDate</td><td>—</td><td>Date d'acquisition</td></tr>
+    <tr><td><code>commentaire</code></td><td>String</td><td>—</td><td>Commentaire libre</td></tr>
+  </tbody>
+</table>
+
+<!-- 2.7 Évaluations -->
+<h2 class="ss">2.7 Évaluations</h2>
+<p style="font-size:8.5pt;color:#555;margin-bottom:8px">Source : <code>esprit_D2F-evaluation</code></p>
+<h3 class="sss">Évaluation formateur (<code>EvaluationFormateur</code>)</h3>
+<table>
+  <thead><tr><th>Champ</th><th>Type</th><th>Description</th></tr></thead>
+  <tbody>
+    <tr><td><code>idEvalParticipant</code></td><td>Long</td><td>Identifiant unique</td></tr>
+    <tr><td><code>formationId</code></td><td>Long</td><td>Formation évaluée</td></tr>
+    <tr><td><code>enseignantId</code></td><td>String</td><td>Évaluateur</td></tr>
+    <tr><td><code>note</code></td><td>Float</td><td>Note attribuée</td></tr>
+    <tr><td><code>satisfaisant</code></td><td>Boolean</td><td>Appréciation globale</td></tr>
+  </tbody>
+</table>
+<h3 class="sss">Évaluation globale (<code>EvaluationGlobale</code>)</h3>
+<table>
+  <thead><tr><th>Champ</th><th>Type</th><th>Contrainte</th><th>Description</th></tr></thead>
+  <tbody>
+    <tr><td><code>idEvalGlobale</code></td><td>Long</td><td>PK</td><td>Identifiant unique</td></tr>
+    <tr><td><code>formationId</code></td><td>Long</td><td>UNIQUE</td><td>Formation concernée (1 évaluation par formation)</td></tr>
+    <tr><td><code>noteGlobale</code></td><td>Float</td><td>—</td><td>Note globale calculée</td></tr>
+    <tr><td><code>recommandation</code></td><td>String</td><td>max 100</td><td>Recommandation</td></tr>
+    <tr><td><code>dateEvaluation</code></td><td>LocalDate</td><td>—</td><td>Date de l'évaluation</td></tr>
+  </tbody>
+</table>
+
+<!-- 2.8 Certificat -->
+<h2 class="ss">2.8 Certificat (<code>Certificate</code>)</h2>
+<p style="font-size:8.5pt;color:#555;margin-bottom:8px">Source : <code>esprit_D2F-certificat</code></p>
+<table>
+  <thead><tr><th>Champ</th><th>Type</th><th>Description</th></tr></thead>
+  <tbody>
+    <tr><td><code>idCertificate</code></td><td>Long</td><td>Identifiant unique</td></tr>
+    <tr><td><code>formationId</code></td><td>Long</td><td>Formation concernée</td></tr>
+    <tr><td><code>titreFormation</code></td><td>String</td><td>Titre de la formation</td></tr>
+    <tr><td><code>typeCertif</code></td><td>String</td><td><code>CERTIF</code>, <code>BADGE</code>, <code>ATTESTATION</code></td></tr>
+    <tr><td><code>dateDebutFormation</code></td><td>LocalDate</td><td>Date de début formation</td></tr>
+    <tr><td><code>dateFinFormation</code></td><td>LocalDate</td><td>Date de fin formation</td></tr>
+    <tr><td><code>chargeHoraireGlobal</code></td><td>Integer</td><td>Durée totale en heures</td></tr>
+    <tr><td><code>enseignantId</code></td><td>String</td><td>Bénéficiaire (matricule)</td></tr>
+    <tr><td><code>nomEnseignant</code></td><td>String</td><td>Nom du bénéficiaire</td></tr>
+    <tr><td><code>prenomEnseignant</code></td><td>String</td><td>Prénom du bénéficiaire</td></tr>
+    <tr><td><code>deptEnseignant</code></td><td>String</td><td>Département de l'enseignant</td></tr>
+    <tr><td><code>roleEnFormation</code></td><td>String</td><td>Rôle tenu (ex. <code>ANIMATEUR</code>)</td></tr>
+    <tr><td><code>delivered</code></td><td>Boolean</td><td>Attestation remise physiquement</td></tr>
+  </tbody>
+</table>
+
+<!-- 2.9 UP/DEPT -->
+<h2 class="ss">2.9 Entités organisationnelles</h2>
+<p style="font-size:8.5pt;color:#555;margin-bottom:8px">Source : <code>esprit_D2F-formation</code></p>
+<table>
+  <thead><tr><th>Entité</th><th>Champ</th><th>Type</th><th>Description</th></tr></thead>
+  <tbody>
+    <tr><td rowspan="2">Unité Pédagogique (<code>Up</code>)</td><td><code>id</code></td><td>String</td><td>Identifiant</td></tr>
+    <tr><td><code>libelle</code></td><td>String</td><td>Nom de l'unité</td></tr>
+    <tr><td rowspan="2">Département (<code>Dept</code>)</td><td><code>id</code></td><td>String</td><td>Identifiant</td></tr>
+    <tr><td><code>libelle</code></td><td>String</td><td>Nom du département</td></tr>
+  </tbody>
+</table>
+
+<!-- ══ 3. RELATIONS ══ -->
+<h1 class="s">3. Relations inter-entités</h1>
+<div class="arch" style="font-size:8pt"><span class="hl">User</span>
+  ├── 0..N  EnseignantCompetence    <span style="color:#aaa">(via enseignantId)</span>
+  ├── 0..N  Formation               <span style="color:#aaa">(comme animateur interne)</span>
+  ├── 0..N  Inscription             <span style="color:#aaa">(via enseignantId)</span>
+  ├── 0..N  Certificate             <span style="color:#aaa">(via enseignantId)</span>
+  └── 0..N  BesoinFormation         <span style="color:#aaa">(via username)</span>
+
+<span class="hl">BesoinFormation</span>
+  └── 0..1  Formation               <span style="color:#aaa">(idBesoinFormation = origine)</span>
+
+<span class="hl">Formation</span>
+  ├── 0..N  Enseignant              <span style="color:#aaa">(animateurs internes, ManyToMany)</span>
+  ├── 1..N  SeanceFormation         <span style="color:#aaa">(séances)</span>
+  ├── 0..N  Inscription             <span style="color:#aaa">(inscrits)</span>
+  ├── 0..N  FormationCompetence     <span style="color:#aaa">(compétences ciblées)</span>
+  ├── 0..N  Certificate             <span style="color:#aaa">(1 par inscrit approuvé)</span>
+  ├── 0..1  EvaluationGlobale
+  ├── 0..N  EvaluationFormateur     <span style="color:#aaa">(1 par participant)</span>
+  ├── 1     Up                      <span style="color:#aaa">(unité pédagogique)</span>
+  └── 1     Dept                    <span style="color:#aaa">(département)</span>
+
+<span class="hl">Domaine</span>  └── 1..N  Competence
+<span class="hl">Competence</span>  ├── 0..N  SousCompetence  ├── 0..N  Savoir  └── 0..N  CompetencePrerequisite
+<span class="hl">SousCompetence</span>  ├── 0..N  Savoir  └── 0..N  SousCompetence <span style="color:#aaa">(sous-niveaux)</span>
+<span class="hl">Savoir</span>  └── 0..N  EnseignantCompetence
+
+<span class="ar">── Dépendances inter-services ──</span>
+Formation    <span class="ar">──(AMQP)──►</span> Certificat   <span style="color:#aaa">(génération auto à l'état ACHEVE)</span>
+BesoinFormation <span class="ar">──(AMQP)──►</span> Formation  <span style="color:#aaa">(création après approbation complète)</span>
+Formation    <span class="ar">──(REST)──►</span>  Competence  <span style="color:#aaa">(validation FormationCompetence)</span></div>
+
+<!-- ══ 4. RÈGLES ══ -->
+<h1 class="s">4. Règles de gestion</h1>
+
+<h2 class="ss">4.1 Validation d'un besoin de formation</h2>
+<p style="font-size:9.5pt;margin-bottom:10px">Un besoin passe par <strong>trois niveaux d'approbation successifs</strong>. Un seul refus stoppe le processus.</p>
+<table>
+  <thead><tr><th>Étape</th><th>Acteur</th><th>Champ</th><th>Valeurs</th></tr></thead>
+  <tbody>
+    <tr><td>1</td><td>Chef de Département</td><td><code>approuveChefDep</code></td><td><code>null</code> = en attente · <code>true</code> = approuvé · <code>false</code> = rejeté</td></tr>
+    <tr><td>2</td><td>CUP</td><td><code>approuveCUP</code></td><td><code>null</code> = en attente · <code>true</code> = approuvé · <code>false</code> = rejeté</td></tr>
+    <tr><td>3</td><td>Administrateur D2F</td><td><code>approuveAdmin</code></td><td><code>null</code> = en attente · <code>true</code> = approuvé · <code>false</code> = rejeté</td></tr>
+  </tbody>
+</table>
+
+<h2 class="ss">4.2 Unicité des savoirs</h2>
+<p style="font-size:9.5pt;margin-bottom:6px">Un <code>Savoir</code> est rattaché <strong>soit</strong> à une <code>Competence</code>, <strong>soit</strong> à une <code>SousCompetence</code> — jamais les deux simultanément (contrainte applicative).</p>
+
+<h2 class="ss">4.3 Unicité du niveau par enseignant</h2>
+<p style="font-size:9.5pt;margin-bottom:6px">Un enseignant ne peut avoir qu'un seul niveau de maîtrise par savoir. Contrainte unique en base : <code>(enseignantId, savoirId)</code>.</p>
+
+<h2 class="ss">4.4 Génération automatique des certificats</h2>
+<p style="font-size:9.5pt">Un certificat est créé automatiquement pour chaque enseignant dont l'inscription est <code>APPROVED</code> lorsque la formation passe à l'état <code>ACHEVE</code>. Le champ <code>delivered</code> passe à <code>true</code> lors de la remise effective.</p>
+
+<!-- ══ 5. ENDPOINTS ══ -->
+<h1 class="s">5. Endpoints GET proposés</h1>
+<div class="info">Tous les endpoints sont versionnés <code>/api/v1/</code>, paginés, filtrables et sécurisés par JWT.<br>En-tête requis : <code>Authorization: Bearer &lt;token&gt;</code></div>
+
+<h2 class="ss">5.1 Annuaire enseignants — <code>esprit-authentification</code> (8085)</h2>
+<table>
+  <thead><tr><th>#</th><th>Endpoint</th><th>Description</th><th>Rôles autorisés</th><th>Page</th></tr></thead>
+  <tbody>
+    <tr><td>A-01</td><td><span class="get">GET</span><code>/api/v1/account/list-accounts</code></td><td>Liste paginée des comptes</td><td>ADMIN, D2F</td><td>✅</td></tr>
+    <tr><td>A-02</td><td><span class="get">GET</span><code>/api/v1/account/profile</code></td><td>Profil du compte connecté</td><td>Tous</td><td>✗</td></tr>
+    <tr><td>A-03</td><td><span class="get">GET</span><code>/api/v1/account/profile/{username}</code></td><td>Profil d'un compte</td><td>ADMIN, D2F, CUP, CHEF_DEP</td><td>✗</td></tr>
+  </tbody>
+</table>
+<h3 class="sss">Filtres — A-01</h3>
+<table>
+  <thead><tr><th>Paramètre</th><th>Type</th><th>Description</th></tr></thead>
+  <tbody>
+    <tr><td><code>role</code></td><td>String</td><td>Filtrer par rôle (ex : <code>ENSEIGNANT</code>, <code>ANIMATEUR</code>)</td></tr>
+    <tr><td><code>disabled</code></td><td>Boolean</td><td>Comptes actifs / désactivés</td></tr>
+    <tr><td><code>page</code>, <code>size</code>, <code>sort</code></td><td>—</td><td>Pagination standard (défaut : 20, max : 100)</td></tr>
+  </tbody>
+</table>
+
+<h2 class="ss">5.2 Besoins de formation — <code>esprit-besoin-formation</code> (8004)</h2>
+<table>
+  <thead><tr><th>#</th><th>Endpoint</th><th>Description</th><th>Rôles autorisés</th><th>Page</th></tr></thead>
+  <tbody>
+    <tr><td>B-01</td><td><span class="get">GET</span><code>/api/v1/besoins-formations</code></td><td>Liste paginée</td><td>ADMIN, D2F, CUP, CHEF_DEP</td><td>✅</td></tr>
+    <tr><td>B-02</td><td><span class="get">GET</span><code>/api/v1/besoins-formations/{id}</code></td><td>Détail d'un besoin</td><td>ADMIN, D2F, CUP, demandeur</td><td>✗</td></tr>
+    <tr><td>B-03</td><td><span class="get">GET</span><code>/api/v1/besoins-formations/approved</code></td><td>Besoins approuvés</td><td>ADMIN, D2F</td><td>✅</td></tr>
+    <tr><td>B-04</td><td><span class="get">GET</span><code>/api/v1/besoins-formations/by-up/{up}</code></td><td>Par unité pédagogique</td><td>CUP, ADMIN, D2F</td><td>✅</td></tr>
+    <tr><td>B-05</td><td><span class="get">GET</span><code>/api/v1/besoins-formations/by-departement/{dep}</code></td><td>Par département</td><td>CHEF_DEP, ADMIN, D2F</td><td>✅</td></tr>
+    <tr><td>B-06</td><td><span class="get">GET</span><code>/api/v1/besoins-formations/by-priorite/{priorite}</code></td><td>Par niveau de priorité</td><td>ADMIN, D2F</td><td>✅</td></tr>
+  </tbody>
+</table>
+<h3 class="sss">Filtres — B-01</h3>
+<table>
+  <thead><tr><th>Paramètre</th><th>Type</th><th>Valeurs</th></tr></thead>
+  <tbody>
+    <tr><td><code>typeBesoin</code></td><td>Enum</td><td>INDIVIDUEL, COLLECTIF, ANIMER_UNE_FORMATION</td></tr>
+    <tr><td><code>priorite</code></td><td>Enum</td><td>BASSE, MOYENNE, HAUTE, CRITIQUE</td></tr>
+    <tr><td><code>periodCode</code></td><td>Enum</td><td>P1, P2, P3, P4, SUMMER, WINTER, OTHER</td></tr>
+    <tr><td><code>up</code>, <code>departement</code></td><td>String</td><td>Codes UP / département</td></tr>
+  </tbody>
+</table>
+
+<h2 class="ss">5.3 Formations — <code>esprit-formation</code> (8088)</h2>
+<table>
+  <thead><tr><th>#</th><th>Endpoint</th><th>Description</th><th>Rôles autorisés</th><th>Page</th></tr></thead>
+  <tbody>
+    <tr><td>F-01</td><td><span class="get">GET</span><code>/api/v1/formations</code></td><td>Liste paginée</td><td>Tous (authentifiés)</td><td>✅</td></tr>
+    <tr><td>F-02</td><td><span class="get">GET</span><code>/api/v1/formations/{id}</code></td><td>Détail d'une formation</td><td>Tous (authentifiés)</td><td>✗</td></tr>
+    <tr><td>F-03</td><td><span class="get">GET</span><code>/api/v1/formations/{id}/seances</code></td><td>Séances d'une formation</td><td>Tous (authentifiés)</td><td>✅</td></tr>
+    <tr><td>F-04</td><td><span class="get">GET</span><code>/api/v1/formations/{id}/inscriptions</code></td><td>Liste des inscrits</td><td>ADMIN, D2F, ANIMATEUR</td><td>✅</td></tr>
+    <tr><td>F-05</td><td><span class="get">GET</span><code>/api/v1/formations/{id}/competences</code></td><td>Compétences ciblées</td><td>Tous (authentifiés)</td><td>✗</td></tr>
+    <tr><td>F-06</td><td><span class="get">GET</span><code>/api/v1/seances/{id}</code></td><td>Détail d'une séance</td><td>Tous (authentifiés)</td><td>✗</td></tr>
+  </tbody>
+</table>
+<h3 class="sss">Filtres — F-01</h3>
+<table>
+  <thead><tr><th>Paramètre</th><th>Type</th><th>Description</th></tr></thead>
+  <tbody>
+    <tr><td><code>etatFormation</code></td><td>EtatFormation</td><td>NOUVEAU, ENREGISTRE, PLANIFIE, EN_COURS, ACHEVE, ANNULE, VISIBLE</td></tr>
+    <tr><td><code>typeFormation</code></td><td>TypeFormation</td><td>INTERNE, EXTERNE, EN_LIGNE</td></tr>
+    <tr><td><code>periodCode</code></td><td>PeriodCode</td><td>P1, P2, P3, P4, SUMMER, WINTER, OTHER</td></tr>
+    <tr><td><code>inscriptionsOuvertes</code></td><td>Boolean</td><td>Formations avec inscriptions ouvertes</td></tr>
+    <tr><td><code>upId</code>, <code>departementId</code></td><td>String</td><td>Filtres organisationnels</td></tr>
+    <tr><td><code>dateDebutFrom</code>, <code>dateDebutTo</code></td><td>Date</td><td>Plage de dates de début</td></tr>
+  </tbody>
+</table>
+
+<h2 class="ss">5.4 Référentiel de compétences — <code>esprit-competence</code> (8005)</h2>
+<table>
+  <thead><tr><th>#</th><th>Endpoint</th><th>Description</th><th>Rôles</th><th>Cache</th></tr></thead>
+  <tbody>
+    <tr><td>C-01</td><td><span class="get">GET</span><code>/api/v1/domaines</code></td><td>Liste paginée des domaines</td><td>Tous</td><td>10 min</td></tr>
+    <tr><td>C-02</td><td><span class="get">GET</span><code>/api/v1/domaines/actifs</code></td><td>Domaines actifs</td><td>Tous</td><td>10 min</td></tr>
+    <tr><td>C-03</td><td><span class="get">GET</span><code>/api/v1/domaines/{id}</code></td><td>Détail d'un domaine</td><td>Tous</td><td>—</td></tr>
+    <tr><td>C-04</td><td><span class="get">GET</span><code>/api/v1/domaines/code/{code}</code></td><td>Domaine par code</td><td>Tous</td><td>—</td></tr>
+    <tr><td>C-05</td><td><span class="get">GET</span><code>/api/v1/domaines/search?keyword=</code></td><td>Recherche domaines</td><td>Tous</td><td>—</td></tr>
+    <tr><td>C-06</td><td><span class="get">GET</span><code>/api/v1/competences</code></td><td>Liste paginée des compétences</td><td>Tous</td><td>—</td></tr>
+    <tr><td>C-07</td><td><span class="get">GET</span><code>/api/v1/competences/{id}</code></td><td>Détail d'une compétence</td><td>Tous</td><td>—</td></tr>
+    <tr><td>C-08</td><td><span class="get">GET</span><code>/api/v1/competences/domaine/{domaineId}</code></td><td>Compétences d'un domaine</td><td>Tous</td><td>5 min</td></tr>
+    <tr><td>C-09</td><td><span class="get">GET</span><code>/api/v1/competences/search?keyword=</code></td><td>Recherche compétences</td><td>Tous</td><td>—</td></tr>
+    <tr><td>C-10</td><td><span class="get">GET</span><code>/api/v1/competences/{id}/enseignants</code></td><td>Enseignants par compétence</td><td>ADMIN, D2F, CUP</td><td>—</td></tr>
+  </tbody>
+</table>
+
+<h2 class="ss">5.5 Évaluations — <code>esprit-evaluation</code> (8087)</h2>
+<table>
+  <thead><tr><th>#</th><th>Endpoint</th><th>Description</th><th>Rôles</th><th>Page</th></tr></thead>
+  <tbody>
+    <tr><td>E-01</td><td><span class="get">GET</span><code>/api/v1/evaluations</code></td><td>Liste paginée</td><td>ADMIN, D2F</td><td>✅</td></tr>
+    <tr><td>E-02</td><td><span class="get">GET</span><code>/api/v1/evaluations/{id}</code></td><td>Détail d'une évaluation</td><td>ADMIN, D2F</td><td>✗</td></tr>
+    <tr><td>E-03</td><td><span class="get">GET</span><code>/api/v1/evaluations/formation/{formationId}/enriched</code></td><td>Évaluations d'une formation</td><td>ADMIN, D2F, ANIMATEUR</td><td>✗</td></tr>
+  </tbody>
+</table>
+
+<h2 class="ss">5.6 Certificats — <code>esprit-certificat</code> (8086)</h2>
+<table>
+  <thead><tr><th>#</th><th>Endpoint</th><th>Description</th><th>Rôles</th><th>Page</th></tr></thead>
+  <tbody>
+    <tr><td>K-01</td><td><span class="get">GET</span><code>/api/v1/certificates</code></td><td>Liste paginée</td><td>ADMIN, D2F</td><td>✅</td></tr>
+    <tr><td>K-02</td><td><span class="get">GET</span><code>/api/v1/certificates/formation/{formationId}</code></td><td>Par formation</td><td>ADMIN, D2F, ANIMATEUR</td><td>✗</td></tr>
+    <tr><td>K-03</td><td><span class="get">GET</span><code>/api/v1/certificates/enseignant/{enseignantId}</code></td><td>Par enseignant</td><td>ADMIN, D2F, enseignant (self)</td><td>✗</td></tr>
+    <tr><td>K-04</td><td><span class="get">GET</span><code>/api/v1/certificates/email</code></td><td>Mes certificats (JWT)</td><td>ENSEIGNANT</td><td>✗</td></tr>
+  </tbody>
+</table>
+
+<!-- ══ 6. SÉCURITÉ ══ -->
+<h1 class="s">6. Sécurité et contrôle d'accès</h1>
+
+<h2 class="ss">6.1 Authentification</h2>
+<table>
+  <thead><tr><th>Paramètre</th><th>Valeur</th></tr></thead>
+  <tbody>
+    <tr><td>Protocole</td><td>JWT Bearer Token (RFC 7519)</td></tr>
+    <tr><td>En-tête</td><td><code>Authorization: Bearer &lt;token&gt;</code></td></tr>
+    <tr><td>Validation</td><td>API Gateway — avant tout routage vers les services</td></tr>
+  </tbody>
+</table>
+
+<h2 class="ss">6.2 Matrice des accès par rôle</h2>
+<table>
+  <thead><tr><th>Endpoint</th><th>ENSEIGNANT</th><th>ANIMATEUR</th><th>CUP</th><th>CHEF_DEP</th><th>D2F</th><th>ADMIN</th></tr></thead>
+  <tbody>
+    <tr><td>A-01 Liste comptes</td><td>✗</td><td>✗</td><td>✗</td><td>✗</td><td>✅</td><td>✅</td></tr>
+    <tr><td>A-02 Mon profil</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td></tr>
+    <tr><td>A-03 Profil tiers</td><td>✗</td><td>✗</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td></tr>
+    <tr><td>B-01 Liste besoins</td><td>✗</td><td>✗</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td></tr>
+    <tr><td>F-01 Liste formations</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td></tr>
+    <tr><td>F-04 Inscrits formation</td><td>✗</td><td>✅ (ses formations)</td><td>✗</td><td>✗</td><td>✅</td><td>✅</td></tr>
+    <tr><td>C-01 Domaines</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td></tr>
+    <tr><td>C-10 Enseignants/Compétence</td><td>✗</td><td>✗</td><td>✅</td><td>✗</td><td>✅</td><td>✅</td></tr>
+    <tr><td>E-01 Évaluations</td><td>✗</td><td>✗</td><td>✗</td><td>✗</td><td>✅</td><td>✅</td></tr>
+    <tr><td>K-04 Mes certificats</td><td>✅</td><td>✅</td><td>✗</td><td>✗</td><td>✗</td><td>✗</td></tr>
+  </tbody>
+</table>
+
+<h2 class="ss">6.3 Rate limiting</h2>
+<table>
+  <thead><tr><th>Périmètre</th><th>Limite</th><th>Fenêtre</th></tr></thead>
+  <tbody>
+    <tr><td>Authentification (login)</td><td>5 requêtes</td><td>1 minute</td></tr>
+    <tr><td>Réinitialisation mot de passe</td><td>3 requêtes</td><td>5 minutes</td></tr>
+    <tr><td>Tous les autres endpoints</td><td>20 requêtes</td><td>1 minute</td></tr>
+  </tbody>
+</table>
+
+<!-- ══ 7. PAGINATION ══ -->
+<h1 class="s">7. Pagination, tri et recherche</h1>
+<table>
+  <thead><tr><th>Paramètre</th><th>Type</th><th>Défaut</th><th>Description</th></tr></thead>
+  <tbody>
+    <tr><td><code>page</code></td><td>Integer</td><td><code>0</code></td><td>Numéro de page (0-based)</td></tr>
+    <tr><td><code>size</code></td><td>Integer</td><td><code>20</code></td><td>Éléments par page (max 100)</td></tr>
+    <tr><td><code>sort</code></td><td>String</td><td><code>id,desc</code></td><td>Tri : <code>champ,asc</code> ou <code>champ,desc</code></td></tr>
+  </tbody>
+</table>
+<div class="info" style="font-family:monospace;font-size:9pt">Exemple : GET /api/v1/formations?page=0&amp;size=20&amp;sort=dateDebut,desc&amp;etatFormation=PLANIFIE</div>
+<p style="font-size:9.5pt;margin-top:10px">La recherche textuelle (<code>?keyword=</code>) est insensible à la casse, partielle, portant sur <code>nom</code>, <code>code</code> et <code>description</code>.</p>
+
+<h3 class="sss">Format de réponse paginée</h3>
+<div class="arch" style="font-size:9pt">{
+  <span class="hl">"content"</span>:        [ <span style="color:#aaa">/* liste d'objets */</span> ],
+  <span class="hl">"totalElements"</span>: <span class="rt">154</span>,
+  <span class="hl">"totalPages"</span>:    <span class="rt">8</span>,
+  <span class="hl">"number"</span>:        <span class="rt">0</span>,
+  <span class="hl">"size"</span>:          <span class="rt">20</span>,
+  <span class="hl">"first"</span>:         <span class="rt">true</span>,
+  <span class="hl">"last"</span>:          <span class="rt">false</span>
+}</div>
+
+<!-- ══ 8. ERREURS ══ -->
+<h1 class="s">8. Format standard des erreurs</h1>
+<div class="arch" style="font-size:9pt">{
+  <span class="hl">"timestamp"</span>: <span class="rt">"2026-05-20T10:30:00.000+00:00"</span>,
+  <span class="hl">"status"</span>:    <span class="rt">404</span>,
+  <span class="hl">"error"</span>:     <span class="rt">"Not Found"</span>,
+  <span class="hl">"message"</span>:   <span class="rt">"Formation introuvable : id=99"</span>,
+  <span class="hl">"path"</span>:      <span class="rt">"/api/v1/formations/99"</span>
+}</div>
+<table>
+  <thead><tr><th>Code HTTP</th><th>Signification</th></tr></thead>
+  <tbody>
+    <tr><td><code>200</code></td><td>Succès</td></tr>
+    <tr><td><code>400</code></td><td>Paramètre invalide</td></tr>
+    <tr><td><code>401</code></td><td>Token JWT absent ou expiré</td></tr>
+    <tr><td><code>403</code></td><td>Rôle insuffisant</td></tr>
+    <tr><td><code>404</code></td><td>Ressource introuvable</td></tr>
+    <tr><td><code>429</code></td><td>Trop de requêtes (rate limit)</td></tr>
+    <tr><td><code>503</code></td><td>Service temporairement indisponible (circuit breaker)</td></tr>
+  </tbody>
+</table>
+
+<!-- ══ 9. DONNÉES SENSIBLES ══ -->
+<h1 class="s">9. Données sensibles — politique de masquage</h1>
+<table>
+  <thead><tr><th>Champ</th><th>Entité</th><th>Motif d'exclusion</th></tr></thead>
+  <tbody>
+    <tr><td><code>password</code></td><td>User</td><td>Hash cryptographique — sécurité absolue</td></tr>
+    <tr><td><code>failedLoginAttempts</code></td><td>User</td><td>Donnée de sécurité interne</td></tr>
+    <tr><td><code>lockUntil</code></td><td>User</td><td>Donnée de sécurité interne</td></tr>
+    <tr><td><code>deviceIds</code></td><td>User</td><td>Données techniques — vie privée</td></tr>
+    <tr><td><code>externeFormateurEmail</code></td><td>Formation</td><td>Email personnel animateur externe — RGPD</td></tr>
+    <tr><td><code>mailEnseignant</code></td><td>Certificate</td><td>Email personnel — RGPD</td></tr>
+    <tr><td><code>pdfFilePath</code></td><td>Certificate</td><td>Chemin serveur interne</td></tr>
+    <tr><td><code>onlineMeetingUrl</code></td><td>SeanceFormation</td><td>URL Teams — usage interne</td></tr>
+    <tr><td><code>calendarEventId</code></td><td>SeanceFormation</td><td>Identifiant calendrier interne</td></tr>
+    <tr><td><code>notificationMessage</code></td><td>BesoinFormation</td><td>Usage interne workflow</td></tr>
+  </tbody>
+</table>
+<div class="warn">⚠️ Les champs budgétaires (<code>coutFormation</code>, <code>coutTransport</code>, <code>coutHebergement</code>, <code>coutRepas</code>) sont accessibles uniquement aux rôles <strong>ADMIN</strong> et <strong>D2F</strong>.</div>
+
+</div><!-- /wrap -->
+
+<!-- FOOTER -->
+<div class="footer">
+  <span>Spécification de données – API de consultation ESPRIT · Data Contract v1.0</span>
+  <span>Équipe PFE D2F — ESPRIT · 20 mai 2026</span>
+</div>
+
+</div><!-- /page -->
+</body>
+</html>

@@ -13,6 +13,11 @@ target/
 .springBeans
 .sts4-cache
 
+### DSI §2.2 — secrets EXCLUSIVEMENT externalisés via env (jamais en clair).
+### application.properties est désormais versionné (aucune valeur sensible en fallback).
+### application-prod.properties reste hors Git (sera dérivé d'env via spring-config).
+src/main/resources/application-prod.properties
+
 ### IntelliJ IDEA ###
 .idea
 *.iws

@@ -1,0 +1,78 @@
+/* ─── GeneratedCertificates.css ───────────────────────────────────────── */
+
+.generated-certs-page {
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+/* ── Bouton retour ─────────────────────────────────────────────────────── */
+.generated-certs-btn-back {
+  border-radius: 8px !important;
+  font-weight: 500 !important;
+  border-color: #B51200 !important;
+  color: #B51200 !important;
+  transition: all 0.25s ease !important;
+}
+
+.generated-certs-btn-back:hover {
+  background: var(--primary-50) !important;
+  border-color: #9a0f00 !important;
+  color: #9a0f00 !important;
+}
+
+/* ── Card principale ───────────────────────────────────────────────────── */
+.generated-certs-card {
+  border-radius: var(--radius-lg);
+  border: 1px solid rgba(0, 0, 0, 0.07);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 4px 12px rgba(0, 0, 0, 0.03);
+  overflow: hidden;
+}
+
+/* ── Item de liste ─────────────────────────────────────────────────────── */
+.generated-certs-list-item {
+  border-radius: 12px;
+  margin-bottom: 8px;
+  padding: 12px 16px;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  transition: all 0.2s ease;
+}
+
+.generated-certs-list-item:hover {
+  border-color: rgba(0, 0, 0, 0.12);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+/* ── Avatar PDF ────────────────────────────────────────────────────────── */
+.generated-certs-pdf-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* ── Bouton télécharger ────────────────────────────────────────────────── */
+.generated-certs-btn-download {
+  color: #B51200 !important;
+  font-weight: 500 !important;
+  transition: all 0.2s ease !important;
+}
+
+.generated-certs-btn-download:hover {
+  color: #9a0f00 !important;
+  background: var(--primary-50) !important;
+}
+
+/* ── Tag PDF ───────────────────────────────────────────────────────────── */
+.generated-certs-pdf-tag {
+  border-radius: 10px;
+  font-size: 11px;
+}
+
+/* ── File title ────────────────────────────────────────────────────────── */
+.generated-certs-file-title {
+  font-weight: 500;
+  font-size: 14px;
+}

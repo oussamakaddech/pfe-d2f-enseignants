@@ -1,0 +1,77 @@
+/* ─── AnalyticsDashboardPage.css ─────────────────────────────────────────── */
+
+.analytics-page {
+  max-width: 1300px;
+  margin: 0 auto;
+}
+
+/* ── Cartes KPI ──────────────────────────────────────────────────────────── */
+.analytics-kpi-card {
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.analytics-kpi-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+/* ── Cartes de tableau ───────────────────────────────────────────────────── */
+.analytics-table-card {
+  background: var(--bg-card);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-sm);
+}
+
+.analytics-table-card .ant-card-head {
+  border-bottom: 1px solid var(--border-color);
+  font-size: 14px;
+  padding: 0 16px;
+  min-height: 46px;
+}
+
+.analytics-table-card .ant-card-head-title {
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+/* ── Lignes à risque ─────────────────────────────────────────────────────── */
+.analytics-risk-high > td {
+  background: rgba(239, 68, 68, 0.04) !important;
+}
+
+.analytics-risk-medium > td {
+  background: rgba(245, 158, 11, 0.04) !important;
+}
+
+/* ── Badge sévérité ──────────────────────────────────────────────────────── */
+.analytics-severity-critical {
+  color: var(--color-error);
+  font-weight: 600;
+}
+
+.analytics-severity-warning {
+  color: #b45309;
+  font-weight: 600;
+}
+
+/* ── Alerte récente ──────────────────────────────────────────────────────── */
+.analytics-alert-row {
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.analytics-alert-row:hover > td {
+  background: var(--primary-50) !important;
+}
+
+/* ── Responsive ──────────────────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .analytics-page {
+    padding: 0;
+  }
+}

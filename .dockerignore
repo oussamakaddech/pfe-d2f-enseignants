@@ -1,0 +1,92 @@
+# ── Root .dockerignore — monorepo builds (context: .) ─────────────────────────
+# Applies to: authentification, competence, besoin-formation, certificat,
+#             evaluation, formation, formation-build, analyse
+# These services use docker-compose build context "." (project root).
+
+# ── Secrets & env (NEVER send to Docker daemon) ──────────────────────────────
+.env
+.env.*
+!.env.example
+
+# ── Git ───────────────────────────────────────────────────────────────────────
+.git
+.gitignore
+.gitattributes
+
+# ── IDE / Editor ──────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.iml
+*.ipr
+*.iws
+*.swp
+*.swo
+*~
+
+# ── Node.js (frontend) ────────────────────────────────────────────────────────
+**/node_modules/
+**/dist/
+**/.npm
+
+# ── Java / Maven build artifacts ──────────────────────────────────────────────
+**/target/
+**/.factorypath
+*.class
+*.jar
+*.war
+
+# ── Python ────────────────────────────────────────────────────────────────────
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+**/.venv/
+**/venv/
+**/.pytest_cache/
+**/.coverage
+**/htmlcov/
+**/*.egg-info/
+
+# ── OS files ──────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+
+# ── Logs ──────────────────────────────────────────────────────────────────────
+**/*.log
+logs/
+
+# ── Documentation ─────────────────────────────────────────────────────────────
+README.md
+docs/
+*.md
+
+# ── CI/CD & DevOps ────────────────────────────────────────────────────────────
+.github/
+.drone.yml
+.drone-*.yml
+sonar-project.properties
+scannerwork/
+
+# ── Claude agent worktrees ────────────────────────────────────────────────────
+.claude/
+
+# ── Scripts & automation (not needed in image) ────────────────────────────────
+scripts/
+automation/
+*.ps1
+*.sh
+*.bat
+
+# ── Infrastructure configs ────────────────────────────────────────────────────
+infra/
+
+# ── Test results & coverage ──────────────────────────────────────────────────
+junit-results.xml
+coverage.xml
+*.coverage
+
+# ── Large / temp files ────────────────────────────────────────────────────────
+*.zip
+*.tar.gz
+*.old
+*.bak
+*.new

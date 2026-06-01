@@ -1,0 +1,158 @@
+name: SonarQube Monorepo
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+      - oussama
+      - 'feature/**'
+      - 'hotfix/**'
+      - 'release/**'
+  pull_request:
+    types: [opened, synchronize, reopened]
+  schedule:
+    - cron: '0 */2 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: read
+
+env:
+  SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+  SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+
+jobs:
+  # 1. Analyse des modules Java (Spring Boot)
+  java-analysis:
+    name: Sonar Java • ${{ matrix.module }}
+    runs-on: self-hosted
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - module: esprit_D2F-api-gateway
+            projectKey: d2f_api_gateway
+          - module: esprit_D2F-authentification
+            projectKey: d2f_authentification
+          - module: esprit_D2F-besoin-formation
+            projectKey: d2f_besoin_formation
+          - module: esprit_D2F-certificat
+            projectKey: d2f_certificat
+          - module: esprit_D2F-competence
+            projectKey: d2f_competence
+          - module: esprit_D2F-evaluation
+            projectKey: d2f_evaluation
+          - module: esprit_D2F-formation
+            projectKey: d2f_formation
+          - module: esprit_D2F-analyse
+            projectKey: d2f_analyse
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: maven
+
+      - name: Build and Analyze
+        working-directory: ${{ matrix.module }}
+        run: |
+          mvn clean verify sonar:sonar \
+            -Dsonar.projectKey=${{ matrix.projectKey }} \
+            -Dsonar.qualitygate.wait=true \
+            -Dsonar.host.url=${{ env.SONAR_HOST_URL }} \
+            -Dsonar.login=${{ env.SONAR_TOKEN }}
+
+  # 2. Analyse du Frontend (React / Vite)
+  webapp-analysis:
+    name: Sonar Webapp • esprit_D2F-webapp
+    runs-on: self-hosted
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: esprit_D2F-webapp/package-lock.json
+
+      - name: Install dependencies
+        working-directory: esprit_D2F-webapp
+        run: npm ci --legacy-peer-deps
+
+      - name: Run tests with coverage
+        working-directory: esprit_D2F-webapp
+        run: npm run test:coverage || true # Ne pas bloquer si les tests échouent ici, laisser Sonar décider
+
+      - name: SonarQube Scan
+        uses: sonarsource/sonarqube-scan-action@v2
+        env:
+          SONAR_TOKEN: ${{ env.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ env.SONAR_HOST_URL }}
+        with:
+          projectBaseDir: esprit_D2F-webapp
+          args: >
+            -Dsonar.projectKey=d2f_webapp
+            -Dsonar.javascript.lcov.reportPaths=coverage/lcov.info
+            -Dsonar.qualitygate.wait=true
+
+  # 3. Analyse des modules Python (AI / Analytics)
+  python-analysis:
+    name: Sonar Python • ${{ matrix.module }}
+    runs-on: self-hosted
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - module: esprit_D2F-rice
+            projectKey: d2f_rice
+          - module: esprit_D2F-predictive-analytics
+            projectKey: d2f_predictive_analytics
+    
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: ${{ matrix.module }}/requirements.txt
+
+      - name: Install dependencies
+        working-directory: ${{ matrix.module }}
+        run: |
+          pip install -r requirements.txt
+          pip install pytest pytest-cov
+
+      - name: Run tests with coverage
+        working-directory: ${{ matrix.module }}
+        run: |
+          pytest --cov=. --cov-report=xml || true
+
+      - name: SonarQube Scan
+        uses: sonarsource/sonarqube-scan-action@v2
+        env:
+          SONAR_TOKEN: ${{ env.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ env.SONAR_HOST_URL }}
+        with:
+          projectBaseDir: ${{ matrix.module }}
+          args: >
+            -Dsonar.projectKey=${{ matrix.projectKey }}
+            -Dsonar.python.coverage.reportPaths=coverage.xml
+            -Dsonar.qualitygate.wait=true

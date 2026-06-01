@@ -1,14 +1,16 @@
-package esprit.pfe.serviceformation.Microsoft;
+package esprit.pfe.serviceformation.microsoft;
 
 import com.microsoft.graph.models.DriveItem;
 import com.microsoft.graph.models.DriveItemCreateLinkParameterSet;
 import com.microsoft.graph.models.Folder;
 import com.microsoft.graph.models.Permission;
 import com.microsoft.graph.requests.GraphServiceClient;
-import esprit.pfe.serviceformation.DTO.OneDriveItemDTO;
+import esprit.pfe.serviceformation.dto.OneDriveItemDTO;
+import lombok.extern.slf4j.Slf4j;
 import okhttp3.Request;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
+import lombok.RequiredArgsConstructor;
 
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
@@ -16,11 +18,13 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
+// DSI §4/§2 — Service Azure AD conditionnel : désactivé par défaut (azure.ad.enabled=false).
 @Service
+@ConditionalOnProperty(name = "azure.ad.enabled", havingValue = "true")
+@Slf4j
+@RequiredArgsConstructor
 public class OneDriveService {
-
-    @Autowired
-    private MicrosoftGraphClientProvider graphProvider;
+    private final MicrosoftGraphClientProvider graphProvider;
 
     private static final String ROOT_FOLDER_NAME = "d2F";
     private static final String USER_EMAIL       = "Application.Formationdesformateurs@Esprit.tn";
@@ -93,7 +97,7 @@ public class OneDriveService {
             in.transferTo(buf);
             return buf.toByteArray();
         } catch (Exception e) {
-            throw new RuntimeException("Erreur download OneDrive", e);
+            throw new IllegalStateException("Erreur download OneDrive", e);
         }
     }
 
@@ -122,7 +126,7 @@ public class OneDriveService {
                     .buildRequest()
                     .delete();
         } catch (Exception e) {
-            System.err.println("Erreur delete OneDrive: " + e.getMessage());
+            log.error("Erreur delete OneDrive: {}", e.getMessage());
         }
     }
 
@@ -225,14 +229,15 @@ public class OneDriveService {
             String currentFolderName
     ) {
         GraphServiceClient<Request> client = graphProvider.getGraphClient();
-        List<DriveItem> items = client.users(userEmail)
+        List<DriveItem> itemsRaw = client.users(userEmail)
                 .drive()
                 .items(folderId)
                 .children()
                 .buildRequest()
                 .get()
                 .getCurrentPage();
-
+        
+        List<DriveItem> items = Optional.ofNullable(itemsRaw).orElse(new ArrayList<>());
         List<OneDriveItemDTO> list = new ArrayList<>();
         for (DriveItem item : items) {
             OneDriveItemDTO dto = new OneDriveItemDTO();
@@ -267,7 +272,7 @@ public class OneDriveService {
                 pathType,
                 nomDocument
         );
-        List<DriveItem> files = client.users(USER_EMAIL)
+        List<DriveItem> filesRaw = client.users(USER_EMAIL)
                 .drive()
                 .root()
                 .itemWithPath(folderPath)
@@ -275,9 +280,10 @@ public class OneDriveService {
                 .buildRequest()
                 .get()
                 .getCurrentPage();
-
+        
+        List<DriveItem> files = Optional.ofNullable(filesRaw).orElse(new ArrayList<>());
         if (files.isEmpty()) {
-            throw new RuntimeException("Aucun fichier dans " + folderPath);
+            throw new IllegalStateException("Aucun fichier dans " + folderPath);
         }
 
         DriveItem fichier = files.get(0);

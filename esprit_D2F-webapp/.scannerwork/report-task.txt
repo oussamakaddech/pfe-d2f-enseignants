@@ -1,0 +1,6 @@
+projectKey=d2f_webapp
+serverUrl=http://localhost:9000
+serverVersion=26.3.0.120487
+dashboardUrl=http://localhost:9000/dashboard?id=d2f_webapp
+ceTaskId=f82a239d-2f85-4692-8f5a-f42b4ee832fe
+ceTaskUrl=http://localhost:9000/api/ce/task?id=f82a239d-2f85-4692-8f5a-f42b4ee832fe

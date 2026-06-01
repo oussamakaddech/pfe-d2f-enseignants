@@ -1,11 +1,51 @@
-.git
-.gitignore
-__pycache__
+# ── Dependencies & build artifacts ────────────────────────────────────────────
+**/__pycache__/
 *.pyc
 *.pyo
 *.pyd
-.DS_Store
+*.egg-info/
+dist/
+build/
+
+# ── Virtual environments ──────────────────────────────────────────────────────
+.venv/
+venv/
+env/
+
+# ── Secrets & credentials ─────────────────────────────────────────────────────
 .env
+.env.*
+*.pem
+*.key
+*.crt
+
+# ── Git ───────────────────────────────────────────────────────────────────────
+.git/
+.gitignore
+.gitattributes
+
+# ── IDE ───────────────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ── Tests & coverage ─────────────────────────────────────────────────────────
+tests/
+test_*.py
+*_test.py
+coverage.xml
+.coverage
+htmlcov/
+
+# ── Docs & misc ───────────────────────────────────────────────────────────────
+*.md
+docs/
 *.log
+*.dump
 *.tmp
 *.bak
+
+# ── ML cache & models (built at runtime) ──────────────────────────────────────
+cache/
+models/

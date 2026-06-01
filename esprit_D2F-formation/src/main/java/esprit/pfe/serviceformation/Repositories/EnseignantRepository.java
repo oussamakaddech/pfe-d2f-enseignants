@@ -1,7 +1,7 @@
-package esprit.pfe.serviceformation.Repositories;
+package esprit.pfe.serviceformation.repositories;
 
 
-import esprit.pfe.serviceformation.Entities.Enseignant;
+import esprit.pfe.serviceformation.entities.Enseignant;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -13,6 +13,12 @@ import java.util.Optional;
 
 @Repository
 public interface EnseignantRepository extends JpaRepository<Enseignant, String> {
+
+    Optional<Enseignant> findByMail(String mail);
+
+    /** Retourne l'enseignant dont l'id est le plus grand en ordre lexicographique
+     *  (ex: "E00099" > "E00010"), utilisé pour l'auto-incrément de l'identifiant. */
+    Optional<Enseignant> findTopByOrderByIdDesc();
     @Query("""
       SELECT e
       FROM Enseignant e
@@ -35,4 +41,6 @@ public interface EnseignantRepository extends JpaRepository<Enseignant, String> 
             @Param("start") Date start,
             @Param("end")   Date end
     );
+    List<Enseignant> findByUpAndCup(esprit.pfe.serviceformation.entities.Up up, String cup);
+    List<Enseignant> findByCup(String cup);
 }

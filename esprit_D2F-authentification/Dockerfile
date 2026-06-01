@@ -1,55 +1,70 @@
-# Base image builder
-FROM eclipse-temurin:17-jdk-alpine as builder
+# ============================================================
+# Stage 1 — Builder : compile le projet Maven
+# ============================================================
+FROM eclipse-temurin:17-jdk-alpine AS builder
 
-# Authors
-LABEL Author="seddik bouzayani <seddik.bouzayani@esprit.tn>"
-LABEL maintainer="seddik bouzayani <seddik.bouzayani@esprit.tn>"
-
-# Workdir
 WORKDIR /opt/app
 
+# Install shared d2f-common-security library (not in Maven Central — local module)
+COPY esprit_D2F-common-security/ /tmp/d2f-common-security/
+RUN --mount=type=cache,target=/root/.m2 \
+    cd /tmp/d2f-common-security && \
+    dos2unix mvnw && chmod u+x mvnw && \
+    ./mvnw install -DskipTests
+
 # Copy Maven Wrapper
-COPY .mvn/ .mvn
+COPY esprit_D2F-authentification/.mvn/ .mvn/
+COPY esprit_D2F-authentification/mvnw esprit_D2F-authentification/pom.xml ./
 
-# Copy Maven Wrapper script && pom.xml
-COPY mvnw pom.xml ./
+# Fix line endings & permissions
+RUN dos2unix mvnw && chmod u+x mvnw
 
-# Fix mvnw & 
-RUN dos2unix mvnw && \
-    chmod u+x mvnw
-
-# Resolves all project dependencies offline and keep cache   
+# Resolve dependencies (cached layer)
 RUN --mount=type=cache,target=/root/.m2 ./mvnw dependency:go-offline
 
-# Copy source code application
-COPY ./src ./src
+# Copy source code
+COPY esprit_D2F-authentification/src ./src
 
-# Install the package to a local repository and keep cache
-RUN --mount=type=cache,target=/root/.m2 ./mvnw clean install -DskipTests
+# Build the fat JAR (skip tests — already run in CI)
+RUN --mount=type=cache,target=/root/.m2 ./mvnw clean package -DskipTests
 
-# Unpacking the jar file
-RUN mkdir -p target/dependency && (cd target/dependency; jar -xf ../*.jar)
-
-# Base image
+# ============================================================
+# Stage 2 — Runtime : image légère JRE-only
+# ============================================================
 FROM eclipse-temurin:17-jre-alpine
 
-# Authors
 LABEL Author="seddik bouzayani <seddik.bouzayani@esprit.tn>"
 LABEL maintainer="seddik bouzayani <seddik.bouzayani@esprit.tn>"
 
-# Create user
-RUN addgroup -g 2003 esprit ; adduser  --ingroup esprit --disabled-password --uid 2003 esprit
+# --- Utilisateur non-root (UID 2003) ---
+RUN addgroup -g 2003 esprit && \
+    adduser -G esprit -u 2003 -D esprit
 
-# Use user
+# --- Dépendances runtime (curl pour HEALTHCHECK) ---
+RUN apk add --no-cache curl
+
+# --- Répertoire de l'application ---
+WORKDIR /app
+
+# --- Copie du JAR depuis le builder ---
+ARG JAR_FILE=target/*.jar
+COPY --from=builder /opt/app/${JAR_FILE} /app/app.jar
+
+# --- Propriété du répertoire à l'utilisateur esprit ---
+RUN chown -R esprit:esprit /app
+
+# --- Bascule vers l'utilisateur non-root ---
 USER esprit
 
-# Path to unpacked jar from builder image
-ARG DEPENDENCY=/opt/app/target/dependency
+# --- Variables d'environnement ---
+ENV JAVA_OPTS=""
 
-# Copy unpacked jar from builder image
-COPY --from=builder ${DEPENDENCY}/BOOT-INF/lib /opt/app/lib
-COPY --from=builder ${DEPENDENCY}/META-INF /opt/app/META-INF
-COPY --from=builder ${DEPENDENCY}/BOOT-INF/classes /opt/app
+# --- Port exposé ---
+EXPOSE 8085
 
-# Run pgpg_profile when container starts
-ENTRYPOINT ["java","-cp","opt/app:opt/app/lib/*","esprit.pfe.auth.AuthApplication"]
+# --- Healthcheck via curl sur Actuator ---
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+  CMD curl -sf http://localhost:8085/actuator/health || exit 1
+
+# --- Démarrage : JSON array strict, pas de wildcard ---
+ENTRYPOINT ["java", "-jar", "/app/app.jar"]

@@ -1,12 +1,15 @@
-package esprit.pfe.serviceformation.Services;
+package esprit.pfe.serviceformation.services;
 
-import esprit.pfe.serviceformation.DTO.EnseignantDTO;
-import esprit.pfe.serviceformation.DTO.SeanceDTO;
-import esprit.pfe.serviceformation.Entities.Enseignant;
-import esprit.pfe.serviceformation.Entities.SeanceFormation;
-import esprit.pfe.serviceformation.Repositories.EnseignantRepository;
-import esprit.pfe.serviceformation.Repositories.SeanceFormationRepository;
+import esprit.pfe.serviceformation.dto.EnseignantDTO;
+import esprit.pfe.serviceformation.dto.SeanceDTO;
+import esprit.pfe.serviceformation.entities.Enseignant;
+import esprit.pfe.serviceformation.entities.SeanceFormation;
+import esprit.pfe.serviceformation.repositories.SeanceFormationRepository;
+import esprit.pfe.serviceformation.utils.ValidationUtils;
+import esprit.pfe.serviceformation.utils.ExceptionUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.sql.Time;
@@ -15,12 +18,25 @@ import java.util.*;
 @Service
 public class SeanceService {
 
-    @Autowired
-    private SeanceFormationRepository seanceRepo;
+    private final SeanceFormationRepository seanceRepo;
+    private final ValidationUtils validation;
 
     @Autowired
-    private EnseignantRepository enseignantRepo;
+    public SeanceService(SeanceFormationRepository seanceRepo, ValidationUtils validation) {
+        this.seanceRepo = seanceRepo;
+        this.validation = validation;
+    }
 
+    /**
+     * Valide qu'il n'y a pas de conflit horaire pour un utilisateur
+     * @param userId ID de l'utilisateur
+     * @param date Date de la séance
+     * @param debut Heure de début
+     * @param fin Heure de fin
+     * @param isAnimateur true si animateur, false si participant
+     * @param ignoreSeanceId ID de la séance à ignorer (null pour nouvelles séances)
+     * @return true si pas de conflit, false sinon
+     */
     private boolean canSchedule(
             String userId,
             Date date,
@@ -29,6 +45,10 @@ public class SeanceService {
             boolean isAnimateur,
             Long ignoreSeanceId
     ) {
+        validation.notBlank(userId, "userId");
+        validation.notNull(date, "date");
+        validation.timeRange(debut, fin);
+
         // 1) Charger via le repo la liste existante
         List<SeanceFormation> existantes = isAnimateur
                 ? seanceRepo.findByAnimateurAndDate(userId, date)
@@ -37,7 +57,6 @@ public class SeanceService {
         // 2) Construire un TreeMap<heureDébut, heureFin>
         TreeMap<Time, Time> calendar = new TreeMap<>();
         for (SeanceFormation s : existantes) {
-            // si c'est la même séance en update, on ignore
             if (ignoreSeanceId != null && ignoreSeanceId.equals(s.getIdSeance())) {
                 continue;
             }
@@ -46,15 +65,10 @@ public class SeanceService {
 
         // 3) Test « voisin du bas »
         Map.Entry<Time, Time> prev = calendar.floorEntry(debut);
-        if (prev != null && prev.getValue().after(debut)) {
-            return false;
-        }
-        // 4) Test « voisin du haut »
         Map.Entry<Time, Time> next = calendar.ceilingEntry(debut);
-        if (next != null && next.getKey().before(fin)) {
-            return false;
-        }
-        return true;
+
+        return (prev == null || !prev.getValue().after(debut)) 
+            && (next == null || !next.getKey().before(fin));
     }
 
     /**
@@ -88,51 +102,40 @@ public class SeanceService {
         return mapEntityToDto(saved);
     }
 
-    /* public SeanceDTO createSeance(SeanceDTO dto) {
-        // Convertir DTO -> Entity
-        SeanceFormation entity = mapDtoToEntity(dto);
-
-        // Vérifier conflit pour chaque animateur
-        if (entity.getAnimateurs() != null) {
-            for (Enseignant e : entity.getAnimateurs()) {
-                if (seanceRepo.existsSeanceConflict(e.getId(),
-                        entity.getDateSeance(), entity.getHeureDebut(), entity.getHeureFin())) {
-                    throw new IllegalArgumentException("Conflit horaire pour l'enseignant (animateur) " + e.getId());
-                }
-            }
-        }
-        // Vérifier conflit pour chaque participant
-        if (entity.getParticipants() != null) {
-            for (Enseignant e : entity.getParticipants()) {
-                if (seanceRepo.existsSeanceConflict(e.getId(),
-                        entity.getDateSeance(), entity.getHeureDebut(), entity.getHeureFin())) {
-                    throw new IllegalArgumentException("Conflit horaire pour l'enseignant (participant) " + e.getId());
-                }
-            }
-        }
-
-        SeanceFormation saved = seanceRepo.save(entity);
-        return mapEntityToDto(saved);
-    }*/
-
     /**
-     * READ ALL
+     * READ ALL - Récupère toutes les séances
+     * @return Liste de tous les SeanceDTO
      */
+    public Page<SeanceDTO> getAllSeances(Pageable pageable) {
+        return seanceRepo.findAll(pageable).map(this::mapEntityToDto);
+    }
+
     public List<SeanceDTO> getAllSeances() {
-        List<SeanceFormation> entities = seanceRepo.findAll();
-        List<SeanceDTO> dtos = new ArrayList<>();
-        for (SeanceFormation s : entities) {
-            dtos.add(mapEntityToDto(s));
+        try {
+            List<SeanceFormation> entities = seanceRepo.findAll();
+            List<SeanceDTO> dtos = new ArrayList<>();
+            for (SeanceFormation s : entities) {
+                dtos.add(mapEntityToDto(s));
+            }
+            return dtos;
+        } catch (Exception e) {
+            throw new IllegalStateException("Erreur lors de la récupération des séances: " + e.getMessage(), e);
         }
-        return dtos;
     }
 
     /**
-     * READ BY ID
+     * READ BY ID - Récupère une séance par son ID
+     * @param id ID de la séance
+     * @return SeanceDTO correspondant
+     * @throws IllegalArgumentException si la séance n'existe pas
      */
     public SeanceDTO getSeanceById(Long id) {
-        SeanceFormation entity = seanceRepo.findById(id)
-                .orElseThrow(() -> new RuntimeException("Séance introuvable avec l'id : " + id));
+        validation.validId(id, "seanceId");
+        SeanceFormation entity = ExceptionUtils.orElseThrow(
+                seanceRepo.findById(id),
+                "Séance",
+                id
+        );
         return mapEntityToDto(entity);
     }
 
@@ -154,7 +157,7 @@ public class SeanceService {
 
         // 2) Reconstruire animateurs depuis DTO
         List<Enseignant> newAnim = dto.getAnimateurs().stream()
-                .map(eDto -> mapDtoToEnseignant(eDto))
+                .map(this::mapDtoToEnseignant)
                 .toList();
         existing.setAnimateurs(newAnim);
 
@@ -171,7 +174,7 @@ public class SeanceService {
 
         // 4) Filtrer participants
         List<Enseignant> newPart = dto.getParticipants().stream()
-                .map(eDto -> mapDtoToEnseignant(eDto))
+                .map(this::mapDtoToEnseignant)
                 .filter(p -> canSchedule(p.getId(), date, debut, fin, false, id))
                 .toList();
         existing.setParticipants(newPart);
@@ -181,84 +184,33 @@ public class SeanceService {
         return mapEntityToDto(saved);
     }
 
-   /* public SeanceDTO updateSeance(Long id, SeanceDTO dto) {
-        SeanceFormation existing = seanceRepo.findById(id)
-                .orElseThrow(() -> new RuntimeException("Séance introuvable avec l'id : " + id));
-
-        // Mettre à jour la date, heure, salle
-        existing.setDateSeance(dto.getDateSeance());
-        existing.setHeureDebut(dto.getHeureDebut());
-        existing.setHeureFin(dto.getHeureFin());
-        existing.setSalle(dto.getSalle());
-
-        // Reconstruire animateurs et participants
-        List<Enseignant> animateurs = new ArrayList<>();
-        if (dto.getAnimateurs() != null) {
-            for (EnseignantDTO eDto : dto.getAnimateurs()) {
-                Enseignant e = mapDtoToEnseignant(eDto);
-                animateurs.add(e);
-            }
-        }
-        existing.getAnimateurs().clear();
-        existing.getAnimateurs().addAll(animateurs);
-
-        List<Enseignant> participants = new ArrayList<>();
-        if (dto.getParticipants() != null) {
-            for (EnseignantDTO eDto : dto.getParticipants()) {
-                Enseignant e = mapDtoToEnseignant(eDto);
-                participants.add(e);
-            }
-        }
-        existing.getParticipants().clear();
-        existing.getParticipants().addAll(participants);
-
-        // Vérifier conflits en ignorant la séance actuelle
-        // Animateurs
-        for (Enseignant e : existing.getAnimateurs()) {
-            boolean conflict = seanceRepo.existsSeanceConflictIgnoringSelf(
-                    e.getId(),
-                    existing.getDateSeance(),
-                    existing.getHeureDebut(),
-                    existing.getHeureFin(),
-                    existing.getIdSeance()
-            );
-            if (conflict) {
-                throw new IllegalArgumentException("Conflit horaire pour l'enseignant (animateur) " + e.getId());
-            }
-        }
-        // Participants
-        for (Enseignant e : existing.getParticipants()) {
-            boolean conflict = seanceRepo.existsSeanceConflictIgnoringSelf(
-                    e.getId(),
-                    existing.getDateSeance(),
-                    existing.getHeureDebut(),
-                    existing.getHeureFin(),
-                    existing.getIdSeance()
-            );
-            if (conflict) {
-                throw new IllegalArgumentException("Conflit horaire pour l'enseignant (participant) " + e.getId());
-            }
-        }
-
-        SeanceFormation saved = seanceRepo.save(existing);
-        return mapEntityToDto(saved);
-    }*/
-
     /**
-     * DELETE
+     * DELETE - Supprime une séance
+     * @param id ID de la séance à supprimer
+     * @throws IllegalArgumentException si la séance n'existe pas
      */
     public void deleteSeance(Long id) {
-        SeanceFormation existing = seanceRepo.findById(id)
-                .orElseThrow(() -> new RuntimeException("Séance introuvable avec l'id : " + id));
-        // Retirer les relations ManyToMany
-        if (existing.getAnimateurs() != null) {
-            existing.getAnimateurs().clear();
+        validation.validId(id, "seanceId");
+        
+        SeanceFormation existing = ExceptionUtils.orElseThrow(
+                seanceRepo.findById(id),
+                "Séance",
+                id
+        );
+        
+        try {
+            // Retirer les relations ManyToMany avant suppression
+            if (existing.getAnimateurs() != null) {
+                existing.getAnimateurs().clear();
+            }
+            if (existing.getParticipants() != null) {
+                existing.getParticipants().clear();
+            }
+            seanceRepo.save(existing);
+            seanceRepo.delete(existing);
+        } catch (Exception e) {
+            throw new IllegalStateException("Erreur lors de la suppression de la séance: " + e.getMessage(), e);
         }
-        if (existing.getParticipants() != null) {
-            existing.getParticipants().clear();
-        }
-        seanceRepo.save(existing);
-        seanceRepo.delete(existing);
     }
 
     //---------------------------------------------------------------------------------
@@ -310,6 +262,7 @@ public class SeanceService {
         dto.setHeureDebut(entity.getHeureDebut());
         dto.setHeureFin(entity.getHeureFin());
         dto.setSalle(entity.getSalle());
+        dto.setOnlineMeetingUrl(entity.getOnlineMeetingUrl());
 
         // Convertir animateurs
         List<EnseignantDTO> animDtos = new ArrayList<>();

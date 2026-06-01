@@ -1,0 +1,47 @@
+﻿c:/Users/oussama/Desktop/pfe-d2f-enseignants/.venv/Scripts/python.exe : 
+Environment variable DB_NAME (PostgreSQL database name) is not set û 
+using default
+Au caractère Ligne:1 : 66
++ ... t_D2F-rice; 
+c:/Users/oussama/Desktop/pfe-d2f-enseignants/.venv/Script ...
++                 
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (Environment var...û using d 
+   efault:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+Environment variable DB_USER (PostgreSQL user) is not set û using default
+Environment variable DB_PASS (PostgreSQL password) is not set û using 
+default
+C:\Users\oussama\Desktop\pfe-d2f-enseignants\.venv\Lib\site-packages\star
+lette\formparsers.py:12: PendingDeprecationWarning: Please use `import 
+python_multipart` instead.
+  import multipart
+<frozen importlib._bootstrap>:488: DeprecationWarning: builtin type 
+SwigPyPacked has no __module__ attribute
+<frozen importlib._bootstrap>:488: DeprecationWarning: builtin type 
+SwigPyObject has no __module__ attribute
+C:\Users\oussama\Desktop\pfe-d2f-enseignants\.venv\Lib\site-packages\pyte
+st_asyncio\plugin.py:208: PytestDeprecationWarning: The configuration 
+option "asyncio_default_fixture_loop_scope" is unset.
+The event loop scope for asynchronous fixtures will default to the 
+fixture caching scope. Future versions of pytest-asyncio will default 
+the loop scope for asynchronous fixtures to function scope. Set the 
+default fixture loop scope explicitly in order to avoid unexpected 
+behavior in the future. Valid fixture loop scopes are: "function", 
+"class", "module", "package", "session"
+
+  warnings.warn(PytestDeprecationWarning(_DEFAULT_FIXTURE_LOOP_SCOPE_UNSE
+T))
+============================= test session starts =============================
+platform win32 -- Python 3.13.2, pytest-8.3.3, pluggy-1.6.0
+rootdir: C:\Users\oussama\Desktop\pfe-d2f-enseignants\esprit_D2F-rice
+configfile: pytest.ini
+testpaths: tests
+plugins: anyio-4.12.1, asyncio-0.24.0, cov-7.0.0
+asyncio: mode=Mode.STRICT, default_loop_scope=None
+collected 658 items
+
+tests\test_analyzer_extra.py ...............                             [  2%]
+tests\test_api.py ..........F......FF.......                             [  6%]
+tests\test_cache.py ................                                     [  8%]

@@ -2,17 +2,20 @@ package esprit.pfe.serviceevaluation.messaging;
 
 
 
-import esprit.pfe.serviceevaluation.DTO.EvaluationFormateurDTO;
-import esprit.pfe.serviceevaluation.Entities.EvaluationFormateur;
-import esprit.pfe.serviceevaluation.Repositories.EvaluationFormateurRepository;
-import esprit.pfe.serviceevaluation.Services.EvaluationFormateurService;
+import esprit.pfe.serviceevaluation.dto.EvaluationFormateurDTO;
+import esprit.pfe.serviceevaluation.services.EvaluationFormateurService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.jms.annotation.JmsListener;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.springframework.retry.annotation.Backoff;
+import org.springframework.retry.annotation.Retryable;
+
+@Slf4j
 @RequiredArgsConstructor @Service
 public class EvaluationConsumer {
 
@@ -21,7 +24,12 @@ public class EvaluationConsumer {
     /**
      * Pour la création en masse (« bulk create »)
      */
-    @JmsListener(destination = "evaluation.create.queue")
+    @Retryable(
+        retryFor = { esprit.pfe.serviceevaluation.exception.ResourceNotFoundException.class, Exception.class },
+        maxAttempts = 3,
+        backoff = @Backoff(delay = 30000)
+    )
+    @RabbitListener(queues = "evaluation.create.queue")
     public void onCreateBatch(EvaluationBatchMessage msg) {
 
         List<EvaluationFormateurDTO> dtos = msg.getEvaluations().stream()
@@ -40,10 +48,21 @@ public class EvaluationConsumer {
         evalService.createEvaluationsBulk(dtos);
     }
 
+    @org.springframework.retry.annotation.Recover
+    public void recover(Exception e, EvaluationBatchMessage msg) {
+        log.error("ECHEC DEFINITIF - Envoi du message en DLQ pour la formationId={} | Erreur: {}", msg.getFormationId(), e.getMessage());
+        throw new org.springframework.amqp.AmqpRejectAndDontRequeueException("Routage vers DLQ", e);
+    }
+
     /**
      * Pour la mise à jour en masse (« bulk update »)
      */
-    @JmsListener(destination = "evaluation.update.queue")
+    @Retryable(
+        retryFor = { esprit.pfe.serviceevaluation.exception.ResourceNotFoundException.class, Exception.class },
+        maxAttempts = 3,
+        backoff = @Backoff(delay = 30000)
+    )
+    @RabbitListener(queues = "evaluation.update.queue")
     public void onUpdateBatch(EvaluationBatchMessage msg) {
 
         List<EvaluationFormateurDTO> dtos = msg.getEvaluations().stream()

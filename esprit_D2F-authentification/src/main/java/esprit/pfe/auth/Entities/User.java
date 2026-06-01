@@ -1,4 +1,4 @@
-package esprit.pfe.auth.Entities;
+package esprit.pfe.auth.entities;
 
 import jakarta.persistence.*;
 
@@ -6,8 +6,10 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.*;
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.SQLRestriction;
 
-
+import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
@@ -18,12 +20,14 @@ import java.util.UUID;
                 @UniqueConstraint(columnNames = "username"),
                 @UniqueConstraint(columnNames = "email")
         })
+@SQLDelete(sql = "UPDATE auth.users SET deleted_at = NOW() WHERE id = ?")
+@SQLRestriction("deleted_at IS NULL")
 @Data
 @Getter
 @Setter
 @AllArgsConstructor
 @NoArgsConstructor
-public class User {
+public class User extends BaseAuditEntity {
     @Id
     @Column(length = 36)                // UUID ou ID enseignant
     private String id;
@@ -62,6 +66,17 @@ public class User {
     @CollectionTable(name = "user_devices", joinColumns = @JoinColumn(name = "user_id"))
     @Column(name = "device_id")
     private Set<String> deviceIds = new HashSet<>();
+
+    // ── Anti brute-force : compteur de tentatives echouees et timestamp de verrouillage ──
+    @Column(name = "failed_login_attempts", nullable = false)
+    private Integer failedLoginAttempts = 0;
+
+    @Column(name = "lock_until")
+    private LocalDateTime lockUntil;
+
+    // DSI §4 — Soft delete : suppression logique traçable (audit trail)
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
 
     @PrePersist
     public void ensureId() {

@@ -1,4 +1,4 @@
-package esprit.pfe.serviceformation.DTO;
+package esprit.pfe.serviceformation.dto;
 
 
 
@@ -13,7 +13,7 @@ import java.time.OffsetDateTime;
 @AllArgsConstructor
 public class InscriptionDTO {
     private Long id;
-    private FormationDTO formation;
+    private FormationResponseDTO formation;
     private EnseignantDTO enseignant;
     private String etat;
     private OffsetDateTime dateDemande;

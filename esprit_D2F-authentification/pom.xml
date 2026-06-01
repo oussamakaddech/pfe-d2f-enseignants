@@ -12,7 +12,7 @@
     </parent>
 
     <groupId>esprit.pfe</groupId>
-    <artifactId>auth</artifactId>
+    <artifactId>service-authentification</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <name>auth</name>
     <description>auth</description>
@@ -36,6 +36,13 @@
     </dependencyManagement>
 
     <dependencies>
+        <!-- D2F Common Security (shared AuthorizationMatrix) -->
+        <dependency>
+            <groupId>esprit.d2f</groupId>
+            <artifactId>d2f-common-security</artifactId>
+            <version>1.0.0</version>
+        </dependency>
+
         <!-- Spring Boot Dependencies -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -58,6 +65,19 @@
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
 
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+
+        <!-- Spring Boot DevTools -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-devtools</artifactId>
+            <scope>runtime</scope>
+            <optional>true</optional>
+        </dependency>
+
 
 
         <!-- Database Drivers -->
@@ -70,6 +90,12 @@
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
             <scope>runtime</scope>
+        </dependency>
+
+        <!-- Migration base de données — conformité DSI §3.2 migrations obligatoires -->
+        <dependency>
+            <groupId>org.flywaydb</groupId>
+            <artifactId>flyway-database-postgresql</artifactId>
         </dependency>
         <dependency>
             <groupId>org.apache.poi</groupId>
@@ -115,6 +141,13 @@
 
 
 
+        <!-- OpenAPI / Swagger — conformité DSI §4 : documentation API obligatoire -->
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+            <version>2.3.0</version>
+        </dependency>
+
     </dependencies>
 
     <build>
@@ -146,13 +179,36 @@
                 </configuration>
             </plugin>
 
+            <!-- Tests ACTIFS — conformité DSI §5 : CI Quality Gate -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
                 <configuration>
-                    <skipTests>true</skipTests>
+                    <includes>
+                        <include>**/*Test.java</include>
+                        <include>**/*Tests.java</include>
+                    </includes>
                 </configuration>
             </plugin>
-        </plugins>
+        			<plugin>
+				<groupId>org.jacoco</groupId>
+				<artifactId>jacoco-maven-plugin</artifactId>
+				<version>0.8.12</version>
+				<executions>
+					<execution>
+						<goals>
+							<goal>prepare-agent</goal>
+						</goals>
+					</execution>
+					<execution>
+						<id>report</id>
+						<phase>test</phase>
+						<goals>
+							<goal>report</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+		</plugins>
     </build>
 </project>

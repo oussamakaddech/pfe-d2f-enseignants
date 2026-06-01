@@ -1,17 +1,19 @@
-package esprit.pfe.serviceformation.Services;
+package esprit.pfe.serviceformation.services;
 
-import esprit.pfe.serviceformation.DTO.ParticipantKpiDTO;
-import esprit.pfe.serviceformation.Entities.EtatFormation;
-import esprit.pfe.serviceformation.Entities.Formation;
-import esprit.pfe.serviceformation.Repositories.FormationRepository;
-import esprit.pfe.serviceformation.Repositories.PresenceRepository;
+import esprit.pfe.serviceformation.dto.ParticipantKpiDTO;
+import esprit.pfe.serviceformation.entities.EtatFormation;
+import esprit.pfe.serviceformation.entities.Formation;
+import esprit.pfe.serviceformation.repositories.FormationRepository;
+import esprit.pfe.serviceformation.repositories.PresenceRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -20,13 +22,20 @@ public class ParticipantKpiService {
     private final FormationRepository formationRepository;
     private final PresenceRepository presenceRepository;
 
+    public Page<ParticipantKpiDTO> getParticipantKpis(Date startDate, Date endDate, Pageable pageable) {
+        List<ParticipantKpiDTO> all = getParticipantKpis(startDate, endDate);
+        int from = (int) pageable.getOffset();
+        int to = Math.min(from + pageable.getPageSize(), all.size());
+        return new PageImpl<>(from >= all.size() ? List.of() : all.subList(from, to), pageable, all.size());
+    }
+
     // KPIs par formation achevée pour une période donnée
     public List<ParticipantKpiDTO> getParticipantKpis(Date startDate, Date endDate) {
         // Récupérer toutes les formations achevées puis filtrer selon la période demandée sur la dateDebut
         List<Formation> formationsAchevees = formationRepository.findByEtatFormation(EtatFormation.ACHEVE)
                 .stream()
                 .filter(f -> !f.getDateDebut().before(startDate) && !f.getDateDebut().after(endDate))
-                .collect(Collectors.toList());
+                .toList();
 
         List<ParticipantKpiDTO> kpis = new ArrayList<>();
 
@@ -55,7 +64,7 @@ public class ParticipantKpiService {
         List<Formation> formationsAchevees = formationRepository.findByEtatFormation(EtatFormation.ACHEVE)
                 .stream()
                 .filter(f -> !f.getDateDebut().before(startDate) && !f.getDateDebut().after(endDate))
-                .collect(Collectors.toList());
+                .toList();
 
         long totalParticipantsGlobal = 0;
         long presentParticipantsGlobal = 0;

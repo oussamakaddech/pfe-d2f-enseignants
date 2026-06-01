@@ -1,14 +1,13 @@
-package esprit.pfe.serviceformation.Entities;
+package esprit.pfe.serviceformation.entities;
 
-import com.fasterxml.jackson.annotation.JsonIdentityInfo;
-import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonManagedReference;
-import com.fasterxml.jackson.annotation.ObjectIdGenerators;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.SQLRestriction;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -17,9 +16,11 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-
+@SQLDelete(sql = "UPDATE formation.formations SET deleted_at = NOW() WHERE id_formation = ? AND version = ?")
+@SQLRestriction("deleted_at IS NULL")
 @Table(name = "formations")
-public class Formation {
+@com.fasterxml.jackson.annotation.JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
+public class Formation extends BaseAuditEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -33,8 +34,8 @@ public class Formation {
     private String titreFormation;
     @Column(nullable = true)
     private String domaine;
-    @Column(nullable = true)
-    private String competance ;
+    @Column(name = "competence", nullable = true)
+    private String competence;
     @Column(nullable = true)
     private String populationCible;
 
@@ -62,6 +63,15 @@ public class Formation {
     @Column(length = 255 ,nullable = true)
     private String organismeRefExterne;
 
+    @Column(length = 255, nullable = true)
+    private String bureauFormationNom;
+
+    @Column(length = 255, nullable = true)
+    private String bureauFormationMail;
+
+    @Column(length = 50, nullable = true)
+    private String bureauFormationTelephone;
+
 
 
 
@@ -85,7 +95,7 @@ public class Formation {
     @Column(nullable = true)
     private Float coutRepas;
     @Column(nullable = true)
-    private float coutFormation;
+    private Float coutFormation;
 
 
     // — pré-requis / acquis / indicateurs —
@@ -100,15 +110,23 @@ public class Formation {
 
 
     @Column(nullable = true)
-    private int chargeHoraireGlobal;
+    private Integer chargeHoraireGlobal;
 
     @Column(name="certif_generated", nullable=false)
     private boolean certifGenerated = false;
 
     // Liste de séances
     @OneToMany(mappedBy = "formation", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
-
+    @com.fasterxml.jackson.annotation.JsonIgnore
     private List<SeanceFormation> seances;
+
+    // Animateurs liés à la formation (au niveau formation, pas seulement séance)
+    @ManyToMany
+    @JoinTable(name = "formation_animateur",
+            joinColumns = @JoinColumn(name = "formation_id"),
+            inverseJoinColumns = @JoinColumn(name = "enseignant_id"))
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    private List<Enseignant> animateurs;
 
 
     @ManyToOne
@@ -120,6 +138,7 @@ public class Formation {
     private Dept departement;
 
     @OneToMany(mappedBy = "formation", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    @com.fasterxml.jackson.annotation.JsonIgnore
     private List<Document> documents;
 
     @OneToMany(
@@ -127,7 +146,12 @@ public class Formation {
             cascade = CascadeType.ALL,
             orphanRemoval = true
     )
+    @com.fasterxml.jackson.annotation.JsonIgnore
     private List<Inscription> inscriptions = new ArrayList<>();
+
+    @OneToMany(mappedBy = "formation", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
+    @com.fasterxml.jackson.annotation.JsonIgnore
+    private List<FormationCompetence> formationCompetences = new ArrayList<>();
 
     @Column(name = "inscriptions_ouvertes", nullable = false)
     private boolean inscriptionsOuvertes = false;
@@ -136,8 +160,23 @@ public class Formation {
     @Column(name = "ouverte", nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
     private boolean ouverte = false;
 
+    @Column(nullable = true)
+    @Enumerated(EnumType.STRING)
+    private PeriodCode periodCode;
 
+    private String customPeriodLabel;
 
+    @Column(name = "last_refresh_date")
+    private java.time.OffsetDateTime lastRefreshDate;
 
+    @Column(length = 255, nullable = true)
+    private String salle;
+
+    @Column(name = "calendar_event_id", length = 512, nullable = true)
+    private String calendarEventId;
+
+    // DSI §4 — Soft delete : suppression logique traçable
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
 
 }

@@ -1,7 +1,6 @@
-package esprit.pfe.serviceformation.Entities;
+package esprit.pfe.serviceformation.entities;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -15,7 +14,7 @@ import java.util.List;
 @AllArgsConstructor
 @Entity
 @Table(name = "enseignants")
-public class Enseignant {
+public class Enseignant extends BaseAuditEntity {
 
     @Id
     @Column(length = 10, nullable = false, unique = true)
@@ -27,7 +26,7 @@ public class Enseignant {
     @Column(length = 30, nullable = false)
     private String prenom;
 
-    @Column( nullable = false)
+    @Column(nullable = false)
     private String mail;
 
     @Column(length = 1, nullable = false)
@@ -39,7 +38,7 @@ public class Enseignant {
     @Column(length = 1, nullable = false)
     private String cup;
 
-    @Column(name = "chefdepartement", length = 1, nullable = false)
+    @Column(name = "chef_departement", length = 1, nullable = false)
     private String chefDepartement;
 
     // Relation avec UP et Dept si besoin
@@ -56,12 +55,8 @@ public class Enseignant {
     @OneToMany(mappedBy = "enseignant", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<Presence> presences;
 
-
-    @OneToMany(
-            mappedBy = "enseignant",
-            cascade = CascadeType.ALL,
-            orphanRemoval = true
-    )
+    @JsonIgnore
+    @OneToMany(mappedBy = "enseignant", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Inscription> inscriptions = new ArrayList<>();
 
 }

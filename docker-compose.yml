@@ -1,0 +1,565 @@
+# =============================================================================
+# docker-compose.yml — D2F Platform (développement local / QA)
+# =============================================================================
+# Conformité DSI :
+#   §2.1  Architecture Microservices + Docker obligatoire
+#   §2.4  RabbitMQ message broker (standard DSI)
+#   §2    Contraintes transversales : PostgreSQL, services DSI
+#   §1.1  Aucune valeur sensible en dur — utiliser le fichier .env
+#
+# Usage :
+#   cp .env.example .env          # Remplir les variables sensibles
+#   docker compose up -d          # Démarrer toute la stack
+#   docker compose logs -f        # Suivre les logs
+#   docker compose down -v        # Arrêter et supprimer les volumes
+#
+# Variables requises dans .env (voir .env.example) :
+#   JWT_SECRET, DB_PASSWORD, RABBITMQ_PASSWORD, MAIL_USERNAME, MAIL_PASSWORD
+# =============================================================================
+
+version: "3.9"
+
+# =============================================================================
+# RÉSEAUX
+# =============================================================================
+networks:
+  d2f-network:
+    driver: bridge
+    name: d2f-network
+
+# =============================================================================
+# VOLUMES PERSISTANTS
+# =============================================================================
+volumes:
+  d2f_postgres_data:
+    name: d2f_postgres_data
+  d2f_rabbitmq_data:
+    name: d2f_rabbitmq_data
+  d2f_redis_data:
+    name: d2f_redis_data
+  d2f_pgadmin_data:
+    name: d2f_pgadmin_data
+
+# =============================================================================
+# SERVICES
+# =============================================================================
+services:
+
+  # ── Infrastructure ──────────────────────────────────────────────────────────
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: d2f-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: d2f
+      POSTGRES_USER: d2f
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      # DSI §3.4 — mots de passe par service consommés par le script d'init shell
+      # (00_init_roles.sh utilise psql -v pour les injecter dans le SQL).
+      DB_PASSWORD_AUTH: ${DB_PASSWORD_AUTH:-${DB_PASSWORD}}
+      DB_PASSWORD_FORMATION: ${DB_PASSWORD_FORMATION:-${DB_PASSWORD}}
+      DB_PASSWORD_BESOIN: ${DB_PASSWORD_BESOIN:-${DB_PASSWORD}}
+      DB_PASSWORD_EVALUATION: ${DB_PASSWORD_EVALUATION:-${DB_PASSWORD}}
+      DB_PASSWORD_CERTIFICAT: ${DB_PASSWORD_CERTIFICAT:-${DB_PASSWORD}}
+      DB_PASSWORD_COMPETENCE: ${DB_PASSWORD_COMPETENCE:-${DB_PASSWORD}}
+      DB_PASSWORD_ANALYSE: ${DB_PASSWORD_ANALYSE:-${DB_PASSWORD}}
+    ports:
+      - "7432:5432"
+    volumes:
+      - d2f_postgres_data:/var/lib/postgresql/data
+      # DSI §3.4 — script shell d'init exécuté au 1er démarrage (DB vierge)
+      - ./infra/postgres/init:/docker-entrypoint-initdb.d:ro
+      # Templates SQL appelés par 00_init_roles.sh (hors initdb pour éviter
+      # une exécution directe sans substitution de variables psql)
+      - ./infra/postgres/sql:/opt/d2f/sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U d2f -d d2f"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    # DSI §2 — alias réseau DSI obligatoire : db.dsi.local:5432
+    networks:
+      d2f-network:
+        aliases:
+          - db.dsi.local
+
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    container_name: d2f-rabbitmq
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USERNAME:-d2f}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
+    ports:
+      - "5672:5672"   # AMQP — seul port nécessaire aux microservices
+      # 15672 (console de gestion) retiré : ne pas exposer en production
+    volumes:
+      - d2f_rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD-SHELL", "rabbitmq-diagnostics -q ping || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 20s
+    # DSI §2 — alias réseau DSI obligatoire : broker.dsi.local:5672
+    networks:
+      d2f-network:
+        aliases:
+          - broker.dsi.local
+
+  redis:
+    image: redis:7-alpine
+    container_name: d2f-redis
+    restart: unless-stopped
+    command: redis-server --requirepass ${REDIS_PASSWORD:?REDIS_PASSWORD is required}
+    ports:
+      - "6379:6379"
+    volumes:
+      - d2f_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    networks:
+      - d2f-network
+
+  pgadmin:
+    image: dpage/pgadmin4:8.14
+    container_name: d2f-pgadmin
+    restart: unless-stopped
+    profiles:
+      - debug
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@d2f.tn}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD}
+    ports:
+      - "5050:80"
+    volumes:
+      - d2f_pgadmin_data:/var/lib/pgadmin
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - d2f-network
+
+  # ── Microservices ────────────────────────────────────────────────────────────
+
+  auth-service:
+    build:
+      context: .
+      dockerfile: esprit_D2F-authentification/Dockerfile
+    container_name: d2f-auth
+    restart: unless-stopped
+    ports:
+      - "8085:8085"
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      # DSI §2 — hostname DB standard (résolu via alias Docker ou DNS DSI en production)
+      DB_URL: jdbc:postgresql://db.dsi.local:5432/d2f
+      DB_USER: ${DB_USER_AUTH:-app_user_auth}
+      DB_PASSWORD: ${DB_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+      MAIL_HOST: ${MAIL_HOST:-smtp.internal.dsi.local}
+      MAIL_PORT: ${MAIL_PORT:-587}
+      MAIL_USERNAME: ${MAIL_USERNAME}
+      MAIL_PASSWORD: ${MAIL_PASSWORD}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:8085/actuator/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - d2f-network
+
+  competence-service:
+    build:
+      context: .
+      dockerfile: esprit_D2F-competence/Dockerfile
+    container_name: d2f-competence
+    restart: unless-stopped
+    ports:
+      - "8005:8005"
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      DB_URL: jdbc:postgresql://db.dsi.local:5432/d2f
+      DB_USER: ${DB_USER_COMPETENCE:-app_user_competence}
+      DB_PASSWORD: ${DB_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:8005/actuator/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - d2f-network
+
+  besoin-formation-service:
+    build:
+      context: .
+      dockerfile: esprit_D2F-besoin-formation/Dockerfile
+    container_name: d2f-besoin-formation
+    restart: unless-stopped
+    ports:
+      - "8004:8004"
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      DB_URL: jdbc:postgresql://db.dsi.local:5432/d2f
+      DB_USER: ${DB_USER_BESOIN:-app_user_besoinsformation}
+      DB_PASSWORD: ${DB_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+      SPRING_RABBITMQ_HOST: broker.dsi.local
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USERNAME:-d2f}
+      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:8004/actuator/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - d2f-network
+
+  certificat-service:
+    build:
+      context: .
+      dockerfile: esprit_D2F-certificat/Dockerfile
+    container_name: d2f-certificat
+    restart: unless-stopped
+    ports:
+      - "8086:8086"
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      DB_URL: jdbc:postgresql://db.dsi.local:5432/d2f
+      DB_USER: ${DB_USER_CERTIFICAT:-app_user_certificat}
+      DB_PASSWORD: ${DB_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+      SPRING_RABBITMQ_HOST: broker.dsi.local
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USERNAME:-d2f}
+      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:8086/actuator/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - d2f-network
+
+  evaluation-service:
+    build:
+      context: .
+      dockerfile: esprit_D2F-evaluation/Dockerfile
+    container_name: d2f-evaluation
+    restart: unless-stopped
+    ports:
+      - "8087:8087"
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      DB_URL: jdbc:postgresql://db.dsi.local:5432/d2f
+      DB_USER: ${DB_USER_EVALUATION:-app_user_evaluation}
+      DB_PASSWORD: ${DB_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+      SPRING_RABBITMQ_HOST: broker.dsi.local
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USERNAME:-d2f}
+      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:8087/actuator/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - d2f-network
+
+  api-gateway:
+    build:
+      context: ./esprit_D2F-api-gateway
+      dockerfile: Dockerfile
+    container_name: d2f-gateway
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      JWT_SECRET: ${JWT_SECRET}
+      AUTH_SERVICE_URL: http://d2f-auth:8085
+      CERTIFICAT_SERVICE_URL: http://d2f-certificat:8086
+      EVALUATION_SERVICE_URL: http://d2f-evaluation:8087
+      FORMATION_SERVICE_URL: http://d2f-formation:8088
+      BESOIN_SERVICE_URL: http://d2f-besoin-formation:8004
+      COMPETENCE_SERVICE_URL: http://d2f-competence:8005
+      AI_RECO_SERVICE_URL: http://d2f-ai-reco:8000
+      RICE_SERVICE_URL: http://d2f-rice:8001
+      ANALYSE_SERVICE_URL: http://d2f-predictive-analytics:8000
+      # Skill Passport — héberge par le service-analyse Java (port 8089)
+      SKILL_PASSPORT_SERVICE_URL: http://d2f-analyse:8089
+      # Redis — rate limiting
+      REDIS_HOST: d2f-redis
+      REDIS_PORT: 6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+      # Rate limits (externalisés)
+      RATE_LIMIT_LOGIN_RATE: ${RATE_LIMIT_LOGIN_RATE:-5}
+      RATE_LIMIT_LOGIN_BURST: ${RATE_LIMIT_LOGIN_BURST:-5}
+      RATE_LIMIT_FORGOT_RATE: ${RATE_LIMIT_FORGOT_RATE:-1}
+      RATE_LIMIT_FORGOT_BURST: ${RATE_LIMIT_FORGOT_BURST:-3}
+      RATE_LIMIT_DEFAULT_RATE: ${RATE_LIMIT_DEFAULT_RATE:-20}
+      RATE_LIMIT_DEFAULT_BURST: ${RATE_LIMIT_DEFAULT_BURST:-20}
+    depends_on:
+      auth-service:
+        condition: service_healthy
+      competence-service:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:8080/actuator/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    # DSI §2 — alias réseau DSI obligatoire : api-gateway.dsi.local:8080
+    networks:
+      d2f-network:
+        aliases:
+          - api-gateway.dsi.local
+
+  # ── Formation Service ───────────────────────────────────────────────────────
+
+  formation-service:
+    build:
+      context: .
+      dockerfile: esprit_D2F-formation/Dockerfile
+    container_name: d2f-formation
+    restart: unless-stopped
+    ports:
+      - "8088:8088"
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      DB_URL: jdbc:postgresql://db.dsi.local:5432/d2f
+      DB_USER: ${DB_USER_FORMATION:-app_user_formation}
+      DB_PASSWORD: ${DB_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET}
+      SPRING_RABBITMQ_HOST: broker.dsi.local
+      SPRING_RABBITMQ_PORT: 5672
+      SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USERNAME:-d2f}
+      SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
+      # Organisateur de calendrier (DSI §1.1 — externalisé)
+      FORMATION_ORGANIZER_EMAIL: ${FORMATION_ORGANIZER_EMAIL:-noreply@d2f.local}
+      # Mail SMTP interne DSI (obligatoire par défaut)
+      MAIL_HOST: ${MAIL_HOST:-smtp.internal.dsi.local}
+      MAIL_PORT: ${MAIL_PORT:-587}
+      MAIL_USERNAME: ${MAIL_USERNAME:-}
+      MAIL_PASSWORD: ${MAIL_PASSWORD:-}
+      # Azure AD — DÉSACTIVÉ par défaut (activer uniquement sur décision DSI)
+      AZURE_AD_ENABLED: ${AZURE_AD_ENABLED:-false}
+      AZURE_AD_CLIENT_ID: ${AZURE_AD_CLIENT_ID:-}
+      AZURE_AD_CLIENT_SECRET: ${AZURE_AD_CLIENT_SECRET:-}
+      AZURE_AD_TENANT_ID: ${AZURE_AD_TENANT_ID:-}
+      AZURE_AD_GRAPH_SCOPE: ${AZURE_AD_GRAPH_SCOPE:-https://graph.microsoft.com/.default}
+      AZURE_AD_MAIL_USERNAME: ${AZURE_AD_MAIL_USERNAME:-}
+      AZURE_AD_MAIL_PASSWORD: ${AZURE_AD_MAIL_PASSWORD:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:8088/actuator/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - d2f-network
+
+  # ── Analyse Service (Java/Spring — Skill Passport, agrégation REST) ──────────
+  # Service SANS base de données : agrège les données des autres microservices
+  # via clients REST (auth, certificat, evaluation, formation, competence, besoin)
+  # et génère le Passeport de Compétences (PDF). Héberge /api/v1/skill-passports/**.
+  analyse-service:
+    build:
+      context: .
+      dockerfile: esprit_D2F-analyse/Dockerfile
+    container_name: d2f-analyse
+    restart: unless-stopped
+    ports:
+      - "8089:8089"
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      JWT_SECRET: ${JWT_SECRET}
+      # URLs des microservices appelés (clients REST)
+      AUTH_SERVICE_URL: http://d2f-auth:8085
+      CERTIFICAT_SERVICE_URL: http://d2f-certificat:8086
+      SERVICES_EVALUATION_URL: http://d2f-evaluation:8087
+      SERVICES_FORMATION_URL: http://d2f-formation:8088
+      SERVICES_COMPETENCE_URL: http://d2f-competence:8005
+      SERVICES_BESOIN_FORMATION_URL: http://d2f-besoin-formation:8004
+    depends_on:
+      auth-service:
+        condition: service_healthy
+      certificat-service:
+        condition: service_healthy
+      evaluation-service:
+        condition: service_healthy
+      formation-service:
+        condition: service_healthy
+      competence-service:
+        condition: service_healthy
+      besoin-formation-service:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8089/actuator/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    networks:
+      - d2f-network
+
+  # ── AI Reco Service (Python/FastAPI) ────────────────────────────────────────
+  # SÉCURITÉ : aucun port exposé — accessible uniquement via l'API Gateway
+  ai-reco-service:
+    build:
+      context: ./esprit_D2F-recommandation-formateur
+      dockerfile: Dockerfile
+    container_name: d2f-ai-reco
+    restart: unless-stopped
+    environment:
+      APP_ENV: production
+      JWT_SECRET: ${JWT_SECRET}
+      DB_NAME: ${POSTGRES_DB:-d2f}
+      DB_USER: ${DB_USER:-d2f}
+      DB_PASS: ${DB_PASSWORD}
+      # DSI §2 — hostname DB standard
+      DB_HOST: db.dsi.local
+      DB_PORT: "5432"
+      CORS_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:3000,http://localhost:5173}
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/health')\" || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    networks:
+      - d2f-network
+
+  # ── RICE Service (Python/FastAPI) ───────────────────────────────────────────
+  # SÉCURITÉ : aucun port exposé — accessible uniquement via l'API Gateway
+  rice-service:
+    build:
+      context: ./esprit_D2F-rice
+      dockerfile: Dockerfile
+    container_name: d2f-rice
+    restart: unless-stopped
+    environment:
+      APP_ENV: production
+      DB_NAME: ${POSTGRES_DB:-d2f}
+      DB_USER: ${DB_USER:-d2f}
+      DB_PASS: ${DB_PASSWORD}
+      # DSI §2 — hostname DB standard
+      DB_HOST: db.dsi.local
+      DB_PORT: "5432"
+      CORS_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:3000,http://localhost:5173}
+      JWT_SECRET: ${JWT_SECRET}
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8001/health')\" || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    networks:
+      - d2f-network
+
+  # ── Predictive Analytics (Python/FastAPI) ───────────────────────────────────
+  # SÉCURITÉ : aucun port exposé — accessible uniquement via l'API Gateway
+  predictive-analytics-service:
+    build:
+      context: ./esprit_D2F-predictive-analytics
+      dockerfile: Dockerfile
+    container_name: d2f-predictive-analytics
+    restart: unless-stopped
+    environment:
+      APP_ENV: production
+      # DSI §2 — hostname DB standard (alias db.dsi.local résolu dans Docker)
+      DATABASE_URL: postgresql://${DB_USER_ANALYSE:-app_user_analyse}:${DB_PASSWORD}@db.dsi.local:5432/d2f
+      JWT_SECRET: ${JWT_SECRET}
+      JWT_ALGORITHM: HS512
+      JWT_AUTH_ENABLED: "true"
+      # DSI §1.1 — seuils de détection externalisés (valeurs par défaut dans .env.example)
+      SEUIL_GAP_CRITIQUE: ${SEUIL_GAP_CRITIQUE:-0.75}
+      SEUIL_GAP_HAUTE: ${SEUIL_GAP_HAUTE:-0.50}
+      SEUIL_STAGNATION_MOIS: ${SEUIL_STAGNATION_MOIS:-12}
+      SEUIL_COMPLETION_FAIBLE: ${SEUIL_COMPLETION_FAIBLE:-40.0}
+      # Scheduler nightly
+      SCHEDULER_ENABLED: ${SCHEDULER_ENABLED:-true}
+      BATCH_ANALYSIS_HOUR: ${BATCH_ANALYSIS_HOUR:-2}
+      DASHBOARD_REFRESH_HOUR: ${DASHBOARD_REFRESH_HOUR:-3}
+      # Messaging désactivé par défaut
+      MESSAGING_ENABLED: ${MESSAGING_ENABLED:-false}
+      # DSI §1.1+§10 — CORS externalisé (production = domaine interne DSI)
+      CORS_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:5173,http://localhost:3000}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8000/api/v1/analytics/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - d2f-network
+
+  # ── Frontend ─────────────────────────────────────────────────────────────────
+
+  webapp:
+    build:
+      context: ./esprit_D2F-webapp
+      dockerfile: Dockerfile
+      args:
+        BUILD_ENV: ""
+    container_name: d2f-webapp
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    depends_on:
+      api-gateway:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1/ || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - d2f-network

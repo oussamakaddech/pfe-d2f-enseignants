@@ -1,71 +1,54 @@
-package esprit.pfe.serviceformation.Services;
+package esprit.pfe.serviceformation.services;
 
-import esprit.pfe.serviceformation.Entities.EtatFormation;
-import esprit.pfe.serviceformation.Entities.Formation;
-import esprit.pfe.serviceformation.Repositories.FormationRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import esprit.pfe.serviceformation.entities.EtatFormation;
+import esprit.pfe.serviceformation.entities.Formation;
+import esprit.pfe.serviceformation.repositories.FormationRepository;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import java.util.Date;
 import java.util.List;
+import lombok.RequiredArgsConstructor;
 
 @Component
+@Slf4j
+@RequiredArgsConstructor
 public class FormationStateScheduler {
-
-    @Autowired
-    private FormationRepository formationRepository;
-
-    @Autowired
-    private FormationWorkflowService formationWorkflowService;
+    private final FormationRepository formationRepository;
+    private final FormationWorkflowService formationWorkflowService;
 
     /**
-     * Exécute chaque minute.
+     * Exécute toutes les 2 heures.
      */
-    @Scheduled(cron = "0 * * * * ?")
+    @Scheduled(cron = "0 0 */2 * * *")
     public void updateFormationStates() {
-        System.out.println("Le planificateur de mise à jour des formations s'exécute à " + new Date());
+        log.info("Le planificateur de mise à jour des formations s'exécute à {}", new Date());
         List<Formation> formations = formationRepository.findAll();
+        java.time.OffsetDateTime nowRef = java.time.OffsetDateTime.now();
         Date now = new Date();
         for (Formation f : formations) {
+            f.setLastRefreshDate(nowRef);
+            
             // Ne pas modifier les formations annulées
             if (f.getEtatFormation() == EtatFormation.ANNULE) {
+                formationRepository.save(f);
                 continue;
             }
+            
             // Calcul du nouvel état en fonction des dates
             EtatFormation oldState = f.getEtatFormation();
             EtatFormation newState = computeNextState(f, now);
             if (newState != oldState) {
                 f.setEtatFormation(newState);
-                formationRepository.save(f);
-                System.out.println("Formation " + f.getIdFormation() + " passe de " + oldState + " à " + newState);
-                // Selon le nouvel état, synchroniser le calendrier
-                if (newState == EtatFormation.PLANIFIE || newState == EtatFormation.EN_COURS) {
-                    // Créer ou mettre à jour les événements
-                    formationWorkflowService.synchronizeFormationCalendar(f);
-                } else if (newState == EtatFormation.ACHEVE) {
-                    // Supprimer les événements du calendrier
-                    formationWorkflowService.removeFormationCalendar(f);
-                }
+                log.info("Formation {} passe de {} à {}", f.getIdFormation(), oldState, newState);
+                
+                // Notification automatique par email + calendrier selon le nouvel etat
+                formationWorkflowService.handleEtatTransitions(f, oldState);
             }
+            formationRepository.save(f);
         }
     }
 
-    /**
-     * Détermine le nouvel état de la formation selon les dates :
-     * - Avant la date de début : PLANIFIEE
-     * - Entre date de début et date de fin : EN_COURS
-     * - Après la date de fin : ACHEVEE
-     *
-     *
-     *
-     *
-     *
-     *
-     *
-     *
-     *
-     * 
-     */
     private EtatFormation computeNextState(Formation f, Date now) {
         if (now.before(f.getDateDebut())) {
             return EtatFormation.PLANIFIE;

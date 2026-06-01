@@ -13,21 +13,28 @@ WORKDIR /opt/app
 # Utilities needed for Windows -> Unix line endings
 RUN apk add --no-cache dos2unix
 
+# Install shared d2f-common-security library (not in Maven Central — local module)
+COPY esprit_D2F-common-security/ /tmp/d2f-common-security/
+RUN --mount=type=cache,target=/root/.m2 \
+    cd /tmp/d2f-common-security && \
+    dos2unix mvnw && chmod u+x mvnw && \
+    ./mvnw install -DskipTests
+
 # Copy Maven Wrapper
-COPY .mvn/ .mvn
+COPY esprit_D2F-certificat/.mvn/ .mvn/
 
 # Copy Maven Wrapper script && pom.xml
-COPY mvnw pom.xml ./
+COPY esprit_D2F-certificat/mvnw esprit_D2F-certificat/pom.xml ./
 
 # Fix mvnw & permissions
 RUN dos2unix mvnw && \
     chmod u+x mvnw
 
-# Resolves all project dependencies offline and keep cache   
+# Resolves all project dependencies offline and keep cache
 RUN --mount=type=cache,target=/root/.m2 ./mvnw -B dependency:go-offline
 
 # Copy source code application
-COPY ./src ./src
+COPY esprit_D2F-certificat/src ./src
 
 # Install the package to a local repository and keep cache
 RUN --mount=type=cache,target=/root/.m2 ./mvnw -B clean package -DskipTests
@@ -45,6 +52,9 @@ LABEL maintainer="seddik.bouzayani <seddik.bouzayani@esprit.tn>"
 # Create user (Alpine-compatible)
 RUN addgroup -g 2003 esprit && adduser -D -u 2003 -G esprit esprit
 
+# Install curl for HEALTHCHECK
+RUN apk add --no-cache curl
+
 # Use user
 USER esprit
 
@@ -55,6 +65,13 @@ ARG DEPENDENCY=/opt/app/target/dependency
 COPY --from=builder ${DEPENDENCY}/BOOT-INF/lib /opt/app/lib
 COPY --from=builder ${DEPENDENCY}/META-INF /opt/app/META-INF
 COPY --from=builder ${DEPENDENCY}/BOOT-INF/classes /opt/app
+
+# Expose port
+EXPOSE 8086
+
+# Healthcheck — vérifie que Spring Boot Actuator répond (conformité DSI §2.1)
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+  CMD curl -sf http://localhost:8086/actuator/health || exit 1
 
 # Run app when container starts (set correct main class for this project)
 ENTRYPOINT ["java","-cp","/opt/app:/opt/app/lib/*","esprit.pfe.servicecertificat.ServiceCertificatApplication"]

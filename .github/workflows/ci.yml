@@ -1,0 +1,555 @@
+# =============================================================================
+# D2F CI Pipeline - DSI 2025-2026
+# Ordre : lint -> test -> security (OWASP/npm audit bloquant)
+#         -> sonar-dashboard-refresh -> sonar (Quality Gate bloquant, runner self-hosted)
+#         -> build & push Docker
+# =============================================================================
+
+name: D2F CI Pipeline
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+      - 'feature/**'
+      - 'hotfix/**'
+      - 'release/**'
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:
+    inputs:
+      skip_sonar:
+        description: 'Skip SonarQube analysis'
+        type: boolean
+        default: false
+      skip_docker:
+        description: 'Skip Docker build & push'
+        type: boolean
+        default: false
+
+env:
+  JAVA_VERSION: '17'
+  NODE_VERSION: '20'
+  PYTHON_VERSION: '3.11'
+  MAVEN_OPTS: '-Xmx3072m'
+
+jobs:
+  # -- Tests Backend Java -------------------------------------------------------
+  test-backend:
+    name: Tests Backend - ${{ matrix.service }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service:
+          - esprit_D2F-authentification
+          - esprit_D2F-competence
+          - esprit_D2F-besoin-formation
+          - esprit_D2F-formation
+          - esprit_D2F-evaluation
+          - esprit_D2F-certificat
+          - esprit_D2F-analyse
+          - esprit_D2F-api-gateway
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+
+      - uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Install shared security module
+        working-directory: esprit_D2F-common-security
+        run: mvn -B clean install -DskipTests
+
+      - name: Build with Maven
+        working-directory: ${{ matrix.service }}
+        run: mvn -B clean compile -DskipTests
+
+      - name: Run tests
+        working-directory: ${{ matrix.service }}
+        run: mvn -B test
+
+      - name: Generate test report
+        if: always()
+        uses: dorny/test-reporter@v1
+        with:
+          name: Test Results - ${{ matrix.service }}
+          path: ${{ matrix.service }}/target/surefire-reports/*.xml
+          reporter: java-junit
+          fail-on-error: true
+
+  # -- Analyse statique Java (SpotBugs) — DSI : lint backend bloquant -----------
+  # Garde-fou contre les bugs sérieux (rank <= 9 : correctness/sécurité de haute
+  # gravité), exécuté sur chaque push sans dépendre du runner self-hosted Sonar.
+  lint-backend:
+    name: SpotBugs - ${{ matrix.service }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service:
+          - esprit_D2F-authentification
+          - esprit_D2F-competence
+          - esprit_D2F-besoin-formation
+          - esprit_D2F-formation
+          - esprit_D2F-evaluation
+          - esprit_D2F-certificat
+          - esprit_D2F-analyse
+          - esprit_D2F-api-gateway
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: 'temurin'
+          cache: 'maven'
+
+      - name: Install shared security module
+        working-directory: esprit_D2F-common-security
+        run: mvn -B clean install -DskipTests
+
+      - name: SpotBugs static analysis (rank <= 9 bloquant)
+        working-directory: ${{ matrix.service }}
+        run: |
+          mvn -B compile com.github.spotbugs:spotbugs-maven-plugin:4.8.6.4:check \
+            -Dspotbugs.effort=Max \
+            -Dspotbugs.threshold=High \
+            -Dspotbugs.maxRank=9 \
+            -Dspotbugs.xmlOutput=true
+
+      - name: Upload SpotBugs report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: spotbugs-${{ matrix.service }}
+          path: ${{ matrix.service }}/target/spotbugsXml.xml
+          retention-days: 30
+          if-no-files-found: ignore
+
+  # -- Tests Python -------------------------------------------------------------
+  test-python:
+    name: Tests Python - ${{ matrix.service }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service:
+          - esprit_D2F-rice
+          - esprit_D2F-predictive-analytics
+          - esprit_D2F-recommandation-formateur
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+          cache-dependency-path: ${{ matrix.service }}/requirements*.txt
+
+      - name: Install dependencies
+        working-directory: ${{ matrix.service }}
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          if [ -f requirements-dev.txt ]; then pip install -r requirements-dev.txt; fi
+
+      - name: Run tests
+        working-directory: ${{ matrix.service }}
+        run: |
+          if [ -d tests ]; then
+            pytest tests/ -v --cov=. --cov-report=xml --cov-report=term --cov-fail-under=70
+          else
+            echo "No tests directory - skipping"
+          fi
+
+      - name: DSI 11.7 - interdire print() en production
+        run: |
+          FOUND=$(grep -rn --include="*.py" -E "^\s*print\(" \
+            ${{ matrix.service }} \
+            --exclude-dir tests \
+            --exclude-dir __pycache__ \
+            --exclude-dir .venv || true)
+          if [ -n "$FOUND" ]; then
+            echo "PII risk - print() trouve dans le code de production :"
+            echo "$FOUND"
+            exit 1
+          fi
+
+  # -- Tests Frontend -----------------------------------------------------------
+  test-frontend:
+    name: Tests Frontend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: esprit_D2F-webapp/package-lock.json
+
+      - name: Install dependencies
+        working-directory: esprit_D2F-webapp
+        run: npm ci --legacy-peer-deps
+
+      - name: Lint
+        working-directory: esprit_D2F-webapp
+        run: npm run lint
+
+      - name: Format check
+        working-directory: esprit_D2F-webapp
+        run: npm run format:check
+
+      - name: Type check
+        working-directory: esprit_D2F-webapp
+        run: npm run typecheck
+
+      - name: Tests with coverage
+        working-directory: esprit_D2F-webapp
+        run: npm run test:coverage
+
+      - name: Build production bundle
+        working-directory: esprit_D2F-webapp
+        run: npm run build
+
+  # -- OWASP Dependency Check (DSI 12.12 - CVSS >= 7 bloquant) -----------------
+  security-backend:
+    name: OWASP - ${{ matrix.service }}
+    runs-on: ubuntu-latest
+    needs: test-backend
+    strategy:
+      fail-fast: false
+      matrix:
+        service:
+          - esprit_D2F-authentification
+          - esprit_D2F-competence
+          - esprit_D2F-besoin-formation
+          - esprit_D2F-formation
+          - esprit_D2F-evaluation
+          - esprit_D2F-certificat
+          - esprit_D2F-analyse
+          - esprit_D2F-api-gateway
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: { java-version: '17', distribution: 'temurin', cache: 'maven' }
+
+      - name: Install shared security module
+        working-directory: esprit_D2F-common-security
+        run: mvn -B clean install -DskipTests
+
+      - name: Cache NVD database
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository/org/owasp/dependency-check-data
+          key: owasp-nvd-${{ runner.os }}-${{ github.run_id }}
+          restore-keys: owasp-nvd-${{ runner.os }}-
+
+      - name: OWASP Dependency Check
+        working-directory: ${{ matrix.service }}
+        run: |
+          SUPPRESSION=""
+          [ -f owasp-suppressions.xml ] && SUPPRESSION="-DsuppressionFile=owasp-suppressions.xml"
+          mvn -B org.owasp:dependency-check-maven:check \
+            -DfailBuildOnCVSS=7 \
+            -DassemblyAnalyzerEnabled=false \
+            $SUPPRESSION \
+            -Dformats=HTML,JSON
+
+      - name: Upload OWASP report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: owasp-${{ matrix.service }}
+          path: ${{ matrix.service }}/target/dependency-check-report.*
+          retention-days: 30
+
+  # -- npm audit (bloquant) -----------------------------------------------------
+  security-frontend:
+    name: npm audit (bloquant)
+    runs-on: ubuntu-latest
+    needs: test-frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: esprit_D2F-webapp/package-lock.json
+      - name: Install
+        working-directory: esprit_D2F-webapp
+        run: npm ci --legacy-peer-deps
+      - name: Audit high/critical
+        working-directory: esprit_D2F-webapp
+        run: npm audit --audit-level=high --omit=dev
+
+  # -- SonarQube Dashboard Refresh (cleanup doublons + projets obsoletes) --------
+  # DSI S3.7 - Nettoyage automatique avant analyse pour un dashboard propre.
+  sonar-dashboard-refresh:
+    name: SonarQube Dashboard Refresh
+    runs-on: self-hosted
+    needs: [security-backend, security-frontend, test-python]
+    if: >-
+      vars.SONAR_ENABLED == 'true' &&
+      !inputs.skip_sonar &&
+      (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Generate ephemeral SonarQube token
+        id: sonar-token
+        shell: pwsh
+        env:
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+          SONAR_USER: ${{ secrets.SONAR_USER || 'admin' }}
+          SONAR_PASS: ${{ secrets.SONAR_PASS }}
+        run: |
+          $auth = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes("${env:SONAR_USER}:${env:SONAR_PASS}"))
+          $headers = @{ Authorization = "Basic $auth"; "Content-Type" = "application/json" }
+          $tokenName = "ci-refresh-$(Get-Date -Format 'yyyyMMdd-HHmmss')"
+          $resp = Invoke-WebRequest -Uri "$env:SONAR_HOST_URL/api/user_tokens/generate?name=$tokenName" -Method Post -Headers $headers -UseBasicParsing
+          $token = ($resp.Content | ConvertFrom-Json).token
+          echo "sonar-token=$token" >> $env:GITHUB_OUTPUT
+
+      - name: Clean duplicate / obsolete projects
+        shell: pwsh
+        env:
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+          SONAR_TOKEN: ${{ steps.sonar-token.outputs.sonar-token }}
+        run: |
+          $auth = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes("${env:SONAR_TOKEN}:"))
+          $headers = @{ Authorization = "Basic $auth" }
+
+          # Projets valides a conserver
+          $projectsToKeep = @(
+            "d2f_api_gateway", "d2f_authentification", "d2f_besoin_formation",
+            "d2f_certificat", "d2f_competence", "d2f_evaluation", "d2f_formation",
+            "d2f_analyse", "d2f_webapp", "d2f_rice", "d2f_predictive_analytics",
+            "d2f_recommandation_formateur"
+          )
+
+          # Recuperer tous les projets existants
+          $resp = Invoke-WebRequest -Uri "$env:SONAR_HOST_URL/api/projects/search?ps=500" -Headers $headers -UseBasicParsing
+          $projects = ($resp.Content | ConvertFrom-Json).components
+
+          Write-Host "[$($projects.Count) projets trouves sur SonarQube]"
+
+          foreach ($project in $projects) {
+            $key = $project.key
+            # Supprimer les doublons connus
+            if ($key -eq "d2f_formation" -or $key -eq "coded2f_formation" -or $key -eq "service-formation") {
+              Write-Host "  [DELETE] Doublon: $key" -ForegroundColor Red
+              Invoke-WebRequest -Uri "$env:SONAR_HOST_URL/api/projects/delete?project=$key" -Method Post -Headers $headers -UseBasicParsing
+            }
+            # Supprimer les projets obsoletes
+            elseif (-not ($projectsToKeep -contains $key)) {
+              Write-Host "  [DELETE] Obsolete: $key" -ForegroundColor Yellow
+              Invoke-WebRequest -Uri "$env:SONAR_HOST_URL/api/projects/delete?project=$key" -Method Post -Headers $headers -UseBasicParsing
+            } else {
+              Write-Host "  [KEEP] $key" -ForegroundColor Green
+            }
+          }
+
+      - name: Revoke ephemeral token
+        if: always()
+        shell: pwsh
+        env:
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+          SONAR_TOKEN: ${{ steps.sonar-token.outputs.sonar-token }}
+        run: |
+          $auth = [Convert]::ToBase64String([Text.Encoding]::ASCII.GetBytes("${env:SONAR_TOKEN}:"))
+          $headers = @{ Authorization = "Basic $auth" }
+          try {
+            Invoke-WebRequest -Uri "$env:SONAR_HOST_URL/api/user_tokens/revoke?name=ci-refresh-" -Method Post -Headers $headers -UseBasicParsing
+          } catch { Write-Host "Token cleanup skipped" }
+
+  # -- SonarQube Quality Gate (runner self-hosted -> SonarQube localhost:9000) --
+  # Active si SONAR_ENABLED=true dans Actions Variables.
+  sonar:
+    name: SonarQube - ${{ matrix.module }}
+    runs-on: self-hosted
+    needs: [sonar-dashboard-refresh]
+    if: >-
+      vars.SONAR_ENABLED == 'true' &&
+      !inputs.skip_sonar &&
+      (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # --- Services Java (Maven + JaCoCo) ---
+          - { module: esprit_D2F-api-gateway,              projectKey: d2f_api_gateway,              type: java }
+          - { module: esprit_D2F-authentification,         projectKey: d2f_authentification,         type: java }
+          - { module: esprit_D2F-besoin-formation,         projectKey: d2f_besoin_formation,         type: java }
+          - { module: esprit_D2F-certificat,               projectKey: d2f_certificat,               type: java }
+          - { module: esprit_D2F-competence,               projectKey: d2f_competence,               type: java }
+          - { module: esprit_D2F-evaluation,               projectKey: d2f_evaluation,               type: java }
+          - { module: esprit_D2F-formation,                projectKey: d2f_formation,                type: java }
+          - { module: esprit_D2F-analyse,                  projectKey: d2f_analyse,                  type: java }
+          # --- Webapp (Vite + Vitest + lcov) ---
+          - { module: esprit_D2F-webapp,                   projectKey: d2f_webapp,                   type: web }
+          # --- Services Python (pytest + cov) ---
+          - { module: esprit_D2F-rice,                     projectKey: d2f_rice,                     type: python }
+          - { module: esprit_D2F-predictive-analytics,     projectKey: d2f_predictive_analytics,     type: python }
+          - { module: esprit_D2F-recommandation-formateur, projectKey: d2f_recommandation_formateur, type: python }
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+
+      # --- Java : Maven + JaCoCo ---
+      - name: Setup Java
+        if: matrix.type == 'java'
+        uses: actions/setup-java@v4
+        with: { java-version: '17', distribution: 'temurin', cache: 'maven' }
+
+      - name: Install shared security module
+        if: matrix.type == 'java'
+        working-directory: esprit_D2F-common-security
+        run: mvn -B clean install -DskipTests
+
+      - name: Sonar scan Java (Maven)
+        if: matrix.type == 'java'
+        working-directory: ${{ matrix.module }}
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+        run: |
+          mvn -B verify sonar:sonar \
+            -Dsonar.projectKey=${{ matrix.projectKey }} \
+            -Dsonar.host.url=$SONAR_HOST_URL \
+            -Dsonar.token=$SONAR_TOKEN \
+            -Dsonar.qualitygate.wait=true \
+            -Dsonar.qualitygate.timeout=300
+
+      # --- Webapp : npm + Vitest + sonar-scanner ---
+      - name: Setup Node
+        if: matrix.type == 'web'
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: esprit_D2F-webapp/package-lock.json
+
+      - name: Install & test coverage (webapp)
+        if: matrix.type == 'web'
+        working-directory: ${{ matrix.module }}
+        run: |
+          npm ci --legacy-peer-deps
+          npm run test:coverage
+
+      - name: Sonar scan Webapp (sonar-scanner)
+        if: matrix.type == 'web'
+        working-directory: ${{ matrix.module }}
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+        run: |
+          sonar-scanner \
+            -Dsonar.projectKey=${{ matrix.projectKey }} \
+            -Dsonar.host.url=$SONAR_HOST_URL \
+            -Dsonar.login=$SONAR_TOKEN \
+            -Dsonar.qualitygate.wait=true \
+            -Dsonar.qualitygate.timeout=300
+
+      # --- Python : pytest + cov + sonar-scanner ---
+      - name: Setup Python
+        if: matrix.type == 'python'
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+          cache-dependency-path: ${{ matrix.module }}/requirements*.txt
+
+      - name: Install dependencies (Python)
+        if: matrix.type == 'python'
+        working-directory: ${{ matrix.module }}
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-cov
+
+      - name: Test + coverage (Python)
+        if: matrix.type == 'python'
+        working-directory: ${{ matrix.module }}
+        run: |
+          python -m pytest --cov=. --cov-report=xml --junit-xml=junit-results.xml || true
+
+      - name: Sonar scan Python (sonar-scanner)
+        if: matrix.type == 'python'
+        working-directory: ${{ matrix.module }}
+        env:
+          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+        run: |
+          sonar-scanner \
+            -Dsonar.projectKey=${{ matrix.projectKey }} \
+            -Dsonar.host.url=$SONAR_HOST_URL \
+            -Dsonar.login=$SONAR_TOKEN \
+            -Dsonar.qualitygate.wait=true \
+            -Dsonar.qualitygate.timeout=300
+
+  # -- Build & Push Docker (apres tous les quality gates) -----------------------
+  build-docker:
+    name: Docker Build & Push - ${{ matrix.image }}
+    runs-on: ubuntu-latest
+    needs: [lint-backend, security-backend, security-frontend, test-python, sonar]
+    if: >-
+      always() &&
+      needs.lint-backend.result == 'success' &&
+      needs.security-backend.result == 'success' &&
+      needs.security-frontend.result == 'success' &&
+      needs.test-python.result == 'success' &&
+      (needs.sonar.result == 'success' || needs.sonar.result == 'skipped') &&
+      !inputs.skip_docker &&
+      github.event_name == 'push' &&
+      (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/develop')
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { image: d2f-authentification,         context: ".",                                      file: "esprit_D2F-authentification/Dockerfile" }
+          - { image: d2f-competence,               context: ".",                                      file: "esprit_D2F-competence/Dockerfile" }
+          - { image: d2f-besoin-formation,         context: ".",                                      file: "esprit_D2F-besoin-formation/Dockerfile" }
+          - { image: d2f-formation,                context: ".",                                      file: "esprit_D2F-formation/Dockerfile" }
+          - { image: d2f-evaluation,               context: ".",                                      file: "esprit_D2F-evaluation/Dockerfile" }
+          - { image: d2f-certificat,               context: ".",                                      file: "esprit_D2F-certificat/Dockerfile" }
+          - { image: d2f-analyse,                  context: ".",                                      file: "esprit_D2F-analyse/Dockerfile" }
+          - { image: d2f-api-gateway,              context: "esprit_D2F-api-gateway",                 file: "esprit_D2F-api-gateway/Dockerfile" }
+          - { image: d2f-recommandation-formateur, context: "esprit_D2F-recommandation-formateur",    file: "esprit_D2F-recommandation-formateur/Dockerfile" }
+          - { image: d2f-rice,                     context: "esprit_D2F-rice",                        file: "esprit_D2F-rice/Dockerfile" }
+          - { image: d2f-predictive-analytics,     context: "esprit_D2F-predictive-analytics",        file: "esprit_D2F-predictive-analytics/Dockerfile" }
+          - { image: d2f-webapp,                   context: "esprit_D2F-webapp",                      file: "esprit_D2F-webapp/Dockerfile" }
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKER_USERNAME }}
+          password: ${{ secrets.DOCKER_PASSWORD }}
+
+      - name: Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ secrets.REGISTRY_URL }}/${{ matrix.image }}
+          tags: |
+            type=sha,prefix=sha-,format=short
+            type=ref,event=branch
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.file }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=${{ matrix.image }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.image }}

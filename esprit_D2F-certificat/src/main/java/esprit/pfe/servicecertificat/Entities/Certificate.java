@@ -1,18 +1,18 @@
-package esprit.pfe.servicecertificat.Entities;
+package esprit.pfe.servicecertificat.entities;
 
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.util.Date;
+import java.time.LocalDate;
 
 @Entity
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Table(name = "certificates")
-public class Certificate {
+public class Certificate extends BaseAuditEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -22,10 +22,8 @@ public class Certificate {
     private Long formationId;
     private String titreFormation;
     private String typeCertif; // "CERTIF", "BADGE", "ATTESTATION", etc.
-    @Temporal(TemporalType.DATE)
-    private Date dateDebutFormation;
-    @Temporal(TemporalType.DATE)
-    private Date dateFinFormation;
+    private LocalDate dateDebutFormation;
+    private LocalDate dateFinFormation;
     private Integer chargeHoraireGlobal;
 
     // Informations sur l’enseignant (ici animateur ou participant)
