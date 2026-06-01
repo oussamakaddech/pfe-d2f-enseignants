@@ -11,7 +11,7 @@ import { useRiceSavoirs, useRiceEnseignants, useRiceSaveAssignments, useRiceCrea
 import AppPageHeader from "@/components/common/AppPageHeader";
 import "@/styles/pages/competence-matching-page.css";
 import {
-  type RiceSavoirEntry, type RiceEnseignantEntry, type MatchingFilters,
+  type RiceSavoirEntry, type RiceEnseignantEntry,
   initialState, getAvatarColor, normalizePending, normalizeNiveauForAssignment, reducer,
 } from "./components/matchingTypes";
 

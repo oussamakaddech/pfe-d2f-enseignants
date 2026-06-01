@@ -1,5 +1,5 @@
 import { config } from "@/config/env";
-import { defaultApi as axios } from "@/utils/helpers/httpClient";
+import { defaultApi as axios } from "@/services/httpClient";
 
 const API_URL = `${config.FORMATION_URL}/formation/ups`;
 

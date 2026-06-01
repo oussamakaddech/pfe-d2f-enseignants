@@ -60,7 +60,7 @@ export default class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBo
               </Button>,
             ]}
           />
-          {process.env.NODE_ENV === "development" && (
+          {import.meta.env.DEV && (
             <details style={{ marginTop: "24px", whiteSpace: "pre-wrap", textAlign: "left" }}>
               <summary>Détails de l'erreur (développeur)</summary>
               <code style={{ fontSize: "12px", color: "#d32f2f" }}>

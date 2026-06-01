@@ -3,7 +3,7 @@ import { createRoot } from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { App as AntdApp, ConfigProvider, theme } from "antd";
 import frFR from "antd/locale/fr_FR";
-import { navigate } from "@/utils/helpers/navigation";
+
 import AppComponent from "@/App";
 import NotificationBridge from "@/components/feedback/NotificationBridge";
 import { antdThemeToken, antdComponentTokens } from "@/styles/themes/tokens";

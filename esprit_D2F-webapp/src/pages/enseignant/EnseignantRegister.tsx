@@ -21,7 +21,7 @@ interface EnseignantRegisterProps {
   onError?: (message: string) => void;
 }
 
-export default function EnseignantRegister({ initialValues = {}, onSuccess, onError }: EnseignantRegisterProps) {
+export default function EnseignantRegister({ initialValues = {}, onSuccess, onError }: Readonly<EnseignantRegisterProps>) {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const { register } = useRegister();

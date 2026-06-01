@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { Tag, Select, Tooltip } from "antd";
 import { BookOutlined, ExperimentOutlined, CheckCircleOutlined, WarningOutlined } from "@ant-design/icons";
-import { NIVEAU_OPTIONS, TYPE_COLOR, TYPE_ICON, TYPE_LABEL } from "./constants";
+import { NIVEAU_OPTIONS, TYPE_COLOR, TYPE_LABEL } from "./constants";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 interface Savoir {

@@ -16,7 +16,7 @@ type ChargeHProps = {
   toMinutes: (t: unknown) => number | null;
 };
 
-function ChargeHoraireField({ chargeH, setChargeH, seances, toMinutes }: ChargeHProps) {
+function ChargeHoraireField({ chargeH, setChargeH, seances, toMinutes }: Readonly<ChargeHProps>) {
   const totalMin = seances.reduce((acc: number, s) => {
     const start = toMinutes(s.heureDebut) ?? 0;
     const end = toMinutes(s.heureFin) ?? 0;

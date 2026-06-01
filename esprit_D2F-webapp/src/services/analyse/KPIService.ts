@@ -1,4 +1,4 @@
-import { defaultApi as axios } from "@/utils/helpers/httpClient";
+import { defaultApi as axios } from "@/services/httpClient";
 import { config } from "@/config/env";
 import type { FormationsByEtat, ParticipantStats, CountHeures, FormationsByType, TrainerTypeCount } from "@/models/analyse/kpi";
 import type { Enseignant } from "@/models/enseignant";

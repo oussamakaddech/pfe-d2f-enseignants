@@ -8,7 +8,7 @@ const apiMocks = vi.hoisted(() => ({
   mockDelete: vi.fn(),
 }));
 
-vi.mock("@/utils/helpers/httpClient", () => ({
+vi.mock("@/services/httpClient", () => ({
   createApiClient: vi.fn(() => ({
     get: apiMocks.mockGet,
     post: apiMocks.mockPost,

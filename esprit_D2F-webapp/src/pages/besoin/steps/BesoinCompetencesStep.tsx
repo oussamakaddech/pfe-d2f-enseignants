@@ -34,7 +34,7 @@ export default function BesoinCompetencesStep({
   compSearch,
   setCompSearch,
   onCompetenceChange,
-}: BesoinCompetencesStepProps) {
+}: Readonly<BesoinCompetencesStepProps>) {
   return (
     <div className="bf-step">
       <SectionLabel

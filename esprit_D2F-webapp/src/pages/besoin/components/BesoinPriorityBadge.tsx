@@ -12,7 +12,7 @@ interface BesoinPriorityBadgeProps {
   size?: "sm" | "md";
 }
 
-export default function BesoinPriorityBadge({ value, size = "md" }: BesoinPriorityBadgeProps) {
+export default function BesoinPriorityBadge({ value, size = "md" }: Readonly<BesoinPriorityBadgeProps>) {
   if (!value) return null;
   const label = PRIORITY_LABELS[value] || value;
   return (

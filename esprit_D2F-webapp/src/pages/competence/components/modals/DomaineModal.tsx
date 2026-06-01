@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+
 import { useAllUps } from "@/hooks/formation/useUpCrud";
 import { useAllDepts } from "@/hooks/formation/useDeptCrud";
 import { Form, Input, Modal, Select, Switch } from "antd";
@@ -19,7 +19,7 @@ interface DomaineModalProps {
   domaineForm: FormInstance;
 }
 
-export default function DomaineModal({ crud, domaineForm }: DomaineModalProps) {
+export default function DomaineModal({ crud, domaineForm }: Readonly<DomaineModalProps>) {
   const { data: ups = [] } = useAllUps();
   const { data: depts = [] } = useAllDepts();
 

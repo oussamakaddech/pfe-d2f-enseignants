@@ -24,9 +24,9 @@ import {
   MailOutlined,
   CalendarOutlined,
 } from "@ant-design/icons";
-import type { TeacherSkillPassportDTO, SkillGapSummaryDTO, TrainingHistoryDTO, CertificationSummaryDTO, RecommendationSummaryDTO } from "@/models/certificat";
+import type { SkillGapSummaryDTO, TrainingHistoryDTO, CertificationSummaryDTO, RecommendationSummaryDTO } from "@/models/certificat";
 import { useMyPassportData, usePassportDataByUsername, useDownloadMyPassport, useDownloadPassportByUsername } from "@/hooks/certificat/useSkillPassport";
-import { AppPageHeader, brand, neutral, shadow, radius } from "@/components/common";
+import { AppPageHeader, brand } from "@/components/common";
 import "@/styles/pages/skill-passport-page.css";
 import s from "./SkillPassportPage.module.css";
 

@@ -322,11 +322,11 @@ export default function CertificatePage() {
 }
 
 /* ── Carte certificat (grille) ────────────────────────────────────────────── */
-function CertCard({ cert, selectedKeys, setSelectedKeys, typeTag, roleTag, handleDeliver, setPreview, setEditing }: {
+function CertCard({ cert, selectedKeys, setSelectedKeys, typeTag, roleTag, handleDeliver, setPreview, setEditing }: Readonly<{
   cert: CertRow; selectedKeys: React.Key[]; setSelectedKeys: React.Dispatch<React.SetStateAction<React.Key[]>>;
   typeTag: (c: Certificate) => React.ReactNode; roleTag: (c: Certificate) => React.ReactNode;
   handleDeliver: (c: Certificate) => void; setPreview: (c: Certificate | null) => void; setEditing: (c: Certificate | null) => void;
-}) {
+}>) {
   const selected = selectedKeys.includes(cert.key);
   return (
     <div key={cert.key} className={`gcert-card${selected ? " gcert-card--selected" : ""}`}>
@@ -352,9 +352,9 @@ function CertCard({ cert, selectedKeys, setSelectedKeys, typeTag, roleTag, handl
 }
 
 /* ── Modale de génération (sélection d'une formation achevée) ─────────────── */
-function GenerateModal({ open, pending, onClose, onGenerate }: {
+function GenerateModal({ open, pending, onClose, onGenerate }: Readonly<{
   open: boolean; pending: boolean; onClose: () => void; onGenerate: (fid: Id) => void;
-}) {
+}>) {
   const { data, isLoading } = useFormationsAchevees();
   const formations = useMemo<Formation[]>(() => {
     const d = data as unknown;

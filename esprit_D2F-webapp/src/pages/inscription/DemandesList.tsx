@@ -15,9 +15,8 @@ import {
   Avatar,
   Statistic,
 } from "antd";
-import type { TableColumnsType } from "antd";
+import type { TableColumnsType, InputRef } from "antd";
 import type { FilterDropdownProps } from "antd/es/table/interface";
-import type { InputRef } from "antd";
 import {
   SearchOutlined,
   FileExcelOutlined,

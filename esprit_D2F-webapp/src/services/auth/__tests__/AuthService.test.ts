@@ -6,7 +6,7 @@ const apiMocks = vi.hoisted(() => ({
   mockGet: vi.fn(),
 }));
 
-vi.mock("@/utils/helpers/httpClient", () => ({
+vi.mock("@/services/httpClient", () => ({
   createApiClient: vi.fn(() => ({
     post: apiMocks.mockPost,
     get: apiMocks.mockGet,

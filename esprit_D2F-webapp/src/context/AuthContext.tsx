@@ -27,6 +27,8 @@ const AuthProvider = ({ children }: AuthProviderProps) => {
   });
 
   const refreshTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const authGenerationRef = useRef(0);
+  const renderGeneration = authGenerationRef.current;
 
   const stopSilentRefresh = useCallback(() => {
     if (refreshTimerRef.current) {
@@ -36,8 +38,12 @@ const AuthProvider = ({ children }: AuthProviderProps) => {
   }, []);
 
   const doRefresh = useCallback(() => {
+    const generation = authGenerationRef.current;
     refreshTokenApi()
       .then((data) => {
+        if (generation !== authGenerationRef.current) {
+          return;
+        }
         const updatedUser: AuthUser = {
           userId: data.userId,
           username: data.username,
@@ -53,6 +59,9 @@ const AuthProvider = ({ children }: AuthProviderProps) => {
         }
       })
       .catch(() => {
+        if (generation !== authGenerationRef.current) {
+          return;
+        }
         stopSilentRefresh();
         setUser(null);
         sessionStorage.removeItem("d2f_user");
@@ -75,11 +84,11 @@ const AuthProvider = ({ children }: AuthProviderProps) => {
   }, [doRefresh]);
 
   useEffect(() => {
-    if (user) {
+    if (user && renderGeneration === authGenerationRef.current) {
       startSilentRefresh();
     }
     return () => stopSilentRefresh();
-  }, [user, startSilentRefresh, stopSilentRefresh]);
+  }, [user, renderGeneration, startSilentRefresh, stopSilentRefresh]);
 
   useEffect(() => {
     const onAuthLoggedOut = () => {
@@ -96,6 +105,7 @@ const AuthProvider = ({ children }: AuthProviderProps) => {
   }, [stopSilentRefresh]);
 
   const login = useCallback((userData: AuthUser) => {
+    authGenerationRef.current += 1;
     try {
       sessionStorage.setItem("d2f_user", JSON.stringify(userData));
     } catch {
@@ -110,17 +120,15 @@ const AuthProvider = ({ children }: AuthProviderProps) => {
   }, [startSilentRefresh]);
 
   const logout = useCallback(() => {
+    authGenerationRef.current += 1;
     stopSilentRefresh();
-    logoutApi()
-      .catch(() => { /* ignore */ })
-      .finally(() => {
-        sessionStorage.removeItem("d2f_user");
-        try {
-          flushSync(() => setUser(null));
-        } catch {
-          setUser(null);
-        }
-      });
+    sessionStorage.removeItem("d2f_user");
+    try {
+      flushSync(() => setUser(null));
+    } catch {
+      setUser(null);
+    }
+    logoutApi().catch(() => { /* ignore */ });
   }, [stopSilentRefresh]);
 
   const authValue = useMemo<AuthContextValue>(

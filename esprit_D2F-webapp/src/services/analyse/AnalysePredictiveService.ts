@@ -1,4 +1,4 @@
-import { defaultApi as axios } from "@/utils/helpers/httpClient";
+import { defaultApi as axios } from "@/services/httpClient";
 import { config } from "@/config/env";
 
 // Base legacy du service d'analyse prédictive: /api/analyse/**

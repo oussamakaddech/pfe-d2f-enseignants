@@ -232,12 +232,12 @@ export function useFormationWorkflowEdit(formation: EditFormation, onFormationUp
     reader.onload = (ev) => {
       const wb = XLSX.read(new Uint8Array(ev.target!.result as ArrayBuffer), { type: "array" });
       const ws = wb.Sheets[wb.SheetNames[0]];
-      const rows = XLSX.utils.sheet_to_json<unknown[]>(ws, { header: 1 }) as unknown[][];
+      const rows = XLSX.utils.sheet_to_json<unknown[]>(ws, { header: 1 });
       if (rows.length < 2) { message.warning("Excel vide ou mal formaté"); return; }
       const hdr = (rows[0] as string[]).map((h) => String(h).toLowerCase().trim());
       const idx = hdr.findIndex((h) => h === "email" || h === "mail");
       if (idx < 0) { message.warning(`Colonne Email introuvable. Colonnes attendues : Email, Nom, Prénom. Colonnes trouvées : ${(rows[0] as string[]).join(", ")}`); e.target.value = ""; return; }
-      const mails = rows.slice(1).map((r) => (r as unknown[])[idx]).filter(Boolean);
+      const mails = rows.slice(1).map((r) => r[idx]).filter(Boolean);
       const matched = ens.filter((x) => mails.includes(x.mail));
       setPartSel(matched);
       message.success(`${matched.length} participant${matched.length > 1 ? "s" : ""} importé${matched.length > 1 ? "s" : ""}`);

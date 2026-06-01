@@ -16,7 +16,7 @@ interface CertificatePdfViewerProps {
   certificate?: CertificatePdfData;
 }
 
-function CertificatePdfViewer({ certificate }: CertificatePdfViewerProps) {
+function CertificatePdfViewer({ certificate }: Readonly<CertificatePdfViewerProps>) {
   const [pdfUrl, setPdfUrl] = useState("");
 
   useEffect(() => {

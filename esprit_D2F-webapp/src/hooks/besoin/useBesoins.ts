@@ -1,8 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import BesoinFormationService from "@/services/besoin/BesoinFormationService";
 import BesoinCompetenceService from "@/services/besoin/BesoinCompetenceService";
-import type { BesoinCompetenceLink } from "@/models/besoin";
-import type { BesoinFormation } from "@/models/besoin";
+import type { BesoinCompetenceLink, BesoinFormation } from "@/models/besoin";
 import type { Id } from "@/models/common";
 
 const KEYS = {

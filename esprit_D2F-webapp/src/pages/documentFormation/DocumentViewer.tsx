@@ -15,7 +15,7 @@ interface DocumentViewerProps {
   ext?: string;
 }
 
-export default function DocumentViewer({ url, ext }: DocumentViewerProps) {
+export default function DocumentViewer({ url, ext }: Readonly<DocumentViewerProps>) {
   const e = (ext ?? "").toLowerCase();
 
   // Docs / PPT / XLS / PDF

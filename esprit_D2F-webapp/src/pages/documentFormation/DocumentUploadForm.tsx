@@ -28,7 +28,7 @@ interface DocFormValues {
   file?: UploadFile[];
 }
 
-export default function DocumentUploadForm({ formationId, onClose, onDocumentAdded }: DocumentUploadFormProps) {
+export default function DocumentUploadForm({ formationId, onClose, onDocumentAdded }: Readonly<DocumentUploadFormProps>) {
   const { message } = useAppNotification();
   const [form] = Form.useForm();
   const [fileList, setFileList] = useState<UploadFile[]>([]);
@@ -58,7 +58,7 @@ export default function DocumentUploadForm({ formationId, onClose, onDocumentAdd
       message.success("Document ajouté avec succès");
       form.resetFields();
       setFileList([]);
-      onDocumentAdded(newDoc as FormationDocument);
+      onDocumentAdded(newDoc);
       onClose();
     } catch {
       message.error("🚫 Erreur lors de l'ajout du document.");

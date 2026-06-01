@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import axios, { isAxiosError } from 'axios';
-import { createApiClient } from "@/utils/helpers/httpClient";
+import { createApiClient } from "@/services/httpClient";
 import { navigate } from "@/utils/helpers/navigation";
 
 const notifyMocks = vi.hoisted(() => ({

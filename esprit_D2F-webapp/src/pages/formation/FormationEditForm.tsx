@@ -30,7 +30,7 @@ interface FormationEditFormProps {
   onCancel: () => void;
 }
 
-function FormationEditForm({ formation, onUpdate, onCancel }: FormationEditFormProps) {
+function FormationEditForm({ formation, onUpdate, onCancel }: Readonly<FormationEditFormProps>) {
   const [titreFormation, setTitreFormation] = useState("");
   const [dateDebut, setDateDebut] = useState("");
   const [dateFin, setDateFin] = useState("");

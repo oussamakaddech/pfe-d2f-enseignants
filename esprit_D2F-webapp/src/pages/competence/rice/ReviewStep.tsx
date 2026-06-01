@@ -73,7 +73,7 @@ export default function ReviewStep({
   liveStats, treeFilteredIndices, departement, dbEnseignants, allSavoirsFlat,
   onSavoirDragStart, onSavoirDragEnd, setCurrentStep, updateNodeField, moveSavoirToSC,
   setCreateEnsTarget, setCreateEnsData, setCreateEnsModal,
-}: ReviewStepProps) {
+}: Readonly<ReviewStepProps>) {
   const [expandedDomainKeys, setExpandedDomainKeys] = useState<string[]>([]);
   const [expandedCompKeys, setExpandedCompKeys] = useState<string[]>([]);
   const [showSearch, setShowSearch] = useState(false);

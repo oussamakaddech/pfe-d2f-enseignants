@@ -44,14 +44,16 @@ class WebSocketAuthChannelInterceptorTest {
 
     @Test
     void connectWithoutToken_isRejected() {
-        assertThatThrownBy(() -> interceptor.preSend(connectMessage(null), null))
+        Message<byte[]> message = connectMessage(null);
+        assertThatThrownBy(() -> interceptor.preSend(message, null))
                 .isInstanceOf(MessagingException.class);
     }
 
     @Test
     void connectWithInvalidToken_isRejected() {
         when(jwtDecoder.decode("bad")).thenThrow(new JwtException("invalid"));
-        assertThatThrownBy(() -> interceptor.preSend(connectMessage("Bearer bad"), null))
+        Message<byte[]> message = connectMessage("Bearer bad");
+        assertThatThrownBy(() -> interceptor.preSend(message, null))
                 .isInstanceOf(MessagingException.class);
     }
 

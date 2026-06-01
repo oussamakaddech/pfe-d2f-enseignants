@@ -23,7 +23,7 @@ interface BesoinReviewStepProps {
   onEditSection: (idx: number) => void;
 }
 
-export default function BesoinReviewStep({ sections, onEditSection }: BesoinReviewStepProps) {
+export default function BesoinReviewStep({ sections, onEditSection }: Readonly<BesoinReviewStepProps>) {
   return (
     <div className="bf-summary">
       <header className="bf-summary__header">

@@ -7,7 +7,7 @@ import { getActiveRole } from "@/utils/storage/storage";
 import { useAuth } from "@/hooks/auth/useAuth";
 import { useAddBesoin, useReplaceBesoinCompetences } from "@/hooks/besoin/useBesoins";
 import { useEnseignants } from "@/hooks/enseignant/useEnseignants";
-import { buildActeurOptions, serializeActeurs } from "@/utils/besoin/acteurs";
+import { buildActeurOptions } from "@/utils/besoin/acteurs";
 import type { BesoinCompetenceLink } from "@/models/besoin";
 import {
   useCompetenceDomaineApi,
@@ -151,7 +151,7 @@ export function useBesoinForm() {
       const rows = XLSX.utils.sheet_to_json(workbook.Sheets[firstSheetName], { header: 1 });
       if (!Array.isArray(rows) || rows.length === 0) { msgApi.warning("Aucune donnée participants trouvée"); return; }
       const [headerRow = [], ...dataRows] = rows as unknown[][];
-      const header = (headerRow as unknown[]).map((cell) => String(cell || "").trim().toLowerCase());
+      const header = headerRow.map((cell) => String(cell || "").trim().toLowerCase());
       const idxNom    = header.findIndex((h: string) => ["nom", "name"].includes(h));
       const idxPrenom = header.findIndex((h: string) => ["prénom", "prenom", "first name", "firstname"].includes(h));
       const idxEmail  = header.findIndex((h: string) => ["email", "mail"].includes(h));

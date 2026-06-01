@@ -1,4 +1,4 @@
-import { defaultApi as api } from "@/utils/helpers/httpClient";
+import { defaultApi as api } from "@/services/httpClient";
 import { config } from "@/config/env";
 import type { FormationCompetence } from "@/models/formation";
 

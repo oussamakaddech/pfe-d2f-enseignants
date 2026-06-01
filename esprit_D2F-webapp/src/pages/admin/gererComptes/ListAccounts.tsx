@@ -348,7 +348,7 @@ export default function ListAccounts() {
   );
 }
 
-function BadgeStatus({ status, text, className }: BadgeProps) {
+function BadgeStatus({ status, text, className }: Readonly<BadgeProps>) {
   const colors: Record<string, string> = { ACTIF: '#52c41a', BLOQUÉ: '#f5222d', success: '#52c41a', error: '#f5222d', default: '#d9d9d9' };
   return (
     <div className={"d-flex-c" + (className ? " " + className : "")}>

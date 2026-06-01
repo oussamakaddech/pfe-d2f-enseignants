@@ -6,7 +6,7 @@ interface FormationFormProps {
   onFormationCreated: (data: unknown) => void;
 }
 
-function FormationForm({ initialDate, onFormationCreated }: FormationFormProps) {
+function FormationForm({ initialDate, onFormationCreated }: Readonly<FormationFormProps>) {
   const [titreFormation, setTitreFormation] = useState("");
   const [dateDebut, setDateDebut] = useState(
     initialDate ? initialDate.toISOString().split("T")[0] : ""

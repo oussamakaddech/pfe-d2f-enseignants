@@ -24,7 +24,7 @@ export default function BesoinHeader({
   onAdd,
   loading = false,
   exportDisabled = false,
-}: BesoinHeaderProps) {
+}: Readonly<BesoinHeaderProps>) {
   return (
     <header className="bf-header">
       <Breadcrumb

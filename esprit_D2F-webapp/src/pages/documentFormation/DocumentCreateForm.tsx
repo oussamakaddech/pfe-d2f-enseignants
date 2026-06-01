@@ -28,7 +28,7 @@ interface DocFormValues {
   file?: UploadFile[];
 }
 
-export default function DocumentCreateForm({ formationId, onDocumentCreated, onCancel }: DocumentCreateFormProps) {
+export default function DocumentCreateForm({ formationId, onDocumentCreated, onCancel }: Readonly<DocumentCreateFormProps>) {
   const { message } = useAppNotification();
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
@@ -55,7 +55,7 @@ export default function DocumentCreateForm({ formationId, onDocumentCreated, onC
       message.success("Document créé avec succès");
       form.resetFields();
       setFileList([]);
-      onDocumentCreated(newDoc as FormationDocument);
+      onDocumentCreated(newDoc);
     } catch {
       message.error("🚫 Erreur lors de la création du document.");
     } finally {

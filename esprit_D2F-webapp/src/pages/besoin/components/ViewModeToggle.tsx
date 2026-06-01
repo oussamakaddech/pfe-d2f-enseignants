@@ -8,7 +8,7 @@ interface ViewModeToggleProps {
   total: number;
 }
 
-export default function ViewModeToggle({ value, onChange, count, total }: ViewModeToggleProps) {
+export default function ViewModeToggle({ value, onChange, count, total }: Readonly<ViewModeToggleProps>) {
   return (
     <div className="bf-viewmode">
       <div className="bf-viewmode__count" aria-live="polite">

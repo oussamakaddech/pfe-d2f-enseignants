@@ -9,7 +9,7 @@ interface CompetenceFormModalProps {
   compForm: FormInstance;
 }
 
-export default function CompetenceFormModal({ crud, compForm }: CompetenceFormModalProps) {
+export default function CompetenceFormModal({ crud, compForm }: Readonly<CompetenceFormModalProps>) {
   return (
     <Modal
       forceRender

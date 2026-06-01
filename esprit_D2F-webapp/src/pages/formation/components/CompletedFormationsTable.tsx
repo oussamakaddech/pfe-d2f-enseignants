@@ -41,7 +41,7 @@ export function CompletedFormationsTable({
   onOpenNewCertDrawer,
   certifCount,
   pendingCount,
-}: CompletedFormationsTableProps) {
+}: Readonly<CompletedFormationsTableProps>) {
   const columns = [
     { title: "Titre Formation", dataIndex: "titreFormation", key: "titreFormation" },
     { title: "État", dataIndex: "etatFormation", key: "etatFormation" },

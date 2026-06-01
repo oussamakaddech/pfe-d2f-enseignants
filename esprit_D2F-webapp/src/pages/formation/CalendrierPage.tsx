@@ -84,7 +84,7 @@ export default function CalendrierPage() {
 
   const events = useMemo(() => {
     const eventsData: CalendarEvent[] = [];
-    (Array.isArray(formations) ? formations as Formation[] : []).forEach((f) => {
+    (Array.isArray(formations) ? formations : []).forEach((f) => {
       if (f.seances?.length) {
         f.seances.forEach((s: Seance) => {
           eventsData.push({

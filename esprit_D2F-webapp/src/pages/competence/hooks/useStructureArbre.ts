@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useMemo, useRef } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { Form } from "antd";
 import { useStructureApi, useNiveauDefinitionApi, useSavoirApi } from "@/hooks/competence/useCompetenceService";
 import useAppNotification from "@/hooks/ui/useAppNotification";

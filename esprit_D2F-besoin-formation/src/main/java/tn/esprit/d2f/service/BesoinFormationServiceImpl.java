@@ -132,37 +132,11 @@ public class BesoinFormationServiceImpl implements IBesoinFormationService {
         boolean isChefDep = hasRole(authorities, ROLE_CHEF_DEP);
 
         if (!Boolean.TRUE.equals(b.getApprouveCUP())) {
-            // ── Étape 1 : approbation CUP ────────────────────────────────────
-            if (!isCUP && !isAdmin) {
-                throw new AccessDeniedException(
-                        "Étape 1 du workflow : approbation réservée au CUP ou à l'administrateur.");
-            }
-            b.setApprouveCUP(true);
-            log.info("Besoin {} passed step 1 (CUP) by user '{}'", id, auth.getName());
-
+            approveCupStep(b, id, auth, isCUP, isAdmin);
         } else if (!Boolean.TRUE.equals(b.getApprouveChefDep())) {
-            // ── Étape 2 : approbation Chef de Département ─────────────────────
-            if (!isChefDep && !isAdmin) {
-                throw new AccessDeniedException(
-                        "Étape 2 du workflow : approbation réservée au Chef de Département ou à l'administrateur.");
-            }
-            b.setApprouveChefDep(true);
-            log.info("Besoin {} passed step 2 (ChefDep) by user '{}'", id, auth.getName());
-
+            approveChefDepStep(b, id, auth, isChefDep, isAdmin);
         } else if (!Boolean.TRUE.equals(b.getApprouveAdmin())) {
-            // ── Étape 3 : approbation finale Admin ────────────────────────────
-            if (!isAdmin) {
-                throw new AccessDeniedException(
-                        "Étape 3 du workflow : approbation finale réservée à l'administrateur.");
-            }
-            b.setApprouveAdmin(true);
-            log.info("Besoin {} fully approved (step 3 Admin) by user '{}'", id, auth.getName());
-
-            // Publier l'événement une seule fois (idempotence via eventPublished)
-            if (!Boolean.TRUE.equals(b.getEventPublished())) {
-                publishApprovalEvent(b);
-                b.setEventPublished(true);
-            }
+            approveAdminStep(b, id, auth, isAdmin);
         } else {
             log.info("Besoin {} is already fully approved — no action taken", id);
         }
@@ -205,6 +179,42 @@ public class BesoinFormationServiceImpl implements IBesoinFormationService {
 
     private boolean hasRole(Collection<? extends GrantedAuthority> authorities, String role) {
         return authorities.stream().anyMatch(a -> role.equals(a.getAuthority()));
+    }
+
+    private void approveCupStep(BesoinFormation b, Long id, Authentication auth, boolean isCUP, boolean isAdmin) {
+        if (!isCUP && !isAdmin) {
+            throw new AccessDeniedException(
+                    "Étape 1 du workflow : approbation réservée au CUP ou à l'administrateur.");
+        }
+        b.setApprouveCUP(true);
+        log.info("Besoin {} passed step 1 (CUP) by user '{}'", id, auth.getName());
+    }
+
+    private void approveChefDepStep(BesoinFormation b, Long id, Authentication auth, boolean isChefDep, boolean isAdmin) {
+        if (!isChefDep && !isAdmin) {
+            throw new AccessDeniedException(
+                    "Étape 2 du workflow : approbation réservée au Chef de Département ou à l'administrateur.");
+        }
+        b.setApprouveChefDep(true);
+        log.info("Besoin {} passed step 2 (ChefDep) by user '{}'", id, auth.getName());
+    }
+
+    private void approveAdminStep(BesoinFormation b, Long id, Authentication auth, boolean isAdmin) {
+        if (!isAdmin) {
+            throw new AccessDeniedException(
+                    "Étape 3 du workflow : approbation finale réservée à l'administrateur.");
+        }
+        b.setApprouveAdmin(true);
+        log.info("Besoin {} fully approved (step 3 Admin) by user '{}'", id, auth.getName());
+        publishApprovalEventIfNeeded(b);
+    }
+
+    private void publishApprovalEventIfNeeded(BesoinFormation b) {
+        // Publier l'événement une seule fois (idempotence via eventPublished)
+        if (!Boolean.TRUE.equals(b.getEventPublished())) {
+            publishApprovalEvent(b);
+            b.setEventPublished(true);
+        }
     }
 
     /**

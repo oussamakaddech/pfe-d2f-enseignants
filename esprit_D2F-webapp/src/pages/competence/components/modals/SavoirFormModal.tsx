@@ -13,7 +13,7 @@ interface SavoirFormModalProps {
   savoirForm: FormInstance;
 }
 
-export default function SavoirFormModal({ crud, savoirForm }: SavoirFormModalProps) {
+export default function SavoirFormModal({ crud, savoirForm }: Readonly<SavoirFormModalProps>) {
   return (
     <Modal
       forceRender

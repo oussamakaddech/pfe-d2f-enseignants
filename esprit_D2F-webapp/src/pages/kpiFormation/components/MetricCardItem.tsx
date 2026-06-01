@@ -62,7 +62,7 @@ export function MetricCardItem({
   onCloseSettings,
   onDelete,
   onFormSubmit,
-}: MetricCardItemProps) {
+}: Readonly<MetricCardItemProps>) {
   return (
     <Col xs={24} sm={12} md={8} lg={6}>
       <Tooltip title={card.title} placement="top" mouseEnterDelay={0.4}>

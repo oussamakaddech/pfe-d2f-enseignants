@@ -80,7 +80,7 @@ interface EnseignantHeaderProps {
   count: number;
 }
 
-function EnseignantHeader({ enseignant, count }: EnseignantHeaderProps) {
+function EnseignantHeader({ enseignant, count }: Readonly<EnseignantHeaderProps>) {
   const fullName = `${enseignant.prenom ?? ""} ${enseignant.nom ?? ""}`.trim();
   const initials = `${(enseignant.prenom ?? "")[0] ?? ""}${(enseignant.nom ?? "")[0] ?? ""}`;
 
@@ -119,7 +119,7 @@ interface CompetenceGroupRowProps {
   assignments: Record<string, string[]>;
 }
 
-function CompetenceGroupRow({ comp, enseignants, assignments }: CompetenceGroupRowProps) {
+function CompetenceGroupRow({ comp, enseignants, assignments }: Readonly<CompetenceGroupRowProps>) {
   const allSavoirs = comp.allSavoirs ?? [];
 
   return (
@@ -157,7 +157,7 @@ interface SousCompGroupRowProps {
 }
 
 // FIX: renders empty <td> for each enseignant column to maintain table structure
-function SousCompGroupRow({ sc, enseignants }: SousCompGroupRowProps) {
+function SousCompGroupRow({ sc, enseignants }: Readonly<SousCompGroupRowProps>) {
   return (
     <tr className="sc-group-row">
       <td className="sticky-col">
@@ -180,7 +180,7 @@ interface SavoirRowProps {
   isDraggingAny?: boolean;
 }
 
-function SavoirRow({ savoir, enseignants, assignments, isDraggingAny }: SavoirRowProps) {
+function SavoirRow({ savoir, enseignants, assignments, isDraggingAny }: Readonly<SavoirRowProps>) {
   const {
     draggingId,
     dragOverCell,
@@ -308,7 +308,7 @@ export default function MatchingMatrix({
   onDrop,
   onUnassign,
   isDraggingAny,
-}: MatchingMatrixProps) {
+}: Readonly<MatchingMatrixProps>) {
   const ensCounts = enseignants.reduce<Record<string, number>>((acc, e) => {
     acc[String(e.id)] = 0;
     return acc;

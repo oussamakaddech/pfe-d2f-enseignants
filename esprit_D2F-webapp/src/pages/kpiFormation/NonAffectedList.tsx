@@ -19,8 +19,7 @@ import {
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { useEnseignantsNonAffectes } from "@/hooks/kpi/useKpi";
-import { useDepartements } from "@/hooks/formation/useFormations";
-import { useUps } from "@/hooks/formation/useFormations";
+import { useDepartements, useUps } from "@/hooks/formation/useFormations";
 import "@/styles/components/chart-scroll.css";
 
 const { RangePicker } = DatePicker;

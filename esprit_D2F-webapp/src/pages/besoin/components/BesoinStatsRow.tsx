@@ -29,7 +29,7 @@ interface BesoinStatsRowProps {
   pending: number;
 }
 
-function StatCard({ icon, label, value, hint, variant, progress, trend }: StatCardProps) {
+function StatCard({ icon, label, value, hint, variant, progress, trend }: Readonly<StatCardProps>) {
   return (
     <article className={`bf-stat bf-stat--${variant}`}>
       <div className="bf-stat__rail" aria-hidden="true" />
@@ -63,7 +63,7 @@ function StatCard({ icon, label, value, hint, variant, progress, trend }: StatCa
   );
 }
 
-export default function BesoinStatsRow({ total, approved, pending }: BesoinStatsRowProps) {
+export default function BesoinStatsRow({ total, approved, pending }: Readonly<BesoinStatsRowProps>) {
   const tauxApprobation = total === 0 ? 0 : Math.round((approved * 100) / total);
   const tauxAttente     = total === 0 ? 0 : Math.round((pending  * 100) / total);
   return (

@@ -41,8 +41,7 @@ describe('ErrorBoundary', () => {
   });
 
   it('should display error details in development mode', () => {
-    const originalEnv = process.env.NODE_ENV;
-    process.env.NODE_ENV = 'development';
+    vi.stubEnv('MODE', 'development');
 
     render(
       <ErrorBoundary>
@@ -53,7 +52,7 @@ describe('ErrorBoundary', () => {
     // In dev mode, error boundary message should be visible
     expect(screen.getByText(/Une erreur est survenue/i)).toBeInTheDocument();
 
-    process.env.NODE_ENV = originalEnv;
+    vi.unstubAllEnvs();
   });
 
   it('should display multiple children when rendering without error', () => {

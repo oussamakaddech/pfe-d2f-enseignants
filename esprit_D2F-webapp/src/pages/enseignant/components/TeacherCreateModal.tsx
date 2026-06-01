@@ -39,7 +39,7 @@ export default function TeacherCreateModal({
   ups,
   depts,
   form,
-}: TeacherCreateModalProps) {
+}: Readonly<TeacherCreateModalProps>) {
   const title = extractedTeacher?.nom_complet
     ? `Créer enseignant extrait — ${extractedTeacher.nom_complet}`
     : "Créer enseignant extrait";

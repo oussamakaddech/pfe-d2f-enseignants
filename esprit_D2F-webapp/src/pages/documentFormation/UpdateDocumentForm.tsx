@@ -26,7 +26,7 @@ interface DocFormValues {
   file?: UploadFile[];
 }
 
-export default function UpdateDocumentForm({ documentData, onUpdated }: UpdateDocumentFormProps) {
+export default function UpdateDocumentForm({ documentData, onUpdated }: Readonly<UpdateDocumentFormProps>) {
   const { message } = useAppNotification();
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
@@ -63,7 +63,7 @@ export default function UpdateDocumentForm({ documentData, onUpdated }: UpdateDo
       message.success("Document mis à jour avec succès");
       form.resetFields();
       setFileList([]);
-      onUpdated(updatedDoc as FormationDocument);
+      onUpdated(updatedDoc);
     } catch {
       message.error("🚫 Erreur lors de la mise à jour du document.");
     } finally {

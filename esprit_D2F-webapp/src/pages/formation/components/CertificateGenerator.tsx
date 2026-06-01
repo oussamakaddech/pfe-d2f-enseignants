@@ -1,7 +1,7 @@
 import React from "react";
 import { Button, Drawer, Select, DatePicker, Space, Table } from "antd";
 import type { Dayjs } from "dayjs";
-import type { Id } from "@/models/common";
+
 import type { EnseignantRef } from "../CompletedFormations";
 
 const { Option } = Select;
@@ -49,7 +49,7 @@ export function CertificateGenerator({
   selectedNewCertEns,
   onSelectNewCertEns,
   onCreateCertificate,
-}: CertificateGeneratorProps) {
+}: Readonly<CertificateGeneratorProps>) {
   const ensColumns = [
     { title: "ID", dataIndex: "id", key: "id" },
     { title: "Nom", dataIndex: "nom", key: "nom" },
