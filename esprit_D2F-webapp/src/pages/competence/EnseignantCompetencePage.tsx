@@ -24,7 +24,7 @@ import {
   TrophyOutlined,
 } from "@ant-design/icons";
 import { useAuth } from "@/hooks/auth/useAuth";
-import { useEnseignantCompetenceApi, useCompetenceDomaineApi, useSavoirApi, useStructureApi } from "@/hooks/competence/useCompetenceService";
+import { useEnseignantCompetenceApi, useCompetenceDomaineApi, useSavoirApi } from "@/hooks/competence/useCompetenceService";
 import useAppNotification from "@/hooks/ui/useAppNotification";
 import { AppPageHeader } from "@/components/common";
 import { NIVEAU_OPTIONS } from "@/utils/constants/competenceOptions";
@@ -86,7 +86,6 @@ export default function EnseignantCompetencePage() {
   const ecApi = useEnseignantCompetenceApi();
   const domaineApi = useCompetenceDomaineApi();
   const savoirApi = useSavoirApi();
-  const structureApi = useStructureApi();
   const { message: msgApi } = useAppNotification();
 
   const [competences, setCompetences] = useState<EnseignantCompetenceRecord[]>([]);

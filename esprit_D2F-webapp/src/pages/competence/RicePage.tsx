@@ -83,7 +83,7 @@ export default function RicePage() {
   const {
     analyzing, setAnalyzing, analysisProgress, setAnalysisProgress,
     analysisResult, extractedEnseignants, setExtractedEnseignants,
-    ensSearchStep2, handleAnalyze, handleUploadChange,
+    handleAnalyze, handleUploadChange,
     analyzeIsCanceledRef, progressTimerRef,
   } = useRiceAnalysis({
     files, departement, allEnseignants, ignoreEnseignants,
@@ -101,9 +101,9 @@ export default function RicePage() {
 
   const {
     createEnsModal, setCreateEnsModal,
-    createEnsTarget, setCreateEnsTarget,
+    setCreateEnsTarget,
     createEnsData, setCreateEnsData,
-    savingNewEns, remapEnseignant, handleCreateNewEnseignant,
+    savingNewEns, handleCreateNewEnseignant,
   } = useRiceTeacherManager({
     msgApi, createEnseignantMutate: createEnseignantHook.mutateAsync,
     setAllEnseignants, tree, setEnseignants, remapInTree, setExtractedEnseignants,

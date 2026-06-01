@@ -114,7 +114,7 @@ export function useRiceReport({ tree, departement, msgApi, onImportSuccess }: Us
         description: d.description ?? null,
         competences: (d.competences ?? []).map(buildCompetencePayload),
       })),
-      departement: departement !== "auto" ? departement : undefined,
+      departement: departement === "auto" ? undefined : departement,
     };
 
     try {

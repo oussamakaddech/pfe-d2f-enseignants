@@ -78,6 +78,23 @@ interface RefItem {
   nom?: string;
 }
 
+function FormationExpandRow({ record }: { record: Formation }) {
+  return (
+    <div className="formation-expand-content">
+      <span className="formation-expand-title">Séances</span>
+      <div className="formation-seance-list">
+        {(record.seances || []).map((s) => (
+          <span key={String(s.idSeance)} className="formation-seance-tag">
+            <span className="formation-seance-date">{dayjs(s.dateSeance).format("DD/MM/YYYY")}</span>
+            <span className="formation-seance-time">{s.heureDebut}–{s.heureFin}</span>
+            {s.salle && <span className="formation-seance-salle">· {s.salle}</span>}
+          </span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function FormationConsultationPage() {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -346,7 +363,7 @@ export default function FormationConsultationPage() {
         <AppPageHeader
           icon={<AppstoreOutlined />}
           title="Catalogue des Formations"
-          subtitle={`${filtered.length} formation${filtered.length !== 1 ? "s" : ""}${hasActiveFilters ? " (filtrées)" : ""}`}
+          subtitle={`${filtered.length} formation${filtered.length === 1 ? "" : "s"}${hasActiveFilters ? " (filtrées)" : ""}`}
           actions={
             <Space size={8}>
               {canManageFormations && (
@@ -438,7 +455,7 @@ export default function FormationConsultationPage() {
           rowKey="idFormation"
           loading={loading}
           size="middle"
-          pagination={{ pageSize: 10, showSizeChanger: true, showTotal: (total) => `${total} formation${total !== 1 ? "s" : ""}` }}
+          pagination={{ pageSize: 10, showSizeChanger: true, showTotal: (total) => `${total} formation${total === 1 ? "" : "s"}` }}
           locale={{
             emptyText: (
               <EmptyState
@@ -451,20 +468,7 @@ export default function FormationConsultationPage() {
             ),
           }}
           expandable={{
-            expandedRowRender: (record) => (
-              <div className="formation-expand-content">
-                <span className="formation-expand-title">Séances</span>
-                <div className="formation-seance-list">
-                  {(record.seances || []).map((s) => (
-                    <span key={String(s.idSeance)} className="formation-seance-tag">
-                      <span className="formation-seance-date">{dayjs(s.dateSeance).format("DD/MM/YYYY")}</span>
-                      <span className="formation-seance-time">{s.heureDebut}–{s.heureFin}</span>
-                      {s.salle && <span className="formation-seance-salle">· {s.salle}</span>}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            ),
+            expandedRowRender: (record) => <FormationExpandRow record={record} />,
             rowExpandable: (record) => record.seances != null,
           }}
         />

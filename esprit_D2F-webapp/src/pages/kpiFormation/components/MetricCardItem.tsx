@@ -99,7 +99,7 @@ export function MetricCardItem({
 
           <div style={{ display: "flex", alignItems: "baseline", gap: 6, marginBottom: 6 }}>
             <span style={{ fontSize: 28, fontWeight: 700, color: neutral[900], lineHeight: 1 }}>
-              {card.count !== null ? card.count as React.ReactNode : "—"}
+              {card.count === null ? "—" : card.count as React.ReactNode}
             </span>
             <Text style={{ fontSize: 12, color: neutral[500] }}>formations</Text>
           </div>
@@ -107,7 +107,7 @@ export function MetricCardItem({
           <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
             <ClockCircleOutlined style={{ color: neutral[400], fontSize: 12 }} />
             <Text style={{ fontSize: 12, color: neutral[500] }}>
-              {card.totalHeures !== null ? `${card.totalHeures as React.ReactNode} h totales` : "—"}
+              {card.totalHeures === null ? "—" : `${card.totalHeures as React.ReactNode} h totales`}
             </Text>
           </div>
         </Card>

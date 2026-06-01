@@ -67,7 +67,7 @@ export default function CompletedFormations() {
   const [newCertDrawerVisible, setNewCertDrawerVisible] = useState(false);
   const [newCertFormationId, setNewCertFormationId] = useState<Id | null>(null);
   const [newCertEnseignants, setNewCertEnseignants] = useState<EnseignantRef[]>([]);
-  const [loadingNewCertEns, setLoadingNewCertEns] = useState(false);
+  const [loadingNewCertEns] = useState(false);
   const [selectedNewCertEns, setSelectedNewCertEns] = useState<EnseignantRef | null>(null);
 
   const handleGenerateCertificate = async (record: FormationRecord) => {
@@ -169,7 +169,7 @@ export default function CompletedFormations() {
       <AppPageHeader
         icon={<SafetyCertificateOutlined />}
         title="Formations Achevées"
-        subtitle={`${formations.length} formation${formations.length !== 1 ? "s" : ""} terminée${formations.length !== 1 ? "s" : ""} — Générez certificats et attestations`}
+        subtitle={`${formations.length} formation${formations.length === 1 ? "" : "s"} terminée${formations.length === 1 ? "" : "s"} — Générez certificats et attestations`}
       />
       <CompletedFormationsTable
         formations={formations}

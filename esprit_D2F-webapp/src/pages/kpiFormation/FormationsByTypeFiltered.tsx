@@ -59,7 +59,7 @@ export default function FormationsByTypeFiltered() {
       domaine:    (av.domaine as string | null) || null,
       upId:       (av.upId as string | null) || null,
       deptId:     (av.deptId as string | null) || null,
-      ouverte:    av.ouverte !== undefined ? (av.ouverte as boolean | null) : null,
+      ouverte:    av.ouverte === undefined ? null : (av.ouverte as boolean | null),
       start:      dateRange ? dateRange[0].format("YYYY-MM-DD") : null,
       end:        dateRange ? dateRange[1].format("YYYY-MM-DD") : null,
       etat:       (av.etat as string | null) || null,

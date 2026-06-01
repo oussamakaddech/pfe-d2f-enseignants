@@ -9,8 +9,8 @@ const { Title, Paragraph } = Typography;
 interface AnalyzingStepProps {
   filesCount: number;
   analysisProgress: number;
-  analyzeIsCanceledRef: React.MutableRefObject<boolean>;
-  progressTimerRef: React.MutableRefObject<ReturnType<typeof setInterval> | null>;
+  analyzeIsCanceledRef: React.RefObject<boolean>;
+  progressTimerRef: React.RefObject<ReturnType<typeof setInterval> | null>;
   setAnalyzing: (v: boolean) => void;
   setCurrentStep: (step: number) => void;
   setAnalysisProgress: (v: number) => void;

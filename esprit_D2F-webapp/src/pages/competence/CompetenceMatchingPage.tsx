@@ -185,8 +185,8 @@ export default function CompetenceMatchingPage() {
       const sId = String(s.id);
       const assigned = (state.assignments[sId] ?? []).map((id) => teacherById.get(id)).filter(Boolean) as RiceEnseignantEntry[];
       return (
-        <div key={sId} className={`savoir-assignment-card ${assigned.length > 0 ? "assigned" : "unassigned"} ${draggingId === sId ? "dragging" : ""}`}
-          draggable role="button" tabIndex={0} onKeyDown={() => {}} onDragStart={(e) => { e.dataTransfer.setData("text/plain", JSON.stringify({ savoirId: String(s.id), code: s.code, action: "assign" })); e.dataTransfer.effectAllowed = "copy"; setDraggingId(String(s.id)); }} onDragEnd={handleDragEnd}>
+        <button key={sId} type="button" className={`savoir-assignment-card ${assigned.length > 0 ? "assigned" : "unassigned"} ${draggingId === sId ? "dragging" : ""}`}
+          draggable tabIndex={0} onKeyDown={() => {}} onDragStart={(e) => { e.dataTransfer.setData("text/plain", JSON.stringify({ savoirId: String(s.id), code: s.code, action: "assign" })); e.dataTransfer.effectAllowed = "copy"; setDraggingId(String(s.id)); }} onDragEnd={handleDragEnd}>
           <div className="savoir-card-header">
             <span className="savoir-drag-handle"><HolderOutlined /></span>
             <span className="savoir-code-label">{s.code as string}</span>
@@ -201,7 +201,7 @@ export default function CompetenceMatchingPage() {
               ))}
             </div>
           )}
-        </div>
+        </button>
       );
     });
   }
@@ -219,8 +219,8 @@ export default function CompetenceMatchingPage() {
       const assigned = assignedSavoirsByEns.get(ensId) ?? [];
       const initials = `${(ens.prenom as string)?.[0] ?? ""}${(ens.nom as string)?.[0] ?? ""}`.toUpperCase() || "?";
       return (
-        <div key={ensId} className={`enseignant-assignment-card ${draggingId ? "drag-mode-active" : ""} ${dragOverEns === ensId ? "drag-over-target" : ""}`}
-          role="button" tabIndex={0} onKeyDown={() => {}}
+        <button key={ensId} type="button" className={`enseignant-assignment-card ${draggingId ? "drag-mode-active" : ""} ${dragOverEns === ensId ? "drag-over-target" : ""}`}
+          tabIndex={0} onKeyDown={() => {}}
           onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "copy"; setDragOverEns(ensId); }}
           onDragLeave={(e) => { const related = e.relatedTarget; if (related && e.currentTarget.contains(related as Node)) return; setDragOverEns(null); }}
           onDrop={(e) => handleEnsDrop(e, ensId)}>
@@ -256,7 +256,7 @@ export default function CompetenceMatchingPage() {
               ))}
             </div>
           )}
-        </div>
+        </button>
       );
     });
   }

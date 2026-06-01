@@ -26,10 +26,10 @@ export default function DonutChart({ data, colors, total, onClick }: Readonly<Do
       style={{ borderRadius: 8, boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}
       styles={{ body: { padding: 16 } }}
     >
-      <div
-        role="button"
+      <button
+        type="button"
         tabIndex={0}
-        style={{ cursor: "pointer" }}
+        style={{ cursor: "pointer", background: "none", border: "none", padding: 0, width: "100%" }}
         onClick={onClick}
         onKeyDown={handleKeyDown}
       >
@@ -67,7 +67,7 @@ export default function DonutChart({ data, colors, total, onClick }: Readonly<Do
             },
           }}
         />
-      </div>
+      </button>
     </Card>
   );
 }

@@ -150,8 +150,8 @@ export default function Home() {
             return (
               <Col xs={24} sm={12} md={8} lg={6} key={card.path}>
                 <motion.div variants={cardVariants} style={{ height: "100%" }}>
-                  <div
-                    role="button"
+                  <button
+                    type="button"
                     tabIndex={0}
                     onClick={() => navigate(card.path)}
                     onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); navigate(card.path); } }}
@@ -223,7 +223,7 @@ export default function Home() {
                     >
                       Accéder <ArrowRightOutlined style={{ fontSize: 10 }} />
                     </div>
-                  </div>
+                  </button>
                 </motion.div>
               </Col>
             );

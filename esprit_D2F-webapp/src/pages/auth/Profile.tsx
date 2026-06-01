@@ -38,7 +38,7 @@ export default function Profile() {
   const [passwordSaving, setPasswordSaving] = useState(false);
   const [isInfoDrawerOpen, setIsInfoDrawerOpen] = useState(false);
   const [isPwdDrawerOpen, setIsPwdDrawerOpen] = useState(false);
-  const [error, setError] = useState(null);
+  const [error] = useState(null);
 
   const [infoForm] = Form.useForm();
   const [pwdForm] = Form.useForm();

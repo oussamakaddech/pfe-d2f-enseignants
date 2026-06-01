@@ -143,9 +143,9 @@ export function useMatchmaking() {
         const sId = a.savoirId ?? a.savoir_id ?? a.savoir;
         const eId = a.enseignantId ?? a.enseignant_id ?? a.enseignant;
         if (!sId || !eId) return;
-        if (!assignments.has(sId as number)) assignments.set(sId as number, new Set());
-        assignments.get(sId as number)!.add(eId as number);
-        if (ecId != null) assignmentIds.set(`${String(sId)}|${String(eId)}`, ecId as number);
+        if (!assignments.has(sId)) assignments.set(sId, new Set());
+        assignments.get(sId)!.add(eId);
+        if (ecId != null) assignmentIds.set(`${String(sId)}|${String(eId)}`, ecId);
       });
     }
 

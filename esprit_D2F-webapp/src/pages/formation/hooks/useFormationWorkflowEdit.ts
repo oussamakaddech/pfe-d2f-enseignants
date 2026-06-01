@@ -237,8 +237,8 @@ export function useFormationWorkflowEdit(formation: EditFormation, onFormationUp
       const hdr = (rows[0] as string[]).map((h) => String(h).toLowerCase().trim());
       const idx = hdr.findIndex((h) => h === "email" || h === "mail");
       if (idx < 0) { message.warning(`Colonne Email introuvable. Colonnes attendues : Email, Nom, Prénom. Colonnes trouvées : ${(rows[0] as string[]).join(", ")}`); e.target.value = ""; return; }
-      const mails = rows.slice(1).map((r) => r[idx]).filter(Boolean);
-      const matched = ens.filter((x) => mails.includes(x.mail));
+      const mailsSet = new Set(rows.slice(1).map((r) => r[idx]).filter(Boolean));
+      const matched = ens.filter((x) => mailsSet.has(x.mail));
       setPartSel(matched);
       message.success(`${matched.length} participant${matched.length > 1 ? "s" : ""} importé${matched.length > 1 ? "s" : ""}`);
       e.target.value = "";

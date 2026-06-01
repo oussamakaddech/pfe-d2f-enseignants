@@ -98,13 +98,15 @@ function buildConflictMessages(
   return [...new Set(msgs)];
 }
 
+const TRUTHY_FLAGS = new Set(["O", "Y", "1"]);
+
 function getEnseignantLabel(opt: EnseignantItem | null) {
   if (!opt) return "";
   const roles: string[] = [];
   if (opt.type === "P") roles.push("Perm.");
   if (opt.type === "V") roles.push("Vac.");
-  if (["O", "Y", "1"].includes(opt.cup)) roles.push("CUP");
-  if (["O", "Y", "1"].includes(opt.chefDepartement)) roles.push("ChefDep");
+  if (TRUTHY_FLAGS.has(opt.cup)) roles.push("CUP");
+  if (TRUTHY_FLAGS.has(opt.chefDepartement)) roles.push("ChefDep");
   return `${opt.nom} ${opt.prenom} (${opt.mail})${roles.length ? ` [${roles.join(", ")}]` : ""}`;
 }
 
@@ -283,8 +285,8 @@ export function useFormationWorkflow(
       const hdr = rows[0].map((h) => String(h).toLowerCase().trim());
       const idx = hdr.findIndex((h) => h === "email" || h === "mail");
       if (idx < 0) { message.warning(`Colonne Email introuvable. Colonnes trouvées : ${rows[0].join(", ")}`); e.target.value = ""; return; }
-      const mails = rows.slice(1).map((r) => r[idx]).filter(Boolean);
-      const matched = ens.filter((x) => mails.includes(x.mail));
+      const mailsSet = new Set(rows.slice(1).map((r) => r[idx]).filter(Boolean));
+      const matched = ens.filter((x) => mailsSet.has(x.mail));
       setPartSel(matched);
       message.success(`${matched.length} participant${matched.length > 1 ? "s" : ""} importé${matched.length > 1 ? "s" : ""}`);
       e.target.value = "";

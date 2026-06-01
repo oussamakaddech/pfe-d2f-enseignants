@@ -206,7 +206,7 @@ export default function DonutByTrainerTypeWithFilters() {
           layout="vertical"
           initialValues={{ domaine: filters.domaine, upId: filters.upId, deptId: filters.deptId, ouverte: filters.ouverte, dateRange: filters.start && filters.end ? [dayjs(filters.start, "YYYY-MM-DD"), dayjs(filters.end, "YYYY-MM-DD")] : null, etat: filters.etat }}
           onValuesChange={(_, allValues) => {
-            setFilters({ domaine: allValues.domaine || null, upId: allValues.upId || null, deptId: allValues.deptId || null, ouverte: allValues.ouverte !== undefined ? allValues.ouverte : null, start: allValues.dateRange ? allValues.dateRange[0].format("YYYY-MM-DD") : null, end: allValues.dateRange ? allValues.dateRange[1].format("YYYY-MM-DD") : null, etat: allValues.etat || null });
+            setFilters({ domaine: allValues.domaine || null, upId: allValues.upId || null, deptId: allValues.deptId || null, ouverte: allValues.ouverte === undefined ? null : allValues.ouverte, start: allValues.dateRange ? allValues.dateRange[0].format("YYYY-MM-DD") : null, end: allValues.dateRange ? allValues.dateRange[1].format("YYYY-MM-DD") : null, etat: allValues.etat || null });
           }}
           onFinish={() => setDrawerVisible(false)}
         >

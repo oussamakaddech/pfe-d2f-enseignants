@@ -342,16 +342,16 @@ export default function AnalyticsDashboardPage() {
               <Space direction="vertical" size="large" className="w-full">
                 <Statistic
                   title="Précision (R²) du modèle de gaps"
-                  value={modelAccuracy != null ? modelAccuracy : "—"}
-                  precision={modelAccuracy != null ? 2 : undefined}
+                  value={modelAccuracy == null ? "—" : modelAccuracy}
+                  precision={modelAccuracy == null ? undefined : 2}
                   valueStyle={{ color: modelAccuracy != null && modelAccuracy >= 0.7 ? "#10b981" : "#f59e0b" }}
                 />
                 <div>
                   <Text type="secondary" className="text-sm">Proba. de réussite moyenne (reco)</Text>
                   <div>
                     <Text strong className="text-lg">
-                      {modelPerf?.recommendation_avg_proba != null
-                        ? `${Math.round(modelPerf.recommendation_avg_proba * 100)}%` : "—"}
+                      {modelPerf?.recommendation_avg_proba == null
+                        ? "—" : `${Math.round(modelPerf.recommendation_avg_proba * 100)}%`}
                     </Text>
                   </div>
                 </div>

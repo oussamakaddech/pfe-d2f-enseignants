@@ -89,7 +89,7 @@ export function buildFlatSavoirs(crud: { domaines?: Array<{ id?: unknown; code?:
   const scById = new Map(sousComps.map((sc) => [String(sc.id), sc] as const));
 
   return savoirs.map((s) => {
-    const sc = s?.sousCompetenceId != null ? scById.get(String(s.sousCompetenceId)) : null;
+    const sc = s?.sousCompetenceId == null ? null : scById.get(String(s.sousCompetenceId));
     let comp;
     if (sc) {
       comp = compById.get(String(sc.competenceId));
@@ -109,7 +109,7 @@ export function buildFlatSavoirs(crud: { domaines?: Array<{ id?: unknown; code?:
       niveau: s.niveau,
       sousCompetenceId: sc?.id ?? null,
       sousCompetenceNom: sc?.nom || null,
-      competenceId: comp?.id != null ? String(comp.id) : null,
+      competenceId: comp?.id == null ? null : String(comp.id),
       competenceCode: comp?.code || null,
       competenceNom: comp?.nom || "Sans competence",
       domaineId: domaine?.id ?? null,
@@ -129,8 +129,8 @@ export function getFilteredCrud(crud: { domaines?: Array<{ id: unknown; domaineI
   const compIdSet = new Set(filteredComps.map((c) => String(c.id)));
   const filteredScs = sousComps.filter((sc) => compIdSet.has(String(sc.competenceId)));
   const scIdSet = new Set(filteredScs.map((sc) => String(sc.id)));
-  const directSavoirs = savoirs.filter((s) => s.competenceId != null && compIdSet.has(String(s.competenceId)));
-  const filteredSavoirs = savoirs.filter((s) => scIdSet.has(String(s.sousCompetenceId)) || directSavoirs.includes(s));
+  const directSavoirsSet = new Set(savoirs.filter((s) => s.competenceId != null && compIdSet.has(String(s.competenceId))));
+  const filteredSavoirs = savoirs.filter((s) => scIdSet.has(String(s.sousCompetenceId)) || directSavoirsSet.has(s));
 
   return {
     domaines: filteredDomaines,

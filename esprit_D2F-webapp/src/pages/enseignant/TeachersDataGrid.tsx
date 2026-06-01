@@ -97,7 +97,7 @@ export default function TeachersDataGrid() {
                 <h2 className="teachers-hero-title">Annuaire des Enseignants</h2>
                 <span className="teachers-hero-badge">
                   {data.length}
-                  <span className="teachers-hero-badge-total">enseignant{data.length !== 1 ? "s" : ""}</span>
+                  <span className="teachers-hero-badge-total">enseignant{data.length === 1 ? "" : "s"}</span>
                 </span>
               </div>
               <div className="teachers-hero-subtitle">Gérer, importer et créer les comptes enseignants</div>
@@ -171,7 +171,7 @@ export default function TeachersDataGrid() {
             </Button>
           </Tooltip>
           <div className="teachers-toolbar-divider" />
-          <Tooltip title={!data.length ? "Aucune donnée à exporter" : "Exporter la liste en Excel"}>
+          <Tooltip title={data.length ? "Exporter la liste en Excel" : "Aucune donnée à exporter"}>
             <Button icon={<DownloadOutlined />} onClick={exportExcel} disabled={!data.length} className="teachers-btn-export">
               Exporter Excel
             </Button>
@@ -186,7 +186,7 @@ export default function TeachersDataGrid() {
             columns={columns as ColumnsType<Record<string, unknown>>}
             loading={isLoading}
             rowKey="id"
-            pagination={{ pageSize: 10, showTotal: (total) => `${total} enseignant${total !== 1 ? "s" : ""}` }}
+            pagination={{ pageSize: 10, showTotal: (total) => `${total} enseignant${total === 1 ? "" : "s"}` }}
             onRow={(record: Record<string, unknown>) => ({ onClick: () => { navigate(`/home/calendar/${record.id}`); } })}
             style={{ cursor: "pointer" }}
           />

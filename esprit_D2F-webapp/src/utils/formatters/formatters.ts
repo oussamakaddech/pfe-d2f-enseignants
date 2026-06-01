@@ -8,10 +8,13 @@
 
 // ── Dates ─────────────────────────────────────────────────────────────────────
 
+type DateInput = string | Date | null | undefined;
+type NumericInput = number | string | null | undefined;
+
 /**
  * Formate une date ISO en format lisible fr-FR (ex: "12 janv. 2025")
  */
-export const formatDate = (value: string | Date | null | undefined, format?: string): string => {
+export const formatDate = (value: DateInput, format?: string): string => {
   if (!value) return "—";
   const d = value instanceof Date ? value : new Date(value);
   if (Number.isNaN(d.getTime())) return "—";
@@ -39,7 +42,7 @@ export const formatDate = (value: string | Date | null | undefined, format?: str
 /**
  * Formate une date ISO avec heure (ex: "12 janv. 2025, 14:30")
  */
-export const formatDateTime = (value: string | Date | null | undefined): string => {
+export const formatDateTime = (value: DateInput): string => {
   if (!value) return "—";
   const d = value instanceof Date ? value : new Date(value);
   if (Number.isNaN(d.getTime())) return "—";
@@ -55,7 +58,7 @@ export const formatDateTime = (value: string | Date | null | undefined): string 
 /**
  * Formate une date ISO en format court (ex: "12/01/2025")
  */
-export const formatDateShort = (value: string | Date | null | undefined): string => {
+export const formatDateShort = (value: DateInput): string => {
   if (!value) return "—";
   const d = value instanceof Date ? value : new Date(value);
   if (Number.isNaN(d.getTime())) return "—";
@@ -65,7 +68,7 @@ export const formatDateShort = (value: string | Date | null | undefined): string
 /**
  * Retourne le temps relatif depuis une date (ex: "il y a 3 jours")
  */
-export const formatRelativeTime = (value: string | Date | null | undefined): string => {
+export const formatRelativeTime = (value: DateInput): string => {
   if (!value) return "—";
   const d = value instanceof Date ? value : new Date(value);
   if (Number.isNaN(d.getTime())) return "—";
@@ -159,7 +162,7 @@ export const normalizeForSearch = (str: string | null | undefined): string => {
 /**
  * Formate un nombre avec séparateur de milliers (ex: 1 234 567)
  */
-export const formatNumber = (value: number | string | null | undefined, digits?: number): string => {
+export const formatNumber = (value: NumericInput, digits?: number): string => {
   if (value === null || value === undefined) return "—";
   const num = Number(value);
   if (digits !== undefined) {
@@ -174,7 +177,7 @@ export const formatNumber = (value: number | string | null | undefined, digits?:
 /**
  * Formate un pourcentage (ex: 0.856 → "85,6 %")
  */
-export const formatPercent = (value: number | string | null | undefined, digits = 1): string => {
+export const formatPercent = (value: NumericInput, digits = 1): string => {
   if (value === null || value === undefined) return "—";
   return `${(Number(value) * 100).toFixed(digits).replaceAll(".", ",")} %`;
 };
@@ -182,7 +185,7 @@ export const formatPercent = (value: number | string | null | undefined, digits 
 /**
  * Formate un montant en devise (TND par défaut)
  */
-export const formatCurrency = (value: number | string | null | undefined, currency = "TND"): string => {
+export const formatCurrency = (value: NumericInput, currency = "TND"): string => {
   if (value === null || value === undefined) return "—";
   const num = Number(value);
   return num.toLocaleString("fr-FR", {

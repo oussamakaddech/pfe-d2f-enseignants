@@ -15,7 +15,7 @@ import {
   useDashboardSummary, useTrainModel, useAnalyserEnseignant,
   useGapHeatmap, useRiskEvolution, useModelPerformance,
 } from "@/hooks/analyse/useAnalysePredictive";
-import type { AnalyseData, DecliningCompetency, InDemandCompetency, TeacherRiskIndicator } from "@/models/analyse";
+import type { AnalyseData, DecliningCompetency, InDemandCompetency, TeacherRiskIndicator } from "@/models/analyse"; // NOSONAR
 import DashboardKpis from "@/components/charts/DashboardKpis";
 import RiskTable from "@/components/charts/RiskTable";
 import GapTable from "@/components/charts/GapTable";
@@ -227,14 +227,14 @@ export default function AnalysePredictivePage() {
                   <div>
                     <Text type="secondary">Précision (R²) du modèle de gaps</Text>
                     <div><Title level={3} style={{ margin: 0 }}>
-                      {modelPerf?.gap_model_accuracy != null ? modelPerf.gap_model_accuracy.toFixed(2) : "—"}
+                      {modelPerf?.gap_model_accuracy == null ? "—" : modelPerf.gap_model_accuracy.toFixed(2)}
                     </Title></div>
                   </div>
                   <div>
                     <Text type="secondary">Proba. de réussite moyenne (reco)</Text>
                     <div><Text strong>
-                      {modelPerf?.recommendation_avg_proba != null
-                        ? `${(modelPerf.recommendation_avg_proba * 100).toFixed(0)}%` : "—"}
+                      {modelPerf?.recommendation_avg_proba == null
+                        ? "—" : `${(modelPerf.recommendation_avg_proba * 100).toFixed(0)}%`}
                     </Text></div>
                   </div>
                   <div>

@@ -19,6 +19,7 @@ export type AccountItem = { id?: unknown; role?: string; userName?: string; user
 export type SeanceItem = { id?: unknown; dateSeance?: string; heureDebut?: unknown; heureFin?: unknown; salle?: unknown; animateurs?: { id?: unknown }[]; participants?: { id?: unknown }[]; seances?: SeanceItem[] };
 export type FormationRaw = { idFormation?: unknown; id?: unknown; titreFormation?: string; seances?: SeanceItem[]; participants?: { id?: unknown }[] };
 export type LookupNode = { id?: unknown; libelle?: string; nom?: string };
+export type NullableId = string | number | null;
 export type BesoinLinkRaw = { _id?: string; domaineId?: number | null; competenceId?: number | null; competenceNom?: string; savoirId?: number | null; savoirNom?: string; sousCompetenceId?: number | null };
 
 export type BesoinInfoShape = { titre?: string; objectifFormation?: string; dateDebut?: string; dateFin?: string; dureeFormation?: number; estOuverte?: boolean; periodCode?: string; customPeriodLabel?: string; periodeFormation?: string; publicCible?: string; propositionAnimateur?: string; objectifsPedagogiques?: string; methodesEvaluationAcquis?: string; theme?: string; up?: unknown; departement?: unknown; idBesoinFormation?: number | string; typeBesoin?: string; priorite?: string };
@@ -249,8 +250,8 @@ export function useFormationWorkflow({ initialDate, onFormationCreated, besoinIn
   const [coutHebergement, setCoutHebergement] = useState(0);
   const [coutRepas, setCoutRepas] = useState(0);
 
-  const [compDomaines, setCompDomaines] = useState<{ id?: string | number | null; nom?: string }[]>([]);
-  const [compCompetences, setCompCompetences] = useState<{ id?: string | number | null; nom?: string; domaineId?: string | number | null }[]>([]);
+  const [compDomaines, setCompDomaines] = useState<{ id?: NullableId; nom?: string }[]>([]);
+  const [compCompetences, setCompCompetences] = useState<{ id?: NullableId; nom?: string; domaineId?: NullableId }[]>([]);
   const [selectedCompLinks, setSelectedCompLinks] = useState<BesoinLinkRaw[]>([]);
   const [rowSavoirs, setRowSavoirs] = useState<Record<number, { id?: unknown; nom?: string; type?: string }[]>>({});
   const [compSearch, setCompSearch] = useState("");

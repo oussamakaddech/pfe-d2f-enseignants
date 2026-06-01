@@ -28,7 +28,6 @@ const formatTime = (t: string | Date | undefined | null): string => {
 const SeanceCard = ({ seance }: { seance: SeanceCardData }) => {
   const [showPresences, setShowPresences] = useState(false);
 
-  const participantsCount = Array.isArray(seance.participants) ? seance.participants.length : 0;
   const presencesCount = seance.presences?.length ?? 0;
 
   return (

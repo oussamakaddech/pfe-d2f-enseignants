@@ -138,7 +138,7 @@ export function CompletedFormationsTable({
           columns={columns}
           rowKey="idFormation"
           loading={loadingTable}
-          pagination={{ pageSize: 8, showSizeChanger: true, showTotal: (total) => `${total} formation${total !== 1 ? "s" : ""}` }}
+          pagination={{ pageSize: 8, showSizeChanger: true, showTotal: (total) => `${total} formation${total === 1 ? "" : "s"}` }}
           locale={{ emptyText: "Aucune formation achevée" }}
         />
       </Card>

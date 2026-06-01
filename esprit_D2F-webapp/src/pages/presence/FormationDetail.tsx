@@ -59,7 +59,7 @@ const FormationDetail = () => {
         const key = (p.mail || p.id) as string;
         if (!key) return;
         if (!map.has(key)) map.set(key, { ...p, seancesInscrites: 0 });
-        map.get(key)!.seancesInscrites = (map.get(key)!.seancesInscrites as number) + 1;
+        map.get(key)!.seancesInscrites = map.get(key)!.seancesInscrites + 1;
       });
     });
     return Array.from(map.values());

@@ -279,7 +279,7 @@ export default function EvaluationGlobalePage() {
         <AppPageHeader
           icon={<TrophyOutlined />}
           title="Évaluation Globale des Formations"
-          subtitle={`${filtered.length} évaluation${filtered.length !== 1 ? "s" : ""}${hasActiveFilters ? " (filtrées)" : ""}`}
+          subtitle={`${filtered.length} évaluation${filtered.length === 1 ? "" : "s"}${hasActiveFilters ? " (filtrées)" : ""}`}
           actions={
             <Button
               type="primary"
@@ -379,7 +379,7 @@ export default function EvaluationGlobalePage() {
             rowKey="idEvalGlobale"
             loading={loading}
             size="middle"
-            pagination={{ pageSize: 8, showSizeChanger: true, showTotal: (total) => `${total} évaluation${total !== 1 ? "s" : ""}` }}
+            pagination={{ pageSize: 8, showSizeChanger: true, showTotal: (total) => `${total} évaluation${total === 1 ? "" : "s"}` }}
             locale={{
               emptyText: (
                 <EmptyState

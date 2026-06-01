@@ -103,7 +103,7 @@ export default function ExportMenu({ crud, structure, stats, handleExportExcel }
           <span className="ctp-export-stats__sep">·</span>
           <span>{exportStats.competences} comp.</span>
           <span className="ctp-export-stats__sep">·</span>
-          <span>{exportStats.savoirs} savoir{exportStats.savoirs !== 1 ? "s" : ""}</span>
+          <span>{exportStats.savoirs} savoir{exportStats.savoirs === 1 ? "" : "s"}</span>
           {domaineName && <Tag color="blue" style={{ marginLeft: 8, fontSize: 11 }}>filtre actif</Tag>}
         </div>
       ),

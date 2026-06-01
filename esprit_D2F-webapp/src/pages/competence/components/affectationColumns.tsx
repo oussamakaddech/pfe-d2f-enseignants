@@ -55,7 +55,7 @@ interface BuildColumnsOpts {
 }
 
 export function buildMainColumns(opts: BuildColumnsOpts): TableColumnsType<EnseignantRow> {
-  const { openNiveauModal, handleDeleteAll } = opts;
+  const { handleDeleteAll } = opts;
 
   return [
     {

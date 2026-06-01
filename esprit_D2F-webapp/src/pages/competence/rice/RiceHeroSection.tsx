@@ -52,7 +52,7 @@ export default function RiceHeroSection({
     {
       label: "Fichiers",
       value: filesCount,
-      note: filesCount > 0 ? `${filesCount} prêt${filesCount > 1 ? "s" : ""}` : "Aucun chargé",
+      note: (() => { if (!filesCount) return "Aucun chargé"; return `${filesCount} prêt${filesCount > 1 ? "s" : ""}`; })(),
     },
     {
       label: "Enseignants",

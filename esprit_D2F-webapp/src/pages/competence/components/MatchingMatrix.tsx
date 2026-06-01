@@ -195,7 +195,7 @@ function SavoirRow({ savoir, enseignants, assignments, isDraggingAny }: Readonly
   const isBeingDragged = draggingId === String(savoir.id);
   const isAssignedAnywhere = (assignments[String(savoir.id)] ?? []).length > 0;
 
-  const handleDragStart = (e: React.DragEvent<HTMLDivElement>) => {
+  const handleDragStart = (e: React.DragEvent<HTMLButtonElement>) => {
     e.dataTransfer.setData(
       "application/json",
       JSON.stringify({ savoirId: String(savoir.id), savoirNom: savoir.nom })
@@ -208,10 +208,9 @@ function SavoirRow({ savoir, enseignants, assignments, isDraggingAny }: Readonly
     <tr className="savoir-row">
       <td className="sticky-col">
         {/* Draggable label: keyboard users use the cell-level dropdown actions. */}
-        <div
+        <button
+          type="button"
           className="savoir-label"
-          role="button"
-          tabIndex={0}
           draggable={true}
           onDragStart={handleDragStart}
           onDragEnd={onDragEnd}
@@ -226,7 +225,7 @@ function SavoirRow({ savoir, enseignants, assignments, isDraggingAny }: Readonly
               {`${savoir.code ?? ""} ${savoir.nom}`.slice(0, 28)}
             </div>
           </div>
-        </div>
+        </button>
       </td>
 
       {enseignants.map((ens) => {

@@ -107,9 +107,9 @@ const MetricCards = () => {
   const handleFormSubmit = async (cardId: unknown, values: Record<string, unknown>) => {
     const filters: CardFilters = {
       domaine: values.domaine as string || null,
-      upId:    values.upId != null ? String(values.upId) : null,
-      deptId:  values.deptId != null ? String(values.deptId) : null,
-      ouverte: values.ouverte !== undefined ? values.ouverte as boolean : null,
+      upId:    values.upId == null ? null : String(values.upId),
+      deptId:  values.deptId == null ? null : String(values.deptId),
+      ouverte: values.ouverte === undefined ? null : values.ouverte as boolean,
       start:   values.dateRange ? (values.dateRange as dayjs.Dayjs[])[0].format("YYYY-MM-DD") : null,
       end:     values.dateRange ? (values.dateRange as dayjs.Dayjs[])[1].format("YYYY-MM-DD") : null,
       etat:    values.etat as string || null,

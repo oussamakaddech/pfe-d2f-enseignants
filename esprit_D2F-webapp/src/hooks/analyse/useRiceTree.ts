@@ -87,8 +87,8 @@ export function useRiceTree(msgApi: MessageInstance) {
       const [di, ci, sci, si] = path;
       if (si !== undefined) getSavoir(t, di, ci, sci, si).nom = value;
       else if (sci !== undefined) t[di].competences![ci].sousCompetences![sci].nom = value;
-      else if (ci !== undefined) t[di].competences![ci].nom = value;
-      else t[di].nom = value;
+      else if (ci === undefined) t[di].nom = value;
+      else t[di].competences![ci].nom = value;
     });
     setEditingNom(null);
   }, [editingNom, updateTree]);

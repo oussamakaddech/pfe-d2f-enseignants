@@ -381,7 +381,7 @@ export default function CombinedFormationOneDriveTree() {
         title={preview?.nomDocument || "Aperçu du document"}
         open={!!preview}
         onClose={() => setPreview(null)}
-        width={Math.min(900, typeof window !== "undefined" ? window.innerWidth - 40 : 900)}
+        width={Math.min(900, typeof window === "undefined" ? 900 : window.innerWidth - 40)}
         extra={preview && (
           <Button icon={<DownloadOutlined />} onClick={() => handleDownload(preview)}>Télécharger</Button>
         )}

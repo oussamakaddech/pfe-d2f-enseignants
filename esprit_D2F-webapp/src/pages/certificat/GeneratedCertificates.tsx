@@ -35,7 +35,7 @@ function GeneratedCertificates() {
       <AppPageHeader
         icon={<SafetyCertificateOutlined />}
         title="Certificats générés"
-        subtitle={`Formation #${formationId} — ${pdfFiles.length} certificat${pdfFiles.length !== 1 ? "s" : ""}`}
+        subtitle={`Formation #${formationId} — ${pdfFiles.length} certificat${pdfFiles.length === 1 ? "" : "s"}`}
         actions={
           <Button
             icon={<ArrowLeftOutlined />}
