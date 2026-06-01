@@ -77,16 +77,16 @@ function renderSavoirItem(savoir: SavoirNode, di: number, ci: number, sci: numbe
     inlineHint: showInlineHint && (savoir.enseignantsSuggeres ?? []).length === 0,
   } as unknown as SavoirCardProps;
   return (
-    <div
+    <button
       key={savoir.tmpId ?? `${di}-${ci}-${sci}-${si}`}
-      role="button"
+      type="button"
       tabIndex={0}
       className={`tree-node-row${isSelected ? " selected" : ""}`}
       onClick={() => setSelectedNode({ type: "savoir", path: [di, ci, sci, si], data: cloneDeep(savoir) as Record<string, unknown> })}
       onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setSelectedNode({ type: "savoir", path: [di, ci, sci, si], data: cloneDeep(savoir) as Record<string, unknown> }); } }}
     >
       <SavoirCard {...savoirCardProps} />
-    </div>
+    </button>
   );
 }
 
@@ -104,8 +104,8 @@ function renderSousCompBlock(sc: SousCompNode, di: number, ci: number, sci: numb
   const isSelected = selectedNode?.type === "sousComp" && selectedNode.path?.[0] === di && selectedNode.path?.[1] === ci && selectedNode.path?.[2] === sci;
   return (
     <div className="tree-sous-comp" key={`sc-${di}-${ci}-${sci}`}>
-      <div
-        role="button" tabIndex={0}
+      <button
+        type="button" tabIndex={0}
         className={`tree-node-row${isSelected ? " selected" : ""}`}
         onClick={() => setSelectedNode({ type: "sousComp", path: [di, ci, sci], data: cloneDeep(sc) as Record<string, unknown> })}
         onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setSelectedNode({ type: "sousComp", path: [di, ci, sci], data: cloneDeep(sc) as Record<string, unknown> }); } }}
@@ -119,7 +119,7 @@ function renderSousCompBlock(sc: SousCompNode, di: number, ci: number, sci: numb
           <Tag>{(sc.savoirs ?? []).length} savoirs</Tag>
         </Space>
         <Button size="small" type="text" onClick={(e) => { e.stopPropagation(); setSelectedNode({ type: "sousComp", path: [di, ci, sci], data: cloneDeep(sc) as Record<string, unknown> }); }} icon={<EditOutlined />} />
-      </div>
+      </button>
       {renderSavoirsList(sc.savoirs, di, ci, sci, ctx)}
     </div>
   );
@@ -168,8 +168,8 @@ function renderDomainBlock(domaine: DomaineNode, di: number, ctx: TreeCtx) {
   const isSelected = selectedNode?.type === "domaine" && selectedNode.path?.[0] === di;
   return (
     <div key={dKey} className="tree-domaine">
-      <div
-        role="button" tabIndex={0}
+      <button
+        type="button" tabIndex={0}
         className={`tree-node-row${isSelected ? " selected" : ""}`}
         onClick={() => setSelectedNode({ type: "domaine", path: [di], data: cloneDeep(domaine) as Record<string, unknown> })}
         onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setSelectedNode({ type: "domaine", path: [di], data: cloneDeep(domaine) as Record<string, unknown> }); } }}
@@ -186,7 +186,7 @@ function renderDomainBlock(domaine: DomaineNode, di: number, ctx: TreeCtx) {
           <Button size="small" type="text" onClick={(e) => { e.stopPropagation(); setExpandedDomainKeys((prev) => prev.includes(dKey) ? prev.filter((k) => k !== dKey) : [...prev, dKey]); }}>{dOpen ? "▾" : "▸"}</Button>
           <Button size="small" type="text" onClick={(e) => { e.stopPropagation(); setSelectedNode({ type: "domaine", path: [di], data: cloneDeep(domaine) as Record<string, unknown> }); }} icon={<EditOutlined />} />
         </Space>
-      </div>
+      </button>
       {dOpen && (domaine.competences ?? []).map((comp, ci) => renderCompetenceBlock(comp, di, ci, ctx))}
     </div>
   );

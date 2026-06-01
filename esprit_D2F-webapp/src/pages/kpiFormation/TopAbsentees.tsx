@@ -74,7 +74,7 @@ export default function TopAbsentees() {
   const stats = useMemo((): KpiEntry[] => {
     if (!raw) return [];
     return (raw as KpiEntry[]).map((entry: KpiEntry) => {
-      const ens = entry.enseignantId != null ? enseignantMap.get(entry.enseignantId) : undefined;
+      const ens = entry.enseignantId == null ? undefined : enseignantMap.get(entry.enseignantId);
       return {
         ...entry,
         mail: ens?.mail,

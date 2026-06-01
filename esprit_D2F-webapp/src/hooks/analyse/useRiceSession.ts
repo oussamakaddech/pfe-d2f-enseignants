@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import type { MutableRefObject } from "react";
+import type { RefObject } from "react";
 import type { RiceDomaine } from "@/models/competence";
 import { cloneDeep, STORAGE_KEY } from "@/pages/competence/rice/constants";
 
@@ -24,8 +24,8 @@ interface UseRiceSessionParams {
   setMergeModal: (v: boolean) => void;
   setMergeSrc: (v: null) => void;
   setMergeDst: (v: null) => void;
-  skipHistoryRef: MutableRefObject<boolean>;
-  prevTreeRef: MutableRefObject<RiceDomaine[]>;
+  skipHistoryRef: RefObject<boolean>;
+  prevTreeRef: RefObject<RiceDomaine[]>;
 }
 
 export function useRiceSession({

@@ -50,8 +50,8 @@ export function useTopParticipants(
   upId?: string | number | null,
   deptId?: string | number | null,
 ) {
-  const upIdStr = upId != null ? String(upId) : null;
-  const deptIdStr = deptId != null ? String(deptId) : null;
+  const upIdStr = upId == null ? null : String(upId);
+  const deptIdStr = deptId == null ? null : String(deptId);
   return useQuery<unknown[]>({
     queryKey: ["kpi", "top-participants", start, end, upId, deptId],
     queryFn: () => KPIService.getTopParticipants(start, end, upIdStr, deptIdStr),
@@ -65,8 +65,8 @@ export function useTopAbsentees(
   upId?: string | number | null,
   deptId?: string | number | null,
 ) {
-  const upIdStr = upId != null ? String(upId) : null;
-  const deptIdStr = deptId != null ? String(deptId) : null;
+  const upIdStr = upId == null ? null : String(upId);
+  const deptIdStr = deptId == null ? null : String(deptId);
   return useQuery<unknown[]>({
     queryKey: ["kpi", "top-absentees", start, end, upId, deptId],
     queryFn: () => KPIService.getTopAbsentees(start, end, upIdStr, deptIdStr),

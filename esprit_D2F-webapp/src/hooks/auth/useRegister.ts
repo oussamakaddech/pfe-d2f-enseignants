@@ -16,7 +16,7 @@ export interface RegisterFormValues {
   newsletter: boolean;
 }
 
-const TEACHER_ROLES = ["Enseignant", "Formateur", "CUP", "CHEF_DEPARTEMENT"];
+const TEACHER_ROLES = new Set(["Enseignant", "Formateur", "CUP", "CHEF_DEPARTEMENT"]);
 
 export function useRegister() {
   const { message } = useAppNotification();
@@ -36,7 +36,7 @@ export function useRegister() {
         newsletter: values.newsletter,
       });
 
-      if (TEACHER_ROLES.includes(values.role)) {
+      if (TEACHER_ROLES.has(values.role)) {
         try {
           await EnseignantService.createEnseignant({
             nom: values.lastName.toUpperCase(),

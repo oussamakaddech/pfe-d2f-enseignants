@@ -42,7 +42,6 @@ export default function BesoinList() {
     openMailModal, handleSendMail,
     exportToExcel,
     refetchBesoins,
-    PERIOD_OPTIONS,
   } = ctx;
 
   const typedUps   = ups         as unknown as BfRefItem[];

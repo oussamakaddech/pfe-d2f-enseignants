@@ -130,7 +130,6 @@ const SavoirCard = memo(function SavoirCard({
   return (
     /* Draggable savoir card; keyboard users access the dropdown menu (MoreOutlined) for assign / move actions. */
     <div
-      role="button"
       tabIndex={0}
       className={`savoir-card${isBeingDragged ? " is-dragging" : ""}`}
       draggable

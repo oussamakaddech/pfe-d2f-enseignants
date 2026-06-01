@@ -39,10 +39,10 @@ const FormationTreeInterface = () => {
           return (
             <li key={node.id} style={{ marginBottom: "5px" }}>
               {isFolder ? (
-                <div
-                  role="button"
+                <button
+                  type="button"
                   tabIndex={0}
-                  style={{ cursor: "pointer", display: "flex", alignItems: "center" }}
+                  style={{ cursor: "pointer", display: "flex", alignItems: "center", background: "none", border: "none", padding: 0 }}
                   onClick={() => toggleNode(node.id ?? "")}
                   onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); toggleNode(node.id ?? ""); } }}
                 >
@@ -50,17 +50,17 @@ const FormationTreeInterface = () => {
                     {isExpanded ? "▼" : "▶"}
                   </span>
                   <strong>📁 {node.name}</strong>
-                </div>
+                </button>
               ) : (
-                <div
-                  role="button"
+                <button
+                  type="button"
                   tabIndex={0}
-                  style={{ cursor: "pointer" }}
+                  style={{ cursor: "pointer", background: "none", border: "none", padding: 0 }}
                   onClick={() => setSelectedFile(node)}
                   onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setSelectedFile(node); } }}
                 >
                   📄 {node.name}
-                </div>
+                </button>
               )}
               {!!isFolder && isExpanded && node.children && (
                 <div style={{ marginLeft: "20px", borderLeft: "1px dashed #ccc", paddingLeft: "10px" }}>

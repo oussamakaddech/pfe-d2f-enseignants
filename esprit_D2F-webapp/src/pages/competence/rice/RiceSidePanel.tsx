@@ -31,17 +31,15 @@ export default function RiceSidePanel({
   onReload, onContinueWithout,
 }: Readonly<RiceSidePanelProps>) {
 
-  const syncStatus = enseignantsLoading
-    ? "Chargement…"
-    : enseignantsError
-    ? "Erreur"
-    : "Active";
+  let syncStatus: string;
+  if (enseignantsLoading) syncStatus = "Chargement…";
+  else if (enseignantsError) syncStatus = "Erreur";
+  else syncStatus = "Active";
 
-  const syncIcon = enseignantsLoading
-    ? <LoadingOutlined style={{ color: "#f59e0b" }} />
-    : enseignantsError
-    ? <WarningOutlined style={{ color: "#ef4444" }} />
-    : <CheckCircleOutlined style={{ color: "#10b981" }} />;
+  let syncIcon: JSX.Element;
+  if (enseignantsLoading) syncIcon = <LoadingOutlined style={{ color: "#f59e0b" }} />;
+  else if (enseignantsError) syncIcon = <WarningOutlined style={{ color: "#ef4444" }} />;
+  else syncIcon = <CheckCircleOutlined style={{ color: "#10b981" }} />;
 
   return (
     <aside className="rice-workbench-aside">
@@ -115,7 +113,7 @@ export default function RiceSidePanel({
                   </span>
                   <div>
                     <strong>{step.title}</strong>
-                    <div>{step.description ?? (isActive ? "En cours" : isDone ? "Terminé" : "En attente")}</div>
+                    <div>{step.description ?? (() => { if (isActive) return "En cours"; if (isDone) return "Terminé"; return "En attente"; })()}</div>
                   </div>
                 </div>
               );

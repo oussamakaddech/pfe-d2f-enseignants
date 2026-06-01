@@ -1,3 +1,5 @@
+type NullableId = string | number | null;
+
 interface Domaine {
   id: string | number;
   code: string;
@@ -16,7 +18,7 @@ interface SousCompetence {
   code: string;
   nom: string;
   competenceId: string | number;
-  parentId?: string | number | null;
+  parentId?: NullableId;
 }
 
 interface Savoir {
@@ -25,8 +27,8 @@ interface Savoir {
   nom: string;
   type: string;
   niveau: string;
-  sousCompetenceId?: string | number | null;
-  competenceId?: string | number | null;
+  sousCompetenceId?: NullableId;
+  competenceId?: NullableId;
 }
 
 export const NIVEAUX_MATRIX = [

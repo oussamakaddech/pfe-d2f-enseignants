@@ -14,7 +14,7 @@ export default function ViewModeToggle({ value, onChange, count, total }: Readon
       <div className="bf-viewmode__count" aria-live="polite">
         <span className="bf-viewmode__count-value">{count}</span>
         <span className="bf-viewmode__count-label">
-          besoin{count !== 1 ? "s" : ""} affiché{count !== 1 ? "s" : ""}
+          besoin{count === 1 ? "" : "s"} affiché{count === 1 ? "" : "s"}
           {count !== total && total > 0 && (
             <span className="bf-viewmode__count-total"> sur {total}</span>
           )}

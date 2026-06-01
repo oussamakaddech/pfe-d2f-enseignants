@@ -111,10 +111,11 @@ export function reducer(state: MatchingState, action: MatchingAction): MatchingS
       assignments[sId] = Array.from(new Set([...(assignments[sId] ?? []), eId]));
       const pending = { add: [...state.pendingChanges.add], remove: [...state.pendingChanges.remove] };
       const removeIdx = pending.remove.findIndex((p) => String(p.savoirId) === sId && String(p.enseignantId) === eId);
-      if (removeIdx !== -1) pending.remove.splice(removeIdx, 1);
-      else {
+      if (removeIdx === -1) {
         const exists = pending.add.some((p) => String(p.savoirId) === sId && String(p.enseignantId) === eId);
         if (!exists) pending.add.push({ savoirId: sId, enseignantId: eId });
+      } else {
+        pending.remove.splice(removeIdx, 1);
       }
       return { ...state, assignments, pendingChanges: pending };
     }
@@ -126,10 +127,11 @@ export function reducer(state: MatchingState, action: MatchingAction): MatchingS
       assignments[sId] = (assignments[sId] ?? []).filter((id) => String(id) !== eId);
       const pending = { add: [...state.pendingChanges.add], remove: [...state.pendingChanges.remove] };
       const addIdx = pending.add.findIndex((p) => String(p.savoirId) === sId && String(p.enseignantId) === eId);
-      if (addIdx !== -1) pending.add.splice(addIdx, 1);
-      else {
+      if (addIdx === -1) {
         const exists = pending.remove.some((p) => String(p.savoirId) === sId && String(p.enseignantId) === eId);
         if (!exists) pending.remove.push({ savoirId: sId, enseignantId: eId });
+      } else {
+        pending.add.splice(addIdx, 1);
       }
       return { ...state, assignments, pendingChanges: pending };
     }

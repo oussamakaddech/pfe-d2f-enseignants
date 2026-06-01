@@ -6,7 +6,8 @@ import WizardNavFooter from "@/components/wizard/WizardNavFooter";
 import DocumentUploadForm from "../documentFormation/DocumentUploadForm";
 import "@/styles/pages/formation-workflow-form.css";
 
-import { useFormationWorkflow, toMinutes, type BesoinInfoShape, type FormationWorkflowFormProps } from "./hooks/useFormationWorkflow";
+import { useFormationWorkflow, toMinutes } from "./hooks/useFormationWorkflow";
+export type { BesoinInfoShape, FormationWorkflowFormProps } from "./hooks/useFormationWorkflow";
 import GeneralStep from "./steps/GeneralStep";
 import PedagogyStep from "./steps/PedagogyStep";
 import PlanningStep from "./steps/PlanningStep";
@@ -29,8 +30,6 @@ export const PERIOD_OPTIONS = [
   { value: "OTHER",    label: "Autre" },
 ];
 
-export type { BesoinInfoShape, FormationWorkflowFormProps };
-
 export default function FormationWorkflowForm({ initialDate, onFormationCreated, besoinInfo }: Readonly<FormationWorkflowFormProps>) {
   const wf = useFormationWorkflow({ initialDate, onFormationCreated, besoinInfo });
 
@@ -48,9 +47,9 @@ export default function FormationWorkflowForm({ initialDate, onFormationCreated,
   return (
     <div className="creation-form">
       <WizardStepper steps={STEPS} activeStep={wf.activeStep} />
-      <div className="wf-progress-bar" role="progressbar" aria-valuenow={wf.activeStep + 1} aria-valuemin={1} aria-valuemax={STEPS.length} aria-label={`Étape ${wf.activeStep + 1} sur ${STEPS.length}`}>
+      <progress className="wf-progress-bar" value={wf.activeStep + 1} max={STEPS.length} aria-label={`Étape ${wf.activeStep + 1} sur ${STEPS.length}`}>
         <div className="wf-progress-fill" style={{ width: `${((wf.activeStep + 1) / STEPS.length) * 100}%` }} />
-      </div>
+      </progress>
       <Card className="creation-step-card">
         <div className="wf-step-header">
           <div className="wf-step-header-icon" aria-hidden="true">{STEPS[wf.activeStep].icon}</div>

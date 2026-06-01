@@ -198,7 +198,7 @@ export default function CalendrierPage() {
               <h2 className="cal-hero-title">Calendrier des Formations</h2>
               <span className="cal-hero-badge">
                 {stats.total}
-                <span className="cal-hero-badge-total">séance{stats.total !== 1 ? "s" : ""}</span>
+                <span className="cal-hero-badge-total">séance{stats.total === 1 ? "" : "s"}</span>
               </span>
             </div>
             <div className="cal-hero-subtitle">Planification et suivi des sessions de formation</div>

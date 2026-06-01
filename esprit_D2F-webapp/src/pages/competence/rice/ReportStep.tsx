@@ -19,8 +19,11 @@ import EnseignantCompTable, {
 
 const { Text, Title } = Typography;
 
-const coverageColor = (taux: number) =>
-  taux >= 70 ? "#10b981" : taux >= 40 ? "#f59e0b" : "#ef4444";
+const coverageColor = (taux: number) => {
+  if (taux >= 70) return "#10b981";
+  if (taux >= 40) return "#f59e0b";
+  return "#ef4444";
+};
 
 const buildExtractedNameMap = (extractedEnseignants: Record<string, unknown>[]) =>
   new Map(

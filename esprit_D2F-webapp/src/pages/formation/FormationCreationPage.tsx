@@ -93,7 +93,7 @@ export default function FormationCreationPage() {
       </div>
 
       {/* ── Footer help section ──────────────────────────────────────── */}
-      <div className="creation-help-footer" role="complementary">
+      <aside className="creation-help-footer">
         <div className="creation-help-icon">
           <QuestionCircleOutlined />
         </div>
@@ -104,7 +104,7 @@ export default function FormationCreationPage() {
             pour modifier vos saisies avant validation finale.
           </span>
         </div>
-      </div>
+      </aside>
     </div>
   );
 }
