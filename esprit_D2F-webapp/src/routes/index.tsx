@@ -14,6 +14,7 @@ const CalendrierPage = lazy(() => import("@/pages/formation/CalendrierPage"));
 const FormationPage = lazy(() => import("@/pages/formation/FormationPage"));
 const FormationCreationPage = lazy(() => import("@/pages/formation/FormationCreationPage"));
 const FormationConsultationPage = lazy(() => import("@/pages/formation/FormationConsultationPage"));
+const DocumentsPage = lazy(() => import("@/pages/documentFormation/DocumentsPage"));
 const ListAccounts = lazy(() => import("@/pages/admin/gererComptes/ListAccounts"));
 const TeachersDataGrid = lazy(() => import("@/pages/enseignant/TeachersDataGrid"));
 const CalendarEnseignant = lazy(() => import("@/pages/enseignant/CalendarEnseignant"));
@@ -124,6 +125,7 @@ export default function AppRoutes() {
 
                 <Route element={<RoleGuard allowedRoles={[ROLES.ADMIN, ROLES.RESPONSABLE_DOSSIER, ROLES.CHEF_DEPARTEMENT]} />}>
                   <Route path="/home/Formation/Consulter" element={<FormationConsultationPage />} />
+                  <Route path="/home/Formation/Consulter/:formationId/documents" element={<DocumentsPage />} />
                   <Route path="/home/File" element={<CombinedFormationOneDriveTree />} />
                 </Route>
 

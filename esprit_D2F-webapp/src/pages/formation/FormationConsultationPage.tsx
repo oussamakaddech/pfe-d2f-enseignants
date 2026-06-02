@@ -24,7 +24,8 @@ import {
   FilterOutlined,
   ReloadOutlined,
   AppstoreOutlined,
-  FileTextOutlined,
+  FolderOpenOutlined,
+  ArrowRightOutlined,
 } from "@ant-design/icons";
 import { AppPageHeader, StatusBadge, EmptyState } from "@/components/common";
 import "@/styles/pages/formation-consultation-page.css";
@@ -45,7 +46,6 @@ import type { Formation } from "@/models/formation";
 import type { FormationDocument } from "@/models/document";
 import type { Id } from "@/models/common";
 import FormationWorkflowEditForm from "./FormationWorkflowEditForm";
-import DocumentConsultationModal from "@/pages/documentFormation/DocumentConsultationModal";
 import MailForm from "@/pages/besoin/MailForm";
 import useAppNotification from "@/hooks/ui/useAppNotification";
 
@@ -159,7 +159,6 @@ export default function FormationConsultationPage() {
   const [openEdit, setOpenEdit] = useState(false);
   const [openExport, setOpenExport] = useState(false);
   const [openMail, setOpenMail] = useState(false);
-  const [docsModalFormation, setDocsModalFormation] = useState<Formation | null>(null);
 
   const [selectedFormation, setSelectedFormation] = useState<Formation | null>(null);
 
@@ -294,21 +293,41 @@ export default function FormationConsultationPage() {
     {
       title: "Documents",
       key: "documents",
-      width: 120,
+      width: 170,
       align: "center" as const,
       render: (_, r) => {
-        const count = documentsByFormation.get(r.idFormation as Id)?.length ?? 0;
+        const docs = documentsByFormation.get(r.idFormation as Id) ?? [];
+        const count = docs.length;
+        const obligCount = docs.filter((d) => d.obligation).length;
+        const hasDocs = count > 0;
         return (
-          <Button
-            type="text"
-            size="small"
-            icon={<FileTextOutlined />}
-            disabled={count === 0}
-            onClick={() => setDocsModalFormation(r)}
-            title={count > 0 ? "Consulter les documents" : "Aucun document"}
+          <button
+            type="button"
+            className={`formation-doc-pill${hasDocs ? "" : " formation-doc-pill-empty"}`}
+            onClick={() => navigate(`/home/Formation/Consulter/${r.idFormation}/documents`)}
+            disabled={!hasDocs}
+            title={hasDocs ? "Ouvrir la page des documents" : "Aucun document"}
+            aria-label="Ouvrir la page des documents"
           >
-            {count}
-          </Button>
+            <span className="formation-doc-pill-icon">
+              <FolderOpenOutlined />
+            </span>
+            <span className="formation-doc-pill-body">
+              <span className="formation-doc-pill-count">
+                {count} doc{count === 1 ? "" : "s"}
+              </span>
+              {hasDocs && (
+                <span className="formation-doc-pill-sub">
+                  {obligCount} obligatoire{obligCount === 1 ? "" : "s"}
+                </span>
+              )}
+            </span>
+            {hasDocs && (
+              <span className="formation-doc-pill-arrow">
+                <ArrowRightOutlined />
+              </span>
+            )}
+          </button>
         );
       },
     },
@@ -521,14 +540,6 @@ export default function FormationConsultationPage() {
             )}
           </Drawer>
         )}
-
-        {/* Modal Consultation Documents (lecture seule) */}
-        <DocumentConsultationModal
-          open={docsModalFormation != null}
-          onClose={() => setDocsModalFormation(null)}
-          titreFormation={docsModalFormation?.titreFormation}
-          documents={docsModalFormation ? (documentsByFormation.get(docsModalFormation.idFormation as Id) ?? []) : []}
-        />
 
         {/* Modal Export */}
         <Modal

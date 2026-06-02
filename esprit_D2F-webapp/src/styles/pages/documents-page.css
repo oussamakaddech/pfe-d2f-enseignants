@@ -1,0 +1,270 @@
+/* ─── DocumentsPage.css ──────────────────────────────────────────────────── */
+/* Page dédiée à la consultation des documents d'une formation. */
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   PAGE WRAPPER
+   ═══════════════════════════════════════════════════════════════════════════ */
+.documents-page {
+  max-width: 1340px;
+  margin: 0 auto;
+  padding: 0 8px 32px;
+}
+
+.documents-page-breadcrumb {
+  margin-bottom: 14px;
+  font-size: 13px;
+}
+
+.documents-page-skeleton {
+  background: #ffffff;
+  border-radius: 14px;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  padding: 24px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   BACK BUTTON
+   ═══════════════════════════════════════════════════════════════════════════ */
+.documents-page-btn-back {
+  border-radius: 8px !important;
+  font-weight: 500 !important;
+  border-color: #cbd5e0 !important;
+  color: #4a5568 !important;
+  transition: all 0.2s ease !important;
+}
+.documents-page-btn-back:hover {
+  background: #edf2f7 !important;
+  border-color: #a0aec0 !important;
+  color: #2d3748 !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   FILTER BAR
+   ═══════════════════════════════════════════════════════════════════════════ */
+.documents-page-filter-bar {
+  background: #ffffff;
+  border-radius: 14px;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+  padding: 18px 22px;
+  margin-bottom: 20px;
+  transition: box-shadow 0.2s ease;
+}
+.documents-page-filter-bar:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04);
+}
+
+.documents-page-filter-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.documents-page-filter-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #718096;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+}
+.documents-page-filter-title .anticon {
+  font-size: 14px;
+  color: #a0aec0;
+}
+
+.documents-page-filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.documents-page-filter-row .ant-input,
+.documents-page-filter-row .ant-select,
+.documents-page-filter-row .ant-picker {
+  border-radius: 8px !important;
+}
+
+.documents-page-filter-active-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  background: #B51200;
+  border-radius: 50%;
+  margin-left: 6px;
+  animation: documentsPagePulse 1.5s ease-in-out infinite;
+}
+
+@keyframes documentsPagePulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0.5; transform: scale(0.8); }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   TABLE WRAPPER
+   ═══════════════════════════════════════════════════════════════════════════ */
+.documents-page-table-wrapper {
+  background: #ffffff;
+  border-radius: 14px;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
+}
+
+.documents-page-table-wrapper .ant-table-thead > tr > th {
+  background: #f7fafc !important;
+  color: #4a5568 !important;
+  font-weight: 600 !important;
+  font-size: 12px !important;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  border-bottom: 2px solid rgba(0, 0, 0, 0.06) !important;
+  padding: 12px 14px !important;
+}
+
+.documents-page-table-wrapper .ant-table-tbody > tr {
+  transition: background 0.15s ease;
+}
+.documents-page-table-wrapper .ant-table-tbody > tr:hover > td {
+  background: #fff5f4 !important;
+}
+
+.documents-page-table-wrapper .ant-table-tbody > tr > td {
+  padding: 12px 14px !important;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.04) !important;
+  vertical-align: middle;
+}
+
+.documents-page-table-wrapper .ant-pagination {
+  padding: 12px 16px;
+  margin: 0 !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   DOCUMENT CELL (icon + name)
+   ═══════════════════════════════════════════════════════════════════════════ */
+.documents-page-cell-name {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.documents-page-cell-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 9px;
+  background: #f7fafc;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.documents-page-cell-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.documents-page-cell-title {
+  font-weight: 600;
+  color: #1a202c;
+  font-size: 13.5px;
+  line-height: 1.4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 360px;
+}
+
+.documents-page-cell-subtitle {
+  font-size: 11.5px;
+  color: #a0aec0;
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 360px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   TAGS
+   ═══════════════════════════════════════════════════════════════════════════ */
+.documents-page-pathtype-tag {
+  background: #eff6ff !important;
+  color: #1d4ed8 !important;
+  border-color: #bfdbfe !important;
+  border-radius: 6px !important;
+  font-weight: 500 !important;
+}
+
+.documents-page-oblig-tag {
+  border-radius: 6px !important;
+  font-weight: 600 !important;
+  margin: 0 !important;
+}
+
+.documents-page-optional-tag {
+  background: #f7fafc !important;
+  color: #718096 !important;
+  border-color: #e2e8f0 !important;
+  border-radius: 6px !important;
+  font-weight: 500 !important;
+  margin: 0 !important;
+}
+
+.documents-page-date-cell {
+  font-size: 13px;
+  color: #4a5568;
+  font-weight: 500;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   ACTION BUTTONS
+   ═══════════════════════════════════════════════════════════════════════════ */
+.documents-page-btn-download {
+  color: #2563eb !important;
+  background: #eff6ff !important;
+  border: none !important;
+  transition: all 0.2s ease !important;
+}
+.documents-page-btn-download:hover {
+  background: #dbeafe !important;
+  color: #1d4ed8 !important;
+  transform: scale(1.12);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   RESPONSIVE
+   ═══════════════════════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+  .documents-page {
+    padding: 0 4px 20px;
+  }
+  .documents-page-filter-bar {
+    padding: 14px;
+    border-radius: 12px;
+  }
+  .documents-page-filter-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+  .documents-page-filter-row .ant-input,
+  .documents-page-filter-row .ant-select {
+    width: 100% !important;
+  }
+  .documents-page-cell-title,
+  .documents-page-cell-subtitle {
+    max-width: 200px;
+  }
+}
