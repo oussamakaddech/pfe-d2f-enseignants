@@ -26,6 +26,7 @@ public class FormationWorkflowServiceHelper {
     private final DeptRepository departementRepository;
     private final UpRepository upRepository;
     private final AnimateurExterneRepository animateurExterneRepository;
+    private final AnimateurParticipantResolver animateurParticipantResolver;
 
     /**
      * Crée les séances de formation avec validation des conflits
@@ -74,8 +75,11 @@ public class FormationWorkflowServiceHelper {
             formation.setDepartement(departementRepository.findById(request.getDepartementId()).orElse(null));
         }
 
-        // Animateurs au niveau de la formation
-        if (request.getAnimateursIds() != null && !request.getAnimateursIds().isEmpty()) {
+        // Animateurs au niveau de la formation (new config-based or fallback to old IDs)
+        if (request.getAnimateurConfig() != null) {
+            formation.setAnimateurs(animateurParticipantResolver.resolveAnimateurs(request.getAnimateurConfig()));
+        } else if (request.getAnimateursIds() != null && !request.getAnimateursIds().isEmpty()) {
+            // Backward compatibility: treat old animateursIds as MANUAL mode
             formation.setAnimateurs(request.getAnimateursIds().stream()
                     .map(id -> enseignantRepository.findById(id).orElse(null))
                     .filter(Objects::nonNull)

@@ -72,7 +72,7 @@ export function useFormationsParDepartement(deptId: Id | undefined) {
 }
 
 export function useFormationsForCalendar(enseignantId: Id | undefined) {
-  return useQuery<Formation[]>({
+  return useQuery<{ asAnimateur: Formation[]; asParticipant: Formation[] }>({
     queryKey: KEYS.calendar(enseignantId!),
     queryFn: () => FormationWorkflowService.getFormationsForCalendar(enseignantId!),
     enabled: !!enseignantId,

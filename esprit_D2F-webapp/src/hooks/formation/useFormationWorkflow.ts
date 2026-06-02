@@ -1,14 +1,16 @@
 import { useState, useEffect } from "react";
 import { format } from "date-fns";
-import * as XLSX from "xlsx";
 import { useAllFormations, useUpdateFormation, useUps, useDepartements } from "@/hooks/formation";
 import { useEnseignants } from "@/hooks/enseignant";
 import { useAuth } from "@/hooks/auth/useAuth";
 import useAppNotification from "@/hooks/ui/useAppNotification";
+import EnseignantService from "@/services/formation/EnseignantService";
 import type {
   EnseignantItem, SeanceData, SeanceState, UPItem, DeptItem,
   FormationEdit, SeanceConflictItem,
 } from "@/pages/formation/formationWorkflowTypes";
+import type { ActorDraft } from "@/components/formation/AddActorModal";
+import { filterExistingByEmails, getPersonEmailList, parseEmailsFromExcel } from "@/utils/formation/actorImport";
 
 // ── Conflict detection utilities ──────────────────────────────────────────────
 
@@ -181,6 +183,12 @@ export function useFormationWorkflow(
   const [partFilterUp, setPartFilterUp]     = useState<UPItem | null>(null);
   const [partFilterDept, setPartFilterDept] = useState<DeptItem | null>(null);
 
+  // Manual / imported persons
+  const [manualAnimateurs, setManualAnimateurs]   = useState<EnseignantItem[]>([]);
+  const [manualParticipants, setManualParticipants] = useState<EnseignantItem[]>([]);
+  const [animFilterUp, setAnimFilterUp]           = useState<UPItem | null>(null);
+  const [animFilterDept, setAnimFilterDept]       = useState<DeptItem | null>(null);
+
   // UI toggles
   const [showMore, setShowMore]               = useState(false);
   const [openDocModal, setOpenDocModal]       = useState(false);
@@ -252,8 +260,17 @@ export function useFormationWorkflow(
   }, [seances, partSel, animSel, existingFormations]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Filtered options ──────────────────────────────────────────────────────
-  const optionsAnim = ens.filter((x) => !x.upLibelle || true); // no filter on anim UP/dept
-  const optionsPart = ens.filter(
+  const optionsAnim = [
+    ...ens,
+    ...manualAnimateurs,
+  ].filter(
+    (x) => (!animFilterUp   || x.upLibelle   === animFilterUp.libelle) &&
+           (!animFilterDept || x.deptLibelle === animFilterDept.libelle),
+  );
+  const optionsPart = [
+    ...ens,
+    ...manualParticipants,
+  ].filter(
     (x) =>
       (!partFilterUp   || x.upLibelle   === partFilterUp.libelle) &&
       (!partFilterDept || x.deptLibelle === partFilterDept.libelle),
@@ -275,21 +292,153 @@ export function useFormationWorkflow(
   const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
     if (!f) return;
-    const buffer = await f.arrayBuffer();
-    const data = new Uint8Array(buffer);
-    const wb = XLSX.read(data, { type: "array" });
-    const ws = wb.Sheets[wb.SheetNames[0]];
-    const rows = XLSX.utils.sheet_to_json(ws, { header: 1 });
-    if (rows.length < 2) { message.warning("Excel vide ou mal formaté"); return; }
-    const hdr = rows[0].map((h) => String(h).toLowerCase().trim());
-    const idx = hdr.findIndex((h) => h === "email" || h === "mail");
-    if (idx < 0) { message.warning(`Colonne Email introuvable. Colonnes trouvées : ${rows[0].join(", ")}`); e.target.value = ""; return; }
-    const mailsSet = new Set(rows.slice(1).map((r) => r[idx]).filter(Boolean));
-    const matched = ens.filter((x) => mailsSet.has(x.mail));
-    setPartSel(matched);
-    message.success(`${matched.length} participant${matched.length > 1 ? "s" : ""} importé${matched.length > 1 ? "s" : ""}`);
-    e.target.value = "";
+    try {
+      const { emails, rows, headers } = await parseEmailsFromExcel(f);
+      if (emails.length === 0) {
+        if (rows === 0) {
+          message.warning("Fichier Excel vide ou mal formaté.");
+        } else {
+          message.warning(`Colonne Email introuvable. Colonnes trouvées : ${headers.join(", ") || "(aucune)"}`);
+        }
+        e.target.value = "";
+        return;
+      }
+      const { matched, missing } = filterExistingByEmails(
+        [...ens as unknown as import("@/pages/formation/hooks/useFormationWorkflow").PersonItem[], ...manualParticipants as unknown as import("@/pages/formation/hooks/useFormationWorkflow").PersonItem[]],
+        emails,
+      );
+      const matchedEnseignants = matched as unknown as EnseignantItem[];
+      const newManual: EnseignantItem[] = missing
+        .filter((m) => !manualParticipants.some((p) => p.mail.toLowerCase() === m))
+        .map((m) => ({
+          id: `manual-part-${m}`,
+          mail: m,
+          nom: "", prenom: "",
+          type: "P", cup: "N", chefDepartement: "N", upLibelle: "", deptLibelle: "",
+          isManual: true, source: "import",
+        }));
+      setManualParticipants((prev) => [...prev, ...newManual]);
+      const finalSel = [...partSel.filter((p) => !missing.includes(p.mail.toLowerCase())), ...matchedEnseignants, ...newManual];
+      setPartSel(finalSel);
+      if (matched.length > 0 || newManual.length > 0) {
+        message.success(
+          `${matched.length + newManual.length} participant${matched.length + newManual.length > 1 ? "s" : ""} importé${matched.length + newManual.length > 1 ? "s" : ""} `
+          + `(${matched.length} trouvé${matched.length > 1 ? "s" : ""}, ${newManual.length} ajouté${newManual.length > 1 ? "s" : ""} manuellement).`,
+        );
+      } else {
+        message.warning("Aucun participant correspondant trouvé.");
+      }
+    } catch {
+      message.error("Échec de la lecture du fichier Excel.");
+    } finally {
+      e.target.value = "";
+    }
   };
+
+  const handleFileAnimateur = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    if (!f) return;
+    try {
+      const { emails, rows, headers } = await parseEmailsFromExcel(f);
+      if (emails.length === 0) {
+        if (rows === 0) {
+          message.warning("Fichier Excel vide ou mal formaté.");
+        } else {
+          message.warning(`Colonne Email introuvable. Colonnes trouvées : ${headers.join(", ") || "(aucune)"}`);
+        }
+        e.target.value = "";
+        return;
+      }
+      const { matched, missing } = filterExistingByEmails(
+        [...ens as unknown as import("@/pages/formation/hooks/useFormationWorkflow").PersonItem[], ...manualAnimateurs as unknown as import("@/pages/formation/hooks/useFormationWorkflow").PersonItem[]],
+        emails,
+      );
+      const matchedEnseignants = matched as unknown as EnseignantItem[];
+      const newManual: EnseignantItem[] = missing
+        .filter((m) => !manualAnimateurs.some((p) => p.mail.toLowerCase() === m))
+        .map((m) => ({
+          id: `manual-anim-${m}`,
+          mail: m,
+          nom: "", prenom: "",
+          type: "V", cup: "N", chefDepartement: "N", upLibelle: "", deptLibelle: "",
+          isManual: true, source: "import",
+        }));
+      setManualAnimateurs((prev) => [...prev, ...newManual]);
+      const finalSel = [...animSel.filter((p) => !missing.includes(p.mail.toLowerCase())), ...matchedEnseignants, ...newManual];
+      setAnimSel(finalSel);
+      if (matched.length > 0 || newManual.length > 0) {
+        message.success(
+          `${matched.length + newManual.length} animateur${matched.length + newManual.length > 1 ? "s" : ""} importé${matched.length + newManual.length > 1 ? "s" : ""} `
+          + `(${matched.length} trouvé${matched.length > 1 ? "s" : ""}, ${newManual.length} ajouté${newManual.length > 1 ? "s" : ""} manuellement).`,
+        );
+      } else {
+        message.warning("Aucun animateur correspondant trouvé.");
+      }
+    } catch {
+      message.error("Échec de la lecture du fichier Excel.");
+    } finally {
+      e.target.value = "";
+    }
+  };
+
+  const addManualAnimateur = (draft: ActorDraft) => {
+    const id = `manual-anim-${draft.email}`;
+    if (animSel.some((p) => p.id === id) || manualAnimateurs.some((p) => p.id === id)) {
+      message.warning("Cet animateur est déjà dans la sélection.");
+      return;
+    }
+    const person: EnseignantItem = {
+      id, mail: draft.email, nom: draft.nom, prenom: draft.prenom,
+      type: draft.type, cup: draft.cup, chefDepartement: draft.chefDepartement,
+      upLibelle: draft.upLibelle || "", deptLibelle: draft.deptLibelle || "",
+      isManual: true, source: "manual",
+    };
+    setManualAnimateurs((prev) => [...prev, person]);
+    setAnimSel((prev) => [...prev, person]);
+    message.success(`Animateur ${draft.prenom} ${draft.nom} ajouté.`);
+  };
+
+  const addManualParticipant = (draft: ActorDraft) => {
+    const id = `manual-part-${draft.email}`;
+    if (partSel.some((p) => p.id === id) || manualParticipants.some((p) => p.id === id)) {
+      message.warning("Ce participant est déjà dans la sélection.");
+      return;
+    }
+    const person: EnseignantItem = {
+      id, mail: draft.email, nom: draft.nom, prenom: draft.prenom,
+      type: draft.type, cup: draft.cup, chefDepartement: draft.chefDepartement,
+      upLibelle: draft.upLibelle || "", deptLibelle: draft.deptLibelle || "",
+      isManual: true, source: "manual",
+    };
+    setManualParticipants((prev) => [...prev, person]);
+    setPartSel((prev) => [...prev, person]);
+    message.success(`Participant ${draft.prenom} ${draft.nom} ajouté.`);
+  };
+
+  const selectAllVisibleAnim = () => {
+    const opts = ens.filter(
+      (x) => (!animFilterUp   || x.upLibelle   === animFilterUp.libelle) &&
+             (!animFilterDept || x.deptLibelle === animFilterDept.libelle),
+    );
+    const all = [...opts, ...manualAnimateurs];
+    const currentIds = new Set(animSel.map((a) => a.id));
+    const merged = [...animSel];
+    all.forEach((a) => { if (!currentIds.has(a.id)) merged.push(a); });
+    setAnimSel(merged);
+    message.success(`${merged.length} animateur(s) au total.`);
+  };
+
+  const selectAllVisiblePart = () => {
+    const all = [...optionsPart, ...manualParticipants];
+    const currentIds = new Set(partSel.map((p) => p.id));
+    const merged = [...partSel];
+    all.forEach((p) => { if (!currentIds.has(p.id)) merged.push(p); });
+    setPartSel(merged);
+    message.success(`${merged.length} participant(s) au total.`);
+  };
+
+  const clearAnimSel = () => setAnimSel([]);
+  const clearPartSel = () => setPartSel([]);
 
   const handleSubmit = async (e: React.SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -302,19 +451,66 @@ export function useFormationWorkflow(
       message.error("Conflits détectés: corrigez les dates/salles/personnes avant mise à jour.");
       return;
     }
+
+    // Persist manually added / imported persons as Enseignants so backend has real ids.
+    const manualAnimsToCreate = animSel.filter((a) => a.isManual && a.id.startsWith("manual-anim-"));
+    const manualPartsToCreate = partSel.filter((p) => p.isManual && p.id.startsWith("manual-part-"));
+    const persistedAnimByKey = new Map<string, unknown>();
+    const persistedPartByKey = new Map<string, unknown>();
+    await Promise.all(
+      manualAnimsToCreate.map(async (a) => {
+        try {
+          const res = await EnseignantService.createEnseignant({
+            id: a.id, nom: a.nom, prenom: a.prenom, mail: a.mail,
+            type: a.type, etat: "A", cup: a.cup, chefDepartement: a.chefDepartement,
+          });
+          persistedAnimByKey.set(a.id, res);
+        } catch {
+          // ignore single-failure
+        }
+      }),
+    );
+    await Promise.all(
+      manualPartsToCreate.map(async (p) => {
+        try {
+          const res = await EnseignantService.createEnseignant({
+            id: p.id, nom: p.nom, prenom: p.prenom, mail: p.mail,
+            type: p.type, etat: "A", cup: p.cup, chefDepartement: p.chefDepartement,
+          });
+          persistedPartByKey.set(p.id, res);
+        } catch {
+          // ignore single-failure
+        }
+      }),
+    );
+
+    const finalAnimIds = animSel.map((a) => {
+      if (a.isManual && a.id.startsWith("manual-anim-")) {
+        const persisted = persistedAnimByKey.get(a.id) as { id?: unknown } | undefined;
+        return persisted?.id ?? a.id;
+      }
+      return a.id;
+    });
+    const finalPartIds = partSel.map((p) => {
+      if (p.isManual && p.id.startsWith("manual-part-")) {
+        const persisted = persistedPartByKey.get(p.id) as { id?: unknown } | undefined;
+        return persisted?.id ?? p.id;
+      }
+      return p.id;
+    });
+
     const payload = {
       titreFormation: titre, dateDebut, dateFin, typeFormation, etatFormation, ouverte,
       coutFormation: Number.parseFloat(cout as unknown as string),
       externeFormateurNom: formNom, externeFormateurPrenom: formPrenom, externeFormateurEmail: formEmail,
       organismeRefExterne: organisme, chargeHoraireGlobal: Number.parseInt(chargeH as unknown as string, 10),
       upId: selectedUp?.id, departementId: selectedDept?.id,
-      participantsIds: partSel.map((p) => p.id), animateursIds: animSel.map((a) => a.id),
+      participantsIds: finalPartIds, animateursIds: finalAnimIds,
       domaine, populationCible, objectifs, objectifsPedago, evalMethods, prerequis, acquis, indicateurs,
       coutTransport, coutHebergement, coutRepas, periodCode, customPeriodLabel,
       seances: seances.map((s) => ({
         idSeance: s.idSeance, dateSeance: s.dateSeance, heureDebut: s.heureDebut, heureFin: s.heureFin,
-        // Animateurs gérés au niveau formation → appliqués à chaque séance
-        salle: s.salle, animateursIds: animSel.map((a) => a.id),
+        salle: s.salle, animateursIds: finalAnimIds,
         typeSeance: s.typeSeance, contenus: s.contenus, methodes: s.methodes,
         dureeTheorique: s.dureeTheorique, dureePratique: s.dureePratique,
       })),
@@ -347,7 +543,15 @@ export function useFormationWorkflow(
     seances, addSeance, updateSeance, removeSeance, toggleSeance,
     animSel, setAnimSel, partSel, setPartSel,
     partFilterUp, setPartFilterUp, partFilterDept, setPartFilterDept,
+    animFilterUp, setAnimFilterUp, animFilterDept, setAnimFilterDept,
+    manualAnimateurs, manualParticipants,
+    addManualAnimateur, addManualParticipant,
+    handleFileAnimateur,
+    selectAllVisibleAnim, selectAllVisiblePart,
+    clearAnimSel, clearPartSel,
     overlapWarnings, handleFile, handleSubmit,
+    getAllEmailsAnimateurs: () => getPersonEmailList(animSel),
+    getAllEmailsParticipants: () => getPersonEmailList(partSel),
     // docs
     openDocModal, setOpenDocModal, openUploadPanel, setOpenUploadPanel,
   };

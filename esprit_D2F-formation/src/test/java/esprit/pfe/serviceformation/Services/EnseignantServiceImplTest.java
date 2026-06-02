@@ -157,9 +157,18 @@ class EnseignantServiceImplTest {
     }
 
     @Test
-    void testDeleteEnseignant() {
+    void testDeleteEnseignant_SoftDelete() {
+        Enseignant e = new Enseignant();
+        e.setId("E00100");
+        when(repository.findById("E00100")).thenReturn(Optional.of(e));
+        when(repository.save(any())).thenAnswer(i -> i.getArgument(0));
+
         service.deleteEnseignant("E00100");
-        verify(repository, times(1)).deleteById("E00100");
+
+        // Suppression logique : deleted_at renseigné, pas de suppression physique.
+        assertNotNull(e.getDeletedAt());
+        verify(repository).save(e);
+        verify(repository, never()).deleteById("E00100");
     }
 
     @Test

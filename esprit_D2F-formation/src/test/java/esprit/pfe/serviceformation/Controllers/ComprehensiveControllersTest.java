@@ -193,10 +193,11 @@ class ComprehensiveControllersTest {
         
         when(ensService.getEnseignantById(anyString())).thenReturn(new Enseignant());
         mockMvcEns.perform(get("/api/v1/enseignants/1")).andExpect(status().is2xxSuccessful());
-        
+
+        String validEnseignantJson = "{\"nom\":\"Doe\",\"prenom\":\"John\",\"mail\":\"john.doe@example.com\"}";
         mockMvcEns.perform(post("/api/v1/enseignants")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{}")).andExpect(status().is2xxSuccessful());
+                .content(validEnseignantJson)).andExpect(status().is2xxSuccessful());
         mockMvcEns.perform(put("/api/v1/enseignants/1")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{}")).andExpect(status().is2xxSuccessful());

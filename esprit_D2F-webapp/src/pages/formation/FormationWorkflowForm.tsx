@@ -37,7 +37,40 @@ export default function FormationWorkflowForm({ initialDate, onFormationCreated,
     switch (step) {
       case 0: return <GeneralStep besoinInfo={besoinInfo} titre={wf.titre} setTitre={wf.setTitre} typeFormation={wf.typeFormation} setTypeFormation={wf.setTypeFormation} etatFormation={wf.etatFormation} setEtatFormation={wf.setEtatFormation} dateDebut={wf.dateDebut} setDateDebut={wf.setDateDebut} dateFin={wf.dateFin} setDateFin={wf.setDateFin} salle={wf.salle} setSalle={wf.setSalle} periodCode={wf.periodCode} setPeriodCode={wf.setPeriodCode} customPeriodLabel={wf.customPeriodLabel} setCustomPeriodLabel={wf.setCustomPeriodLabel} chargeH={wf.chargeH} setChargeH={wf.setChargeH} seances={wf.seances} toMinutes={toMinutes} ups={wf.ups} depts={wf.depts} selectedUp={wf.selectedUp} setSelectedUp={wf.setSelectedUp} selectedDept={wf.selectedDept} setSelectedDept={wf.setSelectedDept} ouverte={wf.ouverte} setOuverte={wf.setOuverte} />;
       case 1: return <PedagogyStep domaine={wf.domaine} setDomaine={wf.setDomaine} populationCible={wf.populationCible} setPopulationCible={wf.setPopulationCible} objectifs={wf.objectifs} setObjectifs={wf.setObjectifs} objectifsPedago={wf.objectifsPedago} setObjectifsPedago={wf.setObjectifsPedago} evalMethods={wf.evalMethods} setEvalMethods={wf.setEvalMethods} />;
-      case 2: return <PlanningStep seances={wf.seances} addSeance={wf.addSeance} updateSeance={wf.updateSeance} removeSeance={wf.removeSeance} toggleSeance={wf.toggleSeance} typeFormation={wf.typeFormation} isAdminUser={wf.isAdminUser} ups={wf.ups} depts={wf.depts} animSel={wf.animSel} setAnimSel={wf.setAnimSel} animFilterUp={wf.animFilterUp} setAnimFilterUp={wf.setAnimFilterUp} animFilterDept={wf.animFilterDept} setAnimFilterDept={wf.setAnimFilterDept} partSel={wf.partSel} setPartSel={wf.setPartSel} partFilterUp={wf.partFilterUp} setPartFilterUp={wf.setPartFilterUp} partFilterDept={wf.partFilterDept} setPartFilterDept={wf.setPartFilterDept} optionsAnim={wf.optionsAnim} optionsPart={wf.optionsPart} overlapWarnings={wf.overlapWarnings} formNom={wf.formNom} setFormNom={wf.setFormNom} formPrenom={wf.formPrenom} setFormPrenom={wf.setFormPrenom} formEmail={wf.formEmail} setFormEmail={wf.setFormEmail} bureauNom={wf.bureauNom} setBureauNom={wf.setBureauNom} bureauMail={wf.bureauMail} setBureauMail={wf.setBureauMail} bureauTelephone={wf.bureauTelephone} setBureauTelephone={wf.setBureauTelephone} externeBureauId={wf.externeBureauId} setExterneBureauId={wf.setExterneBureauId} animExterneSel={wf.animExterneSel} setAnimExterneSel={wf.setAnimExterneSel} getAnimateurLabel={wf.getAnimateurLabel} getEnseignantLabel={wf.getEnseignantLabel} handleExcelImportFile={wf.handleExcelImportFile} exportParticipantsExcel={wf.exportParticipantsExcel} />;
+      case 2: return <PlanningStep
+        seances={wf.seances} addSeance={wf.addSeance} updateSeance={wf.updateSeance} removeSeance={wf.removeSeance} toggleSeance={wf.toggleSeance}
+        typeFormation={wf.typeFormation} isAdminUser={wf.isAdminUser}
+        ups={wf.ups} depts={wf.depts}
+        animSel={wf.animSel} setAnimSel={wf.setAnimSel}
+        animFilterUp={wf.animFilterUp} setAnimFilterUp={wf.setAnimFilterUp}
+        animFilterDept={wf.animFilterDept} setAnimFilterDept={wf.setAnimFilterDept}
+        partSel={wf.partSel} setPartSel={wf.setPartSel}
+        partFilterUp={wf.partFilterUp} setPartFilterUp={wf.setPartFilterUp}
+        partFilterDept={wf.partFilterDept} setPartFilterDept={wf.setPartFilterDept}
+        optionsAnim={wf.optionsAnim} optionsPart={wf.optionsPart}
+        overlapWarnings={wf.overlapWarnings}
+        formNom={wf.formNom} setFormNom={wf.setFormNom}
+        formPrenom={wf.formPrenom} setFormPrenom={wf.setFormPrenom}
+        formEmail={wf.formEmail} setFormEmail={wf.setFormEmail}
+        bureauNom={wf.bureauNom} setBureauNom={wf.setBureauNom}
+        bureauMail={wf.bureauMail} setBureauMail={wf.setBureauMail}
+        bureauTelephone={wf.bureauTelephone} setBureauTelephone={wf.setBureauTelephone}
+        externeBureauId={wf.externeBureauId} setExterneBureauId={wf.setExterneBureauId}
+        animExterneSel={wf.animExterneSel} setAnimExterneSel={wf.setAnimExterneSel}
+        getAnimateurLabel={wf.getAnimateurLabel} getEnseignantLabel={wf.getEnseignantLabel}
+        handleExcelImportFile={wf.handleExcelImportFile}
+        handleExcelImportAnimateurFile={wf.handleExcelImportAnimateurFile}
+        exportAnimateursExcel={wf.exportAnimateursExcel}
+        exportParticipantsExcel={wf.exportParticipantsExcel}
+        addManualAnimateur={wf.addManualAnimateur}
+        addManualParticipant={wf.addManualParticipant}
+        selectAllVisibleAnim={wf.selectAllVisibleAnim}
+        selectAllVisiblePart={wf.selectAllVisiblePart}
+        clearAnimSel={wf.clearAnimSel}
+        clearPartSel={wf.clearPartSel}
+        getAllEmailsAnimateurs={wf.getAllEmailsAnimateurs}
+        getAllEmailsParticipants={wf.getAllEmailsParticipants}
+      />;
       case 3: return <CompetenciesStep compDomaines={wf.compDomaines} compCompetences={wf.compCompetences} selectedCompLinks={wf.selectedCompLinks} setSelectedCompLinks={wf.setSelectedCompLinks} rowSavoirs={wf.rowSavoirs} compSearch={wf.compSearch} setCompSearch={wf.setCompSearch} handleCompetenceSelect={wf.handleCompetenceSelect} handleSavoirSelect={wf.handleSavoirSelect} handleRemoveCompetenceLink={wf.handleRemoveCompetenceLink} getCompetenceOptions={wf.getCompetenceOptions} />;
       case 4: return <CostsStep typeFormation={wf.typeFormation} organisme={wf.organisme} setOrganisme={wf.setOrganisme} cout={wf.cout} setCout={wf.setCout} coutTransport={wf.coutTransport} setCoutTransport={wf.setCoutTransport} coutHebergement={wf.coutHebergement} setCoutHebergement={wf.setCoutHebergement} coutRepas={wf.coutRepas} setCoutRepas={wf.setCoutRepas} />;
       default: return null;

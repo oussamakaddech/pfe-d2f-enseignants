@@ -48,6 +48,7 @@ type AccountStatus = 'ACTIF' | 'BLOQUÉ' | 'INCONNU';
 
 interface Account {
   id?: Id;
+  userId?: Id;
   userName?: string;
   firsName?: string;
   firstName?: string;
@@ -56,6 +57,10 @@ interface Account {
   phoneNumber?: string;
   role?: string;
   status?: AccountStatus;
+}
+
+function getAccountId(record: Account): string {
+  return String(record.userId ?? record.id ?? "");
 }
 
 const handleSearchFilter = (selectedKeys: React.Key[], confirm: FilterDropdownProps["confirm"]) => { confirm(); };
@@ -189,7 +194,7 @@ export default function ListAccounts() {
       const values = await editForm.validateFields();
       setLoading(true);
       await updateAccountApi({
-        userId: String(editingRecord?.id ?? ""),
+        userId: editingRecord ? getAccountId(editingRecord) : "",
         data: {
           firstName: values.firstName as string,
           lastName: values.lastName as string,
@@ -397,7 +402,7 @@ export default function ListAccounts() {
             <Popconfirm
               title="Supprimer ?"
               description={`${fullName} sera définitivement supprimé.`}
-              onConfirm={() => handleDelete(record.id!, fullName)}
+              onConfirm={() => handleDelete(getAccountId(record), fullName)}
               okText="Supprimer"
               cancelText="Annuler"
               okButtonProps={{ danger: true }}

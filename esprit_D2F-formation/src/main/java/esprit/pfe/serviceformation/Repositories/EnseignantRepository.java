@@ -18,8 +18,10 @@ public interface EnseignantRepository extends JpaRepository<Enseignant, String> 
 
     boolean existsByMail(String mail);
 
-    /** Retourne l'enseignant dont l'id est le plus grand en ordre lexicographique
-     *  (ex: "E00099" > "E00010"), utilisé pour l'auto-incrément de l'identifiant. */
+    /** Enseignant dont l'id est le plus grand (ordre lexicographique), pour l'auto-incrément.
+     *  Requête native volontaire : elle ignore le filtre soft-delete (@SQLRestriction) afin
+     *  que les ids des enseignants supprimés soient pris en compte → pas de collision de PK. */
+    @Query(value = "SELECT * FROM enseignants ORDER BY id DESC LIMIT 1", nativeQuery = true)
     Optional<Enseignant> findTopByOrderByIdDesc();
     @Query("""
       SELECT e
@@ -45,4 +47,7 @@ public interface EnseignantRepository extends JpaRepository<Enseignant, String> 
     );
     List<Enseignant> findByUpAndCup(esprit.pfe.serviceformation.entities.Up up, String cup);
     List<Enseignant> findByCup(String cup);
+
+    List<Enseignant> findByDeptIdIn(List<String> deptIds);
+    List<Enseignant> findByUpIdIn(List<String> upIds);
 }

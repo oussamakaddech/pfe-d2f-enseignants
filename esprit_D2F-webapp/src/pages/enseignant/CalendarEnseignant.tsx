@@ -126,27 +126,28 @@ export default function CalendarEnseignant() {
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
 
   const { data: calendarDto } = useFormationsForCalendar(enseignantId);
-  const dto = calendarDto as { asAnimateur: FormationCalendar[]; asParticipant: FormationCalendar[] } | undefined;
+  const asAnimateur: FormationCalendar[] = (calendarDto?.asAnimateur ?? []) as FormationCalendar[];
+  const asParticipant: FormationCalendar[] = (calendarDto?.asParticipant ?? []) as FormationCalendar[];
 
   const enseignantInfo = useMemo(() => {
-    if (!dto) return null;
-    return dto.asAnimateur
+    if (!calendarDto) return null;
+    return asAnimateur
       .flatMap((f) => f.seances ?? [])
       .find((s) => seanceHasAnimateur(s, enseignantId))
       ?.animateurs?.find((e) => e.id === enseignantId) ||
-    dto.asParticipant
+    asParticipant
       .flatMap((f) => f.seances ?? [])
       .find((s) => seanceHasParticipant(s, enseignantId))
       ?.participants?.find((e) => e.id === enseignantId);
-  }, [dto, enseignantId]);
+  }, [dto, enseignantId, asAnimateur, asParticipant]);
 
   const events = useMemo(() => {
-    if (!dto) return [];
+    if (!calendarDto) return [];
     return [
-      ...buildAnimateurEvents(dto.asAnimateur, enseignantId),
-      ...buildParticipantEvents(dto.asParticipant, enseignantId),
+      ...buildAnimateurEvents(asAnimateur, enseignantId),
+      ...buildParticipantEvents(asParticipant, enseignantId),
     ];
-  }, [dto, enseignantId]);
+  }, [dto, enseignantId, asAnimateur, asParticipant]);
 
   const eventStyleGetter = (event: CalendarEvent) => ({
     style: {

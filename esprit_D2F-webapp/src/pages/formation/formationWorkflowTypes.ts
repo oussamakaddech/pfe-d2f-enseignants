@@ -8,6 +8,8 @@ export interface EnseignantItem {
   chefDepartement: string;
   upLibelle: string;
   deptLibelle: string;
+  isManual?: boolean;
+  source?: "system" | "manual" | "import";
 }
 
 export interface SeanceData {
@@ -102,3 +104,23 @@ export const PERIOD_OPTIONS = [
   { value: "WORKSHOP", label: "Workshop" },
   { value: "OTHER",    label: "Autre" },
 ];
+
+export enum AdditionMode {
+  MANUAL = "MANUAL",
+  AUTO_BY_DEPT = "AUTO_BY_DEPT",
+  AUTO_BY_UP = "AUTO_BY_UP",
+}
+
+export interface AnimateurAdditionConfig {
+  mode: AdditionMode;
+  manualIds?: string[];
+  deptIds?: string[];
+  upIds?: string[];
+}
+
+export interface ParticipantAdditionConfig {
+  mode: AdditionMode;
+  manualIds?: string[];
+  deptIds?: string[];
+  upIds?: string[];
+}

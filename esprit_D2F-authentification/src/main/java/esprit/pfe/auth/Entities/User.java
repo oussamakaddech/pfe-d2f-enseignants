@@ -20,7 +20,7 @@ import java.util.UUID;
                 @UniqueConstraint(columnNames = "username"),
                 @UniqueConstraint(columnNames = "email")
         })
-@SQLDelete(sql = "UPDATE auth.users SET deleted_at = NOW() WHERE id = ?")
+@SQLDelete(sql = "UPDATE auth.users SET deleted_at = NOW() WHERE id = ? AND version = ?")
 @SQLRestriction("deleted_at IS NULL")
 @Data
 @Getter

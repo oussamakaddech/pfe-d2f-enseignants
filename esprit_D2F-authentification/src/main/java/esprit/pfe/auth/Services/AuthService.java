@@ -63,6 +63,7 @@ public class AuthService {
     private static final String LOG_MESSAGE_LOGIN_REFUSED = "Login refused for username=%s from IP %s";
     private static final String LOG_MESSAGE_LOGIN_SUCCESS = "Login successful for username=%s from IP %s";
     private static final String EMAIL_KEY = "email";
+    private static final String USER_ID_KEY = "userId";
     public static final String PASSWORD_RESET_GENERIC_MESSAGE =
             "If this email address is registered, you will receive a password reset link.";
 
@@ -242,7 +243,7 @@ public class AuthService {
             PiiSafeLogger.info(AuthService.class, String.format(LOG_MESSAGE_LOGIN_SUCCESS, username, ip));
 
             Map<String, Object> body = new HashMap<>();
-            body.put("userId", user.getId());
+            body.put(USER_ID_KEY, user.getId());
             body.put("username", user.getUsername());
             body.put("role", scope);
             body.put(EMAIL_KEY, user.getEmail());
@@ -292,7 +293,7 @@ public class AuthService {
         String jwt = generateJwt(username, scope, email, userId);
 
         Map<String, Object> body = new HashMap<>();
-        body.put("userId", user != null ? user.getId() : null);
+        body.put(USER_ID_KEY, user != null ? user.getId() : null);
         body.put("username", username);
         body.put("role", scope);
         body.put(EMAIL_KEY, email);
@@ -372,7 +373,7 @@ public class AuthService {
                 .subject(username)
                 .claim("scope", scope)
                 .claim(EMAIL_KEY, email)
-                .claim("userId", userId != null ? userId : "")
+                .claim(USER_ID_KEY, userId != null ? userId : "")
                 .build();
 
         JwtEncoderParameters jwtEncoderParameters = JwtEncoderParameters.from(

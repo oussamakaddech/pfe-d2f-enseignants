@@ -42,6 +42,7 @@ class FormationWorkflowServiceCoverageTest {
     @Mock private DocumentRepository documentRepository;
     @Mock private FormationWorkflowServiceHelper helper;
     @Mock private FormationMapper formationMapper;
+    @Mock private AnimateurParticipantResolver animateurParticipantResolver;
 
     @InjectMocks
     private FormationWorkflowService service;
@@ -104,7 +105,7 @@ class FormationWorkflowServiceCoverageTest {
                 documentRepository, formationRepository, seanceFormationRepository,
                 enseignantRepository, presenceRepository, departementRepository,
                 upRepository, animateurExterneRepository, evaluationPublisher, helper, formationMapper,
-                outlookCalendarService, null);
+                animateurParticipantResolver, outlookCalendarService, null);
         ReflectionTestUtils.setField(svc, "formationMapper", formationMapper);
         Formation f = createFormation(EtatFormation.PLANIFIE);
         f.setSeances(new ArrayList<>());
@@ -276,7 +277,7 @@ class FormationWorkflowServiceCoverageTest {
                 documentRepository, formationRepository, seanceFormationRepository,
                 enseignantRepository, presenceRepository, departementRepository,
                 upRepository, animateurExterneRepository, evaluationPublisher, helper, formationMapper,
-                outlookCalendarService, null);
+                animateurParticipantResolver, outlookCalendarService, null);
         svc.notifyTeachersOfApprovedFormation(f);
         verifyNoInteractions(enseignantRepository);
     }
@@ -289,7 +290,7 @@ class FormationWorkflowServiceCoverageTest {
                 documentRepository, formationRepository, seanceFormationRepository,
                 enseignantRepository, presenceRepository, departementRepository,
                 upRepository, animateurExterneRepository, evaluationPublisher, helper, formationMapper,
-                outlookCalendarService, null);
+                animateurParticipantResolver, outlookCalendarService, null);
         assertDoesNotThrow(() -> svc.notifyCUPOfApprovedFormation(f));
     }
 

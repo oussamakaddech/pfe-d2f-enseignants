@@ -23,6 +23,10 @@ import java.security.Principal;
 @RestController
 @RequestMapping("/api/v1/account")
 public class AccountController {
+    private static final String SYSTEM_USER = "system";
+    private static final String LOG_ACCOUNT_PREFIX = "Account ";
+    private static final String LOG_FROM_IP = " from IP ";
+
     private final AccountService accountService;
     private final AuditService auditService;
 
@@ -51,10 +55,10 @@ public class AccountController {
             Principal principal,
             HttpServletRequest httpRequest) {
         UserDTO created = new UserDTO(this.accountService.createAccount(request, role));
-        String adminUsername = principal != null ? principal.getName() : "system";
+        String adminUsername = principal != null ? principal.getName() : SYSTEM_USER;
         PiiSafeLogger.info(AccountController.class,
-                "Account " + request.getUsername() + " (role=" + role + ") created by "
-                        + adminUsername + " from IP " + extractClientIp(httpRequest));
+                LOG_ACCOUNT_PREFIX + request.getUsername() + " (role=" + role + ") created by "
+                        + adminUsername + LOG_FROM_IP + extractClientIp(httpRequest));
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
@@ -65,11 +69,11 @@ public class AccountController {
         this.accountService.banAccount(userName);
 
         // Audit : ACCOUNT_BAN
-        String adminUsername = principal != null ? principal.getName() : "system";
+        String adminUsername = principal != null ? principal.getName() : SYSTEM_USER;
         String ip = extractClientIp(request);
         auditService.logAccountBan(adminUsername, userName, ip);
         PiiSafeLogger.info(AccountController.class,
-                "Account " + userName + " banned by " + adminUsername + " from IP " + ip);
+                LOG_ACCOUNT_PREFIX + userName + " banned by " + adminUsername + LOG_FROM_IP + ip);
     }
 
     @PostMapping("/enable-account")
@@ -79,11 +83,11 @@ public class AccountController {
         this.accountService.enableAccount(userName);
 
         // Audit : ACCOUNT_ENABLE
-        String adminUsername = principal != null ? principal.getName() : "system";
+        String adminUsername = principal != null ? principal.getName() : SYSTEM_USER;
         String ip = extractClientIp(request);
         auditService.logAccountEnable(adminUsername, userName, ip);
         PiiSafeLogger.info(AccountController.class,
-                "Account " + userName + " enabled by " + adminUsername + " from IP " + ip);
+                LOG_ACCOUNT_PREFIX + userName + " enabled by " + adminUsername + LOG_FROM_IP + ip);
     }
 
     @GetMapping("/profile")

@@ -44,6 +44,7 @@ public class FormationWorkflowService {
     private final OutlookMailService outlookMailService;
     private final FormationWorkflowServiceHelper helper;
     private final FormationMapper formationMapper;
+    private final AnimateurParticipantResolver animateurParticipantResolver;
 
     public FormationWorkflowService(DocumentRepository documentRepository,
             FormationRepository formationRepository,
@@ -56,6 +57,7 @@ public class FormationWorkflowService {
             EvaluationPublisher evaluationPublisher,
             FormationWorkflowServiceHelper helper,
             FormationMapper formationMapper,
+            AnimateurParticipantResolver animateurParticipantResolver,
             @org.springframework.lang.Nullable OutlookCalendarService outlookCalendarService,
             @org.springframework.lang.Nullable OutlookMailService outlookMailService) {
         this.documentRepository = documentRepository;
@@ -69,6 +71,7 @@ public class FormationWorkflowService {
         this.evaluationPublisher = evaluationPublisher;
         this.helper = helper;
         this.formationMapper = formationMapper;
+        this.animateurParticipantResolver = animateurParticipantResolver;
         this.outlookCalendarService = outlookCalendarService;
         this.outlookMailService = outlookMailService;
     }
@@ -100,9 +103,22 @@ public class FormationWorkflowService {
         helper.ensureNoConflict(userId, date, debut, fin, isAnimateur, ignoreSeanceId, ignoreFormationId);
     }
 
+    private List<String> resolveParticipantIds(FormationWorkflowRequest request) {
+        if (request.getParticipantConfig() != null) {
+            return animateurParticipantResolver.resolveParticipants(request.getParticipantConfig())
+                    .stream()
+                    .map(Enseignant::getId)
+                    .toList();
+        } else if (request.getParticipantsIds() != null && !request.getParticipantsIds().isEmpty()) {
+            return request.getParticipantsIds();
+        }
+        return Collections.emptyList();
+    }
+
     @Transactional
     public Formation createFormationWorkflow(FormationWorkflowRequest request) {
-        List<String> partIds = Optional.ofNullable(request.getParticipantsIds()).orElse(Collections.emptyList());
+        // Resolve participants using new config-based or fallback to old IDs
+        List<String> partIds = resolveParticipantIds(request);
         List<FormationWorkflowRequest.SeanceRequest> seanceReqs = Optional.ofNullable(request.getSeances())
                 .orElse(Collections.emptyList());
 
@@ -880,7 +896,7 @@ public class FormationWorkflowService {
         OffsetDateTime eventEnd = convertToOffsetDateTime(freshSeance.getDateSeance(), freshSeance.getHeureFin());
 
         String animateursStr = buildAnimateursString(freshSeance, freshFormation);
-        String eventSubject = String.format("[D2F] %s : %s", freshFormation.getTitreFormation(), animateursStr);
+        String eventSubject = buildEventSubject(freshSeance, freshFormation, animateursStr);
         String eventHtmlContent = buildCalendarEventContent(freshFormation, freshSeance, animateursStr);
 
         Set<String> emails = buildEmailsSet(freshSeance, freshFormation);
@@ -904,6 +920,22 @@ public class FormationWorkflowService {
                     + freshFormation.getExterneFormateurPrenom();
         }
         return animateursStr;
+    }
+
+    /**
+     * Titre de l'événement Outlook au format demandé : {@code D2f-Salle-Formation-Animateur}.
+     * Format à 4 champs, cohérent avec {@code FormationServiceImpl.createOutlookEvent} :
+     * des placeholders sont utilisés quand une valeur manque (ex.
+     * {@code D2f-B201-Formation Java-Karim TRABELSI} ou {@code D2f-Salle-TBD-formation-Animateur-TBD}).
+     */
+    private String buildEventSubject(SeanceFormation freshSeance, Formation freshFormation, String animateursStr) {
+        String salle = (freshSeance.getSalle() != null && !freshSeance.getSalle().isBlank())
+                ? freshSeance.getSalle().trim() : "Salle-TBD";
+        String titre = (freshFormation.getTitreFormation() != null && !freshFormation.getTitreFormation().isBlank())
+                ? freshFormation.getTitreFormation().trim() : "Formation";
+        String animateur = (animateursStr != null && !animateursStr.isBlank())
+                ? animateursStr.trim() : "Animateur-TBD";
+        return "D2f-" + salle + "-" + titre + "-" + animateur;
     }
 
     private Set<String> buildEmailsSet(SeanceFormation freshSeance, Formation freshFormation) {

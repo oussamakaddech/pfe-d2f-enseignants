@@ -14,8 +14,10 @@ import useAppNotification from "@/hooks/ui/useAppNotification";
 import EnseignantService from "@/services/formation/EnseignantService";
 import CompetenceService from "@/services/competence/CompetenceService";
 import type { AnimateurExterne } from "@/models/bureau";
+import type { ActorDraft } from "@/components/formation/AddActorModal";
+import { filterExistingByEmails, getPersonEmailList, parseEmailsFromExcel } from "@/utils/formation/actorImport";
 
-export type PersonItem = { id?: unknown; type?: string; cup?: string; chefDepartement?: string; nom?: string; prenom?: string; mail?: string; upLibelle?: string; deptLibelle?: string; isAuthUser?: boolean; userName?: string; etat?: string };
+export type PersonItem = { id?: unknown; type?: string; cup?: string; chefDepartement?: string; nom?: string; prenom?: string; mail?: string; upLibelle?: string; deptLibelle?: string; isAuthUser?: boolean; userName?: string; etat?: string; isManual?: boolean; source?: "system" | "manual" | "import" };
 export type AccountItem = { id?: unknown; role?: string; userName?: string; username?: string; lastName?: string; firstName?: string; emailAddress?: string; email?: string; type?: string; upLibelle?: string; deptLibelle?: string };
 export type SeanceItem = { id?: unknown; dateSeance?: string; heureDebut?: unknown; heureFin?: unknown; salle?: unknown; animateurs?: { id?: unknown }[]; participants?: { id?: unknown }[]; seances?: SeanceItem[] };
 export type FormationRaw = { idFormation?: unknown; id?: unknown; titreFormation?: string; seances?: SeanceItem[]; participants?: { id?: unknown }[] };
@@ -243,6 +245,11 @@ export function useFormationWorkflow({ initialDate, onFormationCreated, besoinIn
   const [partFilterUp, setPartFilterUp] = useState<LookupNode | null>(null);
   const [partFilterDept, setPartFilterDept] = useState<LookupNode | null>(null);
 
+  const [manualAnimateurs, setManualAnimateurs] = useState<PersonItem[]>([]);
+  const [manualParticipants, setManualParticipants] = useState<PersonItem[]>([]);
+  const [importedAnimateurEmails, setImportedAnimateurEmails] = useState<string[]>([]);
+  const [importedParticipantEmails, setImportedParticipantEmails] = useState<string[]>([]);
+
   const [overlapWarnings, setOverlapWarnings] = useState<unknown[]>([]);
   const [domaine, setDomaine] = useState(besoinInfo?.theme || "");
   const [populationCible, setPopulationCible] = useState(besoinInfo?.publicCible || "");
@@ -270,12 +277,18 @@ export function useFormationWorkflow({ initialDate, onFormationCreated, besoinIn
 
   const enseignantsList = Array.isArray(enseignants) ? enseignants : [];
 
-  const optionsAnim = formateursList.filter(x =>
+  const optionsAnim = [
+    ...formateursList,
+    ...manualAnimateurs,
+  ].filter(x =>
     (!animFilterUp || x.upLibelle === animFilterUp.libelle) &&
     (!animFilterDept || x.deptLibelle === animFilterDept.libelle)
   );
 
-  const optionsPart = enseignantsList.filter(x =>
+  const optionsPart = [
+    ...enseignantsList,
+    ...manualParticipants,
+  ].filter(x =>
     (!partFilterUp || x.upLibelle === partFilterUp.libelle) &&
     (!partFilterDept || x.deptLibelle === partFilterDept.libelle)
   );
@@ -420,30 +433,200 @@ export function useFormationWorkflow({ initialDate, onFormationCreated, besoinIn
   const handleExcelImportFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const buffer = await file.arrayBuffer();
-    const { read, utils } = await import("xlsx");
-    const data = new Uint8Array(buffer);
-    const wb = read(data, { type: "array" });
-    const rows = utils.sheet_to_json<Record<string, unknown>>(wb.Sheets[wb.SheetNames[0]]);
-    const mails = rows.map(r => r["Email"] ?? r["email"] ?? r["Mail"] ?? r["mail"] ?? r["EMAIL"] ?? r["MAIL"] ?? r["email_address"]).filter(Boolean).map(m => String(m).trim().toLowerCase());
-    const matched = enseignants.filter(ex => ex.mail && mails.includes(ex.mail.toLowerCase()));
-    setPartSel(matched);
-    e.target.value = "";
-    if (matched.length > 0) message.success(`${matched.length} participant${matched.length > 1 ? "s" : ""} importé${matched.length > 1 ? "s" : ""}`);
-    else if (mails.length === 0) { const headers = rows.length > 0 ? Object.keys(rows[0]).join(", ") : "fichier vide"; message.warning(`Aucun email trouvé. Colonne attendue : Email ou Mail. Colonnes trouvées : ${headers}`); }
-    else message.warning(`Aucun participant correspondant pour les ${mails.length} email${mails.length > 1 ? "s" : ""} importés`);
+    try {
+      const { emails, rows, headers } = await parseEmailsFromExcel(file);
+      if (emails.length === 0) {
+        if (rows === 0) {
+          message.warning("Fichier Excel vide ou mal formaté.");
+        } else {
+          message.warning(`Colonne Email introuvable. Colonnes trouvées : ${headers.join(", ") || "(aucune)"}`);
+        }
+        e.target.value = "";
+        return;
+      }
+      const { matched, missing } = filterExistingByEmails([...enseignantsList, ...manualParticipants], emails);
+      const newManual = missing
+        .filter((m) => !manualParticipants.some((p) => (p.mail || "").toLowerCase() === m))
+        .map((m) => ({
+          id: `manual-part-${m}`,
+          mail: m,
+          isManual: true,
+          source: "import" as const,
+          etat: "A",
+        }));
+      setManualParticipants((prev) => [...prev, ...newManual]);
+      setImportedParticipantEmails((prev) => [...new Set([...prev, ...emails])]);
+      const finalSel = [...partSel.filter((p) => !missing.includes((p.mail || "").toLowerCase())), ...matched, ...newManual];
+      setPartSel(finalSel);
+      if (matched.length > 0 || newManual.length > 0) {
+        message.success(
+          `${matched.length + newManual.length} participant${matched.length + newManual.length > 1 ? "s" : ""} importé${matched.length + newManual.length > 1 ? "s" : ""} `
+          + `(${matched.length} trouvé${matched.length > 1 ? "s" : ""}, ${newManual.length} ajouté${newManual.length > 1 ? "s" : ""} manuellement).`,
+        );
+      } else {
+        message.warning("Aucun participant correspondant trouvé.");
+      }
+    } catch {
+      message.error("Échec de la lecture du fichier Excel.");
+    } finally {
+      e.target.value = "";
+    }
   };
 
-  const exportParticipantsExcel = async () => {
-    const { writeExcel, exportDateLabel, isoDate } = await import("utils/helpers/excelExport");
-    const source = partSel.length > 0 ? partSel : optionsPart;
-    const rows = source.map(p => {
-      let pType = p.type || "";
-      if (p.type === "P") pType = "Permanent"; else if (p.type === "V") pType = "Vacataire";
-      return { Nom: p.nom || "", Prénom: p.prenom || "", Email: p.mail || "", Type: pType, UP: p.upLibelle || "", Département: p.deptLibelle || "" };
-    });
-    writeExcel([{ name: "Participants", rows, title: "Liste des Participants — Esprit", subtitle: exportDateLabel() }], `participants_${isoDate()}.xlsx`);
+  const handleExcelImportAnimateurFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const { emails, rows, headers } = await parseEmailsFromExcel(file);
+      if (emails.length === 0) {
+        if (rows === 0) {
+          message.warning("Fichier Excel vide ou mal formaté.");
+        } else {
+          message.warning(`Colonne Email introuvable. Colonnes trouvées : ${headers.join(", ") || "(aucune)"}`);
+        }
+        e.target.value = "";
+        return;
+      }
+      const { matched, missing } = filterExistingByEmails([...formateursList, ...manualAnimateurs], emails);
+      const newManual = missing
+        .filter((m) => !manualAnimateurs.some((p) => (p.mail || "").toLowerCase() === m))
+        .map((m) => ({
+          id: `manual-anim-${m}`,
+          mail: m,
+          type: "V",
+          cup: "N",
+          chefDepartement: "N",
+          etat: "A",
+          isManual: true,
+          source: "import" as const,
+        }));
+      setManualAnimateurs((prev) => [...prev, ...newManual]);
+      setImportedAnimateurEmails((prev) => [...new Set([...prev, ...emails])]);
+      const finalSel = [...animSel.filter((p) => !missing.includes((p.mail || "").toLowerCase())), ...matched, ...newManual];
+      setAnimSel(finalSel);
+      if (matched.length > 0 || newManual.length > 0) {
+        message.success(
+          `${matched.length + newManual.length} animateur${matched.length + newManual.length > 1 ? "s" : ""} importé${matched.length + newManual.length > 1 ? "s" : ""} `
+          + `(${matched.length} trouvé${matched.length > 1 ? "s" : ""}, ${newManual.length} ajouté${newManual.length > 1 ? "s" : ""} manuellement).`,
+        );
+      } else {
+        message.warning("Aucun animateur correspondant trouvé.");
+      }
+    } catch {
+      message.error("Échec de la lecture du fichier Excel.");
+    } finally {
+      e.target.value = "";
+    }
   };
+
+  const addManualAnimateur = (draft: ActorDraft) => {
+    const id = `manual-anim-${draft.email}`;
+    const exists = [...animSel, ...manualAnimateurs].some(
+      (p) => (p.mail || "").toLowerCase() === draft.email.toLowerCase(),
+    );
+    if (exists) {
+      message.warning("Cet animateur est déjà dans la sélection.");
+      return;
+    }
+    const person: PersonItem = {
+      id,
+      nom: draft.nom,
+      prenom: draft.prenom,
+      mail: draft.email,
+      type: draft.type,
+      cup: draft.cup,
+      chefDepartement: draft.chefDepartement,
+      upLibelle: draft.upLibelle || "",
+      deptLibelle: draft.deptLibelle || "",
+      isManual: true,
+      source: "manual",
+      etat: "A",
+    };
+    setManualAnimateurs((prev) => [...prev, person]);
+    setAnimSel((prev) => [...prev, person]);
+    message.success(`Animateur ${draft.prenom} ${draft.nom} ajouté.`);
+  };
+
+  const addManualParticipant = (draft: ActorDraft) => {
+    const id = `manual-part-${draft.email}`;
+    const exists = [...partSel, ...manualParticipants].some(
+      (p) => (p.mail || "").toLowerCase() === draft.email.toLowerCase(),
+    );
+    if (exists) {
+      message.warning("Ce participant est déjà dans la sélection.");
+      return;
+    }
+    const person: PersonItem = {
+      id,
+      nom: draft.nom,
+      prenom: draft.prenom,
+      mail: draft.email,
+      type: draft.type,
+      cup: draft.cup,
+      chefDepartement: draft.chefDepartement,
+      upLibelle: draft.upLibelle || "",
+      deptLibelle: draft.deptLibelle || "",
+      isManual: true,
+      source: "manual",
+      etat: "A",
+    };
+    setManualParticipants((prev) => [...prev, person]);
+    setPartSel((prev) => [...prev, person]);
+    message.success(`Participant ${draft.prenom} ${draft.nom} ajouté.`);
+  };
+
+  const selectAllVisibleAnim = () => {
+    const currentIds = new Set(animSel.map((a) => String(a.id ?? a.mail)));
+    const merged = [...animSel];
+    optionsAnim.forEach((a) => {
+      const key = String(a.id ?? a.mail);
+      if (!currentIds.has(key)) merged.push(a);
+    });
+    setAnimSel(merged);
+    message.success(`${merged.length} animateur(s) au total.`);
+  };
+
+  const selectAllVisiblePart = () => {
+    const currentIds = new Set(partSel.map((p) => String(p.id ?? p.mail)));
+    const merged = [...partSel];
+    optionsPart.forEach((p) => {
+      const key = String(p.id ?? p.mail);
+      if (!currentIds.has(key)) merged.push(p);
+    });
+    setPartSel(merged);
+    message.success(`${merged.length} participant(s) au total.`);
+  };
+
+  const clearAnimSel = () => setAnimSel([]);
+  const clearPartSel = () => setPartSel([]);
+
+  const exportPersonsToExcel = async (
+    sel: PersonItem[],
+    all: PersonItem[],
+    sheetName: string,
+    title: string,
+    filename: string
+  ) => {
+    try {
+      const { writeExcel, exportDateLabel, isoDate } = await import("utils/helpers/excelExport");
+      const source = sel.length > 0 ? sel : all;
+      if (source.length === 0) { message.warning("Aucune donnée à exporter."); return; }
+      const rows = source.map(p => {
+        let pType = p.type || "";
+        if (p.type === "P") pType = "Permanent"; else if (p.type === "V") pType = "Vacataire";
+        return { Nom: p.nom || "", Prénom: p.prenom || "", Email: p.mail || "", Type: pType, UP: p.upLibelle || "", Département: p.deptLibelle || "" };
+      });
+      writeExcel([{ name: sheetName, rows, title, subtitle: exportDateLabel() }], `${filename}_${isoDate()}.xlsx`);
+    } catch {
+      message.error("Erreur lors de l'export Excel.");
+    }
+  };
+
+  const exportAnimateursExcel = () =>
+    exportPersonsToExcel(animSel, optionsAnim, "Animateurs", "Liste des Animateurs — Esprit", "animateurs");
+
+  const exportParticipantsExcel = () =>
+    exportPersonsToExcel(partSel, optionsPart, "Participants", "Liste des Participants — Esprit", "participants");
 
   const validateSeancesForSubmit = () => {
     for (let i = 0; i < seances.length; i += 1) {
@@ -483,8 +666,61 @@ export function useFormationWorkflow({ initialDate, onFormationCreated, besoinIn
       const finalAnimIds = animSel.map(getAnimateurStableId).filter(Boolean);
       const blockingConflicts = buildConflictMessages({ localSeances: seances, participantIds: partSel.map((p) => p.id).filter(Boolean), animateurIds: finalAnimIds });
       if (blockingConflicts.length > 0) { setOverlapWarnings(blockingConflicts); message.error("Conflits détectés: corrigez les dates/salles/personnes."); return; }
+
+      // Persist FORMATEUR auth-users as enseignants (existing behavior).
       await Promise.all(animSel.map(createAuthUserEnseignant));
-      const payload = buildPayload(finalAnimIds);
+
+      // Persist manually-added / imported persons so backend has a real id.
+      const manualAnimsToCreate = animSel.filter((a) => a.isManual && String(a.id ?? "").startsWith("manual-anim-"));
+      const manualPartsToCreate = partSel.filter((p) => p.isManual && String(p.id ?? "").startsWith("manual-part-"));
+      const persistedAnimByKey = new Map<string, unknown>();
+      const persistedPartByKey = new Map<string, unknown>();
+      await Promise.all(
+        manualAnimsToCreate.map(async (a) => {
+          try {
+            const res = await EnseignantService.createEnseignant({
+              id: a.id, nom: a.nom, prenom: a.prenom, mail: a.mail,
+              type: a.type || "V", etat: a.etat || "A", cup: a.cup || "N", chefDepartement: a.chefDepartement || "N",
+            });
+            persistedAnimByKey.set(String(a.id), res);
+          } catch {
+            // ignore single-failure so others still get persisted
+          }
+        }),
+      );
+      await Promise.all(
+        manualPartsToCreate.map(async (p) => {
+          try {
+            const res = await EnseignantService.createEnseignant({
+              id: p.id, nom: p.nom, prenom: p.prenom, mail: p.mail,
+              type: p.type || "P", etat: p.etat || "A", cup: p.cup || "N", chefDepartement: p.chefDepartement || "N",
+            });
+            persistedPartByKey.set(String(p.id), res);
+          } catch {
+            // ignore single-failure
+          }
+        }),
+      );
+
+      // Replace temp ids with persisted ids in the final selection.
+      const finalAnimIdsWithPersisted = animSel.map((a) => {
+        if (a.isManual && String(a.id ?? "").startsWith("manual-anim-")) {
+          const persisted = persistedAnimByKey.get(String(a.id)) as { id?: unknown } | undefined;
+          return persisted?.id ?? getAnimateurStableId(a);
+        }
+        return getAnimateurStableId(a);
+      }).filter(Boolean);
+
+      const finalPartIdsWithPersisted = partSel.map((p) => {
+        if (p.isManual && String(p.id ?? "").startsWith("manual-part-")) {
+          const persisted = persistedPartByKey.get(String(p.id)) as { id?: unknown } | undefined;
+          return persisted?.id ?? p.id;
+        }
+        return p.id;
+      }).filter(Boolean);
+
+      const payload = buildPayload(finalAnimIdsWithPersisted);
+      payload.participantsIds = finalPartIdsWithPersisted as unknown[];
       const newF = await createFormation(payload);
       const fId = newF.idFormation;
       setNewFormationId(fId ?? null);
@@ -523,6 +759,15 @@ export function useFormationWorkflow({ initialDate, onFormationCreated, besoinIn
     showUpload, setShowUpload, newFormationId,
     handleNext, handleBack, handleSubmit,
     handleCompetenceSelect, handleSavoirSelect, handleRemoveCompetenceLink, getCompetenceOptions,
-    getEnseignantLabel, getAnimateurLabel, handleExcelImportFile, exportParticipantsExcel,
+    getEnseignantLabel, getAnimateurLabel, handleExcelImportFile,
+    exportAnimateursExcel, exportParticipantsExcel,
+    manualAnimateurs, manualParticipants,
+    addManualAnimateur, addManualParticipant,
+    handleExcelImportAnimateurFile,
+    selectAllVisibleAnim, selectAllVisiblePart,
+    clearAnimSel, clearPartSel,
+    getAllEmailsAnimateurs: () => getPersonEmailList(animSel),
+    getAllEmailsParticipants: () => getPersonEmailList(partSel),
+    importedAnimateurEmails, importedParticipantEmails,
   };
 }

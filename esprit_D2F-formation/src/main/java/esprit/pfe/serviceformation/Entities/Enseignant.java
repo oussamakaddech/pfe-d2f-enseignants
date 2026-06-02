@@ -5,7 +5,9 @@ import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.SQLRestriction;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -14,6 +16,10 @@ import java.util.List;
 @AllArgsConstructor
 @Entity
 @Table(name = "enseignants")
+// Soft delete : les enseignants supprimés (deleted_at non null) sont exclus de
+// toutes les requêtes JPA. On évite ainsi la violation de contraintes FK
+// (séances/présences/inscriptions) tout en préservant l'historique.
+@SQLRestriction("deleted_at IS NULL")
 public class Enseignant extends BaseAuditEntity {
 
     @Id
@@ -74,5 +80,9 @@ public class Enseignant extends BaseAuditEntity {
     @JsonIgnore
     @OneToMany(mappedBy = "enseignant", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Inscription> inscriptions = new ArrayList<>();
+
+    // Suppression logique (soft delete) — null = actif.
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
 
 }

@@ -76,6 +76,10 @@ public class FormationWorkflowRequest {
     private List<String> animateursIds;
     private List<String> participantsIds;
 
+    // New: Configuration-based addition (MANUAL, AUTO_BY_DEPT, AUTO_BY_UP)
+    private FormationWorkflowRequestAdditionConfig.AnimateurAdditionConfig animateurConfig;
+    private FormationWorkflowRequestAdditionConfig.ParticipantAdditionConfig participantConfig;
+
     // IDs des animateurs externes (rattachés à un bureau) sélectionnés pour une formation externe
     private List<Long> animateursExternesIds;
 

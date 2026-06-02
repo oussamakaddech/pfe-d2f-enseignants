@@ -25,14 +25,37 @@ export async function createAccount(
   return response.data;
 }
 
+type UserDTOFromBackend = {
+  id?: string;
+  userName?: string;
+  firsName?: string;
+  firstName?: string;
+  lastName?: string;
+  phoneNumber?: string;
+  email?: string;
+  role?: string;
+  status?: boolean | string;
+};
+
+function normalizeUserDTO(dto: UserDTOFromBackend): AuthUser {
+  return {
+    userId: dto.id,
+    username: dto.userName,
+    role: (dto.role ?? "") as AuthUser["role"],
+    email: dto.email ?? "",
+    // keep extra fields for ListAccounts mapping
+    ...dto,
+  } as AuthUser;
+}
+
 export async function getAllAccounts(): Promise<AuthUser[]> {
-  const response = await api.get<AuthUser[] | { content: AuthUser[] }>(`${API_URL}/list-accounts`);
+  const response = await api.get<UserDTOFromBackend[] | { content: UserDTOFromBackend[] }>(
+    `${API_URL}/list-accounts`
+  );
   const data = response.data;
   if (!data) return [];
-  if (Array.isArray(data)) {
-    return data;
-  }
-  return data.content || [];
+  const raw = Array.isArray(data) ? data : (data.content ?? []);
+  return raw.map(normalizeUserDTO);
 }
 
 export async function getProfile(): Promise<AuthUser> {

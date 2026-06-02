@@ -91,8 +91,16 @@ public class EnseignantServiceImpl implements EnseignantService {
     }
 
     @Override
+    @Transactional
     public void deleteEnseignant(String id) {
-        enseignantRepository.deleteById(id);
+        // Soft delete : suppression physique impossible (FK séances/présences/inscriptions
+        // → 409). On marque deleted_at ; l'enseignant est alors exclu de toutes les
+        // requêtes (@SQLRestriction) et l'historique est préservé.
+        Enseignant enseignant = enseignantRepository.findById(id)
+                .orElseThrow(() -> new jakarta.persistence.EntityNotFoundException(
+                        "Enseignant introuvable avec l'id : " + id));
+        enseignant.setDeletedAt(java.time.LocalDateTime.now());
+        enseignantRepository.save(enseignant);
     }
 
     @Override

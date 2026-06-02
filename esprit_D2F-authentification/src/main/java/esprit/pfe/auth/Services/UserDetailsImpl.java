@@ -32,18 +32,22 @@ public class UserDetailsImpl implements UserDetails {
 		this.authorities = authorities;
 	}
 
+	private java.time.LocalDateTime lockUntil;
+
 	public static UserDetailsImpl build(User user) {
 		List<GrantedAuthority> authorities = user.getRoles().stream()
 				.map(role -> new SimpleGrantedAuthority("ROLE_" + role.getName().name()))
 				.collect(Collectors.toList());
 
-		return new UserDetailsImpl(
+		UserDetailsImpl details = new UserDetailsImpl(
 				user.getId(),
 				user.getUsername(),
 				user.getEmail(),
 				user.getPassword(),
 				user.getDisabled() == null || !user.getDisabled(),
 				authorities);
+		details.lockUntil = user.getLockUntil();
+		return details;
 	}
 
 	@Override
@@ -76,7 +80,7 @@ public class UserDetailsImpl implements UserDetails {
 
 	@Override
 	public boolean isAccountNonLocked() {
-		return true;
+		return lockUntil == null || lockUntil.isBefore(java.time.LocalDateTime.now());
 	}
 
 	@Override

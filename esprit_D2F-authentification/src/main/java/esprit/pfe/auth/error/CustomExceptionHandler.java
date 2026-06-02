@@ -98,8 +98,9 @@ public class CustomExceptionHandler {
         public ResponseEntity<CustomErrorResponse> handleValidationException(
                         org.springframework.web.bind.MethodArgumentNotValidException ex,
                         HttpServletRequest request) {
-                String message = ex.getBindingResult().getFieldError() != null
-                                ? ex.getBindingResult().getFieldError().getDefaultMessage()
+                org.springframework.validation.FieldError fieldError = ex.getBindingResult().getFieldError();
+                String message = (fieldError != null && fieldError.getDefaultMessage() != null)
+                                ? fieldError.getDefaultMessage()
                                 : "Validation failed";
                 logHandled(HttpStatus.BAD_REQUEST.value(), message, request);
                 CustomErrorResponse errorResponse = buildErrorResponse(
