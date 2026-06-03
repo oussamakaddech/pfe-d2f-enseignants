@@ -16,6 +16,7 @@ import CompetenceService from "@/services/competence/CompetenceService";
 import type { AnimateurExterne } from "@/models/bureau";
 import type { ActorDraft } from "@/components/formation/AddActorModal";
 import { filterExistingByEmails, getPersonEmailList, parseEmailsFromExcel } from "@/utils/formation/actorImport";
+import type { EnseignantItem } from "@/pages/formation/formationWorkflowTypes";
 
 export type PersonItem = { id?: unknown; type?: string; cup?: string; chefDepartement?: string; nom?: string; prenom?: string; mail?: string; upLibelle?: string; deptLibelle?: string; isAuthUser?: boolean; userName?: string; etat?: string; isManual?: boolean; source?: "system" | "manual" | "import" };
 export type AccountItem = { id?: unknown; role?: string; userName?: string; username?: string; lastName?: string; firstName?: string; firsName?: string; emailAddress?: string; email?: string; type?: string; upLibelle?: string; deptLibelle?: string };
@@ -294,7 +295,7 @@ export function useFormationWorkflow({ initialDate, onFormationCreated, besoinIn
   const [compSearch, setCompSearch] = useState("");
 
   const [seances, setSeances] = useState([
-    { id: Date.now(), dateSeance: dateDebut || format(new Date(), "yyyy-MM-dd"), heureDebut: "08:00:00", heureFin: "10:00:00", salle: "", onlineMeetingUrl: "", typeSeance: "THEORIQUE", contenus: "", methodes: "", dureeTheorique: 0, dureePratique: 0, expanded: true },
+    { id: Date.now(), dateSeance: dateDebut || format(new Date(), "yyyy-MM-dd"), heureDebut: "08:00:00", heureFin: "10:00:00", salle: "", onlineMeetingUrl: "", typeSeance: "THEORIQUE", contenus: "", methodes: "", dureeTheorique: 0, dureePratique: 0, animateurs: [] as EnseignantItem[], expanded: true },
   ]);
 
   const [showUpload, setShowUpload] = useState(false);
@@ -455,7 +456,7 @@ export function useFormationWorkflow({ initialDate, onFormationCreated, besoinIn
 
   const handleBack = () => setActiveStep((prev) => prev - 1);
 
-  const addSeance = () => setSeances([...seances, { id: Date.now(), dateSeance: dateDebut, heureDebut: "08:00:00", heureFin: "10:00:00", salle: "", onlineMeetingUrl: "", typeSeance: "THEORIQUE", contenus: "", methodes: "", dureeTheorique: 0, dureePratique: 0, expanded: true }]);
+  const addSeance = () => setSeances([...seances, { id: Date.now(), dateSeance: dateDebut, heureDebut: "08:00:00", heureFin: "10:00:00", salle: "", onlineMeetingUrl: "", typeSeance: "THEORIQUE", contenus: "", methodes: "", dureeTheorique: 0, dureePratique: 0, animateurs: [] as EnseignantItem[], expanded: true }]);
   const updateSeance = (i: number, f: string, v: unknown) => { const a = [...seances]; a[i] = { ...a[i], [f]: v }; setSeances(a); };
   const removeSeance = (i: number) => setSeances(seances.filter((_, idx) => idx !== i));
   const toggleSeance = (i: number) => updateSeance(i, "expanded", !seances[i].expanded);
@@ -694,7 +695,7 @@ export function useFormationWorkflow({ initialDate, onFormationCreated, besoinIn
     return true;
   };
 
-  function buildPayload(finalAnimIds: unknown[]) {
+  function buildPayload(finalAnimIds: unknown[], resolvedAnimIdMap?: Map<PersonItem, unknown>) {
     return {
       idBesoinFormation: besoinInfo?.idBesoinFormation || null, typeBesoin: besoinInfo?.typeBesoin || null, titreFormation: titre,
       salle: salle || null, dateDebut: dateDebut || null, dateFin: dateFin || null, typeFormation, etatFormation, ouverte,
@@ -711,6 +712,10 @@ export function useFormationWorkflow({ initialDate, onFormationCreated, besoinIn
         dateSeance: s.dateSeance || null, heureDebut: s.heureDebut, heureFin: s.heureFin, salle: s.salle,
         onlineMeetingUrl: s.onlineMeetingUrl, typeSeance: s.typeSeance, contenus: s.contenus, methodes: s.methodes,
         dureeTheorique: s.dureeTheorique || 0, dureePratique: s.dureePratique || 0,
+        animateursIds: (s.animateurs ?? []).map(a => {
+          if (resolvedAnimIdMap?.has(a)) return resolvedAnimIdMap.get(a);
+          return a.id;
+        }).filter(Boolean).map(String),
       })),
     };
   }
@@ -743,7 +748,7 @@ export function useFormationWorkflow({ initialDate, onFormationCreated, besoinIn
         manualAnimsToCreate.map(async (a) => {
           try {
             const res = await EnseignantService.createEnseignant({
-              id: a.id, nom: a.nom, prenom: a.prenom, mail: a.mail,
+              nom: a.nom, prenom: a.prenom, mail: a.mail,
               type: a.type || "V", etat: a.etat || "A", cup: a.cup || "N", chefDepartement: a.chefDepartement || "N",
             });
             persistedAnimByKey.set(String(a.id), res);
@@ -762,7 +767,7 @@ export function useFormationWorkflow({ initialDate, onFormationCreated, besoinIn
         manualPartsToCreate.map(async (p) => {
           try {
             const res = await EnseignantService.createEnseignant({
-              id: p.id, nom: p.nom, prenom: p.prenom, mail: p.mail,
+              nom: p.nom, prenom: p.prenom, mail: p.mail,
               type: p.type || "P", etat: p.etat || "A", cup: p.cup || "N", chefDepartement: p.chefDepartement || "N",
             });
             persistedPartByKey.set(String(p.id), res);
@@ -791,6 +796,12 @@ export function useFormationWorkflow({ initialDate, onFormationCreated, besoinIn
         return getAnimateurStableId(a);
       }).filter(Boolean);
 
+      // Build a map from animateur item → resolved DB ID for seance-level resolution
+      const resolvedAnimIdMap = new Map<PersonItem, unknown>();
+      animSel.forEach((a, i) => {
+        resolvedAnimIdMap.set(a, finalAnimIdsWithPersisted[i]);
+      });
+
       const finalPartIdsWithPersisted = partSel.map((p) => {
         if (p.isManual && String(p.id ?? "").startsWith("manual-part-")) {
           const persisted = persistedPartByKey.get(String(p.id)) as { id?: unknown } | undefined;
@@ -799,7 +810,7 @@ export function useFormationWorkflow({ initialDate, onFormationCreated, besoinIn
         return p.id;
       }).filter(Boolean);
 
-      const payload = buildPayload(finalAnimIdsWithPersisted);
+      const payload = buildPayload(finalAnimIdsWithPersisted, resolvedAnimIdMap);
       payload.participantsIds = finalPartIdsWithPersisted as unknown[];
       const newF = await createFormation(payload);
       const fId = newF.idFormation;
