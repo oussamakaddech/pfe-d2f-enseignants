@@ -232,6 +232,7 @@ public class FormationMapper {
             .seances(formation.getSeances() != null ?
                 formation.getSeances().stream().map(this::mapSeanceToDTO).toList()
                 : null)
+            .animateurs(toEnseignantDTOList(formation.getAnimateurs()))
             .animateursExternes(
                 org.hibernate.Hibernate.isInitialized(formation.getAnimateursExternes())
                         && formation.getAnimateursExternes() != null
@@ -273,6 +274,40 @@ public class FormationMapper {
         dto.setDureeTheorique(seance.getDureeTheorique());
         dto.setDureePratique(seance.getDureePratique());
         dto.setOnlineMeetingUrl(seance.getOnlineMeetingUrl());
+        dto.setAnimateurs(toEnseignantDTOList(seance.getAnimateurs()));
+        dto.setParticipants(toEnseignantDTOList(seance.getParticipants()));
+        return dto;
+    }
+
+    private java.util.List<EnseignantDTO> toEnseignantDTOList(java.util.List<esprit.pfe.serviceformation.entities.Enseignant> enseignants) {
+        if (enseignants == null || enseignants.isEmpty()) {
+            return java.util.List.of();
+        }
+        return enseignants.stream().map(this::toEnseignantDTO).toList();
+    }
+
+    private EnseignantDTO toEnseignantDTO(esprit.pfe.serviceformation.entities.Enseignant e) {
+        EnseignantDTO dto = new EnseignantDTO();
+        dto.setId(e.getId());
+        dto.setNom(e.getNom());
+        dto.setPrenom(e.getPrenom());
+        dto.setMail(e.getMail());
+        dto.setType(e.getType());
+        dto.setEtat(e.getEtat());
+        dto.setCup(e.getCup());
+        dto.setChefDepartement(e.getChefDepartement());
+        dto.setGrade(e.getGrade());
+        dto.setTelephone(e.getTelephone());
+        dto.setPhotoUrl(e.getPhotoUrl());
+        dto.setUserId(e.getUserId());
+        if (e.getUp() != null) {
+            dto.setUpId(e.getUp().getId());
+            dto.setUpLibelle(e.getUp().getLibelle());
+        }
+        if (e.getDept() != null) {
+            dto.setDeptId(e.getDept().getId());
+            dto.setDeptLibelle(e.getDept().getLibelle());
+        }
         return dto;
     }
 }
