@@ -18,7 +18,7 @@ import type { ActorDraft } from "@/components/formation/AddActorModal";
 import { filterExistingByEmails, getPersonEmailList, parseEmailsFromExcel } from "@/utils/formation/actorImport";
 
 export type PersonItem = { id?: unknown; type?: string; cup?: string; chefDepartement?: string; nom?: string; prenom?: string; mail?: string; upLibelle?: string; deptLibelle?: string; isAuthUser?: boolean; userName?: string; etat?: string; isManual?: boolean; source?: "system" | "manual" | "import" };
-export type AccountItem = { id?: unknown; role?: string; userName?: string; username?: string; lastName?: string; firstName?: string; emailAddress?: string; email?: string; type?: string; upLibelle?: string; deptLibelle?: string };
+export type AccountItem = { id?: unknown; role?: string; userName?: string; username?: string; lastName?: string; firstName?: string; firsName?: string; emailAddress?: string; email?: string; type?: string; upLibelle?: string; deptLibelle?: string };
 export type SeanceItem = { id?: unknown; dateSeance?: string; heureDebut?: unknown; heureFin?: unknown; salle?: unknown; animateurs?: { id?: unknown }[]; participants?: { id?: unknown }[]; seances?: SeanceItem[] };
 export type FormationRaw = { idFormation?: unknown; id?: unknown; titreFormation?: string; seances?: SeanceItem[]; participants?: { id?: unknown }[] };
 export type LookupNode = { id?: unknown; libelle?: string; nom?: string };
@@ -44,13 +44,16 @@ export const getPersonIds = (arr: { id?: unknown }[]) => (Array.isArray(arr) ? a
 function mergeFormateursAccounts(accountsData: AccountItem[], enseignantsData: PersonItem[]): PersonItem[] {
   if (!Array.isArray(accountsData)) return [];
   const formateurs = accountsData
-    .filter(a => (a.role || "").toUpperCase() === "FORMATEUR")
+    .filter(a => {
+      const role = (a.role || "").toUpperCase();
+      return role === "FORMATEUR" || role === "ANIMATEUR";
+    })
     .map(a => ({
       id: a.id,
       isAuthUser: true,
       userName: a.userName || a.username,
       nom: a.lastName || a.userName || a.username || "Formateur",
-      prenom: a.firstName || "",
+      prenom: a.firstName || a.firsName || "",
       mail: a.emailAddress || a.email || "",
       type: "V",
       etat: "A",
@@ -178,12 +181,35 @@ function extractErrorMsg(err: unknown): string {
   return e.message || "Échec de la création de la formation.";
 }
 
-function createAuthUserEnseignant(anim: PersonItem): Promise<unknown> {
-  if (!anim.isAuthUser) return Promise.resolve();
-  return EnseignantService.createEnseignant({
-    id: getAnimateurStableId(anim), nom: anim.nom, prenom: anim.prenom,
-    mail: anim.mail, type: anim.type, etat: anim.etat, cup: anim.cup, chefDepartement: anim.chefDepartement,
-  });
+/**
+ * Creates (or retrieves) the enseignant record in the formation service for an
+ * auth-user animateur. Returns the real enseignant ID to be used in animateursIds.
+ * On 409 (duplicate email), finds the existing enseignant by mail and returns their ID.
+ */
+async function createOrFindEnseignant(anim: PersonItem): Promise<string | null> {
+  if (!anim.isAuthUser) return null;
+  try {
+    const created = await EnseignantService.createEnseignant({
+      id: getAnimateurStableId(anim),
+      nom: anim.nom, prenom: anim.prenom,
+      mail: anim.mail, type: anim.type, etat: anim.etat,
+      cup: anim.cup, chefDepartement: anim.chefDepartement,
+    });
+    return (created as { id?: string })?.id ?? (getAnimateurStableId(anim) as string);
+  } catch (err: unknown) {
+    const status = (err as { response?: { status?: number } })?.response?.status;
+    if (status === 409) {
+      // Enseignant already exists — look up by email to get the real ID
+      try {
+        const existing = await EnseignantService.getEnseignantById(anim.mail!);
+        if (existing?.id) return String(existing.id);
+      } catch {
+        // fallback: use stable ID (may not resolve, but won't block the form)
+      }
+      return getAnimateurStableId(anim) as string;
+    }
+    throw err;
+  }
 }
 
 export function useFormationWorkflow({ initialDate, onFormationCreated, besoinInfo }: FormationWorkflowFormProps) {
@@ -285,8 +311,44 @@ export function useFormationWorkflow({ initialDate, onFormationCreated, besoinIn
     (!animFilterDept || x.deptLibelle === animFilterDept.libelle)
   );
 
+  // Emails already covered by the animateurs pool → exclude from participants
+  const animateurMailSet = new Set(
+    optionsAnim.map(a => (a.mail || "").toLowerCase()).filter(Boolean)
+  );
+
+  // Participants = formation-service enseignants + auth accounts (ENSEIGNANT + FORMATEUR/ANIMATEUR)
+  // not already present in the animateurs section
+  const enseignantMails = new Set(enseignantsList.map(e => (e.mail || "").toLowerCase()).filter(Boolean));
+  const accountsFallbackForParticipants = Array.isArray(accountsData)
+    ? (accountsData as AccountItem[])
+        .filter(a => {
+          const role = (a.role || "").toUpperCase();
+          return role === "ENSEIGNANT" || role === "FORMATEUR" || role === "ANIMATEUR";
+        })
+        .filter(a => {
+          const mail = (a.emailAddress || a.email || "").toLowerCase();
+          // Exclude if already in formation-service enseignants list or in animateurs pool
+          return mail && !enseignantMails.has(mail) && !animateurMailSet.has(mail);
+        })
+        .map(a => ({
+          id: a.id,
+          isAuthUser: true,
+          userName: a.userName || a.username,
+          nom: a.lastName || a.userName || a.username || "Compte",
+          prenom: a.firstName || a.firsName || "",
+          mail: a.emailAddress || a.email || "",
+          type: (a.role || "").toUpperCase() === "ENSEIGNANT" ? "P" : "V",
+          etat: "A",
+          cup: "N",
+          chefDepartement: "N",
+          upLibelle: "",
+          deptLibelle: "",
+        } as PersonItem))
+    : [];
+
   const optionsPart = [
     ...enseignantsList,
+    ...accountsFallbackForParticipants,
     ...manualParticipants,
   ].filter(x =>
     (!partFilterUp || x.upLibelle === partFilterUp.libelle) &&
@@ -324,32 +386,27 @@ export function useFormationWorkflow({ initialDate, onFormationCreated, besoinIn
   }, [formateursList, besoinInfo, animSel.length]);
 
   useEffect(() => {
-    (async () => {
-      try {
-        const u = (upsData ?? []) as LookupNode[];
-        const d = (deptsData ?? []) as LookupNode[];
-        const e = (enseignantsData ?? []) as PersonItem[];
-        const formations = (formationsData ?? []) as FormationRaw[];
-        setUps(u);
-        setDepts(d);
-        setEnseignants(e);
-        if (besoinInfo) {
-          if (besoinInfo.up) {
-            const foundUp = u.find((up: LookupNode) => String(up.id) === String(besoinInfo.up));
-            if (foundUp) setSelectedUp(foundUp);
-          }
-          if (besoinInfo.departement) {
-            const foundDept = d.find((dept: LookupNode) => String(dept.id) === String(besoinInfo.departement));
-            if (foundDept) setSelectedDept(foundDept);
-          }
-        }
-        setExistingFormations(formations);
-        setFormateursList(mergeFormateursAccounts((accountsData ?? []) as AccountItem[], e));
-      } catch {
-        message.error("Échec chargement des données");
+    const u = (upsData ?? []) as LookupNode[];
+    const d = (deptsData ?? []) as LookupNode[];
+    const e = (enseignantsData ?? []) as PersonItem[];
+    const formations = (formationsData ?? []) as FormationRaw[];
+    setUps(u);
+    setDepts(d);
+    setEnseignants(e);
+    if (besoinInfo) {
+      if (besoinInfo.up) {
+        const foundUp = u.find((up: LookupNode) => String(up.id) === String(besoinInfo.up));
+        if (foundUp) setSelectedUp(foundUp);
       }
-    })();
-  }, [initialDate]);
+      if (besoinInfo.departement) {
+        const foundDept = d.find((dept: LookupNode) => String(dept.id) === String(besoinInfo.departement));
+        if (foundDept) setSelectedDept(foundDept);
+      }
+    }
+    setExistingFormations(formations);
+    setFormateursList(mergeFormateursAccounts((accountsData ?? []) as AccountItem[], e));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [upsData, deptsData, enseignantsData, formationsData, accountsData]);
 
   useEffect(() => {
     if (activeStep === 3 && compDomaines.length === 0) {
@@ -667,8 +724,15 @@ export function useFormationWorkflow({ initialDate, onFormationCreated, besoinIn
       const blockingConflicts = buildConflictMessages({ localSeances: seances, participantIds: partSel.map((p) => p.id).filter(Boolean), animateurIds: finalAnimIds });
       if (blockingConflicts.length > 0) { setOverlapWarnings(blockingConflicts); message.error("Conflits détectés: corrigez les dates/salles/personnes."); return; }
 
-      // Persist FORMATEUR auth-users as enseignants (existing behavior).
-      await Promise.all(animSel.map(createAuthUserEnseignant));
+      // Persist auth-user animateurs as enseignants — createOrFindEnseignant handles 409
+      // (duplicate email) by finding the existing record and returning its real ID.
+      const authAnimIdMap = new Map<string, string>();
+      await Promise.all(
+        animSel.filter(a => a.isAuthUser).map(async (a) => {
+          const realId = await createOrFindEnseignant(a);
+          if (realId) authAnimIdMap.set(String(a.id ?? a.mail ?? ""), realId);
+        })
+      );
 
       // Persist manually-added / imported persons so backend has a real id.
       const manualAnimsToCreate = animSel.filter((a) => a.isManual && String(a.id ?? "").startsWith("manual-anim-"));
@@ -683,8 +747,14 @@ export function useFormationWorkflow({ initialDate, onFormationCreated, besoinIn
               type: a.type || "V", etat: a.etat || "A", cup: a.cup || "N", chefDepartement: a.chefDepartement || "N",
             });
             persistedAnimByKey.set(String(a.id), res);
-          } catch {
-            // ignore single-failure so others still get persisted
+          } catch (err: unknown) {
+            const status = (err as { response?: { status?: number } })?.response?.status;
+            if (status === 409 && a.mail) {
+              try {
+                const existing = await EnseignantService.getEnseignantById(a.mail);
+                if (existing?.id) persistedAnimByKey.set(String(a.id), existing);
+              } catch { /* fallback: no persisted ID */ }
+            }
           }
         }),
       );
@@ -696,17 +766,27 @@ export function useFormationWorkflow({ initialDate, onFormationCreated, besoinIn
               type: p.type || "P", etat: p.etat || "A", cup: p.cup || "N", chefDepartement: p.chefDepartement || "N",
             });
             persistedPartByKey.set(String(p.id), res);
-          } catch {
-            // ignore single-failure
+          } catch (err: unknown) {
+            const status = (err as { response?: { status?: number } })?.response?.status;
+            if (status === 409 && p.mail) {
+              try {
+                const existing = await EnseignantService.getEnseignantById(p.mail);
+                if (existing?.id) persistedPartByKey.set(String(p.id), existing);
+              } catch { /* fallback: no persisted ID */ }
+            }
           }
         }),
       );
 
-      // Replace temp ids with persisted ids in the final selection.
+      // Build final anim IDs — prefer real IDs from createOrFindEnseignant over stable IDs
       const finalAnimIdsWithPersisted = animSel.map((a) => {
         if (a.isManual && String(a.id ?? "").startsWith("manual-anim-")) {
           const persisted = persistedAnimByKey.get(String(a.id)) as { id?: unknown } | undefined;
           return persisted?.id ?? getAnimateurStableId(a);
+        }
+        if (a.isAuthUser) {
+          const key = String(a.id ?? a.mail ?? "");
+          return authAnimIdMap.get(key) ?? getAnimateurStableId(a);
         }
         return getAnimateurStableId(a);
       }).filter(Boolean);
