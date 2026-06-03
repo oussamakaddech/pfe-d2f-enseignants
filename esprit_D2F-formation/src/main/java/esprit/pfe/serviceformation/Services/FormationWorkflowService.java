@@ -1202,6 +1202,7 @@ public class FormationWorkflowService {
         return builder.build();
     }
 
+    @Transactional(readOnly = true)
     public FormationResponseDTO getFormationWorkflowById(Long formationId) {
         Formation formation = formationRepository.findById(formationId)
                 .orElseThrow(() -> new IllegalArgumentException("Formation introuvable avec l'id : " + formationId));
@@ -1213,6 +1214,8 @@ public class FormationWorkflowService {
                     Hibernate.initialize(seance.getParticipants());
             });
         }
+        if (formation.getAnimateurs() != null)
+            Hibernate.initialize(formation.getAnimateurs());
         if (formation.getAnimateursExternes() != null)
             Hibernate.initialize(formation.getAnimateursExternes());
         return formationMapper.toResponseDTO(formation);
@@ -1222,6 +1225,8 @@ public class FormationWorkflowService {
     public List<FormationResponseDTO> getAllFormationWorkflows() {
         List<Formation> formations = formationRepository.findAll();
         formations.forEach(f -> {
+            if (f.getAnimateurs() != null)
+                Hibernate.initialize(f.getAnimateurs());
             if (f.getSeances() != null) {
                 f.getSeances().forEach(seance -> {
                     if (seance.getAnimateurs() != null)
