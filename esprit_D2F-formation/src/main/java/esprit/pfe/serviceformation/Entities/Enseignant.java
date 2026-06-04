@@ -7,6 +7,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.SQLRestriction;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -56,6 +57,26 @@ public class Enseignant extends BaseAuditEntity {
 
     @Column(name = "photo_url", length = 500)
     private String photoUrl;
+
+    // ── Profil métier additionnel (page de gestion unifiée) ──────────────
+    @Column(length = 150)
+    private String specialite;
+
+    // Date de recrutement / embauche — filtre par plage + tri.
+    @Column(name = "date_recrutement")
+    private LocalDate dateRecrutement;
+
+    // ── Suivi de dossier (scope RESPONSABLE_DOSSIER) ─────────────────────
+    // Valeurs conventionnelles (non figées en base) : EN_ATTENTE, EN_COURS,
+    // COMPLET, INCOMPLET, ARCHIVE. La validation applicative est dans le service.
+    @Column(name = "dossier_status", length = 30)
+    private String dossierStatus;
+
+    @Column(name = "dossier_last_update")
+    private LocalDateTime dossierLastUpdate;
+
+    @Column(name = "dossier_notes", columnDefinition = "TEXT")
+    private String dossierNotes;
 
     // Lien explicite vers le compte (auth.users) — architecture microservices :
     // pas de FK SQL inter-bases, mais identifiant du compte + unicité applicative

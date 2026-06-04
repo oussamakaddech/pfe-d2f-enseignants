@@ -123,7 +123,7 @@ export default function TopParticipants() {
           onClick={() => setShowTable(v => !v)}
         />
       }
-      style={{ margin: 20, height: showTable ? 700 : 450 }}
+      style={{ height: showTable ? 700 : 450 }}
       styles={{ body: { padding: '16px' , position: 'relative' } }}
     >
       {/* Filtres */}

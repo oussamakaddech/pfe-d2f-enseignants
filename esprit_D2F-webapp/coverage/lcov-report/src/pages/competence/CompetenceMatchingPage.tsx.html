@@ -46,7 +46,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/152</span>
+                <span class='fraction'>0/155</span>
             </div>
         
             
@@ -398,7 +398,11 @@
 <a name='L333'></a><a href='#L333'>333</a>
 <a name='L334'></a><a href='#L334'>334</a>
 <a name='L335'></a><a href='#L335'>335</a>
-<a name='L336'></a><a href='#L336'>336</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L336'></a><a href='#L336'>336</a>
+<a name='L337'></a><a href='#L337'>337</a>
+<a name='L338'></a><a href='#L338'>338</a>
+<a name='L339'></a><a href='#L339'>339</a>
+<a name='L340'></a><a href='#L340'>340</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -477,6 +481,10 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -811,7 +819,11 @@ export default function <span class="fstat-no" title="function not covered" >Com
 <span class="cstat-no" title="statement not covered" >    try { <span class="cstat-no" title="statement not covered" >payload = JSON.parse(e.dataTransfer.getData("text/plain") || "{}") as { savoirId?: string }; }</span> catch { <span class="cstat-no" title="statement not covered" >payload = {}; }</span></span>
     const sId = <span class="cstat-no" title="statement not covered" >String(payload.savoirId ?? "");</span>
 <span class="cstat-no" title="statement not covered" >    if (!sId) { <span class="cstat-no" title="statement not covered" >handleDragEnd(); <span class="cstat-no" title="statement not covered" >r</span>eturn; }</span></span>
-<span class="cstat-no" title="statement not covered" >    if ((stateRef.current.assignments[sId] ?? []).includes(ensId)) { <span class="cstat-no" title="statement not covered" >message.warning("Déjà assigné à cet enseignant", 2); <span class="cstat-no" title="statement not covered" >h</span>andleDragEnd(); <span class="cstat-no" title="statement not covered" >r</span>eturn; }</span></span>
+<span class="cstat-no" title="statement not covered" >    if ((stateRef.current.assignments[sId] ?? []).includes(ensId)) {</span>
+<span class="cstat-no" title="statement not covered" >      message.warning("Déjà assigné à cet enseignant", 2);</span>
+<span class="cstat-no" title="statement not covered" >      handleDragEnd();</span>
+<span class="cstat-no" title="statement not covered" >      return;</span>
+    }
 <span class="cstat-no" title="statement not covered" >    dispatch({ type: "ASSIGN_SAVOIR", payload: { savoirId: sId, enseignantId: ensId } });</span>
     const savoir = <span class="cstat-no" title="statement not covered" >stateRef.current.savoirs.find(<span class="fstat-no" title="function not covered" >(x</span>) =&gt; <span class="cstat-no" title="statement not covered" >String(x.id) === sId)</span>;</span>
     const teacher = <span class="cstat-no" title="statement not covered" >teacherById.get(ensId);</span>
@@ -957,7 +969,7 @@ export default function <span class="fstat-no" title="function not covered" >Com
         &lt;button key={ensId} type="button" className={`enseignant-assignment-card ${draggingId ? "drag-mode-active" : ""} ${dragOverEns === ensId ? "drag-over-target" : ""}`}
           tabIndex={0} onKeyDown={<span class="fstat-no" title="function not covered" >() =&gt; {</span>}}
           onDragOver={<span class="fstat-no" title="function not covered" >(e</span>) =&gt; { <span class="cstat-no" title="statement not covered" >e.preventDefault(); <span class="cstat-no" title="statement not covered" >e</span>.dataTransfer.dropEffect = "copy"; <span class="cstat-no" title="statement not covered" >s</span>etDragOverEns(ensId); }</span>}
-          onDragLeave={<span class="fstat-no" title="function not covered" >(e</span>) =&gt; { const related = <span class="cstat-no" title="statement not covered" >e.relatedTarget; <span class="cstat-no" title="statement not covered" >i</span>f (related &amp;&amp; e.currentTarget.contains(related as Node)) <span class="cstat-no" title="statement not covered" >return; <span class="cstat-no" title="statement not covered" >s</span></span>etDragOverEns(null); }</span>}
+          onDragLeave={<span class="fstat-no" title="function not covered" >(e</span>) =&gt; { const related = <span class="cstat-no" title="statement not covered" >e.relatedTarget; <span class="cstat-no" title="statement not covered" >i</span>f (related &amp;&amp; e.currentTarget.contains(related as Node)) { <span class="cstat-no" title="statement not covered" >return; }</span> <span class="cstat-no" title="statement not covered" >s</span>etDragOverEns(null); }</span>}
           onDrop={<span class="fstat-no" title="function not covered" >(e</span>) =&gt; <span class="cstat-no" title="statement not covered" >handleEnsDrop(e, ensId)}&gt;</span>
           {dragOverEns === ensId &amp;&amp; (
             &lt;div className="enseignant-drop-overlay"&gt;
@@ -1075,7 +1087,7 @@ export default function <span class="fstat-no" title="function not covered" >Com
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-06-01T04:02:14.391Z
+                at 2026-06-02T00:34:15.765Z
             </div>
         <script src="../../../prettify.js"></script>
         <script>

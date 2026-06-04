@@ -102,6 +102,19 @@ function buildConflictMessages(
 
 const TRUTHY_FLAGS = new Set(["O", "Y", "1"]);
 
+/**
+ * Fusionne une liste d'options avec les personnes déjà sélectionnées (dédupe
+ * par id). Garantit que les personnes sélectionnées restent présentes dans les
+ * options du Select même si un filtre UP/Dépt est actif ou si elles ne sont pas
+ * dans la liste de base — sinon leur tag ne s'affiche pas (« sélection invisible »).
+ */
+function unionById(base: EnseignantItem[], selected: EnseignantItem[]): EnseignantItem[] {
+  const byId = new Map<string, EnseignantItem>();
+  base.forEach((x) => byId.set(String(x.id), x));
+  selected.forEach((x) => { if (!byId.has(String(x.id))) byId.set(String(x.id), x); });
+  return [...byId.values()];
+}
+
 function getEnseignantLabel(opt: EnseignantItem | null) {
   if (!opt) return "";
   const roles: string[] = [];
@@ -116,6 +129,43 @@ function getEnseignantLabel(opt: EnseignantItem | null) {
 function extractUpdateError(err: unknown): string {
   const error = err as { response?: { data?: { message?: string; error?: string } }; message?: string };
   return error.response?.data?.message || error.response?.data?.error || error.message || "Erreur inconnue";
+}
+
+/**
+ * Persiste une personne ajoutée manuellement / importée comme Enseignant et
+ * renvoie son **vrai** id côté service formation.
+ *
+ * En édition, l'ancien code avalait l'erreur de création et retombait sur l'id
+ * factice `manual-...` : le backend ne le retrouvait pas (findById) et la
+ * personne était silencieusement ignorée → elle « disparaissait » à la
+ * réouverture. On gère désormais le conflit 409 (email déjà existant) en
+ * récupérant l'enseignant existant par email, comme à la création.
+ *
+ * @returns l'id réel de l'enseignant, ou `null` si on n'a pas pu le résoudre
+ *          (la personne est alors exclue du payload plutôt qu'envoyée avec un
+ *          id factice ignoré par le backend).
+ */
+async function resolveManualEnseignant(p: EnseignantItem): Promise<string | null> {
+  try {
+    const created = await EnseignantService.createEnseignant({
+      id: p.id, nom: p.nom, prenom: p.prenom, mail: p.mail,
+      type: p.type, etat: "A", cup: p.cup, chefDepartement: p.chefDepartement,
+    });
+    const id = (created as { id?: unknown })?.id;
+    return id != null ? String(id) : String(p.id);
+  } catch (err: unknown) {
+    const status = (err as { response?: { status?: number } })?.response?.status;
+    if (status === 409 && p.mail) {
+      try {
+        const all = await EnseignantService.getAllEnseignants();
+        const existing = all.find(e => (e.email ?? (e as Record<string, unknown>).mail ?? "").toString().toLowerCase() === p.mail!.toLowerCase());
+        if (existing?.id != null) return String(existing.id);
+      } catch {
+        // ignore : on retournera null ci-dessous
+      }
+    }
+    return null;
+  }
 }
 
 // ── Main hook ─────────────────────────────────────────────────────────────────
@@ -220,8 +270,12 @@ export function useFormationWorkflow(
     setCoutTransport(formation.coutTransport || 0);
     setCoutHebergement(formation.coutHebergement || 0);
     setCoutRepas(formation.coutRepas || 0);
-    setSelectedUp(formation.up1 || null);
-    setSelectedDept(formation.departement1 || null);
+    // Le DTO backend renvoie `up`/`departement` ; on garde `up1`/`departement1`
+    // en priorité pour rétro-compatibilité, sinon l'UP/Dépt ne se pré-remplit
+    // pas et serait écrasé (upId vide) lors de l'enregistrement.
+    const fRefs = formation as FormationEdit & { up?: UPItem; departement?: DeptItem };
+    setSelectedUp(fRefs.up1 ?? fRefs.up ?? null);
+    setSelectedDept(fRefs.departement1 ?? fRefs.departement ?? null);
     setPeriodCode(formation.periodCode || "OTHER");
     setCustomPeriodLabel(formation.customPeriodLabel || formation.periodeFormation || "");
     setSeances(
@@ -260,20 +314,20 @@ export function useFormationWorkflow(
   }, [seances, partSel, animSel, existingFormations]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Filtered options ──────────────────────────────────────────────────────
-  const optionsAnim = [
-    ...ens,
-    ...manualAnimateurs,
-  ].filter(
-    (x) => (!animFilterUp   || x.upLibelle   === animFilterUp.libelle) &&
-           (!animFilterDept || x.deptLibelle === animFilterDept.libelle),
+  const optionsAnim = unionById(
+    [...ens, ...manualAnimateurs].filter(
+      (x) => (!animFilterUp   || x.upLibelle   === animFilterUp.libelle) &&
+             (!animFilterDept || x.deptLibelle === animFilterDept.libelle),
+    ),
+    animSel,
   );
-  const optionsPart = [
-    ...ens,
-    ...manualParticipants,
-  ].filter(
-    (x) =>
-      (!partFilterUp   || x.upLibelle   === partFilterUp.libelle) &&
-      (!partFilterDept || x.deptLibelle === partFilterDept.libelle),
+  const optionsPart = unionById(
+    [...ens, ...manualParticipants].filter(
+      (x) =>
+        (!partFilterUp   || x.upLibelle   === partFilterUp.libelle) &&
+        (!partFilterDept || x.deptLibelle === partFilterDept.libelle),
+    ),
+    partSel,
   );
 
   // ── Helpers ───────────────────────────────────────────────────────────────
@@ -453,51 +507,42 @@ export function useFormationWorkflow(
     }
 
     // Persist manually added / imported persons as Enseignants so backend has real ids.
-    const manualAnimsToCreate = animSel.filter((a) => a.isManual && a.id.startsWith("manual-anim-"));
-    const manualPartsToCreate = partSel.filter((p) => p.isManual && p.id.startsWith("manual-part-"));
-    const persistedAnimByKey = new Map<string, unknown>();
-    const persistedPartByKey = new Map<string, unknown>();
-    await Promise.all(
-      manualAnimsToCreate.map(async (a) => {
-        try {
-          const res = await EnseignantService.createEnseignant({
-            id: a.id, nom: a.nom, prenom: a.prenom, mail: a.mail,
-            type: a.type, etat: "A", cup: a.cup, chefDepartement: a.chefDepartement,
-          });
-          persistedAnimByKey.set(a.id, res);
-        } catch {
-          // ignore single-failure
-        }
-      }),
-    );
-    await Promise.all(
-      manualPartsToCreate.map(async (p) => {
-        try {
-          const res = await EnseignantService.createEnseignant({
-            id: p.id, nom: p.nom, prenom: p.prenom, mail: p.mail,
-            type: p.type, etat: "A", cup: p.cup, chefDepartement: p.chefDepartement,
-          });
-          persistedPartByKey.set(p.id, res);
-        } catch {
-          // ignore single-failure
-        }
-      }),
-    );
+    // On résout chaque personne manuelle vers son id réel (gère le 409 = déjà
+    // existant). Si la résolution échoue, on l'EXCLUT du payload au lieu
+    // d'envoyer un id factice que le backend ignorerait silencieusement.
+    const manualAnims = animSel.filter((a) => a.isManual && a.id.startsWith("manual-anim-"));
+    const manualParts = partSel.filter((p) => p.isManual && p.id.startsWith("manual-part-"));
+    const resolvedAnimById = new Map<string, string | null>();
+    const resolvedPartById = new Map<string, string | null>();
+    await Promise.all(manualAnims.map(async (a) => { resolvedAnimById.set(a.id, await resolveManualEnseignant(a)); }));
+    await Promise.all(manualParts.map(async (p) => { resolvedPartById.set(p.id, await resolveManualEnseignant(p)); }));
+
+    const unresolved: string[] = [];
+    const personLabel = (x: EnseignantItem) => `${x.prenom} ${x.nom} (${x.mail})`.trim();
 
     const finalAnimIds = animSel.map((a) => {
       if (a.isManual && a.id.startsWith("manual-anim-")) {
-        const persisted = persistedAnimByKey.get(a.id) as { id?: unknown } | undefined;
-        return persisted?.id ?? a.id;
+        const real = resolvedAnimById.get(a.id);
+        if (!real) { unresolved.push(personLabel(a)); return null; }
+        return real;
       }
       return a.id;
-    });
+    }).filter((id): id is string => id != null);
+
     const finalPartIds = partSel.map((p) => {
       if (p.isManual && p.id.startsWith("manual-part-")) {
-        const persisted = persistedPartByKey.get(p.id) as { id?: unknown } | undefined;
-        return persisted?.id ?? p.id;
+        const real = resolvedPartById.get(p.id);
+        if (!real) { unresolved.push(personLabel(p)); return null; }
+        return real;
       }
       return p.id;
-    });
+    }).filter((id): id is string => id != null);
+
+    if (unresolved.length > 0) {
+      message.warning(
+        `Ces personnes n'ont pas pu être enregistrées et ont été ignorées : ${[...new Set(unresolved)].join(", ")}. Réessayez.`,
+      );
+    }
 
     const payload = {
       titreFormation: titre, dateDebut, dateFin, typeFormation, etatFormation, ouverte,

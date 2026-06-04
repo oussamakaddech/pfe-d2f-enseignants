@@ -890,3 +890,64 @@
   .creation-etat-grid { gap: 6px; }
   .creation-etat-badge { font-size: 11px; padding: 5px 10px; }
 }
+
+/* ══════════════════════════════════════════════════════════════════════════ */
+/*  ACTOR TOOLBAR — Manuel / Tous / Import / Vider                            */
+/* ══════════════════════════════════════════════════════════════════════════ */
+.actor-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  background: var(--bg-subtle);
+  border: 1px dashed var(--border-color-strong);
+  border-radius: var(--radius-sm);
+  margin: 6px 0 8px;
+}
+
+.actor-toolbar--primary {
+  background: var(--primary-50);
+  border-color: var(--primary-200);
+}
+
+.actor-toolbar--edit {
+  background: var(--neutral-50);
+  border-color: var(--border-color);
+}
+
+.actor-toolbar__btn.ant-btn {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 4px;
+  font-weight: 600 !important;
+  border-radius: var(--radius-sm) !important;
+  transition: all 0.18s ease !important;
+}
+
+.actor-toolbar__btn--add.ant-btn-primary {
+  background: var(--btn-primary-gradient) !important;
+  border-color: var(--primary-500) !important;
+  box-shadow: var(--btn-primary-shadow) !important;
+  color: #fff !important;
+}
+
+.actor-toolbar__btn--add.ant-btn-primary:hover:not(:disabled) {
+  background: var(--btn-primary-gradient-hover) !important;
+  transform: translateY(-1px);
+}
+
+.actor-toolbar__btn:not(.ant-btn-primary):hover:not(:disabled) {
+  border-color: var(--primary-400) !important;
+  color: var(--primary-500) !important;
+}
+
+.actor-toolbar__btn .anticon {
+  font-size: 12px;
+}
+
+@media (max-width: 600px) {
+  .actor-toolbar { padding: 6px 8px; }
+  .actor-toolbar__btn.ant-btn { padding: 0 8px !important; }
+  .actor-toolbar__btn .anticon + span { display: inline; }
+}

@@ -4,8 +4,8 @@ import {
   LogoutOutlined, ApartmentOutlined, RobotOutlined, SearchOutlined,
   PlusCircleOutlined, BarChartOutlined, TrophyOutlined,
   SafetyCertificateOutlined, UserOutlined, LineChartOutlined, ApiOutlined,
-  ClusterOutlined, SettingOutlined, TeamOutlined, BookOutlined,
-  AppstoreOutlined, CheckSquareOutlined, BankOutlined,
+  ClusterOutlined, TeamOutlined, BookOutlined,
+  AppstoreOutlined, CheckSquareOutlined, BankOutlined, SettingOutlined,
 } from "@ant-design/icons";
 
 export interface MenuItem {
@@ -30,11 +30,10 @@ export const adminMenu: MenuItem[] = [
     { label: "Analyse Prédictive", key: "/home/AnalysePredictive",  icon: LineChartOutlined },
   ]},
   { type: "group", label: "ADMINISTRATION", children: [
-    { label: "Gestion des Comptes",  key: "/home/accounts",       icon: SettingOutlined   },
-    { label: "Annuaire Enseignants", key: "/home/Enseignants",    icon: TeamOutlined      },
-    { label: "Structures (UP/Dépt)", key: "/home/UpDept",         icon: ApartmentOutlined },
-    { label: "Inscriptions",         key: "/home/ListeFormation", icon: FileTextOutlined  },
-    { label: "Gestion des Bureaux",  key: "/home/bureaux",        icon: BankOutlined      },
+    { label: "Administration",  key: "/home/administration", icon: SettingOutlined },
+    { label: "Structures (UP/Dépt)", key: "/home/UpDept",           icon: ApartmentOutlined },
+    { label: "Inscriptions",         key: "/home/ListeFormation",   icon: FileTextOutlined  },
+    { label: "Gestion des Bureaux",  key: "/home/bureaux",          icon: BankOutlined      },
   ]},
   { type: "group", label: "FORMATIONS", children: [
     { label: "Nouvelle Formation",    key: "/home/Formation/Creer",       icon: PlusCircleOutlined     },

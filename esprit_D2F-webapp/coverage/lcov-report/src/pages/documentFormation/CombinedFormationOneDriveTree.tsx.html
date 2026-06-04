@@ -23,9 +23,9 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">1.04% </span>
+                <span class="strong">1.03% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>2/191</span>
+                <span class='fraction'>2/194</span>
             </div>
         
             
@@ -44,9 +44,9 @@
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">1.27% </span>
+                <span class="strong">1.25% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>2/157</span>
+                <span class='fraction'>2/160</span>
             </div>
         
             
@@ -629,7 +629,10 @@
 <a name='L564'></a><a href='#L564'>564</a>
 <a name='L565'></a><a href='#L565'>565</a>
 <a name='L566'></a><a href='#L566'>566</a>
-<a name='L567'></a><a href='#L567'>567</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L567'></a><a href='#L567'>567</a>
+<a name='L568'></a><a href='#L568'>568</a>
+<a name='L569'></a><a href='#L569'>569</a>
+<a name='L570'></a><a href='#L570'>570</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -877,7 +880,18 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -889,15 +903,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -1441,29 +1447,32 @@ export default function <span class="fstat-no" title="function not covered" >Com
     { title: "Actions", key: "actions", width: 170, align: "right", render: <span class="fstat-no" title="function not covered" >(_</span>, r) =&gt; <span class="cstat-no" title="statement not covered" >rowActions(r, handleDownload, handleDelete, setPreview, setEditing) }</span>,
   ];
 &nbsp;
-  const content = <span class="cstat-no" title="statement not covered" >view === "table" ? (</span>
-    &lt;Table&lt;DocRow&gt;
+  const emptyState = <span class="cstat-no" title="statement not covered" >&lt;Empty className="gdoc-empty" description="Aucun document pour ces critères." /&gt;;</span>
+  const tableView = (
+<span class="cstat-no" title="statement not covered" >    &lt;Table&lt;DocRow&gt;</span>
       rowKey="key"
       dataSource={rows}
       columns={columns}
       loading={isLoading}
       rowSelection={{ selectedRowKeys: selectedKeys, onChange: setSelectedKeys }}
       pagination={{ pageSize: 12, showSizeChanger: true, showTotal: <span class="fstat-no" title="function not covered" >(t</span>) =&gt; <span class="cstat-no" title="statement not covered" >`${t} document(s)` }</span>}
-      locale={{ emptyText: &lt;Empty className="gdoc-empty" description="Aucun document pour ces critères." /&gt; }}
+      locale={{ emptyText: emptyState }}
       scroll={{ x: "max-content" }}
     /&gt;
-  ) : rows.length === 0 ? (
-    &lt;Empty className="gdoc-empty" description="Aucun document pour ces critères." /&gt;
-  ) : (
-    &lt;div className="gdoc-grid"&gt;
-      {rows.map(<span class="fstat-no" title="function not covered" >(r</span>) =&gt; (
-<span class="cstat-no" title="statement not covered" >        &lt;DocCard key={r.key} row={r} selectedKeys={selectedKeys} setSelectedKeys={setSelectedKeys}</span>
-          typeTag={typeTag} obligationTag={obligationTag}
-          setPreview={setPreview} handleDownload={handleDownload}
-          setEditing={setEditing} handleDelete={handleDelete} /&gt;
-      ))}
-    &lt;/div&gt;
   );
+  const gridView = <span class="cstat-no" title="statement not covered" >rows.length === 0</span>
+    ? emptyState
+    : (
+      &lt;div className="gdoc-grid"&gt;
+        {rows.map(<span class="fstat-no" title="function not covered" >(r</span>) =&gt; (
+<span class="cstat-no" title="statement not covered" >          &lt;DocCard key={r.key} row={r} selectedKeys={selectedKeys} setSelectedKeys={setSelectedKeys}</span>
+            typeTag={typeTag} obligationTag={obligationTag}
+            setPreview={setPreview} handleDownload={handleDownload}
+            setEditing={setEditing} handleDelete={handleDelete} /&gt;
+        ))}
+      &lt;/div&gt;
+    );
+  const content = <span class="cstat-no" title="statement not covered" >view === "table" ? tableView : gridView;</span>
 &nbsp;
 <span class="cstat-no" title="statement not covered" >  return (</span>
     &lt;Layout className="gdoc-page" style={{ background: "transparent" }}&gt;
@@ -1579,7 +1588,7 @@ export default function <span class="fstat-no" title="function not covered" >Com
         title={preview?.nomDocument || "Aperçu du document"}
         open={!!preview}
         onClose={<span class="fstat-no" title="function not covered" >() =&gt; <span class="cstat-no" title="statement not covered" >s</span>etPreview(null)}</span>
-        width={Math.min(900, typeof window === "undefined" ? 900 : window.innerWidth - 40)}
+        width={Math.min(900, globalThis.window === undefined ? 900 : globalThis.window.innerWidth - 40)}
         extra={preview &amp;&amp; (
           &lt;Button icon={&lt;DownloadOutlined /&gt;} onClick={<span class="fstat-no" title="function not covered" >() =&gt; <span class="cstat-no" title="statement not covered" >h</span>andleDownload(preview)}&gt;T</span>élécharger&lt;/Button&gt;
         )}
@@ -1768,7 +1777,7 @@ function <span class="fstat-no" title="function not covered" >EditModal({</span>
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-06-01T04:02:14.391Z
+                at 2026-06-02T00:34:15.765Z
             </div>
         <script src="../../../prettify.js"></script>
         <script>

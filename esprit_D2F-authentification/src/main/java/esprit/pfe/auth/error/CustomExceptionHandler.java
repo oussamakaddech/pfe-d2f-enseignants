@@ -3,6 +3,7 @@ package esprit.pfe.auth.error;
 import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -43,6 +44,20 @@ public class CustomExceptionHandler {
                                 ERROR_CODE_PREFIX + ex.getStatus(),
                                 request.getRequestURI());
                 return ResponseEntity.status(HttpStatus.valueOf(ex.getStatus()))
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .body(errorResponse);
+        }
+
+        @ExceptionHandler(DataIntegrityViolationException.class)
+        public ResponseEntity<CustomErrorResponse> handleDataIntegrityViolation(DataIntegrityViolationException ex,
+                        HttpServletRequest request) {
+                logHandled(HttpStatus.CONFLICT.value(), ex.getMessage(), request);
+                CustomErrorResponse errorResponse = buildErrorResponse(
+                                HttpStatus.CONFLICT.value(),
+                                "Une contrainte d'unicité a été violée (nom d'utilisateur ou email déjà utilisé).",
+                                ERROR_CODE_PREFIX + HttpStatus.CONFLICT.value(),
+                                request.getRequestURI());
+                return ResponseEntity.status(HttpStatus.CONFLICT)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .body(errorResponse);
         }

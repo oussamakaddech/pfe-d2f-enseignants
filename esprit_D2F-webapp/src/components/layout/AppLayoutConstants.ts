@@ -5,6 +5,7 @@ export const ROUTE_LABELS: Record<string, string> = {
   Formation:              "Formations",
   Creer:                  "Nouvelle formation",
   Consulter:              "Catalogue",
+  administration:         "Administration",
   accounts:               "Gestion des comptes",
   Enseignants:            "Enseignants",
   enseignant:             "Enseignant",

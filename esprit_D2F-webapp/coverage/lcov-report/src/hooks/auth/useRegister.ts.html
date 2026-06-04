@@ -25,14 +25,14 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/18</span>
+                <span class='fraction'>0/13</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>0/8</span>
+                <span class='fraction'>0/2</span>
             </div>
         
             
@@ -46,7 +46,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/18</span>
+                <span class='fraction'>0/13</span>
             </div>
         
             
@@ -111,29 +111,7 @@
 <a name='L46'></a><a href='#L46'>46</a>
 <a name='L47'></a><a href='#L47'>47</a>
 <a name='L48'></a><a href='#L48'>48</a>
-<a name='L49'></a><a href='#L49'>49</a>
-<a name='L50'></a><a href='#L50'>50</a>
-<a name='L51'></a><a href='#L51'>51</a>
-<a name='L52'></a><a href='#L52'>52</a>
-<a name='L53'></a><a href='#L53'>53</a>
-<a name='L54'></a><a href='#L54'>54</a>
-<a name='L55'></a><a href='#L55'>55</a>
-<a name='L56'></a><a href='#L56'>56</a>
-<a name='L57'></a><a href='#L57'>57</a>
-<a name='L58'></a><a href='#L58'>58</a>
-<a name='L59'></a><a href='#L59'>59</a>
-<a name='L60'></a><a href='#L60'>60</a>
-<a name='L61'></a><a href='#L61'>61</a>
-<a name='L62'></a><a href='#L62'>62</a>
-<a name='L63'></a><a href='#L63'>63</a>
-<a name='L64'></a><a href='#L64'>64</a>
-<a name='L65'></a><a href='#L65'>65</a>
-<a name='L66'></a><a href='#L66'>66</a>
-<a name='L67'></a><a href='#L67'>67</a>
-<a name='L68'></a><a href='#L68'>68</a>
-<a name='L69'></a><a href='#L69'>69</a>
-<a name='L70'></a><a href='#L70'>70</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L49'></a><a href='#L49'>49</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -151,40 +129,20 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -204,7 +162,6 @@
 <span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import { useState } from "react";
 import useAppNotification from "@/hooks/ui/useAppNotification";
 import { signup } from "@/services/auth/AuthService";
-import EnseignantService from "@/services/formation/EnseignantService";
 &nbsp;
 export interface RegisterFormValues {
   username: string;
@@ -215,11 +172,8 @@ export interface RegisterFormValues {
   phoneNumber: string;
   email: string;
   confirmEmail: string;
-  role: string;
   newsletter: boolean;
 }
-&nbsp;
-const TEACHER_ROLES = <span class="cstat-no" title="statement not covered" >new Set(["Enseignant", "Formateur", "CUP", "CHEF_DEPARTEMENT"]);</span>
 &nbsp;
 export function <span class="fstat-no" title="function not covered" >useRegister() {</span>
   const { message } = <span class="cstat-no" title="statement not covered" >useAppNotification();</span>
@@ -228,6 +182,9 @@ export function <span class="fstat-no" title="function not covered" >useRegister
   const register = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >async (v</span>alues: RegisterFormValues): Promise&lt;boolean&gt; =&gt; {</span>
 <span class="cstat-no" title="statement not covered" >    setLoading(true);</span>
 <span class="cstat-no" title="statement not covered" >    try {</span>
+      // SÉCURITÉ (audit DSI – BLOCKER #1) : aucun rôle n'est envoyé. Le backend
+      // crée systématiquement un compte ENSEIGNANT ; l'attribution d'un rôle
+      // privilégié relève de l'administrateur (gestion des comptes).
 <span class="cstat-no" title="statement not covered" >      await signup({</span>
         username: values.username,
         password: values.password,
@@ -235,27 +192,7 @@ export function <span class="fstat-no" title="function not covered" >useRegister
         lastName: values.lastName,
         phoneNumber: values.phoneNumber,
         email: values.email,
-        role: values.role,
-        newsletter: values.newsletter,
       });
-&nbsp;
-<span class="cstat-no" title="statement not covered" >      if (TEACHER_ROLES.has(values.role)) {</span>
-<span class="cstat-no" title="statement not covered" >        try {</span>
-<span class="cstat-no" title="statement not covered" >          await EnseignantService.createEnseignant({</span>
-            nom: values.lastName.toUpperCase(),
-            prenom: values.firstName,
-            mail: values.email,
-            type: "P",
-            etat: "A",
-            cup: values.role === "CUP" ? "O" : "N",
-            chefDepartement: values.role === "CHEF_DEPARTEMENT" ? "O" : "N",
-            up: null,
-            dept: null,
-          });
-        } catch {
-<span class="cstat-no" title="statement not covered" >          message.warning("Compte créé, mais l'ajout à l'annuaire des enseignants a échoué.");</span>
-        }
-      }
 &nbsp;
 <span class="cstat-no" title="statement not covered" >      message.success("Inscription réussie ! Un email de confirmation vous a été envoyé.");</span>
 <span class="cstat-no" title="statement not covered" >      return true;</span>
@@ -277,7 +214,7 @@ export function <span class="fstat-no" title="function not covered" >useRegister
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-06-01T04:02:14.391Z
+                at 2026-06-02T00:34:15.765Z
             </div>
         <script src="../../../prettify.js"></script>
         <script>

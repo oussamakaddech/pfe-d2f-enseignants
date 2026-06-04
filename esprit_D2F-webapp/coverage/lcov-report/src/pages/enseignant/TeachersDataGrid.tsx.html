@@ -32,21 +32,21 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>0/65</span>
+                <span class='fraction'>0/61</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>0/22</span>
+                <span class='fraction'>0/21</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/35</span>
+                <span class='fraction'>0/36</span>
             </div>
         
             
@@ -311,8 +311,9 @@
 <a name='L246'></a><a href='#L246'>246</a>
 <a name='L247'></a><a href='#L247'>247</a>
 <a name='L248'></a><a href='#L248'>248</a>
-<a name='L249'></a><a href='#L249'>249</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L249'></a><a href='#L249'>249</a>
+<a name='L250'></a><a href='#L250'>250</a>
+<a name='L251'></a><a href='#L251'>251</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -506,15 +507,11 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -523,6 +520,13 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -563,7 +567,6 @@
   Table,
   Button,
   Upload,
-  Drawer,
   Space,
   Tooltip,
   Card,
@@ -579,7 +582,7 @@ import {
 } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import { writeExcel, exportDateLabel, isoDate } from "utils/helpers/excelExport";
-import EnseignantRegister from "./EnseignantRegister";
+import CreateAccountDrawer from "@/pages/admin/gererComptes/CreateAccountDrawer";
 import TeacherEditModal from "@/components/enseignant/TeacherEditModal";
 import TeacherCreateModal from "./components/TeacherCreateModal";
 import { useTeachersColumns } from "./components/TeachersTableColumns";
@@ -664,9 +667,9 @@ export default function <span class="fstat-no" title="function not covered" >Tea
               &lt;div className="teachers-hero-subtitle"&gt;Gérer, importer et créer les comptes enseignants&lt;/div&gt;
             &lt;/div&gt;
             &lt;div style={{ display: "flex", alignItems: "center", gap: 8 }}&gt;
-              &lt;Tooltip title={selectedTeacher ? "Créer un compte pour l'enseignant sélectionné" : "Sélectionnez d'abord un enseignant dans le tableau"}&gt;
-                &lt;Button type="primary" icon={&lt;UserAddOutlined /&gt;} disabled={!selectedTeacher} onClick={<span class="fstat-no" title="function not covered" >() =&gt; <span class="cstat-no" title="statement not covered" >s</span>etDrawerVisible(true)} c</span>lassName="teachers-btn-create"&gt;
-                  Créer Compte
+              &lt;Tooltip title="Créer un nouveau compte utilisateur"&gt;
+                &lt;Button type="primary" icon={&lt;UserAddOutlined /&gt;} onClick={<span class="fstat-no" title="function not covered" >() =&gt; <span class="cstat-no" title="statement not covered" >s</span>etDrawerVisible(true)} c</span>lassName="teachers-btn-create"&gt;
+                  Créer un compte
                 &lt;/Button&gt;
               &lt;/Tooltip&gt;
             &lt;/div&gt;
@@ -754,28 +757,31 @@ export default function <span class="fstat-no" title="function not covered" >Tea
         &lt;/Card&gt;
 &nbsp;
         {/* Drawer: Créer compte */}
-        &lt;Drawer title="Créer un compte à partir de cet enseignant" width={400} onClose={<span class="fstat-no" title="function not covered" >() =&gt; {</span> <span class="cstat-no" title="statement not covered" >setDrawerVisible(false); <span class="cstat-no" title="statement not covered" >s</span>etActiveExtractIndex(null); }</span>} open={drawerVisible} destroyOnHidden&gt;
-          &lt;EnseignantRegister
-            initialValues={{
-              id: String((selectedTeacher as Record&lt;string, unknown&gt;)?.id ?? ""),
-              username: String((selectedTeacher as Record&lt;string, unknown&gt;)?.mail ?? "").split("@")[0] || "",
-              firstName: String((selectedTeacher as Record&lt;string, unknown&gt;)?.prenom ?? ""),
-              lastName: String((selectedTeacher as Record&lt;string, unknown&gt;)?.nom ?? ""),
-              email: String((selectedTeacher as Record&lt;string, unknown&gt;)?.mail ?? ""),
-              role: "Formateur",
-            }}
-            onSuccess={<span class="fstat-no" title="function not covered" >() =&gt; {</span>
-<span class="cstat-no" title="statement not covered" >              setDrawerVisible(false);</span>
-<span class="cstat-no" title="statement not covered" >              setSelectedTeacher(null);</span>
-<span class="cstat-no" title="statement not covered" >              if (activeExtractIndex !== null) {</span>
-                const next = <span class="cstat-no" title="statement not covered" >extracted.filter(<span class="fstat-no" title="function not covered" >(_</span>: unknown, i: number) =&gt; <span class="cstat-no" title="statement not covered" >i !== activeExtractIndex)</span>;</span>
-<span class="cstat-no" title="statement not covered" >                setExtracted(next);</span>
-<span class="cstat-no" title="statement not covered" >                setActiveExtractIndex(null);</span>
-              }
-            }}
-            onError={<span class="fstat-no" title="function not covered" >() =&gt; {</span>}}
-          /&gt;
-        &lt;/Drawer&gt;
+        &lt;CreateAccountDrawer
+          open={drawerVisible}
+          onClose={<span class="fstat-no" title="function not covered" >() =&gt; {</span>
+<span class="cstat-no" title="statement not covered" >            setDrawerVisible(false);</span>
+<span class="cstat-no" title="statement not covered" >            setActiveExtractIndex(null);</span>
+          }}
+          onSuccess={<span class="fstat-no" title="function not covered" >() =&gt; {</span>
+<span class="cstat-no" title="statement not covered" >            setDrawerVisible(false);</span>
+<span class="cstat-no" title="statement not covered" >            setSelectedTeacher(null);</span>
+<span class="cstat-no" title="statement not covered" >            if (activeExtractIndex !== null) {</span>
+              const next = <span class="cstat-no" title="statement not covered" >extracted.filter(<span class="fstat-no" title="function not covered" >(_</span>: unknown, i: number) =&gt; <span class="cstat-no" title="statement not covered" >i !== activeExtractIndex)</span>;</span>
+<span class="cstat-no" title="statement not covered" >              setExtracted(next);</span>
+<span class="cstat-no" title="statement not covered" >              setActiveExtractIndex(null);</span>
+            }
+          }}
+          title="Créer un compte pour cet enseignant"
+          subtitle="Les informations de l'enseignant sont pré-remplies. Choisissez le rôle à attribuer puis définissez un identifiant et un mot de passe."
+          initialValues={{
+            firstName: String((selectedTeacher as Record&lt;string, unknown&gt;)?.prenom ?? ""),
+            lastName:  String((selectedTeacher as Record&lt;string, unknown&gt;)?.nom ?? ""),
+            email:     String((selectedTeacher as Record&lt;string, unknown&gt;)?.mail ?? ""),
+            username:  String((selectedTeacher as Record&lt;string, unknown&gt;)?.mail ?? "").split("@")[0] || "",
+            role:      "FORMATEUR",
+          }}
+        /&gt;
 &nbsp;
         &lt;TeacherEditModal
           open={editModalOpen}
@@ -814,7 +820,7 @@ export default function <span class="fstat-no" title="function not covered" >Tea
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-06-01T04:02:14.391Z
+                at 2026-06-02T00:34:15.765Z
             </div>
         <script src="../../../prettify.js"></script>
         <script>

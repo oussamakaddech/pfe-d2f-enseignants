@@ -27,8 +27,13 @@ public class EnseignantServiceImpl implements EnseignantService {
             throw new DuplicateEnseignantException(
                     "Un enseignant avec cet email existe déjà : " + enseignant.getMail());
         }
-        // Auto-generate ID in format E00001, E00002, … if not provided
-        if (enseignant.getId() == null || enseignant.getId().isBlank()) {
+        // Auto-generate ID in format E00001, E00002, … si non fourni OU si l'id
+        // fourni est déjà pris (le frontend envoie parfois un id "stable" dérivé
+        // du nom qui peut entrer en collision avec un autre enseignant → sinon
+        // violation de clé primaire / 500). La vérif d'unicité d'email ci-dessus
+        // garantit qu'on ne duplique pas la même personne.
+        if (enseignant.getId() == null || enseignant.getId().isBlank()
+                || enseignantRepository.existsById(enseignant.getId())) {
             String nextId = enseignantRepository.findTopByOrderByIdDesc()
                     .map(last -> {
                         String lastId = last.getId(); // e.g. "E00042"
@@ -105,8 +110,10 @@ public class EnseignantServiceImpl implements EnseignantService {
 
     @Override
     public Enseignant getEnseignantById(String id) {
+        String key = id == null ? null : id.trim();
         return enseignantRepository.findById(id)
                 .or(() -> enseignantRepository.findByMail(id))
+                .or(() -> key == null ? Optional.empty() : enseignantRepository.findByMailIgnoreCase(key))
                 .orElseThrow(() -> new IllegalArgumentException("Enseignant introuvable avec l'id ou l'email : " + id));
     }
 

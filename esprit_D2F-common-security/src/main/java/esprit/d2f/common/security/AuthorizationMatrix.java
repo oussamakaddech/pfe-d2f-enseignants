@@ -102,5 +102,22 @@ public final class AuthorizationMatrix {
     public static final String INSCRIPTION_APPROVE = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_D2F')";
 
     public static final String GATEWAY_ACCESS = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_D2F','ROLE_ENSEIGNANT','ROLE_FORMATEUR','ROLE_ANIMATEUR','ROLE_CHEF_DEPARTEMENT','ROLE_RESPONSABLE_DOSSIER')";
+
+    // ── Gestion unifiée (comptes + enseignants) ─────────────────────────
+    // Page d'administration unifiée. ENSEIGNANT et ANIMATEUR n'y ont pas accès
+    // par défaut. Le périmètre fin (CHEF_DEPARTEMENT = son département,
+    // RESPONSABLE_DOSSIER = scope dossier) est appliqué au niveau service (row-level),
+    // jamais uniquement côté frontend.
+    public static final String UNIFIED_PROFILE_READ =
+            "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_CHEF_DEPARTEMENT','ROLE_RESPONSABLE_DOSSIER')";
+    public static final String UNIFIED_PROFILE_EXPORT =
+            "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_CHEF_DEPARTEMENT','ROLE_RESPONSABLE_DOSSIER')";
+
+    // ── Résumés de comptes (appel inter-service formation → auth) ───────
+    // Autorise l'appel porteur d'un jeton de service (ROLE_SVC_FORMATION) OU un
+    // utilisateur disposant déjà de l'accès à la page unifiée.
+    public static final String ACCOUNT_SUMMARY_READ =
+            "hasAnyRole('ROLE_SVC_FORMATION','ROLE_ADMIN','ROLE_CUP','ROLE_CHEF_DEPARTEMENT','ROLE_RESPONSABLE_DOSSIER')";
+
     public static final String PUBLIC_ACCESS = "permitAll()";
 }

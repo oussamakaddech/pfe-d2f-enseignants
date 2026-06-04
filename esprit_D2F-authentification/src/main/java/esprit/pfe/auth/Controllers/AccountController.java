@@ -5,14 +5,19 @@ import esprit.d2f.common.security.AuthorizationMatrix;
 import esprit.pfe.auth.security.PiiSafeLogger;
 import esprit.pfe.auth.services.AccountService;
 import esprit.pfe.auth.services.AuditService;
+import esprit.pfe.auth.payload.request.AccountSummaryQuery;
 import esprit.pfe.auth.payload.request.EditProfileRequest;
 import esprit.pfe.auth.payload.request.SignupRequest;
 import esprit.pfe.auth.payload.request.UpdatePasswordRequest;
+import esprit.pfe.auth.payload.response.AccountSummaryDTO;
 import esprit.pfe.auth.payload.response.UserDTO;
+import io.swagger.v3.oas.annotations.Operation;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+
+import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -39,6 +44,20 @@ public class AccountController {
     @PreAuthorize(AuthorizationMatrix.ACCOUNT_READ)
     public Page<UserDTO> listAccounts(Pageable pageable) {
         return this.accountService.listAccounts(pageable).map(UserDTO::new);
+    }
+
+    /**
+     * Résumés de comptes (sans secret) pour la page de gestion unifiée.
+     * Endpoint inter-service : appelé par le service formation (jeton de service
+     * ROLE_SVC_FORMATION) pour enrichir/filtrer les profils unifiés par rôle et
+     * statut d'activation. Reste accessible aux rôles d'administration unifiée.
+     */
+    @PostMapping("/summaries")
+    @PreAuthorize(AuthorizationMatrix.ACCOUNT_SUMMARY_READ)
+    @Operation(summary = "Résumés de comptes (userIds / rôle / actif) — sans données sensibles")
+    public List<AccountSummaryDTO> getAccountSummaries(
+            @RequestBody(required = false) AccountSummaryQuery query) {
+        return this.accountService.getAccountSummaries(query);
     }
 
     /**

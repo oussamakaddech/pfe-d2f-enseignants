@@ -412,7 +412,7 @@ export default function CreateAccountDrawer({
             type="info"
             showIcon
             message="Sécurité"
-            description="Ce compte sera créé avec le rôle sélectionné. L'administrateur pourra modifier ou bloquer le compte à tout moment depuis la gestion des utilisateurs."
+            description="Ce compte sera créé avec le rôle sélectionné. L'administrateur pourra modifier ou bloquer le compte à tout moment depuis la gestion des comptes."
             style={{ marginTop: 4 }}
           />
         </Form>

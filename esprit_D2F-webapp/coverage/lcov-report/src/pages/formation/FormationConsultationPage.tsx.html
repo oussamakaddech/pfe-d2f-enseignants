@@ -608,7 +608,11 @@
 <a name='L543'></a><a href='#L543'>543</a>
 <a name='L544'></a><a href='#L544'>544</a>
 <a name='L545'></a><a href='#L545'>545</a>
-<a name='L546'></a><a href='#L546'>546</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L546'></a><a href='#L546'>546</a>
+<a name='L547'></a><a href='#L547'>547</a>
+<a name='L548'></a><a href='#L548'>548</a>
+<a name='L549'></a><a href='#L549'>549</a>
+<a name='L550'></a><a href='#L550'>550</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -707,10 +711,14 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -1078,7 +1086,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -1233,7 +1241,7 @@ interface RefItem {
   nom?: string;
 }
 &nbsp;
-function <span class="fstat-no" title="function not covered" >FormationExpandRow({</span> record }: { record: Formation }) {
+function <span class="fstat-no" title="function not covered" >FormationExpandRow({</span> record }: Readonly&lt;{ record: Formation }&gt;) {
 <span class="cstat-no" title="statement not covered" >  return (</span>
     &lt;div className="formation-expand-content"&gt;
       &lt;span className="formation-expand-title"&gt;Séances&lt;/span&gt;
@@ -1248,6 +1256,10 @@ function <span class="fstat-no" title="function not covered" >FormationExpandRow
       &lt;/div&gt;
     &lt;/div&gt;
   );
+}
+&nbsp;
+function <span class="fstat-no" title="function not covered" >renderExpandRow(r</span>ecord: Formation) {
+<span class="cstat-no" title="statement not covered" >  return &lt;FormationExpandRow record={record} /&gt;;</span>
 }
 &nbsp;
 export default function <span class="fstat-no" title="function not covered" >FormationConsultationPage() {</span>
@@ -1285,14 +1297,14 @@ export default function <span class="fstat-no" title="function not covered" >For
   const { data: upsData = <span class="branch-0 cbranch-no" title="branch not covered" >[] }</span> = <span class="cstat-no" title="statement not covered" >useUps();</span>
   const { data: deptsData = <span class="branch-0 cbranch-no" title="branch not covered" >[] }</span> = <span class="cstat-no" title="statement not covered" >useDepartements();</span>
   const upsOptions = <span class="cstat-no" title="statement not covered" >useMemo(</span>
-<span class="fstat-no" title="function not covered" >    () =&gt; (<span class="cstat-no" title="statement not covered" >u</span>psData as unknown[]).map(<span class="fstat-no" title="function not covered" >(u</span>: unknown) =&gt; {</span>
+<span class="fstat-no" title="function not covered" >    () =&gt; <span class="cstat-no" title="statement not covered" >u</span>psData.map(<span class="fstat-no" title="function not covered" >(u</span>) =&gt; {</span>
       const up = <span class="cstat-no" title="statement not covered" >u as RefItem; // S4325: cast needed for compatibility</span>
 <span class="cstat-no" title="statement not covered" >      return { id: up.id, libelle: up.libelle || up.nom || "_" };</span>
     }),
     [upsData],
   );
   const deptsOptions = <span class="cstat-no" title="statement not covered" >useMemo(</span>
-<span class="fstat-no" title="function not covered" >    () =&gt; (<span class="cstat-no" title="statement not covered" >d</span>eptsData as unknown[]).map(<span class="fstat-no" title="function not covered" >(d</span>: unknown) =&gt; {</span>
+<span class="fstat-no" title="function not covered" >    () =&gt; <span class="cstat-no" title="statement not covered" >d</span>eptsData.map(<span class="fstat-no" title="function not covered" >(d</span>) =&gt; {</span>
       const dept = <span class="cstat-no" title="statement not covered" >d as RefItem; // S4325: cast needed for compatibility</span>
 <span class="cstat-no" title="statement not covered" >      return { id: dept.id, libelle: dept.libelle || dept.nom || "_" };</span>
     }),
@@ -1623,7 +1635,7 @@ export default function <span class="fstat-no" title="function not covered" >For
             ),
           }}
           expandable={{
-            expandedRowRender: <span class="fstat-no" title="function not covered" >(r</span>ecord) =&gt; <span class="cstat-no" title="statement not covered" >&lt;FormationExpandRow record={record} /&gt;,</span>
+            expandedRowRender: renderExpandRow,
             rowExpandable: <span class="fstat-no" title="function not covered" >(r</span>ecord) =&gt; <span class="cstat-no" title="statement not covered" >record.seances != null,</span>
           }}
         /&gt;
@@ -1705,7 +1717,7 @@ export default function <span class="fstat-no" title="function not covered" >For
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-06-01T04:02:14.391Z
+                at 2026-06-02T00:34:15.765Z
             </div>
         <script src="../../../prettify.js"></script>
         <script>

@@ -23,7 +23,10 @@ export function useEnseignants() {
     queryKey: KEYS.all,
     queryFn: async () => {
       const data = await EnseignantService.getAllEnseignants();
-      return data as Enseignant[];
+      return (data as Enseignant[]).map(e => ({
+        ...e,
+        mail: e.mail || (e as Record<string, unknown>).email as string || "",
+      }));
     },
   });
 }
@@ -31,7 +34,19 @@ export function useEnseignants() {
 export function useEnseignantById(id: Id | undefined) {
   return useQuery<unknown>({
     queryKey: KEYS.one(id!),
-    queryFn: () => EnseignantService.getEnseignantById(id!),
+    queryFn: async () => {
+      try {
+        return await EnseignantService.getEnseignantById(id!);
+      } catch (err: unknown) {
+        const status = (err as { response?: { status?: number } })?.response?.status;
+        if (status === 400 || status === 404) {
+          const all = await EnseignantService.getAllEnseignants();
+          const key = String(id ?? "").toLowerCase();
+          return all.find((e) => ((e as Record<string, unknown>).mail ?? e.email ?? "").toString().toLowerCase() === key) ?? null;
+        }
+        throw err;
+      }
+    },
     enabled: !!id,
   });
 }

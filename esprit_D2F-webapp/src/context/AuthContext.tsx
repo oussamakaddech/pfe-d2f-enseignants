@@ -94,10 +94,21 @@ const AuthProvider = ({ children }: AuthProviderProps) => {
 
   useEffect(() => {
     if (user && renderGeneration === authGenerationRef.current) {
-      startSilentRefresh();
+      // Guard: only start if no timer is already running.
+      // Without this, doRefresh → setUser → re-render → effect cleanup stops timer
+      // → effect body restarts immediately → infinite refresh storm.
+      if (!refreshTimerRef.current) {
+        startSilentRefresh();
+      }
+    } else if (!user) {
+      stopSilentRefresh();
     }
-    return () => stopSilentRefresh();
   }, [user, renderGeneration, startSilentRefresh, stopSilentRefresh]);
+
+  // Separate effect: stop the timer only on component unmount.
+  useEffect(() => {
+    return () => stopSilentRefresh();
+  }, [stopSilentRefresh]);
 
   useEffect(() => {
     const onAuthLoggedOut = () => {

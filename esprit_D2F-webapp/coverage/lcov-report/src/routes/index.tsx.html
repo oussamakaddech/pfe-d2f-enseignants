@@ -25,7 +25,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/79</span>
+                <span class='fraction'>0/81</span>
             </div>
         
             
@@ -39,14 +39,14 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>0/41</span>
+                <span class='fraction'>0/42</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/41</span>
+                <span class='fraction'>0/42</span>
             </div>
         
             
@@ -230,7 +230,9 @@
 <a name='L165'></a><a href='#L165'>165</a>
 <a name='L166'></a><a href='#L166'>166</a>
 <a name='L167'></a><a href='#L167'>167</a>
-<a name='L168'></a><a href='#L168'>168</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L168'></a><a href='#L168'>168</a>
+<a name='L169'></a><a href='#L169'>169</a>
+<a name='L170'></a><a href='#L170'>170</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -279,6 +281,7 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -301,6 +304,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -428,6 +432,7 @@ const BesoinList = <span class="cstat-no" title="statement not covered" >lazy(<s
 const CertificatesByEmailPage = <span class="cstat-no" title="statement not covered" >lazy(<span class="fstat-no" title="function not covered" >() =&gt; <span class="cstat-no" title="statement not covered" >i</span>mport("@/pages/certificat/CertificatesByEmailPage"))</span>;</span>
 const UpDeptDataGrid = <span class="cstat-no" title="statement not covered" >lazy(<span class="fstat-no" title="function not covered" >() =&gt; <span class="cstat-no" title="statement not covered" >i</span>mport("@/pages/enseignant/UpDeptDataGrid"))</span>;</span>
 const Register = <span class="cstat-no" title="statement not covered" >lazy(<span class="fstat-no" title="function not covered" >() =&gt; <span class="cstat-no" title="statement not covered" >i</span>mport("@/pages/auth/Register"))</span>;</span>
+const Forbidden403 = <span class="cstat-no" title="statement not covered" >lazy(<span class="fstat-no" title="function not covered" >() =&gt; <span class="cstat-no" title="statement not covered" >i</span>mport("@/pages/error/Forbidden403"))</span>;</span>
 const Home = <span class="cstat-no" title="statement not covered" >lazy(<span class="fstat-no" title="function not covered" >() =&gt; <span class="cstat-no" title="statement not covered" >i</span>mport("@/pages/errors/Home"))</span>;</span>
 const Login = <span class="cstat-no" title="statement not covered" >lazy(<span class="fstat-no" title="function not covered" >() =&gt; <span class="cstat-no" title="statement not covered" >i</span>mport("@/pages/admin/gererComptes/Login"))</span>;</span>
 const PasswordRecovery = <span class="cstat-no" title="statement not covered" >lazy(<span class="fstat-no" title="function not covered" >() =&gt; <span class="cstat-no" title="statement not covered" >i</span>mport("@/pages/admin/gererComptes/PasswordRecovery"))</span>;</span>
@@ -478,6 +483,7 @@ export default function <span class="fstat-no" title="function not covered" >App
             &lt;Route path="/auth" element={&lt;Navigate to="/login" replace /&gt;} /&gt;
             &lt;Route path="/auth/login" element={&lt;Navigate to="/login" replace /&gt;} /&gt;
             &lt;Route path="/register" element={&lt;Register /&gt;} /&gt;
+            &lt;Route path="/403" element={&lt;Forbidden403 /&gt;} /&gt;
             &lt;Route path="/password-recovery" element={&lt;PasswordRecovery /&gt;} /&gt;
             &lt;Route path="/profile" element={&lt;Navigate to="/home/profile" replace /&gt;} /&gt;
 &nbsp;
@@ -550,7 +556,7 @@ export default function <span class="fstat-no" title="function not covered" >App
                   &lt;Route path="/home/ListeFormation/:id/demandes" element={&lt;DemandesList /&gt;} /&gt;
                 &lt;/Route&gt;
 &nbsp;
-                &lt;Route element={&lt;RoleGuard allowedRoles={[ROLES.FORMATEUR, ROLES.ENSEIGNANT, ROLES.ADMIN]} /&gt;}&gt;
+                &lt;Route element={&lt;RoleGuard allowedRoles={[ROLES.FORMATEUR, ROLES.ANIMATEUR, ROLES.ENSEIGNANT, ROLES.ADMIN]} /&gt;}&gt;
                   &lt;Route path="/home/animateur-formations" element={&lt;FormationList /&gt;} /&gt;
                   &lt;Route path="/home/animateur-formations/:id" element={&lt;FormationDetail /&gt;} /&gt;
                 &lt;/Route&gt;
@@ -571,7 +577,7 @@ export default function <span class="fstat-no" title="function not covered" >App
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-06-01T04:02:14.391Z
+                at 2026-06-02T00:34:15.765Z
             </div>
         <script src="../../prettify.js"></script>
         <script>

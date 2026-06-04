@@ -1,3 +1,4 @@
+import { useMemo, useState } from "react";
 import {
   Table,
   Button,
@@ -5,6 +6,8 @@ import {
   Space,
   Tooltip,
   Card,
+  Input,
+  Select,
 } from "antd";
 import type { ColumnsType } from "antd/es/table";
 import {
@@ -14,6 +17,8 @@ import {
   TeamOutlined,
   SafetyCertificateOutlined,
   UserOutlined,
+  SearchOutlined,
+  SortAscendingOutlined,
 } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import { writeExcel, exportDateLabel, isoDate } from "utils/helpers/excelExport";
@@ -36,8 +41,41 @@ interface ExtractedTeacherItem {
   fichier?: string;
 }
 
-export default function TeachersDataGrid() {
+type Row = Record<string, unknown>;
+type TeacherSort = "nom_asc" | "nom_desc" | "type" | "up" | "dept" | "email";
+
+const TYPE_LABELS: Record<string, string> = { P: "Permanent", V: "Vacataire", C: "Contractuel" };
+
+const SORT_OPTIONS: { value: TeacherSort; label: string }[] = [
+  { value: "nom_asc",  label: "Nom (A → Z)" },
+  { value: "nom_desc", label: "Nom (Z → A)" },
+  { value: "type",     label: "Type" },
+  { value: "up",       label: "UP" },
+  { value: "dept",     label: "Département" },
+  { value: "email",    label: "Email" },
+];
+
+const isTruthyFlag = (v: unknown) => v === "O" || v === "Y" || v === "1";
+const str = (v: unknown) => String(v ?? "");
+
+/** Valeurs distinctes non vides d'une colonne, triées alphabétiquement. */
+function distinctValues(rows: Row[], key: string): string[] {
+  const set = new Set<string>();
+  rows.forEach((r) => {
+    const v = str(r[key]).trim();
+    if (v) set.add(v);
+  });
+  return Array.from(set).sort((a, b) => a.localeCompare(b));
+}
+
+export default function TeachersDataGrid({ embedded = false }: { embedded?: boolean } = {}) {
   const navigate = useNavigate();
+  const [search, setSearch] = useState("");
+  const [typeFilter, setTypeFilter] = useState<string>("ALL");
+  const [upFilter, setUpFilter] = useState<string>("ALL");
+  const [deptFilter, setDeptFilter] = useState<string>("ALL");
+  const [qualityFilter, setQualityFilter] = useState<string[]>([]);
+  const [sortBy, setSortBy] = useState<TeacherSort>("nom_asc");
   const {
     data, isLoading, ups, depts, extracted, setExtracted,
     file, setFile, handleUpload,
@@ -53,6 +91,42 @@ export default function TeachersDataGrid() {
 
   const columns = useTeachersColumns({ onEdit: openEditModal, onDelete: (record) => void handleDelete(record) });
 
+  const typeOptions = useMemo(() => distinctValues(data, "type"), [data]);
+  const upOptions = useMemo(() => distinctValues(data, "upLibelle"), [data]);
+  const deptOptions = useMemo(() => distinctValues(data, "deptLibelle"), [data]);
+
+  const displayedData = useMemo(() => {
+    const term = search.trim().toLowerCase();
+    const rows = data.filter((d) => {
+      if (typeFilter !== "ALL" && str(d.type) !== typeFilter) return false;
+      if (upFilter !== "ALL" && str(d.upLibelle) !== upFilter) return false;
+      if (deptFilter !== "ALL" && str(d.deptLibelle) !== deptFilter) return false;
+      if (qualityFilter.includes("CUP") && !isTruthyFlag(d.cup)) return false;
+      if (qualityFilter.includes("CHEF") && !isTruthyFlag(d.chefDepartement)) return false;
+      if (!term) return true;
+      return (
+        str(d.nom).toLowerCase().includes(term) ||
+        str(d.prenom).toLowerCase().includes(term) ||
+        str(d.mail).toLowerCase().includes(term)
+      );
+    });
+
+    const cmp = (a: Row, b: Row, key: string) => str(a[key]).localeCompare(str(b[key]));
+    const sorted = [...rows];
+    switch (sortBy) {
+      case "nom_asc":  sorted.sort((a, b) => cmp(a, b, "nom")); break;
+      case "nom_desc": sorted.sort((a, b) => cmp(b, a, "nom")); break;
+      case "type":     sorted.sort((a, b) => cmp(a, b, "type")); break;
+      case "up":       sorted.sort((a, b) => cmp(a, b, "upLibelle")); break;
+      case "dept":     sorted.sort((a, b) => cmp(a, b, "deptLibelle")); break;
+      case "email":    sorted.sort((a, b) => cmp(a, b, "mail")); break;
+    }
+    return sorted;
+  }, [data, search, typeFilter, upFilter, deptFilter, qualityFilter, sortBy]);
+
+  const hasActiveFilters =
+    !!search || typeFilter !== "ALL" || upFilter !== "ALL" || deptFilter !== "ALL" || qualityFilter.length > 0;
+
   const rowSelection = {
     type: "radio" as const,
     selectedRowKeys: selectedTeacher ? [(selectedTeacher as Record<string, unknown>).id as string] : [],
@@ -60,7 +134,7 @@ export default function TeachersDataGrid() {
   };
 
   const exportExcel = () => {
-    const rows = data.map((e: Record<string, unknown>) => {
+    const rows = displayedData.map((e: Record<string, unknown>) => {
       let eType = String(e.type || "");
       if (e.type === "P") eType = "Permanent";
       else if (e.type === "V") eType = "Vacataire";
@@ -88,7 +162,8 @@ export default function TeachersDataGrid() {
   return (
     <>
       <div className="teachers-page">
-        {/* Hero Banner */}
+        {/* Hero Banner (masqué quand intégré dans la page unifiée) */}
+        {!embedded && (
         <div className="teachers-hero">
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 16 }}>
             <div>
@@ -110,6 +185,7 @@ export default function TeachersDataGrid() {
             </div>
           </div>
         </div>
+        )}
 
         {/* Statistiques */}
         <div className="teachers-stats">
@@ -157,7 +233,71 @@ export default function TeachersDataGrid() {
           </div>
         )}
 
-        {/* Toolbar */}
+        {/* Filtres avancés & tri */}
+        <div className="teachers-toolbar">
+          <Input
+            allowClear
+            prefix={<SearchOutlined style={{ color: "#94a3b8" }} />}
+            placeholder="Rechercher (nom, prénom, email...)"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            style={{ maxWidth: 280 }}
+          />
+          <Select
+            value={typeFilter}
+            onChange={setTypeFilter}
+            style={{ minWidth: 150 }}
+            options={[
+              { value: "ALL", label: "Tous les types" },
+              ...typeOptions.map((t) => ({ value: t, label: TYPE_LABELS[t] ?? t })),
+            ]}
+          />
+          <Select
+            showSearch
+            value={upFilter}
+            onChange={setUpFilter}
+            style={{ minWidth: 150 }}
+            options={[
+              { value: "ALL", label: "Toutes les UP" },
+              ...upOptions.map((u) => ({ value: u, label: u })),
+            ]}
+          />
+          <Select
+            showSearch
+            value={deptFilter}
+            onChange={setDeptFilter}
+            style={{ minWidth: 180 }}
+            options={[
+              { value: "ALL", label: "Tous les départements" },
+              ...deptOptions.map((d) => ({ value: d, label: d })),
+            ]}
+          />
+          <Select
+            mode="multiple"
+            allowClear
+            maxTagCount="responsive"
+            value={qualityFilter}
+            onChange={setQualityFilter}
+            placeholder="Qualité"
+            style={{ minWidth: 150 }}
+            options={[
+              { value: "CUP", label: "CUP" },
+              { value: "CHEF", label: "Chef de département" },
+            ]}
+          />
+          <Select
+            value={sortBy}
+            onChange={setSortBy}
+            style={{ minWidth: 160 }}
+            suffixIcon={<SortAscendingOutlined />}
+            options={SORT_OPTIONS}
+          />
+          <span style={{ color: "#64748b", fontSize: 13 }}>
+            {displayedData.length} résultat{displayedData.length === 1 ? "" : "s"}
+          </span>
+        </div>
+
+        {/* Import / Export / Création */}
         <div className="teachers-toolbar">
           <Upload accept=".xlsx,.xls" beforeUpload={(f) => { setFile(f); return false; }} showUploadList={false}>
             <Button icon={<UploadOutlined />} className="teachers-btn-select">
@@ -170,24 +310,38 @@ export default function TeachersDataGrid() {
             </Button>
           </Tooltip>
           <div className="teachers-toolbar-divider" />
-          <Tooltip title={data.length ? "Exporter la liste en Excel" : "Aucune donnée à exporter"}>
-            <Button icon={<DownloadOutlined />} onClick={exportExcel} disabled={!data.length} className="teachers-btn-export">
+          <Tooltip title={displayedData.length ? "Exporter la liste filtrée en Excel" : "Aucune donnée à exporter"}>
+            <Button icon={<DownloadOutlined />} onClick={exportExcel} disabled={!displayedData.length} className="teachers-btn-export">
               Exporter Excel
             </Button>
           </Tooltip>
+          {embedded && (
+            <Tooltip title="Créer un nouveau compte utilisateur">
+              <Button
+                type="primary"
+                icon={<UserAddOutlined />}
+                onClick={() => setDrawerVisible(true)}
+                className="teachers-btn-create"
+                style={{ marginLeft: "auto" }}
+              >
+                Créer un compte
+              </Button>
+            </Tooltip>
+          )}
         </div>
 
         {/* Table */}
         <Card className="teachers-table-wrapper">
           <Table
             rowSelection={rowSelection}
-            dataSource={data}
+            dataSource={displayedData}
             columns={columns as ColumnsType<Record<string, unknown>>}
             loading={isLoading}
             rowKey="id"
             pagination={{ pageSize: 10, showTotal: (total) => `${total} enseignant${total === 1 ? "" : "s"}` }}
             onRow={(record: Record<string, unknown>) => ({ onClick: () => { navigate(`/home/calendar/${record.id}`); } })}
             style={{ cursor: "pointer" }}
+            locale={{ emptyText: hasActiveFilters ? "Aucun enseignant ne correspond aux filtres." : "Aucun enseignant trouvé." }}
           />
         </Card>
 

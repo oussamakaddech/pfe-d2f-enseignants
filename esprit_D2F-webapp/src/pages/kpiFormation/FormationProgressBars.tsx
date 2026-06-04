@@ -97,9 +97,15 @@ export default function FormationProgressCards() {
   // 7) Affichage
   return (
     <div style={styles.wrapper}>
-      <h4 style={styles.header}>
-        👨🏻‍🏫 Taux de Participation par Formation
-      </h4>
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
+        <div style={{ width: 32, height: 32, borderRadius: 8, background: "#ecfdf5", display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <span style={{ color: "#059669", fontSize: 16 }}>📊</span>
+        </div>
+        <div>
+          <span style={{ fontSize: 15, fontWeight: 600, display: "block" }}>Taux de Participation par Formation</span>
+          <span style={{ fontSize: 12, color: "#6b7280" }}>Participation des enseignants par formation</span>
+        </div>
+      </div>
 
       {/* — filtres — */}
       <Space wrap style={styles.filterBar}>
@@ -183,10 +189,10 @@ export default function FormationProgressCards() {
 }
 
 const styles: Record<string, React.CSSProperties> = {
-  wrapper:        { maxWidth: 900, margin: "auto", padding: 20, fontFamily: "'Arial', sans-serif'" },
+  wrapper:        { padding: 20 },
   header:         { textAlign: "left", marginBottom: 20 },
   filterBar:      { marginBottom: 16 },
-  cardsContainer: { maxHeight: 250, overflowY: "auto", paddingRight: 8 },
+  cardsContainer: { maxHeight: 400, overflowY: "auto", paddingRight: 8 },
   card:           { borderRadius: 8, boxShadow: "0 4px 12px rgba(0,0,0,0.05)" },
   title:          { fontSize: 16, display: "block", marginBottom: 8 },
   footer:         { display: "flex", justifyContent: "space-between", alignItems: "center" },

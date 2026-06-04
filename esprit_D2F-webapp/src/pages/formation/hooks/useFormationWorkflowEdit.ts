@@ -1,8 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { format } from "date-fns";
 import * as XLSX from "xlsx";
 import useAppNotification from "@/hooks/ui/useAppNotification";
-import { useAllFormations, useUpdateFormation, useUps, useDepartements } from "@/hooks/formation";
+import { useAllFormations, useUpdateFormation, useUps, useDepartements, useAllAccounts } from "@/hooks/formation";
 import { useEnseignants } from "@/hooks/enseignant";
 import { useAuth } from "@/hooks/auth/useAuth";
 
@@ -15,8 +15,52 @@ export type EditSeance = {
 };
 
 export type EditLookup = { id?: unknown; libelle?: string };
-export type EditPerson = { id?: unknown; type?: string; cup?: string; chefDepartement?: string; nom?: string; prenom?: string; mail?: string; upLibelle?: string; deptLibelle?: string };
+export type EditPerson = { id?: unknown; type?: string; cup?: string; chefDepartement?: string; nom?: string; prenom?: string; mail?: string; upLibelle?: string; deptLibelle?: string; isAuthUser?: boolean; userName?: string; etat?: string; isManual?: boolean };
 export type EditFormation = Record<string, unknown>;
+
+type AccountItem = {
+  id?: unknown;
+  userName?: string;
+  username?: string;
+  firstName?: string;
+  firsName?: string;
+  lastName?: string;
+  email?: string;
+  emailAddress?: string;
+  role?: string;
+};
+
+function mergeAuthAccountAnimateurs(accountsData: AccountItem[], enseignantsData: EditPerson[]): EditPerson[] {
+  if (!Array.isArray(accountsData)) return [];
+  const formateurs = accountsData
+    .filter((a) => {
+      const role = (a.role || "").toUpperCase();
+      return role === "FORMATEUR" || role === "ANIMATEUR";
+    })
+    .map((a) => ({
+      id: a.id,
+      isAuthUser: true,
+      userName: a.userName || a.username,
+      nom: a.lastName || a.userName || a.username || "Formateur",
+      prenom: a.firstName || a.firsName || "",
+      mail: a.emailAddress || a.email || "",
+      type: "V",
+      etat: "A",
+      cup: "N",
+      chefDepartement: "N",
+      upLibelle: "",
+      deptLibelle: "",
+    }));
+  const fUserNames = new Set(formateurs.map((f) => f.userName).filter((n): n is string => Boolean(n)));
+  const enriched = formateurs.map((f) => {
+    const prefix = f.mail ? f.mail.split("@")[0] : "";
+    const match = enseignantsData.find((ex) =>
+      (typeof ex.id === "string" && fUserNames.has(ex.id)) || ex.mail === f.mail || (ex.mail ?? "").split("@")[0] === prefix
+    );
+    return match ? { ...f, upLibelle: match.upLibelle || "", deptLibelle: match.deptLibelle || "", type: match.type || f.type } : f;
+  });
+  return enriched;
+}
 
 function toMinutes(timeValue: unknown): number | null {
   if (!timeValue) return null;
@@ -81,28 +125,123 @@ export function useFormationWorkflowEdit(formation: EditFormation, onFormationUp
   const [animSel, setAnimSel] = useState<EditPerson[]>([]);
   const [partSel, setPartSel] = useState<EditPerson[]>([]);
   const [overlapWarnings, setOverlapWarnings] = useState<string[]>([]);
-  const [animFilterUp] = useState<EditLookup | null>(null);
-  const [animFilterDept] = useState<EditLookup | null>(null);
+  const [animFilterUp, setAnimFilterUp] = useState<EditLookup | null>(null);
+  const [animFilterDept, setAnimFilterDept] = useState<EditLookup | null>(null);
   const [partFilterUp, setPartFilterUp] = useState<EditLookup | null>(null);
   const [partFilterDept, setPartFilterDept] = useState<EditLookup | null>(null);
+  const [animSearch, setAnimSearch] = useState("");
+  const [partSearch, setPartSearch] = useState("");
   const [showMore, setShowMore] = useState(false);
   const [openDocModal, setOpenDocModal] = useState(false);
   const [openUploadPanel, setOpenUploadPanel] = useState(false);
+  const [lastReloadAt, setLastReloadAt] = useState<Date | null>(null);
+  const [isReloading, setIsReloading] = useState(false);
+  const [saving, setSaving] = useState(false);
 
-  const { data: ups = [] } = useUps();
-  const { data: depts = [] } = useDepartements();
-  const { data: ensData = [] } = useEnseignants();
-  const { data: allFormations = [] } = useAllFormations();
+  const upsQuery = useUps();
+  const deptsQuery = useDepartements();
+  const ensQuery = useEnseignants();
+  const accountsQuery = useAllAccounts();
+  const allFormationsQuery = useAllFormations();
   const updateMut = useUpdateFormation();
+  const { data: ups = [], refetch: refetchUps } = upsQuery;
+  const { data: depts = [], refetch: refetchDepts } = deptsQuery;
+  const { data: ensData = [], refetch: refetchEnseignants, isFetching: isFetchingEnseignants } = ensQuery;
+  const { data: accountsData, refetch: refetchAccounts, isFetching: isFetchingAccounts } = accountsQuery;
+  const { data: allFormations = [] } = allFormationsQuery;
+
+  const refetchAll = async () => {
+    setIsReloading(true);
+    try {
+      await Promise.all([refetchEnseignants(), refetchAccounts(), refetchUps(), refetchDepts()]);
+      setLastReloadAt(new Date());
+    } finally {
+      setIsReloading(false);
+    }
+  };
 
   const ens = ensData as EditPerson[];
   const existingFormations = Array.isArray(allFormations) ? allFormations : [];
 
-  const optionsAnim = ens.filter(
-    (x) => (!animFilterUp || x.upLibelle === (animFilterUp as EditLookup & { libelle?: string }).libelle) && (!animFilterDept || x.deptLibelle === (animFilterDept as EditLookup & { libelle?: string }).libelle)
+  // Animateurs = formation-service enseignants + comptes auth (FORMATEUR/ANIMATEUR)
+  // même source que useFormationWorkflow pour rester cohérent avec la création.
+  const formateursList = useMemo(
+    () => mergeAuthAccountAnimateurs((accountsData ?? []) as AccountItem[], ens),
+    [accountsData, ens]
   );
-  const optionsPart = ens.filter(
-    (x) => (!partFilterUp || x.upLibelle === (partFilterUp as EditLookup & { libelle?: string }).libelle) && (!partFilterDept || x.deptLibelle === (partFilterDept as EditLookup & { libelle?: string }).libelle)
+
+  // Participants = enseignants + comptes auth ENSEIGNANT/FORMATEUR/ANIMATEUR
+  // non déjà présents côté animateurs ou enseignants.
+  const animateurMailSet = useMemo(
+    () => new Set(formateursList.map((a) => (a.mail || "").toLowerCase()).filter(Boolean)),
+    [formateursList]
+  );
+  const enseignantMails = useMemo(
+    () => new Set(ens.map((e) => ((e as Record<string, unknown>).mail ?? e.mail ?? "").toString().toLowerCase()).filter(Boolean)),
+    [ens]
+  );
+  const accountsFallbackForParticipants = useMemo(() => {
+    if (!Array.isArray(accountsData)) return [] as EditPerson[];
+    return (accountsData as AccountItem[])
+      .filter((a) => {
+        const role = (a.role || "").toUpperCase();
+        return role === "ENSEIGNANT" || role === "FORMATEUR" || role === "ANIMATEUR";
+      })
+      .filter((a) => {
+        const mail = (a.emailAddress || a.email || "").toLowerCase();
+        return mail && !enseignantMails.has(mail) && !animateurMailSet.has(mail);
+      })
+      .map((a) => ({
+        id: a.id,
+        isAuthUser: true,
+        userName: a.userName || a.username,
+        nom: a.lastName || a.userName || a.username || "Compte",
+        prenom: a.firstName || a.firsName || "",
+        mail: a.emailAddress || a.email || "",
+        type: (a.role || "").toUpperCase() === "ENSEIGNANT" ? "P" : "V",
+        etat: "A",
+        cup: "N",
+        chefDepartement: "N",
+        upLibelle: "",
+        deptLibelle: "",
+      } as EditPerson));
+  }, [accountsData, animateurMailSet, enseignantMails]);
+
+  // Union par id : les acteurs déjà affectés à la formation doivent toujours
+  // figurer parmi les options (même s'ils sont absents de la liste enseignants,
+  // ex. enseignant supprimé/soft-deleted) — sinon ils ne s'affichent pas en édition.
+  const unionById = (base: EditPerson[], selected: EditPerson[]): EditPerson[] => {
+    const seen = new Set(base.map((x) => String(x.id)));
+    const extra = selected.filter((s) => s.id != null && !seen.has(String(s.id)));
+    return extra.length > 0 ? [...base, ...extra] : base;
+  };
+  const matchSearch = (x: EditPerson, q: string): boolean => {
+    if (!q.trim()) return true;
+    const needle = q.trim().toLowerCase();
+    return (
+      (x.nom || "").toLowerCase().includes(needle) ||
+      (x.prenom || "").toLowerCase().includes(needle) ||
+      (x.mail || (x as Record<string, unknown>).email as string || "").toLowerCase().includes(needle) ||
+      ((x as Record<string, unknown>).userName as string || "").toLowerCase().includes(needle)
+    );
+  };
+  const optionsAnim = unionById(
+    [
+      ...formateursList,
+      ...ens,
+    ].filter(
+      (x) => (!animFilterUp || x.upLibelle === (animFilterUp as EditLookup & { libelle?: string }).libelle) && (!animFilterDept || x.deptLibelle === (animFilterDept as EditLookup & { libelle?: string }).libelle) && matchSearch(x, animSearch)
+    ),
+    animSel,
+  );
+  const optionsPart = unionById(
+    [
+      ...ens,
+      ...accountsFallbackForParticipants,
+    ].filter(
+      (x) => (!partFilterUp || x.upLibelle === (partFilterUp as EditLookup & { libelle?: string }).libelle) && (!partFilterDept || x.deptLibelle === (partFilterDept as EditLookup & { libelle?: string }).libelle) && matchSearch(x, partSearch)
+    ),
+    partSel,
   );
 
   useEffect(() => {
@@ -130,8 +269,10 @@ export function useFormationWorkflowEdit(formation: EditFormation, onFormationUp
     setCoutTransport(formation.coutTransport || 0);
     setCoutHebergement(formation.coutHebergement || 0);
     setCoutRepas(formation.coutRepas || 0);
-    setSelectedUp(formation.up1 || null);
-    setSelectedDept(formation.departement1 || null);
+    // L'API renvoie `up`/`departement` (le DTO) ; `up1`/`departement1` n'existent
+    // pas dans la réponse → fallback conservé par sécurité.
+    setSelectedUp((formation.up ?? formation.up1) || null);
+    setSelectedDept((formation.departement ?? formation.departement1) || null);
     setPeriodCode(formation.periodCode || "OTHER");
     setCustomPeriodLabel(formation.customPeriodLabel || formation.periodeFormation || "");
     setSeances((formation.seances || []).map((s: EditFormation) => ({
@@ -280,17 +421,37 @@ export function useFormationWorkflowEdit(formation: EditFormation, onFormationUp
 
   const handleSubmit = async (e: React.SyntheticEvent) => {
     e.preventDefault();
-    if (seances.length === 0) { message.warning("Veuillez ajouter au moins une séance."); return; }
+    setSaving(true);
+    if (seances.length === 0) { message.warning("Veuillez ajouter au moins une séance."); setSaving(false); return; }
     const blockingConflicts = buildConflictMessages();
-    if (blockingConflicts.length > 0) { setOverlapWarnings(blockingConflicts); message.error("Conflits détectés: corrigez les dates/salles/personnes avant mise à jour."); return; }
+    if (blockingConflicts.length > 0) { setOverlapWarnings(blockingConflicts); message.error("Conflits détectés: corrigez les dates/salles/personnes avant mise à jour."); setSaving(false); return; }
     try {
       const res = await updateMut.mutateAsync({ id: formation.idFormation, data: buildEditPayload() });
       message.success("Formation mise à jour !");
       onFormationUpdated(res);
     } catch (err: unknown) {
       handleUpdateError(err);
+    } finally {
+      setSaving(false);
     }
   };
+
+  const selectAllVisibleAnim = () => {
+    setAnimSel((prev) => {
+      const seen = new Set(prev.map((p) => String(p.id)));
+      const extras = optionsAnim.filter((o) => o.id != null && !seen.has(String(o.id)));
+      return [...prev, ...extras];
+    });
+  };
+  const clearAnimSel = () => setAnimSel([]);
+  const selectAllVisiblePart = () => {
+    setPartSel((prev) => {
+      const seen = new Set(prev.map((p) => String(p.id)));
+      const extras = optionsPart.filter((o) => o.id != null && !seen.has(String(o.id)));
+      return [...prev, ...extras];
+    });
+  };
+  const clearPartSel = () => setPartSel([]);
 
   return {
     isResponsableDossier,
@@ -306,7 +467,13 @@ export function useFormationWorkflowEdit(formation: EditFormation, onFormationUp
     seances, addSeance, updateSeance, removeSeance, toggleSeance,
     ouverte, setOuverte, periodCode, setPeriodCode, customPeriodLabel, setCustomPeriodLabel,
     animSel, setAnimSel, partSel, setPartSel,
-    overlapWarnings, partFilterUp, setPartFilterUp, partFilterDept, setPartFilterDept,
+    overlapWarnings,
+    animFilterUp, setAnimFilterUp, animFilterDept, setAnimFilterDept,
+    partFilterUp, setPartFilterUp, partFilterDept, setPartFilterDept,
+    animSearch, setAnimSearch, partSearch, setPartSearch,
+    selectAllVisibleAnim, clearAnimSel, selectAllVisiblePart, clearPartSel,
+    refetchAll, lastReloadAt, isReloading, saving,
+    isFetchingEnseignants, isFetchingAccounts,
     showMore, setShowMore, openDocModal, setOpenDocModal, openUploadPanel, setOpenUploadPanel,
     ups: ups as EditLookup[], depts: depts as EditLookup[], optionsAnim, optionsPart,
     handleFile, handleSubmit, getEnseignantLabel, message,

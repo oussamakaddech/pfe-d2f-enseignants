@@ -54,6 +54,8 @@ export interface Formation {
   domaine?: string;
   populationCible?: string;
   periodeFormation?: string;
+  animateurs?: Personne[];
+  participants?: Personne[];
   seances?: Seance[];
   documents?: import("../document").FormationDocument[];
 }

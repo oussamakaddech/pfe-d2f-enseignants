@@ -133,11 +133,15 @@ const FormationWorkflowService = {
     return FormationWorkflowService.getAllFormationWithDocuments();
   },
 
-  async getFormationsForCalendar(enseignantId: Id): Promise<Formation[]> {
-    const response = await axios.get<Formation[]>(
+  async getFormationsForCalendar(enseignantId: Id): Promise<{ asAnimateur: Formation[]; asParticipant: Formation[] }> {
+    const response = await axios.get<{ asAnimateur: Formation[]; asParticipant: Formation[] }>(
       `${API_URL}/enseignants/${enseignantId}/calendar`
     );
-    return normalizeListResponse(response.data);
+    const data = response.data ?? {};
+    return {
+      asAnimateur: Array.isArray(data.asAnimateur) ? data.asAnimateur : [],
+      asParticipant: Array.isArray(data.asParticipant) ? data.asParticipant : [],
+    };
   },
 
   async updateInscriptionsOuvertes(id: Id, ouvert: boolean): Promise<Formation> {

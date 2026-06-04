@@ -5,19 +5,23 @@ import esprit.pfe.auth.entities.Role;
 import esprit.pfe.auth.entities.User;
 import esprit.pfe.auth.repositories.RoleRepository;
 import esprit.pfe.auth.repositories.UserRepository;
+import esprit.pfe.auth.repositories.UserSpecifications;
 
 
 import esprit.pfe.auth.error.BadRequestException;
 import esprit.pfe.auth.error.ConflictException;
 import esprit.pfe.auth.error.LoginException;
 import esprit.pfe.auth.error.ResourceNotFoundException;
+import esprit.pfe.auth.payload.request.AccountSummaryQuery;
 import esprit.pfe.auth.payload.request.EditProfileRequest;
 import esprit.pfe.auth.payload.request.SignupRequest;
 import esprit.pfe.auth.payload.request.UpdatePasswordRequest;
+import esprit.pfe.auth.payload.response.AccountSummaryDTO;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.HashSet;
 import java.util.List;
@@ -44,6 +48,16 @@ public class AccountServiceImpl implements AccountService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public List<AccountSummaryDTO> getAccountSummaries(AccountSummaryQuery query) {
+        AccountSummaryQuery q = (query != null) ? query : new AccountSummaryQuery();
+        List<User> users = userRepository.findAll(
+                UserSpecifications.build(q.getUserIds(), q.getRole(), q.getActive()));
+        return users.stream().map(AccountSummaryDTO::from).toList();
+    }
+
+    @Override
+    @Transactional
     public User createAccount(SignupRequest request, String roleName) {
         // Conflits → 409 (sémantique REST)
         if (request.getId() != null && !request.getId().isBlank()
@@ -157,9 +171,18 @@ public class AccountServiceImpl implements AccountService {
     }
 
     @Override
+    @Transactional
     public void deleteAccount(String userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException(USER_NOT_FOUND));
+        // Obfuscate unique fields before soft-deleting so the email/username
+        // can be reused immediately. The deleted_at timestamp preserves the audit trail.
+        // email VARCHAR(50): "d_" + UUID(36) + "@del.x" = 44 chars ✓
+        // username VARCHAR(20): "del_" + UUID truncated to 20 chars ✓
+        String shortId = userId.replace("-", "").substring(0, 12);
+        user.setEmail("d_" + userId + "@del.x");
+        user.setUsername("del_" + shortId);
+        userRepository.save(user);
         userRepository.delete(user);
     }
 

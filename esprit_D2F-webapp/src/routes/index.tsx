@@ -15,8 +15,7 @@ const FormationPage = lazy(() => import("@/pages/formation/FormationPage"));
 const FormationCreationPage = lazy(() => import("@/pages/formation/FormationCreationPage"));
 const FormationConsultationPage = lazy(() => import("@/pages/formation/FormationConsultationPage"));
 const DocumentsPage = lazy(() => import("@/pages/documentFormation/DocumentsPage"));
-const ListAccounts = lazy(() => import("@/pages/admin/gererComptes/ListAccounts"));
-const TeachersDataGrid = lazy(() => import("@/pages/enseignant/TeachersDataGrid"));
+const AdministrationPage = lazy(() => import("@/pages/admin/AdministrationPage"));
 const CalendarEnseignant = lazy(() => import("@/pages/enseignant/CalendarEnseignant"));
 const CertificatePage = lazy(() => import("@/pages/certificat/CertificatePage"));
 const FormationList = lazy(() => import("@/pages/presence/FormationList"));
@@ -98,11 +97,14 @@ export default function AppRoutes() {
                 <Route path="/home/MyCertificate" element={<CertificatesByEmailPage />} />
 
                 <Route element={<RoleGuard allowedRoles={[ROLES.ADMIN]} />}>
-                  <Route path="/home/accounts" element={<ListAccounts />} />
+                  <Route path="/home/administration" element={<AdministrationPage />} />
+                  <Route path="/home/accounts" element={<Navigate to="/home/administration" replace />} />
+                  <Route path="/home/comptes" element={<Navigate to="/home/administration" replace />} />
+                  <Route path="/home/utilisateurs" element={<Navigate to="/home/administration" replace />} />
+                  <Route path="/home/Enseignants" element={<Navigate to="/home/administration" replace />} />
                   <Route path="/home/rice" element={<RicePage />} />
                   <Route path="/home/Formation" element={<FormationPage />} />
                   <Route path="/home/Formation/Creer" element={<FormationCreationPage />} />
-                  <Route path="/home/Enseignants" element={<TeachersDataGrid />} />
 
                   <Route path="/home/UpDept" element={<UpDeptDataGrid />} />
                   <Route path="/home/certificate" element={<CertificatePage />} />

@@ -25,28 +25,28 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/428</span>
+                <span class='fraction'>0/432</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>0/445</span>
+                <span class='fraction'>0/450</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>0/89</span>
+                <span class='fraction'>0/90</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/294</span>
+                <span class='fraction'>0/296</span>
             </div>
         
             
@@ -587,7 +587,11 @@
 <a name='L522'></a><a href='#L522'>522</a>
 <a name='L523'></a><a href='#L523'>523</a>
 <a name='L524'></a><a href='#L524'>524</a>
-<a name='L525'></a><a href='#L525'>525</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L525'></a><a href='#L525'>525</a>
+<a name='L526'></a><a href='#L526'>526</a>
+<a name='L527'></a><a href='#L527'>527</a>
+<a name='L528'></a><a href='#L528'>528</a>
+<a name='L529'></a><a href='#L529'>529</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -614,6 +618,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -694,6 +699,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -810,6 +816,8 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -850,6 +858,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -1016,9 +1025,6 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -1050,6 +1056,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -1088,6 +1095,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -1126,6 +1134,7 @@ import { isAdmin } from "@/utils/constants/roles";
 import useAppNotification from "@/hooks/ui/useAppNotification";
 import EnseignantService from "@/services/formation/EnseignantService";
 import CompetenceService from "@/services/competence/CompetenceService";
+import type { AnimateurExterne } from "@/models/bureau";
 &nbsp;
 export type PersonItem = { id?: unknown; type?: string; cup?: string; chefDepartement?: string; nom?: string; prenom?: string; mail?: string; upLibelle?: string; deptLibelle?: string; isAuthUser?: boolean; userName?: string; etat?: string };
 export type AccountItem = { id?: unknown; role?: string; userName?: string; username?: string; lastName?: string; firstName?: string; emailAddress?: string; email?: string; type?: string; upLibelle?: string; deptLibelle?: string };
@@ -1169,11 +1178,11 @@ function <span class="fstat-no" title="function not covered" >mergeFormateursAcc
       upLibelle: "",
       deptLibelle: ""
     }));
-  const fUserNames = <span class="cstat-no" title="statement not covered" >formateurs.map(<span class="fstat-no" title="function not covered" >f =&gt; <span class="cstat-no" title="statement not covered" >f</span>.userName)</span>.filter(Boolean);</span>
+  const fUserNames = <span class="cstat-no" title="statement not covered" >new Set(formateurs.map(<span class="fstat-no" title="function not covered" >f =&gt; <span class="cstat-no" title="statement not covered" >f</span>.userName)</span>.filter(<span class="fstat-no" title="function not covered" >(n</span>): n is string =&gt; <span class="cstat-no" title="statement not covered" >Boolean(n))</span>);</span>
   const enriched = <span class="cstat-no" title="statement not covered" >formateurs.map(<span class="fstat-no" title="function not covered" >f =&gt; {</span></span>
     const prefix = <span class="cstat-no" title="statement not covered" >f.mail ? f.mail.split("@")[0] : "";</span>
     const match = <span class="cstat-no" title="statement not covered" >enseignantsData.find(<span class="fstat-no" title="function not covered" >ex =&gt;</span></span>
-<span class="cstat-no" title="statement not covered" >      fUserNames.includes(ex.id as string) || ex.mail === f.mail || ex.mail?.split("@")[0] === prefix</span>
+      (<span class="cstat-no" title="statement not covered" >typeof ex.id === "string" &amp;&amp; fUserNames.has(ex.id)) || ex.mail === f.mail || ex.mail?.split("@")[0] === prefix</span>
     );
 <span class="cstat-no" title="statement not covered" >    return match ? { ...f, upLibelle: match.upLibelle || "", deptLibelle: match.deptLibelle || "", type: match.type || f.type } : f;</span>
   });
@@ -1218,6 +1227,7 @@ function <span class="fstat-no" title="function not covered" >checkExistingForma
   localSeance: SeanceItem, idx: number, formations: FormationRaw[],
   msgs: string[], participantIds: unknown[], animateurIds: unknown[],
 ) {
+<span class="cstat-no" title="statement not covered" >  if (!Array.isArray(formations)) <span class="cstat-no" title="statement not covered" >return;</span></span>
 <span class="cstat-no" title="statement not covered" >  formations.forEach(<span class="fstat-no" title="function not covered" >(f</span>) =&gt; {</span>
     const existingSeances: SeanceItem[] = <span class="cstat-no" title="statement not covered" >Array.isArray(f.seances) ? f.seances : [];</span>
     const existingParticipants = <span class="cstat-no" title="statement not covered" >[</span>
@@ -1334,6 +1344,8 @@ export function <span class="fstat-no" title="function not covered" >useFormatio
   const [bureauNom, setBureauNom] = <span class="cstat-no" title="statement not covered" >useState("");</span>
   const [bureauMail, setBureauMail] = <span class="cstat-no" title="statement not covered" >useState("");</span>
   const [bureauTelephone, setBureauTelephone] = <span class="cstat-no" title="statement not covered" >useState("");</span>
+  const [externeBureauId, setExterneBureauId] = <span class="cstat-no" title="statement not covered" >useState&lt;number | null&gt;(null);</span>
+  const [animExterneSel, setAnimExterneSel] = <span class="cstat-no" title="statement not covered" >useState&lt;AnimateurExterne[]&gt;([]);</span>
 &nbsp;
   const [ups, setUps] = <span class="cstat-no" title="statement not covered" >useState&lt;LookupNode[]&gt;([]);</span>
   const [depts, setDepts] = <span class="cstat-no" title="statement not covered" >useState&lt;LookupNode[]&gt;([]);</span>
@@ -1374,7 +1386,8 @@ export function <span class="fstat-no" title="function not covered" >useFormatio
   ]);
 &nbsp;
   const [showUpload, setShowUpload] = <span class="cstat-no" title="statement not covered" >useState(false);</span>
-  const [newFormationId, setNewFormationId] = <span class="cstat-no" title="statement not covered" >useState&lt;number | string | null&gt;(null);</span>
+  type FormationId = number | string | null;
+  const [newFormationId, setNewFormationId] = <span class="cstat-no" title="statement not covered" >useState&lt;FormationId&gt;(null);</span>
 &nbsp;
   const enseignantsList = <span class="cstat-no" title="statement not covered" >Array.isArray(enseignants) ? enseignants : [];</span>
 &nbsp;
@@ -1401,11 +1414,11 @@ export function <span class="fstat-no" title="function not covered" >useFormatio
 <span class="cstat-no" title="statement not covered" >  useEffect(<span class="fstat-no" title="function not covered" >() =&gt; {</span></span>
 <span class="cstat-no" title="statement not covered" >    if (!besoinInfo?.propositionAnimateur || formateursList.length === 0 || animSel.length &gt; 0) <span class="cstat-no" title="statement not covered" >return;</span></span>
     const text = <span class="cstat-no" title="statement not covered" >besoinInfo.propositionAnimateur.trim();</span>
-    const emailMatch = <span class="cstat-no" title="statement not covered" >text.match(/&lt;([^&gt;]+)&gt;/);</span>
+    const emailMatch = <span class="cstat-no" title="statement not covered" >/&lt;([^&gt;]+)&gt;/.exec(text);</span>
     let matched: PersonItem | undefined = <span class="cstat-no" title="statement not covered" >undefined;</span>
 <span class="cstat-no" title="statement not covered" >    if (emailMatch) {</span>
       const email = <span class="cstat-no" title="statement not covered" >emailMatch[1].trim().toLowerCase();</span>
-<span class="cstat-no" title="statement not covered" >      matched = formateursList.find(<span class="fstat-no" title="function not covered" >f =&gt; <span class="cstat-no" title="statement not covered" >f</span>.mail &amp;&amp; f.mail.toLowerCase() === email)</span>;</span>
+<span class="cstat-no" title="statement not covered" >      matched = formateursList.find(<span class="fstat-no" title="function not covered" >f =&gt; <span class="cstat-no" title="statement not covered" >f</span>.mail?.toLowerCase() === email)</span>;</span>
     }
 <span class="cstat-no" title="statement not covered" >    if (!matched) {</span>
       const norm = <span class="cstat-no" title="statement not covered" >text.toLowerCase().replaceAll(/&lt;[^&gt;]*&gt;/g, "").trim();</span>
@@ -1464,7 +1477,7 @@ export function <span class="fstat-no" title="function not covered" >useFormatio
 <span class="cstat-no" title="statement not covered" >  useEffect(<span class="fstat-no" title="function not covered" >() =&gt; {</span></span>
     const localAnimIds = <span class="cstat-no" title="statement not covered" >animSel.map(getAnimateurStableId).filter(Boolean);</span>
     const localParticipantIds = <span class="cstat-no" title="statement not covered" >partSel.map(<span class="fstat-no" title="function not covered" >(p</span>) =&gt; <span class="cstat-no" title="statement not covered" >p.id)</span>.filter(Boolean);</span>
-<span class="cstat-no" title="statement not covered" >    setOverlapWarnings(buildConflictMessages({ localSeances: seances, participantIds: localParticipantIds, animateurIds: localAnimIds }));</span>
+<span class="cstat-no" title="statement not covered" >    setOverlapWarnings(buildConflictMessages({ localSeances: seances, participantIds: localParticipantIds, animateurIds: localAnimIds, existingFormations: (Array.isArray(existingFormations) ? existingFormations : []) as FormationRaw[] }));</span>
   }, [seances, partSel, animSel, existingFormations]);
 &nbsp;
   const validateStep0 = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >() =&gt; {</span></span>
@@ -1525,24 +1538,21 @@ export function <span class="fstat-no" title="function not covered" >useFormatio
 <span class="cstat-no" title="statement not covered" >    return compCompetences.filter(<span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >c =&gt; (!</span>domaineId || c.domaineId === domaineId) &amp;&amp; (!kw || c.nom?.toLowerCase().includes(kw)))</span>.map(<span class="fstat-no" title="function not covered" >c =&gt; (<span class="cstat-no" title="statement not covered" >{</span> value: c.id, label: c.nom }))</span>;</span>
   };
 &nbsp;
-  const handleExcelImportFile = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >(e</span>: React.ChangeEvent&lt;HTMLInputElement&gt;) =&gt; {</span>
+  const handleExcelImportFile = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >async (e</span>: React.ChangeEvent&lt;HTMLInputElement&gt;) =&gt; {</span>
     const file = <span class="cstat-no" title="statement not covered" >e.target.files?.[0];</span>
 <span class="cstat-no" title="statement not covered" >    if (!file) <span class="cstat-no" title="statement not covered" >return;</span></span>
-    const reader = <span class="cstat-no" title="statement not covered" >new FileReader();</span>
-<span class="cstat-no" title="statement not covered" >    reader.onload = <span class="fstat-no" title="function not covered" >async (e</span>v) =&gt; {</span>
-      const { read, utils } = <span class="cstat-no" title="statement not covered" >await import("xlsx");</span>
-      const data = <span class="cstat-no" title="statement not covered" >new Uint8Array(ev.target!.result as ArrayBuffer);</span>
-      const wb = <span class="cstat-no" title="statement not covered" >read(data, { type: "array" });</span>
-      const rows = <span class="cstat-no" title="statement not covered" >utils.sheet_to_json&lt;Record&lt;string, unknown&gt;&gt;(wb.Sheets[wb.SheetNames[0]]);</span>
-      const mails = <span class="cstat-no" title="statement not covered" >rows.map(<span class="fstat-no" title="function not covered" >r =&gt; <span class="cstat-no" title="statement not covered" >r</span>["Email"] ?? r["email"] ?? r["Mail"] ?? r["mail"] ?? r["EMAIL"] ?? r["MAIL"] ?? r["email_address"])</span>.filter(Boolean).map(<span class="fstat-no" title="function not covered" >m =&gt; <span class="cstat-no" title="statement not covered" >S</span>tring(m).trim().toLowerCase())</span>;</span>
-      const matched = <span class="cstat-no" title="statement not covered" >enseignants.filter(<span class="fstat-no" title="function not covered" >ex =&gt; <span class="cstat-no" title="statement not covered" >e</span>x.mail &amp;&amp; mails.includes(ex.mail.toLowerCase()))</span>;</span>
-<span class="cstat-no" title="statement not covered" >      setPartSel(matched);</span>
-<span class="cstat-no" title="statement not covered" >      e.target.value = "";</span>
-<span class="cstat-no" title="statement not covered" >      if (matched.length &gt; 0) <span class="cstat-no" title="statement not covered" >message.success(`${matched.length} participant${matched.length &gt; 1 ? "s" : ""} importé${matched.length &gt; 1 ? "s" : ""}`<span class="cstat-no" title="statement not covered" >);</span></span></span>
-      else if (mails.length === 0) { const headers = <span class="cstat-no" title="statement not covered" >rows.length &gt; 0 ? Object.keys(rows[0]).join(", ") : "fichier vide"; <span class="cstat-no" title="statement not covered" >m</span>essage.warning(`Aucun email trouvé. Colonne attendue : Email ou Mail. Colonnes trouvées : ${headers}`); }</span>
-      else <span class="cstat-no" title="statement not covered" >message.warning(`Aucun participant correspondant pour les ${mails.length} email${mails.length &gt; 1 ? "s" : ""} importés`);</span>
-    };
-<span class="cstat-no" title="statement not covered" >    reader.readAsArrayBuffer(file);</span>
+    const buffer = <span class="cstat-no" title="statement not covered" >await file.arrayBuffer();</span>
+    const { read, utils } = <span class="cstat-no" title="statement not covered" >await import("xlsx");</span>
+    const data = <span class="cstat-no" title="statement not covered" >new Uint8Array(buffer);</span>
+    const wb = <span class="cstat-no" title="statement not covered" >read(data, { type: "array" });</span>
+    const rows = <span class="cstat-no" title="statement not covered" >utils.sheet_to_json&lt;Record&lt;string, unknown&gt;&gt;(wb.Sheets[wb.SheetNames[0]]);</span>
+    const mails = <span class="cstat-no" title="statement not covered" >rows.map(<span class="fstat-no" title="function not covered" >r =&gt; <span class="cstat-no" title="statement not covered" >r</span>["Email"] ?? r["email"] ?? r["Mail"] ?? r["mail"] ?? r["EMAIL"] ?? r["MAIL"] ?? r["email_address"])</span>.filter(Boolean).map(<span class="fstat-no" title="function not covered" >m =&gt; <span class="cstat-no" title="statement not covered" >S</span>tring(m).trim().toLowerCase())</span>;</span>
+    const matched = <span class="cstat-no" title="statement not covered" >enseignants.filter(<span class="fstat-no" title="function not covered" >ex =&gt; <span class="cstat-no" title="statement not covered" >e</span>x.mail &amp;&amp; mails.includes(ex.mail.toLowerCase()))</span>;</span>
+<span class="cstat-no" title="statement not covered" >    setPartSel(matched);</span>
+<span class="cstat-no" title="statement not covered" >    e.target.value = "";</span>
+<span class="cstat-no" title="statement not covered" >    if (matched.length &gt; 0) <span class="cstat-no" title="statement not covered" >message.success(`${matched.length} participant${matched.length &gt; 1 ? "s" : ""} importé${matched.length &gt; 1 ? "s" : ""}`<span class="cstat-no" title="statement not covered" >);</span></span></span>
+    else if (mails.length === 0) { const headers = <span class="cstat-no" title="statement not covered" >rows.length &gt; 0 ? Object.keys(rows[0]).join(", ") : "fichier vide"; <span class="cstat-no" title="statement not covered" >m</span>essage.warning(`Aucun email trouvé. Colonne attendue : Email ou Mail. Colonnes trouvées : ${headers}`); }</span>
+    else <span class="cstat-no" title="statement not covered" >message.warning(`Aucun participant correspondant pour les ${mails.length} email${mails.length &gt; 1 ? "s" : ""} importés`);</span>
   };
 &nbsp;
   const exportParticipantsExcel = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >async () =&gt; {</span></span>
@@ -1574,6 +1584,7 @@ export function <span class="fstat-no" title="function not covered" >useFormatio
       bureauFormationNom: bureauNom || null, bureauFormationMail: bureauMail || null, bureauFormationTelephone: bureauTelephone || null,
       chargeHoraireGlobal: chargeH || 0, upId: selectedUp?.id, departementId: selectedDept?.id,
       animateursIds: finalAnimIds, participantsIds: partSel.map(<span class="fstat-no" title="function not covered" >p =&gt; <span class="cstat-no" title="statement not covered" >p</span>.id)</span>,
+      animateursExternesIds: typeFormation === "EXTERNE" ? animExterneSel.map(<span class="fstat-no" title="function not covered" >a =&gt; <span class="cstat-no" title="statement not covered" >a</span>.id)</span> : [],
       domaine, populationCible, objectifs, objectifsPedago, evalMethods,
       coutTransport: coutTransport || 0, coutHebergement: coutHebergement || 0, coutRepas: coutRepas || 0,
       periodCode, customPeriodLabel,
@@ -1619,6 +1630,7 @@ export function <span class="fstat-no" title="function not covered" >useFormatio
     ouverte, setOuverte, periodCode, setPeriodCode, customPeriodLabel, setCustomPeriodLabel,
     formNom, setFormNom, formPrenom, setFormPrenom, formEmail, setFormEmail,
     salle, setSalle, bureauNom, setBureauNom, bureauMail, setBureauMail, bureauTelephone, setBureauTelephone,
+    externeBureauId, setExterneBureauId, animExterneSel, setAnimExterneSel,
     ups, depts, selectedUp, setSelectedUp, selectedDept, setSelectedDept,
     enseignants, enseignantsList, formateursList,
     animSel, setAnimSel, animFilterUp, setAnimFilterUp, animFilterDept, setAnimFilterDept,
@@ -1642,7 +1654,7 @@ export function <span class="fstat-no" title="function not covered" >useFormatio
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-06-01T04:02:14.391Z
+                at 2026-06-02T00:34:15.765Z
             </div>
         <script src="../../../../prettify.js"></script>
         <script>

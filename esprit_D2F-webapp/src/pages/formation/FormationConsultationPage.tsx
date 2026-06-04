@@ -12,6 +12,7 @@ import {
   Select,
   Modal,
   Tag,
+  Tooltip,
 } from "antd";
 import type { TableColumnsType } from "antd";
 import type { Dayjs } from "dayjs";
@@ -26,8 +27,12 @@ import {
   AppstoreOutlined,
   FolderOpenOutlined,
   ArrowRightOutlined,
+  TeamOutlined,
+  BookOutlined,
+  CheckCircleOutlined,
+  CloseOutlined,
 } from "@ant-design/icons";
-import { AppPageHeader, StatusBadge, EmptyState } from "@/components/common";
+import { AppPageHeader, StatusBadge, EmptyState, StatCard } from "@/components/common";
 import "@/styles/pages/formation-consultation-page.css";
 import dayjs from "dayjs";
 
@@ -186,6 +191,43 @@ export default function FormationConsultationPage() {
     }
     return res;
   }, [formations, filterText, typeFilter, etatFilter, upFilter, deptFilter, periodFilter, periodRange]);
+
+  const stats = useMemo(() => {
+    const list = filtered;
+    return {
+      total: list.length,
+      interne: list.filter((f) => f.typeFormation === "INTERNE").length,
+      externe: list.filter((f) => f.typeFormation === "EXTERNE").length,
+      planifie: list.filter((f) => f.etatFormation === "PLANIFIE").length,
+      enCours: list.filter((f) => f.etatFormation === "EN_COURS").length,
+      acheve: list.filter((f) => f.etatFormation === "ACHEVE").length,
+      annule: list.filter((f) => f.etatFormation === "ANNULE").length,
+    };
+  }, [filtered]);
+
+  const activeFilterChips = useMemo(() => {
+    const chips: { key: string; label: string; onClear: () => void }[] = [];
+    if (filterText) chips.push({ key: "text", label: `Texte : "${filterText}"`, onClear: () => setFilterText("") });
+    if (typeFilter) chips.push({ key: "type", label: `Type : ${typeFilter}`, onClear: () => setTypeFilter(undefined) });
+    if (etatFilter) chips.push({ key: "etat", label: `État : ${etatFilter}`, onClear: () => setEtatFilter(undefined) });
+    if (upFilter) {
+      const up = upsOptions.find((u) => u.id === upFilter);
+      chips.push({ key: "up", label: `UP : ${up?.libelle || upFilter}`, onClear: () => setUpFilter(undefined) });
+    }
+    if (deptFilter) {
+      const dept = deptsOptions.find((d) => d.id === deptFilter);
+      chips.push({ key: "dept", label: `Département : ${dept?.libelle || deptFilter}`, onClear: () => setDeptFilter(undefined) });
+    }
+    if (periodFilter) {
+      const opt = PERIOD_OPTIONS.find((o) => o.value === periodFilter);
+      chips.push({ key: "period", label: `Période : ${opt?.label || periodFilter}`, onClear: () => setPeriodFilter(undefined) });
+    }
+    if (periodRange) {
+      const [s, e] = periodRange;
+      chips.push({ key: "range", label: `Dates : ${s.format("DD/MM")} → ${e.format("DD/MM/YYYY")}`, onClear: () => setPeriodRange(null) });
+    }
+    return chips;
+  }, [filterText, typeFilter, etatFilter, upFilter, deptFilter, periodFilter, periodRange, upsOptions, deptsOptions]);
 
   async function handleDelete(id: Id) {
     if (!canManageFormations) return;
@@ -416,6 +458,42 @@ export default function FormationConsultationPage() {
           }
         />
 
+        {/* ── Cartes de statistiques ───────────────────────────────────────── */}
+        <div className="formation-stats-row">
+          <StatCard
+            icon={<BookOutlined />}
+            iconColor="#B51200"
+            accentColor="#B51200"
+            label="Total formations"
+            value={stats.total}
+            subtext={hasActiveFilters ? "résultats filtrés" : "toutes périodes"}
+          />
+          <StatCard
+            icon={<TeamOutlined />}
+            iconColor="#2563eb"
+            accentColor="#2563eb"
+            label="Internes"
+            value={stats.interne}
+            subtext={`${stats.total > 0 ? Math.round((stats.interne / stats.total) * 100) : 0}% du total`}
+          />
+          <StatCard
+            icon={<AppstoreOutlined />}
+            iconColor="#7c3aed"
+            accentColor="#7c3aed"
+            label="Externes"
+            value={stats.externe}
+            subtext={`${stats.total > 0 ? Math.round((stats.externe / stats.total) * 100) : 0}% du total`}
+          />
+          <StatCard
+            icon={<CheckCircleOutlined />}
+            iconColor="#10b981"
+            accentColor="#10b981"
+            label="Planifiées / En cours"
+            value={stats.planifie + stats.enCours}
+            subtext={`${stats.planifie} planifiées, ${stats.enCours} en cours`}
+          />
+        </div>
+
         {/* ── Barre de filtres ─────────────────────────────────────────────── */}
         <div className="formation-filter-bar">
           <div className="formation-filter-header">
@@ -467,10 +545,65 @@ export default function FormationConsultationPage() {
               style={{ width: 220 }}
             />
           </div>
+
+          {/* ── Active filter chips ─────────────────────────────────────── */}
+          {activeFilterChips.length > 0 && (
+            <div className="formation-filter-chips">
+              <span className="formation-filter-chips-label">
+                <FilterOutlined /> Filtres actifs :
+              </span>
+              {activeFilterChips.map((chip) => (
+                <span key={chip.key} className="formation-filter-chip">
+                  {chip.label}
+                  <button
+                    type="button"
+                    className="formation-filter-chip-close"
+                    onClick={chip.onClear}
+                    aria-label={`Retirer le filtre ${chip.label}`}
+                  >
+                    <CloseOutlined />
+                  </button>
+                </span>
+              ))}
+              <Button
+                type="link"
+                size="small"
+                icon={<ReloadOutlined />}
+                onClick={resetFilters}
+                style={{ fontSize: 12, padding: "0 4px", marginLeft: 4 }}
+              >
+                Tout effacer
+              </Button>
+            </div>
+          )}
         </div>
 
         {/* ── Table ──────────────────────────────────────────────────────── */}
         <div className="formation-table-wrapper">
+          <div className="formation-table-toolbar">
+            <div className="formation-table-toolbar-left">
+              <BookOutlined style={{ color: "#B51200" }} />
+              <span className="formation-table-toolbar-title">
+                {filtered.length} formation{filtered.length === 1 ? "" : "s"}
+                {hasActiveFilters && <span className="formation-table-toolbar-sub"> (résultat filtré sur {formations.length})</span>}
+              </span>
+            </div>
+            <div className="formation-table-toolbar-right">
+              {selectedFormation && (
+                <Tag color="red" className="formation-table-toolbar-selected">
+                  1 sélectionnée : {selectedFormation.titreFormation}
+                </Tag>
+              )}
+              <Tooltip title="Recharger la liste des formations">
+                <Button
+                  type="text"
+                  icon={<ReloadOutlined />}
+                  onClick={() => { void refetchAll(); if (isChefDept && deptId) void refetchDept(); }}
+                  loading={loading}
+                />
+              </Tooltip>
+            </div>
+          </div>
         <Table<Formation>
           rowSelection={canManageFormations ? rowSelection : undefined}
           dataSource={filtered}
@@ -523,10 +656,10 @@ export default function FormationConsultationPage() {
           <Drawer
             title="Modifier Formation"
             placement="right"
-            width={720}
+            width={960}
             onClose={() => setOpenEdit(false)}
             open={openEdit}
-            className="formation-drawer"
+            className="formation-drawer formation-drawer--edit"
           >
             {selectedFormation && (
               <FormationWorkflowEditForm

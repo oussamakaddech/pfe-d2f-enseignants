@@ -69,7 +69,7 @@ export default function NonAffectedGrid() {
   }, [allStats, selectedUp, selectedDept]);
 
   return (
-    <Card title="Enseignants Non Affectés" style={{ margin: 20 }}>
+    <Card title="Enseignants Non Affectés">
 
       {/* ---- FILTRES ---- */}
       <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>

@@ -108,10 +108,18 @@ export default function DonutByTrainerTypeWithFilters() {
   }
 
   return (
-    <div style={{ maxWidth: 1000, margin: "auto", padding: 24 }}>
+    <div style={{ padding: 24 }}>
       <Row justify="space-between" align="middle" style={{ marginBottom: 24 }}>
-        <h4>Formations par Formateur</h4>
-        <Button type="primary" danger icon={<FilterOutlined />} onClick={() => setDrawerVisible(true)}>Ouvrir filtres</Button>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div style={{ width: 32, height: 32, borderRadius: 8, background: "#ecfdf5", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <UserOutlined style={{ color: "#059669", fontSize: 16 }} />
+          </div>
+          <div>
+            <span style={{ fontSize: 15, fontWeight: 600, display: "block" }}>Formations par Formateur</span>
+            <span style={{ fontSize: 12, color: "#6b7280" }}>Répartition par type de formateur</span>
+          </div>
+        </div>
+        <Button icon={<FilterOutlined />} onClick={() => setDrawerVisible(true)}>Filtrer</Button>
       </Row>
 
       <Row gutter={[24, 24]}>
@@ -128,7 +136,7 @@ export default function DonutByTrainerTypeWithFilters() {
         title={selectedCategory ? `Détail des formations "${selectedCategory}" (${dataToShowInModal.length})` : ""}
         open={modalVisible}
         onCancel={() => setModalVisible(false)}
-        footer={[<Button key="close" type="primary" danger onClick={() => setModalVisible(false)}>Fermer</Button>]}
+        footer={[<Button key="close" onClick={() => setModalVisible(false)}>Fermer</Button>]}
         width={720}
       >
         {dataToShowInModal.length === 0 ? (
@@ -235,7 +243,7 @@ export default function DonutByTrainerTypeWithFilters() {
               <Option value="TOUT">TOUT</Option>
             </Select>
           </Form.Item>
-          <Form.Item style={{ textAlign: "right" }}><Button type="primary" htmlType="submit" danger>Appliquer</Button></Form.Item>
+          <Form.Item style={{ textAlign: "right" }}><Button type="primary" htmlType="submit">Appliquer</Button></Form.Item>
         </Form>
       </Drawer>
     </div>

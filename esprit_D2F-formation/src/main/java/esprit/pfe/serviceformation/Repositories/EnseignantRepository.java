@@ -3,6 +3,7 @@ package esprit.pfe.serviceformation.repositories;
 
 import esprit.pfe.serviceformation.entities.Enseignant;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -12,9 +13,20 @@ import java.util.List;
 import java.util.Optional;
 
 @Repository
-public interface EnseignantRepository extends JpaRepository<Enseignant, String> {
+public interface EnseignantRepository extends JpaRepository<Enseignant, String>, JpaSpecificationExecutor<Enseignant> {
+
+    /** Grades distincts non nuls (référentiel pour les filtres de la page unifiée). */
+    @Query("SELECT DISTINCT e.grade FROM Enseignant e WHERE e.grade IS NOT NULL AND e.grade <> '' ORDER BY e.grade")
+    List<String> findDistinctGrades();
 
     Optional<Enseignant> findByMail(String mail);
+
+    /** Fiche enseignant liée à un compte auth (résolution du périmètre CHEF_DEPARTEMENT). */
+    Optional<Enseignant> findByUserId(String userId);
+
+    /** Résolution par email tolérante (casse/espaces) — utilisée pour retrouver
+     *  un enseignant existant lors d'un conflit de création. */
+    Optional<Enseignant> findByMailIgnoreCase(String mail);
 
     boolean existsByMail(String mail);
 

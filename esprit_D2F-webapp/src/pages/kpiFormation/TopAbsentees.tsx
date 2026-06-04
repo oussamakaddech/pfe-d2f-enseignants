@@ -134,7 +134,7 @@ export default function TopAbsentees() {
 
   return (
     <Card
-      title="Top Absentees"
+      title="Top Absences"
       extra={
         <Button
           type="text"
@@ -142,7 +142,7 @@ export default function TopAbsentees() {
           onClick={() => setShowTable(v => !v)}
         />
       }
-      style={{ margin: 20, height: showTable ? 700 : 450 }}
+      style={{ height: showTable ? 700 : 450 }}
      styles={{ body: { padding: '0px' , position: 'relative' } }}
     >
       {/* — Filtres — */}

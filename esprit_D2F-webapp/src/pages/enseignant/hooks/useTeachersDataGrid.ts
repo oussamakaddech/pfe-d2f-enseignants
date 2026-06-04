@@ -100,7 +100,10 @@ export function useTeachersDataGrid() {
 
 	const { data: teachers = [], isLoading } = useQuery<RecordType[]>({
 		queryKey: ["enseignants"],
-		queryFn: async () => normalizeListResponse(await EnseignantService.getAllEnseignants()),
+		// Le service renvoie Enseignant[] (interface) que la grille manipule comme
+		// des enregistrements génériques (accès à des clés dynamiques upLibelle…).
+		queryFn: async () =>
+			normalizeListResponse(await EnseignantService.getAllEnseignants()) as unknown as RecordType[],
 	});
 
 	const { data: ups = [] } = useAllUps();

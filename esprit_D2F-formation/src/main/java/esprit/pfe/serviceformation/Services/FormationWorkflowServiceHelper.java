@@ -79,11 +79,13 @@ public class FormationWorkflowServiceHelper {
         if (request.getAnimateurConfig() != null) {
             formation.setAnimateurs(animateurParticipantResolver.resolveAnimateurs(request.getAnimateurConfig()));
         } else if (request.getAnimateursIds() != null && !request.getAnimateursIds().isEmpty()) {
-            // Backward compatibility: treat old animateursIds as MANUAL mode
+            // Backward compatibility: treat old animateursIds as MANUAL mode.
+            // Collection gérée par Hibernate => liste MUTABLE obligatoire
+            // (Stream.toList() est immuable => UnsupportedOperationException au flush).
             formation.setAnimateurs(request.getAnimateursIds().stream()
                     .map(id -> enseignantRepository.findById(id).orElse(null))
                     .filter(Objects::nonNull)
-                    .toList());
+                    .collect(java.util.stream.Collectors.toCollection(ArrayList::new)));
         } else {
             formation.setAnimateurs(new ArrayList<>());
         }
@@ -156,8 +158,12 @@ public class FormationWorkflowServiceHelper {
         sf.setSalle(sr.getSalle());
 
         List<String> seanceAnimIds = Optional.ofNullable(sr.getAnimateursIds()).orElse(Collections.emptyList());
-        sf.setAnimateurs(seanceAnimIds.stream().map(id -> enseignantRepository.findById(id).orElse(null)).filter(Objects::nonNull).toList());
-        sf.setParticipants(participants);
+        // Collections gérées par Hibernate => listes MUTABLES et propres à CHAQUE séance
+        // (Stream.toList()/List.of() sont immuables, et partager une même instance entre
+        // séances déclenche « Found shared references to a collection » au flush).
+        sf.setAnimateurs(seanceAnimIds.stream().map(id -> enseignantRepository.findById(id).orElse(null)).filter(Objects::nonNull)
+                .collect(java.util.stream.Collectors.toCollection(ArrayList::new)));
+        sf.setParticipants(new ArrayList<>(participants));
 
         return sf;
     }

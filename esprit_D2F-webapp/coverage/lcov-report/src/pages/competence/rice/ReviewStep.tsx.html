@@ -46,7 +46,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/117</span>
+                <span class='fraction'>0/119</span>
             </div>
         
             
@@ -352,7 +352,11 @@
 <a name='L287'></a><a href='#L287'>287</a>
 <a name='L288'></a><a href='#L288'>288</a>
 <a name='L289'></a><a href='#L289'>289</a>
-<a name='L290'></a><a href='#L290'>290</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L290'></a><a href='#L290'>290</a>
+<a name='L291'></a><a href='#L291'>291</a>
+<a name='L292'></a><a href='#L292'>292</a>
+<a name='L293'></a><a href='#L293'>293</a>
+<a name='L294'></a><a href='#L294'>294</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -623,7 +627,11 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -712,7 +720,7 @@ interface LiveStats { totalSavoirs: number; enseignantsAssigned: number; totalCo
 interface ReviewStepProps {
   tree: DomaineNode[]; setTree: (tree: DomaineNode[]) =&gt; void;
   treeSearch: string; setTreeSearch: (v: string) =&gt; void;
-  editingNom: Record&lt;string, string&gt; | null; setEditingNom: (v: Record&lt;string, string&gt; | null) =&gt; void;
+  editingNom: { path: number[]; value: string } | null; setEditingNom: (v: { path: number[]; value: string } | null) =&gt; void;
   startRename: (id: string) =&gt; void; commitRename: (id: string, val: string) =&gt; void;
   deleteSavoir: (...args: number[]) =&gt; void; deleteSC: (...args: number[]) =&gt; void;
   deleteComp: (...args: number[]) =&gt; void; deleteDomaine: (di: number) =&gt; void;
@@ -805,7 +813,7 @@ export default function <span class="fstat-no" title="function not covered" >Rev
 <span class="cstat-no" title="statement not covered" >    return String(value).split(re).map(<span class="fstat-no" title="function not covered" >(c</span>hunk, idx) =&gt; (<span class="cstat-no" title="statement not covered" >chunk.toLowerCase() === q.toLowerCase() ? &lt;mark key={`${chunk}-${idx}`}&gt;{chunk}&lt;/mark&gt; : chunk))</span>;</span>
   };
 &nbsp;
-  const isEditingPath = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >(p</span>ath: number[]) =&gt; (<span class="cstat-no" title="statement not covered" >editingNom as { path?: number[] } | null)?.path?.join("-") === path.join("-");</span></span>
+  const isEditingPath = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >(p</span>ath: number[]) =&gt; <span class="cstat-no" title="statement not covered" >editingNom?.path.join("-") === path.join("-");</span></span>
 &nbsp;
   const cleanupOrphans = <span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" >() =&gt; {</span></span>
     const invalid = <span class="cstat-no" title="statement not covered" >new Set(Array.from(orphanIds));</span>
@@ -912,7 +920,11 @@ export default function <span class="fstat-no" title="function not covered" >Rev
           mergedEnseignants={mergedEnseignants} scOptions={scOptions}
           handleUpdateField={handleUpdateField}
           handleRemoveEnseignant={<span class="fstat-no" title="function not covered" >(i</span>d) =&gt; { const cur = <span class="cstat-no" title="statement not covered" >selectedNode?.data?.enseignantsSuggeres as unknown[] ?? []; <span class="cstat-no" title="statement not covered" >h</span>andleUpdateField("enseignantsSuggeres", cur.filter(<span class="fstat-no" title="function not covered" >(x</span>) =&gt; <span class="cstat-no" title="statement not covered" >String(x) !== String(id))</span>); }</span>}
-          handleMoveSavoir={<span class="fstat-no" title="function not covered" >(t</span>argetPath) =&gt; { <span class="cstat-no" title="statement not covered" >if (!selectedNode) <span class="cstat-no" title="statement not covered" >return; <span class="cstat-no" title="statement not covered" >m</span></span>oveSavoirToSC(selectedNode.path, targetPath); <span class="cstat-no" title="statement not covered" >s</span>etSelectedNode(null); }</span>}
+          handleMoveSavoir={<span class="fstat-no" title="function not covered" >(t</span>argetPath) =&gt; {
+<span class="cstat-no" title="statement not covered" >            if (!selectedNode) <span class="cstat-no" title="statement not covered" >return;</span></span>
+<span class="cstat-no" title="statement not covered" >            moveSavoirToSC(selectedNode.path, targetPath);</span>
+<span class="cstat-no" title="statement not covered" >            setSelectedNode(null);</span>
+          }}
           deleteNode={deleteNode}
           setCreateEnsTarget={setCreateEnsTarget} setCreateEnsData={setCreateEnsData} setCreateEnsModal={setCreateEnsModal}
         /&gt;
@@ -937,7 +949,7 @@ export default function <span class="fstat-no" title="function not covered" >Rev
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-06-01T04:02:14.391Z
+                at 2026-06-02T00:34:15.765Z
             </div>
         <script src="../../../../prettify.js"></script>
         <script>

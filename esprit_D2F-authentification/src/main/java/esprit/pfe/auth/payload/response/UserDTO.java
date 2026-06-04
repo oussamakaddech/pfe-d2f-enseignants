@@ -13,7 +13,8 @@ import lombok.NoArgsConstructor;
 public class UserDTO {
     private String id;
     private String userName;
-    private String firsName;
+    private String firsName;   // kept for backwards compatibility
+    private String firstName;  // correct field name
     private String lastName;
     private String phoneNumber;
     private String email;
@@ -24,6 +25,7 @@ public class UserDTO {
         this.id = user.getId();
         this.userName = user.getUsername();
         this.firsName = user.getFirstName();
+        this.firstName = user.getFirstName();
         this.lastName = user.getLastName();
         this.phoneNumber = user.getPhoneNumber();
         this.email = user.getEmail();

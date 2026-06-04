@@ -31,6 +31,7 @@ import {
   ReloadOutlined,
   LockOutlined,
   UnlockOutlined,
+  SortAscendingOutlined,
 } from '@ant-design/icons';
 import { useAllAccounts } from "@/hooks/formation/useFormations";
 import { useBanAccount, useEnableAccount, useDeleteAccount, useUpdateAccount } from "@/hooks/auth/useAuthService";
@@ -113,11 +114,27 @@ function AccountStatusBadge({ status }: { status: AccountStatus }) {
   );
 }
 
-export default function ListAccounts() {
+type AccountSort = "name_asc" | "name_desc" | "email_asc" | "role_asc" | "status";
+
+const SORT_OPTIONS: { value: AccountSort; label: string }[] = [
+  { value: "name_asc",  label: "Nom (A → Z)" },
+  { value: "name_desc", label: "Nom (Z → A)" },
+  { value: "email_asc", label: "Email (A → Z)" },
+  { value: "role_asc",  label: "Rôle (A → Z)" },
+  { value: "status",    label: "Statut (actifs d'abord)" },
+];
+
+function accountFullName(a: Account): string {
+  return `${a.firsName || a.firstName || ""} ${a.lastName || ""}`.trim().toLowerCase();
+}
+
+export default function ListAccounts({ embedded = false }: { embedded?: boolean } = {}) {
   const { message: msgApi, modal } = useAppNotification();
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [searchText, setSearchText] = useState("");
   const [statusFilter, setStatusFilter] = useState<"ALL" | AccountStatus>("ALL");
+  const [roleFilter, setRoleFilter] = useState<string[]>([]);
+  const [sortBy, setSortBy] = useState<AccountSort>("name_asc");
   const searchInput = useRef<InputRef>(null);
   const [drawerVisible, setDrawerVisible] = useState(false);
   const [editModalVisible, setEditModalVisible] = useState(false);
@@ -156,10 +173,12 @@ export default function ListAccounts() {
     admins: accounts.filter(a => (a.role ?? '').toUpperCase() === 'ADMIN').length,
   }), [accounts]);
 
-  const filteredAccounts = useMemo(() => {
+  const displayedAccounts = useMemo(() => {
     const term = searchText.trim().toLowerCase();
-    return accounts.filter((a) => {
+    const roleSet = roleFilter.map((r) => r.toUpperCase());
+    const filtered = accounts.filter((a) => {
       if (statusFilter !== "ALL" && a.status !== statusFilter) return false;
+      if (roleSet.length && !roleSet.includes((a.role ?? "").toUpperCase())) return false;
       if (!term) return true;
       return (
         (a.userName ?? "").toLowerCase().includes(term) ||
@@ -170,7 +189,29 @@ export default function ListAccounts() {
         (a.role ?? "").toLowerCase().includes(term)
       );
     });
-  }, [accounts, searchText, statusFilter]);
+
+    const sorted = [...filtered];
+    switch (sortBy) {
+      case "name_asc":
+        sorted.sort((a, b) => accountFullName(a).localeCompare(accountFullName(b)));
+        break;
+      case "name_desc":
+        sorted.sort((a, b) => accountFullName(b).localeCompare(accountFullName(a)));
+        break;
+      case "email_asc":
+        sorted.sort((a, b) => (a.email ?? "").localeCompare(b.email ?? ""));
+        break;
+      case "role_asc":
+        sorted.sort((a, b) => (a.role ?? "").localeCompare(b.role ?? ""));
+        break;
+      case "status":
+        sorted.sort((a, b) => Number(a.status === "BLOQUÉ") - Number(b.status === "BLOQUÉ"));
+        break;
+    }
+    return sorted;
+  }, [accounts, searchText, statusFilter, roleFilter, sortBy]);
+
+  const hasActiveFilters = !!searchText || statusFilter !== "ALL" || roleFilter.length > 0;
 
   const handleCreateSuccess = () => {
     setDrawerVisible(false);
@@ -425,7 +466,8 @@ export default function ListAccounts() {
 
   return (
     <div className="accounts-page">
-      {/* ── Hero header ──────────────────────────────────────────────── */}
+      {/* ── Hero header (masqué quand intégré dans la page unifiée) ── */}
+      {!embedded && (
       <div className="accounts-hero">
         <div className="accounts-hero::before" aria-hidden="true" />
         <div className="accounts-hero::after" aria-hidden="true" />
@@ -460,6 +502,7 @@ export default function ListAccounts() {
           </div>
         </div>
       </div>
+      )}
 
       {/* ── KPI stats ───────────────────────────────────────────────── */}
       <div className="accounts-stats">
@@ -501,7 +544,17 @@ export default function ListAccounts() {
           placeholder="Rechercher (nom, email, rôle...)"
           value={searchText}
           onChange={(e) => setSearchText(e.target.value)}
-          style={{ maxWidth: 360 }}
+          style={{ maxWidth: 320 }}
+        />
+        <Select
+          mode="multiple"
+          allowClear
+          maxTagCount="responsive"
+          value={roleFilter}
+          onChange={setRoleFilter}
+          placeholder="Tous les rôles"
+          style={{ minWidth: 200 }}
+          options={ACCOUNT_ROLES.map((r) => ({ value: r.value, label: r.label }))}
         />
         <Select
           value={statusFilter}
@@ -513,9 +566,36 @@ export default function ListAccounts() {
             { value: "BLOQUÉ", label: "Bloqués uniquement" },
           ]}
         />
+        <Select
+          value={sortBy}
+          onChange={setSortBy}
+          style={{ minWidth: 190 }}
+          suffixIcon={<SortAscendingOutlined />}
+          options={SORT_OPTIONS}
+        />
         <span style={{ color: neutral[500], fontSize: 13 }}>
-          {filteredAccounts.length} résultat{filteredAccounts.length === 1 ? "" : "s"}
+          {displayedAccounts.length} résultat{displayedAccounts.length === 1 ? "" : "s"}
         </span>
+        {embedded && (
+          <div style={{ marginLeft: "auto", display: "flex", gap: 8 }}>
+            <Tooltip title="Rafraîchir la liste">
+              <Button
+                icon={<ReloadOutlined />}
+                onClick={fetchAccounts}
+                className="accounts-btn-refresh"
+                aria-label="Rafraîchir"
+              />
+            </Tooltip>
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={() => setDrawerVisible(true)}
+              className="accounts-btn-create"
+            >
+              Nouveau compte
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* ── Table ───────────────────────────────────────────────────── */}
@@ -523,7 +603,7 @@ export default function ListAccounts() {
         <Table<Account>
           rowKey="id"
           columns={columns}
-          dataSource={filteredAccounts}
+          dataSource={displayedAccounts}
           loading={isLoading}
           pagination={{
             pageSize: 10,
@@ -535,14 +615,14 @@ export default function ListAccounts() {
             emptyText: (
               <EmptyState
                 icon={<TeamOutlined />}
-                title={searchText || statusFilter !== "ALL" ? "Aucun résultat" : "Aucun compte utilisateur"}
+                title={hasActiveFilters ? "Aucun résultat" : "Aucun compte utilisateur"}
                 description={
-                  searchText || statusFilter !== "ALL"
+                  hasActiveFilters
                     ? "Aucun compte ne correspond à vos critères de recherche."
                     : "Commencez par créer un compte pour donner accès à l'application."
                 }
                 action={
-                  !searchText && statusFilter === "ALL"
+                  !hasActiveFilters
                     ? { label: "Créer un compte", icon: <PlusOutlined />, onClick: () => setDrawerVisible(true) }
                     : undefined
                 }

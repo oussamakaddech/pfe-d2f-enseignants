@@ -25,7 +25,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/5</span>
+                <span class='fraction'>0/10</span>
             </div>
         
             
@@ -39,14 +39,14 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>0/3</span>
+                <span class='fraction'>0/4</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/5</span>
+                <span class='fraction'>0/10</span>
             </div>
         
             
@@ -150,7 +150,15 @@
 <a name='L85'></a><a href='#L85'>85</a>
 <a name='L86'></a><a href='#L86'>86</a>
 <a name='L87'></a><a href='#L87'>87</a>
-<a name='L88'></a><a href='#L88'>88</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L88'></a><a href='#L88'>88</a>
+<a name='L89'></a><a href='#L89'>89</a>
+<a name='L90'></a><a href='#L90'>90</a>
+<a name='L91'></a><a href='#L91'>91</a>
+<a name='L92'></a><a href='#L92'>92</a>
+<a name='L93'></a><a href='#L93'>93</a>
+<a name='L94'></a><a href='#L94'>94</a>
+<a name='L95'></a><a href='#L95'>95</a>
+<a name='L96'></a><a href='#L96'>96</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -212,10 +220,15 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -226,6 +239,9 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -298,29 +314,37 @@ export function <span class="fstat-no" title="function not covered" >OneDriveTre
         &lt;/div&gt;
       &lt;/div&gt;
 &nbsp;
-      {treeLoading ? (
-        &lt;div style={{ minHeight: 240, display: "grid", placeItems: "center" }}&gt;
-          &lt;Spin size="large" /&gt;
-        &lt;/div&gt;
-      ) : treeData.length &gt; 0 ? (
-        &lt;div className="doc-tree-wrapper"&gt;
-          &lt;Tree
-            showIcon
-            blockNode
-            treeData={treeData}
-            expandedKeys={expandedKeys}
-            onExpand={<span class="fstat-no" title="function not covered" >(k</span>eys) =&gt; <span class="cstat-no" title="statement not covered" >onExpand(keys as string[])}</span>
-            onSelect={<span class="fstat-no" title="function not covered" >(k</span>eys, info) =&gt; <span class="cstat-no" title="statement not covered" >onSelectTree(keys as string[], info as unknown as { node: { isLeaf: boolean; raw: { name: string; fileSize?: number; downloadUrl?: string } } })}</span>
+      {(<span class="fstat-no" title="function not covered" >() =&gt; {</span>
+<span class="cstat-no" title="statement not covered" >        if (treeLoading) {</span>
+<span class="cstat-no" title="statement not covered" >          return (</span>
+            &lt;div style={{ minHeight: 240, display: "grid", placeItems: "center" }}&gt;
+              &lt;Spin size="large" /&gt;
+            &lt;/div&gt;
+          );
+        }
+<span class="cstat-no" title="statement not covered" >        if (treeData.length &gt; 0) {</span>
+<span class="cstat-no" title="statement not covered" >          return (</span>
+            &lt;div className="doc-tree-wrapper"&gt;
+              &lt;Tree
+                showIcon
+                blockNode
+                treeData={treeData}
+                expandedKeys={expandedKeys}
+                onExpand={<span class="fstat-no" title="function not covered" >(k</span>eys) =&gt; <span class="cstat-no" title="statement not covered" >onExpand(keys as string[])}</span>
+                onSelect={<span class="fstat-no" title="function not covered" >(k</span>eys, info) =&gt; <span class="cstat-no" title="statement not covered" >onSelectTree(keys as string[], info as unknown as { node: { isLeaf: boolean; raw: { name: string; fileSize?: number; downloadUrl?: string } } })}</span>
+              /&gt;
+            &lt;/div&gt;
+          );
+        }
+<span class="cstat-no" title="statement not covered" >        return (</span>
+          &lt;DocEmpty
+            variant="tree"
+            icon={&lt;FolderOutlined /&gt;}
+            title="Aucun dossier"
+            text="Aucun dossier n'est disponible pour cette formation"
           /&gt;
-        &lt;/div&gt;
-      ) : (
-        &lt;DocEmpty
-          variant="tree"
-          icon={&lt;FolderOutlined /&gt;}
-          title="Aucun dossier"
-          text="Aucun dossier n'est disponible pour cette formation"
-        /&gt;
-      )}
+        );
+      })()}
     &lt;/&gt;
   );
 }
@@ -331,7 +355,7 @@ export function <span class="fstat-no" title="function not covered" >OneDriveTre
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-06-01T04:02:14.391Z
+                at 2026-06-02T00:34:15.765Z
             </div>
         <script src="../../../../prettify.js"></script>
         <script>

@@ -200,9 +200,9 @@ async function createOrFindEnseignant(anim: PersonItem): Promise<string | null> 
   } catch (err: unknown) {
     const status = (err as { response?: { status?: number } })?.response?.status;
     if (status === 409) {
-      // Enseignant already exists — look up by email to get the real ID
       try {
-        const existing = await EnseignantService.getEnseignantById(anim.mail!);
+        const all = await EnseignantService.getAllEnseignants();
+        const existing = all.find(e => (e.email ?? (e as Record<string, unknown>).mail ?? "").toString().toLowerCase() === anim.mail!.toLowerCase());
         if (existing?.id) return String(existing.id);
       } catch {
         // fallback: use stable ID (may not resolve, but won't block the form)
@@ -756,7 +756,8 @@ export function useFormationWorkflow({ initialDate, onFormationCreated, besoinIn
             const status = (err as { response?: { status?: number } })?.response?.status;
             if (status === 409 && a.mail) {
               try {
-                const existing = await EnseignantService.getEnseignantById(a.mail);
+                const all = await EnseignantService.getAllEnseignants();
+                const existing = all.find(e => (e.email ?? (e as Record<string, unknown>).mail ?? "").toString().toLowerCase() === a.mail!.toLowerCase());
                 if (existing?.id) persistedAnimByKey.set(String(a.id), existing);
               } catch { /* fallback: no persisted ID */ }
             }
@@ -775,7 +776,8 @@ export function useFormationWorkflow({ initialDate, onFormationCreated, besoinIn
             const status = (err as { response?: { status?: number } })?.response?.status;
             if (status === 409 && p.mail) {
               try {
-                const existing = await EnseignantService.getEnseignantById(p.mail);
+                const all = await EnseignantService.getAllEnseignants();
+                const existing = all.find(e => (e.email ?? (e as Record<string, unknown>).mail ?? "").toString().toLowerCase() === p.mail!.toLowerCase());
                 if (existing?.id) persistedPartByKey.set(String(p.id), existing);
               } catch { /* fallback: no persisted ID */ }
             }

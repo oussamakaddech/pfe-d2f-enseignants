@@ -6,7 +6,7 @@ import {
   BarChartOutlined, FormOutlined, TeamOutlined, ApartmentOutlined,
   ReadOutlined, TrophyOutlined, RobotOutlined, FileTextOutlined,
   SafetyCertificateOutlined, CalendarOutlined, SearchOutlined,
-  PlusCircleOutlined, UserOutlined, ArrowRightOutlined,
+  PlusCircleOutlined, UserOutlined, ArrowRightOutlined, SettingOutlined,
 } from "@ant-design/icons";
 import { useAuth } from "@/hooks/auth/useAuth";
 
@@ -28,7 +28,8 @@ const CARDS_BY_ROLE = {
   admin: [
     { title: "Tableau de Bord KPI",      icon: BarChartOutlined,         color: "#B51200", path: "/home/KPI" },
     { title: "Gestion Formations",        icon: FormOutlined,              color: "#1890ff", path: "/home/Formation" },
-    { title: "Annuaire Enseignants",      icon: TeamOutlined,              color: "#52c41a", path: "/home/Enseignants" },
+    { title: "Comptes",                   icon: SettingOutlined,           color: "#52c41a", path: "/home/accounts" },
+    { title: "Enseignants",               icon: TeamOutlined,              color: "#13c2c2", path: "/home/Enseignants" },
     { title: "Référentiel Compétences",   icon: ApartmentOutlined,         color: "#722ed1", path: "/home/competences" },
     { title: "Besoins en Formation",      icon: ReadOutlined,              color: "#fa8c16", path: "/home/besoins" },
     { title: "Évaluations",              icon: TrophyOutlined,            color: "#13c2c2", path: "/home/Evaluations" },
