@@ -3,6 +3,12 @@
 // existants (`@/models/auth`) et éviter d'avoir 3 déclarations désynchronisées.
 // Rôles valides : "admin" | "D2F" | "CUP" | "Enseignant" | "Animateur"
 //                 | "CHEF_DEPARTEMENT" | "ResponsableDossier"
+// Portée fonctionnelle (pour contexte front) :
+//   - admin / D2F / CUP : administration globale.
+//   - ENSEIGNANT : peut s'inscrire aux formations, déposer des besoins.
+//   - ANIMATEUR  : anime des sessions + inscriptions + évaluations.
+//   - CHEF_DEPARTEMENT  : scope « son département » (lecture + besoins + eval).
+//   - ResponsableDossier: scope « dossier de formation » (CRUD documents).
 // (Le rôle FORMATEUR a été consolidé dans ANIMATEUR — cf. migration V19.)
 import type { UserRole } from "@/utils/constants/roles";
 export type { UserRole };

@@ -79,6 +79,7 @@ export const roleColors: Record<string, { color: string; bg: string; label: stri
   chefdepartement:    { color: "#0891b2", bg: "#ecfeff", label: "Chef de Dépt."    },
   CHEF_DEPARTEMENT:   { color: "#0891b2", bg: "#ecfeff", label: "Chef de Dépt."    },
   responsabledossier: { color: "#6366f1", bg: "#eef2ff", label: "Resp. Dossier"    },
+  RESPONSABLE_DOSSIER:{ color: "#6366f1", bg: "#eef2ff", label: "Resp. Dossier"    },
 };
 
 // ── Spacing ───────────────────────────────────────────────────────────────────

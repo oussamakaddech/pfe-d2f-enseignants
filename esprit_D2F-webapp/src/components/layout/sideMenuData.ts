@@ -95,8 +95,8 @@ export const animateurMenu: MenuItem[] = [
 ];
 
 export const responsableDossierMenu: MenuItem[] = [
-  { label: "Gestion Formations",   key: "/home/Formation/Consulter", icon: AppstoreOutlined },
-  { label: "Dossiers de Formation",key: "/home/File",                icon: FileTextOutlined },
+  { label: "Catalogue Formations", key: "/home/Formation/Consulter", icon: AppstoreOutlined },
+  { label: "Gestion Documentaire", key: "/home/File",                icon: FileTextOutlined },
 ];
 
 export const chefDepartementMenu: MenuItem[] = [

@@ -6,6 +6,7 @@ import { Row, Col, Skeleton, Button, Pagination } from "antd";
 import { InboxOutlined, PlusOutlined, ClearOutlined } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 
+import { useHasPermission } from "@/routes/guards";
 import { useBesoinList, INITIAL_FILTERS } from "./hooks/useBesoinList";
 import BesoinHeader      from "./components/BesoinHeader";
 import BesoinStatsRow    from "./components/BesoinStatsRow";
@@ -23,6 +24,7 @@ type BfRefItem = { id: string | number; name?: string; libelle?: string };
 
 export default function BesoinList() {
   const navigate = useNavigate();
+  const canAdd = useHasPermission("BESOIN_FORMATION", "CREATE");
   const ctx = useBesoinList();
 
   const {
@@ -80,6 +82,7 @@ export default function BesoinList() {
           filteredCount={filtered.length}
           loading={loading}
           exportDisabled={filtered.length === 0}
+          canAdd={canAdd}
           onRefresh={() => refetchBesoins()}
           onExport={exportToExcel}
           onAdd={() => navigate("/home/besoins/ajouter")}
@@ -118,9 +121,11 @@ export default function BesoinList() {
                 Réinitialiser les filtres
               </Button>
             )}
-            <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate("/home/besoins/ajouter")} className="bf-btn bf-btn--primary">
-              Ajouter un besoin
-            </Button>
+            {canAdd && (
+              <Button type="primary" icon={<PlusOutlined />} onClick={() => navigate("/home/besoins/ajouter")} className="bf-btn bf-btn--primary">
+                Ajouter un besoin
+              </Button>
+            )}
           </div>
         </output>
       )}

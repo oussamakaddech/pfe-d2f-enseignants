@@ -14,6 +14,7 @@ interface BesoinHeaderProps {
   onAdd: () => void;
   loading?: boolean;
   exportDisabled?: boolean;
+  canAdd?: boolean;
 }
 
 export default function BesoinHeader({
@@ -24,6 +25,7 @@ export default function BesoinHeader({
   onAdd,
   loading = false,
   exportDisabled = false,
+  canAdd = true,
 }: Readonly<BesoinHeaderProps>) {
   return (
     <header className="bf-header">
@@ -73,14 +75,16 @@ export default function BesoinHeader({
               Actualiser
             </Button>
           </Tooltip>
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            onClick={onAdd}
-            className="bf-btn bf-btn--primary"
-          >
-            Ajouter un besoin
-          </Button>
+          {canAdd && (
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              onClick={onAdd}
+              className="bf-btn bf-btn--primary"
+            >
+              Ajouter un besoin
+            </Button>
+          )}
         </div>
       </div>
     </header>

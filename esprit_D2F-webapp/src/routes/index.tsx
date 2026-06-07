@@ -154,6 +154,8 @@ export default function AppRoutes() {
 
                 <Route element={<RoleGuard allowedRoles={[ROLES.ADMIN, ROLES.D2F, ROLES.CUP, ROLES.ENSEIGNANT, ROLES.CHEF_DEPARTEMENT]} />}>
                   <Route path="/home/besoins" element={<BesoinList />} />
+                </Route>
+                <Route element={<RoleGuard allowedRoles={[ROLES.ADMIN, ROLES.D2F, ROLES.CUP, ROLES.ENSEIGNANT]} />}>
                   <Route path="/home/besoins/ajouter" element={<BesoinForm />} />
                 </Route>
 

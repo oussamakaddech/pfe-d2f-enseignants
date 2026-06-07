@@ -144,6 +144,8 @@ class AuthorizationFilterTest {
         "/api/besoinsformation/approve/1, PUT, ENSEIGNANT, false",
         "/api/besoins-formation/any, GET, ENSEIGNANT, true",
         "/api/besoins-formation/any, POST, ENSEIGNANT, true",
+        "/api/besoins-formation/any, POST, D2F, true",
+        "/api/besoins-formation/any, POST, CHEF_DEPARTEMENT, false",
         "/api/besoinsformation/any, DELETE, ADMIN, true",
         "/api/besoinsformation/modify, PUT, ADMIN, true",
         "/api/besoinsformation/modify, PUT, CUP, false",
