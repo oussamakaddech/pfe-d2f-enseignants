@@ -89,6 +89,11 @@ public class AuthorizationFilter extends AbstractGatewayFilterFactory<Authorizat
         ROLE_ADMIN, ROLE_CUP, ROLE_D2F, ROLE_ENSEIGNANT
     );
 
+    /** Admin + CUP + D2F — aligné sur AuthorizationMatrix.FORMATION_CREATE */
+    private static final List<String> ADMIN_CUP_D2F = List.of(
+        ROLE_ADMIN, ROLE_CUP, ROLE_D2F
+    );
+
     public AuthorizationFilter(JwtTokenProvider tokenProvider) {
         super(Config.class);
         this.tokenProvider = tokenProvider;
@@ -210,7 +215,8 @@ public class AuthorizationFilter extends AbstractGatewayFilterFactory<Authorizat
         if (path.contains("/kpi")) return NO_FORMATEUR;
         if (method == HttpMethod.DELETE) return ADMIN_ONLY;
         if (path.contains("/inscription/inscriptions") && method == HttpMethod.POST) return ALL_ROLES;
-        if (method == HttpMethod.POST || method == HttpMethod.PUT || method == HttpMethod.PATCH) return ADMIN_CUP;
+        if (method == HttpMethod.POST) return ADMIN_CUP_D2F;
+        if (method == HttpMethod.PUT || method == HttpMethod.PATCH) return ADMIN_CUP;
         return ALL_ROLES;
     }
 

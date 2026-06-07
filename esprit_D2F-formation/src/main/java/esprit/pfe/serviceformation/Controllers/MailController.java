@@ -24,7 +24,7 @@ public class MailController {
      * Envoie un e-mail via Microsoft Graph API.
      * Accepte le contenu dans le body (JSON) pour éviter les problèmes
      * d'encodage des caractères spéciaux (accents, sauts de ligne) dans les query params.
-     * Réservé aux rôles ADMIN et D2F.
+     * Réservé aux rôles ADMIN, CUP et D2F (aligné {@link AuthorizationMatrix#FORMATION_CREATE}).
      */
     @PostMapping("/send")
     @PreAuthorize(AuthorizationMatrix.FORMATION_CREATE)
