@@ -81,30 +81,29 @@ export default function MailForm({ formation, onSendSuccess }: Readonly<MailForm
     : "";
 
   const defaultContent = formation
-    ? `Bonjour ${formation.responsableName || "à tous"},\n\n` +
-      `${objectifStr}` +
-      `Votre formation "${formation.titreFormation}" se déroulera du ${dayjs(
+    ? `<p>Bonjour ${formation.responsableName || "à tous"},</p>` +
+      (objectifStr ? `<p>${objectifStr.replace(/\n/g, "<br/>")}</p>` : "") +
+      `<p>Votre formation <strong>"${formation.titreFormation}"</strong> se déroulera du ${dayjs(
         formation.dateDebut
-      ).format("DD/MM/YYYY")} au ${dayjs(formation.dateFin).format(
-        "DD/MM/YYYY"
-      )}.\n\n` +
-      `Détail des séances :\n${seancesStr}\n\n` +
-      `${animateursStr}${participantsStr}` +
-      "Cordialement,\nL'équipe de formation"
+      ).format("DD/MM/YYYY")} au ${dayjs(formation.dateFin).format("DD/MM/YYYY")}.</p>` +
+      `<p><strong>Détail des séances :</strong><br/>${seancesStr.replace(/\n/g, "<br/>")}</p>` +
+      (animateursStr ? `<p>${animateursStr.replace(/\n/g, "<br/>")}</p>` : "") +
+      (participantsStr ? `<p>${participantsStr.replace(/\n/g, "<br/>")}</p>` : "") +
+      "<p>Cordialement,<br/><strong>L'équipe de formation</strong></p>"
     : "";
 
   // 2) Envoi
   const { mutateAsync: sendEmail } = useSendEmail();
   const handleFinish = async (values: { to: string; subject: string; content: string }) => {
     try {
-      const result = await sendEmail({ to: values.to, subject: values.subject, content: values.content });
+      const result = await sendEmail({ to: values.to, subject: values.subject, content: values.content, isHtml: true });
       const successMsg = result?.message || "E-mail envoyé avec succès !";
       message.success(successMsg);
       form.resetFields(["subject", "content"]);
       if (onSendSuccess) onSendSuccess();
     } catch (err: unknown) {
       const e = err as { response?: { data?: { error?: string; message?: string } }; message?: string };
-      const errorMsg = e.response?.data?.error || e.response?.data?.message || e.message || "Échec de l’envoi de l’e-mail.";
+      const errorMsg = e.response?.data?.error || e.response?.data?.message || e.message || "Échec de l'envoi de l'e-mail.";
       message.error(errorMsg);
     }
   };

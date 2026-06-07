@@ -32,6 +32,10 @@ public class MailController {
         String to = payload.get("to");
         String subject = payload.get("subject");
         String content = payload.get("content");
+        // Frontend peut demander explicitement le rendu HTML (ex: gabarits BesoinMailCupModal).
+        // Défaut : texte brut — préserve le rendu correct dans Outlook pour les emails
+        // ad-hoc saisis dans MailForm/DemandesList.
+        boolean isHtml = "true".equalsIgnoreCase(payload.get("isHtml"));
 
         if (to == null || to.isBlank()) {
             return ResponseEntity.badRequest().body(Map.of(ERROR_KEY, "Le destinataire (to) est obligatoire"));
@@ -44,7 +48,7 @@ public class MailController {
         }
 
         try {
-            mailService.sendMail(to, subject, content);
+            mailService.sendMail(to, subject, content, isHtml);
             return ResponseEntity.ok(Map.of("message", "E-mail envoyé à " + to));
         } catch (IllegalArgumentException e) {
             log.warn("Paramètre invalide pour l'envoi d'email : {}", e.getMessage());

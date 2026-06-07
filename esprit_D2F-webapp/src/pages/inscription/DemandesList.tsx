@@ -151,18 +151,19 @@ export default function DemandesList() {
         const subject = approuver
           ? `✅ Inscription approuvée — ${formationLabel}`
           : `❌ Inscription rejetée — ${formationLabel}`;
-        const content = approuver
-          ? `Bonjour ${target.enseignant.prenom ?? ""} ${target.enseignant.nom ?? ""},\n\n` +
-            `Votre demande d'inscription à la formation ${formationLabel} a été APPROUVÉE.\n` +
-            `Vous pouvez la suivre dans votre espace « Mes Inscriptions ».\n\n` +
-            `Cordialement,\nL'équipe D2F`
-          : `Bonjour ${target.enseignant.prenom ?? ""} ${target.enseignant.nom ?? ""},\n\n` +
-            `Votre demande d'inscription à la formation ${formationLabel} a été rejetée.\n` +
-            (motif ? `Motif : ${motif}\n\n` : "\n") +
-            `Pour plus d'informations, merci de contacter le service D2F.\n\n` +
-            `Cordialement,\nL'équipe D2F`;
+        const greeting = `Bonjour ${target.enseignant.prenom ?? ""} ${target.enseignant.nom ?? ""},`;
+        const body = approuver
+          ? `Votre demande d'inscription à la formation <strong>${formationLabel}</strong> a été <strong>approuvée</strong>.<br>` +
+            `Vous pouvez la suivre dans votre espace « Mes Inscriptions ».`
+          : `Votre demande d'inscription à la formation <strong>${formationLabel}</strong> a été <strong>rejetée</strong>.<br>` +
+            (motif ? `Motif : <em>${motif}</em><br>` : "") +
+            `Pour plus d'informations, merci de contacter le service D2F.`;
+        const content =
+          `<p>${greeting}</p>` +
+          `<p>${body}</p>` +
+          `<p>Cordialement,<br/><strong>L'équipe D2F</strong></p>`;
         try {
-          await sendEmailMut.mutateAsync({ to: target.enseignant.mail, subject, content });
+          await sendEmailMut.mutateAsync({ to: target.enseignant.mail, subject, content, isHtml: true });
         } catch {
           // On n'invalide pas l'opération métier si l'email échoue.
           msgApi.warning("Demande traitée, mais l'email de notification n'a pas pu être envoyé.");

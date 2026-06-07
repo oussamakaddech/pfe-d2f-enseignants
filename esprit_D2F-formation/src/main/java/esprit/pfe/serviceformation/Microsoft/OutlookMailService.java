@@ -23,12 +23,16 @@ public class OutlookMailService {
     private final MicrosoftGraphClientProvider graphProvider;
 
     public void sendMail(String to, String subject, String htmlContent) {
+        sendMail(to, subject, htmlContent, true);
+    }
+
+    public void sendMail(String to, String subject, String content, boolean isHtml) {
         // Validation des paramètres
         if (to == null || to.isBlank()) {
             throw new IllegalArgumentException("L'adresse du destinataire est obligatoire");
         }
 
-        log.info("Tentative d'envoi d'email à {} - Sujet : {}", to, subject);
+        log.info("Tentative d'envoi d'email à {} - Sujet : {} (HTML={})", to, subject, isHtml);
 
         GraphServiceClient<Request> graphClient;
         try {
@@ -42,10 +46,10 @@ public class OutlookMailService {
         Message message = new Message();
         message.subject = subject;
 
-        // Définition du corps de l'email en HTML
+        // Définition du corps de l'email (HTML ou texte brut)
         ItemBody body = new ItemBody();
-        body.contentType = BodyType.HTML;
-        body.content = htmlContent;
+        body.contentType = isHtml ? BodyType.HTML : BodyType.TEXT;
+        body.content = content;
         message.body = body;
 
         // Définition du destinataire

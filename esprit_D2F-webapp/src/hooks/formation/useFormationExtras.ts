@@ -53,8 +53,8 @@ export function useFormationReportFetch() {
 
 export function useSendEmail() {
   return useMutation({
-    mutationFn: ({ to, subject, content }: { to: string; subject: string; content: string }) =>
-      MailService.sendEmail(to, subject, content),
+    mutationFn: ({ to, subject, content, isHtml }: { to: string; subject: string; content: string; isHtml?: boolean }) =>
+      MailService.sendEmail(to, subject, content, isHtml),
   });
 }
 

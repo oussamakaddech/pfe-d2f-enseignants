@@ -33,6 +33,12 @@ class MailControllerTest {
         return p;
     }
 
+    private Map<String, String> payloadWithHtml(String to, String subject, String content, Boolean isHtml) {
+        Map<String, String> p = payload(to, subject, content);
+        if (isHtml != null) p.put("isHtml", isHtml ? "true" : "false");
+        return p;
+    }
+
     @Test
     void rejectsMissingTo() {
         ResponseEntity<Object> r = controller.sendEmail(payload(null, "s", "c"));
@@ -60,8 +66,26 @@ class MailControllerTest {
     }
 
     @Test
+    void sendsValidEmailAsHtmlWhenFlagTrue() {
+        ResponseEntity<Object> r = controller.sendEmail(payloadWithHtml("a@b.tn", "s", "<p>html</p>", true));
+        assertEquals(HttpStatus.OK, r.getStatusCode());
+    }
+
+    @Test
+    void ignoresIsHtmlFlagWhenFalse() {
+        ResponseEntity<Object> r = controller.sendEmail(payloadWithHtml("a@b.tn", "s", "plain text", false));
+        assertEquals(HttpStatus.OK, r.getStatusCode());
+    }
+
+    @Test
+    void treatsBlankIsHtmlAsPlainText() {
+        ResponseEntity<Object> r = controller.sendEmail(payloadWithHtml("a@b.tn", "s", "plain text", null));
+        assertEquals(HttpStatus.OK, r.getStatusCode());
+    }
+
+    @Test
     void returnsServerErrorOnRuntimeException() {
-        doThrow(new RuntimeException("boom")).when(mailService).sendMail("a@b.tn", "s", "c");
+        doThrow(new RuntimeException("boom")).when(mailService).sendMail("a@b.tn", "s", "c", false);
         ResponseEntity<Object> r = controller.sendEmail(payload("a@b.tn", "s", "c"));
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, r.getStatusCode());
         assertTrue(((Map<?, ?>) r.getBody()).containsKey("error"));
@@ -90,7 +114,7 @@ class MailControllerTest {
 
     @Test
     void returnsBadRequestOnIllegalArgumentException() {
-        doThrow(new IllegalArgumentException("invalid")).when(mailService).sendMail("a@b.tn", "s", "c");
+        doThrow(new IllegalArgumentException("invalid")).when(mailService).sendMail("a@b.tn", "s", "c", false);
         ResponseEntity<Object> r = controller.sendEmail(payload("a@b.tn", "s", "c"));
         assertEquals(HttpStatus.BAD_REQUEST, r.getStatusCode());
         assertTrue(((Map<?, ?>) r.getBody()).containsKey("error"));

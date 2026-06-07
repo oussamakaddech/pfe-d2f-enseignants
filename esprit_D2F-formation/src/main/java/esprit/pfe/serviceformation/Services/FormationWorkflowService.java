@@ -1035,7 +1035,7 @@ public class FormationWorkflowService {
             }
         }
         try {
-            String mailSubject = String.format("[D2F] Annulation de Seance : %s",
+            String mailSubject = String.format("[D2F] Annulation de séance : %s",
                     seance.getFormation().getTitreFormation());
             String htmlContent = buildCancellationSeanceHtml(seance);
 
@@ -1136,7 +1136,7 @@ public class FormationWorkflowService {
         // Envoyer un email global d'annulation a tous les concernes
         // DSI §4/§2 — Outlook désactivé si azure.ad.enabled != true
         if (outlookMailService != null) {
-            String subject = "[D2F] Annulation de Formation : " + freshFormation.getTitreFormation();
+            String subject = "[D2F] Annulation de formation : " + freshFormation.getTitreFormation();
             String htmlContent = buildCancellationFormationHtml(freshFormation);
             for (String email : allRecipientEmails) {
                 try {

@@ -1,5 +1,6 @@
 package esprit.pfe.serviceformation.email;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -170,7 +171,8 @@ public final class EmailTemplateBuilder {
                 + "Ceci est un e-mail automatique généré par le système D2F — merci de ne pas y répondre.</p>"
                 + "<p style=\"margin:0 0 4px;font-family:" + FONT + ";font-size:12px;color:" + accentColor + ";font-weight:bold;\">"
                 + "Esprit — Direction du Développement et de la Formation</p>"
-                + "<p style=\"margin:0;font-family:" + FONT + ";font-size:11px;color:" + MUTED + ";\">© 2026 — Tous droits réservés</p>"
+                + "<p style=\"margin:0;font-family:" + FONT + ";font-size:11px;color:" + MUTED + ";\">© "
+                + LocalDate.now().getYear() + " — Tous droits réservés</p>"
                 + "</td></tr></table></td></tr></table></body></html>";
     }
 

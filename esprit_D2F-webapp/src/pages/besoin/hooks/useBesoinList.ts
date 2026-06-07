@@ -14,6 +14,7 @@ import { ROLES } from "@/utils/constants/roles";
 import { useBesoins, useModifyBesoin, useRemoveBesoin, useApproveBesoin } from "@/hooks/besoin/useBesoins";
 import { useDepartements, useUps, useAllAccounts } from "@/hooks/formation/useFormations";
 import { useEnseignants } from "@/hooks/enseignant/useEnseignants";
+import { buildFormationNeedHtmlEmail } from "@/pages/besoin/components/BesoinMailCupModal";
 import { buildActeurOptions, serializeActeurs, parseActeurs } from "@/utils/besoin/acteurs";
 
 const PERIOD_OPTIONS = [
@@ -212,19 +213,20 @@ export function useBesoinList() {
 
   const openMailModal = (record: Record<string, unknown>) => {
     setMailRecord(record);
-    const upLabel   = getLabel(findById(ups as LookupItem[], record.up));
-    const deptLabel = getLabel(findById(departements as LookupItem[], record.departement));
+    const upLabel     = getLabel(findById(ups as LookupItem[], record.up));
+    const deptLabel   = getLabel(findById(departements as LookupItem[], record.departement));
     const periodLabel = periodLabelOf(record) || "—";
     const subject = `Demande d'informations complémentaires — Besoin de formation "${record.titre || record.objectifFormation || "sans titre"}"`;
     const defaultTo = cupAccounts[0]?.email || cupAccounts[0]?.emailAddress || "";
-    mailForm.setFieldsValue({ to: defaultTo, subject, upLabel, deptLabel, periodLabel, record });
+    const defaultContent = buildFormationNeedHtmlEmail(record, upLabel, deptLabel, periodLabel);
+    mailForm.setFieldsValue({ to: defaultTo, subject, content: defaultContent });
     setMailModalOpen(true);
   };
 
   const handleSendMail = async (to: string, subject: string, content: string) => {
     try {
       setMailSending(true);
-      const result = await sendEmailMut.mutateAsync({ to, subject, content });
+      const result = await sendEmailMut.mutateAsync({ to, subject, content, isHtml: true });
       msgApi.success(result?.message || "E-mail envoyé au CUP avec succès");
       setMailModalOpen(false);
       mailForm.resetFields();
