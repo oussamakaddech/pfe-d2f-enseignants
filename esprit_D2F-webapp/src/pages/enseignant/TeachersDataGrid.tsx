@@ -159,6 +159,12 @@ export default function TeachersDataGrid({ embedded = false }: { embedded?: bool
   const vacCount  = data.filter((d: Record<string, unknown>) => d.type === "V").length;
   const cupCount  = data.filter((d: Record<string, unknown>) => d.cup === "O" || d.cup === "Y" || d.cup === "1").length;
 
+  // Si l'enseignant sélectionné a déjà un compte lié (userId), interdire la création
+  const selectedHasAccount = !!(selectedTeacher as Record<string, unknown>)?.userId;
+  const createBtnTooltip = selectedHasAccount
+    ? "Cet enseignant possède déjà un compte. Utilisez la gestion des comptes pour le modifier."
+    : "Créer un nouveau compte utilisateur";
+
   return (
     <>
       <div className="teachers-page">
@@ -177,8 +183,14 @@ export default function TeachersDataGrid({ embedded = false }: { embedded?: bool
               <div className="teachers-hero-subtitle">Gérer, importer et créer les comptes enseignants</div>
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <Tooltip title="Créer un nouveau compte utilisateur">
-                <Button type="primary" icon={<UserAddOutlined />} onClick={() => setDrawerVisible(true)} className="teachers-btn-create">
+              <Tooltip title={createBtnTooltip}>
+                <Button
+                  type="primary"
+                  icon={<UserAddOutlined />}
+                  onClick={() => setDrawerVisible(true)}
+                  className="teachers-btn-create"
+                  disabled={selectedHasAccount}
+                >
                   Créer un compte
                 </Button>
               </Tooltip>
@@ -316,13 +328,14 @@ export default function TeachersDataGrid({ embedded = false }: { embedded?: bool
             </Button>
           </Tooltip>
           {embedded && (
-            <Tooltip title="Créer un nouveau compte utilisateur">
+            <Tooltip title={createBtnTooltip}>
               <Button
                 type="primary"
                 icon={<UserAddOutlined />}
                 onClick={() => setDrawerVisible(true)}
                 className="teachers-btn-create"
                 style={{ marginLeft: "auto" }}
+                disabled={selectedHasAccount}
               >
                 Créer un compte
               </Button>

@@ -217,8 +217,11 @@ export function useBesoinList() {
     const deptLabel   = getLabel(findById(departements as LookupItem[], record.departement));
     const periodLabel = periodLabelOf(record) || "—";
     const subject = `Demande d'informations complémentaires — Besoin de formation "${record.titre || record.objectifFormation || "sans titre"}"`;
-    const defaultTo = cupAccounts[0]?.email || cupAccounts[0]?.emailAddress || "";
-    const defaultContent = buildFormationNeedHtmlEmail(record, upLabel, deptLabel, periodLabel);
+    const defaultCup = cupAccounts[0];
+    const defaultTo = defaultCup?.email || defaultCup?.emailAddress || "";
+    // FIX-S6: pass the default CUP name so the email greeting is personalized
+    const defaultCupName = defaultCup?.userName || defaultCup?.username || undefined;
+    const defaultContent = buildFormationNeedHtmlEmail(record, upLabel, deptLabel, periodLabel, defaultCupName);
     mailForm.setFieldsValue({ to: defaultTo, subject, content: defaultContent });
     setMailModalOpen(true);
   };

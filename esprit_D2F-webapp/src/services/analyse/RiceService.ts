@@ -87,11 +87,23 @@ const RiceService = {
     const params = departement ? `?departement=${departement}` : "";
 
     try {
-      const res = await axios.get(FORMATION_ENS_BASE);
-      const list = normalizeEnseignantsPayload<Record<string, unknown>>(res.data);
+      // Charge TOUT l'annuaire (corps enseignant) comme la page Administration :
+      // l'endpoint est paginé (défaut 20) → on demande une grande taille et on
+      // fusionne les pages restantes via fetchAllPages, sinon seuls 20 enseignants
+      // remontaient dans le Matchmaking.
+      const data = await fetchAllPages(FORMATION_ENS_BASE, "?size=200");
+      const list = normalizeEnseignantsPayload<Record<string, unknown>>(data);
       if (!departement) return list;
+      // Les fiches formation portent dept/up sous plusieurs formes (deptLibelle,
+      // deptId, upLibelle, upId…) et non un simple champ `departement`. On compare
+      // de façon tolérante pour ne pas vider la liste.
       const deptNorm = String(departement).toLowerCase();
-      return list.filter((e) => String(e?.departement ?? e?.department ?? "").toLowerCase() === deptNorm);
+      return list.filter((e) => {
+        const candidates = [e?.departement, e?.department, e?.deptLibelle, e?.deptId, e?.upLibelle, e?.upId]
+          .map((v) => String(v ?? "").toLowerCase())
+          .filter(Boolean);
+        return candidates.some((c) => c === deptNorm || c.includes(deptNorm) || deptNorm.includes(c));
+      });
     } catch (err: unknown) {
       // Compatibility fallback: some deployments expose teachers via competence service,
       // and some secured deployments reject the formation endpoint while still allowing

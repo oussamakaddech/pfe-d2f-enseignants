@@ -81,12 +81,13 @@ class CoverageBoostTest {
 
     // ── FormationReminderScheduler ──
     @Mock private SeanceFormationRepository seanceRepo;
+    @Mock private ReminderSentLogRepository reminderSentLogRepo;
     @Mock private OutlookMailService mailService;
     @InjectMocks private FormationReminderScheduler scheduler;
 
     @Test @DisplayName("Scheduler: null mailService")
     void testSchedulerNullMail() {
-        FormationReminderScheduler noMail = new FormationReminderScheduler(seanceRepo, null);
+        FormationReminderScheduler noMail = new FormationReminderScheduler(seanceRepo, reminderSentLogRepo, null);
         noMail.sendDailyReminders();
         verifyNoInteractions(seanceRepo);
     }

@@ -2,7 +2,9 @@ package esprit.pfe.serviceformation.services;
 
 import esprit.pfe.serviceformation.dto.EnseignantDTO;
 import esprit.pfe.serviceformation.entities.Enseignant;
+import esprit.pfe.serviceformation.repositories.DeptRepository;
 import esprit.pfe.serviceformation.repositories.EnseignantRepository;
+import esprit.pfe.serviceformation.repositories.UpRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -21,6 +23,8 @@ import static org.mockito.Mockito.*;
 class EnseignantServiceImplTest {
 
     @Mock private EnseignantRepository repository;
+    @Mock private UpRepository upRepository;
+    @Mock private DeptRepository deptRepository;
     @InjectMocks private EnseignantServiceImpl service;
 
     @Test

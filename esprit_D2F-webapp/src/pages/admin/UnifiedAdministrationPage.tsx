@@ -32,7 +32,10 @@ const { Option } = Select;
 type AccountStatus = 'ACTIF' | 'BLOQUÉ' | 'INCONNU';
 
 interface UnifiedRow {
-  _type: 'account' | 'teacher';
+  // 'merged' = compte + fiche enseignant liés (même userId) affichés sur une
+  // seule ligne. Porte alors À LA FOIS les champs compte et les champs fiche :
+  // userId = id du compte auth (actions compte), id = id de la fiche E00xxx (actions fiche).
+  _type: 'account' | 'teacher' | 'merged';
   _key: string;
   /* account fields */
   userId?: Id;
@@ -87,7 +90,8 @@ function teacherFullName(a: UnifiedRow): string {
 }
 
 function rowFullName(r: UnifiedRow): string {
-  return r._type === 'account' ? accountFullName(r) : teacherFullName(r);
+  // merged & account : le nom du compte est renseigné ; sinon nom de la fiche.
+  return r._type === 'teacher' ? teacherFullName(r) : accountFullName(r);
 }
 
 export default function UnifiedAdministrationPage() {
@@ -164,14 +168,51 @@ export default function UnifiedAdministrationPage() {
     }
   }, [allAccounts]);
 
-  /* ── Build unified data ── */
+  /* ── Build unified data ──
+   * Une personne ayant à la fois un compte et une fiche enseignant liés (même
+   * userId, ou à défaut même email) est affichée sur UNE seule ligne fusionnée
+   * (_type 'merged') portant les champs des deux. Les comptes sans fiche et les
+   * fiches sans compte restent des lignes simples. */
   const unifiedData = useMemo(() => {
-    const teacherRows: UnifiedRow[] = teachers.map(t => ({
-      ...t,
-      _type: 'teacher' as const,
-      _key: `tch_${t.id ?? Math.random()}`,
-    }));
-    return [...accounts, ...teacherRows];
+    const accountAuthId = (a: UnifiedRow) => String(a.userId ?? a.id ?? "");
+    const accountById = new Map<string, UnifiedRow>();
+    const accountByEmail = new Map<string, UnifiedRow>();
+    accounts.forEach(a => {
+      const id = accountAuthId(a);
+      if (id) accountById.set(id, a);
+      const email = String(a.email ?? "").toLowerCase();
+      if (email) accountByEmail.set(email, a);
+    });
+
+    const linkedAccountIds = new Set<string>();
+    const rows: UnifiedRow[] = teachers.map(t => {
+      const tUserId = String(t.userId ?? "");
+      const tEmail = String(t.mail ?? "").toLowerCase();
+      const acc = (tUserId ? accountById.get(tUserId) : undefined)
+        ?? (tEmail ? accountByEmail.get(tEmail) : undefined);
+      if (acc) {
+        const accId = accountAuthId(acc);
+        linkedAccountIds.add(accId);
+        return {
+          ...t,                       // champs fiche : id (E00xxx), nom, prenom, type, upLibelle…
+          userId: accId,              // id du compte auth → actions compte (userId ?? id)
+          userName: acc.userName,
+          role: acc.role,
+          status: acc.status,
+          firstName: acc.firstName,
+          lastName: acc.lastName,
+          email: acc.email ?? t.mail,
+          phoneNumber: acc.phoneNumber ?? t.telephone,
+          _type: 'merged' as const,
+          _key: `merged_${accId}_${t.id ?? ""}`,
+        } as UnifiedRow;
+      }
+      return { ...t, _type: 'teacher' as const, _key: `tch_${t.id ?? Math.random()}` };
+    });
+
+    // Comptes sans fiche liée
+    const accountRows = accounts.filter(a => !linkedAccountIds.has(accountAuthId(a)));
+    return [...accountRows, ...rows];
   }, [accounts, teachers]);
 
   const isLoading = accountsLoading || teachersLoading;
@@ -192,12 +233,17 @@ export default function UnifiedAdministrationPage() {
     const roleSet = roleFilter.map(r => r.toUpperCase());
 
     const filtered = unifiedData.filter(row => {
-      if (sourceFilter !== "ALL" && row._type !== sourceFilter) return false;
-      if (row._type === 'account') {
+      // Une ligne fusionnée a les deux natures : elle passe le filtre Source
+      // qu'on demande "account" ou "teacher".
+      const hasAccount = row._type === 'account' || row._type === 'merged';
+      const hasTeacher = row._type === 'teacher' || row._type === 'merged';
+      if (sourceFilter === 'account' && !hasAccount) return false;
+      if (sourceFilter === 'teacher' && !hasTeacher) return false;
+      if (hasAccount) {
         if (statusFilter !== "ALL" && row.status !== statusFilter) return false;
         if (roleSet.length && !roleSet.includes((row.role ?? "").toUpperCase())) return false;
       }
-      if (row._type === 'teacher') {
+      if (hasTeacher) {
         if (typeFilter !== "ALL" && row.type !== typeFilter) return false;
       }
       if (!term) return true;
@@ -367,6 +413,30 @@ export default function UnifiedAdministrationPage() {
     msgApi.success('Enseignant supprimé');
   };
 
+  /* Ligne fusionnée : suppression de la personne = compte + fiche. */
+  const handleDeleteMerged = (record: UnifiedRow) => {
+    const fullName = `${record.firstName || ""} ${record.lastName || ""}`.trim() || record.userName || "cette personne";
+    modal.confirm({
+      title: "Supprimer compte et fiche ?",
+      content: <p>Le compte <strong>et</strong> la fiche enseignant de <strong>{fullName}</strong> seront supprimés. Cette action est irréversible.</p>,
+      okText: "Supprimer", cancelText: "Annuler",
+      okButtonProps: { danger: true }, centered: true,
+      onOk: async () => {
+        try {
+          // Fiche d'abord (libère le lien), puis compte.
+          if (record.id) await EnseignantService.deleteEnseignant(String(record.id));
+          await deleteAccountApi(String(record.userId ?? ""));
+          await queryClient.invalidateQueries({ queryKey: ["enseignants"] });
+          msgApi.success(`Compte et fiche de ${fullName} supprimés`);
+          fetchAll();
+        } catch (err: unknown) {
+          const e = err as { response?: { data?: { message?: string } } };
+          msgApi.error(e?.response?.data?.message || 'Erreur de suppression');
+        }
+      },
+    });
+  };
+
   /* ── Columns ── */
   const columns: TableColumnsType<UnifiedRow> = [
     {
@@ -374,33 +444,39 @@ export default function UnifiedAdministrationPage() {
       key: 'user',
       width: 300,
       render: (_, record) => {
-        const isAccount = record._type === 'account';
-        const name = isAccount
-          ? `${record.firstName || ""} ${record.lastName || ""}`.trim() || "—"
-          : `${record.nom || ""} ${record.prenom || ""}`.trim() || "—";
-        const initial = isAccount
-          ? (record.firstName || record.userName || "?").charAt(0).toUpperCase()
+        const isTeacherOnly = record._type === 'teacher';
+        const isMerged = record._type === 'merged';
+        const accountLike = !isTeacherOnly; // compte ou fusionné
+        const name = accountLike
+          ? (`${record.firstName || ""} ${record.lastName || ""}`.trim()
+              || `${record.nom || ""} ${record.prenom || ""}`.trim() || "—")
+          : (`${record.nom || ""} ${record.prenom || ""}`.trim() || "—");
+        const initial = accountLike
+          ? (record.firstName || record.userName || record.nom || "?").charAt(0).toUpperCase()
           : ((record.prenom || record.nom || "?").charAt(0).toUpperCase());
+        const tagLabel = isMerged ? 'Compte + Fiche' : (accountLike ? 'Compte' : 'Enseignant');
+        const tagColor = isMerged ? 'purple' : (accountLike ? 'volcano' : 'blue');
+        const showCupChef = (isTeacherOnly || isMerged) && (isTruthyFlag(record.cup) || isTruthyFlag(record.chefDepartement));
         return (
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <div style={{
               width: 38, height: 38, borderRadius: 10,
-              background: isAccount ? brand[50] : '#eff6ff',
-              color: isAccount ? brand[500] : '#2563eb',
+              background: accountLike ? brand[50] : '#eff6ff',
+              color: accountLike ? brand[500] : '#2563eb',
               display: "flex", alignItems: "center", justifyContent: "center",
               fontSize: 14, fontWeight: 700, flexShrink: 0,
-              border: `1px solid ${isAccount ? 'rgba(181,18,0,0.18)' : 'rgba(37,99,235,0.18)'}`,
+              border: `1px solid ${accountLike ? 'rgba(181,18,0,0.18)' : 'rgba(37,99,235,0.18)'}`,
             }}>{initial}</div>
             <div style={{ minWidth: 0 }}>
               <div style={{ fontWeight: 600, color: neutral[800], lineHeight: 1.3 }}>{name}</div>
-              <div style={{ display: "flex", gap: 4, marginTop: 2 }}>
-                <Tag color={isAccount ? "volcano" : "blue"} style={{ fontSize: 10, lineHeight: '16px', padding: '0 6px', margin: 0 }}>
-                  {isAccount ? 'Compte' : 'Enseignant'}
+              <div style={{ display: "flex", gap: 4, marginTop: 2, alignItems: "center", flexWrap: "wrap" }}>
+                <Tag color={tagColor} style={{ fontSize: 10, lineHeight: '16px', padding: '0 6px', margin: 0 }}>
+                  {tagLabel}
                 </Tag>
-                {isAccount && record.userName && (
+                {accountLike && record.userName && (
                   <span style={{ fontSize: 12, color: neutral[500] }}>@{record.userName}</span>
                 )}
-                {!isAccount && (isTruthyFlag(record.cup) || isTruthyFlag(record.chefDepartement)) && (
+                {showCupChef && (
                   <>
                     {isTruthyFlag(record.cup) && <span className="teachers-badge teachers-badge--cup">CUP</span>}
                     {isTruthyFlag(record.chefDepartement) && <span className="teachers-badge teachers-badge--chef">Chef</span>}
@@ -440,8 +516,17 @@ export default function UnifiedAdministrationPage() {
     {
       title: 'Profil',
       key: 'profil',
-      width: 160,
+      width: 180,
       render: (_, record) => {
+        if (record._type === 'merged') {
+          // Rôle du compte + type de la fiche
+          return (
+            <div style={{ display: "flex", flexDirection: "column", gap: 4, alignItems: "flex-start" }}>
+              <RoleBadge role={record.role ?? ""} />
+              {getTypeTagComponent(record.type)}
+            </div>
+          );
+        }
         if (record._type === 'account') {
           return <RoleBadge role={record.role ?? ""} />;
         }
@@ -453,7 +538,9 @@ export default function UnifiedAdministrationPage() {
       key: 'statut',
       width: 130,
       render: (_, record) => {
-        if (record._type === 'account') {
+        // Pour une ligne fusionnée, le statut pertinent est celui du COMPTE
+        // (capacité à se connecter). L'état de la fiche est secondaire.
+        if (record._type === 'account' || record._type === 'merged') {
           return <AccountStatusBadgeComponent status={record.status ?? 'INCONNU'} />;
         }
         return record.etat === 'I'
@@ -467,7 +554,7 @@ export default function UnifiedAdministrationPage() {
       width: 200,
       responsive: ['md'] as ('md' | 'sm' | 'lg' | 'xl' | 'xxl')[],
       render: (_, record) => {
-        if (record._type === 'teacher') {
+        if (record._type === 'teacher' || record._type === 'merged') {
           return (
             <div>
               {record.upLibelle && <div style={{ fontSize: 13, color: neutral[700] }}><BankOutlined style={{ marginRight: 6, fontSize: 11 }} />{record.upLibelle}</div>}
@@ -483,8 +570,32 @@ export default function UnifiedAdministrationPage() {
       title: 'Actions',
       key: 'actions',
       fixed: 'right',
-      width: 180,
+      width: 210,
       render: (_, record) => {
+        if (record._type === 'merged') {
+          return (
+            <Space size={2}>
+              <Tooltip title="Modifier le compte (rôle, identité)">
+                <Button shape="circle" icon={<EditOutlined />} onClick={() => handleEditAccount(record)} className="accounts-action-btn" />
+              </Tooltip>
+              <Tooltip title="Modifier la fiche (type, UP, dépt)">
+                <Button shape="circle" icon={<SolutionOutlined />} onClick={() => openEditTeacher(record)} className="accounts-action-btn" />
+              </Tooltip>
+              <Tooltip title="Voir le calendrier">
+                <Button shape="circle" icon={<CalendarOutlined />} onClick={() => navigate(`/home/calendar/${record.id}`)} className="accounts-action-btn" />
+              </Tooltip>
+              <Tooltip title={record.status === 'ACTIF' ? 'Bloquer le compte' : 'Débloquer le compte'}>
+                <Button shape="circle" icon={record.status === 'ACTIF' ? <LockOutlined /> : <UnlockOutlined />}
+                  onClick={() => handleToggleStatus(record)}
+                  className={record.status === 'ACTIF' ? 'accounts-action-btn accounts-action-btn--block' : 'accounts-action-btn accounts-action-btn--activate'} />
+              </Tooltip>
+              <Tooltip title="Supprimer (compte + fiche)">
+                <Button shape="circle" danger icon={<DeleteOutlined />} className="accounts-action-btn accounts-action-btn--delete"
+                  onClick={() => handleDeleteMerged(record)} />
+              </Tooltip>
+            </Space>
+          );
+        }
         if (record._type === 'account') {
           const fullName = `${record.firstName || ""} ${record.lastName || ""}`.trim() || record.userName || "cet utilisateur";
           return (

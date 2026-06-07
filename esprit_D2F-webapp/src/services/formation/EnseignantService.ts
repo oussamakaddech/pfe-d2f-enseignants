@@ -30,6 +30,19 @@ const EnseignantService = {
     return response.data;
   },
 
+  /**
+   * Création orchestrée « compte + fiche enseignant » en UN SEUL appel.
+   * Le backend formation crée d'abord le compte (auth) puis la fiche rattachée,
+   * avec compensation (suppression du compte) si la fiche échoue.
+   */
+  async createEnseignantWithAccount(
+    payload: Record<string, unknown>,
+    role: string,
+  ): Promise<Enseignant> {
+    const response = await axios.post(`${API_URL}/with-account`, payload, { params: { role } });
+    return response.data;
+  },
+
   async getAllEnseignants(): Promise<Enseignant[]> {
     const response = await axios.get(API_URL);
     return normalizeListResponse<Enseignant>(response.data);

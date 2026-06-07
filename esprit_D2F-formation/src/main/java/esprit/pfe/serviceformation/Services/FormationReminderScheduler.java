@@ -5,6 +5,7 @@ import esprit.pfe.serviceformation.entities.*;
 import esprit.pfe.serviceformation.repositories.*;
 import esprit.pfe.serviceformation.microsoft.OutlookMailService;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,13 +24,19 @@ import java.util.stream.Collectors;
 @Slf4j
 public class FormationReminderScheduler {
     private final SeanceFormationRepository seanceFormationRepository;
+    private final ReminderSentLogRepository reminderSentLogRepository;
 
     /** Optionnel : absent si azure.ad.enabled != true */
     private final OutlookMailService outlookMailService;
 
+    @Value("${d2f.platform.url}")
+    private String platformUrl;
+
     public FormationReminderScheduler(SeanceFormationRepository seanceFormationRepository,
+                                      ReminderSentLogRepository reminderSentLogRepository,
                                       @org.springframework.lang.Nullable OutlookMailService outlookMailService) {
         this.seanceFormationRepository = seanceFormationRepository;
+        this.reminderSentLogRepository = reminderSentLogRepository;
         this.outlookMailService = outlookMailService;
     }
 
@@ -37,7 +44,7 @@ public class FormationReminderScheduler {
      * Exécuté chaque jour à 08h00 pour vérifier les séances à venir
      * et envoyer des rappels J-7, J-3, J-1.
      */
-    @Scheduled(cron = "0 0 8 * * *")
+    @Scheduled(cron = "0 0 8 * * *", zone = "Africa/Tunis")
     @Transactional(readOnly = true)
     public void sendDailyReminders() {
         // DSI §4/§2 — Outlook désactivé si azure.ad.enabled != true
@@ -68,7 +75,8 @@ public class FormationReminderScheduler {
         }
     }
 
-    private void sendReminderForSeance(Formation formation, SeanceFormation seance, int daysBefore) {
+    @Transactional
+    public void sendReminderForSeance(Formation formation, SeanceFormation seance, int daysBefore) {
         DateTimeFormatter dateFormat = DateTimeFormatter.ofPattern("dd/MM/yyyy");
         DateTimeFormatter timeFormat = DateTimeFormatter.ofPattern("HH:mm");
         
@@ -93,8 +101,16 @@ public class FormationReminderScheduler {
 
         String salle = seance.getSalle() != null && !seance.getSalle().isBlank() ? seance.getSalle() : "À définir";
         String subject = String.format("[D2F] Rappel J-%d : %s", daysBefore, formation.getTitreFormation());
+        String reminderType = "J-" + daysBefore;
 
         for (Map.Entry<String, String> entry : recipients.entrySet()) {
+            String email = entry.getKey();
+            // FIX-S2: skip if this reminder was already sent to this recipient for this séance
+            if (reminderSentLogRepository.existsBySeanceIdAndRecipientEmailAndReminderType(
+                    seance.getIdSeance(), email, reminderType)) {
+                log.debug("Rappel {} déjà envoyé à {} pour séance {} — ignoré", reminderType, email, seance.getIdSeance());
+                continue;
+            }
             try {
                 String html = EmailTemplateBuilder.create()
                         .accentColor("#e65100")
@@ -106,11 +122,15 @@ public class FormationReminderScheduler {
                         .detail("Date", formattedDate)
                         .detail("Horaire", formattedStart + " – " + formattedEnd)
                         .detail("Salle", salle)
-                        .note("Merci de <strong>confirmer votre présence</strong> dans la plateforme D2F.")
+                        .note("<a href=\"" + platformUrl + "/mes-formations/" + formation.getIdFormation() + "\" "
+                                + "style=\"background:#e65100;color:#fff;padding:10px 20px;border-radius:6px;"
+                                + "text-decoration:none;font-weight:bold;display:inline-block;\">"
+                                + "Confirmer ma présence</a>")
                         .build();
-                outlookMailService.sendMail(entry.getKey(), subject, html);
+                outlookMailService.sendMail(email, subject, html);
+                reminderSentLogRepository.save(new ReminderSentLog(seance.getIdSeance(), email, reminderType));
             } catch (Exception e) {
-                log.warn("Échec envoi rappel à {} : {}", entry.getKey(), e.getMessage());
+                log.warn("Échec envoi rappel à {} : {}", email, e.getMessage());
             }
         }
         log.info("Rappels J-{} envoyés pour séance {} (formation {})", daysBefore, seance.getIdSeance(), formation.getIdFormation());

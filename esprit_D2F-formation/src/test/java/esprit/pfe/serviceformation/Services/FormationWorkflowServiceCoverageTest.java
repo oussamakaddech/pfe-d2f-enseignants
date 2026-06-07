@@ -43,6 +43,7 @@ class FormationWorkflowServiceCoverageTest {
     @Mock private FormationWorkflowServiceHelper helper;
     @Mock private FormationMapper formationMapper;
     @Mock private AnimateurParticipantResolver animateurParticipantResolver;
+    @Mock private EmailAuditLogRepository emailAuditLogRepository;
 
     @InjectMocks
     private FormationWorkflowService service;
@@ -105,7 +106,7 @@ class FormationWorkflowServiceCoverageTest {
                 documentRepository, formationRepository, seanceFormationRepository,
                 enseignantRepository, presenceRepository, departementRepository,
                 upRepository, animateurExterneRepository, evaluationPublisher, helper, formationMapper,
-                animateurParticipantResolver, outlookCalendarService, null);
+                animateurParticipantResolver, emailAuditLogRepository, outlookCalendarService, null);
         ReflectionTestUtils.setField(svc, "formationMapper", formationMapper);
         Formation f = createFormation(EtatFormation.PLANIFIE);
         f.setSeances(new ArrayList<>());
@@ -277,7 +278,7 @@ class FormationWorkflowServiceCoverageTest {
                 documentRepository, formationRepository, seanceFormationRepository,
                 enseignantRepository, presenceRepository, departementRepository,
                 upRepository, animateurExterneRepository, evaluationPublisher, helper, formationMapper,
-                animateurParticipantResolver, outlookCalendarService, null);
+                animateurParticipantResolver, emailAuditLogRepository, outlookCalendarService, null);
         svc.notifyTeachersOfApprovedFormation(f);
         verifyNoInteractions(enseignantRepository);
     }
@@ -290,7 +291,7 @@ class FormationWorkflowServiceCoverageTest {
                 documentRepository, formationRepository, seanceFormationRepository,
                 enseignantRepository, presenceRepository, departementRepository,
                 upRepository, animateurExterneRepository, evaluationPublisher, helper, formationMapper,
-                animateurParticipantResolver, outlookCalendarService, null);
+                animateurParticipantResolver, emailAuditLogRepository, outlookCalendarService, null);
         assertDoesNotThrow(() -> svc.notifyCUPOfApprovedFormation(f));
     }
 

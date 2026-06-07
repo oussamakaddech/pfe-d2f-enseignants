@@ -16,6 +16,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 
 import java.util.List;
 import org.springframework.http.HttpStatus;
@@ -42,7 +43,7 @@ public class AccountController {
 
     @GetMapping("/list-accounts")
     @PreAuthorize(AuthorizationMatrix.ACCOUNT_READ)
-    public Page<UserDTO> listAccounts(Pageable pageable) {
+    public Page<UserDTO> listAccounts(@PageableDefault(size = 500) Pageable pageable) {
         return this.accountService.listAccounts(pageable).map(UserDTO::new);
     }
 

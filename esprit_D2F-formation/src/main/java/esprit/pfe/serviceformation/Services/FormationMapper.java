@@ -222,6 +222,8 @@ public class FormationMapper {
             .bureauFormationMail(formation.getBureauFormationMail())
             .bureauFormationTelephone(formation.getBureauFormationTelephone())
             .salle(formation.getSalle())
+            .responsableEmail(formation.getResponsableEmail())
+            .responsableName(formation.getResponsableName())
             .periodCode(formation.getPeriodCode() != null ? formation.getPeriodCode().toString() : null)
             .customPeriodLabel(formation.getCustomPeriodLabel())
             .ouverte(formation.isOuverte())

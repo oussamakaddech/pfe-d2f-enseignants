@@ -1,9 +1,13 @@
 package esprit.pfe.serviceformation.services;
 
 import esprit.pfe.serviceformation.dto.EnseignantDTO;
+import esprit.pfe.serviceformation.entities.Dept;
 import esprit.pfe.serviceformation.entities.Enseignant;
+import esprit.pfe.serviceformation.entities.Up;
 import esprit.pfe.serviceformation.exception.DuplicateEnseignantException;
+import esprit.pfe.serviceformation.repositories.DeptRepository;
 import esprit.pfe.serviceformation.repositories.EnseignantRepository;
+import esprit.pfe.serviceformation.repositories.UpRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -16,6 +20,8 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class EnseignantServiceImpl implements EnseignantService {
     private final EnseignantRepository enseignantRepository;
+    private final UpRepository upRepository;
+    private final DeptRepository deptRepository;
 
     @Override
     @Transactional
@@ -27,6 +33,14 @@ public class EnseignantServiceImpl implements EnseignantService {
             throw new DuplicateEnseignantException(
                     "Un enseignant avec cet email existe déjà : " + enseignant.getMail());
         }
+        // Résolution des associations Up/Dept en entités MANAGÉES. Le DTO ne fournit
+        // qu'un id et construit un new Up()/Dept() transient : tenter de persister
+        // l'enseignant avec une telle référence non gérée lève une
+        // InvalidDataAccessApiUsageException (« unsaved transient instance »), non
+        // mappée → 500 générique. On recharge donc la vraie entité (ou 400 si l'id
+        // est inconnu) avant le save.
+        enseignant.setUp(resolveUp(enseignant.getUp()));
+        enseignant.setDept(resolveDept(enseignant.getDept()));
         // Auto-generate ID in format E00001, E00002, … si non fourni OU si l'id
         // fourni est déjà pris (le frontend envoie parfois un id "stable" dérivé
         // du nom qui peut entrer en collision avec un autre enseignant → sinon
@@ -66,6 +80,32 @@ public class EnseignantServiceImpl implements EnseignantService {
         return enseignantRepository.save(enseignant);
     }
 
+    /**
+     * Recharge un {@link Up} managé depuis son id. Renvoie {@code null} si aucune
+     * UP n'est demandée, lève {@link IllegalArgumentException} (→ 400) si l'id est
+     * inconnu. Évite les références transients lors du save.
+     */
+    private Up resolveUp(Up up) {
+        if (up == null || up.getId() == null || up.getId().isBlank()) {
+            return null;
+        }
+        return upRepository.findById(up.getId())
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Unité pédagogique introuvable : " + up.getId()));
+    }
+
+    /**
+     * Recharge un {@link Dept} managé depuis son id. Mêmes règles que {@link #resolveUp}.
+     */
+    private Dept resolveDept(Dept dept) {
+        if (dept == null || dept.getId() == null || dept.getId().isBlank()) {
+            return null;
+        }
+        return deptRepository.findById(dept.getId())
+                .orElseThrow(() -> new IllegalArgumentException(
+                        "Département introuvable : " + dept.getId()));
+    }
+
     @Override
     @SuppressWarnings("java:S3776")
     public Enseignant updateEnseignant(String id, Enseignant enseignant) {
@@ -83,8 +123,9 @@ public class EnseignantServiceImpl implements EnseignantService {
             if (enseignant.getEtat() != null)            e.setEtat(enseignant.getEtat());
             if (enseignant.getCup() != null)             e.setCup(enseignant.getCup());
             if (enseignant.getChefDepartement() != null) e.setChefDepartement(enseignant.getChefDepartement());
-            if (enseignant.getUp() != null)              e.setUp(enseignant.getUp());
-            if (enseignant.getDept() != null)            e.setDept(enseignant.getDept());
+            // Résolution managée (cf. createEnseignant) : éviter une référence transient.
+            if (enseignant.getUp() != null)              e.setUp(resolveUp(enseignant.getUp()));
+            if (enseignant.getDept() != null)            e.setDept(resolveDept(enseignant.getDept()));
             if (enseignant.getGrade() != null)           e.setGrade(enseignant.getGrade());
             if (enseignant.getSpecialite() != null)      e.setSpecialite(enseignant.getSpecialite());
             if (enseignant.getTelephone() != null)       e.setTelephone(enseignant.getTelephone());

@@ -4,6 +4,8 @@ import esprit.d2f.common.security.AuthorizationMatrix;
 import esprit.pfe.serviceformation.common.PageResponse;
 import esprit.pfe.serviceformation.dto.EnseignantDTO;
 import esprit.pfe.serviceformation.dto.EnseignantRequest;
+import esprit.pfe.serviceformation.dto.EnseignantWithAccountRequest;
+import esprit.pfe.serviceformation.services.EnseignantAccountService;
 import esprit.pfe.serviceformation.services.EnseignantExcelService;
 import esprit.pfe.serviceformation.services.EnseignantService;
 import esprit.pfe.serviceformation.utils.FileSecurityValidator;
@@ -26,6 +28,7 @@ import java.util.Set;
 public class EnseignantController {
     private final EnseignantExcelService excelService;
     private final EnseignantService enseignantService;
+    private final EnseignantAccountService enseignantAccountService;
 
     private static final Set<String> ALLOWED_EXCEL_MIME = Set.of(
         "application/vnd.ms-excel",
@@ -51,6 +54,22 @@ public class EnseignantController {
     @PreAuthorize(AuthorizationMatrix.REFERENTIEL_WRITE)
     public ResponseEntity<EnseignantDTO> createEnseignant(@Valid @RequestBody EnseignantRequest request) {
         return ResponseEntity.ok(enseignantService.toDTO(enseignantService.createEnseignant(request.toEntity())));
+    }
+
+    /**
+     * Création orchestrée « compte + fiche enseignant » en UN SEUL appel : crée
+     * d'abord le compte (service auth, JWT admin propagé) puis la fiche rattachée.
+     * Réservé aux administrateurs (création de compte = ACCOUNT_CREATE) : le JWT
+     * propagé doit porter ROLE_ADMIN, sinon l'appel auth est refusé (403).
+     */
+    @PostMapping("/with-account")
+    @PreAuthorize(AuthorizationMatrix.ACCOUNT_CREATE)
+    public ResponseEntity<EnseignantDTO> createEnseignantWithAccount(
+            @Valid @RequestBody EnseignantWithAccountRequest request,
+            @RequestParam(name = "role", defaultValue = "ENSEIGNANT") String role,
+            @RequestHeader(org.springframework.http.HttpHeaders.AUTHORIZATION) String authorization) {
+        EnseignantDTO created = enseignantAccountService.createEnseignantWithAccount(request, role, authorization);
+        return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
     // Mise à jour partielle (null-safe) : DTO sans @Valid pour autoriser un PUT partiel.

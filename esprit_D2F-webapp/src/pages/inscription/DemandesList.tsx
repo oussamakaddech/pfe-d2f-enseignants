@@ -28,8 +28,10 @@ import {
   ClockCircleOutlined,
 } from "@ant-design/icons";
 import { useParams, useNavigate } from "react-router-dom";
+import dayjs from "dayjs";
 import { writeExcel, exportDateLabel, isoDate } from "utils/helpers/excelExport";
 import { useInscriptionsByFormation, useTraiterDemande, useTraiterDemandeBulk, useSendEmail } from "@/hooks/formation";
+import { useFormationById } from "@/hooks/formation/useFormations";
 import useAppNotification from "@/hooks/ui/useAppNotification";
 import { AppPageHeader, InscriptionStatGrid, PageLoader, EmptyStateStandard } from "@/components/common";
 import "@/styles/pages/demandes-list.css";
@@ -123,6 +125,7 @@ export default function DemandesList() {
   const { message: msgApi } = useAppNotification();
 
   const { data: rawDemandes, isLoading: loading, refetch } = useInscriptionsByFormation(formationId);
+  const { data: formation } = useFormationById(formationId);
   const demandes = useMemo(() => normalizeDemandes(rawDemandes), [rawDemandes]);
   const traiterMut = useTraiterDemande();
   const traiterBulkMut = useTraiterDemandeBulk();
@@ -147,15 +150,19 @@ export default function DemandesList() {
       // Email best-effort : on notifie l'enseignant, sans faire échouer le flux principal.
       const target = demandes.find((d) => d.id === id);
       if (target?.enseignant?.mail) {
-        const formationLabel = `Formation #${formationId}`;
+        // FIX-S3: use real formation title and dates instead of raw ID
+        const formationTitre = formation?.titreFormation ?? `Formation #${formationId}`;
+        const dateDebut = formation?.dateDebut ? dayjs(String(formation.dateDebut)).format("DD/MM/YYYY") : null;
+        const dateFin   = formation?.dateFin   ? dayjs(String(formation.dateFin)).format("DD/MM/YYYY")   : null;
+        const dateRange = dateDebut && dateFin ? `<br>📅 Du <strong>${dateDebut}</strong> au <strong>${dateFin}</strong>` : "";
         const subject = approuver
-          ? `✅ Inscription approuvée — ${formationLabel}`
-          : `❌ Inscription rejetée — ${formationLabel}`;
+          ? `✅ Inscription approuvée — ${formationTitre}`
+          : `❌ Inscription rejetée — ${formationTitre}`;
         const greeting = `Bonjour ${target.enseignant.prenom ?? ""} ${target.enseignant.nom ?? ""},`;
         const body = approuver
-          ? `Votre demande d'inscription à la formation <strong>${formationLabel}</strong> a été <strong>approuvée</strong>.<br>` +
+          ? `Votre demande d'inscription à la formation <strong>${formationTitre}</strong> a été <strong>approuvée</strong>.${dateRange}<br>` +
             `Vous pouvez la suivre dans votre espace « Mes Inscriptions ».`
-          : `Votre demande d'inscription à la formation <strong>${formationLabel}</strong> a été <strong>rejetée</strong>.<br>` +
+          : `Votre demande d'inscription à la formation <strong>${formationTitre}</strong> a été <strong>rejetée</strong>.<br>` +
             (motif ? `Motif : <em>${motif}</em><br>` : "") +
             `Pour plus d'informations, merci de contacter le service D2F.`;
         const content =

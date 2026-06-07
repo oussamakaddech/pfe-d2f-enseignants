@@ -15,11 +15,11 @@ import java.util.Set;
 import java.util.UUID;
 
 @Entity
-@Table(	name = "users",
-        uniqueConstraints = {
-                @UniqueConstraint(columnNames = "username"),
-                @UniqueConstraint(columnNames = "email")
-        })
+// L'unicité email/username est gérée par des INDEX UNIQUES PARTIELS
+// (deleted_at IS NULL) — cf. migration V20. On NE déclare donc pas de
+// @UniqueConstraint plein ici, qui réimposerait l'unicité sur les lignes
+// soft-deleted et rebloquerait la réutilisation d'un email après suppression.
+@Table(name = "users")
 @SQLDelete(sql = "UPDATE auth.users SET deleted_at = NOW() WHERE id = ? AND version = ?")
 @SQLRestriction("deleted_at IS NULL")
 @Data

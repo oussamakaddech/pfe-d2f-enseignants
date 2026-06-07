@@ -92,6 +92,9 @@ public class FormationWorkflowRequest {
     private String periodCode;
     private String customPeriodLabel;
 
+    private String responsableEmail;
+    private String responsableName;
+
     @Data
     public static class SeanceRequest {
         private Long idSeance;

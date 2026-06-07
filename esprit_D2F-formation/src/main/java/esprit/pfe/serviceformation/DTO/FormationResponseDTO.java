@@ -109,6 +109,12 @@ public class FormationResponseDTO implements Serializable {
     @Schema(description = "Training room/location")
     private String salle;
 
+    @Schema(description = "Responsable email for MailForm pre-fill")
+    private String responsableEmail;
+
+    @Schema(description = "Responsable display name for MailForm salutation")
+    private String responsableName;
+
     @Schema(description = "Period code")
     private String periodCode;
 

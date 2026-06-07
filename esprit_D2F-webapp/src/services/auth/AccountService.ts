@@ -50,7 +50,8 @@ function normalizeUserDTO(dto: UserDTOFromBackend): AuthUser {
 
 export async function getAllAccounts(): Promise<AuthUser[]> {
   const response = await api.get<UserDTOFromBackend[] | { content: UserDTOFromBackend[] }>(
-    `${API_URL}/list-accounts`
+    `${API_URL}/list-accounts`,
+    { params: { size: 500, page: 0, sort: "lastName,asc" } }
   );
   const data = response.data;
   if (!data) return [];

@@ -11,6 +11,7 @@ import esprit.pfe.serviceformation.messaging.EvaluationBatchMessage;
 import esprit.pfe.serviceformation.messaging.EvaluationPublisher;
 import lombok.extern.slf4j.Slf4j;
 import org.hibernate.Hibernate;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,6 +19,7 @@ import static java.util.stream.Collectors.toList;
 
 import java.sql.Time;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
@@ -26,6 +28,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 @Service
 @Slf4j
@@ -45,6 +48,8 @@ public class FormationWorkflowService {
     private final FormationWorkflowServiceHelper helper;
     private final FormationMapper formationMapper;
     private final AnimateurParticipantResolver animateurParticipantResolver;
+    // FIX-Q5: email audit log
+    private final EmailAuditLogRepository emailAuditLogRepository;
 
     public FormationWorkflowService(DocumentRepository documentRepository,
             FormationRepository formationRepository,
@@ -58,6 +63,7 @@ public class FormationWorkflowService {
             FormationWorkflowServiceHelper helper,
             FormationMapper formationMapper,
             AnimateurParticipantResolver animateurParticipantResolver,
+            EmailAuditLogRepository emailAuditLogRepository,
             @org.springframework.lang.Nullable OutlookCalendarService outlookCalendarService,
             @org.springframework.lang.Nullable OutlookMailService outlookMailService) {
         this.documentRepository = documentRepository;
@@ -72,11 +78,19 @@ public class FormationWorkflowService {
         this.helper = helper;
         this.formationMapper = formationMapper;
         this.animateurParticipantResolver = animateurParticipantResolver;
+        this.emailAuditLogRepository = emailAuditLogRepository;
         this.outlookCalendarService = outlookCalendarService;
         this.outlookMailService = outlookMailService;
     }
 
-    private static final String ORGANIZER_EMAIL = "Application.Formationdesformateurs@Esprit.tn";
+    // FIX-C2: injected from application.properties (formation.organizer.email)
+    @Value("${formation.organizer.email}")
+    private String organizerEmail;
+
+    // FIX-C3: platform base URL for clickable CTAs in emails
+    @Value("${d2f.platform.url}")
+    private String platformUrl;
+
     private static final String APPROVAL_ACCENT_COLOR = "#1565c0";
     private static final String CANCELLATION_ACCENT_COLOR = "#c62828";
     private static final String DETAIL_TITLE = "Titre";
@@ -208,6 +222,8 @@ public class FormationWorkflowService {
         formation.setCoutHebergement(request.getCoutHebergement());
         formation.setCoutRepas(request.getCoutRepas());
         formation.setOuverte(request.isOuverte());
+        formation.setResponsableEmail(request.getResponsableEmail());
+        formation.setResponsableName(request.getResponsableName());
 
         if (request.getPeriodCode() != null) {
             try {
@@ -396,11 +412,14 @@ public class FormationWorkflowService {
         if (outlookMailService != null) {
             try {
                 String subject = "[D2F] Nouvelle formation enregistrée : " + formation.getTitreFormation();
-                String html = buildStateHtml(formation, "Nouvelle formation enregistrée", "📝",
+                // FIX-S8: include actor identity in admin email
+                EmailTemplateBuilder adminBuilder = baseFormationEmailBuilder(APPROVAL_ACCENT_COLOR, "📝",
+                        "Nouvelle formation enregistrée",
                         "Une nouvelle formation vient d'être enregistrée et attend d'être planifiée. "
-                                + "Vous trouverez ci-dessous le récapitulatif.",
-                    APPROVAL_ACCENT_COLOR, null, null);
-                outlookMailService.sendMail(ORGANIZER_EMAIL, subject, html);
+                                + "Vous trouverez ci-dessous le récapitulatif.", formation);
+                buildActorAuditDetail(adminBuilder);
+                String html = adminBuilder.build();
+                outlookMailService.sendMail(organizerEmail, subject, html);
             } catch (Exception ex) {
                 log.warn("Echec notification admin enregistrement : {}", ex.getMessage());
             }
@@ -418,13 +437,17 @@ public class FormationWorkflowService {
         synchronizeFormationCalendar(formation);
 
         // Notification aux animateurs et participants
+        String planifCta = "<a href=\"" + platformUrl + "/formations/" + formation.getIdFormation() + "\" "
+                + "style=\"background:#e65100;color:#fff;padding:10px 20px;border-radius:6px;"
+                + "text-decoration:none;font-weight:bold;display:inline-block;margin-top:8px;\">"
+                + "Ouvrir la formation</a>";
         sendStateNotification(formation,
                 "[D2F] Formation planifiée : " + formation.getTitreFormation(),
                 "Formation planifiée", "📅",
                 "Votre formation a été planifiée. Les séances ci-dessous ont été ajoutées à votre calendrier Outlook ; "
                         + "vous recevrez l'invitation et le lien Teams pour chaque séance.",
                 "#e65100",
-                "Merci de vérifier que les créneaux sont compatibles avec votre emploi du temps.");
+                "Merci de vérifier que les créneaux sont compatibles avec votre emploi du temps.<br><br>" + planifCta);
     }
 
     // ── VISIBLE : Notification que la formation est visible/publiée ──
@@ -438,10 +461,13 @@ public class FormationWorkflowService {
         if (outlookMailService != null) {
             try {
                 String subject = "[D2F] Formation publiée : " + formation.getTitreFormation();
-                String html = buildStateHtml(formation, "Formation publiée", "🚀",
-                        "La formation est désormais visible et ouverte aux inscriptions.",
-                    "#1b5e20", null, null);
-                outlookMailService.sendMail(ORGANIZER_EMAIL, subject, html);
+                // FIX-S8: include actor identity in admin email
+                EmailTemplateBuilder adminBuilder = baseFormationEmailBuilder("#1b5e20", "🚀",
+                        "Formation publiée",
+                        "La formation est désormais visible et ouverte aux inscriptions.", formation);
+                buildActorAuditDetail(adminBuilder);
+                String html = adminBuilder.build();
+                outlookMailService.sendMail(organizerEmail, subject, html);
             } catch (Exception ex) {
                 log.warn("Echec notification admin visibilite : {}", ex.getMessage());
             }
@@ -452,23 +478,49 @@ public class FormationWorkflowService {
 
     // ── EN_COURS : Notification que la formation a démarré ──
     private void notifyEnCours(Formation formation) {
+        // FIX-S4: include Teams link per séance; FIX-C3: add platform CTA
+        StringBuilder seanceLinks = new StringBuilder();
+        if (formation.getSeances() != null) {
+            for (SeanceFormation s : formation.getSeances()) {
+                if (s.getOnlineMeetingUrl() != null && !s.getOnlineMeetingUrl().isBlank()) {
+                    seanceLinks.append(formatDate(s.getDateSeance())).append(" → ")
+                            .append("<a href=\"").append(s.getOnlineMeetingUrl())
+                            .append("\" style=\"color:#6a1b9a;font-weight:bold;\">Rejoindre la réunion Teams</a><br>");
+                }
+            }
+        }
+        String teamsNote = seanceLinks.isEmpty()
+                ? "Lien de réunion disponible dans votre calendrier Outlook."
+                : "Liens Teams par séance :<br>" + seanceLinks;
+
+        String ctaNote = teamsNote + "<br><br>"
+                + "<a href=\"" + platformUrl + "/mes-formations/" + formation.getIdFormation() + "\" "
+                + "style=\"background:#6a1b9a;color:#fff;padding:10px 20px;border-radius:6px;"
+                + "text-decoration:none;font-weight:bold;display:inline-block;margin-top:8px;\">"
+                + "Confirmer ma présence</a>";
+
         sendStateNotification(formation,
                 "[D2F] Formation en cours : " + formation.getTitreFormation(),
                 "Formation en cours", "▶️",
                 "La formation a démarré. Bonne session à toutes et à tous !",
                 "#6a1b9a",
-                "Merci de confirmer votre présence à chaque séance directement dans la plateforme D2F.");
+                ctaNote);
     }
 
     // ── ACHEVE : Notification de fin de formation + demande évaluation ──
     private void notifyAcheve(Formation formation) {
+        // FIX-S5 + FIX-C3: add clickable evaluation link
+        String evalCta = "<a href=\"" + platformUrl + "/evaluations/" + formation.getIdFormation() + "\" "
+                + "style=\"background:#00695c;color:#fff;padding:10px 20px;border-radius:6px;"
+                + "text-decoration:none;font-weight:bold;display:inline-block;margin-top:8px;\">"
+                + "📝 Évaluer la formation maintenant</a>";
         sendStateNotification(formation,
                 "[D2F] Formation achevée : " + formation.getTitreFormation(),
                 "Formation achevée", "🎓",
                 "La formation est désormais terminée. Merci d'y avoir participé.",
                 "#00695c",
-                "Dernière étape : merci de <strong>remplir l'évaluation</strong> et de vérifier que les présences "
-                        + "ont bien été confirmées dans D2F.");
+                "Dernière étape : merci de remplir l'évaluation et de vérifier que les présences "
+                        + "ont bien été confirmées dans D2F.<br><br>" + evalCta);
     }
 
     // ── ANNULE : Notification d'annulation + suppression calendrier ──
@@ -496,8 +548,18 @@ public class FormationWorkflowService {
     // ── Notification CUP d'une nouvelle formation à planifier ──
     private void notifyCUPOfNewFormation(Formation formation) {
         if (outlookMailService == null) return;
-        if (formation.getUp() == null) return;
+        // FIX-S7: explicit warnings instead of silent returns
+        if (formation.getUp() == null) {
+            log.warn("[EMAIL] notifyCUPOfNewFormation: UP null pour formation={} — notification CUP ignorée.",
+                    formation.getIdFormation());
+            return;
+        }
         List<Enseignant> cups = enseignantRepository.findByUpAndCup(formation.getUp(), "O");
+        if (cups.isEmpty()) {
+            log.warn("[EMAIL] notifyCUPOfNewFormation: Aucun CUP trouvé pour UP={}, formation={} — notification ignorée.",
+                    formation.getUp().getId(), formation.getIdFormation());
+            return;
+        }
         String subject = "[D2F] Formation à planifier : " + formation.getTitreFormation();
         for (Enseignant cup : cups) {
             if (cup.getMail() == null || cup.getMail().isBlank()) continue;
@@ -507,9 +569,13 @@ public class FormationWorkflowService {
                     "Une nouvelle formation a été enregistrée pour votre unité pédagogique "
                         + "et requiert votre intervention.", formation)
                         .greetingName(fullName(cup))
-                        .detail("UP", formation.getUp().getLibelle())
+                        .detail("Unité Pédagogique", formation.getUp().getLibelle())
                         .note("📌 <strong>Action requise :</strong> merci de procéder à la planification des "
-                                + "séances de cette formation depuis la plateforme D2F.")
+                                + "séances de cette formation depuis la plateforme D2F.<br><br>"
+                                + "<a href=\"" + platformUrl + "/formations/" + formation.getIdFormation() + "\" "
+                                + "style=\"background:" + APPROVAL_ACCENT_COLOR + ";color:#fff;padding:10px 20px;"
+                                + "border-radius:6px;text-decoration:none;font-weight:bold;display:inline-block;\">"
+                                + "Ouvrir la formation</a>")
                         .build();
                 outlookMailService.sendMail(cup.getMail(), subject, html);
             } catch (Exception ex) {
@@ -561,7 +627,7 @@ public class FormationWorkflowService {
                 && !formation.getExterneFormateurEmail().isBlank()) {
             emails.add(formation.getExterneFormateurEmail());
         }
-        emails.add(ORGANIZER_EMAIL);
+        emails.add(organizerEmail);
         log.info("collectAllRecipientEmails: {} destinataires collectes pour la formation {}",
                 emails.size(), formation.getIdFormation());
         return emails;
@@ -578,15 +644,20 @@ public class FormationWorkflowService {
         Set<String> emails = collectAllRecipientEmails(formation);
         Map<String, String> nameByEmail = buildNameByEmail(formation);
         log.info("sendStateNotification: envoi a {} destinataires, sujet={}", emails.size(), subject);
+        // FIX-Q5: derive email type from subject prefix for audit log
+        String emailType = subject.replaceAll("^\\[D2F\\]\\s*", "").replaceAll(":.*", "").trim().toUpperCase()
+                .replace(" ", "_").replace("É", "E").replace("È", "E").replace("Î", "I");
         int successCount = 0;
         int failCount = 0;
         for (String email : emails) {
             try {
                 String html = buildStateHtml(formation, title, icon, intro, accentColor, note, nameByEmail.get(email));
                 outlookMailService.sendMail(email, subject, html);
+                auditEmail(formation.getIdFormation(), email, emailType, true, null);
                 successCount++;
             } catch (Exception ex) {
                 failCount++;
+                auditEmail(formation.getIdFormation(), email, emailType, false, ex.getMessage());
                 log.warn("Echec envoi email : {}", ex.getMessage());
             }
         }
@@ -615,6 +686,33 @@ public class FormationWorkflowService {
         return map;
     }
 
+    // FIX-S8: Returns a formatted actor-identity block for admin audit emails.
+    private String buildActorAuditDetail(EmailTemplateBuilder builder) {
+        String actor = "—";
+        try {
+            var auth = SecurityContextHolder.getContext().getAuthentication();
+            if (auth != null && auth.getName() != null) {
+                actor = auth.getName();
+            }
+        } catch (Exception ex) {
+            log.debug("Impossible de récupérer l'acteur depuis le contexte de sécurité : {}", ex.getMessage());
+        }
+        String timestamp = LocalDateTime.now(ZoneId.of(FormationWorkflowServiceHelper.TIMEZONE_TUNIS))
+                .format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"));
+        builder.detail("Action effectuée par", actor)
+               .detail("Date/Heure (Tunis)", timestamp);
+        return actor;
+    }
+
+    // FIX-Q5: persist one audit row per email send attempt (fire-and-forget; never throws)
+    private void auditEmail(Long formationId, String email, String emailType, boolean success, String errorMsg) {
+        try {
+            emailAuditLogRepository.save(new EmailAuditLog(formationId, email, emailType, success, errorMsg));
+        } catch (Exception ex) {
+            log.debug("Echec persistance audit email ({} → {}): {}", emailType, email, ex.getMessage());
+        }
+    }
+
     private void indexName(Map<String, String> map, Enseignant e) {
         if (e != null && e.getMail() != null && !e.getMail().isBlank()) {
             map.putIfAbsent(e.getMail(), fullName(e));
@@ -638,6 +736,15 @@ public class FormationWorkflowService {
 
     private EmailTemplateBuilder baseFormationEmailBuilder(String accentColor, String icon, String title, String intro,
             Formation formation) {
+        // FIX-Q3: handle null dates cleanly (no "À définir au À définir")
+        String periode;
+        String deb = formation.getDateDebut() != null ? formatDate(formation.getDateDebut()) : null;
+        String fin = formation.getDateFin()   != null ? formatDate(formation.getDateFin())   : null;
+        if (deb == null && fin == null)  { periode = A_DEFINIR; }
+        else if (deb == null)            { periode = "Jusqu'au " + fin; }
+        else if (fin == null)            { periode = "À partir du " + deb; }
+        else                             { periode = "du " + deb + " au " + fin; }
+
         return EmailTemplateBuilder.create()
                 .accentColor(accentColor)
                 .icon(icon)
@@ -645,7 +752,7 @@ public class FormationWorkflowService {
                 .intro(intro)
                 .detail(DETAIL_TITLE, formation.getTitreFormation())
                 .detail(DETAIL_DOMAIN, formation.getDomaine())
-                .detail(DETAIL_PERIOD, formatDate(formation.getDateDebut()) + " au " + formatDate(formation.getDateFin()));
+                .detail(DETAIL_PERIOD, periode);
     }
 
     private void appendFormationSeances(EmailTemplateBuilder builder, Formation formation) {
@@ -843,11 +950,20 @@ public class FormationWorkflowService {
     }
 
     private String buildApprovalNotificationHtml(Formation formation, String greetingName) {
+        // FIX-C3: add clickable CTA to formation page
+        String cta = "<a href=\"" + platformUrl + "/formations/" + formation.getIdFormation() + "\" "
+                + "style=\"background:#1b5e20;color:#fff;padding:10px 20px;border-radius:6px;"
+                + "text-decoration:none;font-weight:bold;display:inline-block;margin-top:8px;\">"
+                + "Voir la formation</a>";
         EmailTemplateBuilder builder = baseFormationEmailBuilder("#1b5e20", "✅", "Nouvelle formation disponible",
             "Une nouvelle formation vient d'être publiée et vous concerne. "
                 + "Voici l'essentiel à retenir.", formation)
-                .greetingName(greetingName);
+                .greetingName(greetingName)
+                // FIX-Q2: add UP and département for consistency
+                .detail("Unité Pédagogique", formation.getUp() != null ? formation.getUp().getLibelle() : "N/A")
+                .detail("Département", formation.getDepartement() != null ? formation.getDepartement().getLibelle() : "N/A");
         appendFormationSeances(builder, formation);
+        builder.note(cta);
         return builder.build();
     }
 
@@ -956,7 +1072,7 @@ public class FormationWorkflowService {
                 && !freshFormation.getExterneFormateurEmail().isBlank()) {
             emails.add(freshFormation.getExterneFormateurEmail());
         }
-        emails.add(ORGANIZER_EMAIL);
+        emails.add(organizerEmail);
         return emails;
     }
 
@@ -971,7 +1087,7 @@ public class FormationWorkflowService {
         boolean isNewEvent = freshSeance.getCalendarEventId() == null;
 
         OutlookEventParameters eventParams = OutlookEventParameters.builder()
-                .organizerEmail(ORGANIZER_EMAIL)
+                .organizerEmail(organizerEmail)
                 .eventId(freshSeance.getCalendarEventId())
                 .subject(eventSubject)
                 .htmlContent(eventHtmlContent)
@@ -1029,7 +1145,7 @@ public class FormationWorkflowService {
 
         if (seance.getCalendarEventId() != null) {
             try {
-                outlookCalendarService.deleteEventInCalendar(ORGANIZER_EMAIL, seance.getCalendarEventId());
+                outlookCalendarService.deleteEventInCalendar(organizerEmail, seance.getCalendarEventId());
             } catch (Exception ex) {
                 log.error("Erreur lors de la suppression de l'evenement : {}", ex.getMessage());
             }
@@ -1055,7 +1171,7 @@ public class FormationWorkflowService {
                     && !seance.getFormation().getExterneFormateurEmail().isBlank()) {
                 emails.add(seance.getFormation().getExterneFormateurEmail());
             }
-            emails.add(ORGANIZER_EMAIL);
+            emails.add(organizerEmail);
 
             sendCancellationEmails(emails, mailSubject, htmlContent);
         } catch (RuntimeException ex) {
@@ -1131,7 +1247,7 @@ public class FormationWorkflowService {
                 && !freshFormation.getExterneFormateurEmail().isBlank()) {
             allRecipientEmails.add(freshFormation.getExterneFormateurEmail());
         }
-        allRecipientEmails.add(ORGANIZER_EMAIL);
+        allRecipientEmails.add(organizerEmail);
 
         // Envoyer un email global d'annulation a tous les concernes
         // DSI §4/§2 — Outlook désactivé si azure.ad.enabled != true
@@ -1154,7 +1270,7 @@ public class FormationWorkflowService {
             for (SeanceFormation seance : freshFormation.getSeances()) {
                 if (seance.getCalendarEventId() != null) {
                     try {
-                        outlookCalendarService.deleteEventInCalendar(ORGANIZER_EMAIL, seance.getCalendarEventId());
+                        outlookCalendarService.deleteEventInCalendar(organizerEmail, seance.getCalendarEventId());
                     } catch (Exception ex) {
                         log.error("Erreur lors de la suppression de l'evenement calendar pour seance {} : {}",
                                 seance.getIdSeance(), ex.getMessage());
@@ -1180,7 +1296,7 @@ public class FormationWorkflowService {
         for (SeanceFormation seance : formation.getSeances()) {
             if (seance.getCalendarEventId() != null) {
                 try {
-                    outlookCalendarService.deleteEventInCalendar(ORGANIZER_EMAIL, seance.getCalendarEventId());
+                    outlookCalendarService.deleteEventInCalendar(organizerEmail, seance.getCalendarEventId());
                     log.info("Evenement calendrier supprime pour la seance {} de la formation {}",
                             seance.getIdSeance(), formation.getIdFormation());
                 } catch (Exception ex) {
@@ -1197,8 +1313,12 @@ public class FormationWorkflowService {
                 "Nous vous informons que la formation ci-dessous a été <strong>annulée</strong>.", formation)
                 .detail("Dates prévues", formatDate(formation.getDateDebut()) + " au " + formatDate(formation.getDateFin()));
         appendFormationSeances(builder, formation);
-        builder.note("Les séances ci-dessus sont annulées : merci de ne pas vous y présenter. "
-                + "Les événements correspondants ont été retirés de votre calendrier Outlook.");
+        // FIX-Q4: singular/plural seance
+        int seanceCount = (formation.getSeances() != null) ? formation.getSeances().size() : 0;
+        String seanceNote = seanceCount > 1
+                ? "Les séances ci-dessus sont annulées : merci de ne pas vous y présenter."
+                : "La séance ci-dessus est annulée : merci de ne pas vous y présenter.";
+        builder.note(seanceNote + " Les événements correspondants ont été retirés de votre calendrier Outlook.");
         return builder.build();
     }
 

@@ -9,6 +9,10 @@ interface Enseignant {
   nom?: string;
   prenom?: string;
   departement?: string;
+  // Fiches issues de l'annuaire (service formation) : le rattachement est porté
+  // par deptLibelle/upLibelle plutôt que par un champ `departement`.
+  deptLibelle?: string;
+  upLibelle?: string;
   grade?: string;
 }
 interface TeacherLoadCardProps {
@@ -53,7 +57,7 @@ export default function TeacherLoadCard({
     [teacher.nom, teacher.prenom],
   );
   const fullName = `${teacher.prenom ?? ""} ${teacher.nom ?? ""}`.trim();
-  const dept = (teacher.departement ?? "").toUpperCase();
+  const dept = String(teacher.departement ?? teacher.deptLibelle ?? teacher.upLibelle ?? "").toUpperCase();
 
   return (
     <div className="tlc-card">

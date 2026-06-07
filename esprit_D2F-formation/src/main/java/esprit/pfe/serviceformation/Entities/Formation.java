@@ -183,6 +183,12 @@ public class Formation extends BaseAuditEntity {
     @Column(name = "calendar_event_id", length = 512, nullable = true)
     private String calendarEventId;
 
+    @Column(name = "responsable_email", length = 255, nullable = true)
+    private String responsableEmail;
+
+    @Column(name = "responsable_name", length = 255, nullable = true)
+    private String responsableName;
+
     // DSI §4 — Soft delete : suppression logique traçable
     @Column(name = "deleted_at")
     private LocalDateTime deletedAt;

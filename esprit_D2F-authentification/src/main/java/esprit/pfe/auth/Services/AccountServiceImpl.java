@@ -17,6 +17,7 @@ import esprit.pfe.auth.payload.request.EditProfileRequest;
 import esprit.pfe.auth.payload.request.SignupRequest;
 import esprit.pfe.auth.payload.request.UpdatePasswordRequest;
 import esprit.pfe.auth.payload.response.AccountSummaryDTO;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -84,7 +85,23 @@ public class AccountServiceImpl implements AccountService {
         Set<Role> roles = new HashSet<>();
         roles.add(resolveRole(roleName));
         user.setRoles(roles);
-        return userRepository.save(user);
+
+        // saveAndFlush pour matérialiser l'INSERT dans CETTE méthode et convertir
+        // une éventuelle violation de contrainte (race, ou collision résiduelle)
+        // en 409 explicite plutôt qu'en 500 brut au commit de la transaction.
+        try {
+            return userRepository.saveAndFlush(user);
+        } catch (DataIntegrityViolationException ex) {
+            String detail = ex.getMostSpecificCause().getMessage();
+            String lower = detail != null ? detail.toLowerCase() : "";
+            if (lower.contains("email")) {
+                throw new ConflictException("Error: Email is already in use!");
+            }
+            if (lower.contains("username")) {
+                throw new ConflictException("Error: Username is already taken!");
+            }
+            throw new ConflictException("Error: account conflicts with an existing record.");
+        }
     }
 
     /**
@@ -175,14 +192,11 @@ public class AccountServiceImpl implements AccountService {
     public void deleteAccount(String userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException(USER_NOT_FOUND));
-        // Obfuscate unique fields before soft-deleting so the email/username
-        // can be reused immediately. The deleted_at timestamp preserves the audit trail.
-        // email VARCHAR(50): "d_" + UUID(36) + "@del.x" = 44 chars ✓
-        // username VARCHAR(20): "del_" + UUID truncated to 20 chars ✓
-        String shortId = userId.replace("-", "").substring(0, 12);
-        user.setEmail("d_" + userId + "@del.x");
-        user.setUsername("del_" + shortId);
-        userRepository.save(user);
+        // Soft-delete simple : @SQLDelete positionne deleted_at. L'unicité
+        // email/username étant désormais portée par des index partiels
+        // (deleted_at IS NULL — cf. V20), l'email/username réel reste lisible
+        // sur la ligne supprimée (audit trail) et redevient librement
+        // réutilisable pour un nouveau compte, sans obfuscation.
         userRepository.delete(user);
     }
 

@@ -3,6 +3,7 @@ package esprit.pfe.serviceformation.controllers;
 import esprit.pfe.serviceformation.services.DeptService;
 import esprit.pfe.serviceformation.services.UpService;
 import esprit.pfe.serviceformation.services.EnseignantService;
+import esprit.pfe.serviceformation.services.EnseignantAccountService;
 import esprit.pfe.serviceformation.services.EnseignantExcelService;
 import esprit.pfe.serviceformation.repositories.DeptRepository;
 import esprit.pfe.serviceformation.repositories.UpRepository;
@@ -39,6 +40,7 @@ class BasicControllersTest {
     @Mock private UpService upService;
     @Mock private UpRepository upRepository;
     @Mock private EnseignantService enseignantService;
+    @Mock private EnseignantAccountService enseignantAccountService;
     @Mock private EnseignantExcelService excelService;
     @Mock private FormationClosureService formationClosureService;
 
@@ -46,7 +48,7 @@ class BasicControllersTest {
     void setup() {
         mockMvcDept = TestMockMvcHelper.buildMockMvc(new DeptController(deptService));
         mockMvcUp = TestMockMvcHelper.buildMockMvc(new UpController(upService));
-        mockMvcEns = TestMockMvcHelper.buildMockMvc(new EnseignantController(excelService, enseignantService));
+        mockMvcEns = TestMockMvcHelper.buildMockMvc(new EnseignantController(excelService, enseignantService, enseignantAccountService));
     }
 
     @Test

@@ -186,6 +186,8 @@ export default function CreateAccountDrawer({
   };
 
   const onFinish = async (values: CreateAccountFormValues) => {
+    // Guard dès le début pour empêcher le double-submit (race entre click et re-render)
+    if (loading) return;
     if (values.password !== values.confirmPassword) {
       form.setFields([{ name: "confirmPassword", errors: ["Les mots de passe ne correspondent pas"] }]);
       return;
@@ -194,59 +196,48 @@ export default function CreateAccountDrawer({
     const isTeacher = TEACHER_ROLES.has(values.role);
     const isStructure = STRUCTURE_ROLES.has(values.role);
     try {
-      const created = await createAccount(
-        {
-          username: values.username,
-          password: values.password,
-          firstName: values.firstName,
-          lastName: values.lastName,
-          phoneNumber: values.phoneNumber,
-          email: values.email,
-        },
-        values.role,
-      );
-
-      // Orchestration : pour un rôle enseignant/animateur OU un responsable de
-      // structure (CUP / chef de département), on crée la fiche Enseignant liée
-      // (service formation) via le userId du compte fraîchement créé. Pour les
-      // responsables, l'indicateur cup/chefDepartement est déduit du rôle.
-      // Un échec ici ne doit PAS invalider le compte déjà créé.
       if (isTeacher || isStructure) {
-        const newUserId = String(created?.id ?? created?.userId ?? "");
-        if (!newUserId) {
-          message.warning(
-            `Compte "${values.username}" créé, mais son identifiant est introuvable : le profil devra être créé manuellement.`,
-          );
-        } else {
-          const cupFlag = isStructure ? (values.role === "CUP" ? "O" : "N") : values.cup;
-          const chefFlag = isStructure ? (values.role === "CHEF_DEPARTEMENT" ? "O" : "N") : values.chefDepartement;
-          try {
-            await EnseignantService.createEnseignant({
-              nom: values.lastName,
-              prenom: values.firstName,
-              mail: values.email,
-              telephone: values.phoneNumber,
-              type: values.type,
-              etat: values.etat,
-              cup: cupFlag,
-              chefDepartement: chefFlag,
-              grade: values.grade,
-              specialite: values.specialite,
-              upId: values.upId,
-              deptId: values.deptId,
-              userId: newUserId,
-            });
-            message.success(`Compte et profil de "${values.username}" créés avec succès`);
-          } catch (profileErr: unknown) {
-            const pe = profileErr as { response?: { data?: { message?: string } } };
-            message.warning(
-              `Compte "${values.username}" créé, mais le profil n'a pas pu être créé` +
-                (pe?.response?.data?.message ? ` (${pe.response.data.message})` : "") +
-                ". Une configuration manuelle est nécessaire.",
-            );
-          }
-        }
+        // UN SEUL APPEL : le backend formation crée le compte (auth) PUIS la
+        // fiche enseignant rattachée, de façon atomique (compensation côté
+        // serveur si la fiche échoue → pas de compte orphelin). Pour les
+        // responsables de structure, l'indicateur cup/chefDepartement est
+        // déduit du rôle.
+        const cupFlag = isStructure ? (values.role === "CUP" ? "O" : "N") : values.cup;
+        const chefFlag = isStructure ? (values.role === "CHEF_DEPARTEMENT" ? "O" : "N") : values.chefDepartement;
+        await EnseignantService.createEnseignantWithAccount(
+          {
+            username: values.username,
+            password: values.password,
+            firstName: values.firstName,
+            lastName: values.lastName,
+            email: values.email,
+            phoneNumber: values.phoneNumber,
+            type: values.type,
+            etat: values.etat,
+            cup: cupFlag,
+            chefDepartement: chefFlag,
+            grade: values.grade,
+            specialite: values.specialite,
+            upId: values.upId,
+            deptId: values.deptId,
+          },
+          values.role,
+        );
+        message.success(`Compte et profil de "${values.username}" créés avec succès`);
       } else {
+        // Rôle sans fiche enseignant (ADMIN, D2F, RESPONSABLE_DOSSIER…) :
+        // simple création de compte.
+        await createAccount(
+          {
+            username: values.username,
+            password: values.password,
+            firstName: values.firstName,
+            lastName: values.lastName,
+            phoneNumber: values.phoneNumber,
+            email: values.email,
+          },
+          values.role,
+        );
         message.success(`Compte "${values.username}" créé avec succès`);
       }
 
@@ -254,8 +245,24 @@ export default function CreateAccountDrawer({
       onSuccess?.();
       onClose();
     } catch (err: unknown) {
-      const e = err as { response?: { data?: { message?: string } } };
-      message.error(e?.response?.data?.message || "Erreur lors de la création du compte");
+      const e = err as { response?: { status?: number; data?: { message?: string } } };
+      const status = e?.response?.status;
+      const raw = e?.response?.data?.message ?? "";
+      let userMsg: string;
+      if (status === 409) {
+        if (raw.toLowerCase().includes("email")) {
+          userMsg = "Cette adresse e-mail est déjà utilisée par un compte existant. Vérifiez si cet enseignant a déjà un compte ou utilisez une autre adresse.";
+        } else if (raw.toLowerCase().includes("username")) {
+          userMsg = `Le nom d'utilisateur "${values.username}" est déjà pris. Choisissez un autre identifiant.`;
+        } else if (raw.toLowerCase().includes("id")) {
+          userMsg = "L'identifiant fourni est déjà attribué à un compte existant.";
+        } else {
+          userMsg = "Un compte avec ces informations existe déjà (conflit email ou identifiant).";
+        }
+      } else {
+        userMsg = raw || "Erreur lors de la création du compte";
+      }
+      message.error(userMsg);
     } finally {
       setLoading(false);
     }

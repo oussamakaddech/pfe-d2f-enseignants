@@ -25,7 +25,10 @@ export function buildFormationNeedHtmlEmail(
   upLabel: string,
   deptLabel: string,
   periodLabel: string,
+  cupName?: string,
 ): string {
+  // FIX-S6: personalized greeting for the CUP recipient
+  const greeting = cupName ? `Bonjour ${cupName},` : "Bonjour,";
   return `<!DOCTYPE html>
 <html>
 <head>
@@ -37,6 +40,7 @@ export function buildFormationNeedHtmlEmail(
     .header{background:linear-gradient(135deg,#B51200 0%,#9a0f00 100%);color:white;padding:35px 30px;text-align:center}
     .header h1{font-size:26px;margin:0;font-weight:600}
     .content{padding:35px 30px}
+    .greeting{font-size:16px;color:#1a202c;margin-bottom:20px;font-weight:500}
     .intro{background:#fff0ee;border-left:4px solid #B51200;padding:15px 18px;margin-bottom:28px;border-radius:4px;color:#7a0000;line-height:1.6;font-weight:500;font-size:14px}
     .section-title{font-size:13px;color:#1a202c;font-weight:700;margin-top:28px;margin-bottom:16px;text-transform:uppercase;letter-spacing:.8px}
     .info-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:24px}
@@ -56,6 +60,7 @@ export function buildFormationNeedHtmlEmail(
   <div class="container">
     <div class="header"><h1>Demande d'Informations Complémentaires</h1></div>
     <div class="content">
+      <div class="greeting">${greeting}</div>
       <div class="intro">Dans le cadre de l'instruction du besoin de formation ci-dessous, nous sollicitons votre éclairage en tant que CUP afin de compléter les informations manquantes avant approbation.</div>
       <div class="section-title">Récapitulatif du Besoin</div>
       <div class="info-grid">

@@ -32,8 +32,11 @@ public interface EnseignantRepository extends JpaRepository<Enseignant, String>,
 
     /** Enseignant dont l'id est le plus grand (ordre lexicographique), pour l'auto-incrément.
      *  Requête native volontaire : elle ignore le filtre soft-delete (@SQLRestriction) afin
-     *  que les ids des enseignants supprimés soient pris en compte → pas de collision de PK. */
-    @Query(value = "SELECT * FROM enseignants ORDER BY id DESC LIMIT 1", nativeQuery = true)
+     *  que les ids des enseignants supprimés soient pris en compte → pas de collision de PK.
+     *  Le placeholder {@code {h-schema}} est résolu par Hibernate via
+     *  {@code hibernate.default_schema} (= formation.) : la requête reste qualifiée même quand
+     *  l'URL JDBC ne fixe pas {@code currentSchema} (le search_path retombe sinon sur public). */
+    @Query(value = "SELECT * FROM {h-schema}enseignants ORDER BY id DESC LIMIT 1", nativeQuery = true)
     Optional<Enseignant> findTopByOrderByIdDesc();
     @Query("""
       SELECT e

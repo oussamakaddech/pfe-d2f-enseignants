@@ -1,9 +1,13 @@
 package esprit.pfe.serviceformation.exception;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import feign.FeignException;
 import jakarta.persistence.EntityNotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.InvalidDataAccessApiUsageException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -37,6 +41,7 @@ import java.util.stream.Collectors;
 public class GlobalExceptionHandler {
 
     private static final String MODULE_PREFIX = "FORM";
+    private static final ObjectMapper UPSTREAM_MAPPER = new ObjectMapper();
 
     // ==================== NOT FOUND ====================
     
@@ -118,8 +123,75 @@ public class GlobalExceptionHandler {
         return buildResponse(HttpStatus.CONFLICT, message, MODULE_PREFIX + "-409", request);
     }
 
+    // Mauvais usage de l'API de persistance (ex. référence vers une entité
+    // transient/détachée non résolue). Symptôme côté client = 400 clair plutôt
+    // qu'un 500 générique « erreur inattendue ».
+    @ExceptionHandler(InvalidDataAccessApiUsageException.class)
+    public ResponseEntity<ErrorResponse> handleInvalidApiUsage(InvalidDataAccessApiUsageException ex, HttpServletRequest request) {
+        log.error("Invalid data access API usage: {}", ex.getMessage());
+        String message = "Requête invalide : une référence (UP, département…) est introuvable ou mal formée.";
+        return buildResponse(HttpStatus.BAD_REQUEST, message, MODULE_PREFIX + "-400", request);
+    }
+
+    // ==================== INTER-SERVICE (FEIGN) ====================
+
+    // Erreur remontée par un service amont via Feign (ex. auth lors de la
+    // création orchestrée compte + fiche). On reporte le statut d'origine
+    // (409 email/username déjà pris, 403 droits insuffisants…) et son message,
+    // plutôt qu'un 500 opaque.
+    @ExceptionHandler(FeignException.class)
+    public ResponseEntity<ErrorResponse> handleFeign(FeignException ex, HttpServletRequest request) {
+        return buildFeignResponse(ex, request);
+    }
+
+    private ResponseEntity<ErrorResponse> buildFeignResponse(FeignException ex, HttpServletRequest request) {
+        int rawStatus = ex.status();
+        HttpStatus status = HttpStatus.resolve(rawStatus);
+        if (status == null || rawStatus <= 0) {
+            // -1 = service injoignable / timeout
+            status = HttpStatus.BAD_GATEWAY;
+        }
+        String upstreamMessage = extractUpstreamMessage(ex);
+        String message = upstreamMessage != null ? upstreamMessage
+                : "Le service d'authentification a refusé la requête.";
+        log.error("Feign error [status={}]: {}", rawStatus, ex.getMessage());
+        return buildResponse(status, message, MODULE_PREFIX + "-UPSTREAM-" + status.value(), request);
+    }
+
+    /** Recherche une {@link FeignException} dans la chaîne de causes (utile quand
+     * Resilience4j / circuit breaker l'enveloppe, ex. NoFallbackAvailableException). */
+    private FeignException findFeignCause(Throwable ex) {
+        Throwable current = ex;
+        int guard = 0;
+        while (current != null && guard++ < 10) {
+            if (current instanceof FeignException fe) {
+                return fe;
+            }
+            current = current.getCause();
+        }
+        return null;
+    }
+
+    /** Extrait le champ {@code message} du corps d'erreur JSON renvoyé par le service amont. */
+    private String extractUpstreamMessage(FeignException ex) {
+        String body = ex.contentUTF8();
+        if (body == null || body.isBlank()) {
+            return null;
+        }
+        try {
+            JsonNode node = UPSTREAM_MAPPER.readTree(body);
+            JsonNode message = node.get("message");
+            if (message != null && !message.asText().isBlank()) {
+                return message.asText();
+            }
+        } catch (Exception parseEx) {
+            log.debug("Corps d'erreur amont non-JSON, ignoré: {}", parseEx.getMessage());
+        }
+        return null;
+    }
+
     // ==================== EXTERNAL SERVICES ====================
-    
+
     @ExceptionHandler(MicrosoftGraphException.class)
     public ResponseEntity<ErrorResponse> handleMicrosoftGraph(MicrosoftGraphException ex, HttpServletRequest request) {
         log.error("Microsoft Graph API error: {}", ex.getMessage());
@@ -146,9 +218,16 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGeneral(Exception ex, HttpServletRequest request) {
+        // Une FeignException peut être enveloppée (circuit breaker /
+        // NoFallbackAvailableException…) : on la déballe pour reporter le statut
+        // amont (409, 403…) plutôt qu'un 500 opaque.
+        FeignException feignCause = findFeignCause(ex);
+        if (feignCause != null) {
+            return buildFeignResponse(feignCause, request);
+        }
         String traceId = UUID.randomUUID().toString();
         log.error("Unexpected error [traceId: {}, type: {}]: ", traceId, ex.getClass().getName(), ex);
-        return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR, 
+        return buildResponse(HttpStatus.INTERNAL_SERVER_ERROR,
                 "Une erreur inattendue s'est produite. Veuillez contacter le support technique.",
                 MODULE_PREFIX + "-500", request, traceId);
     }
