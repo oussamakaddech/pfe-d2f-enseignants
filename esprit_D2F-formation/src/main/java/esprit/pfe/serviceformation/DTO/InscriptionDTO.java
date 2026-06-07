@@ -17,4 +17,7 @@ public class InscriptionDTO {
     private EnseignantDTO enseignant;
     private String etat;
     private OffsetDateTime dateDemande;
+    /** Date du dernier traitement (approbation/rejet), null si en attente. */
+    private OffsetDateTime dateTraitement;
+    private String motif;
 }

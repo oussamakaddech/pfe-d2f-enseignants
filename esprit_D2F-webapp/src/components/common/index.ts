@@ -26,6 +26,9 @@ export { default as ResponsiveTableWrapper } from './ResponsiveTableWrapper';
 export { default as EmptyStateStandard } from './EmptyStateStandard';
 export { default as ErrorStateStandard } from './ErrorStateStandard';
 export { default as PageLoader } from './PageLoader';
+export { default as InscriptionStatGrid } from './InscriptionStatGrid';
+export { default as PageHero } from './PageHero';
+import './animations.css';
 
 // Provider (re-exported from context for backwards compatibility)
 export { default as AuthProvider, AuthContext } from '@/context/AuthContext';

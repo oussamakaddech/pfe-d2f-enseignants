@@ -1,19 +1,16 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useMemo } from "react";
 import {
   Table,
   Button,
   Space,
   Input,
   Typography,
-  Spin,
-  Empty,
   Card,
-  Row,
-  Col,
   Badge,
   Tag,
   Avatar,
-  Statistic,
+  Modal,
+  Input as AntInput,
 } from "antd";
 import type { TableColumnsType, InputRef } from "antd";
 import type { FilterDropdownProps } from "antd/es/table/interface";
@@ -32,9 +29,9 @@ import {
 } from "@ant-design/icons";
 import { useParams, useNavigate } from "react-router-dom";
 import { writeExcel, exportDateLabel, isoDate } from "utils/helpers/excelExport";
-import { useInscriptionsByFormation, useTraiterDemande } from "@/hooks/formation";
+import { useInscriptionsByFormation, useTraiterDemande, useTraiterDemandeBulk, useSendEmail } from "@/hooks/formation";
 import useAppNotification from "@/hooks/ui/useAppNotification";
-import { AppPageHeader, brand } from "@/components/common";
+import { AppPageHeader, InscriptionStatGrid, PageLoader, EmptyStateStandard } from "@/components/common";
 import "@/styles/pages/demandes-list.css";
 import type { Id } from "@/models/common";
 
@@ -55,6 +52,15 @@ interface Demande {
   etat: EtatDemande;
   dateDemande: string;
   enseignant: EnseignantRef;
+}
+
+/** Le backend peut renvoyer soit un tableau, soit un Page<…> ({content:[…]}).
+ *  On normalise défensivement (cf. FormationParticipantsPanel). */
+function normalizeDemandes(data: unknown): Demande[] {
+  if (Array.isArray(data)) return data as Demande[];
+  const obj = data as { content?: unknown } | null;
+  if (obj && Array.isArray(obj.content)) return obj.content as Demande[];
+  return [];
 }
 
 interface DemandesColumnFilterDropdownProps {
@@ -111,20 +117,108 @@ export default function DemandesList() {
   const { id: formationId } = useParams();
   const navigate = useNavigate();
   const [searchedColumn, setSearchedColumn] = useState("");
+  const [rejectTarget, setRejectTarget] = useState<Demande | null>(null);
+  const [rejectMotif, setRejectMotif] = useState("");
   const searchInput = useRef<InputRef>(null);
   const { message: msgApi } = useAppNotification();
 
-  const { data: rawDemandes = [], isLoading: loading, refetch } = useInscriptionsByFormation(formationId);
-  const demandes = rawDemandes as Demande[];
+  const { data: rawDemandes, isLoading: loading, refetch } = useInscriptionsByFormation(formationId);
+  const demandes = useMemo(() => normalizeDemandes(rawDemandes), [rawDemandes]);
   const traiterMut = useTraiterDemande();
+  const traiterBulkMut = useTraiterDemandeBulk();
+  const sendEmailMut = useSendEmail();
 
-  const handleTraitement = async (id: Id, approuver: boolean) => {
+  // P3 - F4 : sélection multiple pour actions groupées
+  const [selectedRowIds, setSelectedRowIds] = useState<React.Key[]>([]);
+  const [bulkRejectOpen, setBulkRejectOpen] = useState(false);
+  const [bulkMotif, setBulkMotif] = useState("");
+
+  const selectedPending = useMemo(
+    () => demandes.filter((d) => selectedRowIds.includes(d.id) && d.etat === "PENDING"),
+    [demandes, selectedRowIds]
+  );
+  const hasPendingSelection = selectedPending.length > 0;
+
+  const handleTraitement = async (id: Id, approuver: boolean, motif?: string) => {
     try {
-      await traiterMut.mutateAsync({ id, approuver });
+      const updated = await traiterMut.mutateAsync({ id, approuver, motif });
       msgApi.success(approuver ? "✅ Demande approuvée" : "❌ Demande rejetée");
+
+      // Email best-effort : on notifie l'enseignant, sans faire échouer le flux principal.
+      const target = demandes.find((d) => d.id === id);
+      if (target?.enseignant?.mail) {
+        const formationLabel = `Formation #${formationId}`;
+        const subject = approuver
+          ? `✅ Inscription approuvée — ${formationLabel}`
+          : `❌ Inscription rejetée — ${formationLabel}`;
+        const content = approuver
+          ? `Bonjour ${target.enseignant.prenom ?? ""} ${target.enseignant.nom ?? ""},\n\n` +
+            `Votre demande d'inscription à la formation ${formationLabel} a été APPROUVÉE.\n` +
+            `Vous pouvez la suivre dans votre espace « Mes Inscriptions ».\n\n` +
+            `Cordialement,\nL'équipe D2F`
+          : `Bonjour ${target.enseignant.prenom ?? ""} ${target.enseignant.nom ?? ""},\n\n` +
+            `Votre demande d'inscription à la formation ${formationLabel} a été rejetée.\n` +
+            (motif ? `Motif : ${motif}\n\n` : "\n") +
+            `Pour plus d'informations, merci de contacter le service D2F.\n\n` +
+            `Cordialement,\nL'équipe D2F`;
+        try {
+          await sendEmailMut.mutateAsync({ to: target.enseignant.mail, subject, content });
+        } catch {
+          // On n'invalide pas l'opération métier si l'email échoue.
+          msgApi.warning("Demande traitée, mais l'email de notification n'a pas pu être envoyé.");
+        }
+      }
+      void updated;
       void refetch();
     } catch {
       msgApi.error("Erreur lors du traitement");
+    }
+  };
+
+  const openRejectModal = (r: Demande) => {
+    setRejectTarget(r);
+    setRejectMotif("");
+  };
+
+  const closeRejectModal = () => {
+    setRejectTarget(null);
+    setRejectMotif("");
+  };
+
+  const confirmRejection = async () => {
+    if (!rejectTarget) return;
+    const motif = rejectMotif.trim() || undefined;
+    await handleTraitement(rejectTarget.id, false, motif);
+    closeRejectModal();
+  };
+
+  // P3 - F4 : traitement en lot
+  const handleBulkApprove = async () => {
+    if (!hasPendingSelection) return;
+    const ids = selectedPending.map((d) => d.id);
+    try {
+      const updated = await traiterBulkMut.mutateAsync({ ids, approuver: true });
+      msgApi.success(`✅ ${updated.length} demande(s) approuvée(s)`);
+      setSelectedRowIds([]);
+      void refetch();
+    } catch {
+      msgApi.error("Erreur lors de l'approbation groupée");
+    }
+  };
+
+  const handleBulkReject = async () => {
+    if (!hasPendingSelection) return;
+    const ids = selectedPending.map((d) => d.id);
+    const motif = bulkMotif.trim() || undefined;
+    try {
+      const updated = await traiterBulkMut.mutateAsync({ ids, approuver: false, motif });
+      msgApi.success(`❌ ${updated.length} demande(s) rejetée(s)`);
+      setSelectedRowIds([]);
+      setBulkMotif("");
+      setBulkRejectOpen(false);
+      void refetch();
+    } catch {
+      msgApi.error("Erreur lors du rejet groupé");
     }
   };
 
@@ -188,9 +282,30 @@ export default function DemandesList() {
   const pendingCount = demandes.filter((d) => d.etat === "PENDING").length;
   const rejectedCount = demandes.filter((d) => d.etat === "REJECTED").length;
 
-  if (loading) return <Spin style={{ display: "block", margin: "4rem auto" }} size="large" />;
+  if (loading) return <PageLoader tip="Chargement des demandes..." />;
   if (!demandes.length)
-    return <Empty description="Aucune inscription pour cette formation" style={{ marginTop: 80 }} />;
+    return (
+      <div style={{ maxWidth: 1200, margin: "0 auto" }}>
+        <AppPageHeader
+          icon={<UserOutlined />}
+          title={`Demandes d'inscription — Formation #${formationId}`}
+          subtitle="Gérer et traiter les demandes d'inscription des enseignants"
+          actions={
+            <Space>
+              <Button icon={<ArrowLeftOutlined />} onClick={() => navigate(-1)}>Retour</Button>
+              <Button icon={<ReloadOutlined />} onClick={() => void refetch()} loading={loading}>Actualiser</Button>
+            </Space>
+          }
+        />
+        <EmptyStateStandard
+          title="Aucune demande pour cette formation"
+          description="Les enseignants n'ont pas encore soumis de demande pour cette formation."
+          actionLabel="Retour à la formation"
+          actionIcon={<ArrowLeftOutlined />}
+          onAction={() => navigate(-1)}
+        />
+      </div>
+    );
 
   const columns: TableColumnsType<Demande> = [
     {
@@ -290,7 +405,7 @@ export default function DemandesList() {
             size="small"
             icon={<CloseCircleOutlined />}
             disabled={r.etat === "REJECTED"}
-            onClick={() => void handleTraitement(r.id, false)}
+            onClick={() => openRejectModal(r)}
           >
             Rejeter
           </Button>
@@ -321,39 +436,163 @@ export default function DemandesList() {
           }
         />
 
-        <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
-          <Col xs={12} md={6}>
-            <Card size="small">
-              <Statistic title="Total" value={total} valueStyle={{ color: "#1890ff", fontWeight: 700 }} />
-            </Card>
-          </Col>
-          <Col xs={12} md={6}>
-            <Card size="small">
-              <Statistic title="Approuvés" value={approvedCount} valueStyle={{ color: "#52c41a", fontWeight: 700 }} prefix={<CheckCircleOutlined />} />
-            </Card>
-          </Col>
-          <Col xs={12} md={6}>
-            <Card size="small">
-              <Statistic title="En attente" value={pendingCount} valueStyle={{ color: "#faad14", fontWeight: 700 }} prefix={<ClockCircleOutlined />} />
-            </Card>
-          </Col>
-          <Col xs={12} md={6}>
-            <Card size="small">
-              <Statistic title="Rejetés" value={rejectedCount} valueStyle={{ color: "#ff4d4f", fontWeight: 700 }} prefix={<CloseCircleOutlined />} />
-            </Card>
-          </Col>
-        </Row>
+        <InscriptionStatGrid
+          minColumnWidth={180}
+          stats={[
+            { icon: <TeamOutlined />,        label: "Total",      value: total,         tone: "brand"   },
+            { icon: <CheckCircleOutlined />, label: "Approuvés",  value: approvedCount, tone: "success" },
+            { icon: <ClockCircleOutlined />, label: "En attente", value: pendingCount,  tone: "warning" },
+            { icon: <CloseCircleOutlined />, label: "Rejetés",    value: rejectedCount, tone: "danger"  },
+          ]}
+        />
 
         <Card style={{ borderRadius: 12 }}>
+          {hasPendingSelection && (
+            <div
+              className="demandes-bulk-bar"
+              style={{
+                marginBottom: 12,
+                padding: "10px 14px",
+                background: "linear-gradient(90deg, rgba(181, 18, 0, 0.05), rgba(181, 18, 0, 0.10))",
+                border: "1px solid rgba(181, 18, 0, 0.25)",
+                borderRadius: 8,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: 12,
+              }}
+            >
+              <Text>
+                <strong>{selectedPending.length}</strong> demande(s) en attente sélectionnée(s)
+              </Text>
+              <Space>
+                <Button
+                  type="primary"
+                  icon={<CheckCircleOutlined />}
+                  loading={traiterBulkMut.isPending}
+                  onClick={() => void handleBulkApprove()}
+                  style={{ backgroundColor: "#1D6F42", borderColor: "#1D6F42" }}
+                >
+                  Tout approuver
+                </Button>
+                <Button
+                  danger
+                  icon={<CloseCircleOutlined />}
+                  loading={traiterBulkMut.isPending}
+                  onClick={() => setBulkRejectOpen(true)}
+                >
+                  Tout rejeter
+                </Button>
+                <Button size="small" onClick={() => setSelectedRowIds([])}>
+                  Effacer
+                </Button>
+              </Space>
+            </div>
+          )}
           <Table<Demande>
             rowKey="id"
             columns={columns}
             dataSource={demandes}
+            rowSelection={{
+              selectedRowKeys: selectedRowIds,
+              onChange: (keys) => setSelectedRowIds(keys),
+              getCheckboxProps: (record) => ({
+                disabled: record.etat !== "PENDING",
+              }),
+            }}
             pagination={{ pageSize: 8, showSizeChanger: true, pageSizeOptions: [8, 16, 32] }}
             scroll={{ x: 900 }}
             size="middle"
           />
         </Card>
+
+      <Modal
+        title={
+          <Space>
+            <CloseCircleOutlined style={{ color: "#ff4d4f" }} />
+            <span>Rejeter la demande</span>
+          </Space>
+        }
+        open={!!rejectTarget}
+        onCancel={closeRejectModal}
+        onOk={confirmRejection}
+        okText="Confirmer le rejet"
+        okButtonProps={{ danger: true, loading: traiterMut.isPending }}
+        cancelText="Annuler"
+        destroyOnClose
+      >
+        {rejectTarget && (
+          <Space direction="vertical" size={12} style={{ width: "100%" }}>
+            <Text>
+              Vous allez rejeter la demande de{" "}
+              <strong>
+                {rejectTarget.enseignant?.prenom ?? ""} {rejectTarget.enseignant?.nom ?? ""}
+              </strong>
+              {rejectTarget.enseignant?.mail ? ` (${rejectTarget.enseignant.mail})` : ""}.
+            </Text>
+            <Text type="secondary">
+              Un email de notification lui sera envoyé automatiquement.
+            </Text>
+            <div>
+              <label
+                htmlFor="reject-motif"
+                style={{ display: "block", marginBottom: 6, fontWeight: 500 }}
+              >
+                Motif du rejet (optionnel)
+              </label>
+              <AntInput.TextArea
+                id="reject-motif"
+                rows={3}
+                maxLength={500}
+                showCount
+                placeholder="Ex : Quota atteint, prérequis non validés, chevauchement de dates…"
+                value={rejectMotif}
+                onChange={(e) => setRejectMotif(e.target.value)}
+              />
+            </div>
+          </Space>
+        )}
+      </Modal>
+
+      <Modal
+        title={
+          <Space>
+            <CloseCircleOutlined style={{ color: "#ff4d4f" }} />
+            <span>Rejeter {selectedPending.length} demande(s)</span>
+          </Space>
+        }
+        open={bulkRejectOpen}
+        onCancel={() => { setBulkRejectOpen(false); setBulkMotif(""); }}
+        onOk={() => void handleBulkReject()}
+        okText="Confirmer le rejet groupé"
+        okButtonProps={{ danger: true, loading: traiterBulkMut.isPending }}
+        cancelText="Annuler"
+        destroyOnClose
+      >
+        <Space direction="vertical" size={12} style={{ width: "100%" }}>
+          <Text>
+            Vous allez rejeter les <strong>{selectedPending.length}</strong> demande(s) en attente.
+            Un email de notification sera envoyé à chaque enseignant.
+          </Text>
+          <div>
+            <label
+              htmlFor="bulk-reject-motif"
+              style={{ display: "block", marginBottom: 6, fontWeight: 500 }}
+            >
+              Motif commun (optionnel)
+            </label>
+            <AntInput.TextArea
+              id="bulk-reject-motif"
+              rows={3}
+              maxLength={500}
+              showCount
+              placeholder="Ex : Quota atteint pour cette session."
+              value={bulkMotif}
+              onChange={(e) => setBulkMotif(e.target.value)}
+            />
+          </div>
+        </Space>
+      </Modal>
     </div>
   );
 }

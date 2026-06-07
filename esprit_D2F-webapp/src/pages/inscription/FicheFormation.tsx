@@ -1,10 +1,10 @@
 import { useParams, useNavigate } from "react-router-dom";
+import { useMemo } from "react";
 import {
   Card,
   Descriptions,
   Tag,
   Badge,
-  Spin,
   Alert,
   Typography,
   Row,
@@ -25,10 +25,18 @@ import {
   FileTextOutlined,
   BarChartOutlined,
   AimOutlined,
+  UserAddOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 import { useFormationById } from "@/hooks/formation/useFormations";
+import { useProfile, useInscriptionsByEnseignant, useDemanderInscription } from "@/hooks/formation/useFormationExtras";
+import { useEnseignantById } from "@/hooks/enseignant/useEnseignants";
+import { ROLES } from "@/utils/constants/roles";
+import { PageLoader } from "@/components/common";
+import useAppNotification from "@/hooks/ui/useAppNotification";
+import FormationParticipantsPanel from "./FormationParticipantsPanel";
 import type { Formation } from "@/models/formation";
+import type { Id } from "@/models/common";
 import "@/styles/pages/fiche-formation.css";
 
 const PERIOD_OPTIONS = [
@@ -46,10 +54,46 @@ const { Title, Paragraph, Text } = Typography;
 export default function FicheFormation() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { message: msgApi } = useAppNotification();
   const { data: formation, isLoading: loading, error } = useFormationById(id);
+  const { data: profile } = useProfile();
+  const role = String(profile?.role ?? "").toLowerCase();
+  // Admin / CUP / D2F : accès à la liste des participants + statistiques.
+  const canViewParticipants =
+    role === ROLES.ADMIN.toLowerCase() ||
+    role === ROLES.CUP.toLowerCase() ||
+    role === ROLES.D2F.toLowerCase();
+
+  // ── Inscription contextualisée (D8) ───────────────────────────────────
+  const isTeacher = role === ROLES.ENSEIGNANT.toLowerCase() || role === ROLES.ANIMATEUR.toLowerCase();
+  const identifier = profile?.emailAddress || profile?.email || profile?.id;
+  const { data: enseignantSelf } = useEnseignantById(isTeacher ? identifier : undefined);
+  const enseignantCode = (enseignantSelf as { id?: Id } | undefined)?.id;
+  const { data: myInscriptionsRaw } = useInscriptionsByEnseignant(isTeacher ? enseignantCode : undefined);
+  const demanderMut = useDemanderInscription();
+
+  const myInscriptions = useMemo(
+    () => (Array.isArray(myInscriptionsRaw) ? myInscriptionsRaw as Array<{ formationId?: string; etat?: string }> : []),
+    [myInscriptionsRaw],
+  );
+  const myInscriptionForThis = useMemo(
+    () => myInscriptions.find((i) => String(i.formationId) === String(id) && i.etat !== "REJECTED") ?? null,
+    [myInscriptions, id],
+  );
+
+  const handleInscription = async () => {
+    if (!identifier || !id) return;
+    try {
+      await demanderMut.mutateAsync({ formationId: id as Id, enseignantId: identifier as Id });
+      msgApi.success("Demande d'inscription envoyée !");
+    } catch (err: unknown) {
+      const e = err as { response?: { data?: { message?: string } } };
+      msgApi.error(e?.response?.data?.message || "Échec de la demande d'inscription");
+    }
+  };
 
   if (loading) {
-    return <Spin className="fiche-spin" size="large" />;
+    return <PageLoader tip="Chargement de la fiche formation..." />;
   }
   if (error) {
     return (
@@ -105,7 +149,7 @@ export default function FicheFormation() {
           </Title>
         </Col>
         <Col>
-          <Space>
+          <Space wrap>
             <Tag color={typeColor} className="fiche-type-tag">
               {typeFormation || "—"}
             </Tag>
@@ -117,6 +161,27 @@ export default function FicheFormation() {
                 </Tag>
               }
             />
+            {isTeacher && inscriptionsOuvertes && !myInscriptionForThis && (
+              <Button
+                type="primary"
+                icon={<UserAddOutlined />}
+                onClick={handleInscription}
+                loading={demanderMut.isPending}
+              >
+                S'inscrire à cette formation
+              </Button>
+            )}
+            {isTeacher && myInscriptionForThis && (
+              <Tag
+                icon={<CheckCircleOutlined />}
+                color={myInscriptionForThis.etat === "APPROVED" ? "success" : "warning"}
+                style={{ fontWeight: 600, padding: "4px 12px", borderRadius: 16 }}
+              >
+                {myInscriptionForThis.etat === "APPROVED"
+                  ? "Demande approuvée"
+                  : "Demande en attente"}
+              </Tag>
+            )}
           </Space>
         </Col>
       </Row>
@@ -246,6 +311,9 @@ export default function FicheFormation() {
           </Card>
         </Col>
       </Row>
+
+      {/* Participants & statistiques (admin / CUP / D2F) */}
+      {canViewParticipants && id && <FormationParticipantsPanel formationId={id} />}
 
       {/* Timeline des séances */}
       {seances.length > 0 && (

@@ -38,6 +38,9 @@ public class DataSeederConfig {
                 .orElseGet(() -> roleRepository.save(new Role(ERole.ADMIN)));
         ensureRoleExists(roleRepository, ERole.CUP);
         ensureRoleExists(roleRepository, ERole.ENSEIGNANT);
+        // ANIMATEUR est le rôle canonique (cahier des charges D2F). FORMATEUR est
+        // conservé comme alias legacy pour les comptes/jetons existants.
+        ensureRoleExists(roleRepository, ERole.ANIMATEUR);
         ensureRoleExists(roleRepository, ERole.FORMATEUR);
         return adminRole;
     }

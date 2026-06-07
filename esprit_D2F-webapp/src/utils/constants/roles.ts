@@ -3,7 +3,6 @@ export const ROLES = {
   D2F:                 "D2F",
   CUP:                 "CUP",
   ENSEIGNANT:          "Enseignant",
-  FORMATEUR:           "Formateur",
   ANIMATEUR:           "Animateur",
   CHEF_DEPARTEMENT:    "CHEF_DEPARTEMENT",
   RESPONSABLE_DOSSIER: "ResponsableDossier",

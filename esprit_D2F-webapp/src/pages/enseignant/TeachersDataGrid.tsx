@@ -368,7 +368,7 @@ export default function TeachersDataGrid({ embedded = false }: { embedded?: bool
             lastName:  String((selectedTeacher as Record<string, unknown>)?.nom ?? ""),
             email:     String((selectedTeacher as Record<string, unknown>)?.mail ?? ""),
             username:  String((selectedTeacher as Record<string, unknown>)?.mail ?? "").split("@")[0] || "",
-            role:      "FORMATEUR",
+            role:      "ANIMATEUR",
           }}
         />
 

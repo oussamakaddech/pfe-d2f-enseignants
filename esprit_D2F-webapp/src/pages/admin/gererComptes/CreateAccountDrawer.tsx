@@ -21,14 +21,39 @@ import {
   CloseCircleFilled,
   IdcardOutlined,
   SafetyCertificateOutlined,
+  BankOutlined,
 } from "@ant-design/icons";
 import { createAccount } from "@/services/auth/AccountService";
+import EnseignantService from "@/services/formation/EnseignantService";
 import useAppNotification from "@/hooks/ui/useAppNotification";
+import { useAllDepts } from "@/hooks/formation/useDeptCrud";
+import { useAllUps } from "@/hooks/formation/useUpCrud";
 
 const { Option } = Select;
 
+/**
+ * Rôles « enseignants » qui affichent la section profil métier
+ * (type, grade, spécialité, UP, département…). Formateur exclu volontairement.
+ */
+const TEACHER_ROLES = new Set(["ENSEIGNANT", "ANIMATEUR"]);
+
+/**
+ * Rôles « responsables de structure » : un CUP dirige une UP, un chef de
+ * département dirige un département. On leur propose le rattachement structurel
+ * (UP / département) et on crée la fiche Enseignant avec le bon indicateur.
+ */
+const STRUCTURE_ROLES = new Set(["CUP", "CHEF_DEPARTEMENT"]);
+
+const GRADE_OPTIONS = [
+  "Assistant",
+  "Maître Assistant",
+  "Maître de Conférences",
+  "Professeur",
+];
+
 export const ACCOUNT_ROLES: Array<{ value: string; label: string; description: string }> = [
   { value: "ADMIN",              label: "Administrateur",     description: "Tous les droits sur l'application"        },
+  { value: "D2F",                label: "D2F",                description: "Service formation D2F"                     },
   { value: "CUP",                label: "CUP",                description: "Chef d'Unité Pédagogique"                  },
   { value: "CHEF_DEPARTEMENT",   label: "Chef de département", description: "Responsable d'un département"            },
   { value: "RESPONSABLE_DOSSIER",label: "Responsable dossier", description: "Gestion des dossiers de formation"       },
@@ -45,6 +70,15 @@ export interface CreateAccountFormValues {
   password: string;
   confirmPassword: string;
   role: string;
+  // ── Profil enseignant (affiché pour les rôles enseignant/animateur) ──
+  type?: string;
+  etat?: string;
+  grade?: string;
+  specialite?: string;
+  cup?: string;
+  chefDepartement?: string;
+  upId?: string;
+  deptId?: string;
 }
 
 interface CreateAccountDrawerProps {
@@ -101,19 +135,49 @@ export default function CreateAccountDrawer({
   const strength = getPasswordStrength(passwordValue);
   const roleValue = Form.useWatch("role", form);
   const roleMeta = ACCOUNT_ROLES.find((r) => r.value === roleValue);
+  const isTeacherRole = TEACHER_ROLES.has(roleValue);
+  const isStructureRole = STRUCTURE_ROLES.has(roleValue);
+  const { data: depts = [] } = useAllDepts();
+  const { data: ups = [] } = useAllUps();
 
   useEffect(() => {
     if (!open) return;
     form.resetFields();
+    const teacherDefaults = { type: "P", etat: "A", cup: "N", chefDepartement: "N" };
     if (initialValues) {
       form.setFieldsValue({
         role: "ENSEIGNANT",
+        ...teacherDefaults,
         ...initialValues,
       });
     } else {
-      form.setFieldsValue({ role: "ENSEIGNANT" });
+      form.setFieldsValue({ role: "ENSEIGNANT", ...teacherDefaults });
     }
   }, [open, initialValues, form]);
+
+  // Quand le rôle quitte un rôle enseignant, on purge les champs métier pour
+  // ne pas créer de fiche avec des valeurs résiduelles. Au retour sur un rôle
+  // enseignant, on réamorce les valeurs par défaut.
+  useEffect(() => {
+    if (!open || !roleValue) return;
+    const teacherOnlyFields = ["type", "etat", "grade", "specialite", "cup", "chefDepartement"];
+    if (TEACHER_ROLES.has(roleValue)) {
+      // Profil enseignant complet : réamorce les valeurs par défaut.
+      const cur = form.getFieldsValue(["type", "etat", "cup", "chefDepartement"]) as Record<string, string | undefined>;
+      form.setFieldsValue({
+        type: cur.type ?? "P",
+        etat: cur.etat ?? "A",
+        cup: cur.cup ?? "N",
+        chefDepartement: cur.chefDepartement ?? "N",
+      });
+    } else if (STRUCTURE_ROLES.has(roleValue)) {
+      // CUP / chef de département : on garde upId/deptId, on purge le reste.
+      form.resetFields(teacherOnlyFields);
+    } else {
+      // Rôle sans profil métier : on purge tout (y compris upId/deptId).
+      form.resetFields([...teacherOnlyFields, "upId", "deptId"]);
+    }
+  }, [roleValue, open, form]);
 
   const handleClose = () => {
     if (loading) return;
@@ -127,8 +191,10 @@ export default function CreateAccountDrawer({
       return;
     }
     setLoading(true);
+    const isTeacher = TEACHER_ROLES.has(values.role);
+    const isStructure = STRUCTURE_ROLES.has(values.role);
     try {
-      await createAccount(
+      const created = await createAccount(
         {
           username: values.username,
           password: values.password,
@@ -139,7 +205,51 @@ export default function CreateAccountDrawer({
         },
         values.role,
       );
-      message.success(`Compte "${values.username}" créé avec succès`);
+
+      // Orchestration : pour un rôle enseignant/animateur OU un responsable de
+      // structure (CUP / chef de département), on crée la fiche Enseignant liée
+      // (service formation) via le userId du compte fraîchement créé. Pour les
+      // responsables, l'indicateur cup/chefDepartement est déduit du rôle.
+      // Un échec ici ne doit PAS invalider le compte déjà créé.
+      if (isTeacher || isStructure) {
+        const newUserId = String(created?.id ?? created?.userId ?? "");
+        if (!newUserId) {
+          message.warning(
+            `Compte "${values.username}" créé, mais son identifiant est introuvable : le profil devra être créé manuellement.`,
+          );
+        } else {
+          const cupFlag = isStructure ? (values.role === "CUP" ? "O" : "N") : values.cup;
+          const chefFlag = isStructure ? (values.role === "CHEF_DEPARTEMENT" ? "O" : "N") : values.chefDepartement;
+          try {
+            await EnseignantService.createEnseignant({
+              nom: values.lastName,
+              prenom: values.firstName,
+              mail: values.email,
+              telephone: values.phoneNumber,
+              type: values.type,
+              etat: values.etat,
+              cup: cupFlag,
+              chefDepartement: chefFlag,
+              grade: values.grade,
+              specialite: values.specialite,
+              upId: values.upId,
+              deptId: values.deptId,
+              userId: newUserId,
+            });
+            message.success(`Compte et profil de "${values.username}" créés avec succès`);
+          } catch (profileErr: unknown) {
+            const pe = profileErr as { response?: { data?: { message?: string } } };
+            message.warning(
+              `Compte "${values.username}" créé, mais le profil n'a pas pu être créé` +
+                (pe?.response?.data?.message ? ` (${pe.response.data.message})` : "") +
+                ". Une configuration manuelle est nécessaire.",
+            );
+          }
+        }
+      } else {
+        message.success(`Compte "${values.username}" créé avec succès`);
+      }
+
       form.resetFields();
       onSuccess?.();
       onClose();
@@ -407,6 +517,138 @@ export default function CreateAccountDrawer({
               ))}
             </Select>
           </Form.Item>
+
+          {isTeacherRole && (
+            <>
+              <Divider style={{ margin: "18px 0" }} />
+              <SectionTitle icon={<BankOutlined />} title="Profil enseignant" />
+
+              <Row gutter={12}>
+                <Col span={12}>
+                  <Form.Item name="type" label="Type">
+                    <Select placeholder="Type">
+                      <Option value="P">Permanent (P)</Option>
+                      <Option value="V">Vacataire (V)</Option>
+                      <Option value="C">Contractuel (C)</Option>
+                    </Select>
+                  </Form.Item>
+                </Col>
+                <Col span={12}>
+                  <Form.Item name="etat" label="État">
+                    <Select placeholder="État">
+                      <Option value="A">Actif (A)</Option>
+                      <Option value="I">Inactif (I)</Option>
+                    </Select>
+                  </Form.Item>
+                </Col>
+              </Row>
+
+              <Row gutter={12}>
+                <Col span={12}>
+                  <Form.Item name="grade" label="Grade académique">
+                    <Select allowClear placeholder="Sélectionner un grade">
+                      {GRADE_OPTIONS.map((g) => (
+                        <Option key={g} value={g}>
+                          {g}
+                        </Option>
+                      ))}
+                    </Select>
+                  </Form.Item>
+                </Col>
+                <Col span={12}>
+                  <Form.Item name="specialite" label="Spécialité">
+                    <Input placeholder="Ex : Génie logiciel" />
+                  </Form.Item>
+                </Col>
+              </Row>
+
+              <Row gutter={12}>
+                <Col span={12}>
+                  <Form.Item name="cup" label="CUP (Chef d'UP)">
+                    <Select>
+                      <Option value="O">Oui</Option>
+                      <Option value="N">Non</Option>
+                    </Select>
+                  </Form.Item>
+                </Col>
+                <Col span={12}>
+                  <Form.Item name="chefDepartement" label="Chef de département">
+                    <Select>
+                      <Option value="O">Oui</Option>
+                      <Option value="N">Non</Option>
+                    </Select>
+                  </Form.Item>
+                </Col>
+              </Row>
+
+              <Row gutter={12}>
+                <Col span={12}>
+                  <Form.Item name="upId" label="Unité pédagogique">
+                    <Select allowClear placeholder="Sélectionner une UP" showSearch optionFilterProp="children">
+                      {ups.map((u) => (
+                        <Option key={u.id} value={u.id}>
+                          {u.libelle ?? u.name}
+                        </Option>
+                      ))}
+                    </Select>
+                  </Form.Item>
+                </Col>
+                <Col span={12}>
+                  <Form.Item name="deptId" label="Département">
+                    <Select allowClear placeholder="Sélectionner un département" showSearch optionFilterProp="children">
+                      {depts.map((d) => (
+                        <Option key={d.id} value={d.id}>
+                          {d.libelle ?? d.name}
+                        </Option>
+                      ))}
+                    </Select>
+                  </Form.Item>
+                </Col>
+              </Row>
+            </>
+          )}
+
+          {isStructureRole && (
+            <>
+              <Divider style={{ margin: "18px 0" }} />
+              <SectionTitle icon={<BankOutlined />} title="Rattachement structurel" />
+
+              <Row gutter={12}>
+                <Col span={12}>
+                  <Form.Item
+                    name="upId"
+                    label="Unité pédagogique"
+                    extra={roleValue === "CUP" ? "UP dirigée par ce CUP" : undefined}
+                    rules={roleValue === "CUP" ? [{ required: true, message: "Sélectionnez l'UP dirigée" }] : undefined}
+                  >
+                    <Select allowClear placeholder="Sélectionner une UP" showSearch optionFilterProp="children">
+                      {ups.map((u) => (
+                        <Option key={u.id} value={u.id}>
+                          {u.libelle ?? u.name}
+                        </Option>
+                      ))}
+                    </Select>
+                  </Form.Item>
+                </Col>
+                <Col span={12}>
+                  <Form.Item
+                    name="deptId"
+                    label="Département"
+                    extra={roleValue === "CHEF_DEPARTEMENT" ? "Département dirigé par ce chef" : undefined}
+                    rules={roleValue === "CHEF_DEPARTEMENT" ? [{ required: true, message: "Sélectionnez le département dirigé" }] : undefined}
+                  >
+                    <Select allowClear placeholder="Sélectionner un département" showSearch optionFilterProp="children">
+                      {depts.map((d) => (
+                        <Option key={d.id} value={d.id}>
+                          {d.libelle ?? d.name}
+                        </Option>
+                      ))}
+                    </Select>
+                  </Form.Item>
+                </Col>
+              </Row>
+            </>
+          )}
 
           <Alert
             type="info"

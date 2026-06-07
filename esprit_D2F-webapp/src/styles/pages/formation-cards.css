@@ -367,6 +367,12 @@
   animation: softPulse 2s infinite;
 }
 
+/* P3 - F9 : badge "Démarrage imminent" — animation plus marquée pour
+   alerter l'enseignant sans être agressive. */
+.card-soon-tag {
+  animation: softPulse 1.5s infinite;
+}
+
 /* ── Empty state ─────────────────────────────────────────────────────────── */
 .fc-empty {
   margin-top: 80px;

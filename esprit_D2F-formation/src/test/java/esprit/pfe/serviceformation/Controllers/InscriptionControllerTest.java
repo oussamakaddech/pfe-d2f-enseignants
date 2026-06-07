@@ -93,6 +93,33 @@ class InscriptionControllerTest {
     }
 
     @Test
+    @DisplayName("PUT /inscriptions/traiter-bulk retourne 200 et la liste mise à jour")
+    void testTraiterBulk() throws Exception {
+        esprit.pfe.serviceformation.dto.InscriptionDTO dto = new esprit.pfe.serviceformation.dto.InscriptionDTO();
+        dto.setId(1L);
+        when(inscriptionService.traiterDemandeBulkDTO(anyList(), anyBoolean(), org.mockito.ArgumentMatchers.isNull()))
+                .thenReturn(List.of(dto));
+
+        String body = "{\"ids\":[1,2,3],\"approuver\":true}";
+        mockMvc.perform(put("/api/v1/inscription/inscriptions/traiter-bulk")
+                .contentType("application/json")
+                .content(body))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].id").value(1));
+    }
+
+    @Test
+    @DisplayName("PUT /inscriptions/traiter-bulk gère un body sans ids sans crash")
+    void testTraiterBulk_EmptyIds() throws Exception {
+        when(inscriptionService.traiterDemandeBulkDTO(anyList(), anyBoolean(), org.mockito.ArgumentMatchers.isNull()))
+                .thenReturn(Collections.emptyList());
+        mockMvc.perform(put("/api/v1/inscription/inscriptions/traiter-bulk")
+                .contentType("application/json")
+                .content("{\"ids\":[],\"approuver\":true}"))
+                .andExpect(status().isOk());
+    }
+
+    @Test
     @DisplayName("GET /enseignant/{id} retourne les inscriptions resumees")
     void testGetByEnseignant() throws Exception {
         InscriptionSummaryDTO dto = new InscriptionSummaryDTO();

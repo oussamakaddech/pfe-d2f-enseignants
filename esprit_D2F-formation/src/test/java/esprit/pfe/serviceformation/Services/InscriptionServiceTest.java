@@ -168,6 +168,39 @@ class InscriptionServiceTest {
         
         service.traiterDemande(1L, true);
         assertEquals(EtatInscription.APPROVED, ins.getEtat());
+        // P3 - F7 : la date de traitement doit être renseignée
+        assertNotNull(ins.getDateTraitement());
+    }
+
+    @Test
+    void testTraiterDemandeBulk_MixedExistence() {
+        Inscription a = new Inscription();
+        a.setId(1L);
+        a.setEtat(EtatInscription.PENDING);
+        a.setFormation(createValidFormation(1L));
+        a.setEnseignant(new Enseignant());
+        Inscription b = new Inscription();
+        b.setId(3L);
+        b.setEtat(EtatInscription.PENDING);
+        b.setFormation(createValidFormation(3L));
+        b.setEnseignant(new Enseignant());
+
+        when(inscriptionRepo.findById(1L)).thenReturn(Optional.of(a));
+        when(inscriptionRepo.findById(2L)).thenReturn(Optional.empty()); // inexistant
+        when(inscriptionRepo.findById(3L)).thenReturn(Optional.of(b));
+        when(inscriptionRepo.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        List<Inscription> result = service.traiterDemandeBulk(List.of(1L, 2L, 3L), true, null);
+        // L'id 2 (inexistant) doit être silencieusement ignoré
+        assertEquals(2, result.size());
+        assertEquals(1L, result.get(0).getId());
+        assertEquals(3L, result.get(1).getId());
+    }
+
+    @Test
+    void testTraiterDemandeBulk_EmptyList() {
+        assertTrue(service.traiterDemandeBulk(List.of(), true, null).isEmpty());
+        assertTrue(service.traiterDemandeBulk(null, true, null).isEmpty());
     }
 
     @Test

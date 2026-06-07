@@ -1,4 +1,11 @@
-export type UserRole = "admin" | "D2F" | "CUP" | "Enseignant" | "Formateur" | "ResponsableDossier" | "CHEF_DEPARTEMENT" | "RESPONSABLE_DOSSIER";
+// Source de vérité : `utils/constants/roles.ts` (dérivé de `ROLES`).
+// On importe + re-exporte ici pour préserver la compatibilité des imports
+// existants (`@/models/auth`) et éviter d'avoir 3 déclarations désynchronisées.
+// Rôles valides : "admin" | "D2F" | "CUP" | "Enseignant" | "Animateur"
+//                 | "CHEF_DEPARTEMENT" | "ResponsableDossier"
+// (Le rôle FORMATEUR a été consolidé dans ANIMATEUR — cf. migration V19.)
+import type { UserRole } from "@/utils/constants/roles";
+export type { UserRole };
 
 export interface AuthUser {
   id?: string | number;

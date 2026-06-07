@@ -22,6 +22,7 @@ public class EnseignantDTO implements Serializable {
     private String cup;
     private String chefDepartement;
     private String grade;
+    private String specialite;
     private String telephone;
     private String photoUrl;
     private String userId;

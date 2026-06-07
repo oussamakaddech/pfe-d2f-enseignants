@@ -32,10 +32,11 @@ type AccountItem = {
 
 function mergeAuthAccountAnimateurs(accountsData: AccountItem[], enseignantsData: EditPerson[]): EditPerson[] {
   if (!Array.isArray(accountsData)) return [];
+  // Rôle FORMATEUR consolidé dans ANIMATEUR (cf. migration V19).
   const formateurs = accountsData
     .filter((a) => {
       const role = (a.role || "").toUpperCase();
-      return role === "FORMATEUR" || role === "ANIMATEUR";
+      return role === "ANIMATEUR";
     })
     .map((a) => ({
       id: a.id,
@@ -185,7 +186,7 @@ export function useFormationWorkflowEdit(formation: EditFormation, onFormationUp
     return (accountsData as AccountItem[])
       .filter((a) => {
         const role = (a.role || "").toUpperCase();
-        return role === "ENSEIGNANT" || role === "FORMATEUR" || role === "ANIMATEUR";
+        return role === "ENSEIGNANT" || role === "ANIMATEUR";
       })
       .filter((a) => {
         const mail = (a.emailAddress || a.email || "").toLowerCase();

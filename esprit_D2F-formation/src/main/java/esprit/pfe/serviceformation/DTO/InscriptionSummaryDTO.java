@@ -19,6 +19,8 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class InscriptionSummaryDTO {
+    /** Identifiant technique de l'inscription (utilisé pour annulation côté enseignant). */
+    private Long id;
     private String formationId;
     private String titreFormation;
     private String dateDebut;
@@ -26,4 +28,12 @@ public class InscriptionSummaryDTO {
     private String chargeHoraire;
     private String etatFormation;
     private List<String> competencesCiblees;
+    // Statut de la demande d'inscription (PENDING/APPROVED/REJECTED) + date.
+    // Champs additifs (rétro-compatibles) pour le suivi côté enseignant.
+    private String etat;
+    private String dateDemande;
+    /** Date du dernier traitement (approbation/rejet), null si en attente. */
+    private String dateTraitement;
+    /** Motif de rejet fourni par l'administrateur (visible côté enseignant). */
+    private String motif;
 }

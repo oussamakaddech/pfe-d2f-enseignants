@@ -13,6 +13,7 @@ import {
   Card,
   Row,
   Col,
+  Divider,
 } from 'antd';
 import type { TableColumnsType, InputRef } from 'antd';
 import type { FilterDropdownProps } from 'antd/es/table/interface';
@@ -32,8 +33,13 @@ import {
   LockOutlined,
   UnlockOutlined,
   SortAscendingOutlined,
+  BankOutlined,
 } from '@ant-design/icons';
 import { useAllAccounts } from "@/hooks/formation/useFormations";
+import { useEnseignants, type Enseignant } from "@/hooks/enseignant/useEnseignants";
+import { useAllDepts } from "@/hooks/formation/useDeptCrud";
+import { useAllUps } from "@/hooks/formation/useUpCrud";
+import EnseignantService from "@/services/formation/EnseignantService";
 import { useBanAccount, useEnableAccount, useDeleteAccount, useUpdateAccount } from "@/hooks/auth/useAuthService";
 import useAppNotification from "@/hooks/ui/useAppNotification";
 import CreateAccountDrawer, { ACCOUNT_ROLES } from "@/pages/admin/gererComptes/CreateAccountDrawer";
@@ -44,6 +50,12 @@ import type { Id } from "@/models/common";
 
 const { Text } = Typography;
 const { Option } = Select;
+
+/** Rôles « enseignants » affichant la section profil métier (cf. CreateAccountDrawer). */
+const TEACHER_ROLES = new Set(["ENSEIGNANT", "ANIMATEUR"]);
+/** Responsables de structure : CUP dirige une UP, chef de département un département. */
+const STRUCTURE_ROLES = new Set(["CUP", "CHEF_DEPARTEMENT"]);
+const GRADE_OPTIONS = ["Assistant", "Maître Assistant", "Maître de Conférences", "Professeur"];
 
 type AccountStatus = 'ACTIF' | 'BLOQUÉ' | 'INCONNU';
 
@@ -142,6 +154,31 @@ export default function ListAccounts({ embedded = false }: { embedded?: boolean 
   const [editForm] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const { data: allAccounts, isLoading, refetch: refetchAllAccounts } = useAllAccounts();
+  const { data: enseignants = [] } = useEnseignants();
+
+  const { data: depts = [] } = useAllDepts();
+  const { data: ups = [] } = useAllUps();
+
+  // Carte userId → fiche Enseignant complète (service formation). Sert à afficher
+  // le département en liste ET à pré-remplir / mettre à jour le profil en édition.
+  const enseignantByUserId = useMemo(() => {
+    const map = new Map<string, Enseignant>();
+    for (const e of enseignants) {
+      const uid = (e as Record<string, unknown>).userId;
+      if (uid != null) map.set(String(uid), e);
+    }
+    return map;
+  }, [enseignants]);
+  const deptByUserId = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const [uid, e] of enseignantByUserId) {
+      if (e.deptLibelle) map.set(uid, e.deptLibelle);
+    }
+    return map;
+  }, [enseignantByUserId]);
+  const editRoleValue = Form.useWatch("role", editForm);
+  const isEditTeacherRole = TEACHER_ROLES.has(String(editRoleValue ?? ""));
+  const isEditStructureRole = STRUCTURE_ROLES.has(String(editRoleValue ?? ""));
   const { mutateAsync: banAccountApi } = useBanAccount();
   const { mutateAsync: enableAccountApi } = useEnableAccount();
   const { mutateAsync: deleteAccountApi } = useDeleteAccount();
@@ -220,12 +257,22 @@ export default function ListAccounts({ embedded = false }: { embedded?: boolean 
 
   const handleEdit = (record: Account) => {
     setEditingRecord(record);
+    const fiche = enseignantByUserId.get(getAccountId(record)) as Record<string, unknown> | undefined;
     editForm.setFieldsValue({
       firstName: record.firsName || record.firstName,
       lastName: record.lastName,
       email: record.email,
       phoneNumber: record.phoneNumber,
       role: (record.role ?? "").toUpperCase(),
+      // Profil enseignant (pré-rempli depuis la fiche si elle existe)
+      type: (fiche?.type as string) ?? "P",
+      etat: (fiche?.etat as string) ?? "A",
+      grade: fiche?.grade as string | undefined,
+      specialite: fiche?.specialite as string | undefined,
+      cup: (fiche?.cup as string) ?? "N",
+      chefDepartement: (fiche?.chefDepartement as string) ?? "N",
+      upId: fiche?.upId as string | undefined,
+      deptId: fiche?.deptId as string | undefined,
     });
     setEditModalVisible(true);
   };
@@ -234,8 +281,9 @@ export default function ListAccounts({ embedded = false }: { embedded?: boolean 
     try {
       const values = await editForm.validateFields();
       setLoading(true);
+      const userId = editingRecord ? getAccountId(editingRecord) : "";
       await updateAccountApi({
-        userId: editingRecord ? getAccountId(editingRecord) : "",
+        userId,
         data: {
           firstName: values.firstName as string,
           lastName: values.lastName as string,
@@ -244,7 +292,51 @@ export default function ListAccounts({ embedded = false }: { embedded?: boolean 
         },
         role: values.role as string,
       });
-      msgApi.success('Compte modifié avec succès !');
+
+      // Profil métier : pour un rôle enseignant/animateur OU responsable de
+      // structure (CUP / chef de département), on met à jour la fiche liée (ou on
+      // la crée si absente). Pour les responsables, l'indicateur cup/chefDepartement
+      // est déduit du rôle. Un échec ici ne masque pas la réussite du compte.
+      const roleStr = String(values.role ?? "");
+      const isTeacher = TEACHER_ROLES.has(roleStr);
+      const isStructure = STRUCTURE_ROLES.has(roleStr);
+      if ((isTeacher || isStructure) && userId) {
+        const fiche = enseignantByUserId.get(userId);
+        const cupFlag = isStructure ? (roleStr === "CUP" ? "O" : "N") : values.cup;
+        const chefFlag = isStructure ? (roleStr === "CHEF_DEPARTEMENT" ? "O" : "N") : values.chefDepartement;
+        const ficheData = {
+          nom: values.lastName as string,
+          prenom: values.firstName as string,
+          mail: values.email as string,
+          telephone: values.phoneNumber as string,
+          type: values.type,
+          etat: values.etat,
+          grade: values.grade,
+          specialite: values.specialite,
+          cup: cupFlag,
+          chefDepartement: chefFlag,
+          upId: values.upId,
+          deptId: values.deptId,
+          userId,
+        };
+        try {
+          if (fiche?.id != null) {
+            await EnseignantService.updateEnseignant(fiche.id, ficheData);
+          } else {
+            await EnseignantService.createEnseignant(ficheData);
+          }
+          msgApi.success('Compte et profil mis à jour !');
+        } catch (profileErr: unknown) {
+          const pe = profileErr as { response?: { data?: { message?: string } } };
+          msgApi.warning(
+            "Compte mis à jour, mais le profil n'a pas pu être enregistré" +
+              (pe?.response?.data?.message ? ` (${pe.response.data.message})` : "") + ".",
+          );
+        }
+      } else {
+        msgApi.success('Compte modifié avec succès !');
+      }
+
       setEditModalVisible(false);
       editForm.resetFields();
       setEditingRecord(null);
@@ -405,6 +497,29 @@ export default function ListAccounts({ embedded = false }: { embedded?: boolean 
       key: 'role',
       width: 180,
       render: (role: string) => <RoleBadge role={role} />,
+    },
+    {
+      title: 'Département',
+      key: 'departement',
+      width: 180,
+      responsive: ['lg'],
+      render: (_: unknown, record: Account) => {
+        const role = (record.role ?? '').toUpperCase();
+        if (role !== 'ENSEIGNANT' && role !== 'ANIMATEUR') {
+          return <span style={{ color: neutral[300] }}>—</span>;
+        }
+        const dept = deptByUserId.get(getAccountId(record));
+        return dept ? (
+          <span style={{ color: neutral[700], fontSize: 13 }}>
+            <BankOutlined style={{ marginRight: 6, color: brand[500] }} />
+            {dept}
+          </span>
+        ) : (
+          <span style={{ color: neutral[400], fontSize: 12, fontStyle: 'italic' }}>
+            Profil à configurer
+          </span>
+        );
+      },
     },
     {
       title: 'Statut',
@@ -705,6 +820,121 @@ export default function ListAccounts({ embedded = false }: { embedded?: boolean 
               ))}
             </Select>
           </Form.Item>
+
+          {isEditTeacherRole && (
+            <>
+              <Divider style={{ margin: "8px 0 16px" }}>Profil enseignant</Divider>
+              <Row gutter={16}>
+                <Col span={12}>
+                  <Form.Item name="type" label="Type">
+                    <Select>
+                      <Option value="P">Permanent (P)</Option>
+                      <Option value="V">Vacataire (V)</Option>
+                      <Option value="C">Contractuel (C)</Option>
+                    </Select>
+                  </Form.Item>
+                </Col>
+                <Col span={12}>
+                  <Form.Item name="etat" label="État">
+                    <Select>
+                      <Option value="A">Actif (A)</Option>
+                      <Option value="I">Inactif (I)</Option>
+                    </Select>
+                  </Form.Item>
+                </Col>
+              </Row>
+              <Row gutter={16}>
+                <Col span={12}>
+                  <Form.Item name="grade" label="Grade académique">
+                    <Select allowClear placeholder="Sélectionner un grade">
+                      {GRADE_OPTIONS.map((g) => (
+                        <Option key={g} value={g}>{g}</Option>
+                      ))}
+                    </Select>
+                  </Form.Item>
+                </Col>
+                <Col span={12}>
+                  <Form.Item name="specialite" label="Spécialité">
+                    <Input placeholder="Ex : Génie logiciel" />
+                  </Form.Item>
+                </Col>
+              </Row>
+              <Row gutter={16}>
+                <Col span={12}>
+                  <Form.Item name="cup" label="CUP (Chef d'UP)">
+                    <Select>
+                      <Option value="O">Oui</Option>
+                      <Option value="N">Non</Option>
+                    </Select>
+                  </Form.Item>
+                </Col>
+                <Col span={12}>
+                  <Form.Item name="chefDepartement" label="Chef de département">
+                    <Select>
+                      <Option value="O">Oui</Option>
+                      <Option value="N">Non</Option>
+                    </Select>
+                  </Form.Item>
+                </Col>
+              </Row>
+              <Row gutter={16}>
+                <Col span={12}>
+                  <Form.Item name="upId" label="Unité pédagogique">
+                    <Select allowClear placeholder="Sélectionner une UP" showSearch optionFilterProp="children">
+                      {ups.map((u) => (
+                        <Option key={u.id} value={u.id}>{u.libelle ?? u.name}</Option>
+                      ))}
+                    </Select>
+                  </Form.Item>
+                </Col>
+                <Col span={12}>
+                  <Form.Item name="deptId" label="Département">
+                    <Select allowClear placeholder="Sélectionner un département" showSearch optionFilterProp="children">
+                      {depts.map((d) => (
+                        <Option key={d.id} value={d.id}>{d.libelle ?? d.name}</Option>
+                      ))}
+                    </Select>
+                  </Form.Item>
+                </Col>
+              </Row>
+            </>
+          )}
+
+          {isEditStructureRole && (
+            <>
+              <Divider style={{ margin: "8px 0 16px" }}>Rattachement structurel</Divider>
+              <Row gutter={16}>
+                <Col span={12}>
+                  <Form.Item
+                    name="upId"
+                    label="Unité pédagogique"
+                    extra={editRoleValue === "CUP" ? "UP dirigée par ce CUP" : undefined}
+                    rules={editRoleValue === "CUP" ? [{ required: true, message: "Sélectionnez l'UP dirigée" }] : undefined}
+                  >
+                    <Select allowClear placeholder="Sélectionner une UP" showSearch optionFilterProp="children">
+                      {ups.map((u) => (
+                        <Option key={u.id} value={u.id}>{u.libelle ?? u.name}</Option>
+                      ))}
+                    </Select>
+                  </Form.Item>
+                </Col>
+                <Col span={12}>
+                  <Form.Item
+                    name="deptId"
+                    label="Département"
+                    extra={editRoleValue === "CHEF_DEPARTEMENT" ? "Département dirigé par ce chef" : undefined}
+                    rules={editRoleValue === "CHEF_DEPARTEMENT" ? [{ required: true, message: "Sélectionnez le département dirigé" }] : undefined}
+                  >
+                    <Select allowClear placeholder="Sélectionner un département" showSearch optionFilterProp="children">
+                      {depts.map((d) => (
+                        <Option key={d.id} value={d.id}>{d.libelle ?? d.name}</Option>
+                      ))}
+                    </Select>
+                  </Form.Item>
+                </Col>
+              </Row>
+            </>
+          )}
         </Form>
       </Modal>
     </div>

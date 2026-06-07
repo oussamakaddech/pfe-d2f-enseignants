@@ -54,6 +54,9 @@ public class EnseignantRequest {
     @Size(max = 100)
     private String grade;
 
+    @Size(max = 150)
+    private String specialite;
+
     @Size(max = 30)
     private String telephone;
 
@@ -80,6 +83,7 @@ public class EnseignantRequest {
         e.setCup(cup);
         e.setChefDepartement(chefDepartement);
         e.setGrade(grade);
+        e.setSpecialite(specialite);
         e.setTelephone(telephone);
         e.setPhotoUrl(photoUrl);
         e.setUserId(userId);

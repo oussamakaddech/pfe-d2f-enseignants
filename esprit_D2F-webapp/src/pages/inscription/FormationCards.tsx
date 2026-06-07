@@ -4,9 +4,7 @@ import {
   Row,
   Col,
   Card,
-  Spin,
-  Empty,
-  Tooltip,
+  Space,
   Select,
   DatePicker,
   Input,
@@ -28,15 +26,17 @@ import {
   FilterOutlined,
   ReloadOutlined,
   AppstoreOutlined,
+  ThunderboltOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 
 import { useFormationsVisibles, useAllFormations, useFormationsParUp, useUpdateInscriptionsOuvertes } from "@/hooks/formation/useFormations";
-import { useProfile, useDemanderInscription, useFormationsAccessibles } from "@/hooks/formation/useFormationExtras";
+import { useProfile, useDemanderInscription, useFormationsAccessibles, useInscriptionsByEnseignant } from "@/hooks/formation/useFormationExtras";
 import { useEnseignantById } from "@/hooks/enseignant/useEnseignants";
 import { ROLES } from "@/utils/constants/roles";
 
 import "@/styles/pages/formation-cards.css";
+import { PageLoader, EmptyStateStandard, InscriptionStatGrid, PageHero } from "@/components/common";
 import useAppNotification from "@/hooks/ui/useAppNotification";
 import type { Id } from "@/models/common";
 import type { Dayjs } from "dayjs";
@@ -67,6 +67,20 @@ function getTypeClass(type: string | undefined) {
   return `type-${t}`;
 }
 
+/**
+ * P3 - F9 : calcule l'écart entre aujourd'hui et dateDebut.
+ *  - retourne null si la formation n'est pas ouverte aux inscriptions
+ *    ou si dateDebut est absente.
+ *  - retourne un entier négatif si la formation a déjà démarré.
+ *  - retourne 0 si elle démarre aujourd'hui.
+ */
+function daysUntilStart(dateDebut?: string): number | null {
+  if (!dateDebut) return null;
+  const start = dayjs(dateDebut);
+  if (!start.isValid()) return null;
+  return start.startOf("day").diff(dayjs().startOf("day"), "day");
+}
+
 
 export default function FormationCards() {
   const [requested, setRequested] = useState<Id[]>([]);
@@ -85,18 +99,33 @@ export default function FormationCards() {
   const identifier = currentUser?.emailAddress || currentUser?.email || currentUser?.id;
   const { data: enseignant } = useEnseignantById(currentUser?.role === ROLES.CUP ? identifier : undefined);
   const { data: parUp, refetch: refetchParUp } = useFormationsParUp(currentUser?.role === ROLES.CUP ? (enseignant as EnseignantData | undefined)?.up?.id : undefined);
-  const { data: accessibles, refetch: refetchAccessibles } = useFormationsAccessibles(currentUser?.role === ROLES.FORMATEUR ? identifier : undefined);
+  const { data: accessibles, refetch: refetchAccessibles } = useFormationsAccessibles(currentUser?.role === ROLES.ANIMATEUR ? identifier : undefined);
   const { data: visibles, isLoading: visiblesLoading, refetch: refetchVisibles } = useFormationsVisibles();
   const { data: all } = useAllFormations();
   const { mutateAsync: updateOuvertes } = useUpdateInscriptionsOuvertes();
   const { mutateAsync: demanderMutation } = useDemanderInscription();
+
+  // État « déjà demandé » réel (serveur) : on récupère les inscriptions de
+  // l'enseignant pour marquer les formations déjà demandées (persistant au reload).
+  const isTeacherForData = currentUser?.role === ROLES.ENSEIGNANT || currentUser?.role === ROLES.ANIMATEUR;
+  const { data: enseignantSelf } = useEnseignantById(isTeacherForData ? identifier : undefined);
+  const { data: myInscriptions = [] } = useInscriptionsByEnseignant(
+    (enseignantSelf as { id?: Id } | undefined)?.id,
+  );
+  const requestedServer = useMemo(() => {
+    const s = new Set<string>();
+    (myInscriptions as Array<{ formationId?: string; etat?: string }>).forEach((i) => {
+      if (i.formationId && i.etat !== "REJECTED") s.add(String(i.formationId));
+    });
+    return s;
+  }, [myInscriptions]);
 
   const formations = useMemo(() => {
     if (!currentUser) return [];
     let data: FormationItem[] = [];
     if (currentUser.role === ROLES.CUP) {
       data = (parUp as FormationItem[] | undefined) ?? [];
-    } else if (currentUser.role === ROLES.FORMATEUR) {
+    } else if (currentUser.role === ROLES.ANIMATEUR) {
       data = (accessibles as FormationItem[] | undefined) ?? [];
     } else {
       data = (visibles as FormationItem[] | undefined) ?? [];
@@ -104,7 +133,11 @@ export default function FormationCards() {
         data = (all as FormationItem[] | undefined) ?? [];
       }
     }
-    return Array.isArray(data) ? data : [];
+    const list = Array.isArray(data) ? data : [];
+    // Enseignant / animateur : on n'affiche que les formations dont les
+    // inscriptions sont ouvertes (les seules auxquelles ils peuvent s'inscrire).
+    const isTeacher = currentUser.role === ROLES.ENSEIGNANT || currentUser.role === ROLES.ANIMATEUR;
+    return isTeacher ? list.filter((f) => f.inscriptionsOuvertes === true) : list;
   }, [currentUser, parUp, accessibles, visibles, all]);
 
   const loading = profileLoading || visiblesLoading || (!currentUser);
@@ -135,8 +168,12 @@ export default function FormationCards() {
     try {
       await demanderMutation({ formationId: idFormation, enseignantId: identifier as Id });
       messageApi.success("Demande d'inscription envoyée !");
-      setRequested((prev) => [...prev, idFormation]);
     } catch (err: unknown) {
+      // On retire l'id de `requested` pour ne pas bloquer le bouton en cas
+      // d'erreur réseau / chevauchement / quota : l'utilisateur doit pouvoir
+      // retenter. La source de vérité reste `requestedServer` (re-fetch à
+      // l'ouverture suivante via `useInscriptionsByEnseignant`).
+      setRequested((prev) => prev.filter((id) => id !== idFormation));
       const e = err as { response?: { data?: { message?: string } } };
       messageApi.error(e.response?.data?.message || "Échec de la demande");
     }
@@ -177,98 +214,101 @@ export default function FormationCards() {
   // Stats
   const stats = useMemo(() => {
     const total = formationsList.length;
-    const open = formationsList.filter((f) => f.ouverte).length;
+    const open = formationsList.filter((f) => f.inscriptionsOuvertes).length;
     const closed = total - open;
     const uniqueTypes = new Set(formationsList.map((f) => f.typeFormation).filter(Boolean)).size;
-    return { total, open, closed, uniqueTypes };
+    const startingSoon = formationsList.filter((f) => {
+      if (!f.inscriptionsOuvertes) return false;
+      const d = daysUntilStart(f.dateDebut);
+      return d !== null && d >= 0 && d <= 7;
+    }).length;
+    return { total, open, closed, uniqueTypes, startingSoon };
   }, [formationsList]);
 
   const isAdminLike = currentUser?.role === ROLES.D2F || currentUser?.role === ROLES.CUP;
+  const isTeacherView = currentUser?.role === ROLES.ENSEIGNANT || currentUser?.role === ROLES.ANIMATEUR;
 
   if (loading && formationsList.length === 0) {
-    return <div className="fc-loading"><Spin size="large" /></div>;
+    return <PageLoader tip="Chargement des formations..." />;
   }
   if (!currentUser) {
-    return <div className="fc-loading"><Spin size="large" /></div>;
+    return <PageLoader tip="Chargement de votre profil..." />;
   }
   if (!formationsList || formationsList.length === 0) {
-    return <Empty description="Aucune formation disponible" style={{ marginTop: 80 }} />;
+    return (
+      <EmptyStateStandard
+        title={isTeacherView ? "Aucune formation ouverte à l'inscription" : "Aucune formation disponible"}
+        description={
+          isTeacherView
+            ? "Aucune formation n'est ouverte aux inscriptions pour le moment. Revenez plus tard."
+            : "Le catalogue est vide. Créez une formation pour commencer."
+        }
+      />
+    );
   }
 
   return (
     <div className="fc-page">
-        {/* Hero Banner */}
-        <div className="fc-hero">
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 16 }}>
-            <div>
-              <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-                <h2 className="fc-hero-title">Liste des Formations</h2>
-                <span className="fc-hero-badge">
-                  {filtered.length}
-                  <span className="fc-hero-badge-total">/ {formationsList.length}</span>
-                </span>
-              </div>
-              <div className="fc-hero-subtitle">
-                {(() => {
-                  const fCount = filtered.length;
-                  const tCount = formationsList.length;
-                  if (fCount !== tCount) {
-                    const p = fCount > 1 ? "s" : "";
-                    return `${fCount} formation${p} affichée${p} sur ${tCount}`;
-                  }
-                  const p = tCount > 1 ? "s" : "";
-                  return `${tCount} formation${p} disponible${p}`;
-                })()}
-              </div>
-            </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <Button
-                icon={<ReloadOutlined />}
-                onClick={() => {
-                  if (currentUser?.role === ROLES.CUP) refetchParUp();
-                  else if (currentUser?.role === ROLES.FORMATEUR) refetchAccessibles();
-                  else refetchVisibles();
-                }}
-                loading={loading}
-                className="fc-btn-refresh"
-              >
-                Actualiser
-              </Button>
-            </div>
-          </div>
-        </div>
+        {/* Hero Banner — unifié via PageHero (P2) */}
+        <PageHero
+          icon={<AppstoreOutlined />}
+          tone="success"
+          title="Liste des Formations"
+          badge={
+            <span className="fc-hero-badge">
+              {filtered.length}
+              <span className="fc-hero-badge-total">/ {formationsList.length}</span>
+            </span>
+          }
+          subtitle={(() => {
+            const fCount = filtered.length;
+            const tCount = formationsList.length;
+            const suffix = isTeacherView ? " ouverte%s à l'inscription" : " disponible%s";
+            if (fCount !== tCount) {
+              const p = fCount > 1 ? "s" : "";
+              return `${fCount} formation${p} affichée${p} sur ${tCount}`;
+            }
+            const p = tCount > 1 ? "s" : "";
+            return `${tCount} formation${p}${suffix.replaceAll("%s", p)}`;
+          })()}
+          actions={
+            <Button
+              icon={<ReloadOutlined />}
+              onClick={() => {
+                if (currentUser?.role === ROLES.CUP) refetchParUp();
+                else if (currentUser?.role === ROLES.ANIMATEUR) refetchAccessibles();
+                else refetchVisibles();
+              }}
+              loading={loading}
+              className="fc-btn-refresh"
+            >
+              Actualiser
+            </Button>
+          }
+        />
 
-        {/* Stats */}
-        <div className="fc-stats">
-          <div className="fc-stat-card fc-stat-card--total">
-            <div className="fc-stat-icon" style={{ background: "#ecfdf5", color: "#10b981" }}>
-              <AppstoreOutlined />
-            </div>
-            <div className="fc-stat-label">Total</div>
-            <div className="fc-stat-value" style={{ color: "#10b981" }}>{stats.total}</div>
-          </div>
-          <div className="fc-stat-card fc-stat-card--open">
-            <div className="fc-stat-icon" style={{ background: "#eff6ff", color: "#2563eb" }}>
-              <UnlockOutlined />
-            </div>
-            <div className="fc-stat-label">Inscriptions ouvertes</div>
-            <div className="fc-stat-value" style={{ color: "#2563eb" }}>{stats.open}</div>
-          </div>
-          <div className="fc-stat-card fc-stat-card--closed">
-            <div className="fc-stat-icon" style={{ background: "#fef2f2", color: "#ef4444" }}>
-              <LockOutlined />
-            </div>
-            <div className="fc-stat-label">Inscriptions fermées</div>
-            <div className="fc-stat-value" style={{ color: "#ef4444" }}>{stats.closed}</div>
-          </div>
-          <div className="fc-stat-card fc-stat-card--types">
-            <div className="fc-stat-icon" style={{ background: "#f5f3ff", color: "#7c3aed" }}>
-              <BookOutlined />
-            </div>
-            <div className="fc-stat-label">Types de formation</div>
-            <div className="fc-stat-value" style={{ color: "#7c3aed" }}>{stats.uniqueTypes}</div>
-          </div>
-        </div>
+        {/* Stats — grille unifiée via InscriptionStatGrid (P2) */}
+        <InscriptionStatGrid
+          stats={[
+            {
+              icon: <AppstoreOutlined />,
+              label: isTeacherView ? "Formations disponibles" : "Total",
+              value: stats.total,
+              tone: "brand",
+              loading,
+            },
+            ...(isTeacherView
+              ? []
+              : [
+                  { icon: <UnlockOutlined />, label: "Inscriptions ouvertes", value: stats.open,    tone: "success" as const, loading },
+                  { icon: <LockOutlined />,   label: "Inscriptions fermées",  value: stats.closed,  tone: "danger"  as const, loading },
+                ]),
+            { icon: <BookOutlined />, label: "Types de formation", value: stats.uniqueTypes, tone: "info", loading },
+            ...(stats.startingSoon > 0
+              ? [{ icon: <ThunderboltOutlined />, label: "Démarrage < 7 jours", value: stats.startingSoon, tone: "warning" as const, loading }]
+              : []),
+          ]}
+        />
 
         {/* Barre de filtres */}
         <div className="fc-filter-bar">
@@ -356,76 +396,76 @@ export default function FormationCards() {
                           Actif
                         </Tag>
                       )}
+                      {(() => {
+                        const d = daysUntilStart(f.dateDebut);
+                        if (d === null || !f.inscriptionsOuvertes || d > 7) return null;
+                        const label = d === 0
+                          ? "Démarre aujourd'hui"
+                          : d < 0
+                            ? `Démarré il y a ${-d} j`
+                            : `Démarre dans ${d} j`;
+                        return (
+                          <Tag
+                            icon={<ThunderboltOutlined />}
+                            color="warning"
+                            className="card-soon-tag"
+                            style={{ fontWeight: 600 }}
+                          >
+                            {label}
+                          </Tag>
+                        );
+                      })()}
                     </div>
                   </div>
 
                   <div className="card-actions">
-                    <Tooltip title="Voir la fiche">
-                      <EyeOutlined
-                        className="icon-muted"
-                        role="button"
-                        tabIndex={0}
-                        aria-label={`Voir la fiche de ${f.titreFormation}`}
+                    <Space size={8} wrap>
+                      <Button
+                        size="small"
+                        icon={<EyeOutlined />}
                         onClick={() => navigate(`/home/ListeFormation/${f.idFormation}`)}
-                        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") navigate(`/home/ListeFormation/${f.idFormation}`); }}
-                      />
-                    </Tooltip>
+                      >
+                        Détails
+                      </Button>
 
-                    {isAdminLike && (
-                      <Tooltip title={f.inscriptionsOuvertes ? "Fermer les inscriptions" : "Ouvrir les inscriptions"}>
-                        {f.inscriptionsOuvertes ? (
-                          <LockOutlined
-                            className="icon-error"
-                            role="button"
-                            tabIndex={0}
-                            aria-label="Fermer les inscriptions"
-                            onClick={() => f.idFormation != null && handleToggle(f.idFormation)}
-                            onKeyDown={(e) => { if ((e.key === "Enter" || e.key === " ") && f.idFormation != null) handleToggle(f.idFormation); }}
-                          />
+                      {(currentUser.role === ROLES.ANIMATEUR || currentUser.role === ROLES.ENSEIGNANT) &&
+                        f.inscriptionsOuvertes &&
+                        (f.idFormation != null && (requested.includes(f.idFormation) || requestedServer.has(String(f.idFormation))) ? (
+                          <Button size="small" disabled icon={<CheckCircleOutlined />}>
+                            Demande envoyée
+                          </Button>
                         ) : (
-                          <UnlockOutlined
-                            className="icon-success"
-                            role="button"
-                            tabIndex={0}
-                            aria-label="Ouvrir les inscriptions"
-                            onClick={() => f.idFormation != null && handleToggle(f.idFormation)}
-                            onKeyDown={(e) => { if ((e.key === "Enter" || e.key === " ") && f.idFormation != null) handleToggle(f.idFormation); }}
-                          />
-                        )}
-                      </Tooltip>
-                    )}
-
-                    {(currentUser.role === ROLES.FORMATEUR || currentUser.role === ROLES.ENSEIGNANT) &&
-                      f.inscriptionsOuvertes &&
-                      (f.idFormation != null && requested.includes(f.idFormation) ? (
-                        <Tooltip title="Demande déjà envoyée">
-                          <CheckCircleOutlined className="icon-disabled" aria-label="Demande déjà envoyée" />
-                        </Tooltip>
-                      ) : (
-                        <Tooltip title="Demander inscription">
-                          <UserAddOutlined
-                            className="icon-info"
-                            role="button"
-                            tabIndex={0}
-                            aria-label={`Demander inscription à ${f.titreFormation}`}
+                          <Button
+                            type="primary"
+                            size="small"
+                            icon={<UserAddOutlined />}
                             onClick={() => f.idFormation != null && handleDemande(f.idFormation)}
-                            onKeyDown={(e) => { if ((e.key === "Enter" || e.key === " ") && f.idFormation != null) handleDemande(f.idFormation); }}
-                          />
-                        </Tooltip>
-                      ))}
+                          >
+                            S'inscrire
+                          </Button>
+                        ))}
 
-                    {isAdminLike && (
-                      <Tooltip title="Voir les demandes">
-                        <TeamOutlined
-                          className="icon-info"
-                          role="button"
-                          tabIndex={0}
-                          aria-label="Voir les demandes d'inscription"
+                      {isAdminLike && (
+                        <Button
+                          size="small"
+                          danger={f.inscriptionsOuvertes}
+                          icon={f.inscriptionsOuvertes ? <LockOutlined /> : <UnlockOutlined />}
+                          onClick={() => f.idFormation != null && handleToggle(f.idFormation)}
+                        >
+                          {f.inscriptionsOuvertes ? "Fermer" : "Ouvrir"}
+                        </Button>
+                      )}
+
+                      {isAdminLike && (
+                        <Button
+                          size="small"
+                          icon={<TeamOutlined />}
                           onClick={() => navigate(`/home/ListeFormation/${f.idFormation}/demandes`)}
-                          onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") navigate(`/home/ListeFormation/${f.idFormation}/demandes`); }}
-                        />
-                      </Tooltip>
-                    )}
+                        >
+                          Demandes
+                        </Button>
+                      )}
+                    </Space>
                   </div>
                 </Card>
               </Col>
@@ -434,7 +474,10 @@ export default function FormationCards() {
         </Row>
 
         {filtered.length === 0 && (
-          <Empty description="Aucun résultat pour ces filtres" className="fc-empty" />
+          <EmptyStateStandard
+            title="Aucun résultat"
+            description="Aucune formation ne correspond aux filtres appliqués. Réinitialisez-les pour voir toutes les formations."
+          />
         )}
     </div>
   );

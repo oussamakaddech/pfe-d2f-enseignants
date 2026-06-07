@@ -4,6 +4,7 @@ import esprit.d2f.common.security.AuthorizationMatrix;
 import esprit.pfe.serviceformation.dto.FormationResponseDTO;
 import esprit.pfe.serviceformation.dto.InscriptionDTO;
 import esprit.pfe.serviceformation.dto.InscriptionSummaryDTO;
+import esprit.pfe.serviceformation.dto.TraiterDemandeBulkRequest;
 import esprit.pfe.serviceformation.services.InscriptionService;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -11,6 +12,8 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/inscription")
@@ -38,6 +41,17 @@ public class InscriptionController {
         return service.demanderInscriptionDTO(formationId, enseignantId);
     }
 
+    /**
+     * Vue globale (ADMIN / CUP / D2F) : toutes les inscriptions, paginées.
+     * Alimente la page de suivi des inscriptions (compteurs + listes).
+     */
+    @GetMapping("/inscriptions")
+    @PreAuthorize(AuthorizationMatrix.INSCRIPTION_APPROVE)
+    public ResponseEntity<Page<InscriptionDTO>> getAllInscriptions(
+            @PageableDefault(size = 20, sort = "id") Pageable pageable) {
+        return ResponseEntity.ok(service.listerToutesInscriptions(pageable));
+    }
+
     @GetMapping("/formations/{formationId}/inscriptions")
     @PreAuthorize(AuthorizationMatrix.INSCRIPTION_READ)
     public ResponseEntity<Page<InscriptionDTO>> getInscriptionsByFormation(
@@ -50,8 +64,42 @@ public class InscriptionController {
     @PreAuthorize(AuthorizationMatrix.INSCRIPTION_APPROVE)
     public InscriptionDTO traiter(
             @PathVariable Long id,
-            @RequestParam boolean approuver) {
-        return service.traiterDemandeDTO(id, approuver);
+            @RequestParam boolean approuver,
+            @RequestParam(required = false) String motif) {
+        return service.traiterDemandeDTO(id, approuver, motif);
+    }
+
+    /**
+     * P3 - F4 : traitement en lot d'un ensemble de demandes. Body JSON :
+     * <pre>{"ids":[1,2,3],"approuver":true,"motif":null}</pre>
+     * Le motif n'est appliqué que lorsque {@code approuver=false}. Retourne la
+     * liste des inscriptions effectivement mises à jour (les ids inexistants
+     * sont ignorés).
+     */
+    @PutMapping("/inscriptions/traiter-bulk")
+    @PreAuthorize(AuthorizationMatrix.INSCRIPTION_APPROVE)
+    public ResponseEntity<List<InscriptionDTO>> traiterBulk(
+            @RequestBody TraiterDemandeBulkRequest body) {
+        List<InscriptionDTO> updated = service.traiterDemandeBulkDTO(
+                body == null ? null : body.getIds(),
+                body != null && body.isApprouver(),
+                body == null ? null : body.getMotif());
+        return ResponseEntity.ok(updated);
+    }
+
+    /**
+     * Annulation par l'enseignant propriétaire d'une demande PENDING.
+     * L'enseignantId (id fonctionnel ou email) est obligatoire côté service pour
+     * vérifier la propriété ; on le passe en query param pour rester homogène
+     * avec les autres endpoints d'inscription.
+     */
+    @DeleteMapping("/inscriptions/{id}")
+    @PreAuthorize(AuthorizationMatrix.INSCRIPTION_CREATE)
+    public ResponseEntity<Void> annuler(
+            @PathVariable Long id,
+            @RequestParam String enseignantId) {
+        service.annulerInscriptionDTO(id, enseignantId);
+        return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/enseignant/{enseignantId}")

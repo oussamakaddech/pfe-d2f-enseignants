@@ -29,4 +29,16 @@ public class Inscription extends BaseAuditEntity {
 
     @Column(nullable = false)
     private OffsetDateTime dateDemande = OffsetDateTime.now();
+
+    /**
+     * Date du dernier traitement de la demande (approbation ou rejet).
+     * {@code null} tant que l'inscription est en attente. Renseigne la timeline
+     * d'historique côté frontend (P3 - F7).
+     */
+    @Column
+    private OffsetDateTime dateTraitement;
+
+    /** Motif de rejet saisi par l'administrateur (optionnel, persistant). */
+    @Column(length = 500)
+    private String motif;
 }

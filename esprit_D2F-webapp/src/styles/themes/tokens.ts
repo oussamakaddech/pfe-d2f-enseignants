@@ -58,13 +58,10 @@ export const statusColors: Record<FormationStatus, { color: string; bg: string; 
 };
 
 // ── Rôles utilisateur ─────────────────────────────────────────────────────────
-export type UserRole =
-  | "admin" | "ADMIN"
-  | "cup"   | "CUP"
-  | "enseignant" | "ENSEIGNANT"
-  | "animateur"  | "ANIMATEUR"
-  | "chefdepartement" | "CHEF_DEPARTEMENT";
-
+// `UserRole` est désormais centralisé dans `@/utils/constants/roles` (dérivé
+// de `ROLES`). Le mapping `roleColors` accepte n'importe quelle chaîne en
+// clé (différentes casses coexistent dans le backend : "admin" / "ADMIN",
+// "cup" / "CUP", etc.) — d'où le `Record<string, …>` large.
 export const roleColors: Record<string, { color: string; bg: string; label: string }> = {
   admin:              { color: "#7c3aed", bg: "#f5f3ff", label: "Administrateur"   },
   ADMIN:              { color: "#7c3aed", bg: "#f5f3ff", label: "Administrateur"   },
@@ -74,6 +71,10 @@ export const roleColors: Record<string, { color: string; bg: string; label: stri
   ENSEIGNANT:         { color: "#2563eb", bg: "#eff6ff", label: "Enseignant"       },
   animateur:          { color: "#059669", bg: "#ecfdf5", label: "Animateur"        },
   ANIMATEUR:          { color: "#059669", bg: "#ecfdf5", label: "Animateur"        },
+  // Animateur / Formateur : rôle consolidé, on accepte les deux casses
+  // (cf. migration V19 — FORMATEUR fusionné dans ANIMATEUR).
+  Formateur:          { color: "#059669", bg: "#ecfdf5", label: "Animateur"        },
+  FORMATEUR:          { color: "#059669", bg: "#ecfdf5", label: "Animateur"        },
 
   chefdepartement:    { color: "#0891b2", bg: "#ecfeff", label: "Chef de Dépt."    },
   CHEF_DEPARTEMENT:   { color: "#0891b2", bg: "#ecfeff", label: "Chef de Dépt."    },

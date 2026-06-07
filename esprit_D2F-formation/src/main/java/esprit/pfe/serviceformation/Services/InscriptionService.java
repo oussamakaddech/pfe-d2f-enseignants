@@ -12,7 +12,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Service
@@ -128,6 +130,15 @@ public class InscriptionService {
                 && f1.getDateFin().compareTo(f2.getDateDebut()) >= 0;
     }
 
+    /**
+     * Vue globale : toutes les inscriptions (toutes formations confondues), paginées.
+     * Réservée aux rôles d'administration (ADMIN / CUP / D2F).
+     */
+    @Transactional(readOnly = true)
+    public Page<InscriptionDTO> listerToutesInscriptions(Pageable pageable) {
+        return inscriptionRepo.findAll(pageable).map(this::mapInscriptionToDTO);
+    }
+
     @Transactional(readOnly = true)
     public Page<InscriptionDTO> listerInscriptionsParFormation(Long formationId, Pageable pageable) {
         formationRepo.findById(formationId)
@@ -161,16 +172,83 @@ public class InscriptionService {
     }
 
     /**
-     * 4. Approuver ou rejeter une demande
+     * 4. Approuver ou rejeter une demande (motif de rejet optionnel).
      */
     @Transactional
-    public Inscription traiterDemande(Long inscriptionId, boolean approuver) {
+    public Inscription traiterDemande(Long inscriptionId, boolean approuver, String motif) {
         Inscription ins = inscriptionRepo.findById(inscriptionId)
                 .orElseThrow(() -> new IllegalArgumentException("Demande introuvable"));
         ins.setEtat(approuver
                 ? EtatInscription.APPROVED
                 : EtatInscription.REJECTED);
+        // On stocke le motif uniquement en cas de rejet, et seulement s'il est
+        // non vide (trim). Cela évite de polluer la base avec des chaînes vides
+        // et de masquer un éventuel ancien motif en cas d'approbation ultérieure.
+        if (!approuver) {
+            String trimmed = motif == null ? null : motif.trim();
+            ins.setMotif((trimmed == null || trimmed.isEmpty()) ? null : trimmed);
+        } else {
+            ins.setMotif(null);
+        }
+        // P3 - F7 : horodate le dernier traitement pour alimenter la timeline.
+        ins.setDateTraitement(OffsetDateTime.now());
         return inscriptionRepo.save(ins);
+    }
+
+    /**
+     * Surcharge rétro-compatible : pas de motif.
+     */
+    @Transactional
+    public Inscription traiterDemande(Long inscriptionId, boolean approuver) {
+        return traiterDemande(inscriptionId, approuver, null);
+    }
+
+    /**
+     * P3 - F4 : traitement en lot d'un ensemble de demandes. Itère sur les ids
+     * fournis et délègue à {@link #traiterDemande(Long, boolean, String)} pour
+     * bénéficier de la même logique (motif, horodatage, persistance). Les
+     * inscriptions inexistantes sont silencieusement ignorées pour ne pas faire
+     * échouer tout le lot à cause d'un id supprimé entre-temps.
+     */
+    @Transactional
+    public List<Inscription> traiterDemandeBulk(List<Long> inscriptionIds, boolean approuver, String motif) {
+        if (inscriptionIds == null || inscriptionIds.isEmpty()) {
+            return List.of();
+        }
+        return inscriptionIds.stream()
+                .filter(Objects::nonNull)
+                .distinct()
+                .map(id -> {
+                    try {
+                        return self.traiterDemande(id, approuver, motif);
+                    } catch (IllegalArgumentException notFound) {
+                        return null;
+                    }
+                })
+                .filter(Objects::nonNull)
+                .toList();
+    }
+
+    /**
+     * Annulation d'une demande PENDING par l'enseignant qui en est propriétaire.
+     * - Refuse si l'inscription n'existe pas
+     * - Refuse si l'enseignantId fourni ne correspond pas au propriétaire
+     *   (sauf si appelant côté admin/CUP/D2F : géré au niveau controller via @PreAuthorize)
+     * - Refuse si l'état n'est pas PENDING
+     */
+    @Transactional
+    public void annulerInscription(Long inscriptionId, String enseignantId) {
+        Inscription ins = inscriptionRepo.findById(inscriptionId)
+                .orElseThrow(() -> new IllegalArgumentException("Demande introuvable"));
+        if (enseignantId != null
+                && ins.getEnseignant() != null
+                && !enseignantId.equalsIgnoreCase(ins.getEnseignant().getId())) {
+            throw new IllegalStateException("Vous n'êtes pas autorisé à annuler cette demande.");
+        }
+        if (ins.getEtat() != EtatInscription.PENDING) {
+            throw new IllegalStateException("Seules les demandes en attente peuvent être annulées.");
+        }
+        inscriptionRepo.delete(ins);
     }
 
     public SeanceDTO mapSeanceToDTO(SeanceFormation seance) {
@@ -220,6 +298,8 @@ public class InscriptionService {
         dto.setEnseignant(mapEnseignantToDTO(ins.getEnseignant()));
         dto.setEtat(ins.getEtat().toString());
         dto.setDateDemande(ins.getDateDemande());
+        dto.setDateTraitement(ins.getDateTraitement());
+        dto.setMotif(ins.getMotif());
         return dto;
     }
 
@@ -230,7 +310,28 @@ public class InscriptionService {
 
     @Transactional
     public InscriptionDTO traiterDemandeDTO(Long inscriptionId, boolean approuver) {
-        return mapInscriptionToDTO(self.traiterDemande(inscriptionId, approuver));
+        return traiterDemandeDTO(inscriptionId, approuver, null);
+    }
+
+    @Transactional
+    public InscriptionDTO traiterDemandeDTO(Long inscriptionId, boolean approuver, String motif) {
+        return mapInscriptionToDTO(self.traiterDemande(inscriptionId, approuver, motif));
+    }
+
+    /**
+     * P3 - F4 : traitement en lot renvoyant les DTO mappés.
+     */
+    @Transactional
+    public List<InscriptionDTO> traiterDemandeBulkDTO(List<Long> inscriptionIds, boolean approuver, String motif) {
+        return self.traiterDemandeBulk(inscriptionIds, approuver, motif)
+                .stream()
+                .map(this::mapInscriptionToDTO)
+                .toList();
+    }
+
+    @Transactional
+    public void annulerInscriptionDTO(Long inscriptionId, String enseignantId) {
+        self.annulerInscription(inscriptionId, enseignantId);
     }
 
     @Transactional(readOnly = true)
@@ -249,6 +350,7 @@ public class InscriptionService {
                 .toList();
 
         return InscriptionSummaryDTO.builder()
+                .id(ins.getId())
                 .formationId(String.valueOf(f.getIdFormation()))
                 .titreFormation(f.getTitreFormation())
                 .dateDebut(f.getDateDebut() != null ? f.getDateDebut().toString() : "")
@@ -256,6 +358,10 @@ public class InscriptionService {
                 .chargeHoraire(String.valueOf(f.getChargeHoraireGlobal()))
                 .etatFormation(f.getEtatFormation() != null ? f.getEtatFormation().name() : "")
                 .competencesCiblees(competences)
+                .etat(ins.getEtat() != null ? ins.getEtat().name() : null)
+                .dateDemande(ins.getDateDemande() != null ? ins.getDateDemande().toString() : null)
+                .dateTraitement(ins.getDateTraitement() != null ? ins.getDateTraitement().toString() : null)
+                .motif(ins.getMotif())
                 .build();
     }
 }

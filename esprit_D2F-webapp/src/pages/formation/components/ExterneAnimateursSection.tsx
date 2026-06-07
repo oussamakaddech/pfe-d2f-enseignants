@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Row, Col, Select, Button, Modal, Form, Input, Typography, Empty } from "antd";
-import { BankOutlined, TeamOutlined, PlusOutlined, MailOutlined } from "@ant-design/icons";
-import { useBureaux } from "@/hooks/bureau/useBureaux";
+import { BankOutlined, TeamOutlined, PlusOutlined, MailOutlined, PhoneOutlined } from "@ant-design/icons";
+import { useBureaux, useCreateBureau } from "@/hooks/bureau/useBureaux";
 import { useAnimateursExternes, useCreateAnimateurExterne } from "@/hooks/bureau/useAnimateursExternes";
 import useAppNotification from "@/hooks/ui/useAppNotification";
 import type { AnimateurExterne } from "@/models/bureau";
@@ -20,14 +20,34 @@ export default function ExterneAnimateursSection({ bureauId, setBureauId, animEx
   const { data: bureaux = [] } = useBureaux();
   const { data: animateurs = [], isLoading } = useAnimateursExternes(bureauId);
   const createMut = useCreateAnimateurExterne();
+  const createBureauMut = useCreateBureau();
 
   const [modalOpen, setModalOpen] = useState(false);
   const [form] = Form.useForm();
+  const [bureauModalOpen, setBureauModalOpen] = useState(false);
+  const [bureauForm] = Form.useForm();
 
   const onChangeBureau = (val: number | null) => {
     setBureauId(val);
     // Réinitialiser la sélection lorsque le bureau change
     setAnimExterneSel([]);
+  };
+
+  // Crée un VRAI bureau (entité persistée) → il apparaît immédiatement dans
+  // « Gestion des Bureaux » (/home/bureaux) et est auto-sélectionné ici.
+  const handleCreateBureau = async () => {
+    try {
+      const values = await bureauForm.validateFields();
+      const created = await createBureauMut.mutateAsync(values);
+      msgApi.success(`Bureau « ${created.nom} » créé et enregistré dans Gestion des Bureaux`);
+      onChangeBureau(created.id);
+      setBureauModalOpen(false);
+      bureauForm.resetFields();
+    } catch (err: unknown) {
+      const e = err as { errorFields?: unknown; response?: { data?: { message?: string } } };
+      if (e?.errorFields) return;
+      msgApi.error(e?.response?.data?.message || "Erreur lors de la création du bureau");
+    }
   };
 
   const handleAdd = async () => {
@@ -57,18 +77,28 @@ export default function ExterneAnimateursSection({ bureauId, setBureauId, animEx
         <Col xs={24} sm={10}>
           <div className="creation-field">
             <label className="creation-field-label"><BankOutlined /> Bureau de formation</label>
-            <Select
-              size="large"
-              allowClear
-              showSearch
-              style={{ width: "100%" }}
-              value={bureauId ?? undefined}
-              onChange={(val) => onChangeBureau(val ?? null)}
-              optionFilterProp="label"
-              placeholder="Sélectionner un bureau enregistré"
-              options={bureaux.map((b) => ({ value: b.id, label: b.nom }))}
-              notFoundContent={<Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Aucun bureau — créez-en un dans Gestion des Bureaux" />}
-            />
+            <div style={{ display: "flex", gap: 8 }}>
+              <Select
+                size="large"
+                allowClear
+                showSearch
+                style={{ flex: 1 }}
+                value={bureauId ?? undefined}
+                onChange={(val) => onChangeBureau(val ?? null)}
+                optionFilterProp="label"
+                placeholder="Sélectionner un bureau enregistré"
+                options={bureaux.map((b) => ({ value: b.id, label: b.nom }))}
+                notFoundContent={<Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Aucun bureau — créez-en un ci-contre" />}
+              />
+              <Button
+                size="large"
+                icon={<PlusOutlined />}
+                onClick={() => { bureauForm.resetFields(); setBureauModalOpen(true); }}
+                title="Créer un nouveau bureau (ajouté à Gestion des Bureaux)"
+              >
+                Nouveau
+              </Button>
+            </div>
           </div>
         </Col>
         <Col xs={24} sm={14}>
@@ -126,6 +156,34 @@ export default function ExterneAnimateursSection({ bureauId, setBureauId, animEx
           </Form.Item>
           <Form.Item name="email" label="Email" rules={[{ type: "email", message: "Email invalide" }]}>
             <Input placeholder="email@organisme.com" prefix={<MailOutlined style={{ color: "#cbd5e0" }} />} />
+          </Form.Item>
+        </Form>
+      </Modal>
+
+      <Modal
+        title="Nouveau bureau de formation"
+        open={bureauModalOpen}
+        onCancel={() => { setBureauModalOpen(false); bureauForm.resetFields(); }}
+        onOk={handleCreateBureau}
+        confirmLoading={createBureauMut.isPending}
+        okText="Créer"
+        cancelText="Annuler"
+        destroyOnHidden
+        width={440}
+      >
+        <Form form={bureauForm} layout="vertical" style={{ marginTop: 12 }}>
+          <Form.Item name="nom" label="Nom du bureau" rules={[{ required: true, message: "Le nom est requis" }]}>
+            <Input placeholder="Ex : Bureau Formation Tunis" />
+          </Form.Item>
+          <Form.Item
+            name="email"
+            label="Email"
+            rules={[{ required: true, message: "L'email est requis" }, { type: "email", message: "Email invalide" }]}
+          >
+            <Input placeholder="bureau@organisme.com" prefix={<MailOutlined style={{ color: "#cbd5e0" }} />} />
+          </Form.Item>
+          <Form.Item name="numeroTelephone" label="Téléphone" rules={[{ required: true, message: "Le téléphone est requis" }]}>
+            <Input placeholder="+216 XX XXX XXX" prefix={<PhoneOutlined style={{ color: "#cbd5e0" }} />} />
           </Form.Item>
         </Form>
       </Modal>

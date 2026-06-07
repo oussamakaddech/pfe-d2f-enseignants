@@ -86,6 +86,7 @@ public class EnseignantServiceImpl implements EnseignantService {
             if (enseignant.getUp() != null)              e.setUp(enseignant.getUp());
             if (enseignant.getDept() != null)            e.setDept(enseignant.getDept());
             if (enseignant.getGrade() != null)           e.setGrade(enseignant.getGrade());
+            if (enseignant.getSpecialite() != null)      e.setSpecialite(enseignant.getSpecialite());
             if (enseignant.getTelephone() != null)       e.setTelephone(enseignant.getTelephone());
             if (enseignant.getPhotoUrl() != null)        e.setPhotoUrl(enseignant.getPhotoUrl());
             if (enseignant.getUserId() != null)          e.setUserId(enseignant.getUserId());
@@ -149,6 +150,7 @@ public class EnseignantServiceImpl implements EnseignantService {
         dto.setCup(e.getCup());
         dto.setChefDepartement(e.getChefDepartement());
         dto.setGrade(e.getGrade());
+        dto.setSpecialite(e.getSpecialite());
         dto.setTelephone(e.getTelephone());
         dto.setPhotoUrl(e.getPhotoUrl());
         dto.setUserId(e.getUserId());

@@ -66,6 +66,21 @@ export function useInscriptionsByFormation(formationId: Id | undefined) {
   });
 }
 
+export function useAllInscriptions() {
+  return useQuery<unknown[]>({
+    queryKey: ["inscriptions", "all"],
+    queryFn: () => InscriptionService.getAllInscriptions(),
+  });
+}
+
+export function useInscriptionsByEnseignant(enseignantId: Id | undefined) {
+  return useQuery<unknown[]>({
+    queryKey: ["inscriptions", "enseignant", enseignantId],
+    queryFn: () => InscriptionService.getInscriptionsByEnseignant(enseignantId!),
+    enabled: !!enseignantId,
+  });
+}
+
 export function useDemanderInscription() {
   return useMutation({
     mutationFn: ({ formationId, enseignantId }: { formationId: Id; enseignantId: Id }) =>
@@ -75,8 +90,22 @@ export function useDemanderInscription() {
 
 export function useTraiterDemande() {
   return useMutation({
-    mutationFn: ({ id, approuver }: { id: Id; approuver: boolean }) =>
-      InscriptionService.traiterDemande(id, approuver),
+    mutationFn: ({ id, approuver, motif }: { id: Id; approuver: boolean; motif?: string }) =>
+      InscriptionService.traiterDemande(id, approuver, motif),
+  });
+}
+
+export function useTraiterDemandeBulk() {
+  return useMutation({
+    mutationFn: ({ ids, approuver, motif }: { ids: Id[]; approuver: boolean; motif?: string }) =>
+      InscriptionService.traiterDemandeBulk(ids, approuver, motif),
+  });
+}
+
+export function useAnnulerInscription() {
+  return useMutation({
+    mutationFn: ({ id, enseignantId }: { id: Id; enseignantId: Id }) =>
+      InscriptionService.annulerInscription(id, enseignantId),
   });
 }
 

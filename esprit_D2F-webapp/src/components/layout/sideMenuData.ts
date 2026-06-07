@@ -33,6 +33,7 @@ export const adminMenu: MenuItem[] = [
     { label: "Administration",  key: "/home/administration", icon: SettingOutlined },
     { label: "Structures (UP/Dépt)", key: "/home/UpDept",           icon: ApartmentOutlined },
     { label: "Inscriptions",         key: "/home/ListeFormation",   icon: FileTextOutlined  },
+    { label: "Suivi des Inscriptions", key: "/home/Inscriptions/Suivi", icon: TeamOutlined   },
     { label: "Gestion des Bureaux",  key: "/home/bureaux",          icon: BankOutlined      },
   ]},
   { type: "group", label: "FORMATIONS", children: [
@@ -69,6 +70,7 @@ export const cupMenu: MenuItem[] = [
   { label: "Présence & Évaluation", key: "/home/animateur-formations", icon: ReadOutlined },
   { label: "Analyse Prédictive",    key: "/home/AnalysePredictive",    icon: LineChartOutlined },
   { label: "Mes Inscriptions",      key: "/home/ListeFormation",       icon: AppstoreOutlined },
+  { label: "Suivi des Inscriptions",key: "/home/Inscriptions/Suivi",   icon: TeamOutlined },
   { label: "Mes Certificats",       key: "/home/MyCertificate",        icon: SafetyCertificateOutlined },
 ];
 
@@ -79,13 +81,17 @@ export const enseignantMenu: MenuItem[] = [
     { label: "Déposer un Besoin",  key: "/home/besoins/ajouter", icon: PlusCircleOutlined },
   ]},
   { label: "Présence & Évaluation", key: "/home/animateur-formations", icon: ReadOutlined },
-  { label: "Mes Inscriptions",      key: "/home/ListeFormation",       icon: AppstoreOutlined },
+  { label: "Catalogue formations",  key: "/home/ListeFormation",       icon: AppstoreOutlined },
+  { label: "S'inscrire à une formation", key: "/home/Inscription/Nouvelle", icon: PlusCircleOutlined },
+  { label: "Mes Inscriptions",      key: "/home/MesInscriptions",      icon: FileTextOutlined },
   { label: "Mes Certificats",       key: "/home/MyCertificate",        icon: SafetyCertificateOutlined },
 ];
 
 export const animateurMenu: MenuItem[] = [
   { label: "Sessions d'Animation", key: "/home/animateur-formations", icon: ReadOutlined },
-  { label: "Mes Inscriptions",     key: "/home/ListeFormation",       icon: AppstoreOutlined },
+  { label: "Catalogue formations", key: "/home/ListeFormation",       icon: AppstoreOutlined },
+  { label: "S'inscrire à une formation", key: "/home/Inscription/Nouvelle", icon: PlusCircleOutlined },
+  { label: "Mes Inscriptions",     key: "/home/MesInscriptions",      icon: FileTextOutlined },
 ];
 
 export const responsableDossierMenu: MenuItem[] = [

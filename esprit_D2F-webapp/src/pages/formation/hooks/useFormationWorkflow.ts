@@ -43,16 +43,17 @@ export function mapBesoinLink(l: BesoinLinkRaw) {
 export const getPersonIds = (arr: { id?: unknown }[]) => (Array.isArray(arr) ? arr : []).map((a) => a?.id).filter(Boolean);
 
 function mergeFormateursAccounts(accountsData: AccountItem[], enseignantsData: PersonItem[]): PersonItem[] {
-  if (!Array.isArray(accountsData)) return [];
+  // Comptes auth ANIMATEUR → on les ajoute à la liste des "formateurs"
+  // (utilisée pour peupler la liste des animateurs d'une formation).
+  // (Rôle FORMATEUR consolidé dans ANIMATEUR — cf. migration V19.)
   const formateurs = accountsData
-    .filter(a => {
-      const role = (a.role || "").toUpperCase();
-      return role === "FORMATEUR" || role === "ANIMATEUR";
+    .filter((a) => {
+      const role = String(a.role ?? "").toUpperCase();
+      return role === "ANIMATEUR";
     })
-    .map(a => ({
+    .map<PersonItem>((a) => ({
       id: a.id,
-      isAuthUser: true,
-      userName: a.userName || a.username,
+      type: "ANIMATEUR",
       nom: a.lastName || a.userName || a.username || "Formateur",
       prenom: a.firstName || a.firsName || "",
       mail: a.emailAddress || a.email || "",
@@ -317,14 +318,14 @@ export function useFormationWorkflow({ initialDate, onFormationCreated, besoinIn
     optionsAnim.map(a => (a.mail || "").toLowerCase()).filter(Boolean)
   );
 
-  // Participants = formation-service enseignants + auth accounts (ENSEIGNANT + FORMATEUR/ANIMATEUR)
+  // Participants = formation-service enseignants + auth accounts (ENSEIGNANT + ANIMATEUR)
   // not already present in the animateurs section
   const enseignantMails = new Set(enseignantsList.map(e => (e.mail || "").toLowerCase()).filter(Boolean));
   const accountsFallbackForParticipants = Array.isArray(accountsData)
     ? (accountsData as AccountItem[])
         .filter(a => {
           const role = (a.role || "").toUpperCase();
-          return role === "ENSEIGNANT" || role === "FORMATEUR" || role === "ANIMATEUR";
+          return role === "ENSEIGNANT" || role === "ANIMATEUR";
         })
         .filter(a => {
           const mail = (a.emailAddress || a.email || "").toLowerCase();
