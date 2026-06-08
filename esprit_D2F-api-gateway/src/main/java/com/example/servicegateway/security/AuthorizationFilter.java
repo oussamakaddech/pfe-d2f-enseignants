@@ -199,9 +199,13 @@ public class AuthorizationFilter extends AbstractGatewayFilterFactory<Authorizat
         if (path.contains("/profile") || path.contains("/edit-profile") || path.contains("/update-password")) {
             return ALL_ROLES;
         }
+        // NB : « delete/ » (sans slash initial) couvre À LA FOIS la suppression
+        // logique (/delete/{id}) ET la suppression définitive (/permanent-delete/{id}).
+        // Un « /delete/ » strict raterait permanent-delete (caractère « - » avant
+        // « delete »), laissant la route retomber sur ALL_ROLES au niveau gateway.
         if (path.contains("/list-accounts") || path.contains("/ban-account") || path.contains("/enable-account")
                 || path.contains("/create-account")
-                || path.contains("/delete/") || path.contains("/update/")) {
+                || path.contains("delete/") || path.contains("/update/")) {
             return ADMIN_ONLY;
         }
         return ALL_ROLES;

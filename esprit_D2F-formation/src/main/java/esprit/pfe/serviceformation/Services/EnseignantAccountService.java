@@ -40,9 +40,11 @@ public class EnseignantAccountService {
                     "Le compte a été créé mais aucun identifiant n'a été renvoyé par le service d'authentification.");
         }
 
-        // 2) Création de la fiche enseignant rattachée (avec compensation si échec)
+        // 2) Création OU liaison de la fiche enseignant rattachée (compensation si échec).
+        //    linkOrCreate : si une fiche existe déjà pour cet email, on la relie au
+        //    compte plutôt que d'échouer (cas « enseignant déjà dans l'annuaire »).
         try {
-            var enseignant = enseignantService.createEnseignant(
+            var enseignant = enseignantService.linkOrCreateEnseignant(
                     request.toEnseignantRequest(userId).toEntity());
             return enseignantService.toDTO(enseignant);
         } catch (RuntimeException ex) {

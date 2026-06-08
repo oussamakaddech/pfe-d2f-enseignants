@@ -43,8 +43,10 @@ public class AccountController {
 
     @GetMapping("/list-accounts")
     @PreAuthorize(AuthorizationMatrix.ACCOUNT_READ)
-    public Page<UserDTO> listAccounts(@PageableDefault(size = 500) Pageable pageable) {
-        return this.accountService.listAccounts(pageable).map(UserDTO::new);
+    public Page<UserDTO> listAccounts(
+            @PageableDefault(size = 500) Pageable pageable,
+            @RequestParam(name = "includeDeleted", defaultValue = "false") boolean includeDeleted) {
+        return this.accountService.listAccounts(pageable, includeDeleted).map(UserDTO::new);
     }
 
     /**
@@ -145,6 +147,12 @@ public class AccountController {
     @PreAuthorize(AuthorizationMatrix.ACCOUNT_DELETE)
     public void deleteAccount(@PathVariable String userId) {
         this.accountService.deleteAccount(userId);
+    }
+
+    @DeleteMapping("/permanent-delete/{userId}")
+    @PreAuthorize(AuthorizationMatrix.ACCOUNT_DELETE)
+    public void permanentDeleteAccount(@PathVariable String userId) {
+        this.accountService.permanentDeleteAccount(userId);
     }
 
     @PutMapping("/update/{userId}")

@@ -131,6 +131,8 @@ class AuthorizationFilterTest {
         "/api/account/ban-account, POST, ADMIN, true",
         "/api/account/enable-account, POST, ADMIN, true",
         "/api/account/delete/1, DELETE, ADMIN, true",
+        "/api/account/permanent-delete/1, DELETE, ADMIN, true",
+        "/api/account/permanent-delete/1, DELETE, ENSEIGNANT, false",
         "/api/account/update/1, PUT, ADMIN, true",
         "/api/formation/kpi, GET, ADMIN, true",
         "/api/formation/kpi, GET, FORMATEUR, false",

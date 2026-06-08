@@ -8,6 +8,8 @@ import java.util.List;
 
 public interface EnseignantService {
     Enseignant createEnseignant(Enseignant enseignant);
+    /** Crée la fiche, ou relie une fiche existante (même email) au compte fourni. */
+    Enseignant linkOrCreateEnseignant(Enseignant enseignant);
     Enseignant updateEnseignant(String id, Enseignant enseignant);
     void deleteEnseignant(String id);
     Enseignant getEnseignantById(String id);

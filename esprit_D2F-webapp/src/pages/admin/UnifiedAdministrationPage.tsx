@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, useMemo } from 'react';
 import {
   Table, Input, Button, Space, Typography, Modal, Form, Select, Popconfirm,
-  Tooltip, Card, Row, Col, Tag,
+  Tooltip, Card, Row, Col, Tag, Switch,
 } from 'antd';
 import type { TableColumnsType, InputRef } from 'antd';
 import type { FilterDropdownProps } from 'antd/es/table/interface';
@@ -14,7 +14,7 @@ import {
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { useAllAccounts } from "@/hooks/formation/useFormations";
-import { useBanAccount, useEnableAccount, useDeleteAccount, useUpdateAccount } from "@/hooks/auth/useAuthService";
+import { useBanAccount, useEnableAccount, useDeleteAccount, usePermanentDeleteAccount, useUpdateAccount } from "@/hooks/auth/useAuthService";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import EnseignantService from "@/services/formation/EnseignantService";
 import useAppNotification from "@/hooks/ui/useAppNotification";
@@ -46,6 +46,8 @@ interface UnifiedRow {
   phoneNumber?: string;
   role?: string;
   status?: AccountStatus;
+  /** Compte archivé (soft-deleted) — affiché seulement si le toggle est actif. */
+  deleted?: boolean;
   /* teacher fields */
   id?: Id;
   nom?: string;
@@ -101,10 +103,13 @@ export default function UnifiedAdministrationPage() {
 
   /* ── Accounts state ── */
   const [accounts, setAccounts] = useState<UnifiedRow[]>([]);
-  const { data: allAccounts, isLoading: accountsLoading, refetch: refetchAccounts } = useAllAccounts();
+  // Inclure les comptes archivés (soft-deleted) — visibilité/audit.
+  const [showDeleted, setShowDeleted] = useState(false);
+  const { data: allAccounts, isLoading: accountsLoading, refetch: refetchAccounts } = useAllAccounts(showDeleted);
   const { mutateAsync: banAccountApi } = useBanAccount();
   const { mutateAsync: enableAccountApi } = useEnableAccount();
   const { mutateAsync: deleteAccountApi } = useDeleteAccount();
+  const { mutateAsync: permanentDeleteAccountApi } = usePermanentDeleteAccount();
   const { mutateAsync: updateAccountApi } = useUpdateAccount();
 
   /* ── Teachers state ── */
@@ -162,7 +167,8 @@ export default function UnifiedAdministrationPage() {
         } else {
           statusValue = 'INCONNU';
         }
-        return { ...acc, _type: 'account' as const, _key: `acc_${acc.userId ?? acc.id ?? Math.random()}`, status: statusValue };
+        const isDeleted = (acc as { deleted?: boolean }).deleted === true;
+        return { ...acc, _type: 'account' as const, _key: `acc_${acc.userId ?? acc.id ?? Math.random()}`, status: statusValue, deleted: isDeleted };
       });
       setAccounts(normalized);
     }
@@ -178,6 +184,9 @@ export default function UnifiedAdministrationPage() {
     const accountById = new Map<string, UnifiedRow>();
     const accountByEmail = new Map<string, UnifiedRow>();
     accounts.forEach(a => {
+      // Un compte archivé ne se fusionne pas avec une fiche active : il reste
+      // une ligne autonome marquée « Archivé ».
+      if (a.deleted) return;
       const id = accountAuthId(a);
       if (id) accountById.set(id, a);
       const email = String(a.email ?? "").toLowerCase();
@@ -413,6 +422,27 @@ export default function UnifiedAdministrationPage() {
     msgApi.success('Enseignant supprimé');
   };
 
+  /* Suppression définitive d'un compte archivé (déjà soft-deleted). */
+  const handlePermanentDeleteAccount = (record: UnifiedRow) => {
+    const fullName = `${record.firstName || ""} ${record.lastName || ""}`.trim() || record.userName || "cet utilisateur";
+    modal.confirm({
+      title: "Supprimer définitivement ce compte archivé ?",
+      content: <p>Le compte archivé de <strong>{fullName}</strong> sera définitivement effacé de la base de données. Cette action est irréversible.</p>,
+      okText: "Supprimer", cancelText: "Annuler",
+      okButtonProps: { danger: true }, centered: true,
+      onOk: async () => {
+        try {
+          await permanentDeleteAccountApi(String(record.userId ?? record.id ?? ""));
+          msgApi.success('Compte archivé définitivement supprimé');
+          fetchAll();
+        } catch (err: unknown) {
+          const e = err as { response?: { data?: { message?: string } } };
+          msgApi.error(e?.response?.data?.message || 'Erreur de suppression');
+        }
+      },
+    });
+  };
+
   /* Ligne fusionnée : suppression de la personne = compte + fiche. */
   const handleDeleteMerged = (record: UnifiedRow) => {
     const fullName = `${record.firstName || ""} ${record.lastName || ""}`.trim() || record.userName || "cette personne";
@@ -473,6 +503,11 @@ export default function UnifiedAdministrationPage() {
                 <Tag color={tagColor} style={{ fontSize: 10, lineHeight: '16px', padding: '0 6px', margin: 0 }}>
                   {tagLabel}
                 </Tag>
+                {record.deleted && (
+                  <Tag color="default" style={{ fontSize: 10, lineHeight: '16px', padding: '0 6px', margin: 0 }}>
+                    Archivé
+                  </Tag>
+                )}
                 {accountLike && record.userName && (
                   <span style={{ fontSize: 12, color: neutral[500] }}>@{record.userName}</span>
                 )}
@@ -572,6 +607,17 @@ export default function UnifiedAdministrationPage() {
       fixed: 'right',
       width: 210,
       render: (_, record) => {
+        // Compte archivé (soft-deleted) : uniquement suppression définitive.
+        if (record.deleted) {
+          return (
+            <Space size={4}>
+              <Tooltip title="Supprimer définitivement">
+                <Button shape="circle" danger icon={<DeleteOutlined />} className="accounts-action-btn accounts-action-btn--delete"
+                  onClick={() => handlePermanentDeleteAccount(record)} />
+              </Tooltip>
+            </Space>
+          );
+        }
         if (record._type === 'merged') {
           return (
             <Space size={2}>
@@ -698,6 +744,12 @@ export default function UnifiedAdministrationPage() {
           ]} />
         <Select value={sortBy} onChange={setSortBy} style={{ minWidth: 190 }}
           suffixIcon={<SortAscendingOutlined />} options={SORT_OPTIONS} />
+        <Tooltip title="Afficher aussi les comptes supprimés (archivés)">
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: neutral[600], fontSize: 13 }}>
+            <Switch size="small" checked={showDeleted} onChange={setShowDeleted} />
+            Comptes archivés
+          </span>
+        </Tooltip>
         <span style={{ color: neutral[500], fontSize: 13, marginLeft: 'auto' }}>
           {displayedData.length} résultat{displayedData.length === 1 ? "" : "s"}
         </span>

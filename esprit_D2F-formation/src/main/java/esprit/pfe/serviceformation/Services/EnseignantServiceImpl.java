@@ -80,6 +80,44 @@ public class EnseignantServiceImpl implements EnseignantService {
         return enseignantRepository.save(enseignant);
     }
 
+    @Override
+    @Transactional
+    public Enseignant linkOrCreateEnseignant(Enseignant enseignant) {
+        // Orchestration « compte + fiche » : si une fiche existe déjà pour cet
+        // email, on la RELIE au compte (set userId) au lieu de créer un doublon
+        // (qui violerait ux_enseignants_mail → 409 stérile). Sinon, création normale.
+        String mail = enseignant.getMail();
+        if (mail != null && !mail.isBlank()) {
+            var existingOpt = enseignantRepository.findByMailIgnoreCase(mail);
+            if (existingOpt.isPresent()) {
+                Enseignant existing = existingOpt.get();
+                String incomingUserId = enseignant.getUserId();
+                // Déjà liée à un AUTRE compte → vrai conflit.
+                if (existing.getUserId() != null && !existing.getUserId().isBlank()
+                        && !existing.getUserId().equals(incomingUserId)) {
+                    throw new DuplicateEnseignantException(
+                            "Un enseignant avec cet email est déjà lié à un autre compte : " + mail);
+                }
+                // Liaison + complétion null-safe des champs fournis.
+                existing.setUserId(incomingUserId);
+                if (enseignant.getNom() != null)             existing.setNom(enseignant.getNom());
+                if (enseignant.getPrenom() != null)          existing.setPrenom(enseignant.getPrenom());
+                if (enseignant.getTelephone() != null)       existing.setTelephone(enseignant.getTelephone());
+                if (enseignant.getType() != null && !enseignant.getType().isBlank())   existing.setType(enseignant.getType());
+                if (enseignant.getEtat() != null && !enseignant.getEtat().isBlank())   existing.setEtat(enseignant.getEtat());
+                if (enseignant.getCup() != null && !enseignant.getCup().isBlank())     existing.setCup(enseignant.getCup());
+                if (enseignant.getChefDepartement() != null && !enseignant.getChefDepartement().isBlank())
+                    existing.setChefDepartement(enseignant.getChefDepartement());
+                if (enseignant.getGrade() != null)           existing.setGrade(enseignant.getGrade());
+                if (enseignant.getSpecialite() != null)      existing.setSpecialite(enseignant.getSpecialite());
+                if (enseignant.getUp() != null)              existing.setUp(resolveUp(enseignant.getUp()));
+                if (enseignant.getDept() != null)            existing.setDept(resolveDept(enseignant.getDept()));
+                return enseignantRepository.save(existing);
+            }
+        }
+        return createEnseignant(enseignant);
+    }
+
     /**
      * Recharge un {@link Up} managé depuis son id. Renvoie {@code null} si aucune
      * UP n'est demandée, lève {@link IllegalArgumentException} (→ 400) si l'id est

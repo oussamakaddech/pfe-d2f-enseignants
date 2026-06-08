@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { login as loginApi, forgotPassword, resetPassword } from "@/services/auth/AuthService";
-import { editProfile, updatePassword as updatePasswordApi, banAccount, enableAccount, deleteAccount, updateAccount } from "@/services/auth/AccountService";
+import { editProfile, updatePassword as updatePasswordApi, banAccount, enableAccount, deleteAccount, permanentDeleteAccount, updateAccount } from "@/services/auth/AccountService";
 import type { LoginRequest, ResetPasswordRequest, EditProfileRequest, UpdatePasswordRequest } from "@/models/auth";
 
 export function useLogin() {
@@ -55,6 +55,14 @@ export function useDeleteAccount() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: (userId: string) => deleteAccount(userId),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["accounts"] }),
+  });
+}
+
+export function usePermanentDeleteAccount() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (userId: string) => permanentDeleteAccount(userId),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["accounts"] }),
   });
 }

@@ -35,6 +35,7 @@ type UserDTOFromBackend = {
   email?: string;
   role?: string;
   status?: boolean | string;
+  deleted?: boolean;
 };
 
 function normalizeUserDTO(dto: UserDTOFromBackend): AuthUser {
@@ -48,10 +49,10 @@ function normalizeUserDTO(dto: UserDTOFromBackend): AuthUser {
   } as AuthUser;
 }
 
-export async function getAllAccounts(): Promise<AuthUser[]> {
+export async function getAllAccounts(includeDeleted = false): Promise<AuthUser[]> {
   const response = await api.get<UserDTOFromBackend[] | { content: UserDTOFromBackend[] }>(
     `${API_URL}/list-accounts`,
-    { params: { size: 500, page: 0, sort: "lastName,asc" } }
+    { params: { size: 500, page: 0, includeDeleted } }
   );
   const data = response.data;
   if (!data) return [];
@@ -95,6 +96,11 @@ export async function deleteAccount(userId: string): Promise<AccountActionRespon
   return response.data;
 }
 
+export async function permanentDeleteAccount(userId: string): Promise<AccountActionResponse> {
+  const response = await api.delete(`${API_URL}/permanent-delete/${userId}`);
+  return response.data;
+}
+
 export async function updateAccount(
   userId: string,
   editProfileRequest: EditProfileRequest,
@@ -117,6 +123,7 @@ export default {
   banAccount,
   enableAccount,
   deleteAccount,
+  permanentDeleteAccount,
   updateAccount,
   createAccount,
 };

@@ -134,9 +134,9 @@ export function useUps() {
   });
 }
 
-export function useAllAccounts() {
+export function useAllAccounts(includeDeleted = false) {
   return useQuery<AuthUser[]>({
-    queryKey: ["accounts"],
-    queryFn: () => getAllAccounts(),
+    queryKey: ["accounts", includeDeleted],
+    queryFn: () => getAllAccounts(includeDeleted),
   });
 }

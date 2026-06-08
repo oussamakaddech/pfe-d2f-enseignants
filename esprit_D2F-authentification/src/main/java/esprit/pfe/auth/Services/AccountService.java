@@ -15,6 +15,9 @@ public interface AccountService {
 
     Page<User> listAccounts(Pageable pageable);
 
+    /** Liste les comptes ; {@code includeDeleted=true} inclut les comptes archivés (soft-deleted). */
+    Page<User> listAccounts(Pageable pageable, boolean includeDeleted);
+
     /**
      * Résumés de comptes (sans données sensibles) pour la page de gestion unifiée.
      * Critères optionnels combinés en ET : userIds, role, active.
@@ -40,6 +43,9 @@ public interface AccountService {
     User getPrincipalByUsername(String username);
     boolean userExistsById(String userId);
     void deleteAccount(String userId);
+
+    /** Suppression physique définitive (hard delete) d'un compte déjà archivé (soft-deleted). */
+    void permanentDeleteAccount(String userId);
     User updateAccount(String userId, EditProfileRequest editProfileRequest, String roleName);
 
 }

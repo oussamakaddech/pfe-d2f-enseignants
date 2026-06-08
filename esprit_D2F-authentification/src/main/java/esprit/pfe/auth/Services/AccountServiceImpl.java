@@ -49,6 +49,13 @@ public class AccountServiceImpl implements AccountService {
     }
 
     @Override
+    public Page<User> listAccounts(Pageable pageable, boolean includeDeleted) {
+        return includeDeleted
+                ? this.userRepository.findAllIncludingDeleted(pageable)
+                : this.userRepository.findAll(pageable);
+    }
+
+    @Override
     @Transactional(readOnly = true)
     public List<AccountSummaryDTO> getAccountSummaries(AccountSummaryQuery query) {
         AccountSummaryQuery q = (query != null) ? query : new AccountSummaryQuery();
@@ -198,6 +205,14 @@ public class AccountServiceImpl implements AccountService {
         // sur la ligne supprimée (audit trail) et redevient librement
         // réutilisable pour un nouveau compte, sans obfuscation.
         userRepository.delete(user);
+    }
+
+    @Override
+    @Transactional
+    public void permanentDeleteAccount(String userId) {
+        userRepository.findByIdIncludingDeleted(userId)
+                .orElseThrow(() -> new ResourceNotFoundException(USER_NOT_FOUND));
+        userRepository.deletePermanentById(userId);
     }
 
     @Override

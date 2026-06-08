@@ -20,6 +20,8 @@ public class UserDTO {
     private String email;
     private String role;
     private Boolean status;
+    /** true si le compte est archivé (soft-deleted). Renseigné pour la vue admin. */
+    private Boolean deleted;
 
     public UserDTO(User user) {
         this.id = user.getId();
@@ -38,5 +40,6 @@ public class UserDTO {
             this.role = "USER";
         }
         this.status = user.getDisabled();
+        this.deleted = user.getDeletedAt() != null;
     }
 }
