@@ -27,7 +27,13 @@ function normalizeListResponse<T>(payload: unknown): T[] {
 
 const BureauService = {
   async getAllBureaux(): Promise<Bureau[]> {
-    const response = await axios.get(API_URL);
+    // L'endpoint backend est paginé (@PageableDefault size=20, sort=id). Sans
+    // paramètres on ne récupérait que les 20 plus ANCIENS bureaux → un bureau
+    // fraîchement créé (id le plus grand) n'apparaissait pas dans « Gestion des
+    // Bureaux » ni dans le sélecteur de formation. On demande une page large,
+    // triée par id décroissant (les plus récents d'abord). normalizeListResponse
+    // déballe l'enveloppe Page ({ content: [...] }).
+    const response = await axios.get(API_URL, { params: { page: 0, size: 1000, sort: "id,desc" } });
     return normalizeListResponse<Bureau>(response.data);
   },
 
