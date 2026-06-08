@@ -38,6 +38,23 @@ public interface EnseignantRepository extends JpaRepository<Enseignant, String>,
      *  l'URL JDBC ne fixe pas {@code currentSchema} (le search_path retombe sinon sur public). */
     @Query(value = "SELECT * FROM {h-schema}enseignants ORDER BY id DESC LIMIT 1", nativeQuery = true)
     Optional<Enseignant> findTopByOrderByIdDesc();
+
+    /**
+     * Plus grand suffixe numérique parmi les ids au format {@code E#####}, en
+     * INCLUANT les enseignants soft-deleted (la PK {@code enseignants_pkey} porte
+     * sur la ligne physique : un id supprimé occupe toujours sa clé). Le filtre
+     * regex {@code ~ '^E[0-9]+$'} ignore les ids non conformes (dérivés d'un nom,
+     * uuid…) qui faisaient échouer le parsing → repli erroné sur E00001. Renvoie
+     * 0 si aucune ligne conforme. Requête native : non soumise au
+     * {@code @SQLRestriction("deleted_at IS NULL")}.
+     */
+    @Query(value = "SELECT COALESCE(MAX(CAST(SUBSTRING(id FROM 2) AS INTEGER)), 0) "
+            + "FROM {h-schema}enseignants WHERE id ~ '^E[0-9]+$'", nativeQuery = true)
+    int findMaxNumericIdIncludingDeleted();
+
+    /** Existence d'un id sur la ligne physique (soft-deleted compris) — anti-collision PK. */
+    @Query(value = "SELECT EXISTS(SELECT 1 FROM {h-schema}enseignants WHERE id = :id)", nativeQuery = true)
+    boolean existsByIdIncludingDeleted(@Param("id") String id);
     @Query("""
       SELECT e
       FROM Enseignant e

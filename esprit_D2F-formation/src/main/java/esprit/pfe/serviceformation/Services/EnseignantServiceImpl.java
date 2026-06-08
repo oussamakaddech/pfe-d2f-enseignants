@@ -41,27 +41,17 @@ public class EnseignantServiceImpl implements EnseignantService {
         // est inconnu) avant le save.
         enseignant.setUp(resolveUp(enseignant.getUp()));
         enseignant.setDept(resolveDept(enseignant.getDept()));
-        // Auto-generate ID in format E00001, E00002, … si non fourni OU si l'id
+        // Auto-generate ID au format E00001, E00002, … si non fourni OU si l'id
         // fourni est déjà pris (le frontend envoie parfois un id "stable" dérivé
-        // du nom qui peut entrer en collision avec un autre enseignant → sinon
-        // violation de clé primaire / 500). La vérif d'unicité d'email ci-dessus
-        // garantit qu'on ne duplique pas la même personne.
+        // du nom qui peut entrer en collision → sinon violation de PK / 500).
+        // existsByIdIncludingDeleted : la collision se teste sur la ligne PHYSIQUE
+        // (la PK enseignants_pkey couvre aussi les lignes soft-deleted), sinon un
+        // id réutilisé après suppression logique repassait le contrôle puis violait
+        // la PK à l'INSERT. La vérif d'unicité d'email ci-dessus garantit qu'on ne
+        // duplique pas la même personne.
         if (enseignant.getId() == null || enseignant.getId().isBlank()
-                || enseignantRepository.existsById(enseignant.getId())) {
-            String nextId = enseignantRepository.findTopByOrderByIdDesc()
-                    .map(last -> {
-                        String lastId = last.getId(); // e.g. "E00042"
-                        // Strip leading non-digits and parse
-                        String numericPart = lastId.replaceAll("\\D", "");
-                        try {
-                            int num = Integer.parseInt(numericPart);
-                            return String.format("E%05d", num + 1);
-                        } catch (NumberFormatException e) {
-                            return "E00001";
-                        }
-                    })
-                    .orElse("E00001");
-            enseignant.setId(nextId);
+                || enseignantRepository.existsByIdIncludingDeleted(enseignant.getId())) {
+            enseignant.setId(nextAvailableEnseignantId());
         }
         // Default mandatory fields not provided from the creation form
         if (enseignant.getCup() == null || enseignant.getCup().isBlank()) {
@@ -78,6 +68,21 @@ public class EnseignantServiceImpl implements EnseignantService {
             enseignant.setEtat("A");
         }
         return enseignantRepository.save(enseignant);
+    }
+
+    /**
+     * Prochain id libre au format {@code E#####}. On part du plus grand suffixe
+     * numérique existant (soft-deleted inclus, cf. PK physique) puis on avance tant
+     * que l'id est occupé — robuste aux trous, aux ids non conformes et aux lignes
+     * supprimées qui conservent leur clé.
+     */
+    private String nextAvailableEnseignantId() {
+        int next = enseignantRepository.findMaxNumericIdIncludingDeleted() + 1;
+        String candidate = String.format("E%05d", next);
+        while (enseignantRepository.existsByIdIncludingDeleted(candidate)) {
+            candidate = String.format("E%05d", ++next);
+        }
+        return candidate;
     }
 
     @Override

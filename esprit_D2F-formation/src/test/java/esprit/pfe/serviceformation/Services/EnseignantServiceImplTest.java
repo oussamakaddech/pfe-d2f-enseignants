@@ -29,9 +29,7 @@ class EnseignantServiceImplTest {
 
     @Test
     void testCreateEnseignant_AutoId() {
-        Enseignant last = new Enseignant();
-        last.setId("E00042");
-        when(repository.findTopByOrderByIdDesc()).thenReturn(Optional.of(last));
+        when(repository.findMaxNumericIdIncludingDeleted()).thenReturn(42);
         when(repository.save(any())).thenAnswer(i -> i.getArgument(0));
 
         Enseignant input = new Enseignant();
@@ -42,20 +40,22 @@ class EnseignantServiceImplTest {
     }
 
     @Test
-    void testCreateEnseignant_InvalidIdFormat() {
-        Enseignant last = new Enseignant();
-        last.setId("XYZ"); // No digits
-        when(repository.findTopByOrderByIdDesc()).thenReturn(Optional.of(last));
+    void testCreateEnseignant_SkipsSoftDeletedPkCollision() {
+        // Bug reproduit : E00001 existe encore physiquement (soft-deleted) → la PK
+        // est occupée. Le générateur doit l'enjamber au lieu de violer enseignants_pkey.
+        when(repository.findMaxNumericIdIncludingDeleted()).thenReturn(0);
+        when(repository.existsByIdIncludingDeleted("E00001")).thenReturn(true);
+        when(repository.existsByIdIncludingDeleted("E00002")).thenReturn(false);
         when(repository.save(any())).thenAnswer(i -> i.getArgument(0));
 
-        Enseignant input = new Enseignant();
-        Enseignant saved = service.createEnseignant(input);
+        Enseignant saved = service.createEnseignant(new Enseignant());
 
-        assertEquals("E00001", saved.getId());
+        assertEquals("E00002", saved.getId());
     }
 
     @Test
     void testCreateEnseignant_WithProvidedId() {
+        when(repository.existsByIdIncludingDeleted("E00100")).thenReturn(false);
         when(repository.save(any())).thenAnswer(i -> i.getArgument(0));
 
         Enseignant input = new Enseignant();
@@ -63,12 +63,12 @@ class EnseignantServiceImplTest {
         Enseignant saved = service.createEnseignant(input);
 
         assertEquals("E00100", saved.getId());
-        verify(repository, never()).findTopByOrderByIdDesc();
+        verify(repository, never()).findMaxNumericIdIncludingDeleted();
     }
 
     @Test
     void testCreateEnseignant_WithBlankId() {
-        when(repository.findTopByOrderByIdDesc()).thenReturn(Optional.empty());
+        when(repository.findMaxNumericIdIncludingDeleted()).thenReturn(0);
         when(repository.save(any())).thenAnswer(i -> i.getArgument(0));
 
         Enseignant input = new Enseignant();
@@ -80,7 +80,6 @@ class EnseignantServiceImplTest {
 
     @Test
     void testCreateEnseignant_WithNullCup() {
-        when(repository.findTopByOrderByIdDesc()).thenReturn(Optional.empty());
         when(repository.save(any())).thenAnswer(i -> i.getArgument(0));
 
         Enseignant input = new Enseignant();
@@ -92,7 +91,6 @@ class EnseignantServiceImplTest {
 
     @Test
     void testCreateEnseignant_WithBlankCup() {
-        when(repository.findTopByOrderByIdDesc()).thenReturn(Optional.empty());
         when(repository.save(any())).thenAnswer(i -> i.getArgument(0));
 
         Enseignant input = new Enseignant();
@@ -104,7 +102,6 @@ class EnseignantServiceImplTest {
 
     @Test
     void testCreateEnseignant_WithNullChefDepartement() {
-        when(repository.findTopByOrderByIdDesc()).thenReturn(Optional.empty());
         when(repository.save(any())).thenAnswer(i -> i.getArgument(0));
 
         Enseignant input = new Enseignant();
@@ -116,7 +113,6 @@ class EnseignantServiceImplTest {
 
     @Test
     void testCreateEnseignant_WithBlankChefDepartement() {
-        when(repository.findTopByOrderByIdDesc()).thenReturn(Optional.empty());
         when(repository.save(any())).thenAnswer(i -> i.getArgument(0));
 
         Enseignant input = new Enseignant();
