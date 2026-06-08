@@ -89,9 +89,14 @@ export const enseignantMenu: MenuItem[] = [
 
 export const animateurMenu: MenuItem[] = [
   { label: "Sessions d'Animation", key: "/home/animateur-formations", icon: ReadOutlined },
+  { label: "Besoins de Formation", key: "besoin_formation_menu", icon: ReadOutlined, children: [
+    { label: "Liste des Demandes", key: "/home/besoins",         icon: SearchOutlined },
+    { label: "Déposer un Besoin",  key: "/home/besoins/ajouter", icon: PlusCircleOutlined },
+  ]},
   { label: "Catalogue formations", key: "/home/ListeFormation",       icon: AppstoreOutlined },
   { label: "S'inscrire à une formation", key: "/home/Inscription/Nouvelle", icon: PlusCircleOutlined },
   { label: "Mes Inscriptions",     key: "/home/MesInscriptions",      icon: FileTextOutlined },
+  { label: "Mes Certificats",      key: "/home/MyCertificate",        icon: SafetyCertificateOutlined },
 ];
 
 export const responsableDossierMenu: MenuItem[] = [

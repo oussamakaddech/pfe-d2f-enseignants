@@ -152,10 +152,10 @@ export default function AppRoutes() {
                   <Route path="/home/rice/competence-matching" element={<CompetenceMatchingPage />} />
                 </Route>
 
-                <Route element={<RoleGuard allowedRoles={[ROLES.ADMIN, ROLES.D2F, ROLES.CUP, ROLES.ENSEIGNANT, ROLES.CHEF_DEPARTEMENT]} />}>
+                <Route element={<RoleGuard allowedRoles={[ROLES.ADMIN, ROLES.D2F, ROLES.CUP, ROLES.ENSEIGNANT, ROLES.ANIMATEUR, ROLES.CHEF_DEPARTEMENT]} />}>
                   <Route path="/home/besoins" element={<BesoinList />} />
                 </Route>
-                <Route element={<RoleGuard allowedRoles={[ROLES.ADMIN, ROLES.D2F, ROLES.CUP, ROLES.ENSEIGNANT]} />}>
+                <Route element={<RoleGuard allowedRoles={[ROLES.ADMIN, ROLES.D2F, ROLES.CUP, ROLES.ENSEIGNANT, ROLES.ANIMATEUR]} />}>
                   <Route path="/home/besoins/ajouter" element={<BesoinForm />} />
                 </Route>
 

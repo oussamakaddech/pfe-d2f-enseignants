@@ -84,9 +84,9 @@ public class AuthorizationFilter extends AbstractGatewayFilterFactory<Authorizat
         ROLE_ADMIN, ROLE_CUP, ROLE_ENSEIGNANT
     );
 
-    /** Admin + CUP + D2F + Enseignant — aligné sur AuthorizationMatrix.BESOIN_FORMATION_CREATE */
-    private static final List<String> ADMIN_CUP_D2F_ENSEIGNANT = List.of(
-        ROLE_ADMIN, ROLE_CUP, ROLE_D2F, ROLE_ENSEIGNANT
+    /** Admin + CUP + D2F + Enseignant + Animateur — aligné sur AuthorizationMatrix.BESOIN_FORMATION_CREATE */
+    private static final List<String> ADMIN_CUP_D2F_ENSEIGNANT_ANIMATEUR = List.of(
+        ROLE_ADMIN, ROLE_CUP, ROLE_D2F, ROLE_ENSEIGNANT, ROLE_ANIMATEUR
     );
 
     /** Admin + CUP + D2F — aligné sur AuthorizationMatrix.FORMATION_CREATE */
@@ -228,7 +228,7 @@ public class AuthorizationFilter extends AbstractGatewayFilterFactory<Authorizat
         if (path.contains("/approve")) return ADMIN_CUP;
         if (method == HttpMethod.DELETE) return ADMIN_ONLY;
         if (path.contains("/modify") && method == HttpMethod.PUT) return ADMIN_ONLY;
-        if (method == HttpMethod.POST) return ADMIN_CUP_D2F_ENSEIGNANT;
+        if (method == HttpMethod.POST) return ADMIN_CUP_D2F_ENSEIGNANT_ANIMATEUR;
         return ALL_ROLES;
     }
 
