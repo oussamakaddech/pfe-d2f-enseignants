@@ -91,9 +91,7 @@ export default function FormationCards() {
   const { data: profile, isLoading: profileLoading } = useProfile();
   const currentUser = useMemo(() => {
     if (!profile) return null;
-    const user = { ...profile };
-    if (!user.role || user.role === ROLES.ADMIN) user.role = ROLES.D2F;
-    return user;
+    return { ...profile };
   }, [profile]);
 
   const identifier = currentUser?.emailAddress || currentUser?.email || currentUser?.id;
@@ -129,7 +127,7 @@ export default function FormationCards() {
       data = (accessibles as FormationItem[] | undefined) ?? [];
     } else {
       data = (visibles as FormationItem[] | undefined) ?? [];
-      if ((currentUser.role === ROLES.D2F || currentUser.role === ROLES.ADMIN) && data.length === 0) {
+      if (currentUser.role === ROLES.ADMIN && data.length === 0) {
         data = (all as FormationItem[] | undefined) ?? [];
       }
     }
@@ -225,7 +223,7 @@ export default function FormationCards() {
     return { total, open, closed, uniqueTypes, startingSoon };
   }, [formationsList]);
 
-  const isAdminLike = currentUser?.role === ROLES.D2F || currentUser?.role === ROLES.CUP;
+  const isAdminLike = currentUser?.role === ROLES.ADMIN || currentUser?.role === ROLES.CUP;
   const isTeacherView = currentUser?.role === ROLES.ENSEIGNANT || currentUser?.role === ROLES.ANIMATEUR;
 
   if (loading && formationsList.length === 0) {

@@ -28,7 +28,6 @@ import {
   SearchOutlined,
 } from "@ant-design/icons";
 import { useFormationsByAnimateur } from "@/hooks/presence/usePresence";
-import { useFormationsAchevees } from "@/hooks/formation/useFormations";
 import { ROLES } from "@/utils/constants/roles";
 import { useAuth } from "@/hooks/auth/useAuth";
 import { AppPageHeader } from "@/components/common";
@@ -79,11 +78,9 @@ const FormationList = () => {
   const [endDate, setEndDate] = useState<Dayjs | null>(null);
   const navigate = useNavigate();
 
-  const isD2F = user?.role === ROLES.D2F;
-  const { data: achevees = [], isLoading: loadingAchevees } = useFormationsAchevees();
-  const { data: parAnimateur = [], isLoading: loadingAnimateur } = useFormationsByAnimateur();
-  const formations = (isD2F ? achevees : parAnimateur) as FormationItem[];
-  const loading = isD2F ? loadingAchevees : loadingAnimateur;
+  const isFormateurLike = user?.role === ROLES.ENSEIGNANT || user?.role === ROLES.ANIMATEUR || user?.role === ROLES.FORMATEUR;
+  const { data: parAnimateur = [], isLoading: loading } = useFormationsByAnimateur(isFormateurLike);
+  const formations = parAnimateur as FormationItem[];
 
   // Extract dropdown options
   const depts = useMemo(() => {
@@ -132,7 +129,7 @@ const FormationList = () => {
     <Content className="fl-content">
       <AppPageHeader
         icon={<ReadOutlined />}
-        title={user?.role === "D2F" ? "Toutes les Formations" : "Mes Formations à animer"}
+        title="Mes Formations à animer"
         subtitle="Consultez vos formations et marquez la présence des enseignants à chaque séance"
       />
 

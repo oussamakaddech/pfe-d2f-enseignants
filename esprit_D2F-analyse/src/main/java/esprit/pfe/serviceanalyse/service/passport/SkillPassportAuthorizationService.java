@@ -13,7 +13,6 @@ import java.util.Collection;
  * Règles RBAC du Passeport de Compétences :
  *  - ROLE_ADMIN      → accès à tous les passeports
  *  - ROLE_CUP        → accès à tous les enseignants (périmètre global pour le PFE)
- *  - ROLE_D2F        → accès à tous les enseignants
  *  - ROLE_ENSEIGNANT → accès uniquement à son propre passeport
  *  - Autres          → 403
  */
@@ -23,7 +22,6 @@ public class SkillPassportAuthorizationService {
 
     private static final String ROLE_ADMIN = "ROLE_ADMIN";
     private static final String ROLE_CUP   = "ROLE_CUP";
-    private static final String ROLE_D2F   = "ROLE_D2F";
     private static final String ROLE_ENSEIGNANT = "ROLE_ENSEIGNANT";
 
     /**
@@ -37,10 +35,9 @@ public class SkillPassportAuthorizationService {
         Collection<? extends GrantedAuthority> authorities = authentication.getAuthorities();
         boolean isAdmin = hasRole(authorities, ROLE_ADMIN);
         boolean isCup   = hasRole(authorities, ROLE_CUP);
-        boolean isD2f   = hasRole(authorities, ROLE_D2F);
         boolean isEnseignant = hasRole(authorities, ROLE_ENSEIGNANT);
 
-        if (isAdmin || isCup || isD2f) {
+        if (isAdmin || isCup) {
             return; // accès global autorisé
         }
 

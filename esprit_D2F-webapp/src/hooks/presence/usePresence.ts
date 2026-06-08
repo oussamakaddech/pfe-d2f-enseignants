@@ -9,10 +9,11 @@ const KEYS = {
   seanceStats: (id: Id) => ["presences", "stats", id] as const,
 };
 
-export function useFormationsByAnimateur() {
+export function useFormationsByAnimateur(enabled = true) {
   return useQuery<Formation[]>({
     queryKey: KEYS.animateur,
     queryFn: () => FormationWorkflowService.getFormationsByAnimateur(),
+    enabled,
   });
 }
 

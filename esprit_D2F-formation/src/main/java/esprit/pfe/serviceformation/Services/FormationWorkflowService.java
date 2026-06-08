@@ -222,6 +222,7 @@ public class FormationWorkflowService {
         formation.setCoutHebergement(request.getCoutHebergement());
         formation.setCoutRepas(request.getCoutRepas());
         formation.setOuverte(request.isOuverte());
+        formation.setSalle(request.getSalle());
         formation.setResponsableEmail(request.getResponsableEmail());
         formation.setResponsableName(request.getResponsableName());
 
@@ -906,12 +907,16 @@ public class FormationWorkflowService {
     }
 
     private String buildCalendarEventContent(Formation formation, SeanceFormation seance, String animateursStr) {
+        String salleDisplay = (seance.getSalle() != null && !seance.getSalle().isBlank())
+                ? seance.getSalle()
+                : (formation.getSalle() != null && !formation.getSalle().isBlank())
+                        ? formation.getSalle() : "Salle-TBD";
         return "<html><body>" +
                 "<h3>" + formation.getTitreFormation() + "</h3>" +
                 "<p><strong>Date:</strong> " + formatDate(seance.getDateSeance()) + "</p>" +
                 "<p><strong>Heure:</strong> " + formatTime(seance.getHeureDebut()) + " - "
                 + formatTime(seance.getHeureFin()) + "</p>" +
-                "<p><strong>Salle:</strong> " + seance.getSalle() + "</p>" +
+                "<p><strong>Salle:</strong> " + salleDisplay + "</p>" +
                 "<p><strong>Animateurs:</strong> " + animateursStr + "</p>" +
                 "</body></html>";
     }
@@ -1046,7 +1051,9 @@ public class FormationWorkflowService {
      */
     private String buildEventSubject(SeanceFormation freshSeance, Formation freshFormation, String animateursStr) {
         String salle = (freshSeance.getSalle() != null && !freshSeance.getSalle().isBlank())
-                ? freshSeance.getSalle().trim() : "Salle-TBD";
+                ? freshSeance.getSalle().trim()
+                : (freshFormation.getSalle() != null && !freshFormation.getSalle().isBlank())
+                        ? freshFormation.getSalle().trim() : "Salle-TBD";
         String titre = (freshFormation.getTitreFormation() != null && !freshFormation.getTitreFormation().isBlank())
                 ? freshFormation.getTitreFormation().trim() : "Formation";
         String animateur = (animateursStr != null && !animateursStr.isBlank())
@@ -1086,6 +1093,10 @@ public class FormationWorkflowService {
         }
         boolean isNewEvent = freshSeance.getCalendarEventId() == null;
 
+        String salleEvent = (freshSeance.getSalle() != null && !freshSeance.getSalle().isBlank())
+                ? freshSeance.getSalle()
+                : (freshFormation.getSalle() != null && !freshFormation.getSalle().isBlank())
+                        ? freshFormation.getSalle() : null;
         OutlookEventParameters eventParams = OutlookEventParameters.builder()
                 .organizerEmail(organizerEmail)
                 .eventId(freshSeance.getCalendarEventId())
@@ -1093,7 +1104,7 @@ public class FormationWorkflowService {
                 .htmlContent(eventHtmlContent)
                 .start(eventStart)
                 .end(eventEnd)
-                .salle(freshSeance.getSalle())
+                .salle(salleEvent)
                 .attendeeEmails(new ArrayList<>(emails))
                 .build();
 

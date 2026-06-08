@@ -13,6 +13,8 @@ import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 import tn.esprit.d2f.dto.BesoinFormationRequest;
 import tn.esprit.d2f.dto.BesoinFormationResponse;
@@ -86,7 +88,7 @@ public class BesoinFormationController {
     @ApiResponse(responseCode = "201", description = "Besoin créé avec succès")
     @ApiResponse(responseCode = "400", description = "Données invalides (voir message de validation)")
     @ApiResponse(responseCode = "401", description = "Non authentifié")
-    @ApiResponse(responseCode = "403", description = "Réservé à ROLE_D2F, ROLE_CUP, ROLE_ADMIN")
+    @ApiResponse(responseCode = "403", description = "Réservé à ROLE_CUP, ROLE_ADMIN")
     @PostMapping
     @PreAuthorize(AuthorizationMatrix.BESOIN_FORMATION_CREATE)
     public ResponseEntity<BesoinFormationResponse> addBesoinFormation(
@@ -227,6 +229,26 @@ public class BesoinFormationController {
         return ResponseEntity.ok(PageResponse.of(besoinFormationService.retrieveByPriorite(priorite, pageable)));
     }
 
+    // ── Besoins personnels (pour ENSEIGNANT / ANIMATEUR) ──────────────────────
+
+    @Operation(
+        summary = "Lister mes besoins de formation (paginé)",
+        description = "Retourne les besoins de l'utilisateur connecté. Accessible à tout utilisateur authentifié ; " +
+                      "les données sont filtrées par le username extrait du JWT."
+    )
+    @ApiResponse(responseCode = "200", description = "Besoins personnels de l'utilisateur")
+    @ApiResponse(responseCode = "401", description = "Non authentifié")
+    @GetMapping("/mine")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<PageResponse<BesoinFormationResponse>> getMyBesoinFormations(
+            @Parameter(hidden = true) @AuthenticationPrincipal Jwt jwt,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        String username = jwt.getSubject();
+        Pageable pageable = PageRequest.of(page, size, Sort.by(SORT_FIELD).descending());
+        return ResponseEntity.ok(PageResponse.of(besoinFormationService.retrieveByUsername(username, pageable)));
+    }
+
     // ── Notifications ─────────────────────────────────────────────────────────
 
     @Operation(
@@ -237,7 +259,7 @@ public class BesoinFormationController {
     @ApiResponse(responseCode = "401", description = "Non authentifié")
     @ApiResponse(responseCode = "403", description = "Accès interdit")
     @GetMapping("/notifications/{username}")
-    @PreAuthorize("#username == authentication.name or hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_D2F')")
+    @PreAuthorize("#username == authentication.name or hasAnyRole('ROLE_ADMIN','ROLE_CUP')")
     public ResponseEntity<PageResponse<NotificationDTO>> getUserNotifications(
             @Parameter(description = "Identifiant de l'utilisateur") @PathVariable String username,
             @RequestParam(defaultValue = "0") int page,

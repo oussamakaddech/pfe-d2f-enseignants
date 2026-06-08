@@ -9,6 +9,9 @@ actions-runner/
 **/target/
 *.zip
 
+# ── Claude Code agent worktrees (copies transitoires, secrets/clutter) ────────
+.claude/worktrees/
+
 # ── Secrets & environment files (DSI §1.1 — jamais committer) ─────────────────
 .env
 .env.local

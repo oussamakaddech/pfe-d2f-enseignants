@@ -23,7 +23,7 @@ public class AdvancedFilterRequest {
     private String search;
 
     @Schema(description = "Filtre par rôle de compte",
-            allowableValues = {"ADMIN", "CUP", "D2F", "ENSEIGNANT", "FORMATEUR", "ANIMATEUR",
+            allowableValues = {"ADMIN", "CUP", "ENSEIGNANT", "FORMATEUR", "ANIMATEUR",
                     "CHEF_DEPARTEMENT", "RESPONSABLE_DOSSIER"})
     private String role;
 

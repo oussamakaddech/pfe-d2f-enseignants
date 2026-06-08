@@ -35,6 +35,7 @@ import { useFormationById } from "@/hooks/formation/useFormations";
 import useAppNotification from "@/hooks/ui/useAppNotification";
 import { AppPageHeader, InscriptionStatGrid, PageLoader, EmptyStateStandard } from "@/components/common";
 import "@/styles/pages/demandes-list.css";
+import { brand } from "@/styles/themes/tokens";
 import type { Id } from "@/models/common";
 
 const { Text } = Typography;

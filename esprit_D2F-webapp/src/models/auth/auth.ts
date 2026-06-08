@@ -1,10 +1,10 @@
 // Source de vérité : `utils/constants/roles.ts` (dérivé de `ROLES`).
 // On importe + re-exporte ici pour préserver la compatibilité des imports
 // existants (`@/models/auth`) et éviter d'avoir 3 déclarations désynchronisées.
-// Rôles valides : "admin" | "D2F" | "CUP" | "Enseignant" | "Animateur"
+// Rôles valides : "admin" | "CUP" | "Enseignant" | "Animateur"
 //                 | "CHEF_DEPARTEMENT" | "ResponsableDossier"
 // Portée fonctionnelle (pour contexte front) :
-//   - admin / D2F / CUP : administration globale.
+//   - admin / CUP : administration globale.
 //   - ENSEIGNANT : peut s'inscrire aux formations, déposer des besoins.
 //   - ANIMATEUR  : anime des sessions + inscriptions + évaluations.
 //   - CHEF_DEPARTEMENT  : scope « son département » (lecture + besoins + eval).

@@ -41,10 +41,11 @@ export function useFormationsVisibles() {
   });
 }
 
-export function useFormationsAchevees() {
+export function useFormationsAchevees(enabled = true) {
   return useQuery<Formation[]>({
     queryKey: KEYS.achevees,
     queryFn: () => FormationWorkflowService.getFormationsAchevees(),
+    enabled,
   });
 }
 
@@ -134,9 +135,10 @@ export function useUps() {
   });
 }
 
-export function useAllAccounts(includeDeleted = false) {
+export function useAllAccounts(includeDeleted = false, enabled = true) {
   return useQuery<AuthUser[]>({
     queryKey: ["accounts", includeDeleted],
     queryFn: () => getAllAccounts(includeDeleted),
+    enabled,
   });
 }

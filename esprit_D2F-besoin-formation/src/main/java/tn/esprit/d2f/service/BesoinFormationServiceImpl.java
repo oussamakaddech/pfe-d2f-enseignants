@@ -192,6 +192,12 @@ public class BesoinFormationServiceImpl implements IBesoinFormationService {
                 .map(besoinFormationMapper::toResponse);
     }
 
+    @Override
+    public Page<BesoinFormationResponse> retrieveByUsername(String username, Pageable pageable) {
+        return besoinFormationRepository.findByUsername(username, pageable)
+                .map(besoinFormationMapper::toResponse);
+    }
+
     // ── Helpers privés ────────────────────────────────────────────────────────
 
     private boolean hasRole(Collection<? extends GrantedAuthority> authorities, String role) {

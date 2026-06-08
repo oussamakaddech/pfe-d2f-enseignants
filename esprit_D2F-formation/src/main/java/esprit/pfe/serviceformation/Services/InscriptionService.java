@@ -54,6 +54,7 @@ public class InscriptionService {
     public List<FormationResponseDTO> listerFormationsAccessibles(String enseignantId) {
         Enseignant ens = enseignantRepo.findById(enseignantId)
                 .or(() -> enseignantRepo.findByMail(enseignantId))
+                .or(() -> enseignantRepo.findByMailIgnoreCase(enseignantId))
                 .orElseThrow(() -> new IllegalArgumentException("Enseignant introuvable"));
         String upEns = ens.getUp() != null ? ens.getUp().getId() : null;
 
@@ -83,6 +84,7 @@ public class InscriptionService {
 
         Enseignant e = enseignantRepo.findById(enseignantId)
                 .or(() -> enseignantRepo.findByMail(enseignantId))
+                .or(() -> enseignantRepo.findByMailIgnoreCase(enseignantId))
                 .orElseThrow(() -> new IllegalArgumentException("Enseignant introuvable"));
 
         String upForm = f.getUp() != null ? f.getUp().getId() : null;
@@ -332,6 +334,15 @@ public class InscriptionService {
     @Transactional
     public void annulerInscriptionDTO(Long inscriptionId, String enseignantId) {
         self.annulerInscription(inscriptionId, enseignantId);
+    }
+
+    @Transactional(readOnly = true)
+    public Page<InscriptionSummaryDTO> findSummariesByCurrentUser(String emailOrUsername, Pageable pageable) {
+        Enseignant ens = enseignantRepo.findById(emailOrUsername)
+                .or(() -> enseignantRepo.findByMail(emailOrUsername))
+                .or(() -> enseignantRepo.findByMailIgnoreCase(emailOrUsername))
+                .orElseThrow(() -> new IllegalArgumentException("Enseignant introuvable pour l'utilisateur : " + emailOrUsername));
+        return findSummariesByEnseignantId(ens.getId(), pageable);
     }
 
     @Transactional(readOnly = true)

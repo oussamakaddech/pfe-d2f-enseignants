@@ -47,7 +47,7 @@ public record CurrentUser(String username, String userId, String email, Set<Stri
     /** Vue complète, sans restriction de département. */
     public boolean hasGlobalScope() {
         return roles.contains("ADMIN") || roles.contains("CUP")
-                || roles.contains("D2F") || roles.contains("RESPONSABLE_DOSSIER");
+                || roles.contains("RESPONSABLE_DOSSIER");
     }
 
     /** Périmètre restreint à son propre département. */

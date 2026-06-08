@@ -102,7 +102,7 @@ public class SecurityController {
     }
 
     @PostMapping("/reset-devices")
-    @PreAuthorize("hasAnyRole('ADMIN', 'D2F')")
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<MessageResponse> resetDevices(@RequestParam String username) {
         authService.resetDevices(username);
         return ResponseEntity.ok(new MessageResponse("Device IDs have been reset."));

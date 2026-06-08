@@ -11,6 +11,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -100,6 +102,23 @@ public class InscriptionController {
             @RequestParam String enseignantId) {
         service.annulerInscriptionDTO(id, enseignantId);
         return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * P3 - F11 : retourne les inscriptions de l'utilisateur connecté.
+     * Le JWT est utilisé pour résoudre l'identité (email/subject) → enseignant
+     * → ses inscriptions. Utilisé par Enseignant/Animateur dans "Mes Inscriptions".
+     */
+    @GetMapping("/mine")
+    @PreAuthorize(AuthorizationMatrix.INSCRIPTION_READ)
+    public ResponseEntity<Page<InscriptionSummaryDTO>> getMine(
+            @AuthenticationPrincipal Jwt jwt,
+            @PageableDefault(size = 20, sort = "id") Pageable pageable) {
+        String emailOrUsername = jwt.getClaimAsString("email");
+        if (emailOrUsername == null || emailOrUsername.isBlank()) {
+            emailOrUsername = jwt.getSubject();
+        }
+        return ResponseEntity.ok(service.findSummariesByCurrentUser(emailOrUsername, pageable));
     }
 
     @GetMapping("/enseignant/{enseignantId}")

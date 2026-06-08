@@ -43,8 +43,8 @@ const EnseignantService = {
     return response.data;
   },
 
-  async getAllEnseignants(): Promise<Enseignant[]> {
-    const response = await axios.get(API_URL);
+  async getAllEnseignants(size = 5000): Promise<Enseignant[]> {
+    const response = await axios.get(API_URL, { params: { size } });
     return normalizeListResponse<Enseignant>(response.data);
   },
 

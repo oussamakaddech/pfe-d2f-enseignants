@@ -16,8 +16,7 @@ import {
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 import { AppPageHeader, InscriptionStatGrid, PageLoader, EmptyStateStandard, neutral } from "@/components/common";
-import { useProfile, useInscriptionsByEnseignant, useAnnulerInscription } from "@/hooks/formation/useFormationExtras";
-import { useEnseignantById } from "@/hooks/enseignant/useEnseignants";
+import { useProfile, useMyInscriptions, useAnnulerInscription } from "@/hooks/formation/useFormationExtras";
 import { writeExcel, exportDateLabel, isoDate } from "utils/helpers/excelExport";
 import useAppNotification from "@/hooks/ui/useAppNotification";
 import "@/styles/pages/inscription.css";
@@ -43,11 +42,6 @@ interface MesInscriptionRow {
 
 const LAST_VISIT_KEY = "mesInscriptions.lastVisit";
 
-interface EnseignantData {
-  id?: Id;
-  [key: string]: unknown;
-}
-
 const ETAT_META: Record<Etat, { color: string; bg: string; label: string; icon: React.ReactNode }> = {
   APPROVED: { color: "#15803d", bg: "#dcfce7", label: "Approuvée",  icon: <CheckCircleOutlined /> },
   PENDING:  { color: "#b45309", bg: "#fef3c7", label: "En attente", icon: <ClockCircleOutlined /> },
@@ -72,15 +66,14 @@ export default function MesInscriptions() {
   const { data: profile, isLoading: profileLoading, error: profileError } = useProfile();
   // Email prioritaire : c'est ce que le backend utilise pour résoudre l'enseignant.
   const identifier = profile?.emailAddress || profile?.email || profile?.id;
-  // Lookup métier pour obtenir le code E-xxxxx utilisé en path param.
-  const { data: enseignant, isLoading: enseignantLoading } = useEnseignantById(identifier);
-  const enseignantCode = (enseignant as EnseignantData | undefined)?.id;
-  const { data: raw, isLoading, error: inscriptionsError, refetch } = useInscriptionsByEnseignant(enseignantCode);
+  const { data: raw, isLoading, error: inscriptionsError, refetch } = useMyInscriptions();
   const annulerMut = useAnnulerInscription();
 
   const [statusFilter, setStatusFilter] = useState<"ALL" | Etat>("ALL");
   // P3 - F10 : track last visit to detect state changes since last load
   const notifiedIdsRef = useRef<Set<string>>(new Set());
+
+  const rows = useMemo(() => (Array.isArray(raw) ? (raw as MesInscriptionRow[]) : []), [raw]);
 
   useEffect(() => {
     if (isLoading || rows.length === 0) return;
@@ -106,8 +99,6 @@ export default function MesInscriptions() {
     localStorage.setItem(LAST_VISIT_KEY, dayjs().toISOString());
   }, [rows, isLoading, msgApi]);
 
-  const rows = useMemo(() => (Array.isArray(raw) ? (raw as MesInscriptionRow[]) : []), [raw]);
-
   const stats = useMemo(() => ({
     total:    rows.length,
     approved: rows.filter((r) => r.etat === "APPROVED").length,
@@ -120,9 +111,8 @@ export default function MesInscriptions() {
     [rows, statusFilter],
   );
 
-  const loading = profileLoading || enseignantLoading || isLoading;
+  const loading = profileLoading || isLoading;
   const hasProfileIssue = !!profileError || (!profileLoading && !identifier);
-  const hasEnseignantIssue = !enseignantLoading && identifier && !enseignantCode;
 
   const handleAnnuler = async (r: MesInscriptionRow) => {
     // Le backend attend l'id d'inscription. À défaut, on retombe sur formationId
@@ -213,17 +203,7 @@ export default function MesInscriptions() {
         />
       )}
 
-      {!hasProfileIssue && hasEnseignantIssue && (
-        <Alert
-          type="warning"
-          showIcon
-          style={{ marginBottom: 16 }}
-          message="Compte enseignant non rattaché"
-          description="Votre compte utilisateur n'est pas encore lié à une fiche enseignant. Contactez l'administrateur pour finaliser votre inscription au système."
-        />
-      )}
-
-      {inscriptionsError && !hasProfileIssue && !hasEnseignantIssue && (
+      {inscriptionsError && !hasProfileIssue && (
         <Alert
           type="error"
           showIcon

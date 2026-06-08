@@ -58,11 +58,10 @@ export default function FicheFormation() {
   const { data: formation, isLoading: loading, error } = useFormationById(id);
   const { data: profile } = useProfile();
   const role = String(profile?.role ?? "").toLowerCase();
-  // Admin / CUP / D2F : accès à la liste des participants + statistiques.
+  // Admin / CUP : accès à la liste des participants + statistiques.
   const canViewParticipants =
     role === ROLES.ADMIN.toLowerCase() ||
-    role === ROLES.CUP.toLowerCase() ||
-    role === ROLES.D2F.toLowerCase();
+    role === ROLES.CUP.toLowerCase();
 
   // ── Inscription contextualisée (D8) ───────────────────────────────────
   const isTeacher = role === ROLES.ENSEIGNANT.toLowerCase() || role === ROLES.ANIMATEUR.toLowerCase();

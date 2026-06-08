@@ -30,6 +30,9 @@ public interface IBesoinFormationService {
 
     /** §2.2.3 — Notifications d'un utilisateur */
     Page<Notification> findNotificationsByUsername(String username, Pageable pageable);
+
+    /** §2.2.4 — Besoins personnels d'un utilisateur (ENSEIGNANT/ANIMATEUR) */
+    Page<BesoinFormationResponse> retrieveByUsername(String username, Pageable pageable);
 }
 
 

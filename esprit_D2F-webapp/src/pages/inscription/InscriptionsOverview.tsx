@@ -28,6 +28,7 @@ import {
 import { writeExcel, exportDateLabel, isoDate } from "utils/helpers/excelExport";
 import { useAllInscriptions } from "@/hooks/formation/useFormationExtras";
 import { AppPageHeader, InscriptionStatGrid, PageLoader } from "@/components/common";
+import { brand } from "@/styles/themes/tokens";
 import type { Id } from "@/models/common";
 
 const { Text } = Typography;

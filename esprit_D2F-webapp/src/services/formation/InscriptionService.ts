@@ -23,6 +23,12 @@ const InscriptionService = {
     return normalizeContent(response.data);
   },
 
+  /** Inscriptions de l'utilisateur connecté (via JWT) — utilisé dans "Mes Inscriptions". */
+  async getMyInscriptions(size = 200): Promise<unknown[]> {
+    const response = await axios.get(`${API_URL}/mine`, { params: { size } });
+    return normalizeContent(response.data);
+  },
+
   /** Inscriptions d'un enseignant (résumés) — utilisé pour le pré-contrôle de chevauchement. */
   async getInscriptionsByEnseignant(enseignantId: string | number, size = 200): Promise<unknown[]> {
     const response = await axios.get(`${API_URL}/enseignant/${enseignantId}`, { params: { size } });

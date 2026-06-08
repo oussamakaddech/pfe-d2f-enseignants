@@ -39,12 +39,6 @@ class SkillPassportAuthorizationServiceTest {
     }
 
     @Test
-    void d2f_canAccessAnyPassport() {
-        Authentication d2f = auth("d2f1", "ROLE_D2F");
-        assertThatCode(() -> service.checkAccess(d2f, "anyone")).doesNotThrowAnyException();
-    }
-
-    @Test
     void enseignant_canAccessOwnPassport() {
         Authentication ens = auth("jdoe", "ROLE_ENSEIGNANT");
         assertThatCode(() -> service.checkAccess(ens, "jdoe")).doesNotThrowAnyException();

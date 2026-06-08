@@ -12,6 +12,9 @@ public interface BesoinFormationRepository extends JpaRepository<BesoinFormation
 
     Page<BesoinFormation> findByApprouveAdminTrue(Pageable pageable);
 
+    /** Filtrage par username (besoins personnels) */
+    Page<BesoinFormation> findByUsername(String username, Pageable pageable);
+
     /** Filtrage par UP (§2.2.2 — Consulter les besoins par UP) */
     Page<BesoinFormation> findByUp(String up, Pageable pageable);
 

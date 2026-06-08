@@ -30,6 +30,7 @@ import {
   ClearOutlined,
   DollarOutlined,
   DownOutlined,
+  EnvironmentOutlined,
   FileExcelOutlined,
   FilterOutlined,
   FolderOpenOutlined,
@@ -208,6 +209,18 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
               onChange={(d: Dayjs | null) => h.setDateFin(d ? d.format("YYYY-MM-DD") : "")}
               format="DD/MM/YYYY"
               disabled={h.isResponsableDossier}
+            />
+          </Col>
+
+          <Col xs={24} sm={12}>
+            <label className="creation-field-label"><EnvironmentOutlined /> Salle / Lieu</label>
+            <Input
+              size="large"
+              value={h.salle}
+              onChange={(e) => h.setSalle(e.target.value)}
+              disabled={h.isResponsableDossier}
+              placeholder="Ex : Salle A101, Amphi B..."
+              prefix={<EnvironmentOutlined style={{ color: "#a0aec0" }} />}
             />
           </Col>
 

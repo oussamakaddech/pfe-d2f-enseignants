@@ -37,7 +37,7 @@ public class UnifiedProfileDTO implements Serializable {
 
     @Schema(description = "Rôle du compte",
             example = "ENSEIGNANT",
-            allowableValues = {"ADMIN", "CUP", "D2F", "ENSEIGNANT", "FORMATEUR", "ANIMATEUR",
+            allowableValues = {"ADMIN", "CUP", "ENSEIGNANT", "FORMATEUR", "ANIMATEUR",
                     "CHEF_DEPARTEMENT", "RESPONSABLE_DOSSIER"})
     private String role;
 

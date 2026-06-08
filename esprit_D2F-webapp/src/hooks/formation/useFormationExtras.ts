@@ -81,6 +81,13 @@ export function useInscriptionsByEnseignant(enseignantId: Id | undefined) {
   });
 }
 
+export function useMyInscriptions() {
+  return useQuery<unknown[]>({
+    queryKey: ["inscriptions", "mine"],
+    queryFn: () => InscriptionService.getMyInscriptions(),
+  });
+}
+
 export function useDemanderInscription() {
   return useMutation({
     mutationFn: ({ formationId, enseignantId }: { formationId: Id; enseignantId: Id }) =>

@@ -42,7 +42,6 @@ public class SecurityConfig {
     private static final String API_PATTERN = "/api/**";
     private static final String ROLE_ADMIN = "ADMIN";
     private static final String ROLE_CUP = "CUP";
-    private static final String ROLE_D2F = "D2F";
     private static final String ROLE_ENSEIGNANT = "ENSEIGNANT";
     private static final String ROLE_FORMATEUR = "FORMATEUR";
     // ANIMATEUR = rôle canonique D2F (équivalent FORMATEUR). Doit accompagner
@@ -74,17 +73,17 @@ public class SecurityConfig {
                         ).permitAll()
                         // Lecture : tous les rôles
                         .requestMatchers(HttpMethod.GET, API_PATTERN)
-                            .hasAnyRole(ROLE_ADMIN, ROLE_CUP, ROLE_D2F, ROLE_ENSEIGNANT, ROLE_FORMATEUR, ROLE_ANIMATEUR, ROLE_CHEF_DEPARTEMENT)
-                        // Création / modification : admin, CUP, Enseignant
+                            .hasAnyRole(ROLE_ADMIN, ROLE_CUP, ROLE_ENSEIGNANT, ROLE_FORMATEUR, ROLE_ANIMATEUR, ROLE_CHEF_DEPARTEMENT)
+                        // Création / modification : admin, CUP, Enseignant, Formateur/Animateur
                         .requestMatchers(HttpMethod.POST, API_PATTERN)
                             .hasAnyRole(ROLE_ADMIN, ROLE_CUP, ROLE_ENSEIGNANT, ROLE_FORMATEUR, ROLE_ANIMATEUR)
                         .requestMatchers(HttpMethod.PUT, API_PATTERN)
                             .hasAnyRole(ROLE_ADMIN, ROLE_CUP, ROLE_ENSEIGNANT, ROLE_FORMATEUR, ROLE_ANIMATEUR)
                         .requestMatchers(HttpMethod.PATCH, API_PATTERN)
                             .hasAnyRole(ROLE_ADMIN, ROLE_CUP, ROLE_ENSEIGNANT, ROLE_FORMATEUR, ROLE_ANIMATEUR)
-                        // Suppression : admin uniquement
+                        // Suppression : admin uniquement (COMPETENCE_DELETE = ROLE_ADMIN dans AuthorizationMatrix)
                         .requestMatchers(HttpMethod.DELETE, API_PATTERN)
-                            .hasAnyRole(ROLE_ADMIN, ROLE_CUP, ROLE_ENSEIGNANT)
+                            .hasRole(ROLE_ADMIN)
                         .anyRequest().authenticated()
                 )
                 .oauth2ResourceServer(oauth2 ->

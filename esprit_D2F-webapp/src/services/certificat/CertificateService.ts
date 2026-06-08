@@ -1,5 +1,4 @@
 import { defaultApi as axios } from "@/services/httpClient";
-import type { AxiosResponse } from "axios";
 import { config } from "@/config/env";
 import type { Id } from "@/models/common";
 import type { Certificate } from "@/models/certificat";
@@ -7,37 +6,44 @@ import type { Certificate } from "@/models/certificat";
 const API_URL = `${config.CERTF_URL}/certificat/certificates`;
 const PDF_API_URL = `${config.CERTF_URL}/certificat/certificate-pdfs`;
 
-// Token is now in HttpOnly cookie, sent automatically via withCredentials: true.
+function normalizeContent<T>(payload: T[] | { content?: T[] } | undefined): T[] {
+  if (Array.isArray(payload)) return payload;
+  if (payload && Array.isArray(payload.content)) return payload.content;
+  return [];
+}
 
 const CertificateService = {
-  getAllCertificates(): Promise<AxiosResponse<Certificate[]>> {
-    return axios.get<Certificate[]>(API_URL);
+  async getAllCertificates(): Promise<Certificate[]> {
+    const response = await axios.get<Certificate[]>(API_URL);
+    return normalizeContent(response.data as Certificate[] | { content?: Certificate[] });
   },
 
   createCertificate(
     certificateData: Partial<Certificate>
-  ): Promise<AxiosResponse<Certificate>> {
+  ) {
     return axios.post<Certificate>(API_URL, certificateData);
   },
 
-  getCertificatesByFormation(
+  async getCertificatesByFormation(
     formationId: Id
-  ): Promise<AxiosResponse<Certificate[]>> {
-    return axios.get<Certificate[]>(`${API_URL}/formation/${formationId}`);
+  ): Promise<Certificate[]> {
+    const response = await axios.get<Certificate[]>(`${API_URL}/formation/${formationId}`);
+    return normalizeContent(response.data as Certificate[] | { content?: Certificate[] });
   },
 
-  deliverCertificate(id: Id): Promise<AxiosResponse<Certificate>> {
+  deliverCertificate(id: Id) {
     return axios.put<Certificate>(`${API_URL}/${id}/deliver`);
   },
 
-  getCertificatesByEmail(): Promise<AxiosResponse<Certificate[]>> {
-    return axios.get<Certificate[]>(`${API_URL}/email`);
+  async getCertificatesByEmail(): Promise<Certificate[]> {
+    const response = await axios.get<Certificate[]>(`${API_URL}/email`);
+    return normalizeContent(response.data as Certificate[] | { content?: Certificate[] });
   },
 
   updateCertificate(
     id: Id,
     certificateData: Partial<Certificate>
-  ): Promise<AxiosResponse<Certificate>> {
+  ) {
     return axios.put<Certificate>(`${API_URL}/${id}`, certificateData);
   },
 

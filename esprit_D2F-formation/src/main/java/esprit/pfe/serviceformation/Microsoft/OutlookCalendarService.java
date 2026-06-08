@@ -75,10 +75,11 @@ public class OutlookCalendarService {
 
         Event createdEvent;
         try {
-            createdEvent = graphClient.users(params.getOrganizerEmail())
+            var createReq = graphClient.users(params.getOrganizerEmail())
                     .events()
-                    .buildRequest()
-                    .post(event);
+                    .buildRequest();
+            createReq.addHeader("Prefer", "skipSendingInvitationsAndNotifications");
+            createdEvent = createReq.post(event);
         } catch (Exception e) {
             throw new IllegalStateException("Erreur creation Outlook pour " + params.getOrganizerEmail() + ": " + e.getMessage(), e);
         }
@@ -126,10 +127,11 @@ public class OutlookCalendarService {
 
         Event patchedEvent;
         try {
-            patchedEvent = graphClient.users(params.getOrganizerEmail())
+            var patchReq = graphClient.users(params.getOrganizerEmail())
                     .events(params.getEventId())
-                    .buildRequest()
-                    .patch(updatedEvent);
+                    .buildRequest();
+            patchReq.addHeader("Prefer", "skipSendingInvitationsAndNotifications");
+            patchedEvent = patchReq.patch(updatedEvent);
         } catch (Exception e) {
             throw new IllegalStateException("Erreur mise a jour Outlook " + params.getEventId() + ": " + e.getMessage(), e);
         }
@@ -141,10 +143,11 @@ public class OutlookCalendarService {
     public void deleteEventInCalendar(String organizerEmail, String eventId) {
         GraphServiceClient<Request> graphClient = graphProvider.getGraphClient();
         try {
-            graphClient.users(organizerEmail)
+            var deleteReq = graphClient.users(organizerEmail)
                     .events(eventId)
-                    .buildRequest()
-                    .delete();
+                    .buildRequest();
+            deleteReq.addHeader("Prefer", "skipSendingInvitationsAndNotifications");
+            deleteReq.delete();
             log.info("Evenement Outlook {} supprime pour {}", eventId, organizerEmail);
         } catch (Exception e) {
             log.warn("Erreur suppression Outlook {} : {}", eventId, e.getMessage());

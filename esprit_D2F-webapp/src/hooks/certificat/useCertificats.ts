@@ -12,15 +12,14 @@ const KEYS = {
 export function useAllCertificates() {
   return useQuery<Certificate[]>({
     queryKey: KEYS.all,
-    queryFn: async () => (await CertificateService.getAllCertificates()).data,
+    queryFn: () => CertificateService.getAllCertificates(),
   });
 }
 
 export function useCertificatesByFormation(formationId: Id | undefined) {
   return useQuery<Certificate[]>({
     queryKey: KEYS.byFormation(formationId!),
-    queryFn: async () =>
-      (await CertificateService.getCertificatesByFormation(formationId!)).data,
+    queryFn: () => CertificateService.getCertificatesByFormation(formationId!),
     enabled: !!formationId,
   });
 }
@@ -28,7 +27,7 @@ export function useCertificatesByFormation(formationId: Id | undefined) {
 export function useCertificatesByEmail() {
   return useQuery<Certificate[]>({
     queryKey: KEYS.byEmail,
-    queryFn: async () => (await CertificateService.getCertificatesByEmail()).data,
+    queryFn: () => CertificateService.getCertificatesByEmail(),
   });
 }
 

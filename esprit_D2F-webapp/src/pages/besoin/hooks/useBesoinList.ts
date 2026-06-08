@@ -9,9 +9,10 @@ import type { Id } from "@/models/common";
 
 import { writeExcel, exportDateLabel, isoDate } from "@/utils/helpers/excelExport";
 import { useSendEmail } from "@/hooks/formation";
+import { useAuth } from "@/hooks/auth/useAuth";
 import useAppNotification from "@/hooks/ui/useAppNotification";
 import { ROLES } from "@/utils/constants/roles";
-import { useBesoins, useModifyBesoin, useRemoveBesoin, useApproveBesoin } from "@/hooks/besoin/useBesoins";
+import { useBesoins, useMyBesoins, useModifyBesoin, useRemoveBesoin, useApproveBesoin } from "@/hooks/besoin/useBesoins";
 import { useDepartements, useUps, useAllAccounts } from "@/hooks/formation/useFormations";
 import { useEnseignants } from "@/hooks/enseignant/useEnseignants";
 import { buildFormationNeedHtmlEmail } from "@/pages/besoin/components/BesoinMailCupModal";
@@ -40,14 +41,21 @@ type Filters = typeof INITIAL_FILTERS;
 
 type LookupItem = { id?: string | number; libelle?: string; name?: string; label?: string; nom?: string };
 
+const SELF_SERVICE_ROLES = [ROLES.ENSEIGNANT, ROLES.ANIMATEUR];
+
 export function useBesoinList() {
   const navigate = useNavigate();
   const { message: msgApi } = useAppNotification();
+  const { user } = useAuth();
+  const isSelfService = SELF_SERVICE_ROLES.includes(user?.role as string);
 
-  const { data: besoinsData = [], isLoading: loading, refetch: refetchBesoins } = useBesoins();
+  const myBesoinsQuery = useMyBesoins(isSelfService);
+  const allBesoinsQuery = useBesoins(!isSelfService);
+  const { data: besoinsData = [], isLoading: loading, refetch: refetchBesoins } =
+    isSelfService ? myBesoinsQuery : allBesoinsQuery;
   const { data: departements = [] } = useDepartements();
   const { data: ups           = [] } = useUps();
-  const { data: accountsData  = [] } = useAllAccounts();
+  const { data: accountsData  = [] } = useAllAccounts(false, !isSelfService);
   const { data: enseignants   = [] } = useEnseignants();
   const acteurOptions = useMemo(() => buildActeurOptions(enseignants), [enseignants]);
 

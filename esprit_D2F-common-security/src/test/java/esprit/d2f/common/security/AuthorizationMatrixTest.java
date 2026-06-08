@@ -120,10 +120,10 @@ class AuthorizationMatrixTest {
     @Test
     void formation_read_does_not_include_basic_users_only() {
         // Snapshot regression : formation read must include at least
-        // ROLE_ADMIN, ROLE_CUP, ROLE_D2F, ROLE_FORMATEUR, ROLE_ENSEIGNANT.
+        // ROLE_ADMIN, ROLE_CUP, ROLE_FORMATEUR, ROLE_ENSEIGNANT.
         String fr = AuthorizationMatrix.FORMATION_READ;
         for (String required : List.of(
-                "ROLE_ADMIN", "ROLE_CUP", "ROLE_D2F", "ROLE_ENSEIGNANT", "ROLE_FORMATEUR")) {
+                "ROLE_ADMIN", "ROLE_CUP", "ROLE_ENSEIGNANT", "ROLE_FORMATEUR")) {
             assertTrue(fr.contains(required),
                     "FORMATION_READ must include " + required + " but was " + fr);
         }

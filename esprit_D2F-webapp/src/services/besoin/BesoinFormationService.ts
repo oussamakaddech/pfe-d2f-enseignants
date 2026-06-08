@@ -68,6 +68,11 @@ const BesoinFormationService = {
     return (response.data as { content?: BesoinNotification[] }).content ?? (response.data as BesoinNotification[]) ?? [];
   },
 
+  async getMyBesoins(): Promise<BesoinFormation[]> {
+    const response = await axios.get<ApiListOrPage<BesoinFormation>>(`${API_URL}/mine`);
+    return (response.data as { content?: BesoinFormation[] }).content ?? (response.data as BesoinFormation[]) ?? [];
+  },
+
   async getBesoinsByUp(up: string): Promise<BesoinFormation[]> {
     const response = await axios.get<ApiListOrPage<BesoinFormation>>(`${API_URL}/by-up/${up}`);
     return (response.data as { content?: BesoinFormation[] }).content ?? (response.data as BesoinFormation[]) ?? [];

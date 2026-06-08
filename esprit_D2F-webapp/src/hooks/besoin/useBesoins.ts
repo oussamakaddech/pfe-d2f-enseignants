@@ -6,16 +6,26 @@ import type { Id } from "@/models/common";
 
 const KEYS = {
   all: ["besoins"] as const,
+  mine: ["besoins", "mine"] as const,
   approved: ["besoins", "approved"] as const,
   byUp: (up: string) => ["besoins", "up", up] as const,
   byDept: (dept: string) => ["besoins", "dept", dept] as const,
   competences: (id: Id) => ["besoins-competences", id] as const,
 };
 
-export function useBesoins() {
+export function useBesoins(enabled = true) {
   return useQuery<BesoinFormation[]>({
     queryKey: KEYS.all,
     queryFn: () => BesoinFormationService.getAllBesoinFormations(),
+    enabled,
+  });
+}
+
+export function useMyBesoins(enabled = true) {
+  return useQuery<BesoinFormation[]>({
+    queryKey: KEYS.mine,
+    queryFn: () => BesoinFormationService.getMyBesoins(),
+    enabled,
   });
 }
 

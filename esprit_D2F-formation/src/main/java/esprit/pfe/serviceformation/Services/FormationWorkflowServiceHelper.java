@@ -66,6 +66,7 @@ public class FormationWorkflowServiceHelper {
             }
         }
         formation.setCustomPeriodLabel(request.getCustomPeriodLabel());
+        formation.setSalle(request.getSalle());
 
         if (request.getUpId() != null && !request.getUpId().isBlank()) {
             formation.setUp(upRepository.findById(request.getUpId()).orElse(null));

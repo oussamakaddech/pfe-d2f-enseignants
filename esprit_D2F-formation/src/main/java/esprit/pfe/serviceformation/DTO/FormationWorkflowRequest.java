@@ -88,7 +88,9 @@ public class FormationWorkflowRequest {
 
     private boolean ouverte = false;
     private boolean inscriptionsOuvertes = false;
-    
+
+    private String salle;
+
     private String periodCode;
     private String customPeriodLabel;
 

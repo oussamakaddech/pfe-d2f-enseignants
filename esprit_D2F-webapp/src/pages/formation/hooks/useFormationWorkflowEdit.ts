@@ -138,6 +138,7 @@ export function useFormationWorkflowEdit(formation: EditFormation, onFormationUp
   const [lastReloadAt, setLastReloadAt] = useState<Date | null>(null);
   const [isReloading, setIsReloading] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [salle, setSalle] = useState("");
 
   const upsQuery = useUps();
   const deptsQuery = useDepartements();
@@ -259,6 +260,7 @@ export function useFormationWorkflowEdit(formation: EditFormation, onFormationUp
     setFormPrenom(formation.externeFormateurPrenom || "");
     setFormEmail(formation.externeFormateurEmail || "");
     setOuverte(!!formation.ouverte);
+    setSalle(String(formation.salle || ""));
     setDomaine(formation.domaine || "");
     setPopulationCible(formation.populationCible || "");
     setObjectifs(formation.objectifs || "");
@@ -399,7 +401,7 @@ export function useFormationWorkflowEdit(formation: EditFormation, onFormationUp
 
   function buildEditPayload() {
     return {
-      titreFormation: titre, dateDebut, dateFin, typeFormation, etatFormation, ouverte,
+      titreFormation: titre, dateDebut, dateFin, typeFormation, etatFormation, ouverte, salle: salle || null,
       coutFormation: Number.parseFloat(String(cout)),
       externeFormateurNom: formNom, externeFormateurPrenom: formPrenom, externeFormateurEmail: formEmail, organismeRefExterne: organisme,
       chargeHoraireGlobal: Number.parseInt(String(chargeH), 10),
@@ -473,6 +475,7 @@ export function useFormationWorkflowEdit(formation: EditFormation, onFormationUp
     partFilterUp, setPartFilterUp, partFilterDept, setPartFilterDept,
     animSearch, setAnimSearch, partSearch, setPartSearch,
     selectAllVisibleAnim, clearAnimSel, selectAllVisiblePart, clearPartSel,
+    salle, setSalle,
     refetchAll, lastReloadAt, isReloading, saving,
     isFetchingEnseignants, isFetchingAccounts,
     showMore, setShowMore, openDocModal, setOpenDocModal, openUploadPanel, setOpenUploadPanel,
