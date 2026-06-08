@@ -139,9 +139,13 @@ export default function AppRoutes() {
                   <Route path="/home/Evaluations" element={<EvaluationGlobalePage />} />
                 </Route>
 
-                <Route element={<RoleGuard allowedRoles={[ROLES.ADMIN, ROLES.D2F, ROLES.CUP, ROLES.ENSEIGNANT, ROLES.CHEF_DEPARTEMENT]} />}>
+                {/* Référentiel Compétences : masqué aux ENSEIGNANT et ANIMATEUR (pas de besoin métier). */}
+                <Route element={<RoleGuard allowedRoles={[ROLES.ADMIN, ROLES.D2F, ROLES.CUP, ROLES.CHEF_DEPARTEMENT]} />}>
                   <Route path="/home/competences" element={<CompetencePage />} />
                   <Route path="/home/competence" element={<CompetencePage />} />
+                </Route>
+                {/* Fiche compétences d'un enseignant donné (≠ référentiel) : reste accessible à l'enseignant. */}
+                <Route element={<RoleGuard allowedRoles={[ROLES.ADMIN, ROLES.D2F, ROLES.CUP, ROLES.ENSEIGNANT, ROLES.CHEF_DEPARTEMENT]} />}>
                   <Route path="/home/competences/enseignant/:enseignantId" element={<EnseignantCompetencePage />} />
                   <Route path="/home/competence/enseignant/:enseignantId" element={<EnseignantCompetencePage />} />
                 </Route>

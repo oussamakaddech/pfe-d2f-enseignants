@@ -75,7 +75,6 @@ export const cupMenu: MenuItem[] = [
 ];
 
 export const enseignantMenu: MenuItem[] = [
-  { label: "Référentiel Compétences", key: "/home/competences",         icon: BookOutlined },
   { label: "Besoins de Formation", key: "besoin_formation_menu", icon: ReadOutlined, children: [
     { label: "Liste des Demandes", key: "/home/besoins",         icon: SearchOutlined },
     { label: "Déposer un Besoin",  key: "/home/besoins/ajouter", icon: PlusCircleOutlined },
