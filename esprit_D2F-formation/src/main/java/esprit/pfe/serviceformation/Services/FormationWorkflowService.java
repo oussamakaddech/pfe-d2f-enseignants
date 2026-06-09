@@ -188,6 +188,15 @@ public class FormationWorkflowService {
 
         processSeanceRequests(formation, request, enseignantMap, managedList);
         handleEtatTransitions(formation, oldEtat);
+        // Si l'état n'a pas changé mais que la formation est déjà planifiée (des
+        // événements Outlook existent), propager les modifications de séances (salle,
+        // horaires, animateurs) vers le calendrier. Sinon, une salle ajoutée/corrigée
+        // après la planification reste invisible dans Outlook (l'événement garde son
+        // ancien titre « D2f-Salle-TBD-... »), car handleEtatTransitions ne resynchronise
+        // que lors d'un changement d'état.
+        if (formation.getEtatFormation() == oldEtat && hasOutlookEvents(formation)) {
+            synchronizeFormationCalendar(formation);
+        }
         syncPresencesForSeances(managedList, request.getParticipantsIds());
         publishEvaluationUpdatesIfPossible(formationId, request.getParticipantsIds());
 
@@ -997,6 +1006,20 @@ public class FormationWorkflowService {
                 log.warn("Echec de notification CUP : {}", ex.getMessage());
             }
         }
+    }
+
+    /**
+     * Indique si la formation se trouve dans un état où des événements Outlook
+     * existent déjà (donc où une modification de séance doit être resynchronisée).
+     */
+    private boolean hasOutlookEvents(Formation formation) {
+        if (formation.getEtatFormation() == null) {
+            return false;
+        }
+        return switch (formation.getEtatFormation()) {
+            case PLANIFIE, EN_COURS, VISIBLE -> true;
+            default -> false;
+        };
     }
 
     public void synchronizeFormationCalendar(Formation formation) {
