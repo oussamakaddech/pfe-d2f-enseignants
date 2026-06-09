@@ -170,3 +170,7 @@ app.include_router(legacy_router, prefix="/api")
 # Nouveau router v1 analytics
 from app.routers.analytics import router as analytics_router
 app.include_router(analytics_router, prefix="/api")
+
+# Router reporting descriptif (features 1-4 + export) — même préfixe /v1/analytics
+from app.routers.reporting import router as reporting_router
+app.include_router(reporting_router, prefix="/api")

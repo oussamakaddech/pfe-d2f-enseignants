@@ -337,6 +337,143 @@ HAVING COUNT(*) > 0
 """
 
 
+# ── Reporting descriptif (features 1-4) ──────────────────────
+# Toutes ces requêtes sont 100 % paramétrées (aucune valeur utilisateur
+# concaténée). La granularité temporelle est passée comme argument texte à
+# date_trunc(), qui l'accepte nativement — pas de concaténation SQL.
+
+# Feature 1 — Enseignants sans formation depuis > N mois.
+# « Dernière formation » = dernière inscription APPROVED (présence réelle à une
+# séance prise en compte via la jointure presences pour ne pas rater les
+# participations sans inscription formelle).
+ENSEIGNANTS_SANS_FORMATION_QUERY = """
+WITH derniere_participation AS (
+    SELECT enseignant_id, MAX(dt) AS derniere_date
+    FROM (
+        SELECT i.enseignant_id, i.date_demande AS dt
+        FROM inscriptions i
+        WHERE i.etat = 'APPROVED'
+        UNION ALL
+        SELECT p.enseignant_id, f.date_fin AS dt
+        FROM presences p
+        JOIN seances sf ON sf.id_seance = p.seance_id
+        JOIN formations f ON f.id_formation = sf.formation_id
+        WHERE p.presence = TRUE AND f.date_fin IS NOT NULL
+    ) parts
+    GROUP BY enseignant_id
+)
+SELECT e.id        AS enseignant_id,
+       e.nom,
+       e.prenom,
+       e.mail       AS email,
+       e.dept_id    AS departement_id,
+       d.libelle    AS departement_nom,
+       e.up_id,
+       u.libelle    AS up_nom,
+       dp.derniere_date AS derniere_formation_date,
+       CASE WHEN dp.derniere_date IS NULL THEN NULL
+            ELSE (EXTRACT(YEAR  FROM AGE(CURRENT_DATE, dp.derniere_date)) * 12
+                + EXTRACT(MONTH FROM AGE(CURRENT_DATE, dp.derniere_date)))::INT
+       END AS nombre_mois_depuis_derniere_formation
+FROM enseignants e
+LEFT JOIN derniere_participation dp ON dp.enseignant_id = e.id
+LEFT JOIN departements d ON d.id = e.dept_id
+LEFT JOIN ups          u ON u.id = e.up_id
+WHERE (dp.derniere_date IS NULL
+       OR dp.derniere_date < (CURRENT_DATE - make_interval(months => :mois)))
+  AND (:departement IS NULL OR e.dept_id = :departement)
+  AND (:up IS NULL OR e.up_id = :up)
+"""
+
+# Feature 2 — Formations par période (granularité variable).
+FORMATIONS_PAR_PERIODE_QUERY = """
+WITH fwin AS (
+    SELECT f.id_formation,
+           date_trunc(:granul, f.date_debut) AS bucket
+    FROM formations f
+    WHERE f.etat_formation <> 'ANNULE'
+      AND f.date_debut IS NOT NULL
+      AND f.date_debut >= :debut
+      AND f.date_debut <= :fin
+      AND (:departement IS NULL OR f.departement_id = :departement)
+      AND (:up IS NULL OR f.up_id = :up)
+),
+ins AS (
+    SELECT i.formation_id,
+           COUNT(*)                                     AS total,
+           COUNT(*) FILTER (WHERE i.etat = 'APPROVED')  AS approved
+    FROM inscriptions i
+    GROUP BY i.formation_id
+)
+SELECT to_char(fwin.bucket, 'YYYY-MM-DD')        AS period_start,
+       COUNT(DISTINCT fwin.id_formation)         AS nb_formations,
+       COALESCE(SUM(ins.approved), 0)            AS nb_participants,
+       COALESCE(SUM(ins.total), 0)               AS total_inscriptions
+FROM fwin
+LEFT JOIN ins ON ins.formation_id = fwin.id_formation
+GROUP BY fwin.bucket
+ORDER BY fwin.bucket
+"""
+
+# Feature 3 — Agrégats par UP.
+FORMATIONS_PAR_UP_QUERY = """
+SELECT u.id       AS up_id,
+       u.libelle  AS up_nom,
+       (SELECT d.libelle
+          FROM formations f2
+          JOIN departements d ON d.id = f2.departement_id
+         WHERE f2.up_id = u.id
+         GROUP BY d.libelle
+         ORDER BY COUNT(*) DESC
+         LIMIT 1)                                       AS departement_nom,
+       (SELECT COUNT(*) FROM enseignants e WHERE e.up_id = u.id) AS nombre_enseignants,
+       COUNT(DISTINCT f.id_formation)                   AS nombre_formations_organisees,
+       COUNT(i.id) FILTER (WHERE i.etat = 'APPROVED')   AS nombre_participations
+FROM ups u
+LEFT JOIN formations f
+       ON f.up_id = u.id
+      AND f.etat_formation <> 'ANNULE'
+      AND (:annee IS NULL OR EXTRACT(YEAR FROM f.date_debut) = :annee)
+LEFT JOIN inscriptions i ON i.formation_id = f.id_formation
+WHERE (:departement IS NULL
+       OR EXISTS (SELECT 1 FROM enseignants e WHERE e.up_id = u.id AND e.dept_id = :departement))
+GROUP BY u.id, u.libelle
+ORDER BY u.libelle
+"""
+
+# Feature 3/4 — Top compétences demandées par UP (via formation_competences).
+TOP_COMPETENCES_PAR_UP_QUERY = """
+SELECT f.up_id,
+       fc.competence_id,
+       COALESCE(c.nom, fc.competence_nom) AS competence_nom,
+       COUNT(*) AS nb
+FROM formation_competences fc
+JOIN formations f ON f.id_formation = fc.formation_id
+LEFT JOIN competences c ON c.id = fc.competence_id
+WHERE f.etat_formation <> 'ANNULE'
+  AND f.up_id IS NOT NULL
+  AND (:annee IS NULL OR EXTRACT(YEAR FROM f.date_debut) = :annee)
+GROUP BY f.up_id, fc.competence_id, COALESCE(c.nom, fc.competence_nom)
+ORDER BY f.up_id, nb DESC
+"""
+
+# Feature 4 — Agrégats par département (même structure, niveau dept).
+FORMATIONS_PAR_DEPARTEMENT_QUERY = """
+SELECT d.id       AS departement_id,
+       d.libelle  AS departement_nom,
+       (SELECT COUNT(*) FROM enseignants e WHERE e.dept_id = d.id) AS nombre_enseignants,
+       COUNT(DISTINCT f.id_formation)                   AS nombre_formations_organisees,
+       COUNT(i.id) FILTER (WHERE i.etat = 'APPROVED')   AS nombre_participations
+FROM departements d
+LEFT JOIN formations f
+       ON f.departement_id = d.id
+      AND f.etat_formation <> 'ANNULE'
+      AND (:annee IS NULL OR EXTRACT(YEAR FROM f.date_debut) = :annee)
+LEFT JOIN inscriptions i ON i.formation_id = f.id_formation
+GROUP BY d.id, d.libelle
+ORDER BY d.libelle
+"""
+
 # Clause de pagination réutilisée par les méthodes paginées du DataService.
 # Définie au niveau module : les méthodes la référencent par nom nu
 # (`query += _LIMIT_OFFSET_CLAUSE`), ce qui exige une portée module, pas un
@@ -431,3 +568,71 @@ class DataService:
     def get_formation_completion(self) -> list[dict[str, Any]]:
         """Taux de complétion réel par formation (pour l'efficacité formation)."""
         return execute_query(self.db, FORMATION_COMPLETION_QUERY)
+
+    # ── Reporting descriptif (features 1-4) ──────────────────
+
+    def get_enseignant_scope(self, user_id: str | None) -> dict[str, Any] | None:
+        """UP/département d'un utilisateur (scoping RBAC du CUP). None si introuvable."""
+        if not user_id:
+            return None
+        rows = execute_query(
+            self.db,
+            "SELECT up_id, dept_id AS departement_id FROM enseignants "
+            "WHERE id = :uid OR mail = :uid LIMIT 1",
+            {"uid": user_id},
+        )
+        return rows[0] if rows else None
+
+    def get_enseignants_sans_formation(
+        self,
+        mois: int,
+        departement: str | None = None,
+        up: str | None = None,
+        page: int = 0,
+        size: int = 20,
+    ) -> list[dict[str, Any]]:
+        """Enseignants sans formation depuis > `mois` mois, triés du plus à risque."""
+        query = (
+            ENSEIGNANTS_SANS_FORMATION_QUERY
+            + " ORDER BY nombre_mois_depuis_derniere_formation DESC NULLS FIRST, e.nom"
+            + _LIMIT_OFFSET_CLAUSE
+        )
+        return execute_query(self.db, query, {
+            "mois": mois, "departement": departement, "up": up,
+            "limit": size, "offset": page * size,
+        })
+
+    def count_enseignants_sans_formation(
+        self, mois: int, departement: str | None = None, up: str | None = None,
+    ) -> int:
+        """Total (pour la pagination) sans charger toutes les lignes."""
+        wrapped = f"SELECT COUNT(*) AS total FROM ({ENSEIGNANTS_SANS_FORMATION_QUERY}) sub"
+        rows = execute_query(self.db, wrapped, {"mois": mois, "departement": departement, "up": up})
+        return int(rows[0]["total"]) if rows else 0
+
+    def get_formations_par_periode(
+        self,
+        granul: str,
+        debut: str,
+        fin: str,
+        departement: str | None = None,
+        up: str | None = None,
+    ) -> list[dict[str, Any]]:
+        """Comptage formations/participants par bucket temporel (granul validé en amont)."""
+        return execute_query(self.db, FORMATIONS_PAR_PERIODE_QUERY, {
+            "granul": granul, "debut": debut, "fin": fin,
+            "departement": departement, "up": up,
+        })
+
+    def get_formations_par_up(
+        self, annee: int | None = None, departement: str | None = None,
+    ) -> list[dict[str, Any]]:
+        return execute_query(self.db, FORMATIONS_PAR_UP_QUERY, {
+            "annee": annee, "departement": departement,
+        })
+
+    def get_top_competences_par_up(self, annee: int | None = None) -> list[dict[str, Any]]:
+        return execute_query(self.db, TOP_COMPETENCES_PAR_UP_QUERY, {"annee": annee})
+
+    def get_formations_par_departement(self, annee: int | None = None) -> list[dict[str, Any]]:
+        return execute_query(self.db, FORMATIONS_PAR_DEPARTEMENT_QUERY, {"annee": annee})

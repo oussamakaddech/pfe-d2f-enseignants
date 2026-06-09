@@ -72,6 +72,30 @@ curl http://localhost:8090/api/health
 | GET | `/api/detect/at-risk-teachers` | Enseignants à risque |
 | GET | `/api/dashboard/summary` | Dashboard complet |
 
+### Analyse descriptive — Reporting (`/api/v1/analytics/*`)
+
+Module `app/engines/reporting_engine.py` + `app/routers/reporting.py`. **RBAC : ADMIN
+(toutes UP/départements) et CUP (limité à SON UP/département, filtrage côté serveur).**
+Toutes les listes sont paginées ou bornées ; SQL 100 % paramétré (aucune concaténation).
+
+| Méthode | Endpoint | Description |
+|---|---|---|
+| GET | `/api/v1/analytics/enseignants-sans-formation?mois=&departement=&up=&page=&size=` | Enseignants inactifs > N mois, paginé, avec `scoreRisqueDecrochage` (0-100), `niveauRisque` et `competencesEnDeclin[]` |
+| GET | `/api/v1/analytics/formations-par-periode?granularite=SEMAINE\|MOIS\|TRIMESTRE\|ANNEE&debut=&fin=` | Formations / participants / taux de complétion par période + `tendance` (HAUSSE/BAISSE/STABLE) |
+| GET | `/api/v1/analytics/formations-par-up?annee=&departement=` | Agrégats par Unité Pédagogique (taux de participation, top 5 compétences, score d'engagement) |
+| GET | `/api/v1/analytics/formations-par-departement?annee=` | Agrégats par département + `comparaisonRadar[]` (vue inter-départements, ADMIN) |
+| GET | `/api/v1/analytics/export/excel?type=INACTIFS\|PAR_UP\|PAR_DEPT` | Export `.xlsx` (openpyxl) |
+| GET | `/api/v1/analytics/export/pdf?type=RAPPORT_MENSUEL\|RAPPORT_ANNUEL` | Export PDF (reportlab, ADMIN) |
+
+**Seuils configurables** (jamais codés en dur, cf. `app/config.py` / variables d'env) :
+`SEUIL_INACTIVITE_MOIS` (défaut 6), `INACTIVITE_WINDOW_MOIS` (fenêtre de saturation du
+score de risque, défaut 24), `EXPORT_MAX_ROWS` (défaut 10000).
+
+Frontend correspondant (webapp) : service `src/services/analyse/AnalyticsService.ts`,
+types `src/models/analyse/reporting.ts`, hook `src/hooks/analyse/useReporting.ts`, pages
+`/home/analytics/enseignants-inactifs` et `/home/analytics/formations-par-periode`
+(AntD + graphes SVG natifs, charts AntD/chart.js — **pas de Recharts**).
+
 ## Entraînement du Modèle
 
 ```bash

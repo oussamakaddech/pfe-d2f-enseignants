@@ -60,6 +60,16 @@ class Settings(BaseSettings):
     seuil_completion_faible: float = Field(default=40.0, alias="SEUIL_COMPLETION_FAIBLE")
     seuil_dept_pct: float = Field(default=0.30, alias="SEUIL_DEPT_PCT")
 
+    # ── Reporting / Analyse descriptive (spec features 1-4) ──────────────
+    # Seuil par défaut (mois) sans formation au-delà duquel un enseignant est
+    # considéré « inactif formations » (feature 1). Surchargé par le query param.
+    seuil_inactivite_mois: int = Field(default=6, alias="SEUIL_INACTIVITE_MOIS")
+    # Fenêtre (mois) de saturation du score de risque de décrochage : au-delà,
+    # le facteur « ancienneté sans formation » plafonne à 1.0.
+    inactivite_window_mois: int = Field(default=24, alias="INACTIVITE_WINDOW_MOIS")
+    # Nombre max de lignes exportables en une fois (garde-fou mémoire export).
+    export_max_rows: int = Field(default=10000, alias="EXPORT_MAX_ROWS")
+
     # ── Risk Detection ───────────────────────────
     risk_gap_threshold: float = Field(default=2.0, alias="RISK_GAP_THRESHOLD")
     risk_absence_threshold_days: int = Field(default=365, alias="RISK_ABSENCE_THRESHOLD_DAYS")

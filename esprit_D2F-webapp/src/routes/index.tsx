@@ -49,6 +49,8 @@ const EvaluationGlobalePage = lazy(() => import("@/pages/evaluation/EvaluationGl
 const AnalysePredictivePage = lazy(() => import("@/pages/analyse/AnalysePredictivePage"));
 const AnalyticsDashboardPage = lazy(() => import("@/pages/analyse/AnalyticsDashboardPage"));
 const TeacherAnalyticsPage = lazy(() => import("@/pages/analyse/TeacherAnalyticsPage"));
+const EnseignantsInactifsPage = lazy(() => import("@/pages/analyse/EnseignantsInactifsPage"));
+const FormationsParPeriodePage = lazy(() => import("@/pages/analyse/FormationsParPeriodePage"));
 const SkillPassportPage = lazy(() => import("@/pages/profile/SkillPassportPage"));
 const BureauPage = lazy(() => import("@/pages/bureau/BureauPage"));
 
@@ -125,6 +127,8 @@ export default function AppRoutes() {
                   <Route path="/home/analytics/dashboard" element={<AnalyticsDashboardPage />} />
                   <Route path="/home/analytics/teacher" element={<TeacherAnalyticsPage />} />
                   <Route path="/home/analytics/teacher/:enseignantId" element={<TeacherAnalyticsPage />} />
+                  <Route path="/home/analytics/enseignants-inactifs" element={<EnseignantsInactifsPage />} />
+                  <Route path="/home/analytics/formations-par-periode" element={<FormationsParPeriodePage />} />
                 </Route>
 
                 <Route element={<RoleGuard allowedRoles={[ROLES.ADMIN, ROLES.CHEF_DEPARTEMENT]} />}>

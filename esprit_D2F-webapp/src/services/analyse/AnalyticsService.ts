@@ -5,6 +5,12 @@ import type {
   GapsResponse, HealthStatus, RecommendationsResponse,
   TeacherRiskProfile, TrainingPath,
 } from "@/models/analyse";
+import type {
+  AnalyticsDepartementResponse, AnalyticsUP,
+  EnseignantsInactifsParams, EnseignantsInactifsResponse,
+  ExportExcelType, ExportPdfType,
+  FormationsParPeriodeParams, FormationsParPeriodeResponse,
+} from "@/models/analyse/reporting";
 
 // Gateway: /api/analyse/** → /api/v1/** sur le service
 const BASE = `${config.ANALYSE_URL}/analyse/v1/analytics`;
@@ -74,6 +80,85 @@ const AnalyticsService = {
       `${BASE}/dashboard/teachers-at-risk`,
       { params: { seuil } }
     );
+    return res.data;
+  },
+
+  // ── Reporting descriptif (features 1-4) ───────────────
+
+  async getEnseignantsSansFormation(
+    params: EnseignantsInactifsParams = {}
+  ): Promise<EnseignantsInactifsResponse> {
+    const res = await axios.get<EnseignantsInactifsResponse>(
+      `${BASE}/enseignants-sans-formation`,
+      {
+        params: {
+          mois: params.mois,
+          departement: params.departement,
+          up: params.up,
+          page: params.page ?? 0,
+          size: params.size ?? 20,
+        },
+      }
+    );
+    return res.data;
+  },
+
+  async getFormationsParPeriode(
+    params: FormationsParPeriodeParams = {}
+  ): Promise<FormationsParPeriodeResponse> {
+    const res = await axios.get<FormationsParPeriodeResponse>(
+      `${BASE}/formations-par-periode`,
+      {
+        params: {
+          granularite: params.granularite ?? "MOIS",
+          debut: params.debut,
+          fin: params.fin,
+          departement: params.departement,
+          up: params.up,
+        },
+      }
+    );
+    return res.data;
+  },
+
+  async getFormationsParUp(
+    opts: { annee?: number; departement?: string } = {}
+  ): Promise<{ items: AnalyticsUP[] }> {
+    const res = await axios.get<{ items: AnalyticsUP[] }>(
+      `${BASE}/formations-par-up`,
+      { params: { annee: opts.annee, departement: opts.departement } }
+    );
+    return res.data;
+  },
+
+  async getFormationsParDepartement(
+    opts: { annee?: number } = {}
+  ): Promise<AnalyticsDepartementResponse> {
+    const res = await axios.get<AnalyticsDepartementResponse>(
+      `${BASE}/formations-par-departement`,
+      { params: { annee: opts.annee } }
+    );
+    return res.data;
+  },
+
+  // ── Export (téléchargement de fichier binaire) ────────
+
+  async exportExcel(
+    type: ExportExcelType,
+    opts: { mois?: number; annee?: number; departement?: string; up?: string } = {}
+  ): Promise<Blob> {
+    const res = await axios.get<Blob>(`${BASE}/export/excel`, {
+      params: { type, ...opts },
+      responseType: "blob",
+    });
+    return res.data;
+  },
+
+  async exportPdf(type: ExportPdfType, opts: { annee?: number } = {}): Promise<Blob> {
+    const res = await axios.get<Blob>(`${BASE}/export/pdf`, {
+      params: { type, ...opts },
+      responseType: "blob",
+    });
     return res.data;
   },
 
