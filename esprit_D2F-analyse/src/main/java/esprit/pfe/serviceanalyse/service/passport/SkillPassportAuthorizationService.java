@@ -11,10 +11,16 @@ import java.util.Collection;
 
 /**
  * Règles RBAC du Passeport de Compétences :
- *  - ROLE_ADMIN      → accès à tous les passeports
- *  - ROLE_CUP        → accès à tous les enseignants (périmètre global pour le PFE)
- *  - ROLE_ENSEIGNANT → accès uniquement à son propre passeport
- *  - Autres          → 403
+ *  - ROLE_ADMIN / ROLE_CUP → accès à TOUS les passeports (périmètre PFE global)
+ *  - Tout autre utilisateur authentifié (ENSEIGNANT, ANIMATEUR, FORMATEUR,
+ *    CHEF_DEPARTEMENT, RESPONSABLE_DOSSIER) → accès uniquement à SON propre
+ *    passeport. Cohérent avec l'endpoint /me et avec la parité
+ *    ANIMATEUR ≡ ENSEIGNANT appliquée dans le reste de la matrice.
+ *
+ * NB : faute de scoping par département dans ce service, CHEF_DEPARTEMENT
+ * reste en moindre privilège (son propre passeport). L'accès « tous les
+ * passeports de mon département » nécessiterait de comparer les départements
+ * côté assembleur — évolution future.
  */
 @Slf4j
 @Service
@@ -22,7 +28,6 @@ public class SkillPassportAuthorizationService {
 
     private static final String ROLE_ADMIN = "ROLE_ADMIN";
     private static final String ROLE_CUP   = "ROLE_CUP";
-    private static final String ROLE_ENSEIGNANT = "ROLE_ENSEIGNANT";
 
     /**
      * Vérifie que l'utilisateur authentifié peut accéder au passeport de {@code targetUsername}.
@@ -33,25 +38,22 @@ public class SkillPassportAuthorizationService {
         }
 
         Collection<? extends GrantedAuthority> authorities = authentication.getAuthorities();
-        boolean isAdmin = hasRole(authorities, ROLE_ADMIN);
-        boolean isCup   = hasRole(authorities, ROLE_CUP);
-        boolean isEnseignant = hasRole(authorities, ROLE_ENSEIGNANT);
 
-        if (isAdmin || isCup) {
-            return; // accès global autorisé
+        // Accès global : administration et coordination pédagogique.
+        if (hasRole(authorities, ROLE_ADMIN) || hasRole(authorities, ROLE_CUP)) {
+            return;
         }
 
-        if (isEnseignant) {
-            String currentUsername = extractUsername(authentication);
-            if (currentUsername != null && currentUsername.equals(targetUsername)) {
-                return; // l'enseignant accède à son propre passeport
-            }
-            throw new PassportAccessDeniedException(
-                    "Un enseignant ne peut consulter que son propre passeport de compétences.");
+        // Accès self : tout utilisateur authentifié peut consulter SON propre
+        // passeport, quel que soit son rôle (enseignant, animateur, formateur,
+        // chef de département, responsable de dossier).
+        String currentUsername = extractUsername(authentication);
+        if (currentUsername != null && currentUsername.equals(targetUsername)) {
+            return;
         }
 
         throw new PassportAccessDeniedException(
-                "Accès refusé : rôle insuffisant pour consulter ce passeport de compétences.");
+                "Accès refusé : vous ne pouvez consulter que votre propre passeport de compétences.");
     }
 
     /**

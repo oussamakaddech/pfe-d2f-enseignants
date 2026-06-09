@@ -104,7 +104,7 @@ def build_training_effectiveness_features(
 
 
 def normalize_features(df: pd.DataFrame, numeric_cols: list[str]) -> pd.DataFrame:
-    """Min-max normalize numeric columns to [0, 1]."""
+    """Min-max normalize numeric columns to [0, 1] (fit on the given frame)."""
     df_norm = df.copy()
     for col in numeric_cols:
         if col in df_norm.columns:
@@ -114,4 +114,44 @@ def normalize_features(df: pd.DataFrame, numeric_cols: list[str]) -> pd.DataFram
                 df_norm[col] = (df_norm[col] - min_v) / (max_v - min_v)
             else:
                 df_norm[col] = 0.0
+    return df_norm
+
+
+def compute_feature_ranges(
+    df: pd.DataFrame, numeric_cols: list[str]
+) -> dict[str, dict[str, float]]:
+    """Capture min/max per feature so the exact same scaling can be replayed.
+
+    Persisting these ranges at train time and replaying them at predict time
+    avoids train/serve skew: without it, prediction-time min-max normalization
+    would fit on a different (often single-teacher) sample, feeding the model
+    features on a different scale than it was trained on.
+    """
+    ranges: dict[str, dict[str, float]] = {}
+    for col in numeric_cols:
+        if col in df.columns:
+            ranges[col] = {"min": float(df[col].min()), "max": float(df[col].max())}
+    return ranges
+
+
+def apply_normalization(
+    df: pd.DataFrame,
+    numeric_cols: list[str],
+    ranges: dict[str, dict[str, float]],
+) -> pd.DataFrame:
+    """Apply min-max scaling using pre-computed (training) ranges, clipped to [0, 1]."""
+    df_norm = df.copy()
+    for col in numeric_cols:
+        if col not in df_norm.columns:
+            df_norm[col] = 0.0
+            continue
+        bounds = ranges.get(col)
+        if not bounds:
+            df_norm[col] = 0.0
+            continue
+        min_v, max_v = bounds.get("min", 0.0), bounds.get("max", 0.0)
+        if max_v > min_v:
+            df_norm[col] = ((df_norm[col] - min_v) / (max_v - min_v)).clip(0.0, 1.0)
+        else:
+            df_norm[col] = 0.0
     return df_norm

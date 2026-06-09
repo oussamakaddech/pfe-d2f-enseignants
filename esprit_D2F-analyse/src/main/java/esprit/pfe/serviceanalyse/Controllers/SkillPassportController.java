@@ -29,8 +29,9 @@ import java.time.format.DateTimeFormatter;
  * API REST du Passeport de Compétences.
  *
  * Règles RBAC :
- *   ADMIN / CUP / D2F → accès à tous les passeports
- *   ENSEIGNANT         → accès à son propre passeport uniquement
+ *   ADMIN / CUP                              → accès à tous les passeports
+ *   Tout autre utilisateur authentifié       → son propre passeport uniquement
+ *   (ENSEIGNANT, ANIMATEUR, FORMATEUR, CHEF_DEPARTEMENT, RESPONSABLE_DOSSIER)
  *
  * Endpoints :
  *   GET /api/v1/skill-passports/me                           → PDF de l'enseignant connecté
@@ -57,7 +58,7 @@ public class SkillPassportController {
     @Operation(
         summary = "Télécharger mon passeport PDF",
         description = "Génère et retourne le Passeport de Compétences de l'utilisateur authentifié au format PDF. "
-            + "Accessible à tout utilisateur authentifié (ENSEIGNANT, ADMIN, CUP, D2F)."
+            + "Accessible à tout utilisateur authentifié (ENSEIGNANT, ANIMATEUR, FORMATEUR, CHEF_DEPARTEMENT, RESPONSABLE_DOSSIER, ADMIN, CUP)."
     )
     @ApiResponse(responseCode = "200", description = "PDF généré avec succès",
         content = @Content(mediaType = MediaType.APPLICATION_PDF_VALUE,
@@ -95,8 +96,8 @@ public class SkillPassportController {
     @Operation(
         summary = "Télécharger le passeport PDF d'un enseignant",
         description = "Génère le Passeport de Compétences d'un enseignant cible. "
-            + "ADMIN, CUP et D2F peuvent accéder à n'importe quel passeport. "
-            + "Un ENSEIGNANT ne peut accéder qu'au sien (username doit correspondre au sub JWT)."
+            + "ADMIN et CUP peuvent accéder à n'importe quel passeport. "
+            + "Tout autre rôle ne peut accéder qu'au sien (username doit correspondre au sub JWT)."
     )
     @ApiResponse(responseCode = "200", description = "PDF généré",
         content = @Content(mediaType = MediaType.APPLICATION_PDF_VALUE,
@@ -169,7 +170,7 @@ public class SkillPassportController {
     @Operation(
         summary = "Données JSON de mon passeport",
         description = "Retourne le TeacherSkillPassportDTO de l'utilisateur authentifié. "
-            + "Accessible à tout utilisateur authentifié (ENSEIGNANT, ADMIN, CUP, D2F)."
+            + "Accessible à tout utilisateur authentifié (ENSEIGNANT, ANIMATEUR, FORMATEUR, CHEF_DEPARTEMENT, RESPONSABLE_DOSSIER, ADMIN, CUP)."
     )
     @ApiResponse(responseCode = "200", description = "Données JSON du passeport",
         content = @Content(mediaType = MediaType.APPLICATION_JSON_VALUE,

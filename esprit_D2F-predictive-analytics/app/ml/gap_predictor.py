@@ -18,7 +18,14 @@ from app.ml.artifact_integrity import (
     load_with_hash_check,
     save_with_hash,
 )
-from app.ml.feature_engineering import build_gap_labels, build_teacher_features
+from app.ml.explainability import explain_prediction
+from app.ml.feature_engineering import (
+    apply_normalization,
+    build_gap_labels,
+    build_teacher_features,
+    compute_feature_ranges,
+    normalize_features,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -84,13 +91,23 @@ class GapPredictor:
     def __init__(self):
         self.model: GradientBoostingRegressor | None = None
         self.feature_importances: dict[str, float] | None = None
+        self.feature_ranges: dict[str, dict[str, float]] | None = None
         self.last_metrics: dict[str, Any] | None = None
         self._load_model()
+
+    @property
+    def n_features(self) -> int:
+        """Nombre de features attendues par le modèle (sûr même sans modèle chargé)."""
+        if self.model is not None and hasattr(self.model, "n_features_in_"):
+            return int(self.model.n_features_in_)
+        return len(FEATURE_COLS)
 
     def reload(self) -> None:
         """Recharge le modèle depuis le disque (utilisé après un rollback)."""
         self.model = None
         self.feature_importances = None
+        self.feature_ranges = None
+        self.last_metrics = None
         self._load_model()
 
     def _load_model(self) -> None:
@@ -105,10 +122,33 @@ class GapPredictor:
         try:
             self.model = load_with_hash_check(MODEL_PATH)
             logger.info("Loaded gap predictor model from %s", MODEL_PATH)
+            self._load_metadata()
         except ArtifactIntegrityError as e:
             logger.error("REFUS de charger %s : %s", MODEL_PATH, e)
         except Exception as e:
             logger.warning("Failed to load model: %s", e)
+
+    def _load_metadata(self) -> None:
+        """Recharge bornes de normalisation, importances et métriques persistées.
+
+        Indispensable après un redémarrage : sans les `feature_ranges`, la
+        prédiction normaliserait sur un autre échantillon (train/serve skew) ;
+        sans les métriques, la confiance par prédiction perdrait sa calibration.
+        """
+        import json
+        meta_path = os.path.join(settings.models_dir, "training_metadata.json")
+        if not os.path.exists(meta_path):
+            return
+        try:
+            with open(meta_path, "r", encoding="utf-8") as f:
+                meta = json.load(f)
+        except Exception as e:
+            logger.warning("Failed to load training metadata: %s", e)
+            return
+        self.feature_ranges = meta.get("feature_ranges") or None
+        self.feature_importances = meta.get("feature_importances") or None
+        if meta.get("metrics"):
+            self.last_metrics = dict(meta["metrics"])
 
     def _save_model(self) -> None:
         """Persist trained model to disk + write SHA-256/HMAC sidecar."""
@@ -132,6 +172,10 @@ class GapPredictor:
             }
             if self.feature_importances:
                 meta["feature_importances"] = self.feature_importances
+            if self.feature_ranges:
+                # Bornes min/max de l'entraînement, rejouées en prédiction
+                # pour garantir une normalisation identique (anti train/serve skew).
+                meta["feature_ranges"] = self.feature_ranges
             if self.last_metrics:
                 # Persisté pour permettre la comparaison accuracy_before/after
                 # lors d'un ré-entraînement avec protection rollback (spec §5).
@@ -244,9 +288,11 @@ class GapPredictor:
         x_df = df_train[FEATURE_COLS].copy()
         y = df_train["gap"].values.clip(0, 5)  # Gap is between 0 and 5
 
-        # Normalize features for better model convergence
-        from app.ml.feature_engineering import normalize_features
-        x_df = normalize_features(x_df, FEATURE_COLS)
+        # Capture the training min/max per feature, then normalize with them.
+        # The same ranges are persisted and replayed at predict time so the model
+        # always sees features on the identical scale (no train/serve skew).
+        self.feature_ranges = compute_feature_ranges(x_df, FEATURE_COLS)
+        x_df = apply_normalization(x_df, FEATURE_COLS, self.feature_ranges)
         X = x_df.values
 
         # Train/test split for validation
@@ -311,8 +357,88 @@ class GapPredictor:
         df_teacher = build_teacher_features(teacher_profiles, competency_levels)
         df_gaps = build_gap_labels(competency_levels, required_levels)
 
+        empty_explanation = {"method": "ml_gradient_boosting", "model_trained": True}
         if df_teacher.empty or df_gaps.empty:
-            return {"gaps": [], "overall_risk_score": 0.0, "explanation": {}}
+            return {"gaps": [], "overall_risk_score": 0.0, "explanation": empty_explanation}
+
+        df_pred = df_gaps.merge(df_teacher, on="enseignant_id", how="left", validate="m:1")
+        if df_pred.empty:
+            return {"gaps": [], "overall_risk_score": 0.0, "explanation": empty_explanation}
+
+        # Build the feature matrix and replay the *training* normalization
+        # (anti train/serve skew) before feeding the gradient boosting model.
+        for col in FEATURE_COLS:
+            if col not in df_pred.columns:
+                df_pred[col] = 0.0
+        x_df = df_pred[FEATURE_COLS].copy().fillna(0.0)
+        if self.feature_ranges:
+            x_df = apply_normalization(x_df, FEATURE_COLS, self.feature_ranges)
+        else:
+            # Legacy artifact without persisted ranges: best-effort local scaling.
+            logger.warning("No persisted feature_ranges — falling back to local normalization")
+            x_df = normalize_features(x_df, FEATURE_COLS)
+
+        df_pred["predicted_gap"] = self.model.predict(x_df.values).clip(0, 5)
+        # Deterministic reference gap, used to calibrate per-prediction confidence.
+        df_pred["deterministic_gap"] = df_pred["gap"].fillna(0).clip(0, 5)
+
+        # Base confidence reflects validated model quality (test R²), bounded to a
+        # sensible band; it is then reduced where the ML output diverges from the
+        # deterministic reference (signals the model is extrapolating).
+        base_conf = 0.7
+        if self.last_metrics and self.last_metrics.get("test_r2") is not None:
+            base_conf = float(self.last_metrics["test_r2"])
+        base_conf = max(0.5, min(0.95, base_conf))
+
+        disagreement = (df_pred["predicted_gap"] - df_pred["deterministic_gap"]).abs() / 5.0
+        df_pred["confidence"] = (base_conf * (1.0 - 0.5 * disagreement)).clip(0.3, 0.99)
+
+        def risk_level(gap: float) -> str:
+            if gap >= 3: return "critical"
+            if gap >= 2: return "high"
+            if gap >= 1: return "medium"
+            return "low"
+
+        df_pred["risk_level"] = df_pred["predicted_gap"].apply(risk_level)
+        df_pred = df_pred.sort_values(
+            ["enseignant_id", "predicted_gap"], ascending=[True, False]
+        )
+
+        gaps = []
+        for teacher_id, group in df_pred.groupby("enseignant_id"):
+            for _, row in group.head(top_n).iterrows():
+                gaps.append({
+                    "teacher_id": str(teacher_id),
+                    "competency_id": int(row["competence_id"]),
+                    "competency_name": row["competence_nom"],
+                    "domaine_name": row["domaine_nom"],
+                    "current_level": float(row["current_level"]),
+                    "required_level": float(row.get("required_level") or 0),
+                    "predicted_gap": round(float(row["predicted_gap"]), 2),
+                    "confidence": round(float(row["confidence"]), 2),
+                    "risk_level": row["risk_level"],
+                })
+
+        overall_risk = float(df_pred["predicted_gap"].mean())
+        explanation = explain_prediction(self.model, feature_names=FEATURE_COLS)
+        explanation.update({
+            "method": "ml_gradient_boosting",
+            "model_trained": True,
+            "n_predictions": int(len(df_pred)),
+            "base_confidence": round(base_conf, 3),
+        })
+        if self.last_metrics:
+            explanation["model_metrics"] = {
+                k: self.last_metrics[k]
+                for k in ("test_r2", "test_rmse", "cv_rmse")
+                if k in self.last_metrics
+            }
+
+        return {
+            "gaps": gaps,
+            "overall_risk_score": round(overall_risk, 2),
+            "explanation": explanation,
+        }
 
     def _heuristic_predict(
         self,

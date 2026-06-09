@@ -3,7 +3,9 @@ import { config } from "@/config/env";
 import type { TeacherSkillPassportDTO } from "@/models/certificat";
 
 // ── Base URL versionnée conforme DSI (/api/v1/skill-passports → service-analyse) ──
-const BASE_URL = `${config.GATEWAY_URL}/api/v1/skill-passports`;
+// config.GATEWAY_URL inclut déjà le préfixe /api (ex. http://localhost:8080/api),
+// donc on n'ajoute que /v1/... sous peine de produire un double /api → 404/403 sans CORS.
+const BASE_URL = `${config.GATEWAY_URL}/v1/skill-passports`;
 
 // ── Utilitaire : téléchargement d'un Blob PDF ──────────────────────────────
 function downloadPdfBlob(blob: Blob, filename: string): void {

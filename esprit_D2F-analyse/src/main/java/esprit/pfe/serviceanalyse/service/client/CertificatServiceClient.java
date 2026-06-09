@@ -59,9 +59,7 @@ public class CertificatServiceClient {
     @CircuitBreaker(name = "certificat-cb", fallbackMethod = "getCertificationsFallback")
     public List<CertificationSummaryDTO> getCertificationsForTeacher(String enseignantId, String bearerToken) {
         String url = certificatServiceUrl + "/api/v1/certificates/enseignant/" + enseignantId;
-        @SuppressWarnings("unchecked")
-        List<Map<String, Object>> certs = (List<Map<String, Object>>) (List<?>) RestClientHelper.getAuthenticated(restTemplate, url, bearerToken, List.class);
-        if (certs == null) return Collections.emptyList();
+        List<Map<String, Object>> certs = RestClientHelper.getAuthenticatedList(restTemplate, url, bearerToken);
 
         List<CertificationSummaryDTO> result = new ArrayList<>();
         for (Map<String, Object> c : certs) {

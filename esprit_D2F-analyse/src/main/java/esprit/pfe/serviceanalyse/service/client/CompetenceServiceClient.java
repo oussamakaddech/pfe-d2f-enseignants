@@ -43,9 +43,8 @@ public class CompetenceServiceClient {
     @CircuitBreaker(name = "competence-cb", fallbackMethod = "getDomainSummariesFallback")
     public List<DomainSummaryDTO> getDomainSummaries(String enseignantId, String bearerToken) {
         String url = competenceServiceUrl + "/api/v1/enseignant-competences/enseignant/" + enseignantId;
-        @SuppressWarnings("unchecked")
-        List<Map<String, Object>> affectations = (List<Map<String, Object>>) (List<?>) RestClientHelper.getAuthenticated(restTemplate, url, bearerToken, List.class);
-        if (affectations == null || affectations.isEmpty()) return Collections.emptyList();
+        List<Map<String, Object>> affectations = RestClientHelper.getAuthenticatedList(restTemplate, url, bearerToken);
+        if (affectations.isEmpty()) return Collections.emptyList();
         return buildDomains(affectations);
     }
 

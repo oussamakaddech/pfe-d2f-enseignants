@@ -64,11 +64,12 @@ public final class AuthorizationMatrix {
     public static final String ACCOUNT_EDIT_OWN = "isAuthenticated()";
 
     // ── Skill Passport ──────────────────────────────────────────────────
-    // Un enseignant voit son propre passeport ; admin/CUP voient tous.
-    // Le contrôle fin (enseignant = soi-même) est assuré applicativement
+    // Tout utilisateur authentifié voit SON propre passeport (parité
+    // ANIMATEUR/FORMATEUR ≡ ENSEIGNANT) ; admin/CUP voient tous.
+    // Le contrôle fin (cible = soi-même) est assuré applicativement
     // dans SkillPassportAuthorizationService.
     public static final String SKILL_PASSPORT_READ_OWN =
-            "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_ENSEIGNANT')";
+            "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_ENSEIGNANT','ROLE_ANIMATEUR','ROLE_FORMATEUR','ROLE_CHEF_DEPARTEMENT','ROLE_RESPONSABLE_DOSSIER')";
     public static final String SKILL_PASSPORT_READ_ALL =
             "hasAnyRole('ROLE_ADMIN','ROLE_CUP')";
 

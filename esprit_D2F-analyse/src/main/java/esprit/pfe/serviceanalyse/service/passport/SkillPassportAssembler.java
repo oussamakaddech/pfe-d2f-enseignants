@@ -56,14 +56,15 @@ public class SkillPassportAssembler {
             identity = authClient.getTeacherIdentity(enseignantUsername, bearerToken);
         }
 
-        // ── 2. Compétences agrégées par domaine ────────────────────────────
-        List<DomainSummaryDTO> domaines = competenceClient.getDomainSummaries(enseignantUsername, bearerToken);
-
-        // ── 3. Formations suivies ──────────────────────────────────────────
-        List<TrainingHistoryDTO> formations = formationClient.getFormationsForTeacher(enseignantUsername, bearerToken);
-
-        // ── 4. Certifications ──────────────────────────────────────────────
-        List<CertificationSummaryDTO> certifications = certificatClient.getCertificationsForTeacher(enseignantUsername, bearerToken);
+        // ── 2/3/4. Agrégations inter-services — isolées : l'échec d'un service
+        // (indisponible, 4xx, forme de réponse inattendue) dégrade gracieusement
+        // la section concernée au lieu de faire échouer tout le passeport.
+        List<DomainSummaryDTO> domaines =
+                safe(() -> competenceClient.getDomainSummaries(enseignantUsername, bearerToken), "compétences", enseignantUsername);
+        List<TrainingHistoryDTO> formations =
+                safe(() -> formationClient.getFormationsForTeacher(enseignantUsername, bearerToken), "formations", enseignantUsername);
+        List<CertificationSummaryDTO> certifications =
+                safe(() -> certificatClient.getCertificationsForTeacher(enseignantUsername, bearerToken), "certifications", enseignantUsername);
 
         // ── 5. Gaps & recommandations (service d'analyse local) ────────────
         // L'analyse complète (gaps + recommandations) est coûteuse : elle agrège
@@ -97,6 +98,22 @@ public class SkillPassportAssembler {
                 .gaps(gaps)
                 .recommandations(recommandations)
                 .build();
+    }
+
+    /**
+     * Exécute une agrégation inter-service en isolant ses erreurs : toute exception
+     * (service indisponible, 4xx/5xx, désérialisation) est journalisée et remplacée
+     * par une liste vide, garantissant que le passeport reste généré (dégradation
+     * gracieuse, cf. contrat de classe).
+     */
+    private <T> List<T> safe(java.util.function.Supplier<List<T>> call, String section, String enseignant) {
+        try {
+            List<T> result = call.get();
+            return result != null ? result : Collections.emptyList();
+        } catch (Exception e) {
+            log.warn("Section '{}' indisponible pour {} : {}", section, enseignant, e.getMessage());
+            return Collections.emptyList();
+        }
     }
 
     /**

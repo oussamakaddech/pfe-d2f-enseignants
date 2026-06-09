@@ -52,18 +52,48 @@ class SkillPassportAuthorizationServiceTest {
                 .hasMessageContaining("propre passeport");
     }
 
+    // ── Parité : animateur / formateur accèdent à LEUR propre passeport ──────
+
+    @Test
+    void animateur_canAccessOwnPassport() {
+        Authentication animateur = auth("anim1", "ROLE_ANIMATEUR");
+        assertThatCode(() -> service.checkAccess(animateur, "anim1")).doesNotThrowAnyException();
+    }
+
+    @Test
+    void animateur_cannotAccessOtherPassport() {
+        Authentication animateur = auth("anim1", "ROLE_ANIMATEUR");
+        assertThatThrownBy(() -> service.checkAccess(animateur, "otheruser"))
+                .isInstanceOf(PassportAccessDeniedException.class);
+    }
+
+    @Test
+    void formateur_canAccessOwnPassport() {
+        Authentication formateur = auth("form1", "ROLE_FORMATEUR");
+        assertThatCode(() -> service.checkAccess(formateur, "form1")).doesNotThrowAnyException();
+    }
+
+    @Test
+    void chefDepartement_canAccessOwnButNotOther() {
+        Authentication chef = auth("chef1", "ROLE_CHEF_DEPARTEMENT");
+        assertThatCode(() -> service.checkAccess(chef, "chef1")).doesNotThrowAnyException();
+        assertThatThrownBy(() -> service.checkAccess(chef, "otheruser"))
+                .isInstanceOf(PassportAccessDeniedException.class);
+    }
+
+    @Test
+    void responsableDossier_canAccessOwnButNotOther() {
+        Authentication rd = auth("rd1", "ROLE_RESPONSABLE_DOSSIER");
+        assertThatCode(() -> service.checkAccess(rd, "rd1")).doesNotThrowAnyException();
+        assertThatThrownBy(() -> service.checkAccess(rd, "otheruser"))
+                .isInstanceOf(PassportAccessDeniedException.class);
+    }
+
     @Test
     void nullAuthentication_throwsException() {
         assertThatThrownBy(() -> service.checkAccess(null, "jdoe"))
                 .isInstanceOf(PassportAccessDeniedException.class)
                 .hasMessageContaining("Authentification");
-    }
-
-    @Test
-    void unknownRole_throwsException() {
-        Authentication formateur = auth("form1", "ROLE_FORMATEUR");
-        assertThatThrownBy(() -> service.checkAccess(formateur, "jdoe"))
-                .isInstanceOf(PassportAccessDeniedException.class);
     }
 
     @Test

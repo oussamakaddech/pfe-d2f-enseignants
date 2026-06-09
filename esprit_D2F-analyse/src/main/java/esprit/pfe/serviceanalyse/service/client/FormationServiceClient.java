@@ -55,8 +55,7 @@ public class FormationServiceClient {
         // Tentative sur l'endpoint inscriptions dédié
         try {
             String url = formationServiceUrl + "/api/v1/inscription/enseignant/" + enseignantId;
-            @SuppressWarnings("unchecked")
-            List<Map<String, Object>> inscriptions = (List<Map<String, Object>>) (List<?>) RestClientHelper.getAuthenticated(restTemplate, url, bearerToken, List.class);
+            List<Map<String, Object>> inscriptions = RestClientHelper.getAuthenticatedList(restTemplate, url, bearerToken);
             if (inscriptions != null && !inscriptions.isEmpty()) {
                 return mapInscriptions(inscriptions);
             }
@@ -67,9 +66,7 @@ public class FormationServiceClient {
 
         // Fallback interne : toutes les formations
         String url = formationServiceUrl + "/formations";
-        @SuppressWarnings("unchecked")
-        List<Map<String, Object>> formations = (List<Map<String, Object>>) (List<?>) RestClientHelper.getAuthenticated(restTemplate, url, bearerToken, List.class);
-        if (formations == null) return Collections.emptyList();
+        List<Map<String, Object>> formations = RestClientHelper.getAuthenticatedList(restTemplate, url, bearerToken);
         return mapFormations(formations);
     }
 

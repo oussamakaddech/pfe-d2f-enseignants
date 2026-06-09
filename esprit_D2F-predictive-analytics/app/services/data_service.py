@@ -337,11 +337,17 @@ HAVING COUNT(*) > 0
 """
 
 
+# Clause de pagination réutilisée par les méthodes paginées du DataService.
+# Définie au niveau module : les méthodes la référencent par nom nu
+# (`query += _LIMIT_OFFSET_CLAUSE`), ce qui exige une portée module, pas un
+# attribut de classe (sinon NameError au runtime).
+_LIMIT_OFFSET_CLAUSE = " LIMIT :limit OFFSET :offset"
+
+
 class DataService:
     """Service d'accès aux données en lecture sur la base D2F partagée."""
 
     DEFAULT_PAGE_SIZE = 500
-    _LIMIT_OFFSET_CLAUSE = " LIMIT :limit OFFSET :offset"
 
     def __init__(self, db: Session):
         self.db = db

@@ -10,30 +10,57 @@ logger = logging.getLogger(__name__)
 
 def explain_prediction(
     model: Any,
-    feature_names: list[str],
+    features: Any = None,
+    feature_names: list[str] | None = None,
 ) -> dict[str, Any]:
-    """Generate a human-readable explanation for a single prediction.
+    """Generate a human-readable explanation for a prediction.
 
     Uses feature importances as a proxy when SHAP is not available
     (e.g., for GradientBoostingRegressor, we use model.feature_importances_).
+
+    When ``features`` (a single instance, shape ``(n,)`` or ``(1, n)``) is
+    provided, each top feature is enriched with its value and a local
+    contribution estimate (importance × value), giving a per-prediction
+    explanation rather than a purely global one.
     """
-    if hasattr(model, "feature_importances_"):
-        importances = model.feature_importances_
-        top_indices = np.argsort(importances)[::-1][:5]
-        top_features = [
-            {"feature": feature_names[i], "importance": round(float(importances[i]), 4)}
-            for i in top_indices
-        ]
+    if not hasattr(model, "feature_importances_"):
         return {
-            "method": "feature_importance",
-            "top_features": top_features,
-            "summary": f"Prediction driven mainly by: {', '.join(f['feature'] for f in top_features[:3])}.",
+            "method": "none",
+            "top_features": [],
+            "summary": "No explainability available for this model type.",
         }
 
+    importances = np.asarray(model.feature_importances_, dtype=float)
+    names = (
+        list(feature_names)
+        if feature_names is not None
+        else [f"f{i}" for i in range(len(importances))]
+    )
+
+    instance: np.ndarray | None = None
+    if features is not None:
+        arr = np.asarray(features, dtype=float)
+        if arr.ndim == 2 and arr.shape[0] >= 1:
+            instance = arr[0]
+        elif arr.ndim == 1:
+            instance = arr
+
+    top_indices = np.argsort(importances)[::-1][:5]
+    top_features: list[dict[str, Any]] = []
+    for i in top_indices:
+        entry: dict[str, Any] = {
+            "feature": names[i] if i < len(names) else f"f{i}",
+            "importance": round(float(importances[i]), 4),
+        }
+        if instance is not None and i < len(instance):
+            entry["value"] = round(float(instance[i]), 4)
+            entry["contribution"] = round(float(importances[i] * instance[i]), 4)
+        top_features.append(entry)
+
     return {
-        "method": "none",
-        "top_features": [],
-        "summary": "No explainability available for this model type.",
+        "method": "feature_importance",
+        "top_features": top_features,
+        "summary": f"Prediction driven mainly by: {', '.join(f['feature'] for f in top_features[:3])}.",
     }
 
 
