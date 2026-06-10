@@ -82,6 +82,42 @@ export interface ModelPerformance {
   last_retrain_status: string | null;
 }
 
+export interface OverviewDeltas {
+  nb_enseignants_suivis: number | null;
+  score_risque_moyen: number | null;
+  nb_gaps_critiques: number | null;
+  nb_alertes_nouvelles: number | null;
+  taux_couverture_global: number | null;
+  precision_modele: number | null;
+}
+
+export interface OverviewKpis {
+  nb_enseignants_suivis: number;
+  score_risque_moyen: number;
+  nb_gaps_critiques: number;
+  nb_alertes_nouvelles: number;
+  taux_couverture_global: number;
+  precision_modele: number | null;
+  deltas: OverviewDeltas;
+  score_risque_moyen_precedent: number | null;
+  generated_at: string;
+}
+
+export interface ForecastPoint {
+  month: string;
+  value: number;
+  lower?: number;
+  upper?: number;
+}
+
+export interface DemandForecast {
+  method: string;
+  slope_par_mois?: number;
+  history: ForecastPoint[];
+  forecast: ForecastPoint[];
+  note?: string;
+}
+
 export interface DriftReport {
   drift_detected: boolean;
   message?: string;

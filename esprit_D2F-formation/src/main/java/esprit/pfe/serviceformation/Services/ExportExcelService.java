@@ -120,10 +120,11 @@ public class ExportExcelService {
     }
 
     private String formatPeriodTitle(Date startDate, Date endDate, DateTimeFormatter df) {
+        // java.sql.Date.toInstant() lève UnsupportedOperationException → epoch millis.
         return "Calendrier des formations du "
-                + startDate.toInstant().atZone(ZoneId.systemDefault()).toLocalDate().format(df)
+                + java.time.Instant.ofEpochMilli(startDate.getTime()).atZone(ZoneId.systemDefault()).toLocalDate().format(df)
                 + " au "
-                + endDate.toInstant().atZone(ZoneId.systemDefault()).toLocalDate().format(df);
+                + java.time.Instant.ofEpochMilli(endDate.getTime()).atZone(ZoneId.systemDefault()).toLocalDate().format(df);
     }
 
     private void writeCalendarTitle(Sheet sheet, String title, CellStyle titleStyle) {
@@ -219,7 +220,8 @@ public class ExportExcelService {
         Row row = sheet.getRow(groupStart);
         if (row == null) row = sheet.createRow(groupStart);
         Cell dc = row.createCell(0);
-        dc.setCellValue(date.toInstant().atZone(ZoneId.systemDefault()).toLocalDate().format(df));
+        // java.sql.Date.toInstant() lève UnsupportedOperationException → epoch millis.
+        dc.setCellValue(java.time.Instant.ofEpochMilli(date.getTime()).atZone(ZoneId.systemDefault()).toLocalDate().format(df));
         dc.setCellStyle(dateCellStyle);
     }
 

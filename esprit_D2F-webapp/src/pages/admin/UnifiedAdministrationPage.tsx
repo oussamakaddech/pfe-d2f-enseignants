@@ -495,7 +495,7 @@ export default function UnifiedAdministrationPage() {
               color: accountLike ? brand[500] : '#2563eb',
               display: "flex", alignItems: "center", justifyContent: "center",
               fontSize: 14, fontWeight: 700, flexShrink: 0,
-              border: `1px solid ${accountLike ? 'rgba(181,18,0,0.18)' : 'rgba(37,99,235,0.18)'}`,
+              border: `1px solid ${accountLike ? 'rgba(181, 18, 0,0.18)' : 'rgba(37,99,235,0.18)'}`,
             }}>{initial}</div>
             <div style={{ minWidth: 0 }}>
               <div style={{ fontWeight: 600, color: neutral[800], lineHeight: 1.3 }}>{name}</div>

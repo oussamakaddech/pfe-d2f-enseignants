@@ -3,6 +3,7 @@ import AnalysePredictiveService from "@/services/analyse/AnalysePredictiveServic
 import type {
   DecliningCompetency, InDemandCompetency, TeacherRiskIndicator, DriftReport,
   GapHeatmapCell, RiskEvolutionPoint, TrainingEffectiveness, ModelPerformance,
+  OverviewKpis, DemandForecast,
 } from "@/models/analyse";
 
 export function useDashboardSummary() {
@@ -117,6 +118,20 @@ export function useModelPerformance() {
   return useQuery<ModelPerformance>({
     queryKey: ["analyse", "model-performance"],
     queryFn: () => AnalysePredictiveService.getModelPerformance(),
+  });
+}
+
+export function useOverview() {
+  return useQuery<OverviewKpis>({
+    queryKey: ["analyse", "overview"],
+    queryFn: () => AnalysePredictiveService.getOverview(),
+  });
+}
+
+export function useDemandForecast(months = 6) {
+  return useQuery<DemandForecast>({
+    queryKey: ["analyse", "demand-forecast", months],
+    queryFn: () => AnalysePredictiveService.getDemandForecast(months),
   });
 }
 

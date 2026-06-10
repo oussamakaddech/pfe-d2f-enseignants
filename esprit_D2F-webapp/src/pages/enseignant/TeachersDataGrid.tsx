@@ -202,9 +202,9 @@ export default function TeachersDataGrid({ embedded = false }: { embedded?: bool
         {/* Statistiques */}
         <div className="teachers-stats">
           <div className="teachers-stat-card teachers-stat-card--total">
-            <div className="teachers-stat-icon" style={{ background: "#fff0ee", color: "#B51200" }}><TeamOutlined /></div>
+            <div className="teachers-stat-icon" style={{ background: "#fff0ee", color: "#b51200" }}><TeamOutlined /></div>
             <div className="teachers-stat-label">Total</div>
-            <div className="teachers-stat-value" style={{ color: "#B51200" }}>{data.length}</div>
+            <div className="teachers-stat-value" style={{ color: "#b51200" }}>{data.length}</div>
           </div>
           <div className="teachers-stat-card teachers-stat-card--perm">
             <div className="teachers-stat-icon" style={{ background: "#eff6ff", color: "#2563eb" }}><UserOutlined /></div>

@@ -4,13 +4,13 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 
 :root {
-  /* ── Brand ──────────────────────────────────────────────────────────────── */
+  /* ── Brand (Rouge — cf. tokens.css / theme.ts) ──────────────────────────── */
   --primary-50:    #fff0ee;
   --primary-100:   #ffddd9;
   --primary-200:   #ffb3ab;
   --primary-300:   #ff8278;
   --primary-400:   #e54a3d;
-  --primary-500:   #B51200;
+  --primary-500:   #b51200;
   --primary-600:   #9a0f00;
   --primary-700:   #7a0000;
   --primary-800:   #5c0000;
@@ -21,6 +21,10 @@
   --primary-dark:     var(--primary-700);
   --primary-bg:       var(--primary-50);
   --primary-bg-hover: rgba(181, 18, 0, 0.10);
+
+  /* Accent (Electric Blue) — CTAs et éléments interactifs saillants */
+  --accent-500: #00b4d8;
+  --accent-600: #0096b7;
 
   /* ── Neutrals ────────────────────────────────────────────────────────────── */
   --neutral-0:   #ffffff;
@@ -158,8 +162,8 @@
 
   /* ── Layout ──────────────────────────────────────────────────────────────── */
   --header-height: 64px;
-  --sidebar-width: 260px;
-  --sidebar-width-collapsed: 80px;
+  --sidebar-width: 240px;
+  --sidebar-width-collapsed: 64px;
   --max-page-width: 1400px;
   --content-padding: 28px;
 
@@ -176,9 +180,9 @@
   --elev-popover: var(--shadow-sm);
 
   /* ── Brand gradients ─────────────────────────────────────────────────────── */
-  --brand-gradient: linear-gradient(135deg, #8b0000 0%, #B51200 55%, #c94010 100%);
-  --brand-gradient-subtle: linear-gradient(135deg, #fff0ee 0%, #ffddd9 100%);
-  --brand-gradient-header: linear-gradient(180deg, #9a0f00 0%, #7a0000 100%);
+  --brand-gradient: linear-gradient(135deg, var(--primary-700) 0%, var(--primary-500) 55%, var(--primary-400) 100%);
+  --brand-gradient-subtle: linear-gradient(135deg, var(--primary-50) 0%, var(--primary-100) 100%);
+  --brand-gradient-header: linear-gradient(180deg, var(--primary-600) 0%, var(--primary-700) 100%);
 
   /* ── Roles ───────────────────────────────────────────────────────────────── */
   --role-admin-color:  #7c3aed;
@@ -207,8 +211,8 @@
   --status-annule-bg:         var(--color-error-bg);
 
   /* ── Buttons ─────────────────────────────────────────────────────────────── */
-  --btn-primary-gradient:     linear-gradient(135deg, #B51200 0%, #9a0f00 100%);
-  --btn-primary-gradient-hover: linear-gradient(135deg, #9a0f00 0%, #7a0000 100%);
+  --btn-primary-gradient:     linear-gradient(135deg, var(--primary-500) 0%, var(--primary-600) 100%);
+  --btn-primary-gradient-hover: linear-gradient(135deg, var(--primary-600) 0%, var(--primary-700) 100%);
   --btn-primary-shadow:       0 4px 12px rgba(181, 18, 0, 0.30);
   --btn-primary-shadow-hover: 0 6px 16px rgba(181, 18, 0, 0.40);
 
@@ -241,7 +245,7 @@
   --btn-purple-hover-color:   #6d28d9;
 
   /* ── Header ──────────────────────────────────────────────────────────────── */
-  --header-gradient:       linear-gradient(180deg, #9a0f00 0%, #7a0000 100%);
+  --header-gradient:       linear-gradient(180deg, var(--primary-600) 0%, var(--primary-700) 100%);
   --header-shadow:         0 1px 4px rgba(0, 0, 0, 0.10);
   --header-avatar-bg:      rgba(255, 255, 255, 0.15);
   --header-avatar-border:  1.5px solid rgba(255, 255, 255, 0.20);

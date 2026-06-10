@@ -170,6 +170,8 @@ public class AuthorizationFilter extends AbstractGatewayFilterFactory<Authorizat
         if (path.startsWith("/api/certificat/")) return getCertificatRoles(method);
         if (path.startsWith("/api/rice/")) return ADMIN_ONLY;
         if (path.startsWith("/api/analyse/")) return getAnalyseRoles(path);
+        // BFF analyse predictive (vues consolidees de pilotage) : ADMIN/CUP.
+        if (path.startsWith("/api/v1/analyse-predictive/")) return ADMIN_CUP;
 
         return ALL_ROLES;
     }

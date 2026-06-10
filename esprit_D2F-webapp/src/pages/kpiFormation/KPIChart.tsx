@@ -405,7 +405,7 @@ export default function KPIChart() {
           value={totalFormations}
           subtext={`${formationsByEtat.acheve ?? 0} achevées • ${formationsByEtat.enCours ?? 0} en cours`}
           trend={12}
-          accentColor="#B51200"
+          accentColor="#b51200"
           accentSoftColor="#ffb3ab"
           loading={loading}
         />
@@ -498,7 +498,7 @@ export default function KPIChart() {
       {/* ── Section: Indicateurs de formation ──────────────────────────── */}
       <KpiSectionTitle
         icon={<BookOutlined />}
-        iconColor="#B51200"
+        iconColor="#b51200"
         iconBg="#fff0ee"
         title="Indicateurs de formation"
         subtitle="Détails, types et progression"

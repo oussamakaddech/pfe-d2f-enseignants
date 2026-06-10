@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.sql.Time;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -223,7 +224,10 @@ public class CalendarConflictService {
     }
 
     private static String dateKey(Date date) {
-        return date.toInstant().atZone(ZoneId.systemDefault()).toLocalDate().toString();
+        // NB : les dates @Temporal(DATE) reviennent d'Hibernate en java.sql.Date,
+        // dont toInstant() lève UnsupportedOperationException. On passe par
+        // l'epoch millis (compatible java.util.Date ET java.sql.Date).
+        return Instant.ofEpochMilli(date.getTime()).atZone(ZoneId.systemDefault()).toLocalDate().toString();
     }
 
     private static LocalDate parseDate(String iso) {

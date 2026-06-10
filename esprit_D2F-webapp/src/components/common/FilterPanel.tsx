@@ -48,7 +48,7 @@ const FilterPanel = memo(function FilterPanel({
           </Text>
           {activeCount > 0 && (
             <span style={{
-              background: "#B51200",
+              background: "#b51200",
               color: "#fff",
               borderRadius: 10,
               padding: "1px 8px",

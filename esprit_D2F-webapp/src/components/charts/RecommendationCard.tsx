@@ -26,7 +26,7 @@ const RecommendationCard = memo(function RecommendationCard({ recommendation: r,
         background: "rgba(255,255,255,0.92)",
         backdropFilter: "blur(8px)",
         boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
-        borderLeft: "4px solid #B51200",
+        borderLeft: "4px solid #b51200",
       }}
     >
       <Space direction="vertical" style={{ width: "100%" }} size={6}>
@@ -36,14 +36,14 @@ const RecommendationCard = memo(function RecommendationCard({ recommendation: r,
             {rank && (
               <div style={{
                 width: 28, height: 28, borderRadius: "50%",
-                background: "#B51200", color: "#fff",
+                background: "#b51200", color: "#fff",
                 display: "flex", alignItems: "center", justifyContent: "center",
                 fontSize: 13, fontWeight: 700, flexShrink: 0,
               }}>
                 {rank}
               </div>
             )}
-            <BookOutlined style={{ color: "#B51200" }} />
+            <BookOutlined style={{ color: "#b51200" }} />
             <Text strong style={{ fontSize: 13 }}>{r.formation_titre}</Text>
           </Space>
           {r.formation_type && (

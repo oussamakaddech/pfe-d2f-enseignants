@@ -45,8 +45,8 @@
 }
 
 .completed-btn-generate:not(:disabled) {
-  background: linear-gradient(135deg, #B51200 0%, #9a0f00 100%) !important;
-  border-color: #B51200 !important;
+  background: linear-gradient(135deg, #b51200 0%, #9a0f00 100%) !important;
+  border-color: #b51200 !important;
   box-shadow: 0 4px 12px rgba(181, 18, 0, 0.3) !important;
 }
 
@@ -111,8 +111,8 @@
 }
 
 .completed-drawer-footer .ant-btn-primary {
-  background: linear-gradient(135deg, #B51200 0%, #9a0f00 100%) !important;
-  border-color: #B51200 !important;
+  background: linear-gradient(135deg, #b51200 0%, #9a0f00 100%) !important;
+  border-color: #b51200 !important;
   box-shadow: 0 4px 12px rgba(181, 18, 0, 0.3) !important;
 }
 

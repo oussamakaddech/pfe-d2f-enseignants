@@ -22,7 +22,7 @@ const initialsOf = (nom?: string, prenom?: string): string => {
 };
 
 const colorOfName = (str: string): string => {
-  const palette = ["#B51200", "#0891b2", "#7c3aed", "#059669", "#d97706", "#2563eb", "#db2777"];
+  const palette = ["#b51200", "#0891b2", "#7c3aed", "#059669", "#d97706", "#2563eb", "#db2777"];
   let h = 0;
   for (let i = 0; i < (str || "").length; i += 1) h = (h * 31 + (str.codePointAt(i) ?? 0)) >>> 0;
   return palette[h % palette.length];

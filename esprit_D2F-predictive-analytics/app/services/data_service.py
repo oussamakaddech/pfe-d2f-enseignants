@@ -98,7 +98,8 @@ LEFT JOIN tf ON tf.enseignant_id = e.id
 LEFT JOIN tp ON tp.enseignant_id = e.id
 LEFT JOIN tb ON tb.enseignant_id = e.id
 LEFT JOIN te ON te.enseignant_id = e.id
-WHERE e.id = :teacher_id OR :teacher_id IS NULL
+WHERE (e.id = :teacher_id OR :teacher_id IS NULL)
+  AND e.deleted_at IS NULL
 """
 
 COMPETENCY_LEVELS_QUERY = f"""
@@ -322,6 +323,7 @@ GROUP BY c.id, c.nom, d.nom
 ALL_ENSEIGNANTS_QUERY = """
 SELECT e.id AS enseignant_id, e.nom, e.prenom, e.mail AS email, e.dept_id AS departement_id
 FROM enseignants e
+WHERE e.deleted_at IS NULL
 """
 
 # Taux de complétion réel par formation (inscriptions APPROVED / total).
@@ -383,6 +385,7 @@ WHERE (dp.derniere_date IS NULL
        OR dp.derniere_date < (CURRENT_DATE - make_interval(months => :mois)))
   AND (:departement IS NULL OR e.dept_id = :departement)
   AND (:up IS NULL OR e.up_id = :up)
+  AND e.deleted_at IS NULL
 """
 
 # Feature 2 — Formations par période (granularité variable).
@@ -426,7 +429,7 @@ SELECT u.id       AS up_id,
          GROUP BY d.libelle
          ORDER BY COUNT(*) DESC
          LIMIT 1)                                       AS departement_nom,
-       (SELECT COUNT(*) FROM enseignants e WHERE e.up_id = u.id) AS nombre_enseignants,
+       (SELECT COUNT(*) FROM enseignants e WHERE e.up_id = u.id AND e.deleted_at IS NULL) AS nombre_enseignants,
        COUNT(DISTINCT f.id_formation)                   AS nombre_formations_organisees,
        COUNT(i.id) FILTER (WHERE i.etat = 'APPROVED')   AS nombre_participations
 FROM ups u
@@ -436,7 +439,7 @@ LEFT JOIN formations f
       AND (:annee IS NULL OR EXTRACT(YEAR FROM f.date_debut) = :annee)
 LEFT JOIN inscriptions i ON i.formation_id = f.id_formation
 WHERE (:departement IS NULL
-       OR EXISTS (SELECT 1 FROM enseignants e WHERE e.up_id = u.id AND e.dept_id = :departement))
+       OR EXISTS (SELECT 1 FROM enseignants e WHERE e.up_id = u.id AND e.dept_id = :departement AND e.deleted_at IS NULL))
 GROUP BY u.id, u.libelle
 ORDER BY u.libelle
 """
@@ -461,7 +464,7 @@ ORDER BY f.up_id, nb DESC
 FORMATIONS_PAR_DEPARTEMENT_QUERY = """
 SELECT d.id       AS departement_id,
        d.libelle  AS departement_nom,
-       (SELECT COUNT(*) FROM enseignants e WHERE e.dept_id = d.id) AS nombre_enseignants,
+       (SELECT COUNT(*) FROM enseignants e WHERE e.dept_id = d.id AND e.deleted_at IS NULL) AS nombre_enseignants,
        COUNT(DISTINCT f.id_formation)                   AS nombre_formations_organisees,
        COUNT(i.id) FILTER (WHERE i.etat = 'APPROVED')   AS nombre_participations
 FROM departements d
@@ -578,7 +581,7 @@ class DataService:
         rows = execute_query(
             self.db,
             "SELECT up_id, dept_id AS departement_id FROM enseignants "
-            "WHERE id = :uid OR mail = :uid LIMIT 1",
+            "WHERE (id = :uid OR mail = :uid) AND deleted_at IS NULL LIMIT 1",
             {"uid": user_id},
         )
         return rows[0] if rows else None

@@ -16,7 +16,7 @@ const TYPE_COLOR: Record<string, string> = {
 function StepDot({ item, index }: { readonly item: TrainingPathItem; readonly index: number }) {
   let bg = "#94a3b8";
   if (item.deja_suivie) bg = "#10b981";
-  else if (item.prerequis_satisfaits) bg = "#B51200";
+  else if (item.prerequis_satisfaits) bg = "#b51200";
   return (
     <div style={{
       width: 32, height: 32, borderRadius: "50%",
@@ -38,7 +38,7 @@ const TrainingPathTimeline = memo(function TrainingPathTimeline({ path }: Traini
     <div>
       {/* Résumé du parcours */}
       <div style={{
-        background: "linear-gradient(135deg, #B51200, #8b0000)",
+        background: "linear-gradient(135deg, #b51200, #7a0000)",
         borderRadius: 12, padding: "16px 20px", color: "#fff", marginBottom: 20,
       }}>
         <Text strong style={{ color: "#fff", fontSize: 15 }}>

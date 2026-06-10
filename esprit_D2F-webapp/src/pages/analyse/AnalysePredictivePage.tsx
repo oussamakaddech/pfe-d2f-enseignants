@@ -7,7 +7,7 @@ import {
   SearchOutlined, RobotOutlined, RiseOutlined, FallOutlined, TeamOutlined,
   UserOutlined, ProjectOutlined, ReloadOutlined, ExperimentOutlined,
   DashboardOutlined, ThunderboltOutlined, CheckCircleFilled,
-  BulbOutlined, FireOutlined,
+  BulbOutlined, FireOutlined, LineChartOutlined, CoffeeOutlined,
 } from "@ant-design/icons";
 import useAppNotification from "@/hooks/ui/useAppNotification";
 import { motion, AnimatePresence } from "framer-motion";
@@ -15,6 +15,7 @@ import { useAuth } from "@/hooks/auth/useAuth";
 import {
   useDashboardSummary, useTrainModel, useAnalyserEnseignant,
   useGapHeatmap, useRiskEvolution, useModelPerformance,
+  useOverview, useDemandForecast,
 } from "@/hooks/analyse/useAnalysePredictive";
 import type { AnalyseData, DecliningCompetency, InDemandCompetency, TeacherRiskIndicator } from "@/models/analyse";
 import DashboardKpis from "@/components/charts/DashboardKpis";
@@ -26,6 +27,9 @@ import EnseignantSelect from "@/components/charts/EnseignantSelect";
 import ModelStatusBadge from "@/components/charts/ModelStatusBadge";
 import GapHeatmap from "@/components/charts/GapHeatmap";
 import TrendLineChart from "@/components/charts/TrendLineChart";
+import OverviewKpiTiles from "@/components/charts/OverviewKpiTiles";
+import DemandForecastChart from "@/components/charts/DemandForecastChart";
+import InactiveTeachersCard from "@/components/charts/InactiveTeachersCard";
 import "@/styles/pages/analyse-predictive-page.css";
 
 const { Title, Text } = Typography;
@@ -76,6 +80,8 @@ export default function AnalysePredictivePage() {
   const { data: gapHeatmap = [] } = useGapHeatmap();
   const { data: riskEvolution = [] } = useRiskEvolution(6);
   const { data: modelPerf } = useModelPerformance();
+  const { data: overview, isLoading: overviewLoading } = useOverview();
+  const { data: demandForecast } = useDemandForecast(6);
   const [riskThreshold, setRiskThreshold] = useState<number>(0.7);
   const [modelStatusKey, setModelStatusKey] = useState<number>(0);
 
@@ -187,6 +193,8 @@ export default function AnalysePredictivePage() {
       ),
       children: (
         <Spin spinning={dashLoading}>
+          <OverviewKpiTiles data={overview} loading={overviewLoading} />
+
           <DashboardKpis
             declining={dashboardData?.declining_competencies || []}
             inDemand={dashboardData?.in_demand_competencies || []}
@@ -277,8 +285,8 @@ export default function AnalysePredictivePage() {
 
           <AnalyseSectionTitle
             icon={<DashboardOutlined />}
-            iconColor="#7c3aed"
-            iconBg="#f5f3ff"
+            iconColor="#b51200"
+            iconBg="#fff0ee"
             title="Heatmap des Gaps"
             subtitle="Département × Compétence"
           />
@@ -295,9 +303,40 @@ export default function AnalysePredictivePage() {
           <Row gutter={[16, 16]}>
             <Col xs={24} lg={16}>
               <AnalyseSectionTitle
+                icon={<LineChartOutlined />}
+                iconColor="#b51200"
+                iconBg="#fff0ee"
+                title="Prévision de la Demande de Formation"
+                subtitle="Historique des gaps détectés + projection (EWMA + tendance)"
+              />
+              <div className="analyse-block">
+                <Card variant="borderless" title={<span><LineChartOutlined /> Tendance &amp; projection</span>}>
+                  <DemandForecastChart data={demandForecast} />
+                </Card>
+              </div>
+            </Col>
+            <Col xs={24} lg={8}>
+              <AnalyseSectionTitle
+                icon={<CoffeeOutlined />}
+                iconColor="#f59e0b"
+                iconBg="#fffbeb"
+                title="Enseignants Inactifs"
+                subtitle="Sans formation depuis longtemps"
+              />
+              <div className="analyse-block">
+                <Card variant="borderless" title={<span><CoffeeOutlined /> Risque de décrochage</span>}>
+                  <InactiveTeachersCard mois={6} limit={5} />
+                </Card>
+              </div>
+            </Col>
+          </Row>
+
+          <Row gutter={[16, 16]}>
+            <Col xs={24} lg={16}>
+              <AnalyseSectionTitle
                 icon={<RiseOutlined />}
-                iconColor="#3b82f6"
-                iconBg="#eff6ff"
+                iconColor="#00b4d8"
+                iconBg="#e6f9fd"
                 title="Évolution Mensuelle du Risque"
                 subtitle="Tendance sur 6 mois"
               />
@@ -310,8 +349,8 @@ export default function AnalysePredictivePage() {
             <Col xs={24} lg={8}>
               <AnalyseSectionTitle
                 icon={<ExperimentOutlined />}
-                iconColor="#7c3aed"
-                iconBg="#f5f3ff"
+                iconColor="#b51200"
+                iconBg="#fff0ee"
                 title="Performance du Modèle"
               />
               <div className="analyse-block">
@@ -320,7 +359,7 @@ export default function AnalysePredictivePage() {
                     <div>
                       <Text type="secondary" style={{ fontSize: 12 }}>Précision (R²) — modèle de gaps</Text>
                       <div style={{ marginTop: 4 }}>
-                        <Title level={2} style={{ margin: 0, color: "#7c3aed" }}>
+                        <Title level={2} style={{ margin: 0, color: "#b51200" }}>
                           {modelPerf?.gap_model_accuracy == null ? "—" : modelPerf.gap_model_accuracy.toFixed(2)}
                         </Title>
                       </div>
@@ -386,8 +425,8 @@ export default function AnalysePredictivePage() {
                 <Col xs={24} lg={8}>
                   <AnalyseSectionTitle
                     icon={<UserOutlined />}
-                    iconColor="#7c3aed"
-                    iconBg="#f5f3ff"
+                    iconColor="#b51200"
+                    iconBg="#fff0ee"
                     title="Profil de l'enseignant"
                   />
                   <div className="analyse-block">
@@ -422,7 +461,7 @@ export default function AnalysePredictivePage() {
                   une analyse prédictive alimentée par l'IA.
                 </div>
                 <div className="analyse-empty-hint">
-                  <ThunderboltOutlined style={{ color: "#7c3aed" }} />
+                  <ThunderboltOutlined style={{ color: "#b51200" }} />
                   Les résultats apparaîtront ici en quelques secondes
                 </div>
               </div>
@@ -516,7 +555,7 @@ export default function AnalysePredictivePage() {
               placeholder="Ex: C42 (IA & Big Data)"
               value={competenceCible}
               onChange={(e) => setCompetenceCible(e.target.value)}
-              prefix={<ProjectOutlined style={{ color: "#7c3aed" }} />}
+              prefix={<ProjectOutlined style={{ color: "#b51200" }} />}
               style={{ borderRadius: 10 }}
               onPressEnter={() => handleAnalyserEnseignant()}
             />

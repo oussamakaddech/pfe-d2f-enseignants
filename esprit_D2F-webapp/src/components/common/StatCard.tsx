@@ -19,13 +19,13 @@ interface StatCardProps {
 
 export default function StatCard({
   icon,
-  iconColor = "#B51200",
+  iconColor = "#b51200",
   label,
   value,
   unit,
   subtext,
   trend,
-  accentColor = "#B51200",
+  accentColor = "#b51200",
   loading = false,
   onClick,
 }: StatCardProps) {

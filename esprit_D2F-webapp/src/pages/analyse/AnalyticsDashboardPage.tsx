@@ -129,7 +129,7 @@ export default function AnalyticsDashboardPage() {
       },
     },
     { title: "Taux complétion", dataIndex: "completion_rate", width: 160,
-      render: v => <Progress percent={Math.round((v ?? 0) * 100)} size="small" strokeColor="#B51200" /> },
+      render: v => <Progress percent={Math.round((v ?? 0) * 100)} size="small" strokeColor="#b51200" /> },
     { title: "Recommandée", dataIndex: "nb_recommandee", align: "center", width: 110,
       render: v => <Tag color="blue">{v}×</Tag> },
   ];
@@ -272,7 +272,7 @@ export default function AnalyticsDashboardPage() {
           </Col>
           <Col xs={24} lg={10}>
             <Card
-              title={<Space><TrophyOutlined style={{ color: "#B51200" }} /><Text strong>Top Formations Recommandées</Text></Space>}
+              title={<Space><TrophyOutlined style={{ color: "#b51200" }} /><Text strong>Top Formations Recommandées</Text></Space>}
               style={cardStyle}
               size="small"
             >
@@ -374,7 +374,7 @@ export default function AnalyticsDashboardPage() {
         <Row gutter={[20, 20]} className="mt-20 mb-8">
           <Col xs={24} lg={14}>
             <Card
-              title={<Space><TrophyOutlined style={{ color: "#B51200" }} /><Text strong>Efficacité des Formations</Text></Space>}
+              title={<Space><TrophyOutlined style={{ color: "#b51200" }} /><Text strong>Efficacité des Formations</Text></Space>}
               style={cardStyle}
               size="small"
             >

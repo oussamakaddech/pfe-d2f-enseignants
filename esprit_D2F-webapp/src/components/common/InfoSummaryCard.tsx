@@ -53,7 +53,7 @@ const InfoSummaryCard = memo(function InfoSummaryCard({
     >
       {title && (
         <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
-          {titleIcon && <span style={{ color: "#B51200" }}>{titleIcon}</span>}
+          {titleIcon && <span style={{ color: "#b51200" }}>{titleIcon}</span>}
           <Text strong style={{ fontSize: 14, color: neutral[900] }}>{title}</Text>
         </div>
       )}

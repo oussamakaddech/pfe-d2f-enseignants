@@ -1,0 +1,97 @@
+.card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-4) var(--space-5);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-left-width: 4px;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+  text-align: left;
+  width: 100%;
+  font-family: inherit;
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.clickable { cursor: pointer; }
+
+.accentPrimary { border-left-color: var(--color-primary); }
+.accentSuccess { border-left-color: var(--color-success); }
+.accentWarning { border-left-color: var(--color-warning); }
+.accentDanger  { border-left-color: var(--color-danger); }
+.accentInfo    { border-left-color: var(--color-info); }
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.title {
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  color: var(--color-text-secondary);
+  margin: 0;
+}
+
+.iconBox {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-md);
+  font-size: 17px;
+  flex: none;
+}
+
+.iconPrimary { color: var(--color-primary); background: var(--primary-50); }
+.iconSuccess { color: var(--color-success); background: var(--color-success-bg); }
+.iconWarning { color: var(--color-warning); background: var(--color-warning-bg); }
+.iconDanger  { color: var(--color-danger);  background: var(--color-error-bg); }
+.iconInfo    { color: var(--color-info);    background: var(--color-info-bg); }
+
+.valueRow {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-1);
+}
+
+.value {
+  font-size: var(--text-4xl);
+  font-weight: var(--font-bold);
+  color: var(--color-text-primary);
+  line-height: var(--line-tight);
+  font-variant-numeric: tabular-nums;
+}
+
+.unit {
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  color: var(--color-text-muted);
+}
+
+.trend {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+}
+
+.trendUp     { color: var(--color-success); }
+.trendDown   { color: var(--color-danger); }
+.trendStable { color: var(--color-text-muted); }
+
+.trendLabel {
+  font-weight: var(--font-regular);
+  color: var(--color-text-muted);
+}

@@ -30,7 +30,7 @@ const TYPE_CONFIG = [
     label: "Interne",
     sub: "formations internes",
     icon: <HomeOutlined />,
-    accent: "#B51200",
+    accent: "#b51200",
     accentBg: "#fff0ee",
   },
   {

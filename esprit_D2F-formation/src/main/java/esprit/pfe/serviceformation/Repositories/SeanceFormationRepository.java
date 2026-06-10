@@ -150,6 +150,11 @@ public interface SeanceFormationRepository extends JpaRepository<SeanceFormation
     // ==================== CALENDRIER ====================
 
     /** Toutes les séances, ordonnées chronologiquement (export « tout le calendrier »). */
+    @Query("""
+        SELECT s FROM SeanceFormation s
+        LEFT JOIN FETCH s.formation
+        ORDER BY s.dateSeance, s.heureDebut
+        """)
     List<SeanceFormation> findAllByOrderByDateSeanceAscHeureDebutAsc();
 
     /** Séances d'un participant identifié par son e-mail (export personnel par e-mail). */

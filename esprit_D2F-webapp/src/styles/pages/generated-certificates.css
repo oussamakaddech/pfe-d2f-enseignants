@@ -9,8 +9,8 @@
 .generated-certs-btn-back {
   border-radius: 8px !important;
   font-weight: 500 !important;
-  border-color: #B51200 !important;
-  color: #B51200 !important;
+  border-color: #b51200 !important;
+  color: #b51200 !important;
   transition: all 0.25s ease !important;
 }
 
@@ -55,7 +55,7 @@
 
 /* ── Bouton télécharger ────────────────────────────────────────────────── */
 .generated-certs-btn-download {
-  color: #B51200 !important;
+  color: #b51200 !important;
   font-weight: 500 !important;
   transition: all 0.2s ease !important;
 }

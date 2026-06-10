@@ -42,7 +42,7 @@
 .bureau-hero-title {
   font-size: 28px !important;
   font-weight: 800 !important;
-  background: linear-gradient(135deg, #1f2937 0%, #B51200 80%);
+  background: linear-gradient(135deg, #1f2937 0%, #b51200 80%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -151,7 +151,7 @@
   font-weight: 700;
   flex-shrink: 0;
   background: #fff0ee;
-  color: #B51200;
+  color: #b51200;
   border: 1px solid rgba(181, 18, 0, 0.18);
 }
 
@@ -167,8 +167,8 @@
 .bureau-btn-delete:hover { color: #b91c1c !important; background: #fef2f2 !important; }
 
 .bureau-btn-add {
-  background: #B51200 !important;
-  border-color: #B51200 !important;
+  background: #b51200 !important;
+  border-color: #b51200 !important;
   border-radius: 8px !important;
   font-weight: 600 !important;
 }

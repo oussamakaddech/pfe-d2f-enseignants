@@ -89,7 +89,7 @@ export default function MesInscriptions() {
       const wording = fresh.length === 1 ? "demande a été mise à jour" : "demandes ont été mises à jour";
       msgApi.open({
         type: "info",
-        icon: <BellOutlined style={{ color: "#B51200" }} />,
+        icon: <BellOutlined style={{ color: "#b51200" }} />,
         content: `${fresh.length} ${wording} depuis votre dernière visite.`,
         duration: 5,
       });

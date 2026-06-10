@@ -1,5 +1,6 @@
 package esprit.pfe.serviceanalyse.controllers;
 
+import esprit.pfe.serviceanalyse.services.AnalysePredictiveBffService;
 import esprit.pfe.serviceanalyse.services.AnalysePredictiveService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,6 +16,8 @@ import java.util.List;
 import java.util.Map;
 
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -29,6 +32,9 @@ class AnalysePredictiveControllerTest {
 
     @MockitoBean
     private AnalysePredictiveService analysePredictiveService;
+
+    @MockitoBean
+    private AnalysePredictiveBffService bffService;
 
     @Test
     void testAnalyserEnseignant() throws Exception {
@@ -148,5 +154,38 @@ class AnalysePredictiveControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content").isArray())
                 .andExpect(jsonPath("$.totalElements").value(0));
+    }
+
+    @Test
+    void testOverview() throws Exception {
+        Map<String, Object> result = new HashMap<>();
+        result.put("source", "analyse-bff");
+        when(bffService.overview(any())).thenReturn(result);
+
+        mockMvc.perform(get("/api/v1/analyse-predictive/overview"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.source").value("analyse-bff"));
+    }
+
+    @Test
+    void testAlertsDigest() throws Exception {
+        Map<String, Object> result = new HashMap<>();
+        result.put("resume", Map.of("total", 7));
+        when(bffService.alertsDigest(any())).thenReturn(result);
+
+        mockMvc.perform(get("/api/v1/analyse-predictive/alerts/digest"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.resume.total").value(7));
+    }
+
+    @Test
+    void testPriorityActions() throws Exception {
+        when(bffService.priorityActions(anyInt(), any(), any()))
+                .thenReturn(List.of(Map.of("enseignant_id", "t1", "score_action", 0.8)));
+
+        mockMvc.perform(get("/api/v1/analyse-predictive/actions/priority")
+                .param("limit", "10"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].enseignant_id").value("t1"));
     }
 }

@@ -300,7 +300,7 @@ export default function EvaluationGlobalePage() {
                 title="Note moyenne"
                 value={avgNote}
                 suffix="/20"
-                valueStyle={{ color: "#B51200", fontWeight: 700 }}
+                valueStyle={{ color: "#b51200", fontWeight: 700 }}
                 prefix={<StarFilled />}
               />
             </Card>

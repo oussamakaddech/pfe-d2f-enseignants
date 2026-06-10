@@ -450,7 +450,7 @@ export default function ListAccounts({ embedded = false }: { embedded?: boolean 
                 fontSize: 14,
                 fontWeight: 700,
                 flexShrink: 0,
-                border: `1px solid ${record.status === 'ACTIF' ? "rgba(181,18,0,0.18)" : "rgba(0,0,0,0.06)"}`,
+                border: `1px solid ${record.status === 'ACTIF' ? "rgba(181, 18, 0,0.18)" : "rgba(0,0,0,0.06)"}`,
               }}
               aria-hidden="true"
             >

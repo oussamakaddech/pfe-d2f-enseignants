@@ -84,7 +84,7 @@ const SideMenu = memo(function SideMenu({ collapsed }: { collapsed?: boolean }) 
               icon={<UserOutlined />}
               src={typeof user?.avatar === "string" ? user.avatar : undefined}
               className="user-avatar"
-              style={{ background: "#B51200", color: "#fff" }}
+              style={{ background: "#b51200", color: "#fff" }}
             />
           </Badge>
           <div className="user-info">

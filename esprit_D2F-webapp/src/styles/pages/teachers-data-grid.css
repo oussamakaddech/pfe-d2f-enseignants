@@ -60,7 +60,7 @@
 .teachers-hero-title {
   font-size: 28px !important;
   font-weight: 800 !important;
-  background: linear-gradient(135deg, #1f2937 0%, #B51200 80%);
+  background: linear-gradient(135deg, #1f2937 0%, #b51200 80%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -80,7 +80,7 @@
   align-items: center;
   gap: 6px;
   padding: 5px 14px;
-  background: linear-gradient(135deg, #B51200, #9a0f00);
+  background: linear-gradient(135deg, #b51200, #9a0f00);
   color: #fff;
   border-radius: 9999px;
   font-size: 13px;
@@ -136,7 +136,7 @@
   border-radius: 16px 16px 0 0;
 }
 
-.teachers-stat-card--total::before { background: linear-gradient(90deg, #B51200, #ff6b5a); }
+.teachers-stat-card--total::before { background: linear-gradient(90deg, #b51200, #ff6b5a); }
 .teachers-stat-card--perm::before { background: linear-gradient(90deg, #2563eb, #60a5fa); }
 .teachers-stat-card--vac::before  { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
 .teachers-stat-card--cup::before  { background: linear-gradient(90deg, #7c3aed, #a78bfa); }
@@ -196,8 +196,8 @@
 }
 
 .teachers-btn-create {
-  background: linear-gradient(135deg, #B51200 0%, #9a0f00 100%) !important;
-  border-color: #B51200 !important;
+  background: linear-gradient(135deg, #b51200 0%, #9a0f00 100%) !important;
+  border-color: #b51200 !important;
   border-radius: 8px !important;
   font-weight: 600 !important;
   box-shadow: 0 4px 12px rgba(181, 18, 0, 0.25) !important;
@@ -211,8 +211,8 @@
 }
 
 .teachers-btn-import {
-  background: linear-gradient(135deg, #B51200 0%, #9a0f00 100%) !important;
-  border-color: #B51200 !important;
+  background: linear-gradient(135deg, #b51200 0%, #9a0f00 100%) !important;
+  border-color: #b51200 !important;
   border-radius: 8px !important;
   font-weight: 500 !important;
   box-shadow: 0 4px 12px rgba(181, 18, 0, 0.18) !important;
@@ -419,7 +419,7 @@
   left: 0;
   right: 0;
   height: 3px;
-  background: linear-gradient(90deg, #B51200, #ff6b5a, #f59e0b);
+  background: linear-gradient(90deg, #b51200, #ff6b5a, #f59e0b);
 }
 
 .teachers-extracted-title {
@@ -436,7 +436,7 @@
   display: inline-flex;
   align-items: center;
   padding: 2px 10px;
-  background: linear-gradient(135deg, #B51200, #9a0f00);
+  background: linear-gradient(135deg, #b51200, #9a0f00);
   color: #fff;
   border-radius: 9999px;
   font-size: 11px;
@@ -503,7 +503,7 @@
 }
 
 .teachers-email-icon {
-  color: #B51200;
+  color: #b51200;
   margin-right: 6px;
   font-size: 12px;
 }

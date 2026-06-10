@@ -213,10 +213,12 @@ public interface FormationRepository extends JpaRepository<Formation, Long> {
    * Formations possédant au moins une séance planifiée, avec filtres optionnels
    * (titre insensible à la casse, état). Utilisé par l'API calendrier paginée.
    */
+  // CAST(:titre AS string) : sans cast, un :titre null est inféré « bytea » par
+  // PostgreSQL dans LOWER(CONCAT(...)) → « function lower(bytea) does not exist ».
   @Query("""
         SELECT DISTINCT f FROM Formation f
         JOIN f.seances s
-        WHERE (:titre IS NULL OR LOWER(f.titreFormation) LIKE LOWER(CONCAT('%', :titre, '%')))
+        WHERE (:titre IS NULL OR LOWER(f.titreFormation) LIKE LOWER(CONCAT('%', CAST(:titre AS string), '%')))
           AND (:etat IS NULL OR f.etatFormation = :etat)
         """)
   org.springframework.data.domain.Page<Formation> findCalendarFormations(

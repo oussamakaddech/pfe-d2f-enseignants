@@ -43,7 +43,7 @@
   animation: gcert-fade-in 0.18s ease;
 }
 
-.gcert-bulkbar-count { font-weight: 600; color: #B51200; }
+.gcert-bulkbar-count { font-weight: 600; color: #b51200; }
 
 @keyframes gcert-fade-in {
   from { opacity: 0; transform: translateY(-4px); }
@@ -75,7 +75,7 @@
 }
 
 .gcert-card--selected {
-  border-color: #B51200;
+  border-color: #b51200;
   box-shadow: 0 0 0 2px rgba(181, 18, 0, 0.18);
 }
 

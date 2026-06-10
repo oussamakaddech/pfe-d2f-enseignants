@@ -53,7 +53,7 @@ const GapTable = memo(function GapTable({ data }: Readonly<Props>) {
         width: 110,
         render: (v: number) => (
           <Space direction="vertical" size={0} style={{ width: "100%" }}>
-            <Progress percent={(v / 5) * 100} size="small" showInfo={false} strokeColor="#B51200" />
+            <Progress percent={(v / 5) * 100} size="small" showInfo={false} strokeColor="#b51200" />
             <Text style={{ fontSize: 12 }}>{v}/5</Text>
           </Space>
         ),

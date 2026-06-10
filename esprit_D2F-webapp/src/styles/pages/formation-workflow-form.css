@@ -82,7 +82,7 @@
   border-color: var(--primary-500);
   background: var(--primary-500);
   color: #fff;
-  box-shadow: 0 0 0 4px var(--primary-50), 0 4px 12px rgba(181,18,0,0.2);
+  box-shadow: 0 0 0 4px var(--primary-50), 0 4px 12px rgba(181, 18, 0,0.2);
   transform: scale(1.1);
 }
 
@@ -287,7 +287,7 @@
 .creation-form .ant-input-focused,
 .creation-form .ant-select-focused .ant-select-selector {
   border-color: var(--primary-500) !important;
-  box-shadow: 0 0 0 3px rgba(181,18,0,0.08) !important;
+  box-shadow: 0 0 0 3px rgba(181, 18, 0,0.08) !important;
 }
 
 /* ══════════════════════════════════════════════════════════════════════════ */
@@ -337,13 +337,13 @@
 
 .creation-type-card:focus-visible {
   border-color: var(--primary-500);
-  box-shadow: 0 0 0 3px rgba(181,18,0,0.15);
+  box-shadow: 0 0 0 3px rgba(181, 18, 0,0.15);
 }
 
 .creation-type-card.selected {
   border-color: var(--primary-500);
   background: var(--primary-50);
-  box-shadow: 0 0 0 3px rgba(181,18,0,0.1), var(--shadow-sm);
+  box-shadow: 0 0 0 3px rgba(181, 18, 0,0.1), var(--shadow-sm);
 }
 
 .creation-type-card.selected::before {
@@ -448,7 +448,7 @@
 }
 
 .creation-etat-badge:focus-visible {
-  box-shadow: 0 0 0 3px rgba(181,18,0,0.15);
+  box-shadow: 0 0 0 3px rgba(181, 18, 0,0.15);
 }
 
 .creation-etat-badge.selected {

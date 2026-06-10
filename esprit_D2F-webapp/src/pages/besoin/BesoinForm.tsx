@@ -136,7 +136,7 @@ export default function BesoinForm() {
             <p className="bf-form-header__subtitle">Décrivez votre besoin en quelques étapes — il sera transmis au CUP pour instruction.</p>
           </div>
           <div className="bf-form-header__progress">
-            <Progress type="circle" percent={progressPercent} size={56} strokeColor={{ "0%": "#B51200", "100%": "#9a0f00" }} strokeWidth={8} format={formatProgress} />
+            <Progress type="circle" percent={progressPercent} size={56} strokeColor={{ "0%": "#b51200", "100%": "#9a0f00" }} strokeWidth={8} format={formatProgress} />
           </div>
         </div>
       </header>

@@ -904,7 +904,9 @@ public class FormationWorkflowService {
         if (date == null) {
             return A_DEFINIR;
         }
-        return date.toInstant().atZone(ZoneId.of(FormationWorkflowServiceHelper.TIMEZONE_TUNIS)).toLocalDate()
+        // java.sql.Date.toInstant() lève UnsupportedOperationException → epoch millis.
+        return java.time.Instant.ofEpochMilli(date.getTime())
+                .atZone(ZoneId.of(FormationWorkflowServiceHelper.TIMEZONE_TUNIS)).toLocalDate()
                 .format(DATE_FMT);
     }
 

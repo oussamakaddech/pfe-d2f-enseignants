@@ -19,6 +19,25 @@ SEUIL_BESOIN_JOURS         = 30   # jours sans suite
 SEUIL_DEPT_NB_ENSEIGNANTS  = 3    # min pour alerte collective
 SEUIL_DEPT_PCT             = 0.30 # 30% du dept
 
+# Pondérations pour le score de priorité d'une alerte (utilisé par l'ActionCenter
+# pour ordonner la file de triage). Sévérité = poids dominant, type = bonus.
+_SEVERITE_PRIORITE = {"CRITICAL": 1.0, "WARNING": 0.6, "INFO": 0.3}
+_TYPE_PRIORITE = {
+    "GAP_CRITIQUE":         0.20,
+    "REGRESSION":           0.20,
+    "TENDANCE_DEPARTEMENT": 0.15,
+    "STAGNATION":           0.10,
+    "COMPLETION_FAIBLE":    0.05,
+    "BESOIN_NON_COUVERT":   0.05,
+}
+
+
+def compute_alert_priorite(severite: str | None, type_alerte: str | None) -> float:
+    """Score de priorité d'une alerte dans [0, 1] (sévérité + bonus de type)."""
+    base = _SEVERITE_PRIORITE.get((severite or "").upper(), 0.3)
+    bonus = _TYPE_PRIORITE.get((type_alerte or "").upper(), 0.0)
+    return round(min(1.0, base * 0.8 + bonus), 4)
+
 
 def _compute_jours_depuis_refresh(refresh: Any, today: date) -> int:
     if not refresh:
@@ -64,6 +83,12 @@ class AlertEngine:
         # Déduplique : ne pas recréer une alerte NOUVELLE déjà active
         saved: list[AlertEvent] = []
         for alert in alerts:
+            # Enrichit chaque alerte d'un score de priorité (additif, sans changer
+            # le schéma) consommé par l'ActionCenter pour le tri de la file.
+            alert.details_json = {
+                **(alert.details_json or {}),
+                "score_priorite": compute_alert_priorite(alert.severite, alert.type_alerte),
+            }
             duplicate = self._find_active_duplicate(alert)
             if not duplicate:
                 self.db.add(alert)

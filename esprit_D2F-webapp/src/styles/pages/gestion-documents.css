@@ -50,7 +50,7 @@
 
 .gdoc-bulkbar-count {
   font-weight: 600;
-  color: #B51200;
+  color: #b51200;
 }
 
 @keyframes gdoc-fade-in {
@@ -84,7 +84,7 @@
 }
 
 .gdoc-card--selected {
-  border-color: #B51200;
+  border-color: #b51200;
   box-shadow: 0 0 0 2px rgba(181, 18, 0, 0.18);
 }
 

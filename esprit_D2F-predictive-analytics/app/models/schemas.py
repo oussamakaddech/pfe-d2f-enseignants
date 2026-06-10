@@ -125,3 +125,24 @@ class DashboardResponse(BaseModel):
     in_demand_competencies: list[InDemandCompetency] = []
     teacher_risk_indicators: list[TeacherRiskIndicator] = []
     generated_at: date = date.today()
+
+
+# ── Action Center (alertes intelligentes & recommandations) ──
+
+class BulkAlertUpdateRequest(BaseModel):
+    """Triage de masse d'alertes (PATCH /v1/analytics/alerts/bulk)."""
+    alert_ids: list[int] = Field(..., min_length=1, description="IDs des alertes à mettre à jour")
+    statut: str = Field(..., description="NOUVELLE|LUE|TRAITEE|IGNOREE|ESCALADEE")
+    traite_par: Optional[str] = Field(default=None, description="Identifiant de l'agent traitant")
+    commentaire: Optional[str] = Field(default=None, description="Commentaire de traitement")
+
+
+class BatchRecommendationRequest(BaseModel):
+    """Recommandations agrégées sur une cohorte (POST /v1/analytics/recommendations/batch).
+
+    `teacher_ids` est prioritaire ; à défaut on filtre par `departement_id` ;
+    sinon on agrège les recommandations des 90 derniers jours.
+    """
+    teacher_ids: Optional[list[str]] = Field(default=None)
+    departement_id: Optional[str] = Field(default=None)
+    top_n: int = Field(default=20, ge=1, le=100)

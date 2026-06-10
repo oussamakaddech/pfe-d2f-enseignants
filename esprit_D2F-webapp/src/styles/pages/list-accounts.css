@@ -54,7 +54,7 @@
 .accounts-hero-title {
   font-size: 28px !important;
   font-weight: 800 !important;
-  background: linear-gradient(135deg, #1f2937 0%, #B51200 80%);
+  background: linear-gradient(135deg, #1f2937 0%, #b51200 80%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -74,7 +74,7 @@
   align-items: center;
   gap: 6px;
   padding: 5px 14px;
-  background: linear-gradient(135deg, #B51200, #9a0f00);
+  background: linear-gradient(135deg, #b51200, #9a0f00);
   color: #fff;
   border-radius: 9999px;
   font-size: 13px;

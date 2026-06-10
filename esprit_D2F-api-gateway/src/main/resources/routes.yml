@@ -212,3 +212,17 @@ spring:
               args:
                 name: skill-passport-cb
                 fallbackUri: forward:/fallback
+
+        # ── Analyse Predictive BFF (service-analyse port 8089) ──────────────
+        # Facade BFF qui agrege le moteur FastAPI (vues overview/digest/actions)
+        - id: analyse-bff-service
+          uri: ${SKILL_PASSPORT_SERVICE_URL:http://localhost:8089}
+          predicates:
+            - Path=/api/v1/analyse-predictive/**
+          filters:
+            - AuthorizationFilter
+            - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials, RETAIN_FIRST
+            - name: CircuitBreaker
+              args:
+                name: skill-passport-cb
+                fallbackUri: forward:/fallback

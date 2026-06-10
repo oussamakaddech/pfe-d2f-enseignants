@@ -1,14 +1,17 @@
 package esprit.pfe.serviceanalyse.controllers;
 
 import esprit.d2f.common.security.AuthorizationMatrix;
+import esprit.pfe.serviceanalyse.services.AnalysePredictiveBffService;
 import esprit.pfe.serviceanalyse.services.AnalysePredictiveService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -18,6 +21,7 @@ import java.util.Map;
 public class AnalysePredictiveController {
 
     private final AnalysePredictiveService analysePredictiveService;
+    private final AnalysePredictiveBffService bffService;
 
     @GetMapping("/enseignant/{enseignantId}")
     public ResponseEntity<Map<String, Object>> analyserEnseignant(
@@ -37,5 +41,30 @@ public class AnalysePredictiveController {
     public ResponseEntity<Page<Map<String, Object>>> listerEnseignants(Pageable pageable) {
         Page<Map<String, Object>> page = analysePredictiveService.listerEnseignants(pageable);
         return ResponseEntity.ok(page);
+    }
+
+    // ── BFF : vues consolidées déléguées au moteur FastAPI ───────────────────
+
+    /** Tuiles d'en-tête (KPIs + deltas) agrégées avec la synthèse d'alertes. */
+    @GetMapping("/overview")
+    public ResponseEntity<Map<String, Object>> overview(
+            @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String bearerToken) {
+        return ResponseEntity.ok(bffService.overview(bearerToken));
+    }
+
+    /** Digest d'alertes : synthèse + actions prioritaires. */
+    @GetMapping("/alerts/digest")
+    public ResponseEntity<Map<String, Object>> alertsDigest(
+            @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String bearerToken) {
+        return ResponseEntity.ok(bffService.alertsDigest(bearerToken));
+    }
+
+    /** File d'actions priorisée (filtrable par département). */
+    @GetMapping("/actions/priority")
+    public ResponseEntity<List<Map<String, Object>>> priorityActions(
+            @RequestParam(defaultValue = "20") int limit,
+            @RequestParam(required = false) String departementId,
+            @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String bearerToken) {
+        return ResponseEntity.ok(bffService.priorityActions(limit, departementId, bearerToken));
     }
 }

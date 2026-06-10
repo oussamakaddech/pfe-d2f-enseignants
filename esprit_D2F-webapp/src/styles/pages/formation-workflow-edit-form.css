@@ -47,7 +47,7 @@
   height: 100%;
   width: 0%;
   border-radius: 4px;
-  background: linear-gradient(90deg, #B51200, #e83e2b);
+  background: linear-gradient(90deg, #b51200, #e83e2b);
   transition: width 0.4s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
@@ -84,7 +84,7 @@
   width: 44px;
   height: 44px;
   border-radius: 12px;
-  background: linear-gradient(135deg, #B51200, #d91f0e);
+  background: linear-gradient(135deg, #b51200, #d91f0e);
   color: #fff;
   display: flex;
   align-items: center;
@@ -180,7 +180,7 @@
   top: 6px;
   bottom: 6px;
   width: 3px;
-  background: #B51200;
+  background: #b51200;
   border-radius: 0 3px 3px 0;
 }
 
@@ -200,9 +200,9 @@
   transition: all 0.25s ease;
 }
 .edit-sidenav-item.active .edit-sidenav-num {
-  background: #B51200;
+  background: #b51200;
   color: #fff;
-  border-color: #B51200;
+  border-color: #b51200;
   box-shadow: 0 2px 8px rgba(181, 18, 0, 0.25);
 }
 .edit-sidenav-item.done .edit-sidenav-num {
@@ -228,7 +228,7 @@
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #B51200;
+  background: #b51200;
   animation: dotPulse 1.6s ease-in-out infinite;
 }
 @keyframes dotPulse {
@@ -295,7 +295,7 @@
   width: 32px;
   height: 32px;
   border-radius: 8px;
-  background: linear-gradient(135deg, #B51200, #d91f0e);
+  background: linear-gradient(135deg, #b51200, #d91f0e);
   color: #fff;
   display: flex;
   align-items: center;
@@ -313,7 +313,7 @@
 .edit-card-header-progress {
   font-size: 12px;
   font-weight: 700;
-  color: #B51200;
+  color: #b51200;
 }
 
 .edit-card-body {
@@ -502,7 +502,7 @@
   bottom: 12px;
   width: 3px;
   border-radius: 0 3px 3px 0;
-  background: #B51200;
+  background: #b51200;
   opacity: 0.3;
   transition: opacity 0.2s ease;
 }
@@ -526,7 +526,7 @@
   gap: 8px;
 }
 .edit-section-box .creation-section-box-title .anticon {
-  color: #B51200;
+  color: #b51200;
   font-size: 14px;
 }
 

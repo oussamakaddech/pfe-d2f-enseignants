@@ -274,8 +274,8 @@
 
 /* ── Buttons ───────────────────────────────────────────────────────────── */
 .doc-btn-add {
-  background: linear-gradient(135deg, #B51200 0%, #9a0f00 100%) !important;
-  border-color: #B51200 !important;
+  background: linear-gradient(135deg, #b51200 0%, #9a0f00 100%) !important;
+  border-color: #b51200 !important;
   border-radius: 10px !important;
   font-weight: 600 !important;
   height: 38px !important;

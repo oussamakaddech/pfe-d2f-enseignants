@@ -27,7 +27,7 @@ const TONE_GRADIENT: Record<PageHeroTone, { from: string; to: string; ring: stri
 };
 
 const TONE_ACCENT: Record<PageHeroTone, string> = {
-  brand:   "#B51200",
+  brand:   "#b51200",
   info:    semantic.info,
   success: semantic.success,
   warning: semantic.warning,

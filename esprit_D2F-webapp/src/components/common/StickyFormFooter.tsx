@@ -98,8 +98,8 @@ const StickyFormFooter = memo(function StickyFormFooter({
               borderRadius: 10,
               fontWeight: 600,
               height: 42,
-              background: "linear-gradient(135deg, #B51200 0%, #9a0f00 100%)",
-              borderColor: "#B51200",
+              background: "linear-gradient(135deg, #b51200 0%, #9a0f00 100%)",
+              borderColor: "#b51200",
               boxShadow: "0 4px 12px rgba(181, 18, 0, 0.3)",
             }}
           >

@@ -4,15 +4,21 @@
  * Utiliser ces constantes dans les composants .tsx plutôt que des valeurs hardcodées.
  */
 
-// ── Brand ───────────────────────────────────────────────────────────────────
+// ── Brand (Rouge — aligné sur src/styles/tokens.css) ────────────────────────
 export const brand = {
   50:  "#fff0ee",
   100: "#ffddd9",
   200: "#ffb3ab",
-  500: "#B51200",  // couleur principale
+  500: "#b51200",  // couleur principale
   600: "#9a0f00",  // hover
   700: "#7a0000",  // pressed
   900: "#3d0000",
+} as const;
+
+// ── Accent (Electric Blue — CTAs) ────────────────────────────────────────────
+export const accent = {
+  500: "#00b4d8",
+  600: "#0096b7",
 } as const;
 
 // ── Neutrals ─────────────────────────────────────────────────────────────────

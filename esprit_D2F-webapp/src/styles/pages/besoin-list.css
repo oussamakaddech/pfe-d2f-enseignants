@@ -65,7 +65,7 @@
 .bf-hero .bf-header { margin-bottom: 0; }
 .bf-hero .bf-header__title {
   font-size: 30px;
-  background: linear-gradient(135deg, #1f2937 0%, #B51200 80%);
+  background: linear-gradient(135deg, #1f2937 0%, #b51200 80%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;

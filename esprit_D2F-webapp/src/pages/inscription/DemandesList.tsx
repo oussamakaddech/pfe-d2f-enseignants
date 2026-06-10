@@ -252,7 +252,7 @@ export default function DemandesList() {
       />
     ),
     filterIcon: (filtered: boolean) => (
-      <SearchOutlined style={{ color: filtered ? "#B51200" : undefined }} />
+      <SearchOutlined style={{ color: filtered ? "#b51200" : undefined }} />
     ),
     onFilter: (value: boolean | React.Key, record: Demande) =>
       record.enseignant[dataIndex]?.toString().toLowerCase().includes(String(value).toLowerCase()) ?? false,

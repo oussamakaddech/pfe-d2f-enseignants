@@ -10,6 +10,7 @@ import type {
   Gravite, AnalyseGap, AnalyseRecommandation, AnalyseData, DriftReport,
   DecliningCompetency, InDemandCompetency, TeacherRiskIndicator,
   GapHeatmapCell, TrainingEffectiveness, RiskEvolutionPoint, ModelPerformance,
+  OverviewKpis, DemandForecast,
 } from "@/models/analyse";
 export type { Gravite, AnalyseGap, AnalyseRecommandation, AnalyseData, DriftReport };
 
@@ -177,6 +178,20 @@ const AnalysePredictiveService = {
 
   async getModelPerformance(): Promise<ModelPerformance> {
     const res = await axios.get(`${ANALYTICS_V1}/dashboard/model-performance`);
+    return res.data;
+  },
+
+  // ── Tuiles d'en-tête (KPIs + deltas) ───────────────────────
+  async getOverview(): Promise<OverviewKpis> {
+    const res = await axios.get(`${ANALYTICS_V1}/dashboard/overview`);
+    return res.data;
+  },
+
+  // ── Prévision de la demande (série + projection) ───────────
+  async getDemandForecast(months = 6): Promise<DemandForecast> {
+    const res = await axios.get(`${ANALYTICS_V1}/dashboard/demand-forecast`, {
+      params: { months },
+    });
     return res.data;
   },
 

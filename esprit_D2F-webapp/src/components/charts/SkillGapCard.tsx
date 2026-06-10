@@ -69,7 +69,7 @@ const SkillGapCard = memo(function SkillGapCard({ gap, onClick, compact = false 
 
           <Tooltip title="Niveau requis">
             <div style={{ textAlign: "center" }}>
-              <div style={{ fontSize: 22, fontWeight: 700, color: "#B51200", lineHeight: 1 }}>
+              <div style={{ fontSize: 22, fontWeight: 700, color: "#b51200", lineHeight: 1 }}>
                 {gap.niveau_requis}<span style={{ fontSize: 12, color: "#94a3b8" }}>/5</span>
               </div>
               <Text type="secondary" style={{ fontSize: 11 }}>

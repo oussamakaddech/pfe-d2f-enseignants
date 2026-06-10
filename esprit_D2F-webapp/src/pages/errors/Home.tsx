@@ -26,7 +26,7 @@ const ROLE_LABELS = {
 
 const CARDS_BY_ROLE = {
   admin: [
-    { title: "Tableau de Bord KPI",      icon: BarChartOutlined,         color: "#B51200", path: "/home/KPI" },
+    { title: "Tableau de Bord KPI",      icon: BarChartOutlined,         color: "#b51200", path: "/home/KPI" },
     { title: "Gestion Formations",        icon: FormOutlined,              color: "#1890ff", path: "/home/Formation" },
     { title: "Comptes",                   icon: SettingOutlined,           color: "#52c41a", path: "/home/accounts" },
     { title: "Enseignants",               icon: TeamOutlined,              color: "#13c2c2", path: "/home/Enseignants" },
@@ -49,20 +49,20 @@ const CARDS_BY_ROLE = {
     { title: "Déposer un Besoin",         icon: PlusCircleOutlined,        color: "#fa8c16", path: "/home/besoins/ajouter" },
     { title: "Mes Inscriptions",          icon: FileTextOutlined,          color: "#1890ff", path: "/home/ListeFormation" },
     { title: "Mes Certificats",           icon: SafetyCertificateOutlined, color: "#52c41a", path: "/home/MyCertificate" },
-    { title: "Sessions d'Animation",      icon: CalendarOutlined,          color: "#B51200", path: "/home/animateur-formations" },
+    { title: "Sessions d'Animation",      icon: CalendarOutlined,          color: "#b51200", path: "/home/animateur-formations" },
   ],
   animateur: [
-    { title: "Sessions d'Animation",      icon: CalendarOutlined,          color: "#B51200", path: "/home/animateur-formations" },
+    { title: "Sessions d'Animation",      icon: CalendarOutlined,          color: "#b51200", path: "/home/animateur-formations" },
     { title: "Mes Inscriptions",          icon: FileTextOutlined,          color: "#1890ff", path: "/home/ListeFormation" },
     { title: "Mon Profil",                icon: UserOutlined,              color: "#52c41a", path: "/home/profile" },
   ],
   responsabledossier: [
     { title: "Catalogue Formations",      icon: SearchOutlined,            color: "#1890ff", path: "/home/Formation/Consulter" },
-    { title: "Dossiers de Formation",     icon: FileTextOutlined,          color: "#B51200", path: "/home/File" },
+    { title: "Dossiers de Formation",     icon: FileTextOutlined,          color: "#b51200", path: "/home/File" },
   ],
   chefdepartement: [
     { title: "Catalogue Formations",      icon: SearchOutlined,            color: "#1890ff", path: "/home/Formation/Consulter" },
-    { title: "Dossiers de Formation",     icon: FileTextOutlined,          color: "#B51200", path: "/home/File" },
+    { title: "Dossiers de Formation",     icon: FileTextOutlined,          color: "#b51200", path: "/home/File" },
     { title: "Calendrier Global",         icon: CalendarOutlined,          color: "#52c41a", path: "/home/Calendrier" },
     { title: "Analyse Prédictive",        icon: RobotOutlined,             color: "#eb2f96", path: "/home/AnalysePredictive" },
   ],
@@ -102,7 +102,7 @@ export default function Home() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.4, ease: "easeOut" }}
         style={{
-          background: "linear-gradient(135deg, #8b0000 0%, #B51200 55%, #c94010 100%)",
+          background: "linear-gradient(135deg, #7a0000 0%, #b51200 55%, #e54a3d 100%)",
           borderRadius: 16,
           padding: "28px 36px",
           marginBottom: 32,

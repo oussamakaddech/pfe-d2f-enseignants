@@ -1,4 +1,8 @@
 export const HEADER_HEIGHT = 64;
+export const SIDEBAR_WIDTH = 240;
+export const SIDEBAR_WIDTH_COLLAPSED = 64;
+/** En dessous de ce seuil (px), la sidebar passe en drawer (hamburger). */
+export const MOBILE_BREAKPOINT = 1024;
 
 export const ROUTE_LABELS: Record<string, string> = {
   home:                   "Accueil",

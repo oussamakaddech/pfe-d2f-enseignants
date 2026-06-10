@@ -89,6 +89,9 @@ public class CalendarQueryService {
     }
 
     private static java.time.LocalDate toLocalDate(Date date) {
-        return date == null ? null : date.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
+        // java.sql.Date.toInstant() lève UnsupportedOperationException → passer
+        // par l'epoch millis (compatible java.util.Date ET java.sql.Date).
+        return date == null ? null
+                : java.time.Instant.ofEpochMilli(date.getTime()).atZone(ZoneId.systemDefault()).toLocalDate();
     }
 }

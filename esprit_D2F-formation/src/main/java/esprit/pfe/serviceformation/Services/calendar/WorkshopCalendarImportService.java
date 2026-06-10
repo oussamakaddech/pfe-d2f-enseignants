@@ -307,7 +307,8 @@ public class WorkshopCalendarImportService {
         if (existing.getDateSeance() == null || parsed.getDate() == null) {
             return false;
         }
-        LocalDate existingDate = existing.getDateSeance().toInstant()
+        // java.sql.Date.toInstant() lève UnsupportedOperationException → epoch millis.
+        LocalDate existingDate = java.time.Instant.ofEpochMilli(existing.getDateSeance().getTime())
                 .atZone(ZoneId.systemDefault()).toLocalDate();
         boolean sameDate = existingDate.equals(parsed.getDate());
         boolean sameSession = java.util.Objects.equals(existing.getNumeroSeance(), parsed.getSessionNumber());

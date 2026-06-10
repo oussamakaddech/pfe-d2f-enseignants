@@ -37,23 +37,23 @@ export function buildFormationNeedHtmlEmail(
     *{margin:0;padding:0;box-sizing:border-box}
     body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;color:#1a202c;background:#f7fafc;padding:20px}
     .container{max-width:720px;margin:0 auto;background:white;border-radius:8px;overflow:hidden;box-shadow:0 4px 6px rgba(0,0,0,.07)}
-    .header{background:linear-gradient(135deg,#B51200 0%,#9a0f00 100%);color:white;padding:35px 30px;text-align:center}
+    .header{background:linear-gradient(135deg,#b51200 0%,#9a0f00 100%);color:white;padding:35px 30px;text-align:center}
     .header h1{font-size:26px;margin:0;font-weight:600}
     .content{padding:35px 30px}
     .greeting{font-size:16px;color:#1a202c;margin-bottom:20px;font-weight:500}
-    .intro{background:#fff0ee;border-left:4px solid #B51200;padding:15px 18px;margin-bottom:28px;border-radius:4px;color:#7a0000;line-height:1.6;font-weight:500;font-size:14px}
+    .intro{background:#fff0ee;border-left:4px solid #b51200;padding:15px 18px;margin-bottom:28px;border-radius:4px;color:#7a0000;line-height:1.6;font-weight:500;font-size:14px}
     .section-title{font-size:13px;color:#1a202c;font-weight:700;margin-top:28px;margin-bottom:16px;text-transform:uppercase;letter-spacing:.8px}
     .info-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:24px}
-    .info-item{background:#f7fafc;padding:12px 14px;border-radius:4px;border-left:3px solid #B51200}
+    .info-item{background:#f7fafc;padding:12px 14px;border-radius:4px;border-left:3px solid #b51200}
     .info-label{font-weight:700;color:#1a202c;font-size:11px;text-transform:uppercase;letter-spacing:.5px}
     .info-value{color:#2d3748;margin-top:4px;font-size:14px;font-weight:500}
-    .questions-section{background:#fff0ee;border-left:3px solid #B51200;padding:18px 16px;border-radius:4px;margin-top:18px}
+    .questions-section{background:#fff0ee;border-left:3px solid #b51200;padding:18px 16px;border-radius:4px;margin-top:18px}
     .question-item{margin-bottom:12px;padding:8px 0;display:flex;align-items:flex-start}
-    .question-number{display:inline-flex;background:#B51200;color:white;width:26px;height:26px;border-radius:50%;align-items:center;justify-content:center;font-weight:700;margin-right:12px;font-size:12px;flex-shrink:0}
+    .question-number{display:inline-flex;background:#b51200;color:white;width:26px;height:26px;border-radius:50%;align-items:center;justify-content:center;font-weight:700;margin-right:12px;font-size:12px;flex-shrink:0}
     .question-text{color:#1a202c;line-height:1.5;font-size:14px;font-weight:500}
     .cta-box{background:#f0fdf4;border-left:4px solid #10b981;padding:14px 16px;margin-top:24px;border-radius:4px;color:#065f46;font-weight:500;font-size:13px}
     .footer{background:#f7fafc;border-top:1px solid #e2e8f0;padding:18px 30px;text-align:center;font-size:11px;color:#718096}
-    .logo{color:#B51200;font-weight:700}
+    .logo{color:#b51200;font-weight:700}
   </style>
 </head>
 <body>

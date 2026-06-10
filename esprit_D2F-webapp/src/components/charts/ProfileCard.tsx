@@ -20,7 +20,7 @@ const ProfileCard = memo(function ProfileCard({ data }: Readonly<Props>) {
           <Avatar
             size={72}
             icon={<UserOutlined />}
-            style={{ backgroundColor: "#f1f5f9", color: "#B51200", marginBottom: 12 }}
+            style={{ backgroundColor: "#f1f5f9", color: "#b51200", marginBottom: 12 }}
           />
           <Title level={4} style={{ margin: 0 }}>{data.enseignantId}</Title>
           <Tag color="cyan" style={{ marginTop: 8 }}>Horizon 6 mois</Tag>

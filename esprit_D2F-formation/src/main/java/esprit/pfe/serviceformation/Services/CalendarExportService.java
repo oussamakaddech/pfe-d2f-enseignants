@@ -188,7 +188,8 @@ public class CalendarExportService {
             return null;
         }
         ZoneId zone = ZoneId.of(properties.getTimezone());
-        LocalDate localDate = date.toInstant().atZone(zone).toLocalDate();
+        // java.sql.Date.toInstant() lève UnsupportedOperationException → epoch millis.
+        LocalDate localDate = java.time.Instant.ofEpochMilli(date.getTime()).atZone(zone).toLocalDate();
         LocalTime localTime = time != null ? time.toLocalTime() : LocalTime.of(9, 0);
         return LocalDateTime.of(localDate, localTime);
     }

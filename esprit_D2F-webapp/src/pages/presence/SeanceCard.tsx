@@ -47,7 +47,7 @@ const SeanceCard = ({ seance }: { seance: SeanceCardData }) => {
               width: 38,
               height: 38,
               borderRadius: 10,
-              background: "linear-gradient(135deg, var(--primary-500) 0%, #c94010 100%)",
+              background: "linear-gradient(135deg, var(--primary-500) 0%, #e54a3d 100%)",
               color: "#fff",
               display: "inline-flex",
               alignItems: "center",

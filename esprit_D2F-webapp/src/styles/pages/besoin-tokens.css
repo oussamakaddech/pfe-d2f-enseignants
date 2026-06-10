@@ -9,10 +9,10 @@
   --bf-brand-100: #ffe7e1;
   --bf-brand-200: #ffc7bc;
   --bf-brand-300: #ff9787;
-  --bf-brand-500: #B51200;
+  --bf-brand-500: #b51200;
   --bf-brand-600: #9a0f00;
   --bf-brand-700: #7a0000;
-  --bf-brand-grad:       linear-gradient(135deg, #B51200 0%, #9a0f00 100%);
+  --bf-brand-grad:       linear-gradient(135deg, #b51200 0%, #9a0f00 100%);
   --bf-brand-grad-hover: linear-gradient(135deg, #9a0f00 0%, #7a0000 100%);
 
   /* ═════════════════════════ SEMANTIC COLORS ═════════════════════════ */

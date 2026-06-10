@@ -1,25 +1,32 @@
-import { useState, useMemo, memo, Suspense } from "react";
-import { Layout, Dropdown, Avatar, Button, Breadcrumb, Badge, Tooltip } from "antd";
+import { useState, useMemo, useEffect, memo, Suspense } from "react";
+import { Layout, Dropdown, Button, Badge, Tooltip, Drawer, Grid } from "antd";
 import {
-  MenuFoldOutlined, MenuUnfoldOutlined, UserOutlined,
-  LogoutOutlined, ArrowLeftOutlined, HomeOutlined, BellOutlined,
+  MenuFoldOutlined, MenuUnfoldOutlined,
+  LogoutOutlined, ArrowLeftOutlined, BellOutlined, MenuOutlined,
 } from "@ant-design/icons";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import SideMenu from "./SideMenu";
 import ContentSkeleton from "./ContentSkeleton";
+import Breadcrumb from "./Breadcrumb";
+import RoleBadge from "@/components/common/RoleBadge";
+import UserAvatar from "@/components/ui/UserAvatar";
+import GlobalSearch from "@/components/ui/GlobalSearch";
 import { useAuth } from "@/hooks/auth";
-import { HEADER_HEIGHT, ROUTE_LABELS, getBackTarget } from "./AppLayoutConstants";
+import {
+  HEADER_HEIGHT, SIDEBAR_WIDTH, SIDEBAR_WIDTH_COLLAPSED, getBackTarget,
+} from "./AppLayoutConstants";
 import "@/styles/components/layout.css";
 
 const { Header, Sider, Content } = Layout;
+const { useBreakpoint } = Grid;
 
 const headerStyle = {
   position: "fixed" as const, top: 0, left: 0, right: 0, height: HEADER_HEIGHT,
   padding: "0 24px", display: "flex" as const, alignItems: "center" as const, gap: 10,
-  background: "linear-gradient(180deg, #9a0f00 0%, #7a0000 100%)",
+  background: "var(--header-gradient)",
   borderBottom: "1px solid rgba(255,255,255,0.06)",
-  boxShadow: "0 1px 3px rgba(0,0,0,0.12), 0 4px 14px rgba(0,0,0,0.08)",
+  boxShadow: "var(--header-shadow)",
   zIndex: 1000,
 };
 
@@ -35,8 +42,8 @@ const dateStyle = {
 
 const stickyBarStyle = {
   position: "sticky" as const, top: 0, zIndex: 10,
-  background: "#fff",
-  borderBottom: "1px solid rgba(0,0,0,0.07)",
+  background: "var(--bg-card)",
+  borderBottom: "1px solid var(--border-color)",
   boxShadow: "0 1px 2px rgba(0,0,0,0.03)",
   display: "flex" as const, alignItems: "center" as const, padding: "0 24px",
   height: 46,
@@ -49,22 +56,18 @@ const today = new Date().toLocaleDateString("fr-FR", {
 
 function AppLayout() {
   const [collapsed, setCollapsed] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const { pathname } = useLocation();
-  const siderWidth = collapsed ? 80 : 260;
 
-  const crumbs = useMemo(() =>
-    pathname.split("/").filter(Boolean).map((seg, i, arr) => {
-      const path    = "/" + arr.slice(0, i + 1).join("/");
-      const label   = ROUTE_LABELS[seg] ?? seg;
-      const isLast  = i === arr.length - 1;
-      return {
-        title: isLast
-          ? <span style={{ color: "#2d3748", fontWeight: 500, fontSize: 13 }}>{label}</span>
-          : <Link to={path} style={{ color: "#a0aec0", fontSize: 13 }}>{label}</Link>,
-      };
-    }), [pathname]);
+  const screens = useBreakpoint();
+  // < lg (1024px) → sidebar masquée, accessible via drawer (hamburger).
+  const isMobile = !screens.lg;
+  const siderWidth = collapsed ? SIDEBAR_WIDTH_COLLAPSED : SIDEBAR_WIDTH;
+
+  // Ferme le drawer mobile à chaque navigation.
+  useEffect(() => { setMobileOpen(false); }, [pathname]);
 
   const avatarMenu = useMemo(() => [
     { key: "profile",    label: "Mon profil", onClick: () => navigate("/home/profile") },
@@ -72,7 +75,7 @@ function AppLayout() {
     { type: "divider" as const },
     {
       key: "logout",
-      label: <span style={{ color: "#ef4444" }}><LogoutOutlined style={{ marginRight: 6 }} /> Déconnexion</span>,
+      label: <span style={{ color: "var(--color-error)" }}><LogoutOutlined style={{ marginRight: 6 }} /> Déconnexion</span>,
       onClick: () => { logout(); navigate("/"); },
     },
   ], [navigate, logout]);
@@ -84,19 +87,26 @@ function AppLayout() {
   }, [backTarget]);
   const goBack     = useMemo(() => () => navigate(backTarget, { replace: true }), [backTarget, navigate]);
 
+  const toggleSidebar = () => {
+    if (isMobile) setMobileOpen((o) => !o);
+    else setCollapsed((c) => !c);
+  };
+
   return (
     <Layout style={{ height: "100vh", overflow: "hidden" }}>
       <Header style={headerStyle}>
-        <Tooltip title={collapsed ? "Ouvrir le menu" : "Fermer le menu"} placement="bottomLeft">
+        <Tooltip title="Menu" placement="bottomLeft">
           <button
             type="button"
-            onClick={() => setCollapsed(!collapsed)}
+            onClick={toggleSidebar}
             className="app-header-icon-btn"
-            aria-label={collapsed ? "Ouvrir le menu" : "Fermer le menu"}
+            aria-label="Basculer le menu"
           >
-            {collapsed
-              ? <MenuUnfoldOutlined style={{ fontSize: 18, color: "#fff" }} />
-              : <MenuFoldOutlined style={{ fontSize: 18, color: "#fff" }} />}
+            {isMobile
+              ? <MenuOutlined style={{ fontSize: 18, color: "#fff" }} />
+              : collapsed
+                ? <MenuUnfoldOutlined style={{ fontSize: 18, color: "#fff" }} />
+                : <MenuFoldOutlined style={{ fontSize: 18, color: "#fff" }} />}
           </button>
         </Tooltip>
 
@@ -104,11 +114,14 @@ function AppLayout() {
           <img src="/assets/img/logo/esprit.png" alt="ESPRIT" style={logoStyle} />
         </Link>
 
-        <div style={dateStyle}>{today}</div>
+        {!isMobile && <div style={dateStyle}>{today}</div>}
+        {isMobile && <div style={{ flex: 1 }} />}
+
+        {!isMobile && <GlobalSearch />}
 
         <Tooltip title="Notifications">
           <div className="app-header-icon-btn" aria-label="Notifications">
-            <Badge dot color="#f59e0b" offset={[-2, 2]}>
+            <Badge dot color="var(--color-warning)" offset={[-2, 2]}>
               <BellOutlined style={{ fontSize: 17, color: "rgba(255,255,255,0.92)" }} />
             </Badge>
           </div>
@@ -118,34 +131,48 @@ function AppLayout() {
 
         <Dropdown menu={{ items: avatarMenu }} placement="bottomRight" trigger={["click"]}>
           <div className="app-header-user-trigger">
-            <Avatar
-              icon={<UserOutlined />}
+            <UserAvatar
+              fallbackText={user?.username ?? "U"}
               size={32}
-              style={{ background: "rgba(255,255,255,0.18)", color: "#fff", border: "1px solid rgba(255,255,255,0.28)" }}
             />
-            <span className="app-header-username">
-              {user?.username ?? "Utilisateur"}
+            <span className="app-header-user-meta">
+              <span className="app-header-username">{user?.username ?? "Utilisateur"}</span>
+              {user?.role && <RoleBadge role={user.role} size="small" />}
             </span>
           </div>
         </Dropdown>
       </Header>
 
       <Layout style={{ paddingTop: HEADER_HEIGHT }}>
-        <Sider
-          collapsible collapsed={collapsed} onCollapse={setCollapsed}
-          width={260} collapsedWidth={80} trigger={null}
-          style={{
-            position: "fixed" as const, top: HEADER_HEIGHT, bottom: 0, left: 0,
-            overflow: "hidden", background: "#fff",
-            boxShadow: "2px 0 6px rgba(0,0,0,0.05)", zIndex: 10,
-            transition: "width 0.22s cubic-bezier(0.4,0,0.2,1)",
-          }}
-        >
-          <SideMenu collapsed={collapsed} />
-        </Sider>
+        {!isMobile && (
+          <Sider
+            collapsible collapsed={collapsed} onCollapse={setCollapsed}
+            width={SIDEBAR_WIDTH} collapsedWidth={SIDEBAR_WIDTH_COLLAPSED} trigger={null}
+            style={{
+              position: "fixed" as const, top: HEADER_HEIGHT, bottom: 0, left: 0,
+              overflow: "hidden", background: "var(--bg-sidebar)",
+              boxShadow: "2px 0 6px rgba(0,0,0,0.05)", zIndex: 10,
+              transition: "width 0.22s cubic-bezier(0.4,0,0.2,1)",
+            }}
+          >
+            <SideMenu collapsed={collapsed} />
+          </Sider>
+        )}
+
+        {isMobile && (
+          <Drawer
+            open={mobileOpen}
+            onClose={() => setMobileOpen(false)}
+            placement="left"
+            width={SIDEBAR_WIDTH}
+            styles={{ body: { padding: 0 }, header: { display: "none" } }}
+          >
+            <SideMenu collapsed={false} />
+          </Drawer>
+        )}
 
         <Layout style={{
-          marginLeft: siderWidth,
+          marginLeft: isMobile ? 0 : siderWidth,
           height: `calc(100vh - ${HEADER_HEIGHT}px)`,
           display: "flex" as const, flexDirection: "column" as const, overflow: "hidden",
           transition: "margin-left 0.22s cubic-bezier(0.4,0,0.2,1)",
@@ -156,13 +183,12 @@ function AppLayout() {
               <Button
                 type="text" icon={<ArrowLeftOutlined />} onClick={goBack}
                 size="small"
-                style={{ color: "#718096", fontWeight: 500, fontSize: 13, paddingInline: 8 }}
+                style={{ color: "var(--text-muted)", fontWeight: 500, fontSize: 13, paddingInline: 8 }}
               >
                 {backLabel}
               </Button>
-              <div style={{ width: 1, height: 16, background: "rgba(0,0,0,0.09)", margin: "0 4px" }} />
-              <HomeOutlined style={{ color: "#cbd5e0", fontSize: 13 }} />
-              <Breadcrumb items={crumbs} separator={<span style={{ color: "#cbd5e0" }}>/</span>} />
+              <div style={{ width: 1, height: 16, background: "var(--border-color)", margin: "0 4px" }} />
+              <Breadcrumb />
             </div>
 
             <motion.div
@@ -173,7 +199,7 @@ function AppLayout() {
               style={{
                 flex: "1 1 auto",
                 overflow: "auto",
-                padding: 24,
+                padding: "var(--content-padding)",
                 background: "var(--bg-main)",
               }}
             >

@@ -462,8 +462,8 @@ export default function FormationConsultationPage() {
         <div className="formation-stats-row">
           <StatCard
             icon={<BookOutlined />}
-            iconColor="#B51200"
-            accentColor="#B51200"
+            iconColor="#b51200"
+            accentColor="#b51200"
             label="Total formations"
             value={stats.total}
             subtext={hasActiveFilters ? "résultats filtrés" : "toutes périodes"}
@@ -582,7 +582,7 @@ export default function FormationConsultationPage() {
         <div className="formation-table-wrapper">
           <div className="formation-table-toolbar">
             <div className="formation-table-toolbar-left">
-              <BookOutlined style={{ color: "#B51200" }} />
+              <BookOutlined style={{ color: "#b51200" }} />
               <span className="formation-table-toolbar-title">
                 {filtered.length} formation{filtered.length === 1 ? "" : "s"}
                 {hasActiveFilters && <span className="formation-table-toolbar-sub"> (résultat filtré sur {formations.length})</span>}

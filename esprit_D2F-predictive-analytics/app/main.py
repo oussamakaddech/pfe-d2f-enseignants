@@ -167,6 +167,12 @@ app.add_exception_handler(Exception,              generic_exception_handler)
 from app.routers.all import router as legacy_router
 app.include_router(legacy_router, prefix="/api")
 
+# Router insights avancés (dashboards riches + centre d'action) — même préfixe
+# /v1/analytics. Inclus AVANT analytics_router pour que les routes littérales
+# (ex. PATCH /alerts/bulk) priment sur la route paramétrée /alerts/{alert_id}.
+from app.routers.insights import router as insights_router
+app.include_router(insights_router, prefix="/api")
+
 # Nouveau router v1 analytics
 from app.routers.analytics import router as analytics_router
 app.include_router(analytics_router, prefix="/api")

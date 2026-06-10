@@ -733,7 +733,7 @@
 
 /* Features panel (right dark column) */
 .rice-features-panel {
-  background: linear-gradient(160deg, #0f172a 0%, #1e3a5f 55%, #1d4ed8 100%);
+  background: linear-gradient(160deg, #0f172a 0%, #b51200 55%, #1d4ed8 100%);
   border-radius: var(--rice-r-lg);
   overflow: hidden;
   height: 100%;

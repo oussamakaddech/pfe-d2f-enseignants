@@ -12,7 +12,7 @@ import * as XLSX from "xlsx-js-style";
 
 // ── Palette ────────────────────────────────────────────────────────────────
 const C = {
-  brand:       "B51200",   // rouge Esprit
+  brand:       "b51200",   // rouge Esprit
   brandDark:   "8A0E00",   // rouge foncé (titre)
   brandLight:  "FDECEA",   // fond clair marque (sous-titre)
   white:       "FFFFFF",

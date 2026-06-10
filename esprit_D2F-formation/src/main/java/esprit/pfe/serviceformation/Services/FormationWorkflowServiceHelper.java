@@ -388,7 +388,8 @@ public class FormationWorkflowServiceHelper {
         if (time == null) {
             throw new IllegalArgumentException("L'heure de la séance ne peut pas être null");
         }
-        LocalDate localDate = dateUtil.toInstant()
+        // java.sql.Date.toInstant() lève UnsupportedOperationException → epoch millis.
+        LocalDate localDate = java.time.Instant.ofEpochMilli(dateUtil.getTime())
                 .atZone(ZoneId.of(TIMEZONE_TUNIS))
                 .toLocalDate();
         LocalTime localTime = time.toLocalTime();
