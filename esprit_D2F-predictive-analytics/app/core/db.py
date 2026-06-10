@@ -61,11 +61,18 @@ engine = create_engine(
 
 @event.listens_for(engine, "connect")
 def _set_search_path(dbapi_connection, _connection_record):
+    # Le `SET search_path` doit être committé. Sans cela, il s'exécute dans la
+    # transaction implicite ouverte par psycopg2 ; au retour de la connexion au
+    # pool, le `reset_on_return='rollback'` de SQLAlchemy annule ce SET et la
+    # connexion réutilisée retombe sur `"$user", public`. Conséquence : toute
+    # requête ORM (schéma `analyse`) ou SQL brute (`enseignants`, `inscriptions`…)
+    # échoue par intermittence avec « relation does not exist » → 500/503.
     cursor = dbapi_connection.cursor()
     try:
         cursor.execute(f"SET search_path TO {SEARCH_PATH}")
     finally:
         cursor.close()
+    dbapi_connection.commit()
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 

@@ -429,8 +429,8 @@ async def in_demand_competencies(db: DBSession) -> list[dict[str, Any]]:
 
 @router.get("/dashboard/teacher-risk-indicators", tags=["Dashboard"])
 async def teacher_risk_indicators(
-    dept_id: OptStrQuery,
     db: DBSession,
+    dept_id: OptStrQuery = None,
 ) -> list[dict[str, Any]]:
     """Per-teacher risk indicators for attrition and disengagement."""
     data = DataService(db)
@@ -444,8 +444,8 @@ async def teacher_risk_indicators(
 
 @router.get("/dashboard/summary", tags=["Dashboard"])
 async def dashboard_summary(
-    dept_id: OptStrQuery,
     db: DBSession,
+    dept_id: OptStrQuery = None,
 ) -> DashboardResponse:
     """Combined dashboard with all KPIs. Optional department filter.
 
