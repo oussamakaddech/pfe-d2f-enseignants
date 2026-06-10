@@ -7,3 +7,4 @@ export * as InscriptionService from './InscriptionService';
 export * as DocumentService from './DocumentService';
 export * as EnseignantService from './EnseignantService';
 export * as DeptService from './DeptService';
+export { default as CalendarService } from './CalendarService';

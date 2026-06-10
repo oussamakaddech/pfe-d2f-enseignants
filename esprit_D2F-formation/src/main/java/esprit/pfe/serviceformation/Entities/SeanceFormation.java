@@ -30,6 +30,17 @@ public class SeanceFormation extends BaseAuditEntity {
         @Column(nullable = true)
         private TypeSeanceEnum typeSeance;
 
+        // — numérotation de séance « Séance X/Y » (importée du calendrier des ateliers) —
+        @Column(name = "session_number", nullable = true)
+        private Integer numeroSeance; // X
+
+        @Column(name = "total_sessions", nullable = true)
+        private Integer totalSeances; // Y
+
+        // Statut de diffusion de la séance : TEAMS, OPEN (ouverte) ou CLOSED (fermée)
+        @Column(name = "session_status", length = 30, nullable = true)
+        private String sessionStatus;
+
         // — contenu pédagogique spécifique à la séance —
         @Column(length = 2000, nullable = true)
 

@@ -146,4 +146,34 @@ public interface SeanceFormationRepository extends JpaRepository<SeanceFormation
     // Pour l'export .ics : séances d'un participant
     @Query("SELECT s FROM SeanceFormation s JOIN s.participants p WHERE p.id = :ensId")
     List<SeanceFormation> findByParticipants_Id(@Param("ensId") String ensId);
+
+    // ==================== CALENDRIER ====================
+
+    /** Toutes les séances, ordonnées chronologiquement (export « tout le calendrier »). */
+    List<SeanceFormation> findAllByOrderByDateSeanceAscHeureDebutAsc();
+
+    /** Séances d'un participant identifié par son e-mail (export personnel par e-mail). */
+    @Query("SELECT s FROM SeanceFormation s JOIN s.participants p WHERE LOWER(p.mail) = LOWER(:mail)")
+    List<SeanceFormation> findByParticipantMail(@Param("mail") String mail);
+
+    /** Séances appartenant à un ensemble de formations (résolution par e-mail importé). */
+    List<SeanceFormation> findByFormation_IdFormationIn(List<Long> formationIds);
+
+    /** Séances d'une formation, ordonnées par numéro de séance puis date. */
+    List<SeanceFormation> findByFormation_IdFormationOrderByNumeroSeanceAscDateSeanceAsc(Long formationId);
+
+    /** Nombre de séances d'une formation. */
+    long countByFormation_IdFormation(Long formationId);
+
+    /** Identifiants des formations possédant au moins une séance (export/invitations « tout »). */
+    @Query("SELECT DISTINCT s.formation.idFormation FROM SeanceFormation s")
+    List<Long> findDistinctFormationIds();
+
+    /** E-mails distincts des participants (enseignants) d'une formation. */
+    @Query("""
+        SELECT DISTINCT LOWER(p.mail) FROM SeanceFormation s
+        JOIN s.participants p
+        WHERE s.formation.idFormation = :formationId AND p.mail IS NOT NULL
+        """)
+    List<String> findDistinctParticipantMailsByFormation(@Param("formationId") Long formationId);
 }

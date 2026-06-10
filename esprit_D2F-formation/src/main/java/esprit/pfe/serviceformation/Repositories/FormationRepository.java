@@ -206,4 +206,24 @@ public interface FormationRepository extends JpaRepository<Formation, Long> {
    */
   @Query(value = "SELECT * FROM formation.formations WHERE deleted_at IS NOT NULL", nativeQuery = true)
   List<Formation> findAllDeleted();
+
+  // ==================== CALENDRIER (formations planifiées en séances) ====================
+
+  /**
+   * Formations possédant au moins une séance planifiée, avec filtres optionnels
+   * (titre insensible à la casse, état). Utilisé par l'API calendrier paginée.
+   */
+  @Query("""
+        SELECT DISTINCT f FROM Formation f
+        JOIN f.seances s
+        WHERE (:titre IS NULL OR LOWER(f.titreFormation) LIKE LOWER(CONCAT('%', :titre, '%')))
+          AND (:etat IS NULL OR f.etatFormation = :etat)
+        """)
+  org.springframework.data.domain.Page<Formation> findCalendarFormations(
+          @org.springframework.data.repository.query.Param("titre") String titre,
+          @org.springframework.data.repository.query.Param("etat") EtatFormation etat,
+          org.springframework.data.domain.Pageable pageable);
+
+  /** Résolution d'une formation par intitulé exact (dédoublonnage à l'import calendrier). */
+  Optional<Formation> findFirstByTitreFormationOrderByIdFormationAsc(String titreFormation);
 }

@@ -6,6 +6,7 @@ import {
   SafetyCertificateOutlined, UserOutlined, LineChartOutlined, ApiOutlined,
   ClusterOutlined, TeamOutlined, BookOutlined,
   AppstoreOutlined, CheckSquareOutlined, BankOutlined, SettingOutlined,
+  ImportOutlined,
 } from "@ant-design/icons";
 
 export interface MenuItem {
@@ -43,6 +44,7 @@ export const adminMenu: MenuItem[] = [
     { label: "Présences",             key: "/home/animateur-formations",  icon: CheckSquareOutlined    },
     { label: "Gestion Documentaire",  key: "/home/File",                  icon: FileTextOutlined       },
     { label: "Calendrier Global",     key: "/home/Calendrier",            icon: CalendarOutlined       },
+    { label: "Gestion Calendrier",    key: "/home/Formation/CalendrierGestion", icon: ImportOutlined   },
     { label: "Certifications",        key: "/home/certificate",           icon: SafetyCertificateOutlined },
   ]},
   { type: "group", label: "COMPÉTENCES & IA", children: [

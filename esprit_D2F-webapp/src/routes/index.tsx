@@ -11,6 +11,7 @@ import { ROLES } from "@/utils/constants/roles";
 
 const KPIChart = lazy(() => import("@/pages/kpiFormation/KPIChart"));
 const CalendrierPage = lazy(() => import("@/pages/formation/CalendrierPage"));
+const CalendrierGestionPage = lazy(() => import("@/pages/formation/CalendrierGestionPage"));
 const FormationPage = lazy(() => import("@/pages/formation/FormationPage"));
 const FormationCreationPage = lazy(() => import("@/pages/formation/FormationCreationPage"));
 const FormationConsultationPage = lazy(() => import("@/pages/formation/FormationConsultationPage"));
@@ -134,6 +135,12 @@ export default function AppRoutes() {
                 <Route element={<RoleGuard allowedRoles={[ROLES.ADMIN, ROLES.CHEF_DEPARTEMENT]} />}>
                   <Route path="/home/Calendrier" element={<CalendrierPage />} />
                   <Route path="/home/calendar/:enseignantId" element={<CalendarEnseignant />} />
+                </Route>
+
+                {/* Gestion du calendrier des ateliers : import/export/invitations.
+                    L'import et l'envoi d'invitations restent réservés à ADMIN (gardé aussi côté page et backend). */}
+                <Route element={<RoleGuard allowedRoles={[ROLES.ADMIN, ROLES.CUP, ROLES.CHEF_DEPARTEMENT]} />}>
+                  <Route path="/home/Formation/CalendrierGestion" element={<CalendrierGestionPage />} />
                 </Route>
 
                 <Route element={<RoleGuard allowedRoles={[ROLES.ADMIN, ROLES.RESPONSABLE_DOSSIER, ROLES.CHEF_DEPARTEMENT]} />}>

@@ -1,15 +1,17 @@
 package esprit.pfe.serviceformation.services;
 
+import esprit.pfe.serviceformation.config.CalendarProperties;
 import esprit.pfe.serviceformation.entities.Formation;
 import esprit.pfe.serviceformation.entities.SeanceFormation;
 import esprit.pfe.serviceformation.entities.Enseignant;
+import esprit.pfe.serviceformation.repositories.FormationParticipantEmailRepository;
 import esprit.pfe.serviceformation.repositories.FormationRepository;
 import esprit.pfe.serviceformation.repositories.SeanceFormationRepository;
+import esprit.pfe.serviceformation.utils.IcsCalendarWriter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -31,7 +33,9 @@ class CalendarExportServiceTest {
     @Mock
     private FormationRepository formationRepository;
 
-    @InjectMocks
+    @Mock
+    private FormationParticipantEmailRepository participantEmailRepository;
+
     private CalendarExportService calendarExportService;
 
     private Formation formation;
@@ -39,6 +43,13 @@ class CalendarExportServiceTest {
 
     @BeforeEach
     void setUp() {
+        // Writer et propriétés réels : on valide ainsi le rendu .ics effectif.
+        CalendarProperties properties = new CalendarProperties();
+        IcsCalendarWriter icsWriter = new IcsCalendarWriter(properties);
+        calendarExportService = new CalendarExportService(
+                seanceFormationRepository, formationRepository,
+                participantEmailRepository, icsWriter, properties);
+
         formation = new Formation();
         formation.setIdFormation(1L);
         formation.setTitreFormation("Formation Java");
@@ -62,7 +73,9 @@ class CalendarExportServiceTest {
     @DisplayName("generateIcsForFormation - Devrait générer un fichier ics valide")
     void shouldGenerateIcsForFormation() {
         lenient().when(formationRepository.findById(1L)).thenReturn(Optional.of(formation));
-        lenient().when(seanceFormationRepository.findByFormation_IdFormation(1L)).thenReturn(List.of(seance));
+        lenient().when(seanceFormationRepository
+                .findByFormation_IdFormationOrderByNumeroSeanceAscDateSeanceAsc(1L))
+                .thenReturn(List.of(seance));
 
         String ics = calendarExportService.generateIcsForFormation(1L);
 
