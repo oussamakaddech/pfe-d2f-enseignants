@@ -24,6 +24,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 import java.util.Set;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Analyse un classeur Excel de calendrier d'ateliers et en extrait :
@@ -99,6 +101,10 @@ public class WorkshopCalendarParser {
 
     private void parseSessions(Sheet sheet, int headerRowIndex, ColumnMap columns, ParsedCalendarDTO result) {
         int lastRow = sheet.getLastRowNum();
+        int year = inferYear(sheet, headerRowIndex);
+        // Les plannings groupés par jour ne répètent pas la date sur chaque ligne :
+        // on reporte la dernière date rencontrée sur les lignes suivantes du même jour.
+        LocalDate lastDate = null;
         for (int r = headerRowIndex + 1; r <= lastRow; r++) {
             Row row = sheet.getRow(r);
             if (row == null || isRowEmpty(row)) {
@@ -111,8 +117,14 @@ public class WorkshopCalendarParser {
                 continue;
             }
 
-            Optional<LocalDate> date = readDate(row, columns.date);
-            if (date.isEmpty()) {
+            Optional<LocalDate> date = readDate(row, columns.date, year);
+            LocalDate effectiveDate;
+            if (date.isPresent()) {
+                effectiveDate = date.get();
+                lastDate = effectiveDate;
+            } else if (lastDate != null) {
+                effectiveDate = lastDate;
+            } else {
                 result.getErrors().add(ImportRowErrorDTO.error(humanRow, "date",
                         "Date manquante ou mal formée : « " + text(row, columns.date) + " »."));
                 continue;
@@ -130,7 +142,7 @@ public class WorkshopCalendarParser {
                     .trainerName(text(row, columns.trainer))
                     .room(text(row, columns.room))
                     .status(normalizeStatus(text(row, columns.status)))
-                    .date(date.get())
+                    .date(effectiveDate)
                     .startTime(slot[0])
                     .endTime(slot[1])
                     .sourceRow(humanRow)
@@ -241,7 +253,47 @@ public class WorkshopCalendarParser {
             else if (map.timeSlot < 0 && matchesAny(header, kw.getTimeSlot())) map.timeSlot = idx;
             else if (map.session < 0 && matchesAny(header, kw.getSession())) map.session = idx;
         }
+        // Certains plannings laissent la colonne date sans en-tête (la date est en
+        // tête de chaque groupe de jour). Si une colonne « formation » est trouvée
+        // mais pas de date, on déduit la date comme la colonne libre à sa gauche.
+        if (map.date < 0 && map.formation > 0) {
+            map.date = inferDateColumn(map);
+        }
         return map;
+    }
+
+    /** Première colonne non attribuée à gauche de « formation » (sinon -1). */
+    private int inferDateColumn(ColumnMap map) {
+        Set<Integer> used = new HashSet<>(List.of(
+                map.formation, map.trainer, map.room, map.status, map.timeSlot, map.session));
+        for (int c = 0; c < map.formation; c++) {
+            if (!used.contains(c)) {
+                return c;
+            }
+        }
+        return -1;
+    }
+
+    /**
+     * Déduit l'année de référence du planning en cherchant un millésime (20xx)
+     * dans le titre/les lignes situées au-dessus de l'en-tête ; à défaut, l'année
+     * courante. Sert de repli quand la colonne date n'indique pas l'année.
+     */
+    private int inferYear(Sheet sheet, int headerRowIndex) {
+        Pattern yearPattern = Pattern.compile("\\b(20\\d{2})\\b");
+        for (int r = sheet.getFirstRowNum(); r <= headerRowIndex; r++) {
+            Row row = sheet.getRow(r);
+            if (row == null) {
+                continue;
+            }
+            for (Cell cell : row) {
+                Matcher m = yearPattern.matcher(text(cell));
+                if (m.find()) {
+                    return Integer.parseInt(m.group(1));
+                }
+            }
+        }
+        return LocalDate.now().getYear();
     }
 
     private boolean matchesAny(String normalizedHeader, List<String> keywords) {
@@ -255,7 +307,7 @@ public class WorkshopCalendarParser {
 
     // ==================== LECTURE DE CELLULES ====================
 
-    private Optional<LocalDate> readDate(Row row, int col) {
+    private Optional<LocalDate> readDate(Row row, int col, int year) {
         if (col < 0) {
             return Optional.empty();
         }
@@ -267,7 +319,7 @@ public class WorkshopCalendarParser {
                 && DateUtil.isCellDateFormatted(cell)) {
             return Optional.of(cell.getLocalDateTimeCellValue().toLocalDate());
         }
-        return CalendarParsingUtils.parseDate(text(cell));
+        return CalendarParsingUtils.parseFlexibleDate(text(cell), year);
     }
 
     private LocalTime[] readTimeSlot(Row row, int col) {

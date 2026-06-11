@@ -81,7 +81,6 @@ export default function CalendarFormationsTable({ canSendInvitations }: Props) {
     {
       title: "Actions",
       width: 170,
-      fixed: "right",
       render: (_, formation) => (
         <Space>
           <Tooltip title="Télécharger le .ics">
@@ -160,7 +159,7 @@ export default function CalendarFormationsTable({ canSendInvitations }: Props) {
         columns={columns}
         dataSource={data?.content ?? []}
         pagination={pagination}
-        scroll={{ x: 1000 }}
+        scroll={{ x: "max-content" }}
       />
 
       <Modal

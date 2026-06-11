@@ -108,7 +108,9 @@ public class WorkshopCalendarImportService {
         String hash = sha256(content);
 
         Optional<ImportLog> existing = importLogRepository.findFirstByFileHashOrderByImportedAtDesc(hash);
-        if (existing.isPresent()) {
+        // Un import précédent en échec (status FAILED) ne doit pas bloquer une nouvelle
+        // tentative : on ne considère « doublon » qu'un import ayant effectivement persisté.
+        if (existing.isPresent() && !"FAILED".equals(existing.get().getStatus())) {
             log.info("Import calendrier ignoré : fichier déjà importé (importLogId={})", existing.get().getId());
             return ImportReportDTO.builder()
                     .status("DUPLICATE")

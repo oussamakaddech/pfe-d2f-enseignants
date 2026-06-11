@@ -45,6 +45,10 @@ public final class CalendarParsingUtils {
         return value != null && EMAIL_PATTERN.matcher(value.trim()).matches();
     }
 
+    // jour/mois avec année optionnelle : « 30/06 », « 30/06/2025 », « 30-06-25 »
+    private static final Pattern DAY_MONTH_OPT_YEAR =
+            Pattern.compile("(\\d{1,2})\\s*[/.\\-]\\s*(\\d{1,2})(?:\\s*[/.\\-]\\s*(\\d{2,4}))?");
+
     /** Parse une date depuis une chaîne en testant plusieurs formats usuels. */
     public static Optional<LocalDate> parseDate(String value) {
         if (value == null || value.isBlank()) {
@@ -59,6 +63,38 @@ public final class CalendarParsingUtils {
             }
         }
         return Optional.empty();
+    }
+
+    /**
+     * Parse une date « souple » : tout préfixe non numérique (ex. nom de jour
+     * « Lundi ») est ignoré et l'année peut être absente (ex. « 30/06 »), auquel
+     * cas {@code fallbackYear} est appliquée. Utile pour les plannings dont la
+     * colonne date n'indique pas l'année (présente dans le titre du classeur).
+     */
+    public static Optional<LocalDate> parseFlexibleDate(String value, int fallbackYear) {
+        Optional<LocalDate> strict = parseDate(value);
+        if (strict.isPresent()) {
+            return strict;
+        }
+        if (value == null || value.isBlank()) {
+            return Optional.empty();
+        }
+        Matcher m = DAY_MONTH_OPT_YEAR.matcher(value.trim());
+        if (m.find()) {
+            try {
+                int day = Integer.parseInt(m.group(1));
+                int month = Integer.parseInt(m.group(2));
+                int year = m.group(3) != null ? normalizeYear(Integer.parseInt(m.group(3))) : fallbackYear;
+                return Optional.of(LocalDate.of(year, month, day));
+            } catch (RuntimeException ignored) {
+                return Optional.empty();
+            }
+        }
+        return Optional.empty();
+    }
+
+    private static int normalizeYear(int year) {
+        return year < 100 ? 2000 + year : year;
     }
 
     /** Parse une heure isolée (« 09:00 », « 9h », « 09h30 »). */
