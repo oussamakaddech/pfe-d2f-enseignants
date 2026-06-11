@@ -95,6 +95,7 @@ public class KPIService {
         FormationsByTypeDTO dto = new FormationsByTypeDTO(0L, 0L, 0L);
 
         for (Object[] row : results) {
+            if (row[0] == null) continue;
             TypeFormation type = (TypeFormation) row[0];
             Long count = (Long) row[1];
             switch (type) {

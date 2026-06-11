@@ -2,13 +2,6 @@ import { useState, useMemo, useCallback } from "react";
 import { Row, Col, Collapse } from "antd";
 import { BarChartOutlined } from "@ant-design/icons";
 import { useQueryClient } from "@tanstack/react-query";
-import FormationsByTypeFiltered from "@/pages/kpiFormation/FormationsByTypeFiltered";
-import MetricCards from "@/pages/kpiFormation/MetricCards";
-import FormationProgressBars from "@/pages/kpiFormation/FormationProgressBars";
-import DonutByTrainerType from "@/pages/kpiFormation/DonutByTrainerType";
-import TopParticipants from "@/pages/kpiFormation/TopParticipants";
-import TopAbsentees from "@/pages/kpiFormation/TopAbsentees";
-import NonAffectedList from "@/pages/kpiFormation/NonAffectedList";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import DashboardKpiGrid from "@/components/dashboard/DashboardKpiGrid";
 import DashboardHealthCard from "@/components/dashboard/DashboardHealthCard";
@@ -21,6 +14,11 @@ import DashboardPendingNeeds from "@/components/dashboard/DashboardPendingNeeds"
 import DashboardTopCompetencies from "@/components/dashboard/DashboardTopCompetencies";
 import DashboardPredictiveInsights from "@/components/dashboard/DashboardPredictiveInsights";
 import DashboardRecentActivity from "@/components/dashboard/DashboardRecentActivity";
+import DashboardFormationTypes from "@/components/dashboard/DashboardFormationTypes";
+import DashboardTrainerTypes from "@/components/dashboard/DashboardTrainerTypes";
+import DashboardTopPresences from "@/components/dashboard/DashboardTopPresences";
+import DashboardTopAbsences from "@/components/dashboard/DashboardTopAbsences";
+import DashboardNonAffected from "@/components/dashboard/DashboardNonAffected";
 import { useAnalyticsExport } from "@/hooks/analyse/useReporting";
 import { rangeToDates } from "./dashboardRanges";
 import type { DashboardRangeKey, DashboardScope } from "@/models/dashboard";
@@ -29,7 +27,7 @@ import "@/styles/pages/dashboard-page.css";
 const INVALIDATE_KEYS = [["dashboard"], ["kpi"], ["analyse"], ["analytics"], ["besoins"], ["formations"]];
 
 interface ExecutiveDashboardProps {
-  readonly role: string; // "admin" | "cup"
+  readonly role: string;
 }
 
 export default function ExecutiveDashboard({ role }: ExecutiveDashboardProps) {
@@ -93,6 +91,7 @@ export default function ExecutiveDashboard({ role }: ExecutiveDashboardProps) {
 
       <DashboardRecentActivity scope={scope} />
 
+      {/* ── KPI & Métriques détail — même design que le reste du dashboard ── */}
       <Collapse
         ghost
         items={[{
@@ -103,16 +102,23 @@ export default function ExecutiveDashboard({ role }: ExecutiveDashboardProps) {
             </span>
           ),
           children: (
-            <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-              <FormationsByTypeFiltered />
-              <MetricCards />
-              <FormationProgressBars />
-              <DonutByTrainerType />
-              <Row gutter={[16, 16]}>
-                <Col xs={24} lg={12}><TopParticipants /></Col>
-                <Col xs={24} lg={12}><TopAbsentees /></Col>
+            <div style={{ display: "flex", flexDirection: "column", gap: 20, paddingTop: 4 }}>
+
+              {/* Ligne 1 : formations par type (pleine largeur) */}
+              <DashboardFormationTypes scope={scope} />
+
+              {/* Ligne 2 : formateurs | top présences */}
+              <Row gutter={[20, 20]}>
+                <Col xs={24} lg={12}><DashboardTrainerTypes scope={scope} /></Col>
+                <Col xs={24} lg={12}><DashboardTopPresences scope={scope} /></Col>
               </Row>
-              <NonAffectedList />
+
+              {/* Ligne 3 : top absences | non affectés */}
+              <Row gutter={[20, 20]}>
+                <Col xs={24} lg={12}><DashboardTopAbsences scope={scope} /></Col>
+                <Col xs={24} lg={12}><DashboardNonAffected scope={scope} /></Col>
+              </Row>
+
             </div>
           ),
         }]}

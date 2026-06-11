@@ -14,9 +14,7 @@ import {
   HomeOutlined,
   GlobalOutlined,
   DesktopOutlined,
-  AppstoreOutlined,
 } from "@ant-design/icons";
-import { neutral } from "@/styles/themes/tokens";
 import useAppNotification from "@/hooks/ui/useAppNotification";
 import { useDepartements, useUps } from "@/hooks/formation";
 import { useKpiFormationsByTypeFilteredMutation } from "@/hooks/kpi";
@@ -113,18 +111,9 @@ export default function FormationsByTypeFiltered() {
   }
 
   return (
-    <div style={{ padding: "20px 22px" }}>
-      {/* ── Header ── */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <div style={{ width: 32, height: 32, borderRadius: 8, background: "#eff6ff", display: "flex", alignItems: "center", justifyContent: "center" }}>
-            <AppstoreOutlined style={{ color: "#3b82f6", fontSize: 16 }} />
-          </div>
-          <div>
-            <span style={{ fontSize: 15, fontWeight: 600, color: neutral[900], display: "block" }}>Formations par Type</span>
-            <span style={{ fontSize: 12, color: neutral[500] }}>Répartition par type de formation</span>
-          </div>
-        </div>
+    <div style={{ padding: "16px 22px 20px" }}>
+      {/* ── Toolbar ── */}
+      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 16 }}>
         <Button icon={<FilterOutlined />} onClick={() => setDrawerVisible(true)}>Filtrer</Button>
       </div>
 

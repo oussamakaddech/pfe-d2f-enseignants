@@ -128,8 +128,8 @@ public interface FormationRepository extends JpaRepository<Formation, Long> {
         AND (:#{#filter.upId}       IS NULL OR f.up.id             = :#{#filter.upId})
         AND (:#{#filter.deptId}     IS NULL OR f.departement.id    = :#{#filter.deptId})
         AND (:#{#filter.ouverte}    IS NULL OR f.ouverte           = :#{#filter.ouverte})
-        AND (:#{#filter.start}      IS NULL OR f.dateDebut >= :#{#filter.start})
-        AND (:#{#filter.end}        IS NULL OR f.dateDebut <= :#{#filter.end})
+        AND f.dateDebut >= COALESCE(:#{#filter.start}, f.dateDebut)
+        AND f.dateDebut <= COALESCE(:#{#filter.end},   f.dateDebut)
         AND f.etatFormation IN :#{#filter.etats}
       GROUP BY f.typeFormation
     """)
@@ -146,8 +146,8 @@ public interface FormationRepository extends JpaRepository<Formation, Long> {
           AND (:#{#filter.upId}       IS NULL OR f.up.id              = :#{#filter.upId})
           AND (:#{#filter.deptId}     IS NULL OR f.departement.id     = :#{#filter.deptId})
           AND (:#{#filter.ouverte}    IS NULL OR f.ouverte            = :#{#filter.ouverte})
-          AND (:#{#filter.start}      IS NULL OR f.dateDebut          >= :#{#filter.start})
-          AND (:#{#filter.end}        IS NULL OR f.dateDebut          <= :#{#filter.end})
+          AND f.dateDebut >= COALESCE(:#{#filter.start}, f.dateDebut)
+          AND f.dateDebut <= COALESCE(:#{#filter.end},   f.dateDebut)
           AND TRIM(f.externeFormateurEmail) <> ''
           AND f.etatFormation IN :#{#filter.etats}
           AND a.id IS NULL
@@ -165,8 +165,8 @@ public interface FormationRepository extends JpaRepository<Formation, Long> {
           AND (:#{#filter.upId}       IS NULL OR f.up.id              = :#{#filter.upId})
           AND (:#{#filter.deptId}     IS NULL OR f.departement.id     = :#{#filter.deptId})
           AND (:#{#filter.ouverte}    IS NULL OR f.ouverte            = :#{#filter.ouverte})
-          AND (:#{#filter.start}      IS NULL OR f.dateDebut          >= :#{#filter.start})
-          AND (:#{#filter.end}        IS NULL OR f.dateDebut          <= :#{#filter.end})
+          AND f.dateDebut >= COALESCE(:#{#filter.start}, f.dateDebut)
+          AND f.dateDebut <= COALESCE(:#{#filter.end},   f.dateDebut)
           AND (f.externeFormateurEmail IS NULL
                OR TRIM(f.externeFormateurEmail) = '')
           AND f.etatFormation IN :#{#filter.etats}
@@ -184,8 +184,8 @@ public interface FormationRepository extends JpaRepository<Formation, Long> {
           AND (:#{#filter.upId}       IS NULL OR f.up.id              = :#{#filter.upId})
           AND (:#{#filter.deptId}     IS NULL OR f.departement.id     = :#{#filter.deptId})
           AND (:#{#filter.ouverte}    IS NULL OR f.ouverte            = :#{#filter.ouverte})
-          AND (:#{#filter.start}      IS NULL OR f.dateDebut          >= :#{#filter.start})
-          AND (:#{#filter.end}        IS NULL OR f.dateDebut          <= :#{#filter.end})
+          AND f.dateDebut >= COALESCE(:#{#filter.start}, f.dateDebut)
+          AND f.dateDebut <= COALESCE(:#{#filter.end},   f.dateDebut)
           AND TRIM(f.externeFormateurEmail) <> ''
           AND f.etatFormation IN :#{#filter.etats}
     """)

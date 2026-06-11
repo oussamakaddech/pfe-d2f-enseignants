@@ -121,7 +121,7 @@ public class KPIController {
     }
 
     @GetMapping("/formations-by-type-filtered")
-    public ResponseEntity<FormationsByTypeDTO> getFormationsByTypeFiltered(
+    public ResponseEntity<Object> getFormationsByTypeFiltered(
             @RequestParam(required = false) String competence,
             @RequestParam(required = false) String domaine,
             @RequestParam(required = false) Long upId,
@@ -131,26 +131,40 @@ public class KPIController {
             @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") Date end,
             @RequestParam(required = false) String etat
     ) {
-        FormationFilter filter = FormationFilter.builder()
-                .competence(competence).domaine(domaine).upId(upId).deptId(deptId)
-                .ouverte(ouverte).start(start).end(end).build();
-        return ResponseEntity.ok(kpiService.getFormationsByTypeWithFilters(filter, etat));
+        try {
+            FormationFilter filter = FormationFilter.builder()
+                    .competence(competence).domaine(domaine).upId(upId).deptId(deptId)
+                    .ouverte(ouverte).start(start).end(end).build();
+            return ResponseEntity.ok(kpiService.getFormationsByTypeWithFilters(filter, etat));
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.badRequest().body(Map.of(KEY_ERROR, ex.getMessage()));
+        } catch (Exception ex) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(KEY_ERROR, "Erreur serveur interne"));
+        }
     }
 
     @GetMapping("/count-by-trainer-type-with-ids")
-    public CountByTrainerTypeWithIdsDTO countByTrainerTypeWithIds(
+    public ResponseEntity<Object> countByTrainerTypeWithIds(
             @RequestParam(required = false) String competence,
             @RequestParam(required = false) String domaine,
             @RequestParam(required = false) Long upId,
             @RequestParam(required = false) Long deptId,
             @RequestParam(required = false) Boolean ouverte,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) Date start,
-            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) Date end,
+            @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") Date start,
+            @RequestParam(required = false) @DateTimeFormat(pattern = "yyyy-MM-dd") Date end,
             @RequestParam(required = false) String etat
     ) {
-        FormationFilter filter = FormationFilter.builder()
-                .competence(competence).domaine(domaine).upId(upId).deptId(deptId)
-                .ouverte(ouverte).start(start).end(end).build();
-        return kpiService.getCountByTrainerTypeWithIds(filter, etat);
+        try {
+            FormationFilter filter = FormationFilter.builder()
+                    .competence(competence).domaine(domaine).upId(upId).deptId(deptId)
+                    .ouverte(ouverte).start(start).end(end).build();
+            return ResponseEntity.ok(kpiService.getCountByTrainerTypeWithIds(filter, etat));
+        } catch (IllegalArgumentException ex) {
+            return ResponseEntity.badRequest().body(Map.of(KEY_ERROR, ex.getMessage()));
+        } catch (EntityNotFoundException ex) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(KEY_ERROR, ex.getMessage()));
+        } catch (Exception ex) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(KEY_ERROR, "Erreur serveur interne"));
+        }
     }
 }
