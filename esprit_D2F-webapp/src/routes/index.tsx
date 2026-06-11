@@ -9,7 +9,6 @@ import { PrivateRoute, RoleGuard } from "./guards";
 import AppLayout from "@/components/layout/AppLayout";
 import { ROLES } from "@/utils/constants/roles";
 
-const KPIChart = lazy(() => import("@/pages/kpiFormation/KPIChart"));
 const CalendrierPage = lazy(() => import("@/pages/formation/CalendrierPage"));
 const CalendrierGestionPage = lazy(() => import("@/pages/formation/CalendrierGestionPage"));
 const FormationPage = lazy(() => import("@/pages/formation/FormationPage"));
@@ -123,7 +122,7 @@ export default function AppRoutes() {
                 </Route>
 
                 <Route element={<RoleGuard allowedRoles={[ROLES.ADMIN, ROLES.CUP, ROLES.CHEF_DEPARTEMENT]} />}>
-                  <Route path="/home/KPI" element={<KPIChart />} />
+                  <Route path="/home/KPI" element={<Navigate to="/home" replace />} />
                   <Route path="/home/AnalysePredictive" element={<AnalysePredictivePage />} />
                   <Route path="/home/analytics/dashboard" element={<AnalyticsDashboardPage />} />
                   <Route path="/home/analytics/teacher" element={<TeacherAnalyticsPage />} />

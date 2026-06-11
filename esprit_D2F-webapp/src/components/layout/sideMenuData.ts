@@ -31,7 +31,6 @@ export const accountGroup: MenuItem[] = [
 export const adminMenu: MenuItem[] = [
   { type: "group", label: "TABLEAU DE BORD", children: [
     dashboardItem,
-    { label: "KPI & Métriques",    key: "/home/KPI",                icon: BarChartOutlined  },
     { label: "Analyse Prédictive", key: "/home/AnalysePredictive",  icon: LineChartOutlined },
   ]},
   { type: "group", label: "ADMINISTRATION", children: [

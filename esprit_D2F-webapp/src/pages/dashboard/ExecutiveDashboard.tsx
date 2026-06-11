@@ -1,6 +1,14 @@
 import { useState, useMemo, useCallback } from "react";
-import { Row, Col } from "antd";
+import { Row, Col, Collapse } from "antd";
+import { BarChartOutlined } from "@ant-design/icons";
 import { useQueryClient } from "@tanstack/react-query";
+import FormationsByTypeFiltered from "@/pages/kpiFormation/FormationsByTypeFiltered";
+import MetricCards from "@/pages/kpiFormation/MetricCards";
+import FormationProgressBars from "@/pages/kpiFormation/FormationProgressBars";
+import DonutByTrainerType from "@/pages/kpiFormation/DonutByTrainerType";
+import TopParticipants from "@/pages/kpiFormation/TopParticipants";
+import TopAbsentees from "@/pages/kpiFormation/TopAbsentees";
+import NonAffectedList from "@/pages/kpiFormation/NonAffectedList";
 import DashboardHeader from "@/components/dashboard/DashboardHeader";
 import DashboardKpiGrid from "@/components/dashboard/DashboardKpiGrid";
 import DashboardHealthCard from "@/components/dashboard/DashboardHealthCard";
@@ -84,6 +92,32 @@ export default function ExecutiveDashboard({ role }: ExecutiveDashboardProps) {
       <DashboardPredictiveInsights scope={scope} />
 
       <DashboardRecentActivity scope={scope} />
+
+      <Collapse
+        ghost
+        items={[{
+          key: "kpi-detail",
+          label: (
+            <span style={{ fontWeight: 700, fontSize: 15, color: "var(--neutral-800)", display: "flex", alignItems: "center", gap: 8 }}>
+              <BarChartOutlined style={{ color: "#b51200" }} /> KPI & Métriques — détail formation & formateurs
+            </span>
+          ),
+          children: (
+            <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+              <FormationsByTypeFiltered />
+              <MetricCards />
+              <FormationProgressBars />
+              <DonutByTrainerType />
+              <Row gutter={[16, 16]}>
+                <Col xs={24} lg={12}><TopParticipants /></Col>
+                <Col xs={24} lg={12}><TopAbsentees /></Col>
+              </Row>
+              <NonAffectedList />
+            </div>
+          ),
+        }]}
+        style={{ background: "var(--bg-card)", border: "1px solid var(--border-color)", borderRadius: "var(--radius-lg)" }}
+      />
     </div>
   );
 }
