@@ -9,6 +9,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
@@ -22,6 +24,7 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 @DisplayName("CertificatServiceClient - Tests")
 class CertificatServiceClientTest {
 
@@ -46,7 +49,7 @@ class CertificatServiceClientTest {
                         "typeCertif", "BADGE", "createdAt", "2025-03-01")
         );
 
-        when(restTemplate.exchange(anyString(), eq(HttpMethod.GET), any(HttpEntity.class), eq(List.class)))
+        when(restTemplate.exchange(anyString(), eq(HttpMethod.GET), any(HttpEntity.class), eq(Object.class)))
                 .thenReturn(ResponseEntity.ok(certs));
 
         List<CertificationSummaryDTO> result = client.getCertificationsForTeacher("user1", "Bearer token");
@@ -62,7 +65,7 @@ class CertificatServiceClientTest {
     @Test
     @DisplayName("getCertificationsForTeacher: réponse null retourne liste vide")
     void getCertifications_withNullResponse_returnsEmptyList() {
-        when(restTemplate.exchange(anyString(), eq(HttpMethod.GET), any(HttpEntity.class), eq(List.class)))
+        when(restTemplate.exchange(anyString(), eq(HttpMethod.GET), any(HttpEntity.class), eq(Object.class)))
                 .thenReturn(ResponseEntity.ok(null));
 
         List<CertificationSummaryDTO> result = client.getCertificationsForTeacher("user1", "Bearer token");
@@ -78,7 +81,7 @@ class CertificatServiceClientTest {
                         "typeCertif", "ATTESTATION", "createdAt", "2025-01-01")
         );
 
-        when(restTemplate.exchange(anyString(), eq(HttpMethod.GET), any(HttpEntity.class), eq(List.class)))
+        when(restTemplate.exchange(anyString(), eq(HttpMethod.GET), any(HttpEntity.class), eq(Object.class)))
                 .thenReturn(ResponseEntity.ok(certs));
 
         List<CertificationSummaryDTO> result = client.getCertificationsForTeacher("user1", "Bearer token");
@@ -98,7 +101,7 @@ class CertificatServiceClientTest {
         cert.put("id", 1L);
         certs.add(cert);
 
-        when(restTemplate.exchange(anyString(), eq(HttpMethod.GET), any(HttpEntity.class), eq(List.class)))
+        when(restTemplate.exchange(anyString(), eq(HttpMethod.GET), any(HttpEntity.class), eq(Object.class)))
                 .thenReturn(ResponseEntity.ok(certs));
 
         List<CertificationSummaryDTO> result = client.getCertificationsForTeacher("user1", "Bearer token");

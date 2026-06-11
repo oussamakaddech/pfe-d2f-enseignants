@@ -11,6 +11,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 import org.springframework.security.core.Authentication;
 import org.junit.jupiter.api.BeforeEach;
 
@@ -21,6 +23,7 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 class SkillPassportAssemblerTest {
 
     @Mock private AuthServiceClient authClient;
@@ -299,6 +302,110 @@ class SkillPassportAssemblerTest {
         TeacherSkillPassportDTO passport = assembler.assemble("jdoe", authentication, null);
 
         assertThat(passport.getRecommandations()).hasSize(5);
+    }
+
+    // ── Dégradation gracieuse si un service inter-service est indisponible ──
+
+    @Test
+    void assemble_whenCompetenceClientFails_returnsEmptyDomaines() {
+        TeacherIdentityDTO identity = TeacherIdentityDTO.builder().username("jdoe").build();
+        when(authClient.getTeacherIdentity(any(), any())).thenReturn(identity);
+        when(competenceClient.getDomainSummaries(any(), any())).thenThrow(new RuntimeException("Comp down"));
+        when(formationClient.getFormationsForTeacher(any(), any())).thenReturn(Collections.emptyList());
+        when(certificatClient.getCertificationsForTeacher(any(), any())).thenReturn(Collections.emptyList());
+        when(analysePredictiveService.analyserEnseignant(any(), any()))
+                .thenReturn(Map.of("gaps", Collections.emptyList(), "recommandationsFormations", Collections.emptyList()));
+
+        TeacherSkillPassportDTO passport = assembler.assemble("jdoe", authentication, null);
+
+        assertThat(passport.getDomaines()).isEmpty();
+    }
+
+    @Test
+    void assemble_whenFormationClientFails_returnsEmptyFormations() {
+        TeacherIdentityDTO identity = TeacherIdentityDTO.builder().username("jdoe").build();
+        when(authClient.getTeacherIdentity(any(), any())).thenReturn(identity);
+        when(competenceClient.getDomainSummaries(any(), any())).thenReturn(Collections.emptyList());
+        when(formationClient.getFormationsForTeacher(any(), any())).thenThrow(new RuntimeException("Form down"));
+        when(certificatClient.getCertificationsForTeacher(any(), any())).thenReturn(Collections.emptyList());
+        when(analysePredictiveService.analyserEnseignant(any(), any()))
+                .thenReturn(Map.of("gaps", Collections.emptyList(), "recommandationsFormations", Collections.emptyList()));
+
+        TeacherSkillPassportDTO passport = assembler.assemble("jdoe", authentication, null);
+
+        assertThat(passport.getFormations()).isEmpty();
+    }
+
+    @Test
+    void assemble_whenCertificatClientFails_returnsEmptyCertifications() {
+        TeacherIdentityDTO identity = TeacherIdentityDTO.builder().username("jdoe").build();
+        when(authClient.getTeacherIdentity(any(), any())).thenReturn(identity);
+        when(competenceClient.getDomainSummaries(any(), any())).thenReturn(Collections.emptyList());
+        when(formationClient.getFormationsForTeacher(any(), any())).thenReturn(Collections.emptyList());
+        when(certificatClient.getCertificationsForTeacher(any(), any())).thenThrow(new RuntimeException("Cert down"));
+        when(analysePredictiveService.analyserEnseignant(any(), any()))
+                .thenReturn(Map.of("gaps", Collections.emptyList(), "recommandationsFormations", Collections.emptyList()));
+
+        TeacherSkillPassportDTO passport = assembler.assemble("jdoe", authentication, null);
+
+        assertThat(passport.getCertifications()).isEmpty();
+    }
+
+    @Test
+    void assemble_withStringGapValues_buildsGapsCorrectly() {
+        TeacherIdentityDTO identity = TeacherIdentityDTO.builder().username("jdoe").build();
+        DomainSummaryDTO domain = DomainSummaryDTO.builder()
+                .nom("Info").scoreGlobal(3.0).totalSavoirs(1)
+                .competences(Collections.emptyList()).build();
+
+        Map<String, Object> analyseResult = new HashMap<>();
+        analyseResult.put("gaps", List.of(
+                Map.of("competenceCode", "I1", "competenceLabel", "Java",
+                       "niveauActuel", "2", "niveauCible", "4", "gap", "2.0",
+                       "gravite", "moyenne", "explication", "Écart modéré")
+        ));
+        analyseResult.put("recommandationsFormations", Collections.emptyList());
+
+        when(authClient.getTeacherIdentity(any(), any())).thenReturn(identity);
+        when(competenceClient.getDomainSummaries(any(), any())).thenReturn(List.of(domain));
+        when(formationClient.getFormationsForTeacher(any(), any())).thenReturn(Collections.emptyList());
+        when(certificatClient.getCertificationsForTeacher(any(), any())).thenReturn(Collections.emptyList());
+        when(analysePredictiveService.analyserEnseignant(any(), any())).thenReturn(analyseResult);
+
+        TeacherSkillPassportDTO passport = assembler.assemble("jdoe", authentication, null);
+
+        assertThat(passport.getGaps()).hasSize(1);
+        assertThat(passport.getGaps().get(0).getNiveauActuel()).isEqualTo(2);
+        assertThat(passport.getGaps().get(0).getNiveauCible()).isEqualTo(4);
+        assertThat(passport.getGaps().get(0).getGap()).isEqualTo(2.0);
+    }
+
+    @Test
+    void assemble_withNonListCompetencesCiblees_ignoresThem() {
+        TeacherIdentityDTO identity = TeacherIdentityDTO.builder().username("jdoe").build();
+        DomainSummaryDTO domain = DomainSummaryDTO.builder()
+                .nom("Info").scoreGlobal(3.0).totalSavoirs(1)
+                .competences(Collections.emptyList()).build();
+
+        Map<String, Object> result = new HashMap<>();
+        result.put("gaps", Collections.emptyList());
+        result.put("recommandationsFormations", List.of(
+                Map.of("formationId", "5", "titre", "Java", "dureeEstimee", "20h",
+                       "probabiliteReussite", 0.8, "priorite", "haute",
+                       "justification", "Formation Java",
+                       "competencesCiblees", "not-a-list")
+        ));
+
+        when(authClient.getTeacherIdentity(any(), any())).thenReturn(identity);
+        when(competenceClient.getDomainSummaries(any(), any())).thenReturn(List.of(domain));
+        when(formationClient.getFormationsForTeacher(any(), any())).thenReturn(Collections.emptyList());
+        when(certificatClient.getCertificationsForTeacher(any(), any())).thenReturn(Collections.emptyList());
+        when(analysePredictiveService.analyserEnseignant(any(), any())).thenReturn(result);
+
+        TeacherSkillPassportDTO passport = assembler.assemble("jdoe", authentication, null);
+
+        assertThat(passport.getRecommandations()).hasSize(1);
+        assertThat(passport.getRecommandations().get(0).getCompetencesCiblees()).isEmpty();
     }
 
     // ── JWT path (username matches authenticated user) ─────────────────────

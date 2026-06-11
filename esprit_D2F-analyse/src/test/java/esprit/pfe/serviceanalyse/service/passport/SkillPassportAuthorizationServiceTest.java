@@ -9,7 +9,9 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
 import java.util.List;
 
+import org.springframework.security.oauth2.jwt.Jwt;
 import static org.assertj.core.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
 class SkillPassportAuthorizationServiceTest {
 
@@ -100,5 +102,15 @@ class SkillPassportAuthorizationServiceTest {
     void extractUsername_returnsAuthenticationName() {
         Authentication ens = auth("jdoe", "ROLE_ENSEIGNANT");
         assertThat(service.extractUsername(ens)).isEqualTo("jdoe");
+    }
+
+    @Test
+    void extractUsername_withJwtPrincipal_returnsSubject() {
+        Jwt jwt = mock(Jwt.class);
+        when(jwt.getSubject()).thenReturn("jdoe");
+        Authentication auth = mock(Authentication.class);
+        when(auth.getPrincipal()).thenReturn(jwt);
+
+        assertThat(service.extractUsername(auth)).isEqualTo("jdoe");
     }
 }

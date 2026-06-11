@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo, useCallback } from "react";
 import {
   Card,
   Tabs,
@@ -11,6 +11,7 @@ import {
   Table,
   Divider,
   Alert,
+  Spin,
 } from "antd";
 import {
   EyeOutlined,
@@ -20,6 +21,10 @@ import {
   CalendarOutlined,
   WarningOutlined,
   ImportOutlined,
+  ExportOutlined,
+  FileExcelOutlined,
+  CheckCircleOutlined,
+  InfoCircleOutlined,
 } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import useAppNotification from "@/hooks/ui/useAppNotification";
@@ -30,6 +35,7 @@ import {
   useImportCalendar,
   useCalendarConflicts,
   useSendAllInvitations,
+  useCalendarFormations,
 } from "@/hooks/formation/useCalendar";
 import CalendarService from "@/services/formation/CalendarService";
 import {
@@ -40,8 +46,9 @@ import {
   CalendarFormationsTable,
 } from "@/components/calendar";
 import type { ImportReport, ParsedCalendar, ParsedSession } from "@/models/calendar";
+import "@/styles/pages/calendrier-gestion.css";
 
-const { Title, Paragraph } = Typography;
+const { Title, Paragraph, Text } = Typography;
 
 export default function CalendrierGestionPage() {
   const { message } = useAppNotification();
@@ -52,13 +59,18 @@ export default function CalendrierGestionPage() {
   const [preview, setPreview] = useState<ParsedCalendar | null>(null);
   const [report, setReport] = useState<ImportReport | null>(null);
   const [downloadingAll, setDownloadingAll] = useState(false);
+  const [activeTab, setActiveTab] = useState("import");
 
   const previewMutation = usePreviewImport();
   const importMutation = useImportCalendar();
   const sendAll = useSendAllInvitations();
   const conflicts = useCalendarConflicts();
+  const { data: formationsData } = useCalendarFormations({ page: 0, size: 1 });
 
-  const handlePreview = () => {
+  const conflictCount = conflicts.data?.totalConflicts ?? 0;
+  const formationsTotal = formationsData?.totalElements ?? 0;
+
+  const handlePreview = useCallback(() => {
     if (!file) return;
     setReport(null);
     previewMutation.mutate(file, {
@@ -68,9 +80,9 @@ export default function CalendrierGestionPage() {
       },
       onError: () => message.error("Impossible d'analyser le fichier."),
     });
-  };
+  }, [file, previewMutation, message]);
 
-  const handleImport = () => {
+  const handleImport = useCallback(() => {
     if (!file) return;
     setPreview(null);
     importMutation.mutate(file, {
@@ -87,9 +99,9 @@ export default function CalendrierGestionPage() {
       },
       onError: () => message.error("Échec de l'import."),
     });
-  };
+  }, [file, importMutation, conflicts, message]);
 
-  const handleDownloadAll = async () => {
+  const handleDownloadAll = useCallback(async () => {
     setDownloadingAll(true);
     try {
       await CalendarService.downloadIcsAll();
@@ -98,126 +110,237 @@ export default function CalendrierGestionPage() {
     } finally {
       setDownloadingAll(false);
     }
-  };
+  }, [message]);
 
-  const handleSendAll = () => {
+  const handleSendAll = useCallback(() => {
     sendAll.mutate(undefined, {
       onSuccess: (result) => message.success(result.message),
       onError: () => message.error("Échec de l'envoi global des invitations."),
     });
-  };
+  }, [sendAll, message]);
 
-  const importTab = (
-    <Space direction="vertical" size="large" style={{ width: "100%" }}>
-      {!admin && (
-        <Alert
-          type="info"
-          showIcon
-          message="L'import et l'envoi d'invitations sont réservés aux administrateurs."
-        />
-      )}
-      <CalendarFileUpload
-        file={file}
-        onFileChange={(f) => {
-          setFile(f);
-          setPreview(null);
-          setReport(null);
-        }}
-        disabled={previewMutation.isPending || importMutation.isPending}
-      />
+  const importTab = useMemo(
+    () => (
+      <div className="cal-gestion-import-section">
+        {!admin && (
+          <Alert
+            type="info"
+            showIcon
+            icon={<InfoCircleOutlined />}
+            message="Droits restreints"
+            description="L'import et l'envoi d'invitations sont réservés aux administrateurs. Vous pouvez consulter les formations et exporter le calendrier."
+          />
+        )}
+        <div className="cal-gestion-upload-wrapper">
+          <CalendarFileUpload
+            file={file}
+            onFileChange={(f) => {
+              setFile(f);
+              setPreview(null);
+              setReport(null);
+            }}
+            disabled={previewMutation.isPending || importMutation.isPending}
+          />
+        </div>
 
-      <Space>
-        <Button
-          icon={<EyeOutlined />}
-          disabled={!file || !admin}
-          loading={previewMutation.isPending}
-          onClick={handlePreview}
-        >
-          Aperçu
-        </Button>
-        <Button
-          type="primary"
-          icon={<CloudUploadOutlined />}
-          disabled={!file || !admin}
-          loading={importMutation.isPending}
-          onClick={handleImport}
-        >
-          Importer
-        </Button>
-      </Space>
-
-      {preview && <PreviewPanel preview={preview} />}
-      {report && <ImportResultSummary report={report} />}
-    </Space>
-  );
-
-  const exportTab = (
-    <Space direction="vertical" size="large" style={{ width: "100%" }}>
-      <Space wrap>
-        <Button
-          icon={<DownloadOutlined />}
-          loading={downloadingAll}
-          onClick={handleDownloadAll}
-        >
-          Télécharger tout le calendrier (.ics)
-        </Button>
-        {admin && (
+        <div className="cal-gestion-actions">
+          <Button
+            icon={<EyeOutlined />}
+            disabled={!file || !admin}
+            loading={previewMutation.isPending}
+            onClick={handlePreview}
+          >
+            Aperçu
+          </Button>
           <Button
             type="primary"
-            ghost
-            icon={<MailOutlined />}
-            loading={sendAll.isPending}
-            onClick={handleSendAll}
+            icon={<CloudUploadOutlined />}
+            disabled={!file || !admin}
+            loading={importMutation.isPending}
+            onClick={handleImport}
           >
-            Envoyer toutes les invitations
+            Importer dans le calendrier
           </Button>
-        )}
-      </Space>
-      <CalendarFormationsTable canSendInvitations={admin} />
-    </Space>
+          {!file && (
+            <Text type="secondary" style={{ marginLeft: 8 }}>
+              Sélectionnez un fichier .xlsx pour commencer
+            </Text>
+          )}
+        </div>
+
+        {preview && <PreviewPanel preview={preview} />}
+        {report && <ImportResultSummary report={report} />}
+      </div>
+    ),
+    [file, preview, report, admin, previewMutation.isPending, importMutation.isPending, handlePreview, handleImport]
   );
 
-  const tabs = [
-    {
-      key: "import",
-      label: (
-        <span>
-          <ImportOutlined /> Import
-        </span>
-      ),
-      children: importTab,
-    },
-    {
-      key: "export",
-      label: (
-        <span>
-          <CalendarOutlined /> Formations & Export
-        </span>
-      ),
-      children: exportTab,
-    },
-    {
-      key: "conflicts",
-      label: (
-        <span>
-          <WarningOutlined /> Conflits
-        </span>
-      ),
-      children: <ConflictsTable report={conflicts.data} loading={conflicts.isFetching} />,
-    },
-  ];
+  const exportTab = useMemo(
+    () => (
+      <div className="cal-gestion-export-section">
+        <div className="cal-gestion-export-actions">
+          <Button
+            icon={<DownloadOutlined />}
+            loading={downloadingAll}
+            onClick={handleDownloadAll}
+          >
+            Télécharger tout le calendrier (.ics)
+          </Button>
+          {admin && (
+            <Button
+              type="primary"
+              ghost
+              icon={<MailOutlined />}
+              loading={sendAll.isPending}
+              onClick={handleSendAll}
+            >
+              Envoyer toutes les invitations
+            </Button>
+          )}
+        </div>
+        <CalendarFormationsTable canSendInvitations={admin} />
+      </div>
+    ),
+    [downloadingAll, admin, sendAll.isPending, handleDownloadAll, handleSendAll]
+  );
+
+  const tabs = useMemo(
+    () => [
+      {
+        key: "import",
+        label: (
+          <span>
+            <ImportOutlined style={{ marginRight: 6 }} />
+            Import
+          </span>
+        ),
+        children: importTab,
+      },
+      {
+        key: "export",
+        label: (
+          <span>
+            <ExportOutlined style={{ marginRight: 6 }} />
+            Formations & Export
+            {formationsTotal > 0 && (
+              <span className="cal-gestion-tab-badge cal-gestion-tab-badge--success">
+                {formationsTotal}
+              </span>
+            )}
+          </span>
+        ),
+        children: exportTab,
+      },
+      {
+        key: "conflicts",
+        label: (
+          <span>
+            <WarningOutlined style={{ marginRight: 6 }} />
+            Conflits
+            {conflictCount > 0 && (
+              <span className="cal-gestion-tab-badge cal-gestion-tab-badge--danger">
+                {conflictCount}
+              </span>
+            )}
+          </span>
+        ),
+        children: <ConflictsTable report={conflicts.data} loading={conflicts.isFetching} />,
+      },
+    ],
+    [importTab, exportTab, formationsTotal, conflictCount, conflicts.data, conflicts.isFetching]
+  );
 
   return (
-    <Card>
-      <Title level={3}>
-        <CalendarOutlined /> Gestion du calendrier des ateliers
-      </Title>
-      <Paragraph type="secondary">
-        Importez le calendrier Excel des ateliers, détectez les conflits, exportez au format
-        iCalendar (.ics) compatible Outlook / Google / Apple, et envoyez les invitations par e-mail.
-      </Paragraph>
-      <Tabs defaultActiveKey="import" items={tabs} />
-    </Card>
+    <div className="cal-gestion-page">
+      {/* Hero Banner */}
+      <div className="cal-gestion-hero">
+        <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", flexWrap: "wrap", gap: 16 }}>
+          <div>
+            <Title level={3} className="cal-gestion-hero-title">
+              <CalendarOutlined style={{ marginRight: 10, WebkitTextFillColor: "#2563eb" }} />
+              Gestion du calendrier des ateliers
+            </Title>
+            <Paragraph className="cal-gestion-hero-subtitle">
+              Importez le calendrier Excel des ateliers, détectez les conflits, exportez au format
+              iCalendar (.ics) compatible Outlook / Google / Apple, et envoyez les invitations par e-mail.
+            </Paragraph>
+          </div>
+          {admin && (
+            <span className="cal-gestion-tab-badge cal-gestion-tab-badge--success" style={{ fontSize: 13, padding: "6px 16px", alignSelf: "center" }}>
+              <CheckCircleOutlined style={{ marginRight: 6 }} />
+              Mode administrateur
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Stats Row */}
+      <div className="cal-gestion-stats">
+        <div className="cal-gestion-stat-card cal-gestion-stat-card--import">
+          <div className="cal-gestion-stat-icon cal-gestion-stat-icon--import">
+            <FileExcelOutlined />
+          </div>
+          <div className="cal-gestion-stat-label">Import</div>
+          <div className="cal-gestion-stat-value" style={{ color: "#7c3aed" }}>
+            {file ? "1" : "—"}
+          </div>
+          <Text type="secondary" style={{ fontSize: 12 }}>
+            {file ? "Fichier prêt" : "Aucun fichier"}
+          </Text>
+        </div>
+        <div className="cal-gestion-stat-card cal-gestion-stat-card--export">
+          <div className="cal-gestion-stat-icon cal-gestion-stat-icon--export">
+            <ExportOutlined />
+          </div>
+          <div className="cal-gestion-stat-label">Formations</div>
+          <div className="cal-gestion-stat-value" style={{ color: "#0891b2" }}>
+            {formationsTotal}
+          </div>
+          <Text type="secondary" style={{ fontSize: 12 }}>
+            Planifiées
+          </Text>
+        </div>
+        <div className="cal-gestion-stat-card cal-gestion-stat-card--conflict">
+          <div className="cal-gestion-stat-icon cal-gestion-stat-icon--conflict">
+            <WarningOutlined />
+          </div>
+          <div className="cal-gestion-stat-label">Conflits</div>
+          <div className="cal-gestion-stat-value" style={{ color: conflictCount > 0 ? "#dc2626" : "#10b981" }}>
+            {conflictCount}
+          </div>
+          <Text type="secondary" style={{ fontSize: 12 }}>
+            {conflictCount === 0 ? "Aucun conflit" : "À résoudre"}
+          </Text>
+        </div>
+        <div className="cal-gestion-stat-card cal-gestion-stat-card--formations">
+          <div className="cal-gestion-stat-icon cal-gestion-stat-icon--formations">
+            <CalendarOutlined />
+          </div>
+          <div className="cal-gestion-stat-label">Statut</div>
+          <div className="cal-gestion-stat-value" style={{ color: "#059669", fontSize: 22 }}>
+            {conflicts.isFetching ? (
+              <Spin size="small" />
+            ) : conflictCount === 0 ? (
+              "OK"
+            ) : (
+              "⚠️"
+            )}
+          </div>
+          <Text type="secondary" style={{ fontSize: 12 }}>
+            Calendrier
+          </Text>
+        </div>
+      </div>
+
+      {/* Tabs Card */}
+      <div className="cal-gestion-tabs-card">
+        <Tabs
+          activeKey={activeTab}
+          onChange={setActiveTab}
+          items={tabs}
+        />
+      </div>
+    </div>
   );
 }
 
@@ -241,8 +364,12 @@ function PreviewPanel({ preview }: { preview: ParsedCalendar }) {
   ];
 
   return (
-    <Card type="inner" title="Aperçu (non enregistré)">
-      <Row gutter={16}>
+    <Card
+      type="inner"
+      title="Aperçu (non enregistré)"
+      className="cal-gestion-preview-card"
+    >
+      <Row gutter={[16, 16]}>
         <Col xs={8}>
           <Statistic title="Séances" value={preview.sessions.length} />
         </Col>

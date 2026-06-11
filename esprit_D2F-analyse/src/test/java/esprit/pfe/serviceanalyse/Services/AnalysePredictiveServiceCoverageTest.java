@@ -553,4 +553,104 @@ class AnalysePredictiveServiceCoverageTest {
         assertEquals(3, stats.get("totalEvaluations"), "Le total des évaluations doit être 3");
         assertEquals(4.0, stats.get("noteMoyenne"), "La note moyenne doit être 4.0");
     }
+
+    @Test
+    void testRecommanderFormations_whenServiceThrows_returnsFallback() {
+        // Test recommanderFormations catch block (formation service throws)
+        Map<String, Object> comp = new HashMap<>();
+        comp.put("id", 1);
+        comp.put("nom", "Java");
+        Map<String, Object> aff = new HashMap<>();
+        aff.put("competence", comp);
+        aff.put("niveauMaitrise", 2);
+
+        when(restTemplate.getForObject(contains("/api/v1/enseignant-competences"), eq(List.class)))
+            .thenReturn(List.of(aff));
+        when(restTemplate.getForObject(contains("/formations"), eq(List.class)))
+            .thenThrow(new RuntimeException("Formation service down"));
+
+        Map<String, Object> result = analysePredictiveService.analyserEnseignant("ens1", null);
+        assertNotNull(result);
+        List<Map<String, Object>> recommandations = (List<Map<String, Object>>) result.get("recommandationsFormations");
+        assertFalse(recommandations.isEmpty(), "Une recommandation de fallback doit être créée");
+        assertTrue(recommandations.get(0).get("titre").toString().contains("indisponible"));
+    }
+
+    @Test
+    void testDetecterBesoins_whenServiceThrows_usesGapsFallback() {
+        // Test detecterBesoins catch block (besoin formation service throws)
+        Map<String, Object> comp = new HashMap<>();
+        comp.put("id", 1);
+        comp.put("nom", "Java");
+        Map<String, Object> aff = new HashMap<>();
+        aff.put("competence", comp);
+        aff.put("niveauMaitrise", 2);
+
+        when(restTemplate.getForObject(contains("/api/v1/enseignant-competences"), eq(List.class)))
+            .thenReturn(List.of(aff));
+        when(restTemplate.getForObject(contains("/formations"), eq(List.class)))
+            .thenReturn(Collections.emptyList());
+        when(restTemplate.getForObject(contains("/formation-competences/formation/"), eq(List.class)))
+            .thenReturn(Collections.emptyList());
+        when(restTemplate.getForObject(contains("/besoinsFormations"), eq(List.class)))
+            .thenThrow(new RuntimeException("Besoin service down"));
+
+        Map<String, Object> result = analysePredictiveService.analyserEnseignant("ens1", null);
+        assertNotNull(result);
+        List<Map<String, Object>> besoins = (List<Map<String, Object>>) result.get("besoinsDetectes");
+        assertFalse(besoins.isEmpty(), "Les besoins doivent être peuplés via fallback gaps");
+    }
+
+    @Test
+    void testGenererDashboard_containsExpectedKeys() {
+        // Test genererDashboardEnseignant has expected keys
+        Map<String, Object> comp = new HashMap<>();
+        comp.put("id", 1);
+        comp.put("nom", "Java");
+        Map<String, Object> aff = new HashMap<>();
+        aff.put("competence", comp);
+        aff.put("niveauMaitrise", 2);
+
+        when(restTemplate.getForObject(contains("/api/v1/enseignant-competences"), eq(List.class)))
+            .thenReturn(List.of(aff));
+        when(restTemplate.getForObject(contains("/formations"), eq(List.class)))
+            .thenReturn(Collections.emptyList());
+        when(restTemplate.getForObject(contains("/formation-competences/formation/"), eq(List.class)))
+            .thenReturn(Collections.emptyList());
+        when(restTemplate.getForObject(contains("/besoinsFormations"), eq(List.class)))
+            .thenReturn(Collections.emptyList());
+
+        Map<String, Object> result = analysePredictiveService.analyserEnseignant("ens1", null);
+        assertNotNull(result);
+        Map<String, Object> dashboard = (Map<String, Object>) result.get("dashboard");
+        assertNotNull(dashboard);
+        assertTrue(dashboard.containsKey("nombreGaps"));
+        assertTrue(dashboard.containsKey("scoreGlobal"));
+        assertTrue(dashboard.containsKey("statut"));
+    }
+
+    @Test
+    void testAnalyserTendancesGlobales_whenEvalServiceThrows_returnsDefaults() {
+        // Test catch block in analyserTendancesGlobales
+        when(restTemplate.getForObject(contains("/evaluation/evaluations-globales"), eq(List.class)))
+            .thenThrow(new RuntimeException("Eval service down"));
+
+        Map<String, Object> result = analysePredictiveService.analyserTendancesGlobales();
+        assertNotNull(result);
+        Map<String, Object> stats = (Map<String, Object>) result.get("statistiques");
+        assertEquals(0, stats.get("totalEvaluations"));
+        assertEquals(0.0, stats.get("noteMoyenne"));
+    }
+
+    @Test
+    void testListerEnseignants_whenAuthThrows_returnsEmptyPage() {
+        // Test catch block in listerEnseignants
+        when(restTemplate.getForObject(contains("/api/v1/account/list-accounts"), eq(Map.class)))
+            .thenThrow(new RuntimeException("Auth service down"));
+
+        var page = analysePredictiveService.listerEnseignants(org.springframework.data.domain.Pageable.ofSize(10));
+        assertNotNull(page);
+        assertTrue(page.isEmpty());
+        assertEquals(0, page.getTotalElements());
+    }
 }

@@ -6,7 +6,7 @@ import {
   SafetyCertificateOutlined, UserOutlined, LineChartOutlined, ApiOutlined,
   ClusterOutlined, TeamOutlined, BookOutlined,
   AppstoreOutlined, CheckSquareOutlined, BankOutlined, SettingOutlined,
-  ImportOutlined,
+  ImportOutlined, DashboardOutlined,
 } from "@ant-design/icons";
 
 export interface MenuItem {
@@ -18,6 +18,9 @@ export interface MenuItem {
   children?: MenuItem[];
 }
 
+// Tableau de bord exécutif (landing /home) — point d'entrée commun à tous les rôles.
+const dashboardItem: MenuItem = { label: "Tableau de bord", key: "/home", icon: DashboardOutlined };
+
 export const accountGroup: MenuItem[] = [
   { type: "group", label: "MON COMPTE", children: [
     { label: "Mon Profil",    key: "/home/profile", icon: UserOutlined },
@@ -27,6 +30,7 @@ export const accountGroup: MenuItem[] = [
 
 export const adminMenu: MenuItem[] = [
   { type: "group", label: "TABLEAU DE BORD", children: [
+    dashboardItem,
     { label: "KPI & Métriques",    key: "/home/KPI",                icon: BarChartOutlined  },
     { label: "Analyse Prédictive", key: "/home/AnalysePredictive",  icon: LineChartOutlined },
   ]},
@@ -59,6 +63,7 @@ export const adminMenu: MenuItem[] = [
 ];
 
 export const cupMenu: MenuItem[] = [
+  dashboardItem,
   { label: "Évaluations",             key: "/home/Evaluations",         icon: TrophyOutlined },
   { label: "Référentiel Compétences", key: "/home/competences",         icon: BookOutlined },
   { label: "Besoins de Formation", key: "besoin_formation_menu", icon: ReadOutlined, children: [
@@ -77,6 +82,7 @@ export const cupMenu: MenuItem[] = [
 ];
 
 export const enseignantMenu: MenuItem[] = [
+  dashboardItem,
   { label: "Besoins de Formation", key: "besoin_formation_menu", icon: ReadOutlined, children: [
     { label: "Liste des Demandes", key: "/home/besoins",         icon: SearchOutlined },
     { label: "Déposer un Besoin",  key: "/home/besoins/ajouter", icon: PlusCircleOutlined },
@@ -89,6 +95,7 @@ export const enseignantMenu: MenuItem[] = [
 ];
 
 export const animateurMenu: MenuItem[] = [
+  dashboardItem,
   { label: "Sessions d'Animation", key: "/home/animateur-formations", icon: ReadOutlined },
   { label: "Besoins de Formation", key: "besoin_formation_menu", icon: ReadOutlined, children: [
     { label: "Liste des Demandes", key: "/home/besoins",         icon: SearchOutlined },
@@ -101,11 +108,13 @@ export const animateurMenu: MenuItem[] = [
 ];
 
 export const responsableDossierMenu: MenuItem[] = [
+  dashboardItem,
   { label: "Catalogue Formations", key: "/home/Formation/Consulter", icon: AppstoreOutlined },
   { label: "Gestion Documentaire", key: "/home/File",                icon: FileTextOutlined },
 ];
 
 export const chefDepartementMenu: MenuItem[] = [
+  dashboardItem,
   { label: "Gestion Formations",   key: "/home/Formation/Consulter", icon: AppstoreOutlined },
   { label: "Dossiers de Formation",key: "/home/File",                icon: FileTextOutlined },
   { label: "Calendrier Global",    key: "/home/Calendrier",          icon: CalendarOutlined },

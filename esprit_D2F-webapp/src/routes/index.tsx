@@ -34,7 +34,7 @@ const CertificatesByEmailPage = lazy(() => import("@/pages/certificat/Certificat
 const UpDeptDataGrid = lazy(() => import("@/pages/enseignant/UpDeptDataGrid"));
 const Register = lazy(() => import("@/pages/auth/Register"));
 const Forbidden403 = lazy(() => import("@/pages/error/Forbidden403"));
-const Home = lazy(() => import("@/pages/errors/Home"));
+const DashboardPage = lazy(() => import("@/pages/dashboard/DashboardPage"));
 const Login = lazy(() => import("@/pages/admin/gererComptes/Login"));
 const PasswordRecovery = lazy(() => import("@/pages/admin/gererComptes/PasswordRecovery"));
 const Profile = lazy(() => import("@/pages/auth/Profile"));
@@ -92,7 +92,7 @@ export default function AppRoutes() {
 
             <Route element={<PrivateRoute />}>
               <Route element={<AppLayout />}>
-                <Route path="/home" element={<Home />} />
+                <Route path="/home" element={<DashboardPage />} />
                 <Route path="/home/profile" element={<Profile />} />
                 <Route path="/home/skill-passport" element={<SkillPassportPage />} />
                 <Route path="/home/skill-passport/:username" element={<SkillPassportPage />} />

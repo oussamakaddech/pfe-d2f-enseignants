@@ -4,6 +4,7 @@ import esprit.pfe.serviceanalyse.dto.passport.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.time.LocalDate;
 import java.util.*;
 
 import static org.assertj.core.api.Assertions.*;
@@ -126,6 +127,200 @@ class SkillPassportPdfGeneratorTest {
         passport.setStatut("maîtrisé");
         passport.setGaps(Collections.emptyList());
         passport.setTotalGaps(0);
+
+        byte[] pdf = generator.generate(passport);
+        assertThat(pdf).isNotNull().hasSizeGreaterThan(100);
+    }
+
+    @Test
+    void generate_withNullCompetencesInDomain_doesNotThrow() {
+        DomainSummaryDTO domain = DomainSummaryDTO.builder()
+                .nom("Maths").scoreGlobal(2.0).totalSavoirs(0).competences(null).build();
+        TeacherSkillPassportDTO passport = buildSamplePassport();
+        passport.setDomaines(List.of(domain));
+        passport.setStatut("à_risque");
+        passport.setTotalGaps(0);
+
+        assertThatCode(() -> generator.generate(passport)).doesNotThrowAnyException();
+    }
+
+    @Test
+    void generate_withNullSavoirsInCompetence_doesNotThrow() {
+        CompetenceSummaryDTO comp = CompetenceSummaryDTO.builder()
+                .nom("Algèbre").niveauMoyen(2.0).savoirs(null).build();
+        DomainSummaryDTO domain = DomainSummaryDTO.builder()
+                .nom("Maths").scoreGlobal(2.0).totalSavoirs(0).competences(List.of(comp)).build();
+        TeacherSkillPassportDTO passport = buildSamplePassport();
+        passport.setDomaines(List.of(domain));
+
+        assertThatCode(() -> generator.generate(passport)).doesNotThrowAnyException();
+    }
+
+    @Test
+    void generate_withSavoirFaireAndSavoirEtreTypes_producesPdf() {
+        SavoirSummaryDTO sf = SavoirSummaryDTO.builder()
+                .code("SF-01").nom("Django").type("SAVOIR_FAIRE")
+                .niveau("N4_AVANCE").niveauLabel("N4 – Avancé").niveauNumeric(4).dateAcquisition(LocalDate.parse("2025-01-01")).build();
+        SavoirSummaryDTO se = SavoirSummaryDTO.builder()
+                .code("SE-01").nom("Leadership").type("SAVOIR_ETRE")
+                .niveau("N5_EXPERT").niveauLabel("N5 – Expert").niveauNumeric(5).build();
+        CompetenceSummaryDTO comp = CompetenceSummaryDTO.builder()
+                .nom("Dev").niveauMoyen(4.5).savoirs(List.of(sf, se)).build();
+        DomainSummaryDTO domain = DomainSummaryDTO.builder()
+                .nom("Info").scoreGlobal(4.5).totalSavoirs(2).competences(List.of(comp)).build();
+        TeacherSkillPassportDTO passport = buildSamplePassport();
+        passport.setDomaines(List.of(domain));
+
+        byte[] pdf = generator.generate(passport);
+        assertThat(pdf).isNotNull().hasSizeGreaterThan(100);
+    }
+
+    @Test
+    void generate_withBadgeAndAttestationCertifs_producesPdf() {
+        CertificationSummaryDTO badge = CertificationSummaryDTO.builder()
+                .certificatId(2L).titreFormation("AWS").typeCertif("BADGE").dateObtention("2025-03-01").build();
+        CertificationSummaryDTO attest = CertificationSummaryDTO.builder()
+                .certificatId(3L).titreFormation("Docker").typeCertif("ATTESTATION").dateObtention("2025-04-01").build();
+        TeacherSkillPassportDTO passport = buildSamplePassport();
+        passport.setCertifications(List.of(badge, attest));
+
+        byte[] pdf = generator.generate(passport);
+        assertThat(pdf).isNotNull().hasSizeGreaterThan(100);
+    }
+
+    @Test
+    void generate_withEnCoursFormationAndMoyenneGap_doesNotThrow() {
+        TrainingHistoryDTO encours = TrainingHistoryDTO.builder()
+                .formationId("11").titre("Angular").statut("EN_COURS").build();
+        SkillGapSummaryDTO gapMoyen = SkillGapSummaryDTO.builder()
+                .competenceCode("INF-03").competenceLabel("JS").niveauActuel(2).niveauCible(4)
+                .gap(2.0).gravite("moyenne").explication("Écart modéré").build();
+        TeacherSkillPassportDTO passport = buildSamplePassport();
+        passport.setFormations(List.of(encours));
+        passport.setGaps(List.of(gapMoyen));
+
+        assertThatCode(() -> generator.generate(passport)).doesNotThrowAnyException();
+    }
+
+    @Test
+    void generate_withLowScoreAndRisqueStatut_producesPdf() {
+        TeacherSkillPassportDTO passport = buildSamplePassport();
+        passport.setScoreGlobal(1.5);
+        passport.setStatut("à_risque");
+
+        byte[] pdf = generator.generate(passport);
+        assertThat(pdf).isNotNull().hasSizeGreaterThan(100);
+    }
+
+    @Test
+    void generate_withMoyennePrioriteAndEmptyCompetences_doesNotThrow() {
+        RecommendationSummaryDTO reco = RecommendationSummaryDTO.builder()
+                .formationId("6").titre("Kubernetes").duree("20h").probabiliteReussite(0.75)
+                .priorite("moyenne").justification("Formation utile").competencesCiblees(Collections.emptyList()).build();
+        TeacherSkillPassportDTO passport = buildSamplePassport();
+        passport.setRecommandations(List.of(reco));
+
+        assertThatCode(() -> generator.generate(passport)).doesNotThrowAnyException();
+    }
+
+    @Test
+    void generate_withHighGraviteAndLowPriorite_doesNotThrow() {
+        SkillGapSummaryDTO gap = SkillGapSummaryDTO.builder()
+                .competenceCode("INF-04").competenceLabel("Scala").niveauActuel(1).niveauCible(4)
+                .gap(3.0).gravite("élevée").explication("Très grand écart").build();
+        RecommendationSummaryDTO reco = RecommendationSummaryDTO.builder()
+                .formationId("7").titre("Scala Avancé").duree("30h").probabiliteReussite(0.60)
+                .priorite("basse").justification("Long terme").competencesCiblees(List.of("Scala")).build();
+        TeacherSkillPassportDTO passport = buildSamplePassport();
+        passport.setGaps(List.of(gap));
+        passport.setRecommandations(List.of(reco));
+
+        byte[] pdf = generator.generate(passport);
+        assertThat(pdf).isNotNull().hasSizeGreaterThan(100);
+    }
+
+    @Test
+    void generate_withNullStatutAndValideFormation_producesPdf() {
+        TrainingHistoryDTO valide = TrainingHistoryDTO.builder()
+                .formationId("12").titre("React").statut("VALIDE").build();
+        TeacherSkillPassportDTO passport = buildSamplePassport();
+        passport.setStatut(null);
+        passport.setFormations(List.of(valide));
+
+        byte[] pdf = generator.generate(passport);
+        assertThat(pdf).isNotNull().hasSizeGreaterThan(100);
+    }
+
+    @Test
+    void generate_withNullIdentity_throwsException() {
+        TeacherSkillPassportDTO passport = buildSamplePassport();
+        passport.setIdentity(null);
+        assertThatThrownBy(() -> generator.generate(passport))
+                .isInstanceOf(esprit.pfe.serviceanalyse.exception.PdfGenerationException.class);
+    }
+
+    @Test
+    void generate_withLowNiveauSavoir_producesPdf() {
+        SavoirSummaryDTO low = SavoirSummaryDTO.builder()
+                .code("S01").nom("Base").type("SAVOIR")
+                .niveau("N1_DEBUTANT").niveauLabel("Débutant").niveauNumeric(1).build();
+        CompetenceSummaryDTO comp = CompetenceSummaryDTO.builder()
+                .nom("Base").niveauMoyen(1.0).savoirs(List.of(low)).build();
+        DomainSummaryDTO domain = DomainSummaryDTO.builder()
+                .nom("Info").scoreGlobal(1.0).totalSavoirs(1).competences(List.of(comp)).build();
+        TeacherSkillPassportDTO passport = buildSamplePassport();
+        passport.setDomaines(List.of(domain));
+
+        byte[] pdf = generator.generate(passport);
+        assertThat(pdf).isNotNull().hasSizeGreaterThan(100);
+    }
+
+    @Test
+    void generate_withPlannedFormation_producesPdf() {
+        TrainingHistoryDTO planned = TrainingHistoryDTO.builder()
+                .formationId("13").titre("Docker").statut("PLANIFIEE").build();
+        TeacherSkillPassportDTO passport = buildSamplePassport();
+        passport.setFormations(List.of(planned));
+
+        byte[] pdf = generator.generate(passport);
+        assertThat(pdf).isNotNull().hasSizeGreaterThan(100);
+    }
+
+    @Test
+    void generate_withFaibleGravite_producesPdf() {
+        SkillGapSummaryDTO gap = SkillGapSummaryDTO.builder()
+                .competenceCode("INF-05").competenceLabel("Rust").niveauActuel(3).niveauCible(4)
+                .gap(1.0).gravite("faible").explication("Écart mineur").build();
+        TeacherSkillPassportDTO passport = buildSamplePassport();
+        passport.setGaps(List.of(gap));
+        passport.setTotalGaps(1);
+
+        byte[] pdf = generator.generate(passport);
+        assertThat(pdf).isNotNull().hasSizeGreaterThan(100);
+    }
+
+    @Test
+    void generate_withOtherCertType_producesPdf() {
+        CertificationSummaryDTO other = CertificationSummaryDTO.builder()
+                .certificatId(4L).titreFormation("Kubernetes").typeCertif("AUTRE").dateObtention("2025-05-01").build();
+        CertificationSummaryDTO nullType = CertificationSummaryDTO.builder()
+                .certificatId(5L).titreFormation("Terraform").typeCertif(null).dateObtention("2025-06-01").build();
+        TeacherSkillPassportDTO passport = buildSamplePassport();
+        passport.setCertifications(List.of(other, nullType));
+
+        byte[] pdf = generator.generate(passport);
+        assertThat(pdf).isNotNull().hasSizeGreaterThan(100);
+    }
+
+    @Test
+    void generate_withLongExplanation_truncates() {
+        SkillGapSummaryDTO gap = SkillGapSummaryDTO.builder()
+                .competenceCode("INF-06").competenceLabel("Kotlin").niveauActuel(1).niveauCible(4)
+                .gap(3.0).gravite("élevée")
+                .explication("Cet écart de compétence est très important et nécessite une attention immédiate avec un plan de formation dédié")
+                .build();
+        TeacherSkillPassportDTO passport = buildSamplePassport();
+        passport.setGaps(List.of(gap));
 
         byte[] pdf = generator.generate(passport);
         assertThat(pdf).isNotNull().hasSizeGreaterThan(100);

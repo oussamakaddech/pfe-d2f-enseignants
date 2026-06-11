@@ -27,7 +27,7 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
             .cors(Customizer.withDefaults())
-            .csrf(csrf -> csrf.disable())
+            .csrf(csrf -> csrf.disable()) // NOSONAR java:S4502 — stateless+JWT rend CSRF inutile
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             // DSI §12 — RBAC deny-by-default : whitelist minimale + JWT obligatoire.
             // Le contrôle fin est porté par @PreAuthorize sur chaque méthode.

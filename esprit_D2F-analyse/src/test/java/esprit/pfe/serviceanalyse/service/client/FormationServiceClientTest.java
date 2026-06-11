@@ -9,6 +9,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
@@ -22,6 +24,7 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 @DisplayName("FormationServiceClient - Tests")
 class FormationServiceClientTest {
 
@@ -46,7 +49,7 @@ class FormationServiceClientTest {
                         "competencesCiblees", List.of("Java", "Spring"))
         );
 
-        when(restTemplate.exchange(contains("/inscription/"), eq(HttpMethod.GET), any(HttpEntity.class), eq(List.class)))
+        when(restTemplate.exchange(contains("/inscription/"), eq(HttpMethod.GET), any(HttpEntity.class), eq(Object.class)))
                 .thenReturn(ResponseEntity.ok(inscriptions));
 
         List<TrainingHistoryDTO> result = client.getFormationsForTeacher("user1", "Bearer token");
@@ -67,9 +70,9 @@ class FormationServiceClientTest {
                         "chargeHoraireGlobal", "30", "etatFormation", "EN_COURS")
         );
 
-        when(restTemplate.exchange(contains("/inscription/"), eq(HttpMethod.GET), any(HttpEntity.class), eq(List.class)))
+        when(restTemplate.exchange(contains("/inscription/"), eq(HttpMethod.GET), any(HttpEntity.class), eq(Object.class)))
                 .thenReturn(ResponseEntity.ok(Collections.emptyList()));
-        when(restTemplate.exchange(contains("/formations"), eq(HttpMethod.GET), any(HttpEntity.class), eq(List.class)))
+        when(restTemplate.exchange(contains("/formations"), eq(HttpMethod.GET), any(HttpEntity.class), eq(Object.class)))
                 .thenReturn(ResponseEntity.ok(formations));
 
         List<TrainingHistoryDTO> result = client.getFormationsForTeacher("user1", "Bearer token");
@@ -88,9 +91,9 @@ class FormationServiceClientTest {
                         "chargeHoraireGlobal", "20", "etatFormation", "PLANIFIEE")
         );
 
-        when(restTemplate.exchange(contains("/inscription/"), eq(HttpMethod.GET), any(HttpEntity.class), eq(List.class)))
+        when(restTemplate.exchange(contains("/inscription/"), eq(HttpMethod.GET), any(HttpEntity.class), eq(Object.class)))
                 .thenThrow(new RuntimeException("Connection refused"));
-        when(restTemplate.exchange(contains("/formations"), eq(HttpMethod.GET), any(HttpEntity.class), eq(List.class)))
+        when(restTemplate.exchange(contains("/formations"), eq(HttpMethod.GET), any(HttpEntity.class), eq(Object.class)))
                 .thenReturn(ResponseEntity.ok(formations));
 
         List<TrainingHistoryDTO> result = client.getFormationsForTeacher("user1", "Bearer token");
@@ -111,9 +114,9 @@ class FormationServiceClientTest {
                         "chargeHoraireGlobal", "15", "etatFormation", "EN_COURS")
         );
 
-        when(restTemplate.exchange(contains("/inscription/"), eq(HttpMethod.GET), any(HttpEntity.class), eq(List.class)))
+        when(restTemplate.exchange(contains("/inscription/"), eq(HttpMethod.GET), any(HttpEntity.class), eq(Object.class)))
                 .thenThrow(new RuntimeException("Error"));
-        when(restTemplate.exchange(contains("/formations"), eq(HttpMethod.GET), any(HttpEntity.class), eq(List.class)))
+        when(restTemplate.exchange(contains("/formations"), eq(HttpMethod.GET), any(HttpEntity.class), eq(Object.class)))
                 .thenReturn(ResponseEntity.ok(formations));
 
         List<TrainingHistoryDTO> result = client.getFormationsForTeacher("user1", "Bearer token");
@@ -125,9 +128,9 @@ class FormationServiceClientTest {
     @Test
     @DisplayName("getFormationsForTeacher: réponse null retourne liste vide")
     void getFormations_withNullResponse_returnsEmptyList() {
-        when(restTemplate.exchange(contains("/inscription/"), eq(HttpMethod.GET), any(HttpEntity.class), eq(List.class)))
+        when(restTemplate.exchange(contains("/inscription/"), eq(HttpMethod.GET), any(HttpEntity.class), eq(Object.class)))
                 .thenThrow(new RuntimeException("Error"));
-        when(restTemplate.exchange(contains("/formations"), eq(HttpMethod.GET), any(HttpEntity.class), eq(List.class)))
+        when(restTemplate.exchange(contains("/formations"), eq(HttpMethod.GET), any(HttpEntity.class), eq(Object.class)))
                 .thenReturn(ResponseEntity.ok(null));
 
         List<TrainingHistoryDTO> result = client.getFormationsForTeacher("user1", "Bearer token");
@@ -147,7 +150,7 @@ class FormationServiceClientTest {
                         "competencesCiblees", "not-a-list")
         );
 
-        when(restTemplate.exchange(contains("/inscription/"), eq(HttpMethod.GET), any(HttpEntity.class), eq(List.class)))
+        when(restTemplate.exchange(contains("/inscription/"), eq(HttpMethod.GET), any(HttpEntity.class), eq(Object.class)))
                 .thenReturn(ResponseEntity.ok(inscriptions));
 
         List<TrainingHistoryDTO> result = client.getFormationsForTeacher("user1", "Bearer token");

@@ -36,13 +36,10 @@ class AnalysePredictiveBffServiceTest {
 
         Map<String, Object> result = service.overview("Bearer t");
 
-        assertThat(result).containsKey("kpis");
-        assertThat(result.get("source")).isEqualTo("analyse-bff");
+        assertThat(result).containsKey("kpis").containsEntry("source", "analyse-bff");
         @SuppressWarnings("unchecked")
         Map<String, Object> alertes = (Map<String, Object>) result.get("alertes");
-        // Le résumé ne garde que les compteurs clés (pas by_type).
-        assertThat(alertes).containsEntry("total", 30).containsEntry("nouvelles", 5);
-        assertThat(alertes).doesNotContainKey("by_type");
+        assertThat(alertes).containsEntry("total", 30).containsEntry("nouvelles", 5).doesNotContainKey("by_type");
     }
 
     @Test

@@ -9,6 +9,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
@@ -22,6 +24,7 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 @DisplayName("CompetenceServiceClient - Tests")
 class CompetenceServiceClientTest {
 
@@ -60,7 +63,7 @@ class CompetenceServiceClientTest {
                 aff("Mathematiques", "Algebre", 3L, "SE-M01", "Resolution", "N4_AVANCE", "Calcul", "2024-06-10")
         );
 
-        when(restTemplate.exchange(anyString(), eq(HttpMethod.GET), any(HttpEntity.class), eq(List.class)))
+        when(restTemplate.exchange(anyString(), eq(HttpMethod.GET), any(HttpEntity.class), eq(Object.class)))
                 .thenReturn(ResponseEntity.ok(affectations));
 
         List<DomainSummaryDTO> result = client.getDomainSummaries("user1", "Bearer token");
@@ -76,7 +79,7 @@ class CompetenceServiceClientTest {
     @Test
     @DisplayName("getDomainSummaries: affectations vides retourne liste vide")
     void getDomainSummaries_withEmptyAffectations_returnsEmptyList() {
-        when(restTemplate.exchange(anyString(), eq(HttpMethod.GET), any(HttpEntity.class), eq(List.class)))
+        when(restTemplate.exchange(anyString(), eq(HttpMethod.GET), any(HttpEntity.class), eq(Object.class)))
                 .thenReturn(ResponseEntity.ok(Collections.emptyList()));
 
         List<DomainSummaryDTO> result = client.getDomainSummaries("user1", "Bearer token");
@@ -87,7 +90,7 @@ class CompetenceServiceClientTest {
     @Test
     @DisplayName("getDomainSummaries: réponse null retourne liste vide")
     void getDomainSummaries_withNullResponse_returnsEmptyList() {
-        when(restTemplate.exchange(anyString(), eq(HttpMethod.GET), any(HttpEntity.class), eq(List.class)))
+        when(restTemplate.exchange(anyString(), eq(HttpMethod.GET), any(HttpEntity.class), eq(Object.class)))
                 .thenReturn(ResponseEntity.ok(null));
 
         List<DomainSummaryDTO> result = client.getDomainSummaries("user1", "Bearer token");
@@ -102,7 +105,7 @@ class CompetenceServiceClientTest {
                 aff("Test", "Comp", 1L, "S01", "Savoir1", null, null, "2025-01-01")
         );
 
-        when(restTemplate.exchange(anyString(), eq(HttpMethod.GET), any(HttpEntity.class), eq(List.class)))
+        when(restTemplate.exchange(anyString(), eq(HttpMethod.GET), any(HttpEntity.class), eq(Object.class)))
                 .thenReturn(ResponseEntity.ok(affectations));
 
         List<DomainSummaryDTO> result = client.getDomainSummaries("user1", "Bearer token");
@@ -118,7 +121,7 @@ class CompetenceServiceClientTest {
                 aff("D1", "C1", 1L, "SF-01", "Faire", "N2_ELEMENTAIRE", null, "2025-01-01")
         );
 
-        when(restTemplate.exchange(anyString(), eq(HttpMethod.GET), any(HttpEntity.class), eq(List.class)))
+        when(restTemplate.exchange(anyString(), eq(HttpMethod.GET), any(HttpEntity.class), eq(Object.class)))
                 .thenReturn(ResponseEntity.ok(affectations));
 
         List<DomainSummaryDTO> result = client.getDomainSummaries("user1", "Bearer token");
@@ -133,7 +136,7 @@ class CompetenceServiceClientTest {
                 aff("D1", "C1", 1L, "SE-01", "Etre", "N5_EXPERT", null, "2025-01-01")
         );
 
-        when(restTemplate.exchange(anyString(), eq(HttpMethod.GET), any(HttpEntity.class), eq(List.class)))
+        when(restTemplate.exchange(anyString(), eq(HttpMethod.GET), any(HttpEntity.class), eq(Object.class)))
                 .thenReturn(ResponseEntity.ok(affectations));
 
         List<DomainSummaryDTO> result = client.getDomainSummaries("user1", "Bearer token");
@@ -150,7 +153,7 @@ class CompetenceServiceClientTest {
                 aff("D1", "C1", 1L, "S01", "Expert", "N5_EXPERT", null, "2025-01-01")
         );
 
-        when(restTemplate.exchange(anyString(), eq(HttpMethod.GET), any(HttpEntity.class), eq(List.class)))
+        when(restTemplate.exchange(anyString(), eq(HttpMethod.GET), any(HttpEntity.class), eq(Object.class)))
                 .thenReturn(ResponseEntity.ok(affectations));
 
         List<DomainSummaryDTO> result = client.getDomainSummaries("user1", "Bearer token");
@@ -166,7 +169,7 @@ class CompetenceServiceClientTest {
                 aff("D1", "C1", 1L, "S01", "S1", "N1_DEBUTANT", null, null)
         );
 
-        when(restTemplate.exchange(anyString(), eq(HttpMethod.GET), any(HttpEntity.class), eq(List.class)))
+        when(restTemplate.exchange(anyString(), eq(HttpMethod.GET), any(HttpEntity.class), eq(Object.class)))
                 .thenReturn(ResponseEntity.ok(affectations));
 
         List<DomainSummaryDTO> result = client.getDomainSummaries("user1", "Bearer token");
