@@ -37,17 +37,5 @@ diag_tv.py
 # Large build artifacts
 formation-service.jar
 
-# ── Artefacts de compilation LaTeX (rapport PFE) ─────────────────────────────
-# On versionne les sources (.tex/.bib) mais pas les fichiers intermédiaires.
-rapport-pfe/*.aux
-rapport-pfe/*.bbl
-rapport-pfe/*.bcf
-rapport-pfe/*.blg
-rapport-pfe/*.fdb_latexmk
-rapport-pfe/*.fls
-rapport-pfe/*.lof
-rapport-pfe/*.lot
-rapport-pfe/*.out
-rapport-pfe/*.run.xml
-rapport-pfe/*.synctex.gz
-rapport-pfe/*.toc
+# ── Rapport PFE ────────────────────────────────────────────────────────────────
+rapport-pfe/
