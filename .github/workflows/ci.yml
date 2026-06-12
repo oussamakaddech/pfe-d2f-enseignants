@@ -141,7 +141,6 @@ jobs:
         service:
           - esprit_D2F-rice
           - esprit_D2F-predictive-analytics
-          - esprit_D2F-recommandation-formateur
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -328,7 +327,6 @@ jobs:
             "d2f_api_gateway", "d2f_authentification", "d2f_besoin_formation",
             "d2f_certificat", "d2f_competence", "d2f_evaluation", "d2f_formation",
             "d2f_analyse", "d2f_webapp", "d2f_rice", "d2f_predictive_analytics",
-            "d2f_recommandation_formateur"
           )
 
           # Recuperer tous les projets existants
@@ -394,7 +392,6 @@ jobs:
           # --- Services Python (pytest + cov) ---
           - { module: esprit_D2F-rice,                     projectKey: d2f_rice,                     type: python }
           - { module: esprit_D2F-predictive-analytics,     projectKey: d2f_predictive_analytics,     type: python }
-          - { module: esprit_D2F-recommandation-formateur, projectKey: d2f_recommandation_formateur, type: python }
     steps:
       - uses: actions/checkout@v4
         with: { fetch-depth: 0 }
@@ -518,7 +515,6 @@ jobs:
           - { image: d2f-certificat,               context: ".",                                      file: "esprit_D2F-certificat/Dockerfile" }
           - { image: d2f-analyse,                  context: ".",                                      file: "esprit_D2F-analyse/Dockerfile" }
           - { image: d2f-api-gateway,              context: "esprit_D2F-api-gateway",                 file: "esprit_D2F-api-gateway/Dockerfile" }
-          - { image: d2f-recommandation-formateur, context: "esprit_D2F-recommandation-formateur",    file: "esprit_D2F-recommandation-formateur/Dockerfile" }
           - { image: d2f-rice,                     context: "esprit_D2F-rice",                        file: "esprit_D2F-rice/Dockerfile" }
           - { image: d2f-predictive-analytics,     context: "esprit_D2F-predictive-analytics",        file: "esprit_D2F-predictive-analytics/Dockerfile" }
           - { image: d2f-webapp,                   context: "esprit_D2F-webapp",                      file: "esprit_D2F-webapp/Dockerfile" }

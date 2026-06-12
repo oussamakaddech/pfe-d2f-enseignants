@@ -41,10 +41,6 @@ services:
     image: ${REGISTRY}/d2f-formation:${IMAGE_TAG}
     pull_policy: always
 
-  ai-reco-service:
-    image: ${REGISTRY}/d2f-recommandation-formateur:${IMAGE_TAG}
-    pull_policy: always
-
   rice-service:
     image: ${REGISTRY}/d2f-rice:${IMAGE_TAG}
     pull_policy: always

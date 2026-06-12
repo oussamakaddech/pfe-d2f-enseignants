@@ -318,7 +318,6 @@ services:
       FORMATION_SERVICE_URL: http://d2f-formation:8088
       BESOIN_SERVICE_URL: http://d2f-besoin-formation:8004
       COMPETENCE_SERVICE_URL: http://d2f-competence:8005
-      AI_RECO_SERVICE_URL: http://d2f-ai-reco:8000
       RICE_SERVICE_URL: http://d2f-rice:8001
       ANALYSE_SERVICE_URL: http://d2f-predictive-analytics:8000
       # Skill Passport — héberge par le service-analyse Java (port 8089)
@@ -443,33 +442,6 @@ services:
       timeout: 10s
       retries: 3
       start_period: 60s
-    networks:
-      - d2f-network
-
-  # ── AI Reco Service (Python/FastAPI) ────────────────────────────────────────
-  # SÉCURITÉ : aucun port exposé — accessible uniquement via l'API Gateway
-  ai-reco-service:
-    build:
-      context: ./esprit_D2F-recommandation-formateur
-      dockerfile: Dockerfile
-    container_name: d2f-ai-reco
-    restart: unless-stopped
-    environment:
-      APP_ENV: production
-      JWT_SECRET: ${JWT_SECRET}
-      DB_NAME: ${POSTGRES_DB:-d2f}
-      DB_USER: ${DB_USER:-d2f}
-      DB_PASS: ${DB_PASSWORD}
-      # DSI §2 — hostname DB standard
-      DB_HOST: db.dsi.local
-      DB_PORT: "5432"
-      CORS_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:3000,http://localhost:5173}
-    healthcheck:
-      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://localhost:8000/health')\" || exit 1"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
     networks:
       - d2f-network
 

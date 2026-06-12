@@ -23,7 +23,6 @@ on:
           - d2f-certificat
           - d2f-analyse
           - d2f-api-gateway
-          - d2f-recommandation-formateur
           - d2f-rice
           - d2f-predictive-analytics
           - d2f-webapp
@@ -66,7 +65,6 @@ jobs:
             d2f-certificat)                echo "context=."                                        >> "$GITHUB_OUTPUT"; echo "file=esprit_D2F-certificat/Dockerfile"                >> "$GITHUB_OUTPUT" ;;
             d2f-analyse)                   echo "context=."                                        >> "$GITHUB_OUTPUT"; echo "file=esprit_D2F-analyse/Dockerfile"                   >> "$GITHUB_OUTPUT" ;;
             d2f-api-gateway)               echo "context=esprit_D2F-api-gateway"                  >> "$GITHUB_OUTPUT"; echo "file=esprit_D2F-api-gateway/Dockerfile"               >> "$GITHUB_OUTPUT" ;;
-            d2f-recommandation-formateur)  echo "context=esprit_D2F-recommandation-formateur"     >> "$GITHUB_OUTPUT"; echo "file=esprit_D2F-recommandation-formateur/Dockerfile"  >> "$GITHUB_OUTPUT" ;;
             d2f-rice)                      echo "context=esprit_D2F-rice"                         >> "$GITHUB_OUTPUT"; echo "file=esprit_D2F-rice/Dockerfile"                      >> "$GITHUB_OUTPUT" ;;
             d2f-predictive-analytics)      echo "context=esprit_D2F-predictive-analytics"         >> "$GITHUB_OUTPUT"; echo "file=esprit_D2F-predictive-analytics/Dockerfile"      >> "$GITHUB_OUTPUT" ;;
             d2f-webapp)                    echo "context=esprit_D2F-webapp"                       >> "$GITHUB_OUTPUT"; echo "file=esprit_D2F-webapp/Dockerfile"                    >> "$GITHUB_OUTPUT" ;;

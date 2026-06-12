@@ -33,7 +33,6 @@ jobs:
           - { image: d2f-certificat,               context: ".",                                      file: "esprit_D2F-certificat/Dockerfile" }
           - { image: d2f-analyse,                  context: ".",                                      file: "esprit_D2F-analyse/Dockerfile" }
           - { image: d2f-api-gateway,              context: "esprit_D2F-api-gateway",                 file: "esprit_D2F-api-gateway/Dockerfile" }
-          - { image: d2f-recommandation-formateur, context: "esprit_D2F-recommandation-formateur",    file: "esprit_D2F-recommandation-formateur/Dockerfile" }
           - { image: d2f-rice,                     context: "esprit_D2F-rice",                        file: "esprit_D2F-rice/Dockerfile" }
           - { image: d2f-predictive-analytics,     context: "esprit_D2F-predictive-analytics",        file: "esprit_D2F-predictive-analytics/Dockerfile" }
           - { image: d2f-webapp,                   context: "esprit_D2F-webapp",                      file: "esprit_D2F-webapp/Dockerfile" }
