@@ -92,6 +92,13 @@ interface CreateAccountDrawerProps {
 
 type StrengthStatus = "success" | "exception" | "normal" | "active";
 
+const STRENGTH_COLOR: Record<StrengthStatus, string> = {
+  success: "var(--color-success)",
+  exception: "var(--color-error)",
+  active: "var(--color-warning)",
+  normal: "var(--text-muted)",
+};
+
 function getPasswordStrength(pwd: string | undefined): {
   percent: number;
   label: string;
@@ -107,8 +114,8 @@ function getPasswordStrength(pwd: string | undefined): {
   ];
   const score = checks.filter((c) => c.ok).length;
   const percent = (score / checks.length) * 100;
-  let label = "—";
-  let status: StrengthStatus = "normal";
+  let label: string;
+  let status: StrengthStatus;
   if (score === 0) { label = "—"; status = "normal"; }
   else if (score <= 2) { label = "Faible"; status = "exception"; }
   else if (score <= 3) { label = "Moyen"; status = "active"; }
@@ -118,6 +125,25 @@ function getPasswordStrength(pwd: string | undefined): {
 }
 
 const PASSWORD_REGEX = /^(?=.*[A-Za-z])(?=.*\d).{8,72}$/;
+
+function resolveFlag(isStructure: boolean, role: string, flagRole: string, fallback: string | undefined): string | undefined {
+  if (isStructure) return role === flagRole ? "O" : "N";
+  return fallback;
+}
+
+function resolve409Message(raw: string, username: string): string {
+  const lower = raw.toLowerCase();
+  if (lower.includes("email")) {
+    return "Cette adresse e-mail est déjà utilisée par un compte existant. Vérifiez si cet enseignant a déjà un compte ou utilisez une autre adresse.";
+  }
+  if (lower.includes("username")) {
+    return `Le nom d'utilisateur "${username}" est déjà pris. Choisissez un autre identifiant.`;
+  }
+  if (lower.includes("id")) {
+    return "L'identifiant fourni est déjà attribué à un compte existant.";
+  }
+  return "Un compte avec ces informations existe déjà (conflit email ou identifiant).";
+}
 
 export default function CreateAccountDrawer({
   open,
@@ -201,8 +227,8 @@ export default function CreateAccountDrawer({
         // serveur si la fiche échoue → pas de compte orphelin). Pour les
         // responsables de structure, l'indicateur cup/chefDepartement est
         // déduit du rôle.
-        const cupFlag = isStructure ? (values.role === "CUP" ? "O" : "N") : values.cup;
-        const chefFlag = isStructure ? (values.role === "CHEF_DEPARTEMENT" ? "O" : "N") : values.chefDepartement;
+        const cupFlag = resolveFlag(isStructure, values.role, "CUP", values.cup);
+        const chefFlag = resolveFlag(isStructure, values.role, "CHEF_DEPARTEMENT", values.chefDepartement);
         await EnseignantService.createEnseignantWithAccount(
           {
             username: values.username,
@@ -247,20 +273,9 @@ export default function CreateAccountDrawer({
       const e = err as { response?: { status?: number; data?: { message?: string } } };
       const status = e?.response?.status;
       const raw = e?.response?.data?.message ?? "";
-      let userMsg: string;
-      if (status === 409) {
-        if (raw.toLowerCase().includes("email")) {
-          userMsg = "Cette adresse e-mail est déjà utilisée par un compte existant. Vérifiez si cet enseignant a déjà un compte ou utilisez une autre adresse.";
-        } else if (raw.toLowerCase().includes("username")) {
-          userMsg = `Le nom d'utilisateur "${values.username}" est déjà pris. Choisissez un autre identifiant.`;
-        } else if (raw.toLowerCase().includes("id")) {
-          userMsg = "L'identifiant fourni est déjà attribué à un compte existant.";
-        } else {
-          userMsg = "Un compte avec ces informations existe déjà (conflit email ou identifiant).";
-        }
-      } else {
-        userMsg = raw || "Erreur lors de la création du compte";
-      }
+      const userMsg = status === 409
+        ? resolve409Message(raw, values.username)
+        : (raw || "Erreur lors de la création du compte");
       message.error(userMsg);
     } finally {
       setLoading(false);
@@ -455,11 +470,7 @@ export default function CreateAccountDrawer({
                   style={{
                     fontSize: 12,
                     fontWeight: 600,
-                    color:
-                      strength.status === "success" ? "var(--color-success)" :
-                      strength.status === "exception" ? "var(--color-error)" :
-                      strength.status === "active" ? "var(--color-warning)" :
-                      "var(--text-muted)",
+                    color: STRENGTH_COLOR[strength.status],
                   }}
                 >
                   {strength.label}
@@ -704,7 +715,7 @@ export default function CreateAccountDrawer({
   );
 }
 
-function SectionTitle({ icon, title }: { icon: React.ReactNode; title: string }) {
+function SectionTitle({ icon, title }: Readonly<{ icon: React.ReactNode; title: string }>) {
   return (
     <div
       style={{

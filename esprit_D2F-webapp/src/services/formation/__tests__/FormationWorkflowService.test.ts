@@ -75,14 +75,56 @@ describe('FormationWorkflowService', () => {
     httpMocks.mockGet.mockResolvedValueOnce({ data: [{ id: 8 }] });
     await expect(FormationWorkflowService.getFormationsByAnimateur()).resolves.toEqual([{ id: 8 }]);
 
-    httpMocks.mockGet.mockResolvedValueOnce({ data: [{ id: 9 }] });
-    await expect(FormationWorkflowService.getFormationsForCalendar(4)).resolves.toEqual([{ id: 9 }]);
+    // getFormationsForCalendar normalizes into { asAnimateur, asParticipant }.
+    httpMocks.mockGet.mockResolvedValueOnce({ data: { asAnimateur: [{ id: 9 }], asParticipant: [] } });
+    await expect(FormationWorkflowService.getFormationsForCalendar(4)).resolves.toEqual({
+      asAnimateur: [{ id: 9 }],
+      asParticipant: [],
+    });
   });
 
   it('exports formations', async () => {
     httpMocks.mockGet.mockResolvedValueOnce({ data: new Blob(['x']) });
     const response = await FormationWorkflowService.exportFormations('2026-01-01', '2026-12-31');
     expect(response).toMatchObject({ data: expect.any(Blob) });
+  });
+
+  it('covers batch presence updates and stats', async () => {
+    const updates = [{ idParticipation: 1, present: true }, { idParticipation: 2, present: false, commentaire: 'absent' }];
+    httpMocks.mockPut.mockResolvedValueOnce({ data: [{ id: 1, present: true }, { id: 2, present: false }] });
+    await expect(FormationWorkflowService.batchUpdatePresences(10, updates)).resolves.toEqual([
+      { id: 1, present: true }, { id: 2, present: false }
+    ]);
+    expect(httpMocks.mockPut).toHaveBeenCalledWith(
+      expect.stringContaining('/seances/10/presences/batch'),
+      { updates }
+    );
+
+    httpMocks.mockPut.mockResolvedValueOnce({ data: [{ id: 1, present: true }] });
+    await expect(FormationWorkflowService.markAllPresences(10, true)).resolves.toEqual([{ id: 1, present: true }]);
+    expect(httpMocks.mockPut).toHaveBeenCalledWith(
+      expect.stringContaining('/seances/10/presences/mark-all'),
+      null,
+      { params: { present: true } }
+    );
+
+    httpMocks.mockGet.mockResolvedValueOnce({ data: { total: 10, presents: 8, absents: 2 } });
+    await expect(FormationWorkflowService.getSeancePresenceStats(10)).resolves.toEqual({ total: 10, presents: 8, absents: 2 });
+    expect(httpMocks.mockGet).toHaveBeenCalledWith(expect.stringContaining('/seances/10/presences/stats'));
+  });
+
+  it('normalizes paginated list responses', async () => {
+    httpMocks.mockGet.mockResolvedValueOnce({ data: { content: [{ id: 1 }] } });
+    await expect(FormationWorkflowService.getAllFormationWorkflows()).resolves.toEqual([{ id: 1 }]);
+
+    httpMocks.mockGet.mockResolvedValueOnce({ data: { data: [{ id: 2 }] } });
+    await expect(FormationWorkflowService.getAllFormationWorkflows()).resolves.toEqual([{ id: 2 }]);
+
+    httpMocks.mockGet.mockResolvedValueOnce({ data: { items: [{ id: 3 }] } });
+    await expect(FormationWorkflowService.getAllFormationWorkflows()).resolves.toEqual([{ id: 3 }]);
+
+    httpMocks.mockGet.mockResolvedValueOnce({ data: { unknown: true } });
+    await expect(FormationWorkflowService.getAllFormationWorkflows()).resolves.toEqual([]);
   });
 });
 

@@ -41,13 +41,13 @@ type Filters = typeof INITIAL_FILTERS;
 
 type LookupItem = { id?: string | number; libelle?: string; name?: string; label?: string; nom?: string };
 
-const SELF_SERVICE_ROLES = [ROLES.ENSEIGNANT, ROLES.ANIMATEUR];
+const SELF_SERVICE_ROLES = new Set([ROLES.ENSEIGNANT, ROLES.ANIMATEUR]);
 
 export function useBesoinList() {
   const navigate = useNavigate();
   const { message: msgApi } = useAppNotification();
   const { user } = useAuth();
-  const isSelfService = SELF_SERVICE_ROLES.includes(user?.role as string);
+  const isSelfService = SELF_SERVICE_ROLES.has(user?.role as string);
 
   const myBesoinsQuery = useMyBesoins(isSelfService);
   const allBesoinsQuery = useBesoins(!isSelfService);

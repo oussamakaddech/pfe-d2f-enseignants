@@ -27,7 +27,7 @@ export function usePresenceList(seanceId: number | string) {
       map[p.idParticipation] = { presence: p.presence, commentaire: p.commentaire || "" };
     });
     setOriginalById(map);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [rawPresences]);
 
   const togglePresence = (idParticipation: number, nextPresence: boolean) => {

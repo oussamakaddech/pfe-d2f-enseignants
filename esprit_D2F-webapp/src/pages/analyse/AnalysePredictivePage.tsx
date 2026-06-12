@@ -6,7 +6,7 @@ import {
 import {
   SearchOutlined, RobotOutlined, RiseOutlined, FallOutlined, TeamOutlined,
   UserOutlined, ProjectOutlined, ReloadOutlined, ExperimentOutlined,
-  DashboardOutlined, ThunderboltOutlined, CheckCircleFilled,
+  DashboardOutlined, ThunderboltOutlined,
   BulbOutlined, FireOutlined, LineChartOutlined, CoffeeOutlined,
 } from "@ant-design/icons";
 import useAppNotification from "@/hooks/ui/useAppNotification";
@@ -34,6 +34,12 @@ import "@/styles/pages/analyse-predictive-page.css";
 
 const { Title, Text } = Typography;
 const { Option } = Select;
+
+const MODEL_STATUS_LABEL: Record<string, string> = {
+  ok: "actif",
+  error: "en erreur",
+  warn: "à entraîner",
+};
 
 const normalizeRole = (v: unknown): string =>
   String(v || "").toLowerCase().replace(/^role_?/, "").replaceAll(/[\s_-]+/g, "");
@@ -492,7 +498,7 @@ export default function AnalysePredictivePage() {
           <div className="analyse-hero-actions">
             <div className="analyse-hero-status" aria-live="polite">
               <span className={`dot ${modelStatusVariant === "ok" ? "" : modelStatusVariant}`} />
-              <span>Modèle {modelStatusVariant === "ok" ? "actif" : modelStatusVariant === "error" ? "en erreur" : modelStatusVariant === "warn" ? "à entraîner" : "inactif"}</span>
+              <span>Modèle {MODEL_STATUS_LABEL[modelStatusVariant] ?? "inactif"}</span>
               <span style={{ opacity: 0.5 }}>•</span>
               <ModelStatusBadge refreshKey={modelStatusKey} />
             </div>

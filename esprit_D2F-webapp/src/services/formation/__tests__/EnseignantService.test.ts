@@ -31,16 +31,42 @@ describe('EnseignantService', () => {
     expect(result).toEqual({ id: 'E1', nom: 'Dupont' });
   });
 
+  it('creates an enseignant with account', async () => {
+    httpMocks.mockPost.mockResolvedValueOnce({ data: { id: 'E2', nom: 'Martin' } });
+    const result = await EnseignantService.createEnseignantWithAccount({ nom: 'Martin', email: 'martin@esprit.tn' }, 'ENSEIGNANT');
+    expect(result).toEqual({ id: 'E2', nom: 'Martin' });
+    expect(httpMocks.mockPost).toHaveBeenCalledWith(
+      expect.stringContaining('/with-account'),
+      expect.any(Object),
+      { params: { role: 'ENSEIGNANT' } }
+    );
+  });
+
   it('throws on create error', async () => {
     httpMocks.mockPost.mockRejectedValueOnce(new Error('fail'));
     await expect(EnseignantService.createEnseignant({})).rejects.toThrow('fail');
   });
 
-  it('gets all enseignants', async () => {
+  it('gets all enseignants and normalizes paginated responses', async () => {
     httpMocks.mockGet.mockResolvedValueOnce({ data: [{ id: 'E1' }] });
     const result = await EnseignantService.getAllEnseignants();
     expect(result).toEqual([{ id: 'E1' }]);
-    expect(httpMocks.mockGet).toHaveBeenCalledWith(expect.stringContaining('/formation/enseignants'));
+    expect(httpMocks.mockGet).toHaveBeenCalledWith(
+      expect.stringContaining('/formation/enseignants'),
+      { params: { size: 5000 } },
+    );
+
+    httpMocks.mockGet.mockResolvedValueOnce({ data: { content: [{ id: 'E2' }] } });
+    await expect(EnseignantService.getAllEnseignants()).resolves.toEqual([{ id: 'E2' }]);
+
+    httpMocks.mockGet.mockResolvedValueOnce({ data: { data: [{ id: 'E3' }] } });
+    await expect(EnseignantService.getAllEnseignants()).resolves.toEqual([{ id: 'E3' }]);
+
+    httpMocks.mockGet.mockResolvedValueOnce({ data: { items: [{ id: 'E4' }] } });
+    await expect(EnseignantService.getAllEnseignants()).resolves.toEqual([{ id: 'E4' }]);
+
+    httpMocks.mockGet.mockResolvedValueOnce({ data: { unknown: true } });
+    await expect(EnseignantService.getAllEnseignants()).resolves.toEqual([]);
   });
 
   it('throws on getAllEnseignants error', async () => {

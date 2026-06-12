@@ -6,7 +6,6 @@ import {
   Row,
   Col,
   Tooltip,
-  Card,
   Space,
 } from "antd";
 import {
@@ -20,7 +19,6 @@ import {
   PieChartOutlined,
   FilterOutlined,
   ArrowUpOutlined,
-  AppstoreOutlined,
 } from "@ant-design/icons";
 import dayjs, { type Dayjs } from "dayjs";
 
@@ -99,7 +97,13 @@ function KpiSummaryCard({
 }: KpiSummaryCardProps) {
   const trendUp = (trend ?? 0) > 0;
   const trendDown = (trend ?? 0) < 0;
-  const trendClass = trendUp ? "up" : trendDown ? "down" : "flat";
+  let trendClass: string;
+  if (trendUp) trendClass = "up";
+  else if (trendDown) trendClass = "down";
+  else trendClass = "flat";
+  let trendIcon: React.ReactNode = null;
+  if (trendUp) trendIcon = <ArrowUpOutlined style={{ fontSize: 9 }} />;
+  else if (trendDown) trendIcon = <FallOutlined style={{ fontSize: 9 }} />;
 
   return (
     <div
@@ -120,7 +124,7 @@ function KpiSummaryCard({
             <div className="kpi-summary-icon">{icon}</div>
             {trend != null && (
               <span className={`kpi-summary-trend ${trendClass}`}>
-                {trendUp ? <ArrowUpOutlined style={{ fontSize: 9 }} /> : trendDown ? <FallOutlined style={{ fontSize: 9 }} /> : null}
+                {trendIcon}
                 {Math.abs(trend)}%
               </span>
             )}
@@ -334,7 +338,7 @@ export default function KPIChart() {
   }
 
   function onRangeChange(dates: [Dayjs | null, Dayjs | null] | null) {
-    if (!dates || !dates[0] || !dates[1]) return;
+    if (!dates?.[0] || !dates[1]) return;
     setActivePreset("ytd");
     setRange([dates[0], dates[1]]);
     setStart(dates[0].format("YYYY-MM-DD"));

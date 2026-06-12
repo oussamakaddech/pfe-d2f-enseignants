@@ -1,5 +1,6 @@
 /// <reference types="vitest" />
 import { defineConfig } from 'vite';
+import { configDefaults } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 import path from 'node:path';
 
@@ -17,6 +18,8 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: './src/setupTests.ts',
     testTimeout: 60000,
+    // kpi-test.spec.ts is a standalone Playwright e2e script, not a vitest unit test.
+    exclude: [...configDefaults.exclude, '**/kpi-test.spec.ts'],
     coverage: {
       provider: 'istanbul',
       reporter: ['text', 'lcov', 'json-summary'],

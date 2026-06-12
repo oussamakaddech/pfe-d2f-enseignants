@@ -35,9 +35,18 @@ describe('DeptService', () => {
     expect(data).toEqual({ id: 1, nom: 'GC' });
   });
 
-  it('gets all departments and normalizes non-array responses', async () => {
+  it('gets all departments and normalizes all response shapes', async () => {
     httpMocks.mockGet.mockResolvedValueOnce({ data: [{ id: 1 }] });
     await expect(DeptService.getAllDepts()).resolves.toEqual([{ id: 1 }]);
+
+    httpMocks.mockGet.mockResolvedValueOnce({ data: { content: [{ id: 2 }] } });
+    await expect(DeptService.getAllDepts()).resolves.toEqual([{ id: 2 }]);
+
+    httpMocks.mockGet.mockResolvedValueOnce({ data: { data: [{ id: 3 }] } });
+    await expect(DeptService.getAllDepts()).resolves.toEqual([{ id: 3 }]);
+
+    httpMocks.mockGet.mockResolvedValueOnce({ data: { items: [{ id: 4 }] } });
+    await expect(DeptService.getAllDepts()).resolves.toEqual([{ id: 4 }]);
 
     httpMocks.mockGet.mockResolvedValueOnce({ data: { id: 1 } });
     await expect(DeptService.getAllDepts()).resolves.toEqual([]);

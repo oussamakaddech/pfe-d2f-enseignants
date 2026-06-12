@@ -16,11 +16,14 @@ const DashboardTopCompetencies = memo(function DashboardTopCompetencies() {
       icon={<AimOutlined />}
       footer={<Button type="link" style={{ paddingInline: 0 }} onClick={() => navigate("/home/competences")}>Référentiel compétences <RightOutlined /></Button>}
     >
-      {isLoading ? (
+      {(() => {
+        if (isLoading) return (
         <Skeleton active paragraph={{ rows: 4 }} />
-      ) : items.length === 0 ? (
+        );
+        if (items.length === 0) return (
         <EmptyState icon={<AimOutlined style={{ fontSize: 32 }} />} title="Aucune donnée de demande" compact />
-      ) : (
+        );
+        return (
         <div className="dash-list">
           {items.map((c) => {
             const increasing = c.trend === "increasing";
@@ -37,7 +40,8 @@ const DashboardTopCompetencies = memo(function DashboardTopCompetencies() {
             );
           })}
         </div>
-      )}
+        );
+      })()}
     </InfoCard>
   );
 });

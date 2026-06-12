@@ -38,7 +38,7 @@ const DashboardHeader = memo(function DashboardHeader({
         <Segmented
           options={RANGE_PRESETS.map((p) => ({ label: p.label, value: p.key }))}
           value={scope.rangeKey === "custom" ? "annee" : scope.rangeKey}
-          onChange={(v) => onRangeChange(v as DashboardRangeKey)}
+          onChange={(v) => onRangeChange(v)}
         />
         <Space size={8}>
           <Tooltip title="Rafraîchir les données">

@@ -64,6 +64,25 @@ describe('UpService', () => {
       expect.any(Object)
     );
   });
+
+  it('normalizes paginated responses with content/data/items wrappers', async () => {
+    httpMocks.mockGet.mockResolvedValueOnce({ data: { content: [{ id: 10 }] } });
+    await expect(UpService.getAllUps()).resolves.toEqual([{ id: 10 }]);
+
+    httpMocks.mockGet.mockResolvedValueOnce({ data: { data: [{ id: 11 }] } });
+    await expect(UpService.getAllUps()).resolves.toEqual([{ id: 11 }]);
+
+    httpMocks.mockGet.mockResolvedValueOnce({ data: { items: [{ id: 12 }] } });
+    await expect(UpService.getAllUps()).resolves.toEqual([{ id: 12 }]);
+
+    httpMocks.mockGet.mockResolvedValueOnce({ data: { unknown: 'field' } });
+    await expect(UpService.getAllUps()).resolves.toEqual([]);
+  });
+
+  it('throws on non-404 errors in getAllUps', async () => {
+    httpMocks.mockGet.mockRejectedValueOnce(new Error('Network error'));
+    await expect(UpService.getAllUps()).rejects.toThrow('Network error');
+  });
 });
 
 

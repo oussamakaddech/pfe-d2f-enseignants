@@ -54,10 +54,20 @@ describe('KPIService', () => {
     expect(httpMocks.mockGet).toHaveBeenCalledWith(expect.stringContaining('/count-heures'), { params: { domaine: 'IT' } });
   });
 
-  it('handles 404 gracefully', async () => {
-    httpMocks.mockGet.mockRejectedValueOnce({ isAxiosError: true, response: { status: 404 } });
-    const result = await KPIService.getTotalFormations('s', 'e');
-    expect(result).toBe(0);
+  it('handles 404 gracefully for all scalar endpoints', async () => {
+    httpMocks.mockGet.mockRejectedValueOnce({ response: { status: 404 } });
+    await expect(KPIService.getTotalFormations('s', 'e')).resolves.toBe(0);
+
+    httpMocks.mockGet.mockRejectedValueOnce({ response: { status: 404 } });
+    await expect(KPIService.getTotalHeures('s', 'e')).resolves.toBe(0);
+
+    httpMocks.mockGet.mockRejectedValueOnce({ response: { status: 404 } });
+    await expect(KPIService.getUniqueParticipants('s', 'e')).resolves.toBe(0);
+
+    httpMocks.mockGet.mockRejectedValueOnce({ response: { status: 404 } });
+    await expect(KPIService.getFormationsByEtat('s', 'e')).resolves.toEqual(
+      { enregistre: 0, planifie: 0, enCours: 0, acheve: 0, annule: 0, total: 0 }
+    );
   });
 
   it('throws on non-404 network errors', async () => {
@@ -113,11 +123,23 @@ describe('KPIService', () => {
     await expect(KPIService.getCountAndHeures({})).rejects.toThrow();
   });
 
-  it('getEnseignantsNonAffectes succeeds, handles 404, and throws', async () => {
+  it('getEnseignantsNonAffectes succeeds, normalizes paginated response, handles 404, and throws', async () => {
     httpMocks.mockGet.mockResolvedValueOnce({ data: [{ id: 'E1' }] });
     await expect(KPIService.getEnseignantsNonAffectes('s', 'e')).resolves.toEqual([{ id: 'E1' }]);
 
-    httpMocks.mockGet.mockRejectedValueOnce({ isAxiosError: true, response: { status: 404 } });
+    httpMocks.mockGet.mockResolvedValueOnce({ data: { content: [{ id: 'E2' }] } });
+    await expect(KPIService.getEnseignantsNonAffectes('s', 'e')).resolves.toEqual([{ id: 'E2' }]);
+
+    httpMocks.mockGet.mockResolvedValueOnce({ data: { data: [{ id: 'E3' }] } });
+    await expect(KPIService.getEnseignantsNonAffectes('s', 'e')).resolves.toEqual([{ id: 'E3' }]);
+
+    httpMocks.mockGet.mockResolvedValueOnce({ data: { items: [{ id: 'E4' }] } });
+    await expect(KPIService.getEnseignantsNonAffectes('s', 'e')).resolves.toEqual([{ id: 'E4' }]);
+
+    httpMocks.mockGet.mockResolvedValueOnce({ data: { unknown: true } });
+    await expect(KPIService.getEnseignantsNonAffectes('s', 'e')).resolves.toEqual([]);
+
+    httpMocks.mockGet.mockRejectedValueOnce({ response: { status: 404 } });
     await expect(KPIService.getEnseignantsNonAffectes('s', 'e')).resolves.toEqual([]);
 
     httpMocks.mockGet.mockRejectedValueOnce(new Error('fail'));

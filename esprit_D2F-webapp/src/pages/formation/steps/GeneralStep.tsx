@@ -77,7 +77,7 @@ export default function GeneralStep({ besoinInfo, titre, setTitre, typeFormation
           <label className="creation-field-label"><TagOutlined /> Type de Formation</label>
           <div className="creation-type-grid" role="radiogroup" aria-label="Type de formation">
             {[{ value: "INTERNE", label: "Interne (Esprit)", desc: "Animée par un enseignant Esprit", icon: <BankOutlined /> }, { value: "EXTERNE", label: "Externe", desc: "Dispensée par un prestataire externe", icon: <GlobalOutlined /> }, { value: "EN_LIGNE", label: "En ligne (Teams)", desc: "À distance via Microsoft Teams", icon: <LaptopOutlined /> }].map(opt => (
-              <label key={opt.value} className={`creation-type-card ${typeFormation === opt.value ? "selected" : ""}`} onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setTypeFormation(opt.value); } }} tabIndex={0}>
+              <label key={opt.value} className={`creation-type-card ${typeFormation === opt.value ? "selected" : ""}`}>
                 <input
                   type="radio"
                   name="typeFormation"

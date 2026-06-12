@@ -86,6 +86,40 @@ function ColumnFilterDropdown({
   );
 }
 
+function buildColumnSearchProps(
+  dataIndex: string,
+  placeholder: string,
+  searchInputRef: React.RefObject<InputRef | null>,
+  onSearch: (keys: React.Key[], confirm: () => void, dataIndex: string) => void,
+  searchedColumn: string,
+): TableColumnType<RecordItem> {
+  return {
+    filterDropdown: ({ setSelectedKeys, selectedKeys, confirm, clearFilters }: FilterDropdownProps) => (
+      <ColumnFilterDropdown
+        dataIndex={dataIndex}
+        placeholder={placeholder}
+        selectedKeys={selectedKeys}
+        searchInputRef={searchInputRef}
+        onSetSelectedKeys={setSelectedKeys}
+        onSearch={(keys) => onSearch(keys, confirm, dataIndex)}
+        onReset={() => clearFilters?.()}
+      />
+    ),
+    filterIcon: (filtered: boolean) => <SearchOutlined style={{ color: filtered ? '#1890ff' : undefined }} />,
+    onFilter: (value, record) =>
+      Boolean(record[dataIndex]?.toString().toLowerCase().includes(String(value).toLowerCase())),
+    filterDropdownProps: {
+      onOpenChange: (visible: boolean) => {
+        if (visible) setTimeout(() => searchInputRef.current?.focus(), 100);
+      },
+    },
+    render: (text: unknown) =>
+      searchedColumn === dataIndex ? (
+        <span style={{ backgroundColor: '#ffc069' }}>{String(text)}</span>
+      ) : String(text),
+  };
+}
+
 export default function UpDeptDataGrid() {
   const { message: msgApi } = useAppNotification();
 
@@ -224,36 +258,8 @@ export default function UpDeptDataGrid() {
     confirm();
     setSearchedColumn(dataIndex);
   };
-  const handleReset = (clearFilters?: () => void) => {
-    clearFilters?.();
-  };
-  const getColumnSearchProps = (dataIndex: string, placeholder: string): TableColumnType<RecordItem> => ({
-    filterDropdown: ({ setSelectedKeys, selectedKeys, confirm, clearFilters }: FilterDropdownProps) => (
-      <ColumnFilterDropdown
-        dataIndex={dataIndex}
-        placeholder={placeholder}
-        selectedKeys={selectedKeys}
-        searchInputRef={searchInput}
-        onSetSelectedKeys={setSelectedKeys}
-        onSearch={(keys) => handleSearch(keys, confirm, dataIndex)}
-        onReset={() => handleReset(clearFilters)}
-      />
-    ),
-    filterIcon: (filtered: boolean) => <SearchOutlined style={{ color: filtered ? '#1890ff' : undefined }} />,
-    onFilter: (value, record) =>
-      Boolean(record[dataIndex]?.toString().toLowerCase().includes(String(value).toLowerCase())),
-    filterDropdownProps: {
-      onOpenChange: (visible: boolean) => {
-        if (visible) setTimeout(() => searchInput.current?.focus(), 100);
-      },
-    },
-    render: (text: unknown) =>
-      searchedColumn === dataIndex ? (
-        <span style={{ backgroundColor: '#ffc069' }}>{String(text)}</span>
-      ) : (
-        String(text)
-      ),
-  });
+  const getColumnSearchProps = (dataIndex: string, placeholder: string): TableColumnType<RecordItem> =>
+    buildColumnSearchProps(dataIndex, placeholder, searchInput, handleSearch, searchedColumn);
 
   /*** Columns definition without ID column ***/
   const upColumns: TableColumnType<RecordItem>[] = [

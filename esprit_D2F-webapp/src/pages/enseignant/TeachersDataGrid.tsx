@@ -115,7 +115,7 @@ export default function TeachersDataGrid({ embedded = false }: { embedded?: bool
     const sorted = [...rows];
     switch (sortBy) {
       case "nom_asc":  sorted.sort((a, b) => cmp(a, b, "nom")); break;
-      case "nom_desc": sorted.sort((a, b) => cmp(b, a, "nom")); break;
+      case "nom_desc": sorted.sort((a, b) => -cmp(a, b, "nom")); break;
       case "type":     sorted.sort((a, b) => cmp(a, b, "type")); break;
       case "up":       sorted.sort((a, b) => cmp(a, b, "upLibelle")); break;
       case "dept":     sorted.sort((a, b) => cmp(a, b, "deptLibelle")); break;

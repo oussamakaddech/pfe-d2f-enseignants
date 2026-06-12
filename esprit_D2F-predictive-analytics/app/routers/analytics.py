@@ -6,6 +6,7 @@ from datetime import date, datetime, timezone
 from typing import Annotated, Any, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from sqlalchemy import text as sa_text
 from sqlalchemy.orm import Session
 
 from app.core.db import get_db
@@ -608,7 +609,7 @@ async def retraining_log(
 @router.get("/health", summary="Health check analytics", include_in_schema=False)
 async def health(db: DbSession) -> dict[str, Any]:
     try:
-        db.execute(__import__("sqlalchemy").text("SELECT 1"))
+        db.execute(sa_text("SELECT 1"))
         db_ok = True
     except Exception:
         db_ok = False

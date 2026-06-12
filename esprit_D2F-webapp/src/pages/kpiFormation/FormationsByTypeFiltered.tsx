@@ -70,7 +70,7 @@ export default function FormationsByTypeFiltered() {
 
   useEffect(() => {
     if (!loadingOptions) {
-      kpiMut.mutateAsync(filters)
+      void kpiMut.mutateAsync(filters)
         .then(setDataByType)
         .catch(() => {
           message.error("Impossible de récupérer les données par type.");
@@ -94,7 +94,7 @@ export default function FormationsByTypeFiltered() {
   };
 
   const onFinish = () => {
-    kpiMut.mutateAsync(filters)
+    void kpiMut.mutateAsync(filters)
       .then(setDataByType)
       .catch(() => {
         message.error("Impossible de récupérer les données par type.");

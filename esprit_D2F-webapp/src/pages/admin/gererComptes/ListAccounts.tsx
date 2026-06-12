@@ -106,7 +106,7 @@ const STATUS_DOT_COLORS: Record<AccountStatus, string> = {
   INCONNU: "#9ca3af",
 };
 
-function AccountStatusBadge({ status }: { status: AccountStatus }) {
+function AccountStatusBadge({ status }: Readonly<{ status: AccountStatus }>) {
   const color = STATUS_DOT_COLORS[status] ?? STATUS_DOT_COLORS.INCONNU;
   const isActive = status === "ACTIF";
   return (
@@ -138,6 +138,32 @@ const SORT_OPTIONS: { value: AccountSort; label: string }[] = [
 
 function accountFullName(a: Account): string {
   return `${a.firsName || a.firstName || ""} ${a.lastName || ""}`.trim().toLowerCase();
+}
+
+function resolveFlag(isStructure: boolean, role: string, flagRole: string, fallback: unknown): unknown {
+  if (isStructure) return role === flagRole ? "O" : "N";
+  return fallback;
+}
+
+async function syncEnseignantProfile(
+  fiche: { id?: unknown } | undefined,
+  ficheData: Record<string, unknown>,
+  msgApi: { success: (s: string) => void; warning: (s: string) => void },
+): Promise<void> {
+  try {
+    if (fiche?.id == null) {
+      await EnseignantService.createEnseignant(ficheData);
+    } else {
+      await EnseignantService.updateEnseignant(fiche.id as string, ficheData);
+    }
+    msgApi.success('Compte et profil mis à jour !');
+  } catch (error_: unknown) {
+    const pe = error_ as { response?: { data?: { message?: string } } };
+    msgApi.warning(
+      "Compte mis à jour, mais le profil n'a pas pu être enregistré" +
+        (pe?.response?.data?.message ? ` (${pe.response.data.message})` : "") + ".",
+    );
+  }
 }
 
 export default function ListAccounts({ embedded = false }: { embedded?: boolean } = {}) {
@@ -191,7 +217,7 @@ export default function ListAccounts({ embedded = false }: { embedded?: boolean 
         if (typeof acc.status === 'boolean') {
           statusValue = (acc.status as unknown as boolean) ? 'BLOQUÉ' : 'ACTIF';
         } else if (typeof acc.status === 'string') {
-          statusValue = acc.status as AccountStatus;
+          statusValue = acc.status;
         } else {
           statusValue = 'INCONNU';
         }
@@ -201,7 +227,7 @@ export default function ListAccounts({ embedded = false }: { embedded?: boolean 
     }
   }, [allAccounts]);
 
-  const fetchAccounts = () => { refetchAllAccounts(); };
+  const fetchAccounts = () => { void refetchAllAccounts(); };
 
   const stats = useMemo(() => ({
     total: accounts.length,
@@ -302,9 +328,9 @@ export default function ListAccounts({ embedded = false }: { embedded?: boolean 
       const isStructure = STRUCTURE_ROLES.has(roleStr);
       if ((isTeacher || isStructure) && userId) {
         const fiche = enseignantByUserId.get(userId);
-        const cupFlag = isStructure ? (roleStr === "CUP" ? "O" : "N") : values.cup;
-        const chefFlag = isStructure ? (roleStr === "CHEF_DEPARTEMENT" ? "O" : "N") : values.chefDepartement;
-        const ficheData = {
+        const cupFlag = resolveFlag(isStructure, roleStr, "CUP", values.cup);
+        const chefFlag = resolveFlag(isStructure, roleStr, "CHEF_DEPARTEMENT", values.chefDepartement);
+        const ficheData: Record<string, unknown> = {
           nom: values.lastName as string,
           prenom: values.firstName as string,
           mail: values.email as string,
@@ -319,20 +345,7 @@ export default function ListAccounts({ embedded = false }: { embedded?: boolean 
           deptId: values.deptId,
           userId,
         };
-        try {
-          if (fiche?.id != null) {
-            await EnseignantService.updateEnseignant(fiche.id, ficheData);
-          } else {
-            await EnseignantService.createEnseignant(ficheData);
-          }
-          msgApi.success('Compte et profil mis à jour !');
-        } catch (profileErr: unknown) {
-          const pe = profileErr as { response?: { data?: { message?: string } } };
-          msgApi.warning(
-            "Compte mis à jour, mais le profil n'a pas pu être enregistré" +
-              (pe?.response?.data?.message ? ` (${pe.response.data.message})` : "") + ".",
-          );
-        }
+        await syncEnseignantProfile(fiche, ficheData, msgApi);
       } else {
         msgApi.success('Compte modifié avec succès !');
       }
@@ -737,9 +750,9 @@ export default function ListAccounts({ embedded = false }: { embedded?: boolean 
                     : "Commencez par créer un compte pour donner accès à l'application."
                 }
                 action={
-                  !hasActiveFilters
-                    ? { label: "Créer un compte", icon: <PlusOutlined />, onClick: () => setDrawerVisible(true) }
-                    : undefined
+                  hasActiveFilters
+                    ? undefined
+                    : { label: "Créer un compte", icon: <PlusOutlined />, onClick: () => setDrawerVisible(true) }
                 }
                 compact
               />

@@ -26,11 +26,14 @@ const DashboardTopAbsences = memo(function DashboardTopAbsences({ scope }: Props
 
   return (
     <InfoCard title="Top absences" icon={<WarningOutlined />}>
-      {isLoading ? (
+      {(() => {
+        if (isLoading) return (
         <Skeleton active paragraph={{ rows: 6 }} />
-      ) : top10.length === 0 ? (
+        );
+        if (top10.length === 0) return (
         <EmptyState icon={<WarningOutlined style={{ fontSize: 28 }} />} title="Aucune donnée" compact />
-      ) : (
+        );
+        return (
         <div className="dash-list">
           {top10.map((entry, idx) => (
             <div key={String(entry.enseignantId ?? idx)} className="dash-list-row dash-list-row-static">
@@ -54,7 +57,8 @@ const DashboardTopAbsences = memo(function DashboardTopAbsences({ scope }: Props
             </div>
           ))}
         </div>
-      )}
+        );
+      })()}
     </InfoCard>
   );
 });

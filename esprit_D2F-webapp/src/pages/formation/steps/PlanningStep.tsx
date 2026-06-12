@@ -11,8 +11,6 @@ import type { AnimateurAdditionConfig, ParticipantAdditionConfig } from "../form
 import ExterneAnimateursSection from "../components/ExterneAnimateursSection";
 import AddActorModal, { type ActorDraft, type ActorKind } from "@/components/formation/AddActorModal";
 import ActorToolbar from "@/components/formation/ActorToolbar";
-import InternalFormationActorsStep from "./InternalFormationActorsStep";
-import ExternalFormationActorsStep from "./ExternalFormationActorsStep";
 
 const { Text } = Typography;
 
@@ -63,14 +61,24 @@ export type PlanningStepProps = {
   getAllEmailsParticipants: () => string[];
 };
 
+function makeTagRender(options: { id: unknown; isManual?: boolean }[], manualColor: string) {
+  return (props: { value: unknown; label: React.ReactNode; closable: boolean; onClose: () => void }) => {
+    const item = options.find((o) => o.id === props.value);
+    const isManual = item?.isManual;
+    return (
+      <Tag color={isManual ? manualColor : "default"} closable={props.closable} onClose={props.onClose} style={{ marginRight: 4 }}>
+        {props.label}{isManual ? " (ajouté)" : ""}
+      </Tag>
+    );
+  };
+}
+
 export default function PlanningStep(props: Readonly<PlanningStepProps>) {
   const {
     seances, addSeance, updateSeance, removeSeance, toggleSeance,
     typeFormation, isAdminUser, ups, depts,
     animSel, setAnimSel, animFilterUp, setAnimFilterUp, animFilterDept, setAnimFilterDept,
-    animateurConfig, setAnimateurConfig,
     partSel, setPartSel, partFilterUp, setPartFilterUp, partFilterDept, setPartFilterDept,
-    participantConfig, setParticipantConfig,
     optionsAnim, optionsPart, overlapWarnings,
     formNom, setFormNom, formPrenom, setFormPrenom, formEmail, setFormEmail,
     bureauNom, setBureauNom, bureauMail, setBureauMail, bureauTelephone, setBureauTelephone,
@@ -163,15 +171,7 @@ export default function PlanningStep(props: Readonly<PlanningStepProps>) {
                 optionFilterProp="label"
                 options={optionsAnim.map(a => ({ value: a.id, label: getAnimateurLabel(a) }))}
                 placeholder="Sélectionner les animateurs..."
-                tagRender={(props) => {
-                  const item = optionsAnim.find((o) => o.id === props.value);
-                  const isManual = item?.isManual;
-                  return (
-                    <Tag color={isManual ? "red" : "default"} closable={props.closable} onClose={props.onClose} style={{ marginRight: 4 }}>
-                      {props.label}{isManual ? " (ajouté)" : ""}
-                    </Tag>
-                  );
-                }}
+                tagRender={makeTagRender(optionsAnim, "red")}
               />
               <span className="creation-field-help">
                 {typeFormation === "EXTERNE"
@@ -254,15 +254,7 @@ export default function PlanningStep(props: Readonly<PlanningStepProps>) {
                 optionFilterProp="label"
                 options={optionsPart.map(p => ({ value: p.id, label: getEnseignantLabel(p) }))}
                 placeholder="Sélectionner les participants..."
-                tagRender={(props) => {
-                  const item = optionsPart.find((o) => o.id === props.value);
-                  const isManual = item?.isManual;
-                  return (
-                    <Tag color={isManual ? "blue" : "default"} closable={props.closable} onClose={props.onClose} style={{ marginRight: 4 }}>
-                      {props.label}{isManual ? " (ajouté)" : ""}
-                    </Tag>
-                  );
-                }}
+                tagRender={makeTagRender(optionsPart, "blue")}
               />
               <span className="creation-field-help">
                 {optionsPart.length} enseignant(s) disponible(s) — “Ajouter” (saisie manuelle), “Tous” (sélection auto selon filtres), “Import Excel” (en masse).

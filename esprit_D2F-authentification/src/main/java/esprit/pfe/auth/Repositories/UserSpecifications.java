@@ -3,7 +3,6 @@ package esprit.pfe.auth.repositories;
 import esprit.pfe.auth.entities.ERole;
 import esprit.pfe.auth.entities.User;
 import jakarta.persistence.criteria.Join;
-import jakarta.persistence.criteria.Predicate;
 import org.springframework.data.jpa.domain.Specification;
 
 import java.util.ArrayList;
@@ -14,6 +13,8 @@ import java.util.List;
  * Le soft-delete (@SQLRestriction deleted_at IS NULL) reste appliqué par Hibernate.
  */
 public final class UserSpecifications {
+
+    private static final String FIELD_DISABLED = "disabled";
 
     private UserSpecifications() {
         throw new UnsupportedOperationException("Utility class");
@@ -51,9 +52,9 @@ public final class UserSpecifications {
             }
             // active=true → disabled IS NULL OR disabled = false
             if (Boolean.TRUE.equals(active)) {
-                return cb.or(cb.isNull(root.get("disabled")), cb.isFalse(root.get("disabled")));
+                return cb.or(cb.isNull(root.get(FIELD_DISABLED)), cb.isFalse(root.get(FIELD_DISABLED)));
             }
-            return cb.isTrue(root.get("disabled"));
+            return cb.isTrue(root.get(FIELD_DISABLED));
         };
     }
 

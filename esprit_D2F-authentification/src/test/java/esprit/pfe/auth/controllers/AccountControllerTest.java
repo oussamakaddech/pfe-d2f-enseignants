@@ -68,10 +68,10 @@ class AccountControllerTest {
     @Test
     @DisplayName("listAccounts - should return OK")
     void listAccounts_ShouldReturnOk() throws Exception {
-        when(accountService.listAccounts(any(Pageable.class))).thenReturn(Page.empty());
+        when(accountService.listAccounts(any(Pageable.class), anyBoolean())).thenReturn(Page.empty());
         mockMvc.perform(get("/api/v1/account/list-accounts"))
                 .andExpect(status().isOk());
-        verify(accountService).listAccounts(any(Pageable.class));
+        verify(accountService).listAccounts(any(Pageable.class), anyBoolean());
     }
 
     @Test
@@ -225,7 +225,7 @@ class AccountControllerTest {
     @Test
     @DisplayName("listAccounts - should handle pagination")
     void listAccounts_WithPagination_ShouldReturnOk() throws Exception {
-        when(accountService.listAccounts(any(Pageable.class))).thenReturn(Page.empty());
+        when(accountService.listAccounts(any(Pageable.class), anyBoolean())).thenReturn(Page.empty());
         
         mockMvc.perform(get("/api/v1/account/list-accounts")
                 .param("page", "0")
@@ -233,7 +233,7 @@ class AccountControllerTest {
                 .param("sort", "username,asc"))
                 .andExpect(status().isOk());
         
-        verify(accountService).listAccounts(any(Pageable.class));
+        verify(accountService).listAccounts(any(Pageable.class), anyBoolean());
     }
 
     @Test

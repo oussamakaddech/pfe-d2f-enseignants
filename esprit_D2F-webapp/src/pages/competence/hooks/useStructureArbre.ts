@@ -39,11 +39,11 @@ export function useStructureArbre() {
   }, [structureApi, message]);
 
   useEffect(() => {
-    fetchStructure();
+    void fetchStructure();
   }, [fetchStructure]);
 
   useEffect(() => {
-    savoirApi
+    void savoirApi
       .getAll()
       .then((s) => setAllSavoirs(s as Record<string, unknown>[]))
       .catch(() => {});

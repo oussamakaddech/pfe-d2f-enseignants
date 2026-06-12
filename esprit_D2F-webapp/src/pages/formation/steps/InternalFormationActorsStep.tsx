@@ -1,12 +1,9 @@
 import { useState } from "react";
 import {
-  Row, Col, Card, Space, Radio, Select, Button, Typography, Alert, Empty, Divider,
-  Tooltip, Tag
+  Row, Col, Card, Space, Radio, Select, Typography, Alert, Empty, Divider,
+  Tag
 } from "antd";
-import {
-  TeamOutlined, UserAddOutlined, ClearOutlined, CheckCircleOutlined,
-  FilterOutlined, FileExcelOutlined, DeleteOutlined
-} from "@ant-design/icons";
+import { TeamOutlined } from "@ant-design/icons";
 import type { PersonItem, LookupNode } from "../hooks/useFormationWorkflow";
 import { AdditionMode, type AnimateurAdditionConfig, type ParticipantAdditionConfig } from "../formationWorkflowTypes";
 import AddActorModal, { type ActorDraft, type ActorKind } from "@/components/formation/AddActorModal";

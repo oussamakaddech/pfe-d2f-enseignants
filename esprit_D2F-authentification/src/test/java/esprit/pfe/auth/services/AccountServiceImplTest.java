@@ -29,6 +29,13 @@ import java.util.Set;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import esprit.pfe.auth.error.ConflictException;
+import esprit.pfe.auth.payload.request.AccountSummaryQuery;
+import esprit.pfe.auth.payload.request.SignupRequest;
+import esprit.pfe.auth.payload.response.AccountSummaryDTO;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.data.jpa.domain.Specification;
+
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -472,5 +479,259 @@ class AccountServiceImplTest {
         assertNotNull(result);
         verify(roleRepository, never()).findByName(any());
         verify(userRepository).save(testUser);
+    }
+
+    // ── listAccounts(Pageable, boolean) ───────────────────────────────────────
+
+    @Test
+    void testListAccounts_IncludeDeleted_True_UsesIncludingDeletedRepo() {
+        Page<User> page = new PageImpl<>(List.of(testUser));
+        when(userRepository.findAllIncludingDeleted(any(Pageable.class))).thenReturn(page);
+
+        Page<User> result = accountService.listAccounts(Pageable.unpaged(), true);
+
+        assertEquals(1, result.getContent().size());
+        verify(userRepository).findAllIncludingDeleted(any(Pageable.class));
+        verify(userRepository, never()).findAll(any(Pageable.class));
+    }
+
+    @Test
+    void testListAccounts_IncludeDeleted_False_UsesStandardRepo() {
+        Page<User> page = new PageImpl<>(List.of(testUser));
+        when(userRepository.findAll(any(Pageable.class))).thenReturn(page);
+
+        Page<User> result = accountService.listAccounts(Pageable.unpaged(), false);
+
+        assertEquals(1, result.getContent().size());
+        verify(userRepository).findAll(any(Pageable.class));
+        verify(userRepository, never()).findAllIncludingDeleted(any(Pageable.class));
+    }
+
+    // ── getAccountSummaries ───────────────────────────────────────────────────
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void testGetAccountSummaries_NullQuery_UsesEmptyQuery() {
+        when(userRepository.findAll(any(Specification.class))).thenReturn(List.of(testUser));
+
+        List<AccountSummaryDTO> result = accountService.getAccountSummaries(null);
+
+        assertNotNull(result);
+        assertFalse(result.isEmpty());
+        assertEquals("ADMIN", result.get(0).getRole());
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void testGetAccountSummaries_WithQuery_FiltersApplied() {
+        AccountSummaryQuery query = new AccountSummaryQuery(List.of("test123"), "ADMIN", true);
+        when(userRepository.findAll(any(Specification.class))).thenReturn(List.of(testUser));
+
+        List<AccountSummaryDTO> result = accountService.getAccountSummaries(query);
+
+        assertFalse(result.isEmpty());
+        verify(userRepository).findAll(any(Specification.class));
+    }
+
+    // ── createAccount ─────────────────────────────────────────────────────────
+
+    private SignupRequest buildSignupRequest(String username, String email, String id) {
+        SignupRequest req = new SignupRequest();
+        req.setId(id);
+        req.setUsername(username);
+        req.setFirstName("Prénom");
+        req.setLastName("Nom");
+        req.setPhoneNumber("0600000000");
+        req.setEmail(email);
+        req.setPassword("password1");
+        return req;
+    }
+
+    @Test
+    void testCreateAccount_Success_ExplicitRole() {
+        SignupRequest req = buildSignupRequest("newuser", "new@test.com", null);
+        when(userRepository.existsByUsername("newuser")).thenReturn(false);
+        when(userRepository.existsByEmail("new@test.com")).thenReturn(false);
+        when(encoder.encode("password1")).thenReturn("encoded");
+        when(roleRepository.findByName(ERole.ENSEIGNANT)).thenReturn(Optional.of(new Role(ERole.ENSEIGNANT)));
+        when(userRepository.saveAndFlush(any(User.class))).thenReturn(testUser);
+
+        User result = accountService.createAccount(req, null);
+
+        assertNotNull(result);
+        verify(userRepository).saveAndFlush(any(User.class));
+    }
+
+    @Test
+    void testCreateAccount_WithId_NoConflict_Succeeds() {
+        SignupRequest req = buildSignupRequest("newuser2", "new2@test.com", "custom-id");
+        when(userRepository.existsById("custom-id")).thenReturn(false);
+        when(userRepository.existsByUsername("newuser2")).thenReturn(false);
+        when(userRepository.existsByEmail("new2@test.com")).thenReturn(false);
+        when(encoder.encode("password1")).thenReturn("encoded");
+        when(roleRepository.findByName(ERole.ADMIN)).thenReturn(Optional.of(testRole));
+        when(userRepository.saveAndFlush(any(User.class))).thenReturn(testUser);
+
+        User result = accountService.createAccount(req, "ADMIN");
+
+        assertNotNull(result);
+    }
+
+    @Test
+    void testCreateAccount_IdConflict_ThrowsConflictException() {
+        SignupRequest req = buildSignupRequest("u", "u@t.com", "taken-id");
+        when(userRepository.existsById("taken-id")).thenReturn(true);
+
+        assertThrows(ConflictException.class, () -> accountService.createAccount(req, null));
+        verify(userRepository, never()).saveAndFlush(any());
+    }
+
+    @Test
+    void testCreateAccount_UsernameConflict_ThrowsConflictException() {
+        SignupRequest req = buildSignupRequest("existinguser", "fresh@test.com", null);
+        when(userRepository.existsByUsername("existinguser")).thenReturn(true);
+
+        ConflictException ex = assertThrows(ConflictException.class, () -> accountService.createAccount(req, null));
+        assertTrue(ex.getErrorMessage().contains("Username"));
+    }
+
+    @Test
+    void testCreateAccount_EmailConflict_ThrowsConflictException() {
+        SignupRequest req = buildSignupRequest("freshuser", "existing@test.com", null);
+        when(userRepository.existsByUsername("freshuser")).thenReturn(false);
+        when(userRepository.existsByEmail("existing@test.com")).thenReturn(true);
+
+        ConflictException ex = assertThrows(ConflictException.class, () -> accountService.createAccount(req, null));
+        assertTrue(ex.getErrorMessage().contains("Email"));
+    }
+
+    @Test
+    void testCreateAccount_DataIntegrityViolation_Email_ThrowsConflictException() {
+        SignupRequest req = buildSignupRequest("u3", "u3@t.com", null);
+        when(userRepository.existsByUsername("u3")).thenReturn(false);
+        when(userRepository.existsByEmail("u3@t.com")).thenReturn(false);
+        when(encoder.encode(anyString())).thenReturn("enc");
+        when(roleRepository.findByName(ERole.ENSEIGNANT)).thenReturn(Optional.of(new Role(ERole.ENSEIGNANT)));
+        when(userRepository.saveAndFlush(any(User.class)))
+                .thenThrow(new DataIntegrityViolationException("duplicate entry email already exists"));
+
+        ConflictException ex = assertThrows(ConflictException.class, () -> accountService.createAccount(req, null));
+        assertTrue(ex.getErrorMessage().contains("Email"));
+    }
+
+    @Test
+    void testCreateAccount_DataIntegrityViolation_Username_ThrowsConflictException() {
+        SignupRequest req = buildSignupRequest("u4", "u4@t.com", null);
+        when(userRepository.existsByUsername("u4")).thenReturn(false);
+        when(userRepository.existsByEmail("u4@t.com")).thenReturn(false);
+        when(encoder.encode(anyString())).thenReturn("enc");
+        when(roleRepository.findByName(ERole.ENSEIGNANT)).thenReturn(Optional.of(new Role(ERole.ENSEIGNANT)));
+        when(userRepository.saveAndFlush(any(User.class)))
+                .thenThrow(new DataIntegrityViolationException("duplicate key value username constraint"));
+
+        ConflictException ex = assertThrows(ConflictException.class, () -> accountService.createAccount(req, null));
+        assertTrue(ex.getErrorMessage().contains("Username"));
+    }
+
+    @Test
+    void testCreateAccount_DataIntegrityViolation_Other_ThrowsGenericConflict() {
+        SignupRequest req = buildSignupRequest("u5", "u5@t.com", null);
+        when(userRepository.existsByUsername("u5")).thenReturn(false);
+        when(userRepository.existsByEmail("u5@t.com")).thenReturn(false);
+        when(encoder.encode(anyString())).thenReturn("enc");
+        when(roleRepository.findByName(ERole.ENSEIGNANT)).thenReturn(Optional.of(new Role(ERole.ENSEIGNANT)));
+        when(userRepository.saveAndFlush(any(User.class)))
+                .thenThrow(new DataIntegrityViolationException("some other constraint"));
+
+        ConflictException ex = assertThrows(ConflictException.class, () -> accountService.createAccount(req, null));
+        assertTrue(ex.getErrorMessage().contains("conflicts"));
+    }
+
+    @Test
+    void testCreateAccount_DataIntegrityViolation_NullCauseMessage_ThrowsGenericConflict() {
+        SignupRequest req = buildSignupRequest("u6", "u6@t.com", null);
+        when(userRepository.existsByUsername("u6")).thenReturn(false);
+        when(userRepository.existsByEmail("u6@t.com")).thenReturn(false);
+        when(encoder.encode(anyString())).thenReturn("enc");
+        when(roleRepository.findByName(ERole.ENSEIGNANT)).thenReturn(Optional.of(new Role(ERole.ENSEIGNANT)));
+        DataIntegrityViolationException ex = new DataIntegrityViolationException("outer", new RuntimeException((String) null));
+        when(userRepository.saveAndFlush(any(User.class))).thenThrow(ex);
+
+        ConflictException conflict = assertThrows(ConflictException.class, () -> accountService.createAccount(req, null));
+        assertTrue(conflict.getErrorMessage().contains("conflicts"));
+    }
+
+    @Test
+    void testCreateAccount_RoleWithColon_ExtractsRolePart() {
+        SignupRequest req = buildSignupRequest("u7", "u7@t.com", null);
+        when(userRepository.existsByUsername("u7")).thenReturn(false);
+        when(userRepository.existsByEmail("u7@t.com")).thenReturn(false);
+        when(encoder.encode(anyString())).thenReturn("enc");
+        when(roleRepository.findByName(ERole.CUP)).thenReturn(Optional.of(new Role(ERole.CUP)));
+        when(userRepository.saveAndFlush(any(User.class))).thenReturn(testUser);
+
+        User result = accountService.createAccount(req, "CUP:2");
+
+        assertNotNull(result);
+        verify(roleRepository).findByName(ERole.CUP);
+    }
+
+    @Test
+    void testCreateAccount_DefaultRoleNotFound_ThrowsBadRequest() {
+        SignupRequest req = buildSignupRequest("u8", "u8@t.com", null);
+        when(userRepository.existsByUsername("u8")).thenReturn(false);
+        when(userRepository.existsByEmail("u8@t.com")).thenReturn(false);
+        when(encoder.encode(anyString())).thenReturn("enc");
+        when(roleRepository.findByName(ERole.ENSEIGNANT)).thenReturn(Optional.empty());
+
+        assertThrows(BadRequestException.class, () -> accountService.createAccount(req, null));
+    }
+
+    // ── banAccount / enableAccount ────────────────────────────────────────────
+
+    @Test
+    void testBanAccount_UserNotFound_ThrowsBadRequest() {
+        when(userRepository.findByUsername("ghost")).thenReturn(Optional.empty());
+        assertThrows(BadRequestException.class, () -> accountService.banAccount("ghost"));
+    }
+
+    @Test
+    void testEnableAccount_UserNotFound_ThrowsBadRequest() {
+        when(userRepository.findByUsername("ghost")).thenReturn(Optional.empty());
+        assertThrows(BadRequestException.class, () -> accountService.enableAccount("ghost"));
+    }
+
+    // ── userExistsById ────────────────────────────────────────────────────────
+
+    @Test
+    void testUserExistsById_Exists_ReturnsTrue() {
+        when(userRepository.existsById("test123")).thenReturn(true);
+        assertTrue(accountService.userExistsById("test123"));
+    }
+
+    @Test
+    void testUserExistsById_NotExists_ReturnsFalse() {
+        when(userRepository.existsById("nobody")).thenReturn(false);
+        assertFalse(accountService.userExistsById("nobody"));
+    }
+
+    // ── permanentDeleteAccount ────────────────────────────────────────────────
+
+    @Test
+    void testPermanentDeleteAccount_Success_DeletesRecord() {
+        when(userRepository.findByIdIncludingDeleted("test123")).thenReturn(Optional.of(testUser));
+        doNothing().when(userRepository).deletePermanentById("test123");
+
+        accountService.permanentDeleteAccount("test123");
+
+        verify(userRepository).deletePermanentById("test123");
+    }
+
+    @Test
+    void testPermanentDeleteAccount_UserNotFound_ThrowsResourceNotFoundException() {
+        when(userRepository.findByIdIncludingDeleted("ghost")).thenReturn(Optional.empty());
+
+        assertThrows(ResourceNotFoundException.class, () -> accountService.permanentDeleteAccount("ghost"));
+        verify(userRepository, never()).deletePermanentById(anyString());
     }
 }

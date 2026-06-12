@@ -39,7 +39,10 @@ function presenceColor(v: number): KpiColor {
 function trendFrom(cur: number, prev: number): KpiSpec["trend"] {
   if (!prev) return undefined;
   const delta = ((cur - prev) / prev) * 100;
-  const direction = Math.abs(delta) < 1 ? "stable" : delta > 0 ? "up" : "down";
+  let direction: "stable" | "up" | "down";
+  if (Math.abs(delta) < 1) direction = "stable";
+  else if (delta > 0) direction = "up";
+  else direction = "down";
   return { value: Math.round(delta), direction, label: "vs période préc." };
 }
 
@@ -62,7 +65,7 @@ const DashboardKpiGrid = memo(function DashboardKpiGrid({ scope }: { readonly sc
   const inactifs = useInactifs(!isAdmin);
 
   const presence = (presenceQ.data as GlobalParticipantKPI | undefined)?.tauxPresenceGlobal;
-  const ups = (upQ.data?.items ?? []) as AnalyticsUP[];
+  const ups = upQ.data?.items ?? [];
   const sum = (sel: (u: AnalyticsUP) => number) => ups.reduce((s, u) => s + (sel(u) || 0), 0);
   const avg = (sel: (u: AnalyticsUP) => number) => (ups.length ? sum(sel) / ups.length : 0);
 
@@ -70,10 +73,10 @@ const DashboardKpiGrid = memo(function DashboardKpiGrid({ scope }: { readonly sc
     ? [
         { title: "Formations", value: totalForm.data ?? 0, icon: <BookOutlined />, color: "primary", loading: totalForm.isLoading, trend: trendFrom(totalForm.data ?? 0, totalFormPrev.data ?? 0), to: "/home/KPI" },
         { title: "Participants uniques", value: participants.data ?? 0, icon: <TeamOutlined />, color: "info", loading: participants.isLoading, to: "/home/KPI" },
-        { title: "Taux de présence", value: pct(presence), unit: "%", icon: <RiseOutlined />, color: presence != null ? presenceColor(presence) : "info", loading: presenceQ.isLoading },
+        { title: "Taux de présence", value: pct(presence), unit: "%", icon: <RiseOutlined />, color: presence == null ? "info" : presenceColor(presence), loading: presenceQ.isLoading },
         { title: "Enseignants à risque", value: global.data?.enseignants_a_risque?.length ?? 0, icon: <WarningOutlined />, color: "danger", loading: global.isLoading, to: "/home/analytics/dashboard" },
         { title: "Besoins en attente", value: (besoins.data ?? []).filter(isPendingBesoin).length, icon: <BellOutlined />, color: "warning", loading: besoins.isLoading, to: "/home/besoins" },
-        { title: "Couverture compétences", value: pct(overview.data?.taux_couverture_global), unit: "%", icon: <SafetyCertificateOutlined />, color: "success", loading: overview.isLoading, trend: overview.data?.deltas?.taux_couverture_global != null ? { value: Math.round(overview.data.deltas.taux_couverture_global), direction: overview.data.deltas.taux_couverture_global >= 0 ? "up" : "down", label: "pts" } : undefined },
+        { title: "Couverture compétences", value: pct(overview.data?.taux_couverture_global), unit: "%", icon: <SafetyCertificateOutlined />, color: "success", loading: overview.isLoading, trend: overview.data?.deltas?.taux_couverture_global == null ? undefined : { value: Math.round(overview.data.deltas.taux_couverture_global), direction: overview.data.deltas.taux_couverture_global >= 0 ? "up" : "down", label: "pts" } },
       ]
     : [
         { title: "Formations (UP)", value: sum((u) => u.nombreFormationsOrganisees), icon: <BookOutlined />, color: "primary", loading: upQ.isLoading, to: "/home/KPI" },

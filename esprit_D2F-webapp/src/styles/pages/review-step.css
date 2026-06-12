@@ -184,6 +184,14 @@
 /* ═══════════════════════════════════════════════════════════════════════════════
    SavoirCard (savoir-*)
    ═══════════════════════════════════════════════════════════════════════════════ */
+button.savoir-card {
+  appearance: none;
+  font: inherit;
+  text-align: left;
+  width: 100%;
+  outline: none;
+}
+
 .savoir-card {
   display: flex;
   align-items: center;

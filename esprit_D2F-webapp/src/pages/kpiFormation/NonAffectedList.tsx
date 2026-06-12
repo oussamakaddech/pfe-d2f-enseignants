@@ -47,6 +47,9 @@ export default function NonAffectedGrid() {
     );
   }, [allStats, selectedUp, selectedDept]);
 
+  const plural = stats.length > 1 ? 's' : '';
+  const countLabel = isLoading ? '…' : `${stats.length} enseignant${plural}`;
+
   return (
     <div>
       {/* ── Filtres ── */}
@@ -72,17 +75,16 @@ export default function NonAffectedGrid() {
           {depts.map((d) => <Option key={String(d.id)} value={d.id}>{d.libelle}</Option>)}
         </Select>
         <span style={{ marginLeft: 'auto', fontSize: 12, color: 'var(--neutral-500)' }}>
-          {isLoading ? '…' : `${stats.length} enseignant${stats.length > 1 ? 's' : ''}`}
+          {countLabel}
         </span>
       </div>
 
       {/* ── Liste ── */}
       <div className="dash-kpi-body">
-        {isLoading ? (
-          <div style={{ textAlign: 'center', padding: '60px 0' }}><Spin /></div>
-        ) : stats.length === 0 ? (
-          <Empty description="Aucun enseignant non affecté sur la période" style={{ padding: '40px 0' }} />
-        ) : (
+        {(() => {
+          if (isLoading) return <div style={{ textAlign: 'center', padding: '60px 0' }}><Spin /></div>;
+          if (stats.length === 0) return <Empty description="Aucun enseignant non affecté sur la période" style={{ padding: '40px 0' }} />;
+          return (
           <div style={{ maxHeight: 420, overflowY: 'auto', paddingRight: 4 }}>
             {stats.map((item, idx) => (
               <div key={`${item.mail ?? ''}-${idx}`} className="dash-kpi-person-row">
@@ -116,7 +118,8 @@ export default function NonAffectedGrid() {
               </div>
             ))}
           </div>
-        )}
+          );
+        })()}
       </div>
     </div>
   );

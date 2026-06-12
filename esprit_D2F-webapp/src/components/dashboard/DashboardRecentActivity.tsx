@@ -46,11 +46,14 @@ const DashboardRecentActivity = memo(function DashboardRecentActivity({ scope }:
 
   return (
     <InfoCard title="Activité récente" icon={<HistoryOutlined />}>
-      {loading ? (
+      {(() => {
+        if (loading) return (
         <Skeleton active paragraph={{ rows: 5 }} />
-      ) : items.length === 0 ? (
+        );
+        if (items.length === 0) return (
         <Empty description="Aucune activité récente" />
-      ) : (
+        );
+        return (
         <div className="dash-activity">
           {items.map((it) => (
             <div key={it.id} className="dash-activity-row">
@@ -65,7 +68,8 @@ const DashboardRecentActivity = memo(function DashboardRecentActivity({ scope }:
             </div>
           ))}
         </div>
-      )}
+        );
+      })()}
     </InfoCard>
   );
 });

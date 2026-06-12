@@ -2,7 +2,7 @@ import type { ComponentType } from "react";
 import {
   CalendarOutlined, FileTextOutlined, ReadOutlined, SolutionOutlined,
   LogoutOutlined, ApartmentOutlined, RobotOutlined, SearchOutlined,
-  PlusCircleOutlined, BarChartOutlined, TrophyOutlined,
+  PlusCircleOutlined, TrophyOutlined,
   SafetyCertificateOutlined, UserOutlined, LineChartOutlined, ApiOutlined,
   ClusterOutlined, TeamOutlined, BookOutlined,
   AppstoreOutlined, CheckSquareOutlined, BankOutlined, SettingOutlined,

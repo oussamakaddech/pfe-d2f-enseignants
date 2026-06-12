@@ -129,9 +129,8 @@ const SavoirCard = memo(function SavoirCard({
 
   return (
     /* Draggable savoir card; keyboard users access the dropdown menu (MoreOutlined) for assign / move actions. */
-    <div
-      role="button"
-      tabIndex={0}
+    <button
+      type="button"
       aria-roledescription="draggable"
       aria-label={`Savoir ${savoir.code} — ${savoir.nom}. Glisser pour assigner ou utiliser le menu Plus pour les actions clavier.`}
       className={`savoir-card${isBeingDragged ? " is-dragging" : ""}`}
@@ -140,6 +139,10 @@ const SavoirCard = memo(function SavoirCard({
       onDragEnd={onSavoirDragEnd}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
+      onClick={(e) => {
+        const trigger = e.currentTarget.querySelector<HTMLElement>(".savoir-card-menu-trigger");
+        trigger?.focus();
+      }}
       onKeyDown={(e) => {
         if (e.key === "Enter" || e.key === " ") {
           e.preventDefault();
@@ -221,7 +224,7 @@ const SavoirCard = memo(function SavoirCard({
           <MoreOutlined className="savoir-card-menu-trigger" style={{ color: "#64748b", cursor: "pointer" }} />
         </Dropdown>
       )}
-    </div>
+    </button>
   );
 });
 

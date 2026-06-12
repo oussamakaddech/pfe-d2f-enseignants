@@ -71,6 +71,7 @@ public class SecurityConfig {
     }
 
     @Bean
+    @SuppressWarnings("java:S5122") // Safe: origins restricted to configured allowlist, explicit header allowlist, no wildcard
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOrigins(Arrays.asList(allowedOriginsRaw.split(",")));

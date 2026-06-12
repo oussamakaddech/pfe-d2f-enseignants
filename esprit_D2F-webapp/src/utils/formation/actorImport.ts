@@ -25,7 +25,7 @@ export async function parseEmailsFromExcel(file: File): Promise<ExcelParseResult
   if (aoa.length < 2) {
     return { emails: [], rows: 0, headers: [] };
   }
-  const headers = (aoa[0] as unknown[]).map((h) => String(h ?? ""));
+  const headers = aoa[0].map((h) => String(h ?? ""));
   const idx = headers.findIndex((h) => {
     const n = normalizeHeader(h).replaceAll(/[_-]+/g, " ");
     return EMAIL_KEYS.some((k) => n === k || n.includes(k));
@@ -36,7 +36,7 @@ export async function parseEmailsFromExcel(file: File): Promise<ExcelParseResult
   const emails = aoa
     .slice(1)
     .map((row) => {
-      const r = row as unknown[];
+      const r = row;
       const cell = r?.[idx];
       return cell == null ? "" : String(cell).trim().toLowerCase();
     })

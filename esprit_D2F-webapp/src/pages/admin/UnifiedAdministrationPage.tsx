@@ -1,10 +1,9 @@
-import { useEffect, useRef, useState, useMemo } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import {
   Table, Input, Button, Space, Typography, Modal, Form, Select, Popconfirm,
   Tooltip, Card, Row, Col, Tag, Switch,
 } from 'antd';
-import type { TableColumnsType, InputRef } from 'antd';
-import type { FilterDropdownProps } from 'antd/es/table/interface';
+import type { TableColumnsType } from 'antd';
 import {
   SearchOutlined, PlusOutlined, EditOutlined, DeleteOutlined, UserOutlined,
   MailOutlined, PhoneOutlined, TeamOutlined, CheckCircleOutlined,
@@ -96,6 +95,15 @@ function rowFullName(r: UnifiedRow): string {
   return r._type === 'teacher' ? teacherFullName(r) : accountFullName(r);
 }
 
+function matchesSearchTerm(row: UnifiedRow, term: string): boolean {
+  const name     = rowFullName(row).toLowerCase();
+  const email    = (row.email    || row.mail       || "").toLowerCase();
+  const phone    = (row.phoneNumber || row.telephone || "").toLowerCase();
+  const username = (row.userName || "").toLowerCase();
+  const role     = (row.role     || row.type       || "").toLowerCase();
+  return name.includes(term) || email.includes(term) || phone.includes(term) || username.includes(term) || role.includes(term);
+}
+
 export default function UnifiedAdministrationPage() {
   const navigate = useNavigate();
   const { message: msgApi, modal } = useAppNotification();
@@ -117,7 +125,10 @@ export default function UnifiedAdministrationPage() {
     queryKey: ["enseignants"],
     queryFn: async () => {
       const raw = await EnseignantService.getAllEnseignants();
-      const list = Array.isArray(raw) ? raw : Array.isArray((raw as { content?: unknown[] })?.content) ? (raw as { content: unknown[] }).content : [];
+      let list: unknown[];
+      if (Array.isArray(raw)) list = raw;
+      else if (Array.isArray((raw as { content?: unknown[] })?.content)) list = (raw as { content: unknown[] }).content;
+      else list = [];
       return list as UnifiedRow[];
     },
   });
@@ -127,7 +138,7 @@ export default function UnifiedAdministrationPage() {
   const [sourceFilter, setSourceFilter] = useState<"ALL" | "account" | "teacher">("ALL");
   const [roleFilter, setRoleFilter] = useState<string[]>([]);
   const [typeFilter, setTypeFilter] = useState<string>("ALL");
-  const [statusFilter, setStatusFilter] = useState<"ALL" | AccountStatus>("ALL");
+  const [statusFilter] = useState<"ALL" | AccountStatus>("ALL");
   const [sortBy, setSortBy] = useState<UnifiedSort>("name_asc");
   const [drawerVisible, setDrawerVisible] = useState(false);
 
@@ -146,13 +157,13 @@ export default function UnifiedAdministrationPage() {
   const ups = useMemo(() => {
     const set = new Set<string>();
     teachers.forEach(t => { if (t.upLibelle) set.add(t.upLibelle); });
-    return Array.from(set).sort();
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
   }, [teachers]);
 
   const depts = useMemo(() => {
     const set = new Set<string>();
     teachers.forEach(t => { if (t.deptLibelle) set.add(t.deptLibelle); });
-    return Array.from(set).sort();
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
   }, [teachers]);
 
   /* ── Normalize accounts ── */
@@ -163,7 +174,7 @@ export default function UnifiedAdministrationPage() {
         if (typeof acc.status === 'boolean') {
           statusValue = (acc.status as unknown as boolean) ? 'BLOQUÉ' : 'ACTIF';
         } else if (typeof acc.status === 'string') {
-          statusValue = acc.status as AccountStatus;
+          statusValue = acc.status;
         } else {
           statusValue = 'INCONNU';
         }
@@ -248,20 +259,11 @@ export default function UnifiedAdministrationPage() {
       const hasTeacher = row._type === 'teacher' || row._type === 'merged';
       if (sourceFilter === 'account' && !hasAccount) return false;
       if (sourceFilter === 'teacher' && !hasTeacher) return false;
-      if (hasAccount) {
-        if (statusFilter !== "ALL" && row.status !== statusFilter) return false;
-        if (roleSet.length && !roleSet.includes((row.role ?? "").toUpperCase())) return false;
-      }
-      if (hasTeacher) {
-        if (typeFilter !== "ALL" && row.type !== typeFilter) return false;
-      }
+      if (hasAccount && statusFilter !== "ALL" && row.status !== statusFilter) return false;
+      if (hasAccount && roleSet.length > 0 && !roleSet.includes((row.role ?? "").toUpperCase())) return false;
+      if (hasTeacher && typeFilter !== "ALL" && row.type !== typeFilter) return false;
       if (!term) return true;
-      const name = rowFullName(row).toLowerCase();
-      const email = ((row.email || row.mail || "") as string).toLowerCase();
-      const phone = ((row.phoneNumber || row.telephone || "") as string).toLowerCase();
-      const username = (row.userName || "").toLowerCase();
-      const role = (row.role || row.type || "").toLowerCase();
-      return name.includes(term) || email.includes(term) || phone.includes(term) || username.includes(term) || role.includes(term);
+      return matchesSearchTerm(row, term);
     });
 
     const sorted = [...filtered];
@@ -271,9 +273,9 @@ export default function UnifiedAdministrationPage() {
       case "name_desc":
         sorted.sort((a, b) => rowFullName(b).localeCompare(rowFullName(a))); break;
       case "email_asc":
-        sorted.sort((a, b) => ((a.email || a.mail || "") as string).localeCompare((b.email || b.mail || "") as string)); break;
+        sorted.sort((a, b) => ((a.email || a.mail || "")).localeCompare((b.email || b.mail || ""))); break;
       case "role_asc":
-        sorted.sort((a, b) => ((a.role || a.type || "") as string).localeCompare((b.role || b.type || "") as string)); break;
+        sorted.sort((a, b) => ((a.role || a.type || "")).localeCompare((b.role || b.type || ""))); break;
       case "source":
         sorted.sort((a, b) => a._type.localeCompare(b._type)); break;
       case "status":
@@ -288,7 +290,7 @@ export default function UnifiedAdministrationPage() {
 
   const hasActiveFilters = !!searchText || sourceFilter !== "ALL" || roleFilter.length > 0 || typeFilter !== "ALL" || statusFilter !== "ALL";
 
-  const fetchAll = () => { refetchAccounts(); queryClient.invalidateQueries({ queryKey: ["enseignants"] }); };
+  const fetchAll = () => { void refetchAccounts(); void queryClient.invalidateQueries({ queryKey: ["enseignants"] }); };
 
   /* ── Account actions ── */
   const handleCreateSuccess = () => { setDrawerVisible(false); fetchAll(); };
@@ -484,8 +486,14 @@ export default function UnifiedAdministrationPage() {
         const initial = accountLike
           ? (record.firstName || record.userName || record.nom || "?").charAt(0).toUpperCase()
           : ((record.prenom || record.nom || "?").charAt(0).toUpperCase());
-        const tagLabel = isMerged ? 'Compte + Fiche' : (accountLike ? 'Compte' : 'Enseignant');
-        const tagColor = isMerged ? 'purple' : (accountLike ? 'volcano' : 'blue');
+        let tagLabel: string;
+        if (isMerged) tagLabel = 'Compte + Fiche';
+        else if (accountLike) tagLabel = 'Compte';
+        else tagLabel = 'Enseignant';
+        let tagColor: string;
+        if (isMerged) tagColor = 'purple';
+        else if (accountLike) tagColor = 'volcano';
+        else tagColor = 'blue';
         const showCupChef = (isTeacherOnly || isMerged) && (isTruthyFlag(record.cup) || isTruthyFlag(record.chefDepartement));
         return (
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
@@ -528,8 +536,8 @@ export default function UnifiedAdministrationPage() {
       key: 'contact',
       width: 280,
       render: (_, record) => {
-        const email = (record.email || record.mail || "") as string;
-        const phone = (record.phoneNumber || record.telephone || "") as string;
+        const email = record.email || record.mail || "";
+        const phone = record.phoneNumber || record.telephone || "";
         return (
           <div>
             {email ? (
@@ -814,7 +822,7 @@ export default function UnifiedAdministrationPage() {
 
 /* ── Helper components ── */
 
-function AccountStatusBadgeComponent({ status }: { status: AccountStatus }) {
+function AccountStatusBadgeComponent({ status }: Readonly<{ status: AccountStatus }>) {
   const colors: Record<AccountStatus, string> = { ACTIF: "#10b981", BLOQUÉ: "#ef4444", INCONNU: "#9ca3af" };
   const isActive = status === "ACTIF";
   return (

@@ -40,6 +40,7 @@ public class AuthorizationFilter extends AbstractGatewayFilterFactory<Authorizat
     // Role constants
     private static final String ROLE_ADMIN = "ADMIN";
     private static final String ROLE_CUP = "CUP";
+    private static final String ROLE_D2F = "D2F";
     private static final String ROLE_ENSEIGNANT = "ENSEIGNANT";
     private static final String ROLE_FORMATEUR = "FORMATEUR";
     private static final String ROLE_ANIMATEUR = "ANIMATEUR";
@@ -48,16 +49,16 @@ public class AuthorizationFilter extends AbstractGatewayFilterFactory<Authorizat
 
     /** All authenticated users */
     private static final List<String> ALL_ROLES = List.of(
-        ROLE_ADMIN, ROLE_CUP, ROLE_ENSEIGNANT, ROLE_FORMATEUR, ROLE_ANIMATEUR,
+        ROLE_ADMIN, ROLE_CUP, ROLE_D2F, ROLE_ENSEIGNANT, ROLE_FORMATEUR, ROLE_ANIMATEUR,
         ROLE_CHEF_DEPARTEMENT, ROLE_RESPONSABLE_DOSSIER
     );
 
     /** Admin only */
     private static final List<String> ADMIN_ONLY = List.of(ROLE_ADMIN);
 
-    /** Admin + CUP + Chef de département */
+    /** Admin + CUP + D2F + Chef de département */
     private static final List<String> ADMIN_CUP = List.of(
-        ROLE_ADMIN, ROLE_CUP, ROLE_CHEF_DEPARTEMENT
+        ROLE_ADMIN, ROLE_CUP, ROLE_D2F, ROLE_CHEF_DEPARTEMENT
     );
 
     /** Admin + CUP + Enseignant + Chef de département */
@@ -67,11 +68,6 @@ public class AuthorizationFilter extends AbstractGatewayFilterFactory<Authorizat
 
     /** Admin + Formateur/Animateur + Enseignant */
     private static final List<String> ADMIN_FORMATEUR = List.of(ROLE_ADMIN, ROLE_FORMATEUR, ROLE_ANIMATEUR, ROLE_ENSEIGNANT);
-
-    /** Admin + CUP + Enseignant */
-    private static final List<String> ADMIN_CUP_ENSEIGNANT = List.of(
-        ROLE_ADMIN, ROLE_CUP, ROLE_ENSEIGNANT
-    );
 
     public AuthorizationFilter(JwtTokenProvider tokenProvider) {
         super(Config.class);
@@ -200,7 +196,7 @@ public class AuthorizationFilter extends AbstractGatewayFilterFactory<Authorizat
         if (path.contains("/kpi")) return NO_FORMATEUR;
         if (method == HttpMethod.DELETE) return ADMIN_ONLY;
         if (path.contains("/inscription/inscriptions") && method == HttpMethod.POST) return ALL_ROLES;
-        if (method == HttpMethod.POST) return List.of(ROLE_ADMIN, ROLE_CUP);
+        if (method == HttpMethod.POST) return List.of(ROLE_ADMIN, ROLE_CUP, ROLE_D2F);
         // FORMATION_UPDATE = ADMIN, CUP, RESPONSABLE_DOSSIER (cf. AuthorizationMatrix)
         if (method == HttpMethod.PUT || method == HttpMethod.PATCH)
             return List.of(ROLE_ADMIN, ROLE_CUP, ROLE_RESPONSABLE_DOSSIER);
@@ -211,7 +207,7 @@ public class AuthorizationFilter extends AbstractGatewayFilterFactory<Authorizat
         if (path.contains("/approve")) return ADMIN_CUP;
         if (method == HttpMethod.DELETE) return ADMIN_ONLY;
         if (path.contains("/modify") && method == HttpMethod.PUT) return ADMIN_ONLY;
-        if (method == HttpMethod.POST) return List.of(ROLE_ADMIN, ROLE_CUP, ROLE_ENSEIGNANT, ROLE_ANIMATEUR);
+        if (method == HttpMethod.POST) return List.of(ROLE_ADMIN, ROLE_CUP, ROLE_D2F, ROLE_ENSEIGNANT, ROLE_ANIMATEUR);
         return ALL_ROLES;
     }
 

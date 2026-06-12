@@ -3,7 +3,6 @@ import {
   Card,
   Tabs,
   Button,
-  Space,
   Typography,
   Row,
   Col,
@@ -78,7 +77,7 @@ export default function CalendrierGestionPage() {
         setPreview(data);
         message.success(`${data.sessions.length} séance(s) détectée(s).`);
       },
-      onError: () => message.error("Impossible d'analyser le fichier."),
+      onError: () => { message.error("Impossible d'analyser le fichier."); },
     });
   }, [file, previewMutation, message]);
 
@@ -97,7 +96,7 @@ export default function CalendrierGestionPage() {
           message.success("Import terminé.");
         }
       },
-      onError: () => message.error("Échec de l'import."),
+      onError: () => { message.error("Échec de l'import."); },
     });
   }, [file, importMutation, conflicts, message]);
 
@@ -114,8 +113,8 @@ export default function CalendrierGestionPage() {
 
   const handleSendAll = useCallback(() => {
     sendAll.mutate(undefined, {
-      onSuccess: (result) => message.success(result.message),
-      onError: () => message.error("Échec de l'envoi global des invitations."),
+      onSuccess: (result) => { message.success(result.message); },
+      onError: () => { message.error("Échec de l'envoi global des invitations."); },
     });
   }, [sendAll, message]);
 
@@ -318,13 +317,11 @@ export default function CalendrierGestionPage() {
           </div>
           <div className="cal-gestion-stat-label">Statut</div>
           <div className="cal-gestion-stat-value" style={{ color: "#059669", fontSize: 22 }}>
-            {conflicts.isFetching ? (
-              <Spin size="small" />
-            ) : conflictCount === 0 ? (
-              "OK"
-            ) : (
-              "⚠️"
-            )}
+            {(() => {
+              if (conflicts.isFetching) return <Spin size="small" />;
+              if (conflictCount === 0) return "OK";
+              return "⚠️";
+            })()}
           </div>
           <Text type="secondary" style={{ fontSize: 12 }}>
             Calendrier
@@ -344,7 +341,7 @@ export default function CalendrierGestionPage() {
   );
 }
 
-function PreviewPanel({ preview }: { preview: ParsedCalendar }) {
+function PreviewPanel({ preview }: Readonly<{ preview: ParsedCalendar }>) {
   const columns: ColumnsType<ParsedSession> = [
     { title: "Formation", dataIndex: "formationName", ellipsis: true },
     { title: "Date", dataIndex: "date", width: 110, render: (v?: string) => v || "—" },

@@ -79,8 +79,8 @@ const GlobalSearch = memo(function GlobalSearch() {
         setOpen((o) => !o);
       }
     };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    globalThis.addEventListener("keydown", onKey);
+    return () => globalThis.removeEventListener("keydown", onKey);
   }, []);
 
   const enseignantsQuery = useQuery({

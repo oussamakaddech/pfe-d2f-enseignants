@@ -66,7 +66,7 @@ const OverviewKpiTiles = memo(function OverviewKpiTiles({ data, loading }: Overv
   return (
     <div className="analyse-kpi-grid">
       {TILES.map((t) => {
-        const raw = data ? (data[t.key] as number | null) : null;
+        const raw = data ? data[t.key] : null;
         const value = raw == null ? "—" : t.fmt(raw);
         const delta = data?.deltas?.[t.key] ?? null;
         return (

@@ -79,7 +79,7 @@ export default function DonutByTrainerTypeWithFilters() {
   };
 
   useEffect(() => {
-    if (!loadingOptions) fetchCountsAndLists();
+    if (!loadingOptions) void fetchCountsAndLists();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loadingOptions, filters]);
 

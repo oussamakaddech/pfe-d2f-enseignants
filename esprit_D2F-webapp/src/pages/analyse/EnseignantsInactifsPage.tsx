@@ -38,9 +38,13 @@ export default function EnseignantsInactifsPage() {
       title: "Enseignant",
       key: "nom",
       render: (_, r) => (
-        <a onClick={() => navigate(`/home/analytics/teacher/${r.enseignantId}`)}>
+        <Button
+          type="link"
+          style={{ padding: 0, height: "auto" }}
+          onClick={() => { navigate(`/home/analytics/teacher/${r.enseignantId}`); }}
+        >
           {r.nom} {r.prenom}
-        </a>
+        </Button>
       ),
     },
     { title: "Email", dataIndex: "email", key: "email" },

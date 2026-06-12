@@ -91,7 +91,7 @@ const ActorToolbar = forwardRef<InputRef, ActorToolbarProps>(function ActorToolb
               const t = e.currentTarget;
               const hidden = document.getElementById(fileInputId) as HTMLInputElement | null;
               if (hidden) hidden.value = "";
-              void t?.blur();
+              t?.blur();
             }}
             className="actor-toolbar__btn"
           >

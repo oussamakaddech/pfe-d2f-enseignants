@@ -21,14 +21,11 @@ import {
   FolderOpenOutlined,
   ReloadOutlined,
   SearchOutlined,
-  EyeOutlined,
 } from "@ant-design/icons";
 import dayjs from "dayjs";
 import { AppPageHeader, EmptyState } from "@/components/common";
 import { DocFileIcon } from "@/pages/documentFormation/components/DocFileIcon";
-import { formatDate } from "@/pages/documentFormation/components/docUtils";
 import type { FormationDocument } from "@/models/document";
-import type { Id } from "@/models/common";
 import { useFormationsWithDocuments } from "@/hooks/formation";
 import { useDownloadDocument } from "@/hooks/document";
 import useAppNotification from "@/hooks/ui/useAppNotification";
@@ -91,6 +88,8 @@ export default function DocumentsPage() {
 
   const totalCount = documents.length;
   const obligCount = documents.filter((d) => d.obligation).length;
+  const docPlural = totalCount === 1 ? "" : "s";
+  const obligPlural = obligCount === 1 ? "" : "s";
 
   const handleDownload = async (doc: FormationDocument) => {
     try {
@@ -225,7 +224,7 @@ export default function DocumentsPage() {
         subtitle={
           isLoading
             ? "Chargement..."
-            : `${totalCount} document${totalCount === 1 ? "" : "s"} · ${obligCount} obligatoire${obligCount === 1 ? "" : "s"}`
+            : `${totalCount} document${docPlural} · ${obligCount} obligatoire${obligPlural}`
         }
         actions={
           <Space size={8}>
@@ -240,18 +239,21 @@ export default function DocumentsPage() {
         }
       />
 
-      {isLoading ? (
+      {(() => {
+        if (isLoading) return (
         <div className="documents-page-skeleton">
           <Skeleton active paragraph={{ rows: 8 }} />
         </div>
-      ) : !formation ? (
+        );
+        if (!formation) return (
         <EmptyState
           icon={<FileTextOutlined />}
           title="Formation introuvable"
           description="Cette formation n'existe pas ou n'est pas accessible."
-          action={{ label: "Retour au catalogue", onClick: () => navigate("/home/Formation/Consulter") }}
+          action={{ label: "Retour au catalogue", onClick: () => { navigate("/home/Formation/Consulter"); } }}
         />
-      ) : (
+        );
+        return (
         <>
           <div className="documents-page-filter-bar">
             <div className="documents-page-filter-header">
@@ -341,7 +343,8 @@ export default function DocumentsPage() {
             />
           </div>
         </>
-      )}
+        );
+      })()}
     </div>
   );
 }

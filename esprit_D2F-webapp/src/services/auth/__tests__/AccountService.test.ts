@@ -31,10 +31,18 @@ describe('accountService', () => {
   const accountUrl = `${config.URL_ACCOUNT}/account`;
 
   it('lists accounts', async () => {
-    apiMocks.mockGet.mockResolvedValueOnce({ data: [{ username: 'u1' }] });
+    // getAllAccounts paginates and normalizes the backend UserDTO into AuthUser.
+    apiMocks.mockGet.mockResolvedValueOnce({
+      data: [{ id: 'u1', userName: 'alice', role: 'ROLE_ADMIN', email: 'a@x.tn' }],
+    });
     const result = await accountService.getAllAccounts();
-    expect(result).toEqual([{ username: 'u1' }]);
-    expect(apiMocks.mockGet).toHaveBeenCalledWith(`${accountUrl}/list-accounts`);
+    expect(result).toEqual([
+      { userId: 'u1', username: 'alice', role: 'ROLE_ADMIN', email: 'a@x.tn', id: 'u1', userName: 'alice' },
+    ]);
+    expect(apiMocks.mockGet).toHaveBeenCalledWith(
+      `${accountUrl}/list-accounts`,
+      { params: { size: 500, page: 0, includeDeleted: false } },
+    );
   });
 
   it('gets profile', async () => {

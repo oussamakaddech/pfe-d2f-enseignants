@@ -73,7 +73,7 @@ const InscriptionService = {
     const response = await axios.put(
       `${API_URL}/inscriptions/traiter-bulk`,
       {
-        ids: ids.map((i) => Number(i)),
+        ids: ids.map(Number),
         approuver,
         motif: motif?.trim() || undefined,
       }

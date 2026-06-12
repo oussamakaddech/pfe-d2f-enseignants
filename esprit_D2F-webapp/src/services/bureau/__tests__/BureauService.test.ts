@@ -25,7 +25,24 @@ describe('BureauService', () => {
     httpMocks.mockGet.mockResolvedValueOnce({ data: [{ id: 1, nom: 'Informatique' }] });
     const result = await BureauService.getAllBureaux();
     expect(result).toEqual([{ id: 1, nom: 'Informatique' }]);
-    expect(httpMocks.mockGet).toHaveBeenCalledOnce();
+    expect(httpMocks.mockGet).toHaveBeenCalledWith(
+      expect.stringContaining('/bureaux'),
+      { params: { page: 0, size: 1000, sort: 'id,desc' } },
+    );
+  });
+
+  it('normalises the Page envelope and the data/items/unknown shapes', async () => {
+    httpMocks.mockGet.mockResolvedValueOnce({ data: { content: [{ id: 2 }] } });
+    await expect(BureauService.getAllBureaux()).resolves.toEqual([{ id: 2 }]);
+
+    httpMocks.mockGet.mockResolvedValueOnce({ data: { data: [{ id: 3 }] } });
+    await expect(BureauService.getAllBureaux()).resolves.toEqual([{ id: 3 }]);
+
+    httpMocks.mockGet.mockResolvedValueOnce({ data: { items: [{ id: 4 }] } });
+    await expect(BureauService.getAllBureaux()).resolves.toEqual([{ id: 4 }]);
+
+    httpMocks.mockGet.mockResolvedValueOnce({ data: 99 });
+    await expect(BureauService.getAllBureaux()).resolves.toEqual([]);
   });
 
   it('gets bureau by id', async () => {

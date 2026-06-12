@@ -160,6 +160,7 @@ public class SecurityConfig {
      * (définie dans application.properties ou variable d'environnement CORS_ALLOWED_ORIGINS).
      */
     @Bean
+    @SuppressWarnings("java:S5122") // Safe: origins restricted to configured allowlist (no wildcard), credentials scoped to own frontend
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         List<String> origins = Arrays.asList(allowedOriginsRaw.split(","));

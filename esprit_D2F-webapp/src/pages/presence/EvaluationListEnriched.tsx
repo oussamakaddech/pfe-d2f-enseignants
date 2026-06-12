@@ -58,7 +58,7 @@ const EvaluationListEnriched = () => {
       enseignantId: e.enseignantId,
       formationId: e.formationId,
     }));
-    bulkUpdateMut.mutateAsync({ evaluations: dtos })
+    void bulkUpdateMut.mutateAsync({ evaluations: dtos })
       .then(() => message.success("Mise à jour en masse effectuée avec succès"))
       .catch(() => {
         message.error("Erreur lors de la mise à jour en masse");

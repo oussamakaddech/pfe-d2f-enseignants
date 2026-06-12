@@ -4,15 +4,15 @@
  * TypeScript des tokens (src/styles/theme.ts).
  */
 import type { TooltipOptions, LegendOptions } from "chart.js";
-import { colors, chartPalette } from "@/styles/theme";
+import { colors } from "@/styles/theme";
 
-export { colors, chartPalette };
+export { colors, chartPalette } from "@/styles/theme";
 
 export function hexToRgba(hex: string, alpha: number): string {
   const h = hex.replace("#", "");
-  const r = parseInt(h.slice(0, 2), 16);
-  const g = parseInt(h.slice(2, 4), 16);
-  const b = parseInt(h.slice(4, 6), 16);
+  const r = Number.parseInt(h.slice(0, 2), 16);
+  const g = Number.parseInt(h.slice(2, 4), 16);
+  const b = Number.parseInt(h.slice(4, 6), 16);
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 

@@ -35,16 +35,19 @@ const DashboardNonAffected = memo(function DashboardNonAffected({ scope }: Props
       icon={<TeamOutlined />}
       badge={total > 0 ? <Tag color="warning">{total}</Tag> : undefined}
     >
-      {isLoading ? (
+      {(() => {
+        if (isLoading) return (
         <Skeleton active paragraph={{ rows: 5 }} />
-      ) : list.length === 0 ? (
+        );
+        if (list.length === 0) return (
         <EmptyState
           icon={<TeamOutlined style={{ fontSize: 28 }} />}
           title="Tous les enseignants sont affectés"
           description="Aucun enseignant sans formation sur la période."
           compact
         />
-      ) : (
+        );
+        return (
         <div className="dash-list">
           {list.map((item, idx) => (
             <div key={`${item.mail ?? ""}-${idx}`} className="dash-list-row dash-list-row-static">
@@ -78,7 +81,8 @@ const DashboardNonAffected = memo(function DashboardNonAffected({ scope }: Props
             </div>
           )}
         </div>
-      )}
+        );
+      })()}
     </InfoCard>
   );
 });

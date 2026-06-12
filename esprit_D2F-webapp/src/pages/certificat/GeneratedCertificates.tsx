@@ -23,7 +23,7 @@ function GeneratedCertificates() {
   useEffect(() => {
     if (!formationId) return;
     setLoading(true);
-    generateMut.mutateAsync(formationId)
+    void generateMut.mutateAsync(formationId)
       .then((data) => setPdfFiles(data || []))
       .catch(() => {})
       .finally(() => setLoading(false));

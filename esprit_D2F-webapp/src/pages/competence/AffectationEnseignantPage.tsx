@@ -64,7 +64,7 @@ export default function AffectationEnseignantPage() {
     finally { setLoading(false); }
   }, [msgApi, ecApi, savoirApi]);
 
-  useEffect(() => { loadAll(); }, [loadAll]);
+  useEffect(() => { void loadAll(); }, [loadAll]);
 
   const ensMap = useMemo(() => {
     const m = new Map<string, typeof enseignants[0]>();
@@ -138,7 +138,7 @@ export default function AffectationEnseignantPage() {
       await ecApi.assign(values);
       msgApi.success("Affectation ajoutée avec succès");
       setAssignModal(false);
-      loadAll();
+      await loadAll();
     } catch (err: unknown) {
       if ((err as Record<string, unknown>)?.errorFields) return;
       const msg = (err as { response?: { data?: { message?: string } } }).response?.data?.message || "Erreur lors de l'ajout";
@@ -152,7 +152,7 @@ export default function AffectationEnseignantPage() {
       await ecApi.updateNiveau(editingRecord!.affId, niveau);
       msgApi.success("Niveau mis à jour");
       setNiveauModal(false);
-      loadAll();
+      await loadAll();
     } catch (err: unknown) {
       if ((err as Record<string, unknown>)?.errorFields) return;
       const msg = (err as { response?: { data?: { message?: string } } }).response?.data?.message || "Erreur lors de la mise à jour";
@@ -161,7 +161,7 @@ export default function AffectationEnseignantPage() {
   };
 
   const handleDeleteSavoir = async (affId: Id) => {
-    try { await ecApi.remove(affId); msgApi.success("Affectation supprimée"); loadAll(); }
+    try { await ecApi.remove(affId); msgApi.success("Affectation supprimée"); await loadAll(); }
     catch { msgApi.error("Erreur lors de la suppression"); }
   };
 
@@ -175,7 +175,7 @@ export default function AffectationEnseignantPage() {
     try {
       await Promise.all(rec.savoirs.map((s) => ecApi.remove(s.affId)));
       msgApi.success("Affectations supprimées");
-      loadAll();
+      await loadAll();
     } catch { msgApi.error("Erreur lors de la suppression"); }
   };
 

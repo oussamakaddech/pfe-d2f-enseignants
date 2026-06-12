@@ -5,7 +5,6 @@ Tous les handlers respectent le format d'erreur DSI standard :
 """
 
 import logging
-import traceback
 
 from fastapi import HTTPException, Request, status
 from fastapi.responses import JSONResponse
@@ -117,8 +116,9 @@ def http_exception_handler(request: Request, exc: HTTPException):
 def generic_exception_handler(request: Request, exc: Exception):
     """Catch-all — 500 avec format DSI, sans exposer la stacktrace."""
     logger.error(
-        "Exception non gérée | path=%s error=%s\n%s",
-        request.url.path, type(exc).__name__, traceback.format_exc(),
+        "Exception non gérée | path=%s error=%s",
+        request.url.path, type(exc).__name__,
+        exc_info=True,
     )
     increment("requests_5xx")
     return JSONResponse(

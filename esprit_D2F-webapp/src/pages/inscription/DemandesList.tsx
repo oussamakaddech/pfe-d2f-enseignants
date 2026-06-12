@@ -116,6 +116,68 @@ const ETAT_CONFIG: Record<EtatDemande, { color: "success" | "error" | "warning";
   PENDING:  { color: "warning", icon: <ClockCircleOutlined />, text: "En attente" },
 };
 
+async function sendTraitementEmail(
+  target: Demande,
+  approuver: boolean,
+  motif: string | undefined,
+  formation: { titreFormation?: string; dateDebut?: string; dateFin?: string } | undefined,
+  formationId: string | undefined,
+  sendEmail: (p: { to: string; subject: string; content: string; isHtml: boolean }) => Promise<unknown>,
+  warn: (msg: string) => void,
+): Promise<void> {
+  if (!target.enseignant?.mail) return;
+  const titre = formation?.titreFormation ?? `Formation #${formationId}`;
+  const dStart = formation?.dateDebut ? dayjs(String(formation.dateDebut)).format("DD/MM/YYYY") : null;
+  const dEnd = formation?.dateFin ? dayjs(String(formation.dateFin)).format("DD/MM/YYYY") : null;
+  const dateRange = dStart && dEnd ? `<br>📅 Du <strong>${dStart}</strong> au <strong>${dEnd}</strong>` : "";
+  const subject = approuver ? `✅ Inscription approuvée — ${titre}` : `❌ Inscription rejetée — ${titre}`;
+  const greeting = `Bonjour ${target.enseignant.prenom ?? ""} ${target.enseignant.nom ?? ""},`;
+  const motifLine = motif ? `Motif : <em>${motif}</em><br>` : "";
+  const body = approuver
+    ? `Votre demande d'inscription à la formation <strong>${titre}</strong> a été <strong>approuvée</strong>.${dateRange}<br>Vous pouvez la suivre dans votre espace « Mes Inscriptions ».`
+    : `Votre demande d'inscription à la formation <strong>${titre}</strong> a été <strong>rejetée</strong>.<br>${motifLine}Pour plus d'informations, merci de contacter le service D2F.`;
+  const content = `<p>${greeting}</p><p>${body}</p><p>Cordialement,<br/><strong>L'équipe D2F</strong></p>`;
+  try {
+    await sendEmail({ to: target.enseignant.mail, subject, content, isHtml: true });
+  } catch {
+    warn("Demande traitée, mais l'email de notification n'a pas pu être envoyé.");
+  }
+}
+
+function buildDemandesColumnProps(
+  dataIndex: keyof EnseignantRef,
+  searchInputRef: React.RefObject<InputRef | null>,
+  onSearch: (keys: React.Key[], confirm: FilterDropdownProps["confirm"], dataIndex: keyof EnseignantRef) => void,
+  searchedColumn: string,
+) {
+  return {
+    filterDropdown: ({ setSelectedKeys, selectedKeys, confirm, clearFilters }: FilterDropdownProps) => (
+      <DemandesColumnFilterDropdown
+        dataIndex={dataIndex}
+        selectedKeys={selectedKeys}
+        searchInputRef={searchInputRef}
+        onSetSelectedKeys={setSelectedKeys}
+        onSearch={(keys) => onSearch(keys, confirm, dataIndex)}
+        onReset={() => clearFilters?.()}
+      />
+    ),
+    filterIcon: (filtered: boolean) => (
+      <SearchOutlined style={{ color: filtered ? "#b51200" : undefined }} />
+    ),
+    onFilter: (value: boolean | React.Key, record: Demande) =>
+      record.enseignant[dataIndex]?.toString().toLowerCase().includes(String(value).toLowerCase()) ?? false,
+    filterDropdownProps: {
+      onOpenChange: (visible: boolean) => {
+        if (visible) setTimeout(() => searchInputRef.current?.select(), 100);
+      },
+    },
+    render: (text: string) =>
+      searchedColumn === dataIndex ? (
+        <span style={{ backgroundColor: "#ffc069", padding: "0 4px", borderRadius: 4 }}>{text}</span>
+      ) : text,
+  };
+}
+
 export default function DemandesList() {
   const { id: formationId } = useParams();
   const navigate = useNavigate();
@@ -145,40 +207,19 @@ export default function DemandesList() {
 
   const handleTraitement = async (id: Id, approuver: boolean, motif?: string) => {
     try {
-      const updated = await traiterMut.mutateAsync({ id, approuver, motif });
+      await traiterMut.mutateAsync({ id, approuver, motif });
       msgApi.success(approuver ? "✅ Demande approuvée" : "❌ Demande rejetée");
-
-      // Email best-effort : on notifie l'enseignant, sans faire échouer le flux principal.
       const target = demandes.find((d) => d.id === id);
-      if (target?.enseignant?.mail) {
-        // FIX-S3: use real formation title and dates instead of raw ID
-        const formationTitre = formation?.titreFormation ?? `Formation #${formationId}`;
-        const dateDebut = formation?.dateDebut ? dayjs(String(formation.dateDebut)).format("DD/MM/YYYY") : null;
-        const dateFin   = formation?.dateFin   ? dayjs(String(formation.dateFin)).format("DD/MM/YYYY")   : null;
-        const dateRange = dateDebut && dateFin ? `<br>📅 Du <strong>${dateDebut}</strong> au <strong>${dateFin}</strong>` : "";
-        const subject = approuver
-          ? `✅ Inscription approuvée — ${formationTitre}`
-          : `❌ Inscription rejetée — ${formationTitre}`;
-        const greeting = `Bonjour ${target.enseignant.prenom ?? ""} ${target.enseignant.nom ?? ""},`;
-        const body = approuver
-          ? `Votre demande d'inscription à la formation <strong>${formationTitre}</strong> a été <strong>approuvée</strong>.${dateRange}<br>` +
-            `Vous pouvez la suivre dans votre espace « Mes Inscriptions ».`
-          : `Votre demande d'inscription à la formation <strong>${formationTitre}</strong> a été <strong>rejetée</strong>.<br>` +
-            (motif ? `Motif : <em>${motif}</em><br>` : "") +
-            `Pour plus d'informations, merci de contacter le service D2F.`;
-        const content =
-          `<p>${greeting}</p>` +
-          `<p>${body}</p>` +
-          `<p>Cordialement,<br/><strong>L'équipe D2F</strong></p>`;
-        try {
-          await sendEmailMut.mutateAsync({ to: target.enseignant.mail, subject, content, isHtml: true });
-        } catch {
-          // On n'invalide pas l'opération métier si l'email échoue.
-          msgApi.warning("Demande traitée, mais l'email de notification n'a pas pu être envoyé.");
-        }
+      if (target) {
+        await sendTraitementEmail(
+          target, approuver, motif,
+          formation as { titreFormation?: string; dateDebut?: string; dateFin?: string } | undefined,
+          formationId,
+          sendEmailMut.mutateAsync,
+          msgApi.warning,
+        );
       }
-      void updated;
-      void refetch();
+      await refetch();
     } catch {
       msgApi.error("Erreur lors du traitement");
     }
@@ -236,38 +277,8 @@ export default function DemandesList() {
     setSearchedColumn(dataIndex);
   };
 
-  const handleReset = (clearFilters: (() => void) | undefined) => {
-    clearFilters?.();
-  };
-
-  const getColumnSearchProps = (dataIndex: keyof EnseignantRef) => ({
-    filterDropdown: ({ setSelectedKeys, selectedKeys, confirm, clearFilters }: FilterDropdownProps) => (
-      <DemandesColumnFilterDropdown
-        dataIndex={dataIndex}
-        selectedKeys={selectedKeys}
-        searchInputRef={searchInput}
-        onSetSelectedKeys={setSelectedKeys}
-        onSearch={(keys) => handleSearch(keys, confirm, dataIndex)}
-        onReset={() => handleReset(clearFilters)}
-      />
-    ),
-    filterIcon: (filtered: boolean) => (
-      <SearchOutlined style={{ color: filtered ? "#b51200" : undefined }} />
-    ),
-    onFilter: (value: boolean | React.Key, record: Demande) =>
-      record.enseignant[dataIndex]?.toString().toLowerCase().includes(String(value).toLowerCase()) ?? false,
-    filterDropdownProps: {
-      onOpenChange: (visible: boolean) => {
-        if (visible) setTimeout(() => searchInput.current?.select(), 100);
-      },
-    },
-    render: (text: string) =>
-      searchedColumn === dataIndex ? (
-        <span style={{ backgroundColor: "#ffc069", padding: "0 4px", borderRadius: 4 }}>{text}</span>
-      ) : (
-        text
-      ),
-  });
+  const getColumnSearchProps = (dataIndex: keyof EnseignantRef) =>
+    buildDemandesColumnProps(dataIndex, searchInput, handleSearch, searchedColumn);
 
   const exportToExcel = () => {
     const approved = demandes.filter((r) => r.etat === "APPROVED");
@@ -528,7 +539,7 @@ export default function DemandesList() {
         okText="Confirmer le rejet"
         okButtonProps={{ danger: true, loading: traiterMut.isPending }}
         cancelText="Annuler"
-        destroyOnClose
+        destroyOnHidden
       >
         {rejectTarget && (
           <Space direction="vertical" size={12} style={{ width: "100%" }}>
@@ -576,7 +587,7 @@ export default function DemandesList() {
         okText="Confirmer le rejet groupé"
         okButtonProps={{ danger: true, loading: traiterBulkMut.isPending }}
         cancelText="Annuler"
-        destroyOnClose
+        destroyOnHidden
       >
         <Space direction="vertical" size={12} style={{ width: "100%" }}>
           <Text>

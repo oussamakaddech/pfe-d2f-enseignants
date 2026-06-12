@@ -8,7 +8,7 @@
  * Les échelles complètes (brand, neutral, semantic, statuts, rôles) ainsi
  * que la config Ant Design vivent dans `@/styles/themes/tokens`.
  */
-import { brand, accent, neutral, semantic, space, radius, shadow } from "@/styles/themes/tokens";
+import { brand, accent, neutral, semantic } from "@/styles/themes/tokens";
 
 export const colors = {
   primary:       brand[500],
@@ -45,4 +45,4 @@ export const chartPalette = [
 /** Breakpoints (px) — Mobile < sm | Tablet sm–md | Desktop > md. */
 export const breakpoints = { sm: 640, md: 1024, lg: 1280 } as const;
 
-export { brand, accent, neutral, semantic, space, radius, shadow };
+export { brand, accent, neutral, semantic, space, radius, shadow } from "@/styles/themes/tokens";

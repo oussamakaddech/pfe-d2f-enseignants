@@ -82,6 +82,68 @@ function daysUntilStart(dateDebut?: string): number | null {
 }
 
 
+function isTeacherRole(role: string | undefined): boolean {
+  return role === ROLES.ENSEIGNANT || role === ROLES.ANIMATEUR;
+}
+
+function filterFormations(
+  list: FormationItem[],
+  searchText: string,
+  typeFilter: string | undefined,
+  upFilter: string | undefined,
+  deptFilter: string | undefined,
+  ouverteFilter: boolean | undefined,
+  dateRange: Dayjs[],
+): FormationItem[] {
+  return list.filter((f) => {
+    if (searchText && !f.titreFormation?.toLowerCase().includes(searchText.toLowerCase())) return false;
+    if (typeFilter && f.typeFormation !== typeFilter) return false;
+    if (upFilter && f.up1?.libelle !== upFilter) return false;
+    if (deptFilter && f.departement1?.libelle !== deptFilter) return false;
+    if (ouverteFilter !== undefined && f.ouverte !== ouverteFilter) return false;
+    if (dateRange.length === 2) {
+      const [start, end] = dateRange;
+      const d = dayjs(f.dateDebut);
+      if (d.isBefore(start, "day") || d.isAfter(end, "day")) return false;
+    }
+    return true;
+  });
+}
+
+function buildSubtitle(fCount: number, tCount: number, isTeacherView: boolean): string {
+  const suffix = isTeacherView ? " ouverte%s à l'inscription" : " disponible%s";
+  if (fCount !== tCount) {
+    const p = fCount > 1 ? "s" : "";
+    return `${fCount} formation${p} affichée${p} sur ${tCount}`;
+  }
+  const p = tCount > 1 ? "s" : "";
+  return `${tCount} formation${p}${suffix.replaceAll("%s", p)}`;
+}
+
+function computeFormations(
+  currentUser: { role?: string } | null,
+  parUp: unknown,
+  accessibles: unknown,
+  visibles: unknown,
+  all: unknown,
+): FormationItem[] {
+  if (!currentUser) return [];
+  let data: FormationItem[];
+  if (currentUser.role === ROLES.CUP) {
+    data = (parUp as FormationItem[] | undefined) ?? [];
+  } else if (currentUser.role === ROLES.ANIMATEUR) {
+    data = (accessibles as FormationItem[] | undefined) ?? [];
+  } else {
+    data = (visibles as FormationItem[] | undefined) ?? [];
+    if (currentUser.role === ROLES.ADMIN && data.length === 0) {
+      data = (all as FormationItem[] | undefined) ?? [];
+    }
+  }
+  const list = Array.isArray(data) ? data : [];
+  const isTeacher = currentUser.role === ROLES.ENSEIGNANT || currentUser.role === ROLES.ANIMATEUR;
+  return isTeacher ? list.filter((f) => f.inscriptionsOuvertes === true) : list;
+}
+
 export default function FormationCards() {
   const [requested, setRequested] = useState<Id[]>([]);
   const navigate = useNavigate();
@@ -105,8 +167,8 @@ export default function FormationCards() {
 
   // État « déjà demandé » réel (serveur) : on récupère les inscriptions de
   // l'enseignant pour marquer les formations déjà demandées (persistant au reload).
-  const isTeacherForData = currentUser?.role === ROLES.ENSEIGNANT || currentUser?.role === ROLES.ANIMATEUR;
-  const { data: enseignantSelf } = useEnseignantById(isTeacherForData ? identifier : undefined);
+  const isTeacherView = isTeacherRole(currentUser?.role);
+  const { data: enseignantSelf } = useEnseignantById(isTeacherView ? identifier : undefined);
   const { data: myInscriptions = [] } = useInscriptionsByEnseignant(
     (enseignantSelf as { id?: Id } | undefined)?.id,
   );
@@ -118,25 +180,10 @@ export default function FormationCards() {
     return s;
   }, [myInscriptions]);
 
-  const formations = useMemo(() => {
-    if (!currentUser) return [];
-    let data: FormationItem[] = [];
-    if (currentUser.role === ROLES.CUP) {
-      data = (parUp as FormationItem[] | undefined) ?? [];
-    } else if (currentUser.role === ROLES.ANIMATEUR) {
-      data = (accessibles as FormationItem[] | undefined) ?? [];
-    } else {
-      data = (visibles as FormationItem[] | undefined) ?? [];
-      if (currentUser.role === ROLES.ADMIN && data.length === 0) {
-        data = (all as FormationItem[] | undefined) ?? [];
-      }
-    }
-    const list = Array.isArray(data) ? data : [];
-    // Enseignant / animateur : on n'affiche que les formations dont les
-    // inscriptions sont ouvertes (les seules auxquelles ils peuvent s'inscrire).
-    const isTeacher = currentUser.role === ROLES.ENSEIGNANT || currentUser.role === ROLES.ANIMATEUR;
-    return isTeacher ? list.filter((f) => f.inscriptionsOuvertes === true) : list;
-  }, [currentUser, parUp, accessibles, visibles, all]);
+  const formations = useMemo(
+    () => computeFormations(currentUser, parUp, accessibles, visibles, all),
+    [currentUser, parUp, accessibles, visibles, all],
+  );
 
   const loading = profileLoading || visiblesLoading || (!currentUser);
 
@@ -186,19 +233,7 @@ export default function FormationCards() {
     setDateRange([]);
   };
 
-  const filtered = formationsList.filter((f) => {
-    if (searchText && !f.titreFormation?.toLowerCase().includes(searchText.toLowerCase())) return false;
-    if (typeFilter && f.typeFormation !== typeFilter) return false;
-    if (upFilter && f.up1?.libelle !== upFilter) return false;
-    if (deptFilter && f.departement1?.libelle !== deptFilter) return false;
-    if (ouverteFilter !== undefined && f.ouverte !== ouverteFilter) return false;
-    if (dateRange.length === 2) {
-      const [start, end] = dateRange;
-      const d = dayjs(f.dateDebut);
-      if (d.isBefore(start, "day") || d.isAfter(end, "day")) return false;
-    }
-    return true;
-  });
+  const filtered = filterFormations(formationsList, searchText, typeFilter, upFilter, deptFilter, ouverteFilter, dateRange);
 
   // options filtres
   const types = Array.from(new Set(formationsList.map((f) => f.typeFormation)))
@@ -224,7 +259,10 @@ export default function FormationCards() {
   }, [formationsList]);
 
   const isAdminLike = currentUser?.role === ROLES.ADMIN || currentUser?.role === ROLES.CUP;
-  const isTeacherView = currentUser?.role === ROLES.ENSEIGNANT || currentUser?.role === ROLES.ANIMATEUR;
+  const emptyTitle = isTeacherView ? "Aucune formation ouverte à l'inscription" : "Aucune formation disponible";
+  const emptyDesc = isTeacherView
+    ? "Aucune formation n'est ouverte aux inscriptions pour le moment. Revenez plus tard."
+    : "Le catalogue est vide. Créez une formation pour commencer.";
 
   if (loading && formationsList.length === 0) {
     return <PageLoader tip="Chargement des formations..." />;
@@ -233,16 +271,7 @@ export default function FormationCards() {
     return <PageLoader tip="Chargement de votre profil..." />;
   }
   if (!formationsList || formationsList.length === 0) {
-    return (
-      <EmptyStateStandard
-        title={isTeacherView ? "Aucune formation ouverte à l'inscription" : "Aucune formation disponible"}
-        description={
-          isTeacherView
-            ? "Aucune formation n'est ouverte aux inscriptions pour le moment. Revenez plus tard."
-            : "Le catalogue est vide. Créez une formation pour commencer."
-        }
-      />
-    );
+    return <EmptyStateStandard title={emptyTitle} description={emptyDesc} />;
   }
 
   return (
@@ -258,17 +287,7 @@ export default function FormationCards() {
               <span className="fc-hero-badge-total">/ {formationsList.length}</span>
             </span>
           }
-          subtitle={(() => {
-            const fCount = filtered.length;
-            const tCount = formationsList.length;
-            const suffix = isTeacherView ? " ouverte%s à l'inscription" : " disponible%s";
-            if (fCount !== tCount) {
-              const p = fCount > 1 ? "s" : "";
-              return `${fCount} formation${p} affichée${p} sur ${tCount}`;
-            }
-            const p = tCount > 1 ? "s" : "";
-            return `${tCount} formation${p}${suffix.replaceAll("%s", p)}`;
-          })()}
+          subtitle={buildSubtitle(filtered.length, formationsList.length, isTeacherView)}
           actions={
             <Button
               icon={<ReloadOutlined />}
@@ -397,11 +416,10 @@ export default function FormationCards() {
                       {(() => {
                         const d = daysUntilStart(f.dateDebut);
                         if (d === null || !f.inscriptionsOuvertes || d > 7) return null;
-                        const label = d === 0
-                          ? "Démarre aujourd'hui"
-                          : d < 0
-                            ? `Démarré il y a ${-d} j`
-                            : `Démarre dans ${d} j`;
+                        let label: string;
+                        if (d === 0) label = "Démarre aujourd'hui";
+                        else if (d < 0) label = `Démarré il y a ${-d} j`;
+                        else label = `Démarre dans ${d} j`;
                         return (
                           <Tag
                             icon={<ThunderboltOutlined />}

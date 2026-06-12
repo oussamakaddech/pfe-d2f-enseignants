@@ -167,7 +167,7 @@ export default function ReviewStep({
   const cleanupOrphans = () => {
     const invalid = new Set(Array.from(orphanIds));
     if (invalid.size === 0) return;
-    const next = cloneDeep(tree) as DomaineNode[];
+    const next = cloneDeep(tree);
     for (const d of next ?? [])
       for (const c of d.competences ?? [])
         for (const s of collectSavoirs(c))
@@ -198,7 +198,7 @@ export default function ReviewStep({
     for (const [di, d] of (tree ?? []).entries())
       for (const [ci, c] of (d.competences ?? []).entries())
         pushScOpts(opts, d, di, c, ci);
-    if (!selectedNode || selectedNode.type !== "savoir") return opts;
+    if (selectedNode?.type !== "savoir") return opts;
     const [srcDi, srcCi, srcSci] = selectedNode.path;
     return opts.filter((o) => { try { const arr = JSON.parse(o.value) as number[]; return !(arr[0] === srcDi && arr[1] === srcCi && arr[2] === srcSci); } catch { return true; } });
   }, [tree, selectedNode]);

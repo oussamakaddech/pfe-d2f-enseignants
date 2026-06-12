@@ -86,6 +86,21 @@ const graviteColor = (gravite: string): string => {
   return "#10b981";
 };
 
+function formatHeroScore(percent?: number): ReactNode {
+  const score = (percent ?? 0) / 20;
+  return (
+    <span className={s.heroScoreInner}>
+      <span className={s.heroScoreValue}>{score.toFixed(1)}</span>
+      <span className={s.heroScoreDenom}>/ 5</span>
+      <span className={s.heroScoreLabel}>Score global</span>
+    </span>
+  );
+}
+
+function formatRecoScore(p?: number): ReactNode {
+  return <span className={s.recoRingVal}>{p}%</span>;
+}
+
 const niveauColor = (n: number): string => {
   if (n >= 4) return "#10b981";
   if (n >= 3) return "#f59e0b";
@@ -237,13 +252,7 @@ export default function SkillPassportPage({ targetUsername, downloadLabel }: Pro
             strokeWidth={9}
             strokeColor={{ "0%": grad.from, "100%": grad.to }}
             trailColor="rgba(255,255,255,0.18)"
-            format={() => (
-              <span className={s.heroScoreInner}>
-                <span className={s.heroScoreValue}>{scoreGlobal.toFixed(1)}</span>
-                <span className={s.heroScoreDenom}>/ 5</span>
-                <span className={s.heroScoreLabel}>Score global</span>
-              </span>
-            )}
+            format={formatHeroScore}
           />
           <div className={s.heroStatut} style={{ background: `${sm.color}22`, color: sm.color, borderColor: `${sm.color}55` }}>
             {sm.icon} {sm.label}
@@ -578,7 +587,7 @@ function RecoCard({ r }: { readonly r: RecommendationSummaryDTO }) {
           size={64}
           percent={probPct}
           strokeColor={{ "0%": "#6366f1", "100%": "#4338ca" }}
-          format={(p) => <span className={s.recoRingVal}>{p}%</span>}
+          format={formatRecoScore}
         />
         <Text type="secondary" className={s.recoRingLabel}>
           réussite

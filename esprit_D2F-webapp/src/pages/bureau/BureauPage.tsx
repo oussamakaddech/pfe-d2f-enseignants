@@ -70,6 +70,10 @@ function ColumnSearchIcon({ filtered }: Readonly<{ filtered: boolean }>) {
   return <SearchOutlined className={filtered ? s.columnSearchHighlight : undefined} />;
 }
 
+function renderBureauExpanded(record: Bureau) {
+  return <AnimateursExternesPanel bureauId={record.id} bureauNom={record.nom} />;
+}
+
 type SearchColumnConfig = {
   onSearch: (selectedKeys: string[], confirm: () => void, dataIndex: string) => void;
   onReset: (clearFilters: () => void) => void;
@@ -348,9 +352,7 @@ export default function BureauPage() {
             rowKey="id"
             loading={loading}
             expandable={{
-              expandedRowRender: (record: Bureau) => (
-                <AnimateursExternesPanel bureauId={record.id} bureauNom={record.nom} />
-              ),
+              expandedRowRender: renderBureauExpanded,
               rowExpandable: (record: Bureau) => record.id != null,
             }}
             pagination={{ pageSize: 10, showTotal: (total) => `${total} bureau${total === 1 ? "" : "x"}` }}

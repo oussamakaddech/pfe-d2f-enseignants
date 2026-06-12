@@ -140,15 +140,15 @@ export default function TopParticipants() {
 
       {/* ── Graphique ── */}
       <div className="dash-kpi-body">
-        {isLoading ? (
-          <div style={{ textAlign: 'center', padding: '60px 0' }}><Spin /></div>
-        ) : top10.length === 0 ? (
-          <Empty description="Aucune donnée sur la période" style={{ padding: '40px 0' }} />
-        ) : (
+        {(() => {
+          if (isLoading) return <div style={{ textAlign: 'center', padding: '60px 0' }}><Spin /></div>;
+          if (top10.length === 0) return <Empty description="Aucune donnée sur la période" style={{ padding: '40px 0' }} />;
+          return (
           <div className="chartScrollWrapper" style={{ height: showTable ? 200 : 280 }}>
             <Line ref={chartRef} data={chartData} options={chartOptions} />
           </div>
-        )}
+          );
+        })()}
 
         {showTable && sorted.length > 0 && (
           <div style={{ marginTop: 16 }}>

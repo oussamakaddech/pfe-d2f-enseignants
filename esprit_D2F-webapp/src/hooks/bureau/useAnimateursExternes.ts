@@ -12,7 +12,7 @@ const invalidateAnimateurs = (qc: ReturnType<typeof useQueryClient>, bureauId: n
 
 export function useAnimateursExternes(bureauId: number | null, enabled = true) {
   return useQuery<AnimateurExterne[]>({
-    queryKey: bureauId != null ? queryKey(bureauId) : ["bureaux", "animateurs", "none"],
+    queryKey: bureauId == null ? ["bureaux", "animateurs", "none"] : queryKey(bureauId),
     queryFn: () => AnimateurExterneService.getByBureau(bureauId as number),
     enabled: enabled && bureauId != null,
   });

@@ -20,7 +20,7 @@ interface Props {
  * Sélection + validation côté client d'un fichier .xlsx (format & taille) avant
  * envoi au backend. N'effectue aucun upload automatique.
  */
-export default function CalendarFileUpload({ file, onFileChange, disabled }: Props) {
+export default function CalendarFileUpload({ file, onFileChange, disabled }: Readonly<Props>) {
   const { message } = useAppNotification();
 
   const validate = (candidate: File): boolean => {

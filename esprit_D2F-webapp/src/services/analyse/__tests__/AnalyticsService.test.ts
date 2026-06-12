@@ -115,4 +115,82 @@ describe('AnalyticsService', () => {
     expect(result).toEqual({ status: 'UP' });
     expect(httpMocks.mockGet).toHaveBeenCalledWith(expect.stringContaining('/health'));
   });
+
+  it('getEnseignantsSansFormation with default and custom params', async () => {
+    httpMocks.mockGet.mockResolvedValueOnce({ data: { items: [], total: 0 } });
+    const r1 = await AnalyticsService.getEnseignantsSansFormation();
+    expect(r1).toEqual({ items: [], total: 0 });
+    expect(httpMocks.mockGet).toHaveBeenCalledWith(
+      expect.stringContaining('/enseignants-sans-formation'),
+      expect.objectContaining({ params: expect.objectContaining({ page: 0, size: 20 }) })
+    );
+
+    httpMocks.mockGet.mockResolvedValueOnce({ data: { items: [{ id: 'E1' }], total: 1 } });
+    const r2 = await AnalyticsService.getEnseignantsSansFormation({ mois: 6, departement: 'GC', up: 'UP1', page: 1, size: 10 });
+    expect(r2).toEqual({ items: [{ id: 'E1' }], total: 1 });
+  });
+
+  it('getFormationsParPeriode with default and custom params', async () => {
+    httpMocks.mockGet.mockResolvedValueOnce({ data: { items: [] } });
+    const r1 = await AnalyticsService.getFormationsParPeriode();
+    expect(r1).toEqual({ items: [] });
+    expect(httpMocks.mockGet).toHaveBeenCalledWith(
+      expect.stringContaining('/formations-par-periode'),
+      expect.objectContaining({ params: expect.objectContaining({ granularite: 'MOIS' }) })
+    );
+
+    httpMocks.mockGet.mockResolvedValueOnce({ data: { items: [{ mois: 'Jan' }] } });
+    const r2 = await AnalyticsService.getFormationsParPeriode({ granularite: 'TRIMESTRE', debut: '2026-01', fin: '2026-12', departement: 'INFO', up: 'UP2' });
+    expect(r2).toEqual({ items: [{ mois: 'Jan' }] });
+  });
+
+  it('getFormationsParUp with default and custom opts', async () => {
+    httpMocks.mockGet.mockResolvedValueOnce({ data: { items: [{ up: 'GC', count: 3 }] } });
+    const r1 = await AnalyticsService.getFormationsParUp();
+    expect(r1).toEqual({ items: [{ up: 'GC', count: 3 }] });
+    expect(httpMocks.mockGet).toHaveBeenCalledWith(
+      expect.stringContaining('/formations-par-up'),
+      expect.any(Object)
+    );
+
+    httpMocks.mockGet.mockResolvedValueOnce({ data: { items: [] } });
+    await AnalyticsService.getFormationsParUp({ annee: 2026, departement: 'GC' });
+    expect(httpMocks.mockGet).toHaveBeenCalledWith(
+      expect.stringContaining('/formations-par-up'),
+      { params: { annee: 2026, departement: 'GC' } }
+    );
+  });
+
+  it('getFormationsParDepartement with default and custom opts', async () => {
+    httpMocks.mockGet.mockResolvedValueOnce({ data: { items: [] } });
+    const r1 = await AnalyticsService.getFormationsParDepartement();
+    expect(r1).toEqual({ items: [] });
+
+    httpMocks.mockGet.mockResolvedValueOnce({ data: { items: [{ dept: 'INFO' }] } });
+    await AnalyticsService.getFormationsParDepartement({ annee: 2026 });
+    expect(httpMocks.mockGet).toHaveBeenCalledWith(
+      expect.stringContaining('/formations-par-departement'),
+      { params: { annee: 2026 } }
+    );
+  });
+
+  it('exportExcel and exportPdf return blob data', async () => {
+    const blob = new Blob(['xlsx'], { type: 'application/vnd.openxmlformats' });
+    httpMocks.mockGet.mockResolvedValueOnce({ data: blob });
+    const r1 = await AnalyticsService.exportExcel('formations-par-up' as never);
+    expect(r1).toBe(blob);
+    expect(httpMocks.mockGet).toHaveBeenCalledWith(
+      expect.stringContaining('/export/excel'),
+      expect.objectContaining({ responseType: 'blob' })
+    );
+
+    const pdfBlob = new Blob(['pdf'], { type: 'application/pdf' });
+    httpMocks.mockGet.mockResolvedValueOnce({ data: pdfBlob });
+    const r2 = await AnalyticsService.exportPdf('rapport-annuel' as never, { annee: 2026 });
+    expect(r2).toBe(pdfBlob);
+    expect(httpMocks.mockGet).toHaveBeenCalledWith(
+      expect.stringContaining('/export/pdf'),
+      expect.objectContaining({ responseType: 'blob', params: { type: 'rapport-annuel', annee: 2026 } })
+    );
+  });
 });

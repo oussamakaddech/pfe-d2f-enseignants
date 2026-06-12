@@ -23,11 +23,14 @@ const DashboardFormationTypes = memo(function DashboardFormationTypes({ scope }:
 
   return (
     <InfoCard title="Formations par type" icon={<DesktopOutlined />}>
-      {isLoading ? (
+      {(() => {
+        if (isLoading) return (
         <Skeleton active paragraph={{ rows: 2 }} />
-      ) : isError || !counts ? (
+        );
+        if (isError || !counts) return (
         <EmptyState icon={<DesktopOutlined style={{ fontSize: 28 }} />} title="Aucune donnée" compact />
-      ) : (
+        );
+        return (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 12 }}>
           {TYPE_CONFIG.map(({ key, label, sub, icon, color, bg, border }) => (
             <div
@@ -53,7 +56,8 @@ const DashboardFormationTypes = memo(function DashboardFormationTypes({ scope }:
             </div>
           ))}
         </div>
-      )}
+        );
+      })()}
     </InfoCard>
   );
 });

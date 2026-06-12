@@ -66,7 +66,10 @@ export default function ExterneAnimateursSection({ bureauId, setBureauId, animEx
     }
   };
 
-  const animLabel = (a: AnimateurExterne) => `${a.prenom} ${a.nom}${a.email ? ` · ${a.email}` : ""}`;
+  const animLabel = (a: AnimateurExterne) => {
+    const emailSuffix = a.email ? ` · ${a.email}` : "";
+    return `${a.prenom} ${a.nom}${emailSuffix}`;
+  };
 
   return (
     <div className="creation-externe-box">

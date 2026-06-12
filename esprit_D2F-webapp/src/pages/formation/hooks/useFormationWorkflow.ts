@@ -53,7 +53,6 @@ function mergeFormateursAccounts(accountsData: AccountItem[], enseignantsData: P
     })
     .map<PersonItem>((a) => ({
       id: a.id,
-      type: "ANIMATEUR",
       nom: a.lastName || a.userName || a.username || "Formateur",
       prenom: a.firstName || a.firsName || "",
       mail: a.emailAddress || a.email || "",
@@ -211,6 +210,19 @@ async function createOrFindEnseignant(anim: PersonItem): Promise<string | null> 
       return getAnimateurStableId(anim) as string;
     }
     throw err;
+  }
+}
+
+function importSuccessMsg(total: number, found: number, added: number, entity: string): string {
+  const s = (n: number) => (n > 1 ? "s" : "");
+  return `${total} ${entity}${s(total)} importé${s(total)} (${found} trouvé${s(found)}, ${added} ajouté${s(added)} manuellement).`;
+}
+
+function warnExcelEmpty(rows: number, headers: string[], warn: (msg: string) => void): void {
+  if (rows === 0) {
+    warn("Fichier Excel vide ou mal formaté.");
+  } else {
+    warn(`Colonne Email introuvable. Colonnes trouvées : ${headers.join(", ") || "(aucune)"}`);
   }
 }
 
@@ -462,7 +474,8 @@ export function useFormationWorkflow({ initialDate, onFormationCreated, besoinIn
   const removeSeance = (i: number) => setSeances(seances.filter((_, idx) => idx !== i));
   const toggleSeance = (i: number) => updateSeance(i, "expanded", !seances[i].expanded);
 
-  const handleCompetenceChange = async (idx: number, competence: { id?: string | number | null; nom?: string; domaineId?: string | number | null } | null) => {
+  type CompetenceChangePayload = { id?: string | number | null; nom?: string; domaineId?: string | number | null };
+  const handleCompetenceChange = async (idx: number, competence: CompetenceChangePayload | null) => {
     const updated = [...selectedCompLinks];
     const toNum = (v: string | number | null | undefined): number | null => v == null ? null : Number(v);
     updated[idx] = { ...updated[idx], competenceId: toNum(competence?.id), competenceNom: competence?.nom || "", domaineId: toNum(competence?.domaineId ?? updated[idx].domaineId), sousCompetenceId: null, savoirId: null };
@@ -495,11 +508,7 @@ export function useFormationWorkflow({ initialDate, onFormationCreated, besoinIn
     try {
       const { emails, rows, headers } = await parseEmailsFromExcel(file);
       if (emails.length === 0) {
-        if (rows === 0) {
-          message.warning("Fichier Excel vide ou mal formaté.");
-        } else {
-          message.warning(`Colonne Email introuvable. Colonnes trouvées : ${headers.join(", ") || "(aucune)"}`);
-        }
+        warnExcelEmpty(rows, headers, message.warning);
         e.target.value = "";
         return;
       }
@@ -515,13 +524,9 @@ export function useFormationWorkflow({ initialDate, onFormationCreated, besoinIn
         }));
       setManualParticipants((prev) => [...prev, ...newManual]);
       setImportedParticipantEmails((prev) => [...new Set([...prev, ...emails])]);
-      const finalSel = [...partSel.filter((p) => !missing.includes((p.mail || "").toLowerCase())), ...matched, ...newManual];
-      setPartSel(finalSel);
+      setPartSel([...partSel.filter((p) => !missing.includes((p.mail || "").toLowerCase())), ...matched, ...newManual]);
       if (matched.length > 0 || newManual.length > 0) {
-        message.success(
-          `${matched.length + newManual.length} participant${matched.length + newManual.length > 1 ? "s" : ""} importé${matched.length + newManual.length > 1 ? "s" : ""} `
-          + `(${matched.length} trouvé${matched.length > 1 ? "s" : ""}, ${newManual.length} ajouté${newManual.length > 1 ? "s" : ""} manuellement).`,
-        );
+        message.success(importSuccessMsg(matched.length + newManual.length, matched.length, newManual.length, "participant"));
       } else {
         message.warning("Aucun participant correspondant trouvé.");
       }
@@ -538,11 +543,7 @@ export function useFormationWorkflow({ initialDate, onFormationCreated, besoinIn
     try {
       const { emails, rows, headers } = await parseEmailsFromExcel(file);
       if (emails.length === 0) {
-        if (rows === 0) {
-          message.warning("Fichier Excel vide ou mal formaté.");
-        } else {
-          message.warning(`Colonne Email introuvable. Colonnes trouvées : ${headers.join(", ") || "(aucune)"}`);
-        }
+        warnExcelEmpty(rows, headers, message.warning);
         e.target.value = "";
         return;
       }
@@ -561,13 +562,9 @@ export function useFormationWorkflow({ initialDate, onFormationCreated, besoinIn
         }));
       setManualAnimateurs((prev) => [...prev, ...newManual]);
       setImportedAnimateurEmails((prev) => [...new Set([...prev, ...emails])]);
-      const finalSel = [...animSel.filter((p) => !missing.includes((p.mail || "").toLowerCase())), ...matched, ...newManual];
-      setAnimSel(finalSel);
+      setAnimSel([...animSel.filter((p) => !missing.includes((p.mail || "").toLowerCase())), ...matched, ...newManual]);
       if (matched.length > 0 || newManual.length > 0) {
-        message.success(
-          `${matched.length + newManual.length} animateur${matched.length + newManual.length > 1 ? "s" : ""} importé${matched.length + newManual.length > 1 ? "s" : ""} `
-          + `(${matched.length} trouvé${matched.length > 1 ? "s" : ""}, ${newManual.length} ajouté${newManual.length > 1 ? "s" : ""} manuellement).`,
-        );
+        message.success(importSuccessMsg(matched.length + newManual.length, matched.length, newManual.length, "animateur"));
       } else {
         message.warning("Aucun animateur correspondant trouvé.");
       }
@@ -814,7 +811,7 @@ export function useFormationWorkflow({ initialDate, onFormationCreated, besoinIn
       }).filter(Boolean);
 
       const payload = buildPayload(finalAnimIdsWithPersisted, resolvedAnimIdMap);
-      payload.participantsIds = finalPartIdsWithPersisted as unknown[];
+      payload.participantsIds = finalPartIdsWithPersisted;
       const newF = await createFormation(payload);
       const fId = newF.idFormation;
       setNewFormationId(fId ?? null);

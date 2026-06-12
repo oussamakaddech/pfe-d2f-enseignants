@@ -31,7 +31,7 @@ interface Props {
 }
 
 /** Liste paginée des formations planifiées avec export .ics et invitations. */
-export default function CalendarFormationsTable({ canSendInvitations }: Props) {
+export default function CalendarFormationsTable({ canSendInvitations }: Readonly<Props>) {
   const { message } = useAppNotification();
   const [filters, setFilters] = useState<CalendarFormationFilters>({ page: 0, size: 10 });
   const [searchInput, setSearchInput] = useState("");
@@ -61,7 +61,7 @@ export default function CalendarFormationsTable({ canSendInvitations }: Props) {
           message.success(result.message);
         }
       },
-      onError: () => message.error("Échec de l'envoi des invitations."),
+      onError: () => { message.error("Échec de l'envoi des invitations."); },
     });
   };
 
@@ -175,7 +175,7 @@ export default function CalendarFormationsTable({ canSendInvitations }: Props) {
   );
 }
 
-function ParticipantsList({ formationId }: { formationId: number }) {
+function ParticipantsList({ formationId }: Readonly<{ formationId: number }>) {
   const [page, setPage] = useState(0);
   const { data, isLoading } = useCalendarParticipants(formationId, page, 10);
 

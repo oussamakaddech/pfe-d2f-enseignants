@@ -167,9 +167,9 @@ export default function EnseignantCompetencePage() {
   }, [msgApi]);
 
   useEffect(() => {
-    loadCompetences();
-    loadCount();
-    loadDomaines();
+    void loadCompetences();
+    void loadCount();
+    void loadDomaines();
   }, [loadCompetences, loadCount, loadDomaines]);
 
   // ─── Assign ───────────────────────────────────────────────────────────────
@@ -188,8 +188,8 @@ export default function EnseignantCompetencePage() {
       });
       msgApi.success("Compétence ajoutée avec succès");
       setAssignModal(false);
-      loadCompetences();
-      loadCount();
+      await loadCompetences();
+      await loadCount();
     } catch (err: unknown) {
       const e = err as { errorFields?: unknown; response?: { data?: { message?: string } } };
       if (e?.errorFields) return;
@@ -211,7 +211,7 @@ export default function EnseignantCompetencePage() {
       await ecApi.updateNiveau(editingRecord?.id!, niveau);
       msgApi.success("Niveau mis à jour");
       setNiveauModal(false);
-      loadCompetences();
+      await loadCompetences();
     } catch (err: unknown) {
       const e = err as { errorFields?: unknown; response?: { data?: { message?: string } } };
       if (e?.errorFields) return;
@@ -225,8 +225,8 @@ export default function EnseignantCompetencePage() {
     try {
       await ecApi.remove(id);
       msgApi.success("Compétence retirée");
-      loadCompetences();
-      loadCount();
+      await loadCompetences();
+      await loadCount();
     } catch (err: unknown) {
       const e = err as { response?: { data?: { message?: string } } };
       const msg = e.response?.data?.message || "Erreur lors de la suppression";

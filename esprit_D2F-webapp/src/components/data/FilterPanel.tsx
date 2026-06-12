@@ -103,7 +103,8 @@ const FilterPanel = memo(function FilterPanel({
       }
       case "rangeSlider": {
         const [a, b] = v as [number, number];
-        return `${f.label} : ${a}–${b}${f.unit ? ` ${f.unit}` : ""}`;
+        const unitSuffix = f.unit ? ` ${f.unit}` : "";
+        return `${f.label} : ${a}–${b}${unitSuffix}`;
       }
       case "search":
         return `${f.label} : « ${String(v)} »`;
@@ -169,7 +170,7 @@ const FilterPanel = memo(function FilterPanel({
               max={f.max}
               value={v}
               onChange={(val) => setValue(f.key, val as [number, number])}
-              tooltip={{ formatter: (x) => `${x}${f.unit ? ` ${f.unit}` : ""}` }}
+              tooltip={{ formatter: (x) => (f.unit ? `${x} ${f.unit}` : `${x}`) }}
             />
           </div>
         );

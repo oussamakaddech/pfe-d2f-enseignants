@@ -14,7 +14,8 @@ const DashboardParticipationChart = memo(function DashboardParticipationChart({ 
     const out: Row[] = scope.isAdmin
       ? (deptQ.data?.departements ?? []).map((d) => ({ name: d.departementNom, value: d.nombreParticipations }))
       : (upQ.data?.items ?? []).map((u) => ({ name: u.upNom, value: u.nombreParticipations }));
-    return out.sort((a, b) => b.value - a.value).slice(0, 12);
+    out.sort((a, b) => b.value - a.value);
+    return out.slice(0, 12);
   }, [scope.isAdmin, deptQ.data, upQ.data]);
 
   const isLoading = scope.isAdmin ? deptQ.isLoading : upQ.isLoading;

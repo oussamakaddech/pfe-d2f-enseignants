@@ -80,15 +80,18 @@ export default function MailForm({ formation, onSendSuccess }: Readonly<MailForm
       "\n\n"
     : "";
 
+  const objectifBlock = objectifStr ? `<p>${objectifStr.replaceAll("\n", "<br/>")}</p>` : "";
+  const animateursBlock = animateursStr ? `<p>${animateursStr.replaceAll("\n", "<br/>")}</p>` : "";
+  const participantsBlock = participantsStr ? `<p>${participantsStr.replaceAll("\n", "<br/>")}</p>` : "";
   const defaultContent = formation
     ? `<p>Bonjour ${formation.responsableName || "à tous"},</p>` +
-      (objectifStr ? `<p>${objectifStr.replace(/\n/g, "<br/>")}</p>` : "") +
+      objectifBlock +
       `<p>Votre formation <strong>"${formation.titreFormation}"</strong> se déroulera du ${dayjs(
         formation.dateDebut
       ).format("DD/MM/YYYY")} au ${dayjs(formation.dateFin).format("DD/MM/YYYY")}.</p>` +
-      `<p><strong>Détail des séances :</strong><br/>${seancesStr.replace(/\n/g, "<br/>")}</p>` +
-      (animateursStr ? `<p>${animateursStr.replace(/\n/g, "<br/>")}</p>` : "") +
-      (participantsStr ? `<p>${participantsStr.replace(/\n/g, "<br/>")}</p>` : "") +
+      `<p><strong>Détail des séances :</strong><br/>${seancesStr.replaceAll("\n", "<br/>")}</p>` +
+      animateursBlock +
+      participantsBlock +
       "<p>Cordialement,<br/><strong>L'équipe de formation</strong></p>"
     : "";
 

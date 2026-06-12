@@ -171,7 +171,7 @@ export default function EnseignantMatrixView({ tree, setTree, allEnseignants }: 
   const pageRows = filteredRows.slice((page - 1) * pageSize, page * pageSize);
 
   const toggleCell = (row: FlatSavoirRow, teacherId: string) => {
-    const next = cloneDeep(tree) as TreeDomaine[];
+    const next = cloneDeep(tree);
     const s = getSavoirByRow(next, row);
     if (!s) return;
     const ids = new Set((s.enseignantsSuggeres ?? []).map(String));

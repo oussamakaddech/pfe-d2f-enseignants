@@ -34,7 +34,7 @@ interface MesInscriptionRow {
   dateFin?: string;
   chargeHoraire?: string;
   competencesCiblees?: string[];
-  etat?: Etat | string;
+  etat?: string;
   dateDemande?: string;
   dateTraitement?: string;
   motif?: string;
@@ -127,7 +127,7 @@ export default function MesInscriptions() {
       return;
     }
     try {
-      await annulerMut.mutateAsync({ id: target as Id, enseignantId: identifier as Id });
+      await annulerMut.mutateAsync({ id: target, enseignantId: identifier });
       msgApi.success("Demande annulée avec succès.");
       void refetch();
     } catch (err: unknown) {
@@ -236,10 +236,10 @@ export default function MesInscriptions() {
           ]}
         />
 
-        {loading ? (
-          <PageLoader tip="Chargement de vos inscriptions..." minHeight={240} />
-        ) : displayed.length === 0 ? (
-          rows.length === 0 ? (
+        {(() => {
+          if (loading) return <PageLoader tip="Chargement de vos inscriptions..." minHeight={240} />;
+          if (displayed.length === 0) {
+            if (rows.length === 0) return (
             <EmptyStateStandard
               title="Aucune demande pour le moment"
               description="Vous n'avez pas encore soumis de demande d'inscription. Parcourez le catalogue pour trouver une formation."
@@ -247,13 +247,15 @@ export default function MesInscriptions() {
               actionIcon={<SendOutlined />}
               onAction={() => navigate("/home/Inscription/Nouvelle")}
             />
-          ) : (
+            );
+            return (
             <EmptyStateStandard
               title="Aucune demande pour ce filtre"
               description="Changez de statut pour voir les autres demandes."
             />
-          )
-        ) : (
+            );
+          }
+          return (
           <div className="ins-stagger" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
             {displayed.map((r) => {
               const meta = ETAT_META[(r.etat as Etat)] ?? ETAT_META.PENDING;
@@ -374,7 +376,8 @@ export default function MesInscriptions() {
               );
             })}
           </div>
-        )}
+          );
+        })()}
 
         {!loading && rows.length > 0 && (
           <Text type="secondary" style={{ display: "block", marginTop: 12, fontSize: 12 }}>

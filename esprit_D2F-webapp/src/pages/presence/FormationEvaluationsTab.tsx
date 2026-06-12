@@ -75,7 +75,7 @@ const FormationEvaluationsTab = ({ formationId }: FormationEvaluationsTabProps) 
       satisfaisant: ev.satisfaisant,
       commentaire: ev.commentaire,
     }));
-    bulkUpdateMut.mutateAsync({ formationId, evaluations: dtoList }).catch(() => {
+    void bulkUpdateMut.mutateAsync({ formationId, evaluations: dtoList }).catch(() => {
       message.error("Erreur lors de la sauvegarde des évaluations.");
     });
   };

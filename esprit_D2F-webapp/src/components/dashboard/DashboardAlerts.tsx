@@ -17,6 +17,12 @@ const SEV: Record<AlertSeverity, { color: string; icon: React.ReactNode; label: 
   INFO: { color: "blue", icon: <InfoCircleOutlined />, label: "Info" },
 };
 
+function sevColorVar(severity: string): string {
+  if (severity === "CRITICAL") return "error";
+  if (severity === "WARNING") return "warning";
+  return "info";
+}
+
 const DashboardAlerts = memo(function DashboardAlerts({ scope }: { readonly scope: DashboardScope }) {
   const navigate = useNavigate();
   const global = useGlobalDashboard(scope.isAdmin);
@@ -37,22 +43,25 @@ const DashboardAlerts = memo(function DashboardAlerts({ scope }: { readonly scop
       icon={<AlertOutlined />}
       badge={alerts.length > 0 ? <Tag color="red">{alerts.length}</Tag> : undefined}
     >
-      {loading ? (
+      {(() => {
+        if (loading) return (
         <Skeleton active paragraph={{ rows: 4 }} />
-      ) : alerts.length === 0 ? (
+        );
+        if (alerts.length === 0) return (
         <EmptyState
           icon={<CheckCircleOutlined style={{ color: "var(--color-success)", fontSize: 36 }} />}
           title="Aucune alerte prioritaire"
           description="Tout est sous contrôle pour la période sélectionnée."
           compact
         />
-      ) : (
+        );
+        return (
         <div className="dash-alerts">
           {alerts.slice(0, 6).map((a) => {
             const sev = SEV[a.severity];
             return (
               <div key={a.id} className={`dash-alert dash-alert-${a.severity.toLowerCase()}`}>
-                <span className="dash-alert-icon" style={{ color: `var(--ant-color-${a.severity === "CRITICAL" ? "error" : a.severity === "WARNING" ? "warning" : "info"})` }}>
+                <span className="dash-alert-icon" style={{ color: `var(--ant-color-${sevColorVar(a.severity)})` }}>
                   {sev.icon}
                 </span>
                 <div className="dash-alert-body">
@@ -70,7 +79,8 @@ const DashboardAlerts = memo(function DashboardAlerts({ scope }: { readonly scop
             );
           })}
         </div>
-      )}
+        );
+      })()}
     </InfoCard>
   );
 });

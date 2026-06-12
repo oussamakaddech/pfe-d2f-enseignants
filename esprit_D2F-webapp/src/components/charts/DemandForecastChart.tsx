@@ -53,7 +53,8 @@ const DemandForecastChart = memo(function DemandForecastChart({ data, height = 2
 
   return (
     <div style={{ overflowX: "auto" }}>
-      <svg width={view.width} height={height} role="img" aria-label="Prévision de la demande de formation">
+      <svg width={view.width} height={height} aria-label="Prévision de la demande de formation">
+        <title>Prévision de la demande de formation</title>
         {view.bandPts && <polygon points={view.bandPts} fill="rgba(0, 180, 216, 0.12)" stroke="none" />}
         <line
           x1={view.boundaryX} y1={view.padTop} x2={view.boundaryX} y2={view.padTop + view.innerH}

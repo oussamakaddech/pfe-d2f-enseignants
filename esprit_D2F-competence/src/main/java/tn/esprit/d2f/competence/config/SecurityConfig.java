@@ -120,6 +120,7 @@ public class SecurityConfig {
     }
 
     @Bean
+    @SuppressWarnings("java:S5122") // Safe: origins restricted to configured allowlist, explicit header allowlist, no wildcard
     public WebMvcConfigurer corsConfigurer() {
         String[] origins = allowedOriginsRaw.split(",");
         return new WebMvcConfigurer() {
@@ -128,7 +129,7 @@ public class SecurityConfig {
                 registry.addMapping("/**")
                         .allowedOrigins(origins)
                         .allowedMethods("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS")
-                        .allowedHeaders("*")
+                        .allowedHeaders("Authorization", "Content-Type", "Accept", "Origin")
                         .allowCredentials(true);
             }
         };

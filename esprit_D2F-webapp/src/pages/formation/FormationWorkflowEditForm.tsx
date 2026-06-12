@@ -7,13 +7,11 @@ import {
   Col,
   DatePicker,
   Divider,
-  Drawer,
   Empty,
   Input,
   InputNumber,
   Modal,
   Popconfirm,
-  Radio,
   Row,
   Select,
   Space,
@@ -102,7 +100,7 @@ function avatarColor(seed?: string): string {
   const palette = ["#2563eb", "#7c3aed", "#0d9488", "#db2777", "#ea580c", "#059669", "#0891b2", "#9333ea", "#dc2626", "#65a30d"];
   if (!seed) return palette[0];
   let h = 0;
-  for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0;
+  for (let i = 0; i < seed.length; i++) h = (h * 31 + (seed.codePointAt(i) ?? 0)) >>> 0;
   return palette[h % palette.length];
 }
 
@@ -177,9 +175,9 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
         </div>
         <Row gutter={[16, 16]}>
           <Col span={24}>
-            <label className="creation-field-label">
+            <div className="creation-field-label">
               Titre <span className="creation-field-required">*</span>
-            </label>
+            </div>
             <Input
               size="large"
               value={h.titre}
@@ -190,7 +188,7 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
           </Col>
 
           <Col xs={24} sm={12}>
-            <label className="creation-field-label">Date de début</label>
+            <div className="creation-field-label">Date de début</div>
             <DatePicker
               size="large"
               style={{ width: "100%" }}
@@ -201,7 +199,7 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
             />
           </Col>
           <Col xs={24} sm={12}>
-            <label className="creation-field-label">Date de fin</label>
+            <div className="creation-field-label">Date de fin</div>
             <DatePicker
               size="large"
               style={{ width: "100%" }}
@@ -213,7 +211,7 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
           </Col>
 
           <Col xs={24} sm={12}>
-            <label className="creation-field-label"><EnvironmentOutlined /> Salle / Lieu</label>
+            <div className="creation-field-label"><EnvironmentOutlined /> Salle / Lieu</div>
             <Input
               size="large"
               value={h.salle}
@@ -225,7 +223,7 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
           </Col>
 
           <Col xs={24} sm={8}>
-            <label className="creation-field-label">Type</label>
+            <div className="creation-field-label">Type</div>
             <Select
               size="large"
               value={h.typeFormation}
@@ -236,7 +234,7 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
             />
           </Col>
           <Col xs={24} sm={8}>
-            <label className="creation-field-label">État</label>
+            <div className="creation-field-label">État</div>
             <Select
               size="large"
               value={h.etatFormation}
@@ -247,7 +245,7 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
             />
           </Col>
           <Col xs={24} sm={8}>
-            <label className="creation-field-label">Charge horaire (h)</label>
+            <div className="creation-field-label">Charge horaire (h)</div>
             <InputNumber
               size="large"
               value={h.chargeH}
@@ -259,7 +257,7 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
           </Col>
 
           <Col xs={24} sm={12}>
-            <label className="creation-field-label">UP</label>
+            <div className="creation-field-label">UP</div>
             <Select
               size="large"
               showSearch
@@ -273,7 +271,7 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
             />
           </Col>
           <Col xs={24} sm={12}>
-            <label className="creation-field-label">Département</label>
+            <div className="creation-field-label">Département</div>
             <Select
               size="large"
               showSearch
@@ -288,7 +286,7 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
           </Col>
 
           <Col xs={24} sm={12}>
-            <label className="creation-field-label">Période</label>
+            <div className="creation-field-label">Période</div>
             <Select
               size="large"
               value={h.periodCode}
@@ -300,7 +298,7 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
           </Col>
           {h.periodCode === "OTHER" && (
             <Col xs={24} sm={12}>
-              <label className="creation-field-label">Précisez la période</label>
+              <div className="creation-field-label">Précisez la période</div>
               <Input
                 size="large"
                 value={h.customPeriodLabel}
@@ -312,11 +310,10 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
           )}
 
           <Col span={24}>
-            <div
+            <button
+              type="button"
               className={`creation-switch-row${h.ouverte ? " active" : ""}`}
               onClick={() => !h.isResponsableDossier && h.setOuverte(!h.ouverte)}
-              role="button"
-              tabIndex={0}
               onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); !h.isResponsableDossier && h.setOuverte(!h.ouverte); } }}
               style={{ cursor: h.isResponsableDossier ? 'not-allowed' : 'pointer', opacity: h.isResponsableDossier ? 0.6 : 1 }}
             >
@@ -331,7 +328,7 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
                   Activez pour rendre la formation visible et accessible aux participants.
                 </span>
               </div>
-            </div>
+            </button>
           </Col>
         </Row>
       </div>
@@ -356,7 +353,7 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
         </div>
         <Row gutter={[16, 16]}>
           <Col xs={24} sm={12}>
-            <label className="creation-field-label">Domaine</label>
+            <div className="creation-field-label">Domaine</div>
             <Input
               value={h.domaine}
               onChange={(e) => h.setDomaine(e.target.value)}
@@ -365,7 +362,7 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
             />
           </Col>
           <Col xs={24} sm={12}>
-            <label className="creation-field-label">Population cible</label>
+            <div className="creation-field-label">Population cible</div>
             <Input
               value={h.populationCible}
               onChange={(e) => h.setPopulationCible(e.target.value)}
@@ -374,7 +371,7 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
             />
           </Col>
           <Col span={24}>
-            <label className="creation-field-label">Objectifs</label>
+            <div className="creation-field-label">Objectifs</div>
             <Input.TextArea
               rows={3}
               value={h.objectifs}
@@ -384,7 +381,7 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
             />
           </Col>
           <Col span={24}>
-            <label className="creation-field-label">Objectifs pédagogiques</label>
+            <div className="creation-field-label">Objectifs pédagogiques</div>
             <Input.TextArea
               rows={3}
               value={h.objectifsPedago}
@@ -394,7 +391,7 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
             />
           </Col>
           <Col xs={24} sm={12}>
-            <label className="creation-field-label">Méthodes d'évaluation</label>
+            <div className="creation-field-label">Méthodes d'évaluation</div>
             <Input.TextArea
               rows={2}
               value={h.evalMethods}
@@ -404,7 +401,7 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
             />
           </Col>
           <Col xs={24} sm={12}>
-            <label className="creation-field-label">Prérequis</label>
+            <div className="creation-field-label">Prérequis</div>
             <Input.TextArea
               rows={2}
               value={h.prerequis}
@@ -414,7 +411,7 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
             />
           </Col>
           <Col xs={24} sm={12}>
-            <label className="creation-field-label">Acquis / Compétences validées</label>
+            <div className="creation-field-label">Acquis / Compétences validées</div>
             <Input.TextArea
               rows={2}
               value={h.acquis}
@@ -424,7 +421,7 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
             />
           </Col>
           <Col xs={24} sm={12}>
-            <label className="creation-field-label">Indicateurs de succès</label>
+            <div className="creation-field-label">Indicateurs de succès</div>
             <Input.TextArea
               rows={2}
               value={h.indicateurs}
@@ -521,7 +518,7 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
                 <div className="creation-seance-body">
                   <Row gutter={[12, 12]}>
                     <Col xs={24} sm={6}>
-                      <label className="creation-field-label">Date</label>
+                      <div className="creation-field-label">Date</div>
                       <DatePicker
                         style={{ width: "100%" }}
                         value={s.dateSeance ? dayjs(s.dateSeance) : null}
@@ -531,7 +528,7 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
                       />
                     </Col>
                     <Col xs={12} sm={4}>
-                      <label className="creation-field-label">Début</label>
+                      <div className="creation-field-label">Début</div>
                       <Input
                         type="time"
                         value={(s.heureDebut || "").slice(0, 5)}
@@ -540,7 +537,7 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
                       />
                     </Col>
                     <Col xs={12} sm={4}>
-                      <label className="creation-field-label">Fin</label>
+                      <div className="creation-field-label">Fin</div>
                       <Input
                         type="time"
                         value={(s.heureFin || "").slice(0, 5)}
@@ -549,7 +546,7 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
                       />
                     </Col>
                     <Col xs={24} sm={4}>
-                      <label className="creation-field-label">Type</label>
+                      <div className="creation-field-label">Type</div>
                       <Select
                         value={s.typeSeance}
                         onChange={(v) => h.updateSeance(i, "typeSeance", v)}
@@ -562,7 +559,7 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
                       />
                     </Col>
                     <Col xs={24} sm={6}>
-                      <label className="creation-field-label">Salle</label>
+                      <div className="creation-field-label">Salle</div>
                       <Input
                         value={s.salle}
                         onChange={(e) => h.updateSeance(i, "salle", e.target.value)}
@@ -573,7 +570,7 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
                     {s.expanded && (
                       <>
                         <Col xs={12} sm={6}>
-                          <label className="creation-field-label">Durée théo. (h)</label>
+                          <div className="creation-field-label">Durée théo. (h)</div>
                           <InputNumber
                             value={s.dureeTheorique}
                             onChange={(v) => h.updateSeance(i, "dureeTheorique", v ?? 0)}
@@ -583,7 +580,7 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
                           />
                         </Col>
                         <Col xs={12} sm={6}>
-                          <label className="creation-field-label">Durée prat. (h)</label>
+                          <div className="creation-field-label">Durée prat. (h)</div>
                           <InputNumber
                             value={s.dureePratique}
                             onChange={(v) => h.updateSeance(i, "dureePratique", v ?? 0)}
@@ -593,7 +590,7 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
                           />
                         </Col>
                         <Col span={24}>
-                          <label className="creation-field-label">Contenus</label>
+                          <div className="creation-field-label">Contenus</div>
                           <Input.TextArea
                             rows={2}
                             value={s.contenus}
@@ -603,7 +600,7 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
                           />
                         </Col>
                         <Col span={24}>
-                          <label className="creation-field-label">Méthodes</label>
+                          <div className="creation-field-label">Méthodes</div>
                           <Input.TextArea
                             rows={2}
                             value={s.methodes}
@@ -640,7 +637,7 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
     ) => {
       const nom = (person?.nom as string) || "";
       const prenom = (person?.prenom as string) || "";
-      const mail = ((person?.mail as string) || (person?.email as string) || "") as string;
+      const mail = (person?.mail as string) || (person?.email as string) || "";
       const fullName = `${prenom} ${nom}`.trim() || String(value);
       const initials = getInitials(nom, prenom);
       const bg = avatarColor(String(person?.id || mail || fullName));
@@ -697,8 +694,14 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
       const person = h.optionsPart.find((o) => String(o.id) === props.value) ?? h.partSel.find((p) => String(p.id) === props.value);
       const isCup = person && (person.cup === "O" || person.cup === "Y" || person.cup === "1");
       const isChef = person && (person.chefDepartement === "O" || person.chefDepartement === "Y" || person.chefDepartement === "1");
-      const accent = isCup ? "#7c3aed" : isChef ? "#ea580c" : "#0d9488";
-      const badge = isCup ? { label: "CUP", color: "purple" } : isChef ? { label: "Chef", color: "volcano" } : undefined;
+      let accent: string;
+      if (isCup) accent = "#7c3aed";
+      else if (isChef) accent = "#ea580c";
+      else accent = "#0d9488";
+      let badge: { label: string; color: string } | undefined;
+      if (isCup) badge = { label: "CUP", color: "purple" };
+      else if (isChef) badge = { label: "Chef", color: "volcano" };
+      else badge = undefined;
       return renderPersonTag(person as Record<string, unknown>, props.value, props.closable, props.onClose, accent, badge);
     };
 
@@ -767,15 +770,15 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
             </div>
             <Row gutter={[12, 12]}>
               <Col xs={24} sm={8}>
-                <label className="creation-field-label">Nom</label>
+                <div className="creation-field-label">Nom</div>
                 <Input value={h.formNom} onChange={(e) => h.setFormNom(e.target.value)} placeholder="Nom" />
               </Col>
               <Col xs={24} sm={8}>
-                <label className="creation-field-label">Prénom</label>
+                <div className="creation-field-label">Prénom</div>
                 <Input value={h.formPrenom} onChange={(e) => h.setFormPrenom(e.target.value)} placeholder="Prénom" />
               </Col>
               <Col xs={24} sm={8}>
-                <label className="creation-field-label">Email</label>
+                <div className="creation-field-label">Email</div>
                 <Input type="email" value={h.formEmail} onChange={(e) => h.setFormEmail(e.target.value)} placeholder="email@exemple.com" />
               </Col>
             </Row>
@@ -783,7 +786,7 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
         ) : (
           <Card
             className="edit-actors-card edit-actors-card--anim"
-            bordered
+            variant="outlined"
             title={
               <div className="edit-actors-card-title">
                 <Badge color="#7c3aed" />
@@ -876,7 +879,7 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
           <Col xs={24} md={12}>
         <Card
           className="edit-actors-card edit-actors-card--part"
-          bordered
+          variant="outlined"
           title={
             <div className="edit-actors-card-title">
               <Badge color="#0d9488" />
@@ -1007,7 +1010,7 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
           </div>
           <Row gutter={[16, 16]}>
             <Col xs={24} sm={12}>
-              <label className="creation-field-label">Organisme</label>
+              <div className="creation-field-label">Organisme</div>
               <Input
                 value={h.organisme}
                 onChange={(e) => h.setOrganisme(e.target.value)}
@@ -1015,7 +1018,7 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
               />
             </Col>
             <Col xs={24} sm={12}>
-              <label className="creation-field-label">Coût de la formation (TND)</label>
+              <div className="creation-field-label">Coût de la formation (TND)</div>
               <InputNumber
                 value={h.cout}
                 onChange={(v) => h.setCout(v ?? 0)}
@@ -1025,7 +1028,7 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
               />
             </Col>
             <Col xs={24} sm={8}>
-              <label className="creation-field-label">Transport (TND)</label>
+              <div className="creation-field-label">Transport (TND)</div>
               <InputNumber
                 value={h.coutTransport}
                 onChange={(v) => h.setCoutTransport(v ?? 0)}
@@ -1035,7 +1038,7 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
               />
             </Col>
             <Col xs={24} sm={8}>
-              <label className="creation-field-label">Hébergement (TND)</label>
+              <div className="creation-field-label">Hébergement (TND)</div>
               <InputNumber
                 value={h.coutHebergement}
                 onChange={(v) => h.setCoutHebergement(v ?? 0)}
@@ -1045,7 +1048,7 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
               />
             </Col>
             <Col xs={24} sm={8}>
-              <label className="creation-field-label">Repas (TND)</label>
+              <div className="creation-field-label">Repas (TND)</div>
               <InputNumber
                 value={h.coutRepas}
                 onChange={(v) => h.setCoutRepas(v ?? 0)}
@@ -1124,13 +1127,15 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
       {/* ── Progress bar ───────────────────────────────────────────── */}
       <div className="edit-progress-bar">
         {STEPS.map((s, i) => (
-          <div
+          <button
             key={s.title}
+            type="button"
             className={`edit-progress-step${i <= activeStep ? " filled" : ""}`}
+            aria-label={`Étape ${i + 1} : ${s.title}`}
             onClick={() => { stepDir.current = i > activeStep ? 1 : -1; setActiveStep(i); }}
           >
             <div className="edit-progress-fill" />
-          </div>
+          </button>
         ))}
       </div>
 
@@ -1202,7 +1207,7 @@ export default function FormationWorkflowEditForm({ formation, onFormationUpdate
 
         {/* Main */}
         <div className="edit-main">
-          <Card className="edit-card" bordered={false}>
+          <Card className="edit-card" variant="borderless">
             <div className="edit-card-header">
               <span className="edit-card-step-badge">Étape {activeStep + 1}/{STEPS.length}</span>
               <div className="edit-card-header-main">

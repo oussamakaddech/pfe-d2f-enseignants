@@ -88,7 +88,7 @@ export default function InscriptionForm() {
   // Fiche enseignant : permet de récupérer le code métier (E-xxxxx) pour
   // le pré-contrôle de chevauchement. Si l'enseignant n'est pas résolu,
   // le pré-contrôle est désactivé (le backend reste la source de vérité).
-  const { data: enseignant, isLoading: enseignantLoading } = useEnseignantById(identifier);
+  const { data: enseignant } = useEnseignantById(identifier);
   const enseignantCode = (enseignant as EnseignantData | undefined)?.id;
 
   const { data: accessiblesRaw, isLoading: accLoading } = useFormationsAccessibles(identifier);
@@ -245,10 +245,11 @@ export default function InscriptionForm() {
                 options={accessibles.map((f) => {
                   const requested = alreadyRequested.get(String(f.idFormation));
                   const baseLabel = `${f.titreFormation ?? "Formation"} (${fmt(f.dateDebut)} → ${fmt(f.dateFin)})`;
+                  const statusWord = requested?.etat === "APPROVED" ? "approuvée" : "en attente";
                   return {
                     value: f.idFormation as Id,
                     label: requested
-                      ? `${baseLabel} — déjà demandée (${requested.etat === "APPROVED" ? "approuvée" : "en attente"})`
+                      ? `${baseLabel} — déjà demandée (${statusWord})`
                       : baseLabel,
                     disabled: !!requested,
                   };
@@ -272,7 +273,7 @@ export default function InscriptionForm() {
                   {fmt(selected.dateDebut)} → {fmt(selected.dateFin)}
                 </Descriptions.Item>
                 <Descriptions.Item label={<><ClockCircleOutlined /> Charge horaire</>}>
-                  {selected.chargeHoraireGlobal != null ? `${selected.chargeHoraireGlobal} h` : "—"}
+                  {selected.chargeHoraireGlobal == null ? "—" : `${selected.chargeHoraireGlobal} h`}
                 </Descriptions.Item>
                 <Descriptions.Item label={<><TeamOutlined /> UP</>}>
                   {selected.up?.libelle || "—"}

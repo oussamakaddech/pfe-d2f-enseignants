@@ -7,7 +7,7 @@ interface Props {
 }
 
 /** Tableau des erreurs/avertissements rattachés aux lignes du fichier. */
-export default function ImportErrorsTable({ errors }: Props) {
+export default function ImportErrorsTable({ errors }: Readonly<Props>) {
   if (!errors || errors.length === 0) {
     return <Empty description="Aucune erreur détectée" image={Empty.PRESENTED_IMAGE_SIMPLE} />;
   }

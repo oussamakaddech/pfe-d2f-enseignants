@@ -102,11 +102,11 @@ function AppLayout() {
             className="app-header-icon-btn"
             aria-label="Basculer le menu"
           >
-            {isMobile
-              ? <MenuOutlined style={{ fontSize: 18, color: "#fff" }} />
-              : collapsed
-                ? <MenuUnfoldOutlined style={{ fontSize: 18, color: "#fff" }} />
-                : <MenuFoldOutlined style={{ fontSize: 18, color: "#fff" }} />}
+            {(() => {
+              if (isMobile) return <MenuOutlined style={{ fontSize: 18, color: "#fff" }} />;
+              if (collapsed) return <MenuUnfoldOutlined style={{ fontSize: 18, color: "#fff" }} />;
+              return <MenuFoldOutlined style={{ fontSize: 18, color: "#fff" }} />;
+            })()}
           </button>
         </Tooltip>
 

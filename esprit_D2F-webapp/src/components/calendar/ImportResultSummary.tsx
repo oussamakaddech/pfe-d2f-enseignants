@@ -24,7 +24,7 @@ interface Props {
 }
 
 /** Récapitulatif d'un import : statut, compteurs et erreurs. */
-export default function ImportResultSummary({ report }: Props) {
+export default function ImportResultSummary({ report }: Readonly<Props>) {
   const meta = STATUS_META[report.status] ?? STATUS_META.PARTIAL;
 
   return (

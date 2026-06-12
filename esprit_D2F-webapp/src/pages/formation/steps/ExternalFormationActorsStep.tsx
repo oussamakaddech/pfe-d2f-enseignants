@@ -1,9 +1,8 @@
-import { useState } from "react";
 import {
-  Row, Col, Card, Space, Typography, Alert, Empty, Divider, Tag
+  Row, Col, Card, Typography, Alert, Empty, Divider, Tag
 } from "antd";
-import { TeamOutlined, BankOutlined } from "@ant-design/icons";
-import type { PersonItem, LookupNode } from "../hooks/useFormationWorkflow";
+import { BankOutlined } from "@ant-design/icons";
+import type { LookupNode } from "../hooks/useFormationWorkflow";
 import type { AnimateurExterne } from "@/models/bureau";
 import ExterneAnimateursSection from "../components/ExterneAnimateursSection";
 
@@ -70,7 +69,7 @@ export default function ExternalFormationActorsStep(
               <Text strong>Informations du bureau de formation</Text>
             </Col>
             <Col span={12}>
-              <label style={{ display: "block", marginBottom: 8 }}>Nom du bureau</label>
+              <div style={{ display: "block", marginBottom: 8 }}>Nom du bureau</div>
               <input
                 type="text"
                 value={bureauNom}
@@ -85,7 +84,7 @@ export default function ExternalFormationActorsStep(
               />
             </Col>
             <Col span={12}>
-              <label style={{ display: "block", marginBottom: 8 }}>Email du bureau</label>
+              <div style={{ display: "block", marginBottom: 8 }}>Email du bureau</div>
               <input
                 type="email"
                 value={bureauMail}
@@ -100,7 +99,7 @@ export default function ExternalFormationActorsStep(
               />
             </Col>
             <Col span={12}>
-              <label style={{ display: "block", marginBottom: 8 }}>Téléphone du bureau</label>
+              <div style={{ display: "block", marginBottom: 8 }}>Téléphone du bureau</div>
               <input
                 type="tel"
                 value={bureauTelephone}

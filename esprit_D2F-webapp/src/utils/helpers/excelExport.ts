@@ -153,7 +153,7 @@ export function writeExcel(sheets: SheetConfig[], filename: string): void {
   sheets.forEach(({ name, rows, title, subtitle }) => {
     const ws = styledSheet(rows, { title, subtitle });
     // Excel limite les noms d'onglet à 31 caractères et interdit certains caractères.
-    const safeName = (name || "Feuille").replace(/[\\/?*[\]:]/g, " ").slice(0, 31);
+    const safeName = (name || "Feuille").replaceAll(/[\\/?*[\]:]/g, " ").slice(0, 31);
     XLSX.utils.book_append_sheet(wb, ws, safeName);
   });
   XLSX.writeFile(wb, filename, { cellStyles: true });

@@ -14,7 +14,7 @@ interface Props {
 }
 
 /** Synthèse + détail des conflits détectés sur le calendrier. */
-export default function ConflictsTable({ report, loading }: Props) {
+export default function ConflictsTable({ report, loading }: Readonly<Props>) {
   const columns: ColumnsType<Conflict> = [
     {
       title: "Type",
@@ -54,7 +54,7 @@ export default function ConflictsTable({ report, loading }: Props) {
         </Col>
       </Row>
 
-      {report && report.conflicts.length === 0 ? (
+      {report?.conflicts.length === 0 ? (
         <Empty description="Aucun conflit détecté" />
       ) : (
         <Table<Conflict>

@@ -71,7 +71,7 @@ const generatePdfDocument = async (data: Certificate) => {
   // À chaque modification de certData, on régénère l'aperçu
   useEffect(() => {
     if (!certData?.idCertificate) return;
-    if (certData) generatePdfDocument(certData).then((url: URL | string) => setPdfUrl(url.toString()));
+    if (certData) void generatePdfDocument(certData).then((url: URL | string) => setPdfUrl(url.toString())).catch(() => {});
   }, [certData]);
 
   // Gère la modification dans le formulaire

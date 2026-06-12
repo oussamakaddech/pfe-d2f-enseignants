@@ -30,11 +30,14 @@ const DashboardPendingNeeds = memo(function DashboardPendingNeeds({ scope }: { r
       icon={<BellOutlined />}
       footer={<Button type="link" style={{ paddingInline: 0 }} onClick={() => navigate("/home/besoins")}>Tous les besoins <RightOutlined /></Button>}
     >
-      {src.isLoading ? (
+      {(() => {
+        if (src.isLoading) return (
         <Skeleton active paragraph={{ rows: 4 }} />
-      ) : pending.length === 0 ? (
+        );
+        if (pending.length === 0) return (
         <EmptyState icon={<CheckCircleOutlined style={{ color: "var(--color-success)", fontSize: 32 }} />} title="Aucun besoin en attente" compact />
-      ) : (
+        );
+        return (
         <div className="dash-list">
           {pending.map((b) => {
             const prio = (b.priorite ?? "").toString().toUpperCase();
@@ -51,7 +54,8 @@ const DashboardPendingNeeds = memo(function DashboardPendingNeeds({ scope }: { r
             );
           })}
         </div>
-      )}
+        );
+      })()}
     </InfoCard>
   );
 });

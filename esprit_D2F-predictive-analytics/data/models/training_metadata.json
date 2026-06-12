@@ -1,5 +1,5 @@
 {
-  "trained_at": "2026-06-04T05:31:15.685655",
+  "trained_at": "2026-06-12T05:21:13.628351",
   "n_features": 17,
   "feature_cols": [
     "avg_level",
@@ -23,28 +23,98 @@
   "cv_folds": 5,
   "min_training_samples": 50,
   "feature_importances": {
-    "avg_level": 0.25735263270166575,
-    "min_level": 0.20223458994785715,
-    "max_level": 0.4089413633512469,
+    "avg_level": 0.34549678696992847,
+    "min_level": 0.23926103703205906,
+    "max_level": 0.1817057459591346,
     "nb_savoirs": 0.0,
     "nb_competences": 0.0,
-    "nb_level_5": 0.007840973927382205,
-    "nb_level_1": 0.026124926610890414,
+    "nb_level_5": 0.009050334329663543,
+    "nb_level_1": 0.019682942431886296,
     "competency_coverage_rate": 0.0,
-    "nb_formations_completed": 0.0,
-    "nb_formations_in_progress": 0.0,
-    "taux_assiduite": 0.0,
-    "nb_besoins_exprimes": 0.09750551346095733,
-    "nb_besoins_approuves": 5.815560187768949e-17,
-    "avg_eval_score": 0.0,
+    "nb_formations_completed": 7.477339776421936e-17,
+    "nb_formations_in_progress": 9.483787670869553e-17,
+    "taux_assiduite": 0.05803971898753179,
+    "nb_besoins_exprimes": 0.1467634342897959,
+    "nb_besoins_approuves": 2.3981991811394276e-18,
+    "avg_eval_score": 1.5697303731094434e-17,
     "nb_evaluations": 0.0,
-    "days_since_last_training": 1.7621251651125813e-16,
-    "engagement_score": 5.001329620388349e-17
+    "days_since_last_training": 1.387323309326649e-16,
+    "engagement_score": 9.367965551325889e-18
+  },
+  "feature_ranges": {
+    "avg_level": {
+      "min": 1.0,
+      "max": 5.0
+    },
+    "min_level": {
+      "min": 1.0,
+      "max": 5.0
+    },
+    "max_level": {
+      "min": 1.0,
+      "max": 5.0
+    },
+    "nb_savoirs": {
+      "min": 1.0,
+      "max": 1.0
+    },
+    "nb_competences": {
+      "min": 1.0,
+      "max": 1.0
+    },
+    "nb_level_5": {
+      "min": 0.0,
+      "max": 1.0
+    },
+    "nb_level_1": {
+      "min": 0.0,
+      "max": 1.0
+    },
+    "competency_coverage_rate": {
+      "min": 1.0,
+      "max": 1.0
+    },
+    "nb_formations_completed": {
+      "min": 0.0,
+      "max": 9.0
+    },
+    "nb_formations_in_progress": {
+      "min": 0.0,
+      "max": 2.0
+    },
+    "taux_assiduite": {
+      "min": 0.5,
+      "max": 0.9
+    },
+    "nb_besoins_exprimes": {
+      "min": 0.0,
+      "max": 4.0
+    },
+    "nb_besoins_approuves": {
+      "min": 0.0,
+      "max": 2.0
+    },
+    "avg_eval_score": {
+      "min": 2.5,
+      "max": 4.0
+    },
+    "nb_evaluations": {
+      "min": 2.0,
+      "max": 2.0
+    },
+    "days_since_last_training": {
+      "min": 0.0,
+      "max": 553.0
+    },
+    "engagement_score": {
+      "min": 10.5,
+      "max": 37.5
+    }
   },
   "metrics": {
     "test_r2": 1.0,
     "test_rmse": 0.0,
-    "cv_rmse": 0.0,
-    "n_samples": 100
+    "cv_rmse": 0.002,
+    "n_samples": 80
   }
 }

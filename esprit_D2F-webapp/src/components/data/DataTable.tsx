@@ -19,6 +19,11 @@ import type {
 } from "./types";
 import styles from "./DataTable.module.css";
 
+/** Module-scope lookup so the row-action menu handler stays under the nesting limit. */
+function findRowAction<T extends object>(actions: RowAction<T>[], key: Key): RowAction<T> | undefined {
+  return actions.find((a) => a.key === key);
+}
+
 interface DataTableProps<T extends object> {
   /** Clé React Query (unique par table/écran). */
   readonly queryKey: string | readonly unknown[];
@@ -159,12 +164,12 @@ function DataTableInner<T extends object>({
                 })),
                 onClick: ({ key, domEvent }) => {
                   domEvent.stopPropagation();
-                  const action = visible.find((a) => a.key === key);
+                  const action = findRowAction(visible, key);
                   if (!action) return;
                   if (action.confirm) {
                     setPendingConfirm({ action, row });
                   } else {
-                    void action.onClick(row);
+                    action.onClick(row);
                   }
                 },
               }}
@@ -272,7 +277,7 @@ function DataTableInner<T extends object>({
               size="small"
               danger={a.danger}
               icon={a.icon}
-              onClick={() => void a.onClick(selectedRows)}
+              onClick={() => { a.onClick(selectedRows); }}
             >
               {a.label}
             </Button>

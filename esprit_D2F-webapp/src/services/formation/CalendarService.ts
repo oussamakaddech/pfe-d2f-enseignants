@@ -34,7 +34,7 @@ function triggerBrowserDownload(blob: Blob, filename: string): void {
 
 function filenameFromDisposition(disposition: string | undefined, fallback: string): string {
   if (!disposition) return fallback;
-  const match = disposition.match(/filename="?(.+?)"?$/);
+  const match = /filename="?(.+?)"?$/.exec(disposition);
   return match ? match[1] : fallback;
 }
 

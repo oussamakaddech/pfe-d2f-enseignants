@@ -40,14 +40,10 @@ public class FormationSecurityConfig {
      * Production deployment should restrict to internal network or add IP allowlisting.
      */
     @Bean
+    @SuppressWarnings("java:S4502") // Safe: stateless REST API using JWT Bearer tokens — CSRF not applicable
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .cors(Customizer.withDefaults())
-                /*
-                 * SECURITY REVIEW: CSRF is disabled because the API is STATELESS and uses JWT Bearer tokens.
-                 * Standard CSRF attacks rely on browsers automatically sending cookies (like JSESSIONID),
-                 * which are not used in this stateless JWT architecture.
-                 */
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 // DSI §12 — RBAC deny-by-default : whitelist minimale + JWT obligatoire.
@@ -90,6 +86,7 @@ public class FormationSecurityConfig {
     }
 
     @Bean
+    @SuppressWarnings("java:S5122") // Safe: origins restricted to configured allowlist, explicit header allowlist, no wildcard
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOrigins(Arrays.asList(allowedOriginsRaw.split(",")));

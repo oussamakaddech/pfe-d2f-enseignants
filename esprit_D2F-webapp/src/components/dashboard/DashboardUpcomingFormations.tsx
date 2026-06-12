@@ -28,11 +28,14 @@ const DashboardUpcomingFormations = memo(function DashboardUpcomingFormations() 
       icon={<CalendarOutlined />}
       footer={<Button type="link" style={{ paddingInline: 0 }} onClick={() => navigate("/home/Formation")}>Gérer les formations <RightOutlined /></Button>}
     >
-      {isLoading ? (
+      {(() => {
+        if (isLoading) return (
         <Skeleton active paragraph={{ rows: 4 }} />
-      ) : upcoming.length === 0 ? (
+        );
+        if (upcoming.length === 0) return (
         <EmptyState icon={<CalendarOutlined style={{ fontSize: 32 }} />} title="Aucune formation à venir" compact />
-      ) : (
+        );
+        return (
         <div className="dash-list">
           {upcoming.map((f) => (
             <button key={String(f.idFormation)} type="button" className="dash-list-row" onClick={() => navigate(`/home/ListeFormation/${f.idFormation}`)}>
@@ -50,7 +53,8 @@ const DashboardUpcomingFormations = memo(function DashboardUpcomingFormations() 
             </button>
           ))}
         </div>
-      )}
+        );
+      })()}
     </InfoCard>
   );
 });

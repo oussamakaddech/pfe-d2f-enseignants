@@ -33,14 +33,12 @@ function levelFromScore(score: number): HealthLevel {
 
 /** Score de santé composite /100, pondéré sur les facteurs réellement disponibles. */
 export function computeHealthScore(input: HealthInput): DashboardHealth {
-  const raw: Array<HealthFactor | null> = [
-    input.presence != null ? { key: "presence", label: "Taux de présence", score: clamp(input.presence), weight: 0.25 } : null,
-    input.coverage != null ? { key: "coverage", label: "Couverture compétences", score: clamp(input.coverage), weight: 0.25 } : null,
-    input.participation != null ? { key: "participation", label: "Participation", score: clamp(input.participation), weight: 0.15 } : null,
-    input.pendingNeeds != null ? { key: "pending", label: "Besoins traités", score: clamp(100 - (Math.min(input.pendingNeeds, PENDING_CAP) / PENDING_CAP) * 100), weight: 0.15 } : null,
-    input.atRisk != null ? { key: "atrisk", label: "Engagement enseignants", score: clamp(100 - atRiskRatio(input) * 100), weight: 0.20 } : null,
-  ];
-  const factors = raw.filter((f): f is HealthFactor => f !== null);
+  const factors: HealthFactor[] = [];
+  if (input.presence != null) factors.push({ key: "presence", label: "Taux de présence", score: clamp(input.presence), weight: 0.25 });
+  if (input.coverage != null) factors.push({ key: "coverage", label: "Couverture compétences", score: clamp(input.coverage), weight: 0.25 });
+  if (input.participation != null) factors.push({ key: "participation", label: "Participation", score: clamp(input.participation), weight: 0.15 });
+  if (input.pendingNeeds != null) factors.push({ key: "pending", label: "Besoins traités", score: clamp(100 - (Math.min(input.pendingNeeds, PENDING_CAP) / PENDING_CAP) * 100), weight: 0.15 });
+  if (input.atRisk != null) factors.push({ key: "atrisk", label: "Engagement enseignants", score: clamp(100 - atRiskRatio(input) * 100), weight: 0.2 });
   if (factors.length === 0) {
     return { score: 0, level: "critical", factors: [] };
   }
@@ -58,6 +56,40 @@ function atRiskRatio(input: HealthInput): number {
 }
 
 const SEVERITY_ORDER: Record<string, number> = { CRITICAL: 0, WARNING: 1, INFO: 2 };
+
+/** Alertes « couverture compétences faible » par département. */
+function departementCoverageAlerts(global?: DashboardData): DashboardAlert[] {
+  const out: DashboardAlert[] = [];
+  for (const dept of global?.taux_couverture_departements ?? []) {
+    if (dept.taux_couverture < 50 && dept.nb_evalues > 0) {
+      out.push({
+        id: `cov-${dept.departement}`,
+        severity: "WARNING",
+        title: `Couverture faible — ${dept.departement}`,
+        message: `Couverture compétences à ${dept.taux_couverture}% (${dept.nb_evalues} évalués).`,
+        cta: { label: "Analytique", to: ROUTE_ANALYTICS },
+      });
+    }
+  }
+  return out;
+}
+
+/** Alertes système récentes nécessitant une action (on ignore les INFO). */
+function recentActionAlerts(global?: DashboardData): DashboardAlert[] {
+  const out: DashboardAlert[] = [];
+  for (const a of (global?.alertes_recentes ?? []).slice(0, 6)) {
+    const sev = (a.severite || "INFO").toUpperCase();
+    if (sev === "INFO") continue;
+    out.push({
+      id: `alert-${a.id}`,
+      severity: sev === "CRITICAL" ? "CRITICAL" : "WARNING",
+      title: a.titre,
+      message: a.enseignant_id ? `Enseignant ${a.enseignant_id}` : "Alerte système",
+      cta: { label: "Analytique", to: ROUTE_ANALYTICS },
+    });
+  }
+  return out;
+}
 
 /** Compose la file d'alertes priorisées à partir des signaux disponibles. */
 export function composeAlerts(opts: {
@@ -89,29 +121,7 @@ export function composeAlerts(opts: {
     });
   }
 
-  for (const dept of global?.taux_couverture_departements ?? []) {
-    if (dept.taux_couverture < 50 && dept.nb_evalues > 0) {
-      alerts.push({
-        id: `cov-${dept.departement}`,
-        severity: "WARNING",
-        title: `Couverture faible — ${dept.departement}`,
-        message: `Couverture compétences à ${dept.taux_couverture}% (${dept.nb_evalues} évalués).`,
-        cta: { label: "Analytique", to: ROUTE_ANALYTICS },
-      });
-    }
-  }
-
-  for (const a of (global?.alertes_recentes ?? []).slice(0, 6)) {
-    const sev = (a.severite || "INFO").toUpperCase();
-    if (sev === "INFO") continue; // on ne garde que ce qui exige une action
-    alerts.push({
-      id: `alert-${a.id}`,
-      severity: sev === "CRITICAL" ? "CRITICAL" : "WARNING",
-      title: a.titre,
-      message: a.enseignant_id ? `Enseignant ${a.enseignant_id}` : "Alerte système",
-      cta: { label: "Analytique", to: ROUTE_ANALYTICS },
-    });
-  }
+  alerts.push(...departementCoverageAlerts(global), ...recentActionAlerts(global));
 
   return alerts.sort((x, y) => (SEVERITY_ORDER[x.severity] ?? 9) - (SEVERITY_ORDER[y.severity] ?? 9));
 }

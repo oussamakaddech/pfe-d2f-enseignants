@@ -22,6 +22,14 @@ const LEVEL_LABEL: Record<HealthLevel, string> = {
   critical: "Situation critique",
 };
 
+function factorColor(score: number): string {
+  if (score >= 75) return "#10b981";
+  if (score >= 50) return "#f59e0b";
+  return "#ef4444";
+}
+
+const renderHealthScore = (p?: number) => <span className="dash-health-score">{p}<small>/100</small></span>;
+
 const DashboardHealthCard = memo(function DashboardHealthCard({ scope }: { readonly scope: DashboardScope }) {
   const isAdmin = scope.isAdmin;
   const presenceQ = useGlobalParticipantKPI(scope.start, scope.end);
@@ -35,7 +43,7 @@ const DashboardHealthCard = memo(function DashboardHealthCard({ scope }: { reado
     ? presenceQ.isLoading || overview.isLoading || global.isLoading
     : upQ.isLoading || inactifs.isLoading;
 
-  const ups = (upQ.data?.items ?? []) as AnalyticsUP[];
+  const ups = upQ.data?.items ?? [];
   const avg = (sel: (u: AnalyticsUP) => number) => (ups.length ? ups.reduce((s, u) => s + (sel(u) || 0), 0) / ups.length : undefined);
 
   const health = isAdmin
@@ -63,7 +71,7 @@ const DashboardHealthCard = memo(function DashboardHealthCard({ scope }: { reado
               type="dashboard"
               percent={health.score}
               strokeColor={LEVEL_COLOR[health.level]}
-              format={(p) => <span className="dash-health-score">{p}<small>/100</small></span>}
+              format={renderHealthScore}
               size={140}
             />
             <div className="dash-health-level" style={{ color: LEVEL_COLOR[health.level] }}>
@@ -81,7 +89,7 @@ const DashboardHealthCard = memo(function DashboardHealthCard({ scope }: { reado
                   percent={Math.round(f.score)}
                   showInfo={false}
                   size="small"
-                  strokeColor={f.score >= 75 ? "#10b981" : f.score >= 50 ? "#f59e0b" : "#ef4444"}
+                  strokeColor={factorColor(f.score)}
                 />
               </div>
             ))}

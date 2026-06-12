@@ -152,19 +152,33 @@ async function resolveManualEnseignant(p: EnseignantItem): Promise<string | null
       type: p.type, etat: "A", cup: p.cup, chefDepartement: p.chefDepartement,
     });
     const id = (created as { id?: unknown })?.id;
-    return id != null ? String(id) : String(p.id);
+    return id == null ? String(p.id) : String(id);
   } catch (err: unknown) {
     const status = (err as { response?: { status?: number } })?.response?.status;
     if (status === 409 && p.mail) {
+      const mailLower = p.mail.toLowerCase();
       try {
         const all = await EnseignantService.getAllEnseignants();
-        const existing = all.find(e => (e.email ?? (e as Record<string, unknown>).mail ?? "").toString().toLowerCase() === p.mail!.toLowerCase());
+        const existing = all.find(e => (e.email ?? e.mail ?? "").toString().toLowerCase() === mailLower);
         if (existing?.id != null) return String(existing.id);
       } catch {
         // ignore : on retournera null ci-dessous
       }
     }
     return null;
+  }
+}
+
+function importSuccessMsg(total: number, found: number, added: number, entity: string): string {
+  const s = (n: number) => (n > 1 ? "s" : "");
+  return `${total} ${entity}${s(total)} importé${s(total)} (${found} trouvé${s(found)}, ${added} ajouté${s(added)} manuellement).`;
+}
+
+function warnExcelEmpty(rows: number, headers: string[], warn: (msg: string) => void): void {
+  if (rows === 0) {
+    warn("Fichier Excel vide ou mal formaté.");
+  } else {
+    warn(`Colonne Email introuvable. Colonnes trouvées : ${headers.join(", ") || "(aucune)"}`);
   }
 }
 
@@ -349,11 +363,7 @@ export function useFormationWorkflow(
     try {
       const { emails, rows, headers } = await parseEmailsFromExcel(f);
       if (emails.length === 0) {
-        if (rows === 0) {
-          message.warning("Fichier Excel vide ou mal formaté.");
-        } else {
-          message.warning(`Colonne Email introuvable. Colonnes trouvées : ${headers.join(", ") || "(aucune)"}`);
-        }
+        warnExcelEmpty(rows, headers, message.warning);
         e.target.value = "";
         return;
       }
@@ -372,13 +382,9 @@ export function useFormationWorkflow(
           isManual: true, source: "import",
         }));
       setManualParticipants((prev) => [...prev, ...newManual]);
-      const finalSel = [...partSel.filter((p) => !missing.includes(p.mail.toLowerCase())), ...matchedEnseignants, ...newManual];
-      setPartSel(finalSel);
+      setPartSel([...partSel.filter((p) => !missing.includes(p.mail.toLowerCase())), ...matchedEnseignants, ...newManual]);
       if (matched.length > 0 || newManual.length > 0) {
-        message.success(
-          `${matched.length + newManual.length} participant${matched.length + newManual.length > 1 ? "s" : ""} importé${matched.length + newManual.length > 1 ? "s" : ""} `
-          + `(${matched.length} trouvé${matched.length > 1 ? "s" : ""}, ${newManual.length} ajouté${newManual.length > 1 ? "s" : ""} manuellement).`,
-        );
+        message.success(importSuccessMsg(matched.length + newManual.length, matched.length, newManual.length, "participant"));
       } else {
         message.warning("Aucun participant correspondant trouvé.");
       }
@@ -395,11 +401,7 @@ export function useFormationWorkflow(
     try {
       const { emails, rows, headers } = await parseEmailsFromExcel(f);
       if (emails.length === 0) {
-        if (rows === 0) {
-          message.warning("Fichier Excel vide ou mal formaté.");
-        } else {
-          message.warning(`Colonne Email introuvable. Colonnes trouvées : ${headers.join(", ") || "(aucune)"}`);
-        }
+        warnExcelEmpty(rows, headers, message.warning);
         e.target.value = "";
         return;
       }
@@ -418,13 +420,9 @@ export function useFormationWorkflow(
           isManual: true, source: "import",
         }));
       setManualAnimateurs((prev) => [...prev, ...newManual]);
-      const finalSel = [...animSel.filter((p) => !missing.includes(p.mail.toLowerCase())), ...matchedEnseignants, ...newManual];
-      setAnimSel(finalSel);
+      setAnimSel([...animSel.filter((p) => !missing.includes(p.mail.toLowerCase())), ...matchedEnseignants, ...newManual]);
       if (matched.length > 0 || newManual.length > 0) {
-        message.success(
-          `${matched.length + newManual.length} animateur${matched.length + newManual.length > 1 ? "s" : ""} importé${matched.length + newManual.length > 1 ? "s" : ""} `
-          + `(${matched.length} trouvé${matched.length > 1 ? "s" : ""}, ${newManual.length} ajouté${newManual.length > 1 ? "s" : ""} manuellement).`,
-        );
+        message.success(importSuccessMsg(matched.length + newManual.length, matched.length, newManual.length, "animateur"));
       } else {
         message.warning("Aucun animateur correspondant trouvé.");
       }

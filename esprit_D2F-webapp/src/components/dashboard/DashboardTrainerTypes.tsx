@@ -23,11 +23,14 @@ const DashboardTrainerTypes = memo(function DashboardTrainerTypes({ scope }: Pro
 
   return (
     <InfoCard title="Formations par formateur" icon={<TeamOutlined />}>
-      {isLoading ? (
+      {(() => {
+        if (isLoading) return (
         <Skeleton active paragraph={{ rows: 3 }} />
-      ) : isError || !counts ? (
+        );
+        if (isError || !counts) return (
         <EmptyState icon={<TeamOutlined style={{ fontSize: 28 }} />} title="Aucune donnée" compact />
-      ) : (
+        );
+        return (
         <div className="dash-list">
           {TRAINER_CONFIG.map(({ key, label, sub, icon, color, bg, border }) => (
             <div key={key} className="dash-list-row dash-list-row-static">
@@ -51,7 +54,8 @@ const DashboardTrainerTypes = memo(function DashboardTrainerTypes({ scope }: Pro
             </div>
           ))}
         </div>
-      )}
+        );
+      })()}
     </InfoCard>
   );
 });
