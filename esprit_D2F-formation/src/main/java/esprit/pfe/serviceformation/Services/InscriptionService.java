@@ -178,23 +178,7 @@ public class InscriptionService {
      */
     @Transactional
     public Inscription traiterDemande(Long inscriptionId, boolean approuver, String motif) {
-        Inscription ins = inscriptionRepo.findById(inscriptionId)
-                .orElseThrow(() -> new IllegalArgumentException("Demande introuvable"));
-        ins.setEtat(approuver
-                ? EtatInscription.APPROVED
-                : EtatInscription.REJECTED);
-        // On stocke le motif uniquement en cas de rejet, et seulement s'il est
-        // non vide (trim). Cela évite de polluer la base avec des chaînes vides
-        // et de masquer un éventuel ancien motif en cas d'approbation ultérieure.
-        if (!approuver) {
-            String trimmed = motif == null ? null : motif.trim();
-            ins.setMotif((trimmed == null || trimmed.isEmpty()) ? null : trimmed);
-        } else {
-            ins.setMotif(null);
-        }
-        // P3 - F7 : horodate le dernier traitement pour alimenter la timeline.
-        ins.setDateTraitement(OffsetDateTime.now());
-        return inscriptionRepo.save(ins);
+        return doTraiterDemande(inscriptionId, approuver, motif);
     }
 
     /**
@@ -202,7 +186,23 @@ public class InscriptionService {
      */
     @Transactional
     public Inscription traiterDemande(Long inscriptionId, boolean approuver) {
-        return traiterDemande(inscriptionId, approuver, null);
+        return doTraiterDemande(inscriptionId, approuver, null);
+    }
+
+    private Inscription doTraiterDemande(Long inscriptionId, boolean approuver, String motif) {
+        Inscription ins = inscriptionRepo.findById(inscriptionId)
+                .orElseThrow(() -> new IllegalArgumentException("Demande introuvable"));
+        ins.setEtat(approuver
+                ? EtatInscription.APPROVED
+                : EtatInscription.REJECTED);
+        if (!approuver) {
+            String trimmed = motif == null ? null : motif.trim();
+            ins.setMotif((trimmed == null || trimmed.isEmpty()) ? null : trimmed);
+        } else {
+            ins.setMotif(null);
+        }
+        ins.setDateTraitement(OffsetDateTime.now());
+        return inscriptionRepo.save(ins);
     }
 
     /**
@@ -312,7 +312,7 @@ public class InscriptionService {
 
     @Transactional
     public InscriptionDTO traiterDemandeDTO(Long inscriptionId, boolean approuver) {
-        return traiterDemandeDTO(inscriptionId, approuver, null);
+        return self.traiterDemandeDTO(inscriptionId, approuver, null);
     }
 
     @Transactional
@@ -342,7 +342,7 @@ public class InscriptionService {
                 .or(() -> enseignantRepo.findByMail(emailOrUsername))
                 .or(() -> enseignantRepo.findByMailIgnoreCase(emailOrUsername))
                 .orElseThrow(() -> new IllegalArgumentException("Enseignant introuvable pour l'utilisateur : " + emailOrUsername));
-        return findSummariesByEnseignantId(ens.getId(), pageable);
+        return self.findSummariesByEnseignantId(ens.getId(), pageable);
     }
 
     @Transactional(readOnly = true)

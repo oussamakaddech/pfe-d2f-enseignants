@@ -87,7 +87,7 @@ class FormationWorkflowServiceTest {
         verify(seanceFormationRepository).saveAll(anyList());
         verify(presenceRepository).saveAll(anyList());
         verify(evaluationPublisher).sendCreate(any());
-        verify(outlookMailService, atLeastOnce()).sendMail(anyString(), anyString(), anyString());
+        verify(outlookMailService, atLeastOnce()).sendMail(any(), anyString(), anyString());
     }
 
     @Test
@@ -129,7 +129,7 @@ class FormationWorkflowServiceTest {
         Formation result = formationWorkflowService.updateFormationWorkflow(1L, request);
 
         assertThat(result.getEtatFormation()).isEqualTo(EtatFormation.VISIBLE);
-        verify(outlookMailService, atLeastOnce()).sendMail(anyString(), anyString(), anyString());
+        verify(outlookMailService, atLeastOnce()).sendMail(any(), anyString(), anyString());
     }
 
     @Test
@@ -436,7 +436,7 @@ class FormationWorkflowServiceTest {
         formationWorkflowService.updateFormationWorkflow(1L, request);
 
         assertThat(existing.getSeances()).isEmpty();
-        verify(outlookCalendarService).deleteEventInCalendar(anyString(), eq("EV1"));
+        verify(outlookCalendarService).deleteEventInCalendar(any(), eq("EV1"));
     }
 
     @Test
@@ -459,7 +459,7 @@ class FormationWorkflowServiceTest {
         formationWorkflowService.updateFormationWorkflow(1L, request);
 
         assertThat(existing.getEtatFormation()).isEqualTo(EtatFormation.ANNULE);
-        verify(outlookMailService, atLeastOnce()).sendMail(anyString(), contains("Annulation"), anyString());
+        verify(outlookMailService, atLeastOnce()).sendMail(any(), contains("Annulation"), anyString());
     }
 
     @Test

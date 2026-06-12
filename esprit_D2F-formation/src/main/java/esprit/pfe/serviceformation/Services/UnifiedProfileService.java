@@ -133,6 +133,7 @@ public class UnifiedProfileService {
      * ids de comptes correspondants (la pagination reste exacte côté enseignants).
      * Renvoie {@code null} si aucun filtre compte (= pas de contrainte).
      */
+    @SuppressWarnings("java:S1168")
     private List<String> resolveAccountUserIdFilter(AdvancedFilterRequest f) {
         boolean accountFilter = (f.getRole() != null && !f.getRole().isBlank()) || f.getIsActive() != null;
         if (!accountFilter) {
@@ -144,6 +145,7 @@ public class UnifiedProfileService {
     }
 
     /** Départements autorisés (null = pas de restriction ; sentinel = aucun accès). */
+    @SuppressWarnings("java:S1168")
     private Collection<String> resolveAllowedDepartements(CurrentUser current) {
         if (current == null || !current.isDepartmentScoped()) {
             return null;
@@ -226,25 +228,33 @@ public class UnifiedProfileService {
     }
 
     private byte[] buildCsv(List<UnifiedProfileDTO> profiles) {
-        StringBuilder sb = new StringBuilder("﻿"); // BOM → ouverture correcte sous Excel
+        StringBuilder sb = new StringBuilder("\uFEFF"); // BOM → ouverture correcte sous Excel
         sb.append("Matricule;Nom;Prenom;Email;Role;Departement;UP;Grade;Specialite;Type;Statut;Actif;DateRecrutement;StatutDossier\n");
         for (UnifiedProfileDTO p : profiles) {
+            String activeStr = resolveActiveLabel(p.getIsActive());
+            String dateStr = p.getDateRecrutement() == null ? "" : p.getDateRecrutement().toString();
             sb.append(csv(p.getMatricule())).append(';')
               .append(csv(p.getNom())).append(';')
               .append(csv(p.getPrenom())).append(';')
               .append(csv(p.getEmail())).append(';')
-              .append(csv(p.getRole())).append(';')
               .append(csv(p.getDepartement())).append(';')
               .append(csv(p.getUp())).append(';')
               .append(csv(p.getGrade())).append(';')
               .append(csv(p.getSpecialite())).append(';')
               .append(csv(p.getType())).append(';')
               .append(csv(p.getStatut())).append(';')
-              .append(csv(p.getIsActive() == null ? "" : (Boolean.TRUE.equals(p.getIsActive()) ? "Oui" : "Non"))).append(';')
-              .append(csv(p.getDateRecrutement() == null ? "" : p.getDateRecrutement().toString())).append(';')
+              .append(csv(activeStr)).append(';')
+              .append(csv(dateStr)).append(';')
               .append(csv(p.getDossierStatus())).append('\n');
         }
         return sb.toString().getBytes(StandardCharsets.UTF_8);
+    }
+
+    private String resolveActiveLabel(Boolean isActive) {
+        if (isActive == null) {
+            return "";
+        }
+        return Boolean.TRUE.equals(isActive) ? "Oui" : "Non";
     }
 
     private String csv(String value) {

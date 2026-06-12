@@ -126,9 +126,12 @@ public class CalendarExportService {
             end = start.plusHours(1); // garde-fou : durée minimale d'une heure
         }
         String titre = formation != null ? formation.getTitreFormation() : "Formation";
-        String location = s.getSalle() != null && !s.getSalle().isBlank()
-                ? s.getSalle()
-                : (formation != null ? formation.getSalle() : null);
+        String location;
+        if (s.getSalle() != null && !s.getSalle().isBlank()) {
+            location = s.getSalle();
+        } else {
+            location = formation != null ? formation.getSalle() : null;
+        }
 
         return IcsEvent.builder()
                 .uid("d2f-seance-" + s.getIdSeance() + "@" + uidDomain())
@@ -196,7 +199,10 @@ public class CalendarExportService {
 
     private String uidDomain() {
         String email = properties.getOrganizerEmail();
-        int at = email != null ? email.indexOf('@') : -1;
+        if (email == null) {
+            return "d2f.local";
+        }
+        int at = email.indexOf('@');
         return at >= 0 ? email.substring(at + 1) : "d2f.local";
     }
 

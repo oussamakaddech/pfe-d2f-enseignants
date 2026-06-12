@@ -7,6 +7,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import esprit.pfe.serviceformation.repositories.ReminderSentLogRepository;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -27,6 +28,9 @@ class FormationReminderSchedulerTest {
 
     @Mock
     private SeanceFormationRepository seanceFormationRepository;
+
+    @Mock
+    private ReminderSentLogRepository reminderSentLogRepository;
 
     @Mock
     private OutlookMailService outlookMailService;

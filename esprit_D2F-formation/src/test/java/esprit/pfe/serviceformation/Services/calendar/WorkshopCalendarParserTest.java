@@ -45,8 +45,8 @@ class WorkshopCalendarParserTest {
             assertThat(first.getFormationName()).isEqualTo("Java Avancé");
             assertThat(first.getRoom()).isEqualTo("Salle A");
             assertThat(first.getStatus()).isEqualTo("TEAMS");
-            assertThat(first.getStartTime().toString()).isEqualTo("09:00");
-            assertThat(first.getEndTime().toString()).isEqualTo("12:00");
+            assertThat(first.getStartTime()).hasToString("09:00");
+            assertThat(first.getEndTime()).hasToString("12:00");
             assertThat(first.getSessionNumber()).isEqualTo(1);
             assertThat(first.getTotalSessions()).isEqualTo(3);
             assertThat(result.getSessions().get(1).getStatus()).isEqualTo("OPEN");

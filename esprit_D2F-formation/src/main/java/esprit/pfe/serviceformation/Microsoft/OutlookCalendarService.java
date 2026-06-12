@@ -21,6 +21,8 @@ import java.util.List;
 public class OutlookCalendarService {
 
     private static final String TIMEZONE = "Africa/Tunis";
+    private static final String HEADER_PREFER = "Prefer";
+    private static final String SKIP_NOTIFICATIONS = "skipSendingInvitationsAndNotifications";
     private final MicrosoftGraphClientProvider graphProvider;
 
     public static class EventCreationResult {
@@ -78,7 +80,7 @@ public class OutlookCalendarService {
             var createReq = graphClient.users(params.getOrganizerEmail())
                     .events()
                     .buildRequest();
-            createReq.addHeader("Prefer", "skipSendingInvitationsAndNotifications");
+            createReq.addHeader(HEADER_PREFER, SKIP_NOTIFICATIONS);
             createdEvent = createReq.post(event);
         } catch (Exception e) {
             throw new IllegalStateException("Erreur creation Outlook pour " + params.getOrganizerEmail() + ": " + e.getMessage(), e);
@@ -130,7 +132,7 @@ public class OutlookCalendarService {
             var patchReq = graphClient.users(params.getOrganizerEmail())
                     .events(params.getEventId())
                     .buildRequest();
-            patchReq.addHeader("Prefer", "skipSendingInvitationsAndNotifications");
+            patchReq.addHeader(HEADER_PREFER, SKIP_NOTIFICATIONS);
             patchedEvent = patchReq.patch(updatedEvent);
         } catch (Exception e) {
             throw new IllegalStateException("Erreur mise a jour Outlook " + params.getEventId() + ": " + e.getMessage(), e);
@@ -146,7 +148,7 @@ public class OutlookCalendarService {
             var deleteReq = graphClient.users(organizerEmail)
                     .events(eventId)
                     .buildRequest();
-            deleteReq.addHeader("Prefer", "skipSendingInvitationsAndNotifications");
+            deleteReq.addHeader(HEADER_PREFER, SKIP_NOTIFICATIONS);
             deleteReq.delete();
             log.info("Evenement Outlook {} supprime pour {}", eventId, organizerEmail);
         } catch (Exception e) {

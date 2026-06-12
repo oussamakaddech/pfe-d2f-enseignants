@@ -102,55 +102,66 @@ public class WorkshopCalendarParser {
     private void parseSessions(Sheet sheet, int headerRowIndex, ColumnMap columns, ParsedCalendarDTO result) {
         int lastRow = sheet.getLastRowNum();
         int year = inferYear(sheet, headerRowIndex);
-        // Les plannings groupés par jour ne répètent pas la date sur chaque ligne :
-        // on reporte la dernière date rencontrée sur les lignes suivantes du même jour.
         LocalDate lastDate = null;
         for (int r = headerRowIndex + 1; r <= lastRow; r++) {
-            Row row = sheet.getRow(r);
-            if (row == null || isRowEmpty(row)) {
-                continue;
-            }
-            int humanRow = r + 1;
-            String formationName = text(row, columns.formation);
-            if (formationName.isBlank()) {
-                // Ligne sans formation : appartient probablement à une section participants.
-                continue;
-            }
-
-            Optional<LocalDate> date = readDate(row, columns.date, year);
-            LocalDate effectiveDate;
-            if (date.isPresent()) {
-                effectiveDate = date.get();
-                lastDate = effectiveDate;
-            } else if (lastDate != null) {
-                effectiveDate = lastDate;
-            } else {
-                result.getErrors().add(ImportRowErrorDTO.error(humanRow, "date",
-                        "Date manquante ou mal formée : « " + text(row, columns.date) + " »."));
-                continue;
-            }
-
-            LocalTime[] slot = readTimeSlot(row, columns.timeSlot);
-            if (slot == null) {
-                result.getErrors().add(ImportRowErrorDTO.error(humanRow, "créneau",
-                        "Créneau horaire manquant ou mal formé : « " + text(row, columns.timeSlot) + " »."));
-                continue;
-            }
-
-            ParsedSessionDTO session = ParsedSessionDTO.builder()
-                    .formationName(formationName)
-                    .trainerName(text(row, columns.trainer))
-                    .room(text(row, columns.room))
-                    .status(normalizeStatus(text(row, columns.status)))
-                    .date(effectiveDate)
-                    .startTime(slot[0])
-                    .endTime(slot[1])
-                    .sourceRow(humanRow)
-                    .build();
-
-            applySession(session, row, columns, result, humanRow);
-            result.getSessions().add(session);
+            lastDate = processScheduleRow(sheet.getRow(r), columns, result, year, lastDate, r);
         }
+    }
+
+    private LocalDate processScheduleRow(Row row, ColumnMap columns, ParsedCalendarDTO result,
+                                         int year, LocalDate lastDate, int r) {
+        if (row == null || isRowEmpty(row)) {
+            return lastDate;
+        }
+        int humanRow = r + 1;
+        String formationName = text(row, columns.formation);
+        if (formationName.isBlank()) {
+            return lastDate;
+        }
+
+        LocalDate effectiveDate = resolveDate(row, columns, year, lastDate, result, humanRow);
+        if (effectiveDate == null) {
+            return lastDate;
+        }
+        if (!text(row, columns.date).isBlank()) {
+            lastDate = effectiveDate;
+        }
+
+        LocalTime[] slot = readTimeSlot(row, columns.timeSlot);
+        if (slot == null) {
+            result.getErrors().add(ImportRowErrorDTO.error(humanRow, "créneau",
+                    "Créneau horaire manquant ou mal formé : « " + text(row, columns.timeSlot) + " »."));
+            return lastDate;
+        }
+
+        ParsedSessionDTO session = ParsedSessionDTO.builder()
+                .formationName(formationName)
+                .trainerName(text(row, columns.trainer))
+                .room(text(row, columns.room))
+                .status(normalizeStatus(text(row, columns.status)))
+                .date(effectiveDate)
+                .startTime(slot[0])
+                .endTime(slot[1])
+                .sourceRow(humanRow)
+                .build();
+
+        applySession(session, row, columns, result, humanRow);
+        result.getSessions().add(session);
+        return lastDate;
+    }
+
+    private LocalDate resolveDate(Row row, ColumnMap columns, int year, LocalDate lastDate,
+                                  ParsedCalendarDTO result, int humanRow) {
+        Optional<LocalDate> date = readDate(row, columns.date, year);
+        if (date.isPresent()) {
+            return date.get();
+        }
+        if (lastDate != null) {
+            return lastDate;
+        }
+        result.getErrors().add(ImportRowErrorDTO.error(humanRow, "date",
+                "Date manquante ou mal formée : « " + text(row, columns.date) + " »."));
+        return null;
     }
 
     private void applySession(ParsedSessionDTO session, Row row, ColumnMap columns,
@@ -180,41 +191,50 @@ public class WorkshopCalendarParser {
     private void parseParticipantSections(Workbook workbook, Set<String> knownFormations,
                                           ParsedCalendarDTO result) {
         for (int i = 0; i < workbook.getNumberOfSheets(); i++) {
-            Sheet sheet = workbook.getSheetAt(i);
-            String currentSection = null;
-            for (Row row : sheet) {
-                if (row == null) {
-                    continue;
-                }
-                int humanRow = row.getRowNum() + 1;
-                List<String> emails = extractEmails(row);
-                String rowText = joinNonEmail(row);
+            parseSheetParticipants(workbook.getSheetAt(i), knownFormations, result);
+        }
+    }
 
-                if (emails.isEmpty()) {
-                    // Possible titre de section : correspond-il à une formation connue ?
-                    if (!rowText.isBlank() && knownFormations.contains(normalize(rowText))) {
-                        currentSection = rowText;
-                    }
-                    continue;
-                }
+    private void parseSheetParticipants(Sheet sheet, Set<String> knownFormations, ParsedCalendarDTO result) {
+        String currentSection = null;
+        for (Row row : sheet) {
+            if (row == null) {
+                continue;
+            }
+            int humanRow = row.getRowNum() + 1;
+            List<String> emails = extractEmails(row);
+            String rowText = joinNonEmail(row);
 
-                for (String email : emails) {
-                    if (!CalendarParsingUtils.isValidEmail(email)) {
-                        result.getErrors().add(ImportRowErrorDTO.warning(humanRow, "email",
-                                "Adresse e-mail mal formée ignorée."));
-                        continue;
-                    }
-                    if (currentSection == null) {
-                        result.getErrors().add(ImportRowErrorDTO.warning(humanRow, "participant",
-                                "Participant sans section de formation associée — ignoré."));
-                        continue;
-                    }
-                    result.getParticipants().add(ParsedParticipantDTO.builder()
-                            .formationName(currentSection)
-                            .email(email.trim().toLowerCase(Locale.ROOT))
-                            .sourceRow(humanRow)
-                            .build());
-                }
+            if (emails.isEmpty()) {
+                currentSection = updateSectionIfNeeded(rowText, knownFormations, currentSection);
+            } else {
+                processParticipantEmails(emails, humanRow, currentSection, result);
+            }
+        }
+    }
+
+    private String updateSectionIfNeeded(String rowText, Set<String> knownFormations, String currentSection) {
+        if (!rowText.isBlank() && knownFormations.contains(normalize(rowText))) {
+            return rowText;
+        }
+        return currentSection;
+    }
+
+    private void processParticipantEmails(List<String> emails, int humanRow, String currentSection,
+                                          ParsedCalendarDTO result) {
+        for (String email : emails) {
+            if (!CalendarParsingUtils.isValidEmail(email)) {
+                result.getErrors().add(ImportRowErrorDTO.warning(humanRow, "email",
+                        "Adresse e-mail mal formée ignorée."));
+            } else if (currentSection == null) {
+                result.getErrors().add(ImportRowErrorDTO.warning(humanRow, "participant",
+                        "Participant sans section de formation associée — ignoré."));
+            } else {
+                result.getParticipants().add(ParsedParticipantDTO.builder()
+                        .formationName(currentSection)
+                        .email(email.trim().toLowerCase(Locale.ROOT))
+                        .sourceRow(humanRow)
+                        .build());
             }
         }
     }
@@ -240,26 +260,35 @@ public class WorkshopCalendarParser {
         ColumnMap map = new ColumnMap();
         CalendarProperties.HeaderKeywords kw = properties.getImport().getHeaderKeywords();
         for (Cell cell : headerRow) {
-            String header = normalize(text(cell));
-            if (header.isBlank()) {
-                continue;
-            }
-            int idx = cell.getColumnIndex();
-            if (map.date < 0 && matchesAny(header, kw.getDate())) map.date = idx;
-            else if (map.formation < 0 && matchesAny(header, kw.getFormation())) map.formation = idx;
-            else if (map.trainer < 0 && matchesAny(header, kw.getTrainer())) map.trainer = idx;
-            else if (map.room < 0 && matchesAny(header, kw.getRoom())) map.room = idx;
-            else if (map.status < 0 && matchesAny(header, kw.getStatus())) map.status = idx;
-            else if (map.timeSlot < 0 && matchesAny(header, kw.getTimeSlot())) map.timeSlot = idx;
-            else if (map.session < 0 && matchesAny(header, kw.getSession())) map.session = idx;
+            mapCellToColumn(map, cell, kw);
         }
-        // Certains plannings laissent la colonne date sans en-tête (la date est en
-        // tête de chaque groupe de jour). Si une colonne « formation » est trouvée
-        // mais pas de date, on déduit la date comme la colonne libre à sa gauche.
         if (map.date < 0 && map.formation > 0) {
             map.date = inferDateColumn(map);
         }
         return map;
+    }
+
+    private void mapCellToColumn(ColumnMap map, Cell cell, CalendarProperties.HeaderKeywords kw) {
+        String header = normalize(text(cell));
+        if (header.isBlank()) {
+            return;
+        }
+        int idx = cell.getColumnIndex();
+        if (map.date < 0 && matchesAny(header, kw.getDate())) {
+            map.date = idx;
+        } else if (map.formation < 0 && matchesAny(header, kw.getFormation())) {
+            map.formation = idx;
+        } else if (map.trainer < 0 && matchesAny(header, kw.getTrainer())) {
+            map.trainer = idx;
+        } else if (map.room < 0 && matchesAny(header, kw.getRoom())) {
+            map.room = idx;
+        } else if (map.status < 0 && matchesAny(header, kw.getStatus())) {
+            map.status = idx;
+        } else if (map.timeSlot < 0 && matchesAny(header, kw.getTimeSlot())) {
+            map.timeSlot = idx;
+        } else if (map.session < 0 && matchesAny(header, kw.getSession())) {
+            map.session = idx;
+        }
     }
 
     /** Première colonne non attribuée à gauche de « formation » (sinon -1). */
@@ -324,9 +353,9 @@ public class WorkshopCalendarParser {
 
     private LocalTime[] readTimeSlot(Row row, int col) {
         if (col < 0) {
-            return null;
+            return new LocalTime[0];
         }
-        return CalendarParsingUtils.parseTimeSlot(text(row, col)).orElse(null);
+        return CalendarParsingUtils.parseTimeSlot(text(row, col)).orElse(new LocalTime[0]);
     }
 
     private List<String> extractEmails(Row row) {
@@ -347,7 +376,7 @@ public class WorkshopCalendarParser {
         for (Cell cell : row) {
             String value = text(cell);
             if (!value.isBlank() && !value.contains("@")) {
-                if (sb.length() > 0) {
+                if (!sb.isEmpty()) {
                     sb.append(' ');
                 }
                 sb.append(value);

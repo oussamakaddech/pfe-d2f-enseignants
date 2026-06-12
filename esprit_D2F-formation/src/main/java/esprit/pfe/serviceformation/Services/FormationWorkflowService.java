@@ -97,6 +97,10 @@ public class FormationWorkflowService {
     private static final String DETAIL_DOMAIN = "Domaine";
     private static final String DETAIL_PERIOD = "Période";
     private static final String DETAIL_FORMATION = "Formation";
+    private static final String LINK_START = "<a href=\"";
+
+    @Value("${d2f.platform.formations-path:/formations/}")
+    private String formationsPath;
 
     private Time parseTime(String heure) {
         return helper.parseTime(heure);
@@ -447,7 +451,7 @@ public class FormationWorkflowService {
         synchronizeFormationCalendar(formation);
 
         // Notification aux animateurs et participants
-        String planifCta = "<a href=\"" + platformUrl + "/formations/" + formation.getIdFormation() + "\" "
+        String planifCta = LINK_START + platformUrl + formationsPath + formation.getIdFormation() + "\" "
                 + "style=\"background:#e65100;color:#fff;padding:10px 20px;border-radius:6px;"
                 + "text-decoration:none;font-weight:bold;display:inline-block;margin-top:8px;\">"
                 + "Ouvrir la formation</a>";
@@ -494,7 +498,7 @@ public class FormationWorkflowService {
             for (SeanceFormation s : formation.getSeances()) {
                 if (s.getOnlineMeetingUrl() != null && !s.getOnlineMeetingUrl().isBlank()) {
                     seanceLinks.append(formatDate(s.getDateSeance())).append(" → ")
-                            .append("<a href=\"").append(s.getOnlineMeetingUrl())
+                            .append(LINK_START).append(s.getOnlineMeetingUrl())
                             .append("\" style=\"color:#6a1b9a;font-weight:bold;\">Rejoindre la réunion Teams</a><br>");
                 }
             }
@@ -520,7 +524,7 @@ public class FormationWorkflowService {
     // ── ACHEVE : Notification de fin de formation + demande évaluation ──
     private void notifyAcheve(Formation formation) {
         // FIX-S5 + FIX-C3: add clickable evaluation link
-        String evalCta = "<a href=\"" + platformUrl + "/evaluations/" + formation.getIdFormation() + "\" "
+        String evalCta = LINK_START + platformUrl + "/evaluations/" + formation.getIdFormation() + "\" "
                 + "style=\"background:#00695c;color:#fff;padding:10px 20px;border-radius:6px;"
                 + "text-decoration:none;font-weight:bold;display:inline-block;margin-top:8px;\">"
                 + "📝 Évaluer la formation maintenant</a>";
@@ -582,7 +586,7 @@ public class FormationWorkflowService {
                         .detail("Unité Pédagogique", formation.getUp().getLibelle())
                         .note("📌 <strong>Action requise :</strong> merci de procéder à la planification des "
                                 + "séances de cette formation depuis la plateforme D2F.<br><br>"
-                                + "<a href=\"" + platformUrl + "/formations/" + formation.getIdFormation() + "\" "
+                                + LINK_START + platformUrl + formationsPath + formation.getIdFormation() + "\" "
                                 + "style=\"background:" + APPROVAL_ACCENT_COLOR + ";color:#fff;padding:10px 20px;"
                                 + "border-radius:6px;text-decoration:none;font-weight:bold;display:inline-block;\">"
                                 + "Ouvrir la formation</a>")
@@ -918,10 +922,14 @@ public class FormationWorkflowService {
     }
 
     private String buildCalendarEventContent(Formation formation, SeanceFormation seance, String animateursStr) {
-        String salleDisplay = (seance.getSalle() != null && !seance.getSalle().isBlank())
-                ? seance.getSalle()
-                : (formation.getSalle() != null && !formation.getSalle().isBlank())
-                        ? formation.getSalle() : "Salle-TBD";
+        String salleDisplay;
+        if (seance.getSalle() != null && !seance.getSalle().isBlank()) {
+            salleDisplay = seance.getSalle();
+        } else if (formation.getSalle() != null && !formation.getSalle().isBlank()) {
+            salleDisplay = formation.getSalle();
+        } else {
+            salleDisplay = "Salle-TBD";
+        }
         return "<html><body>" +
                 "<h3>" + formation.getTitreFormation() + "</h3>" +
                 "<p><strong>Date:</strong> " + formatDate(seance.getDateSeance()) + "</p>" +
@@ -967,7 +975,7 @@ public class FormationWorkflowService {
 
     private String buildApprovalNotificationHtml(Formation formation, String greetingName) {
         // FIX-C3: add clickable CTA to formation page
-        String cta = "<a href=\"" + platformUrl + "/formations/" + formation.getIdFormation() + "\" "
+        String cta = LINK_START + platformUrl + formationsPath + formation.getIdFormation() + "\" "
                 + "style=\"background:#1b5e20;color:#fff;padding:10px 20px;border-radius:6px;"
                 + "text-decoration:none;font-weight:bold;display:inline-block;margin-top:8px;\">"
                 + "Voir la formation</a>";
@@ -1075,12 +1083,16 @@ public class FormationWorkflowService {
      * {@code D2f-B201-Formation Java-Karim TRABELSI} ou {@code D2f-Salle-TBD-formation-Animateur-TBD}).
      */
     private String buildEventSubject(SeanceFormation freshSeance, Formation freshFormation, String animateursStr) {
-        String salle = (freshSeance.getSalle() != null && !freshSeance.getSalle().isBlank())
-                ? freshSeance.getSalle().trim()
-                : (freshFormation.getSalle() != null && !freshFormation.getSalle().isBlank())
-                        ? freshFormation.getSalle().trim() : "Salle-TBD";
+        String salle;
+        if (freshSeance.getSalle() != null && !freshSeance.getSalle().isBlank()) {
+            salle = freshSeance.getSalle().trim();
+        } else if (freshFormation.getSalle() != null && !freshFormation.getSalle().isBlank()) {
+            salle = freshFormation.getSalle().trim();
+        } else {
+            salle = "Salle-TBD";
+        }
         String titre = (freshFormation.getTitreFormation() != null && !freshFormation.getTitreFormation().isBlank())
-                ? freshFormation.getTitreFormation().trim() : "Formation";
+                ? freshFormation.getTitreFormation().trim() : DETAIL_FORMATION;
         String animateur = (animateursStr != null && !animateursStr.isBlank())
                 ? animateursStr.trim() : "Animateur-TBD";
         return "D2f-" + salle + "-" + titre + "-" + animateur;
@@ -1118,10 +1130,14 @@ public class FormationWorkflowService {
         }
         boolean isNewEvent = freshSeance.getCalendarEventId() == null;
 
-        String salleEvent = (freshSeance.getSalle() != null && !freshSeance.getSalle().isBlank())
-                ? freshSeance.getSalle()
-                : (freshFormation.getSalle() != null && !freshFormation.getSalle().isBlank())
-                        ? freshFormation.getSalle() : null;
+        String salleEvent;
+        if (freshSeance.getSalle() != null && !freshSeance.getSalle().isBlank()) {
+            salleEvent = freshSeance.getSalle();
+        } else if (freshFormation.getSalle() != null && !freshFormation.getSalle().isBlank()) {
+            salleEvent = freshFormation.getSalle();
+        } else {
+            salleEvent = null;
+        }
         OutlookEventParameters eventParams = OutlookEventParameters.builder()
                 .organizerEmail(organizerEmail)
                 .eventId(freshSeance.getCalendarEventId())
@@ -1380,23 +1396,32 @@ public class FormationWorkflowService {
     @Transactional(readOnly = true)
     public List<FormationResponseDTO> getAllFormationWorkflows() {
         List<Formation> formations = formationRepository.findAll();
-        formations.forEach(f -> {
-            if (f.getAnimateurs() != null)
-                Hibernate.initialize(f.getAnimateurs());
-            if (f.getSeances() != null) {
-                f.getSeances().forEach(seance -> {
-                    if (seance.getAnimateurs() != null)
-                        Hibernate.initialize(seance.getAnimateurs());
-                    if (seance.getParticipants() != null)
-                        Hibernate.initialize(seance.getParticipants());
-                });
-            }
-            if (f.getFormationCompetences() != null)
-                Hibernate.initialize(f.getFormationCompetences());
-            if (f.getInscriptions() != null)
-                Hibernate.initialize(f.getInscriptions());
-        });
+        formations.forEach(this::initializeFormationCollections);
         return formations.stream().map(formationMapper::toResponseDTO).toList();
+    }
+
+    private void initializeFormationCollections(Formation f) {
+        if (f.getAnimateurs() != null) {
+            Hibernate.initialize(f.getAnimateurs());
+        }
+        if (f.getSeances() != null) {
+            f.getSeances().forEach(this::initializeSeanceCollections);
+        }
+        if (f.getFormationCompetences() != null) {
+            Hibernate.initialize(f.getFormationCompetences());
+        }
+        if (f.getInscriptions() != null) {
+            Hibernate.initialize(f.getInscriptions());
+        }
+    }
+
+    private void initializeSeanceCollections(SeanceFormation seance) {
+        if (seance.getAnimateurs() != null) {
+            Hibernate.initialize(seance.getAnimateurs());
+        }
+        if (seance.getParticipants() != null) {
+            Hibernate.initialize(seance.getParticipants());
+        }
     }
 
     @Transactional

@@ -67,7 +67,7 @@ public class FormationReminderScheduler {
                     continue;
                 }
                 try {
-                    sendReminderForSeance(formation, seance, days);
+                    doSendReminderForSeance(formation, seance, days);
                 } catch (Exception e) {
                     log.error("Erreur rappel J-{} pour séance {} : {}", days, seance.getIdSeance(), e.getMessage());
                 }
@@ -77,6 +77,32 @@ public class FormationReminderScheduler {
 
     @Transactional
     public void sendReminderForSeance(Formation formation, SeanceFormation seance, int daysBefore) {
+        doSendReminderForSeance(formation, seance, daysBefore);
+    }
+
+    /** Permet de déclencher manuellement les rappels pour une formation donnée */
+    @Transactional(readOnly = true)
+    public void sendRemindersForFormation(Long formationId, int daysBefore) {
+        List<SeanceFormation> seances = seanceFormationRepository.findByFormation_IdFormation(formationId);
+        LocalDate today = LocalDate.now(ZoneId.of("Africa/Tunis"));
+        LocalDate targetDate = today.plusDays(daysBefore);
+
+        List<SeanceFormation> matching = seances.stream()
+                .filter(s -> {
+                    LocalDate seanceDate = ((java.sql.Date) s.getDateSeance()).toLocalDate();
+                    return seanceDate.equals(targetDate);
+                })
+                .toList();
+
+        for (SeanceFormation seance : matching) {
+            Formation formation = seance.getFormation();
+            if (formation != null && formation.getEtatFormation() == EtatFormation.PLANIFIE) {
+                doSendReminderForSeance(formation, seance, daysBefore);
+            }
+        }
+    }
+
+    private void doSendReminderForSeance(Formation formation, SeanceFormation seance, int daysBefore) {
         DateTimeFormatter dateFormat = DateTimeFormatter.ofPattern("dd/MM/yyyy");
         DateTimeFormatter timeFormat = DateTimeFormatter.ofPattern("HH:mm");
         
@@ -145,27 +171,5 @@ public class FormationReminderScheduler {
         String nom = e.getNom() != null ? e.getNom() : "";
         String full = (prenom + " " + nom).trim();
         recipients.putIfAbsent(e.getMail(), full.isBlank() ? null : full);
-    }
-
-    /** Permet de déclencher manuellement les rappels pour une formation donnée */
-    @Transactional(readOnly = true)
-    public void sendRemindersForFormation(Long formationId, int daysBefore) {
-        List<SeanceFormation> seances = seanceFormationRepository.findByFormation_IdFormation(formationId);
-        LocalDate today = LocalDate.now(ZoneId.of("Africa/Tunis"));
-        LocalDate targetDate = today.plusDays(daysBefore);
-
-        List<SeanceFormation> matching = seances.stream()
-                .filter(s -> {
-                    LocalDate seanceDate = ((java.sql.Date) s.getDateSeance()).toLocalDate();
-                    return seanceDate.equals(targetDate);
-                })
-                .toList();
-
-        for (SeanceFormation seance : matching) {
-            Formation formation = seance.getFormation();
-            if (formation != null && formation.getEtatFormation() == EtatFormation.PLANIFIE) {
-                sendReminderForSeance(formation, seance, daysBefore);
-            }
-        }
     }
 }

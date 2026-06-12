@@ -28,6 +28,8 @@ import java.util.Set;
 @RequiredArgsConstructor
 public class CalendarInvitationService {
 
+    private static final String STATUS_DISPATCHED = "DISPATCHED";
+
     private final CalendarExportService exportService;
     private final IcsCalendarWriter icsWriter;
     private final FormationRepository formationRepository;
@@ -41,6 +43,31 @@ public class CalendarInvitationService {
     /** Envoie une invitation à tous les participants d'une formation. */
     @Transactional(readOnly = true)
     public SendInvitationsResultDTO sendForFormation(Long formationId) {
+        return doSendForFormation(formationId);
+    }
+
+    /** Envoie les invitations pour toutes les formations planifiées en séances. */
+    @Transactional(readOnly = true)
+    public SendInvitationsResultDTO sendForAll() {
+        List<Long> formationIds = seanceRepository.findDistinctFormationIds();
+        int formations = 0;
+        int recipients = 0;
+        for (Long id : formationIds) {
+            SendInvitationsResultDTO result = doSendForFormation(id);
+            if (STATUS_DISPATCHED.equals(result.getStatus())) {
+                formations++;
+                recipients += result.getRecipientsDispatched();
+            }
+        }
+        return SendInvitationsResultDTO.builder()
+                .formationsProcessed(formations)
+                .recipientsDispatched(recipients)
+                .status(STATUS_DISPATCHED)
+                .message("Invitations dispatchées pour " + formations + " formation(s).")
+                .build();
+    }
+
+    private SendInvitationsResultDTO doSendForFormation(Long formationId) {
         Formation formation = formationRepository.findById(formationId)
                 .orElseThrow(() -> new ResourceNotFoundException("Formation introuvable : " + formationId));
 
@@ -66,29 +93,8 @@ public class CalendarInvitationService {
                 .formationId(formationId)
                 .formationsProcessed(1)
                 .recipientsDispatched(recipients.size())
-                .status("DISPATCHED")
+                .status(STATUS_DISPATCHED)
                 .message("Invitations en cours d'envoi (" + recipients.size() + " destinataire(s)).")
-                .build();
-    }
-
-    /** Envoie les invitations pour toutes les formations planifiées en séances. */
-    @Transactional(readOnly = true)
-    public SendInvitationsResultDTO sendForAll() {
-        List<Long> formationIds = seanceRepository.findDistinctFormationIds();
-        int formations = 0;
-        int recipients = 0;
-        for (Long id : formationIds) {
-            SendInvitationsResultDTO result = sendForFormation(id);
-            if ("DISPATCHED".equals(result.getStatus())) {
-                formations++;
-                recipients += result.getRecipientsDispatched();
-            }
-        }
-        return SendInvitationsResultDTO.builder()
-                .formationsProcessed(formations)
-                .recipientsDispatched(recipients)
-                .status("DISPATCHED")
-                .message("Invitations dispatchées pour " + formations + " formation(s).")
                 .build();
     }
 

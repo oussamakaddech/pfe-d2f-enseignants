@@ -22,6 +22,7 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.lenient;
+import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 @DisplayName("CalendarExportService - Tests unitaires")
@@ -94,5 +95,41 @@ class CalendarExportServiceTest {
 
         assertThat(ics).contains("BEGIN:VCALENDAR")
                 .contains("SUMMARY:[D2F] Formation Java");
+    }
+
+    @Test
+    @DisplayName("generateIcsForAll - Devrait générer un ics pour toutes les séances")
+    void shouldGenerateIcsForAll() {
+        when(seanceFormationRepository.findAllByOrderByDateSeanceAscHeureDebutAsc())
+                .thenReturn(List.of(seance));
+
+        String ics = calendarExportService.generateIcsForAll();
+
+        assertThat(ics).contains("BEGIN:VCALENDAR").contains("SUMMARY:[D2F] Formation Java");
+    }
+
+    @Test
+    @DisplayName("generateIcsForParticipantEmail - Devrait générer un ics pour un participant")
+    void shouldGenerateIcsForParticipantEmail() {
+        when(seanceFormationRepository.findByParticipantMail("a@b.com"))
+                .thenReturn(List.of(seance));
+        when(participantEmailRepository.findFormationIdsByEmail("a@b.com"))
+                .thenReturn(List.of());
+
+        String ics = calendarExportService.generateIcsForParticipantEmail("a@b.com");
+
+        assertThat(ics).contains("BEGIN:VCALENDAR");
+    }
+
+    @Test
+    @DisplayName("buildEventsForFormation - Devrait construire une liste d'événements")
+    void shouldBuildEventsForFormation() {
+        when(formationRepository.findById(1L)).thenReturn(Optional.of(formation));
+        when(seanceFormationRepository.findByFormation_IdFormationOrderByNumeroSeanceAscDateSeanceAsc(1L))
+                .thenReturn(List.of(seance));
+
+        var events = calendarExportService.buildEventsForFormation(1L, List.of("a@b.com"));
+
+        assertThat(events).hasSize(1);
     }
 }

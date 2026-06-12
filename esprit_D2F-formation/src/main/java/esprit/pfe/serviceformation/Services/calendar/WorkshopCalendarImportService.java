@@ -57,6 +57,7 @@ import java.util.Set;
 @Service
 public class WorkshopCalendarImportService {
 
+    private static final String STATUS_FAILED = "FAILED";
     private static final Logger log = PiiSafeLogger.getLogger(WorkshopCalendarImportService.class);
 
     private static final Set<String> ALLOWED_XLSX_MIME =
@@ -110,7 +111,7 @@ public class WorkshopCalendarImportService {
         Optional<ImportLog> existing = importLogRepository.findFirstByFileHashOrderByImportedAtDesc(hash);
         // Un import précédent en échec (status FAILED) ne doit pas bloquer une nouvelle
         // tentative : on ne considère « doublon » qu'un import ayant effectivement persisté.
-        if (existing.isPresent() && !"FAILED".equals(existing.get().getStatus())) {
+        if (existing.isPresent() && !STATUS_FAILED.equals(existing.get().getStatus())) {
             log.info("Import calendrier ignoré : fichier déjà importé (importLogId={})", existing.get().getId());
             return ImportReportDTO.builder()
                     .status("DUPLICATE")
@@ -219,38 +220,47 @@ public class WorkshopCalendarImportService {
 
     private void persistParticipants(ParsedCalendarDTO parsed, ImportReportDTO report) {
         for (ParsedParticipantDTO p : parsed.getParticipants()) {
-            Optional<Formation> formation =
-                    formationRepository.findFirstByTitreFormationOrderByIdFormationAsc(p.getFormationName().trim());
-            if (formation.isEmpty()) {
-                report.getErrors().add(esprit.pfe.serviceformation.dto.calendar.ImportRowErrorDTO.warning(
-                        p.getSourceRow(), "participant",
-                        "Section participant sans formation correspondante dans le planning — ignorée."));
-                continue;
-            }
-            Long formationId = formation.get().getIdFormation();
-            if (participantEmailRepository.existsByFormationIdAndEmailIgnoreCase(formationId, p.getEmail())) {
-                report.setRowsSkipped(report.getRowsSkipped() + 1);
-                continue;
-            }
-            boolean matched = enseignantRepository.findByMailIgnoreCase(p.getEmail()).isPresent();
-            participantEmailRepository.save(FormationParticipantEmail.builder()
-                    .formationId(formationId)
-                    .email(p.getEmail())
-                    .matchedEnseignant(matched)
-                    .createdAt(LocalDateTime.now())
-                    .build());
-            report.setParticipantsImported(report.getParticipantsImported() + 1);
-            if (!matched) {
-                report.setParticipantsUnmatched(report.getParticipantsUnmatched() + 1);
-            }
+            processSingleParticipant(p, report);
+        }
+    }
+
+    private void processSingleParticipant(ParsedParticipantDTO p, ImportReportDTO report) {
+        Optional<Formation> formation =
+                formationRepository.findFirstByTitreFormationOrderByIdFormationAsc(p.getFormationName().trim());
+        if (formation.isEmpty()) {
+            report.getErrors().add(esprit.pfe.serviceformation.dto.calendar.ImportRowErrorDTO.warning(
+                    p.getSourceRow(), "participant",
+                    "Section participant sans formation correspondante dans le planning — ignorée."));
+            return;
+        }
+        Long formationId = formation.get().getIdFormation();
+        if (participantEmailRepository.existsByFormationIdAndEmailIgnoreCase(formationId, p.getEmail())) {
+            report.setRowsSkipped(report.getRowsSkipped() + 1);
+            return;
+        }
+        boolean matched = enseignantRepository.findByMailIgnoreCase(p.getEmail()).isPresent();
+        participantEmailRepository.save(FormationParticipantEmail.builder()
+                .formationId(formationId)
+                .email(p.getEmail())
+                .matchedEnseignant(matched)
+                .createdAt(LocalDateTime.now())
+                .build());
+        report.setParticipantsImported(report.getParticipantsImported() + 1);
+        if (!matched) {
+            report.setParticipantsUnmatched(report.getParticipantsUnmatched() + 1);
         }
     }
 
     private ImportLog saveImportLog(MultipartFile file, String hash, long size, ImportReportDTO report) {
         long errorCount = report.getErrors().stream().filter(e -> "ERROR".equals(e.getSeverity())).count();
-        String status = report.getSessionsCreated() == 0 && report.getFormationsCreated() == 0
-                ? "FAILED"
-                : (errorCount > 0 ? "PARTIAL" : "SUCCESS");
+        String status;
+        if (report.getSessionsCreated() == 0 && report.getFormationsCreated() == 0) {
+            status = STATUS_FAILED;
+        } else if (errorCount > 0) {
+            status = "PARTIAL";
+        } else {
+            status = "SUCCESS";
+        }
         return importLogRepository.save(ImportLog.builder()
                 .fileName(file.getOriginalFilename())
                 .fileSizeBytes(size)
@@ -320,7 +330,7 @@ public class WorkshopCalendarImportService {
     private String resolveStatus(ImportReportDTO report) {
         boolean hasErrors = report.getErrors().stream().anyMatch(e -> "ERROR".equals(e.getSeverity()));
         if (report.getSessionsCreated() == 0 && report.getFormationsCreated() == 0) {
-            return "FAILED";
+            return STATUS_FAILED;
         }
         return hasErrors || report.getRowsSkipped() > 0 || report.getConflictsDetected() > 0
                 ? "PARTIAL" : "SUCCESS";

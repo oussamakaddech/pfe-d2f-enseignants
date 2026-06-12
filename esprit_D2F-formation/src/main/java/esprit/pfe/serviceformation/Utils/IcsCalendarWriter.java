@@ -50,6 +50,11 @@ public class IcsCalendarWriter {
         return buildCalendar(METHOD_REQUEST, events, true);
     }
 
+    public String[] buildRequestCalendarAsArray(List<IcsEvent> events) {
+        String ics = buildRequestCalendar(events);
+        return ics != null ? new String[]{ics} : new String[0];
+    }
+
     private String buildCalendar(String method, List<IcsEvent> events, boolean withAttendees) {
         StringBuilder sb = new StringBuilder();
         appendLine(sb, "BEGIN:VCALENDAR");
@@ -144,8 +149,6 @@ public class IcsCalendarWriter {
         if (text == null) {
             return "";
         }
-        // Les valeurs de paramètre contenant : ; , doivent être entourées de guillemets ;
-        // on neutralise simplement les guillemets internes.
         return "\"" + text.replace("\"", "'") + "\"";
     }
 
@@ -162,7 +165,8 @@ public class IcsCalendarWriter {
         int octetCount = 0;
         boolean firstSegment = true;
         StringBuilder segment = new StringBuilder();
-        for (int i = 0; i < contentLine.length(); ) {
+        int i = 0;
+        while (i < contentLine.length()) {
             int codePoint = contentLine.codePointAt(i);
             int charCount = Character.charCount(codePoint);
             int cpOctets = new String(Character.toChars(codePoint)).getBytes(StandardCharsets.UTF_8).length;
@@ -176,7 +180,7 @@ public class IcsCalendarWriter {
             octetCount += cpOctets;
             i += charCount;
         }
-        if (segment.length() > 0) {
+        if (!segment.isEmpty()) {
             sb.append(firstSegment ? "" : " ").append(segment).append(CRLF);
         }
     }

@@ -26,6 +26,10 @@ public class EnseignantServiceImpl implements EnseignantService {
     @Override
     @Transactional
     public Enseignant createEnseignant(Enseignant enseignant) {
+        return doCreateEnseignant(enseignant);
+    }
+
+    private Enseignant doCreateEnseignant(Enseignant enseignant) {
         // Contrôle d'unicité de l'email (→ 409). La contrainte SQL ux_enseignants_mail
         // (V29) reste le garde-fou dur ; ce pré-contrôle donne un message clair.
         if (enseignant.getMail() != null && !enseignant.getMail().isBlank()
@@ -88,39 +92,49 @@ public class EnseignantServiceImpl implements EnseignantService {
     @Override
     @Transactional
     public Enseignant linkOrCreateEnseignant(Enseignant enseignant) {
-        // Orchestration « compte + fiche » : si une fiche existe déjà pour cet
-        // email, on la RELIE au compte (set userId) au lieu de créer un doublon
-        // (qui violerait ux_enseignants_mail → 409 stérile). Sinon, création normale.
         String mail = enseignant.getMail();
-        if (mail != null && !mail.isBlank()) {
+        if (hasNonBlankMail(mail)) {
             var existingOpt = enseignantRepository.findByMailIgnoreCase(mail);
             if (existingOpt.isPresent()) {
-                Enseignant existing = existingOpt.get();
-                String incomingUserId = enseignant.getUserId();
-                // Déjà liée à un AUTRE compte → vrai conflit.
-                if (existing.getUserId() != null && !existing.getUserId().isBlank()
-                        && !existing.getUserId().equals(incomingUserId)) {
-                    throw new DuplicateEnseignantException(
-                            "Un enseignant avec cet email est déjà lié à un autre compte : " + mail);
-                }
-                // Liaison + complétion null-safe des champs fournis.
-                existing.setUserId(incomingUserId);
-                if (enseignant.getNom() != null)             existing.setNom(enseignant.getNom());
-                if (enseignant.getPrenom() != null)          existing.setPrenom(enseignant.getPrenom());
-                if (enseignant.getTelephone() != null)       existing.setTelephone(enseignant.getTelephone());
-                if (enseignant.getType() != null && !enseignant.getType().isBlank())   existing.setType(enseignant.getType());
-                if (enseignant.getEtat() != null && !enseignant.getEtat().isBlank())   existing.setEtat(enseignant.getEtat());
-                if (enseignant.getCup() != null && !enseignant.getCup().isBlank())     existing.setCup(enseignant.getCup());
-                if (enseignant.getChefDepartement() != null && !enseignant.getChefDepartement().isBlank())
-                    existing.setChefDepartement(enseignant.getChefDepartement());
-                if (enseignant.getGrade() != null)           existing.setGrade(enseignant.getGrade());
-                if (enseignant.getSpecialite() != null)      existing.setSpecialite(enseignant.getSpecialite());
-                if (enseignant.getUp() != null)              existing.setUp(resolveUp(enseignant.getUp()));
-                if (enseignant.getDept() != null)            existing.setDept(resolveDept(enseignant.getDept()));
-                return enseignantRepository.save(existing);
+                return linkToExistingAccount(existingOpt.get(), enseignant, mail);
             }
         }
-        return createEnseignant(enseignant);
+        return doCreateEnseignant(enseignant);
+    }
+
+    private boolean hasNonBlankMail(String mail) {
+        return mail != null && !mail.isBlank();
+    }
+
+    private Enseignant linkToExistingAccount(Enseignant existing, Enseignant incoming, String mail) {
+        String incomingUserId = incoming.getUserId();
+        if (isLinkedToOtherAccount(existing, incomingUserId)) {
+            throw new DuplicateEnseignantException(
+                    "Un enseignant avec cet email est déjà lié à un autre compte : " + mail);
+        }
+        existing.setUserId(incomingUserId);
+        applyNonNullFields(existing, incoming);
+        return enseignantRepository.save(existing);
+    }
+
+    private boolean isLinkedToOtherAccount(Enseignant existing, String incomingUserId) {
+        return existing.getUserId() != null && !existing.getUserId().isBlank()
+                && !existing.getUserId().equals(incomingUserId);
+    }
+
+    private void applyNonNullFields(Enseignant existing, Enseignant incoming) {
+        if (incoming.getNom() != null)             existing.setNom(incoming.getNom());
+        if (incoming.getPrenom() != null)          existing.setPrenom(incoming.getPrenom());
+        if (incoming.getTelephone() != null)       existing.setTelephone(incoming.getTelephone());
+        if (incoming.getType() != null && !incoming.getType().isBlank())   existing.setType(incoming.getType());
+        if (incoming.getEtat() != null && !incoming.getEtat().isBlank())   existing.setEtat(incoming.getEtat());
+        if (incoming.getCup() != null && !incoming.getCup().isBlank())     existing.setCup(incoming.getCup());
+        if (incoming.getChefDepartement() != null && !incoming.getChefDepartement().isBlank())
+            existing.setChefDepartement(incoming.getChefDepartement());
+        if (incoming.getGrade() != null)           existing.setGrade(incoming.getGrade());
+        if (incoming.getSpecialite() != null)      existing.setSpecialite(incoming.getSpecialite());
+        if (incoming.getUp() != null)              existing.setUp(resolveUp(incoming.getUp()));
+        if (incoming.getDept() != null)            existing.setDept(resolveDept(incoming.getDept()));
     }
 
     /**
@@ -195,10 +209,13 @@ public class EnseignantServiceImpl implements EnseignantService {
 
     @Override
     public Enseignant getEnseignantById(String id) {
-        String key = id == null ? null : id.trim();
+        if (id == null) {
+            throw new IllegalArgumentException("Enseignant introuvable avec l'id ou l'email : null");
+        }
+        String key = id.trim();
         return enseignantRepository.findById(id)
                 .or(() -> enseignantRepository.findByMail(id))
-                .or(() -> key == null ? Optional.empty() : enseignantRepository.findByMailIgnoreCase(key))
+                .or(() -> enseignantRepository.findByMailIgnoreCase(key))
                 .orElseThrow(() -> new IllegalArgumentException("Enseignant introuvable avec l'id ou l'email : " + id));
     }
 

@@ -28,6 +28,7 @@ public class KPIController {
 
     private final KPIService kpiService;
     private static final String KEY_ERROR = "error";
+    private static final String MSG_SERVER_ERROR = "Erreur serveur interne";
 
     @GetMapping("/formations")
     public int countTotalFormations(
@@ -72,7 +73,7 @@ public class KPIController {
         } catch (EntityNotFoundException ex) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(KEY_ERROR, ex.getMessage()));
         } catch (Exception ex) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(KEY_ERROR, "Erreur serveur interne"));
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(KEY_ERROR, MSG_SERVER_ERROR));
         }
     }
 
@@ -91,7 +92,7 @@ public class KPIController {
         } catch (EntityNotFoundException ex) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(KEY_ERROR, ex.getMessage()));
         } catch (Exception ex) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(KEY_ERROR, "Erreur serveur interne"));
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(KEY_ERROR, MSG_SERVER_ERROR));
         }
     }
 
@@ -139,7 +140,7 @@ public class KPIController {
         } catch (IllegalArgumentException ex) {
             return ResponseEntity.badRequest().body(Map.of(KEY_ERROR, ex.getMessage()));
         } catch (Exception ex) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(KEY_ERROR, "Erreur serveur interne"));
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(KEY_ERROR, MSG_SERVER_ERROR));
         }
     }
 
@@ -164,7 +165,7 @@ public class KPIController {
         } catch (EntityNotFoundException ex) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(KEY_ERROR, ex.getMessage()));
         } catch (Exception ex) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(KEY_ERROR, "Erreur serveur interne"));
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(KEY_ERROR, MSG_SERVER_ERROR));
         }
     }
 }

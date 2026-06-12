@@ -160,6 +160,13 @@ public class CalendarConflictService {
     // ==================== NUMÉROTATION DE SÉANCE ====================
 
     private void detectSessionNumbering(List<SeanceFormation> seances, List<ConflictDTO> out) {
+        Map<Long, List<SeanceFormation>> byFormation = groupByFormation(seances);
+        for (Map.Entry<Long, List<SeanceFormation>> entry : byFormation.entrySet()) {
+            validateNumberingForFormation(entry.getKey(), entry.getValue(), out);
+        }
+    }
+
+    private Map<Long, List<SeanceFormation>> groupByFormation(List<SeanceFormation> seances) {
         Map<Long, List<SeanceFormation>> byFormation = new LinkedHashMap<>();
         for (SeanceFormation s : seances) {
             if (s.getFormation() == null || s.getNumeroSeance() == null) {
@@ -167,40 +174,59 @@ public class CalendarConflictService {
             }
             byFormation.computeIfAbsent(s.getFormation().getIdFormation(), k -> new ArrayList<>()).add(s);
         }
-        for (Map.Entry<Long, List<SeanceFormation>> entry : byFormation.entrySet()) {
-            List<SeanceFormation> group = entry.getValue();
-            Set<Integer> totals = new TreeSet<>();
-            Set<Integer> numbers = new TreeSet<>();
-            String titre = group.get(0).getFormation().getTitreFormation();
-            boolean duplicateNumber = false;
-            for (SeanceFormation s : group) {
-                if (s.getTotalSeances() != null) {
-                    totals.add(s.getTotalSeances());
-                }
-                if (!numbers.add(s.getNumeroSeance())) {
-                    duplicateNumber = true;
-                }
-                if (s.getTotalSeances() != null && s.getNumeroSeance() > s.getTotalSeances()) {
-                    out.add(numberingConflict(entry.getKey(), titre,
-                            "Numéro de séance " + s.getNumeroSeance() + " supérieur au total "
-                                    + s.getTotalSeances() + "."));
-                }
+        return byFormation;
+    }
+
+    private void validateNumberingForFormation(Long formationId, List<SeanceFormation> group, List<ConflictDTO> out) {
+        Set<Integer> totals = new TreeSet<>();
+        Set<Integer> numbers = new TreeSet<>();
+        String titre = group.get(0).getFormation().getTitreFormation();
+        boolean duplicateNumber = false;
+        for (SeanceFormation s : group) {
+            addTotalIfPresent(s, totals);
+            if (!numbers.add(s.getNumeroSeance())) {
+                duplicateNumber = true;
             }
-            if (totals.size() > 1) {
-                out.add(numberingConflict(entry.getKey(), titre,
-                        "Total de séances incohérent (" + totals + ") au sein de la même formation."));
-            }
-            if (duplicateNumber) {
-                out.add(numberingConflict(entry.getKey(), titre, "Numéro de séance dupliqué."));
-            }
-            if (!totals.isEmpty()) {
-                int expectedTotal = totals.iterator().next();
-                for (int n = 1; n <= expectedTotal; n++) {
-                    if (!numbers.contains(n)) {
-                        out.add(numberingConflict(entry.getKey(), titre,
-                                "Séance " + n + "/" + expectedTotal + " manquante."));
-                    }
-                }
+            addExcessNumberConflict(s, formationId, titre, out);
+        }
+        addInconsistentTotalConflict(totals, formationId, titre, out);
+        if (duplicateNumber) {
+            out.add(numberingConflict(formationId, titre, "Numéro de séance dupliqué."));
+        }
+        addMissingSessionConflicts(totals, numbers, formationId, titre, out);
+    }
+
+    private void addTotalIfPresent(SeanceFormation s, Set<Integer> totals) {
+        if (s.getTotalSeances() != null) {
+            totals.add(s.getTotalSeances());
+        }
+    }
+
+    private void addExcessNumberConflict(SeanceFormation s, Long formationId, String titre, List<ConflictDTO> out) {
+        if (s.getTotalSeances() != null && s.getNumeroSeance() > s.getTotalSeances()) {
+            out.add(numberingConflict(formationId, titre,
+                    "Numéro de séance " + s.getNumeroSeance() + " supérieur au total "
+                            + s.getTotalSeances() + "."));
+        }
+    }
+
+    private void addInconsistentTotalConflict(Set<Integer> totals, Long formationId, String titre, List<ConflictDTO> out) {
+        if (totals.size() > 1) {
+            out.add(numberingConflict(formationId, titre,
+                    "Total de séances incohérent (" + totals + ") au sein de la même formation."));
+        }
+    }
+
+    private void addMissingSessionConflicts(Set<Integer> totals, Set<Integer> numbers,
+                                            Long formationId, String titre, List<ConflictDTO> out) {
+        if (totals.isEmpty()) {
+            return;
+        }
+        int expectedTotal = totals.iterator().next();
+        for (int n = 1; n <= expectedTotal; n++) {
+            if (!numbers.contains(n)) {
+                out.add(numberingConflict(formationId, titre,
+                        "Séance " + n + "/" + expectedTotal + " manquante."));
             }
         }
     }

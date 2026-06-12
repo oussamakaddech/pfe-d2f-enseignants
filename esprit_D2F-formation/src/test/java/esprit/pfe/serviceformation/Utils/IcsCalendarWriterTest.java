@@ -35,19 +35,13 @@ class IcsCalendarWriterTest {
         String ics = writer.buildPublishCalendar(List.of(sampleEvent("Atelier", "Desc", null)));
 
         assertThat(ics)
-                .contains("BEGIN:VCALENDAR")
-                .contains("VERSION:2.0")
-                .contains("METHOD:PUBLISH")
-                .contains("BEGIN:VTIMEZONE")
-                .contains("TZID:Africa/Tunis")
-                .contains("DTSTART;TZID=Africa/Tunis:20260610T090000")
-                .contains("DTEND;TZID=Africa/Tunis:20260610T120000")
-                .contains("DTSTAMP:")
-                .contains("UID:d2f-seance-1@d2f.local")
-                .contains("ORGANIZER;CN=")
-                .contains("STATUS:CONFIRMED")
-                .contains("END:VCALENDAR");
-        assertThat(ics).endsWith("END:VCALENDAR\r\n");
+                .contains("BEGIN:VCALENDAR", "VERSION:2.0", "METHOD:PUBLISH",
+                        "BEGIN:VTIMEZONE", "TZID:Africa/Tunis",
+                        "DTSTART;TZID=Africa/Tunis:20260610T090000",
+                        "DTEND;TZID=Africa/Tunis:20260610T120000",
+                        "DTSTAMP:", "UID:d2f-seance-1@d2f.local",
+                        "ORGANIZER;CN=", "STATUS:CONFIRMED", "END:VCALENDAR")
+                .endsWith("END:VCALENDAR\r\n");
     }
 
     @Test
@@ -55,8 +49,7 @@ class IcsCalendarWriterTest {
     void escapesSpecialCharacters() {
         String ics = writer.buildPublishCalendar(List.of(sampleEvent("Java, niveau 1; avancé", "L1\nL2", null)));
 
-        assertThat(ics).contains("SUMMARY:Java\\, niveau 1\\; avancé");
-        assertThat(ics).contains("DESCRIPTION:L1\\nL2");
+        assertThat(ics).contains("SUMMARY:Java\\, niveau 1\\; avancé", "DESCRIPTION:L1\\nL2");
     }
 
     @Test
@@ -66,9 +59,9 @@ class IcsCalendarWriterTest {
         String ics = writer.buildPublishCalendar(List.of(sampleEvent("Atelier", longDesc, null)));
 
         for (String line : ics.split("\r\n")) {
-            assertThat(line.getBytes(StandardCharsets.UTF_8).length)
+            assertThat(line.getBytes(StandardCharsets.UTF_8))
                     .as("Aucune ligne ne doit dépasser 75 octets")
-                    .isLessThanOrEqualTo(75);
+                    .hasSizeLessThanOrEqualTo(75);
         }
         // La continuation d'une ligne pliée commence par une espace.
         assertThat(ics).contains("\r\n x");
