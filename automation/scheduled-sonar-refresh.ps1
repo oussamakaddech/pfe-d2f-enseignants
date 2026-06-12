@@ -2,8 +2,12 @@
 # Description: Supprime TOUS les projets SonarQube existants (pour éviter les doublons) et relance une analyse complète toutes les 2 heures.
 
 $intervalHours = 2
-$sonarUrl = "http://localhost:9000"
-$sonarAuth = "admin:0710oussamA@"
+$sonarUrl = if ($env:SONAR_HOST_URL) { $env:SONAR_HOST_URL } else { "http://localhost:9000" }
+$sonarUser = if ($env:SONAR_ADMIN_USER) { $env:SONAR_ADMIN_USER } else { "admin" }
+$sonarPassword = if ($env:SONAR_ADMIN_PASSWORD) { $env:SONAR_ADMIN_PASSWORD } else {
+    Read-Host -AsSecureString "Mot de passe administrateur SonarQube" | ConvertFrom-SecureString -AsPlainText
+}
+$sonarAuth = "${sonarUser}:${sonarPassword}"
 
 function Refresh-Sonar {
     Write-Host "[$(Get-Date)] Démarrage du nettoyage agressif SonarQube..." -ForegroundColor Cyan

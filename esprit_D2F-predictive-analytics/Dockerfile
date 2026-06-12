@@ -38,10 +38,8 @@ ENV PATH="/opt/venv/bin:$PATH"
 # Utilisateur non-root (sécurité DSI §3)
 RUN groupadd -r appuser && useradd -r -g appuser appuser
 
-# Code applicatif
+# Code applicatif (pas de tests/ ni init_db/ en production)
 COPY app/ ./app/
-COPY tests/ ./tests/
-COPY init_db/ ./init_db/
 
 # Répertoire de travail pour les logs en écriture
 RUN mkdir -p /app/logs && chown -R appuser:appuser /app/logs

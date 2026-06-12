@@ -1,8 +1,12 @@
 # analyze-services.ps1
 # Analyse SonarQube pour chaque service en utilisant les variables d'environnement
 
-$env:SONAR_HOST_URL = "http://localhost:9000"
-$env:SONAR_TOKEN = "0710oussamA@"
+$env:SONAR_HOST_URL = if ($env:SONAR_HOST_URL) { $env:SONAR_HOST_URL } else { "http://localhost:9000" }
+if (-not $env:SONAR_TOKEN) {
+    Write-Host "ERREUR: La variable d'environnement SONAR_TOKEN n'est pas definie." -ForegroundColor Red
+    Write-Host "Definissez-la avec: `$env:SONAR_TOKEN = 'votre-token'" -ForegroundColor Yellow
+    exit 1
+}
 
 $BaseDir = "c:\Users\oussama\Desktop\pfe-d2f-enseignants"
 

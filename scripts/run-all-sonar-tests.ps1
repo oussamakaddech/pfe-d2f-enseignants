@@ -5,7 +5,7 @@
 param(
     [string]$SonarUrl = "http://localhost:9000",
     [string]$SonarUser = "admin",
-    [SecureString]$SonarSecret = ("0710oussamA@" | ConvertTo-SecureString -AsPlainText -Force),
+    [SecureString]$SonarSecret = $(if ($env:SONAR_ADMIN_PASSWORD) { $env:SONAR_ADMIN_PASSWORD | ConvertTo-SecureString -AsPlainText -Force } else { Read-Host -AsSecureString "Mot de passe administrateur SonarQube" }),
     [string[]]$Only = @()  # ex: -Only @("esprit_D2F-webapp")
 )
 

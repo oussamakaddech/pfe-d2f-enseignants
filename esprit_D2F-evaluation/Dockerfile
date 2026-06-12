@@ -69,4 +69,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
   CMD curl -sf http://localhost:8087/actuator/health || exit 1
 
 # Run app when container starts
-ENTRYPOINT ["java","-cp","opt/app:opt/app/lib/*","esprit.pfe.serviceevaluation.ServiceEvaluationApplication"]
+ENTRYPOINT ["java","-cp","/opt/app:/opt/app/lib/*","esprit.pfe.serviceevaluation.ServiceEvaluationApplication"]
