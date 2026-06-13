@@ -52,7 +52,6 @@ const GRADE_OPTIONS = [
 ];
 
 export const ACCOUNT_ROLES: Array<{ value: string; label: string; description: string }> = [
-  { value: "ADMIN",              label: "Administrateur",     description: "Tous les droits sur l'application"        },
   { value: "CUP",                label: "CUP",                description: "Chef d'Unité Pédagogique"                  },
   { value: "CHEF_DEPARTEMENT",   label: "Chef de département", description: "Responsable d'un département"            },
   { value: "RESPONSABLE_DOSSIER",label: "Responsable dossier", description: "Gestion des dossiers de formation"       },
