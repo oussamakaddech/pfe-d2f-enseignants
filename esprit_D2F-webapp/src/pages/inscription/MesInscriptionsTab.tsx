@@ -117,9 +117,9 @@ export default function MesInscriptionsTab() {
       <EmptyStateStandard
         title="Aucune demande"
         description="Vous n'avez pas encore soumis de demande d'inscription."
-        actionLabel="S'inscrire à une formation"
+        actionLabel="Consulter le catalogue"
         actionIcon={<SendOutlined />}
-        onAction={() => navigate("/home/Inscription/Nouvelle")}
+        onAction={() => navigate("/home/Inscriptions?tab=catalogue")}
       />
     );
   }
@@ -134,7 +134,7 @@ export default function MesInscriptionsTab() {
           <Space wrap>
             <Button icon={<ReloadOutlined />} onClick={() => void refetch()} className="ins-btn">Actualiser</Button>
             <Button icon={<FileExcelOutlined />} onClick={exportExcel} disabled={!displayed.length} className="ins-btn ins-btn--green">Exporter</Button>
-            <Button type="primary" icon={<SendOutlined />} onClick={() => navigate("/home/Inscription/Nouvelle")} className="ins-btn">S'inscrire</Button>
+            <Button type="primary" icon={<SendOutlined />} onClick={() => navigate("/home/Inscriptions?tab=catalogue")} className="ins-btn">S'inscrire</Button>
           </Space>
         }
       />

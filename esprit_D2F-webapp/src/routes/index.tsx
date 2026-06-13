@@ -24,7 +24,6 @@ const NotFound = lazy(() => import("@/pages/errors/NotFound"));
 const InscriptionsPage = lazy(() => import("@/pages/inscription/InscriptionsPage"));
 const FicheFormation = lazy(() => import("@/pages/inscription/FicheFormation"));
 const DemandesList = lazy(() => import("@/pages/inscription/DemandesList"));
-const InscriptionForm = lazy(() => import("@/pages/inscription/InscriptionForm"));
 const BesoinForm = lazy(() => import("@/pages/besoin/BesoinForm"));
 const BesoinList = lazy(() => import("@/pages/besoin/BesoinList"));
 const CertificatesByEmailPage = lazy(() => import("@/pages/certificat/CertificatesByEmailPage"));
@@ -178,10 +177,6 @@ export default function AppRoutes() {
                 <Route element={<RoleGuard allowedRoles={[ROLES.ADMIN, ROLES.CUP]} />}>
                   <Route path="/home/ListeFormation/:id/demandes" element={<DemandesList />} />
                   <Route path="/home/Inscriptions/Suivi" element={<Navigate to="/home/Inscriptions?tab=suivi" replace />} />
-                </Route>
-
-                <Route element={<RoleGuard allowedRoles={[ROLES.ENSEIGNANT, ROLES.ANIMATEUR, ROLES.ADMIN]} />}>
-                  <Route path="/home/Inscription/Nouvelle" element={<InscriptionForm />} />
                 </Route>
 
                 <Route element={<RoleGuard allowedRoles={[ROLES.ANIMATEUR, ROLES.ENSEIGNANT, ROLES.ADMIN]} />}>

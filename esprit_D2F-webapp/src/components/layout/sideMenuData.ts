@@ -87,7 +87,6 @@ export const enseignantMenu: MenuItem[] = [
   { label: "Présence & Évaluation", key: "/home/animateur-formations", icon: ReadOutlined },
   { label: "Évaluations",           key: "/home/Evaluations",         icon: TrophyOutlined },
   { label: "Inscriptions",         key: "/home/Inscriptions",       icon: AppstoreOutlined },
-  { label: "S'inscrire à une formation", key: "/home/Inscription/Nouvelle", icon: PlusCircleOutlined },
   { label: "Mes Certificats",       key: "/home/MyCertificate",        icon: SafetyCertificateOutlined },
 ];
 
@@ -100,7 +99,6 @@ export const animateurMenu: MenuItem[] = [
     { label: "Déposer un Besoin",  key: "/home/besoins/ajouter", icon: PlusCircleOutlined },
   ]},
   { label: "Inscriptions",         key: "/home/Inscriptions",       icon: AppstoreOutlined },
-  { label: "S'inscrire à une formation", key: "/home/Inscription/Nouvelle", icon: PlusCircleOutlined },
   { label: "Mes Certificats",      key: "/home/MyCertificate",        icon: SafetyCertificateOutlined },
 ];
 
