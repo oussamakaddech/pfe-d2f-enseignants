@@ -11,7 +11,7 @@ import { writeExcel, exportDateLabel, isoDate } from "@/utils/helpers/excelExpor
 import { useSendEmail } from "@/hooks/formation";
 import { useAuth } from "@/hooks/auth/useAuth";
 import useAppNotification from "@/hooks/ui/useAppNotification";
-import { ROLES } from "@/utils/constants/roles";
+import { ROLES, normalizeRole } from "@/utils/constants/roles";
 import { useBesoins, useMyBesoins, useModifyBesoin, useRemoveBesoin, useApproveBesoin } from "@/hooks/besoin/useBesoins";
 import { useDepartements, useUps, useAllAccounts } from "@/hooks/formation/useFormations";
 import { useEnseignants } from "@/hooks/enseignant/useEnseignants";
@@ -41,13 +41,13 @@ type Filters = typeof INITIAL_FILTERS;
 
 type LookupItem = { id?: string | number; libelle?: string; name?: string; label?: string; nom?: string };
 
-const SELF_SERVICE_ROLES = new Set([ROLES.ENSEIGNANT, ROLES.ANIMATEUR]);
+const SELF_SERVICE_ROLES = new Set([normalizeRole(ROLES.ENSEIGNANT), normalizeRole(ROLES.ANIMATEUR)]);
 
 export function useBesoinList() {
   const navigate = useNavigate();
   const { message: msgApi } = useAppNotification();
   const { user } = useAuth();
-  const isSelfService = SELF_SERVICE_ROLES.has(user?.role as string);
+  const isSelfService = SELF_SERVICE_ROLES.has(normalizeRole(user?.role));
 
   const myBesoinsQuery = useMyBesoins(isSelfService);
   const allBesoinsQuery = useBesoins(!isSelfService);
