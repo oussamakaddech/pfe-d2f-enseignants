@@ -147,7 +147,7 @@ export default function AppRoutes() {
                   <Route path="/home/File" element={<CombinedFormationOneDriveTree />} />
                 </Route>
 
-                <Route element={<RoleGuard allowedRoles={[ROLES.ADMIN, ROLES.CUP, ROLES.CHEF_DEPARTEMENT]} />}>
+                <Route element={<RoleGuard allowedRoles={[ROLES.ADMIN, ROLES.CUP, ROLES.CHEF_DEPARTEMENT, ROLES.ENSEIGNANT]} />}>
                   <Route path="/home/Evaluations" element={<EvaluationGlobalePage />} />
                 </Route>
 

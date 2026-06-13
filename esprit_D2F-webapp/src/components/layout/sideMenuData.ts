@@ -85,6 +85,7 @@ export const enseignantMenu: MenuItem[] = [
     { label: "Déposer un Besoin",  key: "/home/besoins/ajouter", icon: PlusCircleOutlined },
   ]},
   { label: "Présence & Évaluation", key: "/home/animateur-formations", icon: ReadOutlined },
+  { label: "Évaluations",           key: "/home/Evaluations",         icon: TrophyOutlined },
   { label: "Inscriptions",         key: "/home/Inscriptions",       icon: AppstoreOutlined },
   { label: "S'inscrire à une formation", key: "/home/Inscription/Nouvelle", icon: PlusCircleOutlined },
   { label: "Mes Certificats",       key: "/home/MyCertificate",        icon: SafetyCertificateOutlined },
@@ -93,6 +94,7 @@ export const enseignantMenu: MenuItem[] = [
 export const animateurMenu: MenuItem[] = [
   dashboardItem,
   { label: "Sessions d'Animation", key: "/home/animateur-formations", icon: ReadOutlined },
+  { label: "Évaluations",           key: "/home/Evaluations",         icon: TrophyOutlined },
   { label: "Besoins de Formation", key: "besoin_formation_menu", icon: ReadOutlined, children: [
     { label: "Liste des Demandes", key: "/home/besoins",         icon: SearchOutlined },
     { label: "Déposer un Besoin",  key: "/home/besoins/ajouter", icon: PlusCircleOutlined },
