@@ -38,6 +38,8 @@ import {
   useDeleteEvaluationGlobale,
 } from "@/hooks/evaluation/useEvaluations";
 import { useAllFormations } from "@/hooks/formation/useFormations";
+import { useProfile } from "@/hooks/formation/useFormationExtras";
+import { normalizeRole } from "@/utils/constants/roles";
 
 const { Option } = Select;
 const { TextArea } = Input;
@@ -85,9 +87,13 @@ export default function EvaluationGlobalePage() {
   const createMut = useCreateEvaluationGlobale();
   const updateMut = useUpdateEvaluationGlobale();
   const deleteMut = useDeleteEvaluationGlobale();
+  const { data: profile } = useProfile();
 
   const evaluations = evaluationsData as EvalRecord[];
   const formations = formationsData as FormationRecord[];
+
+  const role = normalizeRole(profile?.role ?? "");
+  const isReadOnly = role === "enseignant";
 
   const [openForm, setOpenForm] = useState(false);
   const [editingEval, setEditingEval] = useState<EvalRecord | null>(null);
@@ -104,6 +110,9 @@ export default function EvaluationGlobalePage() {
 
   const filtered = useMemo(() => {
     let res = [...evaluations];
+    if (isReadOnly && profile?.idUtilisateur) {
+      res = res.filter((e) => e.utilisateurId === profile.idUtilisateur);
+    }
     if (filterText) {
       res = res.filter((e) =>
         (getFormationTitre(e.formationId) || "").toLowerCase().includes(filterText.toLowerCase()) ||
@@ -114,7 +123,7 @@ export default function EvaluationGlobalePage() {
     if (formationFilter) res = res.filter((e) => e.formationId === formationFilter);
     return res;
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [evaluations, filterText, recoFilter, formationFilter, formations]);
+  }, [evaluations, filterText, recoFilter, formationFilter, formations, isReadOnly, profile]);
 
   function openCreate() {
     setEditingEval(null);
@@ -214,7 +223,7 @@ export default function EvaluationGlobalePage() {
           </Tag>
         );
       },
-      sorter: (a, b) => (a.noteGlobale || 0) - (b.noteGlobale || 0),
+      sorter: (a, b) => (Number(a.noteGlobale) || 0) - (Number(b.noteGlobale) || 0),
     },
     {
       title: "Recommandation",
@@ -243,12 +252,12 @@ export default function EvaluationGlobalePage() {
       render: (d) => d ? dayjs(d).format("DD/MM/YYYY") : "\u2014",
       sorter: (a, b) => dayjs(a.dateEvaluation).valueOf() - dayjs(b.dateEvaluation).valueOf(),
     },
-    {
+    ...(!isReadOnly ? [{
       title: "Actions",
       key: "actions",
       width: 90,
-      align: "center",
-      render: (_, r) => (
+      align: "center" as const,
+      render: (_: unknown, r: EvalRecord) => (
         <Space size={4}>
           <Button
             type="text"
@@ -271,24 +280,26 @@ export default function EvaluationGlobalePage() {
           </Popconfirm>
         </Space>
       ),
-    },
+    }] : []),
   ];
 
   return (
     <div className="evaluation-page">
         <AppPageHeader
           icon={<TrophyOutlined />}
-          title="Évaluation Globale des Formations"
+          title={isReadOnly ? "Mes Évaluations" : "Évaluation Globale des Formations"}
           subtitle={`${filtered.length} évaluation${filtered.length === 1 ? "" : "s"}${hasActiveFilters ? " (filtrées)" : ""}`}
           actions={
-            <Button
-              type="primary"
-              icon={<PlusOutlined />}
-              onClick={openCreate}
-              className="evaluation-btn-add"
-            >
-              Ajouter une évaluation
-            </Button>
+            !isReadOnly ? (
+              <Button
+                type="primary"
+                icon={<PlusOutlined />}
+                onClick={openCreate}
+                className="evaluation-btn-add"
+              >
+                Ajouter une évaluation
+              </Button>
+            ) : undefined
           }
         />
 
@@ -365,8 +376,8 @@ export default function EvaluationGlobalePage() {
         </div>
 
         <Alert
-          message="Une seule évaluation globale est autorisée par formation."
-          type="info"
+          message={isReadOnly ? "Vous consultez uniquement vos propres évaluations." : "Une seule évaluation globale est autorisée par formation."}
+          type={isReadOnly ? "warning" : "info"}
           showIcon
           className="evaluation-info-alert"
         />
