@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.PosixFilePermissions;
 import java.time.Duration;
 
 /**
@@ -32,7 +33,12 @@ public class MicrosoftGraphService {
 
     private static final String SERVICE_NAME = "microsoft-graph";
     private static final String TAG_SERVICE = "service";
-    private static final String FALLBACK_DIR = "/tmp/d2f-onedrive-fallback";
+    /**
+     * Répertoire de repli local, configurable. Par défaut sous le répertoire
+     * temporaire privé de la JVM ; jamais un chemin partagé en dur tel que /tmp
+     * (répertoire inscriptible par tous — CWE-732 / S5443).
+     */
+    private final String fallbackDir;
     private final Counter graphCallSuccessCounter;
     private final Counter graphCallFailureCounter;
     private final Timer graphCallTimer;
@@ -40,8 +46,12 @@ public class MicrosoftGraphService {
     @Value("${azure.ad.enabled:false}")
     private boolean azureAdEnabled;
 
-    public MicrosoftGraphService(MeterRegistry meterRegistry) {
+    public MicrosoftGraphService(
+            MeterRegistry meterRegistry,
+            @Value("${microsoft.graph.fallback-dir:#{systemProperties['java.io.tmpdir']}/d2f-onedrive-fallback}")
+            String fallbackDir) {
 
+        this.fallbackDir = fallbackDir;
 
         this.graphCallSuccessCounter = Counter.builder("microsoft.graph.calls")
                 .tag(TAG_SERVICE, SERVICE_NAME)
@@ -60,11 +70,26 @@ public class MicrosoftGraphService {
                 .description("Duration of Microsoft Graph API calls")
                 .register(meterRegistry);
 
-        // Ensure fallback directory exists
+        // Ensure fallback directory exists (owner-only when the FS supports POSIX)
+        createSecureDirectory(Path.of(fallbackDir));
+    }
+
+    /**
+     * Crée un répertoire en restreignant ses permissions au seul propriétaire
+     * (rwx------) lorsque le système de fichiers supporte POSIX, afin d'éviter
+     * tout répertoire inscriptible par d'autres utilisateurs (CWE-732 / S5443).
+     * Sur les systèmes sans POSIX (Windows), repli sur une création standard.
+     */
+    private void createSecureDirectory(Path dir) {
         try {
-            Files.createDirectories(Path.of(FALLBACK_DIR));
+            if (dir.getFileSystem().supportedFileAttributeViews().contains("posix")) {
+                Files.createDirectories(dir, PosixFilePermissions.asFileAttribute(
+                        PosixFilePermissions.fromString("rwx------")));
+            } else {
+                Files.createDirectories(dir);
+            }
         } catch (IOException e) {
-            log.warn("Could not create fallback directory: {}", e.getMessage());
+            log.warn("Could not create fallback directory {}: {}", dir, e.getMessage());
         }
     }
 
@@ -191,8 +216,8 @@ public class MicrosoftGraphService {
         log.warn("OneDrive upload failed, storing file locally as fallback: {}", fileName);
         
         try {
-            Path fallbackPath = Path.of(FALLBACK_DIR, folderPath.replace("/", "_"), fileName);
-            Files.createDirectories(fallbackPath.getParent());
+            Path fallbackPath = Path.of(fallbackDir, folderPath.replace("/", "_"), fileName);
+            createSecureDirectory(fallbackPath.getParent());
             Files.write(fallbackPath, content);
             
             log.info("File stored locally for later upload: {}", fallbackPath);

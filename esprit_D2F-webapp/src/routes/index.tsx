@@ -21,12 +21,10 @@ const CertificatePage = lazy(() => import("@/pages/certificat/CertificatePage"))
 const FormationList = lazy(() => import("@/pages/presence/FormationList"));
 const FormationDetail = lazy(() => import("@/pages/presence/FormationDetail"));
 const NotFound = lazy(() => import("@/pages/errors/NotFound"));
-const FormationCards = lazy(() => import("@/pages/inscription/FormationCards"));
+const InscriptionsPage = lazy(() => import("@/pages/inscription/InscriptionsPage"));
 const FicheFormation = lazy(() => import("@/pages/inscription/FicheFormation"));
 const DemandesList = lazy(() => import("@/pages/inscription/DemandesList"));
 const InscriptionForm = lazy(() => import("@/pages/inscription/InscriptionForm"));
-const InscriptionsOverview = lazy(() => import("@/pages/inscription/InscriptionsOverview"));
-const MesInscriptions = lazy(() => import("@/pages/inscription/MesInscriptions"));
 const BesoinForm = lazy(() => import("@/pages/besoin/BesoinForm"));
 const BesoinList = lazy(() => import("@/pages/besoin/BesoinList"));
 const CertificatesByEmailPage = lazy(() => import("@/pages/certificat/CertificatesByEmailPage"));
@@ -97,8 +95,9 @@ export default function AppRoutes() {
                 <Route path="/home/skill-passport/:username" element={<SkillPassportPage />} />
                 <Route path="/home/edit-profile" element={<EditProfile />} />
                 <Route path="/home/update-password" element={<UpdatePassword />} />
-                <Route path="/home/ListeFormation" element={<FormationCards />} />
-                <Route path="/home/MesInscriptions" element={<MesInscriptions />} />
+                <Route path="/home/Inscriptions" element={<InscriptionsPage />} />
+                <Route path="/home/ListeFormation" element={<Navigate to="/home/Inscriptions" replace />} />
+                <Route path="/home/MesInscriptions" element={<Navigate to="/home/Inscriptions?tab=mes-inscriptions" replace />} />
                 <Route path="/home/ListeFormation/:id" element={<FicheFormation />} />
                 <Route path="/home/MyCertificate" element={<CertificatesByEmailPage />} />
 
@@ -178,7 +177,7 @@ export default function AppRoutes() {
 
                 <Route element={<RoleGuard allowedRoles={[ROLES.ADMIN, ROLES.CUP]} />}>
                   <Route path="/home/ListeFormation/:id/demandes" element={<DemandesList />} />
-                  <Route path="/home/Inscriptions/Suivi" element={<InscriptionsOverview />} />
+                  <Route path="/home/Inscriptions/Suivi" element={<Navigate to="/home/Inscriptions?tab=suivi" replace />} />
                 </Route>
 
                 <Route element={<RoleGuard allowedRoles={[ROLES.ENSEIGNANT, ROLES.ANIMATEUR, ROLES.ADMIN]} />}>

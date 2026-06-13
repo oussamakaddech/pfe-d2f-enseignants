@@ -12,7 +12,7 @@ import {
 } from "@ant-design/icons";
 import { useInscriptionsByFormation } from "@/hooks/formation";
 import { InscriptionStatGrid, PageLoader, EmptyStateStandard } from "@/components/common";
-import { neutral } from "@/styles/themes/tokens";
+import { brand, neutral } from "@/styles/themes/tokens";
 import type { Id } from "@/models/common";
 
 const { Text } = Typography;

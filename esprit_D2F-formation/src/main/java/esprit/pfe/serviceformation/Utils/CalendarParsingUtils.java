@@ -26,8 +26,10 @@ public final class CalendarParsingUtils {
             Pattern.compile("(?iu)(?:s[ée]ance?\\s*)?(\\d{1,3})\\s*/\\s*(\\d{1,3})");
 
     // Deux heures séparées par - – à to : « 09:00-12:00 », « 9h - 12h30 », « 09:00 à 12:00 »
+    // Le séparateur possessif \D++ consomme déjà les espaces : pas de \s* adjacent
+    // (l'ambiguïté \s* / \D++ — \s ⊂ \D — provoquerait un backtracking polynomial, S5852).
     private static final Pattern TIME_SLOT_PATTERN = Pattern.compile(
-            "(\\d{1,2})\\s*[:hH]\\s*(\\d{0,2})\\s*\\D++\\s*(\\d{1,2})\\s*[:hH]\\s*(\\d{0,2})");
+            "(\\d{1,2})\\s*[:hH]\\s*(\\d{0,2})\\D++(\\d{1,2})\\s*[:hH]\\s*(\\d{0,2})");
 
     private static final List<DateTimeFormatter> DATE_FORMATS = List.of(
             DateTimeFormatter.ofPattern("d/M/uuuu"),

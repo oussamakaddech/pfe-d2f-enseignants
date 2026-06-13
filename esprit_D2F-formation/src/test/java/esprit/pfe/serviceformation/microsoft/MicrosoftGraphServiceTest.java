@@ -14,7 +14,8 @@ class MicrosoftGraphServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new MicrosoftGraphService(new SimpleMeterRegistry());
+        service = new MicrosoftGraphService(new SimpleMeterRegistry(),
+                System.getProperty("java.io.tmpdir") + "/d2f-onedrive-fallback-test");
     }
 
     @Test

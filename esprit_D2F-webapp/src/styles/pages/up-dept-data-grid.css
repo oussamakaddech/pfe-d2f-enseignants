@@ -1,11 +1,130 @@
-/* ─── UpDeptDataGrid.css ──────────────────────────────────────────────── */
+/* ═══════════════════════════════════════════════════════════════════════
+ * UpDeptDataGrid — Structures (UP / Départements) page styles
+ * ═══════════════════════════════════════════════════════════════════════ */
 
 .updept-page {
   max-width: var(--max-page-width);
   margin: 0 auto;
+  padding: 0 0 32px;
 }
 
-/* ── Toolbar ───────────────────────────────────────────────────────────── */
+/* ── Hero header ─────────────────────────────────────────────────────── */
+
+.updept-hero {
+  position: relative;
+  margin-bottom: 24px;
+  padding: 32px 36px;
+  background: linear-gradient(135deg, #ffffff 0%, #f0f5ff 40%, #e6f0ff 100%);
+  border: 1px solid rgba(37, 99, 235, 0.10);
+  border-radius: 20px;
+  box-shadow:
+    0 4px 24px rgba(37, 99, 235, 0.05),
+    0 1px 3px rgba(0, 0, 0, 0.03);
+  overflow: hidden;
+}
+
+.updept-hero::before,
+.updept-hero::after {
+  content: "";
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  filter: blur(60px);
+  opacity: 0.45;
+  z-index: 0;
+}
+
+.updept-hero::before {
+  width: 320px;
+  height: 320px;
+  top: -140px;
+  right: -60px;
+  background: radial-gradient(circle, rgba(37, 99, 235, 0.12), transparent 70%);
+}
+
+.updept-hero::after {
+  width: 220px;
+  height: 220px;
+  bottom: -100px;
+  left: 20%;
+  background: radial-gradient(circle, rgba(99, 102, 241, 0.15), transparent 70%);
+}
+
+.updept-hero-title {
+  font-size: 28px !important;
+  font-weight: 800 !important;
+  background: linear-gradient(135deg, #1f2937 0%, #2563eb 80%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin: 0 !important;
+  line-height: 1.2 !important;
+  letter-spacing: -0.02em;
+}
+
+.updept-hero-subtitle {
+  color: #64748b;
+  font-size: 14px;
+  margin-top: 4px;
+}
+
+.updept-hero-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 14px;
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  color: #fff;
+  border-radius: 9999px;
+  font-size: 13px;
+  font-weight: 700;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+  letter-spacing: 0.02em;
+}
+
+.updept-hero-badge-total {
+  color: rgba(255, 255, 255, 0.7);
+  font-weight: 400;
+}
+
+/* ── Stats grid ──────────────────────────────────────────────────────── */
+
+.updept-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+/* ── Tabs ────────────────────────────────────────────────────────────── */
+
+.updept-tabs .ant-tabs-nav {
+  margin-bottom: 0 !important;
+}
+
+.updept-tabs .ant-tabs-tab {
+  font-weight: 600;
+  font-size: 14px;
+  padding: 12px 20px;
+  border-radius: 10px 10px 0 0;
+  transition: all 0.2s ease;
+}
+
+.updept-tabs .ant-tabs-tab-active {
+  background: var(--bg-card);
+}
+
+.updept-tabs .ant-tabs-content-holder {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-top: none;
+  border-radius: 0 0 14px 14px;
+  padding: 20px;
+  box-shadow: var(--shadow-sm);
+}
+
+/* ── Toolbar ─────────────────────────────────────────────────────────── */
+
 .updept-toolbar {
   display: flex;
   flex-wrap: wrap;
@@ -19,7 +138,14 @@
   box-shadow: var(--shadow-sm);
 }
 
-/* ── Table card ─────────────────────────────────────────────────────────── */
+.updept-toolbar .ant-btn {
+  border-radius: 10px !important;
+  font-weight: 500 !important;
+  height: 38px !important;
+}
+
+/* ── Table card ──────────────────────────────────────────────────────── */
+
 .updept-table-card {
   background: var(--bg-card);
   border-radius: var(--radius-lg);
@@ -29,62 +155,145 @@
   margin-bottom: var(--space-4);
 }
 
-/* ── Stat cards ────────────────────────────────────────────────────────── */
-.updept-stat-card {
-  border-radius: var(--radius-md);
-  border: 1px solid var(--border-color);
-  box-shadow: var(--shadow-sm);
-  transition: box-shadow 0.2s ease, transform 0.2s ease;
+.updept-table-card .ant-table-thead > tr > th {
+  background: linear-gradient(180deg, #fafafa 0%, #f5f5f5 100%) !important;
+  font-weight: 700;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--neutral-600);
+  border-bottom: 2px solid rgba(0, 0, 0, 0.06);
+  padding: 14px 16px !important;
 }
 
-.updept-stat-card:hover {
-  box-shadow: var(--shadow-md);
-  transform: translateY(-2px);
+.updept-table-card .ant-table-tbody > tr {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* ── Action buttons ─────────────────────────────────────────────────────── */
-.updept-btn-add {
-  border-radius: var(--radius-sm) !important;
-  font-weight: 500 !important;
+.updept-table-card .ant-table-tbody > tr:hover > td {
+  background: linear-gradient(90deg, #f0f5ff 0%, #e8f0fe 50%, #f0f5ff 100%) !important;
 }
 
-.updept-btn-edit {
-  color: var(--btn-info-color) !important;
-  background: var(--btn-info-bg) !important;
-  border: none !important;
-  transition: all 0.2s ease !important;
+.updept-table-card .ant-table-tbody > tr > td {
+  padding: 14px 16px !important;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.04);
 }
 
-.updept-btn-edit:hover {
-  background: var(--btn-info-hover-bg) !important;
-  color: var(--btn-info-hover-color) !important;
+.updept-table-card .ant-table-tbody > tr:last-child > td {
+  border-bottom: none;
 }
 
-.updept-btn-delete {
-  color: var(--btn-danger-color) !important;
-  background: var(--btn-danger-bg) !important;
-  border: none !important;
-  transition: all 0.2s ease !important;
+/* ── Action buttons ──────────────────────────────────────────────────── */
+
+.updept-action-btn {
+  border-radius: 10px !important;
+  width: 34px !important;
+  height: 34px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  border: 1px solid transparent !important;
 }
 
-.updept-btn-delete:hover {
-  background: var(--btn-danger-hover-bg) !important;
-  color: var(--btn-danger-hover-color) !important;
+.updept-action-btn:hover {
+  transform: translateY(-1px) !important;
 }
 
-/* ── Modal ─────────────────────────────────────────────────────────────── */
-.updept-modal .ant-form-item-label > label {
-  font-size: var(--text-sm);
-  font-weight: var(--font-semibold);
-  color: var(--text-muted);
+.updept-action-btn--edit {
+  color: #2563eb !important;
+  background: rgba(37, 99, 235, 0.08) !important;
+  border: 1px solid rgba(37, 99, 235, 0.18) !important;
 }
 
-/* ── Responsive ────────────────────────────────────────────────────────── */
+.updept-action-btn--edit:hover {
+  color: #1d4ed8 !important;
+  background: rgba(37, 99, 235, 0.15) !important;
+  border-color: #1d4ed8 !important;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25);
+}
+
+.updept-action-btn--delete {
+  color: #ef4444 !important;
+  background: rgba(239, 68, 68, 0.08) !important;
+  border: 1px solid rgba(239, 68, 68, 0.18) !important;
+}
+
+.updept-action-btn--delete:hover {
+  color: #dc2626 !important;
+  background: rgba(239, 66, 66, 0.15) !important;
+  border-color: #dc2626 !important;
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.25);
+}
+
+/* ── Empty state ─────────────────────────────────────────────────────── */
+
+.updept-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+  color: #9ca3af;
+  text-align: center;
+}
+
+.updept-empty-icon {
+  font-size: 48px;
+  color: #d1d5db;
+  margin-bottom: 16px;
+}
+
+.updept-empty-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: #6b7280;
+  margin-bottom: 8px;
+}
+
+.updept-empty-desc {
+  font-size: 13px;
+  color: #9ca3af;
+  max-width: 280px;
+}
+
+/* ── Drawer ──────────────────────────────────────────────────────────── */
+
+.updept-drawer .ant-drawer-header {
+  border-bottom: 1px solid var(--border-color);
+  padding: 16px 20px;
+}
+
+.updept-drawer .ant-drawer-body {
+  padding: 20px;
+}
+
+.updept-drawer .ant-form-item-label > label {
+  font-weight: 600;
+  color: #374151;
+  font-size: 13px;
+}
+
+/* ── Responsive ──────────────────────────────────────────────────────── */
+
 @media (max-width: 768px) {
+  .updept-hero {
+    padding: 24px 20px;
+    border-radius: 16px;
+  }
+
+  .updept-hero-title {
+    font-size: 22px !important;
+  }
+
   .updept-toolbar {
     flex-direction: column;
     align-items: stretch;
     padding: 12px;
     border-radius: var(--radius-md);
+  }
+
+  .updept-stats {
+    grid-template-columns: repeat(2, 1fr);
   }
 }

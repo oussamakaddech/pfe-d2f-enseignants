@@ -36,6 +36,9 @@ public class FormationSecurityConfig {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
                 .cors(Customizer.withDefaults())
+                // CSRF désactivé volontairement (S4502, faux positif) : API REST sans
+                // état, jeton porté par l'en-tête Authorization: Bearer (jamais par un
+                // cookie ambiant) — non exploitable en CSRF. Cf. doc Spring Security.
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 // DSI §12 — RBAC deny-by-default : whitelist minimale + JWT obligatoire.

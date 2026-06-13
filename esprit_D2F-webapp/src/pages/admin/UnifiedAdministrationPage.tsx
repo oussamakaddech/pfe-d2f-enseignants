@@ -179,7 +179,7 @@ export default function UnifiedAdministrationPage() {
           statusValue = 'INCONNU';
         }
         const isDeleted = (acc as { deleted?: boolean }).deleted === true;
-        return { ...acc, _type: 'account' as const, _key: `acc_${acc.userId ?? acc.id ?? Math.random()}`, status: statusValue, deleted: isDeleted };
+        return { ...acc, _type: 'account' as const, _key: `acc_${acc.userId ?? acc.id ?? crypto.randomUUID()}`, status: statusValue, deleted: isDeleted };
       });
       setAccounts(normalized);
     }
@@ -227,7 +227,7 @@ export default function UnifiedAdministrationPage() {
           _key: `merged_${accId}_${t.id ?? ""}`,
         } as UnifiedRow;
       }
-      return { ...t, _type: 'teacher' as const, _key: `tch_${t.id ?? Math.random()}` };
+      return { ...t, _type: 'teacher' as const, _key: `tch_${t.id ?? crypto.randomUUID()}` };
     });
 
     // Comptes sans fiche liée

@@ -32,6 +32,10 @@ public class CircuitBreakerFallbackController {
     @Value("${gateway.fallback.unknown-path:/unknown}")
     private String unknownPathPlaceholder = "/unknown";
 
+    // @RequestMapping sans méthode = toutes méthodes (S3752, faux positif voulu) :
+    // un fallback de circuit breaker doit refléter la méthode de la requête d'origine
+    // (GET/POST/PUT/DELETE…). Il ne renvoie qu'un 503 JSON statique, sans état ni
+    // donnée sensible — aucune surface d'attaque liée aux méthodes « unsafe ».
     @RequestMapping("${gateway.fallback.uri:/fallback}")
     public Mono<String> fallback(ServerWebExchange exchange) {
         // Récupérer le path original demandé par le client

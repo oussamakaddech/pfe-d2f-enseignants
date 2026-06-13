@@ -107,19 +107,12 @@ const STATUS_DOT_COLORS: Record<AccountStatus, string> = {
 };
 
 function AccountStatusBadge({ status }: Readonly<{ status: AccountStatus }>) {
-  const color = STATUS_DOT_COLORS[status] ?? STATUS_DOT_COLORS.INCONNU;
   const isActive = status === "ACTIF";
   return (
     <span className={isActive ? "accounts-status-active" : "accounts-status-blocked"}>
       <span
         aria-hidden="true"
-        style={{
-          width: 6,
-          height: 6,
-          borderRadius: "50%",
-          background: color,
-          display: "inline-block",
-        }}
+        className={`accounts-status-dot ${isActive ? "accounts-status-dot--active" : "accounts-status-dot--blocked"}`}
       />
       {status}
     </span>
@@ -448,30 +441,18 @@ export default function ListAccounts({ embedded = false }: { embedded?: boolean 
       width: 280,
       render: (_: unknown, record: Account) => {
         const fullName = `${record.firsName || record.firstName || ""} ${record.lastName || ""}`.trim() || "—";
+        const isActive = record.status === 'ACTIF';
         return (
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <div className="accounts-user-info">
             <div
-              style={{
-                width: 38,
-                height: 38,
-                borderRadius: 10,
-                background: record.status === 'ACTIF' ? brand[50] : neutral[100],
-                color: record.status === 'ACTIF' ? brand[500] : neutral[500],
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontSize: 14,
-                fontWeight: 700,
-                flexShrink: 0,
-                border: `1px solid ${record.status === 'ACTIF' ? "rgba(181, 18, 0,0.18)" : "rgba(0,0,0,0.06)"}`,
-              }}
+              className={`accounts-user-avatar ${isActive ? "accounts-user-avatar--active" : "accounts-user-avatar--inactive"}`}
               aria-hidden="true"
             >
               {(record.firsName || record.firstName || record.userName || "?").charAt(0).toUpperCase()}
             </div>
-            <div style={{ minWidth: 0 }}>
-              <div style={{ fontWeight: 600, color: neutral[800], lineHeight: 1.3 }}>{fullName}</div>
-              <div style={{ fontSize: 12, color: neutral[500], marginTop: 2 }}>@{record.userName}</div>
+            <div className="accounts-user-details">
+              <div className="accounts-user-name">{fullName}</div>
+              <div className="accounts-user-username">@{record.userName}</div>
             </div>
           </div>
         );
@@ -484,11 +465,11 @@ export default function ListAccounts({ embedded = false }: { embedded?: boolean 
       key: 'email',
       ellipsis: true,
       render: (text: string) => text ? (
-        <span style={{ color: neutral[700], fontSize: 13 }}>
-          <MailOutlined style={{ marginRight: 6, color: brand[500] }} />
+        <span className="accounts-email">
+          <MailOutlined className="accounts-email-icon" />
           {text}
         </span>
-      ) : <span style={{ color: neutral[300] }}>—</span>,
+      ) : <span className="accounts-placeholder">—</span>,
       ...getColumnSearchProps('email'),
     },
     {
@@ -498,11 +479,11 @@ export default function ListAccounts({ embedded = false }: { embedded?: boolean 
       width: 160,
       responsive: ['md'],
       render: (text: string) => text ? (
-        <span style={{ color: neutral[700], fontSize: 13 }}>
-          <PhoneOutlined style={{ marginRight: 6, color: neutral[400] }} />
+        <span className="accounts-phone">
+          <PhoneOutlined className="accounts-phone-icon" />
           {text}
         </span>
-      ) : <span style={{ color: neutral[300] }}>—</span>,
+      ) : <span className="accounts-placeholder">—</span>,
     },
     {
       title: 'Rôle',
@@ -519,16 +500,16 @@ export default function ListAccounts({ embedded = false }: { embedded?: boolean 
       render: (_: unknown, record: Account) => {
         const role = (record.role ?? '').toUpperCase();
         if (role !== 'ENSEIGNANT' && role !== 'ANIMATEUR') {
-          return <span style={{ color: neutral[300] }}>—</span>;
+          return <span className="accounts-placeholder">—</span>;
         }
         const dept = deptByUserId.get(getAccountId(record));
         return dept ? (
-          <span style={{ color: neutral[700], fontSize: 13 }}>
-            <BankOutlined style={{ marginRight: 6, color: brand[500] }} />
+          <span className="accounts-dept">
+            <BankOutlined className="accounts-dept-icon" />
             {dept}
           </span>
         ) : (
-          <span style={{ color: neutral[400], fontSize: 12, fontStyle: 'italic' }}>
+          <span className="accounts-dept-empty">
             Profil à configurer
           </span>
         );
@@ -545,11 +526,11 @@ export default function ListAccounts({ embedded = false }: { embedded?: boolean 
       title: 'Actions',
       key: 'actions',
       fixed: 'right',
-      width: 150,
+      width: 130,
       render: (_: unknown, record: Account) => {
         const fullName = `${record.firsName || record.firstName || ""} ${record.lastName || ""}`.trim() || record.userName || "cet utilisateur";
         return (
-          <Space size={4}>
+          <Space size={6}>
             <Tooltip title="Modifier">
               <Button
                 shape="circle"

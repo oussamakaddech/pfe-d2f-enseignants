@@ -36,8 +36,7 @@ export const adminMenu: MenuItem[] = [
   { type: "group", label: "ADMINISTRATION", children: [
     { label: "Administration",  key: "/home/administration", icon: SettingOutlined },
     { label: "Structures (UP/Dépt)", key: "/home/UpDept",           icon: ApartmentOutlined },
-    { label: "Inscriptions",         key: "/home/ListeFormation",   icon: FileTextOutlined  },
-    { label: "Suivi des Inscriptions", key: "/home/Inscriptions/Suivi", icon: TeamOutlined   },
+    { label: "Inscriptions",         key: "/home/Inscriptions",   icon: FileTextOutlined  },
     { label: "Gestion des Bureaux",  key: "/home/bureaux",          icon: BankOutlined      },
   ]},
   { type: "group", label: "FORMATIONS", children: [
@@ -75,8 +74,7 @@ export const cupMenu: MenuItem[] = [
   ]},
   { label: "Présence & Évaluation", key: "/home/animateur-formations", icon: ReadOutlined },
   { label: "Analyse Prédictive",    key: "/home/AnalysePredictive",    icon: LineChartOutlined },
-  { label: "Mes Inscriptions",      key: "/home/ListeFormation",       icon: AppstoreOutlined },
-  { label: "Suivi des Inscriptions",key: "/home/Inscriptions/Suivi",   icon: TeamOutlined },
+  { label: "Inscriptions",         key: "/home/Inscriptions",       icon: AppstoreOutlined },
   { label: "Mes Certificats",       key: "/home/MyCertificate",        icon: SafetyCertificateOutlined },
 ];
 
@@ -87,9 +85,8 @@ export const enseignantMenu: MenuItem[] = [
     { label: "Déposer un Besoin",  key: "/home/besoins/ajouter", icon: PlusCircleOutlined },
   ]},
   { label: "Présence & Évaluation", key: "/home/animateur-formations", icon: ReadOutlined },
-  { label: "Catalogue formations",  key: "/home/ListeFormation",       icon: AppstoreOutlined },
+  { label: "Inscriptions",         key: "/home/Inscriptions",       icon: AppstoreOutlined },
   { label: "S'inscrire à une formation", key: "/home/Inscription/Nouvelle", icon: PlusCircleOutlined },
-  { label: "Mes Inscriptions",      key: "/home/MesInscriptions",      icon: FileTextOutlined },
   { label: "Mes Certificats",       key: "/home/MyCertificate",        icon: SafetyCertificateOutlined },
 ];
 
@@ -100,9 +97,8 @@ export const animateurMenu: MenuItem[] = [
     { label: "Liste des Demandes", key: "/home/besoins",         icon: SearchOutlined },
     { label: "Déposer un Besoin",  key: "/home/besoins/ajouter", icon: PlusCircleOutlined },
   ]},
-  { label: "Catalogue formations", key: "/home/ListeFormation",       icon: AppstoreOutlined },
+  { label: "Inscriptions",         key: "/home/Inscriptions",       icon: AppstoreOutlined },
   { label: "S'inscrire à une formation", key: "/home/Inscription/Nouvelle", icon: PlusCircleOutlined },
-  { label: "Mes Inscriptions",     key: "/home/MesInscriptions",      icon: FileTextOutlined },
   { label: "Mes Certificats",      key: "/home/MyCertificate",        icon: SafetyCertificateOutlined },
 ];
 

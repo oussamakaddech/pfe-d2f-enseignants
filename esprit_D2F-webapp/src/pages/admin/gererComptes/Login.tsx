@@ -151,6 +151,12 @@ export default function Login() {
               />
             </Form.Item>
 
+            <div style={{ textAlign: "right", marginBottom: 16 }}>
+              <Typography.Link onClick={() => navigate("/password-recovery")} style={{ fontSize: 14 }}>
+                Mot de passe oublié ?
+              </Typography.Link>
+            </div>
+
             <Form.Item noStyle shouldUpdate>
               {() => (
                 <Button
