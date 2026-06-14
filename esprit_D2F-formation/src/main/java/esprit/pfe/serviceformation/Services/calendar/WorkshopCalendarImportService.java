@@ -219,6 +219,8 @@ public class WorkshopCalendarImportService {
         formation.setResponsableName(blankToNull(firstSession.getTrainerName()));
         formation.setSalle(blankToNull(firstSession.getRoom()));
         formation.setCertifGenerated(false);
+        formation.setCoutFormation(0f);
+        formation.setChargeHoraireGlobal(0);
         Formation saved = formationRepository.save(formation);
         report.setFormationsCreated(report.getFormationsCreated() + 1);
         return saved;
