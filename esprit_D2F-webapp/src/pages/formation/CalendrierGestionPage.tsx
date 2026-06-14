@@ -96,7 +96,14 @@ export default function CalendrierGestionPage() {
           message.success("Import terminé.");
         }
       },
-      onError: () => { message.error("Échec de l'import."); },
+      onError: (err: unknown) => {
+        const e = err as { response?: { status?: number } };
+        if (e.response?.status === 409) {
+          message.warning("Ce fichier a déjà été importé. Aucune modification effectuée.");
+        } else {
+          message.error("Échec de l'import.");
+        }
+      },
     });
   }, [file, importMutation, conflicts, message]);
 
