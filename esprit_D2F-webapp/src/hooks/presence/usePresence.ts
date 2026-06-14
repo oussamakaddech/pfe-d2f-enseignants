@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import FormationWorkflowService from "@/services/formation/FormationWorkflowService";
+import FormationWorkflowService, { type MesPresence } from "@/services/formation/FormationWorkflowService";
 import type { Formation } from "@/models/formation";
 import type { Id } from "@/models/common";
 
@@ -78,5 +78,12 @@ export function useAggregatedPresences(seanceIds: Id[]) {
         ),
       ),
     enabled: seanceIds.length > 0,
+  });
+}
+
+export function useMesPresences() {
+  return useQuery<MesPresence[]>({
+    queryKey: ["presences", "mes-presences"],
+    queryFn: () => FormationWorkflowService.getMesPresences(),
   });
 }

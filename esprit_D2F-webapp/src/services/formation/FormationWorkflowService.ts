@@ -5,6 +5,20 @@ import type { Id } from "@/models/common";
 import type { Formation } from "@/models/formation";
 import type { Presence, PresenceStats } from "@/models/presence";
 
+export interface MesPresence {
+  idParticipation?: number;
+  present?: boolean;
+  commentaire?: string;
+  seanceId?: number;
+  dateSeance?: string;
+  heureDebut?: string;
+  heureFin?: string;
+  salle?: string;
+  formationId?: number;
+  titreFormation?: string;
+  etatFormation?: string;
+}
+
 const API_URL = `${config.FORMATION_URL}/formation/formations-workflow`;
 
 // Token is now in HttpOnly cookie, sent automatically via withCredentials: true.
@@ -156,6 +170,11 @@ const FormationWorkflowService = {
   async getFormationsVisibles(): Promise<Formation[]> {
     const response = await axios.get<Formation[]>(`${API_URL}/visibles`);
     return normalizeListResponse(response.data);
+  },
+
+  async getMesPresences(): Promise<MesPresence[]> {
+    const response = await axios.get<MesPresence[]>(`${API_URL}/mes-presences`);
+    return Array.isArray(response.data) ? response.data : [];
   },
 
   async getFormationsParUp(upId: Id): Promise<Formation[]> {

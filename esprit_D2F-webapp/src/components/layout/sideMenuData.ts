@@ -6,7 +6,7 @@ import {
   SafetyCertificateOutlined, UserOutlined, LineChartOutlined, ApiOutlined,
   ClusterOutlined, TeamOutlined, BookOutlined,
   AppstoreOutlined, CheckSquareOutlined, BankOutlined, SettingOutlined,
-  ImportOutlined, DashboardOutlined,
+  ImportOutlined, DashboardOutlined, EyeOutlined,
 } from "@ant-design/icons";
 
 export interface MenuItem {
@@ -84,6 +84,7 @@ export const enseignantMenu: MenuItem[] = [
     { label: "Liste des Demandes", key: "/home/besoins",         icon: SearchOutlined },
     { label: "Déposer un Besoin",  key: "/home/besoins/ajouter", icon: PlusCircleOutlined },
   ]},
+  { label: "Mes Présences",       key: "/home/mes-presences",     icon: EyeOutlined },
   { label: "Présence & Évaluation", key: "/home/animateur-formations", icon: ReadOutlined },
   { label: "Évaluations",           key: "/home/Evaluations",         icon: TrophyOutlined },
   { label: "Inscriptions",         key: "/home/Inscriptions",       icon: AppstoreOutlined },

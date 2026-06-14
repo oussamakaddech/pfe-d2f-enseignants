@@ -251,6 +251,23 @@ public class FormationWorkflowController {
         return ResponseEntity.ok(formationWorkflowService.getSeancePresenceStats(seanceId));
     }
 
+    @GetMapping("/mes-presences")
+    @PreAuthorize(AuthorizationMatrix.FORMATION_READ_OWN)
+    @Operation(summary = "Récupérer les présences de l'enseignant connecté")
+    public ResponseEntity<Object> getMesPresences(@AuthenticationPrincipal Jwt jwt) {
+        try {
+            String email = jwt.getClaim("email");
+            List<MesPresenceDTO> presences = formationWorkflowService.getMesPresences(email);
+            return ResponseEntity.ok(presences);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of(KEY_ERROR, e.getMessage()));
+        } catch (Exception e) {
+            log.error("Erreur lors de la récupération des mes présences : ", e);
+            String errorMsg = e.getMessage() != null ? e.getMessage() : e.getClass().getSimpleName();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of(KEY_ERROR, MSG_ERREUR_INTERNE, KEY_MESSAGE, errorMsg));
+        }
+    }
+
     @GetMapping("/achevees")
     @PreAuthorize(AuthorizationMatrix.FORMATION_READ)
     public ResponseEntity<Object> getFormationsAchevees() {

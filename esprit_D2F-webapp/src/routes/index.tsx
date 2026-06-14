@@ -20,6 +20,7 @@ const CalendarEnseignant = lazy(() => import("@/pages/enseignant/CalendarEnseign
 const CertificatePage = lazy(() => import("@/pages/certificat/CertificatePage"));
 const FormationList = lazy(() => import("@/pages/presence/FormationList"));
 const FormationDetail = lazy(() => import("@/pages/presence/FormationDetail"));
+const MaPresence = lazy(() => import("@/pages/presence/MaPresence"));
 const NotFound = lazy(() => import("@/pages/errors/NotFound"));
 const InscriptionsPage = lazy(() => import("@/pages/inscription/InscriptionsPage"));
 const FicheFormation = lazy(() => import("@/pages/inscription/FicheFormation"));
@@ -182,6 +183,10 @@ export default function AppRoutes() {
                 <Route element={<RoleGuard allowedRoles={[ROLES.ANIMATEUR, ROLES.ENSEIGNANT, ROLES.ADMIN]} />}>
                   <Route path="/home/animateur-formations" element={<FormationList />} />
                   <Route path="/home/animateur-formations/:id" element={<FormationDetail />} />
+                </Route>
+
+                <Route element={<RoleGuard allowedRoles={[ROLES.ENSEIGNANT]} />}>
+                  <Route path="/home/mes-presences" element={<MaPresence />} />
                 </Route>
               </Route>
             </Route>

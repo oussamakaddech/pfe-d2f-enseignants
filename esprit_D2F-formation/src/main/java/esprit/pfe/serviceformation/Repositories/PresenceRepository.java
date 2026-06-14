@@ -114,4 +114,6 @@ public interface PresenceRepository extends JpaRepository<Presence, Long> {
 
 
     List<Presence> findBySeanceFormation_IdSeance(Long seanceId);
+
+    List<Presence> findByEnseignant_Id(String enseignantId);
 }

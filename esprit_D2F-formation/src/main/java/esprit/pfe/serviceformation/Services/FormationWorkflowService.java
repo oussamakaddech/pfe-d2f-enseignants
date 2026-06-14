@@ -1551,6 +1551,32 @@ public class FormationWorkflowService {
         return dto;
     }
 
+    public List<MesPresenceDTO> getMesPresences(String email) {
+        Enseignant enseignant = enseignantRepository.findByMailIgnoreCase(email)
+                .orElseThrow(() -> new IllegalArgumentException("Enseignant introuvable pour l'email : " + email));
+        List<Presence> presences = presenceRepository.findByEnseignant_Id(enseignant.getId());
+        return presences.stream().map(p -> {
+            MesPresenceDTO dto = new MesPresenceDTO();
+            dto.setIdParticipation(p.getIdParticipation());
+            dto.setPresent(p.isPresent());
+            dto.setCommentaire(p.getCommentaire());
+            if (p.getSeanceFormation() != null) {
+                dto.setSeanceId(p.getSeanceFormation().getIdSeance());
+                dto.setDateSeance(p.getSeanceFormation().getDateSeance());
+                dto.setHeureDebut(p.getSeanceFormation().getHeureDebut() != null ? p.getSeanceFormation().getHeureDebut().toString() : null);
+                dto.setHeureFin(p.getSeanceFormation().getHeureFin() != null ? p.getSeanceFormation().getHeureFin().toString() : null);
+                dto.setSalle(p.getSeanceFormation().getSalle());
+                if (p.getSeanceFormation().getFormation() != null) {
+                    dto.setFormationId(p.getSeanceFormation().getFormation().getIdFormation());
+                    dto.setTitreFormation(p.getSeanceFormation().getFormation().getTitreFormation());
+                    dto.setEtatFormation(p.getSeanceFormation().getFormation().getEtatFormation() != null
+                            ? p.getSeanceFormation().getFormation().getEtatFormation().toString() : null);
+                }
+            }
+            return dto;
+        }).toList();
+    }
+
     public List<FormationResponseDTO> getFormationsAchevees() {
         List<Formation> achevees = formationRepository.findByEtatFormation(EtatFormation.ACHEVE);
         return achevees.stream().map(formationMapper::toResponseDTO).toList();
