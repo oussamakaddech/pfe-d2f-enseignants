@@ -184,7 +184,7 @@ class WorkshopCalendarImportServiceTest {
         ImportLog importLog = ImportLog.builder().id(42L).build();
         when(importLogRepository.save(any(ImportLog.class))).thenReturn(importLog);
 
-        ImportReportDTO report = service.importCalendar(xlsxMultipartFile());
+        ImportReportDTO report = service.importCalendar(xlsxMultipartFile(), false);
 
         assertThat(report.getStatus()).isEqualTo("SUCCESS");
         assertThat(report.getFormationsCreated()).isEqualTo(1);
@@ -201,7 +201,7 @@ class WorkshopCalendarImportServiceTest {
         when(importLogRepository.findFirstByFileHashOrderByImportedAtDesc(anyString()))
                 .thenReturn(Optional.of(existingLog));
 
-        ImportReportDTO report = service.importCalendar(xlsxMultipartFile());
+        ImportReportDTO report = service.importCalendar(xlsxMultipartFile(), false);
 
         assertThat(report.getStatus()).isEqualTo("DUPLICATE");
         assertThat(report.getDuplicateOfImportId()).isEqualTo(10L);
@@ -226,7 +226,7 @@ class WorkshopCalendarImportServiceTest {
         ImportLog newLog = ImportLog.builder().id(6L).build();
         when(importLogRepository.save(any(ImportLog.class))).thenReturn(newLog);
 
-        ImportReportDTO report = service.importCalendar(xlsxMultipartFile());
+        ImportReportDTO report = service.importCalendar(xlsxMultipartFile(), false);
 
         assertThat(report.getStatus()).isNotEqualTo("DUPLICATE");
         verify(parser).parse(any());
@@ -249,7 +249,7 @@ class WorkshopCalendarImportServiceTest {
         ImportLog importLog = ImportLog.builder().id(1L).build();
         when(importLogRepository.save(any(ImportLog.class))).thenReturn(importLog);
 
-        ImportReportDTO report = service.importCalendar(xlsxMultipartFile());
+        ImportReportDTO report = service.importCalendar(xlsxMultipartFile(), false);
 
         assertThat(report.getStatus()).isEqualTo("FAILED");
         ArgumentCaptor<ImportLog> captor = ArgumentCaptor.forClass(ImportLog.class);
@@ -294,7 +294,7 @@ class WorkshopCalendarImportServiceTest {
         ImportLog importLog = ImportLog.builder().id(1L).build();
         when(importLogRepository.save(any(ImportLog.class))).thenReturn(importLog);
 
-        ImportReportDTO report = service.importCalendar(xlsxMultipartFile());
+        ImportReportDTO report = service.importCalendar(xlsxMultipartFile(), false);
 
         assertThat(report.getStatus()).isEqualTo("PARTIAL");
         assertThat(report.getErrors()).hasSize(1);
@@ -332,7 +332,7 @@ class WorkshopCalendarImportServiceTest {
         ImportLog importLog = ImportLog.builder().id(1L).build();
         when(importLogRepository.save(any(ImportLog.class))).thenReturn(importLog);
 
-        ImportReportDTO report = service.importCalendar(xlsxMultipartFile());
+        ImportReportDTO report = service.importCalendar(xlsxMultipartFile(), false);
 
         assertThat(report.getRowsSkipped()).isGreaterThanOrEqualTo(0);
     }
@@ -370,7 +370,7 @@ class WorkshopCalendarImportServiceTest {
         ImportLog importLog = ImportLog.builder().id(1L).build();
         when(importLogRepository.save(any(ImportLog.class))).thenReturn(importLog);
 
-        ImportReportDTO report = service.importCalendar(xlsxMultipartFile());
+        ImportReportDTO report = service.importCalendar(xlsxMultipartFile(), false);
 
         assertThat(report.getStatus()).isEqualTo("PARTIAL");
         assertThat(report.getConflictsDetected()).isEqualTo(2);
@@ -408,7 +408,7 @@ class WorkshopCalendarImportServiceTest {
         ImportLog importLog = ImportLog.builder().id(1L).build();
         when(importLogRepository.save(any(ImportLog.class))).thenReturn(importLog);
 
-        ImportReportDTO report = service.importCalendar(xlsxMultipartFile());
+        ImportReportDTO report = service.importCalendar(xlsxMultipartFile(), false);
 
         assertThat(report.getRowsSkipped()).isGreaterThanOrEqualTo(1);
     }
@@ -448,7 +448,7 @@ class WorkshopCalendarImportServiceTest {
         ImportLog importLog = ImportLog.builder().id(1L).build();
         when(importLogRepository.save(any(ImportLog.class))).thenReturn(importLog);
 
-        ImportReportDTO report = service.importCalendar(xlsxMultipartFile());
+        ImportReportDTO report = service.importCalendar(xlsxMultipartFile(), false);
 
         assertThat(report.getFormationsCreated()).isEqualTo(1);
         verify(formationRepository).save(any(Formation.class));
@@ -487,7 +487,7 @@ class WorkshopCalendarImportServiceTest {
         ImportLog importLog = ImportLog.builder().id(1L).build();
         when(importLogRepository.save(any(ImportLog.class))).thenReturn(importLog);
 
-        ImportReportDTO report = service.importCalendar(xlsxMultipartFile());
+        ImportReportDTO report = service.importCalendar(xlsxMultipartFile(), false);
 
         assertThat(report.getFormationsCreated()).isZero();
         verify(formationRepository, never()).save(any(Formation.class));
@@ -539,7 +539,7 @@ class WorkshopCalendarImportServiceTest {
         ImportLog importLog = ImportLog.builder().id(1L).build();
         when(importLogRepository.save(any(ImportLog.class))).thenReturn(importLog);
 
-        ImportReportDTO report = service.importCalendar(xlsxMultipartFile());
+        ImportReportDTO report = service.importCalendar(xlsxMultipartFile(), false);
 
         assertThat(report.getParticipantsImported()).isEqualTo(2);
         verify(participantEmailRepository, times(2)).save(any(FormationParticipantEmail.class));
@@ -581,7 +581,7 @@ class WorkshopCalendarImportServiceTest {
         ImportLog importLog = ImportLog.builder().id(1L).build();
         when(importLogRepository.save(any(ImportLog.class))).thenReturn(importLog);
 
-        ImportReportDTO report = service.importCalendar(xlsxMultipartFile());
+        ImportReportDTO report = service.importCalendar(xlsxMultipartFile(), false);
 
         assertThat(report.getParticipantsImported()).isZero();
         verify(participantEmailRepository, never()).save(any(FormationParticipantEmail.class));
@@ -623,7 +623,7 @@ class WorkshopCalendarImportServiceTest {
         ImportLog importLog = ImportLog.builder().id(1L).build();
         when(importLogRepository.save(any(ImportLog.class))).thenReturn(importLog);
 
-        ImportReportDTO report = service.importCalendar(xlsxMultipartFile());
+        ImportReportDTO report = service.importCalendar(xlsxMultipartFile(), false);
 
         assertThat(report.getParticipantsImported()).isZero();
         assertThat(report.getErrors()).anyMatch(
@@ -670,7 +670,7 @@ class WorkshopCalendarImportServiceTest {
         ImportLog importLog = ImportLog.builder().id(1L).build();
         when(importLogRepository.save(any(ImportLog.class))).thenReturn(importLog);
 
-        ImportReportDTO report = service.importCalendar(xlsxMultipartFile());
+        ImportReportDTO report = service.importCalendar(xlsxMultipartFile(), false);
 
         assertThat(report.getParticipantsUnmatched()).isEqualTo(1);
         assertThat(report.getParticipantsImported()).isEqualTo(1);
@@ -722,7 +722,7 @@ class WorkshopCalendarImportServiceTest {
         ImportLog importLog = ImportLog.builder().id(1L).build();
         when(importLogRepository.save(any(ImportLog.class))).thenReturn(importLog);
 
-        ImportReportDTO report = service.importCalendar(xlsxMultipartFile());
+        ImportReportDTO report = service.importCalendar(xlsxMultipartFile(), false);
 
         assertThat(report.getParticipantsUnmatched()).isZero();
 
@@ -765,7 +765,7 @@ class WorkshopCalendarImportServiceTest {
         ImportLog importLog = ImportLog.builder().id(1L).build();
         when(importLogRepository.save(any(ImportLog.class))).thenReturn(importLog);
 
-        ImportReportDTO report = service.importCalendar(xlsxMultipartFile());
+        ImportReportDTO report = service.importCalendar(xlsxMultipartFile(), false);
 
         assertThat(report.getParticipantsImported()).isZero();
         verify(participantEmailRepository, never()).existsByFormationIdAndEmailIgnoreCase(anyLong(), anyString());
@@ -820,7 +820,7 @@ class WorkshopCalendarImportServiceTest {
         ImportLog importLog = ImportLog.builder().id(1L).build();
         when(importLogRepository.save(any(ImportLog.class))).thenReturn(importLog);
 
-        service.importCalendar(xlsxMultipartFile());
+        service.importCalendar(xlsxMultipartFile(), false);
 
         ArgumentCaptor<ImportLog> captor = ArgumentCaptor.forClass(ImportLog.class);
         verify(importLogRepository).save(captor.capture());
@@ -877,7 +877,7 @@ class WorkshopCalendarImportServiceTest {
         ImportLog importLog = ImportLog.builder().id(1L).build();
         when(importLogRepository.save(any(ImportLog.class))).thenReturn(importLog);
 
-        ImportReportDTO report = service.importCalendar(xlsxMultipartFile());
+        ImportReportDTO report = service.importCalendar(xlsxMultipartFile(), false);
 
         assertThat(report.getSessionsCreated()).isEqualTo(1);
         ArgumentCaptor<SeanceFormation> captor = ArgumentCaptor.forClass(SeanceFormation.class);
@@ -930,7 +930,7 @@ class WorkshopCalendarImportServiceTest {
         ImportLog importLog = ImportLog.builder().id(1L).build();
         when(importLogRepository.save(any(ImportLog.class))).thenReturn(importLog);
 
-        service.importCalendar(xlsxMultipartFile());
+        service.importCalendar(xlsxMultipartFile(), false);
 
         ArgumentCaptor<Formation> captor = ArgumentCaptor.forClass(Formation.class);
         verify(formationRepository).save(captor.capture());
@@ -960,7 +960,7 @@ class WorkshopCalendarImportServiceTest {
         ImportLog importLog = ImportLog.builder().id(1L).build();
         when(importLogRepository.save(any(ImportLog.class))).thenReturn(importLog);
 
-        service.importCalendar(xlsxMultipartFile());
+        service.importCalendar(xlsxMultipartFile(), false);
 
         ArgumentCaptor<ImportLog> captor = ArgumentCaptor.forClass(ImportLog.class);
         verify(importLogRepository).save(captor.capture());
@@ -1003,7 +1003,7 @@ class WorkshopCalendarImportServiceTest {
         ImportLog importLog = ImportLog.builder().id(1L).build();
         when(importLogRepository.save(any(ImportLog.class))).thenReturn(importLog);
 
-        service.importCalendar(xlsxMultipartFile());
+        service.importCalendar(xlsxMultipartFile(), false);
 
         ArgumentCaptor<ImportLog> captor = ArgumentCaptor.forClass(ImportLog.class);
         verify(importLogRepository).save(captor.capture());
@@ -1042,7 +1042,7 @@ class WorkshopCalendarImportServiceTest {
         ImportLog importLog = ImportLog.builder().id(1L).build();
         when(importLogRepository.save(any(ImportLog.class))).thenReturn(importLog);
 
-        ImportReportDTO report = service.importCalendar(xlsxMultipartFile());
+        ImportReportDTO report = service.importCalendar(xlsxMultipartFile(), false);
 
         assertThat(report.getStatus()).isEqualTo("SUCCESS");
         ArgumentCaptor<ImportLog> captor = ArgumentCaptor.forClass(ImportLog.class);
@@ -1082,7 +1082,7 @@ class WorkshopCalendarImportServiceTest {
         ImportLog importLog = ImportLog.builder().id(99L).build();
         when(importLogRepository.save(any(ImportLog.class))).thenReturn(importLog);
 
-        service.importCalendar(xlsxMultipartFile());
+        service.importCalendar(xlsxMultipartFile(), false);
 
         verify(conflictService).detectAndLog(anyList(), eq(99L));
     }
@@ -1110,7 +1110,7 @@ class WorkshopCalendarImportServiceTest {
         ImportLog importLog = ImportLog.builder().id(1L).build();
         when(importLogRepository.save(any(ImportLog.class))).thenReturn(importLog);
 
-        ImportReportDTO report = service.importCalendar(xlsxMultipartFile());
+        ImportReportDTO report = service.importCalendar(xlsxMultipartFile(), false);
 
         assertThat(report.getErrors()).hasSize(2);
         assertThat(report.getErrors().get(0).getSeverity()).isEqualTo("ERROR");
@@ -1132,7 +1132,7 @@ class WorkshopCalendarImportServiceTest {
         ImportLog importLog = ImportLog.builder().id(1L).build();
         when(importLogRepository.save(any(ImportLog.class))).thenReturn(importLog);
 
-        ImportReportDTO report = service.importCalendar(xlsxMultipartFile());
+        ImportReportDTO report = service.importCalendar(xlsxMultipartFile(), false);
 
         assertThat(report.getFileName()).isEqualTo("calendar.xlsx");
     }
@@ -1213,7 +1213,7 @@ class WorkshopCalendarImportServiceTest {
         ImportLog importLog = ImportLog.builder().id(1L).build();
         when(importLogRepository.save(any(ImportLog.class))).thenReturn(importLog);
 
-        ImportReportDTO report = service.importCalendar(xlsxMultipartFile());
+        ImportReportDTO report = service.importCalendar(xlsxMultipartFile(), false);
 
         assertThat(report.getSessionsCreated()).isEqualTo(1);
     }
@@ -1254,7 +1254,7 @@ class WorkshopCalendarImportServiceTest {
         ImportLog importLog = ImportLog.builder().id(1L).build();
         when(importLogRepository.save(any(ImportLog.class))).thenReturn(importLog);
 
-        ImportReportDTO report = service.importCalendar(xlsxMultipartFile());
+        ImportReportDTO report = service.importCalendar(xlsxMultipartFile(), false);
 
         assertThat(report.getSessionsCreated()).isEqualTo(1);
     }
