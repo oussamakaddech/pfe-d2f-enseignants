@@ -32,8 +32,8 @@ export function usePreviewImport() {
 /** Import persistant ; invalide les listes du calendrier. */
 export function useImportCalendar() {
   const queryClient = useQueryClient();
-  return useMutation<ImportReport, unknown, File>({
-    mutationFn: (file: File) => CalendarService.importCalendar(file),
+  return useMutation<ImportReport, unknown, { file: File; force?: boolean }>({
+    mutationFn: ({ file, force }) => CalendarService.importCalendar(file, force),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["calendar"] });
     },

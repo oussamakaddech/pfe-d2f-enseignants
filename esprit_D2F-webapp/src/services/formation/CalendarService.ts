@@ -57,9 +57,10 @@ const CalendarService = {
   },
 
   /** Import complet et persistant. */
-  async importCalendar(file: File): Promise<ImportReport> {
+  async importCalendar(file: File, force = false): Promise<ImportReport> {
     const formData = new FormData();
     formData.append("file", file);
+    if (force) formData.append("force", "true");
     const { data } = await axios.post<ImportReport>(`${API_URL}/import`, formData);
     return data;
   },

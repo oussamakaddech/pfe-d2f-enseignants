@@ -11,6 +11,7 @@ import {
   Divider,
   Alert,
   Spin,
+  Checkbox,
 } from "antd";
 import {
   EyeOutlined,
@@ -59,6 +60,7 @@ export default function CalendrierGestionPage() {
   const [report, setReport] = useState<ImportReport | null>(null);
   const [downloadingAll, setDownloadingAll] = useState(false);
   const [activeTab, setActiveTab] = useState("import");
+  const [forceImport, setForceImport] = useState(false);
 
   const previewMutation = usePreviewImport();
   const importMutation = useImportCalendar();
@@ -84,7 +86,7 @@ export default function CalendrierGestionPage() {
   const handleImport = useCallback(() => {
     if (!file) return;
     setPreview(null);
-    importMutation.mutate(file, {
+    importMutation.mutate({ file, force: forceImport }, {
       onSuccess: (data) => {
         setReport(data);
         conflicts.refetch();
@@ -109,7 +111,7 @@ export default function CalendrierGestionPage() {
         }
       },
     });
-  }, [file, importMutation, conflicts, msgApi, notification]);
+  }, [file, importMutation, conflicts, msgApi, notification, forceImport]);
 
   const handleDownloadAll = useCallback(async () => {
     setDownloadingAll(true);
@@ -169,8 +171,13 @@ export default function CalendrierGestionPage() {
             loading={importMutation.isPending}
             onClick={handleImport}
           >
-            Importer dans le calendrier
+            {forceImport ? "Forcer l'import" : "Importer dans le calendrier"}
           </Button>
+          {admin && (
+            <Checkbox checked={forceImport} onChange={(e) => setForceImport(e.target.checked)}>
+              Forcer (ignorer les doublons)
+            </Checkbox>
+          )}
           {!file && (
             <Text type="secondary" style={{ marginLeft: 8 }}>
               Sélectionnez un fichier .xlsx pour commencer
