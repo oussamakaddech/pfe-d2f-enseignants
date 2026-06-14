@@ -55,8 +55,10 @@ public class CalendarController {
     @Operation(summary = "Importer un calendrier Excel (.xlsx) et persister les données")
     @PostMapping(value = "/import", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize(AuthorizationMatrix.REFERENTIEL_IMPORT)
-    public ResponseEntity<ImportReportDTO> importCalendar(@RequestParam("file") MultipartFile file) {
-        return ResponseEntity.ok(importService.importCalendar(file));
+    public ResponseEntity<ImportReportDTO> importCalendar(
+            @RequestParam("file") MultipartFile file,
+            @RequestParam(value = "force", defaultValue = "false") boolean force) {
+        return ResponseEntity.ok(importService.importCalendar(file, force));
     }
 
     @Operation(summary = "Prévisualiser un calendrier Excel sans persistance (parsing + problèmes détectés)")

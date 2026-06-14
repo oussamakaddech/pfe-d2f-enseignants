@@ -18,6 +18,7 @@ import esprit.pfe.serviceformation.repositories.EnseignantRepository;
 import esprit.pfe.serviceformation.repositories.FormationParticipantEmailRepository;
 import esprit.pfe.serviceformation.repositories.FormationRepository;
 import esprit.pfe.serviceformation.repositories.ImportLogRepository;
+import esprit.pfe.serviceformation.repositories.RoomConflictLogRepository;
 import esprit.pfe.serviceformation.repositories.SeanceFormationRepository;
 import esprit.pfe.serviceformation.utils.FileSecurityValidator;
 import org.apache.poi.ss.usermodel.Workbook;
@@ -70,6 +71,7 @@ public class WorkshopCalendarImportService {
     private final FormationParticipantEmailRepository participantEmailRepository;
     private final EnseignantRepository enseignantRepository;
     private final ImportLogRepository importLogRepository;
+    private final RoomConflictLogRepository roomConflictLogRepository;
     private final CalendarProperties properties;
 
     public WorkshopCalendarImportService(
@@ -80,6 +82,7 @@ public class WorkshopCalendarImportService {
             FormationParticipantEmailRepository participantEmailRepository,
             EnseignantRepository enseignantRepository,
             ImportLogRepository importLogRepository,
+            RoomConflictLogRepository roomConflictLogRepository,
             CalendarProperties properties) {
         this.parser = parser;
         this.conflictService = conflictService;
@@ -88,6 +91,7 @@ public class WorkshopCalendarImportService {
         this.participantEmailRepository = participantEmailRepository;
         this.enseignantRepository = enseignantRepository;
         this.importLogRepository = importLogRepository;
+        this.roomConflictLogRepository = roomConflictLogRepository;
         this.properties = properties;
     }
 
@@ -103,21 +107,23 @@ public class WorkshopCalendarImportService {
 
     /** Import complet et persistant, idempotent par empreinte de fichier. */
     @Transactional
-    public ImportReportDTO importCalendar(MultipartFile file) {
+    public ImportReportDTO importCalendar(MultipartFile file, boolean force) {
         validate(file);
         byte[] content = readBytes(file);
         String hash = sha256(content);
 
         Optional<ImportLog> existing = importLogRepository.findFirstByFileHashOrderByImportedAtDesc(hash);
-        // Un import précédent en échec (status FAILED) ne doit pas bloquer une nouvelle
-        // tentative : on ne considère « doublon » qu'un import ayant effectivement persisté.
         if (existing.isPresent() && !STATUS_FAILED.equals(existing.get().getStatus())) {
-            log.info("Import calendrier ignoré : fichier déjà importé (importLogId={})", existing.get().getId());
-            return ImportReportDTO.builder()
-                    .status("DUPLICATE")
-                    .fileName(file.getOriginalFilename())
-                    .duplicateOfImportId(existing.get().getId())
-                    .build();
+            if (!force) {
+                log.info("Import calendrier ignoré : fichier déjà importé (importLogId={})", existing.get().getId());
+                return ImportReportDTO.builder()
+                        .status("DUPLICATE")
+                        .fileName(file.getOriginalFilename())
+                        .duplicateOfImportId(existing.get().getId())
+                        .build();
+            }
+            log.info("Import calendrier forcé : suppression de l'import précédent (importLogId={})", existing.get().getId());
+            cleanupPreviousImport(existing.get().getId());
         }
 
         ParsedCalendarDTO parsed;
@@ -274,6 +280,13 @@ public class WorkshopCalendarImportService {
                 .conflictsDetected(report.getConflictsDetected())
                 .status(status)
                 .build());
+    }
+
+    /** Supprime les données liées à un import précédent (conflits + import log). */
+    private void cleanupPreviousImport(Long importLogId) {
+        roomConflictLogRepository.findByImportLogId(importLogId)
+                .forEach(roomConflictLogRepository::delete);
+        importLogRepository.deleteById(importLogId);
     }
 
     // ==================== VALIDATION / IO ====================
