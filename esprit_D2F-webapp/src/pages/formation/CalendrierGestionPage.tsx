@@ -50,7 +50,7 @@ import "@/styles/pages/calendrier-gestion.css";
 const { Title, Paragraph, Text } = Typography;
 
 export default function CalendrierGestionPage() {
-  const { message } = useAppNotification();
+  const { message: msgApi, notification } = useAppNotification();
   const { user } = useAuth();
   const admin = isAdmin(user?.role);
 
@@ -75,11 +75,11 @@ export default function CalendrierGestionPage() {
     previewMutation.mutate(file, {
       onSuccess: (data) => {
         setPreview(data);
-        message.success(`${data.sessions.length} séance(s) détectée(s).`);
+        msgApi.success(`${data.sessions.length} séance(s) détectée(s).`);
       },
-      onError: () => { message.error("Impossible d'analyser le fichier."); },
+      onError: () => { msgApi.error("Impossible d'analyser le fichier."); },
     });
-  }, [file, previewMutation, message]);
+  }, [file, previewMutation, msgApi]);
 
   const handleImport = useCallback(() => {
     if (!file) return;
@@ -89,41 +89,45 @@ export default function CalendrierGestionPage() {
         setReport(data);
         conflicts.refetch();
         if (data.status === "DUPLICATE") {
-          message.info("Ce fichier a déjà été importé.");
+          msgApi.info("Ce fichier a déjà été importé.");
         } else if (data.status === "FAILED") {
-          message.error("L'import a échoué — consultez les erreurs.");
+          msgApi.error("L'import a échoué — consultez les erreurs.");
         } else {
-          message.success("Import terminé.");
+          msgApi.success("Import terminé.");
         }
       },
       onError: (err: unknown) => {
         const e = err as { response?: { status?: number } };
         if (e.response?.status === 409) {
-          message.warning("Ce fichier a déjà été importé. Aucune modification effectuée.");
+          notification.warning({
+            message: "Fichier déjà importé",
+            description: "Ce fichier a déjà été importé précédemment. Aucune modification effectuée.",
+            duration: 5,
+          });
         } else {
-          message.error("Échec de l'import.");
+          msgApi.error("Échec de l'import.");
         }
       },
     });
-  }, [file, importMutation, conflicts, message]);
+  }, [file, importMutation, conflicts, msgApi, notification]);
 
   const handleDownloadAll = useCallback(async () => {
     setDownloadingAll(true);
     try {
       await CalendarService.downloadIcsAll();
     } catch {
-      message.error("Échec du téléchargement du calendrier complet.");
+      msgApi.error("Échec du téléchargement du calendrier complet.");
     } finally {
       setDownloadingAll(false);
     }
-  }, [message]);
+  }, [msgApi]);
 
   const handleSendAll = useCallback(() => {
     sendAll.mutate(undefined, {
-      onSuccess: (result) => { message.success(result.message); },
-      onError: () => { message.error("Échec de l'envoi global des invitations."); },
+      onSuccess: (result) => { msgApi.success(result.message); },
+      onError: () => { msgApi.error("Échec de l'envoi global des invitations."); },
     });
-  }, [sendAll, message]);
+  }, [sendAll, msgApi]);
 
   const importTab = useMemo(
     () => (
