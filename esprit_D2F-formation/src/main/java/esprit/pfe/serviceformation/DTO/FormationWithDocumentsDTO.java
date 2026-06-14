@@ -16,9 +16,9 @@ public class FormationWithDocumentsDTO {
     private Date dateDebut;
     private Date dateFin;
     private String etatFormation;
-    private float coutFormation;
+    private Float coutFormation;
     private String organismeRefExterne;
-    private int chargeHoraireGlobal;
+    private Integer chargeHoraireGlobal;
     private DeptDTO departement1;
     private UpDTO up1;
     private List<DocumentDTO> documents;
