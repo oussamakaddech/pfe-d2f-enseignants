@@ -42,6 +42,8 @@ function notifyUnexpectedError(err: AxiosError, status: number | undefined, serv
     notify.error(serverMsg || "Erreur serveur. Réessayez dans un instant.");
   } else if (status === 403) {
     notify.warning(serverMsg || "Accès refusé.");
+  } else if (status === 409) {
+    notify.warning(serverMsg || "Conflit — cette ressource existe déjà ou a déjà été importée.");
   } else if (status === 422) {
     notify.warning(serverMsg || "Données invalides ou insuffisantes.");
   }
