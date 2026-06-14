@@ -62,20 +62,25 @@ export const adminMenu: MenuItem[] = [
 
 export const cupMenu: MenuItem[] = [
   dashboardItem,
-  { label: "Évaluations",             key: "/home/Evaluations",         icon: TrophyOutlined },
-  { label: "Référentiel Compétences", key: "/home/competences",         icon: BookOutlined },
-  { label: "Besoins de Formation", key: "besoin_formation_menu", icon: ReadOutlined, children: [
-    { label: "Liste des Demandes", key: "/home/besoins",         icon: SearchOutlined },
-    { label: "Déposer un Besoin",  key: "/home/besoins/ajouter", icon: PlusCircleOutlined },
+  { type: "group", label: "FORMATIONS", children: [
+    { label: "Nouvelle Formation",    key: "/home/Formation/Creer",         icon: PlusCircleOutlined },
+    { label: "Catalogue",             key: "/home/Formation/Consulter",     icon: AppstoreOutlined },
+    { label: "Évaluations",           key: "/home/Evaluations",             icon: TrophyOutlined },
+    { label: "Gestion Calendrier",    key: "/home/Formation/CalendrierGestion", icon: ImportOutlined },
   ]},
-  { label: "Affectation & IA", key: "gestion_affectation", icon: SolutionOutlined, children: [
-    { label: "Suivi des Affectations", key: "/home/affectations",      icon: SolutionOutlined },
-    { label: "Matchmaking IA",         key: "/home/rice/matchmaking",  icon: ApiOutlined },
+  { type: "group", label: "COMPÉTENCES & BESOINS", children: [
+    { label: "Référentiel Compétences", key: "/home/competences",         icon: BookOutlined },
+    { label: "Besoins de Formation", key: "besoin_formation_menu", icon: ReadOutlined, children: [
+      { label: "Liste des Demandes", key: "/home/besoins",         icon: SearchOutlined },
+      { label: "Déposer un Besoin",  key: "/home/besoins/ajouter", icon: PlusCircleOutlined },
+    ]},
+    { label: "Suivi des Affectations", key: "/home/affectations",  icon: SolutionOutlined },
   ]},
-  { label: "Présence & Évaluation", key: "/home/animateur-formations", icon: ReadOutlined },
-  { label: "Analyse Prédictive",    key: "/home/AnalysePredictive",    icon: LineChartOutlined },
-  { label: "Inscriptions",         key: "/home/Inscriptions",       icon: AppstoreOutlined },
-  { label: "Mes Certificats",       key: "/home/MyCertificate",        icon: SafetyCertificateOutlined },
+  { type: "group", label: "SUIVI", children: [
+    { label: "Inscriptions",         key: "/home/Inscriptions",       icon: FileTextOutlined },
+    { label: "Analyse Prédictive",   key: "/home/AnalysePredictive",  icon: LineChartOutlined },
+    { label: "Mes Certificats",      key: "/home/MyCertificate",       icon: SafetyCertificateOutlined },
+  ]},
 ];
 
 export const enseignantMenu: MenuItem[] = [
@@ -111,10 +116,22 @@ export const responsableDossierMenu: MenuItem[] = [
 
 export const chefDepartementMenu: MenuItem[] = [
   dashboardItem,
-  { label: "Gestion Formations",   key: "/home/Formation/Consulter", icon: AppstoreOutlined },
-  { label: "Dossiers de Formation",key: "/home/File",                icon: FileTextOutlined },
-  { label: "Calendrier Global",    key: "/home/Calendrier",          icon: CalendarOutlined },
-  { label: "Analyse Prédictive",   key: "/home/AnalysePredictive",   icon: LineChartOutlined },
+  { type: "group", label: "FORMATIONS", children: [
+    { label: "Catalogue Formations",  key: "/home/Formation/Consulter",     icon: AppstoreOutlined },
+    { label: "Évaluations",           key: "/home/Evaluations",             icon: TrophyOutlined },
+    { label: "Calendrier Global",     key: "/home/Calendrier",              icon: CalendarOutlined },
+    { label: "Gestion Calendrier",    key: "/home/Formation/CalendrierGestion", icon: ImportOutlined },
+  ]},
+  { type: "group", label: "COMPÉTENCES & BESOINS", children: [
+    { label: "Référentiel Compétences", key: "/home/competences",          icon: BookOutlined },
+    { label: "Besoins de Formation",  key: "/home/besoins",                icon: ReadOutlined },
+  ]},
+  { type: "group", label: "DOCUMENTS & SUIVI", children: [
+    { label: "Dossiers de Formation", key: "/home/File",                   icon: FileTextOutlined },
+    { label: "Inscriptions",         key: "/home/Inscriptions",            icon: AppstoreOutlined },
+    { label: "Analyse Prédictive",   key: "/home/AnalysePredictive",       icon: LineChartOutlined },
+    { label: "Mes Certificats",      key: "/home/MyCertificate",           icon: SafetyCertificateOutlined },
+  ]},
 ];
 
 export const roleMenus: Record<string, MenuItem[]> = {

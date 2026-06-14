@@ -141,7 +141,7 @@ export default function AppRoutes() {
                   <Route path="/home/Formation/CalendrierGestion" element={<CalendrierGestionPage />} />
                 </Route>
 
-                <Route element={<RoleGuard allowedRoles={[ROLES.ADMIN, ROLES.RESPONSABLE_DOSSIER, ROLES.CHEF_DEPARTEMENT]} />}>
+                <Route element={<RoleGuard allowedRoles={[ROLES.ADMIN, ROLES.CUP, ROLES.RESPONSABLE_DOSSIER, ROLES.CHEF_DEPARTEMENT]} />}>
                   <Route path="/home/Formation/Consulter" element={<FormationConsultationPage />} />
                   <Route path="/home/Formation/Consulter/:formationId/documents" element={<DocumentsPage />} />
                   <Route path="/home/File" element={<CombinedFormationOneDriveTree />} />
