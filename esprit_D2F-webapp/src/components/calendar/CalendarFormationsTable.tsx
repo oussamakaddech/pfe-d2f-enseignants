@@ -7,6 +7,7 @@ import {
   TeamOutlined,
   SearchOutlined,
   CheckCircleOutlined,
+  CalendarOutlined,
 } from "@ant-design/icons";
 import useAppNotification from "@/hooks/ui/useAppNotification";
 import {
@@ -93,7 +94,7 @@ export default function CalendarFormationsTable({ canSendInvitations }: Readonly
     { title: "Participants", dataIndex: "participantsCount", width: 110, align: "center" },
     {
       title: "Actions",
-      width: 210,
+      width: 250,
       render: (_, formation) => (
         <Space>
           <Tooltip title="Enregistrer dans le catalogue">
@@ -103,6 +104,14 @@ export default function CalendarFormationsTable({ canSendInvitations }: Readonly
               icon={<CheckCircleOutlined />}
               loading={updateInscriptions.isPending && updateInscriptions.variables?.id === formation.idFormation}
               onClick={() => handleRegister(formation)}
+            />
+          </Tooltip>
+          <Tooltip title="Ajouter à Outlook / Google Calendar">
+            <Button
+              size="small"
+              icon={<CalendarOutlined />}
+              loading={downloadingId === formation.idFormation}
+              onClick={() => handleDownload(formation)}
             />
           </Tooltip>
           <Tooltip title="Télécharger le .ics">
