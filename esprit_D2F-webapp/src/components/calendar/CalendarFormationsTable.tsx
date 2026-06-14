@@ -6,6 +6,7 @@ import {
   MailOutlined,
   TeamOutlined,
   SearchOutlined,
+  CheckCircleOutlined,
 } from "@ant-design/icons";
 import useAppNotification from "@/hooks/ui/useAppNotification";
 import {
@@ -13,6 +14,7 @@ import {
   useCalendarParticipants,
   useSendInvitations,
 } from "@/hooks/formation/useCalendar";
+import { useUpdateInscriptionsOuvertes } from "@/hooks/formation/useFormations";
 import CalendarService from "@/services/formation/CalendarService";
 import type { CalendarFormation, CalendarFormationFilters } from "@/models/calendar";
 
@@ -40,6 +42,7 @@ export default function CalendarFormationsTable({ canSendInvitations }: Readonly
 
   const { data, isLoading } = useCalendarFormations(filters);
   const sendInvitations = useSendInvitations();
+  const updateInscriptions = useUpdateInscriptionsOuvertes();
 
   const handleDownload = async (formation: CalendarFormation) => {
     setDownloadingId(formation.idFormation);
@@ -65,6 +68,16 @@ export default function CalendarFormationsTable({ canSendInvitations }: Readonly
     });
   };
 
+  const handleRegister = (formation: CalendarFormation) => {
+    updateInscriptions.mutate(
+      { id: formation.idFormation, ouvert: true },
+      {
+        onSuccess: () => { message.success(`"${formation.titre}" enregistrée dans le catalogue.`); },
+        onError: () => { message.error("Échec de l'enregistrement dans le catalogue."); },
+      },
+    );
+  };
+
   const columns: ColumnsType<CalendarFormation> = [
     { title: "Formation", dataIndex: "titre", ellipsis: true },
     {
@@ -80,9 +93,18 @@ export default function CalendarFormationsTable({ canSendInvitations }: Readonly
     { title: "Participants", dataIndex: "participantsCount", width: 110, align: "center" },
     {
       title: "Actions",
-      width: 170,
+      width: 210,
       render: (_, formation) => (
         <Space>
+          <Tooltip title="Enregistrer dans le catalogue">
+            <Button
+              size="small"
+              type="primary"
+              icon={<CheckCircleOutlined />}
+              loading={updateInscriptions.isPending && updateInscriptions.variables?.id === formation.idFormation}
+              onClick={() => handleRegister(formation)}
+            />
+          </Tooltip>
           <Tooltip title="Télécharger le .ics">
             <Button
               size="small"
