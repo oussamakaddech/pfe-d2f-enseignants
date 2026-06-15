@@ -245,8 +245,8 @@
   --btn-purple-hover-color:   #6d28d9;
 
   /* ── Header ──────────────────────────────────────────────────────────────── */
-  --header-gradient:       linear-gradient(180deg, var(--primary-600) 0%, var(--primary-700) 100%);
-  --header-shadow:         0 1px 4px rgba(0, 0, 0, 0.10);
+  --header-gradient:       linear-gradient(135deg, var(--primary-700) 0%, var(--primary-500) 40%, var(--primary-400) 100%);
+  --header-shadow:         0 2px 12px rgba(0, 0, 0, 0.18), 0 1px 3px rgba(0, 0, 0, 0.10);
   --header-avatar-bg:      rgba(255, 255, 255, 0.15);
   --header-avatar-border:  1.5px solid rgba(255, 255, 255, 0.20);
 

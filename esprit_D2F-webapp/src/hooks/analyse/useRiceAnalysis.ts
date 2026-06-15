@@ -39,19 +39,36 @@ function isLikelyValidExtractedName(value: unknown): boolean {
   return /[a-zà-ÿ]{2,}\s+[a-zà-ÿ]{2,}/i.test(name);
 }
 
+/** Checks if text is a metadata line from PDF fiche (Code:, HE:, HNE:, etc.) */
+function isMetadataLine(text: string): boolean {
+  const t = text?.trim() ?? "";
+  if (!t || t.length > 400) return false;
+  if (/\b(?:HE|HNE|ECTS|Coefficient|Volume[ _]horaire)\s*:\s*\d/i.test(t)) return true;
+  const colons = (t.match(/:/g) ?? []).length;
+  if (colons >= 3) return true;
+  if (colons >= 2) {
+    const kwHits = (t.match(/\b(?:Code|HE|HNE|ECTS|Responsable|Module|Enseignants?|Intervenants?|Unité\s*pédagogique|Coefficient|Volume[ _]horaire|Objectifs?|Prérequis|Niveau|Langue|Crédit)\b/gi) ?? []).length;
+    if (kwHits >= 3) return true;
+  }
+  return false;
+}
+
 function cleanTreePropositions(propositions: RiceDomaine[]): RiceDomaine[] {
   const cleaned = cloneDeep(propositions);
   for (const d of cleaned)
     for (const c of d.competences ?? []) {
-      for (const s of c.savoirs ?? []) {
+      c.savoirs = (c.savoirs ?? []).filter((s) => {
         s.aiSuggestedIds = (s.enseignantsSuggeres ?? []).map(String);
         s.enseignantsSuggeres = [];
-      }
+        return !isMetadataLine(s.nom);
+      });
       for (const sc of c.sousCompetences ?? [])
-        for (const s of sc.savoirs ?? []) {
+        sc.savoirs = (sc.savoirs ?? []).filter((s) => {
           s.aiSuggestedIds = (s.enseignantsSuggeres ?? []).map(String);
           s.enseignantsSuggeres = [];
-        }
+          return !isMetadataLine(s.nom);
+        });
+      c.sousCompetences = (c.sousCompetences ?? []).filter((sc) => (sc.savoirs ?? []).length > 0);
     }
   return cleaned;
 }

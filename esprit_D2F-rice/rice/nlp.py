@@ -1414,6 +1414,55 @@ _RE_AA_BLOOM_SINGLE = re.compile(r"\s+(\d)\s*$")
 _RE_AA_STANDALONE_MULTI = re.compile(r"^(\d)\s+et\s+(\d)\s*$")
 _RE_AA_CLEAN = re.compile(r"\s*(?:Situation|Dur[eé]e|Rendu|d['\u2019]apprentissage).*$", re.I)
 
+_RE_AA_METADATA = re.compile(
+    r"(?:^|\s)(?:Code|HE|HNE|ECTS|Coefficient|Volume)\s*[:\uFF1A]"
+    r"|(?:^|\s)Responsable\s*(?:Module)?\s*[:\uFF1A]"
+    r"|(?:^|\s)Unit[ée]\s*p[ée]dagogique\s*[:\uFF1A]"
+    r"|(?:^|\s)Enseignants?\s*[:\uFF1A]"
+    r"|(?:^|\s)Intervenants?\s*[:\uFF1A]"
+    r"|(?:^|\s)Objectifs?\s*[:\uFF1A]"
+    r"|(?:^|\s)Pr[ée]requis\s*[:\uFF1A]"
+    r"|(?:^|\s)Niveau\s*[:\uFF1A]"
+    r"|(?:^|\s)Langue\s*[:\uFF1A]"
+    r"|(?:^|\s)Cr[ée]dit\s*[:\uFF1A]",
+    re.IGNORECASE,
+)
+
+_METADATA_KW = re.compile(
+    r"\b(?:Code|HE|HNE|ECTS|Responsable|Module|Enseignants?|Intervenants?"
+    r"|Unit[ée]\s*p[ée]dagogique|Coefficient|Volume[ _]horaire"
+    r"|Objectifs?|Pr[ée]requis|Niveau|Langue|Cr[ée]dit)\b",
+    re.IGNORECASE,
+)
+
+_RE_HE_HNE = re.compile(r"\b(?:HE|HNE|ECTS|Coefficient|Volume[ _]horaire)\s*[:\uFF1A]\s*\d", re.IGNORECASE)
+
+
+def _is_metadata_line(text: str) -> bool:
+    """Return True if text is a metadata line from a PDF table (not a real AA).
+
+    Heuristics:
+      1. Contains HE:/HNE:/ECTS: pattern → always metadata
+      2. 3+ colons → almost certainly a metadata table row
+      3. 2+ colons AND 3+ metadata keywords → metadata table row
+      4. Regex match on structured metadata pattern → metadata
+    """
+    t = text.strip()
+    if len(t) > 400:
+        return False
+    if _RE_HE_HNE.search(t):
+        return True
+    colons = t.count(":") + t.count("\uFF1A")
+    if colons >= 3:
+        return True
+    if colons >= 2:
+        kw_hits = len(_METADATA_KW.findall(t))
+        if kw_hits >= 3:
+            return True
+    if _RE_AA_METADATA.search(t) and colons >= 2:
+        return True
+    return False
+
 
 def _is_aa_skip(stripped: str) -> bool:
     if not stripped:
@@ -1449,6 +1498,8 @@ def _parse_aa_lines(block: str) -> List[Dict[str, Any]]:
         stripped = line.strip()
         if _is_aa_skip(stripped):
             continue
+        if _is_metadata_line(stripped):
+            continue
         m = re.match(r'^AA\s*(\d+)\s*(.*)', stripped)
         if m:
             parsed.append({'type': 'marker', 'aa': int(m.group(1)), 'rest': m.group(2).strip()})
@@ -1460,11 +1511,13 @@ def _parse_aa_lines(block: str) -> List[Dict[str, Any]]:
 def _extract_aa_no_marker(parsed: List[Dict[str, Any]], text: str) -> List[Dict[str, Any]]:
     acquis: List[Dict[str, Any]] = []
     for m in _RE_AA_LINE.finditer(text):
-        acquis.append({
-            "id": int(m.group(1)),
-            "text": m.group(2).strip(),
-            "bloom_level": min(max(int(m.group(3)), 1), 6),
-        })
+        txt = m.group(2).strip()
+        if not _is_metadata_line(txt):
+            acquis.append({
+                "id": int(m.group(1)),
+                "text": txt,
+                "bloom_level": min(max(int(m.group(3)), 1), 6),
+            })
     if acquis:
         return acquis
     aa_id = 1
@@ -1473,6 +1526,8 @@ def _extract_aa_no_marker(parsed: List[Dict[str, Any]], text: str) -> List[Dict[
             continue
         content = re.sub(r"^[\-\u2022\*\u203A\u25E6\u25AA\d]+[.):]\s*", "", tok["content"].strip())
         if len(content) < 10:
+            continue
+        if _is_metadata_line(content):
             continue
         acquis.append({"id": aa_id, "text": content, "bloom_level": _detect_bloom_level(content)})
         aa_id += 1
@@ -1601,7 +1656,7 @@ def _finalize_aa_segments(segments: List[Dict[str, Any]]) -> List[Dict[str, Any]
         aa_text = _RE_AA_CLEAN.sub("", aa_text).strip()
         if not bloom and aa_text:
             bloom = _detect_bloom_level(aa_text)
-        if aa_text and len(aa_text) > 5:
+        if aa_text and len(aa_text) > 5 and not _is_metadata_line(aa_text):
             acquis.append({
                 "id": seg['aa'],
                 "text": aa_text,

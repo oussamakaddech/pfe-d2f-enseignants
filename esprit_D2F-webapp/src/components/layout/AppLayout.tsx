@@ -9,7 +9,6 @@ import { motion } from "framer-motion";
 import SideMenu from "./SideMenu";
 import ContentSkeleton from "./ContentSkeleton";
 import Breadcrumb from "./Breadcrumb";
-import RoleBadge from "@/components/common/RoleBadge";
 import UserAvatar from "@/components/ui/UserAvatar";
 import GlobalSearch from "@/components/ui/GlobalSearch";
 import { useAuth } from "@/hooks/auth";
@@ -24,27 +23,31 @@ const { useBreakpoint } = Grid;
 const headerStyle = {
   position: "fixed" as const, top: 0, left: 0, right: 0, height: HEADER_HEIGHT,
   padding: "0 24px", display: "flex" as const, alignItems: "center" as const, gap: 10,
-  background: "var(--header-gradient)",
-  borderBottom: "1px solid rgba(255,255,255,0.06)",
-  boxShadow: "var(--header-shadow)",
+  background: "linear-gradient(135deg, #7a0000 0%, #b51200 40%, #e54a3d 100%)",
+  borderBottom: "1px solid rgba(255,255,255,0.08)",
+  boxShadow: "0 2px 12px rgba(0,0,0,0.18), 0 1px 3px rgba(0,0,0,0.10)",
   zIndex: 1000,
+  backdropFilter: "blur(8px)",
 };
 
 const logoStyle = {
-  height: 38, background: "#fff", borderRadius: 6, padding: "3px 8px",
-  boxShadow: "0 1px 2px rgba(0,0,0,0.10)", transition: "opacity 0.2s",
+  height: 40, background: "#fff", borderRadius: 8, padding: "3px 10px",
+  boxShadow: "0 2px 8px rgba(0,0,0,0.12), 0 0 0 1px rgba(255,255,255,0.1)",
+  transition: "transform 0.2s, box-shadow 0.2s",
 };
 
 const dateStyle = {
-  flex: 1, textAlign: "center" as const, color: "rgba(255,255,255,0.78)",
+  flex: 1, textAlign: "center" as const, color: "rgba(255,255,255,0.7)",
   fontSize: 13, fontWeight: 400 as const, letterSpacing: 0.3,
 };
 
 const stickyBarStyle = {
   position: "sticky" as const, top: 0, zIndex: 10,
-  background: "var(--bg-card)",
-  borderBottom: "1px solid var(--border-color)",
-  boxShadow: "0 1px 2px rgba(0,0,0,0.03)",
+  background: "rgba(255, 255, 255, 0.88)",
+  backdropFilter: "blur(12px)",
+  WebkitBackdropFilter: "blur(12px)",
+  borderBottom: "1px solid rgba(0, 0, 0, 0.06)",
+  boxShadow: "0 1px 3px rgba(0, 0, 0, 0.04)",
   display: "flex" as const, alignItems: "center" as const, padding: "0 24px",
   height: 46,
   gap: 8,
@@ -95,52 +98,52 @@ function AppLayout() {
   return (
     <Layout style={{ height: "100vh", overflow: "hidden" }}>
       <Header style={headerStyle}>
-        <Tooltip title="Menu" placement="bottomLeft">
-          <button
-            type="button"
-            onClick={toggleSidebar}
-            className="app-header-icon-btn"
-            aria-label="Basculer le menu"
-          >
-            {(() => {
-              if (isMobile) return <MenuOutlined style={{ fontSize: 18, color: "#fff" }} />;
-              if (collapsed) return <MenuUnfoldOutlined style={{ fontSize: 18, color: "#fff" }} />;
-              return <MenuFoldOutlined style={{ fontSize: 18, color: "#fff" }} />;
-            })()}
-          </button>
-        </Tooltip>
+        <div className="app-header-left">
+          <Tooltip title="Menu" placement="bottomLeft">
+            <button
+              type="button"
+              onClick={toggleSidebar}
+              className="app-header-icon-btn"
+              aria-label="Basculer le menu"
+            >
+              {(() => {
+                if (isMobile) return <MenuOutlined style={{ fontSize: 18, color: "#fff" }} />;
+                if (collapsed) return <MenuUnfoldOutlined style={{ fontSize: 18, color: "#fff" }} />;
+                return <MenuFoldOutlined style={{ fontSize: 18, color: "#fff" }} />;
+              })()}
+            </button>
+          </Tooltip>
 
-        <Link to="/home" style={{ margin: "0 14px", display: "flex" }}>
-          <img src="/assets/img/logo/esprit.png" alt="ESPRIT" style={logoStyle} />
-        </Link>
+          <Link to="/home" className="app-header-logo-link">
+            <img src="/assets/img/logo/esprit.png" alt="ESPRIT" style={logoStyle} />
+          </Link>
+        </div>
 
         {!isMobile && <div style={dateStyle}>{today}</div>}
         {isMobile && <div style={{ flex: 1 }} />}
 
-        {!isMobile && <GlobalSearch />}
+        <div className="app-header-right">
+          {!isMobile && <GlobalSearch />}
 
-        <Tooltip title="Notifications">
-          <div className="app-header-icon-btn" aria-label="Notifications">
-            <Badge dot color="var(--color-warning)" offset={[-2, 2]}>
-              <BellOutlined style={{ fontSize: 17, color: "rgba(255,255,255,0.92)" }} />
-            </Badge>
-          </div>
-        </Tooltip>
+          <Tooltip title="Notifications">
+            <button type="button" className="app-header-icon-btn" aria-label="Notifications">
+              <Badge dot color="#f59e0b" offset={[-3, 3]} size="small">
+                <BellOutlined style={{ fontSize: 18, color: "rgba(255,255,255,0.92)" }} />
+              </Badge>
+            </button>
+          </Tooltip>
 
-        <div style={{ width: 1, height: 22, background: "rgba(255,255,255,0.18)", margin: "0 4px" }} />
+          <div className="app-header-divider" />
 
-        <Dropdown menu={{ items: avatarMenu }} placement="bottomRight" trigger={["click"]}>
-          <div className="app-header-user-trigger">
-            <UserAvatar
-              fallbackText={user?.username ?? "U"}
-              size={32}
-            />
-            <span className="app-header-user-meta">
-              <span className="app-header-username">{user?.username ?? "Utilisateur"}</span>
-              {user?.role && <RoleBadge role={user.role} size="small" />}
-            </span>
-          </div>
-        </Dropdown>
+          <Dropdown menu={{ items: avatarMenu }} placement="bottomRight" trigger={["click"]}>
+            <button type="button" className="app-header-user-trigger">
+              <UserAvatar
+                fallbackText={user?.username ?? "U"}
+                size={34}
+              />
+            </button>
+          </Dropdown>
+        </div>
       </Header>
 
       <Layout style={{ paddingTop: HEADER_HEIGHT }}>

@@ -31,6 +31,7 @@ from rice.nlp import (
     _build_domain_name_from_file,
     _llm_extract_subcompetences,
     _llm_fallback_items,
+    _is_metadata_line,
     _normalize,
     _slug,
     _RE_CHECKMARK,
@@ -224,6 +225,16 @@ def _build_savoir_from_aa_direct(aa: Dict, comp_code: str, domain_code: str, dep
 
 
 def _build_competence_from_acquis(acquis: List, subcomp_titles: List, text: str, module_code: str, module_name: str, domain_code: str, comp_idx: int, departement: str, matched_by_name: List, matched_by_module: List, all_matched: List, extracted_ids: List, meta: Dict) -> CompetenceProposition:
+    # Filter out any metadata lines that slipped through AA extraction
+    acquis = [aa for aa in acquis if not _is_metadata_line(aa["text"])]
+    if not acquis:
+        return CompetenceProposition(
+            tmpId=str(uuid.uuid4()), code=f"{module_code}-C{comp_idx + 1}",
+            nom=f"Acquis d'apprentissage – {module_name}",
+            description=meta.get("objectif"), ordre=comp_idx + 1,
+            refCodes=[], refDomaine=None,
+            savoirs=[], sousCompetences=[],
+        )
     comp_code = f"{module_code}-C{comp_idx + 1}"
     sous_comps: List[SousCompetenceProposition] = []
     savoirs_directs: List[SavoirProposition] = []
@@ -505,6 +516,7 @@ def _fallback_extraction(
                 and not _FALLBACK_NOISE.match(s.strip())
                 and not _FALLBACK_METADATA.match(s.strip())
                 and not _FALLBACK_EXCLUSION.match(_normalize(s.strip()))
+                and not _is_metadata_line(s.strip())
                 and _detect_bloom_level(s.strip()) >= 2
             ]
             items = items[:20]
