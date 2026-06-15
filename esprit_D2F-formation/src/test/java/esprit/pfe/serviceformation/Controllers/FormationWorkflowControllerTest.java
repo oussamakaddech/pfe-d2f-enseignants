@@ -126,7 +126,7 @@ class FormationWorkflowControllerTest {
     @Test
     void testUpdateInscriptionsOuvertes() throws Exception {
         when(formationWorkflowService.setInscriptionsOuvertes(anyLong(), anyBoolean())).thenReturn(new FormationResponseDTO());
-        mockMvc.perform(put("/api/v1/formations-workflow/1/inscriptionsOuvertes")
+        mockMvc.perform(put("/api/v1/formations-workflow/1/inscriptions-ouvertes")
                 .param("ouvert", "true")).andExpect(status().isOk());
     }
 

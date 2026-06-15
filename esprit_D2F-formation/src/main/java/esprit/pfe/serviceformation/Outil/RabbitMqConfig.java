@@ -22,12 +22,14 @@ public class RabbitMqConfig {
     public static final String CERTIFICATE_QUEUE = "certificateQueue";
     public static final String EVAL_CREATE_QUEUE = "evaluation.create.queue";
     public static final String EVAL_UPDATE_QUEUE = "evaluation.update.queue";
+    public static final String ANALYTICS_QUEUE = "d2f.analytics.trigger";
 
     // ── DLQ names ──
     public static final String BESOIN_DLQ = "BesoinFormationApprovedQueue.dlq";
     public static final String CERTIFICATE_DLQ = "certificateQueue.dlq";
     public static final String EVAL_CREATE_DLQ = "evaluation.create.queue.dlq";
     public static final String EVAL_UPDATE_DLQ = "evaluation.update.queue.dlq";
+    public static final String ANALYTICS_DLQ = "d2f.analytics.trigger.dlq";
 
     // ── Dead-letter argument keys ──
     private static final String DLX_ARG = "x-dead-letter-exchange";
@@ -83,6 +85,20 @@ public class RabbitMqConfig {
     @Bean
     public Queue evalUpdateDlq() {
         return QueueBuilder.durable(EVAL_UPDATE_DLQ).build();
+    }
+
+    // ── Analytics queue (for predictive-analytics consumer) ──
+    @Bean
+    public Queue analyticsQueue() {
+        return QueueBuilder.durable(ANALYTICS_QUEUE)
+                .withArgument(DLX_ARG, "")
+                .withArgument(DLK_ARG, ANALYTICS_DLQ)
+                .build();
+    }
+
+    @Bean
+    public Queue analyticsDlq() {
+        return QueueBuilder.durable(ANALYTICS_DLQ).build();
     }
 
      @Bean

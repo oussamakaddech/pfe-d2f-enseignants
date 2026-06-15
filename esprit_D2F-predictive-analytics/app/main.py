@@ -63,13 +63,13 @@ async def lifespan(application: FastAPI):
         except Exception as exc:
             logger.error("Scheduler démarrage échoué : %s", exc)
 
-    # Démarrer le consumer ActiveMQ
+    # Démarrer le consumer RabbitMQ (DSI §2 — standardise sur RabbitMQ)
     if settings.messaging_enabled:
         try:
             from app.messaging.consumer import start_consumer
             start_consumer()
         except Exception as exc:
-            logger.warning("Consumer ActiveMQ démarrage échoué : %s", exc)
+            logger.warning("Consumer RabbitMQ démarrage échoué : %s", exc)
 
     yield
 

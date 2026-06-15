@@ -13,12 +13,15 @@ import sys
 
 from pythonjsonlogger import jsonlogger
 
+from app.core.pii_safe_logger import sanitize
+
 
 class DsiJsonFormatter(jsonlogger.JsonFormatter):
     """
     Formatter JSON enrichi :
       - Ajoute service, env, trace_id sur chaque record
       - Renomme asctime → timestamp, levelname → level
+      - Masque les PII (emails, téléphones, IPs) dans les messages
     """
 
     _service = "d2f-predictive-analytics"
@@ -35,6 +38,10 @@ class DsiJsonFormatter(jsonlogger.JsonFormatter):
         log_record.setdefault("level",   record.levelname)
         log_record.setdefault("logger",  record.name)
 
+        # Masquage PII dans le message
+        if isinstance(log_record.get("message"), str):
+            log_record["message"] = sanitize(log_record["message"])
+
         # Trace ID de la requête courante (via contextvars)
         try:
             from app.core.observability import get_trace_id
@@ -43,8 +50,17 @@ class DsiJsonFormatter(jsonlogger.JsonFormatter):
             log_record.setdefault("trace_id", "-")
 
 
+class PiiSafeFilter(logging.Filter):
+    """Filtre de logging qui masque les PII dans tous les records."""
+
+    def filter(self, record: logging.LogRecord) -> bool:
+        if isinstance(record.msg, str):
+            record.msg = sanitize(record.msg)
+        return True
+
+
 def configure_logging() -> None:
-    """Configure le logger racine avec sortie JSON structurée."""
+    """Configure le logger racine avec sortie JSON structurée et masquage PII."""
     # Note: use original field names (asctime/levelname) in the format string —
     # pythonjsonlogger 3.x consumes them before applying rename_fields, which
     # then raises KeyError if the renamed source field is missing.
@@ -56,10 +72,16 @@ def configure_logging() -> None:
     handler = logging.StreamHandler(sys.stdout)
     handler.setFormatter(formatter)
 
+    # Filtre PII sur le handler
+    handler.addFilter(PiiSafeFilter())
+
     root = logging.getLogger()
     root.handlers = []
     root.addHandler(handler)
     root.setLevel(logging.INFO)
+
+    # Filtre PII global sur le root logger
+    root.addFilter(PiiSafeFilter())
 
     # Réduire la verbosité des libs tierces
     logging.getLogger("sqlalchemy.engine").setLevel(logging.WARNING)

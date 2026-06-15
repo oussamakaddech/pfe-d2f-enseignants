@@ -629,73 +629,68 @@ class TestSchedulerJobs:
 
 
 # ======================================================================
-# app/messaging/consumer.py  (51.5%)
+# app/messaging/consumer.py  (RabbitMQ AMQP)
 # ======================================================================
 
 
 class TestMessagingConsumer:
-    def test_has_stomp(self):
-        from app.messaging.consumer import _has_stomp
-        # Just check it returns a bool
-        assert isinstance(_has_stomp(), bool)
-
     def test_consumer_on_message_valid_event(self):
         from app.messaging.consumer import AnalyticsEventConsumer
         consumer = AnalyticsEventConsumer()
-        frame = MagicMock()
-        frame.body = json.dumps({"event": "EVALUATION_SUBMITTED", "enseignantId": "E001"})
+        channel = MagicMock()
+        method = MagicMock()
+        properties = MagicMock()
+        body = json.dumps({"event": "EVALUATION_SUBMITTED", "enseignantId": "E001"}).encode()
         with patch.object(consumer, "_trigger_individual_analysis") as mock_trigger:
-            consumer.on_message(frame)
+            consumer._on_message(channel, method, properties, body)
             mock_trigger.assert_called_once_with("E001")
+            channel.basic_ack.assert_called_once()
 
     def test_consumer_on_message_no_eid(self):
         from app.messaging.consumer import AnalyticsEventConsumer
         consumer = AnalyticsEventConsumer()
-        frame = MagicMock()
-        frame.body = json.dumps({"event": "EVALUATION_SUBMITTED"})
+        channel = MagicMock()
+        method = MagicMock()
+        properties = MagicMock()
+        body = json.dumps({"event": "EVALUATION_SUBMITTED"}).encode()
         with patch.object(consumer, "_trigger_individual_analysis") as mock_trigger:
-            consumer.on_message(frame)
+            consumer._on_message(channel, method, properties, body)
             mock_trigger.assert_not_called()
+            channel.basic_ack.assert_called_once()
 
     def test_consumer_on_message_invalid_json(self):
         from app.messaging.consumer import AnalyticsEventConsumer
         consumer = AnalyticsEventConsumer()
-        frame = MagicMock()
-        frame.body = "not json"
-        consumer.on_message(frame)  # Should not raise
-
-    def test_consumer_on_error(self):
-        from app.messaging.consumer import AnalyticsEventConsumer
-        consumer = AnalyticsEventConsumer()
-        frame = MagicMock()
-        frame.body = "error message"
-        consumer.on_error(frame)  # Should not raise
-
-    def test_consumer_on_disconnected(self):
-        from app.messaging.consumer import AnalyticsEventConsumer
-        consumer = AnalyticsEventConsumer()
-        with patch.object(consumer, "_schedule_reconnect"):
-            consumer.on_disconnected()
+        channel = MagicMock()
+        method = MagicMock()
+        properties = MagicMock()
+        body = b"not json"
+        consumer._on_message(channel, method, properties, body)  # Should not raise
+        channel.basic_nack.assert_called_once()
 
     def test_consumer_connect_no_credentials(self):
         from app.messaging.consumer import AnalyticsEventConsumer
         consumer = AnalyticsEventConsumer()
-        with patch("app.messaging.consumer.ACTIVEMQ_USER", ""), \
-             patch("app.messaging.consumer.ACTIVEMQ_PASSWORD", ""):
+        with patch("app.messaging.consumer.RABBITMQ_USER", ""), \
+             patch("app.messaging.consumer.RABBITMQ_PASSWORD", ""):
             with pytest.raises(RuntimeError, match="credentials"):
                 consumer.connect()
 
     def test_consumer_disconnect(self):
         from app.messaging.consumer import AnalyticsEventConsumer
         consumer = AnalyticsEventConsumer()
-        consumer._conn = MagicMock()
+        consumer._connection = MagicMock()
+        consumer._connection.is_open = True
+        consumer._channel = MagicMock()
+        consumer._channel.is_open = True
         consumer.disconnect()
-        consumer._conn.disconnect.assert_called_once()
+        consumer._channel.stop_consuming.assert_called_once()
+        consumer._connection.close.assert_called_once()
 
     def test_consumer_disconnect_no_conn(self):
         from app.messaging.consumer import AnalyticsEventConsumer
         consumer = AnalyticsEventConsumer()
-        consumer._conn = None
+        consumer._connection = None
         consumer.disconnect()  # Should not raise
 
     def test_consumer_schedule_reconnect_max_attempts(self):
@@ -725,39 +720,36 @@ class TestMessagingConsumer:
         mock_consumer.disconnect.assert_called_once()
         consumer_mod._consumer_instance = original
 
-    def test_consumer_connect_with_stomp(self):
+    def test_consumer_connect_with_pika(self):
         from app.messaging.consumer import AnalyticsEventConsumer
         consumer = AnalyticsEventConsumer()
-        mock_stomp = MagicMock()
+        mock_pika = MagicMock()
         mock_conn = MagicMock()
-        mock_stomp.Connection.return_value = mock_conn
-        with patch("app.messaging.consumer.ACTIVEMQ_USER", "admin"),              patch("app.messaging.consumer.ACTIVEMQ_PASSWORD", "password"),              patch.dict("sys.modules", {"stomp": mock_stomp}):
+        mock_pika.BlockingConnection.return_value = mock_conn
+        mock_pika.PlainCredentials.return_value = MagicMock()
+        mock_pika.ConnectionParameters.return_value = MagicMock()
+        with patch("app.messaging.consumer.RABBITMQ_USER", "d2f"), \
+             patch("app.messaging.consumer.RABBITMQ_PASSWORD", "pass"), \
+             patch("app.messaging.consumer.pika", mock_pika):
+            # connect() calls start_consuming() which blocks, so mock it
+            mock_conn.channel.return_value.start_consuming.side_effect = KeyboardInterrupt
             consumer.connect()
-            mock_stomp.Connection.assert_called_once()
-            mock_conn.set_listener.assert_called_once()
-            mock_conn.connect.assert_called_once()
-            mock_conn.subscribe.assert_called_once()
+            mock_pika.BlockingConnection.assert_called_once()
             assert consumer._reconnect_attempts == 0
-
-    def test_consumer_connect_import_error(self):
-        from app.messaging.consumer import AnalyticsEventConsumer
-        consumer = AnalyticsEventConsumer()
-        with patch("app.messaging.consumer.ACTIVEMQ_USER", "admin"),              patch("app.messaging.consumer.ACTIVEMQ_PASSWORD", "password"):
-            import builtins
-            real_import = builtins.__import__
-            def fake_import(name, *args, **kwargs):
-                if name == "stomp":
-                    raise ImportError("no stomp")
-                return real_import(name, *args, **kwargs)
-            with patch("builtins.__import__", side_effect=fake_import):
-                consumer.connect()  # Should log warning, not raise
 
     def test_consumer_connect_exception_triggers_reconnect(self):
         from app.messaging.consumer import AnalyticsEventConsumer
+        import pika.exceptions
         consumer = AnalyticsEventConsumer()
-        mock_stomp = MagicMock()
-        mock_stomp.Connection.side_effect = Exception("Connection refused")
-        with patch("app.messaging.consumer.ACTIVEMQ_USER", "admin"),              patch("app.messaging.consumer.ACTIVEMQ_PASSWORD", "password"),              patch.dict("sys.modules", {"stomp": mock_stomp}),              patch.object(consumer, "_schedule_reconnect") as mock_reconnect:
+        mock_pika = MagicMock()
+        mock_pika.exceptions = pika.exceptions
+        mock_pika.BlockingConnection.side_effect = pika.exceptions.AMQPConnectionError("Connection refused")
+        mock_pika.PlainCredentials.return_value = MagicMock()
+        mock_pika.ConnectionParameters.return_value = MagicMock()
+        with patch("app.messaging.consumer.RABBITMQ_USER", "d2f"), \
+             patch("app.messaging.consumer.RABBITMQ_PASSWORD", "pass"), \
+             patch("app.messaging.consumer.pika", mock_pika), \
+             patch.object(consumer, "_schedule_reconnect") as mock_reconnect:
             consumer.connect()
             mock_reconnect.assert_called_once()
 
@@ -796,50 +788,57 @@ class TestMessagingConsumer:
         from app.messaging.consumer import AnalyticsEventConsumer
         consumer = AnalyticsEventConsumer()
         mock_conn = MagicMock()
-        mock_conn.disconnect.side_effect = Exception("disconnect error")
-        consumer._conn = mock_conn
+        mock_conn.is_open = True
+        mock_conn.close.side_effect = Exception("disconnect error")
+        consumer._connection = mock_conn
+        consumer._channel = MagicMock()
+        consumer._channel.is_open = False
         consumer.disconnect()  # Should not raise
         assert consumer._should_reconnect is False
 
     def test_consumer_on_message_inscription_approved(self):
         from app.messaging.consumer import AnalyticsEventConsumer
         consumer = AnalyticsEventConsumer()
-        frame = MagicMock()
-        frame.body = json.dumps({"event": "INSCRIPTION_APPROVED", "enseignantId": "E002"})
+        channel = MagicMock()
+        method = MagicMock()
+        properties = MagicMock()
+        body = json.dumps({"event": "INSCRIPTION_APPROVED", "enseignantId": "E002"}).encode()
         with patch.object(consumer, "_trigger_individual_analysis") as mock_trigger:
-            consumer.on_message(frame)
+            consumer._on_message(channel, method, properties, body)
             mock_trigger.assert_called_once_with("E002")
 
     def test_consumer_on_message_besoin_approved(self):
         from app.messaging.consumer import AnalyticsEventConsumer
         consumer = AnalyticsEventConsumer()
-        frame = MagicMock()
-        frame.body = json.dumps({"event": "BESOIN_APPROVED", "enseignantId": "E003"})
+        channel = MagicMock()
+        method = MagicMock()
+        properties = MagicMock()
+        body = json.dumps({"event": "BESOIN_APPROVED", "enseignantId": "E003"}).encode()
         with patch.object(consumer, "_trigger_individual_analysis") as mock_trigger:
-            consumer.on_message(frame)
+            consumer._on_message(channel, method, properties, body)
             mock_trigger.assert_called_once_with("E003")
 
     def test_consumer_on_message_unknown_event(self):
         from app.messaging.consumer import AnalyticsEventConsumer
         consumer = AnalyticsEventConsumer()
-        frame = MagicMock()
-        frame.body = json.dumps({"event": "UNKNOWN_EVENT", "enseignantId": "E004"})
+        channel = MagicMock()
+        method = MagicMock()
+        properties = MagicMock()
+        body = json.dumps({"event": "UNKNOWN_EVENT", "enseignantId": "E004"}).encode()
         with patch.object(consumer, "_trigger_individual_analysis") as mock_trigger:
-            consumer.on_message(frame)
+            consumer._on_message(channel, method, properties, body)
             mock_trigger.assert_not_called()
+            channel.basic_ack.assert_called_once()
 
-    def test_consumer_on_message_no_body_attr(self):
+    def test_consumer_on_message_exception_triggers_nack(self):
         from app.messaging.consumer import AnalyticsEventConsumer
         consumer = AnalyticsEventConsumer()
-        frame = MagicMock(spec=[])
-        with patch.object(consumer, "_trigger_individual_analysis"):
-            consumer.on_message(frame)  # Should not raise
-
-    def test_consumer_on_error_no_body_attr(self):
-        from app.messaging.consumer import AnalyticsEventConsumer
-        consumer = AnalyticsEventConsumer()
-        frame = MagicMock(spec=[])
-        consumer.on_error(frame)  # Should not raise
+        channel = MagicMock()
+        method = MagicMock()
+        properties = MagicMock()
+        body = b"\x80\x80\x80"  # invalid msgpack/pika decoding triggers exception path
+        consumer._on_message(channel, method, properties, body)
+        channel.basic_nack.assert_called_once()
 
     def test_start_consumer_enabled(self):
         from app.messaging.consumer import start_consumer
@@ -847,7 +846,9 @@ class TestMessagingConsumer:
         original_instance = consumer_mod._consumer_instance
         original_thread = consumer_mod._consumer_thread
         mock_consumer = MagicMock()
-        with patch("app.messaging.consumer.MESSAGING_ENABLED", True),              patch("app.messaging.consumer.AnalyticsEventConsumer", return_value=mock_consumer),              patch("app.messaging.consumer.threading.Thread") as MockThread:
+        with patch("app.messaging.consumer.MESSAGING_ENABLED", True), \
+             patch("app.messaging.consumer.AnalyticsEventConsumer", return_value=mock_consumer), \
+             patch("app.messaging.consumer.threading.Thread") as MockThread:
             mock_thread = MagicMock()
             MockThread.return_value = mock_thread
             start_consumer()

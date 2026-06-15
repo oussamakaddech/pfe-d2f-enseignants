@@ -71,7 +71,10 @@ public class SecurityConfig {
                             "/api/v1/auth/confirm",
                             "/actuator/health",
                             "/actuator/info",
-                            "/error"
+                            "/error",
+                            "/swagger-ui/**",
+                            "/swagger-ui.html",
+                            "/v3/api-docs/**"
                         ).permitAll()
                         // Tout le reste requiert une authentification
                         .anyRequest().authenticated()

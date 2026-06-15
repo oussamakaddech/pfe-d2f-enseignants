@@ -496,12 +496,18 @@ services:
       SCHEDULER_ENABLED: ${SCHEDULER_ENABLED:-true}
       BATCH_ANALYSIS_HOUR: ${BATCH_ANALYSIS_HOUR:-2}
       DASHBOARD_REFRESH_HOUR: ${DASHBOARD_REFRESH_HOUR:-3}
-      # Messaging désactivé par défaut
+      # Messaging RabbitMQ (désactivé par défaut)
       MESSAGING_ENABLED: ${MESSAGING_ENABLED:-false}
+      RABBITMQ_HOST: broker.dsi.local
+      RABBITMQ_PORT: "5672"
+      RABBITMQ_USER: ${RABBITMQ_USERNAME:-d2f}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
       # DSI §1.1+§10 — CORS externalisé (production = domaine interne DSI)
       CORS_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:5173,http://localhost:3000}
     depends_on:
       postgres:
+        condition: service_healthy
+      rabbitmq:
         condition: service_healthy
     healthcheck:
       test: ["CMD-SHELL", "curl -sf http://localhost:8000/api/v1/analytics/health || exit 1"]

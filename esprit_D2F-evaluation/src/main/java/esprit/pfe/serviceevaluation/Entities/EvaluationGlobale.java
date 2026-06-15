@@ -5,14 +5,19 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.SQLRestriction;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 @Entity
+@SQLDelete(sql = "UPDATE evaluation.evaluation_globale SET deleted_at = NOW() WHERE id_eval_globale = ? AND version = ?")
+@SQLRestriction("deleted_at IS NULL")
 @Table(name = "evaluation_globale",
         uniqueConstraints = @UniqueConstraint(columnNames = {"formationId"}))
 public class EvaluationGlobale extends BaseAuditEntity {
@@ -38,4 +43,7 @@ public class EvaluationGlobale extends BaseAuditEntity {
 
     @Column(name = "last_refresh_date")
     private java.time.OffsetDateTime lastRefreshDate;
+
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
 }

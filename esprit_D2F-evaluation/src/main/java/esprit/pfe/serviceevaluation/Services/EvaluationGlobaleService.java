@@ -56,7 +56,9 @@ public class EvaluationGlobaleService {
     }
 
     public void deleteEvaluationGlobale(Long id) {
-        evaluationGlobaleRepository.deleteById(id);
+        EvaluationGlobale entity = evaluationGlobaleRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Évaluation globale non trouvée avec l'id : " + id));
+        evaluationGlobaleRepository.delete(entity);
     }
 
     public EvaluationGlobaleDTO getEvaluationGlobaleById(Long id) {

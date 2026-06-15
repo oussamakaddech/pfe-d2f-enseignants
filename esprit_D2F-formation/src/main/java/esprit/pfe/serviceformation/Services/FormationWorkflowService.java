@@ -7,6 +7,7 @@ import esprit.pfe.serviceformation.repositories.*;
 import esprit.pfe.serviceformation.microsoft.OutlookCalendarService;
 import esprit.pfe.serviceformation.microsoft.OutlookEventParameters;
 import esprit.pfe.serviceformation.microsoft.OutlookMailService;
+import esprit.pfe.serviceformation.messaging.AnalyticsEventPublisher;
 import esprit.pfe.serviceformation.messaging.EvaluationBatchMessage;
 import esprit.pfe.serviceformation.messaging.EvaluationPublisher;
 import lombok.extern.slf4j.Slf4j;
@@ -42,6 +43,7 @@ public class FormationWorkflowService {
     private final UpRepository upRepository;
     private final AnimateurExterneRepository animateurExterneRepository;
     private final EvaluationPublisher evaluationPublisher;
+    private final AnalyticsEventPublisher analyticsEventPublisher;
     // DSI §4/§2 — injection optionnelle : null si azure.ad.enabled=false
     private final OutlookCalendarService outlookCalendarService;
     private final OutlookMailService outlookMailService;
@@ -60,6 +62,7 @@ public class FormationWorkflowService {
             UpRepository upRepository,
             AnimateurExterneRepository animateurExterneRepository,
             EvaluationPublisher evaluationPublisher,
+            AnalyticsEventPublisher analyticsEventPublisher,
             FormationWorkflowServiceHelper helper,
             FormationMapper formationMapper,
             AnimateurParticipantResolver animateurParticipantResolver,
@@ -75,6 +78,7 @@ public class FormationWorkflowService {
         this.upRepository = upRepository;
         this.animateurExterneRepository = animateurExterneRepository;
         this.evaluationPublisher = evaluationPublisher;
+        this.analyticsEventPublisher = analyticsEventPublisher;
         this.helper = helper;
         this.formationMapper = formationMapper;
         this.animateurParticipantResolver = animateurParticipantResolver;
@@ -173,6 +177,12 @@ public class FormationWorkflowService {
                                             dto.isSatisfaisant(),
                                             dto.getCommentaire()))
                                     .toList()));
+            // DSI — event-driven analytics: notifie le service predictive-analytics
+            dtos.stream()
+                    .map(EvaluationFormateurDTO::getEnseignantId)
+                    .filter(Objects::nonNull)
+                    .distinct()
+                    .forEach(eid -> analyticsEventPublisher.sendEvent("EVALUATION_SUBMITTED", eid));
         } catch (Exception ex) {
             log.warn("Impossible d'envoyer le message d'evaluation au broker: {}", ex.getMessage());
         }

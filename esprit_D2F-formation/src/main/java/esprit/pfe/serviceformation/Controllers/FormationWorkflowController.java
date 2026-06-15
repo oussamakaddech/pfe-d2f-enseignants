@@ -298,7 +298,7 @@ public class FormationWorkflowController {
         return ResponseEntity.ok(dto);
     }
 
-    @PutMapping("/{id}/inscriptionsOuvertes")
+    @PutMapping("/{id}/inscriptions-ouvertes")
     @PreAuthorize(AuthorizationMatrix.FORMATION_UPDATE)
     public FormationResponseDTO updateInscriptionsOuvertes(@PathVariable Long id, @RequestParam boolean ouvert) {
         return formationWorkflowService.setInscriptionsOuvertes(id, ouvert);

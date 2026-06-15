@@ -44,7 +44,7 @@ public class AccountController {
     @GetMapping("/list-accounts")
     @PreAuthorize(AuthorizationMatrix.ACCOUNT_READ)
     public Page<UserDTO> listAccounts(
-            @PageableDefault(size = 500) Pageable pageable,
+            @PageableDefault(size = 20) Pageable pageable,
             @RequestParam(name = "includeDeleted", defaultValue = "false") boolean includeDeleted) {
         return this.accountService.listAccounts(pageable, includeDeleted).map(UserDTO::new);
     }

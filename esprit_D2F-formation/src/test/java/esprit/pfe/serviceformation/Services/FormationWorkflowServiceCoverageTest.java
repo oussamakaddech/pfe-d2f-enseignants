@@ -5,6 +5,7 @@ import esprit.pfe.serviceformation.entities.*;
 import esprit.pfe.serviceformation.repositories.*;
 import esprit.pfe.serviceformation.microsoft.OutlookCalendarService;
 import esprit.pfe.serviceformation.microsoft.OutlookMailService;
+import esprit.pfe.serviceformation.messaging.AnalyticsEventPublisher;
 import esprit.pfe.serviceformation.messaging.EvaluationPublisher;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -36,6 +37,7 @@ class FormationWorkflowServiceCoverageTest {
     @Mock private UpRepository upRepository;
     @Mock private AnimateurExterneRepository animateurExterneRepository;
     @Mock private EvaluationPublisher evaluationPublisher;
+    @Mock private AnalyticsEventPublisher analyticsEventPublisher;
     @Mock private OutlookCalendarService outlookCalendarService;
     @Mock private OutlookMailService outlookMailService;
     @Mock private PresenceRepository presenceRepository;
@@ -105,7 +107,7 @@ class FormationWorkflowServiceCoverageTest {
         FormationWorkflowService svc = new FormationWorkflowService(
                 documentRepository, formationRepository, seanceFormationRepository,
                 enseignantRepository, presenceRepository, departementRepository,
-                upRepository, animateurExterneRepository, evaluationPublisher, helper, formationMapper,
+                upRepository, animateurExterneRepository, evaluationPublisher, analyticsEventPublisher, helper, formationMapper,
                 animateurParticipantResolver, emailAuditLogRepository, outlookCalendarService, null);
         ReflectionTestUtils.setField(svc, "formationMapper", formationMapper);
         Formation f = createFormation(EtatFormation.PLANIFIE);
@@ -277,7 +279,7 @@ class FormationWorkflowServiceCoverageTest {
         FormationWorkflowService svc = new FormationWorkflowService(
                 documentRepository, formationRepository, seanceFormationRepository,
                 enseignantRepository, presenceRepository, departementRepository,
-                upRepository, animateurExterneRepository, evaluationPublisher, helper, formationMapper,
+                upRepository, animateurExterneRepository, evaluationPublisher, analyticsEventPublisher, helper, formationMapper,
                 animateurParticipantResolver, emailAuditLogRepository, outlookCalendarService, null);
         svc.notifyTeachersOfApprovedFormation(f);
         verifyNoInteractions(enseignantRepository);
@@ -290,7 +292,7 @@ class FormationWorkflowServiceCoverageTest {
         FormationWorkflowService svc = new FormationWorkflowService(
                 documentRepository, formationRepository, seanceFormationRepository,
                 enseignantRepository, presenceRepository, departementRepository,
-                upRepository, animateurExterneRepository, evaluationPublisher, helper, formationMapper,
+                upRepository, animateurExterneRepository, evaluationPublisher, analyticsEventPublisher, helper, formationMapper,
                 animateurParticipantResolver, emailAuditLogRepository, outlookCalendarService, null);
         assertDoesNotThrow(() -> svc.notifyCUPOfApprovedFormation(f));
     }

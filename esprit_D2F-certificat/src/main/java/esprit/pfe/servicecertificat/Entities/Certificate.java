@@ -4,13 +4,18 @@ import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.SQLDelete;
+import org.hibernate.annotations.SQLRestriction;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Entity
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
+@SQLDelete(sql = "UPDATE certificat.certificates SET deleted_at = NOW() WHERE id_certificate = ? AND version = ?")
+@SQLRestriction("deleted_at IS NULL")
 @Table(name = "certificates")
 public class Certificate extends BaseAuditEntity {
 
@@ -26,16 +31,19 @@ public class Certificate extends BaseAuditEntity {
     private LocalDate dateFinFormation;
     private Integer chargeHoraireGlobal;
 
-    // Informations sur l’enseignant (ici animateur ou participant)
+    // Informations sur l'enseignant (ici animateur ou participant)
     private String enseignantId;
     private String nomEnseignant;
     private String prenomEnseignant;
     private String mailEnseignant;
-    private String deptEnseignant; // Département de l’enseignant
+    private String deptEnseignant; // Departement de l'enseignant
     private String roleEnFormation; // ex. "ANIMATEUR"
 
     private boolean delivered;
 
-    // Nouveau : chemin du fichier PDF généré
+    // Nouveau : chemin du fichier PDF genere
     private String pdfFilePath;
+
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
 }

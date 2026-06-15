@@ -470,6 +470,17 @@ def _fallback_extraction(
             r"avoir|être|\d+\s*h)",
             re.IGNORECASE,
         )
+        # DSI — filtre les lignes de métadonnées extraites des tableaux PDF
+        # (Code: XX, HE: YYh, HNE: YYh, ECTS: N, Responsable Module: ..., etc.)
+        _FALLBACK_METADATA = re.compile(
+            r"^(Code|HE|HNE|ECTS|Coefficient|Volume|Responsable\s*(Module)?|"
+            r"Unit[ée]\s*p[ée]dagogique|Enseignants?|Intervenants?|"
+            r"Objectifs?|Pr[ée]requis|Comp[ée]tences?\s+[àa]\s+acqu[ée]rir|"
+            r"Modalit[ée]s?\s+d['\u2019]([eé]valuation|contrôle)|"
+            r"Bibliograph(?:ie|y)|R[ée]f[ée]rence|Langue|Niveau|Cr[ée]dit)"
+            r"\s*:",
+            re.IGNORECASE,
+        )
         _FALLBACK_EXCLUSION = re.compile(
             r"^(comp[eé]tences?\s+dans|comp[eé]tence\s+en|"
             r"l['']ing[eé]nieur\s+gc\s+option|"
@@ -479,7 +490,11 @@ def _fallback_extraction(
             r"dimension\s+sp[eé]cifique)",
             re.IGNORECASE,
         )
-        items = [it for it in items if not _FALLBACK_EXCLUSION.match(_normalize(it))]
+        items = [
+            it for it in items
+            if not _FALLBACK_EXCLUSION.match(_normalize(it))
+            and not _FALLBACK_METADATA.match(it)
+        ]
 
         if not items:
             sentences = re.split(r"[.\n]+", text)
@@ -488,6 +503,7 @@ def _fallback_extraction(
                 if 10 < len(s.strip()) < 200
                 and not re.match(r"^(Code|Mode|Evaluation|Référence)", s.strip())
                 and not _FALLBACK_NOISE.match(s.strip())
+                and not _FALLBACK_METADATA.match(s.strip())
                 and not _FALLBACK_EXCLUSION.match(_normalize(s.strip()))
                 and _detect_bloom_level(s.strip()) >= 2
             ]

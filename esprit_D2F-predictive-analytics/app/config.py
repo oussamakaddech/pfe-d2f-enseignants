@@ -101,12 +101,12 @@ class Settings(BaseSettings):
     batch_analysis_hour: int = Field(default=2, alias="BATCH_ANALYSIS_HOUR")
     dashboard_refresh_hour: int = Field(default=3, alias="DASHBOARD_REFRESH_HOUR")
 
-    # ── Messaging ────────────────────────────────
+    # ── Messaging (RabbitMQ) ──────────────────────
     messaging_enabled: bool = Field(default=False, alias="MESSAGING_ENABLED")
-    activemq_host: str = Field(default="localhost", alias="ACTIVEMQ_HOST")
-    activemq_stomp_port: int = Field(default=61613, alias="ACTIVEMQ_STOMP_PORT")
-    activemq_user: Optional[str] = Field(default=None, alias="ACTIVEMQ_USER")
-    activemq_password: Optional[str] = Field(default=None, alias="ACTIVEMQ_PASSWORD")
+    rabbitmq_host: str = Field(default="broker.dsi.local", alias="RABBITMQ_HOST")
+    rabbitmq_port: int = Field(default=5672, alias="RABBITMQ_PORT")
+    rabbitmq_user: Optional[str] = Field(default=None, alias="RABBITMQ_USER")
+    rabbitmq_password: Optional[str] = Field(default=None, alias="RABBITMQ_PASSWORD")
 
     # ── JWT ──────────────────────────────────────
     jwt_secret: Optional[str] = Field(default=None, alias="JWT_SECRET")

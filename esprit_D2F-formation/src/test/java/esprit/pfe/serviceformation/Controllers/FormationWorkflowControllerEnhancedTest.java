@@ -316,7 +316,7 @@ class FormationWorkflowControllerEnhancedTest {
         FormationResponseDTO dto = createFormationResponseDTO(1L, "Formation Test");
         when(formationWorkflowService.setInscriptionsOuvertes(1L, true)).thenReturn(dto);
 
-        mockMvc.perform(put("/api/v1/formations-workflow/1/inscriptionsOuvertes")
+        mockMvc.perform(put("/api/v1/formations-workflow/1/inscriptions-ouvertes")
                 .param("ouvert", "true"))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON));

@@ -160,7 +160,7 @@ const FormationWorkflowService = {
 
   async updateInscriptionsOuvertes(id: Id, ouvert: boolean): Promise<Formation> {
     const response = await axios.put<Formation>(
-      `${API_URL}/${id}/inscriptionsOuvertes`,
+      `${API_URL}/${id}/inscriptions-ouvertes`,
       null,
       { params: { ouvert } }
     );
