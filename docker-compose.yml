@@ -17,8 +17,6 @@
 #   JWT_SECRET, DB_PASSWORD, RABBITMQ_PASSWORD, MAIL_USERNAME, MAIL_PASSWORD
 # =============================================================================
 
-version: "3.9"
-
 # =============================================================================
 # RÉSEAUX
 # =============================================================================
@@ -167,6 +165,8 @@ services:
       MAIL_PORT: ${MAIL_PORT:-587}
       MAIL_USERNAME: ${MAIL_USERNAME}
       MAIL_PASSWORD: ${MAIL_PASSWORD}
+      APP_SECURITY_DEFAULT_ADMIN_USERNAME: ${ADMIN_USERNAME:-admin}
+      APP_SECURITY_DEFAULT_ADMIN_PASSWORD: ${ADMIN_PASSWORD:-admin}
     depends_on:
       postgres:
         condition: service_healthy
@@ -372,6 +372,7 @@ services:
       SPRING_RABBITMQ_PORT: 5672
       SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USERNAME:-d2f}
       SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
+      EVALUATION_SERVICE_URL: http://d2f-evaluation:8087
       # Organisateur de calendrier (DSI §1.1 — externalisé)
       FORMATION_ORGANIZER_EMAIL: ${FORMATION_ORGANIZER_EMAIL:-noreply@d2f.local}
       # Mail SMTP interne DSI (obligatoire par défaut)
@@ -469,6 +470,9 @@ services:
       timeout: 10s
       retries: 3
       start_period: 30s
+    depends_on:
+      postgres:
+        condition: service_healthy
     networks:
       - d2f-network
 
@@ -526,6 +530,7 @@ services:
       dockerfile: Dockerfile
       args:
         BUILD_ENV: ""
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:8080}
     container_name: d2f-webapp
     restart: unless-stopped
     ports:

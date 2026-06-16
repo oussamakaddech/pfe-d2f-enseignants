@@ -14,6 +14,8 @@ LABEL maintainer="seddik bouzayani <seddik.bouzayani@esprit.tn>"
 
 WORKDIR /opt/build
 
+RUN apk add --no-cache dos2unix
+
 # Install shared d2f-common-security library (non publiée sur Maven Central)
 COPY esprit_D2F-common-security/ /tmp/d2f-common-security/
 RUN --mount=type=cache,target=/root/.m2 \
@@ -34,7 +36,7 @@ RUN dos2unix mvnw && chmod +x mvnw
 RUN --mount=type=cache,target=/root/.m2 ./mvnw dependency:go-offline -q
 
 # Build & package
-RUN --mount=type=cache,target=/root/.m2 ./mvnw clean package -DskipTests -q
+RUN --mount=type=cache,target=/root/.m2 ./mvnw clean package -Dmaven.test.skip=true -q
 
 # Unpack layered jar for optimal Docker layer caching
 RUN mkdir -p target/dependency && (cd target/dependency; jar -xf ../*.jar)

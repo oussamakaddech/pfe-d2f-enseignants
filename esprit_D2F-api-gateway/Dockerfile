@@ -8,6 +8,9 @@ LABEL maintainer="seddik bouzayani <seddik.bouzayani@esprit.tn>"
 # Workdir
 WORKDIR /opt/app
 
+# Install dos2unix for line-ending fixes on Alpine
+RUN apk add --no-cache dos2unix
+
 # Copy Maven Wrapper
 COPY .mvn/ .mvn
 
@@ -25,7 +28,7 @@ RUN --mount=type=cache,target=/root/.m2 ./mvnw dependency:go-offline
 COPY ./src ./src
 
 # Install the package to a local repository and keep cache
-RUN --mount=type=cache,target=/root/.m2 ./mvnw clean install -DskipTests
+RUN --mount=type=cache,target=/root/.m2 ./mvnw clean install -Dmaven.test.skip=true
 
 # Unpacking the jar file
 RUN mkdir -p target/dependency && (cd target/dependency; jar -xf ../*.jar)

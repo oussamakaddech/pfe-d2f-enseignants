@@ -3,7 +3,6 @@ package tn.esprit.d2f.competence.service;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
-import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,9 +29,6 @@ public class EnseignantCompetenceServiceImpl implements IEnseignantCompetenceSer
     private final SavoirRepository savoirRepository;
     private final CompetenceMapper competenceMapper;
 
-    @Lazy
-    private final IEnseignantCompetenceService self;
-
     @Override
     @Transactional(readOnly = true)
     public Page<EnseignantCompetenceDTO> getAll(Pageable pageable) {
@@ -53,7 +49,7 @@ public class EnseignantCompetenceServiceImpl implements IEnseignantCompetenceSer
     @Override
     @Transactional(readOnly = true)
     public Page<EnseignantCompetenceDTO> getCompetencesByEnseignant(String enseignantId, Pageable pageable) {
-        return paginate(self.getCompetencesByEnseignant(enseignantId), pageable);
+        return paginate(this.getCompetencesByEnseignant(enseignantId), pageable);
     }
 
     @Override
@@ -67,7 +63,7 @@ public class EnseignantCompetenceServiceImpl implements IEnseignantCompetenceSer
     @Override
     @Transactional(readOnly = true)
     public Page<EnseignantCompetenceDTO> getCompetencesByEnseignantAndDomaine(String enseignantId, Long domaineId, Pageable pageable) {
-        return paginate(self.getCompetencesByEnseignantAndDomaine(enseignantId, domaineId), pageable);
+        return paginate(this.getCompetencesByEnseignantAndDomaine(enseignantId, domaineId), pageable);
     }
 
     @Override
@@ -81,7 +77,7 @@ public class EnseignantCompetenceServiceImpl implements IEnseignantCompetenceSer
     @Override
     @Transactional(readOnly = true)
     public Page<EnseignantCompetenceDTO> getCompetencesByEnseignantAndCompetence(String enseignantId, Long competenceId, Pageable pageable) {
-        return paginate(self.getCompetencesByEnseignantAndCompetence(enseignantId, competenceId), pageable);
+        return paginate(this.getCompetencesByEnseignantAndCompetence(enseignantId, competenceId), pageable);
     }
 
     @Override
@@ -95,7 +91,7 @@ public class EnseignantCompetenceServiceImpl implements IEnseignantCompetenceSer
     @Override
     @Transactional(readOnly = true)
     public Page<EnseignantCompetenceDTO> getCompetencesByEnseignantAndNiveau(String enseignantId, NiveauMaitrise niveau, Pageable pageable) {
-        return paginate(self.getCompetencesByEnseignantAndNiveau(enseignantId, niveau), pageable);
+        return paginate(this.getCompetencesByEnseignantAndNiveau(enseignantId, niveau), pageable);
     }
 
     @Override
@@ -166,7 +162,7 @@ public class EnseignantCompetenceServiceImpl implements IEnseignantCompetenceSer
     @Override
     @Transactional(readOnly = true)
     public Page<EnseignantCompetenceDTO> getByCompetenceId(Long competenceId, Pageable pageable) {
-        return paginate(self.getByCompetenceId(competenceId), pageable);
+        return paginate(this.getByCompetenceId(competenceId), pageable);
     }
 
     private Page<EnseignantCompetenceDTO> paginate(List<EnseignantCompetenceDTO> items, Pageable pageable) {

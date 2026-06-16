@@ -44,8 +44,6 @@ class NiveauDefinitionServiceImplTest {
     private SousCompetenceRepository sousCompetenceRepository;
     @Mock
     private SavoirRepository savoirRepository;
-    @Mock
-    private INiveauDefinitionService self;
 
     @InjectMocks
     private NiveauDefinitionServiceImpl niveauService;
@@ -217,16 +215,7 @@ class NiveauDefinitionServiceImplTest {
     @DisplayName("getSavoirsRequisByCompetenceAndNiveau(paged): retourne une page")
     void testGetSavoirsRequisByCompetenceAndNiveauPaged() {
         Pageable pageable = PageRequest.of(0, 1);
-        when(self.getSavoirsRequisByCompetenceAndNiveau(1L, NiveauMaitrise.N1_DEBUTANT)).thenReturn(List.of(
-            NiveauSavoirRequisDTO.builder()
-                .id(1L)
-                .competenceId(1L)
-                .competenceNom("Compétence 1")
-                .savoirId(1L)
-                .savoirNom("Savoir 1")
-                .savoirCode("S1")
-                .niveau(NiveauMaitrise.N1_DEBUTANT)
-                .build()));
+        when(niveauRepo.findByCompetenceIdAndNiveau(1L, NiveauMaitrise.N1_DEBUTANT)).thenReturn(List.of(nsrCompetence));
 
         Page<NiveauSavoirRequisDTO> res = niveauService.getSavoirsRequisByCompetenceAndNiveau(1L, NiveauMaitrise.N1_DEBUTANT, pageable);
 
@@ -238,16 +227,7 @@ class NiveauDefinitionServiceImplTest {
     @DisplayName("getSavoirsRequisByCompetenceAndNiveau(paged): retourne vide hors bornes")
     void testGetSavoirsRequisByCompetenceAndNiveauPagedOutsideRange() {
         Pageable pageable = PageRequest.of(2, 1);
-        when(self.getSavoirsRequisByCompetenceAndNiveau(1L, NiveauMaitrise.N1_DEBUTANT)).thenReturn(List.of(
-            NiveauSavoirRequisDTO.builder()
-                .id(1L)
-                .competenceId(1L)
-                .competenceNom("Compétence 1")
-                .savoirId(1L)
-                .savoirNom("Savoir 1")
-                .savoirCode("S1")
-                .niveau(NiveauMaitrise.N1_DEBUTANT)
-                .build()));
+        when(niveauRepo.findByCompetenceIdAndNiveau(1L, NiveauMaitrise.N1_DEBUTANT)).thenReturn(List.of(nsrCompetence));
 
         Page<NiveauSavoirRequisDTO> res = niveauService.getSavoirsRequisByCompetenceAndNiveau(1L, NiveauMaitrise.N1_DEBUTANT, pageable);
 
@@ -259,16 +239,7 @@ class NiveauDefinitionServiceImplTest {
     @DisplayName("getSavoirsRequisBySousCompetenceAndNiveau(paged): retourne une page")
     void testGetSavoirsRequisBySousCompetenceAndNiveauPaged() {
         Pageable pageable = PageRequest.of(0, 1);
-        when(self.getSavoirsRequisBySousCompetenceAndNiveau(1L, NiveauMaitrise.N2_ELEMENTAIRE)).thenReturn(List.of(
-            NiveauSavoirRequisDTO.builder()
-                .id(2L)
-                .sousCompetenceId(1L)
-                .sousCompetenceNom("Sous-Compétence 1")
-                .savoirId(1L)
-                .savoirNom("Savoir 1")
-                .savoirCode("S1")
-                .niveau(NiveauMaitrise.N2_ELEMENTAIRE)
-                .build()));
+        when(niveauRepo.findBySousCompetenceIdAndNiveau(1L, NiveauMaitrise.N2_ELEMENTAIRE)).thenReturn(List.of(nsrSousCompetence));
 
         Page<NiveauSavoirRequisDTO> res = niveauService.getSavoirsRequisBySousCompetenceAndNiveau(1L, NiveauMaitrise.N2_ELEMENTAIRE, pageable);
 

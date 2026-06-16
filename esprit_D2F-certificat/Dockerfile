@@ -37,7 +37,7 @@ RUN --mount=type=cache,target=/root/.m2 ./mvnw -B dependency:go-offline
 COPY esprit_D2F-certificat/src ./src
 
 # Install the package to a local repository and keep cache
-RUN --mount=type=cache,target=/root/.m2 ./mvnw -B clean package -DskipTests
+RUN --mount=type=cache,target=/root/.m2 ./mvnw -B clean package -Dmaven.test.skip=true
 
 # Unpacking the jar file
 RUN mkdir -p target/dependency && (cd target/dependency; jar -xf ../*.jar)

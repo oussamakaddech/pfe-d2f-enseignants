@@ -58,7 +58,7 @@ class CertificateTest {
         Certificate cert = new Certificate(1L, 10L, "Java Training", "ATTESTATION",
                 LocalDate.of(2025, 1, 1), LocalDate.of(2025, 1, 5), 40,
                 "E001", "Doe", "John", "john@esprit.tn", "Informatique", "ANIMATEUR",
-                false, "/certs/cert.pdf");
+                false, "/certs/cert.pdf", null);
 
         assertEquals(1L, cert.getIdCertificate());
         assertEquals("Java Training", cert.getTitreFormation());

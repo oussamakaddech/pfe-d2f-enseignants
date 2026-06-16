@@ -139,11 +139,12 @@ class EvaluationGlobaleServiceTest {
         @Test
         @DisplayName("supprime une évaluation par id")
         void shouldDeleteEvaluationGlobale() {
-            doNothing().when(evaluationGlobaleRepository).deleteById(1L);
+            when(evaluationGlobaleRepository.findById(1L)).thenReturn(Optional.of(evaluationGlobale));
+            doNothing().when(evaluationGlobaleRepository).delete(any(EvaluationGlobale.class));
 
             evaluationGlobaleService.deleteEvaluationGlobale(1L);
 
-            verify(evaluationGlobaleRepository, times(1)).deleteById(1L);
+            verify(evaluationGlobaleRepository, times(1)).delete(evaluationGlobale);
         }
     }
 

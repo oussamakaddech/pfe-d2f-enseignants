@@ -4,7 +4,6 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.annotation.Lazy;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -36,9 +35,6 @@ public class RiceImportServiceImpl implements IRiceImportService {
     private final EnseignantCompetenceRepository   enseignantCompetenceRepository;
     private final RiceImportLogRepository          riceImportLogRepository;
     private final ObjectMapper                     objectMapper;
-
-    @Lazy
-    private final IRiceImportService self;
 
     /** Mutable counters passed through the import pipeline. */
     private static class ImportCounters {
@@ -267,7 +263,7 @@ public class RiceImportServiceImpl implements IRiceImportService {
     @Override
     @Transactional(readOnly = true)
     public Page<RiceImportResult> getImportHistory(Pageable pageable) {
-        return paginate(self.getImportHistory(), pageable);
+        return paginate(this.getImportHistory(), pageable);
     }
 
     private RiceImportResult toResult(RiceImportLog logEntry) {

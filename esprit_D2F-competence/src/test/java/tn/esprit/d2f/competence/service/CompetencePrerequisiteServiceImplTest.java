@@ -23,7 +23,6 @@ import tn.esprit.d2f.competence.repository.CompetencePrerequisiteRepository;
 import tn.esprit.d2f.competence.repository.CompetenceRepository;
 import tn.esprit.d2f.competence.repository.EnseignantCompetenceRepository;
 
-import java.lang.reflect.Field;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -47,18 +46,8 @@ class CompetencePrerequisiteServiceImplTest {
     @Mock
     private EnseignantCompetenceRepository enseignantCompetenceRepository;
 
-    @Mock
-    private ICompetencePrerequisiteService self;
-
     @InjectMocks
     private CompetencePrerequisiteServiceImpl service;
-
-    @BeforeEach
-    void setUp() throws Exception {
-        Field selfField = CompetencePrerequisiteServiceImpl.class.getDeclaredField("self");
-        selfField.setAccessible(true);
-        selfField.set(service, self);
-    }
 
     @Test
     @DisplayName("rejects null prerequisiteId before persistence")
@@ -176,7 +165,8 @@ class CompetencePrerequisiteServiceImplTest {
                 .niveauMinimum(NiveauMaitrise.N3_INTERMEDIAIRE)
                 .build();
         
-        when(self.getPrerequisitesByCompetence(compId)).thenReturn(List.of(cpDTO));
+        when(competenceRepository.existsById(compId)).thenReturn(true);
+        when(prerequisiteRepository.findByCompetenceId(compId)).thenReturn(List.of(cpDTO));
         
         EnseignantCompetence ec = mock(EnseignantCompetence.class);
         when(ec.getNiveau()).thenReturn(NiveauMaitrise.N2_ELEMENTAIRE); // Under minimum
@@ -309,7 +299,8 @@ class CompetencePrerequisiteServiceImplTest {
         CompetencePrerequisiteDTO cpDTO = CompetencePrerequisiteDTO.builder()
                 .id(1L).competenceId(compId).prerequisiteId(2L).niveauMinimum(NiveauMaitrise.N3_INTERMEDIAIRE).build();
 
-        when(self.getPrerequisitesByCompetence(compId)).thenReturn(List.of(cpDTO));
+        when(competenceRepository.existsById(compId)).thenReturn(true);
+        when(prerequisiteRepository.findByCompetenceId(compId)).thenReturn(List.of(cpDTO));
 
         EnseignantCompetence ec = mock(EnseignantCompetence.class);
         when(ec.getNiveau()).thenReturn(NiveauMaitrise.N4_AVANCE); // Over minimum
@@ -324,11 +315,11 @@ class CompetencePrerequisiteServiceImplTest {
         Long compId = 1L;
         Pageable pageable = PageRequest.of(10, 5); // offset 50, page size 5
         
-        when(self.getPrerequisitesByCompetence(compId)).thenReturn(List.of(
-            CompetencePrerequisiteDTO.builder()
+        CompetencePrerequisiteDTO cpDTO = CompetencePrerequisiteDTO.builder()
                 .id(1L).competenceId(compId).prerequisiteId(2L)
-                .niveauMinimum(NiveauMaitrise.N1_DEBUTANT).build()
-        ));
+                .niveauMinimum(NiveauMaitrise.N1_DEBUTANT).build();
+        when(competenceRepository.existsById(compId)).thenReturn(true);
+        when(prerequisiteRepository.findByCompetenceId(compId)).thenReturn(List.of(cpDTO));
 
         Page<CompetencePrerequisiteDTO> result = service.getPrerequisitesByCompetence(compId, pageable);
         
@@ -351,7 +342,8 @@ class CompetencePrerequisiteServiceImplTest {
                 .niveauMinimum(NiveauMaitrise.N2_ELEMENTAIRE).build()
         );
         
-        when(self.getPrerequisitesByCompetence(compId)).thenReturn(all);
+        when(competenceRepository.existsById(compId)).thenReturn(true);
+        when(prerequisiteRepository.findByCompetenceId(compId)).thenReturn(all);
 
         Page<CompetencePrerequisiteDTO> result = service.getPrerequisitesByCompetence(compId, pageable);
         
@@ -369,7 +361,8 @@ class CompetencePrerequisiteServiceImplTest {
                 .id(1L).competenceId(compId).prerequisiteId(2L)
                 .prerequisiteNom("Prereq").niveauMinimum(NiveauMaitrise.N2_ELEMENTAIRE).build();
         
-        when(self.getPrerequisitesByCompetence(compId)).thenReturn(List.of(cpDTO));
+        when(competenceRepository.existsById(compId)).thenReturn(true);
+        when(prerequisiteRepository.findByCompetenceId(compId)).thenReturn(List.of(cpDTO));
         
         EnseignantCompetence ec = mock(EnseignantCompetence.class);
         when(ec.getNiveau()).thenReturn(NiveauMaitrise.N4_AVANCE);
@@ -392,7 +385,8 @@ class CompetencePrerequisiteServiceImplTest {
                 .id(1L).competenceId(compId).prerequisiteId(2L)
                 .prerequisiteNom("Prereq").niveauMinimum(NiveauMaitrise.N1_DEBUTANT).build();
         
-        when(self.getPrerequisitesByCompetence(compId)).thenReturn(List.of(cpDTO));
+        when(competenceRepository.existsById(compId)).thenReturn(true);
+        when(prerequisiteRepository.findByCompetenceId(compId)).thenReturn(List.of(cpDTO));
         when(enseignantCompetenceRepository.findByEnseignantIdAndCompetenceId(ensId, 2L)).thenReturn(List.of());
 
         Map<String, Object> result = service.checkEnseignantEligibilityDetails(compId, ensId);
@@ -407,7 +401,8 @@ class CompetencePrerequisiteServiceImplTest {
         Long compId = 1L;
         String ensId = "ens1";
         
-        when(self.getPrerequisitesByCompetence(compId)).thenReturn(List.of());
+        when(competenceRepository.existsById(compId)).thenReturn(true);
+        when(prerequisiteRepository.findByCompetenceId(compId)).thenReturn(List.of());
 
         assertThat(service.checkEnseignantMeetsPrerequisites(compId, ensId)).isTrue();
     }
@@ -421,7 +416,8 @@ class CompetencePrerequisiteServiceImplTest {
         CompetencePrerequisiteDTO cpDTO = CompetencePrerequisiteDTO.builder()
                 .id(1L).competenceId(compId).prerequisiteId(2L).niveauMinimum(NiveauMaitrise.N5_EXPERT).build();
 
-        when(self.getPrerequisitesByCompetence(compId)).thenReturn(List.of(cpDTO));
+        when(competenceRepository.existsById(compId)).thenReturn(true);
+        when(prerequisiteRepository.findByCompetenceId(compId)).thenReturn(List.of(cpDTO));
 
         EnseignantCompetence ec = mock(EnseignantCompetence.class);
         when(ec.getNiveau()).thenReturn(NiveauMaitrise.N2_ELEMENTAIRE);

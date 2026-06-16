@@ -3,6 +3,7 @@ FROM node:20-alpine as builder
 LABEL maintainer="seddik.bouzayani <seddik.bouzayani@esprit.tn>"
 
 ARG BUILD_ENV
+ARG VITE_API_URL
 WORKDIR /usr/app
 
 COPY package.json package-lock.json ./

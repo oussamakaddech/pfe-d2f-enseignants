@@ -5,6 +5,9 @@ FROM eclipse-temurin:17-jdk-alpine AS builder
 
 WORKDIR /opt/app
 
+# Install dos2unix for line-ending fixes on Alpine
+RUN apk add --no-cache dos2unix
+
 # Install shared d2f-common-security library (not in Maven Central — local module)
 COPY esprit_D2F-common-security/ /tmp/d2f-common-security/
 RUN --mount=type=cache,target=/root/.m2 \
@@ -26,7 +29,7 @@ RUN --mount=type=cache,target=/root/.m2 ./mvnw dependency:go-offline
 COPY esprit_D2F-authentification/src ./src
 
 # Build the fat JAR (skip tests — already run in CI)
-RUN --mount=type=cache,target=/root/.m2 ./mvnw clean package -DskipTests
+RUN --mount=type=cache,target=/root/.m2 ./mvnw clean package -Dmaven.test.skip=true
 
 # ============================================================
 # Stage 2 — Runtime : image légère JRE-only

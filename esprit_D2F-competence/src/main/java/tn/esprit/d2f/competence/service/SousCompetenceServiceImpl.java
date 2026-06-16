@@ -1,7 +1,6 @@
 package tn.esprit.d2f.competence.service;
 
 import jakarta.persistence.EntityNotFoundException;
-import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.transaction.annotation.Transactional;
@@ -40,9 +39,6 @@ public class SousCompetenceServiceImpl implements ISousCompetenceService {
     private final SavoirRepository savoirRepository;
     private final CompetenceMapper competenceMapper;
 
-    @Lazy
-    private final ISousCompetenceService self;
-
     @Override
     @Transactional(readOnly = true)
     public Page<SousCompetenceDTO> getAllSousCompetences(Pageable pageable) {
@@ -61,7 +57,7 @@ public class SousCompetenceServiceImpl implements ISousCompetenceService {
     @Override
     @Transactional(readOnly = true)
     public Page<SousCompetenceDTO> getSousCompetencesByCompetence(Long competenceId, Pageable pageable) {
-        return paginate(self.getSousCompetencesByCompetence(competenceId), pageable);
+        return paginate(this.getSousCompetencesByCompetence(competenceId), pageable);
     }
 
     @Override

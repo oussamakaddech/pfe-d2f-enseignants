@@ -92,8 +92,9 @@ class EvaluationGlobaleServiceExtendedTest {
 
     @Test
     void deleteEvaluationGlobale_shouldDelegate() {
+        when(repository.findById(1L)).thenReturn(Optional.of(entity));
         service.deleteEvaluationGlobale(1L);
-        verify(repository).deleteById(1L);
+        verify(repository).delete(entity);
     }
 
     @Test

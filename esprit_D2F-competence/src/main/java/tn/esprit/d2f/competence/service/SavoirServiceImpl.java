@@ -1,7 +1,6 @@
 package tn.esprit.d2f.competence.service;
 
 import jakarta.persistence.EntityNotFoundException;
-import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.transaction.annotation.Transactional;
@@ -36,9 +35,6 @@ public class SavoirServiceImpl implements ISavoirService {
     private final EnseignantCompetenceRepository enseignantCompetenceRepository;
     private final CompetenceMapper competenceMapper;
 
-    @Lazy
-    private final ISavoirService self;
-
     @Override
     @Transactional(readOnly = true)
     public Page<SavoirDTO> getAllSavoirs(Pageable pageable) {
@@ -57,7 +53,7 @@ public class SavoirServiceImpl implements ISavoirService {
     @Override
     @Transactional(readOnly = true)
     public Page<SavoirDTO> getSavoirsBySousCompetence(Long sousCompetenceId, Pageable pageable) {
-        return paginate(self.getSavoirsBySousCompetence(sousCompetenceId), pageable);
+        return paginate(this.getSavoirsBySousCompetence(sousCompetenceId), pageable);
     }
 
     @Override
@@ -71,7 +67,7 @@ public class SavoirServiceImpl implements ISavoirService {
     @Override
     @Transactional(readOnly = true)
     public Page<SavoirDTO> getSavoirsByCompetence(Long competenceId, Pageable pageable) {
-        return paginate(self.getSavoirsByCompetence(competenceId), pageable);
+        return paginate(this.getSavoirsByCompetence(competenceId), pageable);
     }
 
     @Override
@@ -85,7 +81,7 @@ public class SavoirServiceImpl implements ISavoirService {
     @Override
     @Transactional(readOnly = true)
     public Page<SavoirDTO> getSavoirsByType(TypeSavoir type, Pageable pageable) {
-        return paginate(self.getSavoirsByType(type), pageable);
+        return paginate(this.getSavoirsByType(type), pageable);
     }
 
     @Override

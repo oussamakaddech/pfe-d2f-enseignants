@@ -3,7 +3,6 @@ package tn.esprit.d2f.competence.service;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -33,8 +32,6 @@ public class NiveauDefinitionServiceImpl implements INiveauDefinitionService {
     private final CompetenceRepository competenceRepository;
     private final SousCompetenceRepository sousCompetenceRepository;
     private final SavoirRepository savoirRepository;
-    @Lazy
-    private final INiveauDefinitionService self;
 
     @Override
     @Transactional(readOnly = true)
@@ -73,7 +70,7 @@ public class NiveauDefinitionServiceImpl implements INiveauDefinitionService {
     @Override
     @Transactional(readOnly = true)
     public Page<NiveauSavoirRequisDTO> getSavoirsRequisByCompetenceAndNiveau(Long competenceId, NiveauMaitrise niveau, Pageable pageable) {
-        return paginate(self.getSavoirsRequisByCompetenceAndNiveau(competenceId, niveau), pageable);
+        return paginate(this.getSavoirsRequisByCompetenceAndNiveau(competenceId, niveau), pageable);
     }
 
     @Override
@@ -87,7 +84,7 @@ public class NiveauDefinitionServiceImpl implements INiveauDefinitionService {
     @Override
     @Transactional(readOnly = true)
     public Page<NiveauSavoirRequisDTO> getSavoirsRequisBySousCompetenceAndNiveau(Long sousCompetenceId, NiveauMaitrise niveau, Pageable pageable) {
-        return paginate(self.getSavoirsRequisBySousCompetenceAndNiveau(sousCompetenceId, niveau), pageable);
+        return paginate(this.getSavoirsRequisBySousCompetenceAndNiveau(sousCompetenceId, niveau), pageable);
     }
 
     @Override

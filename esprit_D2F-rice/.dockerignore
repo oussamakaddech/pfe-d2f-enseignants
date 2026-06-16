@@ -52,4 +52,4 @@ debug_*.py
 exemple_*.txt
 diag_out.txt
 referentiel_extracted.json
-refs/
+# refs/ — besoin pour les référentiels au runtime

@@ -91,13 +91,14 @@ class EvaluationGlobaleServiceMissingTest {
     @DisplayName("deleteEvaluationGlobale() - supprime une évaluation")
     void shouldDeleteEvaluationGlobale() {
         // Given
-        doNothing().when(evaluationRepository).deleteById(anyLong());
+        when(evaluationRepository.findById(1L)).thenReturn(Optional.of(entity));
+        doNothing().when(evaluationRepository).delete(any(EvaluationGlobale.class));
 
         // When
         evaluationService.deleteEvaluationGlobale(1L);
 
         // Then
-        verify(evaluationRepository, times(1)).deleteById(1L);
+        verify(evaluationRepository, times(1)).delete(entity);
     }
 
     @Test
