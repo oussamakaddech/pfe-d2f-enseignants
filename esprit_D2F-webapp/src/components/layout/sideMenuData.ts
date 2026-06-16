@@ -65,7 +65,6 @@ export const cupMenu: MenuItem[] = [
   { type: "group", label: "FORMATIONS", children: [
     { label: "Nouvelle Formation",    key: "/home/Formation/Creer",         icon: PlusCircleOutlined },
     { label: "Catalogue",             key: "/home/Formation/Consulter",     icon: AppstoreOutlined },
-    { label: "Évaluations",           key: "/home/Evaluations",             icon: TrophyOutlined },
     { label: "Gestion Calendrier",    key: "/home/Formation/CalendrierGestion", icon: ImportOutlined },
   ]},
   { type: "group", label: "COMPÉTENCES & BESOINS", children: [
@@ -78,8 +77,6 @@ export const cupMenu: MenuItem[] = [
   ]},
   { type: "group", label: "SUIVI", children: [
     { label: "Inscriptions",         key: "/home/Inscriptions",       icon: FileTextOutlined },
-    { label: "Analyse Prédictive",   key: "/home/AnalysePredictive",  icon: LineChartOutlined },
-    { label: "Mes Certificats",      key: "/home/MyCertificate",       icon: SafetyCertificateOutlined },
   ]},
 ];
 
@@ -118,7 +115,6 @@ export const chefDepartementMenu: MenuItem[] = [
   dashboardItem,
   { type: "group", label: "FORMATIONS", children: [
     { label: "Catalogue Formations",  key: "/home/Formation/Consulter",     icon: AppstoreOutlined },
-    { label: "Évaluations",           key: "/home/Evaluations",             icon: TrophyOutlined },
     { label: "Calendrier Global",     key: "/home/Calendrier",              icon: CalendarOutlined },
     { label: "Gestion Calendrier",    key: "/home/Formation/CalendrierGestion", icon: ImportOutlined },
   ]},
@@ -129,8 +125,6 @@ export const chefDepartementMenu: MenuItem[] = [
   { type: "group", label: "DOCUMENTS & SUIVI", children: [
     { label: "Dossiers de Formation", key: "/home/File",                   icon: FileTextOutlined },
     { label: "Inscriptions",         key: "/home/Inscriptions",            icon: AppstoreOutlined },
-    { label: "Analyse Prédictive",   key: "/home/AnalysePredictive",       icon: LineChartOutlined },
-    { label: "Mes Certificats",      key: "/home/MyCertificate",           icon: SafetyCertificateOutlined },
   ]},
 ];
 

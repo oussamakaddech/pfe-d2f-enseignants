@@ -91,8 +91,8 @@ services:
       RABBITMQ_DEFAULT_USER: ${RABBITMQ_USERNAME:-d2f}
       RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
     ports:
-      - "5672:5672"   # AMQP — seul port nécessaire aux microservices
-      # 15672 (console de gestion) retiré : ne pas exposer en production
+      - "5672:5672"
+      - "15672:15672"  # Management UI (dev only)
     volumes:
       - d2f_rabbitmq_data:/var/lib/rabbitmq
     healthcheck:
@@ -373,6 +373,7 @@ services:
       SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USERNAME:-d2f}
       SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
       EVALUATION_SERVICE_URL: http://d2f-evaluation:8087
+      AUTH_SERVICE_URL: http://d2f-auth:8085
       # Organisateur de calendrier (DSI §1.1 — externalisé)
       FORMATION_ORGANIZER_EMAIL: ${FORMATION_ORGANIZER_EMAIL:-noreply@d2f.local}
       # Mail SMTP interne DSI (obligatoire par défaut)

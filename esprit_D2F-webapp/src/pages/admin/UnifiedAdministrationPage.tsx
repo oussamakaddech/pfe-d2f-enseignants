@@ -9,7 +9,6 @@ import {
   MailOutlined, PhoneOutlined, TeamOutlined, CheckCircleOutlined,
   StopOutlined, SolutionOutlined, ReloadOutlined, LockOutlined,
   UnlockOutlined, SortAscendingOutlined, IdcardOutlined, BankOutlined,
-  CalendarOutlined,
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { useAllAccounts } from "@/hooks/formation/useFormations";
@@ -635,9 +634,6 @@ export default function UnifiedAdministrationPage() {
               <Tooltip title="Modifier la fiche (type, UP, dépt)">
                 <Button shape="circle" icon={<SolutionOutlined />} onClick={() => openEditTeacher(record)} className="accounts-action-btn" />
               </Tooltip>
-              <Tooltip title="Voir le calendrier">
-                <Button shape="circle" icon={<CalendarOutlined />} onClick={() => navigate(`/home/calendar/${record.id}`)} className="accounts-action-btn" />
-              </Tooltip>
               <Tooltip title={record.status === 'ACTIF' ? 'Bloquer le compte' : 'Débloquer le compte'}>
                 <Button shape="circle" icon={record.status === 'ACTIF' ? <LockOutlined /> : <UnlockOutlined />}
                   onClick={() => handleToggleStatus(record)}
@@ -675,10 +671,6 @@ export default function UnifiedAdministrationPage() {
           <Space size={4}>
             <Tooltip title="Modifier">
               <Button type="text" icon={<EditOutlined />} className="teachers-btn-edit" onClick={() => openEditTeacher(record)} />
-            </Tooltip>
-            <Tooltip title="Voir calendrier">
-              <Button type="text" icon={<CalendarOutlined />} className="teachers-btn-edit"
-                onClick={() => navigate(`/home/calendar/${record.id}`)} />
             </Tooltip>
             <Popconfirm title="Supprimer ?" description={`${record.nom || ""} ${record.prenom || ""} sera supprimé.`}
               onConfirm={() => handleDeleteTeacher(record)} okText="Supprimer" cancelText="Annuler" okButtonProps={{ danger: true }}>

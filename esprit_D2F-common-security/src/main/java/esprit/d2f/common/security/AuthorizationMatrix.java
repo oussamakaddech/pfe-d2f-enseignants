@@ -16,7 +16,7 @@ public final class AuthorizationMatrix {
     public static final String AFFECTATION_UPDATE_ALL = "hasAnyRole('ROLE_ADMIN')";
     public static final String AFFECTATION_DELETE = "hasAnyRole('ROLE_ADMIN')";
 
-    public static final String BESOIN_FORMATION_READ_ALL = "hasAnyRole('ROLE_ADMIN','ROLE_CHEF_DEPARTEMENT')";
+    public static final String BESOIN_FORMATION_READ_ALL = "hasAnyRole('ROLE_ADMIN','ROLE_CHEF_DEPARTEMENT','ROLE_ANIMATEUR')";
     public static final String BESOIN_FORMATION_READ_CUP = "hasAnyRole('ROLE_ADMIN','ROLE_CUP')";
     public static final String BESOIN_FORMATION_READ_ENSEIGNANT = "hasAnyRole('ROLE_ADMIN','ROLE_ENSEIGNANT')";
     // ANIMATEUR inclus : un animateur interne est aussi un enseignant et peut donc
@@ -42,7 +42,7 @@ public final class AuthorizationMatrix {
     public static final String EVALUATION_DELETE = "hasAnyRole('ROLE_ADMIN')";
     public static final String EVALUATION_MARK_ENTRY = "hasAnyRole('ROLE_ADMIN','ROLE_FORMATEUR','ROLE_ANIMATEUR')";
 
-    public static final String CERTIFICAT_READ = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_ENSEIGNANT','ROLE_FORMATEUR','ROLE_ANIMATEUR')";
+    public static final String CERTIFICAT_READ = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_ENSEIGNANT','ROLE_FORMATEUR','ROLE_ANIMATEUR','ROLE_CHEF_DEPARTEMENT','ROLE_RESPONSABLE_DOSSIER')";
     public static final String CERTIFICAT_CREATE = "hasAnyRole('ROLE_ADMIN')";
     public static final String CERTIFICAT_UPDATE = "hasAnyRole('ROLE_ADMIN')";
     public static final String CERTIFICAT_DELETE = "hasAnyRole('ROLE_ADMIN')";
@@ -53,9 +53,9 @@ public final class AuthorizationMatrix {
     public static final String RICE_DELETE = "hasAnyRole('ROLE_ADMIN')";
 
     public static final String DASHBOARD_ADMIN_FULL = "hasAnyRole('ROLE_ADMIN')";
-    public static final String DASHBOARD_ADMIN_LIMITED = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_CHEF_DEPARTEMENT')";
+    public static final String DASHBOARD_ADMIN_LIMITED = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_CHEF_DEPARTEMENT','ROLE_ANIMATEUR')";
 
-    public static final String ACCOUNT_READ = "hasAnyRole('ROLE_ADMIN')";
+    public static final String ACCOUNT_READ = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_ANIMATEUR','ROLE_CHEF_DEPARTEMENT')";
     public static final String ACCOUNT_CREATE = "hasAnyRole('ROLE_ADMIN')";
     public static final String ACCOUNT_UPDATE = "hasAnyRole('ROLE_ADMIN')";
     public static final String ACCOUNT_DELETE = "hasAnyRole('ROLE_ADMIN')";
