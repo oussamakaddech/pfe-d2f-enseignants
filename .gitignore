@@ -37,5 +37,21 @@ diag_tv.py
 # Large build artifacts
 formation-service.jar
 
+# ── Cookies & sessions (jamais committer — fuite de credentials) ─────────────
+cookies.txt
+cookies2.txt
+cookies_admin.txt
+cookies_*.txt
+
+# ── Dumps de base de données (données personnelles) ──────────────────────────
+dump_*.sql
+*.dump
+
+# ── Artefacts parasites Windows (redirection NUL) ────────────────────────────
+nul
+
+# ── Fichiers de listing temporaires ──────────────────────────────────────────
+_allfiles.txt
+
 # ── Rapport PFE ────────────────────────────────────────────────────────────────
 rapport-pfe/
