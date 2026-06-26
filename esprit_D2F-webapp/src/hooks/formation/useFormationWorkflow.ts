@@ -159,7 +159,7 @@ async function resolveManualEnseignant(p: EnseignantItem): Promise<string | null
       const mailLower = p.mail.toLowerCase();
       try {
         const all = await EnseignantService.getAllEnseignants();
-        const existing = all.find(e => (e.email ?? e.mail ?? "").toString().toLowerCase() === mailLower);
+        const existing = all.find(e => (e.email ?? "").toString().toLowerCase() === mailLower);
         if (existing?.id != null) return String(existing.id);
       } catch {
         // ignore : on retournera null ci-dessous

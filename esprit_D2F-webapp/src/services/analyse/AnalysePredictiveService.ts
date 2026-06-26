@@ -11,6 +11,9 @@ import type {
   DecliningCompetency, InDemandCompetency, TeacherRiskIndicator,
   GapHeatmapCell, TrainingEffectiveness, RiskEvolutionPoint, ModelPerformance,
   OverviewKpis, DemandForecast,
+  AlertSummary, BulkAlertUpdateRequest, BulkAlertUpdateResponse,
+  PriorityAction, BatchRecommendationRequest, BatchRecommendationResponse,
+  SupplyDemandItem, RiskDistribution, HeatmapDrilldown,
 } from "@/models/analyse";
 export type { Gravite, AnalyseGap, AnalyseRecommandation, AnalyseData, DriftReport };
 
@@ -58,12 +61,9 @@ interface DashboardData {
     competency_stagnation_rate?: number;
     training_velocity?: number;
     recommendation?: string;
+    departement?: string;
   }>;
 }
-
-type DecliningCompetency = NonNullable<DashboardData['declining_competencies']>[number];
-type InDemandCompetency = NonNullable<DashboardData['in_demand_competencies']>[number];
-type TeacherRiskIndicator = NonNullable<DashboardData['teacher_risk_indicators']>[number];
 
 interface PredictGapsResponse {
   gaps: RawGapItem[];
@@ -213,27 +213,51 @@ const AnalysePredictiveService = {
 
       let recommendations: AnalyseRecommandation[] = [];
       if (competenceCible) {
-        const recoRes = await this.recommendPath(
-          enseignantId,
-          Number.parseInt(competenceCible.replaceAll(/\D/g, "") || "0"),
-          4
-        ).catch(() => null);
-        if (recoRes) {
-          recommendations = (recoRes.path || []).map((step: RawPathStep) => ({
-            ordre: step.step_number,
-            formationId: step.formation_id,
-            titre: step.formation_title,
-            competencesCiblees: [step.competency_name],
-            dureeEstimee: `${step.estimated_duration_hours}h`,
-            prerequisManquants: step.missing_prerequisites || [],
-            probabiliteReussite: step.success_probability,
-            justification: "Basé sur votre profil et les prérequis de la formation.",
-          }));
+        const extractedId = Number.parseInt(competenceCible.replaceAll(/\D/g, "") || "0", 10);
+        if (extractedId > 0) {
+          const recoRes = await this.recommendPath(enseignantId, extractedId, 4).catch(() => null);
+          if (recoRes) {
+            recommendations = (recoRes.path || []).map((step: RawPathStep) => ({
+              ordre: step.step_number,
+              formationId: step.formation_id,
+              titre: step.formation_title,
+              competencesCiblees: [step.competency_name],
+              dureeEstimee: `${step.estimated_duration_hours}h`,
+              prerequisManquants: step.missing_prerequisites || [],
+              probabiliteReussite: step.success_probability,
+              justification: "Basé sur votre profil et les prérequis de la formation.",
+            }));
+          }
         }
       }
 
-      // Check if result comes from heuristic fallback
+      // Check if result comes from heuristic fallback (model not trained yet).
       const isHeuristic = gapsRes.explanation?.method === "heuristic" || gapsRes.explanation?.model_trained === false;
+
+      // B8 fix : auto-train pour les admins quand le backend renvoie un fallback
+      // heuristique au lieu d'un 503. Le backend ne renvoie jamais 503 car il
+      // dégrade gracieusement vers l'heuristique — on détecte donc ici.
+      if (isHeuristic && autoTrain) {
+        try {
+          const trainRes = await this.trainModel();
+          if (trainRes.status === "trained" || trainRes.metrics) {
+            // Retry with the freshly trained model
+            const retried = await this.predictGaps(enseignantId, 6, 10);
+            const stillHeuristic = retried.explanation?.method === "heuristic";
+            return {
+              enseignantId,
+              competenceAnalysee: competenceCible || "Toutes",
+              gaps: (retried.gaps || []).map((g: RawGapItem) => mapGapItem(g, stillHeuristic)),
+              overallRiskScore: retried.overall_risk_score || 0,
+              recommandationsFormations: recommendations,
+              isHeuristic: stillHeuristic,
+              modelNeedsTraining: stillHeuristic,
+            };
+          }
+        } catch {
+          // Auto-train failed — fall through to return heuristic results
+        }
+      }
 
       return {
         enseignantId,
@@ -309,6 +333,47 @@ const AnalysePredictiveService = {
     } catch (error: unknown) {
       throw error;
     }
+  },
+
+  // ── Centre d'Action — Alertes ───────────────────────────────
+  async getAlertsSummary(): Promise<AlertSummary> {
+    const res = await axios.get(`${ANALYTICS_V1}/alerts/summary`);
+    return res.data;
+  },
+
+  async bulkUpdateAlerts(payload: BulkAlertUpdateRequest): Promise<BulkAlertUpdateResponse> {
+    const res = await axios.patch(`${ANALYTICS_V1}/alerts/bulk`, payload);
+    return res.data;
+  },
+
+  // ── Centre d'Action — Actions prioritaires ────────────────
+  async getPriorityActions(limit = 20, departementId?: string): Promise<PriorityAction[]> {
+    const res = await axios.get(`${ANALYTICS_V1}/actions/priority`, {
+      params: { limit, departement_id: departementId },
+    });
+    return res.data;
+  },
+
+  // ── Centre d'Action — Recommandations par cohorte ───────────
+  async getBatchRecommendations(payload: BatchRecommendationRequest): Promise<BatchRecommendationResponse> {
+    const res = await axios.post(`${ANALYTICS_V1}/recommendations/batch`, payload);
+    return res.data;
+  },
+
+  // ── Visualisations avancées ────────────────────────────────
+  async getSupplyDemand(): Promise<SupplyDemandItem[]> {
+    const res = await axios.get(`${ANALYTICS_V1}/dashboard/supply-demand`);
+    return res.data;
+  },
+
+  async getRiskDistribution(): Promise<RiskDistribution> {
+    const res = await axios.get(`${ANALYTICS_V1}/dashboard/risk-distribution`);
+    return res.data;
+  },
+
+  async getHeatmapDrilldown(departement: string, competenceId: number): Promise<HeatmapDrilldown> {
+    const res = await axios.get(`${ANALYTICS_V1}/dashboard/gap-heatmap/${departement}/${competenceId}`);
+    return res.data;
   },
 };
 

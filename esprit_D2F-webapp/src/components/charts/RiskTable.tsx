@@ -27,9 +27,10 @@ interface Props {
   data: TeacherRiskIndicator[];
   threshold: number;
   onAnalyze?: (teacherId: string) => void;
+  pageSize?: number;
 }
 
-const RiskTable = memo(function RiskTable({ data, threshold, onAnalyze }: Readonly<Props>) {
+const RiskTable = memo(function RiskTable({ data, threshold, onAnalyze, pageSize = 8 }: Readonly<Props>) {
   const columns = [
     {
       title: "Enseignant",
@@ -124,7 +125,7 @@ const RiskTable = memo(function RiskTable({ data, threshold, onAnalyze }: Readon
       dataSource={data}
       columns={columns}
       rowKey="teacher_id"
-      pagination={{ pageSize: 8 }}
+      pagination={{ pageSize }}
       size="middle"
       rowClassName={(r) => (r.attrition_risk_score >= threshold ? "risk-row-high" : "")}
     />

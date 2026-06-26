@@ -4,6 +4,9 @@ import type {
   DecliningCompetency, InDemandCompetency, TeacherRiskIndicator, DriftReport,
   GapHeatmapCell, RiskEvolutionPoint, TrainingEffectiveness, ModelPerformance,
   OverviewKpis, DemandForecast,
+  AlertSummary, BulkAlertUpdateRequest, BulkAlertUpdateResponse,
+  PriorityAction, BatchRecommendationRequest, BatchRecommendationResponse,
+  SupplyDemandItem, RiskDistribution, HeatmapDrilldown,
 } from "@/models/analyse";
 
 export function useDashboardSummary() {
@@ -140,5 +143,59 @@ export function useRetrainModel() {
   return useMutation({
     mutationFn: () => AnalysePredictiveService.retrainModel(),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["analyse"] }),
+  });
+}
+
+// ── Centre d'Action — Alertes ────────────────────────────────
+export function useAlertsSummary() {
+  return useQuery<AlertSummary>({
+    queryKey: ["analyse", "alerts-summary"],
+    queryFn: () => AnalysePredictiveService.getAlertsSummary(),
+  });
+}
+
+export function useBulkUpdateAlerts() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: BulkAlertUpdateRequest) => AnalysePredictiveService.bulkUpdateAlerts(payload),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["analyse", "alerts-summary"] }),
+  });
+}
+
+// ── Centre d'Action — Actions prioritaires ────────────────────
+export function usePriorityActions(limit = 20, departementId?: string) {
+  return useQuery<PriorityAction[]>({
+    queryKey: ["analyse", "priority-actions", limit, departementId],
+    queryFn: () => AnalysePredictiveService.getPriorityActions(limit, departementId),
+  });
+}
+
+// ── Centre d'Action — Recommandations par cohorte ───────────
+export function useBatchRecommendations() {
+  return useMutation({
+    mutationFn: (payload: BatchRecommendationRequest) => AnalysePredictiveService.getBatchRecommendations(payload),
+  });
+}
+
+// ── Visualisations avancées ──────────────────────────────────
+export function useSupplyDemand() {
+  return useQuery<SupplyDemandItem[]>({
+    queryKey: ["analyse", "supply-demand"],
+    queryFn: () => AnalysePredictiveService.getSupplyDemand(),
+  });
+}
+
+export function useRiskDistribution() {
+  return useQuery<RiskDistribution>({
+    queryKey: ["analyse", "risk-distribution"],
+    queryFn: () => AnalysePredictiveService.getRiskDistribution(),
+  });
+}
+
+export function useHeatmapDrilldown(departement: string | null, competenceId: number | null) {
+  return useQuery<HeatmapDrilldown>({
+    queryKey: ["analyse", "heatmap-drilldown", departement, competenceId],
+    queryFn: () => AnalysePredictiveService.getHeatmapDrilldown(departement!, competenceId!),
+    enabled: !!departement && competenceId != null,
   });
 }

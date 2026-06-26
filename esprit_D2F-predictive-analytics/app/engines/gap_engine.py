@@ -29,17 +29,21 @@ def _classify_urgence(priorite_score: float) -> str:
 
 
 def _compute_mois_stagnation(enseignant_id: str, competence_id: int, db: Session) -> int:
-    """Compte les mois depuis le dernier changement de niveau pour cette compétence."""
+    """Compte les mois depuis le dernier changement de niveau pour cette compétence.
+
+    Borné à 0 : une donnée future (horloge / timestamp en avance) ne doit pas
+    produire une stagnation négative qui fausserait le score d'urgence.
+    """
     last = (
         db.query(SkillGap)
         .filter_by(enseignant_id=enseignant_id, competence_id=competence_id)
         .order_by(SkillGap.computed_at.desc())
         .first()
     )
-    if not last:
+    if not last or not last.computed_at:
         return 0
     delta = date.today() - last.computed_at.date()
-    return delta.days // 30
+    return max(0, delta.days // 30)
 
 
 def _detect_regression(enseignant_id: str, competence_id: int, niveau_actuel: int, db: Session) -> bool:

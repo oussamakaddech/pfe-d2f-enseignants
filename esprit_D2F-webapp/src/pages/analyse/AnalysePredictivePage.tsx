@@ -1,13 +1,14 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import {
   Input, Button, Tag, Row, Col, Alert, Spin, Typography, Space, Empty,
-  Tabs, Select, Table, Card, Tooltip,
+  Tabs, Select, Table, Card, Tooltip, Badge, notification, DatePicker,
 } from "antd";
 import {
   SearchOutlined, RobotOutlined, RiseOutlined, FallOutlined, TeamOutlined,
   UserOutlined, ProjectOutlined, ReloadOutlined, ExperimentOutlined,
   DashboardOutlined, ThunderboltOutlined,
   BulbOutlined, FireOutlined, LineChartOutlined, CoffeeOutlined,
+  BellOutlined, BankOutlined, WarningOutlined,
 } from "@ant-design/icons";
 import useAppNotification from "@/hooks/ui/useAppNotification";
 import { motion, AnimatePresence } from "framer-motion";
@@ -16,6 +17,9 @@ import {
   useDashboardSummary, useTrainModel, useAnalyserEnseignant,
   useGapHeatmap, useRiskEvolution, useModelPerformance,
   useOverview, useDemandForecast,
+  useAlertsSummary, useBulkUpdateAlerts,
+  usePriorityActions, useBatchRecommendations,
+  useDriftStatus,
 } from "@/hooks/analyse/useAnalysePredictive";
 import type { AnalyseData, DecliningCompetency, InDemandCompetency, TeacherRiskIndicator } from "@/models/analyse";
 import DashboardKpis from "@/components/charts/DashboardKpis";
@@ -30,6 +34,9 @@ import TrendLineChart from "@/components/charts/TrendLineChart";
 import OverviewKpiTiles from "@/components/charts/OverviewKpiTiles";
 import DemandForecastChart from "@/components/charts/DemandForecastChart";
 import InactiveTeachersCard from "@/components/charts/InactiveTeachersCard";
+import PriorityAlertsPanel from "@/components/charts/PriorityAlertsPanel";
+import PriorityActionsQueue from "@/components/charts/PriorityActionsQueue";
+import CohortRecommendationPanel from "@/components/charts/CohortRecommendationPanel";
 import "@/styles/pages/analyse-predictive-page.css";
 
 const { Title, Text } = Typography;
@@ -39,6 +46,7 @@ const MODEL_STATUS_LABEL: Record<string, string> = {
   ok: "actif",
   error: "en erreur",
   warn: "à entraîner",
+  idle: "inactif",
 };
 
 const normalizeRole = (v: unknown): string =>
@@ -88,15 +96,74 @@ export default function AnalysePredictivePage() {
   const { data: modelPerf } = useModelPerformance();
   const { data: overview, isLoading: overviewLoading } = useOverview();
   const { data: demandForecast } = useDemandForecast(6);
+
+  /* ── Centre d'Action hooks ── */
+  const { data: alertsSummary, isLoading: alertsLoading, refetch: refetchAlerts } = useAlertsSummary();
+  const bulkUpdateAlertsMutation = useBulkUpdateAlerts();
+  const [actionsDeptFilter, setActionsDeptFilter] = useState<string>("ALL");
+  const { data: priorityActions, isLoading: actionsLoading } = usePriorityActions(20, actionsDeptFilter === "ALL" ? undefined : actionsDeptFilter);
+  const batchRecommendationsMutation = useBatchRecommendations();
+  const { data: driftData } = useDriftStatus();
+
+  /* ── Local state (declared before useMemo to avoid TDZ) ── */
   const [riskThreshold, setRiskThreshold] = useState<number>(0.7);
   const [modelStatusKey, setModelStatusKey] = useState<number>(0);
-
+  const [riskTablePageSize, setRiskTablePageSize] = useState<number>(8);
+  const [deptFilter, setDeptFilter] = useState<string>("ALL");
   const [enseignantId, setEnseignantId] = useState<string>("");
   const [competenceCible, setCompetenceCible] = useState<string>("");
   const [analyseData, setAnalyseData] = useState<AnalyseData | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<string>("dashboard");
+
+  /* ── Alertes critiques : notifier une seule fois (pas de spam au refetch) ── */
+  const notifiedCriticalIds = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    if (!dashboardData?.teacher_risk_indicators || dashLoading) return;
+    const critical = dashboardData.teacher_risk_indicators.filter(
+      (t) => t.attrition_risk_score >= 0.8
+    );
+    if (critical.length === 0) return;
+
+    // Ne notifier que les enseignants pas encore notifiés
+    const newCritical = critical.filter(
+      (t) => !notifiedCriticalIds.current.has(t.teacher_id)
+    );
+    if (newCritical.length === 0) return;
+
+    // Mettre à jour le set pour éviter le re-déclenchement
+    newCritical.forEach((t) => notifiedCriticalIds.current.add(t.teacher_id));
+
+    notification.warning({
+      message: `${critical.length} enseignant${critical.length > 1 ? "s" : ""} à risque critique`,
+      description: critical
+        .slice(0, 3)
+        .map((t) => `${t.teacher_name} (${(t.attrition_risk_score * 100).toFixed(0)}%)`)
+        .join(", ") + (critical.length > 3 ? ` et ${critical.length - 3} autres` : ""),
+      icon: <FireOutlined style={{ color: "#ef4444" }} />,
+      duration: 8,
+      placement: "topRight",
+    });
+  }, [dashboardData, dashLoading]);
+
+  /* ── Départements disponibles (pour filtre) ── */
+  const departements = useMemo(() => {
+    const set = new Set<string>();
+    (dashboardData?.teacher_risk_indicators ?? []).forEach((t) => {
+      if (t.departement) set.add(t.departement);
+    });
+    return ["ALL", ...Array.from(set).sort()];
+  }, [dashboardData]);
+
+  /* ── Enseignants filtrés par département ── */
+  const filteredRiskTeachers = useMemo(
+    () =>
+      deptFilter === "ALL"
+        ? dashboardData?.teacher_risk_indicators ?? []
+        : (dashboardData?.teacher_risk_indicators ?? []).filter((t) => t.departement === deptFilter),
+    [dashboardData, deptFilter]
+  );
 
   async function handleTrainModel() {
     setLoading(true);
@@ -158,6 +225,29 @@ export default function AnalysePredictivePage() {
     handleAnalyserEnseignant(teacherId);
   }
 
+  /* ── Centre d'Action : handlers ── */
+  async function handleBulkUpdateAlerts(alertIds: number[], statut: string, commentaire?: string) {
+    try {
+      const res = await bulkUpdateAlertsMutation.mutateAsync({
+        alert_ids: alertIds,
+        statut,
+        traite_par: String(user?.id ?? "webapp"),
+        commentaire,
+      });
+      message.success(`${res.nb_modifie} alerte(s) mise(s) à jour → ${statut}`);
+      refetchAlerts();
+    } catch {
+      message.error("Erreur lors du tri en masse des alertes.");
+    }
+  }
+
+  async function handleBatchRecommendations(teacherIds: string[], topN: number) {
+    return batchRecommendationsMutation.mutateAsync({
+      teacher_ids: teacherIds,
+      top_n: topN,
+    });
+  }
+
   const declineColumns = useMemo(() => [
     { title: "Compétence", dataIndex: "competency_name", render: (v: string) => <Text strong>{v}</Text> },
     { title: "Domaine", dataIndex: "domaine_name", render: (v: string) => <Tag color="default">{v || "—"}</Tag> },
@@ -183,8 +273,10 @@ export default function AnalysePredictivePage() {
   // Determine model status (best-effort from status badge component)
   const modelStatusVariant: "ok" | "warn" | "error" | "idle" = useMemo(() => {
     if (!modelPerf) return "idle";
+    if (!modelPerf.last_retrained && modelPerf.last_retrain_status === null) return "idle";
     if (modelPerf.last_retrain_status === "success") return "ok";
     if (modelPerf.last_retrain_status === "failed") return "error";
+    // "rollback" ou autre → à ré-entraîner
     return "warn";
   }, [modelPerf]);
 
@@ -220,7 +312,17 @@ export default function AnalysePredictivePage() {
               variant="borderless"
               title={<span><TeamOutlined /> Enseignants à risque</span>}
               extra={
-                <Space>
+                <Space size={4} wrap>
+                  <Select value={deptFilter} onChange={(v) => { setDeptFilter(v); setRiskTablePageSize(8); }} style={{ minWidth: 150 }} size="small">
+                    <Option value="ALL">Tous les départements</Option>
+                    {departements.filter((d) => d !== "ALL").map((d) => <Option key={d} value={d}>{d}</Option>)}
+                  </Select>
+                  <Select value={riskTablePageSize} onChange={setRiskTablePageSize} style={{ width: 130 }} size="small">
+                    <Option value={5}>5 par page</Option>
+                    <Option value={8}>8 par page</Option>
+                    <Option value={15}>15 par page</Option>
+                    <Option value={25}>25 par page</Option>
+                  </Select>
                   <Select value={riskThreshold} onChange={setRiskThreshold} style={{ width: 150 }} size="small">
                     <Option value={0.5}>Seuil: 50%</Option>
                     <Option value={0.7}>Seuil: 70%</Option>
@@ -229,13 +331,19 @@ export default function AnalysePredictivePage() {
                   <Button size="small" icon={<ReloadOutlined />} onClick={() => refetchDashboard()}>
                     Rafraîchir
                   </Button>
+                  {filteredRiskTeachers.filter((t) => t.attrition_risk_score >= 0.8).length > 0 && (
+                    <Badge count={filteredRiskTeachers.filter((t) => t.attrition_risk_score >= 0.8).length} style={{ backgroundColor: "#ef4444" }}>
+                      <Tag color="red" style={{ marginRight: 0 }}><FireOutlined /> Critiques</Tag>
+                    </Badge>
+                  )}
                 </Space>
               }
             >
               <RiskTable
-                data={dashboardData?.teacher_risk_indicators || []}
+                data={filteredRiskTeachers}
                 threshold={riskThreshold}
                 onAnalyze={handleAnalyzeFromTable}
+                pageSize={riskTablePageSize}
               />
             </Card>
           </div>
@@ -474,6 +582,100 @@ export default function AnalysePredictivePage() {
             </motion.div>
           )}
         </AnimatePresence>
+      ),
+    },
+    {
+      key: "action-center",
+      label: (
+        <span>
+          <BellOutlined style={{ marginRight: 6 }} />
+          Centre d'Action
+          {alertsSummary && alertsSummary.nouvelles > 0 && (
+            <Badge count={alertsSummary.nouvelles} size="small" style={{ marginLeft: 4, backgroundColor: "#ef4444" }} />
+          )}
+        </span>
+      ),
+      children: (
+        <Spin spinning={alertsLoading || actionsLoading}>
+          {/* ── Bannière de drift ── */}
+          {driftData?.drift_detected && (
+            <Alert
+              message="Décalage de données détecté (drift)"
+              description={
+                driftData.recommendation ||
+                "Le modèle prédictif présente un décalage par rapport aux données récentes. Un ré-entraînement est recommandé."
+              }
+              type="warning"
+              showIcon
+              icon={<WarningOutlined />}
+              style={{ marginBottom: 16, borderRadius: 12 }}
+              action={
+                isAdmin ? (
+                  <Button
+                    size="small"
+                    type="primary"
+                    icon={<ExperimentOutlined />}
+                    onClick={handleTrainModel}
+                    loading={loading}
+                  >
+                    Ré-entraîner
+                  </Button>
+                ) : undefined
+              }
+            />
+          )}
+
+          {/* ── Section 1 : Alertes ── */}
+          <AnalyseSectionTitle
+            icon={<BellOutlined />}
+            iconColor="#b51200"
+            iconBg="#fff0ee"
+            title="Alertes & Triage en Masse"
+            subtitle="Synthèse agrégée + actions de masse"
+          />
+          <div className="analyse-block">
+            <PriorityAlertsPanel
+              data={alertsSummary}
+              loading={alertsLoading}
+              onBulkUpdate={handleBulkUpdateAlerts}
+            />
+          </div>
+
+          {/* ── Section 2 : File d'actions ── */}
+          <AnalyseSectionTitle
+            icon={<ThunderboltOutlined />}
+            iconColor="#b51200"
+            iconBg="#fff0ee"
+            title="File d'Actions Prioritaires"
+            subtitle="Enseignants à contacter en priorité, triés par score d'action"
+          />
+          <div className="analyse-block">
+            <PriorityActionsQueue
+              data={priorityActions}
+              loading={actionsLoading}
+              departements={departements}
+              deptFilter={actionsDeptFilter}
+              onDeptChange={setActionsDeptFilter}
+              onAnalyzeTeacher={handleAnalyzeFromTable}
+            />
+          </div>
+
+          {/* ── Section 3 : Recommandations par cohorte ── */}
+          <AnalyseSectionTitle
+            icon={<BulbOutlined />}
+            iconColor="#10b981"
+            iconBg="#ecfdf5"
+            title="Recommandations par Cohorte"
+            subtitle="Générer des recommandations de formation agrégées pour un groupe d'enseignants"
+          />
+          <div className="analyse-block">
+            <CohortRecommendationPanel
+              teachers={dashboardData?.teacher_risk_indicators || []}
+              teachersLoading={dashLoading}
+              onGenerate={handleBatchRecommendations}
+            />
+          </div>
+        </Spin>
       ),
     },
   ];

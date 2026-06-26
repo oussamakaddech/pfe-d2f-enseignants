@@ -16,8 +16,6 @@ import {
 import {
   EyeOutlined,
   CloudUploadOutlined,
-  DownloadOutlined,
-  MailOutlined,
   CalendarOutlined,
   WarningOutlined,
   ImportOutlined,
@@ -34,10 +32,8 @@ import {
   usePreviewImport,
   useImportCalendar,
   useCalendarConflicts,
-  useSendAllInvitations,
   useCalendarFormations,
 } from "@/hooks/formation/useCalendar";
-import CalendarService from "@/services/formation/CalendarService";
 import {
   CalendarFileUpload,
   ImportErrorsTable,
@@ -58,13 +54,11 @@ export default function CalendrierGestionPage() {
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<ParsedCalendar | null>(null);
   const [report, setReport] = useState<ImportReport | null>(null);
-  const [downloadingAll, setDownloadingAll] = useState(false);
   const [activeTab, setActiveTab] = useState("import");
   const [forceImport, setForceImport] = useState(false);
 
   const previewMutation = usePreviewImport();
   const importMutation = useImportCalendar();
-  const sendAll = useSendAllInvitations();
   const conflicts = useCalendarConflicts();
   const { data: formationsData } = useCalendarFormations({ page: 0, size: 1 });
 
@@ -112,24 +106,6 @@ export default function CalendrierGestionPage() {
       },
     });
   }, [file, importMutation, conflicts, msgApi, notification, forceImport]);
-
-  const handleDownloadAll = useCallback(async () => {
-    setDownloadingAll(true);
-    try {
-      await CalendarService.downloadIcsAll();
-    } catch {
-      msgApi.error("Échec du téléchargement du calendrier complet.");
-    } finally {
-      setDownloadingAll(false);
-    }
-  }, [msgApi]);
-
-  const handleSendAll = useCallback(() => {
-    sendAll.mutate(undefined, {
-      onSuccess: (result) => { msgApi.success(result.message); },
-      onError: () => { msgApi.error("Échec de l'envoi global des invitations."); },
-    });
-  }, [sendAll, msgApi]);
 
   const importTab = useMemo(
     () => (
@@ -195,30 +171,10 @@ export default function CalendrierGestionPage() {
   const exportTab = useMemo(
     () => (
       <div className="cal-gestion-export-section">
-        <div className="cal-gestion-export-actions">
-          <Button
-            icon={<DownloadOutlined />}
-            loading={downloadingAll}
-            onClick={handleDownloadAll}
-          >
-            Télécharger tout le calendrier (.ics)
-          </Button>
-          {admin && (
-            <Button
-              type="primary"
-              ghost
-              icon={<MailOutlined />}
-              loading={sendAll.isPending}
-              onClick={handleSendAll}
-            >
-              Envoyer toutes les invitations
-            </Button>
-          )}
-        </div>
-        <CalendarFormationsTable canSendInvitations={admin} />
+        <CalendarFormationsTable />
       </div>
     ),
-    [downloadingAll, admin, sendAll.isPending, handleDownloadAll, handleSendAll]
+    []
   );
 
   const tabs = useMemo(

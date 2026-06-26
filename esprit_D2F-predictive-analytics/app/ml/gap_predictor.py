@@ -385,9 +385,16 @@ class GapPredictor:
         # Base confidence reflects validated model quality (test R²), bounded to a
         # sensible band; it is then reduced where the ML output diverges from the
         # deterministic reference (signals the model is extrapolating).
+        # test_r2 peut être négatif (modèle peu fiable) ou NaN (données dégénérées) :
+        # on retombe alors sur une confiance neutre au lieu de propager le NaN.
         base_conf = 0.7
         if self.last_metrics and self.last_metrics.get("test_r2") is not None:
-            base_conf = float(self.last_metrics["test_r2"])
+            try:
+                r2 = float(self.last_metrics["test_r2"])
+                if not (r2 != r2):  # NaN check (NaN != NaN)
+                    base_conf = r2
+            except (TypeError, ValueError):
+                pass
         base_conf = max(0.5, min(0.95, base_conf))
 
         disagreement = (df_pred["predicted_gap"] - df_pred["deterministic_gap"]).abs() / 5.0

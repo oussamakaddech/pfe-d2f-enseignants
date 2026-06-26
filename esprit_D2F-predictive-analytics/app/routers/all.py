@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 from app.config import settings
 from app.core.db import get_db
 from app.core.exceptions import TeacherNotFoundError
+from app.core.auth import require_roles
 from app.models.schemas import (
     AtRiskTeachersResponse, DashboardResponse, GapPredictionRequest,
     GapPredictionResponse, HealthResponse, PathRecommendationRequest,
@@ -22,6 +23,12 @@ router = APIRouter()
 
 DBSession = Annotated[Session, Depends(get_db)]
 OptStrQuery = Annotated[Optional[str], Query(alias="deptId")]
+# Le ré-entraînement du modèle est une action sensible (rollback, artefacts) :
+# réservée à l'ADMIN. Les autres endpoints legacy restent ouverts au niveau du
+# service car le gateway applique déjà le RBAC sur /api/analyse/** (cf.
+# insights.py docstring) ; un garde supplémentaire ici doublerait la
+# logique et risquerait de casser l'analyse de profil par un ENSEIGNANT.
+AdminAuth = Annotated[dict, Depends(require_roles("ADMIN"))]
 
 
 @router.get("/health", tags=["Health"])
@@ -76,7 +83,7 @@ async def predict_gaps(
 
 
 @router.post("/predict/train", tags=["Prediction"])
-async def train_gap_model(db: DBSession) -> dict[str, Any]:
+async def train_gap_model(auth: AdminAuth, db: DBSession) -> dict[str, Any]:
     """Trigger model retraining on current database snapshot.
 
     Returns training metrics if successful, or a helpful diagnostic message
@@ -287,13 +294,18 @@ def _compute_teacher_risk(t: dict) -> dict:
 
     Delegates the weighted score computation to risk_scoring.py's
     configurable multi-factor model (w1..w5, spec §3) instead of
-    hardcoded weights.
+    hardcoded weights. Les facteurs gap_count et feedback_decline sont
+    approximés depuis les signaux d'engagement (le pipeline legacy ne
+    calcule pas de gaps par enseignant) afin que les 5 poids soient
+    réellement pris en compte, au lieu d'en neutraliser 30%.
     """
     from app.engines.risk_scoring import compute_risk_score
 
     nb_completed = t.get("nb_formations_completed") or 0
+    nb_in_progress = t.get("nb_formations_in_progress") or 0
     nb_exprimes = t.get("nb_besoins_exprimes") or 0
     nb_approuves = t.get("nb_besoins_approuves") or 0
+    avg_eval = t.get("avg_eval_score") or 0.0
     days_since = t.get("days_since_last_training") or settings.risk_absence_threshold_days
     taux_assiduite = t.get("taux_assiduite") or 1.0
 
@@ -301,11 +313,23 @@ def _compute_teacher_risk(t: dict) -> dict:
     stagnation = 1.0 / (1.0 + nb_completed)
     unmet = min(1.0, max(0, nb_exprimes - nb_approuves) / max(settings.risk_unmet_needs_saturation, 1))
 
+    # gap_count (w3) : proxy depuis l'engagement — un enseignant qui exprime des
+    # besoins sans les faire approuver ni combler a probablement des gaps non
+    # couverts. Borné à [0, 1].
+    gap_count = min(1.0, unmet * 0.6 + (1.0 - min(1.0, nb_in_progress / 3.0)) * 0.4)
+
+    # feedback_decline (w4) : 1.0 si l'évaluation moyenne est faible
+    # (sous le seuil d'engagement configuré) ou si l'assiduité chute.
+    feedback_decline = 1.0 if (
+        (avg_eval and avg_eval < settings.risk_engagement_percentile / 20.0)
+        or taux_assiduite < settings.risk_engagement_percentile / 100.0
+    ) else 0.0
+
     factors = {
         "no_training": no_training,
         "stagnation": stagnation,
-        "gap_count": 0.0,
-        "feedback_decline": 0.0,
+        "gap_count": gap_count,
+        "feedback_decline": feedback_decline,
         "unmet_needs": unmet,
     }
     result = compute_risk_score(factors)
@@ -320,9 +344,11 @@ def _compute_teacher_risk(t: dict) -> dict:
     if nb_completed == 0 and nb_exprimes == 0:
         signals.append("Aucun engagement détecté")
 
-    if result["score_risque"] > settings.seuil_gap_critique:
+    # Utilise les seuils du SCORE DE RISQUE (0-1), pas les seuils de priorité
+    # de gap qui partagent par hasard les mêmes valeurs par défaut.
+    if result["score_risque"] >= settings.risk_score_critique:
         recommendation = "Planifier entretien"
-    elif result["score_risque"] > settings.seuil_gap_haute:
+    elif result["score_risque"] >= settings.risk_score_eleve:
         recommendation = "Proposer formation"
     else:
         recommendation = "OK"
@@ -342,9 +368,9 @@ def _compute_teacher_risk(t: dict) -> dict:
 
 @router.get("/detect/at-risk-teachers", tags=["Detection"])
 async def detect_at_risk_teachers(
+    db: DBSession,
     threshold: float = 0.7,
     dept_id: OptStrQuery = None,
-    db: DBSession = None,
 ) -> AtRiskTeachersResponse:
     """Detect teachers at risk based on competency gaps and engagement.
 
@@ -404,7 +430,12 @@ def _is_in_demand(d: dict) -> bool:
 
 @router.get("/dashboard/declining-competencies", tags=["Dashboard"])
 async def declining_competencies(db: DBSession) -> list[dict[str, Any]]:
-    """Competencies whose recent demand has dropped vs the 12-month baseline."""
+    """Competencies whose recent demand has dropped vs the 12-month baseline.
+
+    Note : non filtrable par département — la requête agrégée de demande ne
+    joint pas la table enseignants (agrégation par compétence uniquement).
+    Le filtre département s'applique aux enseignants à risque du dashboard.
+    """
     data = DataService(db)
     demand = data.get_besoin_demand()
     return [{"competency_id": d["competence_id"], "competency_name": d["competence_nom"],
@@ -460,12 +491,12 @@ async def dashboard_summary(
     _risk_indicators: list[dict[str, Any]] = []
 
     try:
-        _declining = await declining_competencies(db)
+        _declining = await declining_competencies(db=db)
     except Exception as e:
         _log.warning("Failed to load declining_competencies for dashboard: %s", e)
 
     try:
-        _in_demand = await in_demand_competencies(db)
+        _in_demand = await in_demand_competencies(db=db)
     except Exception as e:
         _log.warning("Failed to load in_demand_competencies for dashboard: %s", e)
 

@@ -184,7 +184,7 @@ export default function CreateAccountDrawer({
   // enseignant, on réamorce les valeurs par défaut.
   useEffect(() => {
     if (!open || !roleValue) return;
-    const teacherOnlyFields = ["type", "etat", "grade", "specialite", "cup", "chefDepartement"];
+    const teacherOnlyFields: Array<keyof CreateAccountFormValues> = ["type", "etat", "grade", "specialite", "cup", "chefDepartement"];
     if (TEACHER_ROLES.has(roleValue)) {
       // Profil enseignant complet : réamorce les valeurs par défaut.
       const cur = form.getFieldsValue(["type", "etat", "cup", "chefDepartement"]) as Record<string, string | undefined>;
@@ -199,7 +199,7 @@ export default function CreateAccountDrawer({
       form.resetFields(teacherOnlyFields);
     } else {
       // Rôle sans profil métier : on purge tout (y compris upId/deptId).
-      form.resetFields([...teacherOnlyFields, "upId", "deptId"]);
+      form.resetFields([...teacherOnlyFields, "upId", "deptId"] as Array<keyof CreateAccountFormValues>);
     }
   }, [roleValue, open, form]);
 

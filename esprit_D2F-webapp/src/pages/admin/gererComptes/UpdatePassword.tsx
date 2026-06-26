@@ -4,17 +4,23 @@ import { LockOutlined } from "@ant-design/icons";
 import { useUpdatePassword } from "@/hooks/auth/useAuthService";
 import { AppPageHeader, shadow, radius } from "@/components/common";
 import useAppNotification from "@/hooks/ui/useAppNotification";
+import type { UpdatePasswordRequest } from "@/models/auth";
+
+interface UpdatePasswordFormValues {
+  newPassword: string;
+  confirmation: string;
+}
 
 export default function UpdatePassword() {
-  const [form] = Form.useForm();
+  const [form] = Form.useForm<UpdatePasswordFormValues>();
   const [loading, setLoading] = useState(false);
   const { message } = useAppNotification();
   const { mutateAsync: updatePwd } = useUpdatePassword();
 
-  const handleSubmit = async (values: Record<string, unknown>) => {
+  const handleSubmit = async (values: UpdatePasswordFormValues) => {
     setLoading(true);
     try {
-      await updatePwd(values);
+      await updatePwd({ newPassword: values.newPassword, confirmation: values.confirmation });
       message.success("Mot de passe mis à jour avec succès !");
       form.resetFields();
     } catch (error: unknown) {
@@ -35,32 +41,24 @@ export default function UpdatePassword() {
       <Card style={{ borderRadius: radius.lg, boxShadow: shadow.sm, border: "1px solid rgba(0,0,0,0.07)" }}>
         <Form form={form} layout="vertical" onFinish={handleSubmit}>
           <Form.Item
-            name="oldPassword"
-            label="Ancien mot de passe"
-            rules={[{ required: true, message: "L'ancien mot de passe est requis" }]}
-          >
-            <Input.Password prefix={<LockOutlined />} placeholder="Ancien mot de passe" />
-          </Form.Item>
-
-          <Form.Item
             name="newPassword"
             label="Nouveau mot de passe"
             rules={[
               { required: true, message: "Le nouveau mot de passe est requis" },
-              { min: 6, message: "Au moins 6 caractères" },
+              { min: 8, message: "Au moins 8 caractères" },
             ]}
           >
             <Input.Password prefix={<LockOutlined />} placeholder="Nouveau mot de passe" />
           </Form.Item>
 
           <Form.Item
-            name="confirmPassword"
+            name="confirmation"
             label="Confirmer le mot de passe"
             dependencies={["newPassword"]}
             rules={[
               { required: true, message: "Veuillez confirmer le mot de passe" },
               ({ getFieldValue }) => ({
-                validator(_: unknown, value: unknown) {
+                validator(_: unknown, value: string) {
                   if (!value || getFieldValue("newPassword") === value) {
                     return Promise.resolve();
                   }
@@ -82,7 +80,3 @@ export default function UpdatePassword() {
     </div>
   );
 }
-
-
-
-

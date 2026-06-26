@@ -1,22 +1,15 @@
 import { useState } from "react";
-import { Table, Tag, Button, Space, Input, Select, Tooltip, Modal } from "antd";
+import { Table, Tag, Button, Space, Input, Select, Tooltip } from "antd";
 import type { ColumnsType, TablePaginationConfig } from "antd/es/table";
 import {
-  DownloadOutlined,
-  MailOutlined,
-  TeamOutlined,
   SearchOutlined,
   CheckCircleOutlined,
-  CalendarOutlined,
 } from "@ant-design/icons";
 import useAppNotification from "@/hooks/ui/useAppNotification";
 import {
   useCalendarFormations,
-  useCalendarParticipants,
-  useSendInvitations,
 } from "@/hooks/formation/useCalendar";
 import { useUpdateInscriptionsOuvertes } from "@/hooks/formation/useFormations";
-import CalendarService from "@/services/formation/CalendarService";
 import type { CalendarFormation, CalendarFormationFilters } from "@/models/calendar";
 
 const ETAT_OPTIONS = [
@@ -29,45 +22,14 @@ const ETAT_OPTIONS = [
   "VISIBLE",
 ].map((v) => ({ label: v, value: v }));
 
-interface Props {
-  canSendInvitations: boolean;
-}
-
-/** Liste paginée des formations planifiées avec export .ics et invitations. */
-export default function CalendarFormationsTable({ canSendInvitations }: Readonly<Props>) {
+/** Liste paginée des formations planifiées avec enregistrement dans le catalogue. */
+export default function CalendarFormationsTable() {
   const { message } = useAppNotification();
   const [filters, setFilters] = useState<CalendarFormationFilters>({ page: 0, size: 10 });
   const [searchInput, setSearchInput] = useState("");
-  const [participantsFor, setParticipantsFor] = useState<CalendarFormation | null>(null);
-  const [downloadingId, setDownloadingId] = useState<number | null>(null);
 
   const { data, isLoading } = useCalendarFormations(filters);
-  const sendInvitations = useSendInvitations();
   const updateInscriptions = useUpdateInscriptionsOuvertes();
-
-  const handleDownload = async (formation: CalendarFormation) => {
-    setDownloadingId(formation.idFormation);
-    try {
-      await CalendarService.downloadIcsFormation(formation.idFormation);
-    } catch {
-      message.error("Échec du téléchargement du calendrier.");
-    } finally {
-      setDownloadingId(null);
-    }
-  };
-
-  const handleInvite = (formation: CalendarFormation) => {
-    sendInvitations.mutate(formation.idFormation, {
-      onSuccess: (result) => {
-        if (result.status === "NO_RECIPIENT") {
-          message.warning(result.message);
-        } else {
-          message.success(result.message);
-        }
-      },
-      onError: () => { message.error("Échec de l'envoi des invitations."); },
-    });
-  };
 
   const handleRegister = (formation: CalendarFormation) => {
     updateInscriptions.mutate(
@@ -94,57 +56,17 @@ export default function CalendarFormationsTable({ canSendInvitations }: Readonly
     { title: "Participants", dataIndex: "participantsCount", width: 110, align: "center" },
     {
       title: "Actions",
-      width: 250,
+      width: 100,
       render: (_, formation) => (
-        <Space>
-          <Tooltip title="Enregistrer dans le catalogue">
-            <Button
-              size="small"
-              type="primary"
-              icon={<CheckCircleOutlined />}
-              loading={updateInscriptions.isPending && updateInscriptions.variables?.id === formation.idFormation}
-              onClick={() => handleRegister(formation)}
-            />
-          </Tooltip>
-          <Tooltip title="Ajouter à Outlook / Google Calendar">
-            <Button
-              size="small"
-              icon={<CalendarOutlined />}
-              loading={downloadingId === formation.idFormation}
-              onClick={() => handleDownload(formation)}
-            />
-          </Tooltip>
-          <Tooltip title="Télécharger le .ics">
-            <Button
-              size="small"
-              icon={<DownloadOutlined />}
-              loading={downloadingId === formation.idFormation}
-              onClick={() => handleDownload(formation)}
-            />
-          </Tooltip>
-          <Tooltip title="Voir les participants">
-            <Button
-              size="small"
-              icon={<TeamOutlined />}
-              onClick={() => setParticipantsFor(formation)}
-            />
-          </Tooltip>
-          {canSendInvitations && (
-            <Tooltip title="Envoyer les invitations">
-              <Button
-                size="small"
-                type="primary"
-                ghost
-                icon={<MailOutlined />}
-                loading={
-                  sendInvitations.isPending &&
-                  sendInvitations.variables === formation.idFormation
-                }
-                onClick={() => handleInvite(formation)}
-              />
-            </Tooltip>
-          )}
-        </Space>
+        <Tooltip title="Enregistrer dans le catalogue">
+          <Button
+            size="small"
+            type="primary"
+            icon={<CheckCircleOutlined />}
+            loading={updateInscriptions.isPending && updateInscriptions.variables?.id === formation.idFormation}
+            onClick={() => handleRegister(formation)}
+          />
+        </Tooltip>
       ),
     },
   ];
@@ -192,49 +114,6 @@ export default function CalendarFormationsTable({ canSendInvitations }: Readonly
         pagination={pagination}
         scroll={{ x: "max-content" }}
       />
-
-      <Modal
-        open={!!participantsFor}
-        title={participantsFor ? `Participants — ${participantsFor.titre}` : ""}
-        footer={null}
-        width={640}
-        onCancel={() => setParticipantsFor(null)}
-      >
-        {participantsFor && <ParticipantsList formationId={participantsFor.idFormation} />}
-      </Modal>
     </Space>
-  );
-}
-
-function ParticipantsList({ formationId }: Readonly<{ formationId: number }>) {
-  const [page, setPage] = useState(0);
-  const { data, isLoading } = useCalendarParticipants(formationId, page, 10);
-
-  const columns: ColumnsType<{ email: string; matchedEnseignant: boolean }> = [
-    { title: "E-mail", dataIndex: "email" },
-    {
-      title: "Référencé",
-      dataIndex: "matchedEnseignant",
-      width: 140,
-      render: (matched: boolean) =>
-        matched ? <Tag color="success">Enseignant</Tag> : <Tag color="default">Externe</Tag>,
-    },
-  ];
-
-  return (
-    <Table
-      size="small"
-      rowKey="email"
-      loading={isLoading}
-      columns={columns}
-      dataSource={data?.content ?? []}
-      pagination={{
-        current: page + 1,
-        pageSize: 10,
-        total: data?.totalElements ?? 0,
-        onChange: (p) => setPage(p - 1),
-        hideOnSinglePage: true,
-      }}
-    />
   );
 }
