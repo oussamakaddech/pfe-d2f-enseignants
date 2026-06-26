@@ -19,7 +19,7 @@ import {
   useOverview, useDemandForecast,
   useAlertsSummary, useBulkUpdateAlerts,
   usePriorityActions, useBatchRecommendations,
-  useDriftStatus,
+  useDriftStatus, useSupplyDemand, useRiskDistribution,
 } from "@/hooks/analyse/useAnalysePredictive";
 import type { AnalyseData, DecliningCompetency, InDemandCompetency, TeacherRiskIndicator } from "@/models/analyse";
 import DashboardKpis from "@/components/charts/DashboardKpis";
@@ -37,6 +37,8 @@ import InactiveTeachersCard from "@/components/charts/InactiveTeachersCard";
 import PriorityAlertsPanel from "@/components/charts/PriorityAlertsPanel";
 import PriorityActionsQueue from "@/components/charts/PriorityActionsQueue";
 import CohortRecommendationPanel from "@/components/charts/CohortRecommendationPanel";
+import SupplyDemandChart from "@/components/charts/SupplyDemandChart";
+import RiskDistributionChart from "@/components/charts/RiskDistributionChart";
 import "@/styles/pages/analyse-predictive-page.css";
 
 const { Title, Text } = Typography;
@@ -104,6 +106,8 @@ export default function AnalysePredictivePage() {
   const { data: priorityActions, isLoading: actionsLoading } = usePriorityActions(20, actionsDeptFilter === "ALL" ? undefined : actionsDeptFilter);
   const batchRecommendationsMutation = useBatchRecommendations();
   const { data: driftData } = useDriftStatus();
+  const { data: supplyDemand, isLoading: supplyDemandLoading } = useSupplyDemand();
+  const { data: riskDistribution, isLoading: riskDistLoading } = useRiskDistribution();
 
   /* ── Local state (declared before useMemo to avoid TDZ) ── */
   const [riskThreshold, setRiskThreshold] = useState<number>(0.7);
@@ -301,6 +305,19 @@ export default function AnalysePredictivePage() {
           />
 
           <AnalyseSectionTitle
+            icon={<RiseOutlined />}
+            iconColor="#3b82f6"
+            iconBg="#eff6ff"
+            title="Matrice Offre vs Demande"
+            subtitle="Compétences triées par déficit d'offre (demande élevée / couverture faible = à investir)"
+          />
+          <div className="analyse-block">
+            <Card variant="borderless" title={<span><RiseOutlined /> Offre/Demande par compétence</span>}>
+              <SupplyDemandChart data={supplyDemand} loading={supplyDemandLoading} />
+            </Card>
+          </div>
+
+          <AnalyseSectionTitle
             icon={<FireOutlined />}
             iconColor="#ef4444"
             iconBg="#fef2f2"
@@ -410,7 +427,7 @@ export default function AnalysePredictivePage() {
               title={<span><DashboardOutlined /> Cartographie des écarts</span>}
               extra={<Text type="secondary">Gap moyen (0–5) — plus c'est rouge, plus l'écart est fort</Text>}
             >
-              <GapHeatmap data={gapHeatmap} />
+              <GapHeatmap data={gapHeatmap} onAnalyzeTeacher={handleAnalyzeFromTable} />
             </Card>
           </div>
 
@@ -503,6 +520,19 @@ export default function AnalysePredictivePage() {
               </div>
             </Col>
           </Row>
+
+          <AnalyseSectionTitle
+            icon={<DashboardOutlined />}
+            iconColor="#b51200"
+            iconBg="#fff0ee"
+            title="Distribution du Risque"
+            subtitle="Histogramme + répartition par niveau + départements les plus exposés"
+          />
+          <div className="analyse-block">
+            <Card variant="borderless" title={<span><DashboardOutlined /> Analyse de la distribution</span>}>
+              <RiskDistributionChart data={riskDistribution} loading={riskDistLoading} />
+            </Card>
+          </div>
         </Spin>
       ),
     },
