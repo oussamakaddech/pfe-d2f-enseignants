@@ -509,6 +509,7 @@ services:
       RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
       # DSI §1.1+§10 — CORS externalisé (production = domaine interne DSI)
       CORS_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:5173,http://localhost:3000}
+      MODELS_DIR: /tmp/models
     depends_on:
       postgres:
         condition: service_healthy
