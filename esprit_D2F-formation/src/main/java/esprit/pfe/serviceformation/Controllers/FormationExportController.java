@@ -14,7 +14,7 @@ import lombok.RequiredArgsConstructor;
 import java.util.List;
 
 /**
- * Contrôleur d'export : .ics (iCalendar) et Excel des besoins par séance.
+ * Contrôleur d'export : .ics (iCalendar) et CSV des besoins par séance.
  */
 @RestController
 @RequestMapping("/api/v1/exports")
@@ -44,9 +44,9 @@ public class FormationExportController {
                 .body(icsContent);
     }
 
-    /** Export Excel des formations filtrées par période / département / UP */
-    @GetMapping(value = "/formations/excel", produces = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
-    public ResponseEntity<byte[]> exportFormationsExcel(
+    /** Export CSV des formations filtrées par période / département / UP */
+    @GetMapping(value = "/formations/csv", produces = "text/csv")
+    public ResponseEntity<byte[]> exportFormationsCsv(
             @RequestParam(required = false) String start,
             @RequestParam(required = false) String end,
             @RequestParam(required = false) String deptId,
@@ -54,7 +54,7 @@ public class FormationExportController {
     ) {
         List<FormationResponseDTO> formations = filterFormations(start, end, deptId, upId);
 
-        // Generate CSV-like content (simple Excel export)
+        // Generate CSV content (simple CSV export)
         StringBuilder sb = new StringBuilder();
         sb.append("ID;Titre;Type;État;Date Début;Date Fin;Coût;Charge Horaire;Département;UP\n");
         for (FormationResponseDTO f : formations) {
@@ -73,7 +73,7 @@ public class FormationExportController {
         byte[] bytes = sb.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8);
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=formations-export.csv")
-                .contentType(MediaType.parseMediaType("text/csv"))
+                .contentType(MediaType.parseMediaType("text/csv; charset=UTF-8"))
                 .body(bytes);
     }
 
