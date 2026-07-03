@@ -23,7 +23,7 @@ export function useDashboardSummary() {
 export function useTrainModel() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: () => AnalysePredictiveService.trainModel(),
+    mutationFn: () => AnalysePredictiveService.retrainModel(),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["analyse"] }),
   });
 }

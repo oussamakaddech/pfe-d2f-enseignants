@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import AnalyticsService from "@/services/analyse/AnalyticsService";
 import type {
   AnalyseResult, GapsResponse, RecommendationsResponse, TrainingPath,
@@ -9,6 +9,7 @@ interface GapParams   { urgence?: string; page: number }
 interface RecoParams  { competenceId?: number; page: number }
 
 export function useAnalytics(enseignantId: string) {
+  const qc = useQueryClient();
   const [gapParams,           setGapParams]           = useState<GapParams | null>(null);
   const [recoParams,          setRecoParams]          = useState<RecoParams | null>(null);
   const [trainingCompetenceId, setTrainingCompetenceId] = useState<number | null>(null);
@@ -60,6 +61,16 @@ export function useAnalytics(enseignantId: string) {
     setTrainingCompetenceId(competenceId);
   }, [enseignantId]);
 
+  const updateRecoStatus = useMutation({
+    mutationFn: ({ recommendationId, statut }: { recommendationId: number; statut: "ACCEPTEE" | "IGNOREE" }) =>
+      AnalyticsService.updateRecommendationStatus(recommendationId, statut),
+    onSuccess: () => {
+      if (enseignantId) {
+        qc.invalidateQueries({ queryKey: ["recommendations", enseignantId] });
+      }
+    },
+  });
+
   let error: string | null = null;
   if (analysisMutation.isError) {
     error = (analysisMutation.error as { response?: { data?: { message?: string } } })?.response?.data?.message || "Erreur lors de l'analyse";
@@ -83,6 +94,8 @@ export function useAnalytics(enseignantId: string) {
     fetchGaps,
     fetchRecommendations,
     fetchTrainingPath,
+    updateRecoStatus: updateRecoStatus.mutateAsync,
+    updatingReco: updateRecoStatus.isPending,
   };
 }
 

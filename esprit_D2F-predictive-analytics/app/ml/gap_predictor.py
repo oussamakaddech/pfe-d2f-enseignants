@@ -1,4 +1,14 @@
-"""Competency Gap Predictor using Gradient Boosting (local scikit-learn)."""
+"""Competency Gap Predictor with automatic model selection.
+
+Tests 4 algorithmes — GradientBoosting (sklearn), XGBoost, LightGBM, MLP
+(deep learning) — et sélectionne automatiquement le meilleur via
+cross-validation RMSE. Le modèle choisi est persisté avec son nom pour
+la reproductibilité.
+
+Innovation : ajout du MLP (Multi-Layer Perceptron) comme 4ème candidat,
+permettant de comparer les modèles à base d'arbres avec un réseau de
+neurones simple pour les données tabulaires du domaine éducatif.
+"""
 
 import logging
 import os
@@ -40,6 +50,94 @@ FEATURE_COLS = [
     "avg_eval_score", "nb_evaluations", "days_since_last_training",
     "engagement_score",
 ]
+
+
+# ── Model selection — candidate models with lazy import ─────
+
+def _build_candidate_models() -> list[tuple[str, Any]]:
+    """Construit la liste des modèles candidats (disponibilité auto-détectée).
+
+    Retourne une liste de (nom, instance) pour chaque algorithme
+    installé. Les imports sont retardés pour ne pas planter si une
+    bibliothèque est absente.
+    """
+    candidates: list[tuple[str, Any]] = []
+
+    # 1. GradientBoosting (toujours disponible via sklearn)
+    candidates.append(("gradient_boosting", GradientBoostingRegressor(
+        n_estimators=200, max_depth=5, learning_rate=0.1,
+        subsample=0.8, random_state=42,
+    )))
+
+    # 2. XGBoost (optionnel)
+    try:
+        from xgboost import XGBRegressor
+        candidates.append(("xgboost", XGBRegressor(
+            n_estimators=200, max_depth=5, learning_rate=0.1,
+            subsample=0.8, random_state=42,
+            verbosity=0, n_jobs=-1,
+        )))
+    except ImportError:
+        logger.info("XGBoost non installé — skip du candidat xgboost")
+
+    # 3. LightGBM (optionnel)
+    try:
+        from lightgbm import LGBMRegressor
+        candidates.append(("lightgbm", LGBMRegressor(
+            n_estimators=200, max_depth=5, learning_rate=0.1,
+            subsample=0.8, random_state=42,
+            verbose=-1, n_jobs=-1,
+        )))
+    except ImportError:
+        logger.info("LightGBM non installé — skip du candidat lightgbm")
+
+    # 4. MLP — Deep Learning (sklearn)
+    try:
+        from app.ml.deep_learning import build_mlp_pipeline
+        candidates.append(("mlp", build_mlp_pipeline()))
+    except Exception as e:
+        logger.info("MLP non disponible — skip du candidat mlp: %s", e)
+
+    return candidates
+
+
+def _select_best_model(
+    X_train: np.ndarray,
+    y_train: np.ndarray,
+    cv_folds: int,
+) -> tuple[str, Any, dict[str, float]]:
+    """Compare les candidats par CV-RMSE et retourne le meilleur.
+
+    Retourne (nom_du_meilleur, instance_entrainée, {nom: cv_rmse}).
+    """
+    candidates = _build_candidate_models()
+    results: dict[str, float] = {}
+    best_name = ""
+    best_score = float("inf")
+    best_model = None
+
+    for name, model in candidates:
+        try:
+            cv_scores = cross_val_score(
+                model, X_train, y_train,
+                cv=cv_folds, scoring="neg_root_mean_squared_error",
+            )
+            cv_rmse = -cv_scores.mean()
+            results[name] = round(cv_rmse, 4)
+            logger.info("Model %s — CV RMSE: %.4f", name, cv_rmse)
+            if cv_rmse < best_score:
+                best_score = cv_rmse
+                best_name = name
+                best_model = model
+        except Exception as e:
+            logger.warning("Model %s failed CV: %s — skipped", name, e)
+            results[name] = float("inf")
+
+    if best_model is None:
+        raise InsufficientDataError("Aucun modèle candidat n'a pu être entraîné.")
+
+    logger.info("Model selection winner: %s (CV RMSE=%.4f)", best_name, best_score)
+    return best_name, best_model, results
 
 
 def _compare_importances(
@@ -86,13 +184,20 @@ def _check_model_age(meta: dict) -> tuple[bool, str | None, int | None]:
 
 
 class GapPredictor:
-    """Predicts future competency gaps for teachers using Gradient Boosting."""
+    """Predicts future competency gaps using automatic model selection.
+
+    Tests GradientBoosting, XGBoost, LightGBM and selects the best
+    via cross-validation RMSE. The selected model is persisted with
+    its name for reproducibility.
+    """
 
     def __init__(self):
-        self.model: GradientBoostingRegressor | None = None
+        self.model: Any = None
+        self.model_name: str = "gradient_boosting"
         self.feature_importances: dict[str, float] | None = None
         self.feature_ranges: dict[str, dict[str, float]] | None = None
         self.last_metrics: dict[str, Any] | None = None
+        self._candidate_cv_scores: dict[str, float] = {}
         self._load_model()
 
     @property
@@ -147,6 +252,8 @@ class GapPredictor:
             return
         self.feature_ranges = meta.get("feature_ranges") or None
         self.feature_importances = meta.get("feature_importances") or None
+        self.model_name = meta.get("model_name", "gradient_boosting")
+        self._candidate_cv_scores = meta.get("candidate_cv_scores", {})
         if meta.get("metrics"):
             self.last_metrics = dict(meta["metrics"])
 
@@ -169,6 +276,8 @@ class GapPredictor:
                 "feature_cols": FEATURE_COLS,
                 "cv_folds": settings.cv_folds,
                 "min_training_samples": settings.min_training_samples,
+                "model_name": self.model_name,
+                "candidate_cv_scores": self._candidate_cv_scores,
             }
             if self.feature_importances:
                 meta["feature_importances"] = self.feature_importances
@@ -300,12 +409,9 @@ class GapPredictor:
             X, y, test_size=0.2, random_state=42
         )
 
-        self.model = GradientBoostingRegressor(
-            n_estimators=200,
-            max_depth=5,
-            learning_rate=0.1,
-            subsample=0.8,
-            random_state=42,
+        # ── Automatic model selection ──────────────────────────
+        self.model_name, self.model, self._candidate_cv_scores = _select_best_model(
+            X_train, y_train, settings.cv_folds,
         )
         self.model.fit(X_train, y_train)
 
@@ -330,6 +436,8 @@ class GapPredictor:
             "test_rmse": round(test_rmse, 3),
             "n_samples": len(df_train),
             "feature_importances": self.feature_importances,
+            "model_name": self.model_name,
+            "candidate_cv_scores": self._candidate_cv_scores,
         }
 
         self._save_model()

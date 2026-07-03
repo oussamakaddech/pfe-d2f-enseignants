@@ -34,6 +34,7 @@ export default function TeacherAnalyticsPage() {
   const {
     loading, analysing, gaps, recommendations, trainingPath, analyseResult, error,
     runAnalysis, fetchGaps, fetchRecommendations, fetchTrainingPath,
+    updateRecoStatus, updatingReco,
   } = useAnalytics(activeId);
 
   function handleSearch() {
@@ -100,7 +101,12 @@ export default function TeacherAnalyticsPage() {
             <Row gutter={[16, 16]}>
               {recommendations.recommendations.map((r, i) => (
                 <Col key={r.id} xs={24} sm={12} lg={8}>
-                  <RecommendationCard recommendation={r} rank={i + 1} />
+                  <RecommendationCard
+                    recommendation={r}
+                    rank={i + 1}
+                    onStatusChange={(id, statut) => updateRecoStatus({ recommendationId: id, statut })}
+                    updating={updatingReco}
+                  />
                 </Col>
               ))}
             </Row>

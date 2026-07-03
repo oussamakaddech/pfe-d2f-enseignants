@@ -390,6 +390,37 @@ async def get_training_path(
     }
 
 
+# ── PATCH /api/v1/analytics/recommendations/{id}/status ──────
+_VALID_RECO_STATUTS = {"PROPOSEE", "ACCEPTEE", "IGNOREE", "OBSOLETE"}
+_RecoStatutParam = Annotated[str, Query(description="PROPOSEE|ACCEPTEE|IGNOREE|OBSOLETE")]
+
+
+@router.patch(
+    "/recommendations/{recommendation_id}/status",
+    summary="Accepter ou rejeter une recommandation",
+    responses={
+        400: {"description": "Statut invalide"},
+        404: {"description": "Recommandation introuvable"},
+    },
+)
+async def update_recommendation_status(
+    recommendation_id: int,
+    db: DbSession,
+    statut: _RecoStatutParam = ...,
+) -> dict[str, Any]:
+    statut_norm = statut.upper()
+    if statut_norm not in _VALID_RECO_STATUTS:
+        raise HTTPException(status_code=400, detail={"message": f"Statut invalide: {statut}"})
+
+    reco = db.query(Recommendation).filter_by(id=recommendation_id).first()
+    if not reco:
+        raise HTTPException(status_code=404, detail={"message": f"Recommandation {recommendation_id} introuvable"})
+
+    reco.statut = statut_norm
+    db.commit()
+    return {"id": recommendation_id, "statut": reco.statut, "formation_titre": reco.formation_titre}
+
+
 # ── GET /api/v1/analytics/alerts ─────────────────────────────
 @router.get("/alerts", summary="Liste des alertes (ADMIN/CUP)")
 async def get_alerts(
@@ -568,6 +599,23 @@ async def admin_retrain(auth: AdminAuth, db: DbSession) -> dict[str, Any]:
     from app.services.model_trainer import retrain_with_rollback
 
     return retrain_with_rollback(db, triggered_by=auth.get("user_id"))
+
+
+# ── POST /api/v1/analytics/admin/incremental-update ──────────
+@router.post(
+    "/admin/incremental-update",
+    summary="Mise à jour incrémentale du modèle (ADMIN) — warm start",
+)
+async def admin_incremental_update(auth: AdminAuth, db: DbSession) -> dict[str, Any]:
+    """Mise à jour incrémentale via warm start (60-80% plus rapide).
+
+    Ajoute de nouvelles données au modèle existant sans ré-entraîner
+    de zéro. Compatible GradientBoosting (warm_start), XGBoost (xgb_model),
+    LightGBM (init_model). Rollback automatique si régression.
+    """
+    from app.services.model_trainer import incremental_update
+
+    return incremental_update(db, triggered_by=auth.get("user_id"))
 
 
 # ── GET /api/v1/analytics/admin/retraining-log ───────────────

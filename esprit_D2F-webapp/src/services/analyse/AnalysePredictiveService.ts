@@ -131,10 +131,23 @@ const AnalysePredictiveService = {
 
   // ── Detection ──────────────────────────────────
   async getAtRiskTeachers(threshold = 0.7): Promise<TeacherRiskIndicator[]> {
-    const res = await axios.get(`${PREDICTIVE_API}/detect/at-risk-teachers`, {
+    const res = await axios.get<{ teachers: Array<{
+      teacher_id: string; teacher_name: string; email: string;
+      department?: string; risk_score: number; risk_factors: string[];
+      top_gaps: unknown[]; last_training_date?: string; engagement_score: number;
+    }> }>(`${PREDICTIVE_API}/detect/at-risk-teachers`, {
       params: { threshold },
     });
-    return res.data;
+    return (res.data.teachers || []).map((t) => ({
+      teacher_id: t.teacher_id,
+      teacher_name: t.teacher_name,
+      attrition_risk_score: t.risk_score,
+      disengagement_signals: t.risk_factors,
+      competency_stagnation_rate: 1.0 - t.engagement_score,
+      training_velocity: 0,
+      recommendation: t.risk_score >= 0.7 ? "Proposer formation" : "OK",
+      departement: t.department,
+    }));
   },
 
   // ── Dashboard ──────────────────────────────────

@@ -17,6 +17,7 @@ from app.models.schemas import (
     PathRecommendationResponse,
 )
 from app.ml.gap_predictor import gap_predictor
+from app.models.db_models import TrainingPath, TrainingPathItem
 from app.services.data_service import DataService
 
 router = APIRouter()
@@ -251,7 +252,11 @@ async def recommend_path(
     request: PathRecommendationRequest,
     db: DBSession,
 ) -> PathRecommendationResponse:
-    """Recommend a personalized training path for a teacher to reach a target competency."""
+    """Recommend a personalized training path for a teacher to reach a target competency.
+
+    The computed path is persisted as a TrainingPath + TrainingPathItems
+    so it can be retrieved later via GET /training-path/{id}/{competence_id}.
+    """
     data = DataService(db)
     formations = data.get_formation_competencies()
     prereqs = data.get_prerequisite_graph()
@@ -275,6 +280,57 @@ async def recommend_path(
 
     total_hours = sum(s["estimated_duration_hours"] for s in path)
     overall_prob = path[-1]["success_probability"] if path else 0.0
+
+    # ── Persistence ──────────────────────────────────────────
+    # Look up the competency name from prerequisite data or formations.
+    comp_nom = next(
+        (p["prereq_name"] for p in prereqs if p.get("target_id") == request.target_competency_id),
+        f"Compétence {request.target_competency_id}",
+    )
+
+    # Deactivate previous active path for same teacher+competency.
+    previous = (
+        db.query(TrainingPath)
+        .filter_by(
+            enseignant_id=request.teacher_id,
+            competence_id=request.target_competency_id,
+            statut="ACTIF",
+        )
+        .all()
+    )
+    for p in previous:
+        p.statut = "ARCHIVE"
+
+    tp = TrainingPath(
+        enseignant_id=request.teacher_id,
+        competence_id=request.target_competency_id,
+        competence_nom=comp_nom,
+        niveau_depart=current_level,
+        niveau_vise=request.target_level,
+        nb_formations=len(path),
+        duree_totale_heures=round(total_hours, 1),
+        probabilite_reussite_globale=round(overall_prob, 2),
+        statut="ACTIF",
+    )
+    db.add(tp)
+    db.flush()
+
+    for step in path:
+        db.add(TrainingPathItem(
+            training_path_id=tp.id,
+            rang=step["step_number"],
+            formation_id=step["formation_id"],
+            formation_titre=step["formation_title"],
+            duree_heures=step["estimated_duration_hours"],
+            niveau_avant=current_level,
+            niveau_apres=min(current_level + step["step_number"], request.target_level),
+            est_obligatoire=True,
+            prerequis_satisfaits=len(step.get("missing_prerequisites", [])) == 0,
+            deja_suivie=False,
+            score_formation=step["success_probability"],
+            justification=f"Probabilité de réussite: {step['success_probability']:.0%}",
+        ))
+    db.commit()
 
     return PathRecommendationResponse(
         teacher_id=request.teacher_id,

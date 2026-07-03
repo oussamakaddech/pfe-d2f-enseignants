@@ -83,6 +83,20 @@ const AnalyticsService = {
     return res.data;
   },
 
+  // ── Recommandations — gestion du statut ────────────────
+
+  async updateRecommendationStatus(
+    recommendationId: number,
+    statut: "ACCEPTEE" | "IGNOREE",
+  ): Promise<{ id: number; statut: string; formation_titre: string }> {
+    const res = await axios.patch<{ id: number; statut: string; formation_titre: string }>(
+      `${BASE}/recommendations/${recommendationId}/status`,
+      null,
+      { params: { statut } },
+    );
+    return res.data;
+  },
+
   // ── Reporting descriptif (features 1-4) ───────────────
 
   async getEnseignantsSansFormation(

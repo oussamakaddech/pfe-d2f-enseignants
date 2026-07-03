@@ -1,6 +1,6 @@
 import { memo } from "react";
-import { Card, Space, Typography, Tag, Tooltip } from "antd";
-import { BookOutlined, CheckCircleOutlined } from "@ant-design/icons";
+import { Card, Space, Typography, Tag, Tooltip, Button } from "antd";
+import { BookOutlined, CheckCircleOutlined, CheckOutlined, CloseOutlined } from "@ant-design/icons";
 import type { Recommendation } from "@/models/analyse";
 import PredictionScoreBar from "./PredictionScoreBar";
 
@@ -15,9 +15,13 @@ const TYPE_COLOR: Record<string, string> = {
 interface RecommendationCardProps {
   readonly recommendation: Recommendation;
   readonly rank?:          number;
+  readonly onStatusChange?: (id: number, statut: "ACCEPTEE" | "IGNOREE") => void;
+  readonly updating?:      boolean;
 }
 
-const RecommendationCard = memo(function RecommendationCard({ recommendation: r, rank }: RecommendationCardProps) {
+const RecommendationCard = memo(function RecommendationCard({ recommendation: r, rank, onStatusChange, updating }: RecommendationCardProps) {
+  const isProposed = r.statut === "PROPOSEE";
+
   return (
     <Card
       size="small"
@@ -26,7 +30,10 @@ const RecommendationCard = memo(function RecommendationCard({ recommendation: r,
         background: "rgba(255,255,255,0.92)",
         backdropFilter: "blur(8px)",
         boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
-        borderLeft: "4px solid #b51200",
+        borderLeft: r.statut === "ACCEPTEE" ? "4px solid #10b981"
+          : r.statut === "IGNOREE" ? "4px solid #d9d9d9"
+          : "4px solid #b51200",
+        opacity: r.statut === "IGNOREE" ? 0.6 : 1,
       }}
     >
       <Space direction="vertical" style={{ width: "100%" }} size={6}>
@@ -36,21 +43,26 @@ const RecommendationCard = memo(function RecommendationCard({ recommendation: r,
             {rank && (
               <div style={{
                 width: 28, height: 28, borderRadius: "50%",
-                background: "#b51200", color: "#fff",
+                background: r.statut === "ACCEPTEE" ? "#10b981" : "#b51200",
+                color: "#fff",
                 display: "flex", alignItems: "center", justifyContent: "center",
                 fontSize: 13, fontWeight: 700, flexShrink: 0,
               }}>
                 {rank}
               </div>
             )}
-            <BookOutlined style={{ color: "#b51200" }} />
+            <BookOutlined style={{ color: r.statut === "ACCEPTEE" ? "#10b981" : "#b51200" }} />
             <Text strong style={{ fontSize: 13 }}>{r.formation_titre}</Text>
           </Space>
-          {r.formation_type && (
-            <Tag color={TYPE_COLOR[r.formation_type] ?? "default"} style={{ margin: 0 }}>
-              {r.formation_type}
-            </Tag>
-          )}
+          <Space size={4}>
+            {r.statut === "ACCEPTEE" && <Tag color="green">Acceptée</Tag>}
+            {r.statut === "IGNOREE" && <Tag>Ignorée</Tag>}
+            {r.formation_type && (
+              <Tag color={TYPE_COLOR[r.formation_type] ?? "default"} style={{ margin: 0 }}>
+                {r.formation_type}
+              </Tag>
+            )}
+          </Space>
         </Space>
 
         {/* Score global */}
@@ -89,6 +101,30 @@ const RecommendationCard = memo(function RecommendationCard({ recommendation: r,
           >
             {r.justification}
           </Paragraph>
+        )}
+
+        {/* Boutons accepter/rejeter */}
+        {isProposed && onStatusChange && (
+          <Space style={{ width: "100%", justifyContent: "flex-end", marginTop: 4 }} size={8}>
+            <Button
+              size="small"
+              icon={<CloseOutlined />}
+              onClick={() => onStatusChange(r.id, "IGNOREE")}
+              disabled={updating}
+            >
+              Ignorer
+            </Button>
+            <Button
+              type="primary"
+              size="small"
+              icon={<CheckOutlined />}
+              onClick={() => onStatusChange(r.id, "ACCEPTEE")}
+              disabled={updating}
+              style={{ background: "#10b981", borderColor: "#10b981" }}
+            >
+              Accepter
+            </Button>
+          </Space>
         )}
       </Space>
     </Card>
