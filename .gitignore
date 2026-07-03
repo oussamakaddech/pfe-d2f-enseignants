@@ -55,3 +55,30 @@ _allfiles.txt
 
 # ── Rapport PFE ────────────────────────────────────────────────────────────────
 rapport-pfe/
+
+# ── SonarQube / Coverage artefacts ─────────────────────────────────────────────
+**/.scannerwork/
+**/coverage/
+**/coverage.xml
+**/.coverage
+**/coverage_output.txt
+**/cov_*.txt
+**/junit-results.xml
+**/qg.json
+**/ct.json
+**/m.json
+**/nh.json
+**/nv.json
+**/test_fiche_tv.txt
+**/test_rice_fiche.py
+**/referentiel_extracted.json
+**/exemple_web.txt
+
+# ── Scripts temporaires ────────────────────────────────────────────────────────
+check_counts.sql
+check_dashboard.py
+git_commit.ps1
+run_batch_analysis.py
+run_single_analysis.py
+train_model.py
+resume_classes_relations.md

@@ -23,12 +23,23 @@ import java.util.stream.Collectors;
 public class ExportExcelService {
     private final FormationWorkflowService formationWorkflowService;
 
-    private static final short COLOR_DARK_BLUE = 0x1F4E79;
-    private static final short COLOR_LIGHT_BLUE = 0xBDD7EE;
-    private static final short COLOR_DATE_BG = 0xDAE3F3;
-    private static final short COLOR_ALT_ROW = 0xDEEAF1;
-    private static final short COLOR_BORDER = 0xB8CCE4;
-    private static final short COLOR_HEADER_BORDER = 0x2E75B6;
+    private static final short COLOR_DARK_BLUE = (short) 0x1F4E79;
+    private static final short COLOR_LIGHT_BLUE = (short) 0xBDD7EE;
+    private static final short COLOR_DATE_BG = (short) 0xDAE3F3;
+    private static final short COLOR_ALT_ROW = (short) 0xDEEAF1;
+    private static final short COLOR_BORDER = (short) 0xB8CCE4;
+    private static final short COLOR_HEADER_BORDER = (short) 0x2E75B6;
+
+    private void setAllBorders(CellStyle style, BorderStyle borderStyle, short color) {
+        style.setBorderTop(borderStyle);
+        style.setTopBorderColor(color);
+        style.setBorderBottom(borderStyle);
+        style.setBottomBorderColor(color);
+        style.setBorderLeft(borderStyle);
+        style.setLeftBorderColor(color);
+        style.setBorderRight(borderStyle);
+        style.setRightBorderColor(color);
+    }
 
     public ByteArrayOutputStream exportFormationsAvance(Date startDate, Date endDate) throws IOException {
         List<FormationResponseDTO> formations = formationWorkflowService.getAllFormationWorkflows();
@@ -430,7 +441,7 @@ public class ExportExcelService {
             printSetup.setLandscape(true);
             printSetup.setFitWidth((short) 1);
             printSetup.setFitHeight((short) 0);
-            printSetup.setOrientation(org.apache.poi.xssf.usermodel.XSSFPrintSetup.LANDSCAPE);
+            printSetup.setOrientation(org.apache.poi.ss.usermodel.PrintOrientation.LANDSCAPE);
 
             sheet.setRepeatingRows(new CellRangeAddress(0, 2, 0, 6));
 
@@ -438,7 +449,7 @@ public class ExportExcelService {
             header.setCenter("Calendrier des Formations");
 
             Footer footer = sheet.getFooter();
-            footer.setRight("Page " + Footer.page() + " of " + Footer.numPages());
+            footer.setRight("Page &[Page] of &[Pages]");
         }
     }
 
@@ -465,10 +476,7 @@ public class ExportExcelService {
         style.setFillForegroundColor(COLOR_DARK_BLUE);
         style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
         style.setWrapText(true);
-        style.setBorderTop(BorderStyle.MEDIUM, COLOR_HEADER_BORDER);
-        style.setBorderBottom(BorderStyle.MEDIUM, COLOR_HEADER_BORDER);
-        style.setBorderLeft(BorderStyle.MEDIUM, COLOR_HEADER_BORDER);
-        style.setBorderRight(BorderStyle.MEDIUM, COLOR_HEADER_BORDER);
+        setAllBorders(style, BorderStyle.MEDIUM, COLOR_HEADER_BORDER);
         return style;
     }
 
@@ -483,10 +491,7 @@ public class ExportExcelService {
         style.setFillForegroundColor(COLOR_LIGHT_BLUE);
         style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
         style.setWrapText(true);
-        style.setBorderTop(BorderStyle.MEDIUM, COLOR_HEADER_BORDER);
-        style.setBorderBottom(BorderStyle.MEDIUM, COLOR_HEADER_BORDER);
-        style.setBorderLeft(BorderStyle.MEDIUM, COLOR_HEADER_BORDER);
-        style.setBorderRight(BorderStyle.MEDIUM, COLOR_HEADER_BORDER);
+        setAllBorders(style, BorderStyle.MEDIUM, COLOR_HEADER_BORDER);
         return style;
     }
 
@@ -502,10 +507,7 @@ public class ExportExcelService {
         style.setFillForegroundColor(COLOR_DARK_BLUE);
         style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
         style.setWrapText(true);
-        style.setBorderTop(BorderStyle.MEDIUM, COLOR_HEADER_BORDER);
-        style.setBorderBottom(BorderStyle.MEDIUM, COLOR_HEADER_BORDER);
-        style.setBorderLeft(BorderStyle.MEDIUM, COLOR_HEADER_BORDER);
-        style.setBorderRight(BorderStyle.MEDIUM, COLOR_HEADER_BORDER);
+        setAllBorders(style, BorderStyle.MEDIUM, COLOR_HEADER_BORDER);
         return style;
     }
 
@@ -520,10 +522,7 @@ public class ExportExcelService {
         style.setFillForegroundColor(COLOR_LIGHT_BLUE);
         style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
         style.setWrapText(true);
-        style.setBorderTop(BorderStyle.MEDIUM, COLOR_HEADER_BORDER);
-        style.setBorderBottom(BorderStyle.MEDIUM, COLOR_HEADER_BORDER);
-        style.setBorderLeft(BorderStyle.MEDIUM, COLOR_HEADER_BORDER);
-        style.setBorderRight(BorderStyle.MEDIUM, COLOR_HEADER_BORDER);
+        setAllBorders(style, BorderStyle.MEDIUM, COLOR_HEADER_BORDER);
         return style;
     }
 
@@ -537,10 +536,7 @@ public class ExportExcelService {
         style.setVerticalAlignment(VerticalAlignment.CENTER);
         style.setFillForegroundColor(COLOR_ALT_ROW);
         style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
-        style.setBorderTop(BorderStyle.THIN, COLOR_BORDER);
-        style.setBorderBottom(BorderStyle.THIN, COLOR_BORDER);
-        style.setBorderLeft(BorderStyle.THIN, COLOR_BORDER);
-        style.setBorderRight(BorderStyle.THIN, COLOR_BORDER);
+        setAllBorders(style, BorderStyle.THIN, COLOR_BORDER);
         return style;
     }
 
@@ -556,10 +552,7 @@ public class ExportExcelService {
         style.setAlignment(HorizontalAlignment.CENTER);
         style.setVerticalAlignment(VerticalAlignment.CENTER);
         style.setWrapText(true);
-        style.setBorderTop(BorderStyle.MEDIUM, COLOR_HEADER_BORDER);
-        style.setBorderBottom(BorderStyle.MEDIUM, COLOR_HEADER_BORDER);
-        style.setBorderLeft(BorderStyle.MEDIUM, COLOR_HEADER_BORDER);
-        style.setBorderRight(BorderStyle.MEDIUM, COLOR_HEADER_BORDER);
+        setAllBorders(style, BorderStyle.MEDIUM, COLOR_HEADER_BORDER);
         return style;
     }
 
@@ -573,10 +566,7 @@ public class ExportExcelService {
         style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
         style.setAlignment(HorizontalAlignment.CENTER);
         style.setVerticalAlignment(VerticalAlignment.CENTER);
-        style.setBorderTop(BorderStyle.THIN, COLOR_BORDER);
-        style.setBorderBottom(BorderStyle.THIN, COLOR_BORDER);
-        style.setBorderLeft(BorderStyle.THIN, COLOR_BORDER);
-        style.setBorderRight(BorderStyle.THIN, COLOR_BORDER);
+        setAllBorders(style, BorderStyle.THIN, COLOR_BORDER);
         return style;
     }
 
@@ -599,10 +589,7 @@ public class ExportExcelService {
         style.setAlignment(HorizontalAlignment.LEFT);
         style.setVerticalAlignment(VerticalAlignment.CENTER);
         style.setWrapText(true);
-        style.setBorderTop(BorderStyle.THIN, COLOR_BORDER);
-        style.setBorderBottom(BorderStyle.THIN, COLOR_BORDER);
-        style.setBorderLeft(BorderStyle.THIN, COLOR_BORDER);
-        style.setBorderRight(BorderStyle.THIN, COLOR_BORDER);
+        setAllBorders(style, BorderStyle.THIN, COLOR_BORDER);
         return style;
     }
 
@@ -616,10 +603,7 @@ public class ExportExcelService {
         style.setAlignment(HorizontalAlignment.LEFT);
         style.setVerticalAlignment(VerticalAlignment.CENTER);
         style.setWrapText(true);
-        style.setBorderTop(BorderStyle.THIN, COLOR_BORDER);
-        style.setBorderBottom(BorderStyle.THIN, COLOR_BORDER);
-        style.setBorderLeft(BorderStyle.THIN, COLOR_BORDER);
-        style.setBorderRight(BorderStyle.THIN, COLOR_BORDER);
+        setAllBorders(style, BorderStyle.THIN, COLOR_BORDER);
         return style;
     }
 
@@ -633,10 +617,7 @@ public class ExportExcelService {
         style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
         style.setAlignment(HorizontalAlignment.LEFT);
         style.setVerticalAlignment(VerticalAlignment.CENTER);
-        style.setBorderTop(BorderStyle.MEDIUM, COLOR_HEADER_BORDER);
-        style.setBorderBottom(BorderStyle.MEDIUM, COLOR_HEADER_BORDER);
-        style.setBorderLeft(BorderStyle.MEDIUM, COLOR_HEADER_BORDER);
-        style.setBorderRight(BorderStyle.MEDIUM, COLOR_HEADER_BORDER);
+        setAllBorders(style, BorderStyle.MEDIUM, COLOR_HEADER_BORDER);
         return style;
     }
 

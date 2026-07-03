@@ -51,14 +51,16 @@ export default defineConfig({
     chunkSizeWarningLimit: 1000,
     rollupOptions: {
       output: {
-        manualChunks: {
-          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
-          'vendor-antd': ['antd', '@ant-design/icons', '@ant-design/v5-patch-for-react-19'],
-          'vendor-chart': ['chart.js', 'react-chartjs-2', 'chartjs-plugin-datalabels'],
-          'vendor-xlsx': ['xlsx'],
-          'vendor-pdf': ['jspdf', 'jspdf-autotable', 'pdf-lib'],
-          'vendor-calendar': ['@fullcalendar/core', '@fullcalendar/daygrid', '@fullcalendar/react'],
-          'vendor-animation': ['framer-motion'],
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            if (id.includes('antd') || id.includes('@ant-design')) return 'vendor-antd';
+            if (id.includes('react-dom') || id.includes('react-router') || id.match(/node_modules[\\/]react[\\/]/)) return 'vendor-react';
+            if (id.includes('chart.js') || id.includes('react-chartjs') || id.includes('chartjs-plugin-datalabels')) return 'vendor-chart';
+            if (id.includes('xlsx')) return 'vendor-xlsx';
+            if (id.includes('jspdf') || id.includes('pdf-lib')) return 'vendor-pdf';
+            if (id.includes('@fullcalendar')) return 'vendor-calendar';
+            if (id.includes('framer-motion')) return 'vendor-animation';
+          }
         },
       },
     },

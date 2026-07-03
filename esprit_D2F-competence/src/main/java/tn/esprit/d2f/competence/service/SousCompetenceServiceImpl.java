@@ -4,8 +4,8 @@ import jakarta.persistence.EntityNotFoundException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.transaction.annotation.Transactional;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import tn.esprit.d2f.competence.exception.BusinessException;
 import tn.esprit.d2f.competence.dto.SousCompetenceDTO;
@@ -26,7 +26,6 @@ import java.util.List;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class SousCompetenceServiceImpl implements ISousCompetenceService {
 
     private static final int MAX_NIVEAU = 5;
@@ -38,6 +37,23 @@ public class SousCompetenceServiceImpl implements ISousCompetenceService {
     private final NiveauSavoirRequisRepository niveauRepo;
     private final SavoirRepository savoirRepository;
     private final CompetenceMapper competenceMapper;
+    private final ISousCompetenceService self;
+
+    public SousCompetenceServiceImpl(SousCompetenceRepository sousCompetenceRepository,
+                                     CompetenceRepository competenceRepository,
+                                     EnseignantCompetenceRepository enseignantCompetenceRepository,
+                                     NiveauSavoirRequisRepository niveauRepo,
+                                     SavoirRepository savoirRepository,
+                                     CompetenceMapper competenceMapper,
+                                     @Lazy ISousCompetenceService self) {
+        this.sousCompetenceRepository = sousCompetenceRepository;
+        this.competenceRepository = competenceRepository;
+        this.enseignantCompetenceRepository = enseignantCompetenceRepository;
+        this.niveauRepo = niveauRepo;
+        this.savoirRepository = savoirRepository;
+        this.competenceMapper = competenceMapper;
+        this.self = self;
+    }
 
     @Override
     @Transactional(readOnly = true)
@@ -57,7 +73,7 @@ public class SousCompetenceServiceImpl implements ISousCompetenceService {
     @Override
     @Transactional(readOnly = true)
     public Page<SousCompetenceDTO> getSousCompetencesByCompetence(Long competenceId, Pageable pageable) {
-        return paginate(this.getSousCompetencesByCompetence(competenceId), pageable);
+        return paginate(self.getSousCompetencesByCompetence(competenceId), pageable);
     }
 
     @Override

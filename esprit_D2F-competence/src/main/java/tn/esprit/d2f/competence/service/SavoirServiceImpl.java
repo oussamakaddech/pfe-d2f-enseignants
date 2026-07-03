@@ -4,8 +4,8 @@ import jakarta.persistence.EntityNotFoundException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.transaction.annotation.Transactional;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import tn.esprit.d2f.competence.dto.SavoirDTO;
 import tn.esprit.d2f.competence.dto.SavoirRequest;
@@ -25,7 +25,6 @@ import java.util.List;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class SavoirServiceImpl implements ISavoirService {
 
     private final SavoirRepository savoirRepository;
@@ -34,6 +33,23 @@ public class SavoirServiceImpl implements ISavoirService {
     private final CompetenceRepository competenceRepository;
     private final EnseignantCompetenceRepository enseignantCompetenceRepository;
     private final CompetenceMapper competenceMapper;
+    private final ISavoirService self;
+
+    public SavoirServiceImpl(SavoirRepository savoirRepository,
+                             NiveauSavoirRequisRepository niveauRepo,
+                             SousCompetenceRepository sousCompetenceRepository,
+                             CompetenceRepository competenceRepository,
+                             EnseignantCompetenceRepository enseignantCompetenceRepository,
+                             CompetenceMapper competenceMapper,
+                             @Lazy ISavoirService self) {
+        this.savoirRepository = savoirRepository;
+        this.niveauRepo = niveauRepo;
+        this.sousCompetenceRepository = sousCompetenceRepository;
+        this.competenceRepository = competenceRepository;
+        this.enseignantCompetenceRepository = enseignantCompetenceRepository;
+        this.competenceMapper = competenceMapper;
+        this.self = self;
+    }
 
     @Override
     @Transactional(readOnly = true)
@@ -53,7 +69,7 @@ public class SavoirServiceImpl implements ISavoirService {
     @Override
     @Transactional(readOnly = true)
     public Page<SavoirDTO> getSavoirsBySousCompetence(Long sousCompetenceId, Pageable pageable) {
-        return paginate(this.getSavoirsBySousCompetence(sousCompetenceId), pageable);
+        return paginate(self.getSavoirsBySousCompetence(sousCompetenceId), pageable);
     }
 
     @Override
@@ -67,7 +83,7 @@ public class SavoirServiceImpl implements ISavoirService {
     @Override
     @Transactional(readOnly = true)
     public Page<SavoirDTO> getSavoirsByCompetence(Long competenceId, Pageable pageable) {
-        return paginate(this.getSavoirsByCompetence(competenceId), pageable);
+        return paginate(self.getSavoirsByCompetence(competenceId), pageable);
     }
 
     @Override
@@ -81,7 +97,7 @@ public class SavoirServiceImpl implements ISavoirService {
     @Override
     @Transactional(readOnly = true)
     public Page<SavoirDTO> getSavoirsByType(TypeSavoir type, Pageable pageable) {
-        return paginate(this.getSavoirsByType(type), pageable);
+        return paginate(self.getSavoirsByType(type), pageable);
     }
 
     @Override

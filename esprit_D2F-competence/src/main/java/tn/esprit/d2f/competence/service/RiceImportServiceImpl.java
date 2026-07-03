@@ -2,8 +2,8 @@ package tn.esprit.d2f.competence.service;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -23,7 +23,6 @@ import java.util.*;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class RiceImportServiceImpl implements IRiceImportService {
 
     private static final int LEGACY_TEXT_LIMIT = 255;
@@ -35,6 +34,25 @@ public class RiceImportServiceImpl implements IRiceImportService {
     private final EnseignantCompetenceRepository   enseignantCompetenceRepository;
     private final RiceImportLogRepository          riceImportLogRepository;
     private final ObjectMapper                     objectMapper;
+    private final IRiceImportService               self;
+
+    public RiceImportServiceImpl(DomaineRepository domaineRepository,
+                                 CompetenceRepository competenceRepository,
+                                 SousCompetenceRepository sousCompetenceRepository,
+                                 SavoirRepository savoirRepository,
+                                 EnseignantCompetenceRepository enseignantCompetenceRepository,
+                                 RiceImportLogRepository riceImportLogRepository,
+                                 ObjectMapper objectMapper,
+                                 @Lazy IRiceImportService self) {
+        this.domaineRepository = domaineRepository;
+        this.competenceRepository = competenceRepository;
+        this.sousCompetenceRepository = sousCompetenceRepository;
+        this.savoirRepository = savoirRepository;
+        this.enseignantCompetenceRepository = enseignantCompetenceRepository;
+        this.riceImportLogRepository = riceImportLogRepository;
+        this.objectMapper = objectMapper;
+        this.self = self;
+    }
 
     /** Mutable counters passed through the import pipeline. */
     private static class ImportCounters {
@@ -263,7 +281,7 @@ public class RiceImportServiceImpl implements IRiceImportService {
     @Override
     @Transactional(readOnly = true)
     public Page<RiceImportResult> getImportHistory(Pageable pageable) {
-        return paginate(this.getImportHistory(), pageable);
+        return paginate(self.getImportHistory(), pageable);
     }
 
     private RiceImportResult toResult(RiceImportLog logEntry) {
