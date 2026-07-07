@@ -1,9 +1,8 @@
 import { useState, useMemo, useEffect, useRef } from "react";
 import {
   Input, Button, Tag, Row, Col, Alert, Spin, Typography, Empty,
-  Tabs, Select, Table, Card, Tooltip, Badge, notification, DatePicker,
+  Tabs, Select, Table, Card, Tooltip, Badge, notification, DatePicker, Space,
 } from "antd";
-import Space from "antd/es/space";
 import {
   SearchOutlined, RobotOutlined, RiseOutlined, FallOutlined, TeamOutlined,
   UserOutlined, ProjectOutlined, ReloadOutlined, ExperimentOutlined,
