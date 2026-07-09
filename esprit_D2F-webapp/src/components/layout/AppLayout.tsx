@@ -1,8 +1,8 @@
 import { useState, useMemo, useEffect, memo, Suspense } from "react";
-import { Layout, Dropdown, Button, Badge, Tooltip, Drawer, Grid } from "antd";
+import { Layout, Dropdown, Button, Tooltip, Drawer, Grid } from "antd";
 import {
   MenuFoldOutlined, MenuUnfoldOutlined,
-  LogoutOutlined, ArrowLeftOutlined, BellOutlined, MenuOutlined,
+  LogoutOutlined, ArrowLeftOutlined, MenuOutlined,
 } from "@ant-design/icons";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
@@ -12,6 +12,7 @@ import Breadcrumb from "./Breadcrumb";
 import UserAvatar from "@/components/ui/UserAvatar";
 import GlobalSearch from "@/components/ui/GlobalSearch";
 import { useAuth } from "@/hooks/auth";
+import { NotificationCenter } from "@/components/notification";
 import {
   HEADER_HEIGHT, SIDEBAR_WIDTH, SIDEBAR_WIDTH_COLLAPSED, getBackTarget,
 } from "./AppLayoutConstants";
@@ -125,13 +126,7 @@ function AppLayout() {
         <div className="app-header-right">
           {!isMobile && <GlobalSearch />}
 
-          <Tooltip title="Notifications">
-            <button type="button" className="app-header-icon-btn" aria-label="Notifications">
-              <Badge dot color="#f59e0b" offset={[-3, 3]} size="small">
-                <BellOutlined style={{ fontSize: 18, color: "rgba(255,255,255,0.92)" }} />
-              </Badge>
-            </button>
-          </Tooltip>
+          <NotificationCenter />
 
           <div className="app-header-divider" />
 

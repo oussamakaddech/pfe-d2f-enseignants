@@ -23,30 +23,30 @@
         <div class='clearfix'>
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">100% </span>
+                <span class="strong">96.29% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>52/52</span>
+                <span class='fraction'>52/54</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">77.77% </span>
+                <span class="strong">70% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>14/18</span>
+                <span class='fraction'>14/20</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">100% </span>
+                <span class="strong">95.45% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>21/21</span>
+                <span class='fraction'>21/22</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
-                <span class="strong">100% </span>
+                <span class="strong">96.29% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>52/52</span>
+                <span class='fraction'>52/54</span>
             </div>
         
             
@@ -252,7 +252,40 @@
 <a name='L187'></a><a href='#L187'>187</a>
 <a name='L188'></a><a href='#L188'>188</a>
 <a name='L189'></a><a href='#L189'>189</a>
-<a name='L190'></a><a href='#L190'>190</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L190'></a><a href='#L190'>190</a>
+<a name='L191'></a><a href='#L191'>191</a>
+<a name='L192'></a><a href='#L192'>192</a>
+<a name='L193'></a><a href='#L193'>193</a>
+<a name='L194'></a><a href='#L194'>194</a>
+<a name='L195'></a><a href='#L195'>195</a>
+<a name='L196'></a><a href='#L196'>196</a>
+<a name='L197'></a><a href='#L197'>197</a>
+<a name='L198'></a><a href='#L198'>198</a>
+<a name='L199'></a><a href='#L199'>199</a>
+<a name='L200'></a><a href='#L200'>200</a>
+<a name='L201'></a><a href='#L201'>201</a>
+<a name='L202'></a><a href='#L202'>202</a>
+<a name='L203'></a><a href='#L203'>203</a>
+<a name='L204'></a><a href='#L204'>204</a>
+<a name='L205'></a><a href='#L205'>205</a>
+<a name='L206'></a><a href='#L206'>206</a>
+<a name='L207'></a><a href='#L207'>207</a>
+<a name='L208'></a><a href='#L208'>208</a>
+<a name='L209'></a><a href='#L209'>209</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -413,6 +446,11 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">1x</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -447,6 +485,20 @@ import { config } from "@/config/env";
 import type { Id } from "@/models/common";
 import type { Formation } from "@/models/formation";
 import type { Presence, PresenceStats } from "@/models/presence";
+&nbsp;
+export interface MesPresence {
+  idParticipation?: number;
+  present?: boolean;
+  commentaire?: string;
+  seanceId?: number;
+  dateSeance?: string;
+  heureDebut?: string;
+  heureFin?: string;
+  salle?: string;
+  formationId?: number;
+  titreFormation?: string;
+  etatFormation?: string;
+}
 &nbsp;
 const API_URL = `${config.FORMATION_URL}/formation/formations-workflow`;
 &nbsp;
@@ -589,7 +641,7 @@ const FormationWorkflowService = {
 &nbsp;
   async updateInscriptionsOuvertes(id: Id, ouvert: boolean): Promise&lt;Formation&gt; {
     const response = await axios.put&lt;Formation&gt;(
-      `${API_URL}/${id}/inscriptionsOuvertes`,
+      `${API_URL}/${id}/inscriptions-ouvertes`,
       null,
       { params: { ouvert } }
     );
@@ -599,6 +651,11 @@ const FormationWorkflowService = {
   async getFormationsVisibles(): Promise&lt;Formation[]&gt; {
     const response = await axios.get&lt;Formation[]&gt;(`${API_URL}/visibles`);
     return normalizeListResponse(response.data);
+  },
+&nbsp;
+<span class="fstat-no" title="function not covered" >  async g</span>etMesPresences(): Promise&lt;MesPresence[]&gt; {
+    const response = <span class="cstat-no" title="statement not covered" >await axios.get&lt;MesPresence[]&gt;(`${API_URL}/mes-presences`);</span>
+<span class="cstat-no" title="statement not covered" >    return Array.isArray(response.data) ? response.data : [];</span>
   },
 &nbsp;
   async getFormationsParUp(upId: Id): Promise&lt;Formation[]&gt; {
@@ -637,7 +694,7 @@ export default FormationWorkflowService;
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-06-12T22:09:47.587Z
+                at 2026-07-03T04:18:32.024Z
             </div>
         <script src="../../../prettify.js"></script>
         <script>

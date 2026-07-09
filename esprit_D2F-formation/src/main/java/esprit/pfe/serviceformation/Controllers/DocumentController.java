@@ -41,7 +41,7 @@ public class DocumentController {
     private static final long MAX_FILE_SIZE = 50L * 1024 * 1024; // 50 MB
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @PreAuthorize(AuthorizationMatrix.FORMATION_UPDATE)
+    @PreAuthorize(AuthorizationMatrix.DOCUMENT_CREATE)
     public ResponseEntity<Object> createDocument(
             @RequestParam Long formationId,
             @RequestParam String pathType,
@@ -91,7 +91,7 @@ public class DocumentController {
     }
 
     @PostMapping(value = "/{id}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @PreAuthorize(AuthorizationMatrix.FORMATION_UPDATE)
+    @PreAuthorize(AuthorizationMatrix.DOCUMENT_UPDATE)
     public ResponseEntity<Object> updateDocument(
             @PathVariable Long id,
             @RequestParam String pathType,
@@ -115,7 +115,7 @@ public class DocumentController {
     }
 
     @DeleteMapping("/{id}")
-    @PreAuthorize(AuthorizationMatrix.FORMATION_DELETE)
+    @PreAuthorize(AuthorizationMatrix.DOCUMENT_DELETE)
     public ResponseEntity<Void> deleteDocument(@PathVariable Long id) {
         try {
             service.deleteDocument(id);

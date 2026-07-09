@@ -221,3 +221,21 @@ class DashboardSnapshot(Base):
     snapshot_date = Column(Date, nullable=False, default=date.today)
     kpis_json     = Column(JSONB, nullable=False)
     computed_at   = Column(DateTime(timezone=True), default=_now)
+
+
+class TeacherCompetenceCoverage(Base):
+    """Snapshot des niveaux réels (enseignant × compétence) pour calculer la
+    couverture. Contrairement à ``skill_gaps`` (qui ne stocke que les écarts),
+    cette table contient AUSSI les compétences couvertes, permettant un taux de
+    couverture correct (current >= required). Alimentée lors de l'analyse."""
+
+    __tablename__ = "teacher_competence_coverage"
+
+    id             = Column(BigInteger, primary_key=True, autoincrement=True)
+    enseignant_id  = Column(String(64), nullable=False, index=True)
+    competence_id  = Column(Integer, nullable=False, index=True)
+    departement_id = Column(String(64), nullable=True, index=True)
+    current_level  = Column(Integer, nullable=False, default=0)
+    required_level = Column(Integer, nullable=False, default=0)
+    covered        = Column(Boolean, nullable=False, default=False)
+    snapshot_date  = Column(Date, nullable=False, default=date.today)

@@ -47,6 +47,16 @@ const RiskTable = memo(function RiskTable({ data, threshold, onAnalyze, pageSize
       ),
     },
     {
+      title: "Département",
+      dataIndex: "departement",
+      width: 130,
+      render: (v: string) => (
+        <Tag color="default" style={{ fontSize: 11, borderRadius: 6 }}>
+          {v || "Non affecté"}
+        </Tag>
+      ),
+    },
+    {
       title: "Score Risque",
       dataIndex: "attrition_risk_score",
       width: 160,

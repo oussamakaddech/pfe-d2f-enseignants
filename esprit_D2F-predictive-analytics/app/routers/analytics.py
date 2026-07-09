@@ -134,10 +134,11 @@ def _run_pipeline(
     snapshot = feat_eng.build_snapshot(
         enseignant_id, data["comp_levels"], profile, data["besoins"], data["certificats"],
     )
+    dept_id = str(profile.get("departement_id") or "")
     gap_eng = GapEngine(db)
     gaps = gap_eng.compute_gaps(
         enseignant_id, data["comp_levels"], data["req_levels"],
-        data["besoins"], pred_id, data["dom_demand"],
+        data["besoins"], pred_id, data["dom_demand"], dept_id,
     )
     collaborative = CollaborativeFilter(
         svc.get_competency_levels(),

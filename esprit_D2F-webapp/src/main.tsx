@@ -5,7 +5,6 @@ import { App as AntdApp, ConfigProvider, theme } from "antd";
 import frFR from "antd/locale/fr_FR";
 
 import AppComponent from "@/App";
-import NotificationBridge from "@/components/feedback/NotificationBridge";
 import { antdThemeToken, antdComponentTokens } from "@/styles/themes/tokens";
 
 // Police Inter servie depuis node_modules (contrainte DSI : pas de CDN Google).
@@ -41,7 +40,6 @@ createRoot(document.getElementById("root") as HTMLElement).render(
       }}
     >
       <AntdApp>
-        <NotificationBridge />
         <AppComponent />
       </AntdApp>
     </ConfigProvider>

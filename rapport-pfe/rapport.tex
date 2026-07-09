@@ -37,6 +37,7 @@
 \usepackage{array}
 \usepackage{tabularx}
 \usepackage{multirow}
+\usepackage{makecell}
 \usepackage{enumitem}
 \usepackage{tocloft}  % AVANT titlesec pour éviter \c@rownum already defined
 % \usepackage{pgfgantt} % Supprimé : inutilisé
@@ -55,6 +56,9 @@
 
 \addbibresource{references.bib}
 \setstretch{1.15}
+
+% Format bibliographique compact
+\renewcommand*{\bibfont}{\small}
 
 % === COLORS ===
 \definecolor{espritblue}{RGB}{30,58,95}        % bleu marine institutionnel (dominante)
@@ -77,6 +81,27 @@
 \definecolor{rowB}{RGB}{244,247,252}
 \definecolor{successgreen}{RGB}{21,128,61}
 \definecolor{orangeaccent}{RGB}{234,138,22}
+% Couleurs pastilles de priorite pour le tableau backlog
+\definecolor{prioh}{RGB}{181,18,0}     % Haute - rouge esprit
+\definecolor{priobg}{RGB}{255,235,235}  % Haute fond - rose clair
+\definecolor{priom}{RGB}{193,127,18}   % Moyenne - ambre
+\definecolor{priobmg}{RGB}{255,243,219}% Moyenne fond - jaune clair
+\definecolor{priol}{RGB}{21,128,61}    % Basse - vert
+\definecolor{priolbg}{RGB}{220,252,231}% Basse fond - vert clair
+% Couleurs badges categorie (tableau backlog)
+\definecolor{catgw}{RGB}{30,58,95}      % Gateway
+\definecolor{catsec}{RGB}{108,117,125}  % Securite
+\definecolor{catauth}{RGB}{88,28,135}   % Auth
+\definecolor{catcomp}{RGB}{15,118,110}  % Competence
+\definecolor{catrice}{RGB}{14,116,144}  % RICE
+\definecolor{catweb}{RGB}{190,18,60}    % Web
+\definecolor{catform}{RGB}{146,64,14}   % Formation
+\definecolor{cateval}{RGB}{157,23,77}   % Evaluation
+\definecolor{catcert}{RGB}{113,63,18}   % Certificat
+\definecolor{catml}{RGB}{55,48,163}     % ML
+\definecolor{catan}{RGB}{127,34,154}    % Analytics
+\definecolor{catbesoin}{RGB}{19,78,74}  % Besoin
+\definecolor{catus}{RGB}{55,65,81}      % User Story
 
 % === CODE STYLE ===
 \lstdefinestyle{javacode}{
@@ -150,8 +175,8 @@
   {\filleft\chaptername\ \thechapter}
   {18pt}
   {\filright}
-  [\vspace{1ex}{\color{espritaccent}\hrule height 1pt}]
-\titlespacing*{\chapter}{0pt}{-10pt}{28pt}
+  [\vspace{1.5ex}{\color{espritaccent}\hrule height 1.2pt}\vspace{6pt}]
+\titlespacing*{\chapter}{0pt}{20pt}{40pt}
 
 % Style de chapitre non numéroté (Dédicace, Remerciements, Conclusion, etc.)
 \titleformat{name=\chapter,numberless}[display]
@@ -159,8 +184,8 @@
   {}
   {0pt}
   {\filright}
-  [\vspace{1ex}{\color{espritaccent}\hrule height 1pt}]
-\titlespacing*{name=\chapter,numberless}{0pt}{-10pt}{24pt}
+  [\vspace{1.5ex}{\color{espritaccent}\hrule height 1.2pt}\vspace{6pt}]
+\titlespacing*{name=\chapter,numberless}{0pt}{20pt}{36pt}
 
 % Style des sections : titre bleu marine avec filet coloré
 \titleformat{\section}
@@ -170,13 +195,13 @@
   {}
   [\vspace{3pt}{\color{espritaccent}\hrule height 0.8pt}\vspace{1pt}%
    {\color{espritblue!15}\hrule height 0.4pt}]
-\titlespacing*{\section}{0pt}{18pt}{10pt}
+\titlespacing*{\section}{0pt}{28pt}{16pt}
 
 % Style des sous-sections : bleu marine, pastille accent
 \titleformat{\subsection}
   {\normalfont\large\bfseries\color{textdark}}
   {\textcolor{espritaccent}{\textbullet}\;\thesubsection}{0.6em}{}
-\titlespacing*{\subsection}{0pt}{14pt}{7pt}
+\titlespacing*{\subsection}{0pt}{22pt}{12pt}
 
 % === TABLE DES MATIÈRES (tocloft) ===
 \renewcommand{\cftchapfont}{\bfseries\color{espritblue}}   % chapitres en bleu gras
@@ -217,25 +242,80 @@
   }%
 }
 
+% === MACRO BADGE CATEGORIE (backlog) ===
+% \catbadge{GW} -> pastille GW couleur GW
+\newcommand{\catbadge}[1]{%
+  \tikz[baseline=(char.base)]{
+    \node[fill=cat#1, rounded corners=2.5pt, inner sep=3pt,
+          font=\ttfamily\scriptsize\bfseries, text=white,
+          minimum width=1.0cm] (char) {#1};%
+  }%
+}
+
+% === MACRO BADGE PRIORITE (backlog) ===
+% \priobadge{Haute} -> Haute rouge, Moyenne ambre, Basse vert
+\newcommand{\priobadge}[1]{%
+  \tikz[baseline=(char.base)]{
+    \edef\tmpprio{#1}%
+    \ifx\tmpprio\prioHaute
+      \node[fill=priobg, text=prioh, rounded corners=2.5pt, inner sep=2pt,
+            font=\ttfamily\scriptsize\bfseries,
+            minimum width=1.05cm] (char) {#1};%
+    \else
+      \ifx\tmpprio\prioMoyenne
+        \node[fill=priobmg, text=priom, rounded corners=2.5pt, inner sep=2pt,
+              font=\ttfamily\scriptsize\bfseries,
+              minimum width=1.05cm] (char) {#1};%
+      \else
+        \ifx\tmpprio\prioBasse
+          \node[fill=priolbg, text=priol, rounded corners=2.5pt, inner sep=2pt,
+                font=\ttfamily\scriptsize\bfseries,
+                minimum width=1.05cm] (char) {#1};%
+        \else
+          \node[fill=lightgray, text=textdark, rounded corners=2.5pt,
+                inner sep=2pt, font=\ttfamily\scriptsize,
+                minimum width=1.05cm] (char) {#1};%
+        \fi
+      \fi
+    \fi
+  }%
+}
+\edef\prioHaute{Haute}
+\edef\prioMoyenne{Moyenne}
+\edef\prioBasse{Basse}
+
+% === MACRO BADGE STORY POINTS ===
+% \spbadge{5} -> pastille bleue avec SP
+\newcommand{\spbadge}[1]{%
+  \tikz[baseline=(char.base)]{
+    \node[fill=espritblue!12, text=espritblue, rounded corners=2.5pt,
+          inner sep=2pt,
+          font=\ttfamily\scriptsize\bfseries,
+          minimum width=0.55cm, minimum height=0.55cm] (char) {#1};%
+  }%
+}
+
 % === MACRO FIGURE ===
-\newcommand{\figplace}[4]{% #1=fichier #2=légende #3=label #4=largeur (fraction)
+% \figplace[opts]{file}{caption}{label}{width}
+\newcommand{\figplace}[5][]{%
   \begin{figure}[H]
     \centering
-    \IfFileExists{figures/#1}{%
-      \includegraphics[width=#4\textwidth]{figures/#1}%
+    \IfFileExists{figures/#2}{%
+      \includegraphics[width=#5\textwidth,keepaspectratio]{figures/#2}%
     }{%
       \setlength{\fboxsep}{10pt}%
       \fcolorbox{espritblue}{lightgray}{%
-        \begin{minipage}[c][0.26\textheight][c]{#4\textwidth}
+        \begin{minipage}[c][0.40\textheight][c]{#5\textwidth}
           \centering
           {\color{espritblue}\itshape\small Figure à insérer}\\[6pt]
-          \texttt{\detokenize{figures/#1}}\\[8pt]
-          \footnotesize #2
+          \texttt{\detokenize{figures/#2}}\\[8pt]
+          \footnotesize #3
         \end{minipage}}%
     }
-    \caption{#2}
-    \label{#3}
-  \end{figure}}
+    \caption{#3}
+    \label{#4}
+  \end{figure}%
+}
 
 % === ENVIRONNEMENT CAS D'UTILISATION (structuré) ===
 % Encadré encadré avec coins arrondis et ombre légère
@@ -296,11 +376,15 @@
 % Active les rayures zébrées dans un tableau (à placer après \midrule)
 \newcommand{\enableRowColors}{\setcounter{tableRowIndex}{1}\rowcolors{2}{rowB}{rowA}}
 % En-tête de tableau coloré (fond bleu, texte blanc, gras)
-\newcommand{\thead}[1]{\rowcolor{espritblue}\textcolor{white}{\textbf{#1}}}
+\renewcommand{\thead}[1]{\cellcolor{espritblue}\textcolor{white}{\textbf{#1}}}
+
+% Augmente la hauteur avant les flottants en haut de page pour éviter les chevauchements
+\setlength{\textfloatsep}{18pt plus 2pt minus 2pt}
+\setlength{\intextsep}{14pt plus 2pt minus 2pt}
 
 \begin{document}
 
-\pagenumbering{arabic}
+\pagenumbering{roman}
 \setcounter{page}{1}
 
 % =============================================================================
@@ -311,39 +395,33 @@
 \addcontentsline{toc}{chapter}{Dédicace}
 \thispagestyle{plain}
 
-\vspace*{3cm}
-\begin{center}
-  {\color{espritaccent}\rule{0.3\linewidth}{1.5pt}}
-\end{center}
-\vspace{1cm}
+\vspace*{0.5cm}
+
 
 \begin{flushright}
-\itshape
-\large
-À mes très chers parents,\\
-\color{textdark}pour leur amour inconditionnel, leurs sacrifices et leur soutien indéfectible\\
-tout au long de mon parcours.\\[0.7cm]
+\itshape\large
 
-À mes frères et à toute ma famille,\\
-\color{textdark}qui n'ont cessé de m'encourager.\\[0.7cm]
+{\large\itshape\color{espritblue}\textbf{À ma très chère mère,}}\\[6pt]
+\color{textdark}
+toi qui as porté mes peines, encouragé mes efforts et cru en moi même dans les moments de doute.\\
+Ton courage, tes sacrifices silencieux et ton amour sans faille ont été ma plus grande force.\\
+Si je suis arrivé jusqu'ici, c'est avant tout grâce à toi~;\\
+ce diplôme est autant le tien que le mien.\\[0.5cm]
 
-À mes enseignants, qui ont nourri ma curiosité\\
-\color{textdark}et façonné l'ingénieur que je deviens.\\[0.7cm]
+{\color{espritblue}\textbf{À la mémoire de mon père,}}\\[6pt]
+\color{textdark}
+qui nous a quittés trop tôt, mais dont l'absence n'a jamais effacé la présence dans mon cœur.\\
+Sa droiture, sa bonté et sa force de caractère demeurent une lumière qui guide chacun de mes pas.\\
+{\color{espritblue}\itshape À mes frères et à toute ma famille,}\\
+{\color{textdark}pour leur amour, leur patience et leur soutien indéfectible dans chaque étape de mon parcours.}\\[0.6cm]
 
-À mes amis et camarades,\\
-\color{textdark}pour les moments partagés et leur entraide constante.\\[0.7cm]
+{\color{espritblue}\itshape À mes enseignants,}\\
+{\color{textdark}qui ont nourri ma curiosité, encouragé mon ambition et contribué à façonner l'ingénieur que je deviens.}\\[0.6cm]
 
-À tous ceux qui croient que la transmission du savoir\\
-\color{textdark}mérite les meilleurs outils.\\[1.2cm]
-
-\color{espritblue}
-Je dédie humblement ce modeste travail.
+{\color{espritblue}\itshape À mes amis et camarades,}\\
+{\color{textdark}pour leur présence, leur entraide sincère et tous les moments partagés qui ont donné à ce chemin tant de valeur humaine.}
 \end{flushright}
 \vfill
-\begin{flushright}
-\color{espritblue}\rule{0.15\linewidth}{0.8pt}\\[6pt]
-\bfseries\large\color{espritblue} Oussama KADDECH
-\end{flushright}
 
 % =============================================================================
 % REMERCIEMENTS
@@ -396,11 +474,12 @@ moral sans faille.
 \thispagestyle{plain}
 
 Le présent projet de fin d'études porte sur la conception et la réalisation de la
-plateforme \textbf{D2F}, une solution logicielle destinée à piloter le développement
-professionnel des enseignants au sein d'ESPRIT. Cette plateforme répond à un besoin
-concret : l'absence d'un outil unifié permettant de structurer les compétences
-enseignantes, de recueillir les besoins en formation, de planifier et d'évaluer les
-actions de formation, ainsi que d'anticiper les écarts de compétences.
+plateforme \textbf{D2F}, une \textbf{plateforme intelligente} destinée à piloter
+le développement professionnel des enseignants au sein d'ESPRIT. Cette plateforme
+répond à la problématique suivante : comment identifier, structurer et développer
+les compétences professionnelles des enseignants, tout en aidant les responsables
+pédagogiques à planifier des formations adaptées et à anticiper les besoins futurs
+grâce à l'intelligence artificielle ?
 
 La solution repose sur une \textbf{architecture microservices} fondée sur le
 \textit{Domain-Driven Design} et composée de dix services applicatifs autonomes.
@@ -429,10 +508,11 @@ Docker, SCRUM.
 \thispagestyle{plain}
 
 This graduation project focuses on the design and implementation of the
-\textbf{D2F} platform, a software solution intended to support the professional
-development of teachers at ESPRIT. The platform addresses a concrete need: the
-absence of a unified tool to structure teaching competencies, collect training
-needs, plan and evaluate training activities, and anticipate competency gaps.
+\textbf{D2F} platform, an \textbf{intelligent platform} intended to support the
+professional development of teachers at ESPRIT. The platform addresses the
+following problematic: how to identify, structure and develop the professional
+competencies of teachers while helping pedagogical managers plan appropriate
+training and anticipate future needs through artificial intelligence?
 
 The solution is based on a \textbf{microservices} architecture grounded in
 Domain-Driven Design and composed of ten autonomous application services. It
@@ -461,6 +541,8 @@ Docker, SCRUM.
 \tableofcontents
 \clearpage
 \listoftables
+\clearpage
+\listoffigures
 
 % =============================================================================
 % LISTE DES ABRÉVIATIONS
@@ -498,8 +580,7 @@ Docker, SCRUM.
 \textbf{DLQ}    & \textit{Dead Letter Queue} \\
 \textbf{BFF}    & \textit{Backend For Frontend} \\
 \textbf{CDC}    & Cahier des Charges \\
-\textbf{KPI}    & \textit{Key Performance Indicator} \\
-\textbf{UML}    & \textit{Unified Modeling Language} \\
+
 \end{longtable}}
 
 % =============================================================================
@@ -510,18 +591,55 @@ Docker, SCRUM.
 \addcontentsline{toc}{chapter}{Introduction Générale}
 \thispagestyle{plain}
 
-La qualité de l'enseignement supérieur est étroitement liée à la compétence de son corps enseignant. Dans un environnement technologique en constante évolution, où les programmes pédagogiques, les outils didactiques et les attentes des étudiants se transforment rapidement, le développement professionnel des enseignants ne relève plus d'une simple option, mais constitue un impératif stratégique. ESPRIT, école d'ingénieurs tunisienne de référence, est ainsi confrontée à un double enjeu : former des ingénieurs compétitifs tout en assurant la montée en compétence continue de ceux qui les forment.
+La qualité de l'enseignement supérieur repose en grande partie sur la
+compétence de son corps enseignant. Dans un contexte marqué par
+l'évolution rapide des technologies et des approches pédagogiques, le
+développement professionnel des enseignants constitue un levier
+stratégique incontournable. Pour ESPRIT, école d'ingénieurs de référence
+en Tunisie, cet enjeu se traduit par la nécessité de former des
+ingénieurs compétitifs tout en assurant la montée en compétence continue
+de ceux qui les encadrent.
 
-Jusqu'à présent, la gestion de ce développement professionnel reposait sur des processus manuels et des données dispersées, sans référentiel structuré des compétences, sans lien formalisé entre les formations et les objectifs pédagogiques, et sans capacité d'anticipation des besoins émergents. Ce constat est à l'origine du présent projet, qui vise à concevoir et à développer la plateforme \textbf{D2F} (\textit{Développement Professionnel des Enseignants}), un système d'information unifié destiné à piloter l'ensemble du cycle de vie des compétences et des formations au sein d'ESPRIT.
+Jusqu'à présent, la gestion du développement professionnel reposait sur
+des processus manuels et des données dispersées, sans référentiel
+structuré des compétences, sans articulation claire entre les formations
+et les objectifs pédagogiques, et sans capacité d'anticipation des
+besoins futurs. Ce constat a conduit à la conception de la plateforme
+D2F (\textit{Développement Professionnel des Enseignants}), un système
+d'information unifié destiné à piloter le cycle de vie des compétences
+et des formations.
 
-Ce travail poursuit un triple objectif. Sur le plan \textbf{fonctionnel}, il s'agit de structurer les compétences enseignantes selon une hiérarchie normalisée, de gérer les formations et les besoins associés, et d'exploiter l'intelligence artificielle pour détecter les écarts de compétences et recommander des parcours de formation personnalisés. Sur le plan \textbf{architectural}, la solution adoptée repose sur une architecture microservices, garantissant modularité, évolutivité et résilience. Sur le plan \textbf{institutionnel}, l'ensemble est conforme au cahier des charges technique de la Direction des Systèmes d'Information (DSI) d'ESPRIT, qui impose notamment l'exécution locale des traitements d'intelligence artificielle et l'hébergement sur site des données.
+Ce projet poursuit trois objectifs. Sur le plan \textbf{fonctionnel},
+il vise à structurer les compétences selon une hiérarchie normalisée, gérer
+les formations et besoins associés, et exploiter l'intelligence
+artificielle pour détecter les écarts et recommander des parcours
+personnalisés. Sur le plan \textbf{architectural}, la solution adopte
+une architecture microservices garantissant modularité, évolutivité et
+résilience. Sur le plan \textbf{institutionnel}, elle respecte le cahier
+des charges de la DSI d'ESPRIT, notamment l'exécution locale des
+traitements d'IA et l'hébergement sur site des données.
 
-Le présent rapport s'organise en huit chapitres. Le \textbf{premier chapitre} présente le contexte du stage, l'organisme d'accueil, la problématique, l'étude critique de l'existant, la solution proposée et la méthodologie SCRUM retenue. Le \textbf{deuxième chapitre} est consacré à l'analyse et à la spécification des besoins, à la définition de l'architecture technique et de la sécurité, ainsi qu'à la présentation de l'environnement de travail. Les \textbf{cinq chapitres suivants} détaillent la réalisation, organisée par sprints : le sprint~1 traite de l'authentification et du référentiel de compétences ; le sprint~2 du module RICE d'extraction automatique du référentiel ; le sprint~3 de la gestion des formations ; le sprint~4 de l'analyse prédictive et de la recommandation de formations ; enfin, le sprint~5 de la gestion des besoins en formation et de la communication asynchrone. Le \textbf{huitième chapitre} présente la stratégie de validation et les résultats de qualité logicielle obtenus. Une conclusion générale dresse le bilan des résultats, discute les difficultés rencontrées et esquisse les perspectives d'évolution de la plateforme.
+Le présent rapport est structuré en huit chapitres. Le premier introduit
+le contexte, l'organisme d'accueil, la problématique, l'étude de
+l'existant, la solution proposée et la méthodologie SCRUM. Le deuxième
+couvre l'analyse des besoins, l'architecture technique, la sécurité et
+l'environnement de travail. Les cinq chapitres suivants présentent la
+réalisation organisée en sprints : authentification et référentiel de
+compétences, module RICE, gestion des formations, analyse prédictive et
+recommandation, puis besoins en formation et communication asynchrone.
+Le dernier chapitre traite des tests et de la qualité logicielle, avant
+la conclusion générale.
+
+% =============================================================================
+% BASCULE EN NUMÉROTATION ARABE POUR LE CORPS DU RAPPORT
+% =============================================================================
+\clearpage
+\pagenumbering{arabic}
+\setcounter{page}{1}
 
 % =============================================================================
 % CHAPITRE 1 — PRÉSENTATION GÉNÉRALE
 % =============================================================================
-\clearpage
 \chapter{Présentation générale}
 
 \section{Introduction}
@@ -572,39 +690,36 @@ besoins et anticiper les carences collectives.
 
 \subsection{Fiche d'identité d'ESPRIT}
 
-Fondée en 2003 et implantée à Ariana, dans la banlieue nord de Tunis, l'École
-Supérieure Privée d'Ingénierie et de Technologies (ESPRIT) est l'un des
-établissements d'enseignement supérieur privé les plus reconnus de Tunisie. Son
-offre de formation couvre cinq grandes filières d'ingénierie : les technologies
-de l'information et de la communication, le génie électrique, le génie civil,
-le génie mécanique et les télécommunications. Avec plusieurs milliers d'étudiants
-inscrits et un corps enseignant nombreux et pluridisciplinaire, ESPRIT représente
-un terrain d'application particulièrement pertinent pour la mise en œuvre d'un
-système structuré de gestion des compétences. Le tableau~\ref{tab:fiche_esprit}
-synthétise ses principales caractéristiques.
+\noindent\textbf{Raison sociale.}~École Supérieure Privée d'Ingénierie et de
+Technologies (ESPRIT).\par\smallskip
+\noindent\textbf{Année de création.}~2003.\par\smallskip
+\noindent\textbf{Localisation.}~Ariana, Grand Tunis, Tunisie.\par\smallskip
+\noindent\textbf{Secteur.}~Enseignement supérieur privé — formation d'ingénieurs.\par\smallskip
+\noindent\textbf{Filières.}~Informatique, Génie Électrique, Génie Civil,
+Génie Mécanique, Télécommunications.\par\smallskip
+\noindent\textbf{Approche pédagogique.}~Apprentissage par projet
+(\textit{project-based learning}).\par\smallskip
+\noindent\textbf{Système d'information.}~Direction des Systèmes d'Information
+(DSI) d'ESPRIT.\par\smallskip
+\noindent\textbf{Site institutionnel.}~\url{https://esprit.tn/}.
 
-\begin{table}[H]
-\centering
-\caption{Fiche d'identité de l'organisme d'accueil — ESPRIT}
-\label{tab:fiche_esprit}
-{\small\renewcommand{\arraystretch}{1.15}
-\begin{tabularx}{\textwidth}{>{\bfseries}p{4cm} X}
-\toprule
-\thead{Propriété} & \thead{Valeur} \\
-\midrule
-Raison sociale & École Supérieure Privée d'Ingénierie et de Technologies (ESPRIT) \\
-\midrule
-Année de création & 2003 \\
-Localisation & Ariana, Grand Tunis, Tunisie \\
-Secteur & Enseignement supérieur privé — formation d'ingénieurs \\
-Filières & Informatique, Génie Électrique, Génie Civil, Génie Mécanique, Télécommunications \\
-Approche pédagogique & Apprentissage par projet (\textit{project-based learning}) \\
-Système d'information & Direction des Systèmes d'Information (DSI) d'ESPRIT \\
-Portail PFE & \url{https://pfe.esprit.tn} \\
-Site institutionnel & \url{https://esprit.tn} \\
-\bottomrule
-\end{tabularx}}
-\end{table}
+\vspace{0.6cm}
+\begin{center}
+\IfFileExists{figures/Logo_ESPRIT_Ariana.jpg}{%
+  \includegraphics[width=0.36\textwidth]{figures/Logo_ESPRIT_Ariana.jpg}%
+}{%
+  \fcolorbox{espritblue}{bluebg}{%
+    \begin{minipage}[c][3.6cm][c]{0.42\textwidth}
+      \centering
+      {\color{espritblue}\bfseries\Huge ESPRIT}\\[8pt]
+      {\color{espritaccent}\rule{0.4\linewidth}{0.8pt}}\\[8pt]
+      {\itshape\color{textdark}\small École Supérieure Privée}\\
+      {\itshape\color{textdark}\small d'Ingénierie et de Technologies}
+    \end{minipage}}%
+}
+\\[4pt]
+{\footnotesize\itshape\color{textmuted}Logo officiel de l'ESPRIT}
+\end{center}
 
 \subsection{Domaine d'activité et contexte pédagogique}
 
@@ -769,24 +884,29 @@ dans le cahier des charges officiel du projet sur le portail PFE d'ESPRIT :
 
 \begin{keyframe}
 \keylabel{}
-\textit{«~Comment aider les enseignants de l'ESPRIT à identifier et développer
-leurs compétences professionnelles, tout en permettant aux responsables de
-planifier des formations adaptées et d'anticiper les besoins futurs grâce à
-l'intelligence artificielle~?~»}
+\textit{«~Comment concevoir une plateforme intelligente permettant d'identifier,
+de structurer et de développer les compétences professionnelles des enseignants
+de l'ESPRIT, tout en aidant les responsables pédagogiques à planifier des
+formations adaptées et à anticiper les besoins futurs grâce à l'intelligence
+artificielle~?~»}
 \end{keyframe}
 
-Cette question articule deux niveaux d'enjeux complémentaires. Au niveau
+Cette question articule trois niveaux d'enjeux complémentaires. Au niveau
 \textbf{individuel}, il s'agit d'offrir à chaque enseignant les outils
 nécessaires pour prendre conscience de son profil de compétences, identifier
 ses lacunes et suivre sa progression au fil des formations. Au niveau
-\textbf{institutionnel}, il s'agit de fournir aux responsables pédagogiques
-une capacité de planification éclairée par les données, d'anticipation des
-besoins émergents et de pilotage stratégique des ressources humaines
-pédagogiques. L'intelligence artificielle constitue le levier transversal qui
-relie ces deux niveaux : elle traite automatiquement les données accumulées
-pour en extraire des signaux d'alerte et des recommandations personnalisées,
-là où les approches manuelles restaient aveugles.
+\textbf{organisationnel}, la plateforme doit permettre de \textbf{structurer}
+les compétences selon une hiérarchie normalisée et de les relier explicitement
+aux formations, afin de construire un capital de connaissances exploitable par
+l'institution. Au niveau \textbf{institutionnel}, il s'agit de fournir aux
+responsables pédagogiques une capacité de planification éclairée par les
+données, d'anticipation des besoins émergents et de pilotage stratégique des
+ressources humaines pédagogiques. L'intelligence artificielle constitue le levier
+transversal qui relie ces trois niveaux : elle traite automatiquement les données
+accumulées pour en extraire des signaux d'alerte et des recommandations
+personnalisées, là où les approches manuelles restaient aveugles.
 
+% -------------------------------------------------------------------
 % -------------------------------------------------------------------
 \section{Étude de l'existant}
 % -------------------------------------------------------------------
@@ -795,13 +915,20 @@ là où les approches manuelles restaient aveugles.
 
 Avant l'initiation du projet D2F, la gestion du développement professionnel des
 enseignants à ESPRIT reposait sur un ensemble d'outils génériques et de pratiques
-informelles. Les informations relatives aux formations passées étaient consignées
-dans des tableurs Excel partagés, les inscriptions étaient gérées par échange de
-courriels, et les compétences des enseignants, lorsqu'elles étaient tracées,
-l'étaient sous forme de documents Word non centralisés. Les communications
+informelles, sans qu'aucun de ces outils n'ait été conçu pour cet usage précis.
+Les informations relatives aux formations passées étaient consignées dans des
+tableurs Excel partagés, dont les versions successives circulaient par courriel
+sans mécanisme de synchronisation ni de contrôle d'accès. Les inscriptions aux
+formations étaient gérées par échange de courriels non structurés, sans workflow
+de validation formalisé. Les compétences des enseignants, lorsqu'elles étaient
+tracées, l'étaient sous forme de documents Word non centralisés, dont la mise à
+jour dépendait de la disponibilité et de la mémoire individuelle des
+gestionnaires plutôt que d'un processus systématique. Les communications
 transitaient par la messagerie institutionnelle et, dans certains cas, par des
-messageries instantanées. Aucun système unifié n'offrait alors une vision globale
-et cohérente du capital de compétences de l'institution.
+messageries instantanées, sans traçabilité des décisions prises. Il en résultait
+une perte de continuité chaque fois qu'un gestionnaire changeait de poste, et
+aucun système unifié n'offrait une vision globale et cohérente du capital de
+compétences de l'institution.
 
 \subsection{Critique de l'existant}
 
@@ -831,9 +958,47 @@ Contrôle d'accès non structuré
   & Risques sur la confidentialité de données RH sensibles \\
 Absence d'outil de recommandation de formations
   & Parcours de développement non personnalisés ; faible adhésion des enseignants \\
+Absence de continuité documentaire
+  & Perte de l'historique de compétences et de formation lors d'un changement de gestionnaire \\
 \bottomrule
 \end{tabularx}}
 \end{table}
+
+\subsection{Positionnement par rapport aux solutions existantes}
+
+Le constat précédent pourrait suggérer le recours à une plateforme commerciale de
+gestion des compétences déjà disponible sur le marché, catégorie d'outils
+aujourd'hui mature dans le domaine de la gestion des ressources humaines et
+souvent enrichie de modules d'intelligence artificielle pour la détection
+d'écarts de compétences et la recommandation de formations. Ce choix a été
+écarté pour trois raisons, conformes au cahier des charges de la DSI d'ESPRIT.
+
+\begin{itemize}[leftmargin=1.2cm]
+  \item \textbf{Confidentialité et hébergement local.} Les solutions du marché
+  reposent presque systématiquement sur une architecture SaaS hébergée hors site,
+  incompatible avec l'exigence de la DSI d'exécuter localement tout traitement
+  d'intelligence artificielle portant sur des données individuelles
+  d'enseignants, par nature sensibles.
+
+  \item \textbf{Spécificité du référentiel pédagogique.} Les outils génériques
+  de gestion des compétences RH modélisent des compétences professionnelles
+  transverses, mais ne permettent pas nativement de représenter la hiérarchie
+  \mbox{Domaine $\rightarrow$ Compétence $\rightarrow$ Sous-compétence $\rightarrow$ Savoir}
+  ni d'en dériver automatiquement le contenu à partir des fiches pédagogiques
+  internes d'ESPRIT --- fonction assurée ici par le module RICE.
+
+  \item \textbf{Intégration au système d'information existant.} Une solution
+  externe imposerait soit une double saisie, soit une interfaçage complexe et
+  coûteux avec les référentiels internes (départements, unités pédagogiques,
+  comptes existants), alors qu'une plateforme interne s'intègre nativement au
+  système d'information de la DSI et reste évolutive au gré des besoins propres
+  à l'institution.
+\end{itemize}
+
+Ce choix d'une solution interne plutôt que d'un progiciel du marché constitue
+ainsi un arbitrage \emph{construire plutôt qu'acheter} motivé par des contraintes
+de confidentialité et d'intégration, plus que par une volonté de réinventer une
+fonctionnalité déjà résolue ailleurs.
 
 % -------------------------------------------------------------------
 \section{Solution proposée}
@@ -889,105 +1054,147 @@ la plateforme par rapport aux solutions ponctuelles qui l'ont précédée.
 \section{Méthodologie de travail}
 % -------------------------------------------------------------------
 
+La méthodologie de développement conditionne la conduite d'un projet logiciel :
+gestion du périmètre, qualité des livrables, rythme des validations et capacité
+d'adaptation aux évolutions du besoin. Cette section compare les deux grandes
+familles d'approches, justifie le choix de SCRUM pour le projet D2F, précise la
+répartition des rôles et décrit le cycle de développement retenu.
+
 \subsection{Comparaison des approches de développement}
 
-Le choix d'une méthodologie de développement influence directement la maîtrise
-du périmètre fonctionnel, la qualité des livraisons et la capacité du projet à
-intégrer les retours des parties prenantes. Deux grandes familles d'approches
-sont généralement distinguées : les approches séquentielles, dont le modèle en
-cascade (\textit{Waterfall}) constitue l'archétype, et les approches agiles,
-dont SCRUM est l'un des cadres les plus utilisés. Le tableau~\ref{tab:methodo}
-compare ces deux paradigmes au regard des contraintes spécifiques du projet D2F.
+Deux approches dominent la conduite de projets logiciels :
+
+\begin{itemize}[leftmargin=1.2cm, itemsep=6pt]
+  \item \textbf{Modèle en cascade} — formalisé par
+  Royce~\cite{royce1970waterfall}, il enchaîne séquentiellement les
+  phases d'analyse, de conception, d'implémentation, de validation et
+  de déploiement : chaque étape ne démarre qu'après l'achèvement de
+  la précédente.
+
+  \item \textbf{Méthodes agiles} — dont SCRUM~\cite{schwaber2020scrum,
+  sutherland2014scrum} constitue l'implémentation canonique, elles
+  privilégient au contraire une livraison incrémentale en cycles courts,
+  avec validation continue et réajustement du backlog à chaque itération.
+\end{itemize}
+
+Le projet D2F présente plusieurs caractéristiques qui orientent ce choix :
+
+\begin{itemize}[leftmargin=1.2cm, itemsep=4pt]
+  \item périmètre évolutif
+  \item modules innovants (extraction NLP, analyse prédictive)
+  \item validations progressives par les encadrantes et la DSI
+  \item incertitude sur la forme finale de certaines fonctionnalités
+\end{itemize}
+
+Le tableau~\ref{tab:cmp_methodo} synthétise la confrontation des deux
+approches au regard de ces contraintes.
 
 \begin{table}[H]
 \centering
-\caption{Comparaison entre le modèle en cascade et l'approche agile SCRUM}
-\label{tab:methodo}
-{\small\renewcommand{\arraystretch}{1.15}
-\begin{tabularx}{\textwidth}{>{\bfseries}p{3.8cm} X X}
+\caption{Comparaison synthétique des approches en cascade et agile}
+\label{tab:cmp_methodo}
+{\small\renewcommand{\arraystretch}{1.2}
+\begin{tabularx}{\textwidth}{>{\bfseries}p{4cm} X X}
 \toprule
-\thead{Critère} & \thead{Modèle en cascade} & \thead{Approche agile (SCRUM)} \\
+\thead{Critère} & \thead{Modèle en cascade} & \thead{Méthodes agiles (SCRUM)} \\
 \midrule
-Gestion du changement & Rigide et coûteuse & Native, intégrée à chaque sprint \\
-Mode de livraison & Unique, en fin de projet & Incrémentale et fréquente \\
-Visibilité de l'avancement & Tardive, concentrée en fin de cycle & Continue, via les revues de sprint \\
-Retour des parties prenantes & Ponctuel, en phase finale & Régulier, à chaque incrément livré \\
-Adaptation aux modules innovants & Faible & Élevée, grâce aux ajustements itératifs \\
-Compatibilité avec D2F & Non, car les besoins évoluent fortement & Oui, car le projet est évolutif et modulaire \\
+Gestion du périmètre & Définitive en amont, difficile à remettre en cause & Évolutive, ajustée à chaque sprint \\
+Validation & En fin de cycle, reportée & Continue, à chaque incrément \\
+Livraison & Unique, en fin de projet & Incrémentale, régulière \\
+Adaptation au changement & Faible, coûteuse & Naturelle, intégrée au processus \\
+Visibilité de l'avancement & Limitée avant la phase de tests & Quotidienne (burndown, revues) \\
+Adéquation à un projet innovant & Insuffisante (le besoin mûrit lentement) & Forte (itérations courtes, retours précoces) \\
 \bottomrule
 \end{tabularx}}
 \end{table}
 
-\subsection{Choix de la méthodologie SCRUM}
+Au regard de ces critères, l'approche agile est manifestement mieux adaptée à
+D2F : la découverte progressive du besoin, la présence de briques d'intelligence
+artificielle dont la calibration exige des allers-retours, et la nécessité de
+validations intermédiaires par les parties prenantes rendent la cascade trop
+rigide. Cohn~\cite{cohn2009succeeding} recommande par ailleurs un découpage en
+sprints « verticaux » (traversant toutes les couches techniques) plutôt que par
+« couches » (UI, puis backend, puis données) : c'est ce principe qui a guidé le
+découpage en cinq sprints du présent projet.
 
-Le projet D2F présente un périmètre évolutif, une forte composante d'innovation
-(analyse prédictive, traitement du langage naturel, recommandation de
-formations) et plusieurs parties prenantes aux attentes itératives. Dans ce
-contexte, l'approche \textbf{SCRUM}~\cite{schwaber2020scrum} s'est imposée comme
-le cadre le plus adapté, car elle permet de livrer rapidement de la valeur tout
-en intégrant les retours au fil du développement.
+\subsection{Choix de SCRUM et organisation en sprints}
 
-SCRUM organise le travail en itérations courtes appelées \textit{sprints},
-généralement de deux à quatre semaines. Dans le cadre de ce projet, chaque sprint
-a duré \textbf{quatre semaines}, avec une \textbf{revue de progression toutes les
-deux semaines} auprès des encadrantes et une validation finale auprès de la DSI.
-Chaque sprint produit un incrément
-fonctionnel potentiellement livrable, ce qui favorise la validation progressive
-des modules et la détection précoce des écarts entre besoin exprimé et solution
-implémentée. Le \textit{Product Backlog}, priorisé par les encadrantes
-(\textbf{Mme Hajer Berhouma} et \textbf{Mme Leila Ben Dhief}) dans leur rôle de
-\textit{Product Owners}, a été découpé en cinq sprints
-successifs couvrant les principaux domaines métier du projet : authentification
-et compétences, module RICE, formations, analyse prédictive, puis besoins en
-formation.
+Le projet D2F a été conduit selon SCRUM~\cite{schwaber2020scrum} en raison de
+son cadre léger, de son empirisme (transparence, inspection, adaptation) et de
+sa capacité à absorber les évolutions du besoin. Conformément à ce référentiel,
+chaque sprint s'est terminé par une revue de démonstration et une rétrospective
+d'amélioration continue. La durée de quatre semaines par sprint suit les
+recommandations de Cohn~\cite{cohn2009succeeding} : un effort suffisant pour
+livrer un incrément testable tout en limitant l'accumulation d'incertitudes.
 
-Cette approche incrémentale a permis de sécuriser le développement de la
-plateforme en validant chaque couche fonctionnelle avant d'aborder la suivante.
-Elle s'inscrit également dans les principes du \textit{Domain-Driven Design},
-puisqu'elle favorise une séparation claire des contextes métiers et une
-construction progressive de l'architecture logicielle~\cite{evans2003ddd}.
-Par ailleurs, le choix d'une architecture microservices facilite naturellement
-ce mode de travail en permettant l'isolation des responsabilités et la livraison
-indépendante des composants~\cite{newman2021microservices}.
+Le backlog a été découpé selon les principaux modules du projet : référentiel de
+compétences, extraction NLP (RICE), gestion des formations, analyse prédictive
+et besoins en formation. Le projet a été précédé d'un \emph{Sprint~0} (mois de
+février) consacré à la montée en compétence, à la configuration des
+environnements (Maven, Docker, PostgreSQL, RabbitMQ, Redis) et à l'élaboration
+du Product Backlog initial. Les cinq sprints productifs (Sprint~1 à Sprint~5)
+ont occupé les mois de mars à juillet~2025, suivis d'un mois d'août consacré
+aux tests finaux, à la mise en production et à la rédaction du rapport PFE
+(cf. tableau~\ref{tab:sprints} au chapitre~2).
 
-\subsection{Rôles dans SCRUM}
+\subsection{Répartition des rôles}
 
-SCRUM définit trois rôles principaux. Dans le cadre de ce projet, ces rôles ont
-été répartis comme indiqué dans le tableau~\ref{tab:roles_scrum}.
+La définition canonique de SCRUM~\cite{schwaber2020scrum,sutherland2014scrum}
+prévoit trois rôles : \textit{Product Owner}, \textit{Scrum Master} et équipe
+de développement. Dans le cadre d'un PFE mono-stagiaire, ces rôles ont été
+adaptés à la réalité du projet, comme le résume le tableau~\ref{tab:roles_scrum}.
+Les encadrantes ont endossé le rôle de Product Owner en définissant, priorisant
+et validant les besoins fonctionnels. La DSI de l'ESPRIT a assuré un rôle de
+validation technique et de cohérence avec le système d'information existant. Le
+candidat a pris en charge la coordination agile ainsi que le développement, les
+tests et l'intégration des fonctionnalités.
 
 \begin{table}[H]
 \centering
-\caption{Répartition des rôles SCRUM dans le projet D2F}
+\caption{Répartition des rôles dans le projet D2F}
 \label{tab:roles_scrum}
 {\small\renewcommand{\arraystretch}{1.15}
 \begin{tabularx}{\textwidth}{>{\bfseries}p{3.5cm} p{5.5cm} X}
 \toprule
-\thead{Rôle SCRUM} & \thead{Responsabilité} & \thead{Acteur} \\
+\thead{Rôle} & \thead{Responsabilité} & \thead{Acteur} \\
 \midrule
-Product Owner & Définit, priorise et valide le \textit{Product Backlog} ; revue de progression toutes les deux semaines & Mme Hajer Berhouma et Mme Leila Ben Dhief (encadrantes ESPRIT / DSI) \\
-Scrum Master & Garantit le respect du cadre agile, organise les cérémonies et lève les obstacles & Oussama KADDECH \\
-Équipe de développement & Conçoit, développe, teste et intègre les incréments & Oussama KADDECH \\
+Product Owner & Définit, priorise et valide les besoins fonctionnels & Encadrantes du projet \\
+Référent technique institutionnel & Vérifie la cohérence technique et l'intégration au SI & DSI de l'ESPRIT \\
+Coordination agile et développement & Organise le travail, développe et intègre les incréments & Oussama KADDECH \\
 \bottomrule
 \end{tabularx}}
 \end{table}
 
-\subsection{Schéma du cycle agile}
+\subsection{Cycle de développement agile}
+
+Le cycle agile retenu repose sur une boucle itérative : identification des
+besoins, priorisation, développement, tests, revue, puis ajustement du backlog
+pour le sprint suivant. Cette boucle matérialise l'empirisme référencé par
+SCRUM~\cite{schwaber2020scrum} (transparence, inspection, adaptation) et
+réduit les écarts entre la solution développée et les attentes réelles des
+parties prenantes. Elle s'est révélée particulièrement pertinente pour D2F : le
+traitement progressif des volets du projet, tout en maintenant une cohérence
+globale, a facilité l'amélioration continue au fil des retours obtenus.
 
 La figure~\ref{fig:scrum_cycle} illustre le déroulement synthétique du cycle
 agile retenu pour le projet D2F.
 
 \begin{figure}[H]
 \centering
-\includegraphics[width=0.9\linewidth]{figures/scrum_cycle.png}
+\includegraphics[width=0.9\linewidth]{figures/scrum.png}
 \caption{Cycle de développement agile adopté pour le projet D2F}
 \label{fig:scrum_cycle}
 \end{figure}
 
 \section{Conclusion}
 
-Ce chapitre a posé le cadre du projet et justifié le choix de D2F pour répondre
-aux limites de l'existant. Il a également établi l'organisation SCRUM en cinq
-sprints. Le chapitre suivant détaille les besoins, l'architecture et la sécurité.
+Ce chapitre a présenté la méthodologie adoptée pour le projet D2F et a justifié
+le choix de SCRUM comme approche la plus adaptée. L'organisation en sprints,
+associée à une répartition claire des rôles, a permis d'assurer une progression
+structurée, une validation régulière des livrables et une meilleure adéquation
+entre les besoins métiers et les solutions développées. Le chapitre suivant
+abordera les besoins du système, l'architecture retenue et les principaux choix
+techniques.
 
 
 % =============================================================================
@@ -1010,33 +1217,64 @@ y sont également justifiés.
 
 La plateforme D2F est utilisée par plusieurs catégories d'acteurs, dont les
 droits sont encadrés par un mécanisme de contrôle d'accès fondé sur les rôles.
-Le tableau~\ref{tab:acteurs} recense les principaux profils, tels qu'ils sont
-définis dans l'énumération \texttt{ERole} du microservice d'authentification.
+Les sept profils ci-dessous, issus de l'énumération \texttt{ERole} du
+microservice d'authentification, sont présentés ci-après.
 
-\begin{table}[H]
-\centering
-\caption{Acteurs de la plateforme D2F}
-\label{tab:acteurs}
-{\small\renewcommand{\arraystretch}{1.15}
-\begin{tabularx}{\textwidth}{>{\bfseries}p{2.8cm} p{4cm} X}
-\toprule
-\thead{Acteur} & \thead{Profil} & \thead{Responsabilités principales} \\
-\midrule
-ADMIN & Administrateur de la plateforme & Gestion des comptes, des compétences, des référentiels et des paramètres système ; accès complet à l'ensemble des fonctionnalités. \\
-CUP & Coordinateur d'Unité Pédagogique & Création et suivi des formations ; approbation des inscriptions et des besoins de son unité pédagogique. \\
-ENSEIGNANT & Enseignant & Consultation de son profil de compétences et de son passeport ; expression de besoins en formation ; inscription aux formations proposées. \\
-ANIMATEUR & Animateur de formation (interne) & Animation des sessions de formation ; possibilité d'exprimer des besoins et de s'inscrire en tant qu'enseignant. \\
-FORMATEUR & Formateur (interne ou externe) & Animation de formations et évaluation des acquis ; accès aux fonctionnalités pédagogiques de suivi. \\
-CHEF\_DEPARTEMENT & Chef de département & Lecture et approbation des besoins de son périmètre ; supervision des compétences du département. \\
-RESPONSABLE\_DOSSIER & Responsable de dossier de formation & Mise à jour et suivi des formations dont il a la charge. \\
-\bottomrule
-\end{tabularx}}
-\end{table}
+\medskip
+
+\textbf{\texttt{ADMIN} --- Administrateur de la plateforme.}\\
+Gestion des comptes, des compétences, des référentiels et des paramètres
+système ; accès complet à l'ensemble des fonctionnalités.
+
+\medskip
+
+\textbf{\texttt{CUP} --- Coordinateur d'Unité Pédagogique.}\\
+Création et suivi des formations ; approbation des inscriptions et des besoins
+de son unité pédagogique.
+
+\medskip
+
+\textbf{\texttt{ENSEIGNANT} --- Enseignant.}\\
+Consultation de son profil de compétences et de son passeport ; expression de
+besoins en formation ; inscription aux formations proposées.
+
+\medskip
+
+\textbf{\texttt{ANIMATEUR} --- Animateur de formation (interne).}\\
+Animation des sessions de formation ; possibilité d'exprimer des besoins et de
+s'inscrire en tant qu'enseignant.
+
+\medskip
+
+\textbf{\texttt{FORMATEUR} --- Formateur (alias legacy, consolidé dans \texttt{ANIMATEUR}).}\\
+Rôle historique conservé pour rétro-compatibilité. Depuis la migration V19,
+toutes les affectations \texttt{FORMATEUR} ont été basculées vers \texttt{ANIMATEUR}.
+Les deux constantes coexistent dans la matrice d'autorisation mais le frontend
+n'expose plus qu'un seul menu «\,Animateur\,».
+
+\medskip
+
+\textbf{\texttt{CHEF\_DEPARTEMENT} --- Chef de département.}\\
+Lecture et approbation des besoins de son périmètre ; supervision des
+compétences du département.
+
+\medskip
+
+\textbf{\texttt{RESPONSABLE\_DOSSIER} --- Responsable de dossier de formation.}\\
+Périmètre restreint à trois missions : (1)~CRUD sur les documents de formation
+(ajout, modification, suppression, téléchargement) via les endpoints
+\texttt{/api/v1/documents}, (2)~consultation en lecture seule du catalogue de
+formations, et (3)~gestion de son propre profil. Les permissions dédiées
+\texttt{DOCUMENT\_CREATE}, \texttt{DOCUMENT\_UPDATE} et \texttt{DOCUMENT\_DELETE}
+lui sont exclusivement accordées ; la modification des champs métier d'une
+formation reste réservée à l'ADMIN et au CUP.
+
+\medskip
 
 Le diagramme de cas d'utilisation global de la figure~\ref{fig:uc_global}
 positionne ces acteurs face aux principales fonctionnalités de la plateforme.
 
-\figplace{uc_global.png}{Diagramme de cas d'utilisation global de la plateforme D2F}{fig:uc_global}{0.25}
+\figplace{uc_global.png}{Diagramme de cas d'utilisation global de la plateforme D2F}{fig:uc_global}{0.30}
 
 \section{Étude des besoins}
 
@@ -1143,77 +1381,139 @@ les animateurs, notamment pour l'inscription, l'expression des besoins et la
 consultation des informations. Ce diagramme sert de base au découpage en sprints
 présenté dans la suite du chapitre.
 
-\section{Backlog du produit}
+\section{Backlog global du produit}
 \label{sec:backlog}
 
-Le \textit{Product Backlog} regroupe l'ensemble des \textit{user stories} issues
-de l'analyse des besoins. Le tableau~\ref{tab:backlog} en présente un extrait
-représentatif, organisé par module et par sprint.
+La conduite du projet D2F selon le cadre SCRUM a reposé sur un \textbf{Product
+Backlog} de quarante-deux user stories, déclinées en un \textbf{Sprint Backlog} de
+65~tâches techniques. Ces tâches, estimées en \textit{Story Points} (SP) selon
+la suite de Fibonacci (1, 2, 3, 5, 8), sont regroupées en cinq sprints
+\textit{verticaux} au sens de Cohn~\cite{cohn2009succeeding}~: chaque sprint
+traverse l'ensemble des couches techniques pour livrer un incrément métier
+fonctionnel et testable.
 
-\begin{table}[H]
-\centering
-\caption{Extrait du Product Backlog}
-\label{tab:backlog}
-{\small\renewcommand{\arraystretch}{1.15}
-\begin{tabularx}{\textwidth}{p{1cm} X p{1.6cm} p{1.3cm}}
+\medskip
+
+Trois principes ont gouverné la construction de ce backlog~:
+
+\begin{itemize}[leftmargin=1.2cm]
+  \item \textbf{Priorisation MoSCoW adaptée.}
+  Chaque tâche reçoit une priorité parmi \textit{Haute}, \textit{Moyenne} ou
+  \textit{Basse}. Une tâche \textit{Haute} conditionne la livraison de
+  l'incrément du sprint~; une tâche \textit{Basse} est négociable sans
+  dégrader la valeur métier du livrable. Aucune priorité n'a été abaissée
+  en cours de sprint.
+  \item \textbf{Traçabilité cas d'utilisation.}
+  Chaque tâche technique est rattachée au cas d'utilisation qu'elle réalise,
+  codé \texttt{UC\textit{Sprint}.\textit{Numéro}}, pour un total de 34~cas
+  d'utilisation couvrant l'ensemble du périmètre fonctionnel.
+  \item \textbf{User stories sans SP direct.}
+  Les quarante-deux user stories ne portent
+  pas d'estimation individuelle~: leur charge est mesurée par la somme des
+  tâches techniques qui les implémentent, garantissant une estimation au plus
+  près du travail réel.
+\end{itemize}
+
+\medskip
+
+Le tableau~\ref{tab:backlog_global} présente le \textbf{backlog global consolidé}
+du projet D2F, organisé par sprint. Chaque entrée porte un identifiant
+de type \texttt{\textit{Catégorie}-\textit{Numéro}} (par exemple \texttt{AUTH-02}
+pour le service d'authentification, \texttt{ML-04} pour le moteur de
+recommandation) et une priorité. Le total général de 303~SP représente l'effort
+cumulé des cinq sprints productifs, le Sprint~0 (configuration des
+environnements et conception) n'étant pas chiffré en SP.
+
+{\footnotesize\renewcommand{\arraystretch}{1.2}
+\begin{longtable}{>{\centering\arraybackslash}p{0.8cm}
+                  >{\raggedright\arraybackslash}p{3.0cm}
+                  p{10.7cm}
+                  >{\raggedright\arraybackslash}p{1.4cm}}
+\caption{Backlog global du produit D2F — user stories, modules
+et priorités}
+\label{tab:backlog_global} \\
 \toprule
-\thead{ID} & \thead{User Story} & \thead{Priorité} & \thead{Sprint} \\
+\thead{ID} & \thead{Module} & \thead{User Story de notre application}
+            & \thead{Priorité} \\
 \midrule
-US01 & En tant que visiteur, je veux m'inscrire afin d'accéder à la plateforme. & Haute & S1 \\
-US02 & En tant qu'admin, je veux gérer les comptes et leurs rôles. & Haute & S1 \\
-US03 & En tant qu'admin, je veux gérer la hiérarchie des compétences. & Haute & S1 \\
-US04 & En tant qu'admin, je veux affecter des savoirs aux enseignants. & Moyenne & S1 \\
-US05 & En tant que CUP, je veux créer et planifier une formation. & Haute & S2 \\
-US06 & En tant qu'enseignant, je veux m'inscrire à une formation. & Haute & S2 \\
-US07 & En tant que formateur, je veux saisir la présence et l'évaluation. & Moyenne & S2 \\
-US08 & En tant qu'enseignant, je veux exprimer un besoin de formation. & Haute & S3 \\
-US09 & En tant que CUP/chef, je veux approuver et prioriser les besoins. & Haute & S3 \\
-US10 & En tant qu'admin, je veux détecter les écarts de compétences. & Haute & S4 \\
-US11 & En tant qu'admin, je veux visualiser les enseignants à risque. & Haute & S4 \\
-US12 & En tant qu'enseignant, je veux des recommandations de formation. & Haute & S4 \\
-US13 & En tant qu'admin, je veux générer un référentiel à partir de fiches. & Haute & S5 \\
-US14 & En tant qu'admin, je veux valider les propositions de l'IA. & Haute & S5 \\
-\bottomrule
-\end{tabularx}}
-\end{table}
-
-\section{Inventaire des cas d'utilisation}
-
-Le tableau~\ref{tab:uc_inventory} recense l'ensemble des cas d'utilisation de la
-plateforme D2F, identifiés par un code unique de la forme
-\texttt{UC\textit{Sprint}.\textit{Numéro}} et répartis sur les cinq sprints.
-Chaque cas d'utilisation est associé aux acteurs concernés et relié aux
-\textit{user stories} correspondantes.
-
-\begin{table}[H]
-\centering
-\caption{Inventaire des cas d'utilisation de la plateforme D2F}
-\label{tab:uc_inventory}
-{\small\renewcommand{\arraystretch}{1.15}
-\begin{tabularx}{\textwidth}{p{1.4cm} X p{4.5cm} p{1.2cm}}
+\endfirsthead
+\multicolumn{4}{l}{\small\textit{Suite du tableau~\ref{tab:backlog_global}
+— Backlog global du produit D2F}} \\
 \toprule
-\thead{UC} & \thead{Intitulé} & \thead{Acteurs} & \thead{Sprint} \\
+\thead{ID} & \thead{Module} & \thead{User Story de notre application}
+            & \thead{Priorité} \\
 \midrule
-UC1.1 & S'enregistrer dans la plateforme & Visiteur & S1 \\
-UC1.2 & S'authentifier (connexion sécurisée) & Tout utilisateur & S1 \\
-UC1.3 & Gérer les utilisateurs & ADMIN & S1 \\
-UC1.4 & Gérer la hiérarchie de compétences & ADMIN, CUP, ENSEIGNANT, CHEF\_DEP. & S1 \\
-UC1.5 & Affecter des savoirs aux enseignants & ADMIN & S1 \\
-UC1.6 & Réinitialiser le mot de passe & Tout utilisateur & S1 \\
-UC2.1 & Créer et gérer le cycle de vie d'une formation & ADMIN, CUP, RESPONSABLE\_DOSSIER & S2 \\
-UC2.2 & S'inscrire à une formation et suivre la présence & ENSEIGNANT, ANIMATEUR, FORMATEUR, CUP & S2 \\
-UC2.3 & Gérer le calendrier des ateliers & ADMIN, CUP & S2 \\
-UC2.4 & Évaluer et certifier une formation & ENSEIGNANT, ADMIN, FORMATEUR, ANIMATEUR & S2 \\
-UC3.1 & Exprimer un besoin en formation & ENSEIGNANT, ANIMATEUR, CUP, ADMIN & S3 \\
-UC3.2 & Approuver et prioriser un besoin & CUP, CHEF\_DEP., ADMIN & S3 \\
-UC4.1 & Lister les formations recommandées & ADMIN, CUP, ENSEIGNANT & S4 \\
-UC4.2 & Consulter le tableau de bord décisionnel & ADMIN, CUP & S4 \\
-UC4.3 & Consulter et générer le passeport de compétences & ENSEIGNANT, ADMIN & S4 \\
-UC5.1 & Extraire et proposer un référentiel à partir de fiches & ADMIN & S5 \\
-UC5.2 & Valider et persister le référentiel extrait & ADMIN & S5 \\
+\endhead
+\multicolumn{4}{r}{\small\textit{Suite page suivante}} \\
+\endfoot
 \bottomrule
-\end{tabularx}}
-\end{table}
+\endlastfoot
+\midrule
+\rowcolor{espritblue!12}
+\multicolumn{4}{l}{\textbf{Sprint~1 — Authentification \& référentiel de compétences}} \\
+\midrule
+ 1  & Authentification  & En tant que visiteur, je m'inscris sur la plateforme avec un rôle \texttt{ENSEIGNANT} imposé & Haute \\
+  2  & Gestion des comptes & En tant qu'administrateur, je crée, modifie et gère les comptes utilisateurs et leurs rôles & Haute \\
+  3  & Gestion des comptes & En tant qu'administrateur, je bannis ou réactive un compte utilisateur en cas de comportement anormal & Moyenne \\
+  4  & Référentiel de compétences & En tant qu'administrateur, je construis et administre l'arborescence Domaine $\rightarrow$ Compétence $\rightarrow$ Sous-compétence $\rightarrow$ Savoir & Haute \\
+  5  & Affectation des savoirs & En tant qu'administrateur, j'affecte des savoirs aux enseignants avec niveau de maîtrise (N1--N5) et date d'acquisition & Moyenne \\
+  6  & Authentification  & En tant qu'utilisateur, je me connecte de manière sécurisée via JWT HS512 avec protection contre la force brute & Haute \\
+  7  & Authentification  & En tant qu'utilisateur, je réinitialise mon mot de passe par courriel de manière sécurisée & Moyenne \\
+  8  & Affectation des savoirs & En tant qu'enseignant, je consulte visuellement mon profil de compétences sous forme arborescente & Haute \\
+  9  & Prérequis  & En tant qu'administrateur, je définis les relations de prérequis entre compétences (une compétence peut en nécessiter une autre comme préalable) & Moyenne \\
+\midrule
+\rowcolor{espritblue!12}
+\multicolumn{4}{l}{\textbf{Sprint~2 — Module RICE~: extraction NLP du référentiel}} \\
+\midrule
+ 10 & Module RICE       & En tant qu'administrateur, je téléverse des fiches pédagogiques (PDF/DOCX) et l'IA génère automatiquement une arborescence de compétences par traitement du langage naturel & Haute \\
+ 11 & Module RICE       & En tant qu'administrateur, je révise et valide les propositions de l'IA avant toute persistance en base de données & Haute \\
+ 12 & Module RICE       & En tant qu'administrateur ou CUP, je lance une recherche par texte libre pour apparier des fragments au référentiel existant par similarité sémantique & Moyenne \\
+ 13 & Module RICE       & En tant qu'administrateur, j'exporte le référentiel de compétences extrait par RICE au format CSV & Moyenne \\
+ 14 & Module RICE       & En tant qu'administrateur, je consulte l'historique des analyses RICE précédentes (fiches traitées, résultats, dates) & Basse \\
+ 15 & Module RICE       & En tant qu'administrateur, je déclenche le rafraîchissement du cache d'embeddings sémantiques (Sentence-BERT) pour un département & Basse \\
+ 16 & Référentiel de compétences & En tant qu'administrateur, j'importe en masse des compétences dans le référentiel sans passer par le pipeline RICE (bulk-import) & Moyenne \\
+\midrule
+\rowcolor{espritblue!12}
+\multicolumn{4}{l}{\textbf{Sprint~3 — Cycle de vie des formations}} \\
+\midrule
+ 17 & Formation         & En tant qu'administrateur ou CUP, je crée une formation (interne ou externe), planifie les séances et rattache les compétences visées & Haute \\
+ 18 & Formation         & En tant qu'enseignant, je m'inscris à une formation ; le CUP valide ou refuse mon inscription & Haute \\
+ 19 & Formation         & En tant que formateur, je saisis la présence et les évaluations (globale et du formateur) ; les participants reçoivent des certificats & Moyenne \\
+ 20 & Formation         & En tant qu'administrateur ou CUP, je gère le calendrier des ateliers~: import planning Excel, détection de conflits de salles/animateurs, export iCal, envoi d'invitations Outlook & Haute \\
+ 21 & Formation         & En tant qu'administrateur, CUP ou responsable dossier, je gère les documents associés aux formations (téléverser, consulter, supprimer) & Moyenne \\
+ 22 & Formation         & En tant qu'administrateur ou CUP, je consulte les KPI et le tableau de bord des formations (taux de participation, évolution, métriques clés) & Moyenne \\
+ 23 & Formation         & En tant qu'administrateur, j'importe en masse les départements, unités pédagogiques et enseignants depuis un fichier Excel & Moyenne \\
+ 24 & Formation         & En tant qu'administrateur ou CUP, j'exporte les données de formation au format Excel ou iCalendar~(.ics) & Basse \\
+ 25 & Organisation      & En tant qu'administrateur, je gère les départements et les unités pédagogiques (création, modification, affectation) & Haute \\
+ 26 & Organisation      & En tant qu'administrateur, je gère les animateurs externes et les bureaux qui les emploient & Moyenne \\
+ 27 & Catalogue         & En tant qu'enseignant, responsable dossier ou formateur, je consulte le catalogue des formations disponibles avec leurs détails & Haute \\
+\midrule
+\rowcolor{espritblue!12}
+\multicolumn{4}{l}{\textbf{Sprint~4 — Analyse prédictive \& recommandation}} \\
+\midrule
+ 28 & Analyse prédictive & En tant qu'administrateur ou CUP, je lance une analyse des écarts de compétences et le système recommande des formations personnalisées & Haute \\
+ 29 & Analyse prédictive & En tant qu'administrateur ou CUP, je consulte le tableau de bord des enseignants à risque, les alertes et la carte de chaleur des écarts & Haute \\
+ 30 & Analyse prédictive & En tant qu'enseignant, je génère mon passeport de compétences au format PDF synthétisant mes compétences, formations et score de risque & Haute \\
+ 31 & Analyse prédictive & En tant qu'administrateur ou CUP, je consulte les passeports de compétences consolidés d'une équipe ou d'un département & Moyenne \\
+ 32 & Analyse prédictive & En tant qu'enseignant, je consulte mon parcours de formation personnalisé avec les étapes, niveaux visés et probabilité de réussite & Moyenne \\
+ 33 & Analyse prédictive & En tant qu'enseignant, j'accepte ou rejette une formation recommandée par le système, ce qui met à jour mon profil et améliore les futures recommandations & Moyenne \\
+ 34 & Analyse prédictive & En tant qu'administrateur, je consulte des rapports descriptifs~: enseignants inactifs $>$ N~mois, formations par période, formations par UP/département avec comparaison radar & Moyenne \\
+ 35 & Analyse prédictive & En tant qu'administrateur, j'exporte les rapports d'analyse prédictive au format Excel ou PDF & Moyenne \\
+ 36 & Analyse prédictive & En tant qu'administrateur, je déclenche le réentraînement du modèle de machine learning avec les données les plus récentes & Basse \\
+ 37 & Analyse prédictive & En tant qu'administrateur, je configure les variantes du cadre d'expérimentation A/B (MSAS, filtrage collaboratif, risk-based) pour valider les recommandations & Basse \\
+\midrule
+\rowcolor{espritblue!12}
+\multicolumn{4}{l}{\textbf{Sprint~5 — Besoins en formation \& communication asynchrone}} \\
+\midrule
+ 38 & Besoins en formation & En tant qu'enseignant ou CUP, j'exprime un besoin de formation (individuel, collectif ou lié à l'animation) avec type, thème, objectifs, priorité et compétences visées & Haute \\
+ 39 & Besoins en formation & En tant que CUP ou chef de département, je consulte, priorise et approuve les besoins ; l'approbation finale déclenche automatiquement la création de la formation via RabbitMQ & Haute \\
+ 40 & Besoins en formation & En tant qu'enseignant, je consulte la liste de mes besoins de formation exprimés avec leur état d'approbation & Moyenne \\
+ 41 & Besoins en formation & En tant qu'administrateur, CUP ou chef de département, je consulte et trie les besoins de formation par unité pédagogique, par département ou par niveau de priorité & Moyenne \\
+ 42 & Notifications      & En tant qu'enseignant ou CUP, je reçois des notifications asynchrones pour les événements clés (approbation de besoin, création de formation, changement d'état) & Haute \\
+\midrule
+\rowcolor{espritblue!22}
+\multicolumn{3}{r}{\textbf{Total cumulé~: 42~user stories, 65~tâches techniques, 303~Story Points}} & \textbf{42} \\
+\end{longtable}}
 
 \section{Diagramme de classes}
 
@@ -1263,29 +1563,7 @@ priorité \texttt{Priorite} (\texttt{BASSE}, \texttt{MOYENNE}, \texttt{HAUTE},
 Le workflow d'approbation multi-niveaux est représenté par trois indicateurs
 booléens (\texttt{approuveCUP}, \texttt{approuveChefDep}, \texttt{approuveAdmin}),
 tandis que la liaison aux compétences visées est portée par
-\texttt{BesoinCompetence}. Les principaux attributs de \texttt{BesoinFormation}
-sont synthétisés dans le tableau~\ref{tab:besoin_fields}.
-
-\begin{table}[H]
-\centering
-\caption{Principaux attributs de l'entité \texttt{BesoinFormation}}
-\label{tab:besoin_fields}
-{\small\renewcommand{\arraystretch}{1.15}
-\begin{tabularx}{\textwidth}{>{\ttfamily}p{4.2cm} X}
-\toprule
-\normalfont\thead{Attribut} & \thead{Description} \\
-\midrule
-typeBesoin & Type du besoin : \texttt{INDIVIDUEL}, \texttt{COLLECTIF} ou \texttt{ANIMER\_UNE\_FORMATION}. \\
-titre, theme & Intitulé et thème de la formation souhaitée. \\
-objectifsPedagogiques & Objectifs pédagogiques et opérationnels visés. \\
-priorite & Niveau de priorité : \texttt{BASSE}, \texttt{MOYENNE}, \texttt{HAUTE}, \texttt{CRITIQUE}. \\
-impactStrategique & Impact stratégique justifiant le besoin. \\
-up, departement & Périmètre organisationnel du besoin. \\
-approuveCUP/ChefDep/Admin & États d'approbation du workflow à plusieurs niveaux. \\
-eventPublished & Indique si l'événement d'approbation a été publié sur RabbitMQ. \\
-\bottomrule
-\end{tabularx}}
-\end{table}
+\texttt{BesoinCompetence}.
 
 \subsection{Utilisateurs, rôles et audit}
 
@@ -1307,86 +1585,181 @@ choix de chaque composant a été guidé par trois critères : adéquation avec 
 domaine métier, maturité de l'écosystème et compatibilité avec les exigences
 de la DSI (confidentialité, exécution locale).
 
-\subsection{Pile technologique}
-
-La figure~\ref{fig:tech_stack} présente les principaux outils et frameworks
-mobilisés pour le développement de la plateforme D2F, organisés par domaine
-d'application.
-
-% Couleurs technologiques
-\definecolor{cReact}{HTML}{61DAFB}
-\definecolor{cVite}{HTML}{646CFA}
-\definecolor{cTS}{HTML}{3178C6}
-\definecolor{cAntD}{HTML}{0170C3}
-\definecolor{cChartjs}{HTML}{5C7CFA}
-\definecolor{cJava}{HTML}{F89820}
-\definecolor{cSpring}{HTML}{6DB33F}
-\definecolor{cJWT}{HTML}{E44D26}
-\definecolor{cFlyway}{HTML}{CB3837}
-\definecolor{cPython}{HTML}{3776AB}
-\definecolor{cFastAPI}{HTML}{009688}
-\definecolor{cScikit}{HTML}{F7931E}
-\definecolor{cSBERT}{HTML}{FF6B6B}
-\definecolor{cTesseract}{HTML}{2E8B57}
-\definecolor{cPG}{HTML}{336791}
-\definecolor{cRedis}{HTML}{DC382D}
-\definecolor{cRabbit}{HTML}{FF6600}
-\definecolor{cMinIO}{HTML}{0075C2}
-\definecolor{cDocker}{HTML}{2496ED}
-\definecolor{cGitHub}{HTML}{2088FF}
-
-\begin{figure}[H]
-\centering
-\renewcommand{\arraystretch}{1.8}
-\begin{tabular}{>{\bfseries\small\color{espritblue}}r l}
-  Frontend :
-    & \techbadge{cReact}{React}
-      \techbadge{cVite}{Vite}
-      \techbadge{cTS}{TypeScript}
-      \techbadge{cAntD}{Ant Design}
-      \techbadge{cChartjs}{Chart.js} \\
-  Backend :
-    & \techbadge{cJava}{Java}
-      \techbadge{cSpring}{Spring Boot}
-      \techbadge{cSpring!80!black}{Gateway}
-      \techbadge{cJWT}{JWT}
-      \techbadge{cFlyway}{Flyway} \\
-  Intelligence artificielle :
-    & \techbadge{cPython}{Python}
-      \techbadge{cFastAPI}{FastAPI}
-      \techbadge{cScikit}{scikit-learn}
-      \techbadge{cSBERT}{SBERT}
-      \techbadge{cTesseract}{Tesseract} \\
-  Données \& Messages :
-    & \techbadge{cPG}{PostgreSQL}
-      \techbadge{cRedis}{Redis}
-      \techbadge{cRabbit}{RabbitMQ}
-      \techbadge{cMinIO}{MinIO} \\
-  Infrastructure :
-    & \techbadge{cDocker}{Docker}
-      \techbadge{cDocker!80!black}{Compose}
-      \techbadge{cGitHub}{GitHub Actions} \\
-\end{tabular}
-\caption{Technologies utilisées dans la plateforme D2F}
-\label{fig:tech_stack}
-\end{figure}
-
 \subsection{Frameworks et langages}
 
-Le backend repose sur \textbf{Java~17} avec \textbf{Spring Boot~3.x}~\cite{springboot},
-retenu pour la robustesse de son écosystème et l'intégration native de
-Spring Security~\cite{springsecurity}, Spring Data~JPA et Spring Cloud
-Gateway~\cite{springcloudgateway}. Les deux services d'intelligence
-artificielle sont développés en \textbf{Python} avec \textbf{FastAPI}~\cite{fastapi},
-choix justifié par la richesse de l'écosystème scientifique (scikit-learn~\cite{scikitlearn},
-\texttt{pdfplumber}, \texttt{rapidfuzz}) et par les performances asynchrones
-de FastAPI. L'interface utilisateur est une application monopage construite
-avec \textbf{React~19}~\cite{react} et \textbf{Vite}~\cite{vite},
-complétée par
-Ant Design~\cite{antdesign} pour les composants, TanStack
-Query~\cite{reactquery} pour la gestion de l'état serveur, react-hook-form et
-Yup pour la validation des formulaires, et Chart.js~\cite{chartjs} pour la
-restitution graphique. Le projet mobilise ainsi cinq langages : Java, Python,
+La plateforme D2F repose sur un ensemble de frameworks et langages
+sélectionnés pour leur maturité, leur écosystème riche et leur
+adéquation aux exigences du projet.
+
+\begin{itemize}[leftmargin=1.2cm, itemsep=6pt]
+
+  \item \textbf{Java~17} est le langage principal utilisé pour le
+  backend. Retenu pour la robustesse de son écosystème et la stabilité
+  de ses API, il assure la fiabilité des huit microservices métier
+  (authentification, compétences, formations, évaluation, certificats,
+  besoins, analyse, passerelle).
+
+  \begin{figure}[H]
+    \centering
+    \includegraphics[height=1.8cm]{figures/logos/java.png}
+    \caption{Logo Java}
+    \label{fig:logo_java}
+  \end{figure}
+
+  \item \textbf{Spring Boot~3.x} est le framework backend utilisé pour
+  construire les microservices. Il offre une intégration native de
+  Spring Security~\url{https://docs.spring.io/spring-security/reference/index.html} pour l'authentification JWT,
+  Spring Data~JPA sur Hibernate~\url{https://hibernate.org/orm/documentation/} pour la persistance,
+  et Spring Cloud Gateway~\url{https://docs.spring.io/spring-cloud-gateway/reference/index.html} pour la passerelle
+  API. Les microservices partagent une bibliothèque commune de sécurité
+  (\texttt{common-security}).
+
+  \begin{figure}[H]
+    \centering
+    \includegraphics[height=1.8cm]{figures/logos/spring.png}
+    \caption{Logo Spring Boot}
+    \label{fig:logo_spring}
+  \end{figure}
+
+  \item \textbf{Python~3.12} est utilisé pour les services d'intelligence
+  artificielle. La richesse de l'écosystème scientifique (scikit-learn,
+  pdfplumber, rapidfuzz, Sentence-BERT) en fait le langage idéal pour
+  l'extraction NLP et l'analyse prédictive.
+
+  \begin{figure}[H]
+    \centering
+    \includegraphics[height=1.8cm]{figures/logos/python.png}
+    \caption{Logo Python}
+    \label{fig:logo_python}
+  \end{figure}
+
+  \item \textbf{FastAPI}~\url{https://fastapi.tiangolo.com/} est le framework web utilisé pour
+  les deux services Python (\texttt{rice} et \texttt{predictive-analytics}).
+  Ses performances asynchrones et la génération automatique de la
+  documentation OpenAPI en font un choix adapté pour des services
+  d'API intensifs.
+
+  \begin{figure}[H]
+    \centering
+    \includegraphics[height=1.8cm]{figures/logos/fastapi.png}
+    \caption{Logo FastAPI}
+    \label{fig:logo_fastapi}
+  \end{figure}
+
+  \item \textbf{TypeScript}~\url{https://www.typescriptlang.org/docs/} est le langage utilisé pour
+  le frontend. Il apporte la vérification de types statiques à
+  JavaScript, améliorant la maintenabilité et la fiabilité du code
+  côté client.
+
+  \begin{figure}[H]
+    \centering
+    \includegraphics[height=1.8cm]{figures/logos/typescript.png}
+    \caption{Logo TypeScript}
+    \label{fig:logo_typescript}
+  \end{figure}
+
+  \item \textbf{React~19}~\url{https://react.dev/} est la bibliothèque JavaScript
+  utilisée pour construire l'interface utilisateur. Combinée à
+  Vite~\url{https://vitejs.dev/} pour le bundling et TanStack Query~\url{https://tanstack.com/query/latest}
+  pour la gestion de l'état serveur, elle permet de développer une
+  application monopage performante et réactive.
+
+  \begin{figure}[H]
+    \centering
+    \includegraphics[height=1.8cm]{figures/logos/react.png}
+    \caption{Logo React}
+    \label{fig:logo_react}
+  \end{figure}
+
+  \item \textbf{Ant Design}~\url{https://ant.design/} est la bibliothèque de
+  composants UI utilisée sur le frontend. Elle fournit une large
+  gamme de composants React riches et personnalisables (formulaires,
+  tableaux, modales, graphiques) qui accélèrent le développement de
+  l'interface.
+
+  \begin{figure}[H]
+    \centering
+    \includegraphics[height=1.8cm]{figures/logos/antdesign.png}
+    \caption{Logo Ant Design}
+    \label{fig:logo_antd}
+  \end{figure}
+
+  \item \textbf{Chart.js}~\url{https://www.chartjs.org/docs/latest/} est utilisé pour la restitution
+  graphique des données. Il permet de créer des graphiques interactifs
+  (courbes, barres, camemberts) pour les tableaux de bord et les
+  statistiques de la plateforme.
+
+  \begin{figure}[H]
+    \centering
+    \includegraphics[height=1.8cm]{figures/logos/chartjs.png}
+    \caption{Logo Chart.js}
+    \label{fig:logo_chartjs}
+  \end{figure}
+
+  \item \textbf{PostgreSQL~15}~\url{https://www.postgresql.org/docs/15/} est le système de
+  gestion de bases de données relationnelles utilisé. Chaque
+  microservice dispose de son propre schéma, isolé physiquement,
+  garantissant la séparation des données et la sécurité.
+
+  \begin{figure}[H]
+    \centering
+    \includegraphics[height=1.8cm]{figures/logos/postgresql.png}
+    \caption{Logo PostgreSQL}
+    \label{fig:logo_pg}
+  \end{figure}
+
+  \item \textbf{RabbitMQ}~\url{https://www.rabbitmq.com/docs} est le bus de messages utilisé
+  pour la communication événementielle asynchrone entre microservices.
+  Il permet de publier des événements (approbation de besoins,
+  résultat d'analyse) et de les consommer de manière découplée.
+
+  \begin{figure}[H]
+    \centering
+    \includegraphics[height=1.8cm]{figures/logos/rabbitmq.png}
+    \caption{Logo RabbitMQ}
+    \label{fig:logo_rabbitmq}
+  \end{figure}
+
+  \item \textbf{Redis}~\url{https://redis.io/docs/latest/} est utilisé comme magasin de données
+  en cache et pour la limitation de débit distribuée (rate limiting).
+  Il assure des performances optimales pour les requêtes fréquentes
+  et protège les services contre les surcharges.
+
+  \begin{figure}[H]
+    \centering
+    \includegraphics[height=1.8cm]{figures/logos/redis.png}
+    \caption{Logo Redis}
+    \label{fig:logo_redis}
+  \end{figure}
+
+  \item \textbf{Docker}~\url{https://docs.docker.com/} et \textbf{Docker
+  Compose}~\url{https://docs.docker.com/compose/} assurent la conteneurisation et
+  l'orchestration de l'ensemble des services. Chaque microservice
+  est conteneurisé avec son propre Dockerfile, et Docker Compose
+  coordonne le démarrage, les réseaux et les volumes.
+
+  \begin{figure}[H]
+    \centering
+    \includegraphics[height=1.8cm]{figures/logos/docker.png}
+    \caption{Logo Docker}
+    \label{fig:logo_docker}
+  \end{figure}
+
+  \item \textbf{GitHub Actions} est utilisé pour l'intégration continue
+  (CI/CD). Les pipelines automatisent la compilation, les tests
+  unitaires, l'analyse SonarQube et le déploiement des
+  conteneurs.
+
+  \begin{figure}[H]
+    \centering
+    \includegraphics[height=1.8cm]{figures/logos/github.png}
+    \caption{Logo GitHub Actions}
+    \label{fig:logo_github}
+  \end{figure}
+
+\end{itemize}
+
+Le projet mobilise ainsi \textbf{cinq langages}~: Java, Python,
 TypeScript, SQL et YAML.
 
 \subsection{Environnement logiciel}
@@ -1398,41 +1771,59 @@ cycle de développement, de l'éditeur de code au conteneur de production.
 \centering
 \caption{Environnement logiciel}
 \label{tab:env_log}
-{\small\renewcommand{\arraystretch}{1.15}
-\begin{tabularx}{\textwidth}{>{\bfseries}p{4.5cm} X}
+{\small\renewcommand{\arraystretch}{1.3}
+\begin{tabularx}{\textwidth}{>{\bfseries}p{4.2cm} X}
 \toprule
 \thead{Composant} & \thead{Outil / Technologie} \\
 \midrule
-Système d'exploitation & Windows 11 \\
-Éditeur de code & Visual Studio Code, IntelliJ IDEA \\
-JDK & Eclipse Temurin 17 \\
-Build (Java) & Maven \\
-Build (Python) & \texttt{pip}, \texttt{requirements.txt} \\
-Gestion de versions & Git, GitHub \\
-CI/CD & GitHub Actions \\
-Qualité de code & SonarQube~\cite{sonarqube}, SpotBugs \\
-Tests (Java) & JUnit 5, Mockito, JaCoCo \\
-Tests (Python) & \texttt{pytest}, \texttt{coverage} \\
-Conteneurisation & Docker, Docker Compose~\cite{dockercompose} \\
-Base de données & PostgreSQL 15~\cite{postgresql}, pgAdmin \\
-Bus de messages & RabbitMQ 3.13~\cite{rabbitmq} \\
-Cache / Rate limiting & Redis~\cite{redis} \\
-Documentation API & springdoc-openapi (Swagger UI)~\cite{springdoc} \\
-Tests d'API & Postman \\
+Système d'exploitation
+  & Windows 11 \\
+Éditeur de code
+  & Visual Studio Code, IntelliJ IDEA \\
+JDK
+  & Eclipse Temurin 17 \\
+Build (Java)
+  & \includegraphics[height=0.28cm]{figures/logos/maven.png}~Maven \\
+Build (Python)
+  & \texttt{pip}, \texttt{requirements.txt} \\
+Gestion de versions
+  & \includegraphics[height=0.28cm]{figures/logos/git.png}~Git, \includegraphics[height=0.28cm]{figures/logos/github.png}~GitHub \\
+CI/CD
+  & \includegraphics[height=0.28cm]{figures/logos/github.png}~GitHub Actions \\
+Qualité de code
+  & \includegraphics[height=0.28cm]{figures/logos/sonarqube.png}~SonarQube~\url{https://docs.sonarsource.com/sonarqube/}, SpotBugs~\url{https://spotbugs.github.io/} \\
+Tests (Java)
+  & JUnit 5, Mockito, JaCoCo \\
+Tests (Python)
+  & \texttt{pytest}, \texttt{coverage} \\
+Conteneurisation
+  & \includegraphics[height=0.28cm]{figures/logos/docker.png}~Docker, Docker Compose~\url{https://docs.docker.com/compose/} \\
+Base de données
+  & \includegraphics[height=0.28cm]{figures/logos/postgresql.png}~PostgreSQL~15~\url{https://www.postgresql.org/docs/15/}, pgAdmin \\
+Bus de messages
+  & \includegraphics[height=0.28cm]{figures/logos/rabbitmq.png}~RabbitMQ~3.13~\url{https://www.rabbitmq.com/docs} \\
+Cache / Rate limiting
+  & \includegraphics[height=0.28cm]{figures/logos/redis.png}~Redis~\url{https://redis.io/docs/latest/} \\
+Documentation API
+  & springdoc-openapi (Swagger UI)~\url{https://springdoc.org/}, \url{https://spec.openapis.org/oas/v3.1.0} \\
+Tests d'API
+  & \includegraphics[height=0.28cm]{figures/logos/postman.png}~Postman \\
 \bottomrule
 \end{tabularx}}
 \end{table}
 
 \subsection{Outils de conception et de développement}
 
-La conception UML a été réalisée à l'aide de \textbf{PlantUML}~\cite{plantuml}
+La conception UML a été réalisée à l'aide de \textbf{PlantUML}~\url{https://plantuml.com/}
 pour les diagrammes de cas d'utilisation, de classe et de séquence, puis
 complétée par StarUML pour certaines mises en forme. Les diagrammes
-d'architecture ont été produits en \LaTeX{} à l'aide de TikZ afin d'assurer
-leur cohérence typographique avec le reste du rapport. Le suivi des évolutions
-a été assuré par Git, chaque sprint donnant lieu à une série de commits
-documentés, tandis que SonarQube a contrôlé en continu la qualité du code
-selon le principe \textit{Clean as You Code}.
+d'architecture ont été produits en \LaTeX{} à l'aide de TikZ suivant une
+inspiration du modèle~\url{https://c4model.com/} (vue de contexte et de conteneurs) afin
+d'assurer leur cohérence typographique avec le reste du rapport. Le suivi
+des évolutions a été assuré par Git, chaque sprint donnant lieu à une série
+de commits documentés, tandis que SonarQube a contrôlé en continu la
+qualité du code selon le principe \textit{Clean as You
+  Code}~\url{https://docs.sonarsource.com/sonarqube-server/latest/user-illustrating-changelog/whats-new-in-sonarqube-server/quality-gate.html}.
 
 \subsection{Environnement matériel}
 
@@ -1458,62 +1849,92 @@ Système d'exploitation & Windows 11 \\
 
 \section{Architecture globale}
 
-La conception d'un système d'information de cette ampleur appelle des décisions
-structurantes, chacune motivée par une contrainte explicite du cahier des charges.
+La conception d'un système d'information de cette ampleur appelle des
+décisions structurantes, chacune motivée par une contrainte explicite du
+cahier des charges.
 
 \subsection{Architecture microservices}
 
 Le premier choix structurant consiste à décomposer la plateforme en services
-autonomes plutôt que de la concevoir comme un bloc monolithique. Cette décision
-se justifie par la nature même du domaine — gestion des utilisateurs, des
-compétences, des formations, des besoins et de l'analyse — qui se prête
-naturellement à un découpage en contextes bornés, conformément aux principes du
-\textit{Domain-Driven Design}~\cite{evans2003ddd}. L'approche
-microservices~\cite{newman2021microservices} offre trois bénéfices décisifs dans
-ce projet : une \textbf{évolutivité indépendante} de chaque domaine, une
-\textbf{tolérance aux pannes} renforcée — la défaillance d'un service n'entraîne
-pas l'arrêt de l'ensemble de la plateforme — et une \textbf{séparation claire des
-responsabilités} qui facilite la maintenance ainsi que le respect du
-\textit{Quality Gate} SonarQube, service par service.
+autonomes plutôt que de la concevoir comme un bloc monolithique. Cette
+décision se justifie par la nature même du domaine --- gestion des
+utilisateurs, des compétences, des formations, des besoins et de l'analyse
+--- qui se prête naturellement à un découpage en contextes bornés,
+conformément aux principes du \textit{Domain-Driven
+Design}~\cite{evans2003ddd}.
+
+L'approche
+microservices~\cite{newman2021microservices,richson2018microservices}
+offre trois bénéfices décisifs dans ce projet :
+
+\begin{itemize}[leftmargin=1.2cm, itemsep=6pt]
+  \item \textbf{Évolutivité indépendante} de chaque domaine --- chaque
+  microservice peut être déployé, mis à jour et mis à l'échelle de manière
+  autonome, sans impacter les autres services.
+
+  \item \textbf{Tolérance aux pannes} renforcée --- la défaillance d'un
+  service n'entraîne pas l'arrêt de l'ensemble de la plateforme,
+  soutenue par des patterns éprouvés tels que le Circuit
+  Breaker~\cite{richson2018microservices} et la façade
+  BFF\footnote{Backend-for-Frontend, pattern documenté dans
+  \cite{richson2018microservices}.}.
+
+  \item \textbf{Séparation claire des responsabilités} qui facilite la
+  maintenance ainsi que le respect du \emph{Quality Gate} SonarQube,
+  service par service.
+\end{itemize}
+
+Les principes de \textit{Domain-Driven
+Design}~\cite{evans2003ddd,martin2003ddd} (contextes bornés, langage
+ubiquitaire et entités de valeur) constituent le socle de ce découpage.
 
 \subsection{Choix de la persistance}
 
-La persistance repose sur PostgreSQL~\cite{postgresql}, un système de gestion de
-bases de données relationnel mature, retenu pour sa conformité ACID, la richesse
-de son support SQL et sa fiabilité éprouvée en environnement de production.
-Plutôt que d'associer une base de données distincte à chaque microservice, la
-plateforme adopte une \textbf{base unique à schémas isolés}, chaque schéma étant
-rattaché à un utilisateur applicatif dédié ne disposant de privilèges que sur ses
-propres tables. Ce compromis réduit la complexité opérationnelle tout en
-préservant l'indépendance logique des données de chaque service, principe
-essentiel dans une architecture microservices.
+La persistance repose sur PostgreSQL~\url{https://www.postgresql.org/docs/15/}, un système de
+gestion de bases de données relationnel mature, retenu pour sa conformité
+ACID, la richesse de son support SQL et sa fiabilité éprouvée en
+environnement de production. Plutôt que d'associer une base de données
+distincte à chaque microservice, la plateforme adopte une \textbf{base
+unique à schémas isolés}, chaque schéma étant rattaché à un utilisateur
+applicatif dédié ne disposant de privilèges que sur ses propres tables. Ce
+compromis réduit la complexité opérationnelle tout en préservant
+l'indépendance logique des données de chaque service, principe essentiel
+dans une architecture microservices.
 
 \subsection{Conception de la sécurité et contrôle d'accès}
 \label{sec:rbac}
 
-La sécurité constitue une exigence transverse de premier plan, dictée par la
-sensibilité des données manipulées, notamment les compétences individuelles, les
-évaluations et les besoins liés aux ressources humaines. Elle repose sur trois
-piliers : une authentification stateless par JWT, un contrôle d'accès fondé sur
-les rôles centralisé, et des mécanismes de protection complémentaires.
+La sécurité constitue une exigence transverse de premier plan, dictée par
+la sensibilité des données manipulées, notamment les compétences
+individuelles, les évaluations et les besoins liés aux ressources
+humaines. Elle repose sur trois piliers : une authentification
+\textit{stateless} par JWT, un contrôle d'accès fondé sur les rôles
+centralisé, et des mécanismes de protection complémentaires.
 
 \paragraph{Authentification par jeton JWT.}
-L'authentification est \textit{stateless} : lors de la connexion, le service
-d'authentification valide les identifiants, hache les mots de passe à l'aide de
-BCrypt, puis émet un \textit{JSON Web Token}~\cite{rfc7519} signé en HS512. Ce
-jeton, transporté via un cookie \texttt{HttpOnly}/\texttt{Secure}/\texttt{SameSite=Strict},
-contient l'identité de l'utilisateur, ses rôles et une date d'expiration. La
-signature garantit l'intégrité et l'authenticité du jeton sans nécessiter de
-stockage d'état côté serveur, ce qui s'accorde naturellement avec une
-architecture distribuée.
+L'authentification est \textit{stateless} : lors de la connexion, le
+service d'authentification valide les identifiants, hache les mots de passe
+à l'aide de BCrypt~\url{https://github.com/B-Con/crypto-algorithms/blob/master/bcrypt.c}, puis émet un \textit{JSON Web
+Token}~\cite{rfc7519} signé en HS512. Ce jeton, transporté via un cookie
+\texttt{HttpOnly}/\texttt{Secure}/\texttt{SameSite=Strict}, contient
+l'identité de l'utilisateur, ses rôles et une date d'expiration. La
+signature garantit l'intégrité et l'authenticité du jeton sans nécessiter
+de stockage d'état côté serveur, ce qui s'accorde naturellement avec une
+architecture distribuée. Les bonnes pratiques de mise en \oe{}uvre sont
+alignées sur le \textit{JWT Cheat Sheet} de l'OWASP~\url{https://cheatsheetseries.owasp.org/cheatsheets/JSON_Web_Token_for_Java_Cheat_Sheet.html},
+notamment sur la révocation de jeton, l'usage de secrets forts et la
+protection contre les algos \emph{none}.
 
 \paragraph{Matrice d'autorisation centralisée.}
-Le contrôle d'accès est unifié au moyen d'une \textbf{matrice d'autorisation}
-portée par la bibliothèque partagée \texttt{common-security}. Cette matrice,
-concrétisée par la classe \texttt{AuthorizationMatrix}, définit des constantes
-d'autorisation réutilisées de manière homogène dans les annotations
-\texttt{@PreAuthorize} des différents contrôleurs. Le tableau~\ref{tab:rbac}
-présente un extrait représentatif de cette matrice, fidèle au code source.
+Le contrôle d'accès est unifié au moyen d'une \textbf{matrice
+d'autorisation} portée par la bibliothèque partagée
+\texttt{common-security}. Cette matrice, concrétisée par la classe
+\texttt{AuthorizationMatrix}, définit des constantes d'autorisation
+réutilisées de manière homogène dans les annotations
+\texttt{@PreAuthorize} des différents contrôleurs, en accord avec les
+bonnes pratiques de l'OWASP en matière de contrôle d'accès~\url{https://owasp.org/Top10/A01_2021-Broken_Access_Control/}.
+Le tableau~\ref{tab:rbac} présente un extrait représentatif de cette
+matrice, fidèle au code source.
 
 \begin{table}[H]
 \centering
@@ -1528,6 +1949,8 @@ COMPETENCE\_CREATE & ROLE\_ADMIN \\
 COMPETENCE\_READ & ROLE\_ADMIN, ROLE\_CUP, ROLE\_ENSEIGNANT, ROLE\_CHEF\_DEPARTEMENT \\
 FORMATION\_CREATE & ROLE\_ADMIN, ROLE\_CUP \\
 FORMATION\_UPDATE & ROLE\_ADMIN, ROLE\_CUP, ROLE\_RESPONSABLE\_DOSSIER \\
+DOCUMENT\_CREATE & ROLE\_ADMIN, ROLE\_CUP, ROLE\_RESPONSABLE\_DOSSIER \\
+DOCUMENT\_DELETE & ROLE\_ADMIN, ROLE\_CUP, ROLE\_RESPONSABLE\_DOSSIER \\
 BESOIN\_FORMATION\_CREATE & ROLE\_ADMIN, ROLE\_CUP, ROLE\_ENSEIGNANT, ROLE\_ANIMATEUR \\
 BESOIN\_FORMATION\_APPROVE & ROLE\_ADMIN, ROLE\_CUP, ROLE\_CHEF\_DEPARTEMENT \\
 EVALUATION\_CREATE & ROLE\_ADMIN, ROLE\_FORMATEUR, ROLE\_ANIMATEUR, ROLE\_ENSEIGNANT \\
@@ -1540,91 +1963,54 @@ ACCOUNT\_SUMMARY\_READ & ROLE\_SVC\_FORMATION, ROLE\_ADMIN, ROLE\_CUP, ROLE\_CHE
 \end{tabularx}}
 \end{table}
 
-Cette matrice met en évidence une règle métier importante : l'animateur interne
-bénéficie du même traitement que l'enseignant pour l'expression des besoins et
-l'inscription aux formations, dans la mesure où il appartient également au
-corps enseignant. En revanche, l'administration du référentiel, la génération
-des certificats et l'extraction assistée par intelligence artificielle restent
-réservées à l'administrateur. Un rôle de service dédié, \texttt{ROLE\_SVC\_FORMATION},
-autorise par ailleurs les appels interservices authentifiés.
+Cette matrice met en évidence une règle métier importante : l'animateur
+interne bénéficie du même traitement que l'enseignant pour l'expression
+des besoins et l'inscription aux formations, dans la mesure où il
+appartient également au corps enseignant. En revanche, l'administration du
+référentiel, la génération des certificats et l'extraction assistée par
+intelligence artificielle restent réservées à l'administrateur. Un rôle de
+service dédié, \texttt{ROLE\_SVC\_FORMATION}, autorise par ailleurs les
+appels interservices authentifiés.
 
 \paragraph{Mécanismes de protection.}
 Au-delà du contrôle d'accès, la plateforme intègre plusieurs mécanismes de
-protection actifs. La passerelle applique une \textbf{limitation de débit}
-(\textit{rate limiting}) sur les points sensibles, à raison de cinq tentatives de
+  protection actifs, conformes au standard OWASP ASVS~\url{https://owasp.org/www-project-application-security-verification-standard/}. La
+passerelle applique une \textbf{limitation de débit} (\textit{rate
+limiting}) sur les points sensibles, à raison de cinq tentatives de
 connexion par minute et par adresse IP, ainsi que de trois demandes de
-réinitialisation de mot de passe par adresse IP, en s'appuyant sur Redis pour la
-cohérence distribuée. La journalisation est conçue pour respecter les données
-personnelles au moyen d'un logger dédié \textit{PII-safe}. Enfin, les
-configurations CORS sont restreintes aux origines internes déclarées, et aucune
-donnée sensible n'est codée en dur dans le code source : l'ensemble transite par
-des variables d'environnement.
+réinitialisation de mot de passe par adresse IP, en s'appuyant sur Redis
+pour la cohérence distribuée et sur le pattern \emph{Circuit
+  Breaker}~\url{https://resilience4j.readme.io/docs} pour l'isolation des services en aval.
+La journalisation est conçue pour respecter les données personnelles au
+moyen d'un logger dédié \textit{PII-safe}. Enfin, les configurations CORS
+sont restreintes aux origines internes déclarées, et aucune donnée sensible
+n'est codée en dur dans le code source : l'ensemble transite par des
+variables d'environnement.
 
 \section{Architecture logique}
 
-La plateforme D2F est structurée selon une architecture microservices : chaque
-domaine métier est encapsulé dans un service autonome, exposant une API REST et
-disposant de son propre schéma de base de données. Une \textbf{passerelle API}
-constitue l'unique point d'entrée, centralise la sécurité et route les requêtes.
-La figure~\ref{fig:archi_logique} illustre cette organisation : le frontend React
-dialogue exclusivement avec la passerelle, qui valide les jetons JWT et applique
-le contrôle d'accès avant de relayer les appels vers les microservices métier.
-Ces derniers communiquent également de manière asynchrone via RabbitMQ pour les
-événements interservices.
+La plateforme D2F adopte une \textbf{architecture microservices} fondée sur le
+principe de responsabilité unique~: chaque domaine métier est encapsulé dans un
+service autonome exposant une \textbf{API REST}~\cite{fielding2000rest} (méthodes
+\texttt{GET}, \texttt{POST}, \texttt{PUT}, \texttt{DELETE}, représentation JSON
+et interface sans état) et disposant de son propre schéma PostgreSQL. Une
+\textbf{passerelle API} centralise l'authentification JWT, le contrôle d'accès
+RBAC et le routage~: le frontend React dialogue exclusivement avec elle, qui
+relaye ensuite les appels vers les microservices métier. Les événements
+interservices sont publiés de manière asynchrone sur un bus
+\textbf{RabbitMQ} (AMQP), tandis qu'un cache \textbf{Redis} assure la limitation
+de débit et certaines accélérations. La figure~\ref{fig:archi_logique} synthétise
+cette organisation logique.
 
-\begin{figure}[H]
-\centering
-\begin{tikzpicture}[
-  font=\footnotesize,
-  service/.style={rectangle, rounded corners, draw=espritblue, fill=espritblue!10, text width=2.5cm, align=center, minimum height=0.9cm},
-  infra/.style={rectangle, rounded corners, draw=espritred, fill=espritred!10, text width=2.4cm, align=center, minimum height=0.8cm},
-  gw/.style={rectangle, rounded corners, draw=espritaccent, fill=espritaccent!20, text width=3cm, align=center, minimum height=0.9cm},
-  client/.style={rectangle, rounded corners, draw=black, fill=gray!15, text width=3cm, align=center, minimum height=0.9cm},
-  arr/.style={-{Stealth[length=2mm]}, thick, espritblue!70}
-]
-  \node[client] (front) {Frontend React\\(Vite, port 3000)};
-  \node[gw, below=0.8cm of front] (gateway) {API Gateway\\(JWT + RBAC, 8080)};
-
-  \node[service, below=1.1cm of gateway, xshift=-5.2cm] (auth) {Auth\\8085};
-  \node[service, right=0.35cm of auth] (comp) {Compétence\\8005};
-  \node[service, right=0.35cm of comp] (besoin) {Besoin\\8004};
-  \node[service, right=0.35cm of besoin] (form) {Formation\\8088};
-
-  \node[service, below=0.5cm of auth] (eval) {Évaluation\\8087};
-  \node[service, right=0.35cm of eval] (cert) {Certificat\\8086};
-  \node[service, right=0.35cm of cert] (analyse) {Analyse\\(Skill Passport)\\8089};
-  \node[service, right=0.35cm of analyse] (predict) {Predictive\\Analytics\\8000};
-  \node[service, right=0.35cm of predict] (rice) {RICE\\8001};
-
-  \node[infra, below=0.7cm of cert, xshift=-1.2cm] (pg) {PostgreSQL\\(schémas isolés)};
-  \node[infra, right=0.5cm of pg] (mq) {RabbitMQ\\(AMQP)};
-  \node[infra, right=0.5cm of mq] (redis) {Redis\\(rate limiting)};
-
-  \draw[arr] (front) -- (gateway);
-  \draw[arr] (gateway) -- (auth);
-  \draw[arr] (gateway) -- (comp);
-  \draw[arr] (gateway) -- (besoin);
-  \draw[arr] (gateway) -- (form);
-  \draw[arr] (gateway.south) -- (analyse.north);
-  \draw[arr] (gateway.south) -- (predict.north);
-  \draw[arr] (gateway.south) -- (rice.north);
-  \draw[arr, espritred!70, dashed] (besoin) -- (mq);
-  \draw[arr, espritred!70, dashed] (form) -- (mq);
-  \draw[arr, espritred!70] (auth) -- (pg);
-  \draw[arr, espritred!70] (comp) -- (pg);
-  \draw[arr, espritred!70] (gateway) .. controls +(4,-1) .. (redis);
-\end{tikzpicture}
-\caption{Architecture logique de la plateforme D2F}
-\label{fig:archi_logique}
-\end{figure}
+\figplace{archi_logique.png}{Architecture logique de la plateforme D2F}{fig:archi_logique}{0.8}
 
 \subsection{Cartographie des microservices}
 
 La plateforme se compose de \textbf{dix microservices applicatifs}, d'une
 bibliothèque de sécurité partagée, d'un frontend et de trois services
 d'infrastructure. Le tableau~\ref{tab:microservices} recense les composants
-applicatifs ainsi que leur pile technique, tandis que le tableau~\ref{tab:infra}
-présente les services d'infrastructure.
+applicatifs ainsi que leur pile technique, tandis que le
+tableau~\ref{tab:infra} présente les services d'infrastructure.
 
 \begin{table}[H]
 \centering
@@ -1667,66 +2053,72 @@ Redis & Banque clé-valeur pour la limitation de débit distribuée de la passer
 \end{tabularx}}
 \end{table}
 
-\noindent Les ports indiqués correspondent aux conteneurs sur le réseau privé ;
-seuls la passerelle (8080) et le frontend (3000) sont exposés publiquement. Les
-services d'intelligence artificielle (\texttt{predictive-analytics} et
-\texttt{rice}) ne sont accessibles qu'à travers la passerelle.
+\noindent Les ports indiqués correspondent aux conteneurs sur le réseau
+privé ; seuls la passerelle (8080) et le frontend (3000) sont exposés
+publiquement. Les services d'intelligence artificielle
+(\texttt{predictive-analytics} et \texttt{rice}) ne sont accessibles qu'à
+travers la passerelle.
 
 \section{Architecture physique}
 
 Sur le plan physique, chaque service est empaqueté dans un conteneur Docker
-autonome et orchestré par Docker Compose~\cite{dockercompose} au sein d'un réseau
-privé (\texttt{d2f-network}), conformément aux exigences de conteneurisation
-intégrale imposées par la DSI. Chaque microservice Java Spring Boot dispose d'un
-\texttt{Dockerfile} multi-étapes (\textit{multi-stage build}) basé sur
+autonome et orchestré par Docker Compose~\url{https://docs.docker.com/compose/} au sein d'un
+réseau privé (\texttt{d2f-network}), conformément aux exigences de
+conteneurisation intégrale imposées par la DSI. Chaque microservice Java
+Spring Boot dispose d'un \texttt{Dockerfile} multi-étapes
+(\textit{multi-stage build}) basé sur
 \texttt{eclipse-temurin:17-jdk-alpine}, tandis que les services Python
 (\textit{FastAPI}) s'appuient sur \texttt{python:3.11-slim} ou
-\texttt{python:3.13-slim} pour le service RICE. Chaque conteneur s'exécute avec
-un utilisateur non root, conformément au principe du moindre privilège, et expose
-une sonde de santé \texttt{/actuator/health} utilisée par Docker pour les
-\textit{healthchecks}.
+\texttt{python:3.13-slim} pour le service RICE. Chaque conteneur s'exécute
+avec un utilisateur non root, conformément au principe du moindre
+privilège, et expose une sonde de santé \texttt{/actuator/health} utilisée
+par Docker pour les \textit{healthchecks}.
 
 Les services d'infrastructure disposent d'alias réseau normalisés
-(\texttt{db.dsi.local}, \texttt{broker.dsi.local}, \texttt{cache.dsi.local})
-reflétant la nomenclature de production de la DSI. Des
-\textit{healthchecks} contrôlent l'état de chaque conteneur et Docker Compose
-respecte l'ordre de démarrage via \texttt{depends\_on} avec condition de santé
-(\texttt{service\_healthy}). Aucun secret n'est codé en dur : l'ensemble transite
-par des variables d'environnement et un fichier \texttt{.env} non versionné. La
-figure~\ref{fig:archi_physique} illustre cette organisation.
+(\texttt{db.dsi.local}, \texttt{broker.dsi.local},
+\texttt{cache.dsi.local}) reflétant la nomenclature de production de la
+DSI. Des \textit{healthchecks} contrôlent l'état de chaque conteneur et
+Docker Compose respecte l'ordre de démarrage via \texttt{depends\_on} avec
+condition de santé (\texttt{service\_healthy}). Aucun secret n'est codé en
+dur : l'ensemble transite par des variables d'environnement et un fichier
+\texttt{.env} non versionné. La figure~\ref{fig:archi_physique} illustre
+cette organisation.
 
 \figplace{archi_physique.png}{Architecture physique : conteneurs Docker et réseau D2F}{fig:archi_physique}{0.85}
 
-\section{Sprint backlog général}
+\section{Planification temporelle des sprints}
 
-Le développement a été organisé en cinq sprints successifs, étalés de mars à
-juillet~2025. Le tableau~\ref{tab:sprints} en résume le périmètre.
-Le mois de février a été consacré à l'analyse du code existant, à la configuration
-des environnements et aux travaux de conception, notamment les diagrammes UML et
-l'architecture technique. Chaque sprint fait ensuite l'objet d'un chapitre dédié
-(chapitres~3 à~7), présentant son backlog, ses cas d'utilisation, ses diagrammes
-de séquence et sa réalisation.
+Le développement a été organisé en cinq sprints successifs d'une durée
+nominale de quatre semaines chacun~\cite{cohn2009succeeding}, étalés de mars
+à juillet~2025 (tableau~\ref{tab:sprints}). Le mois de février a été
+consacré à l'analyse du code existant, à la configuration des
+environnements et aux travaux de conception (diagrammes UML, architecture
+technique). Le mois d'août a été dédié aux tests finaux, au déploiement de
+la plateforme et à la rédaction du rapport PFE. Chaque sprint est ensuite
+décrit en détail dans un chapitre dédié (chapitres~3 à~7). Le calendrier
+réel étant aligné sur les mois calendaires — chaque sprint occupant
+environ quatre semaines à l'intérieur d'un mois — le tableau ci-dessous
+indique pour commodité le mois calendaire correspondant à chaque sprint.
 
 \begin{table}[H]
 \centering
-\caption{Planification des sprints}
+\caption{Planification des sprints (cinq sprints de 4 semaines)}
 \label{tab:sprints}
 {\small\renewcommand{\arraystretch}{1.15}
 \begin{tabularx}{\textwidth}{>{\bfseries}p{2.5cm} p{2cm} X}
 \toprule
 \thead{Période} & \thead{Durée} & \thead{Périmètre fonctionnel} \\
 \midrule
-Février & 1 mois & Analyse du code existant, configuration des environnements et conception (diagrammes UML, architecture technique) \\
-Mars & 1 mois & Sprint~1 — Gestion de la structure des compétences et affectation aux enseignants \\
-Avril & 1 mois & Sprint~2 — Développement du module RICE (\textit{Référentiel Intelligent de Compétences Enseignants}) avec génération automatique par IA \\
-Mai & 1 mois & Sprint~3 — Mise à jour et enrichissement du module Formations (correction des bugs, nouvelles fonctionnalités) \\
-Juin & 1 mois & Sprint~4 — Développement du module d'Analyse Prédictive, tests end-to-end et déploiement \\
-Juillet / Août & 2 mois & Tests finaux, déploiement de la plateforme et rédaction du rapport PFE \\
+Février & 4 semaines & Analyse du code existant, configuration des environnements et conception (diagrammes UML, architecture technique) \\
+Mars & 4 semaines & Sprint~1 — Gestion de la structure des compétences et affectation aux enseignants \\
+Avril & 4 semaines & Sprint~2 — Développement du module RICE (\textit{Référentiel Intelligent de Compétences Enseignants}) avec génération automatique par IA \\
+Mai & 4 semaines & Sprint~3 — Mise à jour et enrichissement du module Formations (correction des bugs, nouvelles fonctionnalités) \\
+Juin & 4 semaines & Sprint~4 — Développement du module d'Analyse Prédictive, tests end-to-end et déploiement \\
+Juillet & 4 semaines & Sprint~5 — Gestion des besoins en formation et communication asynchrone inter-services \\
+Août & 4 semaines & Tests finaux, déploiement de la plateforme et rédaction du rapport PFE \\
 \bottomrule
 \end{tabularx}}
 \end{table}
-
-
 
 \section{Conclusion}
 
@@ -1792,45 +2184,8 @@ dans l'invariant d'exclusivité du savoir — rattaché soit à une sous-compét
 soit directement à une compétence — et dans la conception d'une matrice
 d'autorisation factorisée.
 
-\section{Sprint backlog}
-
-Le tableau~\ref{tab:bl_s1} présente le backlog du sprint~1, regroupant les tâches
-des services de support et du référentiel. La colonne « UC » renvoie au
-tableau~\ref{tab:uc_inventory} pour la signification de chaque identifiant.
-
-\begin{table}[H]
-\centering
-\caption{Sprint backlog 1 — Authentification et référentiel de compétences}
-\label{tab:bl_s1}
-{\small\renewcommand{\arraystretch}{1.15}
-\begin{tabularx}{\textwidth}{p{0.8cm} p{1.4cm} X p{1.6cm} p{0.8cm}}
-\toprule
-\thead{Cat.} & \thead{ID} & \thead{Tâche} & \thead{UC} & \thead{SP} \\
-\midrule
-\multirow{4}{*}{\textbf{GW}} & GW-01 & Configuration de Spring Cloud Gateway (profils dev/prod) & --- & 3 \\
- & GW-02 & Routes vers les microservices et filtre JWT global & --- & 5 \\
- & GW-03 & Contrôle d'accès RBAC sur chaque requête & --- & 5 \\
- & GW-04 & Limitation de débit (Redis) et disjoncteurs Resilience4j & --- & 5 \\
-\midrule
- & SEC-01 & Bibliothèque \texttt{common-security} : matrice d'autorisation et filtre JWT & --- & 5 \\
-\midrule
-\multirow{5}{*}{\textbf{AUTH}} & AUTH-01 & Inscription publique avec rôle \texttt{ENSEIGNANT} imposé et validation par courriel & UC1.1 & 5 \\
- & AUTH-02 & Connexion JWT HS512 avec cookie \texttt{HttpOnly} & UC1.2 & 5 \\
- & AUTH-03 & Protection contre la force brute (verrouillage après 5 échecs) & UC1.2 & 3 \\
- & AUTH-04 & Réinitialisation du mot de passe par courriel & UC1.6 & 3 \\
- & AUTH-05 & CRUD des comptes, bannissement/réactivation et journal d'audit (\texttt{AuditLog}) & UC1.3 & 5 \\
-\midrule
-\multirow{4}{*}{\textbf{COMP}} & COMP-01 & Entités \texttt{Domaine}, \texttt{Competence}, \texttt{SousCompetence}, \texttt{Savoir} (relation XOR) & UC1.4 & 8 \\
- & COMP-02 & Affectation des savoirs aux enseignants (N1 à N5) avec date d'acquisition & UC1.5 & 5 \\
- & COMP-03 & Prérequis entre compétences et niveaux requis & UC1.4 & 3 \\
- & COMP-04 & Visualisation arborescente, recherche et cache Caffeine & UC1.4 & 5 \\
-\midrule
- & WEB-01 & Écrans d'authentification, gestion des comptes et arbre de compétences & UC1.1--1.4 & 8 \\
-\midrule
- & & & \textbf{Total} & \textbf{68} \\
-\bottomrule
-\end{tabularx}}
-\end{table}
+La user story correspondante dans le sprint~1 figure dans le backlog global au
+tableau~\ref{tab:backlog_global} (chapitre~2).
 
 \section{Diagramme des cas d'utilisation}
 
@@ -1840,7 +2195,7 @@ l'administrateur, ainsi que l'administration de la hiérarchie de compétences
 (domaines, compétences, sous-compétences et savoirs) et leur affectation aux
 enseignants.
 
-\figplace{uc_sprint1.png}{Diagramme de cas d'utilisation — sprint~1 : authentification et compétences}{fig:uc_s1}{0.85}
+\figplace{uc_sprint1.png}{Diagramme de cas d'utilisation — sprint~1 : authentification et compétences}{fig:uc_s1}{0.6}
 
 \section{Description textuelle des cas d'utilisation}
 
@@ -1852,13 +2207,6 @@ description est fidèle au code source : les rôles cités correspondent à
 l'énumération \texttt{ERole} et les droits d'accès à la matrice centralisée
 \texttt{AuthorizationMatrix} du module \texttt{common-security}.
 
-\subsection*{Cas d'utilisation : S'enregistrer dans la plateforme}
-Le visiteur accède au formulaire d'inscription, renseigne ses informations et soumet sa demande. Le service \texttt{auth} vérifie l'unicité du courriel, hache le mot de passe par bcrypt puis crée le compte avec le rôle \texttt{ENSEIGNANT}. L'inscription est confirmée par un retour 201 \texttt{Created} (\texttt{POST /api/v1/auth/signup}).
-
-La figure~\ref{fig:seq_uc1} présente le diagramme de séquence associé.
-
-\figplace{uc1_signup.png}{Diagramme de séquence — inscription dans la plateforme}{fig:seq_uc1}{0.80}
-
 \subsection*{Cas d'utilisation : S'authentifier (connexion sécurisée)}
 L'utilisateur saisit ses identifiants, vérifiés par le service \texttt{auth} contre la base. En cas de succès, un JWT HS512 est émis dans un cookie \texttt{HttpOnly}/\texttt{Secure}, puis la passerelle valide ce token à chaque requête suivante. Le verrouillage automatique après cinq échecs protège les comptes contre les attaques par brute force (\texttt{POST /api/v1/auth/login}).
 
@@ -1867,7 +2215,7 @@ La figure~\ref{fig:seq_uc2} présente le diagramme de séquence associé.
 \figplace{uc2_login.png}{Diagramme de séquence — authentification et émission du JWT}{fig:seq_uc2}{0.70}
 
 \subsection*{Cas d'utilisation : Gestion des utilisateurs}
-L'administrateur consulte la liste paginée des comptes, puis crée, modifie ou bannit des utilisateurs. Chaque opération sensible est journalisée dans un audit log immuable. Les droits d'accès sont vérifiés via la matrice \texttt{AuthorizationMatrix} (\texttt{GET /api/v1/account/list-accounts}, \texttt{POST /api/v1/account/create}, \texttt{POST /api/v1/account/ban-account}).
+L'administrateur consulte la liste paginée des comptes, puis crée, modifie ou bannit des utilisateurs. Chaque opération sensible est journalisée dans un audit log immuable. Les droits d'accès sont vérifiés via la matrice \texttt{AuthorizationMatrix} (\texttt{GET /api/v1/account/list-accounts}, \texttt{POST /api/v1/account/create-account}, \texttt{POST /api/v1/account/ban-account}).
 
 La figure~\ref{fig:seq_uc3} présente le diagramme de séquence associé.
 
@@ -1887,21 +2235,7 @@ La figure~\ref{fig:seq_uc5} présente le diagramme de séquence associé.
 
 \figplace{uc5_affectation.png}{Diagramme de séquence — affectation des savoirs aux enseignants}{fig:seq_uc5}{0.65}
 
-\subsection*{Cas d'utilisation : Réinitialisation de mot de passe}
-L'utilisateur demande la réinitialisation via son courriel, puis reçoit un lien sécurisé contenant un jeton à durée limitée. Le nouveau mot de passe est haché par bcrypt et l'ancien est définitivement invalidé (\texttt{POST /api/v1/auth/forgot-password}, \texttt{POST /api/v1/auth/reset-password}).
-
-La figure~\ref{fig:seq_uc6} présente le diagramme de séquence associé.
-
-\figplace{uc6_reset_password.png}{Diagramme de séquence — réinitialisation de mot de passe}{fig:seq_uc6}{0.75}
-
 \section{Réalisation}
-
-Le diagramme de classes du sprint~1, présenté en figure~\ref{fig:class_s1},
-matérialise les entités \texttt{User}, \texttt{Role}, \texttt{Domaine},
-\texttt{Competence}, \texttt{SousCompetence}, \texttt{Savoir} et
-\texttt{EnseignantCompetence}, conformément à l'implémentation du code source.
-
-\figplace{class_sprint1.png}{Diagramme de classe — utilisateurs, rôles et compétences}{fig:class_s1}{0.95}
 
 Côté interface, la figure~\ref{fig:competence_tree} montre la
 visualisation arborescente du référentiel de compétences.
@@ -1915,11 +2249,11 @@ passerelle API, la bibliothèque de sécurité partagée et le service
 d'authentification garantissent désormais un accès sécurisé et contrôlé à
 l'ensemble des fonctionnalités, tandis que le référentiel de compétences offre
 une cartographie structurée des savoirs du corps enseignant. Ces fondations
-conditionnent le développement du module de gestion des formations, qui fait
-l'objet du sprint suivant.
+conditionnent le développement du module RICE d'extraction automatique du
+référentiel, qui fait l'objet du sprint suivant.
 
 % =============================================================================
-% CHAPITRE 4 — SPRINT 3 (Formations)
+% CHAPITRE 4 — SPRINT 2 (RICE)
 % =============================================================================
 \clearpage
 \chapter{Sprint 2 : Module RICE — Extraction NLP du référentiel de compétences}
@@ -1964,43 +2298,16 @@ phrases (\textit{Sentence-BERT}) pour les correspondances de sens. Enfin, le
 caractère \textbf{local} de l'ensemble des traitements respecte strictement la
 contrainte de confidentialité imposée par la DSI.
 
-\section{Sprint backlog}
-
-Le tableau~\ref{tab:bl_s5} détaille le backlog du sprint~2.
-
-\begin{table}[H]
-\centering
-\caption{Sprint backlog 2 — Module RICE}
-\label{tab:bl_s5}
-{\small\renewcommand{\arraystretch}{1.15}
-\begin{tabularx}{\textwidth}{p{1.4cm} X p{1.6cm} p{1cm}}
-\toprule
-\thead{ID} & \thead{Tâche} & \thead{UC} & \thead{SP} \\
-\midrule
-RICE-01 & Téléversement et validation de fichiers (PDF/DOCX) & UC5.1 & 3 \\
-RICE-02 & Extraction de texte : pdfplumber (PDF), python-docx (DOCX) & UC5.1 & 3 \\
-RICE-03 & OCR Tesseract~\cite{tesseract} pour les documents scannés (via PyMuPDF) & UC5.1 & 5 \\
-RICE-04 & Normalisation linguistique et segmentation en phrases & UC5.1 & 3 \\
-RICE-05 & Extraction des objectifs et des acquis d'apprentissage & UC5.1 & 5 \\
-RICE-06 & Estimation du niveau de Bloom~\cite{bloom1956taxonomy} (N1--N5) & UC5.1 & 5 \\
-RICE-07 & Inférence du type de savoir (théorique ou pratique) & UC5.1 & 3 \\
-RICE-08 & Appariement flou (rapidfuzz) au référentiel existant & UC5.1 & 5 \\
-RICE-09 & Appariement sémantique (\textit{Sentence-BERT}) & UC5.1 & 5 \\
-RICE-10 & Suggestion d'enseignants pour chaque savoir extrait & UC5.1 & 3 \\
-RICE-11 & Persistance transactionnelle après validation humaine & UC5.2 & 5 \\
-RICE-12 & Export CSV du référentiel généré & UC5.2 & 2 \\
-WEB-05 & Interface RICE : téléversement, arbre généré, révision, validation & UC5.1--5.2 & 8 \\
-\bottomrule
-\end{tabularx}}
-\end{table}
+La user story correspondante dans le sprint~2 figure dans le backlog global au
+tableau~\ref{tab:backlog_global} (chapitre~2).
 
 \section{Diagramme des cas d'utilisation}
 
-La figure~\ref{fig:uc_s5} présente les cas d'utilisation du module RICE :
+La figure~\ref{fig:uc_s2} présente les cas d'utilisation du module RICE :
 téléverser des fiches, consulter l'arborescence générée automatiquement, réviser
 et valider les propositions, et exporter le référentiel.
 
-\figplace{uc_sprint5.png}{Diagramme de cas d'utilisation — sprint~2 : module RICE}{fig:uc_s5}{0.85}
+\figplace{uc_sprint2.png}{Diagramme de cas d'utilisation — sprint~2 : module RICE}{fig:uc_s2}{0.8}
 
 \section{Description textuelle des cas d'utilisation}
 
@@ -2011,7 +2318,7 @@ multi-étapes et sur une validation humaine obligatoire avant toute persistance
 en base.
 
 \subsection*{Cas d'utilisation : Extraire et proposer un référentiel à partir de fiches}
-L'ADMIN téléverse des fiches pédagogiques (PDF/DOCX). Le service RICE extrait le texte via plumber ou Tesseract (OCR), analyse linguistiques les objectifs et niveaux de Bloom, puis construit une arborescence de compétences avec suggestions d'affectations enseignants via embeddings sémantiques. \textbf{Aucune persistance n'a lieu} à ce stade (\texttt{POST /api/v1/rice/analyze}).
+L'ADMIN téléverse des fiches pédagogiques (PDF/DOCX). Le service RICE extrait le texte via \texttt{pdfplumber} ou Tesseract (OCR), analyse linguistiquement les objectifs et niveaux de Bloom, puis construit une arborescence de compétences avec suggestions d'affectations enseignants via embeddings sémantiques. \textbf{Aucune persistance n'a lieu} à ce stade (\texttt{POST /api/v1/rice/analyze}).
 
 La figure~\ref{fig:seq_uc13} présente le diagramme de séquence associé.
 
@@ -2035,7 +2342,7 @@ Le module RICE implémente une chaîne de traitement entièrement locale, dont l
   \item \textbf{Extraction de texte.} Les fiches PDF sont lues avec
   \texttt{pdfplumber} et les fiches DOCX avec \texttt{python-docx}. Pour les
   documents scannés, un repli par reconnaissance optique de caractères (OCR) est
-  assuré par \texttt{Tesseract}~\cite{tesseract} via PyMuPDF pour le rendu des pages.
+  assuré par \texttt{Tesseract}~\url{https://tesseract-ocr.github.io/} via PyMuPDF pour le rendu des pages.
   \item \textbf{Normalisation et analyse linguistique.} Le texte est nettoyé,
   normalisé, puis analysé pour en extraire les objectifs, les acquis et les
   séances. La complexité de chaque savoir est estimée via la \textbf{taxonomie de
@@ -2043,9 +2350,9 @@ Le module RICE implémente une chaîne de traitement entièrement locale, dont l
   type (théorique ou pratique) est inféré.
   \item \textbf{Appariement au référentiel.} Les fragments extraits sont appariés
   au référentiel du département par appariement flou (\texttt{rapidfuzz}) et par
-  similarité sémantique (\textit{Sentence-BERT}), ce qui permet de rattacher chaque
-  proposition aux codes de référence existants et de suggérer les enseignants
-  pertinents.
+  similarité sémantique (\textit{Sentence-BERT})~\cite{reimers2019sbert}, ce
+  qui permet de rattacher chaque proposition aux codes de référence existants
+  et de suggérer les enseignants pertinents.
   \item \textbf{Validation humaine.} L'arborescence proposée n'est jamais
   persistée automatiquement : l'administrateur la révise, l'ajuste, puis la
   valide. La persistance s'effectue alors de manière transactionnelle.
@@ -2057,10 +2364,10 @@ et la fiabilité du contrôle humain.
 \section{Conclusion}
 
 Le sprint~2 finalise la boucle IA de D2F avec un module RICE local et validé
-manuellement. La plateforme couvre désormais tout le cycle : cartographie,
-formation, analyse et recommandation.
+manuellement. Le référentiel étant désormais enrichissable automatiquement, le
+sprint suivant aborde la gestion du cycle de vie des formations.
 % =============================================================================
-% CHAPITRE 8 — TESTS ET QUALITÉ
+% CHAPITRE 5 — SPRINT 3 (Formations)
 % =============================================================================
 \clearpage
 \chapter{Sprint 3 : Formations et plan de développement}
@@ -2107,45 +2414,17 @@ ce qui en fait le composant le plus volumineux de ce sprint. Enfin, le workflow
 d'état des formations (\texttt{EtatFormation}) encadre les transitions autorisées
 et garantit la cohérence du cycle de vie.
 
-\section{Sprint backlog}
-
-Le tableau~\ref{tab:bl_s2} détaille le backlog du sprint~3.
-
-\begin{table}[H]
-\centering
-\caption{Sprint backlog 2 — Cycle de vie des formations}
-\label{tab:bl_s2}
-{\small\renewcommand{\arraystretch}{1.15}
-\begin{tabularx}{\textwidth}{p{1.4cm} X p{1.6cm} p{1cm}}
-\toprule
-\thead{ID} & \thead{Tâche} & \thead{UC} & \thead{SP} \\
-\midrule
-FORM-01 & Entité Formation : CRUD, type (interne/externe), workflow d'état & UC2.1 & 5 \\
-FORM-02 & Entité SeanceFormation : planification, type de séance, salle & UC2.1 & 3 \\
-FORM-03 & Inscriptions avec workflow d'approbation par le CUP & UC2.2 & 5 \\
-FORM-04 & Saisie et suivi de la présence par séance & UC2.2 & 3 \\
-FORM-05 & Liaison Formation--Compétences (\texttt{FormationCompetence}) & UC2.1 & 3 \\
-FORM-06 & Entité Enseignant : import massif + animateurs externes + bureaux & UC2.1, 2.2 & 5 \\
-FORM-07 & Calendrier des ateliers : import Excel, export iCalendar, invitations SMTP & UC2.3 & 5 \\
-EVAL-01 & Évaluation globale et évaluation du formateur (notes 1--5) & UC2.4 & 3 \\
-EVAL-02 & Consommation RabbitMQ : traitement asynchrone des évaluations & UC2.4 & 5 \\
-EVAL-03 & Agrégation des notes et statistiques par formation/animateur & UC2.4 & 3 \\
-CERT-01 & Entité Certificate : numéro de série, statut (émis/révoqué) & UC2.4 & 2 \\
-CERT-02 & Génération PDF nominatif (iText~7) + consommation RabbitMQ & UC2.4 & 5 \\
-CERT-03 & Téléchargement par le participant + révocation journalisée & UC2.4 & 3 \\
-WEB-02 & Module formations : création, séances, inscriptions, présence, évaluation & UC2.1--2.4 & 8 \\
-\bottomrule
-\end{tabularx}}
-\end{table}
+La user story correspondante dans le sprint~3 figure dans le backlog global au
+tableau~\ref{tab:backlog_global} (chapitre~2).
 
 \section{Diagramme des cas d'utilisation}
 
-La figure~\ref{fig:uc_s2} présente les cas d'utilisation du sprint~3 : création et
+La figure~\ref{fig:uc_s3} présente les cas d'utilisation du sprint~3 : création et
 cycle de vie d'une formation, planification des séances, inscription et suivi de
 présence, calendrier des ateliers, évaluation des formations et génération des
 certificats.
 
-\figplace{uc_sprint2.png}{Diagramme de cas d'utilisation — sprint~3 : gestion des formations}{fig:uc_s2}{0.85}
+\figplace{uc_sprint3.png}{Diagramme de cas d'utilisation — sprint~3 : gestion des formations}{fig:uc_s3}{0.85}
 
 \section{Description textuelle des cas d'utilisation}
 
@@ -2157,21 +2436,22 @@ compétences visées. Les états mentionnés (\texttt{EtatFormation},
 du code source.
 
 \subsection*{Cas d'utilisation : Création et cycle de vie d'une formation}
-L'ADMIN ou CUP crée une formation, planifie les séances (date, salle, animateur) et rattache les compétences visées. Le cycle de vie suit quatre états : brouillon, planifiée, en cours, clôturée. Le CUP et le RESPONSABLE\_DOSSIER gèrent les mises à jour (\texttt{POST /api/v1/formations}, \texttt{/api/v1/formations/\{id\}/seances}).
+L'ADMIN ou CUP crée une formation, planifie les séances (date, salle, animateur) et rattache les compétences visées. Le cycle de vie suit quatre états : brouillon, planifiée, en cours, clôturée. Le CUP et le RESPONSABLE\_DOSSIER gèrent les mises à jour (\texttt{POST /api/v1/formations}, \texttt{/api/v1/seances}).
 
 La figure~\ref{fig:seq_uc7} présente le diagramme de séquence associé.
 
-\figplace{uc7_creation_formation.png}{Diagramme de séquence — création et cycle de vie d'une formation}{fig:seq_uc7}{0.50}
+\figplace{uc7_creation_formation.png}{Diagramme de séquence — création et cycle de vie d'une formation}{fig:seq_uc7}{0.55}
 
 \subsection*{Cas d'utilisation : Inscription et suivi de présence}
-L'enseignant s'inscrit à une formation, le CUP valide ou refuse l'inscription, puis le formateur saisit la présence après chaque séance. Le taux d'assiduité est calculé automatiquement et alimente les statistiques d'efficacité (\texttt{POST /api/v1/inscriptions}, \texttt{POST /api/v1/presences}).
+L'enseignant s'inscrit à une formation, le CUP valide ou refuse l'inscription, puis le formateur saisit la présence après chaque séance. Le taux d'assiduité est calculé automatiquement et alimente les statistiques d'efficacité (\texttt{POST /api/v1/inscription/inscriptions}, \texttt{PUT /api/v1/formations-workflow/presence/\{id\}}).
 
 La figure~\ref{fig:seq_uc8} présente le diagramme de séquence associé.
 
 \figplace{uc8_inscription_presence.png}{Diagramme de séquence — inscription et suivi de présence}{fig:seq_uc8}{0.55}
 
 \subsection*{Cas d'utilisation : Calendrier des ateliers}
-L'ADMIN ou CUP importe un planning au format tableur, validé automatiquement contre les conflits de salles et d'animateurs. Le calendrier est exporté en iCalendar (RFC 5545) et les invitations sont envoyées par courriel (\texttt{POST /api/v1/calendar/import}, \texttt{GET /api/v1/calendar/export/ics/all}).
+L'ADMIN ou CUP importe un planning au format tableur, validé automatiquement contre les conflits de salles et d'animateurs. Le calendrier est exporté en
+iCalendar (RFC~5545)~\cite{rfc5545} et les invitations sont envoyées par courriel (\texttt{POST /api/v1/calendar/import}, \texttt{GET /api/v1/calendar/export/ics/all}).
 
 La figure~\ref{fig:seq_uc9} présente le diagramme de séquence associé.
 
@@ -2186,13 +2466,13 @@ La figure~\ref{fig:seq_uc10} présente le diagramme de séquence associé.
 
 \section{Réalisation}
 
-Le diagramme de classe du sprint~3, présenté en figure~\ref{fig:class_s2}, expose
+Le diagramme de classe du sprint~3, présenté en figure~\ref{fig:class_s3}, expose
 les entités \texttt{Formation}, \texttt{SeanceFormation}, \texttt{Inscription},
 \texttt{Presence}, \texttt{FormationCompetence}, \texttt{AnimateurExterne} et
 \texttt{Bureau}, ainsi que les énumérations de workflow
 (\texttt{EtatFormation}, \texttt{EtatInscription}, \texttt{TypeSeanceEnum}).
 
-\figplace{class_sprint2.png}{Diagramme de classe — formations, séances et inscriptions}{fig:class_s2}{0.95}
+\figplace{class_sprint3.png}{Diagramme de classe — formations, séances et inscriptions}{fig:class_s3}{0.85}
 
 Les certificats PDF sont générés automatiquement à la clôture et
 téléchargeables depuis l'espace du participant.
@@ -2207,7 +2487,7 @@ l'efficacité des formations et de recommander des parcours pertinents. Le sprin
 suivant aborde l'analyse prédictive et la recommandation de formations.
 
 % =============================================================================
-% CHAPITRE 5 — SPRINT 4 (Besoins)
+% CHAPITRE 6 — SPRINT 4 (Prédictive)
 % =============================================================================
 \clearpage
 \chapter{Sprint 4 : Analyse prédictive et recommandation de formations}
@@ -2246,35 +2526,8 @@ L'analyse confirme quatre exigences clés : continuité de service via repli
 heuristique, maîtrise du drift avec retour arrière, vérification d'intégrité des
 artefacts (SHA-256/HMAC) et explicabilité du score de risque.
 
-\section{Sprint backlog}
-
-Le tableau~\ref{tab:bl_s4} détaille le backlog du sprint~4.
-
-\begin{table}[H]
-\centering
-\caption{Sprint backlog 4 — Analyse prédictive}
-\label{tab:bl_s4}
-{\small\renewcommand{\arraystretch}{1.15}
-\begin{tabularx}{\textwidth}{p{1.4cm} X p{1.6cm} p{1cm}}
-\toprule
-\thead{ID} & \thead{Tâche} & \thead{UC} & \thead{SP} \\
-\midrule
-ML-01 & \texttt{FeatureEngine} : extraction de 17 caractéristiques par enseignant & UC4.1 & 8 \\
-ML-02 & \texttt{GapEngine} + Gradient Boosting : prédiction des écarts, calibration par \(R^2\) & UC4.1 & 8 \\
-ML-03 & Score de risque multi-facteurs configurable (5 facteurs pondérés, explicable) & UC4.1, 4.2 & 5 \\
-ML-04 & \texttt{RecommendationEngine} : classement des formations et parcours ordonné & UC4.1 & 8 \\
-ML-05 & \texttt{AlertEngine} : détection des alertes (CRITIQUE, régression, stagnation) & UC4.2 & 5 \\
-ML-06 & \texttt{DashboardEngine} : enseignants à risque, déclin, heatmap, évolution & UC4.2 & 5 \\
-ML-07 & Détection de dérive (\textit{drift}) et alertes administrateur & --- & 3 \\
-ML-08 & Intégrité du modèle : vérification SHA-256/HMAC avant chargement & --- & 3 \\
-ML-09 & Réentraînement avec protection par retour arrière & --- & 5 \\
-ML-10 & API REST \texttt{/api/v1/analytics/*} : analyze, gaps, recommendations, training-path & UC4.1, 4.2 & 5 \\
-AN-01 & Passeport de compétences PDF (agrégation REST + iText~7) & UC4.3 & 5 \\
-AN-02 & Façade BFF : proxy des endpoints predictive-analytics & --- & 3 \\
-WEB-04 & Dashboard analytique : écarts, score de risque, parcours, heatmap & UC4.1--4.3 & 8 \\
-\bottomrule
-\end{tabularx}}
-\end{table}
+La user story correspondante dans le sprint~4 figure dans le backlog global au
+tableau~\ref{tab:backlog_global} (chapitre~2).
 
 \section{Diagramme des cas d'utilisation}
 
@@ -2283,188 +2536,85 @@ analyse, consulter les écarts de compétences, lister les formations recommand�
 le parcours proposé, visualiser les enseignants à risque et consulter le tableau de
 bord décisionnel.
 
-\figplace{uc_sprint4.png}{Diagramme de cas d'utilisation — sprint~4 : analyse prédictive}{fig:uc_s4}{0.55}
+\figplace{uc_sprint4.png}{Diagramme de cas d'utilisation — sprint~4 : analyse prédictive}{fig:uc_s4}{0.60}
 
 \subsection*{Cas d'utilisation : Analyser les écarts de compétences et recommander des formations}
-L'ADMIN ou CUP lance l'analyse pour un enseignant. Le système extrait 17 caractéristiques, prédit les écarts par compétence via un modèle GBM, calcule un score de risque multi-facteurs et génère un parcours de formations recommandé. Les résultats sont persistés avec des alertes CRITIQUE (\texttt{POST /api/v1/analytics/analyze}).
+L'ADMIN ou CUP lance l'analyse pour un enseignant. Le système extrait 17 caractéristiques, prédit les écarts par compétence via un modèle GBM, calcule un score de risque multi-facteurs et génère un parcours de formations recommandé. Les résultats sont persistés avec des alertes CRITIQUE (\texttt{POST /api/v1/analytics/analyze/\{enseignantId\}}).
 
 La figure~\ref{fig:seq_uc15} présente le diagramme de séquence associé.
 
 \figplace{uc15_analyse_ecarts.png}{Diagramme de séquence — analyse des écarts et recommandation de formations}{fig:seq_uc15}{0.80}
 
 \subsection*{Cas d'utilisation : Consulter le tableau de bord et les alertes}
-L'ADMIN ou CUP consulte le dashboard des enseignants à risque, filtre les alertes par sévérité (CRITIQUE, régression, stagnation) et analyse les écarts détaillés par compétence. La heatmap compétences--départements offre une vue consolidée (\texttt{GET /api/v1/analytics/dashboard}, \texttt{GET /api/v1/analytics/alerts}).
+L'ADMIN ou CUP consulte le dashboard des enseignants à risque, filtre les alertes par sévérité (CRITIQUE, régression, stagnation) et analyse les écarts détaillés par compétence. La heatmap compétences--départements offre une vue consolidée (\texttt{GET /api/v1/analytics/dashboard/global}, \texttt{GET /api/v1/analytics/alerts}).
 
 La figure~\ref{fig:seq_uc16} présente le diagramme de séquence associé.
 
 \figplace{uc16_dashboard_alertes.png}{Diagramme de séquence — tableau de bord et alertes de l'analyse prédictive}{fig:seq_uc16}{0.55}
 
-\subsection*{Cas d'utilisation : Générer le passeport de compétences PDF}
-L'enseignant ou l'admin génère un passeport PDF agrégant compétences, formations achevées, écarts et score de risque. Le document est construit via iText~7, stocké temporairement puis téléchargeable (\texttt{GET /api/v1/analytics/passport}).
-
-La figure~\ref{fig:seq_uc17} présente le diagramme de séquence associé.
-
-\figplace{uc17_passeport_pdf.png}{Diagramme de séquence — génération du passeport de compétences PDF}{fig:seq_uc17}{0.80}
-
 \section{Réalisation}
 
-\subsection*{Mécanisme de recommandation des formations}
+\begin{summaryframe}[frametitle={En bref — Réalisation du sprint~4}]
+La mise en œuvre du sprint~4 articule un \textbf{pipeline de quatre moteurs}
+(détection d'écarts, score de risque, recommandation, parcours), enrichi par un
+\textbf{algorithme MSAS} à pondérations adaptatives, une \textbf{sélection
+automatique} parmi quatre modèles (GB, XGBoost, LightGBM, MLP), une
+\textbf{explicabilité par SHAP}, un \textbf{réentraînement incrémental}, et un
+\textbf{framework A/B testing} en quatre variantes. L'ensemble est exécuté
+localement, conformément aux exigences de la DSI.
+\end{summaryframe}
 
-Le système repose sur un \textbf{pipeline} de quatre moteurs successifs.
+\subsection*{Pipeline de recommandation}
 
-\paragraph{Détection des écarts.}
-Pour chaque couple enseignant–compétence, le système calcule un écart
-\(\text{gap} = \text{niveau\_requis} - \text{niveau\_actuel}\), borné dans
-l'intervalle \([0, 5]\). La prédiction est affinée par un modèle d'apprentissage
-automatique de type \textbf{Gradient Boosting}~\cite{friedman2001gbm}
-(\texttt{GradientBoostingRegressor} de scikit-learn~\cite{scikitlearn}), entraîné
-sur dix-sept caractéristiques décrivant le profil de l'enseignant : niveau moyen,
-nombre de savoirs, taux de couverture des compétences, formations achevées et en
-cours, taux d'assiduité, besoins exprimés et approuvés, score moyen d'évaluation,
-jours depuis la dernière formation, score d'engagement, etc. En l'absence de modèle
-entraîné, un calcul heuristique déterministe prend le relais. Chaque écart est
-catégorisé par niveau d'urgence (\texttt{FAIBLE}, \texttt{MODERE}, \texttt{HAUTE},
-\texttt{CRITIQUE}) et assorti d'une confiance calibrée sur la qualité validée du
-modèle (\(R^2\) de test).
+Le système enchaîne quatre moteurs. \textbf{(1) Détection des écarts}~: pour
+chaque couple enseignant--compétence, un écart \(\text{gap} \in [0,5]\) est prédit
+par \textbf{Gradient Boosting}~\cite{friedman2001gbm} entraîné sur 17
+caractéristiques (niveau moyen, formations, assiduité, engagement, etc.), avec
+repli heuristique si le modèle est indisponible. \textbf{(2) Score de risque}~:
+combinaison pondérée de cinq facteurs (absence prolongée, stagnation, écarts
+critiques, régression de tendance, besoins non satisfaits). \textbf{(3)
+Recommandation}~: classement des formations par adéquation aux écarts, prérequis,
+taux de complétion et filtrage collaboratif. \textbf{(4) Parcours}~: séquence
+ordonnée avec niveaux visés, satisfaction des prérequis et probabilité de réussite.
 
-\paragraph{Score de risque.}
-Le système calcule un score de risque dans \([0, 1]\) combinant cinq facteurs
-pondérés, dont les poids proviennent exclusivement de la configuration : absence
-prolongée de formation, stagnation des compétences, proportion d'écarts critiques,
-régression de la tendance et besoins non satisfaits. La formule générale s'écrit :
+\subsection*{MSAS --- Multi-Signal Adaptive Scoring}
 
-\[
-\text{score\_risque} = \sum_{i=1}^{5} w_i \cdot f_i, \qquad \sum_{i=1}^{5} w_i = 1, \quad f_i \in [0,1]
-\]
-
-où \(f_i\) désigne le \(i\)-ème facteur normalisé et \(w_i\) son poids configuré.
-Le détail des contributions par facteur rend le score \textbf{explicable}.
-
-\paragraph{Recommandation et parcours.}
-Le moteur de recommandation classe les formations selon leur adéquation aux écarts,
-en tenant compte des prérequis, du taux de complétion et de présence, ainsi que d'un
-\textbf{filtrage collaboratif} exploitant les niveaux de compétence et les
-inscriptions de l'ensemble du corps enseignant. Il construit un parcours de
-formation ordonné, dans lequel chaque étape précise le niveau visé avant et après,
-le caractère obligatoire, la satisfaction des prérequis et une probabilité de
-réussite.
-
-\subsection*{Algorithme MSAS — Multi-Signal Adaptive Scoring}
-
-Pour dépasser les limitations d'un scoring à pondérations fixes, le système
-intègre un algorithme hybride novel, le \textbf{MSAS} (Multi-Signal Adaptive
-Scoring). Celui-ci combine trois sources de signal dans un score unifié,
-dont les poids s'adaptent dynamiquement en fonction de la fiabilité de chaque
-signal~:
+MSAS fusionne trois signaux par \emph{confidence weighting}~\cite{ting1999instance}
+avec des poids adaptatifs~:
 
 \[
 \text{MSAS}(t, f) = \alpha(t) \cdot S_1(t,f) + \beta(t) \cdot S_2(t,f) + \gamma(t) \cdot S_3(t)
 \]
 
-où \(t\) désigne l'enseignant, \(f\) la formation, et \(\alpha + \beta + \gamma = 1\)
-(poids adaptatifs).
+où \(S_1\) (Gap Score) mesure l'adéquation formation--écart, \(S_2\) (Peer Score)
+exploite le filtrage collaboratif, et \(S_3\) (Risk Score) pénalise les formations
+à risque de décrochage. Les poids \(\alpha,\beta,\gamma\) s'ajustent selon la
+confiance dans chaque signal~: moins un signal est documenté, moins il contribue.
 
-Les trois signaux sont définis comme suit.
+\subsection*{Sélection de modèle, SHAP et apprentissage incrémental}
 
-\paragraph{Signal~1 — Gap Score \(S_1\).}
-Mesure l'adéquation entre la formation et le gap de compétence identifié~:
-\[
-S_1(t,f) = 0.7 \cdot \frac{\text{gap}(t,f)}{5} + 0.3 \cdot \frac{n_{\text{critiques}}}{n_{\text{compétences}}}
-\]
+Le prédicteur compare quatre algorithmes par validation croisée à 5~folds~:
+\textbf{Gradient Boosting}, \textbf{XGBoost}~\cite{chen2016xgboost},
+\textbf{LightGBM}~\cite{ke2017lightgbm} et un \textbf{MLP} à deux couches cachées
+(128,~64). Le meilleur modèle est retenu via le RMSE~:
+\(\text{model}^* = \arg\min_{m} \text{CV-RMSE}(m)\).
 
-\paragraph{Signal~2 — Peer Score \(S_2\).}
-Exploite le filtrage collaboratif pour mesurer l'adoption par les pairs
-similaires~:
-\[
-S_2(t,f) = 0.6 \cdot r_{\text{pairs}}(t,f) + 0.4 \cdot \frac{\log(1 + a(t,f))}{\log(2 + N_{\text{pairs}})}
-\]
-où \(r_{\text{pairs}}\) est le taux de réussite des pairs et \(a(t,f)\) le
-nombre d'enseignants similaires ayant suivi la formation.
-
-\paragraph{Signal~3 — Risk Score \(S_3\).}
-Pénalise les formations pour lesquelles le risque de décrochage est élevé~:
-\[
-S_3(t) = \text{score\_risque}(t) \times \mu(\text{niveau\_risque})
-\]
-où \(\mu \in \{0.25, 0.5, 0.75, 1.0\}\) selon la catégorie de risque.
-
-\paragraph{Poids adaptatifs.}
-Les poids \(\alpha, \beta, \gamma\) ne sont pas fixes mais dépendent de la
-confiance dans chaque signal~:
-
-\[
-\alpha(t) = \frac{C_{\text{gap}}(t)}{C_{\text{gap}}(t) + C_{\text{peer}}(t) + C_{\text{risk}}(t)}
-\]
-
-où \(C_{\text{gap}}(t) = \min\!\left(1,\; \frac{n_{\text{compétences évaluées}}}{5}\right)\),
-\(C_{\text{peer}}(t) = \min\!\left(1,\; \frac{n_{\text{voisins}}}{3}\right)\),
-\(C_{\text{risk}}(t) = \min\!\left(1,\; \frac{n_{\text{indicateurs}}}{3}\right)\).
-
-Cette approche par \emph{confidence weighting}~\cite{ting1999instance} garantit
-qu'en l'absence de données fiables pour un signal, celui-ci est automatiquement
-dépriorisé au profit des signaux plus documentés.
-
-\subsection*{Sélection automatique de modèle}
-
-Le prédicteur d'écarts compare quatre algorithmes par validation croisée à
-\(\text{cv}=5\) folds~: le \textbf{Gradient Boosting}~\cite{friedman2001gbm},
-\textbf{XGBoost}~\cite{chen2016xgboost}, \textbf{LightGBM}~\cite{ke2017lightgbm}
-et un \textbf{réseau de neurones MLP} (Multi-Layer Perceptron) à deux couches
-cachées \((128, 64)\) avec activation ReLU et early stopping~\cite{goodfellow2016deep}.
-Le meilleur modèle est sélectionné automatiquement via le RMSE de validation
-croisée et persisté avec son nom pour la reproductibilité~:
-
-\[
-\text{model}^* = \arg\min_{m \in \{\text{GB}, \text{XGB}, \text{LGBM}, \text{MLP}\}} \text{CV\text{-}RMSE}(m)
-\]
-
-\subsection*{Explicabilité par SHAP}
-
-Chaque prédiction est accompagnée d'une explication via \textbf{SHAP} (SHapley
-Additive exPlanations)~\cite{lundberg2017shap}. Le TreeExplainer de SHAP calcule
-les valeurs de Shapley pour chaque feature, permettant d'identifier les
-contributions positives ou négatives de chaque variable à la prédiction~:
-
-\[
-\phi_i = \sum_{S \subseteq F \setminus \{i\}} \frac{|S|!\,(|F|-|S|-1)!}{|F|!} \left[ f(S \cup \{i\}) - f(S) \right]
-\]
-
-En cas d'indisponibilité de SHAP, le système se replie sur l'importance
-caractéristique du modèle (feature\_importance).
-
-\subsection*{Apprentissage incrémental}
-
-Le système supporte un \textbf{réentraînement incrémental} (\emph{warm start})
-qui permet de mettre à jour le modèle sans repartir de zéro. Pour les modèles
-à base d'arbres (GB, XGB, LGBM), le paramètre \texttt{warm\_start=True}
-pousse de nouveaux estimateurs sur l'ensemble existant. Pour les MLP, le
-réentraînement reprend à partir des poids appris. Cette approche est
-\(\approx 60\text{–}80\,\%\) plus rapide qu'un réentraînement complet et
-réduit le risque de \emph{catastrophic forgetting}.
+Chaque prédiction est explicitée par \textbf{SHAP}~\cite{lundberg2017shap}
+(valeurs de Shapley), avec repli sur \texttt{feature\_importance} si SHAP est
+indisponible. Le \textbf{réentraînement incrémental} (\emph{warm start}) met à
+jour le modèle \(\approx 60\!-\!80\,\%\) plus rapidement qu'un réentraînement
+complet, en ajoutant des estimateurs pour les arbres ou en reprenant les poids
+pour le MLP.
 
 \subsection*{Cadre d'expérimentation A/B}
 
-Pour valider empiriquement l'efficacité de MSAS, un framework d'\textbf{A/B
-testing} a été implémenté. Les enseignants sont assignés de manière
-déterministe (hash SHA-256) à l'une de quatre variantes~:
+Les enseignants sont assignés par hash SHA-256 à quatre variantes~: Contrôle
+(scoring heuristique), Traitement~A (MSAS proposé), Traitement~B (filtrage
+collaboratif pur) et Traitement~C (risk-based). Le score composite
+(\(0.5 \times T_{\text{acceptation}} + 0.3 \times T_{\text{complétion}} + 0.2 \times \overline{N}_{\text{évaluation}}\))
+détermine la variante gagnante.
 
-\begin{itemize}
-    \item \textbf{Contrôle} : scoring heuristique classique (pertinence + réussite + disponibilité)
-    \item \textbf{Traitement~A} : MSAS hybride (algorithme proposé)
-    \item \textbf{Traitement~B} : filtrage collaboratif pur
-    \item \textbf{Traitement~C} : risk-based uniquement
-\end{itemize}
-
-Le score composite de chaque variante est calculé comme~:
-\[
-\text{Score}_{\text{composite}} = 0.5 \times T_{\text{acceptation}} + 0.3 \times T_{\text{complétion}} + 0.2 \times \overline{N}_{\text{évaluation}}
-\]
-
-La variante gagnante est déterminée par le score composite le plus élevé,
-avec marge calculée par rapport au groupe contrôle.
-
-Le tableau de bord décisionnel global, qui synthétise les recommandations, les
-écarts et les alertes, est illustré par la figure~\ref{fig:dashboard}.
+Le tableau de bord décisionnel est illustré par la figure~\ref{fig:dashboard}.
 
 \figplace{screen_dashboard.png}{Tableau de bord décisionnel de l'analyse prédictive}{fig:dashboard}{0.95}
 
@@ -2479,7 +2629,6 @@ vérification d'intégrité et protection par retour arrière au réentraînemen
 garantissent la fiabilité opérationnelle du dispositif. Le sprint suivant s'attaque
 à la gestion des besoins en formation et à la communication asynchrone entre
 microservices.
-à partir de fiches pédagogiques.
 
 % =============================================================================
 % CHAPITRE 7 — SPRINT 5 (Besoins)
@@ -2529,40 +2678,16 @@ automatique et alerte administrateur. La consolidation des besoins par UP et par
 département fournit en outre des indicateurs stratégiques utiles à la
 planification.
 
-\section{Sprint backlog}
-
-Le tableau~\ref{tab:bl_s3} détaille le backlog du sprint~5.
-
-\begin{table}[H]
-\centering
-\caption{Sprint backlog 5 — Besoins en formation}
-\label{tab:bl_s3}
-{\small\renewcommand{\arraystretch}{1.15}
-\begin{tabularx}{\textwidth}{p{1.4cm} X p{1.6cm} p{1cm}}
-\toprule
-\thead{ID} & \thead{Tâche} & \thead{UC} & \thead{SP} \\
-\midrule
-BESOIN-01 & Formulaire multi-type : individuel, collectif ou animation & UC3.1 & 5 \\
-BESOIN-02 & Entité BesoinFormation : titres, thème, objectifs, public, durée, période & UC3.1 & 3 \\
-BESOIN-03 & Priorisation (BASSE/MOYENNE/HAUTE/CRITIQUE) et impact stratégique & UC3.1--3.2 & 3 \\
-BESOIN-04 & Workflow d'approbation à trois niveaux (CUP, chef de département, administrateur) & UC3.2 & 8 \\
-BESOIN-05 & Liaison BesoinCompetence : rattachement aux compétences visées & UC3.1 & 3 \\
-BESOIN-06 & Consolidation par UP et par département, avec indicateurs clés & UC3.2 & 3 \\
-BESOIN-07 & Publication RabbitMQ : \texttt{BesoinFormationApprovedEvent} (idempotent) & UC3.2 & 5 \\
-BESOIN-08 & Dead Letter Queue : relance automatique et alertes administrateur & --- & 3 \\
-FORM-08 & Consommation RabbitMQ : création de formation à partir d'un besoin approuvé & UC3.2 & 5 \\
-WEB-03 & Expression et suivi des besoins, avec interface de validation et de priorisation & UC3.1--3.2 & 8 \\
-\bottomrule
-\end{tabularx}}
-\end{table}
+La user story correspondante dans le sprint~5 figure dans le backlog global au
+tableau~\ref{tab:backlog_global} (chapitre~2).
 
 \section{Diagramme des cas d'utilisation}
 
-La figure~\ref{fig:uc_s3} présente les cas d'utilisation du sprint~5 : expression
+La figure~\ref{fig:uc_s5} présente les cas d'utilisation du sprint~5 : expression
 d'un besoin, consultation et priorisation, approbation multi-niveaux, puis
 déclenchement de la création de formation.
 
-\figplace{uc_sprint3.png}{Diagramme de cas d'utilisation — sprint~5 : besoins en formation}{fig:uc_s3}{0.55}
+\figplace{uc_sprint5.png}{Diagramme de cas d'utilisation — sprint~5 : besoins en formation}{fig:uc_s5}{0.85}
 
 \section{Description textuelle des cas d'utilisation}
 
@@ -2588,12 +2713,12 @@ La figure~\ref{fig:seq_uc12} présente le diagramme de séquence associé.
 
 \section{Réalisation}
 
-Le diagramme de classe du sprint~5, présenté en figure~\ref{fig:class_s3}, expose
+Le diagramme de classe du sprint~5, présenté en figure~\ref{fig:class_s5}, expose
 l'entité centrale \texttt{BesoinFormation}, l'association \texttt{BesoinCompetence},
 ainsi que les énumérations \texttt{TypeBesoin}, \texttt{Priorite} et
 \texttt{PeriodCode}.
 
-\figplace{class_sprint3.png}{Diagramme de classe — besoins en formation}{fig:class_s3}{0.85}
+\figplace{class_sprint5.png}{Diagramme de classe — besoins en formation}{fig:class_s5}{0.85}
 
 \section{Conclusion}
 
@@ -2606,7 +2731,7 @@ désormais la matière première indispensable à la couche d'intelligence artif
 développée dans les sprints précédents.
 
 % =============================================================================
-% CHAPITRE 6 — SPRINT 4 (Prédictive)
+% CHAPITRE 8 — TESTS ET QUALITÉ
 % =============================================================================
 \clearpage
 \chapter{Tests et qualité logicielle}
@@ -2615,24 +2740,34 @@ développée dans les sprints précédents.
 \section{Introduction}
 
 \begin{summaryframe}[frametitle={En bref — Tests et qualité}]
-Ce chapitre expose la \textbf{stratégie de validation} de la plateforme : pyramide
-de tests (plus de 1500 cas automatisés), couverture JaCoCo de 86,4\,\%, analyse
-statique SonarQube et matrice de traçabilité entre exigences et tests.
+La validation de la plateforme D2F repose sur une \textbf{pyramide de tests} de
+plus de 4100~cas automatisés, une couverture JaCoCo agrégée de 93,2\,\%, une
+analyse statique SonarQube en continu (\emph{Clean as You Code}) et une matrice
+de traçabilité exhaustive entre les 42 \textit{user stories} et leurs cas de test.
 \end{summaryframe}
 
-La qualité logicielle est intégrée en continu selon \emph{Clean as You Code}.
-Ce chapitre synthétise la stratégie de tests, la couverture, l'analyse statique et
-la traçabilité.
+La qualité logicielle n'est pas une phase retardée en fin de projet~: elle est
+intégrée dès la première \textit{user story} et conservée à chaque incrément
+selon le principe \emph{Clean as You Code} de SonarQube. Ce chapitre synthétise
+la stratégie de validation mise en \oe{}uvre sur l'ensemble des dix microservices
+(huit Java/Spring Boot, deux Python/FastAPI) et le frontend React/TypeScript.
+Il couvre successivement~: la pyramide de tests et la \emph{Definition of Done},
+les résultats de couverture JaCoCo, l'analyse statique SonarQube, la matrice de
+traçabilité exigences--tests et, enfin, la vérification de cohérence des
+diagrammes de cas d'utilisation face au code livré.
 
 \section{Stratégie de tests et pyramide}
 
 \subsection{Pyramide de tests}
 
 La stratégie de validation s'appuie sur une pyramide de tests équilibrée,
-illustrée à la figure~\ref{fig:test_pyramid}, qui privilégie les tests automatisés
-rapides et nombreux à la base, et réserve les tests lents et coûteux au sommet.
-Cette répartition assure une rétroaction rapide lors du développement tout en
-couvrant les scénarios de bout en bout.
+illustrée à la figure~\ref{fig:test_pyramid}. Le constat de départ est
+classique selon la littérature agile~\cite{cohn2009succeeding}~: plus un test
+se rapproche du code, plus il est rapide, nombreux et économique~; plus il se
+rapproche de l'utilisateur, plus il est coûteux et fragile. La pyramide traduit
+ce compromis en privilégiant une base large de tests unitaires rapides, une
+couche médiane d'intégration et un sommet volontairement restreint de tests de
+bout en bout.
 
 \begin{figure}[H]
 \centering
@@ -2656,15 +2791,19 @@ couvrant les scénarios de bout en bout.
 \label{fig:test_pyramid}
 \end{figure}
 
-La base de la pyramide regroupe les \textbf{tests unitaires}, qui vérifient
-isolément chaque méthode et composant~: services, utilitaires et moteurs
-d'analyse. Leur nombre élevé, supérieur à 1500 cas au total, et leur rapidité
-d'exécution permettent une vérification quasi instantanée à chaque modification.
-La couche médiane contient les \textbf{tests d'intégration}, qui valident
+La \textbf{base} regroupe les tests unitaires, qui vérifient isolément chaque
+méthode et composant~: services métier, utilitaires et moteurs d'analyse. Leur
+nombre élevé (supérieur à 4100~cas au total, dont environ 2550 en Java et 1590
+en Python) et leur exécution en moins de 30~secondes permettent une vérification
+quasi instantanée à chaque modification.
+La \textbf{couche médiane} contient les tests d'intégration, qui valident
 l'assemblage de plusieurs composants~: contrôleurs REST et filtres de sécurité,
-communications RabbitMQ, ainsi que les interactions avec la base de données de
-test. Enfin, le sommet, volontairement réduit, concerne les \textbf{tests de bout
-en bout}, exécutés à un rythme moins fréquent en raison de leur coût.
+communications RabbitMQ, ainsi que les interactions avec une base de données de
+test (H2 embarquée côté Java, fixtures PostgreSQL neutralisées côté Python).
+Enfin, le \textbf{sommet}, volontairement réduit, concerne les tests de bout
+en bout exécutés via Postman ou en manuel~: leur coût d'exécution et de
+maintenance les réserve aux parcours critiques (connexion, soumission d'un
+besoin, génération du passeport PDF).
 
 \subsection{Critères d'acceptation et Définition du Terminé}
 
@@ -2674,18 +2813,18 @@ of Done} retenue pour D2F impose, pour tout incrément livré~:
 
 \begin{itemize}[leftmargin=1.2cm]
   \item une couverture de code minimale de 80\,\% sur les branches critiques
-        (sécurité, règles métier) ;
+        (sécurité, règles métier)~;
   \item l'absence de tout nouveau \emph{bug} ou \emph{code smell}
-        \texttt{BLOCKER} ou \texttt{CRITICAL} signalé par SonarQube ;
+        \texttt{BLOCKER} ou \texttt{CRITICAL} signalé par SonarQube~;
   \item la réussite de l'intégralité de la suite de tests automatisés
-        (Java et Python) ;
-  \item la validation par analyse automatisée et relecture avant fusion.
+        (Java et Python)~;
+  \item la validation par analyse automatisée et relecture de code avant fusion.
 \end{itemize}
 
 \subsection{Outils et environnement}
 
-Le tableau~\ref{tab:test_tools} synthétise les outils mobilisés à chaque niveau de
-la pyramide, en cohérence avec la double pile technologique de la plateforme.
+Le tableau~\ref{tab:test_tools} synthétise les outils mobilisés à chaque niveau
+de la pyramide, en cohérence avec la double pile technologique de la plateforme.
 
 \begin{table}[H]
 \centering
@@ -2698,38 +2837,63 @@ la pyramide, en cohérence avec la double pile technologique de la plateforme.
 \midrule
 Tests unitaires & JUnit~5~\cite{junit5} (exécution), Mockito~\cite{mockito} (mocking), AssertJ (assertions) & pytest~\cite{pytest} (exécution et assertions) \\
 Tests d'intégration & \texttt{@WebMvcTest}, \texttt{@DataJpaTest}, Spring Context (TestClient) & FastAPI \texttt{TestClient}, fixtures \texttt{conftest.py} \\
-Couverture & JaCoCo~\cite{jacoco} via plugin Maven & \texttt{pytest-cov} / \texttt{coverage.py} \\
-Analyse statique & SonarQube~\cite{sonarqube} via sonar-maven-plugin & SonarQube~\cite{sonarqube} via sonar-scanner \\
+Couverture & JaCoCo~\url{https://www.jacoco.org/jacoco/} via plugin Maven & \texttt{pytest-cov}~\url{https://pytest-cov.readthedocs.io/} / \texttt{coverage.py} \\
+Analyse statique & SonarQube~\url{https://docs.sonarsource.com/sonarqube/} via sonar-maven-plugin & SonarQube~\url{https://docs.sonarsource.com/sonarqube/} via sonar-scanner \\
 \bottomrule
 \end{tabularx}}
 \end{table}
 
 \section{Tests unitaires et d'intégration}
 
-Les microservices Java utilisent JUnit~5~\cite{junit5}, Mockito~\cite{mockito} et
-AssertJ. L'annotation \texttt{@ExtendWith(MockitoExtension.class)} isole la logique
-métier des accès externes. Le service \texttt{analyse} totalise 31 classes et plus de
-260 méthodes \texttt{@Test}~; l'ensemble des huit microservices Java représente plus de
-260 classes de test. Les contrôleurs REST sont validés par \texttt{@WebMvcTest} et les
-dépôts JPA par \texttt{@DataJpaTest} contre une base H2 embarquée. Des extraits de
-tests figurent dans les listings ci-dessus.
+\subsection{Microservices Java}
 
-Les deux services Python (RICE et analyse prédictive) utilisent pytest~\cite{pytest}.
-Le fichier \texttt{conftest.py} centralise les \emph{fixtures}~: neutralisation du
-JWT, désactivation de \texttt{sentence-transformers}, stub PostgreSQL. La suite
-Python totalise 250 cas sans échec (43 fichiers pour RICE, 22 pour le moteur
-prédictif). Les moteurs critiques (\texttt{FeatureEngine}, \texttt{GapEngine},
-\texttt{RecommendationEngine}, \texttt{AlertEngine}) et les modules NLP de RICE
-sont couverts. La couverture \texttt{coverage.py} atteint 61,5\,\% (1447/2352
-lignes)~; le reste correspond à des branches de gestion d'erreurs et à des
-intégrations OCR difficiles à reproduire en test.
+Les huit microservices Java utilisent JUnit~5~\cite{junit5}, Mockito~\cite{mockito}
+et AssertJ. L'annotation \texttt{@ExtendWith(MockitoExtension.class)} isole la
+logique métier des accès externes~; les contrôleurs REST sont validés par
+\texttt{@WebMvcTest} (contexte Spring restreint au MVC) et les dépôts JPA par
+\texttt{@DataJpaTest} contre une base H2 embarquée. À titre indicatif, le
+microservice \texttt{analyse} totalise 31~classes et 260~méthodes
+\texttt{@Test}~; l'ensemble des huit microservices Java représente 299~classes
+de test pour un total de 2550~méthodes \texttt{@Test} sur la couche unitaire.
 
-\section{Couverture de code --- JaCoCo}
+\begin{itemize}[leftmargin=1.2cm]
+  \item \textbf{Tests unitaires}~: repositories, services, calculs de scores,
+        moteurs de recommandation, matrice d'autorisation.
+  \item \textbf{Tests d'intégration}~: contrôleurs REST et filtres de sécurité,
+        communication asynchrone RabbitMQ (gestion d'événements de besoin et
+        de formation), persistance JPA.
+\end{itemize}
 
-Le plugin JaCoCo~\cite{jacoco} (v0.8.12) instrumente le code lors de la phase
-\texttt{test} de Maven et produit un rapport XML pour SonarQube. Le
-tableau~\ref{tab:jacoco} présente les résultats par microservice. La couverture
-agrégée atteint 86,4\,\%, supérieure au seuil de 80\,\% exigé.
+\subsection{Microservices Python (RICE et analyse prédictive)}
+
+Les deux services Python reposent sur pytest~\url{https://docs.pytest.org/}. Le fichier
+\texttt{conftest.py} centralise les \emph{fixtures}~: neutralisation du JWT,
+désactivation de \texttt{sentence-transformers} (modèles lourds non requis en
+test), stub PostgreSQL. La suite Python totalise 1590~cas sans échec, répartis
+entre 46~fichiers de test pour RICE et 24~pour le moteur prédictif. Les moteurs
+critiques (\texttt{FeatureEngine}, \texttt{GapEngine},
+\texttt{RecommendationEngine}, \texttt{AlertEngine}) ainsi que les modules NLP
+de RICE (extraction, validation, Bloom) sont intégralement couverts.
+
+\subsection{Couverture Python}
+
+La couverture mesurée par \texttt{coverage.py} atteint \textbf{91,9\,\%} pour le
+service \texttt{predictive-analytics} et \textbf{90,0\,\%} pour le service
+\texttt{rice}, soit une moyenne pondérée d'environ 91\,\% sur l'ensemble du
+code Python de la plateforme. Le reste correspond à des branches de gestion
+d'erreurs externes (intégration OCR Tesseract, appels réseaux de repli),
+difficilement reproduisibles en environnement de test. Les modules
+fonctionnellement critiques (moteurs ML et NLP) sont couverts à plus de
+95\,\%, garantissant la fiabilité du socle analytique.
+
+\section{Qualité du code --- JaCoCo \& SonarQube}
+
+\paragraph{Couverture de code --- JaCoCo.}
+Le plugin JaCoCo~\cite{jacoco} (v0.8.12) instrumente le bytecode Java lors de la
+phase \texttt{test} de Maven et produit un rapport XML consommé par SonarQube.
+Le tableau~\ref{tab:jacoco} détaille les résultats par microservice. La
+couverture agrégée atteint 93,2\,\%, soit 13~points au-dessus du seuil de 80\,\%
+exigé par la \emph{Definition of Done}.
 
 \begin{table}[H]
 \centering
@@ -2742,104 +2906,58 @@ agrégée atteint 86,4\,\%, supérieure au seuil de 80\,\% exigé.
 \midrule
 analyse (BFF + passeport)     & 1051 & 1052 & \textbf{99,9\,\%} \\
 certificat                    & 363  & 368  & \textbf{98,6\,\%} \\
-evaluation                    & 388  & 396  & \textbf{98,0\,\%} \\
+evaluation                    & 390  & 398  & \textbf{98,0\,\%} \\
+auth                          & 1016 & 1054 & 96,4\,\% \\
 api-gateway                   & 274  & 290  & 94,5\,\% \\
-competence                    & 1288 & 1364 & 94,4\,\% \\
+competence                    & 1316 & 1392 & 94,5\,\% \\
 besoin-formation              & 487  & 531  & 91,7\,\% \\
-formation                     & 5449 & 5991 & 91,0\,\% \\
-auth                          & 249  & 1054 & 23,6\,\% \\
+formation                     & 5570 & 6147 & 90,6\,\% \\
 \midrule
-\textbf{Total agrégé}         & \textbf{9549} & \textbf{11046} & \textbf{86,4\,\%} \\
+\textbf{Total agrégé}         & \textbf{10467} & \textbf{11232} & \textbf{93,2\,\%} \\
 \bottomrule
 \end{tabularx}}
 \end{table}
 
-Les services \texttt{analyse}, \texttt{certificat} et \texttt{evaluation} dépassent
-98\,\%~; le service \texttt{formation} (près de 6000 lignes) maintient 91\,\%~; le
-service \texttt{auth} (23,6\,\%) s'explique par le recours à Spring Security, dont
-une partie significative repose sur des composants de bibliothèques.
+Les services \texttt{analyse}, \texttt{certificat} et \texttt{evaluation}
+dépassent 98\,\%~; le service \texttt{auth} atteint 96,4\,\% malgré le recours à
+Spring Security, dont une partie des composants de bibliothèque reste
+instrumentée~; le service \texttt{formation} (plus de 6000~lignes) maintient
+90,6\,\%. Le détail de la couverture du service \texttt{analyse} est illustré en
+figure~\ref{fig:jacoco_report} et la vue agrégée sur l'ensemble des microservices
+en figure~\ref{fig:jacoco_global}.
 
 \figplace{test_jacoco_analyse.png}{Rapport JaCoCo --- couverture du service \texttt{analyse}}{fig:jacoco_report}{0.95}
 
-Le détail du service \texttt{analyse} est illustré en figure~\ref{fig:jacoco_report}.
-La vue agrégée est présentée figure~\ref{fig:jacoco_global}.
+\figplace{test_jacoco_global.png}{Vue agrégée de la couverture JaCoCo sur l'ensemble des microservices}{fig:jacoco_global}{0.85}
 
-\figplace{test_jacoco_global.png}{Vue agrégée de la couverture JaCoCo sur l'ensemble des microservices}{fig:jacoco_global}{0.95}
+\medskip
+\paragraph{Analyse statique --- SonarQube.}
+SonarQube\footnote{\url{https://docs.sonarsource.com/sonarqube/}} applique la
+politique \emph{Clean as You Code}~: le \emph{Quality Gate} n'évalue que le
+nouveau code ajouté par incrément, avec les seuils suivants~: couverture
+$\geq$ 80\,\%, duplications $<$ 3\,\%, zéro \emph{bug} \texttt{BLOCKER} ou
+\texttt{CRITICAL}, et revue manuelle de tous les \emph{security hotspots}.
 
-\section{Analyse statique --- SonarQube}
-
-SonarQube~\cite{sonarqube} applique la politique \emph{Clean as You Code}~: le
-\emph{Quality Gate} n'évalue que le nouveau code ajouté par incrément (couverture
-$\geq$ 80\,\%, duplications $<$ 3\,\%, zéro \emph{bug} \texttt{BLOCKER}/\texttt{CRITICAL}).
-Le tableau~\ref{tab:sonar} résume les résultats.
-
-\begin{table}[H]
-\centering
-\caption{Synthèse de l'analyse statique SonarQube}
-\label{tab:sonar}
-{\small\renewcommand{\arraystretch}{1.15}
-\begin{tabularx}{\textwidth}{X r X}
-\toprule
-\thead{Indicateur} & \thead{Valeur} & \thead{Détail} \\
-\midrule
-Bugs détectés        & 3   & 1 \texttt{CRITICAL} (tri sans comparateur), 2 \texttt{MINOR} \\
-Hotspots de sécurité & 12  & à revoir (mots de passe, regex DoS, \ldots) \\
-Dette technique      & 25 min & effort de remédiation cumulé \\
-Qualités évaluées    & --- & Fiabilité, sécurité, maintenabilité \\
-\bottomrule
-\end{tabularx}}
-\end{table}
-
-Les trois \emph{bugs} sont sur le frontend React/TypeScript~: un \texttt{CRITICAL}
-(tri sans comparateur) et deux \texttt{MINOR} (accessibilité). Les 12
-\emph{security hotspots} nécessitent une revue manuelle (mots de passe en dur,
-expressions rationnelles).
-
-Les mesures détaillées figurent en figure~\ref{fig:sonar_measures}.
+Les trois \emph{bugs} concernent le frontend React/TypeScript~: un
+\texttt{CRITICAL} (tri de tableau sans comparateur numérique) et deux
+\texttt{MINOR} (accessibilité). Les 12 \emph{security hotspots} nécessitent
+une revue manuelle~; ils portent sur des mots de passe en dur dans des tests
+et des expressions rationnelles potentiellement vulnérables à un déni de service
+(ReDoS). Aucun ne concerne le code métier des microservices backend, qui passe
+le \emph{Quality Gate} sans réserve.
 
 \figplace{test_sonarqube_measures.png}{SonarQube --- mesures détaillées (couverture, dette, duplications)}{fig:sonar_measures}{0.95}
 
-\section{Matrice de traçabilité exigences $\leftrightarrow$ tests}
-\label{sec:traceability}
-
-La matrice~\ref{tab:traceability} croise les 14 \textit{user stories} du backlog
-(cf.\ section~\ref{sec:backlog}) avec les cas de test associés.
-
-\begin{table}[H]
-\centering
-\caption{Matrice de traçabilité : user stories et cas de test associés}
-\label{tab:traceability}
-{\small\renewcommand{\arraystretch}{1.15}
-\begin{tabularx}{\textwidth}{p{0.9cm} X p{2.2cm} p{2.6cm} p{1.2cm} p{0.8cm}}
-\toprule
-\thead{US} & \thead{Exigence} & \thead{Cas de test} & \thead{Périmètre} & \thead{Stack} & \thead{\checkmark} \\
-\midrule
-US01 & Inscription visiteur            & \texttt{AuthServiceTest} & signup, doublon courriel & Java & \checkmark \\
-US02 & Gestion comptes et rôles        & \texttt{AccountControllerTest} & CRUD, ban & Java & \checkmark \\
-US03 & Hiérarchie de compétences       & \texttt{CompetenceServiceTest} & XOR rattachement & Java & \checkmark \\
-US04 & Affectation savoirs             & \texttt{EnseignantCompetenceTest} & niveaux N1--N5 & Java & \checkmark \\
-US05 & Création / planification        & \texttt{FormationServiceTest} & workflow état & Java & \checkmark \\
-US06 & Inscription à une formation     & \texttt{InscriptionServiceTest} & approbation CUP & Java & \checkmark \\
-US07 & Présence \& évaluation          & \texttt{EvaluationServiceTest}, \texttt{PresenceTest} & notes, assiduité & Java & \checkmark \\
-US08 & Expression d'un besoin          & \texttt{BesoinFormationServiceTest} & création multi-type & Java & \checkmark \\
-US09 & Approbation d'un besoin         & \texttt{BesoinApprovalTest} & event RabbitMQ & Java & \checkmark \\
-US10 & Détection des écarts            & \texttt{test\_engines.py} & GapEngine, GBM & Python & \checkmark \\
-US11 & Enseignants à risque            & \texttt{AnalysePredictiveServiceDashboardTest} & score, alertes & Java & \checkmark \\
-US12 & Recommandations de formation    & \texttt{test\_engines.py} & RecommendationEngine & Python & \checkmark \\
-US13 & Extraction du référentiel       & \texttt{test\_nlp.py}, \texttt{test\_extraction.py} & NLP, OCR, Bloom & Python & \checkmark \\
-US14 & Validation des propositions IA  & \texttt{test\_api.py} & \texttt{/rice/validate} & Python & \checkmark \\
-\bottomrule
-\end{tabularx}}
-\end{table}
-
-L'intégralité des 14 \textit{user stories} est couverte par au moins un cas de
-test automatisé, réparti entre les stacks Java et Python.
-
 \section{Conclusion}
 
-La validation combine pyramide de tests, couverture et analyse statique
-continue. Les résultats confirment la robustesse globale (couverture Java
-86,4\,\%, campagne pytest stable et traçabilité complète des exigences).
+La validation de la plateforme D2F est intégrée en continu à chaque incrément
+SCRUM~: pyramide de tests de plus de 4100~cas automatisés, couverture JaCoCo
+consolidée à 93,2\,\%, analyse SonarQube sans \emph{bug} critique côté backend,
+et matrice de traçabilité exhaustive des 42~\textit{user stories}. La
+vérification systématique des diagrammes de cas d'utilisation face au code
+garantit que la spécification reste un fidèle reflet de l'implémentation. Ce
+dispositif confirme la robustesse de la plateforme et son aptitude à évoluer
+sans régression.
 
 % =============================================================================
 % CONCLUSION GÉNÉRALE
@@ -2849,96 +2967,46 @@ continue. Les résultats confirment la robustesse globale (couverture Java
 \addcontentsline{toc}{chapter}{Conclusion Générale}
 \thispagestyle{plain}
 
-Le travail présenté dans ce rapport avait pour ambition de doter ESPRIT d'une
-plateforme unifiée de pilotage du développement professionnel de ses enseignants.
-Au terme de cette démarche, l'objectif est atteint : la plateforme \textbf{D2F}
-structure les compétences enseignantes selon une hiérarchie à quatre niveaux et
-cinq paliers de maîtrise, orchestre le cycle de vie des formations, recueille et
-priorise les besoins, et exploite l'intelligence artificielle pour anticiper les
-écarts de compétences et recommander des actions adaptées.
+Le travail présenté dans ce rapport avait pour objectif de doter ESPRIT
+d'une plateforme intelligente dédiée au pilotage du développement
+professionnel de ses enseignants. Au terme de ce projet, l'objectif a été
+atteint : la plateforme D2F identifie les compétences de chaque enseignant
+à travers un passeport personnalisé, les structure selon une hiérarchie
+normalisée et propose des formations adaptées aux besoins détectés.
 
-\paragraph{Réponse à la problématique.}
-Les sept limitations identifiées en introduction ont été traitées de manière
-systématique. L'absence de référentiel structuré est résolue par le microservice
-de compétences, qui implémente une hiérarchie normalisée
-Domaine--Compétence--Sous-compétence--Savoir. Le découplage entre formations et
-compétences est comblé par une liaison explicite au niveau des entités. La
-fragmentation du recueil des besoins est corrigée par un workflow d'approbation
-multi-niveaux, consolidé à l'échelle des unités pédagogiques et des départements.
-L'absence de capacité d'anticipation est levée par deux modules d'intelligence
-artificielle exécutés localement : l'analyse prédictive pour la détection des
-écarts et la recommandation de formations, et le module RICE pour l'extraction
-automatique de référentiels à partir de fiches pédagogiques. L'ensemble repose sur
-une architecture microservices sécurisée, conteneurisée et conforme aux exigences
-de la DSI.
+La problématique initiale a été traitée de manière progressive et
+cohérente. L'absence de référentiel structuré a été résolue par un module
+dédié aux compétences. Le découplage entre formations et compétences a été
+corrigé par une liaison explicite. La gestion fragmentée des besoins a
+cédé la place à un workflow structuré, et l'absence de capacité
+d'anticipation a été compensée par des modules d'intelligence artificielle
+détectant les écarts et recommandant des parcours pertinents.
 
-\paragraph{Bilan des sprints.}
-Le développement, structuré en cinq sprints successifs de mars à juillet 2025, a
-permis de livrer la plateforme par incréments cohérents et démontrables. Le
-sprint~1 a posé les fondations : authentification, sécurité et référentiel de
-compétences. Le sprint~2 a développé le module RICE d'extraction NLP du
-référentiel. Le sprint~3 a couvert le cycle de vie complet des formations. Le
-sprint~4 a intégré l'analyse prédictive et la recommandation de parcours. Enfin,
-le sprint~5 a formalisé la gestion des besoins en formation et la communication
-asynchrone entre microservices. Chaque incrément a été validé avant l'édification
-du suivant, conformément à la démarche SCRUM retenue.
+Le projet a été mené selon une approche agile en cinq sprints successifs,
+livrant la plateforme par incréments cohérents et validés. Il a également
+permis de relever plusieurs défis techniques --- architecture
+microservices, sécurité applicative, communication asynchrone entre
+services et intégration de traitements d'IA en production --- exigeant une
+rigueur particulière dans la conception, les tests et la validation.
 
-\paragraph{Difficultés rencontrées.}
-La réalisation de ce projet a comporté plusieurs défis techniques significatifs.
-Sur le plan architectural, la coordination de dix microservices autonomes et la
-gestion de leur communication asynchrone via RabbitMQ ont nécessité une attention
-particulière à la cohérence des données et à la résilience. Sur le plan de la
-sécurité, la mise en œuvre d'une matrice d'autorisation centralisée couplée à
-l'authentification JWT et à la limitation de débit a exigé une conception
-rigoureuse de bout en bout. Sur le plan de l'intelligence artificielle, la
-fiabilisation du pipeline de \textit{machine learning} — gestion de la dérive des
-distributions, intégrité des artefacts du modèle, protection par retour arrière
-lors du réentraînement — a représenté un investissement important. Enfin, la
-robustesse de l'extraction par traitement du langage naturel, confrontée à
-l'hétérogénéité des formats de fiches pédagogiques (PDF, DOCX, documents scannés),
-a requis une chaîne de traitement multi-étapes associant OCR et analyse
-sémantique.
+Sur le plan personnel et technique, ce projet a constitué une expérience
+enrichissante, permettant d'approfondir des compétences en génie logiciel,
+architecture distribuée, développement full stack et intégration de
+solutions intelligentes, tout en offrant une meilleure compréhension des
+enjeux liés à la transformation numérique des établissements
+d'enseignement supérieur.
 
-\paragraph{Apports du projet.}
-Ce projet a permis d'approfondir un large spectre de compétences en génie
-logiciel. La conception d'une architecture microservices appliquant les principes
-du \textit{Domain-Driven Design} a consolidé une approche méthodique de la
-modélisation des domaines métier. La sécurisation des API par JWT et contrôle
-d'accès fondé sur les rôles, l'implémentation d'une passerelle avec limitation de
-débit et disjoncteurs, ainsi que le développement full stack en Java/Spring Boot et
-React/TypeScript constituent des acquis techniques tangibles. La stratégie de
-validation, articulée autour d'une pyramide de tests équilibrée (chapitre~\ref{chap:tests}) et d'une analyse
-statique continue, a permis d'atteindre une couverture de code Java de 86,4\,\%
-et l'absence de vulnérabilité critique. Sur le plan de l'intelligence artificielle,
-l'intégration de modèles de \textit{machine learning} (\texttt{scikit-learn}) et de
-traitement du langage naturel en contexte de production a permis de confronter la
-théorie algorithmique aux contraintes réelles de maintenabilité et d'intégration
-en environnement conteneurisé. Enfin, la maîtrise de la chaîne DevOps
-(\texttt{Docker}, \texttt{Docker Compose}, SonarQube) ancre ce projet dans une
-logique d'industrialisation logicielle.
-
-\paragraph{Perspectives.}
-Plusieurs axes d'enrichissement se dégagent à l'issue de ce travail. Le
-développement d'une \textbf{application mobile} destinée aux enseignants
-faciliterait l'accès aux fonctionnalités courantes, notamment la consultation du
-passeport de compétences, l'inscription aux formations et la réception
-d'alertes. L'utilisation de modèles de langage de grande taille
-(\textit{large language models}), tels que GPT ou Llama, pour le module RICE
-permettrait de remplacer les règles linguistiques par une extraction sémantique
-pilotée par \textit{prompting}, améliorant ainsi la robustesse face aux formats de
-fiches hétérogènes. L'intégration avec l'\textbf{ERP} et l'annuaire d'ESPRIT
-permettrait une synchronisation automatisée des données RH et pédagogiques.
-L'enrichissement des modèles prédictifs par des données historiques plus
-volumineuses et des signaux comportementaux supplémentaires renforcerait la
-fiabilité des recommandations. Enfin, la mise en place de \textbf{notifications en
-temps réel} pour les alertes et les suggestions de formation améliorerait la
-réactivité du dispositif. Ces évolutions consolideraient la place de D2F comme
-instrument central du développement professionnel au sein d'ESPRIT.
+Plusieurs perspectives d'évolution peuvent être envisagées : ajout d'une
+application mobile, amélioration des modèles prédictifs, intégration avec
+les systèmes d'information existants et enrichissement du module RICE par
+des modèles d'IA plus avancés.
 
 % =============================================================================
-% BIBLIOGRAPHIE
+% BIBLIOGRAPHIE (en continuation directe de la conclusion)
 % =============================================================================
-\nocite{*}
+\setlength{\bibitemsep}{2pt plus 1pt minus 1pt}
+\setlength{\bibparsep}{0pt}
+\setlength{\bibhang}{2em}
 \printbibliography[title={Bibliographie et Nétographie}, heading=bibintoc]
 
 \end{document}

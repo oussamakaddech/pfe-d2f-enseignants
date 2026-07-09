@@ -1,9 +1,9 @@
 import { memo } from "react";
 import { useNavigate } from "react-router-dom";
-import { Row, Col, Skeleton, Tag } from "antd";
+import { Row, Col, Skeleton, Tag, Button, Tooltip } from "antd";
 import {
   ThunderboltOutlined, WarningOutlined, FallOutlined,
-  BulbOutlined, ApartmentOutlined, RightOutlined,
+  BulbOutlined, ApartmentOutlined, RightOutlined, ArrowRightOutlined,
 } from "@ant-design/icons";
 import DemandForecastChart from "@/components/charts/DemandForecastChart";
 import { useDemandForecast, useDecliningCompetencies, useTeacherRiskIndicators } from "@/hooks/analyse/useAnalysePredictive";
@@ -49,10 +49,24 @@ const DashboardPredictiveInsights = memo(function DashboardPredictiveInsights({ 
     <section className="dash-predictive">
       <div className="dash-predictive-head">
         <span className="dash-predictive-icon"><ThunderboltOutlined /></span>
-        <div>
-          <h3 className="dash-predictive-title">Intelligence prédictive</h3>
-          <span className="dash-predictive-sub">Anticiper les risques et la demande de formation</span>
+        <div className="dash-predictive-head-text">
+          <div className="dash-predictive-title-row">
+            <h3 className="dash-predictive-title">Intelligence prédictive</h3>
+            <Tag className="dash-preview-tag" color="gold">Aperçu</Tag>
+          </div>
+          <span className="dash-predictive-sub">
+            Signaux clés — données complètes sur le tableau de bord analytique
+          </span>
         </div>
+        <Tooltip title="Ouvrir l'analyse prédictive détaillée">
+          <Button
+            type="link"
+            className="dash-predictive-cta"
+            onClick={() => navigate("/home/analytics/dashboard")}
+          >
+            Vue détaillée <ArrowRightOutlined />
+          </Button>
+        </Tooltip>
       </div>
 
       <Row gutter={[20, 20]}>
@@ -89,6 +103,17 @@ const DashboardPredictiveInsights = memo(function DashboardPredictiveInsights({ 
           </div>
         </Col>
       </Row>
+
+      <div className="dash-predictive-foot">
+        <Button
+          type="primary"
+          block
+          icon={<ArrowRightOutlined />}
+          onClick={() => navigate("/home/analytics/dashboard")}
+        >
+          Ouvrir le tableau de bord analytique (données complètes)
+        </Button>
+      </div>
     </section>
   );
 });

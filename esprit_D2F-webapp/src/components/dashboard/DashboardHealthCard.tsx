@@ -48,7 +48,7 @@ const DashboardHealthCard = memo(function DashboardHealthCard({ scope }: { reado
 
   const health = isAdmin
     ? computeHealthScore({
-        presence: (presenceQ.data as GlobalParticipantKPI | undefined)?.tauxPresenceGlobal,
+        presence: (presenceQ.data as GlobalParticipantKPI | undefined)?.tauxParticipation,
         coverage: overview.data?.taux_couverture_global,
         atRisk: global.data?.enseignants_a_risque?.length,
         totalTeachers: overview.data?.nb_enseignants_suivis,

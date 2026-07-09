@@ -43,7 +43,7 @@ export const FRONTEND_PERMISSIONS = {
     UPDATE: ['admin', 'CUP', 'ResponsableDossier'],
     DELETE: ['admin'],
     APPROVE: ['admin', 'CUP'],
-    READ_OWN: ['admin', 'Formateur', 'Animateur', 'Enseignant'],
+    READ_OWN: ['admin', 'Animateur', 'Enseignant'],
   },
   EVALUATION: {
     READ_ALL: ['admin', 'CHEF_DEPARTEMENT', 'Enseignant'],

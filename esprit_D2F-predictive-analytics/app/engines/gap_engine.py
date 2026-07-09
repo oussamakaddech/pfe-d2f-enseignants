@@ -140,11 +140,16 @@ class GapEngine:
         besoins: list[dict],
         prediction_result_id: int | None,
         domaine_demand: dict[int, float],
+        departement_id: str = "",
         **_kwargs,
     ) -> list[SkillGap]:
         """
         Calcule un SkillGap par compétence et le persiste.
         domaine_demand : {competence_id → poids_demande 0-1}
+
+        Persiste également un snapshot de couverture (``teacher_competence_coverage``)
+        pour TOUTES les compétences évaluées — y compris couvertes — afin de permettre
+        un calcul correct du taux de couverture (voir DashboardEngine / InsightsEngine).
         """
 
         current_index, last_eval_index = _build_current_index(competence_levels)
@@ -206,9 +211,45 @@ class GapEngine:
             self.db.add(gap)
             gaps.append(gap)
 
+        self._persist_coverage_snapshot(enseignant_id, departement_id, current_index, required_index)
         self.db.flush()
         logger.info("GapEngine: %d gaps computed for enseignant %s", len(gaps), enseignant_id)
         return gaps
+
+    def _persist_coverage_snapshot(
+        self,
+        enseignant_id: str,
+        departement_id: str,
+        current_index: dict[int, int],
+        required_index: dict[int, dict],
+    ) -> None:
+        """Stocke l'état de couverture réel (courant vs requis) pour toutes les
+        compétences ayant un niveau requis > 0. Remplace le snapshot précédent
+        de l'enseignant pour rester cohérent avec la dernière analyse."""
+        from app.models.db_models import TeacherCompetenceCoverage
+
+        # Suppression du snapshot précédent de cet enseignant (upsert logique).
+        self.db.query(TeacherCompetenceCoverage).filter_by(enseignant_id=enseignant_id).delete()
+
+        today = date.today()
+        rows: list[TeacherCompetenceCoverage] = []
+        for cid, req_info in required_index.items():
+            niveau_requis = req_info["niveau"]
+            if niveau_requis <= 0:
+                continue
+            niveau_actuel = int(current_index.get(cid, 0))
+            rows.append(TeacherCompetenceCoverage(
+                enseignant_id=enseignant_id,
+                competence_id=cid,
+                departement_id=departement_id or None,
+                current_level=niveau_actuel,
+                required_level=niveau_requis,
+                covered=bool(niveau_actuel >= niveau_requis),
+                snapshot_date=today,
+            ))
+        if rows:
+            self.db.bulk_save_objects(rows)
+
 
     def _justification(
         self, gap_brut: float, mois_stag: int,

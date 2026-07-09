@@ -1,4 +1,4 @@
-import { Card, Row, Col, Statistic, Table, Tag, Space, Typography, Button, Spin, Alert, Badge, Empty, Progress } from "antd";
+import { Card, Row, Col, Statistic, Table, Tag, Space, Typography, Button, Spin, Alert, Badge, Empty, Progress, Divider } from "antd";
 import {
   FallOutlined, RiseOutlined, WarningOutlined, ReloadOutlined,
   TeamOutlined, TrophyOutlined, BellOutlined, DashboardOutlined,
@@ -142,11 +142,12 @@ export default function AnalyticsDashboardPage() {
   const modelAccuracy  = modelPerf?.gap_model_accuracy;
 
   return (
-    <div>
+    <div className="analytics-page">
       <AppPageHeader
         icon={<DashboardOutlined />}
         title="Tableau de Bord Analytique"
-        subtitle={`Vue d'ensemble prédictive — Dernière mise à jour : ${lastUpdate ?? "—"}`}
+        subtitle={`Analyse prédictive détaillée — complément du tableau de bord d'accueil — Dernière mise à jour : ${lastUpdate ?? "—"}`}
+        tags={<Tag color="blue">Vue détaillée</Tag>}
         actions={
           <Button icon={<ReloadOutlined />} onClick={refetch} loading={loading}>Rafraîchir</Button>
         }
@@ -199,9 +200,13 @@ export default function AnalyticsDashboardPage() {
               />
             </Card>
           </Col>
-        </Row>
+      </Row>
 
-        {/* Tables row 1 */}
+      <Divider orientation="left" plain style={{ marginTop: 28, marginBottom: 12 }}>
+        <Text strong style={{ color: "var(--neutral-700)" }}>Indicateurs clés</Text>
+      </Divider>
+
+      {/* Tables row 1 */}
         <Row gutter={[20, 20]} className="mb-20">
           <Col xs={24} lg={12}>
             <Card
@@ -311,6 +316,10 @@ export default function AnalyticsDashboardPage() {
         </Card>
 
         {/* ── KPIs avancés ─────────────────────────────────────────── */}
+
+        <Divider orientation="left" plain style={{ marginTop: 28, marginBottom: 12 }}>
+          <Text strong style={{ color: "var(--neutral-700)" }}>Analyses avancées</Text>
+        </Divider>
 
         {/* Heatmap des gaps : Département × Compétence */}
         <Card

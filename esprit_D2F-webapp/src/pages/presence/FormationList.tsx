@@ -78,7 +78,7 @@ const FormationList = () => {
   const [endDate, setEndDate] = useState<Dayjs | null>(null);
   const navigate = useNavigate();
 
-  const isFormateurLike = user?.role === ROLES.ENSEIGNANT || user?.role === ROLES.ANIMATEUR || user?.role === ROLES.FORMATEUR;
+  const isFormateurLike = user?.role === ROLES.ENSEIGNANT || user?.role === ROLES.ANIMATEUR;
   const { data: parAnimateur = [], isLoading: loading } = useFormationsByAnimateur(isFormateurLike);
   const formations = parAnimateur as FormationItem[];
 

@@ -1,0 +1,361 @@
+/* ============================================================================
+   D2F — Glassmorphism Design System
+   Réutilisable pour les pages "Tableau de bord" et "Analyse Prédictive".
+   Dégradés, cartes en verre dépoli, hero animé, tuiles KPI, en-têtes de
+   section. Conçu pour s'insérer dans la zone de contenu (fond clair) de
+   l'AppLayout et recouvrir un dégradé subtil.
+   ========================================================================== */
+
+:root {
+  --glass-bg: rgba(255, 255, 255, 0.62);
+  --glass-bg-strong: rgba(255, 255, 255, 0.78);
+  --glass-border: rgba(255, 255, 255, 0.7);
+  --glass-shadow: 0 18px 40px -24px rgba(15, 23, 42, 0.45);
+  --glass-shadow-hover: 0 26px 56px -22px rgba(15, 23, 42, 0.55);
+  --glass-radius: 20px;
+  --glass-radius-sm: 14px;
+}
+
+/* ── Conteneur de page (dégradé de fond) ─────────────────────────────────── */
+.glass-app {
+  position: relative;
+  min-height: 100%;
+  padding: 26px;
+  border-radius: 24px;
+  overflow: hidden;
+  isolation: isolate;
+  background:
+    radial-gradient(1100px 620px at 8% -12%, rgba(181, 18, 0, 0.10), transparent 58%),
+    radial-gradient(1000px 560px at 102% -4%, rgba(0, 180, 216, 0.14), transparent 55%),
+    radial-gradient(820px 520px at 60% 120%, rgba(124, 58, 237, 0.08), transparent 60%),
+    linear-gradient(180deg, #fbfdff 0%, #eef3fa 100%);
+  animation: glassFade 0.5s ease both;
+}
+
+@keyframes glassFade {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Hero ───────────────────────────────────────────────────────────────── */
+.glass-hero {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 24px;
+  padding: 30px 34px;
+  border-radius: var(--glass-radius);
+  color: #fff;
+  overflow: hidden;
+  background: linear-gradient(120deg, #7a0000 0%, #b51200 46%, #e23744 100%);
+  box-shadow: 0 26px 60px -26px rgba(181, 18, 0, 0.6);
+}
+
+.glass-hero::before,
+.glass-hero::after {
+  content: "";
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(8px);
+  opacity: 0.55;
+  pointer-events: none;
+}
+
+.glass-hero::before {
+  width: 320px; height: 320px;
+  top: -120px; right: -60px;
+  background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.45), transparent 70%);
+  animation: heroFloat 9s ease-in-out infinite;
+}
+
+.glass-hero::after {
+  width: 240px; height: 240px;
+  bottom: -110px; left: 18%;
+  background: radial-gradient(circle at 50% 50%, rgba(0, 180, 216, 0.55), transparent 70%);
+  animation: heroFloat 11s ease-in-out infinite reverse;
+}
+
+@keyframes heroFloat {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50% { transform: translate(-18px, 16px) scale(1.08); }
+}
+
+.glass-hero-avatar {
+  position: relative;
+  z-index: 2;
+  flex: 0 0 auto;
+  width: 64px; height: 64px;
+  display: grid; place-items: center;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  backdrop-filter: blur(8px);
+  font-size: 30px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+
+.glass-hero-body { position: relative; z-index: 2; flex: 1 1 320px; min-width: 0; }
+
+.glass-hero-eyebrow {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 12.5px; font-weight: 600; letter-spacing: 0.4px;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.glass-hero-role {
+  margin-left: 6px;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 11px; font-weight: 700;
+  color: #fff !important;
+  background: rgba(255, 255, 255, 0.2) !important;
+  border: 1px solid rgba(255, 255, 255, 0.3) !important;
+}
+
+.glass-hero-title {
+  margin: 10px 0 6px;
+  font-size: clamp(22px, 3vw, 30px);
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -0.3px;
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.18);
+}
+
+.glass-hero-sub {
+  margin: 0;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.9);
+  max-width: 640px;
+}
+
+.glass-hero-actions {
+  position: relative; z-index: 2;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 10px;
+  flex: 0 0 auto;
+}
+
+.glass-hero-status {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 7px 13px;
+  border-radius: 999px;
+  font-size: 12.5px; font-weight: 600;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  backdrop-filter: blur(8px);
+}
+
+.glass-hero-status .dot {
+  width: 9px; height: 9px; border-radius: 50%;
+  background: #ffd166;
+  box-shadow: 0 0 0 4px rgba(255, 209, 102, 0.25);
+}
+.glass-hero-status .dot.ok { background: #34d399; box-shadow: 0 0 0 4px rgba(52, 211, 153, 0.25); }
+.glass-hero-status .dot.error { background: #f87171; box-shadow: 0 0 0 4px rgba(248, 113, 113, 0.25); }
+.glass-hero-status .dot.warn { background: #fbbf24; box-shadow: 0 0 0 4px rgba(251, 191, 36, 0.25); }
+
+.glass-btn {
+  display: inline-flex; align-items: center; gap: 7px;
+  height: 38px; padding: 0 16px;
+  border-radius: 12px;
+  font-weight: 600; font-size: 13.5px;
+  cursor: pointer;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  background: rgba(255, 255, 255, 0.16);
+  color: #fff;
+  transition: transform 0.16s ease, background 0.16s ease, box-shadow 0.16s ease;
+  backdrop-filter: blur(8px);
+}
+.glass-btn:hover { background: rgba(255, 255, 255, 0.28); transform: translateY(-1px); }
+.glass-btn:active { transform: translateY(0); }
+
+.glass-btn-primary {
+  border: none;
+  color: #7a0000;
+  background: #fff;
+  box-shadow: 0 10px 24px -10px rgba(0, 0, 0, 0.4);
+}
+.glass-btn-primary:hover { background: #ffe9e6; }
+
+/* ── Carte en verre ─────────────────────────────────────────────────────── */
+.glass-card {
+  position: relative;
+  border-radius: var(--glass-radius);
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+  backdrop-filter: blur(16px) saturate(140%);
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
+  padding: 22px;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.glass-card.hoverable:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--glass-shadow-hover);
+}
+
+.glass-card-head {
+  display: flex; align-items: flex-start; gap: 12px;
+  margin-bottom: 16px;
+}
+
+.glass-card-icon {
+  flex: 0 0 auto;
+  width: 42px; height: 42px;
+  display: grid; place-items: center;
+  border-radius: 12px;
+  font-size: 19px;
+}
+
+.glass-card-titles { min-width: 0; flex: 1 1 auto; }
+.glass-card-title { font-size: 15.5px; font-weight: 700; color: #1f2937; line-height: 1.25; }
+.glass-card-sub { font-size: 12.5px; color: #64748b; margin-top: 2px; }
+
+.glass-card-extra { flex: 0 0 auto; }
+
+/* ── En-tête de section ─────────────────────────────────────────────────── */
+.glass-section { margin-top: 26px; }
+.glass-section-head {
+  display: flex; align-items: center; gap: 12px;
+  margin-bottom: 16px;
+}
+.glass-section-head .bar {
+  width: 4px; height: 22px; border-radius: 4px;
+  background: linear-gradient(180deg, #b51200, #e23744);
+}
+.glass-section-head .txt { font-size: 17px; font-weight: 800; color: #1f2937; letter-spacing: -0.2px; }
+.glass-section-head .sub { font-size: 12.5px; color: #64748b; font-weight: 500; }
+.glass-section-head .line {
+  flex: 1 1 auto; height: 1px;
+  background: linear-gradient(90deg, rgba(15, 23, 42, 0.12), transparent);
+}
+
+/* ── Tuiles KPI en verre ────────────────────────────────────────────────── */
+.glass-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 16px;
+}
+
+.glass-kpi {
+  position: relative;
+  padding: 18px 18px 16px;
+  border-radius: var(--glass-radius-sm);
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  overflow: hidden;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.glass-kpi::after {
+  content: "";
+  position: absolute; inset: 0 0 auto 0;
+  height: 3px;
+  background: var(--kpi-accent, #b51200);
+  opacity: 0.9;
+}
+.glass-kpi:hover { transform: translateY(-3px); box-shadow: var(--glass-shadow-hover); }
+
+.glass-kpi-top { display: flex; align-items: center; justify-content: space-between; }
+.glass-kpi-icon {
+  width: 38px; height: 38px;
+  display: grid; place-items: center;
+  border-radius: 11px;
+  font-size: 18px;
+  color: var(--kpi-accent, #b51200);
+  background: var(--kpi-tint, rgba(181, 18, 0, 0.1));
+}
+.glass-kpi-label { font-size: 12.5px; font-weight: 600; color: #64748b; }
+.glass-kpi-value {
+  margin-top: 12px;
+  font-size: 30px; font-weight: 800; color: #111827;
+  line-height: 1; letter-spacing: -0.5px;
+}
+.glass-kpi-value small { font-size: 15px; font-weight: 700; color: #6b7280; margin-left: 2px; }
+
+.glass-kpi-delta {
+  display: inline-flex; align-items: center; gap: 5px;
+  margin-top: 10px;
+  font-size: 12px; font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 999px;
+}
+.glass-kpi-delta.up { color: #059669; background: rgba(16, 185, 129, 0.12); }
+.glass-kpi-delta.down { color: #dc2626; background: rgba(239, 68, 68, 0.12); }
+.glass-kpi-delta.flat { color: #64748b; background: rgba(100, 116, 139, 0.12); }
+
+/* ── Listes / items ─────────────────────────────────────────────────────── */
+.glass-list { display: flex; flex-direction: column; gap: 10px; }
+.glass-list-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  transition: background 0.16s ease, transform 0.16s ease;
+}
+.glass-list-item:hover { background: rgba(255, 255, 255, 0.85); transform: translateX(2px); }
+.glass-list-item .li-main { flex: 1 1 auto; min-width: 0; }
+.glass-list-item .li-title { font-size: 13.5px; font-weight: 600; color: #1f2937; }
+.glass-list-item .li-sub { font-size: 12px; color: #64748b; margin-top: 2px; }
+
+/* ── Puces / badges ─────────────────────────────────────────────────────── */
+.glass-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 4px 10px; border-radius: 999px;
+  font-size: 12px; font-weight: 600;
+  background: rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+}
+
+.glass-avatar-sm {
+  width: 36px; height: 36px; flex: 0 0 auto;
+  display: grid; place-items: center;
+  border-radius: 11px;
+  font-weight: 700; font-size: 13px; color: #fff;
+}
+
+/* ── Barre de progression de couverture ─────────────────────────────────── */
+.glass-bar {
+  height: 8px; border-radius: 999px;
+  background: rgba(15, 23, 42, 0.08);
+  overflow: hidden;
+}
+.glass-bar > span {
+  display: block; height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #b51200, #e23744);
+  transition: width 0.6s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* ── Santé (jauge) ──────────────────────────────────────────────────────── */
+.glass-health-ring { position: relative; width: 130px; height: 130px; }
+.glass-health-ring .score {
+  position: absolute; inset: 0;
+  display: grid; place-items: center;
+  flex-direction: column;
+  text-align: center;
+}
+.glass-health-score { font-size: 32px; font-weight: 800; line-height: 1; color: #111827; }
+.glass-health-label { font-size: 11px; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: 0.5px; }
+
+/* ── Utilitaires ────────────────────────────────────────────────────────── */
+.glass-muted { color: #64748b; }
+.glass-nowrap { white-space: nowrap; }
+.glass-anim { animation: glassRise 0.5s ease both; }
+@keyframes glassRise {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.glass-divider { height: 1px; background: rgba(15, 23, 42, 0.08); margin: 14px 0; }
+
+@media (max-width: 640px) {
+  .glass-app { padding: 14px; }
+  .glass-hero { padding: 22px; }
+  .glass-card { padding: 16px; }
+}

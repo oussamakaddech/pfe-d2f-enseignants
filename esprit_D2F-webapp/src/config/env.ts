@@ -16,6 +16,8 @@ interface AppConfig {
   GATEWAY_URL: string;
   RICE_URL: string;
   ANALYSE_URL: string;
+  /** Endpoint WebSocket du serveur de notifications. Vide => mode démo (mock). */
+  NOTIFICATIONS_WS_URL: string;
 }
 
 const stripTrailingSlash = (v: string): string => v.replace(/\/$/, "");
@@ -39,6 +41,10 @@ const RICE_URL = import.meta.env.VITE_RICE_URL
   ? stripTrailingSlash(import.meta.env.VITE_RICE_URL)
   : API_BASE_URL;
 
+const NOTIFICATIONS_WS_URL = import.meta.env.VITE_NOTIFICATIONS_WS_URL
+  ? String(import.meta.env.VITE_NOTIFICATIONS_WS_URL)
+  : "";
+
 export const config: AppConfig = {
   API_BASE_URL,
   FORMATION_URL: API_BASE_URL,
@@ -52,4 +58,5 @@ export const config: AppConfig = {
   GATEWAY_URL: API_BASE_URL,
   RICE_URL,
   ANALYSE_URL: API_BASE_URL,
+  NOTIFICATIONS_WS_URL,
 };

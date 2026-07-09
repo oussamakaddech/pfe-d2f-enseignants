@@ -17,7 +17,7 @@ INSERT INTO enseignants (id, nom, prenom, mail, type, etat, cup, chefdepartement
 ON CONFLICT (id) DO NOTHING;
 
 -- ── Formations ────────────────────────────────────────────────────────────────
--- Formation 1 — TERMINEE (passée, liée à BF id=1)
+-- Formation 1 — ACHEVE (passée, liée à BF id=1)
 INSERT INTO formations (
     id_besoin_formation, type_besoin, titre_formation, domaine, competance,
     population_cible, objectifs, objectifs_pedago, eval_methods,
@@ -33,8 +33,8 @@ INSERT INTO formations (
     'Maîtriser Spring Boot 3, JPA/Hibernate et la conception d''APIs REST sécurisées',
     'À l''issue de la formation, les participants seront capables de concevoir et déployer une application Spring Boot complète',
     'QCM final + projet pratique noté',
-    'INTERNE', '2026-01-15', '2026-02-28', 'TERMINEE',
-    0.0, 30, true,
+     'INTERNE', '2026-01-15', '2026-02-28', 'ACHEVE',
+     0.0, 30, true,
     'UP_INFO', 'DEPT_INFO', false, false, '2025-2026-S2'
 WHERE NOT EXISTS (SELECT 1 FROM formations WHERE titre_formation = 'Atelier Spring Boot 3 & JPA Avancé');
 
@@ -86,7 +86,7 @@ INSERT INTO formations (
     'UP_GL', 'DEPT_GL', false, false, '2026-2027-S1'
 WHERE NOT EXISTS (SELECT 1 FROM formations WHERE titre_formation = 'Introduction au Machine Learning avec Python');
 
--- ── Séances — Formation 1 (TERMINEE) ─────────────────────────────────────────
+-- ── Séances — Formation 1 (ACHEVE) ─────────────────────────────────────────
 INSERT INTO seances (
     date_seance, heure_debut, heure_fin, type_seance, contenus, methodes,
     duree_theorique, duree_pratique, salle, formation_id
@@ -216,7 +216,7 @@ AND NOT EXISTS (
 );
 
 -- ── Inscriptions ──────────────────────────────────────────────────────────────
--- Formation 1 (TERMINEE)
+-- Formation 1 (ACHEVE)
 INSERT INTO inscriptions (formation_id, enseignant_id, etat, date_demande)
 SELECT f.id_formation, 'ENS001', 'APPROVED', '2025-12-10 10:00:00+01'
 FROM formations f WHERE f.titre_formation = 'Atelier Spring Boot 3 & JPA Avancé'

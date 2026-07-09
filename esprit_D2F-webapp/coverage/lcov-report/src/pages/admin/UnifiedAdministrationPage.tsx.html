@@ -25,7 +25,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/316</span>
+                <span class='fraction'>0/314</span>
             </div>
         
             
@@ -39,14 +39,14 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>0/81</span>
+                <span class='fraction'>0/79</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/267</span>
+                <span class='fraction'>0/265</span>
             </div>
         
             
@@ -896,15 +896,7 @@
 <a name='L831'></a><a href='#L831'>831</a>
 <a name='L832'></a><a href='#L832'>832</a>
 <a name='L833'></a><a href='#L833'>833</a>
-<a name='L834'></a><a href='#L834'>834</a>
-<a name='L835'></a><a href='#L835'>835</a>
-<a name='L836'></a><a href='#L836'>836</a>
-<a name='L837'></a><a href='#L837'>837</a>
-<a name='L838'></a><a href='#L838'>838</a>
-<a name='L839'></a><a href='#L839'>839</a>
-<a name='L840'></a><a href='#L840'>840</a>
-<a name='L841'></a><a href='#L841'>841</a>
-<a name='L842'></a><a href='#L842'>842</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L834'></a><a href='#L834'>834</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -930,7 +922,6 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -1532,10 +1523,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -1578,10 +1566,6 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -1756,7 +1740,6 @@ import {
   MailOutlined, PhoneOutlined, TeamOutlined, CheckCircleOutlined,
   StopOutlined, SolutionOutlined, ReloadOutlined, LockOutlined,
   UnlockOutlined, SortAscendingOutlined, IdcardOutlined, BankOutlined,
-  CalendarOutlined,
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { useAllAccounts } from "@/hooks/formation/useFormations";
@@ -2382,9 +2365,6 @@ export default function <span class="fstat-no" title="function not covered" >Uni
               &lt;Tooltip title="Modifier la fiche (type, UP, dépt)"&gt;
                 &lt;Button shape="circle" icon={&lt;SolutionOutlined /&gt;} onClick={<span class="fstat-no" title="function not covered" >() =&gt; <span class="cstat-no" title="statement not covered" >o</span>penEditTeacher(record)} c</span>lassName="accounts-action-btn" /&gt;
               &lt;/Tooltip&gt;
-              &lt;Tooltip title="Voir le calendrier"&gt;
-                &lt;Button shape="circle" icon={&lt;CalendarOutlined /&gt;} onClick={<span class="fstat-no" title="function not covered" >() =&gt; <span class="cstat-no" title="statement not covered" >n</span>avigate(`/home/calendar/${record.id}`)} c</span>lassName="accounts-action-btn" /&gt;
-              &lt;/Tooltip&gt;
               &lt;Tooltip title={record.status === 'ACTIF' ? 'Bloquer le compte' : 'Débloquer le compte'}&gt;
                 &lt;Button shape="circle" icon={record.status === 'ACTIF' ? &lt;LockOutlined /&gt; : &lt;UnlockOutlined /&gt;}
                   onClick={<span class="fstat-no" title="function not covered" >() =&gt; <span class="cstat-no" title="statement not covered" >h</span>andleToggleStatus(record)}</span>
@@ -2422,10 +2402,6 @@ export default function <span class="fstat-no" title="function not covered" >Uni
           &lt;Space size={4}&gt;
             &lt;Tooltip title="Modifier"&gt;
               &lt;Button type="text" icon={&lt;EditOutlined /&gt;} className="teachers-btn-edit" onClick={<span class="fstat-no" title="function not covered" >() =&gt; <span class="cstat-no" title="statement not covered" >o</span>penEditTeacher(record)} /</span>&gt;
-            &lt;/Tooltip&gt;
-            &lt;Tooltip title="Voir calendrier"&gt;
-              &lt;Button type="text" icon={&lt;CalendarOutlined /&gt;} className="teachers-btn-edit"
-                onClick={<span class="fstat-no" title="function not covered" >() =&gt; <span class="cstat-no" title="statement not covered" >n</span>avigate(`/home/calendar/${record.id}`)} /</span>&gt;
             &lt;/Tooltip&gt;
             &lt;Popconfirm title="Supprimer ?" description={`${record.nom || ""} ${record.prenom || ""} sera supprimé.`}
               onConfirm={<span class="fstat-no" title="function not covered" >() =&gt; <span class="cstat-no" title="statement not covered" >h</span>andleDeleteTeacher(record)} o</span>kText="Supprimer" cancelText="Annuler" okButtonProps={{ danger: true }}&gt;
@@ -2593,7 +2569,7 @@ function <span class="fstat-no" title="function not covered" >getTypeTagComponen
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-06-12T22:09:47.587Z
+                at 2026-07-03T04:18:32.024Z
             </div>
         <script src="../../../prettify.js"></script>
         <script>

@@ -5,6 +5,25 @@
   margin: 0 auto;
 }
 
+/* ── Accent + homogénéité des cartes ─────────────────────────────────────── */
+.analytics-page .ant-card {
+  border-top: 3px solid var(--primary-500);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.analytics-page .ant-card:hover {
+  box-shadow: var(--shadow-md);
+}
+.analytics-page .ant-card-head {
+  border-bottom: 1px solid var(--border-color);
+  min-height: 48px;
+}
+.analytics-page .ant-card-head-title {
+  font-weight: 700;
+  color: var(--neutral-900);
+}
+
 /* ── Cartes KPI ──────────────────────────────────────────────────────────── */
 .analytics-kpi-card {
   background: var(--bg-card);

@@ -32,7 +32,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>0/224</span>
+                <span class='fraction'>0/220</span>
             </div>
         
             
@@ -999,26 +999,7 @@
 <a name='L934'></a><a href='#L934'>934</a>
 <a name='L935'></a><a href='#L935'>935</a>
 <a name='L936'></a><a href='#L936'>936</a>
-<a name='L937'></a><a href='#L937'>937</a>
-<a name='L938'></a><a href='#L938'>938</a>
-<a name='L939'></a><a href='#L939'>939</a>
-<a name='L940'></a><a href='#L940'>940</a>
-<a name='L941'></a><a href='#L941'>941</a>
-<a name='L942'></a><a href='#L942'>942</a>
-<a name='L943'></a><a href='#L943'>943</a>
-<a name='L944'></a><a href='#L944'>944</a>
-<a name='L945'></a><a href='#L945'>945</a>
-<a name='L946'></a><a href='#L946'>946</a>
-<a name='L947'></a><a href='#L947'>947</a>
-<a name='L948'></a><a href='#L948'>948</a>
-<a name='L949'></a><a href='#L949'>949</a>
-<a name='L950'></a><a href='#L950'>950</a>
-<a name='L951'></a><a href='#L951'>951</a>
-<a name='L952'></a><a href='#L952'>952</a>
-<a name='L953'></a><a href='#L953'>953</a>
-<a name='L954'></a><a href='#L954'>954</a>
-<a name='L955'></a><a href='#L955'>955</a>
-<a name='L956'></a><a href='#L956'>956</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L937'></a><a href='#L937'>937</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -1129,11 +1110,6 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -1146,8 +1122,6 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -1469,19 +1443,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -2082,19 +2044,12 @@ const STATUS_DOT_COLORS: Record&lt;AccountStatus, string&gt; = <span class="csta
 };
 &nbsp;
 function <span class="fstat-no" title="function not covered" >AccountStatusBadge({</span> status }: Readonly&lt;{ status: AccountStatus }&gt;) {
-  const color = <span class="cstat-no" title="statement not covered" >STATUS_DOT_COLORS[status] ?? STATUS_DOT_COLORS.INCONNU;</span>
   const isActive = <span class="cstat-no" title="statement not covered" >status === "ACTIF";</span>
 <span class="cstat-no" title="statement not covered" >  return (</span>
     &lt;span className={isActive ? "accounts-status-active" : "accounts-status-blocked"}&gt;
       &lt;span
         aria-hidden="true"
-        style={{
-          width: 6,
-          height: 6,
-          borderRadius: "50%",
-          background: color,
-          display: "inline-block",
-        }}
+        className={`accounts-status-dot ${isActive ? "accounts-status-dot--active" : "accounts-status-dot--blocked"}`}
       /&gt;
       {status}
     &lt;/span&gt;
@@ -2423,30 +2378,18 @@ export default function <span class="fstat-no" title="function not covered" >Lis
       width: 280,
       render: <span class="fstat-no" title="function not covered" >(_</span>: unknown, record: Account) =&gt; {
         const fullName = <span class="cstat-no" title="statement not covered" >`${record.firsName || record.firstName || ""} ${record.lastName || ""}`.trim() || "—";</span>
+        const isActive = <span class="cstat-no" title="statement not covered" >record.status === 'ACTIF';</span>
 <span class="cstat-no" title="statement not covered" >        return (</span>
-          &lt;div style={{ display: "flex", alignItems: "center", gap: 12 }}&gt;
+          &lt;div className="accounts-user-info"&gt;
             &lt;div
-              style={{
-                width: 38,
-                height: 38,
-                borderRadius: 10,
-                background: record.status === 'ACTIF' ? brand[50] : neutral[100],
-                color: record.status === 'ACTIF' ? brand[500] : neutral[500],
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontSize: 14,
-                fontWeight: 700,
-                flexShrink: 0,
-                border: `1px solid ${record.status === 'ACTIF' ? "rgba(181, 18, 0,0.18)" : "rgba(0,0,0,0.06)"}`,
-              }}
+              className={`accounts-user-avatar ${isActive ? "accounts-user-avatar--active" : "accounts-user-avatar--inactive"}`}
               aria-hidden="true"
             &gt;
               {(record.firsName || record.firstName || record.userName || "?").charAt(0).toUpperCase()}
             &lt;/div&gt;
-            &lt;div style={{ minWidth: 0 }}&gt;
-              &lt;div style={{ fontWeight: 600, color: neutral[800], lineHeight: 1.3 }}&gt;{fullName}&lt;/div&gt;
-              &lt;div style={{ fontSize: 12, color: neutral[500], marginTop: 2 }}&gt;@{record.userName}&lt;/div&gt;
+            &lt;div className="accounts-user-details"&gt;
+              &lt;div className="accounts-user-name"&gt;{fullName}&lt;/div&gt;
+              &lt;div className="accounts-user-username"&gt;@{record.userName}&lt;/div&gt;
             &lt;/div&gt;
           &lt;/div&gt;
         );
@@ -2459,11 +2402,11 @@ export default function <span class="fstat-no" title="function not covered" >Lis
       key: 'email',
       ellipsis: true,
       render: <span class="fstat-no" title="function not covered" >(t</span>ext: string) =&gt; <span class="cstat-no" title="statement not covered" >text ? (</span>
-        &lt;span style={{ color: neutral[700], fontSize: 13 }}&gt;
-          &lt;MailOutlined style={{ marginRight: 6, color: brand[500] }} /&gt;
+        &lt;span className="accounts-email"&gt;
+          &lt;MailOutlined className="accounts-email-icon" /&gt;
           {text}
         &lt;/span&gt;
-      ) : &lt;span style={{ color: neutral[300] }}&gt;—&lt;/span&gt;,
+      ) : &lt;span className="accounts-placeholder"&gt;—&lt;/span&gt;,
       ...getColumnSearchProps('email'),
     },
     {
@@ -2473,11 +2416,11 @@ export default function <span class="fstat-no" title="function not covered" >Lis
       width: 160,
       responsive: ['md'],
       render: <span class="fstat-no" title="function not covered" >(t</span>ext: string) =&gt; <span class="cstat-no" title="statement not covered" >text ? (</span>
-        &lt;span style={{ color: neutral[700], fontSize: 13 }}&gt;
-          &lt;PhoneOutlined style={{ marginRight: 6, color: neutral[400] }} /&gt;
+        &lt;span className="accounts-phone"&gt;
+          &lt;PhoneOutlined className="accounts-phone-icon" /&gt;
           {text}
         &lt;/span&gt;
-      ) : &lt;span style={{ color: neutral[300] }}&gt;—&lt;/span&gt;,
+      ) : &lt;span className="accounts-placeholder"&gt;—&lt;/span&gt;,
     },
     {
       title: 'Rôle',
@@ -2494,16 +2437,16 @@ export default function <span class="fstat-no" title="function not covered" >Lis
       render: <span class="fstat-no" title="function not covered" >(_</span>: unknown, record: Account) =&gt; {
         const <span class="cstat-no" title="statement not covered" >role = (record.role ?? '').toUpperCase();</span>
 <span class="cstat-no" title="statement not covered" >        if (role !== 'ENSEIGNANT' &amp;&amp; role !== 'ANIMATEUR') {</span>
-<span class="cstat-no" title="statement not covered" >          return &lt;span style={{ color: neutral[300] }}&gt;—&lt;/span&gt;;</span>
+<span class="cstat-no" title="statement not covered" >          return &lt;span className="accounts-placeholder"&gt;—&lt;/span&gt;;</span>
         }
         const dept = <span class="cstat-no" title="statement not covered" >deptByUserId.get(getAccountId(record));</span>
 <span class="cstat-no" title="statement not covered" >        return dept ? (</span>
-          &lt;span style={{ color: neutral[700], fontSize: 13 }}&gt;
-            &lt;BankOutlined style={{ marginRight: 6, color: brand[500] }} /&gt;
+          &lt;span className="accounts-dept"&gt;
+            &lt;BankOutlined className="accounts-dept-icon" /&gt;
             {dept}
           &lt;/span&gt;
         ) : (
-          &lt;span style={{ color: neutral[400], fontSize: 12, fontStyle: 'italic' }}&gt;
+          &lt;span className="accounts-dept-empty"&gt;
             Profil à configurer
           &lt;/span&gt;
         );
@@ -2520,11 +2463,11 @@ export default function <span class="fstat-no" title="function not covered" >Lis
       title: 'Actions',
       key: 'actions',
       fixed: 'right',
-      width: 150,
+      width: 130,
       render: <span class="fstat-no" title="function not covered" >(_</span>: unknown, record: Account) =&gt; {
         const fullName = <span class="cstat-no" title="statement not covered" >`${record.firsName || record.firstName || ""} ${record.lastName || ""}`.trim() || record.userName || "cet utilisateur";</span>
 <span class="cstat-no" title="statement not covered" >        return (</span>
-          &lt;Space size={4}&gt;
+          &lt;Space size={6}&gt;
             &lt;Tooltip title="Modifier"&gt;
               &lt;Button
                 shape="circle"
@@ -2935,7 +2878,7 @@ export default function <span class="fstat-no" title="function not covered" >Lis
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-06-12T22:09:47.587Z
+                at 2026-07-03T04:18:32.024Z
             </div>
         <script src="../../../../prettify.js"></script>
         <script>

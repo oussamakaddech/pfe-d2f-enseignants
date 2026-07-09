@@ -40,7 +40,7 @@ export interface FormationParticipantKPI {
 }
 
 export interface GlobalParticipantKPI {
-  totalFormations: number;
-  totalParticipants: number;
-  tauxPresenceGlobal: number;
+  nombreParticipantsTotal: number;
+  nombreParticipantsPresent: number;
+  tauxParticipation: number;
 }

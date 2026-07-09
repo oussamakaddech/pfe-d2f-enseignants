@@ -2,7 +2,7 @@ import { memo, useMemo } from "react";
 import { Bar, Doughnut } from "react-chartjs-2";
 import type { ChartOptions } from "chart.js";
 import {
-  Empty, Spin, Row, Col, Statistic, Tag, Typography, Progress,
+  Empty, Spin, Row, Col, Statistic, Tag, Typography, Progress, Space,
 } from "antd";
 import {
   PieChartOutlined, BarChartOutlined, TeamOutlined,

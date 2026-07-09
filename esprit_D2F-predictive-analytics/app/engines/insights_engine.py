@@ -22,7 +22,7 @@ from sqlalchemy.orm import Session
 
 from app.engines.dashboard_engine import DashboardEngine
 from app.models.db_models import (
-    AlertEvent, DashboardSnapshot, SkillGap, TeacherRiskProfile,
+    AlertEvent, DashboardSnapshot, SkillGap, TeacherCompetenceCoverage, TeacherRiskProfile,
 )
 
 logger = logging.getLogger(__name__)
@@ -113,15 +113,19 @@ class InsightsEngine:
         )
 
     def _taux_couverture_global(self) -> float:
-        """% de couples (enseignant, compétence) récents au niveau requis."""
+        """% de couples (enseignant, compétence) au niveau requis.
+
+        Calculé depuis ``teacher_competence_coverage`` (snapshot des niveaux réels),
+        et NON depuis ``skill_gaps`` qui ne contient que les écarts — sinon la
+        couverture serait structurellement ~0 %.
+        """
         row = (
             self.db.query(
-                func.count(SkillGap.id).label("total"),
+                func.count(TeacherCompetenceCoverage.id).label("total"),
                 func.sum(
-                    func.cast(SkillGap.niveau_actuel >= SkillGap.niveau_requis, Integer)
+                    func.cast(TeacherCompetenceCoverage.covered, Integer)
                 ).label("couverts"),
             )
-            .filter(SkillGap.computed_at >= self._recent_cutoff())
             .first()
         )
         total = int(getattr(row, "total", 0) or 0)

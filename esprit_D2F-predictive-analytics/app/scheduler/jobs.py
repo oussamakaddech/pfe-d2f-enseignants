@@ -44,7 +44,8 @@ def _analyse_un_enseignant(enseignant_id: str) -> bool:
             gap_eng = GapEngine(db)
             gaps = gap_eng.compute_gaps(
                 enseignant_id, data["comp_levels"], data["req_levels"],
-                data["besoins"], None, data["dom_demand"]
+                data["besoins"], None, data["dom_demand"],
+                str(profile.get("departement_id") or ""),
             )
 
             if gaps:

@@ -64,7 +64,7 @@ const DashboardKpiGrid = memo(function DashboardKpiGrid({ scope }: { readonly sc
   const upQ = useParticipationByUp(!isAdmin);
   const inactifs = useInactifs(!isAdmin);
 
-  const presence = (presenceQ.data as GlobalParticipantKPI | undefined)?.tauxPresenceGlobal;
+  const presence = (presenceQ.data as GlobalParticipantKPI | undefined)?.tauxParticipation;
   const ups = upQ.data?.items ?? [];
   const sum = (sel: (u: AnalyticsUP) => number) => ups.reduce((s, u) => s + (sel(u) || 0), 0);
   const avg = (sel: (u: AnalyticsUP) => number) => (ups.length ? sum(sel) / ups.length : 0);

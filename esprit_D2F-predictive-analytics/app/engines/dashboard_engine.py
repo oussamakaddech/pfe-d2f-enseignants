@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 from app.core.db import db_session as _db_session, execute_query
 from app.models.db_models import (
     AlertEvent, DashboardSnapshot, ModelRetrainingLog, Recommendation,
-    SkillGap, TeacherRiskProfile, TrainingPathItem,
+    SkillGap, TeacherCompetenceCoverage, TeacherRiskProfile, TrainingPathItem,
 )
 from app.services.data_service import ALL_ENSEIGNANTS_QUERY, DataService
 
@@ -214,47 +214,36 @@ class DashboardEngine:
 
     # ── KPI 4 : Taux de couverture par département ───────────
     def taux_couverture_departements(self) -> list[dict]:
-        """% d'enseignants par dept avec niveau_actuel >= niveau_requis."""
+        """% de couples (enseignant, compétence) au niveau requis, par département.
+
+        Calculé depuis ``teacher_competence_coverage`` (snapshot des niveaux réels),
+        et NON depuis ``skill_gaps`` qui ne contient que les écarts.
+        """
         rows = (
             self.db.query(
-                SkillGap.enseignant_id,
-                SkillGap.competence_id,
-                SkillGap.niveau_actuel,
-                SkillGap.niveau_requis,
+                TeacherCompetenceCoverage.departement_id,
+                func.count(TeacherCompetenceCoverage.id).label("total"),
+                func.sum(
+                    func.cast(TeacherCompetenceCoverage.covered, Integer)
+                ).label("couverts"),
             )
-            .filter(SkillGap.computed_at >= date.today() - timedelta(days=30))
+            .group_by(TeacherCompetenceCoverage.departement_id)
             .all()
         )
 
-        # Build enseignant → departement mapping from the shared DB
-        ens_dept_map: dict[str, str] = {}
-        try:
-            with _db_session() as s:
-                all_ens = execute_query(s, ALL_ENSEIGNANTS_QUERY, {})
-            for e in all_ens:
-                ens_dept_map[str(e.get("enseignant_id", ""))] = str(
-                    e.get("departement_id") or "non_affecte"
-                )
-        except Exception as exc:
-            logger.warning("Failed to load enseignant→dept map: %s", exc)
-            ens_dept_map = {}
-
-        total     = defaultdict(int)
-        couverts  = defaultdict(int)
+        result = []
         for r in rows:
-            dept = ens_dept_map.get(str(r.enseignant_id), "non_affecte")
-            total[dept]    += 1
-            if r.niveau_actuel >= r.niveau_requis:
-                couverts[dept] += 1
-
-        return [
-            {
-                "departement": k,
-                "taux_couverture": round(couverts[k] / max(total[k], 1) * 100, 1),
-                "nb_evalues": total[k],
-            }
-            for k in sorted(total.keys())
-        ]
+            dept = r.departement_id or "non_affecte"
+            total = int(r.total or 0)
+            couverts = int(r.couverts or 0)
+            if total == 0:
+                continue
+            result.append({
+                "departement": dept,
+                "taux_couverture": round(couverts / total * 100, 1),
+                "nb_evalues": total,
+            })
+        return sorted(result, key=lambda x: x["departement"])
 
     # ── KPI 5 : Top formations recommandées ──────────────────
     def top_formations_recommandees(self) -> list[dict]:

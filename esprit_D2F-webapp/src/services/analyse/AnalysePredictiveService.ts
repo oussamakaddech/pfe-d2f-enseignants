@@ -37,34 +37,6 @@ interface RawPathStep {
   success_probability: number;
 }
 
-interface DashboardData {
-  declining_competencies?: Array<{
-    competency_id: number;
-    competency_name: string;
-    domaine_name?: string;
-    demand_3m?: number;
-    demand_12m?: number;
-  }>;
-  in_demand_competencies?: Array<{
-    competency_id: number;
-    competency_name: string;
-    domaine_name?: string;
-    demand_3m?: number;
-    demand_12m?: number;
-    trend?: "increasing" | "stable";
-  }>;
-  teacher_risk_indicators?: Array<{
-    teacher_id: string;
-    teacher_name: string;
-    attrition_risk_score: number;
-    disengagement_signals?: string[];
-    competency_stagnation_rate?: number;
-    training_velocity?: number;
-    recommendation?: string;
-    departement?: string;
-  }>;
-}
-
 interface PredictGapsResponse {
   gaps: RawGapItem[];
   overall_risk_score: number;
@@ -76,9 +48,9 @@ interface RecommendPathResponse {
 }
 
 interface DashboardSummaryResponse {
-  declining_competencies: DashboardData['declining_competencies'];
-  in_demand_competencies: DashboardData['in_demand_competencies'];
-  teacher_risk_indicators: DashboardData['teacher_risk_indicators'];
+  declining_competencies: DecliningCompetency[];
+  in_demand_competencies: InDemandCompetency[];
+  teacher_risk_indicators: TeacherRiskIndicator[];
 }
 
 function mapGapItem(g: RawGapItem, isHeuristic: boolean): AnalyseGap {
@@ -108,7 +80,12 @@ const AnalysePredictiveService = {
     return res.data;
   },
 
-  async trainModel(): Promise<{ message: string }> {
+  async trainModel(): Promise<{
+    status?: string;
+    message?: string;
+    hint?: string;
+    metrics?: { cv_rmse?: number; test_r2?: number };
+  }> {
     const res = await axios.post(`${PREDICTIVE_API}/predict/train`, {});
     return res.data;
   },
@@ -153,7 +130,16 @@ const AnalysePredictiveService = {
   // ── Dashboard ──────────────────────────────────
   async getDashboardSummary(): Promise<DashboardSummaryResponse> {
     const res = await axios.get(`${PREDICTIVE_API}/dashboard/summary`);
-    return res.data;
+    const data = res.data as unknown as {
+      declining_competencies?: unknown[];
+      in_demand_competencies?: unknown[];
+      teacher_risk_indicators?: Array<Record<string, unknown>>;
+    };
+    // Le backend renvoie `department` ; on normalise en `departement` (contrat front).
+    (data.teacher_risk_indicators ?? []).forEach((t) => {
+      if (t.department != null && t.departement == null) t.departement = t.department;
+    });
+    return data as unknown as DashboardSummaryResponse;
   },
 
   async getDecliningCompetencies(): Promise<DecliningCompetency[]> {
@@ -168,13 +154,20 @@ const AnalysePredictiveService = {
 
   async getTeacherRiskIndicators(): Promise<TeacherRiskIndicator[]> {
     const res = await axios.get(`${PREDICTIVE_API}/dashboard/teacher-risk-indicators`);
-    return res.data;
+    const data = res.data as unknown as Array<Record<string, unknown>>;
+    // Le backend renvoie `department` ; on normalise en `departement` (contrat front).
+    data.forEach((t) => {
+      if (t.department != null && t.departement == null) t.departement = t.department;
+    });
+    return data as unknown as TeacherRiskIndicator[];
   },
 
   // ── Dashboard prédictif avancé (analytics v1) ──────────────
   async getGapHeatmap(): Promise<GapHeatmapCell[]> {
     const res = await axios.get(`${ANALYTICS_V1}/dashboard/gap-heatmap`);
-    return res.data;
+    // Le backend enveloppe parfois le tableau dans `{ value: [...] }`.
+    const data = res.data as GapHeatmapCell[] | { value?: GapHeatmapCell[] };
+    return Array.isArray(data) ? data : (data.value ?? []);
   },
 
   async getTrainingEffectiveness(): Promise<TrainingEffectiveness[]> {
@@ -186,7 +179,8 @@ const AnalysePredictiveService = {
     const res = await axios.get(`${ANALYTICS_V1}/dashboard/risk-evolution`, {
       params: { months },
     });
-    return res.data;
+    const data = res.data as RiskEvolutionPoint[] | { value?: RiskEvolutionPoint[] };
+    return Array.isArray(data) ? data : (data.value ?? []);
   },
 
   async getModelPerformance(): Promise<ModelPerformance> {
@@ -376,7 +370,8 @@ const AnalysePredictiveService = {
   // ── Visualisations avancées ────────────────────────────────
   async getSupplyDemand(): Promise<SupplyDemandItem[]> {
     const res = await axios.get(`${ANALYTICS_V1}/dashboard/supply-demand`);
-    return res.data;
+    const data = res.data as SupplyDemandItem[] | { value?: SupplyDemandItem[] };
+    return Array.isArray(data) ? data : (data.value ?? []);
   },
 
   async getRiskDistribution(): Promise<RiskDistribution> {

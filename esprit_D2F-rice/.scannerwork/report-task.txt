@@ -2,5 +2,5 @@ projectKey=d2f_rice
 serverUrl=http://localhost:9000
 serverVersion=26.3.0.120487
 dashboardUrl=http://localhost:9000/dashboard?id=d2f_rice
-ceTaskId=e0a4e228-8a8e-433f-85eb-58c37e4763fa
-ceTaskUrl=http://localhost:9000/api/ce/task?id=e0a4e228-8a8e-433f-85eb-58c37e4763fa
+ceTaskId=c4bccd31-fa85-40e5-a06b-866aa18b7ad4
+ceTaskUrl=http://localhost:9000/api/ce/task?id=c4bccd31-fa85-40e5-a06b-866aa18b7ad4

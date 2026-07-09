@@ -4,6 +4,8 @@ import { Skeleton, Row, Col } from "antd";
 import { neutral } from "@/styles/themes/tokens";
 
 import AuthProvider from "@/context/AuthContext";
+import NotificationProvider from "@/context/NotificationContext";
+import NotificationBridge from "@/components/feedback/NotificationBridge";
 import { NavigationSetter } from "./NavigationSetter";
 import { PrivateRoute, RoleGuard } from "./guards";
 import AppLayout from "@/components/layout/AppLayout";
@@ -74,6 +76,8 @@ function PageSkeleton() {
 export default function AppRoutes() {
   return (
     <AuthProvider>
+      <NotificationProvider>
+      <NotificationBridge />
       <Router>
         <NavigationSetter />
         <Suspense fallback={<PageSkeleton />}>
@@ -195,6 +199,7 @@ export default function AppRoutes() {
           </Routes>
         </Suspense>
       </Router>
+      </NotificationProvider>
     </AuthProvider>
   );
 }

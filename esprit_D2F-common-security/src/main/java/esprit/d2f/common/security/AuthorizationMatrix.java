@@ -33,6 +33,15 @@ public final class AuthorizationMatrix {
     public static final String FORMATION_APPROVE = "hasAnyRole('ROLE_ADMIN','ROLE_CUP')";
     public static final String FORMATION_READ_OWN = "hasAnyRole('ROLE_ADMIN','ROLE_FORMATEUR','ROLE_ANIMATEUR','ROLE_ENSEIGNANT')";
 
+    // ── Documents de formation ─────────────────────────────────────────
+    // Périmètre RESPONSABLE_DOSSIER : CRUD docs + consultation formations.
+    // Lecture = même périmètre que FORMATION_READ (consultation).
+    // Create/Update/Delete = ADMIN + CUP + RESPONSABLE_DOSSIER (gestion dossier).
+    public static final String DOCUMENT_READ   = FORMATION_READ;
+    public static final String DOCUMENT_CREATE = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_RESPONSABLE_DOSSIER')";
+    public static final String DOCUMENT_UPDATE = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_RESPONSABLE_DOSSIER')";
+    public static final String DOCUMENT_DELETE = "hasAnyRole('ROLE_ADMIN','ROLE_CUP','ROLE_RESPONSABLE_DOSSIER')";
+
     public static final String EVALUATION_READ_ALL = "hasAnyRole('ROLE_ADMIN','ROLE_CHEF_DEPARTEMENT','ROLE_ENSEIGNANT')";
     public static final String EVALUATION_READ_CUP = "hasAnyRole('ROLE_ADMIN','ROLE_CUP')";
     public static final String EVALUATION_READ_ENSEIGNANT = "hasAnyRole('ROLE_ADMIN','ROLE_ENSEIGNANT')";

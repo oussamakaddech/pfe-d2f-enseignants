@@ -54,6 +54,41 @@
   position: relative;
   z-index: 1;
 }
+.analyse-hero-bg {
+  position: absolute;
+  inset: -40% -10% auto -10%;
+  height: 200%;
+  background:
+    radial-gradient(420px 160px at 18% 20%, rgba(229, 74, 61, 0.45), transparent 60%),
+    radial-gradient(420px 160px at 82% 80%, rgba(0, 180, 216, 0.30), transparent 60%);
+  filter: blur(10px);
+  opacity: 0.6;
+  animation: dashHeroFloat 14s ease-in-out infinite alternate;
+  z-index: -1;
+}
+@keyframes dashHeroFloat {
+  0%   { transform: translate3d(0, 0, 0) scale(1); }
+  100% { transform: translate3d(0, 18px, 0) scale(1.06); }
+}
+.analyse-hero-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: rgba(255, 255, 255, 0.82);
+  margin-bottom: 10px;
+}
+.analyse-hero-role {
+  margin-left: 2px;
+  font-weight: 700;
+  font-size: 11.5px;
+  padding: 2px 10px;
+  border-radius: 999px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
 .analyse-hero-icon {
   width: 56px;
   height: 56px;
@@ -175,6 +210,22 @@
   letter-spacing: 0.02em;
 }
 .analyse-kpi-head .anticon { color: var(--primary-500); font-size: 14px; }
+.analyse-kpi-info {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: help;
+}
+.analyse-kpi-info .anticon { color: var(--neutral-400); font-size: 13px; transition: color 0.15s; }
+.analyse-kpi-info:hover .anticon { color: var(--primary-500); }
+.analyse-kpi-updated {
+  margin: -8px 0 24px;
+  font-size: 12px;
+  color: var(--neutral-400);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
 .analyse-kpi-value {
   font-size: 28px;
   font-weight: 800;
@@ -196,6 +247,19 @@
 .analyse-kpi-delta.up   { color: #047857; background: var(--color-success-bg); }
 .analyse-kpi-delta.down { color: #b91c1c; background: var(--color-error-bg); }
 .analyse-kpi-delta.flat { color: var(--neutral-500); background: var(--neutral-100); }
+
+/* Accent variants (declin / demande / risque) — cohérent avec la bande KPI */
+.analyse-kpi-tile.accent-red::before   { background: linear-gradient(180deg, #ef4444, #b51200); }
+.analyse-kpi-tile.accent-green::before { background: linear-gradient(180deg, #10b981, #059669); }
+.analyse-kpi-tile.accent-amber::before { background: linear-gradient(180deg, #f59e0b, #d97706); }
+.analyse-kpi-tile.accent-blue::before  { background: linear-gradient(180deg, #00b4d8, #0077b6); }
+.analyse-kpi-foot {
+  margin-top: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.analyse-kpi-foot .ant-progress { width: 100%; margin: 0; }
 
 /* ── Analyse (search) card ───────────────────────────────────────────────── */
 .analyse-search {
@@ -569,4 +633,20 @@
   .analyse-search { padding: 16px; }
   .analyse-hero-row { gap: 12px; }
   .analyse-hero-actions { width: 100%; }
+}
+
+/* ── Entrance animations (cohérent avec le dashboard) ─────────────────────── */
+@keyframes dashFadeUp {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.analyse-hero { animation: dashFadeUp 0.55s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.analyse-search { animation: dashFadeUp 0.5s cubic-bezier(0.22, 1, 0.36, 1) both; animation-delay: 0.05s; }
+.analyse-tabs { animation: dashFadeUp 0.5s cubic-bezier(0.22, 1, 0.36, 1) both; animation-delay: 0.1s; }
+.analyse-block { animation: dashFadeUp 0.5s cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .analyse-hero, .analyse-search, .analyse-tabs, .analyse-block, .analyse-hero-bg {
+    animation: none !important;
+  }
 }

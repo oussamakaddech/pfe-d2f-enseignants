@@ -1,5 +1,5 @@
-% =============================================================================
-% references.bib — Bibliographie et Nétographie du rapport PFE D2F
+﻿% =============================================================================
+% references.bib — Bibliographie du rapport PFE D2F
 % Style : IEEE (biblatex/biber)
 % =============================================================================
 
@@ -20,6 +20,15 @@
   address   = {New York}
 }
 
+@inproceedings{royce1970waterfall,
+  author    = {Winston W. Royce},
+  title     = {Managing the Development of Large Software Systems},
+  booktitle = {Proceedings of IEEE WESCON},
+  year      = {1970},
+  pages     = {1--9},
+  note      = {Article fondateur décrivant le modèle séquentiel (cascade)}
+}
+
 @book{evans2003ddd,
   author    = {Eric Evans},
   title     = {Domain-Driven Design: Tackling Complexity in the Heart of Software},
@@ -35,186 +44,6 @@
   year      = {2021},
   publisher = {O'Reilly Media},
   address   = {Sebastopol, CA}
-}
-
-% ── Backend / Frameworks ──────────────────────────────────────────────────────
-@online{springboot,
-  author = {{VMware, Inc.}},
-  title  = {Spring Boot Reference Documentation},
-  year   = {2024},
-  url    = {https://docs.spring.io/spring-boot/index.html},
-  urldate = {2026-05-15}
-}
-
-@online{springsecurity,
-  author = {{VMware, Inc.}},
-  title  = {Spring Security Reference},
-  year   = {2024},
-  url    = {https://docs.spring.io/spring-security/reference/index.html},
-  urldate = {2026-05-15}
-}
-
-@online{springcloudgateway,
-  author = {{VMware, Inc.}},
-  title  = {Spring Cloud Gateway Documentation},
-  year   = {2024},
-  url    = {https://docs.spring.io/spring-cloud-gateway/reference/index.html},
-  urldate = {2026-05-15}
-}
-
-@online{springdoc,
-  author = {{springdoc.org}},
-  title  = {springdoc-openapi: OpenAPI 3 \& Swagger UI for Spring Boot},
-  year   = {2024},
-  url    = {https://springdoc.org/},
-  urldate = {2026-05-15}
-}
-
-@online{hibernate,
-  author = {{Red Hat}},
-  title  = {Hibernate ORM User Guide},
-  year   = {2024},
-  url    = {https://hibernate.org/orm/documentation/},
-  urldate = {2026-05-15}
-}
-
-@online{flyway,
-  author = {{Redgate}},
-  title  = {Flyway: Database Migrations Made Easy},
-  year   = {2024},
-  url    = {https://flywaydb.org/documentation/},
-  urldate = {2026-05-15}
-}
-
-% ── Frontend ─────────────────────────────────────────────────────────────────
-@online{react,
-  author = {{Meta Open Source}},
-  title  = {React: The library for web and native user interfaces},
-  year   = {2024},
-  url    = {https://react.dev/},
-  urldate = {2026-05-15}
-}
-
-@online{typescript,
-  author = {{Microsoft}},
-  title  = {TypeScript Documentation},
-  year   = {2024},
-  url    = {https://www.typescriptlang.org/docs/},
-  urldate = {2026-05-15}
-}
-
-@online{vite,
-  author = {{Evan You and Vite Contributors}},
-  title  = {Vite: Next Generation Frontend Tooling},
-  year   = {2024},
-  url    = {https://vitejs.dev/},
-  urldate = {2026-05-15}
-}
-
-@online{reactquery,
-  author = {{TanStack}},
-  title  = {TanStack Query (React Query) Documentation},
-  year   = {2024},
-  url    = {https://tanstack.com/query/latest},
-  urldate = {2026-05-15}
-}
-
-@online{chartjs,
-  author = {{Chart.js Contributors}},
-  title  = {Chart.js: Simple yet flexible JavaScript charting library},
-  year   = {2024},
-  url    = {https://www.chartjs.org/docs/latest/},
-  urldate = {2026-05-15}
-}
-
-@online{antdesign,
-  author = {{Ant Design Team}},
-  title  = {Ant Design: An enterprise-class UI design language and React components},
-  year   = {2024},
-  url    = {https://ant.design/},
-  urldate = {2026-05-15}
-}
-
-% ── DevOps / Infrastructure ──────────────────────────────────────────────────
-@online{docker,
-  author = {{Docker, Inc.}},
-  title  = {Docker Documentation},
-  year   = {2024},
-  url    = {https://docs.docker.com/},
-  urldate = {2026-05-15}
-}
-
-@online{dockercompose,
-  author = {{Docker, Inc.}},
-  title  = {Docker Compose Specification},
-  year   = {2024},
-  url    = {https://docs.docker.com/compose/},
-  urldate = {2026-05-15}
-}
-
-@online{postgresql,
-  author = {{The PostgreSQL Global Development Group}},
-  title  = {PostgreSQL 15 Documentation},
-  year   = {2024},
-  url    = {https://www.postgresql.org/docs/15/},
-  urldate = {2026-05-15}
-}
-
-@online{rabbitmq,
-  author = {{Broadcom / VMware}},
-  title  = {RabbitMQ Documentation},
-  year   = {2024},
-  url    = {https://www.rabbitmq.com/docs},
-  urldate = {2026-05-15}
-}
-
-@online{redis,
-  author = {{Redis Ltd.}},
-  title  = {Redis Documentation},
-  year   = {2024},
-  url    = {https://redis.io/docs/latest/},
-  urldate = {2026-05-15}
-}
-
-@online{sonarqube,
-  author = {{SonarSource}},
-  title  = {SonarQube Documentation: Clean as You Code},
-  year   = {2024},
-  url    = {https://docs.sonarsource.com/sonarqube/},
-  urldate = {2026-05-15}
-}
-
-% ── Qualité / Tests ───────────────────────────────────────────────────────────
-@online{junit5,
-  author = {{JUnit Team}},
-  title  = {JUnit 5 User Guide},
-  year   = {2024},
-  url    = {https://junit.org/junit5/docs/current/user-guide/},
-  urldate = {2026-05-15}
-}
-
-@online{mockito,
-  author = {Mockito Contributors},
-  title  = {Mockito Framework Documentation},
-  year   = {2024},
-  url    = {https://site.mockito.org/},
-  urldate = {2026-05-15}
-}
-
-@online{jacoco,
-  author = {{The JaCoCo Team, EclEmma}},
-  title  = {JaCoCo --- Java Code Coverage Library},
-  year   = {2024},
-  url    = {https://www.jacoco.org/jacoco/},
-  urldate = {2026-05-15}
-}
-
-@online{pytest,
-  author = {Holger Krekel and pytest Contributors},
-  title  = {pytest: Helps You Write Better Programs},
-  year   = {2024},
-  url    = {https://docs.pytest.org/},
-  urldate = {2026-05-15}
 }
 
 % ── Sécurité / Normes ────────────────────────────────────────────────────────
@@ -273,14 +102,6 @@
   pages     = {3982--3992}
 }
 
-@online{tesseract,
-  author = {{Google / Open Source Community}},
-  title  = {Tesseract OCR Documentation},
-  year   = {2024},
-  url    = {https://tesseract-ocr.github.io/},
-  urldate = {2026-05-15}
-}
-
 @book{bloom1956taxonomy,
   author    = {Benjamin S. Bloom},
   title     = {Taxonomy of Educational Objectives: The Classification of Educational Goals},
@@ -289,43 +110,7 @@
   address   = {New York}
 }
 
-% ── Outils de conception / Frameworks additionnels ────────────────────────────
-@online{plantuml,
-  author = {{PlantUML Contributors}},
-  title  = {PlantUML: Generate UML Diagrams from a Textual Description},
-  year   = {2024},
-  url    = {https://plantuml.com/},
-  urldate = {2026-05-15}
-}
-
-@online{fastapi,
-  author = {Sebastián Ramírez},
-  title  = {FastAPI Documentation},
-  year   = {2024},
-  url    = {https://fastapi.tiangolo.com/},
-  urldate = {2026-05-15}
-}
-
-% ── Organisme d'accueil ──────────────────────────────────────────────────────
-@online{esprit,
-  author = {{ESPRIT}},
-  title  = {{École Supérieure Privée d'Ingénierie et de Technologies --- Site officiel}},
-  year   = {2024},
-  url    = {https://esprit.tn/},
-  urldate = {2026-05-15}
-}
-
 % ── Machine Learning / Deep Learning ──────────────────────────────────────────
-@article{friedman2001gbm,
-  author  = {Jerome H. Friedman},
-  title   = {Greedy Function Approximation: A Gradient Boosting Machine},
-  journal = {Annals of Statistics},
-  year    = {2001},
-  volume  = {29},
-  number  = {5},
-  pages   = {1189--1232}
-}
-
 @inproceedings{chen2016xgboost,
   author    = {Tianqi Chen and Carlos Guestrin},
   title     = {{XGBoost}: A Scalable Tree Boosting System},
@@ -367,4 +152,111 @@
   year    = {1999},
   volume  = {10},
   pages   = {271--289}
+}
+
+% ── Patterns, Clean Code, Agile ─────────────────────────────────────────────
+@book{martin2003ddd,
+  author    = {Robert C. Martin},
+  title     = {Agile Software Development: Principles, Patterns, and Practices},
+  year      = {2003},
+  publisher = {Prentice Hall},
+  address   = {Upper Saddle River, NJ}
+}
+
+@book{cohn2009succeeding,
+  author    = {Mike Cohn},
+  title     = {Succeeding with Agile: Software Development Using Scrum},
+  year      = {2009},
+  publisher = {Addison-Wesley Professional},
+  address   = {Boston}
+}
+
+@book{richson2018microservices,
+  author    = {Chris Richardson},
+  title     = {Microservices Patterns: With Examples in Java},
+  year      = {2018},
+  publisher = {Manning Publications},
+  address   = {Shelter Island, NY}
+}
+
+% ── Outils / Documentation technique ──────────────────────────────────────────
+@manual{sonarqube,
+  title  = {SonarQube --- Documentation officielle},
+  author = {SonarSource S.A.},
+  year   = {2025},
+  url    = {https://docs.sonarsource.com/sonarqube/}
+}
+
+@manual{docker,
+  title  = {Docker --- Documentation officielle},
+  author = {Docker, Inc.},
+  year   = {2025},
+  url    = {https://docs.docker.com/}
+}
+
+@manual{dockercompose,
+  title  = {Docker Compose --- Documentation officielle},
+  author = {Docker, Inc.},
+  year   = {2025},
+  url    = {https://docs.docker.com/compose/}
+}
+
+@manual{postgresql,
+  title  = {PostgreSQL 15 --- Documentation officielle},
+  author = {PostgreSQL Global Development Group},
+  year   = {2023},
+  url    = {https://www.postgresql.org/docs/15/}
+}
+
+@manual{rabbitmq,
+  title  = {RabbitMQ --- Documentation officielle},
+  author = {VMware, Inc.},
+  year   = {2025},
+  url    = {https://www.rabbitmq.com/docs}
+}
+
+@manual{flyway,
+  title  = {Flyway --- Documentation officielle},
+  author = {Redgate Software},
+  year   = {2025},
+  url    = {https://flywaydb.org/documentation/}
+}
+
+@manual{junit5,
+  title  = {{JUnit 5} --- User Guide},
+  author = {The JUnit Team},
+  year   = {2025},
+  url    = {https://junit.org/junit5/docs/current/user-guide/}
+}
+
+@manual{mockito,
+  title  = {Mockito --- Documentation officielle},
+  author = {Mockito maintainers},
+  year   = {2025},
+  url    = {https://site.mockito.org/}
+}
+
+@manual{pytest,
+  title  = {pytest --- Documentation officielle},
+  author = {Holger Krekel and others},
+  year   = {2025},
+  url    = {https://docs.pytest.org/}
+}
+
+@manual{jacoco,
+  title  = {JaCoCo --- Java Code Coverage Library},
+  author = {Marc Hoffmann and others},
+  year   = {2025},
+  url    = {https://www.jacoco.org/jacoco/}
+}
+
+% ── Machine Learning / Deep Learning ──────────────────────────────────────────
+@article{hochreiter1997lstm,
+  author  = {Sepp Hochreiter and J\"urgen Schmidhuber},
+  title   = {Long Short-Term Memory},
+  journal = {Neural Computation},
+  volume  = {9},
+  number  = {8},
+  pages   = {1735--1780},
+  year    = {1997}
 }

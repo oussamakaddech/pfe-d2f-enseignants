@@ -193,7 +193,15 @@
 <a name='L128'></a><a href='#L128'>128</a>
 <a name='L129'></a><a href='#L129'>129</a>
 <a name='L130'></a><a href='#L130'>130</a>
-<a name='L131'></a><a href='#L131'>131</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L131'></a><a href='#L131'>131</a>
+<a name='L132'></a><a href='#L132'>132</a>
+<a name='L133'></a><a href='#L133'>133</a>
+<a name='L134'></a><a href='#L134'>134</a>
+<a name='L135'></a><a href='#L135'>135</a>
+<a name='L136'></a><a href='#L136'>136</a>
+<a name='L137'></a><a href='#L137'>137</a>
+<a name='L138'></a><a href='#L138'>138</a>
+<a name='L139'></a><a href='#L139'>139</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -255,7 +263,6 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -264,18 +271,6 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -307,7 +302,28 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -331,7 +347,7 @@ import {
   SafetyCertificateOutlined, UserOutlined, LineChartOutlined, ApiOutlined,
   ClusterOutlined, TeamOutlined, BookOutlined,
   AppstoreOutlined, CheckSquareOutlined, BankOutlined, SettingOutlined,
-  ImportOutlined, DashboardOutlined,
+  ImportOutlined, DashboardOutlined, EyeOutlined,
 } from "@ant-design/icons";
 &nbsp;
 export interface MenuItem {
@@ -361,8 +377,7 @@ export const adminMenu: MenuItem[] = <span class="cstat-no" title="statement not
   { type: "group", label: "ADMINISTRATION", children: [
     { label: "Administration",  key: "/home/administration", icon: SettingOutlined },
     { label: "Structures (UP/Dépt)", key: "/home/UpDept",           icon: ApartmentOutlined },
-    { label: "Inscriptions",         key: "/home/ListeFormation",   icon: FileTextOutlined  },
-    { label: "Suivi des Inscriptions", key: "/home/Inscriptions/Suivi", icon: TeamOutlined   },
+    { label: "Inscriptions",         key: "/home/Inscriptions",   icon: FileTextOutlined  },
     { label: "Gestion des Bureaux",  key: "/home/bureaux",          icon: BankOutlined      },
   ]},
   { type: "group", label: "FORMATIONS", children: [
@@ -388,21 +403,22 @@ export const adminMenu: MenuItem[] = <span class="cstat-no" title="statement not
 &nbsp;
 export const cupMenu: MenuItem[] = <span class="cstat-no" title="statement not covered" >[</span>
   dashboardItem,
-  { label: "Évaluations",             key: "/home/Evaluations",         icon: TrophyOutlined },
-  { label: "Référentiel Compétences", key: "/home/competences",         icon: BookOutlined },
-  { label: "Besoins de Formation", key: "besoin_formation_menu", icon: ReadOutlined, children: [
-    { label: "Liste des Demandes", key: "/home/besoins",         icon: SearchOutlined },
-    { label: "Déposer un Besoin",  key: "/home/besoins/ajouter", icon: PlusCircleOutlined },
+  { type: "group", label: "FORMATIONS", children: [
+    { label: "Nouvelle Formation",    key: "/home/Formation/Creer",         icon: PlusCircleOutlined },
+    { label: "Catalogue",             key: "/home/Formation/Consulter",     icon: AppstoreOutlined },
+    { label: "Gestion Calendrier",    key: "/home/Formation/CalendrierGestion", icon: ImportOutlined },
   ]},
-  { label: "Affectation &amp; IA", key: "gestion_affectation", icon: SolutionOutlined, children: [
-    { label: "Suivi des Affectations", key: "/home/affectations",      icon: SolutionOutlined },
-    { label: "Matchmaking IA",         key: "/home/rice/matchmaking",  icon: ApiOutlined },
+  { type: "group", label: "COMPÉTENCES &amp; BESOINS", children: [
+    { label: "Référentiel Compétences", key: "/home/competences",         icon: BookOutlined },
+    { label: "Besoins de Formation", key: "besoin_formation_menu", icon: ReadOutlined, children: [
+      { label: "Liste des Demandes", key: "/home/besoins",         icon: SearchOutlined },
+      { label: "Déposer un Besoin",  key: "/home/besoins/ajouter", icon: PlusCircleOutlined },
+    ]},
+    { label: "Suivi des Affectations", key: "/home/affectations",  icon: SolutionOutlined },
   ]},
-  { label: "Présence &amp; Évaluation", key: "/home/animateur-formations", icon: ReadOutlined },
-  { label: "Analyse Prédictive",    key: "/home/AnalysePredictive",    icon: LineChartOutlined },
-  { label: "Mes Inscriptions",      key: "/home/ListeFormation",       icon: AppstoreOutlined },
-  { label: "Suivi des Inscriptions",key: "/home/Inscriptions/Suivi",   icon: TeamOutlined },
-  { label: "Mes Certificats",       key: "/home/MyCertificate",        icon: SafetyCertificateOutlined },
+  { type: "group", label: "SUIVI", children: [
+    { label: "Inscriptions",         key: "/home/Inscriptions",       icon: FileTextOutlined },
+  ]},
 ];
 &nbsp;
 export const enseignantMenu: MenuItem[] = <span class="cstat-no" title="statement not covered" >[</span>
@@ -411,23 +427,22 @@ export const enseignantMenu: MenuItem[] = <span class="cstat-no" title="statemen
     { label: "Liste des Demandes", key: "/home/besoins",         icon: SearchOutlined },
     { label: "Déposer un Besoin",  key: "/home/besoins/ajouter", icon: PlusCircleOutlined },
   ]},
+  { label: "Mes Présences",       key: "/home/mes-presences",     icon: EyeOutlined },
   { label: "Présence &amp; Évaluation", key: "/home/animateur-formations", icon: ReadOutlined },
-  { label: "Catalogue formations",  key: "/home/ListeFormation",       icon: AppstoreOutlined },
-  { label: "S'inscrire à une formation", key: "/home/Inscription/Nouvelle", icon: PlusCircleOutlined },
-  { label: "Mes Inscriptions",      key: "/home/MesInscriptions",      icon: FileTextOutlined },
+  { label: "Évaluations",           key: "/home/Evaluations",         icon: TrophyOutlined },
+  { label: "Inscriptions",         key: "/home/Inscriptions",       icon: AppstoreOutlined },
   { label: "Mes Certificats",       key: "/home/MyCertificate",        icon: SafetyCertificateOutlined },
 ];
 &nbsp;
 export const animateurMenu: MenuItem[] = <span class="cstat-no" title="statement not covered" >[</span>
   dashboardItem,
   { label: "Sessions d'Animation", key: "/home/animateur-formations", icon: ReadOutlined },
+  { label: "Évaluations",           key: "/home/Evaluations",         icon: TrophyOutlined },
   { label: "Besoins de Formation", key: "besoin_formation_menu", icon: ReadOutlined, children: [
     { label: "Liste des Demandes", key: "/home/besoins",         icon: SearchOutlined },
     { label: "Déposer un Besoin",  key: "/home/besoins/ajouter", icon: PlusCircleOutlined },
   ]},
-  { label: "Catalogue formations", key: "/home/ListeFormation",       icon: AppstoreOutlined },
-  { label: "S'inscrire à une formation", key: "/home/Inscription/Nouvelle", icon: PlusCircleOutlined },
-  { label: "Mes Inscriptions",     key: "/home/MesInscriptions",      icon: FileTextOutlined },
+  { label: "Inscriptions",         key: "/home/Inscriptions",       icon: AppstoreOutlined },
   { label: "Mes Certificats",      key: "/home/MyCertificate",        icon: SafetyCertificateOutlined },
 ];
 &nbsp;
@@ -439,10 +454,19 @@ export const responsableDossierMenu: MenuItem[] = <span class="cstat-no" title="
 &nbsp;
 export const chefDepartementMenu: MenuItem[] = <span class="cstat-no" title="statement not covered" >[</span>
   dashboardItem,
-  { label: "Gestion Formations",   key: "/home/Formation/Consulter", icon: AppstoreOutlined },
-  { label: "Dossiers de Formation",key: "/home/File",                icon: FileTextOutlined },
-  { label: "Calendrier Global",    key: "/home/Calendrier",          icon: CalendarOutlined },
-  { label: "Analyse Prédictive",   key: "/home/AnalysePredictive",   icon: LineChartOutlined },
+  { type: "group", label: "FORMATIONS", children: [
+    { label: "Catalogue Formations",  key: "/home/Formation/Consulter",     icon: AppstoreOutlined },
+    { label: "Calendrier Global",     key: "/home/Calendrier",              icon: CalendarOutlined },
+    { label: "Gestion Calendrier",    key: "/home/Formation/CalendrierGestion", icon: ImportOutlined },
+  ]},
+  { type: "group", label: "COMPÉTENCES &amp; BESOINS", children: [
+    { label: "Référentiel Compétences", key: "/home/competences",          icon: BookOutlined },
+    { label: "Besoins de Formation",  key: "/home/besoins",                icon: ReadOutlined },
+  ]},
+  { type: "group", label: "DOCUMENTS &amp; SUIVI", children: [
+    { label: "Dossiers de Formation", key: "/home/File",                   icon: FileTextOutlined },
+    { label: "Inscriptions",         key: "/home/Inscriptions",            icon: AppstoreOutlined },
+  ]},
 ];
 &nbsp;
 export const roleMenus: Record&lt;string, MenuItem[]&gt; = <span class="cstat-no" title="statement not covered" >{</span>
@@ -460,7 +484,7 @@ export const roleMenus: Record&lt;string, MenuItem[]&gt; = <span class="cstat-no
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-06-12T22:09:47.587Z
+                at 2026-07-03T04:18:32.024Z
             </div>
         <script src="../../../prettify.js"></script>
         <script>

@@ -25,28 +25,28 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/106</span>
+                <span class='fraction'>0/112</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Branches</span>
-                <span class='fraction'>0/86</span>
+                <span class='fraction'>0/102</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Functions</span>
-                <span class='fraction'>0/34</span>
+                <span class='fraction'>0/35</span>
             </div>
         
             
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/89</span>
+                <span class='fraction'>0/94</span>
             </div>
         
             
@@ -520,7 +520,18 @@
 <a name='L455'></a><a href='#L455'>455</a>
 <a name='L456'></a><a href='#L456'>456</a>
 <a name='L457'></a><a href='#L457'>457</a>
-<a name='L458'></a><a href='#L458'>458</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L458'></a><a href='#L458'>458</a>
+<a name='L459'></a><a href='#L459'>459</a>
+<a name='L460'></a><a href='#L460'>460</a>
+<a name='L461'></a><a href='#L461'>461</a>
+<a name='L462'></a><a href='#L462'>462</a>
+<a name='L463'></a><a href='#L463'>463</a>
+<a name='L464'></a><a href='#L464'>464</a>
+<a name='L465'></a><a href='#L465'>465</a>
+<a name='L466'></a><a href='#L466'>466</a>
+<a name='L467'></a><a href='#L467'>467</a>
+<a name='L468'></a><a href='#L468'>468</a>
+<a name='L469'></a><a href='#L469'>469</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -561,6 +572,8 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -601,10 +614,14 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -624,8 +641,11 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -797,6 +817,8 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -1017,6 +1039,8 @@ import {
   useDeleteEvaluationGlobale,
 } from "@/hooks/evaluation/useEvaluations";
 import { useAllFormations } from "@/hooks/formation/useFormations";
+import { useProfile } from "@/hooks/formation/useFormationExtras";
+import { normalizeRole } from "@/utils/constants/roles";
 &nbsp;
 const { Option } = <span class="cstat-no" title="statement not covered" >Select;</span>
 const { TextArea } = <span class="cstat-no" title="statement not covered" >Input;</span>
@@ -1064,9 +1088,13 @@ export default function <span class="fstat-no" title="function not covered" >Eva
   const createMut = <span class="cstat-no" title="statement not covered" >useCreateEvaluationGlobale();</span>
   const updateMut = <span class="cstat-no" title="statement not covered" >useUpdateEvaluationGlobale();</span>
   const deleteMut = <span class="cstat-no" title="statement not covered" >useDeleteEvaluationGlobale();</span>
+  const { data: profile } = <span class="cstat-no" title="statement not covered" >useProfile();</span>
 &nbsp;
   const evaluations = <span class="cstat-no" title="statement not covered" >evaluationsData as EvalRecord[];</span>
   const formations = <span class="cstat-no" title="statement not covered" >formationsData as FormationRecord[];</span>
+&nbsp;
+  const role = <span class="cstat-no" title="statement not covered" >normalizeRole(profile?.role ?? "");</span>
+  const isReadOnly = <span class="cstat-no" title="statement not covered" >role === "enseignant";</span>
 &nbsp;
   const [openForm, setOpenForm] = <span class="cstat-no" title="statement not covered" >useState(false);</span>
   const [editingEval, setEditingEval] = <span class="cstat-no" title="statement not covered" >useState&lt;EvalRecord | null&gt;(null);</span>
@@ -1083,6 +1111,9 @@ export default function <span class="fstat-no" title="function not covered" >Eva
 &nbsp;
   const filtered = <span class="cstat-no" title="statement not covered" >useMemo(<span class="fstat-no" title="function not covered" >() =&gt; {</span></span>
     let res = <span class="cstat-no" title="statement not covered" >[...evaluations];</span>
+<span class="cstat-no" title="statement not covered" >    if (isReadOnly &amp;&amp; profile?.idUtilisateur) {</span>
+<span class="cstat-no" title="statement not covered" >      res = res.filter(<span class="fstat-no" title="function not covered" >(e</span>) =&gt; <span class="cstat-no" title="statement not covered" >e.utilisateurId === profile.idUtilisateur)</span>;</span>
+    }
 <span class="cstat-no" title="statement not covered" >    if (filterText) {</span>
 <span class="cstat-no" title="statement not covered" >      res = res.filter(<span class="fstat-no" title="function not covered" >(<span class="cstat-no" title="statement not covered" >e</span>) =&gt;</span></span>
         (getFormationTitre(e.formationId) || "").toLowerCase().includes(filterText.toLowerCase()) ||
@@ -1093,7 +1124,7 @@ export default function <span class="fstat-no" title="function not covered" >Eva
 <span class="cstat-no" title="statement not covered" >    if (formationFilter) <span class="cstat-no" title="statement not covered" >res = res.filter(<span class="fstat-no" title="function not covered" >(e</span>) =&gt; <span class="cstat-no" title="statement not covered" >e.formationId === formationFilter)</span>;</span></span>
 <span class="cstat-no" title="statement not covered" >    return res;</span>
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [evaluations, filterText, recoFilter, formationFilter, formations]);
+  }, [evaluations, filterText, recoFilter, formationFilter, formations, isReadOnly, profile]);
 &nbsp;
   function <span class="fstat-no" title="function not covered" >openCreate() {</span>
 <span class="cstat-no" title="statement not covered" >    setEditingEval(null);</span>
@@ -1193,7 +1224,7 @@ export default function <span class="fstat-no" title="function not covered" >Eva
           &lt;/Tag&gt;
         );
       },
-      sorter: <span class="fstat-no" title="function not covered" >(a</span>, <span class="cstat-no" title="statement not covered" >b) =&gt; (a.noteGlobale || 0) - (b.noteGlobale || 0),</span>
+      sorter: <span class="fstat-no" title="function not covered" >(a</span>, <span class="cstat-no" title="statement not covered" >b) =&gt; (Number(a.noteGlobale) || 0) - (Number(b.noteGlobale) || 0),</span>
     },
     {
       title: "Recommandation",
@@ -1222,12 +1253,12 @@ export default function <span class="fstat-no" title="function not covered" >Eva
       render: <span class="fstat-no" title="function not covered" >(d</span>) =&gt; <span class="cstat-no" title="statement not covered" >d ? dayjs(d).format("DD/MM/YYYY") : "\u2014",</span>
       sorter: <span class="fstat-no" title="function not covered" >(a</span>, b) =&gt; <span class="cstat-no" title="statement not covered" >dayjs(a.dateEvaluation).valueOf() - dayjs(b.dateEvaluation).valueOf(),</span>
     },
-    {
+    ...(!isReadOnly ? [{
       title: "Actions",
       key: "actions",
       width: 90,
-      align: "center",
-      render: <span class="fstat-no" title="function not covered" >(_</span>, r) =&gt; (
+      align: "center" as const,
+      render: <span class="fstat-no" title="function not covered" >(_</span>: unknown, r: EvalRecord) =&gt; (
 <span class="cstat-no" title="statement not covered" >        &lt;Space size={4}&gt;</span>
           &lt;Button
             type="text"
@@ -1250,24 +1281,26 @@ export default function <span class="fstat-no" title="function not covered" >Eva
           &lt;/Popconfirm&gt;
         &lt;/Space&gt;
       ),
-    },
+    }] : []),
   ];
 &nbsp;
 <span class="cstat-no" title="statement not covered" >  return (</span>
     &lt;div className="evaluation-page"&gt;
         &lt;AppPageHeader
           icon={&lt;TrophyOutlined /&gt;}
-          title="Évaluation Globale des Formations"
+          title={isReadOnly ? "Mes Évaluations" : "Évaluation Globale des Formations"}
           subtitle={`${filtered.length} évaluation${filtered.length === 1 ? "" : "s"}${hasActiveFilters ? " (filtrées)" : ""}`}
           actions={
-            &lt;Button
-              type="primary"
-              icon={&lt;PlusOutlined /&gt;}
-              onClick={openCreate}
-              className="evaluation-btn-add"
-            &gt;
-              Ajouter une évaluation
-            &lt;/Button&gt;
+            !isReadOnly ? (
+              &lt;Button
+                type="primary"
+                icon={&lt;PlusOutlined /&gt;}
+                onClick={openCreate}
+                className="evaluation-btn-add"
+              &gt;
+                Ajouter une évaluation
+              &lt;/Button&gt;
+            ) : undefined
           }
         /&gt;
 &nbsp;
@@ -1344,8 +1377,8 @@ export default function <span class="fstat-no" title="function not covered" >Eva
         &lt;/div&gt;
 &nbsp;
         &lt;Alert
-          message="Une seule évaluation globale est autorisée par formation."
-          type="info"
+          message={isReadOnly ? "Vous consultez uniquement vos propres évaluations." : "Une seule évaluation globale est autorisée par formation."}
+          type={isReadOnly ? "warning" : "info"}
           showIcon
           className="evaluation-info-alert"
         /&gt;
@@ -1441,7 +1474,7 @@ export default function <span class="fstat-no" title="function not covered" >Eva
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-06-12T22:09:47.587Z
+                at 2026-07-03T04:18:32.024Z
             </div>
         <script src="../../../prettify.js"></script>
         <script>
