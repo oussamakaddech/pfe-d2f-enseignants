@@ -16,7 +16,6 @@ import type { DashboardData } from "@/models/analyse";
 import { roleColors, brand, accent, semantic } from "@/styles/themes/tokens";
 import GlassCard from "@/components/ui/GlassCard";
 import GlassKpi from "@/components/ui/GlassKpi";
-import GapHeatmap from "@/components/charts/GapHeatmap";
 import TrendLineChart from "@/components/charts/TrendLineChart";
 import "@/styles/pages/glass.css";
 
@@ -100,6 +99,7 @@ export default function DashboardGlass() {
   const inDemand = (d?.competences_en_demande ?? []).slice(0, 6);
   const alerts = (d?.alertes_recentes ?? []).slice(0, 6);
   const topFormations = (d?.top_formations_recommandees ?? []).slice(0, 5);
+  const eff = (d?.training_effectiveness ?? []).slice(0, 5);
 
   return (
     <div className="glass-app">
@@ -213,11 +213,11 @@ export default function DashboardGlass() {
             </Row>
           </section>
 
-          {/* ── Risque & Heatmap ─────────────────────────────── */}
+          {/* ── Risque & efficacité ─────────────────────────── */}
           <section className="glass-section">
             <div className="glass-section-head">
-              <span className="bar" /><span className="txt">Risque & écarts</span>
-              <span className="sub">Enseignants à risque et cartographie des gaps</span><span className="line" />
+              <span className="bar" /><span className="txt">Risque & efficacité</span>
+              <span className="sub">Enseignants à risque et impact des formations</span><span className="line" />
             </div>
             <Row gutter={[18, 18]}>
               <Col xs={24} lg={10}>
@@ -250,11 +250,21 @@ export default function DashboardGlass() {
                 </GlassCard>
               </Col>
               <Col xs={24} lg={14}>
-                <GlassCard title="Heatmap des écarts" subtitle="Département × Compétence" icon={<RiseOutlined />} iconColor={brand[500]} iconBg={brand[50]}>
-                  {(d?.department_gap_heatmap ?? []).length === 0 ? (
-                    <Empty description="Aucune donnée de heatmap" />
+                <GlassCard title="Efficacité des formations" subtitle="Gain de niveau & complétion" icon={<BulbOutlined />} iconColor="#8b5cf6" iconBg="rgba(139,92,246,0.12)">
+                  {eff.length === 0 ? (
+                    <Empty description="Aucune donnée d'efficacité" />
                   ) : (
-                    <GapHeatmap data={d?.department_gap_heatmap ?? []} />
+                    <div className="glass-list">
+                      {eff.map((f) => (
+                        <div key={f.formation_id} className="glass-list-item">
+                          <div className="li-main">
+                            <div className="li-title">{f.formation_titre}</div>
+                            <div className="li-sub">Complétion {Math.round((f.completion_rate ?? 0) * 100)}%</div>
+                          </div>
+                          <span className="glass-chip" style={{ color: semantic.success }}>+{Number(f.avg_level_gain ?? 0).toFixed(1)}</span>
+                        </div>
+                      ))}
+                    </div>
                   )}
                 </GlassCard>
               </Col>
