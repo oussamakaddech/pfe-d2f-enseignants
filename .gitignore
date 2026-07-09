@@ -74,6 +74,12 @@ rapport-pfe/
 **/referentiel_extracted.json
 **/exemple_web.txt
 
+# ── Artefacts CI à la racine (jamais suivis) ──────────────────────────────
+/coverage.xml
+/junit-results.xml
+/sonar_bugs.json
+/sonar_hs.json
+
 # ── Scripts temporaires ────────────────────────────────────────────────────────
 check_counts.sql
 check_dashboard.py
