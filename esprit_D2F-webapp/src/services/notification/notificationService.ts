@@ -43,7 +43,7 @@ export async function fetchRealNotifications(limit = 20): Promise<AppNotificatio
         message: a.enseignant_id ? `Concerne l'enseignant ${a.enseignant_id}` : "Alerte système",
         read: false,
         createdAt: a.created_at,
-        link: "/home/analytics/dashboard",
+        link: "/home/AnalysePredictive",
         actor: a.enseignant_id ? "Analyse prédictive" : "Système",
       }));
   } catch {

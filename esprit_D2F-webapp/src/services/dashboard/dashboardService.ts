@@ -7,7 +7,7 @@ import type { DashboardAlert, DashboardHealth, HealthFactor, HealthLevel } from 
 
 const ROUTE_INACTIFS = "/home/analytics/enseignants-inactifs";
 const ROUTE_BESOINS = "/home/besoins";
-const ROUTE_ANALYTICS = "/home/analytics/dashboard";
+const ROUTE_ANALYTICS = "/home/AnalysePredictive";
 
 interface HealthInput {
   readonly presence?: number;       // 0-100
