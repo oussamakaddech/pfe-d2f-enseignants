@@ -126,7 +126,7 @@ export default function DashboardGlass() {
               <ReloadOutlined spin={loading} /> Rafraîchir
             </button>
           </Tooltip>
-          <button className="glass-btn glass-btn-primary" onClick={() => navigate("/home/analytics/dashboard")}>
+          <button className="glass-btn glass-btn-primary" onClick={() => navigate("/home/AnalysePredictive")}>
             <LineChartOutlined /> Analytique
           </button>
         </div>

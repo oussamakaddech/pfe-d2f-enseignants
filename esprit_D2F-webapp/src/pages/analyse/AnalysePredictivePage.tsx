@@ -1,12 +1,15 @@
 import { useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Row, Col, Empty, Spin, Tooltip } from "antd";
+import { Row, Col, Empty, Spin, Tooltip, Table, Tag, Progress, Space, Typography } from "antd";
+import type { ColumnsType } from "antd/es/table";
 import {
   RobotOutlined, ReloadOutlined, ExperimentOutlined, TeamOutlined,
   FireOutlined, FallOutlined, BellOutlined, SafetyCertificateOutlined,
   RiseOutlined, BulbOutlined, DashboardOutlined, LineChartOutlined,
-  ThunderboltOutlined,
+  ThunderboltOutlined, TrophyOutlined, ApartmentOutlined,
 } from "@ant-design/icons";
+
+const { Text } = Typography;
 import dayjs from "dayjs";
 import "dayjs/locale/fr";
 import { useAuth } from "@/hooks/auth/useAuth";
@@ -16,7 +19,12 @@ import {
   useModelPerformance, useOverview, useDemandForecast,
   useSupplyDemand, useRiskDistribution,
 } from "@/hooks/analyse/useAnalysePredictive";
-import type { OverviewKpis, TeacherRiskIndicator } from "@/models/analyse";
+import { useDashboard } from "@/hooks/analyse/useDashboard";
+import PredictionScoreBar from "@/components/charts/PredictionScoreBar";
+import type {
+  OverviewKpis, TeacherRiskIndicator, TopFormation, AlerteResumee,
+  TrainingEffectiveness, CouvertureDepartement,
+} from "@/models/analyse";
 import { roleColors, brand, accent, semantic, neutral } from "@/styles/themes/tokens";
 import GlassCard from "@/components/ui/GlassCard";
 import GlassKpi from "@/components/ui/GlassKpi";
@@ -41,6 +49,37 @@ function greeting(): { text: string; emoji: string } {
   return { text: "Bonsoir", emoji: "🌙" };
 }
 
+const SEVERITE_COLOR: Record<string, string> = {
+  CRITICAL: "red", WARNING: "orange", INFO: "blue",
+};
+
+function couvertureColor(taux: number): string {
+  if (taux >= 75) return "#10b981";
+  if (taux >= 50) return "#f59e0b";
+  return "#ef4444";
+}
+
+const topFormColumns: ColumnsType<TopFormation> = [
+  { title: "Formation", dataIndex: "formation_titre", render: v => <Text strong>{v}</Text> },
+  { title: "Reco.", dataIndex: "nb_recommandations", align: "center", width: 80, render: v => <Tag color="blue">{v}</Tag> },
+  { title: "Score moyen", dataIndex: "score_moyen", width: 170, render: v => <PredictionScoreBar value={v} size="small" showPct /> },
+  { title: "Réussite moy.", dataIndex: "proba_reussite_moy", align: "center", width: 120, render: v => <Text style={{ color: semantic.success, fontWeight: 600 }}>{Math.round((v ?? 0) * 100)}%</Text> },
+];
+
+const alerteColumns: ColumnsType<AlerteResumee> = [
+  { title: "Titre", dataIndex: "titre", render: v => <Text strong>{v}</Text> },
+  { title: "Type", dataIndex: "type_alerte", render: v => <Tag color="purple" className="text-xs">{String(v).replaceAll("_", " ")}</Tag> },
+  { title: "Sévérité", dataIndex: "severite", width: 100, render: v => <Tag color={SEVERITE_COLOR[v as string] ?? "default"}>{v}</Tag> },
+  { title: "Date", dataIndex: "created_at", width: 160, render: v => <Text type="secondary" className="text-xs">{dayjs(v).format("DD/MM/YYYY HH:mm")}</Text> },
+];
+
+const effColumns: ColumnsType<TrainingEffectiveness> = [
+  { title: "Formation", dataIndex: "formation_titre", render: v => <Text strong>{v}</Text> },
+  { title: "Gain niveau moy.", dataIndex: "avg_level_gain", align: "center", width: 140, render: v => { const color = v >= 1 ? "success" : v > 0 ? "processing" : "default"; return <Tag color={color}>+{Number(v ?? 0).toFixed(2)}</Tag>; } },
+  { title: "Taux complétion", dataIndex: "completion_rate", width: 160, render: v => <Progress percent={Math.round((v ?? 0) * 100)} size="small" strokeColor="#b51200" /> },
+  { title: "Recommandée", dataIndex: "nb_recommandee", align: "center", width: 110, render: v => <Tag color="blue">{v}×</Tag> },
+];
+
 export default function AnalysePredictivePage() {
   const { message } = useAppNotification();
   const { user } = useAuth();
@@ -61,6 +100,8 @@ export default function AnalysePredictivePage() {
   const { data: supplyDemand, isLoading: supplyLoading } = useSupplyDemand();
   const { data: riskDistribution, isLoading: riskDistLoading } = useRiskDistribution();
   const trainModelMutation = useTrainModel();
+
+  const { dashboard: ad, lastUpdate } = useDashboard();
 
   const [refreshing, setRefreshing] = useState(false);
 
@@ -264,6 +305,60 @@ export default function AnalysePredictivePage() {
           </GlassCard>
         </section>
       )}
+
+      {/* ── Détails opérationnels ─────────────────────────── */}
+      <section className="glass-section">
+        <div className="glass-section-head">
+          <span className="bar" /><span className="txt">Détails opérationnels</span>
+          <span className="sub">{lastUpdate ? `Mise à jour ${lastUpdate}` : ""}</span><span className="line" />
+        </div>
+        <Row gutter={[18, 18]}>
+          <Col xs={24} lg={12}>
+            <GlassCard title="Top formations recommandées" subtitle={`${ad?.top_formations_recommandees?.length ?? 0} recommandations`} icon={<TrophyOutlined />} iconColor="#b51200" iconBg="rgba(181,18,0,0.10)">
+              {ad?.top_formations_recommandees?.length ? (
+                <Table dataSource={ad.top_formations_recommandees} columns={topFormColumns} rowKey="formation_id" pagination={false} size="small" />
+              ) : <Empty description="Aucune donnée" />}
+            </GlassCard>
+          </Col>
+          <Col xs={24} lg={12}>
+            <GlassCard title="Alertes récentes" subtitle={`${ad?.alertes_recentes?.length ?? 0} alertes`} icon={<BellOutlined />} iconColor={semantic.info} iconBg={semantic.infoBg}>
+              {ad?.alertes_recentes?.length ? (
+                <Table dataSource={ad.alertes_recentes} columns={alerteColumns} rowKey="id" pagination={{ pageSize: 5, size: "small" }} size="small" />
+              ) : <Empty description="Aucune alerte" />}
+            </GlassCard>
+          </Col>
+        </Row>
+      </section>
+
+      {/* ── Efficacité & couverture ───────────────────────── */}
+      <section className="glass-section">
+        <Row gutter={[18, 18]}>
+          <Col xs={24} lg={14}>
+            <GlassCard title="Efficacité des formations" subtitle="Gain de niveau & complétion" icon={<TrophyOutlined />} iconColor="#b51200" iconBg="rgba(181,18,0,0.10)">
+              {ad?.training_effectiveness?.length ? (
+                <Table dataSource={ad.training_effectiveness} columns={effColumns} rowKey="formation_id" pagination={{ pageSize: 5, size: "small" }} size="small" />
+              ) : <Empty description="Aucune donnée" />}
+            </GlassCard>
+          </Col>
+          <Col xs={24} lg={10}>
+            <GlassCard title="Couverture par département" subtitle="Taux de couverture" icon={<ApartmentOutlined />} iconColor={semantic.success} iconBg={semantic.successBg}>
+              {ad?.taux_couverture_departements?.length ? (
+                <Space direction="vertical" size="middle" style={{ width: "100%" }}>
+                  {ad.taux_couverture_departements.map((c: CouvertureDepartement) => (
+                    <div key={c.departement}>
+                      <Space style={{ display: "flex", justifyContent: "space-between", width: "100%" }}>
+                        <Text strong>{c.departement || "—"}</Text>
+                        <Text type="secondary" className="text-xs">{c.nb_evalues} évalué(s)</Text>
+                      </Space>
+                      <Progress percent={Math.round(c.taux_couverture)} strokeColor={couvertureColor(c.taux_couverture)} size="small" />
+                    </div>
+                  ))}
+                </Space>
+              ) : <Empty description="Aucune donnée" />}
+            </GlassCard>
+          </Col>
+        </Row>
+      </section>
     </div>
   );
 }

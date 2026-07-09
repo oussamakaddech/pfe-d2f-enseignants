@@ -52,7 +52,7 @@ const DashboardHeader = memo(function DashboardHeader({
           <Tooltip title="Formations">
             <Button icon={<BookOutlined />} onClick={() => navigate("/home/Formation")} />
           </Tooltip>
-          <Button type="primary" icon={<LineChartOutlined />} onClick={() => navigate("/home/analytics/dashboard")}>
+          <Button type="primary" icon={<LineChartOutlined />} onClick={() => navigate("/home/AnalysePredictive")}>
             Analytique
           </Button>
         </Space>

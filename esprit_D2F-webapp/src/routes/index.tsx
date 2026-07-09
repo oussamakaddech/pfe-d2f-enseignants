@@ -47,7 +47,6 @@ const RicePage = lazy(() => import("@/pages/competence/RicePage"));
 const CompetenceMatchingPage = lazy(() => import("@/pages/competence/CompetenceMatchingPage"));
 const EvaluationGlobalePage = lazy(() => import("@/pages/evaluation/EvaluationGlobalePage"));
 const AnalysePredictivePage = lazy(() => import("@/pages/analyse/AnalysePredictivePage"));
-const AnalyticsDashboardPage = lazy(() => import("@/pages/analyse/AnalyticsDashboardPage"));
 const TeacherAnalyticsPage = lazy(() => import("@/pages/analyse/TeacherAnalyticsPage"));
 const EnseignantsInactifsPage = lazy(() => import("@/pages/analyse/EnseignantsInactifsPage"));
 const FormationsParPeriodePage = lazy(() => import("@/pages/analyse/FormationsParPeriodePage"));
@@ -127,7 +126,6 @@ export default function AppRoutes() {
                 <Route element={<RoleGuard allowedRoles={[ROLES.ADMIN, ROLES.CUP, ROLES.CHEF_DEPARTEMENT]} />}>
                   <Route path="/home/KPI" element={<Navigate to="/home" replace />} />
                   <Route path="/home/AnalysePredictive" element={<AnalysePredictivePage />} />
-                  <Route path="/home/analytics/dashboard" element={<AnalyticsDashboardPage />} />
                   <Route path="/home/analytics/teacher" element={<TeacherAnalyticsPage />} />
                   <Route path="/home/analytics/teacher/:enseignantId" element={<TeacherAnalyticsPage />} />
                   <Route path="/home/analytics/enseignants-inactifs" element={<EnseignantsInactifsPage />} />
