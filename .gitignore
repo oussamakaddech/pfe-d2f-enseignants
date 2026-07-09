@@ -80,6 +80,13 @@ rapport-pfe/
 /sonar_bugs.json
 /sonar_hs.json
 
+# ── Dossiers non sources (rapports, figures, agent, sonar, extraits) ──────
+.claude/
+.scannerwork/
+rapport-pfe/
+figures/
+org/
+
 # ── Scripts temporaires ────────────────────────────────────────────────────────
 check_counts.sql
 check_dashboard.py
