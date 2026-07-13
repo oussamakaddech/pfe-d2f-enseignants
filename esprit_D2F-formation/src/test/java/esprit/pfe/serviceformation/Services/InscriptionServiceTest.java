@@ -12,7 +12,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import java.sql.Time;
+import java.time.LocalTime;
 import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -133,8 +133,8 @@ class InscriptionServiceTest {
     void testMapSeanceToDTO_Full() {
         SeanceFormation s = new SeanceFormation();
         s.setIdSeance(1L);
-        s.setHeureDebut(Time.valueOf("08:00:00"));
-        s.setHeureFin(Time.valueOf("10:00:00"));
+        s.setHeureDebut(LocalTime.of(8, 0));
+        s.setHeureFin(LocalTime.of(10, 0));
         
         Enseignant e = new Enseignant();
         e.setNom("Nom");

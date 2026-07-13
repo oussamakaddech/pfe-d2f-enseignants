@@ -1,6 +1,6 @@
 import { defaultApi as axios } from "@/services/httpClient";
 import { config } from "@/config/env";
-import type { FormationsByEtat, ParticipantStats, CountHeures, FormationsByType, TrainerTypeCount } from "@/models/analyse/kpi";
+import type { FormationsByEtat, ParticipantStats, CountHeures, FormationsByType, CountByTrainerTypeWithIds } from "@/models/analyse/kpi";
 import type { Enseignant } from "@/models/enseignant";
 
 const API_URL = `${config.FORMATION_URL}/formation/kpi`;
@@ -207,13 +207,27 @@ const KPIService = {
     }
   },
 
-  async getCountByTrainerTypeWithIds(filters: Record<string, unknown> = {}): Promise<TrainerTypeCount[]> {
+  async getCountByTrainerTypeWithIds(filters: Record<string, unknown> = {}): Promise<CountByTrainerTypeWithIds> {
     try {
       const response = await axios.get(`${API_URL}/count-by-trainer-type-with-ids`, { params: filters });
-      return response.data || [];
+      return response.data || {
+        externeOnlyCount: 0,
+        interneOnlyCount: 0,
+        mixteCount: 0,
+        externeOnlyIds: [],
+        interneOnlyIds: [],
+        mixteIds: [],
+      };
     } catch (error: unknown) {
       if (isNotFoundError(error)) {
-        return [];
+        return {
+          externeOnlyCount: 0,
+          interneOnlyCount: 0,
+          mixteCount: 0,
+          externeOnlyIds: [],
+          interneOnlyIds: [],
+          mixteIds: [],
+        };
       }
       throw error;
     }

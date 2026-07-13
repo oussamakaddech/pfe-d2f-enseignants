@@ -5,6 +5,7 @@ import lombok.*;
 import tn.esprit.d2f.competence.entity.enumerations.NiveauMaitrise;
 
 import java.time.LocalDate;
+import java.time.ZoneId;
 
 @Entity
 @Table(name = "enseignant_competences",
@@ -45,7 +46,7 @@ public class EnseignantCompetence extends BaseAuditEntity {
     @PrePersist
     public void prePersist() {
         if (dateAcquisition == null) {
-            dateAcquisition = LocalDate.now();
+            dateAcquisition = LocalDate.now(ZoneId.systemDefault());
         }
     }
 }

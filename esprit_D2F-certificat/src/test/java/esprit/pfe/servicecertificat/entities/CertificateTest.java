@@ -3,6 +3,7 @@ package esprit.pfe.servicecertificat.entities;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;
+import java.time.Month;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -15,8 +16,8 @@ class CertificateTest {
         cert.setFormationId(10L);
         cert.setTitreFormation("Java Training");
         cert.setTypeCertif("ATTESTATION");
-        cert.setDateDebutFormation(LocalDate.of(2025, 1, 1));
-        cert.setDateFinFormation(LocalDate.of(2025, 1, 5));
+        cert.setDateDebutFormation(LocalDate.of(2025, Month.JANUARY, 1));
+        cert.setDateFinFormation(LocalDate.of(2025, Month.JANUARY, 5));
         cert.setChargeHoraireGlobal(40);
         cert.setEnseignantId("E001");
         cert.setNomEnseignant("Doe");
@@ -31,8 +32,8 @@ class CertificateTest {
         assertEquals(10L, cert.getFormationId());
         assertEquals("Java Training", cert.getTitreFormation());
         assertEquals("ATTESTATION", cert.getTypeCertif());
-        assertEquals(LocalDate.of(2025, 1, 1), cert.getDateDebutFormation());
-        assertEquals(LocalDate.of(2025, 1, 5), cert.getDateFinFormation());
+        assertEquals(LocalDate.of(2025, Month.JANUARY, 1), cert.getDateDebutFormation());
+        assertEquals(LocalDate.of(2025, Month.JANUARY, 5), cert.getDateFinFormation());
         assertEquals(40, cert.getChargeHoraireGlobal());
         assertEquals("E001", cert.getEnseignantId());
         assertEquals("Doe", cert.getNomEnseignant());
@@ -56,7 +57,7 @@ class CertificateTest {
     @Test
     void certificate_AllArgsConstructor() {
         Certificate cert = new Certificate(1L, 10L, "Java Training", "ATTESTATION",
-                LocalDate.of(2025, 1, 1), LocalDate.of(2025, 1, 5), 40,
+                LocalDate.of(2025, Month.JANUARY, 1), LocalDate.of(2025, Month.JANUARY, 5), 40,
                 "E001", "Doe", "John", "john@esprit.tn", "Informatique", "ANIMATEUR",
                 false, "/certs/cert.pdf", null);
 
@@ -125,8 +126,8 @@ class CertificateTest {
         original.setFormationId(10L);
         original.setTitreFormation("Spring");
         original.setTypeCertif("BADGE");
-        original.setDateDebutFormation(LocalDate.of(2025, 1, 1));
-        original.setDateFinFormation(LocalDate.of(2025, 1, 31));
+        original.setDateDebutFormation(LocalDate.of(2025, Month.JANUARY, 1));
+        original.setDateFinFormation(LocalDate.of(2025, Month.JANUARY, 31));
         original.setChargeHoraireGlobal(40);
         original.setEnseignantId("E001");
         original.setNomEnseignant("Test");

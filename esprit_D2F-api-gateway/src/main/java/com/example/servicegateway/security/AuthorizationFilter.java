@@ -293,12 +293,16 @@ public class AuthorizationFilter extends AbstractGatewayFilterFactory<Authorizat
         response.setStatusCode(httpStatus);
         response.getHeaders().add("Content-Type", "application/json");
 
+        String traceId = exchange.getRequest().getId();
+        String errorCode = "D2F-" + httpStatus.value();
         String errorBody = String.format(
-            "{\"timestamp\":\"%s\",\"status\":%d,\"error\":\"%s\",\"path\":\"%s\"}",
+            "{\"timestamp\":\"%s\",\"status\":%d,\"errorCode\":\"%s\",\"error\":\"%s\",\"path\":\"%s\",\"traceId\":\"%s\"}",
             java.time.Instant.now().toString(),
             httpStatus.value(),
+            errorCode,
             errorMessage,
-            exchange.getRequest().getPath().value()
+            exchange.getRequest().getPath().value(),
+            traceId
         );
 
         DataBufferFactory bufferFactory = response.bufferFactory();

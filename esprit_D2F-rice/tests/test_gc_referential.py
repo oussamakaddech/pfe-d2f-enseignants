@@ -177,11 +177,11 @@ class TestSuggestGcEnseignants:
 
     def test_db_unavailable_returns_empty(self, monkeypatch):
         def raise_exc():
-            raise Exception("DB unreachable")
+            raise RuntimeError("DB unreachable")
         monkeypatch.setattr(
             "rice.referential._fetch_enseignant_affectations", raise_exc
         )
-        with pytest.raises(Exception):
+        with pytest.raises(RuntimeError):
             _suggest_gc_enseignants(["S2a"])
 
 

@@ -8,7 +8,7 @@ import esprit.pfe.serviceformation.repositories.SeanceFormationRepository;
 import org.springframework.stereotype.Service;
 import lombok.RequiredArgsConstructor;
 
-import java.util.Date;
+import java.time.LocalDate;
 import java.util.List;
 
 @Service
@@ -24,8 +24,8 @@ public class FormationReportService {
     public List<Object> getFormationsParRoleEtPeriode(
             String role,
             String enseignantId,
-            Date debutPeriode,
-            Date finPeriode
+            LocalDate debutPeriode,
+            LocalDate finPeriode
     ) {
         if ("animateur".equalsIgnoreCase(role)) {
             return seanceRepo.findFormationsByAnimateurAndPeriod(

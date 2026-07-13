@@ -21,6 +21,7 @@ RABBITMQ_USER     = os.getenv("RABBITMQ_USER", "")
 RABBITMQ_PASSWORD = os.getenv("RABBITMQ_PASSWORD", "")
 ANALYTICS_QUEUE   = os.getenv("RABBITMQ_ANALYTICS_QUEUE", "d2f.analytics.trigger")
 ANALYTICS_DLQ     = ANALYTICS_QUEUE + ".dlq"
+DEAD_LETTER_EXCHANGE = "d2f.dlx"
 MESSAGING_ENABLED = os.getenv("MESSAGING_ENABLED", "false").lower() == "true"
 
 _consumer_thread: threading.Thread | None = None
@@ -47,7 +48,7 @@ class AnalyticsEventConsumer:
     def _declare_queues(self, channel):
         """Declare l'exchange DLX, la queue analytics et sa DLQ."""
         # Dead-letter exchange (même convention que les autres services)
-        channel.exchange_declare(exchange="d2f.dlx", exchange_type="direct", durable=True)
+        channel.exchange_declare(exchange=DEAD_LETTER_EXCHANGE, exchange_type="direct", durable=True)
 
         # DLQ
         channel.queue_declare(
@@ -57,14 +58,14 @@ class AnalyticsEventConsumer:
                 "x-message-ttl": 86400000,  # 24h
             },
         )
-        channel.queue_bind(exchange="d2f.dlx", queue=ANALYTICS_DLQ, routing_key=ANALYTICS_DLQ)
+        channel.queue_bind(exchange=DEAD_LETTER_EXCHANGE, queue=ANALYTICS_DLQ, routing_key=ANALYTICS_DLQ)
 
         # Queue principale avec DLQ
         channel.queue_declare(
             queue=ANALYTICS_QUEUE,
             durable=True,
             arguments={
-                "x-dead-letter-exchange": "d2f.dlx",
+                "x-dead-letter-exchange": DEAD_LETTER_EXCHANGE,
                 "x-dead-letter-routing-key": ANALYTICS_DLQ,
             },
         )
@@ -140,10 +141,10 @@ class AnalyticsEventConsumer:
             self._channel.start_consuming()
 
         except pika.exceptions.AMQPConnectionError as exc:
-            logger.error("Connexion RabbitMQ échouée : %s", exc)
+            logger.exception("Connexion RabbitMQ échouée : %s", exc)
             self._schedule_reconnect()
         except Exception as exc:
-            logger.error("Erreur RabbitMQ : %s", exc)
+            logger.exception("Erreur RabbitMQ : %s", exc)
             self._schedule_reconnect()
 
     def _schedule_reconnect(self):

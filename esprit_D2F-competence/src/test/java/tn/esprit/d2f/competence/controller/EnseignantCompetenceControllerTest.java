@@ -33,6 +33,7 @@ import tn.esprit.d2f.competence.repository.SousCompetenceRepository;
 import tn.esprit.d2f.competence.service.IEnseignantCompetenceService;
 
 import java.time.LocalDate;
+import java.time.Month;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -112,7 +113,7 @@ class EnseignantCompetenceControllerTest {
                 .competenceNom("Mécanique des sols")
                 .domaineNom("Génie Civil")
                 .niveau(NiveauMaitrise.N2_ELEMENTAIRE)
-                .dateAcquisition(LocalDate.of(2025, 3, 1))
+                .dateAcquisition(LocalDate.of(2025, Month.MARCH, 1))
                 .build();
     }
 

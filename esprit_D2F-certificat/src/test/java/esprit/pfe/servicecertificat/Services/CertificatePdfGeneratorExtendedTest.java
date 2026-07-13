@@ -7,6 +7,7 @@ import org.junit.jupiter.api.io.TempDir;
 
 import java.io.File;
 import java.nio.file.Path;
+import java.time.Month;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -24,8 +25,8 @@ class CertificatePdfGeneratorExtendedTest {
         CertificateBatchMessage msg = new CertificateBatchMessage();
         msg.setTitreFormation("Test Sans Background");
         msg.setTypeCertif("ATTESTATION");
-        msg.setDateDebutFormation(java.time.LocalDate.of(2026, 1, 1));
-        msg.setDateFinFormation(java.time.LocalDate.of(2026, 1, 5));
+        msg.setDateDebutFormation(java.time.LocalDate.of(2026, Month.JANUARY, 1));
+        msg.setDateFinFormation(java.time.LocalDate.of(2026, Month.JANUARY, 5));
         msg.setChargeHoraireGlobal(20);
 
         CertificateBatchMessage.EnseignantPresenceInfo teacher = new CertificateBatchMessage.EnseignantPresenceInfo();
@@ -113,8 +114,8 @@ class CertificatePdfGeneratorExtendedTest {
         CertificateBatchMessage msg = new CertificateBatchMessage();
         msg.setTitreFormation("Formation Empty BG");
         msg.setTypeCertif("CERTIF");
-        msg.setDateDebutFormation(java.time.LocalDate.of(2026, 4, 1));
-        msg.setDateFinFormation(java.time.LocalDate.of(2026, 4, 10));
+        msg.setDateDebutFormation(java.time.LocalDate.of(2026, Month.APRIL, 1));
+        msg.setDateFinFormation(java.time.LocalDate.of(2026, Month.APRIL, 10));
         msg.setChargeHoraireGlobal(30);
 
         CertificateBatchMessage.EnseignantPresenceInfo teacher = new CertificateBatchMessage.EnseignantPresenceInfo();
@@ -140,8 +141,8 @@ class CertificatePdfGeneratorExtendedTest {
         CertificateBatchMessage msg = new CertificateBatchMessage();
         msg.setTitreFormation("Advanced Java Course");
         msg.setTypeCertif("ATTESTATION");
-        msg.setDateDebutFormation(java.time.LocalDate.of(2026, 5, 1));
-        msg.setDateFinFormation(java.time.LocalDate.of(2026, 5, 20));
+        msg.setDateDebutFormation(java.time.LocalDate.of(2026, Month.MAY, 1));
+        msg.setDateFinFormation(java.time.LocalDate.of(2026, Month.MAY, 20));
         msg.setChargeHoraireGlobal(60);
 
         CertificateBatchMessage.EnseignantPresenceInfo teacher = new CertificateBatchMessage.EnseignantPresenceInfo();

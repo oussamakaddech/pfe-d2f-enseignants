@@ -17,6 +17,7 @@ BEGIN
       ('app_user_certificat',        'certificat'),
       ('app_user_competence',        'competence'),
       ('app_user_analyse',           'analyse')
+      ('app_user_notification',      'notification')
     ) AS t(role_name, schema_name)
   LOOP
     EXECUTE format('GRANT CONNECT ON DATABASE d2f TO %I',                 pair.role_name);

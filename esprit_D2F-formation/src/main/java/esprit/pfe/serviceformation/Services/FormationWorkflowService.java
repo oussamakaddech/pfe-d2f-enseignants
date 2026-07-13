@@ -18,7 +18,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import static java.util.stream.Collectors.toList;
 
-import java.sql.Time;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -106,19 +105,19 @@ public class FormationWorkflowService {
     @Value("${d2f.platform.formations-path:/formations/}")
     private String formationsPath;
 
-    private Time parseTime(String heure) {
+    private LocalTime parseTime(String heure) {
         return helper.parseTime(heure);
     }
 
-    private OffsetDateTime convertToOffsetDateTime(java.util.Date dateUtil, java.sql.Time time) {
-        return helper.convertToOffsetDateTime(dateUtil, time);
+    private OffsetDateTime convertToOffsetDateTime(LocalDate date, LocalTime time) {
+        return helper.convertToOffsetDateTime(date, time);
     }
 
     private void ensureNoConflict(
             String userId,
-            Date date,
-            Time debut,
-            Time fin,
+            LocalDate date,
+            LocalTime debut,
+            LocalTime fin,
             boolean isAnimateur,
             Long ignoreSeanceId,
             Long ignoreFormationId) {
@@ -362,8 +361,8 @@ public class FormationWorkflowService {
 
     private void updateSeanceDetails(SeanceFormation sf, FormationWorkflowRequest.SeanceRequest sr, boolean isNew) {
         sf.setDateSeance(sr.getDateSeance());
-        Time hd = parseTime(sr.getHeureDebut());
-        Time hf = parseTime(sr.getHeureFin());
+        LocalTime hd = parseTime(sr.getHeureDebut());
+        LocalTime hf = parseTime(sr.getHeureFin());
         sf.setHeureDebut(hd);
         sf.setHeureFin(hf);
         sf.setSalle(sr.getSalle());
@@ -390,8 +389,8 @@ public class FormationWorkflowService {
         List<String> seanceAnimIds = Optional.ofNullable(sr.getAnimateursIds()).orElse(Collections.emptyList());
         if (partIds == null)
             partIds = Collections.emptyList();
-        Time hd = sf.getHeureDebut();
-        Time hf = sf.getHeureFin();
+        LocalTime hd = sf.getHeureDebut();
+        LocalTime hf = sf.getHeureFin();
         Long ignoreId = isNew ? null : sr.getIdSeance();
 
         for (String aid : seanceAnimIds)
@@ -870,7 +869,6 @@ public class FormationWorkflowService {
     private void syncPresencesForSeance(SeanceFormation sf, Set<String> newEnsIds) {
         List<Presence> oldList = presenceRepository.findBySeanceFormation_IdSeance(sf.getIdSeance());
 
-        // Supprimer les presences des enseignants qui ne sont plus concernes
         for (Presence p : oldList) {
             String ensId = p.getEnseignant() != null ? p.getEnseignant().getId() : null;
             if (!newEnsIds.contains(ensId)) {
@@ -878,7 +876,6 @@ public class FormationWorkflowService {
             }
         }
 
-        // Ajouter les presences manquantes pour les nouveaux enseignants
         for (String id : newEnsIds) {
             boolean exists = oldList.stream()
                     .anyMatch(p -> p.getEnseignant() != null
@@ -914,21 +911,18 @@ public class FormationWorkflowService {
     private static final DateTimeFormatter TIME_FMT = DateTimeFormatter.ofPattern("HH:mm");
     private static final String A_DEFINIR = "À définir";
 
-    private String formatDate(java.util.Date date) {
+    private String formatDate(LocalDate date) {
         if (date == null) {
             return A_DEFINIR;
         }
-        // java.sql.Date.toInstant() lève UnsupportedOperationException → epoch millis.
-        return java.time.Instant.ofEpochMilli(date.getTime())
-                .atZone(ZoneId.of(FormationWorkflowServiceHelper.TIMEZONE_TUNIS)).toLocalDate()
-                .format(DATE_FMT);
+        return date.format(DATE_FMT);
     }
 
-    private String formatTime(java.sql.Time time) {
+    private String formatTime(LocalTime time) {
         if (time == null) {
             return A_DEFINIR;
         }
-        return time.toLocalTime().format(TIME_FMT);
+        return time.format(TIME_FMT);
     }
 
     private String buildCalendarEventContent(Formation formation, SeanceFormation seance, String animateursStr) {
@@ -1217,23 +1211,7 @@ public class FormationWorkflowService {
                     seance.getFormation().getTitreFormation());
             String htmlContent = buildCancellationSeanceHtml(seance);
 
-            Set<String> emails = new HashSet<>();
-            if (seance.getAnimateurs() != null)
-                seance.getAnimateurs().stream()
-                        .map(Enseignant::getMail)
-                        .filter(m -> m != null && !m.isBlank())
-                        .forEach(emails::add);
-            if (seance.getParticipants() != null)
-                seance.getParticipants().stream()
-                        .map(Enseignant::getMail)
-                        .filter(m -> m != null && !m.isBlank())
-                        .forEach(emails::add);
-
-            if (seance.getFormation().getExterneFormateurEmail() != null
-                    && !seance.getFormation().getExterneFormateurEmail().isBlank()) {
-                emails.add(seance.getFormation().getExterneFormateurEmail());
-            }
-            emails.add(organizerEmail);
+            Set<String> emails = buildEmailsSet(seance, seance.getFormation());
 
             sendCancellationEmails(emails, mailSubject, htmlContent);
         } catch (RuntimeException ex) {
@@ -1288,28 +1266,7 @@ public class FormationWorkflowService {
         }
 
         // Collecter tous les emails des personnes concernees
-        Set<String> allRecipientEmails = new HashSet<>();
-        if (freshFormation.getSeances() != null) {
-            for (SeanceFormation seance : freshFormation.getSeances()) {
-                if (seance.getAnimateurs() != null) {
-                    seance.getAnimateurs().stream()
-                            .map(Enseignant::getMail)
-                            .filter(m -> m != null && !m.isBlank())
-                            .forEach(allRecipientEmails::add);
-                }
-                if (seance.getParticipants() != null) {
-                    seance.getParticipants().stream()
-                            .map(Enseignant::getMail)
-                            .filter(m -> m != null && !m.isBlank())
-                            .forEach(allRecipientEmails::add);
-                }
-            }
-        }
-        if (freshFormation.getExterneFormateurEmail() != null
-                && !freshFormation.getExterneFormateurEmail().isBlank()) {
-            allRecipientEmails.add(freshFormation.getExterneFormateurEmail());
-        }
-        allRecipientEmails.add(organizerEmail);
+        Set<String> allRecipientEmails = collectAllRecipientEmails(freshFormation);
 
         // Envoyer un email global d'annulation a tous les concernes
         // DSI §4/§2 — Outlook désactivé si azure.ad.enabled != true

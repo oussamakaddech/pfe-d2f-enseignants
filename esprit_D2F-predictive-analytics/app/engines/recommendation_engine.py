@@ -86,7 +86,7 @@ def _score_candidates(
             compute_adaptive_weights,
             compute_gap_score,
             compute_peer_score,
-            compute_risk_score,
+            compute_risk_signal,
         )
         use_msas = True
     except ImportError:
@@ -119,7 +119,7 @@ def _score_candidates(
                 "peer_adoption_count": peer_adopt,
                 "total_peers": getattr(collaborative, '_n_users', 10),
             }
-            weights = compute_adaptive_weights(enseignant_id, profiles, peer_d, risk_data)
+            weights = compute_adaptive_weights(profiles, peer_d, risk_data)
 
             # S₁ = gap score (combinaison de pertinence, réussite, disponibilité)
             s_gap = compute_gap_score(
@@ -128,7 +128,7 @@ def _score_candidates(
                 nb_critiques=sum(1 for e in evaluations if float(e.get("note_globale", e.get("note", 3))) < 3),
             )
             s_peer = compute_peer_score(s_peer_raw, peer_adopt, getattr(collaborative, '_n_users', 10))
-            s_risk = compute_risk_score(risk_data.get("risk_score", 0.0), risk_data.get("niveau_risque", "MODERE"))
+            s_risk = compute_risk_signal(risk_data.get("risk_score", 0.0), risk_data.get("niveau_risque", "MODERE"))
 
             msas_final = weights["alpha"] * s_gap + weights["beta"] * s_peer + weights["gamma"] * s_risk
             f["_score_global"] = round(msas_final, 4)

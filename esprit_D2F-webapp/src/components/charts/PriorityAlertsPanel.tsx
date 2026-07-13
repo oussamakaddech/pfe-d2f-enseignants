@@ -1,6 +1,6 @@
 import { useState } from "react";
 import {
-  Card, Row, Col, Tag, Statistic, Table, Checkbox, Button, Space,
+  Card, Row, Col, Tag, Statistic, Table, Button, Space,
   Select, Input, Empty, Spin, Typography, Tooltip, Popconfirm, Badge,
 } from "antd";
 import {
@@ -110,10 +110,11 @@ export default function PriorityAlertsPanel({ data, loading, onBulkUpdate }: Pri
           />
           {record.severite !== "-" && (
             <Tag
-              color={
-                record.severite === "CRITICAL" ? "red" :
-                record.severite === "WARNING" ? "orange" : "blue"
-              }
+              color={(() => {
+                if (record.severite === "CRITICAL") return "red";
+                if (record.severite === "WARNING") return "orange";
+                return "blue";
+              })()}
             >
               {record.severite}
             </Tag>
@@ -232,10 +233,11 @@ export default function PriorityAlertsPanel({ data, loading, onBulkUpdate }: Pri
           {(data?.by_severite || []).map((s) => (
             <Col key={s.key}>
               <Tag
-                color={
-                  s.key === "CRITICAL" ? "error" :
-                  s.key === "WARNING" ? "warning" : "processing"
-                }
+                color={(() => {
+                  if (s.key === "CRITICAL") return "error";
+                  if (s.key === "WARNING") return "warning";
+                  return "processing";
+                })()}
                 style={{ fontSize: 13, padding: "4px 12px" }}
               >
                 {s.key}: <Text strong>{s.count}</Text>

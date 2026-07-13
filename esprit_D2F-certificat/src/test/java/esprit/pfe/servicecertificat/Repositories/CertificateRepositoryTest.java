@@ -8,6 +8,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
 
@@ -27,8 +28,8 @@ class CertificateRepositoryTest {
         c.setFormationId(formationId);
         c.setTitreFormation("Formation Test");
         c.setTypeCertif("ATTESTATION");
-        c.setDateDebutFormation(LocalDate.now());
-        c.setDateFinFormation(LocalDate.now());
+        c.setDateDebutFormation(LocalDate.now(ZoneId.of("UTC")));
+        c.setDateFinFormation(LocalDate.now(ZoneId.of("UTC")));
         c.setChargeHoraireGlobal(20);
         c.setEnseignantId("ENS001");
         c.setNomEnseignant("Dupont");

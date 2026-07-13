@@ -12,6 +12,8 @@ import {
 } from "@ant-design/icons";
 import { useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/hooks/auth/useAuth";
+import { normalizeRole } from "@/utils/constants/roles";
+import { greeting } from "@/utils/helpers/greeting";
 import { useAnalyticsExport } from "@/hooks/analyse/useReporting";
 import { rangeToDates, RANGE_PRESETS } from "./dashboardRanges";
 import type { DashboardRangeKey, DashboardScope } from "@/models/dashboard";
@@ -40,14 +42,7 @@ dayjs.locale("fr");
 const INVALIDATE_KEYS = [["dashboard"], ["kpi"], ["analyse"], ["analytics"], ["besoins"], ["formations"]];
 
 interface ExecutiveDashboardProps {
-  readonly role: string;
-}
-
-function greeting(): { text: string; emoji: string } {
-  const h = dayjs().hour();
-  if (h < 12) return { text: "Bonjour", emoji: "🌅" };
-  if (h < 18) return { text: "Bon après-midi", emoji: "☀️" };
-  return { text: "Bonsoir", emoji: "🌙" };
+  readonly role?: string;
 }
 
 interface QuickLink {
@@ -63,7 +58,6 @@ const QUICK_LINKS: readonly QuickLink[] = [
   { label: "Besoins", to: "/home/besoins", icon: <BulbOutlined />, color: "#f59e0b", roles: ["admin", "cup", "chef", "enseignant", "animateur"] },
   { label: "Compétences", to: "/home/competences", icon: <SafetyCertificateOutlined />, color: "#8b5cf6", roles: ["admin", "cup", "chef"] },
   { label: "Calendrier", to: "/home/Calendrier", icon: <CalendarOutlined />, color: "#00b4d8", roles: ["admin", "cup", "chef"] },
-  { label: "Analytique", to: "/home/AnalysePredictive", icon: <LineChartOutlined />, color: "#10b981", roles: ["admin", "cup", "chef"] },
   { label: "Inscriptions", to: "/home/Inscriptions", icon: <FormOutlined />, color: "#3b82f6", roles: ["admin", "cup", "chef", "enseignant", "animateur"] },
   { label: "Certificats", to: "/home/certificate", icon: <FileTextOutlined />, color: "#ef4444", roles: ["admin", "cup"] },
   { label: "Évaluations", to: "/home/Evaluations", icon: <StarOutlined />, color: "#ec4899", roles: ["admin", "cup", "chef", "enseignant", "animateur"] },
@@ -85,22 +79,24 @@ function SectionHeader({
   );
 }
 
-export default function ExecutiveDashboard({ role }: ExecutiveDashboardProps) {
+export default function ExecutiveDashboard({ role: roleProp }: ExecutiveDashboardProps) {
   const qc = useQueryClient();
   const { user } = useAuth();
   const { exporting, exportExcel } = useAnalyticsExport();
   const [rangeKey, setRangeKey] = useState<DashboardRangeKey>("12m");
   const [refreshing, setRefreshing] = useState(false);
 
+  const roleKey = normalizeRole(user?.role ?? roleProp);
+
   const scope = useMemo<DashboardScope>(() => {
     const { start, end } = rangeToDates(rangeKey);
-    const isAdmin = role === "admin";
+    const isAdmin = roleKey === "admin";
     return {
-      role, isAdmin, isCup: !isAdmin,
+      role: roleKey, isAdmin, isCup: roleKey === "cup",
       isEnseignant: false, isAnimateur: false,
       start, end, rangeKey,
     };
-  }, [role, rangeKey]);
+  }, [roleKey, rangeKey]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -114,11 +110,10 @@ export default function ExecutiveDashboard({ role }: ExecutiveDashboardProps) {
 
   const navigate = useNavigate();
   const greet = greeting();
-  const roleKey = String(user?.role ?? role).toLowerCase().replace(/^role_?/, "").replaceAll(/[\s_-]+/g, "");
-  const roleStyle = roleColors[roleKey] ?? roleColors[role] ?? { color: brand[500], bg: brand[50], label: "Utilisateur" };
+  const displayRoleStyle = roleColors[roleKey] ?? { color: brand[500], bg: brand[50], label: "Utilisateur" };
   const displayName = user?.username ?? user?.email ?? "Utilisateur";
   const todayLabel = dayjs().format("dddd D MMMM YYYY");
-  const visibleLinks = QUICK_LINKS.filter((l) => l.roles.includes(roleKey) || l.roles.includes(role));
+  const visibleLinks = QUICK_LINKS.filter((l) => l.roles.includes(roleKey));
 
   return (
     <div className="dash-container">
@@ -129,8 +124,8 @@ export default function ExecutiveDashboard({ role }: ExecutiveDashboardProps) {
           <div className="dash-hero-left">
             <div className="dash-hero-eyebrow">
               <ThunderboltOutlined /> Plateforme D2F
-              <Tag className="dash-hero-role" style={{ color: roleStyle.color, background: roleStyle.bg, borderColor: "transparent" }}>
-                {roleStyle.label}
+              <Tag className="dash-hero-role" style={{ color: displayRoleStyle.color, background: displayRoleStyle.bg, borderColor: "transparent" }}>
+                {displayRoleStyle.label}
               </Tag>
             </div>
             <h1 className="dash-hero-title">
@@ -155,9 +150,6 @@ export default function ExecutiveDashboard({ role }: ExecutiveDashboardProps) {
                 <Tooltip title="Formations">
                   <Button className="dash-hero-btn" icon={<BookOutlined />} onClick={() => navigate("/home/Formation")} />
                 </Tooltip>
-                <Button type="primary" className="dash-hero-cta" icon={<LineChartOutlined />} onClick={() => navigate("/home/AnalysePredictive")}>
-                  Analytique
-                </Button>
               </Space>
             </div>
           </div>

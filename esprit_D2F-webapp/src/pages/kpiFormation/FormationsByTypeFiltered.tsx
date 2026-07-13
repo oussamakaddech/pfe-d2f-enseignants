@@ -18,6 +18,7 @@ import {
 import useAppNotification from "@/hooks/ui/useAppNotification";
 import { useDepartements, useUps } from "@/hooks/formation";
 import { useKpiFormationsByTypeFilteredMutation } from "@/hooks/kpi";
+import type { FormationsByType } from "@/models/analyse/kpi";
 
 const { RangePicker } = DatePicker;
 const { Option } = Select;
@@ -55,7 +56,7 @@ export default function FormationsByTypeFiltered() {
     domaine: null, upId: null, deptId: null,
     ouverte: null, start: null, end: null, etat: null,
   });
-  const [dataByType, setDataByType] = useState<Record<string, unknown> | null>(null);
+  const [dataByType, setDataByType] = useState<FormationsByType | null>(null);
   const [drawerVisible, setDrawerVisible] = useState(false);
 
   const { data: deptsRaw = [], isLoading: loadingDepts } = useDepartements();
@@ -133,7 +134,7 @@ export default function FormationsByTypeFiltered() {
               <div className="kpi-type-icon">{icon}</div>
               <div className="kpi-type-meta">
                 <div className="kpi-type-name">{label}</div>
-                <div className="kpi-type-value">{String(dataByType[key] ?? 0)}</div>
+                <div className="kpi-type-value">{String(dataByType[key as keyof FormationsByType] ?? 0)}</div>
                 <div className="kpi-type-sub">{sub}</div>
               </div>
             </div>

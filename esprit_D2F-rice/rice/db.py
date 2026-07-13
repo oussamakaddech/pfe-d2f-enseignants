@@ -151,7 +151,7 @@ def _fetch_all_enseignants_info() -> Dict[str, EnseignantInfo]:
         _ENS_INFO_CACHE.set("all", info_map)
         return info_map
     except Exception as e:
-        logger.error("Failed to fetch enseignants info: %s", e)
+        logger.exception("Failed to fetch enseignants info: %s", e)
         stale = _ENS_INFO_CACHE.get("all")
         return stale if stale is not None else {}
 

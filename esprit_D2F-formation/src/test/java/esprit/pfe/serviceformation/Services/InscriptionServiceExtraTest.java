@@ -17,8 +17,9 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import java.sql.Time;
+import java.time.LocalTime;
 import java.time.LocalDate;
+import java.time.Month;
 import java.util.*;
 
 import static org.assertj.core.api.Assertions.*;
@@ -448,8 +449,8 @@ class InscriptionServiceExtraTest {
         void shouldResolveByIdAndReturnSummaries() {
             Enseignant e = createEnseignant("E1", null);
             Formation f = createFormation(1L, true, true);
-            f.setDateDebut(java.sql.Date.valueOf(LocalDate.of(2025, 3, 1)));
-            f.setDateFin(java.sql.Date.valueOf(LocalDate.of(2025, 3, 5)));
+            f.setDateDebut(LocalDate.of(2025, Month.MARCH, 1));
+            f.setDateFin(LocalDate.of(2025, Month.MARCH, 5));
             f.setEtatFormation(EtatFormation.PLANIFIE);
 
             Inscription ins = createInscription(10L, f, e, EtatInscription.APPROVED);
@@ -526,8 +527,8 @@ class InscriptionServiceExtraTest {
         void shouldReturnPaginatedSummaries() {
             Enseignant e = createEnseignant("E1", null);
             Formation f = createFormation(1L, true, true);
-            f.setDateDebut(java.sql.Date.valueOf(LocalDate.of(2025, 6, 1)));
-            f.setDateFin(java.sql.Date.valueOf(LocalDate.of(2025, 6, 10)));
+            f.setDateDebut(LocalDate.of(2025, Month.JUNE, 1));
+            f.setDateFin(LocalDate.of(2025, Month.JUNE, 10));
             f.setEtatFormation(EtatFormation.EN_COURS);
 
             Inscription ins = createInscription(1L, f, e, EtatInscription.PENDING);
@@ -732,8 +733,8 @@ class InscriptionServiceExtraTest {
         @DisplayName("pas de chevauchement quand l'inscription existante a des dates nulles")
         void shouldNotOverlapWhenExistingDatesNull() {
             Formation fTarget = createFormation(1L, true, true);
-            fTarget.setDateDebut(java.sql.Date.valueOf(LocalDate.of(2025, 6, 1)));
-            fTarget.setDateFin(java.sql.Date.valueOf(LocalDate.of(2025, 6, 10)));
+            fTarget.setDateDebut(LocalDate.of(2025, Month.JUNE, 1));
+            fTarget.setDateFin(LocalDate.of(2025, Month.JUNE, 10));
 
             Formation fExisting = createFormation(2L, true, true);
             fExisting.setDateDebut(null);
@@ -762,8 +763,8 @@ class InscriptionServiceExtraTest {
             fTarget.setDateFin(null);
 
             Formation fExisting = createFormation(2L, true, true);
-            fExisting.setDateDebut(java.sql.Date.valueOf(LocalDate.of(2025, 6, 1)));
-            fExisting.setDateFin(java.sql.Date.valueOf(LocalDate.of(2025, 6, 10)));
+            fExisting.setDateDebut(LocalDate.of(2025, Month.JUNE, 1));
+            fExisting.setDateFin(LocalDate.of(2025, Month.JUNE, 10));
 
             Enseignant e = createEnseignant("E1", null);
 
@@ -849,9 +850,9 @@ class InscriptionServiceExtraTest {
         void shouldMapAllFields() {
             SeanceFormation s = new SeanceFormation();
             s.setIdSeance(42L);
-            s.setDateSeance(java.sql.Date.valueOf(LocalDate.of(2025, 7, 1)));
-            s.setHeureDebut(Time.valueOf("09:00:00"));
-            s.setHeureFin(Time.valueOf("12:00:00"));
+            s.setDateSeance(LocalDate.of(2025, Month.JULY, 1));
+            s.setHeureDebut(LocalTime.of(9, 0));
+            s.setHeureFin(LocalTime.of(12, 0));
             s.setSalle("A101");
             s.setOnlineMeetingUrl("https://meet.example.com/abc");
             s.setContenus("Contenu de test");

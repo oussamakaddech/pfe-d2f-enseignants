@@ -6,6 +6,8 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
@@ -80,7 +82,7 @@ public class UserDetailsImpl implements UserDetails {
 
 	@Override
 	public boolean isAccountNonLocked() {
-		return lockUntil == null || lockUntil.isBefore(java.time.LocalDateTime.now());
+		return lockUntil == null || lockUntil.isBefore(LocalDateTime.now(ZoneId.systemDefault()));
 	}
 
 	@Override

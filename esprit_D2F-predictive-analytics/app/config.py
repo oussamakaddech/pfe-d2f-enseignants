@@ -50,8 +50,8 @@ class Settings(BaseSettings):
 
     # ── Feature Engineering ──────────────────────
     prediction_horizon_months: int = Field(default=6, alias="PREDICTION_HORIZON_MONTHS")
-    min_training_samples: int = Field(default=50, alias="MIN_TRAINING_SAMPLES")
-    cv_folds: int = Field(default=5, alias="CV_FOLDS")
+    min_training_samples: int = Field(default=30, alias="MIN_TRAINING_SAMPLES")
+    cv_folds: int = Field(default=3, alias="CV_FOLDS")
 
     # ── Gap Detection Thresholds ─────────────────
     seuil_gap_critique: float = Field(default=0.75, alias="SEUIL_GAP_CRITIQUE")
@@ -69,6 +69,9 @@ class Settings(BaseSettings):
     inactivite_window_mois: int = Field(default=24, alias="INACTIVITE_WINDOW_MOIS")
     # Nombre max de lignes exportables en une fois (garde-fou mémoire export).
     export_max_rows: int = Field(default=10000, alias="EXPORT_MAX_ROWS")
+
+    # ── Pipeline Timeout ─────────────────────────
+    analytics_pipeline_timeout_s: int = Field(default=120, alias="ANALYTICS_PIPELINE_TIMEOUT_S")
 
     # ── Risk Detection ───────────────────────────
     risk_gap_threshold: float = Field(default=2.0, alias="RISK_GAP_THRESHOLD")
@@ -115,6 +118,19 @@ class Settings(BaseSettings):
     @property
     def is_production(self) -> bool:
         return self.app_env.lower() == "production"
+
+    @field_validator("jwt_secret")
+    @classmethod
+    def _jwt_secret_required_in_prod(cls, v):
+        """P0-1 — fail fast if JWT secret is missing in production."""
+        import os
+        env = os.getenv("APP_ENV", "development").lower()
+        if env == "production" and (not v or not v.strip()):
+            raise ValueError(
+                "JWT_SECRET is required in production. "
+                "Set it via env var or .env file."
+            )
+        return v
 
     @field_validator("database_url")
     @classmethod

@@ -34,8 +34,15 @@ class GapPredictionResponse(BaseModel):
     prediction_date: date
     horizon_months: int
     gaps: list[CompetencyGap]
-    overall_risk_score: float
+    # Moyenne des écarts de compétence prédits (échelle 0–5, normalisée), et NON
+    # un score de risque normalisé [0,1]. Renommé depuis ``overall_risk_score``
+    # (P0-1) pour lever l'ambiguïté avec ``teacher_risk_profiles.score_risque``
+    # (échelle 0–1). L'alias préserve la compatibilité ascendante.
+    avg_predicted_gap: float
+    overall_risk_score: float = Field(default=..., alias="avg_predicted_gap", deprecated=True)
     explanation: dict[str, Any]
+
+    model_config = {"populate_by_name": True}
 
 
 class PathRecommendationRequest(BaseModel):
@@ -112,10 +119,13 @@ class TeacherRiskIndicator(BaseModel):
     attrition_risk_score: float = 0.0
     disengagement_signals: list[str] = []
     competency_stagnation_rate: float = 0.0
-    training_velocity: float = 0.0
+    training_velocity: Optional[float] = None
     recommendation: str = "OK"
     email: Optional[str] = None
     department: Optional[str] = None
+    computed_at: Optional[str] = None
+    algorithm_version: str = "v2-pipeline"
+    data_quality: Optional[dict[str, str]] = None
 
     model_config = {"extra": "ignore"}
 
@@ -146,3 +156,69 @@ class BatchRecommendationRequest(BaseModel):
     teacher_ids: Optional[list[str]] = Field(default=None)
     departement_id: Optional[str] = Field(default=None)
     top_n: int = Field(default=20, ge=1, le=100)
+
+
+# ── Impact des formations & simulation what-if ──
+
+class FormationImpactRow(BaseModel):
+    formation_id: int
+    formation_titre: str = ""
+    formation_type: Optional[str] = None
+    nb_enseignants: int = 0
+    gain_niveau_moyen: float = 0.0
+    niveau_moyen_avant: float = 0.0
+    niveau_moyen_apres: float = 0.0
+
+
+class TrainingImpactResponse(BaseModel):
+    """Agrégats historiques de l'impact réel des formations suivies."""
+    nb_enseignants_suivis: int = 0
+    nb_chemins_termines: int = 0
+    nb_formations_suivies: int = 0
+    gain_niveau_moyen: float = 0.0
+    reduction_risque_moyenne: float = 0.0
+    nb_risque_reduit: int = 0
+    nb_risque_augmente: int = 0
+
+
+class TrainingImpactTopFormationsResponse(BaseModel):
+    total: int
+    page: int
+    size: int
+    formations: list[FormationImpactRow] = []
+
+
+class WhatIfAction(BaseModel):
+    competence_id: int = Field(..., description="Compétence cible par la formation")
+    niveau_vise: int = Field(..., ge=1, le=5, description="Niveau visé après formation")
+    formation_id: Optional[int] = Field(default=None, description="Formation projetée (lien visuel)")
+
+
+class WhatIfRequest(BaseModel):
+    enseignant_id: str = Field(..., description="Enseignant à simuler")
+    plan: list[WhatIfAction] = Field(..., min_length=1, description="Plan de formations projeté")
+    horizon_mois: int = Field(default=6, ge=1, le=24)
+
+
+class WhatIfDetail(BaseModel):
+    competence_id: int
+    formation_id: Optional[int] = None
+    niveau_actuel: int
+    niveau_requis: int
+    niveau_vise: int
+    gap_avant: float
+    gap_apres: float
+    urgence_apres: str
+    resolu: bool
+
+
+class WhatIfResponse(BaseModel):
+    enseignant_id: str
+    horizon_mois: int
+    risk_before: dict[str, Any]
+    risk_after: dict[str, Any]
+    risk_reduction: float
+    nb_gaps_before: int
+    nb_gaps_after: int
+    nb_gaps_resolus: int
+    details: list[WhatIfDetail] = []

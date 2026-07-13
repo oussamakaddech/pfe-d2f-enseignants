@@ -12,7 +12,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
-import java.sql.Time;
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.*;
 
 @Service
@@ -39,9 +40,9 @@ public class SeanceService {
      */
     private boolean canSchedule(
             String userId,
-            Date date,
-            Time debut,
-            Time fin,
+            LocalDate date,
+            LocalTime debut,
+            LocalTime fin,
             boolean isAnimateur,
             Long ignoreSeanceId
     ) {
@@ -55,7 +56,7 @@ public class SeanceService {
                 : seanceRepo.findByParticipantAndDate(userId, date);
 
         // 2) Construire un TreeMap<heureDébut, heureFin>
-        TreeMap<Time, Time> calendar = new TreeMap<>();
+        TreeMap<LocalTime, LocalTime> calendar = new TreeMap<>();
         for (SeanceFormation s : existantes) {
             if (ignoreSeanceId != null && ignoreSeanceId.equals(s.getIdSeance())) {
                 continue;
@@ -64,11 +65,11 @@ public class SeanceService {
         }
 
         // 3) Test « voisin du bas »
-        Map.Entry<Time, Time> prev = calendar.floorEntry(debut);
-        Map.Entry<Time, Time> next = calendar.ceilingEntry(debut);
+        Map.Entry<LocalTime, LocalTime> prev = calendar.floorEntry(debut);
+        Map.Entry<LocalTime, LocalTime> next = calendar.ceilingEntry(debut);
 
-        return (prev == null || !prev.getValue().after(debut)) 
-            && (next == null || !next.getKey().before(fin));
+        return (prev == null || !prev.getValue().isAfter(debut))
+            && (next == null || !next.getKey().isBefore(fin));
     }
 
     /**
@@ -79,9 +80,9 @@ public class SeanceService {
 
     public SeanceDTO createSeance(SeanceDTO dto) {
         SeanceFormation entity = mapDtoToEntity(dto);
-        Date date = entity.getDateSeance();
-        Time debut = entity.getHeureDebut();
-        Time fin   = entity.getHeureFin();
+        LocalDate date = entity.getDateSeance();
+        LocalTime debut = entity.getHeureDebut();
+        LocalTime fin   = entity.getHeureFin();
 
         // 1) Animateurs : on bloque la création si l'un d'eux n'est pas libre
         for (Enseignant anim : entity.getAnimateurs()) {
@@ -162,9 +163,9 @@ public class SeanceService {
         existing.setAnimateurs(newAnim);
 
         // 3) Bloquer si animateur en conflit (en ignorant cette séance)
-        Date date = existing.getDateSeance();
-        Time debut = existing.getHeureDebut();
-        Time fin   = existing.getHeureFin();
+        LocalDate date = existing.getDateSeance();
+        LocalTime debut = existing.getHeureDebut();
+        LocalTime fin   = existing.getHeureFin();
         for (Enseignant anim : newAnim) {
             if (!canSchedule(anim.getId(), date, debut, fin, true, id)) {
                 throw new IllegalArgumentException(

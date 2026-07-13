@@ -40,6 +40,8 @@ export type ConnectionStatus = "connecting" | "open" | "closed" | "mock";
 
 /** Contrat d'entrée pour créer/pousser une notification (sans id/état interne). */
 export interface NotificationPayload {
+  /** Destinataire explicite (username/email) — requis pour la création côté serveur. */
+  recipient?: string;
   type: NotificationCategory;
   severity: NotificationSeverity;
   title: string;
@@ -57,6 +59,8 @@ export interface NotificationSocketMessage {
   severity: NotificationSeverity;
   title: string;
   message: string;
+  read?: boolean;
+  recipient?: string;
   link?: string;
   actor?: string;
   meta?: Record<string, unknown>;

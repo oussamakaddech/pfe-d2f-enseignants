@@ -23,6 +23,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 
 /**
@@ -85,7 +86,7 @@ public class SkillPassportController {
 
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION,
-                        "attachment; filename=\"skill-passport-" + username + "-" + LocalDate.now().format(DATE_FMT) + ".pdf\"")
+                        "attachment; filename=\"skill-passport-" + username + "-" + LocalDate.now(ZoneId.systemDefault()).format(DATE_FMT) + ".pdf\"")
                 .contentType(MediaType.APPLICATION_PDF)
                 .body(pdf);
     }
@@ -125,7 +126,7 @@ public class SkillPassportController {
 
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION,
-                        "attachment; filename=\"skill-passport-" + username + "-" + LocalDate.now().format(DATE_FMT) + ".pdf\"")
+                        "attachment; filename=\"skill-passport-" + username + "-" + LocalDate.now(ZoneId.systemDefault()).format(DATE_FMT) + ".pdf\"")
                 .contentType(MediaType.APPLICATION_PDF)
                 .body(pdf);
     }

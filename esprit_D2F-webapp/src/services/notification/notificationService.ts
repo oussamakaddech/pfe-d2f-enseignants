@@ -1,53 +1,93 @@
 /**
  * notificationService.ts — Source de vérité REST pour les notifications réelles.
  *
- * Le backend ne expose pas de WebSocket dédié aux notifications frontend ; en
- * revanche, le pipeline analytics produit de vraies alertes (dashboard global →
- * `alertes_recentes`). Ce service les récupère et les mappe vers le modèle
- * `AppNotification`, afin que le centre de notifications affiche des données
- * réelles plutôt que des messages simulés.
+ * Le service `notification-service` (microservice dédié, exposé via la gateway
+ * sur /api/notifications) persiste de vraies notifications (issues des
+ * événements métier RabbitMQ et de l'amorçage) et les pousse en temps réel via
+ * WebSocket. Ce service consomme ces données réelles — aucune donnée simulée.
  */
-import AnalyticsService from "@/services/analyse/AnalyticsService";
+import { defaultApi as axios } from "@/services/httpClient";
+import { config } from "@/config/env";
 import type {
-  AppNotification, NotificationCategory, NotificationSeverity,
+  AppNotification, NotificationCategory, NotificationPayload, NotificationSeverity,
 } from "@/models/notification";
 
-const ALERT_TYPE_TO_CATEGORY: Record<string, NotificationCategory> = {
-  GAP_CRITIQUE: "COMPETENCE",
-  STAGNATION: "COMPETENCE",
-  REGRESSION: "COMPETENCE",
-  TENDANCE_DEPARTEMENT: "COMPETENCE",
-  COMPLETION_FAIBLE: "FORMATION",
-  BESOIN_NON_COUVERT: "BESOIN",
+const BASE = `${config.NOTIFICATION_URL}/notifications`;
+
+/** Mappe la réponse du backend (NotificationResponse) vers le modèle front. */
+function toApp(n: Record<string, unknown>): AppNotification {
+  const severity = String(n.severity ?? "INFO").toLowerCase() as NotificationSeverity;
+  return {
+    id: String(n.id),
+    type: String(n.type) as NotificationCategory,
+    severity,
+    title: String(n.title ?? ""),
+    message: String(n.message ?? ""),
+    read: Boolean(n.read),
+    createdAt: n.createdAt ? String(n.createdAt) : new Date().toISOString(),
+    link: n.link ? String(n.link) : undefined,
+    actor: n.actor ? String(n.actor) : undefined,
+    meta: (n.meta as Record<string, unknown>) ?? undefined,
+  };
+}
+
+interface PageResponse {
+  content: Record<string, unknown>[];
+  totalElements: number;
+  totalPages: number;
+  number: number;
+}
+
+export const notificationService = {
+  /** Liste les notifications de l'utilisateur authentifié (plus récentes d'abord). */
+  async list(opts: { unreadOnly?: boolean; page?: number; size?: number } = {}): Promise<AppNotification[]> {
+    const { unreadOnly = false, page = 0, size = 100 } = opts;
+    const res = await axios.get<PageResponse>(BASE, {
+      params: { unreadOnly, page, size },
+    });
+    return (res.data.content ?? []).map(toApp);
+  },
+
+  /** Nombre de notifications non lues (badge). */
+  async getUnreadCount(): Promise<number> {
+    const res = await axios.get<{ total: number; unread: number }>(`${BASE}/count`);
+    return res.data.unread ?? 0;
+  },
+
+  /** Marque une notification comme lue (côté serveur). */
+  async markAsRead(id: string): Promise<void> {
+    await axios.patch<void>(`${BASE}/${id}/read`);
+  },
+
+  /** Marque toutes les notifications comme lues. */
+  async markAllAsRead(): Promise<void> {
+    await axios.post<void>(`${BASE}/read-all`);
+  },
+
+  /** Supprime une notification. */
+  async remove(id: string): Promise<void> {
+    await axios.delete<void>(`${BASE}/${id}`);
+  },
+
+  /** Supprime toutes les notifications de l'utilisateur. */
+  async clearAll(): Promise<void> {
+    await axios.delete<void>(BASE);
+  },
+
+  /** Crée une notification (admin / outil d'amorçage de données réelles). */
+  async create(payload: NotificationPayload): Promise<AppNotification> {
+    const res = await axios.post<Record<string, unknown>>(BASE, {
+      recipient: payload.recipient,
+      type: payload.type,
+      severity: payload.severity?.toUpperCase(),
+      title: payload.title,
+      message: payload.message,
+      link: payload.link,
+      actor: payload.actor,
+      meta: payload.meta,
+    } as Record<string, unknown>);
+    return toApp(res.data);
+  },
 };
 
-function mapSeverity(s?: string): NotificationSeverity {
-  switch ((s ?? "").toUpperCase()) {
-    case "CRITICAL": return "error";
-    case "WARNING": return "warning";
-    default: return "info";
-  }
-}
-
-/** Récupère les alertes réelles du backend et les mappe en notifications. */
-export async function fetchRealNotifications(limit = 20): Promise<AppNotification[]> {
-  try {
-    const data = await AnalyticsService.getDashboardGlobal();
-    return (data.alertes_recentes ?? [])
-      .slice(0, limit)
-      .map((a) => ({
-        id: `alert-${a.id}`,
-        type: ALERT_TYPE_TO_CATEGORY[a.type_alerte] ?? "SYSTEM",
-        severity: mapSeverity(a.severite),
-        title: a.titre,
-        message: a.enseignant_id ? `Concerne l'enseignant ${a.enseignant_id}` : "Alerte système",
-        read: false,
-        createdAt: a.created_at,
-        link: "/home/AnalysePredictive",
-        actor: a.enseignant_id ? "Analyse prédictive" : "Système",
-      }));
-  } catch {
-    // Backend indisponible → pas de données simulées.
-    return [];
-  }
-}
+export default notificationService;

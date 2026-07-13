@@ -12,7 +12,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.sql.Time;
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.*;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -40,11 +41,8 @@ class FormationWorkflowServiceHelperTest {
     void setUp() {
         formation = new Formation();
         formation.setIdFormation(1L);
-        formation.setDateDebut(new Date());
-        
-        Calendar cal = Calendar.getInstance();
-        cal.add(Calendar.DAY_OF_MONTH, 5);
-        formation.setDateFin(cal.getTime());
+        formation.setDateDebut(LocalDate.now());
+        formation.setDateFin(LocalDate.now().plusDays(5));
 
         request = new FormationWorkflowRequest();
         request.setIdBesoinFormation(100L);
@@ -74,8 +72,8 @@ class FormationWorkflowServiceHelperTest {
     @Test
     @DisplayName("parseTime - Devrait parser correctement")
     void shouldParseTime() {
-        Time time1 = helper.parseTime("09:00");
-        assertThat(time1).hasToString("09:00:00");
+        LocalTime time1 = helper.parseTime("09:00");
+        assertThat(time1).hasToString("09:00");
 
         assertThrows(IllegalArgumentException.class, () -> helper.parseTime("invalid"));
         assertThrows(IllegalArgumentException.class, () -> helper.parseTime(null));
@@ -105,7 +103,7 @@ class FormationWorkflowServiceHelperTest {
     void shouldEnsureNoConflict_whenNoConflict() {
         when(seanceFormationRepository.existsSeanceConflict(anyString(), any(), any(), any())).thenReturn(false);
 
-        helper.ensureNoConflict("USER1", new Date(), new Time(0), new Time(1), false, null, 1L);
+        helper.ensureNoConflict("USER1", LocalDate.now(), LocalTime.of(0, 0), LocalTime.of(1, 0), false, null, 1L);
         verify(seanceFormationRepository).existsSeanceConflict(anyString(), any(), any(), any());
     }
 
@@ -116,9 +114,9 @@ class FormationWorkflowServiceHelperTest {
         
         SeanceFormation existing = new SeanceFormation();
         existing.setIdSeance(99L);
-        existing.setHeureDebut(Time.valueOf("09:00:00"));
-        existing.setHeureFin(Time.valueOf("11:00:00"));
-        existing.setDateSeance(new Date());
+        existing.setHeureDebut(LocalTime.of(9, 0));
+        existing.setHeureFin(LocalTime.of(11, 0));
+        existing.setDateSeance(LocalDate.now());
         Formation f = new Formation();
         f.setIdFormation(2L);
         f.setTitreFormation("Existing Formation");
@@ -130,9 +128,9 @@ class FormationWorkflowServiceHelperTest {
         e.setNom("Ben"); e.setPrenom("Ali"); e.setMail("test@test.tn");
         when(enseignantRepository.findById("USER1")).thenReturn(Optional.of(e));
 
-        Time startTime = Time.valueOf("09:30:00");
-        Time endTime = Time.valueOf("10:30:00");
-        Date date = new Date();
+        LocalTime startTime = LocalTime.of(9, 30);
+        LocalTime endTime = LocalTime.of(10, 30);
+        LocalDate date = LocalDate.now();
         assertThrows(IllegalStateException.class,
             () -> helper.ensureNoConflict("USER1", date, startTime, endTime, false, null, 1L));
     }
@@ -162,10 +160,7 @@ class FormationWorkflowServiceHelperTest {
     @DisplayName("createSeancesForFormation - Échec si date hors plage")
     void shouldFailWhenSeanceDateOutOfRange() {
         FormationWorkflowRequest.SeanceRequest sr = new FormationWorkflowRequest.SeanceRequest();
-        Calendar cal = Calendar.getInstance();
-        cal.setTime(formation.getDateDebut());
-        cal.add(Calendar.DAY_OF_MONTH, -1);
-        sr.setDateSeance(cal.getTime());
+        sr.setDateSeance(formation.getDateDebut().minusDays(1));
 
         List<FormationWorkflowRequest.SeanceRequest> seanceRequests = List.of(sr);
         List<String> emptyList = List.of();
@@ -206,8 +201,8 @@ class FormationWorkflowServiceHelperTest {
     @Test
     @DisplayName("convertToOffsetDateTime - Succès")
     void shouldConvertToOffsetDateTime() {
-        Date d = new Date();
-        Time t = Time.valueOf("09:00:00");
+        LocalDate d = LocalDate.now();
+        LocalTime t = LocalTime.of(9, 0);
         
         java.time.OffsetDateTime odt = helper.convertToOffsetDateTime(d, t);
         
@@ -219,9 +214,9 @@ class FormationWorkflowServiceHelperTest {
     @DisplayName("convertToOffsetDateTime - Échec si date ou heure null")
     @SuppressWarnings("java:S5778")
     void shouldRejectNullDateOrTime() {
-        Time t = Time.valueOf("09:00:00");
+        LocalTime t = LocalTime.of(9, 0);
 
         assertThrows(IllegalArgumentException.class, () -> helper.convertToOffsetDateTime(null, t));
-        assertThrows(IllegalArgumentException.class, () -> helper.convertToOffsetDateTime(new Date(), null));
+        assertThrows(IllegalArgumentException.class, () -> helper.convertToOffsetDateTime(LocalDate.now(), null));
     }
 }

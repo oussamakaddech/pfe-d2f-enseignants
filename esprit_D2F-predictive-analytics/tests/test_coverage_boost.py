@@ -148,26 +148,36 @@ class TestAllRouterDetect:
                 app.dependency_overrides.clear()
 
     def test_detect_at_risk_with_dept_filter(self, client: TestClient):
+        from unittest.mock import MagicMock
+        from app.models.db_models import TeacherRiskProfile
         mock_db = make_mock_db()
         app.dependency_overrides[get_db] = lambda: mock_db
-        with patch("app.routers.all.DataService") as MockDS:
-            MockDS.return_value.get_teacher_profile.return_value = [
-                {"enseignant_id": "E001", "nom": "Test", "prenom": "User",
-                 "departement_id": "GC", "email": "t@e.tn",
-                 "days_since_last_training": 100, "taux_assiduite": 0.8,
-                 "nb_formations_completed": 1, "nb_besoins_exprimes": 1},
-                {"enseignant_id": "E002", "nom": "Other", "prenom": "Prof",
-                 "departement_id": "INFO", "email": "o@e.tn",
-                 "days_since_last_training": 50, "taux_assiduite": 0.9,
-                 "nb_formations_completed": 3, "nb_besoins_exprimes": 2},
-            ]
-            try:
-                resp = client.get("/api/detect/at-risk-teachers?deptId=GC")
-                assert resp.status_code == 200
-                data = resp.json()
-                assert data["total_teachers"] == 1
-            finally:
-                app.dependency_overrides.clear()
+        # db.execute: (1) COUNT(*) enseignants, (2) SELECT id WHERE dept_id=GC
+        mock_db.execute.side_effect = [
+            MagicMock(scalar=lambda: 2),
+            MagicMock(fetchall=lambda: [("E001",)]),
+            MagicMock(fetchall=lambda: [("E001", "Nom", "Prenom", "mail@e.tn", "GC")]),
+        ]
+        # db.query(TeacherRiskProfile).filter(...).order_by(...).all()
+        prof = MagicMock()
+        prof.enseignant_id = "E001"
+        prof.score_risque = 0.7
+        prof.nb_gaps_critiques = 1
+        prof.facteurs_risque = {"factors": {"no_training": 0.5, "stagnation": 0.2,
+                                       "unmet_needs": 0.1}}
+        q = MagicMock()
+        q.filter.return_value = q
+        q.order_by.return_value = q
+        q.all.return_value = [prof]
+        mock_db.query.return_value = q
+        try:
+            resp = client.get("/api/detect/at-risk-teachers?deptId=GC")
+            assert resp.status_code == 200
+            data = resp.json()
+            assert data["total_teachers"] == 2
+            assert data["at_risk_count"] == 1
+        finally:
+            app.dependency_overrides.clear()
 
 
 class TestAllRouterDashboard:
@@ -732,7 +742,7 @@ class TestMessagingConsumer:
              patch("app.messaging.consumer.RABBITMQ_PASSWORD", "pass"), \
              patch("app.messaging.consumer.pika", mock_pika):
             # connect() calls start_consuming() which blocks, so mock it
-            mock_conn.channel.return_value.start_consuming.side_effect = KeyboardInterrupt
+            mock_conn.channel.return_value.start_consuming.return_value = None
             consumer.connect()
             mock_pika.BlockingConnection.assert_called_once()
             assert consumer._reconnect_attempts == 0
@@ -910,7 +920,7 @@ class TestGapPredictorPredict:
              patch("app.ml.gap_predictor.build_gap_labels", return_value=__import__("pandas").DataFrame()):
             result = predictor.predict([], [], [])
             assert "gaps" in result
-            assert "overall_risk_score" in result
+            assert "avg_predicted_gap" in result
 
 
 class TestGapPredictorSaveMetadata:

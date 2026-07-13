@@ -13,7 +13,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
 import java.io.IOException;
-import java.util.Date;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.List;
 
 @Service
@@ -55,7 +56,7 @@ public class DocumentService {
         doc.setPathType(pathType);
         doc.setNomDocument(nomDocument);
         doc.setObligation(obligation);
-        doc.setDate(new Date());
+        doc.setDate(LocalDate.now(ZoneId.systemDefault()));
         doc.setFormation(f);
         doc.setFilePath(url);
 
@@ -107,7 +108,7 @@ public class DocumentService {
 
         doc.setNomDocument(newNomDocument);
         doc.setObligation(obligation);
-        doc.setDate(new Date());
+        doc.setDate(LocalDate.now(ZoneId.systemDefault()));
         return documentRepo.save(doc);
     }
 

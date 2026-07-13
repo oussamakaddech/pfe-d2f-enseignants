@@ -8,7 +8,8 @@ import { useAuth } from "@/hooks/auth/useAuth";
 import { useAddBesoin, useReplaceBesoinCompetences } from "@/hooks/besoin/useBesoins";
 import { useEnseignants } from "@/hooks/enseignant/useEnseignants";
 import { buildActeurOptions } from "@/utils/besoin/acteurs";
-import type { BesoinCompetenceLink } from "@/models/besoin";
+import type { BesoinCompetenceLink, BesoinFormation } from "@/models/besoin";
+import type { Id } from "@/models/common";
 import {
   useCompetenceDomaineApi,
   useCompetenceApi,
@@ -29,6 +30,30 @@ function getErrorMessage(err: unknown): string {
   return backendMsg || (status ? `Le serveur a répondu ${status}.` : null) || (e.message ? `Échec réseau : ${e.message}` : null) || "Erreur lors de l'ajout du besoin";
 }
 import * as XLSX from "xlsx";
+
+type DayjsLike = { format: (f: string) => string };
+
+type BesoinPayloadValues = {
+  idBesoinFormation?: Id;
+  codeBesoin?: string;
+  titre?: string;
+  typeBesoin?: string;
+  description?: string;
+  dateDebut?: DayjsLike;
+  dateFin?: DayjsLike;
+  priorite?: string;
+  impactStrategique?: string;
+  publicCible?: string;
+  estOuverte?: boolean;
+  autresInformations?: string;
+  theme?: string;
+  dureeFormation?: number | string;
+  nbMaxParticipants?: number | string;
+  periodCode?: string;
+  customPeriodLabel?: string;
+  objectifsPedagogiques?: string;
+  methodesEvaluationAcquis?: string;
+};
 
 type ReferentielDomaine    = { id?: string | number; nom?: string };
 type ReferentielCompetence = { id?: string | number; nom?: string; domaineId?: string | number };
@@ -195,16 +220,16 @@ export function useBesoinForm() {
     return `${lines.length} participant(s) — ${preview} ...`;
   };
 
-  function buildPayload(values: Record<string, unknown>) {
+  function buildPayload(values: BesoinPayloadValues) {
     return {
       idBesoinFormation: values.idBesoinFormation,
       codeBesoin:        values.codeBesoin,
       titre:             values.titre,
-      typeBesoin:        values.typeBesoin,
+      typeBesoin:        values.typeBesoin as BesoinFormation["typeBesoin"],
       description:       values.description,
       dateDebut:         values.dateDebut    ? values.dateDebut.format("YYYY-MM-DD")    : undefined,
       dateFin:           values.dateFin    ? values.dateFin.format("YYYY-MM-DD")    : undefined,
-      priorite:          values.priorite,
+      priorite:          values.priorite as BesoinFormation["priorite"],
       impactStrategique: values.impactStrategique,
       publicCible:       (canManageParticipants || values.typeBesoin === "INDIVIDUEL" || values.typeBesoin === "COLLECTIF")
         ? values.publicCible : undefined,
@@ -223,7 +248,7 @@ export function useBesoinForm() {
   const handleSubmit = async () => {
     setSubmitting(true);
     try {
-      const values = form.getFieldsValue(true);
+      const values = form.getFieldsValue(true) as unknown as BesoinPayloadValues;
       const payload = buildPayload(values);
       const created = await addBesoin.mutateAsync(payload);
       const besoinId = created?.idBesoinFormation;

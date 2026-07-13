@@ -15,7 +15,7 @@ from collections import deque
 from contextvars import ContextVar
 from datetime import datetime, timezone
 from statistics import quantiles
-from typing import Optional
+from typing import Any, Optional
 
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
@@ -101,7 +101,7 @@ class TraceIDMiddleware(BaseHTTPMiddleware):
             status_code = response.status_code
         except Exception as exc:
             elapsed = round((time.monotonic() - t_start) * 1000, 1)
-            logger.error(
+            logger.exception(
                 "Unhandled exception | trace=%s method=%s path=%s duration_ms=%s error=%s",
                 trace_id, request.method, path, elapsed, exc,
             )
@@ -159,3 +159,19 @@ def dsi_error_body(
         "path":      path,
         "traceId":   trace_id or get_trace_id(),
     }
+
+
+# ── Helper : KPI safe wrapper ─────────────────────────────────────────────────
+def safe_kpi(name: str, fn, default: Any, _logger=None):
+    """Execute a KPI calculation, catching exceptions to avoid crashing the dashboard.
+
+    A failing KPI (e.g. missing source table) is logged and a default value
+    is returned instead of propagating the exception.
+    """
+    try:
+        return fn()
+    except Exception as exc:  # noqa: BLE001 — résilience volontaire par KPI
+        if _logger is None:
+            _logger = logging.getLogger(__name__)
+        _logger.warning("KPI '%s' indisponible : %s", name, exc)
+        return default

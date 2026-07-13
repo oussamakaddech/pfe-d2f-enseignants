@@ -111,6 +111,7 @@ export interface TrainingPath {
 
 export interface TeacherRiskProfile {
   enseignant_id:    string;
+  teacher_name:     string;
   score_risque:     number;
   niveau_risque:    NiveauRisque;
   tendance:         "PROGRESSION" | "STABLE" | "REGRESSION";

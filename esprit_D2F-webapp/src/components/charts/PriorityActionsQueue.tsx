@@ -4,7 +4,6 @@ import {
 } from "antd";
 import {
   ThunderboltOutlined, UserOutlined, FireOutlined,
-  WarningOutlined, TeamOutlined, CheckCircleOutlined,
 } from "@ant-design/icons";
 import type { ColumnsType } from "antd/es/table";
 import type { PriorityAction } from "@/models/analyse";
@@ -109,22 +108,42 @@ export default function PriorityActionsQueue({
       width: 90,
       align: "center" as const,
       sorter: (a, b) => a.nb_gaps_critiques - b.nb_gaps_critiques,
-      render: (v: number) => (
-        <Tag color={v > 3 ? "red" : v > 0 ? "orange" : "default"}>
-          {v}
-        </Tag>
-      ),
+      render: (v: number) => {
+        let tagColor: string;
+        if (v > 3) {
+          tagColor = "red";
+        } else if (v > 0) {
+          tagColor = "orange";
+        } else {
+          tagColor = "default";
+        }
+        return (
+          <Tag color={tagColor}>
+            {v}
+          </Tag>
+        );
+      },
     },
     {
       title: "Alertes Ouvertes",
       dataIndex: "nb_alertes_ouvertes",
       width: 90,
       align: "center" as const,
-      render: (v: number) => (
-        <Tag color={v > 3 ? "red" : v > 0 ? "orange" : "green"}>
-          {v}
-        </Tag>
-      ),
+      render: (v: number) => {
+        let tagColor: string;
+        if (v > 3) {
+          tagColor = "red";
+        } else if (v > 0) {
+          tagColor = "orange";
+        } else {
+          tagColor = "green";
+        }
+        return (
+          <Tag color={tagColor}>
+            {v}
+          </Tag>
+        );
+      },
     },
     {
       title: "Compétence Prioritaire",

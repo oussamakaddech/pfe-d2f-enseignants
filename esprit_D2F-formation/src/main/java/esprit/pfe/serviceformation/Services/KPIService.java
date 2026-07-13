@@ -10,8 +10,8 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.util.Arrays;
-import java.util.Date;
 import java.util.List;
 
 @Service
@@ -24,19 +24,19 @@ public class KPIService {
     private final DeptRepository deptRepository;
     private final EnseignantRepository enseignantRepository;
 
-    public int countTotalFormations(Date start, Date end) {
+    public int countTotalFormations(LocalDate start, LocalDate end) {
         return formationRepository.countTotalFormations(start, end);
     }
 
-    public int calculateTotalHeures(Date start, Date end) {
+    public int calculateTotalHeures(LocalDate start, LocalDate end) {
         return formationRepository.sumTotalHeures(start, end);
     }
 
-    public int countUniqueParticipants(Date start, Date end) {
+    public int countUniqueParticipants(LocalDate start, LocalDate end) {
         return formationRepository.countUniqueParticipants(start, end);
     }
 
-    public FormationsByEtatDTO getFormationsByEtat(Date start, Date end) {
+    public FormationsByEtatDTO getFormationsByEtat(LocalDate start, LocalDate end) {
         List<Object[]> results = formationRepository.countFormationsByEtat(start, end);
         FormationsByEtatDTO dto = new FormationsByEtatDTO();
         int total = 0;
@@ -58,26 +58,26 @@ public class KPIService {
         return dto;
     }
 
-    public List<EnseignantStatsDTO> getTopParticipants(String upId, String deptId, Date start, Date end) {
+    public List<EnseignantStatsDTO> getTopParticipants(String upId, String deptId, LocalDate start, LocalDate end) {
         validateDates(start, end);
         validateFilters(upId, deptId);
         return presenceRepository.findTopParticipants(upId, deptId, start, end, EtatFormation.ACHEVE);
     }
 
-    public List<EnseignantStatsDTO> getTopAbsentees(String upId, String deptId, Date start, Date end) {
+    public List<EnseignantStatsDTO> getTopAbsentees(String upId, String deptId, LocalDate start, LocalDate end) {
         validateDates(start, end);
         validateFilters(upId, deptId);
         return presenceRepository.findTopAbsentees(upId, deptId, start, end, EtatFormation.ACHEVE);
     }
 
-    public Page<EnseignantDTO> getEnseignantsNonAffectes(Date start, Date end, Pageable pageable) {
+    public Page<EnseignantDTO> getEnseignantsNonAffectes(LocalDate start, LocalDate end, Pageable pageable) {
         List<EnseignantDTO> all = getEnseignantsNonAffectes(start, end);
         int from = (int) pageable.getOffset();
         int to = Math.min(from + pageable.getPageSize(), all.size());
         return new PageImpl<>(from >= all.size() ? List.of() : all.subList(from, to), pageable, all.size());
     }
 
-    public List<EnseignantDTO> getEnseignantsNonAffectes(Date start, Date end) {
+    public List<EnseignantDTO> getEnseignantsNonAffectes(LocalDate start, LocalDate end) {
         return enseignantRepository.findEnseignantsNonAffectesSurPeriode(start, end)
                 .stream()
                 .map(this::mapEnseignantToDTO)
@@ -127,8 +127,8 @@ public class KPIService {
         );
     }
 
-    private void validateDates(Date start, Date end) {
-        if (start != null && end != null && start.after(end)) {
+    private void validateDates(LocalDate start, LocalDate end) {
+        if (start != null && end != null && start.isAfter(end)) {
             throw new IllegalArgumentException("La date de début doit être antérieure ou égale à la date de fin.");
         }
     }

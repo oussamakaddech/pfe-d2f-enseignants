@@ -21,8 +21,9 @@ import {
   TeamOutlined,
   ExportOutlined,
   WarningOutlined,
+  CheckCircleOutlined,
 } from "@ant-design/icons";
-import type { ColumnsType } from "antd/es/table";
+import type { AxiosError } from "axios";
 import { useAppNotification } from "@/hooks/ui/useAppNotification";
 import { useAuth } from "@/hooks/auth/useAuth";
 import { isAdmin } from "@/utils/constants/roles";
@@ -34,7 +35,6 @@ import {
 } from "@/hooks/formation/useCalendar";
 import {
   CalendarFileUpload,
-  ImportErrorsTable,
   ImportResultSummary,
   ConflictsTable,
   CalendarFormationsTable,
@@ -46,7 +46,7 @@ const { Title, Text, Paragraph } = Typography;
 
 export default function CalendrierGestionPage() {
   const { user } = useAuth();
-  const { notificationApi } = useAppNotification();
+  const { notification } = useAppNotification();
   const admin = isAdmin(user?.role);
 
   const [file, setFile] = useState<File | null>(null);
@@ -94,9 +94,10 @@ export default function CalendrierGestionPage() {
             conflicts.refetch();
             message.success("Import terminé avec succès");
           },
-          onError: (err) => {
-            if (err.response?.status === 409) {
-              notificationApi.warning({
+          onError: (err: unknown) => {
+            const axiosErr = err as AxiosError;
+            if (axiosErr.response?.status === 409) {
+              notification.warning({
                 message: "Conflits détectés",
                 description:
                   "Des doublons ont été trouvés. Utilisez « Forcer l'import » pour ignorer.",
@@ -108,7 +109,7 @@ export default function CalendrierGestionPage() {
         }
       );
     },
-    [importMutation, notificationApi, formations, conflicts]
+    [importMutation, notification, formations, conflicts]
   );
 
   const handleReset = useCallback(() => {
@@ -214,45 +215,51 @@ export default function CalendrierGestionPage() {
         <Card className="cal-stat-card cal-stat-card--participants" bordered={false}>
           <Statistic
             title={<span className="cal-stat-label">Participants</span>}
-            value={report?.participantsCount ?? "—"}
+            value={report?.participantsImported ?? "—"}
             prefix={<TeamOutlined className="cal-stat-icon cal-stat-icon--participants" />}
             valueStyle={{ color: "#722ed1" }}
           />
         </Card>
         <Card className="cal-stat-card cal-stat-card--status" bordered={false}>
+          {(() => {
+            let statusIcon: React.ReactNode;
+            if (report?.status === "SUCCESS") {
+              statusIcon = <CheckCircleOutlined style={{ color: "#52c41a" }} />;
+            } else if (report?.status === "PARTIAL") {
+              statusIcon = <WarningOutlined style={{ color: "#fa8c16" }} />;
+            } else if (report) {
+              statusIcon = <InfoCircleOutlined style={{ color: "#ff4d4f" }} />;
+            } else {
+              statusIcon = <span>—</span>;
+            }
+
+            let statusLabel: string;
+            if (!report) {
+              statusLabel = "En attente";
+            } else if (report.status === "SUCCESS") {
+              statusLabel = "Succès";
+            } else if (report.status === "PARTIAL") {
+              statusLabel = "Partiel";
+            } else if (report.status === "FAILED") {
+              statusLabel = "Échoué";
+            } else if (report.status === "DUPLICATE") {
+              statusLabel = "Doublon";
+            } else {
+              statusLabel = "—";
+            }
+
+            return (
           <Statistic
             title={<span className="cal-stat-label">Statut Import</span>}
-            value={
-              report ? (
-                report.status === "SUCCESS" ? (
-                  <CheckCircleOutlined style={{ color: "#52c41a" }} />
-                ) : report.status === "PARTIAL" ? (
-                  <WarningOutlined style={{ color: "#fa8c16" }} />
-                ) : (
-                  <InfoCircleOutlined style={{ color: "#ff4d4f" }} />
-                )
-              ) : (
-                "—"
-              )
-            }
+            value={statusIcon as unknown as string}
             prefix={
-              report ? (
-                <Text strong style={{ fontSize: 14 }}>
-                  {report.status === "SUCCESS"
-                    ? "Succès"
-                    : report.status === "PARTIAL"
-                    ? "Partiel"
-                    : report.status === "FAILED"
-                    ? "Échoué"
-                    : report.status === "DUPLICATE"
-                    ? "Doublon"
-                    : "—"}
-                </Text>
-              ) : (
-                "En attente"
-              )
+              <Text strong style={{ fontSize: 14 }}>
+                {statusLabel}
+              </Text>
             }
           />
+            );
+          })()}
         </Card>
       </div>
 
@@ -284,7 +291,10 @@ export default function CalendrierGestionPage() {
               {currentStep === 0 && (
                 <div className="cal-step-content">
                   <CalendarFileUpload
-                    onFileSelected={handlePreview}
+                    file={file}
+                    onFileChange={(f) => {
+                      if (f) handlePreview(f);
+                    }}
                     loading={previewMutation.isPending}
                     disabled={!admin}
                   />
@@ -297,13 +307,13 @@ export default function CalendrierGestionPage() {
                   <Card className="cal-preview-card" title="Aperçu du fichier">
                     <div className="cal-preview-stats">
                       <Tag icon={<FileExcelOutlined />} color="processing">
-                        {preview.formations.length} formations
+                        {preview.sessions.length} formations
                       </Tag>
                       <Tag icon={<CalendarOutlined />} color="cyan">
-                        {preview.sessionsCount} séances
+                        {preview.sessions.length} séances
                       </Tag>
                       <Tag icon={<TeamOutlined />} color="purple">
-                        {preview.participantsCount} participants
+                        {preview.participants.length} participants
                       </Tag>
                     </div>
 
@@ -318,23 +328,23 @@ export default function CalendrierGestionPage() {
                           </tr>
                         </thead>
                         <tbody>
-                          {preview.formations.slice(0, 10).map((f, i) => (
+                          {preview.sessions.slice(0, 10).map((s: import("@/models/calendar").ParsedSession, i: number) => (
                             <tr key={i}>
-                              <td>{f.titre}</td>
+                              <td>{s.formationName}</td>
                               <td>
-                                {f.dateDebut
-                                  ? new Date(f.dateDebut).toLocaleDateString("fr-FR")
+                                {s.date
+                                  ? new Date(s.date).toLocaleDateString("fr-FR")
                                   : "—"}
                               </td>
-                              <td>{f.salle || "—"}</td>
-                              <td>{f.participants?.length ?? 0}</td>
+                              <td>{s.room || "—"}</td>
+                              <td>—</td>
                             </tr>
                           ))}
                         </tbody>
                       </table>
-                      {preview.formations.length > 10 && (
+                      {preview.sessions.length > 10 && (
                         <Text type="secondary" className="cal-preview-more">
-                          +{preview.formations.length - 10} autres formations...
+                          +{preview.sessions.length - 10} autres formations...
                         </Text>
                       )}
                     </div>

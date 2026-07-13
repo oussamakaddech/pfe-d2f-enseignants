@@ -35,6 +35,7 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 import javax.crypto.spec.SecretKeySpec;
+import java.time.ZoneId;
 import java.util.Arrays;
 import java.util.List;
 
@@ -93,7 +94,7 @@ public class SecurityConfig {
             response.setContentType("application/json");
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             String traceId = java.util.UUID.randomUUID().toString();
-            String timestamp = java.time.LocalDateTime.now().toString();
+            String timestamp = java.time.LocalDateTime.now(ZoneId.systemDefault()).toString();
             String path = request.getRequestURI();
             response.getWriter().write(
                 String.format("{\"timestamp\":\"%s\",\"status\":401,\"errorCode\":\"AUTH-401\",\"message\":\"Unauthorized or session expired.\",\"path\":\"%s\",\"traceId\":\"%s\"}",
@@ -107,7 +108,7 @@ public class SecurityConfig {
             response.setContentType("application/json");
             response.setStatus(HttpServletResponse.SC_FORBIDDEN);
             String traceId = java.util.UUID.randomUUID().toString();
-            String timestamp = java.time.LocalDateTime.now().toString();
+            String timestamp = java.time.LocalDateTime.now(ZoneId.systemDefault()).toString();
             String path = request.getRequestURI();
             response.getWriter().write(
                 String.format("{\"timestamp\":\"%s\",\"status\":403,\"errorCode\":\"AUTH-403\",\"message\":\"Access denied.\",\"path\":\"%s\",\"traceId\":\"%s\"}",
@@ -169,7 +170,7 @@ public class SecurityConfig {
         List<String> origins = Arrays.asList(allowedOriginsRaw.split(","));
         configuration.setAllowedOrigins(origins);
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
-        configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept"));
+        configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);
         configuration.setMaxAge(3600L);
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

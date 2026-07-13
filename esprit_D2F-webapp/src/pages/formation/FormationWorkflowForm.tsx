@@ -7,6 +7,7 @@ import DocumentUploadForm from "../documentFormation/DocumentUploadForm";
 import "@/styles/pages/formation-workflow-form.css";
 
 import { useFormationWorkflow, toMinutes } from "./hooks/useFormationWorkflow";
+import type { FormationWorkflowFormProps } from "./hooks/useFormationWorkflow";
 export type { BesoinInfoShape, FormationWorkflowFormProps } from "./hooks/useFormationWorkflow";
 import GeneralStep from "./steps/GeneralStep";
 import PedagogyStep from "./steps/PedagogyStep";

@@ -1,8 +1,8 @@
-/* ═══════════════════════════════════════════════════════════════════════
- * CalendrierGestionPage — Modern Gestion Calendar styles
- * ═══════════════════════════════════════════════════════════════════════ */
+﻿/* â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+ * CalendrierGestionPage â€” Modern Gestion Calendar styles
+ * â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â• */
 
-/* ─── Page layout ──────────────────────────────────────────────────────── */
+/* â”€â”€â”€ Page layout â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 .cal-page {
   max-width: 1440px;
@@ -10,7 +10,7 @@
   padding: 0 0 32px;
 }
 
-/* ─── Hero Section ─────────────────────────────────────────────────────── */
+/* â”€â”€â”€ Hero Section â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 .cal-hero {
   position: relative;
@@ -98,7 +98,7 @@
   flex-shrink: 0;
 }
 
-/* ─── Stats Row ─────────────────────────────────────────────────────────── */
+/* â”€â”€â”€ Stats Row â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 .cal-stats-row {
   display: grid;
@@ -121,6 +121,8 @@
   border: 1px solid rgba(0, 0, 0, 0.07);
   padding: 18px 20px;
   transition: all 0.25s ease;
+  position: relative;
+  overflow: hidden;
 }
 
 .cal-stat-card::before {
@@ -135,7 +137,7 @@
 
 .cal-stat-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08), 0 2px 6px rgba(0, 0, 0, 0.04);
 }
 
 .cal-stat-card--formations::before { background: linear-gradient(90deg, #2563eb, #60a5fa); }
@@ -167,7 +169,7 @@
   margin-bottom: 6px;
 }
 
-/* ─── Main Content ──────────────────────────────────────────────────────── */
+/* â”€â”€â”€ Main Content â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 .cal-content {
   /* container */
@@ -177,7 +179,8 @@
   background: #fff;
   border-radius: 16px;
   border: 1px solid rgba(0, 0, 0, 0.07);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.03);
+  overflow: hidden;
   padding: 24px 28px;
 }
 
@@ -213,7 +216,7 @@
   border-radius: 3px 3px 0 0 !important;
 }
 
-/* ─── Tab Labels ─────────────────────────────────────────────────────────── */
+/* â”€â”€â”€ Tab Labels â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 .cal-tab-label {
   display: inline-flex;
@@ -226,7 +229,7 @@
   margin-left: 4px;
 }
 
-/* ─── Import Section ────────────────────────────────────────────────────── */
+/* â”€â”€â”€ Import Section â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 .cal-import-section {
   display: flex;
@@ -247,7 +250,7 @@
 }
 
 .cal-step-content {
-  /* wrapper */
+  animation: cal-fade-in 0.3s ease;
 }
 
 .cal-loading {
@@ -257,18 +260,19 @@
   padding: 60px 0;
 }
 
-/* ─── Alert ─────────────────────────────────────────────────────────────── */
+/* â”€â”€â”€ Alert â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 .cal-alert {
   border-radius: 12px !important;
 }
 
-/* ─── Preview Card ───────────────────────────────────────────────────────── */
+/* â”€â”€â”€ Preview Card â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 .cal-preview-card {
   border-radius: 14px !important;
   border: 1px solid rgba(0, 0, 0, 0.08) !important;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04) !important;
+  overflow: hidden;
 }
 
 .cal-preview-card .ant-card-head {
@@ -346,7 +350,7 @@
   margin-top: 20px;
 }
 
-/* ─── Section Header ─────────────────────────────────────────────────────── */
+/* â”€â”€â”€ Section Header â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 .cal-section-header {
   display: flex;
@@ -376,123 +380,6 @@
   background: linear-gradient(135deg, #2563eb, #1d4ed8) !important;
   border-color: #2563eb !important;
   box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25) !important;
-}
-
-/* ─── Responsive ───────────────────────────────────────────────────────── */
-
-@media (max-width: 768px) {
-  .cal-hero {
-    padding: 20px 24px;
-  }
-
-  .cal-hero-content {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 16px;
-  }
-
-  .cal-hero-title {
-    font-size: 22px !important;
-  }
-
-  .cal-tabs-card {
-    padding: 16px;
-  }
-
-  .cal-section-header {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .cal-section-actions {
-    flex-direction: column;
-  }
-
-  .cal-section-actions .ant-btn {
-    width: 100%;
-  }
-}
-
-/* ─── Stats row ────────────────────────────────────────────────────────── */
-
-.cal-stats-row {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 16px;
-  margin-bottom: 24px;
-}
-
-@media (max-width: 900px) {
-  .cal-stats-row { grid-template-columns: repeat(2, 1fr); }
-}
-
-@media (max-width: 500px) {
-  .cal-stats-row { grid-template-columns: 1fr; }
-}
-
-.cal-stat-card {
-  background: #fff;
-  border-radius: 16px;
-  border: 1px solid rgba(0, 0, 0, 0.07);
-  padding: 18px 20px;
-  transition: all 0.25s ease;
-  position: relative;
-  overflow: hidden;
-}
-
-.cal-stat-card::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 3px;
-  border-radius: 16px 16px 0 0;
-}
-
-.cal-stat-card--formations::before { background: linear-gradient(90deg, #2563eb, #60a5fa); }
-.cal-stat-card--sessions::before { background: linear-gradient(90deg, #10b981, #6ee7b7); }
-.cal-stat-card--participants::before { background: linear-gradient(90deg, #7c3aed, #a78bfa); }
-.cal-stat-card--status::before { background: linear-gradient(90deg, #f59e0b, #fcd34d); }
-
-.cal-stat-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08), 0 2px 6px rgba(0, 0, 0, 0.04);
-}
-
-.cal-stat-icon {
-  width: 42px;
-  height: 42px;
-  border-radius: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 20px;
-  margin-bottom: 14px;
-}
-
-.cal-stat-icon--formations { background: rgba(37, 99, 235, 0.12); color: #2563eb; }
-.cal-stat-icon--sessions { background: rgba(16, 185, 129, 0.12); color: #10b981; }
-.cal-stat-icon--participants { background: rgba(124, 58, 237, 0.12); color: #7c3aed; }
-
-.cal-stat-label {
-  font-size: 12px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: #64748b;
-  margin-bottom: 6px;
-}
-
-/* ─── Tabs container ───────────────────────────────────────────────────── */
-
-.cal-tabs-card {
-  background: #fff;
-  border-radius: 16px;
-  border: 1px solid rgba(0, 0, 0, 0.07);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.03);
-  overflow: hidden;
-  padding: 24px 28px;
 }
 
 .cal-tabs-card .ant-tabs-nav {
@@ -554,12 +441,6 @@
 .cal-tab-badge--success {
   background: #d1fae5;
   color: #065f46;
-}
-
-.cal-import-section {
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
 }
 
 .cal-upload-wrapper {
@@ -674,19 +555,6 @@
   color: #1d4ed8 !important;
 }
 
-.cal-preview-card {
-  border-radius: 14px !important;
-  border: 1px solid rgba(0, 0, 0, 0.08) !important;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04) !important;
-  overflow: hidden;
-}
-
-.cal-preview-card .ant-card-head {
-  background: #f8fafc;
-  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
-  font-weight: 700;
-}
-
 .cal-preview-card .ant-card-body {
   padding: 20px 24px;
 }
@@ -716,84 +584,6 @@
   to { opacity: 1; transform: translateY(0); }
 }
 
-.cal-step-content {
-  animation: cal-fade-in 0.3s ease;
-}
-
-.cal-loading {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 60px 0;
-}
-
-.cal-alert {
-  border-radius: 12px !important;
-}
-
-.cal-preview-stats {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-bottom: 20px;
-}
-
-.cal-preview-table {
-  overflow-x: auto;
-  margin-bottom: 20px;
-}
-
-.cal-preview-table-inner {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 13px;
-}
-
-.cal-preview-table-inner thead tr {
-  background: #f8fafc;
-}
-
-.cal-preview-table-inner thead th {
-  padding: 10px 14px;
-  text-align: left;
-  font-weight: 700;
-  font-size: 12px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: #64748b;
-  border-bottom: 2px solid rgba(0, 0, 0, 0.06);
-}
-
-.cal-preview-table-inner tbody tr {
-  border-bottom: 1px solid rgba(0, 0, 0, 0.04);
-  transition: background 0.15s;
-}
-
-.cal-preview-table-inner tbody tr:hover {
-  background: #f8fafc;
-}
-
-.cal-preview-table-inner tbody td {
-  padding: 10px 14px;
-  color: #374151;
-}
-
-.cal-preview-more {
-  display: block;
-  text-align: center;
-  margin-top: 12px;
-  font-size: 13px;
-}
-
-.cal-preview-actions {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 12px;
-  padding-top: 16px;
-  border-top: 1px solid rgba(0, 0, 0, 0.06);
-}
-
 .cal-preview-actions .ant-btn {
   border-radius: 10px !important;
   font-weight: 600 !important;
@@ -813,41 +603,7 @@
   transform: translateY(-1px);
 }
 
-.cal-result-actions {
-  display: flex;
-  justify-content: center;
-  margin-top: 20px;
-}
-
-.cal-section-header {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: space-between;
-  align-items: center;
-  gap: 16px;
-  margin-bottom: 20px;
-}
-
-.cal-section-header h4 {
-  margin: 0 !important;
-}
-
-.cal-section-actions {
-  display: flex;
-  gap: 10px;
-}
-
-.cal-section-actions .ant-btn {
-  border-radius: 10px !important;
-  font-weight: 600 !important;
-  height: 38px !important;
-}
-
-.cal-section-actions .ant-btn-primary {
-  background: linear-gradient(135deg, #2563eb, #1d4ed8) !important;
-  border-color: #2563eb !important;
-  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25) !important;
-}
+/* â”€â”€â”€ Responsive â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
 
 @media (max-width: 768px) {
   .cal-hero {
@@ -885,3 +641,4 @@
     width: 100%;
   }
 }
+

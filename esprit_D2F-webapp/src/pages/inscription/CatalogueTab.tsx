@@ -14,7 +14,7 @@ import dayjs from "dayjs";
 import { useFormationsVisibles, useAllFormations, useFormationsParUp, useUpdateInscriptionsOuvertes } from "@/hooks/formation/useFormations";
 import { useProfile, useDemanderInscription, useFormationsAccessibles, useInscriptionsByEnseignant } from "@/hooks/formation/useFormationExtras";
 import { useEnseignantById } from "@/hooks/enseignant/useEnseignants";
-import { normalizeRole, ROLES } from "@/utils/constants/roles";
+import { normalizeRole } from "@/utils/constants/roles";
 import { PageLoader, EmptyStateStandard, InscriptionStatGrid, PageHero } from "@/components/common";
 import useAppNotification from "@/hooks/ui/useAppNotification";
 import type { Id } from "@/models/common";
@@ -190,7 +190,15 @@ export default function CatalogueTab() {
         }
         subtitle={`${filtered.length} formation${filtered.length > 1 ? "s" : ""} affichée${filtered.length > 1 ? "s" : ""}`}
         actions={
-          <Button icon={<ReloadOutlined />} onClick={() => { role === "cup" ? refetchParUp() : role === "animateur" ? refetchAccessibles() : refetch(); }} loading={loading} className="ins-btn">
+          <Button icon={<ReloadOutlined />} onClick={() => {
+            if (role === "cup") {
+              refetchParUp();
+            } else if (role === "animateur") {
+              refetchAccessibles();
+            } else {
+              refetch();
+            }
+          }} loading={loading} className="ins-btn">
             Actualiser
           </Button>
         }
@@ -241,7 +249,11 @@ export default function CatalogueTab() {
                     {(() => {
                       const d = daysUntilStart(f.dateDebut);
                       if (d === null || !isOpen || d > 7) return null;
-                      return <Tag icon={<ThunderboltOutlined />} color="warning" className="blink">{d === 0 ? "Démarre aujourd'hui" : d < 0 ? `Démarré il y a ${-d} j` : `Démarre dans ${d} j`}</Tag>;
+                      return <Tag icon={<ThunderboltOutlined />} color="warning" className="blink">{(() => {
+                        if (d === 0) return "Démarre aujourd'hui";
+                        if (d < 0) return `Démarré il y a ${-d} j`;
+                        return `Démarre dans ${d} j`;
+                      })()}</Tag>;
                     })()}
                   </div>
                 </div>

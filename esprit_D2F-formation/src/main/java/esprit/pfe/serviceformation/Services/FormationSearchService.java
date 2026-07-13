@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Objects;
 
 @Slf4j
 @Service
@@ -32,7 +33,7 @@ public class FormationSearchService {
         // Fetch full entities with all relations for those IDs
         List<Formation> formations = formationIds.stream()
                 .map(id -> formationRepository.findByIdWithAllRelations(id).orElse(null))
-                .filter(f -> f != null)
+                .filter(Objects::nonNull)
                 .toList();
 
         // Apply pagination manually (repository doesn't support this complex query with pagination)
@@ -134,10 +135,10 @@ public class FormationSearchService {
                     if (filter.getEtats() != null && !filter.getEtats().contains(f.getEtatFormation())) {
                         return false;
                     }
-                    if (filter.getStart() != null && f.getDateDebut().before(filter.getStart())) {
+                    if (filter.getStart() != null && f.getDateDebut().isBefore(filter.getStart())) {
                         return false;
                     }
-                    if (filter.getEnd() != null && f.getDateDebut().after(filter.getEnd())) {
+                    if (filter.getEnd() != null && f.getDateDebut().isAfter(filter.getEnd())) {
                         return false;
                     }
                     return true;

@@ -8,6 +8,7 @@ import tn.esprit.d2f.entity.BesoinFormation;
 import tn.esprit.d2f.repository.BesoinFormationRepository;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 
 @Service
@@ -24,7 +25,7 @@ public class BesoinRefreshScheduler {
     public void refreshBesoins() {
         log.info("Mise à jour périodique des besoins (toutes les 2h)");
         List<BesoinFormation> besoins = repository.findAll();
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(ZoneId.systemDefault());
         
         for (BesoinFormation b : besoins) {
             b.setLastRefreshDate(now);

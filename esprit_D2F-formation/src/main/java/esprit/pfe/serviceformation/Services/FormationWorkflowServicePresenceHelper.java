@@ -4,7 +4,6 @@ import esprit.pfe.serviceformation.dto.EvaluationFormateurDTO;
 import esprit.pfe.serviceformation.entities.*;
 import esprit.pfe.serviceformation.repositories.EnseignantRepository;
 import esprit.pfe.serviceformation.repositories.PresenceRepository;
-import esprit.pfe.serviceformation.repositories.SeanceFormationRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
@@ -20,7 +19,7 @@ public class FormationWorkflowServicePresenceHelper {
 
     private final PresenceRepository presenceRepository;
     private final EnseignantRepository enseignantRepository;
-    private final SeanceFormationRepository seanceFormationRepository;
+    private final FormationWorkflowServiceHelper formationHelper;
 
     /**
      * Synchronise les présences pour une liste de séances
@@ -80,59 +79,6 @@ public class FormationWorkflowServicePresenceHelper {
     public List<EvaluationFormateurDTO> createEvaluationDTOs(
             List<SeanceFormation> seances,
             Formation formation) {
-
-        Set<String> seen = new HashSet<>();
-        List<EvaluationFormateurDTO> evaluationDTOs = new ArrayList<>();
-
-        for (SeanceFormation sf : seances) {
-            addEvaluationDTOsForSeance(sf, formation, seen, evaluationDTOs);
-        }
-
-        return evaluationDTOs;
-    }
-
-    /**
-     * Ajoute les DTOs d'évaluation pour une séance
-     */
-    private void addEvaluationDTOsForSeance(
-            SeanceFormation sf,
-            Formation formation,
-            Set<String> seen,
-            List<EvaluationFormateurDTO> evaluationDTOs) {
-
-        // Ajouter les participants
-        if (sf.getParticipants() != null) {
-            for (Enseignant pt : sf.getParticipants()) {
-                String key = pt.getId() + "-" + formation.getIdFormation();
-                if (!seen.contains(key)) {
-                    seen.add(key);
-                    evaluationDTOs.add(createEvaluationDTO(pt, formation.getIdFormation()));
-                }
-            }
-        }
-
-        // Ajouter les animateurs
-        if (sf.getAnimateurs() != null) {
-            for (Enseignant anim : sf.getAnimateurs()) {
-                String key = anim.getId() + "-" + formation.getIdFormation();
-                if (!seen.contains(key)) {
-                    seen.add(key);
-                    evaluationDTOs.add(createEvaluationDTO(anim, formation.getIdFormation()));
-                }
-            }
-        }
-    }
-
-    /**
-     * Crée un DTO d'évaluation
-     */
-    private EvaluationFormateurDTO createEvaluationDTO(Enseignant enseignant, Long formationId) {
-        EvaluationFormateurDTO dto = new EvaluationFormateurDTO();
-        dto.setEnseignantId(enseignant.getId());
-        dto.setFormationId(formationId);
-        dto.setNote(0f);
-        dto.setSatisfaisant(false);
-        dto.setCommentaire("N/A");
-        return dto;
+        return formationHelper.createEvaluationDTOs(seances, formation);
     }
 }

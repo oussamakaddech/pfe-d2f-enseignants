@@ -7,9 +7,9 @@ import lombok.NoArgsConstructor;
 import org.hibernate.annotations.SQLDelete;
 import org.hibernate.annotations.SQLRestriction;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 
 @Data
@@ -75,13 +75,11 @@ public class Formation extends BaseAuditEntity {
 
 
 
-    @Temporal(TemporalType.DATE)
     @Column(nullable = false)
-    private Date dateDebut;
+    private LocalDate dateDebut;
 
-    @Temporal(TemporalType.DATE)
     @Column(nullable = false)
-    private Date dateFin;
+    private LocalDate dateFin;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)

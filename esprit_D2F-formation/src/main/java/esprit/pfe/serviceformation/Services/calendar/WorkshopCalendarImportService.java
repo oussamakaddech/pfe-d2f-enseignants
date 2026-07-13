@@ -33,13 +33,11 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.io.InputStream;
 import java.security.MessageDigest;
-import java.sql.Time;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.HexFormat;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -251,7 +249,7 @@ public class WorkshopCalendarImportService {
                 .formationId(formationId)
                 .email(p.getEmail())
                 .matchedEnseignant(matched)
-                .createdAt(LocalDateTime.now())
+                .createdAt(LocalDateTime.now(ZoneId.systemDefault()))
                 .build());
         report.setParticipantsImported(report.getParticipantsImported() + 1);
         if (!matched) {
@@ -274,7 +272,7 @@ public class WorkshopCalendarImportService {
                 .fileSizeBytes(size)
                 .fileHash(hash)
                 .importedBy(currentUser())
-                .importedAt(LocalDateTime.now())
+                .importedAt(LocalDateTime.now(ZoneId.systemDefault()))
                 .formationsCreated(report.getFormationsCreated())
                 .sessionsCreated(report.getSessionsCreated())
                 .participantsImported(report.getParticipantsImported())
@@ -334,9 +332,7 @@ public class WorkshopCalendarImportService {
         if (existing.getDateSeance() == null || parsed.getDate() == null) {
             return false;
         }
-        // java.sql.Date.toInstant() lève UnsupportedOperationException → epoch millis.
-        LocalDate existingDate = java.time.Instant.ofEpochMilli(existing.getDateSeance().getTime())
-                .atZone(ZoneId.systemDefault()).toLocalDate();
+        LocalDate existingDate = existing.getDateSeance();
         boolean sameDate = existingDate.equals(parsed.getDate());
         boolean sameSession = java.util.Objects.equals(existing.getNumeroSeance(), parsed.getSessionNumber());
         return sameDate && sameSession;
@@ -356,12 +352,12 @@ public class WorkshopCalendarImportService {
         return auth != null ? auth.getName() : "system";
     }
 
-    private static Date toDate(LocalDate date) {
-        return date == null ? null : Date.from(date.atStartOfDay(ZoneId.systemDefault()).toInstant());
+    private static LocalDate toDate(LocalDate date) {
+        return date;
     }
 
-    private static Time toTime(LocalTime time) {
-        return time == null ? null : Time.valueOf(time);
+    private static LocalTime toTime(LocalTime time) {
+        return time;
     }
 
     private static String blankToNull(String s) {

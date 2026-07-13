@@ -34,8 +34,10 @@ import org.springframework.stereotype.Service;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -152,7 +154,7 @@ public class AuthService {
     public void checkIfTokenIsValid(String tokenHash) {
         ConfirmationKey key = confirmationKeyRepo.findByToken(tokenHash)
                 .orElseThrow(() -> new BadRequestException("Confirmation token invalid"));
-        if (key.getExpiresAt().isBefore(LocalDateTime.now())) {
+        if (key.getExpiresAt().isBefore(LocalDateTime.now(ZoneId.systemDefault()))) {
             confirmationKeyRepo.delete(key);
             throw new TokenExpiredException("Confirmation token has expired");
         }
@@ -197,7 +199,7 @@ public class AuthService {
         ConfirmationKey confirmationKey = new ConfirmationKey();
         confirmationKey.setEmailAddress(emailAddress);
         confirmationKey.setToken(hashConfirmationToken(key));
-        confirmationKey.setExpiresAt(LocalDateTime.now().plusMinutes(15));
+        confirmationKey.setExpiresAt(LocalDateTime.now(ZoneId.systemDefault()).plusMinutes(15));
         confirmationKeyRepo.save(confirmationKey);
         return "We have sent an email to reset your password";
     }
@@ -216,7 +218,7 @@ public class AuthService {
                     return new LoginException("User not found.");
                 });
 
-        if (user.getLockUntil() != null && user.getLockUntil().isAfter(LocalDateTime.now())) {
+        if (user.getLockUntil() != null && user.getLockUntil().isAfter(LocalDateTime.now(ZoneId.systemDefault()))) {
             auditService.logFailedLogin(username, ip, "Account locked");
             PiiSafeLogger.warn(AuthService.class,
                     String.format(LOG_MESSAGE_LOGIN_REFUSED, username, ip) + " - account locked until "
@@ -254,7 +256,7 @@ public class AuthService {
             int attempts = (user.getFailedLoginAttempts() != null ? user.getFailedLoginAttempts() : 0) + 1;
             user.setFailedLoginAttempts(attempts);
             if (attempts >= lockoutMaxAttempts) {
-                user.setLockUntil(LocalDateTime.now().plusMinutes(lockoutDurationMinutes));
+                user.setLockUntil(LocalDateTime.now(ZoneId.systemDefault()).plusMinutes(lockoutDurationMinutes));
                 PiiSafeLogger.warn(AuthService.class,
                         "Account locked for username=" + username + " after " + attempts
                                 + " failed attempts (lock for " + lockoutDurationMinutes + " minutes)");
@@ -368,8 +370,8 @@ public class AuthService {
 
     public String generateJwt(String username, String scope, String email, String userId) {
         JwtClaimsSet jwtClaimsSet = JwtClaimsSet.builder()
-                .issuedAt(Instant.now())
-                .expiresAt(Instant.now().plus(jwtDurationMinutes, ChronoUnit.MINUTES))
+                .issuedAt(Instant.now(Clock.systemDefaultZone()))
+                .expiresAt(Instant.now(Clock.systemDefaultZone()).plus(jwtDurationMinutes, ChronoUnit.MINUTES))
                 .subject(username)
                 .claim("scope", scope)
                 .claim(EMAIL_KEY, email)

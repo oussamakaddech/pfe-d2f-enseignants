@@ -22,16 +22,21 @@ Référence : "Deep Learning" (Goodfellow et al., 2016), Ch. 6 — MLP.
 from __future__ import annotations
 
 import logging
+import tempfile
 import time
 from typing import Any
 
 import numpy as np
+from joblib import Memory
 from sklearn.neural_network import MLPClassifier
 from sklearn.model_selection import cross_val_score
 from sklearn.preprocessing import StandardScaler
 from sklearn.pipeline import Pipeline
 
 logger = logging.getLogger(__name__)
+
+_pipeline_cache_dir = tempfile.mkdtemp(prefix="d2f_mlp_")
+_pipeline_memory = Memory(_pipeline_cache_dir, verbose=0)
 
 
 def build_mlp_pipeline(
@@ -70,7 +75,7 @@ def build_mlp_pipeline(
     return Pipeline([
         ("scaler", StandardScaler()),
         ("mlp", mlp),
-    ])
+    ], memory=_pipeline_memory)
 
 
 def cross_validate_mlp(

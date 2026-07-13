@@ -43,7 +43,7 @@ interface BesoinInfoStepProps {
   canManageParticipants: boolean;
   participantsCount: number;
   lastImportCount: number;
-  participantsFileInputRef: React.RefObject<HTMLInputElement>;
+  participantsFileInputRef: React.RefObject<HTMLInputElement | null>;
   onImportExcel: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onClearParticipants: () => void;
 }

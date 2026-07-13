@@ -7,16 +7,16 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.io.Serializable;
-import java.sql.Time;
-import java.util.Date;
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
 @Getter
 @Setter
 public class SeanceDTO implements Serializable {
     private Long idSeance;
-    private Date dateSeance;
-    private Time heureDebut;
-    private Time heureFin;
+    private LocalDate dateSeance;
+    private LocalTime heureDebut;
+    private LocalTime heureFin;
     private String salle;
     private TypeSeanceEnum typeSeance;
     private String contenus;

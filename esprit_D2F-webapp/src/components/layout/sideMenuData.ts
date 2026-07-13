@@ -4,9 +4,10 @@ import {
   LogoutOutlined, ApartmentOutlined, RobotOutlined, SearchOutlined,
   PlusCircleOutlined, TrophyOutlined,
   SafetyCertificateOutlined, UserOutlined, LineChartOutlined, ApiOutlined,
-  ClusterOutlined, TeamOutlined, BookOutlined,
+  ClusterOutlined, BookOutlined,
   AppstoreOutlined, CheckSquareOutlined, BankOutlined, SettingOutlined,
-  ImportOutlined, DashboardOutlined, EyeOutlined,
+  ImportOutlined, DashboardOutlined, EyeOutlined, WarningOutlined,
+  HomeOutlined, ExperimentOutlined,
 } from "@ant-design/icons";
 
 export interface MenuItem {
@@ -32,6 +33,8 @@ export const adminMenu: MenuItem[] = [
   { type: "group", label: "TABLEAU DE BORD", children: [
     dashboardItem,
     { label: "Analyse Prédictive", key: "/home/AnalysePredictive",  icon: LineChartOutlined },
+    { label: "Alertes", key: "/home/analytics/alerts", icon: WarningOutlined },
+    { label: "Tests A/B", key: "/home/analytics/ab-testing", icon: ExperimentOutlined },
   ]},
   { type: "group", label: "ADMINISTRATION", children: [
     { label: "Administration",  key: "/home/administration", icon: SettingOutlined },
@@ -62,6 +65,8 @@ export const adminMenu: MenuItem[] = [
 
 export const cupMenu: MenuItem[] = [
   dashboardItem,
+  { label: "Analyse Prédictive", key: "/home/AnalysePredictive", icon: LineChartOutlined },
+  { label: "Alertes", key: "/home/analytics/alerts", icon: WarningOutlined },
   { type: "group", label: "FORMATIONS", children: [
     { label: "Nouvelle Formation",    key: "/home/Formation/Creer",         icon: PlusCircleOutlined },
     { label: "Catalogue",             key: "/home/Formation/Consulter",     icon: AppstoreOutlined },
@@ -82,6 +87,7 @@ export const cupMenu: MenuItem[] = [
 
 export const enseignantMenu: MenuItem[] = [
   dashboardItem,
+  { label: "Mon espace", key: "/home/personal-dashboard", icon: HomeOutlined },
   { label: "Besoins de Formation", key: "besoin_formation_menu", icon: ReadOutlined, children: [
     { label: "Liste des Demandes", key: "/home/besoins",         icon: SearchOutlined },
     { label: "Déposer un Besoin",  key: "/home/besoins/ajouter", icon: PlusCircleOutlined },
@@ -95,6 +101,7 @@ export const enseignantMenu: MenuItem[] = [
 
 export const animateurMenu: MenuItem[] = [
   dashboardItem,
+  { label: "Mon espace", key: "/home/personal-dashboard", icon: HomeOutlined },
   { label: "Sessions d'Animation", key: "/home/animateur-formations", icon: ReadOutlined },
   { label: "Évaluations",           key: "/home/Evaluations",         icon: TrophyOutlined },
   { label: "Besoins de Formation", key: "besoin_formation_menu", icon: ReadOutlined, children: [
@@ -113,6 +120,8 @@ export const responsableDossierMenu: MenuItem[] = [
 
 export const chefDepartementMenu: MenuItem[] = [
   dashboardItem,
+  { label: "Analyse Prédictive", key: "/home/AnalysePredictive", icon: LineChartOutlined },
+  { label: "Alertes", key: "/home/analytics/alerts", icon: WarningOutlined },
   { type: "group", label: "FORMATIONS", children: [
     { label: "Catalogue Formations",  key: "/home/Formation/Consulter",     icon: AppstoreOutlined },
     { label: "Calendrier Global",     key: "/home/Calendrier",              icon: CalendarOutlined },

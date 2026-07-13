@@ -7,8 +7,8 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;
+import java.time.Month;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.*;
@@ -35,8 +35,8 @@ class FormationMapperTest {
                     .titreFormation("Formation Test")
                     .typeFormation("INTERNE")
                     .etatFormation("PLANIFIE")
-                    .dateDebut(LocalDate.of(2026, 6, 1))
-                    .dateFin(LocalDate.of(2026, 6, 10))
+                    .dateDebut(LocalDate.of(2026, Month.JUNE, 1))
+                    .dateFin(LocalDate.of(2026, Month.JUNE, 10))
                     .chargeHoraireGlobal(40)
                     .objectifs("Objectifs")
                     .objectifsPedago("Peda")
@@ -52,8 +52,8 @@ class FormationMapperTest {
             assertThat(result.getTitreFormation()).isEqualTo("Formation Test");
             assertThat(result.getTypeFormation()).isEqualTo(TypeFormation.INTERNE);
             assertThat(result.getEtatFormation()).isEqualTo(EtatFormation.PLANIFIE);
-            assertThat(result.getDateDebut()).isEqualTo(java.sql.Date.valueOf(LocalDate.of(2026, 6, 1)));
-            assertThat(result.getDateFin()).isEqualTo(java.sql.Date.valueOf(LocalDate.of(2026, 6, 10)));
+            assertThat(result.getDateDebut()).isEqualTo(LocalDate.of(2026, Month.JUNE, 1));
+            assertThat(result.getDateFin()).isEqualTo(LocalDate.of(2026, Month.JUNE, 10));
             assertThat(result.getChargeHoraireGlobal()).isEqualTo(40);
             assertThat(result.getObjectifs()).isEqualTo("Objectifs");
             assertThat(result.getObjectifsPedago()).isEqualTo("Peda");
@@ -71,8 +71,8 @@ class FormationMapperTest {
                     .titreFormation("Formation Test")
                     .typeFormation("INTERNE")
                     .etatFormation("PLANIFIE")
-                    .dateDebut(LocalDate.of(2026, 6, 1))
-                    .dateFin(LocalDate.of(2026, 6, 10))
+                    .dateDebut(LocalDate.of(2026, Month.JUNE, 1))
+                    .dateFin(LocalDate.of(2026, Month.JUNE, 10))
                     .domaine("IT")
                     .competence("Java")
                     .populationCible("Engineers")
@@ -217,8 +217,8 @@ class FormationMapperTest {
             request.setTitreFormation("Updated Title");
             request.setTypeFormation("EXTERNE");
             request.setEtatFormation("EN_COURS");
-            request.setDateDebut(LocalDate.of(2026, 7, 1));
-            request.setDateFin(LocalDate.of(2026, 7, 10));
+            request.setDateDebut(LocalDate.of(2026, Month.JULY, 1));
+            request.setDateFin(LocalDate.of(2026, Month.JULY, 10));
             request.setChargeHoraireGlobal(50);
             request.setObjectifs("New objectives");
             request.setObjectifsPedago("New peda");
@@ -249,8 +249,8 @@ class FormationMapperTest {
             assertThat(f.getTitreFormation()).isEqualTo("Updated Title");
             assertThat(f.getTypeFormation()).isEqualTo(TypeFormation.EXTERNE);
             assertThat(f.getEtatFormation()).isEqualTo(EtatFormation.EN_COURS);
-            assertThat(f.getDateDebut()).isEqualTo(java.sql.Date.valueOf(LocalDate.of(2026, 7, 1)));
-            assertThat(f.getDateFin()).isEqualTo(java.sql.Date.valueOf(LocalDate.of(2026, 7, 10)));
+            assertThat(f.getDateDebut()).isEqualTo(LocalDate.of(2026, Month.JULY, 1));
+            assertThat(f.getDateFin()).isEqualTo(LocalDate.of(2026, Month.JULY, 10));
             assertThat(f.getChargeHoraireGlobal()).isEqualTo(50);
             assertThat(f.getCoutFormation()).isEqualTo(2000f);
             assertThat(f.getDomaine()).isEqualTo("New domain");
@@ -295,8 +295,8 @@ class FormationMapperTest {
             f.setTitreFormation("Test");
             f.setTypeFormation(TypeFormation.INTERNE);
             f.setEtatFormation(EtatFormation.PLANIFIE);
-            f.setDateDebut(new Date());
-            f.setDateFin(new Date());
+            f.setDateDebut(LocalDate.now());
+            f.setDateFin(LocalDate.now());
             f.setChargeHoraireGlobal(40);
             f.setObjectifs("Obj");
             f.setObjectifsPedago("Peda");
@@ -349,8 +349,8 @@ class FormationMapperTest {
             Formation f = new Formation();
             f.setIdFormation(1L);
             f.setTitreFormation("Test");
-            f.setDateDebut(new Date());
-            f.setDateFin(new Date());
+            f.setDateDebut(LocalDate.now());
+            f.setDateFin(LocalDate.now());
 
             FormationResponseDTO dto = mapper.toResponseDTO(f);
 
@@ -380,8 +380,8 @@ class FormationMapperTest {
             Formation f = new Formation();
             f.setIdFormation(1L);
             f.setTitreFormation("Test");
-            f.setDateDebut(new Date());
-            f.setDateFin(new Date());
+            f.setDateDebut(LocalDate.now());
+            f.setDateFin(LocalDate.now());
             f.setUp(up);
             f.setDepartement(dept);
             f.setSeances(List.of(seance));
@@ -407,8 +407,8 @@ class FormationMapperTest {
             Formation f = new Formation();
             f.setIdFormation(1L);
             f.setTitreFormation("Test");
-            f.setDateDebut(new Date());
-            f.setDateFin(new Date());
+            f.setDateDebut(LocalDate.now());
+            f.setDateFin(LocalDate.now());
             f.setSeances(new ArrayList<>());
 
             FormationResponseDTO dto = mapper.toResponseDTO(f);

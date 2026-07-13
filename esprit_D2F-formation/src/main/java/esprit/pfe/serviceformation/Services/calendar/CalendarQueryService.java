@@ -15,8 +15,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.ZoneId;
-import java.util.Date;
+import java.time.LocalDate;
 
 /**
  * Lectures paginées orientées calendrier : formations planifiées, détail,
@@ -88,10 +87,7 @@ public class CalendarQueryService {
         return s == null || s.isBlank() ? null : s.trim();
     }
 
-    private static java.time.LocalDate toLocalDate(Date date) {
-        // java.sql.Date.toInstant() lève UnsupportedOperationException → passer
-        // par l'epoch millis (compatible java.util.Date ET java.sql.Date).
-        return date == null ? null
-                : java.time.Instant.ofEpochMilli(date.getTime()).atZone(ZoneId.systemDefault()).toLocalDate();
+    private static java.time.LocalDate toLocalDate(LocalDate date) {
+        return date;
     }
 }

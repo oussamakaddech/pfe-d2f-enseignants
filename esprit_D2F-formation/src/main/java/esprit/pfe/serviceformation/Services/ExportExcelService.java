@@ -11,8 +11,8 @@ import lombok.RequiredArgsConstructor;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.sql.Time;
-import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -41,7 +41,7 @@ public class ExportExcelService {
         style.setRightBorderColor(color);
     }
 
-    public ByteArrayOutputStream exportFormationsAvance(Date startDate, Date endDate) throws IOException {
+    public ByteArrayOutputStream exportFormationsAvance(LocalDate startDate, LocalDate endDate) throws IOException {
         List<FormationResponseDTO> formations = formationWorkflowService.getAllFormationWorkflows();
         List<SeanceExport> allSeances = extractFilteredSeances(formations, startDate, endDate);
 
@@ -58,7 +58,7 @@ public class ExportExcelService {
     }
 
     private void createSummarySheet(Workbook workbook, List<FormationResponseDTO> formations,
-                                     List<SeanceExport> allSeances, Date startDate, Date endDate) {
+                                     List<SeanceExport> allSeances, LocalDate startDate, LocalDate endDate) {
         Sheet sheet = workbook.createSheet("Résumé");
 
         CellStyle titleStyle = createSummaryTitleStyle(workbook);
@@ -66,7 +66,6 @@ public class ExportExcelService {
         CellStyle headerStyle = createHeaderStyle(workbook);
         CellStyle dataStyle = createDataCellStyle(workbook);
         CellStyle altStyle = createAlternateRowStyle(workbook);
-        CellStyle labelStyle = createSummaryLabelStyle(workbook);
 
         Row titleRow = sheet.createRow(0);
         Cell titleCell = titleRow.createCell(0);
@@ -98,7 +97,7 @@ public class ExportExcelService {
             String.valueOf(totalParticipants),
             formatDate(startDate, df),
             formatDate(endDate, df),
-            java.time.LocalDate.now().format(df)
+            java.time.LocalDate.now(ZoneId.systemDefault()).format(df)
         };
 
         Row headerRow = sheet.createRow(3);
@@ -148,10 +147,10 @@ public class ExportExcelService {
     }
 
     private void createCalendarSheet(Workbook workbook, List<SeanceExport> allSeances,
-                                      Date startDate, Date endDate) {
+                                      LocalDate startDate, LocalDate endDate) {
         Sheet sheet = workbook.createSheet("Calendrier");
 
-        Map<Date, List<SeanceExport>> mapByDate = groupSeancesByDate(allSeances);
+        Map<LocalDate, List<SeanceExport>> mapByDate = groupSeancesByDate(allSeances);
         DateTimeFormatter df = DateTimeFormatter.ofPattern("dd/MM/yyyy");
         String dateRange = formatDateRange(startDate, endDate, df);
 
@@ -185,7 +184,7 @@ public class ExportExcelService {
 
         int rowIndex = 3;
         boolean firstGroup = true;
-        for (Map.Entry<Date, List<SeanceExport>> entry : mapByDate.entrySet()) {
+        for (Map.Entry<LocalDate, List<SeanceExport>> entry : mapByDate.entrySet()) {
             if (!firstGroup) {
                 Row spacer = sheet.createRow(rowIndex++);
                 spacer.createCell(0).setCellStyle(spacingStyle);
@@ -255,7 +254,7 @@ public class ExportExcelService {
         c6.setCellStyle(style);
     }
 
-    private void applyDateMerging(Sheet sheet, Date date, int groupStart, int groupEnd,
+    private void applyDateMerging(Sheet sheet, LocalDate date, int groupStart, int groupEnd,
                                    CellStyle dateCellStyle, DateTimeFormatter df) {
         if (groupEnd > groupStart) {
             sheet.addMergedRegion(new CellRangeAddress(groupStart, groupEnd, 0, 0));
@@ -372,7 +371,7 @@ public class ExportExcelService {
     }
 
     private List<SeanceExport> extractFilteredSeances(List<FormationResponseDTO> formations,
-                                                        Date startDate, Date endDate) {
+                                                        LocalDate startDate, LocalDate endDate) {
         List<SeanceExport> allSeances = new ArrayList<>();
         for (FormationResponseDTO formation : formations) {
             if (formation.getSeances() != null) {
@@ -385,10 +384,10 @@ public class ExportExcelService {
     }
 
     private void addFilteredSeances(List<SeanceExport> allSeances, FormationResponseDTO formation,
-                                     Date startDate, Date endDate) {
+                                     LocalDate startDate, LocalDate endDate) {
         for (SeanceDTO seance : formation.getSeances()) {
-            Date dateSeance = seance.getDateSeance();
-            if (dateSeance != null && !dateSeance.before(startDate) && !dateSeance.after(endDate)) {
+            LocalDate dateSeance = seance.getDateSeance();
+            if (dateSeance != null && !dateSeance.isBefore(startDate) && !dateSeance.isAfter(endDate)) {
                 allSeances.add(mapToSeanceExport(formation, seance));
             }
         }
@@ -422,8 +421,8 @@ public class ExportExcelService {
         return dept + " / " + up;
     }
 
-    private Map<Date, List<SeanceExport>> groupSeancesByDate(List<SeanceExport> allSeances) {
-        Map<Date, List<SeanceExport>> mapByDate = new LinkedHashMap<>();
+    private Map<LocalDate, List<SeanceExport>> groupSeancesByDate(List<SeanceExport> allSeances) {
+        Map<LocalDate, List<SeanceExport>> mapByDate = new LinkedHashMap<>();
         for (SeanceExport s : allSeances) {
             mapByDate.computeIfAbsent(s.dateSeance, k -> new ArrayList<>()).add(s);
         }
@@ -431,12 +430,11 @@ public class ExportExcelService {
     }
 
     private boolean isAfternoonSeance(SeanceExport s) {
-        return s.heureDebut != null && s.heureDebut.after(Time.valueOf("12:30:00"));
+        return s.heureDebut != null && s.heureDebut.isAfter(LocalTime.of(12, 30));
     }
 
     private void setupPageSetup(Sheet sheet) {
-        if (sheet instanceof org.apache.poi.xssf.usermodel.XSSFSheet) {
-            org.apache.poi.xssf.usermodel.XSSFSheet xssfSheet = (org.apache.poi.xssf.usermodel.XSSFSheet) sheet;
+        if (sheet instanceof org.apache.poi.xssf.usermodel.XSSFSheet xssfSheet) {
             XSSFPrintSetup printSetup = xssfSheet.getPrintSetup();
             printSetup.setLandscape(true);
             printSetup.setFitWidth((short) 1);
@@ -453,15 +451,12 @@ public class ExportExcelService {
         }
     }
 
-    private String formatDateRange(Date startDate, Date endDate, DateTimeFormatter df) {
+    private String formatDateRange(LocalDate startDate, LocalDate endDate, DateTimeFormatter df) {
         return "Période: " + formatDate(startDate, df) + " au " + formatDate(endDate, df);
     }
 
-    private String formatDate(Date date, DateTimeFormatter df) {
-        return Instant.ofEpochMilli(date.getTime())
-                .atZone(ZoneId.systemDefault())
-                .toLocalDate()
-                .format(df);
+    private String formatDate(LocalDate date, DateTimeFormatter df) {
+        return date.format(df);
     }
 
     private CellStyle createCalendarTitleStyle(Workbook workbook) {
@@ -481,6 +476,10 @@ public class ExportExcelService {
     }
 
     private CellStyle createCalendarSubtitleStyle(Workbook workbook) {
+        return createLightBlueSubtitleStyle(workbook);
+    }
+
+    private CellStyle createLightBlueSubtitleStyle(Workbook workbook) {
         CellStyle style = workbook.createCellStyle();
         Font font = workbook.createFont();
         font.setFontHeightInPoints((short) 11);
@@ -512,32 +511,7 @@ public class ExportExcelService {
     }
 
     private CellStyle createSummarySubtitleStyle(Workbook workbook) {
-        CellStyle style = workbook.createCellStyle();
-        Font font = workbook.createFont();
-        font.setFontHeightInPoints((short) 11);
-        font.setColor(IndexedColors.BLACK.getIndex());
-        style.setFont(font);
-        style.setAlignment(HorizontalAlignment.CENTER);
-        style.setVerticalAlignment(VerticalAlignment.CENTER);
-        style.setFillForegroundColor(COLOR_LIGHT_BLUE);
-        style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
-        style.setWrapText(true);
-        setAllBorders(style, BorderStyle.MEDIUM, COLOR_HEADER_BORDER);
-        return style;
-    }
-
-    private CellStyle createSummaryLabelStyle(Workbook workbook) {
-        CellStyle style = workbook.createCellStyle();
-        Font font = workbook.createFont();
-        font.setBold(true);
-        font.setFontHeightInPoints((short) 10);
-        style.setFont(font);
-        style.setAlignment(HorizontalAlignment.LEFT);
-        style.setVerticalAlignment(VerticalAlignment.CENTER);
-        style.setFillForegroundColor(COLOR_ALT_ROW);
-        style.setFillPattern(FillPatternType.SOLID_FOREGROUND);
-        setAllBorders(style, BorderStyle.THIN, COLOR_BORDER);
-        return style;
+        return createLightBlueSubtitleStyle(workbook);
     }
 
     private CellStyle createHeaderStyle(Workbook workbook) {
@@ -622,9 +596,9 @@ public class ExportExcelService {
     }
 
     static class SeanceExport {
-        Date dateSeance;
-        Time heureDebut;
-        Time heureFin;
+        LocalDate dateSeance;
+        LocalTime heureDebut;
+        LocalTime heureFin;
         String salle;
         String titreFormation;
         String formateurs;

@@ -13,6 +13,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -85,7 +86,7 @@ public class SkillPassportAssembler {
 
         return TeacherSkillPassportDTO.builder()
                 .identity(identity)
-                .dateGeneration(LocalDateTime.now().format(ISO_FORMATTER))
+                .dateGeneration(LocalDateTime.now(ZoneId.systemDefault()).format(ISO_FORMATTER))
                 .scoreGlobal(round2(scoreGlobal))
                 .statut(statut)
                 .totalSavoirsMaitrises(totalSavoirs)

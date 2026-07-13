@@ -9,6 +9,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;
+import java.time.Month;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -82,8 +83,8 @@ class CertificateRequestTest {
         request.setFormationId(1L);
         request.setTitreFormation("Java Formation");
         request.setTypeCertif("ATTESTATION");
-        request.setDateDebutFormation(LocalDate.of(2026, 1, 1));
-        request.setDateFinFormation(LocalDate.of(2026, 1, 5));
+        request.setDateDebutFormation(LocalDate.of(2026, Month.JANUARY, 1));
+        request.setDateFinFormation(LocalDate.of(2026, Month.JANUARY, 5));
         request.setChargeHoraireGlobal(40);
         request.setEnseignantId("E001");
         request.setNomEnseignant("BEN MUSTAPHA");
@@ -145,8 +146,8 @@ class CertificateRequestTest {
     @DisplayName("ne doit pas valider quand dateFinFormation est avant dateDebutFormation")
     void invalid_WhenDateFinBeforeDateDebut() {
         CertificateRequest request = createValidRequest();
-        request.setDateDebutFormation(LocalDate.of(2026, 1, 10));
-        request.setDateFinFormation(LocalDate.of(2026, 1, 5));
+        request.setDateDebutFormation(LocalDate.of(2026, Month.JANUARY, 10));
+        request.setDateFinFormation(LocalDate.of(2026, Month.JANUARY, 5));
         Set<ConstraintViolation<CertificateRequest>> violations = validator.validate(request);
         assertThat(violations)
                 .isNotEmpty()
@@ -160,11 +161,11 @@ class CertificateRequestTest {
         // dateDebutFormation = null, dateFinFormation = null
         assertThat(request.isDateRangeValid()).isTrue();
         
-        request.setDateDebutFormation(LocalDate.of(2026, 1, 1));
+        request.setDateDebutFormation(LocalDate.of(2026, Month.JANUARY, 1));
         assertThat(request.isDateRangeValid()).isTrue();
         
         request.setDateDebutFormation(null);
-        request.setDateFinFormation(LocalDate.of(2026, 1, 1));
+        request.setDateFinFormation(LocalDate.of(2026, Month.JANUARY, 1));
         assertThat(request.isDateRangeValid()).isTrue();
     }
 }

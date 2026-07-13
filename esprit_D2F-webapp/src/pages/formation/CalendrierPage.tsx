@@ -1,6 +1,6 @@
 
 import { useState, useMemo } from "react";
-import { Calendar, dateFnsLocalizer } from "react-big-calendar";
+import { Calendar, dateFnsLocalizer, type View } from "react-big-calendar";
 import { format, parse, startOfWeek, getDay } from "date-fns";
 import { fr } from "date-fns/locale/fr";
 import "react-big-calendar/lib/css/react-big-calendar.css";
@@ -60,7 +60,7 @@ export default function CalendrierPage() {
   const [docsAdded, setDocsAdded] = useState(false);
   // état calendrier
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [currentView, setCurrentView] = useState("month");
+  const [currentView, setCurrentView] = useState<View>("month");
   // editable session state for EventDetails
   const [editedDateSeance, setEditedDateSeance] = useState("");
   const [editedHeureDebut, setEditedHeureDebut] = useState("");
@@ -131,7 +131,7 @@ export default function CalendrierPage() {
   };
 
   const handleNavigate = (newDate: Date) => setCurrentDate(newDate);
-  const handleViewChange = (view: string) => setCurrentView(view);
+  const handleViewChange = (view: View) => setCurrentView(view);
 
   const handleClose = () => {
     setShowModal(false);

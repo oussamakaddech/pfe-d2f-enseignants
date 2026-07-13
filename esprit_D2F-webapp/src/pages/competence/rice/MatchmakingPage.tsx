@@ -152,10 +152,13 @@ function MatchmakingPage() {
     const assignmentIds = new Map<string, number | string>();
 
     let affectationList: Record<string, unknown>[];
-    if (Array.isArray(affectationsData)) affectationList = affectationsData;
-    else if (Array.isArray((affectationsData as Record<string, unknown>)?.content)) affectationList = (affectationsData as Record<string, Record<string, unknown>[]>).content;
-    else if (Array.isArray((affectationsData as Record<string, unknown>)?.data)) affectationList = (affectationsData as Record<string, Record<string, unknown>[]>).data;
-    else affectationList = [];
+    if (Array.isArray(affectationsData)) affectationList = affectationsData as unknown as Record<string, unknown>[];
+    else {
+      const affSource = (affectationsData ?? {}) as Record<string, unknown>;
+      if (Array.isArray(affSource.content)) affectationList = affSource.content as Record<string, unknown>[];
+      else if (Array.isArray(affSource.data)) affectationList = affSource.data as Record<string, unknown>[];
+      else affectationList = [];
+    }
 
     if (affectationList.length > 0) {
       affectationList.forEach((a) => {

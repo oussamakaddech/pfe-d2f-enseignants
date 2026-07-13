@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test;
 
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
+import java.time.Month;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -19,8 +20,8 @@ class IcsCalendarWriterTest {
     private IcsEvent sampleEvent(String summary, String description, List<String> attendees) {
         return IcsEvent.builder()
                 .uid("d2f-seance-1@d2f.local")
-                .start(LocalDateTime.of(2026, 6, 10, 9, 0))
-                .end(LocalDateTime.of(2026, 6, 10, 12, 0))
+                .start(LocalDateTime.of(2026, Month.JUNE, 10, 9, 0))
+                .end(LocalDateTime.of(2026, Month.JUNE, 10, 12, 0))
                 .summary(summary)
                 .description(description)
                 .location("Salle A")

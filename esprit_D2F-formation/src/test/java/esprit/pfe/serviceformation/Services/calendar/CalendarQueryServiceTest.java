@@ -20,7 +20,7 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 
-import java.util.Date;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -44,8 +44,8 @@ class CalendarQueryServiceTest {
         f.setEtatFormation(EtatFormation.PLANIFIE);
         f.setSalle("Salle A");
         f.setResponsableName("Prof. Test");
-        f.setDateDebut(new Date());
-        f.setDateFin(new Date());
+        f.setDateDebut(LocalDate.now());
+        f.setDateFin(LocalDate.now());
         return f;
     }
 

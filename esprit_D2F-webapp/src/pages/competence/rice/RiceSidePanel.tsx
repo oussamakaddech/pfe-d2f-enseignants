@@ -1,3 +1,4 @@
+import type { ReactElement } from "react";
 import { Alert, Button, Typography } from "antd";
 import {
   ApiOutlined,
@@ -36,7 +37,7 @@ export default function RiceSidePanel({
   else if (enseignantsError) syncStatus = "Erreur";
   else syncStatus = "Active";
 
-  let syncIcon: JSX.Element;
+  let syncIcon: ReactElement;
   if (enseignantsLoading) syncIcon = <LoadingOutlined style={{ color: "#f59e0b" }} />;
   else if (enseignantsError) syncIcon = <WarningOutlined style={{ color: "#ef4444" }} />;
   else syncIcon = <CheckCircleOutlined style={{ color: "#10b981" }} />;

@@ -12,7 +12,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.ArrayList;
-import java.util.Date;
+import java.time.LocalDate;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.*;
@@ -63,8 +63,8 @@ class InscriptionServiceImplTest {
         formation.setInscriptionsOuvertes(true);
         formation.setOuverte(true);
         formation.setUp(up);
-        formation.setDateDebut(new Date());
-        formation.setDateFin(new Date(System.currentTimeMillis() + 86400000));
+        formation.setDateDebut(LocalDate.now());
+        formation.setDateFin(LocalDate.now().plusDays(1));
         formation.setSeances(new ArrayList<>());
     }
 

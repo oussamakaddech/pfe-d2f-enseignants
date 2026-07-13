@@ -13,6 +13,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.time.LocalDate;
+import java.time.Month;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -52,8 +53,8 @@ class FormationExportControllerTest {
         FormationResponseDTO f1 = new FormationResponseDTO();
         f1.setIdFormation(1L);
         f1.setTitreFormation("T1");
-        f1.setDateDebut(LocalDate.of(2026, 1, 1));
-        f1.setDateFin(LocalDate.of(2026, 1, 31));
+        f1.setDateDebut(LocalDate.of(2026, Month.JANUARY, 1));
+        f1.setDateFin(LocalDate.of(2026, Month.JANUARY, 31));
 
         DeptDTO d1 = new DeptDTO(); d1.setId("D1"); d1.setLibelle("Dept1");
         f1.setDepartement(d1);
@@ -64,14 +65,14 @@ class FormationExportControllerTest {
         when(formationWorkflowService.getAllFormationWorkflows()).thenReturn(List.of(f1));
 
         // Test with all filters
-        mockMvc.perform(get("/api/v1/exports/formations/excel")
+        mockMvc.perform(get("/api/v1/exports/formations/csv")
                 .param("start", "2023-01-01")
                 .param("end", "2023-12-31")
                 .param("deptId", "D1")
                 .param("upId", "U1")).andExpect(status().isOk());
         
         // Test with non-matching filters
-        mockMvc.perform(get("/api/v1/exports/formations/excel")
+        mockMvc.perform(get("/api/v1/exports/formations/csv")
                 .param("deptId", "D2")).andExpect(status().isOk());
     }
 }

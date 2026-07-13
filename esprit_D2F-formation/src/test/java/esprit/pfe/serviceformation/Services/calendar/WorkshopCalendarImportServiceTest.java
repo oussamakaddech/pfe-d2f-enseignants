@@ -35,6 +35,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.time.LocalDate;
+import java.time.Month;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -86,7 +87,7 @@ class WorkshopCalendarImportServiceTest {
     @DisplayName("preview() returns parsed calendar on valid file")
     void preview_validFile_returnsParsedCalendar() {
         ParsedCalendarDTO parsed = ParsedCalendarDTO.builder()
-                .sessions(List.of(session("Java", LocalDate.of(2026, 6, 10))))
+                .sessions(List.of(session("Java", LocalDate.of(2026, Month.JUNE, 10))))
                 .participants(List.of(participant("Java", "a@test.com")))
                 .build();
         when(parser.parse(any())).thenReturn(parsed);
@@ -144,8 +145,8 @@ class WorkshopCalendarImportServiceTest {
     void importCalendar_happyPath_createsAll() {
         ParsedCalendarDTO parsed = ParsedCalendarDTO.builder()
                 .sessions(List.of(
-                        session("Java Avancé", LocalDate.of(2026, 6, 10), 1, 3),
-                        session("Java Avancé", LocalDate.of(2026, 6, 11), 2, 3)))
+                        session("Java Avancé", LocalDate.of(2026, Month.JUNE, 10), 1, 3),
+                        session("Java Avancé", LocalDate.of(2026, Month.JUNE, 11), 2, 3)))
                 .participants(List.of(participant("Java Avancé", "alice@esprit.tn")))
                 .build();
         when(parser.parse(any())).thenReturn(parsed);
@@ -267,7 +268,7 @@ class WorkshopCalendarImportServiceTest {
         errors.add(ImportRowErrorDTO.error(3, "date", "Invalid date"));
 
         ParsedCalendarDTO parsed = ParsedCalendarDTO.builder()
-                .sessions(List.of(session("Java", LocalDate.of(2026, 6, 10), 1, 1)))
+                .sessions(List.of(session("Java", LocalDate.of(2026, Month.JUNE, 10), 1, 1)))
                 .errors(errors)
                 .build();
         when(parser.parse(any())).thenReturn(parsed);
@@ -307,7 +308,7 @@ class WorkshopCalendarImportServiceTest {
                 .thenReturn(Optional.empty());
 
         ParsedCalendarDTO parsed = ParsedCalendarDTO.builder()
-                .sessions(List.of(session("Java", LocalDate.of(2026, 6, 10), 1, 1)))
+                .sessions(List.of(session("Java", LocalDate.of(2026, Month.JUNE, 10), 1, 1)))
                 .participants(List.of(participant("Java", "a@test.com")))
                 .build();
         when(parser.parse(any())).thenReturn(parsed);
@@ -319,7 +320,7 @@ class WorkshopCalendarImportServiceTest {
 
         // Duplicate session — will be skipped
         SeanceFormation existing = new SeanceFormation();
-        existing.setDateSeance(java.sql.Date.valueOf(LocalDate.of(2026, 6, 10)));
+        existing.setDateSeance(LocalDate.of(2026, Month.JUNE, 10));
         existing.setNumeroSeance(1);
         when(seanceRepository.findByFormation_IdFormationOrderByNumeroSeanceAscDateSeanceAsc(1L))
                 .thenReturn(List.of(existing));
@@ -344,7 +345,7 @@ class WorkshopCalendarImportServiceTest {
                 .thenReturn(Optional.empty());
 
         ParsedCalendarDTO parsed = ParsedCalendarDTO.builder()
-                .sessions(List.of(session("Java", LocalDate.of(2026, 6, 10), 1, 1)))
+                .sessions(List.of(session("Java", LocalDate.of(2026, Month.JUNE, 10), 1, 1)))
                 .build();
         when(parser.parse(any())).thenReturn(parsed);
 
@@ -384,8 +385,8 @@ class WorkshopCalendarImportServiceTest {
 
         ParsedCalendarDTO parsed = ParsedCalendarDTO.builder()
                 .sessions(List.of(
-                        session("Java", LocalDate.of(2026, 6, 10), 1, 1),
-                        session("Java", LocalDate.of(2026, 6, 10), 1, 1)))
+                        session("Java", LocalDate.of(2026, Month.JUNE, 10), 1, 1),
+                        session("Java", LocalDate.of(2026, Month.JUNE, 10), 1, 1)))
                 .build();
         when(parser.parse(any())).thenReturn(parsed);
 
@@ -395,7 +396,7 @@ class WorkshopCalendarImportServiceTest {
                 .thenReturn(Optional.of(formation));
 
         SeanceFormation existing = new SeanceFormation();
-        existing.setDateSeance(java.sql.Date.valueOf(LocalDate.of(2026, 6, 10)));
+        existing.setDateSeance(LocalDate.of(2026, Month.JUNE, 10));
         existing.setNumeroSeance(1);
         when(seanceRepository.findByFormation_IdFormationOrderByNumeroSeanceAscDateSeanceAsc(1L))
                 .thenReturn(List.of(existing));
@@ -420,7 +421,7 @@ class WorkshopCalendarImportServiceTest {
                 .thenReturn(Optional.empty());
 
         ParsedCalendarDTO parsed = ParsedCalendarDTO.builder()
-                .sessions(List.of(session("New Formation", LocalDate.of(2026, 6, 10), 1, 1)))
+                .sessions(List.of(session("New Formation", LocalDate.of(2026, Month.JUNE, 10), 1, 1)))
                 .build();
         when(parser.parse(any())).thenReturn(parsed);
 
@@ -461,7 +462,7 @@ class WorkshopCalendarImportServiceTest {
                 .thenReturn(Optional.empty());
 
         ParsedCalendarDTO parsed = ParsedCalendarDTO.builder()
-                .sessions(List.of(session("Existing", LocalDate.of(2026, 6, 10), 1, 1)))
+                .sessions(List.of(session("Existing", LocalDate.of(2026, Month.JUNE, 10), 1, 1)))
                 .build();
         when(parser.parse(any())).thenReturn(parsed);
 
@@ -500,7 +501,7 @@ class WorkshopCalendarImportServiceTest {
                 .thenReturn(Optional.empty());
 
         ParsedCalendarDTO parsed = ParsedCalendarDTO.builder()
-                .sessions(List.of(session("Java", LocalDate.of(2026, 6, 10), 1, 1)))
+                .sessions(List.of(session("Java", LocalDate.of(2026, Month.JUNE, 10), 1, 1)))
                 .participants(List.of(
                         participant("Java", "alice@esprit.tn"),
                         participant("Java", "bob@esprit.tn")))
@@ -552,7 +553,7 @@ class WorkshopCalendarImportServiceTest {
                 .thenReturn(Optional.empty());
 
         ParsedCalendarDTO parsed = ParsedCalendarDTO.builder()
-                .sessions(List.of(session("Java", LocalDate.of(2026, 6, 10), 1, 1)))
+                .sessions(List.of(session("Java", LocalDate.of(2026, Month.JUNE, 10), 1, 1)))
                 .participants(List.of(participant("Java", "a@test.com")))
                 .build();
         when(parser.parse(any())).thenReturn(parsed);
@@ -594,7 +595,7 @@ class WorkshopCalendarImportServiceTest {
                 .thenReturn(Optional.empty());
 
         ParsedCalendarDTO parsed = ParsedCalendarDTO.builder()
-                .sessions(List.of(session("Java", LocalDate.of(2026, 6, 10), 1, 1)))
+                .sessions(List.of(session("Java", LocalDate.of(2026, Month.JUNE, 10), 1, 1)))
                 .participants(List.of(participant("NonExistent", "orphan@esprit.tn")))
                 .build();
         when(parser.parse(any())).thenReturn(parsed);
@@ -637,7 +638,7 @@ class WorkshopCalendarImportServiceTest {
                 .thenReturn(Optional.empty());
 
         ParsedCalendarDTO parsed = ParsedCalendarDTO.builder()
-                .sessions(List.of(session("Java", LocalDate.of(2026, 6, 10), 1, 1)))
+                .sessions(List.of(session("Java", LocalDate.of(2026, Month.JUNE, 10), 1, 1)))
                 .participants(List.of(participant("Java", "unknown@esprit.tn")))
                 .build();
         when(parser.parse(any())).thenReturn(parsed);
@@ -688,7 +689,7 @@ class WorkshopCalendarImportServiceTest {
                 .thenReturn(Optional.empty());
 
         ParsedCalendarDTO parsed = ParsedCalendarDTO.builder()
-                .sessions(List.of(session("Java", LocalDate.of(2026, 6, 10), 1, 1)))
+                .sessions(List.of(session("Java", LocalDate.of(2026, Month.JUNE, 10), 1, 1)))
                 .participants(List.of(participant("Java", "known@esprit.tn")))
                 .build();
         when(parser.parse(any())).thenReturn(parsed);
@@ -739,7 +740,7 @@ class WorkshopCalendarImportServiceTest {
                 .thenReturn(Optional.empty());
 
         ParsedCalendarDTO parsed = ParsedCalendarDTO.builder()
-                .sessions(List.of(session("Java", LocalDate.of(2026, 6, 10), 1, 1)))
+                .sessions(List.of(session("Java", LocalDate.of(2026, Month.JUNE, 10), 1, 1)))
                 .participants(Collections.emptyList())
                 .build();
         when(parser.parse(any())).thenReturn(parsed);
@@ -779,8 +780,8 @@ class WorkshopCalendarImportServiceTest {
 
         ParsedCalendarDTO parsed = ParsedCalendarDTO.builder()
                 .sessions(List.of(
-                        session("F1", LocalDate.of(2026, 6, 10), 1, 1),
-                        session("F2", LocalDate.of(2026, 6, 11), 1, 1)))
+                        session("F1", LocalDate.of(2026, Month.JUNE, 10), 1, 1),
+                        session("F2", LocalDate.of(2026, Month.JUNE, 11), 1, 1)))
                 .participants(List.of(participant("F1", "a@test.com")))
                 .build();
         when(parser.parse(any())).thenReturn(parsed);
@@ -841,7 +842,7 @@ class WorkshopCalendarImportServiceTest {
 
         ParsedSessionDTO session = ParsedSessionDTO.builder()
                 .formationName("Java")
-                .date(LocalDate.of(2026, 6, 10))
+                .date(LocalDate.of(2026, Month.JUNE, 10))
                 .startTime(LocalTime.of(9, 0))
                 .endTime(LocalTime.of(12, 0))
                 .sessionNumber(1)
@@ -895,7 +896,7 @@ class WorkshopCalendarImportServiceTest {
                 .formationName("New Course")
                 .trainerName("Dr. Smith")
                 .room("Room A")
-                .date(LocalDate.of(2026, 6, 15))
+                .date(LocalDate.of(2026, Month.JUNE, 15))
                 .startTime(LocalTime.of(9, 0))
                 .endTime(LocalTime.of(12, 0))
                 .sessionNumber(1)
@@ -977,7 +978,7 @@ class WorkshopCalendarImportServiceTest {
         errors.add(ImportRowErrorDTO.error(5, "date", "bad date"));
 
         ParsedCalendarDTO parsed = ParsedCalendarDTO.builder()
-                .sessions(List.of(session("Java", LocalDate.of(2026, 6, 10), 1, 1)))
+                .sessions(List.of(session("Java", LocalDate.of(2026, Month.JUNE, 10), 1, 1)))
                 .errors(errors)
                 .build();
         when(parser.parse(any())).thenReturn(parsed);
@@ -1017,7 +1018,7 @@ class WorkshopCalendarImportServiceTest {
                 .thenReturn(Optional.empty());
 
         ParsedCalendarDTO parsed = ParsedCalendarDTO.builder()
-                .sessions(List.of(session("Java", LocalDate.of(2026, 6, 10), 1, 1)))
+                .sessions(List.of(session("Java", LocalDate.of(2026, Month.JUNE, 10), 1, 1)))
                 .build();
         when(parser.parse(any())).thenReturn(parsed);
 
@@ -1057,7 +1058,7 @@ class WorkshopCalendarImportServiceTest {
                 .thenReturn(Optional.empty());
 
         ParsedCalendarDTO parsed = ParsedCalendarDTO.builder()
-                .sessions(List.of(session("Java", LocalDate.of(2026, 6, 10), 1, 1)))
+                .sessions(List.of(session("Java", LocalDate.of(2026, Month.JUNE, 10), 1, 1)))
                 .build();
         when(parser.parse(any())).thenReturn(parsed);
 
@@ -1184,7 +1185,7 @@ class WorkshopCalendarImportServiceTest {
                 .thenReturn(Optional.empty());
 
         ParsedCalendarDTO parsed = ParsedCalendarDTO.builder()
-                .sessions(List.of(session("Java", LocalDate.of(2026, 6, 10), 1, 1)))
+                .sessions(List.of(session("Java", LocalDate.of(2026, Month.JUNE, 10), 1, 1)))
                 .build();
         when(parser.parse(any())).thenReturn(parsed);
 
@@ -1225,7 +1226,7 @@ class WorkshopCalendarImportServiceTest {
                 .thenReturn(Optional.empty());
 
         ParsedCalendarDTO parsed = ParsedCalendarDTO.builder()
-                .sessions(List.of(session("Java", LocalDate.of(2026, 6, 10), 2, 3)))
+                .sessions(List.of(session("Java", LocalDate.of(2026, Month.JUNE, 10), 2, 3)))
                 .build();
         when(parser.parse(any())).thenReturn(parsed);
 
@@ -1235,7 +1236,7 @@ class WorkshopCalendarImportServiceTest {
                 .thenReturn(Optional.of(formation));
 
         SeanceFormation existing = new SeanceFormation();
-        existing.setDateSeance(java.sql.Date.valueOf(LocalDate.of(2026, 6, 10)));
+        existing.setDateSeance(LocalDate.of(2026, Month.JUNE, 10));
         existing.setNumeroSeance(1);
         when(seanceRepository.findByFormation_IdFormationOrderByNumeroSeanceAscDateSeanceAsc(1L))
                 .thenReturn(List.of(existing));

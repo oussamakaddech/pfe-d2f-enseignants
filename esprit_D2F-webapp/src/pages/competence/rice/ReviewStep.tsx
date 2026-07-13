@@ -90,7 +90,7 @@ interface ReviewStepProps {
   setCreateEnsModal?: (v: boolean) => void;
 }
 
-function pushScOpts(opts: { label: string; value: string }[], d: DomaineNode, di: number, c: { code?: string }, ci: number): void {
+function pushScOpts(opts: { label: string; value: string }[], d: DomaineNode, di: number, c: { code?: string; sousCompetences?: { code?: string }[] }, ci: number): void {
   opts.push({ label: `${d.code ?? ""} · ${c.code ?? ""}`, value: JSON.stringify([di, ci, -1]) });
   for (const [sci, sc] of (c.sousCompetences ?? []).entries())
     opts.push({ label: `${d.code ?? ""} · ${c.code ?? ""} · ${sc.code ?? ""}`, value: JSON.stringify([di, ci, sci]) });
@@ -220,7 +220,7 @@ export default function ReviewStep({
 
   const ctx: TreeCtx = {
     treeFilteredIndices, expandedDomainKeys, setExpandedDomainKeys, expandedCompKeys, setExpandedCompKeys,
-    isEditingPath, markMatch, selectedNode, setSelectedNode, editingNom, setEditingNom, commitRename,
+    isEditingPath, markMatch, selectedNode, setSelectedNode, editingNom: editingNom as unknown as Record<string, string> | null, setEditingNom: setEditingNom as unknown as (v: Record<string, string> | null) => void, commitRename,
     startRename, toggleType, setNiveau, setEnseignants, deleteSavoir, openMerge, setMergeModal,
     onSavoirDragStart, onSavoirDragEnd, mergedEnseignants, showInlineHint,
   };

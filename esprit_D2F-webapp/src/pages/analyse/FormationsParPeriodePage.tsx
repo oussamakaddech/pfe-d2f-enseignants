@@ -1,12 +1,12 @@
-import { useMemo, useState } from "react";
-import { Card, Col, Row, Segmented, Statistic, Typography, Empty, Button, Space } from "antd";
+import { useMemo, useState, type ReactElement } from "react";
+import { Card, Col, Row, Segmented, Statistic, Typography, Empty, Button, Space, Tooltip, message } from "antd";
 import { ArrowUpOutlined, ArrowDownOutlined, MinusOutlined, DownloadOutlined } from "@ant-design/icons";
 import { useFormationsParPeriode, useAnalyticsExport } from "@/hooks/analyse/useReporting";
 import type { Granularite, PeriodePoint, Tendance } from "@/models/analyse";
 
 const { Title } = Typography;
 
-const TREND_ICON: Record<Tendance, JSX.Element> = {
+const TREND_ICON: Record<Tendance, ReactElement> = {
   HAUSSE: <ArrowUpOutlined style={{ color: "#16a34a" }} />,
   BAISSE: <ArrowDownOutlined style={{ color: "#dc2626" }} />,
   STABLE: <MinusOutlined style={{ color: "#64748b" }} />,
@@ -56,6 +56,31 @@ export default function FormationsParPeriodePage() {
   const { data, isLoading } = useFormationsParPeriode({ granularite });
   const { exporting, exportPdf } = useAnalyticsExport();
 
+  const pdfExportSupported = granularite === "MOIS" || granularite === "ANNEE";
+  const exportDisabledTooltip = !pdfExportSupported
+    ? granularite === "SEMAINE"
+      ? "L'export PDF hebdomadaire n'est pas encore disponible."
+      : "L'export PDF trimestriel n'est pas encore disponible."
+    : undefined;
+
+  function handleExportPdf() {
+    const type = granularite === "ANNEE" ? "RAPPORT_ANNUEL" : "RAPPORT_MENSUEL";
+    exportPdf(type).catch(() => {
+      message.error("Échec de l'export PDF.");
+    });
+  }
+
+  const exportButton = (
+    <Button
+      icon={<DownloadOutlined />}
+      loading={exporting}
+      disabled={!pdfExportSupported}
+      onClick={handleExportPdf}
+    >
+      Export PDF
+    </Button>
+  );
+
   return (
     <Card loading={isLoading}>
       <Space style={{ width: "100%", justifyContent: "space-between", marginBottom: 16 }} wrap>
@@ -71,9 +96,11 @@ export default function FormationsParPeriodePage() {
               { label: "Annuel", value: "ANNEE" },
             ]}
           />
-          <Button icon={<DownloadOutlined />} loading={exporting} onClick={() => exportPdf("RAPPORT_MENSUEL")}>
-            Export PDF
-          </Button>
+          {exportDisabledTooltip ? (
+            <Tooltip title={exportDisabledTooltip}>{exportButton}</Tooltip>
+          ) : (
+            exportButton
+          )}
         </Space>
       </Space>
 

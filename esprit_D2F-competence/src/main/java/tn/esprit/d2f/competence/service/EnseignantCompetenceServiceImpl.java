@@ -6,8 +6,8 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.transaction.annotation.Transactional;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import tn.esprit.d2f.competence.dto.EnseignantCompetenceDTO;
 import tn.esprit.d2f.competence.dto.EnseignantCompetenceRequest;
@@ -22,12 +22,22 @@ import java.util.List;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class EnseignantCompetenceServiceImpl implements IEnseignantCompetenceService {
 
     private final EnseignantCompetenceRepository enseignantCompetenceRepository;
     private final SavoirRepository savoirRepository;
     private final CompetenceMapper competenceMapper;
+    private final IEnseignantCompetenceService self;
+
+    public EnseignantCompetenceServiceImpl(EnseignantCompetenceRepository enseignantCompetenceRepository,
+                                           SavoirRepository savoirRepository,
+                                           CompetenceMapper competenceMapper,
+                                           @Lazy IEnseignantCompetenceService self) {
+        this.enseignantCompetenceRepository = enseignantCompetenceRepository;
+        this.savoirRepository = savoirRepository;
+        this.competenceMapper = competenceMapper;
+        this.self = self;
+    }
 
     @Override
     @Transactional(readOnly = true)
@@ -49,7 +59,7 @@ public class EnseignantCompetenceServiceImpl implements IEnseignantCompetenceSer
     @Override
     @Transactional(readOnly = true)
     public Page<EnseignantCompetenceDTO> getCompetencesByEnseignant(String enseignantId, Pageable pageable) {
-        return paginate(this.getCompetencesByEnseignant(enseignantId), pageable);
+        return paginate(self.getCompetencesByEnseignant(enseignantId), pageable);
     }
 
     @Override
@@ -63,7 +73,7 @@ public class EnseignantCompetenceServiceImpl implements IEnseignantCompetenceSer
     @Override
     @Transactional(readOnly = true)
     public Page<EnseignantCompetenceDTO> getCompetencesByEnseignantAndDomaine(String enseignantId, Long domaineId, Pageable pageable) {
-        return paginate(this.getCompetencesByEnseignantAndDomaine(enseignantId, domaineId), pageable);
+        return paginate(self.getCompetencesByEnseignantAndDomaine(enseignantId, domaineId), pageable);
     }
 
     @Override
@@ -77,7 +87,7 @@ public class EnseignantCompetenceServiceImpl implements IEnseignantCompetenceSer
     @Override
     @Transactional(readOnly = true)
     public Page<EnseignantCompetenceDTO> getCompetencesByEnseignantAndCompetence(String enseignantId, Long competenceId, Pageable pageable) {
-        return paginate(this.getCompetencesByEnseignantAndCompetence(enseignantId, competenceId), pageable);
+        return paginate(self.getCompetencesByEnseignantAndCompetence(enseignantId, competenceId), pageable);
     }
 
     @Override
@@ -91,7 +101,7 @@ public class EnseignantCompetenceServiceImpl implements IEnseignantCompetenceSer
     @Override
     @Transactional(readOnly = true)
     public Page<EnseignantCompetenceDTO> getCompetencesByEnseignantAndNiveau(String enseignantId, NiveauMaitrise niveau, Pageable pageable) {
-        return paginate(this.getCompetencesByEnseignantAndNiveau(enseignantId, niveau), pageable);
+        return paginate(self.getCompetencesByEnseignantAndNiveau(enseignantId, niveau), pageable);
     }
 
     @Override
@@ -162,7 +172,7 @@ public class EnseignantCompetenceServiceImpl implements IEnseignantCompetenceSer
     @Override
     @Transactional(readOnly = true)
     public Page<EnseignantCompetenceDTO> getByCompetenceId(Long competenceId, Pageable pageable) {
-        return paginate(this.getByCompetenceId(competenceId), pageable);
+        return paginate(self.getByCompetenceId(competenceId), pageable);
     }
 
     private Page<EnseignantCompetenceDTO> paginate(List<EnseignantCompetenceDTO> items, Pageable pageable) {

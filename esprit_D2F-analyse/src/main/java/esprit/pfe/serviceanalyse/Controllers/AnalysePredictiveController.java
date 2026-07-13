@@ -67,4 +67,28 @@ public class AnalysePredictiveController {
             @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String bearerToken) {
         return ResponseEntity.ok(bffService.priorityActions(limit, departementId, bearerToken));
     }
+
+    /** Impact réel global des formations suivies (agrégats historiques). */
+    @GetMapping("/training-impact")
+    public ResponseEntity<Map<String, Object>> trainingImpact(
+            @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String bearerToken) {
+        return ResponseEntity.ok(bffService.trainingImpact(bearerToken));
+    }
+
+    /** Classement paginé des formations selon leur impact (gain de niveau). */
+    @GetMapping("/training-impact/formations")
+    public ResponseEntity<Map<String, Object>> trainingImpactFormations(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String bearerToken) {
+        return ResponseEntity.ok(bffService.trainingImpactFormations(page, size, bearerToken));
+    }
+
+    /** Simulation what-if : projection du risque si un plan de formations est suivi. */
+    @PostMapping("/simulate/what-if")
+    public ResponseEntity<Map<String, Object>> simulateWhatIf(
+            @RequestBody Map<String, Object> plan,
+            @RequestHeader(value = HttpHeaders.AUTHORIZATION, required = false) String bearerToken) {
+        return ResponseEntity.ok(bffService.simulateWhatIf(plan, bearerToken));
+    }
 }

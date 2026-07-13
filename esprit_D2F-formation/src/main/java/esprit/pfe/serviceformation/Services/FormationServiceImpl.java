@@ -80,9 +80,8 @@ public class FormationServiceImpl implements FormationService {
         String animateur  = resolveAnimateur(f);
         String subject    = "D2f-" + salle + "-" + titre + "-" + animateur;
 
-        // java.sql.Date.toInstant() lève UnsupportedOperationException → epoch millis.
-        var start = java.time.Instant.ofEpochMilli(f.getDateDebut().getTime()).atZone(TZ).withHour(8).withMinute(0).toOffsetDateTime();
-        var end   = java.time.Instant.ofEpochMilli(f.getDateFin().getTime()).atZone(TZ).withHour(17).withMinute(0).toOffsetDateTime();
+        var start = f.getDateDebut().atStartOfDay(TZ).withHour(8).withMinute(0).toOffsetDateTime();
+        var end   = f.getDateFin().atStartOfDay(TZ).withHour(17).withMinute(0).toOffsetDateTime();
 
         List<String> emails = (f.getAnimateurs() != null)
                 ? f.getAnimateurs().stream().map(Enseignant::getMail).filter(m -> m != null && !m.isBlank()).toList()

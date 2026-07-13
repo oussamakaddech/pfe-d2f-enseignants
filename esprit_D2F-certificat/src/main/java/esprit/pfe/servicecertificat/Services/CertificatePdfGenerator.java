@@ -14,6 +14,7 @@ import com.itextpdf.layout.element.Paragraph;
 import com.itextpdf.layout.properties.TextAlignment;
 
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -85,7 +86,7 @@ public class CertificatePdfGenerator {
             document.add(teacherDetails);
 
             // Date d'émission (using LocalDate — thread-safe & not deprecated)
-            Paragraph issuedDate = new Paragraph("Émis le : " + LocalDate.now())
+            Paragraph issuedDate = new Paragraph("Émis le : " + LocalDate.now(ZoneId.of("UTC")))
                     .setFont(font)
                     .setFontSize(12)
                     .setFontColor(ColorConstants.DARK_GRAY)

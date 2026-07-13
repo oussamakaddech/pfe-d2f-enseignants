@@ -11,7 +11,7 @@ os.environ.setdefault("MESSAGING_ENABLED", "false")
 from types import SimpleNamespace
 
 from app.engines.insights_engine import (
-    InsightsEngine, _add_months, _ewma, _linear_fit, _quadrant, _residual_std,
+    InsightsEngine, _add_months, _ewma, _linear_fit, _month_range, _quadrant, _residual_std,
 )
 
 
@@ -142,3 +142,57 @@ class TestRiskDistribution:
         assert result["by_level"]["CRITIQUE"] == 2
         last_bucket = result["histogram"][-1]  # 0.8-1.0
         assert last_bucket["count"] == 2
+
+
+class TestMonthRange:
+    def test_within_year(self):
+        assert _month_range("2025-01", "2025-04") == ["2025-01", "2025-02", "2025-03", "2025-04"]
+
+    def test_year_rollover(self):
+        assert _month_range("2025-11", "2026-02") == [
+            "2025-11", "2025-12", "2026-01", "2026-02"
+        ]
+
+
+class TestTrainingNeedsForecast:
+    def test_empty_history_is_neutral(self, mock_db):
+        eng = InsightsEngine(mock_db)
+        eng._training_needs_history = lambda history_months: []
+        result = eng.training_needs_forecast(months=6)
+        assert result["departements"] == []
+        assert result["total_forecast"] == []
+        assert result["note"]
+
+    def test_insufficient_history_single_month(self, mock_db):
+        eng = InsightsEngine(mock_db)
+        eng._training_needs_history = lambda history_months: [
+            {"departement": "INFO", "month": "2025-01"},
+            {"departement": "INFO", "month": "2025-01"},
+        ]
+        result = eng.training_needs_forecast(months=6)
+        assert result["departements"] == []
+        assert "note" in result
+
+    def test_projection_per_department(self, mock_db):
+        eng = InsightsEngine(mock_db)
+        # Deux départements, série croissante sur 4 mois.
+        raw = []
+        for i in range(1, 5):
+            for _ in range(i):
+                raw.append({"departement": "INFO", "month": f"2025-0{i}"})
+            for _ in range(i * 2):
+                raw.append({"departement": "MATH", "month": f"2025-0{i}"})
+        eng._training_needs_history = lambda history_months: raw
+        result = eng.training_needs_forecast(months=3, history_months=12)
+        assert result["method"] == "ewma+linear"
+        assert len(result["departements"]) == 2
+        assert len(result["total_forecast"]) == 3
+        # MATH a plus de besoins → doit apparaître en tête.
+        assert result["top_departements"][0] == "MATH"
+        # La somme des départements égale l'agrégat total à chaque mois projeté.
+        for idx, agg in enumerate(result["total_forecast"]):
+            summed = sum(d["forecast"][idx]["value"] for d in result["departements"])
+            assert abs(summed - agg["value"]) < 1e-6
+        for d in result["departements"]:
+            assert d["predicted_value"] >= 0
+            assert d["forecast"][0]["upper"] >= d["forecast"][0]["lower"]

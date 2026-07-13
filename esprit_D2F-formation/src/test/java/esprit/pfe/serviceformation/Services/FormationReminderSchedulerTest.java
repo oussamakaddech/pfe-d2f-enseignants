@@ -12,9 +12,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.sql.Date;
-import java.sql.Time;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
@@ -52,9 +51,9 @@ class FormationReminderSchedulerTest {
         seance = new SeanceFormation();
         seance.setIdSeance(10L);
         seance.setFormation(formation);
-        seance.setDateSeance(Date.valueOf(LocalDate.now(ZoneId.of("Africa/Tunis")).plusDays(1)));
-        seance.setHeureDebut(Time.valueOf("09:00:00"));
-        seance.setHeureFin(Time.valueOf("11:00:00"));
+        seance.setDateSeance(LocalDate.now(ZoneId.of("Africa/Tunis")).plusDays(1));
+        seance.setHeureDebut(LocalTime.of(9, 0));
+        seance.setHeureFin(LocalTime.of(11, 0));
         seance.setAnimateurs(new ArrayList<>());
         seance.setParticipants(new ArrayList<>());
     }
@@ -66,7 +65,7 @@ class FormationReminderSchedulerTest {
         
         // Mocking for J-7, J-3, J-1
         when(seanceFormationRepository.findByDateSeance(any())).thenReturn(new ArrayList<>());
-        when(seanceFormationRepository.findByDateSeance(Date.valueOf(today.plusDays(1))))
+        when(seanceFormationRepository.findByDateSeance(today.plusDays(1)))
                 .thenReturn(List.of(seance));
 
         scheduler.sendDailyReminders();

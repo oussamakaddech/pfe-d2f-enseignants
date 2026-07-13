@@ -14,6 +14,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.jpa.domain.Specification;
 
 import java.time.LocalDate;
+import java.time.Month;
 import java.util.List;
 import java.util.Set;
 
@@ -149,7 +150,7 @@ class UnifiedProfileSpecificationsTest {
     void recruitedBetweenFromOnly() {
         when(cb.and(any(Predicate[].class))).thenReturn(predicate);
 
-        UnifiedProfileSpecifications.recruitedBetween(LocalDate.of(2023, 1, 1), null).toPredicate(root, query, cb);
+        UnifiedProfileSpecifications.recruitedBetween(LocalDate.of(2023, Month.JANUARY, 1), null).toPredicate(root, query, cb);
 
         verify(cb).and(any(Predicate[].class));
     }
@@ -158,7 +159,7 @@ class UnifiedProfileSpecificationsTest {
     void recruitedBetweenToOnly() {
         when(cb.and(any(Predicate[].class))).thenReturn(predicate);
 
-        UnifiedProfileSpecifications.recruitedBetween(null, LocalDate.of(2024, 12, 31)).toPredicate(root, query, cb);
+        UnifiedProfileSpecifications.recruitedBetween(null, LocalDate.of(2024, Month.DECEMBER, 31)).toPredicate(root, query, cb);
 
         verify(cb).and(any(Predicate[].class));
     }
@@ -168,7 +169,7 @@ class UnifiedProfileSpecificationsTest {
         when(cb.and(any(Predicate[].class))).thenReturn(predicate);
 
         UnifiedProfileSpecifications.recruitedBetween(
-                LocalDate.of(2023, 1, 1), LocalDate.of(2024, 12, 31)).toPredicate(root, query, cb);
+                LocalDate.of(2023, Month.JANUARY, 1), LocalDate.of(2024, Month.DECEMBER, 31)).toPredicate(root, query, cb);
 
         verify(cb).and(any(Predicate[].class));
     }
@@ -221,8 +222,8 @@ class UnifiedProfileSpecificationsTest {
         filter.setGrade("MCF");
         filter.setStatut("ACTIF");
         filter.setDossierStatus("COMPLET");
-        filter.setRecruitedFrom(LocalDate.of(2020, 1, 1));
-        filter.setRecruitedTo(LocalDate.of(2024, 12, 31));
+        filter.setRecruitedFrom(LocalDate.of(2020, Month.JANUARY, 1));
+        filter.setRecruitedTo(LocalDate.of(2024, Month.DECEMBER, 31));
 
         Specification<Enseignant> spec = UnifiedProfileSpecifications.build(filter, Set.of("u1", "u2"), Set.of("d1", "d2"));
 

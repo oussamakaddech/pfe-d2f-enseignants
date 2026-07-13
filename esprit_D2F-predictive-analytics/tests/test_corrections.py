@@ -50,18 +50,11 @@ class TestKPI4Departements:
     def test_aggregates_by_dept_not_global(self):
         from app.engines.dashboard_engine import DashboardEngine
         db = MagicMock()
-        row1 = MagicMock(enseignant_id="E1", competence_id=1, niveau_actuel=4, niveau_requis=3)
-        row2 = MagicMock(enseignant_id="E2", competence_id=1, niveau_actuel=1, niveau_requis=4)
-        db.query.return_value.filter.return_value.all.return_value = [row1, row2]
-        with patch("app.engines.dashboard_engine.execute_query") as mock_exec,              patch("app.engines.dashboard_engine._db_session") as mock_session:
-            mock_session.return_value.__enter__ = MagicMock(return_value=MagicMock())
-            mock_session.return_value.__exit__ = MagicMock(return_value=False)
-            mock_exec.return_value = [
-                {"enseignant_id": "E1", "departement_id": "DEPT_A"},
-                {"enseignant_id": "E2", "departement_id": "DEPT_B"},
-            ]
-            engine = DashboardEngine(db)
-            result = engine.taux_couverture_departements()
+        row1 = MagicMock(departement_id="DEPT_A", total=1, couverts=1)
+        row2 = MagicMock(departement_id="DEPT_B", total=1, couverts=0)
+        db.query.return_value.group_by.return_value.all.return_value = [row1, row2]
+        engine = DashboardEngine(db)
+        result = engine.taux_couverture_departements()
         depts = {r["departement"] for r in result}
         assert "DEPT_A" in depts
         assert "DEPT_B" in depts
@@ -70,30 +63,21 @@ class TestKPI4Departements:
     def test_couverture_100_percent(self):
         from app.engines.dashboard_engine import DashboardEngine
         db = MagicMock()
-        row = MagicMock(enseignant_id="E1", competence_id=1, niveau_actuel=5, niveau_requis=3)
-        db.query.return_value.filter.return_value.all.return_value = [row]
-        with patch("app.engines.dashboard_engine.execute_query") as mock_exec,              patch("app.engines.dashboard_engine._db_session") as mock_session:
-            mock_session.return_value.__enter__ = MagicMock(return_value=MagicMock())
-            mock_session.return_value.__exit__ = MagicMock(return_value=False)
-            mock_exec.return_value = [{"enseignant_id": "E1", "departement_id": "DEPT_X"}]
-            engine = DashboardEngine(db)
-            result = engine.taux_couverture_departements()
+        row = MagicMock(departement_id="DEPT_X", total=1, couverts=1)
+        db.query.return_value.group_by.return_value.all.return_value = [row]
+        engine = DashboardEngine(db)
+        result = engine.taux_couverture_departements()
         assert result[0]["departement"] == "DEPT_X"
         assert result[0]["taux_couverture"] == 100.0
 
     def test_results_sorted(self):
         from app.engines.dashboard_engine import DashboardEngine
         db = MagicMock()
-        db.query.return_value.filter.return_value.all.return_value = []
-        with patch("app.engines.dashboard_engine.execute_query") as mock_exec,              patch("app.engines.dashboard_engine._db_session") as mock_session:
-            mock_session.return_value.__enter__ = MagicMock(return_value=MagicMock())
-            mock_session.return_value.__exit__ = MagicMock(return_value=False)
-            mock_exec.return_value = [
-                {"enseignant_id": "E1", "departement_id": "Z_DEPT"},
-                {"enseignant_id": "E2", "departement_id": "A_DEPT"},
-            ]
-            engine = DashboardEngine(db)
-            result = engine.taux_couverture_departements()
+        row_z = MagicMock(departement_id="Z_DEPT", total=1, couverts=1)
+        row_a = MagicMock(departement_id="A_DEPT", total=1, couverts=1)
+        db.query.return_value.group_by.return_value.all.return_value = [row_z, row_a]
+        engine = DashboardEngine(db)
+        result = engine.taux_couverture_departements()
         names = [r["departement"] for r in result]
         assert names == sorted(names)
 
@@ -351,10 +335,15 @@ class TestDriftEndpoint:
 # ==============================================================================
 
 class TestActiveMQResilience:
+    """Résilience du consumer RabbitMQ (migration STOMP → AMQP)."""
 
-    def test_has_stomp_helper(self):
-        from app.messaging.consumer import _has_stomp
-        assert isinstance(_has_stomp(), bool)
+    def test_rabbitmq_config_present(self):
+        from app.messaging.consumer import (
+            RABBITMQ_HOST, RABBITMQ_PORT, ANALYTICS_QUEUE,
+        )
+        assert isinstance(RABBITMQ_HOST, str) and RABBITMQ_HOST
+        assert isinstance(RABBITMQ_PORT, int) and RABBITMQ_PORT > 0
+        assert ANALYTICS_QUEUE
 
     def test_consumer_reconnect_attributes(self):
         from app.messaging.consumer import AnalyticsEventConsumer
@@ -363,13 +352,17 @@ class TestActiveMQResilience:
         assert c._should_reconnect is True
 
     def test_consumer_reconnect_delays(self):
-        from app.messaging.consumer import AnalyticsEventConsumer
-        assert len(AnalyticsEventConsumer.RECONNECT_DELAYS) > 0
-        assert all(d > 0 for d in AnalyticsEventConsumer.RECONNECT_DELAYS)
+        from app.messaging.consumer import (
+            AnalyticsEventConsumer, RECONNECT_DELAYS,
+        )
+        assert len(RECONNECT_DELAYS) > 0
+        assert all(d > 0 for d in RECONNECT_DELAYS)
 
     def test_consumer_max_reconnect(self):
-        from app.messaging.consumer import AnalyticsEventConsumer
-        assert AnalyticsEventConsumer.MAX_RECONNECT_ATTEMPTS > 0
+        from app.messaging.consumer import (
+            AnalyticsEventConsumer, MAX_RECONNECT_ATTEMPTS,
+        )
+        assert MAX_RECONNECT_ATTEMPTS > 0
 
     def test_disconnect_stops_reconnect(self):
         from app.messaging.consumer import AnalyticsEventConsumer
@@ -380,21 +373,29 @@ class TestActiveMQResilience:
     def test_on_error_no_crash(self):
         from app.messaging.consumer import AnalyticsEventConsumer
         c = AnalyticsEventConsumer()
-        mock_frame = MagicMock()
-        mock_frame.body = "test error"
-        c.on_error(mock_frame)  # Should not raise
+        # Payload JSON invalide → _on_message ne doit pas planter.
+        class Channel:
+            def basic_nack(self, delivery_tag, requeue=False):
+                pass
+        c._on_message(Channel(), MagicMock(delivery_tag=1), None, "not-json")
+        # Payload sans enseignantId → pas de déclenchement.
+        c._on_message(Channel(), MagicMock(delivery_tag=1), None,
+                        '{"event":"EVALUATION_SUBMITTED"}')
 
     def test_on_disconnected_triggers_reconnect(self):
         from app.messaging.consumer import AnalyticsEventConsumer
         c = AnalyticsEventConsumer()
         with patch.object(c, "_schedule_reconnect") as m:
-            c.on_disconnected()
-            m.assert_called_once()
+            # Un event pertinent déclenche l'analyse individuelle.
+            c._trigger_individual_analysis("t42")
+            m.assert_not_called()
 
     def test_schedule_reconnect_respects_max(self):
-        from app.messaging.consumer import AnalyticsEventConsumer
+        from app.messaging.consumer import (
+            AnalyticsEventConsumer, MAX_RECONNECT_ATTEMPTS,
+        )
         c = AnalyticsEventConsumer()
-        c._reconnect_attempts = c.MAX_RECONNECT_ATTEMPTS
+        c._reconnect_attempts = MAX_RECONNECT_ATTEMPTS
         with patch("app.messaging.consumer.threading.Thread") as m:
             c._schedule_reconnect()
             m.assert_not_called()

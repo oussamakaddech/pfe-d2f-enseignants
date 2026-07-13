@@ -6,6 +6,7 @@ import { useState, useCallback, useMemo } from "react";
 import { useImmer } from "use-immer";
 import type { MessageInstance } from "antd/es/message/interface";
 import { cloneDeep } from "@/pages/competence/rice/constants";
+import { secureRandomId } from "@/utils/secureRandom";
 import type {
   RiceDomaine,
   RiceCompetence,
@@ -151,7 +152,7 @@ export function useRiceTree(msgApi: MessageInstance) {
     updateTree((t) => {
       const target = sci === -1 ? t[di].competences![ci] : t[di].competences![ci].sousCompetences![sci];
       const list = target.savoirs ?? (target.savoirs = []);
-      const tmpId = `tmp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+          const tmpId = `tmp-${Date.now()}-${secureRandomId()}`;
       const si = list.push({ nom: "Nouveau savoir", ...s, tmpId }) - 1;
       setEditingNom({ path: [di, ci, sci, si], value: s.nom ?? "" });
     });

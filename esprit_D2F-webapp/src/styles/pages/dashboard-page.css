@@ -299,6 +299,7 @@
 .dash-section + .dash-section { margin-top: 28px; }
 .dash-section-head {
   display: flex; align-items: center; gap: 12px; margin-bottom: 16px;
+  animation: dashFadeUp 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 .dash-section-head-icon {
   width: 34px; height: 34px; border-radius: 10px; flex-shrink: 0;
@@ -334,6 +335,7 @@
     linear-gradient(135deg, #1a202c 0%, #2d3748 55%, #1a202c 100%);
   box-shadow: 0 18px 40px -18px rgba(26, 32, 44, 0.55), var(--shadow-sm, 0 1px 3px rgba(0,0,0,.08));
   isolation: isolate;
+  animation: dashFadeUp 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 .dash-hero--personal {
   background:
@@ -569,8 +571,6 @@
   to   { opacity: 1; transform: translateY(0); }
 }
 .dash-anim { animation: dashFadeUp 0.5s cubic-bezier(0.22, 1, 0.36, 1) both; }
-.dash-section-head { animation: dashFadeUp 0.5s cubic-bezier(0.22, 1, 0.36, 1) both; }
-.dash-hero { animation: dashFadeUp 0.55s cubic-bezier(0.22, 1, 0.36, 1) both; }
 
 @media (prefers-reduced-motion: reduce) {
   .dash-anim, .dash-section-head, .dash-hero, .dash-hero-bg { animation: none !important; }

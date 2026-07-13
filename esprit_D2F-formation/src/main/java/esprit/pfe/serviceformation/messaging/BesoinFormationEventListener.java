@@ -21,7 +21,8 @@ import org.springframework.stereotype.Component;
 import com.rabbitmq.client.Channel;
 
 import java.io.IOException;
-import java.util.Date;
+import java.time.LocalDate;
+import java.time.ZoneId;
 
 /**
  * RabbitMQ Consumer for BesoinFormationApprovedEvent
@@ -214,8 +215,8 @@ public class BesoinFormationEventListener {
         // Set initial state
         f.setTypeFormation(TypeFormation.INTERNE);
         f.setEtatFormation(EtatFormation.NOUVEAU);
-        f.setDateDebut(new Date());
-        f.setDateFin(new Date());
+        f.setDateDebut(LocalDate.now(ZoneId.systemDefault()));
+        f.setDateFin(LocalDate.now(ZoneId.systemDefault()));
         
         return f;
     }

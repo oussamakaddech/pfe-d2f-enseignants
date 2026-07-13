@@ -111,7 +111,7 @@ def execute_query(db: Session, query: str, params: dict | None = None) -> list[d
         # DSI #12 — ne jamais logguer les valeurs des paramètres : elles peuvent
         # contenir des données personnelles (ids/noms/emails d'enseignants).
         # On ne loggue que les NOMS des paramètres liés, jamais leurs valeurs.
-        logger.error(
+        logger.exception(
             "SQL query failed: %s | Param keys: %s | Error: %s",
             query[:200],
             sorted((params or {}).keys()),

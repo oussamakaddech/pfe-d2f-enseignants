@@ -172,7 +172,11 @@ const RiskDistributionChart = memo(function RiskDistributionChart({
               title="Enseignants à risque"
               value={atRiskCount}
               suffix={`(${atRiskRatio}%)`}
-              valueStyle={{ color: atRiskRatio > 20 ? "#ef4444" : atRiskRatio > 10 ? "#f59e0b" : "#10b981" }}
+              valueStyle={{ color: (() => {
+                if (atRiskRatio > 20) return "#ef4444";
+                if (atRiskRatio > 10) return "#f59e0b";
+                return "#10b981";
+              })() }}
             />
           </Col>
           <Col xs={8}>
@@ -232,11 +236,12 @@ const RiskDistributionChart = memo(function RiskDistributionChart({
               </div>
               <Progress
                 percent={Math.round(dept.score_risque_moyen * 100)}
-                strokeColor={
-                  dept.score_risque_moyen >= 0.7 ? "#ef4444" :
-                  dept.score_risque_moyen >= 0.5 ? "#f97316" :
-                  dept.score_risque_moyen >= 0.3 ? "#f59e0b" : "#10b981"
-                }
+                strokeColor={(() => {
+                  if (dept.score_risque_moyen >= 0.7) return "#ef4444";
+                  if (dept.score_risque_moyen >= 0.5) return "#f97316";
+                  if (dept.score_risque_moyen >= 0.3) return "#f59e0b";
+                  return "#10b981";
+                })()}
                 size="small"
                 showInfo={false}
               />

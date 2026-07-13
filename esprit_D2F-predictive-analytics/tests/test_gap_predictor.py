@@ -53,7 +53,7 @@ class TestGapPredictor:
         predictor.model = None
         result = predictor.predict([], [], [])
         assert result["gaps"] == []
-        assert result["overall_risk_score"] == 0.0
+        assert result["avg_predicted_gap"] == 0.0
         # The explanation must indicate the heuristic fallback was used
         assert result["explanation"].get("method") == "heuristic"
 
@@ -100,7 +100,7 @@ class TestGapPredictor:
         assert result is not None
         assert result["explanation"]["method"] == "ml_gradient_boosting"
         assert result["explanation"]["model_trained"] is True
-        assert isinstance(result["overall_risk_score"], float)
+        assert isinstance(result["avg_predicted_gap"], float)
         assert isinstance(result["gaps"], list) and len(result["gaps"]) > 0
         for g in result["gaps"]:
             assert 0.0 <= g["predicted_gap"] <= 5.0

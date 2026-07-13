@@ -16,7 +16,7 @@ describe('ErrorBoundary', () => {
   });
 
   afterEach(() => {
-    (console.error as ReturnType<typeof vi.spyOn>).mockRestore();
+    (console.error as unknown as ReturnType<typeof vi.spyOn>).mockRestore();
   });
 
   it('should render children when there is no error', () => {

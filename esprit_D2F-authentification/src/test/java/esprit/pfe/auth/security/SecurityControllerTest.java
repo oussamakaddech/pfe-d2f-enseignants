@@ -34,6 +34,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -175,7 +176,7 @@ class SecurityControllerTest {
         esprit.pfe.auth.entities.ConfirmationKey key = new esprit.pfe.auth.entities.ConfirmationKey();
         key.setEmailAddress("test@example.com");
         key.setToken(hashed);
-        key.setExpiresAt(LocalDateTime.now().plusMinutes(10));
+        key.setExpiresAt(LocalDateTime.now(ZoneId.systemDefault()).plusMinutes(10));
         when(confirmationKeyRepo.findByToken(hashed)).thenReturn(Optional.of(key));
 
         User user = new User();
@@ -198,7 +199,7 @@ class SecurityControllerTest {
         esprit.pfe.auth.entities.ConfirmationKey key = new esprit.pfe.auth.entities.ConfirmationKey();
         key.setEmailAddress("test@example.com");
         key.setToken(hashed);
-        key.setExpiresAt(LocalDateTime.now().minusMinutes(5));
+        key.setExpiresAt(LocalDateTime.now(ZoneId.systemDefault()).minusMinutes(5));
         when(confirmationKeyRepo.findByToken(hashed)).thenReturn(Optional.of(key));
 
         mockMvc.perform(post("/api/v1/auth/reset-password")
@@ -247,7 +248,7 @@ class SecurityControllerTest {
     void login_WhenAccountLocked_ShouldRejectBeforeAuthenticationManager() {
         User user = new User();
         user.setUsername("locked-user");
-        user.setLockUntil(LocalDateTime.now().plusMinutes(10));
+        user.setLockUntil(LocalDateTime.now(ZoneId.systemDefault()).plusMinutes(10));
         when(userRepository.findByUsername("locked-user")).thenReturn(Optional.of(user));
 
         HttpServletRequest request = mock(HttpServletRequest.class);

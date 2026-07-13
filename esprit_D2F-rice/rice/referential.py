@@ -809,7 +809,7 @@ def _detect_by_filename(fname_upper: str) -> Optional[str]:
 
 
 def _detect_by_up_code(combined: str) -> Optional[str]:
-    up_match = re.search(r'(?:unit[eé]\s+p[eé]dagogique|UP)\s*[:\-]?\s*(UP[\-_]?[A-Z]{2,6})', combined, re.IGNORECASE)
+    up_match = re.search(r'^(?:unit[eé][ \t]+p[eé]dagogique|UP)[ \t]*(UP[\-_]?[A-Z]{2,6})', combined, re.IGNORECASE | re.MULTILINE)
     if not up_match:
         return None
     up_code = up_match.group(1).upper().replace('-', '').replace('_', '')
@@ -817,7 +817,7 @@ def _detect_by_up_code(combined: str) -> Optional[str]:
 
 
 def _detect_by_ue_code(combined: str) -> Optional[str]:
-    ue_match = re.search(r'(?:unit[eé]\s+d[\x27\u2019]enseignement|UE)\s*[:\-]?\s*([A-Z]{3,6}\w{2,10})', combined, re.IGNORECASE)
+    ue_match = re.search(r'^(?:unit[eé][ \t]+d[\x27\u2019]enseignement|UE)[ \t]*([A-Z]{3,6}\w{2,10})', combined, re.IGNORECASE | re.MULTILINE)
     if not ue_match:
         return None
     ue_code = ue_match.group(1).upper()
@@ -832,8 +832,8 @@ def _detect_by_ue_code(combined: str) -> Optional[str]:
 
 def _detect_by_module_code(combined: str) -> Optional[str]:
     meta_code_match = re.search(
-        r"(?:code(?:\s+(?:module|ue))?|module)\s*[:\-]?\s*([A-Z]{1,5}[-_]?\d{1,4}[A-Z]?)",
-        combined, re.IGNORECASE,
+        r"^(?:code(?:[ \t]+(?:module|ue))?|module)[ \t]*([A-Z]{1,5}[-_]?\d{1,4}[A-Z]?)",
+        combined, re.IGNORECASE | re.MULTILINE,
     )
     if not meta_code_match:
         return None

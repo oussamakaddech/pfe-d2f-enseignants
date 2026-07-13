@@ -2,12 +2,13 @@
  * NotificationContext.tsx — État global du centre de notifications.
  *
  * Responsabilités :
- *  - Conserver la liste des notifications (persistée en sessionStorage par utilisateur).
- *  - Ouvrir le transport temps réel (WebSocket réel ou mock) et ingérer les messages.
- *  - Exposer les actions : marquer comme lu, tout marquer lu, supprimer, vider.
- *
- * Volontairement découplé de React Query (données serveur) : les notifications sont
- * un état applicatif « push » temps réel, géré via Context comme l'auth (cf. AuthContext).
+ *  - Source de vérité = service `notification-service` (REST via gateway).
+ *    Au montage, les vraies notifications de l'utilisateur sont chargées depuis
+ *    le backend (persistées, issues des événements métier réels).
+ *  - Ouvre le transport temps réel (WebSocket réel / mock démo) et ingère les
+ *    notifications poussées par le serveur, sans aucune donnée simulée.
+ *  - Expose les actions : marquer comme lu, tout marquer lu, supprimer, vider —
+ *    chacune synchronisée avec le backend.
  */
 import {
   createContext, memo, useCallback, useEffect, useMemo, useRef, useState,
@@ -20,7 +21,7 @@ import type {
 } from "@/models/notification";
 import { config } from "@/config/env";
 import { createNotificationTransport } from "@/services/notification";
-import { fetchRealNotifications } from "@/services/notification/notificationService";
+import { notificationService } from "@/services/notification/notificationService";
 import { useAuth } from "@/hooks/auth";
 
 export interface NotificationContextValue {
@@ -65,7 +66,7 @@ function toNotification(msg: NotificationSocketMessage): AppNotification {
     severity: msg.severity,
     title: msg.title,
     message: msg.message,
-    read: false,
+    read: msg.read ?? false,
     createdAt: msg.createdAt ?? new Date().toISOString(),
     link: msg.link,
     actor: msg.actor,
@@ -96,14 +97,43 @@ const NotificationProvider = memo(function NotificationProvider({ children }: No
     }
   }, [notifications, userId]);
 
+  // Chargement initial des VRAIES notifications depuis le backend.
+  useEffect(() => {
+    let cancelled = false;
+    notificationService.list({ size: MAX_NOTIFICATIONS })
+      .then((real) => {
+        if (cancelled) return;
+        setNotifications((draft) => {
+          const existing = new Set(draft.map((n) => n.id));
+          real.forEach((n) => {
+            if (!existing.has(n.id)) draft.unshift(n);
+          });
+          // Tri par date décroissante (createdAt).
+          draft.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+          if (draft.length > MAX_NOTIFICATIONS) draft.length = MAX_NOTIFICATIONS;
+        });
+        if (!config.NOTIFICATIONS_WS_URL) setStatus("open");
+      })
+      .catch(() => {
+        if (!config.NOTIFICATIONS_WS_URL) setStatus("closed");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [userId, setNotifications]);
+
   // Connexion au transport temps réel (WebSocket réel, REST, ou démo).
   useEffect(() => {
     const transport = createNotificationTransport(config.NOTIFICATIONS_WS_URL, {
       onMessage: (msg) => {
         setNotifications((draft) => {
           const notification = toNotification(msg);
-          // Évite les doublons sur id.
-          if (draft.some((n) => n.id === notification.id)) return;
+          const idx = draft.findIndex((n) => n.id === notification.id);
+          if (idx !== -1) {
+            // Mise à jour (ex. passage à « lu ») sans duppliquer.
+            draft[idx] = { ...draft[idx], ...notification };
+            return;
+          }
           draft.unshift(notification);
           if (draft.length > MAX_NOTIFICATIONS) draft.length = MAX_NOTIFICATIONS;
         });
@@ -119,44 +149,19 @@ const NotificationProvider = memo(function NotificationProvider({ children }: No
     };
   }, [setNotifications]);
 
-  // Amorçage avec de vraies alertes du backend (données réelles, jamais simulées).
-  useEffect(() => {
-    let cancelled = false;
-    fetchRealNotifications()
-      .then((real) => {
-        if (cancelled) return;
-        if (real.length === 0) {
-          // Pas de données réelles et pas de flux temps réel → hors ligne.
-          if (!config.NOTIFICATIONS_WS_URL) setStatus("closed");
-          return;
-        }
-        setNotifications((draft) => {
-          const existing = new Set(draft.map((n) => n.id));
-          real.forEach((n) => {
-            if (!existing.has(n.id)) draft.unshift(n);
-          });
-          if (draft.length > MAX_NOTIFICATIONS) draft.length = MAX_NOTIFICATIONS;
-        });
-      })
-      .catch(() => {
-        if (!config.NOTIFICATIONS_WS_URL) setStatus("closed");
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [userId, setNotifications]);
-
   const markAsRead = useCallback((id: string) => {
     setNotifications((draft) => {
       const target = draft.find((n) => n.id === id);
       if (target) target.read = true;
     });
+    notificationService.markAsRead(id).catch(() => { /* best-effort */ });
   }, [setNotifications]);
 
   const markAllAsRead = useCallback(() => {
     setNotifications((draft) => {
       draft.forEach((n) => { n.read = true; });
     });
+    notificationService.markAllAsRead().catch(() => { /* best-effort */ });
   }, [setNotifications]);
 
   const remove = useCallback((id: string) => {
@@ -164,20 +169,39 @@ const NotificationProvider = memo(function NotificationProvider({ children }: No
       const idx = draft.findIndex((n) => n.id === id);
       if (idx !== -1) draft.splice(idx, 1);
     });
+    notificationService.remove(id).catch(() => { /* best-effort */ });
   }, [setNotifications]);
 
   const clearAll = useCallback(() => {
     setNotifications([]);
+    notificationService.clearAll().catch(() => { /* best-effort */ });
   }, [setNotifications]);
 
   const addNotification = useCallback((payload: NotificationPayload) => {
+    if (payload.recipient) {
+      // Création côté serveur (données réelles) si un destinataire est fourni.
+      notificationService.create(payload).catch(() => {
+        // Fallback local si pas de droits / service indisponible.
+        setNotifications((draft) => {
+          const notification: AppNotification = {
+            id: uuidv4(),
+            read: false,
+            createdAt: payload.createdAt ?? new Date().toISOString(),
+            ...payload,
+          } as AppNotification;
+          draft.unshift(notification);
+          if (draft.length > MAX_NOTIFICATIONS) draft.length = MAX_NOTIFICATIONS;
+        });
+      });
+      return;
+    }
     setNotifications((draft) => {
       const notification: AppNotification = {
         id: uuidv4(),
         read: false,
         createdAt: payload.createdAt ?? new Date().toISOString(),
         ...payload,
-      };
+      } as AppNotification;
       draft.unshift(notification);
       if (draft.length > MAX_NOTIFICATIONS) draft.length = MAX_NOTIFICATIONS;
     });

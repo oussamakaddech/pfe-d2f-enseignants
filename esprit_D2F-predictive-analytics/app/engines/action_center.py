@@ -86,32 +86,46 @@ class ActionCenter:
         )
 
     def _top_competences(self, limit: int = 10) -> list[dict[str, Any]]:
-        rows = (
-            self.db.query(
-                AlertEvent.competence_id,
-                func.count(AlertEvent.id).label("n"),
-            )
-            .filter(AlertEvent.competence_id.isnot(None))
-            .group_by(AlertEvent.competence_id)
-            .order_by(func.count(AlertEvent.id).desc())
-            .limit(limit)
-            .all()
-        )
-        return [{"competence_id": r.competence_id, "count": int(r.n or 0)} for r in rows]
+        from sqlalchemy import text
+        rows = self.db.execute(
+            text("""
+                SELECT ae.competence_id,
+                       COALESCE(c.nom, 'Compétence ' || ae.competence_id) AS competence_nom,
+                       COUNT(ae.id) AS n
+                FROM alert_events ae
+                LEFT JOIN competences c ON c.id = ae.competence_id
+                WHERE ae.competence_id IS NOT NULL
+                GROUP BY ae.competence_id, c.nom
+                ORDER BY COUNT(ae.id) DESC
+                LIMIT :lim
+            """),
+            {"lim": limit},
+        ).fetchall()
+        return [
+            {"competence_id": r[0], "competence_nom": r[1], "count": int(r[2] or 0)}
+            for r in rows
+        ]
 
     def _top_departements(self, limit: int = 10) -> list[dict[str, Any]]:
-        rows = (
-            self.db.query(
-                AlertEvent.departement_id,
-                func.count(AlertEvent.id).label("n"),
-            )
-            .filter(AlertEvent.departement_id.isnot(None))
-            .group_by(AlertEvent.departement_id)
-            .order_by(func.count(AlertEvent.id).desc())
-            .limit(limit)
-            .all()
-        )
-        return [{"departement_id": r.departement_id, "count": int(r.n or 0)} for r in rows]
+        from sqlalchemy import text
+        rows = self.db.execute(
+            text("""
+                SELECT ae.departement_id,
+                       COALESCE(d.libelle, ae.departement_id) AS departement_nom,
+                       COUNT(ae.id) AS n
+                FROM alert_events ae
+                LEFT JOIN departements d ON d.id = ae.departement_id
+                WHERE ae.departement_id IS NOT NULL
+                GROUP BY ae.departement_id, d.libelle
+                ORDER BY COUNT(ae.id) DESC
+                LIMIT :lim
+            """),
+            {"lim": limit},
+        ).fetchall()
+        return [
+            {"departement_id": r[0], "departement_nom": r[1], "count": int(r[2] or 0)}
+            for r in rows
+        ]
 
     def _trend_30j(self) -> list[dict[str, Any]]:
         cutoff = date.today() - timedelta(days=30)
@@ -181,18 +195,23 @@ class ActionCenter:
             .all()
         )
 
+        # Résolution des noms enseignants en un seul appel (batch) pour éviter
+        # N requêtes individuelles dans _build_action.
+        from app.routers.all import _fetch_teacher_names
+        names = _fetch_teacher_names(self.db, [r.enseignant_id for r in risk_rows])
+
         actions = []
         for r in risk_rows:
             if departement_id and ens_dept_map.get(str(r.enseignant_id)) != departement_id:
                 continue
-            actions.append(self._build_action(r))
+            actions.append(self._build_action(r, names.get(r.enseignant_id)))
             if len(actions) >= limit:
                 break
 
         actions.sort(key=lambda a: a["score_action"], reverse=True)
         return actions
 
-    def _build_action(self, risk: TeacherRiskProfile) -> dict[str, Any]:
+    def _build_action(self, risk: TeacherRiskProfile, teacher_name: str | None = None) -> dict[str, Any]:
         eid = risk.enseignant_id
         top_gap = (
             self.db.query(SkillGap)
@@ -236,8 +255,33 @@ class ActionCenter:
             if best_reco.niveau_apres is not None and top_gap is not None:
                 impact_estime = max(0, int(best_reco.niveau_apres) - int(top_gap.niveau_actuel))
 
+        # Dernière formation recommandée (la plus récente par date de création).
+        last_reco = (
+            self.db.query(Recommendation)
+            .filter(Recommendation.enseignant_id == eid)
+            .order_by(Recommendation.created_at.desc())
+            .first()
+        )
+        derniere_formation = None
+        if last_reco:
+            derniere_formation = {
+                "formation_titre": last_reco.formation_titre,
+                "date":            last_reco.created_at.isoformat() if last_reco.created_at else None,
+                "statut":          last_reco.statut,
+            }
+
+        # Historique de risque (évolution + complétion + stagnation).
+        historique = {
+            "score_precedent":  float(risk.precedent_score_risque) if risk.precedent_score_risque is not None else None,
+            "taux_completion":  float(risk.taux_completion_formations or 0.0),
+            "nb_mois_stagnation": risk.nb_mois_stagnation_max or 0,
+            "tendance":         risk.tendance,
+            "analyse_le":       risk.computed_at.isoformat() if risk.computed_at else None,
+        }
+
         return {
             "enseignant_id":       eid,
+            "teacher_name":        teacher_name or eid,
             "score_action":        score_action,
             "score_risque":        round(score_risque, 4),
             "niveau_risque":       risk.niveau_risque,
@@ -253,6 +297,8 @@ class ActionCenter:
             "action_recommandee":  self._action_text(risk.niveau_risque, best_reco is not None),
             "meilleure_formation": meilleure_formation,
             "impact_estime_niveaux": impact_estime,
+            "historique":          historique,
+            "derniere_formation":  derniere_formation,
         }
 
     @staticmethod

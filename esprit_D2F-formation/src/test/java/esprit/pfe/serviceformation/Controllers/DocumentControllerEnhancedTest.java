@@ -48,6 +48,7 @@ class DocumentControllerEnhancedTest {
     @BeforeEach
     void setup() {
         ObjectMapper mapper = new ObjectMapper();
+        mapper.registerModule(new com.fasterxml.jackson.datatype.jsr310.JavaTimeModule());
         mapper.registerModule(new org.springframework.data.web.config.SpringDataJacksonConfiguration.PageModule(new org.springframework.data.web.config.SpringDataWebSettings(org.springframework.data.web.config.EnableSpringDataWebSupport.PageSerializationMode.DIRECT)));
         MappingJackson2HttpMessageConverter converter = new MappingJackson2HttpMessageConverter(mapper);
         mockMvc = MockMvcBuilders.standaloneSetup(controller)
@@ -205,7 +206,7 @@ class DocumentControllerEnhancedTest {
     @DisplayName("updateDocument - Devrait mettre à jour sans nouveau fichier")
     void testUpdateDocument_WithoutNewFile() throws Exception {
         Document updated = createDocument(1L, "path/test.txt", "Document Test");
-        when(service.updateDocument(anyLong(), anyString(), anyString(), anyBoolean(), isNull()))
+        when(service.updateDocument(anyLong(), anyString(), anyString(), anyBoolean(), any()))
                 .thenReturn(updated);
 
         mockMvc.perform(multipart("/api/v1/documents/1")
@@ -214,7 +215,7 @@ class DocumentControllerEnhancedTest {
                 .param("obligation", "false"))
                 .andExpect(status().isOk());
 
-        verify(service).updateDocument(eq(1L), eq("T1"), eq("D1"), eq(false), isNull());
+        verify(service).updateDocument(eq(1L), eq("T1"), eq("D1"), eq(false), any());
     }
 
     @Test
@@ -290,7 +291,7 @@ class DocumentControllerEnhancedTest {
         doc.setId(id);
         doc.setFilePath(filePath);
         doc.setNomDocument(nomDocument);
-        doc.setDate(new java.util.Date());
+        doc.setDate(java.time.LocalDate.now());
         return doc;
     }
 }

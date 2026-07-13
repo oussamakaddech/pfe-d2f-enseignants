@@ -20,6 +20,7 @@ from typing import Any
 from sqlalchemy import Integer, func
 from sqlalchemy.orm import Session
 
+from app.core.observability import safe_kpi
 from app.engines.dashboard_engine import DashboardEngine
 from app.models.db_models import (
     AlertEvent, DashboardSnapshot, SkillGap, TeacherCompetenceCoverage, TeacherRiskProfile,
@@ -32,6 +33,7 @@ _RECENT_DAYS = 30
 # Bornes des quadrants offre/demande.
 _DEMAND_HIGH = 0.50
 _SUPPLY_HIGH = 0.60
+_METHOD_LABEL = "ewma+linear"
 
 
 class InsightsEngine:
@@ -43,11 +45,7 @@ class InsightsEngine:
 
     # ── Résilience par KPI ───────────────────────────────────
     def _safe(self, name: str, fn, default: Any) -> Any:
-        try:
-            return fn()
-        except Exception as exc:  # noqa: BLE001 — résilience volontaire par KPI
-            logger.warning("Insight '%s' indisponible : %s", name, exc)
-            return default
+        return safe_kpi(name, fn, default, logger)
 
     def _recent_cutoff(self) -> date:
         return date.today() - timedelta(days=_RECENT_DAYS)
@@ -135,6 +133,17 @@ class InsightsEngine:
     def _precision_modele(self) -> float | None:
         from app.services.model_trainer import read_current_accuracy
         acc = read_current_accuracy()
+        if acc is None:
+            # Fallback: read from the most recent successful retrain log in DB
+            from app.models.db_models import ModelRetrainingLog
+            last_log = (
+                self.db.query(ModelRetrainingLog)
+                .filter(ModelRetrainingLog.statut == "success")
+                .order_by(ModelRetrainingLog.retrained_at.desc())
+                .first()
+            )
+            if last_log and last_log.accuracy_after is not None:
+                acc = float(last_log.accuracy_after)
         return round(float(acc), 3) if acc is not None else None
 
     def _previous_overview_snapshot(self) -> dict[str, Any] | None:
@@ -152,7 +161,7 @@ class InsightsEngine:
     @staticmethod
     def _compute_deltas(current: dict[str, Any], previous: dict[str, Any] | None) -> dict[str, Any]:
         if not previous:
-            return {k: None for k in current}
+            return dict.fromkeys(current)
         deltas: dict[str, Any] = {}
         for key, val in current.items():
             prev = previous.get(key)
@@ -192,7 +201,7 @@ class InsightsEngine:
         history = self._safe("demand_history", lambda: self._demand_history(history_months), [])
         if len(history) < 2:
             return {
-                "method": "ewma+linear",
+                "method": _METHOD_LABEL,
                 "history": history,
                 "forecast": [],
                 "note": "Historique insuffisant pour une projection fiable.",
@@ -219,7 +228,7 @@ class InsightsEngine:
             })
 
         return {
-            "method": "ewma+linear",
+            "method": _METHOD_LABEL,
             "slope_par_mois": round(slope, 3),
             "history": history,
             "forecast": forecast,
@@ -231,7 +240,7 @@ class InsightsEngine:
         rows = (
             self.db.query(
                 month_expr.label("mois"),
-                func.count(SkillGap.id).label("nb"),
+                func.count(func.distinct(SkillGap.enseignant_id)).label("nb"),
             )
             .filter(SkillGap.computed_at >= cutoff)
             .group_by(month_expr)
@@ -239,6 +248,134 @@ class InsightsEngine:
             .all()
         )
         return [{"month": r.mois, "value": int(r.nb or 0)} for r in rows]
+
+    # ── Prévision des besoins de formation par département ─────
+    def training_needs_forecast(self, months: int = 6, history_months: int = 12) -> dict[str, Any]:
+        """Prédit, par département, le nombre de besoins de formation (gaps
+        critiques + élevés) sur `months` mois à venir.
+
+        Méthode : série mensuelle par département + projection EWMA + linéaire
+        (réutilise les helpers numériques de `demand_forecast`). Renvoie aussi
+        une agrégation totale et la liste des départements les plus pressurisés,
+        pour prioriser l'ouverture de sessions de formation.
+        """
+        raw = self._safe("training_needs_history", lambda: self._training_needs_history(history_months), [])
+        if not raw:
+            return {
+                "method": _METHOD_LABEL,
+                "months": months,
+                "history_months": history_months,
+                "departements": [],
+                "total_forecast": [],
+                "top_departements": [],
+                "note": "Aucune donnée de besoins historiques disponible pour une projection.",
+            }
+
+        # Agrège (département, mois) -> nombre de besoins.
+        counts: dict[str, dict[str, int]] = defaultdict(lambda: defaultdict(int))
+        all_months: set[str] = set()
+        for r in raw:
+            counts[r["departement"]][r["month"]] += 1
+            all_months.add(r["month"])
+
+        months_list = _month_range(min(all_months), max(all_months))
+        if len(months_list) < 2:
+            return {
+                "method": _METHOD_LABEL,
+                "months": months,
+                "history_months": history_months,
+                "departements": [],
+                "total_forecast": [],
+                "top_departements": [],
+                "note": "Historique insuffisant (moins de 2 mois) pour une projection fiable.",
+            }
+
+        departements: list[dict[str, Any]] = []
+        # total_forecast accumulé mois par mois (par indice de mois projeté).
+        total_forecast: list[dict[str, Any]] = []
+        for step in range(1, months + 1):
+            total_forecast.append({
+                "month": _add_months(months_list[-1], step),
+                "value": 0.0, "lower": 0.0, "upper": 0.0,
+            })
+
+        for dept, month_vals in counts.items():
+            series = [month_vals.get(m, 0) for m in months_list]
+            slope, intercept = _linear_fit(series)
+            residual_std = _residual_std(series, slope, intercept)
+            ewma_last = _ewma(series, alpha=0.5)
+            n = len(series)
+
+            forecast = []
+            for step in range(1, months + 1):
+                trend = slope * (n - 1 + step) + intercept
+                projected = max(0.0, 0.6 * trend + 0.4 * ewma_last)
+                band = 1.96 * residual_std * math.sqrt(step)
+                idx = step - 1
+                forecast.append({
+                    "month": _add_months(months_list[-1], step),
+                    "value": round(projected, 2),
+                    "lower": round(max(0.0, projected - band), 2),
+                    "upper": round(projected + band, 2),
+                })
+                total_forecast[idx]["value"] += projected
+                total_forecast[idx]["lower"] += max(0.0, projected - band)
+                total_forecast[idx]["upper"] += projected + band
+
+            last_hist = series[-1]
+            last_fc = forecast[-1]["value"] if forecast else 0.0
+            departements.append({
+                "departement": dept,
+                "slope_par_mois": round(slope, 3),
+                "current_value": int(last_hist),
+                "predicted_value": round(last_fc, 2),
+                "delta": round(last_fc - last_hist, 2),
+                "history": [{"month": m, "value": int(series[i])} for i, m in enumerate(months_list)],
+                "forecast": forecast,
+            })
+
+        # Arrondit l'agrégation totale et trie les départements par besoin prédit.
+        for agg in total_forecast:
+            agg["value"] = round(agg["value"], 2)
+            agg["lower"] = round(agg["lower"], 2)
+            agg["upper"] = round(agg["upper"], 2)
+        departements.sort(key=lambda d: d["predicted_value"], reverse=True)
+        top_departements = [d["departement"] for d in departements[:5]]
+
+        return {
+            "method": _METHOD_LABEL,
+            "months": months,
+            "history_months": history_months,
+            "departements": departements,
+            "total_forecast": total_forecast,
+            "top_departements": top_departements,
+            "note": None,
+        }
+
+    def _training_needs_history(self, history_months: int) -> list[dict[str, Any]]:
+        """Renvoie la liste brute des besoins (gaps CRITIQUES + HAUTES) par
+        (département, mois), en associant chaque enseignant à son département."""
+        cutoff = date.today() - timedelta(days=history_months * 31)
+        month_expr = func.to_char(SkillGap.computed_at, "YYYY-MM")
+        rows = (
+            self.db.query(
+                month_expr.label("mois"),
+                SkillGap.enseignant_id,
+            )
+            .filter(
+                SkillGap.computed_at >= cutoff,
+                SkillGap.niveau_urgence.in_(["CRITIQUE", "HAUTE"]),
+            )
+            .all()
+        )
+        ens_dept_map = self._dashboard._ens_dept_map()
+        return [
+            {
+                "departement": ens_dept_map.get(str(r.enseignant_id), "non_affecte"),
+                "month": r.mois,
+            }
+            for r in rows
+        ]
 
     # ── Matrice offre / demande par compétence ───────────────
     def supply_demand(self) -> list[dict[str, Any]]:
@@ -349,7 +486,14 @@ class InsightsEngine:
         ens_dept_map = self._dashboard._ens_dept_map()
 
         # Index des profils de risque pour enrichir chaque enseignant de la cellule.
-        risk_rows = self.db.query(TeacherRiskProfile).all()
+        gap_ens_ids = list({str(g.enseignant_id) for g in gap_rows})
+        risk_rows = (
+            self.db.query(TeacherRiskProfile)
+            .filter(TeacherRiskProfile.enseignant_id.in_(gap_ens_ids))
+            .all()
+            if gap_ens_ids
+            else []
+        )
         risk_index = {str(r.enseignant_id): r for r in risk_rows}
 
         teachers = []
@@ -422,6 +566,20 @@ def _add_months(month_str: str, step: int) -> str:
         return f"+{step}"
     idx = (year * 12 + (month - 1)) + step
     return f"{idx // 12:04d}-{idx % 12 + 1:02d}"
+
+
+def _month_range(start: str, end: str) -> list[str]:
+    """Liste continue de libellés 'YYYY-MM' entre `start` et `end` inclus."""
+    try:
+        y0, m0 = (int(p) for p in start.split("-"))
+        y1, m1 = (int(p) for p in end.split("-"))
+    except (ValueError, AttributeError):
+        return [start]
+    a = y0 * 12 + (m0 - 1)
+    b = y1 * 12 + (m1 - 1)
+    if b < a:
+        a, b = b, a
+    return [f"{i // 12:04d}-{i % 12 + 1:02d}" for i in range(a, b + 1)]
 
 
 def _quadrant(demand: float, supply: float) -> str:

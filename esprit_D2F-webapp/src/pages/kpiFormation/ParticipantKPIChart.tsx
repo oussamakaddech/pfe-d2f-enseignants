@@ -1,4 +1,5 @@
 import { useState } from "react";
+import dayjs from "dayjs";
 import { Doughnut, Bar } from "react-chartjs-2";
 import { useGlobalParticipantKPI, useFormationsParticipantKPIs } from "@/hooks/kpi/useKpi";
 
@@ -45,8 +46,8 @@ import {
   );
 
 const ParticipantKPIChart = () => {
-  const [start, setStart] = useState("2025-01-01");
-  const [end, setEnd] = useState("2025-12-31");
+  const [start, setStart] = useState(dayjs().startOf("year").format("YYYY-MM-DD"));
+  const [end, setEnd] = useState(dayjs().endOf("year").format("YYYY-MM-DD"));
 
   const { data: globalKPI } = useGlobalParticipantKPI(start, end);
   const { data: formationsKpiData } = useFormationsParticipantKPIs(start, end);

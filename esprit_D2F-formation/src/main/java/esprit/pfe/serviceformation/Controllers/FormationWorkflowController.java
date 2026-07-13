@@ -21,7 +21,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 
 import java.io.ByteArrayOutputStream;
-import java.util.Date;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import jakarta.validation.Valid;
@@ -171,8 +171,8 @@ public class FormationWorkflowController {
     @GetMapping("/export/excel")
     @PreAuthorize(AuthorizationMatrix.FORMATION_READ)
     public ResponseEntity<Object> exportExcel(
-            @RequestParam("start") @DateTimeFormat(pattern = "yyyy-MM-dd") Date startDate,
-            @RequestParam("end") @DateTimeFormat(pattern = "yyyy-MM-dd") Date endDate
+            @RequestParam("start") @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate startDate,
+            @RequestParam("end") @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate endDate
     ) {
         try {
             ByteArrayOutputStream out = exportExcelService.exportFormationsAvance(startDate, endDate);

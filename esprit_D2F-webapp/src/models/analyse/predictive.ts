@@ -119,6 +119,28 @@ export interface DemandForecast {
   note?: string;
 }
 
+/* ── Prévision des besoins de formation par département ─────── */
+
+export interface TrainingNeedsDeptForecast {
+  departement: string;
+  slope_par_mois: number;
+  current_value: number;
+  predicted_value: number;
+  delta: number;
+  history: ForecastPoint[];
+  forecast: ForecastPoint[];
+}
+
+export interface TrainingNeedsForecast {
+  method: string;
+  months: number;
+  history_months: number;
+  departements: TrainingNeedsDeptForecast[];
+  total_forecast: ForecastPoint[];
+  top_departements: string[];
+  note?: string | null;
+}
+
 export interface DriftReport {
   drift_detected: boolean;
   message?: string;
@@ -153,8 +175,8 @@ export interface AlertSummary {
   total: number;
   nouvelles: number;
   critiques_ouvertes: number;
-  top_competences: Array<{ competence_id: number; count: number }>;
-  top_departements: Array<{ departement_id: string; count: number }>;
+  top_competences: Array<{ competence_id: number; competence_nom?: string; count: number }>;
+  top_departements: Array<{ departement_id: string; departement_nom?: string; count: number }>;
   trend_30j: AlertTrendPoint[];
 }
 
@@ -190,6 +212,7 @@ export interface PriorityActionFormation {
 
 export interface PriorityAction {
   enseignant_id: string;
+  teacher_name?: string;
   score_action: number;
   score_risque: number;
   niveau_risque: string | null;
@@ -200,6 +223,18 @@ export interface PriorityAction {
   action_recommandee: string;
   meilleure_formation: PriorityActionFormation | null;
   impact_estime_niveaux: number | null;
+  historique?: {
+    score_precedent: number | null;
+    taux_completion: number;
+    nb_mois_stagnation: number;
+    tendance: string | null;
+    analyse_le: string | null;
+  };
+  derniere_formation?: {
+    formation_titre: string;
+    date: string | null;
+    statut: string;
+  } | null;
 }
 
 /* ── Centre d'Action — Recommandations par cohorte ────────── */

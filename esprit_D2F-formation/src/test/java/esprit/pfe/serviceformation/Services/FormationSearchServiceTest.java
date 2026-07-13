@@ -19,7 +19,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 
-import java.util.Date;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -46,8 +46,8 @@ class FormationSearchServiceTest {
     private FormationResponseDTO dto1;
     private FormationResponseDTO dto2;
     private FormationResponseDTO dto3;
-    private Date earlyDate;
-    private Date midDate;
+    private LocalDate earlyDate;
+    private LocalDate midDate;
 
     @BeforeEach
     void setUp() {
@@ -57,8 +57,8 @@ class FormationSearchServiceTest {
         Dept dept = new Dept();
         dept.setId("DEPT1");
 
-        earlyDate = new Date(1700000000000L); // fixed date
-        midDate  = new Date(1800000000000L);
+        earlyDate = LocalDate.of(2023, 11, 14);
+        midDate  = LocalDate.of(2027, 1, 14);
 
         f1 = new Formation();
         f1.setIdFormation(1L);
@@ -200,7 +200,7 @@ class FormationSearchServiceTest {
         @Test
         @DisplayName("filtre par date debut (start) - garde formations apres start")
         void shouldFilterByStartDate() {
-            Date startFilter = new Date(1750000000000L); // between earlyDate and midDate
+            LocalDate startFilter = LocalDate.of(2025, 8, 14); // between earlyDate and midDate
 
             when(formationRepository.findAll()).thenReturn(List.of(f1, f2));
             when(formationRepository.findByIdWithAllRelations(1L)).thenReturn(Optional.of(f1));
@@ -217,7 +217,7 @@ class FormationSearchServiceTest {
         @Test
         @DisplayName("filtre par date debut (start) - exclut formations avant start")
         void shouldFilterOutBeforeStart() {
-            Date startFilter = new Date(1750000000000L); // between earlyDate and midDate
+            LocalDate startFilter = LocalDate.of(2025, 8, 14); // between earlyDate and midDate
             Formation earlyF = new Formation();
             earlyF.setIdFormation(4L);
             earlyF.setTitreFormation("Early");
@@ -237,7 +237,7 @@ class FormationSearchServiceTest {
         @Test
         @DisplayName("filtre par date fin (end) - garde formations avant end")
         void shouldFilterByEndDate() {
-            Date endFilter = new Date(1850000000000L); // after midDate
+            LocalDate endFilter = LocalDate.of(2028, 6, 14); // after midDate
 
             when(formationRepository.findAll()).thenReturn(List.of(f1, f2));
             when(formationRepository.findByIdWithAllRelations(1L)).thenReturn(Optional.of(f1));

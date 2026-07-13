@@ -70,6 +70,28 @@ public class PredictiveEngineClient {
         return getMap(url, bearerToken);
     }
 
+    /** Impact réel global des formations suivies. */
+    @CircuitBreaker(name = "predictive-cb", fallbackMethod = "mapFallback")
+    public Map<String, Object> getTrainingImpact(String bearerToken) {
+        return getMap(predictiveServiceUrl + ANALYTICS_BASE + "/dashboard/training-impact", bearerToken);
+    }
+
+    /** Classement paginé des formations selon leur impact (gain de niveau). */
+    @CircuitBreaker(name = "predictive-cb", fallbackMethod = "mapFallback")
+    public Map<String, Object> getTrainingImpactFormations(int page, int size, String bearerToken) {
+        String url = predictiveServiceUrl + ANALYTICS_BASE
+                + "/dashboard/training-impact/formations?page=" + page + "&size=" + size;
+        return getMap(url, bearerToken);
+    }
+
+    /** Simulation what-if : projection du risque si un plan de formations est suivi. */
+    @CircuitBreaker(name = "predictive-cb", fallbackMethod = "mapFallback")
+    public Map<String, Object> simulateWhatIf(Map<String, Object> body, String bearerToken) {
+        String url = predictiveServiceUrl + ANALYTICS_BASE + "/simulate/what-if";
+        Map<String, Object> result = RestClientHelper.postAuthenticated(restTemplate, url, bearerToken, body, Map.class);
+        return result != null ? result : Collections.emptyMap();
+    }
+
     @SuppressWarnings("unchecked")
     private Map<String, Object> getMap(String url, String bearerToken) {
         Map<String, Object> body = RestClientHelper.getAuthenticated(restTemplate, url, bearerToken, Map.class);
@@ -80,6 +102,18 @@ public class PredictiveEngineClient {
     @SuppressWarnings("unused")
     private Map<String, Object> mapFallback(String bearerToken, Throwable t) {
         log.warn("CircuitBreaker [predictive-cb] fallback (map) : {}", t.getMessage());
+        return Collections.emptyMap();
+    }
+
+    @SuppressWarnings("unused")
+    private Map<String, Object> mapFallback(int page, int size, String bearerToken, Throwable t) {
+        log.warn("CircuitBreaker [predictive-cb] fallback (training-impact/formations) : {}", t.getMessage());
+        return Collections.emptyMap();
+    }
+
+    @SuppressWarnings("unused")
+    private Map<String, Object> mapFallback(Map<String, Object> body, String bearerToken, Throwable t) {
+        log.warn("CircuitBreaker [predictive-cb] fallback (what-if) : {}", t.getMessage());
         return Collections.emptyMap();
     }
 

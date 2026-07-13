@@ -14,13 +14,10 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.sql.Time;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.time.ZoneId;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -186,15 +183,12 @@ public class CalendarExportService {
         return "CONFIRMED";
     }
 
-    private LocalDateTime toLocalDateTime(Date date, Time time) {
+    private LocalDateTime toLocalDateTime(LocalDate date, LocalTime time) {
         if (date == null) {
             return null;
         }
-        ZoneId zone = ZoneId.of(properties.getTimezone());
-        // java.sql.Date.toInstant() lève UnsupportedOperationException → epoch millis.
-        LocalDate localDate = java.time.Instant.ofEpochMilli(date.getTime()).atZone(zone).toLocalDate();
-        LocalTime localTime = time != null ? time.toLocalTime() : LocalTime.of(9, 0);
-        return LocalDateTime.of(localDate, localTime);
+        LocalTime localTime = time != null ? time : LocalTime.of(9, 0);
+        return LocalDateTime.of(date, localTime);
     }
 
     private String uidDomain() {

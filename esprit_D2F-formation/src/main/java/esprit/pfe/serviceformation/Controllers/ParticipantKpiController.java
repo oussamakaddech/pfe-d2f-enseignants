@@ -17,7 +17,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
 
-import java.util.Date;
+import java.time.LocalDate;
 
 
 @RestController
@@ -31,8 +31,8 @@ public class ParticipantKpiController {
     // KPI par formation achevée dans une période donnée
     @GetMapping("/formations")
     public ResponseEntity<Page<ParticipantKpiDTO>> getFormationsParticipantKpis(
-            @RequestParam("startDate") @DateTimeFormat(pattern = "yyyy-MM-dd") Date startDate,
-            @RequestParam("endDate") @DateTimeFormat(pattern = "yyyy-MM-dd") Date endDate,
+            @RequestParam("startDate") @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate startDate,
+            @RequestParam("endDate") @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate endDate,
             @PageableDefault(size = 20, sort = "formationId") Pageable pageable) {
         return ResponseEntity.ok(participantKpiService.getParticipantKpis(startDate, endDate, pageable));
     }
@@ -40,8 +40,8 @@ public class ParticipantKpiController {
     // KPI global sur toutes les formations achevées dans une période donnée
     @GetMapping("/global")
     public ParticipantKpiDTO getGlobalParticipantKpi(
-            @RequestParam("startDate") @DateTimeFormat(pattern = "yyyy-MM-dd") Date startDate,
-            @RequestParam("endDate") @DateTimeFormat(pattern = "yyyy-MM-dd") Date endDate) {
+            @RequestParam("startDate") @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate startDate,
+            @RequestParam("endDate") @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate endDate) {
         return participantKpiService.getGlobalParticipantKpi(startDate, endDate);
     }
 }

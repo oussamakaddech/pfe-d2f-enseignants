@@ -1,15 +1,16 @@
 import { useMemo } from "react";
 import { Empty } from "antd";
 import type { GapHeatmapCell } from "@/models/analyse";
-import { semantic, neutral } from "@/styles/themes/tokens";
+import { neutral } from "@/styles/themes/tokens";
 
 interface GlassHeatmapProps {
   readonly data: readonly GapHeatmapCell[];
   readonly maxGap?: number;
+  readonly onCellClick?: (departement: string, competenceId: number) => void;
 }
 
 /** Heatmap Département × Compétence du gap moyen (construit from scratch). */
-export default function GlassHeatmap({ data, maxGap }: GlassHeatmapProps) {
+export default function GlassHeatmap({ data, maxGap, onCellClick }: GlassHeatmapProps) {
   const { rows, competences, max } = useMemo(() => {
     const compMap = new Map<number, string>();
     const deptMap = new Map<string, Map<number, GapHeatmapCell>>();
@@ -51,7 +52,7 @@ export default function GlassHeatmap({ data, maxGap }: GlassHeatmapProps) {
           </div>
         ))}
         {rows.map((r) => (
-          <Row key={r.departement} r={r} competences={competences} colorFor={colorFor} max={max} />
+          <Row key={r.departement} r={r} competences={competences} colorFor={colorFor} max={max} onCellClick={onCellClick} />
         ))}
       </div>
     </div>
@@ -59,12 +60,13 @@ export default function GlassHeatmap({ data, maxGap }: GlassHeatmapProps) {
 }
 
 function Row({
-  r, competences, colorFor, max,
+  r, competences, colorFor, max, onCellClick,
 }: {
   r: { departement: string; map: Map<number, GapHeatmapCell> };
   competences: { id: number; nom: string }[];
   colorFor: (v: number) => string;
   max: number;
+  onCellClick?: (departement: string, competenceId: number) => void;
 }) {
   return (
     <>
@@ -80,10 +82,16 @@ function Row({
           <div
             key={c.id}
             title={`${c.nom} · ${r.departement} — gap ${cell.avg_gap.toFixed(2)} (${cell.enseignants_count} enseignants)`}
+            role={onCellClick ? "button" : undefined}
+            tabIndex={onCellClick ? 0 : undefined}
+            onClick={onCellClick ? () => onCellClick(r.departement, c.id) : undefined}
+            onKeyDown={onCellClick ? (e) => { if (e.key === "Enter" || e.key === " ") onCellClick(r.departement, c.id); } : undefined}
             style={{
               height: 38, borderRadius: 10, background: colorFor(cell.avg_gap),
               display: "grid", placeItems: "center", color: "#fff", fontWeight: 700, fontSize: 12,
               boxShadow: "inset 0 0 0 1px rgba(255,255,255,0.25)",
+              cursor: onCellClick ? "pointer" : undefined,
+              transition: onCellClick ? "transform 0.15s, box-shadow 0.15s" : undefined,
             }}
           >
             {cell.avg_gap.toFixed(2)}

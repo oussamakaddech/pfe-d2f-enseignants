@@ -42,8 +42,27 @@ async def lifespan(application: FastAPI):
     # ── Startup ──────────────────────────────────
     logger.info("Démarrage du service predictive-analytics")
 
+    # P0-1 — fail fast: JWT secret must be configured in production
+    if settings.is_production and not settings.jwt_secret:
+        logger.critical(
+            "JWT_SECRET is not set — refus de démarrer en production. "
+            "Configurez JWT_SECRET via la variable d'environnement."
+        )
+        raise RuntimeError("JWT_SECRET required in production")
+
     # Initialiser les tables analytics si elles n'existent pas
     _init_db_tables()
+
+    # P1-3 — pg_trgm extension check (required for ILIKE / similarity queries)
+    try:
+        from app.core.db import SessionLocal
+        with SessionLocal() as _db:
+            _db.execute(__import__("sqlalchemy").text(
+                "SELECT 1 FROM pg_extension WHERE extname = 'pg_trgm'"
+            ))
+            logger.info("pg_trgm extension verified")
+    except Exception as exc:
+        logger.warning("pg_trgm check failed (search features may degrade): %s", exc)
 
     # Charger le modèle ML (si disponible)
     try:
@@ -61,7 +80,7 @@ async def lifespan(application: FastAPI):
             from app.scheduler.jobs import start_scheduler
             start_scheduler()
         except Exception as exc:
-            logger.error("Scheduler démarrage échoué : %s", exc)
+            logger.exception("Scheduler démarrage échoué : %s", exc)
 
     # Démarrer le consumer RabbitMQ (DSI §2 — standardise sur RabbitMQ)
     if settings.messaging_enabled:
@@ -95,7 +114,7 @@ def _init_db_tables():
         Base.metadata.create_all(bind=engine, checkfirst=True)
         logger.info("Tables analytics vérifiées / créées")
     except Exception as exc:
-        logger.error("Impossible de créer les tables analytics : %s", exc)
+        logger.exception("Impossible de créer les tables analytics : %s", exc)
 
 
 app = FastAPI(
@@ -131,6 +150,9 @@ def metrics():
 # dans tous les middlewares internes.
 app.add_middleware(TraceIDMiddleware)
 app.add_middleware(JWTAuthMiddleware)
+if settings.is_production:
+    from app.core.rate_limit import RateLimitMiddleware
+    app.add_middleware(RateLimitMiddleware)
 
 _cors_raw = os.getenv("CORS_ORIGINS", "https://localhost:3000,https://localhost:5173,https://localhost:8080")
 _cors_origins = [o.strip() for o in _cors_raw.split(",") if o.strip()]
@@ -180,3 +202,9 @@ app.include_router(analytics_router, prefix="/api")
 # Router reporting descriptif (features 1-4 + export) — même préfixe /v1/analytics
 from app.routers.reporting import router as reporting_router
 app.include_router(reporting_router, prefix="/api")
+
+# Router A/B testing — expose /api/v1/analytics/ab/* (assign/event/results/winner).
+# Avant cette ligne, le router était défini mais JAMAIS monté : les endpoints
+# A/B testing étaient du code mort non joignable en production.
+from app.routers.ab_testing import router as ab_testing_router
+app.include_router(ab_testing_router, prefix="/api")

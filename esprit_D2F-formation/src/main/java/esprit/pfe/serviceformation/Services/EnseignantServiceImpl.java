@@ -203,7 +203,7 @@ public class EnseignantServiceImpl implements EnseignantService {
         Enseignant enseignant = enseignantRepository.findById(id)
                 .orElseThrow(() -> new jakarta.persistence.EntityNotFoundException(
                         "Enseignant introuvable avec l'id : " + id));
-        enseignant.setDeletedAt(java.time.LocalDateTime.now());
+        enseignant.setDeletedAt(java.time.LocalDateTime.now(java.time.ZoneId.systemDefault()));
         enseignantRepository.save(enseignant);
     }
 

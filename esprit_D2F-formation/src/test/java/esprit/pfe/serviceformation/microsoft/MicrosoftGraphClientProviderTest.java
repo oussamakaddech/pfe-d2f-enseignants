@@ -6,6 +6,7 @@ import org.mockito.InjectMocks;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 @ExtendWith(MockitoExtension.class)
@@ -19,10 +20,6 @@ class MicrosoftGraphClientProviderTest {
         ReflectionTestUtils.setField(provider, "tenantId", "tenant");
         ReflectionTestUtils.setField(provider, "clientSecret", "secret");
 
-        try {
-            assertNotNull(provider.getGraphClient());
-        } catch (Exception e) {
-            // Success if no exception, but we ignore exceptions from MS Graph SDK initialization in tests
-        }
+        assertDoesNotThrow(() -> assertNotNull(provider.getGraphClient()));
     }
 }

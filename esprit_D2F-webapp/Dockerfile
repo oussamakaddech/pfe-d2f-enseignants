@@ -4,6 +4,8 @@ LABEL maintainer="seddik.bouzayani <seddik.bouzayani@esprit.tn>"
 
 ARG BUILD_ENV
 ARG VITE_API_URL
+ARG VITE_NOTIFICATION_URL
+ARG VITE_NOTIFICATIONS_WS_URL
 WORKDIR /usr/app
 
 COPY package.json package-lock.json ./

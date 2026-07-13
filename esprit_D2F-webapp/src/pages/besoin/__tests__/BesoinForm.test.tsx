@@ -12,7 +12,7 @@ vi.mock("@/services/besoin/BesoinFormationService");
 vi.mock("@/services/formation/DeptService");
 vi.mock("@/services/api/UploadService");
 
-const mockUser = { username: "test.user", userName: "test.user", role: "Enseignant" };
+const mockUser = { username: "test.user", userName: "test.user", role: "Enseignant" as const };
 
 const mockDepts = [
   { id: 1, name: "Informatique" },

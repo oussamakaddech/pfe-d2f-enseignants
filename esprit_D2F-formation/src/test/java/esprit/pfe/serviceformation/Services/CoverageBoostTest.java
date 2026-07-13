@@ -12,8 +12,9 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.sql.Time;
 import java.time.LocalDate;
+import java.time.LocalTime;
+import java.time.Month;
 import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -111,15 +112,15 @@ class CoverageBoostTest {
         SeanceFormation sf = new SeanceFormation();
         sf.setIdSeance(10L);
         sf.setFormation(f);
-        sf.setDateSeance(java.sql.Date.valueOf(today.plusDays(1)));
-        sf.setHeureDebut(Time.valueOf("09:00:00"));
-        sf.setHeureFin(Time.valueOf("11:00:00"));
+        sf.setDateSeance(today.plusDays(1));
+        sf.setHeureDebut(LocalTime.of(9, 0));
+        sf.setHeureFin(LocalTime.of(11, 0));
         sf.setAnimateurs(new ArrayList<>());
         sf.setParticipants(new ArrayList<>());
 
-        when(seanceRepo.findByDateSeance(java.sql.Date.valueOf(today.plusDays(1)))).thenReturn(List.of(sf));
-        when(seanceRepo.findByDateSeance(java.sql.Date.valueOf(today.plusDays(7)))).thenReturn(new ArrayList<>());
-        when(seanceRepo.findByDateSeance(java.sql.Date.valueOf(today.plusDays(3)))).thenReturn(new ArrayList<>());
+        when(seanceRepo.findByDateSeance(today.plusDays(1))).thenReturn(List.of(sf));
+        when(seanceRepo.findByDateSeance(today.plusDays(7))).thenReturn(new ArrayList<>());
+        when(seanceRepo.findByDateSeance(today.plusDays(3))).thenReturn(new ArrayList<>());
 
         scheduler.sendDailyReminders();
         verify(mailService, atLeastOnce()).sendMail(eq("ext@test.tn"), anyString(), anyString());
@@ -141,15 +142,15 @@ class CoverageBoostTest {
         SeanceFormation sf = new SeanceFormation();
         sf.setIdSeance(10L);
         sf.setFormation(f);
-        sf.setDateSeance(java.sql.Date.valueOf(today.plusDays(3)));
-        sf.setHeureDebut(Time.valueOf("09:00:00"));
-        sf.setHeureFin(Time.valueOf("11:00:00"));
+        sf.setDateSeance(today.plusDays(3));
+        sf.setHeureDebut(LocalTime.of(9, 0));
+        sf.setHeureFin(LocalTime.of(11, 0));
         sf.setAnimateurs(new ArrayList<>(List.of(anim)));
         sf.setParticipants(new ArrayList<>(List.of(part)));
 
-        when(seanceRepo.findByDateSeance(java.sql.Date.valueOf(today.plusDays(3)))).thenReturn(List.of(sf));
-        when(seanceRepo.findByDateSeance(java.sql.Date.valueOf(today.plusDays(7)))).thenReturn(new ArrayList<>());
-        when(seanceRepo.findByDateSeance(java.sql.Date.valueOf(today.plusDays(1)))).thenReturn(new ArrayList<>());
+        when(seanceRepo.findByDateSeance(today.plusDays(3))).thenReturn(List.of(sf));
+        when(seanceRepo.findByDateSeance(today.plusDays(7))).thenReturn(new ArrayList<>());
+        when(seanceRepo.findByDateSeance(today.plusDays(1))).thenReturn(new ArrayList<>());
 
         scheduler.sendDailyReminders();
         verify(mailService, atLeast(2)).sendMail(anyString(), anyString(), anyString());
@@ -166,17 +167,17 @@ class CoverageBoostTest {
         SeanceFormation sf = new SeanceFormation();
         sf.setIdSeance(10L);
         sf.setFormation(f);
-        sf.setDateSeance(java.sql.Date.valueOf(today.plusDays(1)));
-        sf.setHeureDebut(Time.valueOf("09:00:00"));
-        sf.setHeureFin(Time.valueOf("11:00:00"));
+        sf.setDateSeance(today.plusDays(1));
+        sf.setHeureDebut(LocalTime.of(9, 0));
+        sf.setHeureFin(LocalTime.of(11, 0));
         sf.setSalle(null);
         sf.setAnimateurs(new ArrayList<>());
         sf.setParticipants(new ArrayList<>());
         f.setExterneFormateurEmail("ext@t.tn");
 
-        when(seanceRepo.findByDateSeance(java.sql.Date.valueOf(today.plusDays(1)))).thenReturn(List.of(sf));
-        when(seanceRepo.findByDateSeance(java.sql.Date.valueOf(today.plusDays(7)))).thenReturn(new ArrayList<>());
-        when(seanceRepo.findByDateSeance(java.sql.Date.valueOf(today.plusDays(3)))).thenReturn(new ArrayList<>());
+        when(seanceRepo.findByDateSeance(today.plusDays(1))).thenReturn(List.of(sf));
+        when(seanceRepo.findByDateSeance(today.plusDays(7))).thenReturn(new ArrayList<>());
+        when(seanceRepo.findByDateSeance(today.plusDays(3))).thenReturn(new ArrayList<>());
 
         scheduler.sendDailyReminders();
         verify(mailService, atLeastOnce()).sendMail(anyString(), anyString(), anyString());
@@ -193,13 +194,13 @@ class CoverageBoostTest {
         SeanceFormation sf = new SeanceFormation();
         sf.setIdSeance(10L);
         sf.setFormation(f);
-        sf.setDateSeance(java.sql.Date.valueOf(today.plusDays(1)));
-        sf.setHeureDebut(Time.valueOf("09:00:00"));
-        sf.setHeureFin(Time.valueOf("11:00:00"));
+        sf.setDateSeance(today.plusDays(1));
+        sf.setHeureDebut(LocalTime.of(9, 0));
+        sf.setHeureFin(LocalTime.of(11, 0));
 
-        when(seanceRepo.findByDateSeance(java.sql.Date.valueOf(today.plusDays(1)))).thenReturn(List.of(sf));
-        when(seanceRepo.findByDateSeance(java.sql.Date.valueOf(today.plusDays(7)))).thenReturn(new ArrayList<>());
-        when(seanceRepo.findByDateSeance(java.sql.Date.valueOf(today.plusDays(3)))).thenReturn(new ArrayList<>());
+        when(seanceRepo.findByDateSeance(today.plusDays(1))).thenReturn(List.of(sf));
+        when(seanceRepo.findByDateSeance(today.plusDays(7))).thenReturn(new ArrayList<>());
+        when(seanceRepo.findByDateSeance(today.plusDays(3))).thenReturn(new ArrayList<>());
 
         scheduler.sendDailyReminders();
         verify(mailService, never()).sendMail(anyString(), anyString(), anyString());
@@ -217,9 +218,9 @@ class CoverageBoostTest {
         SeanceFormation sf = new SeanceFormation();
         sf.setIdSeance(10L);
         sf.setFormation(f);
-        sf.setDateSeance(java.sql.Date.valueOf(today.plusDays(3)));
-        sf.setHeureDebut(Time.valueOf("09:00:00"));
-        sf.setHeureFin(Time.valueOf("11:00:00"));
+        sf.setDateSeance(today.plusDays(3));
+        sf.setHeureDebut(LocalTime.of(9, 0));
+        sf.setHeureFin(LocalTime.of(11, 0));
         sf.setAnimateurs(new ArrayList<>());
         sf.setParticipants(new ArrayList<>());
 
@@ -239,7 +240,7 @@ class CoverageBoostTest {
         sf.setIdSeance(10L);
         sf.setFormation(f);
         LocalDate today = LocalDate.now(java.time.ZoneId.of("Africa/Tunis"));
-        sf.setDateSeance(java.sql.Date.valueOf(today.plusDays(5)));
+        sf.setDateSeance(today.plusDays(5));
 
         when(seanceRepo.findByFormation_IdFormation(1L)).thenReturn(List.of(sf));
         scheduler.sendRemindersForFormation(1L, 3);
@@ -256,7 +257,7 @@ class CoverageBoostTest {
         SeanceFormation sf = new SeanceFormation();
         sf.setIdSeance(10L);
         sf.setFormation(f);
-        sf.setDateSeance(java.sql.Date.valueOf(today.plusDays(1)));
+        sf.setDateSeance(today.plusDays(1));
 
         when(seanceRepo.findByFormation_IdFormation(1L)).thenReturn(List.of(sf));
         scheduler.sendRemindersForFormation(1L, 1);
@@ -275,15 +276,15 @@ class CoverageBoostTest {
         SeanceFormation sf = new SeanceFormation();
         sf.setIdSeance(10L);
         sf.setFormation(f);
-        sf.setDateSeance(java.sql.Date.valueOf(today.plusDays(1)));
-        sf.setHeureDebut(Time.valueOf("09:00:00"));
-        sf.setHeureFin(Time.valueOf("11:00:00"));
+        sf.setDateSeance(today.plusDays(1));
+        sf.setHeureDebut(LocalTime.of(9, 0));
+        sf.setHeureFin(LocalTime.of(11, 0));
         sf.setAnimateurs(new ArrayList<>());
         sf.setParticipants(new ArrayList<>());
 
-        when(seanceRepo.findByDateSeance(java.sql.Date.valueOf(today.plusDays(1)))).thenReturn(List.of(sf));
-        when(seanceRepo.findByDateSeance(java.sql.Date.valueOf(today.plusDays(7)))).thenReturn(new ArrayList<>());
-        when(seanceRepo.findByDateSeance(java.sql.Date.valueOf(today.plusDays(3)))).thenReturn(new ArrayList<>());
+        when(seanceRepo.findByDateSeance(today.plusDays(1))).thenReturn(List.of(sf));
+        when(seanceRepo.findByDateSeance(today.plusDays(7))).thenReturn(new ArrayList<>());
+        when(seanceRepo.findByDateSeance(today.plusDays(3))).thenReturn(new ArrayList<>());
         doThrow(new RuntimeException("fail")).when(mailService).sendMail(anyString(), anyString(), anyString());
 
         assertDoesNotThrow(() -> scheduler.sendDailyReminders());
@@ -297,12 +298,12 @@ class CoverageBoostTest {
         req.setDateFin(null);
         assertTrue(req.isDateRangeValid());
 
-        req.setDateDebut(LocalDate.of(2026, 1, 1));
-        req.setDateFin(LocalDate.of(2026, 1, 10));
+        req.setDateDebut(LocalDate.of(2026, Month.JANUARY, 1));
+        req.setDateFin(LocalDate.of(2026, Month.JANUARY, 10));
         assertTrue(req.isDateRangeValid());
 
-        req.setDateDebut(LocalDate.of(2026, 1, 10));
-        req.setDateFin(LocalDate.of(2026, 1, 1));
+        req.setDateDebut(LocalDate.of(2026, Month.JANUARY, 10));
+        req.setDateFin(LocalDate.of(2026, Month.JANUARY, 1));
         assertFalse(req.isDateRangeValid());
     }
 }

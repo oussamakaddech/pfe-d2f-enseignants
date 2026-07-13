@@ -109,3 +109,37 @@ def build_factors_from_gaps(
         "feedback_decline": 1.0 if en_regression else 0.0,
         "unmet_needs":      _clamp01(unmet / max(settings.risk_unmet_needs_saturation, 1)),
     }
+
+
+def build_factors_from_teacher_profile(profile: dict) -> dict[str, float]:
+    """DEPRECATED — pipeline scoring via build_factors_from_gaps() is the source of truth.
+
+    Retained for reference only. Do NOT call in new endpoint code.
+    """
+    nb_completed = profile.get("nb_formations_completed") or 0
+    nb_in_progress = profile.get("nb_formations_in_progress") or 0
+    nb_exprimes = profile.get("nb_besoins_exprimes") or 0
+    nb_approuves = profile.get("nb_besoins_approuves") or 0
+    avg_eval = profile.get("avg_eval_score") or 0.0
+    days_since = profile.get("days_since_last_training") or settings.risk_absence_threshold_days
+    taux_assiduite = profile.get("taux_assiduite") or 1.0
+
+    no_training = _clamp01(days_since / max(settings.risk_absence_threshold_days, 1))
+    stagnation = _clamp01(1.0 / (1.0 + nb_completed))
+    unmet = _clamp01(
+        max(0, nb_exprimes - nb_approuves)
+        / max(settings.risk_unmet_needs_saturation, 1)
+    )
+    gap_count = _clamp01(unmet * 0.6 + (1.0 - _clamp01(nb_in_progress / 3.0)) * 0.4)
+    feedback_decline = 1.0 if (
+        (avg_eval and avg_eval < settings.risk_engagement_percentile / 20.0)
+        or taux_assiduite < settings.risk_engagement_percentile / 100.0
+    ) else 0.0
+
+    return {
+        "no_training":      no_training,
+        "stagnation":       stagnation,
+        "gap_count":        gap_count,
+        "feedback_decline": feedback_decline,
+        "unmet_needs":      unmet,
+    }

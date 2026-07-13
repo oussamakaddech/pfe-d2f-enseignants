@@ -33,6 +33,10 @@ services:
     image: ${REGISTRY}/d2f-evaluation:${IMAGE_TAG}
     pull_policy: always
 
+  notification-service:
+    image: ${REGISTRY}/d2f-notification:${IMAGE_TAG}
+    pull_policy: always
+
   api-gateway:
     image: ${REGISTRY}/d2f-api-gateway:${IMAGE_TAG}
     pull_policy: always

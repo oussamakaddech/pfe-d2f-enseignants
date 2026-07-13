@@ -11,8 +11,6 @@ import type { ColumnsType } from "antd/es/table";
 import type {
   BatchRecommendationResponse, TeacherRiskIndicator,
 } from "@/models/analyse";
-import EnseignantSelect from "@/components/charts/EnseignantSelect";
-
 const { Text, Title } = Typography;
 
 interface CohortRecommendationPanelProps {
@@ -93,13 +91,21 @@ export default function CohortRecommendationPanel({
       align: "center" as const,
       sorter: (a, b) => a.nb_enseignants_concernes - b.nb_enseignants_concernes,
       defaultSortOrder: "descend",
-      render: (v: number) => (
-        <Tag
-          color={v >= selectedIds.length * 0.5 ? "green" : v >= selectedIds.length * 0.2 ? "blue" : "default"}
-        >
-          <TeamOutlined /> {v}/{selectedIds.length}
-        </Tag>
-      ),
+      render: (v: number) => {
+        let tagColor: string;
+        if (v >= selectedIds.length * 0.5) {
+          tagColor = "green";
+        } else if (v >= selectedIds.length * 0.2) {
+          tagColor = "blue";
+        } else {
+          tagColor = "default";
+        }
+        return (
+          <Tag color={tagColor}>
+            <TeamOutlined /> {v}/{selectedIds.length}
+          </Tag>
+        );
+      },
     },
     {
       title: "Prob. Réussite Moy.",
@@ -108,7 +114,14 @@ export default function CohortRecommendationPanel({
       sorter: (a, b) => a.probabilite_reussite_moyenne - b.probabilite_reussite_moyenne,
       render: (v: number) => {
         const pct = Math.round(v * 100);
-        const color = pct >= 80 ? "#10b981" : pct >= 60 ? "#f59e0b" : "#ef4444";
+        let color: string;
+        if (pct >= 80) {
+          color = "#10b981";
+        } else if (pct >= 60) {
+          color = "#f59e0b";
+        } else {
+          color = "#ef4444";
+        }
         return <Text strong style={{ color }}>{pct}%</Text>;
       },
     },
@@ -116,11 +129,21 @@ export default function CohortRecommendationPanel({
       title: "Score Global",
       dataIndex: "score_global_moyen",
       width: 110,
-      render: (v: number) => (
-        <Tag color={v >= 0.8 ? "green" : v >= 0.5 ? "blue" : "default"}>
-          {(v * 100).toFixed(0)}%
-        </Tag>
-      ),
+      render: (v: number) => {
+        let tagColor: string;
+        if (v >= 0.8) {
+          tagColor = "green";
+        } else if (v >= 0.5) {
+          tagColor = "blue";
+        } else {
+          tagColor = "default";
+        }
+        return (
+          <Tag color={tagColor}>
+            {(v * 100).toFixed(0)}%
+          </Tag>
+        );
+      },
     },
     {
       title: "Compétences",

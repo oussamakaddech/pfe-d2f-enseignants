@@ -13,7 +13,9 @@ const XLSX_MIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.s
 interface Props {
   file: File | null;
   onFileChange: (file: File | null) => void;
+  onFileSelected?: (file: File) => void; // alias de rétro-compat
   disabled?: boolean;
+  loading?: boolean;
 }
 
 /**

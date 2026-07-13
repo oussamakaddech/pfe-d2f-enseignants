@@ -15,8 +15,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.sql.Time;
-import java.util.Date;
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -57,9 +57,9 @@ class CalendarExportServiceTest {
 
         seance = new SeanceFormation();
         seance.setIdSeance(100L);
-        seance.setDateSeance(new Date());
-        seance.setHeureDebut(Time.valueOf("09:00:00"));
-        seance.setHeureFin(Time.valueOf("12:00:00"));
+        seance.setDateSeance(LocalDate.now());
+        seance.setHeureDebut(LocalTime.of(9, 0));
+        seance.setHeureFin(LocalTime.of(12, 0));
         seance.setSalle("Salle A");
         seance.setTypeSeance(esprit.pfe.serviceformation.entities.TypeSeanceEnum.THEORIQUE);
         

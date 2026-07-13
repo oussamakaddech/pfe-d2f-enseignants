@@ -19,12 +19,21 @@ export default function GlassRiskTable({ data }: GlassRiskTableProps) {
         </div>
       ),
     },
-    { title: "Département", dataIndex: "department", render: (v?: string) => v ?? "—" },
+    { title: "Département", dataIndex: "departement", render: (v?: string) => v ?? "—" },
     {
       title: "Score de risque", dataIndex: "attrition_risk_score", align: "center",
       render: (s: number) => {
         const pct = Math.round(s * 100);
-        const col = pct >= 80 ? semantic.error : pct >= 60 ? "#f97316" : pct >= 40 ? semantic.warning : semantic.success;
+        let col: string;
+        if (pct >= 80) {
+          col = semantic.error;
+        } else if (pct >= 60) {
+          col = "#f97316";
+        } else if (pct >= 40) {
+          col = semantic.warning;
+        } else {
+          col = semantic.success;
+        }
         return <span style={{ color: col, fontWeight: 700 }}>{pct}%</span>;
       },
     },

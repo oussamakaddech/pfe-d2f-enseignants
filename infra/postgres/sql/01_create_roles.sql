@@ -13,6 +13,7 @@ CREATE ROLE app_user_evaluation        LOGIN PASSWORD :'pwd_evaluation';
 CREATE ROLE app_user_certificat        LOGIN PASSWORD :'pwd_certificat';
 CREATE ROLE app_user_competence        LOGIN PASSWORD :'pwd_competence';
 CREATE ROLE app_user_analyse           LOGIN PASSWORD :'pwd_analyse';
+CREATE ROLE app_user_notification       LOGIN PASSWORD :'pwd_notification';
 
 -- Schémas dédiés (ownership donnée au rôle applicatif)
 CREATE SCHEMA IF NOT EXISTS auth       AUTHORIZATION app_user_auth;
@@ -22,3 +23,4 @@ CREATE SCHEMA IF NOT EXISTS evaluation AUTHORIZATION app_user_evaluation;
 CREATE SCHEMA IF NOT EXISTS certificat AUTHORIZATION app_user_certificat;
 CREATE SCHEMA IF NOT EXISTS competence AUTHORIZATION app_user_competence;
 CREATE SCHEMA IF NOT EXISTS "analyse" AUTHORIZATION app_user_analyse;
+CREATE SCHEMA IF NOT EXISTS notification AUTHORIZATION app_user_notification;

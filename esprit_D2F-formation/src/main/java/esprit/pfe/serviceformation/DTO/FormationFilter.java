@@ -6,7 +6,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.util.Date;
+import java.time.LocalDate;
 import java.util.List;
 
 @Data
@@ -19,7 +19,7 @@ public class FormationFilter {
     private Long upId;
     private Long deptId;
     private Boolean ouverte;
-    private Date start;
-    private Date end;
+    private LocalDate start;
+    private LocalDate end;
     private List<EtatFormation> etats;
 }

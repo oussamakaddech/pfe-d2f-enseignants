@@ -67,6 +67,7 @@ def _default_range(debut: str | None, fin: str | None) -> tuple[str, str]:
 @router.get(
     "/enseignants-sans-formation",
     summary="Enseignants inactifs (sans formation depuis > N mois) — paginé",
+    responses={403: {"description": "Périmètre CUP introuvable ou rôle non autorisé"}},
 )
 async def enseignants_sans_formation(
     auth: ReadAuth,
@@ -85,6 +86,10 @@ async def enseignants_sans_formation(
 @router.get(
     "/formations-par-periode",
     summary="Nombre de formations / participants par période (granularité variable)",
+    responses={
+        400: {"description": "Granularité invalide"},
+        403: {"description": "Périmètre CUP introuvable ou rôle non autorisé"},
+    },
 )
 async def formations_par_periode(
     auth: ReadAuth,
@@ -119,7 +124,11 @@ async def formations_par_up(
 
 
 # ── Feature 4 — Analyse par département + radar ──────────────
-@router.get("/formations-par-departement", summary="Analytique par département (+ comparaison radar)")
+@router.get(
+    "/formations-par-departement",
+    summary="Analytique par département (+ comparaison radar)",
+    responses={403: {"description": "Vue inter-départements réservée à l'ADMIN"}},
+)
 async def formations_par_departement(
     auth: ReadAuth,
     db: DbSession,
@@ -164,7 +173,10 @@ async def export_excel(
 @router.get(
     "/export/pdf",
     summary="Export PDF d'un rapport analytique",
-    responses={200: {"content": {"application/pdf": {}}}},
+    responses={
+        200: {"content": {"application/pdf": {}}},
+        403: {"description": "Export PDF réservé à l'ADMIN"},
+    },
 )
 async def export_pdf(
     auth: ReadAuth,

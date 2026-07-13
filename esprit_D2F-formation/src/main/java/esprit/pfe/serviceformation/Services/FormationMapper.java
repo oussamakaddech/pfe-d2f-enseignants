@@ -5,9 +5,7 @@ import esprit.pfe.serviceformation.entities.Formation;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
-import java.time.Instant;
 import java.time.LocalDate;
-import java.time.ZoneId;
 
 /**
  * Mapper for converting Formation entities to DTOs and vice versa.
@@ -41,12 +39,11 @@ public class FormationMapper {
             esprit.pfe.serviceformation.entities.EtatFormation.valueOf(request.getEtatFormation())
             : null);
 
-        // Convert LocalDate to Date
         if (request.getDateDebut() != null) {
-            formation.setDateDebut(java.sql.Date.valueOf(request.getDateDebut()));
+            formation.setDateDebut(request.getDateDebut());
         }
         if (request.getDateFin() != null) {
-            formation.setDateFin(java.sql.Date.valueOf(request.getDateFin()));
+            formation.setDateFin(request.getDateFin());
         }
 
         formation.setChargeHoraireGlobal(request.getChargeHoraireGlobal());
@@ -98,10 +95,10 @@ public class FormationMapper {
             formation.setEtatFormation(esprit.pfe.serviceformation.entities.EtatFormation.valueOf(request.getEtatFormation()));
         }
         if (request.getDateDebut() != null) {
-            formation.setDateDebut(java.sql.Date.valueOf(request.getDateDebut()));
+            formation.setDateDebut(request.getDateDebut());
         }
         if (request.getDateFin() != null) {
-            formation.setDateFin(java.sql.Date.valueOf(request.getDateFin()));
+            formation.setDateFin(request.getDateFin());
         }
         if (request.getChargeHoraireGlobal() != null) {
             formation.setChargeHoraireGlobal(request.getChargeHoraireGlobal());
@@ -186,12 +183,8 @@ public class FormationMapper {
             return null;
         }
 
-        LocalDate dateDebut = formation.getDateDebut() != null ?
-            Instant.ofEpochMilli(formation.getDateDebut().getTime()).atZone(ZoneId.systemDefault()).toLocalDate()
-            : null;
-        LocalDate dateFin = formation.getDateFin() != null ?
-            Instant.ofEpochMilli(formation.getDateFin().getTime()).atZone(ZoneId.systemDefault()).toLocalDate()
-            : null;
+        LocalDate dateDebut = formation.getDateDebut();
+        LocalDate dateFin = formation.getDateFin();
 
         return FormationResponseDTO.builder()
             .idFormation(formation.getIdFormation())

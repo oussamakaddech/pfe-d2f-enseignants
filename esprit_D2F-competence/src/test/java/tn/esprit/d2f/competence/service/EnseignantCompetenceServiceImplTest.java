@@ -26,6 +26,7 @@ import tn.esprit.d2f.competence.repository.EnseignantCompetenceRepository;
 import tn.esprit.d2f.competence.repository.SavoirRepository;
 
 import java.time.LocalDate;
+import java.time.Month;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -61,7 +62,7 @@ class EnseignantCompetenceServiceImplTest {
         ec = EnseignantCompetence.builder()
                 .id(1L).enseignantId(ENS_ID).savoir(savoir)
                 .niveau(NiveauMaitrise.N2_ELEMENTAIRE)
-                .dateAcquisition(LocalDate.of(2025, 1, 15))
+                .dateAcquisition(LocalDate.of(2025, Month.JANUARY, 15))
                 .commentaire("Bon niveau")
                 .build();
 
@@ -265,14 +266,6 @@ class EnseignantCompetenceServiceImplTest {
     @Test
     void getCompetencesByEnseignant_Page_ShouldReturnFirstSlice() {
         Pageable pageable = PageRequest.of(0, 1);
-        EnseignantCompetenceDTO dto = EnseignantCompetenceDTO.builder()
-            .id(1L)
-            .enseignantId(ENS_ID)
-            .savoirId(1L)
-            .niveau(NiveauMaitrise.N2_ELEMENTAIRE)
-            .dateAcquisition(LocalDate.of(2025, 1, 15))
-            .commentaire("Bon niveau")
-            .build();
         when(enseignantCompetenceRepository.findByEnseignantId(ENS_ID)).thenReturn(List.of(ec));
 
         Page<EnseignantCompetenceDTO> result = ecService.getCompetencesByEnseignant(ENS_ID, pageable);

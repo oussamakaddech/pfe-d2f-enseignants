@@ -7,7 +7,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
 import lombok.Data;
 
-import java.util.Date;
+import java.time.LocalDate;
 import java.util.List;
 
 @Data
@@ -21,10 +21,10 @@ public class FormationWorkflowRequest {
     private String titreFormation;
 
     @NotNull(message = "La date de début est obligatoire")
-    private Date dateDebut;
+    private LocalDate dateDebut;
 
     @NotNull(message = "La date de fin est obligatoire")
-    private Date dateFin;
+    private LocalDate dateFin;
 
     @NotNull(message = "Le type de formation est obligatoire")
     private TypeFormation typeFormation;
@@ -102,7 +102,7 @@ public class FormationWorkflowRequest {
         private Long idSeance;
 
         @NotNull(message = "La date de la séance est obligatoire")
-        private Date dateSeance;
+        private LocalDate dateSeance;
 
         @NotBlank(message = "L'heure de début est obligatoire")
         private String heureDebut;

@@ -11,10 +11,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.sql.Time;
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Date;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -30,17 +29,14 @@ class ExportExcelServiceTest {
     @InjectMocks
     private ExportExcelService exportExcelService;
 
-    private Date startDate;
-    private Date endDate;
+    private LocalDate startDate;
+    private LocalDate endDate;
     private List<FormationResponseDTO> mockFormations;
 
     @BeforeEach
     void setUp() {
-        Calendar cal = Calendar.getInstance();
-        cal.set(2026, Calendar.JANUARY, 1);
-        startDate = cal.getTime();
-        cal.set(2026, Calendar.DECEMBER, 31);
-        endDate = cal.getTime();
+        startDate = LocalDate.of(2026, 1, 1);
+        endDate = LocalDate.of(2026, 12, 31);
 
         mockFormations = new ArrayList<>();
 
@@ -51,8 +47,8 @@ class ExportExcelServiceTest {
 
         SeanceDTO s1 = new SeanceDTO();
         s1.setDateSeance(startDate);
-        s1.setHeureDebut(Time.valueOf("09:00:00"));
-        s1.setHeureFin(Time.valueOf("12:00:00"));
+        s1.setHeureDebut(LocalTime.of(9, 0));
+        s1.setHeureFin(LocalTime.of(12, 0));
         s1.setSalle("Salle 1");
 
         EnseignantDTO anim = new EnseignantDTO();
@@ -78,9 +74,7 @@ class ExportExcelServiceTest {
         FormationResponseDTO f3 = new FormationResponseDTO();
         f3.setTitreFormation("Formation Hors Limite");
         SeanceDTO s3 = new SeanceDTO();
-        Calendar outCal = Calendar.getInstance();
-        outCal.set(2025, Calendar.JANUARY, 1);
-        s3.setDateSeance(outCal.getTime());
+        s3.setDateSeance(LocalDate.of(2025, 1, 1));
         f3.setSeances(List.of(s3));
         mockFormations.add(f3);
     }

@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import dayjs from "dayjs";
 import "dayjs/locale/fr";
-import { Row, Col, Empty, Spin, Tooltip, Tag } from "antd";
+import { Row, Col, Empty, Spin, Tooltip, Tag, Alert } from "antd";
 import {
   ReloadOutlined, LineChartOutlined, HeartOutlined, TeamOutlined,
   SafetyCertificateOutlined, FallOutlined, BellOutlined, RiseOutlined,
@@ -12,7 +12,12 @@ import {
 import { useAuth } from "@/hooks/auth/useAuth";
 import { useDashboard } from "@/hooks/analyse/useDashboard";
 import { computeHealthScore } from "@/services/dashboard/dashboardService";
+import { normalizeRole } from "@/utils/constants/roles";
+import { greeting } from "@/utils/helpers/greeting";
 import type { DashboardData } from "@/models/analyse";
+import { NA_CALC } from "@/utils/states";
+import { decodeSignals, riskStyle } from "@/utils/risk";
+import RiskBadge from "@/components/ui/RiskBadge";
 import { roleColors, brand, accent, semantic } from "@/styles/themes/tokens";
 import GlassCard from "@/components/ui/GlassCard";
 import GlassKpi from "@/components/ui/GlassKpi";
@@ -20,24 +25,6 @@ import TrendLineChart from "@/components/charts/TrendLineChart";
 import "@/styles/pages/glass.css";
 
 dayjs.locale("fr");
-
-const RISK_COLORS: Record<string, { color: string; bg: string }> = {
-  CRITIQUE: { color: semantic.error, bg: semantic.errorBg },
-  ELEVE: { color: "#f97316", bg: "#fff7ed" },
-  MODERE: { color: semantic.warning, bg: semantic.warningBg },
-  FAIBLE: { color: semantic.success, bg: semantic.successBg },
-};
-
-function normalizeRole(v: unknown): string {
-  return String(v ?? "").toLowerCase().replace(/^role_?/, "").replaceAll(/[\s_-]+/g, "");
-}
-
-function greeting(): { text: string; emoji: string } {
-  const h = dayjs().hour();
-  if (h < 12) return { text: "Bonjour", emoji: "🌅" };
-  if (h < 18) return { text: "Bon après-midi", emoji: "☀️" };
-  return { text: "Bonsoir", emoji: "🌙" };
-}
 
 function HealthRing({ score, color }: { score: number; color: string }) {
   const r = 54;
@@ -63,36 +50,42 @@ function HealthRing({ score, color }: { score: number; color: string }) {
 
 export default function DashboardGlass() {
   const { user } = useAuth();
-  const { loading, dashboard, lastUpdate, refetch } = useDashboard();
+  const { loading, dashboard, lastUpdate, refetch, error } = useDashboard();
   const navigate = useNavigate();
   const greet = greeting();
 
   const roleKey = normalizeRole(user?.role);
-  const roleStyle = roleColors[roleKey] ?? roleColors[roleKey] ?? { color: brand[500], bg: brand[50], label: "Utilisateur" };
+  const roleStyle = roleColors[roleKey] ?? { color: brand[500], bg: brand[50], label: "Utilisateur" };
   const displayName = user?.username ?? user?.email ?? "Utilisateur";
   const todayLabel = dayjs().format("dddd D MMMM YYYY");
 
   const d = dashboard as DashboardData | null;
 
-  const coverage = useMemo(() => {
+  const coverage = useMemo<number | "NA" | null>(() => {
     const rows = d?.taux_couverture_departements ?? [];
     if (rows.length === 0) return null;
+    const totalEval = rows.reduce((s, r) => s + (r.nb_evalues ?? 0), 0);
+    if (totalEval === 0) return "NA";
     return Math.round(rows.reduce((s, r) => s + r.taux_couverture, 0) / rows.length);
   }, [d]);
 
   const health = useMemo(
     () => computeHealthScore({
-      coverage: coverage ?? undefined,
+      coverage: typeof coverage === "number" ? coverage : undefined,
       pendingNeeds: d?.alertes_recentes?.length,
       atRisk: d?.enseignants_a_risque?.length,
     }),
     [coverage, d]
   );
 
-  const healthColor =
-    health.level === "healthy" ? semantic.success
-      : health.level === "attention" ? semantic.warning
-        : semantic.error;
+  let healthColor: string;
+  if (health.level === "healthy") {
+    healthColor = semantic.success;
+  } else if (health.level === "attention") {
+    healthColor = semantic.warning;
+  } else {
+    healthColor = semantic.error;
+  }
 
   const riskTeachers = (d?.enseignants_a_risque ?? []).slice(0, 6);
   const declining = (d?.competences_en_declin ?? []).slice(0, 6);
@@ -126,22 +119,21 @@ export default function DashboardGlass() {
               <ReloadOutlined spin={loading} /> Rafraîchir
             </button>
           </Tooltip>
-          <button className="glass-btn glass-btn-primary" onClick={() => navigate("/home/AnalysePredictive")}>
-            <LineChartOutlined /> Analytique
-          </button>
         </div>
       </section>
 
       {/* ── KPIs ─────────────────────────────────────────────── */}
       <section className="glass-section" style={{ marginTop: 22 }}>
+        {error && <Alert message={error} type="error" showIcon style={{ marginBottom: 12 }} banner />}
         <div className="glass-kpi-grid">
           <GlassKpi
             label="Enseignants à risque" icon={<TeamOutlined />} accent={semantic.error} tint={semantic.errorBg}
-            value={d ? riskTeachers.length : "—"} hint="Enseignants avec un score de risque élevé"
+            value={d ? (d.enseignants_a_risque?.length ?? 0) : "—"} hint="Enseignants détectés en risque (score de risque prédictif élevé ou critique). Source : profils de risque MSAS. Fréquence : quotidienne."
           />
           <GlassKpi
             label="Couverture compétences" icon={<SafetyCertificateOutlined />} accent={semantic.success} tint={semantic.successBg}
-            value={coverage != null ? `${coverage}%` : "—"} hint="Taux de couverture moyen par département"
+            value={coverage != null ? (coverage === "NA" ? NA_CALC : `${coverage}%`) : "—"}
+            hint="Part des compétences dont le niveau actuel atteint le niveau requis. Source : évaluations des enseignants. Si aucune évaluation n'est disponible, la valeur est « Non calculable »."
           />
           <GlassKpi
             label="Compétences en déclin" icon={<FallOutlined />} accent={semantic.warning} tint={semantic.warningBg}
@@ -157,7 +149,7 @@ export default function DashboardGlass() {
           />
           <GlassKpi
             label="Santé plateforme" icon={<HeartOutlined />} accent={healthColor} tint={`${healthColor}1f`}
-            value={`${health.score}/100`} hint={`Niveau: ${health.level}`}
+            value={`${health.score}/100`} hint="Indicateur de pilotage composite ; il ne constitue pas une décision automatique."
           />
         </div>
       </section>
@@ -178,9 +170,21 @@ export default function DashboardGlass() {
                   <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
                     <HealthRing score={health.score} color={healthColor} />
                     <div style={{ flex: 1 }}>
-                      <Tag color={health.level === "healthy" ? "green" : health.level === "attention" ? "orange" : "red"} style={{ fontWeight: 700 }}>
-                        {health.level === "healthy" ? "Sain" : health.level === "attention" ? "Attention" : "Critique"}
-                      </Tag>
+                      {(() => {
+                        let tagColor: string;
+                        let tagLabel: string;
+                        if (health.level === "healthy") {
+                          tagColor = "green";
+                          tagLabel = "Sain";
+                        } else if (health.level === "attention") {
+                          tagColor = "orange";
+                          tagLabel = "Attention";
+                        } else {
+                          tagColor = "red";
+                          tagLabel = "Critique";
+                        }
+                        return <Tag color={tagColor} style={{ fontWeight: 700 }}>{tagLabel}</Tag>;
+                      })()}
                       <p className="glass-muted" style={{ fontSize: 12.5, marginTop: 10 }}>
                         Basé sur la couverture, les besoins en attente et l'engagement des enseignants.
                       </p>
@@ -194,18 +198,21 @@ export default function DashboardGlass() {
                     <Empty description="Aucune donnée de couverture" />
                   ) : (
                     <div className="glass-list">
-                      {(d?.taux_couverture_departements ?? []).map((dep) => (
-                        <div key={dep.departement} className="glass-list-item" style={{ alignItems: "center" }}>
-                          <div style={{ flex: 1 }}>
-                            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
-                              <span className="li-title">{dep.departement}</span>
-                              <span className="glass-muted" style={{ fontSize: 12.5, fontWeight: 600 }}>{dep.taux_couverture}%</span>
-                            </div>
-                            <div className="glass-bar"><span style={{ width: `${dep.taux_couverture}%` }} /></div>
-                          </div>
-                          <span className="glass-muted" style={{ fontSize: 12, minWidth: 64, textAlign: "right" }}>{dep.nb_evalues} évalués</span>
-                        </div>
-                      ))}
+                  {(d?.taux_couverture_departements ?? []).map((dep) => {
+                         const nonCalc = (dep.nb_evalues ?? 0) === 0;
+                         return (
+                         <div key={dep.departement} className="glass-list-item" style={{ alignItems: "center" }}>
+                           <div style={{ flex: 1 }}>
+                             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}>
+                               <span className="li-title">{dep.departement}</span>
+                               <span className="glass-muted" style={{ fontSize: 12.5, fontWeight: 600 }}>{nonCalc ? NA_CALC : `${dep.taux_couverture}%`}</span>
+                             </div>
+                             <div className="glass-bar"><span style={{ width: `${nonCalc ? 0 : dep.taux_couverture}%` }} /></div>
+                           </div>
+                           <span className="glass-muted" style={{ fontSize: 12, minWidth: 64, textAlign: "right" }}>{nonCalc ? "À évaluer" : `${dep.nb_evalues} évalués`}</span>
+                         </div>
+                         );
+                       })}
                     </div>
                   )}
                 </GlassCard>
@@ -226,25 +233,34 @@ export default function DashboardGlass() {
                     <Empty description="Aucun enseignant à risque" />
                   ) : (
                     <div className="glass-list">
-                      {riskTeachers.map((t) => {
-                        const rc = RISK_COLORS[t.niveau_risque ?? "MODERE"] ?? RISK_COLORS.MODERE;
-                        return (
-                          <div key={t.enseignant_id} className="glass-list-item">
-                            <div className="glass-avatar-sm" style={{ background: rc.color }}>
-                              {t.enseignant_id.slice(0, 2).toUpperCase()}
-                            </div>
-                            <div className="li-main">
-                              <div className="li-title">{t.enseignant_id}</div>
-                              <div className="li-sub">
-                                {t.nb_gaps_critiques} gaps critiques · {t.tendance === "REGRESSION" ? "↘ régression" : t.tendance === "PROGRESSION" ? "↗ progression" : "→ stable"}
-                              </div>
-                            </div>
-                            <Tag style={{ color: rc.color, background: rc.bg, borderColor: "transparent", fontWeight: 700 }}>
-                              {Math.round((t.score_risque ?? 0) * 100)}%
-                            </Tag>
-                          </div>
-                        );
-                      })}
+                  {riskTeachers.map((t) => {
+                         const signals = decodeSignals(t.facteurs_risque);
+                         return (
+                           <div key={t.enseignant_id} className="glass-list-item">
+                               <div className="glass-avatar-sm" style={{ background: riskStyle(t.score_risque ?? 0).bg }}>
+                               {(t.teacher_name ?? t.enseignant_id).slice(0, 2).toUpperCase()}
+                             </div>
+                             <div className="li-main">
+                               <div className="li-title">{t.teacher_name ?? t.enseignant_id}</div>
+                               <div className="li-sub">
+                                 {t.nb_gaps_critiques} gaps critiques · {(() => {
+                                   if (t.tendance === "REGRESSION") return "↘ régression";
+                                   if (t.tendance === "PROGRESSION") return "↗ progression";
+                                   return "→ stable";
+                                 })()}
+                               </div>
+                               {signals.length > 0 && (
+                                 <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 4 }}>
+                                   {signals.slice(0, 2).map((s, i) => (
+                                     <span key={i} style={{ fontSize: 10.5, background: semantic.warningBg, color: "#7c2d12", borderRadius: 6, padding: "1px 6px" }}>{s}</span>
+                                   ))}
+                                 </div>
+                               )}
+                             </div>
+                             {t.score_risque != null ? <RiskBadge score={t.score_risque} size="sm" /> : <span className="glass-muted">—</span>}
+                           </div>
+                         );
+                       })}
                     </div>
                   )}
                 </GlassCard>
@@ -324,11 +340,36 @@ export default function DashboardGlass() {
           <section className="glass-section">
             <Row gutter={[18, 18]}>
               <Col xs={24} lg={14}>
-                <GlassCard title="Alertes récentes" subtitle="À traiter en priorité" icon={<BellOutlined />} iconColor={semantic.info} iconBg={semantic.infoBg}>
+                <GlassCard
+                  title="Alertes récentes"
+                  subtitle="À traiter en priorité"
+                  icon={<BellOutlined />}
+                  iconColor={semantic.info}
+                  iconBg={semantic.infoBg}
+                  extra={
+                    alerts.length > 0 ? (
+                      <button
+                        type="button"
+                        className="glass-link"
+                        onClick={() => navigate("/home/analytics/alerts")}
+                        style={{ fontSize: 12, color: semantic.info, background: "none", border: "none", cursor: "pointer", padding: 0 }}
+                      >
+                        Voir toutes les alertes →
+                      </button>
+                    ) : undefined
+                  }
+                >
                   {alerts.length === 0 ? <Empty description="Aucune alerte récente" /> : (
                     <div className="glass-list">
                       {alerts.map((a) => {
-                        const col = a.severite === "CRITICAL" ? semantic.error : a.severite === "WARNING" ? semantic.warning : semantic.info;
+                        let col: string;
+                        if (a.severite === "CRITICAL") {
+                          col = semantic.error;
+                        } else if (a.severite === "WARNING") {
+                          col = semantic.warning;
+                        } else {
+                          col = semantic.info;
+                        }
                         return (
                           <div key={a.id} className="glass-list-item">
                             <span className="glass-avatar-sm" style={{ background: col, fontSize: 14 }}><WarningOutlined /></span>

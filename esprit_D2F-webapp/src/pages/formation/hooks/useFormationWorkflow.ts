@@ -724,7 +724,7 @@ export function useFormationWorkflow({ initialDate, onFormationCreated, besoinIn
     if (titre.trim().length < 5) { message.warning("Le titre doit contenir au moins 5 caractères."); return; }
     try {
       const finalAnimIds = animSel.map(getAnimateurStableId).filter(Boolean);
-      const blockingConflicts = buildConflictMessages({ localSeances: seances, participantIds: partSel.map((p) => p.id).filter(Boolean), animateurIds: finalAnimIds });
+      const blockingConflicts = buildConflictMessages({ localSeances: seances, participantIds: partSel.map((p) => p.id).filter(Boolean), animateurIds: finalAnimIds, existingFormations: [] });
       if (blockingConflicts.length > 0) { setOverlapWarnings(blockingConflicts); message.error("Conflits détectés: corrigez les dates/salles/personnes."); return; }
 
       // Persist auth-user animateurs as enseignants — createOrFindEnseignant handles 409

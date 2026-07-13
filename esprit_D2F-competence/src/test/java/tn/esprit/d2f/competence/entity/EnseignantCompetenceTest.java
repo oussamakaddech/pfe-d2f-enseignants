@@ -2,6 +2,7 @@ package tn.esprit.d2f.competence.entity;
 
 import org.junit.jupiter.api.Test;
 import java.time.LocalDate;
+import java.time.Month;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class EnseignantCompetenceTest {
@@ -18,7 +19,7 @@ class EnseignantCompetenceTest {
     @Test
     void prePersist_ShouldNotOverrideExistingDateAcquisition() {
         EnseignantCompetence ec = new EnseignantCompetence();
-        LocalDate pastDate = LocalDate.of(2020, 1, 1);
+        LocalDate pastDate = LocalDate.of(2020, Month.JANUARY, 1);
         ec.setDateAcquisition(pastDate);
         ec.prePersist();
         assertThat(ec.getDateAcquisition()).isEqualTo(pastDate);

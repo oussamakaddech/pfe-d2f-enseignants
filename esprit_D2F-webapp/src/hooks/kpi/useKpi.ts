@@ -1,6 +1,7 @@
 import { useQuery, useMutation } from "@tanstack/react-query";
 import KPIService from "@/services/analyse/KPIService";
 import ParticipantKPIService from "@/services/analyse/ParticipantKPIService";
+import type { CountByTrainerTypeWithIds } from "@/models/analyse/kpi";
 
 type KpiFilters = {
   domaine?: string | null;
@@ -111,7 +112,7 @@ export function useKpiFormationsByTypeFilteredMutation() {
 }
 
 export function useKpiCountByTrainerType(filters?: Record<string, unknown>) {
-  return useQuery<unknown[]>({
+  return useQuery<CountByTrainerTypeWithIds>({
     queryKey: ["kpi", "count-by-trainer-type", filters],
     queryFn: () => KPIService.getCountByTrainerTypeWithIds(filters),
   });

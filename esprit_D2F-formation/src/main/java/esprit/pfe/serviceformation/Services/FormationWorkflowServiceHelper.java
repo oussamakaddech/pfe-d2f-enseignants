@@ -6,9 +6,7 @@ import esprit.pfe.serviceformation.dto.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
-import java.sql.Time;
 import java.time.*;
-import java.util.Date;
 import java.util.*;
 
 /**
@@ -135,13 +133,13 @@ public class FormationWorkflowServiceHelper {
             throw new IllegalArgumentException("Les dates de début et fin de la formation sont obligatoires");
         }
 
-        if (sr.getDateSeance().before(formation.getDateDebut()) ||
-                sr.getDateSeance().after(formation.getDateFin())) {
+        if (sr.getDateSeance().isBefore(formation.getDateDebut()) ||
+                sr.getDateSeance().isAfter(formation.getDateFin())) {
             throw new IllegalStateException("Seance hors plage : " + sr.getDateSeance());
         }
 
-        Time hd = parseTime(sr.getHeureDebut());
-        Time hf = parseTime(sr.getHeureFin());
+        LocalTime hd = parseTime(sr.getHeureDebut());
+        LocalTime hf = parseTime(sr.getHeureFin());
 
         validateEnseignantConflicts(sr, hd, hf, partIds, formation.getIdFormation());
         validateSalleConflict(sr, hd, hf);
@@ -174,8 +172,8 @@ public class FormationWorkflowServiceHelper {
      */
     private void validateEnseignantConflicts(
             FormationWorkflowRequest.SeanceRequest sr,
-            Time hd,
-            Time hf,
+            LocalTime hd,
+            LocalTime hf,
             List<String> partIds,
             Long formationId) {
 
@@ -196,8 +194,8 @@ public class FormationWorkflowServiceHelper {
      */
     private void validateSalleConflict(
             FormationWorkflowRequest.SeanceRequest sr,
-            Time hd,
-            Time hf) {
+            LocalTime hd,
+            LocalTime hf) {
 
         if (sr.getSalle() != null && !sr.getSalle().isBlank() && 
             seanceFormationRepository.existsSalleConflict(sr.getSalle(), sr.getDateSeance(), hd, hf)) {
@@ -316,7 +314,7 @@ public class FormationWorkflowServiceHelper {
     /**
      * Parse une chaîne de temps en objet Time
      */
-    public Time parseTime(String heure) {
+    public LocalTime parseTime(String heure) {
         if (heure == null || heure.isBlank()) {
             throw new IllegalArgumentException("Heure invalide (vide). Format attendu: HH:mm ou HH:mm:ss");
         }
@@ -324,7 +322,7 @@ public class FormationWorkflowServiceHelper {
             heure += ":00";
         }
         try {
-            return Time.valueOf(heure);
+            return LocalTime.parse(heure);
         } catch (Exception e) {
             throw new IllegalArgumentException("Heure invalide (" + heure + "). Format attendu: HH:mm ou HH:mm:ss");
         }
@@ -335,9 +333,9 @@ public class FormationWorkflowServiceHelper {
      */
     public void ensureNoConflict(
             String userId,
-            Date date,
-            Time debut,
-            Time fin,
+            LocalDate date,
+            LocalTime debut,
+            LocalTime fin,
             boolean isAnimateur,
             Long ignoreSeanceId,
             Long ignoreFormationId
@@ -357,7 +355,7 @@ public class FormationWorkflowServiceHelper {
         SeanceFormation conflit = existantes.stream()
                 .filter(s -> ignoreSeanceId == null || !s.getIdSeance().equals(ignoreSeanceId))
                 .filter(s -> ignoreFormationId == null || !s.getFormation().getIdFormation().equals(ignoreFormationId))
-                .filter(s -> s.getHeureDebut().before(fin) && s.getHeureFin().after(debut))
+                .filter(s -> s.getHeureDebut().isBefore(fin) && s.getHeureFin().isAfter(debut))
                 .findFirst()
                 .orElse(null);
 
@@ -381,19 +379,15 @@ public class FormationWorkflowServiceHelper {
     /**
      * Convertit une date et une heure en OffsetDateTime pour Microsoft Graph
      */
-    public OffsetDateTime convertToOffsetDateTime(Date dateUtil, Time time) {
-        if (dateUtil == null) {
+    public OffsetDateTime convertToOffsetDateTime(LocalDate date, LocalTime time) {
+        if (date == null) {
             throw new IllegalArgumentException("La date de la séance ne peut pas être null");
         }
         if (time == null) {
             throw new IllegalArgumentException("L'heure de la séance ne peut pas être null");
         }
-        // java.sql.Date.toInstant() lève UnsupportedOperationException → epoch millis.
-        LocalDate localDate = java.time.Instant.ofEpochMilli(dateUtil.getTime())
-                .atZone(ZoneId.of(TIMEZONE_TUNIS))
-                .toLocalDate();
-        LocalTime localTime = time.toLocalTime();
-        ZonedDateTime zonedDateTime = ZonedDateTime.of(localDate, localTime, ZoneId.of(TIMEZONE_TUNIS));
+        LocalTime localTime = time;
+        ZonedDateTime zonedDateTime = ZonedDateTime.of(date, localTime, ZoneId.of(TIMEZONE_TUNIS));
         return zonedDateTime.toOffsetDateTime();
     }
 }

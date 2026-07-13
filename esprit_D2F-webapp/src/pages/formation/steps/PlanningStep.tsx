@@ -61,7 +61,7 @@ export type PlanningStepProps = {
   getAllEmailsParticipants: () => string[];
 };
 
-function makeTagRender(options: { id: unknown; isManual?: boolean }[], manualColor: string) {
+function makeTagRender(options: { id?: unknown; isManual?: boolean }[], manualColor: string) {
   return (props: { value: unknown; label: React.ReactNode; closable: boolean; onClose: () => void }) => {
     const item = options.find((o) => o.id === props.value);
     const isManual = item?.isManual;

@@ -4,7 +4,6 @@ import esprit.pfe.serviceformation.dto.EvaluationFormateurDTO;
 import esprit.pfe.serviceformation.entities.*;
 import esprit.pfe.serviceformation.repositories.EnseignantRepository;
 import esprit.pfe.serviceformation.repositories.PresenceRepository;
-import esprit.pfe.serviceformation.repositories.SeanceFormationRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -25,7 +24,7 @@ class FormationWorkflowServicePresenceHelperTest {
 
     @Mock private PresenceRepository presenceRepository;
     @Mock private EnseignantRepository enseignantRepository;
-    @Mock private SeanceFormationRepository seanceFormationRepository;
+    @Mock private FormationWorkflowServiceHelper formationHelper;
 
     @InjectMocks
     private FormationWorkflowServicePresenceHelper presenceHelper;
@@ -76,9 +75,14 @@ class FormationWorkflowServicePresenceHelperTest {
         seance.setParticipants(List.of(enseignant));
         seance.setAnimateurs(List.of(enseignant));
 
+        EvaluationFormateurDTO dto = new EvaluationFormateurDTO();
+        dto.setEnseignantId("E1");
+        dto.setFormationId(1L);
+        when(formationHelper.createEvaluationDTOs(any(), any())).thenReturn(List.of(dto));
+
         List<EvaluationFormateurDTO> dtos = presenceHelper.createEvaluationDTOs(List.of(seance), f);
 
-        assertThat(dtos).hasSize(1); // E1 is both participant and animateur, but only one DTO should be created
+        assertThat(dtos).hasSize(1);
         assertThat(dtos.get(0).getEnseignantId()).isEqualTo("E1");
     }
 }

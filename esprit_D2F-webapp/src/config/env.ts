@@ -16,7 +16,9 @@ interface AppConfig {
   GATEWAY_URL: string;
   RICE_URL: string;
   ANALYSE_URL: string;
-  /** Endpoint WebSocket du serveur de notifications. Vide => mode démo (mock). */
+  /** Base URL REST du service de notifications (via gateway : /api/notifications). */
+  NOTIFICATION_URL: string;
+  /** Endpoint WebSocket du serveur de notifications. Vide => mode REST (pas de push). */
   NOTIFICATIONS_WS_URL: string;
 }
 
@@ -30,7 +32,13 @@ const readApiBase = (): string => {
     }
     return "";
   }
-  return stripTrailingSlash(raw);
+  let url = stripTrailingSlash(raw);
+  // Ensure relative URLs always start with "/" so they resolve correctly
+  // against the page origin and don't accidentally concatenate with baseURL.
+  if (url && !url.startsWith("http://") && !url.startsWith("https://") && !url.startsWith("/")) {
+    url = `/${url}`;
+  }
+  return url;
 };
 
 const API_BASE_URL = readApiBase();
@@ -45,6 +53,10 @@ const NOTIFICATIONS_WS_URL = import.meta.env.VITE_NOTIFICATIONS_WS_URL
   ? String(import.meta.env.VITE_NOTIFICATIONS_WS_URL)
   : "";
 
+const NOTIFICATION_URL = import.meta.env.VITE_NOTIFICATION_URL
+  ? stripTrailingSlash(import.meta.env.VITE_NOTIFICATION_URL)
+  : API_BASE_URL;
+
 export const config: AppConfig = {
   API_BASE_URL,
   FORMATION_URL: API_BASE_URL,
@@ -58,5 +70,6 @@ export const config: AppConfig = {
   GATEWAY_URL: API_BASE_URL,
   RICE_URL,
   ANALYSE_URL: API_BASE_URL,
+  NOTIFICATION_URL,
   NOTIFICATIONS_WS_URL,
 };

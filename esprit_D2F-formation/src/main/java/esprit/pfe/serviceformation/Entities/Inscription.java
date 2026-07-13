@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
 
 @Data
 @NoArgsConstructor
@@ -28,7 +29,7 @@ public class Inscription extends BaseAuditEntity {
     private EtatInscription etat = EtatInscription.PENDING;
 
     @Column(nullable = false)
-    private OffsetDateTime dateDemande = OffsetDateTime.now();
+    private OffsetDateTime dateDemande = OffsetDateTime.now(ZoneId.systemDefault());
 
     /**
      * Date du dernier traitement de la demande (approbation ou rejet).

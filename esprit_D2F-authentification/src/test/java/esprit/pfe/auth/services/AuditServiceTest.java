@@ -10,6 +10,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -139,8 +140,8 @@ class AuditServiceTest {
 
     @Test
     void testGetAuditLogsBetweenDates() {
-        LocalDateTime start = LocalDateTime.now().minusDays(1);
-        LocalDateTime end = LocalDateTime.now();
+        LocalDateTime start = LocalDateTime.now(ZoneId.systemDefault()).minusDays(1);
+        LocalDateTime end = LocalDateTime.now(ZoneId.systemDefault());
         when(auditLogRepository.findByTimestampBetween(any(), any())).thenReturn(List.of(new AuditLog()));
         List<AuditLog> logs = auditService.getAuditLogsBetweenDates(start, end);
         assertEquals(1, logs.size());

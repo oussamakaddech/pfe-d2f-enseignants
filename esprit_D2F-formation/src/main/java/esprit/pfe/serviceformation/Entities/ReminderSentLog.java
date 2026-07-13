@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 
 @Data
 @NoArgsConstructor
@@ -41,6 +42,6 @@ public class ReminderSentLog {
         this.seanceId = seanceId;
         this.recipientEmail = recipientEmail;
         this.reminderType = reminderType;
-        this.sentAt = LocalDateTime.now();
+        this.sentAt = LocalDateTime.now(ZoneId.systemDefault());
     }
 }

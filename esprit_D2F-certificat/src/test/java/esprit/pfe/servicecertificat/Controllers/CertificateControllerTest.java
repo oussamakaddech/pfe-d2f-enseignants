@@ -17,6 +17,7 @@ import org.springframework.security.oauth2.jwt.Jwt;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.Month;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 
@@ -176,8 +177,8 @@ class CertificateControllerTest {
         full.setFormationId(10L);
         full.setTitreFormation("Java Avancé");
         full.setTypeCertif("Participation");
-        full.setDateDebutFormation(LocalDate.of(2025, 1, 1));
-        full.setDateFinFormation(LocalDate.of(2025, 1, 31));
+        full.setDateDebutFormation(LocalDate.of(2025, Month.JANUARY, 1));
+        full.setDateFinFormation(LocalDate.of(2025, Month.JANUARY, 31));
         full.setChargeHoraireGlobal(40);
         full.setEnseignantId("E001");
         full.setNomEnseignant("Test");

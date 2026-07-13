@@ -2,7 +2,9 @@ import { useState, useRef, useCallback } from "react";
 import type { RefObject } from "react";
 import type { RiceDomaine } from "@/models/competence";
 import type { AnalysisResult, EnseignantRef, ExtractedEnseignant } from "@/pages/competence/rice/riceTypes";
+import type { RiceAnalyzeResponse } from "@/models/analyse";
 import { cloneDeep } from "@/pages/competence/rice/constants";
+import { secureRandomUnit } from "@/utils/secureRandom";
 
 interface MsgApi {
   warning: (msg: string) => void;
@@ -14,7 +16,7 @@ interface RiceAnalyzeMutation {
     files: File[];
     enseignants: Record<string, unknown>[];
     departement?: string;
-  }) => Promise<AnalysisResult>;
+  }) => Promise<RiceAnalyzeResponse>;
 }
 
 interface UseRiceAnalysisParams {
@@ -36,7 +38,7 @@ function isLikelyValidExtractedName(value: unknown): boolean {
   if (name.length < 5 || name.includes(":")) return false;
   if (/^(module|code|unite|unit[eé]|responsable|pr[ée]requis|niveaux|objectif)\b/i.test(name)) return false;
   if (name.toLowerCase().includes("module") && name.toLowerCase().includes("unite")) return false;
-  return /[a-zà-ÿ]{2,}\s+[a-zà-ÿ]{2,}/i.test(name);
+  return /[a-zà-ÿ]{2,}[^\S\n]+[a-zà-ÿ]{2,}/i.test(name);
 }
 
 /** Checks if text is a metadata line from PDF fiche (Code:, HE:, HNE:, etc.) */
@@ -132,10 +134,10 @@ export function useRiceAnalysis({
     setAnalysisProgress(0);
     setCurrentStep(1);
     progressTimerRef.current = setInterval(() => {
-      setAnalysisProgress((p) => (p < 90 ? p + Math.random() * 15 : p));
+        setAnalysisProgress((p) => (p < 90 ? p + secureRandomUnit() * 15 : p));
     }, 800);
     try {
-      const result = await riceAnalyze.mutateAsync({ files: files.filter(Boolean), enseignants, departement });
+      const result = await riceAnalyze.mutateAsync({ files: files.filter(Boolean), enseignants, departement }) as AnalysisResult;
       if (progressTimerRef.current) clearInterval(progressTimerRef.current);
       if (analyzeIsCanceledRef.current) return;
       setAnalysisProgress(100);

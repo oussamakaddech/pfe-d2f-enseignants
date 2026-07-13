@@ -19,17 +19,18 @@ import java.util.regex.Pattern;
 public final class CalendarParsingUtils {
 
     private static final Pattern EMAIL_PATTERN =
-            Pattern.compile("^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$");
+            Pattern.compile("^[a-zA-Z0-9._%+\\-]+@[a-zA-Z0-9\\-]+(?:\\.[a-zA-Z0-9\\-]+)*\\.[a-zA-Z]{2,}$");
 
     // « Séance 1/3 », « Seance 1 / 3 », « S1/3 », ou simplement « 1/3 »
     private static final Pattern SESSION_PATTERN =
             Pattern.compile("(?iu)(?:s[ée]ance?\\s*)?(\\d{1,3})\\s*/\\s*(\\d{1,3})");
 
     // Deux heures séparées par - – à to : « 09:00-12:00 », « 9h - 12h30 », « 09:00 à 12:00 »
-    // Le séparateur possessif \D++ consomme déjà les espaces : pas de \s* adjacent
-    // (l'ambiguïté \s* / \D++ — \s ⊂ \D — provoquerait un backtracking polynomial, S5852).
+    // \D++ est possessif. Les \s* sont remplacés par [^\S\n]*+ (possessif, hors saut de ligne)
+    // pour éviter tout backtracking super-linéaire (S8786) : \s ⊂ \D créait une ambiguïté
+    // avec \D++.
     private static final Pattern TIME_SLOT_PATTERN = Pattern.compile(
-            "(\\d{1,2})\\s*[:hH]\\s*(\\d{0,2})\\D++(\\d{1,2})\\s*[:hH]\\s*(\\d{0,2})");
+            "(\\d{1,2})[^\\S\n]*+[:hH][^\\S\n]*+(\\d{0,2})\\D++(\\d{1,2})[^\\S\n]*+[:hH][^\\S\n]*+(\\d{0,2})");
 
     private static final List<DateTimeFormatter> DATE_FORMATS = List.of(
             DateTimeFormatter.ofPattern("d/M/uuuu"),

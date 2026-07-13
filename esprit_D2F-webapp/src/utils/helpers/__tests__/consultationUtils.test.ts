@@ -6,9 +6,18 @@ import {
 } from '../consultationUtils';
 
 describe('consultationUtils', () => {
-  it('builds recursive D3 tree and attaches savoirs only on leaf sous-competences', () => {
-    interface TreeNode { id: number; nom: string; code: string; domaineId?: number; competenceId?: number; parentId?: number | null; sousCompetenceId?: number | null; type?: string }
+  interface TreeNode {
+    id: number;
+    nom: string;
+    code: string;
+    domaineId?: number | string;
+    competenceId?: number;
+    parentId?: number | null;
+    sousCompetenceId?: number | null;
+    type?: string;
+  }
 
+  it('builds recursive D3 tree and attaches savoirs only on leaf sous-competences', () => {
     const domaines: TreeNode[] = [{ id: 1, nom: 'Informatique', code: 'INF' }];
     const competences: TreeNode[] = [{ id: 10, domaineId: 1, nom: 'Web', code: 'WEB' }];
     const sousComps: TreeNode[] = [
@@ -20,7 +29,12 @@ describe('consultationUtils', () => {
       { id: 201, sousCompetenceId: 101, nom: 'Hooks', code: 'HK', type: 'PRATIQUE' },
     ];
 
-    const tree = buildD3TreeData(domaines, competences, sousComps, savoirs);
+    const tree = buildD3TreeData(
+      domaines as unknown as Parameters<typeof buildD3TreeData>[0],
+      competences as unknown as Parameters<typeof buildD3TreeData>[1],
+      sousComps as unknown as Parameters<typeof buildD3TreeData>[2],
+      savoirs as unknown as Parameters<typeof buildD3TreeData>[3],
+    );
 
     expect(tree.name).toBe('Referentiel');
     expect(tree.children!).toHaveLength(1);
@@ -49,7 +63,12 @@ describe('consultationUtils', () => {
       { id: 301, competenceId: 10, sousCompetenceId: null, nom: 'S2', code: 'S2', type: 'PRATIQUE' },
     ];
 
-    const tree = buildD3TreeData(domaines, competences, sousComps, savoirs);
+    const tree = buildD3TreeData(
+      domaines as unknown as Parameters<typeof buildD3TreeData>[0],
+      competences as unknown as Parameters<typeof buildD3TreeData>[1],
+      sousComps as unknown as Parameters<typeof buildD3TreeData>[2],
+      savoirs as unknown as Parameters<typeof buildD3TreeData>[3],
+    );
     const compNode = tree.children![0].children![0];
 
     expect(compNode.name).toBe('Sols');

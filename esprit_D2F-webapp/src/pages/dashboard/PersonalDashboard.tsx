@@ -9,6 +9,8 @@ import {
   ThunderboltOutlined,
 } from "@ant-design/icons";
 import { useAuth } from "@/hooks/auth/useAuth";
+import { normalizeRole } from "@/utils/constants/roles";
+import { greeting } from "@/utils/helpers/greeting";
 import { InfoCard } from "@/components/ui";
 import DashboardPendingNeeds from "@/components/dashboard/DashboardPendingNeeds";
 import DashboardUpcomingFormations from "@/components/dashboard/DashboardUpcomingFormations";
@@ -24,29 +26,23 @@ const SUBTITLE: Record<string, string> = {
   animateur: "Vos formations et participations",
 };
 
-function greeting(): { text: string; emoji: string } {
-  const h = dayjs().hour();
-  if (h < 12) return { text: "Bonjour", emoji: "🌅" };
-  if (h < 18) return { text: "Bon après-midi", emoji: "☀️" };
-  return { text: "Bonsoir", emoji: "🌙" };
-}
-
-export default function PersonalDashboard({ role }: { readonly role: string }) {
+export default function PersonalDashboard({ role: roleProp }: { readonly role?: string }) {
   const navigate = useNavigate();
   const { user } = useAuth();
+
+  const roleKey = normalizeRole(user?.role ?? roleProp);
 
   const scope = useMemo<DashboardScope>(() => {
     const { start, end } = rangeToDates("12m");
     return {
-      role, isAdmin: false, isCup: false,
-      isEnseignant: role === "enseignant", isAnimateur: role === "animateur",
+      role: roleKey, isAdmin: false, isCup: false,
+      isEnseignant: roleKey === "enseignant", isAnimateur: roleKey === "animateur",
       start, end, rangeKey: "12m",
     };
-  }, [role]);
+  }, [roleKey]);
 
   const greet = greeting();
-  const roleKey = String(user?.role ?? role).toLowerCase().replace(/^role_?/, "").replaceAll(/[\s_-]+/g, "");
-  const roleStyle = roleColors[roleKey] ?? roleColors[role] ?? { color: brand[500], bg: brand[50], label: "Utilisateur" };
+  const roleStyle = roleColors[roleKey] ?? { color: brand[500], bg: brand[50], label: "Utilisateur" };
   const displayName = user?.username ?? user?.email ?? "Utilisateur";
   const todayLabel = dayjs().format("dddd D MMMM YYYY");
 

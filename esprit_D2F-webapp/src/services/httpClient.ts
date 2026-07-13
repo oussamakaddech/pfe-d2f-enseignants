@@ -86,7 +86,10 @@ export function createApiClient(baseURL?: string) {
   return api;
 }
 
-export const defaultApi = createApiClient(config.API_BASE_URL);
+// No baseURL: every service already builds its full URL from config.*
+// (which carries the /api prefix + host). Setting a baseURL would risk
+// doubling the prefix (e.g. /api/api) when the base is relative.
+export const defaultApi = createApiClient();
 
 
 

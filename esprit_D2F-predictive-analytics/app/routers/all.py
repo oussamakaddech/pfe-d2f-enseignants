@@ -11,6 +11,8 @@ from app.config import settings
 from app.core.db import get_db
 from app.core.exceptions import TeacherNotFoundError
 from app.core.auth import require_roles
+
+ReadAuth = Annotated[dict, Depends(require_roles("ADMIN", "CUP"))]
 from app.models.schemas import (
     AtRiskTeachersResponse, DashboardResponse, GapPredictionRequest,
     GapPredictionResponse, HealthResponse, PathRecommendationRequest,
@@ -78,7 +80,7 @@ async def predict_gaps(
         prediction_date=date.today(),
         horizon_months=request.horizon_months or 6,
         gaps=result["gaps"],
-        overall_risk_score=result["overall_risk_score"],
+        avg_predicted_gap=result["avg_predicted_gap"],
         explanation=result["explanation"],
     )
 
@@ -345,51 +347,68 @@ async def recommend_path(
 
 # ── Detect ─────────────────────────────────────
 
-def _compute_teacher_risk(t: dict) -> dict:
-    """Compute risk score and signals for a single teacher.
 
-    Delegates the weighted score computation to risk_scoring.py's
-    configurable multi-factor model (w1..w5, spec §3) instead of
-    hardcoded weights. Les facteurs gap_count et feedback_decline sont
-    approximés depuis les signaux d'engagement (le pipeline legacy ne
-    calcule pas de gaps par enseignant) afin que les 5 poids soient
-    réellement pris en compte, au lieu d'en neutraliser 30%.
+def _fetch_teacher_info(db: Session, ids: list[str]) -> dict[str, dict[str, Any]]:
+    """Batch-resolve enseignant_id -> {name, email, department} (parameterized).
+
+    Source unique pour enrichir les indicateurs de risque avec les vraies
+    valeurs métier (nom, mail, département réel), au lieu des placeholders
+    trompeurs (``email=""``, ``department=<filtre>``).
     """
-    from app.engines.risk_scoring import compute_risk_score
-
-    nb_completed = t.get("nb_formations_completed") or 0
-    nb_in_progress = t.get("nb_formations_in_progress") or 0
-    nb_exprimes = t.get("nb_besoins_exprimes") or 0
-    nb_approuves = t.get("nb_besoins_approuves") or 0
-    avg_eval = t.get("avg_eval_score") or 0.0
-    days_since = t.get("days_since_last_training") or settings.risk_absence_threshold_days
-    taux_assiduite = t.get("taux_assiduite") or 1.0
-
-    no_training = min(1.0, days_since / max(settings.risk_absence_threshold_days, 1))
-    stagnation = 1.0 / (1.0 + nb_completed)
-    unmet = min(1.0, max(0, nb_exprimes - nb_approuves) / max(settings.risk_unmet_needs_saturation, 1))
-
-    # gap_count (w3) : proxy depuis l'engagement — un enseignant qui exprime des
-    # besoins sans les faire approuver ni combler a probablement des gaps non
-    # couverts. Borné à [0, 1].
-    gap_count = min(1.0, unmet * 0.6 + (1.0 - min(1.0, nb_in_progress / 3.0)) * 0.4)
-
-    # feedback_decline (w4) : 1.0 si l'évaluation moyenne est faible
-    # (sous le seuil d'engagement configuré) ou si l'assiduité chute.
-    feedback_decline = 1.0 if (
-        (avg_eval and avg_eval < settings.risk_engagement_percentile / 20.0)
-        or taux_assiduite < settings.risk_engagement_percentile / 100.0
-    ) else 0.0
-
-    factors = {
-        "no_training": no_training,
-        "stagnation": stagnation,
-        "gap_count": gap_count,
-        "feedback_decline": feedback_decline,
-        "unmet_needs": unmet,
+    if not ids:
+        return {}
+    rows = db.execute(
+        text(
+            "SELECT id, nom, prenom, mail, dept_id FROM enseignants "
+            "WHERE id = ANY(:ids) AND deleted_at IS NULL"
+        ),
+        {"ids": ids},
+    ).fetchall()
+    return {
+        str(r[0]): {
+            "teacher_name": f"{r[2]} {r[1]}".strip(),
+            "email": r[3] or "",
+            "department": str(r[4]) if r[4] is not None else None,
+        }
+        for r in rows
     }
-    result = compute_risk_score(factors)
 
+
+def _fetch_teacher_names(db: Session, ids: list[str]) -> dict[str, str]:
+    """Batch-resolve enseignant_id -> full name (compat helper)."""
+    return {eid: info["teacher_name"] for eid, info in _fetch_teacher_info(db, ids).items()}
+
+
+def _build_signals_from_factors(
+    no_training: float,
+    stagnation: float,
+    nb_gaps_critiques: int,
+    unmet_needs: float = 0.0,
+) -> list[str]:
+    """Build disengagement signals from pipeline risk factors.
+
+    Single source of truth for signal detection across all dashboard endpoints.
+    """
+    signals: list[str] = []
+    if no_training > 0.8:
+        signals.append("Absence prolongée de formation")
+    if stagnation > 0.5:
+        signals.append("Stagnation des compétences")
+    if nb_gaps_critiques > 3:
+        signals.append(f"{nb_gaps_critiques} gaps critiques")
+    if unmet_needs > 0.5:
+        signals.append("Besoins non satisfaits")
+    return signals
+
+
+def _compute_disengagement_signals(
+    no_training: float, taux_assiduite: float, stagnation: float,
+    nb_completed: int, nb_exprimes: int,
+) -> list[str]:
+    """DEPRECATED — use _build_signals_from_factors() for new code.
+
+    Legacy version retained for _compute_teacher_risk tests only.
+    """
     signals = []
     if no_training > 0.8:
         signals.append("Absence prolongée de formation")
@@ -399,15 +418,35 @@ def _compute_teacher_risk(t: dict) -> dict:
         signals.append("Stagnation des compétences")
     if nb_completed == 0 and nb_exprimes == 0:
         signals.append("Aucun engagement détecté")
+    return signals
 
-    # Utilise les seuils du SCORE DE RISQUE (0-1), pas les seuils de priorité
-    # de gap qui partagent par hasard les mêmes valeurs par défaut.
-    if result["score_risque"] >= settings.risk_score_critique:
-        recommendation = "Planifier entretien"
-    elif result["score_risque"] >= settings.risk_score_eleve:
-        recommendation = "Proposer formation"
-    else:
-        recommendation = "OK"
+
+def _risk_recommendation(score_risque: float) -> str:
+    """Map risk score to an action recommendation."""
+    if score_risque >= settings.risk_score_critique:
+        return "Planifier entretien"
+    if score_risque >= settings.risk_score_eleve:
+        return "Proposer formation"
+    return "OK"
+
+
+def _compute_teacher_risk(t: dict) -> dict:
+    """Compute risk score and signals for a single teacher.
+
+    Delegates factor building and weighted score to risk_scoring.py's
+    configurable multi-factor model (w1..w5, spec §3).
+    """
+    from app.engines.risk_scoring import build_factors_from_teacher_profile, compute_risk_score
+
+    factors = build_factors_from_teacher_profile(t)
+    result = compute_risk_score(factors)
+    signals = _compute_disengagement_signals(
+        factors["no_training"],
+        t.get("taux_assiduite") or 1.0,
+        factors["stagnation"],
+        t.get("nb_formations_completed") or 0,
+        t.get("nb_besoins_exprimes") or 0,
+    )
 
     return {
         "teacher_id": t["enseignant_id"],
@@ -416,51 +455,83 @@ def _compute_teacher_risk(t: dict) -> dict:
         "department": t.get("departement_id"),
         "attrition_risk_score": round(result["score_risque"], 2),
         "disengagement_signals": signals,
-        "competency_stagnation_rate": round(stagnation, 2),
-        "training_velocity": nb_completed,
-        "recommendation": recommendation,
+        "competency_stagnation_rate": round(factors["stagnation"], 2),
+        "training_velocity": t.get("nb_formations_completed") or 0,
+        "recommendation": _risk_recommendation(result["score_risque"]),
     }
 
 
 @router.get("/detect/at-risk-teachers", tags=["Detection"])
 async def detect_at_risk_teachers(
     db: DBSession,
-    threshold: float = 0.7,
+    threshold: float = settings.risk_score_eleve,
     dept_id: OptStrQuery = None,
 ) -> AtRiskTeachersResponse:
-    """Detect teachers at risk based on competency gaps and engagement.
+    """Detect at-risk teachers — reads from teacher_risk_profiles (pipeline scores).
 
-    Optional deptId filter for Chef de Département role.
+    Ensures a single source of truth for risk scores across all dashboards.
+    Le seuil « à risque » par défaut est unifié sur ``settings.risk_score_eleve``
+    (identique à /dashboard/teachers-at-risk et department_dashboard) afin que le
+    même jeu de données produise le même décompte quel que soit l'endpoint.
     """
-    data = DataService(db)
-    teachers = data.get_teacher_profile()
+    from app.models.db_models import TeacherRiskProfile
 
-    # Filter by department if specified
+    total_teachers = db.execute(
+        text("SELECT COUNT(*) FROM enseignants WHERE deleted_at IS NULL")
+    ).scalar() or 0
+
+    q = db.query(TeacherRiskProfile).filter(
+        TeacherRiskProfile.score_risque >= threshold
+    )
     if dept_id:
-        teachers = [t for t in teachers if str(t.get("departement_id", "")) == str(dept_id)]
+        dept_ids = db.execute(
+            text("SELECT id FROM enseignants WHERE dept_id = :dept AND deleted_at IS NULL"),
+            {"dept": dept_id},
+        ).fetchall()
+        dept_id_set = {str(r[0]) for r in dept_ids}
+        if dept_id_set:
+            q = q.filter(TeacherRiskProfile.enseignant_id.in_(dept_id_set))
 
-    risk_results = [_compute_teacher_risk(t) for t in teachers]
+    profiles = q.order_by(TeacherRiskProfile.score_risque.desc()).all()
 
-    at_risk = [r for r in risk_results if r["attrition_risk_score"] >= threshold]
-    at_risk_as_teachers = []
-    for r in at_risk:
-        at_risk_as_teachers.append({
-            "teacher_id": r["teacher_id"],
-            "teacher_name": r["teacher_name"],
-            "email": r.get("email", ""),
-            "department": r.get("department"),
-            "risk_score": r["attrition_risk_score"],
-            "risk_factors": r["disengagement_signals"],
+    teacher_info: dict[str, dict[str, Any]] = {}
+    if profiles:
+        ids = [p.enseignant_id for p in profiles]
+        teacher_info = _fetch_teacher_info(db, ids)
+        teacher_names = {eid: info["teacher_name"] for eid, info in teacher_info.items()}
+
+    teachers: list[dict[str, Any]] = []
+    for p in profiles:
+        factors = p.facteurs_risque if isinstance(p.facteurs_risque, dict) else {}
+        factor_details = factors.get("factors", {})
+        score = float(p.score_risque)
+        signals = _build_signals_from_factors(
+            factor_details.get("no_training", 0),
+            factor_details.get("stagnation", 0),
+            p.nb_gaps_critiques,
+            factor_details.get("unmet_needs", 0),
+        )
+        info = teacher_info.get(p.enseignant_id, {})
+        teachers.append({
+            "teacher_id": p.enseignant_id,
+            "teacher_name": teacher_names.get(p.enseignant_id, p.enseignant_id),
+            "email": info.get("email", ""),
+            "department": info.get("department", dept_id),
+            "risk_score": round(score, 2),
+            "risk_factors": signals,
             "top_gaps": [],
             "last_training_date": None,
-            "engagement_score": 1.0 - r["competency_stagnation_rate"],
+            "training_velocity": None,
+            "engagement_score": round(
+                1.0 - float(factor_details.get("stagnation", 0.0)), 2
+            ),
         })
 
     return AtRiskTeachersResponse(
-        total_teachers=len(teachers),
-        at_risk_count=len(at_risk_as_teachers),
+        total_teachers=total_teachers,
+        at_risk_count=len(teachers),
         risk_threshold=threshold,
-        teachers=at_risk_as_teachers,
+        teachers=teachers,
     )
 
 
@@ -518,15 +589,91 @@ async def in_demand_competencies(db: DBSession) -> list[dict[str, Any]]:
 async def teacher_risk_indicators(
     db: DBSession,
     dept_id: OptStrQuery = None,
+    auth: ReadAuth | None = None,
 ) -> list[dict[str, Any]]:
-    """Per-teacher risk indicators for attrition and disengagement."""
-    data = DataService(db)
-    teachers = data.get_teacher_profile()
+    """Per-teacher risk indicators — reads from teacher_risk_profiles (pipeline-computed scores).
+
+    Ensures a single source of truth for risk scores across all dashboards.
+    `auth` est optionnel pour permettre l'appel en tant que helper interne
+    (le endpoint impose ReadAuth via la dépendance).
+    """
+    from sqlalchemy import func
+    from app.models.db_models import TeacherRiskProfile, AlertEvent
+
+    q = db.query(TeacherRiskProfile).order_by(TeacherRiskProfile.score_risque.desc())
 
     if dept_id:
-        teachers = [t for t in teachers if str(t.get("departement_id", "")) == str(dept_id)]
+        dept_ids = db.execute(
+            text("SELECT id FROM enseignants WHERE dept_id = :dept AND deleted_at IS NULL"),
+            {"dept": dept_id},
+        ).fetchall()
+        dept_id_set = {str(r[0]) for r in dept_ids}
+        if not dept_id_set:
+            return []
+        q = q.filter(TeacherRiskProfile.enseignant_id.in_(dept_id_set))
 
-    return [_compute_teacher_risk(t) for t in teachers]
+    profiles = q.all()
+
+    teacher_info: dict[str, dict[str, Any]] = {}
+    if profiles:
+        ids = [p.enseignant_id for p in profiles]
+        teacher_info = _fetch_teacher_info(db, ids)
+        teacher_names = {eid: info["teacher_name"] for eid, info in teacher_info.items()}
+
+    alert_counts: dict[str, int] = {}
+    if profiles:
+        alert_q = (
+            db.query(AlertEvent.enseignant_id, func.count(AlertEvent.id))
+            .filter(AlertEvent.statut.in_(["NOUVELLE", "LUE"]))
+            .group_by(AlertEvent.enseignant_id)
+        )
+        alert_counts = {str(r[0]): int(r[1]) for r in alert_q.all()}
+
+    result: list[dict[str, Any]] = []
+    for p in profiles:
+        factors = p.facteurs_risque if isinstance(p.facteurs_risque, dict) else {}
+        factor_details = factors.get("factors", {})
+        contributions = factors.get("contributions", {})
+
+        signals = _build_signals_from_factors(
+            factor_details.get("no_training", 0),
+            factor_details.get("stagnation", 0),
+            p.nb_gaps_critiques,
+            factor_details.get("unmet_needs", 0),
+        )
+
+        score = float(p.score_risque)
+        recommendation = _risk_recommendation(score)
+
+        data_quality_status = (
+            "SUFFICIENT"
+            if p.nb_gaps_critiques > 0 or score > 0
+            else "INSUFFICIENT"
+        )
+
+        info = teacher_info.get(p.enseignant_id, {})
+        result.append({
+            "teacher_id": p.enseignant_id,
+            "teacher_name": teacher_names.get(p.enseignant_id, p.enseignant_id),
+            "attrition_risk_score": round(score, 2),
+            "disengagement_signals": signals,
+            "competency_stagnation_rate": round(
+                factor_details.get("stagnation", 0.0), 2
+            ),
+            # ``training_velocity`` n'est pas calculable à partir du profil de
+            # risque seul (besoin des formations suivies sur 6-12 mois). On
+            # renvoie ``None`` au lieu de 0 trompeur (P1-2).
+            "training_velocity": None,
+            "recommendation": recommendation,
+            "email": info.get("email", ""),
+            "department": info.get("department", dept_id),
+            "computed_at": (
+                p.computed_at.isoformat() if p.computed_at else None
+            ),
+            "algorithm_version": "v2-pipeline",
+            "data_quality": {"status": data_quality_status},
+        })
+    return result
 
 
 @router.get("/dashboard/summary", tags=["Dashboard"])
@@ -573,23 +720,92 @@ async def dashboard_summary(
 async def department_dashboard(
     dept_id: str,
     db: DBSession,
+    auth: ReadAuth | None = None,
 ) -> dict[str, Any]:
-    """Dashboard filtered for a specific department."""
-    data = DataService(db)
-    teachers = data.get_teacher_profile()
-    dept_teachers = [t for t in teachers if str(t.get("departement_id", "")) == str(dept_id)]
+    """Dashboard filtered for a specific department — reads from teacher_risk_profiles."""
+    from app.models.db_models import TeacherRiskProfile
 
-    risk_results = [_compute_teacher_risk(t) for t in dept_teachers]
-    at_risk = [r for r in risk_results if r["attrition_risk_score"] > 0.5]
+    total_teachers = db.execute(
+        text(
+            "SELECT COUNT(*) FROM enseignants "
+            "WHERE dept_id = :dept AND deleted_at IS NULL"
+        ),
+        {"dept": dept_id},
+    ).scalar() or 0
+
+    dept_ids = db.execute(
+        text("SELECT id FROM enseignants WHERE dept_id = :dept AND deleted_at IS NULL"),
+        {"dept": dept_id},
+    ).fetchall()
+    dept_id_set = {str(r[0]) for r in dept_ids}
+
+    if not dept_id_set:
+        return {
+            "department_id": dept_id,
+            "total_teachers": total_teachers,
+            "at_risk_count": 0,
+            "at_risk_percentage": 0.0,
+            "risk_indicators": [],
+            "avg_risk_score": 0.0,
+            "top_signals": [],
+        }
+
+    profiles = (
+        db.query(TeacherRiskProfile)
+        .filter(TeacherRiskProfile.enseignant_id.in_(dept_id_set))
+        .order_by(TeacherRiskProfile.score_risque.desc())
+        .all()
+    )
+
+    teacher_info: dict[str, dict[str, Any]] = {}
+    if profiles:
+        ids = [p.enseignant_id for p in profiles]
+        teacher_info = _fetch_teacher_info(db, ids)
+        teacher_names = {eid: info["teacher_name"] for eid, info in teacher_info.items()}
+
+    risk_results: list[dict[str, Any]] = []
+    for p in profiles:
+        factors = p.facteurs_risque if isinstance(p.facteurs_risque, dict) else {}
+        factor_details = factors.get("factors", {})
+        score = float(p.score_risque)
+        signals = _build_signals_from_factors(
+            factor_details.get("no_training", 0),
+            factor_details.get("stagnation", 0),
+            p.nb_gaps_critiques,
+            factor_details.get("unmet_needs", 0),
+        )
+
+        info = teacher_info.get(p.enseignant_id, {})
+        risk_results.append({
+            "teacher_id": p.enseignant_id,
+            "teacher_name": teacher_names.get(p.enseignant_id, p.enseignant_id),
+            "attrition_risk_score": round(score, 2),
+            "disengagement_signals": signals,
+            "competency_stagnation_rate": round(
+                factor_details.get("stagnation", 0.0), 2
+            ),
+            "training_velocity": None,
+            "recommendation": _risk_recommendation(score),
+            "email": info.get("email", ""),
+            "department": info.get("department", dept_id),
+        })
+
+    at_risk = [r for r in risk_results if r["attrition_risk_score"] >= settings.risk_score_eleve]
 
     return {
         "department_id": dept_id,
-        "total_teachers": len(dept_teachers),
+        "total_teachers": total_teachers,
         "at_risk_count": len(at_risk),
-        "at_risk_percentage": round(len(at_risk) / max(len(dept_teachers), 1) * 100, 1),
+        "at_risk_percentage": round(
+            len(at_risk) / max(total_teachers, 1) * 100, 1
+        ),
         "risk_indicators": risk_results,
         "avg_risk_score": round(
-            sum(r["attrition_risk_score"] for r in risk_results) / max(len(risk_results), 1), 2
+            sum(r["attrition_risk_score"] for r in risk_results)
+            / max(len(risk_results), 1),
+            2,
         ),
-        "top_signals": list({s for r in at_risk for s in r["disengagement_signals"]})[:5],
+        "top_signals": list(
+            {s for r in at_risk for s in r["disengagement_signals"]}
+        )[:5],
     }

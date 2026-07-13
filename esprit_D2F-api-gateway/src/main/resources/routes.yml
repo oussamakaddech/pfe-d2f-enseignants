@@ -185,6 +185,20 @@ spring:
                 fallbackUri: forward:/fallback
 
 
+        # ── Notification Service (port 8009) ───────────────────────────────
+        - id: notification-service
+          uri: ${NOTIFICATION_SERVICE_URL:http://localhost:8009}
+          predicates:
+            - Path=/api/notifications, /api/notifications/**
+          filters:
+            - RewritePath=/api/notifications(?<segment>/.*)?, /api/v1/notifications${segment}
+            - AuthorizationFilter
+            - DedupeResponseHeader=Access-Control-Allow-Origin Access-Control-Allow-Credentials, RETAIN_FIRST
+            - name: CircuitBreaker
+              args:
+                name: notification-cb
+                fallbackUri: forward:/fallback
+
         # ── Analyse Predictive Service (FastAPI — local 8090, Docker 8000) ──
         - id: analyse-service
           uri: ${ANALYSE_SERVICE_URL:http://localhost:8090}

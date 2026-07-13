@@ -31,7 +31,7 @@ def explain_prediction(
     model: Any,
     features: Any = None,
     feature_names: list[str] | None = None,
-    X_background: np.ndarray | None = None,
+    x_background: np.ndarray | None = None,
 ) -> dict[str, Any]:
     """Generate a human-readable explanation for a prediction.
 
@@ -52,7 +52,7 @@ def explain_prediction(
     # ── Attempt 1: SHAP TreeExplainer ─────────────────────────
     if _SHAP_AVAILABLE and features is not None and _is_tree_model(model):
         try:
-            return _explain_with_shap(model, features, names, X_background)
+            return _explain_with_shap(model, features, names, x_background)
         except Exception as e:
             logger.warning("SHAP explainer failed, falling back to feature_importance: %s", e)
 
@@ -72,26 +72,52 @@ def _is_tree_model(model: Any) -> bool:
         return isinstance(model, GradientBoostingRegressor)
 
 
+def _prepare_shap_instance(features: Any) -> np.ndarray | None:
+    """Reshape features into a (1, n) instance array, or None if invalid."""
+    arr = np.asarray(features, dtype=float)
+    if arr.ndim == 2 and arr.shape[0] >= 1:
+        return arr.reshape(1, -1)
+    if arr.ndim == 1:
+        return arr.reshape(1, -1)
+    return None
+
+
+def _sample_background(x_background: np.ndarray | None, instance: np.ndarray) -> np.ndarray:
+    """Select a small background sample for SHAP efficiency."""
+    if x_background is not None and len(x_background) > 50:
+        return x_background[np.random.default_rng().choice(len(x_background), 50, replace=False)]
+    return x_background if x_background is not None else instance
+
+
+def _compute_global_shap_importance(
+    explainer: Any, bg: np.ndarray, feature_names: list[str],
+) -> dict[str, float]:
+    """Compute mean |SHAP| as global feature importance (best-effort)."""
+    try:
+        n_bg = min(len(bg), 100)
+        all_shap = explainer.shap_values(bg[:n_bg])
+        all_shap = all_shap[0] if all_shap.ndim > 2 else all_shap
+        global_abs = np.mean(np.abs(all_shap), axis=0)
+        return dict(zip(
+            feature_names[:len(global_abs)],
+            [round(float(v), 4) for v in global_abs],
+        ))
+    except Exception:
+        return {}
+
+
 def _explain_with_shap(
     model: Any,
     features: Any,
     feature_names: list[str],
-    X_background: np.ndarray | None = None,
+    x_background: np.ndarray | None = None,
 ) -> dict[str, Any]:
     """SHAP-based explanation with TreeExplainer."""
-    arr = np.asarray(features, dtype=float)
-    if arr.ndim == 2 and arr.shape[0] >= 1:
-        instance = arr.reshape(1, -1)
-    elif arr.ndim == 1:
-        instance = arr.reshape(1, -1)
-    else:
+    instance = _prepare_shap_instance(features)
+    if instance is None:
         return _explain_with_importance(model, features, feature_names)
 
-    # Use a small background sample for efficiency
-    if X_background is not None and len(X_background) > 50:
-        bg = X_background[np.random.choice(len(X_background), 50, replace=False)]
-    else:
-        bg = X_background if X_background is not None else instance
+    bg = _sample_background(x_background, instance)
 
     explainer = _shap.TreeExplainer(model, data=bg)
     shap_values = explainer.shap_values(instance)
@@ -112,21 +138,7 @@ def _explain_with_shap(
             "direction": "positive" if values[i] > 0 else "negative",
         })
 
-    # Global feature importance (mean |SHAP|)
-    global_importance = {}
-    try:
-        # Re-compute on a small batch for global importance
-        n_bg = min(len(bg), 100)
-        bg_sample = bg[:n_bg]
-        all_shap = explainer.shap_values(bg_sample)
-        all_shap = all_shap[0] if all_shap.ndim > 2 else all_shap
-        global_abs = np.mean(np.abs(all_shap), axis=0)
-        global_importance = dict(zip(
-            feature_names[:len(global_abs)],
-            [round(float(v), 4) for v in global_abs],
-        ))
-    except Exception:
-        pass
+    global_importance = _compute_global_shap_importance(explainer, bg, feature_names)
 
     return {
         "method": "shap_tree_explainer",

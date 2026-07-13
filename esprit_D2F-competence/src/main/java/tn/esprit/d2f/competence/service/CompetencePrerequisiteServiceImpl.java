@@ -1,7 +1,7 @@
 package tn.esprit.d2f.competence.service;
 
 import jakarta.persistence.EntityNotFoundException;
-import lombok.RequiredArgsConstructor;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -27,12 +27,22 @@ import java.util.Map;
 import java.util.Set;
 
 @Service
-@RequiredArgsConstructor
 public class CompetencePrerequisiteServiceImpl implements ICompetencePrerequisiteService {
 
     private final CompetencePrerequisiteRepository prerequisiteRepository;
     private final CompetenceRepository competenceRepository;
     private final EnseignantCompetenceRepository enseignantCompetenceRepository;
+    private final ICompetencePrerequisiteService self;
+
+    public CompetencePrerequisiteServiceImpl(CompetencePrerequisiteRepository prerequisiteRepository,
+                                              CompetenceRepository competenceRepository,
+                                              EnseignantCompetenceRepository enseignantCompetenceRepository,
+                                              @Lazy ICompetencePrerequisiteService self) {
+        this.prerequisiteRepository = prerequisiteRepository;
+        this.competenceRepository = competenceRepository;
+        this.enseignantCompetenceRepository = enseignantCompetenceRepository;
+        this.self = self;
+    }
 
     private static final Map<NiveauMaitrise, String> NIVEAU_LABELS = new EnumMap<>(NiveauMaitrise.class);
 
@@ -54,7 +64,7 @@ public class CompetencePrerequisiteServiceImpl implements ICompetencePrerequisit
     @Override
     @Transactional(readOnly = true)
     public Page<CompetencePrerequisiteDTO> getPrerequisitesByCompetence(Long competenceId, Pageable pageable) {
-        return paginate(this.getPrerequisitesByCompetence(competenceId), pageable);
+        return paginate(self.getPrerequisitesByCompetence(competenceId), pageable);
     }
 
     @Override
@@ -142,9 +152,8 @@ public class CompetencePrerequisiteServiceImpl implements ICompetencePrerequisit
 
     @Override
     @Transactional(readOnly = true)
-    @SuppressWarnings("java:S6809") // Read-only self-calls within transactional context – no proxy bypass impact
     public boolean checkEnseignantMeetsPrerequisites(Long competenceId, String enseignantId) {
-        List<CompetencePrerequisiteDTO> prerequisites = this.getPrerequisitesByCompetence(competenceId);
+        List<CompetencePrerequisiteDTO> prerequisites = self.getPrerequisitesByCompetence(competenceId);
         return prerequisites.stream().allMatch(pr -> {
             NiveauMaitrise niveauActuel = getBestNiveauForCompetence(enseignantId, pr.getPrerequisiteId());
             return niveauActuel != null && niveauActuel.ordinal() >= pr.getNiveauMinimum().ordinal();
@@ -153,9 +162,8 @@ public class CompetencePrerequisiteServiceImpl implements ICompetencePrerequisit
 
     @Override
     @Transactional(readOnly = true)
-    @SuppressWarnings("java:S6809") // Read-only self-calls within transactional context – no proxy bypass impact
     public Map<String, Object> checkEnseignantEligibilityDetails(Long competenceId, String enseignantId) {
-        List<CompetencePrerequisiteDTO> prerequisites = this.getPrerequisitesByCompetence(competenceId);
+        List<CompetencePrerequisiteDTO> prerequisites = self.getPrerequisitesByCompetence(competenceId);
 
         List<Map<String, Object>> satisfaits = new ArrayList<>();
         List<Map<String, Object>> manquants = new ArrayList<>();

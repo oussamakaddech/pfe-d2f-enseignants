@@ -9,8 +9,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.time.LocalDate;
 import java.util.Collections;
-import java.util.Date;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -31,7 +31,7 @@ class FormationReportServiceTest {
         Formation f = new Formation();
         f.setChargeHoraireGlobal(0);
         when(seanceRepo.findFormationsByAnimateurAndPeriod(anyString(), any(), any())).thenReturn(List.of(f));
-        assertFalse(service.getFormationsParRoleEtPeriode("animateur", "E1", new Date(), new Date()).isEmpty());
+        assertFalse(service.getFormationsParRoleEtPeriode("animateur", "E1", LocalDate.now(), LocalDate.now()).isEmpty());
     }
 
     @Test
@@ -43,13 +43,13 @@ class FormationReportServiceTest {
         
         when(presenceRepo.findFormationsByParticipantAndPeriod(anyString(), any(), any())).thenReturn(List.of(f));
         when(seanceRepo.findAnimateursByFormation(any())).thenReturn(Collections.emptyList());
-        assertFalse(service.getFormationsParRoleEtPeriode("participant", "E1", new Date(), new Date()).isEmpty());
+        assertFalse(service.getFormationsParRoleEtPeriode("participant", "E1", LocalDate.now(), LocalDate.now()).isEmpty());
     }
 
     @Test
     void testGetFormationsParRoleEtPeriode_InvalidRole() {
-        Date d1 = new Date();
-        Date d2 = new Date();
+        LocalDate d1 = LocalDate.now();
+        LocalDate d2 = LocalDate.now();
         assertThrows(IllegalArgumentException.class, () -> service.getFormationsParRoleEtPeriode("invalid", "E1", d1, d2));
     }
 }

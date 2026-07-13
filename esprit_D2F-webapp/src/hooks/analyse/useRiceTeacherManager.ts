@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react";
 import type { RiceDomaine } from "@/models/competence";
+import type { Enseignant } from "@/models/enseignant";
 import type { CreateEnsTarget, EnseignantRef, ExtractedEnseignant } from "@/pages/competence/rice/riceTypes";
 
 interface MsgApi {
@@ -10,7 +11,7 @@ interface MsgApi {
 
 interface UseRiceTeacherManagerParams {
   msgApi: MsgApi;
-  createEnseignantMutate: (data: Record<string, unknown>) => Promise<Record<string, unknown>>;
+  createEnseignantMutate: (data: Record<string, unknown>) => Promise<Enseignant>;
   setAllEnseignants: React.Dispatch<React.SetStateAction<EnseignantRef[]>>;
   tree: RiceDomaine[];
   setEnseignants: (di: number, ci: number, sci: number, si: number, ids: string[]) => void;
@@ -50,8 +51,9 @@ export function useRiceTeacherManager({
       const mail = createEnsData.mail.trim() ||
         `${nomUp.toLowerCase()}.${prenom.toLowerCase().replaceAll(/\s+/g, ".")}@${import.meta.env.VITE_DEFAULT_EMAIL_DOMAIN || 'esprit.tn'}`;
       const created = await createEnseignantMutate({ nom: nomUp, prenom, mail, type: "P", etat: "A" });
-      const realId = String(created.id ?? created.enseignantId);
-      setAllEnseignants((prev) => [...prev, { ...created, enseignantId: realId } as EnseignantRef]);
+      const createdRec = created as Record<string, unknown>;
+      const realId = String(createdRec.id ?? createdRec.enseignantId);
+      setAllEnseignants((prev) => [...prev, { ...createdRec, enseignantId: realId } as EnseignantRef]);
       if (Array.isArray(createEnsTarget.path) && createEnsTarget.path.length >= 3) {
         const [di, ci, sci, si] = createEnsTarget.path;
         const savoir = sci === -1

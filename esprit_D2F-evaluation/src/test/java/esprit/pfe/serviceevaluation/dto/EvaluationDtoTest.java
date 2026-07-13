@@ -3,6 +3,7 @@ package esprit.pfe.serviceevaluation.dto;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;
+import java.time.Month;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -34,14 +35,14 @@ class EvaluationDtoTest {
         dto.setNoteGlobale(4.5f);
         dto.setCommentaireGeneral("Très bien");
         dto.setRecommandation("Recommandée");
-        dto.setDateEvaluation(LocalDate.of(2026, 5, 1));
+        dto.setDateEvaluation(LocalDate.of(2026, Month.MAY, 1));
 
         assertEquals(1L, dto.getIdEvalGlobale());
         assertEquals(100L, dto.getFormationId());
         assertEquals(4.5f, dto.getNoteGlobale());
         assertEquals("Très bien", dto.getCommentaireGeneral());
         assertEquals("Recommandée", dto.getRecommandation());
-        assertEquals(LocalDate.of(2026, 5, 1), dto.getDateEvaluation());
+        assertEquals(LocalDate.of(2026, Month.MAY, 1), dto.getDateEvaluation());
     }
 
     @Test

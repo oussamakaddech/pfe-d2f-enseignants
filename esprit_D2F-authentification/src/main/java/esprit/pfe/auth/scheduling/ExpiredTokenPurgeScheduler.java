@@ -7,6 +7,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 
 /**
  * Purge les tokens de réinitialisation expirés toutes les heures.
@@ -24,7 +25,7 @@ public class ExpiredTokenPurgeScheduler {
     @Scheduled(fixedRate = 3_600_000) // toutes les heures (en ms)
     @Transactional
     public void purgeExpiredTokens() {
-        int deleted = confirmationKeyRepo.deleteAllExpiredBefore(LocalDateTime.now());
+        int deleted = confirmationKeyRepo.deleteAllExpiredBefore(LocalDateTime.now(ZoneId.systemDefault()));
         if (deleted > 0) {
             log.info("Purge des tokens expirés : {} token(s) supprimé(s)", deleted);
         }

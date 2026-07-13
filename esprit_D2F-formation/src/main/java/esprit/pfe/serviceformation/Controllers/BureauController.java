@@ -3,7 +3,6 @@ package esprit.pfe.serviceformation.controllers;
 import esprit.d2f.common.security.AuthorizationMatrix;
 import esprit.pfe.serviceformation.dto.BureauDTO;
 import esprit.pfe.serviceformation.dto.ReferentialMapper;
-import esprit.pfe.serviceformation.entities.Bureau;
 import esprit.pfe.serviceformation.services.BureauService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -38,15 +37,17 @@ public class BureauController {
 
     @PostMapping
     @PreAuthorize(AuthorizationMatrix.BUREAU_CREATE)
-    public ResponseEntity<BureauDTO> createBureau(@Valid @RequestBody Bureau bureau) {
+    public ResponseEntity<BureauDTO> createBureau(@Valid @RequestBody BureauDTO bureauDTO) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ReferentialMapper.toBureauDTO(bureauService.createBureau(bureau)));
+                .body(ReferentialMapper.toBureauDTO(
+                        bureauService.createBureau(ReferentialMapper.toBureauEntity(bureauDTO))));
     }
 
     @PutMapping("/{id}")
     @PreAuthorize(AuthorizationMatrix.BUREAU_UPDATE)
-    public ResponseEntity<BureauDTO> updateBureau(@PathVariable Long id, @Valid @RequestBody Bureau bureau) {
-        return ResponseEntity.ok(ReferentialMapper.toBureauDTO(bureauService.updateBureau(id, bureau)));
+    public ResponseEntity<BureauDTO> updateBureau(@PathVariable Long id, @Valid @RequestBody BureauDTO bureauDTO) {
+        return ResponseEntity.ok(ReferentialMapper.toBureauDTO(
+                bureauService.updateBureau(id, ReferentialMapper.toBureauEntity(bureauDTO))));
     }
 
     @DeleteMapping("/{id}")

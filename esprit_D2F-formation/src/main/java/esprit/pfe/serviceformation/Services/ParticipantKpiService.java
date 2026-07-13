@@ -11,8 +11,8 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 
 @Service
@@ -22,7 +22,7 @@ public class ParticipantKpiService {
     private final FormationRepository formationRepository;
     private final PresenceRepository presenceRepository;
 
-    public Page<ParticipantKpiDTO> getParticipantKpis(Date startDate, Date endDate, Pageable pageable) {
+    public Page<ParticipantKpiDTO> getParticipantKpis(LocalDate startDate, LocalDate endDate, Pageable pageable) {
         List<ParticipantKpiDTO> all = getParticipantKpis(startDate, endDate);
         int from = (int) pageable.getOffset();
         int to = Math.min(from + pageable.getPageSize(), all.size());
@@ -30,11 +30,11 @@ public class ParticipantKpiService {
     }
 
     // KPIs par formation achevée pour une période donnée
-    public List<ParticipantKpiDTO> getParticipantKpis(Date startDate, Date endDate) {
+    public List<ParticipantKpiDTO> getParticipantKpis(LocalDate startDate, LocalDate endDate) {
         // Récupérer toutes les formations achevées puis filtrer selon la période demandée sur la dateDebut
         List<Formation> formationsAchevees = formationRepository.findByEtatFormation(EtatFormation.ACHEVE)
                 .stream()
-                .filter(f -> !f.getDateDebut().before(startDate) && !f.getDateDebut().after(endDate))
+                .filter(f -> !f.getDateDebut().isBefore(startDate) && !f.getDateDebut().isAfter(endDate))
                 .toList();
 
         List<ParticipantKpiDTO> kpis = new ArrayList<>();
@@ -59,11 +59,11 @@ public class ParticipantKpiService {
     }
 
     // KPI global sur toutes les formations achevées pour une période donnée
-    public ParticipantKpiDTO getGlobalParticipantKpi(Date startDate, Date endDate) {
+    public ParticipantKpiDTO getGlobalParticipantKpi(LocalDate startDate, LocalDate endDate) {
         // Récupérer toutes les formations achevées puis filtrer selon la période demandée
         List<Formation> formationsAchevees = formationRepository.findByEtatFormation(EtatFormation.ACHEVE)
                 .stream()
-                .filter(f -> !f.getDateDebut().before(startDate) && !f.getDateDebut().after(endDate))
+                .filter(f -> !f.getDateDebut().isBefore(startDate) && !f.getDateDebut().isAfter(endDate))
                 .toList();
 
         long totalParticipantsGlobal = 0;

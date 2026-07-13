@@ -4,6 +4,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;
+import java.time.Month;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -18,16 +19,16 @@ class CertificateBatchMessageTest {
         msg.setFormationId(1L);
         msg.setTitreFormation("Java Formation");
         msg.setTypeCertif("ATTESTATION");
-        msg.setDateDebutFormation(LocalDate.of(2026, 1, 1));
-        msg.setDateFinFormation(LocalDate.of(2026, 1, 5));
+        msg.setDateDebutFormation(LocalDate.of(2026, Month.JANUARY, 1));
+        msg.setDateFinFormation(LocalDate.of(2026, Month.JANUARY, 5));
         msg.setChargeHoraireGlobal(40);
         msg.setEnseignants(List.of(createEnseignantInfo()));
 
         assertThat(msg.getFormationId()).isEqualTo(1L);
         assertThat(msg.getTitreFormation()).isEqualTo("Java Formation");
         assertThat(msg.getTypeCertif()).isEqualTo("ATTESTATION");
-        assertThat(msg.getDateDebutFormation()).isEqualTo(LocalDate.of(2026, 1, 1));
-        assertThat(msg.getDateFinFormation()).isEqualTo(LocalDate.of(2026, 1, 5));
+        assertThat(msg.getDateDebutFormation()).isEqualTo(LocalDate.of(2026, Month.JANUARY, 1));
+        assertThat(msg.getDateFinFormation()).isEqualTo(LocalDate.of(2026, Month.JANUARY, 5));
         assertThat(msg.getChargeHoraireGlobal()).isEqualTo(40);
         assertThat(msg.getEnseignants()).hasSize(1);
     }

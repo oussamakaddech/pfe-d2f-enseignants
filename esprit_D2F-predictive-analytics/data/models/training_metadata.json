@@ -1,7 +1,9 @@
 {
-  "trained_at": "2026-06-12T23:15:46.268651",
-  "n_features": 17,
+  "trained_at": "2026-07-13T17:44:22.378322",
+  "n_features": 19,
   "feature_cols": [
+    "current_level",
+    "required_level",
     "avg_level",
     "min_level",
     "max_level",
@@ -22,26 +24,42 @@
   ],
   "cv_folds": 5,
   "min_training_samples": 50,
+  "model_name": "xgboost",
+  "candidate_cv_scores": {
+    "gradient_boosting": 0.0261,
+    "xgboost": 0.008,
+    "mlp": 0.3387
+  },
   "feature_importances": {
-    "avg_level": 0.34549678696992847,
-    "min_level": 0.23926103703205906,
-    "max_level": 0.1817057459591346,
+    "current_level": 1.0,
+    "required_level": 0.0,
+    "avg_level": 0.0,
+    "min_level": 0.0,
+    "max_level": 0.0,
     "nb_savoirs": 0.0,
     "nb_competences": 0.0,
-    "nb_level_5": 0.009050334329663543,
-    "nb_level_1": 0.019682942431886296,
+    "nb_level_5": 0.0,
+    "nb_level_1": 0.0,
     "competency_coverage_rate": 0.0,
-    "nb_formations_completed": 7.477339776421936e-17,
-    "nb_formations_in_progress": 9.483787670869553e-17,
-    "taux_assiduite": 0.05803971898753179,
-    "nb_besoins_exprimes": 0.1467634342897959,
-    "nb_besoins_approuves": 2.3981991811394276e-18,
-    "avg_eval_score": 1.5697303731094434e-17,
+    "nb_formations_completed": 0.0,
+    "nb_formations_in_progress": 0.0,
+    "taux_assiduite": 0.0,
+    "nb_besoins_exprimes": 0.0,
+    "nb_besoins_approuves": 0.0,
+    "avg_eval_score": 0.0,
     "nb_evaluations": 0.0,
-    "days_since_last_training": 1.387323309326649e-16,
-    "engagement_score": 9.367965551325889e-18
+    "days_since_last_training": 0.0,
+    "engagement_score": 0.0
   },
   "feature_ranges": {
+    "current_level": {
+      "min": 1.0,
+      "max": 5.0
+    },
+    "required_level": {
+      "min": 5.0,
+      "max": 5.0
+    },
     "avg_level": {
       "min": 1.0,
       "max": 5.0
@@ -113,8 +131,8 @@
   },
   "metrics": {
     "test_r2": 1.0,
-    "test_rmse": 0.0,
-    "cv_rmse": 0.002,
+    "test_rmse": 0.008,
+    "cv_rmse": 0.008,
     "n_samples": 80
   }
 }

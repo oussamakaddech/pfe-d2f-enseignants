@@ -11,7 +11,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import java.util.Date;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -26,7 +26,7 @@ public interface FormationRepository extends JpaRepository<Formation, Long> {
 
   List<Formation> findByDepartement_Id(String deptId);
 
-  List<Formation> findByDateDebutBetween(Date start, Date end);
+  List<Formation> findByDateDebutBetween(LocalDate start, LocalDate end);
 
   Page<Formation> findByEtatFormation(EtatFormation etatFormation, Pageable pageable);
 
@@ -80,16 +80,16 @@ public interface FormationRepository extends JpaRepository<Formation, Long> {
   // ==================== STATISTICS QUERIES ====================
   
   @Query("SELECT COUNT(f) FROM Formation f WHERE f.dateDebut BETWEEN :start AND :end")
-  int countTotalFormations(@Param("start") Date start, @Param("end") Date end);
+  int countTotalFormations(@Param("start") LocalDate start, @Param("end") LocalDate end);
 
   @Query("SELECT COALESCE(SUM(f.chargeHoraireGlobal), 0) FROM Formation f WHERE f.dateDebut BETWEEN :start AND :end")
-  int sumTotalHeures(@Param("start") Date start, @Param("end") Date end);
+  int sumTotalHeures(@Param("start") LocalDate start, @Param("end") LocalDate end);
 
   @Query("SELECT COUNT(DISTINCT p.id) FROM Formation f JOIN f.seances s JOIN s.participants p WHERE f.dateDebut BETWEEN :start AND :end")
-  int countUniqueParticipants(@Param("start") Date start, @Param("end") Date end);
+  int countUniqueParticipants(@Param("start") LocalDate start, @Param("end") LocalDate end);
 
   @Query("SELECT f.etatFormation, COUNT(f) FROM Formation f WHERE f.dateDebut BETWEEN :start AND :end GROUP BY f.etatFormation")
-  List<Object[]> countFormationsByEtat(@Param("start") Date start, @Param("end") Date end);
+  List<Object[]> countFormationsByEtat(@Param("start") LocalDate start, @Param("end") LocalDate end);
 
   // ==================== TEACHER QUERIES ====================
   

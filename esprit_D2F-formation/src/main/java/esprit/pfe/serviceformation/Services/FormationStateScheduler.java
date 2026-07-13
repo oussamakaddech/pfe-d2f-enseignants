@@ -6,7 +6,8 @@ import esprit.pfe.serviceformation.repositories.FormationRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-import java.util.Date;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.List;
 import lombok.RequiredArgsConstructor;
 
@@ -22,10 +23,10 @@ public class FormationStateScheduler {
      */
     @Scheduled(cron = "0 0 */2 * * *")
     public void updateFormationStates() {
-        log.info("Le planificateur de mise à jour des formations s'exécute à {}", new Date());
+        log.info("Le planificateur de mise à jour des formations s'exécute à {}", LocalDate.now(ZoneId.systemDefault()));
         List<Formation> formations = formationRepository.findAll();
-        java.time.OffsetDateTime nowRef = java.time.OffsetDateTime.now();
-        Date now = new Date();
+        java.time.OffsetDateTime nowRef = java.time.OffsetDateTime.now(java.time.ZoneId.systemDefault());
+        LocalDate now = LocalDate.now(ZoneId.systemDefault());
         for (Formation f : formations) {
             f.setLastRefreshDate(nowRef);
             
@@ -49,11 +50,11 @@ public class FormationStateScheduler {
         }
     }
 
-    private EtatFormation computeNextState(Formation f, Date now) {
-        if (now.before(f.getDateDebut())) {
+    private EtatFormation computeNextState(Formation f, LocalDate now) {
+        if (now.isBefore(f.getDateDebut())) {
             return EtatFormation.PLANIFIE;
         }
-        if (now.after(f.getDateDebut()) && now.before(f.getDateFin())) {
+        if (now.isAfter(f.getDateDebut()) && now.isBefore(f.getDateFin())) {
             return EtatFormation.EN_COURS;
         }
         return EtatFormation.ACHEVE;

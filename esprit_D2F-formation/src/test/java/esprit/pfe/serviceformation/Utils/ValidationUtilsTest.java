@@ -7,6 +7,8 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.NullSource;
 import org.junit.jupiter.params.provider.ValueSource;
 
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -148,10 +150,8 @@ class ValidationUtilsTest {
     @Test
     @DisplayName("dateRange() - Ne lance pas d'exception quand la date de fin est après la date de début")
     void testDateRange_WithValidRange_ShouldNotThrow() {
-        Calendar cal = Calendar.getInstance();
-        Date debut = cal.getTime();
-        cal.add(Calendar.DAY_OF_MONTH, 1);
-        Date fin = cal.getTime();
+        LocalDate debut = LocalDate.now();
+        LocalDate fin = debut.plusDays(1);
 
         assertDoesNotThrow(() -> validationUtils.dateRange(debut, fin));
     }
@@ -159,8 +159,8 @@ class ValidationUtilsTest {
     @Test
     @DisplayName("dateRange() - Lance IllegalArgumentException quand la date de début est null")
     void testDateRange_WithNullStartDate_ShouldThrow() {
-        Date startDate = null;
-        Date endDate = new Date();
+        LocalDate startDate = null;
+        LocalDate endDate = LocalDate.now();
         IllegalArgumentException exception = assertThrows(
             IllegalArgumentException.class,
             () -> validationUtils.dateRange(startDate, endDate)
@@ -171,8 +171,8 @@ class ValidationUtilsTest {
     @Test
     @DisplayName("dateRange() - Lance IllegalArgumentException quand la date de fin est null")
     void testDateRange_WithNullEndDate_ShouldThrow() {
-        Date startDate = new Date();
-        Date endDate = null;
+        LocalDate startDate = LocalDate.now();
+        LocalDate endDate = null;
         IllegalArgumentException exception = assertThrows(
             IllegalArgumentException.class,
             () -> validationUtils.dateRange(startDate, endDate)
@@ -183,10 +183,8 @@ class ValidationUtilsTest {
     @Test
     @DisplayName("dateRange() - Lance IllegalArgumentException quand la date de fin est avant la date de début")
     void testDateRange_WithEndDateBeforeStartDate_ShouldThrow() {
-        Calendar cal = Calendar.getInstance();
-        Date fin = cal.getTime();
-        cal.add(Calendar.DAY_OF_MONTH, 1);
-        Date debut = cal.getTime();
+        LocalDate fin = LocalDate.now();
+        LocalDate debut = fin.plusDays(1);
 
         IllegalArgumentException exception = assertThrows(
             IllegalArgumentException.class,
@@ -198,7 +196,7 @@ class ValidationUtilsTest {
     @Test
     @DisplayName("dateRange() - Lance IllegalArgumentException quand les dates sont identiques")
     void testDateRange_WithSameDates_ShouldThrow() {
-        Date sameDate = new Date();
+        LocalDate sameDate = LocalDate.now();
         IllegalArgumentException exception = assertThrows(
             IllegalArgumentException.class,
             () -> validationUtils.dateRange(sameDate, sameDate)
@@ -210,8 +208,8 @@ class ValidationUtilsTest {
     @Test
     @DisplayName("timeRange() - Ne lance pas d'exception quand l'heure de fin est après l'heure de début")
     void testTimeRange_WithValidRange_ShouldNotThrow() {
-        java.sql.Time debut = java.sql.Time.valueOf("09:00:00");
-        java.sql.Time fin = java.sql.Time.valueOf("10:00:00");
+        LocalTime debut = LocalTime.of(9, 0);
+        LocalTime fin = LocalTime.of(10, 0);
 
         assertDoesNotThrow(() -> validationUtils.timeRange(debut, fin));
     }
@@ -219,8 +217,8 @@ class ValidationUtilsTest {
     @Test
     @DisplayName("timeRange() - Lance IllegalArgumentException quand l'heure de début est null")
     void testTimeRange_WithNullStartTime_ShouldThrow() {
-        java.sql.Time startTime = null;
-        java.sql.Time endTime = java.sql.Time.valueOf("10:00:00");
+        LocalTime startTime = null;
+        LocalTime endTime = LocalTime.of(10, 0);
         IllegalArgumentException exception = assertThrows(
             IllegalArgumentException.class,
             () -> validationUtils.timeRange(startTime, endTime)
@@ -231,8 +229,8 @@ class ValidationUtilsTest {
     @Test
     @DisplayName("timeRange() - Lance IllegalArgumentException quand l'heure de fin est null")
     void testTimeRange_WithNullEndTime_ShouldThrow() {
-        java.sql.Time startTime = java.sql.Time.valueOf("09:00:00");
-        java.sql.Time endTime = null;
+        LocalTime startTime = LocalTime.of(9, 0);
+        LocalTime endTime = null;
         IllegalArgumentException exception = assertThrows(
             IllegalArgumentException.class,
             () -> validationUtils.timeRange(startTime, endTime)
@@ -243,8 +241,8 @@ class ValidationUtilsTest {
     @Test
     @DisplayName("timeRange() - Lance IllegalArgumentException quand l'heure de fin est avant l'heure de début")
     void testTimeRange_WithEndTimeBeforeStartTime_ShouldThrow() {
-        java.sql.Time debut = java.sql.Time.valueOf("10:00:00");
-        java.sql.Time fin = java.sql.Time.valueOf("09:00:00");
+        LocalTime debut = LocalTime.of(10, 0);
+        LocalTime fin = LocalTime.of(9, 0);
 
         IllegalArgumentException exception = assertThrows(
             IllegalArgumentException.class,
@@ -256,7 +254,7 @@ class ValidationUtilsTest {
     @Test
     @DisplayName("timeRange() - Lance IllegalArgumentException quand les heures sont identiques")
     void testTimeRange_WithSameTimes_ShouldThrow() {
-        java.sql.Time sameTime = java.sql.Time.valueOf("09:00:00");
+        LocalTime sameTime = LocalTime.of(9, 0);
         IllegalArgumentException exception = assertThrows(
             IllegalArgumentException.class,
             () -> validationUtils.timeRange(sameTime, sameTime)

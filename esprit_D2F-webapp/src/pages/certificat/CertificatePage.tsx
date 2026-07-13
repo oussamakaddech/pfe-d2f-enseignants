@@ -85,7 +85,7 @@ export default function CertificatePage() {
 
   useEffect(() => {
     const validKeys = new Set(rows.map((r) => r.key));
-    setSelectedKeys((keys) => keys.filter((k) => validKeys.has(k)));
+    setSelectedKeys((keys) => keys.filter((k) => validKeys.has(String(k))));
   }, [rows]);
 
   const stats = useMemo(() => ({

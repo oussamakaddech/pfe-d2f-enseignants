@@ -4,6 +4,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;
+import java.time.Month;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -18,8 +19,8 @@ class CertificateResponseTest {
         response.setFormationId(10L);
         response.setTitreFormation("Java Formation");
         response.setTypeCertif("ATTESTATION");
-        response.setDateDebutFormation(LocalDate.of(2026, 1, 1));
-        response.setDateFinFormation(LocalDate.of(2026, 1, 5));
+        response.setDateDebutFormation(LocalDate.of(2026, Month.JANUARY, 1));
+        response.setDateFinFormation(LocalDate.of(2026, Month.JANUARY, 5));
         response.setChargeHoraireGlobal(40);
         response.setEnseignantId("E001");
         response.setNomEnseignant("BEN MUSTAPHA");
@@ -33,8 +34,8 @@ class CertificateResponseTest {
         assertThat(response.getFormationId()).isEqualTo(10L);
         assertThat(response.getTitreFormation()).isEqualTo("Java Formation");
         assertThat(response.getTypeCertif()).isEqualTo("ATTESTATION");
-        assertThat(response.getDateDebutFormation()).isEqualTo(LocalDate.of(2026, 1, 1));
-        assertThat(response.getDateFinFormation()).isEqualTo(LocalDate.of(2026, 1, 5));
+        assertThat(response.getDateDebutFormation()).isEqualTo(LocalDate.of(2026, Month.JANUARY, 1));
+        assertThat(response.getDateFinFormation()).isEqualTo(LocalDate.of(2026, Month.JANUARY, 5));
         assertThat(response.getChargeHoraireGlobal()).isEqualTo(40);
         assertThat(response.getEnseignantId()).isEqualTo("E001");
         assertThat(response.getNomEnseignant()).isEqualTo("BEN MUSTAPHA");

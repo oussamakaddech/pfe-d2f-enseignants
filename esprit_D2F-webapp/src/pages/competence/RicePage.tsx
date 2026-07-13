@@ -15,6 +15,7 @@ import { useRiceEnseignantsLoader } from "@/hooks/analyse/useRiceEnseignantsLoad
 import { useRiceAnalysis }         from "@/hooks/analyse/useRiceAnalysis";
 import { useRiceSession }          from "@/hooks/analyse/useRiceSession";
 import { useRiceTeacherManager }   from "@/hooks/analyse/useRiceTeacherManager";
+import { secureRandomUnit } from "@/utils/secureRandom";
 
 import UploadStep    from "./rice/UploadStep";
 import AnalyzingStep from "./rice/AnalyzingStep";
@@ -140,10 +141,10 @@ export default function RicePage() {
     for (let i = 0; i < 26; i += 1) {
       const el = document.createElement("div");
       el.className = "confetti-piece";
-      el.style.left = `${Math.random() * 100}vw`;
+      el.style.left = `${secureRandomUnit() * 100}vw`;
       el.style.background = colors[i % colors.length];
-      el.style.animationDelay = `${Math.random() * 0.8}s`;
-      el.style.opacity = String(0.8 + Math.random() * 0.2);
+      el.style.animationDelay = `${secureRandomUnit() * 0.8}s`;
+      el.style.opacity = String(0.8 + secureRandomUnit() * 0.2);
       document.body.appendChild(el);
       pieces.push(el);
     }

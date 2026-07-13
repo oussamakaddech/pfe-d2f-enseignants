@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -82,7 +83,7 @@ public class GlobalExceptionHandler {
 
     private ResponseEntity<ErrorResponse> buildResponse(HttpStatus status, String message, String errorCode, HttpServletRequest request, String traceId) {
         ErrorResponse response = ErrorResponse.builder()
-                .timestamp(LocalDateTime.now().toString())
+                .timestamp(LocalDateTime.now(ZoneId.systemDefault()).toString())
                 .status(status.value())
                 .errorCode(errorCode)
                 .message(message)

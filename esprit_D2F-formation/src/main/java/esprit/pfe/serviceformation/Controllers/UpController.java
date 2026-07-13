@@ -3,7 +3,6 @@ package esprit.pfe.serviceformation.controllers;
 import esprit.d2f.common.security.AuthorizationMatrix;
 import esprit.pfe.serviceformation.dto.ReferentialMapper;
 import esprit.pfe.serviceformation.dto.UpDTO;
-import esprit.pfe.serviceformation.entities.Up;
 import esprit.pfe.serviceformation.services.UpService;
 import esprit.pfe.serviceformation.utils.FileSecurityValidator;
 import org.springframework.http.HttpStatus;
@@ -61,14 +60,14 @@ public class UpController {
 
     @PostMapping
     @PreAuthorize(AuthorizationMatrix.REFERENTIEL_WRITE)
-    public ResponseEntity<UpDTO> createUp(@RequestBody Up up) {
-        return ResponseEntity.ok(ReferentialMapper.toUpDTO(upService.create(up)));
+    public ResponseEntity<UpDTO> createUp(@RequestBody UpDTO upDTO) {
+        return ResponseEntity.ok(ReferentialMapper.toUpDTO(upService.create(ReferentialMapper.toUpEntity(upDTO))));
     }
 
     @PutMapping("/{id}")
     @PreAuthorize(AuthorizationMatrix.REFERENTIEL_WRITE)
-    public ResponseEntity<UpDTO> updateUp(@PathVariable String id, @RequestBody Up up) {
-        return ResponseEntity.ok(ReferentialMapper.toUpDTO(upService.update(id, up)));
+    public ResponseEntity<UpDTO> updateUp(@PathVariable String id, @RequestBody UpDTO upDTO) {
+        return ResponseEntity.ok(ReferentialMapper.toUpDTO(upService.update(id, ReferentialMapper.toUpEntity(upDTO))));
     }
 
     @DeleteMapping("/{id}")

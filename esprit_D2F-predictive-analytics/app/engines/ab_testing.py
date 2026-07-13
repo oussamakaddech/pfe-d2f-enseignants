@@ -29,7 +29,7 @@ from sqlalchemy import Column, DateTime, Float, Integer, String, Text, func
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Session
 
-from app.db import Base
+from app.models.db_models import Base
 
 logger = logging.getLogger(__name__)
 

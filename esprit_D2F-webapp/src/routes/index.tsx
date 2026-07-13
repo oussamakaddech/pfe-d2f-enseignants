@@ -33,7 +33,7 @@ const CertificatesByEmailPage = lazy(() => import("@/pages/certificat/Certificat
 const UpDeptDataGrid = lazy(() => import("@/pages/enseignant/UpDeptDataGrid"));
 const Register = lazy(() => import("@/pages/auth/Register"));
 const Forbidden403 = lazy(() => import("@/pages/error/Forbidden403"));
-const DashboardPage = lazy(() => import("@/pages/dashboard/DashboardPage"));
+const DashboardPage = lazy(() => import("@/redesign/ExecutiveDashboardPage"));
 const Login = lazy(() => import("@/pages/admin/gererComptes/Login"));
 const PasswordRecovery = lazy(() => import("@/pages/admin/gererComptes/PasswordRecovery"));
 const Profile = lazy(() => import("@/pages/auth/Profile"));
@@ -46,12 +46,15 @@ const AffectationEnseignantPage = lazy(() => import("@/pages/competence/Affectat
 const RicePage = lazy(() => import("@/pages/competence/RicePage"));
 const CompetenceMatchingPage = lazy(() => import("@/pages/competence/CompetenceMatchingPage"));
 const EvaluationGlobalePage = lazy(() => import("@/pages/evaluation/EvaluationGlobalePage"));
-const AnalysePredictivePage = lazy(() => import("@/pages/analyse/AnalysePredictivePage"));
 const TeacherAnalyticsPage = lazy(() => import("@/pages/analyse/TeacherAnalyticsPage"));
+const AnalysePredictivePage = lazy(() => import("@/pages/analyse/AnalyticsPage"));
 const EnseignantsInactifsPage = lazy(() => import("@/pages/analyse/EnseignantsInactifsPage"));
 const FormationsParPeriodePage = lazy(() => import("@/pages/analyse/FormationsParPeriodePage"));
 const SkillPassportPage = lazy(() => import("@/pages/profile/SkillPassportPage"));
 const BureauPage = lazy(() => import("@/pages/bureau/BureauPage"));
+const PersonalDashboard = lazy(() => import("@/pages/dashboard/PersonalDashboard"));
+const AlertsCenterPage = lazy(() => import("@/pages/analyse/AlertsCenterPage"));
+const ABTestingPage = lazy(() => import("@/pages/analyse/ABTestingPage"));
 
 function PageSkeleton() {
   return (
@@ -130,6 +133,12 @@ export default function AppRoutes() {
                   <Route path="/home/analytics/teacher/:enseignantId" element={<TeacherAnalyticsPage />} />
                   <Route path="/home/analytics/enseignants-inactifs" element={<EnseignantsInactifsPage />} />
                   <Route path="/home/analytics/formations-par-periode" element={<FormationsParPeriodePage />} />
+                  <Route path="/home/analytics/alerts" element={<AlertsCenterPage />} />
+                  <Route path="/home/analytics/ab-testing" element={<ABTestingPage />} />
+                </Route>
+
+                <Route element={<RoleGuard allowedRoles={[ROLES.ENSEIGNANT, ROLES.ANIMATEUR]} />}>
+                  <Route path="/home/personal-dashboard" element={<PersonalDashboard />} />
                 </Route>
 
                 <Route element={<RoleGuard allowedRoles={[ROLES.ADMIN, ROLES.CHEF_DEPARTEMENT]} />}>

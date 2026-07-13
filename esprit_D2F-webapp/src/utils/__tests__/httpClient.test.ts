@@ -52,7 +52,7 @@ describe('httpClient', () => {
 
   it('isAxiosError helper works', () => {
     const api = createApiClient();
-    (isAxiosError as ReturnType<typeof vi.fn>).mockReturnValue(true);
+    (isAxiosError as unknown as ReturnType<typeof vi.fn>).mockReturnValue(true);
     expect((api as unknown as { isAxiosError: (v: unknown) => boolean }).isAxiosError({})).toBe(true);
   });
 

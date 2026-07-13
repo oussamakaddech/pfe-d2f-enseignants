@@ -7,6 +7,7 @@ import org.junit.jupiter.params.provider.NullAndEmptySource;
 import org.junit.jupiter.params.provider.ValueSource;
 
 import java.time.LocalDate;
+import java.time.Month;
 import java.time.LocalTime;
 import java.util.Optional;
 
@@ -29,11 +30,11 @@ class CalendarParsingUtilsTest {
 
     @Test
     void parseDate_valid() {
-        assertThat(CalendarParsingUtils.parseDate("10/06/2026")).contains(LocalDate.of(2026, 6, 10));
-        assertThat(CalendarParsingUtils.parseDate("10/6/2026")).contains(LocalDate.of(2026, 6, 10));
-        assertThat(CalendarParsingUtils.parseDate("10-06-2026")).contains(LocalDate.of(2026, 6, 10));
-        assertThat(CalendarParsingUtils.parseDate("2026-06-10")).contains(LocalDate.of(2026, 6, 10));
-        assertThat(CalendarParsingUtils.parseDate("10.6.2026")).contains(LocalDate.of(2026, 6, 10));
+        assertThat(CalendarParsingUtils.parseDate("10/06/2026")).contains(LocalDate.of(2026, Month.JUNE, 10));
+        assertThat(CalendarParsingUtils.parseDate("10/6/2026")).contains(LocalDate.of(2026, Month.JUNE, 10));
+        assertThat(CalendarParsingUtils.parseDate("10-06-2026")).contains(LocalDate.of(2026, Month.JUNE, 10));
+        assertThat(CalendarParsingUtils.parseDate("2026-06-10")).contains(LocalDate.of(2026, Month.JUNE, 10));
+        assertThat(CalendarParsingUtils.parseDate("10.6.2026")).contains(LocalDate.of(2026, Month.JUNE, 10));
     }
 
     @ParameterizedTest
@@ -46,31 +47,31 @@ class CalendarParsingUtilsTest {
     @Test
     void parseFlexibleDate_strictMatch() {
         Optional<LocalDate> result = CalendarParsingUtils.parseFlexibleDate("10/06/2026", 2025);
-        assertThat(result).contains(LocalDate.of(2026, 6, 10));
+        assertThat(result).contains(LocalDate.of(2026, Month.JUNE, 10));
     }
 
     @Test
     void parseFlexibleDate_dayMonthOnly() {
         Optional<LocalDate> result = CalendarParsingUtils.parseFlexibleDate("30/06", 2025);
-        assertThat(result).contains(LocalDate.of(2025, 6, 30));
+        assertThat(result).contains(LocalDate.of(2025, Month.JUNE, 30));
     }
 
     @Test
     void parseFlexibleDate_withDayNamePrefix() {
         Optional<LocalDate> result = CalendarParsingUtils.parseFlexibleDate("Lundi 30/06/2025", 2025);
-        assertThat(result).contains(LocalDate.of(2025, 6, 30));
+        assertThat(result).contains(LocalDate.of(2025, Month.JUNE, 30));
     }
 
     @Test
     void parseFlexibleDate_twoDigitYear() {
         Optional<LocalDate> result = CalendarParsingUtils.parseFlexibleDate("30/06/25", 2025);
-        assertThat(result).contains(LocalDate.of(2025, 6, 30));
+        assertThat(result).contains(LocalDate.of(2025, Month.JUNE, 30));
     }
 
     @Test
     void parseFlexibleDate_dotSeparator() {
         Optional<LocalDate> result = CalendarParsingUtils.parseFlexibleDate("30.06.2025", 2025);
-        assertThat(result).contains(LocalDate.of(2025, 6, 30));
+        assertThat(result).contains(LocalDate.of(2025, Month.JUNE, 30));
     }
 
     @ParameterizedTest

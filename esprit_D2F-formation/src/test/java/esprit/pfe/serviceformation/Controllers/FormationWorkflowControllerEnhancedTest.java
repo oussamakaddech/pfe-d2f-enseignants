@@ -55,8 +55,8 @@ class FormationWorkflowControllerEnhancedTest {
 
         String formationJson = "{" +
                 "\"titreFormation\":\"Formation Test\"," +
-                "\"dateDebut\":\"2023-01-01T00:00:00.000+00:00\"," +
-                "\"dateFin\":\"2023-01-02T00:00:00.000+00:00\"," +
+                "\"dateDebut\":\"2023-01-01\"," +
+                "\"dateFin\":\"2023-01-02\"," +
                 "\"typeFormation\":\"INTERNE\"}";
 
         mockMvc.perform(post("/api/v1/formations-workflow")
@@ -88,8 +88,8 @@ class FormationWorkflowControllerEnhancedTest {
 
         String formationJson = "{" +
                 "\"titreFormation\":\"Formation Mis à jour\"," +
-                "\"dateDebut\":\"2023-01-01T00:00:00.000+00:00\"," +
-                "\"dateFin\":\"2023-01-02T00:00:00.000+00:00\"," +
+                "\"dateDebut\":\"2023-01-01\"," +
+                "\"dateFin\":\"2023-01-02\"," +
                 "\"typeFormation\":\"INTERNE\"}";
 
         mockMvc.perform(put("/api/v1/formations-workflow/1")

@@ -172,7 +172,18 @@ export default function MesInscriptionsTab() {
             return (
               <div key={String(r.formationId)} className="mis-row" style={{ borderLeftColor: meta.color }}>
                 <div className="mis-row-body">
-                  <div className="mis-row-title" onClick={() => navigate(`/home/ListeFormation/${r.formationId}`)}>
+                  <div
+                    className="mis-row-title"
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => navigate(`/home/ListeFormation/${r.formationId}`)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        navigate(`/home/ListeFormation/${r.formationId}`);
+                      }
+                    }}
+                  >
                     {r.titreFormation || `Formation #${r.formationId}`}
                   </div>
                   <div className="mis-row-meta">

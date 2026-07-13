@@ -132,9 +132,10 @@ export function useMatchmaking() {
 
     interface AffectationItem { id?: number; ecId?: number; enseignantCompetenceId?: number; savoirId?: number; savoir_id?: number; savoir?: number; enseignantId?: number; enseignant_id?: number; enseignant?: number }
     let affectationList: AffectationItem[];
+    const affSource = (affectationsData ?? {}) as Record<string, unknown>;
     if (Array.isArray(affectationsData)) affectationList = affectationsData as AffectationItem[];
-    else if (Array.isArray((affectationsData as Record<string, unknown>)?.content)) affectationList = (affectationsData as Record<string, AffectationItem[]>).content;
-    else if (Array.isArray((affectationsData as Record<string, unknown>)?.data)) affectationList = (affectationsData as Record<string, AffectationItem[]>).data;
+    else if (Array.isArray(affSource.content)) affectationList = affSource.content as AffectationItem[];
+    else if (Array.isArray(affSource.data)) affectationList = affSource.data as AffectationItem[];
     else affectationList = [];
 
     if (affectationList.length > 0) {

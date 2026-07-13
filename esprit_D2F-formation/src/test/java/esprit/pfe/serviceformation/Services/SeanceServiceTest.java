@@ -12,7 +12,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.sql.Time;
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -48,9 +49,9 @@ class SeanceServiceTest {
     @Test
     void testCreateSeance_Success() {
         SeanceDTO dto = new SeanceDTO();
-        dto.setDateSeance(new Date());
-        dto.setHeureDebut(Time.valueOf("08:00:00"));
-        dto.setHeureFin(Time.valueOf("10:00:00"));
+        dto.setDateSeance(LocalDate.now());
+        dto.setHeureDebut(LocalTime.of(8, 0));
+        dto.setHeureFin(LocalTime.of(10, 0));
         dto.setAnimateurs(Collections.emptyList());
         dto.setParticipants(Collections.emptyList());
 
@@ -63,17 +64,17 @@ class SeanceServiceTest {
     @Test
     void testCreateSeance_ConflictAnimateur() {
         SeanceDTO dto = new SeanceDTO();
-        dto.setDateSeance(new Date());
-        dto.setHeureDebut(Time.valueOf("08:00:00"));
-        dto.setHeureFin(Time.valueOf("10:00:00"));
+        dto.setDateSeance(LocalDate.now());
+        dto.setHeureDebut(LocalTime.of(8, 0));
+        dto.setHeureFin(LocalTime.of(10, 0));
         
         EnseignantDTO animDto = new EnseignantDTO();
         animDto.setId("A1");
         dto.setAnimateurs(List.of(animDto));
 
         SeanceFormation existing = new SeanceFormation();
-        existing.setHeureDebut(Time.valueOf("07:00:00"));
-        existing.setHeureFin(Time.valueOf("09:00:00"));
+        existing.setHeureDebut(LocalTime.of(7, 0));
+        existing.setHeureFin(LocalTime.of(9, 0));
         
         when(seanceRepo.findByAnimateurAndDate(eq("A1"), any())).thenReturn(List.of(existing));
 
@@ -83,9 +84,9 @@ class SeanceServiceTest {
     @Test
     void testCreateSeance_FilterParticipants() {
         SeanceDTO dto = new SeanceDTO();
-        dto.setDateSeance(new Date());
-        dto.setHeureDebut(Time.valueOf("08:00:00"));
-        dto.setHeureFin(Time.valueOf("10:00:00"));
+        dto.setDateSeance(LocalDate.now());
+        dto.setHeureDebut(LocalTime.of(8, 0));
+        dto.setHeureFin(LocalTime.of(10, 0));
         dto.setAnimateurs(Collections.emptyList());
         
         EnseignantDTO p1 = new EnseignantDTO(); p1.setId("P1");
@@ -93,8 +94,8 @@ class SeanceServiceTest {
         dto.setParticipants(List.of(p1, p2));
 
         SeanceFormation s1 = new SeanceFormation();
-        s1.setHeureDebut(Time.valueOf("08:30:00"));
-        s1.setHeureFin(Time.valueOf("09:30:00"));
+        s1.setHeureDebut(LocalTime.of(8, 30));
+        s1.setHeureFin(LocalTime.of(9, 30));
         
         // P1 has conflict, P2 doesn't
         when(seanceRepo.findByParticipantAndDate(eq("P1"), any())).thenReturn(List.of(s1));
@@ -116,9 +117,9 @@ class SeanceServiceTest {
         when(seanceRepo.findById(1L)).thenReturn(Optional.of(existing));
         
         SeanceDTO dto = new SeanceDTO();
-        dto.setDateSeance(new Date());
-        dto.setHeureDebut(Time.valueOf("08:00:00"));
-        dto.setHeureFin(Time.valueOf("10:00:00"));
+        dto.setDateSeance(LocalDate.now());
+        dto.setHeureDebut(LocalTime.of(8, 0));
+        dto.setHeureFin(LocalTime.of(10, 0));
         
         EnseignantDTO animDto = new EnseignantDTO();
         animDto.setId("A1");
@@ -127,8 +128,8 @@ class SeanceServiceTest {
 
         SeanceFormation other = new SeanceFormation();
         other.setIdSeance(2L);
-        other.setHeureDebut(Time.valueOf("09:30:00"));
-        other.setHeureFin(Time.valueOf("11:00:00"));
+        other.setHeureDebut(LocalTime.of(9, 30));
+        other.setHeureFin(LocalTime.of(11, 0));
         
         when(seanceRepo.findByAnimateurAndDate(eq("A1"), any())).thenReturn(List.of(other));
 

@@ -5,8 +5,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-
-import java.util.Date;
+import java.time.LocalDate;
 
 @Data
 @NoArgsConstructor
@@ -34,8 +33,7 @@ public class Document extends BaseAuditEntity {
     // Chemin/URL du fichier stocké sur OneDrive
     private String filePath;
 
-    @Temporal(TemporalType.DATE)
-    private Date date;
+    private LocalDate date;
 
     private boolean obligation;
 

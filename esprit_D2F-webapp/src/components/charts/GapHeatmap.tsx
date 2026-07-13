@@ -146,11 +146,21 @@ const GapHeatmap = memo(function GapHeatmap({ data, maxGap = 5, onAnalyzeTeacher
       key: "niveau_actuel",
       width: 100,
       align: "center" as const,
-      render: (v: number) => (
-        <Tag color={v >= 3 ? "green" : v >= 2 ? "blue" : "default"}>
-          {v}/5
-        </Tag>
-      ),
+      render: (v: number) => {
+        let tagColor: string;
+        if (v >= 3) {
+          tagColor = "green";
+        } else if (v >= 2) {
+          tagColor = "blue";
+        } else {
+          tagColor = "default";
+        }
+        return (
+          <Tag color={tagColor}>
+            {v}/5
+          </Tag>
+        );
+      },
     },
     {
       title: "Niveau Requis",
@@ -170,7 +180,16 @@ const GapHeatmap = memo(function GapHeatmap({ data, maxGap = 5, onAnalyzeTeacher
       defaultSortOrder: "descend" as const,
       render: (v: number) => {
         const pct = Math.round(v * 100);
-        const color = pct >= 75 ? "#ef4444" : pct >= 50 ? "#f97316" : pct >= 25 ? "#f59e0b" : "#10b981";
+        let color: string;
+        if (pct >= 75) {
+          color = "#ef4444";
+        } else if (pct >= 50) {
+          color = "#f97316";
+        } else if (pct >= 25) {
+          color = "#f59e0b";
+        } else {
+          color = "#10b981";
+        }
         return <Text strong style={{ color }}>{pct}%</Text>;
       },
     },
@@ -188,11 +207,21 @@ const GapHeatmap = memo(function GapHeatmap({ data, maxGap = 5, onAnalyzeTeacher
       key: "mois_stagnation",
       width: 100,
       align: "center" as const,
-      render: (v: number) => (
-        <Tag color={v >= 12 ? "red" : v >= 6 ? "orange" : "default"}>
-          {v} mois
-        </Tag>
-      ),
+      render: (v: number) => {
+        let tagColor: string;
+        if (v >= 12) {
+          tagColor = "red";
+        } else if (v >= 6) {
+          tagColor = "orange";
+        } else {
+          tagColor = "default";
+        }
+        return (
+          <Tag color={tagColor}>
+            {v} mois
+          </Tag>
+        );
+      },
     },
     {
       title: "Risque Global",

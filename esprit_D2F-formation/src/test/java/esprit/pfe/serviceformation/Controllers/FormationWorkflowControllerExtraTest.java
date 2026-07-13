@@ -17,6 +17,7 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import java.util.Collections;
 
 import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -27,7 +28,7 @@ class FormationWorkflowControllerExtraTest {
 
     private MockMvc mockMvc;
 
-    private static final String FORMATION_JSON = "{\"titreFormation\":\"Test Formation\",\"dateDebut\":\"2023-01-01T00:00:00.000+00:00\",\"dateFin\":\"2023-01-02T00:00:00.000+00:00\",\"typeFormation\":\"INTERNE\"}";
+    private static final String FORMATION_JSON = "{\"titreFormation\":\"Test Formation\",\"dateDebut\":\"2023-01-01\",\"dateFin\":\"2023-01-02\",\"typeFormation\":\"INTERNE\"}";
 
     @Mock private ExportExcelService exportExcelService;
     @Mock private FormationWorkflowService formationWorkflowService;
@@ -111,7 +112,7 @@ class FormationWorkflowControllerExtraTest {
     @Test
     @DisplayName("deleteFormation - IllegalArgumentException retourne 400")
     void deleteFormation_IllegalArgument() throws Exception {
-        org.mockito.Mockito.doThrow(new IllegalArgumentException("Not found"))
+        doThrow(new IllegalArgumentException("Not found"))
                 .when(formationWorkflowService).deleteFormationWorkflow(anyLong());
         mockMvc.perform(delete("/api/v1/formations-workflow/1")).andExpect(status().isBadRequest());
     }
@@ -119,7 +120,7 @@ class FormationWorkflowControllerExtraTest {
     @Test
     @DisplayName("deleteFormation - Exception generique retourne 500")
     void deleteFormation_InternalError() throws Exception {
-        org.mockito.Mockito.doThrow(new RuntimeException("Unexpected"))
+        doThrow(new RuntimeException("Unexpected"))
                 .when(formationWorkflowService).deleteFormationWorkflow(anyLong());
         mockMvc.perform(delete("/api/v1/formations-workflow/1")).andExpect(status().isInternalServerError());
     }
@@ -134,7 +135,7 @@ class FormationWorkflowControllerExtraTest {
     @Test
     @DisplayName("updatePresence - RuntimeException retourne 400")
     void updatePresence_RuntimeException() throws Exception {
-        org.mockito.Mockito.doThrow(new RuntimeException("Error"))
+        doThrow(new RuntimeException("Error"))
                 .when(formationWorkflowService).updatePresence(anyLong(), anyBoolean(), anyString());
         mockMvc.perform(put("/api/v1/formations-workflow/presence/1")
                 .param("present", "true")

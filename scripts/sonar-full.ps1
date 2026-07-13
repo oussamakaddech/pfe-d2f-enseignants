@@ -196,7 +196,7 @@ function Invoke-Java($mod) {
     $rc = 0
     Push-Location $mod.Path
     try {
-        $mvn = if (Test-Path "./mvnw.cmd") { "./mvnw.cmd" } else { "mvn" }
+        $mvn = "mvn"
         if (-not $SkipTests) {
             Write-LogLine $log "[$($mod.Key)] mvn clean verify (tests + JaCoCo)..."
             & $mvn -B -q clean verify -Dmaven.test.failure.ignore=true *>> $log

@@ -10,10 +10,10 @@ import type {
   Gravite, AnalyseGap, AnalyseRecommandation, AnalyseData, DriftReport,
   DecliningCompetency, InDemandCompetency, TeacherRiskIndicator,
   GapHeatmapCell, TrainingEffectiveness, RiskEvolutionPoint, ModelPerformance,
-  OverviewKpis, DemandForecast,
+  OverviewKpis, DemandForecast, TrainingNeedsForecast,
   AlertSummary, BulkAlertUpdateRequest, BulkAlertUpdateResponse,
   PriorityAction, BatchRecommendationRequest, BatchRecommendationResponse,
-  SupplyDemandItem, RiskDistribution, HeatmapDrilldown,
+  SupplyDemandItem, RiskDistribution, HeatmapDrilldown, TopFormation,
 } from "@/models/analyse";
 export type { Gravite, AnalyseGap, AnalyseRecommandation, AnalyseData, DriftReport };
 
@@ -143,7 +143,7 @@ const AnalysePredictiveService = {
   },
 
   async getDecliningCompetencies(): Promise<DecliningCompetency[]> {
-    const res = await axios.get(`${PREDICTIVE_API}/dashboard/declining-competencies`);
+    const res = await axios.get(`${ANALYTICS_V1}/dashboard/competences-declining`);
     return res.data;
   },
 
@@ -175,6 +175,12 @@ const AnalysePredictiveService = {
     return res.data;
   },
 
+  async getTopFormationsRecommandees(): Promise<TopFormation[]> {
+    const res = await axios.get(`${ANALYTICS_V1}/dashboard/top-formations`);
+    const data = res.data as TopFormation[] | { value?: TopFormation[] };
+    return Array.isArray(data) ? data : (data.value ?? []);
+  },
+
   async getRiskEvolution(months = 6): Promise<RiskEvolutionPoint[]> {
     const res = await axios.get(`${ANALYTICS_V1}/dashboard/risk-evolution`, {
       params: { months },
@@ -198,6 +204,14 @@ const AnalysePredictiveService = {
   async getDemandForecast(months = 6): Promise<DemandForecast> {
     const res = await axios.get(`${ANALYTICS_V1}/dashboard/demand-forecast`, {
       params: { months },
+    });
+    return res.data;
+  },
+
+  // ── Prévision des besoins de formation par département ─────
+  async getTrainingNeedsForecast(months = 6, historyMonths = 12): Promise<TrainingNeedsForecast> {
+    const res = await axios.get(`${ANALYTICS_V1}/dashboard/training-needs-forecast`, {
+      params: { months, history_months: historyMonths },
     });
     return res.data;
   },
@@ -337,8 +351,8 @@ const AnalysePredictiveService = {
         rawInDemand: data.in_demand_competencies || [],
         rawRiskIndicators: data.teacher_risk_indicators || [],
       };
-    } catch (error: unknown) {
-      throw error;
+    } catch {
+      throw new Error("Erreur lors du chargement du tableau de bord");
     }
   },
 
@@ -381,6 +395,68 @@ const AnalysePredictiveService = {
 
   async getHeatmapDrilldown(departement: string, competenceId: number): Promise<HeatmapDrilldown> {
     const res = await axios.get(`${ANALYTICS_V1}/dashboard/gap-heatmap/${departement}/${competenceId}`);
+    return res.data;
+  },
+
+  // ── Nouvelles fonctionnalités : impact des formations & simulation what-if ──
+  async getTrainingImpact(): Promise<{
+    nb_enseignants_suivis: number;
+    nb_chemins_termines: number;
+    nb_formations_suivies: number;
+    gain_niveau_moyen: number;
+    reduction_risque_moyenne: number;
+    nb_risque_reduit: number;
+    nb_risque_augmente: number;
+  }> {
+    const res = await axios.get(`${ANALYTICS_V1}/dashboard/training-impact`);
+    return res.data;
+  },
+
+  async getTrainingImpactFormations(page = 0, size = 20): Promise<{
+    total: number;
+    page: number;
+    size: number;
+    formations: Array<{
+      formation_id: number;
+      formation_titre: string;
+      formation_type?: string;
+      nb_enseignants: number;
+      gain_niveau_moyen: number;
+      niveau_moyen_avant: number;
+      niveau_moyen_apres: number;
+    }>;
+  }> {
+    const res = await axios.get(`${ANALYTICS_V1}/dashboard/training-impact/formations`, {
+      params: { page, size },
+    });
+    return res.data;
+  },
+
+  async simulateWhatIf(payload: {
+    enseignant_id: string;
+    plan: Array<{ competence_id: number; niveau_vise: number; formation_id?: number }>;
+    horizon_mois?: number;
+  }): Promise<{
+    enseignant_id: string;
+    risk_before: { score: number; niveau: string };
+    risk_after: { score: number; niveau: string };
+    risk_reduction: number;
+    nb_gaps_before: number;
+    nb_gaps_after: number;
+    nb_gaps_resolus: number;
+    details: Array<{
+      competence_id: number;
+      formation_id?: number;
+      niveau_actuel: number;
+      niveau_requis: number;
+      niveau_vise: number;
+      gap_avant: number;
+      gap_apres: number;
+      urgence_apres: string;
+      resolu: boolean;
+    }>;
+  }> {
+    const res = await axios.post(`${ANALYTICS_V1}/simulate/what-if`, payload);
     return res.data;
   },
 };

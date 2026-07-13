@@ -17,6 +17,7 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
 
@@ -44,8 +45,8 @@ class CertificateServiceImplTest {
         request.setFormationId(1L);
         request.setTitreFormation("Spring Boot");
         request.setTypeCertif("CERTIF");
-        request.setDateDebutFormation(LocalDate.now());
-        request.setDateFinFormation(LocalDate.now().plusDays(2));
+        request.setDateDebutFormation(LocalDate.now(ZoneId.of("UTC")));
+        request.setDateFinFormation(LocalDate.now(ZoneId.of("UTC")).plusDays(2));
         request.setChargeHoraireGlobal(20);
         request.setEnseignantId("ENS1");
         request.setNomEnseignant("Doe");

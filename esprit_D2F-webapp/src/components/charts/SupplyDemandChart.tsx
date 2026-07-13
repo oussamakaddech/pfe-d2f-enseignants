@@ -5,7 +5,7 @@ import {
   Empty, Spin, Tag, Segmented, Space, Typography, Row, Col,
 } from "antd";
 import {
-  ArrowUpOutlined, ArrowDownOutlined, AppstoreOutlined,
+  ArrowUpOutlined, AppstoreOutlined,
 } from "@ant-design/icons";
 import { cardTooltip, subtleGrid, axisTicks } from "./chartTheme";
 import type { SupplyDemandItem } from "@/models/analyse";

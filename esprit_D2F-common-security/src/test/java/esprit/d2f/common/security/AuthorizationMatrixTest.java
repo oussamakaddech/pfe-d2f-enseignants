@@ -1,7 +1,6 @@
 package esprit.d2f.common.security;
 
 import org.junit.jupiter.api.Test;
-import org.springframework.expression.Expression;
 import org.springframework.expression.spel.standard.SpelExpressionParser;
 
 import java.lang.reflect.Field;
@@ -58,12 +57,10 @@ class AuthorizationMatrixTest {
     void all_constants_parse_as_valid_SpEL() throws Exception {
         for (Field f : allConstantFields()) {
             String expr = (String) f.get(null);
-            try {
-                Expression parsed = parser.parseExpression(expr);
-                assertNotNull(parsed, "Parser returned null for " + f.getName());
-            } catch (Exception e) {
-                fail("Invalid SpEL for " + f.getName() + " = " + expr + " : " + e.getMessage());
-            }
+            final String fieldName = f.getName();
+            final String exprValue = expr;
+            assertDoesNotThrow(() -> parser.parseExpression(exprValue),
+                    "Invalid SpEL for " + fieldName + " = " + exprValue);
         }
     }
 
@@ -79,7 +76,7 @@ class AuthorizationMatrixTest {
                 String literal = expr.substring(i + 1, end);
                 i = end + 1;
                 if (literal.toUpperCase().startsWith("ROLE_")) {
-                    assertTrue(literal.equals(literal.toUpperCase()),
+                    assertEquals(literal, literal.toUpperCase(),
                             "Role literal must be UPPER_CASE in " + f.getName() + " : " + literal);
                 }
             }

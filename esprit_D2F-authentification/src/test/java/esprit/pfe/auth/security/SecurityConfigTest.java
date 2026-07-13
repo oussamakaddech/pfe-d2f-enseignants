@@ -24,6 +24,7 @@ import org.springframework.security.core.GrantedAuthority;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 class SecurityConfigTest {
 
@@ -101,7 +102,7 @@ class SecurityConfigTest {
         assertNotNull(converter);
         
         Jwt jwt = mock(Jwt.class);
-        org.mockito.Mockito.when(jwt.getClaimAsString("scope")).thenReturn("admin user ROLE_TEST");
+        when(jwt.getClaimAsString("scope")).thenReturn("admin user ROLE_TEST");
         
         // This relies on the internal JwtGrantedAuthoritiesConverter we set in the lambda
         Collection<GrantedAuthority> authorities = (Collection<GrantedAuthority>) converter.convert(jwt).getAuthorities();
@@ -115,7 +116,7 @@ class SecurityConfigTest {
     void testJwtAuthenticationConverter_nullScope() {
         JwtAuthenticationConverter converter = config.jwtAuthenticationConverter();
         Jwt jwt = mock(Jwt.class);
-        org.mockito.Mockito.when(jwt.getClaimAsString("scope")).thenReturn(null);
+        when(jwt.getClaimAsString("scope")).thenReturn(null);
 
         Collection<GrantedAuthority> authorities = (Collection<GrantedAuthority>) converter.convert(jwt).getAuthorities();
         assertNotNull(authorities);
@@ -126,7 +127,7 @@ class SecurityConfigTest {
     void testJwtAuthenticationConverter_blankScope() {
         JwtAuthenticationConverter converter = config.jwtAuthenticationConverter();
         Jwt jwt = mock(Jwt.class);
-        org.mockito.Mockito.when(jwt.getClaimAsString("scope")).thenReturn("   ");
+        when(jwt.getClaimAsString("scope")).thenReturn("   ");
 
         Collection<GrantedAuthority> authorities = (Collection<GrantedAuthority>) converter.convert(jwt).getAuthorities();
         assertNotNull(authorities);
@@ -137,7 +138,7 @@ class SecurityConfigTest {
     void testJwtAuthenticationConverter_roleAlreadyWithPrefix() {
         JwtAuthenticationConverter converter = config.jwtAuthenticationConverter();
         Jwt jwt = mock(Jwt.class);
-        org.mockito.Mockito.when(jwt.getClaimAsString("scope")).thenReturn("ROLE_ADMIN");
+        when(jwt.getClaimAsString("scope")).thenReturn("ROLE_ADMIN");
 
         Collection<GrantedAuthority> authorities = (Collection<GrantedAuthority>) converter.convert(jwt).getAuthorities();
         assertNotNull(authorities);

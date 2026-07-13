@@ -69,6 +69,8 @@ class TestPriorityActions:
         risk = SimpleNamespace(
             enseignant_id="t1", score_risque=0.8, niveau_risque="CRITIQUE",
             tendance="REGRESSION", nb_gaps_critiques=3,
+            precedent_score_risque=None, taux_completion_formations=0.0,
+            nb_mois_stagnation_max=0, computed_at=None,
         )
         mock_db.query.return_value.order_by.return_value.limit.return_value.all.return_value = [risk]
         actions = ActionCenter(mock_db).priority_actions(limit=5)

@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -40,7 +41,7 @@ public class AuditService {
                 .resource(RESOURCE_AUTH)
                 .status(STATUS_SUCCESS)
                 .ipAddress(ipAddress)
-                .timestamp(LocalDateTime.now())
+                .timestamp(LocalDateTime.now(ZoneId.systemDefault()))
                 .build();
         auditLogRepository.save(auditLog);
         log.info("User {} logged in from IP {}", username, ipAddress);
@@ -57,7 +58,7 @@ public class AuditService {
                 .status("FAILED")
                 .details(reason)
                 .ipAddress(ipAddress)
-                .timestamp(LocalDateTime.now())
+                .timestamp(LocalDateTime.now(ZoneId.systemDefault()))
                 .build();
         auditLogRepository.save(auditLog);
         log.warn("Failed login attempt for user {} from IP {} - Reason: {}", username, ipAddress, reason);
@@ -73,7 +74,7 @@ public class AuditService {
                 .resource(RESOURCE_AUTH)
                 .status(STATUS_SUCCESS)
                 .ipAddress(ipAddress)
-                .timestamp(LocalDateTime.now())
+                .timestamp(LocalDateTime.now(ZoneId.systemDefault()))
                 .build();
         auditLogRepository.save(auditLog);
         log.info("User {} logged out", username);
@@ -89,7 +90,7 @@ public class AuditService {
                 .resource(USER_KEY + targetUser)
                 .status(STATUS_SUCCESS)
                 .details(details)
-                .timestamp(LocalDateTime.now())
+                .timestamp(LocalDateTime.now(ZoneId.systemDefault()))
                 .build();
         auditLogRepository.save(auditLog);
         log.info("User {} performed {} on account {}: {}", actor, action, targetUser, details);
@@ -105,7 +106,7 @@ public class AuditService {
                 .resource(resource)
                 .status("DENIED")
                 .ipAddress(ipAddress)
-                .timestamp(LocalDateTime.now())
+                .timestamp(LocalDateTime.now(ZoneId.systemDefault()))
                 .build();
         auditLogRepository.save(auditLog);
         log.warn("Unauthorized access attempt by {} to {} from IP {}", username, resource, ipAddress);
@@ -122,7 +123,7 @@ public class AuditService {
                 .resource(resource + " (ID: " + resourceId + ")")
                 .status(STATUS_SUCCESS)
                 .details(details)
-                .timestamp(LocalDateTime.now())
+                .timestamp(LocalDateTime.now(ZoneId.systemDefault()))
                 .build();
         auditLogRepository.save(auditLog);
         log.info("User {} performed {} on {} with ID {}: {}", username, operation, resource, resourceId, details);
@@ -164,7 +165,7 @@ public class AuditService {
                 .status(STATUS_SUCCESS)
                 .details("Password reset requested")
                 .ipAddress(ipAddress)
-                .timestamp(LocalDateTime.now())
+                .timestamp(LocalDateTime.now(ZoneId.systemDefault()))
                 .build();
         auditLogRepository.save(auditLog);
         log.info("Password reset requested for email={} from IP {}", email, ipAddress);
@@ -181,7 +182,7 @@ public class AuditService {
                 .status(STATUS_SUCCESS)
                 .details("Password reset completed")
                 .ipAddress(ipAddress)
-                .timestamp(LocalDateTime.now())
+                .timestamp(LocalDateTime.now(ZoneId.systemDefault()))
                 .build();
         auditLogRepository.save(auditLog);
         log.info("Password reset completed for user={}", username);
@@ -198,7 +199,7 @@ public class AuditService {
                 .status(STATUS_SUCCESS)
                 .details("Account banned by " + adminUsername)
                 .ipAddress(ipAddress)
-                .timestamp(LocalDateTime.now())
+                .timestamp(LocalDateTime.now(ZoneId.systemDefault()))
                 .build();
         auditLogRepository.save(auditLog);
         log.info("Account {} banned by admin {}", targetUsername, adminUsername);
@@ -215,7 +216,7 @@ public class AuditService {
                 .status(STATUS_SUCCESS)
                 .details("Account enabled by " + adminUsername)
                 .ipAddress(ipAddress)
-                .timestamp(LocalDateTime.now())
+                .timestamp(LocalDateTime.now(ZoneId.systemDefault()))
                 .build();
         auditLogRepository.save(auditLog);
         log.info("Account {} enabled by admin {}", targetUsername, adminUsername);

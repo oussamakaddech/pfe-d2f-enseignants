@@ -15,6 +15,8 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.*;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -54,11 +56,8 @@ class FormationWorkflowServiceTest {
         request.setTitreFormation("Formation Test");
         request.setTypeBesoin("PROJET");
         
-        Calendar cal = Calendar.getInstance();
-        cal.set(2026, Calendar.JANUARY, 1);
-        request.setDateDebut(cal.getTime());
-        cal.set(2026, Calendar.DECEMBER, 31);
-        request.setDateFin(cal.getTime());
+        request.setDateDebut(LocalDate.of(2026, 1, 1));
+        request.setDateFin(LocalDate.of(2026, 12, 31));
         
         request.setTypeFormation(TypeFormation.INTERNE);
         request.setObjectifs("Test Objectifs");
@@ -79,7 +78,7 @@ class FormationWorkflowServiceTest {
             return f;
         });
         lenient().when(seanceFormationRepository.existsSeanceConflict(any(), any(), any(), any())).thenReturn(false);
-        lenient().when(helper.parseTime(anyString())).thenReturn(new java.sql.Time(0));
+        lenient().when(helper.parseTime(anyString())).thenReturn(LocalTime.MIDNIGHT);
 
         Formation result = formationWorkflowService.createFormationWorkflow(request);
 
@@ -100,7 +99,7 @@ class FormationWorkflowServiceTest {
         lenient().when(seanceFormationRepository.existsSeanceConflict(any(), any(), any(), any())).thenReturn(true);
         lenient().when(seanceFormationRepository.findByParticipantAndDate(anyString(), any())).thenReturn(List.of(new SeanceFormation()));
         lenient().when(enseignantRepository.findById("P1")).thenReturn(Optional.of(new Enseignant()));
-        lenient().when(helper.parseTime(anyString())).thenReturn(new java.sql.Time(0));
+        lenient().when(helper.parseTime(anyString())).thenReturn(LocalTime.MIDNIGHT);
         
         doThrow(new IllegalStateException("Conflit")).when(helper)
                 .createSeancesForFormation(any(), any(), any());
@@ -363,9 +362,9 @@ class FormationWorkflowServiceTest {
         SeanceFormation sf = new SeanceFormation();
         sf.setIdSeance(1L);
         sf.setCalendarEventId("OLD_ID");
-        sf.setDateSeance(new Date());
-        sf.setHeureDebut(java.sql.Time.valueOf("09:00:00"));
-        sf.setHeureFin(java.sql.Time.valueOf("11:00:00"));
+        sf.setDateSeance(LocalDate.now());
+        sf.setHeureDebut(LocalTime.of(9, 0));
+        sf.setHeureFin(LocalTime.of(11, 0));
         sf.setAnimateurs(new ArrayList<>());
         sf.setParticipants(new ArrayList<>());
         
@@ -408,7 +407,7 @@ class FormationWorkflowServiceTest {
         lenient().when(formationRepository.save(any())).thenReturn(existing);
         lenient().when(enseignantRepository.findAllById(anySet())).thenReturn(new ArrayList<>());
         lenient().when(enseignantRepository.findById("P1")).thenReturn(Optional.of(new Enseignant()));
-        lenient().when(helper.parseTime(anyString())).thenReturn(new java.sql.Time(0));
+        lenient().when(helper.parseTime(anyString())).thenReturn(LocalTime.MIDNIGHT);
 
         Formation result = formationWorkflowService.updateFormationWorkflow(1L, request);
 
@@ -523,7 +522,7 @@ class FormationWorkflowServiceTest {
         lenient().when(formationRepository.findById(1L)).thenReturn(Optional.of(existing));
         lenient().when(presenceRepository.findBySeanceFormation_IdSeance(anyLong())).thenReturn(new ArrayList<>());
         lenient().when(enseignantRepository.findById("UNKNOWN")).thenReturn(Optional.empty());
-        lenient().when(helper.parseTime(any())).thenReturn(new java.sql.Time(0));
+        lenient().when(helper.parseTime(any())).thenReturn(LocalTime.MIDNIGHT);
 
         assertThrows(IllegalArgumentException.class, () -> formationWorkflowService.updateFormationWorkflow(1L, request));
     }
@@ -547,11 +546,7 @@ class FormationWorkflowServiceTest {
 
     private FormationWorkflowRequest.SeanceRequest createSeanceRequest(String date, String debut, String fin) {
         FormationWorkflowRequest.SeanceRequest sr = new FormationWorkflowRequest.SeanceRequest();
-        try {
-            sr.setDateSeance(new java.text.SimpleDateFormat("yyyy-MM-dd").parse(date));
-        } catch (Exception e) {
-            throw new RuntimeException("Failed to parse date: " + date, e);
-        }
+        sr.setDateSeance(LocalDate.parse(date));
         sr.setHeureDebut(debut);
         sr.setHeureFin(fin);
         return sr;

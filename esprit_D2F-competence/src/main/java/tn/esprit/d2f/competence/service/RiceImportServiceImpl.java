@@ -18,6 +18,7 @@ import tn.esprit.d2f.competence.repository.*;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.*;
 
 
@@ -200,7 +201,7 @@ public class RiceImportServiceImpl implements IRiceImportService {
                                 .enseignantId(ensId)
                                 .savoir(savoir)
                                 .niveau(niveau)
-                                .dateAcquisition(LocalDate.now())
+                                .dateAcquisition(LocalDate.now(ZoneId.systemDefault()))
                                 .build());
                 c.affectationsCreated++;
                 c.enseignantsCoveredSet.add(ensId);
@@ -243,7 +244,7 @@ public class RiceImportServiceImpl implements IRiceImportService {
                 c.affectationsCreated, enseignantsCovered);
 
         RiceImportLog importLog = RiceImportLog.builder()
-                .generatedAt(LocalDateTime.now())
+                .generatedAt(LocalDateTime.now(ZoneId.systemDefault()))
                 .domainesCreated(c.domainesCreated)
                 .competencesCreated(c.competencesCreated)
                 .sousCompetencesCreated(c.sousCompetencesCreated)

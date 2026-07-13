@@ -176,6 +176,37 @@ describe('AnalysePredictiveService', () => {
 
   it('analyserTendancesGlobales handles errors', async () => {
     httpMocks.mockGet.mockRejectedValueOnce(new Error('Summary failed'));
-    await expect(AnalysePredictiveService.analyserTendancesGlobales()).rejects.toThrow('Summary failed');
+    await expect(AnalysePredictiveService.analyserTendancesGlobales()).rejects.toThrow('Erreur lors du chargement du tableau de bord');
+  });
+
+  it('getTrainingNeedsForecast calls correct endpoint with params', async () => {
+    const payload = {
+      method: 'ewma+linear',
+      months: 6,
+      history_months: 12,
+      departements: [
+        {
+          departement: 'INFO',
+          slope_par_mois: 0.2,
+          current_value: 4,
+          predicted_value: 5.3,
+          delta: 1.3,
+          history: [{ month: '2026-01', value: 4 }],
+          forecast: [{ month: '2026-08', value: 5.3, lower: 3, upper: 7 }],
+        },
+      ],
+      total_forecast: [{ month: '2026-08', value: 5.3, lower: 3, upper: 7 }],
+      top_departements: ['INFO'],
+      note: null,
+    };
+    httpMocks.mockGet.mockResolvedValueOnce({ data: payload });
+    const r = await AnalysePredictiveService.getTrainingNeedsForecast(6, 12);
+    expect(httpMocks.mockGet).toHaveBeenCalledWith(
+      expect.stringContaining('/dashboard/training-needs-forecast'),
+      { params: { months: 6, history_months: 12 } }
+    );
+    expect(r.departements).toHaveLength(1);
+    expect(r.departements[0].predicted_value).toBe(5.3);
+    expect(r.total_forecast[0].month).toBe('2026-08');
   });
 });

@@ -3,6 +3,7 @@ package esprit.pfe.servicecertificat.dto;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDate;
+import java.time.Month;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -14,8 +15,8 @@ class CertificateDtoTest {
         req.setFormationId(10L);
         req.setTitreFormation("Spring Boot");
         req.setTypeCertif("Participation");
-        req.setDateDebutFormation(LocalDate.of(2026, 1, 1));
-        req.setDateFinFormation(LocalDate.of(2026, 1, 5));
+        req.setDateDebutFormation(LocalDate.of(2026, Month.JANUARY, 1));
+        req.setDateFinFormation(LocalDate.of(2026, Month.JANUARY, 5));
         req.setChargeHoraireGlobal(40);
         req.setEnseignantId("ens-1");
         req.setNomEnseignant("Test");
@@ -27,8 +28,8 @@ class CertificateDtoTest {
         assertEquals(10L, req.getFormationId());
         assertEquals("Spring Boot", req.getTitreFormation());
         assertEquals("Participation", req.getTypeCertif());
-        assertEquals(LocalDate.of(2026, 1, 1), req.getDateDebutFormation());
-        assertEquals(LocalDate.of(2026, 1, 5), req.getDateFinFormation());
+        assertEquals(LocalDate.of(2026, Month.JANUARY, 1), req.getDateDebutFormation());
+        assertEquals(LocalDate.of(2026, Month.JANUARY, 5), req.getDateFinFormation());
         assertEquals(40, req.getChargeHoraireGlobal());
         assertEquals("ens-1", req.getEnseignantId());
         assertEquals("Test", req.getNomEnseignant());
@@ -51,8 +52,8 @@ class CertificateDtoTest {
         res.setDeptEnseignant("Dept");
         res.setRoleEnFormation("Formateur");
         res.setTypeCertif("CERTIF");
-        res.setDateDebutFormation(LocalDate.of(2026, 1, 1));
-        res.setDateFinFormation(LocalDate.of(2026, 1, 31));
+        res.setDateDebutFormation(LocalDate.of(2026, Month.JANUARY, 1));
+        res.setDateFinFormation(LocalDate.of(2026, Month.JANUARY, 31));
         res.setChargeHoraireGlobal(40);
         res.setEnseignantId("E001");
 
@@ -61,8 +62,8 @@ class CertificateDtoTest {
             () -> assertEquals(10L, res.getFormationId()),
             () -> assertEquals("Java", res.getTitreFormation()),
             () -> assertEquals("CERTIF", res.getTypeCertif()),
-            () -> assertEquals(LocalDate.of(2026, 1, 1), res.getDateDebutFormation()),
-            () -> assertEquals(LocalDate.of(2026, 1, 31), res.getDateFinFormation()),
+            () -> assertEquals(LocalDate.of(2026, Month.JANUARY, 1), res.getDateDebutFormation()),
+            () -> assertEquals(LocalDate.of(2026, Month.JANUARY, 31), res.getDateFinFormation()),
             () -> assertEquals(40, res.getChargeHoraireGlobal()),
             () -> assertEquals("E001", res.getEnseignantId()),
             () -> assertTrue(res.isDelivered()),
@@ -106,8 +107,8 @@ class CertificateDtoTest {
         original.setFormationId(10L);
         original.setTitreFormation("Spring");
         original.setTypeCertif("CERTIF");
-        original.setDateDebutFormation(LocalDate.of(2026, 1, 1));
-        original.setDateFinFormation(LocalDate.of(2026, 1, 31));
+        original.setDateDebutFormation(LocalDate.of(2026, Month.JANUARY, 1));
+        original.setDateFinFormation(LocalDate.of(2026, Month.JANUARY, 31));
         original.setChargeHoraireGlobal(40);
         original.setEnseignantId("E001");
         original.setNomEnseignant("Test");
@@ -146,14 +147,14 @@ class CertificateDtoTest {
         msg.setFormationId(10L);
         msg.setTitreFormation("Test");
         msg.setTypeCertif("Participation");
-        msg.setDateDebutFormation(LocalDate.of(2026, 1, 1));
-        msg.setDateFinFormation(LocalDate.of(2026, 1, 5));
+        msg.setDateDebutFormation(LocalDate.of(2026, Month.JANUARY, 1));
+        msg.setDateFinFormation(LocalDate.of(2026, Month.JANUARY, 5));
         msg.setChargeHoraireGlobal(20);
 
         assertEquals(10L, msg.getFormationId());
         assertEquals("Test", msg.getTitreFormation());
         assertEquals("Participation", msg.getTypeCertif());
-        assertEquals(LocalDate.of(2026, 1, 1), msg.getDateDebutFormation());
+        assertEquals(LocalDate.of(2026, Month.JANUARY, 1), msg.getDateDebutFormation());
     }
 
     @Test

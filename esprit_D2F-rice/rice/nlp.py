@@ -62,8 +62,8 @@ except Exception:
 # Re-export so other submodules can check availability
 __all_flags__ = {"_PDF_OK", "_DOCX_OK", "_FUZZY_OK", "_OCR_OK"}
 
-_RE_WHITESPACE_NEWLINE = r"\s*\n\s*"
-_RE_SINGLE_DIGIT = r"^(\d)\s*$"
+_RE_WHITESPACE_NEWLINE = r"[ \t]{0,32}\n[ \t]{0,32}"
+_RE_SINGLE_DIGIT = r"^(\d)[ \t]*$"
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -223,7 +223,7 @@ def _extract_text(filename: str, data: bytes) -> Tuple[str, List]:
     name = _secure_filename(filename).lower()
     if name.endswith(".pdf"):
         return _extract_pdf(data)
-    if name.endswith(".docx") or name.endswith(".doc"):
+    if name.endswith((".docx", ".doc")):
         return _extract_docx(data), []
     # plain text fallback
     return data.decode("utf-8", errors="ignore"), []
@@ -752,13 +752,13 @@ def _llm_fallback_items(text: str, module_name: str) -> List[str]:
 #   "Sous-compétence : Conception du test"
 #   "S‑C 2. Validation logicielle"
 _RE_SUBCOMP_TITLE_1 = re.compile(
-    r"^(?:SC|Sous[-\s]?comp[ée]tence)\s*\d*\s*[:\-–]\s*([^\n\r]+)", re.I | re.M
+    r"^(?:Sous[-\s]?comp[ée]tence|S\-?C)\s*\d{1,4}\s*[:\-–]\s*([^\n\r]{1,200})", re.I | re.M
 )
 _RE_SUBCOMP_TITLE_2 = re.compile(
-    r"^Sous[-\s]?comp[ée]tence\s*[:\-–]\s*([^\n\r]+)", re.I | re.M
+    r"^Sous[-\s]?comp[ée]tence\s*[:\-–]\s*([^\n\r]{1,200})", re.I | re.M
 )
 _RE_SUBCOMP_TITLE_3 = re.compile(
-    r"^S[\-‑]C\s*(\d+)\s*[.\-–]\s*([^\n\r]+)", re.I | re.M
+    r"^S[\-‑]C\s*(\d+)\s*[.\-–]\s*([^\n\r]{1,200})", re.I | re.M
 )
 
 
@@ -822,80 +822,80 @@ def _llm_extract_subcompetences(text: str, module_name: str) -> List[str]:
 
 # ── Standard format: label : value on the SAME line ─────────────────────────
 _RE_MODULE_CODE = re.compile(
-    r"code\s*[:\-]?\s*([A-Z][A-Z0-9\-_]{2,15})", re.I
+    r"^[ \t]*code[ \t]*([A-Z][A-Z0-9\-_]{2,15})", re.I | re.MULTILINE
 )
 # ── Table/reversed format: value on previous line, label on next line ────────
 # Captures code like "MT-34" that appears as a standalone token on its own line
 _RE_MODULE_CODE_TABLE = re.compile(
-    r"^\s*([A-Z]{1,4}[\-_]?\d{1,4}[A-Z]?)\s*\d*h.*$",
+    r"^[ \t]*([A-Z]{1,4}[\-_]?\d{1,4}[A-Z]?)[ \t]*\d*h[^\n]*$",
     re.MULTILINE,
 )
 _RE_MODULE_NAME = re.compile(
-    r"(?:Module|Mati\u00e8re|Unit\u00e9\s+d['\u2019]enseignement)\s*[:\-]?\s*(.{5,80})",
-    re.IGNORECASE,
+    r"^[ \t]*(?:Module|Mati\u00e8re|Unit\u00e9\s+d['\u2019]enseignement)[ \t]*([^\n]{5,80})",
+    re.IGNORECASE | re.MULTILINE,
 )
 _RE_MODULE_TITLE_ESPRIT = re.compile(
-    r"^(Module\s*[:\-]\s*|Fiche\s+[Mm]odule\s*[:\-]?\s*)(.{3,100})$",
+    r"^(?:Fiche\s+)?[Mm]odule[ \t]*([^\n]{3,100})$",
     re.MULTILINE,
 )
 _RE_UNITE_PEDAGOGIQUE = re.compile(
-    r"(?:Unit\u00e9\s+p\u00e9dagogique|UP)\s*[:\-]?\s*(.{3,60})",
-    re.IGNORECASE,
+    r"^[ \t]*(?:Unit\u00e9\s+p\u00e9dagogique|UP)[ \t]*([^\n]{3,60})",
+    re.IGNORECASE | re.MULTILINE,
 )
 # Standard responsable (label: value)
 _RE_RESPONSABLE = re.compile(
-    r"(?:Responsable(?:\s+(?:Module|UE|Mati[eè]re|Cours))?|Coordinat(?:eur|rice))\s*[:\-]?\s*(.{3,80})",
-    re.IGNORECASE,
+    r"^[ \t]*(?:Responsable(?:\s+(?:Module|UE|Mati[eè]re|Cours))?|Coordinat(?:eur|rice))[ \t]*([^\n]{3,80})",
+    re.IGNORECASE | re.MULTILINE,
 )
 # Reversed format: capture line BEFORE "Responsable Module" label
 _RE_RESPONSABLE_REV = re.compile(
-    r"^(.{5,80})\n\s*Responsable\s*(?:Module|UE|Mati[eè]re|Cours)?",
+    r"^([^\n]{5,80})\n[ \t]*Responsable[ \t]*(?:Module|UE|Mati[eè]re|Cours)?",
     re.IGNORECASE | re.MULTILINE,
 )
 # Standard enseignants (label: value)
 _RE_ENSEIGNANTS = re.compile(
-    r"(?:Enseignants?|Intervenants?|Professeurs?|Formateurs?|Titulaire)\s*[:\-]?\s*(.{5,300})",
-    re.IGNORECASE,
+    r"^[ \t]*(?:Enseignants?|Intervenants?|Professeurs?|Formateurs?|Titulaire)[ \t]*([^\n]{5,300})",
+    re.IGNORECASE | re.MULTILINE,
 )
 _RE_ENSEIGNANTS_DUAL = re.compile(
-    r"(?:Enseignants?|Intervenants?)\s*[\u2013\-]\s*(?:Enseignants?|Intervenants?)\s*[:\-]?\s*(.{5,300})",
-    re.IGNORECASE,
+    r"^[ \t]*(?:Enseignant|intervenant)s?[ \t]+[\u2013\-][ \t]+(?:Enseignant|intervenant)s?[ \t]+([^\n]{5,300})",
+    re.IGNORECASE | re.MULTILINE,
 )
 # Reversed format: capture line BEFORE "Enseignants" label
 _RE_ENSEIGNANTS_REV = re.compile(
-    r"^(.{5,300})\n\s*(?:Enseignants?|Intervenants?)\s*$",
+    r"^([^\n]{5,300})\n[ \t]*(?:Enseignants?|Intervenants?)[ \t]*$",
     re.IGNORECASE | re.MULTILINE,
 )
 _RE_ENSEIGNANTS_REV_DUAL = re.compile(
-    r"^(.{5,300})\n\s*(?:Enseignants?|Intervenants?)\s*[\u2013\-]\s*(?:Enseignants?|Intervenants?)\s*$",
+    r"^([^\n]{5,300})\n[ \t]*(?:Enseignant|intervenant)s?[ \t]+[\u2013\-][ \t]+(?:Enseignant|intervenant)s?[ \t]+$",
     re.IGNORECASE | re.MULTILINE,
 )
 # Additional patterns for ESPRIT fiche modules (table-based PDFs)
 _RE_NOM_PRENOM = re.compile(
-    r"(?:Nom\s+(?:et|&)\s+Pr[eé]nom|Nom\s+Pr[eé]nom)\s*[:\-]?\s*(.{5,80})",
-    re.IGNORECASE,
+    r"^[ \t]*(?:Nom\s+(?:et|&)\s+Pr[eé]nom|Nom\s+Pr[eé]nom)[ \t]*([^\n]{5,80})",
+    re.IGNORECASE | re.MULTILINE,
 )
 _RE_EQUIPE_PEDAGOGIQUE = re.compile(
-    r"[ÉE]quipe\s+p[ée]dagogique\s*[:\-]?\s*(.{5,400})",
-    re.IGNORECASE,
+    r"^[ \t]*[ÉE]quipe\s+p[ée]dagogique[ \t]*([^\n]{5,400})",
+    re.IGNORECASE | re.MULTILINE,
 )
 _RE_COORDINATEUR = re.compile(
-    r"Coordinat(?:eur|rice)(?:\s+(?:du\s+)?(?:module|UE|cours))?\s*[:\-]?\s*(.{3,80})",
-    re.IGNORECASE,
+    r"^[ \t]*Coordinat(?:eur|rice)(?:\s+(?:du\s+)?(?:module|UE|cours))?[ \t]*([^\n]{3,80})",
+    re.IGNORECASE | re.MULTILINE,
 )
 # Standard prerequis
 _RE_PREREQUIS = re.compile(
-    r"Pr\u00e9[\-\s]?requis\s*[:\-]?\s*(.{3,200})",
-    re.IGNORECASE,
+    r"^[ \t]*Pr\u00e9[\-\s]?requis[ \t]*([^\n]{3,200})",
+    re.IGNORECASE | re.MULTILINE,
 )
 # Reversed format: capture line BEFORE "Prérequis" label
 _RE_PREREQUIS_REV = re.compile(
-    r"^(.{3,200})\n\s*Pr[eé][\-\s]?requis\s*$",
+    r"^([^\n]{3,200})\n[ \t]*Pr[eé][\-\s]?requis[ \t]*$",
     re.IGNORECASE | re.MULTILINE,
 )
 _RE_OBJECTIF = re.compile(
-    r"Objectifs?(?:\s+du\s+module)?\s*[:\-]?\s*(.+)(?=\n\n|Mode\s+d|Acquis|$)",
-    re.IGNORECASE | re.DOTALL,
+    r"^[ \t]*Objectifs?(?:\s+du\s+module)?[ \t]*([^\n]{1,500})(?=\n\n|Mode\s+d|Acquis|$)",
+    re.IGNORECASE | re.MULTILINE,
 )
 
 
@@ -923,17 +923,17 @@ _STOP_WORDS = {
 def _clean_name(raw: str) -> Optional[str]:
     """Clean a potential person name: remove noise, validate it looks like a name."""
     # Remove common trailing noise
-    name = re.sub(r"\s*[\(\[][^\)\]]*[\)\]]", "", raw)  # remove (parentheses)
-    name = re.sub(r"\s*[-–]\s*(cours|tp|td|module|ue).*$", "", name, flags=re.I)
-    name = re.sub(r"\s+(mail|email|tél|tel|bureau|grade).*$", "", name, flags=re.I)
+    name = re.sub(r"[ \t]{0,8}[\(\[][^\)\]]{0,60}[\)\]]", "", raw)  # remove (parentheses)
+    name = re.sub(r"^(.*?)[ \t]{0,8}[-–][ \t]{0,8}(?:cours|tp|td|module|ue)[^\n]{0,200}$", r"\1", name, flags=re.I)
+    name = re.sub(r"^(.*?)[ \t]{1,8}(?:mail|email|tél|tel|bureau|grade)[^\n]{0,200}$", r"\1", name, flags=re.I)
     # Strip academic titles
-    name = re.sub(r"^(Dr\.?|Pr\.?|Prof\.?|M\.?|Mme\.?|Mr\.?)\s+", "", name, flags=re.I)
+    name = re.sub(r"^(Dr\.?|Pr\.?|Prof\.?|M\.?|Mme\.?|Mr\.?)[ \t]+", "", name, flags=re.I)
     name = name.strip().strip(".,;:-–")
     # Take only first line if multiline
     name = name.split("\n")[0].strip()
     # Strip embedded enseignant/module codes (e.g. "GC05", "E001") before digit check
     # so a string like "GC05 Abidi Mounir" is not thrown away entirely
-    name_no_codes = re.sub(r'\b[A-Z]{1,5}\d{1,4}\b\s*', '', name).strip()
+    name_no_codes = re.sub(r'\b[A-Z]{1,5}\d{1,4}\b[ \t]*', '', name).strip()
     if name_no_codes:   # only use stripped version if something remains
         name = name_no_codes.strip(".,;:- –")
     # Must have at least 2 words (first + last name)
@@ -959,12 +959,12 @@ def _split_names(raw: str) -> List[str]:
     # Also try " – " (en-dash with spaces) and " - " as separators
     expanded = []
     for p in parts:
-        sub = re.split(r"\s+[–\-]\s+", p)
+        sub = re.split(r"[ \t]{1,8}[–\-][ \t]{1,8}", p)
         expanded.extend(sub)
     # Also try " et " as separator
     final = []
     for p in expanded:
-        sub = re.split(r"\s+et\s+", p, flags=re.IGNORECASE)
+        sub = re.split(r"[ \t]{1,8}et[ \t]{1,8}", p, flags=re.IGNORECASE)
         final.extend(sub)
     names = []
     for part in final:
@@ -1095,7 +1095,7 @@ def _handle_table_enseignant(value: str, meta: Dict[str, Any]) -> None:
 def _handle_table_nom_module(value: str, meta: Dict[str, Any]) -> None:
     if "nom_module" not in meta:
         raw_val = value.strip().rstrip(".")
-        raw_val = re.sub(r"\s*(Pr\u00e9requis|Niveaux|Objectif|Derni[\u00e8e]re).*$", "", raw_val, flags=re.I)
+        raw_val = re.sub(r"^(.*?)[ \t]{0,8}(?:Pr\u00e9requis|Niveaux|Objectif|Derni[\u00e8e]re)[^\n]{0,200}$", r"\1", raw_val, flags=re.I)
         if len(raw_val) > 2:
             meta["nom_module"] = raw_val
 
@@ -1166,7 +1166,7 @@ def _apply_table_meta_cell(
 
 
 _RE_UP_REV = re.compile(
-    r"^(.{3,60})\n\s*(?:Unit[eé]\s+p[eé]dagogique|UP)\s*$", re.I | re.MULTILINE,
+    r"^([^\n]{3,60})\n[ \t]*(?:Unit[eé]\s+p[eé]dagogique|UP)[ \t]*$", re.I | re.MULTILINE,
 )
 _RE_PREREQUIS_NOISE = re.compile(r"^\d+[A-Z]{3,}")
 _RE_SECTION_HDR = re.compile(
@@ -1224,7 +1224,7 @@ def _extract_regex_nom_module(text: str) -> Optional[str]:
     if not m:
         return None
     name = m.group(1).strip().rstrip(".")
-    return re.sub(r"\s*(Pr\u00e9requis|Niveaux|Objectif|Derni[eè]re).*$", "", name, flags=re.I)
+    return re.sub(r"^(.*?)[ \t]{0,8}(?:Pr\u00e9requis|Niveaux|Objectif|Derni[eè]re)[^\n]{0,200}$", r"\1", name, flags=re.I)
 
 
 def _extract_regex_unite_pedagogique(text: str) -> Optional[str]:
@@ -1390,10 +1390,10 @@ def _extract_metadata(text: str, raw_tables: Optional[List] = None) -> Dict[str,
 
 # ── AA extraction patterns ───────────────────────────────────────────────────
 _RE_AA_LINE = re.compile(
-    r"AA\s*(\d+)\s+([^\n\r]+)\s+(\d)\s*$", re.MULTILINE
+    r"^AA[ \t]*(\d{1,4})[ \t]+([^\n\r]{1,200})[ \t]+(\d)[ \t]*$", re.MULTILINE
 )
 _RE_AA_ALT = re.compile(
-    r"AA\s*(\d+)\s+(.+)", re.MULTILINE
+    r"AA[ \t]*(\d+)[ \t]+([^\n]+)", re.MULTILINE
 )
 
 
@@ -1409,10 +1409,10 @@ _RE_AA_SKIP = re.compile(
 )
 _RE_AA_SKIP2 = re.compile(r"^Acquis\s+d[\x27\u2019]appre", re.I)
 _RE_AA_SKIP3 = re.compile(r"^d[\x27\u2019]approfondissement", re.I)
-_RE_AA_BLOOM_MULTI = re.compile(r"\s+(\d)\s+et\s+(\d)\s*$")
-_RE_AA_BLOOM_SINGLE = re.compile(r"\s+(\d)\s*$")
-_RE_AA_STANDALONE_MULTI = re.compile(r"^(\d)\s+et\s+(\d)\s*$")
-_RE_AA_CLEAN = re.compile(r"\s*(?:Situation|Dur[eé]e|Rendu|d['\u2019]apprentissage).*$", re.I)
+_RE_AA_BLOOM_MULTI = re.compile(r"[ \t]{1,8}(\d)[ \t]{1,8}et[ \t]{1,8}(\d)[ \t]{0,8}$")
+_RE_AA_BLOOM_SINGLE = re.compile(r"[ \t]{1,8}(\d)[ \t]{0,8}$")
+_RE_AA_STANDALONE_MULTI = re.compile(r"^(\d)[ \t]+et[ \t]+(\d)[ \t]*$")
+_RE_AA_CLEAN = re.compile(r"[ \t]{0,8}(?:Situation|Dur[eé]e|Rendu|d['\u2019]apprentissage)[^\n]{0,200}$", re.I)
 
 _RE_AA_METADATA = re.compile(
     r"(?:^|\s)(?:Code|HE|HNE|ECTS|Coefficient|Volume)\s*[:\uFF1A]"
@@ -1469,7 +1469,7 @@ def _is_aa_skip(stripped: str) -> bool:
         return True
     if _RE_AA_SKIP.match(stripped):
         return True
-    if stripped.startswith('*') or stripped.startswith('(1'):
+    if stripped.startswith(('*', '(1')):
         return True
     if re.match(r'^:\s', stripped):
         return True
@@ -1690,12 +1690,12 @@ def _extract_acquis_apprentissage(text: str) -> List[Dict[str, Any]]:
 # ─────────────────────────────────────────────────────────────────────────────
 
 _RE_SEANCE = re.compile(
-    r"(?:S[eé]ance|Session|Chapitre|Semaine)\s*(\d+(?:\s*[-\u2013]\s*\d+)?)\s*[:\-]?\s*([^\n]+)",
+    r"^[ \t]*(?:S[eé]ance|Session|Chapitre|Semaine)[ \t]+(\d{1,4}(?:[-\u2013]\d{1,4})?)[ \t]+([^\n]{1,200})",
     re.IGNORECASE,
 )
-_RE_CHECKMARK = re.compile(r"^[\u2714\u2713\u2611\u2610]\s*(.+)$", re.MULTILINE)
-_RE_BULLET    = re.compile(r"^[\-\u2022\*\u203A\u25E6\u25AA]\s+(.+)$", re.MULTILINE)
-_RE_NUMBERED  = re.compile(r"^\d+[\.\)]\s+(.+)$", re.MULTILINE)
+_RE_CHECKMARK = re.compile(r"^[\u2714\u2713\u2611\u2610][ \t]*([^\n]{1,300})$", re.MULTILINE)
+_RE_BULLET    = re.compile(r"^[\-\u2022\*\u203A\u25E6\u25AA][ \t]{1,20}([^\n]{1,300})$", re.MULTILINE)
+_RE_NUMBERED  = re.compile(r"^\d+[\.\)][ \t]{1,20}([^\n]{1,300})$", re.MULTILINE)
 
 def _extract_block_items(block: str) -> List[str]:
     items: List[str] = []
@@ -1705,7 +1705,7 @@ def _extract_block_items(block: str) -> List[str]:
 
 
 def _extract_block_type(block: str) -> Optional[str]:
-    m = re.search(r"(?:Situation\s*(?:\(s\))?|Type)\s*[:\-]?\s*", block, re.IGNORECASE)
+    m = re.search(r"(?:Situation\s*(?:\(s\))?|Type)[ \t]*", block, re.IGNORECASE)
     if not m:
         return None
     start = m.end()
@@ -1717,7 +1717,7 @@ def _extract_block_type(block: str) -> Optional[str]:
 
 
 def _extract_block_duree(block: str) -> Optional[str]:
-    m = re.search(r"(?:Dur\u00e9e|Duree)\s*[:\-]?\s*(\d+\s*h)", block, re.I)
+    m = re.search(r"^[ \t]*(?:Dur\u00e9e|Duree)[ \t]*(\d{1,4}[ \t]*h)", block, re.I | re.MULTILINE)
     return m.group(1).strip() if m else None
 
 
@@ -1751,7 +1751,7 @@ def _extract_seances(text: str) -> List[Dict[str, Any]]:
 
 
 _RE_COMP_ITEM = re.compile(
-    r"^([A-Z](?:ech|[a-z])?)\s*(\d+[a-z]?)\s*[-\u2013]\s*(.{10,300})$",
+    r"^([A-Z](?:ech|[a-z])?)[ \t]*(\d+[a-z]?)[ \t]*[-\u2013][ \t]*([^\n]{10,300})$",
 )
 
 _RE_COMP_STOP = re.compile(
@@ -1759,7 +1759,7 @@ _RE_COMP_STOP = re.compile(
 )
 
 _RE_COMP_TRUNCATE = re.compile(
-    r"\s+(?:[•·]\s*)?Comp[eé]tences?(?:\s+dans\s+le\s+domaine\s+|\s+)",
+    r"Comp[eé]tence",
     re.I,
 )
 

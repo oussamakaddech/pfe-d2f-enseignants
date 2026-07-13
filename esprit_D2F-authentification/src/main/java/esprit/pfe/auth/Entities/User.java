@@ -22,7 +22,7 @@ import java.util.UUID;
 @Table(name = "users")
 @SQLDelete(sql = "UPDATE auth.users SET deleted_at = NOW() WHERE id = ? AND version = ?")
 @SQLRestriction("deleted_at IS NULL")
-@Data
+@ToString
 @Getter
 @Setter
 @AllArgsConstructor

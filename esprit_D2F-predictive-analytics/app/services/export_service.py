@@ -20,11 +20,13 @@ from app.engines.reporting_engine import ReportingEngine
 
 logger = logging.getLogger(__name__)
 
+_COL_DEPARTEMENT = "Département"
+
 # (type d'export) → (titre feuille, en-têtes colonnes, extracteur de lignes)
 _EXCEL_COLUMNS = {
     "INACTIFS": (
         "Enseignants inactifs",
-        ["Nom", "Prénom", "Email", "Département", "UP",
+        ["Nom", "Prénom", "Email", _COL_DEPARTEMENT, "UP",
          "Dernière formation", "Mois sans formation", "Score risque", "Niveau"],
         lambda r: [r["nom"], r["prenom"], r["email"], r.get("departement"), r.get("up"),
                    r.get("derniereFormationDate"), r["nombreMoisDepuisDerniereFormation"],
@@ -32,7 +34,7 @@ _EXCEL_COLUMNS = {
     ),
     "PAR_UP": (
         "Analyse par UP",
-        ["UP", "Département", "Enseignants", "Formations", "Participations",
+        ["UP", _COL_DEPARTEMENT, "Enseignants", "Formations", "Participations",
          "Taux participation %", "Inactifs", "Score engagement"],
         lambda r: [r["upNom"], r.get("departementNom"), r["nombreEnseignants"],
                    r["nombreFormationsOrganisees"], r["nombreParticipations"],
@@ -40,7 +42,7 @@ _EXCEL_COLUMNS = {
     ),
     "PAR_DEPT": (
         "Analyse par département",
-        ["Département", "Enseignants", "Formations", "Participations",
+        [_COL_DEPARTEMENT, "Enseignants", "Formations", "Participations",
          "Taux participation %", "% à risque", "Niveau moyen", "Score engagement"],
         lambda r: [r["departementNom"], r["nombreEnseignants"], r["nombreFormationsOrganisees"],
                    r["nombreParticipations"], r["tauxParticipation"], r["pourcentageARisque"],

@@ -3,8 +3,8 @@ package esprit.pfe.serviceformation;
 import esprit.pfe.serviceformation.dto.*;
 import esprit.pfe.serviceformation.entities.DriveSubPath;
 import org.junit.jupiter.api.Test;
+import java.time.LocalDate;
 import java.util.Collections;
-import java.util.Date;
 import static org.junit.jupiter.api.Assertions.*;
 
 class ModelsCoverageTest {
@@ -27,7 +27,7 @@ class ModelsCoverageTest {
 
     @Test
     void testAnimateurFormationDTO() {
-        AnimateurFormationDTO dto = new AnimateurFormationDTO("Titre", "Cible", "Objectifs", 20, new Date(), new Date());
+        AnimateurFormationDTO dto = new AnimateurFormationDTO("Titre", "Cible", "Objectifs", 20, LocalDate.now(), LocalDate.now());
         assertEquals("Titre", dto.getTitreFormation());
         dto.setTitreFormation("New");
         assertEquals("New", dto.getTitreFormation());
@@ -59,7 +59,7 @@ class ModelsCoverageTest {
     
     @Test
     void testParticipantFormationDTO() {
-        ParticipantFormationDTO dto = new ParticipantFormationDTO("Titre", java.util.Collections.emptyList(), new Date(), new Date());
+        ParticipantFormationDTO dto = new ParticipantFormationDTO("Titre", java.util.Collections.emptyList(), LocalDate.now(), LocalDate.now());
         assertEquals("Titre", dto.getTitreFormation());
     }
 

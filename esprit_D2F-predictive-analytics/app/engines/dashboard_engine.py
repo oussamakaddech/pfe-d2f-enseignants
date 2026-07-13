@@ -10,6 +10,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.core.db import db_session as _db_session, execute_query
+from app.core.observability import safe_kpi
 from app.models.db_models import (
     AlertEvent, DashboardSnapshot, ModelRetrainingLog, Recommendation,
     SkillGap, TeacherCompetenceCoverage, TeacherRiskProfile, TrainingPathItem,
@@ -46,16 +47,8 @@ class DashboardEngine:
         return None
 
     def _safe(self, name: str, fn, default: Any) -> Any:
-        """Exécute un calcul de KPI en isolant ses erreurs.
-
-        Un KPI défaillant (ex. table source absente) ne doit pas faire échouer
-        l'ensemble du tableau de bord : on journalise et on renvoie un défaut.
-        """
-        try:
-            return fn()
-        except Exception as exc:  # noqa: BLE001 — résilience volontaire par KPI
-            logger.warning("KPI '%s' indisponible : %s", name, exc)
-            return default
+        """Exécute un calcul de KPI en isolant ses erreurs."""
+        return safe_kpi(name, fn, default, logger)
 
     def compute_all(self) -> dict[str, Any]:
         kpis = {
@@ -200,17 +193,38 @@ class DashboardEngine:
             .limit(20)
             .all()
         )
-        return [
-            {
-                "enseignant_id":    r.enseignant_id,
-                "score_risque":     float(r.score_risque),
-                "niveau_risque":    r.niveau_risque,
-                "tendance":         r.tendance,
+        if not rows:
+            return []
+        ids = [r.enseignant_id for r in rows]
+        # Import tardif : évite un cycle d'import engine ↔ router au chargement.
+        from app.routers.all import _build_signals_from_factors, _fetch_teacher_names
+        names = _fetch_teacher_names(self.db, ids)
+
+        result: list[dict] = []
+        for r in rows:
+            # ``facteurs_risque`` est persisté comme un dict
+            # {"factors": {...}, "contributions": {...}, "weights": {...}} par le
+            # pipeline (analytics._upsert_risk_profile). L'ancien test
+            # ``isinstance(list)`` renvoyait donc toujours [] — bug corrigé ici en
+            # dérivant les signaux depuis le dict, comme les autres dashboards.
+            factors = r.facteurs_risque if isinstance(r.facteurs_risque, dict) else {}
+            factor_details = factors.get("factors", {})
+            signals = _build_signals_from_factors(
+                factor_details.get("no_training", 0),
+                factor_details.get("stagnation", 0),
+                r.nb_gaps_critiques or 0,
+                factor_details.get("unmet_needs", 0),
+            )
+            result.append({
+                "enseignant_id":     r.enseignant_id,
+                "teacher_name":      names.get(r.enseignant_id, r.enseignant_id),
+                "score_risque":      float(r.score_risque),
+                "niveau_risque":     r.niveau_risque,
+                "tendance":          r.tendance,
                 "nb_gaps_critiques": r.nb_gaps_critiques,
-                "facteurs_risque":  r.facteurs_risque or [],
-            }
-            for r in rows
-        ]
+                "facteurs_risque":   signals,
+            })
+        return result
 
     # ── KPI 4 : Taux de couverture par département ───────────
     def taux_couverture_departements(self) -> list[dict]:
@@ -297,17 +311,21 @@ class DashboardEngine:
         ]
 
     # ── Helper : mapping enseignant → département ─────────────
+    _ens_dept_cache: dict[str, str] | None = None
+
     def _ens_dept_map(self) -> dict[str, str]:
+        if self._ens_dept_cache is not None:
+            return self._ens_dept_cache
         ens_dept_map: dict[str, str] = {}
         try:
-            with _db_session() as s:
-                all_ens = execute_query(s, ALL_ENSEIGNANTS_QUERY, {})
+            all_ens = execute_query(self.db, ALL_ENSEIGNANTS_QUERY, {})
             for e in all_ens:
                 ens_dept_map[str(e.get("enseignant_id", ""))] = str(
                     e.get("departement_id") or "non_affecte"
                 )
         except Exception as exc:
             logger.warning("Failed to load enseignant→dept map: %s", exc)
+        self._ens_dept_cache = ens_dept_map
         return ens_dept_map
 
     # ── KPI 7 : Heatmap des gaps département × compétence ────
@@ -377,13 +395,12 @@ class DashboardEngine:
         # Taux de complétion réel (base partagée).
         completion_index: dict[int, float] = {}
         try:
-            with _db_session() as s:
-                for c in DataService(s).get_formation_completion():
-                    fid = int(c["formation_id"])
-                    nb = int(c.get("nb_inscriptions") or 0)
-                    completion_index[fid] = round(
-                        int(c.get("nb_completed") or 0) / nb, 3
-                    ) if nb else 0.0
+            for c in DataService(self.db).get_formation_completion():
+                fid = int(c["formation_id"])
+                nb = int(c.get("nb_inscriptions") or 0)
+                completion_index[fid] = round(
+                    int(c.get("nb_completed") or 0) / nb, 3
+                ) if nb else 0.0
         except Exception as exc:
             logger.warning("Failed to load formation completion: %s", exc)
 
@@ -455,6 +472,11 @@ class DashboardEngine:
             logger.warning("Journal de ré-entraînement indisponible : %s", exc)
             self.db.rollback()
             last_log = None
+
+        # Fallback: if the metadata file is missing (ephemeral container),
+        # read accuracy from the most recent successful retrain log in DB.
+        if gap_accuracy is None and last_log and last_log.accuracy_after is not None:
+            gap_accuracy = float(last_log.accuracy_after)
 
         return {
             "gap_model_accuracy":       round(float(gap_accuracy), 3) if gap_accuracy is not None else None,

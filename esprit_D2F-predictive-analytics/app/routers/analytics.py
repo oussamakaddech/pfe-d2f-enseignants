@@ -1,5 +1,6 @@
 """Endpoints /api/v1/analytics/* — pipeline analyse prédictive complet."""
 
+import asyncio
 import logging
 import time
 from datetime import date, datetime, timezone
@@ -27,6 +28,7 @@ TraiteParParam = Annotated[Optional[str], Query()]
 CommentaireParam = Annotated[Optional[str], Query()]
 SeuilParam = Annotated[float, Query(ge=0.0, le=1.0)]
 
+from app.config import settings
 from app.core.auth import require_roles
 from app.core.observability import dsi_error_body
 from app.engines.alert_engine import AlertEngine
@@ -34,14 +36,72 @@ from app.engines.collaborative import CollaborativeFilter
 from app.engines.dashboard_engine import DashboardEngine
 from app.engines.feature_engine import FeatureEngine
 from app.engines.gap_engine import GapEngine
+from app.engines.impact_engine import TrainingImpactEngine, WhatIfEngine
 from app.engines.recommendation_engine import RecommendationEngine
 from app.engines.risk_scoring import build_factors_from_gaps, compute_risk_score
 from app.models.db_models import (
     AlertEvent, PredictionResult, Recommendation,
     SkillGap, TeacherRiskProfile, TrainingPath, TrainingPathItem,
 )
+from app.models.schemas import (
+    TrainingImpactResponse,
+    TrainingImpactTopFormationsResponse,
+    WhatIfRequest,
+    WhatIfResponse,
+)
 from app.services.data_service import DataService
 from app.services.analysis_collection_service import collect_analysis_data, build_domaine_demand as _build_domaine_demand
+
+# Dépendance d'autorisation en lecture (dashboards/analyse). ADMIN ou CUP.
+ReadAuth = Annotated[dict, Depends(require_roles("ADMIN", "CUP"))]
+
+
+def _resolve_object_scope(auth: dict, db: Session) -> set[str] | None:
+    """Retourne le périmètre d'accès objet pour un enseignant.
+
+    - ADMIN : ``None`` (accès total).
+    - CUP : ensemble des ``enseignant_id`` de SON département/UP.
+    - Autre rôle : ``set()`` vide → accès refusé (403).
+
+    Évite le BOLA/IDOR : un utilisateur ne peut pas analyser le profil d'un
+    enseignant hors de son périmètre via l'URL (P0-2).
+    """
+    from app.core.jwt_middleware import JWT_AUTH_ENABLED
+
+    if not JWT_AUTH_ENABLED:
+        return None  # mode test : pas de restriction
+    role = (auth.get("role") or "").upper()
+    if "ADMIN" in role:
+        return None
+    if "CUP" in role:
+        scope = DataService(db).get_enseignant_scope(auth.get("user_id"))
+        if not scope:
+            raise HTTPException(status_code=403, detail="Périmètre CUP introuvable.")
+        dept = scope.get("departement_id")
+        if dept is None:
+            return set()
+        rows = db.execute(
+            sa_text("SELECT id FROM enseignants WHERE dept_id = :d AND deleted_at IS NULL"),
+            {"d": dept},
+        ).fetchall()
+        return {str(r[0]) for r in rows}
+    raise HTTPException(status_code=403, detail="Rôle non autorisé pour cet accès.")
+
+
+def _enforce_teacher_access(auth: dict, enseignant_id: str, db: Session) -> None:
+    scope = _resolve_object_scope(auth, db)
+    if scope is None:
+        return
+    # ENSEIGNANT (ou CUP) : accès à son propre id, sinon au périmètre département.
+    if enseignant_id == str(auth.get("user_id")):
+        return
+    if enseignant_id in scope:
+        return
+    raise HTTPException(
+        status_code=403,
+        detail="Accès refusé : ce profil n'appartient pas à votre périmètre.",
+    )
+
 
 router = APIRouter(prefix="/v1/analytics", tags=["Analytics v1"])
 logger = logging.getLogger(__name__)
@@ -70,17 +130,20 @@ def _dsi_error(status_code: int, code: str, message: str, path: str) -> dict:
 async def analyze_enseignant(
     enseignant_id: str,
     request: Request,
+    auth: ReadAuth,
     db: DbSession,
 ) -> dict[str, Any]:
     """
     Déclenche le pipeline complet :
     FeatureEngine → GapEngine → RecommendationEngine → AlertEngine
-    Rôles autorisés : ADMIN, CUP, ENSEIGNANT (son propre profil uniquement).
+    Rôles autorisés : ADMIN (tout profil), CUP (son département), ENSEIGNANT
+    (son propre profil uniquement). Garde d'accès objet (BOLA) côté serveur.
     """
     t_start = time.time()
 
     svc = DataService(db)
     profile = _get_teacher_or_404(svc, enseignant_id, request)
+    _enforce_teacher_access(auth, enseignant_id, db)
 
     pred = PredictionResult(enseignant_id=enseignant_id, statut="EN_COURS")
     db.add(pred)
@@ -88,9 +151,30 @@ async def analyze_enseignant(
 
     try:
         data = collect_analysis_data(svc, enseignant_id)
-        gaps, recommendations, alerts, snapshot = _run_pipeline(
-            db, svc, enseignant_id, profile, data, pred.id,
-        )
+        try:
+            gaps, recommendations, alerts, snapshot = await asyncio.wait_for(
+                asyncio.to_thread(
+                    _run_pipeline, db, svc, enseignant_id, profile, data, pred.id,
+                ),
+                timeout=settings.analytics_pipeline_timeout_s,
+            )
+        except asyncio.TimeoutError:
+            pred.statut = "ERREUR"
+            pred.message_erreur = f"Pipeline timeout ({settings.analytics_pipeline_timeout_s}s)"
+            db.commit()
+            logger.error(
+                "Pipeline timeout pour %s après %ds",
+                enseignant_id,
+                settings.analytics_pipeline_timeout_s,
+            )
+            raise HTTPException(
+                status_code=504,
+                detail=_dsi_error(
+                    504, "ANA-504",
+                    f"Analyse timeout — le pipeline a dépassé {settings.analytics_pipeline_timeout_s}s",
+                    request.url.path,
+                ),
+            )
         _finalize_prediction(pred, data["req_levels"], gaps, recommendations, alerts, snapshot=snapshot, t_start=t_start)
         db.commit()
         logger.info("Analyse terminée pour %s en %dms", enseignant_id, pred.duree_analyse_ms)
@@ -98,7 +182,7 @@ async def analyze_enseignant(
         pred.statut = "ERREUR"
         pred.message_erreur = str(exc)[:500]
         db.commit()
-        logger.error("Analyse échouée pour %s : %s", enseignant_id, exc)
+        logger.exception("Analyse échouée pour %s : %s", enseignant_id, exc)
         raise HTTPException(
             status_code=500,
             detail=_dsi_error(500, "ANA-500", "Erreur lors de l'analyse", request.url.path),
@@ -153,7 +237,6 @@ def _run_pipeline(
         float(snapshot.taux_presence_moyen),
         collaborative=collaborative,
     )
-    dept_id = str(profile.get("departement_id") or "")
     alert_eng = AlertEngine(db)
     alerts = alert_eng.detect_and_save(
         enseignant_id, gaps, profile, data["besoins"], dept_id,
@@ -510,9 +593,13 @@ async def update_alert(
 
 # ── GET /api/v1/analytics/dashboard/global ───────────────────
 @router.get("/dashboard/global", summary="Tableau de bord global (ADMIN/CUP)")
-async def dashboard_global(db: DbSession) -> dict[str, Any]:
+async def dashboard_global(auth: ReadAuth, db: DbSession) -> dict[str, Any]:
     engine = DashboardEngine(db)
-    return engine.compute_all()
+    # Sert le snapshot en cache (≤ 6 h) calculé par le scheduler pour éviter de
+    # recalculer les 12 KPIs à chaque appel (P1-4 : ``get_cached`` n'était
+    # jamais appelé). Fallback sur un recalcul à la volée si rien en cache.
+    cached = engine.get_cached()
+    return cached if cached is not None else engine.compute_all()
 
 
 # ── GET /api/v1/analytics/dashboard/competences-declining ────
@@ -524,27 +611,35 @@ async def dashboard_competences_declining(db: DbSession) -> list[dict]:
 # ── GET /api/v1/analytics/dashboard/teachers-at-risk ─────────
 @router.get("/dashboard/teachers-at-risk", summary="Enseignants à risque")
 async def dashboard_teachers_at_risk(
+    auth: ReadAuth,
     db: DbSession,
-    seuil: SeuilParam = 0.50,
+    seuil: SeuilParam = settings.risk_score_eleve,
 ) -> list[dict]:
     return DashboardEngine(db).enseignants_a_risque(seuil=seuil)
 
 
 # ── GET /api/v1/analytics/dashboard/gap-heatmap ──────────────
 @router.get("/dashboard/gap-heatmap", summary="Heatmap des gaps département × compétence")
-async def dashboard_gap_heatmap(db: DbSession) -> list[dict]:
+async def dashboard_gap_heatmap(auth: ReadAuth, db: DbSession) -> list[dict]:
     return DashboardEngine(db).department_gap_heatmap()
 
 
 # ── GET /api/v1/analytics/dashboard/training-effectiveness ───
 @router.get("/dashboard/training-effectiveness", summary="Efficacité des formations")
-async def dashboard_training_effectiveness(db: DbSession) -> list[dict]:
+async def dashboard_training_effectiveness(auth: ReadAuth, db: DbSession) -> list[dict]:
     return DashboardEngine(db).training_effectiveness()
+
+
+# ── GET /api/v1/analytics/dashboard/top-formations ──────────
+@router.get("/dashboard/top-formations", summary="Top formations recommandées (KPI 5)")
+async def dashboard_top_formations(auth: ReadAuth, db: DbSession) -> list[dict]:
+    return DashboardEngine(db).top_formations_recommandees()
 
 
 # ── GET /api/v1/analytics/dashboard/risk-evolution ───────────
 @router.get("/dashboard/risk-evolution", summary="Évolution mensuelle du risque")
 async def dashboard_risk_evolution(
+    auth: ReadAuth,
     db: DbSession,
     months: Annotated[int, Query(ge=1, le=24)] = 6,
 ) -> list[dict]:
@@ -553,7 +648,7 @@ async def dashboard_risk_evolution(
 
 # ── GET /api/v1/analytics/dashboard/model-performance ────────
 @router.get("/dashboard/model-performance", summary="Performance du modèle ML")
-async def dashboard_model_performance(db: DbSession) -> dict[str, Any]:
+async def dashboard_model_performance(auth: ReadAuth, db: DbSession) -> dict[str, Any]:
     return DashboardEngine(db).model_performance()
 
 
@@ -652,6 +747,58 @@ async def retraining_log(
             for e in items
         ],
     }
+
+
+# ── GET /api/v1/analytics/dashboard/training-impact ──────────
+@router.get(
+    "/dashboard/training-impact",
+    summary="Impact réel des formations suivies (ADMIN/CUP)",
+    response_model=TrainingImpactResponse,
+)
+async def dashboard_training_impact(auth: ReadAuth, db: DbSession) -> TrainingImpactResponse:
+    """Agrégats historiques : gain de niveau moyen et réduction du risque
+    après les formations effectiveness suivies."""
+    data = TrainingImpactEngine(db).compute_global_impact()
+    return TrainingImpactResponse(**data)
+
+
+# ── GET /api/v1/analytics/dashboard/training-impact/formations ─
+@router.get(
+    "/dashboard/training-impact/formations",
+    summary="Top formations par impact (ADMIN/CUP)",
+    response_model=TrainingImpactTopFormationsResponse,
+)
+async def dashboard_training_impact_formations(
+    auth: ReadAuth,
+    db: DbSession,
+    page: PageParam = 0,
+    size: SizeParam = 20,
+) -> TrainingImpactTopFormationsResponse:
+    """Classement paginé des formations selon le gain de niveau moyen qu'elles
+    procurent (données réelles, formations déjà suivies)."""
+    data = TrainingImpactEngine(db).top_formations_by_impact(page=page, size=size)
+    return TrainingImpactTopFormationsResponse(**data)
+
+
+# ── POST /api/v1/analytics/simulate/what-if ───────────────────
+@router.post(
+    "/simulate/what-if",
+    summary="Simulation d'impact 'et si on formait X' (ADMIN/CUP)",
+    response_model=WhatIfResponse,
+)
+async def simulate_what_if(
+    payload: WhatIfRequest,
+    auth: ReadAuth,
+    db: DbSession,
+) -> WhatIfResponse:
+    """Projette le score de risque et les gaps *comme si* le plan de formations
+    fourni avait été suivi. Réutilise la chaîne de scoring de risque existante."""
+    result = WhatIfEngine(db).simulate(
+        enseignant_id=payload.enseignant_id,
+        plan=[a.model_dump() for a in payload.plan],
+        horizon_mois=payload.horizon_mois,
+    )
+    return WhatIfResponse(**result)
 
 
 # ── GET /api/v1/analytics/health ─────────────────────────────

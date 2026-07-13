@@ -5,6 +5,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
@@ -32,11 +33,15 @@ public class CircuitBreakerFallbackController {
     @Value("${gateway.fallback.unknown-path:/unknown}")
     private String unknownPathPlaceholder = "/unknown";
 
-    // @RequestMapping sans méthode = toutes méthodes (S3752, faux positif voulu) :
-    // un fallback de circuit breaker doit refléter la méthode de la requête d'origine
-    // (GET/POST/PUT/DELETE…). Il ne renvoie qu'un 503 JSON statique, sans état ni
-    // donnée sensible — aucune surface d'attaque liée aux méthodes « unsafe ».
-    @RequestMapping("${gateway.fallback.uri:/fallback}")
+    // Fallback de circuit breaker : doit refléter la méthode de la requête d'origine
+    // (GET/POST/PUT/DELETE/PATCH/HEAD/OPTIONS). On liste explicitement TOUTES les
+    // méthodes (S3752) tout en conservant le comportement « toutes méthodes ».
+    // Le endpoint ne renvoie qu'un 503 JSON statique, sans état ni donnée sensible
+    // — aucune surface d'attaque liée aux méthodes « unsafe ».
+    @RequestMapping(
+            value = "${gateway.fallback.uri:/fallback}",
+            method = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT,
+                    RequestMethod.DELETE, RequestMethod.PATCH, RequestMethod.HEAD, RequestMethod.OPTIONS})
     public Mono<String> fallback(ServerWebExchange exchange) {
         // Récupérer le path original demandé par le client
         String originalPath = unknownPathPlaceholder;

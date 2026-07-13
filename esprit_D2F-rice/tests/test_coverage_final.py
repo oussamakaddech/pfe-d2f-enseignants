@@ -96,10 +96,10 @@ class TestNlpOcr:
         monkeypatch.setattr(nlp, "_fitz", MagicMock(open=lambda stream, filetype: doc, Matrix=MagicMock, csGRAY="GRAY"))
         monkeypatch.setattr(nlp, "_PILImage", MagicMock(frombytes=lambda mode, size, data: MagicMock()))
         tess = MagicMock()
-        tess.TesseractError = Exception
-        tess.image_to_string.side_effect = Exception("other error")
+        tess.TesseractError = RuntimeError
+        tess.image_to_string.side_effect = RuntimeError("other error")
         monkeypatch.setattr(nlp, "_tess", tess)
-        with pytest.raises(Exception):
+        with pytest.raises(RuntimeError):
             nlp._ocr_scanned_pdf(b"fake pdf")
 
     def test_extract_docx_not_installed(self, monkeypatch):

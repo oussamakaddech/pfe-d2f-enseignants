@@ -24,8 +24,8 @@ function buildGenericTitleParts(filters: CardFilters, upsOptions: NamedOption[],
   const { domaine, upId, deptId, ouverte, start, end, etat } = filters;
   const parts: string[] = [];
   pushFilterPart(parts, domaine, "Domaine", (v) => v);
-  pushFilterPart(parts, upId, "UP", (v) => { const i = upsOptions.find((u) => u.id === v); return i ? i.libelle : String(v); });
-  pushFilterPart(parts, deptId, "Dépt", (v) => { const i = deptsOptions.find((d) => d.id === v); return i ? i.libelle : String(v); });
+  pushFilterPart(parts, upId, "UP", (v) => { const i = upsOptions.find((u) => u.id === v); return i ? (i.libelle ?? "") : String(v); });
+  pushFilterPart(parts, deptId, "Dépt", (v) => { const i = deptsOptions.find((d) => d.id === v); return i ? (i.libelle ?? "") : String(v); });
   pushFilterPart(parts, ouverte, "Ouverte", (v) => v ? "Oui" : "Non");
   if (start && end) parts.push(`Période=${start}→${end}`);
   pushFilterPart(parts, etat, "État", (v) => v);

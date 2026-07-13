@@ -9,13 +9,13 @@ Endpoints :
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Annotated, Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from app.db import get_db
+from app.core.db import get_db
 from app.engines.ab_testing import (
     compute_results,
     get_variant,
@@ -41,10 +41,10 @@ class EventRequest(BaseModel):
     metadata_json: dict[str, Any] | None = None
 
 
-@router.post("/assign", response_model=dict[str, Any])
+@router.post("/assign")
 def assign_variant(
     req: AssignRequest,
-    db: Session = Depends(get_db),
+    db: Annotated[Session, Depends(get_db)],
 ) -> dict[str, Any]:
     """Assigne un enseignant à une variante A/B (déterministe)."""
     variant = get_variant(db, req.teacher_id, req.experiment_name)
@@ -55,10 +55,10 @@ def assign_variant(
     }
 
 
-@router.post("/event", response_model=dict[str, str])
+@router.post("/event")
 def log_event(
     req: EventRequest,
-    db: Session = Depends(get_db),
+    db: Annotated[Session, Depends(get_db)],
 ) -> dict[str, str]:
     """Enregistre un événement d'A/B test."""
     record_event(
@@ -74,19 +74,22 @@ def log_event(
     return {"status": "recorded"}
 
 
-@router.get("/results/{experiment}", response_model=list[dict[str, Any]])
+@router.get("/results/{experiment}")
 def get_results(
     experiment: str,
-    db: Session = Depends(get_db),
+    db: Annotated[Session, Depends(get_db)],
 ) -> list[dict[str, Any]]:
     """Retourne les métriques agrégées pour chaque variante."""
     return compute_results(db, experiment)
 
 
-@router.get("/winner/{experiment}", response_model=dict[str, Any])
+@router.get(
+    "/winner/{experiment}",
+    responses={404: {"description": "No results found"}},
+)
 def get_winner_variant(
     experiment: str,
-    db: Session = Depends(get_db),
+    db: Annotated[Session, Depends(get_db)],
 ) -> dict[str, Any]:
     """Détermine la variante gagnante d'un A/B test."""
     results = compute_results(db, experiment)

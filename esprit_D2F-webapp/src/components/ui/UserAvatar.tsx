@@ -60,7 +60,6 @@ const UserAvatar = memo(function UserAvatar({
         size={size}
         src={photoUrl}
         alt={name}
-        imgProps={{ loading: "lazy", style: { objectFit: "cover" } }}
       />
     );
   }

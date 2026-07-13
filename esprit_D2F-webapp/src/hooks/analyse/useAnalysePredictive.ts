@@ -3,10 +3,10 @@ import AnalysePredictiveService from "@/services/analyse/AnalysePredictiveServic
 import type {
   DecliningCompetency, InDemandCompetency, TeacherRiskIndicator, DriftReport,
   GapHeatmapCell, RiskEvolutionPoint, TrainingEffectiveness, ModelPerformance,
-  OverviewKpis, DemandForecast,
-  AlertSummary, BulkAlertUpdateRequest, BulkAlertUpdateResponse,
-  PriorityAction, BatchRecommendationRequest, BatchRecommendationResponse,
-  SupplyDemandItem, RiskDistribution, HeatmapDrilldown,
+  OverviewKpis, DemandForecast, TrainingNeedsForecast,
+  AlertSummary, BulkAlertUpdateRequest,
+  PriorityAction, BatchRecommendationRequest,
+  SupplyDemandItem, RiskDistribution, HeatmapDrilldown, TopFormation,
 } from "@/models/analyse";
 
 export function useDashboardSummary() {
@@ -17,6 +17,7 @@ export function useDashboardSummary() {
   }>({
     queryKey: ["analyse", "dashboard-summary"],
     queryFn: () => AnalysePredictiveService.getDashboardSummary(),
+    staleTime: 5 * 60 * 1000,
   });
 }
 
@@ -29,6 +30,7 @@ export function useTrainModel() {
 }
 
 export function useAnalyserEnseignant() {
+  const qc = useQueryClient();
   return useMutation({
     mutationFn: ({
       enseignantId,
@@ -39,6 +41,10 @@ export function useAnalyserEnseignant() {
       competenceCible?: string;
       autoTrain?: boolean;
     }) => AnalysePredictiveService.analyserEnseignant(enseignantId, competenceCible, { autoTrain }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["analyse"] });
+      qc.invalidateQueries({ queryKey: ["dashboard"] });
+    },
   });
 }
 
@@ -110,6 +116,13 @@ export function useTrainingEffectiveness() {
   });
 }
 
+export function useTopFormations() {
+  return useQuery<TopFormation[]>({
+    queryKey: ["analyse", "top-formations"],
+    queryFn: () => AnalysePredictiveService.getTopFormationsRecommandees(),
+  });
+}
+
 export function useRiskEvolution(months = 6) {
   return useQuery<RiskEvolutionPoint[]>({
     queryKey: ["analyse", "risk-evolution", months],
@@ -121,6 +134,7 @@ export function useModelPerformance() {
   return useQuery<ModelPerformance>({
     queryKey: ["analyse", "model-performance"],
     queryFn: () => AnalysePredictiveService.getModelPerformance(),
+    staleTime: 5 * 60 * 1000,
   });
 }
 
@@ -128,6 +142,7 @@ export function useOverview() {
   return useQuery<OverviewKpis>({
     queryKey: ["analyse", "overview"],
     queryFn: () => AnalysePredictiveService.getOverview(),
+    staleTime: 5 * 60 * 1000,
   });
 }
 
@@ -138,11 +153,10 @@ export function useDemandForecast(months = 6) {
   });
 }
 
-export function useRetrainModel() {
-  const qc = useQueryClient();
-  return useMutation({
-    mutationFn: () => AnalysePredictiveService.retrainModel(),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["analyse"] }),
+export function useTrainingNeedsForecast(months = 6, historyMonths = 12) {
+  return useQuery<TrainingNeedsForecast>({
+    queryKey: ["analyse", "training-needs-forecast", months, historyMonths],
+    queryFn: () => AnalysePredictiveService.getTrainingNeedsForecast(months, historyMonths),
   });
 }
 
@@ -195,7 +209,36 @@ export function useRiskDistribution() {
 export function useHeatmapDrilldown(departement: string | null, competenceId: number | null) {
   return useQuery<HeatmapDrilldown>({
     queryKey: ["analyse", "heatmap-drilldown", departement, competenceId],
-    queryFn: () => AnalysePredictiveService.getHeatmapDrilldown(departement!, competenceId!),
+    queryFn: () => AnalysePredictiveService.getHeatmapDrilldown(departement as string, competenceId as number),
     enabled: !!departement && competenceId != null,
+  });
+}
+
+// ── Nouvelles fonctionnalités : impact formations & simulation what-if ──
+export function useTrainingImpact() {
+  return useQuery({
+    queryKey: ["analyse", "training-impact"],
+    queryFn: () => AnalysePredictiveService.getTrainingImpact(),
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+export function useTrainingImpactFormations(page = 0, size = 20) {
+  return useQuery({
+    queryKey: ["analyse", "training-impact-formations", page, size],
+    queryFn: () => AnalysePredictiveService.getTrainingImpactFormations(page, size),
+    staleTime: 5 * 60 * 1000,
+  });
+}
+
+export function useSimulateWhatIf() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: {
+      enseignant_id: string;
+      plan: Array<{ competence_id: number; niveau_vise: number; formation_id?: number }>;
+      horizon_mois?: number;
+    }) => AnalysePredictiveService.simulateWhatIf(payload),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["analyse"] }),
   });
 }

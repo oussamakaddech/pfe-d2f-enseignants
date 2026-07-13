@@ -111,7 +111,6 @@ export default function InscriptionsPage() {
         items={tabs}
         className="ins-tabs"
         size="large"
-        destroyInactiveTabPane={false}
       />
     </div>
   );

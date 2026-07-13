@@ -3,7 +3,6 @@ package esprit.pfe.serviceformation.controllers;
 import esprit.d2f.common.security.AuthorizationMatrix;
 import esprit.pfe.serviceformation.dto.DeptDTO;
 import esprit.pfe.serviceformation.dto.ReferentialMapper;
-import esprit.pfe.serviceformation.entities.Dept;
 import esprit.pfe.serviceformation.services.DeptService;
 import esprit.pfe.serviceformation.utils.FileSecurityValidator;
 import org.springframework.http.HttpStatus;
@@ -61,14 +60,14 @@ public class DeptController {
 
     @PostMapping
     @PreAuthorize(AuthorizationMatrix.REFERENTIEL_WRITE)
-    public ResponseEntity<DeptDTO> createDept(@RequestBody Dept dept) {
-        return ResponseEntity.ok(ReferentialMapper.toDeptDTO(deptService.create(dept)));
+    public ResponseEntity<DeptDTO> createDept(@RequestBody DeptDTO deptDTO) {
+        return ResponseEntity.ok(ReferentialMapper.toDeptDTO(deptService.create(ReferentialMapper.toDeptEntity(deptDTO))));
     }
 
     @PutMapping("/{id}")
     @PreAuthorize(AuthorizationMatrix.REFERENTIEL_WRITE)
-    public ResponseEntity<DeptDTO> updateDept(@PathVariable String id, @RequestBody Dept dept) {
-        return ResponseEntity.ok(ReferentialMapper.toDeptDTO(deptService.update(id, dept)));
+    public ResponseEntity<DeptDTO> updateDept(@PathVariable String id, @RequestBody DeptDTO deptDTO) {
+        return ResponseEntity.ok(ReferentialMapper.toDeptDTO(deptService.update(id, ReferentialMapper.toDeptEntity(deptDTO))));
     }
 
     @DeleteMapping("/{id}")

@@ -13,9 +13,8 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.sql.Time;
 import java.time.LocalDate;
-import java.util.Date;
+import java.time.LocalTime;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -32,7 +31,7 @@ class CalendarConflictServiceTest {
 
     @Captor private ArgumentCaptor<List<SeanceFormation>> listCaptor;
 
-    private SeanceFormation seance(Long id, String salle, Date date, Time debut, Time fin,
+    private SeanceFormation seance(Long id, String salle, LocalDate date, LocalTime debut, LocalTime fin,
                                    Formation formation, Integer num, Integer total) {
         SeanceFormation s = new SeanceFormation();
         s.setIdSeance(id);
@@ -53,12 +52,12 @@ class CalendarConflictServiceTest {
         return f;
     }
 
-    private Date date(int year, int month, int day) {
-        return Date.from(LocalDate.of(year, month, day).atStartOfDay(java.time.ZoneId.systemDefault()).toInstant());
+    private LocalDate date(int year, int month, int day) {
+        return LocalDate.of(year, month, day);
     }
 
-    private Time time(int hour, int min) {
-        return Time.valueOf(java.time.LocalTime.of(hour, min));
+    private LocalTime time(int hour, int min) {
+        return LocalTime.of(hour, min);
     }
 
     // ==================== detectAllConflicts ====================

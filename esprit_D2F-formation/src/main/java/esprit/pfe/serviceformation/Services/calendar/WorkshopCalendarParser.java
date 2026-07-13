@@ -18,6 +18,7 @@ import org.springframework.stereotype.Component;
 import java.text.Normalizer;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -322,7 +323,7 @@ public class WorkshopCalendarParser {
                 }
             }
         }
-        return LocalDate.now().getYear();
+        return LocalDate.now(ZoneId.systemDefault()).getYear();
     }
 
     private boolean matchesAny(String normalizedHeader, List<String> keywords) {

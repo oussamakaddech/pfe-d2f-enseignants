@@ -1,6 +1,7 @@
 package esprit.pfe.serviceformation.email;
 
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -172,7 +173,7 @@ public final class EmailTemplateBuilder {
                 + "<p style=\"margin:0 0 4px;font-family:" + FONT + ";font-size:12px;color:" + accentColor + ";font-weight:bold;\">"
                 + "Esprit — Direction du Développement et de la Formation</p>"
                 + "<p style=\"margin:0;font-family:" + FONT + ";font-size:11px;color:" + MUTED + ";\">© "
-                + LocalDate.now().getYear() + " — Tous droits réservés</p>"
+                + LocalDate.now(ZoneId.systemDefault()).getYear() + " — Tous droits réservés</p>"
                 + "</td></tr></table></td></tr></table></body></html>";
     }
 

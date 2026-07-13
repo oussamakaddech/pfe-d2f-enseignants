@@ -57,9 +57,7 @@ public class FormationReminderScheduler {
 
         for (int days : daysBefore) {
             LocalDate targetDate = today.plusDays(days);
-            List<SeanceFormation> seances = seanceFormationRepository.findByDateSeance(
-                    java.sql.Date.valueOf(targetDate)
-            );
+            List<SeanceFormation> seances = seanceFormationRepository.findByDateSeance(targetDate);
 
             for (SeanceFormation seance : seances) {
                 Formation formation = seance.getFormation();
@@ -89,7 +87,7 @@ public class FormationReminderScheduler {
 
         List<SeanceFormation> matching = seances.stream()
                 .filter(s -> {
-                    LocalDate seanceDate = ((java.sql.Date) s.getDateSeance()).toLocalDate();
+                    LocalDate seanceDate = s.getDateSeance();
                     return seanceDate.equals(targetDate);
                 })
                 .toList();
@@ -106,10 +104,10 @@ public class FormationReminderScheduler {
         DateTimeFormatter dateFormat = DateTimeFormatter.ofPattern("dd/MM/yyyy");
         DateTimeFormatter timeFormat = DateTimeFormatter.ofPattern("HH:mm");
         
-        LocalDate lDate = ((java.sql.Date)seance.getDateSeance()).toLocalDate();
+        LocalDate lDate = seance.getDateSeance();
         String formattedDate = lDate.format(dateFormat);
-        String formattedStart = seance.getHeureDebut().toLocalTime().format(timeFormat);
-        String formattedEnd = seance.getHeureFin().toLocalTime().format(timeFormat);
+        String formattedStart = seance.getHeureDebut().format(timeFormat);
+        String formattedEnd = seance.getHeureFin().format(timeFormat);
 
         // Destinataires (email -> nom complet pour personnaliser l'accroche)
         Map<String, String> recipients = new LinkedHashMap<>();

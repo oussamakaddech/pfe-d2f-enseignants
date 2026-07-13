@@ -1,6 +1,8 @@
 package esprit.pfe.serviceformation.utils; // NOSONAR - project-wide convention
 
 import org.springframework.stereotype.Component;
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.*;
 
 /**
@@ -64,10 +66,10 @@ public class ValidationUtils {
      * @param fin Date de fin
      * @throws IllegalArgumentException si fin <= debut
      */
-    public void dateRange(Date debut, Date fin) {
+    public void dateRange(LocalDate debut, LocalDate fin) {
         notNull(debut, "Date de début");
         notNull(fin, "Date de fin");
-        if (!fin.after(debut)) {
+        if (!fin.isAfter(debut)) {
             throw new IllegalArgumentException("La date de fin doit être après la date de début");
         }
     }
@@ -78,10 +80,10 @@ public class ValidationUtils {
      * @param fin Heure de fin
      * @throws IllegalArgumentException si fin <= debut
      */
-    public void timeRange(java.sql.Time debut, java.sql.Time fin) {
+    public void timeRange(LocalTime debut, LocalTime fin) {
         notNull(debut, "Heure de début");
         notNull(fin, "Heure de fin");
-        if (!fin.after(debut)) {
+        if (!fin.isAfter(debut)) {
             throw new IllegalArgumentException("L'heure de fin doit être après l'heure de début");
         }
     }

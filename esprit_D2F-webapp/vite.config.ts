@@ -96,5 +96,14 @@ export default defineConfig({
     fs: {
       strict: true,
     },
+    // Proxy les appels /api vers le API Gateway (port 8080) en dev.
+    // Évite les erreurs CORS et permet au frontend Vite (port 3000) de
+    // consommer les microservices via le gateway comme en production.
+    proxy: {
+      "/api": {
+        target: "http://localhost:8080",
+        changeOrigin: true,
+      },
+    },
   },
 });

@@ -68,7 +68,7 @@ def _analyse_un_enseignant(enseignant_id: str) -> bool:
             return True
 
     except Exception as exc:
-        logger.error("Batch analysis failed for %s: %s", enseignant_id, exc)
+        logger.exception("Batch analysis failed for %s: %s", enseignant_id, exc)
         return False
 
 
@@ -77,8 +77,6 @@ def job_batch_analysis_all():
 
     Uses ThreadPoolExecutor for parallel processing of teachers.
     """
-    from concurrent.futures import ThreadPoolExecutor, as_completed
-
     logger.info("=== Démarrage analyse batch nocturne ===")
     t_start = time.time()
 
@@ -94,33 +92,22 @@ def job_batch_analysis_all():
         nb_ok  = 0
         nb_err = 0
 
-        # Process teachers in parallel (max 4 workers to avoid DB overload)
-        max_workers = min(4, len(enseignant_ids)) if enseignant_ids else 1
-        with ThreadPoolExecutor(max_workers=max_workers) as executor:
-            futures = {
-                executor.submit(_analyse_un_enseignant, eid): eid
-                for eid in enseignant_ids
-            }
-            for future in as_completed(futures):
-                eid = futures[future]
-                try:
-                    ok = future.result()
-                    if ok:
-                        nb_ok += 1
-                    else:
-                        nb_err += 1
-                except Exception as exc:
-                    logger.error("Batch analysis failed for %s: %s", eid, exc)
-                    nb_err += 1
+        # Process teachers sequentially to avoid DB transaction conflicts
+        for eid in enseignant_ids:
+            ok = _analyse_un_enseignant(eid)
+            if ok:
+                nb_ok += 1
+            else:
+                nb_err += 1
 
         duree = round(time.time() - t_start, 1)
         logger.info(
-            "=== Batch terminé : %d OK / %d erreurs en %ss (%d workers) ===",
-            nb_ok, nb_err, duree, max_workers
+            "=== Batch terminé : %d OK / %d erreurs en %ss ===",
+            nb_ok, nb_err, duree
         )
 
     except Exception as exc:
-        logger.error("Batch analysis job crashed: %s", exc)
+        logger.exception("Batch analysis job crashed: %s", exc)
 
 
 def job_dashboard_refresh():
@@ -133,7 +120,7 @@ def job_dashboard_refresh():
             db.commit()
         logger.info("Dashboard refresh terminé — %d KPI sections", len(kpis))
     except Exception as exc:
-        logger.error("Dashboard refresh failed: %s", exc)
+        logger.exception("Dashboard refresh failed: %s", exc)
 
 
 def job_alert_cleanup():
@@ -154,7 +141,7 @@ def job_alert_cleanup():
             db.commit()
         logger.info("Alert cleanup : %d alertes archivées", nb)
     except Exception as exc:
-        logger.error("Alert cleanup failed: %s", exc)
+        logger.exception("Alert cleanup failed: %s", exc)
 
 
 def start_scheduler():

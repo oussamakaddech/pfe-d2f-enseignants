@@ -30,9 +30,11 @@ const RecommendationCard = memo(function RecommendationCard({ recommendation: r,
         background: "rgba(255,255,255,0.92)",
         backdropFilter: "blur(8px)",
         boxShadow: "0 2px 8px rgba(0,0,0,0.06)",
-        borderLeft: r.statut === "ACCEPTEE" ? "4px solid #10b981"
-          : r.statut === "IGNOREE" ? "4px solid #d9d9d9"
-          : "4px solid #b51200",
+        borderLeft: (() => {
+          if (r.statut === "ACCEPTEE") return "4px solid #10b981";
+          if (r.statut === "IGNOREE") return "4px solid #d9d9d9";
+          return "4px solid #b51200";
+        })(),
         opacity: r.statut === "IGNOREE" ? 0.6 : 1,
       }}
     >

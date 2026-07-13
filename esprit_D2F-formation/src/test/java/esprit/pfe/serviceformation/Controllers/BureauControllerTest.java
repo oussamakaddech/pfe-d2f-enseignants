@@ -74,21 +74,29 @@ class BureauControllerTest {
     @Test
     @DisplayName("createBureau: retourne 201 Created")
     void createBureau_returnsCreated() {
+        BureauDTO bureauDTO = new BureauDTO();
+        bureauDTO.setId(1L);
+        bureauDTO.setNom("Bureau Formation");
+        bureauDTO.setEmail("bf@test.com");
+        bureauDTO.setNumeroTelephone("123");
         when(bureauService.createBureau(any(Bureau.class))).thenReturn(bureau);
 
-        ResponseEntity<BureauDTO> response = bureauController.createBureau(bureau);
+        ResponseEntity<BureauDTO> response = bureauController.createBureau(bureauDTO);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
-        verify(bureauService).createBureau(bureau);
+        verify(bureauService).createBureau(any(Bureau.class));
     }
 
     @Test
     @DisplayName("updateBureau: retourne le bureau mis a jour")
     void updateBureau_returnsUpdated() {
         Bureau updated = createBureau(1L, "Updated", null, null);
+        BureauDTO bureauDTO = new BureauDTO();
+        bureauDTO.setId(1L);
+        bureauDTO.setNom("Updated");
         when(bureauService.updateBureau(eq(1L), any(Bureau.class))).thenReturn(updated);
 
-        ResponseEntity<BureauDTO> response = bureauController.updateBureau(1L, updated);
+        ResponseEntity<BureauDTO> response = bureauController.updateBureau(1L, bureauDTO);
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         assertThat(response.getBody().getNom()).isEqualTo("Updated");

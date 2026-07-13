@@ -31,6 +31,15 @@ export interface TrainerTypeCount {
   ids: (string | number)[];
 }
 
+export interface CountByTrainerTypeWithIds {
+  externeOnlyCount: number;
+  interneOnlyCount: number;
+  mixteCount: number;
+  externeOnlyIds: (string | number)[];
+  interneOnlyIds: (string | number)[];
+  mixteIds: (string | number)[];
+}
+
 export interface FormationParticipantKPI {
   formationId: number;
   formationTitre?: string;

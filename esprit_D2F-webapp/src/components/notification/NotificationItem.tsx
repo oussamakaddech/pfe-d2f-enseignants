@@ -1,5 +1,5 @@
 import { memo } from "react";
-import { Badge, Button, Tooltip } from "antd";
+import { Badge, Tooltip } from "antd";
 import {
   BookOutlined, FileDoneOutlined, FileProtectOutlined, BulbOutlined,
   ThunderboltOutlined, MessageOutlined, SettingOutlined, CloseOutlined,

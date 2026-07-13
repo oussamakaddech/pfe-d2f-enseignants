@@ -1,0 +1,20 @@
+project,file,line,issue_type,severity,rule_key,message
+,src/hooks/analyse/useRiceAnalysis.ts,136,3,MAJOR,S2245,Make sure that using this pseudorandom number generator is safe here.
+,src/hooks/analyse/useRiceTree.ts,154,3,MAJOR,S2245,Make sure that using this pseudorandom number generator is safe here.
+,src/main/java/com/example/servicegateway/security/CircuitBreakerFallbackController.java,39,3,MINOR,S3752,Explicitly specify the HTTP methods this endpoint accepts.
+,src/main/java/esprit/pfe/serviceevaluation/outil/FormationSecurityConfig.java,42,3,CRITICAL,S4502,Make sure disabling Spring Security's CSRF protection is safe here.
+,src/main/java/esprit/pfe/serviceformation/controllers/BureauController.java,41,3,CRITICAL,S4684,Replace this persistent entity with a simple POJO or DTO object.
+,src/main/java/esprit/pfe/serviceformation/controllers/BureauController.java,48,3,CRITICAL,S4684,Replace this persistent entity with a simple POJO or DTO object.
+,src/main/java/esprit/pfe/serviceformation/controllers/DeptController.java,64,3,CRITICAL,S4684,Replace this persistent entity with a simple POJO or DTO object.
+,src/main/java/esprit/pfe/serviceformation/controllers/DeptController.java,70,3,CRITICAL,S4684,Replace this persistent entity with a simple POJO or DTO object.
+,src/main/java/esprit/pfe/serviceformation/controllers/FormationCompetenceController.java,36,3,CRITICAL,S4684,Replace this persistent entity with a simple POJO or DTO object.
+,src/main/java/esprit/pfe/serviceformation/controllers/FormationCompetenceController.java,45,3,CRITICAL,S4684,Replace this persistent entity with a simple POJO or DTO object.
+,src/main/java/esprit/pfe/serviceformation/controllers/UpController.java,64,3,CRITICAL,S4684,Replace this persistent entity with a simple POJO or DTO object.
+,src/main/java/esprit/pfe/serviceformation/controllers/UpController.java,70,3,CRITICAL,S4684,Replace this persistent entity with a simple POJO or DTO object.
+,src/main/java/esprit/pfe/serviceformation/outil/FormationSecurityConfig.java,69,3,CRITICAL,S4502,Make sure disabling Spring Security's CSRF protection is safe here.
+,src/pages/competence/RicePage.tsx,143,3,MAJOR,S2245,Make sure that using this pseudorandom number generator is safe here.
+,src/pages/competence/RicePage.tsx,145,3,MAJOR,S2245,Make sure that using this pseudorandom number generator is safe here.
+,src/pages/competence/RicePage.tsx,146,3,MAJOR,S2245,Make sure that using this pseudorandom number generator is safe here.
+,src/pages/inscription/MesInscriptionsTab.tsx,175,2,MINOR,S1082,"Visible, non-interactive elements with click handlers must have at least one keyboard listener."
+,src/services/notification/notificationSocket.ts,154,3,MAJOR,S2245,Make sure that using this pseudorandom number generator is safe here.
+,src/services/notification/notificationSocket.ts,160,3,MAJOR,S2245,Make sure that using this pseudorandom number generator is safe here.

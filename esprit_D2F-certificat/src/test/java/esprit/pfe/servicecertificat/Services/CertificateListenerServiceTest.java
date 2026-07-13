@@ -11,6 +11,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.core.io.Resource;
 
 import java.time.LocalDate;
+import java.time.Month;
 import java.util.Collections;
 import java.util.List;
 
@@ -66,8 +67,8 @@ class CertificateListenerServiceTest {
         msg.setFormationId(10L);
         msg.setTitreFormation("Java");
         msg.setTypeCertif("Participation");
-        msg.setDateDebutFormation(LocalDate.of(2026, 1, 1));
-        msg.setDateFinFormation(LocalDate.of(2026, 1, 5));
+        msg.setDateDebutFormation(LocalDate.of(2026, Month.JANUARY, 1));
+        msg.setDateFinFormation(LocalDate.of(2026, Month.JANUARY, 5));
         msg.setChargeHoraireGlobal(20);
         msg.setEnseignants(List.of(info));
 

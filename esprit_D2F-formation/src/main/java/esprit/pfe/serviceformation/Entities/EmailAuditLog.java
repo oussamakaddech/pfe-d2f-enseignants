@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 
 @Data
 @NoArgsConstructor
@@ -40,7 +41,7 @@ public class EmailAuditLog {
         this.formationId = formationId;
         this.recipientEmail = recipientEmail;
         this.emailType = emailType;
-        this.sentAt = LocalDateTime.now();
+        this.sentAt = LocalDateTime.now(ZoneId.systemDefault());
         this.success = success;
         this.errorMessage = errorMessage;
     }

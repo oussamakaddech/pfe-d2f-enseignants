@@ -1,7 +1,7 @@
 package esprit.pfe.serviceformation.dto;
 
 import lombok.Data;
-import java.util.Date;
+import java.time.LocalDate;
 
 @Data
 public class MesPresenceDTO {
@@ -10,7 +10,7 @@ public class MesPresenceDTO {
     private String commentaire;
 
     private Long seanceId;
-    private Date dateSeance;
+    private LocalDate dateSeance;
     private String heureDebut;
     private String heureFin;
     private String salle;

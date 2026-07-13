@@ -252,6 +252,7 @@
 				<configuration>
 					<skipTests>false</skipTests>
 					<testFailureIgnore>false</testFailureIgnore>
+					<argLine>@{argLine}</argLine>
 				</configuration>
 			</plugin>
 					<plugin>

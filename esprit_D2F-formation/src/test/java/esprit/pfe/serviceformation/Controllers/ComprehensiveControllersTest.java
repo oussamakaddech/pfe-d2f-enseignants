@@ -27,6 +27,8 @@ import org.springframework.data.web.PageableHandlerMethodArgumentResolver;
 
 import java.util.Collections;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -237,13 +239,11 @@ class ComprehensiveControllersTest {
     void testDocument() throws Exception {
         Document dummyDoc = new Document();
         dummyDoc.setFilePath("path/file.txt");
-        try {
+        assertDoesNotThrow(() -> {
             java.lang.reflect.Field idField = Document.class.getDeclaredField("idDocument");
             idField.setAccessible(true);
             idField.set(dummyDoc, 1L);
-        } catch (Exception e) {
-            // Ignorer les erreurs de réflexion lors de la configuration de l'ID
-        }
+        });
 
         when(docService.getById(anyLong())).thenReturn(dummyDoc);
         when(docService.getAll(any(Pageable.class))).thenReturn(new PageImpl<>(Collections.emptyList()));

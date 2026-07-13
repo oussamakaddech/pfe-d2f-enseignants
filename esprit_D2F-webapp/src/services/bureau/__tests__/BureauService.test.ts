@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import type { BureauRequest } from '@/models/bureau';
 
 const httpMocks = vi.hoisted(() => ({
   mockGet: vi.fn(),
@@ -53,17 +54,17 @@ describe('BureauService', () => {
   });
 
   it('creates a bureau', async () => {
-    const payload = { nom: 'Nouveau', chefId: 10 };
+    const payload: BureauRequest & { chefId: number } = { nom: 'Nouveau', email: 'bureau@example.com', numeroTelephone: '0000000000', chefId: 10 };
     httpMocks.mockPost.mockResolvedValueOnce({ data: { id: 3, ...payload } });
-    const result = await BureauService.createBureau(payload as Record<string, unknown>);
+    const result = await BureauService.createBureau(payload);
     expect(result).toEqual({ id: 3, ...payload });
     expect(httpMocks.mockPost).toHaveBeenCalledOnce();
   });
 
   it('updates a bureau', async () => {
-    const payload = { nom: 'Mis à jour', chefId: 5 };
+    const payload: BureauRequest & { chefId: number } = { nom: 'Mis à jour', email: 'bureau@example.com', numeroTelephone: '0000000000', chefId: 5 };
     httpMocks.mockPut.mockResolvedValueOnce({ data: { id: 1, ...payload } });
-    const result = await BureauService.updateBureau(1, payload as Record<string, unknown>);
+    const result = await BureauService.updateBureau(1, payload);
     expect(result).toEqual({ id: 1, ...payload });
     expect(httpMocks.mockPut).toHaveBeenCalledWith(
       expect.stringContaining('/1'),

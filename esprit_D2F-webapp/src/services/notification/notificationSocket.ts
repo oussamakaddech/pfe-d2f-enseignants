@@ -12,6 +12,7 @@
  * ce qui permet de brancher un vrai serveur sans toucher au contexte React.
  */
 import { v4 as uuidv4 } from "uuid";
+import { secureRandomInt, secureRandomUnit } from "@/utils/secureRandom";
 import type {
   ConnectionStatus,
   NotificationSocketMessage,
@@ -151,13 +152,13 @@ class MockNotificationTransport implements NotificationTransport {
     this.handlers.onStatus("mock");
     const tick = () => {
       if (this.closed) return;
-      const template = MOCK_POOL[Math.floor(Math.random() * MOCK_POOL.length)];
+      const template = MOCK_POOL[secureRandomInt(MOCK_POOL.length)];
       this.handlers.onMessage({
         ...template,
         id: uuidv4(),
         createdAt: new Date().toISOString(),
       });
-      const next = 12_000 + Math.random() * 13_000; // 12–25 s
+      const next = 12_000 + secureRandomUnit() * 13_000; // 12–25 s
       this.timer = setTimeout(tick, next);
     };
     // Première notification rapide pour montrer le temps réel.

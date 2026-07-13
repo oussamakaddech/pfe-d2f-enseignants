@@ -8,7 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import java.util.Date;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -74,8 +74,8 @@ public interface EnseignantRepository extends JpaRepository<Enseignant, String>,
       )
     """)
     List<Enseignant> findEnseignantsNonAffectesSurPeriode(
-            @Param("start") Date start,
-            @Param("end")   Date end
+            @Param("start") LocalDate start,
+            @Param("end")   LocalDate end
     );
     List<Enseignant> findByUpAndCup(esprit.pfe.serviceformation.entities.Up up, String cup);
     List<Enseignant> findByCup(String cup);

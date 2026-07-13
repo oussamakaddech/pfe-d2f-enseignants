@@ -37,19 +37,22 @@ def test_consumer_on_message_triggers(monkeypatch):
 
     monkeypatch.setattr(consumer, "_trigger_individual_analysis", fake_trigger)
 
-    class Frame:
-        def __init__(self, body):
-            self.body = body
+    class Channel:
+        def basic_ack(self, delivery_tag, requeue=False):
+            pass
+
+    class Method:
+        delivery_tag = 1
 
     payload = '{"event":"EVALUATION_SUBMITTED","enseignantId":"t42"}'
-    consumer.on_message(Frame(payload))
+    consumer._on_message(Channel(), Method(), None, payload)
     assert called.get("eid") == "t42"
 
 
 def test_gap_predictor_empty_inputs():
     gp = GapPredictor()
     out = gp.predict([], [], [])
-    assert out["gaps"] == [] and out["overall_risk_score"] == 0.0
+    assert out["gaps"] == [] and out["avg_predicted_gap"] == 0.0
 
 
 def test_analytics_gaps_endpoint(client):

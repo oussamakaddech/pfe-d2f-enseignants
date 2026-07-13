@@ -18,7 +18,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.lang.reflect.Method;
-import java.sql.Time;
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.*;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -62,8 +63,8 @@ class FormationWorkflowServiceExtraTest {
     private FormationWorkflowRequest buildFullRequest() {
         FormationWorkflowRequest request = new FormationWorkflowRequest();
         request.setTitreFormation("Java Avancé");
-        request.setDateDebut(new Date(1000));
-        request.setDateFin(new Date(2000));
+        request.setDateDebut(LocalDate.of(1970, 1, 1));
+        request.setDateFin(LocalDate.of(1970, 1, 2));
         request.setTypeFormation(TypeFormation.EXTERNE);
         request.setExterneFormateurNom("Dupont");
         request.setExterneFormateurPrenom("Jean");
@@ -112,8 +113,8 @@ class FormationWorkflowServiceExtraTest {
         Formation formation = new Formation();
         invokeUpdateFormationBasicFields(formation, buildFullRequest());
         assertThat(formation.getTitreFormation()).isEqualTo("Java Avancé");
-        assertThat(formation.getDateDebut()).isEqualTo(new Date(1000));
-        assertThat(formation.getDateFin()).isEqualTo(new Date(2000));
+        assertThat(formation.getDateDebut()).isEqualTo(LocalDate.of(1970, 1, 1));
+        assertThat(formation.getDateFin()).isEqualTo(LocalDate.of(1970, 1, 2));
         assertThat(formation.getTypeFormation()).isEqualTo(TypeFormation.EXTERNE);
         assertThat(formation.getEtatFormation()).isEqualTo(EtatFormation.PLANIFIE);
     }
@@ -480,15 +481,15 @@ class FormationWorkflowServiceExtraTest {
         Formation f = new Formation();
         f.setIdFormation(1L);
         f.setTitreFormation("Java");
-        f.setDateDebut(new Date());
-        f.setDateFin(new Date());
+        f.setDateDebut(LocalDate.now());
+        f.setDateFin(LocalDate.now());
 
         SeanceFormation sf = new SeanceFormation();
         sf.setIdSeance(10L);
         sf.setCalendarEventId("EVT-456");
-        sf.setDateSeance(new Date());
-        sf.setHeureDebut(Time.valueOf("09:00:00"));
-        sf.setHeureFin(Time.valueOf("11:00:00"));
+        sf.setDateSeance(LocalDate.now());
+        sf.setHeureDebut(LocalTime.of(9, 0));
+        sf.setHeureFin(LocalTime.of(11, 0));
         Enseignant anim = new Enseignant();
         anim.setMail("anim@test.com");
         sf.setAnimateurs(List.of(anim));
@@ -512,8 +513,8 @@ class FormationWorkflowServiceExtraTest {
         Formation f = new Formation();
         f.setIdFormation(1L);
         f.setTitreFormation("Test");
-        f.setDateDebut(new Date());
-        f.setDateFin(new Date());
+        f.setDateDebut(LocalDate.now());
+        f.setDateFin(LocalDate.now());
         f.setSeances(new ArrayList<>());
 
         when(formationRepository.findById(1L)).thenReturn(Optional.of(f));
@@ -765,9 +766,9 @@ class FormationWorkflowServiceExtraTest {
     void shouldMapSeanceToDTO() {
         SeanceFormation sf = new SeanceFormation();
         sf.setIdSeance(10L);
-        sf.setDateSeance(new Date());
-        sf.setHeureDebut(Time.valueOf("09:00:00"));
-        sf.setHeureFin(Time.valueOf("11:00:00"));
+        sf.setDateSeance(LocalDate.now());
+        sf.setHeureDebut(LocalTime.of(9, 0));
+        sf.setHeureFin(LocalTime.of(11, 0));
         sf.setSalle("B201");
         sf.setContenus("Contenu test");
         sf.setMethodes("Méthode test");
@@ -831,7 +832,7 @@ class FormationWorkflowServiceExtraTest {
         p.setEnseignant(ens);
 
         Method m = findMethod("mapPresenceToDTO", Presence.class);
-        try {
+        assertDoesNotThrow(() -> {
             Object result = m.invoke(service, p);
             PresenceDTO dtoResult = (PresenceDTO) result;
             assertThat(dtoResult.getIdParticipation()).isEqualTo(10L);
@@ -839,9 +840,7 @@ class FormationWorkflowServiceExtraTest {
             assertThat(dtoResult.getCommentaire()).isEqualTo("Présent");
             assertThat(dtoResult.getEnseignant()).isNotNull();
             assertThat(dtoResult.getEnseignant().getId()).isEqualTo("E1");
-        } catch (Exception e) {
-            fail("Reflection failed", e);
-        }
+        });
     }
 
     @Test
@@ -853,14 +852,12 @@ class FormationWorkflowServiceExtraTest {
         p.setEnseignant(null);
 
         Method m = findMethod("mapPresenceToDTO", Presence.class);
-        try {
+        assertDoesNotThrow(() -> {
             Object result = m.invoke(service, p);
             PresenceDTO dto = (PresenceDTO) result;
             assertThat(dto.getIdParticipation()).isEqualTo(20L);
             assertThat(dto.getEnseignant()).isNull();
-        } catch (Exception e) {
-            fail("Reflection failed", e);
-        }
+        });
     }
 
     // ─── createOrUpdateCalendarEvent (new event branch) ──────────────────
@@ -974,22 +971,15 @@ class FormationWorkflowServiceExtraTest {
 
     private void invokeUpdateFormationBasicFields(Formation formation, FormationWorkflowRequest request) {
         Method m = findMethod("updateFormationBasicFields", Formation.class, FormationWorkflowRequest.class);
-        try {
-            m.invoke(service, formation, request);
-        } catch (Exception e) {
-            fail("Reflection failed: " + e.getMessage(), e);
-        }
+        assertDoesNotThrow(() -> m.invoke(service, formation, request));
     }
 
     private Method findMethod(String name, Class<?>... params) {
-        try {
+        return assertDoesNotThrow(() -> {
             Method m = FormationWorkflowService.class.getDeclaredMethod(name, params);
             m.setAccessible(true);
             return m;
-        } catch (NoSuchMethodException e) {
-            fail("Method not found: " + name, e);
-            return null;
-        }
+        });
     }
 
     private FormationWorkflowService createServiceWithNullOutlook() {

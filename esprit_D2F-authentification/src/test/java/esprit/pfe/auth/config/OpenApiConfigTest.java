@@ -13,7 +13,7 @@ class OpenApiConfigTest {
         OpenApiConfig config = new OpenApiConfig();
 
         // Use reflection to invoke the method since it's package private
-        try {
+        assertDoesNotThrow(() -> {
             java.lang.reflect.Method method = OpenApiConfig.class.getDeclaredMethod("customOpenAPI");
             method.setAccessible(true);
             Object openApiObj = method.invoke(config);
@@ -28,8 +28,6 @@ class OpenApiConfigTest {
             assertEquals("1.0.0", api.getInfo().getVersion());
             assertEquals("DSI ESPRIT", api.getInfo().getContact().getName());
             assertEquals("dsi@esprit.tn", api.getInfo().getContact().getEmail());
-        } catch (Exception e) {
-            fail("Exception occurred: " + e.getMessage());
-        }
+        });
     }
 }

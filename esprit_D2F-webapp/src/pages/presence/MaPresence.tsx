@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import {
-  Layout, Card, Table, Tag, Progress, Typography, Row, Col, Statistic, Input, Select, Empty, Skeleton,
+  Layout, Card, Table, Tag, Progress, Typography, Row, Col, Input, Select, Empty, Skeleton,
 } from "antd";
 import {
   CheckCircleOutlined, CloseCircleOutlined, CalendarOutlined, SearchOutlined,
@@ -127,7 +127,11 @@ const MaPresence = () => {
         const total = g.presences.length;
         const presents = g.presences.filter((x) => x.present).length;
         const taux = total === 0 ? 0 : Math.round((presents * 100) / total);
-        const color = taux >= 80 ? "#10b981" : taux >= 50 ? "#d97706" : "#ef4444";
+        const color = (() => {
+          if (taux >= 80) return "#10b981";
+          if (taux >= 50) return "#d97706";
+          return "#ef4444";
+        })();
         return <Progress percent={taux} strokeColor={color} size="small" />;
       },
     },
@@ -252,20 +256,24 @@ const MaPresence = () => {
       </Card>
 
       {/* Table */}
-      {isLoading ? (
-        <Skeleton active paragraph={{ rows: 6 }} />
-      ) : filtered.length === 0 ? (
-        <Empty description="Aucune présence enregistrée" />
-      ) : (
-        <Table
-          columns={columns}
-          dataSource={filtered}
-          rowKey="formationId"
-          expandable={{ expandedRowRender, rowExpandable: (r) => r.presences.length > 0 }}
-          pagination={{ pageSize: 10, showSizeChanger: false }}
-          className="mp-table"
-        />
-      )}
+      {(() => {
+        if (isLoading) {
+          return <Skeleton active paragraph={{ rows: 6 }} />;
+        }
+        if (filtered.length === 0) {
+          return <Empty description="Aucune présence enregistrée" />;
+        }
+        return (
+          <Table
+            columns={columns}
+            dataSource={filtered}
+            rowKey="formationId"
+            expandable={{ expandedRowRender, rowExpandable: (r) => r.presences.length > 0 }}
+            pagination={{ pageSize: 10, showSizeChanger: false }}
+            className="mp-table"
+          />
+        );
+      })()}
     </Content>
   );
 };

@@ -10,7 +10,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import java.util.Date;
+import java.time.LocalDate;
 import java.util.List;
 
 @Repository
@@ -23,8 +23,8 @@ public interface PresenceRepository extends JpaRepository<Presence, Long> {
       """)
     List<Formation> findFormationsByParticipantAndPeriod(
             @Param("ensId") String ensId,
-            @Param("start") Date start,
-            @Param("end")   Date end
+            @Param("start") LocalDate start,
+            @Param("end")   LocalDate end
     );
 
     @Query("""
@@ -47,15 +47,15 @@ public interface PresenceRepository extends JpaRepository<Presence, Long> {
     @Query("SELECT COUNT(p) FROM Presence p WHERE p.seanceFormation.formation.idFormation = :formationId " +
             "AND p.seanceFormation.dateSeance BETWEEN :startDate AND :endDate")
     long countByFormationIdAndPeriod(@Param("formationId") Long formationId,
-                                     @Param("startDate") Date startDate,
-                                     @Param("endDate") Date endDate);
+                                     @Param("startDate") LocalDate startDate,
+                                     @Param("endDate") LocalDate endDate);
 
     @Query("SELECT COUNT(p) FROM Presence p WHERE p.seanceFormation.formation.idFormation = :formationId " +
             "AND p.seanceFormation.dateSeance BETWEEN :startDate AND :endDate " +
             "AND p.present = true")
     long countPresentByFormationIdAndPeriod(@Param("formationId") Long formationId,
-                                            @Param("startDate") Date startDate,
-                                            @Param("endDate") Date endDate);
+                                            @Param("startDate") LocalDate startDate,
+                                            @Param("endDate") LocalDate endDate);
 
 
 
@@ -78,13 +78,13 @@ public interface PresenceRepository extends JpaRepository<Presence, Long> {
       GROUP BY e.id, e.nom, e.prenom
       ORDER BY COUNT(p) DESC
     """)
-   List<EnseignantStatsDTO> findTopParticipants(
-           @Param("upId")   String upId,
-           @Param("deptId") String deptId,
-           @Param("start")  Date   start,
-           @Param("end")    Date   end,
-           @Param("etat")   EtatFormation etat
-   );
+    List<EnseignantStatsDTO> findTopParticipants(
+            @Param("upId")   String upId,
+            @Param("deptId") String deptId,
+            @Param("start")  LocalDate   start,
+            @Param("end")    LocalDate   end,
+            @Param("etat")   EtatFormation etat
+    );
 
     // ——— Top absentees (plus absents) pour FORMATIONS ACHEVEES ———
     @Query("""
@@ -107,8 +107,8 @@ public interface PresenceRepository extends JpaRepository<Presence, Long> {
     List<EnseignantStatsDTO> findTopAbsentees(
             @Param("upId")   String upId,
             @Param("deptId") String deptId,
-            @Param("start")  Date   start,
-            @Param("end")    Date   end,
+            @Param("start")  LocalDate   start,
+            @Param("end")    LocalDate   end,
             @Param("etat")   EtatFormation etat
     );
 

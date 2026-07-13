@@ -9,6 +9,7 @@ import { BookOutlined, FilterOutlined, UserOutlined, MailOutlined, HomeOutlined 
 import dayjs from "dayjs";
 import { useKpiCountByTrainerTypeMutation } from "@/hooks/kpi";
 import { useAllFormations, useDepartements, useUps } from "@/hooks/formation";
+import type { CountByTrainerTypeWithIds } from "@/models/analyse/kpi";
 import DonutChart from "./charts/DonutChart";
 import LegendTable from "./charts/LegendTable";
 
@@ -45,7 +46,7 @@ export default function DonutByTrainerTypeWithFilters() {
   const { data: allFormations = [] } = useAllFormations();
   const kpiTrainerTypeMut = useKpiCountByTrainerTypeMutation();
 
-  const [countsData, setCountsData] = useState<Record<string, number | number[]> | null>(null);
+  const [countsData, setCountsData] = useState<CountByTrainerTypeWithIds | null>(null);
   const [externeFormations, setExterneFormations] = useState<Record<string, unknown>[]>([]);
   const [interneFormations, setInterneFormations] = useState<Record<string, unknown>[]>([]);
   const [mixteFormations, setMixteFormations] = useState<Record<string, unknown>[]>([]);
@@ -87,7 +88,7 @@ export default function DonutByTrainerTypeWithFilters() {
     return <div style={{ textAlign: "center", padding: 80 }}><Spin size="large" tip="Chargement des données…"><div /></Spin></div>;
   }
 
-  const { externeOnlyCount, interneOnlyCount, mixteCount } = countsData as Record<string, number>;
+  const { externeOnlyCount, interneOnlyCount, mixteCount } = countsData;
   const total = externeOnlyCount + interneOnlyCount + mixteCount;
 
   const chartData = [

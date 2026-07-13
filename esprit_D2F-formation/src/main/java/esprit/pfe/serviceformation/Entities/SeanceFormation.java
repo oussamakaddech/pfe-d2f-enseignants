@@ -5,8 +5,8 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.sql.Time;
-import java.util.Date;
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
 
 @Data
@@ -20,11 +20,10 @@ public class SeanceFormation extends BaseAuditEntity {
         @GeneratedValue(strategy = GenerationType.IDENTITY)
         private Long idSeance;
 
-        @Temporal(TemporalType.DATE)
-        private Date dateSeance;
+        private LocalDate dateSeance;
 
-        private Time heureDebut;
-        private Time heureFin;
+        private LocalTime heureDebut;
+        private LocalTime heureFin;
 
         @Enumerated(EnumType.STRING)
         @Column(nullable = true)

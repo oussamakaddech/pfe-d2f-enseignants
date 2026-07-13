@@ -4,7 +4,7 @@ import { Row, Col, Typography, Tag } from "antd";
 import { motion } from "framer-motion";
 import {
   BarChartOutlined, FormOutlined, TeamOutlined, ApartmentOutlined,
-  ReadOutlined, TrophyOutlined, RobotOutlined, FileTextOutlined,
+  ReadOutlined, TrophyOutlined, FileTextOutlined,
   SafetyCertificateOutlined, CalendarOutlined, SearchOutlined,
   PlusCircleOutlined, UserOutlined, ArrowRightOutlined, SettingOutlined,
 } from "@ant-design/icons";
@@ -33,7 +33,6 @@ const CARDS_BY_ROLE = {
     { title: "Référentiel Compétences",   icon: ApartmentOutlined,         color: "#722ed1", path: "/home/competences" },
     { title: "Besoins en Formation",      icon: ReadOutlined,              color: "#fa8c16", path: "/home/besoins" },
     { title: "Évaluations",              icon: TrophyOutlined,            color: "#13c2c2", path: "/home/Evaluations" },
-    { title: "Analyse Prédictive",        icon: RobotOutlined,             color: "#eb2f96", path: "/home/AnalysePredictive" },
     { title: "Certifications",            icon: SafetyCertificateOutlined, color: "#faad14", path: "/home/certificate" },
   ],
   cup: [
@@ -41,7 +40,6 @@ const CARDS_BY_ROLE = {
     { title: "Référentiel Compétences",   icon: ApartmentOutlined,         color: "#722ed1", path: "/home/competences" },
     { title: "Besoins en Formation",      icon: ReadOutlined,              color: "#fa8c16", path: "/home/besoins" },
     { title: "Sessions d'Animation",      icon: CalendarOutlined,          color: "#1890ff", path: "/home/animateur-formations" },
-    { title: "Analyse Prédictive",        icon: RobotOutlined,             color: "#eb2f96", path: "/home/AnalysePredictive" },
     { title: "Mes Inscriptions",          icon: FileTextOutlined,          color: "#52c41a", path: "/home/ListeFormation" },
   ],
   enseignant: [
@@ -64,7 +62,6 @@ const CARDS_BY_ROLE = {
     { title: "Catalogue Formations",      icon: SearchOutlined,            color: "#1890ff", path: "/home/Formation/Consulter" },
     { title: "Dossiers de Formation",     icon: FileTextOutlined,          color: "#b51200", path: "/home/File" },
     { title: "Calendrier Global",         icon: CalendarOutlined,          color: "#52c41a", path: "/home/Calendrier" },
-    { title: "Analyse Prédictive",        icon: RobotOutlined,             color: "#eb2f96", path: "/home/AnalysePredictive" },
   ],
 };
 

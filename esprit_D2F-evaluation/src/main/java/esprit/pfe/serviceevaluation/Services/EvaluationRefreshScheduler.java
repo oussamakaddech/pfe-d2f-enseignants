@@ -8,6 +8,7 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.util.List;
 
 @Component
@@ -24,7 +25,7 @@ public class EvaluationRefreshScheduler {
     public void refreshEvaluations() {
         log.info("Mise à jour périodique des évaluations (toutes les 2h)");
         List<EvaluationGlobale> evaluations = evaluationGlobaleRepository.findAll();
-        OffsetDateTime now = OffsetDateTime.now();
+        OffsetDateTime now = OffsetDateTime.now(ZoneId.systemDefault());
         
         for (EvaluationGlobale eval : evaluations) {
             eval.setLastRefreshDate(now);

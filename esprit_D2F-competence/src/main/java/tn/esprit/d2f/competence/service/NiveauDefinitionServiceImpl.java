@@ -1,8 +1,8 @@
 package tn.esprit.d2f.competence.service;
 
 import jakarta.persistence.EntityNotFoundException;
-import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -25,13 +25,25 @@ import java.util.Map;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class NiveauDefinitionServiceImpl implements INiveauDefinitionService {
 
     private final NiveauSavoirRequisRepository niveauRepo;
     private final CompetenceRepository competenceRepository;
     private final SousCompetenceRepository sousCompetenceRepository;
     private final SavoirRepository savoirRepository;
+    private final INiveauDefinitionService self;
+
+    public NiveauDefinitionServiceImpl(NiveauSavoirRequisRepository niveauRepo,
+                                        CompetenceRepository competenceRepository,
+                                        SousCompetenceRepository sousCompetenceRepository,
+                                        SavoirRepository savoirRepository,
+                                        @Lazy INiveauDefinitionService self) {
+        this.niveauRepo = niveauRepo;
+        this.competenceRepository = competenceRepository;
+        this.sousCompetenceRepository = sousCompetenceRepository;
+        this.savoirRepository = savoirRepository;
+        this.self = self;
+    }
 
     @Override
     @Transactional(readOnly = true)
@@ -70,7 +82,7 @@ public class NiveauDefinitionServiceImpl implements INiveauDefinitionService {
     @Override
     @Transactional(readOnly = true)
     public Page<NiveauSavoirRequisDTO> getSavoirsRequisByCompetenceAndNiveau(Long competenceId, NiveauMaitrise niveau, Pageable pageable) {
-        return paginate(this.getSavoirsRequisByCompetenceAndNiveau(competenceId, niveau), pageable);
+        return paginate(self.getSavoirsRequisByCompetenceAndNiveau(competenceId, niveau), pageable);
     }
 
     @Override
@@ -84,7 +96,7 @@ public class NiveauDefinitionServiceImpl implements INiveauDefinitionService {
     @Override
     @Transactional(readOnly = true)
     public Page<NiveauSavoirRequisDTO> getSavoirsRequisBySousCompetenceAndNiveau(Long sousCompetenceId, NiveauMaitrise niveau, Pageable pageable) {
-        return paginate(this.getSavoirsRequisBySousCompetenceAndNiveau(sousCompetenceId, niveau), pageable);
+        return paginate(self.getSavoirsRequisBySousCompetenceAndNiveau(sousCompetenceId, niveau), pageable);
     }
 
     @Override

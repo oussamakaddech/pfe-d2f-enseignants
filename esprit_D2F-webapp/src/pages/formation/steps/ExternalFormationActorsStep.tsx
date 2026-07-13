@@ -58,8 +58,8 @@ export default function ExternalFormationActorsStep(
 
         <Card className="creation-actor-card">
           <ExterneAnimateursSection
-            externeBureauId={externeBureauId}
-            setExterneBureauId={setExterneBureauId}
+            bureauId={externeBureauId}
+            setBureauId={setExterneBureauId}
             animExterneSel={animExterneSel}
             setAnimExterneSel={setAnimExterneSel}
           />

@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.UUID;
 
 @RestControllerAdvice
@@ -189,7 +190,7 @@ public class CustomExceptionHandler {
                 errorResponse.setMessage(message);
                 errorResponse.setPath(path);
                 errorResponse.setTraceId(UUID.randomUUID().toString());
-                errorResponse.setTimestamp(LocalDateTime.now().toString());
+                errorResponse.setTimestamp(LocalDateTime.now(ZoneId.systemDefault()).toString());
                 return errorResponse;
         }
 }

@@ -40,8 +40,10 @@ from app.ml.feature_engineering import (
 logger = logging.getLogger(__name__)
 
 MODEL_PATH = os.path.join(settings.models_dir, settings.gap_model_file)
+TRAINING_METADATA_FILE = "training_metadata.json"
 
 FEATURE_COLS = [
+    "current_level", "required_level",
     "avg_level", "min_level", "max_level", "nb_savoirs",
     "nb_competences", "nb_level_5", "nb_level_1",
     "competency_coverage_rate", "nb_formations_completed",
@@ -50,6 +52,17 @@ FEATURE_COLS = [
     "avg_eval_score", "nb_evaluations", "days_since_last_training",
     "engagement_score",
 ]
+
+
+def _risk_level(gap: float) -> str:
+    """Classify a gap value into a risk level category."""
+    if gap >= 3:
+        return "critical"
+    if gap >= 2:
+        return "high"
+    if gap >= 1:
+        return "medium"
+    return "low"
 
 
 # ── Model selection — candidate models with lazy import ─────
@@ -64,18 +77,23 @@ def _build_candidate_models() -> list[tuple[str, Any]]:
     candidates: list[tuple[str, Any]] = []
 
     # 1. GradientBoosting (toujours disponible via sklearn)
+    # Tuned for small datasets: fewer trees, shallower, more regularization
     candidates.append(("gradient_boosting", GradientBoostingRegressor(
-        n_estimators=200, max_depth=5, learning_rate=0.1,
-        subsample=0.8, random_state=42,
+        n_estimators=120, max_depth=3, learning_rate=0.08,
+        subsample=0.85, random_state=42,
+        min_samples_split=10, min_samples_leaf=5,
+        max_features="sqrt", loss="squared_error",
     )))
 
     # 2. XGBoost (optionnel)
     try:
         from xgboost import XGBRegressor
         candidates.append(("xgboost", XGBRegressor(
-            n_estimators=200, max_depth=5, learning_rate=0.1,
-            subsample=0.8, random_state=42,
+            n_estimators=120, max_depth=3, learning_rate=0.08,
+            subsample=0.85, random_state=42,
             verbosity=0, n_jobs=-1,
+            reg_alpha=0.1, reg_lambda=1.0,
+            min_child_weight=5,
         )))
     except ImportError:
         logger.info("XGBoost non installé — skip du candidat xgboost")
@@ -84,9 +102,11 @@ def _build_candidate_models() -> list[tuple[str, Any]]:
     try:
         from lightgbm import LGBMRegressor
         candidates.append(("lightgbm", LGBMRegressor(
-            n_estimators=200, max_depth=5, learning_rate=0.1,
-            subsample=0.8, random_state=42,
+            n_estimators=120, max_depth=3, learning_rate=0.08,
+            subsample=0.85, random_state=42,
             verbose=-1, n_jobs=-1,
+            reg_alpha=0.1, reg_lambda=1.0,
+            min_child_samples=10,
         )))
     except ImportError:
         logger.info("LightGBM non installé — skip du candidat lightgbm")
@@ -229,7 +249,7 @@ class GapPredictor:
             logger.info("Loaded gap predictor model from %s", MODEL_PATH)
             self._load_metadata()
         except ArtifactIntegrityError as e:
-            logger.error("REFUS de charger %s : %s", MODEL_PATH, e)
+            logger.exception("REFUS de charger %s : %s", MODEL_PATH, e)
         except Exception as e:
             logger.warning("Failed to load model: %s", e)
 
@@ -241,7 +261,7 @@ class GapPredictor:
         sans les métriques, la confiance par prédiction perdrait sa calibration.
         """
         import json
-        meta_path = os.path.join(settings.models_dir, "training_metadata.json")
+        meta_path = os.path.join(settings.models_dir, TRAINING_METADATA_FILE)
         if not os.path.exists(meta_path):
             return
         try:
@@ -268,7 +288,7 @@ class GapPredictor:
     def _save_training_metadata(self) -> None:
         """Save training metadata (feature stats) for drift detection."""
         import json
-        meta_path = os.path.join(settings.models_dir, "training_metadata.json")
+        meta_path = os.path.join(settings.models_dir, TRAINING_METADATA_FILE)
         try:
             meta = {
                 "trained_at": pd.Timestamp.now().isoformat(),
@@ -317,7 +337,7 @@ class GapPredictor:
             return {"drift_detected": False, "message": "No data to compare"}
 
         import json
-        meta_path = os.path.join(settings.models_dir, "training_metadata.json")
+        meta_path = os.path.join(settings.models_dir, TRAINING_METADATA_FILE)
         if not os.path.exists(meta_path):
             return {"drift_detected": False, "message": "No training metadata found"}
 
@@ -426,9 +446,12 @@ class GapPredictor:
         test_score = self.model.score(X_test, y_test)
         test_rmse = np.sqrt(np.mean((self.model.predict(X_test) - y_test) ** 2))
 
-        self.feature_importances = dict(
-            zip(FEATURE_COLS, self.model.feature_importances_.tolist())
-        )
+        if hasattr(self.model, "feature_importances_"):
+            self.feature_importances = dict(
+                zip(FEATURE_COLS, self.model.feature_importances_.tolist())
+            )
+        else:
+            self.feature_importances = {}
 
         self.last_metrics = {
             "cv_rmse": round(cv_rmse, 3),
@@ -443,6 +466,18 @@ class GapPredictor:
         self._save_model()
 
         return dict(self.last_metrics)
+
+    def _compute_base_confidence(self) -> float:
+        """Extract base confidence from model test R², clamped to [0.5, 0.95]."""
+        base_conf = 0.7
+        if self.last_metrics and self.last_metrics.get("test_r2") is not None:
+            try:
+                r2 = float(self.last_metrics["test_r2"])
+                if r2 == r2:  # NaN check (NaN != NaN)
+                    base_conf = r2
+            except (TypeError, ValueError):
+                pass
+        return max(0.5, min(0.95, base_conf))
 
     def predict(
         self,
@@ -467,11 +502,11 @@ class GapPredictor:
 
         empty_explanation = {"method": "ml_gradient_boosting", "model_trained": True}
         if df_teacher.empty or df_gaps.empty:
-            return {"gaps": [], "overall_risk_score": 0.0, "explanation": empty_explanation}
+            return {"gaps": [], "avg_predicted_gap": 0.0, "explanation": empty_explanation}
 
         df_pred = df_gaps.merge(df_teacher, on="enseignant_id", how="left", validate="m:1")
         if df_pred.empty:
-            return {"gaps": [], "overall_risk_score": 0.0, "explanation": empty_explanation}
+            return {"gaps": [], "avg_predicted_gap": 0.0, "explanation": empty_explanation}
 
         # Build the feature matrix and replay the *training* normalization
         # (anti train/serve skew) before feeding the gradient boosting model.
@@ -493,28 +528,12 @@ class GapPredictor:
         # Base confidence reflects validated model quality (test R²), bounded to a
         # sensible band; it is then reduced where the ML output diverges from the
         # deterministic reference (signals the model is extrapolating).
-        # test_r2 peut être négatif (modèle peu fiable) ou NaN (données dégénérées) :
-        # on retombe alors sur une confiance neutre au lieu de propager le NaN.
-        base_conf = 0.7
-        if self.last_metrics and self.last_metrics.get("test_r2") is not None:
-            try:
-                r2 = float(self.last_metrics["test_r2"])
-                if not (r2 != r2):  # NaN check (NaN != NaN)
-                    base_conf = r2
-            except (TypeError, ValueError):
-                pass
-        base_conf = max(0.5, min(0.95, base_conf))
+        base_conf = self._compute_base_confidence()
 
         disagreement = (df_pred["predicted_gap"] - df_pred["deterministic_gap"]).abs() / 5.0
         df_pred["confidence"] = (base_conf * (1.0 - 0.5 * disagreement)).clip(0.3, 0.99)
 
-        def risk_level(gap: float) -> str:
-            if gap >= 3: return "critical"
-            if gap >= 2: return "high"
-            if gap >= 1: return "medium"
-            return "low"
-
-        df_pred["risk_level"] = df_pred["predicted_gap"].apply(risk_level)
+        df_pred["risk_level"] = df_pred["predicted_gap"].apply(_risk_level)
         df_pred = df_pred.sort_values(
             ["enseignant_id", "predicted_gap"], ascending=[True, False]
         )
@@ -551,7 +570,7 @@ class GapPredictor:
 
         return {
             "gaps": gaps,
-            "overall_risk_score": round(overall_risk, 2),
+            "avg_predicted_gap": round(overall_risk, 2),
             "explanation": explanation,
         }
 
@@ -571,12 +590,12 @@ class GapPredictor:
         df_gaps = build_gap_labels(competency_levels, required_levels)
 
         if df_teacher.empty or df_gaps.empty:
-            return {"gaps": [], "overall_risk_score": 0.0, "explanation": {"method": "heuristic", "model_trained": False}}
+            return {"gaps": [], "avg_predicted_gap": 0.0, "explanation": {"method": "heuristic", "model_trained": False}}
 
         df_pred = df_gaps.merge(df_teacher, on="enseignant_id", how="left", validate="m:1")
 
         if df_pred.empty:
-            return {"gaps": [], "overall_risk_score": 0.0, "explanation": {"method": "heuristic", "model_trained": False}}
+            return {"gaps": [], "avg_predicted_gap": 0.0, "explanation": {"method": "heuristic", "model_trained": False}}
 
         # Deterministic gap: required - current (already computed in build_gap_labels)
         df_pred["predicted_gap"] = df_pred["gap"].clip(0, 5)
@@ -585,13 +604,7 @@ class GapPredictor:
         df_pred["confidence"] = 0.5  # Fixed moderate confidence for heuristic
 
         # Risk level categorization
-        def risk_level(gap: float) -> str:
-            if gap >= 3: return "critical"
-            if gap >= 2: return "high"
-            if gap >= 1: return "medium"
-            return "low"
-
-        df_pred["risk_level"] = df_pred["predicted_gap"].apply(risk_level)
+        df_pred["risk_level"] = df_pred["predicted_gap"].apply(_risk_level)
 
         # Sort by predicted gap descending, take top N per teacher
         df_pred = df_pred.sort_values(["enseignant_id", "predicted_gap"], ascending=[True, False])
@@ -616,7 +629,7 @@ class GapPredictor:
 
         return {
             "gaps": gaps,
-            "overall_risk_score": round(overall_risk, 2),
+            "avg_predicted_gap": round(overall_risk, 2),
             "explanation": {"method": "heuristic", "model_trained": False},
         }
 

@@ -130,26 +130,17 @@ class TestDetectBloomLevel:
 
 
 class TestBloomToNiveau:
-    def test_level_1(self):
-        assert nlp._bloom_to_niveau(1) == "N1_DEBUTANT"
-
-    def test_level_2(self):
-        assert nlp._bloom_to_niveau(2) == "N2_ELEMENTAIRE"
-
-    def test_level_3(self):
-        assert nlp._bloom_to_niveau(3) == "N3_INTERMEDIAIRE"
-
-    def test_level_4(self):
-        assert nlp._bloom_to_niveau(4) == "N4_AVANCE"
-
-    def test_level_5(self):
-        assert nlp._bloom_to_niveau(5) == "N4_AVANCE"
-
-    def test_level_6(self):
-        assert nlp._bloom_to_niveau(6) == "N5_EXPERT"
-
-    def test_unknown(self):
-        assert nlp._bloom_to_niveau(99) == "N2_ELEMENTAIRE"
+    @pytest.mark.parametrize("level,expected", [
+        (1, "N1_DEBUTANT"),
+        (2, "N2_ELEMENTAIRE"),
+        (3, "N3_INTERMEDIAIRE"),
+        (4, "N4_AVANCE"),
+        (5, "N4_AVANCE"),
+        (6, "N5_EXPERT"),
+        (99, "N2_ELEMENTAIRE"),
+    ])
+    def test_level_mapping(self, level, expected):
+        assert nlp._bloom_to_niveau(level) == expected
 
 
 # ======================================================================

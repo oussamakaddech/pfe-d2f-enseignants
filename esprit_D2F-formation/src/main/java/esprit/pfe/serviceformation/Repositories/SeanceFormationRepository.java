@@ -8,8 +8,8 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import java.sql.Time;
-import java.util.Date;
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.List;
 
 @Repository
@@ -25,8 +25,8 @@ public interface SeanceFormationRepository extends JpaRepository<SeanceFormation
       """)
     List<Formation> findFormationsByAnimateurAndPeriod(
             @Param("ensId") String ensId,
-            @Param("start") Date start,
-            @Param("end")   Date end
+            @Param("start") LocalDate start,
+            @Param("end")   LocalDate end
     );
 
 
@@ -51,9 +51,9 @@ public interface SeanceFormationRepository extends JpaRepository<SeanceFormation
     """)
     boolean existsSeanceConflict(
             @Param("enseignantId") String enseignantId,
-            @Param("dateSeance") Date dateSeance,
-            @Param("heureDebut") Time heureDebut,
-            @Param("heureFin") Time heureFin
+            @Param("dateSeance") LocalDate dateSeance,
+            @Param("heureDebut") LocalTime heureDebut,
+            @Param("heureFin") LocalTime heureFin
     );
 
     @Query("""
@@ -69,9 +69,9 @@ public interface SeanceFormationRepository extends JpaRepository<SeanceFormation
     """)
     boolean existsSeanceConflictIgnoringSelf(
             @Param("enseignantId") String enseignantId,
-            @Param("dateSeance") Date dateSeance,
-            @Param("heureDebut") Time heureDebut,
-            @Param("heureFin") Time heureFin,
+            @Param("dateSeance") LocalDate dateSeance,
+            @Param("heureDebut") LocalTime heureDebut,
+            @Param("heureFin") LocalTime heureFin,
             @Param("idSeance") Long idSeance
     );
 
@@ -88,7 +88,7 @@ public interface SeanceFormationRepository extends JpaRepository<SeanceFormation
     """)
     List<SeanceFormation> findByAnimateurAndDate(
             @Param("userId") String userId,
-            @Param("date")     Date date
+            @Param("date")     LocalDate date
     );
 
     // NOUVEAU : charger toutes les séances d'un participant ce jour
@@ -100,7 +100,7 @@ public interface SeanceFormationRepository extends JpaRepository<SeanceFormation
     """)
     List<SeanceFormation> findByParticipantAndDate(
             @Param("userId") String userId,
-            @Param("date")     Date date
+            @Param("date")     LocalDate date
     );
 
 
@@ -114,9 +114,9 @@ public interface SeanceFormationRepository extends JpaRepository<SeanceFormation
     """)
     boolean existsSalleConflict(
             @Param("salle") String salle,
-            @Param("dateSeance") Date   dateSeance,
-            @Param("heureDebut") Time   heureDebut,
-            @Param("heureFin") Time     heureFin
+            @Param("dateSeance") LocalDate   dateSeance,
+            @Param("heureDebut") LocalTime   heureDebut,
+            @Param("heureFin") LocalTime     heureFin
     );
 
     @Query("""
@@ -130,14 +130,14 @@ public interface SeanceFormationRepository extends JpaRepository<SeanceFormation
     """)
     boolean existsSalleConflictIgnoringSelf(
             @Param("salle")      String salle,
-            @Param("dateSeance") Date   dateSeance,
-            @Param("heureDebut") Time   heureDebut,
-            @Param("heureFin")   Time   heureFin,
+            @Param("dateSeance") LocalDate   dateSeance,
+            @Param("heureDebut") LocalTime   heureDebut,
+            @Param("heureFin")   LocalTime   heureFin,
             @Param("idSeance")   Long   idSeance
     );
 
     // Pour le reminder scheduler : séances à une date donnée
-    List<SeanceFormation> findByDateSeance(Date dateSeance);
+    List<SeanceFormation> findByDateSeance(LocalDate dateSeance);
 
     // Pour l'export .ics : séances d'un animateur
     @Query("SELECT s FROM SeanceFormation s JOIN s.animateurs a WHERE a.id = :ensId")

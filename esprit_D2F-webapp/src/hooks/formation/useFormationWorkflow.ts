@@ -21,15 +21,16 @@ function toMinutes(t: string | null | undefined): number | null {
 }
 
 function sameTimeWindow(
-  a: { dateSeance: string; heureDebut: string; heureFin: string },
-  b: { dateSeance: string; heureDebut: string; heureFin: string },
+  a: { dateSeance: string; heureDebut?: string | null; heureFin?: string | null },
+  b: { dateSeance: string; heureDebut?: string | null; heureFin?: string | null },
 ): boolean {
   if (!a?.dateSeance || a.dateSeance !== b?.dateSeance) return false;
-  const [aS, aE, bS, bE] = [toMinutes(a.heureDebut), toMinutes(a.heureFin), toMinutes(b.heureDebut), toMinutes(b.heureFin)];
+  const [aS, aE, bS, bE] = [toMinutes(a.heureDebut ?? null), toMinutes(a.heureFin ?? null), toMinutes(b.heureDebut ?? null), toMinutes(b.heureFin ?? null)];
   return aS !== null && aE !== null && bS !== null && bE !== null && aS < bE && bS < aE;
 }
 
-const intersects = (l: string[], r: string[]) => l.some((id) => r.includes(id));
+const intersects = (l: readonly unknown[], r: readonly unknown[]) =>
+  l.some((id) => r.map(String).includes(String(id)));
 const normSalle   = (v: unknown)              => String(v || "").trim().toLowerCase();
 
 function checkTimeValidity(s: SeanceConflictItem, i: number, msgs: string[]): void {
@@ -53,8 +54,8 @@ function checkInternalConflict(
 }
 
 function checkExternalConflict(
-  ls: SeanceConflictItem, idx: number, es: { dateSeance: string; heureDebut?: string; heureFin?: string; animateurs?: { id?: unknown }[] },
-  name: string, participantIds: unknown[], existParts: unknown[], msgs: string[],
+  ls: SeanceConflictItem, idx: number, es: { dateSeance: string; heureDebut?: string; heureFin?: string; animateurs?: { id?: unknown }[]; salle?: string | null },
+  name: string, participantIds: readonly unknown[], existParts: readonly unknown[], msgs: string[],
 ): void {
   if (!sameTimeWindow(ls, es)) return;
   const lSalle = normSalle(ls.salle), eSalle = normSalle(es.salle);

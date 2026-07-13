@@ -37,7 +37,7 @@ export default function SuiviTab() {
   const { mutateAsync: updateOuvertes } = useUpdateInscriptionsOuvertes();
   const { mutateAsync: traiterMut } = useTraiterDemande();
   const { mutateAsync: traiterBulkMut } = useTraiterDemandeBulk();
-  const { mutateAsync: sendEmail } = useSendEmail();
+  useSendEmail();
 
   const rows = useMemo(() => (raw as InscriptionRow[]).filter(Boolean), [raw]);
   const formationsList = useMemo(() => {
@@ -150,7 +150,11 @@ export default function SuiviTab() {
       rows: filtered.map((r) => ({
         Nom: r.enseignant?.nom ?? "", Prénom: r.enseignant?.prenom ?? "", Email: r.enseignant?.mail ?? "",
         Département: r.enseignant?.deptLibelle || "—", UP: r.enseignant?.upLibelle || "—",
-        Formation: r.formation?.titreFormation ?? "", État: r.etat === "APPROVED" ? "Approuvé" : r.etat === "REJECTED" ? "Rejeté" : "En attente",
+        Formation: r.formation?.titreFormation ?? "", État: (() => {
+          if (r.etat === "APPROVED") return "Approuvé";
+          if (r.etat === "REJECTED") return "Rejeté";
+          return "En attente";
+        })(),
         "Date demande": fmt(r.dateDemande),
       })),
       title: "Suivi des inscriptions", subtitle: exportDateLabel(),

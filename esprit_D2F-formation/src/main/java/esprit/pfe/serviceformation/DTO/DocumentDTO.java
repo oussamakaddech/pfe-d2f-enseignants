@@ -6,7 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.io.Serializable;
-import java.util.Date;
+import java.time.LocalDate;
 
 @Data
 @NoArgsConstructor
@@ -15,7 +15,7 @@ public class DocumentDTO implements Serializable {
     private Long idDocument;
     private String nomDocument;
     private boolean obligation;
-    private Date date;
+    private LocalDate date;
     private String filePath;
     private String pathType;
 

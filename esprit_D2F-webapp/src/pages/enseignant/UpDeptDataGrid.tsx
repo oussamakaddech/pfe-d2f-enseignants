@@ -168,7 +168,7 @@ export default function UpDeptDataGrid() {
     if (!fileDept) return;
     try {
       const res = await importDeptsExcel(fileDept);
-      msgApi.success(res);
+      msgApi.success(`${res.count} département(s) importé(s)`);
       setFileDept(null);
     } catch (err: unknown) {
       const error = err as { response?: { data?: string }; message?: string };

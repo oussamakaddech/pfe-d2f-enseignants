@@ -10,13 +10,11 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.sql.Time;
-import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.ZoneId;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -82,7 +80,7 @@ public class CalendarConflictService {
                     .seanceId(c.getSeanceId())
                     .otherSeanceId(c.getOtherSeanceId())
                     .detail(c.getDetail())
-                    .detectedAt(LocalDateTime.now())
+                    .detectedAt(LocalDateTime.now(ZoneId.systemDefault()))
                     .importLogId(importLogId)
                     .build());
         }
@@ -241,19 +239,16 @@ public class CalendarConflictService {
 
     // ==================== HELPERS ====================
 
-    private static boolean overlaps(Time aStart, Time aEnd, Time bStart, Time bEnd) {
-        return aStart.before(bEnd) && bStart.before(aEnd);
+    private static boolean overlaps(LocalTime aStart, LocalTime aEnd, LocalTime bStart, LocalTime bEnd) {
+        return aStart.isBefore(bEnd) && bStart.isBefore(aEnd);
     }
 
     private static String normalize(String s) {
         return s == null ? "" : s.trim().toUpperCase().replace(" ", "");
     }
 
-    private static String dateKey(Date date) {
-        // NB : les dates @Temporal(DATE) reviennent d'Hibernate en java.sql.Date,
-        // dont toInstant() lève UnsupportedOperationException. On passe par
-        // l'epoch millis (compatible java.util.Date ET java.sql.Date).
-        return Instant.ofEpochMilli(date.getTime()).atZone(ZoneId.systemDefault()).toLocalDate().toString();
+    private static String dateKey(LocalDate date) {
+        return date != null ? date.toString() : "";
     }
 
     private static LocalDate parseDate(String iso) {

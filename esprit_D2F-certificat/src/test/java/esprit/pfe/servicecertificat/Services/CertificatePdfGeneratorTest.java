@@ -7,6 +7,7 @@ import org.junit.jupiter.api.io.TempDir;
 import java.io.File;
 import java.nio.file.Path;
 import java.time.LocalDate;
+import java.time.Month;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -23,8 +24,8 @@ class CertificatePdfGeneratorTest {
         CertificateBatchMessage msg = new CertificateBatchMessage();
         msg.setTitreFormation("Java Spring Boot");
         msg.setTypeCertif("Completion");
-        msg.setDateDebutFormation(LocalDate.of(2026, 1, 1));
-        msg.setDateFinFormation(LocalDate.of(2026, 1, 5));
+        msg.setDateDebutFormation(LocalDate.of(2026, Month.JANUARY, 1));
+        msg.setDateFinFormation(LocalDate.of(2026, Month.JANUARY, 5));
         msg.setChargeHoraireGlobal(20);
         msg.setFormationId(1L);
 

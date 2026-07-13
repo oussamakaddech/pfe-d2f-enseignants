@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useParams } from "react-router-dom";
 import {
-  Card, Row, Col, Input, Button, Tabs, Space, Typography,
+  Card, Row, Col, AutoComplete, Input, Button, Tabs, Space, Typography,
   Spin, Alert, Empty, Modal, Statistic, Badge,
 } from "antd";
 import {
@@ -9,6 +9,8 @@ import {
   BookOutlined, RiseOutlined,
 } from "@ant-design/icons";
 import { useAnalytics } from "@/hooks/analyse/useAnalytics";
+import { useTeacherSearch, formatTeacherLabel, getTeacherId } from "@/hooks/formation/useTeacherSearch";
+import type { UnifiedProfile } from "@/services/formation/UnifiedProfileService";
 import SkillGapCard from "@/components/charts/SkillGapCard";
 import RecommendationCard from "@/components/charts/RecommendationCard";
 import TrainingPathTimeline from "@/components/charts/TrainingPathTimeline";
@@ -30,6 +32,9 @@ export default function TeacherAnalyticsPage() {
   const [inputId, setInputId] = useState(paramId ?? "");
   const [activeId, setActiveId] = useState(paramId ?? "");
   const [selectedGap, setSelectedGap] = useState<SkillGap | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const { data: searchResults, isLoading: searchLoading } = useTeacherSearch(searchTerm);
 
   const {
     loading, analysing, gaps, recommendations, trainingPath, analyseResult, error,
@@ -37,7 +42,29 @@ export default function TeacherAnalyticsPage() {
     updateRecoStatus, updatingReco,
   } = useAnalytics(activeId);
 
-  function handleSearch() {
+  const autoCompleteOptions = useMemo(() => {
+    if (!searchResults) return [];
+    return searchResults.map((profile: UnifiedProfile) => ({
+      value: getTeacherId(profile),
+      label: formatTeacherLabel(profile),
+      profile,
+    }));
+  }, [searchResults]);
+
+  function handleSelect(value: string, option: { profile?: UnifiedProfile }) {
+    setInputId(value);
+    setActiveId(value);
+    setSearchTerm("");
+    fetchGaps(undefined, 0);
+    fetchRecommendations(undefined, 0);
+  }
+
+  function handleSearch(value: string) {
+    setInputId(value);
+    setSearchTerm(value);
+  }
+
+  function handleSearchById() {
     const id = inputId.trim();
     if (!id) return;
     setActiveId(id);
@@ -134,15 +161,19 @@ export default function TeacherAnalyticsPage() {
         <Row gutter={[16, 16]} align="middle">
           <Col xs={24} md={12}>
             <Text strong style={{ display: "block", marginBottom: 6 }}>Identifiant enseignant</Text>
-            <Input
+            <AutoComplete
               size="large"
-              placeholder="Ex: ENS001"
+              placeholder="Rechercher un enseignant (nom, email, ID)…"
               value={inputId}
-              onChange={e => setInputId(e.target.value)}
-              onPressEnter={handleSearch}
-              prefix={<UserOutlined style={{ color: brand[500] }} />}
+              onChange={handleSearch}
+              onSelect={handleSelect}
+              options={autoCompleteOptions}
+              allowClear
               style={{ borderRadius: 8 }}
-            />
+              notFoundContent={searchLoading ? "Chargement…" : searchTerm.length >= 2 ? "Aucun enseignant trouvé" : "Tapez au moins 2 caractères"}
+            >
+              <Input prefix={<UserOutlined style={{ color: brand[500] }} />} />
+            </AutoComplete>
           </Col>
           <Col xs={24} md={12}>
             <div style={{ height: 28 }} />
@@ -151,7 +182,7 @@ export default function TeacherAnalyticsPage() {
                 type="primary"
                 size="large"
                 icon={<SearchOutlined />}
-                onClick={handleSearch}
+                onClick={handleSearchById}
                 loading={loading && !analysing}
                 style={{ backgroundColor: brand[600], borderColor: brand[600], borderRadius: 8 }}
               >
@@ -216,6 +247,8 @@ export default function TeacherAnalyticsPage() {
         onCancel={() => setSelectedGap(null)}
         footer={null}
         width={680}
+        maskClosable={false}
+        destroyOnClose={false}
         title={
           <Space>
             <RiseOutlined style={{ color: brand[500] }} />

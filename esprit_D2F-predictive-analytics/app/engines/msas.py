@@ -50,7 +50,6 @@ def _clamp01(x: float) -> float:
 
 
 def compute_adaptive_weights(
-    teacher_id: str,
     profiles: dict[str, Any],
     peer_data: dict[str, Any],
     risk_data: dict[str, Any],
@@ -61,7 +60,6 @@ def compute_adaptive_weights(
     correspondant, puis normalisé pour que α + β + γ = 1.
 
     Args:
-        teacher_id: identifiant de l'enseignant
         profiles: données de profils (compétences évaluées, etc.)
         peer_data: données de filtrage collaboratif (nb voisins, etc.)
         risk_data: données de scoring de risque (facteurs disponibles, etc.)
@@ -125,14 +123,18 @@ def compute_peer_score(
     return round(0.6 * success + 0.4 * _clamp01(log_adopt), 4)
 
 
-def compute_risk_score(
+def compute_risk_signal(
     risk_score: float,
     niveau_risque: str,
 ) -> float:
-    """Score de risque normalisé [0, 1].
+    """Signal de risque MSAS normalisé [0, 1] (composante S₃ du score MSAS).
 
     S₃ = risk_score × multiplieur_niveau
     où le multiplieur pénalise les niveaux plus élevés.
+
+    NB : distinct de ``risk_scoring.compute_risk_score`` (score de risque
+    multi-facteurs w1..w5). Renommé pour lever la collision de nom qui
+    rendait fragile l'import dans le moteur de recommandation.
     """
     multipliers = {
         "CRITIQUE": 1.0,
@@ -146,7 +148,6 @@ def compute_risk_score(
 
 def msas_score(
     teacher_id: str,
-    formation_id: int,
     gap_data: dict[str, Any],
     peer_data: dict[str, Any],
     risk_data: dict[str, Any],
@@ -173,7 +174,7 @@ def msas_score(
     profiles = {
         "nb_competences_evaluees": gap_data.get("nb_competences_evaluees", 0),
     }
-    weights = compute_adaptive_weights(teacher_id, profiles, peer_data, risk_data)
+    weights = compute_adaptive_weights(profiles, peer_data, risk_data)
 
     # 2. Calculer les trois signaux
     s_gap = compute_gap_score(
@@ -188,7 +189,7 @@ def msas_score(
         peer_data.get("total_peers", 1),
     )
 
-    s_risk = compute_risk_score(
+    s_risk = compute_risk_signal(
         risk_data.get("risk_score", 0.0),
         risk_data.get("niveau_risque", "MODERE"),
     )
@@ -248,7 +249,7 @@ def msas_batch(
     for f in formations:
         fid = f.get("formation_id") or f.get("id_formation")
         s = msas_score(
-            teacher_id, fid,
+            teacher_id,
             gap_data=gap_data,
             peer_data=peer_data,
             risk_data=risk_data,

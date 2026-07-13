@@ -2,6 +2,7 @@ package esprit.pfe.auth.entities;
 
 import org.junit.jupiter.api.Test;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.HashSet;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -116,7 +117,7 @@ class EntitiesTest {
 
     @Test
     void testAuditLogEntity() {
-        LocalDateTime now = LocalDateTime.now();
+        LocalDateTime now = LocalDateTime.now(ZoneId.systemDefault());
         AuditLog log = AuditLog.builder()
                 .id(1L)
                 .username("user")

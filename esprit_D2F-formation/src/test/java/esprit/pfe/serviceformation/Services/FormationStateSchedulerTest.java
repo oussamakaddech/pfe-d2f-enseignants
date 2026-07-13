@@ -10,7 +10,7 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.Date;
+import java.time.LocalDate;
 import java.util.List;
 
 
@@ -34,8 +34,8 @@ class FormationStateSchedulerTest {
         f.setEtatFormation(EtatFormation.ENREGISTRE);
         
         // Date debut in the future
-        f.setDateDebut(new Date(System.currentTimeMillis() + 100000));
-        f.setDateFin(new Date(System.currentTimeMillis() + 200000));
+        f.setDateDebut(LocalDate.now().plusDays(1));
+        f.setDateFin(LocalDate.now().plusDays(2));
         
         when(formationRepository.findAll()).thenReturn(List.of(f));
 
@@ -53,8 +53,8 @@ class FormationStateSchedulerTest {
         f.setEtatFormation(EtatFormation.PLANIFIE);
         
         // now is between debut and fin
-        f.setDateDebut(new Date(System.currentTimeMillis() - 100000));
-        f.setDateFin(new Date(System.currentTimeMillis() + 100000));
+        f.setDateDebut(LocalDate.now().minusDays(1));
+        f.setDateFin(LocalDate.now().plusDays(1));
         
         when(formationRepository.findAll()).thenReturn(List.of(f));
 
@@ -71,8 +71,8 @@ class FormationStateSchedulerTest {
         f.setEtatFormation(EtatFormation.EN_COURS);
         
         // Date fin in the past
-        f.setDateDebut(new Date(System.currentTimeMillis() - 200000));
-        f.setDateFin(new Date(System.currentTimeMillis() - 100000));
+        f.setDateDebut(LocalDate.now().minusDays(2));
+        f.setDateFin(LocalDate.now().minusDays(1));
         
         when(formationRepository.findAll()).thenReturn(List.of(f));
 

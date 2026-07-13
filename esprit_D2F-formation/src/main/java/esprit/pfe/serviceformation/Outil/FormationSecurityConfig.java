@@ -66,7 +66,7 @@ public class FormationSecurityConfig {
                 // CSRF désactivé volontairement (S4502, faux positif) : API REST sans
                 // état, jeton porté par l'en-tête Authorization: Bearer (jamais par un
                 // cookie ambiant) — non exploitable en CSRF. Cf. doc Spring Security.
-                .csrf(csrf -> csrf.disable())
+                .csrf(csrf -> csrf.disable()) // NOSONAR — stateless JWT API, no cookie-based auth
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/actuator/health", "/actuator/info").permitAll()

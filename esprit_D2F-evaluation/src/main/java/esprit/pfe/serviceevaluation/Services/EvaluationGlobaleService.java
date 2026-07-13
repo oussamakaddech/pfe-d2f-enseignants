@@ -13,6 +13,8 @@ import org.springframework.stereotype.Service;
 @RequiredArgsConstructor
 public class EvaluationGlobaleService {
 
+    private static final String MSG_NOT_FOUND = "Évaluation globale non trouvée avec l'id : ";
+
     private final EvaluationGlobaleRepository evaluationGlobaleRepository;
 
     private EvaluationGlobaleDTO mapToDto(EvaluationGlobale entity) {
@@ -47,7 +49,7 @@ public class EvaluationGlobaleService {
 
     public EvaluationGlobaleDTO updateEvaluationGlobale(Long id, EvaluationGlobaleDTO dto) {
         EvaluationGlobale existing = evaluationGlobaleRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Évaluation globale non trouvée avec l'id : " + id));
+                .orElseThrow(() -> new EntityNotFoundException(MSG_NOT_FOUND + id));
         existing.setCommentaireGeneral(dto.getCommentaireGeneral());
         existing.setDateEvaluation(dto.getDateEvaluation());
         existing.setNoteGlobale(dto.getNoteGlobale());
@@ -57,14 +59,14 @@ public class EvaluationGlobaleService {
 
     public void deleteEvaluationGlobale(Long id) {
         EvaluationGlobale entity = evaluationGlobaleRepository.findById(id)
-                .orElseThrow(() -> new EntityNotFoundException("Évaluation globale non trouvée avec l'id : " + id));
+                .orElseThrow(() -> new EntityNotFoundException(MSG_NOT_FOUND + id));
         evaluationGlobaleRepository.delete(entity);
     }
 
     public EvaluationGlobaleDTO getEvaluationGlobaleById(Long id) {
         return evaluationGlobaleRepository.findById(id)
                 .map(this::mapToDto)
-                .orElseThrow(() -> new EntityNotFoundException("Évaluation globale non trouvée avec l'id : " + id));
+                .orElseThrow(() -> new EntityNotFoundException(MSG_NOT_FOUND + id));
     }
 
     public EvaluationGlobaleDTO getEvaluationGlobaleByFormationId(Long formationId) {

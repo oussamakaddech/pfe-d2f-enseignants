@@ -1,6 +1,8 @@
 package esprit.pfe.serviceformation.controllers;
 
 import esprit.d2f.common.security.AuthorizationMatrix;
+import esprit.pfe.serviceformation.dto.FormationCompetenceRequestDTO;
+import esprit.pfe.serviceformation.dto.ReferentialMapper;
 import esprit.pfe.serviceformation.entities.FormationCompetence;
 import esprit.pfe.serviceformation.services.FormationCompetenceService;
 import org.springframework.data.domain.Page;
@@ -33,8 +35,9 @@ public class FormationCompetenceController {
     @PostMapping("/formation/{formationId}")
     public ResponseEntity<FormationCompetence> addFormationCompetence(
             @PathVariable Long formationId,
-            @RequestBody FormationCompetence fc) {
-        return ResponseEntity.ok(formationCompetenceService.addFormationCompetence(formationId, fc));
+            @RequestBody FormationCompetenceRequestDTO fc) {
+        return ResponseEntity.ok(formationCompetenceService.addFormationCompetence(
+                formationId, ReferentialMapper.toFormationCompetenceEntity(fc)));
     }
 
     /** PUT mettre à jour une liaison */
@@ -42,8 +45,9 @@ public class FormationCompetenceController {
     @PutMapping("/{id}")
     public ResponseEntity<FormationCompetence> updateFormationCompetence(
             @PathVariable Long id,
-            @RequestBody FormationCompetence fc) {
-        return ResponseEntity.ok(formationCompetenceService.updateFormationCompetence(id, fc));
+            @RequestBody FormationCompetenceRequestDTO fc) {
+        return ResponseEntity.ok(formationCompetenceService.updateFormationCompetence(
+                id, ReferentialMapper.toFormationCompetenceEntity(fc)));
     }
 
     /** DELETE supprimer une liaison */

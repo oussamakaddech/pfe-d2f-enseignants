@@ -18,6 +18,7 @@ import tn.esprit.d2f.competence.entity.Savoir;
 import tn.esprit.d2f.competence.entity.EnseignantCompetence;
 
 import java.time.LocalDate;
+import java.time.Month;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -201,7 +202,7 @@ class CompetenceMapperTest {
             EnseignantCompetence ec = EnseignantCompetence.builder()
                     .id(10L).enseignantId("ens-001").savoir(s)
                     .niveau(NiveauMaitrise.N2_ELEMENTAIRE)
-                    .dateAcquisition(LocalDate.of(2025, 6, 1))
+                    .dateAcquisition(LocalDate.of(2025, Month.JUNE, 1))
                     .commentaire("Bon niveau")
                     .build();
 

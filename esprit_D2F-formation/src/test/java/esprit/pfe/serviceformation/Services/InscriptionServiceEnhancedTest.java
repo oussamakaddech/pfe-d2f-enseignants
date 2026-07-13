@@ -10,8 +10,9 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import java.sql.Time;
+import java.time.LocalTime;
 import java.time.LocalDate;
+import java.time.Month;
 import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -125,12 +126,12 @@ class InscriptionServiceEnhancedTest {
     @Test
     void testDemanderInscription_WithOverlap() {
         Formation f1 = createValidFormation(1L);
-        f1.setDateDebut(java.sql.Date.valueOf(LocalDate.of(2024, 1, 1)));
-        f1.setDateFin(java.sql.Date.valueOf(LocalDate.of(2024, 1, 5)));
+        f1.setDateDebut(LocalDate.of(2024, Month.JANUARY, 1));
+        f1.setDateFin(LocalDate.of(2024, Month.JANUARY, 5));
 
         Formation f2 = createValidFormation(2L);
-        f2.setDateDebut(java.sql.Date.valueOf(LocalDate.of(2024, 1, 3)));
-        f2.setDateFin(java.sql.Date.valueOf(LocalDate.of(2024, 1, 7)));
+        f2.setDateDebut(LocalDate.of(2024, Month.JANUARY, 3));
+        f2.setDateFin(LocalDate.of(2024, Month.JANUARY, 7));
 
         when(formationRepo.findById(1L)).thenReturn(Optional.of(f1));
 
@@ -149,12 +150,12 @@ class InscriptionServiceEnhancedTest {
     @Test
     void testDemanderInscription_WithRejectedOverlap() {
         Formation f1 = createValidFormation(1L);
-        f1.setDateDebut(java.sql.Date.valueOf(LocalDate.of(2024, 1, 1)));
-        f1.setDateFin(java.sql.Date.valueOf(LocalDate.of(2024, 1, 5)));
+        f1.setDateDebut(LocalDate.of(2024, Month.JANUARY, 1));
+        f1.setDateFin(LocalDate.of(2024, Month.JANUARY, 5));
 
         Formation f2 = createValidFormation(2L);
-        f2.setDateDebut(java.sql.Date.valueOf(LocalDate.of(2024, 1, 3)));
-        f2.setDateFin(java.sql.Date.valueOf(LocalDate.of(2024, 1, 7)));
+        f2.setDateDebut(LocalDate.of(2024, Month.JANUARY, 3));
+        f2.setDateFin(LocalDate.of(2024, Month.JANUARY, 7));
 
         when(formationRepo.findById(1L)).thenReturn(Optional.of(f1));
 
@@ -221,8 +222,8 @@ class InscriptionServiceEnhancedTest {
     void testMapSeanceToDTO_WithNullLists() {
         SeanceFormation s = new SeanceFormation();
         s.setIdSeance(1L);
-        s.setHeureDebut(Time.valueOf("08:00:00"));
-        s.setHeureFin(Time.valueOf("10:00:00"));
+        s.setHeureDebut(LocalTime.of(8, 0));
+        s.setHeureFin(LocalTime.of(10, 0));
         s.setAnimateurs(null);
         s.setParticipants(null);
 
@@ -264,57 +265,51 @@ class InscriptionServiceEnhancedTest {
         f1.setDateFin(null);
 
         Formation f2 = createValidFormation(2L);
-        f2.setDateDebut(java.sql.Date.valueOf(LocalDate.of(2024, 1, 1)));
-        f2.setDateFin(java.sql.Date.valueOf(LocalDate.of(2024, 1, 5)));
+        f2.setDateDebut(LocalDate.of(2024, Month.JANUARY, 1));
+        f2.setDateFin(LocalDate.of(2024, Month.JANUARY, 5));
 
         // Utilisation de réflexion pour tester la méthode privée
-        try {
+        assertDoesNotThrow(() -> {
             java.lang.reflect.Method method = InscriptionService.class.getDeclaredMethod("isOverlapping", Formation.class, Formation.class);
             method.setAccessible(true);
             boolean result = (boolean) method.invoke(service, f1, f2);
             assertFalse(result);
-        } catch (Exception e) {
-            fail("Erreur lors de l'appel de la méthode privée isOverlapping: " + e.getMessage());
-        }
+        });
     }
 
     @Test
     void testIsOverlapping_NoOverlap() {
         Formation f1 = createValidFormation(1L);
-        f1.setDateDebut(java.sql.Date.valueOf(LocalDate.of(2024, 1, 1)));
-        f1.setDateFin(java.sql.Date.valueOf(LocalDate.of(2024, 1, 5)));
+        f1.setDateDebut(LocalDate.of(2024, Month.JANUARY, 1));
+        f1.setDateFin(LocalDate.of(2024, Month.JANUARY, 5));
 
         Formation f2 = createValidFormation(2L);
-        f2.setDateDebut(java.sql.Date.valueOf(LocalDate.of(2024, 1, 10)));
-        f2.setDateFin(java.sql.Date.valueOf(LocalDate.of(2024, 1, 15)));
+        f2.setDateDebut(LocalDate.of(2024, Month.JANUARY, 10));
+        f2.setDateFin(LocalDate.of(2024, Month.JANUARY, 15));
 
-        try {
+        assertDoesNotThrow(() -> {
             java.lang.reflect.Method method = InscriptionService.class.getDeclaredMethod("isOverlapping", Formation.class, Formation.class);
             method.setAccessible(true);
             boolean result = (boolean) method.invoke(service, f1, f2);
             assertFalse(result);
-        } catch (Exception e) {
-            fail("Erreur lors de l'appel de la méthode privée isOverlapping: " + e.getMessage());
-        }
+        });
     }
 
     @Test
     void testIsOverlapping_WithOverlap() {
         Formation f1 = createValidFormation(1L);
-        f1.setDateDebut(java.sql.Date.valueOf(LocalDate.of(2024, 1, 1)));
-        f1.setDateFin(java.sql.Date.valueOf(LocalDate.of(2024, 1, 5)));
+        f1.setDateDebut(LocalDate.of(2024, Month.JANUARY, 1));
+        f1.setDateFin(LocalDate.of(2024, Month.JANUARY, 5));
 
         Formation f2 = createValidFormation(2L);
-        f2.setDateDebut(java.sql.Date.valueOf(LocalDate.of(2024, 1, 3)));
-        f2.setDateFin(java.sql.Date.valueOf(LocalDate.of(2024, 1, 7)));
+        f2.setDateDebut(LocalDate.of(2024, Month.JANUARY, 3));
+        f2.setDateFin(LocalDate.of(2024, Month.JANUARY, 7));
 
-        try {
+        assertDoesNotThrow(() -> {
             java.lang.reflect.Method method = InscriptionService.class.getDeclaredMethod("isOverlapping", Formation.class, Formation.class);
             method.setAccessible(true);
             boolean result = (boolean) method.invoke(service, f1, f2);
             assertTrue(result);
-        } catch (Exception e) {
-            fail("Erreur lors de l'appel de la méthode privée isOverlapping: " + e.getMessage());
-        }
+        });
     }
 }

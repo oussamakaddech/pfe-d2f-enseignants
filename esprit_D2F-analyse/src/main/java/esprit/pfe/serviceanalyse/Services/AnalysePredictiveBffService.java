@@ -55,6 +55,21 @@ public class AnalysePredictiveBffService {
         return engine.getPriorityActions(limit, departementId, bearerToken);
     }
 
+    /** Impact réel global des formations suivies (agrégats historiques). */
+    public Map<String, Object> trainingImpact(String bearerToken) {
+        return engine.getTrainingImpact(bearerToken);
+    }
+
+    /** Classement paginé des formations selon leur impact (gain de niveau). */
+    public Map<String, Object> trainingImpactFormations(int page, int size, String bearerToken) {
+        return engine.getTrainingImpactFormations(page, size, bearerToken);
+    }
+
+    /** Simulation what-if : projection du risque si un plan de formations est suivi. */
+    public Map<String, Object> simulateWhatIf(Map<String, Object> plan, String bearerToken) {
+        return engine.simulateWhatIf(plan, bearerToken);
+    }
+
     private Map<String, Object> resumeAlertes(Map<String, Object> alertes) {
         Map<String, Object> resume = new LinkedHashMap<>();
         resume.put("total", alertes.getOrDefault("total", 0));

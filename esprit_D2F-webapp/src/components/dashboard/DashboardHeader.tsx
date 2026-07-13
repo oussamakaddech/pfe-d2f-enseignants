@@ -2,7 +2,7 @@ import { memo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Segmented, Button, Space, Tooltip } from "antd";
 import {
-  ReloadOutlined, DownloadOutlined, BookOutlined, LineChartOutlined,
+  ReloadOutlined, DownloadOutlined, BookOutlined,
 } from "@ant-design/icons";
 import { RANGE_PRESETS } from "@/pages/dashboard/dashboardRanges";
 import type { DashboardRangeKey, DashboardScope } from "@/models/dashboard";
@@ -52,9 +52,6 @@ const DashboardHeader = memo(function DashboardHeader({
           <Tooltip title="Formations">
             <Button icon={<BookOutlined />} onClick={() => navigate("/home/Formation")} />
           </Tooltip>
-          <Button type="primary" icon={<LineChartOutlined />} onClick={() => navigate("/home/AnalysePredictive")}>
-            Analytique
-          </Button>
         </Space>
       </div>
     </header>

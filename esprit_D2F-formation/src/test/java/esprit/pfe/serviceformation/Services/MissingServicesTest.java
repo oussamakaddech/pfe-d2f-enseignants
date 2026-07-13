@@ -17,7 +17,7 @@ import org.springframework.mock.web.MockMultipartFile;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Collections;
-import java.util.Date;
+import java.time.LocalDate;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -88,8 +88,8 @@ class MissingServicesTest {
     @Test
     @DisplayName("FormationReportService - animateur role")
     void testGetFormationsAnimateur() {
-        Date start = new Date();
-        Date end = new Date();
+        LocalDate start = LocalDate.now();
+        LocalDate end = LocalDate.now();
         when(seanceRepo.findFormationsByAnimateurAndPeriod(anyString(), any(), any())).thenReturn(Collections.emptyList());
 
         List<Object> results = formationReportService.getFormationsParRoleEtPeriode("animateur", "E1", start, end);
@@ -101,8 +101,8 @@ class MissingServicesTest {
     @Test
     @DisplayName("FormationReportService - participant role")
     void testGetFormationsParticipant() {
-        Date start = new Date();
-        Date end = new Date();
+        LocalDate start = LocalDate.now();
+        LocalDate end = LocalDate.now();
         when(presenceRepo.findFormationsByParticipantAndPeriod(anyString(), any(), any())).thenReturn(Collections.emptyList());
 
         List<Object> results = formationReportService.getFormationsParRoleEtPeriode("participant", "E1", start, end);
@@ -114,8 +114,8 @@ class MissingServicesTest {
     @Test
     @DisplayName("FormationReportService - invalid role")
     void testGetFormationsInvalidRole() {
-        Date start = new Date();
-        Date end = new Date();
+        LocalDate start = LocalDate.now();
+        LocalDate end = LocalDate.now();
         assertThrows(IllegalArgumentException.class, () -> {
             formationReportService.getFormationsParRoleEtPeriode("invalid", "E1", start, end);
         });

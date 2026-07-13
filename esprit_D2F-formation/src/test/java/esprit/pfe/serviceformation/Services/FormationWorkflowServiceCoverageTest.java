@@ -17,7 +17,8 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.lang.reflect.Method;
-import java.sql.Time;
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.*;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -164,9 +165,9 @@ class FormationWorkflowServiceCoverageTest {
     void shouldBuildHtmlWithSeances() throws Exception {
         Formation f = createFormation(EtatFormation.PLANIFIE);
         SeanceFormation sf = new SeanceFormation();
-        sf.setDateSeance(new Date());
-        sf.setHeureDebut(Time.valueOf("09:00:00"));
-        sf.setHeureFin(Time.valueOf("11:00:00"));
+        sf.setDateSeance(LocalDate.now());
+        sf.setHeureDebut(LocalTime.of(9, 0));
+        sf.setHeureFin(LocalTime.of(11, 0));
         sf.setSalle("S1");
         Enseignant anim = new Enseignant();
         anim.setNom("Nom");
@@ -202,9 +203,9 @@ class FormationWorkflowServiceCoverageTest {
     void shouldBuildApprovalHtml() throws Exception {
         Formation f = createFormation(EtatFormation.VISIBLE);
         SeanceFormation sf = new SeanceFormation();
-        sf.setDateSeance(new Date());
-        sf.setHeureDebut(Time.valueOf("09:00:00"));
-        sf.setHeureFin(Time.valueOf("11:00:00"));
+        sf.setDateSeance(LocalDate.now());
+        sf.setHeureDebut(LocalTime.of(9, 0));
+        sf.setHeureFin(LocalTime.of(11, 0));
         sf.setSalle("S1");
         f.setSeances(List.of(sf));
 
@@ -231,22 +232,22 @@ class FormationWorkflowServiceCoverageTest {
     @Test
     @DisplayName("formatDate et formatTime avec null")
     void shouldFormatNullDates() throws Exception {
-        Method fmtDate = FormationWorkflowService.class.getDeclaredMethod("formatDate", Date.class);
+        Method fmtDate = FormationWorkflowService.class.getDeclaredMethod("formatDate", LocalDate.class);
         fmtDate.setAccessible(true);
-        assertThat((String) fmtDate.invoke(service, (Date) null)).isNotEmpty();
+        assertThat((String) fmtDate.invoke(service, (LocalDate) null)).isNotEmpty();
 
-        Method fmtTime = FormationWorkflowService.class.getDeclaredMethod("formatTime", Time.class);
+        Method fmtTime = FormationWorkflowService.class.getDeclaredMethod("formatTime", LocalTime.class);
         fmtTime.setAccessible(true);
-        assertThat((String) fmtTime.invoke(service, (Time) null)).isNotEmpty();
+        assertThat((String) fmtTime.invoke(service, (LocalTime) null)).isNotEmpty();
     }
 
     @Test
     @DisplayName("seanceLine - formate date, horaire et salle")
     void shouldBuildSeanceLine() throws Exception {
         SeanceFormation sf = new SeanceFormation();
-        sf.setDateSeance(new Date());
-        sf.setHeureDebut(Time.valueOf("09:00:00"));
-        sf.setHeureFin(Time.valueOf("11:00:00"));
+        sf.setDateSeance(LocalDate.now());
+        sf.setHeureDebut(LocalTime.of(9, 0));
+        sf.setHeureFin(LocalTime.of(11, 0));
         sf.setSalle("S1");
 
         Method m = FormationWorkflowService.class.getDeclaredMethod("seanceLine", SeanceFormation.class);
@@ -260,9 +261,9 @@ class FormationWorkflowServiceCoverageTest {
     void shouldBuildCalendarContent() throws Exception {
         Formation f = createFormation(EtatFormation.PLANIFIE);
         SeanceFormation sf = new SeanceFormation();
-        sf.setDateSeance(new Date());
-        sf.setHeureDebut(Time.valueOf("09:00:00"));
-        sf.setHeureFin(Time.valueOf("11:00:00"));
+        sf.setDateSeance(LocalDate.now());
+        sf.setHeureDebut(LocalTime.of(9, 0));
+        sf.setHeureFin(LocalTime.of(11, 0));
         sf.setSalle("S1");
 
         Method m = FormationWorkflowService.class.getDeclaredMethod("buildCalendarEventContent",

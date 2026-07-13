@@ -14,7 +14,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 
-import java.util.Date;
+import java.time.LocalDate;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -35,12 +35,12 @@ class ParticipantKpiServiceTest {
     @Test
     @DisplayName("getParticipantKpis - Succès")
     void shouldGetParticipantKpis() {
-        Date start = new Date(0);
-        Date end = new Date(System.currentTimeMillis() + 1000000);
+        LocalDate start = LocalDate.of(1970, 1, 1);
+        LocalDate end = LocalDate.now().plusDays(1);
 
         Formation f = new Formation();
         f.setIdFormation(1L);
-        f.setDateDebut(new Date());
+        f.setDateDebut(LocalDate.now());
         f.setEtatFormation(EtatFormation.ACHEVE);
 
         when(formationRepository.findByEtatFormation(EtatFormation.ACHEVE)).thenReturn(List.of(f));
@@ -56,12 +56,12 @@ class ParticipantKpiServiceTest {
     @Test
     @DisplayName("getGlobalParticipantKpi - Succès")
     void shouldGetGlobalParticipantKpi() {
-        Date start = new Date(0);
-        Date end = new Date(System.currentTimeMillis() + 1000000);
+        LocalDate start = LocalDate.of(1970, 1, 1);
+        LocalDate end = LocalDate.now().plusDays(1);
 
         Formation f = new Formation();
         f.setIdFormation(1L);
-        f.setDateDebut(new Date());
+        f.setDateDebut(LocalDate.now());
         f.setEtatFormation(EtatFormation.ACHEVE);
 
         when(formationRepository.findByEtatFormation(EtatFormation.ACHEVE)).thenReturn(List.of(f));
@@ -76,12 +76,12 @@ class ParticipantKpiServiceTest {
     @Test
     @DisplayName("getParticipantKpis(Pageable) - pagination")
     void shouldGetParticipantKpisPageable() {
-        Date start = new Date(0);
-        Date end = new Date(System.currentTimeMillis() + 1000000);
+        LocalDate start = LocalDate.of(1970, 1, 1);
+        LocalDate end = LocalDate.now().plusDays(1);
 
         Formation f = new Formation();
         f.setIdFormation(1L);
-        f.setDateDebut(new Date());
+        f.setDateDebut(LocalDate.now());
         f.setEtatFormation(EtatFormation.ACHEVE);
 
         when(formationRepository.findByEtatFormation(EtatFormation.ACHEVE)).thenReturn(List.of(f));
@@ -96,12 +96,12 @@ class ParticipantKpiServiceTest {
     @Test
     @DisplayName("getGlobalParticipantKpi - zero when no formation in range")
     void shouldGetGlobalParticipantKpiWhenNoFormationMatches() {
-        Date start = new Date(0);
-        Date end = new Date(System.currentTimeMillis() + 1000000);
+        LocalDate start = LocalDate.of(1970, 1, 1);
+        LocalDate end = LocalDate.now().plusDays(1);
 
         Formation f = new Formation();
         f.setIdFormation(1L);
-        f.setDateDebut(new Date(System.currentTimeMillis() - 100000000L));
+        f.setDateDebut(LocalDate.now().minusDays(100));
         f.setEtatFormation(EtatFormation.ACHEVE);
 
         when(formationRepository.findByEtatFormation(EtatFormation.ACHEVE)).thenReturn(List.of(f));

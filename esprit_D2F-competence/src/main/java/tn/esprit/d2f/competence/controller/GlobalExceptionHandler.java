@@ -12,6 +12,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -91,7 +92,7 @@ public class GlobalExceptionHandler {
     private ResponseEntity<Map<String, Object>> buildResponse(HttpStatus status, String message,
                                                                String errorCode, String path) {
         Map<String, Object> body = new LinkedHashMap<>();
-        body.put("timestamp", LocalDateTime.now().toString());
+        body.put("timestamp", LocalDateTime.now(ZoneId.systemDefault()).toString());
         body.put("status", status.value());
         body.put("error", status.getReasonPhrase());
         body.put("errorCode", errorCode);

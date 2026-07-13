@@ -464,10 +464,7 @@ class TestCreateEnseignantIfNew:
         """Must not raise TypeError when called with two positional args."""
         # Patch DB call to avoid real connection
         monkeypatch.setattr("rice_analyzer._get_db_pool", lambda: _DummyPool())
-        try:
-            _create_enseignant_if_new("Ahmed Benali", "info")
-        except TypeError as e:
-            pytest.fail(f"_create_enseignant_if_new raised TypeError: {e}")
+        _create_enseignant_if_new("Ahmed Benali", "info")
 
     def test_returns_tuple_of_two_strings(self, monkeypatch):
         monkeypatch.setattr("rice_analyzer._get_db_pool", lambda: _DummyPool())

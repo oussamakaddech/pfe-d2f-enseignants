@@ -5,6 +5,7 @@ import useAppNotification from "@/hooks/ui/useAppNotification";
 import { useAllFormations, useUpdateFormation, useUps, useDepartements, useAllAccounts } from "@/hooks/formation";
 import { useEnseignants } from "@/hooks/enseignant";
 import { useAuth } from "@/hooks/auth/useAuth";
+import type { Id } from "@/models/common";
 
 export type EditSeance = {
   idSeance?: unknown; id?: unknown;
@@ -89,6 +90,54 @@ function normalizedSalle(value: unknown): string {
   return String(value || "").trim().toLowerCase();
 }
 
+type FormationView = {
+  titreFormation?: unknown;
+  dateDebut?: unknown;
+  dateFin?: unknown;
+  typeFormation?: unknown;
+  etatFormation?: unknown;
+  coutFormation?: unknown;
+  organismeRefExterne?: unknown;
+  chargeHoraireGlobal?: unknown;
+  externeFormateurNom?: unknown;
+  externeFormateurPrenom?: unknown;
+  externeFormateurEmail?: unknown;
+  ouverte?: unknown;
+  salle?: unknown;
+  domaine?: unknown;
+  populationCible?: unknown;
+  objectifs?: unknown;
+  objectifsPedago?: unknown;
+  evalMethods?: unknown;
+  prerequis?: unknown;
+  acquis?: unknown;
+  indicateurs?: unknown;
+  coutTransport?: unknown;
+  coutHebergement?: unknown;
+  coutRepas?: unknown;
+  up?: unknown;
+  up1?: unknown;
+  departement?: unknown;
+  departement1?: unknown;
+  periodCode?: unknown;
+  customPeriodLabel?: unknown;
+  periodeFormation?: unknown;
+  seances?: EditFormation[];
+  animateurs?: EditPerson[];
+  idFormation?: unknown;
+};
+
+type SeanceView = EditFormation & {
+  idSeance?: unknown;
+  heureDebut?: unknown;
+  heureFin?: unknown;
+  typeSeance?: unknown;
+  contenus?: unknown;
+  methodes?: unknown;
+  dureeTheorique?: unknown;
+  dureePratique?: unknown;
+};
+
 export function useFormationWorkflowEdit(formation: EditFormation, onFormationUpdated: (res: unknown) => void) {
   const { message } = useAppNotification();
   const { user } = useAuth();
@@ -163,7 +212,7 @@ export function useFormationWorkflowEdit(formation: EditFormation, onFormationUp
   };
 
   const ens = ensData as EditPerson[];
-  const existingFormations = Array.isArray(allFormations) ? allFormations : [];
+  const existingFormations = (Array.isArray(allFormations) ? allFormations : []) as unknown as EditFormation[];
 
   // Animateurs = formation-service enseignants + comptes auth (FORMATEUR/ANIMATEUR)
   // même source que useFormationWorkflow pour rester cohérent avec la création.
@@ -248,49 +297,70 @@ export function useFormationWorkflowEdit(formation: EditFormation, onFormationUp
 
   useEffect(() => {
     if (!formation) return;
-    setTitre(formation.titreFormation);
-    setDateDebut(format(new Date(formation.dateDebut), "yyyy-MM-dd"));
-    setDateFin(format(new Date(formation.dateFin), "yyyy-MM-dd"));
-    setTypeFormation(formation.typeFormation);
-    setEtatFormation(formation.etatFormation);
-    setCout(formation.coutFormation || 0);
-    setOrganisme(formation.organismeRefExterne || "");
-    setChargeH(formation.chargeHoraireGlobal || 40);
-    setFormNom(formation.externeFormateurNom || "");
-    setFormPrenom(formation.externeFormateurPrenom || "");
-    setFormEmail(formation.externeFormateurEmail || "");
-    setOuverte(!!formation.ouverte);
-    setSalle(String(formation.salle || ""));
-    setDomaine(formation.domaine || "");
-    setPopulationCible(formation.populationCible || "");
-    setObjectifs(formation.objectifs || "");
-    setObjectifsPedago(formation.objectifsPedago || "");
-    setEvalMethods(formation.evalMethods || "");
-    setPrerequis(formation.prerequis || "");
-    setAcquis(formation.acquis || "");
-    setIndicateurs(formation.indicateurs || "");
-    setCoutTransport(formation.coutTransport || 0);
-    setCoutHebergement(formation.coutHebergement || 0);
-    setCoutRepas(formation.coutRepas || 0);
+    const f = formation as unknown as FormationView;
+    const str = (v: unknown, fb = ""): string => (v == null ? fb : String(v));
+    const num = (v: unknown, fb = 0): number => {
+      const n = Number(v);
+      return Number.isNaN(n) ? fb : n;
+    };
+    const strOrDate = (v: unknown): string => {
+      if (v == null) return "";
+      const d = new Date(String(v));
+      return Number.isNaN(d.getTime()) ? String(v) : format(d, "yyyy-MM-dd");
+    };
+    setTitre(str(f.titreFormation));
+    setDateDebut(strOrDate(f.dateDebut));
+    setDateFin(strOrDate(f.dateFin));
+    setTypeFormation(str(f.typeFormation, ""));
+    setEtatFormation(str(f.etatFormation, ""));
+    setCout(num(f.coutFormation, 0));
+    setOrganisme(str(f.organismeRefExterne));
+    setChargeH(num(f.chargeHoraireGlobal, 40));
+    setFormNom(str(f.externeFormateurNom));
+    setFormPrenom(str(f.externeFormateurPrenom));
+    setFormEmail(str(f.externeFormateurEmail));
+    setOuverte(!!f.ouverte);
+    setSalle(str(f.salle));
+    setDomaine(str(f.domaine));
+    setPopulationCible(str(f.populationCible));
+    setObjectifs(str(f.objectifs));
+    setObjectifsPedago(str(f.objectifsPedago));
+    setEvalMethods(str(f.evalMethods));
+    setPrerequis(str(f.prerequis));
+    setAcquis(str(f.acquis));
+    setIndicateurs(str(f.indicateurs));
+    setCoutTransport(num(f.coutTransport, 0));
+    setCoutHebergement(num(f.coutHebergement, 0));
+    setCoutRepas(num(f.coutRepas, 0));
     // L'API renvoie `up`/`departement` (le DTO) ; `up1`/`departement1` n'existent
     // pas dans la réponse → fallback conservé par sécurité.
-    setSelectedUp((formation.up ?? formation.up1) || null);
-    setSelectedDept((formation.departement ?? formation.departement1) || null);
-    setPeriodCode(formation.periodCode || "OTHER");
-    setCustomPeriodLabel(formation.customPeriodLabel || formation.periodeFormation || "");
-    setSeances((formation.seances || []).map((s: EditFormation) => ({
-      idSeance: s.idSeance, dateSeance: format(new Date(s.dateSeance), "yyyy-MM-dd"),
-      heureDebut: s.heureDebut, heureFin: s.heureFin, salle: s.salle || "",
-      animateurs: s.animateurs || [], typeSeance: s.typeSeance || "THEORIQUE",
-      contenus: s.contenus || "", methodes: s.methodes || "",
-      dureeTheorique: s.dureeTheorique || 0, dureePratique: s.dureePratique || 0, expanded: false,
+    setSelectedUp((f.up != null ? f.up : f.up1) as EditLookup | null);
+    setSelectedDept((f.departement != null ? f.departement : f.departement1) as EditLookup | null);
+    setPeriodCode(str(f.periodCode, "OTHER"));
+    setCustomPeriodLabel(str(f.customPeriodLabel || f.periodeFormation));
+    setSeances(((Array.isArray(f.seances) ? f.seances : []) as SeanceView[]).map((s) => ({
+      idSeance: (s as { id?: unknown }).id ?? (s as { idSeance?: unknown }).idSeance,
+      dateSeance: strOrDate(s.dateSeance),
+      heureDebut: str(s.heureDebut),
+      heureFin: str(s.heureFin),
+      salle: str(s.salle),
+      animateurs: (Array.isArray(s.animateurs) ? s.animateurs : []) as { id?: unknown }[],
+      typeSeance: str(s.typeSeance, "THEORIQUE"),
+      contenus: str(s.contenus),
+      methodes: str(s.methodes),
+      dureeTheorique: num(s.dureeTheorique, 0),
+      dureePratique: num(s.dureePratique, 0),
+      expanded: false,
     })));
     const amap: Record<string, EditPerson> = {};
     const pmap: Record<string, EditPerson> = {};
-    (formation.animateurs || []).forEach((a: EditPerson) => { if (a.id) amap[String(a.id)] = a; });
-    (formation.seances || []).forEach((s: EditFormation) => {
-      (s.animateurs || []).forEach((a: EditPerson) => { if (a.id) amap[String(a.id)] = a; });
-      (s.participants || []).forEach((p: EditPerson) => { if (p.id) pmap[String(p.id)] = p; });
+    const animList = (Array.isArray(f.animateurs) ? f.animateurs : []) as EditPerson[];
+    animList.forEach((a) => { if (a && a.id != null) amap[String(a.id)] = a; });
+    ((Array.isArray(f.seances) ? f.seances : []) as SeanceView[]).forEach((s) => {
+      const sa = (Array.isArray((s as SeanceView).animateurs) ? (s as SeanceView).animateurs : []) as EditPerson[];
+      const sp = (Array.isArray((s as SeanceView).participants) ? (s as SeanceView).participants : []) as EditPerson[];
+      sa.forEach((a) => { if (a && a.id != null) amap[String(a.id)] = a; });
+      sp.forEach((p) => { if (p && p.id != null) pmap[String(p.id)] = p; });
     });
     setAnimSel(Object.values(amap));
     setPartSel(Object.values(pmap));
@@ -345,7 +415,7 @@ export function useFormationWorkflowEdit(formation: EditFormation, onFormationUp
       if ((f.idFormation || f.id) === currentId) continue;
       const exSeances = Array.isArray(f.seances) ? f.seances : [];
       const exPartIds = getExistingPartIds(f);
-      const formationName = f.titreFormation || `#${f.idFormation || f.id || "?"}`;
+      const formationName = String(f.titreFormation || `#${f.idFormation || f.id || "?"}`);
       for (const [idx, localSeance] of seances.entries())
         for (const existingSeance of exSeances)
           checkSeanceAgainstExisting(msgs, localSeance, existingSeance, idx, formationName, participantIds, exPartIds);
@@ -429,7 +499,7 @@ export function useFormationWorkflowEdit(formation: EditFormation, onFormationUp
     const blockingConflicts = buildConflictMessages();
     if (blockingConflicts.length > 0) { setOverlapWarnings(blockingConflicts); message.error("Conflits détectés: corrigez les dates/salles/personnes avant mise à jour."); setSaving(false); return; }
     try {
-      const res = await updateMut.mutateAsync({ id: formation.idFormation, data: buildEditPayload() });
+      const res = await updateMut.mutateAsync({ id: formation.idFormation as Id, data: buildEditPayload() });
       message.success("Formation mise à jour !");
       onFormationUpdated(res);
     } catch (err: unknown) {

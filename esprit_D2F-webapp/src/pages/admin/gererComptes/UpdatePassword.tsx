@@ -4,8 +4,6 @@ import { LockOutlined } from "@ant-design/icons";
 import { useUpdatePassword } from "@/hooks/auth/useAuthService";
 import { AppPageHeader, shadow, radius } from "@/components/common";
 import useAppNotification from "@/hooks/ui/useAppNotification";
-import type { UpdatePasswordRequest } from "@/models/auth";
-
 interface UpdatePasswordFormValues {
   newPassword: string;
   confirmation: string;

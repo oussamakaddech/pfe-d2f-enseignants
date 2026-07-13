@@ -13,7 +13,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 
-import java.util.Date;
+import java.time.LocalDate;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -30,13 +30,13 @@ class KPIServiceTest {
     @Mock private EnseignantRepository enseignantRepository;
     @InjectMocks private KPIService service;
 
-    private Date start;
-    private Date end;
+    private LocalDate start;
+    private LocalDate end;
 
     @BeforeEach
     void setUp() {
-        start = new Date(System.currentTimeMillis() - 86400000L);
-        end = new Date();
+        start = LocalDate.now().minusDays(1);
+        end = LocalDate.now();
     }
 
     @Test
@@ -83,8 +83,8 @@ class KPIServiceTest {
 
     @Test
     void getTopParticipants_invalidDates_shouldThrow() {
-        Date futureStart = new Date(System.currentTimeMillis() + 86400000L);
-        Date pastEnd = new Date(System.currentTimeMillis() - 86400000L);
+        LocalDate futureStart = LocalDate.now().plusDays(1);
+        LocalDate pastEnd = LocalDate.now().minusDays(1);
 
         assertThrows(IllegalArgumentException.class, () ->
                 service.getTopParticipants(null, null, futureStart, pastEnd));
@@ -206,8 +206,8 @@ class KPIServiceTest {
     @Test
     void getCountByTrainerTypeWithIds_withInvalidDates_shouldThrow() {
         FormationFilter filter = new FormationFilter();
-        filter.setStart(new Date(System.currentTimeMillis() + 86400000L));
-        filter.setEnd(new Date(System.currentTimeMillis() - 86400000L));
+        filter.setStart(LocalDate.now().plusDays(1));
+        filter.setEnd(LocalDate.now().minusDays(1));
 
         assertThrows(IllegalArgumentException.class, () -> service.getCountByTrainerTypeWithIds(filter, null));
     }

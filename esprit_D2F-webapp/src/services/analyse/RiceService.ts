@@ -135,7 +135,7 @@ const RiceService = {
       try {
         const res2 = await axios.get(`${RICE_BASE}/referential${params}`);
         // expected shape: { savoirs: {...}|[], enseignant_affectations: {...} }
-        const savoirs = normalizeSavoirsPayload(res2.data);
+        const savoirs = normalizeSavoirsPayload<Savoir>(res2.data);
         if (savoirs.length > 0) return savoirs;
       } catch {
         // ignore

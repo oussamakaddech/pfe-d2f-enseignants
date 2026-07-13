@@ -9,7 +9,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
-import java.util.Date;
+import java.time.Instant;
 
 /**
  * JWT Token Provider
@@ -38,7 +38,7 @@ public class JwtTokenProvider {
                     .getPayload();
             
             // Check if token is expired
-            return claims.getExpiration().after(new Date());
+            return claims.getExpiration().toInstant().isAfter(Instant.now());
         } catch (JwtException e) {
             log.error("Invalid JWT token", e);
         } catch (Exception e) {

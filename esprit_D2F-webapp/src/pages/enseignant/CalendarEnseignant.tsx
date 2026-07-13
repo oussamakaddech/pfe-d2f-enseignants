@@ -1,7 +1,7 @@
 
 import { useState, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Calendar, dateFnsLocalizer } from "react-big-calendar";
+import { Calendar, dateFnsLocalizer, type View } from "react-big-calendar";
 import { format, parse, startOfWeek, getDay } from "date-fns";
 import { fr } from "date-fns/locale/fr";
 import {
@@ -121,7 +121,7 @@ export default function CalendarEnseignant() {
   const navigate = useNavigate();
 
   const [date, setDate] = useState(new Date());
-  const [view, setView] = useState("month");
+  const [view, setView] = useState<View>("month");
   const [open, setOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
 
@@ -139,7 +139,7 @@ export default function CalendarEnseignant() {
       .flatMap((f) => f.seances ?? [])
       .find((s) => seanceHasParticipant(s, enseignantId))
       ?.participants?.find((e) => e.id === enseignantId);
-  }, [dto, enseignantId, asAnimateur, asParticipant]);
+  }, [calendarDto, enseignantId, asAnimateur, asParticipant]);
 
   const events = useMemo(() => {
     if (!calendarDto) return [];
@@ -147,7 +147,7 @@ export default function CalendarEnseignant() {
       ...buildAnimateurEvents(asAnimateur, enseignantId),
       ...buildParticipantEvents(asParticipant, enseignantId),
     ];
-  }, [dto, enseignantId, asAnimateur, asParticipant]);
+  }, [calendarDto, enseignantId, asAnimateur, asParticipant]);
 
   const eventStyleGetter = (event: CalendarEvent) => ({
     style: {
@@ -250,7 +250,7 @@ export default function CalendarEnseignant() {
           date={date}
           view={view}
           onNavigate={(newDate: Date) => setDate(newDate)}
-          onView={(newView: string) => setView(newView)}
+          onView={(newView: View) => setView(newView)}
           toolbar
           views={["month", "week", "day"]}
           style={{ height: "100%" }}

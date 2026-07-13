@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.OffsetDateTime;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -201,7 +202,7 @@ public class InscriptionService {
         } else {
             ins.setMotif(null);
         }
-        ins.setDateTraitement(OffsetDateTime.now());
+        ins.setDateTraitement(OffsetDateTime.now(ZoneId.systemDefault()));
         return inscriptionRepo.save(ins);
     }
 

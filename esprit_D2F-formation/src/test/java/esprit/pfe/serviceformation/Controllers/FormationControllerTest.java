@@ -22,8 +22,8 @@ import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -59,8 +59,8 @@ class FormationControllerTest {
         testFormation.setIdFormation(1L);
         testFormation.setTitreFormation("Formation Java 17");
         testFormation.setTypeFormation(TypeFormation.INTERNE);
-        testFormation.setDateDebut(new Date());
-        testFormation.setDateFin(new Date(System.currentTimeMillis() + 86400000));
+        testFormation.setDateDebut(LocalDate.now());
+        testFormation.setDateFin(LocalDate.now().plusDays(1));
         testFormation.setEtatFormation(EtatFormation.PLANIFIE);
         testFormation.setCoutFormation(1000.0f);
         testFormation.setChargeHoraireGlobal(40);

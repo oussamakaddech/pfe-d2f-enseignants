@@ -25,7 +25,6 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import java.time.LocalDate;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.List;
 import java.util.Optional;
 
@@ -56,8 +55,8 @@ class FormationServiceImplTest {
         formation = new Formation();
         formation.setIdFormation(1L);
         formation.setTitreFormation("Spring Boot Avancé");
-        formation.setDateDebut(new Date());
-        formation.setDateFin(new Date());
+        formation.setDateDebut(LocalDate.now());
+        formation.setDateFin(LocalDate.now());
         formation.setEtatFormation(EtatFormation.PLANIFIE);
         formation.setCoutFormation(500.0f);
         formation.setChargeHoraireGlobal(40);

@@ -52,7 +52,7 @@ class FormationWorkflowControllerTest {
         when(formationWorkflowService.createFormationWorkflow(any())).thenReturn(formation);
         mockMvc.perform(post("/api/v1/formations-workflow")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"titreFormation\":\"Formation Test\",\"dateDebut\":\"2023-01-01T00:00:00.000+00:00\",\"dateFin\":\"2023-01-02T00:00:00.000+00:00\",\"typeFormation\":\"INTERNE\"}"))
+                .content("{\"titreFormation\":\"Formation Test\",\"dateDebut\":\"2023-01-01\",\"dateFin\":\"2023-01-02\",\"typeFormation\":\"INTERNE\"}"))
                 .andExpect(status().isCreated());
     }
 
@@ -71,7 +71,7 @@ class FormationWorkflowControllerTest {
         when(formationWorkflowService.updateFormationWorkflow(anyLong(), any())).thenReturn(formation);
         mockMvc.perform(put("/api/v1/formations-workflow/1")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"titreFormation\":\"Formation Test\",\"dateDebut\":\"2023-01-01T00:00:00.000+00:00\",\"dateFin\":\"2023-01-02T00:00:00.000+00:00\",\"typeFormation\":\"INTERNE\"}"))
+                .content("{\"titreFormation\":\"Formation Test\",\"dateDebut\":\"2023-01-01\",\"dateFin\":\"2023-01-02\",\"typeFormation\":\"INTERNE\"}"))
                 .andExpect(status().isOk());
     }
 
