@@ -107,7 +107,7 @@ const AnalysePredictiveService = {
   },
 
   // ── Detection ──────────────────────────────────
-  async getAtRiskTeachers(threshold = 0.7): Promise<TeacherRiskIndicator[]> {
+  async getAtRiskTeachers(threshold = 0.5): Promise<TeacherRiskIndicator[]> {
     const res = await axios.get<{ teachers: Array<{
       teacher_id: string; teacher_name: string; email: string;
       department?: string; risk_score: number; risk_factors: string[];
@@ -122,7 +122,13 @@ const AnalysePredictiveService = {
       disengagement_signals: t.risk_factors,
       competency_stagnation_rate: 1.0 - t.engagement_score,
       training_velocity: 0,
-      recommendation: t.risk_score >= 0.7 ? "Proposer formation" : "OK",
+      // Aligné sur le moteur (app/routers/all.py::_risk_recommendation) :
+      // >=0.75 -> Planifier entretien, >=0.50 -> Proposer formation, sinon OK.
+      recommendation: t.risk_score >= 0.75
+        ? "Planifier entretien"
+        : t.risk_score >= 0.5
+          ? "Proposer formation"
+          : "OK",
       departement: t.department,
     }));
   },

@@ -15,7 +15,7 @@ import type { RiskLevelKey } from "../risk";
 const DEPTS = ["Informatique", "Mathématiques", "Langues", "Génie Civil", "Électronique"];
 
 function lvl(s: number): RiskLevelKey {
-  return s >= 0.8 ? "CRITIQUE" : s >= 0.6 ? "ELEVE" : s >= 0.4 ? "MODERE" : "FAIBLE";
+  return s >= 0.75 ? "CRITIQUE" : s >= 0.5 ? "ELEVE" : s >= 0.25 ? "MODERE" : "FAIBLE";
 }
 
 export const mockRiskTeachers: UnifiedRiskTeacher[] = [

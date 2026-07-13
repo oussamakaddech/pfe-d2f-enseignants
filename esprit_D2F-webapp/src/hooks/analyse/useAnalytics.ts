@@ -3,6 +3,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import AnalyticsService from "@/services/analyse/AnalyticsService";
 import type {
   AnalyseResult, GapsResponse, RecommendationsResponse, TrainingPath,
+  GroupedRecommendationsResponse, RecoGroupBy,
+  WhatIfAction, WhatIfResponse,
 } from "@/models/analyse";
 
 interface GapParams   { urgence?: string; page: number }
@@ -97,6 +99,31 @@ export function useAnalytics(enseignantId: string) {
     updateRecoStatus: updateRecoStatus.mutateAsync,
     updatingReco: updateRecoStatus.isPending,
   };
+}
+
+// ── Regroupement des recommandations (Recommandations ++) ──
+
+export function useGroupedRecommendations(enseignantId: string, groupBy: RecoGroupBy) {
+  return useQuery<GroupedRecommendationsResponse>({
+    queryKey: ["recommendations-grouped", enseignantId, groupBy],
+    queryFn: () => AnalyticsService.getGroupedRecommendations(enseignantId, groupBy),
+    enabled: !!enseignantId,
+    staleTime: 30_000,
+  });
+}
+
+// ── Simulation what-if interactive (Recommandations ++) ──
+
+export function useSimulateWhatIf(enseignantId: string) {
+  const qc = useQueryClient();
+  return useMutation<WhatIfResponse, Error, { plan: WhatIfAction[]; horizon_mois?: number }>({
+    mutationFn: (payload) =>
+      AnalyticsService.simulateWhatIf({ enseignant_id: enseignantId, ...payload }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["recommendations", enseignantId] });
+      qc.invalidateQueries({ queryKey: ["recommendations-grouped", enseignantId] });
+    },
+  });
 }
 
 

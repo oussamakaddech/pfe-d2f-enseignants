@@ -25,9 +25,9 @@ export const RISK_LEVELS: Record<RiskLevelKey, RiskLevelStyle> = {
 /** Convertit un score de risque (0→1) en clé de niveau. */
 export function riskLevelFromScore(score: number): RiskLevelKey {
   const pct = Math.round((score ?? 0) * 100);
-  if (pct >= 80) return "CRITIQUE";
-  if (pct >= 60) return "ELEVE";
-  if (pct >= 40) return "MODERE";
+  if (pct >= 75) return "CRITIQUE";
+  if (pct >= 50) return "ELEVE";
+  if (pct >= 25) return "MODERE";
   return "FAIBLE";
 }
 
@@ -36,7 +36,7 @@ export function riskStyle(score: number): RiskLevelStyle {
 }
 
 /** Seuils de bascule (en %) utilisés pour le libellé — documentés pour le tooltip. */
-export const RISK_THRESHOLDS = "Faible < 40% · Modéré 40–59% · Élevé 60–79% · Critique ≥ 80%";
+export const RISK_THRESHOLDS = "Faible < 25% · Modéré 25–49% · Élevé 50–74% · Critique ≥ 75%";
 
 // ── Décodage des signaux de risque / facteurs de risque ───────────────
 // Le backend renvoie parfois des clés techniques, parfois des libellés FR.

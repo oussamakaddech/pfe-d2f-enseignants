@@ -31,6 +31,7 @@ import Heatmap from "@/redesign/components/charts/Heatmap";
 import DecliningCompetencies from "@/redesign/components/charts/DecliningCompetencies";
 import RiskEvolutionChart from "@/redesign/components/charts/RiskEvolutionChart";
 import { KpiSkeleton, ErrorState } from "@/redesign/components/States";
+import RecommandationsPlus from "@/redesign/components/RecommandationsPlus";
 import useAppNotification from "@/hooks/ui/useAppNotification";
 import { useQueryClient } from "@tanstack/react-query";
 import "@/redesign/redesign.css";
@@ -50,9 +51,11 @@ export default function AnalyticsPage() {
   const [refreshing, setRefreshing] = useState(false);
   const [horizon, setHorizon] = useState(6);
   const [deptFilter, setDeptFilter] = useState<string | null>(null);
+  const [activeTeacherId, setActiveTeacherId] = useState<string | null>(null);
 
   const { data: overview, isLoading: ovLoading, isError: ovError, refetch: refetchOverview } = useOverview();
   const { data: priorityTeachers = [], isLoading: prioLoading } = usePriorityActions(15);
+  const effectiveTeacherId = activeTeacherId ?? priorityTeachers[0]?.enseignant_id ?? null;
   const { data: heatmap = [], isLoading: heatLoading } = useGapHeatmap();
   const { data: forecast } = useDemandForecast(horizon);
   const { data: alerts, isLoading: alertsLoading } = useAlertsSummary();
@@ -603,6 +606,31 @@ export default function AnalyticsPage() {
                 </div>
               )}
             </Card>
+          </Section>
+
+          {/* ── 7. RECOMMANDATIONS ++ — regroupement & what-if ────── */}
+          <Section
+            title="Recommandations ++"
+            subtitle="Regroupement des formations recommandées et simulation d'impact (what-if) pour un enseignant ciblé"
+          >
+            <div className="rd-filters" style={{ marginBottom: 16 }}>
+              <div className="rd-filter-group">
+                <span className="rd-filter-label">Enseignant</span>
+                <select
+                  className="rd-select"
+                  value={effectiveTeacherId ?? ""}
+                  onChange={(e) => setActiveTeacherId(e.target.value || null)}
+                >
+                  <option value="">Sélectionner…</option>
+                  {priorityTeachers.map((t) => (
+                    <option key={t.enseignant_id} value={t.enseignant_id}>
+                      {t.teacher_name} ({t.enseignant_id})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <RecommandationsPlus enseignantId={effectiveTeacherId} />
           </Section>
         </>
       )}

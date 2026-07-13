@@ -3,6 +3,7 @@ import { Card, Space, Typography, Tag, Tooltip, Button } from "antd";
 import { BookOutlined, CheckCircleOutlined, CheckOutlined, CloseOutlined } from "@ant-design/icons";
 import type { Recommendation } from "@/models/analyse";
 import PredictionScoreBar from "./PredictionScoreBar";
+import RecommendationScoreBreakdown from "./RecommendationScoreBreakdown";
 
 const { Text, Paragraph } = Typography;
 
@@ -17,9 +18,10 @@ interface RecommendationCardProps {
   readonly rank?:          number;
   readonly onStatusChange?: (id: number, statut: "ACCEPTEE" | "IGNOREE") => void;
   readonly updating?:      boolean;
+  readonly showBreakdown?: boolean;
 }
 
-const RecommendationCard = memo(function RecommendationCard({ recommendation: r, rank, onStatusChange, updating }: RecommendationCardProps) {
+const RecommendationCard = memo(function RecommendationCard({ recommendation: r, rank, onStatusChange, updating, showBreakdown = false }: RecommendationCardProps) {
   const isProposed = r.statut === "PROPOSEE";
 
   return (
@@ -75,6 +77,8 @@ const RecommendationCard = memo(function RecommendationCard({ recommendation: r,
           </Space>
           <PredictionScoreBar value={r.score_global} size="small" showPct={false} />
         </div>
+
+        {showBreakdown && <RecommendationScoreBreakdown recommendation={r} />}
 
         {/* Probabilité de réussite */}
         <Space style={{ width: "100%", justifyContent: "space-between" }}>

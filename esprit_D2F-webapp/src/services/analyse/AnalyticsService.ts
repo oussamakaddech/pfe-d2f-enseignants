@@ -4,6 +4,8 @@ import type {
   AnalyseResult, DashboardData,
   GapsResponse, HealthStatus, RecommendationsResponse,
   TeacherRiskProfile, TrainingPath,
+  GroupedRecommendationsResponse, RecoGroupBy,
+  WhatIfAction, WhatIfResponse,
 } from "@/models/analyse";
 import type {
   AnalyticsDepartementResponse, AnalyticsUP,
@@ -42,6 +44,29 @@ const AnalyticsService = {
   },
 
   // ── Recommandations ───────────────────────────────────
+
+  async getGroupedRecommendations(
+    enseignantId: string,
+    groupBy: RecoGroupBy = "competence",
+  ): Promise<GroupedRecommendationsResponse> {
+    const res = await axios.get<GroupedRecommendationsResponse>(
+      `${BASE}/recommendations/${enseignantId}/grouped`,
+      { params: { group_by: groupBy } }
+    );
+    return res.data;
+  },
+
+  async simulateWhatIf(payload: {
+    enseignant_id: string;
+    plan: WhatIfAction[];
+    horizon_mois?: number;
+  }): Promise<WhatIfResponse> {
+    const res = await axios.post<WhatIfResponse>(
+      `${BASE}/simulate/what-if`,
+      payload
+    );
+    return res.data;
+  },
 
   async getRecommendations(
     enseignantId: string,

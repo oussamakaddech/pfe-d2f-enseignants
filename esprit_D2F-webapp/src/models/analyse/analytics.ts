@@ -55,14 +55,29 @@ export interface GapsResponse {
 
 // ── Recommandations ───────────────────────────────────────
 
+export interface RecoScoreFactors {
+  pertinence?:            number;
+  reussite?:              number;
+  disponibilite?:         number;
+  pairs?:                 number | null;
+  nb_pairs_ayant_suivi?:  number;
+  [key: string]:          unknown;
+}
+
 export interface Recommendation {
   id:                   number;
   formation_id:         number;
   formation_titre:      string;
   formation_type:       string | null;
   competence_id:        number;
+  competence_nom?:      string | null;
   score_global:         number;
+  // Scoring avancé (MSAS) — détail du score global.
+  score_pertinence:     number;
+  score_reussite:       number;
+  score_disponibilite:  number;
   probabilite_reussite: number;
+  facteurs_score?:      RecoScoreFactors;
   rang_dans_parcours:   number;
   justification:        string | null;
   statut:               "PROPOSEE" | "ACCEPTEE" | "IGNOREE" | "OBSOLETE";
@@ -74,6 +89,59 @@ export interface RecommendationsResponse {
   page:             number;
   size:             number;
   recommendations:  Recommendation[];
+}
+
+// ── Regroupement des recommandations ────────────────────────
+
+export type RecoGroupBy = "competence" | "type" | "urgence";
+
+export interface RecommendationGroup {
+  group_key:     string;
+  group_label:   string;
+  nb:            number;
+  score_moyen:   number;
+  score_max:     number;
+  nb_acceptees:  number;
+  items:         Recommendation[];
+}
+
+export interface GroupedRecommendationsResponse {
+  enseignant_id:  string;
+  group_by:       RecoGroupBy;
+  total:          number;
+  groups:         RecommendationGroup[];
+}
+
+// ── Simulation what-if (impact d'un plan de formation) ───────
+
+export interface WhatIfAction {
+  competence_id: number;
+  niveau_vise:   number;
+  formation_id?: number;
+}
+
+export interface WhatIfDetail {
+  competence_id:   number;
+  formation_id?:   number | null;
+  niveau_actuel:  number;
+  niveau_requis:  number;
+  niveau_vise:    number;
+  gap_avant:      number;
+  gap_apres:      number;
+  urgence_apres:  string;
+  resolu:         boolean;
+}
+
+export interface WhatIfResponse {
+  enseignant_id:      string;
+  horizon_mois:       number;
+  risk_before:        { score: number; niveau: string };
+  risk_after:         { score: number; niveau: string };
+  risk_reduction:     number;
+  nb_gaps_before:     number;
+  nb_gaps_after:      number;
+  nb_gaps_resolus:    number;
+  details:            WhatIfDetail[];
 }
 
 // ── Parcours de formation ─────────────────────────────────

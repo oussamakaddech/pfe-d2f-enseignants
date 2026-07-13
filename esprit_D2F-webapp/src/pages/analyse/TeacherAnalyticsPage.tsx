@@ -13,6 +13,8 @@ import { useTeacherSearch, formatTeacherLabel, getTeacherId } from "@/hooks/form
 import type { UnifiedProfile } from "@/services/formation/UnifiedProfileService";
 import SkillGapCard from "@/components/charts/SkillGapCard";
 import RecommendationCard from "@/components/charts/RecommendationCard";
+import GroupedRecommendations from "@/components/charts/GroupedRecommendations";
+import WhatIfSimulator from "@/components/charts/WhatIfSimulator";
 import TrainingPathTimeline from "@/components/charts/TrainingPathTimeline";
 import type { SkillGap } from "@/models/analyse";
 import { AppPageHeader, brand, shadow } from "@/components/common";
@@ -131,6 +133,7 @@ export default function TeacherAnalyticsPage() {
                   <RecommendationCard
                     recommendation={r}
                     rank={i + 1}
+                    showBreakdown
                     onStatusChange={(id, statut) => updateRecoStatus({ recommendationId: id, statut })}
                     updating={updatingReco}
                   />
@@ -144,6 +147,21 @@ export default function TeacherAnalyticsPage() {
             />
           )}
         </Spin>
+      ),
+    },
+    {
+      key: "reco-plus",
+      label: (
+        <Space>
+          <RiseOutlined />
+          Recommandations ++
+        </Space>
+      ),
+      children: (
+        <Space direction="vertical" style={{ width: "100%" }} size={16}>
+          <GroupedRecommendations enseignantId={activeId} />
+          <WhatIfSimulator enseignantId={activeId} />
+        </Space>
       ),
     },
   ];

@@ -210,6 +210,74 @@ def _get_teacher_or_404(svc: DataService, enseignant_id: str, request: Request) 
     return profiles[0]
 
 
+def _reco_to_dict(r: "Recommendation", competence_nom: str | None = None) -> dict[str, Any]:
+    """Normalise une Recommandation en dict (scoring avancé complet).
+
+    Expose le détail MSAS déjà persisté (pertinence, taux de réussite,
+    disponibilité, facteurs collaboratifs) pour le front — et non plus
+    seulement ``score_global`` + ``probabilite_reussite``.
+    """
+    return {
+        "id":                   r.id,
+        "formation_id":         r.formation_id,
+        "formation_titre":      r.formation_titre,
+        "formation_type":       r.formation_type,
+        "competence_id":        r.competence_id,
+        "competence_nom":       competence_nom,
+        "score_global":         float(r.score_global),
+        "score_pertinence":     float(r.score_pertinence),
+        "score_reussite":       float(r.score_taux_reussite),
+        "score_disponibilite":  float(r.score_disponibilite),
+        "probabilite_reussite": float(r.probabilite_reussite),
+        "facteurs_score":       r.facteurs_score or {},
+        "rang_dans_parcours":   r.rang_dans_parcours,
+        "justification":        r.justification,
+        "statut":               r.statut,
+    }
+
+
+def _group_recommendations(recs: list[dict], group_by: str) -> list[dict]:
+    """Regroupe les recommandations par compétence, type ou urgence (regroupement)."""
+    groups: dict[str, dict[str, Any]] = {}
+    for rec in recs:
+        if group_by == "type":
+            key = rec["formation_type"] or "AUTRE"
+            label = rec["formation_type"] or "Autre"
+        elif group_by == "urgence":
+            s = rec["score_global"]
+            if s >= 0.75:
+                key, label = "CRITIQUE", "Critique (≥0.75)"
+            elif s >= 0.50:
+                key, label = "ELEVE", "Élevée (≥0.50)"
+            elif s >= 0.25:
+                key, label = "MODERE", "Modérée (≥0.25)"
+            else:
+                key, label = "FAIBLE", "Faible (<0.25)"
+        else:  # competence (défaut)
+            key = str(rec["competence_id"])
+            label = rec["competence_nom"] or f"Compétence {rec['competence_id']}"
+
+        g = groups.setdefault(key, {
+            "group_key": key,
+            "group_label": label,
+            "items": [],
+        })
+        g["items"].append(rec)
+
+    result: list[dict] = []
+    for g in groups.values():
+        items = g["items"]
+        scores = [it["score_global"] for it in items]
+        g["nb"] = len(items)
+        g["score_moyen"] = round(sum(scores) / len(scores), 4) if scores else 0.0
+        g["score_max"] = round(max(scores), 4) if scores else 0.0
+        g["nb_acceptees"] = sum(1 for it in items if it["statut"] == "ACCEPTEE")
+        result.append(g)
+
+    result.sort(key=lambda x: x["score_max"], reverse=True)
+    return result
+
+
 def _run_pipeline(
     db: Session, svc: DataService, enseignant_id: str, profile: dict,
     data: dict, pred_id: int,
@@ -377,7 +445,8 @@ async def get_recommendations(
     size: SizeParam = 20,
 ) -> dict[str, Any]:
     q = (
-        db.query(Recommendation)
+        db.query(Recommendation, SkillGap.competence_nom)
+        .outerjoin(SkillGap, Recommendation.skill_gap_id == SkillGap.id)
         .filter(
             Recommendation.enseignant_id == enseignant_id,
             Recommendation.statut.in_(["PROPOSEE", "ACCEPTEE"]),
@@ -388,7 +457,7 @@ async def get_recommendations(
         q = q.filter(Recommendation.competence_id == competence_id)
 
     total = q.count()
-    items = q.offset(page * size).limit(size).all()
+    rows = q.offset(page * size).limit(size).all()
 
     return {
         "enseignant_id": enseignant_id,
@@ -396,20 +465,49 @@ async def get_recommendations(
         "page":          page,
         "size":          size,
         "recommendations": [
-            {
-                "id":                  r.id,
-                "formation_id":        r.formation_id,
-                "formation_titre":     r.formation_titre,
-                "formation_type":      r.formation_type,
-                "competence_id":       r.competence_id,
-                "score_global":        float(r.score_global),
-                "probabilite_reussite":float(r.probabilite_reussite),
-                "rang_dans_parcours":  r.rang_dans_parcours,
-                "justification":       r.justification,
-                "statut":              r.statut,
-            }
-            for r in items
+            _reco_to_dict(r, nom) for r, nom in rows
         ],
+    }
+
+
+# ── GET /api/v1/analytics/recommendations/{enseignantId}/grouped ──
+@router.get(
+    "/recommendations/{enseignant_id}/grouped",
+    summary="Recommandations regroupées (regroupement)",
+)
+async def get_recommendations_grouped(
+    enseignant_id: str,
+    db: DbSession,
+    group_by: Annotated[
+        str,
+        Query(description="Dimension de regroupement: competence|type|urgence")
+    ] = "competence",
+) -> dict[str, Any]:
+    """Regroupe les recommandations (déjà scorées) par compétence, type ou
+    urgence, avec agrégats par groupe (score moyen/max, nb acceptées)."""
+    if group_by not in ("competence", "type", "urgence"):
+        raise HTTPException(
+            status_code=400,
+            detail=_dsi_error(400, "REC-400", "group_by doit être: competence|type|urgence", f"/v1/analytics/recommendations/{enseignant_id}/grouped"),
+        )
+
+    rows = (
+        db.query(Recommendation, SkillGap.competence_nom)
+        .outerjoin(SkillGap, Recommendation.skill_gap_id == SkillGap.id)
+        .filter(
+            Recommendation.enseignant_id == enseignant_id,
+            Recommendation.statut.in_(["PROPOSEE", "ACCEPTEE"]),
+        )
+        .order_by(Recommendation.score_global.desc())
+        .all()
+    )
+    recs = [_reco_to_dict(r, nom) for r, nom in rows]
+    groups = _group_recommendations(recs, group_by)
+    return {
+        "enseignant_id": enseignant_id,
+        "group_by":      group_by,
+        "total":         len(recs),
+        "groups":        groups,
     }
 
 
