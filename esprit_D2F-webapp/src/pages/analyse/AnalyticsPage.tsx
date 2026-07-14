@@ -20,6 +20,7 @@ import {
 } from "@/hooks/analyse/useAnalysePredictive";
 import useAppNotification from "@/hooks/ui/useAppNotification";
 import { useQueryClient } from "@tanstack/react-query";
+import WhatIfSimulator from "@/pages/analyse/WhatIfSimulator";
 import "@/pages/analyse/AnalyticsPage.css";
 
 dayjs.locale("fr");
@@ -315,6 +316,16 @@ export default function AnalyticsPage() {
 
   const gapColor = (g: number) => g >= 2 ? C.red : g >= 1 ? C.amber : g >= 0.4 ? C.cyan : C.green;
 
+  const simTeachers = useMemo(
+    () => (atRisk.data ?? []).map((t) => ({ teacher_id: t.teacher_id, teacher_name: t.teacher_name, departement: t.departement })),
+    [atRisk.data],
+  );
+  const simCompetences = useMemo(() => {
+    const map = new Map<number, string>();
+    (heatmap.data ?? []).forEach((c) => map.set(c.competence_id, c.competence_nom));
+    return Array.from(map, ([competence_id, competence_nom]) => ({ competence_id, competence_nom }));
+  }, [heatmap.data]);
+
   const refresh = useCallback(async () => {
     setRefreshing(true);
     await qc.invalidateQueries({ queryKey: ["analyse"] });
@@ -457,6 +468,21 @@ export default function AnalyticsPage() {
                 <span><span className="ap-line" style={{ background: C.cyan }} /> Historique</span>
                 <span><span className="ap-line ap-dashed" style={{ background: C.brand }} /> Projection</span>
               </div>
+            </div>
+          </section>
+
+          {/* ── SIMULATION WHAT-IF ── */}
+          <section className="ap-card">
+            <div className="ap-card-head">
+              <h3><ExperimentOutlined /> Simulateur d'impact · projection &amp; scénarios</h3>
+              <span className="ap-chip">risque avant / après plan de formation</span>
+            </div>
+            <div className="ap-card-body">
+              <WhatIfSimulator
+                teachers={simTeachers}
+                competences={simCompetences}
+                defaultTeacherId={filteredAtRisk[0]?.teacher_id ?? null}
+              />
             </div>
           </section>
 
