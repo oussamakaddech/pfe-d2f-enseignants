@@ -33,7 +33,7 @@ const CertificatesByEmailPage = lazy(() => import("@/pages/certificat/Certificat
 const UpDeptDataGrid = lazy(() => import("@/pages/enseignant/UpDeptDataGrid"));
 const Register = lazy(() => import("@/pages/auth/Register"));
 const Forbidden403 = lazy(() => import("@/pages/error/Forbidden403"));
-const DashboardPage = lazy(() => import("@/redesign/ExecutiveDashboardPage"));
+const DashboardPage = lazy(() => import("@/pages/dashboard/CupDashboardPage"));
 const Login = lazy(() => import("@/pages/admin/gererComptes/Login"));
 const PasswordRecovery = lazy(() => import("@/pages/admin/gererComptes/PasswordRecovery"));
 const Profile = lazy(() => import("@/pages/auth/Profile"));
@@ -55,6 +55,10 @@ const BureauPage = lazy(() => import("@/pages/bureau/BureauPage"));
 const PersonalDashboard = lazy(() => import("@/pages/dashboard/PersonalDashboard"));
 const AlertsCenterPage = lazy(() => import("@/pages/analyse/AlertsCenterPage"));
 const ABTestingPage = lazy(() => import("@/pages/analyse/ABTestingPage"));
+const SkillForecastPage = lazy(() => import("@/pages/analyse/SkillForecastPage"));
+const PeerBenchmarkPage = lazy(() => import("@/pages/analyse/PeerBenchmarkPage"));
+const AnomalyDetectionPage = lazy(() => import("@/pages/analyse/AnomalyDetectionPage"));
+const PilotageDashboardPage = lazy(() => import("@/pages/analyse/PilotageDashboardPage"));
 
 function PageSkeleton() {
   return (
@@ -135,6 +139,10 @@ export default function AppRoutes() {
                   <Route path="/home/analytics/formations-par-periode" element={<FormationsParPeriodePage />} />
                   <Route path="/home/analytics/alerts" element={<AlertsCenterPage />} />
                   <Route path="/home/analytics/ab-testing" element={<ABTestingPage />} />
+                  <Route path="/home/analytics/forecast" element={<SkillForecastPage />} />
+                  <Route path="/home/analytics/benchmark" element={<PeerBenchmarkPage />} />
+                  <Route path="/home/analytics/anomalies" element={<AnomalyDetectionPage />} />
+                  <Route path="/home/analytics/pilotage" element={<PilotageDashboardPage />} />
                 </Route>
 
                 <Route element={<RoleGuard allowedRoles={[ROLES.ENSEIGNANT, ROLES.ANIMATEUR]} />}>

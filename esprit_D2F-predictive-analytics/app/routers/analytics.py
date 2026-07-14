@@ -32,11 +32,15 @@ from app.config import settings
 from app.core.auth import require_roles
 from app.core.observability import dsi_error_body
 from app.engines.alert_engine import AlertEngine
+from app.engines.anomaly_engine import AnomalyEngine
+from app.engines.benchmark_engine import PeerBenchmarkEngine
 from app.engines.collaborative import CollaborativeFilter
 from app.engines.dashboard_engine import DashboardEngine
 from app.engines.feature_engine import FeatureEngine
+from app.engines.forecast_engine import SkillForecastEngine
 from app.engines.gap_engine import GapEngine
 from app.engines.impact_engine import TrainingImpactEngine, WhatIfEngine
+from app.engines.pilotage_dashboard_engine import PilotageDashboardEngine
 from app.engines.recommendation_engine import RecommendationEngine
 from app.engines.risk_scoring import build_factors_from_gaps, compute_risk_score
 from app.models.db_models import (
@@ -897,6 +901,112 @@ async def simulate_what_if(
         horizon_mois=payload.horizon_mois,
     )
     return WhatIfResponse(**result)
+
+
+# ── GET /api/v1/analytics/forecast/{enseignantId} ───────────
+@router.get(
+    "/forecast/{enseignant_id}",
+    summary="Prévision temporelle des niveaux de compétence (PFE)",
+    responses={404: {"description": "Enseignant introuvable"}},
+)
+async def forecast_competences(
+    enseignant_id: str,
+    db: DbSession,
+    horizon_mois: Annotated[int, Query(ge=1, le=36)] = settings.prediction_horizon_months,
+    competence_id: CompetenceIdFilter = None,
+) -> dict[str, Any]:
+    """Projette sur N mois l'évolution des niveaux de compétence d'un enseignant
+    (intervalle de confiance + drapeau de régression)."""
+    svc = DataService(db)
+    if not svc.get_teacher_profile(enseignant_id):
+        raise HTTPException(
+            status_code=404,
+            detail=_dsi_error(404, "ENS-404", f"Enseignant {enseignant_id} introuvable", f"/v1/analytics/forecast/{enseignant_id}"),
+        )
+    comps = [competence_id] if competence_id is not None else None
+    return SkillForecastEngine(db).forecast(enseignant_id, horizon_mois=horizon_mois, competence_ids=comps)
+
+
+# ── GET /api/v1/analytics/benchmark/{enseignantId} ──────────
+@router.get(
+    "/benchmark/{enseignant_id}",
+    summary="Benchmark vs pairs (département/UP) (PFE)",
+    responses={404: {"description": "Enseignant introuvable"}},
+)
+async def benchmark_enseignant(
+    enseignant_id: str,
+    db: DbSession,
+    par_up: Annotated[bool, Query(description="Restreindre la cohorte à la même UP")] = False,
+) -> dict[str, Any]:
+    """Compare un enseignant à ses pairs (niveau moyen, complétion, risque, gaps)."""
+    svc = DataService(db)
+    if not svc.get_teacher_profile(enseignant_id):
+        raise HTTPException(
+            status_code=404,
+            detail=_dsi_error(404, "ENS-404", f"Enseignant {enseignant_id} introuvable", f"/v1/analytics/benchmark/{enseignant_id}"),
+        )
+    return PeerBenchmarkEngine(db).benchmark(enseignant_id, par_up=par_up)
+
+
+# ── POST /api/v1/analytics/anomalies/{enseignantId} ─────────
+@router.post(
+    "/anomalies/{enseignant_id}",
+    summary="Détecter les anomalies d'un enseignant (PFE)",
+    status_code=status.HTTP_200_OK,
+    responses={404: {"description": "Enseignant introuvable"}},
+)
+async def detect_anomalies_teacher(
+    enseignant_id: str,
+    db: DbSession,
+) -> dict[str, Any]:
+    """Lance les détecteurs d'anomalies et persiste les alertes (idempotent)."""
+    svc = DataService(db)
+    profil = svc.get_teacher_profile(enseignant_id)
+    if not profil:
+        raise HTTPException(
+            status_code=404,
+            detail=_dsi_error(404, "ENS-404", f"Enseignant {enseignant_id} introuvable", f"/v1/analytics/anomalies/{enseignant_id}"),
+        )
+    dept = str(profil[0].get("departement_id")) if profil[0].get("departement_id") is not None else None
+    result = AnomalyEngine(db).detect_for_teacher(enseignant_id, departement_id=dept)
+    db.commit()
+    return result
+
+
+# ── POST /api/v1/analytics/anomalies/department/{departementId} ──
+@router.post(
+    "/anomalies/department/{departement_id}",
+    summary="Détecter les anomalies d'un département (PFE, ADMIN/CUP)",
+    status_code=status.HTTP_200_OK,
+)
+async def detect_anomalies_department(
+    departement_id: str,
+    auth: ReadAuth,
+    db: DbSession,
+) -> dict[str, Any]:
+    """Scanne tous les enseignants d'un département et persiste les alertes."""
+    result = AnomalyEngine(db).detect_department(departement_id)
+    db.commit()
+    return result
+
+
+# ── GET /api/v1/analytics/pilotage ──────────────────────────
+@router.get(
+    "/pilotage",
+    summary="Dashboard de pilotage (4 modules PFE)",
+    response_model=dict,
+)
+async def pilotage_dashboard(
+    auth: ReadAuth,
+    db: DbSession,
+    horizon_mois: Annotated[int, Query(ge=1, le=36)] = settings.prediction_horizon_months,
+) -> dict[str, Any]:
+    """Tableau de bord de pilotage agrégeant :
+    - KPIs de prévision (forecast)
+    - benchmark par département
+    - anomalies live
+    - corrélation besoins ↔ gaps"""
+    return PilotageDashboardEngine(db).compute_all(horizon_mois=horizon_mois)
 
 
 # ── GET /api/v1/analytics/health ─────────────────────────────

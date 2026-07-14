@@ -6,8 +6,8 @@ import {
   SafetyCertificateOutlined, UserOutlined, LineChartOutlined, ApiOutlined,
   ClusterOutlined, BookOutlined,
   AppstoreOutlined, CheckSquareOutlined, BankOutlined, SettingOutlined,
-  ImportOutlined, DashboardOutlined, EyeOutlined, WarningOutlined,
-  HomeOutlined, ExperimentOutlined,
+  ImportOutlined, DashboardOutlined, EyeOutlined,
+  HomeOutlined,
 } from "@ant-design/icons";
 
 export interface MenuItem {
@@ -30,12 +30,8 @@ export const accountGroup: MenuItem[] = [
 ];
 
 export const adminMenu: MenuItem[] = [
-  { type: "group", label: "TABLEAU DE BORD", children: [
-    dashboardItem,
-    { label: "Analyse Prédictive", key: "/home/AnalysePredictive",  icon: LineChartOutlined },
-    { label: "Alertes", key: "/home/analytics/alerts", icon: WarningOutlined },
-    { label: "Tests A/B", key: "/home/analytics/ab-testing", icon: ExperimentOutlined },
-  ]},
+  dashboardItem,
+  { label: "Analyse Prédictive", key: "/home/AnalysePredictive",  icon: LineChartOutlined },
   { type: "group", label: "ADMINISTRATION", children: [
     { label: "Administration",  key: "/home/administration", icon: SettingOutlined },
     { label: "Structures (UP/Dépt)", key: "/home/UpDept",           icon: ApartmentOutlined },
@@ -66,7 +62,6 @@ export const adminMenu: MenuItem[] = [
 export const cupMenu: MenuItem[] = [
   dashboardItem,
   { label: "Analyse Prédictive", key: "/home/AnalysePredictive", icon: LineChartOutlined },
-  { label: "Alertes", key: "/home/analytics/alerts", icon: WarningOutlined },
   { type: "group", label: "FORMATIONS", children: [
     { label: "Nouvelle Formation",    key: "/home/Formation/Creer",         icon: PlusCircleOutlined },
     { label: "Catalogue",             key: "/home/Formation/Consulter",     icon: AppstoreOutlined },
@@ -121,7 +116,6 @@ export const responsableDossierMenu: MenuItem[] = [
 export const chefDepartementMenu: MenuItem[] = [
   dashboardItem,
   { label: "Analyse Prédictive", key: "/home/AnalysePredictive", icon: LineChartOutlined },
-  { label: "Alertes", key: "/home/analytics/alerts", icon: WarningOutlined },
   { type: "group", label: "FORMATIONS", children: [
     { label: "Catalogue Formations",  key: "/home/Formation/Consulter",     icon: AppstoreOutlined },
     { label: "Calendrier Global",     key: "/home/Calendrier",              icon: CalendarOutlined },

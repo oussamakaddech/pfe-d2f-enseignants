@@ -6,6 +6,9 @@ import type {
   TeacherRiskProfile, TrainingPath,
   GroupedRecommendationsResponse, RecoGroupBy,
   WhatIfAction, WhatIfResponse,
+  SkillForecast, PeerBenchmark,
+  AnomalyDetectionResult, DepartmentAnomalyResult,
+  PilotageDashboard,
 } from "@/models/analyse";
 import type {
   AnalyticsDepartementResponse, AnalyticsUP,
@@ -197,6 +200,62 @@ const AnalyticsService = {
     const res = await axios.get<Blob>(`${BASE}/export/pdf`, {
       params: { type, ...opts },
       responseType: "blob",
+    });
+    return res.data;
+  },
+
+  // ── Nouvelles fonctionnalités PFE ─────────────────────
+
+  // 1) Prévision temporelle des niveaux de compétence
+  async getForecast(
+    enseignantId: string,
+    opts: { horizonMois?: number; competenceId?: number } = {}
+  ): Promise<SkillForecast> {
+    const res = await axios.get<SkillForecast>(`${BASE}/forecast/${enseignantId}`, {
+      params: {
+        horizon_mois: opts.horizonMois,
+        competence_id: opts.competenceId,
+      },
+    });
+    return res.data;
+  },
+
+  // 2) Benchmark vs pairs (département / UP)
+  async getBenchmark(
+    enseignantId: string,
+    opts: { parUp?: boolean } = {}
+  ): Promise<PeerBenchmark> {
+    const res = await axios.get<PeerBenchmark>(`${BASE}/benchmark/${enseignantId}`, {
+      params: { par_up: opts.parUp ?? false },
+    });
+    return res.data;
+  },
+
+  // 3) Détection d'anomalies (enseignant)
+  async detectAnomalies(enseignantId: string): Promise<AnomalyDetectionResult> {
+    const res = await axios.post<AnomalyDetectionResult>(
+      `${BASE}/anomalies/${enseignantId}`
+    );
+    return res.data;
+  },
+
+  // 3b) Détection d'anomalies (département)
+  async detectAnomaliesDepartment(
+    departementId: string
+  ): Promise<DepartmentAnomalyResult> {
+    const res = await axios.post<DepartmentAnomalyResult>(
+      `${BASE}/anomalies/department/${departementId}`
+    );
+    return res.data;
+  },
+
+  // ── Dashboard de pilotage (PFE) ───────────────────────
+
+  async getPilotageDashboard(
+    opts: { horizonMois?: number } = {}
+  ): Promise<PilotageDashboard> {
+    const res = await axios.get<PilotageDashboard>(`${BASE}/pilotage`, {
+      params: { horizon_mois: opts.horizonMois },
     });
     return res.data;
   },

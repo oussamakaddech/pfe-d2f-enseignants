@@ -11,6 +11,7 @@ import {
 } from "@ant-design/icons";
 import { useAuth } from "@/hooks/auth/useAuth";
 import { useDashboard } from "@/hooks/analyse/useDashboard";
+import PilotageSummary from "@/redesign/components/PilotageSummary";
 import { computeHealthScore } from "@/services/dashboard/dashboardService";
 import { normalizeRole } from "@/utils/constants/roles";
 import { greeting } from "@/utils/helpers/greeting";
@@ -405,6 +406,13 @@ export default function DashboardGlass() {
               </Col>
             </Row>
           </section>
+
+          {/* ── Pilotage prévisionnel (nouvelles analyses) ─────── */}
+          {(roleKey === "admin" || roleKey === "cup") && (
+            <section className="glass-section">
+              <PilotageSummary horizon={6} />
+            </section>
+          )}
         </>
       )}
     </div>

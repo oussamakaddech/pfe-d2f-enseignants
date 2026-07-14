@@ -220,6 +220,7 @@ export interface AlerteResumee {
   type_alerte:  TypeAlerte;
   severite:     SeveriteAlerte;
   titre:        string;
+  message?:     string | null;
   enseignant_id:string | null;
   created_at:   string;
 }
@@ -255,6 +256,129 @@ export interface HealthStatus {
   nb_gaps_stored: number;
   nb_alerts_new:  number;
   timestamp:      string;
+}
+
+// ── Nouvelles fonctionnalités PFE ──────────────────────────
+
+// 1) Prévision temporelle des niveaux de compétence
+export interface SkillForecastPoint {
+  mois:         number;
+  date:         string;
+  niveau_prevu: number;
+  borne_basse:  number;
+  borne_haute:  number;
+}
+
+export interface ForecastCompetence {
+  competence_id:       number;
+  competence_nom:      string;
+  niveau_actuel:       number;
+  niveau_requis:       number;
+  niveau_prevu_final:  number;
+  ecart_restant:       number;
+  comblera_objectif:   boolean;
+  en_regression:       boolean;
+  points:              SkillForecastPoint[];
+}
+
+export interface SkillForecast {
+  enseignant_id:       string;
+  horizon_mois:        number;
+  date_depart:         string;
+  niveau_depart:       number;
+  pente_mensuelle:     number;
+  incertitude_sigma:   number;
+  nb_points_historiques: number;
+  global:              SkillForecastPoint[];
+  competences:         ForecastCompetence[];
+}
+
+// 2) Benchmark vs pairs
+export interface BenchmarkMetric {
+  self:        number;
+  pairs_moyen: number;
+  percentile:  number;
+}
+
+export interface PeerBenchmark {
+  enseignant_id: string;
+  disponible:    boolean;
+  raison?:       string;
+  scope:         "DEPARTEMENT" | "UP";
+  departement_id: string | null;
+  up_id:         string | null;
+  pairs:         number;
+  niveau_moyen:  BenchmarkMetric;
+  taux_completion: BenchmarkMetric;
+  score_risque:  BenchmarkMetric;
+  gaps_critiques: BenchmarkMetric;
+}
+
+// 3) Détection d'anomalies
+export interface AnomalyItem {
+  type:          string;
+  severite:      SeveriteAlerte;
+  titre:         string;
+  message:       string;
+  competence_id: number | null;
+}
+
+export interface AnomalyDetectionResult {
+  enseignant_id: string;
+  nb_anomalies:  number;
+  anomalies:     AnomalyItem[];
+}
+
+export interface DepartmentAnomalyResult {
+  departement_id:        string;
+  nb_enseignants_scannes: number;
+  nb_anomalies:          number;
+  details:               AnomalyDetectionResult[];
+}
+
+// ── Dashboard de pilotage (nouveau, PFE) ────────────────────
+
+export interface PilotageForecastKpis {
+  horizon_mois:             number;
+  nb_enseignants:           number;
+  niveau_projet_moyen:      number;
+  pct_objectifs_atteignables: number;
+  nb_competences_regression: number;
+  nb_competences_suivies:   number;
+}
+
+export interface PilotageDeptBenchmark {
+  departement_id:    string;
+  niveau_moyen:      number;
+  ecart_vs_cohorte:  number;
+  nb_enseignants:    number;
+  position:          "AU_DESSUS" | "EN_DECA";
+}
+
+export interface PilotageAnomalyLive {
+  nb_anomalies_recentes: number;
+  fenetre_jours:         number;
+  nb_nouvelles:          number;
+  alertes:               AlerteResumee[];
+}
+
+export interface PilotageCorrelation {
+  coefficient_pearson: number | null;
+  nb_competences:      number;
+  top_paires:          {
+    competence_id: number;
+    nb_besoins:    number;
+    nb_gaps:       number;
+  }[];
+  interpretation:       string;
+}
+
+export interface PilotageDashboard {
+  forecast_kpis:           PilotageForecastKpis;
+  benchmark_departements: PilotageDeptBenchmark[];
+  anomalies_live:         PilotageAnomalyLive;
+  correlation_besoins_gaps: PilotageCorrelation;
+  generated_at:           string;
 }
 
 

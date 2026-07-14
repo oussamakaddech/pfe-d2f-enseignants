@@ -95,6 +95,13 @@ class Settings(BaseSettings):
     # Nb de besoins non satisfaits saturant le facteur "unmet needs"
     risk_unmet_needs_saturation: int = Field(default=3, alias="RISK_UNMET_NEEDS_SATURATION")
 
+    # ── Anomaly Detection (nouvelle feature PFE) ───────────
+    # Chute minimale (points, échelle 0-5) du niveau moyen entre deux snapshots
+    # pour être qualifiée d'anomalie « chute soudaine ».
+    anomaly_level_drop_min: float = Field(default=0.5, alias="ANOMALY_LEVEL_DROP_MIN")
+    # Nb minimal de gaps critiques simultanés déclenchant une alerte « pic ».
+    anomaly_gap_surge_min: int = Field(default=3, alias="ANOMALY_GAP_SURGE_MIN")
+
     # ── Model Retraining (rollback protection — spec §5) ─────────────────
     # Chute de R² (sur le jeu de test) tolérée avant de déclencher un rollback.
     retrain_max_accuracy_drop: float = Field(default=0.05, alias="RETRAIN_MAX_ACCURACY_DROP")
