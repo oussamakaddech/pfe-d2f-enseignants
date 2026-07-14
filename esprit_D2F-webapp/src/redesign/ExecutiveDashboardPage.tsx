@@ -1,11 +1,17 @@
 import { useMemo, useState } from "react";
-import type { CSSProperties } from "react";
+import type { CSSProperties, ReactNode } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import {
   Spin, Empty, Button, Drawer, Descriptions, Alert,
 } from "antd";
-import { ReloadOutlined, RightOutlined } from "@ant-design/icons";
+import {
+  ReloadOutlined, RightOutlined, AppstoreOutlined, PlayCircleOutlined, BellOutlined,
+  SafetyCertificateOutlined, TeamOutlined, WarningOutlined, ThunderboltOutlined,
+  FileProtectOutlined, RiseOutlined, CheckCircleOutlined, ClockCircleOutlined,
+  ExperimentOutlined, ArrowUpOutlined, FallOutlined, DashboardOutlined,
+  ApartmentOutlined, BulbOutlined,
+} from "@ant-design/icons";
 import dayjs from "dayjs";
 import "dayjs/locale/fr";
 import { useAuth } from "@/hooks/auth/useAuth";
@@ -14,27 +20,52 @@ import { greeting } from "@/utils/helpers/greeting";
 import { NA_CALC } from "@/utils/states";
 import useAppNotification from "@/hooks/ui/useAppNotification";
 import { computeHealthScore } from "@/services/dashboard/dashboardService";
-import { useOverview, useAlertsSummary } from "@/hooks/analyse/useAnalysePredictive";
+import { useOverview, useAlertsSummary, useRiskEvolution } from "@/hooks/analyse/useAnalysePredictive";
 import { useBesoins } from "@/hooks/besoin/useBesoins";
 import { useAllCertificates } from "@/hooks/certificat/useCertificats";
 import { useInactifs, useFormationsTimeline, useParticipationByDept } from "@/hooks/dashboard/useDashboardData";
 import { usePlatformKPIs } from "@/hooks/dashboard/usePlatformStats";
 import type { FormationReco } from "@/redesign/contract";
-import { toCoveragePercent } from "@/redesign/risk";
-import { brand, semantic } from "@/styles/themes/tokens";
-import { useUnifiedDashboard, selectFormationRecos, useUnifiedRiskTrend } from "@/redesign/useUnified";
+import { toCoveragePercent, riskPct } from "@/redesign/risk";
+import { brand, semantic, roleColors } from "@/styles/themes/tokens";
+import { useUnifiedDashboard, selectFormationRecos } from "@/redesign/useUnified";
 import type { DashboardScope } from "@/models/dashboard";
 import type { AnalyticsDepartement } from "@/models/analyse/reporting";
+import "@/redesign/redesign.css";
+import { Section, Card } from "@/redesign/components/Section";
+import RiskEvolutionChart from "@/redesign/components/charts/RiskEvolutionChart";
+import { KpiSkeleton, ErrorState } from "@/redesign/components/States";
+import { buildTrend } from "@/redesign/format";
 
 dayjs.locale("fr");
 
 const ACCENT = brand[500];
 
 /* ──────────────────────────────────────────────────────────────────────────
-   Tableau de bord institutionnel — D2F (Glassmorphism premium)
-   Modules : Synthèse · Formations · Besoins & compétences · Risque & alertes
-             · Recommandations & impact
+   Tableau de bord institutionnel — D2F (Design ESPRIT : rd-*)
+   Modules : Indicateurs clés · Formations · Besoins & compétences
+              · Risque & alertes · Recommandations & impact
    ──────────────────────────────────────────────────────────────────────── */
+
+type IndicatorKind = "int" | "coverage" | "pct" | "custom";
+interface StatItem {
+  key: string;
+  label: string;
+  value: number | null | undefined;
+  unit?: IndicatorKind;
+  customText?: string;
+  icon: ReactNode;
+  accent: string;
+  accentBg: string;
+  helper?: string;
+  trend?: ReturnType<typeof buildTrend>;
+  trendLabel?: string;
+  loading?: boolean;
+  /** Cible de référence pour les métriques de taux (%, ou valeur max acceptable). */
+  target?: number;
+  /** true = plus c'est haut mieux c'est (couverture, complétion…). false = plus c'est bas mieux c'est (risque). */
+  higherIsBetter?: boolean;
+}
 
 export default function ExecutiveDashboardPage() {
   const { user } = useAuth();
@@ -69,7 +100,7 @@ export default function ExecutiveDashboardPage() {
   }, [user?.role]);
   const { data: timeline, isLoading: timelineLoading } = useFormationsTimeline(timelineScope);
   const { data: deptAnalytics, isLoading: deptLoading } = useParticipationByDept(true);
-  const { trend: riskTrend } = useUnifiedRiskTrend(6);
+  const { data: riskEvo = [], isLoading: riskEvoLoading } = useRiskEvolution(6);
 
   const reclos = useMemo(() => selectFormationRecos(d), [d]);
 
@@ -84,6 +115,13 @@ export default function ExecutiveDashboardPage() {
   const pendingBesoins = useMemo(() => besoins.filter((b) => !b.approuveAdmin).length, [besoins]);
 
   const coveragePct = overview ? toCoveragePercent(overview.taux_couverture_global) : null;
+  const avgRisk = overview ? riskPct(overview.score_risque_moyen) : null;
+  const riskTrendBadge = buildTrend({
+    current: overview?.score_risque_moyen,
+    previous: overview?.score_risque_moyen_precedent,
+    higherIsBetter: false,
+    unit: "pts",
+  });
 
   const avgGain = useMemo(() => {
     const eff = d?.training_effectiveness ?? [];
@@ -105,7 +143,7 @@ export default function ExecutiveDashboardPage() {
   const topDemande = useMemo(() => (d?.competences_en_demande ?? []).slice(0, 5), [d]);
   const topDeficit = useMemo(() => (d?.competences_en_declin ?? []).slice(0, 5), [d]);
   const topDepartementsEnRetard = useMemo(
-    () => [...(d?.taux_couverture_departements ?? [])].sort((a: any, b: any) => a.taux_couverture - b.taux_couverture).slice(0, 6),
+    () => [...(d?.taux_couverture_departements ?? [])].sort((a, b) => a.taux_couverture - b.taux_couverture).slice(0, 6),
     [d],
   );
 
@@ -125,13 +163,15 @@ export default function ExecutiveDashboardPage() {
     () => (timeline?.periodes ?? []).map((p) => ({ label: p.label, value: p.nombreFormations })),
     [timeline],
   );
-  const riskTrendData = useMemo(
-    () => (riskTrend ?? []).map((p) => ({ label: p.month, value: p.critical })),
-    [riskTrend],
+  const riskPoints = useMemo(
+    () => riskEvo.map((p) => ({ month: p.month, critical: p.critical, high: p.high })),
+    [riskEvo],
   );
 
   const todayLabel = dayjs().format("dddd D MMMM YYYY");
   const displayName = user?.username ?? user?.email ?? "Utilisateur";
+  const roleKey = normalizeRole(user?.role);
+  const roleLabel = roleColors[roleKey ?? ""]?.label ?? roleKey ?? "Utilisateur";
 
   async function handleRefresh() {
     setRefreshing(true);
@@ -145,27 +185,23 @@ export default function ExecutiveDashboardPage() {
     }
   }
 
-  const na = (v: unknown): string | number =>
-    v == null || v === "" || (typeof v === "number" && Number.isNaN(v)) ? NA_CALC : (v as string | number);
-
-  const primaryStats: Stat[] = [
-    { label: "Formations totales", value: formationsByEtat.data?.total, hint: `${formationsByEtat.data?.acheve ?? 0} achevées`, loading: formationsByEtat.isLoading, accent: ACCENT },
-    { label: "En cours", value: formationsByEtat.data?.enCours, loading: formationsByEtat.isLoading, accent: "#f59e0b" },
-    { label: "Besoins en attente", value: pendingBesoins, hint: `${besoins.length} saisis`, loading: besoinsLoading, accent: "#f59e0b" },
-    { label: "Couverture", value: coveragePct == null ? null : `${coveragePct}%`, loading: ovLoading, accent: semantic.success },
-    { label: "Enseignants suivis", value: overview?.nb_enseignants_suivis, loading: ovLoading, accent: "#0ea5e9" },
-    { label: "Alertes critiques", value: alerts?.critiques_ouvertes, hint: `${alerts?.total ?? 0} ouvertes`, loading: alertsLoading, accent: semantic.error },
-    { label: "Recommandations", value: reclos.length, accent: "#8b5cf6" },
-    { label: "Certificats", value: certificats.length || null, accent: semantic.success },
+  const indicators: StatItem[] = [
+    { key: "formations", label: "Formations totales", value: formationsByEtat.data?.total, unit: "int", icon: <AppstoreOutlined />, accent: ACCENT, accentBg: "rgba(181,18,0,0.10)", helper: `${formationsByEtat.data?.acheve ?? 0} achevées`, loading: formationsByEtat.isLoading },
+    { key: "encours", label: "En cours", value: formationsByEtat.data?.enCours, unit: "int", icon: <PlayCircleOutlined />, accent: "#f59e0b", accentBg: "rgba(245,158,11,0.12)", helper: `${formationsTermineRatio}% achevées`, loading: formationsByEtat.isLoading },
+    { key: "besoins", label: "Besoins en attente", value: pendingBesoins, unit: "int", icon: <BellOutlined />, accent: "#f59e0b", accentBg: "rgba(245,158,11,0.12)", helper: `${besoins.length} saisis au total`, loading: besoinsLoading },
+    { key: "couverture", label: "Couverture compétences", value: coveragePct, unit: "pct", icon: <SafetyCertificateOutlined />, accent: semantic.success, accentBg: semantic.successBg, helper: "Part au niveau requis", target: 80, higherIsBetter: true, loading: ovLoading },
+    { key: "suivis", label: "Enseignants suivis", value: overview?.nb_enseignants_suivis, unit: "int", icon: <TeamOutlined />, accent: "#0ea5e9", accentBg: "rgba(14,165,233,0.12)", helper: "Évalués par le moteur", loading: ovLoading },
+    { key: "alertes", label: "Alertes critiques", value: alerts?.critiques_ouvertes, unit: "int", icon: <WarningOutlined />, accent: semantic.error, accentBg: semantic.errorBg, helper: `${alerts?.total ?? 0} ouvertes au total`, loading: alertsLoading },
+    { key: "recos", label: "Recommandations", value: reclos.length || null, unit: "int", icon: <ThunderboltOutlined />, accent: "#8b5cf6", accentBg: "rgba(139,92,246,0.12)", helper: "Formations suggérées" },
+    { key: "certificats", label: "Certificats", value: certificats.length || null, unit: "int", icon: <FileProtectOutlined />, accent: semantic.success, accentBg: semantic.successBg, helper: "Délivrés" },
+    { key: "participation", label: "Participation moyenne", value: avgParticipation, unit: "pct", icon: <RiseOutlined />, accent: "#0ea5e9", accentBg: "rgba(14,165,233,0.12)", helper: "Taux par département", target: 60, higherIsBetter: true, loading: deptLoading },
+    { key: "completion", label: "Complétion moyenne", value: avgCompletion, unit: "pct", icon: <CheckCircleOutlined />, accent: semantic.success, accentBg: semantic.successBg, helper: "Formations suivies", target: 75, higherIsBetter: true, loading: ovLoading },
+    { key: "inactifs", label: "Sans formation ≥ 6 m", value: inactifs?.total, unit: "int", icon: <ClockCircleOutlined />, accent: "#f59e0b", accentBg: "rgba(245,158,11,0.12)", helper: "Enseignants inactifs", loading: inactifsLoading },
+    { key: "risque", label: "Risque moyen", value: avgRisk, unit: "pct", icon: <FallOutlined />, accent: semantic.error, accentBg: semantic.errorBg, helper: "Score de risque global", trend: riskTrendBadge, trendLabel: "pts", target: 40, higherIsBetter: false, loading: ovLoading },
+    { key: "precision", label: "Précision modèle", value: d?.model_performance?.gap_model_accuracy != null ? Math.round(d.model_performance.gap_model_accuracy * 100) : null, unit: "pct", icon: <ExperimentOutlined />, accent: "#8b5cf6", accentBg: "rgba(139,92,246,0.12)", helper: "Qualité prédictive", target: 85, higherIsBetter: true },
+    { key: "gain", label: "Gain de niveau moyen", value: avgGain, unit: "custom", customText: avgGain != null ? `+${avgGain}` : NA_CALC, icon: <ArrowUpOutlined />, accent: semantic.success, accentBg: semantic.successBg, helper: "Points gagnés" },
   ];
-  const secondaryStats: Stat[] = [
-    { label: "Participation", value: avgParticipation == null ? null : `${avgParticipation}%`, loading: deptLoading, accent: "#0ea5e9" },
-    { label: "Complétion moyenne", value: avgCompletion == null ? null : `${avgCompletion}%`, accent: semantic.success },
-    { label: "Sans formation ≥6m", value: inactifs?.total, loading: inactifsLoading, accent: "#f59e0b" },
-    { label: "Santé globale", value: `${health.score}/100`, accent: healthColor },
-    { label: "Précision modèle", value: d?.model_performance?.gap_model_accuracy != null ? `${Math.round(d.model_performance.gap_model_accuracy * 100)}%` : null, accent: "#8b5cf6" },
-    { label: "Gain moyen", value: avgGain == null ? null : `+${avgGain}`, accent: semantic.success },
-  ];
+  const rateIndicators = indicators.filter((i) => i.unit === "pct" && i.target != null);
 
   const etatItems = [
     { key: "enregistre", label: "Enregistrées", value: formationsByEtat.data?.enregistre ?? 0, color: "#94a3b8" },
@@ -179,292 +215,295 @@ export default function ExecutiveDashboardPage() {
     { label: "Externe", value: formationsByType.data?.externe ?? 0, color: "#f59e0b" },
     { label: "En ligne", value: formationsByType.data?.enLigne ?? 0, color: "#0ea5e9" },
   ];
+  const prioriteColor: Record<string, string> = {
+    CRITIQUE: semantic.error,
+    HAUTE: "#f97316",
+    MOYENNE: semantic.warning,
+    BASSE: semantic.success,
+    NON_DEFINIE: "#94a3b8",
+  };
 
   if (error || ovError) {
     return (
-      <div className="glass-page">
-        <div className="blob blob-1" />
-        <div className="blob blob-2" />
-        <div className="glass-wrap">
-          <div className="glass" style={{ padding: 28 }}>
-            <Alert type="error" showIcon message="Impossible de charger le tableau de bord"
-              action={<Button size="small" onClick={() => { refetch(); refetchOverview(); }}>Réessayer</Button>} />
-          </div>
-        </div>
-        <style>{CSS}</style>
+      <div className="rd">
+        <Section title="Tableau de bord exécutif">
+          <ErrorState
+            message="Impossible de charger le tableau de bord."
+            onRetry={() => { refetch(); refetchOverview(); }}
+          />
+        </Section>
+        <style>{ED_CSS}</style>
       </div>
     );
   }
 
   return (
-    <div className="glass-page">
-      <div className="blob blob-1" />
-      <div className="blob blob-2" />
-      <div className="blob blob-3" />
-      <div className="glass-wrap">
-        <style>{CSS}</style>
-
-        {/* ── Top bar ──────────────────────────────────────────────────── */}
-        <div className="glass-top">
-          <div>
-            <div className="eyebrow">Plateforme D2F</div>
-            <h1 className="grad-text">{greet.emoji} {greet.text}, {displayName}</h1>
-            <div className="sub">{todayLabel.charAt(0).toUpperCase() + todayLabel.slice(1)} · Vue institutionnelle consolidée</div>
+    <div className="rd">
+      {/* ── Bandeau haut ─────────────────────────────────────────────── */}
+      <section className="rd-hero">
+        <div className="rd-hero-avatar"><DashboardOutlined /></div>
+        <div className="rd-hero-body">
+          <div className="rd-hero-eyebrow">
+            Plateforme D2F
+            <span className="rd-hero-role">{roleLabel}</span>
           </div>
-          <div className="right">
-            <span className="glass-live"><span className={`dot${error ? " err" : ""}`} />{lastUpdate ? `Maj ${lastUpdate}` : "Données en direct"}</span>
-            <button className="glass-btn" onClick={handleRefresh} disabled={refreshing}>
-              <ReloadOutlined spin={refreshing} /> Rafraîchir
-            </button>
-          </div>
+          <h1 className="rd-hero-title">{greet.emoji} {greet.text}, {displayName}</h1>
+          <p className="rd-hero-sub">
+            {todayLabel.charAt(0).toUpperCase() + todayLabel.slice(1)} · Vue institutionnelle consolidée des formations, compétences et risques.
+          </p>
         </div>
+        <div className="rd-hero-actions">
+          <span className="rd-hero-status">
+            <span className={`rd-dot ${error ? "error" : "ok"}`} />
+            {lastUpdate ? `Maj ${lastUpdate}` : "Données en direct"}
+          </span>
+          <button className="rd-btn" onClick={handleRefresh} disabled={refreshing}>
+            <ReloadOutlined spin={refreshing} /> Rafraîchir
+          </button>
+        </div>
+      </section>
 
-        {/* ── KPI strip ────────────────────────────────────────────────── */}
-        <div className="stat-grid">
-          {primaryStats.map((s) => (
-            <div className="glass stat" key={s.label} style={s.accent ? ({ "--accent-bd": s.accent } as CSSProperties) : undefined}>
-              <div className="l">{s.label}</div>
-              <div className="v">{s.loading ? <Spin size="small" /> : na(s.value)}</div>
-              {s.hint && <div className="h">{s.hint}</div>}
-            </div>
-          ))}
-        </div>
-        <div className="stat-grid">
-          {secondaryStats.map((s) => (
-            <div className="glass stat" key={s.label} style={s.accent ? ({ "--accent-bd": s.accent } as CSSProperties) : undefined}>
-              <div className="l">{s.label}</div>
-              <div className="v" style={{ fontSize: 18 }}>{s.loading ? <Spin size="small" /> : na(s.value)}</div>
-            </div>
-          ))}
-        </div>
-
-        {/* ════════ MODULE Formations ════════ */}
-        <div className="mod-label">Formations</div>
-        <div className="glass-grid">
-          <div className="glass card">
-            <CardTitle title="Par état" extra={`${formationsByEtat.data?.total ?? 0} formations`} />
-            {formationsByEtat.isLoading ? <Loading /> : <Donut items={etatItems} total={formationsByEtat.data?.total ?? 0} />}
+      {/* ── Indicateurs clés ─────────────────────────────────────────── */}
+      <Section title="Indicateurs clés" subtitle="Les chiffres qui pilotent la décision">
+        {ovLoading && !overview ? (
+          <KpiSkeleton count={14} />
+        ) : (
+          <div className="ed-kpi-grid">
+            {indicators.map((s) => (
+              <KpiTile key={s.key} item={s} />
+            ))}
           </div>
-          <div className="glass card">
-            <CardTitle title="Complétion moyenne" extra={`Achevées ${formationsTermineRatio}%`} />
-            <div className="row" style={{ alignItems: "center", gap: 18 }}>
-              <Ring value={avgCompletion ?? 0} color={semantic.success} size={104} suffix="%" />
+        )}
+
+        <div className="ed-grid ed-grid--kpi" style={{ marginTop: 16 }}>
+          <Card title="Synthèse des taux clés" subtitle="Valeur vs objectif (cible)"
+            icon={<RiseOutlined />} iconColor="#0ea5e9" iconBg="rgba(14,165,233,0.12)">
+            <RateBars items={rateIndicators} />
+          </Card>
+
+          <Card title="Détail des indicateurs" subtitle="Valeur, progression et état"
+            icon={<DashboardOutlined />} iconColor={ACCENT} iconBg="rgba(181,18,0,0.10)">
+            <SynthesisTable items={indicators} />
+          </Card>
+        </div>
+      </Section>
+
+      {/* ════════ FORMATIONS ════════ */}
+      <Section title="Formations" subtitle="État, typologie, évolution et couverture par département">
+        <div className="ed-grid">
+          <Card title="Répartition par état" subtitle={`${formationsByEtat.data?.total ?? 0} formations`}
+            icon={<AppstoreOutlined />} iconColor={ACCENT} iconBg="rgba(181,18,0,0.10)">
+            {formationsByEtat.isLoading ? <ChartSkeletonLocal /> : <DonutChart items={etatItems} total={formationsByEtat.data?.total ?? 0} />}
+          </Card>
+
+          <Card title="Complétion & gain" subtitle={`${formationsTermineRatio}% achevées`}
+            icon={<CheckCircleOutlined />} iconColor={semantic.success} iconBg={semantic.successBg}>
+            <div className="ed-ring-row">
+              <ProgressRing value={avgCompletion ?? 0} color={semantic.success} size={108} suffix="%" />
               <div>
-                <div className="bignum" style={{ fontSize: 28, color: semantic.success }}>{avgGain != null ? `+${avgGain}` : NA_CALC}</div>
-                <div className="muted" style={{ fontSize: 12, marginTop: 4 }}>points gagnés en moyenne</div>
+                <div className="ed-bignum" style={{ color: semantic.success }}>{avgGain != null ? `+${avgGain}` : NA_CALC}</div>
+                <div className="rd-muted" style={{ fontSize: 12, marginTop: 4 }}>points gagnés en moyenne</div>
               </div>
             </div>
-          </div>
-          <div className="glass card col-2">
-            <CardTitle title="Par type" />
-            {formationsByType.isLoading ? <Loading /> : <SegBars items={typeItems} />}
-          </div>
-          <div className="glass card col-2">
-            <CardTitle title="Évolution mensuelle" extra={`${timeline?.totalFormations ?? 0} sur 12 mois`} />
-            {timelineLoading ? <Loading /> : <LineAreaChart data={timelineData} color={ACCENT} />}
-          </div>
-          <div className="glass card col-2">
-            <CardTitle title="Par département" extra="Top 8 · formations organisées" />
-            {deptLoading ? <Loading /> : <DeptBars departements={deptAnalytics?.departements ?? []} />}
-          </div>
-        </div>
+          </Card>
 
-        {/* ════════ MODULE Besoins & compétences ════════ */}
-        <div className="mod-label">Besoins & compétences</div>
-        <div className="glass-grid">
-          <div className="glass card">
-            <CardTitle title="Besoins par priorité" extra={`${besoins.length} au total`} />
-            {besoinsLoading ? <Loading /> : (
+          <Card title="Par type" subtitle="Interne · Externe · En ligne"
+            icon={<ApartmentOutlined />} iconColor="#6366f1" iconBg="rgba(99,102,241,0.12)">
+            {formationsByType.isLoading ? <ChartSkeletonLocal /> : <SegBars items={typeItems} />}
+          </Card>
+
+          <Card title="Évolution mensuelle" subtitle={`${timeline?.totalFormations ?? 0} formations sur 12 mois`} className="ed-col-2"
+            icon={<RiseOutlined />} iconColor="#0ea5e9" iconBg="rgba(14,165,233,0.12)">
+            {timelineLoading ? <ChartSkeletonLocal height={230} /> : <AreaLineChart data={timelineData} color={ACCENT} />}
+          </Card>
+
+          <Card title="Top départements" subtitle="Formations organisées · Top 8"
+            icon={<ApartmentOutlined />} iconColor="#8b5cf6" iconBg="rgba(139,92,246,0.12)" className="ed-col-2">
+            {deptLoading ? <ChartSkeletonLocal /> : <DeptBars departements={deptAnalytics?.departements ?? []} />}
+          </Card>
+        </div>
+      </Section>
+
+      {/* ════════ BESOINS & COMPÉTENCES ════════ */}
+      <Section title="Besoins & compétences" subtitle="Priorisation des besoins et tension sur les compétences">
+        <div className="ed-grid">
+          <Card title="Besoins par priorité" subtitle={`${besoins.length} au total`}
+            icon={<BellOutlined />} iconColor="#f97316" iconBg="rgba(249,115,22,0.12)">
+            {besoinsLoading ? <ChartSkeletonLocal /> : (
               Object.keys(besoinsByPriorite).length === 0 ? <EmptyMini label="Aucun besoin" /> : (
-                <div className="rows">
-                  {Object.entries(besoinsByPriorite).map(([p, n]) => {
-                    const col = p === "CRITIQUE" || p === "HAUTE" ? semantic.error : p === "MOYENNE" ? semantic.warning : semantic.success;
-                    return (
-                      <div key={p}>
-                        <div className="row" style={{ marginBottom: 5 }}>
-                          <span className="name">{p}</span>
-                          <span className="val">{n}</span>
-                        </div>
-                        <div className="bar"><i style={{ width: `${Math.round((n / Math.max(1, besoins.length)) * 100)}%`, background: col }} /></div>
-                      </div>
-                    );
-                  })}
-                </div>
+                <BarList
+                  items={Object.entries(besoinsByPriorite).map(([p, n]) => ({
+                    label: p, value: n, total: besoins.length,
+                    color: prioriteColor[p] ?? "#94a3b8",
+                  }))}
+                />
               )
             )}
-          </div>
-          <div className="glass card col-2">
-            <CardTitle title="Compétences les plus demandées" extra="Top 5" />
-            {topDemande.length === 0 ? <EmptyMini label="Aucun signal de tension" /> : (
-              <div className="rows">
-                {topDemande.map((c: any, i: number) => (
-                  <div className="row" key={i}>
-                    <span className="rk">{i + 1}</span>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div className="name" style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.competence_nom}</div>
-                      <div className="muted" style={{ fontSize: 11.5 }}>{c.domaine_nom ?? "—"} · {c.nb_gaps ?? 0} gap(s)</div>
-                    </div>
-                    <span className="pill" style={{ background: "rgba(245,158,11,.16)", color: "#b45309" }}>{Math.round((c.score_demande ?? 0) * 100)}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-          <div className="glass card">
-            <CardTitle title="Couverture globale" />
-            <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-              <Ring value={coveragePct ?? 0} color={semantic.success} size={104} suffix="%" />
+          </Card>
+
+          <Card title="Couverture globale" subtitle="Niveau requis atteint"
+            icon={<SafetyCertificateOutlined />} iconColor={semantic.success} iconBg={semantic.successBg}>
+            <div className="ed-ring-row">
+              <ProgressRing value={coveragePct ?? 0} color={semantic.success} size={108} suffix="%" />
               <div>
-                <div className="bignum" style={{ fontSize: 26 }}>{overview?.nb_enseignants_suivis ?? NA_CALC}</div>
-                <div className="muted" style={{ fontSize: 12, marginTop: 2 }}>enseignants évalués</div>
+                <div className="ed-bignum">{overview?.nb_enseignants_suivis ?? NA_CALC}</div>
+                <div className="rd-muted" style={{ fontSize: 12, marginTop: 2 }}>enseignants évalués</div>
               </div>
             </div>
-          </div>
-          <div className="glass card col-2">
-            <CardTitle title="Compétences en tension" extra="Top 5 déficit" />
-            {topDeficit.length === 0 ? <EmptyMini label="Aucune compétence en déficit" /> : (
-              <div className="rows">
-                {topDeficit.map((c: any, i: number) => (
-                  <div className="row" key={i}>
-                    <span className="rk" style={{ background: "rgba(239,68,68,.16)", color: "#b91c1c" }}>{i + 1}</span>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div className="name" style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.competence_nom}</div>
-                      <div className="muted" style={{ fontSize: 11.5 }}>{c.domaine_nom ?? "—"}</div>
-                    </div>
-                    <span className="pill" style={{ background: "rgba(239,68,68,.16)", color: "#b91c1c" }}>Δ {(c.delta ?? 0).toFixed(1)}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-          <div className="glass card col-2">
-            <CardTitle title="Départements en retard de couverture" extra="Top 6 plus faibles" />
-            {topDepartementsEnRetard.length === 0 ? <EmptyMini label="Aucune donnée départementale" /> : (
-              <div className="rows">
-                {topDepartementsEnRetard.map((dep: any) => (
-                  <div key={dep.departement}>
-                    <div className="row" style={{ marginBottom: 5 }}>
-                      <span className="name">{dep.departement}</span>
-                      <span className="val">{Math.round(dep.taux_couverture ?? 0)}%</span>
-                    </div>
-                    <div className="bar"><i style={{ width: `${Math.round(dep.taux_couverture ?? 0)}%`, background: semantic.success }} /></div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
+          </Card>
 
-        {/* ════════ MODULE Risque & alertes ════════ */}
-        <div className="mod-label">Risque & alertes</div>
-        <div className="glass-grid">
-          <div className="glass card">
-            <CardTitle title="Enseignants à risque" />
-            <div className="bignum" style={{ color: semantic.error }}>{teachersAtRisk}</div>
-            <div className="muted" style={{ fontSize: 12 }}>identifiés par le moteur prédictif</div>
-          </div>
-          <div className="glass card">
-            <CardTitle title="Sans formation récente" extra="≥ 6 mois" />
-            {inactifsLoading ? <Loading /> : <>
-              <div className="bignum" style={{ color: semantic.warning }}>{inactifs?.total ?? 0}</div>
-              <div className="muted" style={{ fontSize: 12 }}>enseignant(s) sans suivi</div>
+          <Card title="Compétences les plus demandées" subtitle="Top 5"
+            icon={<BulbOutlined />} iconColor="#0ea5e9" iconBg="rgba(14,165,233,0.12)">
+            {topDemande.length === 0 ? <EmptyMini label="Aucun signal de tension" /> : (
+              <RankList
+                items={topDemande.map((c: any, i: number) => ({
+                  rank: i + 1,
+                  title: c.competence_nom,
+                  sub: `${c.domaine_nom ?? "—"} · ${c.nb_gaps ?? 0} gap(s)`,
+                  badge: `${Math.round((c.score_demande ?? 0) * 100)}`,
+                  badgeColor: "#b45309",
+                  badgeBg: "rgba(245,158,11,.16)",
+                }))}
+              />
+            )}
+          </Card>
+
+          <Card title="Compétences en tension" subtitle="Top 5 déficit"
+            icon={<FallOutlined />} iconColor={semantic.error} iconBg={semantic.errorBg} className="ed-col-2">
+            {topDeficit.length === 0 ? <EmptyMini label="Aucune compétence en déficit" /> : (
+              <RankList
+                items={topDeficit.map((c: any, i: number) => ({
+                  rank: i + 1,
+                  title: c.competence_nom,
+                  sub: c.domaine_nom ?? "—",
+                  badge: `Δ ${(c.delta ?? 0).toFixed(1)}`,
+                  badgeColor: "#b91c1c",
+                  badgeBg: "rgba(239,68,68,.16)",
+                }))}
+              />
+            )}
+          </Card>
+
+          <Card title="Départements en retard" subtitle="Top 6 plus faibles"
+            icon={<ApartmentOutlined />} iconColor="#f59e0b" iconBg="rgba(245,158,11,0.12)" className="ed-col-2">
+            {topDepartementsEnRetard.length === 0 ? <EmptyMini label="Aucune donnée départementale" /> : (
+              <BarList
+                items={topDepartementsEnRetard.map((dep: any) => ({
+                  label: dep.departement, value: Math.round(dep.taux_couverture ?? 0), total: 100,
+                  color: semantic.success, suffix: "%",
+                }))}
+              />
+            )}
+          </Card>
+        </div>
+      </Section>
+
+      {/* ════════ RISQUE & ALERTES ════════ */}
+      <Section title="Risque & alertes" subtitle="Population à risque, alertes ouvertes et tendance">
+        <div className="ed-grid">
+          <Card title="Enseignants à risque" subtitle="Identifiés par le moteur prédictif"
+            icon={<WarningOutlined />} iconColor={semantic.error} iconBg={semantic.errorBg}>
+            <div className="ed-bignum" style={{ color: semantic.error }}>{teachersAtRisk}</div>
+            <div className="rd-muted" style={{ fontSize: 12 }}>profils nécessitant un suivi</div>
+          </Card>
+
+          <Card title="Sans formation récente" subtitle="≥ 6 mois"
+            icon={<ClockCircleOutlined />} iconColor="#f59e0b" iconBg="rgba(245,158,11,0.12)">
+            {inactifsLoading ? <Spin /> : <>
+              <div className="ed-bignum" style={{ color: semantic.warning }}>{inactifs?.total ?? 0}</div>
+              <div className="rd-muted" style={{ fontSize: 12 }}>enseignant(s) sans suivi</div>
             </>}
-          </div>
-          <div className="glass card col-2">
-            <CardTitle title="Alertes" />
-            <div className="rows">
+          </Card>
+
+          <Card title="Alertes" subtitle="Répartition des alertes ouvertes"
+            icon={<BellOutlined />} iconColor={semantic.warning} iconBg={semantic.warningBg}>
+            <div className="ed-kv">
               <KvRow label="Ouvertes" value={alerts?.total} color={semantic.warning} loading={alertsLoading} />
               <KvRow label="Nouvelles" value={alerts?.nouvelles} color="#6366f1" loading={alertsLoading} />
               <KvRow label="Critiques ouvertes" value={alerts?.critiques_ouvertes} color={semantic.error} loading={alertsLoading} />
             </div>
-          </div>
-          <div className="glass card col-4">
-            <CardTitle title="Tendance du risque" extra="Enseignants à risque critique · 6 mois" />
-            {riskTrendData.length === 0 ? <EmptyMini label="Aucune donnée de tendance" /> : <LineAreaChart data={riskTrendData} color={semantic.error} />}
-          </div>
-        </div>
+          </Card>
 
-        <div className="glass" style={{ marginTop: 14, borderColor: "rgba(255,255,255,.5)" }}>
-          <Alert type="info" showIcon message="Analyse prédictive détaillée"
-            description="Pour la liste nominative des enseignants, l'historique des alertes et les écarts par compétence/département, ouvrez l'Analyse Prédictive."
-            action={<Button type="primary" size="small" onClick={() => navigate("/home/AnalysePredictive")}>Ouvrir <RightOutlined /></Button>} />
+          <Card title="Tendance du risque" subtitle="Critiques & élevés · 6 mois" className="ed-col-3"
+            icon={<FallOutlined />} iconColor={semantic.error} iconBg={semantic.errorBg}>
+            {riskEvoLoading ? <ChartSkeletonLocal height={230} /> : <RiskEvolutionChart points={riskPoints} loading={riskEvoLoading} />}
+          </Card>
         </div>
+      </Section>
 
-        {/* ════════ MODULE Recommandations & impact ════════ */}
-        <div className="mod-label">Recommandations & impact</div>
-        <div className="glass-grid">
-          <div className="glass card col-2">
-            <CardTitle title="Top formations à planifier" extra={`${reclos.length} recommandation(s)`} />
+      <div className="rd-card" style={{ marginTop: 4 }}>
+        <Alert type="info" showIcon message="Analyse prédictive détaillée"
+          description="Pour la liste nominative des enseignants, l'historique des alertes et les écarts par compétence/département, ouvrez l'Analyse Prédictive."
+          action={<Button type="primary" size="small" onClick={() => navigate("/home/AnalysePredictive")}>Ouvrir <RightOutlined /></Button>} />
+      </div>
+
+      {/* ════════ RECOMMANDATIONS & IMPACT ════════ */}
+      <Section title="Recommandations & impact" subtitle="Formations prioritaires et santé du modèle prédictif">
+        <div className="ed-grid">
+          <Card title="Top formations à planifier" subtitle={`${reclos.length} recommandation(s)`}
+            icon={<ThunderboltOutlined />} iconColor="#8b5cf6" iconBg="rgba(139,92,246,0.12)" className="ed-col-2">
             {reclos.length === 0 ? <EmptyMini label="Aucune recommandation" /> : (
-              <div className="rows">
-                {reclos.map((f, i) => (
-                  <div className="row" key={i} style={{ cursor: "pointer" }} onClick={() => setSelectedTraining(f)}>
-                    <span className="rk">{i + 1}</span>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div className="name" style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{f.title}</div>
-                      <div className="muted" style={{ fontSize: 11.5 }}>{f.recommendationCount} reco{f.avgScore != null ? ` · ${f.avgScore.toFixed(2)}` : ""}</div>
-                    </div>
-                    <span className="pill" style={{ background: "rgba(34,197,94,.16)", color: "#15803d" }}>{Math.round((f.successProb ?? 0) * 100)}%</span>
-                  </div>
-                ))}
-              </div>
+              <RankList
+                clickable
+                items={reclos.map((f, i) => ({
+                  rank: i + 1,
+                  title: f.title,
+                  sub: `${f.recommendationCount} reco${f.avgScore != null ? ` · ${f.avgScore.toFixed(2)}` : ""}`,
+                  badge: `${Math.round((f.successProb ?? 0) * 100)}%`,
+                  badgeColor: "#15803d",
+                  badgeBg: "rgba(34,197,94,.16)",
+                  onClick: () => setSelectedTraining(f),
+                }))}
+              />
             )}
-          </div>
-          <div className="glass card col-2">
-            <CardTitle title="Impact observé & santé du modèle" />
-            <div className="rows">
+          </Card>
+
+          <Card title="Impact observé & santé du modèle"
+            icon={<ExperimentOutlined />} iconColor="#8b5cf6" iconBg="rgba(139,92,246,0.12)">
+            <div className="ed-kv">
               <KvRow label="Gain de niveau moyen" value={avgGain != null ? `+${avgGain} pts` : null} color={semantic.success} />
               <KvRow label="Complétion moyenne" value={avgCompletion == null ? null : `${avgCompletion}%`} color={semantic.success} />
               <KvRow label="Précision du modèle" value={d?.model_performance?.gap_model_accuracy != null ? `${Math.round(d.model_performance.gap_model_accuracy * 100)}%` : null} color="#6366f1" />
             </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 14, marginTop: 4 }}>
-              <Ring value={health.score} color={healthColor} size={92} suffix="" max={100} />
+            <div className="ed-ring-row" style={{ marginTop: 4 }}>
+              <ProgressRing value={health.score} color={healthColor} size={92} max={100} />
               <div>
-                <div className="pill" style={{ background: healthColor === semantic.success ? "rgba(34,197,94,.16)" : healthColor === semantic.warning ? "rgba(245,158,11,.16)" : "rgba(239,68,68,.16)", color: healthColor }}>
+                <span className="rd-chip" style={{ color: healthColor, background: healthColor === semantic.success ? "rgba(34,197,94,.16)" : healthColor === semantic.warning ? "rgba(245,158,11,.16)" : "rgba(239,68,68,.16)" }}>
                   {health.level === "healthy" ? "Sain" : health.level === "attention" ? "Attention" : "Critique"}
-                </div>
-                <div className="muted" style={{ fontSize: 11.5, marginTop: 6, maxWidth: 200 }}>Basé sur couverture, besoins en attente et engagement.</div>
+                </span>
+                <div className="rd-muted" style={{ fontSize: 11.5, marginTop: 6, maxWidth: 200 }}>Basé sur couverture, besoins en attente et engagement.</div>
               </div>
             </div>
-          </div>
+          </Card>
         </div>
+      </Section>
 
-        <Drawer
-          title={selectedTraining ? selectedTraining.title : "Détail"}
-          placement="right" width={440} open={!!selectedTraining} onClose={() => setSelectedTraining(null)}
-          extra={selectedTraining ? <Button type="link" onClick={() => navigate("/home/analytics/alerts")}>Centre d'action <RightOutlined /></Button> : null}
-        >
-          {selectedTraining && (
-            <>
-              <Descriptions column={1} size="small" bordered>
-                <Descriptions.Item label="Recommandations">{selectedTraining.recommendationCount}</Descriptions.Item>
-                <Descriptions.Item label="Score moyen">{selectedTraining.avgScore != null ? selectedTraining.avgScore.toFixed(2) : NA_CALC}</Descriptions.Item>
-                <Descriptions.Item label="Réussite estimée">{Math.round((selectedTraining.successProb ?? 0) * 100)} %</Descriptions.Item>
-              </Descriptions>
-              <Alert style={{ marginTop: 16 }} type="info" showIcon message="Formation prioritaire"
-                description="Issue du moteur de recommandation. Un score élevé et une probabilité de réussite forte indiquent un bon levier pour réduire les écarts de compétences." />
-            </>
-          )}
-        </Drawer>
-      </div>
+      <Drawer
+        title={selectedTraining ? selectedTraining.title : "Détail"}
+        placement="right" width={440} open={!!selectedTraining} onClose={() => setSelectedTraining(null)}
+        extra={selectedTraining ? <Button type="link" onClick={() => navigate("/home/analytics/alerts")}>Centre d'action <RightOutlined /></Button> : null}
+      >
+        {selectedTraining && (
+          <>
+            <Descriptions column={1} size="small" bordered>
+              <Descriptions.Item label="Recommandations">{selectedTraining.recommendationCount}</Descriptions.Item>
+              <Descriptions.Item label="Score moyen">{selectedTraining.avgScore != null ? selectedTraining.avgScore.toFixed(2) : NA_CALC}</Descriptions.Item>
+              <Descriptions.Item label="Réussite estimée">{Math.round((selectedTraining.successProb ?? 0) * 100)} %</Descriptions.Item>
+            </Descriptions>
+            <Alert style={{ marginTop: 16 }} type="info" showIcon message="Formation prioritaire"
+              description="Issue du moteur de recommandation. Un score élevé et une probabilité de réussite forte indiquent un bon levier pour réduire les écarts de compétences." />
+          </>
+        )}
+      </Drawer>
+
+      <style>{ED_CSS}</style>
     </div>
   );
 }
 
 /* ── Sous-composants ──────────────────────────────────────────────────── */
-interface Stat { label: string; value: number | string | null | undefined; hint?: string; loading?: boolean; accent?: string; }
-
-function CardTitle({ title, extra }: { title: string; extra?: string }) {
-  return (
-    <div className="card-t">
-      <span className="t">{title}</span>
-      {extra && <span className="x">{extra}</span>}
-    </div>
-  );
-}
-
-function Loading() {
-  return <div style={{ padding: 24, display: "grid", placeItems: "center" }}><Spin /></div>;
+function ChartSkeletonLocal({ height = 200 }: { height?: number }) {
+  return <div className="rd-skel rd-skel-block" style={{ height }} />;
 }
 
 function EmptyMini({ label }: { label: string }) {
@@ -474,42 +513,84 @@ function EmptyMini({ label }: { label: string }) {
 function KvRow({ label, value, color, loading }: { label: string; value: number | string | null | undefined; color: string; loading?: boolean }) {
   const display = value == null || value === "" ? NA_CALC : value;
   return (
-    <div className="row kv-row">
-      <span className="dotk" style={{ background: color }} />
-      <span className="name muted" style={{ flex: 1 }}>{label}</span>
-      <span className="val" style={{ color }}>{loading ? <Spin size="small" /> : display}</span>
+    <div className="ed-kv-row">
+      <span className="ed-kv-dot" style={{ background: color }} />
+      <span className="ed-kv-label">{label}</span>
+      <span className="ed-kv-val" style={{ color }}>{loading ? <Spin size="small" /> : display}</span>
     </div>
   );
 }
 
-/* ── Donut (rounded caps, hover, center subtitle) ─────────────────────── */
-function Donut({ items, total }: { items: Array<{ key: string; label: string; value: number; color: string }>; total: number }) {
-  const size = 160, r = 62, sw = 14, c = 2 * Math.PI * r, cx = 80, cy = 80;
-  let offset = 0;
+interface RankItem { rank: number; title: string; sub?: string; badge?: string; badgeColor?: string; badgeBg?: string; onClick?: () => void; }
+function RankList({ items, clickable }: { items: RankItem[]; clickable?: boolean }) {
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 20, flexWrap: "wrap" }}>
+    <div className="rd-list">
+      {items.map((it, i) => (
+        <div key={i} className={`rd-list-item ${clickable ? "interactive" : ""}`} onClick={it.onClick}>
+          <span className="rd-rank">{it.rank}</span>
+          <div className="li-main">
+            <div className="li-title">{it.title}</div>
+            {it.sub && <div className="li-sub">{it.sub}</div>}
+          </div>
+          {it.badge && <span className="rd-chip" style={{ color: it.badgeColor, background: it.badgeBg }}>{it.badge}</span>}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+interface BarItem { label: string; value: number; total: number; color: string; suffix?: string; }
+function BarList({ items }: { items: BarItem[] }) {
+  const max = Math.max(1, ...items.map((i) => i.total));
+  return (
+    <div className="ed-bars">
+      {items.map((it, i) => (
+        <div key={i} className="ed-bar-row">
+          <div className="ed-bar-head">
+            <span className="ed-bar-label">{it.label}</span>
+            <span className="ed-bar-val">{it.value}{it.suffix ?? ""}</span>
+          </div>
+          <div className="rd-bar"><span style={{ width: `${Math.min(100, (it.value / max) * 100)}%`, background: `linear-gradient(90deg, ${it.color}, ${it.color}dd)` }} /></div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* ── Donut (hover highlight + centre dynamique + légende) ─────────────── */
+function DonutChart({ items, total }: { items: Array<{ key: string; label: string; value: number; color: string }>; total: number }) {
+  const [hover, setHover] = useState<string | null>(null);
+  const size = 168, r = 64, sw = 16, c = 2 * Math.PI * r, cx = 84, cy = 84;
+  let offset = 0;
+  const active = items.find((s) => s.key === hover);
+  return (
+    <div className="ed-donut">
       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-        <circle cx={cx} cy={cy} r={r} fill="none" stroke="rgba(99,102,241,.12)" strokeWidth={sw} />
+        <circle cx={cx} cy={cy} r={r} fill="none" stroke="var(--rd-surface-3)" strokeWidth={sw} />
         {items.map((s) => {
           const frac = total > 0 ? s.value / total : 0;
           const dash = frac * c;
           const el = (
-            <circle key={s.key} cx={cx} cy={cy} r={r} fill="none" stroke={s.color} strokeWidth={sw} strokeLinecap="round"
+            <circle key={s.key} cx={cx} cy={cy} r={r} fill="none" stroke={s.color} strokeWidth={hover === s.key ? sw + 4 : sw} strokeLinecap="round"
               strokeDasharray={`${Math.max(0, dash - 1.5)} ${c - Math.max(0, dash - 1.5)}`} strokeDashoffset={-offset}
-              transform={`rotate(-90 ${cx} ${cy})`} className="donut-seg"
+              transform={`rotate(-90 ${cx} ${cy})`} className="ed-donut-seg"
+              onMouseEnter={() => setHover(s.key)} onMouseLeave={() => setHover(null)}
               style={{ transition: "stroke-dasharray .8s cubic-bezier(.4,0,.2,1), stroke-width .2s" }} />
           );
           offset += dash;
           return el;
         })}
-        <text x={cx} y={cy - 2} textAnchor="middle" fontSize="24" fontWeight="800" fill="#0f172a">{total}</text>
-        <text x={cx} y={cy + 15} textAnchor="middle" fontSize="9.5" fill="#64748b" fontWeight="600">formations</text>
+        <text x={cx} y={cy - 4} textAnchor="middle" fontSize="26" fontWeight="800" fill="var(--rd-text)">{active ? active.value : total}</text>
+        <text x={cx} y={cy + 15} textAnchor="middle" fontSize="10" fill="var(--rd-text-3)" fontWeight="600">{active ? active.label : "formations"}</text>
       </svg>
-      <div className="legend" style={{ flex: 1, minWidth: 130 }}>
+      <div className="ed-donut-legend">
         {items.map((s) => (
-          <div className="li" key={s.key}>
-            <span className="d" style={{ background: s.color }} />{s.label}
-            <span className="val" style={{ marginLeft: "auto" }}>{s.value}</span>
+          <div key={s.key} className={`ed-legend-item ${hover === s.key ? "hovered" : ""}`}
+            onMouseEnter={() => setHover(s.key)} onMouseLeave={() => setHover(null)}>
+            <span className="ed-legend-dot" style={{ background: s.color }} />
+            <span className="ed-legend-label">{s.label}</span>
+            <span className="ed-legend-count">{s.value}</span>
+            <span className="ed-legend-pct">{total > 0 ? Math.round((s.value / total) * 100) : 0}%</span>
           </div>
         ))}
       </div>
@@ -517,55 +598,54 @@ function Donut({ items, total }: { items: Array<{ key: string; label: string; va
   );
 }
 
-/* ── Ring (gradient stroke, track color, smooth) ──────────────────────── */
-function Ring({ value, color, size = 104, suffix = "", max = 100 }: { value: number; color: string; size?: number; suffix?: string; max?: number }) {
+/* ── Ring (gradient + track) ─────────────────────────────────────────── */
+function ProgressRing({ value, color, size = 108, suffix = "", max = 100 }: { value: number; color: string; size?: number; suffix?: string; max?: number }) {
   const r = size / 2 - 9, c = 2 * Math.PI * r, cx = size / 2, cy = size / 2;
   const frac = Math.max(0, Math.min(1, max === 0 ? 0 : value / max));
-  const gid = `ring-${color.replace(/[^a-z0-9]/gi, "")}-${size}`;
+  const gid = `ring-${color.replace(/[^a-z0-9]/gi, "")}-${size}-${Math.round(value)}`;
   return (
     <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
       <defs>
         <linearGradient id={gid} x1="0" y1="0" x2="1" y2="1">
           <stop offset="0%" stopColor={color} stopOpacity="1" />
-          <stop offset="100%" stopColor={color} stopOpacity="0.65" />
+          <stop offset="100%" stopColor={color} stopOpacity="0.6" />
         </linearGradient>
       </defs>
-      <circle cx={cx} cy={cy} r={r} fill="none" stroke="rgba(99,102,241,.12)" strokeWidth={9} />
+      <circle cx={cx} cy={cy} r={r} fill="none" stroke="var(--rd-surface-3)" strokeWidth={9} />
       <circle cx={cx} cy={cy} r={r} fill="none" stroke={`url(#${gid})`} strokeWidth={9} strokeLinecap="round"
         strokeDasharray={`${frac * c} ${c - frac * c}`} transform={`rotate(-90 ${cx} ${cy})`}
         style={{ transition: "stroke-dasharray .8s cubic-bezier(.4,0,.2,1)" }} />
-      <text x={cx} y={cy + 1} textAnchor="middle" fontSize={suffix ? 17 : 22} fontWeight="800" fill="#0f172a" style={{ fontVariantNumeric: "tabular-nums" }}>
+      <text x={cx} y={cy + 1} textAnchor="middle" fontSize={suffix ? 18 : 24} fontWeight="800" fill="var(--rd-text)" style={{ fontVariantNumeric: "tabular-nums" }}>
         {suffix ? `${Math.round(value)}${suffix}` : `${Math.round(value)}`}
       </text>
     </svg>
   );
 }
 
-/* ── SegBars (rounded, gradient, hover) ───────────────────────────────── */
+/* ── SegBars (rounded gradient + %) ──────────────────────────────────── */
 function SegBars({ items }: { items: Array<{ label: string; value: number; color: string }> }) {
   const sum = items.reduce((s, t) => s + t.value, 0);
   if (sum === 0) return <EmptyMini label="Aucune donnée de typage" />;
   return (
-    <div className="rows">
+    <div className="ed-bars">
       {items.map((t) => (
-        <div key={t.label} className="seg-item">
-          <div className="row" style={{ marginBottom: 6 }}>
-            <span className="name">{t.label}</span>
-            <span className="muted" style={{ fontSize: 12 }}>{Math.round((t.value / sum) * 100)}%</span>
-            <span className="val">{t.value}</span>
+        <div key={t.label} className="ed-bar-row">
+          <div className="ed-bar-head">
+            <span className="ed-bar-label">{t.label}</span>
+            <span className="ed-bar-val">{t.value} · {Math.round((t.value / sum) * 100)}%</span>
           </div>
-          <div className="bar"><i style={{ width: `${(t.value / sum) * 100}%`, background: `linear-gradient(90deg, ${t.color}, ${t.color}dd)` }} /></div>
+          <div className="rd-bar"><span style={{ width: `${(t.value / sum) * 100}%`, background: `linear-gradient(90deg, ${t.color}, ${t.color}cc)` }} /></div>
         </div>
       ))}
     </div>
   );
 }
 
-/* ── LineAreaChart (smooth bezier, hover crosshair, draw-in anim) ──────── */
-function LineAreaChart({ data, color }: { data: Array<{ label: string; value: number }>; color: string }) {
+/* ── AreaLineChart (gradient, grille, tooltip au survol) ─────────────── */
+function AreaLineChart({ data, color }: { data: Array<{ label: string; value: number }>; color: string }) {
   const [hover, setHover] = useState<number | null>(null);
   if (!data.length) return <EmptyMini label="Aucune donnée" />;
-  const W = 600, H = 210, PL = 32, PR = 16, PT = 14, PB = 28;
+  const W = 600, H = 230, PL = 34, PR = 16, PT = 16, PB = 30;
   const max = Math.max(1, ...data.map((d) => d.value));
   const niceMax = Math.ceil(max / 4) * 4 || 4;
   const n = data.length;
@@ -581,78 +661,78 @@ function LineAreaChart({ data, color }: { data: Array<{ label: string; value: nu
   const area = `${line} L ${x(n - 1).toFixed(1)} ${H - PB} L ${x(0).toFixed(1)} ${H - PB} Z`;
   const grid = [0, 0.25, 0.5, 0.75, 1].map((t) => PT + (H - PT - PB) * t);
   const step = Math.max(1, Math.ceil(n / 7));
-  const gid = `la-${Math.round(Math.random() * 1e6)}`;
-  const lgid = `ll-${Math.round(Math.random() * 1e6)}`;
+  const gid = `ed-la-${color.replace(/[^a-z0-9]/gi, "")}`;
   const hoverPt = hover != null && hover < n ? pts[hover] : null;
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{ display: "block" }}
-      onMouseMove={(e) => {
-        const rect = (e.target as SVGElement).ownerSVGElement?.getBoundingClientRect();
-        if (!rect) return;
-        const px = ((e.clientX - rect.left) / rect.width) * W;
-        let best = 0, bd = Infinity;
-        for (let i = 0; i < n; i++) { const d = Math.abs(x(i) - px); if (d < bd) { bd = d; best = i; } }
-        setHover(best);
-      }}
-      onMouseLeave={() => setHover(null)}
-    >
-      <defs>
-        <linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={color} stopOpacity="0.18" />
-          <stop offset="100%" stopColor={color} stopOpacity="0" />
-        </linearGradient>
-        <linearGradient id={lgid} x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0%" stopColor={color} stopOpacity="0.8" />
-          <stop offset="100%" stopColor={color} stopOpacity="1" />
-        </linearGradient>
-      </defs>
-      {grid.map((gy, i) => (
-        <line key={i} x1={PL} y1={gy} x2={W - PR} y2={gy} stroke="rgba(99,102,241,.1)" strokeWidth={1} />
-      ))}
-      {grid.map((gy, i) => (
-        <text key={i} x={PL - 6} y={gy + 3} textAnchor="end" fontSize="9" fill="#94a3b8">{Math.round(niceMax * (1 - i / 4))}</text>
-      ))}
-      {hover != null && hoverPt && (
-        <line x1={hoverPt.x} y1={PT} x2={hoverPt.x} y2={H - PB} stroke={color} strokeWidth={1} strokeDasharray="3 3" opacity={0.4} />
+    <div className="rd-chart">
+      <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{ display: "block" }}
+        onMouseMove={(e) => {
+          const rect = (e.target as SVGElement).ownerSVGElement?.getBoundingClientRect();
+          if (!rect) return;
+          const px = ((e.clientX - rect.left) / rect.width) * W;
+          let best = 0, bd = Infinity;
+          for (let i = 0; i < n; i++) { const dd = Math.abs(x(i) - px); if (dd < bd) { bd = dd; best = i; } }
+          setHover(best);
+        }}
+        onMouseLeave={() => setHover(null)}
+      >
+        <defs>
+          <linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor={color} stopOpacity="0.22" />
+            <stop offset="100%" stopColor={color} stopOpacity="0" />
+          </linearGradient>
+        </defs>
+        {grid.map((gy, i) => (
+          <g key={i}>
+            <line x1={PL} y1={gy} x2={W - PR} y2={gy} stroke="var(--rd-border)" strokeWidth={1} />
+            <text x={PL - 7} y={gy + 3} textAnchor="end" className="rd-axis-label">{Math.round(niceMax * (1 - i / 4))}</text>
+          </g>
+        ))}
+        {hover != null && hoverPt && (
+          <line x1={hoverPt.x} y1={PT} x2={hoverPt.x} y2={H - PB} stroke={color} strokeWidth={1} strokeDasharray="3 3" opacity={0.4} />
+        )}
+        <path d={area} fill={`url(#${gid})`} />
+        <path d={line} fill="none" stroke={color} strokeWidth={2.5} strokeLinejoin="round" strokeLinecap="round"
+          style={{ filter: "drop-shadow(0 1px 3px rgba(0,0,0,.06))" }} />
+        {data.map((d, i) => (
+          <circle key={i} cx={x(i)} cy={y(d.value)} r={hover === i ? 5 : 3} fill="#fff" stroke={color} strokeWidth={2} style={{ transition: "r .15s ease" }} />
+        ))}
+        {hover != null && hover < n && (
+          <g style={{ pointerEvents: "none" }}>
+            <rect x={x(hover) - 32} y={y(data[hover].value) - 30} width="64" height="22" rx="5" fill="var(--rd-text)" />
+            <text x={x(hover)} y={y(data[hover].value) - 15} textAnchor="middle" fontSize="11" fontWeight="700" fill="#fff">{data[hover].value}</text>
+          </g>
+        )}
+        {data.map((d, i) => (i % step === 0 || i === n - 1) ? (
+          <text key={i} x={x(i)} y={H - 10} textAnchor="middle" fontSize="10" fill="var(--rd-text-3)">{d.label}</text>
+        ) : null)}
+      </svg>
+      {hover != null && (
+        <div className="rd-chart-tip" style={{ left: `${(x(hover) / W) * 100}%`, top: 4 }}>
+          <div className="t-date">{data[hover].label}</div>
+          <div className="t-row"><span className="t-k">{data[hover].value} formations</span></div>
+        </div>
       )}
-      <path d={area} fill={`url(#${gid})`} />
-      <path d={line} fill="none" stroke={`url(#${lgid})`} strokeWidth={2.5} strokeLinejoin="round" strokeLinecap="round"
-        style={{ filter: "drop-shadow(0 1px 3px rgba(0,0,0,.06))" }} />
-      {data.map((d, i) => (
-        <g key={i}>
-          <circle cx={x(i)} cy={y(d.value)} r={hover === i ? 5 : 3} fill="#fff" stroke={color} strokeWidth={2}
-            style={{ transition: "r .15s ease" }} />
-        </g>
-      ))}
-      {hover != null && hover < n && (
-        <g style={{ pointerEvents: "none" }}>
-          <rect x={x(hover) - 30} y={y(data[hover].value) - 28} width="60" height="20" rx="4" fill="#0f172a" />
-          <text x={x(hover)} y={y(data[hover].value) - 14} textAnchor="middle" fontSize="11" fontWeight="700" fill="#fff">{data[hover].value}</text>
-        </g>
-      )}
-      {data.map((d, i) => (i % step === 0 || i === n - 1) ? (
-        <text key={i} x={x(i)} y={H - 10} textAnchor="middle" fontSize="10" fill="#94a3b8">{d.label}</text>
-      ) : null)}
-    </svg>
+    </div>
   );
 }
 
-/* ── DeptBars (rounded, gradient, hover highlight) ────────────────────── */
+/* ── DeptBars (horizontal, rounded) ──────────────────────────────────── */
 function DeptBars({ departements }: { departements: AnalyticsDepartement[] }) {
   if (!departements.length) return <EmptyMini label="Aucune donnée départementale" />;
   const sorted = [...departements].sort((a, b) => (b.nombreFormationsOrganisees ?? 0) - (a.nombreFormationsOrganisees ?? 0)).slice(0, 8);
   const max = Math.max(1, ...sorted.map((d) => d.nombreFormationsOrganisees ?? 0));
   return (
-    <div className="rows">
+    <div className="ed-bars">
       {sorted.map((d) => {
         const v = d.nombreFormationsOrganisees ?? 0;
         return (
-          <div key={d.departementId} className="dept-item">
-            <div className="row" style={{ marginBottom: 5 }}>
-              <span className="name" style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 180 }}>{d.departementNom}</span>
-              <span className="val">{v}</span>
+          <div key={d.departementId} className="ed-bar-row">
+            <div className="ed-bar-head">
+              <span className="ed-bar-label" style={{ maxWidth: 200 }}>{d.departementNom}</span>
+              <span className="ed-bar-val">{v}</span>
             </div>
-            <div className="bar"><i style={{ width: `${(v / max) * 100}%`, background: "linear-gradient(90deg,#6366f1,#8b5cf6)" }} /></div>
+            <div className="rd-bar"><span style={{ width: `${(v / max) * 100}%`, background: "linear-gradient(90deg,#6366f1,#8b5cf6)" }} /></div>
           </div>
         );
       })}
@@ -660,103 +740,213 @@ function DeptBars({ departements }: { departements: AnalyticsDepartement[] }) {
   );
 }
 
-/* ── Styles (Glassmorphism premium) ────────────────────────────────────── */
-const CSS = `
-.glass-page{
-  --ink:#0f172a; --muted:#475569; --muted2:#94a3b8;
-  --accent:${ACCENT};
-  position:relative; min-height:100vh; overflow-x:hidden;
-  background:linear-gradient(135deg,#e0e7ff 0%,#ede9fe 42%,#fae8ff 78%,#ffe4f3 100%);
-  color:var(--ink);
-}
-.blob{ position:absolute; border-radius:50%; filter:blur(80px); z-index:0; pointer-events:none; }
-.blob-1{ width:420px; height:420px; background:#6366f1; opacity:.45; top:-120px; left:-80px; }
-.blob-2{ width:380px; height:380px; background:#ec4899; opacity:.38; bottom:-40px; right:-60px; }
-.blob-3{ width:320px; height:320px; background:#22d3ee; opacity:.3; top:46%; left:42%; }
-.glass-wrap{ position:relative; z-index:1; max-width:1320px; margin:0 auto; padding:30px 24px 68px; }
-
-/* ── Top bar ─────────────────────────────────────────────────────────── */
-.glass-top{ display:flex; align-items:flex-end; justify-content:space-between; gap:16px; flex-wrap:wrap; margin-bottom:26px; }
-.glass-top .eyebrow{ font-size:11px; text-transform:uppercase; letter-spacing:.14em; font-weight:700; color:#6366f1; margin-bottom:4px; }
-.glass-top h1{ margin:0; font-size:25px; font-weight:800; letter-spacing:-.02em; }
-.grad-text{ background:linear-gradient(135deg,#6366f1 0%,#8b5cf6 45%,#ec4899 100%); -webkit-background-clip:text; background-clip:text; color:transparent; }
-.glass-top .sub{ color:var(--muted); font-size:13px; margin-top:5px; font-weight:500; }
-.glass-top .right{ display:flex; align-items:center; gap:14px; }
-.glass-live{ display:inline-flex; align-items:center; gap:8px; font-size:12px; color:var(--muted); font-weight:600; padding:7px 14px; background:rgba(255,255,255,.55); border:1px solid rgba(255,255,255,.6); border-radius:999px; backdrop-filter:blur(10px); }
-.glass-live .dot{ width:8px; height:8px; border-radius:50%; background:#22c55e; box-shadow:0 0 0 4px rgba(34,197,94,.2); animation:pulse 2s ease-in-out infinite; }
-.glass-live .dot.err{ background:#ef4444; box-shadow:0 0 0 4px rgba(239,68,68,.2); }
-@keyframes pulse{ 0%,100%{ opacity:1; } 50%{ opacity:.5; } }
-.glass-btn{ display:inline-flex; align-items:center; gap:8px; border:1px solid rgba(255,255,255,.6); background:rgba(255,255,255,.5); backdrop-filter:blur(10px); border-radius:12px; padding:9px 15px; font-size:13px; font-weight:600; color:#4f46e5; cursor:pointer; transition:all .22s ease; box-shadow:0 4px 16px rgba(99,102,241,.15); }
-.glass-btn:hover{ background:linear-gradient(135deg,#6366f1,#8b5cf6); color:#fff; box-shadow:0 8px 22px rgba(139,92,246,.35); transform:translateY(-1px); }
-.glass-btn:disabled{ opacity:.6; cursor:wait; }
-.glass-btn svg{ margin-right:1px; }
-
-/* ── Glass base ───────────────────────────────────────────────────────── */
-.glass{
-  background:rgba(255,255,255,.5);
-  backdrop-filter:blur(18px) saturate(160%);
-  -webkit-backdrop-filter:blur(18px) saturate(160%);
-  border:1px solid rgba(255,255,255,.6);
-  border-radius:18px;
-  box-shadow:0 8px 32px rgba(79,70,229,.1);
+/* ── Statut d'un indicateur vs objectif ─────────────────────────────── */
+type Status = "good" | "warn" | "bad" | "na" | "neutral";
+const STATUS_COLOR: Record<Status, string> = {
+  good: semantic.success,
+  warn: semantic.warning,
+  bad: semantic.error,
+  na: "#94a3b8",
+  neutral: "#6366f1",
+};
+const STATUS_LABEL: Record<Status, string> = {
+  good: "Bon", warn: "À surveiller", bad: "Critique", na: "N/A", neutral: "—",
+};
+function statusOf(value: number | null | undefined, target?: number, higherIsBetter?: boolean): Status {
+  if (value == null || Number.isNaN(value) || target == null) return target == null ? "neutral" : "na";
+  if (higherIsBetter) {
+    if (value >= target) return "good";
+    if (value >= target * 0.7) return "warn";
+    return "bad";
+  }
+  if (value <= target) return "good";
+  if (value <= target * 1.4) return "warn";
+  return "bad";
 }
 
-/* ── KPI strip ────────────────────────────────────────────────────────── */
-.stat-grid{ display:grid; gap:13px; grid-template-columns:repeat(auto-fit,minmax(152px,1fr)); margin-bottom:13px; }
-.stat{ position:relative; padding:16px 17px; overflow:hidden; transition:all .25s ease; animation:glassIn .5s ease both; }
-.stat::before{ content:""; position:absolute; top:0; left:0; right:0; height:3px; background:var(--accent-bd,var(--border)); opacity:.85; }
-.stat:hover{ background:rgba(255,255,255,.68); box-shadow:0 12px 30px rgba(79,70,229,.16); transform:translateY(-3px); }
-.stat .l{ font-size:11px; color:var(--muted); font-weight:600; letter-spacing:.01em; }
-.stat .v{ font-size:26px; font-weight:800; margin-top:7px; letter-spacing:-.03em; font-variant-numeric:tabular-nums; line-height:1.1; }
-.stat .h{ font-size:11px; color:var(--muted2); margin-top:5px; font-weight:500; }
+function formatStat(item: StatItem): string {
+  if (item.value == null || Number.isNaN(item.value)) return NA_CALC;
+  if (item.customText) return item.customText;
+  if (item.unit === "pct") return `${Math.round(item.value)} %`;
+  if (item.unit === "int") return Math.round(item.value).toLocaleString("fr-FR");
+  return `${Math.round(item.value)}`;
+}
 
-/* ── Module labels ────────────────────────────────────────────────────── */
-.mod-label{ font-size:11px; text-transform:uppercase; letter-spacing:.1em; font-weight:700; margin:32px 0 14px; display:flex; align-items:center; gap:10px; }
-.mod-label::before{ content:""; width:10px; height:10px; border-radius:50%; background:linear-gradient(135deg,#6366f1,#ec4899); box-shadow:0 0 0 4px rgba(139,92,246,.18); }
-.mod-label::after{ content:""; flex:1; height:1px; background:rgba(99,102,241,.18); }
+/* ── KPI tile (carte + mini-barre de progression) ────────────────────── */
+function KpiTile({ item }: { item: StatItem }) {
+  const shown = formatStat(item);
+  const isPct = item.unit === "pct";
+  const pctVal = isPct && item.value != null && !Number.isNaN(item.value) ? Math.max(0, Math.min(100, item.value)) : null;
+  const status = isPct && item.target != null ? statusOf(item.value, item.target, item.higherIsBetter) : "neutral";
+  const barColor = STATUS_COLOR[status];
+  return (
+    <div className="ed-kpi-tile" style={{ "--kpi-accent": item.accent, "--kpi-accent-bg": item.accentBg } as CSSProperties}>
+      <div className="ed-kpi-top">
+        <span className="ed-kpi-ic" style={{ color: item.accent, background: item.accentBg }}>{item.icon}</span>
+        <span className="ed-kpi-label">{item.label}</span>
+        {item.trend && (
+          <span className={`rd-trend ${item.trend.direction} ${item.trend.good ? "good" : "bad"}`}>
+            {item.trend.direction === "up" ? "▲" : item.trend.direction === "down" ? "▼" : "–"}
+            {item.trend.value != null && item.trend.value !== 0 ? ` ${item.trend.value}${item.trendLabel ? ` ${item.trendLabel}` : ""}` : ""}
+          </span>
+        )}
+      </div>
+      <div className="ed-kpi-val">{item.loading ? <span className="rd-skel" style={{ width: 56, height: 22 }} /> : shown}</div>
+      {pctVal != null ? (
+        <div className="ed-kpi-bar">
+          <span style={{ width: `${pctVal}%`, background: `linear-gradient(90deg, ${barColor}, ${barColor}cc)` }} />
+          {item.target != null && <i className="ed-kpi-target" style={{ left: `${Math.min(100, item.target)}%` }} title={`Objectif ${item.target}%`} />}
+        </div>
+      ) : (
+        item.helper && <div className="ed-kpi-help">{item.helper}</div>
+      )}
+    </div>
+  );
+}
 
-/* ── Bento grid ───────────────────────────────────────────────────────── */
-.glass-grid{ display:grid; gap:14px; grid-template-columns:1fr; }
-@media(min-width:768px){ .glass-grid{ grid-template-columns:repeat(2,1fr);} .glass-grid .col-2{ grid-column:span 2;} }
-@media(min-width:1280px){ .glass-grid{ grid-template-columns:repeat(4,1fr);} .glass-grid .col-2{ grid-column:span 2;} .glass-grid .col-4{ grid-column:span 4;} }
+/* ── Barres de synthèse des taux (chart) ─────────────────────────────── */
+function RateBars({ items }: { items: StatItem[] }) {
+  if (!items.length) return <EmptyMini label="Aucun taux calculable" />;
+  return (
+    <div className="ed-rate">
+      {items.map((it) => {
+        const val = it.value != null && !Number.isNaN(it.value) ? Math.max(0, Math.min(100, it.value)) : 0;
+        const status = statusOf(it.value, it.target, it.higherIsBetter);
+        const color = STATUS_COLOR[status];
+        return (
+          <div key={it.key} className="ed-rate-row">
+            <div className="ed-rate-head">
+              <span className="ed-rate-label">{it.label}</span>
+              <span className="ed-rate-val" style={{ color }}>{formatStat(it)}</span>
+            </div>
+            <div className="ed-rate-track">
+              <span className="ed-rate-fill" style={{ width: `${val}%`, background: `linear-gradient(90deg, ${color}, ${color}cc)` }} />
+              {it.target != null && <i className="ed-rate-target" style={{ left: `${Math.min(100, it.target)}%` }} />}
+            </div>
+            <span className="ed-rate-status" style={{ color }}>{STATUS_LABEL[status]}</span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 
-/* ── Cards ────────────────────────────────────────────────────────────── */
-.card{ padding:20px 22px; display:flex; flex-direction:column; gap:14px; transition:all .25s ease; animation:glassIn .55s ease both; }
-.card:hover{ background:rgba(255,255,255,.66); box-shadow:0 16px 40px rgba(79,70,229,.18); transform:translateY(-3px); }
-.card-t{ display:flex; align-items:center; justify-content:space-between; gap:10px; }
-.card-t .t{ font-size:14px; font-weight:700; color:var(--ink); }
-.card-t .x{ font-size:11px; color:var(--muted); font-weight:500; }
+/* ── Tableau de détail des indicateurs ───────────────────────────────── */
+function SynthesisTable({ items }: { items: StatItem[] }) {
+  return (
+    <div className="ed-table">
+      <div className="ed-table-head">
+        <span>Indicateur</span>
+        <span className="ta-c">Valeur</span>
+        <span>Progression</span>
+        <span className="ta-r">État</span>
+      </div>
+      {items.map((it) => {
+        const status = it.unit === "pct" && it.target != null ? statusOf(it.value, it.target, it.higherIsBetter) : "neutral";
+        const color = STATUS_COLOR[status];
+        const pct = it.unit === "pct" && it.value != null && !Number.isNaN(it.value) ? Math.max(0, Math.min(100, it.value)) : null;
+        return (
+          <div key={it.key} className="ed-table-row">
+            <span className="ed-table-ind"><span className="ed-table-ic" style={{ color: it.accent, background: it.accentBg }}>{it.icon}</span>{it.label}</span>
+            <span className="ed-table-val ta-c">{formatStat(it)}</span>
+            <span className="ed-table-bar">
+              {pct != null ? <span className="ed-table-bar-fill" style={{ width: `${pct}%`, background: `linear-gradient(90deg, ${color}, ${color}cc)` }} /> : <span className="ed-table-bar-na">—</span>}
+            </span>
+            <span className="ta-r"><span className="rd-chip" style={{ color, background: `${color}1f` }}>{STATUS_LABEL[status]}</span></span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
 
-/* ── Numbers & text ──────────────────────────────────────────────────── */
-.bignum{ font-size:40px; font-weight:800; letter-spacing:-.04em; line-height:1; font-variant-numeric:tabular-nums; }
-.muted{ color:var(--muted); }
-.rows{ display:flex; flex-direction:column; gap:12px; }
-.row{ display:flex; align-items:center; gap:10px; }
-.row .name{ font-size:13px; color:var(--ink); font-weight:500; }
-.row .val{ margin-left:auto; font-size:13px; font-weight:700; font-variant-numeric:tabular-nums; }
-.bar{ height:9px; background:rgba(99,102,241,.1); border-radius:6px; overflow:hidden; }
-.bar > i{ display:block; height:100%; border-radius:6px; transition:width .7s cubic-bezier(.4,0,.2,1); }
-.dotk{ width:9px; height:9px; border-radius:50%; flex-shrink:0; }
-.rk{ width:26px; height:26px; border-radius:8px; display:grid; place-items:center; background:rgba(99,102,241,.14); color:#4f46e5; font-weight:700; font-size:12px; flex-shrink:0; transition:transform .2s; }
-.row:hover .rk{ transform:scale(1.1); }
-.pill{ display:inline-block; padding:3px 10px; border-radius:999px; font-size:11.5px; font-weight:700; font-variant-numeric:tabular-nums; }
+/* ── Styles (ESPRIT / rd-* compléments de mise en page) ──────────────── */
+const ED_CSS = `
+.ed-grid{ display:grid; gap:16px; grid-template-columns:repeat(2,minmax(0,1fr)); }
+.ed-col-2{ grid-column:span 2; }
+.ed-col-3{ grid-column:span 2; }
+@media(min-width:1024px){
+  .ed-grid{ grid-template-columns:repeat(3,minmax(0,1fr)); }
+  .ed-col-2{ grid-column:span 2; }
+  .ed-col-3{ grid-column:span 3; }
+}
+.ed-bignum{ font-size:38px; font-weight:800; letter-spacing:-.03em; line-height:1; font-variant-numeric:tabular-nums; }
+.ed-ring-row{ display:flex; align-items:center; gap:16px; }
+.ed-kv{ display:flex; flex-direction:column; gap:4px; }
+.ed-kv-row{ display:flex; align-items:center; gap:10px; padding:8px 10px; border-radius:10px; transition:background .15s; }
+.ed-kv-row:hover{ background:var(--rd-surface-2); }
+.ed-kv-dot{ width:9px; height:9px; border-radius:50%; flex-shrink:0; }
+.ed-kv-label{ flex:1; font-size:13px; color:var(--rd-text-2); }
+.ed-kv-val{ font-size:14px; font-weight:800; font-variant-numeric:tabular-nums; }
+.ed-bars{ display:flex; flex-direction:column; gap:12px; }
+.ed-bar-row{ display:flex; flex-direction:column; gap:5px; }
+.ed-bar-head{ display:flex; align-items:center; justify-content:space-between; gap:10px; }
+.ed-bar-label{ font-size:13px; color:var(--rd-text); font-weight:550; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.ed-bar-val{ font-size:13px; font-weight:700; color:var(--rd-text-2); font-variant-numeric:tabular-nums; }
+.ed-donut{ display:flex; align-items:center; gap:18px; flex-wrap:wrap; }
+.ed-donut-seg{ cursor:pointer; }
+.ed-donut-legend{ display:flex; flex-direction:column; gap:6px; flex:1; min-width:140px; }
+.ed-legend-item{ display:flex; align-items:center; gap:9px; padding:6px 9px; border-radius:9px; font-size:12.5px; transition:background .15s; }
+.ed-legend-item.hovered, .ed-legend-item:hover{ background:var(--rd-surface-2); }
+.ed-legend-dot{ width:10px; height:10px; border-radius:4px; flex-shrink:0; }
+.ed-legend-label{ flex:1; font-weight:600; color:var(--rd-text); }
+.ed-legend-count{ font-weight:700; font-variant-numeric:tabular-nums; }
+.ed-legend-pct{ width:38px; text-align:right; color:var(--rd-text-3); font-variant-numeric:tabular-nums; }
+.ed-empty{ color:var(--rd-text-3); font-size:13px; text-align:center; padding:10px; }
 
-/* ── Chart interactions ──────────────────────────────────────────────── */
-.donut-seg{ transition:stroke-dasharray .8s cubic-bezier(.4,0,.2,1); cursor:pointer; }
-.donut-seg:hover{ stroke-width:16; }
-.seg-item, .dept-item{ padding:6px 8px; margin:-6px -8px; border-radius:8px; transition:background .2s; }
-.seg-item:hover, .dept-item:hover{ background:rgba(255,255,255,.4); }
-.kv-row{ padding:7px 10px; margin:-7px -10px; border-radius:8px; transition:background .2s; }
-.kv-row:hover{ background:rgba(255,255,255,.4); }
+/* ── KPI tiles (cartes + mini-barre) ─────────────────────────────────── */
+.ed-kpi-grid{ display:grid; gap:14px; grid-template-columns:repeat(2,minmax(0,1fr)); }
+.ed-grid--kpi{ grid-template-columns:repeat(1,minmax(0,1fr)); }
+@media(min-width:760px){ .ed-kpi-grid{ grid-template-columns:repeat(3,minmax(0,1fr)); } }
+@media(min-width:1100px){ .ed-kpi-grid{ grid-template-columns:repeat(4,minmax(0,1fr)); } .ed-grid--kpi{ grid-template-columns:repeat(2,minmax(0,1fr)); } }
+.ed-kpi-tile{
+  position:relative; background:var(--rd-surface); border:1px solid var(--rd-border);
+  border-radius:var(--rd-radius); padding:14px 16px 13px; overflow:hidden;
+  box-shadow:var(--rd-shadow-sm); transition:transform .18s ease, box-shadow .2s ease, border-color .2s ease;
+}
+.ed-kpi-tile::before{ content:""; position:absolute; left:0; top:0; bottom:0; width:4px;
+  background:linear-gradient(180deg, var(--kpi-accent), color-mix(in srgb, var(--kpi-accent) 45%, transparent)); }
+.ed-kpi-tile:hover{ transform:translateY(-3px); box-shadow:var(--rd-shadow-md); border-color:var(--rd-border-strong); }
+.ed-kpi-top{ display:flex; align-items:center; gap:10px; }
+.ed-kpi-ic{ width:34px; height:34px; border-radius:10px; display:grid; place-items:center; font-size:16px; flex:0 0 auto; box-shadow:inset 0 1px 0 rgba(255,255,255,.5); }
+.ed-kpi-label{ font-size:12.5px; font-weight:600; color:var(--rd-text-2); flex:1; min-width:0; line-height:1.2; }
+.ed-kpi-val{ font-size:26px; font-weight:800; letter-spacing:-.02em; margin-top:10px; line-height:1; font-variant-numeric:tabular-nums; }
+.ed-kpi-bar{ position:relative; height:7px; border-radius:999px; background:var(--rd-surface-3); margin-top:10px; overflow:visible; }
+.ed-kpi-bar > span{ display:block; height:100%; border-radius:999px; transition:width .7s cubic-bezier(.22,1,.36,1); }
+.ed-kpi-target{ position:absolute; top:-3px; width:2px; height:13px; background:var(--rd-text); opacity:.5; border-radius:2px; }
+.ed-kpi-help{ font-size:11px; color:var(--rd-text-3); margin-top:8px; line-height:1.35; }
 
-/* ── Legend ───────────────────────────────────────────────────────────── */
-.legend{ display:flex; flex-direction:column; gap:10px; }
-.legend .li{ display:flex; align-items:center; gap:9px; font-size:12.5px; color:var(--ink); font-weight:500; }
-.legend .d{ width:10px; height:10px; border-radius:4px; flex-shrink:0; box-shadow:0 0 0 2px rgba(255,255,255,.8); }
+/* ── Synthèse des taux (barres horizontales) ─────────────────────────── */
+.ed-rate{ display:flex; flex-direction:column; gap:14px; }
+.ed-rate-row{ display:grid; grid-template-columns:1fr; gap:5px; }
+.ed-rate-head{ display:flex; align-items:baseline; justify-content:space-between; gap:10px; }
+.ed-rate-label{ font-size:13px; font-weight:600; color:var(--rd-text); }
+.ed-rate-val{ font-size:15px; font-weight:800; font-variant-numeric:tabular-nums; }
+.ed-rate-track{ position:relative; height:12px; border-radius:999px; background:var(--rd-surface-3); overflow:visible; }
+.ed-rate-fill{ display:block; height:100%; border-radius:999px; transition:width .7s cubic-bezier(.22,1,.36,1); box-shadow:inset 0 1px 0 rgba(255,255,255,.35); }
+.ed-rate-target{ position:absolute; top:-4px; width:3px; height:20px; background:var(--rd-text); opacity:.55; border-radius:2px; transform:translateX(-50%); }
+.ed-rate-status{ font-size:11.5px; font-weight:700; align-self:flex-end; }
 
-/* ── Info alert card ──────────────────────────────────────────────────── */
-.glass-wrap .ant-alert{ border-radius:14px !important; background:rgba(255,255,255,.55) !important; backdrop-filter:blur(10px); }
-
-@keyframes glassIn{ from{ opacity:0; transform:translateY(10px) scale(.99); } to{ opacity:1; transform:none; } }
-@media(max-width:767px){ .glass-wrap{ padding:16px; } .glass-top h1{ font-size:21px; } .bignum{ font-size:32px; } }
+/* ── Tableau de détail ────────────────────────────────────────────────── */
+.ed-table{ display:flex; flex-direction:column; }
+.ed-table-head, .ed-table-row{ display:grid; grid-template-columns:1.6fr .7fr 1.3fr .8fr; gap:10px; align-items:center; }
+.ed-table-head{ font-size:10.5px; font-weight:800; letter-spacing:.04em; text-transform:uppercase; color:var(--rd-text-3); padding:0 10px 9px; border-bottom:1px solid var(--rd-border-strong); }
+.ed-table-row{ padding:10px; border-bottom:1px solid var(--rd-border); }
+.ed-table-row:last-child{ border-bottom:none; }
+.ed-table-row:hover{ background:var(--rd-surface-2); }
+.ed-table-ind{ display:flex; align-items:center; gap:9px; font-size:13px; font-weight:600; color:var(--rd-text); min-width:0; }
+.ed-table-ic{ width:28px; height:28px; border-radius:8px; display:grid; place-items:center; font-size:13px; flex:0 0 auto; }
+.ed-table-val{ font-size:14px; font-weight:800; font-variant-numeric:tabular-nums; }
+.ed-table-bar{ position:relative; height:8px; border-radius:999px; background:var(--rd-surface-3); overflow:hidden; min-width:0; }
+.ed-table-bar-fill{ display:block; height:100%; border-radius:999px; transition:width .7s cubic-bezier(.22,1,.36,1); }
+.ed-table-bar-na{ color:var(--rd-text-3); font-size:12px; padding-left:2px; }
+.ta-c{ text-align:center; } .ta-r{ text-align:right; }
+@media(max-width:760px){
+  .ed-table-head{ display:none; }
+  .ed-table-row{ grid-template-columns:1fr auto; grid-auto-rows:auto; gap:6px; }
+  .ed-table-ind{ grid-column:1 / -1; }
+  .ed-table-val{ grid-column:2; }
+  .ed-table-bar{ grid-column:1 / -1; }
+}
+@media(max-width:640px){ .ed-bignum{ font-size:30px; } }
 `;
