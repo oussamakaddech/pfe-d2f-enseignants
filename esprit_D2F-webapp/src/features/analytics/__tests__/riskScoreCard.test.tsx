@@ -1,0 +1,47 @@
+import { describe, it, expect } from "vitest";
+import { render, screen } from "@testing-library/react";
+import RiskScoreCard from "../components/RiskScoreCard";
+import { scoreToRiskLevel } from "../utils/format";
+import type { RiskScore } from "../types";
+
+describe("scoreToRiskLevel", () => {
+  it("catégorise correctement un score nul", () => {
+    expect(scoreToRiskLevel(0)).toBe("FAIBLE");
+  });
+  it("catégorise un score critique", () => {
+    expect(scoreToRiskLevel(0.8)).toBe("CRITIQUE");
+  });
+  it("catégorise un score élevé", () => {
+    expect(scoreToRiskLevel(0.6)).toBe("ELEVE");
+  });
+  it("catégorise un score modéré", () => {
+    expect(scoreToRiskLevel(0.3)).toBe("MODERE");
+  });
+});
+
+describe("RiskScoreCard", () => {
+  const base: RiskScore = {
+    enseignant_id: "T1",
+    score: 0.82,
+    niveau: "CRITIQUE",
+    facteurs: [],
+    tendance: "DEGRADATION",
+    precedent_score: 0.7,
+    computed_at: new Date().toISOString(),
+  };
+
+  it("affiche le niveau de risque", () => {
+    render(<RiskScoreCard risk={base} />);
+    expect(screen.getByText("Critique")).toBeTruthy();
+  });
+
+  it("affiche le score en pourcentage", () => {
+    render(<RiskScoreCard risk={base} />);
+    expect(screen.getByText("82%")).toBeTruthy();
+  });
+
+  it("gère l'absence de données sans planter", () => {
+    render(<RiskScoreCard risk={undefined} />);
+    expect(screen.getByText("Faible")).toBeTruthy();
+  });
+});

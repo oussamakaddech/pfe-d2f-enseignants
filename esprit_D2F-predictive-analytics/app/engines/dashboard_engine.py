@@ -51,7 +51,15 @@ class DashboardEngine:
         return safe_kpi(name, fn, default, logger)
 
     def compute_all(self) -> dict[str, Any]:
+        kpis = self._safe("real_kpis", self.real_kpis, {
+            "nb_enseignants_suivis": 0,
+            "score_risque_moyen": 0,
+            "nb_gaps_critiques": 0,
+            "nb_alertes_nouvelles": 0,
+            "taux_couverture_global": 0,
+        })
         kpis = {
+            **kpis,
             "competences_en_declin":         self._safe("competences_en_declin", self.competences_en_declin, []),
             "competences_en_demande":        self._safe("competences_en_demande", self.competences_en_demande, []),
             "enseignants_a_risque":          self._safe("enseignants_a_risque", self.enseignants_a_risque, []),
@@ -197,8 +205,8 @@ class DashboardEngine:
             return []
         ids = [r.enseignant_id for r in rows]
         # Import tardif : évite un cycle d'import engine ↔ router au chargement.
-        from app.routers.all import _build_signals_from_factors, _fetch_teacher_names
-        names = _fetch_teacher_names(self.db, ids)
+        from app.routers.all import _build_signals_from_factors, _fetch_teacher_info
+        info = _fetch_teacher_info(self.db, ids)
 
         result: list[dict] = []
         for r in rows:
@@ -215,9 +223,14 @@ class DashboardEngine:
                 r.nb_gaps_critiques or 0,
                 factor_details.get("unmet_needs", 0),
             )
+            t_info = info.get(r.enseignant_id, {})
+            teacher_name = t_info.get("teacher_name", r.enseignant_id)
             result.append({
                 "enseignant_id":     r.enseignant_id,
-                "teacher_name":      names.get(r.enseignant_id, r.enseignant_id),
+                "teacher_name":      teacher_name,
+                "nom":               teacher_name,
+                "departement":       t_info.get("department"),
+                "up":                t_info.get("up"),
                 "score_risque":      float(r.score_risque),
                 "niveau_risque":     r.niveau_risque,
                 "tendance":          r.tendance,
@@ -483,4 +496,69 @@ class DashboardEngine:
             "recommendation_avg_proba": round(float(reco_proba), 3) if reco_proba is not None else None,
             "last_retrained":           last_log.retrained_at.isoformat() if last_log and last_log.retrained_at else None,
             "last_retrain_status":      last_log.statut if last_log else None,
+        }
+
+    # ── KPIs réels dérivés des données disponibles ──────────
+    # Calculés même quand teacher_risk_profiles est vide (avant toute analyse),
+    # à partir de skill_gaps, alertes et teacher_competence_coverage.
+    def real_kpis(self) -> dict[str, Any]:
+        # Enseignants réellement suivis = ceux présents dans la couverture.
+        nb_suivis = (
+            self.db.query(
+                func.count(func.distinct(TeacherCompetenceCoverage.enseignant_id))
+            ).scalar() or 0
+        )
+        if nb_suivis == 0:
+            # Fallback : enseignants ayant au moins un gap calculé.
+            nb_suivis = (
+                self.db.query(func.count(func.distinct(SkillGap.enseignant_id)))
+                .filter(SkillGap.computed_at >= date.today() - timedelta(days=30))
+                .scalar() or 0
+            )
+
+        # Gaps critiques (score >= 0.7) sur 30 jours.
+        nb_gaps_critiques = (
+            self.db.query(func.count(SkillGap.id))
+            .filter(
+                SkillGap.computed_at >= date.today() - timedelta(days=30),
+                SkillGap.gap_score >= 0.7,
+            )
+            .scalar() or 0
+        )
+
+        # Score de risque moyen proxy = gap moyen pondéré par les gaps critiques.
+        avg_gap = (
+            self.db.query(func.avg(SkillGap.gap_score))
+            .filter(SkillGap.computed_at >= date.today() - timedelta(days=30))
+            .scalar()
+        )
+        score_risque_moyen = round(float(avg_gap or 0.0), 2)
+
+        # Taux de couverture global (couples enseignant×compétence au niveau requis).
+        cov = (
+            self.db.query(
+                func.count(TeacherCompetenceCoverage.id),
+                func.sum(func.cast(TeacherCompetenceCoverage.covered, Integer)),
+            ).first()
+        )
+        total_cov = int(cov[0] or 0)
+        couverts = int(cov[1] or 0)
+        taux_couverture = round(couverts / total_cov * 100, 1) if total_cov else 0.0
+
+        # Alertes nouvelles (non traitées) des 30 derniers jours.
+        nb_alertes = (
+            self.db.query(func.count(AlertEvent.id))
+            .filter(
+                AlertEvent.statut.in_(["NOUVELLE", "LUE"]),
+                AlertEvent.created_at >= date.today() - timedelta(days=30),
+            )
+            .scalar() or 0
+        )
+
+        return {
+            "nb_enseignants_suivis":   int(nb_suivis),
+            "score_risque_moyen":      score_risque_moyen,
+            "nb_gaps_critiques":       int(nb_gaps_critiques),
+            "nb_alertes_nouvelles":    int(nb_alertes),
+            "taux_couverture_global":  taux_couverture,
         }

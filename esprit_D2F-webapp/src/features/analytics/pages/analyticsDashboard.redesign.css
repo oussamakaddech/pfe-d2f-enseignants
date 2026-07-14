@@ -1,0 +1,178 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   Tableau de bord analytique — style « moderne & riche »
+   Palette exécutive : fond clair aéré, en-tête dégradé, cartes « glass »,
+   Cartes KPI à dégradé + bulle d'icône, ombres douces et survol.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.ad-page {
+  min-height: calc(100vh - 64px);
+  padding: 24px;
+  background: radial-gradient(1200px 600px at 100% -10%, #fdecef 0%, transparent 55%),
+              radial-gradient(1000px 500px at -10% 110%, #fbe7e9 0%, transparent 50%),
+              linear-gradient(180deg, #fbf6f6 0%, #f3ecec 100%);
+}
+
+/* ── En-tête dégradé ─────────────────────────────────────────── */
+.ad-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 20px 24px;
+  margin-bottom: 20px;
+  border-radius: 18px;
+  color: #fff;
+  background: linear-gradient(120deg, #9b1c1c 0%, #c8102e 50%, #e11d2e 100%);
+  box-shadow: 0 18px 40px -18px rgba(200, 16, 46, 0.6);
+}
+.ad-header__icon {
+  font-size: 30px;
+  opacity: 0.92;
+}
+.ad-header__titles { display: flex; flex-direction: column; gap: 2px; }
+.ad-header__title { font-size: 20px; font-weight: 700; letter-spacing: 0.2px; }
+.ad-header__subtitle { font-size: 13px; opacity: 0.85; }
+.ad-header__actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.ad-header__updated {
+  font-size: 12px;
+  opacity: 0.85;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.ad-refresh-btn {
+  background: rgba(255, 255, 255, 0.16) !important;
+  border-color: rgba(255, 255, 255, 0.35) !important;
+  color: #fff !important;
+  backdrop-filter: blur(4px);
+}
+.ad-refresh-btn:hover { background: rgba(255, 255, 255, 0.28) !important; }
+
+/* ── Barre de filtres ────────────────────────────────────────── */
+.ad-filters {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  padding: 14px 16px;
+  margin-bottom: 18px;
+  border-radius: 14px;
+  background: #fff;
+  border: 1px solid rgba(15, 23, 42, 0.06);
+  box-shadow: 0 6px 20px -12px rgba(15, 23, 42, 0.25);
+}
+.ad-filters__label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  margin-right: 2px;
+}
+.ad-filters__spacer { flex: 1 1 auto; }
+.ad-filter-select { min-width: 170px; }
+
+/* ── Cartes « glass » génériques ────────────────────────────── */
+.ad-card {
+  height: 100%;
+  padding: 18px 18px 20px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(15, 23, 42, 0.06);
+  box-shadow: 0 10px 30px -16px rgba(15, 23, 42, 0.28);
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+  backdrop-filter: blur(6px);
+}
+.ad-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 22px 44px -20px rgba(15, 23, 42, 0.4);
+}
+.ad-card__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+.ad-card__title {
+  font-size: 15px;
+  font-weight: 700;
+  color: #0f172a;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.ad-card__title .ad-dot {
+  width: 9px; height: 9px; border-radius: 50%;
+  background: linear-gradient(135deg, #c8102e, #e11d2e);
+  box-shadow: 0 0 0 4px rgba(200, 16, 46, 0.15);
+}
+
+/* ── Cartes KPI à dégradé ───────────────────────────────────── */
+.ad-kpi-row { margin-bottom: 18px; }
+.ad-kpi {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 18px 20px;
+  border-radius: 16px;
+  color: #fff;
+  box-shadow: 0 16px 34px -18px rgba(15, 23, 42, 0.5);
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+.ad-kpi:hover { transform: translateY(-3px); box-shadow: 0 24px 46px -20px rgba(15, 23, 42, 0.6); }
+.ad-kpi::after {
+  content: "";
+  position: absolute;
+  right: -30px; top: -30px;
+  width: 120px; height: 120px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.12);
+}
+.ad-kpi__icon {
+  display: grid; place-items: center;
+  width: 52px; height: 52px;
+  border-radius: 14px;
+  font-size: 24px;
+  background: rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(4px);
+}
+.ad-kpi__body { display: flex; flex-direction: column; gap: 2px; z-index: 1; }
+.ad-kpi__title { font-size: 13px; opacity: 0.9; font-weight: 500; }
+.ad-kpi__value { font-size: 30px; font-weight: 800; line-height: 1.05; }
+.ad-kpi__hint { font-size: 11px; opacity: 0.8; }
+
+.ad-kpi--primary { background: linear-gradient(135deg, #c8102e, #e11d2e); }
+.ad-kpi--warning { background: linear-gradient(135deg, #f59e0b, #ef4444); }
+.ad-kpi--danger  { background: linear-gradient(135deg, #ef4444, #b91c1c); }
+.ad-kpi--info    { background: linear-gradient(135deg, #db2777, #9f1239); }
+.ad-kpi--success { background: linear-gradient(135deg, #10b981, #059669); }
+
+/* ── Divers ─────────────────────────────────────────────────── */
+.ad-empty {
+  display: grid;
+  place-items: center;
+  min-height: 160px;
+}
+.ad-loading {
+  display: grid;
+  place-items: center;
+  min-height: 200px;
+}
+.ad-banner {
+  margin-bottom: 18px;
+  border-radius: 14px !important;
+  border: 1px solid #bae6fd !important;
+  background: #f0f9ff !important;
+}
+.ad-pill {
+  font-weight: 700;
+  font-size: 12px;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.06);
+  color: #334155;
+}

@@ -359,7 +359,7 @@ def _fetch_teacher_info(db: Session, ids: list[str]) -> dict[str, dict[str, Any]
         return {}
     rows = db.execute(
         text(
-            "SELECT id, nom, prenom, mail, dept_id FROM enseignants "
+            "SELECT id, nom, prenom, mail, dept_id, up_id FROM enseignants "
             "WHERE id = ANY(:ids) AND deleted_at IS NULL"
         ),
         {"ids": ids},
@@ -369,6 +369,7 @@ def _fetch_teacher_info(db: Session, ids: list[str]) -> dict[str, dict[str, Any]
             "teacher_name": f"{r[2]} {r[1]}".strip(),
             "email": r[3] or "",
             "department": str(r[4]) if r[4] is not None else None,
+            "up": str(r[5]) if r[5] is not None else None,
         }
         for r in rows
     }

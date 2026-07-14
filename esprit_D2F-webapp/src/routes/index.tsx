@@ -58,6 +58,9 @@ const ABTestingPage = lazy(() => import("@/pages/analyse/ABTestingPage"));
 const SkillForecastPage = lazy(() => import("@/pages/analyse/SkillForecastPage"));
 const PeerBenchmarkPage = lazy(() => import("@/pages/analyse/PeerBenchmarkPage"));
 const AnomalyDetectionPage = lazy(() => import("@/pages/analyse/AnomalyDetectionPage"));
+const AnalyticsDashboardPage = lazy(() => import("@/features/analytics/pages/AnalyticsDashboardPage"));
+const HeatmapPage = lazy(() => import("@/features/analytics/pages/HeatmapPage"));
+const ModelMonitoringPage = lazy(() => import("@/features/analytics/pages/ModelMonitoringPage"));
 const PilotageDashboardPage = lazy(() => import("@/pages/analyse/PilotageDashboardPage"));
 
 function PageSkeleton() {
@@ -132,7 +135,12 @@ export default function AppRoutes() {
 
                 <Route element={<RoleGuard allowedRoles={[ROLES.ADMIN, ROLES.CUP, ROLES.CHEF_DEPARTEMENT]} />}>
                   <Route path="/home/KPI" element={<Navigate to="/home" replace />} />
-                  <Route path="/home/AnalysePredictive" element={<AnalysePredictivePage />} />
+                  {/* Module analytics feature-based (features/analytics) */}
+                  <Route path="/home/AnalysePredictive" element={<AnalyticsDashboardPage />} />
+                  <Route path="/home/analytics/dashboard" element={<AnalyticsDashboardPage />} />
+                  <Route path="/home/analytics/heatmap" element={<HeatmapPage />} />
+                  <Route path="/home/analytics/monitoring" element={<ModelMonitoringPage />} />
+                  {/* Pages analyse existantes (conservées) */}
                   <Route path="/home/analytics/teacher" element={<TeacherAnalyticsPage />} />
                   <Route path="/home/analytics/teacher/:enseignantId" element={<TeacherAnalyticsPage />} />
                   <Route path="/home/analytics/enseignants-inactifs" element={<EnseignantsInactifsPage />} />

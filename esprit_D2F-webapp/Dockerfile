@@ -6,6 +6,17 @@ ARG BUILD_ENV
 ARG VITE_API_URL
 ARG VITE_NOTIFICATION_URL
 ARG VITE_NOTIFICATIONS_WS_URL
+
+# ── Propagation des ARG vers l'environnement de build ────────────────────────
+# Vite lit import.meta.env.VITE_* depuis les variables d'env du process, PAS
+# depuis les ARG Docker. Sans ces ENV, `vite build` (MODE=production) échoue
+# car env.ts fait `throw` si VITE_API_URL est absent. BUILD_ENV doit aussi être
+# exporté sinon `npm run build:$BUILD_ENV` retombe toujours sur le build dev.
+ENV BUILD_ENV=${BUILD_ENV}
+ENV VITE_API_URL=${VITE_API_URL}
+ENV VITE_NOTIFICATION_URL=${VITE_NOTIFICATION_URL}
+ENV VITE_NOTIFICATIONS_WS_URL=${VITE_NOTIFICATIONS_WS_URL}
+
 WORKDIR /usr/app
 
 COPY package.json package-lock.json ./
