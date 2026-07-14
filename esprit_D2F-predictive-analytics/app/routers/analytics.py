@@ -695,13 +695,33 @@ async def update_alert(
 
 # ── GET /api/v1/analytics/dashboard/global ───────────────────
 @router.get("/dashboard/global", summary="Tableau de bord global (ADMIN/CUP)")
-async def dashboard_global(auth: ReadAuth, db: DbSession) -> dict[str, Any]:
+async def dashboard_global(
+    auth: ReadAuth,
+    db: DbSession,
+    periode_debut: Annotated[Optional[str], Query(description="ISO datetime début de fenêtre (filtre temporel)")] = None,
+    periode_fin:   Annotated[Optional[str], Query(description="ISO datetime fin de fenêtre (filtre temporel)")] = None,
+) -> dict[str, Any]:
     engine = DashboardEngine(db)
-    # Sert le snapshot en cache (≤ 6 h) calculé par le scheduler pour éviter de
-    # recalculer les 12 KPIs à chaque appel (P1-4 : ``get_cached`` n'était
-    # jamais appelé). Fallback sur un recalcul à la volée si rien en cache.
+    # Fenêtre temporelle personnalisée → recalcul à la volée (pas de cache).
+    if periode_debut or periode_fin:
+        debut = datetime.fromisoformat(periode_debut) if periode_debut else None
+        fin = datetime.fromisoformat(periode_fin) if periode_fin else None
+        return engine.compute_all(periode_debut=debut, periode_fin=fin)
+    # Sinon : sert le snapshot en cache (≤ 6 h) calculé par le scheduler.
     cached = engine.get_cached()
     return cached if cached is not None else engine.compute_all()
+
+
+# ── GET /api/v1/analytics/dashboard/teachers-by-cell ─────────
+@router.get("/dashboard/teachers-by-cell", summary="Drill-down heatmap : enseignants impactés par une cellule")
+async def dashboard_teachers_by_cell(
+    auth: ReadAuth,
+    db: DbSession,
+    departement: Annotated[str, Query(description="Département (code DEPT_*) ou 'non_affecte'")],
+    competence_id: Annotated[int, Query(description="Identifiant de la compétence")],
+    limit: Annotated[int, Query(ge=1, le=200)] = 50,
+) -> list[dict]:
+    return DashboardEngine(db).teachers_by_cell(departement, competence_id, limit)
 
 
 # ── GET /api/v1/analytics/dashboard/competences-declining ────

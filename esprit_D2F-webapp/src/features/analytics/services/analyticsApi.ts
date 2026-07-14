@@ -104,6 +104,10 @@ function mapDashboard(raw: any): DashboardResponse {
     nb_alertes_nouvelles:
       rawKpis.nb_alertes_nouvelles ?? (raw.alertes_recentes ?? []).length,
     taux_couverture_global: rawKpis.taux_couverture_global ?? 0,
+    nb_regression: rawKpis.nb_regression ?? 0,
+    nb_stagnation: rawKpis.nb_stagnation ?? 0,
+    besoins_critiques_non_satisfaits: rawKpis.besoins_critiques_non_satisfaits ?? 0,
+    alertes_critiques_ouvertes: rawKpis.alertes_critiques_ouvertes ?? 0,
   };
 
   // Données auxiliaires réellement disponibles côté backend (même sans
@@ -240,6 +244,15 @@ export const analyticsApi = {
     if (filters?.seuil !== undefined) p.seuil = filters.seuil;
     return axios
       .get<AtRiskTeacher[]>(`${BASE}/dashboard/teachers-at-risk`, { params: p })
+      .then((r) => r.data);
+  },
+
+  // Endpoint backend réel : /dashboard/teachers-by-cell (drill-down heatmap).
+  getTeachersByCell(departement: string, competenceId: number, limit = 50): Promise<Array<Record<string, unknown>>> {
+    return axios
+      .get<Array<Record<string, unknown>>>(`${BASE}/dashboard/teachers-by-cell`, {
+        params: { departement, competence_id: competenceId, limit },
+      })
       .then((r) => r.data);
   },
 

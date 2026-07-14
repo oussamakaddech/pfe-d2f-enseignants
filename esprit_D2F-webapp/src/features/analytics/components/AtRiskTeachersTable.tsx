@@ -17,8 +17,8 @@ export default function AtRiskTeachersTable({
 }: AtRiskTeachersTableProps) {
   const columns: ColumnsType<AtRiskTeacher> = [
     { title: "Enseignant", dataIndex: "nom", render: (v) => <a>{v}</a> },
-    { title: "Département", dataIndex: "departement", render: (v) => formatDepartment(v) },
-    { title: "UP", dataIndex: "up", render: (v) => formatUP(v) },
+    { title: "Département", dataIndex: "departement", render: (v) => formatDepartment(v) || "Non affecté" },
+    { title: "UP", dataIndex: "up", render: (v) => formatUP(v) || "Non affecté" },
     {
       title: "Score de risque",
       dataIndex: "score_risque",

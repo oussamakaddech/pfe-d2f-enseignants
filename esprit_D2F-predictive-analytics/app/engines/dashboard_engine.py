@@ -29,6 +29,11 @@ class DashboardEngine:
 
     def __init__(self, db: Session):
         self.db = db
+        # Fenêtre temporelle courante (injectée par compute_all depuis les
+        # query params periode_debut / periode_fin du endpoint /dashboard/global).
+        self._fin = datetime.now(timezone.utc)
+        self._cutoff = self._fin - timedelta(days=30)
+        self._window_days = 30
 
     def get_cached(self, max_age_hours: int = 6) -> dict[str, Any] | None:
         """Return cached dashboard if fresh enough, else None."""
@@ -50,13 +55,24 @@ class DashboardEngine:
         """Exécute un calcul de KPI en isolant ses erreurs."""
         return safe_kpi(name, fn, default, logger)
 
-    def compute_all(self) -> dict[str, Any]:
+    def compute_all(self, periode_debut=None, periode_fin=None) -> dict[str, Any]:
+        # Fenêtre temporelle (filtre 7j / 30j / trimestre / semestre).
+        fin = periode_fin or datetime.now(timezone.utc)
+        debut = periode_debut or (fin - timedelta(days=30))
+        self._fin = fin
+        self._cutoff = debut
+        self._window_days = max((fin - debut).days, 1)
+
         kpis = self._safe("real_kpis", self.real_kpis, {
             "nb_enseignants_suivis": 0,
             "score_risque_moyen": 0,
             "nb_gaps_critiques": 0,
             "nb_alertes_nouvelles": 0,
             "taux_couverture_global": 0,
+            "nb_regression": 0,
+            "nb_stagnation": 0,
+            "besoins_critiques_non_satisfaits": 0,
+            "alertes_critiques_ouvertes": 0,
         })
         kpis = {
             **kpis,
@@ -160,7 +176,7 @@ class DashboardEngine:
                 ).label("nb_critiques"),
                 func.avg(SkillGap.nb_besoins_exprimes).label("nb_besoins_moy"),
             )
-            .filter(SkillGap.computed_at >= date.today() - timedelta(days=30))
+            .filter(SkillGap.computed_at >= self._cutoff)
             .group_by(SkillGap.competence_id, SkillGap.competence_nom, SkillGap.domaine_nom)
             .all()
         )
@@ -272,32 +288,93 @@ class DashboardEngine:
             })
         return sorted(result, key=lambda x: x["departement"])
 
-    # ── KPI 5 : Top formations recommandées ──────────────────
+    # ── KPI 5 : Top formations recommandées (enrichies) ─────
     def top_formations_recommandees(self) -> list[dict]:
         rows = (
             self.db.query(
                 Recommendation.formation_id,
                 Recommendation.formation_titre,
                 func.count(Recommendation.id).label("nb_recommandations"),
+                func.count(func.distinct(Recommendation.enseignant_id)).label("nb_enseignants"),
                 func.avg(Recommendation.score_global).label("score_moy"),
                 func.avg(Recommendation.probabilite_reussite).label("proba_moy"),
             )
-            .filter(Recommendation.created_at >= date.today() - timedelta(days=30))
+            .filter(Recommendation.created_at >= self._cutoff)
             .group_by(Recommendation.formation_id, Recommendation.formation_titre)
             .order_by(func.count(Recommendation.id).desc())
             .limit(10)
             .all()
         )
-        return [
-            {
-                "formation_id":       r.formation_id,
+        fids = [r.formation_id for r in rows]
+        if not fids:
+            return []
+
+        recs = (
+            self.db.query(
+                Recommendation.formation_id,
+                Recommendation.enseignant_id,
+                Recommendation.competence_id,
+            )
+            .filter(Recommendation.formation_id.in_(fids), Recommendation.created_at >= self._cutoff)
+            .all()
+        )
+
+        # Mapping compétence_id → nom (depuis skill_gaps qui porte le libellé).
+        cids = {int(r.competence_id) for r in recs}
+        comp_noms: dict[int, str] = {}
+        if cids:
+            comp_rows = (
+                self.db.query(SkillGap.competence_id, SkillGap.competence_nom)
+                .filter(SkillGap.competence_id.in_(cids))
+                .distinct()
+                .all()
+            )
+            comp_noms = {int(c.competence_id): c.competence_nom for c in comp_rows}
+
+        ens_ids = {str(r.enseignant_id) for r in recs}
+        from app.routers.all import _fetch_teacher_info
+        info = _fetch_teacher_info(self.db, list(ens_ids)) if ens_ids else {}
+
+        agg: dict[Any, dict[str, set]] = {fid: {"ens": set(), "comp": set()} for fid in fids}
+        for r in recs:
+            a = agg[r.formation_id]
+            a["ens"].add(str(r.enseignant_id))
+            a["comp"].add(int(r.competence_id))
+
+        result = []
+        for r in rows:
+            fid = r.formation_id
+            a = agg[fid]
+            depts = sorted(
+                {info.get(e, {}).get("department") for e in a["ens"] if info.get(e, {}).get("department")}
+            )
+            comps = sorted({comp_noms.get(c, f"Compétence {c}") for c in a["comp"]})
+            # Impact estimé = gap moyen (sévérité) des compétences ciblées chez les
+            # enseignants ciblés → proxy de baisse de risque si la formation est suivie.
+            impact = 0.0
+            if a["ens"] and a["comp"]:
+                impact_val = (
+                    self.db.query(func.avg(SkillGap.gap_score))
+                    .filter(
+                        SkillGap.enseignant_id.in_(list(a["ens"])),
+                        SkillGap.competence_id.in_(list(a["comp"])),
+                        SkillGap.computed_at >= self._cutoff,
+                    )
+                    .scalar()
+                )
+                impact = float(impact_val or 0.0)
+            result.append({
+                "formation_id":       fid,
                 "formation_titre":    r.formation_titre,
                 "nb_recommandations": int(r.nb_recommandations),
+                "enseignants_cibles": len(a["ens"]),
+                "departements":       depts,
+                "competences_couvertes": comps,
+                "impact_estime":      round(impact, 3),
                 "score_moyen":        round(float(r.score_moy or 0), 3),
                 "proba_reussite_moy": round(float(r.proba_moy or 0), 3),
-            }
-            for r in rows
-        ]
+            })
+        return result
 
     # ── KPI 6 : Alertes récentes ─────────────────────────────
     def alertes_recentes(self, limit: int = 20) -> list[dict]:
@@ -351,7 +428,7 @@ class DashboardEngine:
                 SkillGap.competence_nom,
                 SkillGap.gap_score,
             )
-            .filter(SkillGap.computed_at >= date.today() - timedelta(days=30))
+            .filter(SkillGap.computed_at >= self._cutoff)
             .all()
         )
         ens_dept_map = self._ens_dept_map()
@@ -381,6 +458,46 @@ class DashboardEngine:
             })
         result.sort(key=lambda x: x["avg_gap"], reverse=True)
         return result
+
+    # ── Drill-down : enseignants impactés par une cellule heatmap ──
+    def teachers_by_cell(
+        self, departement: str, competence_id: int, limit: int = 50
+    ) -> list[dict]:
+        """Enseignants ayant un gap sur (departement × competence), triés par gravité."""
+        from app.routers.all import _fetch_teacher_info
+
+        rows = (
+            self.db.query(
+                SkillGap.enseignant_id,
+                func.avg(SkillGap.gap_score).label("avg_gap"),
+                func.max(SkillGap.niveau_urgence).label("urgence"),
+            )
+            .filter(
+                SkillGap.competence_id == competence_id,
+                SkillGap.computed_at >= self._cutoff,
+            )
+            .group_by(SkillGap.enseignant_id)
+            .all()
+        )
+        ens_dept_map = self._ens_dept_map()
+        ids = [r.enseignant_id for r in rows]
+        info = _fetch_teacher_info(self.db, ids) if ids else {}
+        result = []
+        for r in rows:
+            dept = ens_dept_map.get(str(r.enseignant_id), "non_affecte")
+            if departement and departement != "non_affecte" and dept != departement:
+                continue
+            t = info.get(r.enseignant_id, {})
+            result.append({
+                "enseignant_id": r.enseignant_id,
+                "nom": t.get("teacher_name", r.enseignant_id),
+                "departement": t.get("department"),
+                "up": t.get("up"),
+                "gap_moyen": round(float(r.avg_gap or 0), 3),
+                "urgence": r.urgence,
+            })
+        result.sort(key=lambda x: x["gap_moyen"], reverse=True)
+        return result[:limit]
 
     # ── KPI 8 : Efficacité des formations ────────────────────
     def training_effectiveness(self) -> list[dict]:
@@ -467,7 +584,7 @@ class DashboardEngine:
         # des recommandations récentes (proxy faute de vérité terrain).
         reco_proba = (
             self.db.query(func.avg(Recommendation.probabilite_reussite))
-            .filter(Recommendation.created_at >= date.today() - timedelta(days=30))
+            .filter(Recommendation.created_at >= self._cutoff)
             .scalar()
         )
 
@@ -512,7 +629,7 @@ class DashboardEngine:
             # Fallback : enseignants ayant au moins un gap calculé.
             nb_suivis = (
                 self.db.query(func.count(func.distinct(SkillGap.enseignant_id)))
-                .filter(SkillGap.computed_at >= date.today() - timedelta(days=30))
+                .filter(SkillGap.computed_at >= self._cutoff)
                 .scalar() or 0
             )
 
@@ -520,7 +637,7 @@ class DashboardEngine:
         nb_gaps_critiques = (
             self.db.query(func.count(SkillGap.id))
             .filter(
-                SkillGap.computed_at >= date.today() - timedelta(days=30),
+                SkillGap.computed_at >= self._cutoff,
                 SkillGap.gap_score >= 0.7,
             )
             .scalar() or 0
@@ -529,7 +646,7 @@ class DashboardEngine:
         # Score de risque moyen proxy = gap moyen pondéré par les gaps critiques.
         avg_gap = (
             self.db.query(func.avg(SkillGap.gap_score))
-            .filter(SkillGap.computed_at >= date.today() - timedelta(days=30))
+            .filter(SkillGap.computed_at >= self._cutoff)
             .scalar()
         )
         score_risque_moyen = round(float(avg_gap or 0.0), 2)
@@ -545,20 +662,58 @@ class DashboardEngine:
         couverts = int(cov[1] or 0)
         taux_couverture = round(couverts / total_cov * 100, 1) if total_cov else 0.0
 
-        # Alertes nouvelles (non traitées) des 30 derniers jours.
+        # Alertes nouvelles (non traitées) sur la fenêtre.
         nb_alertes = (
             self.db.query(func.count(AlertEvent.id))
             .filter(
                 AlertEvent.statut.in_(["NOUVELLE", "LUE"]),
-                AlertEvent.created_at >= date.today() - timedelta(days=30),
+                AlertEvent.created_at >= self._cutoff,
+            )
+            .scalar() or 0
+        )
+
+        # Enseignants en régression (gap en_regression = True) sur la fenêtre.
+        nb_regression = (
+            self.db.query(func.count(func.distinct(SkillGap.enseignant_id)))
+            .filter(SkillGap.computed_at >= self._cutoff, SkillGap.en_regression.is_(True))
+            .scalar() or 0
+        )
+
+        # Enseignants en stagnation (>= 3 mois sans progression).
+        nb_stagnation = (
+            self.db.query(func.count(func.distinct(SkillGap.enseignant_id)))
+            .filter(SkillGap.computed_at >= self._cutoff, SkillGap.mois_stagnation >= 3)
+            .scalar() or 0
+        )
+
+        # Besoins critiques non satisfaits (gaps urgence CRITIQUE sur la fenêtre).
+        besoins_critiques = (
+            self.db.query(func.count(SkillGap.id))
+            .filter(
+                SkillGap.computed_at >= self._cutoff,
+                SkillGap.niveau_urgence == "CRITIQUE",
+            )
+            .scalar() or 0
+        )
+
+        # Alertes critiques ouvertes (CRITICAL, non traitées).
+        alertes_critiques = (
+            self.db.query(func.count(AlertEvent.id))
+            .filter(
+                AlertEvent.severite == "CRITICAL",
+                AlertEvent.statut.in_(["NOUVELLE", "LUE"]),
             )
             .scalar() or 0
         )
 
         return {
-            "nb_enseignants_suivis":   int(nb_suivis),
-            "score_risque_moyen":      score_risque_moyen,
-            "nb_gaps_critiques":       int(nb_gaps_critiques),
-            "nb_alertes_nouvelles":    int(nb_alertes),
-            "taux_couverture_global":  taux_couverture,
+            "nb_enseignants_suivis":              int(nb_suivis),
+            "score_risque_moyen":                 score_risque_moyen,
+            "nb_gaps_critiques":                  int(nb_gaps_critiques),
+            "nb_alertes_nouvelles":               int(nb_alertes),
+            "taux_couverture_global":             taux_couverture,
+            "nb_regression":                      int(nb_regression),
+            "nb_stagnation":                      int(nb_stagnation),
+            "besoins_critiques_non_satisfaits":   int(besoins_critiques),
+            "alertes_critiques_ouvertes":         int(alertes_critiques),
         }

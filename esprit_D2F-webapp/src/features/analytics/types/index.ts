@@ -213,6 +213,10 @@ export interface TopFormation {
   nb_recommandations: number;
   score_moyen: number;
   proba_reussite_moy: number;
+  enseignants_cibles: number;
+  departements: string[];
+  competences_couvertes: string[];
+  impact_estime: number;
 }
 
 export interface DashboardResponse {
@@ -224,6 +228,10 @@ export interface DashboardResponse {
     nb_gaps_critiques: number;
     nb_alertes_nouvelles: number;
     taux_couverture_global: number;
+    nb_regression: number;
+    nb_stagnation: number;
+    besoins_critiques_non_satisfaits: number;
+    alertes_critiques_ouvertes: number;
   };
   enseignants_a_risque: AtRiskTeacher[];
   competences_en_declin: DecliningSkill[];
