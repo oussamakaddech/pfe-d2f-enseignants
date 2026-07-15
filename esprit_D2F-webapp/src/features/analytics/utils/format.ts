@@ -28,6 +28,30 @@ export function scoreToRiskLevel(score: number): NiveauRisque {
   return "FAIBLE";
 }
 
+/* ── Statut décisionnel unifié (Stable / Stagnation / Régression / Critique) ──
+ * Reconciliation de la tendance et du niveau de risque en un seul état lisible,
+ * réutilisé partout (table, heatmap, alertes, actions). */
+export type StatutKey = "Stable" | "Stagnation" | "Regression" | "Critique";
+
+export const STATUT_META: Record<StatutKey, { label: string; color: string; dot: string }> = {
+  Critique: { label: "Critique", color: "#C8102E", dot: "●" },
+  Regression: { label: "Régression", color: "#ea580c", dot: "◑" },
+  Stagnation: { label: "Stagnation", color: "#d97706", dot: "◐" },
+  Stable: { label: "Stable", color: "#16a34a", dot: "●" },
+};
+
+export function teacherStatus(
+  tendance?: string | null,
+  niveauRisque?: NiveauRisque | string | null,
+): StatutKey {
+  const t = (tendance ?? "").toUpperCase();
+  const n = (niveauRisque ?? "").toUpperCase();
+  if (n === "CRITIQUE") return "Critique";
+  if (t === "DEGRADATION") return "Regression";
+  if (t === "STABLE" && (n === "MODERE" || n === "ELEVE")) return "Stagnation";
+  return "Stable";
+}
+
 export function gapSeverityColor(gapScore: number): string {
   if (gapScore >= 0.75) return "#f5222d";
   if (gapScore >= 0.5) return "#fa8c16";

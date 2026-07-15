@@ -1,6 +1,6 @@
 import { Table, Tag, Progress, Empty } from "antd";
 import type { ColumnsType } from "antd/es/table";
-import { riskColor, riskLabel, formatDepartment, formatUP } from "../utils/format";
+import { riskColor, riskLabel, formatDepartment, formatUP, teacherStatus, STATUT_META } from "../utils/format";
 import type { AtRiskTeacher } from "../types";
 
 interface AtRiskTeachersTableProps {
@@ -29,12 +29,27 @@ export default function AtRiskTeachersTable({
       defaultSortOrder: "descend",
     },
     {
+      title: "Statut",
+      key: "statut",
+      render: (_: unknown, r: AtRiskTeacher) => {
+        const s = teacherStatus(r.tendance, r.niveau_risque);
+        const meta = STATUT_META[s];
+        return (
+          <Tag color={meta.color} style={{ fontWeight: 600 }}>
+            {meta.dot} {meta.label}
+          </Tag>
+        );
+      },
+      sorter: (a, b) =>
+        Object.keys(STATUT_META).indexOf(teacherStatus(a.tendance, a.niveau_risque)) -
+        Object.keys(STATUT_META).indexOf(teacherStatus(b.tendance, b.niveau_risque)),
+    },
+    {
       title: "Niveau",
       dataIndex: "niveau_risque",
       render: (v: AtRiskTeacher["niveau_risque"]) => <Tag color={riskColor(v)}>{riskLabel(v)}</Tag>,
     },
     { title: "Gaps critiques", dataIndex: "nb_gaps_critiques", sorter: (a, b) => a.nb_gaps_critiques - b.nb_gaps_critiques },
-    { title: "Tendance", dataIndex: "tendance" },
   ];
 
   if (!loading && teachers.length === 0) return <Empty description="Aucun enseignant à risque" />;
