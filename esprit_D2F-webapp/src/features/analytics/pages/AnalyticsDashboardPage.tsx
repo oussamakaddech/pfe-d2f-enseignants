@@ -13,7 +13,13 @@ import {
   FilePdfOutlined, BulbOutlined,
 } from "@ant-design/icons";
 import { useQuery } from "@tanstack/react-query";
-import { useDashboard, useAtRisk } from "../hooks/useAnalyticsQueries";
+import {
+  useDashboard,
+  useAtRisk,
+  useAlerts,
+  useUpdateAlert,
+  useDecliningSkills,
+} from "../hooks/useAnalyticsQueries";
 import { analyticsApi } from "../services/analyticsApi";
 import {
   AtRiskTeachersTable, DecliningSkillsChart, RiskDistributionChart,
@@ -126,6 +132,9 @@ export default function AnalyticsDashboardPage() {
 
   const dashboard = useDashboard({ ...filters, ...periode });
   const atRisk = useAtRisk({ ...filters, ...periode });
+  const alerts = useAlerts({ departement_id: filters.departement_id, size: 100 });
+  const updateAlert = useUpdateAlert();
+  const declining = useDecliningSkills(filters);
   const data = dashboard.data;
   const kpis = data?.kpis;
 
@@ -234,6 +243,9 @@ export default function AnalyticsDashboardPage() {
           </Button>
           <Button className="ad-refresh-btn" icon={<DownloadOutlined />} onClick={onExport}>
             Export CSV
+          </Button>
+          <Button className="ad-refresh-btn" icon={<LineChartOutlined />} onClick={() => navigate("/home/analytics/pilotage")}>
+            Prévision
           </Button>
           <Button
             className="ad-refresh-btn"
@@ -372,9 +384,9 @@ export default function AnalyticsDashboardPage() {
           </Section>
         </Col>
         <Col xs={24} lg={10}>
-          <Section title="Compétences en décrochage" icon={<FallOutlined />} loading={dashboard.isLoading}>
-            {data?.competences_en_declin?.length
-              ? <DecliningSkillsChart skills={data.competences_en_declin} loading={dashboard.isLoading} />
+          <Section title="Compétences en décrochage" icon={<FallOutlined />} loading={declining.isLoading}>
+            {declining.data?.length
+              ? <DecliningSkillsChart skills={declining.data} loading={declining.isLoading} />
               : <div className="ad-empty"><Empty description="Aucune compétence en déclin détectée" /></div>}
           </Section>
         </Col>
@@ -382,11 +394,14 @@ export default function AnalyticsDashboardPage() {
         {/* ── Ligne 4 : alertes + tendances ─────── */}
         <Col xs={24} lg={12}>
           <Section title="Alertes & signaux à traiter" icon={<WarningOutlined />}
-            extra={<Tag color="orange">{(data?.alertes_recentes?.length ?? 0)}</Tag>}
-            loading={dashboard.isLoading}>
-            {data?.alertes_recentes?.length
-              ? <AlertCenter alerts={data.alertes_recentes} loading={dashboard.isLoading} />
-              : <div className="ad-empty"><Empty description="Aucune alerte récente" /></div>}
+            extra={<Tag color="orange">{(alerts.data?.alerts ?? []).length}</Tag>}
+            loading={alerts.isLoading}>
+            <AlertCenter
+              alerts={alerts.data?.alerts ?? []}
+              loading={alerts.isLoading}
+              onUpdate={(id, payload) => updateAlert.mutate({ id, payload })}
+              onSelectEnseignant={(id) => navigate(`/home/analytics/teacher/${id}`)}
+            />
           </Section>
         </Col>
         <Col xs={24} lg={12}>

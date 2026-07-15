@@ -7,6 +7,7 @@ const AnalyticsTeacherPage = lazy(() => import("../pages/AnalyticsTeacherPage"))
 const AnalyticsDashboardPage = lazy(() => import("../pages/AnalyticsDashboardPage"));
 const ModelMonitoringPage = lazy(() => import("../pages/ModelMonitoringPage"));
 const HeatmapPage = lazy(() => import("../pages/HeatmapPage"));
+const ForecastPage = lazy(() => import("../pages/ForecastPage"));
 
 /**
  * Routes du feature-module Analytics.
@@ -43,6 +44,12 @@ export const analyticsRoutes = (
       element={<RoleGuard allowedRoles={[ROLES.ADMIN]} />}
     >
       <Route index element={<ModelMonitoringPage />} />
+    </Route>
+    <Route
+      path="/home/analytics/forecast"
+      element={<RoleGuard allowedRoles={[ROLES.ADMIN, ROLES.CUP, ROLES.CHEF_DEPARTEMENT]} />}
+    >
+      <Route index element={<ForecastPage />} />
     </Route>
   </>
 );

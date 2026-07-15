@@ -1,5 +1,5 @@
 import { List, Card, Tag, Progress, Typography, Empty } from "antd";
-import { CheckCircleOutlined, CloseCircleOutlined } from "@ant-design/icons";
+import { CheckCircleOutlined, CloseCircleOutlined, ArrowRightOutlined } from "@ant-design/icons";
 import type { Recommendation } from "../types";
 
 interface RecommendationsListProps {
@@ -46,6 +46,12 @@ export default function RecommendationsList({
               />
             </div>
             <div style={{ marginTop: 6 }}>
+              {r.niveau_actuel != null && r.niveau_apres != null && (
+                <Tag color="green" icon={<ArrowRightOutlined />}>
+                  Impact : {Math.round(r.niveau_actuel * 100)}% → {Math.round(r.niveau_apres * 100)}% après formation
+                  {" "}(−{Math.round((r.niveau_actuel - r.niveau_apres) * 100)} pts)
+                </Tag>
+              )}
               {r.est_prerequis && <Tag color="gold">prérequis</Tag>}
               {!r.prerequis_satisfaits && <Tag color="red">prérequis manquants</Tag>}
               {r.statut === "ACCEPTEE" && (

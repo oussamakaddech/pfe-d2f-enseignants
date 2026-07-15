@@ -18,6 +18,8 @@ import { config } from "@/config/env";
 import type {
   AnalyseResult,
   AlertEvent,
+  AlertListResponse,
+  AlertUpdatePayload,
   AtRiskTeacher,
   DashboardFilters,
   DashboardResponse,
@@ -26,8 +28,10 @@ import type {
   GapsResponse,
   HeatmapCell,
   ModelStatus,
+  PilotageResponse,
   RecommendationsResponse,
   RetrainResponse,
+  RiskHistoryResponse,
   RiskScore,
   TrainingPath,
 } from "../types";
@@ -223,6 +227,22 @@ export const analyticsApi = {
     return axios.get<RiskScore>(`${BASE}/risk/${enseignantId}`).then((r) => r.data);
   },
 
+  // Endpoint backend réel : /enseignants/{id}/historique-risque (F3).
+  getRiskHistory(enseignantId: string, mois = 12): Promise<RiskHistoryResponse> {
+    return axios
+      .get<RiskHistoryResponse>(`${BASE}/enseignants/${enseignantId}/historique-risque`, {
+        params: { mois },
+      })
+      .then((r) => r.data);
+  },
+
+  // Endpoint backend réel : /pilotage (F9).
+  getPilotage(horizonMois?: number): Promise<PilotageResponse> {
+    return axios
+      .get<PilotageResponse>(`${BASE}/pilotage`, { params: horizonMois ? { horizon_mois: horizonMois } : {} })
+      .then((r) => r.data);
+  },
+
   // ── Dashboard global ─────────────────────────────────
   // Endpoint backend réel : /dashboard/global (snapshot cache ≤ 6h).
   getDashboard(filters?: DashboardFilters): Promise<DashboardResponse> {
@@ -262,6 +282,29 @@ export const analyticsApi = {
       .get<DecliningSkill[]>(`${BASE}/dashboard/competences-declining`, {
         params: toParams(filters),
       })
+      .then((r) => r.data);
+  },
+
+  // ── Alertes (F5/F6) ────────────────────────────────
+  // Endpoint backend réel : GET /alerts (filtres + pagination).
+  getAlerts(filters: {
+    type_alerte?: string;
+    severite?: string;
+    statut?: string;
+    enseignant_id?: string;
+    departement_id?: string;
+    page?: number;
+    size?: number;
+  } = {}): Promise<AlertListResponse> {
+    return axios
+      .get<AlertListResponse>(`${BASE}/alerts`, { params: filters })
+      .then((r) => r.data);
+  },
+
+  // Endpoint backend réel : PATCH /alerts/{id} (cycle de vie).
+  updateAlert(id: number, payload: AlertUpdatePayload): Promise<{ id: number; statut: string }> {
+    return axios
+      .patch<{ id: number; statut: string }>(`${BASE}/alerts/${id}`, payload)
       .then((r) => r.data);
   },
 

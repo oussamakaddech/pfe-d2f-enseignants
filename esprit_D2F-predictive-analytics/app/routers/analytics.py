@@ -3,7 +3,7 @@
 import asyncio
 import logging
 import time
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from typing import Annotated, Any, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
@@ -45,7 +45,7 @@ from app.engines.recommendation_engine import RecommendationEngine
 from app.engines.risk_scoring import build_factors_from_gaps, compute_risk_score
 from app.models.db_models import (
     AlertEvent, PredictionResult, Recommendation,
-    SkillGap, TeacherRiskProfile, TrainingPath, TrainingPathItem,
+    SkillGap, TeacherRiskProfile, TeacherRiskSnapshot, TrainingPath, TrainingPathItem,
 )
 from app.models.schemas import (
     TrainingImpactResponse,
@@ -214,7 +214,7 @@ def _get_teacher_or_404(svc: DataService, enseignant_id: str, request: Request) 
     return profiles[0]
 
 
-def _reco_to_dict(r: "Recommendation", competence_nom: str | None = None) -> dict[str, Any]:
+def _reco_to_dict(r: "Recommendation", competence_nom: str | None = None, niveau_actuel: float | None = None) -> dict[str, Any]:
     """Normalise une Recommandation en dict (scoring avancé complet).
 
     Expose le détail MSAS déjà persisté (pertinence, taux de réussite,
@@ -236,6 +236,8 @@ def _reco_to_dict(r: "Recommendation", competence_nom: str | None = None) -> dic
         "facteurs_score":       r.facteurs_score or {},
         "rang_dans_parcours":   r.rang_dans_parcours,
         "justification":        r.justification,
+        "niveau_actuel":        float(niveau_actuel) if niveau_actuel is not None else None,
+        "niveau_apres":         float(r.niveau_apres) if getattr(r, "niveau_apres", None) is not None else None,
         "statut":               r.statut,
     }
 
@@ -389,6 +391,13 @@ def _upsert_risk_profile(db: Session, enseignant_id: str, gaps: list, snapshot: 
             taux_completion_formations = taux_comp,
             facteurs_risque            = facteurs_risque,
         ))
+    # F3 — point d'historique à chaque recalcul de profil.
+    db.add(TeacherRiskSnapshot(
+        enseignant_id = enseignant_id,
+        score_risque  = score_risque,
+        niveau_risque = niveau,
+        tendance      = tendance,
+    ))
     db.flush()
 
 
@@ -439,6 +448,124 @@ async def get_gaps(
     }
 
 
+# ── GET /api/v1/analytics/risk/{enseignantId} ───────────────
+@router.get(
+    "/risk/{enseignant_id}",
+    summary="Score de risque explicabile d'un enseignant (facteurs pondérés)",
+    responses={404: {"description": "Profil de risque introuvable"}},
+)
+async def get_risk(
+    enseignant_id: str,
+    db: DbSession,
+) -> dict[str, Any]:
+    """Retourne le score de risque + la décomposition explicative (F1).
+
+    Lit ``TeacherRiskProfile.facteurs_risque`` (factors / contributions /
+    weights) calculé par le pipeline et le mappe vers des ``RiskFactor``
+    lisibles (libellé FR + explication vulgarisée)."""
+    profile = (
+        db.query(TeacherRiskProfile)
+        .filter_by(enseignant_id=enseignant_id)
+        .first()
+    )
+    if not profile:
+        raise HTTPException(
+            status_code=404,
+            detail=_dsi_error(404, "RISK-404", f"Profil de risque de {enseignant_id} introuvable", f"/v1/analytics/risk/{enseignant_id}"),
+        )
+
+    fr = profile.facteurs_risque if isinstance(profile.facteurs_risque, dict) else {}
+    factors = fr.get("factors", {}) or {}
+    contributions = fr.get("contributions", {}) or {}
+    weights = fr.get("weights", {}) or {}
+
+    labels = {
+        "no_training":      "Absence de formation",
+        "stagnation":       "Stagnation",
+        "gap_count":        "Proportion de gaps critiques",
+        "feedback_decline": "Régression",
+        "unmet_needs":      "Besoins non satisfaits",
+    }
+    explications = {
+        "no_training":      "Part du risque liée à l'absence prolongée de formation ou à une faible complétion.",
+        "stagnation":       "Compétences sans progression notable depuis longtemps.",
+        "gap_count":        "Part de gaps classés critiques (écart élevé vs niveau requis).",
+        "feedback_decline": "Présence d'au moins un gap en régression (tendance à la baisse).",
+        "unmet_needs":      "Besoins exprimés par l'enseignant encore non couverts.",
+    }
+    order = ("no_training", "stagnation", "gap_count", "feedback_decline", "unmet_needs")
+    facteurs = [
+        {
+            "nom":          labels.get(k, k),
+            "valeur_brute": round(float(factors.get(k, 0.0)), 4),
+            "poids":        round(float(weights.get(k, 0.0)), 4),
+            "contribution": round(float(contributions.get(k, 0.0)), 4),
+            "explication":  explications.get(k, ""),
+        }
+        for k in order
+    ]
+
+    tendance = (profile.tendance or "STABLE").upper()
+    tendance_ui = "DEGRADATION" if tendance == "REGRESSION" else ("AMELIORATION" if tendance == "AMELIORATION" else "STABLE")
+
+    return {
+        "enseignant_id":    enseignant_id,
+        "score":            round(float(profile.score_risque or 0.0), 4),
+        "niveau":           profile.niveau_risque,
+        "facteurs":         facteurs,
+        "tendance":         tendance_ui,
+        "precedent_score":  round(float(profile.precedent_score_risque), 4)
+                            if profile.precedent_score_risque is not None else None,
+        "computed_at":      profile.computed_at.isoformat() if profile.computed_at else None,
+    }
+
+
+# ── GET /api/v1/analytics/enseignants/{id}/historique-risque ─
+@router.get(
+    "/enseignants/{enseignant_id}/historique-risque",
+    summary="Historique du score de risque dans le temps (F3)",
+    responses={404: {"description": "Profil de risque introuvable"}},
+)
+async def historique_risque(
+    enseignant_id: str,
+    db: DbSession,
+    mois: Annotated[int, Query(ge=1, le=60)] = 12,
+) -> dict[str, Any]:
+    """Série temporelle du score de risque (F3) pour identifier amélioration /
+    stagnation / régression. Backfill de démonstration si aucun snapshot."""
+    cutoff = date.today() - timedelta(days=mois * 31)
+    rows = (
+        db.query(TeacherRiskSnapshot)
+        .filter(
+            TeacherRiskSnapshot.enseignant_id == enseignant_id,
+            TeacherRiskSnapshot.snapshot_date >= cutoff,
+        )
+        .order_by(TeacherRiskSnapshot.snapshot_date.asc(), TeacherRiskSnapshot.computed_at.asc())
+        .all()
+    )
+    points: list[dict[str, Any]] = [
+        {
+            "date": r.snapshot_date.isoformat(),
+            "score": round(float(r.score_risque), 4),
+            "niveau": r.niveau_risque,
+            "tendance": r.tendance,
+        }
+        for r in rows
+    ]
+    if not points:
+        prof = db.query(TeacherRiskProfile).filter_by(enseignant_id=enseignant_id).first()
+        if prof:
+            today = date.today()
+            if prof.precedent_score_risque is not None:
+                points = [
+                    {"date": (today - timedelta(days=180)).isoformat(), "score": round(float(prof.precedent_score_risque), 4), "niveau": prof.niveau_risque, "tendance": "STABLE"},
+                    {"date": today.isoformat(), "score": round(float(prof.score_risque), 4), "niveau": prof.niveau_risque, "tendance": prof.tendance},
+                ]
+            else:
+                points = [{"date": today.isoformat(), "score": round(float(prof.score_risque), 4), "niveau": prof.niveau_risque, "tendance": prof.tendance}]
+    return {"enseignant_id": enseignant_id, "points": points}
+
+
 # ── GET /api/v1/analytics/recommendations/{enseignantId} ────
 @router.get("/recommendations/{enseignant_id}", summary="Recommandations de formations")
 async def get_recommendations(
@@ -449,7 +576,7 @@ async def get_recommendations(
     size: SizeParam = 20,
 ) -> dict[str, Any]:
     q = (
-        db.query(Recommendation, SkillGap.competence_nom)
+        db.query(Recommendation, SkillGap.competence_nom, SkillGap.niveau_actuel)
         .outerjoin(SkillGap, Recommendation.skill_gap_id == SkillGap.id)
         .filter(
             Recommendation.enseignant_id == enseignant_id,
@@ -469,7 +596,7 @@ async def get_recommendations(
         "page":          page,
         "size":          size,
         "recommendations": [
-            _reco_to_dict(r, nom) for r, nom in rows
+            _reco_to_dict(r, nom, nv_act) for r, nom, nv_act in rows
         ],
     }
 
@@ -496,7 +623,7 @@ async def get_recommendations_grouped(
         )
 
     rows = (
-        db.query(Recommendation, SkillGap.competence_nom)
+        db.query(Recommendation, SkillGap.competence_nom, SkillGap.niveau_actuel)
         .outerjoin(SkillGap, Recommendation.skill_gap_id == SkillGap.id)
         .filter(
             Recommendation.enseignant_id == enseignant_id,
@@ -505,7 +632,7 @@ async def get_recommendations_grouped(
         .order_by(Recommendation.score_global.desc())
         .all()
     )
-    recs = [_reco_to_dict(r, nom) for r, nom in rows]
+    recs = [_reco_to_dict(r, nom, nv_act) for r, nom, nv_act in rows]
     groups = _group_recommendations(recs, group_by)
     return {
         "enseignant_id": enseignant_id,
@@ -725,9 +852,15 @@ async def dashboard_teachers_by_cell(
 
 
 # ── GET /api/v1/analytics/dashboard/competences-declining ────
-@router.get("/dashboard/competences-declining", summary="Compétences en déclin")
-async def dashboard_competences_declining(db: DbSession) -> list[dict]:
-    return DashboardEngine(db).competences_en_declin()
+@router.get("/dashboard/competences-declining", summary="Compétences en déclin (filtr. dept/UP)")
+async def dashboard_competences_declining(
+    db: DbSession,
+    departement_id: DepartementIdFilter = None,
+    up_id: Annotated[Optional[str], Query(description="Filtre par UP (ex. UP_INFO)")] = None,
+) -> list[dict]:
+    return DashboardEngine(db).competences_en_declin(
+        departement_id=departement_id, up_id=up_id,
+    )
 
 
 # ── GET /api/v1/analytics/dashboard/teachers-at-risk ─────────

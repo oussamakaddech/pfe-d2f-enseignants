@@ -32,6 +32,26 @@ export const SEVERITE_COLORS: Record<SeveriteAlerte, string> = {
   CRITICAL: "red",
 } as unknown as Record<SeveriteAlerte, string>;
 
+/** Cycle de vie d'une alerte (F5) : libellés + couleurs de badge. */
+export const STATUT_ALERTE_LABELS: Record<string, string> = {
+  NOUVELLE: "Nouvelle",
+  LUE: "En cours",
+  TRAITEE: "Résolue",
+  IGNOREE: "Ignorée",
+  ESCALADEE: "Escaladée",
+};
+
+export const STATUT_ALERTE_COLORS: Record<string, string> = {
+  NOUVELLE: "blue",
+  LUE: "cyan",
+  TRAITEE: "green",
+  IGNOREE: "default",
+  ESCALADEE: "red",
+};
+
+/** Statuts considérés « ouverts » pour les compteurs de priorité. */
+export const ALERT_STATUTS_OUVERTS = ["NOUVELLE", "LUE"];
+
 export const RISK_LEVEL_LABELS: Record<NiveauRisque, string> = {
   FAIBLE: "Faible",
   MODERE: "Modéré",

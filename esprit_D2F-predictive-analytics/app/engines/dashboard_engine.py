@@ -5,7 +5,7 @@ from collections import defaultdict
 from datetime import date, datetime, timedelta, timezone
 from typing import Any
 
-from sqlalchemy import Integer, func
+from sqlalchemy import Integer, func, text
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
@@ -111,13 +111,35 @@ class DashboardEngine:
         return kpis
 
     # ── KPI 1 : Compétences en déclin ────────────────────────
-    def competences_en_declin(self) -> list[dict]:
-        """Compétences dont le niveau moyen a baissé sur 6 mois."""
+    def competences_en_declin(
+        self, departement_id: str | None = None, up_id: str | None = None,
+    ) -> list[dict]:
+        """Compétences dont le niveau moyen a baissé sur 6 mois.
+
+        Filtrable par département / UP (F7) : on restreint aux enseignants du
+        périmètre via une sous-requête sur la table ``enseignants``.
+        """
         today      = date.today()
         six_months = today - timedelta(days=180)
 
+        ens_filter: list[str] | None = None
+        if departement_id or up_id:
+            cond = ["deleted_at IS NULL"]
+            params: dict[str, Any] = {}
+            if departement_id:
+                cond.append("dept_id = :dept")
+                params["dept"] = departement_id
+            if up_id:
+                cond.append("up_id = :up")
+                params["up"] = up_id
+            rows = self.db.execute(
+                text("SELECT id FROM enseignants WHERE " + " AND ".join(cond)),
+                params,
+            ).fetchall()
+            ens_filter = [str(r[0]) for r in rows]
+
         # Niveaux actuels (30 derniers jours)
-        recent = (
+        q_recent = (
             self.db.query(
                 SkillGap.competence_id,
                 SkillGap.competence_nom,
@@ -125,12 +147,9 @@ class DashboardEngine:
                 func.avg(SkillGap.niveau_actuel).label("niveau_moy_actuel"),
             )
             .filter(SkillGap.computed_at >= today - timedelta(days=30))
-            .group_by(SkillGap.competence_id, SkillGap.competence_nom, SkillGap.domaine_nom)
-            .all()
         )
-
         # Niveaux il y a 6 mois (±30 jours)
-        old = (
+        q_old = (
             self.db.query(
                 SkillGap.competence_id,
                 func.avg(SkillGap.niveau_actuel).label("niveau_moy_ancien"),
@@ -139,9 +158,15 @@ class DashboardEngine:
                 SkillGap.computed_at >= six_months - timedelta(days=30),
                 SkillGap.computed_at <  six_months + timedelta(days=30),
             )
-            .group_by(SkillGap.competence_id)
-            .all()
         )
+        if ens_filter is not None:
+            q_recent = q_recent.filter(SkillGap.enseignant_id.in_(ens_filter))
+            q_old = q_old.filter(SkillGap.enseignant_id.in_(ens_filter))
+
+        recent = q_recent.group_by(
+            SkillGap.competence_id, SkillGap.competence_nom, SkillGap.domaine_nom
+        ).all()
+        old = q_old.group_by(SkillGap.competence_id).all()
         old_index = {r.competence_id: float(r.niveau_moy_ancien) for r in old}
 
         result = []

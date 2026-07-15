@@ -6,9 +6,12 @@ import { useCallback, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { analyticsApi } from "../services/analyticsApi";
 import type {
+  AlertUpdatePayload,
   DashboardFilters,
   GapsResponse,
+  PilotageResponse,
   RecommendationsResponse,
+  RiskHistoryResponse,
   RiskScore,
   TrainingPath,
 } from "../types";
@@ -63,6 +66,21 @@ export function useTeacherRisk(enseignantId: string) {
   });
 }
 
+export function useRiskHistory(enseignantId: string, mois = 12) {
+  return useQuery<RiskHistoryResponse>({
+    queryKey: ["analytics", "risk-history", enseignantId, mois],
+    queryFn: () => analyticsApi.getRiskHistory(enseignantId, mois),
+    enabled: !!enseignantId,
+  });
+}
+
+export function usePilotage(horizonMois?: number) {
+  return useQuery<PilotageResponse>({
+    queryKey: ["analytics", "pilotage", horizonMois],
+    queryFn: () => analyticsApi.getPilotage(horizonMois),
+  });
+}
+
 // ── Dashboard global ───────────────────────────────────────
 export function useDashboard(filters?: DashboardFilters) {
   return useQuery({
@@ -89,6 +107,34 @@ export function useDecliningSkills(filters?: DashboardFilters) {
   return useQuery({
     queryKey: ["analytics", "declining", filters],
     queryFn: () => analyticsApi.getDecliningSkills(filters),
+  });
+}
+
+// ── Alertes (F5/F6) ───────────────────────────────────────
+export function useAlerts(filters?: {
+  type_alerte?: string;
+  severite?: string;
+  statut?: string;
+  enseignant_id?: string;
+  departement_id?: string;
+  page?: number;
+  size?: number;
+}) {
+  return useQuery({
+    queryKey: ["analytics", "alerts", filters],
+    queryFn: () => analyticsApi.getAlerts(filters),
+  });
+}
+
+export function useUpdateAlert() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, payload }: { id: number; payload: AlertUpdatePayload }) =>
+      analyticsApi.updateAlert(id, payload),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["analytics", "alerts"] });
+      qc.invalidateQueries({ queryKey: ["analytics", "dashboard"] });
+    },
   });
 }
 

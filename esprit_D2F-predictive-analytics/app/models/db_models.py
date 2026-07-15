@@ -154,6 +154,25 @@ class TeacherRiskProfile(Base):
     precedent_score_risque     = Column(Numeric(5, 4))
 
 
+class TeacherRiskSnapshot(Base):
+    """Historique des scores de risque (F3) — un point par recalcul de profil.
+
+    Permet de tracer l'évolution du score dans le temps (amélioration,
+    stagnation, régression) indépendamment de ``teacher_risk_profiles``
+    (qui ne conserve que le score courant + précédent).
+    """
+
+    __tablename__ = "teacher_risk_snapshots"
+
+    id              = Column(BigInteger, primary_key=True, autoincrement=True)
+    enseignant_id   = Column(String(36), nullable=False, index=True)
+    snapshot_date   = Column(Date, nullable=False, default=date.today)
+    score_risque    = Column(Numeric(5, 4), nullable=False, default=0.0)
+    niveau_risque   = Column(String(20), nullable=False, default="FAIBLE")
+    tendance        = Column(String(20), nullable=False, default="STABLE")
+    computed_at     = Column(DateTime(timezone=True), default=_now)
+
+
 class PredictionResult(Base):
     __tablename__ = "prediction_results"
 

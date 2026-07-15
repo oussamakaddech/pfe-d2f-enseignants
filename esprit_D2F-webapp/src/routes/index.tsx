@@ -46,7 +46,7 @@ const AffectationEnseignantPage = lazy(() => import("@/pages/competence/Affectat
 const RicePage = lazy(() => import("@/pages/competence/RicePage"));
 const CompetenceMatchingPage = lazy(() => import("@/pages/competence/CompetenceMatchingPage"));
 const EvaluationGlobalePage = lazy(() => import("@/pages/evaluation/EvaluationGlobalePage"));
-const TeacherAnalyticsPage = lazy(() => import("@/pages/analyse/TeacherAnalyticsPage"));
+const TeacherAnalyticsPage = lazy(() => import("@/features/analytics/pages/AnalyticsTeacherPage"));
 const AnalysePredictivePage = lazy(() => import("@/pages/analyse/AnalyticsPage"));
 const EnseignantsInactifsPage = lazy(() => import("@/pages/analyse/EnseignantsInactifsPage"));
 const FormationsParPeriodePage = lazy(() => import("@/pages/analyse/FormationsParPeriodePage"));
@@ -61,7 +61,7 @@ const AnomalyDetectionPage = lazy(() => import("@/pages/analyse/AnomalyDetection
 const AnalyticsDashboardPage = lazy(() => import("@/features/analytics/pages/AnalyticsDashboardPage"));
 const HeatmapPage = lazy(() => import("@/features/analytics/pages/HeatmapPage"));
 const ModelMonitoringPage = lazy(() => import("@/features/analytics/pages/ModelMonitoringPage"));
-const PilotageDashboardPage = lazy(() => import("@/pages/analyse/PilotageDashboardPage"));
+const ForecastPage = lazy(() => import("@/features/analytics/pages/ForecastPage"));
 
 function PageSkeleton() {
   return (
@@ -150,7 +150,7 @@ export default function AppRoutes() {
                   <Route path="/home/analytics/forecast" element={<SkillForecastPage />} />
                   <Route path="/home/analytics/benchmark" element={<PeerBenchmarkPage />} />
                   <Route path="/home/analytics/anomalies" element={<AnomalyDetectionPage />} />
-                  <Route path="/home/analytics/pilotage" element={<PilotageDashboardPage />} />
+                  <Route path="/home/analytics/pilotage" element={<ForecastPage />} />
                 </Route>
 
                 <Route element={<RoleGuard allowedRoles={[ROLES.ENSEIGNANT, ROLES.ANIMATEUR]} />}>

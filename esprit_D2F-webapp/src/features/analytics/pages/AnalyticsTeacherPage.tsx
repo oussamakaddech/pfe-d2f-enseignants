@@ -8,6 +8,7 @@ import {
   useTeacherRecommendations,
   useTeacherRisk,
   useTeacherTrainingPath,
+  useRiskHistory,
 } from "../hooks/useAnalyticsQueries";
 import {
   RiskScoreCard,
@@ -15,6 +16,7 @@ import {
   GapsTable,
   RecommendationsList,
   TrainingPathStepper,
+  RiskHistoryChart,
 } from "../components";
 import { URGENCE_COLORS } from "../constants";
 import { AppPageHeader } from "@/components/common";
@@ -34,6 +36,7 @@ export default function AnalyticsTeacherPage() {
   const gaps = useTeacherGaps(enseignantId, urgence);
   const recos = useTeacherRecommendations(enseignantId, competenceId ?? undefined);
   const path = useTeacherTrainingPath(enseignantId, competenceId);
+  const history = useRiskHistory(enseignantId);
 
   const loading = analyze.isPending || risk.isLoading || gaps.isLoading || recos.isLoading;
 
@@ -118,6 +121,11 @@ export default function AnalyticsTeacherPage() {
               key: "path",
               label: "Parcours de formation",
               children: <TrainingPathStepper path={path.data} loading={path.isLoading} />,
+            },
+            {
+              key: "history",
+              label: "Historique du risque",
+              children: <RiskHistoryChart points={history.data?.points ?? []} loading={history.isLoading} />,
             },
           ]}
         />

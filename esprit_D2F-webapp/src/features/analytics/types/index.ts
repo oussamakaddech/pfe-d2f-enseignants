@@ -44,6 +44,19 @@ export interface RiskScore {
   computed_at: string;
 }
 
+// ── Historique du score de risque (F3) ───────────────
+export interface RiskHistoryPoint {
+  date: string;
+  score: number; // 0..1
+  niveau: NiveauRisque;
+  tendance: string;
+}
+
+export interface RiskHistoryResponse {
+  enseignant_id: string;
+  points: RiskHistoryPoint[];
+}
+
 // ── Gaps de compétence ─────────────────────────────────────
 export interface SkillGap {
   id: number;
@@ -89,6 +102,7 @@ export interface Recommendation {
   est_prerequis: boolean;
   prerequis_satisfaits: boolean;
   niveau_apres: number | null;
+  niveau_actuel: number | null;
   justification: string | null;
   statut: "PROPOSEE" | "ACCEPTEE" | "IGNOREE" | "OBSOLETE";
 }
@@ -158,6 +172,20 @@ export interface AlertEvent {
   created_at: string;
 }
 
+export interface AlertListResponse {
+  total: number;
+  page: number;
+  size: number;
+  alerts: AlertEvent[];
+}
+
+/** Payload de mise à jour du cycle de vie d'une alerte (F5). */
+export interface AlertUpdatePayload {
+  statut: StatutAlerte;
+  traite_par?: string;
+  commentaire?: string;
+}
+
 // ── Dashboard global ──────────────────────────────────────
 export interface AtRiskTeacher {
   enseignant_id: string;
@@ -217,6 +245,46 @@ export interface TopFormation {
   departements: string[];
   competences_couvertes: string[];
   impact_estime: number;
+}
+
+// ── Prévision institutionnelle (F9) ──────────────────────
+export interface PilotageForecastKpis {
+  horizon_mois: number;
+  nb_enseignants: number;
+  niveau_projet_moyen: number;
+  pct_objectifs_atteignables: number;
+  nb_competences_regression: number;
+  nb_competences_suivies: number;
+}
+
+export interface PilotageBenchmarkDept {
+  departement_id: string;
+  niveau_moyen: number;
+  ecart_vs_cohorte: number;
+  nb_enseignants: number;
+  position: "AU_DESSUS" | "EN_DECA";
+}
+
+export interface PilotageAnomalies {
+  nb_anomalies_recentes: number;
+  fenetre_jours: number;
+  nb_nouvelles: number;
+  alertes: AlertEvent[];
+}
+
+export interface PilotageCorrelation {
+  coefficient_pearson: number | null;
+  nb_competences: number;
+  top_paires: Array<{ competence_id: number; nb_besoins: number; nb_gaps: number }>;
+  interpretation: string;
+}
+
+export interface PilotageResponse {
+  forecast_kpis: PilotageForecastKpis;
+  benchmark_departements: PilotageBenchmarkDept[];
+  anomalies_live: PilotageAnomalies;
+  correlation_besoins_gaps: PilotageCorrelation;
+  generated_at: string;
 }
 
 export interface DashboardResponse {

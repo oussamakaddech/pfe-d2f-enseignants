@@ -11,3 +11,4 @@ export { default as RiskDistributionChart } from "./RiskDistributionChart";
 export { default as TrendChart } from "./TrendChart";
 export { default as ModelStatusPanel } from "./ModelStatusPanel";
 export { default as AlertCenter } from "./AlertCenter";
+export { default as RiskHistoryChart } from "./RiskHistoryChart";
