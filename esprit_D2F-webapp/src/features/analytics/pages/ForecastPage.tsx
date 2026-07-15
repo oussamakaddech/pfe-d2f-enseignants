@@ -2,6 +2,7 @@ import { Card, Col, Row, Statistic, Table, Tag, Alert, Empty, Spin } from "antd"
 import {
   usePilotage,
 } from "../hooks/useAnalyticsQueries";
+import { TrainingImpactPanel } from "../components";
 import type { AlertEvent } from "../types";
 import { AppPageHeader } from "@/components/common";
 
@@ -48,6 +49,10 @@ export default function ForecastPage() {
               </Card>
             </Col>
           </Row>
+
+          <Card title="Impact des formations suivies (historique réel)" style={{ marginBottom: 16, borderRadius: 12 }}>
+            <TrainingImpactPanel />
+          </Card>
 
           <Card title="Positionnement des départements" style={{ marginBottom: 16, borderRadius: 12 }}>
             <Table

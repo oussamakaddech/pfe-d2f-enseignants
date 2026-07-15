@@ -292,6 +292,7 @@ export interface DashboardResponse {
   filtres: DashboardFilters;
   kpis: {
     nb_enseignants_suivis: number;
+    nb_profils_risque: number;
     score_risque_moyen: number;
     nb_gaps_critiques: number;
     nb_alertes_nouvelles: number;
@@ -350,6 +351,76 @@ export interface RetrainResponse {
 export interface PageQuery {
   page?: number;
   size?: number;
+}
+
+// ── Impact d'une formation recommandée (F8) ────────────────
+export interface TrainingImpactResponse {
+  nb_enseignants_suivis: number;
+  nb_chemins_termines: number;
+  nb_formations_suivies: number;
+  gain_niveau_moyen: number;
+  reduction_risque_moyenne: number;
+  nb_risque_reduit: number;
+  nb_risque_augmente: number;
+}
+
+export interface FormationImpactRow {
+  formation_id: number;
+  formation_titre: string;
+  formation_type: string | null;
+  nb_enseignants: number;
+  gain_niveau_moyen: number;
+  niveau_moyen_avant: number;
+  niveau_moyen_apres: number;
+}
+
+export interface TrainingImpactTopFormationsResponse {
+  total: number;
+  page: number;
+  size: number;
+  formations: FormationImpactRow[];
+}
+
+export interface WhatIfRiskSummary {
+  score: number;
+  niveau: string;
+  tendance?: string;
+}
+
+export interface WhatIfDetail {
+  competence_id: number;
+  formation_id: number | null;
+  niveau_actuel: number;
+  niveau_requis: number;
+  niveau_vise: number;
+  gap_avant: number;
+  gap_apres: number;
+  urgence_apres: string;
+  resolu: boolean;
+}
+
+export interface WhatIfResponse {
+  enseignant_id: string;
+  horizon_mois: number;
+  risk_before: WhatIfRiskSummary;
+  risk_after: WhatIfRiskSummary;
+  risk_reduction: number;
+  nb_gaps_before: number;
+  nb_gaps_after: number;
+  nb_gaps_resolus: number;
+  details: WhatIfDetail[];
+}
+
+export interface WhatIfActionPayload {
+  competence_id: number;
+  niveau_vise: number;
+  formation_id?: number | null;
+}
+
+export interface WhatIfRequestPayload {
+  enseignant_id: string;
+  plan: WhatIfActionPayload[];
+  horizon_mois?: number;
 }
 
 export interface DsiError {

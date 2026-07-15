@@ -1,7 +1,13 @@
-import { List, Tag, Typography, Empty, Badge, Collapse, Button, Space, Tooltip } from "antd";
+import type { ReactNode } from "react";
+import { List, Tag, Typography, Empty, Badge, Collapse, Button, Space, Tooltip, Select } from "antd";
 import { CheckOutlined, StopOutlined, ArrowRightOutlined } from "@ant-design/icons";
-import { SEVERITE_COLORS, STATUT_ALERTE_COLORS, STATUT_ALERTE_LABELS, ALERT_STATUTS_OUVERTS } from "../constants";
-import type { AlertEvent, AlertUpdatePayload, TypeAlerte } from "../types";
+import { SEVERITE_COLORS, STATUT_ALERTE_COLORS, ALERT_STATUTS_OUVERTS, STATUT_ALERTE_LABELS } from "../constants";
+import type { AlertEvent, AlertUpdatePayload, StatutAlerte, TypeAlerte } from "../types";
+
+const STATUT_OPTIONS = (Object.keys(STATUT_ALERTE_LABELS) as StatutAlerte[]).map((s) => ({
+  value: s,
+  label: STATUT_ALERTE_LABELS[s],
+}));
 
 interface AlertCenterProps {
   alerts: AlertEvent[];
@@ -77,33 +83,42 @@ export default function AlertCenter({ alerts, loading, onUpdate, onSelectEnseign
             dataSource={list}
             renderItem={(a) => {
               const isOpen = ALERT_STATUTS_OUVERTS.includes(a.statut);
+              const actions: ReactNode[] = [
+                <Select
+                  key="statut"
+                  size="small"
+                  value={a.statut}
+                  style={{ width: 132 }}
+                  options={STATUT_OPTIONS}
+                  onChange={(s: StatutAlerte) => onUpdate?.(a.id, { statut: s })}
+                />,
+              ];
+              if (isOpen && onUpdate) {
+                actions.push(
+                  <Tooltip key="act" title={meta.action}>
+                    <Button
+                      size="small"
+                      type="primary"
+                      icon={<CheckOutlined />}
+                      onClick={() => onUpdate(a.id, { statut: "TRAITEE" })}
+                    >
+                      {verb}
+                    </Button>
+                  </Tooltip>,
+                );
+                actions.push(
+                  <Button
+                    key="ign"
+                    size="small"
+                    icon={<StopOutlined />}
+                    onClick={() => onUpdate(a.id, { statut: "IGNOREE" })}
+                  >
+                    Ignorer
+                  </Button>,
+                );
+              }
               return (
-                <List.Item
-                  actions={
-                    isOpen && onUpdate
-                      ? [
-                          <Tooltip key="act" title={meta.action}>
-                            <Button
-                              size="small"
-                              type="primary"
-                              icon={<CheckOutlined />}
-                              onClick={() => onUpdate(a.id, { statut: "LUE" })}
-                            >
-                              {verb}
-                            </Button>
-                          </Tooltip>,
-                          <Button
-                            key="ign"
-                            size="small"
-                            icon={<StopOutlined />}
-                            onClick={() => onUpdate(a.id, { statut: "IGNOREE" })}
-                          >
-                            Ignorer
-                          </Button>,
-                        ]
-                      : undefined
-                  }
-                >
+                <List.Item actions={actions}>
                   <List.Item.Meta
                     title={
                       <span>

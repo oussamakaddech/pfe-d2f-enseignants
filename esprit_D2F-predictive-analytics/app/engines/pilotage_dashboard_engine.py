@@ -178,7 +178,11 @@ class PilotageDashboardEngine:
         items = [
             {
                 "id": a.id,
+                "type_alerte": a.type_alerte,
+                "cible_type": a.cible_type,
+                "competence_id": a.competence_id,
                 "severite": a.severite,
+                "statut": a.statut,
                 "titre": a.titre,
                 "message": a.message,
                 "enseignant_id": a.enseignant_id,

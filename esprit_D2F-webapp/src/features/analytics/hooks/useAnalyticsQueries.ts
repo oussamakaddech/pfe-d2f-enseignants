@@ -13,6 +13,10 @@ import type {
   RecommendationsResponse,
   RiskHistoryResponse,
   RiskScore,
+  TrainingImpactResponse,
+  TrainingImpactTopFormationsResponse,
+  WhatIfRequestPayload,
+  WhatIfResponse,
   TrainingPath,
 } from "../types";
 
@@ -78,6 +82,31 @@ export function usePilotage(horizonMois?: number) {
   return useQuery<PilotageResponse>({
     queryKey: ["analytics", "pilotage", horizonMois],
     queryFn: () => analyticsApi.getPilotage(horizonMois),
+  });
+}
+
+// ── Impact des formations & simulation what-if (F8) ──
+export function useTrainingImpact() {
+  return useQuery<TrainingImpactResponse>({
+    queryKey: ["analytics", "training-impact"],
+    queryFn: () => analyticsApi.getTrainingImpact(),
+  });
+}
+
+export function useTrainingImpactFormations(page = 0, size = 10) {
+  return useQuery<TrainingImpactTopFormationsResponse>({
+    queryKey: ["analytics", "training-impact-formations", page, size],
+    queryFn: () => analyticsApi.getTrainingImpactFormations(page, size),
+  });
+}
+
+export function useWhatIfSimulation(enseignantId: string) {
+  const qc = useQueryClient();
+  return useMutation<WhatIfResponse, Error, WhatIfRequestPayload>({
+    mutationFn: (payload) => analyticsApi.simulateWhatIf({ ...payload, enseignant_id: enseignantId }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["analytics", "risk", enseignantId] });
+    },
   });
 }
 

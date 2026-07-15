@@ -6,14 +6,16 @@ export function Section({
   subtitle,
   children,
   extra,
+  id,
 }: {
   title: string;
   subtitle?: string;
   children: ReactNode;
   extra?: ReactNode;
+  id?: string;
 }) {
   return (
-    <section className="rd-section">
+    <section className="rd-section" id={id}>
       <div className="rd-section-head" style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
         <div>
           <h2 className="rd-section-title">{title}</h2>
@@ -37,6 +39,7 @@ export function Card({
   className = "",
   interactive = false,
   onClick,
+  loading = false,
 }: {
   title?: string;
   subtitle?: string;
@@ -48,6 +51,7 @@ export function Card({
   className?: string;
   interactive?: boolean;
   onClick?: () => void;
+  loading?: boolean;
 }) {
   return (
     <div
@@ -73,7 +77,7 @@ export function Card({
           {extra}
         </div>
       )}
-      {children}
+      {loading ? <div className="cd-skel" style={{ height: 220, marginTop: 4 }} /> : children}
     </div>
   );
 }

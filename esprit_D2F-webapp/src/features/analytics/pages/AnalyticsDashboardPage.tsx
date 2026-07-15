@@ -46,7 +46,7 @@ const KPI_DEFS: Record<string, string> = {
 
 /* ── Petite carte KPI « riche » (dégradé + bulle d'icône) ──────── */
 function RichKpi({
-  title, value, icon, tone, hint, loading, tooltip,
+  title, value, icon, tone, hint, loading, tooltip, onClick,
 }: {
   title: string;
   value: ReactNode;
@@ -55,9 +55,16 @@ function RichKpi({
   hint?: string;
   loading?: boolean;
   tooltip?: string;
+  onClick?: () => void;
 }) {
   return (
-    <div className={`ad-kpi ad-kpi--${tone}`}>
+    <div
+      className={`ad-kpi ad-kpi--${tone}${onClick ? " ad-kpi--clickable" : ""}`}
+      onClick={onClick}
+      role={onClick ? "button" : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onKeyDown={onClick ? (e) => { if (e.key === "Enter" || e.key === " ") onClick(); } : undefined}
+    >
       <div className="ad-kpi__icon">{icon}</div>
       <div className="ad-kpi__body">
         <div className="ad-kpi__title">
@@ -79,16 +86,17 @@ function RichKpi({
 
 /* ── Section « glass » réutilisable ──────────────────────────── */
 function Section({
-  title, icon, extra, children, loading,
+  title, icon, extra, children, loading, id,
 }: {
   title: string;
   icon?: ReactNode;
   extra?: ReactNode;
   children: ReactNode;
   loading?: boolean;
+  id?: string;
 }) {
   return (
-    <div className="ad-card">
+    <div className="ad-card" id={id}>
       <div className="ad-card__head">
         <span className="ad-card__title">
           <span className="ad-dot" />
@@ -119,6 +127,10 @@ export default function AnalyticsDashboardPage() {
   const [filters, setFilters] = useState<DashboardFilters>({});
   const [methodOpen, setMethodOpen] = useState(false);
   const [drill, setDrill] = useState<{ departement: string; competenceId: number; competenceNom: string } | null>(null);
+
+  /** Drill-down (F4) : un KPI ouvre la section pertinente du dashboard. */
+  const jump = (id: string) =>
+    document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
   const [theme, setTheme] = useState<"light" | "dark">("light");
   const navigate = useNavigate();
 
@@ -138,7 +150,9 @@ export default function AnalyticsDashboardPage() {
   const data = dashboard.data;
   const kpis = data?.kpis;
 
-  const hasRiskData = (data?.enseignants_a_risque?.length ?? 0) > 0;
+  const hasRiskData =
+    (data?.enseignants_a_risque?.length ?? 0) > 0 ||
+    (kpis?.nb_profils_risque ?? 0) > 0;
   const hasGaps = (data?.heatmap?.length ?? 0) > 0 || (data?.alertes_recentes?.length ?? 0) > 0;
 
   const departmentOptions = useMemo(() => {
@@ -313,19 +327,23 @@ export default function AnalyticsDashboardPage() {
       <Row gutter={[16, 16]} className="ad-kpi-row">
         <Col xs={12} md={6}>
           <RichKpi title="Enseignants monitorés" tone="primary" icon={<TeamOutlined />}
-            value={kpis?.nb_enseignants_suivis ?? 0} tooltip={KPI_DEFS["Enseignants suivis"]} loading={dashboard.isLoading} />
+            value={kpis?.nb_enseignants_suivis ?? 0} tooltip={KPI_DEFS["Enseignants suivis"]} loading={dashboard.isLoading}
+            onClick={() => jump("sec-atrisk")} />
         </Col>
         <Col xs={12} md={6}>
           <RichKpi title="Indice de risque moyen" tone="warning" icon={<LineChartOutlined />}
-            value={filteredRiskKpis.scoreMoyen.toFixed(2)} tooltip={KPI_DEFS["Score de risque moyen"]} loading={dashboard.isLoading} />
+            value={(kpis?.score_risque_moyen ?? filteredRiskKpis.scoreMoyen).toFixed(2)} tooltip={KPI_DEFS["Score de risque moyen"]} loading={dashboard.isLoading}
+            onClick={() => jump("sec-atrisk")} />
         </Col>
         <Col xs={12} md={6}>
           <RichKpi title="Gaps critiques (≥ 0,7)" tone="danger" icon={<AlertOutlined />}
-            value={filteredRiskKpis.gapsCritiques} hint="Fenêtre sélectionnée" tooltip={KPI_DEFS["Gaps critiques"]} loading={dashboard.isLoading} />
+            value={filteredRiskKpis.gapsCritiques} hint="Fenêtre sélectionnée" tooltip={KPI_DEFS["Gaps critiques"]} loading={dashboard.isLoading}
+            onClick={() => jump("sec-heatmap")} />
         </Col>
         <Col xs={12} md={6}>
           <RichKpi title="Alertes nouvelles" tone="info" icon={<WarningOutlined />}
-            value={kpis?.nb_alertes_nouvelles ?? 0} tooltip={KPI_DEFS["Alertes nouvelles"]} loading={dashboard.isLoading} />
+            value={kpis?.nb_alertes_nouvelles ?? 0} tooltip={KPI_DEFS["Alertes nouvelles"]} loading={dashboard.isLoading}
+            onClick={() => jump("sec-alertes")} />
         </Col>
       </Row>
 
@@ -333,19 +351,23 @@ export default function AnalyticsDashboardPage() {
       <Row gutter={[16, 16]} className="ad-kpi-row">
         <Col xs={12} md={6}>
           <RichKpi title="Taux de couverture" tone="success" icon={<RiseOutlined />}
-            value={`${(kpis?.taux_couverture_global ?? 0).toFixed(1)}%`} tooltip={KPI_DEFS["Taux de couverture"]} loading={dashboard.isLoading} />
+            value={`${(kpis?.taux_couverture_global ?? 0).toFixed(1)}%`} tooltip={KPI_DEFS["Taux de couverture"]} loading={dashboard.isLoading}
+            onClick={() => jump("sec-heatmap")} />
         </Col>
         <Col xs={12} md={6}>
           <RichKpi title="En régression" tone="warning" icon={<FallOutlined />}
-            value={kpis?.nb_regression ?? 0} tooltip={KPI_DEFS["En régression"]} loading={dashboard.isLoading} />
+            value={kpis?.nb_regression ?? 0} tooltip={KPI_DEFS["En régression"]} loading={dashboard.isLoading}
+            onClick={() => jump("sec-declin")} />
         </Col>
         <Col xs={12} md={6}>
           <RichKpi title="En stagnation (≥ 3 mois)" tone="warning" icon={<FallOutlined />}
-            value={kpis?.nb_stagnation ?? 0} tooltip={KPI_DEFS["En stagnation"]} loading={dashboard.isLoading} />
+            value={kpis?.nb_stagnation ?? 0} tooltip={KPI_DEFS["En stagnation"]} loading={dashboard.isLoading}
+            onClick={() => jump("sec-declin")} />
         </Col>
         <Col xs={12} md={6}>
           <RichKpi title="Alertes critiques ouvertes" tone="danger" icon={<AlertOutlined />}
-            value={kpis?.alertes_critiques_ouvertes ?? 0} tooltip={KPI_DEFS["Alertes critiques ouvertes"]} loading={dashboard.isLoading} />
+            value={kpis?.alertes_critiques_ouvertes ?? 0} tooltip={KPI_DEFS["Alertes critiques ouvertes"]} loading={dashboard.isLoading}
+            onClick={() => jump("sec-alertes")} />
         </Col>
       </Row>
 
@@ -359,7 +381,7 @@ export default function AnalyticsDashboardPage() {
       {/* ── Ligne 2 : à risque + répartition ─────── */}
       <Row gutter={[16, 16]}>
         <Col xs={24} lg={14}>
-          <Section title="Enseignants à risque (score ≥ 0,5)" icon={<SafetyCertificateOutlined />}
+          <Section id="sec-atrisk" title="Enseignants à risque (score ≥ 0,5)" icon={<SafetyCertificateOutlined />}
             extra={<Tag color={filteredAtRisk.length ? "red" : "default"}>{filteredAtRisk.length}</Tag>}
             loading={atRisk.isLoading}>
             <AtRiskTeachersTable teachers={filteredAtRisk} loading={atRisk.isLoading}
@@ -374,7 +396,7 @@ export default function AnalyticsDashboardPage() {
 
         {/* ── Ligne 3 : heatmap + compétences en déclin ─────── */}
         <Col xs={24} lg={14}>
-          <Section title="Cartographie des écarts — Département × Compétence" icon={<HeatMapOutlined />}
+          <Section id="sec-heatmap" title="Cartographie des écarts — Département × Compétence" icon={<HeatMapOutlined />}
             extra={<Tooltip title="Cliquez une cellule pour voir les enseignants impactés"><HeatMapOutlined style={{ color: "#c8102e" }} /></Tooltip>}
             loading={dashboard.isLoading}>
             {filteredHeatmap.length
@@ -384,7 +406,7 @@ export default function AnalyticsDashboardPage() {
           </Section>
         </Col>
         <Col xs={24} lg={10}>
-          <Section title="Compétences en décrochage" icon={<FallOutlined />} loading={declining.isLoading}>
+          <Section id="sec-declin" title="Compétences en décrochage" icon={<FallOutlined />} loading={declining.isLoading}>
             {declining.data?.length
               ? <DecliningSkillsChart skills={declining.data} loading={declining.isLoading} />
               : <div className="ad-empty"><Empty description="Aucune compétence en déclin détectée" /></div>}
@@ -393,7 +415,7 @@ export default function AnalyticsDashboardPage() {
 
         {/* ── Ligne 4 : alertes + tendances ─────── */}
         <Col xs={24} lg={12}>
-          <Section title="Alertes & signaux à traiter" icon={<WarningOutlined />}
+          <Section id="sec-alertes" title="Alertes & signaux à traiter" icon={<WarningOutlined />}
             extra={<Tag color="orange">{(alerts.data?.alerts ?? []).length}</Tag>}
             loading={alerts.isLoading}>
             <AlertCenter

@@ -33,6 +33,10 @@ import type {
   RetrainResponse,
   RiskHistoryResponse,
   RiskScore,
+  TrainingImpactResponse,
+  TrainingImpactTopFormationsResponse,
+  WhatIfRequestPayload,
+  WhatIfResponse,
   TrainingPath,
 } from "../types";
 
@@ -83,9 +87,18 @@ function mapDashboard(raw: any): DashboardResponse {
     nb_alertes: (p.critical ?? 0) + (p.high ?? 0),
   }));
 
-  // Répartition des risques dérivée de la liste enseignants_a_risque.
+  // Répartition des risques : priorité à la distribution réelle agrégée
+  // renvoyée par le backend (sur l'ensemble des profils de risque) — dérive
+  // sinon de la liste enseignants_a_risque (au-dessus du seuil « à risque »).
   const dist: Record<string, number> = { FAIBLE: 0, MODERE: 0, ELEVE: 0, CRITIQUE: 0 };
-  atRisk.forEach((t) => { dist[t.niveau_risque] = (dist[t.niveau_risque] ?? 0) + 1; });
+  if (Array.isArray(raw.distribution_risques) && raw.distribution_risques.length) {
+    (raw.distribution_risques as any[]).forEach((d) => {
+      const n: string = (d.niveau ?? "").toUpperCase();
+      if (n in dist) dist[n] += Number(d.count ?? 0);
+    });
+  } else {
+    atRisk.forEach((t) => { dist[t.niveau_risque] = (dist[t.niveau_risque] ?? 0) + 1; });
+  }
   const distribution = Object.entries(dist).map(([niveau, count]) => ({
     niveau: niveau as AtRiskTeacher["niveau_risque"],
     count,
@@ -100,6 +113,7 @@ function mapDashboard(raw: any): DashboardResponse {
     : raw;
   const kpis = {
     nb_enseignants_suivis: rawKpis.nb_enseignants_suivis ?? atRisk.length,
+    nb_profils_risque: rawKpis.nb_profils_risque ?? 0,
     score_risque_moyen:
       rawKpis.score_risque_moyen ??
       (atRisk.length ? atRisk.reduce((s, t) => s + t.score_risque, 0) / atRisk.length : 0),
@@ -306,6 +320,26 @@ export const analyticsApi = {
     return axios
       .patch<{ id: number; statut: string }>(`${BASE}/alerts/${id}`, payload)
       .then((r) => r.data);
+  },
+
+  // ── Impact des formations & simulation what-if (F8) ──
+  // Endpoint backend réel : GET /dashboard/training-impact (agrégats historiques).
+  getTrainingImpact(): Promise<TrainingImpactResponse> {
+    return axios.get<TrainingImpactResponse>(`${BASE}/dashboard/training-impact`).then((r) => r.data);
+  },
+
+  // Endpoint backend réel : GET /dashboard/training-impact/formations (top par impact).
+  getTrainingImpactFormations(page = 0, size = 10): Promise<TrainingImpactTopFormationsResponse> {
+    return axios
+      .get<TrainingImpactTopFormationsResponse>(`${BASE}/dashboard/training-impact/formations`, {
+        params: { page, size },
+      })
+      .then((r) => r.data);
+  },
+
+  // Endpoint backend réel : POST /simulate/what-if (projection "et si on formait X").
+  simulateWhatIf(payload: WhatIfRequestPayload): Promise<WhatIfResponse> {
+    return axios.post<WhatIfResponse>(`${BASE}/simulate/what-if`, payload).then((r) => r.data);
   },
 
   // ── Monitoring modèle ───────────────────────────────

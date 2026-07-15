@@ -668,13 +668,36 @@ class DashboardEngine:
             .scalar() or 0
         )
 
-        # Score de risque moyen proxy = gap moyen pondéré par les gaps critiques.
-        avg_gap = (
-            self.db.query(func.avg(SkillGap.gap_score))
-            .filter(SkillGap.computed_at >= self._cutoff)
-            .scalar()
-        )
-        score_risque_moyen = round(float(avg_gap or 0.0), 2)
+        # Score de risque moyen : priorité au score réel agrégé des profils de
+        # risque (calculés par le pipeline). Fallback proxy = gap moyen pondéré
+        # par les gaps critiques, quand aucun profil n'est encore disponible.
+        nb_profils = self.db.query(func.count(TeacherRiskProfile.id)).scalar() or 0
+        if nb_profils:
+            score_from_profiles = (
+                self.db.query(func.avg(TeacherRiskProfile.score_risque)).scalar()
+            )
+            score_risque_moyen = round(float(score_from_profiles or 0.0), 2)
+            # Distribution par niveau de risque sur l'ensemble des profils
+            # (pas seulement les profils au-dessus du seuil « à risque » 0,5).
+            dist_rows = (
+                self.db.query(
+                    TeacherRiskProfile.niveau_risque,
+                    func.count(TeacherRiskProfile.id),
+                )
+                .group_by(TeacherRiskProfile.niveau_risque)
+                .all()
+            )
+            distribution_risques = [
+                {"niveau": (n or "FAIBLE"), "count": int(c)} for n, c in dist_rows
+            ]
+        else:
+            avg_gap = (
+                self.db.query(func.avg(SkillGap.gap_score))
+                .filter(SkillGap.computed_at >= self._cutoff)
+                .scalar()
+            )
+            score_risque_moyen = round(float(avg_gap or 0.0), 2)
+            distribution_risques = []
 
         # Taux de couverture global (couples enseignant×compétence au niveau requis).
         cov = (
@@ -733,7 +756,9 @@ class DashboardEngine:
 
         return {
             "nb_enseignants_suivis":              int(nb_suivis),
+            "nb_profils_risque":                 int(nb_profils),
             "score_risque_moyen":                 score_risque_moyen,
+            "distribution_risques":               distribution_risques,
             "nb_gaps_critiques":                  int(nb_gaps_critiques),
             "nb_alertes_nouvelles":               int(nb_alertes),
             "taux_couverture_global":             taux_couverture,

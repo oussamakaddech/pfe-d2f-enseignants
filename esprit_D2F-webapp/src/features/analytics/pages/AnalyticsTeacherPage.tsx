@@ -9,6 +9,8 @@ import {
   useTeacherRisk,
   useTeacherTrainingPath,
   useRiskHistory,
+  useAlerts,
+  useUpdateAlert,
 } from "../hooks/useAnalyticsQueries";
 import {
   RiskScoreCard,
@@ -17,6 +19,8 @@ import {
   RecommendationsList,
   TrainingPathStepper,
   RiskHistoryChart,
+  ImpactPanel,
+  AlertCenter,
 } from "../components";
 import { URGENCE_COLORS } from "../constants";
 import { AppPageHeader } from "@/components/common";
@@ -127,11 +131,40 @@ export default function AnalyticsTeacherPage() {
               label: "Historique du risque",
               children: <RiskHistoryChart points={history.data?.points ?? []} loading={history.isLoading} />,
             },
+            {
+              key: "impact",
+              label: "Impact estimé",
+              children: (
+                <ImpactPanel
+                  enseignantId={enseignantId}
+                  gaps={gaps.data?.gaps ?? []}
+                  recommendations={recos.data?.recommendations ?? []}
+                />
+              ),
+            },
+            {
+              key: "alertes",
+              label: "Alertes",
+              children: <TeacherAlerts enseignantId={enseignantId} />,
+            },
           ]}
         />
       </Card>
 
       {loading && <div style={{ marginTop: 16 }} />}
     </div>
+  );
+}
+
+/** Onglet Alertes de l'enseignant (F2) : cycle de vie + action contextuelle. */
+function TeacherAlerts({ enseignantId }: { enseignantId: string }) {
+  const { data, isLoading } = useAlerts({ enseignant_id: enseignantId });
+  const update = useUpdateAlert();
+  return (
+    <AlertCenter
+      alerts={data?.alerts ?? []}
+      loading={isLoading}
+      onUpdate={(id, payload) => update.mutate({ id, payload })}
+    />
   );
 }
